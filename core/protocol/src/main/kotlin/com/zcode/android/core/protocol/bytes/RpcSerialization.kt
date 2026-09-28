@@ -245,4 +245,4 @@ object RpcJson {
 }
 
 /** Typed failure for structurally invalid wire input — callers resync, never guess (INV-14). */
-class ProtocolException(message: String) : Exception(message)
+open class ProtocolException(message: String) : Exception(message)

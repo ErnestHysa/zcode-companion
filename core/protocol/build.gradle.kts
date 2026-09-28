@@ -8,7 +8,9 @@ kotlin {
 }
 
 dependencies {
+    api(project(":core:common"))
     api(libs.kotlinx.serialization.json)
+    api(libs.kotlinx.coroutines.core)
     testImplementation(libs.kotlin.test)
     testImplementation(libs.junit)
 }
