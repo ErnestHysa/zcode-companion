@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- §12.4: credentials excluded from Android backup; §26.2-T6: projection caches too.
+     Phase 3 scope = credential store only; exclude everything until Phase 4 decides
+     per-store policy (drafts may be re-included with an ADR then). -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="." />
+    </device-transfer>
+</data-extraction-rules>

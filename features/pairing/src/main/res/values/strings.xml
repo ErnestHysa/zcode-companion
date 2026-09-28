@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- §31: all strings externalized from day one. -->
+<resources>
+    <string name="pairing_title">ZCode Companion</string>
+    <string name="welcome_heading">Control ZCode from your phone</string>
+    <string name="welcome_explainer">This app pairs with the ZCode desktop app on your computer. Pairing grants the app the same control as the desktop\u2019s phone remote: view tasks and conversations, stream agent output, and approve or deny permission requests.\n\nWhat leaves your phone: only the traffic needed to talk to your paired desktop, through the ZCode relay (or a server you configure later). Nothing else — no analytics, no tracking.\n\nKeep the pairing link private: anyone holding it can operate your desktop window.</string>
+    <string name="welcome_resumed_with">Paired with %1$s</string>
+    <string name="action_scan_qr">Scan QR code</string>
+    <string name="action_enter_link">Paste pairing link</string>
+    <string name="action_connect">Connect</string>
+    <string name="action_unpair">Unpair this device</string>
+    <string name="camera_needed_title">Camera permission needed</string>
+    <string name="camera_needed_rationale">Scanning the QR code shown by ZCode desktop requires the camera. You can also paste the pairing link instead — the desktop\u2019s remote-control dialog offers \u201cCopy the link\u201d.</string>
+    <string name="action_grant_camera">Try again</string>
+    <string name="action_use_manual">Enter link instead</string>
+    <string name="scan_title">Scan the pairing QR</string>
+    <string name="scan_hint">Open ZCode desktop → Remote Control → point the camera at the QR code.</string>
+    <string name="manual_title">Paste the pairing link</string>
+    <string name="manual_hint">Desktop → Remote Control → Copy the link, then paste it here.</string>
+    <string name="manual_field_label">Pairing link</string>
+    <string name="action_validate">Continue</string>
+    <string name="validating_title">Validating pairing link…</string>
+    <string name="rejected_title">This is not a valid ZCode pairing link</string>
+    <string name="rejected_format">Nothing was saved. Check that you copied the full link from the desktop\u2019s Remote Control dialog and try again.</string>
+    <string name="stale_title">This QR code may be stale</string>
+    <string name="stale_detail">The link was generated more than 10 minutes ago. It usually still works — but if pairing fails, refresh the QR on the desktop and scan again.</string>
+    <string name="action_continue_anyway">Continue anyway</string>
+    <string name="action_rescan">Scan again</string>
+    <string name="compat_blocked_title">Desktop version not supported</string>
+    <string name="compat_blocked_detail">The desktop app reports version %1$s. This app supports ZCode desktop %2$s or newer. Update the desktop app and regenerate the QR code.</string>
+    <string name="compat_above_title">Untested desktop version</string>
+    <string name="compat_above_detail">The desktop reports version %1$s, newer than the newest version this app was tested against (%2$s). Pairing will probably work; the app checks the protocol version during connection.</string>
+    <string name="setup_title">Security setup</string>
+    <string name="setup_body">Your pairing credential will be sealed with hardware-backed encryption on this device. It never leaves the device except to answer the relay\u2019s authentication challenges.</string>
+    <string name="setup_biometric_offer">This device supports biometric unlock. You can require it when revealing or removing the pairing credential.</string>
+    <string name="setup_biometric_enable">Require biometric unlock</string>
+    <string name="setup_no_lock_title">No screen lock detected</string>
+    <string name="setup_no_lock_detail">This device has no secure lock screen, so the sealed credential is only as safe as this device. You can continue with reduced security, or set a screen lock in Android settings and pair afterwards.</string>
+    <string name="action_accept_reduced">Continue with reduced security</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="connecting_title">Connecting to your desktop…</string>
+    <string name="connecting_detail">Authenticating with the pairing credential. This usually takes a few seconds.</string>
+    <string name="connect_failed_retry_title">Couldn\u2019t reach the desktop</string>
+    <string name="connect_failed_repair_title">Pairing failed — the link was rejected</string>
+    <string name="connect_failed_repair_detail">The relay rejected this pairing link. It may have been refreshed or revoked on the desktop. Generate a fresh QR code and scan it again.</string>
+    <string name="action_retry">Retry</string>
+    <string name="takenover_title">Connected elsewhere</string>
+    <string name="takenover_detail">Another ZCode Remote page or device took over the connection — the desktop allows one at a time. You can reconnect, which takes the connection back.</string>
+    <string name="action_takeover_back">Reconnect (takes over back)</string>
+    <string name="action_dismiss">Dismiss</string>
+    <string name="connected_title">Paired</string>
+    <string name="connected_detail">Connected to %1$s. Task and conversation surfaces arrive in a later build — pairing, security and recovery are active.</string>
+    <string name="unpair_title">Unpair this device?</string>
+    <string name="unpair_detail">This deletes the pairing credential and all key material on this phone. Also press Stop in the desktop\u2019s Remote Control dialog — closing the dialog does not stop remote control.</string>
+    <string name="action_unpair_confirm">Unpair and wipe</string>
+</resources>

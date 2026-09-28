@@ -19,3 +19,11 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
 }
+
+/** Host-side launcher for manual/device E2E (`gradle :tools:mockzcode:mockRelayServer`). */
+tasks.register("mockRelayServer", JavaExec::class) {
+    group = "verification"
+    description = "Runs MockZCode on a local port for on-device pairing E2E (INV-15: synthetic only)."
+    mainClass = "com.zcode.android.tools.mockzcode.MockRelayMainKt"
+    classpath = sourceSets["main"].runtimeClasspath
+}

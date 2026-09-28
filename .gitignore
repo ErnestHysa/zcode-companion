@@ -23,3 +23,4 @@ tools/capture/package-lock.json
 
 # OS
 .DS_Store
+local.properties

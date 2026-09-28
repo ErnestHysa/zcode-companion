@@ -39,6 +39,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -932,7 +933,24 @@ class RelayTransport(
 
     private suspend fun openBridgeInternal(): BridgeInfo {
         val endpoint = endpoint ?: error("no endpoint")
-        val workspaceKey = endpoint.workspaceKey ?: error("relay endpoint needs workspaceKey for the bridge")
+        // §9.5 pairing completion: when no workspace is pinned on the endpoint (the
+        // standard first-pair path), discover the ACTIVE workspace over the control
+        // plane (Q9-verified shape: workspace-list-response {workspaces[],
+        // activeWorkspaceKey}) before opening the bridge.
+        var workspaceKey = endpoint.workspaceKey
+        var workspacePath = endpoint.workspacePath
+        if (workspaceKey == null) {
+            val response = workspaceList()
+            val result = response["result"] as? JsonObject
+                ?: throw Failure(ErrorMapping.protocolFault("workspace-list-response without result"))
+            val workspaces = result["workspaces"] as? JsonArray ?: JsonArray(emptyList())
+            val active = (result["activeWorkspaceKey"] as? JsonPrimitive)?.content
+                ?: ((workspaces.firstOrNull() as? JsonObject)?.get("workspaceKey") as? JsonPrimitive)?.content
+                ?: throw Failure(ErrorMapping.protocolFault("workspace-list has no workspaces"))
+            workspaceKey = active
+            workspacePath = ((workspaces.firstOrNull() as? JsonObject)?.get("workspacePath") as? JsonPrimitive)?.content
+                ?: endpoint.workspacePath
+        }
         val requestId = nextRequestId()
         val open = com.zcode.android.core.protocol.relay.WorkspaceBridgeOpen(
             requestId = requestId,
@@ -952,7 +970,7 @@ class RelayTransport(
         (response["bridgeGeneration"] as? JsonPrimitive)?.content?.toIntOrNull()?.let { bridgeGeneration = it }
         return BridgeInfo(
             workspaceKey = workspaceKey,
-            workspacePath = (bridge["workspacePath"] as? JsonPrimitive)?.content ?: "",
+            workspacePath = (bridge["workspacePath"] as? JsonPrimitive)?.content ?: workspacePath ?: "",
             initialTaskId = (bridge["initialTaskId"] as? JsonPrimitive)?.content,
         )
     }
