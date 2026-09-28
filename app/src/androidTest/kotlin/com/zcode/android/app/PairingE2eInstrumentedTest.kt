@@ -8,7 +8,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.zcode.android.app.security.FileCredentialStore
 import com.zcode.android.core.common.log.ZLog
 import com.zcode.android.core.security.pairing.PairingLink
 import com.zcode.android.core.security.vault.AndroidKeystoreKeyWrap
@@ -57,7 +56,9 @@ class PairingE2eInstrumentedTest {
     private fun targetContext(): Context = InstrumentationRegistry.getInstrumentation().targetContext
 
     private fun wipeAll(context: Context) {
-        val store = FileCredentialStore(context)
+        // Phase 4.6 binding: production credential storage is the DataStore-proto
+        // envelope store (ADR-008) — wipe through the SAME store the app seals into.
+        val store = AppStores.get(context).credentialStore
         val vault = CredentialVault(store, AndroidKeystoreKeyWrap(biometricBound = false), ZLog(sink = {}))
         vault.wipe()
         val ks = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
@@ -125,7 +126,7 @@ class PairingE2eInstrumentedTest {
         waitForTag("unpair-confirm")
         rule.onNodeWithTag("unpair-confirm").performClick()
         waitForTag("start-scan")
-        val store = FileCredentialStore(targetContext())
+        val store = AppStores.get(targetContext()).credentialStore
         assertTrue("credential blobs must be wiped", store.listNames().isEmpty())
         val ks = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
         assertFalse("master key must be destroyed", ks.containsAlias("zcode-vault-master"))
@@ -148,7 +149,9 @@ class PairingE2eInstrumentedTest {
 
         // §12.2 step-4 classification on-device: sealing the same sid again = ROTATION
         // (rotation continuity/vectors are JVM-proven in CredentialVaultTest).
-        val store = FileCredentialStore(targetContext())
+        // Inspect through the PRODUCTION binding (Phase 4.6 swap): the UI sealed into
+        // the DataStore-proto store; the assertions below are unchanged.
+        val store = AppStores.get(targetContext()).credentialStore
         val vault = CredentialVault(store, AndroidKeystoreKeyWrap(biometricBound = false), ZLog(sink = {}))
         val rotatedHash = java.util.Base64.getEncoder().encodeToString(ByteArray(32) { (it + 5).toByte() })
         val linkA = PairingLink(

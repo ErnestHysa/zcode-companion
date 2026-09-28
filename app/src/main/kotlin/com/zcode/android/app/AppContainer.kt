@@ -2,7 +2,6 @@ package com.zcode.android.app
 
 import androidx.fragment.app.FragmentActivity
 import com.zcode.android.app.pairing.DefaultPairingPort
-import com.zcode.android.app.security.FileCredentialStore
 import com.zcode.android.core.common.log.ZLog
 import com.zcode.android.core.security.biometric.AndroidBiometricGate
 import com.zcode.android.core.security.pairing.PairingLinkParser
@@ -16,6 +15,9 @@ import com.zcode.android.core.transport.RelayTransport
  * is constructed HERE; the UI never sees any of it except through the port (§26.3).
  * Created once per activity lifetime; the pairing flow survives process death through
  * the sealed credential (§15-S2 full journal is Phase 4/5).
+ *
+ * Phase 4 (§43.2): the §12.4 credential-envelope binding is the DataStore-proto store
+ * (ADR-008); Room/DataStore singletons live in the process-scoped [AppStores] holder.
  */
 class AppContainer(activity: FragmentActivity) {
 
@@ -35,7 +37,7 @@ class AppContainer(activity: FragmentActivity) {
         },
     )
 
-    val credentialStore = FileCredentialStore(activity)
+    val credentialStore = AppStores.get(activity).credentialStore
     val keyWrap = AndroidKeystoreKeyWrap(biometricBound = false)
     val vault = CredentialVault(credentialStore, keyWrap, log)
     val gate = AndroidBiometricGate(activity)
@@ -48,6 +50,9 @@ class AppContainer(activity: FragmentActivity) {
         transport = transport,
         log = log,
     )
+
+    /** Phase 4 persistence (§43.2): process-scoped Room + DataStore stores/repositories. */
+    val stores: AppStores = AppStores.get(activity)
 
     companion object {
         const val LOG_TAG = "ZCODE-PAIR"

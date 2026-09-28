@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package zcode.android.data;
+
+option java_package = "com.zcode.android.data.proto";
+option java_multiple_files = true;
+
+// Endpoint descriptors (§11.3/§16) — metadata ONLY; credential material never lives
+// here (§12.4: sealed envelopes live behind the core:security CredentialStore port).
+// §32.3: additive-first — new fields optional, never renumbered; all scalars use
+// `optional` so presence is tracked and unset fields fall back to domain defaults.
+message EndpointDescriptorProto {
+  optional string endpoint_id = 1;
+  optional string kind = 2; // RELAY_ZAI | DIRECT_SERVER
+  optional string display_name = 3;
+  optional string ws_url = 4;
+  optional int64 paired_at_ms = 5;
+  optional string device_sid = 6;
+  optional string device_mid = 7;
+  optional string desktop_app_version = 8;
+  repeated string candidates = 9;
+  optional string workspace_path = 10; // display-only (INV-12/16)
+  optional string workspace_identity = 11;
+  optional int64 last_healthy_at_ms = 12;
+}
+
+message EndpointStoreProto {
+  optional int32 schema_version = 1;
+  repeated EndpointDescriptorProto endpoints = 2;
+}
+
+// §17.2/§27 preferences — defaults applied at the domain-mapper level (§32.3).
+message AppPreferencesProto {
+  optional int32 schema_version = 1;
+  optional string notification_content_level = 2; // MINIMAL | CONTENT
+  optional bool screenshot_protection = 3;
+  optional bool conversation_cache_enabled = 4;
+}

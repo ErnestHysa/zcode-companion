@@ -54,6 +54,7 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:security"))
     implementation(project(":core:transport"))
+    implementation(project(":data"))
     implementation(project(":features:pairing"))
     implementation(libs.kotlinx.coroutines.android)
     implementation(platform(libs.compose.bom))
@@ -62,6 +63,7 @@ dependencies {
     implementation(libs.activity.compose)
     // MockZCode is TEST-ONLY: it must never enter a shipped artifact (INV-15).
     androidTestImplementation(project(":tools:mockzcode"))
+    androidTestImplementation(project(":core:security"))
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.compose.ui.test.junit4)
