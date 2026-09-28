@@ -78,6 +78,7 @@ dependencies {
     api(libs.datastore.preferences)
     api(libs.protobuf.javalite)
     implementation(project(":core:security")) // DataStore credential-store binding (§12.4)
+    implementation(project(":core:transport")) // §40.2 DATA→TRANS allowed edge: the Phase 5 recovery subsystem binds the session API (§17.1)
 
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.junit)
@@ -85,4 +86,5 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.room.testing)
+    testImplementation(project(":tools:mockzcode")) // §35.4 test tooling only — never shipped (INV-15)
 }

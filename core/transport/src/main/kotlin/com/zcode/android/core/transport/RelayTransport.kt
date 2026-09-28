@@ -40,6 +40,7 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -446,11 +447,16 @@ class RelayTransport(
 
     override fun reconnectNow() {
         kicked = false
-        reconnect.requestImmediate()
         if (machine.state == ConnectionStateMachine.ConnectionState.DEGRADED) {
+            // §14.4.1 Degraded → (manual retry / network restored) → Reconnecting: the
+            // attempt budget bounds AUTOMATIC retrying; an explicit user action opens a
+            // fresh budget (otherwise the retry could never leave Degraded — §11.5
+            // "attempt budget then degraded state (user action available)").
+            reconnect.reset()
             runCatching { machine.on(ConnectionStateMachine.ConnectionEvent.RETRY_REQUESTED) }
             publishState()
         }
+        reconnect.requestImmediate()
         if (machine.state == ConnectionStateMachine.ConnectionState.RECONNECTING) {
             scope.launch { runCatching { recover() } }
         }
@@ -882,6 +888,39 @@ class RelayTransport(
     suspend fun rowsRange(params: RowsRangeParams): RowsRangeResult =
         rowsRange(params.sessionId, params.beforeRowId, params.limit)
 
+    /**
+     * v4/conversation/resync — the Phase 5.3 recovery escalation (§15.1/S8/S10):
+     * `base` resumes from a watermark, `base=null`/`forceSnapshot=true` forces a
+     * snapshot. Workspace-target param form, mirroring the live-proven subscribe
+     * shape (the trusted host injects topic/connectionId — docs/protocol/v4-wire.md
+     * §4). The exact phone-facing resync shape on the PRODUCTION relay is
+     * `[REQUIRES VALIDATION]` (verified schema shape carried; MockZCode implements
+     * both forms) — live validation rides the Phase-12 manual canary.
+     */
+    suspend fun resyncSession(
+        sessionId: String,
+        base: Pair<String, Long>?,
+        forceSnapshot: Boolean = false,
+    ): SubscribeAck {
+        val endpoint = endpoint ?: throw Failure(ErrorMapping.internal("no endpoint"))
+        val params = buildJsonObject {
+            put("workspacePath", JsonPrimitive(endpoint.workspacePath ?: ""))
+            endpoint.workspaceIdentity?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("sessionId", JsonPrimitive(sessionId))
+            if (base == null) put("base", JsonNull) else put("base", buildJsonObject {
+                put("logEpoch", JsonPrimitive(base.first))
+                put("seq", JsonPrimitive(base.second))
+            })
+            if (forceSnapshot) put("forceSnapshot", JsonPrimitive(true))
+        }
+        val raw = v4Call("resyncConversationV4", RpcValue.Obj(params))
+        val obj = (raw as? RpcValue.Obj)?.json as? JsonObject
+            ?: throw Failure(ErrorMapping.protocolFault("resync result not an object"))
+        val ackObj = obj["ack"] as? JsonObject
+            ?: throw Failure(ErrorMapping.protocolFault("resync ack missing"))
+        return SubscribeAck.decode(ackObj)
+    }
+
     /** Send a v4 command envelope (CAS-validated at build time, INV-4 idempotent). */
     suspend fun sendConversationCommand(envelope: CommandEnvelope): CommandAck {
         val raw = v4Call("sendConversationCommandV4", RpcValue.Obj(envelope.encode()))
@@ -998,6 +1037,14 @@ class RelayTransport(
     fun setRecoveryIdForRecoveryDrill(id: String) {
         recoveryId = id
     }
+
+    /**
+     * Server-acked logEpoch for a subscribed session — updated by EVERY subscribe
+     * (including the internal recovery re-subscribe, whose ack carries a possibly
+     * moved epoch, §15-S9). Read-only view for the projection gateway's frame stamping.
+     */
+    fun subscriptionEpoch(sessionId: String): String? =
+        subscriptions[V4Topics.conversation(sessionId)]?.logEpoch
 
     private fun publishState() {
         _states.value = machine.state

@@ -1,0 +1,211 @@
+package com.zcode.android.data.session
+
+import com.zcode.android.core.common.log.ZLog
+import com.zcode.android.domain.ids.EndpointId
+import com.zcode.android.domain.ids.SessionId
+import com.zcode.android.domain.model.ConversationRow
+import com.zcode.android.domain.reducer.ConversationTopicReducer
+import com.zcode.android.domain.repo.ConversationRepository
+import com.zcode.android.domain.repo.ConversationStoreOp
+import com.zcode.android.domain.state.TaskStateMachine
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+/**
+ * Per-session projection driver — Phase 5.1/5.2 integration (§19.2 pipeline:
+ * "domain events → coalescer → state store"; §28.5 "single-writer per topic").
+ *
+ * SINGLE-WRITER discipline (§28.5): all state mutations enter through [handle] /
+ * [checkHold], which serialize on a per-topic mutex — the two entry points are the
+ * message-passing sources (event collector + hold ticker), the mutex preserves the
+ * one-writer invariant. No shared mutable collection is touched without it.
+ *
+ * Responsibilities: run the (logEpoch, seq) stale-guard reducer, persist its store
+ * effects through the conversation cache, advance the recovery journal watermark
+ * after durability, feed the §14.4.2 task machine from authoritative turnHeader rows
+ * (desktop wins — INV-1: an event-class refusal escalates to the authoritative
+ * snapshot path, never a local fabrication), and surface the stale overlay.
+ */
+class ConversationSessionManager(
+    val sessionId: SessionId,
+    private val endpointId: EndpointId,
+    private val store: ConversationRepository,
+    private val journalSink: suspend (topic: String, sessionId: String, afterSeq: Long, logEpoch: String) -> Unit,
+    private val escalate: suspend (reason: String, baseEpoch: String?, baseSeq: Long?) -> Unit,
+    private val onSnapshotApplied: suspend (rows: List<ConversationRow>) -> Unit = {},
+    private val clock: () -> Long = System::currentTimeMillis,
+    private val log: ZLog = ZLog(),
+    config: ConversationTopicReducer.Config = ConversationTopicReducer.Config(),
+) {
+
+    private val reducer = ConversationTopicReducer(sessionId, clock, config)
+    private val mutex = Mutex()
+    private val taskMachine = TaskStateMachine()
+    private val topic = "conversation/${sessionId.raw}"
+
+    private val _stale = MutableStateFlow(false)
+    /** §14.4.2 Disconnected overlay — labeled staleness, never silent stale data (§2.5-5). */
+    val stale: StateFlow<Boolean> = _stale.asStateFlow()
+
+    private val _taskState = MutableStateFlow(TaskStateMachine.State.UNKNOWN)
+    val taskState: StateFlow<TaskStateMachine.State> = _taskState.asStateFlow()
+
+    /** Rows of the most recent authoritative snapshot (S13 interaction reconcile input). */
+    @Volatile
+    var lastSnapshotRows: List<ConversationRow> = emptyList()
+        private set
+
+    // ---------------------------------------------------------------- entry points
+
+    suspend fun handle(event: GatewayTopicEvent) = mutex.withLock {
+        when (event) {
+            is GatewayTopicEvent.Snapshot -> handleSnapshot(event)
+            is GatewayTopicEvent.Deltas -> handleDeltas(event)
+            is GatewayTopicEvent.DecodeFaulted -> escalate("decode fault: ${event.reason.take(80)}", null, null)
+        }
+    }
+
+    /** Hold-window tick (S8): the ticker's only job; serialized with the collector. */
+    suspend fun checkHold() = mutex.withLock {
+        applyEffects(reducer.onHoldExpired())
+    }
+
+    /** S2 journal restore: seed the cursor BEFORE any frame is applied. */
+    fun hydrate(logEpoch: String, seq: Long) {
+        reducer.adoptEpoch(logEpoch, floorSeq = seq)
+    }
+
+    /** §14.4.2 overlay control (driven by the transport state machine). */
+    fun setStale(flag: Boolean) {
+        _stale.value = flag
+        if (flag) taskMachine.markStale() else taskMachine.markFresh()
+        _taskState.value = taskMachine.state
+    }
+
+    // ---------------------------------------------------------------- transitions
+
+    private suspend fun handleSnapshot(e: GatewayTopicEvent.Snapshot) {
+        log.debug("manager.snapshot", "session=${sessionId.raw} rows=${e.rows.size} epoch=${e.logEpoch.take(24)}")
+        lastSnapshotRows = e.rows
+        applyEffects(reducer.onSnapshot(TopicSnapshotOf(e)))
+        observeRowsForTaskState(e.rows)
+        onSnapshotApplied(e.rows)
+    }
+
+    private suspend fun handleDeltas(e: GatewayTopicEvent.Deltas) {
+        val effects = reducer.onDeltas(TopicDeltasOf(e))
+        applyEffects(effects)
+        // Task-machine observations ride the applied ops (authoritative turnHeader rows).
+        for (effect in effects) {
+            if (effect is ConversationTopicReducer.Effect.Persist) {
+                for (op in effect.ops) {
+                    if (op is ConversationStoreOp.RowUpserted) observeRowForTaskState(op.row)
+                }
+            }
+        }
+    }
+
+    private suspend fun applyEffects(effects: List<ConversationTopicReducer.Effect>) {
+        var escalateRequest: Pair<String, Pair<String, Long>?>? = null
+        for (effect in effects) {
+            when (effect) {
+                is ConversationTopicReducer.Effect.Persist -> {
+                    for (op in effect.ops) {
+                        val result = store.apply(op)
+                        // Store-level epoch rejection = generation skew — escalate rather
+                        // than merge (§15-S9/S10; the store rejected with zero mutation).
+                        if (result is com.zcode.android.domain.repo.StoreApplyResult.EpochRejected) {
+                            escalateRequest = "store epoch reject (cached=${result.currentEpoch.take(24)})" to null
+                        }
+                    }
+                }
+                is ConversationTopicReducer.Effect.CursorAdvanced ->
+                    journalSink(topic, sessionId.raw, effect.seq, effect.epoch)
+                is ConversationTopicReducer.Effect.EpochAdopted -> Unit // manager applies via adoptEpoch
+                is ConversationTopicReducer.Effect.StreamingCleared,
+                is ConversationTopicReducer.Effect.StreamingTrimmedFrom,
+                is ConversationTopicReducer.Effect.StreamingUpserted,
+                -> Unit // derived streaming state lives in the reducer; UI consumers arrive Phase 6
+                is ConversationTopicReducer.Effect.EscalateResync -> {
+                    escalateRequest = effect.reason to effect.base?.let { it.logEpoch to it.seq }
+                }
+            }
+        }
+        _taskState.value = taskMachine.state
+        escalateRequest?.let { (reason, base) -> escalate(reason, base?.first, base?.second) }
+    }
+
+    // ---------------------------------------------------------------- task machine (§14.4.2)
+
+    private fun observeRowsForTaskState(rows: List<ConversationRow>) {
+        val latestTurn = rows.filterIsInstance<ConversationRow.TurnHeader>().maxByOrNull { it.createdAtSeq }
+        latestTurn?.let { observeTurnState(it.state, authoritative = true) }
+        _taskState.value = taskMachine.state
+    }
+
+    private fun observeRowForTaskState(row: ConversationRow) {
+        if (row is ConversationRow.TurnHeader) observeTurnState(row.state, authoritative = false)
+    }
+
+    /**
+     * Authoritative turnHeader state → machine event (INV-1: desktop wins). Event-class
+     * illegal transitions (the §14.4.2 overlay protections) escalate to the snapshot
+     * path — an authoritative observation REPLACES the overlay, it never merges.
+     */
+    private fun observeTurnState(state: ConversationRow.TurnState, authoritative: Boolean) {
+        try {
+            when (state) {
+                ConversationRow.TurnState.RUNNING -> {
+                    if (taskMachine.state in setOf(
+                            TaskStateMachine.State.UNKNOWN, TaskStateMachine.State.LOADING,
+                            TaskStateMachine.State.IDLE,
+                        )
+                    ) {
+                        taskMachine.applySnapshot(TaskStateMachine.State.RUNNING)
+                    }
+                }
+                ConversationRow.TurnState.COMPLETED_SUCCESS, ConversationRow.TurnState.COMPLETED_INTERRUPTED ->
+                    taskMachine.on(TaskStateMachine.Event.TurnCompleted)
+                ConversationRow.TurnState.FAILED -> taskMachine.on(TaskStateMachine.Event.TurnFailed)
+                ConversationRow.TurnState.UNKNOWN -> Unit
+            }
+        } catch (e: TaskStateMachine.IllegalTaskTransition) {
+            if (authoritative) {
+                taskMachine.applySnapshot(mapTurnToTaskState(state))
+                log.warn("task.authoritativeReplace", e.message?.take(80))
+            } else {
+                log.warn("task.eventRefused", e.message?.take(80)) // overlay protections hold
+            }
+        }
+    }
+
+    private fun mapTurnToTaskState(state: ConversationRow.TurnState): TaskStateMachine.State = when (state) {
+        ConversationRow.TurnState.RUNNING -> TaskStateMachine.State.RUNNING
+        ConversationRow.TurnState.COMPLETED_SUCCESS, ConversationRow.TurnState.COMPLETED_INTERRUPTED ->
+            TaskStateMachine.State.COMPLETED
+        ConversationRow.TurnState.FAILED -> TaskStateMachine.State.FAILED
+        ConversationRow.TurnState.UNKNOWN -> TaskStateMachine.State.UNKNOWN
+    }
+
+    // ---------------------------------------------------------------- mapping helpers
+
+    private fun TopicSnapshotOf(e: GatewayTopicEvent.Snapshot): com.zcode.android.domain.reducer.TopicEvent.Snapshot =
+        com.zcode.android.domain.reducer.TopicEvent.Snapshot(
+            topic = e.topic, sessionId = e.sessionId, logEpoch = e.logEpoch,
+            fromSeq = e.fromSeq, toSeq = e.toSeq, rows = e.rows,
+        )
+
+    private fun TopicDeltasOf(e: GatewayTopicEvent.Deltas): com.zcode.android.domain.reducer.TopicEvent.Deltas =
+        com.zcode.android.domain.reducer.TopicEvent.Deltas(
+            topic = e.topic, sessionId = e.sessionId, logEpoch = e.logEpoch,
+            fromSeq = e.fromSeq, toSeq = e.toSeq, ops = e.ops,
+        )
+
+    /** Diagnostics (INV-5 observability). */
+    suspend fun cachedRowCount(): Int = store.cachedRowCount(sessionId)
+
+    fun reducerForTest(): ConversationTopicReducer = reducer
+}

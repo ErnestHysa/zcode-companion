@@ -70,6 +70,12 @@ class MockZCode(
         var playbackMessages: List<JsonObject> = emptyList()
         /** When false the mock never acks pair_status_query (watchdog fault class). */
         var ackHeartbeats: Boolean = true
+        /** S5/S6 class: refuse WS upgrades (desktop offline / relay unavailable). */
+        var rejectConnections: Boolean = false
+        /** §7.4.4 CAS enforcement on the command plane (Phase 5 S16). */
+        var enforceCas: Boolean = true
+        /** The mock's current revision for CAS decisions + acks. */
+        var currentRevision: Long = 7
     }
 
     enum class AuthScenario { HAPPY, WRONG_PROOF, UNKNOWN_SID }
@@ -111,8 +117,13 @@ class MockZCode(
     private val recentOutbound = ArrayDeque<String>()
 
     private val dispatcher = object : mockwebserver3.Dispatcher() {
-        override fun dispatch(request: mockwebserver3.RecordedRequest): mockwebserver3.MockResponse =
-            mockwebserver3.MockResponse.Builder().webSocketUpgrade(object : okhttp3.WebSocketListener() {
+        override fun dispatch(request: mockwebserver3.RecordedRequest): mockwebserver3.MockResponse {
+            if (script.rejectConnections) {
+                // S5/S6 fault class: connect succeeds at TCP but the upgrade is refused —
+                // the unreachable-endpoint shape.
+                return mockwebserver3.MockResponse.Builder().code(503).build()
+            }
+            return mockwebserver3.MockResponse.Builder().webSocketUpgrade(object : okhttp3.WebSocketListener() {
                 override fun onMessage(webSocket: okhttp3.WebSocket, text: String) {
                     val obj = try {
                         json.parseToJsonElement(text).jsonObject
@@ -122,6 +133,7 @@ class MockZCode(
                     route(webSocket, obj)
                 }
             }).build()
+        }
     }
 
     fun start(): String {
@@ -314,7 +326,161 @@ class MockZCode(
     private var subscriptionId = "sub-mock-1"
     private var logEpoch = "epoch-mock-1"
 
+    /** Phase 5: per-session delta-frame log for resync replay + the seq head. */
+    data class DeltaFrame(val fromSeq: Long, val toSeq: Long, val ops: JsonArray)
+    private val opLog = LinkedHashMap<String, ArrayDeque<DeltaFrame>>()
+    private val seqHeads = LinkedHashMap<String, Long>()
+
     private fun currentBridge(): String = currentBridgeId ?: "bridge-unopened"
+
+    // ------------------------------------------------------------ schema-faithful rows
+
+    /**
+     * rows.ts-faithful synthetic row (required base fields + kind fields present so the
+     * TYPED domain decoder accepts it — Phase 5 projection path decodes strictly and a
+     * known-kind violation would fail closed). Synthetic content only (INV-15/16).
+     */
+    fun schemaRow(sessionId: String, rowId: Long, kind: RowKind, text: String, extra: JsonObject? = null): JsonObject {
+        val base = buildJsonObject {
+            put("rowId", JsonPrimitive(rowId))
+            put("turnId", JsonPrimitive("turn-$sessionId-${(rowId - 1) / 4 + 1}"))
+            put("kind", JsonPrimitive(kind.wire))
+            put("entityId", JsonPrimitive("ent-$rowId"))
+            put("createdAt", JsonPrimitive(1_700_000_000_000.0 + rowId))
+            put("createdAtSeq", JsonPrimitive(rowId))
+        }
+        val kindFields = when (kind) {
+            RowKind.ASSISTANT_TEXT -> buildJsonObject {
+                put("assistantResponseId", JsonPrimitive("ar-$sessionId"))
+                put("text", JsonPrimitive(text))
+                put("state", JsonPrimitive("complete"))
+            }
+            RowKind.REASONING -> buildJsonObject {
+                put("assistantResponseId", JsonPrimitive("ar-$sessionId"))
+                put("text", JsonPrimitive(text))
+                put("state", JsonPrimitive("complete"))
+                put("durationMs", JsonPrimitive(120))
+            }
+            RowKind.TOOL_CALL -> buildJsonObject {
+                put("assistantResponseId", JsonPrimitive("ar-$sessionId"))
+                put("toolCallId", JsonPrimitive("tool-$rowId"))
+                put("toolName", JsonPrimitive("Bash"))
+                // `text` carries "status[:interactionId]" for scripted tool rows
+                put("status", JsonPrimitive(text.substringBefore(":")))
+                put("inputText", JsonPrimitive("echo synthetic"))
+                text.takeIf { it.startsWith("pendingApproval:") }?.let {
+                    put("approvalInteractionId", JsonPrimitive(it.substringAfter(":")))
+                }
+            }
+            RowKind.TURN_HEADER -> buildJsonObject {
+                put("origin", JsonPrimitive("user"))
+                put("state", JsonPrimitive(text)) // terminal state rides `text` for scripted headers
+                put("startedAt", JsonPrimitive(1_700_000_000_000.0 + rowId))
+            }
+            RowKind.USER_INPUT -> buildJsonObject {
+                put("text", JsonPrimitive(text))
+                put("origin", JsonPrimitive("typed"))
+                put("guided", JsonPrimitive(false))
+                put("attachments", JsonArray(emptyList()))
+            }
+        }
+        return JsonObject(base + kindFields + (extra ?: JsonObject(emptyMap())).toMap())
+    }
+
+    /** Kinds the mock emits (subset of the verified rows.ts union, all schema-faithful). */
+    enum class RowKind(val wire: String) {
+        TURN_HEADER("turnHeader"), USER_INPUT("userInput"), ASSISTANT_TEXT("assistantText"),
+        REASONING("reasoning"), TOOL_CALL("toolCall"),
+    }
+
+    /** S12 driver: authoritative terminal turn state stamped into the NEXT snapshot. */
+    @Volatile private var sessionTurnOutcome: String? = null
+    fun setSessionTurnOutcome(turnState: String) { sessionTurnOutcome = turnState }
+
+    /** S13 driver: a pending-approval tool call stamped into the NEXT snapshot. */
+    @Volatile private var pendingApproval: Pair<String, String>? = null
+    fun setPendingApproval(toolName: String, interactionId: String) { pendingApproval = toolName to interactionId }
+
+    private fun snapshotRows(sessionId: String, count: Int): JsonArray {
+        val rows = ArrayList<JsonObject>(count + 2)
+        var nextId = 1L
+        for (i in 1..count) {
+            rows.add(
+                schemaRow(
+                    sessionId, nextId++,
+                    if (i % 2 == 0) RowKind.ASSISTANT_TEXT else RowKind.REASONING,
+                    "synthetic $i",
+                )
+            )
+        }
+        sessionTurnOutcome?.let { outcome ->
+            rows.add(schemaRow(sessionId, nextId++, RowKind.TURN_HEADER, outcome))
+        }
+        pendingApproval?.let { (tool, iid) ->
+            rows.add(schemaRow(sessionId, nextId++, RowKind.TOOL_CALL, "pendingApproval:$iid", extra = buildJsonObject {
+                put("toolName", JsonPrimitive(tool))
+            }))
+        }
+        return JsonArray(rows)
+    }
+
+    // ------------------------------------------------------------ scripted deltas / resync
+
+    /**
+     * Push scripted delta frames for a session (S8 out-of-order / S10 gap drivers):
+     * frames are logged for resync replay and delivered immediately as deltas topic
+     * frames with [deliveryKind].
+     */
+    fun pushDeltas(sessionId: String, frames: List<DeltaFrame>, deliveryKind: DeliveryKind = DeliveryKind.ONLINE) {
+        val log = opLog.getOrPut(sessionId) { ArrayDeque() }
+        for (f in frames) {
+            log.addLast(f)
+            seqHeads[sessionId] = maxOf(seqHeads[sessionId] ?: 0L, f.toSeq)
+        }
+        emitDeltasFrame(sessionId, frames, deliveryKind)
+    }
+
+    private fun emitDeltasFrame(sessionId: String, frames: List<DeltaFrame>, deliveryKind: DeliveryKind) {
+        val listener = conversationListenerId ?: return
+        for (f in frames) {
+            val topic = "conversation/$sessionId"
+            val frame = buildJsonObject {
+                put("topic", JsonPrimitive(topic))
+                put("subscriptionId", JsonPrimitive(subscriptionId))
+                put("fromSeq", JsonPrimitive(f.fromSeq))
+                put("toSeq", JsonPrimitive(f.toSeq))
+                put("sentAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
+                put("payload", buildJsonObject {
+                    put("kind", JsonPrimitive("deltas"))
+                    put("deltas", f.ops)
+                })
+            }
+            val wireFrames = TopicWireFrameCodec.encode(
+                frame = frame, deliveryKind = deliveryKind, topic = topic,
+                subscriptionId = subscriptionId, logicalFrameId = "lf-${System.nanoTime()}",
+                logicalFrameOrdinal = 1,
+            )
+            for (wire in wireFrames) {
+                val bytes = RpcSerialization.encodeAll(
+                    listOf(
+                        RpcValue.Arr(listOf(RpcValue.Int(ChannelWire.ResponseType.EventFire.id), RpcValue.Int(listener))),
+                        RpcValue.Obj(buildJsonObject {
+                            put("topic", JsonPrimitive(topic))
+                            put("frame", wireJson(wire))
+                        }),
+                    )
+                )
+                sendLogicalFrame(bytes)
+            }
+        }
+    }
+
+    fun currentSeq(sessionId: String): Long = seqHeads[sessionId] ?: 0L
+
+    /** Phase 5 S9 driver: move the epoch (subsequent acks/snapshots carry it). */
+    fun bumpEpoch(newEpoch: String) {
+        logEpoch = newEpoch
+    }
 
     private fun dispatchChannelFrame(bytes: ByteArray) {
         val values = try {
@@ -403,39 +569,78 @@ class MockZCode(
                     }
                 }
             }
-            "resyncConversationV4" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
-                put("ack", buildJsonObject {
-                    put("subscriptionId", JsonPrimitive(subscriptionId))
-                    put("mode", JsonPrimitive("snapshot"))
-                    put("logEpoch", JsonPrimitive(logEpoch))
-                })
-            }))
+            "resyncConversationV4" -> {
+                // Phase 5 recovery semantics (§15.1): base matching the live epoch and
+                // no forceSnapshot → RESUME (replay logged delta frames after base.seq);
+                // anything else → SNAPSHOT (ack + fresh snapshot frame).
+                val params = argAsObject(arg) ?: return respondError(id, "fault.resync.params")
+                val sessionId = params.str("sessionId")
+                val base = params["base"] as? JsonObject
+                val baseEpoch = (base?.get("logEpoch") as? JsonPrimitive)?.content
+                val baseSeq = (base?.get("seq") as? JsonPrimitive)?.content?.toLongOrNull()
+                val force = (params["forceSnapshot"] as? JsonPrimitive)?.content == "true"
+                val resumable = !force && baseEpoch == logEpoch && baseSeq != null
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("ack", buildJsonObject {
+                        put("subscriptionId", JsonPrimitive(subscriptionId))
+                        put("mode", JsonPrimitive(if (resumable) "resume" else "snapshot"))
+                        put("logEpoch", JsonPrimitive(logEpoch))
+                    })
+                }))
+                if (resumable) {
+                    val replay = opLog[sessionId].orEmpty().filter { it.fromSeq > baseSeq }
+                    if (replay.isNotEmpty()) emitDeltasFrame(sessionId, replay, DeliveryKind.RECOVERY)
+                } else {
+                    pushTopicFrame(sessionId, DeliveryKind.RECOVERY, snapshot = true, fromSeq = 0, toSeq = 1)
+                }
+            }
             "conversationRowsRangeV4" -> {
                 val params = argAsObject(arg) ?: return respondError(id, "fault.rowsRange.params")
+                val sessionId = params.str("sessionId")
                 val limit = params.strOrNull("limit")?.toIntOrNull() ?: 10
                 val rows = (0 until limit.coerceAtMost(workspace.rowCount)).map { i ->
-                    buildJsonObject {
-                        put("rowId", JsonPrimitive(i + 1))
-                        put("kind", JsonPrimitive(if (i % 2 == 0) "assistantText" else "toolCall"))
-                        put("text", JsonPrimitive("synthetic row ${i + 1}"))
-                    }
+                    schemaRow(
+                        sessionId, i.toLong() + 1,
+                        if (i % 2 == 0) RowKind.ASSISTANT_TEXT else RowKind.REASONING,
+                        "synthetic row ${i + 1}",
+                    )
                 }
                 respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
                     put("rows", JsonArray(rows))
-                    put("atSeq", JsonPrimitive(1))
-                    put("atRevision", JsonPrimitive(1))
+                    put("atSeq", JsonPrimitive(maxOf(1L, seqHeads[sessionId] ?: 1L)))
+                    put("atRevision", JsonPrimitive(script.currentRevision))
                     put("atLogEpoch", JsonPrimitive(logEpoch))
                     put("hasMore", JsonPrimitive(false))
                 }))
             }
             "sendConversationCommandV4" -> {
                 val env = argAsObject(arg)
+                val type = env?.strOrNull("type") ?: "unknown"
                 val commandId = env?.strOrNull("commandId") ?: "unknown"
-                scope.launch { events.emit(ServerEvent.CommandReceived(env?.strOrNull("type") ?: "unknown", commandId)) }
+                scope.launch { events.emit(ServerEvent.CommandReceived(type, commandId)) }
+                // §7.4.4 CAS semantics (verified COMMANDS_REQUIRING_BASE_REVISION):
+                // missing base → rejected (parse would fail); stale base → stale.
+                if (script.enforceCas && type in com.zcode.android.core.protocol.v4.COMMANDS_REQUIRING_BASE_REVISION) {
+                    val baseRev = env?.strOrNull("baseRevision")?.toLongOrNull()
+                    val casStatus = when {
+                        baseRev == null -> "rejected"
+                        baseRev < script.currentRevision -> "stale"
+                        else -> null
+                    }
+                    if (casStatus != null) {
+                        respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                            put("commandId", JsonPrimitive(commandId))
+                            put("status", JsonPrimitive(casStatus))
+                            put("reasonCode", JsonPrimitive("fault.command.baseRevision"))
+                            put("revisionAtDecision", JsonPrimitive(script.currentRevision))
+                        }))
+                        return
+                    }
+                }
                 respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
                     put("commandId", JsonPrimitive(commandId))
                     put("status", JsonPrimitive("accepted"))
-                    put("revisionAtDecision", JsonPrimitive(7))
+                    put("revisionAtDecision", JsonPrimitive(script.currentRevision))
                 }))
             }
             else -> respondError(id, "fault.mock.unknownMethod")
@@ -511,13 +716,7 @@ class MockZCode(
                     put("kind", JsonPrimitive("snapshot"))
                     put("snapshot", buildJsonObject {
                         put("sessionId", JsonPrimitive(sessionId))
-                        put("rows", JsonArray((0 until workspace.rowCount).map { i ->
-                            buildJsonObject {
-                                put("rowId", JsonPrimitive(i + 1))
-                                put("kind", JsonPrimitive(if (i % 2 == 0) "assistantText" else "reasoning"))
-                                put("text", JsonPrimitive("synthetic $i"))
-                            }
-                        }))
+                        put("rows", snapshotRows(sessionId, workspace.rowCount))
                     })
                 } else {
                     put("kind", JsonPrimitive("deltas"))
