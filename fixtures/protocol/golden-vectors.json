@@ -1,0 +1,379 @@
+{
+  "metadata": {
+    "source": "ZCode reference clone packages/rpc + packages/shared (v3.14.3, commit 29628c9)",
+    "generator": "dev-time tsx script (tools/capture/generate-golden-vectors.mjs)",
+    "capturedAt": "2026-09-28T10:47:00.069Z",
+    "zcodeVersion": "3.14.3",
+    "sanitization": "synthetic vectors only — no real credentials, content, or traffic (INV-15/16)"
+  },
+  "cases": [
+    {
+      "kind": "serialize",
+      "name": "undefined",
+      "expected": "00"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "undefined::reparse",
+      "expected": "00"
+    },
+    {
+      "kind": "serialize",
+      "name": "string-ascii",
+      "expected": "010b68656c6c6f207a636f6465"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "string-ascii::reparse",
+      "expected": "010b68656c6c6f207a636f6465"
+    },
+    {
+      "kind": "serialize",
+      "name": "string-unicode",
+      "expected": "0112e4bda0e5a5bdefbc8c5a436f646520e29c85"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "string-unicode::reparse",
+      "expected": "0112e4bda0e5a5bdefbc8c5a436f646520e29c85"
+    },
+    {
+      "kind": "serialize",
+      "name": "string-escapes",
+      "expected": "012471756f746522206261636b5c736c6173680a6e6e65776c696e6509746162006374726c01"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "string-escapes::reparse",
+      "expected": "012471756f746522206261636b5c736c6173680a6e6e65776c696e6509746162006374726c01"
+    },
+    {
+      "kind": "serialize",
+      "name": "int-0",
+      "expected": "0600"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "int-0::reparse",
+      "expected": "0600"
+    },
+    {
+      "kind": "serialize",
+      "name": "int-1",
+      "expected": "0601"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "int-1::reparse",
+      "expected": "0601"
+    },
+    {
+      "kind": "serialize",
+      "name": "int-127",
+      "expected": "067f"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "int-127::reparse",
+      "expected": "067f"
+    },
+    {
+      "kind": "serialize",
+      "name": "int-128",
+      "expected": "068001"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "int-128::reparse",
+      "expected": "068001"
+    },
+    {
+      "kind": "serialize",
+      "name": "int-16383",
+      "expected": "06ff7f"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "int-16383::reparse",
+      "expected": "06ff7f"
+    },
+    {
+      "kind": "serialize",
+      "name": "int-16384",
+      "expected": "06808001"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "int-16384::reparse",
+      "expected": "06808001"
+    },
+    {
+      "kind": "serialize",
+      "name": "int-max",
+      "expected": "06ffffffff07"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "int-max::reparse",
+      "expected": "06ffffffff07"
+    },
+    {
+      "kind": "serialize",
+      "name": "int-negative",
+      "expected": "06ffffffff0f"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "int-negative::reparse",
+      "expected": "06ffffffff0f"
+    },
+    {
+      "kind": "serialize",
+      "name": "int-min",
+      "expected": "068080808008"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "int-min::reparse",
+      "expected": "068080808008"
+    },
+    {
+      "kind": "serialize",
+      "name": "float",
+      "expected": "0503312e35"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "float::reparse",
+      "expected": "0503312e35"
+    },
+    {
+      "kind": "serialize",
+      "name": "bool-true",
+      "expected": "050474727565"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "bool-true::reparse",
+      "expected": "050474727565"
+    },
+    {
+      "kind": "serialize",
+      "name": "bool-false",
+      "expected": "050566616c7365"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "bool-false::reparse",
+      "expected": "050566616c7365"
+    },
+    {
+      "kind": "serialize",
+      "name": "null",
+      "expected": "05046e756c6c"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "null::reparse",
+      "expected": "05046e756c6c"
+    },
+    {
+      "kind": "serialize",
+      "name": "empty-array",
+      "expected": "0400"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "empty-array::reparse",
+      "expected": "0400"
+    },
+    {
+      "kind": "serialize",
+      "name": "array-mixed",
+      "expected": "04050601010374776f05047472756505046e756c6c050b7b227468726565223a337d"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "array-mixed::reparse",
+      "expected": "04050601010374776f05047472756505046e756c6c050b7b227468726565223a337d"
+    },
+    {
+      "kind": "serialize",
+      "name": "empty-object",
+      "expected": "05027b7d"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "empty-object::reparse",
+      "expected": "05027b7d"
+    },
+    {
+      "kind": "serialize",
+      "name": "object-simple",
+      "expected": "05187b2262223a747275652c2261223a312c2263223a2278227d"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "object-simple::reparse",
+      "expected": "05187b2262223a747275652c2261223a312c2263223a2278227d"
+    },
+    {
+      "kind": "serialize",
+      "name": "object-nested",
+      "expected": "05337b226f75746572223a7b22696e6e6572223a5b312c322c7b2264656570223a2276227d5d7d2c22666c6167223a66616c73657d"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "object-nested::reparse",
+      "expected": "05337b226f75746572223a7b22696e6e6572223a5b312c322c7b2264656570223a2276227d5d7d2c22666c6167223a66616c73657d"
+    },
+    {
+      "kind": "serialize",
+      "name": "object-unicode-key",
+      "expected": "05157b22e994ae223a22e580bc222c226964223a34327d"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "object-unicode-key::reparse",
+      "expected": "05157b22e994ae223a22e580bc222c226964223a34327d"
+    },
+    {
+      "kind": "serialize",
+      "name": "uint8array-top",
+      "expected": "0205010203faff"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "uint8array-top::reparse",
+      "expected": "0205010203faff"
+    },
+    {
+      "kind": "serialize",
+      "name": "vsbuffer-top",
+      "expected": "03107673627566666572207061796c6f6164"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "vsbuffer-top::reparse",
+      "expected": "03107673627566666572207061796c6f6164"
+    },
+    {
+      "kind": "serialize",
+      "name": "object-nested-uint8array",
+      "expected": "054d7b22626c6f62223a7b225f5f7a636f64655f7270635f6e65737465645f75696e743861727261795f7631223a747275652c22626173653634223a2241502b41227d2c226e616d65223a2278227d"
+    },
+    {
+      "kind": "deserialize-check",
+      "name": "object-nested-uint8array::reparse",
+      "expected": "054d7b22626c6f62223a7b225f5f7a636f64655f7270635f6e65737465645f75696e743861727261795f7631223a747275652c22626173653634223a2241502b41227d2c226e616d65223a2278227d"
+    },
+    {
+      "kind": "frame",
+      "name": "regular-empty",
+      "expected": "01000000000000000000000000"
+    },
+    {
+      "kind": "frame",
+      "name": "regular-payload",
+      "expected": "010000000700000000000000030a141e"
+    },
+    {
+      "kind": "frame",
+      "name": "keepalive",
+      "expected": "09000000000000000c00000000"
+    },
+    {
+      "kind": "frame",
+      "name": "ack",
+      "expected": "03000000000000002a00000000"
+    },
+    {
+      "kind": "frame",
+      "name": "disconnect",
+      "expected": "05000000000000006300000000"
+    },
+    {
+      "kind": "frame",
+      "name": "large-id",
+      "expected": "01ffffffffffffffff0000000101"
+    },
+    {
+      "kind": "chunk-drain",
+      "name": "chunk-split-0",
+      "expected": [
+        "6368756e6b65642d6d6573736167652d626f6479"
+      ]
+    },
+    {
+      "kind": "chunk-drain",
+      "name": "chunk-split-1",
+      "expected": [
+        "6368756e6b65642d6d6573736167652d626f6479"
+      ]
+    },
+    {
+      "kind": "chunk-drain",
+      "name": "chunk-split-2",
+      "expected": [
+        "6368756e6b65642d6d6573736167652d626f6479"
+      ]
+    },
+    {
+      "kind": "chunk-drain",
+      "name": "chunk-split-3",
+      "expected": [
+        "6368756e6b65642d6d6573736167652d626f6479"
+      ]
+    },
+    {
+      "kind": "crc32",
+      "name": "empty",
+      "expected": "00000000"
+    },
+    {
+      "kind": "crc32",
+      "name": "one-zero",
+      "expected": "d202ef8d"
+    },
+    {
+      "kind": "crc32",
+      "name": "123456789",
+      "expected": "cbf43926"
+    },
+    {
+      "kind": "crc32",
+      "name": "binary",
+      "expected": "6350c662"
+    },
+    {
+      "kind": "crc32",
+      "name": "hello",
+      "expected": "c0cbde7a"
+    },
+    {
+      "kind": "channel",
+      "name": "request-promise",
+      "expected": "040406640601010b7a636f64652d6167656e74011368656c6c6f436f6e766572736174696f6e5634052a7b226b696e64223a22636c69656e7448656c6c6f222c2270726f746f636f6c56657273696f6e223a337d"
+    },
+    {
+      "kind": "channel",
+      "name": "request-eventlisten",
+      "expected": "040406660602010b7a636f64652d6167656e7401156f6e44796e616d696353657373696f6e4576656e7405167b2273657373696f6e4964223a22736573735f78227d"
+    },
+    {
+      "kind": "channel",
+      "name": "cancel",
+      "expected": "04020665060300"
+    },
+    {
+      "kind": "channel",
+      "name": "eventfire",
+      "expected": "040206cc01060205377b22746f706963223a22636f6e766572736174696f6e2f7331222c226672616d65223a7b226b696e64223a22636f6d706c657465227d7d"
+    },
+    {
+      "kind": "channel",
+      "name": "initialize",
+      "expected": "040106c80100"
+    }
+  ]
+}

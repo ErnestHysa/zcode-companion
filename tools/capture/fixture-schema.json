@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ZCode Android Phase-1 relay capture fixture",
+  "description": "Sanitized relay traffic fixture. Metadata per architectural.md S41.3; INV-15/16 prohibit real credentials, QR codes, conversation content, personal paths, tokens, provider secrets.",
+  "type": "object",
+  "required": ["metadata", "messages"],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["source", "zcodeVersion", "capturedAt", "sanitized", "sanitizationTool", "expectedInterpretation"],
+      "properties": {
+        "source": { "type": "string", "description": "Where the traffic was captured (transport role + environment class)" },
+        "zcodeVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "capturedAt": { "type": "string", "format": "date-time" },
+        "sanitized": { "const": true },
+        "sanitizationTool": { "type": "string" },
+        "redactionReportSummary": { "type": "object" },
+        "expectedInterpretation": { "type": "string", "description": "What this fixture demonstrates" },
+        "notes": { "type": "string" }
+      }
+    },
+    "messages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["dir", "ts", "msg"],
+        "properties": {
+          "dir": { "enum": ["send", "recv"] },
+          "ts": { "type": "number" },
+          "msg": { "type": "object" }
+        }
+      }
+    }
+  }
+}
