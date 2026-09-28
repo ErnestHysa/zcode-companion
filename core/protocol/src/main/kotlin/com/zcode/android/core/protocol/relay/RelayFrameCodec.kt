@@ -158,6 +158,10 @@ object RelayFrameCodec {
     class Assembler {
         private val staged = LinkedHashMap<Pair<String, Long>, Inbound.RpcFrame>()
 
+        /** Invoked for EVERY observed rpc-frame seq (both directions share one per-bridge
+         *  monotonic space — live-verified 2026-09-28); used to advance the send counter. */
+        var onSeqObserved: ((Long) -> Unit)? = null
+
         fun handleEnvelope(envelopeJson: String): List<Reassembled> {
             val envelope = decodeJson.decodeFromString(DataEnvelope.serializer(), envelopeJson)
             if (envelope.type != "data") throw ProtocolException("expected data envelope, got ${envelope.type}")
@@ -165,7 +169,10 @@ object RelayFrameCodec {
                 ?: throw ProtocolException("payload is not an object")
             val ztype = (obj["zcode_type"] as? kotlinx.serialization.json.JsonPrimitive)?.content
             return when (ztype) {
-                "rpc-frame" -> listOfNotNull(handleRpcFrame(obj))
+                "rpc-frame" -> {
+                    (obj["seq"] as? kotlinx.serialization.json.JsonPrimitive)?.content?.toLongOrNull()?.let { onSeqObserved?.invoke(it) }
+                    listOfNotNull(handleRpcFrame(obj))
+                }
                 "rpc-frame-ack" -> listOf(
                     Reassembled.Ack(
                         bridgeSessionId = obj.str("bridgeSessionId"),

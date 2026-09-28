@@ -5,7 +5,7 @@
 | **Document** | `architectural.md` — single source of truth / master blueprint |
 | **Version** | 1.0.1 (Red-Team Pass 2 hardening) |
 | **Last Updated** | 2026-09-27 |
-| **Architecture Status** | **Phase 0 (Discovery & Architecture) — COMPLETE; hardened by Red-Team Pass 2 (v1.0.1, 2026-09-27).** All protocol findings verified against ZCode source `v3.14.3` (commit `29628c9`, cloned 2026-09-27) and the shipping desktop app `v3.14.3`. Phase 1 (Protocol Spike) has **not** started. |
+| **Architecture Status** | **Phase 0 (Discovery & Architecture) — COMPLETE; hardened by Red-Team Pass 2 (v1.0.1, 2026-09-27). Phase 1 (Protocol Spike) — ✅ COMPLETE (PASS WITH KNOWN LIMITATIONS, 2026-09-28 14-06-34 BST; gate: `docs/adr/phase-1-gate.md`).** All protocol findings verified against ZCode source `v3.14.3` (commit `29628c9`, cloned 2026-09-27) and the shipping desktop app `v3.14.3`, plus live production-relay probes of 2026-09-28 (see gate document and `docs/protocol/relay-control-plane.md`). Phase 2 has not started. |
 | **Prepared for** | Implementation agents building the project phase-by-phase |
 | **Repository reference** | `/Users/ernest/Desktop/DEVPROJECTS/zcode/repo` (read-only reference clone of `github.com/zai-org/ZCode`, Apache-2.0) |
 | **Evidence labels** | `[VERIFIED]` `[INFERRED]` `[PROPOSED]` `[UNKNOWN]` `[REQUIRES VALIDATION]` `[BLOCKING]` — see §4.1 |
@@ -2487,6 +2487,8 @@ flowchart TB
 - **Exit gate:** PASS (human review of the self-critique quality checklist). Red-Team Pass 2 applied 2026-09-27.
 
 #### Phase 1 — Protocol Spike (headless JVM + one Android smoke)
+
+> **✅ COMPLETE — PASS WITH KNOWN LIMITATIONS.** Recorded 2026-09-28 14-06-34 BST by `account:zai-individual-coding-plan/GLM-5.3-Flash` (ZCode harness). All spike questions YES against the live production relay (connect / auth matched ×≥8 / receive / decode incl. 2 real conversation frames + rowsRange 200 rows / safe read-only requests / 10-of-10 recovery cycles); Q1/Q2/Q3/Q4/Q9/Q10 answered with evidence; sanitized corpus committed (`fixtures/relay/`); INV-15/16 upheld; device smoke ALL PASS ×3 (API-30 ATD emulator). Full evidence matrix, findings, and accepted limitations: `docs/adr/phase-1-gate.md`.
 
 **Objective.** Prove or kill the highest-risk assumption: an independent client can authenticate to and operate against the production relay, decode its frames, and recover.
 

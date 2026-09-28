@@ -111,6 +111,11 @@ class ChannelClient {
     private var initialized = false
     private val queuedActions = ArrayDeque<() -> Unit>()
 
+    /** True once the peer's Initialize arrived; channel actions go out immediately after. */
+    @kotlin.jvm.Volatile
+    var isInitialized: Boolean = false
+        private set
+
     var onOutbound: ((ByteArray) -> Unit)? = null
 
     private class PendingRequest {
@@ -154,6 +159,7 @@ class ChannelClient {
         when (val incoming = ChannelWire.decodeIncoming(bytes)) {
             is ChannelWire.Incoming.Initialize -> {
                 initialized = true
+                isInitialized = true
                 while (queuedActions.isNotEmpty()) queuedActions.removeFirst().invoke()
             }
             is ChannelWire.Incoming.PromiseSuccess -> pending[incoming.id]?.let {
@@ -167,7 +173,18 @@ class ChannelClient {
                     else -> (incoming as ChannelWire.Incoming.PromiseErrorObj).id
                 }
                 pending[id]?.let {
-                    it.error = ChannelError("channel request failed", null, RpcValue.Undefined)
+                    val body = when (incoming) {
+                        is ChannelWire.Incoming.PromiseError -> incoming.data
+                        else -> (incoming as ChannelWire.Incoming.PromiseErrorObj).data
+                    }
+                    // PromiseError body: {message, name, stack[], code?, ...} per the
+                    // reference IRawResponse contract — surface message + code.
+                    val obj = (body as? RpcValue.Obj)?.json as? kotlinx.serialization.json.JsonObject
+                    val message = (obj?.get("message") as? kotlinx.serialization.json.JsonPrimitive)?.content
+                        ?: "channel request failed"
+                    val code = (obj?.get("code") as? kotlinx.serialization.json.JsonPrimitive)?.content
+                    val full = if (code != null) "${message.take(260)} (code=$code)" else message.take(300)
+                    it.error = ChannelError(full, null, body)
                     it.completed = true
                 }
             }

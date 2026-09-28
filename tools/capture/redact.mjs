@@ -32,9 +32,11 @@ const TOKEN_FIELDS = new Set([
   "bridgeSessionId", "recoveryId", "windowControlSessionId",
   "workspaceKey", "workspaceIdentity", "remoteSessionId", "activeWorkspaceKey",
   "activeTaskId", "task_id", "taskId", "session_id", "sessionId",
+  "id", "requestId", "subscriptionId", "connectionId", "client_id", "clientId",
 ]);
 const CONTENT_FIELDS = new Set([
   "workspacePath", "label", "name", "title", "userAgent", "timezone",
+  "model", "mode", "provider", "directory", "slug", "project", "path", "cwd",
 ]);
 
 function crc32Wire(bytes) {

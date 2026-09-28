@@ -52,9 +52,15 @@ class RelayAuthClient(
     private var currentBridgeGeneration: Int? = null
     @Volatile private var recoveryIdOverride: String? = null
     private val rpcMessageCounter = java.util.concurrent.atomic.AtomicLong(0)
+    @Volatile private var lastDeliveredMessageSeq: Long = 0
     private val assembler = RelayFrameCodec.Assembler()
     val channel = ChannelClient()
     val events = ArrayDeque<String>() // human-readable event trail (redacted)
+
+    init {
+        // Channel-layer encodings flow out through the relay rpc-frame transport.
+        channel.onOutbound = { bytes -> sendChannelFrame(bytes) }
+    }
 
     private var webSocket: WebSocket? = null
     private var clientName = "zcode-android-spike"
@@ -73,7 +79,13 @@ class RelayAuthClient(
     fun connectAndAuthenticate(deviceName: String = clientName, role: String = "terminal"): String {
         clientName = deviceName
         val client = HttpClient.newBuilder().build()
-        val wsUri = URI.create(relayWsUrl)
+        // The real phone client appends the QR's deviceMid to the relay URL
+        // (SPA bundle: relayWsUrl + searchParams.set("mid", deviceMid)) — without it the
+        // relay mis-classifies the connection and KICKs the desktop device slot (observed
+        // live 2026-09-28). Q4 evidence: mid IS meaningful in terminal connections.
+        val wsUri = params.deviceMid?.let { mid ->
+            URI(relayWsUrl.let { if (it.contains("?")) "$it&mid=$mid" else "$it?mid=$mid" })
+        } ?: URI.create(relayWsUrl)
         val listener = Listener()
         log("connecting to $wsUri")
         val ws = client.newWebSocketBuilder().buildAsync(wsUri, listener).get(15, TimeUnit.SECONDS)
@@ -137,6 +149,16 @@ class RelayAuthClient(
 
     fun rpcMessageCount(): Long = rpcMessageCounter.get()
 
+    /** Blocks until the peer's Channel Initialize arrived (channel actions may start). */
+    fun awaitChannelReady(timeoutMs: Long): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            if (channel.isInitialized) return true
+            Thread.sleep(25)
+        }
+        return false
+    }
+
     /** Blocks until the decoded-message count reaches [since]+[n]; returns the count. */
     fun awaitRpcMessageSince(since: Long, timeoutMs: Long, n: Long = 1): Long? {
         val deadline = System.currentTimeMillis() + timeoutMs
@@ -164,10 +186,17 @@ class RelayAuthClient(
         )
     }
 
-    /** Send one logical Channel frame through the relay rpc-frame transport. */
+    /**
+     * Send one logical Channel frame through the relay rpc-frame transport.
+     * Counters are PER-DIRECTION, each starting at 1 (desktop fault codes
+     * remote.rpcFrame.physicalGap / .messageGap fire on a first frame that skips the
+     * start value — live-verified 2026-09-28). The desktop-side reason-code evidence:
+     * missing acks → .replayGraceExceeded; seq/msgSeq starting >1 → .physicalGap/.messageGap.
+     */
     fun sendChannelFrame(bytes: ByteArray) {
         val seq = seqCounter.addAndGet(1)
         val msgSeq = messageSeqCounter.addAndGet(1)
+        events.add("sendChannelFrame msgSeq=$msgSeq seq=$seq bytes=${bytes.size} bridge=$bridgeSessionId")
         val fragments = RelayFrameCodec.fragment(bridgeSessionId, currentBridgeGeneration, null, bytes, seq, msgSeq)
         for (f in fragments) {
             sendJson(f.envelopeJson)
@@ -199,9 +228,23 @@ class RelayAuthClient(
         events.add("socket aborted")
     }
 
-    private fun sendJson(text: String) {
+    // Single-threaded send queue: java.net.http disallows blocking .get() on sends from
+    // within the listener thread (reentrancy) — the Initialize-flush path deadlocks there
+    // (live finding 2026-09-28: queued EventListen consumed messageSeq=1 but never hit
+    // the wire → desktop rpc-transport-fault remote.rpcFrame.messageGap).
+    private val sendQueue = java.util.concurrent.Executors.newSingleThreadExecutor { r ->
+        Thread(r, "spike-send").apply { isDaemon = true }
+    }
+
+    fun sendJson(text: String) {
         capture?.write("send", text)
-        webSocket?.sendText(text, true)?.get(5, TimeUnit.SECONDS)
+        sendQueue.submit {
+            try {
+                webSocket?.sendText(text, true)?.get(5, TimeUnit.SECONDS)
+            } catch (e: Exception) {
+                events.add("send failed (${e.javaClass.simpleName})")
+            }
+        }
     }
 
     // ------------------------------------------------------------ WS listener
@@ -211,13 +254,22 @@ class RelayAuthClient(
             webSocket.request(1)
         }
 
+        private val textBuf = StringBuilder()
+
         override fun onText(webSocket: WebSocket, data: CharSequence, last: Boolean): CompletionStage<*>? {
-            val text = data.toString()
-            capture?.write("recv", text)
-            try {
-                handleMessage(text)
-            } catch (e: Exception) {
-                log("handler error: ${e.message}")
+            // java.net.http delivers large messages as MULTIPLE text frames; accumulate
+            // until the final fragment (live finding 2026-09-28: desktop bootstrap-response
+            // arrives fragmented).
+            textBuf.append(data)
+            if (last) {
+                val text = textBuf.toString()
+                textBuf.setLength(0)
+                capture?.write("recv", text)
+                try {
+                    handleMessage(text)
+                } catch (e: Exception) {
+                    log("handler error: ${e.message?.take(120)}")
+                }
             }
             webSocket.request(1)
             return null
@@ -292,10 +344,28 @@ class RelayAuthClient(
         for (r in results) {
             when (r) {
                 is RelayFrameCodec.Reassembled.Message -> {
-                    messageSeqCounter.getAndUpdate { current -> maxOf(current, r.messageSeq) }
+                    if (r.messageSeq <= lastDeliveredMessageSeq) {
+                        // Peer resend before/around our ack — idempotent drop (Q1 schedule).
+                        events.add("rpc duplicate messageSeq=${r.messageSeq} dropped")
+                        return
+                    }
+                    lastDeliveredMessageSeq = r.messageSeq
+                    // NOTE: the inbound messageSeq belongs to the PEER's per-direction
+                    // space — it must NOT advance our OUTGOING messageSeq counter
+                    // (crossing them made our first frame msgSeq=2 → remote.rpcFrame.messageGap).
                     rpcMessageCounter.incrementAndGet()
                     events.add("rpc logical frame decoded (messageSeq=${r.messageSeq}, bytes=${r.payload.size})")
                     channel.onFrame(r.payload)
+                    // Ack schedule (Q1, live-confirmed 2026-09-28): the peer resends
+                    // unacked messages and degrades the bridge after grace — ack every
+                    // delivered logical message with its messageSeq.
+                    runCatching {
+                        sendJson(
+                            RelayFrameCodec.encodeAck(
+                                bridgeSessionId, currentBridgeGeneration, null, r.messageSeq
+                            )
+                        )
+                    }
                 }
                 is RelayFrameCodec.Reassembled.Ack -> {
                     events.add("rpc-frame-ack received ackMessageSeq=${r.ackMessageSeq}")
