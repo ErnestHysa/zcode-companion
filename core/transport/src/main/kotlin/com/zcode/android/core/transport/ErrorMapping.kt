@@ -204,6 +204,55 @@ object ErrorMapping {
         correlation = correlation,
     )
 
+    /**
+     * `workspace-bridge-error {reason}` (Phase 6 field finding — the reason was
+     * previously DISCARDED, blinding field diagnostics). Reason → category per the
+     * §33 table and the verified bridge-failure enum (relay-control-plane.md):
+     *
+     *  - session-conflict            → SESSION + autoRecovery RECONNECT — the takeover
+     *                                  marker (§15.3; the pairing port maps this to
+     *                                  TakenOver and the recovery loop STOPS).
+     *  - session-not-found/-expired,
+     *    workspace-closed            → SESSION, transient (desktop may re-hydrate) —
+     *                                  the recovery loop RETRIES within budget.
+     *  - invalid-mobile-connection   → AUTH (4013 class → re-pair).
+     *  - desktop-disconnected,
+     *    desktop-bootstrap-timeout,
+     *    connection-recovery-timeout,
+     *    relay-unavailable           → TRANSPORT (retryable).
+     *  - anything else               → PROTOCOL (surface, never guess).
+     */
+    fun bridgeError(reason: String, correlation: Correlation = Correlation()) = AppError(
+        category = when (reason) {
+            "session-conflict" -> ErrorCategory.SESSION
+            "session-not-found", "session-expired", "workspace-closed" -> ErrorCategory.SESSION
+            "invalid-mobile-connection" -> ErrorCategory.AUTH
+            "desktop-disconnected", "desktop-bootstrap-timeout",
+            "connection-recovery-timeout", "relay-unavailable" -> ErrorCategory.TRANSPORT
+            else -> ErrorCategory.PROTOCOL
+        },
+        userMessage = when (reason) {
+            "session-conflict" -> "Another ZCode Remote page took over this connection"
+            "session-not-found", "session-expired" -> "The desktop workspace is not ready yet — reconnecting…"
+            "workspace-closed" -> "That workspace was closed on the desktop"
+            "invalid-mobile-connection" -> "Pairing expired — scan the QR again"
+            "desktop-disconnected" -> "Desktop unreachable — wake the Mac, relaunch ZCode"
+            else -> "Connection problem — retrying"
+        },
+        developerDiagnostic = "workspace-bridge-error: $reason",
+        retryable = AppError.Retryable.AUTO,
+        recoverable = true,
+        autoRecovery = when (reason) {
+            // The RECONNECT marker is the TAKEOVER marker (§15.3) — it must be UNIQUE
+            // to session-conflict: the recovery loop stops only on it; every transient
+            // reason keeps retrying within the budget.
+            "session-conflict" -> RecoveryAction.RECONNECT
+            "invalid-mobile-connection" -> RecoveryAction.RE_PAIR
+            else -> RecoveryAction.RECONCILE
+        },
+        correlation = correlation,
+    )
+
     fun taskRejected(message: String, correlation: Correlation = Correlation()) = AppError(
         category = ErrorCategory.TASK,
         userMessage = "Conversation changed — please try again",

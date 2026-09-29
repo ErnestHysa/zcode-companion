@@ -192,6 +192,25 @@ class ConnectionHubIntegrationTest {
         Unit
     }
 
+    /**
+     * Phase 6 FIELD-FINDING regression (real-phone failure vs production): the relay
+     * rejects the first bridge-open (here: strict taskless-rejection with a queued
+     * session-not-found — the observed production behavior). The hub's cold start
+     * must SELF-HEAL through the transport's recovery loop and reach CONNECTED with
+     * a populated task list — pre-fix it stranded in RECONNECTING forever.
+     */
+    @Test
+    fun `cold start self-heals through a transient bridge error to a populated task list`() = runBlocking {
+        mock.script.bridgeRequireTaskId = true // production-faithful strictness
+        synchronized(mock.script.bridgeErrorReasons) { mock.script.bridgeErrorReasons.addLast("session-not-found") }
+        hub.start()
+        withTimeout(60_000) { hub.phase.first { it == ConnectionPhase.CONNECTED } } // pre-fix: never
+        val loaded = withTimeout(15_000) { tasks.snapshot.first { it.isNotEmpty() } }
+        assertTrue(loaded.isNotEmpty())
+        // The phase must never have been left stranded mid-state after recovery.
+        assertEquals(ConnectionPhase.CONNECTED, hub.phase.value)
+    }
+
     @Test
     fun `socket loss labels sessions stale - never silent (15-S1)`() = runBlocking {
         hub.start()

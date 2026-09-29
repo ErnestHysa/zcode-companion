@@ -80,6 +80,18 @@ class MockZCode(
         // ---------------------------------------------------------------- Phase 6
         /** Task-list bootstrap override (null = the single synthetic default task). */
         var bootstrapTasks: List<MockTask>? = null
+
+        // ---------------------------------------------------------------- Phase 6 field-fix
+        /**
+         * Production-faithful bridge strictness (default FALSE so the historical
+         * suites keep their lenient mock): when TRUE, a `workspace-bridge-open`
+         * WITHOUT a resolvable `taskId` is rejected with the verified production
+         * error shape (workspace-bridge-error session-not-found) — the observed
+         * production behavior that broke real-phone pairing (Phase 6 field finding).
+         */
+        var bridgeRequireTaskId: Boolean = false
+        /** One-shot bridge-error queue: each open pops the next reason → error response. */
+        val bridgeErrorReasons: ArrayDeque<String> = ArrayDeque()
     }
 
     /**
@@ -134,6 +146,7 @@ class MockZCode(
         data class AuthRejected(val reason: String) : ServerEvent()
         data class TerminalKicked(val reason: String) : ServerEvent()
         data class BridgeOpened(val workspaceKey: String, val recoveryId: String?) : ServerEvent()
+        data class BridgeError(val reason: String) : ServerEvent()
         data class LogicalFrameFromClient(val messageSeq: Long, val bytes: Int) : ServerEvent()
         data class CommandReceived(val type: String, val commandId: String) : ServerEvent()
     }
@@ -706,6 +719,24 @@ class MockZCode(
 
     private fun handleBridgeOpen(ws: okhttp3.WebSocket, payload: JsonObject) {
         val requestId = payload.str("requestId")
+        // One-shot error queue (recovery-test driver): pop → verified error shape.
+        val forcedReason = synchronized(script.bridgeErrorReasons) { script.bridgeErrorReasons.removeFirstOrNull() }
+        val missingTask = script.bridgeRequireTaskId && payload.strOrNull("taskId") == null
+        if (forcedReason != null || missingTask) {
+            val reason = forcedReason ?: "session-not-found"
+            scope.launch { events.emit(ServerEvent.BridgeError(reason)) }
+            sendRaw(
+                RelayFrameCodec.encodeEnvelope(
+                    json.encodeToString(JsonObject.serializer(), buildJsonObject {
+                        put("zcode_type", JsonPrimitive("workspace-bridge-error"))
+                        put("requestId", JsonPrimitive(requestId))
+                        put("reason", JsonPrimitive(reason))
+                        put("error", JsonPrimitive("synthetic: $reason"))
+                    })
+                )
+            )
+            return
+        }
         val recovery = payload.strOrNull("recoveryId")
         currentBridgeId = payload.str("bridgeSessionId")
         scope.launch { events.emit(ServerEvent.BridgeOpened(payload.str("workspaceKey"), recovery)) }
@@ -842,6 +873,11 @@ class MockZCode(
                 put("result", buildJsonObject {
                     put("windowControlSessionId", JsonPrimitive("synth-window-1"))
                     put("desktopAppVersion", JsonPrimitive(workspace.desktopAppVersion))
+                    put("initialViewState", buildJsonObject {
+                        put("activeWorkspaceKey", JsonPrimitive(workspace.workspaceKey))
+                        put("activeTaskId", JsonPrimitive(workspace.sessionId))
+                        put("updatedAt", JsonPrimitive(System.currentTimeMillis()))
+                    })
                     put("workspaces", JsonArray(listOf(buildJsonObject {
                         put("workspacePath", JsonPrimitive(workspace.workspacePath))
                         put("label", JsonPrimitive("Synthetic One"))

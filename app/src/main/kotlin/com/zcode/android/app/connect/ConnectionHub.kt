@@ -369,10 +369,18 @@ class ConnectionHub(
                 persistEndpoint(descriptor)
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
-                // The transport machine already recorded the failure class; the mapped
-                // phase flows through the states collector. Nothing further here —
-                // DEGRADED offers Retry, AUTH-class FAILED offers re-pair (§14.4.1).
-                log.warn("hub.connectFailed", (e as? RelayTransport.Failure)?.error?.category?.name ?: e.javaClass.simpleName)
+                val err = (e as? RelayTransport.Failure)?.error
+                // Log the CATEGORY + DIAGNOSTIC (the field-visible reason — never just
+                // the category again), then let §14.4.1 self-heal: retryable failures
+                // drive the transport's recovery loop (backoff → budget → Degraded
+                // with an honest Retry affordance) instead of resting mid-state.
+                log.warn(
+                    "hub.connectFailed",
+                    err?.let { "${it.category} ${it.developerDiagnostic.take(140)}" } ?: e.javaClass.simpleName,
+                )
+                if (err != null && err.category != com.zcode.android.core.common.error.ErrorCategory.AUTH) {
+                    transport.reconnectNow()
+                }
             }
         }
     }

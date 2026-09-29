@@ -107,6 +107,16 @@ Also delivered: basic Settings screen (paired-desktop identity, diagnostics expo
 - Schema v1 → v2 note recorded in `ZcodeDatabase` (§32.3 process; harness drill added).
 - Phase 3 E2E evolution rationale recorded inline in `PairingE2eInstrumentedTest` (phase-that-breaks-it owns the update).
 
+## Post-gate field fix (2026-09-29, same phase scope — real-phone failure)
+
+First real-device test against the PRODUCTION relay failed: relay auth matched (the desktop showed "connected") but the app never loaded, then sat in "Reconnecting…" forever. Diagnostics showed `hub.connectFailed :: SESSION` 1 s after `auth.matched`, then silent strandedness. Three compounding defects, all fixed with regression tests:
+
+1. **Bridge-open without a resolvable task** — the post-auth bridge handshake sent `workspace-bridge-open {taskId: null}` via workspace-list discovery; the verified Phase 1 corpus ordering is bootstrap-FIRST (yielding `initialViewState.activeTaskId`) and then bridge-open WITH the task id. Production rejected the taskless open (`workspace-bridge-error`, lenient-mock-invisible). **Fix:** bootstrap-first discovery in `openBridgeInternal` (bootstrap-response carries workspaces + `activeWorkspaceKey` + `activeTaskId`; workspace-list shape kept as fallback).
+2. **The `workspace-bridge-error.reason` was discarded** — every bridge failure collapsed into a generic SESSION error, blinding field diagnostics. **Fix:** `ErrorMapping.bridgeError(reason)` — verbatim reason preserved; faithful per-reason category/user copy; the RECONNECT autoRecovery marker is now UNIQUE to `session-conflict` (takeover, §15.3).
+3. **Recovery abandoned on session errors** — `recoverLocked` returned on ANY SESSION failure (intended for takeover only), stranding the machine in RECONNECTING with no running loop; a failed `connect()` also rested mid-state. **Fix:** the loop keeps retrying transient session errors within the reconnect budget (budget exhaustion → Degraded + Retry, §14.4.1); a failed connect leaves an honest machine state (AUTH → FAILED, else → RECONNECTING) and self-heals by launching its own recovery; the hub logs `category + diagnostic` and pokes the recovery loop on retryable failures.
+
+Regression coverage: `RelayTransportBridgeErrorTest` (4: bootstrap-first discovery succeeds under a strict bridge; verbatim-reason + non-takeover classification + honest RECONNECTING state; transient error → recovery continues → CONNECTED; session-conflict keeps takeover semantics), `ConnectionHubIntegrationTest.cold start self-heals through a transient bridge error to a populated task list` (60 s budget), and the device E2E re-run with the mock's production-strict bridge (`bridgeRequireTaskId = true`) — the shipped path provably exercises bootstrap-first discovery on Android. Suites at fix time: 325/325 JVM/Robolectric, 5/5 instrumented.
+
 ## Phase Exit Decision
 
 **PASS WITH KNOWN LIMITATIONS** — all subphase exit gates green with executed evidence; limitations 1–8 accepted and documented above; no §47 No-Go condition triggered.

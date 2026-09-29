@@ -75,6 +75,9 @@ class Phase6InstrumentedTest {
 
     private fun startMockWithProductionTasks() {
         val m = MockZCode(passHash = passHash, expectedSid = sid)
+        // Production-faithful strictness (Phase 6 field fix): a taskless bridge-open
+        // is rejected — the app MUST use the bootstrap-first discovery path.
+        m.script.bridgeRequireTaskId = true
         m.script.bootstrapTasks = listOf(
             MockZCode.MockTask(
                 taskId = "synth-dev-task-1",

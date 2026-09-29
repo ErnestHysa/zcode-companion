@@ -343,6 +343,25 @@ class RelayTransport(
             ackWatcherJob = scope.launch { ackWatchLoop() }
             ctx.info("relay.connected", "connectionId=${hello.connectionId.take(8)}…")
         } catch (e: Failure) {
+            // §14.4.1 honest terminal state on a failed connect — NEVER rest in
+            // CONNECTING: auth-class → FAILED (re-scan); retryable classes →
+            // RECONNECTING (the recovery loop may retry; budget → Degraded).
+            bound().warn("relay.connectFailed", "${e.error.category} ${e.error.developerDiagnostic.take(140)}")
+            if (e.error.category == com.zcode.android.core.common.error.ErrorCategory.AUTH) {
+                safeMachine(ConnectionStateMachine.ConnectionEvent.AUTH_FAILED)
+            } else if (machine.state in setOf(
+                    ConnectionStateMachine.ConnectionState.CONNECTING,
+                    ConnectionStateMachine.ConnectionState.AUTHENTICATING,
+                    ConnectionStateMachine.ConnectionState.RECOVERING,
+                )
+            ) {
+                safeMachine(ConnectionStateMachine.ConnectionEvent.SOCKET_LOST)
+                // "Reconnecting" must mean a loop IS running (§14.4.1): self-heal here
+                // so EVERY caller (hub cold start, pairing retry) gets bounded retry →
+                // budget → Degraded instead of a stranded mid-state.
+                scope.launch { runCatching { recover() } }
+            }
+            publishState()
             throw e
         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
             throw Failure(ErrorMapping.timeout("connect", config.connectTimeoutMs))
@@ -413,7 +432,17 @@ class RelayTransport(
                 if (e.error.category == com.zcode.android.core.common.error.ErrorCategory.SESSION) {
                     safeMachine(ConnectionStateMachine.ConnectionEvent.SOCKET_LOST)
                     _appErrors.emit(e.error)
-                    return // takeover-class: user decides (§15.3)
+                    // §15.3: ONLY the takeover class (session-conflict / KICKED — the
+                    // autoRecovery=RECONNECT marker) ends the loop for a user decision.
+                    // TRANSIENT session errors (session-not-found while the desktop
+                    // re-hydrates its workspace, workspace-closed during a restart)
+                    // must KEEP RETRYING within the budget — returning here stranded
+                    // the machine in RECONNECTING forever (Phase 6 field finding).
+                    if (e.error.autoRecovery == com.zcode.android.core.common.error.RecoveryAction.RECONNECT) {
+                        return
+                    }
+                    bound().warn("relay.reconnectFailed", e.error.developerDiagnostic)
+                    continue
                 }
                 bound().warn("relay.reconnectFailed", e.error.developerDiagnostic)
             } catch (e: CancellationException) {
@@ -1055,23 +1084,38 @@ class RelayTransport(
 
     private suspend fun openBridgeInternal(): BridgeInfo {
         val endpoint = endpoint ?: error("no endpoint")
-        // §9.5 pairing completion: when no workspace is pinned on the endpoint (the
-        // standard first-pair path), discover the ACTIVE workspace over the control
-        // plane (Q9-verified shape: workspace-list-response {workspaces[],
-        // activeWorkspaceKey}) before opening the bridge.
+        // §9.5 pairing completion + Phase 6 field fix: when no workspace is pinned on
+        // the endpoint (the standard first-pair path), run the BOOTSTRAP discovery
+        // FIRST — the verified production ordering (live corpus: bootstrap-request →
+        // bootstrap-response → workspace-bridge-open WITH a resolved taskId). The
+        // bootstrap-response carries workspaces[] AND initialViewState.activeTaskId;
+        // opening the bridge WITHOUT a resolvable task was rejected by production
+        // (workspace-bridge-error session-not-found) while the lenient mock passed.
         var workspaceKey = endpoint.workspaceKey
         var workspacePath = endpoint.workspacePath
-        if (workspaceKey == null) {
-            val response = workspaceList()
+        var taskId = endpoint.taskId
+        if (workspaceKey == null || taskId == null) {
+            val response = bootstrap()
             val result = response["result"] as? JsonObject
-                ?: throw Failure(ErrorMapping.protocolFault("workspace-list-response without result"))
+                ?: throw Failure(ErrorMapping.protocolFault("bootstrap-response without result"))
             val workspaces = result["workspaces"] as? JsonArray ?: JsonArray(emptyList())
-            val active = (result["activeWorkspaceKey"] as? JsonPrimitive)?.content
-                ?: ((workspaces.firstOrNull() as? JsonObject)?.get("workspaceKey") as? JsonPrimitive)?.content
-                ?: throw Failure(ErrorMapping.protocolFault("workspace-list has no workspaces"))
-            workspaceKey = active
-            workspacePath = ((workspaces.firstOrNull() as? JsonObject)?.get("workspacePath") as? JsonPrimitive)?.content
-                ?: endpoint.workspacePath
+            val initialView = result["initialViewState"] as? JsonObject
+            val activeKey = (initialView?.get("activeWorkspaceKey") as? JsonPrimitive)?.content
+                ?: (result["activeWorkspaceKey"] as? JsonPrimitive)?.content // workspace-list shape fallback
+            if (workspaceKey == null) {
+                workspaceKey = activeKey
+                    ?: ((workspaces.firstOrNull() as? JsonObject)?.get("workspaceKey") as? JsonPrimitive)?.content
+                    ?: ((workspaces.firstOrNull() as? JsonObject)?.get("workspacePath") as? JsonPrimitive)?.content
+                    ?: throw Failure(ErrorMapping.protocolFault("bootstrap has no workspaces"))
+            }
+            if (workspacePath == null) {
+                workspacePath = ((workspaces.firstOrNull() as? JsonObject)?.get("workspacePath") as? JsonPrimitive)?.content
+                    ?: endpoint.workspacePath
+            }
+            if (taskId == null) {
+                taskId = (initialView?.get("activeTaskId") as? JsonPrimitive)?.content
+                    ?: (result["activeTaskId"] as? JsonPrimitive)?.content
+            }
         }
         val requestId = nextRequestId()
         val open = com.zcode.android.core.protocol.relay.WorkspaceBridgeOpen(
@@ -1080,12 +1124,16 @@ class RelayTransport(
             bridgeGeneration = bridgeGeneration,
             recoveryId = recoveryId,
             workspaceKey = workspaceKey,
-            taskId = endpoint.taskId,
+            taskId = taskId,
         )
         val response = controlRequest(requestId, encodeJson.encodeToString(open), config.bridgeTimeoutMs)
         val zt = (response["zcode_type"] as? JsonPrimitive)?.content
         if (zt == "workspace-bridge-error") {
-            throw Failure(ErrorMapping.sessionUnavailable())
+            // The reason field is the ONLY diagnostic production gives — preserve it
+            // verbatim in the error (and the log); never discard it again.
+            val reason = (response["reason"] as? JsonPrimitive)?.content ?: "unspecified"
+            bound().warn("bridge.error", "reason=$reason")
+            throw Failure(ErrorMapping.bridgeError(reason))
         }
         val bridge = (response["bridge"] as? JsonObject)
             ?: throw Failure(ErrorMapping.protocolFault("bridge-ready without bridge object"))
@@ -1093,7 +1141,7 @@ class RelayTransport(
         return BridgeInfo(
             workspaceKey = workspaceKey,
             workspacePath = (bridge["workspacePath"] as? JsonPrimitive)?.content ?: workspacePath ?: "",
-            initialTaskId = (bridge["initialTaskId"] as? JsonPrimitive)?.content,
+            initialTaskId = (bridge["initialTaskId"] as? JsonPrimitive)?.content ?: taskId,
         )
     }
 
