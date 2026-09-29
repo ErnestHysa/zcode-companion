@@ -128,6 +128,14 @@ class ConnectionHub(
     private var controlPlaneJob: Job? = null
     private var started = false
 
+    /**
+     * Invoked on EVERY transport CONNECTED transition. The composition root wires
+     * this to the pairing port: a background self-heal success (e.g. the QR flow's
+     * connect failed retryably, the recovery loop connected later) must flip the
+     * port's paired state so the nav gate moves the user out of the pairing screen.
+     */
+    var onConnected: (() -> Unit)? = null
+
     /** Idempotent app-start entry: wire state mapping; connect when paired. */
     fun start() {
         if (started) return
@@ -371,16 +379,16 @@ class ConnectionHub(
                 if (e is kotlinx.coroutines.CancellationException) throw e
                 val err = (e as? RelayTransport.Failure)?.error
                 // Log the CATEGORY + DIAGNOSTIC (the field-visible reason — never just
-                // the category again), then let §14.4.1 self-heal: retryable failures
-                // drive the transport's recovery loop (backoff → budget → Degraded
-                // with an honest Retry affordance) instead of resting mid-state.
+                // the category again). §14.4.1 self-heal: the transport's recovery loop
+                // already launched itself on retryable failures and owns the EXPONENTIAL
+                // BACKOFF (budget → Degraded → Retry). The hub must NOT poke
+                // reconnectNow() here: requestImmediate collapses the next delay to 0,
+                // and a 0 ms retry storm against the relay is the observed cause of
+                // desktop-disconnected flapping (feedback #328 class).
                 log.warn(
                     "hub.connectFailed",
                     err?.let { "${it.category} ${it.developerDiagnostic.take(140)}" } ?: e.javaClass.simpleName,
                 )
-                if (err != null && err.category != com.zcode.android.core.common.error.ErrorCategory.AUTH) {
-                    transport.reconnectNow()
-                }
             }
         }
     }
@@ -409,7 +417,10 @@ class ConnectionHub(
 
     private fun onTransportState(state: ConnectionStateMachine.ConnectionState) {
         when (state) {
-            ConnectionStateMachine.ConnectionState.CONNECTED -> scope.launch { refreshTasks() }
+            ConnectionStateMachine.ConnectionState.CONNECTED -> scope.launch {
+                onConnected?.invoke()
+                refreshTasks()
+            }
             else -> Unit
         }
     }

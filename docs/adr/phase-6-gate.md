@@ -117,6 +117,18 @@ First real-device test against the PRODUCTION relay failed: relay auth matched (
 
 Regression coverage: `RelayTransportBridgeErrorTest` (4: bootstrap-first discovery succeeds under a strict bridge; verbatim-reason + non-takeover classification + honest RECONNECTING state; transient error → recovery continues → CONNECTED; session-conflict keeps takeover semantics), `ConnectionHubIntegrationTest.cold start self-heals through a transient bridge error to a populated task list` (60 s budget), and the device E2E re-run with the mock's production-strict bridge (`bridgeRequireTaskId = true`) — the shipped path provably exercises bootstrap-first discovery on Android. Suites at fix time: 325/325 JVM/Robolectric, 5/5 instrumented.
 
+## Post-gate field fix round 2 (2026-09-29, real-phone re-test)
+
+The first field fix made the failure VISIBLE (diagnostics now show the verbatim `workspace-bridge-error: desktop-disconnected`) but the re-test exposed a regression the fix itself introduced: the hub's failure path called `reconnectNow()` on every connect failure, and `requestImmediate()` re-latched the policy's zero-delay flag each time — a **0 ms retry storm** (log: relay-3 → relay-4 70 ms apart, 5 terminal sessions in 10 s). That flapping is itself the likely trigger of the relay answering `desktop-disconnected` in a loop (community-tracked relay behavior, feedback #328 class: rapid terminal bridge-mount attempts destabilize the desktop's relay session). It also left the user on the pairing failure screen even when the background loop eventually connected.
+
+Fixes (all with regression coverage):
+1. **Hub never pokes `reconnectNow()` from the failure path** — the transport's self-heal loop owns retrying WITH §11.5 exponential backoff (1 s base, ×2, 60 s cap, full jitter; 2 min budget → Degraded + Retry). `requestImmediate()` is reserved for genuine user action (Retry button, foreground, network-restored).
+2. **Background-connect success flips the pairing gate** — `ConnectionHub.onConnected` → `DefaultPairingPort.onTransportConnected()`: when the recovery loop connects while the port still reports unpaired (the QR flow's connect failed retryably, the loop succeeded later), the port adopts the sealed credential and the nav moves the user into the app instead of stranding them on the failure screen. No-op without sealed metadata (post-wipe CONNECTED never resurrects pairing).
+
+Regression coverage: `ReconnectPolicyTest` (immediate collapses exactly ONE delay; exponential bounds; budget → null; reset), `ConnectionHubIntegrationTest.retries after a connect failure respect backoff - no hot loop` (slow-policy transport; with the old poke every gap ≈ 0 — now gaps are uniform(0..5 s); P[hot] ≈ 1 vs ≈ 0.8 %), `cold start self-heals …` extended with the `onConnected` flip assertion. Suites at fix time: 330/330 JVM/Robolectric, 5/5 instrumented.
+
+Field guidance recorded: `desktop-disconnected` at CALM cadence means the relay (or the desktop's own session view) does not have a bridge-able desktop — press Stop in the desktop's Remote Control dialog, re-enable it, refresh the QR, and re-pair; the app now surfaces this copy in the connection center instead of a generic error.
+
 ## Phase Exit Decision
 
 **PASS WITH KNOWN LIMITATIONS** — all subphase exit gates green with executed evidence; limitations 1–8 accepted and documented above; no §47 No-Go condition triggered.

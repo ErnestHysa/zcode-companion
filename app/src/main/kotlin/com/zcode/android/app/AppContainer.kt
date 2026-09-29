@@ -78,6 +78,12 @@ class AppContainer(activity: FragmentActivity) {
     val tasksPort: DefaultTasksPort = DefaultTasksPort(hub, vault, stores.taskRepository)
     val conversationPort: DefaultConversationPort = DefaultConversationPort(hub, stores.conversationRepository)
 
+    init {
+        // Background self-heal success → flip the pairing gate (the QR flow's connect
+        // may have failed retryably; the recovery loop connecting later IS pairing).
+        hub.onConnected = { pairingPort.onTransportConnected() }
+    }
+
 
     companion object {
         const val LOG_TAG = "ZCODE-PAIR"

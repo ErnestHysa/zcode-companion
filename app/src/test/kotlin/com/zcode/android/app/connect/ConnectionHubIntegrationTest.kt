@@ -40,6 +40,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.After
@@ -203,12 +204,92 @@ class ConnectionHubIntegrationTest {
     fun `cold start self-heals through a transient bridge error to a populated task list`() = runBlocking {
         mock.script.bridgeRequireTaskId = true // production-faithful strictness
         synchronized(mock.script.bridgeErrorReasons) { mock.script.bridgeErrorReasons.addLast("session-not-found") }
+        var connectedCallbacks = 0
+        hub.onConnected = { connectedCallbacks++ }
         hub.start()
         withTimeout(60_000) { hub.phase.first { it == ConnectionPhase.CONNECTED } } // pre-fix: never
         val loaded = withTimeout(15_000) { tasks.snapshot.first { it.isNotEmpty() } }
         assertTrue(loaded.isNotEmpty())
         // The phase must never have been left stranded mid-state after recovery.
         assertEquals(ConnectionPhase.CONNECTED, hub.phase.value)
+        // The self-heal success must surface to the pairing gate (§15-S2 flip).
+        assertTrue(connectedCallbacks >= 1, "onConnected must fire on recovery success")
+    }
+
+    /**
+     * Phase 6 FIELD-FINDING regression #2 (real-phone log: relay-3 → relay-4 70 ms
+     * apart): the hub's failure path used to poke reconnectNow() on EVERY connect
+     * failure, re-latching the policy's immediate flag → a 0 ms retry storm that
+     * made the relay answer desktop-disconnected in a loop (feedback #328 class).
+     * With the poke removed, retries must respect the policy's backoff: with a
+     * 5 s minimum bound, the FIRST retry lands ≥ ~4 s after the failed attempt.
+     */
+    @Test
+    fun `retries after a connect failure respect backoff - no hot loop`() = runBlocking {
+        // Local transport with a SLOW policy (base = max = 5 s): with the old hot loop
+        // (requestImmediate re-latched on every failure) EVERY retry gap ≈ 0; with the
+        // fix the gaps are uniform(0..5 s) full jitter — statistically separated.
+        val slowPolicy = com.zcode.android.core.transport.ReconnectPolicy(
+            baseDelayMs = 5_000, maxDelayMs = 5_000, budgetMs = 60_000,
+        )
+        val slowTransport = RelayTransport(
+            wsFactory = com.zcode.android.core.transport.OkHttpWsFactory(),
+            log = ZLog(sink = {}),
+            reconnectPolicyOverride = slowPolicy,
+        )
+        // SEALED vault (mirror setUp) — an empty vault leaves the hub unpaired.
+        val slowVault = CredentialVault(InMemoryCredentialStore(), IdentityKeyWrap(), ZLog(sink = {}))
+        slowVault.seal(
+            PairingLink(
+                endpointOrigin = mock.url.removeSuffix("/ws").replaceFirst("ws://", "http://"),
+                route = "/remote/v4",
+                deviceSid = sid,
+                passHash = passHash,
+                issuedAtMs = System.currentTimeMillis(),
+                deviceMid = "mock-desktop-mid",
+                desktopName = "SlowBook",
+                appVersion = "3.14.3",
+            ),
+        )
+        val slowHub = ConnectionHub(
+            transport = slowTransport,
+            vault = slowVault,
+            taskRepo = tasks,
+            conversationRepo = conversations,
+            journalRepo = FakeJournalRepository(),
+            interactions = FakeInteractionRepository(),
+            endpointRepo = endpoints,
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+            log = ZLog(sink = {}),
+        )
+        mock.script.bridgeRequireTaskId = true // strict: every open fails until cleared
+        synchronized(mock.script.bridgeErrorReasons) {
+            repeat(4) { mock.script.bridgeErrorReasons.addLast("desktop-disconnected") }
+        }
+        val authTimes = java.util.concurrent.ConcurrentLinkedQueue<Long>()
+        val authJob = launch {
+            mock.events.collect { if (it is MockZCode.ServerEvent.AuthCompleted) authTimes.add(System.currentTimeMillis()) }
+        }
+        slowHub.start()
+        // 4 queued errors then the bridge opens (bootstrap resolves the task) — the
+        // hub must reach CONNECTED; the assertion below is about the RETRY CADENCE.
+        withTimeout(60_000) { slowHub.phase.first { it == ConnectionPhase.CONNECTED } }
+        authJob.cancel()
+        runCatching { runBlocking { slowTransport.close("done") } }
+        val sorted = authTimes.toList().sorted()
+        org.junit.Assert.assertTrue(
+            "expected ≥ 3 auth attempts, got ${sorted.size}",
+            sorted.size >= 3,
+        )
+        // Hot loop signature: EVERY gap ≈ 0 (re-latched immediate). Fixed: gaps are
+        // uniform(0..5 s) — at most ONE of the first three gaps may be < 300 ms
+        // (P[hot] ≈ 1 vs P[fixed] ≈ 0.8 %).
+        val gaps = sorted.zipWithNext().map { (a, b) -> b - a }.take(3)
+        val fastGaps = gaps.count { it < 300 }
+        org.junit.Assert.assertTrue(
+            "retry gaps $gaps — the 0 ms hot loop is back",
+            fastGaps <= 1,
+        )
     }
 
     @Test

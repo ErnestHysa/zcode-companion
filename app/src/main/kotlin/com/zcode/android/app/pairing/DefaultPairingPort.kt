@@ -156,6 +156,22 @@ class DefaultPairingPort(
         }
     }
 
+    /**
+     * Transport reached CONNECTED while the port still reports unpaired — the
+     * background self-heal loop connected with the SEALED credential after a
+     * retryable pairing failure (e.g. transient bridge/desktop-disconnected).
+     * Flip the paired gate so the nav moves the user into the app (§15-S2 shape:
+     * the sealed credential, not the in-flight UI attempt, is the pairing truth).
+     * No-op unless the vault actually holds a credential (post-wipe CONNECTED
+     * must never resurrect pairing).
+     */
+    fun onTransportConnected() {
+        if (_pairedEndpoint.value != null) return
+        val meta = vault.loadMetadata() ?: return
+        log.info("pairing.resumedFromBackgroundConnect", "sid=${meta.deviceSid.take(6)}…")
+        _pairedEndpoint.value = toView(meta)
+    }
+
     override suspend fun unpair() {
         transport.close("unpair")
         gate.wipeGate()
