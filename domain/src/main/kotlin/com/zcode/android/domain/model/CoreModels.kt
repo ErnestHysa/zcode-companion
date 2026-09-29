@@ -75,6 +75,8 @@ data class Task(
     val pinned: Boolean = false,
     /** Raw status string when status == UNKNOWN (INV-8 raw retention). */
     val rawStatus: String? = null,
+    /** Display-only workspace label from the task plane (INV-12: never an identity). */
+    val workspaceLabel: String? = null,
 ) {
     /** Per-turn/summary file change rollup (TurnFileChangeSummary semantics, §22). */
     data class TaskSummary(val additions: Long, val deletions: Long, val files: Long)

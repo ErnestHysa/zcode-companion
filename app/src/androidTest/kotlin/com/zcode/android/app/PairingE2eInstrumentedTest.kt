@@ -46,6 +46,13 @@ class PairingE2eInstrumentedTest {
     fun ensureUnpaired() {
         // Device state persists across test methods — start every test from a wiped state.
         wipeAll(targetContext())
+        // Phase 6 shell: the storage wipe carries no change signal to the in-memory
+        // pairing port (by design — §12.4 custody has no observers); recreate the
+        // activity so the nav gate re-reads the vault and starts at the pairing flow.
+        rule.activityRule.scenario.recreate()
+        val dbgStore = AppStores.get(targetContext()).credentialStore
+        val dbgVault = CredentialVault(dbgStore, AndroidKeystoreKeyWrap(biometricBound = false), ZLog(sink = {}))
+        println("PAIRDBG post-wipe names=${dbgStore.listNames()} meta=${dbgVault.loadMetadata() != null}")
     }
 
     @After
@@ -103,29 +110,34 @@ class PairingE2eInstrumentedTest {
     @Test
     fun pairConnectRelaunchResumeUnpairWipe_forensicsClean_firstPairUnder60s() {
         startMock()
-        // ---- 1. happy pairing: submit → E7 consent (emulator has no lock screen) → Connected
+        // ---- 1. happy pairing: submit → E7 consent (emulator has no lock screen) →
+        //         connected. PHASE 6 SHELL: pairing success hands control to the app
+        //         nav — the landing surface is the TASK LIST (ui-ux navigation.md:
+        //         "Pairing → Connecting → Task list"); the pairing flow's own Connected
+        //         state remains the seam the nav reacts to (§43.2-6.1).
         val t0 = System.currentTimeMillis()
         submitLink(link(mockPort(), happyHash()))
         waitForTag("consent-reduced")
         rule.onNodeWithTag("consent-reduced").performClick()
-        waitForTag("connected-detail")
+        waitForTag("tasks-title")
         val elapsedMs = System.currentTimeMillis() - t0
-        assertTrue("first-pair took ${elapsedMs}ms — budget is 60 s (§48)", elapsedMs < 60_000)
-        rule.onNodeWithTag("connected-unpair").assertExists()
+        assertTrue("first-pair took $elapsedMs ms — budget is 60 s (§48)", elapsedMs < 60_000)
         println("E2E-PAIR-ELAPSED_MS=$elapsedMs")
 
-        // ---- 2. persistence: recreate activity → Welcome resumes; reconnect with the
-        //         SEALED credential (AndroidKeyStore unwrap + Tink open) → Connected.
+        // ---- 2. persistence: recreate activity → the paired gate skips pairing and
+        //         reconnects with the SEALED credential (AndroidKeyStore unwrap + Tink
+        //         open) straight into the task list (cold-start path §15-S2).
         rule.activityRule.scenario.recreate()
-        waitForTag("resume-connect")
-        rule.onNodeWithTag("resume-connect").performClick()
-        waitForTag("connected-detail")
+        waitForTag("tasks-title")
 
-        // ---- 3. unpair wipe is forensically complete (§3.5)
-        rule.onNodeWithTag("connected-unpair").performClick()
-        waitForTag("unpair-confirm")
-        rule.onNodeWithTag("unpair-confirm").performClick()
-        waitForTag("start-scan")
+        // ---- 3. unpair wipe is forensically complete (§3.5). PHASE 6 SHELL: unpair
+        //         lives in Settings (danger action, confirm dialog).
+        rule.onNodeWithTag("tasks_settings").performClick()
+        waitForTag("settings_unpair")
+        rule.onNodeWithTag("settings_unpair").performClick()
+        waitForTag("settings_unpair_confirm")
+        rule.onNodeWithTag("settings_unpair_confirm").performClick()
+        waitForTag("open-manual")
         val store = AppStores.get(targetContext()).credentialStore
         assertTrue("credential blobs must be wiped", store.listNames().isEmpty())
         val ks = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
@@ -134,7 +146,7 @@ class PairingE2eInstrumentedTest {
 
         // ---- 4. relaunch after wipe → unpaired Welcome (no resume card)
         rule.activityRule.scenario.recreate()
-        waitForTag("start-scan")
+        waitForTag("open-manual")
         assertEquals("no resume card after wipe", 0, rule.onAllNodesWithTag("resume-connect").fetchSemanticsNodes().size)
     }
 
@@ -145,7 +157,7 @@ class PairingE2eInstrumentedTest {
         submitLink(link(mockPort(), happyHash()))
         waitForTag("consent-reduced")
         rule.onNodeWithTag("consent-reduced").performClick()
-        waitForTag("connected-detail")
+        waitForTag("tasks-title") // Phase 6 shell: success lands on the task list
 
         // §12.2 step-4 classification on-device: sealing the same sid again = ROTATION
         // (rotation continuity/vectors are JVM-proven in CredentialVaultTest).

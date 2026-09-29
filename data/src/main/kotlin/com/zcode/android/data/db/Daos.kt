@@ -16,6 +16,10 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE endpointId = :endpointId AND workspaceKey = :workspaceKey ORDER BY pinned DESC, updatedAtMs DESC")
     fun observe(endpointId: String, workspaceKey: String): Flow<List<TaskEntity>>
 
+    /** Phase 6 §18.2: the task list spans every workspace of the endpoint (grouped in UI). */
+    @Query("SELECT * FROM tasks WHERE endpointId = :endpointId ORDER BY pinned DESC, updatedAtMs DESC")
+    fun observeByEndpoint(endpointId: String): Flow<List<TaskEntity>>
+
     @Query("SELECT * FROM tasks WHERE endpointId = :endpointId AND workspaceKey = :workspaceKey ORDER BY pinned DESC, updatedAtMs DESC")
     suspend fun list(endpointId: String, workspaceKey: String): List<TaskEntity>
 

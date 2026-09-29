@@ -24,6 +24,9 @@ import java.util.concurrent.TimeUnit
 interface Ws {
     suspend fun connect(url: String, timeoutMs: Long)
 
+    /** Abrupt client-side abort (socket death class) — test seam + forced teardown. */
+    fun cancel()
+
     /** @return false when the socket is closing/closed. */
     fun sendText(text: String): Boolean
 
@@ -96,6 +99,10 @@ class OkHttpWs : Ws {
     }
 
     override fun sendText(text: String): Boolean = webSocket?.send(text) ?: false
+
+    override fun cancel() {
+        webSocket?.cancel()
+    }
 
     override fun close(code: Int, reason: String) {
         webSocket?.close(code, reason)

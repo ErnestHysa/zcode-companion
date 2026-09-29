@@ -62,6 +62,8 @@ class RecoveryCoordinator(
     }
 
     private val managers = LinkedHashMap<String, ConversationSessionManager>()
+    /** Phase 6: per-session workspace target (§ v4 wire carries the workspace per call). */
+    private val sessionWorkspaces = HashMap<String, Pair<String?, String?>>()
     private val recoveryMutex = Mutex()
     private var forwardJob: Job? = null
     private var tickJob: Job? = null
@@ -73,6 +75,15 @@ class RecoveryCoordinator(
 
     fun manager(sessionId: String): ConversationSessionManager? = synchronized(managers) { managers[sessionId] }
 
+    /** Phase 6: a conversation may live outside the endpoint-pinned (active) workspace. */
+    data class SessionTarget(
+        val sessionId: String,
+        val workspacePath: String? = null,
+        val workspaceIdentity: String? = null,
+    )
+
+    open suspend fun start(sessionIds: List<String>) = startTargets(sessionIds.map { SessionTarget(it) })
+
     // ---------------------------------------------------------------- lifecycle
 
     /**
@@ -80,38 +91,44 @@ class RecoveryCoordinator(
      * watermark hydrate the cursor FIRST (S2) so the guard can classify continuity;
      * fresh sessions take the plain subscribe path (snapshot expected).
      */
-    suspend fun start(sessionIds: List<String>) {
+    open suspend fun startTargets(targets: List<SessionTarget>) {
         val journal = journalRepo.load(endpointId)
         val watermarks = journal?.subscriptions?.associateBy({ it.sessionId }, { it }) ?: emptyMap()
         recordJournalBase(journal)
+        val newlyAttached = ArrayList<SessionTarget>()
         synchronized(managers) {
-            for (id in sessionIds) {
-                if (managers.containsKey(id)) continue
-                val wm = watermarks[id]
-                managers[id] = ConversationSessionManager(
-                    sessionId = SessionId(id),
+            for (t in targets) {
+                if (managers.containsKey(t.sessionId)) continue
+                sessionWorkspaces[t.sessionId] = t.workspacePath to t.workspaceIdentity
+                newlyAttached.add(t)
+                val wm = watermarks[t.sessionId]
+                managers[t.sessionId] = ConversationSessionManager(
+                    sessionId = SessionId(t.sessionId),
                     endpointId = endpointId,
                     store = store,
                     journalSink = { topic, sessionId, afterSeq, epoch -> recordWatermark(topic, sessionId, afterSeq, epoch) },
-                    escalate = { reason, baseEpoch, baseSeq -> escalate(id, reason, baseEpoch, baseSeq) },
-                    onSnapshotApplied = { rows -> onSnapshotReconcile(id, rows) },
+                    escalate = { reason, baseEpoch, baseSeq -> escalate(t.sessionId, reason, baseEpoch, baseSeq) },
+                    onSnapshotApplied = { rows -> onSnapshotReconcile(t.sessionId, rows) },
                     clock = clock,
                     log = log,
                 )
-                wm?.let { managers[id]!!.hydrate(it.logEpoch, it.afterSeq) }
+                wm?.let { managers[t.sessionId]!!.hydrate(it.logEpoch, it.afterSeq) }
             }
         }
         gateway.startForwarding(scope)
-        // Anchor every session on the fresh connection (§9.8: subscription state on a
-        // new connection is "fresh" → subscribe, snapshot expected). The (logEpoch, seq)
-        // guard classifies what the snapshot replaces; later escalations resync.
-        for (id in sessionIds) {
+        // Anchor every NEWLY-attached session on the fresh connection (§9.8: subscription
+        // state on a new connection is "fresh" → subscribe, snapshot expected). Already-
+        // managed sessions keep their live subscription — a RE-subscribe would fault and
+        // falsely label a healthy, still-streaming projection stale (Phase 6 finding).
+        // The (logEpoch, seq) guard classifies what the snapshot replaces; later
+        // escalations resync.
+        for (t in newlyAttached) {
             try {
-                gateway.subscribe(id)
+                gateway.subscribe(t.sessionId, workspacePath = t.workspacePath, workspaceIdentity = t.workspaceIdentity)
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
-                log.warn("recovery.subscribeFailed", "session=$id ${e.javaClass.simpleName}")
-                manager(id)?.setStale(true)
+                log.warn("recovery.subscribeFailed", "session=${t.sessionId} ${e.javaClass.simpleName}")
+                manager(t.sessionId)?.setStale(true)
             }
         }
         forwardJob = scope.launch {
@@ -215,8 +232,16 @@ class RecoveryCoordinator(
             // the authoritative snapshot (never loop, never a local fill).
             val forceSnapshot = base == null || count >= 2
             log.warn("recovery.escalate", "session=$sessionId reason=${reason.take(60)} base=$base/$seq attempt=$count force=$forceSnapshot")
+            val ws = synchronized(sessionWorkspaces) { sessionWorkspaces[sessionId] }
             try {
-                gateway.resync(sessionId, base, seq, forceSnapshot = forceSnapshot)
+                gateway.resync(
+                    sessionId,
+                    base,
+                    seq,
+                    forceSnapshot = forceSnapshot,
+                    workspacePath = ws?.first,
+                    workspaceIdentity = ws?.second,
+                )
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
                 // Escalation transport failure: the connection machinery owns retry; the

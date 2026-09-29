@@ -42,6 +42,10 @@ android {
     packaging {
         resources.excludes += "META-INF/{AL2.0,LGPL2.1}"
     }
+
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 kotlin {
@@ -54,14 +58,31 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:security"))
     implementation(project(":core:transport"))
+    implementation(project(":core:ui"))
     implementation(project(":data"))
+    implementation(project(":domain"))
     implementation(project(":features:pairing"))
+    implementation(project(":features:tasks"))
+    implementation(project(":features:conversation"))
     implementation(libs.kotlinx.coroutines.android)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.material3)
+    implementation(libs.compose.material.icons.core)
+    implementation(libs.navigation.compose)
+    implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.activity.compose)
     // MockZCode is TEST-ONLY: it must never enter a shipped artifact (INV-15).
+    testImplementation(project(":tools:mockzcode"))
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlin.test.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.test.junit)
+    testImplementation(platform(libs.compose.bom))
+    testImplementation(libs.compose.ui.test.junit4)
+    testDebugImplementation(libs.compose.ui.test.manifest)
     androidTestImplementation(project(":tools:mockzcode"))
     androidTestImplementation(project(":core:security"))
     androidTestImplementation(platform(libs.compose.bom))

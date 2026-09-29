@@ -36,6 +36,10 @@ class DefaultPairingPort(
     private var lastValidated: PairingLink? = null
 
     private val _pairedEndpoint = MutableStateFlow<PairingFlow.LinkView?>(vault.loadMetadata()?.let(::toView))
+
+    init {
+        android.util.Log.i("PORTDBG", "constructed paired=${_pairedEndpoint.value != null}")
+    }
     override val pairedEndpoint: StateFlow<PairingFlow.LinkView?> = _pairedEndpoint
 
     override suspend fun validate(raw: String): PairingPort.Validation {
@@ -89,23 +93,29 @@ class DefaultPairingPort(
             return failure("Reduced-security consent was not given", rePair = false, retryable = false)
         }
         // Seal (or rotate) the credential — §12.2 step 5: nothing written before all gates.
-        val outcome = vault.seal(raw)
-        if (outcome is SealOutcome.Conflicts) {
+        val sealOutcome = vault.seal(raw)
+        if (sealOutcome is SealOutcome.Conflicts) {
             return failure(
                 "A different desktop is already paired on this device. Unpair it first.",
                 rePair = false,
                 retryable = false,
             )
         }
-        if (outcome is SealOutcome.Rotated) {
+        if (sealOutcome is SealOutcome.Rotated) {
             log.info("pairing.rotated", "same-sid rotation (§12.7)")
         }
         // Keystore gate provision when biometrics are enforceable (§3.3).
         if (gate.capability() == BiometricGatePolicy.Capability.AVAILABLE) {
             gate.provisionGateKey()
         }
-        _pairedEndpoint.value = toView(raw)
-        return connect(raw)
+        // pairedEndpoint flips ONLY on a successful connect (§12.6): an AUTH-class
+        // failure leaves the credential suspect — the user stays on the pairing flow's
+        // re-scan state instead of being navigated into the app.
+        val outcome = connect(raw)
+        if (outcome is PairingPort.ConnectOutcome.Success) {
+            _pairedEndpoint.value = toView(raw)
+        }
+        return outcome
     }
 
     override suspend fun retry(): PairingPort.ConnectOutcome {
@@ -123,22 +133,22 @@ class DefaultPairingPort(
             id = meta.endpointId,
             kind = com.zcode.android.core.transport.EndpointKind.RELAY_ZAI,
             displayName = meta.desktopName,
-            wsUrl = wsUrlFor(origin),
+            wsUrl = wsUrlForOrigin(origin),
             deviceSid = meta.deviceSid,
             deviceMid = meta.deviceMid,
             desktopAppVersion = meta.desktopAppVersion,
         )
         return try {
             transport.connect(endpoint) { nonce, role, sid -> signer.proof(nonce, role, sid) }
-            PairingPort.ConnectOutcome.Success(
-                PairingFlow.LinkView(
-                    deviceSid = meta.deviceSid,
-                    desktopName = meta.desktopName,
-                    desktopAppVersion = meta.desktopAppVersion,
-                    origin = origin,
-                    issuedAtMs = meta.issuedAtMs,
-                ),
+            val view = PairingFlow.LinkView(
+                deviceSid = meta.deviceSid,
+                desktopName = meta.desktopName,
+                desktopAppVersion = meta.desktopAppVersion,
+                origin = origin,
+                issuedAtMs = meta.issuedAtMs,
             )
+            _pairedEndpoint.value = view // retry success → paired (§12.6 recovery)
+            PairingPort.ConnectOutcome.Success(view)
         } catch (e: com.zcode.android.core.transport.RelayTransport.Failure) {
             mapError(e.error)
         } catch (e: Exception) {
@@ -163,7 +173,7 @@ class DefaultPairingPort(
             id = vault.loadMetadata()?.endpointId ?: raw.deviceSid,
             kind = com.zcode.android.core.transport.EndpointKind.RELAY_ZAI,
             displayName = raw.desktopName,
-            wsUrl = raw.wsUrl(),
+            wsUrl = wsUrlForOrigin(raw.endpointOrigin),
             deviceSid = raw.deviceSid,
             deviceMid = raw.deviceMid,
             desktopAppVersion = raw.appVersion,
@@ -178,12 +188,6 @@ class DefaultPairingPort(
         }
     }
 
-    /** QR-origin → WS URL (§6.2 scheme mapping; mirrors PairingLink.wsUrl()). */
-    private fun wsUrlFor(origin: String): String = when {
-        origin.startsWith("https://") -> origin.replaceFirst("https://", "wss://") + "/ws"
-        origin.startsWith("http://") -> origin.replaceFirst("http://", "ws://") + "/ws"
-        else -> throw IllegalArgumentException("unsupported origin scheme")
-    }
 
     private fun mapError(error: com.zcode.android.core.common.error.AppError): PairingPort.ConnectOutcome {
         val rePair = error.category == com.zcode.android.core.common.error.ErrorCategory.AUTH

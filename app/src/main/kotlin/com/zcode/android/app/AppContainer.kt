@@ -1,6 +1,10 @@
 package com.zcode.android.app
 
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
+import com.zcode.android.app.connect.ConnectionHub
+import com.zcode.android.app.connect.DefaultConversationPort
+import com.zcode.android.app.connect.DefaultTasksPort
 import com.zcode.android.app.pairing.DefaultPairingPort
 import com.zcode.android.core.common.log.ZLog
 import com.zcode.android.core.security.biometric.AndroidBiometricGate
@@ -53,6 +57,27 @@ class AppContainer(activity: FragmentActivity) {
 
     /** Phase 4 persistence (§43.2): process-scoped Room + DataStore stores/repositories. */
     val stores: AppStores = AppStores.get(activity)
+
+    /**
+     * Phase 6 (§43.2-6.1): app-level connection lifecycle — post-pairing connect,
+     * bootstrap → task projection, conversation session attachment. The feature
+     * ports below are the ONLY surfaces the UI sees (INV-2/INV-6).
+     */
+    val hub: ConnectionHub = ConnectionHub(
+        transport = transport,
+        vault = vault,
+        taskRepo = stores.taskRepository,
+        conversationRepo = stores.conversationRepository,
+        journalRepo = stores.journalRepository,
+        interactions = stores.interactionRepository,
+        endpointRepo = stores.endpointRepository,
+        scope = activity.lifecycleScope,
+        log = log,
+    )
+
+    val tasksPort: DefaultTasksPort = DefaultTasksPort(hub, vault, stores.taskRepository)
+    val conversationPort: DefaultConversationPort = DefaultConversationPort(hub, stores.conversationRepository)
+
 
     companion object {
         const val LOG_TAG = "ZCODE-PAIR"

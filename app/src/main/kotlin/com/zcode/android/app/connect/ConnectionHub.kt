@@ -1,0 +1,458 @@
+package com.zcode.android.app.connect
+
+import com.zcode.android.app.pairing.wsUrlForOrigin
+import com.zcode.android.core.common.error.AppError
+import com.zcode.android.core.common.log.ZLog
+import com.zcode.android.core.security.vault.CredentialVault
+import com.zcode.android.core.transport.ConnectionStateMachine
+import com.zcode.android.core.transport.EndpointDescriptor
+import com.zcode.android.core.transport.EndpointKind
+import com.zcode.android.core.transport.ErrorMapping
+import com.zcode.android.core.transport.RelayTransport
+import com.zcode.android.data.session.ConversationGateway
+import com.zcode.android.data.session.RecoveryCoordinator
+import com.zcode.android.data.session.RelayConversationGateway
+import com.zcode.android.domain.ids.EndpointId
+import com.zcode.android.domain.ids.WorkspaceIdentityKey
+import com.zcode.android.domain.model.Endpoint
+import com.zcode.android.domain.model.Task
+import com.zcode.android.domain.model.TaskStatus
+import com.zcode.android.domain.repo.ConversationRepository
+import com.zcode.android.domain.repo.EndpointRepository
+import com.zcode.android.domain.repo.InteractionRepository
+import com.zcode.android.domain.repo.JournalRepository
+import com.zcode.android.domain.repo.TaskRepository
+import com.zcode.android.domain.state.ConnectionPhase
+import com.zcode.android.domain.state.TaskStateMachine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.JsonObject
+
+/**
+ * App-level connection lifecycle owner (Phase 6 §43.2-6.1/6.5): after pairing, this
+ * is what keeps the phone honestly connected —
+ *
+ *  cold start (paired) → connect+auth (RelayTransport owns the §14.4.1 machine and
+ *  its reconnect loop) → bootstrap/workspace-list → task projection persistence
+ *  (§17.3) → live `workspace-list-updated` pushes refresh the list (≤ 2 s of event,
+ *  §48 U2).
+ *
+ * Conversation sessions are attached through the Phase 5 [RecoveryCoordinator]
+ * (journal restore + subscribe + escalation). INV-2/INV-6: this is the ONLY app
+ * component that touches the transport; features see state through ports only.
+ */
+class ConnectionHub(
+    private val transport: RelayTransport,
+    private val vault: CredentialVault,
+    private val taskRepo: TaskRepository,
+    private val conversationRepo: ConversationRepository,
+    private val journalRepo: JournalRepository,
+    private val interactions: InteractionRepository,
+    private val endpointRepo: EndpointRepository,
+    private val scope: CoroutineScope,
+    private val log: ZLog,
+) {
+
+    val gateway: ConversationGateway by lazy { RelayConversationGateway(transport, clientId, log) }
+
+    private val clientId: String = "zcode-android-" + vault.loadMetadata()?.endpointId.let { it ?: "unpaired" }
+
+    private val _phase = MutableStateFlow(ConnectionPhase.UNPAIRED)
+    val phase: StateFlow<ConnectionPhase> = _phase.asStateFlow()
+
+    private val _endpoint = MutableStateFlow<Endpoint?>(null)
+    val endpoint: StateFlow<Endpoint?> = _endpoint.asStateFlow()
+
+    private val _taskLoadError = MutableStateFlow<AppError?>(null)
+    val taskLoadError: StateFlow<AppError?> = _taskLoadError.asStateFlow()
+
+    private val _lastRefreshAtMs = MutableStateFlow<Long?>(null)
+    val lastRefreshAtMs: StateFlow<Long?> = _lastRefreshAtMs.asStateFlow()
+
+    private val _endpointName = MutableStateFlow<String?>(null)
+    val endpointName: StateFlow<String?> = _endpointName.asStateFlow()
+
+    /** Connection-center surface: latest transport-class error (takeover UX §15.3). */
+    private val _lastError = MutableStateFlow<AppError?>(null)
+    val lastError: StateFlow<AppError?> = _lastError.asStateFlow()
+
+    fun dismissError() {
+        _lastError.value = null
+    }
+
+    /** Port accessors (features never see the coordinator itself). */
+
+    /**
+     * Bumped whenever a session manager attaches: the per-session observation flows
+     * below re-bind to the REAL manager flows through flatMapLatest — an observer
+     * that attached BEFORE [openConversation] (the normal first-composition order)
+     * must never be stranded on a throwaway empty flow.
+     */
+    private val managersVersion = kotlinx.coroutines.flow.MutableStateFlow(0)
+
+    fun coordinatorOrNull(): RecoveryCoordinator? = coordinator
+
+    suspend fun currentTasks(): List<Task> {
+        val endpointId = vault.loadMetadata()?.endpointId ?: return emptyList()
+        return taskRepo.observeAllTasks(EndpointId(endpointId)).first()
+    }
+
+    private fun <T> sessionFlow(
+        taskId: String,
+        pick: (com.zcode.android.data.session.ConversationSessionManager) -> StateFlow<T>,
+        fallback: T,
+    ): kotlinx.coroutines.flow.Flow<T> =
+        managersVersion.flatMapLatest {
+            val m = coordinatorOrNull()?.manager(taskId)
+            if (m != null) pick(m) else kotlinx.coroutines.flow.flowOf(fallback)
+        }
+
+    fun sessionStale(taskId: String): kotlinx.coroutines.flow.Flow<Boolean> =
+        sessionFlow(taskId, { m -> m.stale }, false)
+
+    fun sessionTaskState(taskId: String): kotlinx.coroutines.flow.Flow<TaskStateMachine.State> =
+        sessionFlow(taskId, { m -> m.taskState }, TaskStateMachine.State.UNKNOWN)
+
+    fun sessionStreaming(taskId: String): kotlinx.coroutines.flow.Flow<List<com.zcode.android.domain.model.StreamingBuffer>> =
+        sessionFlow(taskId, { m -> m.streaming }, emptyList())
+
+    private var connectJob: Job? = null
+    private var coordinator: RecoveryCoordinator? = null
+    private var controlPlaneJob: Job? = null
+    private var started = false
+
+    /** Idempotent app-start entry: wire state mapping; connect when paired. */
+    fun start() {
+        if (started) return
+        started = true
+        val meta = vault.loadMetadata()
+        _endpoint.value = meta?.let {
+            Endpoint(
+                endpointId = EndpointId(it.endpointId),
+                kind = com.zcode.android.domain.model.EndpointKind.RELAY_ZAI,
+                displayName = it.desktopName,
+                wsUrl = wsUrlForOrigin(it.endpointOrigin),
+                pairedAtMs = it.sealedAtMs,
+                deviceSid = it.deviceSid,
+                deviceMid = it.deviceMid,
+                desktopAppVersion = it.desktopAppVersion,
+            )
+        }
+        _phase.value = if (meta == null) ConnectionPhase.UNPAIRED else phaseOf(transport.states.value)
+        _endpointName.value = meta?.desktopName
+        scope.launch {
+            transport.states.collect { state ->
+                _phase.value = if (vault.loadMetadata() == null) ConnectionPhase.UNPAIRED else phaseOf(state)
+                onTransportState(state)
+            }
+        }
+        scope.launch {
+            transport.appErrors.collect { _lastError.value = it }
+        }
+        if (meta != null && transport.states.value != ConnectionStateMachine.ConnectionState.CONNECTED) {
+            connect()
+        }
+        observeControlPlanePushes()
+    }
+
+    /** Pairing completed → adopt the new endpoint and ride the live transport. */
+    fun onPairingCompleted() {
+        started = true
+        val meta = vault.loadMetadata() ?: return
+        _endpoint.value = Endpoint(
+            endpointId = EndpointId(meta.endpointId),
+            kind = com.zcode.android.domain.model.EndpointKind.RELAY_ZAI,
+            displayName = meta.desktopName,
+            wsUrl = wsUrlForOrigin(meta.endpointOrigin),
+            pairedAtMs = meta.sealedAtMs,
+            deviceSid = meta.deviceSid,
+            deviceMid = meta.deviceMid,
+            desktopAppVersion = meta.desktopAppVersion,
+        )
+        _phase.value = phaseOf(transport.states.value)
+        _endpointName.value = meta.desktopName
+        observeControlPlanePushes()
+    }
+
+    /** User "Retry" from Degraded/Failed (§14.4.1 manual retry edges). */
+    fun retry() {
+        when {
+            transport.states.value == ConnectionStateMachine.ConnectionState.DEGRADED ->
+                transport.reconnectNow()
+            transport.states.value == ConnectionStateMachine.ConnectionState.CLOSED ||
+                transport.states.value == ConnectionStateMachine.ConnectionState.FAILED -> connect()
+            else -> if (connectJob?.isActive != true) connect()
+        }
+    }
+
+    /** §15-S3 foreground wake → immediate reconnect, skip backoff. */
+    fun foregroundTrigger() {
+        coordinator?.foregroundTrigger() ?: transport.reconnectNow()
+    }
+
+    /** §15-S4 network restored → probe. */
+    fun networkAvailable() {
+        coordinator?.notifyNetworkAvailable() ?: transport.notifyNetworkAvailable()
+    }
+
+    // ------------------------------------------------------------------ task plane
+
+    /**
+     * bootstrap → workspace list + tasks → task projection (§17.3). Called on every
+     * CONNECTED entry (fresh + re-connect) and by pull-to-refresh.
+     */
+    suspend fun refreshTasks(): Boolean {
+        val meta = vault.loadMetadata() ?: return false
+        return try {
+            val payload = transport.bootstrap()
+            applyBootstrap(payload)
+            true
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            val error = (e as? RelayTransport.Failure)?.error
+                ?: ErrorMapping.networkUnreachable("bootstrap failed: ${e.javaClass.simpleName}")
+            _taskLoadError.value = error
+            log.warn("hub.bootstrapFailed", "${error.category} ${error.developerDiagnostic.take(80)}")
+            false
+        }
+    }
+
+    private suspend fun applyBootstrap(payload: JsonObject?) {
+        val parsed = BootstrapParser.parseBootstrap(payload)
+        val meta = vault.loadMetadata() ?: return
+        val endpointId = EndpointId(meta.endpointId)
+        val now = System.currentTimeMillis()
+        // Group tasks by §7.11 identity key; each group is one workspace projection.
+        val byWorkspace = parsed.tasks.groupBy { it.workspaceIdentityKey }
+        for ((key, group) in byWorkspace) {
+            if (key.isBlank()) continue
+            val tasks = group.map { t ->
+                Task(
+                    taskId = t.taskId,
+                    title = t.title,
+                    status = TaskStatus.fromWire(t.statusWire),
+                    workspace = WorkspaceIdentityKey(key),
+                    createdAtMs = t.createdAtMs,
+                    updatedAtMs = if (t.updatedAtMs > 0) t.updatedAtMs else t.createdAtMs,
+                    workspaceLabel = t.workspaceLabel,
+                )
+            }
+            taskRepo.replaceAll(endpointId, WorkspaceIdentityKey(key), tasks, etag = null, atMs = now)
+        }
+        // Workspaces that lost every task still deserve a section? No — the list is
+        // task-driven in Phase 6 (workspace headers derive from task grouping).
+        _taskLoadError.value = null
+        _lastRefreshAtMs.value = now
+        parsed.desktopAppVersion?.let { version ->
+            _endpoint.value = _endpoint.value?.copy(desktopAppVersion = version)
+        }
+        log.info("hub.bootstrapApplied", "tasks=${parsed.tasks.size} workspaces=${byWorkspace.size} dropped=${parsed.droppedEntries}")
+    }
+
+    /**
+     * §48 U2 live status: the desktop pushes `workspace-list-updated` (verified
+     * control-plane vocabulary); refresh the projection from it (≤ 2 s of event).
+     */
+    private fun observeControlPlanePushes() {
+        if (controlPlaneJob != null) return
+        controlPlaneJob = scope.launch {
+            transport.inbound.collect { frame ->
+                if (frame is com.zcode.android.core.transport.InboundFrame.ControlPayload &&
+                    frame.zcodeType == "workspace-list-updated"
+                ) {
+                    runCatching { applyBootstrap(frame.payload) }
+                        .onFailure { e ->
+                            log.warn("hub.workspaceListUpdatedFault", e.javaClass.simpleName)
+                        }
+                }
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------ conversation plane
+
+    /** Per-session open dedupe: a session is attached EXACTLY once (see below). */
+    private val openedSessions = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+    private val openMutex = kotlinx.coroutines.sync.Mutex()
+
+    /**
+     * Attach a conversation session (Phase 5 coordinator; Phase 6 consumer). The
+     * task's own workspace targets the v4 subscribe (workspace is carried per call).
+     *
+     * SINGLE-FLIGHT per session (§28.5): a destination recomposition can construct a
+     * second ViewModel whose [open] races the first — without this mutex both calls
+     * create a coordinator, both subscribe (double snapshot), and the surviving
+     * manager misses every delta frame published before it attached (the gateway
+     * SharedFlow has no replay). First open wins; later opens observe the SAME
+     * manager through the [managersVersion]-rebinding flows.
+     */
+    suspend fun openConversation(task: Task): RecoveryCoordinator? {
+        val meta = vault.loadMetadata() ?: return null
+        return openMutex.withLock {
+            val coordinator = ensureCoordinator()
+            if (openedSessions.add(task.taskId)) {
+                coordinator.startTargets(
+                    listOf(
+                        RecoveryCoordinator.SessionTarget(
+                            sessionId = task.taskId,
+                            workspacePath = taskWorkspacePath(task),
+                            workspaceIdentity = null,
+                        ),
+                    ),
+                )
+            }
+            log.info("hub.conversationOpen", "session=${task.taskId}")
+            coordinator
+        }
+    }
+
+    /** Best-effort workspace path for a task (identity key may BE the path). */
+    private fun taskWorkspacePath(task: Task): String? = task.workspace.raw
+
+    private fun ensureCoordinator(): RecoveryCoordinator {
+        coordinator?.let { return it }
+        val endpointId = EndpointId(vault.loadMetadata()?.endpointId ?: "unpaired")
+        val caps = transport.capabilities.value
+        val created = RecoveryCoordinator(
+            endpointId = endpointId,
+            gateway = gateway,
+            store = conversationRepo,
+            journalRepo = journalRepo,
+            interactions = com.zcode.android.data.session.InteractionCoordinator(
+                endpointId = endpointId,
+                interactions = interactions,
+                outbox = OutboxStub,
+                commands = gateway,
+            ),
+            transport = transport,
+            scope = scope,
+            log = log,
+            config = RecoveryCoordinator.Config(
+                helloServerTimeMs = caps?.serverTimeMs,
+                capabilitiesJson = null,
+            ),
+        )
+        coordinator = created
+        managersVersion.value++
+        return created
+    }
+
+    // ------------------------------------------------------------------ internals
+
+    private fun connect() {
+        if (connectJob?.isActive == true) return
+        connectJob = scope.launch {
+            val meta = vault.loadMetadata() ?: return@launch
+            val signer = vault.loadSigner() ?: run {
+                _phase.value = ConnectionPhase.FAILED
+                return@launch
+            }
+            val descriptor = EndpointDescriptor(
+                id = meta.endpointId,
+                kind = EndpointKind.RELAY_ZAI,
+                displayName = meta.desktopName,
+                wsUrl = wsUrlForOrigin(meta.endpointOrigin),
+                deviceSid = meta.deviceSid,
+                deviceMid = meta.deviceMid,
+                desktopAppVersion = meta.desktopAppVersion,
+            )
+            try {
+                transport.connect(descriptor) { nonce, role, sid -> signer.proof(nonce, role, sid) }
+                refreshTasks()
+                persistEndpoint(descriptor)
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                // The transport machine already recorded the failure class; the mapped
+                // phase flows through the states collector. Nothing further here —
+                // DEGRADED offers Retry, AUTH-class FAILED offers re-pair (§14.4.1).
+                log.warn("hub.connectFailed", (e as? RelayTransport.Failure)?.error?.category?.name ?: e.javaClass.simpleName)
+            }
+        }
+    }
+
+    private suspend fun persistEndpoint(descriptor: EndpointDescriptor) {
+        val existing = endpointRepo.endpoints().firstOrNull { it.deviceSid == descriptor.deviceSid }
+        val endpoint = existing?.copy(
+            displayName = descriptor.displayName,
+            wsUrl = descriptor.wsUrl,
+            desktopAppVersion = descriptor.desktopAppVersion,
+            lastHealthyAtMs = System.currentTimeMillis(),
+        ) ?: Endpoint(
+            endpointId = EndpointId(descriptor.id),
+            kind = com.zcode.android.domain.model.EndpointKind.RELAY_ZAI,
+            displayName = descriptor.displayName,
+            wsUrl = descriptor.wsUrl,
+            pairedAtMs = System.currentTimeMillis(),
+            deviceSid = descriptor.deviceSid,
+            deviceMid = descriptor.deviceMid,
+            desktopAppVersion = descriptor.desktopAppVersion,
+        )
+        endpointRepo.save(endpoint)
+        _endpoint.value = endpoint
+        _endpointName.value = endpoint.displayName
+    }
+
+    private fun onTransportState(state: ConnectionStateMachine.ConnectionState) {
+        when (state) {
+            ConnectionStateMachine.ConnectionState.CONNECTED -> scope.launch { refreshTasks() }
+            else -> Unit
+        }
+    }
+
+    private fun phaseOf(state: ConnectionStateMachine.ConnectionState): ConnectionPhase = connectionPhaseOf(state)
+
+    /**
+     * Phase 6 reads: the outbox is Phase 7 (send/approve). The InteractionCoordinator
+     * requires a CommandSender-backed outbox for its submit path, but Phase 6 issues
+     * NO commands — a closed stub keeps the type satisfied and fail-closed (any
+     * accidental submit attempt surfaces as an illegal outbox transition, INV-4).
+     */
+    private object OutboxStub : com.zcode.android.domain.repo.OutboxRepository {
+        override fun observePending(endpointId: EndpointId) =
+            kotlinx.coroutines.flow.flowOf(emptyList<com.zcode.android.domain.outbox.OutboxEntry>())
+        override suspend fun accept(
+            endpointId: EndpointId,
+            sessionId: String?,
+            type: String,
+            payloadJson: String,
+            baseRevision: Long?,
+            baseLogEpoch: String?,
+            issuedAtMs: Long,
+        ): com.zcode.android.domain.ids.CommandId =
+            throw com.zcode.android.domain.outbox.OutboxStateMachine.IllegalOutboxTransition(
+                com.zcode.android.domain.outbox.OutboxStateMachine.State.DRAFT,
+                com.zcode.android.domain.outbox.OutboxStateMachine.Event.Accept,
+                "Phase 6 is read-only: no command submission exists",
+            )
+        override suspend fun apply(
+            commandId: com.zcode.android.domain.ids.CommandId,
+            event: com.zcode.android.domain.outbox.OutboxStateMachine.Event,
+            atMs: Long,
+        ): com.zcode.android.domain.outbox.OutboxEntry? = null
+        override suspend fun get(commandId: com.zcode.android.domain.ids.CommandId) = null
+        override suspend fun sweepExpired(endpointId: EndpointId, nowMs: Long, ttlMs: Long) = 0
+        override suspend fun pendingRefs(endpointId: EndpointId) = emptyList<com.zcode.android.domain.journal.RecoveryJournal.PendingCommandRef>()
+        override suspend fun countByState(endpointId: EndpointId, state: com.zcode.android.domain.outbox.OutboxStateMachine.State) = 0
+    }
+}
+
+/** Total §14.4.1 → UI mirror mapping (unit-tested: no state invented or dropped). */
+internal fun connectionPhaseOf(state: ConnectionStateMachine.ConnectionState): ConnectionPhase = when (state) {
+    ConnectionStateMachine.ConnectionState.UNPAIRED -> ConnectionPhase.UNPAIRED
+    ConnectionStateMachine.ConnectionState.PAIRING -> ConnectionPhase.PAIRING
+    ConnectionStateMachine.ConnectionState.AUTHENTICATING -> ConnectionPhase.AUTHENTICATING
+    ConnectionStateMachine.ConnectionState.CONNECTING -> ConnectionPhase.CONNECTING
+    ConnectionStateMachine.ConnectionState.CONNECTED -> ConnectionPhase.CONNECTED
+    ConnectionStateMachine.ConnectionState.RECONNECTING -> ConnectionPhase.RECONNECTING
+    ConnectionStateMachine.ConnectionState.RECOVERING -> ConnectionPhase.RECOVERING
+    ConnectionStateMachine.ConnectionState.DEGRADED -> ConnectionPhase.DEGRADED
+    ConnectionStateMachine.ConnectionState.FAILED -> ConnectionPhase.FAILED
+    ConnectionStateMachine.ConnectionState.CLOSED -> ConnectionPhase.CLOSED
+}

@@ -98,7 +98,8 @@ class RecoveryScenarioMatrixTest {
     ).allowMainThreadQueries().build()
 
     private fun log(): ZLog = ZLog(minLevel = ZLog.LogLevel.DEBUG, sink = { e ->
-        if (System.getenv("ZCODE_MATRIX_DEBUG") != null) println("[zclog] ${e.level} ${e.event} ${e.details ?: ""}")
+        val debug = System.getenv("ZCODE_MATRIX_DEBUG") ?: System.getProperty("ZCODE_MATRIX_DEBUG")
+        if (debug != null && debug.isNotEmpty()) println("[zclog] ${e.level} ${e.event} ${e.details ?: ""}")
     })
 
     private class RecordingNotificationPort : RecoveryCoordinator.NotificationRecordPort {
@@ -252,6 +253,7 @@ class RecoveryScenarioMatrixTest {
             withTimeout(90_000) {
                 val dbPath = File(dir, "s2.db").absolutePath
                 fun openDb() = Room.databaseBuilder(ApplicationProvider.getApplicationContext<Context>(), ZcodeDatabase::class.java, dbPath)
+                    .addMigrations(ZcodeDatabase.MIGRATION_1_2)
                     .allowMainThreadQueries().build()
                 // "first process"
                 val db1 = openDb()

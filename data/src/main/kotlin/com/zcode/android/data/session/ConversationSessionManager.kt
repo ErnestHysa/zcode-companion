@@ -4,6 +4,7 @@ import com.zcode.android.core.common.log.ZLog
 import com.zcode.android.domain.ids.EndpointId
 import com.zcode.android.domain.ids.SessionId
 import com.zcode.android.domain.model.ConversationRow
+import com.zcode.android.domain.model.StreamingBuffer
 import com.zcode.android.domain.reducer.ConversationTopicReducer
 import com.zcode.android.domain.repo.ConversationRepository
 import com.zcode.android.domain.repo.ConversationStoreOp
@@ -52,6 +53,15 @@ class ConversationSessionManager(
 
     private val _taskState = MutableStateFlow(TaskStateMachine.State.UNKNOWN)
     val taskState: StateFlow<TaskStateMachine.State> = _taskState.asStateFlow()
+
+    /**
+     * §19.2 Phase 6 surface: the reducer-held in-memory streaming buffers, published
+     * on every streaming-class effect (Phase 5 note: "UI consumers arrive Phase 6").
+     * NEVER persisted (§14: streaming deltas are transient); consumers must coalesce
+     * (§19.2 pipeline — the UI never observes raw network cadence directly).
+     */
+    private val _streaming = MutableStateFlow<List<StreamingBuffer>>(emptyList())
+    val streaming: StateFlow<List<StreamingBuffer>> = _streaming.asStateFlow()
 
     /** Rows of the most recent authoritative snapshot (S13 interaction reconcile input). */
     @Volatile
@@ -128,7 +138,7 @@ class ConversationSessionManager(
                 is ConversationTopicReducer.Effect.StreamingCleared,
                 is ConversationTopicReducer.Effect.StreamingTrimmedFrom,
                 is ConversationTopicReducer.Effect.StreamingUpserted,
-                -> Unit // derived streaming state lives in the reducer; UI consumers arrive Phase 6
+                -> publishStreaming() // §19.2 Phase 6 UI surface
                 is ConversationTopicReducer.Effect.EscalateResync -> {
                     escalateRequest = effect.reason to effect.base?.let { it.logEpoch to it.seq }
                 }
@@ -139,6 +149,11 @@ class ConversationSessionManager(
     }
 
     // ---------------------------------------------------------------- task machine (§14.4.2)
+
+    /** Snapshot the reducer's in-memory streaming buffers into the UI-facing flow. */
+    private fun publishStreaming() {
+        _streaming.value = reducer.streamingBuffersForTest().toList()
+    }
 
     private fun observeRowsForTaskState(rows: List<ConversationRow>) {
         val latestTurn = rows.filterIsInstance<ConversationRow.TurnHeader>().maxByOrNull { it.createdAtSeq }

@@ -54,18 +54,53 @@ class MigrationHarnessTest {
     }
 
     @Test
-    fun `current build opens schema v1 directly`() {
+    fun `current build opens current schema directly`() {
         val db = Room.databaseBuilder(
             ApplicationProvider.getApplicationContext(),
             ZcodeDatabase::class.java,
             "direct-open-test.db",
         ).allowMainThreadQueries().build()
         db.openHelper.writableDatabase
-        assertEquals(1, db.openHelper.writableDatabase.version)
+        assertEquals(2, db.openHelper.writableDatabase.version)
         db.close()
+    }
+
+    /**
+     * §43.2-6.2 schema v1 → v2 drill (Phase 6): tasks.workspaceLabel is additive and
+     * null-safe — pre-existing v1 rows survive with NULL label; v2 writes carry it.
+     */
+    @Test
+    fun `migration 1 to 2 adds workspaceLabel without data loss`() {
+        helper.createDatabase(DB_V12, 1).use { db ->
+            db.execSQL(
+                "INSERT INTO tasks (endpointId, workspaceKey, taskId, title, statusWire, mode, model," +
+                    "archivedAtMs, additions, deletions, files, pinned, createdAtMs, updatedAtMs) VALUES " +
+                    "('ep','/ws','t1','Task one','running',NULL,NULL,NULL,NULL,NULL,NULL,0,1,2)",
+            )
+        }
+        helper.runMigrationsAndValidate(DB_V12, 2, true, ZcodeDatabase.MIGRATION_1_2).use { db ->
+            // Pre-existing row survives with a NULL label (null-safe additive column).
+            db.query("SELECT taskId, title, workspaceLabel FROM tasks").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("t1", cursor.getString(0))
+                assertEquals("Task one", cursor.getString(1))
+                assertEquals(null, cursor.getString(2))
+            }
+            // v2 rows carry the display label.
+            db.execSQL(
+                "INSERT INTO tasks (endpointId, workspaceKey, taskId, title, statusWire, mode, model," +
+                    "archivedAtMs, additions, deletions, files, pinned, createdAtMs, updatedAtMs, workspaceLabel)" +
+                    " VALUES ('ep','/ws','t2','Task two','idle',NULL,NULL,NULL,NULL,NULL,NULL,0,3,4,'demo-api')",
+            )
+            db.query("SELECT workspaceLabel FROM tasks WHERE taskId = 't2'").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("demo-api", cursor.getString(0))
+            }
+        }
     }
 
     companion object {
         private const val DB = "migration-test.db"
+        private const val DB_V12 = "migration-v1-2.db"
     }
 }

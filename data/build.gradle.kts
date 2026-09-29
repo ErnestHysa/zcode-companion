@@ -26,7 +26,10 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
-            all { it.jvmArgs("-Xmx1g") }
+            all {
+                it.jvmArgs("-Xmx1g")
+                it.systemProperty("ZCODE_MATRIX_DEBUG", System.getProperty("ZCODE_MATRIX_DEBUG") ?: "")
+            }
         }
     }
     sourceSets {

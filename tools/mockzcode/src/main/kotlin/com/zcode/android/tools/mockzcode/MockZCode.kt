@@ -76,6 +76,46 @@ class MockZCode(
         var enforceCas: Boolean = true
         /** The mock's current revision for CAS decisions + acks. */
         var currentRevision: Long = 7
+
+        // ---------------------------------------------------------------- Phase 6
+        /** Task-list bootstrap override (null = the single synthetic default task). */
+        var bootstrapTasks: List<MockTask>? = null
+    }
+
+    /**
+     * Phase 6: a task row in bootstrap/workspace-list payloads. Production shape
+     * (taskId/displayStatus/timestamps — live corpus `live-subscribe-16`) vs the
+     * simplified legacy shape ({id,title,status}) that earlier fixtures used; the
+     * client parser must tolerate BOTH (INV-8).
+     */
+    data class MockTask(
+        val taskId: String,
+        val title: String,
+        val displayStatus: String = "running",
+        val workspacePath: String = "/synthetic/ws",
+        val workspaceLabel: String = "Synthetic Workspace",
+        val createdAtMs: Long = 1_700_000_000_000,
+        val updatedAtMs: Long = 1_700_000_300_000,
+        val productionShape: Boolean = true,
+    ) {
+        internal fun toJson(): JsonObject = if (productionShape) {
+            buildJsonObject {
+                put("taskId", JsonPrimitive(taskId))
+                put("title", JsonPrimitive(title))
+                put("displayStatus", JsonPrimitive(displayStatus))
+                put("workspacePath", JsonPrimitive(workspacePath))
+                put("workspaceLabel", JsonPrimitive(workspaceLabel))
+                put("workspaceKind", JsonPrimitive("local"))
+                put("createdAt", JsonPrimitive(createdAtMs))
+                put("updatedAt", JsonPrimitive(updatedAtMs))
+            }
+        } else {
+            buildJsonObject {
+                put("id", JsonPrimitive(taskId))
+                put("title", JsonPrimitive(title))
+                put("status", JsonPrimitive(displayStatus))
+            }
+        }
     }
 
     enum class AuthScenario { HAPPY, WRONG_PROOF, UNKNOWN_SID }
@@ -482,6 +522,23 @@ class MockZCode(
         logEpoch = newEpoch
     }
 
+    /**
+     * Phase 6 §48-U2 driver: the verified `workspace-list-updated {result}` push
+     * (relay-control-plane.md §2). The client refreshes its task projection from
+     * this within ≤ 2 s of the event.
+     */
+    fun pushWorkspaceListUpdated(tasks: List<MockTask>) {
+        val socket = terminalSocket ?: return
+        sendTo(socket, raw = RelayFrameCodec.encodeEnvelope(
+            json.encodeToString(JsonObject.serializer(), buildJsonObject {
+                put("zcode_type", JsonPrimitive("workspace-list-updated"))
+                put("result", buildJsonObject {
+                    put("tasks", JsonArray(tasks.map { it.toJson() }))
+                })
+            })
+        ))
+    }
+
     private fun dispatchChannelFrame(bytes: ByteArray) {
         val values = try {
             RpcSerialization.decodeAll(bytes)
@@ -791,7 +848,9 @@ class MockZCode(
                         put("kind", JsonPrimitive("local"))
                         put("workspaceKey", JsonPrimitive(workspace.workspaceKey))
                     })))
-                    put("tasks", JsonArray(listOf(buildJsonObject {
+                    put("tasks", script.bootstrapTasks?.let { override ->
+                        JsonArray(override.map { it.toJson() })
+                    } ?: JsonArray(listOf(buildJsonObject {
                         put("id", JsonPrimitive(workspace.sessionId))
                         put("title", JsonPrimitive("Synthetic task"))
                         put("status", JsonPrimitive("idle"))

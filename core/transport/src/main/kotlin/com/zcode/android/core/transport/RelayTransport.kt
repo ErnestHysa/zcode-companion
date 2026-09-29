@@ -154,11 +154,27 @@ class RelayTransport(
     private val subscriptions = LinkedHashMap<String, SubscriptionRecord>()
 
     private val controlRequestCounter = AtomicLong(0)
+    /**
+     * §28.5 "reconnect/recovery takes a per-endpoint mutex; no double resync" —
+     * SINGLE-FLIGHT guard for [recover]. Two loss signals can legitimately race
+     * (watchdog + a late close frame from the dead generation); without this, two
+     * recover loops race establish()/re-subscribe and corrupt the recovery.
+     */
+    private val recovering = java.util.concurrent.atomic.AtomicBoolean(false)
     private val connectionCounter = AtomicLong(0)
     private val malformedChannelFrames = AtomicLong(0)
 
     /** INV-8 observability for tests/diagnostics. */
     fun malformedChannelFrameCount(): Long = malformedChannelFrames.get()
+
+    /**
+     * TEST-ONLY seam: abrupt socket death (EOF/RST class) without a graceful close.
+     * Never call from production paths — it bypasses the send queue and the close
+     * handshake by design (that is exactly the failure class it simulates).
+     */
+    fun abortConnectionForTest() {
+        ws?.cancel()
+    }
 
     /**
      * Test/diagnostics seam: feed one raw wire text through the EXACT inbound pipeline
@@ -346,6 +362,15 @@ class RelayTransport(
 
     override suspend fun recover() {
         if (closedByUs) return
+        if (!recovering.compareAndSet(false, true)) return // single-flight (§28.5)
+        try {
+            recoverLocked()
+        } finally {
+            recovering.set(false)
+        }
+    }
+
+    private suspend fun recoverLocked() {
         ws?.let { runCatching { it.close(1000, "reconnect") } }
         while (!closedByUs && !kicked) {
             if (machine.state == ConnectionStateMachine.ConnectionState.CONNECTED) return
@@ -410,9 +435,21 @@ class RelayTransport(
         }
     }
 
-    /** Socket-loss entry point (reader/watchdog/protocol faults). */
+    /**
+     * Socket-loss entry point (reader/watchdog/protocol/close-frame faults).
+     *
+     * SINGLE-FLIGHT (§28.5): multiple loss signals can race for one dead generation
+     * (watchdog + late close frame, ack-grace + reader error). The FIRST one wins
+     * and owns the whole recovery cycle; later signals for the same generation are
+     * suppressed — their teardown (channel close, send-queue drain) would otherwise
+     * sabotage the in-flight recovery.
+     */
     private fun onConnectionLost(reason: String) {
         if (closedByUs) return
+        if (!recovering.compareAndSet(false, true)) {
+            bound().warn("relay.lost.suppressed", "recovery already in flight ($reason)")
+            return
+        }
         bound().warn("relay.lost", reason)
         channel.close(reason)
         heartbeatJob?.cancel()
@@ -429,7 +466,17 @@ class RelayTransport(
             else -> Unit // RECONNECTING/DEGRADED/FAILED: already owned by the retry machinery
         }
         publishState()
-        scope.launch { runCatching { recover() } }
+        scope.launch {
+            try {
+                recoverLocked()
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                bound().warn("recover.fault", "${e.javaClass.simpleName}: ${e.message?.take(80)}")
+            } finally {
+                recovering.set(false)
+            }
+        }
     }
 
     private fun onKicked() {
@@ -588,7 +635,7 @@ class RelayTransport(
                         try {
                             handleMessage(text)
                         } catch (e: CancellationException) {
-                            throw e
+                            // closing
                         } catch (e: Exception) {
                             // INV-8: a fault in one message never kills the ordered parser
                             scope.launch { _appErrors.emit(ErrorMapping.serializationFault("handler fault: ${e.javaClass.simpleName}")) }
@@ -612,6 +659,29 @@ class RelayTransport(
                     // closing
                 } catch (e: Exception) {
                     onConnectionLost("reader error: ${e.javaClass.simpleName}")
+                }
+            },
+            // Server-initiated CLOSE detection (Phase 6 regression fix): a clean close
+            // frame completes `incoming` silently, so without this collector the ONLY
+            // loss signal was the 30 s heartbeat watchdog — relay close codes (4009
+            // takeover, 4010 desktop-gone, 4011/4013 auth-expired) would surface a
+            // full watchdog period late. §15.3 + §33 require immediate classification.
+            scope.launch {
+                val generation = socket
+                socket.closed.collect { closed ->
+                    // Late close events from a SUPERSEDED socket must never drive the
+                    // transport state of the current generation (§ startIoLoops note).
+                    if (ws !== generation) return@collect
+                    if (closedByUs) return@collect
+                    when {
+                        !closed.expected -> onConnectionLost("abnormal close ${closed.code}: ${closed.reason.take(60)}")
+                        closed.code == 4009 -> onKicked()
+                        closed.code == 4011 || closed.code == 4013 -> {
+                            scope.launch { _appErrors.emit(ErrorMapping.closeCode(closed.code)) }
+                            onConnectionLost("auth-class close ${closed.code} (§12.6 re-scan)")
+                        }
+                        else -> onConnectionLost("server close ${closed.code}")
+                    }
                 }
             },
         )
@@ -850,12 +920,23 @@ class RelayTransport(
     /**
      * Subscribe to `conversation/<sessionId>`. Phone-facing shape (Phase 1 live-proven):
      * {workspacePath, workspaceIdentity?, sessionId, visibility}.
+     *
+     * Phase 6: an opened task may live outside the endpoint-pinned (active) workspace,
+     * so the workspace target can be supplied per call — the verified wire shape
+     * carries the workspace on EVERY v4 call (docs/protocol/v4-wire.md §4). Null
+     * falls back to the descriptor-pinned workspace exactly as before (the recovery
+     * coordinator's re-anchor path is unchanged).
      */
-    suspend fun subscribeSession(sessionId: String, visibility: String? = "foreground"): SubscribeAck {
+    suspend fun subscribeSession(
+        sessionId: String,
+        visibility: String? = "foreground",
+        workspacePath: String? = null,
+        workspaceIdentity: String? = null,
+    ): SubscribeAck {
         val endpoint = endpoint ?: throw Failure(ErrorMapping.internal("no endpoint"))
         val params = buildJsonObject {
-            put("workspacePath", JsonPrimitive(endpoint.workspacePath ?: ""))
-            endpoint.workspaceIdentity?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("workspacePath", JsonPrimitive(workspacePath ?: endpoint.workspacePath ?: ""))
+            (workspaceIdentity ?: endpoint.workspaceIdentity)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
             put("sessionId", JsonPrimitive(sessionId))
             visibility?.let { put("visibility", JsonPrimitive(it)) }
         }
@@ -901,11 +982,13 @@ class RelayTransport(
         sessionId: String,
         base: Pair<String, Long>?,
         forceSnapshot: Boolean = false,
+        workspacePath: String? = null,
+        workspaceIdentity: String? = null,
     ): SubscribeAck {
         val endpoint = endpoint ?: throw Failure(ErrorMapping.internal("no endpoint"))
         val params = buildJsonObject {
-            put("workspacePath", JsonPrimitive(endpoint.workspacePath ?: ""))
-            endpoint.workspaceIdentity?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("workspacePath", JsonPrimitive(workspacePath ?: endpoint.workspacePath ?: ""))
+            (workspaceIdentity ?: endpoint.workspaceIdentity)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
             put("sessionId", JsonPrimitive(sessionId))
             if (base == null) put("base", JsonNull) else put("base", buildJsonObject {
                 put("logEpoch", JsonPrimitive(base.first))

@@ -37,6 +37,9 @@ class TaskRepositoryImpl(
     override fun observeTasks(endpointId: EndpointId, workspace: WorkspaceIdentityKey): Flow<List<Task>> =
         dao.observe(endpointId.raw, workspace.raw).map { list -> list.map { it.toDomain() } }
 
+    override fun observeAllTasks(endpointId: EndpointId): Flow<List<Task>> =
+        dao.observeByEndpoint(endpointId.raw).map { list -> list.map { it.toDomain() } }
+
     override suspend fun replaceAll(
         endpointId: EndpointId,
         workspace: WorkspaceIdentityKey,
@@ -103,6 +106,7 @@ class TaskRepositoryImpl(
         },
         pinned = pinned,
         rawStatus = if (TaskStatus.fromWire(statusWire) == TaskStatus.UNKNOWN) statusWire else null,
+        workspaceLabel = workspaceLabel,
     )
 
     private fun Task.toEntity(endpointId: EndpointId, workspace: WorkspaceIdentityKey): TaskEntity = TaskEntity(
@@ -120,5 +124,6 @@ class TaskRepositoryImpl(
         pinned = pinned,
         createdAtMs = createdAtMs,
         updatedAtMs = updatedAtMs,
+        workspaceLabel = workspaceLabel,
     )
 }

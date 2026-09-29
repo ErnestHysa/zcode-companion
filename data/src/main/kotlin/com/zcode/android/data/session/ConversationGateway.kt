@@ -81,10 +81,27 @@ interface ConversationGateway : CommandSender {
     /** Wire the transport's inbound flow into [topicEvents]; call once after connect. */
     fun startForwarding(scope: CoroutineScope)
 
-    suspend fun subscribe(sessionId: String, visibility: String? = "foreground"): GatewayAck
+    /**
+     * Subscribe a conversation topic. Phase 6: the workspace target may be supplied
+     * per call (the verified v4 shape carries the workspace on every call); null
+     * falls back to the endpoint-pinned workspace (the Phase 5 recovery path).
+     */
+    suspend fun subscribe(
+        sessionId: String,
+        visibility: String? = "foreground",
+        workspacePath: String? = null,
+        workspaceIdentity: String? = null,
+    ): GatewayAck
 
     /** §15.1: base resumes from a watermark; null base / forceSnapshot escalates a snapshot. */
-    suspend fun resync(sessionId: String, baseEpoch: String?, baseSeq: Long?, forceSnapshot: Boolean): GatewayAck
+    suspend fun resync(
+        sessionId: String,
+        baseEpoch: String?,
+        baseSeq: Long?,
+        forceSnapshot: Boolean,
+        workspacePath: String? = null,
+        workspaceIdentity: String? = null,
+    ): GatewayAck
 
     suspend fun rowsRange(sessionId: String, beforeRowId: Long?, limit: Int): GatewayPage
 }
@@ -177,17 +194,31 @@ class RelayConversationGateway(
             throw RowDecodeException("session $sessionId: ${e.message}")
         }
 
-    override suspend fun subscribe(sessionId: String, visibility: String?): GatewayAck {
-        val ack = transport.subscribeSession(sessionId, visibility)
+    override suspend fun subscribe(
+        sessionId: String,
+        visibility: String?,
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ): GatewayAck {
+        val ack = transport.subscribeSession(sessionId, visibility, workspacePath, workspaceIdentity)
         synchronized(epochs) { epochs[sessionId] = ack.logEpoch }
         return GatewayAck(ack.subscriptionId, ack.mode, ack.logEpoch)
     }
 
-    override suspend fun resync(sessionId: String, baseEpoch: String?, baseSeq: Long?, forceSnapshot: Boolean): GatewayAck {
+    override suspend fun resync(
+        sessionId: String,
+        baseEpoch: String?,
+        baseSeq: Long?,
+        forceSnapshot: Boolean,
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ): GatewayAck {
         val ack = transport.resyncSession(
             sessionId,
             base = if (baseEpoch == null || baseSeq == null) null else baseEpoch to baseSeq,
             forceSnapshot = forceSnapshot,
+            workspacePath = workspacePath,
+            workspaceIdentity = workspaceIdentity,
         )
         synchronized(epochs) { epochs[sessionId] = ack.logEpoch }
         return GatewayAck(ack.subscriptionId, ack.mode, ack.logEpoch)

@@ -100,6 +100,9 @@ interface ConversationRepository {
 interface TaskRepository {
     fun observeTasks(endpointId: EndpointId, workspace: WorkspaceIdentityKey): Flow<List<com.zcode.android.domain.model.Task>>
 
+    /** Phase 6 §18.2: endpoint-wide observation (the task list groups workspaces in UI). */
+    fun observeAllTasks(endpointId: EndpointId): Flow<List<com.zcode.android.domain.model.Task>>
+
     /**
      * Replace the workspace's cached task list. ETag flow (§7.8
      * getTaskSnapshotWithEtag): when [etag] equals the cached validator the write is

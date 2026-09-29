@@ -35,6 +35,8 @@ data class TaskEntity(
     val pinned: Boolean,
     val createdAtMs: Long,
     val updatedAtMs: Long,
+    /** Display-only workspace label (schema v2; INV-12 — never an identity). */
+    val workspaceLabel: String? = null,
 )
 
 /** Per-workspace snapshot validator (§7.8 getTaskSnapshotWithEtag; §17.3 cache row 1). */
