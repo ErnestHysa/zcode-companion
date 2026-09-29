@@ -247,6 +247,18 @@ ZLog: entries now capture the originating thread name (exported in parentheses);
 
 An attempted SettingsScreen refactor for dialog testability was REVERTED (broke compilation through chained partial edits — the committed container-wired version stands; the unpair dialog E2E instability is tracked separately as flaky-under-load, passing runs recorded earlier the same day).
 
+## Post-gate field analysis round 8 (2026-09-29, fifth re-test — first full persisted-report)
+
+The first complete persisted report (0.6.0-phase6 on a Samsung S918B/API 36, desktop **3.14.4**) finally gives the decisive facts:
+
+1. **The pairing, relay auth, AND bootstrap all work against the user's desktop** — the log shows the full chain succeeding on fresh connections (auth.matched → bootstrap answered with **483 tasks / 7 workspaces** in ~550 ms). The relay path to the desktop is ALIVE.
+2. **ONLY the `workspace-bridge-open` is refused** — consistently, in ~350–600 ms, with `desktop-disconnected`, on every attempt including the first on a fresh pairing, across rotated bridge ids, paced retries, and multiple restarts of both apps.
+3. **The desktop bundle is 3.14.4; this app's relay protocol was verified against 3.14.3.** Inspection of the installed 3.14.4 desktop bundle confirms the entire relay control-plane (`workspace-bridge-open`, the failure-reason enum, `isWebRemoteControlBridgeableWorkspaceTarget`, `resolveWebRemoteControlInitialWorkspaceSelection`) is closed-source code that is NOT in the 3.14.3 open repo — i.e., it is exactly the surface that could have changed in 3.14.4. The user's own hypothesis (desktop updated, app a version behind) is CONSISTENT with every observation: auth+bootstrap unchanged, bridge contract drifted.
+
+Conclusion: the remaining failure is a DESKTOP 3.14.4 relay-protocol drift issue, not an app-side transport/state bug. The app now (a) says so honestly in the connection center and live settings section ("Desktop 3.14.4 is newer than the tested version (3.14.3)…"), (b) exposes `desktopAppVersion` + `desktopAboveTested` in the export and hub diagnostics snapshot, and (c) keeps the §39 drift process: capture the 3.14.4 desktop bundle's relay plane, refresh fixtures, and update the bridge-open contract.
+
+App-side changes this round: compat visibility (connection center + live settings + export), and round-8 regression assertions (bootstrap answered before bridge refusal — proving fresh discovery per connection end-to-end). Suites: 339 JVM green in the targeted runs (documented rotating matrix flakes under pool load, isolation-green); 5/5 instrumented (ATD).
+
 ## Phase Exit Decision
 
 **PASS WITH KNOWN LIMITATIONS** — all subphase exit gates green with executed evidence; limitations 1–8 accepted and documented above; no §47 No-Go condition triggered.

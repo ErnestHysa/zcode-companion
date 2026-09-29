@@ -210,6 +210,10 @@ class ConnectionHubIntegrationTest {
         withTimeout(60_000) { hub.phase.first { it == ConnectionPhase.CONNECTED } } // pre-fix: never
         val loaded = withTimeout(15_000) { tasks.snapshot.first { it.isNotEmpty() } }
         assertTrue(loaded.isNotEmpty())
+        // Round-8: the desktop version from bootstrap must be visible to diagnostics.
+        val diag = hub.diagnosticsSnapshot()
+        org.junit.Assert.assertEquals("3.14.3", diag.desktopAppVersion)
+        org.junit.Assert.assertTrue(!diag.desktopAboveTested)
         // The phase must never have been left stranded mid-state after recovery.
         assertEquals(ConnectionPhase.CONNECTED, hub.phase.value)
         // The self-heal success must surface to the pairing gate (§15-S2 flip).

@@ -126,6 +126,8 @@ class ConnectionHub(
         val journalSubscriptions: List<String>,
         val sessions: List<SessionDiag>,
         val taskCount: Int,
+        val desktopAppVersion: String?,
+        val desktopAboveTested: Boolean,
     )
 
     suspend fun diagnosticsSnapshot(): HubDiagnostics {
@@ -150,7 +152,11 @@ class ConnectionHub(
         val count = endpointId?.let {
             runCatching { kotlinx.coroutines.withTimeout(2_000) { taskRepo.observeAllTasks(EndpointId(it)).first().size } }.getOrDefault(-1)
         } ?: -1
-        return HubDiagnostics(caps?.connectionId, capsLine, subs, sessions, count)
+        val desktopVersion = caps?.desktopAppVersion
+        val aboveTested = desktopVersion?.let {
+            com.zcode.android.core.security.pairing.CompatibilityGate.check(it) is com.zcode.android.core.security.pairing.CompatibilityGate.Verdict.AboveTested
+        } ?: false
+        return HubDiagnostics(caps?.connectionId, capsLine, subs, sessions, count, desktopVersion, aboveTested)
     }
 
     /** Round-7 diagnostics: cached task count without a suspend call. */

@@ -50,6 +50,9 @@ class RelayTransportStatsTest {
                 withTimeout(3_000) { kotlinx.coroutines.delay(700) }
 
                 val stats = t.statsSnapshot()
+                // Round-8: bootstrap answered (control plane healthy) BEFORE the
+                // bridge refusal — proves bridge-open happens AFTER fresh discovery.
+                assertTrue(stats["controlRequests"]!! >= 2, "bootstrap+bridge controlRequests: $stats")
                 assertTrue(stats["bridgeOpens"]!! >= 1, "bridgeOpens: $stats")
                 assertTrue(stats["framesSent"]!! >= 1, "framesSent: $stats")
                 assertTrue(stats["framesRecv"]!! >= 1, "framesRecv: $stats")
