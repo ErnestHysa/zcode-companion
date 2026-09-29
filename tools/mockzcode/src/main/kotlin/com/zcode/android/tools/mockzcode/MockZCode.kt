@@ -90,6 +90,16 @@ class MockZCode(
          * production behavior that broke real-phone pairing (Phase 6 field finding).
          */
         var bridgeRequireTaskId: Boolean = false
+        /**
+         * Production-faithful CHANNEL routing (round-3 field finding, default TRUE):
+         * conversation-plane calls (helloConversationV4 …) are answered ONLY after an
+         * `onDynamicConversationFrame` EventListen carrying a WORKSPACE-SCOPE arg
+         * ({workspacePath, workspaceIdentity?}). Unscoped calls are met with SILENCE
+         * — exactly the production behavior that surfaced as the real-phone
+         * `helloConversationV4 timed out after 10000ms` while the lenient mock
+         * answered everything.
+         */
+        var requireScopedListen: Boolean = true
         /** One-shot bridge-error queue: each open pops the next reason → error response. */
         val bridgeErrorReasons: ArrayDeque<String> = ArrayDeque()
     }
@@ -257,6 +267,7 @@ class MockZCode(
             scope.launch { events.emit(ServerEvent.TerminalKicked("second terminal authenticated")) }
         }
         terminalSocket = ws
+        conversationScopeRegistered = false // fresh connection: scope must be re-registered
         pairStatus = "matched"
         sendTo(ws, mapOf("type" to JsonPrimitive("auth_ack"), "pair_status" to JsonPrimitive("matched")))
         sendTo(ws, mapOf("type" to JsonPrimitive("pair_status_ack"), "pair_status" to JsonPrimitive("matched")))
@@ -374,6 +385,10 @@ class MockZCode(
     // ------------------------------------------------------------------ channel (v4)
 
     @Volatile private var conversationListenerId: Int? = null
+    @Volatile private var conversationScopeRegistered: Boolean = false
+    /** Bridge identity of the most recent workspace-bridge-open (rotation tests). */
+    @Volatile var lastBridgeSessionId: String? = null
+        private set
     @Volatile private var flowListenerId: Int? = null
     @Volatile private var currentBridgeId: String? = null
     private var subscriptionId = "sub-mock-1"
@@ -566,7 +581,18 @@ class MockZCode(
         val arg = values.getOrNull(1)
         when (typeV.value) {
             ChannelWire.RequestType.EventListen.id -> {
-                if (name == "onDynamicConversationFrame") conversationListenerId = id
+                if (name == "onDynamicConversationFrame") {
+                    conversationListenerId = id
+                    // Scope registration (round-3 field fidelity): the listen arg must
+                    // carry the workspace routing scope, spike/SPA-proven shape.
+                    val listenArg = when (val a = arg) {
+                        is RpcValue.Arr -> (a.items.firstOrNull() as? RpcValue.Obj)?.json as? JsonObject
+                        is RpcValue.Obj -> a.json as? JsonObject
+                        else -> null
+                    }
+                    val path = (listenArg?.get("workspacePath") as? JsonPrimitive)?.content
+                    conversationScopeRegistered = !path.isNullOrBlank()
+                }
                 if (name == "v4/connection/flow") flowListenerId = id
             }
             ChannelWire.RequestType.Promise.id -> handlePromise(id, channelName, name, arg)
@@ -583,6 +609,17 @@ class MockZCode(
 
     private fun handlePromise(id: Int, channelName: String?, name: String?, arg: RpcValue?) {
         if (channelName != "zcode-agent") return
+        // Round-3 field fidelity: the conversation plane is workspace-scoped on
+        // production — calls before a scoped listen are SILENT (observed as the
+        // real-phone helloConversationV4 10 s timeout).
+        val conversationPlane = name in setOf(
+            "helloConversationV4", "initializeConversationV4", "subscribeConversationV4",
+            "resyncConversationV4", "conversationRowsRangeV4", "sendConversationCommandV4",
+        )
+        if (script.requireScopedListen && conversationPlane && !conversationScopeRegistered) {
+            println("MOCK: silenced unscoped conversation call $name (id=$id) — production behavior")
+            return
+        }
         when (name) {
             "helloConversationV4" -> {
                 val hello = buildJsonObject {
@@ -612,6 +649,9 @@ class MockZCode(
             }
             "subscribeConversationV4" -> {
                 val params = argAsObject(arg) ?: return respondError(id, "fault.subscribe.params")
+                // Round-3 field fidelity: production routes by the workspace scope —
+                // a blank workspacePath is a client-side routing bug, surface it loudly.
+                if (params.str("workspacePath").isBlank()) return respondError(id, "fault.subscribe.workspaceScope")
                 val sessionId = params.str("sessionId")
                 subscriptionId = "sub-mock-$sessionId"
                 respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
@@ -719,6 +759,7 @@ class MockZCode(
 
     private fun handleBridgeOpen(ws: okhttp3.WebSocket, payload: JsonObject) {
         val requestId = payload.str("requestId")
+        lastBridgeSessionId = payload.str("bridgeSessionId")
         // One-shot error queue (recovery-test driver): pop → verified error shape.
         val forcedReason = synchronized(script.bridgeErrorReasons) { script.bridgeErrorReasons.removeFirstOrNull() }
         val missingTask = script.bridgeRequireTaskId && payload.strOrNull("taskId") == null

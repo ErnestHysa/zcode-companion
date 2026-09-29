@@ -129,6 +129,20 @@ Regression coverage: `ReconnectPolicyTest` (immediate collapses exactly ONE dela
 
 Field guidance recorded: `desktop-disconnected` at CALM cadence means the relay (or the desktop's own session view) does not have a bridge-able desktop — press Stop in the desktop's Remote Control dialog, re-enable it, refresh the QR, and re-pair; the app now surfaces this copy in the connection center instead of a generic error.
 
+## Post-gate field fix round 3 (2026-09-29, second real-phone re-test)
+
+Re-test log: the bridge-open SUCCEEDED for the first time (round-1 fix confirmed) and the failure moved one stage deeper — `helloConversationV4 timed out after 10000ms`, then every retry answered `workspace-bridge-error: desktop-disconnected`. Root cause by diffing the transport against the Phase 1 spike (the implementation proven against production):
+
+1. **UNSCOPED CHANNEL LISTEN (the field failure)** — the EventListen for `onDynamicConversationFrame` went out WITHOUT the workspace-scope argument. The spike sends `{workspacePath, workspaceIdentity?}` on the listen — that arg is what routes the `zcode-agent` channel to the workspace's agent connection on production (§7.3 `createZCodeAgentConnectionScope`). Unscoped, the desktop host answers nothing → the exact 10 s hello timeout observed. MockZCode ignored the listen arg, so every suite was green while production hung.
+2. **Discovered workspace never written back** — `openBridgeInternal` discovers the workspace locally but `endpoint` kept `workspacePath = null`, so every later v4 call (subscribe/rowsRange/resync/command) would send an empty workspace even after a fixed hello.
+3. **Bridge identity never rotated** — `bridgeSessionId` was a `val`; after the desktop refuses a bridge, every retry re-opened the SAME dead bridge → the eternal desktop-disconnected loop.
+
+Fixes: `attachChannelEventListeners(bridge)` sends the scope arg (spike-proven shape) on both listens; `applyDiscoveredWorkspace` writes the bridge-discovered workspace (incl. `workspaceIdentity` from the verified bridge-ready shape, now in `BridgeInfo`) back onto the endpoint; the bridge identity rotates on bridge-ERROR failures (clean socket loss KEEPS the id — the live-proven recovery replay path).
+
+Mock production-fidelity (default-on): `requireScopedListen = true` — conversation-plane calls before a scoped listen are met with SILENCE (the observed production behavior), and subscribe with a blank workspacePath faults loudly. Regressions: `RelayTransportScopedChannelTest` (3) — workspace-less first pair connects through the scoped listen; discovered workspace threads through to later v4 calls; bridge-error rotates the identity. The net is PROVEN: with the scope arg temporarily removed, the tests fail with `helloConversationV4 timed out` — byte-for-byte the phone's diagnostic signature. Suites: 333/333 JVM/Robolectric, 5/5 instrumented (ATD, strict mock).
+
+Note on the desktop-version question raised in the field: relay auth, bootstrap, and bridge-open all worked against the user's desktop — the incompatibility was client-side routing (above), not desktop drift; the compat gate (`app_version` ≥ 3.14.0, warn-continue above tested) remains the drift guard.
+
 ## Phase Exit Decision
 
 **PASS WITH KNOWN LIMITATIONS** — all subphase exit gates green with executed evidence; limitations 1–8 accepted and documented above; no §47 No-Go condition triggered.

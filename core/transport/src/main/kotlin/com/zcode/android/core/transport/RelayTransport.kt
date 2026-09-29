@@ -124,7 +124,13 @@ class RelayTransport(
     private val outMessageSeq = AtomicLong(0)
     @Volatile private var lastDeliveredMessageSeq: Long = 0
 
-    private val bridgeSessionId = RelayFrameCodec.newBridgeSessionId()
+    /**
+     * Bridge identity. A `var` (Phase 6 field fix): after a bridge-ERROR failure the
+     * desktop-side bridge for this id is dead/wedged — re-opening the SAME id gets
+     * `desktop-disconnected` forever. Rotated on bridge-error failures; CLEAN socket
+     * loss keeps the id (the live-proven recovery replay path, Phase 1 finding).
+     */
+    private var bridgeSessionId: String = RelayFrameCodec.newBridgeSessionId()
     @Volatile private var bridgeGeneration: Int? = null
     @Volatile private var recoveryId: String? = null
 
@@ -314,10 +320,16 @@ class RelayTransport(
 
             // ---- bridge + Channel + v4 hello (first connect: → CONNECTED here; recovery
             // path completes via RESYNC_* in recover() — RECOVERING must not exit via HELLO).
-            openBridgeInternal()
+            val bridgeInfo = openBridgeInternal()
+            // Field fix (production routing): the discovered workspace is the ROUTING
+            // SCOPE for every later v4 call (subscribe/rowsRange/resync/command send
+            // {workspacePath, workspaceIdentity?} — live-proven param shape). The
+            // endpoint descriptor arrives WITHOUT workspace fields on first pair;
+            // without this write-back every subsequent call sends an empty workspace.
+            applyDiscoveredWorkspace(bridgeInfo)
             channel = ChannelSession()
             channel.onOutbound = { bytes -> enqueueChannelFrame(bytes) }
-            attachChannelEventListeners()
+            attachChannelEventListeners(bridgeInfo)
             val hello = helloV4()
             initializeV4(endpoint)
             _capabilities.value = CapabilitySnapshot(
@@ -347,6 +359,15 @@ class RelayTransport(
             // CONNECTING: auth-class → FAILED (re-scan); retryable classes →
             // RECONNECTING (the recovery loop may retry; budget → Degraded).
             bound().warn("relay.connectFailed", "${e.error.category} ${e.error.developerDiagnostic.take(140)}")
+            if (e.error.developerDiagnostic.contains("workspace-bridge-error")) {
+                // The desktop refused THIS bridge (dead/wedged) — rotate the identity
+                // so the retry opens a FRESH bridge instead of replaying into the
+                // corpse forever (field: desktop-disconnected loop).
+                bridgeSessionId = RelayFrameCodec.newBridgeSessionId()
+                bridgeGeneration = null
+                recoveryId = null
+                bound().warn("bridge.rotated", "fresh bridgeSessionId for the next attempt")
+            }
             if (e.error.category == com.zcode.android.core.common.error.ErrorCategory.AUTH) {
                 safeMachine(ConnectionStateMachine.ConnectionEvent.AUTH_FAILED)
             } else if (machine.state in setOf(
@@ -822,9 +843,20 @@ class RelayTransport(
 
     // ------------------------------------------------------------------ channel / v4
 
-    private fun attachChannelEventListeners() {
+    private fun attachChannelEventListeners(bridge: BridgeInfo) {
+        // FIELD FIX (round 3): the EventListen ARG is the WORKSPACE SCOPE that routes
+        // the zcode-agent channel on production ({workspacePath, workspaceIdentity?} —
+        // the spike-proven shape). Without it the desktop host attaches the channel
+        // to no workspace and every conversation-plane call (helloConversationV4 …)
+        // goes UNANSWERED — the real-phone 10 s timeout. The lenient mock ignored
+        // the arg, which is why every suite passed while production hung.
+        val scopeJson = buildJsonObject {
+            put("workspacePath", JsonPrimitive(bridge.workspacePath))
+            bridge.workspaceIdentity?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+        }
+        val scopeArg = RpcValue.Obj(scopeJson)
         // Downstream topic frames (workspace-level, live-proven SPA shape).
-        channel.listen("zcode-agent", "onDynamicConversationFrame") { args ->
+        channel.listen("zcode-agent", "onDynamicConversationFrame", scopeArg) { args ->
             val obj = (args as? RpcValue.Obj)?.json as? JsonObject ?: return@listen
             // SPA live shape: the event payload wraps the routed wire frame in `frame`
             // (Phase 1 spike decoded data["frame"]) — tolerate both wrapped and raw.
@@ -833,7 +865,7 @@ class RelayTransport(
         }
         // v4/connection/flow (saturated/drained/closed, §28.4). REQUIRES VALIDATION on
         // the production relay — MockZCode emits it; absent signal is a safe no-op.
-        channel.listen("zcode-agent", V4Methods.CONNECTION_FLOW) { args ->
+        channel.listen("zcode-agent", V4Methods.CONNECTION_FLOW, scopeArg) { args ->
             val obj = (args as? RpcValue.Obj)?.json as? JsonObject ?: return@listen
             val connectionId = (obj["connectionId"] as? JsonPrimitive)?.content ?: ""
             _flowPressure.value = when ((obj["state"] as? JsonPrimitive)?.content) {
@@ -1080,7 +1112,12 @@ class RelayTransport(
         )
     }
 
-    data class BridgeInfo(val workspaceKey: String, val workspacePath: String, val initialTaskId: String?)
+    data class BridgeInfo(
+        val workspaceKey: String,
+        val workspacePath: String,
+        val workspaceIdentity: String?,
+        val initialTaskId: String?,
+    )
 
     private suspend fun openBridgeInternal(): BridgeInfo {
         val endpoint = endpoint ?: error("no endpoint")
@@ -1141,6 +1178,7 @@ class RelayTransport(
         return BridgeInfo(
             workspaceKey = workspaceKey,
             workspacePath = (bridge["workspacePath"] as? JsonPrimitive)?.content ?: workspacePath ?: "",
+            workspaceIdentity = (bridge["workspaceIdentity"] as? JsonPrimitive)?.content,
             initialTaskId = (bridge["initialTaskId"] as? JsonPrimitive)?.content ?: taskId,
         )
     }
@@ -1188,6 +1226,17 @@ class RelayTransport(
             bound().warn("state.anomaly", e.message?.take(100))
         }
         publishState()
+    }
+
+    /** Field fix: write the bridge-discovered workspace back onto the endpoint. */
+    private fun applyDiscoveredWorkspace(bridge: BridgeInfo) {
+        val current = endpoint ?: return
+        endpoint = current.copy(
+            workspaceKey = bridge.workspaceKey,
+            workspacePath = bridge.workspacePath,
+            workspaceIdentity = bridge.workspaceIdentity ?: current.workspaceIdentity,
+            taskId = bridge.initialTaskId ?: current.taskId,
+        )
     }
 
     private fun buildWsUrl(endpoint: EndpointDescriptor): String {
