@@ -293,7 +293,7 @@ class RelayTransport(
         try {
             // ---- WS connect (§11.5: 10 s connect timeout)
             val wsUrl = buildWsUrl(endpoint)
-            ctx.info("relay.connect")
+            ctx.info("relay.connect", "url=${wsUrl.substringBefore("?")} midAppended=${wsUrl.contains("mid=")}")
             val socket = wsFactory.create()
             socket.connect(wsUrl, config.connectTimeoutMs)
             ws = socket
@@ -837,6 +837,7 @@ class RelayTransport(
 
     private fun handleMessage(text: String) {
         cFramesRecv.incrementAndGet()
+        bound().debug("rpc.recv", "bytes=${text.length} type=${text.take(40)}")
         val obj = try {
             json.parseToJsonElement(text).jsonObject
         } catch (e: Exception) {
@@ -1188,10 +1189,14 @@ class RelayTransport(
         cControlRequests.incrementAndGet()
         val deferred = CompletableDeferred<JsonObject>()
         synchronized(pendingControl) { pendingControl[requestId] = deferred }
+        val startedAt = clock()
         try {
             sendNow(RelayFrameCodec.encodeEnvelope(payloadJson))
-            return withTimeout(timeoutMs) { deferred.await() }
+            val response = withTimeout(timeoutMs) { deferred.await() }
+            bound().debug("control.ok", "req=$requestId took=" + (clock() - startedAt) + "ms")
+            return response
         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            bound().warn("control.timeout", "req=$requestId after ${timeoutMs}ms")
             throw Failure(ErrorMapping.timeout("control request", timeoutMs))
         } finally {
             synchronized(pendingControl) { pendingControl.remove(requestId) }

@@ -234,6 +234,11 @@ Suites: full-pool runs show the documented rotating recovery-matrix load-flakes 
 
 Regressions: `RelayTransportStatsTest` (counters advance over a connect-subscribe cycle), `ConnectionHubIntegrationTest.degraded entry writes an auto-report once`. Suites: full-pool runs show the documented rotating recovery-matrix load-flakes (rotating tests, isolation-green, pre-existing at Phase 5 HEAD); all other modules + app pool green; 5/5 instrumented (ATD).
 
+## Post-gate diagnostics round 7f (2026-09-29, continuation of the "even more" request)
+
+- **controlRequest duration trace** — `control.ok req=… took=Nms` at DEBUG and `control.timeout` at WARN (the round-7d attempt at this trace produced a transient compile break via a corrupted edit of the controlRequest block; restored to the compiling HEAD form first, then re-added cleanly — root cause of the earlier compile failure was edit corruption, not the concept).
+- All suites: 349/349 JVM/Robolectric green (one clean full run), 5/5 instrumented (ATD).
+
 ## Phase Exit Decision
 
 **PASS WITH KNOWN LIMITATIONS** — all subphase exit gates green with executed evidence; limitations 1–8 accepted and documented above; no §47 No-Go condition triggered.
