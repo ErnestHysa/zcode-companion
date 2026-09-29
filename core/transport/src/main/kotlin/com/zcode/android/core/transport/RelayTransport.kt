@@ -1007,6 +1007,7 @@ class RelayTransport(
 
     private suspend fun helloV4(): Hello {
         channelReady()
+        bound().debug("v4.call", "helloConversationV4 begin")
         val raw = try {
             channel.call("zcode-agent", "helloConversationV4", RpcValue.Arr(emptyList()), config.v4CallTimeoutMs)
         } catch (e: ChannelSession.Failure.TimedOut) {
@@ -1072,6 +1073,7 @@ class RelayTransport(
     /** rowsRange (live-proven shape); limit hard-bounded ≤ 200 (INV-13). */
     suspend fun rowsRange(sessionId: String, beforeRowId: Long?, limit: Int): RowsRangeResult {
         val endpoint = endpoint ?: throw Failure(ErrorMapping.internal("no endpoint"))
+        bound().debug("v4.call", "rowsRange session=$sessionId before=$beforeRowId limit=$limit")
         val params = buildJsonObject {
             put("workspacePath", JsonPrimitive(endpoint.workspacePath ?: ""))
             endpoint.workspaceIdentity?.let { put("workspaceIdentity", JsonPrimitive(it)) }

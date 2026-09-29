@@ -2,8 +2,10 @@ package com.zcode.android.app
 
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
+import java.io.File
 import kotlinx.coroutines.launch
 import com.zcode.android.app.connect.ConnectionHub
+import com.zcode.android.app.diagnostics.DiagnosticsFileStore
 import com.zcode.android.app.connect.DefaultConversationPort
 import com.zcode.android.app.connect.DefaultTasksPort
 import com.zcode.android.app.pairing.DefaultPairingPort
@@ -26,6 +28,15 @@ import com.zcode.android.core.transport.RelayTransport
  */
 class AppContainer(activity: FragmentActivity) {
 
+    /**
+     * Round-7b: the ring is PERSISTED across process restarts (redacted lines only).
+     * The field workflow "first launch fails → force-close → reopen" previously lost
+     * the failing session's diagnostics entirely.
+     */
+    val diagnosticsStore: DiagnosticsFileStore = DiagnosticsFileStore.inDir(
+        File(activity.cacheDir, "diagnostics"),
+    ).also { it.rotateOnStartup() }
+
     val log: ZLog = ZLog(
         // Round-7 diagnostics enhancement: capture DEBUG (protocol frames, gateway
         // routing, coordinator internals) into a 5,000-entry ring — ~10× the field
@@ -35,6 +46,10 @@ class AppContainer(activity: FragmentActivity) {
         minLevel = ZLog.LogLevel.DEBUG,
         ringCapacity = 5_000,
         sink = { entry ->
+            val ctx = entry.context.entries.joinToString(" ") { "${it.key}=${it.value}" }
+            val line = "${entry.timestampMs} [${entry.level}] ${entry.event}" +
+                (entry.details?.let { " :: $it" } ?: "") +
+                (if (ctx.isEmpty()) "" else " $ctx")
             android.util.Log.println(
                 when (entry.level) {
                     ZLog.LogLevel.DEBUG -> android.util.Log.DEBUG
@@ -43,8 +58,10 @@ class AppContainer(activity: FragmentActivity) {
                     ZLog.LogLevel.ERROR -> android.util.Log.ERROR
                 },
                 LOG_TAG,
-                "${entry.event}${entry.details?.let { " :: $it" } ?: ""} ${entry.context.entries.joinToString(" ") { "${it.key}=${it.value}" }}",
+                line,
             )
+            // Persist (redacted, formatted) across restarts — the field-workflow fix.
+            diagnosticsStore.append(line)
         },
     )
 

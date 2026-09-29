@@ -47,6 +47,13 @@ fun ZCodeApp(
     val nav = rememberNavController()
     val paired by container.pairingPort.pairedEndpoint.collectAsState()
 
+    // Round-7b breadcrumb: every screen change lands in the diagnostics ring.
+    androidx.compose.runtime.LaunchedEffect(nav) {
+        nav.currentBackStackEntryFlow.collect { entry ->
+            container.log.info("nav.screen", "route=${entry.destination.route}")
+        }
+    }
+
     // Pairing lifecycle ↔ navigation edges (ui-ux navigation.md back behavior).
     // [paired] is the SINGLE owner of paired-driven navigation: QR-pairing success,
     // unpair, AND the cold-restore edge (a recreated activity restores its previous

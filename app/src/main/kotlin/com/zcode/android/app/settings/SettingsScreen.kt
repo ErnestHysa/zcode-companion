@@ -191,6 +191,15 @@ private suspend fun buildDiagnosticReport(container: AppContainer, context: andr
     appendLine("device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL} (API ${android.os.Build.VERSION.SDK_INT})")
     appendLine("androidBuild: ${android.os.Build.DISPLAY.take(60)}")
     appendLine("uptimeMs: ${android.os.SystemClock.elapsedRealtime()}")
+    val powerManager = context.getSystemService(android.content.Context.POWER_SERVICE) as? android.os.PowerManager
+    val batteryManager = context.getSystemService(android.content.Context.BATTERY_SERVICE) as? android.os.BatteryManager
+    val connectivity = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
+    val network = connectivity?.activeNetwork
+    val caps = network?.let { connectivity.getNetworkCapabilities(it) }
+    appendLine("powerSave: ${powerManager?.isPowerSaveMode}")
+    appendLine("batteryPercent: ${batteryManager?.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)}")
+    appendLine("networkOnline: ${caps != null && caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)}")
+    appendLine("networkMetered: ${connectivity?.isActiveNetworkMetered}")
     appendLine()
     appendLine("--- connection snapshot (at export time) ---")
     appendLine("phase: $phase")
@@ -237,6 +246,26 @@ private suspend fun buildDiagnosticReport(container: AppContainer, context: andr
             appendLine("  ${java.time.Instant.ofEpochMilli(e.timestampMs)} ${e.event}${ctx} ${e.details ?: ""}")
         }
     }
+    appendLine()
+    appendLine("--- per-connection timelines (from the current ring) ---")
+    val withConn = entries.filter { it.context.containsKey("connectionId") }
+    val byConn = withConn.groupBy { it.context["connectionId"]!! }
+    if (byConn.isEmpty()) appendLine("  (no connection-scoped entries in the ring)")
+    for ((connId, list) in byConn.toList().sortedBy { it.second.firstOrNull()?.timestampMs ?: 0L }) {
+        appendLine("  [$connId] ${list.size} events")
+        for (e in list) {
+            val det = e.details?.let { " :: $it" } ?: ""
+            appendLine("    ${java.time.Instant.ofEpochMilli(e.timestampMs)} [${e.level}] ${e.event}$det")
+        }
+    }
+    appendLine()
+    appendLine("--- previous session (persisted across restart; capped) ---")
+    val prev = container.diagnosticsStore.readPrevious()
+    if (prev.isBlank()) appendLine("  (none)")
+    else appendLine(prev)
+    appendLine()
+    appendLine("--- current session persisted tail (capped) ---")
+    appendLine(container.diagnosticsStore.readCurrent())
     appendLine()
     appendLine("--- full redacted log ring (chronological; secrets scrubbed, INV-3) ---")
     appendLine(container.log.exportDiagnostics())

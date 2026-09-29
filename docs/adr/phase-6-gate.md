@@ -201,6 +201,18 @@ Field-requested "×10 more" on top of the round-7 enhancement:
 
 All logging still flows through the centralized scrubbers (INV-3); ring bounded (INV-5). Suites: 343/343 JVM/Robolectric, 5/5 instrumented (ATD).
 
+## Post-gate diagnostics round 7c (2026-09-29, requested before the next field test — "even more")
+
+The single most valuable addition: **the diagnostics ring now PERSISTS across process restarts.** The field workflow ("first launch fails → force-close → reopen works") previously destroyed the failing session's log the moment the app was killed. `DiagnosticsFileStore` (app-private cacheDir, injectable dir, JVM-tested) appends every pre-redacted sink line to a capped file, rotates current → previous on the next startup, and never throws. The export now contains THREE log sources: the in-memory ring (current process), the persisted current-session tail, and the PREVIOUS session's log — closing the "first launch failed but I have no logs from it" blind spot permanently.
+
+Also added:
+- **Per-connection timelines** in the export — every ring entry carrying a `connectionId` grouped and printed chronologically per connection.
+- **Environment extras** — power-save mode, battery percent, network online/metered at export time (Doze/metering are §25/§29 failure factors).
+- **Wire-level DEBUG traces** — v4 call begins (hello), rowsRange request params.
+- **Nav screen breadcrumbs** — every destination change lands in the ring.
+
+Regressions: `DiagnosticsFileStoreTest` (3 — rotation, cap, capped reads). Suites: transport pool shows the documented rotating load-flakes (isolation-green); all other modules + app pool green; 5/5 instrumented (ATD).
+
 ## Phase Exit Decision
 
 **PASS WITH KNOWN LIMITATIONS** — all subphase exit gates green with executed evidence; limitations 1–8 accepted and documented above; no §47 No-Go condition triggered.
