@@ -226,6 +226,7 @@ class RelayConversationGateway(
 
     override suspend fun rowsRange(sessionId: String, beforeRowId: Long?, limit: Int): GatewayPage {
         val r = transport.rowsRange(sessionId, beforeRowId, limit)
+        traceLog?.info("gateway.rowsRange", "session=$sessionId rows=${r.rows.size} atSeq=${r.atSeq} hasMore=${r.hasMore}")
         return GatewayPage(
             rows = r.rows.map { ConversationRow.Decoder.decode(rawOf(it)) },
             atSeq = r.atSeq,

@@ -190,6 +190,17 @@ Regressions: `ConnectionHubIntegrationTest.rapid user retries during recovery sp
 
 Field note: with single-flight retries, the app can no longer stack handshakes against the relay/desktop — the #328 wedge trigger from the CLIENT side is closed. If desktop-disconnected persists even at calm cadence with a healthy desktop, the remaining suspect is genuinely relay/desktop-side.
 
+## Post-gate diagnostics enhancement, round 7b (2026-09-29, requested before the next field test)
+
+Field-requested "×10 more" on top of the round-7 enhancement:
+
+- **Ring snapshot API** — `ZLog.snapshot()` lets report builders compute structured views from the same redacted ring.
+- **Export report grew four analytical sections** (before the full ring dump): event counters (top-25 events + bridge errors grouped BY REASON), all warnings/errors chronologically, and a **connection timeline** (app lifecycle, pairing flow, hub connect/retry, and every machine transition, filtered chronologically from the ring).
+- **Instrumentation filled the remaining blind spots**: pairing flow (validate begin/ready, seal begin/created/rotated/conflict, connect begin/outcome with retryability), recovery attach + per-session subscribe ack (mode/epoch/workspace target), rowsRange results, network available/lost callbacks.
+- MockZCode/conflict-log fixed: the seal-conflict branch now logs the existing sid prefix.
+
+All logging still flows through the centralized scrubbers (INV-3); ring bounded (INV-5). Suites: 343/343 JVM/Robolectric, 5/5 instrumented (ATD).
+
 ## Phase Exit Decision
 
 **PASS WITH KNOWN LIMITATIONS** — all subphase exit gates green with executed evidence; limitations 1–8 accepted and documented above; no §47 No-Go condition triggered.

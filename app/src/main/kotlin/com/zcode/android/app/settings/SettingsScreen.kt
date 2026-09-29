@@ -31,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.zcode.android.core.common.log.ZLog
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
@@ -205,7 +206,39 @@ private suspend fun buildDiagnosticReport(container: AppContainer, context: andr
     appendLine("deviceSid: ${endpoint?.deviceSid?.take(8) ?: "n/a"}…")
     appendLine("pairedAtMs: ${endpoint?.pairedAtMs ?: "n/a"}")
     appendLine()
-    appendLine("--- redacted log ring (chronological; secrets scrubbed, INV-3) ---")
+    appendLine("--- event counters (whole ring) ---")
+    val entries = container.log.snapshot()
+    val byEvent = entries.groupingBy { it.event }.eachCount().entries
+        .sortedByDescending { it.value }
+        .take(25)
+    for ((event, count) in byEvent) appendLine("  $event × $count")
+    appendLine("bridge errors by reason:")
+    entries.filter { it.event == "bridge.error" }
+        .groupingBy { it.details?.removePrefix("reason=") ?: "?" }
+        .eachCount()
+        .toList().sortedByDescending { it.second }
+        .forEach { (reason, count) -> appendLine("  $reason × $count") }
+    appendLine()
+    appendLine("--- warnings & errors (chronological) ---")
+    val problems = entries.filter { it.level == ZLog.LogLevel.WARN || it.level == ZLog.LogLevel.ERROR }
+    appendLine("count: ${problems.size}")
+    for (e in problems) {
+        val ctx = if (e.context.isEmpty()) "" else " " + e.context.entries.joinToString(" ") { "${it.key}=${it.value}" }
+        appendLine("  ${java.time.Instant.ofEpochMilli(e.timestampMs)} [${e.level}] ${e.event}$ctx ${e.details ?: ""}")
+    }
+    appendLine()
+    appendLine("--- connection timeline (state transitions, chronological) ---")
+    for (e in entries) {
+        if (e.event == "hub.phase" || e.event == "app.lifecycle" || e.event == "app.start" ||
+            e.event.startsWith("hub.connect") || e.event.startsWith("hub.retry") ||
+            e.event.startsWith("pairing.") || e.event.startsWith("bridge.")
+        ) {
+            val ctx = if (e.context.isEmpty()) "" else " " + e.context.entries.joinToString(" ") { "${it.key}=${it.value}" }
+            appendLine("  ${java.time.Instant.ofEpochMilli(e.timestampMs)} ${e.event}${ctx} ${e.details ?: ""}")
+        }
+    }
+    appendLine()
+    appendLine("--- full redacted log ring (chronological; secrets scrubbed, INV-3) ---")
     appendLine(container.log.exportDiagnostics())
     appendLine("=== end ===")
 }

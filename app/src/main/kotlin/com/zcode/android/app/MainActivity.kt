@@ -82,7 +82,12 @@ class MainActivity : FragmentActivity() {
         val cm = getSystemService(ConnectivityManager::class.java) ?: return
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
+                container.log.info("network.available", "network=$network")
                 container.hub.networkAvailable()
+            }
+
+            override fun onLost(network: Network) {
+                container.log.info("network.lost", "network=$network")
             }
         }
         runCatching {

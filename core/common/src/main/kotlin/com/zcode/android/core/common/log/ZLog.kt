@@ -119,6 +119,9 @@ class ZLog(
 
     fun ringSize(): Int = synchronized(ringLock) { ring.size }
 
+    /** Round-7b: copy of the ring for structured report builders (counters/timeline). */
+    fun snapshot(): List<LogEntry> = synchronized(ringLock) { ring.toList() }
+
     // ------------------------------------------------------------- scrubbers
 
     private fun scrub(input: String): String {

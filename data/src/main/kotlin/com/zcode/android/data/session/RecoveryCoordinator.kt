@@ -115,6 +115,7 @@ class RecoveryCoordinator(
                 wm?.let { managers[t.sessionId]!!.hydrate(it.logEpoch, it.afterSeq) }
             }
         }
+        log.info("recovery.attach", "sessions=${targets.joinToString { it.sessionId }} fresh=${newlyAttached.map { it.sessionId }}")
         gateway.startForwarding(scope)
         // Anchor every NEWLY-attached session on the fresh connection (§9.8: subscription
         // state on a new connection is "fresh" → subscribe, snapshot expected). Already-
@@ -124,10 +125,14 @@ class RecoveryCoordinator(
         // escalations resync.
         for (t in newlyAttached) {
             try {
-                gateway.subscribe(t.sessionId, workspacePath = t.workspacePath, workspaceIdentity = t.workspaceIdentity)
+                val ack = gateway.subscribe(t.sessionId, workspacePath = t.workspacePath, workspaceIdentity = t.workspaceIdentity)
+                log.info(
+                    "recovery.subscribed",
+                    "session=${t.sessionId} mode=${ack.mode} epoch=${ack.logEpoch.take(24)} ws=${t.workspacePath ?: "pinned"}",
+                )
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
-                log.warn("recovery.subscribeFailed", "session=${t.sessionId} ${e.javaClass.simpleName}")
+                log.warn("recovery.subscribeFailed", "session=${t.sessionId} ${e.javaClass.simpleName}: ${e.message?.take(100)}")
                 manager(t.sessionId)?.setStale(true)
             }
         }

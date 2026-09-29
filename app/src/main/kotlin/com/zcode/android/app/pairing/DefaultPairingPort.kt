@@ -43,7 +43,7 @@ class DefaultPairingPort(
     override val pairedEndpoint: StateFlow<PairingFlow.LinkView?> = _pairedEndpoint
 
     override suspend fun validate(raw: String): PairingPort.Validation {
-        log.info("pairing.validate.begin", "len=${raw.length}")
+        log.info("pairing.validate.begin", "len=${raw.length} scheme=${raw.substringBefore(":", "").take(12)}")
         val parsed = parser.parse(raw, nowMs = System.currentTimeMillis())
         val link = when (parsed) {
             is PairingLinkParser.Result.Rejected -> {
@@ -93,16 +93,19 @@ class DefaultPairingPort(
             return failure("Reduced-security consent was not given", rePair = false, retryable = false)
         }
         // Seal (or rotate) the credential — §12.2 step 5: nothing written before all gates.
+        log.info("pairing.seal.begin", "sid=${raw.deviceSid.take(8)}…")
         val sealOutcome = vault.seal(raw)
-        if (sealOutcome is SealOutcome.Conflicts) {
-            return failure(
-                "A different desktop is already paired on this device. Unpair it first.",
-                rePair = false,
-                retryable = false,
-            )
-        }
-        if (sealOutcome is SealOutcome.Rotated) {
-            log.info("pairing.rotated", "same-sid rotation (§12.7)")
+        when (sealOutcome) {
+            is SealOutcome.Conflicts -> {
+                log.warn("pairing.seal.conflict", "existing=${sealOutcome.existingSid.take(8)}…")
+                return failure(
+                    "A different desktop is already paired on this device. Unpair it first.",
+                    rePair = false,
+                    retryable = false,
+                )
+            }
+            is SealOutcome.Rotated -> log.info("pairing.seal.rotated", "same-sid rotation (§12.7) generation=${sealOutcome.metadata.generation}")
+            is SealOutcome.Created -> log.info("pairing.seal.created", "endpointId=${sealOutcome.metadata.endpointId}")
         }
         // Keystore gate provision when biometrics are enforceable (§3.3).
         if (gate.capability() == BiometricGatePolicy.Capability.AVAILABLE) {
@@ -112,6 +115,15 @@ class DefaultPairingPort(
         // failure leaves the credential suspect — the user stays on the pairing flow's
         // re-scan state instead of being navigated into the app.
         val outcome = connect(raw)
+        log.info(
+            "pairing.connect.outcome",
+            when (outcome) {
+                is PairingPort.ConnectOutcome.Success -> "success"
+                is PairingPort.ConnectOutcome.TakenOver -> "takenOver"
+                is PairingPort.ConnectOutcome.Failure ->
+                    "failure rePair=${outcome.error.rePair} retryable=${outcome.error.retryable} msg=${outcome.error.userMessage.take(80)}"
+            },
+        )
         if (outcome is PairingPort.ConnectOutcome.Success) {
             _pairedEndpoint.value = toView(raw)
         }
@@ -183,6 +195,7 @@ class DefaultPairingPort(
     // ------------------------------------------------------------------ internals
 
     private suspend fun connect(raw: PairingLink): PairingPort.ConnectOutcome {
+        log.info("pairing.connect.begin", "sid=${raw.deviceSid.take(8)}… origin=${raw.endpointOrigin.take(40)}")
         val signer = vault.loadSigner()
             ?: return failure("No sealed credential — pair again", rePair = true, retryable = false)
         val endpoint = EndpointDescriptor(
