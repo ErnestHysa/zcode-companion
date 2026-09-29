@@ -259,6 +259,29 @@ Conclusion: the remaining failure is a DESKTOP 3.14.4 relay-protocol drift issue
 
 App-side changes this round: compat visibility (connection center + live settings + export), and round-8 regression assertions (bootstrap answered before bridge refusal — proving fresh discovery per connection end-to-end). Suites: 339 JVM green in the targeted runs (documented rotating matrix flakes under pool load, isolation-green); 5/5 instrumented (ATD).
 
+## Post-gate fix round 8b (2026-09-29, pending-attach drain — "task can't load even after retry")
+
+Real app-side bug found and fixed: a session whose `subscribeConversationV4` failed while the
+transport was offline/degraded (the exact field sequence — user opens a task during the
+connection loss, subscribe fails with "no endpoint", session goes stale) was **never re-anchored
+when the transport came back**. `startTargets` had already run; nothing ever re-issued the
+subscribe, so the conversation stayed in Loading forever even after reconnect and manual retry
+of the list.
+
+Fix: `RecoveryCoordinator` now keeps a `pendingAttach` queue — `startTargets` enqueues every
+failed subscribe, and `onTransportState(CONNECTED)` drains it (`drainPendingAttach()`), re-issuing
+targeted `subscribeConversationV4` calls with the session's stored workspace context
+(`recovery.pendingAttached` / `recovery.pendingAttachFailed` logs). This composes with §15 S18
+(attach while disconnected).
+
+Regression: `RecoveryScenarioMatrixTest` S18 — attach while disconnected (subscribe fails, 0 cached
+rows) → transport connects → pending session is re-anchored and the snapshot is cached, stale
+cleared. During development the test file briefly carried 9 duplicated S18 blocks from repeated
+partial edits — deduplicated to the single canonical scenario.
+
+Suites: full JVM/Robolectric pool green except the documented rotating StormTest load-flake (S7
+this run; isolation-green, pre-existing at Phase 5 HEAD); S18 green in isolation and in pool.
+
 ## Phase Exit Decision
 
 **PASS WITH KNOWN LIMITATIONS** — all subphase exit gates green with executed evidence; limitations 1–8 accepted and documented above; no §47 No-Go condition triggered.

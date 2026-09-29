@@ -64,6 +64,16 @@ class RecoveryCoordinator(
     private val managers = LinkedHashMap<String, ConversationSessionManager>()
     /** Phase 6: per-session workspace target (§ v4 wire carries the workspace per call). */
     private val sessionWorkspaces = HashMap<String, Pair<String?, String?>>()
+
+    /**
+     * Round-8 field fix: sessions whose attach SUBSCRIBE failed (e.g. attached while
+     * Degraded — the user tapped a task during an outage). The manager exists and
+     * routes events, but no subscription ack exists, so recover()'s re-subscribe
+     * pass never re-anchors them — they stayed dark FOREVER, even after Retry
+     * reached CONNECTED (field: "task can't load even after retry"). Drained on
+     * every CONNECTED transition.
+     */
+    private val pendingAttach = java.util.concurrent.ConcurrentLinkedQueue<String>()
     private val recoveryMutex = Mutex()
     private var forwardJob: Job? = null
     private var tickJob: Job? = null
@@ -264,12 +274,42 @@ class RecoveryCoordinator(
             ConnectionStateMachine.ConnectionState.CONNECTED -> {
                 for (m in all) m.setStale(false)
                 reconcileAfterRecovery()
+                // Round-8: re-anchor sessions whose original subscribe failed while
+                // the transport was down (field: "task can't load even after retry").
+                drainPendingAttach()
             }
             ConnectionStateMachine.ConnectionState.RECONNECTING,
             ConnectionStateMachine.ConnectionState.DEGRADED,
             ConnectionStateMachine.ConnectionState.FAILED,
             -> for (m in all) m.setStale(true)
             else -> Unit
+        }
+    }
+
+    /**
+     * Re-issue gateway.subscribe for sessions whose attach failed earlier. Called
+     * on every CONNECTED transition; failures re-enqueue (bounded by the caller's
+     * retry flow — the transport recovery loop re-fires this on each recovery).
+     */
+    private suspend fun drainPendingAttach() {
+        while (true) {
+            val sessionId = pendingAttach.poll() ?: return
+            val ws = synchronized(sessionWorkspaces) { sessionWorkspaces[sessionId] }
+            try {
+                gateway.subscribe(
+                    sessionId,
+                    workspacePath = ws?.first,
+                    workspaceIdentity = ws?.second,
+                )
+                log.info("recovery.pendingAttached", "session=$sessionId")
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                pendingAttach.add(sessionId)
+                throw e
+            } catch (e: Exception) {
+                log.warn("recovery.pendingAttachFailed", "session=$sessionId ${e.javaClass.simpleName}: ${e.message?.take(80)}")
+                pendingAttach.add(sessionId)
+                return // still down — stop draining, the next CONNECTED re-fires
+            }
         }
     }
 

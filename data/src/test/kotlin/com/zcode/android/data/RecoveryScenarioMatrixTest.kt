@@ -707,6 +707,44 @@ class RecoveryScenarioMatrixTest {
         } finally { h.close() }
     }
 
+    // ---------------------------------------------------------------- S18 (round-8 field fix)
+
+    /**
+     * Round-8 FIELD-FINDING regression (real phone: "tap a task → can't load, even
+     * after Retry"): a session attached while the transport had no connection (or
+     * while Degraded) had its subscribe FAIL and was then dropped FOREVER — the
+     * coordinator skipped already-managed sessions and the transport's recovery
+     * pass had no record of the failed subscribe. The pending-attach drain
+     * re-anchors such sessions on the next CONNECTED.
+     */
+    @Test
+    fun `S18 attach while disconnected - pending session re-anchored when transport connects`() = runBlocking {
+        val h = harness()
+        try {
+            withTimeout(90_000) {
+                // Mock running, transport NOT connected: the coordinator attaches the
+                // session, the subscribe fails ("no endpoint") → must go PENDING.
+                h.coordinator.startTargets(listOf(RecoveryCoordinator.SessionTarget(SESSION)))
+                awaitUntil("failed attach marked stale (pending)") {
+                    h.coordinator.manager(SESSION)?.stale?.value == true
+                }
+                assertEquals(0, h.conversations.cachedRowCount(SessionId(SESSION)))
+
+                // Bring the transport up → CONNECTED → the drain must re-subscribe
+                // and the snapshot must land (pre-fix: never — dropped silently).
+                val url = h.mock.start()
+                h.transport.connect(endpoint(url), signer())
+                awaitState(h, ConnectionStateMachine.ConnectionState.CONNECTED, 30_000)
+                awaitUntil("pending session re-anchored and snapshot cached") {
+                    h.conversations.cachedRowCount(SessionId(SESSION)) > 0
+                }
+                assertEquals(false, h.coordinator.manager(SESSION)!!.stale.value)
+            }
+        } finally {
+            h.close()
+        }
+    }
+
     // ---------------------------------------------------------------- S17
 
     @Test
