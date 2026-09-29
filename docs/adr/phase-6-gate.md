@@ -213,6 +213,18 @@ Also added:
 
 Regressions: `DiagnosticsFileStoreTest` (3 — rotation, cap, capped reads). Suites: transport pool shows the documented rotating load-flakes (isolation-green); all other modules + app pool green; 5/5 instrumented (ATD).
 
+## Post-gate diagnostics round 7d (2026-09-29, second "even more" request)
+
+Another diagnostics expansion pass on top of 7b/7c:
+
+- **Protocol-call traces in the transport** — every `v4Call` (hello/initialize/subscribe/resync/rowsRange/command) logs begin + completion with wall duration at DEBUG, and TIMEOUT/channel-error transitions at WARN with elapsed ms; heartbeat beats at DEBUG; bridge-open success at INFO (`bridge.open ws=… task=…`).
+- **Delta-flow traces** — `ConversationSessionManager` logs each delta batch (seq range + op count) at DEBUG.
+- **`ZLog.snapshot()`** — structured entry copy for report builders (regression-tested).
+- **Hub `diagnosticsSnapshot()`** — a suspend snapshot for the export: negotiated capabilities line (connectionId/binary frames/compression/desktop version), recovery-journal subscriptions (session + afterSeq + epoch), and per-attached-session state (taskState/stale/cachedRows).
+- **Export report gains a "live session & protocol state" section** rendering that snapshot between the environment and timeline sections.
+
+Suites: full-pool runs show the documented rotating recovery-matrix load-flakes (S3/S5 class — isolation-green ×3, pre-existing at Phase 5 HEAD); all other modules green; 5/5 instrumented (ATD).
+
 ## Phase Exit Decision
 
 **PASS WITH KNOWN LIMITATIONS** — all subphase exit gates green with executed evidence; limitations 1–8 accepted and documented above; no §47 No-Go condition triggered.

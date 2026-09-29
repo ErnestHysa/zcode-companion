@@ -247,6 +247,25 @@ private suspend fun buildDiagnosticReport(container: AppContainer, context: andr
         }
     }
     appendLine()
+    appendLine("--- live session & protocol state ---")
+    val diag = container.hub.diagnosticsSnapshot()
+    appendLine("capabilities: ${diag.capabilities ?: "none (never connected)"}")
+    appendLine("tasksCached: ${diag.taskCount}")
+    if (diag.journalSubscriptions.isEmpty()) {
+        appendLine("recovery journal: (empty)")
+    } else {
+        appendLine("recovery journal:")
+        for (sub in diag.journalSubscriptions) appendLine("  $sub")
+    }
+    if (diag.sessions.isEmpty()) {
+        appendLine("conversation sessions: (none attached)")
+    } else {
+        appendLine("conversation sessions:")
+        for (s in diag.sessions) {
+            appendLine("  ${s.sessionId.take(20)} state=${s.taskState} stale=${s.stale} cachedRows=${s.cachedRows}")
+        }
+    }
+    appendLine()
     appendLine("--- per-connection timelines (from the current ring) ---")
     val withConn = entries.filter { it.context.containsKey("connectionId") }
     val byConn = withConn.groupBy { it.context["connectionId"]!! }

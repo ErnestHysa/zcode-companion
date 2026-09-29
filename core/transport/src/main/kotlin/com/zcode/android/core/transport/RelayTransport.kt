@@ -634,6 +634,7 @@ class RelayTransport(
                 onConnectionLost("heartbeat watchdog (no ack for ${config.heartbeatWatchdogMs}ms)")
                 return
             }
+            bound().debug("heartbeat.send", "pair_status_query")
             sendNow(
                 encodeJson.encodeToString(
                     com.zcode.android.core.protocol.relay.PairStatusQuery(deviceSid = deviceSid, clientTs = clock())
@@ -993,14 +994,21 @@ class RelayTransport(
      * Promise-call args are wrapped in an ARRAY; a bare object arrives as undefined.
      */
     private suspend fun v4Call(name: String, arg: RpcValue): RpcValue {
+        val started = clock()
+        bound().debug("v4.call", "$name begin")
         return try {
-            channel.call("zcode-agent", name, RpcValue.Arr(listOf(arg)), config.v4CallTimeoutMs)
+            val raw = channel.call("zcode-agent", name, RpcValue.Arr(listOf(arg)), config.v4CallTimeoutMs)
+            bound().debug("v4.call", "$name ok in ${clock() - started}ms")
+            raw
         } catch (e: ChannelSession.Failure.TimedOut) {
+            bound().warn("v4.call", "$name TIMEOUT after ${clock() - started}ms")
             throw Failure(ErrorMapping.timeout(name, config.v4CallTimeoutMs))
         } catch (e: ChannelSession.Failure.ChannelError) {
             // Server-side fault (fault.* namespace) — task-class rejection, user-retry.
+            bound().warn("v4.call", "$name channel error: ${e.detail.take(100)}")
             throw Failure(ErrorMapping.taskRejected(e.detail))
         } catch (e: ChannelSession.Failure) {
+            bound().warn("v4.call", "$name failed: ${e.message?.take(100)}")
             throw Failure(ErrorMapping.protocolFault(e.message ?: "channel call failed"))
         }
     }
@@ -1253,6 +1261,7 @@ class RelayTransport(
         }
         val bridge = (response["bridge"] as? JsonObject)
             ?: throw Failure(ErrorMapping.protocolFault("bridge-ready without bridge object"))
+        bound().info("bridge.open", "ws=$workspaceKey task=$taskId bridge=${(bridge["bridgeSessionId"] as? JsonPrimitive)?.content?.take(16)}")
         (response["bridgeGeneration"] as? JsonPrimitive)?.content?.toIntOrNull()?.let { bridgeGeneration = it }
         return BridgeInfo(
             workspaceKey = workspaceKey,

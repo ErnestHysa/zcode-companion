@@ -13,6 +13,7 @@ import com.zcode.android.data.session.ConversationGateway
 import com.zcode.android.data.session.RecoveryCoordinator
 import com.zcode.android.data.session.RelayConversationGateway
 import com.zcode.android.domain.ids.EndpointId
+import com.zcode.android.domain.ids.SessionId
 import com.zcode.android.domain.ids.WorkspaceIdentityKey
 import com.zcode.android.domain.model.Endpoint
 import com.zcode.android.domain.model.Task
@@ -109,6 +110,47 @@ class ConnectionHub(
 
     fun dismissError() {
         _lastError.value = null
+    }
+
+    /** Round-7c diagnostics: structured snapshot for the export report. */
+    data class SessionDiag(
+        val sessionId: String,
+        val taskState: String,
+        val stale: Boolean,
+        val cachedRows: Int,
+    )
+
+    data class HubDiagnostics(
+        val connectionId: String?,
+        val capabilities: String?,
+        val journalSubscriptions: List<String>,
+        val sessions: List<SessionDiag>,
+        val taskCount: Int,
+    )
+
+    suspend fun diagnosticsSnapshot(): HubDiagnostics {
+        val endpointId = vault.loadMetadata()?.endpointId
+        val caps = transport.capabilities.value
+        val capsLine = caps?.let {
+            "conn=${it.connectionId.take(12)}… binary=${it.host.binaryFrames} compression=${it.host.compression} desktop=${it.desktopAppVersion}"
+        }
+        val journal = endpointId?.let { journalRepo.load(EndpointId(it)) }
+        val subs = journal?.subscriptions?.map { "session=${it.sessionId.take(16)} afterSeq=${it.afterSeq} epoch=${it.logEpoch.take(12)}" } ?: emptyList()
+        val sessions = coordinatorOrNull()?.managedSessions().orEmpty().map { id ->
+            val m = coordinatorOrNull()?.manager(id)
+            SessionDiag(
+                sessionId = id,
+                taskState = m?.taskState?.value?.name ?: "?",
+                stale = m?.stale?.value ?: false,
+                cachedRows = runCatching {
+                    kotlinx.coroutines.withTimeout(2_000) { conversationRepo.cachedRowCount(SessionId(id)) }
+                }.getOrDefault(-1),
+            )
+        }
+        val count = endpointId?.let {
+            runCatching { kotlinx.coroutines.withTimeout(2_000) { taskRepo.observeAllTasks(EndpointId(it)).first().size } }.getOrDefault(-1)
+        } ?: -1
+        return HubDiagnostics(caps?.connectionId, capsLine, subs, sessions, count)
     }
 
     /** Round-7 diagnostics: cached task count without a suspend call. */

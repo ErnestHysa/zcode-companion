@@ -106,6 +106,7 @@ class ConversationSessionManager(
     }
 
     private suspend fun handleDeltas(e: GatewayTopicEvent.Deltas) {
+        log.debug("manager.deltas", "session=${sessionId.raw} seq=${e.fromSeq}..${e.toSeq} ops=${e.ops.size}")
         val effects = reducer.onDeltas(TopicDeltasOf(e))
         applyEffects(effects)
         // Task-machine observations ride the applied ops (authoritative turnHeader rows).

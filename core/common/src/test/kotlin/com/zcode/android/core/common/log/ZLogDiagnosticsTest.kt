@@ -22,6 +22,17 @@ class ZLogDiagnosticsTest {
     }
 
     @Test
+    fun `snapshot returns structured entries for report builders`() {
+        val log = ZLog(minLevel = ZLog.LogLevel.DEBUG, sink = {})
+        log.with(ZLog.LogContext(connectionId = "relay-9")).info("hub.phase", "transport X → Y")
+        val snap = log.snapshot()
+        assertTrue(snap.isNotEmpty())
+        val entry = snap.last()
+        assertEquals("hub.phase", entry.event)
+        assertEquals("relay-9", entry.context["connectionId"])
+    }
+
+    @Test
     fun `5000-entry ring capacity is accepted (INV-5 upper region)`() {
         val log = ZLog(minLevel = ZLog.LogLevel.DEBUG, sink = {}, ringCapacity = 5_000)
         repeat(6_000) { i -> log.info("e$i") }
