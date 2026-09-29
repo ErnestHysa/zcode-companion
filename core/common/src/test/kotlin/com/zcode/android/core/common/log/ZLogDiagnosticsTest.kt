@@ -22,6 +22,14 @@ class ZLogDiagnosticsTest {
     }
 
     @Test
+    fun `entries capture the originating thread name`() {
+        val log = ZLog(minLevel = ZLog.LogLevel.DEBUG, sink = {})
+        log.info("thread.probe", "x")
+        val entry = log.snapshot().last()
+        assertTrue(!entry.thread.isNullOrBlank(), "thread must be captured")
+    }
+
+    @Test
     fun `snapshot returns structured entries for report builders`() {
         val log = ZLog(minLevel = ZLog.LogLevel.DEBUG, sink = {})
         log.with(ZLog.LogContext(connectionId = "relay-9")).info("hub.phase", "transport X → Y")

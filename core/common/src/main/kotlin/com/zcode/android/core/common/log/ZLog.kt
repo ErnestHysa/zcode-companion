@@ -54,6 +54,8 @@ class ZLog(
         val event: String,
         val details: String?,
         val context: Map<String, String>,
+        /** Round-7g: originating thread — separates UI/network/recovery flows. */
+        val thread: String? = null,
     )
 
     private val secrets = HashSet<String>()
@@ -93,6 +95,7 @@ class ZLog(
             event = scrub(event),
             details = details?.let(::scrub)?.take(MAX_DETAIL_CHARS),
             context = context.toMap().mapValues { (_, v) -> scrub(v) },
+            thread = Thread.currentThread().name.take(24),
         )
         sink(entry)
         synchronized(ringLock) {
@@ -106,7 +109,7 @@ class ZLog(
         ring.joinToString("\n") { e ->
             val ctx = if (e.context.isEmpty()) "" else " " + e.context.entries.joinToString(" ") { "${it.key}=${it.value}" }
             val det = e.details?.let { " :: $it" } ?: ""
-            "${e.timestampMs} ${formatTs(e.timestampMs)} [${e.level}] ${e.event}$ctx$det"
+            "${e.timestampMs} ${formatTs(e.timestampMs)} [${e.level}] (${e.thread}) ${e.event}$ctx$det"
         }
     }
 

@@ -79,9 +79,12 @@ fun ZCodeApp(
         composable(Routes.TASKS) {
             TasksRoute(
                 vm = tasksVm,
-                onTaskClick = { task -> nav.navigate(Routes.conversation(task.taskId)) },
-                onOpenSettings = { nav.navigate(Routes.SETTINGS) },
-                onOpenConnection = { nav.navigate(Routes.CONNECTION) },
+                onTaskClick = { task ->
+                    container.log.info("tasks.open", "task=${task.taskId.take(24)} title=${task.title.take(40)}")
+                    nav.navigate(Routes.conversation(task.taskId))
+                },
+                onOpenSettings = { container.log.info("nav.settings", "open"); nav.navigate(Routes.SETTINGS) },
+                onOpenConnection = { container.log.info("nav.connection", "open"); nav.navigate(Routes.CONNECTION) },
             )
         }
         composable(Routes.CONVERSATION) { entry ->

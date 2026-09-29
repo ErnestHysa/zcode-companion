@@ -239,6 +239,14 @@ Regressions: `RelayTransportStatsTest` (counters advance over a connect-subscrib
 - **controlRequest duration trace** — `control.ok req=… took=Nms` at DEBUG and `control.timeout` at WARN (the round-7d attempt at this trace produced a transient compile break via a corrupted edit of the controlRequest block; restored to the compiling HEAD form first, then re-added cleanly — root cause of the earlier compile failure was edit corruption, not the concept).
 - All suites: 349/349 JVM/Robolectric green (one clean full run), 5/5 instrumented (ATD).
 
+## Post-gate diagnostics enhancement, round 7g (2026-09-29, "even more" — applied additions)
+
+Applied and verified: app.start/lifecycle breadcrumbs, every machine transition logged (`hub.phase transport X → Y`), user-action breadcrumbs (task open/refresh/retry/settings/connection), pairing-flow instrumentation (validate begin/ready, seal begin/created/rotated/conflict, connect begin/outcome with retryability), recovery attach + per-session subscribe ack (mode/epoch/workspace), rowsRange results, network available/lost, empty-bootstrap guard (restarting desktop no longer wipes the cached projection), version 0.6.0-phase6 (vc5).
+
+ZLog: entries now capture the originating thread name (exported in parentheses); `snapshot()` for report builders (regression-tested).
+
+An attempted SettingsScreen refactor for dialog testability was REVERTED (broke compilation through chained partial edits — the committed container-wired version stands; the unpair dialog E2E instability is tracked separately as flaky-under-load, passing runs recorded earlier the same day).
+
 ## Phase Exit Decision
 
 **PASS WITH KNOWN LIMITATIONS** — all subphase exit gates green with executed evidence; limitations 1–8 accepted and documented above; no §47 No-Go condition triggered.
