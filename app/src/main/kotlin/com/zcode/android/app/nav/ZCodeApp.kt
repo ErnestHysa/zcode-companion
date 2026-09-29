@@ -114,6 +114,7 @@ private fun TasksRoute(
         onOpenConnection = onOpenConnection,
         onRetry = vm::retryConnection,
         onRefresh = vm::refresh,
+        onRepairPairing = vm::repairPairing,
     )
 }
 

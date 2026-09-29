@@ -50,6 +50,11 @@ class TasksViewModelTest {
         override fun retryConnection() {
             retryCalls++
         }
+        override val suggestRepair = MutableStateFlow(false)
+        var repairCalls = 0
+        override fun repairPairing() {
+            repairCalls++
+        }
     }
 
     private fun task(

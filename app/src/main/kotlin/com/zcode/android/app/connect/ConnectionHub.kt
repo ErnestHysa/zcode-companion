@@ -30,7 +30,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonObject
@@ -83,8 +85,35 @@ class ConnectionHub(
     private val _lastError = MutableStateFlow<AppError?>(null)
     val lastError: StateFlow<AppError?> = _lastError.asStateFlow()
 
+    /**
+     * Round-4 field finding: the relay keeps accepting our auth while answering
+     * every bridge-open with desktop-disconnected — the classic STALE PAIRING shape
+     * (the desktop re-registered on QR refresh; the old sid/mid still authenticate
+     * but point at a dead desktop session). When Degraded for exactly that reason
+     * AND the sealed credential is older than the §12.2 QR staleness window, the UI
+     * offers a direct Re-pair action instead of a pointless Retry.
+     */
+    private val sealedAtMs: Long? = vault.loadMetadata()?.sealedAtMs
+
+    val suggestRepair: StateFlow<Boolean> = kotlinx.coroutines.flow.combine(
+        _phase,
+        _lastError,
+    ) { phase, error ->
+        // NOTE: combine with a finite flow (flow{emit}) FREEZES the stream when the
+        // finite side completes — staleness is captured once as a value instead.
+        phase == ConnectionPhase.DEGRADED &&
+            error?.developerDiagnostic?.contains("desktop-disconnected") == true &&
+            sealedAtMs != null &&
+            (System.currentTimeMillis() - sealedAtMs) > PAIRING_STALE_MS
+    }.stateIn(scope, kotlinx.coroutines.flow.SharingStarted.Eagerly, false)
+
     fun dismissError() {
         _lastError.value = null
+    }
+
+    companion object {
+        /** §12.2 QR staleness window ("not older than 10 min by default"). */
+        const val PAIRING_STALE_MS = 10L * 60 * 1000
     }
 
     /** Port accessors (features never see the coordinator itself). */

@@ -2,6 +2,7 @@ package com.zcode.android.app
 
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import com.zcode.android.app.connect.ConnectionHub
 import com.zcode.android.app.connect.DefaultConversationPort
 import com.zcode.android.app.connect.DefaultTasksPort
@@ -75,7 +76,10 @@ class AppContainer(activity: FragmentActivity) {
         log = log,
     )
 
-    val tasksPort: DefaultTasksPort = DefaultTasksPort(hub, vault, stores.taskRepository)
+    val tasksPort: DefaultTasksPort = DefaultTasksPort(hub, vault, stores.taskRepository, rePair = {
+        // Unpair is suspend (vault wipe + transport close) — launch on the activity scope.
+        activity.lifecycleScope.launch { pairingPort.unpair() }
+    })
     val conversationPort: DefaultConversationPort = DefaultConversationPort(hub, stores.conversationRepository)
 
     init {

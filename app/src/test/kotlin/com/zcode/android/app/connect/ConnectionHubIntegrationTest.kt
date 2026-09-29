@@ -263,8 +263,11 @@ class ConnectionHubIntegrationTest {
             log = ZLog(sink = {}),
         )
         mock.script.bridgeRequireTaskId = true // strict: every open fails until cleared
+        // Round-4 note: desktop-disconnected now FAST-DEGRADES after 3 consecutive
+        // rejections (correct) — use a transient reason here so the loop keeps
+        // retrying, which is what the backoff-cadence assertion measures.
         synchronized(mock.script.bridgeErrorReasons) {
-            repeat(4) { mock.script.bridgeErrorReasons.addLast("desktop-disconnected") }
+            repeat(4) { mock.script.bridgeErrorReasons.addLast("session-not-found") }
         }
         val authTimes = java.util.concurrent.ConcurrentLinkedQueue<Long>()
         val authJob = launch {
@@ -290,6 +293,61 @@ class ConnectionHubIntegrationTest {
             "retry gaps $gaps — the 0 ms hot loop is back",
             fastGaps <= 1,
         )
+    }
+
+    /**
+     * Round-4: repeated desktop-disconnected → Degraded fast; the Re-pair hint fires
+     * ONLY when the sealed credential is older than the §12.2 staleness window (a
+     * FRESH pairing degrading the same way keeps the plain Retry path).
+     */
+    @Test
+    fun `stale desktop-disconnected pairing suggests repair - fresh does not`() = runBlocking {
+        mock.script.bridgeRequireTaskId = false
+        synchronized(mock.script.bridgeErrorReasons) {
+            repeat(6) { mock.script.bridgeErrorReasons.addLast("desktop-disconnected") }
+        }
+        hub.start()
+        withTimeout(40_000) { hub.phase.first { it == ConnectionPhase.DEGRADED } }
+        // Fresh credential (sealed seconds ago in setUp) → no repair hint yet.
+        assertTrue(!hub.suggestRepair.value, "fresh pairing must not suggest repair")
+
+        // STALE credential: a hub over a vault sealed 11+ minutes ago.
+        val oldClock = System.currentTimeMillis() - 11 * 60_000
+        val staleVault = CredentialVault(InMemoryCredentialStore(), IdentityKeyWrap(), ZLog(sink = {}), clock = { oldClock })
+        staleVault.seal(
+            PairingLink(
+                endpointOrigin = mock.url.removeSuffix("/ws").replaceFirst("ws://", "http://"),
+                route = "/remote/v4",
+                deviceSid = sid,
+                passHash = passHash,
+                issuedAtMs = oldClock,
+                deviceMid = "mock-desktop-mid",
+                desktopName = "StaleBook",
+                appVersion = "3.14.3",
+            ),
+        )
+        val staleHub = ConnectionHub(
+            transport = RelayTransport(wsFactory = com.zcode.android.core.transport.OkHttpWsFactory(), log = ZLog(sink = {})),
+            vault = staleVault,
+            taskRepo = tasks,
+            conversationRepo = conversations,
+            journalRepo = FakeJournalRepository(),
+            interactions = FakeInteractionRepository(),
+            endpointRepo = endpoints,
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+            log = ZLog(sink = {}),
+        )
+        synchronized(mock.script.bridgeErrorReasons) {
+            repeat(6) { mock.script.bridgeErrorReasons.addLast("desktop-disconnected") }
+        }
+        try {
+            staleHub.start()
+            withTimeout(40_000) { staleHub.phase.first { it == ConnectionPhase.DEGRADED } }
+            withTimeout(5_000) { staleHub.suggestRepair.first { it } }
+            assertTrue(staleHub.suggestRepair.value, "stale pairing MUST suggest repair")
+        } finally {
+            runCatching { runBlocking { staleHub.phase; staleHub.endpoint; } }
+        }
     }
 
     @Test

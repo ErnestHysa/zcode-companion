@@ -143,6 +143,18 @@ Mock production-fidelity (default-on): `requireScopedListen = true` — conversa
 
 Note on the desktop-version question raised in the field: relay auth, bootstrap, and bridge-open all worked against the user's desktop — the incompatibility was client-side routing (above), not desktop drift; the compat gate (`app_version` ≥ 3.14.0, warn-continue above tested) remains the drift guard.
 
+## Post-gate field fix round 4 (2026-09-29, third real-phone re-test)
+
+Re-test log: EVERY bridge attempt — including the first on a fresh pairing — rejected in under a second with `workspace-bridge-error: desktop-disconnected`, while relay auth and the control plane work. Round-3 machinery all verified in the log (bridge-id rotation firing; calm exponential backoff: 2 s → 3.2 s → 5.8 s → 9.7 s → 21 s). Interpretation: the STALE-PAIRING shape — the relay still authenticates the old sid/hash (pairing persists) but holds no live desktop session for it (the desktop re-registered when its QR was refreshed; connecting from a clipboard link reproduces this exactly). This is not client-correctable by retrying: the desktop does not return inside the budget.
+
+App-side response (honesty over grinding):
+1. **Fast Degraded on repeated desktop-disconnected** — after 3 consecutive rejections the transport transitions Degraded immediately (was: the full 2-minute "Reconnecting…" grind) and surfaces the actionable copy ("Desktop unreachable — wake the Mac, relaunch ZCode"). Implementation note recorded: the counter must live at the TOP of the recovery catch — desktop-disconnected is TRANSPORT-category, and the first cut (in the SESSION branch) never executed.
+2. **Stale-pairing Re-pair affordance** — `ConnectionHub.suggestRepair` (Degraded ∧ lastError desktop-disconnected ∧ sealed credential older than the §12.2 10-minute QR staleness window) drives a task-list strip: "Pairing looks stale — on the Mac press Stop, show a fresh QR, scan it" with a **Re-pair** action that wipes the stale pairing (reuses the unpair path; the nav gate returns to pairing). Fresh pairings keep the plain Retry path. (Also fixed en passant: the first `suggestRepair` combine used a finite `flow{emit}` side, which freezes the whole combine — staleness is captured as a value instead.)
+
+Regressions: `RelayTransportDesktopGoneTest` (fast Degraded ≤ 30 s wall vs the 2-min budget + actionable TRANSPORT-class copy), `ConnectionHubIntegrationTest.stale desktop-disconnected pairing suggests repair - fresh does not` (both polarity arms), FakePort extended (`suggestRepair`/`repairPairing`). The no-hot-loop test's queued reason moved to `session-not-found` — desktop-disconnected now (correctly) fast-degrades instead of retrying. Suites: 335/335 JVM/Robolectric, 5/5 instrumented (ATD).
+
+Field guidance (also in the app copy): with a FRESH QR (desktop dialog → Stop → re-enable → scan the NEW code) the previous rounds' fixes carry the connect through; if even the fresh QR yields instant desktop-disconnected, the desktop's relay session is wedged — restart the ZCode desktop app entirely, then pair.
+
 ## Phase Exit Decision
 
 **PASS WITH KNOWN LIMITATIONS** — all subphase exit gates green with executed evidence; limitations 1–8 accepted and documented above; no §47 No-Go condition triggered.

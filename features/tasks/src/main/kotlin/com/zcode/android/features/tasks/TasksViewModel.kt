@@ -28,6 +28,8 @@ data class TasksUiState(
     val refreshing: Boolean = false,
     val lastRefreshAtMs: Long? = null,
     val endpointName: String? = null,
+    /** Round-4: show the Re-pair affordance (stale pairing, desktop-disconnected). */
+    val suggestRepair: Boolean = false,
 ) {
     enum class Load { LOADING, EMPTY, READY }
 
@@ -56,11 +58,18 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
     private val primary = combine(port.tasks, port.phase, port.taskLoadError) { tasks, phase, error ->
         Triple(tasks, phase, error)
     }
-    private val secondary = combine(refreshing, port.lastRefreshAtMs, port.endpointName) { r, l, e ->
-        Triple(r, l, e)
+    private val secondary = combine(refreshing, port.lastRefreshAtMs, port.endpointName, port.suggestRepair) { r, l, e, sr ->
+        Quad(r, l, e, sr)
     }
 
-    val state: StateFlow<TasksUiState> = combine(primary, secondary) { (tasks, phase, error), (refreshingFlag, lastRefresh, endpointName) ->
+    private data class Quad(
+        val refreshing: Boolean,
+        val lastRefresh: Long?,
+        val endpointName: String?,
+        val suggestRepair: Boolean,
+    )
+
+    val state: StateFlow<TasksUiState> = combine(primary, secondary) { (tasks, phase, error), extra ->
         TasksUiState(
             phase = phase,
             loadState = when {
@@ -72,9 +81,10 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
             groups = groupTasks(tasks),
             taskCount = tasks.size,
             error = error,
-            refreshing = refreshingFlag,
-            lastRefreshAtMs = lastRefresh,
-            endpointName = endpointName,
+            refreshing = extra.refreshing,
+            lastRefreshAtMs = extra.lastRefresh,
+            endpointName = extra.endpointName,
+            suggestRepair = extra.suggestRepair,
         )
     }.stateIn(
         // Eagerly: the VM is screen-scoped (activity-lifecycle scope in this app's
@@ -100,6 +110,8 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
     }
 
     fun retryConnection() = port.retryConnection()
+
+    fun repairPairing() = port.repairPairing()
 
     private fun ConnectionPhase.inFlight(): Boolean = this == ConnectionPhase.CONNECTING ||
         this == ConnectionPhase.AUTHENTICATING ||

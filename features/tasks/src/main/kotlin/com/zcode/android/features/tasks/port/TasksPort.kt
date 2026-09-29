@@ -28,4 +28,10 @@ interface TasksPort {
 
     /** Degraded/Failed → manual retry (§14.4.1). */
     fun retryConnection()
+
+    /** Round-4: stale-pairing repair (desktop-disconnected Degraded + old QR) → unpair → re-scan. */
+    val suggestRepair: StateFlow<Boolean>
+
+    /** User accepted the re-pair suggestion: wipe the stale pairing (gate flips to pairing). */
+    fun repairPairing()
 }

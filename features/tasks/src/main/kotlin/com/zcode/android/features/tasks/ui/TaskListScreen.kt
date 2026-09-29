@@ -62,6 +62,7 @@ fun TaskListScreen(
     onOpenConnection: () -> Unit,
     onRetry: () -> Unit,
     onRefresh: () -> Unit,
+    onRepairPairing: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -89,7 +90,7 @@ fun TaskListScreen(
                 when (state.loadState) {
                     TasksUiState.Load.LOADING -> LoadingBody()
                     TasksUiState.Load.EMPTY -> EmptyBody(state, onRetry, onRefresh)
-                    TasksUiState.Load.READY -> ReadyBody(state, onTaskClick, onRetry)
+                    TasksUiState.Load.READY -> ReadyBody(state, onTaskClick, onRetry, onRepairPairing)
                 }
             }
         }
@@ -166,7 +167,7 @@ private fun EmptyBody(state: TasksUiState, onRetry: () -> Unit, onRefresh: () ->
 }
 
 @Composable
-private fun ReadyBody(state: TasksUiState, onTaskClick: (Task) -> Unit, onRetry: () -> Unit) {
+private fun ReadyBody(state: TasksUiState, onTaskClick: (Task) -> Unit, onRetry: () -> Unit, onRepairPairing: () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         // §14.4.2 stale overlay — cached rows visible + LABELED (never silent stale).
         if (state.stale) {
@@ -187,6 +188,19 @@ private fun ReadyBody(state: TasksUiState, onTaskClick: (Task) -> Unit, onRetry:
                 actionLabel = "Retry",
                 onAction = onRetry,
                 modifier = Modifier.testTag("tasks_error_strip"),
+            )
+        }
+        // Round-4: stale-pairing repair — Degraded on repeated desktop-disconnected
+        // with an old sealed QR. Retry is pointless; re-pairing is the remedy.
+        if (state.suggestRepair) {
+            AttentionStrip(
+                title = "Pairing looks stale",
+                message = "The relay no longer sees your desktop for this pairing. " +
+                    "On the Mac: open the phone icon in ZCode, press Stop, then show a fresh QR and scan it.",
+                tone = com.zcode.android.core.ui.components.StatusTone.WAITING,
+                actionLabel = "Re-pair",
+                onAction = onRepairPairing,
+                modifier = Modifier.testTag("tasks_repair_strip"),
             )
         }
         LazyColumn(

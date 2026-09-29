@@ -33,7 +33,13 @@ class DefaultTasksPort(
     private val hub: ConnectionHub,
     private val vault: CredentialVault,
     private val taskRepo: TaskRepository,
+    /** Round-4: re-pair acceptance wipes the stale pairing (wired to PairingPort.unpair). */
+    private val rePair: () -> Unit = {},
 ) : TasksPort {
+
+    override val suggestRepair: StateFlow<Boolean> get() = hub.suggestRepair
+
+    override fun repairPairing() = rePair()
 
     override val tasks: Flow<List<Task>> = flow {
         val endpointId = vault.loadMetadata()?.endpointId

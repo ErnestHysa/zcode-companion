@@ -167,6 +167,16 @@ class RelayTransport(
      * recover loops race establish()/re-subscribe and corrupt the recovery.
      */
     private val recovering = java.util.concurrent.atomic.AtomicBoolean(false)
+    /**
+     * Consecutive `desktop-disconnected` bridge rejections (round-4 field finding).
+     * Unlike transient session errors, the desktop does NOT come back on its own
+     * inside the retry budget — the pairing points at a desktop session the relay
+     * no longer holds (stale QR/link, or the desktop's relay connection died).
+     * After [DESKTOP_DISCONNECTED_DEGRADED_THRESHOLD] consecutive rejections the
+     * transport goes Degraded IMMEDIATELY with actionable copy instead of grinding
+     * "Reconnecting…" for the whole 2-minute budget.
+     */
+    @Volatile private var consecutiveDesktopDisconnected = 0
     private val connectionCounter = AtomicLong(0)
     private val malformedChannelFrames = AtomicLong(0)
 
@@ -344,6 +354,7 @@ class RelayTransport(
             }
             publishState()
             reconnect.reset()
+            consecutiveDesktopDisconnected = 0
             lastDeliveredMessageSeq = 0
             outSeq.set(0)
             outMessageSeq.set(0)
@@ -445,6 +456,23 @@ class RelayTransport(
                 bound().info("relay.recovered", "subscriptions=${subscriptions.size} snapshotReplace=$replaced")
                 return
             } catch (e: Failure) {
+                // Round-4 field finding: repeated desktop-disconnected (a TRANSPORT-
+                // class bridge rejection — NOT the SESSION branch below) is not
+                // transient: the relay holds no live desktop for this pairing and it
+                // does not return inside the budget. Fast-degrade with copy instead
+                // of grinding "Reconnecting…" for the full 2 minutes.
+                if (e.error.developerDiagnostic.contains("desktop-disconnected")) {
+                    consecutiveDesktopDisconnected++
+                    if (consecutiveDesktopDisconnected >= DESKTOP_DISCONNECTED_DEGRADED_THRESHOLD) {
+                        safeMachine(ConnectionStateMachine.ConnectionEvent.RECONNECT_BUDGET_EXHAUSTED)
+                        _appErrors.emit(ErrorMapping.bridgeError("desktop-disconnected"))
+                        bound().warn(
+                            "relay.desktopGone",
+                            "consecutive=$consecutiveDesktopDisconnected → Degraded (stale pairing / desktop off)",
+                        )
+                        return
+                    }
+                }
                 if (e.error.category == com.zcode.android.core.common.error.ErrorCategory.AUTH) {
                     safeMachine(ConnectionStateMachine.ConnectionEvent.AUTH_FAILED)
                     _appErrors.emit(e.error)
@@ -1110,6 +1138,11 @@ class RelayTransport(
             ),
             config.controlRequestTimeoutMs,
         )
+    }
+
+    companion object {
+        /** Consecutive desktop-disconnected rejections before fast Degraded (round 4). */
+        const val DESKTOP_DISCONNECTED_DEGRADED_THRESHOLD = 3
     }
 
     data class BridgeInfo(
