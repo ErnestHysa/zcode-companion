@@ -109,6 +109,12 @@ class MockZCode(
          */
         @Volatile var bootstrapActiveWorkspaceKey: String? = null
         @Volatile var bootstrapActiveTaskId: String? = null
+        /**
+         * Round-6 field fidelity: serve an EMPTY bootstrap view (tasks=0,
+         * workspaces=0) — what a RESTARTING desktop answers between its relay
+         * reconnect and its workspace reload (observed live).
+         */
+        @Volatile var bootstrapEmptyView: Boolean = false
     }
 
     /**
@@ -928,6 +934,22 @@ class MockZCode(
     // ------------------------------------------------------------------ control plane
 
     private fun sendBootstrapResponse(ws: okhttp3.WebSocket, requestId: String) {
+        if (script.bootstrapEmptyView) {
+            sendTo(ws, raw = RelayFrameCodec.encodeEnvelope(
+                json.encodeToString(JsonObject.serializer(), buildJsonObject {
+                    put("zcode_type", JsonPrimitive("bootstrap-response"))
+                    put("requestId", JsonPrimitive(requestId))
+                    put("success", JsonPrimitive(true))
+                    put("result", buildJsonObject {
+                        put("windowControlSessionId", JsonPrimitive("synth-window-1"))
+                        put("desktopAppVersion", JsonPrimitive(workspace.desktopAppVersion))
+                        put("workspaces", JsonArray(emptyList()))
+                        put("tasks", JsonArray(emptyList()))
+                    })
+                })
+            ))
+            return
+        }
         sendTo(ws, raw = RelayFrameCodec.encodeEnvelope(
             json.encodeToString(JsonObject.serializer(), buildJsonObject {
                 put("zcode_type", JsonPrimitive("bootstrap-response"))

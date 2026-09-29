@@ -165,6 +165,19 @@ Mock fidelity: scriptable bootstrap view (`bootstrapActiveWorkspaceKey/TaskId`, 
 
 Also explained from the log (no code change): the task list populating while the state shows Disconnected — `refreshTasks()` uses the control plane, which works over any authenticated socket even while the bridge (and therefore conversations) cannot; the honest disconnected label was correct for the conversation plane. With fresh discovery per connection, a recovered bridge now flips the state to Connected on the same self-heal path.
 
+## Post-gate field fix round 6 (2026-09-29, fifth re-test + the user's decisive observation)
+
+The user observed what the logs then confirmed: **every phone retry FREEZES the macOS ZCode app until it is restarted** — the log shows the relay answering `error code=DEVICE_OFFLINE` exactly then, followed by `bootstrapApplied tasks=0` (desktop restarting) and later `tasks=482` again. This is the community-tracked relay behavior (feedback #328 class): terminal bridge-mount attempts wedge the desktop's own relay session. Two app defects were feeding that storm:
+
+1. **Degraded never actually stopped the recovery loop** — the log shows `machine in DEGRADED at auth ok` ×9 at ~1/s: `onConnectionLost` relaunched `recoverLocked` unconditionally (even from DEGRADED, e.g. on the relay's DEVICE_OFFLINE socket close), and the loop only exited on CONNECTED/closed/kicked — so a Degraded app kept doing FULL auth+bootstrap+bridge handshakes forever, each one re-wedging the desktop. **Fix:** the loop returns immediately in DEGRADED/FAILED/CLOSED ("user action required"), and a loss that does not transition the machine to RECONNECTING no longer relaunches recovery. User Retry (DEGRADED→RECONNECTING via RETRY_REQUESTED) still works and is the intended exit.
+2. **Bridge rejections were retried at ~1 s backoff cadence** — re-poisoning the desktop's relay session before it could recover. **Fix:** every `desktop-disconnected` rejection is followed by a 5 s pacing floor (`BRIDGE_REJECT_FLOOR_MS`), on top of the policy backoff, before the next attempt.
+
+Also fixed from the same log: `relay DEVICE_OFFLINE` mapped honestly (TRANSPORT, "restart ZCode on your Mac, then retry"); and a RESTARTING desktop's EMPTY bootstrap view (`tasks=0 workspaces=0`, observed live) no longer wipes the cached task projection — the cache is kept (stale-labeled) until a real view arrives.
+
+Regressions: `RelayTransportDegradedQuiesceTest` (2) — Degraded is quiet (no auth attempts in a 6 s window), a socket loss while Degraded does not relaunch the storm, user Retry recovers to CONNECTED when healthy; bridge-rejection retry gaps ≥ the pacing floor; `ConnectionHubIntegrationTest.empty bootstrap view … keeps the cached projection`. Suites: 339 JVM/Robolectric green in isolation runs — full-pool runs show the documented rotating load-flakes on this 8GB machine (StormTest S7/S11 class, isolation-green, pre-existing); 5/5 instrumented (ATD).
+
+Field note recorded for the maintainer: the desktop-freeze itself is ZCode/relay-side (their bug #328); the app's job — now done — is to not trigger it with storms and to say honestly what happened.
+
 ## Phase Exit Decision
 
 **PASS WITH KNOWN LIMITATIONS** — all subphase exit gates green with executed evidence; limitations 1–8 accepted and documented above; no §47 No-Go condition triggered.

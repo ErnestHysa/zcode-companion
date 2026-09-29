@@ -264,6 +264,18 @@ class ConnectionHub(
     private suspend fun applyBootstrap(payload: JsonObject?) {
         val parsed = BootstrapParser.parseBootstrap(payload)
         val meta = vault.loadMetadata() ?: return
+        // Round-6 field fix: a RESTARTING desktop answers bootstrap with EMPTY view
+        // (tasks=0 workspaces=0 — observed live between DEVICE_OFFLINE and the
+        // desktop finishing its reload). Applying it would wipe the cached 482-task
+        // projection and flash an empty list; keep the cache instead (the stale
+        // label stays honest — the connection state is not Connected then).
+        if (parsed.tasks.isEmpty() && parsed.workspaces.isEmpty()) {
+            val cached = taskRepo.observeAllTasks(EndpointId(meta.endpointId)).first().isNotEmpty()
+            if (cached) {
+                log.warn("hub.bootstrapEmptySkipped", "desktop view empty (restarting?) — cached projection kept")
+                return
+            }
+        }
         val endpointId = EndpointId(meta.endpointId)
         val now = System.currentTimeMillis()
         // Group tasks by §7.11 identity key; each group is one workspace projection.

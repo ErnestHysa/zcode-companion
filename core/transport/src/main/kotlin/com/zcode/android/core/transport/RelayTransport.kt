@@ -425,6 +425,17 @@ class RelayTransport(
         ws?.let { runCatching { it.close(1000, "reconnect") } }
         while (!closedByUs && !kicked) {
             if (machine.state == ConnectionStateMachine.ConnectionState.CONNECTED) return
+            // Round-6 field fix: Degraded/FAILED/CLOSED mean USER ACTION REQUIRED —
+            // the loop must go QUIET. Every extra attempt is a full relay handshake
+            // that re-poisons the desktop's relay session (#328 class); the field
+            // showed this storm freezing the macOS app until it was restarted.
+            if (machine.state == ConnectionStateMachine.ConnectionState.DEGRADED ||
+                machine.state == ConnectionStateMachine.ConnectionState.FAILED ||
+                machine.state == ConnectionStateMachine.ConnectionState.CLOSED
+            ) {
+                bound().warn("relay.recovery.quiesced", "machine=${machine.state} — user action required")
+                return
+            }
             val delayMs = reconnect.nextDelayMs()
             if (delayMs == null) {
                 // Attempt budget exhausted → Degraded (§14.4.1 table-verbatim path).
@@ -472,6 +483,11 @@ class RelayTransport(
                         )
                         return
                     }
+                    // Round-6 pacing (feedback #328 class): a bridge rejection leaves
+                    // the desktop's relay session poisoned — retrying it at the
+                    // normal 1 s backoff cadence re-wedges the desktop before it can
+                    // recover. Floor every post-rejection retry at a calm interval.
+                    delay(BRIDGE_REJECT_FLOOR_MS)
                 }
                 if (e.error.category == com.zcode.android.core.common.error.ErrorCategory.AUTH) {
                     safeMachine(ConnectionStateMachine.ConnectionEvent.AUTH_FAILED)
@@ -534,16 +550,30 @@ class RelayTransport(
         ackWatcherJob?.cancel()
         // Drain unsent frames — they were never transmitted; higher layers own retries.
         while (sendBuffer.tryReceive().isSuccess) { /* drain */ }
+        var transitioned = false
         when (machine.state) {
             ConnectionStateMachine.ConnectionState.CONNECTED,
             ConnectionStateMachine.ConnectionState.CONNECTING,
             ConnectionStateMachine.ConnectionState.AUTHENTICATING,
             ConnectionStateMachine.ConnectionState.RECOVERING,
-            -> runCatching { machine.on(ConnectionStateMachine.ConnectionEvent.SOCKET_LOST) }
-                .onFailure { bound().warn("state.anomaly", it.message?.take(80)) }
+            -> {
+                runCatching { machine.on(ConnectionStateMachine.ConnectionEvent.SOCKET_LOST) }
+                    .onFailure { bound().warn("state.anomaly", it.message?.take(80)) }
+                transitioned = true
+            }
             else -> Unit // RECONNECTING/DEGRADED/FAILED: already owned by the retry machinery
         }
         publishState()
+        // Round-6 field fix: relaunch the recovery loop ONLY when this loss actually
+        // moved the machine to RECONNECTING. A loss while DEGRADED (e.g. the relay's
+        // DEVICE_OFFLINE push after a poisoned bridge) used to relaunch the loop,
+        // which then ran FULL auth+bootstrap+bridge handshakes in Degraded forever —
+        // a ~1/s connect storm that wedges the desktop's own relay session (feedback
+        // #328 class; observed freezing the macOS app on every phone retry).
+        if (!transitioned) {
+            recovering.set(false)
+            return
+        }
         scope.launch {
             try {
                 recoverLocked()
@@ -1143,6 +1173,9 @@ class RelayTransport(
     companion object {
         /** Consecutive desktop-disconnected rejections before fast Degraded (round 4). */
         const val DESKTOP_DISCONNECTED_DEGRADED_THRESHOLD = 3
+
+        /** Round-6: minimum wait after a bridge rejection before the next attempt (#328). */
+        const val BRIDGE_REJECT_FLOOR_MS = 5_000L
     }
 
     data class BridgeInfo(

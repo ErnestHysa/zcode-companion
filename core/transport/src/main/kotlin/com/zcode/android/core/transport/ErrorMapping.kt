@@ -92,6 +92,18 @@ object ErrorMapping {
             autoRecovery = RecoveryAction.RE_PAIR,
             correlation = correlation,
         )
+        // Round-6 field finding: the relay pushes this when the DESKTOP's own relay
+        // session died (observed alongside bridge desktop-disconnected storms; the
+        // #328 class where terminal bridge attempts wedge the desktop's session).
+        "DEVICE_OFFLINE" -> AppError(
+            category = ErrorCategory.TRANSPORT,
+            userMessage = "The desktop lost its relay connection — restart ZCode on your Mac, then retry",
+            developerDiagnostic = "relay DEVICE_OFFLINE (desktop relay session gone)",
+            retryable = AppError.Retryable.USER,
+            recoverable = true,
+            autoRecovery = RecoveryAction.RECONCILE,
+            correlation = correlation,
+        )
         "KICKED" -> AppError(
             category = ErrorCategory.SESSION,
             userMessage = "Another ZCode Remote page took over this connection",

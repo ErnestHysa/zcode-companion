@@ -350,6 +350,30 @@ class ConnectionHubIntegrationTest {
         }
     }
 
+    /**
+     * Round-6: a RESTARTING desktop answers bootstrap EMPTY (tasks=0 workspaces=0 —
+     * observed live between DEVICE_OFFLINE and the desktop's reload). Applying it
+     * would wipe the cached 482-task projection and flash an empty list; the cache
+     * must be kept (stale-labeled) until a real view arrives.
+     */
+    @Test
+    fun `empty bootstrap view from a restarting desktop keeps the cached projection`() = runBlocking {
+        hub.start()
+        withTimeout(30_000) { hub.phase.first { it == ConnectionPhase.CONNECTED } }
+        withTimeout(15_000) { tasks.snapshot.first { it.isNotEmpty() } }
+        val before = tasks.snapshot.value.size
+        assertTrue(before > 0)
+
+        // Desktop "restarts": empty view, then healthy again.
+        mock.script.bootstrapEmptyView = true
+        hub.refreshTasks()
+        assertEquals(before, tasks.snapshot.value.size, "empty view must NOT wipe the cached projection")
+
+        mock.script.bootstrapEmptyView = false
+        hub.refreshTasks()
+        assertTrue(tasks.snapshot.value.isNotEmpty())
+    }
+
     @Test
     fun `socket loss labels sessions stale - never silent (15-S1)`() = runBlocking {
         hub.start()
