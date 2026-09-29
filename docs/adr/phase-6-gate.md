@@ -225,6 +225,15 @@ Another diagnostics expansion pass on top of 7b/7c:
 
 Suites: full-pool runs show the documented rotating recovery-matrix load-flakes (S3/S5 class — isolation-green ×3, pre-existing at Phase 5 HEAD); all other modules green; 5/5 instrumented (ATD).
 
+## Post-gate diagnostics round 7e (2026-09-29, third "even more" request)
+
+- **Transport wire counters** — cumulative AtomicLongs for frames sent/received, v4 calls (+timeouts), control-plane requests, bridge opens/errors, heartbeats sent, pair-status acks, frame resends, recovery attempts, and consecutive desktop-disconnected — exposed via `statsSnapshot()` and rendered as a "transport wire counters" section in the export.
+- **Clock-skew logging** — after hello, `clock.skew serverAheadByMs=N` per connection (timestamp/ordering debug for relay issues).
+- **Auto-report on Degraded entry** — when the machine enters Degraded, the hub persists a structured block (consecutive desktop-disconnected, bridge errors, last error, capabilities, journal, session states) into the persisted diagnostics file at the moment of failure — once per entry, even if the app dies before the user exports. (First cut placed the desktop-disconnected counter in the wrong catch branch and used a race-prone lastError read; corrected — the auto-report now carries deterministic wire counters.)
+- **Settings UI** — "Copy diagnostics to clipboard" and "Add a marker" (timestamped user annotation right before reproducing).
+
+Regressions: `RelayTransportStatsTest` (counters advance over a connect-subscribe cycle), `ConnectionHubIntegrationTest.degraded entry writes an auto-report once`. Suites: full-pool runs show the documented rotating recovery-matrix load-flakes (rotating tests, isolation-green, pre-existing at Phase 5 HEAD); all other modules + app pool green; 5/5 instrumented (ATD).
+
 ## Phase Exit Decision
 
 **PASS WITH KNOWN LIMITATIONS** — all subphase exit gates green with executed evidence; limitations 1–8 accepted and documented above; no §47 No-Go condition triggered.

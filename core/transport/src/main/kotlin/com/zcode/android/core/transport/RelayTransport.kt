@@ -177,11 +177,43 @@ class RelayTransport(
      * "Reconnecting…" for the whole 2-minute budget.
      */
     @Volatile private var consecutiveDesktopDisconnected = 0
+
+    /**
+     * Round-7e: cumulative wire counters for the field diagnostics report
+     * (frames, calls, bridge attempts, heartbeats, retries — all AtomicLong).
+     */
+    private val cFramesSent = java.util.concurrent.atomic.AtomicLong()
+    private val cFramesRecv = java.util.concurrent.atomic.AtomicLong()
+    private val cV4Calls = java.util.concurrent.atomic.AtomicLong()
+    private val cV4CallTimeouts = java.util.concurrent.atomic.AtomicLong()
+    private val cControlRequests = java.util.concurrent.atomic.AtomicLong()
+    private val cBridgeOpens = java.util.concurrent.atomic.AtomicLong()
+    private val cBridgeErrors = java.util.concurrent.atomic.AtomicLong()
+    private val cHeartbeatsSent = java.util.concurrent.atomic.AtomicLong()
+    private val cPairStatusAcks = java.util.concurrent.atomic.AtomicLong()
+    private val cResends = java.util.concurrent.atomic.AtomicLong()
+    private val cRecoveryAttempts = java.util.concurrent.atomic.AtomicLong()
     private val connectionCounter = AtomicLong(0)
     private val malformedChannelFrames = AtomicLong(0)
 
     /** INV-8 observability for tests/diagnostics. */
     fun malformedChannelFrameCount(): Long = malformedChannelFrames.get()
+
+    /** Round-7e: cumulative wire counters for the export report. */
+    fun statsSnapshot(): Map<String, Long> = sortedMapOf(
+        "framesSent" to cFramesSent.get(),
+        "framesRecv" to cFramesRecv.get(),
+        "v4Calls" to cV4Calls.get(),
+        "v4CallTimeouts" to cV4CallTimeouts.get(),
+        "controlRequests" to cControlRequests.get(),
+        "bridgeOpens" to cBridgeOpens.get(),
+        "bridgeErrors" to cBridgeErrors.get(),
+        "heartbeatsSent" to cHeartbeatsSent.get(),
+        "pairStatusAcks" to cPairStatusAcks.get(),
+        "frameResends" to cResends.get(),
+        "recoveryAttempts" to cRecoveryAttempts.get(),
+        "desktopDisconnectedConsecutive" to consecutiveDesktopDisconnected.toLong(),
+    )
 
     /**
      * TEST-ONLY seam: abrupt socket death (EOF/RST class) without a graceful close.
@@ -349,6 +381,8 @@ class RelayTransport(
                 desktopAppVersion = endpoint.desktopAppVersion,
                 endpointKind = EndpointKind.RELAY_ZAI,
             )
+            val skewMs = (hello.serverTime - clock()).toLong()
+            bound().info("clock.skew", "serverAheadByMs=" + skewMs + " deviceNow=" + clock())
             if (machine.state == ConnectionStateMachine.ConnectionState.CONNECTING) {
                 machine.on(ConnectionStateMachine.ConnectionEvent.HELLO_RECEIVED) // → CONNECTED
             }
@@ -436,6 +470,7 @@ class RelayTransport(
                 bound().warn("relay.recovery.quiesced", "machine=${machine.state} — user action required")
                 return
             }
+            cRecoveryAttempts.incrementAndGet()
             val delayMs = reconnect.nextDelayMs()
             if (delayMs == null) {
                 // Attempt budget exhausted → Degraded (§14.4.1 table-verbatim path).
@@ -634,6 +669,7 @@ class RelayTransport(
                 onConnectionLost("heartbeat watchdog (no ack for ${config.heartbeatWatchdogMs}ms)")
                 return
             }
+            cHeartbeatsSent.incrementAndGet()
             bound().debug("heartbeat.send", "pair_status_query")
             sendNow(
                 encodeJson.encodeToString(
@@ -670,6 +706,7 @@ class RelayTransport(
         if (saturated) scope.launch {
             _appErrors.emit(ErrorMapping.protocolFault("send queue saturated (INV-5 bound ${config.sendQueueCapacity})"))
         }
+        cFramesSent.incrementAndGet()
         bound().debug("rpc.send", "messageSeq=$messageSeq fragments=${texts.size} bytes=${bytes.size}")
     }
 
@@ -718,6 +755,7 @@ class RelayTransport(
                             onConnectionLost("ack grace exceeded")
                             return
                         }
+                        cResends.incrementAndGet()
                         un.resends += 1
                         un.sentAtMs = now
                         out.addAll(un.fragments)
@@ -798,6 +836,7 @@ class RelayTransport(
     }
 
     private fun handleMessage(text: String) {
+        cFramesRecv.incrementAndGet()
         val obj = try {
             json.parseToJsonElement(text).jsonObject
         } catch (e: Exception) {
@@ -812,6 +851,7 @@ class RelayTransport(
                 authSignal?.complete(obj)
             }
             "pair_status_ack" -> {
+                cPairStatusAcks.incrementAndGet()
                 lastHeartbeatAckAt = clock()
                 (obj["pair_status"] as? JsonPrimitive)?.content?.let { lastPairStatus = it }
             }
@@ -995,6 +1035,7 @@ class RelayTransport(
      */
     private suspend fun v4Call(name: String, arg: RpcValue): RpcValue {
         val started = clock()
+        cV4Calls.incrementAndGet()
         bound().debug("v4.call", "$name begin")
         return try {
             val raw = channel.call("zcode-agent", name, RpcValue.Arr(listOf(arg)), config.v4CallTimeoutMs)
@@ -1144,6 +1185,7 @@ class RelayTransport(
     // ------------------------------------------------------------------ control plane
 
     private suspend fun controlRequest(requestId: String, payloadJson: String, timeoutMs: Long): JsonObject {
+        cControlRequests.incrementAndGet()
         val deferred = CompletableDeferred<JsonObject>()
         synchronized(pendingControl) { pendingControl[requestId] = deferred }
         try {
@@ -1256,11 +1298,13 @@ class RelayTransport(
             // The reason field is the ONLY diagnostic production gives — preserve it
             // verbatim in the error (and the log); never discard it again.
             val reason = (response["reason"] as? JsonPrimitive)?.content ?: "unspecified"
+            cBridgeErrors.incrementAndGet()
             bound().warn("bridge.error", "reason=$reason")
             throw Failure(ErrorMapping.bridgeError(reason))
         }
         val bridge = (response["bridge"] as? JsonObject)
             ?: throw Failure(ErrorMapping.protocolFault("bridge-ready without bridge object"))
+        cBridgeOpens.incrementAndGet()
         bound().info("bridge.open", "ws=$workspaceKey task=$taskId bridge=${(bridge["bridgeSessionId"] as? JsonPrimitive)?.content?.take(16)}")
         (response["bridgeGeneration"] as? JsonPrimitive)?.content?.toIntOrNull()?.let { bridgeGeneration = it }
         return BridgeInfo(

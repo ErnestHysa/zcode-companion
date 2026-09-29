@@ -44,6 +44,17 @@ class DiagnosticsFileStore private constructor(private val dir: File) {
         }
     }
 
+    /** Appends a structured auto-report block (capped). Never throws. */
+    fun appendAutoBlock(header: String, body: String) {
+        try {
+            synchronized(this) {
+                current.appendText("\n>>> AUTO $header\n" + body.take(8_000) + "\n<<< END AUTO\n")
+                if (current.length() > MAX_CURRENT_BYTES) capFile(current, MAX_CURRENT_BYTES)
+            }
+        } catch (e: IOException) {
+        }
+    }
+
     /** Appends one pre-formatted, pre-redacted line. Never throws. */
     fun append(line: String) {
         try {

@@ -109,6 +109,11 @@ class AppContainer(activity: FragmentActivity) {
         log = log,
     )
 
+    init {
+        // Persist a structured auto-report at the moment of Degraded (round-7e).
+        hub.onDegradedReport = { text -> diagnosticsStore.appendAutoBlock("DEGRADED", text) }
+    }
+
     val tasksPort: DefaultTasksPort = DefaultTasksPort(hub, vault, stores.taskRepository, rePair = {
         // Unpair is suspend (vault wipe + transport close) — launch on the activity scope.
         activity.lifecycleScope.launch { pairingPort.unpair() }

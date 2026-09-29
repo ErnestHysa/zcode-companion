@@ -84,9 +84,24 @@ fun SettingsScreen(
             SectionLabel("Diagnostics")
             SettingsRow(
                 title = "Export diagnostics",
-                subtitle = "Recent connection events, redacted. No conversation content.",
+                subtitle = "Connection report + full redacted event log. No conversation content.",
                 tag = "settings_export_diagnostics",
                 onClick = { exportDiagnostics(container, context) },
+            )
+            SettingsRow(
+                title = "Copy diagnostics to clipboard",
+                subtitle = "Same report, copied for pasting into a chat or issue.",
+                tag = "settings_copy_diagnostics",
+                onClick = { copyDiagnostics(container, context) },
+            )
+            SettingsRow(
+                title = "Add a marker",
+                subtitle = "Writes a timestamped marker into the log — tap this right before reproducing a problem.",
+                tag = "settings_add_marker",
+                onClick = {
+                    container.log.info("diagnostics.mark", "user marker at ${java.time.Instant.now()} phase=${container.hub.phase.value}")
+                    android.widget.Toast.makeText(context, "Marker added to diagnostics", android.widget.Toast.LENGTH_SHORT).show()
+                },
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
@@ -158,6 +173,16 @@ fun SettingsScreen(
     }
 }
 
+private fun copyDiagnostics(container: AppContainer, context: android.content.Context) {
+    val act = context as? androidx.fragment.app.FragmentActivity
+    act?.lifecycleScope?.launch {
+        val text = buildDiagnosticReport(container, context)
+        val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+        cm?.setPrimaryClip(android.content.ClipData.newPlainText("ZCode diagnostics", text))
+        android.widget.Toast.makeText(context, "Diagnostics copied", android.widget.Toast.LENGTH_SHORT).show()
+    }
+}
+
 private fun exportDiagnostics(container: AppContainer, context: android.content.Context) {
     // Report build touches Room/DataStore (suspend helpers) — off the UI thread.
     val act = context as? androidx.fragment.app.FragmentActivity
@@ -214,6 +239,11 @@ private suspend fun buildDiagnosticReport(container: AppContainer, context: andr
     appendLine("endpointId: ${endpoint?.endpointId?.raw ?: "n/a"}")
     appendLine("deviceSid: ${endpoint?.deviceSid?.take(8) ?: "n/a"}…")
     appendLine("pairedAtMs: ${endpoint?.pairedAtMs ?: "n/a"}")
+    appendLine()
+    appendLine("--- transport wire counters (cumulative) ---")
+    for ((k, v) in container.transport.statsSnapshot().toList().sortedByDescending { it.second }) {
+        appendLine("  $k: $v")
+    }
     appendLine()
     appendLine("--- event counters (whole ring) ---")
     val entries = container.log.snapshot()

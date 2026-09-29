@@ -214,6 +214,15 @@ class ConnectionHub(
      */
     var onConnected: (() -> Unit)? = null
 
+    /**
+     * Round-7e: invoked when the machine ENTERS Degraded (not on repeats) — the
+     * composition root persists a structured auto-report at the moment of failure,
+     * so the state that caused the Degraded is captured even if the app is killed
+     * before the user exports.
+     */
+    var onDegradedReport: ((String) -> Unit)? = null
+    @Volatile private var lastReportedPhase: ConnectionPhase? = null
+
     /** Idempotent app-start entry: wire state mapping; connect when paired. */
     fun start() {
         if (started) return
@@ -238,10 +247,33 @@ class ConnectionHub(
             transport.states.collect { state ->
                 if (state != last) {
                     // Every §14.4.1 machine transition, visible in field diagnostics.
-                    log.info("hub.phase", "transport ${last ?: "∅"} → $state")
+                    log.info("hub.phase", "transport $last → $state")
                     last = state
                 }
-                _phase.value = if (vault.loadMetadata() == null) ConnectionPhase.UNPAIRED else phaseOf(state)
+                val phase = if (vault.loadMetadata() == null) ConnectionPhase.UNPAIRED else phaseOf(state)
+                _phase.value = phase
+                // Round-7e: auto-report exactly once per Degraded ENTRY — the failure
+                // state is captured at the moment it happens, even if the app dies
+                // before the user exports.
+                if (phase == ConnectionPhase.DEGRADED && lastReportedPhase != ConnectionPhase.DEGRADED) {
+                    val report = runCatching {
+                        val stats = transport.statsSnapshot()
+                        "=== AUTO REPORT: DEGRADED (" + java.time.Instant.now() + ") ===\n" +
+                            "desktopDisconnectedConsecutive: " + stats["desktopDisconnectedConsecutive"] + "\n" +
+                            "bridgeErrors: " + stats["bridgeErrors"] + "\n" +
+                            "lastError: " + (_lastError.value?.let { it.category.toString() + " :: " + it.developerDiagnostic.take(160) } ?: "none") + "\n" +
+                            diagnosticsSnapshot().let { d ->
+                                "capabilities: " + (d.capabilities ?: "none") + "\n" +
+                                    "journal: " + d.journalSubscriptions.joinToString(" | ") + "\n" +
+                                    "sessions: " + d.sessions.joinToString(" | ") { s ->
+                                        s.sessionId.take(20) + " state=" + s.taskState + " stale=" + s.stale + " rows=" + s.cachedRows
+                                    }
+                            }
+                    }.getOrDefault("auto-report generation failed")
+                    onDegradedReport?.invoke(report)
+                    log.info("hub.degradedAutoReport", "written len=${report.length}")
+                }
+                lastReportedPhase = phase
                 onTransportState(state)
             }
         }

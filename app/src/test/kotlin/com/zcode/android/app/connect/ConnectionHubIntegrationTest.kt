@@ -417,6 +417,29 @@ class ConnectionHubIntegrationTest {
         org.junit.Assert.assertNotNull(hub.phase.value)
     }
 
+    /**
+     * Round-7e: entering Degraded persists a structured auto-report exactly once
+     * (via the onDegradedReport callback) — the failure state is captured at the
+     * moment it happens, even if the app dies before the user exports.
+     */
+    @Test
+    fun `degraded entry writes an auto-report once`() = runBlocking {
+        mock.script.bridgeRequireTaskId = false
+        synchronized(mock.script.bridgeErrorReasons) {
+            repeat(4) { mock.script.bridgeErrorReasons.addLast("desktop-disconnected") }
+        }
+        val reports = java.util.concurrent.ConcurrentLinkedQueue<String>()
+        hub.onDegradedReport = { text -> reports.add(text) }
+        hub.start()
+        withTimeout(40_000) { hub.phase.first { it == ConnectionPhase.DEGRADED } }
+        kotlinx.coroutines.delay(1_000)
+        kotlin.test.assertTrue(
+            reports.isNotEmpty() && reports.first().contains("DEGRADED") && reports.first().contains("desktop-disconnected"),
+            "auto-report must capture the Degraded state + reason; got ${reports.firstOrNull()?.take(120)}",
+        )
+        kotlin.test.assertEquals(1, reports.size, "auto-report must fire once")
+    }
+
     @Test
     fun `socket loss labels sessions stale - never silent (15-S1)`() = runBlocking {
         hub.start()
