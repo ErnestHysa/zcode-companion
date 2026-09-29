@@ -1161,10 +1161,19 @@ class RelayTransport(
         // bootstrap-response carries workspaces[] AND initialViewState.activeTaskId;
         // opening the bridge WITHOUT a resolvable task was rejected by production
         // (workspace-bridge-error session-not-found) while the lenient mock passed.
-        var workspaceKey = endpoint.workspaceKey
+        val cachedKey = endpoint.workspaceKey
         var workspacePath = endpoint.workspacePath
-        var taskId = endpoint.taskId
-        if (workspaceKey == null || taskId == null) {
+        val cachedTask = endpoint.taskId
+        var workspaceKey: String
+        var taskId: String?
+        run {
+            // Round-5 field fix: bootstrap on EVERY connection — the ACTIVE workspace/
+            // task is connection-scoped desktop state (SPA behavior: bootstrap → bridge
+            // per connect). Round 3's endpoint write-back accidentally made every
+            // RE-connect skip discovery and bridge with the PREVIOUS connection's
+            // cached (workspaceKey, taskId) — observed on a real phone as control
+            // plane answering (482 tasks) while every bridge-open was rejected
+            // desktop-disconnected. Cached/descriptor values remain FALLBACKS only.
             val response = bootstrap()
             val result = response["result"] as? JsonObject
                 ?: throw Failure(ErrorMapping.protocolFault("bootstrap-response without result"))
@@ -1172,20 +1181,22 @@ class RelayTransport(
             val initialView = result["initialViewState"] as? JsonObject
             val activeKey = (initialView?.get("activeWorkspaceKey") as? JsonPrimitive)?.content
                 ?: (result["activeWorkspaceKey"] as? JsonPrimitive)?.content // workspace-list shape fallback
-            if (workspaceKey == null) {
-                workspaceKey = activeKey
-                    ?: ((workspaces.firstOrNull() as? JsonObject)?.get("workspaceKey") as? JsonPrimitive)?.content
-                    ?: ((workspaces.firstOrNull() as? JsonObject)?.get("workspacePath") as? JsonPrimitive)?.content
-                    ?: throw Failure(ErrorMapping.protocolFault("bootstrap has no workspaces"))
-            }
+            val activeTask = (initialView?.get("activeTaskId") as? JsonPrimitive)?.content
+                ?: (result["activeTaskId"] as? JsonPrimitive)?.content
+            workspaceKey = activeKey
+                ?: ((workspaces.firstOrNull() as? JsonObject)?.get("workspaceKey") as? JsonPrimitive)?.content
+                ?: ((workspaces.firstOrNull() as? JsonObject)?.get("workspacePath") as? JsonPrimitive)?.content
+                ?: cachedKey
+                ?: throw Failure(ErrorMapping.protocolFault("bootstrap has no workspaces"))
             if (workspacePath == null) {
                 workspacePath = ((workspaces.firstOrNull() as? JsonObject)?.get("workspacePath") as? JsonPrimitive)?.content
                     ?: endpoint.workspacePath
             }
-            if (taskId == null) {
-                taskId = (initialView?.get("activeTaskId") as? JsonPrimitive)?.content
-                    ?: (result["activeTaskId"] as? JsonPrimitive)?.content
-            }
+            taskId = activeTask
+                ?: (result["tasks"] as? JsonArray)?.asSequence()
+                    ?.mapNotNull { (it as? JsonObject)?.get("taskId") as? JsonPrimitive }
+                    ?.firstOrNull()?.content
+                ?: cachedTask
         }
         val requestId = nextRequestId()
         val open = com.zcode.android.core.protocol.relay.WorkspaceBridgeOpen(

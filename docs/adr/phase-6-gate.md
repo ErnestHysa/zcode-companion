@@ -155,6 +155,16 @@ Regressions: `RelayTransportDesktopGoneTest` (fast Degraded ≤ 30 s wall vs the
 
 Field guidance (also in the app copy): with a FRESH QR (desktop dialog → Stop → re-enable → scan the NEW code) the previous rounds' fixes carry the connect through; if even the fresh QR yields instant desktop-disconnected, the desktop's relay session is wedged — restart the ZCode desktop app entirely, then pair.
 
+## Post-gate field fix round 5 (2026-09-29, fourth real-phone re-test)
+
+The round-4 log contained the decisive clue: while every `workspace-bridge-open` was rejected `desktop-disconnected`, the control plane answered a REAL bootstrap — `hub.bootstrapApplied :: tasks=482 workspaces=7`. The desktop was alive and relaying all along; only the BRIDGE was refused. Root cause was a bug round 3 introduced: the endpoint write-back made every RE-connect SKIP bootstrap discovery and bridge with the PREVIOUS connection's cached `(workspaceKey, taskId)`. The ACTIVE workspace/task is connection-scoped desktop state — the verified SPA/spike client bootstraps → bridges on EVERY connection, and a live desktop refuses a stale bridge target while still answering bootstrap (the round-3 field log confirms the pattern: relay-1 bootstrapped fresh and its bridge OPENED; relay-2+ reused the cache and all failed).
+
+Fix: `openBridgeInternal` now runs bootstrap discovery on EVERY connection (cached/descriptor values demoted to fallbacks; task fallback chain: `initialViewState.activeTaskId` → first bootstrap task → cached). The write-back remains, but only to route later v4 calls — refreshed each connection by the always-bootstrap.
+
+Mock fidelity: scriptable bootstrap view (`bootstrapActiveWorkspaceKey/TaskId`, volatile) + the bridge now captures `lastBridgeWorkspaceKey/TaskId`, and a strict-mode bridge carrying discovery that no longer matches the CURRENT bootstrap view is rejected `desktop-disconnected` (the observed production behavior). Regressions: `RelayTransportFreshDiscoveryTest` (2) — after socket loss with the desktop's active task (resp. workspace key) moved, the reconnect bridges with the FRESH view. Net PROVEN: with a cache-first ordering temporarily restored, both tests fail; with the fix, both pass. Suites: 337/337 JVM/Robolectric, 5/5 instrumented (ATD).
+
+Also explained from the log (no code change): the task list populating while the state shows Disconnected — `refreshTasks()` uses the control plane, which works over any authenticated socket even while the bridge (and therefore conversations) cannot; the honest disconnected label was correct for the conversation plane. With fresh discovery per connection, a recovered bridge now flips the state to Connected on the same self-heal path.
+
 ## Phase Exit Decision
 
 **PASS WITH KNOWN LIMITATIONS** — all subphase exit gates green with executed evidence; limitations 1–8 accepted and documented above; no §47 No-Go condition triggered.

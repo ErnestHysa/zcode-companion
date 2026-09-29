@@ -102,6 +102,13 @@ class MockZCode(
         var requireScopedListen: Boolean = true
         /** One-shot bridge-error queue: each open pops the next reason → error response. */
         val bridgeErrorReasons: ArrayDeque<String> = ArrayDeque()
+        /**
+         * Round-5 field fidelity: bootstrap-view OVERRIDES (the ACTIVE workspace/task
+         * is connection-scoped desktop state — tests flip these between connections
+         * to prove the client re-discovers instead of bridging with stale values).
+         */
+        @Volatile var bootstrapActiveWorkspaceKey: String? = null
+        @Volatile var bootstrapActiveTaskId: String? = null
     }
 
     /**
@@ -388,6 +395,11 @@ class MockZCode(
     @Volatile private var conversationScopeRegistered: Boolean = false
     /** Bridge identity of the most recent workspace-bridge-open (rotation tests). */
     @Volatile var lastBridgeSessionId: String? = null
+        private set
+    /** Round-5: what the most recent bridge-open ASKED FOR (fresh-discovery tests). */
+    @Volatile var lastBridgeWorkspaceKey: String? = null
+        private set
+    @Volatile var lastBridgeTaskId: String? = null
         private set
     @Volatile private var flowListenerId: Int? = null
     @Volatile private var currentBridgeId: String? = null
@@ -762,9 +774,19 @@ class MockZCode(
         lastBridgeSessionId = payload.str("bridgeSessionId")
         // One-shot error queue (recovery-test driver): pop → verified error shape.
         val forcedReason = synchronized(script.bridgeErrorReasons) { script.bridgeErrorReasons.removeFirstOrNull() }
+        lastBridgeSessionId = payload.str("bridgeSessionId")
+        lastBridgeWorkspaceKey = payload.str("workspaceKey")
+        lastBridgeTaskId = payload.strOrNull("taskId")
         val missingTask = script.bridgeRequireTaskId && payload.strOrNull("taskId") == null
-        if (forcedReason != null || missingTask) {
-            val reason = forcedReason ?: "session-not-found"
+        // Round-5 field fidelity: a bridge carrying STALE discovery (the previous
+        // connection's active workspace/task) is rejected — production behavior
+        // observed as desktop-disconnected while the control plane kept answering.
+        val expectedKey = script.bootstrapActiveWorkspaceKey ?: workspace.workspaceKey
+        val expectedTask = script.bootstrapActiveTaskId ?: workspace.sessionId
+        val staleDiscovery = script.bridgeRequireTaskId && !missingTask &&
+            (lastBridgeWorkspaceKey != expectedKey || lastBridgeTaskId != expectedTask)
+        if (forcedReason != null || missingTask || staleDiscovery) {
+            val reason = forcedReason ?: if (missingTask) "session-not-found" else "desktop-disconnected"
             scope.launch { events.emit(ServerEvent.BridgeError(reason)) }
             sendRaw(
                 RelayFrameCodec.encodeEnvelope(
@@ -915,8 +937,8 @@ class MockZCode(
                     put("windowControlSessionId", JsonPrimitive("synth-window-1"))
                     put("desktopAppVersion", JsonPrimitive(workspace.desktopAppVersion))
                     put("initialViewState", buildJsonObject {
-                        put("activeWorkspaceKey", JsonPrimitive(workspace.workspaceKey))
-                        put("activeTaskId", JsonPrimitive(workspace.sessionId))
+                        put("activeWorkspaceKey", JsonPrimitive(script.bootstrapActiveWorkspaceKey ?: workspace.workspaceKey))
+                        put("activeTaskId", JsonPrimitive(script.bootstrapActiveTaskId ?: workspace.sessionId))
                         put("updatedAt", JsonPrimitive(System.currentTimeMillis()))
                     })
                     put("workspaces", JsonArray(listOf(buildJsonObject {
