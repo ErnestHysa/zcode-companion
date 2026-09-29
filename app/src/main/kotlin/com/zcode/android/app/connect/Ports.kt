@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 /**
@@ -40,6 +41,12 @@ class DefaultTasksPort(
     override val suggestRepair: StateFlow<Boolean> get() = hub.suggestRepair
 
     override fun repairPairing() = rePair()
+
+    /** Round-7 diagnostics: cached task count (suspend — call from the export path). */
+    suspend fun cachedTaskCountForDiagnostics(): Int {
+        val endpointId = vault.loadMetadata()?.endpointId ?: return -1
+        return taskRepo.observeAllTasks(EndpointId(endpointId)).first().size
+    }
 
     override val tasks: Flow<List<Task>> = flow {
         val endpointId = vault.loadMetadata()?.endpointId

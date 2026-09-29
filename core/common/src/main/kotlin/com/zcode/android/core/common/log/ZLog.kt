@@ -24,8 +24,9 @@ class ZLog(
     private val minLevel: LogLevel = LogLevel.INFO,
     private val clock: () -> Long = System::currentTimeMillis,
     private val sink: (LogEntry) -> Unit = {},
-    ringCapacity: Int = RING_CAPACITY,
+    private val ringCapacity: Int = RING_CAPACITY,
 ) {
+
     init {
         require(ringCapacity in 1..100_000) { "ring capacity out of bounds (INV-5)" }
     }
@@ -95,7 +96,7 @@ class ZLog(
         )
         sink(entry)
         synchronized(ringLock) {
-            if (ring.size >= RING_CAPACITY) ring.removeFirst()
+            if (ring.size >= ringCapacity) ring.removeFirst()
             ring.addLast(entry)
         }
     }
@@ -105,8 +106,15 @@ class ZLog(
         ring.joinToString("\n") { e ->
             val ctx = if (e.context.isEmpty()) "" else " " + e.context.entries.joinToString(" ") { "${it.key}=${it.value}" }
             val det = e.details?.let { " :: $it" } ?: ""
-            "${e.timestampMs} [${e.level}] ${e.event}$ctx$det"
+            "${e.timestampMs} ${formatTs(e.timestampMs)} [${e.level}] ${e.event}$ctx$det"
         }
+    }
+
+    /** Human-readable wall-clock stamp (API 26+ java.time; core is JVM-pure). */
+    private fun formatTs(epochMs: Long): String = try {
+        java.time.Instant.ofEpochMilli(epochMs).toString()
+    } catch (e: Exception) {
+        "?" // never let formatting break logging
     }
 
     fun ringSize(): Int = synchronized(ringLock) { ring.size }

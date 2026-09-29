@@ -38,8 +38,9 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         container = AppContainer(this)
+        container.log.info("app.lifecycle", "onCreate savedInstanceState=${savedInstanceState != null}")
+        enableEdgeToEdge()
         pairingVm = PairingViewModel(container.pairingPort, lifecycleScope)
         tasksVm = TasksViewModel(container.tasksPort, lifecycleScope)
         container.hub.start()
@@ -57,7 +58,19 @@ class MainActivity : FragmentActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        container.log.info("app.lifecycle", "onStart")
+        container.hub.foregroundTrigger()
+    }
+
+    override fun onStop() {
+        container.log.info("app.lifecycle", "onStop")
+        super.onStop()
+    }
+
     override fun onDestroy() {
+        container.log.info("app.lifecycle", "onDestroy isFinishing=$isFinishing")
         networkCallback?.let { cb ->
             getSystemService(ConnectivityManager::class.java)?.unregisterNetworkCallback(cb)
         }

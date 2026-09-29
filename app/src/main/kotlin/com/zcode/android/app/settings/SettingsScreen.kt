@@ -31,6 +31,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -156,13 +158,56 @@ fun SettingsScreen(
 }
 
 private fun exportDiagnostics(container: AppContainer, context: android.content.Context) {
-    val text = container.log.exportDiagnostics()
-    val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-        type = "text/plain"
-        putExtra(android.content.Intent.EXTRA_TEXT, text)
-        putExtra(android.content.Intent.EXTRA_TITLE, "ZCode Companion diagnostics")
+    // Report build touches Room/DataStore (suspend helpers) — off the UI thread.
+    val act = context as? androidx.fragment.app.FragmentActivity
+    act?.lifecycleScope?.launch {
+        val text = buildDiagnosticReport(container, context)
+        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(android.content.Intent.EXTRA_TEXT, text)
+            putExtra(android.content.Intent.EXTRA_TITLE, "ZCode Companion diagnostics")
+        }
+        context.startActivity(android.content.Intent.createChooser(intent, "Export diagnostics"))
     }
-    context.startActivity(android.content.Intent.createChooser(intent, "Export diagnostics"))
+}
+
+/**
+ * Round-7 diagnostics enhancement: a STRUCTURED report, not just the ring dump —
+ * environment, pairing identity (non-secret fields only, INV-3), live connection
+ * snapshot, and the full redacted log ring (5,000 entries, DEBUG+).
+ */
+private suspend fun buildDiagnosticReport(container: AppContainer, context: android.content.Context): String = buildString {
+    val pm = context.packageManager.getPackageInfo(context.packageName, 0)
+    val phase = container.hub.phase.value
+    val endpoint = container.hub.endpoint.value
+    val err = container.hub.lastError.value
+    val suggestRepair = container.hub.suggestRepair.value
+    appendLine("=== ZCode Companion diagnostics ===")
+    appendLine("generated: ${java.time.Instant.now()}")
+    appendLine()
+    appendLine("--- environment ---")
+    appendLine("app: ${pm.versionName} (vc${pm.longVersionCode})")
+    appendLine("device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL} (API ${android.os.Build.VERSION.SDK_INT})")
+    appendLine("androidBuild: ${android.os.Build.DISPLAY.take(60)}")
+    appendLine("uptimeMs: ${android.os.SystemClock.elapsedRealtime()}")
+    appendLine()
+    appendLine("--- connection snapshot (at export time) ---")
+    appendLine("phase: $phase")
+    appendLine("suggestRepair: $suggestRepair")
+    appendLine("endpointName: ${endpoint?.displayName}")
+    appendLine("desktopAppVersion: ${endpoint?.desktopAppVersion}")
+    appendLine("endpointKind: ${endpoint?.kind}")
+    appendLine("lastError: ${err?.let { "${it.category} :: ${it.userMessage} :: ${it.developerDiagnostic.take(120)}" } ?: "none"}")
+    appendLine("tasksCached: ${container.hub.cachedTaskCountForDiagnostics()}")
+    appendLine()
+    appendLine("--- pairing identity (non-secret, INV-3) ---")
+    appendLine("endpointId: ${endpoint?.endpointId?.raw ?: "n/a"}")
+    appendLine("deviceSid: ${endpoint?.deviceSid?.take(8) ?: "n/a"}…")
+    appendLine("pairedAtMs: ${endpoint?.pairedAtMs ?: "n/a"}")
+    appendLine()
+    appendLine("--- redacted log ring (chronological; secrets scrubbed, INV-3) ---")
+    appendLine(container.log.exportDiagnostics())
+    appendLine("=== end ===")
 }
 
 private fun showLicenses(context: android.content.Context) {

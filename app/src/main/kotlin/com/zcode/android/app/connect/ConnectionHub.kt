@@ -111,6 +111,13 @@ class ConnectionHub(
         _lastError.value = null
     }
 
+    /** Round-7 diagnostics: cached task count without a suspend call. */
+    fun cachedTaskCountForDiagnostics(): Int = runCatching {
+        kotlinx.coroutines.runBlocking {
+            kotlinx.coroutines.withTimeout(2_000) { currentTasks().size }
+        }
+    }.getOrDefault(-1)
+
     companion object {
         /** §12.2 QR staleness window ("not older than 10 min by default"). */
         const val PAIRING_STALE_MS = 10L * 60 * 1000
@@ -185,7 +192,13 @@ class ConnectionHub(
         _phase.value = if (meta == null) ConnectionPhase.UNPAIRED else phaseOf(transport.states.value)
         _endpointName.value = meta?.desktopName
         scope.launch {
+            var last: ConnectionStateMachine.ConnectionState? = null
             transport.states.collect { state ->
+                if (state != last) {
+                    // Every §14.4.1 machine transition, visible in field diagnostics.
+                    log.info("hub.phase", "transport ${last ?: "∅"} → $state")
+                    last = state
+                }
                 _phase.value = if (vault.loadMetadata() == null) ConnectionPhase.UNPAIRED else phaseOf(state)
                 onTransportState(state)
             }
@@ -220,6 +233,7 @@ class ConnectionHub(
 
     /** User "Retry" from Degraded/Failed (§14.4.1 manual retry edges). */
     fun retry() {
+        log.info("hub.retry", "user retry from phase=${transport.states.value} (single-flight → reconnectNow)")
         // Round-6 field fix (the DESKTOP-FREEZE culprit): user Retry while the
         // transport is mid-recovery (RECONNECTING/CONNECTING/AUTHENTICATING) used to
         // call connect() DIRECTLY — a SECOND concurrent full handshake racing the
@@ -409,6 +423,7 @@ class ConnectionHub(
 
     private fun connect() {
         if (connectJob?.isActive == true) return
+        log.info("hub.connect", "cold-start connect begin")
         connectJob = scope.launch {
             val meta = vault.loadMetadata() ?: return@launch
             val signer = vault.loadSigner() ?: run {

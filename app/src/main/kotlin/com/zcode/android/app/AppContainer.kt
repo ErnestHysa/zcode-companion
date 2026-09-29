@@ -27,7 +27,13 @@ import com.zcode.android.core.transport.RelayTransport
 class AppContainer(activity: FragmentActivity) {
 
     val log: ZLog = ZLog(
-        minLevel = ZLog.LogLevel.INFO,
+        // Round-7 diagnostics enhancement: capture DEBUG (protocol frames, gateway
+        // routing, coordinator internals) into a 5,000-entry ring — ~10× the field
+        // visibility, still fully redacted by the centralized scrubbers (INV-3) and
+        // bounded (INV-5). The DEBUG level is the transport/coordinator's native
+        // verbosity; INFO-only hid exactly the stages field debugging needed.
+        minLevel = ZLog.LogLevel.DEBUG,
+        ringCapacity = 5_000,
         sink = { entry ->
             android.util.Log.println(
                 when (entry.level) {
@@ -41,6 +47,16 @@ class AppContainer(activity: FragmentActivity) {
             )
         },
     )
+
+    init {
+        val pm = activity.packageManager.getPackageInfo(activity.packageName, 0)
+        log.info(
+            "app.start",
+            "version=${pm.versionName} (vc${pm.longVersionCode}) " +
+                "model=${android.os.Build.MANUFACTURER}/${android.os.Build.MODEL} " +
+                "api=${android.os.Build.VERSION.SDK_INT}",
+        )
+    }
 
     val credentialStore = AppStores.get(activity).credentialStore
     val keyWrap = AndroidKeystoreKeyWrap(biometricBound = false)
