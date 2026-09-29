@@ -30,7 +30,12 @@ interface Transport {
      */
     val capabilities: StateFlow<CapabilitySnapshot?>
 
-    /** v4/connection/flow backpressure signal (saturated/drained/closed, §28.4). */
+    /**
+     * v4/connection/flow backpressure signal (saturated/drained/closed, §28.4).
+     * Production desktops (3.14.x) never expose this event on the bridge channel —
+     * subscribing CRASHES their host process — so this stays DRAINED on real
+     * connections; §28 budget-based coalescing governs backpressure instead.
+     */
     val flowPressure: StateFlow<ConnectionFlowState>
 
     /** Ordered per-connection inbound frames after parse (§11.2 receive). */
@@ -136,7 +141,11 @@ sealed class InboundFrame {
     /** Relay control-plane payload (bootstrap-response, workspace-list-response, …). */
     data class ControlPayload(val zcodeType: String, val payload: kotlinx.serialization.json.JsonObject) : InboundFrame()
 
-    /** v4/connection/flow signal (§28.4). */
+    /**
+     * v4/connection/flow signal (§28.4). Never produced by current production
+     * desktops (the event does not exist on the bridge channel); retained for
+     * forward compatibility if a future desktop pushes flow frames unsolicited.
+     */
     data class FlowControl(val state: ConnectionFlowState, val connectionId: String) : InboundFrame()
 
     /** Non-v4 channel event (future surfaces; decoded, never silently dropped — INV-8). */

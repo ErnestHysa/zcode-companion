@@ -408,6 +408,10 @@ class MockZCode(
     @Volatile var lastBridgeTaskId: String? = null
         private set
     @Volatile private var flowListenerId: Int? = null
+
+    /** True once a client registers a v4/connection/flow EventListen (must NEVER happen — crashes the production host). */
+    @Volatile var sawConnectionFlowListen: Boolean = false
+        private set
     @Volatile private var currentBridgeId: String? = null
     private var subscriptionId = "sub-mock-1"
     private var logEpoch = "epoch-mock-1"
@@ -611,7 +615,10 @@ class MockZCode(
                     val path = (listenArg?.get("workspacePath") as? JsonPrimitive)?.content
                     conversationScopeRegistered = !path.isNullOrBlank()
                 }
-                if (name == "v4/connection/flow") flowListenerId = id
+                if (name == "v4/connection/flow") {
+                    flowListenerId = id
+                    sawConnectionFlowListen = true
+                }
             }
             ChannelWire.RequestType.Promise.id -> handlePromise(id, channelName, name, arg)
             else -> Unit
@@ -683,7 +690,11 @@ class MockZCode(
                 pushTopicFrame(sessionId, DeliveryKind.INITIAL, snapshot = true, fromSeq = 0, toSeq = 1)
                 script.flowStateAfterSubscribe?.let { st ->
                     script.flowStateAfterSubscribe = null
-                    (flowListenerId ?: conversationListenerId)?.let { lit ->
+                    // Field-fidelity (2026-09-29): flow frames go ONLY to a registered
+                    // v4/connection/flow listener. No fallback to the conversation
+                    // listener — production desktops have no such event at all, and a
+                    // misrouted flow frame would hit the conversation decode path.
+                    flowListenerId?.let { lit ->
                         val bytes = RpcSerialization.encodeAll(
                             listOf(
                                 RpcValue.Arr(listOf(RpcValue.Int(ChannelWire.ResponseType.EventFire.id), RpcValue.Int(lit))),

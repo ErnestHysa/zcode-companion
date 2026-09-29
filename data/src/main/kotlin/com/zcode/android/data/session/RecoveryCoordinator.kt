@@ -144,6 +144,10 @@ class RecoveryCoordinator(
                 if (e is kotlinx.coroutines.CancellationException) throw e
                 log.warn("recovery.subscribeFailed", "session=${t.sessionId} ${e.javaClass.simpleName}: ${e.message?.take(100)}")
                 manager(t.sessionId)?.setStale(true)
+                // Round-8b: queue for re-anchor on the next CONNECTED (§15 S18) —
+                // without this the drain polls an empty queue and a session whose
+                // attach failed while offline stays stale forever.
+                pendingAttach.add(t.sessionId)
             }
         }
         forwardJob = scope.launch {

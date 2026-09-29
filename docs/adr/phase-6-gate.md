@@ -282,6 +282,37 @@ partial edits — deduplicated to the single canonical scenario.
 Suites: full JVM/Robolectric pool green except the documented rotating StormTest load-flake (S7
 this run; isolation-green, pre-existing at Phase 5 HEAD); S18 green in isolation and in pool.
 
+## Post-gate ROOT CAUSE round 9 (2026-09-29, sixth re-test — the field bug is OURS, found and fixed)
+
+The desktop's own log (`~/.zcode/v2/logs/2026-09-29.log`) finally gave ground truth, and it
+overturns the round-8 "3.14.4 drift" hypothesis:
+
+1. Every `workspace-bridge-open` SUCCEEDS (`workspace bridge active` in the desktop log).
+2. ~1 s later the desktop's per-window host process dies: `[rpc:listen] zcode-agent.v4/connection/flow
+   FAIL "Event not found: v4/connection/flow"` → **uncaughtException** → `[spawnHostProcess] host
+   process (local-1) exited with code 1` (6 desktop launches today, identical pattern).
+3. Every later bridge-open then fails `DESKTOP_HOST_MISSING` (未找到桌面窗口 host process) → the
+   phone sees `desktop-disconnected` and the macOS UI freezes with its worker gone.
+
+**The killer frame is ours**: `RelayTransport.attachChannelEventListeners` registered a
+`v4/connection/flow` EventListen (§28.4 backpressure) next to the scoped
+`onDynamicConversationFrame` listen. Production 3.14.x desktops have NO such event on the
+zcode-agent bridge channel, and their ChannelServer throws the unknown listen as an uncaught
+exception, killing the host. This also explains feedback #328 (desktop freezes when the phone
+retries) and why the failure reproduced identically on every pairing, restart, and desktop
+version. The wire contract itself (bridge-open schema, fields, optionals) is UNCHANGED in
+3.14.4 — verified against the installed bundle.
+
+Fix: the `v4/connection/flow` listen is REMOVED (never to return — see the comment in
+`attachChannelEventListeners`); `flowPressure` stays DRAINED on production (§28 budget-based
+coalescing governs backpressure); MockZCode no longer misroutes flow frames to the conversation
+listener; regression `no v4 connection flow listen is ever registered` pins the invariant with
+the crash story documented. Also landed the missed half of round 8b: `startTargets` now actually
+ENQUEUES failed subscribes into `pendingAttach` (the drain existed but polled an empty queue —
+S18 exposed it; discovered because the matrix refused to stay green post-fix).
+
+Suites: full JVM/Robolectric pool green in one run; 5/5 instrumented (ATD). Build vc6.
+
 ## Phase Exit Decision
 
 **PASS WITH KNOWN LIMITATIONS** — all subphase exit gates green with executed evidence; limitations 1–8 accepted and documented above; no §47 No-Go condition triggered.

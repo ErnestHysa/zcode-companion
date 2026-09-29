@@ -963,18 +963,16 @@ class RelayTransport(
             val wireObj = (obj["frame"] as? JsonObject) ?: obj
             handleTopicWireFrame(wireObj)
         }
-        // v4/connection/flow (saturated/drained/closed, §28.4). REQUIRES VALIDATION on
-        // the production relay — MockZCode emits it; absent signal is a safe no-op.
-        channel.listen("zcode-agent", V4Methods.CONNECTION_FLOW, scopeArg) { args ->
-            val obj = (args as? RpcValue.Obj)?.json as? JsonObject ?: return@listen
-            val connectionId = (obj["connectionId"] as? JsonPrimitive)?.content ?: ""
-            _flowPressure.value = when ((obj["state"] as? JsonPrimitive)?.content) {
-                "saturated" -> ConnectionFlowState.SATURATED
-                "closed" -> ConnectionFlowState.CLOSED
-                else -> ConnectionFlowState.DRAINED
-            }
-            scope.launch { emitInbound(InboundFrame.FlowControl(_flowPressure.value, connectionId)) }
-        }
+        // NO v4/connection/flow listen here. FIELD-KILLER (2026-09-29, desktop log
+        // ground truth): the 3.14.x host has no such event on the zcode-agent bridge
+        // channel, and its ChannelServer treats the unknown EventListen as an
+        // UNCAUGHT exception — the whole per-window host process dies (~1s after the
+        // bridge opens, "Event not found: v4/connection/flow" → exit code 1). Every
+        // later workspace-bridge-open on that desktop then fails with
+        // desktop-disconnected (DESKTOP_HOST_MISSING) until ZCode is restarted, and
+        // the desktop UI freezes with it. §28.4 backpressure falls back to the
+        // budget-based coalescing; flowPressure stays DRAINED unless a future
+        // desktop pushes flow frames on its own.
     }
 
     private fun handleTopicWireFrame(obj: JsonObject) {

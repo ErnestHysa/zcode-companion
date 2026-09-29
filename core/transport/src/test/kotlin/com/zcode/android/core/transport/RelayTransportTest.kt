@@ -15,6 +15,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.test.fail
 
@@ -241,9 +242,17 @@ class RelayTransportTest {
 
     // ---------------------------------------------------------------- flow control signal
 
+    /**
+     * FIELD-KILLER regression (2026-09-29): the transport must NEVER register a
+     * v4/connection/flow EventListen. The production 3.14.x host has no such event
+     * and its ChannelServer dies on the unknown listen with an uncaughtException
+     * ("Event not found: v4/connection/flow", host exit code 1) — every later
+     * workspace-bridge-open on that desktop then fails desktop-disconnected until
+     * ZCode restarts. See RelayTransport.attachChannelEventListeners.
+     */
     @Test
-    fun `v4 connection flow signal drives backpressure state (28_4)`() {
-        val mock = MockZCode(passHash, sid).apply { script.flowStateAfterSubscribe = "saturated" }
+    fun `no v4 connection flow listen is ever registered (desktop host killer regression)`() {
+        val mock = MockZCode(passHash, sid)
         val url = mock.start()
         val t = transport(mock)
         try {
@@ -251,13 +260,11 @@ class RelayTransportTest {
                 withTimeout(30_000) {
                     t.connect(endpoint(url), signer())
                     t.subscribeSession("synth-task-1")
-                    val deadline = System.currentTimeMillis() + 8_000
-                    while (System.currentTimeMillis() < deadline && t.flowPressure.value != ConnectionFlowState.SATURATED) {
-                        kotlinx.coroutines.delay(50)
-                    }
-                    assertEquals(ConnectionFlowState.SATURATED, t.flowPressure.value)
+                    kotlinx.coroutines.delay(500)
                 }
             }
+            assertFalse(mock.sawConnectionFlowListen, "transport registered a v4/connection/flow EventListen — this crashes the production desktop host process")
+            assertEquals(ConnectionFlowState.DRAINED, t.flowPressure.value)
         } finally {
             runBlocking { t.close("done") }
             mock.stop()
