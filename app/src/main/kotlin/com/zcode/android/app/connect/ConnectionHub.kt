@@ -220,11 +220,23 @@ class ConnectionHub(
 
     /** User "Retry" from Degraded/Failed (§14.4.1 manual retry edges). */
     fun retry() {
-        when {
-            transport.states.value == ConnectionStateMachine.ConnectionState.DEGRADED ->
-                transport.reconnectNow()
-            transport.states.value == ConnectionStateMachine.ConnectionState.CLOSED ||
-                transport.states.value == ConnectionStateMachine.ConnectionState.FAILED -> connect()
+        // Round-6 field fix (the DESKTOP-FREEZE culprit): user Retry while the
+        // transport is mid-recovery (RECONNECTING/CONNECTING/AUTHENTICATING) used to
+        // call connect() DIRECTLY — a SECOND concurrent full handshake racing the
+        // transport's own recovery loop (field log: 3 hub.connectFailed
+        // IllegalStateException in 1.4 s + the #328-class desktop freeze). ALL user
+        // retries now route through reconnectNow(), which is single-flight-aware:
+        // it arms the immediate flag on the RUNNING loop, or starts one from
+        // Degraded with a fresh budget. connect() itself remains only for the
+        // cold-start path (no live machine) and hard-FAILED (re-scan class).
+        when (transport.states.value) {
+            ConnectionStateMachine.ConnectionState.DEGRADED,
+            ConnectionStateMachine.ConnectionState.RECONNECTING,
+            ConnectionStateMachine.ConnectionState.CONNECTING,
+            ConnectionStateMachine.ConnectionState.AUTHENTICATING,
+            ConnectionStateMachine.ConnectionState.RECOVERING,
+            -> transport.reconnectNow()
+            ConnectionStateMachine.ConnectionState.FAILED -> connect()
             else -> if (connectJob?.isActive != true) connect()
         }
     }
@@ -428,7 +440,10 @@ class ConnectionHub(
                 // desktop-disconnected flapping (feedback #328 class).
                 log.warn(
                     "hub.connectFailed",
-                    err?.let { "${it.category} ${it.developerDiagnostic.take(140)}" } ?: e.javaClass.simpleName,
+                    err?.let { "${it.category} ${it.developerDiagnostic.take(140)}" }
+                        // Diagnosability (field: bare "IllegalStateException" ×3 said
+                        // nothing): non-Failure exceptions MUST carry their message.
+                        ?: "${e.javaClass.simpleName}: ${e.message?.take(120)}",
                 )
             }
         }

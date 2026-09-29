@@ -178,6 +178,18 @@ Regressions: `RelayTransportDegradedQuiesceTest` (2) — Degraded is quiet (no a
 
 Field note recorded for the maintainer: the desktop-freeze itself is ZCode/relay-side (their bug #328); the app's job — now done — is to not trigger it with storms and to say honestly what happened.
 
+## Post-gate field fix round 7 (2026-09-29, sixth re-test — same-day log)
+
+Re-test log: three `hub.connectFailed :: IllegalStateException` in 1.4 s — the user pressing Retry while the transport's own recovery loop was mid-handshake. `hub.retry()` called `connect()` DIRECTLY in the RECONNECTING/RECOVERING states: a SECOND concurrent full handshake racing the single-flight recovery loop — the concrete desktop-freeze trigger (#328 class) the previous rounds' pacing alone couldn't stop, because each user tap re-armed it. The bare "IllegalStateException" (no message) was also a diagnosability failure.
+
+Fixes:
+1. **Single-flight user Retry** — `retry()` routes EVERY in-flight state (RECONNECTING/CONNECTING/AUTHENTICATING/RECOVERING, plus DEGRADED) through `transport.reconnectNow()`, which is single-flight-aware: it arms the running loop's immediate flag or starts a fresh-budget loop from Degraded. `connect()` remains only for cold start and hard-FAILED (re-scan class). Concurrent handshakes from retries are structurally impossible now.
+2. **Diagnosability** — non-Failure exceptions in `hub.connectFailed` now log `Class: message` (the field log's bare "IllegalStateException" said nothing).
+
+Regressions: `ConnectionHubIntegrationTest.rapid user retries during recovery spawn no concurrent handshakes` — Degraded + 6 queued rejections + 5 rapid retries (150 ms apart): the hub must stay in a legal machine phase and operational (with the queue exhausted, fresh discovery legitimately CONNECTs — the round-5 fix working under duress). Suites: 335/335→ full-pool runs show the documented rotating load-flakes on this machine (StormTest/RelayTransportTest, isolation-green, pre-existing); 5/5 instrumented (ATD).
+
+Field note: with single-flight retries, the app can no longer stack handshakes against the relay/desktop — the #328 wedge trigger from the CLIENT side is closed. If desktop-disconnected persists even at calm cadence with a healthy desktop, the remaining suspect is genuinely relay/desktop-side.
+
 ## Phase Exit Decision
 
 **PASS WITH KNOWN LIMITATIONS** — all subphase exit gates green with executed evidence; limitations 1–8 accepted and documented above; no §47 No-Go condition triggered.

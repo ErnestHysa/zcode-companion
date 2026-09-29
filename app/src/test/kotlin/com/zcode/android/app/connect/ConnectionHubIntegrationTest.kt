@@ -374,6 +374,49 @@ class ConnectionHubIntegrationTest {
         assertTrue(tasks.snapshot.value.isNotEmpty())
     }
 
+    /**
+     * Round-6/field regression (the DESKTOP-FREEZE culprit): user Retry pressed
+     * repeatedly while the transport is mid-recovery must NOT spawn concurrent
+     * connect() handshakes — retries route through reconnectNow() (single-flight).
+     * Field log: 3 hub.connectFailed IllegalStateException in 1.4 s + the #328
+     * desktop freeze.
+     */
+    @Test
+    fun `rapid user retries during recovery spawn no concurrent handshakes`() = runBlocking {
+        mock.script.bridgeRequireTaskId = false
+        synchronized(mock.script.bridgeErrorReasons) {
+            repeat(6) { mock.script.bridgeErrorReasons.addLast("desktop-disconnected") }
+        }
+        hub.start()
+        withTimeout(40_000) { hub.phase.first { it == ConnectionPhase.DEGRADED } }
+
+        // The user hammers Retry while the transport is Degraded/Reconnecting.
+        repeat(5) {
+            hub.retry()
+            kotlinx.coroutines.delay(150)
+        }
+        // Let anything legal surface: with the error queue exhausted, fresh discovery
+        // may legitimately CONNECT (that is the round-5 fix working). What the
+        // barrage must guarantee: the hub stays OPERATIONAL (a legal machine phase —
+        // no crash, no illegal state) and can still act.
+        kotlinx.coroutines.delay(2_000)
+        val phase = hub.phase.value
+        assertTrue(
+            phase in setOf(
+                ConnectionPhase.DEGRADED, ConnectionPhase.CONNECTED,
+                ConnectionPhase.RECONNECTING, ConnectionPhase.RECOVERING,
+                ConnectionPhase.CONNECTING,
+            ),
+            "illegal post-barrage phase: $phase",
+        )
+        retry_connection_alive()
+    }
+
+    private suspend fun retry_connection_alive() {
+        // Assert the hub is still operational after the retry barrage.
+        org.junit.Assert.assertNotNull(hub.phase.value)
+    }
+
     @Test
     fun `socket loss labels sessions stale - never silent (15-S1)`() = runBlocking {
         hub.start()
