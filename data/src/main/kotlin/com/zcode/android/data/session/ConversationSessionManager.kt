@@ -121,7 +121,21 @@ class ConversationSessionManager(
     private val _totalRows = kotlinx.coroutines.flow.MutableStateFlow<Long?>(null)
     val totalRows: kotlinx.coroutines.flow.StateFlow<Long?> = _totalRows.asStateFlow()
 
+    /**
+     * Defense-in-depth duplicate guard (round 16): the same (epoch, toSeq) snapshot can
+     * legitimately repeat with NEW content (S12/S13 reconciliation), so the key includes
+     * a rows-content hash. Identical content + identical position ⇒ re-applying 60 rows
+     * to Room is pure churn — skip. Different content always applies.
+     */
+    private var lastAppliedSnapshotKey: String? = null
+
     private suspend fun handleSnapshot(e: GatewayTopicEvent.Snapshot) {
+        val dedupeKey = "${e.logEpoch}/${e.toSeq}/${e.firstRowId}/${e.rows.size}/${e.rows.hashCode()}"
+        if (dedupeKey == lastAppliedSnapshotKey) {
+            log.debug("manager.snapshotDup", "session=${sessionId.raw} identical snapshot skipped (epoch=${e.logEpoch.take(16)} seq=${e.toSeq})")
+            return
+        }
+        lastAppliedSnapshotKey = dedupeKey
         log.debug("manager.snapshot", "session=${sessionId.raw} rows=${e.rows.size} epoch=${e.logEpoch.take(24)}")
         lastSnapshotRows = e.rows
         _totalRows.value = e.totalCount

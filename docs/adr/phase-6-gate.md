@@ -504,3 +504,29 @@ Suites: full JVM/Robolectric pool green; 5/5 instrumented (ATD). Build vc12.
 streaming plane, backward pagination, recovery/reconnect (per-connection wire state, quiesce,
 pending-attach) — all live-verified against desktop 3.14.4 on a real device with zero
 warnings/errors in the final report. Phase 7 prerequisites are met.
+
+## Post-gate field round 16 (2026-09-30, vc12 real-device report: ×N frame amplifier — the slow/crash root cause + crash-safe diagnostics)
+
+vc12 field status: tasks load across workspaces; the new report exposed the performance/
+stability mechanism:
+
+1. **THE ×N AMPLIFIER (the "so so slow" + crashes)**: `gateway.startForwarding` had no
+   re-entry guard, and it runs per task attach — every task open added ANOTHER
+   `transport.inbound` collector. By task #5 every snapshot (real size 300–780 KB!) was
+   decoded and applied 5× (field: ONE `rpc.recv 220363` → `gateway.frame` ×4;
+   `manager.snapshot` ×51 vs `gateway.frame` ×15; 60-row re-applies every ~130 ms for
+   minutes; recovery.snapshotReconcile ×50). Fix: single idempotent collector
+   (`forwardingJob` guard + `forwardingCollectorCount()` regression: two attaches ⇒ 1).
+2. **Content-hash snapshot dedupe** (defense in depth): key = epoch/toSeq/firstRowId/
+   rows.size/rows.hashCode — identical content+position ⇒ skip the Room rewrite. (The
+   round-15 (epoch,toSeq)-only dedupe was reverted because reconciliation snapshots repeat
+   the key with NEW content — S12/S13; the content hash is safe for both.)
+3. **Crash-safe diagnostics (user request)**: the ring is already persisted line-by-line;
+   now the CRASH ITSELF is captured — a default uncaught-exception handler writes
+   thread+stack to `diagnostics-last-crash.log` before delegating to the platform handler,
+   and the export gains a "--- last crash (auto-captured) ---" section. A crash can no
+   longer lose its evidence.
+4. Fast-scroll task-list crash: items already have stable LazyColumn keys; the crash was
+   the churn OOM above.
+
+Suites: full JVM/Robolectric pool green; 5/5 instrumented (ATD). Build vc13.

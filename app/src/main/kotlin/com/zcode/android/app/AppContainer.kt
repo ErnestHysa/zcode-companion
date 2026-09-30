@@ -50,6 +50,7 @@ class AppContainer(activity: FragmentActivity) {
             val line = "${entry.timestampMs} [${entry.level}] ${entry.event}" +
                 (entry.details?.let { " :: $it" } ?: "") +
                 (if (ctx.isEmpty()) "" else " $ctx")
+
             android.util.Log.println(
                 when (entry.level) {
                     ZLog.LogLevel.DEBUG -> android.util.Log.DEBUG

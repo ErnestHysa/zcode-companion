@@ -134,8 +134,21 @@ class RelayConversationGateway(
     private val epochs = HashMap<String, String>()
 
     /** Forward transport frames into domain events; call once after connect (single collector). */
+    private var forwardingJob: kotlinx.coroutines.Job? = null
+
+    /** Test/diagnostics: how many inbound collectors were actually created (must be ≤ 1). */
+    fun forwardingCollectorCount(): Int = forwardingCollectors.get()
+    private val forwardingCollectors = java.util.concurrent.atomic.AtomicInteger(0)
+
     override fun startForwarding(scope: CoroutineScope) {
-        scope.launch {
+        // FIELD-KILLER #7 (2026-09-30, vc12): startTargets runs per task attach — without
+        // this guard EVERY task open added ANOTHER transport.inbound collector, so each
+        // snapshot (300–780 KB real size) was decoded and applied N× (field: task #5 saw
+        // ×5, manager.snapshot ×51, 60-row re-applies every ~130 ms for minutes) — the
+        // CPU/memory churn behind "everything becomes so so slow" and the crashes.
+        if (forwardingJob?.isActive == true) return
+        forwardingCollectors.incrementAndGet()
+        forwardingJob = scope.launch {
             transport.inbound.collect { frame ->
                 if (frame is com.zcode.android.core.transport.InboundFrame.TopicFrameArrived) {
                     mapTopicFrame(frame)

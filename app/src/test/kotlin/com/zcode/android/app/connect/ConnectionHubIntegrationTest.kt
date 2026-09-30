@@ -254,6 +254,34 @@ class ConnectionHubIntegrationTest {
     }
 
     /**
+     * FIELD-KILLER #7 regression (2026-09-30, vc12): every task attach called
+     * gateway.startForwarding, which launched ANOTHER transport.inbound collector —
+     * by task #5 every snapshot was decoded/applied 5× (field: manager.snapshot ×51,
+     * 300–780 KB snapshots re-applied every ~130 ms → the "so so slow" + crashes).
+     * The gateway must create EXACTLY ONE collector for its lifetime.
+     */
+    @Test
+    fun `startForwarding is idempotent - one collector regardless of attach count`() = runBlocking {
+        hub.start()
+        withTimeout(30_000) { hub.phase.first { it == ConnectionPhase.CONNECTED } }
+        val tasksSnapshot = withTimeout(15_000) { tasks.snapshot.first { it.isNotEmpty() } }
+        // Open TWO DIFFERENT tasks — each attach runs startTargets; the guard must keep
+        // a single collector (pre-fix: 2).
+        val task1 = tasksSnapshot[0]
+        hub.openConversation(task1)
+        if (tasksSnapshot.size > 1) {
+            hub.openConversation(tasksSnapshot[1])
+        }
+        kotlin.test.assertEquals(
+            1,
+            (hub.gateway as com.zcode.android.data.session.RelayConversationGateway).forwardingCollectorCount(),
+            "snapshot pipeline must have exactly one collector regardless of attach count",
+        )
+        Unit
+    }
+
+    /**
+     * Phase 6 FIELD-FINDING regression (real-phone failure vs production): the relay
      * Phase 6 FIELD-FINDING regression (real-phone failure vs production): the relay
      * rejects the first bridge-open (here: strict taskless-rejection with a queued
      * session-not-found — the observed production behavior). The hub's cold start

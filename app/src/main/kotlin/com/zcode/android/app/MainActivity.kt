@@ -41,6 +41,15 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // FIELD (2026-09-30, vc12): the ring is persisted line-by-line; capture the
+        // CRASH ITSELF (thread + stack) so the export after a relaunch carries the
+        // evidence, then delegate to the platform handler. Never throws.
+        val platformHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { t, e ->
+            runCatching { container.diagnosticsStore.writeCrash(t.name, e.stackTraceToString()) }
+            platformHandler?.uncaughtException(t, e)
+        }
         container = AppContainer(this)
         container.log.info("app.lifecycle", "onCreate savedInstanceState=${savedInstanceState != null}")
         enableEdgeToEdge()

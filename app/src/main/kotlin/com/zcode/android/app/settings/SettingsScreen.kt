@@ -311,6 +311,10 @@ private suspend fun buildDiagnosticReport(container: AppContainer, context: andr
         }
     }
     appendLine()
+    appendLine("--- last crash (auto-captured) ---")
+    val crash = container.diagnosticsStore.readLastCrash()
+    if (crash.isNotBlank()) appendLine(crash.take(12_000)) else appendLine("(none)")
+    appendLine()
     appendLine("--- previous session (persisted across restart; capped) ---")
     val prev = container.diagnosticsStore.readPrevious()
     if (prev.isBlank()) appendLine("  (none)")

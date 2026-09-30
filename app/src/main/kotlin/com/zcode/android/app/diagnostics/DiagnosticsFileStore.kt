@@ -21,6 +21,7 @@ class DiagnosticsFileStore private constructor(private val dir: File) {
     companion object {
         const val FILE_CURRENT = "diagnostics-current.log"
         const val FILE_PREVIOUS = "diagnostics-previous.log"
+        const val FILE_CRASH = "diagnostics-last-crash.log"
         private const val MAX_CURRENT_BYTES = 384L * 1024
         private const val MAX_PREVIOUS_BYTES = 384L * 1024
 
@@ -42,6 +43,29 @@ class DiagnosticsFileStore private constructor(private val dir: File) {
         } catch (e: IOException) {
             // Diagnostics must never break the app — drop on the floor.
         }
+    }
+
+    /**
+     * FIELD (2026-09-30, vc12): capture the LAST crash (stack + ring marker) so the
+     * export after a crash still carries the evidence — the user could not share
+     * diagnostics from a dead process. Overwrites each crash; read by the export.
+     */
+    fun writeCrash(thread: String, stack: String, nowMs: Long = System.currentTimeMillis()) {
+        try {
+            File(dir, FILE_CRASH).writeText(
+                "=== crash @ ${java.time.Instant.ofEpochMilli(nowMs)} thread=$thread ===\n" +
+                    stack.take(96_000),
+            )
+        } catch (e: IOException) {
+        }
+    }
+
+    /** The last captured crash (stack + header), or empty. */
+    fun readLastCrash(): String = try {
+        val f = File(dir, FILE_CRASH)
+        if (f.exists()) f.readText() else ""
+    } catch (e: IOException) {
+        ""
     }
 
     /** Appends a structured auto-report block (capped). Never throws. */
