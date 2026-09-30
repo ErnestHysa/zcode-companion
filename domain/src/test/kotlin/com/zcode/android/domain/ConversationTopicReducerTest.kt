@@ -47,6 +47,48 @@ class ConversationTopicReducerTest {
 
     private fun append(id: Long) = ProjectionOp.RowAppended(row(id))
 
+    // ---------------------------------------------------------------- FIELD-KILLER #8 (vc13)
+
+    /**
+     * FIELD-KILLER #8 (2026-09-30, vc13 real device): the desktop frames deltas
+     * HALF-OPEN — "(fromSeq, toSeq]" (transport.ts 区间记账) — so the continuation after
+     * a snapshot with cursor=74046 arrives as fromSeq=74046. The old closed-interval
+     * check (cursor+1) misjudged EVERY production continuation as an "overlap resend"
+     * and spammed resyncs the desktop rejects (fault.subscription.notOwned ×3).
+     */
+    @Test
+    fun `half-open continuation - fromSeq equal to cursor applies without escalation`() = runTest {
+        val r = reducer()
+        r.onSnapshot(snapshot("e1", toSeq = 74_046, ids = listOf(1)))
+        val effects = r.onDeltas(deltasHalfOpen("e1", fromSeq = 74_046, count = 14))
+        assertTrue(effects.none { it is ConversationTopicReducer.Effect.EscalateResync }, "production continuation must not escalate: $effects")
+        assertTrue(effects.any { it is ConversationTopicReducer.Effect.Persist })
+    }
+
+    @Test
+    fun `closed-interval continuation - fromSeq cursor plus one still applies (mock compat)`() = runTest {
+        val r = reducer()
+        r.onSnapshot(snapshot("e1", toSeq = 2, ids = listOf(1)))
+        val effects = r.onDeltas(deltas("e1", fromSeq = 3, ops = listOf(append(2))))
+        assertTrue(effects.none { it is ConversationTopicReducer.Effect.EscalateResync })
+        assertTrue(effects.any { it is ConversationTopicReducer.Effect.Persist })
+    }
+
+    @Test
+    fun `true partial overlap still escalates (fromSeq strictly below cursor, toSeq above)`() = runTest {
+        val r = reducer()
+        r.onSnapshot(snapshot("e1", toSeq = 10, ids = listOf(1)))
+        val effects = r.onDeltas(deltasHalfOpen("e1", fromSeq = 5, count = 10))
+        assertTrue(effects.any { it is ConversationTopicReducer.Effect.EscalateResync }, "real resend overlap must escalate: $effects")
+    }
+
+    /** Half-open framing: ops cover (fromSeq, fromSeq+count] — production wire semantics. */
+    private fun deltasHalfOpen(epoch: String, fromSeq: Long, count: Int) = TopicEvent.Deltas(
+        topic = "conversation/s1", sessionId = "s1", logEpoch = epoch,
+        fromSeq = fromSeq, toSeq = fromSeq + count,
+        ops = (1..count).map { append(fromSeq + it) },
+    )
+
     // ---------------------------------------------------------------- 5.2 snapshot semantics
 
     @Test

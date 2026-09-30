@@ -530,3 +530,30 @@ stability mechanism:
    the churn OOM above.
 
 Suites: full JVM/Robolectric pool green; 5/5 instrumented (ATD). Build vc13.
+
+## Post-gate field round 17 (2026-09-30, vc13 real-device report: the crash CAPTURED — three fixes)
+
+The round-16 crash recorder worked on its first real crash — the export carried the exact
+stack: `IllegalArgumentException: Key "task-sess_96e37ec8…" was already used` — the
+fast-scroll task-list crash was a **duplicate LazyColumn key**: the desktop cross-lists the
+same session under more than one workspace, and our keys were bare taskIds. The same log
+exposed two more defects:
+
+1. **Duplicate-key crash** — keys are now `task-<workspaceKey-hash>-<taskId>` (unique per
+   listing), and the hub dedupes taskId GLOBALLY across workspace groups at bootstrap
+   (keep the most-recent updatedAt) so each task renders once.
+2. **Overlap off-by-one (FIELD-KILLER #8)** — the desktop frames deltas HALF-OPEN
+   ("(fromSeq, toSeq]", transport.ts 区间记账): the continuation after cursor=74046 arrives
+   as fromSeq=74046. Our closed-interval check (cursor+1) misjudged EVERY production
+   continuation as an "overlap resend" and spammed resyncs the desktop rejects
+   (`fault.subscription.notOwned` ×3, session stale — the "drops connection in a chat"
+   symptom). The reducer accepts both framings; true partial overlap (fromSeq < cursor <
+   toSeq) still escalates. Regressions: half-open continuation applies; closed framing
+   applies (mock compat); true overlap escalates; property-test model updated to the
+   production contract.
+3. **manager.deltas ×2** — the coordinator launched another topicEvents collector per
+   attach (the gateway-side fix in round 16 didn't cover the coordinator's own collector);
+   now guarded — one collector for its lifetime.
+
+Suites: full JVM/Robolectric pool green (S13 flaked once mid-round — isolation + pool green
+after); 5/5 instrumented (ATD). Build vc14.

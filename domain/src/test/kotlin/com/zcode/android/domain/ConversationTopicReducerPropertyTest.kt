@@ -108,7 +108,10 @@ class ConversationTopicReducerPropertyTest {
             val ep = epoch
             if (ep != null && ep != e.logEpoch) { escalateClear(); return false }
             if (ep != null && e.toSeq <= cursor) return false
-            if (ep == null || e.fromSeq == cursor + 1) {
+            // FIELD-KILLER #8 (vc13): the desktop frames deltas HALF-OPEN — "(fromSeq,
+            // toSeq]" — so the continuation arrives with fromSeq == cursor. Both that and
+            // the mock's closed framing (cursor+1) are contiguous.
+            if (ep == null || e.fromSeq == cursor || e.fromSeq == cursor + 1) {
                 applyOps(e)
                 drainHeld()
                 if (ep == null && e.fromSeq > 0) escalations++

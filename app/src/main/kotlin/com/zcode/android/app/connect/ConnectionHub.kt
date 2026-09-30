@@ -394,9 +394,21 @@ class ConnectionHub(
         val now = System.currentTimeMillis()
         // Group tasks by §7.11 identity key; each group is one workspace projection.
         val byWorkspace = parsed.tasks.groupBy { it.workspaceIdentityKey }
+        // FIELD (2026-09-30, vc13 crash): the desktop cross-lists a session under more
+        // than one workspace — dedupe by taskId GLOBALLY (keep the most-recent updatedAt)
+        // so the projection shows each task once.
+        val seenTaskIds = HashMap<String, Long>() // taskId -> updatedAt of the kept copy
+        val keptGroups = LinkedHashMap<String, List<BootstrapParser.ParsedTask>>()
+        val flat = parsed.tasks.sortedByDescending { it.updatedAtMs }
+        for (t in flat) {
+            val prev = seenTaskIds[t.taskId]
+            if (prev != null && prev >= t.updatedAtMs) continue
+            seenTaskIds[t.taskId] = t.updatedAtMs
+        }
         for ((key, group) in byWorkspace) {
             if (key.isBlank()) continue
-            val tasks = group.map { t ->
+            val tasks = group.filter { seenTaskIds[it.taskId] == it.updatedAtMs }
+                .map { t ->
                 Task(
                     taskId = t.taskId,
                     title = t.title,

@@ -211,7 +211,10 @@ private fun ReadyBody(state: TasksUiState, onTaskClick: (Task) -> Unit, onRetry:
                 item(key = "header-${group.workspaceKey}") {
                     WorkspaceHeader(group.label)
                 }
-                items(group.tasks, key = { "task-${it.taskId}" }) { task ->
+                // FIELD (2026-09-30, vc13 crash log): the SAME taskId can appear under MORE than one
+                // workspace group (desktop cross-listing) — a bare taskId key collided and
+                // crashed LazyColumn on fast scroll ("Key was already used").
+                items(group.tasks, key = { "task-${group.workspaceKey.hashCode()}-${it.taskId}" }) { task ->
                     TaskRow(task, onClick = { onTaskClick(task) })
                     HorizontalHairline()
                 }

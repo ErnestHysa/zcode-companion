@@ -163,6 +163,12 @@ class RecoveryCoordinator(
                 pendingAttach.add(t.sessionId)
             }
         }
+        // FIELD-KILLER #8b (2026-09-30, vc13): startTargets runs per attach — without a
+        // guard, EVERY task open added another topicEvents collector (manager.deltas ×2
+        // per frame in the field). One collector for the coordinator's lifetime.
+        if (forwardJob?.isActive == true) {
+            log.debug("recovery.forwardingAlive", "topicEvents collector already running")
+        } else {
         forwardJob = scope.launch {
             gateway.topicEvents.collect { event ->
                 try {
@@ -177,6 +183,7 @@ class RecoveryCoordinator(
                     managerFor(event)?.setStale(true)
                 }
             }
+        }
         }
         tickJob = scope.launch {
             while (isActive && !closed) {

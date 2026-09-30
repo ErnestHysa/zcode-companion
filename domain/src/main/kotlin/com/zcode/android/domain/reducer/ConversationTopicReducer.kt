@@ -129,16 +129,21 @@ class ConversationTopicReducer(
             duplicateDrops++
             return emptyList()
         }
-        // Contiguous → apply in order.
-        if (current == null || e.fromSeq == current.seq + 1) {
+        // Contiguous → apply in order. FIELD-KILLER #8 (2026-09-30, vc13): the desktop
+        // frames deltas HALF-OPEN — "(fromSeq, toSeq]" (transport.ts 区间记账) — so the
+        // continuation after cursor=74046 arrives as fromSeq=74046 (NOT 74047). The old
+        // closed-interval check (cursor+1) misjudged EVERY production continuation as an
+        // "overlap resend" and spammed resyncs (fault.subscription.notOwned ×3 in the
+        // field). Both framings are accepted; production half-open is the canonical one.
+        if (current == null || e.fromSeq == current.seq || e.fromSeq == current.seq + 1) {
             return applyContiguous(e, adoptEpoch = current == null)
         }
         if (e.fromSeq > current.seq + 1) return holdFrame(e)
-        // fromSeq <= lastSeq < toSeq — partial overlap (resend window): the already-
-        // applied prefix would double-apply; treat as resend damage → resync (§15.5
-        // "any ambiguity escalates to snapshot replacement").
+        // fromSeq < cursor AND toSeq > cursor — partial overlap (resend window): the
+        // already-applied prefix would double-apply; treat as resend damage → resync
+        // (§15.5 "any ambiguity escalates to snapshot replacement").
         escalations++
-        return listOf(Effect.EscalateResync("overlap resend (fromSeq=${e.fromSeq} ≤ cursor ${current.seq})", base = current))
+        return listOf(Effect.EscalateResync("overlap resend (fromSeq=${e.fromSeq} < cursor ${current.seq})", base = current))
     }
 
     fun onRowsPage(page: TopicRowsPage): List<Effect> {
