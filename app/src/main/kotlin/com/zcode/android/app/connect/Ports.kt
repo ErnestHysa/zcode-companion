@@ -129,7 +129,7 @@ class DefaultConversationPort(
             val page = hub.gateway.rowsRange(
                 sessionId = taskId,
                 beforeRowId = beforeRowId,
-                limit = ConversationCacheBounds.PAGE_MAX_ROWS,
+                limit = ConversationCacheBounds.PAGE_DEFAULT_ROWS,
             )
             val result = conversationRepo.apply(
                 ConversationStoreOp.PageFetched(

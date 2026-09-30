@@ -557,3 +557,28 @@ exposed two more defects:
 
 Suites: full JVM/Robolectric pool green (S13 flaked once mid-round — isolation + pool green
 after); 5/5 instrumented (ATD). Build vc14.
+
+## Post-gate field round 18 (2026-09-30, vc14 real-device report: the 1 MB poison pill — "load earlier" finally explained)
+
+vc14 field status: no crashes (round-16/17 fixes hold); the history affordance FIRED — and
+its first real page exposed the final transport defect:
+
+1. **The 1 MB poison pill (FIELD-KILLER #9)**: a `rowsRange limit=200` page measured
+   **1,048,540 bytes** — right at the relay's ~1 MB envelope path, and a fragment arrived
+   CRC-corrupted. Our assembler THREW → connection torn down → **the relay REDELIVERED the
+   unacked message on every reconnect** (`crc32 mismatch (messageSeq=52)` across 5
+   reconnect attempts — endless RECOVERING, everything stale, "loading previous messages"
+   forever while disconnected, exactly as reported). Fix: CRC-failed fragments are
+   CONTAINED — the staged message is dropped, the messageSeq is **ACKed** (the relay then
+   drops it from its replay buffer), a counted SERIALIZATION fault surfaces, and the
+   connection SURVIVES. Content never merges (INV-14); the affected page call times out and
+   is retryable. Regressions: codec poison-signal golden vector; wire-level poisoned-message
+   acked-and-never-redelivered across recovery; storm/matrix S11 updated to the containment
+   contract (three tests owned by this change).
+2. **Page size**: default `rowsRange` page 200 → **50 rows** (`PAGE_DEFAULT_ROWS`; wire cap
+   stays 200/INV-13). 50 real rows ≈ 250 KB — comfortably clear of the relay's ~1 MB path;
+   paging is user-driven so the smaller page costs nothing.
+3. The crash recorder captured the previous round's crash verbatim in this export — the
+   diagnostics persistence works as designed.
+
+Suites: full JVM/Robolectric pool green; 5/5 instrumented (ATD). Build vc15.

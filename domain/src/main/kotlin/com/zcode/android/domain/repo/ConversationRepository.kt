@@ -75,8 +75,16 @@ sealed class StoreApplyResult {
 object ConversationCacheBounds {
     /** Render window = verified snapshotTailWindowRows (§19.2). */
     const val RENDER_WINDOW_ROWS = 60
-    /** rowsRange page cap — verified protocol limit (INV-13). */
+    /**
+     * rowsRange page cap — verified protocol limit (INV-13) is 200; the DEFAULT page is
+     * 50 (FIELD, 2026-09-30 vc14): a 200-row page of real data measured 1,048,540 bytes
+     * on the relay — right at the relay's ~1 MB envelope path, where a fragment arrived
+     * CRC-corrupted (the relay chops oversized payloads). 50 rows ≈ 250 KB keeps pages
+     * well clear; paging is user-driven so the smaller page costs nothing.
+     */
     const val PAGE_MAX_ROWS = 200
+    /** Default page size actually requested (relay-safe; see FIELD note above). */
+    const val PAGE_DEFAULT_ROWS = 50
     /**
      * Per-session cached-row bound — §17.3: "≤ 2 × render window + 1 page".
      * Overflow evicts the OLDEST cached rows (lowest rowIds) beyond the newest bound.

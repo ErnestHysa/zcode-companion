@@ -157,6 +157,7 @@ object RelayFrameCodec {
      */
     class Assembler {
         private val staged = LinkedHashMap<Pair<String, Long>, Inbound.RpcFrame>()
+        private val crcFaults = java.util.concurrent.atomic.AtomicInteger(0)
 
         /** Invoked for EVERY observed rpc-frame seq (both directions share one per-bridge
          *  monotonic space — live-verified 2026-09-28); used to advance the send counter. */
@@ -171,7 +172,17 @@ object RelayFrameCodec {
             return when (ztype) {
                 "rpc-frame" -> {
                     (obj["seq"] as? kotlinx.serialization.json.JsonPrimitive)?.content?.toLongOrNull()?.let { onSeqObserved?.invoke(it) }
-                    listOfNotNull(handleRpcFrame(obj))
+                    when (val r = handleRpcFrame(obj)) {
+                        null -> emptyList()
+                        is PoisonSignal -> listOf(
+                            Reassembled.Poison(
+                                bridgeSessionId = r.bridgeSessionId,
+                                messageSeq = r.messageSeq,
+                                reason = "rpc-frame crc32 mismatch (messageSeq=${r.messageSeq})",
+                            ),
+                        )
+                        else -> listOf(r as Reassembled.Message)
+                    }
                 }
                 "rpc-frame-ack" -> listOf(
                     Reassembled.Ack(
@@ -183,7 +194,10 @@ object RelayFrameCodec {
             }
         }
 
-        private fun handleRpcFrame(obj: kotlinx.serialization.json.JsonObject): Reassembled.Message? {
+        /** Internal signal: the fragment failed CRC — the logical message is dropped. */
+        private data class PoisonSignal(val bridgeSessionId: String, val messageSeq: Long)
+
+        private fun handleRpcFrame(obj: kotlinx.serialization.json.JsonObject): Any? {
             val frame = decodeJson.decodeFromJsonElement(FrameIn.serializer(), obj)
             val data = frame.dataBase64
                 ?: throw ProtocolException("rpc-frame missing dataBase64")
@@ -194,7 +208,17 @@ object RelayFrameCodec {
             }
             val expected = frame.checksum?.value ?: throw ProtocolException("rpc-frame missing checksum")
             if (Crc32Wire.checksum(chunk) != expected) {
-                throw ProtocolException("rpc-frame crc32 mismatch (messageSeq=${frame.messageSeq})")
+                // FIELD-KILLER #9 (2026-09-30, vc14): a CRC-failed fragment poisons the
+                // whole logical message. Throwing tore the CONNECTION down — and the relay
+                // REDELIVERS the unacked message on every reconnect (field: the same
+                // messageSeq=52 poisoned 5 reconnects in a row → endless RECOVERING).
+                // Contain it: drop the staged message, ACK the messageSeq (the relay then
+                // drops it from its replay buffer), and let the caller surface a counted
+                // non-fatal fault. Content NEVER merges (INV-14 holds); the affected
+                // v4 call simply times out and is retryable.
+                staged.remove(frame.bridgeSessionId to frame.messageSeq)
+                crcFaults.incrementAndGet()
+                return PoisonSignal(frame.bridgeSessionId, frame.messageSeq)
             }
             if (frame.fragmentIndex < 0 || frame.fragmentIndex >= frame.fragmentCount ||
                 frame.fragmentCount > RelayLimits.RELAY_MAX_FRAGMENTS ||
@@ -261,6 +285,14 @@ object RelayFrameCodec {
     sealed class Reassembled {
         data class Message(val bridgeSessionId: String, val messageSeq: Long, val payload: ByteArray) : Reassembled()
         data class Ack(val bridgeSessionId: String, val ackMessageSeq: Long) : Reassembled()
+
+        /**
+         * A logical message that failed content verification (CRC) — DROPPED, never
+         * merged (INV-14). The transport ACKs the messageSeq so the relay stops
+         * redelivering it; the connection STAYS UP (round 17 field: tearing down turned
+         * one corrupted 1 MB page into an endless reconnect loop).
+         */
+        data class Poison(val bridgeSessionId: String, val messageSeq: Long, val reason: String) : Reassembled()
         data class Control(val zcodeType: String?, val payload: kotlinx.serialization.json.JsonObject) : Reassembled()
     }
 

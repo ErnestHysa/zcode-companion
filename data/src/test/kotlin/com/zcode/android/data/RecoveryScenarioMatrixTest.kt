@@ -514,7 +514,12 @@ class RecoveryScenarioMatrixTest {
                 val m = h.coordinator.manager(SESSION)!!
                 h.mock.script.corruptFragmentCrc = true
                 h.mock.pushTopicFrame(SESSION, com.zcode.android.core.protocol.v4.DeliveryKind.ONLINE, snapshot = true, fromSeq = 2, toSeq = 3)
-                awaitUntil("protocol fault surfaced") { errors.any { it.category == ErrorCategory.PROTOCOL } }
+                // FIELD-KILLER #9 (vc14): the crc fault is CONTAINED — it surfaces as a
+                // counted SERIALIZATION fault and the connection survives (the wire is no
+                // longer torn down; the relay would otherwise redeliver the poison forever).
+                awaitUntil("corrupted-frame fault surfaced") {
+                    errors.any { it.category == ErrorCategory.PROTOCOL || it.category == ErrorCategory.SERIALIZATION }
+                }
                 awaitState(h, ConnectionStateMachine.ConnectionState.CONNECTED, 25_000)
                 awaitUntil("projection healthy after the S11 repair") {
                     h.conversations.cachedRowCount(SessionId(SESSION)) > 0 && !m.stale.value

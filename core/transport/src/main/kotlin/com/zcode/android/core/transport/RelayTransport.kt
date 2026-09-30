@@ -939,6 +939,14 @@ class RelayTransport(
                 is RelayFrameCodec.Reassembled.Ack -> {
                     synchronized(unacked) { unacked.remove(r.ackMessageSeq) }
                 }
+                is RelayFrameCodec.Reassembled.Poison -> {
+                    // FIELD-KILLER #9: ACK the corrupted message so the relay stops
+                    // redelivering it on every reconnect; surface a counted fault; the
+                    // connection STAYS UP (INV-14: content never merges).
+                    sendNow(RelayFrameCodec.encodeAck(bridgeSessionId, bridgeGeneration, recoveryId, r.messageSeq))
+                    malformedChannelFrames.incrementAndGet()
+                    scope.launch { _appErrors.emit(ErrorMapping.serializationFault("dropped corrupted message (counted): ${r.reason}")) }
+                }
                 is RelayFrameCodec.Reassembled.Control -> handleControlPayload(r.zcodeType, r.payload)
             }
         }

@@ -154,10 +154,16 @@ class StormTest {
                 mock.script.injectOversizedEnvelope = true
                 mock.pushTopicFrame("synth-task-1", com.zcode.android.core.protocol.v4.DeliveryKind.ONLINE, snapshot = false, fromSeq = 2, toSeq = 3)
                 val deadline = System.currentTimeMillis() + 10_000
-                while (System.currentTimeMillis() < deadline && errors.none { it.category == ErrorCategory.PROTOCOL }) delay(20)
-                assertTrue(errors.any { it.category == ErrorCategory.PROTOCOL }, "oversized envelope must be a protocol fault, saw: $errors")
-                // transport escalates (resync class) and recovers to CONNECTED
-                assertTrue(awaitState(t, ConnectionStateMachine.ConnectionState.CONNECTED, 20_000), "recovery after oversize fault")
+                while (System.currentTimeMillis() < deadline &&
+                    errors.none { it.category == ErrorCategory.PROTOCOL || it.category == ErrorCategory.SERIALIZATION }
+                ) delay(20)
+                assertTrue(
+                    errors.any { it.category == ErrorCategory.PROTOCOL || it.category == ErrorCategory.SERIALIZATION },
+                    "oversized envelope must surface as a counted fault, saw: $errors",
+                )
+                // FIELD-KILLER #9 (vc14): the fault is CONTAINED — the connection survives
+                // (the affected topic gap escalates at the manager level, not the wire).
+                assertTrue(awaitState(t, ConnectionStateMachine.ConnectionState.CONNECTED, 20_000), "connection survives oversize fault")
                 c.cancel()
             }
         } finally {
@@ -182,15 +188,55 @@ class StormTest {
                 mock.script.corruptFragmentCrc = true
                 mock.pushTopicFrame("synth-task-1", com.zcode.android.core.protocol.v4.DeliveryKind.ONLINE, snapshot = true, fromSeq = 2, toSeq = 3)
                 val deadline = System.currentTimeMillis() + 10_000
-                while (System.currentTimeMillis() < deadline && errors.none { it.category == ErrorCategory.PROTOCOL }) delay(20)
-                assertTrue(errors.any { it.category == ErrorCategory.PROTOCOL }, "crc fault must surface as protocol error, saw: $errors")
-                assertTrue(awaitState(t, ConnectionStateMachine.ConnectionState.CONNECTED, 20_000), "recovery after crc fault")
+                while (System.currentTimeMillis() < deadline &&
+                    errors.none { it.category == ErrorCategory.SERIALIZATION || it.category == ErrorCategory.PROTOCOL }
+                ) delay(20)
+                assertTrue(
+                    errors.any { it.category == ErrorCategory.SERIALIZATION || it.category == ErrorCategory.PROTOCOL },
+                    "crc fault must surface as a counted error, saw: $errors",
+                )
+                // FIELD-KILLER #9 (vc14): the connection must SURVIVE the poisoned message
+                // (the relay redelivers unacked messages — tearing down looped forever).
+                assertTrue(awaitState(t, ConnectionStateMachine.ConnectionState.CONNECTED, 20_000), "connection survives crc fault")
                 c.cancel()
             }
         } finally {
             t.close("done")
             mock.stop()
         }
+    }
+
+    /**
+     * FIELD-KILLER #9 regression (2026-09-30, vc14): the relay REDELIVERS unacked
+     * messages on every reconnect — one corrupted fragment poisoned messageSeq=52
+     * across 5 consecutive reconnects (endless RECOVERING). The transport must ACK the
+     * poisoned messageSeq (relay drops it) and keep the connection up.
+     */
+    @Test
+    fun `poisoned message is acked and never redelivered across recovery`() = runBlocking {
+        val bigWorkspace = MockZCode.MockWorkspace(rowCount = 400)
+        val mock = MockZCode(passHash, sid, workspace = bigWorkspace)
+        val url = mock.start()
+        val t = RelayTransport(log = log(), config = stormConfig(), reconnectPolicyOverride = fastReconnect())
+        try {
+            withTimeout(60_000) {
+                connect(t, url)
+                t.subscribeSession("synth-task-1")
+                mock.script.corruptFragmentCrc = true
+                mock.pushTopicFrame("synth-task-1", com.zcode.android.core.protocol.v4.DeliveryKind.ONLINE, snapshot = true, fromSeq = 2, toSeq = 3)
+                delay(1_000) // poison delivered + acked
+                // Force a reconnect: the relay's replay of the poisoned messageSeq must
+                // be EMPTY (it was acked) — the recovery completes to CONNECTED cleanly.
+                t.abortConnectionForTest()
+                val reconnected = awaitState(t, ConnectionStateMachine.ConnectionState.CONNECTED, 20_000)
+                assertTrue(reconnected, "recovery must complete with no poisoned redelivery")
+                assertEquals(0, t.pendingAckCountForTest())
+            }
+        } finally {
+            kotlinx.coroutines.runBlocking { t.close("done") }
+            mock.stop()
+        }
+        Unit
     }
 
     @Test

@@ -295,12 +295,19 @@ class GoldenVectorTest {
     }
 
     @Test
-    fun `crc mismatch on inbound rpc-frame raises ProtocolException (S11)`() {
+    fun `crc mismatch on inbound rpc-frame is contained as Poison - never merges, never throws (S11, FIELD-KILLER 9)`() {
         val payload = "x".repeat(1000).encodeToByteArray()
         val frags = RelayFrameCodec.fragment("bridge-1", null, null, payload, seq = 1, messageSeq = 1)
         val broken = frags[0].envelopeJson.replace(Regex("\"value\":\"[0-9a-f]{8}\""), "\"value\":\"00000000\"")
         val assembler = RelayFrameCodec.Assembler()
-        assertFailsWith<ProtocolException> { assembler.handleEnvelope(broken) }
+        // FIELD-KILLER #9 (vc14): a CRC-failed fragment is CONTAINED — the assembler
+        // returns a Poison signal (drop + ack) instead of throwing, because throwing tore
+        // the connection down while the relay redelivered the unacked message forever.
+        val out = assembler.handleEnvelope(broken)
+        val poison = out.filterIsInstance<RelayFrameCodec.Reassembled.Poison>().single()
+        assertEquals("bridge-1", poison.bridgeSessionId)
+        assertEquals(1L, poison.messageSeq)
+        assertTrue(out.none { it is RelayFrameCodec.Reassembled.Message }, "corrupted content must NEVER merge (INV-14)")
     }
 
     @Test
