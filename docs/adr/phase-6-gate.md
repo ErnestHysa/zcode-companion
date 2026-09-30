@@ -380,3 +380,34 @@ old behaviors). Storm pool green (the initial S1/S7 failures exposed the stale-s
 vector and were fixed by the drain).
 
 Suites: full JVM/Robolectric pool green in one run. Build vc8.
+
+## Post-gate field round 12 (2026-09-30, vc8 real-device report: snapshot decode killed the conversation plane — FIXED)
+
+The round-11 wire-seq fix is CONFIRMED working in the field (desktop log: hello/initialize/
+subscribe all answered OK in milliseconds; no more physicalGap/conflictingDuplicate). vc8
+exposed the NEXT layer, which had been invisible behind the earlier faults:
+
+1. **The production topic-frame shape was decoded one level too deep.** The desktop delivers
+   `onDynamicConversationFrame` events with the arg = the TopicWireFrame ITSELF
+   (`{wireVersion, kind, topic, subscriptionId, frame: <payload>}` — desktop schema
+   chunk-RH3H53JA, discriminatedUnion("kind")). Our listener pre-stripped `.frame` (the PAYLOAD)
+   and decoded THAT as a TopicWireFrame → wireVersion=null → `V4WireVersionException` →
+   **"wire version mismatch" → connection teardown ~80 ms after every real snapshot**
+   (vc8 relay-5/10/12: subscribe ok → 178 713-byte frame → wire version mismatch →
+   RECONNECTING). This is why no conversation EVER loaded on a real device. The Phase-1
+   spike shape (wrapped `{frame: topicFrame}` — what MockZCode emits) masked it in every suite.
+   Fix: shape-disambiguated decode (direct = production, wrapped = spike/mock), plus the field
+   policy that a malformed TOPIC frame is a DATA fault — surface + count + drop (INV-8), never
+   connection loss.
+2. **`fault.connection.handshakeRequired`** — a task opened while the transport was still
+   CONNECTING/RECOVERING issued a subscribe before the channel handshake; the desktop rejected
+   it and the task became unloadable. Fix: `RecoveryCoordinator.startTargets` defers subscribes
+   to the pending-attach drain when the transport is not CONNECTED (`recovery.deferredAttach`).
+3. Desktop-relay `INTERNAL` flaps right after bridge-open: correlation with our reconnect
+   churn; expected to subside once the teardown loop is gone (monitor next round).
+
+Regression: `RelayTransportTopicShapeTest` (production event shape end-to-end: snapshot lands,
+connection stays CONNECTED; `topicEventDirect` mock flag). CorpusReplayTest bounds unchanged
+(one pool-run variance observed, isolation-green — documented rotating class).
+
+Suites: full JVM/Robolectric pool green in one run; 5/5 instrumented (ATD). Build vc9.

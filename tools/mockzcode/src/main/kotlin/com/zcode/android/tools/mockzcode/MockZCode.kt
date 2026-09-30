@@ -54,6 +54,14 @@ class MockZCode(
         var duplicateInboundAcks: Boolean = false
         /** Deliver every Nth outbound logical frame twice (duplicate storm). */
         var duplicateEvery: Int = 0
+
+        /**
+         * FIELD (2026-09-30, vc8): production delivers onDynamicConversationFrame events
+         * with the arg = the TopicWireFrame ITSELF ({wireVersion, kind, …, frame: payload}
+         * — desktop schema chunk-RH3H53JA); the Phase-1 spike shape wrapped it in
+         * {frame: topicFrame}. true = production shape (regression coverage), false = spike shape.
+         */
+        var topicEventDirect: Boolean = false
         /** Shuffle fragment envelopes inside each logical message (out-of-order storm). */
         var shuffleFragments: Boolean = false
         /** #228 class: inject one physical envelope > 1 MiB (once). */
@@ -906,13 +914,20 @@ class MockZCode(
             logicalFrameOrdinal = 1,
         )
         for (wire in wireFrames) {
+            val arg: RpcValue = if (script.topicEventDirect) {
+                // Production shape: the event arg IS the TopicWireFrame (payload rides its own `frame` field).
+                RpcValue.Obj(wireJson(wire))
+            } else {
+                // Phase-1 spike shape: {frame: topicFrame}.
+                RpcValue.Obj(buildJsonObject {
+                    put("topic", JsonPrimitive(topic))
+                    put("frame", wireJson(wire))
+                })
+            }
             val bytes = RpcSerialization.encodeAll(
                 listOf(
                     RpcValue.Arr(listOf(RpcValue.Int(ChannelWire.ResponseType.EventFire.id), RpcValue.Int(listener))),
-                    RpcValue.Obj(buildJsonObject {
-                        put("topic", JsonPrimitive(topic))
-                        put("frame", wireJson(wire))
-                    }),
+                    arg,
                 )
             )
             sendLogicalFrame(bytes)

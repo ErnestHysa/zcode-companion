@@ -133,7 +133,20 @@ class RecoveryCoordinator(
         // falsely label a healthy, still-streaming projection stale (Phase 6 finding).
         // The (logEpoch, seq) guard classifies what the snapshot replaces; later
         // escalations resync.
+        // FIELD (2026-09-30, vc8): a subscribe issued while the transport is still
+        // CONNECTING/RECOVERING reaches the desktop before the channel handshake and is
+        // rejected `fault.connection.handshakeRequired` — and the failed subscribe used
+        // to leave the task unloadable. Defer to the pending-attach drain (fires on
+        // CONNECTED) instead of calling into a half-open channel.
+        val transportConnected =
+            transport?.states?.value == com.zcode.android.core.transport.ConnectionStateMachine.ConnectionState.CONNECTED
         for (t in newlyAttached) {
+            if (!transportConnected) {
+                pendingAttach.add(t.sessionId)
+                manager(t.sessionId)?.setStale(true)
+                log.info("recovery.deferredAttach", "session=${t.sessionId} transport=${transport?.states?.value ?: "null"}")
+                continue
+            }
             try {
                 val ack = gateway.subscribe(t.sessionId, workspacePath = t.workspacePath, workspaceIdentity = t.workspaceIdentity)
                 log.info(

@@ -987,13 +987,17 @@ class RelayTransport(
             bridge.workspaceIdentity?.let { put("workspaceIdentity", JsonPrimitive(it)) }
         }
         val scopeArg = RpcValue.Obj(scopeJson)
-        // Downstream topic frames (workspace-level, live-proven SPA shape).
+        // Downstream topic frames (workspace-level). FIELD-KILLER #3 (2026-09-30, vc8):
+        // production delivers the event arg AS the TopicWireFrame itself
+        // ({wireVersion, kind, topic, frame: <payload>} — desktop schema
+        // chunk-RH3H53JA `N = discriminatedUnion("kind", …)`); the old code pre-stripped
+        // `.frame` (the PAYLOAD) and decoded THAT as a TopicWireFrame → wireVersion=null
+        // → "wire version mismatch" → healthy connection torn down on every real
+        // snapshot (~178 KB). The wrapped {frame: topicFrame} shape (Phase-1 spike /
+        // MockZCode) is still tolerated — disambiguated by wireVersion presence.
         channel.listen("zcode-agent", "onDynamicConversationFrame", scopeArg) { args ->
             val obj = (args as? RpcValue.Obj)?.json as? JsonObject ?: return@listen
-            // SPA live shape: the event payload wraps the routed wire frame in `frame`
-            // (Phase 1 spike decoded data["frame"]) — tolerate both wrapped and raw.
-            val wireObj = (obj["frame"] as? JsonObject) ?: obj
-            handleTopicWireFrame(wireObj)
+            handleTopicWireFrame(obj)
         }
         // NO v4/connection/flow listen here. FIELD-KILLER (2026-09-29, desktop log
         // ground truth): the 3.14.x host has no such event on the zcode-agent bridge
@@ -1008,22 +1012,33 @@ class RelayTransport(
     }
 
     private fun handleTopicWireFrame(obj: JsonObject) {
+        // Shape disambiguation (see the FIELD-KILLER #3 note on the listener): the arg is
+        // the TopicWireFrame when it carries wireVersion; the wrapped {frame: topicFrame}
+        // shape is unwrapped; anything else decodes as-is (mock/legacy direct shape).
+        val wireObj: JsonObject = when {
+            obj["wireVersion"] != null -> obj
+            (obj["frame"] as? JsonObject)?.get("wireVersion") != null -> obj["frame"] as JsonObject
+            else -> obj
+        }
         val wire = try {
-            TopicWireFrame.decode(obj)
+            TopicWireFrame.decode(wireObj)
         } catch (e: V4WireVersionException) {
             scope.launch { _appErrors.emit(ErrorMapping.versionIncompatible(e.message ?: "wire version")) }
             onConnectionLost("wire version mismatch")
             return
         } catch (e: ProtocolException) {
-            scope.launch { _appErrors.emit(ErrorMapping.protocolFault(e.message ?: "topic frame fault")) }
-            onConnectionLost("topic frame fault: ${e.message?.take(80)}")
+            // FIELD POLICY (round 12): a malformed TOPIC frame is a data fault, not a
+            // transport fault — surface + drop it (INV-8). Tearing the connection down
+            // here turned a single bad snapshot into an endless reconnect loop.
+            malformedChannelFrames.incrementAndGet()
+            scope.launch { _appErrors.emit(ErrorMapping.serializationFault("topic frame fault (counted): ${e.message?.take(80)}")) }
             return
         }
         val assembled = try {
             v4Assembler.accept(wire)
         } catch (e: ProtocolException) {
-            scope.launch { _appErrors.emit(ErrorMapping.protocolFault(e.message ?: "assembly fault")) }
-            onConnectionLost("assembly fault: ${e.message?.take(80)}")
+            malformedChannelFrames.incrementAndGet()
+            scope.launch { _appErrors.emit(ErrorMapping.serializationFault("assembly fault (counted): ${e.message?.take(80)}")) }
             return
         } ?: return
         val frame = try {
