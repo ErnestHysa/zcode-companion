@@ -12,6 +12,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.core.content.ContextCompat
@@ -101,11 +104,19 @@ class MainActivity : FragmentActivity() {
 
     @Composable
     private fun ScannerWithPermission() {
-        val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            pairingVm.dispatch(if (granted) PairingFlow.Event.CameraPermissionGranted else PairingFlow.Event.CameraPermissionDenied)
+        // FIELD FIX (2026-09-30, camera dead after first-time grant): `granted` was a
+        // plain remember{} (frozen at composition) and the pairing state was read via
+        // .value (unsubscribed) — after the user granted the permission NOTHING
+        // recomposed, so the scanner never appeared until a full app restart.
+        var granted by androidx.compose.runtime.remember {
+            androidx.compose.runtime.mutableStateOf(
+                ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+            )
         }
-        val granted = remember {
-            ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        val state by pairingVm.state.collectAsState()
+        val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { g ->
+            granted = g
+            pairingVm.dispatch(if (g) PairingFlow.Event.CameraPermissionGranted else PairingFlow.Event.CameraPermissionDenied)
         }
         LaunchedEffect(Unit) {
             if (granted) {
@@ -114,7 +125,7 @@ class MainActivity : FragmentActivity() {
                 launcher.launch(Manifest.permission.CAMERA)
             }
         }
-        if (pairingVm.state.value is PairingFlow.State.Scanning && granted) {
+        if (state is PairingFlow.State.Scanning && granted) {
             QrScanner(lifecycleOwner = this, onDecoded = { raw -> pairingVm.dispatch(PairingFlow.Event.QrDecoded(raw)) })
         }
     }

@@ -19,6 +19,8 @@ import com.zcode.android.domain.state.TaskStateMachine
 import com.zcode.android.features.conversation.port.ConversationPort
 import com.zcode.android.features.tasks.port.TasksPort
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
@@ -48,14 +50,19 @@ class DefaultTasksPort(
         return taskRepo.observeAllTasks(EndpointId(endpointId)).first().size
     }
 
-    override val tasks: Flow<List<Task>> = flow {
-        val endpointId = vault.loadMetadata()?.endpointId
-        if (endpointId == null) {
-            emit(emptyList())
-        } else {
-            emitAll(taskRepo.observeAllTasks(EndpointId(endpointId)))
+    // FIELD FIX (2026-09-30, blank task list on first pair): the old cold `flow { }`
+    // emitted emptyList and COMPLETED when the vault had no metadata yet — the exact
+    // state during a fresh pairing. stateIn(Eagerly) collected the completed flow and
+    // the list never updated again, even after bootstrap applied 493 tasks (diagnostics
+    // 2026-09-30: hub.bootstrapApplied tasks=493, UI blank). Key on the hub's endpoint
+    // StateFlow instead: unpaired → empty, pairing completes → Room observer takes
+    // over; the flow never completes.
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    override val tasks: Flow<List<Task>> =
+        hub.endpoint.flatMapLatest { endpoint ->
+            if (endpoint == null) flowOf(emptyList())
+            else taskRepo.observeAllTasks(endpoint.endpointId)
         }
-    }
 
     override val phase: StateFlow<ConnectionPhase> get() = hub.phase
     override val taskLoadError: StateFlow<AppError?> get() = hub.taskLoadError

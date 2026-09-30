@@ -106,15 +106,16 @@ fun ConnectionCenterScreen(
                     )
                 }
                 // Round-8 compat honesty: a desktop NEWER than the tested version may
-                // have drifted relay-plane behavior (the field case: 3.14.4 refusing
-                // bridges the 3.14.3-era protocol expected to open).
+                // have drifted relay-plane behavior. (The literal in the message tracks
+                // CompatibilityGate.MAX_TESTED_DESKTOP — 3.14.4 live-verified 2026-09-30.)
                 if (com.zcode.android.core.security.pairing.CompatibilityGate
                     .check(desktopVersion ?: "") is com.zcode.android.core.security.pairing.CompatibilityGate.Verdict.AboveTested
                 ) {
                     Spacer(Modifier.height(6.dp))
                     Text(
                         text = "Desktop $desktopVersion is newer than the version this app was tested against " +
-                            "(3.14.3) — if connections keep failing, this may be why.",
+                            "(${com.zcode.android.core.security.pairing.CompatibilityGate.MAX_TESTED_DESKTOP}) — " +
+                            "if connections keep failing, this may be why.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.testTag("connection_compat_warning"),

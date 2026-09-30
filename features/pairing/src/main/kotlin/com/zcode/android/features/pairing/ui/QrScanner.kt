@@ -2,8 +2,6 @@ package com.zcode.android.features.pairing.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
@@ -15,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -38,22 +35,23 @@ import java.util.concurrent.Executors
 @Composable
 fun QrScanner(lifecycleOwner: LifecycleOwner, onDecoded: (String) -> Unit) {
     val context = LocalContext.current
-    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        // Handled by the host: a denial surfaces via the CameraPermissionNeeded state.
+    // FIELD FIX (2026-09-30): the host owns the permission flow (ScannerWithPermission
+    // composes this only when CAMERA is granted). Bind without permission and CameraX
+    // fails inside the provider future — a dead preview. Belt-and-braces: refuse to
+    // compose the preview without the grant, and the host's own launcher stays the
+    // single permission surface.
+    val hasPermission = remember {
+        ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
     }
-    LaunchedEffect(Unit) {
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            permission.launch(Manifest.permission.CAMERA)
-        }
-    }
+    if (!hasPermission) return
     val analysisExecutor = remember { Executors.newSingleThreadExecutor() }
-    val scanner = remember {
-        BarcodeScanning.getClient(BarcodeScannerOptions.Builder().build())
-    }
+    // The ML Kit scanner is created inside the view factory (native init — must not run
+    // in composition, which Robolectric tests exercise); released with the view.
+    val scannerHolder = remember { arrayOfNulls<com.google.mlkit.vision.barcode.BarcodeScanner>(1) }
     DisposableEffect(Unit) {
         onDispose {
             analysisExecutor.shutdown()
-            scanner.close()
+            scannerHolder[0]?.close()
         }
     }
     AndroidView(
@@ -62,6 +60,11 @@ fun QrScanner(lifecycleOwner: LifecycleOwner, onDecoded: (String) -> Unit) {
             val previewView = PreviewView(ctx)
             val providerFuture = ProcessCameraProvider.getInstance(ctx)
             providerFuture.addListener({
+                // ML Kit init rides the camera-bind callback (native-only path): never
+                // during composition, so headless/Robolectric environments that compose
+                // this view without a camera HAL cannot crash on MlKitContext init.
+                val scanner = BarcodeScanning.getClient(BarcodeScannerOptions.Builder().build())
+                scannerHolder[0] = scanner
                 val provider = providerFuture.get()
                 val preview = Preview.Builder().build().also {
                     it.surfaceProvider = previewView.surfaceProvider

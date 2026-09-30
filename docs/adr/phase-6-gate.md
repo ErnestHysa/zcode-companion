@@ -313,6 +313,36 @@ S18 exposed it; discovered because the matrix refused to stay green post-fix).
 
 Suites: full JVM/Robolectric pool green in one run; 5/5 instrumented (ATD). Build vc6.
 
+## Post-gate field round 10 (2026-09-30, vc6 real-device report: connection STABLE — three UX defects fixed)
+
+The vc6 build verified the round-9 root-cause fix on the real phone: **the desktop no longer
+crashes/freezes and the companion stays connected continuously** (export: bridge open once,
+`bridgeErrors: 0`, `desktopDisconnectedConsecutive: 0`, stable heartbeats, zero warnings/errors
+across the whole ring). Three new defects from the same report:
+
+1. **Blank task list despite `hub.bootstrapApplied tasks=493`** — `DefaultTasksPort.tasks` was a
+   cold `flow { }` that emitted `emptyList()` and **completed** when the vault had no metadata —
+   exactly the state during a fresh first-time pairing. `TasksViewModel.stateIn(Eagerly)` collected
+   the completed flow; the list could never update again (restart fixed it — the reason every
+   test/emulator run missed it: those pair before VM construction). Fix: the flow is now keyed on
+   `hub.endpoint` (StateFlow, set both at start and `onPairingCompleted`) via `flatMapLatest` —
+   unpaired → empty, pairing → the Room observer takes over; never completes. Regression:
+   `DefaultTasksPortTest` (single continuous collection must survive the unpaired→paired
+   transition — fails deterministically against the old flow).
+2. **Compat warning wouldn't retire** — correct behavior for a static matrix, but 3.14.4 is now
+   genuinely live-verified (this very session). `CompatibilityGate.MAX_TESTED_DESKTOP` →
+   **3.14.4** (gate test updated; the connection-center copy now derives the literal from the
+   constant instead of a hardcoded "3.14.3").
+3. **Camera dead after first-time permission grant** — `ScannerWithPermission` froze the grant
+   state in a keyless `remember {}` and read the pairing state via `.value` (unsubscribed), so
+   after the grant callback nothing recomposed; QrScanner also bound CameraX without checking the
+   grant. Fix: grant state is `mutableStateOf` (flipped by the launcher callback), pairing state
+   collected properly, QrScanner refuses to render without the grant, and ML Kit init moved into
+   the camera-bind callback (never in composition). Regressions: `QrScannerPermissionGateTest`
+   (no permission → preview composes nothing; grant → preview composes).
+
+Suites: full JVM/Robolectric pool green in one run; 5/5 instrumented (ATD). Build vc7.
+
 ## Phase Exit Decision
 
 **PASS WITH KNOWN LIMITATIONS** — all subphase exit gates green with executed evidence; limitations 1–8 accepted and documented above; no §47 No-Go condition triggered.
