@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -94,7 +95,32 @@ fun ConversationScreen(
                     modifier = Modifier.testTag("conversation_attention_strip"),
                 )
             }
-            if (state.historyChanged) {
+                        // §19.4 FIELD (2026-09-30, vc11): the desktop truncates the initial snapshot
+            // to a tail window — make the remaining history DISCOVERABLE and tappable,
+            // not just a scroll-prefetch hint. Scalable: pages of PAGE_MAX_ROWS until
+            // the window's firstRowId is reached (no hardcoded total).
+            if (state.hasMoreHistory && !state.loadingOlder && state.rows.isNotEmpty()) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("conversation_load_older_strip")
+                        .clickable { onLoadOlder(state.rows.first().rowId) { /* page fetched; list updates via the store */ } },
+                ) {
+                    Text(
+                        text = buildString {
+                            append("Load earlier messages")
+                            state.totalRows?.let { total ->
+                                append("  ·  showing latest ${state.rows.size} of $total")
+                            }
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                }
+            }
+if (state.historyChanged) {
                 AttentionStrip(
                     title = "History changed on desktop — jumped to latest",
                     tone = StatusTone.INFO,

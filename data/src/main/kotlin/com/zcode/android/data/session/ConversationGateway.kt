@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 /**
  * Conversation-plane gateway — the ONE place protocol types are mapped onto the
@@ -35,6 +36,16 @@ sealed class GatewayTopicEvent {
         val fromSeq: Long,
         val toSeq: Long,
         val rows: List<ConversationRow>,
+        /**
+         * FIELD (2026-09-30, vc11): production snapshots carry a TAIL WINDOW
+         * (rowsWindowSchema: {window, totalCount, firstRowId}) — the desktop truncates
+         * the initial snapshot (field: 62 989-seq session delivered 60 rows). These
+         * drive the §19.4 backward pagination ("load earlier"): firstRowId != null &&
+         * window's first row != firstRowId ⇔ more history above. Null for legacy
+         * bare-array snapshots (mock) — unknown, treated as no-more.
+         */
+        val totalCount: Long? = null,
+        val firstRowId: Long? = null,
     ) : GatewayTopicEvent()
 
     data class Deltas(
@@ -147,8 +158,13 @@ class RelayConversationGateway(
             when (val payload = arrived.frame.payload) {
                 is TopicFrame.TopicPayload.Snapshot -> {
                     val rows = decodeRows(payload.snapshot, sessionId)
+                    val window = payload.snapshot["rows"] as? JsonObject
                     _topicEvents.emit(
-                        GatewayTopicEvent.Snapshot(arrived.topic, sessionId, epoch, arrived.fromSeq, arrived.toSeq, rows)
+                        GatewayTopicEvent.Snapshot(
+                            arrived.topic, sessionId, epoch, arrived.fromSeq, arrived.toSeq, rows,
+                            totalCount = (window?.get("totalCount") as? JsonPrimitive)?.content?.toLongOrNull(),
+                            firstRowId = (window?.get("firstRowId") as? JsonPrimitive)?.content?.toLongOrNull(),
+                        )
                     )
                 }
                 is TopicFrame.TopicPayload.Deltas -> {

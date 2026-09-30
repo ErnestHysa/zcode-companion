@@ -99,6 +99,13 @@ class DefaultConversationPort(
     override fun observeStreaming(taskId: String): Flow<List<StreamingBuffer>> =
         hub.sessionStreaming(taskId)
 
+    /** §19.4 backward pagination: more history above the current tail window (vc11). */
+    override fun observeHasMoreHistory(taskId: String): Flow<Boolean> =
+        hub.sessionHasMoreHistory(taskId)
+
+    override fun observeTotalRows(taskId: String): Flow<Long?> =
+        hub.sessionTotalRows(taskId)
+
     override suspend fun open(task: Task): Boolean {
         val coordinator = hub.openConversation(task) ?: return false
         // Wait for the first authoritative anchor so first paint is never an empty

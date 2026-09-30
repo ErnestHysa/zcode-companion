@@ -77,6 +77,12 @@ class MockZCode(
          * registered first — the per-workspace listener contract.
          */
         var enforceScopeRouting: Boolean = false
+
+        /** Row-id base for snapshot rows (tail-window simulation: base > firstRowId ⇒ truncated). */
+        var snapshotRowIdBase: Long = 1L
+
+        /** When true (with snapshotRowsWindowShape), the window reports firstRowId=1 ⇒ more history above. */
+        var snapshotWindowTruncated: Boolean = false
         /** Shuffle fragment envelopes inside each logical message (out-of-order storm). */
         var shuffleFragments: Boolean = false
         /** #228 class: inject one physical envelope > 1 MiB (once). */
@@ -517,9 +523,12 @@ class MockZCode(
     @Volatile private var pendingApproval: Pair<String, String>? = null
     fun setPendingApproval(toolName: String, interactionId: String) { pendingApproval = toolName to interactionId }
 
-    private fun snapshotRows(sessionId: String, count: Int): JsonArray {
+    private fun snapshotRows(sessionId: String, count: Int): JsonArray =
+        snapshotRows(sessionId, count, script.snapshotRowIdBase)
+
+    private fun snapshotRows(sessionId: String, count: Int, rowIdBase: Long): JsonArray {
         val rows = ArrayList<JsonObject>(count + 2)
-        var nextId = 1L
+        var nextId = rowIdBase
         for (i in 1..count) {
             rows.add(
                 schemaRow(
@@ -937,7 +946,7 @@ class MockZCode(
                             put("rows", buildJsonObject {
                                 put("window", rows)
                                 put("totalCount", JsonPrimitive(rows.size))
-                                put("firstRowId", JsonPrimitive(1))
+                                put("firstRowId", JsonPrimitive(if (script.snapshotWindowTruncated) 1L else script.snapshotRowIdBase))
                             })
                         } else {
                             put("rows", snapshotRows(sessionId, workspace.rowCount))

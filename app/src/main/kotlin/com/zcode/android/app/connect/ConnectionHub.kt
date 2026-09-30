@@ -201,6 +201,14 @@ class ConnectionHub(
     fun sessionStale(taskId: String): kotlinx.coroutines.flow.Flow<Boolean> =
         sessionFlow(taskId, { m -> m.stale }, false)
 
+    /** §19.4 backward pagination: more history above the current tail window (vc11). */
+    fun sessionHasMoreHistory(taskId: String): kotlinx.coroutines.flow.Flow<Boolean> =
+        sessionFlow(taskId, { m -> m.hasMoreHistory }, false)
+
+    /** Total rows in the session (window metadata; null when unknown). */
+    fun sessionTotalRows(taskId: String): kotlinx.coroutines.flow.Flow<Long?> =
+        sessionFlow(taskId, { m -> m.totalRows }, null)
+
     fun sessionTaskState(taskId: String): kotlinx.coroutines.flow.Flow<TaskStateMachine.State> =
         sessionFlow(taskId, { m -> m.taskState }, TaskStateMachine.State.UNKNOWN)
 

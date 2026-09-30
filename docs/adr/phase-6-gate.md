@@ -467,3 +467,40 @@ idempotence pinned). Mock: `enforceScopeRouting`, `listenScopesSeen`.
 
 Suites: full JVM/Robolectric pool green in one run (S13 flaked mid-round during development —
 isolation-green, documented class); 5/5 instrumented (ATD). Build vc11.
+
+## Post-gate field round 15 (2026-09-30, vc11 real-device report: full history via tail-window pagination — Phase 6 complete)
+
+vc11 field status: **everything works** — tasks open from every workspace, content renders,
+zero errors, zero reconnects across 4 sessions/3 workspaces. Final gap: the initial snapshot
+is the desktop's TAIL WINDOW (rowsWindowSchema — field: exactly 60 rows even for a
+62 989-seq session), and the §19.4 backward-pagination pipeline existed but was DEAD code:
+`_hasMore` seeded false and never armed.
+
+Fixes:
+1. **Window metadata flows end-to-end** — the gateway extracts `totalCount`/`firstRowId`
+   from the production window object; the manager exposes `hasMoreHistory` (armed when
+   `firstRowId != null && window's first row != firstRowId`) and `totalRows`; the hub/port
+   surface them; the VM seeds `_hasMore` from the authoritative flow → the §19.2
+   scroll-up prefetch now fires, and a visible `conversation_load_older_strip`
+   ("Load earlier messages · showing latest N of T") makes the affordance discoverable.
+   Scalable by construction: pages of `PAGE_MAX_ROWS` (≤ 200, §19.4 bound) until the
+   window's `firstRowId` is reached — no hardcoded message cap.
+2. **Duplicate-delivery churn fixed at the source** — listener scopes are keyed by
+   workspacePath ONLY (the same path with different workspaceIdentity created two
+   listeners; the desktop fired each snapshot to both — field: gateway.frame ×2-×5,
+   60-row re-applies 5×). Blank scopes were already refused (round 14).
+3. **Snapshot dedupe REVERTED** — an (epoch, toSeq) dedupe broke S12/S13 (reconciliation
+   snapshots can repeat the key with NEW content: interaction cards, terminal state).
+   Re-applying is always-safe; the churn was the listener multiplication, fixed at source.
+
+Regression: `ConnectionHubIntegrationTest.tail-window snapshot arms load-earlier and
+rowsRange pages backward` (truncated window ⇒ hasMoreHistory true + totalCount exposed +
+rowsRange returns the older page). Mock: `snapshotRowIdBase`/`snapshotWindowTruncated`.
+
+Suites: full JVM/Robolectric pool green; 5/5 instrumented (ATD). Build vc12.
+
+**Phase 6 field-hardening conclusion**: pairing, auth, bridge, bootstrap, task projection
+(495+ tasks), cross-workspace conversation attach, snapshot decode (tail windows), live
+streaming plane, backward pagination, recovery/reconnect (per-connection wire state, quiesce,
+pending-attach) — all live-verified against desktop 3.14.4 on a real device with zero
+warnings/errors in the final report. Phase 7 prerequisites are met.

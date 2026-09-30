@@ -33,6 +33,12 @@ interface ConversationPort {
     /** Reducer-held in-memory streaming buffers; consumers MUST coalesce (§19.2). */
     fun observeStreaming(taskId: String): Flow<List<StreamingBuffer>>
 
+    /** More history above the current tail window (drives "load earlier"). */
+    fun observeHasMoreHistory(taskId: String): Flow<Boolean>
+
+    /** Total rows in the session (window metadata; null when unknown). */
+    fun observeTotalRows(taskId: String): Flow<Long?>
+
     /** Subscribe (Phase 5 coordinator path; journal restore included). */
     suspend fun open(task: Task): Boolean
 

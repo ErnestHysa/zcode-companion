@@ -105,9 +105,29 @@ class ConversationSessionManager(
 
     // ---------------------------------------------------------------- transitions
 
+    /**
+     * NOTE (2026-09-30): snapshot re-applies were deduped here by (epoch, toSeq) —
+     * REVERTED: reconciliation snapshots can repeat the key with NEW content
+     * (S12/S13: interaction cards / terminal state reconciled while disconnected).
+     * The duplicate-delivery churn was fixed at the SOURCE (path-only listener scope
+     * keys — one listener per workspace); re-applying stays always-safe.
+     */
+
+    /** §19.4 backward pagination: more history above the current tail window. */
+    private val _hasMoreHistory = kotlinx.coroutines.flow.MutableStateFlow(false)
+    val hasMoreHistory: kotlinx.coroutines.flow.StateFlow<Boolean> = _hasMoreHistory.asStateFlow()
+
+    /** Total rows in the session (from the window metadata; null when unknown). */
+    private val _totalRows = kotlinx.coroutines.flow.MutableStateFlow<Long?>(null)
+    val totalRows: kotlinx.coroutines.flow.StateFlow<Long?> = _totalRows.asStateFlow()
+
     private suspend fun handleSnapshot(e: GatewayTopicEvent.Snapshot) {
         log.debug("manager.snapshot", "session=${sessionId.raw} rows=${e.rows.size} epoch=${e.logEpoch.take(24)}")
         lastSnapshotRows = e.rows
+        _totalRows.value = e.totalCount
+        // rowsWindowSchema: window's first row == firstRowId ⇔ at top (null = no window info).
+        _hasMoreHistory.value = e.firstRowId != null &&
+            (e.rows.isEmpty() || e.rows.first().rowId != e.firstRowId)
         applyEffects(reducer.onSnapshot(TopicSnapshotOf(e)))
         observeRowsForTaskState(e.rows)
         onSnapshotApplied(e.rows)

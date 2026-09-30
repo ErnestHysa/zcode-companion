@@ -35,6 +35,8 @@ data class ConversationUiState(
     val phase: ConnectionPhase = ConnectionPhase.UNPAIRED,
     val loading: Boolean = true,
     val hasMoreHistory: Boolean = false,
+    /** Total rows in the session (window metadata; null when unknown) — shown in the load-earlier strip. */
+    val totalRows: Long? = null,
     val loadingOlder: Boolean = false,
     val loadOlderError: AppError? = null,
     val historyChanged: Boolean = false,
@@ -50,6 +52,19 @@ class ConversationViewModel(
 
     private val _historyChanged = MutableStateFlow(false)
     private val _hasMore = MutableStateFlow(false)
+    private val _totalRows = MutableStateFlow<Long?>(null)
+
+    init {
+        // FIELD (2026-09-30, vc11): seed §19.4 pagination from the authoritative window
+        // metadata (the desktop truncates the initial snapshot — 60-row tail windows over
+        // 60k+-seq sessions). Without this the scroll-up prefetch never armed.
+        scope.launch {
+            port.observeHasMoreHistory(taskId).collect { _hasMore.value = it }
+        }
+        scope.launch {
+            port.observeTotalRows(taskId).collect { _totalRows.value = it }
+        }
+    }
     private val _loadingOlder = MutableStateFlow(false)
     private val _loadOlderError = MutableStateFlow<AppError?>(null)
     private val _task = MutableStateFlow<Task?>(null)
@@ -88,6 +103,7 @@ class ConversationViewModel(
             loading = rowsEpoch.rows.isEmpty() && streamPhase.streaming.isEmpty() &&
                 staleState.taskState == TaskStateMachine.State.UNKNOWN && rowsEpoch.epoch == null,
             hasMoreHistory = flags.hasMore,
+            totalRows = _totalRows.value,
             loadingOlder = flags.loadingOlder,
             loadOlderError = flags.error,
             historyChanged = flags.historyChanged,

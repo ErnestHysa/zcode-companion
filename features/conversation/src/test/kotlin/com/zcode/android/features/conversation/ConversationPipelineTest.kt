@@ -166,6 +166,10 @@ class ConversationViewModelTest {
         override fun observeTaskState(taskId: String): Flow<TaskStateMachine.State> = taskStateFlow
         override fun observeStreaming(taskId: String): Flow<List<StreamingBuffer>> = streamingFlow
 
+    override fun observeHasMoreHistory(taskId: String): Flow<Boolean> = kotlinx.coroutines.flow.MutableStateFlow(false)
+
+    override fun observeTotalRows(taskId: String): Flow<Long?> = kotlinx.coroutines.flow.MutableStateFlow<Long?>(null)
+
         override suspend fun task(taskId: String): Task? = Task(
             taskId = taskId,
             title = "T",

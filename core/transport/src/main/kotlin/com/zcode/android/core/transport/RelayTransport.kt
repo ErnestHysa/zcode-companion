@@ -1016,7 +1016,10 @@ class RelayTransport(
         // A null workspace means "the bridge's pinned workspace" — already covered by
         // the attach-time listen.
         if (workspacePath.isNullOrBlank()) return
-        val key = workspacePath + "\u0000" + (workspaceIdentity ?: "")
+        // Path-only key: the desktop routes by workspacePath; registering the SAME path
+        // with a different workspaceIdentity created TWO listeners → the snapshot fired
+        // to both (field: gateway.frame ×2-×5, manager re-applied 60 rows 5×).
+        val key = workspacePath
         if (!listenedScopes.add(key)) return
         val scopeJson = buildJsonObject {
             put("workspacePath", JsonPrimitive(workspacePath ?: ""))

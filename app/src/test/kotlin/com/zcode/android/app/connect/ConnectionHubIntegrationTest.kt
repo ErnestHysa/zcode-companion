@@ -220,6 +220,40 @@ class ConnectionHubIntegrationTest {
     }
 
     /**
+     * FIELD (2026-09-30, vc11): the desktop truncates the initial snapshot to a TAIL
+     * WINDOW (rowsWindowSchema {window, totalCount, firstRowId}; field: 60 rows over a
+     * 62 989-seq session). Full history = §19.4 backward pagination, which requires the
+     * window metadata to ARM the prefetch: hasMoreHistory must become TRUE for a
+     * truncated window, and rowsRange must return the older page.
+     */
+    @Test
+    fun `tail-window snapshot arms load-earlier and rowsRange pages backward`() = runBlocking {
+        mock.script.snapshotRowsWindowShape = true
+        mock.script.snapshotWindowTruncated = true
+        mock.script.snapshotRowIdBase = 5_000L
+        hub.start()
+        withTimeout(30_000) { hub.phase.first { it == ConnectionPhase.CONNECTED } }
+        val task = withTimeout(15_000) { tasks.snapshot.first { it.isNotEmpty() } }.first()
+        hub.openConversation(task)
+        withTimeout(20_000) {
+            conversations.rowsFor(task.taskId).first { it.isNotEmpty() }
+        }
+        // Truncated window ⇒ more history above.
+        withTimeout(10_000) {
+            hub.sessionHasMoreHistory(task.taskId).first { it }
+        }
+        // Window metadata flows for the UI strip.
+        org.junit.Assert.assertEquals(
+            8L,
+            hub.sessionTotalRows(task.taskId).first(),
+        )
+        // The §19.4 backward page actually fetches older rows.
+        val page = hub.gateway.rowsRange(sessionId = task.taskId, beforeRowId = 5_000L, limit = 5)
+        assertTrue(page.rows.isNotEmpty(), "rowsRange page must return rows")
+        Unit
+    }
+
+    /**
      * Phase 6 FIELD-FINDING regression (real-phone failure vs production): the relay
      * rejects the first bridge-open (here: strict taskless-rejection with a queued
      * session-not-found — the observed production behavior). The hub's cold start
