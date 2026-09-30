@@ -666,3 +666,22 @@ page with a rotated epoch still merges by rowId` (rotated page merges 40 rows ov
 window; meta epoch unchanged).
 
 Suites: full JVM/Robolectric pool green; 6/6 instrumented (ATD). Build vc18.
+
+## Post-gate field round 22 (2026-09-30, vc18 real-device report: export-diagnostics ANR — fixed)
+
+vc18 field: history paging across many tasks now works end-to-end (the export itself shows
+sess_56d5e357 paging 5+ pages deep, sess_cff7bfbd reaching `before=3 hasMore=false` — the true
+start of its history). The remaining defect: tapping "Export diagnostics" froze the app
+(ANR-class): taps dropped, only a force-swipe back worked.
+
+Root cause: `exportDiagnostics`/`copyDiagnostics` launched the report build inside
+`lifecycleScope.launch` — the MAIN dispatcher. The report is multi-MB (5,000-entry ring join +
+per-connection timelines + 384 KB × 2 persisted tails + last-crash capture + scrubbed lines),
+and building it blocked the main thread far past the 5 s input-dispatch timeout — hence
+"doesn't open, then doesn't respond to any touch."
+
+Fix: report builds run on `Dispatchers.Default`; the main thread only receives the chooser
+intent / clipboard write / toast. A `diagBusy` state guards double-taps and flips both rows to
+"Preparing report…" while building; failures surface as a toast instead of a silent freeze.
+
+Suites: full JVM/Robolectric pool green; 6/6 instrumented (ATD). Build vc19.

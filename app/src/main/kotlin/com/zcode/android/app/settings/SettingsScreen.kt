@@ -34,12 +34,14 @@ import androidx.compose.runtime.setValue
 import com.zcode.android.core.common.log.ZLog
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.zcode.android.app.AppContainer
 
 /**
@@ -82,17 +84,19 @@ fun SettingsScreen(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
             SectionLabel("Diagnostics")
+            val diagBusy = remember { mutableStateOf(false) }
             SettingsRow(
-                title = "Export diagnostics",
-                subtitle = "Connection report + full redacted event log. No conversation content.",
+                title = if (diagBusy.value) "Preparing report…" else "Export diagnostics",
+                subtitle = if (diagBusy.value) "Building the report — this can take a few seconds."
+                    else "Connection report + full redacted event log. No conversation content.",
                 tag = "settings_export_diagnostics",
-                onClick = { exportDiagnostics(container, context) },
+                onClick = { if (!diagBusy.value) exportDiagnostics(container, context) { diagBusy.value = it } },
             )
             SettingsRow(
-                title = "Copy diagnostics to clipboard",
+                title = if (diagBusy.value) "Preparing report…" else "Copy diagnostics to clipboard",
                 subtitle = "Same report, copied for pasting into a chat or issue.",
                 tag = "settings_copy_diagnostics",
-                onClick = { copyDiagnostics(container, context) },
+                onClick = { if (!diagBusy.value) copyDiagnostics(container, context) { diagBusy.value = it } },
             )
             SettingsRow(
                 title = "Add a marker",
@@ -173,27 +177,59 @@ fun SettingsScreen(
     }
 }
 
-private fun copyDiagnostics(container: AppContainer, context: android.content.Context) {
+private fun copyDiagnostics(container: AppContainer, context: android.content.Context, onBusy: (Boolean) -> Unit) {
     val act = context as? androidx.fragment.app.FragmentActivity
-    act?.lifecycleScope?.launch {
-        val text = buildDiagnosticReport(container, context)
-        val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-        cm?.setPrimaryClip(android.content.ClipData.newPlainText("ZCode diagnostics", text))
-        android.widget.Toast.makeText(context, "Diagnostics copied", android.widget.Toast.LENGTH_SHORT).show()
+    val scope = act?.lifecycleScope ?: return
+    onBusy(true)
+    // FIELD (2026-09-30, vc18 ANR): the report is multi-MB (5,000-entry ring + 384 KB×2
+    // persisted tails + scrubbing) — building it on the MAIN thread blocked input for
+    // tens of seconds ("app doesn't respond to any of my touches"). Build on Default,
+    // hop to Main only for the clipboard/toast.
+    scope.launch(kotlinx.coroutines.Dispatchers.Default) {
+        try {
+            val text = buildDiagnosticReport(container, context)
+            withContext(kotlinx.coroutines.Dispatchers.Main) {
+                val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                cm?.setPrimaryClip(android.content.ClipData.newPlainText("ZCode diagnostics", text))
+                android.widget.Toast.makeText(context, "Diagnostics copied", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            withContext(kotlinx.coroutines.Dispatchers.Main) {
+                android.widget.Toast.makeText(context, "Diagnostics failed: ${e.message?.take(80)}", android.widget.Toast.LENGTH_LONG).show()
+            }
+        } finally {
+            withContext(kotlinx.coroutines.Dispatchers.Main) { onBusy(false) }
+        }
     }
 }
 
-private fun exportDiagnostics(container: AppContainer, context: android.content.Context) {
-    // Report build touches Room/DataStore (suspend helpers) — off the UI thread.
+private fun exportDiagnostics(container: AppContainer, context: android.content.Context, onBusy: (Boolean) -> Unit) {
     val act = context as? androidx.fragment.app.FragmentActivity
-    act?.lifecycleScope?.launch {
-        val text = buildDiagnosticReport(container, context)
-        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(android.content.Intent.EXTRA_TEXT, text)
-            putExtra(android.content.Intent.EXTRA_TITLE, "ZCode Companion diagnostics")
+    val scope = act?.lifecycleScope ?: return
+    onBusy(true)
+    // Same ANR class as copyDiagnostics — build off-main, present on main.
+    scope.launch(kotlinx.coroutines.Dispatchers.Default) {
+        try {
+            val text = buildDiagnosticReport(container, context)
+            withContext(kotlinx.coroutines.Dispatchers.Main) {
+                val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(android.content.Intent.EXTRA_TEXT, text)
+                    putExtra(android.content.Intent.EXTRA_TITLE, "ZCode Companion diagnostics")
+                }
+                context.startActivity(android.content.Intent.createChooser(intent, "Export diagnostics"))
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            withContext(kotlinx.coroutines.Dispatchers.Main) {
+                android.widget.Toast.makeText(context, "Export failed: ${e.message?.take(80)}", android.widget.Toast.LENGTH_LONG).show()
+            }
+        } finally {
+            withContext(kotlinx.coroutines.Dispatchers.Main) { onBusy(false) }
         }
-        context.startActivity(android.content.Intent.createChooser(intent, "Export diagnostics"))
     }
 }
 
