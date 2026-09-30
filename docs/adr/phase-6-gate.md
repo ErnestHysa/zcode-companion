@@ -619,3 +619,29 @@ Suites: full JVM/Robolectric pool green; 6/6 instrumented (ATD) incl. the new E2
 the field data path (rowsRange pages, window metadata, per-workspace scopes) was verified
 against the real desktop in rounds 13–15. Phase 6 read/stream is complete; Phase 7 is ready
 to start.**
+
+## Post-gate field round 20 (2026-09-30, vc16 real-device report: history pages decoded but discarded — page-row demotion)
+
+vc16 field: the pagination UX now WORKS visually (strip arms with real counts — "60 of 207" —,
+pages fetch from the wire: `rowsRange before=148 limit=50` → 382 KB → ok, on 5 tasks), but the
+pages never STUCK: every session still showed `cachedRows=60` after 50-row pages, and the user
+hit the epoch-rejection/"changed on desktop" dead end when paging.
+
+Root cause: **history PAGE rows were decoded with the STRICT row decoder** — the round-13
+tolerance (demote undecodable rows) covered SNAPSHOT rows only. Any production row kind (or
+required-field shape) the v3.14.3-era port doesn't model failed the WHOLE page at the gateway
+`ConversationRow.Decoder.decode` — wire fetch ok, page discarded, nothing persisted. (The
+desktop cross-lists rows across schema versions; one unknown row per page is enough to blank
+history forever.)
+
+Fixes:
+1. `RelayConversationGateway.decodePageRows`: page rows demote failures to retained-raw
+   placeholders (identical to snapshot policy, INV-8); INV-14 holds (nothing fabricated).
+   The wire-level page CRC/poison containment from round 18 still guards delivery.
+2. Observability: `port.pageEpochRejected` (store epoch + page epoch + row count) and
+   `port.pageFault` (exception class + message) now land in the ring — the next export is
+   decisive if anything still fails.
+3. Regression: `GatewayPageRowsDecodeTest` (one undecodable row ⇒ page survives with a
+   retained placeholder; all-good page decodes fully typed).
+
+Suites: full JVM/Robolectric pool green; 6/6 instrumented (ATD). Build vc17.

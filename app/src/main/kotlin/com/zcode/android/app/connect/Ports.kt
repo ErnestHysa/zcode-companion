@@ -138,14 +138,24 @@ class DefaultConversationPort(
                 ),
             )
             when (result) {
-                is com.zcode.android.domain.repo.StoreApplyResult.EpochRejected ->
+                is com.zcode.android.domain.repo.StoreApplyResult.EpochRejected -> {
+                    // FIELD (2026-09-30, vc16): epoch rejections were SILENT — the export
+                    // could never distinguish "rejected" from "never fetched". Surface
+                    // both epochs into the ring.
+                    val storeEpoch = conversationRepo.currentEpoch(com.zcode.android.domain.ids.SessionId(taskId))
+                    hub.log.warn(
+                        "port.pageEpochRejected",
+                        "session=$taskId storeEpoch=$storeEpoch pageEpoch=${page.atLogEpoch} rows=${page.rows.size}",
+                    )
                     ConversationPort.LoadOlderResult(0, page.hasMore, error = null, epochRejected = true)
+                }
                 else -> ConversationPort.LoadOlderResult(page.rows.size, page.hasMore, error = null, epochRejected = false)
             }
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             val error = (e as? com.zcode.android.core.transport.RelayTransport.Failure)?.error
                 ?: com.zcode.android.core.transport.ErrorMapping.timeout("rowsRange", 10_000)
+            hub.log.warn("port.pageFault", "session=$taskId ${e.javaClass.simpleName}: ${e.message?.take(120)}")
             ConversationPort.LoadOlderResult(0, hasMore = true, error = error, epochRejected = false)
         }
     }

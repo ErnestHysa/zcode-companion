@@ -291,9 +291,13 @@ class RelayConversationGateway(
 
     override suspend fun rowsRange(sessionId: String, beforeRowId: Long?, limit: Int): GatewayPage {
         val r = transport.rowsRange(sessionId, beforeRowId, limit)
-        traceLog?.info("gateway.rowsRange", "session=$sessionId rows=${r.rows.size} atSeq=${r.atSeq} hasMore=${r.hasMore}")
+        val rows = decodePageRows(r.rows.map { rawOf(it) }, sessionId)
+        traceLog?.info(
+            "gateway.rowsRange",
+            "session=$sessionId rows=${rows.size} atSeq=${r.atSeq} atLogEpoch=${r.atLogEpoch.take(16)} hasMore=${r.hasMore}",
+        )
         return GatewayPage(
-            rows = r.rows.map { ConversationRow.Decoder.decode(rawOf(it)) },
+            rows = rows,
             atSeq = r.atSeq,
             atLogEpoch = r.atLogEpoch,
             hasMore = r.hasMore,
@@ -301,6 +305,39 @@ class RelayConversationGateway(
     }
 
     private fun rawOf(row: com.zcode.android.core.protocol.v4.ConversationRow): JsonObject = row.raw
+
+    internal companion object {
+        /**
+         * FIELD (2026-09-30, vc16): production pages contain row kinds our ported
+         * decoder may not model — ONE strict failure must not fail the WHOLE page (the
+         * user-visible result was "load earlier does nothing"). Same tolerance as the
+         * snapshot path: failed rows become retained-raw placeholders (INV-8).
+         */
+        internal fun decodePageRows(
+            raws: List<JsonObject>,
+            sessionId: String,
+        ): List<com.zcode.android.domain.model.ConversationRow> {
+            val rows = ArrayList<com.zcode.android.domain.model.ConversationRow>(raws.size)
+            var demoted = 0
+            for (raw in raws) {
+                try {
+                    rows.add(com.zcode.android.domain.model.ConversationRow.Decoder.decode(raw))
+                } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                    demoted++
+                    rows.add(
+                        com.zcode.android.domain.model.ConversationRow.Unknown(
+                            rowId = (raw["rowId"] as? JsonPrimitive)?.content?.toLongOrNull() ?: -1L,
+                            turnId = (raw["turnId"] as? JsonPrimitive)?.content ?: "",
+                            unknownKind = "decode-fault:" + (raw["kind"] as? JsonPrimitive)?.content.orEmpty(),
+                            raw = raw,
+                        ),
+                    )
+                }
+            }
+            return rows
+        }
+    }
 
     override suspend fun send(
         type: String,

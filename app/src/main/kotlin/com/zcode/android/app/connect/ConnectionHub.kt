@@ -60,7 +60,7 @@ class ConnectionHub(
     private val interactions: InteractionRepository,
     private val endpointRepo: EndpointRepository,
     private val scope: CoroutineScope,
-    private val log: ZLog,
+    internal val log: ZLog,
 ) {
 
     val gateway: ConversationGateway by lazy { RelayConversationGateway(transport, clientId, log) }
