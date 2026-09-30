@@ -290,6 +290,7 @@ class RelayTransport(
         val signer = signer ?: error("connect() before signer")
         connectionCounter.incrementAndGet()
         val ctx = bound()
+        resetWireStateForNewConnection(ctx)
         try {
             // ---- WS connect (§11.5: 10 s connect timeout)
             val wsUrl = buildWsUrl(endpoint)
@@ -389,10 +390,12 @@ class RelayTransport(
             publishState()
             reconnect.reset()
             consecutiveDesktopDisconnected = 0
-            lastDeliveredMessageSeq = 0
-            outSeq.set(0)
-            outMessageSeq.set(0)
-            synchronized(unacked) { unacked.clear() }
+            // NOTE: wire counters (outSeq/outMessageSeq/lastDeliveredMessageSeq/unacked)
+            // are NOT reset here. FIELD-KILLER (2026-09-30): this reset ran MID-
+            // connection — the next send reused messageSeq=1 with different bytes and
+            // the desktop's acknowledged relay protocol degraded the bridge
+            // (remote.rpcFrame.conflictingDuplicate → bridge-degraded). Counters reset
+            // once per FRESH CONNECTION in resetWireStateForNewConnection() instead.
 
             heartbeatJob?.cancel()
             heartbeatJob = scope.launch { heartbeatLoop() }
@@ -453,6 +456,35 @@ class RelayTransport(
         } finally {
             recovering.set(false)
         }
+    }
+
+    /**
+     * FIELD-KILLER (2026-09-30): wire counters are PER-CONNECTION. The desktop's
+     * AcknowledgedRelayProtocol (createAcknowledgedWebRemoteControlRelayProtocol) starts
+     * a fresh assembler per bridge-open; a frame carrying a physical/message seq from a
+     * PREVIOUS connection lands as remote.rpcFrame.physicalGap (every recovery attempt
+     * degraded within ~400 ms → endless RECOVERING↔RECONNECTING), and a mid-connection
+     * re-zero produced remote.rpcFrame.conflictingDuplicate (first connection degraded
+     * ~15 s in, at the first post-CONNECTED channel frame). Reset once here — before
+     * auth, so no channel frame can ever carry a stale seq — and drop unacked resends
+     * from the dead connection (their acks can never arrive; a resend would corrupt the
+     * new bridge's seq space).
+     */
+    private fun resetWireStateForNewConnection(ctx: ZLog.Bound) {
+        lastDeliveredMessageSeq = 0
+        outSeq.set(0)
+        outMessageSeq.set(0)
+        synchronized(unacked) { unacked.clear() }
+        // Frames still queued for the DEAD socket must never reach the fresh one: they
+        // carry the previous connection's seqs (the new bridge's assembler would fault
+        // on the gap) — and in a storm they can land AFTER this reset via in-flight
+        // producers, so drain best-effort here.
+        while (sendBuffer.tryReceive().isSuccess) { /* drop stale frame */ }
+        // Stale watch loops from the previous connection must not fire against the new
+        // socket; they are relaunched at CONNECTED.
+        heartbeatJob?.cancel()
+        ackWatcherJob?.cancel()
+        ctx.debug("relay.wireReset", "per-connection seq state cleared")
     }
 
     private suspend fun recoverLocked() {

@@ -346,3 +346,37 @@ Suites: full JVM/Robolectric pool green in one run; 5/5 instrumented (ATD). Buil
 ## Phase Exit Decision
 
 **PASS WITH KNOWN LIMITATIONS** — all subphase exit gates green with executed evidence; limitations 1–8 accepted and documented above; no §47 No-Go condition triggered.
+
+## Post-gate field round 11 (2026-09-30, vc7 real-device report: task open → endless RECONNECTING — wire-seq root cause)
+
+vc7 field status: task list works, camera works on first pairing, connection stable — rounds
+9–10 confirmed fixed. New failure: opening a task sent `subscribeConversationV4` that was never
+answered (10 s timeout), then the desktop pushed `bridge-degraded reason=rpc-transport-fault`
+~400 ms into every recovery attempt → endless RECOVERING↔RECONNECTING.
+
+Ground truth again from the desktop's own log (`raw relay bridge degraded` warn carries the real
+reasonCode; the phone-facing push hardcodes `rpc-transport-fault`):
+- `remote.rpcFrame.conflictingDuplicate` — ~15 s into the FIRST connection. The transport reset
+  its wire counters (outSeq/outMessageSeq/lastDeliveredMessageSeq/unacked) at CONNECTED —
+  mid-connection — so the first post-CONNECTED channel frame (subscribe) reused messageSeq=1
+  with different bytes against the desktop's acknowledged relay protocol
+  (createAcknowledgedWebRemoteControlRelayProtocol: per-bridge fresh assembler, strict
+  physical-seq/message-seq continuity, conflicting-duplicate = terminal fault).
+- `remote.rpcFrame.physicalGap` — ~400 ms into EVERY recovery attempt. The counters only reset
+  at CONNECTED, which on recovery arrives AFTER hello/initialize — the recovery connection's
+  first channel frames carried the previous connection's seqs (messageSeq=7…) against the
+  desktop's fresh per-bridge assembler → gap → degrade → hello never answered → CONNECTED never
+  reached → counters never reset → infinite loop with ever-growing seqs.
+
+Fix: wire state now resets exactly once per FRESH CONNECTION — at the top of `establish()`,
+before auth (no channel frame can carry a stale seq), including draining stale frames still
+queued for the dead socket (storm evidence: they landed on the new connection ahead of fresh
+frames) and cancelling stale heartbeat/ack-watch jobs; the mid-connection CONNECTED-time reset
+is REMOVED and documented in place.
+
+Regression: `RelayTransportWireSeqTest` — messageSeq strictly +1 within a connection and
+restarts at 1 on each new connection (asserts the exact observed seq traces; fails against both
+old behaviors). Storm pool green (the initial S1/S7 failures exposed the stale-send-buffer
+vector and were fixed by the drain).
+
+Suites: full JVM/Robolectric pool green in one run. Build vc8.
