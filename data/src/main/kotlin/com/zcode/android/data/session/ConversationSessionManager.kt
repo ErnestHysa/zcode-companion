@@ -142,6 +142,10 @@ class ConversationSessionManager(
         // rowsWindowSchema: window's first row == firstRowId ⇔ at top (null = no window info).
         _hasMoreHistory.value = e.firstRowId != null &&
             (e.rows.isEmpty() || e.rows.first().rowId != e.firstRowId)
+        log.debug(
+            "manager.hasMore",
+            "session=${sessionId.raw} firstRowId=${e.firstRowId} total=${e.totalCount} firstCached=${e.rows.firstOrNull()?.rowId} hasMore=${_hasMoreHistory.value}",
+        )
         applyEffects(reducer.onSnapshot(TopicSnapshotOf(e)))
         observeRowsForTaskState(e.rows)
         onSnapshotApplied(e.rows)

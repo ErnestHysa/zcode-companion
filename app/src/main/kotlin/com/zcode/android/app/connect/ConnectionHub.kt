@@ -482,6 +482,12 @@ class ConnectionHub(
                         ),
                     ),
                 )
+                // FIELD-KILLER #10 (2026-09-30, vc14/vc15): managers are created HERE —
+                // the managersVersion bump at coordinator creation ran BEFORE the session
+                // managers existed, so sessionFlow's flatMapLatest held flowOf(fallback)
+                // forever: hasMoreHistory/taskState/stale/streaming never reached the UI
+                // for freshly-attached sessions. Re-bump after the attach.
+                managersVersion.value++
             }
             log.info("hub.conversationOpen", "session=${task.taskId}")
             coordinator

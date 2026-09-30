@@ -106,6 +106,7 @@ class ConversationUiTest {
         streaming: Map<Long, String> = emptyMap(),
         stale: Boolean = false,
         loading: Boolean = false,
+        hasMore: Boolean = false,
     ) = ConversationUiState(
         task = Task("s1", "Fix auth token refresh", TaskStatus.RUNNING, WorkspaceIdentityKey("/ws"), 1, 2),
         rows = rows,
@@ -115,7 +116,42 @@ class ConversationUiTest {
         taskState = taskState,
         phase = ConnectionPhase.CONNECTED,
         loading = loading,
+        hasMoreHistory = hasMore,
     )
+
+    /**
+     * FIELD-KILLER #10 (2026-09-30, vc14 field, repro'd on the emulator): RE-ENTRY with
+     * cached rows laid the list out at index 0, `atBottom` read false, and the tail
+     * anchor was SKIPPED — the conversation opened at the TOP of the window, the
+     * prefetch fired spuriously ("loading earlier messages" flash), and "jump to
+     * newest" showed. The first non-empty layout must anchor to the tail
+     * unconditionally, and the prefetch must not fire before that anchor.
+     */
+    @Test
+    fun reentry_withCachedRows_anchorsToTail_andDoesNotPrefetch() {
+        var loadOlderCalls = 0
+        val rows = (1L..60L).map { assistantRow(it, "message $it") }
+        rule.setContent {
+            ZCodeTheme {
+                ConversationScreen(
+                    state = uiState(rows, hasMore = true),
+                    phase = ConnectionPhase.CONNECTED,
+                    onBack = {},
+                    onLoadOlder = { _, _ -> loadOlderCalls++ },
+                    onDismissHistoryNotice = {},
+                    onRetryOlder = {},
+                )
+            }
+        }
+        rule.waitForIdle()
+        // Anchored at the TAIL: the newest row is composed and displayed; the oldest
+        // rows are far above and NOT composed by the LazyColumn.
+        rule.onNodeWithTag("conv-row-60").assertIsDisplayed()
+        rule.onAllNodesWithTag("conv-row-1").assertCountEquals(0)
+        // The prefetch must NOT have fired from the transient index-0 layout.
+        rule.waitForIdle()
+        kotlin.test.assertEquals(0, loadOlderCalls, "prefetch must not fire from the unanchored initial layout")
+    }
 
     private fun setContent(state: ConversationUiState) {
         rule.setContent {

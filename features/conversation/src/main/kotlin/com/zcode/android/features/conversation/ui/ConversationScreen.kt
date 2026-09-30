@@ -226,8 +226,26 @@ private fun TimelineBody(
     }
     var followBottom by remember { mutableStateOf(true) }
 
+    // FIELD-KILLER #10 (2026-09-30, vc14 field + repro'd on the emulator): the FIRST
+    // non-empty layout must anchor to the tail UNCONDITIONALLY. The old
+    // `followBottom && atBottom` guard skipped the scroll on RE-ENTRY with cached rows:
+    // the list lays out at index 0 first, `atBottom` reads false, and the conversation
+    // opened at the TOP of the window — firing the prefetch spuriously ("loading
+    // earlier messages" flash) and showing "jump to newest". Cold opens worked (rows
+    // arrived while the list was empty), which is why it was intermittent.
+    var anchoredToTail by remember { mutableStateOf(false) }
+
     // Track item-count growth: advance or count unread depending on the anchor state.
     LaunchedEffect(state.rows.size) {
+        if (!anchoredToTail && state.rows.isNotEmpty()) {
+            // Header items ("loading earlier…"/error strips) occupy index 0+.
+            val headerItems =
+                (if (state.loadingOlder) 1 else 0) + (if (state.loadOlderError != null) 1 else 0)
+            listState.scrollToItem(headerItems + state.rows.size - 1)
+            anchoredToTail = true
+            lastKnownCount = state.rows.size
+            return@LaunchedEffect
+        }
         val grew = state.rows.size > lastKnownCount
         if (grew) {
             if (followBottom && atBottom) {
@@ -257,7 +275,7 @@ private fun TimelineBody(
     // §19.2 prefetch: near the top edge with more history → fetch the previous page.
     LaunchedEffect(state.hasMoreHistory) {
         snapshotFlow { listState.firstVisibleItemIndex }.collect { index ->
-            if (state.hasMoreHistory && !state.loadingOlder && index <= PAGE_EDGE && state.rows.isNotEmpty()) {
+            if (anchoredToTail && state.hasMoreHistory && !state.loadingOlder && index <= PAGE_EDGE && state.rows.isNotEmpty()) {
                 onLoadOlder(state.rows.first().rowId) { rowsAdded ->
                     if (rowsAdded > 0) {
                         // Preserve the reader's position across the prepend (§19.4).
@@ -301,7 +319,11 @@ private fun TimelineBody(
                 key = { state.rows[it].rowId },
                 contentType = { state.rows[it].kind },
             ) { index ->
-                TimelineRow(row = state.rows[index], state = state)
+                TimelineRow(
+                    row = state.rows[index],
+                    state = state,
+                    modifier = Modifier.testTag("conv-row-${state.rows[index].rowId}"),
+                )
             }
         }
         if (!atBottom) {
@@ -338,7 +360,8 @@ private fun TimelineBody(
 }
 
 @Composable
-private fun TimelineRow(row: ConversationRow, state: ConversationUiState) {
+private fun TimelineRow(row: ConversationRow, state: ConversationUiState, modifier: Modifier = Modifier) {
+    Box(modifier = modifier) {
     when (row) {
         is ConversationRow.UserInput -> YouBlock(row.text)
         is ConversationRow.AssistantText -> {
@@ -366,6 +389,8 @@ private fun TimelineRow(row: ConversationRow, state: ConversationUiState) {
         is ConversationRow.TimelineMarker -> QuietMetaRow(label = row.markerType, detail = null)
         is ConversationRow.Unknown -> UnknownKindRow(row)
     }
+    }
+
 }
 
 private fun formatBytes(bytes: Long): String = when {

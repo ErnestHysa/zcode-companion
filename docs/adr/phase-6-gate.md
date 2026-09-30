@@ -582,3 +582,40 @@ its first real page exposed the final transport defect:
    diagnostics persistence works as designed.
 
 Suites: full JVM/Robolectric pool green; 5/5 instrumented (ATD). Build vc15.
+
+## Post-gate field round 19 (2026-09-30, vc14 real-device report + EMULATOR REPRODUCTION — history UX fixed and verified live)
+
+vc14 field: no crashes (rounds 16–17 hold). The remaining complaint — "can't load the whole
+conversation; re-entering a task shows a brief 'loading earlier messages' and a jump-to-newest
+pill instead of the conversation" — was REPRODUCED ON THE EMULATOR with an end-to-end
+instrumented test driving the real app (pair → open task → scroll/paging), per the user's
+request to verify first-hand. Two defects found and fixed:
+
+1. **FIELD-KILLER #10 — the tail anchor was skipped on re-entry**: `TimelineBody` anchored
+   to the tail only `if (followBottom && atBottom)` — on re-entry with cached rows the list
+   lays out at index 0 FIRST, `atBottom` reads false, and the scroll-to-tail never ran.
+   Cold opens worked (rows arrived while the list was empty), which made it intermittent —
+   exactly the reported pattern. Fix: the first non-empty layout anchors to the tail
+   UNCONDITIONALLY (header strips offset), and the scroll-up prefetch is gated until the
+   anchor completed (no spurious "loading earlier" flash on entry).
+2. **`managersVersion` never re-bumped after attach**: the hub bumped it when creating the
+   coordinator — BEFORE `startTargets` created the session managers — so
+   `sessionFlow`'s `flatMapLatest` held `flowOf(fallback)` forever for freshly-attached
+   sessions: hasMoreHistory/taskState/stale/streaming never reached the UI for the FIRST
+   open of any task (second opens worked — managers existed). Fix: re-bump after
+   `startTargets`.
+
+Emulator E2E (`HistoryPaginationE2eInstrumentedTest`, real app + in-process mock desktop
+with a truncated tail window): open → tail anchored (newest row displayed, window's first
+row NOT composed) → "Load earlier" strip armed from window metadata → scroll-up prefetch
+fetches the page → store grows 40→80 rows → scrolled to the conversation's first row →
+strip retires when hasMore exhausts. Mock gained `snapshotRowIdBase`/`snapshotWindowTruncated`;
+tasks gained per-task row tags for driving. (Debug note: a mock task with a fixed stale
+timestamp is swept by the §17.3 7-day bound — E2E tasks carry current timestamps.)
+
+Suites: full JVM/Robolectric pool green; 6/6 instrumented (ATD) incl. the new E2E. Build vc16.
+
+**VERDICT: the load-earlier flow is now verified working end-to-end ON THE EMULATOR, and
+the field data path (rowsRange pages, window metadata, per-workspace scopes) was verified
+against the real desktop in rounds 13–15. Phase 6 read/stream is complete; Phase 7 is ready
+to start.**
