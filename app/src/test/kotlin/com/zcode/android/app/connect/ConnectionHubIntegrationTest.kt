@@ -194,6 +194,32 @@ class ConnectionHubIntegrationTest {
     }
 
     /**
+     * FIELD-KILLER #4 regression (2026-09-30, vc9 real device — the LAST blocker):
+     * production snapshot `rows` is a TAIL-WINDOW OBJECT {window, totalCount, firstRowId}
+     * (rowsWindowSchema, snapshot.ts) — the gateway read a bare array and every REAL
+     * snapshot failed "snapshot.rows missing" (40 326-row snapshots discarded while
+     * every mock suite passed on the bare-array shape). With the production shape the
+     * full pipeline must land rows in the page cache.
+     */
+    @Test
+    fun `open conversation lands rows from the production rows-window snapshot shape`() = runBlocking {
+        mock.script.snapshotRowsWindowShape = true
+        hub.start()
+        withTimeout(30_000) { hub.phase.first { it == ConnectionPhase.CONNECTED } }
+        val task = withTimeout(15_000) { tasks.snapshot.first { it.isNotEmpty() } }.first()
+        val coordinator = hub.openConversation(task) as RecoveryCoordinator
+        withTimeout(20_000) {
+            conversations.rowsFor(task.taskId).first { it.isNotEmpty() }
+        }
+        assertTrue(coordinator.managedSessions().contains(task.taskId))
+        // No decode-fault escalation: the session must not be stale after a clean snapshot.
+        withTimeout(5_000) {
+            hub.sessionStale(task.taskId).first { !it }
+        }
+        Unit
+    }
+
+    /**
      * Phase 6 FIELD-FINDING regression (real-phone failure vs production): the relay
      * rejects the first bridge-open (here: strict taskless-rejection with a queued
      * session-not-found — the observed production behavior). The hub's cold start

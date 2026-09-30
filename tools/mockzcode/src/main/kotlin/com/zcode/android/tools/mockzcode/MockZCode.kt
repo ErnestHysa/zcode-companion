@@ -62,6 +62,13 @@ class MockZCode(
          * {frame: topicFrame}. true = production shape (regression coverage), false = spike shape.
          */
         var topicEventDirect: Boolean = false
+
+        /**
+         * FIELD (2026-09-30, vc9): production snapshot `rows` is a TAIL-WINDOW OBJECT
+         * {window: [row…], totalCount, firstRowId} (rowsWindowSchema, snapshot.ts);
+         * the default bare-array shape is the Phase-1/4 mock shape.
+         */
+        var snapshotRowsWindowShape: Boolean = false
         /** Shuffle fragment envelopes inside each logical message (out-of-order storm). */
         var shuffleFragments: Boolean = false
         /** #228 class: inject one physical envelope > 1 MiB (once). */
@@ -892,7 +899,17 @@ class MockZCode(
                     put("kind", JsonPrimitive("snapshot"))
                     put("snapshot", buildJsonObject {
                         put("sessionId", JsonPrimitive(sessionId))
-                        put("rows", snapshotRows(sessionId, workspace.rowCount))
+                        if (script.snapshotRowsWindowShape) {
+                            // Production rowsWindowSchema: {window, totalCount, firstRowId}.
+                            val rows = snapshotRows(sessionId, workspace.rowCount)
+                            put("rows", buildJsonObject {
+                                put("window", rows)
+                                put("totalCount", JsonPrimitive(rows.size))
+                                put("firstRowId", JsonPrimitive(1))
+                            })
+                        } else {
+                            put("rows", snapshotRows(sessionId, workspace.rowCount))
+                        }
                     })
                 } else {
                     put("kind", JsonPrimitive("deltas"))

@@ -182,9 +182,39 @@ class RelayConversationGateway(
     }
 
     private fun decodeRows(snapshot: JsonObject, sessionId: String): List<ConversationRow> {
-        val arr = snapshot["rows"] as? kotlinx.serialization.json.JsonArray
-            ?: throw RowDecodeException("snapshot.rows missing (session $sessionId)")
-        return arr.map { decodeRow(it as? JsonObject ?: throw RowDecodeException("snapshot row not an object"), sessionId) }
+        // FIELD-KILLER #4 (2026-09-30, vc9 real device — the LAST blocker): production
+        // `rows` is a TAIL-WINDOW OBJECT, not an array — rowsWindowSchema =
+        // { window: [row…], totalCount, firstRowId } (open repo
+        // packages/shared/src/zcode-protocol-v4/snapshot.ts @ v3.14.3 29628c9; the
+        // 212 KB real snapshot carries seq 0..40326 rows in `rows.window`). The mock's
+        // bare-array shape is still accepted.
+        val rowsEl = snapshot["rows"]
+        val arr = when {
+            rowsEl is kotlinx.serialization.json.JsonArray -> rowsEl
+            rowsEl is JsonObject -> rowsEl["window"] as? kotlinx.serialization.json.JsonArray
+            else -> null
+        } ?: throw RowDecodeException(
+            "snapshot.rows missing (session $sessionId) — expected rows.window object or rows array",
+        )
+        // Snapshot resilience (§19.4 tail-first): a snapshot can carry tens of thousands
+        // of rows — one row violating the ported schema must not blank the whole task.
+        // A row that fails KNOWN-kind required-field validation is demoted to a retained
+        // raw placeholder (the same tolerance Unknown kinds get, INV-8); deltas stay
+        // fail-closed (INV-14 — single ops, whole-frame drop remains correct there).
+        return arr.map { el ->
+            val obj = el as? JsonObject
+                ?: throw RowDecodeException("snapshot row not an object")
+            try {
+                decodeRow(obj, sessionId)
+            } catch (e: RowDecodeException) {
+                ConversationRow.Unknown(
+                    rowId = (obj["rowId"] as? kotlinx.serialization.json.JsonPrimitive)?.content?.toLongOrNull() ?: -1L,
+                    turnId = (obj["turnId"] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: "",
+                    unknownKind = "decode-fault:" + (obj["kind"] as? kotlinx.serialization.json.JsonPrimitive)?.content.orEmpty(),
+                    raw = obj,
+                )
+            }
+        }
     }
 
     private fun decodeRow(obj: JsonObject, sessionId: String): ConversationRow =

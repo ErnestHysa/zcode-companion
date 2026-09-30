@@ -74,7 +74,15 @@ class ConversationSessionManager(
         when (event) {
             is GatewayTopicEvent.Snapshot -> handleSnapshot(event)
             is GatewayTopicEvent.Deltas -> handleDeltas(event)
-            is GatewayTopicEvent.DecodeFaulted -> escalate("decode fault: ${event.reason.take(80)}", null, null)
+            // FIELD (2026-09-30, vc9): a DECODE fault is a schema/data fault — resync
+            // cannot fix it and the desktop rejects the resync with
+            // fault.subscription.notOwned (4 spammed attempts per snapshot in the field).
+            // Honest handling: surface + stale label; the next authoritative snapshot
+            // (or app fix) recovers — no resync loop.
+            is GatewayTopicEvent.DecodeFaulted -> {
+                log.warn("session.decodeFault", event.reason.take(120))
+                setStale(true)
+            }
         }
     }
 

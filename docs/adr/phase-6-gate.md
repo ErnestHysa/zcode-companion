@@ -411,3 +411,31 @@ connection stays CONNECTED; `topicEventDirect` mock flag). CorpusReplayTest boun
 (one pool-run variance observed, isolation-green — documented rotating class).
 
 Suites: full JVM/Robolectric pool green in one run; 5/5 instrumented (ATD). Build vc9.
+
+## Post-gate field round 13 (2026-09-30, vc9 real-device report: rows-window shape — the LAST blocker, conversation loads)
+
+vc9 field status: the round-12 shape fix is CONFIRMED — `gateway.frame kind=INITIAL
+seq=0..40326` shows the real 212 KB snapshot decoding as a topic frame, connection stable,
+zero reconnects. The final blocker was one level deeper and purely a data-shape mismatch:
+
+1. **`snapshot.rows` is a TAIL-WINDOW OBJECT in production** — `rowsWindowSchema =
+   { window: [row…], totalCount, firstRowId }` (open repo
+   `packages/shared/src/zcode-protocol-v4/snapshot.ts` @ v3.14.3 29628c9; verified against
+   the field: `subscribe ok → recovery.subscribed → gateway.frame INITIAL 0..40326 →
+   decode fault: snapshot.rows missing`). Our gateway read `rows` as a bare array (the
+   mock's Phase-1/4 shape) and discarded EVERY real snapshot. Fix: accept both —
+   `rows.window` object (production) and bare array (mock/legacy).
+2. **Decode faults no longer resync-spam**: `DecodeFaulted` escalated `resyncConversationV4`
+   4× per snapshot and the desktop rejected each with `fault.subscription.notOwned`. A decode
+   fault is a schema/data fault — resync cannot fix it. Honest handling now: surface
+   (`session.decodeFault`) + stale label; recovery via the next authoritative snapshot.
+3. **Snapshot row resilience**: with 40 k-row windows, one row violating the ported
+   (v3.14.3-era) schema must not blank the task — snapshot rows that fail KNOWN-kind
+   validation are demoted to retained-raw placeholders (the same tolerance Unknown kinds
+   get, INV-8); deltas remain fail-closed (INV-14).
+
+Regression: `ConnectionHubIntegrationTest.open conversation lands rows from the production
+rows-window snapshot shape` (full pipeline: MockZCode `snapshotRowsWindowShape` flag →
+rows cached → session not stale). Mock gained the production shape; gateway accepts both.
+
+Suites: full JVM/Robolectric pool green in one run; 5/5 instrumented (ATD). Build vc10.
