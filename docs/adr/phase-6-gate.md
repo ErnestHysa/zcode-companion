@@ -439,3 +439,31 @@ rows-window snapshot shape` (full pipeline: MockZCode `snapshotRowsWindowShape` 
 rows cached → session not stale). Mock gained the production shape; gateway accepts both.
 
 Suites: full JVM/Robolectric pool green in one run; 5/5 instrumented (ATD). Build vc10.
+
+## Post-gate field round 14 (2026-09-30, vc10 real-device report: cross-workspace task snapshots — FIXED)
+
+vc10 field status: the round-13 rows fix is CONFIRMED — the first task fully loaded and
+rendered (`manager.snapshot rows=60`, zero errors, stable connection). The remaining defect
+was workspace ROUTING of topic frames:
+
+- Task 1 lives in the bridge-pinned workspace (`android-native`) → snapshot delivered.
+- Tasks in OTHER workspaces (`/Users/ernest/ZCodeProject`, `/Users/ernest/Desktop/pragma`)
+  subscribed fine (`mode=snapshot` acked, per-session workspacePath sent) but **no snapshot
+  frame ever arrived** — the conversation-topic EventListen is scoped to a WORKSPACE, and only
+  the bridge scope was registered. The desktop routed those snapshots to nobody.
+
+Fix: `RelayTransport.ensureConversationListen(workspacePath, identity)` — idempotent
+per-connection scoped listener registration (scopes reset on each fresh channel), called by
+`ConversationGateway.subscribe/resync` BEFORE the call so the INITIAL snapshot routes to us.
+BLANK scopes are refused: a null workspace means "bridge-pinned workspace" (already covered);
+a blank-scoped listen deregisters the prior scope (mock-observed: it silenced the subsequent
+subscribe — the round-3 failure mode resurfacing through the new path). Deltas also fixed
+while here: `DecodeFaulted` no longer resync-spams (round 13 follow-through verified in the
+field: no `fault.subscription.notOwned` since).
+
+Regression: `RelayTransportScopedListenTest` (mock enforces the production routing — the
+snapshot for another workspace is delivered ONLY when its scoped listener was attached first;
+idempotence pinned). Mock: `enforceScopeRouting`, `listenScopesSeen`.
+
+Suites: full JVM/Robolectric pool green in one run (S13 flaked mid-round during development —
+isolation-green, documented class); 5/5 instrumented (ATD). Build vc11.

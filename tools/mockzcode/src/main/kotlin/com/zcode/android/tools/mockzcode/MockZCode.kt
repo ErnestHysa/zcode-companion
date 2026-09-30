@@ -69,6 +69,14 @@ class MockZCode(
          * the default bare-array shape is the Phase-1/4 mock shape.
          */
         var snapshotRowsWindowShape: Boolean = false
+
+        /**
+         * FIELD-KILLER #5 (2026-09-30, vc10): production routes topic frames by the
+         * LISTEN's workspace scope. When true, the initial snapshot for a subscribe is
+         * delivered ONLY if a scoped listener for that subscribe's workspacePath was
+         * registered first — the per-workspace listener contract.
+         */
+        var enforceScopeRouting: Boolean = false
         /** Shuffle fragment envelopes inside each logical message (out-of-order storm). */
         var shuffleFragments: Boolean = false
         /** #228 class: inject one physical envelope > 1 MiB (once). */
@@ -427,6 +435,9 @@ class MockZCode(
     /** True once a client registers a v4/connection/flow EventListen (must NEVER happen — crashes the production host). */
     @Volatile var sawConnectionFlowListen: Boolean = false
         private set
+
+    /** Workspace paths seen in onDynamicConversationFrame EventListen scopes (order preserved). */
+    val listenScopesSeen = java.util.concurrent.ConcurrentLinkedQueue<String>()
     @Volatile private var currentBridgeId: String? = null
     private var subscriptionId = "sub-mock-1"
     private var logEpoch = "epoch-mock-1"
@@ -634,6 +645,16 @@ class MockZCode(
                     flowListenerId = id
                     sawConnectionFlowListen = true
                 }
+                if (name == "onDynamicConversationFrame") {
+                    val listenArg = when (val a = arg) {
+                        is RpcValue.Arr -> (a.items.firstOrNull() as? RpcValue.Obj)?.json as? JsonObject
+                        is RpcValue.Obj -> a.json as? JsonObject
+                        else -> null
+                    }
+                    (listenArg?.get("workspacePath") as? JsonPrimitive)?.content?.let {
+                        synchronized(listenScopesSeen) { listenScopesSeen.add(it) }
+                    }
+                }
             }
             ChannelWire.RequestType.Promise.id -> handlePromise(id, channelName, name, arg)
             else -> Unit
@@ -693,6 +714,7 @@ class MockZCode(
                 // a blank workspacePath is a client-side routing bug, surface it loudly.
                 if (params.str("workspacePath").isBlank()) return respondError(id, "fault.subscribe.workspaceScope")
                 val sessionId = params.str("sessionId")
+                lastSubscribeWorkspacePath = params.str("workspacePath")
                 subscriptionId = "sub-mock-$sessionId"
                 respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
                     put("ack", buildJsonObject {
@@ -885,7 +907,17 @@ class MockZCode(
     }
 
     /** Build + send a v4 topic frame through the REAL TopicWireFrameCodec (schema-true). */
+    @Volatile private var lastSubscribeWorkspacePath: String? = null
+
     fun pushTopicFrame(sessionId: String, deliveryKind: DeliveryKind, snapshot: Boolean, fromSeq: Long, toSeq: Long) {
+        if (script.enforceScopeRouting) {
+            // The snapshot rides the MOST RECENT subscribe's workspace (single-session
+            // mock): deliver only if a scoped listener for that workspace exists — the
+            // per-workspace listener contract from FIELD-KILLER #5.
+            val required = lastSubscribeWorkspacePath
+            val routed = required != null && synchronized(listenScopesSeen) { listenScopesSeen.contains(required) }
+            if (!routed) return // routed to nobody — exactly what production does
+        }
         val listener = conversationListenerId ?: return
         val topic = "conversation/$sessionId"
         val frame = buildJsonObject {

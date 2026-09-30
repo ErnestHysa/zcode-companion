@@ -230,6 +230,11 @@ class RelayConversationGateway(
         workspacePath: String?,
         workspaceIdentity: String?,
     ): GatewayAck {
+        // FIELD-KILLER #5 (2026-09-30, vc10): the desktop routes topic frames by the
+        // LISTEN's workspace scope — a session outside the bridge-pinned workspace
+        // subscribed fine but its snapshot was routed to nobody. Attach the scoped
+        // listener for THIS workspace before the subscribe so the INITIAL snapshot lands.
+        transport.ensureConversationListen(workspacePath, workspaceIdentity)
         val ack = transport.subscribeSession(sessionId, visibility, workspacePath, workspaceIdentity)
         synchronized(epochs) { epochs[sessionId] = ack.logEpoch }
         return GatewayAck(ack.subscriptionId, ack.mode, ack.logEpoch)
@@ -243,6 +248,7 @@ class RelayConversationGateway(
         workspacePath: String?,
         workspaceIdentity: String?,
     ): GatewayAck {
+        transport.ensureConversationListen(workspacePath, workspaceIdentity)
         val ack = transport.resyncSession(
             sessionId,
             base = if (baseEpoch == null || baseSeq == null) null else baseEpoch to baseSeq,

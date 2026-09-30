@@ -975,30 +975,24 @@ class RelayTransport(
 
     // ------------------------------------------------------------------ channel / v4
 
+    /** Conversation-topic listen scopes already registered on the CURRENT channel. */
+    private val listenedScopes = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+
+    /**
+     * FIELD FIX (round 3): the EventListen ARG is the WORKSPACE SCOPE that routes
+     * the zcode-agent channel on production ({workspacePath, workspaceIdentity?}).
+     * FIELD-KILLER #5 (2026-09-30, vc10): the scope routes TOPIC FRAMES TOO — the
+     * bridge scope covers only the pinned workspace, so a session in ANOTHER workspace
+     * subscribed fine (mode=snapshot acked) but its INITIAL snapshot was routed to no
+     * listener and never arrived (field: task 1 in the pinned workspace loaded with
+     * rows=60; tasks in /Users/ernest/ZCodeProject and /Users/ernest/Desktop/pragma
+     * subscribed OK yet no frame ever came). A scoped listener is now attached PER
+     * WORKSPACE before subscribing into it — see [ensureConversationListen].
+     */
     private fun attachChannelEventListeners(bridge: BridgeInfo) {
-        // FIELD FIX (round 3): the EventListen ARG is the WORKSPACE SCOPE that routes
-        // the zcode-agent channel on production ({workspacePath, workspaceIdentity?} —
-        // the spike-proven shape). Without it the desktop host attaches the channel
-        // to no workspace and every conversation-plane call (helloConversationV4 …)
-        // goes UNANSWERED — the real-phone 10 s timeout. The lenient mock ignored
-        // the arg, which is why every suite passed while production hung.
-        val scopeJson = buildJsonObject {
-            put("workspacePath", JsonPrimitive(bridge.workspacePath))
-            bridge.workspaceIdentity?.let { put("workspaceIdentity", JsonPrimitive(it)) }
-        }
-        val scopeArg = RpcValue.Obj(scopeJson)
-        // Downstream topic frames (workspace-level). FIELD-KILLER #3 (2026-09-30, vc8):
-        // production delivers the event arg AS the TopicWireFrame itself
-        // ({wireVersion, kind, topic, frame: <payload>} — desktop schema
-        // chunk-RH3H53JA `N = discriminatedUnion("kind", …)`); the old code pre-stripped
-        // `.frame` (the PAYLOAD) and decoded THAT as a TopicWireFrame → wireVersion=null
-        // → "wire version mismatch" → healthy connection torn down on every real
-        // snapshot (~178 KB). The wrapped {frame: topicFrame} shape (Phase-1 spike /
-        // MockZCode) is still tolerated — disambiguated by wireVersion presence.
-        channel.listen("zcode-agent", "onDynamicConversationFrame", scopeArg) { args ->
-            val obj = (args as? RpcValue.Obj)?.json as? JsonObject ?: return@listen
-            handleTopicWireFrame(obj)
-        }
+        // Fresh channel → fresh scope registry (the bridge scope re-registers below).
+        listenedScopes.clear()
+        ensureConversationListen(bridge.workspacePath, bridge.workspaceIdentity)
         // NO v4/connection/flow listen here. FIELD-KILLER (2026-09-29, desktop log
         // ground truth): the 3.14.x host has no such event on the zcode-agent bridge
         // channel, and its ChannelServer treats the unknown EventListen as an
@@ -1009,6 +1003,35 @@ class RelayTransport(
         // the desktop UI freezes with it. §28.4 backpressure falls back to the
         // budget-based coalescing; flowPressure stays DRAINED unless a future
         // desktop pushes flow frames on its own.
+    }
+
+    /**
+     * Register the scoped onDynamicConversationFrame listener for [workspacePath] if not
+     * already listening. Idempotent per connection; call BEFORE subscribing a session
+     * that lives in this workspace so its INITIAL snapshot routes to us.
+     */
+    fun ensureConversationListen(workspacePath: String?, workspaceIdentity: String?) {
+        // A BLANK scope attaches the channel to no workspace — the desktop then routes
+        // nothing to it AND (mock-observed) it deregisters the prior scoped listen.
+        // A null workspace means "the bridge's pinned workspace" — already covered by
+        // the attach-time listen.
+        if (workspacePath.isNullOrBlank()) return
+        val key = workspacePath + "\u0000" + (workspaceIdentity ?: "")
+        if (!listenedScopes.add(key)) return
+        val scopeJson = buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: ""))
+            workspaceIdentity?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+        }
+        // Downstream topic frames (workspace-level). FIELD-KILLER #3 (2026-09-30, vc8):
+        // production delivers the event arg AS the TopicWireFrame itself
+        // ({wireVersion, kind, topic, frame: <payload>} — desktop schema
+        // chunk-RH3H53JA `N = discriminatedUnion("kind", …)`); the wrapped
+        // {frame: topicFrame} shape (Phase-1 spike / MockZCode) is tolerated —
+        // disambiguated by wireVersion presence in handleTopicWireFrame.
+        channel.listen("zcode-agent", "onDynamicConversationFrame", RpcValue.Obj(scopeJson)) { args ->
+            val obj = (args as? RpcValue.Obj)?.json as? JsonObject ?: return@listen
+            handleTopicWireFrame(obj)
+        }
     }
 
     private fun handleTopicWireFrame(obj: JsonObject) {
