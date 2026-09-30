@@ -59,6 +59,31 @@ class ConversationRepositoryTest {
             SessionId("s1"), epoch, ids.map { ConversationRow.Decoder.decode(rowJson(it)) },
         )
 
+    /**
+     * FIELD-KILLER #12 (2026-09-30, vc17 field): history pages are a STATELESS,
+     * rowId-keyed read-model merge. The desktop ROTATES atLogEpoch routinely (field:
+     * storeEpoch=muoigucv… vs pageEpoch=muoj84cf… ten seconds apart on a live
+     * conversation) — the old epoch gate discarded EVERY page ("changed on desktop",
+     * history dead-ended, 50/50 hit-or-miss). A page carrying a DIFFERENT epoch must
+     * still merge by rowId; the meta epoch (governing the live delta pipeline) stays.
+     */
+    @Test
+    fun `page with a rotated epoch still merges by rowId (12)`() = runTest {
+        repo.apply(snapshot("epoch-A", 5000L..5039L))
+        val op = ConversationStoreOp.PageFetched(
+            sessionId = SessionId("s1"),
+            logEpoch = "epoch-B-rotated",
+            rows = (1L..40L).map { ConversationRow.Decoder.decode(rowJson(it)) },
+        )
+        val result = repo.apply(op)
+        assertTrue(result is StoreApplyResult.Applied, "page must merge despite epoch rotation: $result")
+        val rows = repo.observeRows(SessionId("s1")).first()
+        assertEquals(80, rows.size, "window + page must coexist")
+        assertEquals(1L, rows.first().rowId)
+        // The LIVE pipeline epoch (meta) is unchanged by a stateless page read.
+        assertEquals("epoch-A", repo.currentEpoch(SessionId("s1")))
+    }
+
     @Test
     fun `snapshot replaces atomically and reports the previous epoch (15-5)`() = runTest {
         val r1 = repo.apply(snapshot("epoch-1", 1L..5L))

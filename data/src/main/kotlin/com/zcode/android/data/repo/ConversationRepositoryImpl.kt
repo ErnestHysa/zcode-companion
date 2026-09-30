@@ -49,9 +49,7 @@ class ConversationRepositoryImpl(
 
     override suspend fun apply(op: ConversationStoreOp): StoreApplyResult = when (op) {
         is ConversationStoreOp.SnapshotArrived -> applySnapshot(op)
-        is ConversationStoreOp.PageFetched -> applyGuarded(op) { rows ->
-            dao.insertRows(rows.map { it.toEntity(op) })
-        }
+        is ConversationStoreOp.PageFetched -> applyPage(op)
         is ConversationStoreOp.RowUpserted -> applyGuarded(op) { rows ->
             dao.insertRows(rows.map { it.toEntity(op) })
         }
@@ -75,6 +73,29 @@ class ConversationRepositoryImpl(
             enforceBound(op.sessionId.raw)
         }
         return StoreApplyResult.Replaced(previous)
+    }
+
+    /**
+     * FIELD-KILLER #12 (2026-09-30, vc17 field — the last history blocker): history
+     * pages are a STATELESS, rowId-keyed read-model merge. The desktop's own schema
+     * says so (transport.ts: "无 index 语义：全序 = rowId 升序；客户端按 rowId 键控合并")
+     * — and its `atLogEpoch` ROTATES ROUTINELY (field: storeEpoch=muoigucv-311q8zta vs
+     * pageEpoch=muoj84cf-hyqqz4x6 ten seconds later, on a live untouched conversation),
+     * so the former epoch gate discarded EVERY page → "changed on desktop" → history
+     * dead-ended. Merge by rowId, epoch-agnostic; the meta epoch (governing the LIVE
+     * delta/subscription pipeline, §15-S9) is adopted when fresh and left alone
+     * otherwise.
+     */
+    private suspend fun applyPage(op: ConversationStoreOp.PageFetched): StoreApplyResult {
+        val current = dao.meta(op.sessionId.raw)
+        db.withTransaction {
+            if (current == null) {
+                dao.putMeta(ConversationSessionMetaEntity(op.sessionId.raw, op.logEpoch, clock()))
+            }
+            dao.insertRows(op.rows.map { it.toEntity(op) })
+            enforceBound(op.sessionId.raw)
+        }
+        return StoreApplyResult.Applied
     }
 
     /** Epoch-guarded ops carrying rows: adopt epoch when the session is fresh. */

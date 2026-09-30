@@ -645,3 +645,24 @@ Fixes:
    retained placeholder; all-good page decodes fully typed).
 
 Suites: full JVM/Robolectric pool green; 6/6 instrumented (ATD). Build vc17.
+
+## Post-gate field round 21 (2026-09-30, vc17 real-device report: pageEpochRejected decoded — the desktop rotates logEpoch; history paging FIXED)
+
+Round 20's observability delivered the decisive evidence on the first rebound:
+`port.pageEpochRejected storeEpoch=muoigucv-311q8zta pageEpoch=muoj84cf-hyqqz4x6` (×4 sessions).
+The desktop **rotates the session logEpoch routinely** — ten seconds after a snapshot with one
+epoch, a stateless page read returns a completely different one, on live untouched
+conversations. Our store treated any epoch mismatch as "history changed on desktop" (§15-S9)
+and discarded the page: pages landed only when no rotation happened between snapshot and
+fetch — the reported 50/50 hit-or-miss, and the permanent dead end once "changed on desktop"
+fired and killed the prefetch.
+
+Fix: `PageFetched` merges are now **epoch-agnostic and rowId-keyed** — exactly what the
+desktop's own schema prescribes (transport.ts: "无 index 语义：全序 = rowId 升序；客户端按
+rowId 键控合并" — no index semantics; client merges keyed by rowId). The meta epoch
+(governing the LIVE delta/subscription pipeline, §15-S9) is adopted when the session is fresh
+and otherwise untouched by stateless page reads. Regression: `ConversationRepositoryTest.
+page with a rotated epoch still merges by rowId` (rotated page merges 40 rows over the
+window; meta epoch unchanged).
+
+Suites: full JVM/Robolectric pool green; 6/6 instrumented (ATD). Build vc18.
