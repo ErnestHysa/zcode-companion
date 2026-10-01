@@ -70,6 +70,12 @@ class DefaultTasksPort(
 
     override suspend fun refresh(): Boolean = hub.refreshTasks()
 
+    override fun observeWorkspaces(): Flow<List<com.zcode.android.domain.model.WorkspaceOption>> =
+        hub.workspaces
+
+    override suspend fun createTask(workspaceKey: String, firstText: String): Boolean =
+        hub.createTask(workspaceKey, firstText)
+
     override fun retryConnection() = hub.retry()
 }
 

@@ -429,3 +429,43 @@ class ConversationDraftLifecycleTest {
         assertEquals(1, answers)
     }
 }
+
+/**
+ * FIELD (2026-10-01, vc21 device report): "keyboard pops up, I type, nothing shows
+ * up" — two stacked causes: (a) the IME covered the composer (imePadding fix,
+ * device-leg only), and (b) the draft was NOT a combine source, so any state
+ * emission on a live conversation re-rendered the field with the stale value and
+ * wiped typed characters. This suite pins (b): typing must SURVIVE other state
+ * emissions because state.draft is state-driven.
+ */
+class ConversationTypingPersistenceTest {
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `typed draft survives state emissions (stale-draft wipe regression)`() = runTest {
+        val port = Phase7FakePort()
+        val sessionState = MutableStateFlow(
+            com.zcode.android.domain.model.SessionProjectionState(
+                control = com.zcode.android.domain.model.SessionControl(
+                    "running", false, true, com.zcode.android.domain.model.SessionControl.StopState.STOPPABLE, emptyList(),
+                ),
+            ),
+        )
+        val vm = ConversationViewModel(object : Phase7FakePort() {
+            override fun observeSessionState(taskId: String) = sessionState
+        }, backgroundScope, "s1")
+
+        vm.onDraftChange("hel")
+        runCurrent()
+        vm.onDraftChange("hello agent")
+        runCurrent()
+
+        // Live-conversation churn: the desktop pushes state patches while typing.
+        sessionState.value = sessionState.value.copy(revision = 42)
+        runCurrent()
+        sessionState.value = sessionState.value.copy(revision = 43)
+        runCurrent()
+
+        assertEquals("hello agent", vm.state.value.draft, "draft wiped by a state emission")
+    }
+}

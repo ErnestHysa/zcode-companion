@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -83,7 +84,12 @@ fun ConversationScreen(
             Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .navigationBarsPadding(),
+                // FIELD (2026-10-01, vc21 device): edge-to-edge draws the IME as an
+                // overlay — without imePadding the keyboard covered the pinned
+                // composer entirely ("typing but nothing shows up": the field was
+                // UNDER the keyboard).
+                .navigationBarsPadding()
+                .imePadding(),
         ) {
             Header(state = state, phase = phase, onBack = onBack)
             // Pinned state strips (§15-S1/S9, mockups 09/10/12) — content stays visible.

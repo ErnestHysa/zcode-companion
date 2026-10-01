@@ -83,6 +83,8 @@ class InteractionCoordinatorPhase7Test {
             baseRevision: Long?,
             baseLogEpoch: String?,
             commandId: String,
+            workspacePath: String?,
+            workspaceIdentity: String?,
         ): CommandAck {
             sent.add(type to payload)
             if (throwOnSend) throw IllegalStateException("down")

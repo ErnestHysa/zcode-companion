@@ -192,3 +192,11 @@ data class WorkspaceListEntry(
     val label: String?,
     val raw: JsonObject? = null,
 )
+
+
+/**
+ * A workspace offered by the paired desktop (bootstrap `workspaces[]`). Display
+ * metadata only — identity is `key` (§7.11: workspaceIdentity?.trim() ||
+ * workspacePath; INV-12: never a bare path where an identity exists).
+ */
+data class WorkspaceOption(val key: String, val label: String, val path: String?)

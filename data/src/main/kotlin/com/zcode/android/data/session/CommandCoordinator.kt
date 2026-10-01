@@ -40,6 +40,8 @@ class CommandCoordinator(
     private val outbox: OutboxRepository,
     private val commands: CommandSender,
     private val connectionState: () -> ConnectionStateMachine.ConnectionState,
+    /** Conversation-plane listens (createSession MUST register the workspace scope first — round-3 field fidelity). */
+    private val ensureConversationListen: (workspacePath: String?, workspaceIdentity: String?) -> Unit = { _, _ -> },
     private val clock: () -> Long = System::currentTimeMillis,
     private val log: ZLog = ZLog(),
 ) {
@@ -128,6 +130,47 @@ class CommandCoordinator(
     /** `cancelBackgroundWork {workId}` (§28.6 SAFE_AGGRESSIVE). */
     suspend fun cancelBackgroundWork(sessionId: String, workId: String): Outcome =
         simpleCommand("cancelBackgroundWork", sessionId, buildJsonObject { put("workId", workId) })
+
+    // ---------------------------------------------------------------- createSession (task creation)
+
+    /**
+     * Create a task in an existing workspace — the parity feature (§6.1: the web
+     * remote creates tasks in existing workspaces). VERIFIED wire shape (desktop
+     * adapter, replayable path): `createSession` with sessionId=null,
+     * `payload.workspaceId = workspaceIdentity?.trim() || workspacePath` (§7.11),
+     * optional `firstInput {text}` — the ack's `result.sessionId` carries the new
+     * session. Not CAS-guarded (verified set). The workspace scope listen goes out
+     * FIRST (round-3 field fidelity: unscoped conversation-plane calls are silent).
+     */
+    suspend fun createSession(
+        workspacePath: String,
+        workspaceIdentity: String?,
+        firstText: String,
+    ): Outcome {
+        if (connectionState() != ConnectionStateMachine.ConnectionState.CONNECTED) {
+            log.warn("command.blockedOffline", "type=createSession")
+            return Outcome.BlockedOffline
+        }
+        if (firstText.isBlank()) return Outcome.Failed(null)
+        ensureConversationListen(workspacePath, workspaceIdentity)
+        val identityKey = workspaceIdentity?.trim()?.takeIf { it.isNotEmpty() } ?: workspacePath
+        val payload = buildJsonObject {
+            put("workspaceId", identityKey)
+            put("firstInput", buildJsonObject { put("text", firstText) })
+        }
+        val commandId = accept("createSession", sessionId = null, payload = payload)
+            ?: return Outcome.BlockedOffline
+        // The workspace target is MANDATORY on the create wire — there is no session
+        // for the transport to resolve it from (the fallback chain would drop it).
+        return transmitPending(
+            commandId,
+            type = "createSession",
+            sessionId = null,
+            payload = payload,
+            workspacePath = workspacePath,
+            workspaceIdentity = workspaceIdentity,
+        )
+    }
 
     // ---------------------------------------------------------------- queue edits (7.5, CAS)
 
@@ -239,6 +282,8 @@ class CommandCoordinator(
         type: String,
         sessionId: String?,
         payload: JsonObject,
+        workspacePath: String? = null,
+        workspaceIdentity: String? = null,
     ): Outcome {
         val state = outbox.get(commandId)?.state
         if (state == OutboxStateMachine.State.ACCEPTED_LOCALLY) {
@@ -252,6 +297,8 @@ class CommandCoordinator(
                 baseRevision = outbox.get(commandId)?.baseRevision,
                 baseLogEpoch = outbox.get(commandId)?.baseLogEpoch,
                 commandId = commandId.raw,
+                workspacePath = workspacePath,
+                workspaceIdentity = workspaceIdentity,
             )
             outbox.apply(
                 commandId,

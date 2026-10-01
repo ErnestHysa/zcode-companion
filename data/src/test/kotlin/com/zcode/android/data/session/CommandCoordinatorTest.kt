@@ -39,6 +39,8 @@ class CommandCoordinatorTest {
             baseRevision: Long?,
             baseLogEpoch: String?,
             commandId: String,
+            workspacePath: String?,
+            workspaceIdentity: String?,
         ): CommandAck {
             sends.add(type to commandId)
             revisions.add(baseRevision)

@@ -1042,7 +1042,20 @@ class MockZCode(
                 }))
             }
             "sendConversationCommandV4" -> {
-                val env = argAsObject(arg)
+                // Production shape (zcodeAgent.ts): the arg is
+                // {workspacePath?, workspaceIdentity?, envelope} — the desktop's
+                // adapter spreads the workspace target beside a NESTED envelope.
+                // The bare-envelope shape is the Phase-7-dev mock shape; tolerated
+                // for legacy fixtures, but the wrapper is what suites must assert.
+                val rawArg = argAsObject(arg)
+                val wrapped = rawArg?.get("envelope") as? JsonObject
+                val env = wrapped ?: rawArg
+                (rawArg?.get("workspacePath") as? JsonPrimitive)?.content?.let {
+                    lastCommandWorkspacePath = it
+                }
+                (rawArg?.get("workspaceIdentity") as? JsonPrimitive)?.content?.let {
+                    lastCommandWorkspaceIdentity = it
+                }
                 val type = env?.strOrNull("type") ?: "unknown"
                 val commandId = env?.strOrNull("commandId") ?: "unknown"
                 scope.launch { events.emit(ServerEvent.CommandReceived(type, commandId)) }
@@ -1080,14 +1093,17 @@ class MockZCode(
                     }))
                     return
                 }
+                var createResult: JsonObject? = null
                 if (script.commandEffects) {
-                    applyCommandEffect(type, env)
+                    createResult = applyCommandEffect(type, env)
                 }
-                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                val ackObj = buildJsonObject {
                     put("commandId", JsonPrimitive(commandId))
                     put("status", JsonPrimitive("accepted"))
                     put("revisionAtDecision", JsonPrimitive(stateRevision.get()))
-                }))
+                    createResult?.let { put("result", it) }
+                }
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(ackObj))
             }
             else -> respondError(id, "fault.mock.unknownMethod")
         }
@@ -1101,11 +1117,28 @@ class MockZCode(
      * stop flips the control block, queue ops patch the queue. Every effect bumps
      * the CAS revision.
      */
-    private fun applyCommandEffect(type: String, env: JsonObject?) {
+    private fun applyCommandEffect(type: String, env: JsonObject?): JsonObject? {
         val payload = env?.get("payload") as? JsonObject
         when (type) {
+            "createSession" -> {
+                val payload = env?.get("payload") as? JsonObject
+                val text = (payload?.get("firstInput") as? JsonObject)?.strOrNull("text") ?: ""
+                val newId = "sess-created-${createdCount.incrementAndGet()}"
+                val wsPath = lastCommandWorkspacePath ?: workspace.workspacePath
+                script.bootstrapTasks = script.bootstrapTasks.orEmpty() + MockZCode.MockTask(
+                    taskId = newId,
+                    title = text.take(60),
+                    displayStatus = "running",
+                    workspacePath = wsPath,
+                    createdAtMs = System.currentTimeMillis(),
+                    updatedAtMs = System.currentTimeMillis(),
+                )
+                // §48-U2 path: the desktop pushes the updated task list immediately.
+                pushWorkspaceListUpdated(script.bootstrapTasks.orEmpty())
+                JsonObject(emptyMap()) // ack result body; sessionId rides below
+            }
             "sendText" -> {
-                val text = payload?.strOrNull("text") ?: return
+                val text = payload?.strOrNull("text") ?: return null
                 stateRevision.incrementAndGet()
                 val userRow = schemaRow(workspace.sessionId, nextRowId(), RowKind.USER_INPUT, text)
                 val replyRow = schemaRow(workspace.sessionId, nextRowId(), RowKind.ASSISTANT_TEXT, "synthetic reply to: ${text.take(24)}")
@@ -1129,7 +1162,7 @@ class MockZCode(
                 script.inputRoutingMode = "enqueue"
             }
             "resolveInteraction" -> {
-                val iid = payload?.strOrNull("interactionId") ?: return
+                val iid = payload?.strOrNull("interactionId") ?: return null
                 stateRevision.incrementAndGet()
                 val hadPermission = script.pendingPermission?.interactionId == iid
                 val hadUserInput = script.pendingUserInput?.interactionId == iid
@@ -1198,6 +1231,7 @@ class MockZCode(
                 pushQueuePatch()
             }
         }
+        return null
     }
 
     private fun pushQueuePatch() {
@@ -1217,6 +1251,7 @@ class MockZCode(
         })
     }
 
+    private val createdCount = java.util.concurrent.atomic.AtomicInteger(0)
     private var lastRowId = 0L
     private fun nextRowId(): Long {
         lastRowId += 1
@@ -1324,6 +1359,10 @@ class MockZCode(
 
     /** Build + send a v4 topic frame through the REAL TopicWireFrameCodec (schema-true). */
     @Volatile private var lastSubscribeWorkspacePath: String? = null
+    @Volatile var lastCommandWorkspacePath: String? = null
+        private set
+    @Volatile var lastCommandWorkspaceIdentity: String? = null
+        private set
 
     fun pushTopicFrame(sessionId: String, deliveryKind: DeliveryKind, snapshot: Boolean, fromSeq: Long, toSeq: Long) {
         if (script.enforceScopeRouting) {

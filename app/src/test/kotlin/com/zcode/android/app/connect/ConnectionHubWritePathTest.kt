@@ -186,6 +186,47 @@ class ConnectionHubWritePathTest {
     }
 
     @Test
+    fun `commands carry the production wire shape - workspace target beside the envelope (vc21 fix)`() = runBlocking {
+        val task = connectAndOpen()
+        assertEquals(ConversationPort.SendOutcome.ACCEPTED, port.sendPrompt(task.taskId, "wire shape probe"))
+        // vc21 fix: the bare-envelope shape would fail the desktop's params.envelope
+        // lookups — the wrapper {workspacePath, envelope} is now mandatory.
+        org.junit.Assert.assertNotNull(
+            "workspacePath missing on the command arg",
+            mock.lastCommandWorkspacePath,
+        )
+        org.junit.Assert.assertEquals(task.workspace.raw, mock.lastCommandWorkspacePath)
+    }
+
+    @Test
+    fun `createSession creates a task in an existing workspace (parity, 6-1)`() = runBlocking {
+        connectAndOpen()
+        val before = hub.currentTasks().size
+        val outcome = assertNotNull(hub.commandCoordinatorOrNull())
+            .createSession(workspacePath = "/synthetic/ws", workspaceIdentity = null, firstText = "brand new task from the phone")
+        assertTrue(
+            outcome is com.zcode.android.data.session.CommandCoordinator.Outcome.Accepted,
+            "createSession not accepted: $outcome",
+        )
+        // The mock's effect appends the new task + pushes workspace-list-updated —
+        // the projection must show it (with §7.11 key = path here).
+        val created = withTimeout(20_000) {
+            kotlinx.coroutines.flow.flow {
+                while (true) {
+                    val match = hub.currentTasks().firstOrNull { it.taskId.startsWith("sess-created-") }
+                    if (match != null) { emit(match); break }
+                    kotlinx.coroutines.delay(100)
+                }
+            }.first()
+        }
+        assertEquals("brand new task from the phone", created.title)
+        org.junit.Assert.assertNotNull(outcome)
+        org.junit.Assert.assertTrue(hub.currentTasks().size >= before)
+        // The create call registered the workspace scope listen + carried the target.
+        org.junit.Assert.assertEquals("/synthetic/ws", mock.lastCommandWorkspacePath)
+    }
+
+    @Test
     fun `pending approval arrives via pendingInteractions and allowOnce resolves it (U8, G2a)`() = runBlocking {
         val task = connectAndOpen()
         // Inject the pending interaction through the verified state.updated patch.

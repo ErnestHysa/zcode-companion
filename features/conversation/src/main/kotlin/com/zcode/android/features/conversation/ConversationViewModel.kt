@@ -121,6 +121,10 @@ class ConversationViewModel(
         val sessionState: com.zcode.android.domain.model.SessionProjectionState?,
         val pendingSends: List<ConversationPort.PendingSendView>,
         val busy: Set<String>,
+        /** FIELD (2026-10-01, vc21 device): the draft is a COMBINE SOURCE — the
+         *  TextField is fully state-driven, so live-conversation recompositions can
+         *  never re-render it with a stale value mid-typing. */
+        val draft: String,
     )
 
     // ---- Phase 7 write state (declared BEFORE the state combine that reads it) ----
@@ -139,7 +143,8 @@ class ConversationViewModel(
             port.observeSessionState(taskId),
             port.observePendingSends(taskId),
             _busyInteractions,
-        ) { s, p, b -> WriteState(s, p, b) },
+            _draft,
+        ) { s, p, b, d -> WriteState(s, p, b, d) },
     ) { rowsEpoch, staleState, streamPhase, flags, write ->
         // §14.2 overlay reconciliation: a pending send whose authoritative userInput
         // row has landed is DONE — drop it (max lifetime guard renders it degraded).
@@ -163,7 +168,7 @@ class ConversationViewModel(
             loadingOlder = flags.loadingOlder,
             loadOlderError = flags.error,
             historyChanged = flags.historyChanged,
-            draft = _draft.value,
+            draft = write.draft,
             sessionState = write.sessionState,
             pendingSends = livePending,
             sendNotice = _sendNotice.value,

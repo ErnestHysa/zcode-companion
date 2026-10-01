@@ -17,6 +17,7 @@
         <!-- §12.4/§26.2-T6: credential + projection stores are excluded from every
              backup surface (allowBackup=false + explicit rules). -->
         <activity
+            android:windowSoftInputMode="adjustResize"
             android:name=".MainActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|keyboardHidden|screenLayout">

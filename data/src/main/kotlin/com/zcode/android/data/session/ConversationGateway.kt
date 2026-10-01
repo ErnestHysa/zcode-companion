@@ -80,7 +80,13 @@ data class GatewayPage(
     val hasMore: Boolean,
 )
 
-/** Command submission port (bound to the transport's v4 command plane). */
+/**
+ * Command submission port (bound to the transport's v4 command plane). The
+ * workspace target rides the CALL (the verified desktop adapter spreads
+ * `{workspacePath, workspaceIdentity, envelope}` on every command) — pass it for
+ * session-less commands (createSession has no session to route by); null lets the
+ * transport resolve from the session's subscribe-time record.
+ */
 interface CommandSender {
     suspend fun send(
         type: String,
@@ -89,6 +95,8 @@ interface CommandSender {
         baseRevision: Long?,
         baseLogEpoch: String?,
         commandId: String,
+        workspacePath: String? = null,
+        workspaceIdentity: String? = null,
     ): CommandAck
 }
 
@@ -361,6 +369,8 @@ class RelayConversationGateway(
         baseRevision: Long?,
         baseLogEpoch: String?,
         commandId: String,
+        workspacePath: String?,
+        workspaceIdentity: String?,
     ): CommandAck {
         val envelope = com.zcode.android.core.protocol.v4.CommandEnvelope.build(
             clientId = clientId,
@@ -372,7 +382,7 @@ class RelayConversationGateway(
             baseLogEpoch = baseLogEpoch,
             commandId = commandId, // minted once by the outbox — INV-4
         )
-        return transport.sendConversationCommand(envelope)
+        return transport.sendConversationCommand(envelope, workspacePath, workspaceIdentity)
     }
 
     /** Test seam: forget the active subscription records (process-death simulation). */

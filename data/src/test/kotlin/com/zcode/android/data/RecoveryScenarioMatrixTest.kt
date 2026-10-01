@@ -667,7 +667,7 @@ class RecoveryScenarioMatrixTest {
         var sent = 0
         private val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
         private lateinit var ack: com.zcode.android.core.protocol.v4.CommandAck
-        override suspend fun send(type: String, sessionId: String?, payload: JsonObject, baseRevision: Long?, baseLogEpoch: String?, commandId: String): com.zcode.android.core.protocol.v4.CommandAck {
+        override suspend fun send(type: String, sessionId: String?, payload: JsonObject, baseRevision: Long?, baseLogEpoch: String?, commandId: String, workspacePath: String?, workspaceIdentity: String?): com.zcode.android.core.protocol.v4.CommandAck {
             sent++
             gate.await()
             return ack

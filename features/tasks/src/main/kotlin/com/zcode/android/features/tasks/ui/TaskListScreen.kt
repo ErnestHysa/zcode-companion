@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -29,7 +30,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -40,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zcode.android.core.ui.components.AttentionStrip
+import com.zcode.android.core.ui.components.StatusTone
 import com.zcode.android.core.ui.components.ConnectionStatusLine
 import com.zcode.android.core.ui.components.SkeletonBar
 import com.zcode.android.core.ui.components.taskStatusLabel
@@ -68,8 +74,15 @@ fun TaskListScreen(
     /** Phase 7 §18.3: approvals inbox entry with the open-request count. */
     openApprovals: Int = 0,
     onOpenApprovals: () -> Unit = {},
+    /** Phase 7 field: create a task in an existing workspace (§6.1 parity). */
+    onCreateTask: (String, String) -> Unit = { _, _ -> },
+    workspaces: List<com.zcode.android.domain.model.WorkspaceOption> = emptyList(),
+    creatingTask: Boolean = false,
+    createNotice: String? = null,
+    onConsumeCreateNotice: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    var showCreate by remember { androidx.compose.runtime.mutableStateOf(false) }
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
             HeaderRow(
@@ -87,6 +100,7 @@ fun TaskListScreen(
             )
             Spacer(Modifier.height(4.dp))
 
+            Box(Modifier.fillMaxSize()) {
             PullToRefreshBox(
                 isRefreshing = state.refreshing,
                 onRefresh = onRefresh,
@@ -100,8 +114,129 @@ fun TaskListScreen(
                     TasksUiState.Load.READY -> ReadyBody(state, onTaskClick, onRetry, onRepairPairing)
                 }
             }
+                // §6.1 parity: create tasks in existing workspaces — the "+ New task"
+                // entry lives where the eye lands after scanning the list.
+                androidx.compose.material3.ExtendedFloatingActionButton(
+                    onClick = { showCreate = true },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp)
+                        .testTag("tasks_create_fab"),
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ) {
+                    Text(if (creatingTask) "Creating…" else "+ New task")
+                }
+            }
+            createNotice?.let { notice ->
+                AttentionStrip(
+                    title = notice,
+                    tone = if (notice == "Task created") StatusTone.INFO else StatusTone.ERROR,
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .testTag("tasks_create_notice"),
+                )
+            }
         }
     }
+
+    if (showCreate) {
+        CreateTaskDialog(
+            workspaces = workspaces,
+            creating = creatingTask,
+            onDismiss = { showCreate = false },
+            onCreate = { key, text ->
+                showCreate = false
+                onCreateTask(key, text)
+            },
+        )
+    }
+    LaunchedEffect(createNotice) {
+        if (createNotice != null) {
+            kotlinx.coroutines.delay(4000)
+            onConsumeCreateNotice()
+        }
+    }
+}
+
+/**
+ * §6.1 parity dialog: pick an existing workspace, write the first message — the
+ * verified `createSession {workspaceId, firstInput{text}}` command does the rest.
+ */
+@Composable
+internal fun CreateTaskDialog(
+    workspaces: List<com.zcode.android.domain.model.WorkspaceOption>,
+    creating: Boolean,
+    onDismiss: () -> Unit,
+    onCreate: (workspaceKey: String, firstText: String) -> Unit,
+) {
+    var text by remember { androidx.compose.runtime.mutableStateOf("") }
+    var expanded by remember { androidx.compose.runtime.mutableStateOf(false) }
+    var selected by remember { androidx.compose.runtime.mutableStateOf(workspaces.firstOrNull()) }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("New task") },
+        text = {
+            Column {
+                if (workspaces.isEmpty()) {
+                    Text(
+                        "No workspaces offered by the desktop yet.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    androidx.compose.material3.OutlinedButton(
+                        onClick = { expanded = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("create_workspace_picker"),
+                    ) {
+                        Text(
+                            selected?.label ?: "Choose a workspace",
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    androidx.compose.material3.DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                        modifier = Modifier.testTag("create_workspace_menu"),
+                    ) {
+                        for (ws in workspaces) {
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text(ws.label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                onClick = {
+                                    selected = ws
+                                    expanded = false
+                                },
+                                modifier = Modifier.testTag("create_workspace_${ws.key.take(20)}"),
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                androidx.compose.material3.OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    placeholder = { Text("Describe the task — this starts the agent") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("create_task_text"),
+                    maxLines = 4,
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { selected?.let { onCreate(it.key, text) } },
+                enabled = !creating && text.isNotBlank() && selected != null,
+                modifier = Modifier.testTag("create_task_confirm"),
+            ) { Text("Create") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, modifier = Modifier.testTag("create_task_cancel")) { Text("Cancel") }
+        },
+    )
 }
 
 @Composable

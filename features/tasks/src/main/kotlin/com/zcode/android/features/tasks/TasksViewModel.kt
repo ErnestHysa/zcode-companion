@@ -30,6 +30,11 @@ data class TasksUiState(
     val endpointName: String? = null,
     /** Round-4: show the Re-pair affordance (stale pairing, desktop-disconnected). */
     val suggestRepair: Boolean = false,
+    /** Phase 7 field: workspaces offered by the desktop (new-task picker). */
+    val workspaces: List<com.zcode.android.domain.model.WorkspaceOption> = emptyList(),
+    /** Non-null while a create is in flight; result surfaces once via [createNotice]. */
+    val creatingTask: Boolean = false,
+    val createNotice: String? = null,
 ) {
     enum class Load { LOADING, EMPTY, READY }
 
@@ -58,7 +63,12 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
     private val primary = combine(port.tasks, port.phase, port.taskLoadError) { tasks, phase, error ->
         Triple(tasks, phase, error)
     }
-    private val secondary = combine(refreshing, port.lastRefreshAtMs, port.endpointName, port.suggestRepair) { r, l, e, sr ->
+    private val creating = MutableStateFlow(false)
+    private val createNotice = MutableStateFlow<String?>(null)
+
+    private val secondary = combine(
+        refreshing, port.lastRefreshAtMs, port.endpointName, port.suggestRepair,
+    ) { r, l, e, sr ->
         Quad(r, l, e, sr)
     }
 
@@ -69,7 +79,11 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
         val suggestRepair: Boolean,
     )
 
-    val state: StateFlow<TasksUiState> = combine(primary, secondary) { (tasks, phase, error), extra ->
+    private val tertiary = combine(
+        port.observeWorkspaces(), creating, createNotice,
+    ) { w, c, n -> Triple(w, c, n) }
+
+    val state: StateFlow<TasksUiState> = combine(primary, secondary, tertiary) { (tasks, phase, error), extra, (workspaces, creatingNow, notice) ->
         TasksUiState(
             phase = phase,
             loadState = when {
@@ -81,6 +95,9 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
             groups = groupTasks(tasks),
             taskCount = tasks.size,
             error = error,
+            workspaces = workspaces,
+            creatingTask = creatingNow,
+            createNotice = notice,
             refreshing = extra.refreshing,
             lastRefreshAtMs = extra.lastRefresh,
             endpointName = extra.endpointName,
@@ -96,6 +113,33 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
 
     private val _refreshInProgress get() = refreshing
     val isRefreshing: StateFlow<Boolean> = refreshing.asStateFlow()
+
+    /**
+     * Create a task in an existing workspace (§6.1 parity; verified createSession
+     * wire shape). The desktop's workspace-list push (≤ 2 s) + the explicit
+     * refresh surface the new row; the notice is one-shot user copy.
+     */
+    fun createTask(workspaceKey: String, firstText: String) {
+        if (firstText.isBlank() || workspaceKey.isBlank()) return
+        scope.launch { createTaskAndWait(workspaceKey, firstText) }
+    }
+
+    /** Suspend core (the nav layer may drive it directly). Truthful one-shot notice. */
+    suspend fun createTaskAndWait(workspaceKey: String, firstText: String): Boolean {
+        if (firstText.isBlank() || workspaceKey.isBlank()) return false
+        creating.value = true
+        try {
+            val ok = port.createTask(workspaceKey, firstText)
+            createNotice.value = if (ok) "Task created" else "Couldn't create the task — try again"
+            return ok
+        } finally {
+            creating.value = false
+        }
+    }
+
+    fun consumeCreateNotice() {
+        createNotice.value = null
+    }
 
     fun refresh() {
         if (_refreshInProgress.value) return

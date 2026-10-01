@@ -79,6 +79,10 @@ class ConnectionHub(
     private val _taskLoadError = MutableStateFlow<AppError?>(null)
     val taskLoadError: StateFlow<AppError?> = _taskLoadError.asStateFlow()
 
+    /** Workspaces offered by the desktop (bootstrap) — the new-task picker's source. */
+    private val _workspaces = MutableStateFlow<List<com.zcode.android.domain.model.WorkspaceOption>>(emptyList())
+    val workspaces: StateFlow<List<com.zcode.android.domain.model.WorkspaceOption>> = _workspaces.asStateFlow()
+
     private val _lastRefreshAtMs = MutableStateFlow<Long?>(null)
     val lastRefreshAtMs: StateFlow<Long?> = _lastRefreshAtMs.asStateFlow()
 
@@ -366,9 +370,19 @@ class ConnectionHub(
      * bootstrap → workspace list + tasks → task projection (§17.3). Called on every
      * CONNECTED entry (fresh + re-connect) and by pull-to-refresh.
      */
+    private val bootstrapInFlight = java.util.concurrent.atomic.AtomicBoolean(false)
+
     suspend fun refreshTasks(): Boolean {
         val meta = vault.loadMetadata() ?: return false
-        return try {
+        // FIELD (2026-10-01, vc21 device log): connect() and the CONNECTED
+        // transition both refreshed — TWO ~150 KB bootstrap round trips + two
+        // 510-task Room rewrites per connect (log: bootstrapApplied ×2). The
+        // in-flight guard keeps one.
+        if (!bootstrapInFlight.compareAndSet(false, true)) {
+            log.info("hub.bootstrapSkipped", "already in flight")
+            return true
+        }
+        val ok = try {
             val payload = transport.bootstrap()
             applyBootstrap(payload)
             true
@@ -380,6 +394,8 @@ class ConnectionHub(
             log.warn("hub.bootstrapFailed", "${error.category} ${error.developerDiagnostic.take(80)}")
             false
         }
+        bootstrapInFlight.set(false)
+        return ok
     }
 
     private suspend fun applyBootstrap(payload: JsonObject?) {
@@ -412,6 +428,12 @@ class ConnectionHub(
         val keptByTask = LinkedHashMap<String, BootstrapParser.ParsedTask>()
         for (t in parsed.tasks.sortedByDescending { it.updatedAtMs }) {
             keptByTask.putIfAbsent(t.taskId, t)
+        }
+        // Phase 7 field: keep the workspace menu fresh (labels + §7.11 keys).
+        if (parsed.workspaces.isNotEmpty()) {
+            _workspaces.value = parsed.workspaces.map { ws ->
+                com.zcode.android.domain.model.WorkspaceOption(ws.identityKey, ws.label, ws.path)
+            }
         }
         for ((key, group) in byWorkspace) {
             if (key.isBlank()) continue
@@ -506,6 +528,25 @@ class ConnectionHub(
     private fun taskWorkspacePath(task: Task): String? = task.workspace.raw
 
     /**
+     * Create a task in an existing workspace (parity with the web remote, §6.1):
+     * verified `createSession` command — first message starts the turn; the new
+     * session surfaces via the desktop's `workspace-list-updated` push, with an
+     * explicit refresh as the immediate-path backstop.
+     */
+    suspend fun createTask(workspaceKey: String, firstText: String): Boolean {
+        val wsPath = _workspaces.value.firstOrNull { it.key == workspaceKey }?.path ?: workspaceKey
+        val coordinator = commandCoordinatorOrNull() ?: return false
+        val outcome = coordinator.createSession(wsPath, null, firstText)
+        val created = outcome is com.zcode.android.data.session.CommandCoordinator.Outcome.Accepted
+        log.info(
+            "hub.createTask",
+            "workspace=${workspaceKey.take(24)} outcome=${outcome.javaClass.simpleName}",
+        )
+        if (created) refreshTasks()
+        return created
+    }
+
+    /**
      * Phase 7 field finding (write-path E2E): ensureCoordinator raced ITSELF — the
      * CONNECTED hook's `commandCoordinatorOrNull()?.onConnected()` ran concurrently
      * with `openConversation`'s ensureCoordinator, BOTH created a RecoveryCoordinator,
@@ -575,6 +616,7 @@ class ConnectionHub(
                 outbox = outbox,
                 commands = gateway,
                 connectionState = { transport.states.value },
+                ensureConversationListen = { wp, wi -> transport.ensureConversationListen(wp, wi) },
                 log = log,
             )
         }

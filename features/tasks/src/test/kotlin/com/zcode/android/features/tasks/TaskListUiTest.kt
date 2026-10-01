@@ -6,8 +6,12 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.zcode.android.core.ui.theme.ZCodeTheme
 import com.zcode.android.domain.ids.WorkspaceIdentityKey
 import com.zcode.android.domain.model.Task
 import com.zcode.android.domain.model.TaskStatus
@@ -148,3 +152,76 @@ class TaskListUiTest {
         rule.runOnIdle { org.junit.Assert.assertTrue(refreshed || true) } // container wired; gesture covered by instrumented leg
     }
 }
+
+/**
+ * Phase 7 field: the "+ New task" flow (§6.1 parity — create tasks in existing
+ * workspaces via the verified createSession command).
+ */
+@RunWith(AndroidJUnit4::class)
+@Config(sdk = [30])
+class TaskCreateUiTest {
+
+    @get:Rule
+    val rule = createComposeRule()
+
+    private fun createState(workspaces: List<com.zcode.android.domain.model.WorkspaceOption>) =
+        TasksUiState(loadState = TasksUiState.Load.READY, workspaces = workspaces)
+
+    @Test
+    fun fab_isDisplayed_onTheTaskList() {
+        rule.setContent {
+            ZCodeTheme {
+                TaskListScreen(state = createState(emptyList()), onTaskClick = {}, onOpenSettings = {}, onOpenConnection = {}, onRetry = {}, onRefresh = {})
+            }
+        }
+        rule.waitForIdle()
+        rule.onNodeWithTag("tasks_create_fab").assertIsDisplayed()
+    }
+
+    @Test
+    fun createDialog_picksWorkspace_andFiresWithItsKey() {
+        var created: Pair<String, String>? = null
+        rule.setContent {
+            ZCodeTheme {
+                com.zcode.android.features.tasks.ui.CreateTaskDialog(
+                    workspaces = listOf(
+                        com.zcode.android.domain.model.WorkspaceOption("/ws/a", "Alpha", "/ws/a"),
+                        com.zcode.android.domain.model.WorkspaceOption("/ws/b", "Beta", "/ws/b"),
+                    ),
+                    creating = false,
+                    onDismiss = {},
+                    onCreate = { key, text -> created = key to text },
+                )
+            }
+        }
+        rule.waitForIdle()
+        // Create disabled until a workspace is picked AND text exists.
+        rule.onNodeWithTag("create_task_confirm").assertIsNotEnabled()
+        rule.onNodeWithTag("create_task_text").performTextInput("fix the login bug")
+        rule.onNodeWithTag("create_workspace_picker").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("create_workspace_/ws/b").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("create_task_confirm").performClick()
+        rule.waitForIdle()
+        org.junit.Assert.assertEquals("/ws/b" to "fix the login bug", created)
+    }
+
+    @Test
+    fun createDialog_staysDisabledWithoutWorkspaceSelection_orText() {
+        rule.setContent {
+            ZCodeTheme {
+                com.zcode.android.features.tasks.ui.CreateTaskDialog(
+                    workspaces = emptyList(),
+                    creating = false,
+                    onDismiss = {},
+                    onCreate = { _, _ -> },
+                )
+            }
+        }
+        rule.waitForIdle()
+        rule.onNodeWithTag("create_task_text").performTextInput("x")
+        rule.onNodeWithTag("create_task_confirm").assertIsNotEnabled()
+    }
+}
+

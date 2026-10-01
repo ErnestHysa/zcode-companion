@@ -61,6 +61,8 @@ class WritePathRaceHardeningTest {
             baseRevision: Long?,
             baseLogEpoch: String?,
             commandId: String,
+            workspacePath: String?,
+            workspaceIdentity: String?,
         ): CommandAck {
             transmitted.add(commandId)
             if (down) throw IllegalStateException("down")

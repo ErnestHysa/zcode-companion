@@ -82,6 +82,7 @@ fun ZCodeApp(
             // §18.3 "Needs you": the approvals inbox entry carries the open count.
             val openApprovals by container.conversationPort.observeOpenInteractions()
                 .collectAsState(initial = emptyList())
+            val taskState by tasksVm.state.collectAsState()
             TasksRoute(
                 vm = tasksVm,
                 onTaskClick = { task ->
@@ -92,6 +93,14 @@ fun ZCodeApp(
                 onOpenConnection = { container.log.info("nav.connection", "open"); nav.navigate(Routes.CONNECTION) },
                 openApprovals = openApprovals.size,
                 onOpenApprovals = { container.log.info("nav.approvals", "open"); nav.navigate(Routes.APPROVALS) },
+                onCreateTask = { key, text ->
+                    container.log.info("tasks.create", "workspace=${key.take(24)}")
+                    scope.launch { tasksVm.createTaskAndWait(key, text) }
+                },
+                workspaces = taskState.workspaces,
+                creatingTask = taskState.creatingTask,
+                createNotice = taskState.createNotice,
+                onConsumeCreateNotice = tasksVm::consumeCreateNotice,
             )
         }
         composable(Routes.CONVERSATION) { entry ->
@@ -140,6 +149,11 @@ private fun TasksRoute(
     onOpenConnection: () -> Unit,
     openApprovals: Int = 0,
     onOpenApprovals: () -> Unit = {},
+    onCreateTask: (String, String) -> Unit = { _, _ -> },
+    workspaces: List<com.zcode.android.domain.model.WorkspaceOption> = emptyList(),
+    creatingTask: Boolean = false,
+    createNotice: String? = null,
+    onConsumeCreateNotice: () -> Unit = {},
 ) {
     val state by vm.state.collectAsState()
     val refreshing by vm.isRefreshing.collectAsState()
@@ -150,6 +164,11 @@ private fun TasksRoute(
         onOpenConnection = onOpenConnection,
         openApprovals = openApprovals,
         onOpenApprovals = onOpenApprovals,
+        onCreateTask = onCreateTask,
+        workspaces = workspaces,
+        creatingTask = creatingTask,
+        createNotice = createNotice,
+        onConsumeCreateNotice = onConsumeCreateNotice,
         onRetry = vm::retryConnection,
         onRefresh = vm::refresh,
         onRepairPairing = vm::repairPairing,

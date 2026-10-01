@@ -1217,6 +1217,9 @@ class RelayTransport(
             ?: throw Failure(ErrorMapping.protocolFault("subscribe ack missing"))
         val ack = SubscribeAck.decode(ackObj)
         subscriptions[V4Topics.conversation(sessionId)] = SubscriptionRecord(ack.subscriptionId, ack.logEpoch, -1)
+        synchronized(subscriptionWorkspaces) {
+            subscriptionWorkspaces[sessionId] = workspacePath to (workspaceIdentity ?: endpoint.workspaceIdentity)
+        }
         return ack
     }
 
@@ -1276,8 +1279,37 @@ class RelayTransport(
     }
 
     /** Send a v4 command envelope (CAS-validated at build time, INV-4 idempotent). */
-    suspend fun sendConversationCommand(envelope: CommandEnvelope): CommandAck {
-        val raw = v4Call("sendConversationCommandV4", RpcValue.Obj(envelope.encode()))
+    /** Workspace targets seen at subscribe time (session → §7.11 identity key / path). */
+    private val subscriptionWorkspaces = HashMap<String, Pair<String?, String?>>()
+
+    internal fun subscriptionWorkspace(sessionId: String): Pair<String?, String?>? =
+        synchronized(subscriptionWorkspaces) { subscriptionWorkspaces[sessionId] }
+
+    /**
+     * FIELD (2026-10-01, vc21 production-shape fix): the desktop's
+     * `sendConversationCommandV4` takes `{workspacePath?, workspaceIdentity?,
+     * envelope}` (zcodeAgent.ts ZCodeAgentConversationCommandParams extends
+     * ZCodeAgentWorkspaceTarget — the envelope is a NESTED field and the workspace
+     * target drives client routing/getClient). We sent a BARE envelope — the mock
+     * accepted it, production would fail the `params.envelope` lookups. The wrapper
+     * + workspace target (resolved from the subscribe-time record when the caller
+     * does not supply one; createSession has no session and MUST pass it explicitly)
+     * now matches the desktop adapter's own call shape verbatim.
+     */
+    suspend fun sendConversationCommand(
+        envelope: CommandEnvelope,
+        workspacePath: String? = null,
+        workspaceIdentity: String? = null,
+    ): CommandAck {
+        val fromSubscription = envelope.sessionId?.let { subscriptionWorkspace(it) }
+        val wp = workspacePath ?: fromSubscription?.first ?: endpoint?.workspacePath
+        val wi = workspaceIdentity ?: fromSubscription?.second ?: endpoint?.workspaceIdentity
+        val arg = buildJsonObject {
+            wp?.let { put("workspacePath", kotlinx.serialization.json.JsonPrimitive(it)) }
+            wi?.let { put("workspaceIdentity", kotlinx.serialization.json.JsonPrimitive(it)) }
+            put("envelope", envelope.encode())
+        }
+        val raw = v4Call("sendConversationCommandV4", RpcValue.Obj(arg))
         val obj = (raw as? RpcValue.Obj)?.json as? JsonObject
             ?: throw Failure(ErrorMapping.protocolFault("command ack not an object"))
         return CommandAck.decode(obj)

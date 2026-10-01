@@ -34,4 +34,10 @@ interface TasksPort {
 
     /** User accepted the re-pair suggestion: wipe the stale pairing (gate flips to pairing). */
     fun repairPairing()
+
+    /** Workspaces offered by the desktop (the new-task picker). */
+    fun observeWorkspaces(): Flow<List<com.zcode.android.domain.model.WorkspaceOption>>
+
+    /** Phase 7 field: create a task in an existing workspace; first message starts the turn. */
+    suspend fun createTask(workspaceKey: String, firstText: String): Boolean
 }
