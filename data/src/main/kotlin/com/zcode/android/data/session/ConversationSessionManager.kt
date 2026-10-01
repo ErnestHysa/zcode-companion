@@ -169,8 +169,17 @@ class ConversationSessionManager(
 
     private suspend fun handleDeltas(e: GatewayTopicEvent.Deltas) {
         log.debug("manager.deltas", "session=${sessionId.raw} seq=${e.fromSeq}..${e.toSeq} ops=${e.ops.size}")
+        val staleBefore = _stale.value
         val effects = reducer.onDeltas(TopicDeltasOf(e))
         applyEffects(effects)
+        // FIELD (2026-10-01, vc23 device): contiguous deltas APPLIED while the stale
+        // overlay is up are live evidence — the projection is flowing again even if
+        // the transport machine is still RECOVERING. Clear the overlay: §2.5-5 —
+        // "cached/recovering" must never be shown over provably-live data.
+        if (staleBefore && effects.any { it is ConversationTopicReducer.Effect.CursorAdvanced }) {
+            log.info("manager.staleCleared", "live deltas applied while stale — overlay cleared")
+            setStale(false)
+        }
         // Task-machine observations ride the applied ops (authoritative turnHeader rows).
         for (effect in effects) {
             if (effect is ConversationTopicReducer.Effect.Persist) {
@@ -206,6 +215,7 @@ class ConversationSessionManager(
                 is ConversationTopicReducer.Effect.StreamingCleared,
                 is ConversationTopicReducer.Effect.StreamingTrimmedFrom,
                 is ConversationTopicReducer.Effect.StreamingUpserted,
+                is ConversationTopicReducer.Effect.StreamingDiscarded,
                 -> publishStreaming() // §19.2 Phase 6 UI surface
                 is ConversationTopicReducer.Effect.EscalateResync -> {
                     escalateRequest = effect.reason to effect.base?.let { it.logEpoch to it.seq }

@@ -288,4 +288,51 @@ class ConversationTopicReducerTest {
         assertEquals(1, r.metadataOps)
         assertEquals(1, r.unknownOps)
     }
+
+    @Test
+    fun `authoritative row upsert discards that row's streaming buffer (vc23 doubled-tail fix)`() {
+        val reducer = ConversationTopicReducer(SessionId("s-discard"))
+        fun textRow(id: Long, text: String): ConversationRow =
+            ConversationRow.Decoder.decode(
+                kotlinx.serialization.json.buildJsonObject {
+                    put("rowId", kotlinx.serialization.json.JsonPrimitive(id))
+                    put("turnId", kotlinx.serialization.json.JsonPrimitive("t1"))
+                    put("kind", kotlinx.serialization.json.JsonPrimitive("assistantText"))
+                    put("createdAt", kotlinx.serialization.json.JsonPrimitive(1.0))
+                    put("createdAtSeq", kotlinx.serialization.json.JsonPrimitive(id))
+                    put("assistantResponseId", kotlinx.serialization.json.JsonPrimitive("ar"))
+                    put("text", kotlinx.serialization.json.JsonPrimitive(text))
+                    put("state", kotlinx.serialization.json.JsonPrimitive("streaming"))
+                },
+            )
+
+        reducer.onSnapshot(
+            TopicEvent.Snapshot("conversation/s-discard", "s-discard", "e1", 0, 1, listOf(textRow(1, "seed"))),
+        )
+
+        // Streaming deltas accumulate a derived buffer for row 2.
+        reducer.onDeltas(
+            TopicEvent.Deltas(
+                "conversation/s-discard", "s-discard", "e1", 1, 2,
+                listOf(ProjectionOp.RowAppended(textRow(2, "generated partial"))),
+            ),
+        )
+        reducer.onDeltas(
+            TopicEvent.Deltas(
+                "conversation/s-discard", "s-discard", "e1", 2, 3,
+                listOf(ProjectionOp.RowTextAppended(2, "text", " + more")),
+            ),
+        )
+        assertTrue(reducer.streamingBuffersForTest().any { it.rowId == 2L }, "buffer must exist before the upsert")
+
+        // The AUTHORITATIVE upsert (final text after stop/complete) discards it.
+        val upEffects = reducer.onDeltas(
+            TopicEvent.Deltas(
+                "conversation/s-discard", "s-discard", "e1", 3, 4,
+                listOf(ProjectionOp.RowUpserted(textRow(2, "generated partial + more + final"))),
+            ),
+        )
+        assertTrue(upEffects.any { it is com.zcode.android.domain.reducer.ConversationTopicReducer.Effect.StreamingDiscarded })
+        assertTrue(reducer.streamingBuffersForTest().none { it.rowId == 2L }, "buffer survived the authoritative replace")
+    }
 }

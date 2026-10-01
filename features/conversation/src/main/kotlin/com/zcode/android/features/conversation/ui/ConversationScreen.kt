@@ -431,6 +431,10 @@ private fun TimelineRow(row: ConversationRow, state: ConversationUiState, modifi
             // while the coalesced streaming buffer may LEAD it between delta and flush.
             // If the persisted text already ends with the buffered suffix, the store is
             // flushed — display it; otherwise append the suffix to the persisted base.
+            // FIELD (vc23): the doubled-tail bug was fixed at the SOURCE — an
+            // authoritative row upsert now DISCARDS the row's streaming buffer in the
+            // reducer (§15.5c), so a surviving buffer always means the row has not
+            // been authoritatively replaced and the merge is correct.
             val streamed = state.streaming[row.rowId]
             val text = when {
                 streamed == null -> row.text

@@ -188,8 +188,10 @@ class ConnectionHubIntegrationTest {
         )
         hub.start()
         withTimeout(30_000) { hub.phase.first { it == ConnectionPhase.CONNECTED } }
+        // Two per-workspace replaceAll pushes land in succession — wait for the FULL
+        // projection (3 unique tasks), not the first partition, before asserting.
         val settled = withTimeout(15_000) {
-            tasks.snapshot.first { list -> list.any { it.taskId == "sess-unique" } }
+            tasks.snapshot.first { list -> list.count { it.taskId.startsWith("sess-") } >= 3 }
         }
         // Exactly ONE row per taskId (no LazyColumn key collision possible).
         assertEquals(1, settled.count { it.taskId == "sess-dup-1" }, "equal-ts duplicate kept ${settled.count { it.taskId == "sess-dup-1" }} copies")

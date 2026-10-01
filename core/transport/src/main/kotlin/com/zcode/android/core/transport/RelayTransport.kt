@@ -86,6 +86,14 @@ class RelayTransport(
         val sendQueueCapacity: Int = 1_024,
         val parseBufferCapacity: Int = 1_024,
         val v4CallTimeoutMs: Long = RelayLimits.CONVERSATION_QUERY_TIMEOUT_MS.toLong(),
+        /**
+         * FIELD (2026-10-01, vc23 device log): while the desktop is mid-generation its
+         * bridge worker answers the handshake SLOWLY (initialize took >10 s twice —
+         * each timeout tore down a HEALTHY socket and restarted the recovery, leaving
+         * the projection stale for minutes). The bridge handshake gets a dedicated,
+         * wider window; queries keep the verified 10 s budget.
+         */
+        val bridgeHandshakeTimeoutMs: Long = 30_000,
     )
 
     private val scope = externalScope ?: CoroutineScope(Dispatchers.IO)
@@ -1159,9 +1167,9 @@ class RelayTransport(
         channelReady()
         bound().debug("v4.call", "helloConversationV4 begin")
         val raw = try {
-            channel.call("zcode-agent", "helloConversationV4", RpcValue.Arr(emptyList()), config.v4CallTimeoutMs)
+            channel.call("zcode-agent", "helloConversationV4", RpcValue.Arr(emptyList()), config.bridgeHandshakeTimeoutMs)
         } catch (e: ChannelSession.Failure.TimedOut) {
-            throw Failure(ErrorMapping.timeout("helloConversationV4", config.v4CallTimeoutMs))
+            throw Failure(ErrorMapping.timeout("helloConversationV4", config.bridgeHandshakeTimeoutMs))
         } catch (e: ChannelSession.Failure) {
             throw Failure(ErrorMapping.protocolFault(e.message ?: "hello failed"))
         }

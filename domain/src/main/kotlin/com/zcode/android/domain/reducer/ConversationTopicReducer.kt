@@ -57,6 +57,9 @@ class ConversationTopicReducer(
         /** row.removed truncation reaches derived state too. */
         data class StreamingTrimmedFrom(val fromRowId: Long) : Effect()
 
+        /** FIELD (vc23): an authoritative row upsert discards THAT row's buffer (§15.5c). */
+        data class StreamingDiscarded(val rowId: Long) : Effect()
+
         /** Coalescer-visible streaming upsert (in-memory only, never persisted — §14.2). */
         data class StreamingUpserted(val buffer: StreamingBuffer) : Effect()
 
@@ -200,8 +203,21 @@ class ConversationTopicReducer(
         val derived = ArrayList<Effect>()
         for (op in e.ops) {
             when (op) {
-                is ProjectionOp.RowAppended -> ops.add(ConversationStoreOp.RowUpserted(sessionId, epoch, op.row))
-                is ProjectionOp.RowUpserted -> ops.add(ConversationStoreOp.RowUpserted(sessionId, epoch, op.row))
+                is ProjectionOp.RowAppended -> {
+                    ops.add(ConversationStoreOp.RowUpserted(sessionId, epoch, op.row))
+                    // The authoritative row REPLACES any derived buffer for it
+                    // (§15.5c). Field (vc23): the surviving buffer merged with the
+                    // final text — the doubled sentence on stop / missing tails.
+                    if (streaming.remove(op.row.rowId) != null) {
+                        derived.add(Effect.StreamingDiscarded(op.row.rowId))
+                    }
+                }
+                is ProjectionOp.RowUpserted -> {
+                    ops.add(ConversationStoreOp.RowUpserted(sessionId, epoch, op.row))
+                    if (streaming.remove(op.row.rowId) != null) {
+                        derived.add(Effect.StreamingDiscarded(op.row.rowId))
+                    }
+                }
                 is ProjectionOp.RowRemoved -> {
                     ops.add(ConversationStoreOp.RowRemoved(sessionId, epoch, op.fromRowId))
                     streaming.keys.removeAll { it >= op.fromRowId }

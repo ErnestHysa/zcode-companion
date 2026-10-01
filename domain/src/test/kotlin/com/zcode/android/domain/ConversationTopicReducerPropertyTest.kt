@@ -272,6 +272,7 @@ class ConversationTopicReducerPropertyTest {
                 is ConversationTopicReducer.Effect.StreamingCleared,
                 is ConversationTopicReducer.Effect.StreamingTrimmedFrom,
                 is ConversationTopicReducer.Effect.StreamingUpserted,
+                is ConversationTopicReducer.Effect.StreamingDiscarded,
                 is ConversationTopicReducer.Effect.EscalateResync,
                 -> Unit
             }
