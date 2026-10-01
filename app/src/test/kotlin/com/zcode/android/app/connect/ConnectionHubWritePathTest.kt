@@ -196,6 +196,10 @@ class ConnectionHubWritePathTest {
             mock.lastCommandWorkspacePath,
         )
         org.junit.Assert.assertEquals(task.workspace.raw, mock.lastCommandWorkspacePath)
+        // FIELD (vc22): envelope.clientId MUST equal the hello-bound id — the device
+        // rejected every command with fault.command.clientMismatch before this fix.
+        org.junit.Assert.assertNotNull(mock.boundClientId, "clientHello never bound a clientId")
+        org.junit.Assert.assertEquals(mock.boundClientId, mock.lastCommandClientId)
     }
 
     @Test

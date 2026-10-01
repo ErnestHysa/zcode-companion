@@ -17,8 +17,8 @@ android {
         applicationId = "com.zcode.android.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 22
-        versionName = "0.7.2-phase7"
+        versionCode = 23
+        versionName = "0.7.3-phase7"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

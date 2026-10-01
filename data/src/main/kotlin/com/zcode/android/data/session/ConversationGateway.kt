@@ -373,7 +373,11 @@ class RelayConversationGateway(
         workspaceIdentity: String?,
     ): CommandAck {
         val envelope = com.zcode.android.core.protocol.v4.CommandEnvelope.build(
-            clientId = clientId,
+            // FIELD (2026-10-01, vc22 device): the desktop binds boundClientId from OUR
+            // clientHello and rejects commands whose envelope.clientId differs
+            // (fault.command.clientMismatch — every send/capprove/create failed). The
+            // identity is the transport's endpoint id, taken LIVE per call.
+            clientId = transport.commandClientId ?: clientId,
             sessionId = sessionId,
             type = type,
             payload = payload,

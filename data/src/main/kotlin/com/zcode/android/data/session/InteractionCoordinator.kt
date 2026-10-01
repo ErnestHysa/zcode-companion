@@ -1,5 +1,6 @@
 package com.zcode.android.data.session
 
+import com.zcode.android.core.common.error.serverSpoke
 import com.zcode.android.core.common.log.ZLog
 import com.zcode.android.core.protocol.v4.CommandAck
 import com.zcode.android.domain.ids.CommandId
@@ -222,6 +223,31 @@ class InteractionCoordinator(
             return SubmitOutcome.Submitted(ack)
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
+            // FIELD (2026-10-01, vc22 device): server-spoke faults (fault.* channel
+            // errors) are AUTHORITATIVE — ack rejected → machine FAILED (recoverable
+            // by resync, §20.3 row 8), never the retry loop.
+            if (e is com.zcode.android.core.transport.RelayTransport.Failure && e.error.serverSpoke) {
+                runCatching {
+                    outbox.apply(
+                        commandId,
+                        OutboxStateMachine.Event.Ack("rejected", e.error.developerDiagnostic.take(64), e.error.userMessage),
+                        clock(),
+                    )
+                }
+                runCatching { machine.on(PermissionStateMachine.Event.AckRejected) }
+                updateLifecycle(interactionId, machine.state)
+                log.warn("interaction.rejected", e.error.developerDiagnostic.take(80))
+                return SubmitOutcome.Submitted(
+                    com.zcode.android.core.protocol.v4.CommandAck(
+                        commandId = commandId.raw,
+                        status = "rejected",
+                        revisionAtDecision = 0,
+                        reasonCode = e.error.developerDiagnostic.take(64),
+                        message = e.error.userMessage,
+                        result = null,
+                    ),
+                )
+            }
             // Outcome UNKNOWN (never assume success, §15.5); card retryable-DISPLAYED
             // with the SAME commandId (§20.3 row 5; INV-4 preserved).
             runCatching { outbox.apply(commandId, OutboxStateMachine.Event.SendLost, clock()) }

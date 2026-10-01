@@ -280,7 +280,12 @@ class ConversationViewModel(
                         SendNotice.Kind.WARNING,
                     )
                 ConversationPort.SendOutcome.FAILED ->
-                    _sendNotice.value = SendNotice("Couldn't send — try again.", SendNotice.Kind.ERROR)
+                    // FIELD (vc22): a FAILED outcome is now an authoritative DESKTOP
+                    // rejection (the command reached it) — never "connection lost".
+                    _sendNotice.value = SendNotice(
+                        "The desktop refused the send — see diagnostics (fault reason recorded).",
+                        SendNotice.Kind.ERROR,
+                    )
                 ConversationPort.SendOutcome.UNKNOWN_KEPT ->
                     _sendNotice.value = SendNotice(
                         "Send outcome unknown (connection lost). Retry from the pending list — it will not be duplicated.",

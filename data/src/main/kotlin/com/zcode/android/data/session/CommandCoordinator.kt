@@ -1,5 +1,6 @@
 package com.zcode.android.data.session
 
+import com.zcode.android.core.common.error.serverSpoke
 import com.zcode.android.core.common.log.ZLog
 import com.zcode.android.core.protocol.v4.CommandAck
 import com.zcode.android.core.transport.ConnectionStateMachine
@@ -321,6 +322,35 @@ class CommandCoordinator(
             }
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
+            // FIELD (2026-10-01, vc22 device): distinguish SERVER-SPOKE rejections
+            // (fault.* channel errors — the command REACHED the desktop and was
+            // refused: authoritative evidence, outbox FAILED_TERMINAL, honest copy)
+            // from genuine transport loss (§15.5 UNKNOWN — retryable). The old
+            // catch-all sent clientMismatch into the retry loop forever.
+            if (e is com.zcode.android.core.transport.RelayTransport.Failure && e.error.serverSpoke) {
+                val fault = e.error.developerDiagnostic.take(64)
+                runCatching {
+                    outbox.apply(
+                        commandId,
+                        OutboxStateMachine.Event.Ack("rejected", fault, e.error.userMessage),
+                        clock(),
+                    )
+                }
+                if (type == "sendText") dropOverlay(commandId)
+                log.warn("command.rejected", "type=$type $fault")
+                // Authoritative rejection as an ack-shaped outcome (status=rejected):
+                // the server SPOKE — never the UNKNOWN/retry class.
+                return Outcome.Failed(
+                    CommandAck(
+                        commandId = commandId.raw,
+                        status = "rejected",
+                        revisionAtDecision = 0,
+                        reasonCode = fault,
+                        message = e.error.userMessage,
+                        result = null,
+                    ),
+                )
+            }
             // Outcome UNKNOWN (§15.5); sendText stays in the overlay as retryable-unknown.
             runCatching { outbox.apply(commandId, OutboxStateMachine.Event.SendLost, clock()) }
             if (type == "sendText") overlay(commandId, sessionId, textOf(payload), SendState.SENT_UNKNOWN)

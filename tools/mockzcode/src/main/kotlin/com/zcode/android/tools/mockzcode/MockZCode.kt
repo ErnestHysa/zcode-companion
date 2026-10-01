@@ -957,6 +957,10 @@ class MockZCode(
                 if (hello == null || hello.strOrNull("kind") != "clientHello") {
                     respondError(id, "fault.connection.handshakeRequired")
                 } else {
+                    // Production fidelity (zcodeAgentConnectionScope): bind the
+                    // clientHello's clientId; commands with a different clientId are
+                    // rejected fault.command.clientMismatch (vc22 field bug).
+                    boundClientId = hello.strOrNull("clientId")
                     respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Undefined)
                 }
             }
@@ -1058,7 +1062,16 @@ class MockZCode(
                 }
                 val type = env?.strOrNull("type") ?: "unknown"
                 val commandId = env?.strOrNull("commandId") ?: "unknown"
+                lastCommandClientId = env?.strOrNull("clientId")
                 scope.launch { events.emit(ServerEvent.CommandReceived(type, commandId)) }
+                // Production fidelity: envelope.clientId MUST match the hello-bound id.
+                if (boundClientId != null && env?.strOrNull("clientId") != boundClientId) {
+                    respond(id, ChannelWire.ResponseType.PromiseError, RpcValue.Obj(buildJsonObject {
+                        put("message", JsonPrimitive("fault.command.clientMismatch"))
+                        put("name", JsonPrimitive("Error"))
+                    }))
+                    return
+                }
                 // §7.4.4 CAS semantics (verified COMMANDS_REQUIRING_BASE_REVISION):
                 // missing base → rejected (parse would fail); stale base → stale.
                 // Phase 7: the CAS currency is the SAME stateRevision the state block
@@ -1362,6 +1375,10 @@ class MockZCode(
     @Volatile var lastCommandWorkspacePath: String? = null
         private set
     @Volatile var lastCommandWorkspaceIdentity: String? = null
+        private set
+    @Volatile var boundClientId: String? = null
+        private set
+    @Volatile var lastCommandClientId: String? = null
         private set
 
     fun pushTopicFrame(sessionId: String, deliveryKind: DeliveryKind, snapshot: Boolean, fromSeq: Long, toSeq: Long) {

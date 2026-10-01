@@ -97,3 +97,24 @@ data class Correlation(
     val sessionId: String? = null,
     val commandId: String? = null,
 )
+
+
+/**
+ * FIELD (2026-10-01, vc22 device): TRUE when this error is a SERVER-SPOKE
+ * verdict — the desktop/relay received the request and refused it (fault.*
+ * channel errors, task rejections, session unavailable). Authoritative
+ * evidence: the outbox maps these to FAILED_TERMINAL (rejected), never to the
+ * §15.5 UNKNOWN/retry class. Transport/network/timeout categories mean the
+ * outcome is genuinely UNKNOWN.
+ */
+val AppError.serverSpoke: Boolean
+    get() = category in setOf(
+        ErrorCategory.TASK,
+        ErrorCategory.PROTOCOL,
+        ErrorCategory.SERVER,
+        ErrorCategory.SESSION,
+        ErrorCategory.PERMISSION,
+        ErrorCategory.AUTHZ,
+        ErrorCategory.AUTH,
+        ErrorCategory.VERSION_INCOMPAT,
+    )

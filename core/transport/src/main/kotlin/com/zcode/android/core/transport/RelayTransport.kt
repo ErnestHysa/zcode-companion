@@ -1286,6 +1286,15 @@ class RelayTransport(
         synchronized(subscriptionWorkspaces) { subscriptionWorkspaces[sessionId] }
 
     /**
+     * The clientId the v4 handshake bound for THIS connection (the clientHello's
+     * clientId — zcodeAgentConnectionScope binds it at initializeConversationV4 and
+     * REJECTS any command whose envelope.clientId differs:
+     * fault.command.clientMismatch). Command envelopes MUST carry exactly this.
+     */
+    val commandClientId: String?
+        get() = endpoint?.id
+
+    /**
      * FIELD (2026-10-01, vc21 production-shape fix): the desktop's
      * `sendConversationCommandV4` takes `{workspacePath?, workspaceIdentity?,
      * envelope}` (zcodeAgent.ts ZCodeAgentConversationCommandParams extends
