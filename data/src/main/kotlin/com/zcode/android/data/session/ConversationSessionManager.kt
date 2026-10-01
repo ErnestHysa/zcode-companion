@@ -239,6 +239,22 @@ class ConversationSessionManager(
      * path — an authoritative observation REPLACES the overlay, it never merges.
      */
     private fun observeTurnState(state: ConversationRow.TurnState, authoritative: Boolean) {
+        // FIELD (2026-10-01, vc20 device log): opening a COMPLETED conversation from a
+        // cold start hit `UNKNOWN --TurnCompleted-->` — illegal on the event path, then
+        // "fixed" by an authoritative replace — producing a spurious WARN for a perfectly
+        // normal first observation. The FIRST authoritative observation of an
+        // un-started machine is a SNAPSHOT (§14.4.2 "Unknown → any per status"), not an
+        // event; only genuinely running machines take the event path.
+        if (authoritative && taskMachine.state in setOf(
+                TaskStateMachine.State.UNKNOWN, TaskStateMachine.State.LOADING, TaskStateMachine.State.IDLE,
+            )
+        ) {
+            if (state != ConversationRow.TurnState.UNKNOWN) {
+                taskMachine.applySnapshot(mapTurnToTaskState(state))
+                _taskState.value = taskMachine.state
+            }
+            return
+        }
         try {
             when (state) {
                 ConversationRow.TurnState.RUNNING -> {

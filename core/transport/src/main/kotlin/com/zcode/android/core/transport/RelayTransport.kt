@@ -114,7 +114,7 @@ class RelayTransport(
 
     private var endpoint: EndpointDescriptor? = null
     private var signer: CredentialSigner? = null
-    private var ws: Ws? = null
+    @Volatile private var ws: Ws? = null
     private var channel = ChannelSession()
     private val assembler = RelayFrameCodec.Assembler()
     private val v4Assembler = LogicalFrameAssembler(clock = clock)
@@ -759,6 +759,18 @@ class RelayTransport(
         for (text in sendBuffer) {
             if (closedByUs) return
             if (!socket.sendText(text)) {
+                // FIELD (2026-10-01, vc20 device log): when THIS (current-generation)
+                // socket dies while the recovery handshake is using it, the handshake's
+                // in-flight calls (hello/initialize) would hang until the 10 s call
+                // timeout — the loss event is SUPPRESSED (recovery already in flight),
+                // so nothing else fails them. Closing the channel here makes the
+                // handshake fail fast and the recovery retry immediately. Old
+                // generations are ignored (their loops are stale; the live handshake
+                // is unaffected).
+                if (socket === ws && recovering.get()) {
+                    bound().warn("recovery.handshakeFastFail", "handshake socket send failed — failing in-flight calls")
+                    runCatching { channel.close("send failed (handshake socket)") }
+                }
                 onConnectionLost("send failed")
                 return
             }
@@ -967,6 +979,15 @@ class RelayTransport(
             }
             "bridge-degraded" -> {
                 bound().warn("bridge.degraded", (payload["reason"] as? JsonPrimitive)?.content ?: "")
+                // FIELD (2026-10-01, vc20 device log): a bridge-degraded that arrives
+                // DURING the recovery handshake (recovering=true → the loss below is
+                // suppressed) means the relay killed the bridge we are mid-hello on.
+                // Fail the handshake's in-flight calls NOW; otherwise they hang for
+                // the 10 s call timeout before the retry (observed: two consecutive
+                // 10 s stalls per recovery in the field).
+                if (recovering.get()) {
+                    runCatching { channel.close("bridge-degraded (handshake)") }
+                }
                 scope.launch { _appErrors.emit(ErrorMapping.protocolFault("bridge-degraded")) }
                 onConnectionLost("bridge-degraded")
             }

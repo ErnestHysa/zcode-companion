@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -135,6 +136,15 @@ class Phase7InstrumentedTest {
         rule.waitUntil(30_000) {
             rule.onAllNodesWithTag("composer_field").fetchSemanticsNodes().isNotEmpty()
         }
+        // FIELD (2026-10-01, vc20): the composer must be VISIBLE once the TIMELINE
+        // ROWS load — a fillMaxSize timeline body pushed the composer off-screen the
+        // moment rows arrived (existence assertions cannot catch an off-screen node;
+        // display assertions can).
+        rule.waitUntil(30_000) {
+            rule.onAllNodesWithTag("row_agent").fetchSemanticsNodes().isNotEmpty()
+        }
+        rule.waitForIdle()
+        rule.onNodeWithTag("composer_field").assertIsDisplayed()
 
         // E8 (§17.4): type WITHOUT sending — the debounced Room draft must survive a
         // full activity recreation (process-death class). The composer is the SAME

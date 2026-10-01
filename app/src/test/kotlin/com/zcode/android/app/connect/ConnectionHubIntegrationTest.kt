@@ -132,6 +132,74 @@ class ConnectionHubIntegrationTest {
         scope.cancel()
     }
 
+    /**
+     * FIELD (2026-10-01, vc20 device crash): the desktop cross-lists one session under
+     * MULTIPLE workspaces. The vc13 dedupe kept BOTH copies when the duplicates carried
+     * EQUAL updatedAtMs (the filter `seen[taskId] == updatedAtMs` matched both) — the
+     * task list then composed two rows with the same LazyColumn key →
+     * IllegalArgumentException "Key was already used" (device crash log). The bootstrap
+     * must yield EXACTLY ONE row per taskId for equal timestamps, and the NEWEST copy
+     * when timestamps differ.
+     */
+    @Test
+    fun `bootstrap dedupes cross-workspace duplicate taskIds - equal and unequal timestamps (vc20 crash)`() = runBlocking {
+        val ts = 1_791_000_000_000L
+        mock.script.bootstrapTasks = listOf(
+            MockZCode.MockTask(
+                taskId = "sess-dup-1",
+                title = "Cross-listed task (workspace A copy)",
+                displayStatus = "running",
+                workspacePath = "/synthetic/ws-a",
+                updatedAtMs = ts,
+                createdAtMs = ts,
+            ),
+            MockZCode.MockTask(
+                taskId = "sess-dup-1",
+                title = "Cross-listed task (workspace B copy - equal ts)",
+                displayStatus = "running",
+                workspacePath = "/synthetic/ws-b",
+                updatedAtMs = ts,
+                createdAtMs = ts,
+            ),
+            MockZCode.MockTask(
+                taskId = "sess-dup-2",
+                title = "Stale copy (older ts, listed first)",
+                displayStatus = "running",
+                workspacePath = "/synthetic/ws-a",
+                updatedAtMs = ts,
+                createdAtMs = ts,
+            ),
+            MockZCode.MockTask(
+                taskId = "sess-dup-2",
+                title = "Fresh copy (newer ts)",
+                displayStatus = "completed",
+                workspacePath = "/synthetic/ws-b",
+                updatedAtMs = ts + 60_000,
+                createdAtMs = ts,
+            ),
+            MockZCode.MockTask(
+                taskId = "sess-unique",
+                title = "Unrelated unique task",
+                displayStatus = "idle",
+                workspacePath = "/synthetic/ws-a",
+                updatedAtMs = ts,
+                createdAtMs = ts,
+            ),
+        )
+        hub.start()
+        withTimeout(30_000) { hub.phase.first { it == ConnectionPhase.CONNECTED } }
+        val settled = withTimeout(15_000) {
+            tasks.snapshot.first { list -> list.any { it.taskId == "sess-unique" } }
+        }
+        // Exactly ONE row per taskId (no LazyColumn key collision possible).
+        assertEquals(1, settled.count { it.taskId == "sess-dup-1" }, "equal-ts duplicate kept ${settled.count { it.taskId == "sess-dup-1" }} copies")
+        assertEquals(1, settled.count { it.taskId == "sess-dup-2" }, "unequal-ts duplicate kept ${settled.count { it.taskId == "sess-dup-2" }} copies")
+        // The kept copy is the NEWEST one.
+        val dup2 = settled.first { it.taskId == "sess-dup-2" }
+        assertEquals(TaskStatus.COMPLETED, dup2.status, "kept the stale copy (older updatedAt won)")
+        assertEquals("Fresh copy (newer ts)", dup2.title)
+    }
+
     @Test
     fun `paired cold start - bootstrap feeds the task projection (U2)`() = runBlocking {
         hub.start()
@@ -583,6 +651,12 @@ internal class IdentityKeyWrap : MasterKeyWrap {
 internal class FakeTaskRepository : TaskRepository {
     val snapshot = MutableStateFlow<List<Task>>(emptyList())
     private val flows = HashMap<String, MutableStateFlow<List<Task>>>()
+    // FIELD (2026-10-01, vc20): replaceAll is PER-WORKSPACE (the real repository
+    // partitions rows by (endpoint, workspace) and observeAllTasks unions them) —
+    // the old whole-snapshot replace dropped every OTHER workspace's rows, so
+    // multi-workspace bootstraps never converged in tests.
+    private val partitions = HashMap<Pair<String, String>, List<Task>>()
+
     override fun observeTasks(endpointId: EndpointId, workspace: WorkspaceIdentityKey): Flow<List<Task>> =
         flows.getOrPut(workspace.raw) { MutableStateFlow(emptyList()) }
 
@@ -595,7 +669,8 @@ internal class FakeTaskRepository : TaskRepository {
         etag: SnapshotEtag?,
         atMs: Long,
     ): Boolean {
-        snapshot.value = tasks.sortedByDescending { it.updatedAtMs }
+        partitions[endpointId.raw to workspace.raw] = tasks
+        snapshot.value = partitions.values.flatten().sortedByDescending { it.updatedAtMs }
         return true
     }
 

@@ -189,9 +189,19 @@ private fun copyDiagnostics(container: AppContainer, context: android.content.Co
         try {
             val text = buildDiagnosticReport(container, context)
             withContext(kotlinx.coroutines.Dispatchers.Main) {
+                // FIELD (2026-10-01, vc20): OEM clipboard services choke on multi-MB
+                // strings (the full report exceeds Samsung's clipboard budget once the
+                // ring fills) — copy a bounded prefix and say so.
+                val clipLimit = 400_000
+                val clipped = text.length > clipLimit
+                val payload = if (clipped) text.take(clipLimit) + "\n\n…(truncated at $clipLimit chars — use Export diagnostics for the full report)" else text
                 val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-                cm?.setPrimaryClip(android.content.ClipData.newPlainText("ZCode diagnostics", text))
-                android.widget.Toast.makeText(context, "Diagnostics copied", android.widget.Toast.LENGTH_SHORT).show()
+                cm?.setPrimaryClip(android.content.ClipData.newPlainText("ZCode diagnostics", payload))
+                android.widget.Toast.makeText(
+                    context,
+                    if (clipped) "Diagnostics copied (truncated — use Export for the full report)" else "Diagnostics copied",
+                    android.widget.Toast.LENGTH_SHORT,
+                ).show()
             }
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
@@ -213,13 +223,30 @@ private fun exportDiagnostics(container: AppContainer, context: android.content.
     scope.launch(kotlinx.coroutines.Dispatchers.Default) {
         try {
             val text = buildDiagnosticReport(container, context)
+            // FIELD (2026-10-01, vc20): the report shares as a FILE now. The old path
+            // put the whole report into Intent.EXTRA_TEXT — the Binder transaction
+            // buffer is ~1 MiB SHARED, so once the 5,000-entry ring filled up the
+            // startActivity call threw TransactionTooLargeException and the share
+            // sheet silently never appeared ("export works right after app open,
+            // fails later" — the ring was still small then). A FileProvider stream
+            // URI has no size limit.
+            val file = writeDiagnosticsFile(context, text)
             withContext(kotlinx.coroutines.Dispatchers.Main) {
+                val uri = androidx.core.content.FileProvider.getUriForFile(
+                    context, context.packageName + ".fileprovider", file,
+                )
                 val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                     type = "text/plain"
-                    putExtra(android.content.Intent.EXTRA_TEXT, text)
+                    putExtra(android.content.Intent.EXTRA_STREAM, uri)
                     putExtra(android.content.Intent.EXTRA_TITLE, "ZCode Companion diagnostics")
+                    // The read grant must survive the chooser hop to the target app.
+                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    // Samsung-class shares verify the grant via ClipData too.
+                    clipData = android.content.ClipData.newRawUri("diagnostics", uri)
                 }
-                context.startActivity(android.content.Intent.createChooser(intent, "Export diagnostics"))
+                context.startActivity(
+                    android.content.Intent.createChooser(intent, "Export diagnostics"),
+                )
             }
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
@@ -231,6 +258,18 @@ private fun exportDiagnostics(container: AppContainer, context: android.content.
             withContext(kotlinx.coroutines.Dispatchers.Main) { onBusy(false) }
         }
     }
+}
+
+/**
+ * Write the report into cacheDir/shared/ (the FileProvider root) and keep the
+ * directory BOUNDED (INV-5 spirit): the newest report plus at most 4 older ones.
+ */
+internal fun writeDiagnosticsFile(context: android.content.Context, text: String): java.io.File {
+    val dir = java.io.File(context.cacheDir, "shared").apply { mkdirs() }
+    val out = java.io.File(dir, "zcode-diagnostics-${System.currentTimeMillis()}.txt")
+    out.writeText(text)
+    dir.listFiles()?.sortedByDescending { it.name }?.drop(5)?.forEach { it.delete() }
+    return out
 }
 
 /**

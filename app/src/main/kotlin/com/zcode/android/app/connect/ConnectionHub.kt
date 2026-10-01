@@ -404,17 +404,18 @@ class ConnectionHub(
         // FIELD (2026-09-30, vc13 crash): the desktop cross-lists a session under more
         // than one workspace — dedupe by taskId GLOBALLY (keep the most-recent updatedAt)
         // so the projection shows each task once.
-        val seenTaskIds = HashMap<String, Long>() // taskId -> updatedAt of the kept copy
-        val keptGroups = LinkedHashMap<String, List<BootstrapParser.ParsedTask>>()
-        val flat = parsed.tasks.sortedByDescending { it.updatedAtMs }
-        for (t in flat) {
-            val prev = seenTaskIds[t.taskId]
-            if (prev != null && prev >= t.updatedAtMs) continue
-            seenTaskIds[t.taskId] = t.updatedAtMs
+        // FIELD (2026-10-01, vc20 crash on device): the vc13 filter
+        // (`seenTaskIds[taskId] == updatedAtMs`) kept BOTH copies when the duplicates
+        // carried EQUAL updatedAtMs — two rows with one LazyColumn key →
+        // IllegalArgumentException "Key was already used" (device crash log). The dedupe
+        // now pins the EXACT kept copy (newest first) and filters each group by identity.
+        val keptByTask = LinkedHashMap<String, BootstrapParser.ParsedTask>()
+        for (t in parsed.tasks.sortedByDescending { it.updatedAtMs }) {
+            keptByTask.putIfAbsent(t.taskId, t)
         }
         for ((key, group) in byWorkspace) {
             if (key.isBlank()) continue
-            val tasks = group.filter { seenTaskIds[it.taskId] == it.updatedAtMs }
+            val tasks = group.filter { keptByTask[it.taskId] === it }
                 .map { t ->
                 Task(
                     taskId = t.taskId,

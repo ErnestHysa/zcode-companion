@@ -259,7 +259,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.EmptyBody() {
 
 /** §19.2: render window + anchoring + pagination trigger + unread FAB. */
 @Composable
-private fun TimelineBody(
+private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     state: ConversationUiState,
     onLoadOlder: (Long, (Int) -> Unit) -> Unit,
     onRetryOlder: (Long) -> Unit,
@@ -339,7 +339,10 @@ private fun TimelineBody(
         }
     }
 
-    Box(Modifier.fillMaxSize()) {
+    // weight(1f), NOT fillMaxSize — the pinned composer (§17.4) lives BELOW this
+    // box in the Column; fillMaxSize consumed the entire column and pushed the
+    // composer off-screen the moment rows loaded (field: 2026-10-01, vc20).
+    Box(Modifier.fillMaxWidth().weight(1f)) {
         LazyColumn(
             state = listState,
             modifier = Modifier

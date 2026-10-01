@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- §23 (file/attachment architecture): app-cache files shared OUT of the app go
+     through FileProvider — never raw file:// URIs (API 24+ FileUriExposed). -->
+<paths>
+    <cache-path name="shared" path="shared/" />
+</paths>
