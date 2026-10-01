@@ -181,5 +181,24 @@ class PermissionStateMachine(
                 PermissionOption.Semantics.OTHER -> Decision.InertUnknown(optionId)
             }
         }
+
+        /**
+         * U9 elicitation plane (Phase 7): answering a user-input question is NOT an
+         * allow/deny decision — the verified `resolveInteraction` answer carries the
+         * elicitation choice verbatim (`answer {optionId}`) with NO permission
+         * semantics attached (INV-14 concerns ALLOW decisions; this path mints none).
+         * Grounding: §7.4.4 U9 protocol basis + the verified userInputRequestPayload
+         * options `{optionId, label}` (snapshot.ts). Fail-closed still applies:
+         * an optionId outside the request's own option set is inert; with NO options
+         * the payload's freeText flag must be honored (a blank answer is not sent).
+         */
+        fun decideUserInput(options: List<PermissionOption>, optionId: String, freeText: String?): Decision {
+            return if (options.isEmpty()) {
+                if (freeText.isNullOrBlank()) Decision.NotApprovable else Decision.Submit("", freeText)
+            } else {
+                if (options.any { it.optionId == optionId }) Decision.Submit(optionId, null)
+                else Decision.InertUnknown(optionId)
+            }
+        }
     }
 }

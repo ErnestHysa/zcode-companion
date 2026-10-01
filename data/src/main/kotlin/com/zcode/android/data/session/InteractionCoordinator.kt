@@ -45,7 +45,19 @@ class InteractionCoordinator(
 ) {
 
     private val machines = HashMap<InteractionId, PermissionStateMachine>()
-    private val requests = HashMap<InteractionId, PermissionRequest>()
+
+    /**
+     * Card payload record per known interaction — BOTH planes (Phase 7 U9: user-input
+     * requests submit through the same gate, so they need sessionId/options here too).
+     */
+    private class KnownRequest(
+        val sessionId: String?,
+        val options: List<com.zcode.android.domain.model.PermissionOption>,
+        val permission: PermissionRequest? = null,
+        val userInput: UserInputRequest? = null,
+    )
+
+    private val requests = HashMap<InteractionId, KnownRequest>()
 
     /** INV-4: the pending outbox entry per interaction — retries REUSE its commandId. */
     private val pendingCommands = HashMap<InteractionId, CommandId>()
@@ -54,12 +66,13 @@ class InteractionCoordinator(
 
     suspend fun onPermissionRequested(request: PermissionRequest) {
         machines[request.interactionId] = PermissionStateMachine(request.interactionId)
-        requests[request.interactionId] = request
+        requests[request.interactionId] = KnownRequest(request.sessionId, request.options, permission = request)
         interactions.upsertPermission(request, endpointId, InteractionLifecycle.REQUESTED)
     }
 
     suspend fun onUserInputRequested(request: UserInputRequest) {
         machines[request.interactionId] = PermissionStateMachine(request.interactionId)
+        requests[request.interactionId] = KnownRequest(request.sessionId, request.options, userInput = request)
         interactions.upsertUserInput(request, endpointId, InteractionLifecycle.REQUESTED)
     }
 
@@ -105,12 +118,25 @@ class InteractionCoordinator(
         data object UnknownInteraction : SubmitOutcome()
     }
 
-    suspend fun submit(interactionId: InteractionId, optionId: String, freeText: String? = null): SubmitOutcome {
+    /** Which answer policy gates the submit (§20.4 permission vs the U9 elicitation plane). */
+    enum class AnswerKind { PERMISSION, USER_INPUT }
+
+    suspend fun submit(
+        interactionId: InteractionId,
+        optionId: String,
+        freeText: String? = null,
+        kind: AnswerKind = AnswerKind.PERMISSION,
+    ): SubmitOutcome {
         val machine = machines[interactionId] ?: return SubmitOutcome.UnknownInteraction
         val request = requests[interactionId] ?: return SubmitOutcome.UnknownInteraction
         // §20.4: classification BEFORE any state change — an unknown option never
         // reaches the machine, the outbox, or the wire.
-        val decision = PermissionStateMachine.AnswerPolicy.decide(request.options, optionId, freeText)
+        val decision = when (kind) {
+            AnswerKind.PERMISSION ->
+                PermissionStateMachine.AnswerPolicy.decide(request.options, optionId, freeText)
+            AnswerKind.USER_INPUT ->
+                PermissionStateMachine.AnswerPolicy.decideUserInput(request.options, optionId, freeText)
+        }
         val answer = when (decision) {
             is PermissionStateMachine.AnswerPolicy.Decision.Submit -> decision
             is PermissionStateMachine.AnswerPolicy.Decision.InertUnknown -> return SubmitOutcome.InertOption
@@ -118,7 +144,6 @@ class InteractionCoordinator(
             is PermissionStateMachine.AnswerPolicy.Decision.NotApprovable -> return SubmitOutcome.NotApprovable
         }
 
-        val before = machine.state
         runCatching { machine.on(PermissionStateMachine.Event.UserChose(optionId, freeText)) }
             .onFailure { return SubmitOutcome.DuplicateNoOp } // includes RESOLVED/STALE → Submitting illegals
         if (machine.state != PermissionStateMachine.State.SUBMITTING) {
@@ -127,10 +152,12 @@ class InteractionCoordinator(
         updateLifecycle(interactionId, machine.state)
 
         // ACCEPT: the outbox mints the commandId exactly once (INV-4).
+        // Verified resolveInteraction payload (command.ts): answer {optionId?, freeText?}
+        // — optionId is omitted entirely for free-text-only elicitation answers.
         val payload = buildJsonObject {
             put("interactionId", interactionId.raw)
             put("answer", buildJsonObject {
-                put("optionId", answer.optionId)
+                if (answer.optionId.isNotEmpty()) put("optionId", answer.optionId)
                 answer.freeText?.let { put("freeText", it) }
             })
         }
@@ -161,7 +188,13 @@ class InteractionCoordinator(
             else -> return SubmitOutcome.DuplicateNoOp // live entry (TRANSMITTED/…) — never duplicate
         }
         try {
-            outbox.apply(commandId, OutboxStateMachine.Event.Transmit, clock())
+            // Transmit is legal only pre-contact (ACCEPTED_LOCALLY). A retry entered
+            // through UserGatedRetry has ALREADY moved the entry to TRANSMITTED —
+            // re-applying Transmit would throw an illegal transition and eat the
+            // retry (Phase 7 finding: the first suite to execute the retry path).
+            if (outbox.get(commandId)?.state == OutboxStateMachine.State.ACCEPTED_LOCALLY) {
+                outbox.apply(commandId, OutboxStateMachine.Event.Transmit, clock())
+            }
             val ack = commands.send(
                 type = "resolveInteraction",
                 sessionId = request.sessionId,
@@ -178,7 +211,9 @@ class InteractionCoordinator(
             }
             runCatching { machine.on(machineEvent) }
             if (machine.state == PermissionStateMachine.State.RESOLVED) {
-                interactions.markResolved(endpointId, interactionId, clock(), resolvedBySelf = true)
+                // Truthful attribution: a disappearance-reconciled card may already be
+                // RESOLVED-by-elsewhere before the late ack returns (§20.3 row 3).
+                interactions.markResolved(endpointId, interactionId, clock(), resolvedBySelf = !machine.resolvedByElsewhere)
                 pendingCommands.remove(interactionId) // terminal: the entry's work is done
             } else if (machine.state in TERMINAL_MACHINE_STATES) {
                 pendingCommands.remove(interactionId)
@@ -196,6 +231,69 @@ class InteractionCoordinator(
             return SubmitOutcome.RetryableKept(commandId)
         }
     }
+
+    /**
+     * Approvals-inbox submit (§18.3): answer an interaction whose card machine may
+     * not be in memory (its session was never attached in this process). Hydrates
+     * the machine + request from the interaction STORE payload, then re-enters the
+     * SAME fail-closed gate — no second submission path exists (INV-14).
+     */
+    suspend fun submitFromStore(
+        interactionId: InteractionId,
+        optionId: String,
+        freeText: String? = null,
+    ): SubmitOutcome {
+        if (machines[interactionId] != null && requests[interactionId] != null) {
+            return submit(interactionId, optionId, freeText, AnswerKind.PERMISSION)
+        }
+        val stored = interactions.loadStored(endpointId, interactionId)
+            ?: return SubmitOutcome.UnknownInteraction
+        if (stored.record.resolvedAtMs != null) return SubmitOutcome.DuplicateNoOp
+        val payload = stored.payload
+        val answerKind = when (stored.record.kind) {
+            InteractionRepository.InteractionRecord.Kind.USER_INPUT -> {
+                onUserInputRequested(
+                    UserInputRequest(
+                        interactionId = interactionId,
+                        sessionId = stored.record.sessionId?.raw,
+                        prompt = payload.strOrNull("prompt"),
+                        options = optionIdsOf(payload),
+                        createdAtMs = stored.record.createdAtMs,
+                        raw = payload,
+                    )
+                )
+                AnswerKind.USER_INPUT
+            }
+            InteractionRepository.InteractionRecord.Kind.PERMISSION -> {
+                onPermissionRequested(
+                    PermissionRequest(
+                        interactionId = interactionId,
+                        sessionId = stored.record.sessionId?.raw,
+                        toolName = stored.record.toolName ?: payload.strOrNull("toolName") ?: "",
+                        reason = payload.strOrNull("summary"),
+                        input = payload["detail"] as? JsonObject,
+                        options = optionIdsOf(payload),
+                        createdAtMs = stored.record.createdAtMs,
+                        raw = payload,
+                    )
+                )
+                AnswerKind.PERMISSION
+            }
+        }
+        // §14.4.3: submit is only legal from DISPLAYED — render the hydrated card first.
+        render(interactionId)
+        return submit(interactionId, optionId, freeText, answerKind)
+    }
+
+    private fun optionIdsOf(payload: JsonObject): List<com.zcode.android.domain.model.PermissionOption> =
+        (payload["options"] as? kotlinx.serialization.json.JsonArray)
+            ?.mapNotNull { it as? JsonObject }
+            ?.mapNotNull { it.strOrNull("optionId") }
+            ?.map { com.zcode.android.domain.model.PermissionOption(it) }
+            ?: emptyList()
+
+    private fun JsonObject.strOrNull(key: String): String? =
+        (this[key] as? kotlinx.serialization.json.JsonPrimitive)?.content
 
     // ---------------------------------------------------------------- recovery reconcile (S13)
 
@@ -249,6 +347,90 @@ class InteractionCoordinator(
     /** Machines for open cards (recovery reload path — store is authoritative for lifecycle). */
     fun knownInteractionIds(): Set<InteractionId> = machines.keys.toSet()
 
+    // ---------------------------------------------------------------- Phase 7: pendingInteractions feed
+
+    /**
+     * Authoritative interaction reconcile from the verified `pendingInteractions`
+     * state key (docs/protocol/v4-wire.md §9 — Q11 RESOLVED: snapshots DO carry open
+     * interactions). Presence creates/refreshes cards (bound to THIS session — the
+     * §9.13 mapping finally lands: snapshot-reconciled requests carry sessionId);
+     * authoritative DISAPPEARANCE of a known interaction of this session resolves it
+     * by-elsewhere (§20.3 row 3 / §14.4.3 "Any" row). Unknown interaction kinds are
+     * counted and never rendered actionable (INV-14).
+     *
+     * A null `pendingInteractions` key means the projection carried no list (legacy
+     * shape) — nothing is reconciled from this source; the Phase 5 toolCall-row
+     * fallback stays authoritative for such frames.
+     */
+    suspend fun reconcileFromSessionState(sessionId: String, state: com.zcode.android.domain.model.SessionProjectionState) {
+        val pending = state.pendingInteractions ?: return
+        var unknownKinds = 0
+        val openIds = HashSet<InteractionId>()
+        for (pi in pending) {
+            val iid = InteractionId(pi.interactionId)
+            val permission = pi.permission
+            val userInput = pi.userInput
+            when {
+                pi.kind == com.zcode.android.domain.model.PendingInteraction.Kind.PERMISSION && permission != null -> {
+                    openIds.add(iid)
+                    val request = PermissionRequest(
+                        interactionId = iid,
+                        sessionId = sessionId,
+                        toolName = permission.toolName,
+                        reason = permission.summary,
+                        input = permission.detail,
+                        options = permission.options,
+                        createdAtMs = pi.createdAtMs ?: clock(),
+                        raw = pi.raw,
+                    )
+                    if (machines[iid] == null) {
+                        onPermissionRequested(request)
+                        render(iid)
+                    } else {
+                        // Refresh the payload (detail/summary may evolve); lifecycle state unchanged.
+                        requests[iid] = KnownRequest(request.sessionId, request.options, permission = request)
+                        interactions.upsertPermission(request, endpointId, lifecycleOf(machines[iid]!!.state))
+                    }
+                }
+                pi.kind == com.zcode.android.domain.model.PendingInteraction.Kind.USER_INPUT && userInput != null -> {
+                    openIds.add(iid)
+                    val request = UserInputRequest(
+                        interactionId = iid,
+                        sessionId = sessionId,
+                        prompt = userInput.prompt,
+                        options = userInput.options,
+                        createdAtMs = pi.createdAtMs ?: clock(),
+                        raw = pi.raw,
+                    )
+                    if (machines[iid] == null) {
+                        onUserInputRequested(request)
+                        render(iid)
+                    } else {
+                        requests[iid] = KnownRequest(request.sessionId, request.options, userInput = request)
+                        interactions.upsertUserInput(request, endpointId, lifecycleOf(machines[iid]!!.state))
+                    }
+                }
+                else -> {
+                    unknownKinds++
+                    log.debug("reconcile.pendingKind", "kind=${pi.kind.wire} (counted, no card — INV-14)")
+                }
+            }
+        }
+        // Disappearance = authoritative resolution (the list is the whole truth —
+        // key-level replacement, never a delta). Only THIS session's interactions.
+        for ((iid, machine) in machines.toList()) {
+            if (requests[iid]?.sessionId == sessionId && iid !in openIds) {
+                runCatching { machine.on(PermissionStateMachine.Event.ResolvedElsewhere) }
+                if (machine.state == PermissionStateMachine.State.RESOLVED) {
+                    interactions.markResolved(endpointId, iid, clock(), resolvedBySelf = false)
+                    pendingCommands.remove(iid)
+                }
+                updateLifecycle(iid, machine.state)
+            }
+        }
+        interactions.sweep(endpointId, clock())
+    }
+
     fun machineStateForTest(interactionId: InteractionId): PermissionStateMachine.State? = machines[interactionId]?.state
 
     companion object {
@@ -262,8 +444,9 @@ class InteractionCoordinator(
     private fun machineFor(interactionId: InteractionId): PermissionStateMachine? = machines[interactionId]
 
     private suspend fun updateLifecycle(interactionId: InteractionId, state: PermissionStateMachine.State) {
-        val request = requests[interactionId] ?: return
-        interactions.upsertPermission(request, endpointId, lifecycleOf(state))
+        val known = requests[interactionId] ?: return
+        known.permission?.let { interactions.upsertPermission(it, endpointId, lifecycleOf(state)) }
+        known.userInput?.let { interactions.upsertUserInput(it, endpointId, lifecycleOf(state)) }
     }
 
     private fun lifecycleOf(state: PermissionStateMachine.State): InteractionLifecycle = when (state) {

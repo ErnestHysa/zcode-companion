@@ -37,9 +37,6 @@ class DefaultPairingPort(
 
     private val _pairedEndpoint = MutableStateFlow<PairingFlow.LinkView?>(vault.loadMetadata()?.let(::toView))
 
-    init {
-        android.util.Log.i("PORTDBG", "constructed paired=${_pairedEndpoint.value != null}")
-    }
     override val pairedEndpoint: StateFlow<PairingFlow.LinkView?> = _pairedEndpoint
 
     override suspend fun validate(raw: String): PairingPort.Validation {

@@ -11,9 +11,10 @@ import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Consumer-side port for the conversation surface (INV-2/INV-6: no transport types).
- * Phase 6 is READ/STREAM only — there is intentionally NO send/answer method; the
- * write path is Phase 7 (§43.2) and its absence here is the phase boundary made
- * structural.
+ * Phase 6 was READ/STREAM only; Phase 7 (§43.2) adds the SAFE WRITE PATH: composer
+ * drafts, the outbox send path, interaction answers, stop/cancel, queue management.
+ * Every command returns a typed outcome — no silent queuing, no guessed success
+ * (§15.5/§17.6).
  */
 interface ConversationPort {
     /** App-level connection phase (§14.4.1 UI mirror) for the status line. */
@@ -39,6 +40,9 @@ interface ConversationPort {
     /** Total rows in the session (window metadata; null when unknown). */
     fun observeTotalRows(taskId: String): Flow<Long?>
 
+    /** Phase 7 A-side projection: control/queue/pendingInteractions/inputRouting. */
+    fun observeSessionState(taskId: String): Flow<com.zcode.android.domain.model.SessionProjectionState>
+
     /** Subscribe (Phase 5 coordinator path; journal restore included). */
     suspend fun open(task: Task): Boolean
 
@@ -54,4 +58,59 @@ interface ConversationPort {
         val error: AppError?,
         val epochRejected: Boolean,
     )
+
+    // ---------------------------------------------------------------- Phase 7 write path
+
+    /** §17.4 drafts: per (endpoint, workspace, task), Room-backed, debounced by the caller. */
+    fun observeDraft(taskId: String): Flow<String?>
+    suspend fun saveDraft(taskId: String, text: String)
+    suspend fun clearDraft(taskId: String)
+
+    /** §17.5 send path (INV-4 idempotent, §17.6 offline-blocked). */
+    suspend fun sendPrompt(taskId: String, text: String, heldQueueDisposition: String? = null): SendOutcome
+
+    enum class SendOutcome { ACCEPTED, BLOCKED_OFFLINE, STALE, FAILED, UNKNOWN_KEPT }
+
+    /** Truthful pending state (§14.2 overlay; in-memory, reconciled by the ViewModel). */
+    fun observePendingSends(taskId: String): Flow<List<PendingSendView>>
+
+    data class PendingSendView(val commandId: String, val text: String, val state: String, val atMs: Long)
+
+    /** User-gated retry of an UNKNOWN/failed send — SAME commandId (INV-4). */
+    suspend fun retrySend(commandId: String): SendOutcome
+
+    /** §7.5 stop control (SAFE_AGGRESSIVE retry class, §28.6). */
+    suspend fun stopGeneration(taskId: String): SendOutcome
+
+    /** §7.5 cancelBackgroundWork (SAFE_AGGRESSIVE). */
+    suspend fun cancelBackgroundWork(taskId: String, workId: String): SendOutcome
+
+    /** §7.5 queue edits — CAS-guarded (verified set; baseRevision from the projection). */
+    suspend fun sendQueuedNow(taskId: String, queueItemId: String): SendOutcome
+    suspend fun editQueueItem(taskId: String, queueItemId: String, newText: String): SendOutcome
+
+    /** §20 interaction answer (permission or user-input) through the ONE fail-closed gate. */
+    suspend fun answerInteraction(
+        interactionId: String,
+        optionId: String,
+        freeText: String?,
+        userInput: Boolean,
+    ): AnswerOutcome
+
+    enum class AnswerOutcome { SUBMITTED, RETRYABLE_KEPT, INERT_OPTION, REFINE_REQUIRES_TEXT, NOT_APPROVABLE, DUPLICATE_NO_OP, UNKNOWN_INTERACTION }
+
+    /** Approvals inbox source (§18.3): open interactions across tasks. */
+    fun observeOpenInteractions(): Flow<List<InteractionSummary>>
+
+    data class InteractionSummary(
+        val interactionId: String,
+        val sessionId: String?,
+        val kind: String,
+        val lifecycle: String,
+        val toolName: String?,
+        val createdAtMs: Long,
+    )
+
+    /** One-tap approve from the inbox (hydrates the card from the store — §18.3). */
+    suspend fun answerFromInbox(interactionId: String, optionId: String, freeText: String?): AnswerOutcome
 }

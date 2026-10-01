@@ -76,6 +76,7 @@ class DefaultTasksPort(
 class DefaultConversationPort(
     private val hub: ConnectionHub,
     private val conversationRepo: ConversationRepository,
+    private val vault: CredentialVault,
 ) : ConversationPort {
 
     override val phase: StateFlow<ConnectionPhase> get() = hub.phase
@@ -105,12 +106,185 @@ class DefaultConversationPort(
     override fun observeTotalRows(taskId: String): Flow<Long?> =
         hub.sessionTotalRows(taskId)
 
+    override fun observeSessionState(taskId: String): Flow<com.zcode.android.domain.model.SessionProjectionState> =
+        hub.sessionProjectionState(taskId)
+
     override suspend fun open(task: Task): Boolean {
         val coordinator = hub.openConversation(task) ?: return false
         // Wait for the first authoritative anchor so first paint is never an empty
         // lie (§19.4 tail-first: the snapshot apply is the paint source).
         return true
     }
+
+    // ---------------------------------------------------------------- Phase 7 write path
+
+    /** §17.4 draft scope — (endpoint, workspace identity, task); endpoint from the vault. */
+    private suspend fun draftScope(taskId: String): com.zcode.android.domain.repo.DraftRepository.DraftScope? {
+        val endpointId = vault.loadMetadata()?.endpointId ?: return null
+        val task = task(taskId) ?: return null
+        return com.zcode.android.domain.repo.DraftRepository.DraftScope(
+            endpointId = EndpointId(endpointId),
+            workspace = task.workspace,
+            taskId = taskId,
+        )
+    }
+
+    override fun observeDraft(taskId: String): Flow<String?> =
+        kotlinx.coroutines.flow.channelFlow {
+            val scope = draftScope(taskId)
+            if (scope == null) {
+                kotlinx.coroutines.flow.flowOf<String?>(null).collect { send(it) }
+            } else {
+                hub.draftRepository().observe(scope).collect { send(it) }
+            }
+        }
+
+    override suspend fun saveDraft(taskId: String, text: String) {
+        draftScope(taskId)?.let { hub.draftRepository().save(it, text, System.currentTimeMillis()) }
+    }
+
+    override suspend fun clearDraft(taskId: String) {
+        draftScope(taskId)?.let { hub.draftRepository().clear(it) }
+    }
+
+    override suspend fun sendPrompt(taskId: String, text: String, heldQueueDisposition: String?): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        return when (val outcome = coordinator.sendPrompt(taskId, text, heldQueueDisposition = heldQueueDisposition)) {
+            is com.zcode.android.data.session.CommandCoordinator.Outcome.Accepted -> ConversationPort.SendOutcome.ACCEPTED
+            is com.zcode.android.data.session.CommandCoordinator.Outcome.BlockedOffline -> ConversationPort.SendOutcome.BLOCKED_OFFLINE
+            is com.zcode.android.data.session.CommandCoordinator.Outcome.Stale -> ConversationPort.SendOutcome.STALE
+            is com.zcode.android.data.session.CommandCoordinator.Outcome.Failed -> ConversationPort.SendOutcome.FAILED
+            is com.zcode.android.data.session.CommandCoordinator.Outcome.UnknownKept -> ConversationPort.SendOutcome.UNKNOWN_KEPT
+            is com.zcode.android.data.session.CommandCoordinator.Outcome.MissingBaseRevision -> ConversationPort.SendOutcome.FAILED
+        }
+    }
+
+    override fun observePendingSends(taskId: String): Flow<List<ConversationPort.PendingSendView>> =
+        kotlinx.coroutines.flow.channelFlow {
+            val coordinator = hub.commandCoordinatorOrNull()
+            if (coordinator == null) {
+                kotlinx.coroutines.flow.flowOf(emptyList<com.zcode.android.data.session.CommandCoordinator.PendingSend>()).collect { list ->
+                    send(list.map { ConversationPort.PendingSendView(it.commandId.raw, it.text, it.state.name, it.atMs) })
+                }
+            } else {
+                coordinator.pendingSends.collect { list ->
+                    send(
+                        list.filter { it.sessionId == taskId }
+                            .map { ConversationPort.PendingSendView(it.commandId.raw, it.text, it.state.name, it.atMs) },
+                    )
+                }
+            }
+        }
+
+    override suspend fun retrySend(commandId: String): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        return mapOutcome(coordinator.retry(com.zcode.android.domain.ids.CommandId(commandId)))
+    }
+
+    override suspend fun stopGeneration(taskId: String): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        return mapOutcome(coordinator.stopGeneration(taskId))
+    }
+
+    override suspend fun cancelBackgroundWork(taskId: String, workId: String): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        return mapOutcome(coordinator.cancelBackgroundWork(taskId, workId))
+    }
+
+    override suspend fun sendQueuedNow(taskId: String, queueItemId: String): ConversationPort.SendOutcome =
+        queueOp(taskId) { revision, coordinator ->
+            coordinator.sendQueuedNow(taskId, queueItemId, baseRevision = revision)
+        }
+
+    override suspend fun editQueueItem(taskId: String, queueItemId: String, newText: String): ConversationPort.SendOutcome =
+        queueOp(taskId) { revision, coordinator ->
+            coordinator.editQueueItem(taskId, queueItemId, newText, baseRevision = revision)
+        }
+
+    /** CAS currency (baseRevision) comes from the session projection's latest revision. */
+    private suspend fun queueOp(
+        taskId: String,
+        op: suspend (Long?, com.zcode.android.data.session.CommandCoordinator) -> com.zcode.android.data.session.CommandCoordinator.Outcome,
+    ): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        val revision = hub.sessionProjectionState(taskId).first().revision
+        return mapOutcome(op(revision, coordinator))
+    }
+
+    private fun mapOutcome(outcome: com.zcode.android.data.session.CommandCoordinator.Outcome): ConversationPort.SendOutcome =
+        when (outcome) {
+            is com.zcode.android.data.session.CommandCoordinator.Outcome.Accepted -> ConversationPort.SendOutcome.ACCEPTED
+            is com.zcode.android.data.session.CommandCoordinator.Outcome.BlockedOffline -> ConversationPort.SendOutcome.BLOCKED_OFFLINE
+            is com.zcode.android.data.session.CommandCoordinator.Outcome.Stale -> ConversationPort.SendOutcome.STALE
+            is com.zcode.android.data.session.CommandCoordinator.Outcome.Failed -> ConversationPort.SendOutcome.FAILED
+            is com.zcode.android.data.session.CommandCoordinator.Outcome.UnknownKept -> ConversationPort.SendOutcome.UNKNOWN_KEPT
+            is com.zcode.android.data.session.CommandCoordinator.Outcome.MissingBaseRevision -> ConversationPort.SendOutcome.FAILED
+        }
+
+    override suspend fun answerInteraction(
+        interactionId: String,
+        optionId: String,
+        freeText: String?,
+        userInput: Boolean,
+    ): ConversationPort.AnswerOutcome {
+        val coordinator = hub.interactionCoordinatorOrNull() ?: return ConversationPort.AnswerOutcome.UNKNOWN_INTERACTION
+        return mapAnswer(
+            coordinator.submit(
+                com.zcode.android.domain.ids.InteractionId(interactionId),
+                optionId,
+                freeText,
+                if (userInput) com.zcode.android.data.session.InteractionCoordinator.AnswerKind.USER_INPUT
+                else com.zcode.android.data.session.InteractionCoordinator.AnswerKind.PERMISSION,
+            ),
+        )
+    }
+
+    override fun observeOpenInteractions(): Flow<List<ConversationPort.InteractionSummary>> =
+        kotlinx.coroutines.flow.channelFlow {
+            val endpointId = vault.loadMetadata()?.endpointId
+            if (endpointId == null) {
+                kotlinx.coroutines.flow.flowOf(emptyList<com.zcode.android.domain.repo.InteractionRepository.InteractionRecord>()).collect {
+                    send(emptyList())
+                }
+            } else {
+                hub.interactionsStore().observeOpen(EndpointId(endpointId)).collect { list ->
+                    send(
+                        list.map {
+                            ConversationPort.InteractionSummary(
+                                interactionId = it.interactionId.raw,
+                                sessionId = it.sessionId?.raw,
+                                kind = it.kind.name,
+                                lifecycle = it.lifecycle.name,
+                                toolName = it.toolName,
+                                createdAtMs = it.createdAtMs,
+                            )
+                        },
+                    )
+                }
+            }
+        }
+
+    override suspend fun answerFromInbox(interactionId: String, optionId: String, freeText: String?): ConversationPort.AnswerOutcome {
+        val coordinator = hub.interactionCoordinatorOrNull() ?: return ConversationPort.AnswerOutcome.UNKNOWN_INTERACTION
+        return mapAnswer(
+            coordinator.submitFromStore(
+                com.zcode.android.domain.ids.InteractionId(interactionId),
+                optionId,
+                freeText,
+            ),
+        )
+    }
+
+    private fun mapAnswer(outcome: com.zcode.android.data.session.InteractionCoordinator.SubmitOutcome): ConversationPort.AnswerOutcome =
+        when (outcome) {
+            is com.zcode.android.data.session.InteractionCoordinator.SubmitOutcome.Submitted -> ConversationPort.AnswerOutcome.SUBMITTED
+            is com.zcode.android.data.session.InteractionCoordinator.SubmitOutcome.RetryableKept -> ConversationPort.AnswerOutcome.RETRYABLE_KEPT
+            is com.zcode.android.data.session.InteractionCoordinator.SubmitOutcome.InertOption -> ConversationPort.AnswerOutcome.INERT_OPTION
+            is com.zcode.android.data.session.InteractionCoordinator.SubmitOutcome.RefineRequiresText -> ConversationPort.AnswerOutcome.REFINE_REQUIRES_TEXT
+            is com.zcode.android.data.session.InteractionCoordinator.SubmitOutcome.NotApprovable -> ConversationPort.AnswerOutcome.NOT_APPROVABLE
+            is com.zcode.android.data.session.InteractionCoordinator.SubmitOutcome.DuplicateNoOp -> ConversationPort.AnswerOutcome.DUPLICATE_NO_OP
+            is com.zcode.android.data.session.InteractionCoordinator.SubmitOutcome.UnknownInteraction -> ConversationPort.AnswerOutcome.UNKNOWN_INTERACTION
+        }
 
     /**
      * §19.4 scroll-back: `rowsRange` (stateless, re-send-safe, ≤ 200 rows verified)

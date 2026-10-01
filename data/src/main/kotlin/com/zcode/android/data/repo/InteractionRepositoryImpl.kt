@@ -13,6 +13,7 @@ import com.zcode.android.domain.repo.InteractionRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 
 /**
  * Interaction store (§17.3 row 3): open/recent permission + user-input interactions;
@@ -101,6 +102,14 @@ class InteractionRepositoryImpl(
     }
 
     override suspend fun count(endpointId: EndpointId): Int = dao.count(endpointId.raw)
+
+    override suspend fun loadStored(endpointId: EndpointId, interactionId: InteractionId): InteractionRepository.StoredInteraction? {
+        val entity = dao.get(endpointId.raw, interactionId.raw) ?: return null
+        val payload = runCatching { json.parseToJsonElement(entity.payloadJson).jsonObject }.getOrDefault(
+            kotlinx.serialization.json.JsonObject(emptyMap()),
+        )
+        return InteractionRepository.StoredInteraction(entity.toRecord(), payload)
+    }
 
     private fun InteractionEntity.toRecord() = InteractionRepository.InteractionRecord(
         interactionId = InteractionId(interactionId),

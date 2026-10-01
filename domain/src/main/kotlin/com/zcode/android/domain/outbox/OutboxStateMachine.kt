@@ -63,6 +63,16 @@ class OutboxStateMachine private constructor(private var state: State) {
         /** User-gated retry after server contact — SAME commandId (INV-4 idempotency). */
         data object UserGatedRetry : Event()
 
+        /**
+         * Automatic retransmission of the §28.6 SAFE_AGGRESSIVE family (stop/cancel —
+         * "idempotent semantics, verified command family") from UNKNOWN/FAILED_RETRYABLE.
+         * Phase 7: the caller MUST consult [CommandRetryClassifier.canAutoRetry] first —
+         * the classifier is the policy, this event is the machine-legal transition that
+         * keeps the retransmission INSIDE the state machine (INV-4: same commandId,
+         * attempts counted, no duplicate mints).
+         */
+        data object AutoRetransmit : Event()
+
         /** TTL sweep (§17.5: TTL 24 h verified). */
         data object Expire : Event()
 
@@ -102,6 +112,8 @@ class OutboxStateMachine private constructor(private var state: State) {
             }
             is Event.UserGatedRetry -> if (from == State.UNKNOWN || from == State.FAILED_RETRYABLE) State.TRANSMITTED
             else throw illegal(from, event, "user retry only from UNKNOWN/FAILED_RETRYABLE (explicit user action)")
+            is Event.AutoRetransmit -> if (from == State.UNKNOWN || from == State.FAILED_RETRYABLE) State.TRANSMITTED
+            else throw illegal(from, event, "auto-retransmit only from UNKNOWN/FAILED_RETRYABLE (SAFE_AGGRESSIVE class, §28.6)")
             is Event.Expire -> when (from) {
                 State.ACCEPTED_LOCALLY, State.TRANSMITTED, State.UNKNOWN -> State.EXPIRED
                 else -> throw illegal(from, event, "Expire only from live states")

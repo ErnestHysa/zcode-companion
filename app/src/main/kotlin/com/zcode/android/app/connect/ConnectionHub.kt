@@ -59,6 +59,9 @@ class ConnectionHub(
     private val journalRepo: JournalRepository,
     private val interactions: InteractionRepository,
     private val endpointRepo: EndpointRepository,
+    /** Phase 7: the REAL outbox + drafts (the Phase 6 OutboxStub is retired). */
+    private val outbox: com.zcode.android.domain.repo.OutboxRepository,
+    private val drafts: com.zcode.android.domain.repo.DraftRepository,
     private val scope: CoroutineScope,
     internal val log: ZLog,
 ) {
@@ -214,6 +217,10 @@ class ConnectionHub(
 
     fun sessionStreaming(taskId: String): kotlinx.coroutines.flow.Flow<List<com.zcode.android.domain.model.StreamingBuffer>> =
         sessionFlow(taskId, { m -> m.streaming }, emptyList())
+
+    /** Phase 7 A-side projection (control/queue/pendingInteractions/inputRouting). */
+    fun sessionProjectionState(taskId: String): kotlinx.coroutines.flow.Flow<com.zcode.android.domain.model.SessionProjectionState> =
+        sessionFlow(taskId, { m -> m.sessionState }, com.zcode.android.domain.model.SessionProjectionState())
 
     private var connectJob: Job? = null
     private var coordinator: RecoveryCoordinator? = null
@@ -497,7 +504,17 @@ class ConnectionHub(
     /** Best-effort workspace path for a task (identity key may BE the path). */
     private fun taskWorkspacePath(task: Task): String? = task.workspace.raw
 
-    private fun ensureCoordinator(): RecoveryCoordinator {
+    /**
+     * Phase 7 field finding (write-path E2E): ensureCoordinator raced ITSELF — the
+     * CONNECTED hook's `commandCoordinatorOrNull()?.onConnected()` ran concurrently
+     * with `openConversation`'s ensureCoordinator, BOTH created a RecoveryCoordinator,
+     * and the field kept the EMPTY one while the session managers lived in the orphaned
+     * one (every session projection flow read the empty coordinator: state/queue/
+     * interaction surfaces dead). Single-flight under a mutex — §28.5 discipline.
+     */
+    private val coordinatorMutex = kotlinx.coroutines.sync.Mutex()
+
+    private suspend fun ensureCoordinator(): RecoveryCoordinator = coordinatorMutex.withLock {
         coordinator?.let { return it }
         val endpointId = EndpointId(vault.loadMetadata()?.endpointId ?: "unpaired")
         val caps = transport.capabilities.value
@@ -506,12 +523,7 @@ class ConnectionHub(
             gateway = gateway,
             store = conversationRepo,
             journalRepo = journalRepo,
-            interactions = com.zcode.android.data.session.InteractionCoordinator(
-                endpointId = endpointId,
-                interactions = interactions,
-                outbox = OutboxStub,
-                commands = gateway,
-            ),
+            interactions = InteractionCoordinatorFor(endpointId),
             transport = transport,
             scope = scope,
             log = log,
@@ -524,6 +536,54 @@ class ConnectionHub(
         managersVersion.value++
         return created
     }
+
+
+    /**
+     * Phase 7 write path (§43.2): the endpoint-scoped coordinators. Created lazily
+     * WITH the recovery coordinator (one instance per endpoint per process) and
+     * exposed to the ports — features never see the hub's internals (INV-2/6).
+     */
+    private var interactionCoordinator: com.zcode.android.data.session.InteractionCoordinator? = null
+    private var commandCoordinator: com.zcode.android.data.session.CommandCoordinator? = null
+
+    private fun InteractionCoordinatorFor(endpointId: EndpointId): com.zcode.android.data.session.InteractionCoordinator {
+        interactionCoordinator?.let { return it }
+        val created = com.zcode.android.data.session.InteractionCoordinator(
+            endpointId = endpointId,
+            interactions = interactions,
+            outbox = outbox,
+            commands = gateway,
+            log = log,
+        )
+        interactionCoordinator = created
+        return created
+    }
+
+    /** Approvals-inbox / composer submission gate (fail-closed; §20.4). */
+    suspend fun interactionCoordinatorOrNull(): com.zcode.android.data.session.InteractionCoordinator? {
+        ensureCoordinator()
+        return interactionCoordinator
+    }
+
+    /** Send-path gate (§17.5): one instance per endpoint, wired to the REAL outbox. */
+    suspend fun commandCoordinatorOrNull(): com.zcode.android.data.session.CommandCoordinator? {
+        ensureCoordinator()
+        if (commandCoordinator == null) {
+            commandCoordinator = com.zcode.android.data.session.CommandCoordinator(
+                endpointId = EndpointId(vault.loadMetadata()?.endpointId ?: "unpaired"),
+                outbox = outbox,
+                commands = gateway,
+                connectionState = { transport.states.value },
+                log = log,
+            )
+        }
+        return commandCoordinator
+    }
+
+    fun draftRepository(): com.zcode.android.domain.repo.DraftRepository = drafts
+
+    /** Approvals-inbox observation source (open interactions across tasks). */
+    fun interactionsStore(): com.zcode.android.domain.repo.InteractionRepository = interactions
 
     // ------------------------------------------------------------------ internals
 
@@ -597,46 +657,16 @@ class ConnectionHub(
             ConnectionStateMachine.ConnectionState.CONNECTED -> scope.launch {
                 onConnected?.invoke()
                 refreshTasks()
+                // Phase 7 §17.5/§28.6 reconnect pass: SAFE_AGGRESSIVE retransmits +
+                // TTL sweep (sendText stays user-gated — INV-4).
+                runCatching { commandCoordinatorOrNull()?.onConnected() }
+                    .onFailure { log.warn("hub.commandRecovery", "${it.javaClass.simpleName}") }
             }
             else -> Unit
         }
     }
 
     private fun phaseOf(state: ConnectionStateMachine.ConnectionState): ConnectionPhase = connectionPhaseOf(state)
-
-    /**
-     * Phase 6 reads: the outbox is Phase 7 (send/approve). The InteractionCoordinator
-     * requires a CommandSender-backed outbox for its submit path, but Phase 6 issues
-     * NO commands — a closed stub keeps the type satisfied and fail-closed (any
-     * accidental submit attempt surfaces as an illegal outbox transition, INV-4).
-     */
-    private object OutboxStub : com.zcode.android.domain.repo.OutboxRepository {
-        override fun observePending(endpointId: EndpointId) =
-            kotlinx.coroutines.flow.flowOf(emptyList<com.zcode.android.domain.outbox.OutboxEntry>())
-        override suspend fun accept(
-            endpointId: EndpointId,
-            sessionId: String?,
-            type: String,
-            payloadJson: String,
-            baseRevision: Long?,
-            baseLogEpoch: String?,
-            issuedAtMs: Long,
-        ): com.zcode.android.domain.ids.CommandId =
-            throw com.zcode.android.domain.outbox.OutboxStateMachine.IllegalOutboxTransition(
-                com.zcode.android.domain.outbox.OutboxStateMachine.State.DRAFT,
-                com.zcode.android.domain.outbox.OutboxStateMachine.Event.Accept,
-                "Phase 6 is read-only: no command submission exists",
-            )
-        override suspend fun apply(
-            commandId: com.zcode.android.domain.ids.CommandId,
-            event: com.zcode.android.domain.outbox.OutboxStateMachine.Event,
-            atMs: Long,
-        ): com.zcode.android.domain.outbox.OutboxEntry? = null
-        override suspend fun get(commandId: com.zcode.android.domain.ids.CommandId) = null
-        override suspend fun sweepExpired(endpointId: EndpointId, nowMs: Long, ttlMs: Long) = 0
-        override suspend fun pendingRefs(endpointId: EndpointId) = emptyList<com.zcode.android.domain.journal.RecoveryJournal.PendingCommandRef>()
-        override suspend fun countByState(endpointId: EndpointId, state: com.zcode.android.domain.outbox.OutboxStateMachine.State) = 0
-    }
 }
 
 /** Total §14.4.1 → UI mirror mapping (unit-tested: no state invented or dropped). */

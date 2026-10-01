@@ -106,6 +106,8 @@ class AppContainer(activity: FragmentActivity) {
         journalRepo = stores.journalRepository,
         interactions = stores.interactionRepository,
         endpointRepo = stores.endpointRepository,
+        outbox = stores.outboxRepository,
+        drafts = stores.draftRepository,
         scope = activity.lifecycleScope,
         log = log,
     )
@@ -119,7 +121,7 @@ class AppContainer(activity: FragmentActivity) {
         // Unpair is suspend (vault wipe + transport close) — launch on the activity scope.
         activity.lifecycleScope.launch { pairingPort.unpair() }
     })
-    val conversationPort: DefaultConversationPort = DefaultConversationPort(hub, stores.conversationRepository)
+    val conversationPort: DefaultConversationPort = DefaultConversationPort(hub, stores.conversationRepository, vault)
 
     init {
         // Background self-heal success → flip the pairing gate (the QR flow's connect

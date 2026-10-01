@@ -46,6 +46,12 @@ sealed class GatewayTopicEvent {
          */
         val totalCount: Long? = null,
         val firstRowId: Long? = null,
+        /**
+         * Phase 7 A-side state block (docs/protocol/v4-wire.md §9): control/queue/
+         * pendingInteractions/inputRouting/revision, decoded with per-key INV-8
+         * tolerance. Null = the snapshot carried no state keys (legacy shape).
+         */
+        val sessionState: com.zcode.android.domain.model.SessionProjectionState? = null,
     ) : GatewayTopicEvent()
 
     data class Deltas(
@@ -172,11 +178,20 @@ class RelayConversationGateway(
                 is TopicFrame.TopicPayload.Snapshot -> {
                     val rows = decodeRows(payload.snapshot, sessionId)
                     val window = payload.snapshot["rows"] as? JsonObject
+                    // Phase 7 A-side state block (§9): only present when the snapshot
+                    // carries any of the verified state keys (legacy bare-array shapes
+                    // decode to an all-null block → emitted as null to keep "no state
+                    // keys" distinguishable from "state keys all absent").
+                    val state = com.zcode.android.domain.model.SessionProjectionState.fromSnapshot(payload.snapshot)
                     _topicEvents.emit(
                         GatewayTopicEvent.Snapshot(
                             arrived.topic, sessionId, epoch, arrived.fromSeq, arrived.toSeq, rows,
                             totalCount = (window?.get("totalCount") as? JsonPrimitive)?.content?.toLongOrNull(),
                             firstRowId = (window?.get("firstRowId") as? JsonPrimitive)?.content?.toLongOrNull(),
+                            sessionState = state.takeIf {
+                                it.control != null || it.inputRouting != null || it.queue != null ||
+                                    it.pendingInteractions != null || it.backgroundWorks != null || it.revision != null
+                            },
                         )
                     )
                 }

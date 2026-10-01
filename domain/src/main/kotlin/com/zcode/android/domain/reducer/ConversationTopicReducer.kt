@@ -72,6 +72,22 @@ class ConversationTopicReducer(
     var watermark: ProjectionWatermark? = null
         private set
 
+    /**
+     * Phase 7 A-side projection (docs/protocol/v4-wire.md §9): control/queue/
+     * pendingInteractions/inputRouting/revision. SNAPSHOT replaces the whole block
+     * (§15.5a atomic replacement — when the frame carries state keys); a snapshot
+     * WITHOUT them (legacy shape) keeps the prior block. `state.updated` merges
+     * KEY-LEVEL (Object.assign semantics — the protocol's own rule, never deep).
+     * Single-writer confined like every other reducer field (§28.5); in-memory only
+     * (authoritative on every reconnect snapshot — §15-S13), never persisted.
+     */
+    var sessionProjection: com.zcode.android.domain.model.SessionProjectionState =
+        com.zcode.android.domain.model.SessionProjectionState()
+        private set
+    /** StateUpdated ops applied since boot (§34 metrics). */
+    var statePatchCount: Long = 0
+        private set
+
     /** Derived streaming buffers (§16 StreamingBuffer) — in-memory only, NEVER persisted. */
     private val streaming = LinkedHashMap<Long, StreamingBuffer>()
 
@@ -103,6 +119,9 @@ class ConversationTopicReducer(
         streaming.clear()
         hold.clear()
         holdFirstSeenMs = null
+        if (e.sessionState != null) {
+            sessionProjection = e.sessionState
+        }
         watermark = ProjectionWatermark(e.logEpoch, e.toSeq)
         return listOf(
             Effect.StreamingCleared("snapshot replace${from?.let { " (epoch ${it.logEpoch}→${e.logEpoch})" } ?: ""}"),
@@ -194,8 +213,11 @@ class ConversationTopicReducer(
                         ?.let { derived.add(Effect.StreamingUpserted(it)) }
                 }
                 is ProjectionOp.StateUpdated -> {
-                    // Patch vocabulary is not ported (no verified fixture, §4.1): counted,
-                    // retained nowhere, NEVER merged into rows (no invented interpretation).
+                    // Verified StatePatch (docs/protocol/v4-wire.md §9): key-level whole
+                    // replacement into the A-side projection. Row state is untouched —
+                    // patches never merge into rows; malformed keys drop + count (INV-8).
+                    sessionProjection = sessionProjection.mergedWith(op.patch)
+                    statePatchCount++
                     metadataOps++
                 }
                 is ProjectionOp.Unknown -> unknownOps++

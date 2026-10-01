@@ -21,8 +21,10 @@ import kotlinx.coroutines.launch
 
 /**
  * Conversation screen state (§18.3 row: loading/streaming/offline/error/empty;
- * §19.2 render pipeline). Phase 6: read/stream only — there is deliberately no
- * composer state (Phase 7).
+ * §19.2 render pipeline). Phase 7 adds the WRITE surface: composer draft, pending
+ * sends (§14.2 overlay, reconciled against authoritative rows), the A-side session
+ * state (approval cards / user-input / stop / queue / input routing), and the
+ * offline/stale block copy (§17.6) — no silent queuing, no guessed success.
  */
 data class ConversationUiState(
     val task: Task? = null,
@@ -40,8 +42,38 @@ data class ConversationUiState(
     val loadingOlder: Boolean = false,
     val loadOlderError: AppError? = null,
     val historyChanged: Boolean = false,
+    // ---- Phase 7 write surface ----
+    val draft: String = "",
+    /** §9 A-side projection (null = never carried by any frame yet). */
+    val sessionState: com.zcode.android.domain.model.SessionProjectionState? = null,
+    /** §14.2 pending-send overlay, reconciled against authoritative userInput rows. */
+    val pendingSends: List<ConversationPort.PendingSendView> = emptyList(),
+    /** One-shot user copy for the last blocked/failed/stale send (§17.6/§33). */
+    val sendNotice: SendNotice? = null,
+    /** Interaction ids with an in-flight submit (double-tap safety at the UI layer). */
+    val busyInteractions: Set<String> = emptySet(),
 ) {
     val empty: Boolean get() = !loading && rows.isEmpty() && streaming.isEmpty()
+
+    /** Open permission interactions of the authoritative projection (pinned cards). */
+    val pendingPermissions: List<com.zcode.android.domain.model.PendingInteraction>
+        get() = sessionState?.pendingInteractions
+            ?.filter { it.kind == com.zcode.android.domain.model.PendingInteraction.Kind.PERMISSION && it.permission != null }
+            ?: emptyList()
+
+    /** Open user-input questions (§20.1 U9 plane). */
+    val pendingUserInputs: List<com.zcode.android.domain.model.PendingInteraction>
+        get() = sessionState?.pendingInteractions
+            ?.filter { it.kind == com.zcode.android.domain.model.PendingInteraction.Kind.USER_INPUT && it.userInput != null }
+            ?: emptyList()
+
+    /** Send enabled: connected (or drafting allowed offline — send blocked at §17.6). */
+    val connected: Boolean get() = phase == ConnectionPhase.CONNECTED
+}
+
+/** §33-mapped user copy for send-path outcomes (never raw exceptions). */
+data class SendNotice(val text: String, val kind: Kind) {
+    enum class Kind { INFO, WARNING, ERROR }
 }
 
 class ConversationViewModel(
@@ -85,13 +117,37 @@ class ConversationViewModel(
         val error: AppError?,
         val historyChanged: Boolean,
     )
+    private data class WriteState(
+        val sessionState: com.zcode.android.domain.model.SessionProjectionState?,
+        val pendingSends: List<ConversationPort.PendingSendView>,
+        val busy: Set<String>,
+    )
+
+    // ---- Phase 7 write state (declared BEFORE the state combine that reads it) ----
+    private val _draft = MutableStateFlow("")
+    private val _sendNotice = MutableStateFlow<SendNotice?>(null)
+    private val _busyInteractions = MutableStateFlow<Set<String>>(emptySet())
+    private var draftLoaded = false
+    private var draftSaveJob: kotlinx.coroutines.Job? = null
 
     val state: StateFlow<ConversationUiState> = combine(
         combine(port.observeRows(taskId), port.observeEpoch(taskId)) { rows, epoch -> RowsEpoch(rows, epoch) },
         combine(port.observeStale(taskId), port.observeTaskState(taskId)) { s, t -> StaleState(s, t) },
         combine(streamingCoalesced, _task, port.phase) { streaming, task, phase -> StreamPhase(streaming, task, phase) },
         combine(_hasMore, _loadingOlder, _loadOlderError, _historyChanged) { h, lo, err, hc -> Flags(h, lo, err, hc) },
-    ) { rowsEpoch, staleState, streamPhase, flags ->
+        combine(
+            port.observeSessionState(taskId),
+            port.observePendingSends(taskId),
+            _busyInteractions,
+        ) { s, p, b -> WriteState(s, p, b) },
+    ) { rowsEpoch, staleState, streamPhase, flags, write ->
+        // §14.2 overlay reconciliation: a pending send whose authoritative userInput
+        // row has landed is DONE — drop it (max lifetime guard renders it degraded).
+        val now = System.currentTimeMillis()
+        val authoritativeTexts = rowsEpoch.rows.filterIsInstance<ConversationRow.UserInput>().map { it.text }.toSet()
+        val livePending = write.pendingSends.filter { p ->
+            p.text !in authoritativeTexts && now - p.atMs < PENDING_MAX_LIFETIME_MS
+        }
         ConversationUiState(
             task = streamPhase.task,
             rows = rowsEpoch.rows,
@@ -107,6 +163,11 @@ class ConversationViewModel(
             loadingOlder = flags.loadingOlder,
             loadOlderError = flags.error,
             historyChanged = flags.historyChanged,
+            draft = _draft.value,
+            sessionState = write.sessionState,
+            pendingSends = livePending,
+            sendNotice = _sendNotice.value,
+            busyInteractions = write.busy,
         )
     }.stateIn(scope, SharingStarted.Eagerly, ConversationUiState())
 
@@ -153,12 +214,151 @@ class ConversationViewModel(
 
     fun retryOlder(beforeRowId: Long) = loadOlder(beforeRowId)
 
+    // ---------------------------------------------------------------- Phase 7 write path
+
+    init {
+        // §17.4: the persisted draft restores once (process death included). E8 field
+        // finding: the store emission can race the user's FIRST keystrokes — an
+        // unconditional restore WIPED the just-typed draft (the composer was blank at
+        // send: send() read an empty draft and silently no-op'd). The restore applies
+        // only when the user has not typed; user content ALWAYS wins.
+        scope.launch {
+            port.observeDraft(taskId).collect { stored ->
+                if (!draftLoaded) {
+                    draftLoaded = true
+                    if (!stored.isNullOrEmpty() && _draft.value.isEmpty()) {
+                        _draft.value = stored
+                    }
+                }
+            }
+        }
+    }
+
+    /** Composer change: in-memory immediately, Room at the §17.4 300 ms debounce. */
+    fun onDraftChange(text: String) {
+        _draft.value = text
+        draftSaveJob?.cancel()
+        draftSaveJob = scope.launch {
+            kotlinx.coroutines.delay(DRAFT_DEBOUNCE_MS)
+            port.saveDraft(taskId, text)
+        }
+    }
+
+    fun dismissSendNotice() {
+        _sendNotice.value = null
+    }
+
+    /**
+     * Send (§17.5/§17.6): the coordinator blocks offline (the draft is preserved —
+     * E8); ACCEPTED clears the draft (the message is now the authoritative plane's
+     * concern); STALE/FAILED/UNKNOWN surface truthful copy (§33) with the draft kept.
+     */
+    fun send(heldQueueDisposition: String? = null) {
+        val text = _draft.value
+        if (text.isBlank()) return
+        scope.launch {
+            when (port.sendPrompt(taskId, text, heldQueueDisposition)) {
+                ConversationPort.SendOutcome.ACCEPTED -> {
+                    _sendNotice.value = null
+                    draftSaveJob?.cancel()
+                    _draft.value = ""
+                    port.clearDraft(taskId)
+                }
+                ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
+                    _sendNotice.value = SendNotice(
+                        "You're offline — the draft is saved on this phone. Reconnect to send.",
+                        SendNotice.Kind.WARNING,
+                    )
+                ConversationPort.SendOutcome.STALE ->
+                    _sendNotice.value = SendNotice(
+                        "Conversation changed on the desktop — please try again.",
+                        SendNotice.Kind.WARNING,
+                    )
+                ConversationPort.SendOutcome.FAILED ->
+                    _sendNotice.value = SendNotice("Couldn't send — try again.", SendNotice.Kind.ERROR)
+                ConversationPort.SendOutcome.UNKNOWN_KEPT ->
+                    _sendNotice.value = SendNotice(
+                        "Send outcome unknown (connection lost). Retry from the pending list — it will not be duplicated.",
+                        SendNotice.Kind.WARNING,
+                    )
+            }
+        }
+    }
+
+    /** User-gated retry of an UNKNOWN send — SAME commandId (INV-4, no duplicate). */
+    fun retryPendingSend(commandId: String) {
+        scope.launch {
+            when (port.retrySend(commandId)) {
+                ConversationPort.SendOutcome.ACCEPTED -> _sendNotice.value = null
+                ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
+                    _sendNotice.value = SendNotice("Still offline — nothing was duplicated.", SendNotice.Kind.WARNING)
+                else -> _sendNotice.value = SendNotice("Retry failed — the message is kept.", SendNotice.Kind.ERROR)
+            }
+        }
+    }
+
+    fun stopGeneration() {
+        scope.launch {
+            val outcome = port.stopGeneration(taskId)
+            if (outcome == ConversationPort.SendOutcome.BLOCKED_OFFLINE) {
+                _sendNotice.value = SendNotice("Offline — reconnect to stop the agent.", SendNotice.Kind.WARNING)
+            }
+        }
+    }
+
+    fun cancelBackgroundWork(workId: String) {
+        scope.launch { port.cancelBackgroundWork(taskId, workId) }
+    }
+
+    fun sendQueuedNow(queueItemId: String) {
+        scope.launch {
+            if (port.sendQueuedNow(taskId, queueItemId) == ConversationPort.SendOutcome.STALE) {
+                _sendNotice.value = SendNotice("Queue changed on the desktop — please try again.", SendNotice.Kind.WARNING)
+            }
+        }
+    }
+
+    fun editQueueItem(queueItemId: String, newText: String) {
+        scope.launch {
+            if (port.editQueueItem(taskId, queueItemId, newText) == ConversationPort.SendOutcome.STALE) {
+                _sendNotice.value = SendNotice("Queue changed on the desktop — please try again.", SendNotice.Kind.WARNING)
+            }
+        }
+    }
+
+    /** §20 answer through the ONE fail-closed gate (double-tap-safe via busy set). */
+    fun answerInteraction(interactionId: String, optionId: String, freeText: String?, userInput: Boolean) {
+        if (interactionId in _busyInteractions.value) return
+        _busyInteractions.value = _busyInteractions.value + interactionId
+        scope.launch {
+            try {
+                when (port.answerInteraction(interactionId, optionId, freeText, userInput)) {
+                    ConversationPort.AnswerOutcome.REFINE_REQUIRES_TEXT ->
+                        _sendNotice.value = SendNotice("Add the refinement text first.", SendNotice.Kind.WARNING)
+                    ConversationPort.AnswerOutcome.NOT_APPROVABLE ->
+                        _sendNotice.value = SendNotice("This request can't be answered here — check the desktop.", SendNotice.Kind.ERROR)
+                    ConversationPort.AnswerOutcome.RETRYABLE_KEPT ->
+                        _sendNotice.value = SendNotice("Answer not confirmed — retry when connected.", SendNotice.Kind.WARNING)
+                    else -> Unit // SUBMITTED / INERT (button disabled) / DUPLICATE (no-op) are silent
+                }
+            } finally {
+                _busyInteractions.value = _busyInteractions.value - interactionId
+            }
+        }
+    }
+
     private fun kotlinx.coroutines.flow.Flow<List<StreamingBuffer>>.mapToTextMap(): kotlinx.coroutines.flow.Flow<Map<Long, String>> =
         this.map { buffers -> buffers.associate { it.rowId to it.text } }
 
     companion object {
         /** ≈30 Hz coalescing budget (§19.2 frame-budget aligned). */
         const val STREAM_FRAME_MS = 33L
+
+        /** §17.4 keystroke debounce. */
+        const val DRAFT_DEBOUNCE_MS = 300L
+
+        /** §14.3: a pending send older than this renders as degraded, never as progress. */
+        const val PENDING_MAX_LIFETIME_MS = 60_000L
     }
 }
 

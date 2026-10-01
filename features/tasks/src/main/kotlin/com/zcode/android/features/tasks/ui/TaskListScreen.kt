@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,6 +22,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -63,6 +65,9 @@ fun TaskListScreen(
     onRetry: () -> Unit,
     onRefresh: () -> Unit,
     onRepairPairing: () -> Unit = {},
+    /** Phase 7 §18.3: approvals inbox entry with the open-request count. */
+    openApprovals: Int = 0,
+    onOpenApprovals: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -70,6 +75,8 @@ fun TaskListScreen(
             HeaderRow(
                 state = state,
                 onOpenSettings = onOpenSettings,
+                openApprovals = openApprovals,
+                onOpenApprovals = onOpenApprovals,
             )
             ConnectionStatusLine(
                 phase = state.phase,
@@ -98,7 +105,12 @@ fun TaskListScreen(
 }
 
 @Composable
-private fun HeaderRow(state: TasksUiState, onOpenSettings: () -> Unit) {
+private fun HeaderRow(
+    state: TasksUiState,
+    onOpenSettings: () -> Unit,
+    openApprovals: Int,
+    onOpenApprovals: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -118,6 +130,32 @@ private fun HeaderRow(state: TasksUiState, onOpenSettings: () -> Unit) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+        }
+        // §18.3 "approval first": the inbox entry with a live "needs you" count.
+        IconButton(onClick = onOpenApprovals, modifier = Modifier.testTag("tasks_approvals")) {
+            Box {
+                Icon(
+                    imageVector = Icons.Filled.Notifications,
+                    contentDescription = "Approvals",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (openApprovals > 0) {
+                    Box(
+                        Modifier
+                            .align(Alignment.TopEnd)
+                            .size(16.dp)
+                            .background(MaterialTheme.colorScheme.error, androidx.compose.foundation.shape.CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = openApprovals.coerceAtMost(9).toString(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onError,
+                            modifier = Modifier.testTag("tasks_approvals_badge"),
+                        )
+                    }
+                }
             }
         }
         IconButton(onClick = onOpenSettings, modifier = Modifier.testTag("tasks_settings")) {

@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -144,7 +145,55 @@ class MockZCode(
          * reconnect and its workspace reload (observed live).
          */
         @Volatile var bootstrapEmptyView: Boolean = false
+
+        // ---------------------------------------------------------------- Phase 7
+        /**
+         * Emit the verified A-side state keys in snapshots (docs/protocol/v4-wire.md
+         * §9): control / queue / pendingInteractions / inputRouting / revision.
+         * Default FALSE keeps the historical suites' bare snapshots unchanged.
+         */
+        var emitStateKeys: Boolean = false
+        /** Verified conversationSnapshotSchema.control (subset the client consumes). */
+        @Volatile var controlCanStop: Boolean = false
+        @Volatile var controlStopState: String = "idle"
+        /** Verified queueStateSchema (display + edit sources). */
+        @Volatile var queueItems: List<QueueItem>? = null
+        /** Verified inputRoutingSchema.mode. */
+        @Volatile var inputRoutingMode: String = "startNow"
+        /** Pending open interaction stamped into snapshots + state (Q11 shape). */
+        @Volatile var pendingPermission: PendingPermission? = null
+        @Volatile var pendingUserInput: PendingUserInput? = null
+        /**
+         * Command side effects (Phase 7 E2E): accepted commands mutate the session —
+         * sendText appends authoritative rows, resolveInteraction clears the pending
+         * interaction + flips its toolCall row, stop flips control, queue ops patch
+         * the queue (each with a revision bump). Default FALSE (Phase 2 suites keep
+         * their plain-ack contract).
+         */
+        var commandEffects: Boolean = false
+        /** One-shot ack overrides (stale/rejected/failed) — popped in send order. */
+        val commandAckOverrides: ArrayDeque<String> = ArrayDeque()
     }
+
+    /** Verified pendingInteraction permission payload (snapshot.ts §9). */
+    data class PendingPermission(
+        val interactionId: String,
+        val toolName: String = "Bash",
+        val summary: String = "Run a synthetic command?",
+        val options: List<String> = listOf("allowOnce", "allowAlways", "deny"),
+    )
+
+    /** Verified pendingInteraction userInput payload (snapshot.ts §9). */
+    data class PendingUserInput(
+        val interactionId: String,
+        val prompt: String = "Synthetic question?",
+        /** optionId list; empty + freeText=true = free-form ask. */
+        val options: List<String> = listOf(),
+        val freeText: Boolean = true,
+    )
+
+    /** Verified queueItemSchema display subset (queueItemId/text/kind/dispatch.state). */
+    data class QueueItem(val queueItemId: String, val text: String, val kind: String = "sendText", val dispatchState: String = "queued")
 
     /**
      * Phase 6: a task row in bootstrap/workspace-list payloads. Production shape
@@ -381,8 +430,13 @@ class MockZCode(
     }
 
     /** Server→client: fragment one logical message and send (per-direction counters from 1). */
+    /** Test/diagnostic: logical frames handed to the wire (server→client). */
+    @Volatile var logicalFramesSent: Int = 0
+        private set
+
     private fun sendLogicalFrame(bytes: ByteArray) {
         val ws = terminalSocket ?: return
+        logicalFramesSent++
         val seq = outSeq.addAndGet(1)
         val messageSeq = outMessageSeq.addAndGet(1)
         if (script.perFrameLatencyMs > 0) Thread.sleep(script.perFrameLatencyMs)
@@ -454,6 +508,173 @@ class MockZCode(
     private val seqHeads = LinkedHashMap<String, Long>()
 
     private fun currentBridge(): String = currentBridgeId ?: "bridge-unopened"
+
+    // ------------------------------------------------------------ Phase 7 state block
+
+    /** The CAS revision currency (§9): bumped on every command effect. */
+    private val stateRevision = AtomicLong(100)
+
+    /** Verified snapshot A-side state object (§9) per the script knobs. */
+    private fun stateBlock(): JsonObject? {
+        if (!script.emitStateKeys) return null
+        val control = buildJsonObject {
+            put("phase", JsonPrimitive(if (script.controlCanStop) "running" else "idle"))
+            put("sessionEnded", JsonPrimitive(false))
+            put("canStop", JsonPrimitive(script.controlCanStop))
+            put("stopState", JsonPrimitive(script.controlStopState))
+            put("activeWorks", JsonArray(emptyList()))
+        }
+        val routing = buildJsonObject {
+            put("mode", JsonPrimitive(script.inputRoutingMode))
+        }
+        val queue = buildJsonObject {
+            put("items", JsonArray(script.queueItems.orEmpty().map { qi ->
+                buildJsonObject {
+                    put("queueItemId", JsonPrimitive(qi.queueItemId))
+                    put("text", JsonPrimitive(qi.text))
+                    put("kind", JsonPrimitive(qi.kind))
+                    put("dispatch", buildJsonObject { put("state", JsonPrimitive(qi.dispatchState)) })
+                }
+            }))
+            put("autoDrain", JsonPrimitive(true))
+        }
+        val pending = JsonArray(listOfNotNull(
+            script.pendingPermission?.let { pp ->
+                buildJsonObject {
+                    put("interactionId", JsonPrimitive(pp.interactionId))
+                    put("kind", JsonPrimitive("permission"))
+                    put("anchorRowId", JsonNull)
+                    put("createdAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
+                    put("payload", buildJsonObject {
+                        put("kind", JsonPrimitive("permission"))
+                        put("toolCallId", JsonPrimitive("tool-approval-${pp.interactionId}"))
+                        put("toolName", JsonPrimitive(pp.toolName))
+                        put("summary", JsonPrimitive(pp.summary))
+                        put("detail", buildJsonObject { put("command", JsonPrimitive("echo synthetic")) })
+                        put("options", JsonArray(pp.options.map { id ->
+                            buildJsonObject {
+                                put("optionId", JsonPrimitive(id))
+                                put("label", JsonPrimitive(id))
+                                put("kind", JsonPrimitive(id))
+                            }
+                        }))
+                    })
+                }
+            },
+            script.pendingUserInput?.let { pu ->
+                buildJsonObject {
+                    put("interactionId", JsonPrimitive(pu.interactionId))
+                    put("kind", JsonPrimitive("userInput"))
+                    put("anchorRowId", JsonNull)
+                    put("createdAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
+                    put("payload", buildJsonObject {
+                        put("kind", JsonPrimitive("userInput"))
+                        put("prompt", JsonPrimitive(pu.prompt))
+                        put("freeText", JsonPrimitive(pu.freeText))
+                        put("options", JsonArray(pu.options.map { id ->
+                            buildJsonObject { put("optionId", JsonPrimitive(id)); put("label", JsonPrimitive(id)) }
+                        }))
+                    })
+                }
+            },
+        ))
+        return buildJsonObject {
+            put("revision", JsonPrimitive(stateRevision.get()))
+            put("control", control)
+            put("inputRouting", routing)
+            put("queue", queue)
+            put("pendingInteractions", pending)
+        }
+    }
+
+    /** Server-side state.updated driver (races, effects) — §9 key-level replacement. */
+    fun pushStatePatch(patch: JsonObject) {        val listener = conversationListenerId ?: return
+        val topic = "conversation/${workspace.sessionId}"
+        val frame = buildJsonObject {
+            put("topic", JsonPrimitive(topic))
+            put("subscriptionId", JsonPrimitive(subscriptionId))
+            put("fromSeq", JsonPrimitive(nextSeq()))
+            put("toSeq", JsonPrimitive(seqHeadNow))
+            put("sentAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
+            put("payload", buildJsonObject {
+                put("kind", JsonPrimitive("deltas"))
+                put("deltas", JsonArray(listOf(buildJsonObject {
+                    put("op", JsonPrimitive("state.updated"))
+                    put("patch", patch)
+                })))
+            })
+        }
+        val wireFrames = TopicWireFrameCodec.encode(
+            frame = frame, deliveryKind = DeliveryKind.ONLINE, topic = topic,
+            subscriptionId = subscriptionId, logicalFrameId = "lf-${System.nanoTime()}",
+            logicalFrameOrdinal = 1,
+        )
+        for (wire in wireFrames) {
+            val bytes = RpcSerialization.encodeAll(
+                listOf(
+                    RpcValue.Arr(listOf(RpcValue.Int(ChannelWire.ResponseType.EventFire.id), RpcValue.Int(listener))),
+                    RpcValue.Obj(buildJsonObject {
+                        put("topic", JsonPrimitive(topic))
+                        put("frame", wireJson(wire))
+                    }),
+                )
+            )
+            sendLogicalFrame(bytes)
+        }
+    }
+
+    /** Row-appended delta driver (command effects; authoritative rows). */
+    private fun pushRowAppended(sessionId: String, row: JsonObject) {
+        val listener = conversationListenerId ?: return
+        val topic = "conversation/$sessionId"
+        val from = nextSeq()
+        val frame = buildJsonObject {
+            put("topic", JsonPrimitive(topic))
+            put("subscriptionId", JsonPrimitive(subscriptionId))
+            put("fromSeq", JsonPrimitive(from))
+            put("toSeq", JsonPrimitive(seqHeadNow))
+            put("sentAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
+            put("payload", buildJsonObject {
+                put("kind", JsonPrimitive("deltas"))
+                put("deltas", JsonArray(listOf(buildJsonObject {
+                    put("op", JsonPrimitive("row.appended"))
+                    put("row", row)
+                })))
+            })
+        }
+        val wireFrames = TopicWireFrameCodec.encode(
+            frame = frame, deliveryKind = DeliveryKind.ONLINE, topic = topic,
+            subscriptionId = subscriptionId, logicalFrameId = "lf-${System.nanoTime()}",
+            logicalFrameOrdinal = 1,
+        )
+        for (wire in wireFrames) {
+            val bytes = RpcSerialization.encodeAll(
+                listOf(
+                    RpcValue.Arr(listOf(RpcValue.Int(ChannelWire.ResponseType.EventFire.id), RpcValue.Int(listener))),
+                    RpcValue.Obj(buildJsonObject {
+                        put("topic", JsonPrimitive(topic))
+                        put("frame", wireJson(wire))
+                    }),
+                )
+            )
+            sendLogicalFrame(bytes)
+        }
+    }
+
+    /**
+     * Monotonic per-session seq allocation (deltas frames are half-open (from,to]).
+     * The INITIAL SNAPSHOT anchors the head (protocol: snapshots carry the alignment
+     * watermark; live deltas continue contiguously from it) — effect pushes continue
+     * from there, never fabricating a gap (§15-S10 would hold/escalate on one).
+     */
+    private var seqHeadNow: Long = 0
+    private fun nextSeq(): Long {
+        seqHeadNow += 1
+        seqHeads[workspace.sessionId] = seqHeadNow
+        return seqHeadNow
+    }
+    /** Effect rows survive into later snapshots + resync replays (authoritative). */
+    private val appendedRows = LinkedHashMap<String, JsonObject>()
 
     // ------------------------------------------------------------ schema-faithful rows
 
@@ -612,6 +833,28 @@ class MockZCode(
      * (relay-control-plane.md §2). The client refreshes its task projection from
      * this within ≤ 2 s of the event.
      */
+    // ------------------------------------------------------------ Phase 7 test hooks
+
+    internal fun stateBlockForTest(): JsonObject? = stateBlock()
+    internal fun revisionForTest(): Long = stateRevision.get()
+    internal fun pendingPermissionForTest(): PendingPermission? = script.pendingPermission
+    internal fun pendingUserInputForTest(): PendingUserInput? = script.pendingUserInput
+
+    /**
+     * Phase 7 test driver: inject a pending permission interaction (E2E approval
+     * flows) — arms the script knob AND pushes the verified state.updated patch so
+     * connected clients see it without resubscribing.
+     */
+    fun pushPendingPermission(interactionId: String, toolName: String) {
+        script.pendingPermission = PendingPermission(interactionId, toolName)
+        stateRevision.incrementAndGet()
+        val block = stateBlock() ?: return
+        pushStatePatch(buildJsonObject {
+            put("revision", JsonPrimitive(stateRevision.get()))
+            put("pendingInteractions", block["pendingInteractions"] ?: JsonArray(emptyList()))
+        })
+    }
+
     fun pushWorkspaceListUpdated(tasks: List<MockTask>) {
         val socket = terminalSocket ?: return
         sendTo(socket, raw = RelayFrameCodec.encodeEnvelope(
@@ -805,11 +1048,15 @@ class MockZCode(
                 scope.launch { events.emit(ServerEvent.CommandReceived(type, commandId)) }
                 // §7.4.4 CAS semantics (verified COMMANDS_REQUIRING_BASE_REVISION):
                 // missing base → rejected (parse would fail); stale base → stale.
+                // Phase 7: the CAS currency is the SAME stateRevision the state block
+                // publishes (one desktop, one revision); legacy suites keep their
+                // script.currentRevision knob when commandEffects is off.
                 if (script.enforceCas && type in com.zcode.android.core.protocol.v4.COMMANDS_REQUIRING_BASE_REVISION) {
                     val baseRev = env?.strOrNull("baseRevision")?.toLongOrNull()
+                    val casCurrent = if (script.commandEffects) stateRevision.get() else script.currentRevision
                     val casStatus = when {
                         baseRev == null -> "rejected"
-                        baseRev < script.currentRevision -> "stale"
+                        baseRev < casCurrent -> "stale"
                         else -> null
                     }
                     if (casStatus != null) {
@@ -817,19 +1064,179 @@ class MockZCode(
                             put("commandId", JsonPrimitive(commandId))
                             put("status", JsonPrimitive(casStatus))
                             put("reasonCode", JsonPrimitive("fault.command.baseRevision"))
-                            put("revisionAtDecision", JsonPrimitive(script.currentRevision))
+                            put("revisionAtDecision", JsonPrimitive(casCurrent))
                         }))
                         return
                     }
                 }
+                // Phase 7: one-shot scripted ack overrides (failure-path fixtures).
+                val override = synchronized(script.commandAckOverrides) { script.commandAckOverrides.removeFirstOrNull() }
+                if (override != null) {
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("commandId", JsonPrimitive(commandId))
+                        put("status", JsonPrimitive(override))
+                        put("reasonCode", JsonPrimitive("mock.scripted"))
+                        put("revisionAtDecision", JsonPrimitive(stateRevision.get()))
+                    }))
+                    return
+                }
+                if (script.commandEffects) {
+                    applyCommandEffect(type, env)
+                }
                 respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
                     put("commandId", JsonPrimitive(commandId))
                     put("status", JsonPrimitive("accepted"))
-                    put("revisionAtDecision", JsonPrimitive(script.currentRevision))
+                    put("revisionAtDecision", JsonPrimitive(stateRevision.get()))
                 }))
             }
             else -> respondError(id, "fault.mock.unknownMethod")
         }
+    }
+
+    /**
+     * Phase 7 command side effects (script.commandEffects): accepted commands mutate
+     * the mock session exactly like the §9/§7.4.4 contracts imply — sendText appends
+     * authoritative rows (the phone's own message arrives via the topic stream),
+     * resolveInteraction clears the pending interaction + flips its toolCall row,
+     * stop flips the control block, queue ops patch the queue. Every effect bumps
+     * the CAS revision.
+     */
+    private fun applyCommandEffect(type: String, env: JsonObject?) {
+        val payload = env?.get("payload") as? JsonObject
+        when (type) {
+            "sendText" -> {
+                val text = payload?.strOrNull("text") ?: return
+                stateRevision.incrementAndGet()
+                val userRow = schemaRow(workspace.sessionId, nextRowId(), RowKind.USER_INPUT, text)
+                val replyRow = schemaRow(workspace.sessionId, nextRowId(), RowKind.ASSISTANT_TEXT, "synthetic reply to: ${text.take(24)}")
+                appendedRows[userRow["rowId"].toString()] = userRow
+                appendedRows[replyRow["rowId"].toString()] = replyRow
+                pushRowAppended(workspace.sessionId, userRow)
+                pushRowAppended(workspace.sessionId, replyRow)
+                pushStatePatch(buildJsonObject {
+                    put("revision", JsonPrimitive(stateRevision.get()))
+                    put("control", buildJsonObject {
+                        put("phase", JsonPrimitive("running"))
+                        put("sessionEnded", JsonPrimitive(false))
+                        put("canStop", JsonPrimitive(true))
+                        put("stopState", JsonPrimitive("stoppable"))
+                        put("activeWorks", JsonArray(emptyList()))
+                    })
+                    put("inputRouting", buildJsonObject { put("mode", JsonPrimitive("enqueue")) })
+                })
+                script.controlCanStop = true
+                script.controlStopState = "stoppable"
+                script.inputRoutingMode = "enqueue"
+            }
+            "resolveInteraction" -> {
+                val iid = payload?.strOrNull("interactionId") ?: return
+                stateRevision.incrementAndGet()
+                val hadPermission = script.pendingPermission?.interactionId == iid
+                val hadUserInput = script.pendingUserInput?.interactionId == iid
+                script.pendingPermission = null
+                script.pendingUserInput = null
+                pushStatePatch(buildJsonObject {
+                    put("revision", JsonPrimitive(stateRevision.get()))
+                    put("pendingInteractions", JsonArray(emptyList()))
+                    put("control", buildJsonObject {
+                        put("phase", JsonPrimitive("running"))
+                        put("sessionEnded", JsonPrimitive(false))
+                        put("canStop", JsonPrimitive(script.controlCanStop))
+                        put("stopState", JsonPrimitive(script.controlStopState))
+                        put("activeWorks", JsonArray(emptyList()))
+                    })
+                })
+                if (hadPermission) {
+                    // The approval-gated toolCall row flips to success (authoritative).
+                    val flipped = schemaRow(workspace.sessionId, nextRowId(), RowKind.TOOL_CALL, "success")
+                    appendedRows[flipped["rowId"].toString()] = flipped
+                    pushRowAppended(workspace.sessionId, flipped)
+                }
+                if (hadUserInput) {
+                    val answered = schemaRow(workspace.sessionId, nextRowId(), RowKind.USER_INPUT, "(answered)")
+                    appendedRows[answered["rowId"].toString()] = answered
+                    pushRowAppended(workspace.sessionId, answered)
+                }
+            }
+            "stop" -> {
+                stateRevision.incrementAndGet()
+                script.controlCanStop = false
+                script.controlStopState = "idle"
+                script.inputRoutingMode = "startNow"
+                pushStatePatch(buildJsonObject {
+                    put("revision", JsonPrimitive(stateRevision.get()))
+                    put("control", buildJsonObject {
+                        put("phase", JsonPrimitive("idle"))
+                        put("sessionEnded", JsonPrimitive(true))
+                        put("canStop", JsonPrimitive(false))
+                        put("stopState", JsonPrimitive("idle"))
+                        put("activeWorks", JsonArray(emptyList()))
+                    })
+                    put("inputRouting", buildJsonObject { put("mode", JsonPrimitive("startNow")) })
+                })
+            }
+            "cancelBackgroundWork" -> {
+                stateRevision.incrementAndGet()
+                pushStatePatch(buildJsonObject {
+                    put("revision", JsonPrimitive(stateRevision.get()))
+                    put("backgroundWorks", JsonArray(emptyList()))
+                })
+            }
+            "sendQueuedNow" -> {
+                stateRevision.incrementAndGet()
+                val qid = payload?.strOrNull("queueItemId")
+                script.queueItems = script.queueItems.orEmpty().filter { it.queueItemId != qid }
+                pushQueuePatch()
+            }
+            "editQueueItem" -> {
+                stateRevision.incrementAndGet()
+                val qid = payload?.strOrNull("queueItemId")
+                val newText = payload?.strOrNull("newText")
+                script.queueItems = script.queueItems.orEmpty().map {
+                    if (it.queueItemId == qid) it.copy(text = newText ?: it.text) else it
+                }
+                pushQueuePatch()
+            }
+        }
+    }
+
+    private fun pushQueuePatch() {
+        pushStatePatch(buildJsonObject {
+            put("revision", JsonPrimitive(stateRevision.get()))
+            put("queue", buildJsonObject {
+                put("items", JsonArray(script.queueItems.orEmpty().map { qi ->
+                    buildJsonObject {
+                        put("queueItemId", JsonPrimitive(qi.queueItemId))
+                        put("text", JsonPrimitive(qi.text))
+                        put("kind", JsonPrimitive(qi.kind))
+                        put("dispatch", buildJsonObject { put("state", JsonPrimitive(qi.dispatchState)) })
+                    }
+                }))
+                put("autoDrain", JsonPrimitive(true))
+            })
+        })
+    }
+
+    private var lastRowId = 0L
+    private fun nextRowId(): Long {
+        lastRowId += 1
+        return lastRowId + 1000 // past the scripted snapshot base
+    }
+
+    /**
+     * Resolved-elsewhere race driver (§20.3 row 3): the mock resolves the pending
+     * interaction WITHOUT any client command — the phone must flip its card to
+     * "Resolved on desktop" and never submit.
+     */
+    fun resolveInteractionElsewhere() {
+        val iid = script.pendingPermission?.interactionId ?: script.pendingUserInput?.interactionId ?: return
+        script.pendingPermission = null
+        script.pendingUserInput = null
+        stateRevision.incrementAndGet()
+        pushStatePatch(buildJsonObject {
+            put("revision", JsonPrimitive(stateRevision.get()))
+            put("pendingInteractions", JsonArray(emptyList()))
+        })
     }
 
     private fun handleBridgeOpen(ws: okhttp3.WebSocket, payload: JsonObject) {
@@ -940,18 +1347,26 @@ class MockZCode(
                     put("kind", JsonPrimitive("snapshot"))
                     put("snapshot", buildJsonObject {
                         put("sessionId", JsonPrimitive(sessionId))
+                        val rows = JsonArray(
+                            snapshotRows(sessionId, workspace.rowCount) + appendedRows.values.toList(),
+                        )
                         if (script.snapshotRowsWindowShape) {
                             // Production rowsWindowSchema: {window, totalCount, firstRowId}.
-                            val rows = snapshotRows(sessionId, workspace.rowCount)
                             put("rows", buildJsonObject {
                                 put("window", rows)
                                 put("totalCount", JsonPrimitive(rows.size))
                                 put("firstRowId", JsonPrimitive(if (script.snapshotWindowTruncated) 1L else script.snapshotRowIdBase))
                             })
                         } else {
-                            put("rows", snapshotRows(sessionId, workspace.rowCount))
+                            put("rows", rows)
+                        }
+                        // Phase 7: verified A-side state keys (§9) when scripted.
+                        stateBlock()?.let { st ->
+                            for ((k, v) in st) put(k, v)
                         }
                     })
+                    // §9: the snapshot IS the seq anchor — live deltas continue from it.
+                    seqHeadNow = maxOf(seqHeadNow, toSeq)
                 } else {
                     put("kind", JsonPrimitive("deltas"))
                     put("deltas", JsonArray(listOf(buildJsonObject {

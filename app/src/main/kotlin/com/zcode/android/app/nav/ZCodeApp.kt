@@ -9,6 +9,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.zcode.android.app.AppContainer
+import com.zcode.android.features.conversation.ui.ApprovalsScreen
 import com.zcode.android.app.connect.ConnectionCenterScreen
 import com.zcode.android.app.settings.SettingsScreen
 import com.zcode.android.features.conversation.ConversationViewModel
@@ -32,6 +33,7 @@ object Routes {
     const val CONVERSATION = "conversation/{taskId}"
     const val CONNECTION = "connection"
     const val SETTINGS = "settings"
+    const val APPROVALS = "approvals"
 
     fun conversation(taskId: String) = "conversation/$taskId"
 }
@@ -77,6 +79,9 @@ fun ZCodeApp(
             PairingHostRoute(pairingVm = pairingVm, scannerContent = scannerContent)
         }
         composable(Routes.TASKS) {
+            // §18.3 "Needs you": the approvals inbox entry carries the open count.
+            val openApprovals by container.conversationPort.observeOpenInteractions()
+                .collectAsState(initial = emptyList())
             TasksRoute(
                 vm = tasksVm,
                 onTaskClick = { task ->
@@ -85,6 +90,8 @@ fun ZCodeApp(
                 },
                 onOpenSettings = { container.log.info("nav.settings", "open"); nav.navigate(Routes.SETTINGS) },
                 onOpenConnection = { container.log.info("nav.connection", "open"); nav.navigate(Routes.CONNECTION) },
+                openApprovals = openApprovals.size,
+                onOpenApprovals = { container.log.info("nav.approvals", "open"); nav.navigate(Routes.APPROVALS) },
             )
         }
         composable(Routes.CONVERSATION) { entry ->
@@ -98,6 +105,23 @@ fun ZCodeApp(
         }
         composable(Routes.SETTINGS) {
             SettingsRoute(container = container, pairingVm = pairingVm, onBack = { nav.popBackStack() })
+        }
+        composable(Routes.APPROVALS) {
+            val open by container.conversationPort.observeOpenInteractions().collectAsState(initial = emptyList())
+            val phase by container.hub.phase.collectAsState()
+            ApprovalsScreen(
+                interactions = open,
+                phase = phase,
+                onBack = { nav.popBackStack() },
+                onOpenTask = { taskId -> nav.navigate(Routes.conversation(taskId)) },
+                onAnswer = { interactionId, optionId, freeText ->
+                    container.log.info("approvals.answer", "interaction=${interactionId.take(12)} option=$optionId")
+                    scope.launch {
+                        container.conversationPort.answerFromInbox(interactionId, optionId, freeText)
+                    }
+                },
+                scope = scope,
+            )
         }
 
     }
@@ -114,6 +138,8 @@ private fun TasksRoute(
     onTaskClick: (com.zcode.android.domain.model.Task) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenConnection: () -> Unit,
+    openApprovals: Int = 0,
+    onOpenApprovals: () -> Unit = {},
 ) {
     val state by vm.state.collectAsState()
     val refreshing by vm.isRefreshing.collectAsState()
@@ -122,6 +148,8 @@ private fun TasksRoute(
         onTaskClick = onTaskClick,
         onOpenSettings = onOpenSettings,
         onOpenConnection = onOpenConnection,
+        openApprovals = openApprovals,
+        onOpenApprovals = onOpenApprovals,
         onRetry = vm::retryConnection,
         onRefresh = vm::refresh,
         onRepairPairing = vm::repairPairing,
@@ -150,6 +178,14 @@ private fun ConversationRoute(vm: ConversationViewModel, onBack: () -> Unit) {
         onLoadOlder = vm::loadOlder,
         onDismissHistoryNotice = vm::dismissHistoryNotice,
         onRetryOlder = vm::retryOlder,
+        onDraftChange = vm::onDraftChange,
+        onSend = vm::send,
+        onStop = vm::stopGeneration,
+        onRetrySend = vm::retryPendingSend,
+        onDismissSendNotice = vm::dismissSendNotice,
+        onAnswer = vm::answerInteraction,
+        onSendQueuedNow = vm::sendQueuedNow,
+        onEditQueueItem = vm::editQueueItem,
     )
 }
 

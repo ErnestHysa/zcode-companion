@@ -32,6 +32,15 @@ interface InteractionRepository {
     /** Forensics/diagnostics: current stored count (bound observability, INV-5). */
     suspend fun count(endpointId: EndpointId): Int
 
+    /**
+     * Phase 7 (approvals inbox): full stored row INCLUDING the raw payload JSON —
+     * lets the coordinator hydrate a card machine for an interaction whose session
+     * was never attached (§18.3 approvals inbox answers across tasks).
+     */
+    suspend fun loadStored(endpointId: EndpointId, interactionId: InteractionId): StoredInteraction?
+
+    data class StoredInteraction(val record: InteractionRecord, val payload: kotlinx.serialization.json.JsonObject)
+
     data class InteractionRecord(
         val interactionId: InteractionId,
         val sessionId: SessionId?,

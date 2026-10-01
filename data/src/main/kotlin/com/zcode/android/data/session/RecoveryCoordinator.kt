@@ -119,6 +119,9 @@ class RecoveryCoordinator(
                     journalSink = { topic, sessionId, afterSeq, epoch -> recordWatermark(topic, sessionId, afterSeq, epoch) },
                     escalate = { reason, baseEpoch, baseSeq -> escalate(t.sessionId, reason, baseEpoch, baseSeq) },
                     onSnapshotApplied = { rows -> onSnapshotReconcile(t.sessionId, rows) },
+                    onSessionState = { state ->
+                        interactions.reconcileFromSessionState(t.sessionId, state)
+                    },
                     clock = clock,
                     log = log,
                 )

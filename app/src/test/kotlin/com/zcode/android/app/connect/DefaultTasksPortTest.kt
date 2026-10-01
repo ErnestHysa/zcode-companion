@@ -79,6 +79,8 @@ class DefaultTasksPortTest {
             journalRepo = FakeJournalRepository(),
             interactions = FakeInteractionRepository(),
             endpointRepo = FakeEndpointRepository(),
+            outbox = InMemoryOutboxRepository(),
+            drafts = InMemoryDraftRepository(),
             scope = scope,
             log = ZLog(sink = {}),
         )

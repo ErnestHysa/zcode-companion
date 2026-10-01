@@ -140,6 +140,14 @@ class ConversationUiTest {
                     onLoadOlder = { _, _ -> loadOlderCalls++ },
                     onDismissHistoryNotice = {},
                     onRetryOlder = {},
+                    onDraftChange = {},
+                    onSend = {},
+                    onStop = {},
+                    onRetrySend = {},
+                    onDismissSendNotice = {},
+                    onAnswer = { _, _, _, _ -> },
+                    onSendQueuedNow = {},
+                    onEditQueueItem = { _, _ -> },
                 )
             }
         }
@@ -163,6 +171,14 @@ class ConversationUiTest {
                     onLoadOlder = { _, _ -> },
                     onDismissHistoryNotice = {},
                     onRetryOlder = {},
+                    onDraftChange = {},
+                    onSend = {},
+                    onStop = {},
+                    onRetrySend = {},
+                    onDismissSendNotice = {},
+                    onAnswer = { _, _, _, _ -> },
+                    onSendQueuedNow = {},
+                    onEditQueueItem = { _, _ -> },
                 )
             }
         }
@@ -255,6 +271,14 @@ class ConversationUiTest {
                     onLoadOlder = { _, _ -> },
                     onDismissHistoryNotice = {},
                     onRetryOlder = {},
+                    onDraftChange = {},
+                    onSend = {},
+                    onStop = {},
+                    onRetrySend = {},
+                    onDismissSendNotice = {},
+                    onAnswer = { _, _, _, _ -> },
+                    onSendQueuedNow = {},
+                    onEditQueueItem = { _, _ -> },
                 )
             }
         }

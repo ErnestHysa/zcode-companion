@@ -22,7 +22,12 @@ sealed class ProjectionOp {
     data class RowUpserted(val row: ConversationRow) : ProjectionOp()
     data class RowRemoved(val fromRowId: Long) : ProjectionOp()
     data class RowTextAppended(val rowId: Long, val path: String, val append: String) : ProjectionOp()
-    /** Patch vocabulary is NOT ported (no verified fixture) — patch is retained, never merged (§4.1). */
+    /**
+     * `state.updated` — the verified StatePatch (docs/protocol/v4-wire.md §9):
+     * key-level WHOLE replacement, closed key set, never a deep merge. Ported in
+     * Phase 7 for the command/permission plane (control/queue/pendingInteractions/
+     * inputRouting/revision); keys outside the Phase 7 set are ignored + counted.
+     */
     data class StateUpdated(val patch: JsonObject) : ProjectionOp()
     data class Unknown(val op: String?, val raw: JsonObject) : ProjectionOp()
 }
@@ -43,6 +48,12 @@ sealed class TopicEvent {
         override val fromSeq: Long,
         override val toSeq: Long,
         val rows: List<ConversationRow>,
+        /**
+         * A-side state block (docs/protocol/v4-wire.md §9) decoded by the gateway —
+         * control/queue/pendingInteractions/inputRouting/revision. Null = the frame
+         * carried no state keys (legacy shape): the reducer keeps its prior state.
+         */
+        val sessionState: com.zcode.android.domain.model.SessionProjectionState? = null,
     ) : TopicEvent()
 
     /** Deltas frame — ops are applied contiguously across [fromSeq, toSeq]. */

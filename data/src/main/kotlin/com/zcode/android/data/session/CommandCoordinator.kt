@@ -1,0 +1,302 @@
+package com.zcode.android.data.session
+
+import com.zcode.android.core.common.log.ZLog
+import com.zcode.android.core.protocol.v4.CommandAck
+import com.zcode.android.core.transport.ConnectionStateMachine
+import com.zcode.android.domain.ids.CommandId
+import com.zcode.android.domain.ids.EndpointId
+import com.zcode.android.domain.outbox.CommandRetryClassifier
+import com.zcode.android.domain.outbox.OutboxEntry
+import com.zcode.android.domain.outbox.OutboxStateMachine
+import com.zcode.android.domain.repo.OutboxRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.JsonPrimitive
+
+/**
+ * Command coordinator — Phase 7.2/7.5 (§17.5 outbox send path, §28.6 idempotency
+ * classification, §15.5 "no timeout = assume success", §17.6 offline model).
+ *
+ * The ONE submission gate for non-interaction commands (`sendText`, `stop`,
+ * `cancelBackgroundWork`, queue edits). Interaction answers keep their own
+ * fail-closed gate in [InteractionCoordinator] — both mint exactly one commandId
+ * through the SAME outbox (INV-4) and never bypass its state machine.
+ *
+ * §17.6 offline model: with the transport not CONNECTED a submission is BLOCKED
+ * ("no silent queuing" — approvals/prompts are never decoupled from their context);
+ * the draft stays a draft. §15.5: a send whose outcome is lost goes UNKNOWN — the
+ * UI shows a truthful pending state, retry is USER-GATED for sendText (PRE_TRANSMIT_
+ * ONLY, §28.6) and automatic only for the verified SAFE_AGGRESSIVE family.
+ */
+class CommandCoordinator(
+    private val endpointId: EndpointId,
+    private val outbox: OutboxRepository,
+    private val commands: CommandSender,
+    private val connectionState: () -> ConnectionStateMachine.ConnectionState,
+    private val clock: () -> Long = System::currentTimeMillis,
+    private val log: ZLog = ZLog(),
+) {
+
+    sealed class Outcome {
+        /** Idempotent ACK accepted/duplicate/noop — authoritative acceptance. */
+        data class Accepted(val ack: CommandAck) : Outcome()
+
+        /** §17.6: transport not connected — NOT queued, draft preserved. */
+        data object BlockedOffline : Outcome()
+
+        /** §20.4-adjacent CAS guard (queue commands): the caller omitted baseRevision. */
+        data object MissingBaseRevision : Outcome()
+
+        /** CAS `stale` (§15-S16): "conversation changed — please try again", draft preserved. */
+        data class Stale(val ack: CommandAck) : Outcome()
+
+        /** Server rejected/failed the command (typed ack), or outcome lost. */
+        data class Failed(val ack: CommandAck?) : Outcome()
+
+        /** Outcome UNKNOWN (§15.5) — entry kept for user-gated/SAFE_AGGRESSIVE retry. */
+        data class UnknownKept(val commandId: CommandId) : Outcome()
+    }
+
+    // ---------------------------------------------------------------- pending overlay (§14.2)
+
+    enum class SendState { SENDING, SENT_UNKNOWN, FAILED_RETRYABLE }
+
+    /**
+     * Optimistic send overlay — Android-owned UI state (§14.2), in-memory only.
+     * Reconciliation: dropped when the authoritative projection shows the userInput
+     * row (ViewModel) or on terminal ack; > 60 s pending renders degraded (§14.3).
+     */
+    data class PendingSend(
+        val commandId: CommandId,
+        val sessionId: String?,
+        val text: String,
+        val state: SendState,
+        val atMs: Long,
+    )
+
+    private val _pendingSends = MutableStateFlow<List<PendingSend>>(emptyList())
+    val pendingSends: StateFlow<List<PendingSend>> = _pendingSends.asStateFlow()
+
+    // ---------------------------------------------------------------- sendText (7.2)
+
+    /**
+     * Verified `sendText` payload (command.ts): `{text}` required; the optional
+     * routing keys (`requestedDelivery`, `heldQueueDisposition`,
+     * `expectedHeldQueueItemIds`) ride the inputRouting decision (§9). sendText is
+     * NOT in COMMANDS_REQUIRING_BASE_REVISION (verified set) — no CAS guard here.
+     */
+    suspend fun sendPrompt(
+        sessionId: String,
+        text: String,
+        requestedDelivery: String? = null,
+        heldQueueDisposition: String? = null,
+        expectedHeldQueueItemIds: List<String>? = null,
+    ): Outcome {
+        if (connectionState() != ConnectionStateMachine.ConnectionState.CONNECTED) {
+            log.warn("command.blockedOffline", "type=sendText session=$sessionId")
+            return Outcome.BlockedOffline
+        }
+        if (text.isBlank()) return Outcome.Failed(null)
+        val payload = buildJsonObject {
+            put("text", text)
+            requestedDelivery?.let { put("requestedDelivery", it) }
+            heldQueueDisposition?.let { put("heldQueueDisposition", it) }
+            expectedHeldQueueItemIds?.let { ids ->
+                putJsonArray("expectedHeldQueueItemIds") { ids.forEach { add(JsonPrimitive(it)) } }
+            }
+        }
+        val commandId = accept("sendText", sessionId, payload) ?: return Outcome.BlockedOffline
+        overlay(commandId, sessionId, text, SendState.SENDING)
+        return transmitPending(commandId, type = "sendText", sessionId = sessionId, payload = payload)
+    }
+
+    // ---------------------------------------------------------------- stop / cancel (7.5)
+
+    /** `stop` (§28.6 SAFE_AGGRESSIVE — aggressive retry safe). */
+    suspend fun stopGeneration(sessionId: String, expectedForegroundExecutionId: String? = null): Outcome =
+        simpleCommand("stop", sessionId, buildJsonObject {
+            expectedForegroundExecutionId?.let { put("expectedForegroundExecutionId", it) }
+        })
+
+    /** `cancelBackgroundWork {workId}` (§28.6 SAFE_AGGRESSIVE). */
+    suspend fun cancelBackgroundWork(sessionId: String, workId: String): Outcome =
+        simpleCommand("cancelBackgroundWork", sessionId, buildJsonObject { put("workId", workId) })
+
+    // ---------------------------------------------------------------- queue edits (7.5, CAS)
+
+    /** `sendQueuedNow {queueItemId}` — CAS-guarded (verified set): baseRevision REQUIRED. */
+    suspend fun sendQueuedNow(sessionId: String, queueItemId: String, baseRevision: Long?): Outcome =
+        casCommand("sendQueuedNow", sessionId, baseRevision, buildJsonObject { put("queueItemId", queueItemId) })
+
+    /** `editQueueItem {queueItemId, newText}` — CAS-guarded (verified set). */
+    suspend fun editQueueItem(sessionId: String, queueItemId: String, newText: String, baseRevision: Long?): Outcome =
+        casCommand("editQueueItem", sessionId, baseRevision, buildJsonObject {
+            put("queueItemId", queueItemId)
+            put("newText", newText)
+        })
+
+    // ---------------------------------------------------------------- retry / recovery
+
+    /** User-gated retry (§17.5 post-contact policy; §28.6) — SAME commandId (INV-4). */
+    suspend fun retry(commandId: CommandId): Outcome {
+        val entry = outbox.get(commandId) ?: return Outcome.Failed(null)
+        val payload = runCatching {
+            com.zcode.android.data.session.jsonParser.parseToJsonElement(entry.payloadJson).jsonObject
+        }.getOrNull() ?: return Outcome.Failed(null)
+        val state = outbox.get(commandId)?.state
+        return when (state) {
+            OutboxStateMachine.State.UNKNOWN, OutboxStateMachine.State.FAILED_RETRYABLE -> {
+                outbox.apply(commandId, OutboxStateMachine.Event.UserGatedRetry, clock())
+                if (entry.type == "sendText") overlay(commandId, entry.sessionId, textOf(payload), SendState.SENDING)
+                transmitPending(commandId, entry.type, entry.sessionId, payload)
+            }
+            else -> Outcome.Failed(null) // live/terminal entry — nothing to retry
+        }
+    }
+
+    /**
+     * §28.5/§17.5 reconnect pass: retransmit FAILED_RETRYABLE entries (pre-contact —
+     * no bytes ever sent, any class) and the SAFE_AGGRESSIVE family from UNKNOWN;
+     * everything else waits for its user. Plus the §17.5 TTL sweep (24 h verified).
+     */
+    suspend fun onConnected() {
+        val live = outbox.observePending(endpointId).first()
+        for (entry in live) {
+            val canAuto = CommandRetryClassifier.canAutoRetry(entry.type, entry.state)
+            if (!canAuto) continue
+            val payload = runCatching {
+                com.zcode.android.data.session.jsonParser.parseToJsonElement(entry.payloadJson).jsonObject
+            }.getOrNull() ?: continue
+            // Same machine-legal retransmission transition for both classes (§28.6).
+            outbox.apply(entry.commandId, OutboxStateMachine.Event.AutoRetransmit, clock())
+            if (entry.type == "sendText") overlay(entry.commandId, entry.sessionId, textOf(payload), SendState.SENDING)
+            transmitPending(entry.commandId, entry.type, entry.sessionId, payload)
+        }
+        val expired = outbox.sweepExpired(endpointId, clock())
+        if (live.isNotEmpty() || expired > 0) {
+            log.info("command.recoveryPass", "retransmitted=${live.count { CommandRetryClassifier.canAutoRetry(it.type, it.state) }} expired=$expired")
+        }
+    }
+
+    /** Overlay reconcile: the authoritative row landed — drop the matching pending. */
+    fun reconcileAuthoritative(sessionId: String, sentText: String) {
+        _pendingSends.value = _pendingSends.value.filterNot {
+            it.sessionId == sessionId && it.text == sentText
+        }
+    }
+
+    fun dropOverlay(commandId: CommandId) {
+        _pendingSends.value = _pendingSends.value.filterNot { it.commandId == commandId }
+    }
+
+    // ---------------------------------------------------------------- internals
+
+    /** ACCEPT: mint commandId once (INV-4); null = blocked offline (no entry created). */
+    private suspend fun accept(type: String, sessionId: String?, payload: JsonObject): CommandId? {
+        if (connectionState() != ConnectionStateMachine.ConnectionState.CONNECTED) return null
+        return outbox.accept(
+            endpointId = endpointId,
+            sessionId = sessionId,
+            type = type,
+            payloadJson = payload.toString(),
+            baseRevision = null,
+            baseLogEpoch = null,
+            issuedAtMs = clock(),
+        )
+    }
+
+    private suspend fun simpleCommand(type: String, sessionId: String, payload: JsonObject): Outcome {
+        if (connectionState() != ConnectionStateMachine.ConnectionState.CONNECTED) return Outcome.BlockedOffline
+        val commandId = accept(type, sessionId, payload) ?: return Outcome.BlockedOffline
+        return transmitPending(commandId, type, sessionId, payload)
+    }
+
+    private suspend fun casCommand(type: String, sessionId: String, baseRevision: Long?, payload: JsonObject): Outcome {
+        if (connectionState() != ConnectionStateMachine.ConnectionState.CONNECTED) return Outcome.BlockedOffline
+        if (baseRevision == null) return Outcome.MissingBaseRevision
+        val commandId = outbox.accept(
+            endpointId = endpointId,
+            sessionId = sessionId,
+            type = type,
+            payloadJson = payload.toString(),
+            baseRevision = baseRevision,
+            baseLogEpoch = null,
+            issuedAtMs = clock(),
+        )
+        return transmitPending(commandId, type, sessionId, payload)
+    }
+
+    /** TRANSMIT → ACK / SendLost mapping (§15.5: a lost outcome is UNKNOWN, never success). */
+    private suspend fun transmitPending(
+        commandId: CommandId,
+        type: String,
+        sessionId: String?,
+        payload: JsonObject,
+    ): Outcome {
+        val state = outbox.get(commandId)?.state
+        if (state == OutboxStateMachine.State.ACCEPTED_LOCALLY) {
+            outbox.apply(commandId, OutboxStateMachine.Event.Transmit, clock())
+        } // retry paths already moved the entry to TRANSMITTED (UserGatedRetry/AutoRetransmit)
+        return try {
+            val ack = commands.send(
+                type = type,
+                sessionId = sessionId,
+                payload = payload,
+                baseRevision = outbox.get(commandId)?.baseRevision,
+                baseLogEpoch = outbox.get(commandId)?.baseLogEpoch,
+                commandId = commandId.raw,
+            )
+            outbox.apply(
+                commandId,
+                OutboxStateMachine.Event.Ack(ack.status, ack.reasonCode, ack.message, ack.revisionAtDecision),
+                clock(),
+            )
+            when (ack.status) {
+                "accepted", "duplicate", "noop" -> {
+                    if (type == "sendText") dropOverlay(commandId)
+                    Outcome.Accepted(ack)
+                }
+                "stale" -> {
+                    if (type == "sendText") overlay(commandId, sessionId, textOf(payload), SendState.FAILED_RETRYABLE)
+                    Outcome.Stale(ack)
+                }
+                else -> {
+                    if (type == "sendText") dropOverlay(commandId)
+                    Outcome.Failed(ack)
+                }
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            // Outcome UNKNOWN (§15.5); sendText stays in the overlay as retryable-unknown.
+            runCatching { outbox.apply(commandId, OutboxStateMachine.Event.SendLost, clock()) }
+            if (type == "sendText") overlay(commandId, sessionId, textOf(payload), SendState.SENT_UNKNOWN)
+            log.warn("command.sendLost", "type=$type ${e.javaClass.simpleName}: ${e.message?.take(80)}")
+            Outcome.UnknownKept(commandId)
+        }
+    }
+
+    private fun overlay(commandId: CommandId, sessionId: String?, text: String, state: SendState) {
+        val current = _pendingSends.value.filterNot { it.commandId == commandId }
+        _pendingSends.value = current + PendingSend(commandId, sessionId, text, state, clock())
+        // INV-5: the overlay is human-rate tiny; a hard bound anyway (§28.7 discipline).
+        if (_pendingSends.value.size > 64) {
+            _pendingSends.value = _pendingSends.value.takeLast(64)
+        }
+    }
+
+    private fun textOf(payload: JsonObject): String =
+        (payload["text"] as? JsonPrimitive)?.content.orEmpty()
+
+    // ---------------------------------------------------------------- observe (UI)
+
+    fun observePendingSends(): StateFlow<List<PendingSend>> = pendingSends
+}
+
+internal val jsonParser = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }

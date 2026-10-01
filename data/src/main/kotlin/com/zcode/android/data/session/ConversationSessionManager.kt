@@ -37,6 +37,8 @@ class ConversationSessionManager(
     private val journalSink: suspend (topic: String, sessionId: String, afterSeq: Long, logEpoch: String) -> Unit,
     private val escalate: suspend (reason: String, baseEpoch: String?, baseSeq: Long?) -> Unit,
     private val onSnapshotApplied: suspend (rows: List<ConversationRow>) -> Unit = {},
+    /** Phase 7: authoritative A-side state (pendingInteractions/queue/control) consumer. */
+    private val onSessionState: suspend (state: com.zcode.android.domain.model.SessionProjectionState) -> Unit = {},
     private val clock: () -> Long = System::currentTimeMillis,
     private val log: ZLog = ZLog(),
     config: ConversationTopicReducer.Config = ConversationTopicReducer.Config(),
@@ -67,6 +69,16 @@ class ConversationSessionManager(
     @Volatile
     var lastSnapshotRows: List<ConversationRow> = emptyList()
         private set
+
+    /**
+     * Phase 7 A-side projection (§9): stop control, queue, open interactions, input
+     * routing, CAS revision. Published on every snapshot/patch apply (single-writer
+     * mutation inside the reducer; the publish rides the same critical section).
+     */
+    private val _sessionState =
+        MutableStateFlow(com.zcode.android.domain.model.SessionProjectionState())
+    val sessionState: StateFlow<com.zcode.android.domain.model.SessionProjectionState> =
+        _sessionState.asStateFlow()
 
     // ---------------------------------------------------------------- entry points
 
@@ -139,6 +151,10 @@ class ConversationSessionManager(
         log.debug("manager.snapshot", "session=${sessionId.raw} rows=${e.rows.size} epoch=${e.logEpoch.take(24)}")
         lastSnapshotRows = e.rows
         _totalRows.value = e.totalCount
+        e.sessionState?.let {
+            _sessionState.value = it
+            onSessionState(it)
+        }
         // rowsWindowSchema: window's first row == firstRowId ⇔ at top (null = no window info).
         _hasMoreHistory.value = e.firstRowId != null &&
             (e.rows.isEmpty() || e.rows.first().rowId != e.firstRowId)
@@ -162,6 +178,11 @@ class ConversationSessionManager(
                     if (op is ConversationStoreOp.RowUpserted) observeRowForTaskState(op.row)
                 }
             }
+        }
+        // Phase 7: publish the A-side projection after any state.updated op.
+        if (e.ops.any { it is com.zcode.android.domain.reducer.ProjectionOp.StateUpdated }) {
+            _sessionState.value = reducer.sessionProjection
+            onSessionState(reducer.sessionProjection)
         }
     }
 
@@ -258,6 +279,7 @@ class ConversationSessionManager(
         com.zcode.android.domain.reducer.TopicEvent.Snapshot(
             topic = e.topic, sessionId = e.sessionId, logEpoch = e.logEpoch,
             fromSeq = e.fromSeq, toSeq = e.toSeq, rows = e.rows,
+            sessionState = e.sessionState,
         )
 
     private fun TopicDeltasOf(e: GatewayTopicEvent.Deltas): com.zcode.android.domain.reducer.TopicEvent.Deltas =

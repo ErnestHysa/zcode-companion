@@ -374,6 +374,18 @@ class RelayAuthClient(
                     events.add("control payload zcode_type=${r.zcodeType}")
                     controlPayloads.add(r.payload)
                 }
+                is RelayFrameCodec.Reassembled.Poison -> {
+                    // Spike parity with the codec's round-18 contract: a CRC-poisoned
+                    // logical message is dropped (ack keeps the relay from resending).
+                    events.add("rpc poison messageSeq=${r.messageSeq} dropped (${r.reason})")
+                    runCatching {
+                        sendJson(
+                            RelayFrameCodec.encodeAck(
+                                bridgeSessionId, currentBridgeGeneration, null, r.messageSeq
+                            )
+                        )
+                    }
+                }
             }
         }
     }

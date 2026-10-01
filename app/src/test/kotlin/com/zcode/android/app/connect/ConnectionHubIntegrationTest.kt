@@ -118,6 +118,8 @@ class ConnectionHubIntegrationTest {
             journalRepo = FakeJournalRepository(),
             interactions = FakeInteractionRepository(),
             endpointRepo = endpoints,
+            outbox = InMemoryOutboxRepository(),
+            drafts = InMemoryDraftRepository(),
             scope = scope,
             log = ZLog(sink = {}),
         )
@@ -351,6 +353,8 @@ class ConnectionHubIntegrationTest {
             journalRepo = FakeJournalRepository(),
             interactions = FakeInteractionRepository(),
             endpointRepo = endpoints,
+            outbox = InMemoryOutboxRepository(),
+            drafts = InMemoryDraftRepository(),
             scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
             log = ZLog(sink = {}),
         )
@@ -426,6 +430,8 @@ class ConnectionHubIntegrationTest {
             journalRepo = FakeJournalRepository(),
             interactions = FakeInteractionRepository(),
             endpointRepo = endpoints,
+            outbox = InMemoryOutboxRepository(),
+            drafts = InMemoryDraftRepository(),
             scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
             log = ZLog(sink = {}),
         )
@@ -636,6 +642,14 @@ internal class FakeConversationRepository : ConversationRepository {
                 cur.value = (op.rows + cur.value).distinctBy { it.rowId }
                 return StoreApplyResult.Applied
             }
+            is ConversationStoreOp.RowUpserted -> {
+                // Phase 7 write-path E2E: live deltas (row.appended/upserted) mutate
+                // the projection like the real store — an authoritative row arriving
+                // by delta is visible to observers.
+                val cur = rows.getOrPut(op.sessionId.raw) { MutableStateFlow(emptyList()) }
+                cur.value = (cur.value.filterNot { it.rowId == op.row.rowId } + op.row).sortedBy { it.rowId }
+                return StoreApplyResult.Applied
+            }
             else -> return StoreApplyResult.Applied
         }
     }
@@ -678,4 +692,27 @@ internal class FakeInteractionRepository : InteractionRepository {
     override suspend fun markResolved(endpointId: EndpointId, interactionId: InteractionId, atMs: Long, resolvedBySelf: Boolean) = Unit
     override suspend fun sweep(endpointId: EndpointId, nowMs: Long): Int = 0
     override suspend fun count(endpointId: EndpointId): Int = 0
+
+    /** Phase 7 approvals-inbox hydration: pre-seed via [seedPayload]. */
+    val stored = java.util.concurrent.ConcurrentHashMap<String, kotlinx.serialization.json.JsonObject>()
+
+    fun seedPayload(interactionId: String, payload: kotlinx.serialization.json.JsonObject) {
+        stored[interactionId] = payload
+    }
+
+    override suspend fun loadStored(endpointId: EndpointId, interactionId: InteractionId): InteractionRepository.StoredInteraction? {
+        val payload = stored[interactionId.raw] ?: return null
+        return InteractionRepository.StoredInteraction(
+            record = InteractionRepository.InteractionRecord(
+                interactionId = interactionId,
+                sessionId = null,
+                kind = InteractionRepository.InteractionRecord.Kind.PERMISSION,
+                lifecycle = InteractionLifecycle.DISPLAYED,
+                toolName = null,
+                createdAtMs = 1,
+                resolvedAtMs = null,
+            ),
+            payload = payload,
+        )
+    }
 }

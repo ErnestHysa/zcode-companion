@@ -124,3 +124,54 @@ ProxyChannel Promise-call args travel wrapped in an ARRAY on the wire
 | transport interface/state machine/policy/mapping | `core/transport/*` | `ConnectionStateMachineTest` (11), `ErrorMappingTest` (7) |
 | RelayTransport | `core/transport/.../RelayTransport.kt` | `RelayTransportTest` (7), `CorpusReplayTest` (5), `StormTest` (7) |
 | MockZCode (§35.4) | `tools/mockzcode` | `MockZCodeSelfTest` (5) |
+
+## 9. Session state keys (snapshot.ts / delta.ts) — `[VERIFIED 2026-09-30, Phase 7]`
+
+Read directly from the reference clone @ `29628c9` (packages/shared/src/
+zcode-protocol-v4/snapshot.ts + delta.ts) for the Phase 7 command/permission plane.
+
+- `conversationSnapshotSchema` — B-side rows plus an A-side STATE BLOCK on the SAME
+  object: `control`, `availability`, `inputRouting`, `meta`, `config`, `usage`,
+  `queue`, `pendingInteractions[]`, `pendingCommands[]`, `backgroundWorks[]`,
+  `subagents?`, `workflowRuns?`, `goal`, `plan`, and the currencies
+  `revision: number` + `logEpoch` + `seq`.
+- `state.updated {patch}` (delta.ts `statePatchSchema`) — KEY-LEVEL WHOLE
+  REPLACEMENT ("键级整体替换（Object.assign），键集合封闭。键内绝不深合并").
+  Optional keys: `revision?, control?, availability?, inputRouting?, meta?,
+  config?, queue?, pendingInteractions?, pendingCommands?, backgroundWorks?…`.
+  Unknown keys are stripped by old desktops (the container is intentionally NOT
+  strict) — the client mirrors that tolerance (INV-8).
+- Phase 7 consumes exactly these keys:
+  - `control: {phase, sessionEnded, canStop, stopState: idle|stoppable|stopping,
+    stopTargetKind, activeWorks[{kind, foregroundExecutionId?, startedAt}],
+    lastError?, apiRetry?}` — drives the stop control (`stop` payload's
+    `expectedForegroundExecutionId?` comes from `activeWorks`).
+  - `queue: {items: QueueItem[], autoDrain, pauseReason?: stopped|manual|error}`;
+    `QueueItem` = conversationInputIntent + `dispatch.state:
+    queued|reserved|promoting` (display fields: `queueItemId`, `text`, `kind`).
+    NOT persisted server-side ("CLI 进程死亡即丢") — never mirrored durably.
+  - `pendingInteractions[]` — `Q11 RESOLVED: replayable snapshots DO include open
+    interactions`: `{interactionId, kind: permission|userInput|workspaceHookReview,
+    anchorRowId|null, createdAt, autoResolution?, payload}` where a permission
+    payload is `{kind:"permission", toolCallId, toolName, summary, detail,
+    freeText?, origin?, display?, fullAccessOption?, options:[{optionId, label,
+    kind: allowOnce|allowAlways|deny|custom}]}` and a userInput payload is
+    `{kind:"userInput", prompt, freeText, options?:[{optionId,label}],
+    sensitive?, questions?:[{question, header, options:[{value,label,…}],
+    multiSelect?}], …}`.
+  - `inputRouting: {mode: startNow|enqueue|guide|reject|choice, reasonCode?}` —
+    `choice` = held queue: the composer must offer `heldQueueDisposition`
+    (`clearQueueAndSend` / `keepQueueAndSend`, verified sendText payload keys).
+- Client decode policy (INV-8/INV-14 parity with the row plane): each KEY decodes
+  independently; a malformed KNOWN key is dropped + COUNTED (state is auxiliary —
+  it never corrupts the row projection and never blocks the frame); unknown keys
+  are ignored; enum values outside the verified closed sets decode to tolerant
+  `Unknown` cases, never guessed.
+- Phase 7 command payloads (command.ts, verbatim): `sendText {text,
+  attachments?, requestedDelivery?: startNow|queue|guide, heldQueueDisposition?,
+  expectedHeldQueueItemIds?…}` (NOT CAS-guarded); `stop
+  {expectedForegroundExecutionId?}`; `cancelBackgroundWork {workId}`;
+  `sendQueuedNow {queueItemId}` / `editQueueItem {queueItemId, newText}`
+  (CAS-guarded — verified set); `resolveInteraction {interactionId,
+  answer:{optionId?, freeText?, action?, content?}}` — first-come-first-served,
+  a late answer ACKs `noop (reasonCode=proto.alreadyResolved)`.

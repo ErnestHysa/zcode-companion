@@ -54,19 +54,28 @@ import com.zcode.android.features.conversation.taskStateLabel
 import kotlinx.coroutines.launch
 
 /**
- * Conversation surface (§43.2-6.3/6.4; ui-ux 06/07/09/10/12). Tail-first render,
- * `rowsRange` scroll-back with page-edge prefetch, stream-follow anchoring with
- * jump-to-latest + unread count, and the mandatory state strips (INV-11).
- * Phase 6: NO composer — the write path is Phase 7.
+ * Conversation surface (§43.2-6.3/6.4 + Phase 7 write path; ui-ux 06/07/09/10/12).
+ * Tail-first render, `rowsRange` scroll-back with page-edge prefetch, stream-follow
+ * anchoring with jump-to-latest + unread count, mandatory state strips (INV-11),
+ * and the Phase 7 write surface: pinned approval/user-input cards (G2a "approval
+ * first"), queue strip, and the §17.4/§17.6 composer.
  */
 @Composable
 fun ConversationScreen(
     state: ConversationUiState,
     phase: ConnectionPhase,
     onBack: () -> Unit,
-    onLoadOlder: (beforeRowId: Long, onResult: (Int) -> Unit) -> Unit,
+    onLoadOlder: (Long, (Int) -> Unit) -> Unit,
     onDismissHistoryNotice: () -> Unit,
     onRetryOlder: (Long) -> Unit,
+    onDraftChange: (String) -> Unit,
+    onSend: (heldQueueDisposition: String?) -> Unit,
+    onStop: () -> Unit,
+    onRetrySend: (commandId: String) -> Unit,
+    onDismissSendNotice: () -> Unit,
+    onAnswer: (String, String, String?, Boolean) -> Unit,
+    onSendQueuedNow: (queueItemId: String) -> Unit,
+    onEditQueueItem: (queueItemId: String, newText: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -85,14 +94,46 @@ fun ConversationScreen(
                     modifier = Modifier.testTag("conversation_stale_strip"),
                 )
             }
+            // §20.2 "approval first": the open interaction cards are PINNED above the
+            // timeline (the agent is blocked until answered — G2a ≤ 3 interactions).
+            for (interaction in state.pendingPermissions) {
+                ApprovalCard(
+                    interaction = interaction,
+                    busy = interaction.interactionId in state.busyInteractions,
+                    onAnswer = { optionId, freeText ->
+                        onAnswer(interaction.interactionId, optionId, freeText, false)
+                    },
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                )
+            }
+            for (interaction in state.pendingUserInputs) {
+                UserInputCard(
+                    interaction = interaction,
+                    busy = interaction.interactionId in state.busyInteractions,
+                    onAnswer = { optionId, freeText ->
+                        onAnswer(interaction.interactionId, optionId, freeText, true)
+                    },
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                )
+            }
             if (state.taskState == TaskStateMachine.State.WAITING_FOR_PERMISSION ||
                 state.taskState == TaskStateMachine.State.WAITING_FOR_USER
             ) {
                 AttentionStrip(
                     title = "Needs attention",
-                    message = "Agent is waiting — respond on desktop for now.",
+                    message = "The agent is waiting — answer above.",
                     tone = StatusTone.WAITING,
                     modifier = Modifier.testTag("conversation_attention_strip"),
+                )
+            }
+            // §7.5 queue display + edit (sendQueuedNow / editQueueItem, CAS upstream).
+            state.sessionState?.queue?.let { queue ->
+                QueueStrip(
+                    queue = queue,
+                    busy = false,
+                    onSendNow = onSendQueuedNow,
+                    onEdit = onEditQueueItem,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                 )
             }
                         // §19.4 FIELD (2026-09-30, vc11): the desktop truncates the initial snapshot
@@ -138,6 +179,16 @@ if (state.historyChanged) {
                     onRetryOlder = onRetryOlder,
                 )
             }
+            // §17.4/§17.6 composer (pinned bottom; drafting allowed offline, send
+            // blocked with explicit copy — never a silent queue).
+            ComposerBar(
+                state = state,
+                onDraftChange = onDraftChange,
+                onSend = onSend,
+                onStop = onStop,
+                onRetrySend = onRetrySend,
+                onDismissNotice = onDismissSendNotice,
+            )
         }
     }
 }
@@ -178,8 +229,9 @@ private fun Header(state: ConversationUiState, phase: ConnectionPhase, onBack: (
 }
 
 @Composable
-private fun LoadingBody() {
-    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 16.dp)) {
+private fun androidx.compose.foundation.layout.ColumnScope.LoadingBody() {
+    // weight(1f), not fillMaxSize — the composer (Phase 7) stays pinned below.
+    Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = 16.dp, vertical = 16.dp)) {
         repeat(4) {
             SkeletonBar(Modifier.fillMaxWidth(if (it % 2 == 0) 0.85f else 0.6f).testTag("conversation_skeleton"))
             Spacer(Modifier.height(18.dp))
@@ -188,9 +240,10 @@ private fun LoadingBody() {
 }
 
 @Composable
-private fun EmptyBody() {
+private fun androidx.compose.foundation.layout.ColumnScope.EmptyBody() {
     Column(
-        Modifier.fillMaxSize().padding(horizontal = 32.dp).testTag("conversation_empty"),
+        // weight(1f), not fillMaxSize — the composer (Phase 7) stays pinned below.
+        Modifier.fillMaxWidth().weight(1f).padding(horizontal = 32.dp).testTag("conversation_empty"),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {

@@ -188,6 +188,33 @@ class ConversationViewModelTest {
             loadOlderCalls.add(beforeRowId)
             return loadOlderResult
         }
+
+        // ---- Phase 7 write surface (fakes: empty/offline-neutral defaults) ----
+        val sessionStateFlow = MutableStateFlow<com.zcode.android.domain.model.SessionProjectionState>(
+            com.zcode.android.domain.model.SessionProjectionState(),
+        )
+        val draftFlow = MutableStateFlow<String?>(null)
+        val pendingSendsFlow = MutableStateFlow<List<ConversationPort.PendingSendView>>(emptyList())
+        val openInteractionsFlow = MutableStateFlow<List<ConversationPort.InteractionSummary>>(emptyList())
+        val savedDrafts = mutableListOf<String>()
+        var sendResult = ConversationPort.SendOutcome.ACCEPTED
+
+        override fun observeSessionState(taskId: String) = sessionStateFlow
+        override fun observeDraft(taskId: String): Flow<String?> = draftFlow
+        override suspend fun saveDraft(taskId: String, text: String) { savedDrafts.add(text) }
+        override suspend fun clearDraft(taskId: String) { draftFlow.value = null }
+        override suspend fun sendPrompt(taskId: String, text: String, heldQueueDisposition: String?) = sendResult
+        override fun observePendingSends(taskId: String) = pendingSendsFlow
+        override suspend fun retrySend(commandId: String) = sendResult
+        override suspend fun stopGeneration(taskId: String) = sendResult
+        override suspend fun cancelBackgroundWork(taskId: String, workId: String) = sendResult
+        override suspend fun sendQueuedNow(taskId: String, queueItemId: String) = sendResult
+        override suspend fun editQueueItem(taskId: String, queueItemId: String, newText: String) = sendResult
+        override suspend fun answerInteraction(interactionId: String, optionId: String, freeText: String?, userInput: Boolean) =
+            ConversationPort.AnswerOutcome.SUBMITTED
+        override fun observeOpenInteractions() = openInteractionsFlow
+        override suspend fun answerFromInbox(interactionId: String, optionId: String, freeText: String?) =
+            ConversationPort.AnswerOutcome.SUBMITTED
     }
 
     private fun row(id: Long, text: String): ConversationRow.AssistantText =
@@ -268,5 +295,137 @@ class ConversationViewModelTest {
         vm.loadOlder(5) { }
         assertTrue(eventually { vm.state.value.loadOlderError?.category == ErrorCategory.TIMEOUT })
         assertEquals(ErrorCategory.TIMEOUT, vm.state.value.loadOlderError?.category)
+    }
+}
+
+/** Shared open fake for Phase 7 ViewModel-level tests (draft/answer contracts). */
+open class Phase7FakePort : ConversationPort {
+    override val phase = MutableStateFlow(ConnectionPhase.CONNECTED)
+    private val rowsFlow = MutableStateFlow<List<ConversationRow>>(emptyList())
+    private val sessionStateFlow = MutableStateFlow(
+        com.zcode.android.domain.model.SessionProjectionState(),
+    )
+    private val draftFlow = MutableStateFlow<String?>(null)
+    private val pendingFlow = MutableStateFlow<List<ConversationPort.PendingSendView>>(emptyList())
+    private val interactionsFlow = MutableStateFlow<List<ConversationPort.InteractionSummary>>(emptyList())
+
+    override suspend fun task(taskId: String): Task? = Task(
+        taskId = taskId, title = "T", status = TaskStatus.RUNNING,
+        workspace = WorkspaceIdentityKey("/w"), createdAtMs = 1, updatedAtMs = 2,
+    )
+    override fun observeRows(taskId: String) = rowsFlow
+    override fun observeEpoch(taskId: String) = MutableStateFlow<String?>(null)
+    override fun observeStale(taskId: String) = MutableStateFlow(false)
+    override fun observeTaskState(taskId: String) = MutableStateFlow(TaskStateMachine.State.UNKNOWN)
+    override fun observeStreaming(taskId: String) = MutableStateFlow<List<StreamingBuffer>>(emptyList())
+    override fun observeHasMoreHistory(taskId: String) = MutableStateFlow(false)
+    override fun observeTotalRows(taskId: String) = MutableStateFlow<Long?>(null)
+    override fun observeSessionState(taskId: String) = sessionStateFlow
+    override suspend fun open(task: Task): Boolean = true
+    override suspend fun loadOlder(taskId: String, beforeRowId: Long) =
+        ConversationPort.LoadOlderResult(0, false, null, false)
+    override fun observeDraft(taskId: String) = draftFlow
+    override suspend fun saveDraft(taskId: String, text: String) { draftFlow.value = text }
+    override suspend fun clearDraft(taskId: String) { draftFlow.value = null }
+    override suspend fun sendPrompt(taskId: String, text: String, heldQueueDisposition: String?) =
+        ConversationPort.SendOutcome.ACCEPTED
+    override fun observePendingSends(taskId: String) = pendingFlow
+    override suspend fun retrySend(commandId: String) = ConversationPort.SendOutcome.ACCEPTED
+    override suspend fun stopGeneration(taskId: String) = ConversationPort.SendOutcome.ACCEPTED
+    override suspend fun cancelBackgroundWork(taskId: String, workId: String) = ConversationPort.SendOutcome.ACCEPTED
+    override suspend fun sendQueuedNow(taskId: String, queueItemId: String) = ConversationPort.SendOutcome.ACCEPTED
+    override suspend fun editQueueItem(taskId: String, queueItemId: String, newText: String) = ConversationPort.SendOutcome.ACCEPTED
+    override suspend fun answerInteraction(interactionId: String, optionId: String, freeText: String?, userInput: Boolean) =
+        ConversationPort.AnswerOutcome.SUBMITTED
+    override fun observeOpenInteractions() = interactionsFlow
+    override suspend fun answerFromInbox(interactionId: String, optionId: String, freeText: String?) =
+        ConversationPort.AnswerOutcome.SUBMITTED
+}
+
+
+/**
+ * Phase 7 draft lifecycle (§17.4, E8): the accepted send IS the discard; every
+ * failure path PRESERVES the draft (never lost). FakePort records the store calls.
+ */
+class ConversationDraftLifecycleTest {
+
+    private class DraftFakePort : Phase7FakePort() {
+        var sendResult = ConversationPort.SendOutcome.ACCEPTED
+        val sends = mutableListOf<String>()
+        override suspend fun sendPrompt(taskId: String, text: String, heldQueueDisposition: String?): ConversationPort.SendOutcome {
+            sends.add(text)
+            return sendResult
+        }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `accepted send clears the draft`() = runTest {
+        val port = DraftFakePort()
+        val vm = ConversationViewModel(port, backgroundScope, "s1")
+        vm.onDraftChange("hello agent")
+        vm.send()
+        runCurrent()
+        kotlinx.coroutines.delay(1)
+        assertEquals("", vm.state.value.draft)
+        assertEquals(listOf("hello agent"), port.sends)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `offline block preserves the draft and shows the copy (E8, 17-6)`() = runTest {
+        val port = DraftFakePort()
+        port.sendResult = ConversationPort.SendOutcome.BLOCKED_OFFLINE
+        val vm = ConversationViewModel(port, backgroundScope, "s1")
+        vm.onDraftChange("precious draft")
+        vm.send()
+        runCurrent()
+        kotlinx.coroutines.delay(1)
+        assertEquals("precious draft", vm.state.value.draft) // NEVER lost
+        assertTrue(vm.state.value.sendNotice != null)
+        assertEquals(listOf("precious draft"), port.sends) // one attempt, no silent queue
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `stale send preserves the draft with the retry copy`() = runTest {
+        val port = DraftFakePort()
+        port.sendResult = ConversationPort.SendOutcome.STALE
+        val vm = ConversationViewModel(port, backgroundScope, "s1")
+        vm.onDraftChange("try again text")
+        vm.send()
+        runCurrent()
+        kotlinx.coroutines.delay(1)
+        assertEquals("try again text", vm.state.value.draft)
+        assertEquals(SendNotice.Kind.WARNING, vm.state.value.sendNotice?.kind)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `blank send is a no-op`() = runTest {
+        val port = DraftFakePort()
+        val vm = ConversationViewModel(port, backgroundScope, "s1")
+        vm.onDraftChange("   ")
+        vm.send()
+        runCurrent()
+        assertEquals(0, port.sends.size)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `interaction answers are double-tap safe at the UI layer`() = runTest {
+        val port = DraftFakePort()
+        var answers = 0
+        val vm = ConversationViewModel(object : Phase7FakePort() {
+            override suspend fun answerInteraction(interactionId: String, optionId: String, freeText: String?, userInput: Boolean): ConversationPort.AnswerOutcome {
+                answers++
+                return ConversationPort.AnswerOutcome.SUBMITTED
+            }
+        }, backgroundScope, "s1")
+        vm.answerInteraction("i-1", "allowOnce", null, false)
+        vm.answerInteraction("i-1", "allowOnce", null, false) // second tap while busy — dropped
+        runCurrent()
+        kotlinx.coroutines.delay(1)
+        assertEquals(1, answers)
     }
 }
