@@ -113,4 +113,13 @@ interface ConversationPort {
 
     /** One-tap approve from the inbox (hydrates the card from the store — §18.3). */
     suspend fun answerFromInbox(interactionId: String, optionId: String, freeText: String?): AnswerOutcome
+
+    /**
+     * Phase 7 field: answer a question-type user-input interaction (AskUserQuestion).
+     * answers: question text → the selected option values (+ optional custom answer).
+     */
+    suspend fun answerUserInputQuestions(
+        interactionId: String,
+        answers: Map<String, List<String>>,
+    ): AnswerOutcome
 }

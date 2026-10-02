@@ -205,6 +205,7 @@ private fun ConversationRoute(vm: ConversationViewModel, onBack: () -> Unit) {
         onAnswer = vm::answerInteraction,
         onSendQueuedNow = vm::sendQueuedNow,
         onEditQueueItem = vm::editQueueItem,
+        onAnswerQuestions = vm::answerUserInputQuestions,
     )
 }
 

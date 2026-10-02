@@ -1,5 +1,6 @@
 package com.zcode.android.features.conversation.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -237,10 +238,14 @@ fun UserInputCard(
     busy: Boolean,
     onAnswer: (optionId: String, freeText: String?) -> Unit,
     modifier: Modifier = Modifier,
+    onAnswerQuestions: (Map<String, List<String>>) -> Unit = {},
 ) {
     val payload = interaction.userInput ?: return
     var selected by remember { mutableStateOf<String?>(null) }
     var freeText by remember { mutableStateOf("") }
+    // AskUserQuestion plane: per-question selected option values + custom answers.
+    val qSelections = remember(interaction.interactionId) { androidx.compose.runtime.mutableStateMapOf<String, List<String>>() }
+    val qCustom = remember(interaction.interactionId) { androidx.compose.runtime.mutableStateMapOf<String, String>() }
 
     Surface(
         modifier = modifier
@@ -265,16 +270,84 @@ fun UserInputCard(
                 Spacer(Modifier.height(8.dp))
             }
             if (payload.questions.isNotEmpty()) {
-                for (q in payload.questions) {
+                // AskUserQuestion plane (verified ElicitationDialog shape): selectable
+                // options per question + optional custom answer; multiSelect honored.
+                for ((qIndex, q) in payload.questions.withIndex()) {
+                    Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "${q.header}: ${q.question}",
+                        text = q.header,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier.testTag("userinput_q_header_$qIndex"),
+                    )
+                    Text(
+                        text = q.question,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onTertiaryContainer,
                     )
+                    for (option in q.options) {
+                        val checked = qSelections[q.question].orEmpty().contains(option.value)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("userinput_q${qIndex}_opt_${option.value.take(24)}")
+                                .clickable(enabled = !busy) {
+                                    val current = qSelections[q.question].orEmpty()
+                                    qSelections[q.question] = if (q.multiSelect == true) {
+                                        if (checked) current.filter { it != option.value } else current + option.value
+                                    } else {
+                                        listOf(option.value)
+                                    }
+                                },
+                        ) {
+                            RadioButton(
+                                selected = checked,
+                                onClick = {
+                                    val current = qSelections[q.question].orEmpty()
+                                    qSelections[q.question] = if (checked) current.filter { it != option.value } else current + option.value
+                                },
+                                enabled = !busy,
+                            )
+                            Text(
+                                text = option.label.ifBlank { option.value },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = qCustom[q.question] ?: "",
+                        onValueChange = { qCustom[q.question] = it },
+                        placeholder = { Text("Or type your own answer") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("userinput_q${qIndex}_custom"),
+                    )
                 }
                 Spacer(Modifier.height(8.dp))
-            }
-            if (payload.options.isNotEmpty()) {
+                Button(
+                    onClick = {
+                        val answers = buildMap {
+                            for (q in payload.questions) {
+                                val values = buildList {
+                                    addAll(qSelections[q.question].orEmpty())
+                                    qCustom[q.question]?.trim()?.takeIf { it.isNotBlank() }?.let { add(it) }
+                                }
+                                if (values.isNotEmpty()) put(q.question, values)
+                            }
+                        }
+                        if (answers.isNotEmpty()) onAnswerQuestions(answers)
+                    },
+                    enabled = !busy && payload.questions.any { q ->
+                        qSelections[q.question].orEmpty().isNotEmpty() || !qCustom[q.question].isNullOrBlank()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("userinput_questions_submit"),
+                ) { Text("Send answers") }
+            } else if (payload.options.isNotEmpty()) {
                 for (option in payload.options) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,

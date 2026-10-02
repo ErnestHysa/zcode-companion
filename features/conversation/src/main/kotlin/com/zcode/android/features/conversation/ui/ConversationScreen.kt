@@ -77,6 +77,7 @@ fun ConversationScreen(
     onAnswer: (String, String, String?, Boolean) -> Unit,
     onSendQueuedNow: (queueItemId: String) -> Unit,
     onEditQueueItem: (queueItemId: String, newText: String) -> Unit,
+    onAnswerQuestions: (String, Map<String, List<String>>) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -118,6 +119,9 @@ fun ConversationScreen(
                     busy = interaction.interactionId in state.busyInteractions,
                     onAnswer = { optionId, freeText ->
                         onAnswer(interaction.interactionId, optionId, freeText, true)
+                    },
+                    onAnswerQuestions = { answers ->
+                        onAnswerQuestions(interaction.interactionId, answers)
                     },
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                 )
@@ -275,15 +279,35 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     var unread by remember { mutableIntStateOf(0) }
     var lastKnownCount by remember { mutableIntStateOf(0) }
 
-    // Anchor: following the tail is the DEFAULT; a user scroll-up releases it (§19.2).
+    // "At bottom" = the END of the LAST item is inside the viewport. A growing
+    // assistant message is TALLER than the viewport, so its top-anchored position
+    // never satisfies a naive check — the END is what "caught up" means (§19.2).
     val atBottom by remember {
         derivedStateOf {
             val info = listState.layoutInfo
             val last = info.visibleItemsInfo.lastOrNull() ?: return@derivedStateOf true
-            last.index >= info.totalItemsCount - 1 && last.offset + last.size <= info.viewportEndOffset + 80
+            last.index >= info.totalItemsCount - 1 &&
+                (last.offset + last.size) <= info.viewportEndOffset + 80 &&
+                last.size <= info.viewportEndOffset // a viewport-taller item is never fully visible
         }
     }
     var followBottom by remember { mutableStateOf(true) }
+
+    // FIELD (vc24 device): the follow flag is driven by USER GESTURE DIRECTION, not
+    // by the derived atBottom (which flips during programmatic scrolls and content
+    // growth). Scroll up → release; scroll back down to the tail → re-follow.
+    var lastFirstVisible by remember { mutableIntStateOf(0) }
+    LaunchedEffect(Unit) {
+        snapshotFlow {
+            Triple(listState.isScrollInProgress, listState.firstVisibleItemIndex, atBottom)
+        }.collect { (scrolling, firstVisible, bottom) ->
+            if (scrolling) {
+                if (firstVisible < lastFirstVisible) followBottom = false // user dragged up
+                else if (bottom) followBottom = true // user dragged down to the tail
+            }
+            lastFirstVisible = firstVisible
+        }
+    }
 
     // FIELD-KILLER #10 (2026-09-30, vc14 field + repro'd on the emulator): the FIRST
     // non-empty layout must anchor to the tail UNCONDITIONALLY. The old
@@ -294,8 +318,14 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     // arrived while the list was empty), which is why it was intermittent.
     var anchoredToTail by remember { mutableStateOf(false) }
 
-    // Track item-count growth: advance or count unread depending on the anchor state.
-    LaunchedEffect(state.rows.size) {
+    // Stick-to-bottom (§19.2, macOS parity): while following, ANY content growth —
+    // new rows OR streaming text into the last row — clamps the viewport to the true
+    // bottom (huge scrollOffset clamps to max scroll, which shows the tail of a
+    // viewport-taller growing message; plain scrollToItem(index) shows its top and
+    // was why the view kept falling behind during long generations).
+    val followKey = (state.rows.size to state.rows.lastOrNull()?.rowId) to
+        (state.streaming[state.rows.lastOrNull()?.rowId]?.length ?: 0)
+    LaunchedEffect(followKey) {
         if (!anchoredToTail && state.rows.isNotEmpty()) {
             // Header items ("loading earlier…"/error strips) occupy index 0+.
             val headerItems =
@@ -305,19 +335,18 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
             lastKnownCount = state.rows.size
             return@LaunchedEffect
         }
+        if (followBottom && state.rows.isNotEmpty()) {
+            listState.scrollToItem(state.rows.size - 1, Int.MAX_VALUE / 2)
+        }
         val grew = state.rows.size > lastKnownCount
-        if (grew) {
-            if (followBottom && atBottom) {
-                if (state.rows.isNotEmpty()) listState.scrollToItem(state.rows.size - 1)
-            } else if (lastKnownCount > 0) {
-                unread += state.rows.size - lastKnownCount
-            }
+        if (grew && !followBottom && lastKnownCount > 0) {
+            unread += state.rows.size - lastKnownCount
         }
         lastKnownCount = state.rows.size
     }
     // Streaming growth also counts when released from the tail.
     LaunchedEffect(state.streaming.values.sumOf { it.length }) {
-        if (!followBottom || !atBottom) {
+        if (!followBottom) {
             // coarse: any stream delta while scrolled up marks unread
             unread += 1
         }
@@ -325,7 +354,6 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     LaunchedEffect(Unit) {
         snapshotFlow { atBottom }.collect { at ->
             if (at) {
-                followBottom = true
                 unread = 0
             }
         }
@@ -388,7 +416,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                 )
             }
         }
-        if (!atBottom) {
+        if (!followBottom || !atBottom) {
             FloatingActionButton(
                 onClick = {
                     followBottom = true

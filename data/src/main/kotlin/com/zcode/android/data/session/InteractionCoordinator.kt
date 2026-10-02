@@ -321,6 +321,145 @@ class InteractionCoordinator(
     private fun JsonObject.strOrNull(key: String): String? =
         (this[key] as? kotlinx.serialization.json.JsonPrimitive)?.content
 
+    // ---------------------------------------------------------------- elicitation answers (AskUserQuestion)
+
+    /**
+     * Answer a question-type user-input interaction (AskUserQuestion plane).
+     *
+     * VERIFIED wire shape (desktop ElicitationDialog.buildElicitationResponseContent):
+     * `answer { action: "accept", content }` where content carries
+     * `answers: {"<question>": "<values joined ', '>"}`, per-question
+     * `answer_<i>: string | string[]`, and the legacy single-question `answer`.
+     * Empty answers are OMITTED (the agent continues on best judgment — never
+     * fabricate empty preferences). Same outbox INV-4 gate as every other submit.
+     */
+    suspend fun submitElicitationAnswers(
+        interactionId: InteractionId,
+        answers: Map<String, List<String>>,
+    ): SubmitOutcome {
+        val machine = machines[interactionId] ?: return SubmitOutcome.UnknownInteraction
+        val request = requests[interactionId] ?: return SubmitOutcome.UnknownInteraction
+        if (request.userInput == null) return SubmitOutcome.NotApprovable
+
+        runCatching { machine.on(PermissionStateMachine.Event.UserChose("accept", null)) }
+            .onFailure { return SubmitOutcome.DuplicateNoOp }
+        if (machine.state != PermissionStateMachine.State.SUBMITTING) {
+            return SubmitOutcome.DuplicateNoOp
+        }
+        updateLifecycle(interactionId, machine.state)
+
+        val nonEmpty = answers.filterValues { values -> values.any { it.isNotBlank() } }
+        if (nonEmpty.isEmpty()) {
+            // Nothing provided: back the machine off — an empty form was never sent.
+            runCatching { machine.on(PermissionStateMachine.Event.SendFailedPreContact) }
+            updateLifecycle(interactionId, machine.state)
+            return SubmitOutcome.NotApprovable
+        }
+        val content = buildJsonObject {
+            put("answers", buildJsonObject {
+                for ((question, values) in nonEmpty) {
+                    put(question, values.joinToString(", "))
+                }
+            })
+            nonEmpty.entries.forEachIndexed { index, (_, values) ->
+                put(
+                    "answer_$index",
+                    if (values.size == 1) kotlinx.serialization.json.JsonPrimitive(values.first())
+                    else kotlinx.serialization.json.buildJsonArray { values.forEach { add(kotlinx.serialization.json.JsonPrimitive(it)) } },
+                )
+            }
+            if (nonEmpty.size == 1) {
+                val values = nonEmpty.values.first()
+                put(
+                    "answer",
+                    if (values.size == 1) kotlinx.serialization.json.JsonPrimitive(values.first())
+                    else kotlinx.serialization.json.buildJsonArray { values.forEach { add(kotlinx.serialization.json.JsonPrimitive(it)) } },
+                )
+            }
+        }
+        val payload = buildJsonObject {
+            put("interactionId", interactionId.raw)
+            put("answer", buildJsonObject {
+                put("action", "accept")
+                put("content", content)
+            })
+        }
+
+        val existing = pendingCommands[interactionId]
+        val commandId: CommandId = when {
+            existing == null -> {
+                val minted = outbox.accept(
+                    endpointId = endpointId,
+                    sessionId = request.sessionId,
+                    type = "resolveInteraction",
+                    payloadJson = payload.toString(),
+                    baseRevision = null,
+                    baseLogEpoch = null,
+                    issuedAtMs = clock(),
+                )
+                pendingCommands[interactionId] = minted
+                minted
+            }
+            outbox.get(existing)?.state == OutboxStateMachine.State.UNKNOWN ||
+                outbox.get(existing)?.state == OutboxStateMachine.State.FAILED_RETRYABLE -> {
+                outbox.apply(existing, OutboxStateMachine.Event.UserGatedRetry, clock())
+                existing
+            }
+            else -> return SubmitOutcome.DuplicateNoOp
+        }
+        try {
+            if (outbox.get(commandId)?.state == OutboxStateMachine.State.ACCEPTED_LOCALLY) {
+                outbox.apply(commandId, OutboxStateMachine.Event.Transmit, clock())
+            }
+            val ack = commands.send(
+                type = "resolveInteraction",
+                sessionId = request.sessionId,
+                payload = payload,
+                baseRevision = null,
+                baseLogEpoch = null,
+                commandId = commandId.raw,
+            )
+            outbox.apply(commandId, OutboxStateMachine.Event.Ack(ack.status), clock())
+            val machineEvent = when (ack.status) {
+                "accepted", "duplicate", "noop" -> PermissionStateMachine.Event.AckConfirmed
+                "stale" -> PermissionStateMachine.Event.AckStale
+                else -> PermissionStateMachine.Event.AckRejected
+            }
+            runCatching { machine.on(machineEvent) }
+            if (machine.state == PermissionStateMachine.State.RESOLVED) {
+                interactions.markResolved(endpointId, interactionId, clock(), resolvedBySelf = !machine.resolvedByElsewhere)
+                pendingCommands.remove(interactionId)
+            } else if (machine.state in TERMINAL_MACHINE_STATES) {
+                pendingCommands.remove(interactionId)
+            }
+            updateLifecycle(interactionId, machine.state)
+            return SubmitOutcome.Submitted(ack)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            if (e is com.zcode.android.core.transport.RelayTransport.Failure && e.error.serverSpoke) {
+                runCatching {
+                    outbox.apply(
+                        commandId,
+                        OutboxStateMachine.Event.Ack("rejected", e.error.developerDiagnostic.take(64), e.error.userMessage),
+                        clock(),
+                    )
+                }
+                runCatching { machine.on(PermissionStateMachine.Event.AckRejected) }
+                updateLifecycle(interactionId, machine.state)
+                log.warn("interaction.rejected", e.error.developerDiagnostic.take(80))
+                return SubmitOutcome.Submitted(ack = com.zcode.android.core.protocol.v4.CommandAck(
+                    commandId = commandId.raw, status = "rejected", revisionAtDecision = 0,
+                    reasonCode = e.error.developerDiagnostic.take(64), message = e.error.userMessage, result = null,
+                ))
+            }
+            runCatching { outbox.apply(commandId, OutboxStateMachine.Event.SendLost, clock()) }
+            runCatching { machine.on(PermissionStateMachine.Event.SendFailedPreContact) }
+            updateLifecycle(interactionId, machine.state)
+            log.warn("interaction.submitRetryable", "${e.javaClass.simpleName}")
+            return SubmitOutcome.RetryableKept(commandId)
+        }
+    }
+
     // ---------------------------------------------------------------- recovery reconcile (S13)
 
     /**

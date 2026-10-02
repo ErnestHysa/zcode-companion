@@ -22,6 +22,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -180,7 +181,13 @@ fun ReasoningRow(
     row: ConversationRow.Reasoning,
     modifier: Modifier = Modifier,
 ) {
-    var expanded by rememberSaveable(row.rowId) { mutableStateOf(false) }
+    // macOS parity: the thinking block streams EXPANDED while the agent is
+    // thinking and collapses to a one-line summary when the block closes.
+    val streaming = row.state == ConversationRow.TextState.STREAMING
+    var expanded by rememberSaveable(row.rowId) { mutableStateOf(streaming) }
+    LaunchedEffect(row.state) {
+        if (row.state == ConversationRow.TextState.STREAMING) expanded = true
+    }
     Column(
         modifier = modifier
             .fillMaxWidth()

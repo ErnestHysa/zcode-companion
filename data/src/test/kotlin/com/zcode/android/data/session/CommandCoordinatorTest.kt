@@ -302,4 +302,46 @@ class CommandCoordinatorTest {
         is CommandCoordinator.Outcome.Stale -> CommandId(this.ack.commandId)
         else -> error("no commandId for $this")
     }
+    @Test
+    fun `server-spoke channel fault is AUTHORITATIVE - FAILED_TERMINAL, never the retry loop (vc22 fix)`() = runTest {
+        val sender = object : CommandSender {
+            val sends = mutableListOf<String>()
+            override suspend fun send(
+                type: String,
+                sessionId: String?,
+                payload: JsonObject,
+                baseRevision: Long?,
+                baseLogEpoch: String?,
+                commandId: String,
+                workspacePath: String?,
+                workspaceIdentity: String?,
+            ): CommandAck {
+                sends.add(commandId)
+                throw com.zcode.android.core.transport.RelayTransport.Failure(
+                    com.zcode.android.core.common.error.AppError(
+                        category = com.zcode.android.core.common.error.ErrorCategory.TASK,
+                        userMessage = "Conversation changed — please try again",
+                        developerDiagnostic = "fault.command.clientMismatch",
+                        retryable = com.zcode.android.core.common.error.AppError.Retryable.USER,
+                        recoverable = true,
+                        autoRecovery = null,
+                    ),
+                )
+            }
+        }
+        val outbox = FixedOutbox()
+        val coord = CommandCoordinator(
+            endpointId = EndpointId("ep"),
+            outbox = outbox,
+            commands = sender,
+            connectionState = { ConnectionStateMachine.ConnectionState.CONNECTED },
+        )
+        val outcome = coord.sendPrompt("s1", "hello")
+        assertTrue(outcome is CommandCoordinator.Outcome.Failed)
+        assertEquals("rejected", outcome.ack()?.status)
+        assertEquals(OutboxStateMachine.State.FAILED_TERMINAL, outbox.entries.values.single().state)
+        assertEquals(1, sender.sends.size) // no retry loop
+    }
+    private fun CommandCoordinator.Outcome.ack(): CommandAck? = (this as? CommandCoordinator.Outcome.Failed)?.ack
+
 }

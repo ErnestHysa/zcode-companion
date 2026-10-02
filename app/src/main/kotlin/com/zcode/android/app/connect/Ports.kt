@@ -270,6 +270,19 @@ class DefaultConversationPort(
             }
         }
 
+    override suspend fun answerUserInputQuestions(
+        interactionId: String,
+        answers: Map<String, List<String>>,
+    ): ConversationPort.AnswerOutcome {
+        val coordinator = hub.interactionCoordinatorOrNull() ?: return ConversationPort.AnswerOutcome.UNKNOWN_INTERACTION
+        return mapAnswer(
+            coordinator.submitElicitationAnswers(
+                com.zcode.android.domain.ids.InteractionId(interactionId),
+                answers,
+            ),
+        )
+    }
+
     override suspend fun answerFromInbox(interactionId: String, optionId: String, freeText: String?): ConversationPort.AnswerOutcome {
         val coordinator = hub.interactionCoordinatorOrNull() ?: return ConversationPort.AnswerOutcome.UNKNOWN_INTERACTION
         return mapAnswer(

@@ -357,6 +357,25 @@ class ConversationViewModel(
         }
     }
 
+    /** Phase 7 field: AskUserQuestion answers through the ONE fail-closed gate. */
+    fun answerUserInputQuestions(interactionId: String, answers: Map<String, List<String>>) {
+        if (interactionId in _busyInteractions.value) return
+        _busyInteractions.value = _busyInteractions.value + interactionId
+        scope.launch {
+            try {
+                when (port.answerUserInputQuestions(interactionId, answers)) {
+                    ConversationPort.AnswerOutcome.RETRYABLE_KEPT ->
+                        _sendNotice.value = SendNotice("Answers not confirmed — retry when connected.", SendNotice.Kind.WARNING)
+                    ConversationPort.AnswerOutcome.NOT_APPROVABLE ->
+                        _sendNotice.value = SendNotice("This question can't be answered here — check the desktop.", SendNotice.Kind.ERROR)
+                    else -> Unit
+                }
+            } finally {
+                _busyInteractions.value = _busyInteractions.value - interactionId
+            }
+        }
+    }
+
     private fun kotlinx.coroutines.flow.Flow<List<StreamingBuffer>>.mapToTextMap(): kotlinx.coroutines.flow.Flow<Map<Long, String>> =
         this.map { buffers -> buffers.associate { it.rowId to it.text } }
 

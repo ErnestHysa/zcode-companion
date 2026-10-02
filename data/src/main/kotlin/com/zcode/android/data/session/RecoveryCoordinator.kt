@@ -48,6 +48,16 @@ class RecoveryCoordinator(
 
     data class Config(
         val holdTickMs: Long = 250,
+        /**
+         * FIELD (2026-10-02, vc24 device log): the relay PAUSED mid-generation
+         * delivery (70 s of heartbeats-only while the desktop kept generating) and
+         * resumed only on user action. While CONNECTED with a live session, >20 s
+         * without a topic frame triggers ONE stateless base-resync (verified
+         * re-send-safe; replay is gap-free) to re-kick delivery, rate-limited to
+         * once per [streamWatchdogResyncGapMs].
+         */
+        val streamWatchdogIdleMs: Long = 20_000,
+        val streamWatchdogResyncGapMs: Long = 30_000,
         val helloServerTimeMs: Double? = null,
         val capabilitiesJson: kotlinx.serialization.json.JsonObject? = null,
     )
@@ -174,6 +184,7 @@ class RecoveryCoordinator(
         } else {
         forwardJob = scope.launch {
             gateway.topicEvents.collect { event ->
+                lastFrameAtMs = clock()
                 try {
                     managerFor(event)?.handle(event)
                 } catch (e: kotlinx.coroutines.CancellationException) {
@@ -193,6 +204,7 @@ class RecoveryCoordinator(
                 delay(config.holdTickMs)
                 val all = synchronized(managers) { managers.values.toList() }
                 for (m in all) m.checkHold()
+                maybeStreamWatchdog(all)
             }
         }
         transport?.let { t ->
@@ -408,4 +420,35 @@ class RecoveryCoordinator(
     }
 
     private val escalationCounts = HashMap<String, Int>()
+
+    // ---------------------------------------------------------------- stream watchdog
+
+    @Volatile private var lastFrameAtMs: Long = 0
+    @Volatile private var lastWatchdogResyncMs: Long = 0
+
+    /**
+     * Delivery-stall watchdog (§15.1 recovery is first-class — a stalled stream IS a
+     * recoverable condition even when the socket is technically healthy). A stateless
+     * base-resync re-kicks the bridge: the ACK + replay forces the desktop's relay
+     * worker to flush what it is holding. Rate-limited; sessions whose task already
+     * reached a terminal state are skipped (nothing to resync).
+     */
+    private suspend fun maybeStreamWatchdog(all: List<ConversationSessionManager>) {
+        if (transport?.states?.value != ConnectionStateMachine.ConnectionState.CONNECTED) return
+        if (all.isEmpty()) return
+        val now = clock()
+        if (lastFrameAtMs == 0L) return // no frames ever — attach hasn't streamed yet
+        if (now - lastFrameAtMs < config.streamWatchdogIdleMs) return
+        if (now - lastWatchdogResyncMs < config.streamWatchdogResyncGapMs) return
+        val stalled = all.firstOrNull { m ->
+            m.taskState.value in setOf(
+                com.zcode.android.domain.state.TaskStateMachine.State.RUNNING,
+                com.zcode.android.domain.state.TaskStateMachine.State.LOADING,
+                com.zcode.android.domain.state.TaskStateMachine.State.UNKNOWN,
+            )
+        } ?: return
+        lastWatchdogResyncMs = now
+        log.warn("recovery.streamWatchdog", "no frames for ${now - lastFrameAtMs}ms — base-resync session=${stalled.sessionId.raw}")
+        escalate(stalled.sessionId.raw, reason = "stream watchdog (delivery stalled)", baseEpoch = null, baseSeq = null)
+    }
 }
