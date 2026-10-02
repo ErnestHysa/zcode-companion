@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -134,6 +135,11 @@ class PairingE2eInstrumentedTest {
         //         lives in Settings (danger action, confirm dialog).
         rule.onNodeWithTag("tasks_settings").performClick()
         waitForTag("settings_unpair")
+        // PHASE 8: the Notifications section grew the screen — the danger row now
+        // sits below the fold. Scroll it into view before clicking (an off-screen
+        // performClick injects at out-of-window coordinates and lands as BACK).
+        rule.onNodeWithTag("settings_scroll")
+            .performScrollToNode(androidx.compose.ui.test.hasTestTag("settings_unpair"))
         rule.onNodeWithTag("settings_unpair").performClick()
         waitForTag("settings_unpair_confirm")
         rule.onNodeWithTag("settings_unpair_confirm").performClick()

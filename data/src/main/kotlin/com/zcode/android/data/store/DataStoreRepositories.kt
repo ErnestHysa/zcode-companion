@@ -117,6 +117,7 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
         // unset optional field → domain default, never the proto zero-value).
         screenshotProtection = if (hasScreenshotProtection()) screenshotProtection else true,
         conversationCacheEnabled = if (hasConversationCacheEnabled()) conversationCacheEnabled else true,
+        autoReconnectProbe = if (hasAutoReconnectProbe()) autoReconnectProbe else false,
     )
 
     private fun AppPreferences.toProto() = AppPreferencesProto.newBuilder()
@@ -124,5 +125,6 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
         .setNotificationContentLevel(notificationContentLevel.name)
         .setScreenshotProtection(screenshotProtection)
         .setConversationCacheEnabled(conversationCacheEnabled)
+        .setAutoReconnectProbe(autoReconnectProbe)
         .build()
 }

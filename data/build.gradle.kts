@@ -81,6 +81,7 @@ dependencies {
     api(libs.datastore.preferences)
     api(libs.protobuf.javalite)
     implementation(project(":core:security")) // DataStore credential-store binding (§12.4)
+    implementation(project(":core:notifications")) // §9.2 REPO→NOTIFY edge: the broker record store port (Phase 8)
     implementation(project(":core:transport")) // §40.2 DATA→TRANS allowed edge: the Phase 5 recovery subsystem binds the session API (§17.1)
 
     testImplementation(libs.kotlin.test.junit)

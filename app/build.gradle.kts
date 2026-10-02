@@ -17,8 +17,8 @@ android {
         applicationId = "com.zcode.android.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 26
-        versionName = "0.7.6-phase7"
+        versionCode = 27
+        versionName = "0.8.0-phase8"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -56,6 +56,7 @@ kotlin {
 
 dependencies {
     implementation(project(":core:common"))
+    implementation(project(":core:notifications"))
     implementation(project(":core:security"))
     implementation(project(":core:transport"))
     implementation(project(":core:ui"))
@@ -85,6 +86,8 @@ dependencies {
     testDebugImplementation(libs.compose.ui.test.manifest)
     androidTestImplementation(project(":tools:mockzcode"))
     androidTestImplementation(project(":core:security"))
+    androidTestImplementation(project(":core:notifications"))
+    androidTestImplementation(libs.work.runtime.ktx)
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.compose.ui.test.junit4)

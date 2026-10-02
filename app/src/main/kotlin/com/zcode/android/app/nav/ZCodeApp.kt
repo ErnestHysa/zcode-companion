@@ -19,6 +19,7 @@ import com.zcode.android.features.pairing.flow.PairingFlow
 import com.zcode.android.features.tasks.TasksViewModel
 import com.zcode.android.features.tasks.ui.TaskListScreen
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -72,6 +73,60 @@ fun ZCodeApp(
             }
             else -> container.hub.onPairingCompleted()
         }
+    }
+
+    // Phase 8 (§24.7): deep links are routing HINTS — every case resolves through
+    // the domain DeepLinkRoute matrix against the authoritative projection; stale,
+    // missing, wrong-endpoint, and malformed ids each land on an explicit, graceful
+    // route (never a crash, never an empty screen). An UNPAIRED device keeps the
+    // link pending; it re-resolves after pairing completes (§24.7 re-validation).
+    val pendingLink by container.notifications.pendingLink.collectAsState()
+    val appContext = androidx.compose.ui.platform.LocalContext.current
+    androidx.compose.runtime.LaunchedEffect(pendingLink, paired) {
+        val link = pendingLink ?: return@LaunchedEffect
+        if (paired == null) return@LaunchedEffect // UNPAIRED → hold; re-validated post-pairing
+        // Consume BEFORE resolving: the effect re-runs whenever [paired] moves, and
+        // a run cancelled mid-resolve (suspend points below) must never leave the
+        // link pending — a restart would NAVIGATE AGAIN (stacked duplicate entries).
+        container.notifications.consumeDeepLink()
+        val connected = container.hub.phase.value == com.zcode.android.domain.state.ConnectionPhase.CONNECTED
+        // §24.7 resolution inputs read from the SAME projection snapshots the task
+        // list renders (the wiring's collector state) — never a second query path.
+        val taskExists = container.notifications.knowsTask(link.taskId)
+        val interactionKnown: Boolean? = link.interactionId?.let { container.notifications.knowsInteraction(it) }
+        val linkToResolve = com.zcode.android.domain.recovery.DeepLinkRoute.parse(link.taskId, link.interactionId)
+        val environment = com.zcode.android.domain.recovery.DeepLinkRoute.Environment.Paired(
+            endpointId = paired?.deviceSid ?: "",
+            connected = connected,
+            taskExists = taskExists,
+            interactionKnown = interactionKnown,
+            existsOnOtherEndpoint = false, // single-endpoint MVP; disambiguation is Phase 10 (§11.6)
+        )
+        when (com.zcode.android.domain.recovery.DeepLinkRoute.resolve(linkToResolve, environment)) {
+            com.zcode.android.domain.recovery.DeepLinkRoute.Outcome.OPEN_TASK,
+            com.zcode.android.domain.recovery.DeepLinkRoute.Outcome.OPEN_TASK_INTERACTION_STALE,
+            -> nav.navigate(Routes.conversation(link.taskId))
+            com.zcode.android.domain.recovery.DeepLinkRoute.Outcome.TASK_GONE -> {
+                nav.navigate(Routes.TASKS)
+                android.widget.Toast.makeText(
+                    appContext,
+                    "That task is no longer available on the desktop",
+                    android.widget.Toast.LENGTH_LONG,
+                ).show()
+            }
+            com.zcode.android.domain.recovery.DeepLinkRoute.Outcome.WRONG_ENDPOINT -> {
+                nav.navigate(Routes.TASKS)
+                android.widget.Toast.makeText(
+                    appContext,
+                    "That task belongs to a different paired desktop",
+                    android.widget.Toast.LENGTH_LONG,
+                ).show()
+            }
+            // MALFORMED never reaches here (parse filtered at intake) — drop silently.
+            com.zcode.android.domain.recovery.DeepLinkRoute.Outcome.MALFORMED -> Unit
+            com.zcode.android.domain.recovery.DeepLinkRoute.Outcome.UNPAIRED -> return@LaunchedEffect
+        }
+        container.log.info("nav.deeplink", "resolved task=${link.taskId.take(24)}")
     }
 
     NavHost(navController = nav, startDestination = if (paired != null) Routes.TASKS else Routes.PAIRING) {

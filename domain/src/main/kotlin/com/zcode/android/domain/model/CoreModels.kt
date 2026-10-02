@@ -181,6 +181,8 @@ data class AppPreferences(
     val screenshotProtection: Boolean = true,
     /** §27 conversation cache on/off (off = re-fetch always; UX cost warned). */
     val conversationCacheEnabled: Boolean = true,
+    /** §25.3 auto-reconnect probe: the ONLY periodic work (≥15 min, network-constrained). */
+    val autoReconnectProbe: Boolean = false,
 ) {
     enum class NotificationContentLevel { MINIMAL, CONTENT }
 }

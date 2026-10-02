@@ -5,6 +5,7 @@ import androidx.datastore.core.Serializer
 import com.zcode.android.data.proto.AppPreferencesProto
 import com.zcode.android.data.proto.CredentialEnvelopeProto
 import com.zcode.android.data.proto.EndpointStoreProto
+import com.zcode.android.data.proto.NotificationRecordStoreProto
 import java.io.InputStream
 import java.io.OutputStream
 
@@ -51,4 +52,17 @@ object CredentialEnvelopeSerializer : Serializer<CredentialEnvelopeProto> {
         }
 
     override suspend fun writeTo(t: CredentialEnvelopeProto, output: OutputStream) = t.writeTo(output)
+}
+
+object DataStoreNotificationRecordStore : Serializer<NotificationRecordStoreProto> {
+    override val defaultValue: NotificationRecordStoreProto = NotificationRecordStoreProto.getDefaultInstance()
+
+    override suspend fun readFrom(input: InputStream): NotificationRecordStoreProto =
+        try {
+            NotificationRecordStoreProto.parseFrom(input)
+        } catch (e: Exception) {
+            throw CorruptionException("notification record store corrupted", e)
+        }
+
+    override suspend fun writeTo(t: NotificationRecordStoreProto, output: OutputStream) = t.writeTo(output)
 }

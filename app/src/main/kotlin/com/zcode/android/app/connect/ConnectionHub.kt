@@ -66,6 +66,13 @@ class ConnectionHub(
     internal val log: ZLog,
 ) {
 
+    /**
+     * Phase 8: the §15-S12 notification reconciliation port (the §24 broker). Set by
+     * the composition root right after construction — the recovery coordinator is
+     * created LAZILY (ensureCoordinator), so the port is always bound before use.
+     */
+    var notificationRecords: RecoveryCoordinator.NotificationRecordPort? = null
+
     val gateway: ConversationGateway by lazy { RelayConversationGateway(transport, clientId, log) }
 
     private val clientId: String = "zcode-android-" + vault.loadMetadata()?.endpointId.let { it ?: "unpaired" }
@@ -567,6 +574,7 @@ class ConnectionHub(
             journalRepo = journalRepo,
             interactions = InteractionCoordinatorFor(endpointId),
             transport = transport,
+            notificationRecords = notificationRecords,
             scope = scope,
             log = log,
             config = RecoveryCoordinator.Config(

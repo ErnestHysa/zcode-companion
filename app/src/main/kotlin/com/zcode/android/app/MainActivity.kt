@@ -1,6 +1,7 @@
 package com.zcode.android.app
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.Network
@@ -34,7 +35,8 @@ import com.zcode.android.features.pairing.ui.QrScanner
  */
 class MainActivity : FragmentActivity() {
 
-    private lateinit var container: AppContainer
+    // internal: the instrumented suites assert wiring state directly (no product surface).
+    internal lateinit var container: AppContainer
     private lateinit var pairingVm: PairingViewModel
     private lateinit var tasksVm: TasksViewModel
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
@@ -57,6 +59,7 @@ class MainActivity : FragmentActivity() {
         tasksVm = TasksViewModel(container.tasksPort, lifecycleScope)
         container.hub.start()
         registerNetworkProbe()
+        handleDeepLink(intent)
         setContent {
             ZCodeTheme {
                 ZCodeApp(
@@ -70,14 +73,31 @@ class MainActivity : FragmentActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        // §24.7 singleTask: a notification tap re-enters the LIVE activity here.
+        container.log.info("app deeplink", "onNewIntent data=${intent.data?.toString()?.take(120)}")
+        handleDeepLink(intent)
+    }
+
+    /** §24.7: a deep link is a routing HINT — parse here, the nav graph resolves. */
+    internal fun handleDeepLink(intent: Intent?) {
+        val candidate = com.zcode.android.app.notifications.DeepLinks.intake(intent) ?: return
+        container.notifications.offerDeepLink(candidate.taskId, candidate.interactionId)
+    }
+
     override fun onStart() {
         super.onStart()
         container.log.info("app.lifecycle", "onStart")
         container.hub.foregroundTrigger()
+        // §9.9/Phase 8: the broker suppresses while foregrounded and re-posts still-
+        // open attention items on the next background entry.
+        container.notifications.onForeground()
     }
 
     override fun onStop() {
         container.log.info("app.lifecycle", "onStop")
+        container.notifications.onBackground()
         super.onStop()
     }
 

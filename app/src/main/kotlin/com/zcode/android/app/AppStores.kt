@@ -4,7 +4,9 @@ import android.content.Context
 import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.room.Room
+import com.zcode.android.core.notifications.NotificationBroker
 import com.zcode.android.data.db.ZcodeDatabase
+import com.zcode.android.data.proto.NotificationRecordStoreProto
 import com.zcode.android.data.repo.ConversationRepositoryImpl
 import com.zcode.android.data.repo.DraftRepositoryImpl
 import com.zcode.android.data.repo.InteractionRepositoryImpl
@@ -14,8 +16,10 @@ import com.zcode.android.data.repo.TaskRepositoryImpl
 import com.zcode.android.data.store.AppPreferencesSerializer
 import com.zcode.android.data.store.CredentialEnvelopeSerializer
 import com.zcode.android.data.store.DataStoreCredentialStore
+import com.zcode.android.data.store.DataStoreNotificationRecordStore
 import com.zcode.android.data.store.EndpointRepositoryImpl
 import com.zcode.android.data.store.EndpointStoreSerializer
+import com.zcode.android.data.store.NotificationRecordStoreImpl
 import com.zcode.android.data.store.PreferencesRepositoryImpl
 import com.zcode.android.domain.repo.ConversationRepository
 import com.zcode.android.domain.repo.DraftRepository
@@ -33,6 +37,11 @@ import java.io.File
  * DataStore instances on one file crash); activities recreate freely, so the stores
  * live in a lazy holder rooted at the applicationContext. §41.10 allows exactly one
  * global — the AppContainer root; this holder hangs off it.
+ *
+ * Phase 8: the process also owns the §24 NotificationBroker (its dedupe records +
+ * tray state must survive activity recreation) and the process-wide [appScope]
+ * that runs the broker's event collectors (they outlive any single activity the
+ * way the notification promise does — §24.4 "while the app is in use").
  */
 class AppStores private constructor(appContext: Context) {
 
@@ -66,6 +75,13 @@ class AppStores private constructor(appContext: Context) {
         produceFile = { File(datastoreDir, "preferences.pb") },
     )
 
+    /** §16 NotificationRecords — dedupe/reconciliation keys (cache-class). */
+    private val notificationRecordDataStore = DataStoreFactory.create(
+        serializer = DataStoreNotificationRecordStore,
+        corruptionHandler = ReplaceFileCorruptionHandler { NotificationRecordStoreProto.getDefaultInstance() },
+        produceFile = { File(datastoreDir, "notification_records.pb") },
+    )
+
     val taskRepository: TaskRepository = TaskRepositoryImpl(database)
     val conversationRepository: ConversationRepository = ConversationRepositoryImpl(database)
     val interactionRepository: InteractionRepository = InteractionRepositoryImpl(database)
@@ -74,6 +90,40 @@ class AppStores private constructor(appContext: Context) {
     val draftRepository: DraftRepository = DraftRepositoryImpl(database)
     val endpointRepository: EndpointRepository = EndpointRepositoryImpl(endpointDataStore)
     val preferencesRepository: PreferencesRepository = PreferencesRepositoryImpl(preferencesDataStore)
+
+    /** Process-wide scope for the Phase 8 broker collectors (§28.5 single-threaded broker). */
+    val appScope: kotlinx.coroutines.CoroutineScope =
+        kotlinx.coroutines.CoroutineScope(
+            kotlinx.coroutines.SupervisorJob() +
+                kotlinx.coroutines.Dispatchers.Default +
+                kotlinx.coroutines.CoroutineName("zcode-app-stores"),
+        )
+
+    /** Process-scoped §24.1 broker (single instance — notifications are process truth). */
+    val notificationBroker: NotificationBroker by lazy {
+        NotificationBroker(
+            sink = com.zcode.android.core.notifications.AndroidNotificationSink(appContext),
+            records = NotificationRecordStoreImpl(notificationRecordDataStore),
+            // Logcat-only logger (the diagnostics ring lives in the activity-scoped
+            // AppContainer; notification lifecycle is INFO-level and never carries
+            // content — scrubbers still apply).
+            log = com.zcode.android.core.common.log.ZLog(
+                sink = { entry ->
+                    val line = "${entry.event} :: ${entry.details ?: ""}"
+                    android.util.Log.println(
+                        when (entry.level) {
+                            com.zcode.android.core.common.log.ZLog.LogLevel.DEBUG -> android.util.Log.DEBUG
+                            com.zcode.android.core.common.log.ZLog.LogLevel.INFO -> android.util.Log.INFO
+                            com.zcode.android.core.common.log.ZLog.LogLevel.WARN -> android.util.Log.WARN
+                            com.zcode.android.core.common.log.ZLog.LogLevel.ERROR -> android.util.Log.ERROR
+                        },
+                        "ZCODE-NOTIFY",
+                        line,
+                    )
+                },
+            ),
+        )
+    }
 
     companion object {
         @Volatile

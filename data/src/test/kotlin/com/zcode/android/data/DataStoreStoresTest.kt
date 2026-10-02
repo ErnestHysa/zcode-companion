@@ -7,11 +7,14 @@ import com.zcode.android.data.proto.AppPreferencesProto
 import com.zcode.android.data.store.AppPreferencesSerializer
 import com.zcode.android.data.store.DataStoreCredentialStore
 import com.zcode.android.data.store.CredentialEnvelopeSerializer
+import com.zcode.android.data.store.DataStoreNotificationRecordStore
 import com.zcode.android.data.store.EndpointRepositoryImpl
 import com.zcode.android.data.store.EndpointStoreSerializer
+import com.zcode.android.data.store.NotificationRecordStoreImpl
 import com.zcode.android.data.store.PreferencesRepositoryImpl
 import com.zcode.android.domain.ids.EndpointId
 import com.zcode.android.domain.model.AppPreferences
+import com.zcode.android.domain.model.NotificationRecord
 import com.zcode.android.domain.model.Endpoint
 import com.zcode.android.domain.model.EndpointKind
 import java.io.ByteArrayInputStream
@@ -149,6 +152,41 @@ class DataStoreStoresTest {
         val repo = PreferencesRepositoryImpl(newPrefsStore())
         assertEquals(true, repo.current().screenshotProtection)
         assertEquals(true, repo.current().conversationCacheEnabled)
+    }
+
+    // ------------------------------------------------- Phase 8 additive fields
+
+    @Test
+    fun `autoReconnectProbe defaults OFF and round-trips (25-3 opt-in)`() = runTest {
+        val repo = PreferencesRepositoryImpl(newPrefsStore())
+        // §25.3: the probe is OPT-IN — the default is OFF (never schedule silently).
+        assertFalse(repo.current().autoReconnectProbe)
+        repo.update { it.copy(autoReconnectProbe = true) }
+        assertTrue(repo.current().autoReconnectProbe)
+        // And a store written before field 5 existed still reads (additive-first).
+        val parsed = AppPreferencesProto.parseFrom(hexToBytes("08011207" + "4D494E494D414C"))
+        assertFalse(parsed.hasAutoReconnectProbe())
+    }
+
+    @Test
+    fun `notification records round-trip and tolerate unknown kinds (16, INV-8)`() = runTest {
+        val store = NotificationRecordStoreImpl(
+            DataStoreFactory.create(
+                DataStoreNotificationRecordStore,
+                produceFile = { File(dir, "notification_records.pb") },
+            ),
+        )
+        store.save(
+            listOf(
+                NotificationRecord("interaction:i-1", taskId = "t1", kind = NotificationRecord.Kind.APPROVAL_NEEDED, createdAtMs = 5),
+                NotificationRecord("task:t2:TASK_FINISHED", taskId = "t2", kind = NotificationRecord.Kind.TASK_FINISHED, createdAtMs = 6, seenAtMs = 9),
+            ),
+        )
+        val loaded = store.load()
+        assertEquals(2, loaded.size)
+        assertEquals("interaction:i-1", loaded[0].notificationKey)
+        assertEquals(NotificationRecord.Kind.APPROVAL_NEEDED, loaded[0].kind)
+        assertEquals(9L, loaded[1].seenAtMs)
     }
 
     // ------------------------------------------------------------- credential envelope

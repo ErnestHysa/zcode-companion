@@ -35,4 +35,5 @@ message AppPreferencesProto {
   optional string notification_content_level = 2; // MINIMAL | CONTENT
   optional bool screenshot_protection = 3;
   optional bool conversation_cache_enabled = 4;
+  optional bool auto_reconnect_probe = 5; // §25.3 opted-in periodic probe (Phase 8)
 }

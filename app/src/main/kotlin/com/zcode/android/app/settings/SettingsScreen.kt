@@ -27,10 +27,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.core.content.ContextCompat
+import android.Manifest
+import android.content.pm.PackageManager
 import com.zcode.android.core.common.log.ZLog
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
@@ -66,7 +71,8 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .testTag("settings_scroll"),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack, modifier = Modifier.testTag("settings_back")) {
@@ -107,6 +113,10 @@ fun SettingsScreen(
                     android.widget.Toast.makeText(context, "Marker added to diagnostics", android.widget.Toast.LENGTH_SHORT).show()
                 },
             )
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+            SectionLabel("Notifications")
+            NotificationsSection(container = container)
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
             SectionLabel("Privacy")
@@ -426,6 +436,142 @@ private fun SectionLabel(text: String) {
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(start = 16.dp, top = 20.dp, bottom = 6.dp),
     )
+}
+
+/**
+ * Phase 8 notifications surface (§24.2/§24.4/§24.5/§25.3): the content-level privacy
+ * toggle, the opt-in Live-connection FGS (started from the foreground ONLY — this
+ * screen is its sole entry point), and the §25.3 auto-reconnect probe. The §24.4
+ * honest copy is mandatory: no push exists via the relay — notifications arrive
+ * while the app is in use or while the Live connection is enabled.
+ */
+@Composable
+private fun NotificationsSection(container: AppContainer) {
+    val context = LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val prefs by container.stores.preferencesRepository.observe()
+        .collectAsState(initial = com.zcode.android.domain.model.AppPreferences())
+
+    // §24.2 lock-screen visibility: MINIMAL = category-only (default), CONTENT adds
+    // the task title. The pending row shows the CURRENT value; tap toggles.
+    SettingsRow(
+        title = "Notification detail: " +
+            if (prefs.notificationContentLevel == com.zcode.android.domain.model.AppPreferences.NotificationContentLevel.CONTENT) "Task titles" else "Minimal",
+        subtitle = "Minimal keeps the lock screen to “ZCode needs your approval” — never tools, paths, or titles.",
+        tag = "settings_notification_content",
+        onClick = {
+            scope.launch {
+                container.stores.preferencesRepository.update { p ->
+                    p.copy(
+                        notificationContentLevel =
+                        if (p.notificationContentLevel == com.zcode.android.domain.model.AppPreferences.NotificationContentLevel.CONTENT) {
+                            com.zcode.android.domain.model.AppPreferences.NotificationContentLevel.MINIMAL
+                        } else {
+                            com.zcode.android.domain.model.AppPreferences.NotificationContentLevel.CONTENT
+                        },
+                    )
+                }
+            }
+        },
+    )
+
+    // §24.5/§25.2 Live connection (FGS candidate). Started HERE, from the
+    // foreground; API 33+ first asks for POST_NOTIFICATIONS (the indicator IS the
+    // required FGS notification).
+    var liveConnection by remember {
+        mutableStateOf(com.zcode.android.core.notifications.LiveConnectionService.isRunning)
+    }
+    val notifPermissionLauncher = rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        container.log.info("settings.notifPermission", "granted=$granted")
+        if (granted || android.os.Build.VERSION.SDK_INT < 33) {
+            com.zcode.android.core.notifications.LiveConnectionService.start(context)
+            liveConnection = true
+        }
+    }
+    SwitchRow(
+        title = "Live connection",
+        subtitle = "Keep the connection alive with the screen off (30-minute window). Uses more battery; the system may still pause it. Turn off when done.",
+        tag = "settings_live_connection",
+        checked = liveConnection,
+        onToggle = { want ->
+            if (want) {
+                if (android.os.Build.VERSION.SDK_INT >= 33 &&
+                    ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) !=
+                    PackageManager.PERMISSION_GRANTED
+                ) {
+                    notifPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    com.zcode.android.core.notifications.LiveConnectionService.start(context)
+                    liveConnection = true
+                }
+            } else {
+                com.zcode.android.core.notifications.LiveConnectionService.stop(context)
+                liveConnection = false
+            }
+        },
+    )
+
+    // §25.3 auto-reconnect probe — the app's ONLY periodic work (≥15 min, network-
+    // constrained; §29 no-polling rule).
+    SwitchRow(
+        title = "Auto-reconnect checks",
+        subtitle = "While the app is backgrounded, check about every 15 minutes and reconnect if the network is back.",
+        tag = "settings_auto_reconnect",
+        checked = prefs.autoReconnectProbe,
+        onToggle = { want ->
+            scope.launch {
+                container.stores.preferencesRepository.update { p -> p.copy(autoReconnectProbe = want) }
+            }
+            if (want) {
+                com.zcode.android.core.notifications.ReconnectProbeWorker.schedule(context)
+            } else {
+                com.zcode.android.core.notifications.ReconnectProbeWorker.cancel(context)
+            }
+        },
+    )
+
+    // §24.4 honest statement (mandatory copy).
+    Text(
+        text = "Notifications are delivered while the app is in use or when the Live connection is enabled. ZCode's relay offers no push service, so with both off you'll see updates the next time you open the app.",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+    )
+}
+
+@Composable
+private fun SwitchRow(
+    title: String,
+    subtitle: String,
+    tag: String,
+    checked: Boolean,
+    onToggle: (Boolean) -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .testTag(tag),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onBackground)
+            Spacer(Modifier.height(2.dp))
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(Modifier.width(8.dp))
+        androidx.compose.material3.Switch(
+            checked = checked,
+            onCheckedChange = onToggle,
+            modifier = Modifier.testTag("${tag}_switch"),
+        )
+    }
 }
 
 @Composable

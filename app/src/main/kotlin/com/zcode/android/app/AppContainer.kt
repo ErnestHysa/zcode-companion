@@ -9,6 +9,7 @@ import com.zcode.android.app.diagnostics.DiagnosticsFileStore
 import com.zcode.android.app.connect.DefaultConversationPort
 import com.zcode.android.app.connect.DefaultTasksPort
 import com.zcode.android.app.pairing.DefaultPairingPort
+import com.zcode.android.app.notifications.NotificationWiring
 import com.zcode.android.core.common.log.ZLog
 import com.zcode.android.core.security.biometric.AndroidBiometricGate
 import com.zcode.android.core.security.pairing.PairingLinkParser
@@ -16,6 +17,7 @@ import com.zcode.android.core.security.vault.AndroidKeystoreKeyWrap
 import com.zcode.android.core.security.vault.CredentialVault
 import com.zcode.android.core.transport.OkHttpWsFactory
 import com.zcode.android.core.transport.RelayTransport
+import com.zcode.android.core.notifications.NotificationChannels
 
 /**
  * AppContainer — manual DI root (§10.1: no framework). Everything credential-adjacent
@@ -122,6 +124,37 @@ class AppContainer(activity: FragmentActivity) {
         activity.lifecycleScope.launch { pairingPort.unpair() }
     })
     val conversationPort: DefaultConversationPort = DefaultConversationPort(hub, stores.conversationRepository, vault)
+
+    /**
+     * Phase 8 (§43.2-8.1): the §24.1 broker wiring — the sole notification decision
+     * point fed by the authoritative repositories (interactions, task projection,
+     * connection phase) plus the §24.7 deep-link intake. Channels are created at
+     * first run here (§24.2); the FGS/worker hooks bind the app identity.
+     */
+    val notifications: NotificationWiring = NotificationWiring(
+        stores = stores,
+        broker = stores.notificationBroker,
+        phase = hub.phase,
+        endpointFlow = hub.endpoint,
+        scope = stores.appScope,
+        log = log,
+    )
+
+    init {
+        NotificationChannels.ensure(activity)
+        notifications.start()
+        // §15-S12: the recovery coordinator's reconciliation port is the broker.
+        hub.notificationRecords = notifications.recordsPort()
+        // §24.5/§25.2: the FGS notification names the paired desktop; the tap target
+        // is the launcher activity. The worker hook is the §25.3 process bridge.
+        com.zcode.android.core.notifications.LiveConnectionService.endpointLabelProvider = {
+            vault.loadMetadata()?.desktopName ?: "ZCode desktop"
+        }
+        com.zcode.android.core.notifications.LiveConnectionService.LAUNCHER_ACTIVITY = MainActivity::class.java
+        com.zcode.android.core.notifications.ReconnectProbeWorker.ProbeHook.probe = {
+            hub.networkAvailable()
+        }
+    }
 
     init {
         // Background self-heal success → flip the pairing gate (the QR flow's connect
