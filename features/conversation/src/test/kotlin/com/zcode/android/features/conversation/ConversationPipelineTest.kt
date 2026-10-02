@@ -213,9 +213,10 @@ class ConversationViewModelTest {
         override suspend fun answerInteraction(interactionId: String, optionId: String, freeText: String?, userInput: Boolean) =
             ConversationPort.AnswerOutcome.SUBMITTED
         override fun observeOpenInteractions() = openInteractionsFlow
-        override suspend fun answerFromInbox(interactionId: String, optionId: String, freeText: String?) =
+        override suspend fun answerUserInputQuestions(interactionId: String, answers: Map<String, List<String>>) =
             ConversationPort.AnswerOutcome.SUBMITTED
-    }
+        override suspend fun answerFromInbox(interactionId: String, optionId: String, freeText: String?) =
+            ConversationPort.AnswerOutcome.SUBMITTED    }
 
     private fun row(id: Long, text: String): ConversationRow.AssistantText =
         ConversationRow.Decoder.decode(
@@ -339,6 +340,8 @@ open class Phase7FakePort : ConversationPort {
         ConversationPort.AnswerOutcome.SUBMITTED
     override fun observeOpenInteractions() = interactionsFlow
     override suspend fun answerFromInbox(interactionId: String, optionId: String, freeText: String?) =
+        ConversationPort.AnswerOutcome.SUBMITTED
+    override suspend fun answerUserInputQuestions(interactionId: String, answers: Map<String, List<String>>) =
         ConversationPort.AnswerOutcome.SUBMITTED
 }
 

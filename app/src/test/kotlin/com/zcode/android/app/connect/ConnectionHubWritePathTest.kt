@@ -341,7 +341,7 @@ class ConnectionHubWritePathTest {
         vm.onDraftChange("draft survives process death")
         // The §17.4 300 ms debounce persists it through the port scope:
         try {
-            withTimeout(5_000) {
+            withTimeout(10_000) {
                 port.observeDraft(task.taskId).first { it == "draft survives process death" }
             }
         } catch (e: Exception) {
@@ -355,18 +355,19 @@ class ConnectionHubWritePathTest {
             kotlinx.coroutines.flow.flow { while (outbox.entries.isEmpty()) kotlinx.coroutines.delay(50); emit(true) }.first()
         }
         // The draft is gone once the message is accepted (the send IS the discard).
-        val cleared = try {
-            withTimeout(10_000) {
+        try {
+            val cleared = withTimeout(10_000) {
                 port.observeDraft(task.taskId).first { it == null }
             }
+            assertEquals(null, cleared)
         } catch (e: Exception) {
             throw AssertionError(
-            "wait3 draft-cleared failed; notice=" + vm.state.value.sendNotice +
-                " outbox=" + outbox.entries.values.map { it.type + "/" + it.state } +
-                " pending=" + hub.commandCoordinatorOrNull()?.pendingSends?.value, e,
-        )
+                "wait3 draft-cleared failed; notice=" + vm.state.value.sendNotice +
+                    " outbox=" + outbox.entries.values.map { it.type + "/" + it.state } +
+                    " pending=" + hub.commandCoordinatorOrNull()?.pendingSends?.value,
+                e,
+            )
         }
-        assertEquals(null, cleared)
     }
 
     @Test

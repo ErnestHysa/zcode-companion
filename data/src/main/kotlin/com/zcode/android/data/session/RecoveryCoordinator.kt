@@ -182,97 +182,107 @@ class RecoveryCoordinator(
         if (forwardJob?.isActive == true) {
             log.debug("recovery.forwardingAlive", "topicEvents collector already running")
         } else {
+        // FIELD (2026-10-02, vc24 device log — 2,651 projection events on MAIN):
+        // frame decode + reducer + store-op dispatch ran on the UI thread, competing
+        // with rendering under generation load (the "1-2 s streaming delay" the web
+        // remote doesn't have). The pipeline moves OFF-main on a single-thread
+        // Default slice: sequential collect preserves event order, the limited
+        // dispatcher preserves the §28.5 single-writer discipline.
+        val projectionDispatcher = kotlinx.coroutines.Dispatchers.Default.limitedParallelism(1)
         forwardJob = scope.launch {
             gateway.topicEvents.collect { event ->
-                lastFrameAtMs = clock()
-                try {
-                    managerFor(event)?.handle(event)
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    // §28.4/INV-8 parity with the transport parser: a fault in ONE event
-                    // never kills the ordered projection pipeline — surface, count, and
-                    // continue degraded (the stale label + guards keep truth honest).
-                    log.error("recovery.eventFault", "session=${event.sessionId} ${e.javaClass.simpleName}: ${e.message?.take(120)}")
-                    managerFor(event)?.setStale(true)
+                kotlinx.coroutines.withContext(projectionDispatcher) {
+                    lastFrameAtMs = clock()
+                    try {
+                        managerFor(event)?.handle(event)
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        // §28.4/INV-8 parity with the transport parser: a fault in ONE event
+                        // never kills the ordered projection pipeline — surface, count, and
+                        // continue degraded (the stale label + guards keep truth honest).
+                        log.error("recovery.eventFault", "session=${event.sessionId} ${e.javaClass.simpleName}: ${e.message?.take(120)}")
+                        managerFor(event)?.setStale(true)
+                    }
                 }
             }
         }
-        }
-        tickJob = scope.launch {
+    }
+
+    tickJob = scope.launch {
             while (isActive && !closed) {
                 delay(config.holdTickMs)
                 val all = synchronized(managers) { managers.values.toList() }
                 for (m in all) m.checkHold()
                 maybeStreamWatchdog(all)
             }
-        }
-        transport?.let { t ->
+    }
+    transport?.let { t ->
             stateJob = scope.launch {
                 t.states.collect { state -> onTransportState(state) }
             }
-        }
+    }
     }
 
     suspend fun close() {
-        closed = true
-        forwardJob?.cancel()
-        tickJob?.cancel()
-        stateJob?.cancel()
+    closed = true
+    forwardJob?.cancel()
+    tickJob?.cancel()
+    stateJob?.cancel()
     }
 
     // ---------------------------------------------------------------- triggers (S3/S4)
 
     /** §15-S3: foreground wake → immediate reconnect, skip backoff. */
     fun foregroundTrigger() {
-        transport?.reconnectNow()
+    transport?.reconnectNow()
     }
 
     /** §15-S4: network change → probe via the transport's reconnect policy. */
     fun notifyNetworkAvailable() {
-        transport?.notifyNetworkAvailable()
+    transport?.notifyNetworkAvailable()
     }
 
     // ---------------------------------------------------------------- internals
 
     private fun managerFor(event: GatewayTopicEvent): ConversationSessionManager? =
-        synchronized(managers) { managers[event.sessionId] }
+    synchronized(managers) { managers[event.sessionId] }
 
     private suspend fun recordWatermark(topic: String, sessionId: String, afterSeq: Long, logEpoch: String) {
-        // Journal record (§15.4 "persisted transactionally at each transition"): the
-        // whole-snapshot write keeps hello/caps/pending refs coherent.
-        val journal = journalRepo.load(endpointId) ?: RecoveryJournal(
+    // Journal record (§15.4 "persisted transactionally at each transition"): the
+    // whole-snapshot write keeps hello/caps/pending refs coherent.
+    val journal = journalRepo.load(endpointId) ?: RecoveryJournal(
             endpointId = endpointId.raw,
             helloServerTimeMs = config.helloServerTimeMs,
             capabilitiesSeen = config.capabilitiesJson,
             subscriptions = emptyList(),
             pendingOutbox = emptyList(),
             lastAppliedPerTopic = emptyMap(),
-        )
-        val others = journal.subscriptions.filter { it.sessionId != sessionId }
-        val updated = journal.copy(
+    )
+    val others = journal.subscriptions.filter { it.sessionId != sessionId }
+    val updated = journal.copy(
             subscriptions = others + RecoveryJournal.Subscription(topic, sessionId, afterSeq, logEpoch),
             helloServerTimeMs = journal.helloServerTimeMs ?: config.helloServerTimeMs,
             capabilitiesSeen = journal.capabilitiesSeen ?: config.capabilitiesJson,
             lastAppliedPerTopic = journal.lastAppliedPerTopic + (topic to afterSeq),
-        )
-        journalRepo.record(updated)
+    )
+    journalRepo.record(updated)
     }
 
     private suspend fun recordJournalBase(journal: RecoveryJournal?) {
-        if (journal == null) return
-        journalRepo.record(
+    if (journal == null) return
+    journalRepo.record(
             journal.copy(
                 helloServerTimeMs = journal.helloServerTimeMs ?: config.helloServerTimeMs,
                 capabilitiesSeen = journal.capabilitiesSeen ?: config.capabilitiesJson,
             )
-        )
+    )
     }
 
     /** S8/S10 escalation path — per-endpoint mutex, resume-or-snapshot resync. */
     private suspend fun escalate(sessionId: String, reason: String, baseEpoch: String?, baseSeq: Long?) {
-        if (closed) return
-        recoveryMutex.withLock {
+    if (closed) return
+    recoveryMutex.withLock {
             val m = manager(sessionId) ?: return
             val base = baseEpoch ?: m.reducerForTest().watermark?.logEpoch
             val seq = baseSeq ?: m.reducerForTest().watermark?.seq
@@ -303,13 +313,13 @@ class RecoveryCoordinator(
                 log.warn("recovery.escalateFailed", e.javaClass.simpleName)
                 m.setStale(true)
             }
-        }
+    }
     }
 
     /** §14.4.2 overlay + §15.1 recovery completion. */
     private suspend fun onTransportState(state: ConnectionStateMachine.ConnectionState) {
-        val all = synchronized(managers) { managers.values.toList() }
-        when (state) {
+    val all = synchronized(managers) { managers.values.toList() }
+    when (state) {
             ConnectionStateMachine.ConnectionState.CONNECTED -> {
                 for (m in all) m.setStale(false)
                 reconcileAfterRecovery()
@@ -322,7 +332,7 @@ class RecoveryCoordinator(
             ConnectionStateMachine.ConnectionState.FAILED,
             -> for (m in all) m.setStale(true)
             else -> Unit
-        }
+    }
     }
 
     /**
@@ -331,7 +341,7 @@ class RecoveryCoordinator(
      * retry flow — the transport recovery loop re-fires this on each recovery).
      */
     private suspend fun drainPendingAttach() {
-        while (true) {
+    while (true) {
             val sessionId = pendingAttach.poll() ?: return
             val ws = synchronized(sessionWorkspaces) { sessionWorkspaces[sessionId] }
             try {
@@ -349,7 +359,7 @@ class RecoveryCoordinator(
                 pendingAttach.add(sessionId)
                 return // still down — stop draining, the next CONNECTED re-fires
             }
-        }
+    }
     }
 
     /**
@@ -358,10 +368,10 @@ class RecoveryCoordinator(
      * snapshot; S12 collapses notifications for authoritative terminal states.
      */
     private suspend fun reconcileAfterRecovery() {
-        val all = synchronized(managers) { managers.values.toList() }
-        val consumedTasks = HashSet<String>()
-        val resolvedInteractions = HashSet<String>()
-        for (m in all) {
+    val all = synchronized(managers) { managers.values.toList() }
+    val consumedTasks = HashSet<String>()
+    val resolvedInteractions = HashSet<String>()
+    for (m in all) {
             val rows = m.lastSnapshotRows
             interactions.reconcileFromSnapshot(rows)
             for (row in rows.filterIsInstance<com.zcode.android.domain.model.ConversationRow.TurnHeader>()) {
@@ -380,14 +390,14 @@ class RecoveryCoordinator(
                     resolvedInteractions.add(row.approvalInteractionId!!)
                 }
             }
-        }
-        val port = notificationRecords ?: return
-        val dismissals = NotificationReconciler.dismissals(
+    }
+    val port = notificationRecords ?: return
+    val dismissals = NotificationReconciler.dismissals(
             records = port.visible(),
             consumedTaskIds = consumedTasks,
             resolvedInteractionIds = resolvedInteractions,
-        )
-        if (dismissals.isNotEmpty()) port.dismiss(dismissals)
+    )
+    if (dismissals.isNotEmpty()) port.dismiss(dismissals)
     }
 
     /**
@@ -397,11 +407,11 @@ class RecoveryCoordinator(
      * both passes are idempotent, §24.3).
      */
     private suspend fun onSnapshotReconcile(sessionId: String, rows: List<com.zcode.android.domain.model.ConversationRow>) {
-        synchronized(escalationCounts) { escalationCounts.remove(sessionId) } // healthy base restored
-        log.debug("recovery.snapshotReconcile", "session=$sessionId rows=${rows.size}")
-        interactions.reconcileFromSnapshot(rows)
-        val port = notificationRecords ?: return
-        val consumed = rows.filterIsInstance<com.zcode.android.domain.model.ConversationRow.TurnHeader>().mapNotNull { row ->
+    synchronized(escalationCounts) { escalationCounts.remove(sessionId) } // healthy base restored
+    log.debug("recovery.snapshotReconcile", "session=$sessionId rows=${rows.size}")
+    interactions.reconcileFromSnapshot(rows)
+    val port = notificationRecords ?: return
+    val consumed = rows.filterIsInstance<com.zcode.android.domain.model.ConversationRow.TurnHeader>().mapNotNull { row ->
             when (row.state) {
                 com.zcode.android.domain.model.ConversationRow.TurnState.COMPLETED_SUCCESS,
                 com.zcode.android.domain.model.ConversationRow.TurnState.COMPLETED_INTERRUPTED,
@@ -409,18 +419,17 @@ class RecoveryCoordinator(
                 -> sessionId
                 else -> null
             }
-        }.toSet()
-        val resolvedInteractions = rows.filterIsInstance<com.zcode.android.domain.model.ConversationRow.ToolCall>()
+    }.toSet()
+    val resolvedInteractions = rows.filterIsInstance<com.zcode.android.domain.model.ConversationRow.ToolCall>()
             .filter { it.approvalInteractionId != null && it.status != com.zcode.android.domain.model.ConversationRow.ToolCallStatus.PENDING_APPROVAL }
             .mapNotNull { it.approvalInteractionId }
             .toSet()
-        if (consumed.isEmpty() && resolvedInteractions.isEmpty()) return
-        val dismissals = NotificationReconciler.dismissals(port.visible(), consumed, resolvedInteractions)
-        if (dismissals.isNotEmpty()) port.dismiss(dismissals)
+    if (consumed.isEmpty() && resolvedInteractions.isEmpty()) return
+    val dismissals = NotificationReconciler.dismissals(port.visible(), consumed, resolvedInteractions)
+    if (dismissals.isNotEmpty()) port.dismiss(dismissals)
     }
 
     private val escalationCounts = HashMap<String, Int>()
-
     // ---------------------------------------------------------------- stream watchdog
 
     @Volatile private var lastFrameAtMs: Long = 0

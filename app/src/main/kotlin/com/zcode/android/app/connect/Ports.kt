@@ -3,6 +3,7 @@ package com.zcode.android.app.connect
 import com.zcode.android.app.pairing.wsUrlForOrigin
 import com.zcode.android.core.common.error.AppError
 import com.zcode.android.core.security.vault.CredentialVault
+import com.zcode.android.domain.ids.WorkspaceIdentityKey
 import com.zcode.android.data.session.RecoveryCoordinator
 import com.zcode.android.domain.ids.EndpointId
 import com.zcode.android.domain.model.ConversationRow
@@ -87,6 +88,16 @@ class DefaultConversationPort(
 
     override val phase: StateFlow<ConnectionPhase> get() = hub.phase
 
+    /**
+     * FIELD (2026-10-02, vc25): the workspace of every opened task, remembered at
+     * open() — draft scope resolution MUST NOT depend on the live task projection.
+     * The old path re-resolved the Task on every save/observe and silently no-oped
+     * whenever the projection was momentarily unresolvable (E8: a draft saved into
+     * the void). The workspace is known at open time and cannot change for a task
+     * (§7.11 identity dedupe).
+     */
+    private val workspaceByTask = java.util.concurrent.ConcurrentHashMap<String, WorkspaceIdentityKey>()
+
     override suspend fun task(taskId: String): Task? =
         hub.currentTasks().firstOrNull { it.taskId == taskId }
 
@@ -116,6 +127,7 @@ class DefaultConversationPort(
         hub.sessionProjectionState(taskId)
 
     override suspend fun open(task: Task): Boolean {
+        workspaceByTask[task.taskId] = task.workspace
         val coordinator = hub.openConversation(task) ?: return false
         // Wait for the first authoritative anchor so first paint is never an empty
         // lie (§19.4 tail-first: the snapshot apply is the paint source).
@@ -127,10 +139,14 @@ class DefaultConversationPort(
     /** §17.4 draft scope — (endpoint, workspace identity, task); endpoint from the vault. */
     private suspend fun draftScope(taskId: String): com.zcode.android.domain.repo.DraftRepository.DraftScope? {
         val endpointId = vault.loadMetadata()?.endpointId ?: return null
-        val task = task(taskId) ?: return null
+        // Workspace from the open()-time record FIRST — the live projection lookup is
+        // only a fallback (and can transiently fail under load: E8 silent no-op).
+        val workspace = workspaceByTask[taskId]
+            ?: task(taskId)?.workspace
+            ?: return null
         return com.zcode.android.domain.repo.DraftRepository.DraftScope(
             endpointId = EndpointId(endpointId),
-            workspace = task.workspace,
+            workspace = workspace,
             taskId = taskId,
         )
     }
@@ -146,11 +162,13 @@ class DefaultConversationPort(
         }
 
     override suspend fun saveDraft(taskId: String, text: String) {
-        draftScope(taskId)?.let { hub.draftRepository().save(it, text, System.currentTimeMillis()) }
+        val scope = draftScope(taskId)
+        scope?.let { hub.draftRepository().save(it, text, System.currentTimeMillis()) }
     }
 
     override suspend fun clearDraft(taskId: String) {
-        draftScope(taskId)?.let { hub.draftRepository().clear(it) }
+        val scope = draftScope(taskId)
+        scope?.let { hub.draftRepository().clear(it) }
     }
 
     override suspend fun sendPrompt(taskId: String, text: String, heldQueueDisposition: String?): ConversationPort.SendOutcome {
