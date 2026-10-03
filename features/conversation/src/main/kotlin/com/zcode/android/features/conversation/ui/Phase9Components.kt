@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.res.stringResource
+import com.zcode.android.features.conversation.R
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
@@ -52,13 +54,15 @@ fun SessionModeChips(
 ) {
     var modeMenu by remember { mutableStateOf(false) }
     var modelSheet by remember { mutableStateOf(false) }
+    val modeA11y = config?.let { stringResource(R.string.mode_a11y, it.mode) }
+    val modelA11y = config?.let { stringResource(R.string.model_a11y, it.model, it.thought) }
     Row(modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         if (config == null) return@Row
         // Mode chip — options are the VERIFIED switchable set (auto excluded, §10.3).
         AssistChip(
             onClick = { modeMenu = true },
             label = { Text("mode: ${config.mode}") },
-            modifier = Modifier.semantics { contentDescription = "collaboration mode ${config.mode}, tap to change" },
+            modifier = Modifier.semantics { modeA11y?.let { contentDescription = it } },
         )
         DropdownMenu(expanded = modeMenu, onDismissRequest = { modeMenu = false }) {
             for (mode in SessionConfigState.SWITCHABLE_MODES) {
@@ -75,9 +79,7 @@ fun SessionModeChips(
         AssistChip(
             onClick = { modelSheet = true },
             label = { Text("${config.provider}/${config.model} · ${config.thought}") },
-            modifier = Modifier.semantics {
-                contentDescription = "model ${config.model}, thought ${config.thought}, tap to change"
-            },
+            modifier = Modifier.semantics { modelA11y?.let { contentDescription = it } },
         )
     }
     if (modelSheet && config != null) {
@@ -106,20 +108,20 @@ private fun ModelPickerDialog(
     var thoughtMenuFor by remember { mutableStateOf<Pair<String, String>?>(null) } // provider to model
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
-        title = { Text("Switch model", style = MaterialTheme.typography.titleSmall) },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) } },
+        title = { Text(stringResource(R.string.switch_model_title), style = MaterialTheme.typography.titleSmall) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 when {
-                    providers == null -> Text("Loading options…", style = MaterialTheme.typography.bodySmall)
+                    providers == null -> Text(stringResource(R.string.switch_loading), style = MaterialTheme.typography.bodySmall)
                     providers!!.isEmpty() -> Column {
                         Text(
-                            "The model list is not available on this connection — switching between known configuration values is still possible.",
+                            stringResource(R.string.switch_unavailable),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         TextButton(onClick = { onPick(config.provider, config.model, config.thought) }) {
-                            Text("Keep current model")
+                            Text(stringResource(R.string.switch_keep_current))
                         }
                     }
                     else -> {
@@ -158,7 +160,7 @@ private fun ModelPickerDialog(
                         }
                         thoughtMenuFor?.let { (providerId, modelId) ->
                             Text(
-                                "Thought level for $modelId",
+                                stringResource(R.string.thought_level_for, modelId),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.padding(top = 10.dp),
@@ -194,13 +196,14 @@ fun TurnDiffDialog(
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
-        title = { Text("Changes · $turnLabel", style = MaterialTheme.typography.titleSmall, maxLines = 2) },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) } },
+        title = { Text(stringResource(R.string.changes_title, turnLabel), style = MaterialTheme.typography.titleSmall, maxLines = 2) },
         text = {
+            val loadError: Any? = result?.error
             when {
-                result == null -> Text("Loading changes…", style = MaterialTheme.typography.bodySmall)
-                result!!.error != null -> Text(
-                    "Could not load changes: ${result!!.error}",
+                result == null -> Text(stringResource(R.string.changes_loading), style = MaterialTheme.typography.bodySmall)
+                loadError != null -> Text(
+                    stringResource(R.string.changes_error, loadError),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
                 )

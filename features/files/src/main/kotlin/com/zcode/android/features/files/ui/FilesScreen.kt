@@ -1,5 +1,8 @@
 package com.zcode.android.features.files.ui
 
+import androidx.compose.ui.res.stringResource
+import com.zcode.android.features.files.R
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -62,14 +65,15 @@ fun FilesScreen(
         loading = false
     }
 
+    val noWorkspaceMsg = stringResource(R.string.files_no_workspace)
     androidx.compose.runtime.LaunchedEffect(Unit) {
         if (root != null) load(root)
-        else error = "No workspace connected."
+        else error = noWorkspaceMsg
     }
 
     Column(modifier = modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Files", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.files_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text("read-only", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
             if (stack.isNotEmpty()) {
@@ -80,7 +84,7 @@ fun FilesScreen(
                             load(currentPath())
                         }
                     },
-                    label = { Text("Up") },
+                    label = { Text(stringResource(R.string.files_up)) },
                 )
             }
         }
@@ -96,7 +100,7 @@ fun FilesScreen(
             Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
         }
         if (loading) {
-            Text("Loading…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.files_loading), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
         if (viewer == null) {
@@ -143,7 +147,7 @@ fun FilesScreen(
         } else {
             // Text viewer (paged, INV-13: slice-by-slice loads only).
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AssistChip(onClick = { viewer = null; downloadState = null }, label = { Text("Back") })
+                AssistChip(onClick = { viewer = null; downloadState = null }, label = { Text(stringResource(com.zcode.android.core.ui.R.string.action_back)) })
                 AssistChip(
                     onClick = {
                         scope.launch {
@@ -155,14 +159,14 @@ fun FilesScreen(
                             }
                         }
                     },
-                    label = { Text("Download") },
+                    label = { Text(stringResource(R.string.files_download)) },
                 )
             }
             if (downloadState != null) {
                 Text(downloadState!!, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (textLoading) {
-                Text("Loading…", style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.files_loading), style = MaterialTheme.typography.bodySmall)
             }
             Surface(tonalElevation = 1.dp, modifier = Modifier.fillMaxSize()) {
                 LazyColumn(Modifier.padding(6.dp)) {
@@ -182,7 +186,7 @@ fun FilesScreen(
                                     textLoading = false
                                 }
                             }) {
-                                Text("Load more (${slice.offset + slice.bytesRead}/${slice.totalBytes})")
+                                Text(stringResource(R.string.files_load_more, slice.offset + slice.bytesRead, slice.totalBytes))
                             }
                         }
                     }
@@ -195,8 +199,8 @@ fun FilesScreen(
     if (downloadState != null && viewer == null && error == null && downloadState!!.startsWith("binary")) {
         AlertDialog(
             onDismissRequest = { downloadState = null },
-            confirmButton = { TextButton(onClick = { downloadState = null }) { Text("OK") } },
-            title = { Text("File") },
+            confirmButton = { TextButton(onClick = { downloadState = null }) { Text(stringResource(R.string.files_ok)) } },
+            title = { Text(stringResource(R.string.files_dialog_title)) },
             text = { Text(downloadState!!) },
         )
     }

@@ -9,6 +9,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -16,9 +23,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zcode.android.core.ui.R
 import com.zcode.android.core.ui.theme.LocalZCodeColors
 import com.zcode.android.domain.model.TaskStatus
 import com.zcode.android.domain.state.ConnectionPhase
@@ -50,14 +59,14 @@ fun ConnectionStatusLine(
     trailing: String? = null,
 ) {
     val (label, tone, progress) = when (phase) {
-        ConnectionPhase.CONNECTED -> Triple("Connected", StatusTone.ACCENT, false)
-        ConnectionPhase.RECOVERING -> Triple("Syncing…", StatusTone.INFO, true)
-        ConnectionPhase.RECONNECTING -> Triple("Reconnecting…", StatusTone.WAITING, true)
+        ConnectionPhase.CONNECTED -> Triple(stringResource(R.string.conn_connected), StatusTone.ACCENT, false)
+        ConnectionPhase.RECOVERING -> Triple(stringResource(R.string.conn_syncing), StatusTone.INFO, true)
+        ConnectionPhase.RECONNECTING -> Triple(stringResource(R.string.conn_reconnecting), StatusTone.WAITING, true)
         ConnectionPhase.CONNECTING, ConnectionPhase.AUTHENTICATING, ConnectionPhase.PAIRING ->
-            Triple("Connecting…", StatusTone.ACCENT, true)
-        ConnectionPhase.DEGRADED -> Triple("Disconnected", StatusTone.ERROR, false)
-        ConnectionPhase.FAILED -> Triple("Connection failed", StatusTone.ERROR, false)
-        ConnectionPhase.UNPAIRED, ConnectionPhase.CLOSED -> Triple("Not connected", StatusTone.MUTED, false)
+            Triple(stringResource(R.string.conn_connecting), StatusTone.ACCENT, true)
+        ConnectionPhase.DEGRADED -> Triple(stringResource(R.string.conn_disconnected), StatusTone.ERROR, false)
+        ConnectionPhase.FAILED -> Triple(stringResource(R.string.conn_failed), StatusTone.ERROR, false)
+        ConnectionPhase.UNPAIRED, ConnectionPhase.CLOSED -> Triple(stringResource(R.string.conn_not_connected), StatusTone.MUTED, false)
     }
     val full = if (trailing.isNullOrBlank()) label else "$label · $trailing"
     Row(
@@ -89,14 +98,29 @@ fun ConnectionStatusLine(
 }
 
 /** Task status label (colored text + implicit rail contract — see TaskRow rail). */
+@Composable
 fun taskStatusLabel(status: TaskStatus): String = when (status) {
-    TaskStatus.IDLE -> "Idle"
-    TaskStatus.RUNNING -> "Running"
-    TaskStatus.WAITING -> "Needs attention"
-    TaskStatus.PAUSED -> "Paused"
-    TaskStatus.COMPLETED -> "Completed"
-    TaskStatus.ERROR -> "Failed"
-    TaskStatus.UNKNOWN -> "Unknown"
+    TaskStatus.IDLE -> stringResource(R.string.status_idle)
+    TaskStatus.RUNNING -> stringResource(R.string.status_running)
+    TaskStatus.WAITING -> stringResource(R.string.status_waiting)
+    TaskStatus.PAUSED -> stringResource(R.string.status_paused)
+    TaskStatus.COMPLETED -> stringResource(R.string.status_completed)
+    TaskStatus.ERROR -> stringResource(R.string.status_failed)
+    TaskStatus.UNKNOWN -> stringResource(R.string.status_unknown)
+}
+
+/**
+ * §30.6 color-independence: every status carries a GLYPH alongside the color —
+ * the icon is decorative (TalkBack reads the merged label, not the glyph), but
+ * sighted color-blind users always have the symbol + the textual label.
+ */
+fun taskStatusGlyph(status: TaskStatus): androidx.compose.ui.graphics.vector.ImageVector = when (status) {
+    TaskStatus.IDLE, TaskStatus.UNKNOWN -> Icons.Filled.Remove
+    TaskStatus.RUNNING -> Icons.Filled.PlayArrow
+    TaskStatus.WAITING -> Icons.Filled.Warning
+    TaskStatus.PAUSED -> Icons.Filled.Pause
+    TaskStatus.COMPLETED -> Icons.Filled.CheckCircle
+    TaskStatus.ERROR -> Icons.Filled.Error
 }
 
 fun taskStatusTone(status: TaskStatus): StatusTone = when (status) {

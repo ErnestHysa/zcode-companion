@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -40,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.platform.testTag
+import androidx.compose.material3.Icon
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -49,7 +51,12 @@ import com.zcode.android.core.ui.components.AttentionStrip
 import com.zcode.android.core.ui.components.StatusTone
 import com.zcode.android.core.ui.components.ConnectionStatusLine
 import com.zcode.android.core.ui.components.SkeletonBar
+import com.zcode.android.features.tasks.R
+import com.zcode.android.core.ui.components.errorUserMessage
+import com.zcode.android.core.ui.components.relativeTimeLabel
+import com.zcode.android.core.ui.components.taskStatusGlyph
 import com.zcode.android.core.ui.components.taskStatusLabel
+import androidx.compose.ui.res.stringResource
 import com.zcode.android.core.ui.components.taskStatusRail
 import com.zcode.android.core.ui.components.taskStatusTone
 import com.zcode.android.core.ui.components.toneColor
@@ -84,6 +91,7 @@ fun TaskListScreen(
     modifier: Modifier = Modifier,
 ) {
     var showCreate by remember { androidx.compose.runtime.mutableStateOf(false) }
+    val createdNotice = stringResource(R.string.tasks_created)
     // §18.2 workspace switcher selection (endpoint-scoped; null = all workspaces).
     var selectedWorkspaceKey by remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -98,6 +106,7 @@ fun TaskListScreen(
                 phase = state.phase,
                 modifier = Modifier
                     .padding(horizontal = 16.dp)
+                    .heightIn(min = 48.dp)
                     .testTag("tasks_connection_line")
                     .clickable(onClick = onOpenConnection),
             )
@@ -116,7 +125,7 @@ fun TaskListScreen(
                         FilterChip(
                             selected = selectedWorkspaceKey == null,
                             onClick = { selectedWorkspaceKey = null },
-                            label = { Text("All") },
+                            label = { Text(stringResource(R.string.tasks_ws_all)) },
                             modifier = Modifier.testTag("tasks_ws_all"),
                         )
                     }
@@ -160,13 +169,13 @@ fun TaskListScreen(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 ) {
-                    Text(if (creatingTask) "Creating…" else "+ New task")
+                    Text(stringResource(if (creatingTask) R.string.tasks_creating else R.string.tasks_new_task))
                 }
             }
             createNotice?.let { notice ->
                 AttentionStrip(
                     title = notice,
-                    tone = if (notice == "Task created") StatusTone.INFO else StatusTone.ERROR,
+                    tone = if (notice == createdNotice) StatusTone.INFO else StatusTone.ERROR,
                     modifier = Modifier
                         .padding(horizontal = 16.dp, vertical = 4.dp)
                         .testTag("tasks_create_notice"),
@@ -210,12 +219,12 @@ internal fun CreateTaskDialog(
     var selected by remember { androidx.compose.runtime.mutableStateOf(workspaces.firstOrNull()) }
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("New task") },
+        title = { Text(stringResource(R.string.create_task_title)) },
         text = {
             Column {
                 if (workspaces.isEmpty()) {
                     Text(
-                        "No workspaces offered by the desktop yet.",
+                        stringResource(R.string.create_no_workspaces),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -227,7 +236,7 @@ internal fun CreateTaskDialog(
                             .testTag("create_workspace_picker"),
                     ) {
                         Text(
-                            selected?.label ?: "Choose a workspace",
+                            selected?.label ?: stringResource(R.string.create_pick_workspace),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -253,7 +262,7 @@ internal fun CreateTaskDialog(
                 androidx.compose.material3.OutlinedTextField(
                     value = text,
                     onValueChange = { text = it },
-                    placeholder = { Text("Describe the task — this starts the agent") },
+                    placeholder = { Text(stringResource(R.string.create_hint)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("create_task_text"),
@@ -266,10 +275,10 @@ internal fun CreateTaskDialog(
                 onClick = { selected?.let { onCreate(it.key, text) } },
                 enabled = !creating && text.isNotBlank() && selected != null,
                 modifier = Modifier.testTag("create_task_confirm"),
-            ) { Text("Create") }
+            ) { Text(stringResource(R.string.create_confirm)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, modifier = Modifier.testTag("create_task_cancel")) { Text("Cancel") }
+            TextButton(onClick = onDismiss, modifier = Modifier.testTag("create_task_cancel")) { Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel)) }
         },
     )
 }
@@ -289,7 +298,7 @@ private fun HeaderRow(
     ) {
         Column(Modifier.weight(1f)) {
             Text(
-                text = "Tasks",
+                text = stringResource(R.string.tasks_title),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.testTag("tasks-title"),
@@ -303,11 +312,11 @@ private fun HeaderRow(
             }
         }
         // §18.3 "approval first": the inbox entry with a live "needs you" count.
-        IconButton(onClick = onOpenApprovals, modifier = Modifier.testTag("tasks_approvals")) {
+        IconButton(onClick = onOpenApprovals, modifier = Modifier.size(48.dp).testTag("tasks_approvals")) {
             Box {
                 Icon(
                     imageVector = Icons.Filled.Notifications,
-                    contentDescription = "Approvals",
+                    contentDescription = stringResource(R.string.tasks_approvals_a11y),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (openApprovals > 0) {
@@ -328,10 +337,10 @@ private fun HeaderRow(
                 }
             }
         }
-        IconButton(onClick = onOpenSettings, modifier = Modifier.testTag("tasks_settings")) {
+        IconButton(onClick = onOpenSettings, modifier = Modifier.size(48.dp).testTag("tasks_settings")) {
             Icon(
                 imageVector = Icons.Filled.Settings,
-                contentDescription = "Settings",
+                contentDescription = stringResource(R.string.tasks_settings_a11y),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -362,10 +371,10 @@ private fun EmptyBody(state: TasksUiState, onRetry: () -> Unit, onRefresh: () ->
     Column(Modifier.fillMaxSize()) {
         if (state.error != null) {
             AttentionStrip(
-                title = "Couldn't refresh tasks",
-                message = state.error.userMessage,
+                title = stringResource(R.string.tasks_error_title),
+                message = errorUserMessage(state.error),
                 tone = com.zcode.android.core.ui.components.StatusTone.ERROR,
-                actionLabel = "Retry",
+                actionLabel = stringResource(com.zcode.android.core.ui.R.string.action_retry),
                 onAction = onRetry,
                 modifier = Modifier.testTag("tasks_error_strip"),
             )
@@ -386,20 +395,23 @@ private fun ReadyBody(
         // §14.4.2 stale overlay — cached rows visible + LABELED (never silent stale).
         if (state.stale) {
             AttentionStrip(
-                title = "Connection lost — showing cached tasks",
-                message = "Reconnecting to ${state.endpointName ?: "your desktop"}…",
+                title = stringResource(R.string.tasks_stale_title),
+                message = stringResource(
+                    R.string.tasks_reconnecting_to,
+                    state.endpointName ?: stringResource(R.string.tasks_your_desktop),
+                ),
                 tone = com.zcode.android.core.ui.components.StatusTone.WAITING,
-                actionLabel = "Retry",
+                actionLabel = stringResource(com.zcode.android.core.ui.R.string.action_retry),
                 onAction = onRetry,
                 modifier = Modifier.testTag("tasks_stale_strip"),
             )
         }
         if (state.error != null) {
             AttentionStrip(
-                title = "Couldn't refresh tasks",
-                message = state.error.userMessage,
+                title = stringResource(R.string.tasks_error_title),
+                message = errorUserMessage(state.error),
                 tone = com.zcode.android.core.ui.components.StatusTone.ERROR,
-                actionLabel = "Retry",
+                actionLabel = stringResource(com.zcode.android.core.ui.R.string.action_retry),
                 onAction = onRetry,
                 modifier = Modifier.testTag("tasks_error_strip"),
             )
@@ -408,11 +420,10 @@ private fun ReadyBody(
         // with an old sealed QR. Retry is pointless; re-pairing is the remedy.
         if (state.suggestRepair) {
             AttentionStrip(
-                title = "Pairing looks stale",
-                message = "The relay no longer sees your desktop for this pairing. " +
-                    "On the Mac: open the phone icon in ZCode, press Stop, then show a fresh QR and scan it.",
+                title = stringResource(R.string.tasks_repair_title),
+                message = stringResource(R.string.tasks_repair_body),
                 tone = com.zcode.android.core.ui.components.StatusTone.WAITING,
-                actionLabel = "Re-pair",
+                actionLabel = stringResource(R.string.tasks_repair_action),
                 onAction = onRepairPairing,
                 modifier = Modifier.testTag("tasks_repair_strip"),
             )
@@ -450,7 +461,7 @@ private fun WorkspaceHeader(label: String) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = "WORKSPACE",
+            text = stringResource(R.string.tasks_workspace_kicker),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.semantics(mergeDescendants = true) {},
@@ -468,8 +479,9 @@ private fun WorkspaceHeader(label: String) {
 fun TaskRow(task: Task, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val rail = taskStatusRail(task.status)
     val label = taskStatusLabel(task.status)
+    val glyph = taskStatusGlyph(task.status)
     val tone = taskStatusTone(task.status)
-    val time = RelativeTime.label(task.updatedAtMs)
+    val time = relativeTimeLabel(task.updatedAtMs)
     val meta = listOfNotNull(task.workspaceLabel ?: task.workspace.raw.substringAfterLast('/').ifBlank { null }, time)
         .joinToString(" · ")
     Row(
@@ -495,6 +507,13 @@ fun TaskRow(task: Task, onClick: () -> Unit, modifier: Modifier = Modifier) {
             )
             Spacer(Modifier.height(3.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = glyph,
+                    contentDescription = null, // decorative; the merged row description carries the status
+                    tint = toneColor(tone),
+                    modifier = Modifier.size(14.dp),
+                )
+                Spacer(Modifier.width(4.dp))
                 Text(
                     text = label,
                     style = MaterialTheme.typography.bodySmall,
@@ -539,39 +558,20 @@ fun EmptyTasksContent(modifier: Modifier = Modifier, onRefresh: () -> Unit = {})
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
-            text = "No tasks yet",
+            text = stringResource(R.string.tasks_empty_title),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground,
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "Tasks appear here when you start work in ZCode on your desktop. " +
-                "Pull to refresh, or start a task on the desktop.",
+            text = stringResource(R.string.tasks_empty_body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(12.dp))
         TextButton(onClick = onRefresh) {
-            Text("Refresh")
+            Text(stringResource(com.zcode.android.core.ui.R.string.action_refresh))
         }
     }
 }
 
-/** Compact relative time for task rows (ui-ux mockups: "2m", "3h", "Yesterday", "2d"). */
-object RelativeTime {
-    fun label(thenMs: Long, nowMs: Long = System.currentTimeMillis()): String? {
-        if (thenMs <= 0) return null
-        val delta = nowMs - thenMs
-        val minute = 60_000L
-        val hour = 60 * minute
-        val day = 24 * hour
-        return when {
-            delta < minute -> "now"
-            delta < hour -> "${delta / minute}m"
-            delta < day -> "${delta / hour}h"
-            delta < 2 * day -> "Yesterday"
-            delta < 7 * day -> "${delta / day}d"
-            else -> null
-        }
-    }
-}

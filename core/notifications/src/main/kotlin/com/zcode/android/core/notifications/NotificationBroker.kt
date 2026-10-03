@@ -54,9 +54,26 @@ class NotificationBroker(
         val deepLinkInteractionId: String?,
     )
 
+    /** §31: user-visible copy (default English; the wiring binds resources). */
+    @Volatile
+    var copy: NotificationPlan.NotificationCopy = NotificationPlan.DefaultNotificationCopy
+
     private val visibleRecords = LinkedHashMap<String, NotificationRecord>()
     private var foreground = true
     private var loaded = false
+
+    /**
+     * §43.2-11.4 (Glance widget): an observable mirror of the broker's record set.
+     * The widget reads THIS — never the interaction store, never the transport
+     * (the widget's entire data source is broker state, §24.1's broker-as-decision-
+     * point made literal). Emissions coalesce per mutation burst via StateFlow.
+     */
+    private val _recordsFlow = kotlinx.coroutines.flow.MutableStateFlow<List<NotificationRecord>>(emptyList())
+    val recordsFlow: kotlinx.coroutines.flow.StateFlow<List<NotificationRecord>> = _recordsFlow
+
+    private fun publishRecords() {
+        _recordsFlow.value = synchronized(this) { visibleRecords.values.toList() }
+    }
 
     /** Load persisted records (call once at wiring start; idempotent). */
     suspend fun load() {
@@ -67,6 +84,7 @@ class NotificationBroker(
             for (r in stored) visibleRecords[r.notificationKey] = r
             loaded = true
         }
+        publishRecords()
         log.info("notify.brokerLoad", "records=${stored.size}")
     }
 
@@ -82,6 +100,7 @@ class NotificationBroker(
         val decision = NotificationPlan.decide(
             NotificationPlan.Event(kind, taskTitle),
             NotificationPlan.Policy(appForeground = foreground, contentLevel = contentLevel()),
+            copy,
         )
         // §16 seen semantics: "seen" = the user has plausibly consumed it in-app.
         // ATTENTION records stay unseen on arrival (a foreground-suppressed approval
@@ -89,6 +108,7 @@ class NotificationBroker(
         // are seen on delivery (no in-app counterpart is required).
         val attention = kind == NotificationRecord.Kind.APPROVAL_NEEDED || kind == NotificationRecord.Kind.USER_INPUT_NEEDED
         upsertRecord(key, kind, taskId, interactionId, seen = !attention)
+        publishRecords()
         if (!decision.show) {
             log.debug("notify.suppressed", "key=${key.take(24)} foreground=$foreground")
             return
@@ -172,7 +192,10 @@ class NotificationBroker(
             sink.cancel(key)
             synchronized(this) { visibleRecords.remove(key) }
         }
-        if (dismissed.isNotEmpty()) persist()
+        if (dismissed.isNotEmpty()) {
+            persist()
+            publishRecords()
+        }
         return dismissed
     }
 
@@ -186,6 +209,7 @@ class NotificationBroker(
             synchronized(this) { visibleRecords.remove(key) }
         }
         persist()
+        publishRecords()
     }
 
     /** §16 7-day retention sweep (call at wiring start / app start). */
@@ -238,6 +262,7 @@ class NotificationBroker(
             }
         }
         persist()
+        publishRecords()
     }
 
     /** INV-5: the record set is bounded; oldest records drop first. */

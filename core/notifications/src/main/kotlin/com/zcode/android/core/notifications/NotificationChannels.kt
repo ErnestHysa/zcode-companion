@@ -1,5 +1,7 @@
 package com.zcode.android.core.notifications
 
+import com.zcode.android.core.notifications.R
+
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
@@ -23,31 +25,31 @@ object NotificationChannels {
         manager.createNotificationChannel(
             NotificationChannel(
                 PERMISSIONS,
-                "Approvals & questions",
+                context.getString(R.string.channel_permissions_name),
                 NotificationManagerCompat.IMPORTANCE_HIGH,
-            ).apply { description = "ZCode needs your approval or an answer to continue" },
+            ).apply { description = context.getString(R.string.channel_permissions_desc) },
         )
         manager.createNotificationChannel(
             NotificationChannel(
                 TASK_STATUS,
-                "Task status",
+                context.getString(R.string.channel_task_status_name),
                 NotificationManagerCompat.IMPORTANCE_DEFAULT,
-            ).apply { description = "Task finished, failed, or the connection was lost" },
+            ).apply { description = context.getString(R.string.channel_task_status_desc) },
         )
         manager.createNotificationChannel(
             NotificationChannel(
                 PROGRESS,
-                "Progress (silent)",
+                context.getString(R.string.channel_progress_name),
                 NotificationManagerCompat.IMPORTANCE_MIN,
-            ).apply { description = "Silent background progress updates" },
+            ).apply { description = context.getString(R.string.channel_progress_desc) },
         )
         manager.createNotificationChannel(
             NotificationChannel(
                 LIVE_CONNECTION,
-                "Live connection",
+                context.getString(R.string.channel_live_connection_name),
                 NotificationManagerCompat.IMPORTANCE_LOW,
             ).apply {
-                description = "Persistent indicator shown while the live connection service is enabled"
+                description = context.getString(R.string.channel_live_connection_desc)
                 setShowBadge(false)
             },
         )

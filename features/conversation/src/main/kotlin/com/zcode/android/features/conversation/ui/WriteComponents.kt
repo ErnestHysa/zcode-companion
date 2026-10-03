@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,6 +24,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -39,6 +42,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import com.zcode.android.features.conversation.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
@@ -89,7 +94,7 @@ fun ApprovalCard(
         Column(Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "Approval needed",
+                    text = stringResource(R.string.approval_needed),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.weight(1f),
@@ -133,6 +138,8 @@ fun ApprovalCard(
                             enabled = !busy,
                             modifier = Modifier
                                 .fillMaxWidth()
+                                // §30: approval actions ≥ 56 dp.
+                                .heightIn(min = 56.dp)
                                 .testTag("approval_${option.optionId}")
                                 .semantics { contentDescription = label },
                         ) { Text(label) }
@@ -149,6 +156,8 @@ fun ApprovalCard(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
+                                // §30: approval actions ≥ 56 dp.
+                                .heightIn(min = 56.dp)
                                 .testTag("approval_${option.optionId}")
                                 .semantics { contentDescription = label },
                         ) { Text(label) }
@@ -157,7 +166,7 @@ fun ApprovalCard(
                         OutlinedTextField(
                             value = refineText,
                             onValueChange = { refineText = it },
-                            placeholder = { Text("Refinement (required)") },
+                            placeholder = { Text(stringResource(R.string.approval_refine_hint)) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("approval_refine_text"),
@@ -168,7 +177,7 @@ fun ApprovalCard(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("approval_refine_send"),
-                        ) { Text("Send refinement") }
+                        ) { Text(stringResource(R.string.approval_refine_send)) }
                     }
                     // §20.4 row 2: unknown/custom ids render inert — NEVER sent.
                     PermissionOption.Semantics.OTHER -> {
@@ -178,7 +187,7 @@ fun ApprovalCard(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("approval_unsupported_${option.optionId}"),
-                        ) { Text("Unsupported option — answer on the desktop") }
+                        ) { Text(stringResource(R.string.approval_unsupported)) }
                     }
                 }
                 Spacer(Modifier.height(6.dp))
@@ -189,13 +198,13 @@ fun ApprovalCard(
     confirmOption?.let { option ->
         AlertDialog(
             onDismissRequest = { confirmOption = null },
-            title = { Text(if (option.semantics == PermissionOption.Semantics.DENY) "Deny this request?" else "Allow always?") },
+            title = { Text(stringResource(if (option.semantics == PermissionOption.Semantics.DENY) R.string.approval_deny_confirm_title else R.string.approval_allow_confirm_title)) },
             text = {
                 Text(
                     if (option.semantics == PermissionOption.Semantics.DENY) {
-                        "The agent is told no for this request."
+                        stringResource(R.string.approval_deny_confirm_body)
                     } else {
-                        "Future identical requests will run WITHOUT asking again."
+                        stringResource(R.string.approval_allow_confirm_body)
                     }
                 )
             },
@@ -206,11 +215,11 @@ fun ApprovalCard(
                         onAnswer(option.optionId, null)
                     },
                     modifier = Modifier.testTag("approval_confirm_yes"),
-                ) { Text("Confirm") }
+                ) { Text(stringResource(R.string.action_confirm)) }
             },
             dismissButton = {
                 TextButton(onClick = { confirmOption = null }, modifier = Modifier.testTag("approval_confirm_no")) {
-                    Text("Cancel")
+                    Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
                 }
             },
         )
@@ -218,14 +227,15 @@ fun ApprovalCard(
 }
 
 /** §20.2: every option renders its consequence, not just its protocol label. */
+@Composable
 private fun consequenceLabel(option: PermissionOption, payload: PendingInteraction.PermissionPayload): String =
     when (option.semantics) {
-        PermissionOption.Semantics.ALLOW_ONCE -> "Allow once — this request only"
-        PermissionOption.Semantics.ALLOW_ALWAYS -> "Allow always — identical requests stop asking"
-        PermissionOption.Semantics.ALLOW_PROJECT -> "Allow for this project"
-        PermissionOption.Semantics.DENY -> "Deny — the agent is told no"
-        PermissionOption.Semantics.REFINE -> "Refine instead"
-        PermissionOption.Semantics.OTHER -> "Unsupported option"
+        PermissionOption.Semantics.ALLOW_ONCE -> stringResource(R.string.consequence_allow_once)
+        PermissionOption.Semantics.ALLOW_ALWAYS -> stringResource(R.string.consequence_allow_always)
+        PermissionOption.Semantics.ALLOW_PROJECT -> stringResource(R.string.consequence_allow_project)
+        PermissionOption.Semantics.DENY -> stringResource(R.string.consequence_deny)
+        PermissionOption.Semantics.REFINE -> stringResource(R.string.consequence_refine)
+        PermissionOption.Semantics.OTHER -> stringResource(R.string.consequence_other)
     }
 
 // ------------------------------------------------------------------ user-input card
@@ -260,7 +270,7 @@ fun UserInputCard(
     ) {
         Column(Modifier.padding(14.dp)) {
             Text(
-                text = "Agent needs your input",
+                text = stringResource(R.string.userinput_title),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onTertiaryContainer,
             )
@@ -324,7 +334,7 @@ fun UserInputCard(
                     OutlinedTextField(
                         value = qCustom[q.question] ?: "",
                         onValueChange = { qCustom[q.question] = it },
-                        placeholder = { Text("Or type your own answer") },
+                        placeholder = { Text(stringResource(R.string.userinput_own_answer)) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("userinput_q${qIndex}_custom"),
@@ -350,7 +360,7 @@ fun UserInputCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("userinput_questions_submit"),
-                ) { Text("Send answers") }
+                ) { Text(stringResource(R.string.userinput_send_answers)) }
             } else if (payload.options.isNotEmpty()) {
                 for (option in payload.options) {
                     Row(
@@ -378,12 +388,12 @@ fun UserInputCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("userinput_submit"),
-                ) { Text("Send answer") }
+                ) { Text(stringResource(R.string.userinput_send_answer)) }
             } else if (payload.freeText == true) {
                 OutlinedTextField(
                     value = freeText,
                     onValueChange = { freeText = it },
-                    placeholder = { Text(if (payload.sensitive == true) "Answer (sensitive — not saved to drafts)" else "Your answer") },
+                    placeholder = { Text(stringResource(if (payload.sensitive == true) R.string.userinput_sensitive_placeholder else R.string.userinput_own_placeholder)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("userinput_free_text"),
@@ -395,10 +405,10 @@ fun UserInputCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("userinput_submit"),
-                ) { Text("Send answer") }
+                ) { Text(stringResource(R.string.userinput_send_answer)) }
             } else {
                 Text(
-                    text = "Answer this prompt on the desktop.",
+                    text = stringResource(R.string.userinput_desktop_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onTertiaryContainer,
                 )
@@ -430,7 +440,7 @@ fun QueueStrip(
         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
             Text(
                 text = buildString {
-                    append("Queued (${queue.items.size})")
+                    append(stringResource(R.string.queue_label, queue.items.size))
                     if (queue.autoDrain == false) append(" · paused")
                     queue.pauseReason?.let { append(" · $it") }
                 },
@@ -453,12 +463,12 @@ fun QueueStrip(
                         onClick = { onSendNow(item.queueItemId) },
                         enabled = !busy,
                         modifier = Modifier.testTag("queue_send_now_${item.queueItemId}"),
-                    ) { Text("Send now") }
+                    ) { Text(stringResource(R.string.queue_send_now)) }
                     TextButton(
                         onClick = { editing = item.queueItemId to item.text },
                         enabled = !busy,
                         modifier = Modifier.testTag("queue_edit_${item.queueItemId}"),
-                    ) { Text("Edit") }
+                    ) { Text(stringResource(R.string.queue_edit)) }
                 }
             }
         }
@@ -467,7 +477,7 @@ fun QueueStrip(
         var newText by remember(id) { mutableStateOf(text) }
         AlertDialog(
             onDismissRequest = { editing = null },
-            title = { Text("Edit queued message") },
+            title = { Text(stringResource(R.string.queue_edit_title)) },
             text = {
                 OutlinedTextField(
                     value = newText,
@@ -484,9 +494,9 @@ fun QueueStrip(
                         editing = null
                     },
                     modifier = Modifier.testTag("queue_edit_save"),
-                ) { Text("Save") }
+                ) { Text(stringResource(R.string.action_save)) }
             },
-            dismissButton = { TextButton(onClick = { editing = null }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { editing = null }) { Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel)) } },
         )
     }
 }
@@ -510,6 +520,8 @@ fun ComposerBar(
     onUploadAttachment: suspend (fileName: String, mime: String, bytes: ByteArray) -> ConversationPort.UploadResult =
         { _, _, _ -> ConversationPort.UploadResult.Failed("attachments unavailable") },
     onRemoveAttachment: (uploadId: String) -> Unit = {},
+    /** §43.2-11.5 voice experiment; tests inject a fake (null = platform, availability-gated). */
+    voiceInputOverride: com.zcode.android.features.conversation.voice.VoiceInputPort? = null,
 ) {
     val control = state.sessionState?.control
     val routing = state.sessionState?.inputRouting
@@ -561,17 +573,62 @@ fun ComposerBar(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
+            // §43.2-11.5 voice input EXPERIMENT (#305): platform recognizer, availability-
+            // gated, dictates into the draft (final results only — never partial noise).
+            val voice = remember(voiceInputOverride) {
+                (
+                    voiceInputOverride
+                        ?: com.zcode.android.features.conversation.voice.PlatformVoiceInput(context)
+                    )
+                    .takeIf { it.available }
+            }
+            var voiceError by remember { mutableStateOf(false) }
+            val conductor = stringResource(R.string.composer_attach_image)
+            val attachFileDesc = stringResource(R.string.composer_attach_file)
+            val stopDesc = stringResource(R.string.composer_stop)
+            val sendDesc = stringResource(R.string.composer_send)
             Row(verticalAlignment = Alignment.Bottom) {
                 OutlinedTextField(
                     value = state.draft,
                     onValueChange = onDraftChange,
-                    placeholder = { Text("Message the agent…") },
+                    placeholder = { Text(stringResource(R.string.composer_placeholder)) },
                     modifier = Modifier
                         .weight(1f)
                         .testTag("composer_field"),
                     maxLines = 5,
                 )
                 Spacer(Modifier.width(8.dp))
+                if (voice != null) {
+                    val voiceDesc = stringResource(R.string.composer_voice)
+                    IconButton(
+                        onClick = {
+                            voiceError = false
+                            if (voice.listening) {
+                                voice.stop()
+                            } else {
+                                voice.start(
+                                    onPartial = {},
+                                    onFinal = { spoken ->
+                                        if (spoken.isNotBlank()) {
+                                            onDraftChange(state.draft + (if (state.draft.isBlank()) "" else " ") + spoken)
+                                        }
+                                    },
+                                    onError = { voiceError = true },
+                                )
+                            }
+                        },
+                        modifier = Modifier
+                            .size(48.dp)
+                            .testTag("composer_voice")
+                            .semantics { contentDescription = voiceDesc },
+                    ) {
+                        Icon(
+                            Icons.Filled.Mic,
+                            contentDescription = null,
+                            tint = if (voice.listening) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
                 // §23.2 attach affordance (Phase 9): image first, then any document.
                 IconButton(
                     onClick = {
@@ -583,8 +640,9 @@ fun ComposerBar(
                     },
                     enabled = state.connected,
                     modifier = Modifier
+                        .size(48.dp)
                         .testTag("composer_attach")
-                        .semantics { contentDescription = "Attach an image" },
+                        .semantics { contentDescription = conductor },
                 ) {
                     Icon(Icons.Filled.Add, contentDescription = null)
                 }
@@ -592,8 +650,9 @@ fun ComposerBar(
                     onClick = { docPicker.launch(arrayOf("*/*")) },
                     enabled = state.connected,
                     modifier = Modifier
+                        .size(48.dp)
                         .testTag("composer_attach_doc")
-                        .semantics { contentDescription = "Attach a file" },
+                        .semantics { contentDescription = attachFileDesc },
                 ) {
                     Icon(Icons.Filled.AttachFile, contentDescription = null)
                 }
@@ -602,8 +661,9 @@ fun ComposerBar(
                     IconButton(
                         onClick = onStop,
                         modifier = Modifier
+                            .size(48.dp)
                             .testTag("composer_stop")
-                            .semantics { contentDescription = "Stop the agent" },
+                            .semantics { contentDescription = stopDesc },
                     ) {
                         Icon(Icons.Filled.Stop, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                     }
@@ -618,11 +678,28 @@ fun ComposerBar(
                     },
                     enabled = state.draft.isNotBlank(),
                     modifier = Modifier
+                        .size(48.dp)
                         .testTag("composer_send")
-                        .semantics { contentDescription = "Send message" },
+                        .semantics { contentDescription = sendDesc },
                 ) {
                     Icon(Icons.Filled.Send, contentDescription = null)
                 }
+            }
+            if (voice?.listening == true) {
+                Text(
+                    text = stringResource(R.string.composer_voice_listening),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.testTag("composer_voice_listening"),
+                )
+            }
+            if (voiceError) {
+                Text(
+                    text = stringResource(R.string.composer_voice_unavailable),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.testTag("composer_voice_error"),
+                )
             }
             state.sendNotice?.let { SendNoticeBar(it, onDismiss = onDismissNotice, modifier = Modifier.fillMaxWidth()) }
         }
@@ -633,8 +710,8 @@ fun ComposerBar(
         // disposition the queue — clear it or keep it (sendText.heldQueueDisposition).
         AlertDialog(
             onDismissRequest = { dispositionDialog = false },
-            title = { Text("Queue is held") },
-            text = { Text("Send now and clear the queue, or keep the queued messages?") },
+            title = { Text(stringResource(R.string.queue_held_title)) },
+            text = { Text(stringResource(R.string.queue_held_body)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -642,7 +719,7 @@ fun ComposerBar(
                         onSend("clearQueueAndSend")
                     },
                     modifier = Modifier.testTag("composer_disposition_clear"),
-                ) { Text("Clear queue & send") }
+                ) { Text(stringResource(R.string.queue_clear_send)) }
             },
             dismissButton = {
                 OutlinedButton(
@@ -651,7 +728,7 @@ fun ComposerBar(
                         onSend("keepQueueAndSend")
                     },
                     modifier = Modifier.testTag("composer_disposition_keep"),
-                ) { Text("Keep queue & send") }
+                ) { Text(stringResource(R.string.queue_keep_send)) }
             },
         )
     }
@@ -681,7 +758,7 @@ fun PendingSendsStrip(
                 )
                 if (send.state != "SENDING") {
                     TextButton(onClick = { onRetry(send.commandId) }, modifier = Modifier.testTag("pending_send_retry")) {
-                        Text("Retry")
+                        Text(stringResource(com.zcode.android.core.ui.R.string.action_retry))
                     }
                 }
             }
@@ -709,7 +786,7 @@ fun SendNoticeBar(notice: SendNotice, onDismiss: () -> Unit, modifier: Modifier 
                 modifier = Modifier.weight(1f),
             )
             IconButton(onClick = onDismiss, modifier = Modifier.testTag("send_notice_dismiss")) {
-                Icon(Icons.Filled.Close, contentDescription = "Dismiss", tint = MaterialTheme.colorScheme.onErrorContainer)
+                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.action_dismiss), tint = MaterialTheme.colorScheme.onErrorContainer)
             }
         }
     }

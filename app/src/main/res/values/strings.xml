@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ZCode Companion</string>
+
+    <!-- Connection center -->
+    <string name="connection_title">Connection</string>
+    <string name="conn_center_connected">Connected</string>
+    <string name="conn_center_syncing">Synchronizing</string>
+    <string name="conn_center_reconnecting">Reconnecting</string>
+    <string name="conn_center_connecting">Connecting</string>
+    <string name="conn_center_disconnected">Disconnected</string>
+    <string name="conn_center_failed">Connection failed</string>
+    <string name="conn_center_not_paired">Not paired</string>
+    <string name="conn_center_closed">Closed</string>
+    <string name="conn_desktop_version"> · desktop %1$s</string>
+    <string name="conn_compat_warning">Desktop %1$s is newer than the version this app was tested against (%2$s) — if connections keep failing, this may be why.</string>
+    <string name="conn_last_refreshed">Last refreshed %1$s ago</string>
+    <string name="conn_takeover_title">Another ZCode Remote page took over this connection</string>
+    <string name="conn_takeover_body">Only one phone can be connected at a time. Reconnect to take over.</string>
+    <string name="conn_takeover_reconnect">Reconnect</string>
+    <string name="conn_takeover_dismiss">Dismiss</string>
+    <string name="conn_states_title">Connection states</string>
+    <string name="conn_retry_action">Retry connection</string>
+    <string name="conn_state_unpaired">No paired desktop. Scan the QR to pair.</string>
+    <string name="conn_state_pairing">Validating a pairing link.</string>
+    <string name="conn_state_authenticating">Proving identity to the relay.</string>
+    <string name="conn_state_connecting">Opening the workspace bridge.</string>
+    <string name="conn_state_connected">Live. Tasks and conversations stream.</string>
+    <string name="conn_state_reconnecting">Connection lost — retrying with backoff. Cached data is labeled.</string>
+    <string name="conn_state_recovering">Re-syncing after reconnect (snapshot or delta replay).</string>
+    <string name="conn_state_degraded">Could not reconnect. Check network; wake the desktop; retry.</string>
+    <string name="conn_state_failed">Pairing expired or invalid. Re-scan the QR on the desktop.</string>
+    <string name="conn_state_closed">Pairing removed from this device.</string>
+
+    <!-- Nav / secondary route titles (§18.2). -->
+    <string name="nav_files_title">Workspace files</string>
+    <string name="nav_git_title">Git</string>
+    <string name="nav_terminal_title">Terminal</string>
+
+    <!-- Deep-link toasts (§24.7 stale-safe legs). -->
+    <string name="deeplink_task_gone">That task is no longer available on the desktop</string>
+    <string name="deeplink_wrong_endpoint">That task belongs to a different paired desktop</string>
+
+    <!-- Pending-approvals Glance widget (§43.2-11.4; reads broker state only). -->
+    <string name="widget_approvals_title">Pending approvals</string>
+    <string name="widget_none">Nothing needs you</string>
+    <plurals name="widget_approvals_count">
+        <item quantity="one">%1$d request needs you</item>
+        <item quantity="other">%1$d requests need you</item>
+    </plurals>
+    <string name="widget_open_a11y">Open ZCode Companion</string>
+    <string name="widget_description">See pending ZCode approvals at a glance</string>
+<string name="settings_your_desktop_fallback">this desktop</string>
+
+<!-- Settings (§18.3). Diagnostics REPORT bodies stay English (developer-facing
+     exported artifacts, INV-3 scrubbed); every rendered UI string is here. -->
+<string name="settings_title">Settings</string>
+<string name="settings_section_endpoints">Endpoints</string>
+<string name="settings_section_diagnostics">Diagnostics</string>
+<string name="settings_section_notifications">Notifications</string>
+<string name="settings_section_privacy">Privacy</string>
+<string name="settings_section_about">About</string>
+<string name="settings_diag_export">Export diagnostics</string>
+<string name="settings_diag_export_busy">Preparing report…</string>
+<string name="settings_diag_export_sub">Connection report + full redacted event log. No conversation content.</string>
+<string name="settings_diag_export_busy_sub">Building the report — this can take a few seconds.</string>
+<string name="settings_diag_copy">Copy diagnostics to clipboard</string>
+<string name="settings_diag_copy_sub">Same report, copied for pasting into a chat or issue.</string>
+<string name="settings_diag_marker">Add a marker</string>
+<string name="settings_diag_marker_sub">Writes a timestamped marker into the log — tap this right before reproducing a problem.</string>
+<string name="settings_marker_toast">Marker added to diagnostics</string>
+<string name="settings_privacy_row">No analytics. No tracking.</string>
+<string name="settings_privacy_sub">Data leaves this device only through your paired ZCode connection.</string>
+<string name="settings_about_row">ZCode Companion</string>
+<string name="settings_about_sub">Unofficial native client for ZCode. Apache-2.0 components — see licenses.</string>
+<string name="settings_licenses_row">Licenses</string>
+<string name="settings_licenses_sub">Open-source libraries used in this app</string>
+<string name="settings_unpair">Unpair this device</string>
+<string name="settings_unpair_note">After unpairing, also press Stop in the desktop\'s Mobile Remote Control dialog — closing the dialog does not stop remote control.</string>
+<string name="settings_unpair_title">Unpair from %1$s?</string>
+<string name="settings_unpair_body">The pairing credential and cached data will be removed from this phone. You will need to scan the QR again to reconnect.</string>
+<string name="settings_unpair_action">Unpair</string>
+<string name="settings_not_paired_row">Not paired</string>
+<string name="settings_kind_direct">Direct server</string>
+<string name="settings_kind_relay">Relay (QR pairing)</string>
+<string name="settings_connected_suffix"> · connected: %1$s</string>
+<string name="settings_version_suffix"> · v%1$s</string>
+<string name="settings_switched">Switched</string>
+<string name="settings_switch_failed">Switch failed</string>
+<string name="settings_added_connecting">Added — connecting…</string>
+<string name="settings_remove">Remove</string>
+<string name="settings_add_direct">Add direct endpoint</string>
+<string name="settings_add_direct_sub">Connect to a self-hosted ZCode server (zcode --web) by URL + token</string>
+<string name="settings_remove_endpoint_title">Remove this endpoint?</string>
+<string name="settings_remove_endpoint_body">The saved token and endpoint entry are deleted from this phone. The server itself is not stopped.</string>
+<string name="settings_add_direct_title">Add direct endpoint</string>
+<string name="settings_add_name_label">Name (optional)</string>
+<string name="settings_add_url_label">Server URL (ws://host:3030/ws)</string>
+<string name="settings_add_token_label">Token (zcode --web --token …)</string>
+<string name="settings_add_candidates_label">Fallback URLs (comma-separated, optional)</string>
+<string name="settings_add_note">Validated before saving. The token is sealed on-device and never leaves except to this server.</string>
+<string name="settings_add_action">Add</string>
+<string name="settings_clip_copied">Diagnostics copied</string>
+<string name="settings_clip_copied_truncated">Diagnostics copied (truncated — use Export for the full report)</string>
+<string name="settings_clip_truncated_suffix">\n\n…(truncated at %1$d chars — use Export diagnostics for the full report)</string>
+<string name="settings_clip_failed">Diagnostics failed: %1$s</string>
+<string name="settings_export_failed">Export failed: %1$s</string>
+<string name="settings_export_chooser">Export diagnostics</string>
+<string name="settings_licenses_chooser">Licenses</string>
+<string name="settings_notif_detail">Notification detail: %1$s</string>
+<string name="settings_notif_detail_rich">Task titles</string>
+<string name="settings_notif_detail_min">Minimal</string>
+<string name="settings_notif_detail_sub">Minimal keeps the lock screen to “ZCode needs your approval” — never tools, paths, or titles.</string>
+<string name="settings_live_connection">Live connection</string>
+<string name="settings_live_connection_sub">Keep the connection alive with the screen off (30-minute window). Uses more battery; the system may still pause it. Turn off when done.</string>
+<string name="settings_auto_reconnect">Auto-reconnect checks</string>
+<string name="settings_auto_reconnect_sub">While the app is backgrounded, check about every 15 minutes and reconnect if the network is back.</string>
+<string name="settings_terminal_opt_in">Terminal (view-only)</string>
+<string name="settings_terminal_opt_in_sub">Show a read-only stream of a desktop terminal (the "Terminal" entry in a conversation). Nothing can be typed into it. This is a sensitive surface — keep it off unless you need it.</string>
+<string name="settings_honest_push">Notifications are delivered while the app is in use or when the Live connection is enabled. ZCode\'s relay offers no push service, so with both off you\'ll see updates the next time you open the app.</string>
+</resources>

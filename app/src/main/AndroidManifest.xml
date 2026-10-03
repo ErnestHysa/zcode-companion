@@ -51,6 +51,19 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Keeps the user-opted live ZCode agent connection usable while the screen is off; bounded 30-minute window, started from the foreground only." />
         </service>
+        <!-- §43.2-11.4: the pending-approvals widget. Its ONLY data source is the
+             §24.1 broker's record flow (INV-2/6: no transport access from widgets). -->
+        <receiver
+            android:name=".widget.PendingApprovalsWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_approvals_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/pending_approvals_widget_info" />
+        </receiver>
         <!-- §25.3: WorkManager runs the default initializer (periodic auto-reconnect
              probe, ≥15 min, network-constrained; §29 no-polling rule respected). -->
         <provider

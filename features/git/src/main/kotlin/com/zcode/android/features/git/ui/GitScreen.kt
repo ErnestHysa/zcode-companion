@@ -1,5 +1,8 @@
 package com.zcode.android.features.git.ui
 
+import androidx.compose.ui.res.stringResource
+import com.zcode.android.features.git.R
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -70,14 +73,14 @@ fun GitScreen(
 
     Column(modifier = modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Git", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.git_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text("read-only", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
         if (ui.unavailable) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "Git is not available for this workspace (not a repository, or this connection does not expose the git channel).",
+                    stringResource(R.string.git_unavailable),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

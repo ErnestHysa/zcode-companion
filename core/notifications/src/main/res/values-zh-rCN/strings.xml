@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notif_approval_public">ZCode 需要您的批准</string>
+    <string name="notif_question_public">ZCode 有问题想问您</string>
+    <string name="notif_task_finished">任务已完成</string>
+    <string name="notif_task_finished_detail">任务已完成：%1$s</string>
+    <string name="notif_task_failed">任务失败</string>
+    <string name="notif_task_failed_detail">任务失败：%1$s</string>
+    <string name="notif_connection_lost">连接已断开</string>
+
+    <string name="channel_permissions_name">批准与提问</string>
+    <string name="channel_permissions_desc">ZCode 需要您的批准或回答才能继续</string>
+    <string name="channel_task_status_name">任务状态</string>
+    <string name="channel_task_status_desc">任务完成、失败，或连接已断开</string>
+    <string name="channel_progress_name">进度（静默）</string>
+    <string name="channel_progress_desc">后台进度更新（静默）</string>
+    <string name="channel_live_connection_name">实时连接</string>
+    <string name="channel_live_connection_desc">实时连接服务启用时显示的常驻指示器</string>
+
+    <string name="fgs_connected_title">已连接到 %1$s</string>
+    <string name="fgs_connected_text">实时连接已启用 — 点按可断开</string>
+    <string name="fgs_default_desktop">ZCode 桌面端</string>
+    <string name="notif_group_summary_title">ZCode</string>
+    <plurals name="notif_group_summary_text">
+        <item quantity="other">%1$d 条活动通知</item>
+    </plurals>
+</resources>

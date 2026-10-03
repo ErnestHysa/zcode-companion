@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="conv_stale_title">显示缓存投影 · 正在恢复</string>
+    <string name="conv_attention_title">需要处理</string>
+    <string name="conv_attention_body">智能体正在等待 — 请在上方回答。</string>
+    <string name="conv_load_earlier">加载更早的消息</string>
+    <string name="conv_showing_latest_of">  ·  显示最新的 %1$d 条（共 %2$d 条）</string>
+    <string name="conv_history_changed">桌面端历史已变更 — 已跳到最新</string>
+    <string name="action_dismiss">忽略</string>
+    <string name="conv_default_title">对话</string>
+    <string name="conv_empty_title">暂无消息</string>
+    <string name="conv_empty_body">对话开始后，智能体的动态将在这里实时显示。</string>
+    <string name="conv_loading_older">正在加载更早的消息…</string>
+    <string name="conv_load_older_error">无法加载更早的消息</string>
+    <string name="conv_jump_latest">跳到最新</string>
+    <string name="conv_turn_label">第 %1$s 轮</string>
+
+    <string name="approvals_title">审批</string>
+    <string name="approvals_subtitle">跨任务等待处理的请求</string>
+    <string name="approvals_offline_note">离线 — 连接恢复前无法回答。不会排队。</string>
+    <string name="approvals_empty_title">没有需要您处理的内容</string>
+    <string name="approvals_empty_body">任务的权限请求和提问会显示在这里。</string>
+    <string name="approvals_permission">权限 — %1$s</string>
+    <string name="approvals_question">提问</string>
+    <string name="approvals_task_ref">任务 %1$s · %2$s</string>
+    <string name="approvals_open_task">打开任务回答</string>
+    <string name="approvals_deny_title">拒绝此请求？</string>
+    <string name="approvals_deny_body">智能体会被告知此请求被拒绝（%1$s）。</string>
+
+    <string name="approval_needed">需要批准</string>
+    <string name="approval_refine_hint">改进说明（必填）</string>
+    <string name="approval_refine_send">发送改进说明</string>
+    <string name="approval_unsupported">不支持的选项 — 请在桌面端回答</string>
+    <string name="approval_deny_confirm_title">拒绝此请求？</string>
+    <string name="approval_allow_confirm_title">始终允许？</string>
+    <string name="approval_deny_confirm_body">智能体会被告知此请求被拒绝。</string>
+    <string name="approval_allow_confirm_body">以后相同的请求将不再询问，直接运行。</string>
+    <string name="action_confirm">确认</string>
+    <string name="action_save">保存</string>
+    <string name="action_close">关闭</string>
+    <string name="action_ok">确定</string>
+    <string name="consequence_allow_once">仅允许一次 — 只针对此请求</string>
+    <string name="consequence_allow_always">始终允许 — 相同请求不再询问</string>
+    <string name="consequence_allow_project">允许用于此项目</string>
+    <string name="consequence_deny">拒绝 — 智能体会被告知拒绝</string>
+    <string name="consequence_refine">改为提供改进说明</string>
+    <string name="consequence_other">不支持的选项</string>
+
+    <string name="userinput_title">智能体需要您的输入</string>
+    <string name="userinput_own_answer">或输入您自己的答案</string>
+    <string name="userinput_send_answers">发送回答</string>
+    <string name="userinput_send_answer">发送回答</string>
+    <string name="userinput_own_placeholder">您的回答</string>
+    <string name="userinput_sensitive_placeholder">回答（敏感信息 — 不会保存到草稿）</string>
+    <string name="userinput_desktop_note">请在桌面端回答此提示。</string>
+
+    <string name="queue_label">已排队（%1$d）</string>
+    <string name="queue_send_now">立即发送</string>
+    <string name="queue_edit">编辑</string>
+    <string name="queue_edit_title">编辑排队的消息</string>
+    <string name="queue_held_title">队列已暂挂</string>
+    <string name="queue_held_body">立即发送并清空队列，还是保留排队的消息？</string>
+    <string name="queue_clear_send">清空队列并发送</string>
+    <string name="queue_keep_send">保留队列并发送</string>
+
+    <string name="composer_placeholder">给智能体发消息…</string>
+    <string name="composer_attach_image">附加图片</string>
+    <string name="composer_attach_file">附加文件</string>
+    <string name="composer_stop">停止智能体</string>
+    <string name="composer_send">发送消息</string>
+    <string name="composer_voice">语音输入</string>
+    <string name="composer_voice_listening">正在聆听…</string>
+    <string name="composer_voice_unavailable">此设备不支持语音输入</string>
+
+    <string name="row_you">你</string>
+    <string name="row_agent">智能体</string>
+    <string name="row_generating">正在生成</string>
+    <string name="row_tool_a11y">工具 %1$s，%2$s。点按以%3$s。</string>
+    <string name="a11y_expand">展开</string>
+    <string name="a11y_collapse">收起</string>
+    <string name="row_input">输入</string>
+    <string name="row_output">输出</string>
+    <string name="row_error">错误</string>
+    <string name="row_reasoning_a11y">智能体推理。点按以%1$s。</string>
+    <string name="row_thinking">思考中</string>
+    <string name="row_turn">轮次</string>
+    <string name="row_unsupported">不支持的条目</string>
+    <string name="row_code">代码</string>
+    <string name="tool_state_running">运行中</string>
+    <string name="tool_state_needs_approval">等待批准</string>
+    <string name="tool_state_completed">已完成</string>
+    <string name="tool_state_failed">失败</string>
+    <string name="tool_state_cancelled">已取消</string>
+    <string name="tool_state_unknown">未知</string>
+
+    <string name="mode_a11y">协作模式 %1$s，点按可更改</string>
+    <string name="model_a11y">模型 %1$s，思考档位 %2$s，点按可更改</string>
+    <string name="switch_model_title">切换模型</string>
+    <string name="switch_loading">正在加载选项…</string>
+    <string name="switch_unavailable">此连接上模型列表不可用 — 仍可在已知配置值之间切换。</string>
+    <string name="switch_keep_current">保留当前模型</string>
+    <string name="thought_level_for">%1$s 的思考档位</string>
+    <string name="changes_title">变更 · %1$s</string>
+    <string name="changes_loading">正在加载变更…</string>
+    <string name="changes_error">无法加载变更：%1$s</string>
+    <string name="attachment_remove">移除</string>
+    <string name="tool_fallback">工具</string>
+</resources>

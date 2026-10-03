@@ -44,10 +44,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.zcode.android.app.AppContainer
+import com.zcode.android.app.R
 
 /**
  * Basic Phase 6 settings (ui-ux 13): paired desktop identity, connection entry,
@@ -76,62 +78,61 @@ fun SettingsScreen(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack, modifier = Modifier.testTag("settings_back")) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(com.zcode.android.core.ui.R.string.action_back), tint = MaterialTheme.colorScheme.onSurface)
                 }
-                Text("Settings", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
+                Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
             }
 
-            SectionLabel("Endpoints")
+            SectionLabel(stringResource(R.string.settings_section_endpoints))
             EndpointsSection(container = container, endpointName = endpointName, desktopVersion = desktopVersion)
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            SectionLabel("Diagnostics")
+            SectionLabel(stringResource(R.string.settings_section_diagnostics))
             val diagBusy = remember { mutableStateOf(false) }
             SettingsRow(
-                title = if (diagBusy.value) "Preparing report…" else "Export diagnostics",
-                subtitle = if (diagBusy.value) "Building the report — this can take a few seconds."
-                    else "Connection report + full redacted event log. No conversation content.",
+                title = stringResource(if (diagBusy.value) R.string.settings_diag_export_busy else R.string.settings_diag_export),
+                subtitle = stringResource(if (diagBusy.value) R.string.settings_diag_export_busy_sub else R.string.settings_diag_export_sub),
                 tag = "settings_export_diagnostics",
                 onClick = { if (!diagBusy.value) exportDiagnostics(container, context) { diagBusy.value = it } },
             )
             SettingsRow(
-                title = if (diagBusy.value) "Preparing report…" else "Copy diagnostics to clipboard",
-                subtitle = "Same report, copied for pasting into a chat or issue.",
+                title = stringResource(if (diagBusy.value) R.string.settings_diag_export_busy else R.string.settings_diag_copy),
+                subtitle = stringResource(R.string.settings_diag_copy_sub),
                 tag = "settings_copy_diagnostics",
                 onClick = { if (!diagBusy.value) copyDiagnostics(container, context) { diagBusy.value = it } },
             )
             SettingsRow(
-                title = "Add a marker",
-                subtitle = "Writes a timestamped marker into the log — tap this right before reproducing a problem.",
+                title = stringResource(R.string.settings_diag_marker),
+                subtitle = stringResource(R.string.settings_diag_marker_sub),
                 tag = "settings_add_marker",
                 onClick = {
                     container.log.info("diagnostics.mark", "user marker at ${java.time.Instant.now()} phase=${container.hub.phase.value}")
-                    android.widget.Toast.makeText(context, "Marker added to diagnostics", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(context, context.getString(R.string.settings_marker_toast), android.widget.Toast.LENGTH_SHORT).show()
                 },
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            SectionLabel("Notifications")
+            SectionLabel(stringResource(R.string.settings_section_notifications))
             NotificationsSection(container = container)
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            SectionLabel("Privacy")
+            SectionLabel(stringResource(R.string.settings_section_privacy))
             SettingsRow(
-                title = "No analytics. No tracking.",
-                subtitle = "Data leaves this device only through your paired ZCode connection.",
+                title = stringResource(R.string.settings_privacy_row),
+                subtitle = stringResource(R.string.settings_privacy_sub),
                 tag = "settings_privacy",
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            SectionLabel("About")
+            SectionLabel(stringResource(R.string.settings_section_about))
             SettingsRow(
-                title = "ZCode Companion",
-                subtitle = "Unofficial native client for ZCode. Apache-2.0 components — see licenses.",
+                title = stringResource(R.string.settings_about_row),
+                subtitle = stringResource(R.string.settings_about_sub),
                 tag = "settings_about",
             )
             SettingsRow(
-                title = "Licenses",
-                subtitle = "Open-source libraries used in this app",
+                title = stringResource(R.string.settings_licenses_row),
+                subtitle = stringResource(R.string.settings_licenses_sub),
                 tag = "settings_licenses",
                 onClick = { showLicenses(context) },
             )
@@ -147,11 +148,11 @@ fun SettingsScreen(
                         .testTag("settings_unpair"),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                 ) {
-                    Text("Unpair this device", color = MaterialTheme.colorScheme.onError)
+                    Text(stringResource(R.string.settings_unpair), color = MaterialTheme.colorScheme.onError)
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "After unpairing, also press Stop in the desktop's Mobile Remote Control dialog — closing the dialog does not stop remote control.",
+                    text = stringResource(R.string.settings_unpair_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp),
@@ -164,8 +165,8 @@ fun SettingsScreen(
     if (showUnpairConfirm) {
         AlertDialog(
             onDismissRequest = { showUnpairConfirm = false },
-            title = { Text("Unpair from ${endpointName ?: "this desktop"}?") },
-            text = { Text("The pairing credential and cached data will be removed from this phone. You will need to scan the QR again to reconnect.") },
+            title = { Text(stringResource(R.string.settings_unpair_title, endpointName ?: context.getString(R.string.settings_your_desktop_fallback))) },
+            text = { Text(stringResource(R.string.settings_unpair_body)) },
             confirmButton = {
                 val scope = androidx.compose.runtime.rememberCoroutineScope()
                 TextButton(
@@ -177,10 +178,10 @@ fun SettingsScreen(
                         }
                     },
                     modifier = Modifier.testTag("settings_unpair_confirm"),
-                ) { Text("Unpair", color = MaterialTheme.colorScheme.error) }
+                ) { Text(stringResource(R.string.settings_unpair_action), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { showUnpairConfirm = false }) { Text("Cancel") }
+                TextButton(onClick = { showUnpairConfirm = false }) { Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel)) }
             },
         )
     }
@@ -193,6 +194,7 @@ fun SettingsScreen(
  */
 @Composable
 private fun EndpointsSection(container: AppContainer, endpointName: String?, desktopVersion: String?) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val endpoints by container.hub.endpoints.collectAsState()
     val activeEndpoint by container.hub.endpoint.collectAsState()
@@ -212,11 +214,15 @@ private fun EndpointsSection(container: AppContainer, endpointName: String?, des
     for ((index, row) in rows.withIndex()) {
         val active = row != null && activeEndpoint?.endpointId == row.endpointId
         SettingsRow(
-            title = (row?.displayName ?: endpointName ?: "Not paired") + if (active) "  •" else "",
+            title = (row?.displayName ?: endpointName ?: stringResource(R.string.settings_not_paired_row)) + if (active) "  •" else "",
             subtitle = buildString {
-                append(if (row?.kind == com.zcode.android.domain.model.EndpointKind.DIRECT_SERVER) "Direct server" else "Relay (QR pairing)")
-                row?.desktopAppVersion?.let { append(" · v$it") }
-                if (active) append(" · connected: $phase")
+                val localized = stringResource(
+                    if (row?.kind == com.zcode.android.domain.model.EndpointKind.DIRECT_SERVER) R.string.settings_kind_direct
+                    else R.string.settings_kind_relay,
+                )
+                append(localized)
+                row?.desktopAppVersion?.let { append(stringResource(R.string.settings_version_suffix, it)) }
+                if (active) append(stringResource(R.string.settings_connected_suffix, phase.name))
             },
             tag = "settings_endpoint_$index",
             onClick = {
@@ -224,7 +230,9 @@ private fun EndpointsSection(container: AppContainer, endpointName: String?, des
                 if (id != null && !active) {
                     scope.launch {
                         val ok = container.hub.switchTo(id)
-                        switchMessage = if (ok) "Switched" else "Switch failed"
+                        switchMessage = context.getString(
+                            if (ok) R.string.settings_switched else R.string.settings_switch_failed,
+                        )
                     }
                 }
             },
@@ -235,12 +243,12 @@ private fun EndpointsSection(container: AppContainer, endpointName: String?, des
                 modifier = Modifier
                     .padding(start = 16.dp, bottom = 8.dp)
                     .testTag("settings_endpoint_remove_$index"),
-            ) { Text("Remove") }
+            ) { Text(stringResource(R.string.settings_remove)) }
         }
     }
     SettingsRow(
-        title = "Add direct endpoint",
-        subtitle = "Connect to a self-hosted ZCode server (zcode --web) by URL + token",
+        title = stringResource(R.string.settings_add_direct),
+        subtitle = stringResource(R.string.settings_add_direct_sub),
         tag = "settings_add_direct",
         onClick = { showAddDialog = true },
     )
@@ -258,11 +266,11 @@ private fun EndpointsSection(container: AppContainer, endpointName: String?, des
                 scope.launch {
                     when (val outcome = container.hub.addDirectEndpoint(name, url, token, candidates)) {
                         is com.zcode.android.app.connect.ConnectionHub.AddDirectOutcome.Added -> {
-                            switchMessage = "Added — connecting…"
+                            switchMessage = context.getString(R.string.settings_added_connecting)
                             container.hub.switchTo(outcome.endpoint.endpointId.raw)
                         }
                         is com.zcode.android.app.connect.ConnectionHub.AddDirectOutcome.Rejected -> {
-                            switchMessage = outcome.error.userMessage
+                            switchMessage = com.zcode.android.core.ui.components.errorMessage(context, outcome.error)
                         }
                     }
                 }
@@ -272,16 +280,16 @@ private fun EndpointsSection(container: AppContainer, endpointName: String?, des
     if (removeTarget != null) {
         AlertDialog(
             onDismissRequest = { removeTarget = null },
-            title = { Text("Remove this endpoint?") },
-            text = { Text("The saved token and endpoint entry are deleted from this phone. The server itself is not stopped.") },
+            title = { Text(stringResource(R.string.settings_remove_endpoint_title)) },
+            text = { Text(stringResource(R.string.settings_remove_endpoint_body)) },
             confirmButton = {
                 TextButton(onClick = {
                     val id = removeTarget
                     removeTarget = null
                     if (id != null) scope.launch { container.hub.removeDirectEndpoint(id) }
-                }) { Text("Remove", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(R.string.settings_remove), color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { removeTarget = null }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { removeTarget = null }) { Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel)) } },
         )
     }
 }
@@ -299,39 +307,39 @@ private fun AddDirectEndpointDialog(
     val valid = url.startsWith("ws://") || url.startsWith("wss://") || url.startsWith("http://") || url.startsWith("https://")
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add direct endpoint") },
+        title = { Text(stringResource(R.string.settings_add_direct_title)) },
         text = {
             Column {
                 androidx.compose.material3.OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Name (optional)") },
+                    label = { Text(stringResource(R.string.settings_add_name_label)) },
                     singleLine = true,
                     modifier = Modifier.testTag("add_direct_name"),
                 )
                 androidx.compose.material3.OutlinedTextField(
                     value = url,
                     onValueChange = { url = it },
-                    label = { Text("Server URL (ws://host:3030/ws)") },
+                    label = { Text(stringResource(R.string.settings_add_url_label)) },
                     singleLine = true,
                     modifier = Modifier.testTag("add_direct_url"),
                 )
                 androidx.compose.material3.OutlinedTextField(
                     value = token,
                     onValueChange = { token = it },
-                    label = { Text("Token (zcode --web --token …)") },
+                    label = { Text(stringResource(R.string.settings_add_token_label)) },
                     singleLine = true,
                     modifier = Modifier.testTag("add_direct_token"),
                 )
                 androidx.compose.material3.OutlinedTextField(
                     value = candidates,
                     onValueChange = { candidates = it },
-                    label = { Text("Fallback URLs (comma-separated, optional)") },
+                    label = { Text(stringResource(R.string.settings_add_candidates_label)) },
                     singleLine = true,
                     modifier = Modifier.testTag("add_direct_candidates"),
                 )
                 Text(
-                    "Validated before saving. The token is sealed on-device and never leaves except to this server.",
+                    stringResource(R.string.settings_add_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -349,9 +357,9 @@ private fun AddDirectEndpointDialog(
                     )
                 },
                 modifier = Modifier.testTag("add_direct_submit"),
-            ) { Text("Add") }
+            ) { Text(stringResource(R.string.settings_add_action)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel)) } },
     )
 }
 
@@ -372,12 +380,13 @@ private fun copyDiagnostics(container: AppContainer, context: android.content.Co
                 // ring fills) — copy a bounded prefix and say so.
                 val clipLimit = 400_000
                 val clipped = text.length > clipLimit
-                val payload = if (clipped) text.take(clipLimit) + "\n\n…(truncated at $clipLimit chars — use Export diagnostics for the full report)" else text
+                val suffix = context.getString(R.string.settings_clip_truncated_suffix, clipLimit)
+                val payload = if (clipped) text.take(clipLimit) + suffix else text
                 val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
                 cm?.setPrimaryClip(android.content.ClipData.newPlainText("ZCode diagnostics", payload))
                 android.widget.Toast.makeText(
                     context,
-                    if (clipped) "Diagnostics copied (truncated — use Export for the full report)" else "Diagnostics copied",
+                    context.getString(if (clipped) R.string.settings_clip_copied_truncated else R.string.settings_clip_copied),
                     android.widget.Toast.LENGTH_SHORT,
                 ).show()
             }
@@ -385,7 +394,7 @@ private fun copyDiagnostics(container: AppContainer, context: android.content.Co
             throw e
         } catch (e: Exception) {
             withContext(kotlinx.coroutines.Dispatchers.Main) {
-                android.widget.Toast.makeText(context, "Diagnostics failed: ${e.message?.take(80)}", android.widget.Toast.LENGTH_LONG).show()
+                android.widget.Toast.makeText(context, context.getString(R.string.settings_clip_failed, e.message?.take(80) ?: ""), android.widget.Toast.LENGTH_LONG).show()
             }
         } finally {
             withContext(kotlinx.coroutines.Dispatchers.Main) { onBusy(false) }
@@ -416,21 +425,21 @@ private fun exportDiagnostics(container: AppContainer, context: android.content.
                 val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                     type = "text/plain"
                     putExtra(android.content.Intent.EXTRA_STREAM, uri)
-                    putExtra(android.content.Intent.EXTRA_TITLE, "ZCode Companion diagnostics")
+                    putExtra(android.content.Intent.EXTRA_TITLE, context.getString(R.string.app_name) + " " + context.getString(R.string.settings_section_diagnostics))
                     // The read grant must survive the chooser hop to the target app.
                     addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     // Samsung-class shares verify the grant via ClipData too.
                     clipData = android.content.ClipData.newRawUri("diagnostics", uri)
                 }
                 context.startActivity(
-                    android.content.Intent.createChooser(intent, "Export diagnostics"),
+                    android.content.Intent.createChooser(intent, context.getString(R.string.settings_export_chooser)),
                 )
             }
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
             withContext(kotlinx.coroutines.Dispatchers.Main) {
-                android.widget.Toast.makeText(context, "Export failed: ${e.message?.take(80)}", android.widget.Toast.LENGTH_LONG).show()
+                android.widget.Toast.makeText(context, context.getString(R.string.settings_export_failed, e.message?.take(80) ?: ""), android.widget.Toast.LENGTH_LONG).show()
             }
         } finally {
             withContext(kotlinx.coroutines.Dispatchers.Main) { onBusy(false) }
@@ -593,7 +602,7 @@ private fun showLicenses(context: android.content.Context) {
         type = "text/plain"
         putExtra(android.content.Intent.EXTRA_TEXT, text)
     }
-    context.startActivity(android.content.Intent.createChooser(intent, "Licenses"))
+    context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.settings_licenses_chooser)))
 }
 
 @Composable
@@ -623,9 +632,14 @@ private fun NotificationsSection(container: AppContainer) {
     // §24.2 lock-screen visibility: MINIMAL = category-only (default), CONTENT adds
     // the task title. The pending row shows the CURRENT value; tap toggles.
     SettingsRow(
-        title = "Notification detail: " +
-            if (prefs.notificationContentLevel == com.zcode.android.domain.model.AppPreferences.NotificationContentLevel.CONTENT) "Task titles" else "Minimal",
-        subtitle = "Minimal keeps the lock screen to “ZCode needs your approval” — never tools, paths, or titles.",
+        title = stringResource(
+            R.string.settings_notif_detail,
+            stringResource(
+                if (prefs.notificationContentLevel == com.zcode.android.domain.model.AppPreferences.NotificationContentLevel.CONTENT) R.string.settings_notif_detail_rich
+                else R.string.settings_notif_detail_min,
+            ),
+        ),
+        subtitle = stringResource(R.string.settings_notif_detail_sub),
         tag = "settings_notification_content",
         onClick = {
             scope.launch {
@@ -659,8 +673,8 @@ private fun NotificationsSection(container: AppContainer) {
         }
     }
     SwitchRow(
-        title = "Live connection",
-        subtitle = "Keep the connection alive with the screen off (30-minute window). Uses more battery; the system may still pause it. Turn off when done.",
+        title = stringResource(R.string.settings_live_connection),
+        subtitle = stringResource(R.string.settings_live_connection_sub),
         tag = "settings_live_connection",
         checked = liveConnection,
         onToggle = { want ->
@@ -684,8 +698,8 @@ private fun NotificationsSection(container: AppContainer) {
     // §25.3 auto-reconnect probe — the app's ONLY periodic work (≥15 min, network-
     // constrained; §29 no-polling rule).
     SwitchRow(
-        title = "Auto-reconnect checks",
-        subtitle = "While the app is backgrounded, check about every 15 minutes and reconnect if the network is back.",
+        title = stringResource(R.string.settings_auto_reconnect),
+        subtitle = stringResource(R.string.settings_auto_reconnect_sub),
         tag = "settings_auto_reconnect",
         checked = prefs.autoReconnectProbe,
         onToggle = { want ->
@@ -703,8 +717,8 @@ private fun NotificationsSection(container: AppContainer) {
     // §21/§13.3 terminal opt-in (Phase 9) — default OFF; the view-only terminal
     // renders nothing until this is on (never enabled silently).
     SwitchRow(
-        title = "Terminal (view-only)",
-        subtitle = "Show a read-only stream of a desktop terminal (the \"Terminal\" entry in a conversation). Nothing can be typed into it. This is a sensitive surface — keep it off unless you need it.",
+        title = stringResource(R.string.settings_terminal_opt_in),
+        subtitle = stringResource(R.string.settings_terminal_opt_in_sub),
         tag = "settings_terminal_opt_in",
         checked = prefs.terminalOptIn,
         onToggle = { want ->
@@ -717,7 +731,7 @@ private fun NotificationsSection(container: AppContainer) {
 
     // §24.4 honest statement (mandatory copy).
     Text(
-        text = "Notifications are delivered while the app is in use or when the Live connection is enabled. ZCode's relay offers no push service, so with both off you'll see updates the next time you open the app.",
+        text = stringResource(R.string.settings_honest_push),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),

@@ -1,0 +1,744 @@
+
+> Configure project :app
+WARNING: The option setting 'android.builtInKotlin=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+Add android.sync.suppressAgpWarnings=UNSUPPORTED_PROJECT_OPTION_USE to the gradle.properties file to suppress this warning.
+WARNING: The option setting 'android.newDsl=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+Add android.sync.suppressAgpWarnings=UNSUPPORTED_PROJECT_OPTION_USE to the gradle.properties file to suppress this warning.
+WARNING: API 'applicationVariants' is obsolete and has been replaced with 'AndroidComponentsExtension'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+The legacy variant API is disabled by default in AGP 9.0, but can be re-enabled by adding 
+    android.newDsl=false
+to this project's gradle.properties file.
+For more information, see http://developer.android.com/build/r/new-dsl.
+
+To determine what is calling applicationVariants, use -Pandroid.debug.obsoleteApi=true on the command line to display more information.
+Add android.sync.suppressAgpWarnings=DEPRECATED_DSL to the gradle.properties file to suppress this warning.
+WARNING: API 'testVariants' is obsolete and has been replaced with 'AndroidComponentsExtension'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+The legacy variant API is disabled by default in AGP 9.0, but can be re-enabled by adding 
+    android.newDsl=false
+to this project's gradle.properties file.
+For more information, see http://developer.android.com/build/r/new-dsl.
+
+To determine what is calling testVariants, use -Pandroid.debug.obsoleteApi=true on the command line to display more information.
+Add android.sync.suppressAgpWarnings=DEPRECATED_DSL to the gradle.properties file to suppress this warning.
+WARNING: API 'unitTestVariants' is obsolete and has been replaced with 'AndroidComponentsExtension'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+The legacy variant API is disabled by default in AGP 9.0, but can be re-enabled by adding 
+    android.newDsl=false
+to this project's gradle.properties file.
+For more information, see http://developer.android.com/build/r/new-dsl.
+
+To determine what is calling unitTestVariants, use -Pandroid.debug.obsoleteApi=true on the command line to display more information.
+Add android.sync.suppressAgpWarnings=DEPRECATED_DSL to the gradle.properties file to suppress this warning.
+w: ⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage
+The 'org.jetbrains.kotlin.android' plugin in project ':app' is no longer required for Kotlin support since AGP 9.0.
+Solution: Remove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.
+See https://kotl.in/gradle/agp-built-in-kotlin for more details.
+
+
+> Configure project :baselineprofile
+w: ⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage
+The 'org.jetbrains.kotlin.android' plugin in project ':baselineprofile' is no longer required for Kotlin support since AGP 9.0.
+Solution: Remove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.
+See https://kotl.in/gradle/agp-built-in-kotlin for more details.
+
+
+> Configure project :data
+WARNING: API 'libraryVariants' is obsolete and has been replaced with 'AndroidComponentsExtension'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+The legacy variant API is disabled by default in AGP 9.0, but can be re-enabled by adding 
+    android.newDsl=false
+to this project's gradle.properties file.
+For more information, see http://developer.android.com/build/r/new-dsl.
+
+To determine what is calling libraryVariants, use -Pandroid.debug.obsoleteApi=true on the command line to display more information.
+Add android.sync.suppressAgpWarnings=DEPRECATED_DSL to the gradle.properties file to suppress this warning.
+w: ⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage
+The 'org.jetbrains.kotlin.android' plugin in project ':data' is no longer required for Kotlin support since AGP 9.0.
+Solution: Remove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.
+See https://kotl.in/gradle/agp-built-in-kotlin for more details.
+
+
+> Configure project :core:notifications
+w: ⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage
+The 'org.jetbrains.kotlin.android' plugin in project ':core:notifications' is no longer required for Kotlin support since AGP 9.0.
+Solution: Remove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.
+See https://kotl.in/gradle/agp-built-in-kotlin for more details.
+
+
+> Configure project :core:security
+w: ⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage
+The 'org.jetbrains.kotlin.android' plugin in project ':core:security' is no longer required for Kotlin support since AGP 9.0.
+Solution: Remove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.
+See https://kotl.in/gradle/agp-built-in-kotlin for more details.
+
+
+> Configure project :core:ui
+w: ⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage
+The 'org.jetbrains.kotlin.android' plugin in project ':core:ui' is no longer required for Kotlin support since AGP 9.0.
+Solution: Remove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.
+See https://kotl.in/gradle/agp-built-in-kotlin for more details.
+
+
+> Configure project :features:conversation
+w: ⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage
+The 'org.jetbrains.kotlin.android' plugin in project ':features:conversation' is no longer required for Kotlin support since AGP 9.0.
+Solution: Remove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.
+See https://kotl.in/gradle/agp-built-in-kotlin for more details.
+
+
+> Configure project :features:files
+w: ⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage
+The 'org.jetbrains.kotlin.android' plugin in project ':features:files' is no longer required for Kotlin support since AGP 9.0.
+Solution: Remove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.
+See https://kotl.in/gradle/agp-built-in-kotlin for more details.
+
+
+> Configure project :features:git
+w: ⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage
+The 'org.jetbrains.kotlin.android' plugin in project ':features:git' is no longer required for Kotlin support since AGP 9.0.
+Solution: Remove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.
+See https://kotl.in/gradle/agp-built-in-kotlin for more details.
+
+
+> Configure project :features:pairing
+w: ⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage
+The 'org.jetbrains.kotlin.android' plugin in project ':features:pairing' is no longer required for Kotlin support since AGP 9.0.
+Solution: Remove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.
+See https://kotl.in/gradle/agp-built-in-kotlin for more details.
+
+
+> Configure project :features:tasks
+w: ⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage
+The 'org.jetbrains.kotlin.android' plugin in project ':features:tasks' is no longer required for Kotlin support since AGP 9.0.
+Solution: Remove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.
+See https://kotl.in/gradle/agp-built-in-kotlin for more details.
+
+
+> Configure project :features:terminal
+w: ⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage
+The 'org.jetbrains.kotlin.android' plugin in project ':features:terminal' is no longer required for Kotlin support since AGP 9.0.
+Solution: Remove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.
+See https://kotl.in/gradle/agp-built-in-kotlin for more details.
+
+
+> Task :app:cleanTest UP-TO-DATE
+> Task :baselineprofile:cleanTest UP-TO-DATE
+> Task :data:cleanTest UP-TO-DATE
+> Task :domain:cleanTest
+> Task :spike:cleanTest
+> Task :core:common:cleanTest
+> Task :core:notifications:cleanTest UP-TO-DATE
+> Task :core:protocol:cleanTest
+> Task :core:security:cleanTest UP-TO-DATE
+> Task :core:transport:cleanTest
+> Task :core:ui:cleanTest UP-TO-DATE
+> Task :features:conversation:cleanTest UP-TO-DATE
+> Task :features:files:cleanTest UP-TO-DATE
+> Task :features:git:cleanTest UP-TO-DATE
+> Task :features:pairing:cleanTest UP-TO-DATE
+> Task :features:tasks:cleanTest UP-TO-DATE
+> Task :features:terminal:cleanTest UP-TO-DATE
+> Task :tools:mockzcode:cleanTest
+> Task :core:common:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:common:compileKotlin UP-TO-DATE
+> Task :core:common:compileJava NO-SOURCE
+> Task :core:common:processResources NO-SOURCE
+> Task :core:common:classes UP-TO-DATE
+> Task :core:common:jar UP-TO-DATE
+> Task :core:protocol:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:protocol:compileKotlin UP-TO-DATE
+> Task :core:protocol:compileJava NO-SOURCE
+> Task :core:protocol:processResources NO-SOURCE
+> Task :core:protocol:classes UP-TO-DATE
+> Task :core:protocol:jar UP-TO-DATE
+> Task :tools:mockzcode:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :tools:mockzcode:compileKotlin UP-TO-DATE
+> Task :tools:mockzcode:compileJava NO-SOURCE
+> Task :tools:mockzcode:processResources NO-SOURCE
+> Task :tools:mockzcode:classes UP-TO-DATE
+> Task :tools:mockzcode:jar UP-TO-DATE
+> Task :core:transport:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:transport:compileKotlin UP-TO-DATE
+> Task :core:transport:compileJava NO-SOURCE
+> Task :core:transport:processResources NO-SOURCE
+> Task :core:transport:classes UP-TO-DATE
+> Task :core:transport:jar UP-TO-DATE
+> Task :domain:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :domain:compileKotlin UP-TO-DATE
+> Task :domain:compileJava NO-SOURCE
+> Task :domain:processResources NO-SOURCE
+> Task :domain:classes UP-TO-DATE
+> Task :domain:jar UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:generateDebugBuildConfig
+> Task :app:generateDebugResources
+> Task :app:packageDebugResources
+> Task :data:preBuild UP-TO-DATE
+> Task :data:preDebugBuild UP-TO-DATE
+> Task :data:processDebugNavigationResources
+> Task :core:notifications:preBuild UP-TO-DATE
+> Task :core:notifications:preDebugBuild UP-TO-DATE
+> Task :core:notifications:processDebugNavigationResources
+> Task :core:security:preBuild UP-TO-DATE
+> Task :core:security:preDebugBuild UP-TO-DATE
+> Task :core:security:processDebugNavigationResources
+> Task :core:ui:preBuild UP-TO-DATE
+> Task :core:ui:preDebugBuild UP-TO-DATE
+> Task :core:ui:processDebugNavigationResources
+> Task :features:conversation:preBuild UP-TO-DATE
+> Task :features:conversation:preDebugBuild UP-TO-DATE
+> Task :features:conversation:processDebugNavigationResources
+> Task :features:files:preBuild UP-TO-DATE
+> Task :features:files:preDebugBuild UP-TO-DATE
+> Task :features:files:processDebugNavigationResources
+> Task :features:git:preBuild UP-TO-DATE
+> Task :features:git:preDebugBuild UP-TO-DATE
+> Task :features:git:processDebugNavigationResources
+> Task :features:pairing:preBuild UP-TO-DATE
+> Task :features:pairing:preDebugBuild UP-TO-DATE
+> Task :features:pairing:processDebugNavigationResources
+> Task :features:tasks:preBuild UP-TO-DATE
+> Task :features:tasks:preDebugBuild UP-TO-DATE
+> Task :features:tasks:processDebugNavigationResources
+> Task :features:terminal:preBuild UP-TO-DATE
+> Task :features:terminal:preDebugBuild UP-TO-DATE
+> Task :features:terminal:processDebugNavigationResources
+> Task :app:processDebugNavigationResources
+> Task :data:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :data:protobufDummy UP-TO-DATE
+> Task :data:extractDebugProto
+> Task :core:notifications:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:notifications:generateDebugResources
+> Task :app:parseDebugLocalResources
+> Task :core:notifications:packageDebugResources
+> Task :core:security:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:notifications:javaPreCompileDebug
+> Task :core:security:generateDebugResources
+> Task :core:notifications:parseDebugLocalResources
+> Task :app:generateDebugRFile
+> Task :core:security:packageDebugResources
+> Task :core:notifications:generateDebugRFile
+> Task :core:security:javaPreCompileDebug
+> Task :data:extractProto UP-TO-DATE
+> Task :core:security:parseDebugLocalResources
+> Task :data:generateDebugResources
+> Task :core:security:generateDebugRFile
+> Task :data:packageDebugResources
+> Task :data:parseDebugLocalResources
+> Task :core:ui:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:ui:generateDebugResources
+> Task :data:generateDebugRFile
+> Task :data:javaPreCompileDebug
+> Task :core:ui:packageDebugResources
+> Task :features:conversation:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :core:ui:javaPreCompileDebug
+> Task :features:conversation:generateDebugResources
+> Task :core:ui:parseDebugLocalResources
+> Task :features:conversation:packageDebugResources
+> Task :features:files:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :features:files:generateDebugResources
+> Task :core:ui:generateDebugRFile
+> Task :features:conversation:javaPreCompileDebug
+> Task :features:conversation:parseDebugLocalResources
+> Task :features:files:packageDebugResources
+> Task :features:git:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :features:files:javaPreCompileDebug
+> Task :features:git:generateDebugResources
+> Task :features:files:parseDebugLocalResources
+> Task :features:conversation:generateDebugRFile
+> Task :features:git:packageDebugResources
+> Task :features:pairing:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :features:git:javaPreCompileDebug
+> Task :features:pairing:generateDebugResources
+> Task :features:files:generateDebugRFile
+> Task :features:git:parseDebugLocalResources
+> Task :features:pairing:packageDebugResources
+> Task :features:tasks:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :features:pairing:javaPreCompileDebug
+> Task :features:git:generateDebugRFile
+> Task :features:tasks:generateDebugResources
+> Task :features:pairing:parseDebugLocalResources
+> Task :features:tasks:packageDebugResources
+> Task :features:terminal:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :features:pairing:generateDebugRFile
+> Task :features:tasks:javaPreCompileDebug
+> Task :features:terminal:generateDebugResources
+> Task :features:tasks:parseDebugLocalResources
+> Task :features:tasks:generateDebugRFile
+> Task :features:terminal:packageDebugResources
+> Task :features:terminal:javaPreCompileDebug
+> Task :app:javaPreCompileDebug
+> Task :features:terminal:parseDebugLocalResources
+> Task :data:writeDebugAarMetadata
+> Task :core:notifications:writeDebugAarMetadata
+> Task :core:security:writeDebugAarMetadata
+> Task :core:ui:writeDebugAarMetadata
+> Task :features:terminal:generateDebugRFile
+> Task :features:conversation:writeDebugAarMetadata
+> Task :features:git:writeDebugAarMetadata
+> Task :features:pairing:writeDebugAarMetadata
+> Task :features:files:writeDebugAarMetadata
+> Task :features:tasks:writeDebugAarMetadata
+> Task :features:terminal:writeDebugAarMetadata
+> Task :app:mapDebugSourceSetPaths
+> Task :app:compileDebugNavigationResources
+> Task :app:checkDebugAarMetadata
+
+> Task :core:security:compileDebugKotlin
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/core/security/src/main/kotlin/com/zcode/android/core/security/vault/AndroidKeystoreKeyWrap.kt:50:25 'fun setUserAuthenticationValidityDurationSeconds(p0: Int): KeyGenParameterSpec.Builder' is deprecated. Deprecated in Java.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/core/security/src/main/kotlin/com/zcode/android/core/security/vault/CredentialVault.kt:203:73 'static fun serializeKeyset(keysetHandle: KeysetHandle!, access: SecretKeyAccess!): ByteArray!' is deprecated. Deprecated in Java.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/core/security/src/main/kotlin/com/zcode/android/core/security/vault/CredentialVault.kt:208:35 'static fun parseKeyset(serializedKeyset: ByteArray!, access: SecretKeyAccess!): KeysetHandle!' is deprecated. Deprecated in Java.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/core/security/src/main/kotlin/com/zcode/android/core/security/vault/CredentialVault.kt:210:23 'fun <P : Any!> getPrimitive(targetClassObject: Class<P!>!): P!' is deprecated. Deprecated in Java.
+
+> Task :features:pairing:compileDebugKotlin
+> Task :core:notifications:compileDebugKotlin
+> Task :core:ui:compileDebugKotlin
+> Task :app:mergeDebugResources
+> Task :core:notifications:compileDebugJavaWithJavac NO-SOURCE
+> Task :core:notifications:processDebugJavaRes
+> Task :core:notifications:bundleLibRuntimeToJarDebug
+> Task :core:notifications:createFullJarDebug
+> Task :core:security:compileDebugJavaWithJavac NO-SOURCE
+> Task :core:security:processDebugJavaRes
+> Task :core:security:bundleLibRuntimeToJarDebug
+> Task :core:security:createFullJarDebug
+> Task :core:notifications:bundleLibCompileToJarDebug
+> Task :data:extractIncludeDebugProto
+> Task :data:generateDebugProto
+> Task :core:ui:compileDebugJavaWithJavac NO-SOURCE
+> Task :features:pairing:compileDebugJavaWithJavac NO-SOURCE
+> Task :core:security:bundleLibCompileToJarDebug
+> Task :core:ui:bundleLibCompileToJarDebug
+> Task :features:pairing:bundleLibCompileToJarDebug
+> Task :app:createDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksDebug
+> Task :data:extractDeepLinksDebug
+> Task :core:notifications:extractDeepLinksDebug
+> Task :data:processDebugManifest
+> Task :core:notifications:processDebugManifest
+> Task :core:security:extractDeepLinksDebug
+> Task :core:ui:extractDeepLinksDebug
+> Task :core:security:processDebugManifest
+> Task :features:conversation:extractDeepLinksDebug
+> Task :core:ui:processDebugManifest
+> Task :features:files:extractDeepLinksDebug
+> Task :features:conversation:processDebugManifest
+> Task :features:git:extractDeepLinksDebug
+> Task :features:files:processDebugManifest
+> Task :features:pairing:extractDeepLinksDebug
+> Task :features:git:processDebugManifest
+> Task :features:pairing:processDebugManifest
+> Task :features:tasks:extractDeepLinksDebug
+> Task :features:terminal:extractDeepLinksDebug
+> Task :features:tasks:processDebugManifest
+> Task :features:terminal:processDebugManifest
+> Task :data:mapDebugSourceSetPaths
+> Task :app:processDebugMainManifest
+> Task :app:processDebugManifest
+> Task :app:processDebugManifestForPackage
+> Task :data:compileDebugLibraryResources
+> Task :core:notifications:mapDebugSourceSetPaths
+> Task :core:notifications:compileDebugLibraryResources
+> Task :core:security:mapDebugSourceSetPaths
+> Task :core:security:compileDebugLibraryResources
+> Task :core:ui:mapDebugSourceSetPaths
+> Task :core:ui:compileDebugLibraryResources
+> Task :features:conversation:mapDebugSourceSetPaths
+> Task :features:conversation:compileDebugLibraryResources
+> Task :features:files:mapDebugSourceSetPaths
+> Task :features:files:compileDebugLibraryResources
+> Task :features:git:mapDebugSourceSetPaths
+> Task :features:git:compileDebugLibraryResources
+> Task :features:pairing:mapDebugSourceSetPaths
+> Task :features:pairing:compileDebugLibraryResources
+> Task :features:tasks:mapDebugSourceSetPaths
+> Task :features:tasks:compileDebugLibraryResources
+> Task :features:terminal:mapDebugSourceSetPaths
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :features:terminal:compileDebugLibraryResources
+> Task :app:javaPreCompileDebugUnitTest
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :data:generateDebugAssets UP-TO-DATE
+> Task :data:mergeDebugAssets
+> Task :core:notifications:generateDebugAssets UP-TO-DATE
+> Task :core:notifications:mergeDebugAssets
+> Task :core:security:generateDebugAssets UP-TO-DATE
+> Task :core:security:mergeDebugAssets
+> Task :core:ui:generateDebugAssets UP-TO-DATE
+> Task :core:ui:mergeDebugAssets
+> Task :features:conversation:generateDebugAssets UP-TO-DATE
+> Task :features:conversation:mergeDebugAssets
+> Task :features:files:generateDebugAssets UP-TO-DATE
+> Task :features:files:mergeDebugAssets
+> Task :features:git:generateDebugAssets UP-TO-DATE
+> Task :features:git:mergeDebugAssets
+> Task :features:pairing:generateDebugAssets UP-TO-DATE
+> Task :features:pairing:mergeDebugAssets
+> Task :features:tasks:generateDebugAssets UP-TO-DATE
+> Task :features:tasks:mergeDebugAssets
+> Task :features:terminal:generateDebugAssets UP-TO-DATE
+> Task :features:terminal:mergeDebugAssets
+> Task :app:mergeDebugAssets
+> Task :app:mergeDebugUnitTestManifest
+> Task :app:processDebugUnitTestManifest
+> Task :data:processDebugProtoResources
+> Task :core:ui:bundleLibRuntimeToJarDebug
+> Task :core:ui:processDebugJavaRes
+> Task :features:pairing:bundleLibRuntimeToJarDebug
+> Task :features:pairing:processDebugJavaRes
+> Task :baselineprofile:test UP-TO-DATE
+> Task :data:extractTestProto
+> Task :data:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:processDebugResources
+> Task :data:checkDebugUnitTestAarMetadata
+> Task :app:packageDebugUnitTestForUnitTest
+> Task :data:mapDebugUnitTestSourceSetPaths
+> Task :app:generateDebugUnitTestConfig
+> Task :data:generateDebugUnitTestResources
+
+> Task :data:mergeDebugUnitTestManifest
+/Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/data/src/test/AndroidManifest.xml:11:9-14:35 Warning:
+	provider#androidx.startup.InitializationProvider was tagged at AndroidManifest.xml:11 to remove other declarations but no other declaration present
+
+> Task :data:processDebugUnitTestManifest
+> Task :data:javaPreCompileDebugUnitTest
+> Task :data:generateDebugUnitTestAssets UP-TO-DATE
+> Task :features:terminal:compileDebugKotlin
+> Task :features:git:compileDebugKotlin
+> Task :features:files:compileDebugKotlin
+> Task :data:mergeDebugUnitTestResources
+> Task :data:mergeDebugUnitTestAssets
+> Task :features:files:compileDebugJavaWithJavac NO-SOURCE
+> Task :features:git:compileDebugJavaWithJavac NO-SOURCE
+> Task :features:files:bundleLibCompileToJarDebug
+> Task :features:terminal:compileDebugJavaWithJavac NO-SOURCE
+> Task :features:git:bundleLibCompileToJarDebug
+> Task :features:terminal:bundleLibCompileToJarDebug
+> Task :features:files:bundleLibRuntimeToJarDebug
+> Task :features:files:processDebugJavaRes
+> Task :features:git:bundleLibRuntimeToJarDebug
+> Task :features:git:processDebugJavaRes
+> Task :features:terminal:bundleLibRuntimeToJarDebug
+> Task :features:terminal:processDebugJavaRes
+> Task :data:processDebugUnitTestResources
+> Task :features:tasks:compileDebugKotlin
+> Task :data:kspDebugKotlin
+> Task :features:tasks:compileDebugJavaWithJavac NO-SOURCE
+> Task :features:tasks:bundleLibCompileToJarDebug
+> Task :features:tasks:bundleLibRuntimeToJarDebug
+> Task :features:tasks:processDebugJavaRes
+> Task :features:conversation:compileDebugKotlin
+> Task :data:packageDebugUnitTestForUnitTest
+> Task :domain:processTestResources NO-SOURCE
+> Task :data:generateDebugUnitTestConfig
+> Task :spike:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :spike:processResources NO-SOURCE
+> Task :spike:processTestResources NO-SOURCE
+> Task :core:common:processTestResources NO-SOURCE
+> Task :core:notifications:preDebugUnitTestBuild UP-TO-DATE
+> Task :core:notifications:mapDebugUnitTestSourceSetPaths
+> Task :core:notifications:checkDebugUnitTestAarMetadata
+> Task :core:notifications:generateDebugUnitTestResources
+> Task :core:notifications:mergeDebugUnitTestResources
+> Task :core:notifications:mergeDebugUnitTestManifest
+> Task :core:notifications:processDebugUnitTestManifest
+> Task :core:notifications:generateDebugUnitTestAssets UP-TO-DATE
+> Task :core:notifications:javaPreCompileDebugUnitTest
+> Task :core:notifications:mergeDebugUnitTestAssets
+> Task :core:notifications:processDebugUnitTestResources
+> Task :core:notifications:packageDebugUnitTestForUnitTest
+> Task :core:notifications:generateDebugUnitTestConfig
+> Task :core:protocol:processTestResources NO-SOURCE
+> Task :core:security:preDebugUnitTestBuild UP-TO-DATE
+> Task :core:security:checkDebugUnitTestAarMetadata
+> Task :core:security:mapDebugUnitTestSourceSetPaths
+> Task :core:security:generateDebugUnitTestResources
+> Task :domain:compileTestKotlin
+> Task :core:common:compileTestKotlin
+> Task :core:common:compileTestJava NO-SOURCE
+> Task :core:common:testClasses UP-TO-DATE
+> Task :core:security:mergeDebugUnitTestResources
+> Task :spike:compileKotlin
+> Task :core:common:test
+> Task :spike:compileJava NO-SOURCE
+> Task :spike:classes UP-TO-DATE
+> Task :spike:jar UP-TO-DATE
+
+> Task :core:protocol:compileTestKotlin
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/core/protocol/src/test/kotlin/com/zcode/android/core/protocol/GoldenVectorTest.kt:80:33 This declaration needs opt-in. Its usage should be marked with '@kotlinx.serialization.ExperimentalSerializationApi' or '@OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)'
+
+> Task :core:security:mergeDebugUnitTestManifest
+
+> Task :features:conversation:compileDebugKotlin
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/features/conversation/src/main/kotlin/com/zcode/android/features/conversation/ui/WriteComponents.kt:679:39 'val Icons.Filled.Send: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Send.
+
+> Task :core:protocol:compileTestJava NO-SOURCE
+> Task :core:protocol:testClasses UP-TO-DATE
+
+> Task :domain:compileTestKotlin
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/domain/src/test/kotlin/com/zcode/android/domain/PermissionStateMachineTest.kt:147:35 Cast is redundant.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/domain/src/test/kotlin/com/zcode/android/domain/PermissionStateMachineTest.kt:151:52 Cast is redundant.
+
+> Task :core:notifications:compileDebugUnitTestKotlin
+> Task :core:protocol:test
+> Task :features:conversation:compileDebugJavaWithJavac NO-SOURCE
+> Task :features:conversation:bundleLibRuntimeToJarDebug
+> Task :features:conversation:bundleLibCompileToJarDebug
+> Task :features:conversation:processDebugJavaRes
+> Task :domain:compileTestJava NO-SOURCE
+> Task :domain:testClasses UP-TO-DATE
+> Task :spike:compileTestKotlin
+> Task :domain:test
+> Task :spike:compileTestJava NO-SOURCE
+> Task :spike:testClasses UP-TO-DATE
+> Task :spike:test
+> Task :core:notifications:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :core:notifications:processDebugUnitTestJavaRes
+> Task :core:notifications:testDebugUnitTest
+> Task :core:notifications:test
+> Task :core:security:processDebugUnitTestManifest
+> Task :core:security:generateDebugUnitTestAssets UP-TO-DATE
+> Task :core:security:javaPreCompileDebugUnitTest
+> Task :core:security:mergeDebugUnitTestAssets
+> Task :core:transport:processTestResources NO-SOURCE
+> Task :core:ui:preDebugUnitTestBuild UP-TO-DATE
+> Task :core:ui:mapDebugUnitTestSourceSetPaths
+> Task :core:ui:generateDebugUnitTestResources
+> Task :core:ui:checkDebugUnitTestAarMetadata
+> Task :core:security:processDebugUnitTestResources
+> Task :core:ui:mergeDebugUnitTestResources
+> Task :core:security:packageDebugUnitTestForUnitTest
+> Task :core:security:generateDebugUnitTestConfig
+> Task :core:ui:mergeDebugUnitTestManifest
+> Task :core:ui:processDebugUnitTestManifest
+> Task :core:ui:generateDebugUnitTestAssets UP-TO-DATE
+> Task :core:ui:javaPreCompileDebugUnitTest
+> Task :core:ui:mergeDebugUnitTestAssets
+> Task :features:conversation:preDebugUnitTestBuild UP-TO-DATE
+> Task :core:ui:processDebugUnitTestResources
+> Task :features:conversation:checkDebugUnitTestAarMetadata
+> Task :core:ui:packageDebugUnitTestForUnitTest
+> Task :core:ui:generateDebugUnitTestConfig
+> Task :features:conversation:mapDebugUnitTestSourceSetPaths
+> Task :features:conversation:generateDebugUnitTestResources
+> Task :features:conversation:mergeDebugUnitTestResources
+
+> Task :core:security:compileDebugUnitTestKotlin
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/core/security/src/test/kotlin/com/zcode/android/core/security/CredentialVaultTest.kt:136:173 This class is not recommended for use in Kotlin. Use 'kotlin.Any' instead.
+
+> Task :features:conversation:mergeDebugUnitTestManifest
+> Task :features:conversation:processDebugUnitTestManifest
+> Task :features:conversation:generateDebugUnitTestAssets UP-TO-DATE
+> Task :features:conversation:javaPreCompileDebugUnitTest
+
+> Task :core:ui:compileDebugUnitTestKotlin
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/core/ui/src/test/kotlin/com/zcode/android/core/ui/components/DiffRendererTest.kt:28:29 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/core/ui/src/test/kotlin/com/zcode/android/core/ui/components/MotionAndLocalizationTest.kt:29:16 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/core/ui/src/test/kotlin/com/zcode/android/core/ui/components/MotionAndLocalizationTest.kt:120:16 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+
+> Task :features:conversation:mergeDebugUnitTestAssets
+> Task :core:security:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :features:conversation:processDebugUnitTestResources
+> Task :core:security:processDebugUnitTestJavaRes
+
+> Task :core:transport:compileTestKotlin
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/core/transport/src/test/kotlin/com/zcode/android/core/transport/CorpusReplayTest.kt:104:26 Unnecessary non-null assertion (!!) on a non-null receiver of type 'AppError'.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/core/transport/src/test/kotlin/com/zcode/android/core/transport/DirectTransportTest.kt:150:59 Cast is redundant.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/core/transport/src/test/kotlin/com/zcode/android/core/transport/DirectTransportTest.kt:168:64 Cast is redundant.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/core/transport/src/test/kotlin/com/zcode/android/core/transport/DirectTransportTest.kt:225:37 Cast is redundant.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/core/transport/src/test/kotlin/com/zcode/android/core/transport/DirectTransportTest.kt:317:34 Cast is redundant.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/core/transport/src/test/kotlin/com/zcode/android/core/transport/DirectTransportTest.kt:336:56 Cast is redundant.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/core/transport/src/test/kotlin/com/zcode/android/core/transport/RelayTransportTest.kt:84:36 Unnecessary non-null assertion (!!) on a non-null receiver of type 'CapabilitySnapshot'.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/core/transport/src/test/kotlin/com/zcode/android/core/transport/RelayTransportTest.kt:145:59 Cast is redundant.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/core/transport/src/test/kotlin/com/zcode/android/core/transport/RelayTransportTest.kt:165:59 Cast is redundant.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/core/transport/src/test/kotlin/com/zcode/android/core/transport/RelayTransportTest.kt:196:32 Condition is always 'true'.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/core/transport/src/test/kotlin/com/zcode/android/core/transport/RelayTransportTest.kt:235:39 Unnecessary non-null assertion (!!) on a non-null receiver of type 'AppError'.
+
+> Task :data:compileDebugKotlin
+> Task :core:security:testDebugUnitTest
+> Task :core:security:test
+> Task :core:transport:compileTestJava NO-SOURCE
+> Task :core:transport:testClasses UP-TO-DATE
+
+> Task :data:compileDebugKotlin
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/data/src/main/kotlin/com/zcode/android/data/session/RecoveryCoordinator.kt:105:5 'open' has no effect on a final class.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/data/src/main/kotlin/com/zcode/android/data/session/RecoveryCoordinator.kt:114:5 'open' has no effect on a final class.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/data/src/main/kotlin/com/zcode/android/data/store/DataStoreRepositories.kt:67:37 Elvis operator (?:) always returns the left operand of non-nullable type 'Long'.
+
+> Task :core:transport:test
+> Task :data:compileDebugJavaWithJavac
+> Task :data:processDebugJavaRes
+> Task :core:ui:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :core:ui:processDebugUnitTestJavaRes
+> Task :data:bundleLibRuntimeToJarDebug
+> Task :data:bundleLibCompileToJarDebug
+> Task :core:ui:testDebugUnitTest
+> Task :data:createFullJarDebug
+> Task :data:extractIncludeDebugUnitTestProto
+> Task :data:generateDebugUnitTestProto NO-SOURCE
+> Task :data:kspDebugUnitTestKotlin
+> Task :core:ui:test
+> Task :features:conversation:packageDebugUnitTestForUnitTest
+> Task :features:files:preDebugUnitTestBuild UP-TO-DATE
+> Task :features:conversation:generateDebugUnitTestConfig
+> Task :features:files:mapDebugUnitTestSourceSetPaths
+> Task :features:files:generateDebugUnitTestResources
+> Task :features:files:checkDebugUnitTestAarMetadata
+> Task :features:files:mergeDebugUnitTestResources
+> Task :features:files:mergeDebugUnitTestManifest
+> Task :features:files:processDebugUnitTestManifest
+> Task :features:files:generateDebugUnitTestAssets UP-TO-DATE
+> Task :features:files:javaPreCompileDebugUnitTest
+> Task :features:files:mergeDebugUnitTestAssets
+> Task :features:git:preDebugUnitTestBuild UP-TO-DATE
+> Task :features:git:mapDebugUnitTestSourceSetPaths
+> Task :features:git:checkDebugUnitTestAarMetadata
+> Task :features:git:generateDebugUnitTestResources
+> Task :features:files:processDebugUnitTestResources
+> Task :features:files:compileDebugUnitTestKotlin NO-SOURCE
+> Task :features:files:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :features:files:packageDebugUnitTestForUnitTest
+> Task :features:files:generateDebugUnitTestConfig
+> Task :features:files:processDebugUnitTestJavaRes NO-SOURCE
+> Task :features:files:testDebugUnitTest NO-SOURCE
+> Task :features:files:test UP-TO-DATE
+> Task :features:git:mergeDebugUnitTestResources
+> Task :features:git:mergeDebugUnitTestManifest
+> Task :features:git:processDebugUnitTestManifest
+> Task :features:git:generateDebugUnitTestAssets UP-TO-DATE
+> Task :features:git:javaPreCompileDebugUnitTest
+> Task :features:git:mergeDebugUnitTestAssets
+> Task :features:pairing:preDebugUnitTestBuild UP-TO-DATE
+> Task :features:pairing:mapDebugUnitTestSourceSetPaths
+> Task :features:pairing:generateDebugUnitTestResources
+> Task :features:pairing:checkDebugUnitTestAarMetadata
+> Task :features:git:processDebugUnitTestResources
+> Task :features:git:compileDebugUnitTestKotlin NO-SOURCE
+> Task :features:git:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :features:git:packageDebugUnitTestForUnitTest
+> Task :features:git:processDebugUnitTestJavaRes NO-SOURCE
+> Task :features:git:generateDebugUnitTestConfig
+> Task :features:pairing:mergeDebugUnitTestResources
+
+> Task :features:conversation:compileDebugUnitTestKotlin
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/features/conversation/src/test/kotlin/com/zcode/android/features/conversation/ApprovalsA11yTest.kt:37:16 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/features/conversation/src/test/kotlin/com/zcode/android/features/conversation/ApprovalsA11yTest.kt:126:16 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/features/conversation/src/test/kotlin/com/zcode/android/features/conversation/ApprovalsScreenUiTest.kt:32:16 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/features/conversation/src/test/kotlin/com/zcode/android/features/conversation/ConversationPipelineTest.kt:41:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/features/conversation/src/test/kotlin/com/zcode/android/features/conversation/ConversationPipelineTest.kt:45:5 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/features/conversation/src/test/kotlin/com/zcode/android/features/conversation/ConversationUiTest.kt:46:16 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/features/conversation/src/test/kotlin/com/zcode/android/features/conversation/ConversationWriteUiTest.kt:37:16 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/features/conversation/src/test/kotlin/com/zcode/android/features/conversation/VoiceInputTest.kt:31:16 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+
+> Task :features:pairing:mergeDebugUnitTestManifest
+> Task :features:git:testDebugUnitTest NO-SOURCE
+> Task :features:git:test UP-TO-DATE
+> Task :features:pairing:processDebugUnitTestManifest
+> Task :features:pairing:generateDebugUnitTestAssets UP-TO-DATE
+> Task :features:pairing:javaPreCompileDebugUnitTest
+> Task :features:pairing:mergeDebugUnitTestAssets
+> Task :features:tasks:preDebugUnitTestBuild UP-TO-DATE
+> Task :features:tasks:mapDebugUnitTestSourceSetPaths
+> Task :features:tasks:generateDebugUnitTestResources
+> Task :features:tasks:checkDebugUnitTestAarMetadata
+> Task :features:pairing:processDebugUnitTestResources
+> Task :features:conversation:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :features:conversation:processDebugUnitTestJavaRes
+> Task :features:tasks:mergeDebugUnitTestResources
+> Task :app:compileDebugKotlin
+> Task :data:compileDebugUnitTestKotlin
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/data/src/test/kotlin/com/zcode/android/data/JournalRepositoryTest.kt:119:38 Unnecessary non-null assertion (!!) on a non-null receiver of type 'RecoveryJournal'.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/data/src/test/kotlin/com/zcode/android/data/RecoveryScenarioMatrixTest.kt:295:29 Unnecessary non-null assertion (!!) on a non-null receiver of type 'RecoveryScenarioMatrixTest.Harness'.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/data/src/test/kotlin/com/zcode/android/data/session/Phase9ToolsTest.kt:239:42 Cast is redundant.
+
+> Task :features:conversation:testDebugUnitTest
+
+> Task :app:compileDebugKotlin
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/app/src/main/kotlin/com/zcode/android/app/connect/ConnectionHub.kt:262:25 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/app/src/main/kotlin/com/zcode/android/app/nav/ZCodeApp.kt:152:32 Unnecessary safe call on a non-null receiver of type 'PairingFlow.LinkView'.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/app/src/main/kotlin/com/zcode/android/app/pairing/DefaultPairingPort.kt:58:37 Cast is redundant.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/app/src/main/kotlin/com/zcode/android/app/pairing/DefaultPairingPort.kt:74:29 Cast is redundant.
+
+> Task :app:compileDebugJavaWithJavac
+> Task :app:processDebugJavaRes
+> Task :data:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :data:processDebugUnitTestJavaRes
+> Task :app:bundleDebugClassesToCompileJar
+> Task :app:bundleDebugClassesToRuntimeJar
+> Task :data:testDebugUnitTest
+> Task :data:test
+> Task :features:conversation:test
+> Task :features:pairing:packageDebugUnitTestForUnitTest
+> Task :features:pairing:generateDebugUnitTestConfig
+> Task :features:tasks:mergeDebugUnitTestManifest
+> Task :features:tasks:processDebugUnitTestManifest
+> Task :features:tasks:generateDebugUnitTestAssets UP-TO-DATE
+> Task :features:tasks:javaPreCompileDebugUnitTest
+> Task :features:tasks:mergeDebugUnitTestAssets
+> Task :features:terminal:preDebugUnitTestBuild UP-TO-DATE
+> Task :features:terminal:mapDebugUnitTestSourceSetPaths
+> Task :features:terminal:generateDebugUnitTestResources
+> Task :features:terminal:checkDebugUnitTestAarMetadata
+> Task :features:tasks:processDebugUnitTestResources
+> Task :features:terminal:mergeDebugUnitTestResources
+> Task :features:tasks:packageDebugUnitTestForUnitTest
+> Task :features:tasks:generateDebugUnitTestConfig
+> Task :features:terminal:mergeDebugUnitTestManifest
+> Task :features:terminal:processDebugUnitTestManifest
+> Task :features:terminal:generateDebugUnitTestAssets UP-TO-DATE
+> Task :features:terminal:javaPreCompileDebugUnitTest
+> Task :features:terminal:mergeDebugUnitTestAssets
+> Task :tools:mockzcode:processTestResources NO-SOURCE
+> Task :features:terminal:processDebugUnitTestResources
+> Task :features:terminal:compileDebugUnitTestKotlin NO-SOURCE
+> Task :features:terminal:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :features:terminal:packageDebugUnitTestForUnitTest
+> Task :features:terminal:generateDebugUnitTestConfig
+> Task :features:terminal:processDebugUnitTestJavaRes NO-SOURCE
+> Task :features:terminal:testDebugUnitTest NO-SOURCE
+> Task :features:terminal:test UP-TO-DATE
+
+> Task :features:pairing:compileDebugUnitTestKotlin
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/features/pairing/src/test/kotlin/com/zcode/android/features/pairing/PairingScreensUiTest.kt:37:19 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/features/pairing/src/test/kotlin/com/zcode/android/features/pairing/QrScannerPermissionGateTest.kt:33:16 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+
+> Task :tools:mockzcode:compileTestKotlin
+> Task :tools:mockzcode:compileTestJava NO-SOURCE
+> Task :features:pairing:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :features:pairing:processDebugUnitTestJavaRes
+
+> Task :features:tasks:compileDebugUnitTestKotlin
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/features/tasks/src/test/kotlin/com/zcode/android/features/tasks/AccessibilityAuditTest.kt:41:16 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/features/tasks/src/test/kotlin/com/zcode/android/features/tasks/LocalizationSnapshotTest.kt:33:16 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/features/tasks/src/test/kotlin/com/zcode/android/features/tasks/TaskListUiTest.kt:35:16 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/features/tasks/src/test/kotlin/com/zcode/android/features/tasks/TaskListUiTest.kt:239:16 'fun createComposeRule(effectContext: CoroutineContext = ...): ComposeContentTestRule' is deprecated. Use `androidx.compose.ui.test.junit4.v2.createComposeRule` instead. The v2 APIs use StandardTestDispatcher instead of UnconfinedTestDispatcher, which aligns with standard coroutine behavior by queuing tasks rather than executing them immediately. Tests relying on immediate execution may require explicit synchronization. Please refer to the migration guide for more details.
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/features/tasks/src/test/kotlin/com/zcode/android/features/tasks/TasksViewModelTest.kt:87:13 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+w: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/features/tasks/src/test/kotlin/com/zcode/android/features/tasks/TasksViewModelTest.kt:91:9 This declaration needs opt-in. Its usage should be marked with '@kotlinx.coroutines.ExperimentalCoroutinesApi' or '@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)'
+
+> Task :app:compileDebugUnitTestKotlin
+> Task :features:pairing:testDebugUnitTest
+> Task :app:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processDebugUnitTestJavaRes
+> Task :app:testDebugUnitTest
+> Task :app:test
+> Task :features:pairing:test
+> Task :features:tasks:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :features:tasks:processDebugUnitTestJavaRes
+> Task :features:tasks:testDebugUnitTest
+> Task :features:tasks:test
+> Task :tools:mockzcode:testClasses UP-TO-DATE
+> Task :tools:mockzcode:test
+
+[Incubating] Problems report is available at: file:///Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 9m 10s
+377 actionable tasks: 353 executed, 24 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.7.1/userguide/configuration_cache_enabling.html

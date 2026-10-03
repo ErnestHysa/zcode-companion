@@ -34,6 +34,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.platform.testTag
+import com.zcode.android.features.conversation.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
@@ -61,7 +63,7 @@ private val ToolCardRadius = 10.dp
 @Composable
 fun YouBlock(text: String, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth().testTag("row_user")) {
-        Overline("YOU", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Overline(stringResource(R.string.row_you), color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(4.dp))
         Box(
             modifier = Modifier
@@ -82,7 +84,7 @@ fun YouBlock(text: String, modifier: Modifier = Modifier) {
 @Composable
 fun AgentProse(text: String, streaming: Boolean, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth().testTag("row_agent")) {
-        Overline("AGENT", color = LocalZCodeColors.current.accent)
+        Overline(stringResource(R.string.row_agent), color = LocalZCodeColors.current.accent)
         Spacer(Modifier.height(4.dp))
         MarkdownText(
             text = text,
@@ -98,7 +100,7 @@ fun AgentProse(text: String, streaming: Boolean, modifier: Modifier = Modifier) 
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = "Generating",
+                    text = stringResource(R.string.row_generating),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -115,6 +117,8 @@ fun ToolCard(
 ) {
     val tokens = toolStatusPresentation(row.status)
     var expanded by rememberSaveable(row.rowId) { mutableStateOf(false) }
+    val expandWord = stringResource(if (expanded) R.string.a11y_collapse else R.string.a11y_expand)
+    val toolA11y = stringResource(R.string.row_tool_a11y, row.toolName, tokens.first, expandWord)
     val railColor = tokens.second
     val meta = toolMetaLine(row)
     Column(
@@ -126,7 +130,7 @@ fun ToolCard(
             .padding(start = 15.dp, end = 12.dp, top = 12.dp, bottom = 12.dp)
             .testTag("row_tool_${row.toolName}")
             .semantics(mergeDescendants = true) {
-                contentDescription = "Tool ${row.toolName}, ${tokens.first}. Tap to ${if (expanded) "collapse" else "expand"}."
+                contentDescription = toolA11y
             },
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -164,14 +168,14 @@ fun ToolCard(
         }
         if (expanded) {
             Spacer(Modifier.height(8.dp))
-            MonospaceDetail(label = "INPUT", content = row.inputText.ifBlank { "—" })
+            MonospaceDetail(label = stringResource(R.string.row_input), content = row.inputText.ifBlank { "—" })
             row.outputPreview?.let { preview ->
                 Spacer(Modifier.height(6.dp))
-                MonospaceDetail(label = "OUTPUT", content = preview.toString().take(2_000))
+                MonospaceDetail(label = stringResource(R.string.row_output), content = preview.toString().take(2_000))
             }
             row.error?.let { err ->
                 Spacer(Modifier.height(6.dp))
-                MonospaceDetail(label = "ERROR", content = "${err.code}: ${err.message}".take(2_000))
+                MonospaceDetail(label = stringResource(R.string.row_error), content = "${err.code}: ${err.message}".take(2_000))
             }
         }
     }
@@ -189,6 +193,8 @@ fun ReasoningRow(
     LaunchedEffect(row.state) {
         if (row.state == ConversationRow.TextState.STREAMING) expanded = true
     }
+    val reasoningWord = stringResource(if (expanded) R.string.a11y_collapse else R.string.a11y_expand)
+    val reasoningA11y = stringResource(R.string.row_reasoning_a11y, reasoningWord)
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -196,12 +202,12 @@ fun ReasoningRow(
             .padding(vertical = 2.dp)
             .testTag("row_reasoning")
             .semantics(mergeDescendants = true) {
-                contentDescription = "Agent reasoning. Tap to ${if (expanded) "collapse" else "expand"}."
+                contentDescription = reasoningA11y
             },
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = "THINKING",
+                text = stringResource(R.string.row_thinking),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -236,7 +242,7 @@ fun TurnSeparator(
             Spacer(Modifier.width(8.dp))
             val fc = row.fileChanges
             val bits = buildList {
-                add("Turn")
+                add(stringResource(R.string.row_turn))
                 val activeMs = row.activeMs
                 if (activeMs != null && activeMs > 0) add("${activeMs / 1000}s")
             }
@@ -301,7 +307,7 @@ fun QuietMetaRow(
 @Composable
 fun UnknownKindRow(row: ConversationRow.Unknown, modifier: Modifier = Modifier) {
     QuietMetaRow(
-        label = "Unsupported entry",
+        label = stringResource(R.string.row_unsupported),
         detail = row.unknownKind,
         modifier = modifier,
         tag = "row_unknown",
@@ -325,7 +331,7 @@ fun CodeBlock(code: String, lang: String? = null, modifier: Modifier = Modifier,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "CODE" + if (lang != null) " · $lang" else "",
+                    text = stringResource(R.string.row_code) + if (lang != null) " · $lang" else "",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
@@ -448,12 +454,12 @@ fun toolStatusPresentation(status: ConversationRow.ToolCallStatus): Pair<String,
     return when (status) {
         ConversationRow.ToolCallStatus.RUNNING,
         ConversationRow.ToolCallStatus.INPUT_STREAMING,
-        -> "Running" to c.railRunning
-        ConversationRow.ToolCallStatus.PENDING_APPROVAL -> "Needs approval" to c.railWaiting
-        ConversationRow.ToolCallStatus.SUCCESS -> "Completed" to c.statusSuccess
-        ConversationRow.ToolCallStatus.ERROR -> "Failed" to c.statusError
-        ConversationRow.ToolCallStatus.CANCELLED -> "Cancelled" to c.railDone
-        ConversationRow.ToolCallStatus.UNKNOWN -> "Unknown" to c.railDone
+        -> stringResource(R.string.tool_state_running) to c.railRunning
+        ConversationRow.ToolCallStatus.PENDING_APPROVAL -> stringResource(R.string.tool_state_needs_approval) to c.railWaiting
+        ConversationRow.ToolCallStatus.SUCCESS -> stringResource(R.string.tool_state_completed) to c.statusSuccess
+        ConversationRow.ToolCallStatus.ERROR -> stringResource(R.string.tool_state_failed) to c.statusError
+        ConversationRow.ToolCallStatus.CANCELLED -> stringResource(R.string.tool_state_cancelled) to c.railDone
+        ConversationRow.ToolCallStatus.UNKNOWN -> stringResource(R.string.tool_state_unknown) to c.railDone
     }
 }
 

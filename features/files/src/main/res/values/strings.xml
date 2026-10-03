@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="files_title">Files</string>
+    <string name="files_no_workspace">No workspace connected.</string>
+    <string name="files_up">Up</string>
+    <string name="files_loading">Loading…</string>
+    <string name="files_download">Download</string>
+    <string name="files_load_more">Load more (%1$d/%2$d)</string>
+    <string name="files_dialog_title">File</string>
+    <string name="files_ok">OK</string>
+</resources>

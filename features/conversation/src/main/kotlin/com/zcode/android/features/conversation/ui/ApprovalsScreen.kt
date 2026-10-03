@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -32,6 +33,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import com.zcode.android.features.conversation.R
+import androidx.compose.ui.res.stringResource
+import com.zcode.android.core.ui.components.relativeTimeLabel
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -75,19 +79,19 @@ fun ApprovalsScreen(
                 IconButton(onClick = onBack, modifier = Modifier.testTag("approvals_back")) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
+                        contentDescription = stringResource(com.zcode.android.core.ui.R.string.action_back),
                         tint = MaterialTheme.colorScheme.onSurface,
                     )
                 }
                 Column(Modifier.weight(1f)) {
                     Text(
-                        text = "Approvals",
+                        text = stringResource(R.string.approvals_title),
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.testTag("approvals-title"),
                     )
                     Text(
-                        text = "Requests waiting across your tasks",
+                        text = stringResource(R.string.approvals_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -95,7 +99,7 @@ fun ApprovalsScreen(
             }
             if (phase != com.zcode.android.domain.state.ConnectionPhase.CONNECTED) {
                 Text(
-                    text = "Offline — answers are blocked until the connection returns. Nothing is queued.",
+                    text = stringResource(R.string.approvals_offline_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
@@ -112,10 +116,10 @@ fun ApprovalsScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
-                    Text("Nothing needs you", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.approvals_empty_title), style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Permission requests and questions from your tasks appear here.",
+                        stringResource(R.string.approvals_empty_body),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -138,11 +142,11 @@ fun ApprovalsScreen(
                         ) {
                             Column(Modifier.padding(12.dp)) {
                                 Text(
-                                    text = if (isPermission) "Permission — ${record.toolName ?: "tool"}" else "Question",
+                                    text = if (isPermission) stringResource(R.string.approvals_permission, record.toolName ?: stringResource(R.string.tool_fallback)) else stringResource(R.string.approvals_question),
                                     style = MaterialTheme.typography.labelLarge,
                                 )
                                 Text(
-                                    text = "task ${record.sessionId?.take(16) ?: "?"} · ${ageOf(record.createdAtMs)}",
+                                    text = stringResource(R.string.approvals_task_ref, record.sessionId?.take(16) ?: "?", relativeTimeLabel(record.createdAtMs) ?: ""),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontFamily = FontFamily.Monospace,
@@ -166,18 +170,22 @@ fun ApprovalsScreen(
                                             },
                                             enabled = busyId == null,
                                             modifier = Modifier
+                                                // §30: approval actions ≥ 56 dp.
+                                                .heightIn(min = 56.dp)
                                                 .testTag("approvals_allow_once_${record.interactionId.take(12)}"),
-                                        ) { Text("Allow once") }
+                                        ) { Text(stringResource(com.zcode.android.core.ui.R.string.action_allow_once)) }
                                         Spacer(Modifier.height(0.dp))
                                         androidx.compose.foundation.layout.PaddingValues(4.dp)
                                         OutlinedButton(
                                             onClick = { denyTarget = record },
                                             enabled = busyId == null,
-                                            modifier = Modifier.testTag("approvals_deny_${record.interactionId.take(12)}"),
-                                        ) { Text("Deny") }
+                                            modifier = Modifier
+                                                .heightIn(min = 56.dp)
+                                                .testTag("approvals_deny_${record.interactionId.take(12)}"),
+                                        ) { Text(stringResource(com.zcode.android.core.ui.R.string.action_deny)) }
                                     } else {
                                         TextButton(onClick = { record.sessionId?.let(onOpenTask) }) {
-                                            Text("Open task to answer")
+                                            Text(stringResource(R.string.approvals_open_task))
                                         }
                                     }
                                 }
@@ -193,8 +201,8 @@ fun ApprovalsScreen(
         // §20.2: Deny ALWAYS confirms.
         AlertDialog(
             onDismissRequest = { denyTarget = null },
-            title = { Text("Deny this request?") },
-            text = { Text("The agent is told no for this request (${target.toolName ?: "tool"}).") },
+            title = { Text(stringResource(R.string.approvals_deny_title)) },
+            text = { Text(stringResource(R.string.approvals_deny_body, target.toolName ?: stringResource(R.string.tool_fallback))) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -209,18 +217,10 @@ fun ApprovalsScreen(
                         }
                     },
                     modifier = Modifier.testTag("approvals_deny_confirm"),
-                ) { Text("Deny") }
+                ) { Text(stringResource(com.zcode.android.core.ui.R.string.action_deny)) }
             },
-            dismissButton = { TextButton(onClick = { denyTarget = null }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { denyTarget = null }) { Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel)) } },
         )
     }
 }
 
-private fun ageOf(createdAtMs: Long): String {
-    val seconds = (System.currentTimeMillis() - createdAtMs) / 1000
-    return when {
-        seconds < 60 -> "${seconds}s ago"
-        seconds < 3600 -> "${seconds / 60}m ago"
-        else -> "${seconds / 3600}h ago"
-    }
-}

@@ -191,12 +191,19 @@ class AppContainer(activity: FragmentActivity) {
     init {
         NotificationChannels.ensure(activity)
         notifications.start()
+        // §43.2-11.4: the widget is a broker-state consumer (event-driven updates).
+        com.zcode.android.app.widget.PendingApprovalsWidgetUpdater(
+            context = activity.applicationContext,
+            broker = stores.notificationBroker,
+            scope = stores.appScope,
+        ).start()
         // §15-S12: the recovery coordinator's reconciliation port is the broker.
         hub.notificationRecords = notifications.recordsPort()
         // §24.5/§25.2: the FGS notification names the paired desktop; the tap target
         // is the launcher activity. The worker hook is the §25.3 process bridge.
         com.zcode.android.core.notifications.LiveConnectionService.endpointLabelProvider = {
-            vault.loadMetadata()?.desktopName ?: "ZCode desktop"
+            vault.loadMetadata()?.desktopName
+                ?: activity.getString(com.zcode.android.core.notifications.R.string.fgs_default_desktop)
         }
         com.zcode.android.core.notifications.LiveConnectionService.LAUNCHER_ACTIVITY = MainActivity::class.java
         com.zcode.android.core.notifications.ReconnectProbeWorker.ProbeHook.probe = {

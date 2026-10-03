@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tasks_title">Tasks</string>
+    <string name="tasks_approvals_a11y">Approvals</string>
+    <string name="tasks_settings_a11y">Settings</string>
+    <string name="tasks_ws_all">All</string>
+    <string name="tasks_workspace_kicker">WORKSPACE</string>
+    <string name="tasks_empty_title">No tasks yet</string>
+    <string name="tasks_empty_body">Tasks appear here when you start work in ZCode on your desktop. Pull to refresh, or start a task on the desktop.</string>
+    <string name="tasks_error_title">Couldn\'t refresh tasks</string>
+    <string name="tasks_stale_title">Connection lost — showing cached tasks</string>
+    <string name="tasks_reconnecting_to">Reconnecting to %1$s…</string>
+    <string name="tasks_your_desktop">your desktop</string>
+    <string name="tasks_repair_title">Pairing looks stale</string>
+    <string name="tasks_repair_body">The relay no longer sees your desktop for this pairing. On the Mac: open the phone icon in ZCode, press Stop, then show a fresh QR and scan it.</string>
+    <string name="tasks_repair_action">Re-pair</string>
+    <string name="tasks_new_task">+ New task</string>
+    <string name="tasks_creating">Creating…</string>
+    <string name="tasks_created">Task created</string>
+    <string name="create_task_title">New task</string>
+    <string name="create_no_workspaces">No workspaces offered by the desktop yet.</string>
+    <string name="create_pick_workspace">Choose a workspace</string>
+    <string name="create_hint">Describe the task — this starts the agent</string>
+    <string name="create_confirm">Create</string>
+</resources>

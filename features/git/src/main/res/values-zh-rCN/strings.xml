@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="git_title">Git</string>
+    <string name="git_unavailable">此工作区无法使用 Git（不是仓库，或此连接未开放 git 通道）。</string>
+</resources>

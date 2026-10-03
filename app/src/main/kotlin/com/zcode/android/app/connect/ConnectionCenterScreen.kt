@@ -31,13 +31,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zcode.android.app.R
 import com.zcode.android.core.ui.components.StatusTone
+import com.zcode.android.core.ui.components.errorUserMessage
+import com.zcode.android.core.ui.components.relativeTimeLabel
 import com.zcode.android.core.ui.components.toneColor
 import com.zcode.android.domain.state.ConnectionPhase
-import com.zcode.android.features.tasks.ui.RelativeTime
 
 /**
  * Connection center (§43.2-6.5; §18.3 "Connection center"): the §14.4.1 machine
@@ -67,9 +70,9 @@ fun ConnectionCenterScreen(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack, modifier = Modifier.testTag("connection_back")) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(com.zcode.android.core.ui.R.string.action_back), tint = MaterialTheme.colorScheme.onSurface)
                 }
-                Text("Connection", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
+                Text(stringResource(R.string.connection_title), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
             }
             Column(Modifier.padding(horizontal = 16.dp)) {
                 val current = currentChrome(phase)
@@ -100,7 +103,7 @@ fun ConnectionCenterScreen(
                 endpointName?.let {
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "$it" + (desktopVersion?.let { v -> " · desktop $v" } ?: ""),
+                        text = it + (desktopVersion?.let { v -> stringResource(R.string.conn_desktop_version, v) } ?: ""),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -113,19 +116,21 @@ fun ConnectionCenterScreen(
                 ) {
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        text = "Desktop $desktopVersion is newer than the version this app was tested against " +
-                            "(${com.zcode.android.core.security.pairing.CompatibilityGate.MAX_TESTED_DESKTOP}) — " +
-                            "if connections keep failing, this may be why.",
+                        text = stringResource(
+                            R.string.conn_compat_warning,
+                            desktopVersion ?: "",
+                            com.zcode.android.core.security.pairing.CompatibilityGate.MAX_TESTED_DESKTOP,
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.testTag("connection_compat_warning"),
                     )
                 }
                 lastRefreshAtMs?.let {
-                    val ago = RelativeTime.label(it)
+                    val ago = relativeTimeLabel(it)
                     if (ago != null) {
                         Text(
-                            text = "Last refreshed $ago ago",
+                            text = stringResource(R.string.conn_last_refreshed, ago),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -144,24 +149,24 @@ fun ConnectionCenterScreen(
                         .testTag("connection_takeover"),
                 ) {
                     Text(
-                        "Another ZCode Remote page took over this connection",
+                        stringResource(R.string.conn_takeover_title),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Only one phone can be connected at a time. Reconnect to take over.",
+                        stringResource(R.string.conn_takeover_body),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TextButton(onClick = { onRetry(); onDismissError() }) { Text("Reconnect") }
-                        TextButton(onClick = onDismissError) { Text("Dismiss") }
+                        TextButton(onClick = { onRetry(); onDismissError() }) { Text(stringResource(R.string.conn_takeover_reconnect)) }
+                        TextButton(onClick = onDismissError) { Text(stringResource(R.string.conn_takeover_dismiss)) }
                     }
                 }
             } else if (lastError != null) {
                 Text(
-                    text = lastError.userMessage,
+                    text = errorUserMessage(lastError),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(horizontal = 16.dp).testTag("connection_error"),
@@ -171,12 +176,12 @@ fun ConnectionCenterScreen(
             Spacer(Modifier.height(8.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Text(
-                text = "Connection states",
+                text = stringResource(R.string.conn_states_title),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.padding(16.dp),
             )
-            MACHINE_STATES.forEach { (candidatePhase, meaning) ->
+            machineStates().forEach { (candidatePhase, meaning) ->
                 StateRow(candidatePhase, meaning, active = candidatePhase == phase)
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             }
@@ -184,7 +189,7 @@ fun ConnectionCenterScreen(
                 TextButton(
                     onClick = onRetry,
                     modifier = Modifier.padding(16.dp).testTag("connection_retry"),
-                ) { Text("Retry connection") }
+                ) { Text(stringResource(R.string.conn_retry_action)) }
             }
             Spacer(Modifier.height(24.dp))
         }
@@ -193,30 +198,32 @@ fun ConnectionCenterScreen(
 
 private data class Chrome(val label: String, val tone: StatusTone, val progress: Boolean)
 
+@Composable
 private fun currentChrome(phase: ConnectionPhase): Chrome = when (phase) {
-    ConnectionPhase.CONNECTED -> Chrome("Connected", StatusTone.ACCENT, false)
-    ConnectionPhase.RECOVERING -> Chrome("Synchronizing", StatusTone.INFO, true)
-    ConnectionPhase.RECONNECTING -> Chrome("Reconnecting", StatusTone.WAITING, true)
+    ConnectionPhase.CONNECTED -> Chrome(stringResource(R.string.conn_center_connected), StatusTone.ACCENT, false)
+    ConnectionPhase.RECOVERING -> Chrome(stringResource(R.string.conn_center_syncing), StatusTone.INFO, true)
+    ConnectionPhase.RECONNECTING -> Chrome(stringResource(R.string.conn_center_reconnecting), StatusTone.WAITING, true)
     ConnectionPhase.CONNECTING, ConnectionPhase.AUTHENTICATING, ConnectionPhase.PAIRING ->
-        Chrome("Connecting", StatusTone.ACCENT, true)
-    ConnectionPhase.DEGRADED -> Chrome("Disconnected", StatusTone.ERROR, false)
-    ConnectionPhase.FAILED -> Chrome("Connection failed", StatusTone.ERROR, false)
-    ConnectionPhase.UNPAIRED -> Chrome("Not paired", StatusTone.MUTED, false)
-    ConnectionPhase.CLOSED -> Chrome("Closed", StatusTone.MUTED, false)
+        Chrome(stringResource(R.string.conn_center_connecting), StatusTone.ACCENT, true)
+    ConnectionPhase.DEGRADED -> Chrome(stringResource(R.string.conn_center_disconnected), StatusTone.ERROR, false)
+    ConnectionPhase.FAILED -> Chrome(stringResource(R.string.conn_center_failed), StatusTone.ERROR, false)
+    ConnectionPhase.UNPAIRED -> Chrome(stringResource(R.string.conn_center_not_paired), StatusTone.MUTED, false)
+    ConnectionPhase.CLOSED -> Chrome(stringResource(R.string.conn_center_closed), StatusTone.MUTED, false)
 }
 
 /** §14.4.1 states, verbatim exposure (§18.3: "expose §14.4.1 states honestly"). */
-private val MACHINE_STATES: List<Pair<ConnectionPhase, String>> = listOf(
-    ConnectionPhase.UNPAIRED to "No paired desktop. Scan the QR to pair.",
-    ConnectionPhase.PAIRING to "Validating a pairing link.",
-    ConnectionPhase.AUTHENTICATING to "Proving identity to the relay.",
-    ConnectionPhase.CONNECTING to "Opening the workspace bridge.",
-    ConnectionPhase.CONNECTED to "Live. Tasks and conversations stream.",
-    ConnectionPhase.RECONNECTING to "Connection lost — retrying with backoff. Cached data is labeled.",
-    ConnectionPhase.RECOVERING to "Re-syncing after reconnect (snapshot or delta replay).",
-    ConnectionPhase.DEGRADED to "Could not reconnect. Check network; wake the desktop; retry.",
-    ConnectionPhase.FAILED to "Pairing expired or invalid. Re-scan the QR on the desktop.",
-    ConnectionPhase.CLOSED to "Pairing removed from this device.",
+@Composable
+private fun machineStates(): List<Pair<ConnectionPhase, String>> = listOf(
+    ConnectionPhase.UNPAIRED to stringResource(R.string.conn_state_unpaired),
+    ConnectionPhase.PAIRING to stringResource(R.string.conn_state_pairing),
+    ConnectionPhase.AUTHENTICATING to stringResource(R.string.conn_state_authenticating),
+    ConnectionPhase.CONNECTING to stringResource(R.string.conn_state_connecting),
+    ConnectionPhase.CONNECTED to stringResource(R.string.conn_state_connected),
+    ConnectionPhase.RECONNECTING to stringResource(R.string.conn_state_reconnecting),
+    ConnectionPhase.RECOVERING to stringResource(R.string.conn_state_recovering),
+    ConnectionPhase.DEGRADED to stringResource(R.string.conn_state_degraded),
+    ConnectionPhase.FAILED to stringResource(R.string.conn_state_failed),
+    ConnectionPhase.CLOSED to stringResource(R.string.conn_state_closed),
 )
 
 @Composable

@@ -42,6 +42,9 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import com.zcode.android.core.ui.components.rememberReducedMotion
+import com.zcode.android.features.conversation.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zcode.android.core.ui.components.AttentionStrip
@@ -121,7 +124,7 @@ fun ConversationScreen(
             var diffTurn by remember { mutableStateOf<ConversationRow.TurnHeader?>(null) }
             diffTurn?.let { turn ->
                 TurnDiffDialog(
-                    turnLabel = "turn ${turn.rowId}",
+                    turnLabel = stringResource(R.string.conv_turn_label, turn.rowId),
                     rowId = turn.rowId,
                     entityId = turn.base.entityId ?: turn.turnId,
                     provider = turnChangesProvider,
@@ -131,7 +134,7 @@ fun ConversationScreen(
             // Pinned state strips (§15-S1/S9, mockups 09/10/12) — content stays visible.
             if (state.stale) {
                 AttentionStrip(
-                    title = "Showing cached projection · recovering",
+                    title = stringResource(R.string.conv_stale_title),
                     tone = StatusTone.WAITING,
                     modifier = Modifier.testTag("conversation_stale_strip"),
                 )
@@ -165,8 +168,8 @@ fun ConversationScreen(
                 state.taskState == TaskStateMachine.State.WAITING_FOR_USER
             ) {
                 AttentionStrip(
-                    title = "Needs attention",
-                    message = "The agent is waiting — answer above.",
+                    title = stringResource(R.string.conv_attention_title),
+                    message = stringResource(R.string.conv_attention_body),
                     tone = StatusTone.WAITING,
                     modifier = Modifier.testTag("conversation_attention_strip"),
                 )
@@ -194,12 +197,8 @@ fun ConversationScreen(
                         .clickable { onLoadOlder(state.rows.first().rowId) { /* page fetched; list updates via the store */ } },
                 ) {
                     Text(
-                        text = buildString {
-                            append("Load earlier messages")
-                            state.totalRows?.let { total ->
-                                append("  ·  showing latest ${state.rows.size} of $total")
-                            }
-                        },
+                        text = stringResource(R.string.conv_load_earlier) +
+                            (state.totalRows?.let { total -> stringResource(R.string.conv_showing_latest_of, state.rows.size, total) } ?: ""),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -208,9 +207,9 @@ fun ConversationScreen(
             }
 if (state.historyChanged) {
                 AttentionStrip(
-                    title = "History changed on desktop — jumped to latest",
+                    title = stringResource(R.string.conv_history_changed),
                     tone = StatusTone.INFO,
-                    actionLabel = "Dismiss",
+                    actionLabel = stringResource(R.string.action_dismiss),
                     onAction = onDismissHistoryNotice,
                     modifier = Modifier.testTag("conversation_history_strip"),
                 )
@@ -263,13 +262,13 @@ private fun Header(
             IconButton(onClick = onBack, modifier = Modifier.testTag("conversation_back")) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = stringResource(com.zcode.android.core.ui.R.string.action_back),
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = state.task?.title ?: "Conversation",
+                    text = state.task?.title ?: stringResource(R.string.conv_default_title),
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onBackground,
                     maxLines = 1,
@@ -323,10 +322,10 @@ private fun androidx.compose.foundation.layout.ColumnScope.EmptyBody() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text("No messages yet", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground)
+        Text(stringResource(R.string.conv_empty_title), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground)
         Spacer(Modifier.height(8.dp))
         Text(
-            "Agent activity will stream here when the conversation starts.",
+            stringResource(R.string.conv_empty_body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -359,6 +358,8 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
         }
     }
     var followBottom by remember { mutableStateOf(true) }
+    // §30.5: the system "remove animations" switch picks instant snap-scrolls.
+    val reducedMotion = rememberReducedMotion()
 
     // FIELD (vc24 device): the follow flag is driven by USER GESTURE DIRECTION, not
     // by the derived atBottom (which flips during programmatic scrolls and content
@@ -455,17 +456,17 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
             if (state.loadingOlder) {
                 item(key = "older-loading") {
                     Row(Modifier.fillMaxWidth().testTag("conversation_older_loading"), horizontalArrangement = Arrangement.Center) {
-                        Text("Loading earlier messages…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.conv_loading_older), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
             if (state.loadOlderError != null) {
                 item(key = "older-error") {
                     AttentionStrip(
-                        title = "Couldn't load earlier messages",
+                        title = stringResource(R.string.conv_load_older_error),
                         message = state.loadOlderError.userMessage,
                         tone = StatusTone.ERROR,
-                        actionLabel = "Retry",
+                        actionLabel = stringResource(com.zcode.android.core.ui.R.string.action_retry),
                         onAction = { state.rows.firstOrNull()?.let { onRetryOlder(it.rowId) } },
                         modifier = Modifier.testTag("conversation_older_error"),
                     )
@@ -490,7 +491,11 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                     followBottom = true
                     unread = 0
                     scope.launch {
-                        if (state.rows.isNotEmpty()) listState.animateScrollToItem(state.rows.size - 1)
+                        if (state.rows.isNotEmpty()) {
+                            // §30.5: honor the system reduced-motion switch.
+                            if (reducedMotion) listState.scrollToItem(state.rows.size - 1)
+                            else listState.animateScrollToItem(state.rows.size - 1)
+                        }
                     }
                 },
                 modifier = Modifier
@@ -501,7 +506,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             ) {
                 Box {
-                    Icon(imageVector = Icons.Filled.ArrowDownward, contentDescription = "Jump to latest")
+                    Icon(imageVector = Icons.Filled.ArrowDownward, contentDescription = stringResource(R.string.conv_jump_latest))
                     if (unread > 0) {
                         Box(
                             Modifier

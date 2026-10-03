@@ -1,0 +1,192 @@
+# Phase 11 Gate — Polish (perf, a11y, i18n, widget, voice experiment)
+
+| | |
+|---|---|
+| **Phase** | Phase 11 — Polish (§43.2-11) |
+| **Status** | ✅ COMPLETE — PASS WITH KNOWN LIMITATIONS |
+| **Date/time** | 2026-10-03 23-49-25 IST |
+| **Verifier** | model `account:zai-individual-coding-plan/GLM-5.3-Flash`; harness ZCode (session tooling); tests executed by Gradle 9.7.1 + JUnit4/Robolectric/Macrobenchmark 1.5.0 on this machine; macrobenchmarks + instrumented suite on the local ATD API-30 emulator |
+| **Preconditions** | Phases 6–10 features complete ✅ (gates `phase-6…10-gate.md`) |
+
+## 1. What was built (exact scope)
+
+### 11.1 Performance hardening (§28.2; "Macrobenchmark gates; budgets or tickets")
+- **New `:baselineprofile` module** (`com.android.test`, self-instrumenting,
+  ADR-018): `StartupBenchmark` (cold start → task list, StartupTimingMetric,
+  5 iterations) and `ConversationScrollBenchmark` (FrameTimingMetric over a
+  400-row conversation, continuous fling, 3 iterations) — the two §28.2-named
+  gates. MockZCode runs in the BENCHMARK process on loopback (INV-15); the app
+  is seeded once through a benchmark-only, `BuildConfig.BENCHMARK_SEEDING`-
+  guarded intent (identical §12.4-shaped storage writes: Tink-sealed token +
+  registry row + persisted selection; inert constant-false in every other
+  build type, including release).
+- **App `benchmark` build type** (non-debuggable, debug-signed) + benchmark
+  source set (loopback cleartext only).
+- **CI**: `.github/workflows/macrobenchmark.yml` — scheduled nightly + manual
+  dispatch on an API-30 AOSP-ATD emulator (§36 "self-hosted runner
+  (scheduled/nightly)" cadence).
+- **Budgets vs measured** (`docs/perf-phase11.md`, evidence
+  `docs/evidence/phase-11/`): cold start → task list median **1,070.7 ms** /
+  max-of-5 1,694.6 ms (targets ≤ 1.2 s P50 / ≤ 2.0 s P95); conversation scroll
+  frameDurationCpuMs **P50 2.9 / P95 4.1 / P99 5.3 ms** (≤ 16.7 ms budget).
+  ALL numbers EMULATOR-CLASS (no physical reference device here — the library
+  EMULATOR error is suppressed with that exact caveat); reference-device legs
+  are tracked tickets T-P11-1…6 with acceptance criteria. 5k-line diff budget
+  stays PASS (Phase 9's 27 ms regression test re-run green in the full suite).
+
+### 11.2 Accessibility (§30 six acceptance items)
+1. **Semantics labels** — `AccessibilityAuditTest` (features:tasks, 5 tests) +
+   `ApprovalsA11yTest` (features:conversation, 3 tests): every clickable node
+   in the task list and approvals inbox must carry text or a
+   contentDescription (deep semantics-tree walk, zero unlabelled tolerated).
+2. **Touch targets ≥ 48 dp (56 dp approval actions)** — scripted size audits
+   on both surfaces; FOUND + FIXED real violations: header IconButtons were
+   40 dp (→ 48 dp), the clickable ConnectionStatusLine was 35 dp (→ 48 dp min
+   height), approval inbox Allow-once/Deny were default 40 dp (→ 56 dp min
+   height, both the card and the inbox), composer action IconButtons (attach /
+   attach-doc / voice / stop / send) 40 dp (→ 48 dp).
+3. **200% font scale** — `rendersOperable_at200PercentFontScale`: rows render
+   at `fontScale = 2f` and taps still land (asserted through a real click).
+4. **Traversal order** — scripted leg: clickable-node order in the semantics
+   tree == visual top→bottom order (both surfaces). The per-release manual
+   TalkBack audit remains a release ritual (no TalkBack on ATD) — documented.
+5. **Reduced motion** — new `rememberReducedMotion()`/`isReducedMotion()`
+   (core:ui) reading the system animator-duration-scale; snap-scroll replaces
+   `animateScrollToItem` in conversation + terminal under reduced motion;
+   behavior tests prove the flag reflects the OS setting.
+6. **Status never color-only** — status glyphs added (`taskStatusGlyph`,
+   icon+label+rail), structural test asserts the textual label is present
+   beside every colored rail; connection line carries its text label.
+
+### 11.3 Internationalization (§31)
+- **All rendered UI strings externalized** across app, core:ui,
+  core:notifications, features:{tasks, conversation, terminal, files, git,
+  pairing} (pairing was already externalized in Phase 3). Deliberately NOT
+  externalized: the diagnostics REPORT body and licenses component list
+  (developer-facing exported artifacts — noted in the resource files).
+- **zh-CN** (`values-zh-rCN`) for every string table incl. notification copy
+  and widget plurals; ICU plurals for relative times + widget counts.
+- **Notification copy** refactored spec-first-lite: `NotificationPlan` takes a
+  pure `NotificationCopy` (default = the English §24.1-table copy; all prior
+  pure tests unmodified); `ResourceNotificationCopy` bound in the wiring.
+- **Relative time localized** at the UI boundary (`relativeTimeLabel`,
+  core:ui) replacing the hardcoded `RelativeTime`/`ageOf` English labels.
+- **Tests**: `RelativeTimeZhCnTest` + `ApprovalsZhCnTest` (real zh-rCN
+  resource resolution), `RtlPseudolocaleSnapshotTest` (ar-rXB locale + forced
+  RTL-direction rendering + operability).
+
+### 11.4 Glance widget (§43.2-11.4)
+- `PendingApprovalsWidget` + receiver + provider XML in `:app` (ADR-018):
+  **reads the §24.1 broker's record flow ONLY** — the broker gained an
+  observable `recordsFlow` mirror of its record set; the widget's updater
+  pushes on change (event-driven, §29 no polling). No transport, no
+  repositories, no projection access from the widget (INV-2/6).
+- Count = unseen APPROVAL/USER-INPUT records (§24.3 open-interaction set);
+  honest empty copy; whole-widget tap → the app; localized + pluralized.
+- Tests: pure derivation (seen/informational/connection records excluded),
+  localized headline + plural, broker flow emission on event/dismiss (4/4).
+
+### 11.5 Voice input experiment (§43.2-11.5; ADR-019)
+- Platform `SpeechRecognizer` behind `VoiceInputPort` (NoVoiceInput /
+  PlatformVoiceInput); availability-gated mic affordance in the composer;
+  final-result dictation appends into the §17.4 draft path; honest error copy.
+- Feasibility measured: zero dependency cost; on the ATD image the
+  recognition service is absent → affordance hidden (gating verified);
+  composer behavior proven by 4/4 Robolectric tests with a fake port.
+  **Live recognition E2E NOT EXECUTED** (no GMS/recognition-capable device in
+  this environment) — recorded in ADR-019 with the Phase-12 device leg.
+
+## 2. Acceptance criteria (§43.2-11) — evidence
+
+| Criterion | Evidence | Result |
+|---|---|---|
+| 11.1 exit: Macrobenchmark gates; budgets or tickets | benchmarks RUN GREEN (`:baselineprofile:connectedBenchmarkAndroidTest` BUILD SUCCESSFUL, 2/2 tests; evidence `docs/evidence/phase-11/benchmark-*`); budgets measured emulator-class, reference-device cells → tickets T-P11-1…6 with acceptance criteria (`docs/perf-phase11.md`); nightly CI workflow committed | PASS |
+| 11.2 exit: §30 six acceptance items green | 9 new a11y tests green (5+3+1 reduced-motion set); real 40/35 dp violations found and FIXED to 48/56 dp; glyphs + reduced-motion infrastructure landed; TalkBack manual audit documented as release ritual | PASS (with the documented manual-audit ritual) |
+| 11.3 exit: zh-CN + pseudolocales; RTL snapshots | zh-rCN resource-resolution tests green; ar-rXB RTL rendering + operability green; all rendered strings externalized (en/zh); AGP-9 pseudolocale DSL removal documented `[CORRECTED 2026-10-03]` in §31 with the Robolectric CI leg as the substitute | PASS |
+| 11.4 exit: widget reads broker state only; suite green | `WidgetStateTest` 4/4; structural reading path = `NotificationBroker.recordsFlow` only; INV-2/6 respected (no transport anywhere in the widget path) | PASS |
+| 11.5 exit: feasibility measured; ADR if adopted | ADR-019 ACCEPTED (experimental, availability-gated, zero-dep); feasibility table measured; 4/4 composer voice tests; live-recognition device leg documented as not executed | PASS |
+
+**Phase exit criterion ("all §28/§30/§31 items green")**: §28 — the two
+macrobenchmark gates run and are under target emulator-class; every
+non-executable device cell is an explicit ticket, not a silent pass. §30 —
+all six items scripted/implemented (manual TalkBack audit = release ritual).
+§31 — externalization + zh-CN + plural/relative-time rules + RTL leg green.
+Verdict: PASS WITH KNOWN LIMITATIONS (below).
+
+## 3. Full-suite evidence
+
+- **JVM (all modules, forced re-run)**: `gradle cleanTest test --continue` —
+  **BUILD SUCCESSFUL; 611 tests, 0 failures, 0 errors**
+  (baseline 596 at Phase-10 exit → +26 new phase tests across 7 suites, minus
+  randomized-count variance in existing property suites). Evidence:
+  `docs/evidence/phase-11/phase11-jvm-full-suite.log`.
+- **Instrumented (ATD API-30)**: `gradle :app:connectedDebugAndroidTest` —
+  **11/11 green** (the full pre-existing on-device journey suite; no
+  regressions from the i18n/a11y/widget/voice changes). Evidence:
+  `docs/evidence/phase-11/phase11-instrumented.log`.
+- **Macrobenchmarks**: 2/2 green on the emulator (17m40s run incl. APK
+  install; startup 5 iterations, scroll 3). Evidence files above.
+- **APK artifact**: `app/build/outputs/apk/debug/app-debug.apk` —
+  `versionName=0.11.0-phase11 (versionCode 32)`, freshly assembled
+  (aapt-verified).
+
+## 4. Field-caught defects found & FIXED during the phase (each with a regression test)
+
+1. **Voice affordance ignored availability for injected ports** — the override
+   path skipped the availability gate (`VoiceInputTest.voiceButton_
+   hiddenWhenUnavailable` failed against the first implementation); fixed by
+   gating BOTH paths; test now green.
+2. **§30.2 real violations**: 40 dp header/composer IconButtons, 35 dp
+   clickable connection line, 40 dp approval actions — found by the new audit
+   tests, fixed to 48/56 dp, tests green.
+3. **TaskListScreen LazyColumn key collision residue** — none this phase
+   (pre-existing field fix verified by the suite).
+
+## 5. Known limitations (accepted, documented)
+
+1. **Reference-device performance legs not executed** — no physical §35.6
+   device in this environment; all §28.1 numbers are EMULATOR-CLASS; tickets
+   T-P11-1…6 carry the acceptance criteria (`docs/perf-phase11.md`).
+2. **TalkBack manual audit** — scripted traversal-order checks green; the
+   per-release manual TalkBack walkthrough remains a release ritual (no
+   TalkBack on ATD images).
+3. **RTL leg is composition-level** — Robolectric resolves the ar-rXB locale
+   but does not plumb pseudo-bidi into Compose's layout direction; the
+   mirrored-layout + operability assertions run with the direction provided
+   explicitly; platform pseudo-bidi plumbing is an on-device leg (Phase-12
+   canary).
+4. **Live voice recognition not executed** — no recognition-capable device
+   here (ADR-019); the affordance's absence-path is what this environment
+   verifies.
+5. **Widget updates require a live process** — after process death the widget
+   re-syncs on the next broker mutation; no push/FGS-coupled refresh exists by
+   design (§24/§25 honesty rules).
+6. **§31 "pseudolocale test build in CI"** — AGP 9 removed
+   `pseudoLocalesEnabled`; `[CORRECTED 2026-10-03]` note added to §31; the CI
+   leg is the qualifier-pinned Robolectric suite; on-device pseudolocale
+   selection rides the Phase-12 canary.
+7. **Diagnostics report body + licenses component list stay English** —
+   developer-facing exported artifacts, deliberately out of the UI-string
+   externalization (noted in the resource files).
+
+## 6. Invariant verification (§42 walk — deltas only; all 16 hold)
+
+- INV-2/6: the widget path touches only `NotificationBroker.recordsFlow`; no
+  transport types above core:transport (module graph unchanged except the new
+  test-only `:baselineprofile`); features grew zero transport deps.
+- INV-3: no new log/backup surface; benchmark seeding logs the URL HOST-FREE
+  shape (`url.take(40)` of a loopback mock URL, fixture token only); no
+  secrets introduced.
+- INV-5: `recordsFlow` mirrors the existing bounded record set (≤ 256).
+- INV-8/14: no protocol-surface changes at all this phase (Phase 11
+  non-scope held — zero new protocol code).
+- INV-9/13/15/16: unchanged; benchmarks use the loopback mock only.
+- INV-10/11/12: untouched paths; the new screens (widget) carry localized
+  labels; identity rules untouched.
+
+## 7. ADR / correction references
+
+- ADR-018 — Glance + androidx.benchmark dependency additions (§8.2 mandate).
+- ADR-019 — voice-input experiment adoption (§43.2-11.5 mandate).
+- §31 `[CORRECTED 2026-10-03]` — string home (core:ui, pure-JVM core:common)
+  + AGP-9 pseudolocale DSL removal (§41.6 process).

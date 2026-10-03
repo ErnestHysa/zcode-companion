@@ -1,5 +1,7 @@
 package com.zcode.android.core.notifications
 
+import com.zcode.android.core.notifications.R
+
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -79,8 +81,8 @@ class LiveConnectionService : Service() {
         }
         val notification = NotificationCompat.Builder(this, NotificationChannels.LIVE_CONNECTION)
             .setSmallIcon(android.R.drawable.stat_notify_sync_noanim)
-            .setContentTitle("Connected to $endpointLabel")
-            .setContentText("Live connection active — tap to disconnect")
+            .setContentTitle(getString(R.string.fgs_connected_title, endpointLabel))
+            .setContentText(getString(R.string.fgs_connected_text))
             .also { b -> pending?.let { b.setContentIntent(it) } }
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -114,7 +116,7 @@ class LiveConnectionService : Service() {
 
         /** Notification label provider — the app wires the paired endpoint's name. */
         @Volatile
-        var endpointLabelProvider: (Context) -> String = { "ZCode desktop" }
+        var endpointLabelProvider: (Context) -> String = { it.getString(R.string.fgs_default_desktop) }
 
         /** MainActivity class — set by the app (core:notifications has no app types). */
         @Volatile

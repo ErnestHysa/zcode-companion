@@ -122,7 +122,10 @@ class AppStores private constructor(appContext: Context) {
                     )
                 },
             ),
-        )
+        ).apply {
+            // §31: localized notification copy (en + zh-rCN).
+            copy = com.zcode.android.core.notifications.ResourceNotificationCopy(appContext)
+        }
     }
 
     companion object {

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="terminal_view_only_badge">VIEW-ONLY</string>
+    <string name="terminal_resume">Resume</string>
+    <string name="terminal_pause">Pause</string>
+    <string name="terminal_search">Search</string>
+    <string name="terminal_search_output">Search output</string>
+    <string name="terminal_not_exposed">This desktop does not expose a local terminal for remote connections.</string>
+    <string name="terminal_refused">Terminal is not available on this connection: %1$s</string>
+    <string name="terminal_not_attached">Not attached.</string>
+    <string name="terminal_attaching">Attaching…</string>
+    <string name="terminal_detach">Detach</string>
+    <string name="terminal_attach">Attach</string>
+    <string name="terminal_consent_title">Terminal (view-only)</string>
+    <string name="terminal_consent_body">Terminal output is a sensitive surface: it streams a live shell view of the workspace. Enable it once per endpoint in Settings; you can turn it off at any time.</string>
+    <string name="terminal_enable">Enable terminal (view-only)</string>
+    <string name="terminal_title">Terminal</string>
+</resources>

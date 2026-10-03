@@ -23,6 +23,8 @@ protobuf = "4.36.2"
 protobufPlugin = "0.10.0"
 androidxCore = "1.15.0"
 work = "2.10.0"
+glance = "1.2.0"
+benchmarkMacro = "1.5.0"
 
 [libraries]
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
@@ -66,6 +68,9 @@ protobuf-javalite = { module = "com.google.protobuf:protobuf-javalite", version.
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
 work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
 work-testing = { module = "androidx.work:work-testing", version.ref = "work" }
+glance-appwidget = { module = "androidx.glance:glance-appwidget", version.ref = "glance" }
+benchmark-macro-junit4 = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "benchmarkMacro" }
+benchmark-junit4 = { module = "androidx.benchmark:benchmark-junit4", version.ref = "benchmarkMacro" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
@@ -76,3 +81,5 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 protobuf = { id = "com.google.protobuf", version.ref = "protobufPlugin" }
+android-test = { id = "com.android.test", version.ref = "agp" }
+benchmark = { id = "androidx.benchmark", version.ref = "benchmarkMacro" }

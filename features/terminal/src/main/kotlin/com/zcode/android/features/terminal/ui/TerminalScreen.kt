@@ -1,5 +1,8 @@
 package com.zcode.android.features.terminal.ui
 
+import androidx.compose.ui.res.stringResource
+import com.zcode.android.features.terminal.R
+
 import androidx.compose.foundation.background
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Arrangement
@@ -67,9 +70,12 @@ fun TerminalScreen(
     }
 
     // §19.2 scroll anchoring: autoscroll only while at bottom and not paused.
+    // §30.5: reduced motion → instant snap (no animation).
+    val reducedMotion = com.zcode.android.core.ui.components.rememberReducedMotion()
     LaunchedEffect(snapshot.plainText.size, paused) {
         if (!paused && snapshot.plainText.isNotEmpty() && !searchMode) {
-            listState.animateScrollToItem(snapshot.plainText.size - 1)
+            if (reducedMotion) listState.scrollToItem(snapshot.plainText.size - 1)
+            else listState.animateScrollToItem(snapshot.plainText.size - 1)
         }
     }
 
@@ -77,7 +83,7 @@ fun TerminalScreen(
         // Header: VIEW-ONLY indicator + state line (§21: visible persistent indicator).
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                "VIEW-ONLY",
+                stringResource(R.string.terminal_view_only_badge),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
@@ -95,8 +101,8 @@ fun TerminalScreen(
                 else -> Unit
             }
             Spacer(Modifier.weight(1f))
-            AssistChip(onClick = { paused = !paused }, label = { Text(if (paused) "Resume" else "Pause") })
-            AssistChip(onClick = { searchMode = !searchMode }, label = { Text("Search") })
+            AssistChip(onClick = { paused = !paused }, label = { Text(stringResource(if (paused) R.string.terminal_resume else R.string.terminal_pause)) })
+            AssistChip(onClick = { searchMode = !searchMode }, label = { Text(stringResource(R.string.terminal_search)) })
         }
 
         when {
@@ -106,21 +112,21 @@ fun TerminalScreen(
                 onContinue = { scope.launch { port.attach() } },
             )
             state is TerminalPort.TerminalState.CapabilityOff -> StateCard(
-                "This desktop does not expose a local terminal for remote connections.",
+                stringResource(R.string.terminal_not_exposed),
             )
             state is TerminalPort.TerminalState.Refused -> StateCard(
-                "Terminal is not available on this connection: ${(state as TerminalPort.TerminalState.Refused).reason.take(140)}",
+                stringResource(R.string.terminal_refused, (state as TerminalPort.TerminalState.Refused).reason.take(140)),
                 retry = { scope.launch { port.attach() } },
             )
-            state is TerminalPort.TerminalState.Idle -> StateCard("Not attached.", retry = { scope.launch { port.attach() } }, retryLabel = "Attach")
-            state is TerminalPort.TerminalState.Attaching -> StateCard("Attaching…")
+            state is TerminalPort.TerminalState.Idle -> StateCard(stringResource(R.string.terminal_not_attached), retry = { scope.launch { port.attach() } }, retryLabel = stringResource(R.string.terminal_attach))
+            state is TerminalPort.TerminalState.Attaching -> StateCard(stringResource(R.string.terminal_attaching))
             else -> {
                 if (searchMode) {
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         singleLine = true,
-                        label = { Text("Search output") },
+                        label = { Text(stringResource(R.string.terminal_search_output)) },
                         modifier = Modifier.fillMaxWidth(),
                     )
                     if (searchQuery.isNotBlank()) {
@@ -158,7 +164,7 @@ fun TerminalScreen(
                 // Detach affordance — the ONLY control that talks to the desktop, and
                 // it is the protocol `dispose` (view-only: no write/resize exists).
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AssistChip(onClick = { port.detach() }, label = { Text("Detach") })
+                    AssistChip(onClick = { port.detach() }, label = { Text(stringResource(R.string.terminal_detach)) })
                 }
             }
         }
@@ -168,23 +174,24 @@ fun TerminalScreen(
 @Composable
 private fun OptInGate(enabled: Boolean, onToggle: (Boolean) -> Unit, onContinue: () -> Unit) {
     StateCard(
-        text = "Terminal output is a sensitive surface: it streams a live shell view of " +
+        text = stringResource(R.string.terminal_consent_body) +
+                "" +
             "your machine. It is view-only (nothing you type can reach the shell) and stays " +
             "off unless you enable it here.",
         extra = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Switch(checked = enabled, onCheckedChange = onToggle)
-                Text("Enable terminal (view-only)", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.terminal_enable), style = MaterialTheme.typography.bodyMedium)
             }
             if (enabled) {
-                Button(onClick = onContinue) { Text("Attach") }
+                Button(onClick = onContinue) { Text(stringResource(R.string.terminal_attach)) }
             }
         },
     )
 }
 
 @Composable
-private fun StateCard(text: String, retryLabel: String = "Retry", retry: (() -> Unit)? = null, extra: @Composable (() -> Unit)? = null) {
+private fun StateCard(text: String, retryLabel: String? = null, retry: (() -> Unit)? = null, extra: @Composable (() -> Unit)? = null) {
     Column(
         Modifier.fillMaxWidth().padding(vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -192,7 +199,7 @@ private fun StateCard(text: String, retryLabel: String = "Retry", retry: (() -> 
     ) {
         Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         extra?.invoke()
-        retry?.let { Button(onClick = it) { Text(retryLabel) } }
+        retry?.let { Button(onClick = it) { Text(retryLabel ?: "") } }
     }
 }
 

@@ -52,7 +52,33 @@ object NotificationPlan {
         val detailText: String?,
     )
 
-    fun decide(event: Event, policy: Policy): Decision {
+    /**
+     * §31: the user-visible copy is injected so the pure plan stays localizable.
+     * Production binds [ResourceNotificationCopy]; the default is the English
+     * copy (every existing pure-JVM test asserts it).
+     */
+    interface NotificationCopy {
+        fun approvalPublic(): String
+        fun questionPublic(): String
+        fun taskFinishedPublic(): String
+        fun taskFinishedDetail(taskTitle: String): String
+        fun taskFailedPublic(): String
+        fun taskFailedDetail(taskTitle: String): String
+        fun connectionLostPublic(): String
+    }
+
+    /** English copy (the §24.1 table verbatim) — the default for pure tests. */
+    object DefaultNotificationCopy : NotificationCopy {
+        override fun approvalPublic() = "ZCode needs your approval"
+        override fun questionPublic() = "ZCode has a question for you"
+        override fun taskFinishedPublic() = "Task completed"
+        override fun taskFinishedDetail(taskTitle: String) = "Task completed: $taskTitle"
+        override fun taskFailedPublic() = "Task failed"
+        override fun taskFailedDetail(taskTitle: String) = "Task failed: $taskTitle"
+        override fun connectionLostPublic() = "Connection lost"
+    }
+
+    fun decide(event: Event, policy: Policy, copy: NotificationCopy = DefaultNotificationCopy): Decision {
         val channel = channelIdFor(event.kind)
         // §9.9 + §24.4: while foregrounded the in-app surfaces own attention; the
         // broker never posts (eligibility step of §24.1).
@@ -60,23 +86,23 @@ object NotificationPlan {
         val full = policy.contentLevel == AppPreferences.NotificationContentLevel.CONTENT
         return when (event.kind) {
             NotificationRecord.Kind.APPROVAL_NEEDED ->
-                Decision(true, channel, "ZCode needs your approval", null)
+                Decision(true, channel, copy.approvalPublic(), null)
             NotificationRecord.Kind.USER_INPUT_NEEDED ->
-                Decision(true, channel, "ZCode has a question for you", null)
+                Decision(true, channel, copy.questionPublic(), null)
             NotificationRecord.Kind.TASK_FINISHED ->
                 if (full && !event.taskTitle.isNullOrBlank()) {
-                    Decision(true, channel, "Task completed", "Task completed: ${event.taskTitle}")
+                    Decision(true, channel, copy.taskFinishedPublic(), copy.taskFinishedDetail(event.taskTitle))
                 } else {
-                    Decision(true, channel, "Task completed", null)
+                    Decision(true, channel, copy.taskFinishedPublic(), null)
                 }
             NotificationRecord.Kind.TASK_FAILED ->
                 if (full && !event.taskTitle.isNullOrBlank()) {
-                    Decision(true, channel, "Task failed", "Task failed: ${event.taskTitle}")
+                    Decision(true, channel, copy.taskFailedPublic(), copy.taskFailedDetail(event.taskTitle))
                 } else {
-                    Decision(true, channel, "Task failed", null)
+                    Decision(true, channel, copy.taskFailedPublic(), null)
                 }
             NotificationRecord.Kind.CONNECTION_LOST ->
-                Decision(true, channel, "Connection lost", null)
+                Decision(true, channel, copy.connectionLostPublic(), null)
         }
     }
 

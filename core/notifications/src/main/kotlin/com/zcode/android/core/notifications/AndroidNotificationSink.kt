@@ -1,5 +1,7 @@
 package com.zcode.android.core.notifications
 
+import com.zcode.android.core.notifications.R
+
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -82,8 +84,8 @@ class AndroidNotificationSink(
     private fun postGroupSummary(group: String, count: Int) {
         val summary = NotificationCompat.Builder(context, NotificationChannels.TASK_STATUS)
             .setSmallIcon(android.R.drawable.stat_notify_chat)
-            .setContentTitle("ZCode")
-            .setContentText("$count active notification${if (count == 1) "" else "s"}")
+            .setContentTitle(context.getString(R.string.notif_group_summary_title))
+            .setContentText(context.resources.getQuantityString(R.plurals.notif_group_summary_text, count, count))
             .setGroup(group)
             .setGroupSummary(true)
             .setAutoCancel(false)

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Shared UI strings (§31: all strings externalized; en = source of truth).
+    NOTE (Phase 11, §41.6 clarification): §31 names core:common as the string home,
+    but core:common is a PURE-JVM module (domain depends on it, §40.2) and cannot
+    carry Android resources — shared strings live in core:ui instead; feature-local
+    strings live in their own modules.
+-->
+<resources>
+    <!-- Task status labels (§18.5; colorblind-safe: always rendered next to the
+         status glyph/rail — never color alone, §30.6). -->
+    <string name="status_idle">Idle</string>
+    <string name="status_running">Running</string>
+    <string name="status_waiting">Needs attention</string>
+    <string name="status_paused">Paused</string>
+    <string name="status_completed">Completed</string>
+    <string name="status_failed">Failed</string>
+    <string name="status_unknown">Unknown</string>
+
+    <!-- Connection phase labels (ConnectionStatusLine). -->
+    <string name="conn_connected">Connected</string>
+    <string name="conn_syncing">Syncing…</string>
+    <string name="conn_reconnecting">Reconnecting…</string>
+    <string name="conn_connecting">Connecting…</string>
+    <string name="conn_disconnected">Disconnected</string>
+    <string name="conn_failed">Connection failed</string>
+    <string name="conn_not_connected">Not connected</string>
+
+    <!-- Common actions / a11y labels. -->
+    <string name="action_retry">Retry</string>
+    <string name="action_refresh">Refresh</string>
+    <string name="action_back">Back</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_approve">Approve</string>
+    <string name="action_deny">Deny</string>
+    <string name="action_allow_once">Allow once</string>
+    <string name="action_allow_always">Allow always</string>
+    <string name="action_open">Open</string>
+    <string name="a11y_status_icon">Status: %1$s</string>
+
+    <!-- §33 category-level error copy rendered at the UI boundary when an AppError
+         reaches a surface without a more specific message. -->
+    <string name="error_auth">Pairing expired — scan the QR again</string>
+    <string name="error_authz">This connection doesn\'t allow that</string>
+    <string name="error_transport">Connection lost — reconnecting…</string>
+    <string name="error_network">Network unavailable</string>
+    <string name="error_protocol">Sync problem — refreshing</string>
+    <string name="error_serialization">Data problem — continuing with reduced detail</string>
+    <string name="error_server">ZCode relay error — retrying</string>
+    <string name="error_session">This session is no longer available</string>
+    <string name="error_task">Conversation changed — please try again</string>
+    <string name="error_permission">This request was already handled</string>
+    <string name="error_storage">Local data problem — cache reset</string>
+    <string name="error_android">Device blocked the action — check app settings</string>
+    <string name="error_notification">Notifications are blocked — check app settings</string>
+    <string name="error_version_incompat">Update ZCode desktop to a supported version</string>
+    <string name="error_unsupported_feature">Not supported by this connection</string>
+    <string name="error_timeout">Taking too long — retrying</string>
+    <string name="error_cancelled">Cancelled</string>
+    <string name="error_internal">Unexpected error</string>
+
+    <!-- Relative time (§31: ICU plurals, localized). -->
+    <string name="relative_now">now</string>
+    <string name="relative_yesterday">Yesterday</string>
+    <plurals name="relative_minutes">
+        <item quantity="one">%1$d min ago</item>
+        <item quantity="other">%1$d min ago</item>
+    </plurals>
+    <plurals name="relative_hours">
+        <item quantity="one">%1$d h ago</item>
+        <item quantity="other">%1$d h ago</item>
+    </plurals>
+    <plurals name="relative_days">
+        <item quantity="one">%1$d d ago</item>
+        <item quantity="other">%1$d d ago</item>
+    </plurals>
+    <plurals name="relative_seconds">
+        <item quantity="one">%1$d s ago</item>
+        <item quantity="other">%1$d s ago</item>
+    </plurals>
+</resources>

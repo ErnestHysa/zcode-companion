@@ -54,6 +54,15 @@ class MainActivity : FragmentActivity() {
         }
         container = AppContainer(this)
         container.log.info("app.lifecycle", "onCreate savedInstanceState=${savedInstanceState != null}")
+        // §43.2-11.1: benchmark-only seeding (BuildConfig.BENCHMARK_SEEDING is true
+        // ONLY in the benchmark build type) — seals a direct-endpoint credential for
+        // the loopback MockZCode the benchmark process runs, so the measured launch
+        // is the real §28.1 budget path: cold start → task list (warm cache).
+        if (com.zcode.android.app.BuildConfig.BENCHMARK_SEEDING &&
+            intent?.getBooleanExtra("zcode.benchmark.seed", false) == true
+        ) {
+            seedForBenchmark(intent)
+        }
         enableEdgeToEdge()
         pairingVm = PairingViewModel(container.pairingPort, lifecycleScope)
         tasksVm = TasksViewModel(container.tasksPort, lifecycleScope)
@@ -71,6 +80,52 @@ class MainActivity : FragmentActivity() {
                 )
             }
         }
+    }
+
+    /**
+     * §11.3/§12.4 benchmark seeding path: identical storage writes as the real
+     * add-direct flow (Tink-sealed token + registry row + persisted selection),
+     * fed from the benchmark intent extras (mock-only, INV-15).
+     */
+    private fun seedForBenchmark(intent: Intent) {
+        val url = intent.getStringExtra("zcode.benchmark.url") ?: return
+        val token = intent.getStringExtra("zcode.benchmark.token") ?: return
+        val name = intent.getStringExtra("zcode.benchmark.name") ?: "BenchBook"
+        runCatching {
+            val stores = container.stores
+            val vault = com.zcode.android.core.security.vault.CredentialVault(
+                stores.credentialStore,
+                com.zcode.android.core.security.vault.AndroidKeystoreKeyWrap(biometricBound = false),
+                container.log.let { com.zcode.android.core.common.log.ZLog(sink = {}) },
+            )
+            val endpointId = "benchmark-direct-endpoint"
+            vault.sealDirectToken(
+                token,
+                com.zcode.android.core.security.vault.DirectEndpointMetadata(
+                    endpointId = endpointId,
+                    displayName = name,
+                    wsUrl = url,
+                    serverId = "benchmark-mock",
+                    serverVersion = "3.14.3",
+                    addedAtMs = System.currentTimeMillis(),
+                ),
+            )
+            kotlinx.coroutines.runBlocking {
+                stores.endpointRepository.save(
+                    com.zcode.android.domain.model.Endpoint(
+                        endpointId = com.zcode.android.domain.ids.EndpointId(endpointId),
+                        kind = com.zcode.android.domain.model.EndpointKind.DIRECT_SERVER,
+                        displayName = name,
+                        wsUrl = url,
+                        pairedAtMs = System.currentTimeMillis(),
+                    ),
+                )
+                stores.preferencesRepository.update {
+                    it.copy(selectedEndpointId = endpointId)
+                }
+            }
+            container.log.info("benchmark.seed", "seeded endpoint url=${url.take(40)}")
+        }.onFailure { container.log.warn("benchmark.seedFailed", it.javaClass.simpleName) }
     }
 
     override fun onNewIntent(intent: Intent) {

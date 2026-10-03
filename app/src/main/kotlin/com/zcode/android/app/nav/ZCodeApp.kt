@@ -14,6 +14,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 import androidx.compose.runtime.Composable
@@ -26,6 +29,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.zcode.android.app.AppContainer
+import com.zcode.android.app.R
 import com.zcode.android.features.conversation.ui.ApprovalsScreen
 import com.zcode.android.app.connect.ConnectionCenterScreen
 import com.zcode.android.app.settings.SettingsScreen
@@ -164,7 +168,7 @@ fun ZCodeApp(
                 // dispatch) — toasts require a Looper thread.
                 android.widget.Toast.makeText(
                     appContext,
-                    "That task is no longer available on the desktop",
+                    appContext.getString(R.string.deeplink_task_gone),
                     android.widget.Toast.LENGTH_LONG,
                 ).show()
             }
@@ -172,7 +176,7 @@ fun ZCodeApp(
                 navigateToTasks()
                 android.widget.Toast.makeText(
                     appContext,
-                    "That task belongs to a different paired desktop",
+                    appContext.getString(R.string.deeplink_wrong_endpoint),
                     android.widget.Toast.LENGTH_LONG,
                 ).show()
             }
@@ -183,7 +187,13 @@ fun ZCodeApp(
         container.log.info("nav.deeplink", "resolved task=${link.taskId.take(24)}")
     }
 
-    NavHost(navController = nav, startDestination = if (paired != null) Routes.TASKS else Routes.PAIRING) {
+    // testTagsAsResourceId: exposes Compose testTags to UiAutomator/Macrobenchmark
+    // (§43.2-11.1 waits); pure test plumbing, no behavioral surface.
+    NavHost(
+        navController = nav,
+        startDestination = if (paired != null) Routes.TASKS else Routes.PAIRING,
+        modifier = Modifier.semantics { testTagsAsResourceId = true },
+    ) {
         composable(Routes.PAIRING) {
             PairingHostRoute(pairingVm = pairingVm, scannerContent = scannerContent)
         }
@@ -365,7 +375,7 @@ private fun FilesRoute(container: AppContainer, onBack: () -> Unit) {
                     contentDescription = "Back",
                 )
             }
-            Text("Workspace files", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.nav_files_title), style = MaterialTheme.typography.titleMedium)
         }
         com.zcode.android.features.files.ui.FilesScreen(port = container.filesPort, modifier = Modifier.fillMaxSize())
     }
@@ -381,7 +391,7 @@ private fun GitRoute(container: AppContainer, onBack: () -> Unit) {
                     contentDescription = "Back",
                 )
             }
-            Text("Git", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.nav_git_title), style = MaterialTheme.typography.titleMedium)
         }
         com.zcode.android.features.git.ui.GitScreen(port = container.gitPort, modifier = Modifier.fillMaxSize())
     }
@@ -397,7 +407,7 @@ private fun TerminalRoute(container: AppContainer, onBack: () -> Unit) {
                     contentDescription = "Back",
                 )
             }
-            Text("Terminal", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.nav_terminal_title), style = MaterialTheme.typography.titleMedium)
         }
         com.zcode.android.features.terminal.ui.TerminalScreen(port = container.terminalPort, modifier = Modifier.fillMaxSize())
     }

@@ -15,10 +15,12 @@ android {
 
     defaultConfig {
         applicationId = "com.zcode.android.app"
+        // Benchmark-only debug seeding hook; dead (false) in every other type.
+        buildConfigField("boolean", "BENCHMARK_SEEDING", "false")
         minSdk = 26
         targetSdk = 36
-        versionCode = 31
-        versionName = "0.10.0-phase10"
+        versionCode = 32
+        versionName = "0.11.0-phase11"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -27,6 +29,18 @@ android {
             // Emulator/device E2E against the in-repo MockZCode (§35.4) — cleartext is
             // allowed ONLY for loopback endpoints in debug builds (INV-15: mock-only).
             manifestPlaceholders["usesCleartextBackup"] = true
+            // §31 note: AGP 9 removed pseudoLocalesEnabled — the pseudolocale leg is
+            // the qualifier-pinned Robolectric suite (ar-rXB/en-rXA + zh-rCN).
+        }
+        // §43.2-11.1: the macrobenchmark target — non-debuggable (profiling-faithful),
+        // debug-signed, loopback cleartext for the MockZCode seeding (INV-15).
+        create("benchmark") {
+            matchingFallbacks += listOf("release")
+            buildConfigField("boolean", "BENCHMARK_SEEDING", "true")
+            isDebuggable = false
+            signingConfig = signingConfigs.getByName("debug")
+            manifestPlaceholders["usesCleartextBackup"] = true
+            proguardFiles("proguard-rules.pro")
         }
         release {
             isMinifyEnabled = false
@@ -37,7 +51,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
 
     packaging {
         resources.excludes += "META-INF/{AL2.0,LGPL2.1}"
@@ -74,6 +91,8 @@ dependencies {
     implementation(libs.compose.material3)
     implementation(libs.compose.material.icons.core)
     implementation(libs.navigation.compose)
+    // §43.2-11.4: the pending-approvals Glance widget (§44 "Glance (Phase 3, widget)"; ADR-018).
+    implementation(libs.glance.appwidget)
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.activity.compose)
     // MockZCode is TEST-ONLY: it must never enter a shipped artifact (INV-15).
