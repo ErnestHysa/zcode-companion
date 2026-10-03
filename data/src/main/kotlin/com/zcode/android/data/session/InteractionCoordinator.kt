@@ -226,7 +226,7 @@ class InteractionCoordinator(
             // FIELD (2026-10-01, vc22 device): server-spoke faults (fault.* channel
             // errors) are AUTHORITATIVE — ack rejected → machine FAILED (recoverable
             // by resync, §20.3 row 8), never the retry loop.
-            if (e is com.zcode.android.core.transport.RelayTransport.Failure && e.error.serverSpoke) {
+            if (e is com.zcode.android.core.transport.TransportFailure && e.error.serverSpoke) {
                 runCatching {
                     outbox.apply(
                         commandId,
@@ -436,7 +436,7 @@ class InteractionCoordinator(
             return SubmitOutcome.Submitted(ack)
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            if (e is com.zcode.android.core.transport.RelayTransport.Failure && e.error.serverSpoke) {
+            if (e is com.zcode.android.core.transport.TransportFailure && e.error.serverSpoke) {
                 runCatching {
                     outbox.apply(
                         commandId,

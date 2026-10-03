@@ -81,12 +81,8 @@ fun SettingsScreen(
                 Text("Settings", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
             }
 
-            SectionLabel("Paired desktop")
-            SettingsRow(
-                title = endpointName ?: "Not paired",
-                subtitle = desktopVersion?.let { "ZCode desktop $it" } ?: "Scan a QR code to pair",
-                tag = "settings_endpoint",
-            )
+            SectionLabel("Endpoints")
+            EndpointsSection(container = container, endpointName = endpointName, desktopVersion = desktopVersion)
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
             SectionLabel("Diagnostics")
@@ -175,7 +171,10 @@ fun SettingsScreen(
                 TextButton(
                     onClick = {
                         showUnpairConfirm = false
-                        scope.launch { container.pairingPort.unpair() }
+                        scope.launch {
+                            container.pairingPort.unpair()
+                            container.hub.onUnpaired()
+                        }
                     },
                     modifier = Modifier.testTag("settings_unpair_confirm"),
                 ) { Text("Unpair", color = MaterialTheme.colorScheme.error) }
@@ -185,6 +184,175 @@ fun SettingsScreen(
             },
         )
     }
+}
+
+/**
+ * §11.6/U22 endpoint registry UI (Phase 10): every saved endpoint (relay + direct),
+ * the ACTIVE one marked, tap = switch, add-direct flow (validated server-info probe
+ * → Tink-sealed token → registry row → auto-switch), per-endpoint remove for direct.
+ */
+@Composable
+private fun EndpointsSection(container: AppContainer, endpointName: String?, desktopVersion: String?) {
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val endpoints by container.hub.endpoints.collectAsState()
+    val activeEndpoint by container.hub.endpoint.collectAsState()
+    val phase by container.hub.phase.collectAsState()
+    var showAddDialog by remember { mutableStateOf(false) }
+    var removeTarget by remember { mutableStateOf<String?>(null) }
+    var switchMessage by remember { mutableStateOf<String?>(null) }
+
+    // The paired RELAY endpoint (lives in the vault; the registry row is lazy).
+    val relayRow = endpoints.firstOrNull { it.kind == com.zcode.android.domain.model.EndpointKind.RELAY_ZAI }
+    val rows = buildList {
+        if (endpointName != null && relayRow != null) add(relayRow)
+        else if (endpointName != null && relayRow == null) add(null) // relay placeholder row
+        addAll(endpoints.filter { it.kind == com.zcode.android.domain.model.EndpointKind.DIRECT_SERVER })
+    }
+
+    for ((index, row) in rows.withIndex()) {
+        val active = row != null && activeEndpoint?.endpointId == row.endpointId
+        SettingsRow(
+            title = (row?.displayName ?: endpointName ?: "Not paired") + if (active) "  •" else "",
+            subtitle = buildString {
+                append(if (row?.kind == com.zcode.android.domain.model.EndpointKind.DIRECT_SERVER) "Direct server" else "Relay (QR pairing)")
+                row?.desktopAppVersion?.let { append(" · v$it") }
+                if (active) append(" · connected: $phase")
+            },
+            tag = "settings_endpoint_$index",
+            onClick = {
+                val id = row?.endpointId?.raw
+                if (id != null && !active) {
+                    scope.launch {
+                        val ok = container.hub.switchTo(id)
+                        switchMessage = if (ok) "Switched" else "Switch failed"
+                    }
+                }
+            },
+        )
+        if (row?.kind == com.zcode.android.domain.model.EndpointKind.DIRECT_SERVER) {
+            androidx.compose.material3.OutlinedButton(
+                onClick = { removeTarget = row.endpointId.raw },
+                modifier = Modifier
+                    .padding(start = 16.dp, bottom = 8.dp)
+                    .testTag("settings_endpoint_remove_$index"),
+            ) { Text("Remove") }
+        }
+    }
+    SettingsRow(
+        title = "Add direct endpoint",
+        subtitle = "Connect to a self-hosted ZCode server (zcode --web) by URL + token",
+        tag = "settings_add_direct",
+        onClick = { showAddDialog = true },
+    )
+    switchMessage?.let {
+        androidx.compose.material3.ListItem(headlineContent = { Text(it) })
+        // auto-clear
+        scope.launch { kotlinx.coroutines.delay(2500); switchMessage = null }
+    }
+
+    if (showAddDialog) {
+        AddDirectEndpointDialog(
+            onDismiss = { showAddDialog = false },
+            onAdd = { name, url, token, candidates ->
+                showAddDialog = false
+                scope.launch {
+                    when (val outcome = container.hub.addDirectEndpoint(name, url, token, candidates)) {
+                        is com.zcode.android.app.connect.ConnectionHub.AddDirectOutcome.Added -> {
+                            switchMessage = "Added — connecting…"
+                            container.hub.switchTo(outcome.endpoint.endpointId.raw)
+                        }
+                        is com.zcode.android.app.connect.ConnectionHub.AddDirectOutcome.Rejected -> {
+                            switchMessage = outcome.error.userMessage
+                        }
+                    }
+                }
+            },
+        )
+    }
+    if (removeTarget != null) {
+        AlertDialog(
+            onDismissRequest = { removeTarget = null },
+            title = { Text("Remove this endpoint?") },
+            text = { Text("The saved token and endpoint entry are deleted from this phone. The server itself is not stopped.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    val id = removeTarget
+                    removeTarget = null
+                    if (id != null) scope.launch { container.hub.removeDirectEndpoint(id) }
+                }) { Text("Remove", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton(onClick = { removeTarget = null }) { Text("Cancel") } },
+        )
+    }
+}
+
+/** §12.2 discipline for the direct flow: nothing is written until validation passes. */
+@Composable
+private fun AddDirectEndpointDialog(
+    onDismiss: () -> Unit,
+    onAdd: (name: String, wsUrl: String, token: String, candidates: List<String>) -> Unit,
+) {
+    var name by remember { mutableStateOf("") }
+    var url by remember { mutableStateOf("") }
+    var token by remember { mutableStateOf("") }
+    var candidates by remember { mutableStateOf("") }
+    val valid = url.startsWith("ws://") || url.startsWith("wss://") || url.startsWith("http://") || url.startsWith("https://")
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add direct endpoint") },
+        text = {
+            Column {
+                androidx.compose.material3.OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Name (optional)") },
+                    singleLine = true,
+                    modifier = Modifier.testTag("add_direct_name"),
+                )
+                androidx.compose.material3.OutlinedTextField(
+                    value = url,
+                    onValueChange = { url = it },
+                    label = { Text("Server URL (ws://host:3030/ws)") },
+                    singleLine = true,
+                    modifier = Modifier.testTag("add_direct_url"),
+                )
+                androidx.compose.material3.OutlinedTextField(
+                    value = token,
+                    onValueChange = { token = it },
+                    label = { Text("Token (zcode --web --token …)") },
+                    singleLine = true,
+                    modifier = Modifier.testTag("add_direct_token"),
+                )
+                androidx.compose.material3.OutlinedTextField(
+                    value = candidates,
+                    onValueChange = { candidates = it },
+                    label = { Text("Fallback URLs (comma-separated, optional)") },
+                    singleLine = true,
+                    modifier = Modifier.testTag("add_direct_candidates"),
+                )
+                Text(
+                    "Validated before saving. The token is sealed on-device and never leaves except to this server.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = valid && token.isNotBlank(),
+                onClick = {
+                    onAdd(
+                        name,
+                        url,
+                        token,
+                        candidates.split(",").map { it.trim() }.filter { it.isNotEmpty() },
+                    )
+                },
+                modifier = Modifier.testTag("add_direct_submit"),
+            ) { Text("Add") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 private fun copyDiagnostics(container: AppContainer, context: android.content.Context, onBusy: (Boolean) -> Unit) {

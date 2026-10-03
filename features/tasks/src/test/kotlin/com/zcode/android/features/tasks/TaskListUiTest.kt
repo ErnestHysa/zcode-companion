@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -132,6 +133,79 @@ class TaskListUiTest {
         rule.onNodeWithTag("tasks_empty").assertIsDisplayed()
         rule.onNodeWithText("Retry").performClick()
         rule.runOnIdle { org.junit.Assert.assertTrue(retried) }
+    }
+
+    // ---------------------------------------------------- Phase 10 (§18.2 switcher)
+
+    @Test
+    fun workspaceSwitcher_chipsRender_whenWorkspacesOffered() {
+        val ws = listOf(
+            com.zcode.android.domain.model.WorkspaceOption("/ws/a", "demo-api", "/ws/a"),
+            com.zcode.android.domain.model.WorkspaceOption("/ws/b", "other", "/ws/b"),
+        )
+        val state = TasksUiState(
+            phase = ConnectionPhase.CONNECTED,
+            loadState = TasksUiState.Load.READY,
+            groups = listOf(
+                TaskGroup("/ws/a", "demo-api", listOf(task("t1", TaskStatus.RUNNING))),
+                TaskGroup("/ws/b", "other", listOf(task("t2", TaskStatus.IDLE))),
+            ),
+            workspaces = ws,
+        )
+        rule.setContent {
+            ZCodeTheme {
+                TaskListScreen(state, onTaskClick = {}, onOpenSettings = {}, onOpenConnection = {}, onRetry = {}, onRefresh = {}, workspaces = ws)
+            }
+        }
+        rule.onNodeWithTag("tasks_workspace_switcher").assertIsDisplayed()
+        rule.onNodeWithTag("tasks_ws_all").assertIsDisplayed()
+        // Chip + section header may share the label — assert COUNT (chip + header = 2).
+        rule.onAllNodesWithText("demo-api").assertCountEquals(2)
+        rule.onAllNodesWithText("other").assertCountEquals(2)
+        // Both groups visible under All.
+        rule.onNodeWithTag("task_row_t1").assertIsDisplayed()
+        rule.onNodeWithTag("task_row_t2").assertIsDisplayed()
+    }
+
+    @Test
+    fun workspaceSwitcher_selectingChip_filtersGroups() {
+        val state = TasksUiState(
+            phase = ConnectionPhase.CONNECTED,
+            loadState = TasksUiState.Load.READY,
+            groups = listOf(
+                TaskGroup("/ws/a", "demo-api", listOf(task("t1", TaskStatus.RUNNING))),
+                TaskGroup("/ws/b", "other", listOf(task("t2", TaskStatus.IDLE))),
+            ),
+            workspaces = listOf(
+                com.zcode.android.domain.model.WorkspaceOption("/ws/a", "demo-api", "/ws/a"),
+                com.zcode.android.domain.model.WorkspaceOption("/ws/b", "other", "/ws/b"),
+            ),
+        )
+        rule.setContent {
+            ZCodeTheme {
+                TaskListScreen(
+                    state, onTaskClick = {}, onOpenSettings = {}, onOpenConnection = {}, onRetry = {}, onRefresh = {},
+                    workspaces = listOf(
+                        com.zcode.android.domain.model.WorkspaceOption("/ws/a", "demo-api", "/ws/a"),
+                        com.zcode.android.domain.model.WorkspaceOption("/ws/b", "other", "/ws/b"),
+                    ),
+                )
+            }
+        }
+        // Click the CHIP (tag), not the same-text section header inside the list.
+        rule.onNodeWithTag("tasks_ws_${"/ws/b".hashCode()}").performClick()
+        // Selecting "other" filters TO group b: t1 disappears, t2 stays.
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithTag("task_row_t1").fetchSemanticsNodes().isEmpty()
+        }
+        rule.onNodeWithTag("task_row_t2").assertIsDisplayed()
+        // Back to All restores both.
+        rule.onNodeWithTag("tasks_ws_all").performClick()
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithTag("task_row_t1").fetchSemanticsNodes().isNotEmpty()
+        }
+        rule.onNodeWithTag("task_row_t1").assertIsDisplayed()
+        rule.onNodeWithTag("task_row_t2").assertIsDisplayed()
     }
 
     @Test

@@ -73,6 +73,8 @@ class DefaultTasksPortTest {
         transport = RelayTransport(wsFactory = OkHttpWsFactory(), log = ZLog(sink = {}))
         val hub = ConnectionHub(
             transport = transport,
+            directTransport = testDirectTransport(),
+            preferences = FakePreferencesRepository(),
             vault = vault,
             taskRepo = repo,
             conversationRepo = FakeConversationRepository(),
@@ -119,3 +121,4 @@ class DefaultTasksPortTest {
         }
     }
 }
+

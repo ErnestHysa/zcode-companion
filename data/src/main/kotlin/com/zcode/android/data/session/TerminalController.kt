@@ -3,7 +3,7 @@ package com.zcode.android.data.session
 import com.zcode.android.core.common.ansi.AnsiParser
 import com.zcode.android.core.common.ansi.SgrState
 import com.zcode.android.core.common.log.ZLog
-import com.zcode.android.core.transport.RelayTransport
+import com.zcode.android.core.transport.AppTransport
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
  *    the feature degrades, the connection never does).
  */
 class TerminalController(
-    private val transport: RelayTransport,
+    private val transport: AppTransport,
     private val log: ZLog = ZLog(),
 ) {
 

@@ -94,6 +94,8 @@ class ConnectionHubWritePathTest {
         transport = RelayTransport(wsFactory = OkHttpWsFactory(), log = ZLog(sink = {}))
         hub = ConnectionHub(
             transport = transport,
+            directTransport = testDirectTransport(),
+            preferences = FakePreferencesRepository(),
             vault = vault,
             taskRepo = tasks,
             conversationRepo = conversations,
@@ -382,3 +384,4 @@ class ConnectionHubWritePathTest {
         assertEquals(0, outbox.entries.size)
     }
 }
+

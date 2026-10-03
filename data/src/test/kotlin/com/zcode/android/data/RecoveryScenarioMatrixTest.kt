@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.zcode.android.core.common.error.ErrorCategory
 import com.zcode.android.core.common.log.ZLog
 import com.zcode.android.core.transport.ConnectionStateMachine
+import com.zcode.android.core.transport.TransportFailure
 import com.zcode.android.core.transport.EndpointDescriptor
 import com.zcode.android.core.transport.EndpointKind
 import com.zcode.android.core.transport.CredentialSigner
@@ -387,7 +388,7 @@ class RecoveryScenarioMatrixTest {
                 val url = h.mock.start()
                 val failure = runCatching { h.transport.connect(endpoint(url), signer()) }.exceptionOrNull()
                 assertNotNull(failure, "unreachable relay must fail the connect")
-                val category = (failure as? RelayTransport.Failure)?.error?.category
+                val category = (failure as? TransportFailure)?.error?.category
                 assertTrue(
                     category in setOf(ErrorCategory.TRANSPORT, ErrorCategory.TIMEOUT, ErrorCategory.NETWORK),
                     "failure class must be honest: $category",

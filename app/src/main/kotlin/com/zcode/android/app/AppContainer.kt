@@ -87,6 +87,13 @@ class AppContainer(activity: FragmentActivity) {
     val gate = AndroidBiometricGate(activity)
     val transport = RelayTransport(wsFactory = OkHttpWsFactory(), log = log)
 
+    /** Phase 10 (§11.4): the DIRECT transport — token capability bound per active endpoint. */
+    val directTransport = com.zcode.android.core.transport.DirectTransport(
+        tokenProvider = com.zcode.android.core.transport.TokenProvider { "" },
+        wsFactory = OkHttpWsFactory(),
+        log = log,
+    )
+
     val pairingPort = DefaultPairingPort(
         parser = PairingLinkParser,
         vault = vault,
@@ -105,12 +112,14 @@ class AppContainer(activity: FragmentActivity) {
      */
     val hub: ConnectionHub = ConnectionHub(
         transport = transport,
+        directTransport = directTransport,
         vault = vault,
         taskRepo = stores.taskRepository,
         conversationRepo = stores.conversationRepository,
         journalRepo = stores.journalRepository,
         interactions = stores.interactionRepository,
         endpointRepo = stores.endpointRepository,
+        preferences = stores.preferencesRepository,
         outbox = stores.outboxRepository,
         drafts = stores.draftRepository,
         scope = activity.lifecycleScope,
@@ -124,7 +133,10 @@ class AppContainer(activity: FragmentActivity) {
 
     val tasksPort: DefaultTasksPort = DefaultTasksPort(hub, vault, stores.taskRepository, rePair = {
         // Unpair is suspend (vault wipe + transport close) — launch on the activity scope.
-        activity.lifecycleScope.launch { pairingPort.unpair() }
+        activity.lifecycleScope.launch {
+            pairingPort.unpair()
+            hub.onUnpaired()
+        }
     })
     val conversationPort: DefaultConversationPort = DefaultConversationPort(
         hub,
@@ -156,7 +168,7 @@ class AppContainer(activity: FragmentActivity) {
         },
     )
     val terminalPort: DefaultTerminalPort = DefaultTerminalPort(
-        controller = com.zcode.android.data.session.TerminalController(transport, log),
+        controller = com.zcode.android.data.session.TerminalController(hub.activeTransport(), log),
         preferences = stores.preferencesRepository,
         log = log,
     )

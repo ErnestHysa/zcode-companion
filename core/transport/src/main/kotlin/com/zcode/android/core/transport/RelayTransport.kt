@@ -70,7 +70,7 @@ class RelayTransport(
     private val config: Config = Config(),
     private val externalScope: CoroutineScope? = null,
     reconnectPolicyOverride: ReconnectPolicy? = null,
-) : Transport {
+) : AppTransport {
 
     data class Config(
         val connectTimeoutMs: Long = 10_000,
@@ -123,9 +123,61 @@ class RelayTransport(
     private var endpoint: EndpointDescriptor? = null
     private var signer: CredentialSigner? = null
     @Volatile private var ws: Ws? = null
-    private var channel = ChannelSession()
     private val assembler = RelayFrameCodec.Assembler()
-    private val v4Assembler = LogicalFrameAssembler(clock = clock)
+
+    /**
+     * The shared Channel/v4 plane (Phase 10 extraction — docs/protocol/v4-wire.md,
+     * §8.3.1 "both transports share ~90% of the stack"). Recreated per connection
+     * with a fresh [ChannelSession]; all V4Plane methods delegate to it.
+     */
+    private var plane: ChannelV4Plane = newPlane()
+
+    /**
+     * Rotate the per-connection plane WITHOUT losing the subscription records:
+     * recover() re-subscribes from them after establish() — a fresh plane would
+     * erase the recovery set (regression caught by S9/S12/S13, fixed 2026-10-03).
+     */
+    private fun rotatePlane() {
+        val fresh = newPlane()
+        val previous = plane
+        synchronized(previous.subscriptions) { fresh.subscriptions.putAll(previous.subscriptions) }
+        plane = fresh
+    }
+
+    private fun newPlane(channel: ChannelSession = ChannelSession()): ChannelV4Plane = ChannelV4Plane(
+        channel = channel,
+        host = object : ChannelV4Plane.Host {
+            override fun endpointId(): String? = endpoint?.id
+            override fun workspaceTarget(): Pair<String?, String?>? =
+                endpoint?.let { it.workspacePath to it.workspaceIdentity }
+            override fun emitInbound(frame: InboundFrame) {
+                scope.launch { this@RelayTransport.emitInbound(frame) }
+            }
+            override fun onWireVersionMismatch(message: String?) {
+                scope.launch { _appErrors.emit(ErrorMapping.versionIncompatible(message ?: "wire version")) }
+                onConnectionLost("wire version mismatch")
+            }
+            override fun onCountedFault(reason: String) {
+                malformedChannelFrames.incrementAndGet()
+                scope.launch { _appErrors.emit(ErrorMapping.serializationFault(reason)) }
+            }
+            override fun onSerializationFault(reason: String) {
+                scope.launch { _appErrors.emit(ErrorMapping.serializationFault(reason)) }
+            }
+            override fun onV4Call() { cV4Calls.incrementAndGet() }
+            override fun connectionId(): String? = plane.connectionId
+            override fun boundLog(): ZLog.Bound = bound()
+        },
+        log = log,
+        clock = clock,
+        timeouts = ChannelV4Plane.Timeouts(
+            channelInitTimeoutMs = config.channelInitTimeoutMs,
+            v4CallTimeoutMs = config.v4CallTimeoutMs,
+            bridgeHandshakeTimeoutMs = config.bridgeHandshakeTimeoutMs,
+            controlRequestTimeoutMs = config.controlRequestTimeoutMs,
+            authTimeoutMs = config.authTimeoutMs,
+        ),
+    )
 
     /** Per-direction counters start at EXACTLY 1 (live-verified: gap codes otherwise). */
     private val outSeq = AtomicLong(0)
@@ -162,10 +214,6 @@ class RelayTransport(
 
     /** Control-plane request matching: requestId → deferred. */
     private val pendingControl = HashMap<String, CompletableDeferred<JsonObject>>()
-
-    /** Active v4 subscriptions for recover(): topic → record (lastSeq = -1 → no watermark). */
-    data class SubscriptionRecord(val subscriptionId: String, val logEpoch: String, val lastSeq: Long)
-    private val subscriptions = LinkedHashMap<String, SubscriptionRecord>()
 
     private val controlRequestCounter = AtomicLong(0)
     /**
@@ -369,7 +417,15 @@ class RelayTransport(
             }
             publishState()
 
-            // ---- bridge + Channel + v4 hello (first connect: → CONNECTED here; recovery
+            // ---- Channel plane FIRST (race fix 2026-10-03): the server's {Initialize}
+            // follows the bridge-ready on the SAME socket — if the plane swap happened
+            // after openBridgeInternal() returned, the frame fed the DEAD channel and
+            // awaitInitialize timed out (device-suite flake, HistoryPagination/
+            // Phase8 class). The plane that establish() will use is wired BEFORE the
+            // bridge opens, so every frame from the new socket lands on it.
+            rotatePlane()
+            plane.channel.onOutbound = { bytes -> enqueueChannelFrame(bytes) }
+            // ---- bridge + v4 hello (first connect: → CONNECTED here; recovery
             // path completes via RESYNC_* in recover() — RECOVERING must not exit via HELLO).
             val bridgeInfo = openBridgeInternal()
             // Field fix (production routing): the discovered workspace is the ROUTING
@@ -378,11 +434,7 @@ class RelayTransport(
             // endpoint descriptor arrives WITHOUT workspace fields on first pair;
             // without this write-back every subsequent call sends an empty workspace.
             applyDiscoveredWorkspace(bridgeInfo)
-            channel = ChannelSession()
-            channel.onOutbound = { bytes -> enqueueChannelFrame(bytes) }
-            attachChannelEventListeners(bridgeInfo)
-            val hello = helloV4()
-            initializeV4(endpoint)
+            val hello = plane.helloAndInitialize(endpoint.id, endpoint.appVersion)
             _capabilities.value = CapabilitySnapshot(
                 connectionId = hello.connectionId,
                 serverTimeMs = hello.serverTime,
@@ -525,7 +577,7 @@ class RelayTransport(
                 // Re-subscribe (the Phase-1 live-proven recovery path: bridge re-open with
                 // the same recoveryId replays missed frames; subscribe re-anchors topics).
                 var replaced = false
-                for ((topic, rec) in subscriptions.toList()) {
+                for ((topic, rec) in plane.subscriptions.toList()) {
                     val session = topic.removePrefix(V4Topics.CONVERSATION_PREFIX)
                     val ack = subscribeSession(session, visibility = null)
                     // mode=snapshot (or a different epoch) means the projection must be
@@ -539,7 +591,7 @@ class RelayTransport(
                     )
                     publishState()
                 }
-                bound().info("relay.recovered", "subscriptions=${subscriptions.size} snapshotReplace=$replaced")
+                bound().info("relay.recovered", "subscriptions=${plane.subscriptions.size} snapshotReplace=$replaced")
                 return
             } catch (e: Failure) {
                 // Round-4 field finding: repeated desktop-disconnected (a TRANSPORT-
@@ -620,7 +672,7 @@ class RelayTransport(
             return
         }
         bound().warn("relay.lost", reason)
-        channel.close(reason)
+        plane.channel.close(reason)
         heartbeatJob?.cancel()
         ackWatcherJob?.cancel()
         // Drain unsent frames — they were never transmitted; higher layers own retries.
@@ -695,6 +747,16 @@ class RelayTransport(
     override fun notifyNetworkAvailable() {
         reconnect.requestImmediate()
         if (machine.state == ConnectionStateMachine.ConnectionState.DEGRADED) reconnectNow()
+    }
+
+    override fun resetForEndpointSwitch() {
+        plane.channel.close("endpoint switch")
+        ws?.let { runCatching { it.close(1000, "endpoint switch") } }
+        ws = null
+        heartbeatJob?.cancel()
+        ackWatcherJob?.cancel()
+        machine.seed(ConnectionStateMachine.ConnectionState.UNPAIRED)
+        publishState()
     }
 
     // ------------------------------------------------------------------ heartbeat
@@ -777,7 +839,7 @@ class RelayTransport(
                 // is unaffected).
                 if (socket === ws && recovering.get()) {
                     bound().warn("recovery.handshakeFastFail", "handshake socket send failed — failing in-flight calls")
-                    runCatching { channel.close("send failed (handshake socket)") }
+                    runCatching { plane.channel.close("send failed (handshake socket)") }
                 }
                 onConnectionLost("send failed")
                 return
@@ -948,7 +1010,7 @@ class RelayTransport(
                     lastDeliveredMessageSeq = r.messageSeq
                     sendNow(RelayFrameCodec.encodeAck(bridgeSessionId, bridgeGeneration, recoveryId, r.messageSeq))
                     try {
-                        channel.onFrame(r.payload)
+                        plane.channel.onFrame(r.payload)
                     } catch (e: ProtocolException) {
                         // INV-8: geometry sound, payload not a decodable Channel frame —
                         // count + surface, never crash (corpus-replay path hits this by design).
@@ -994,7 +1056,7 @@ class RelayTransport(
                 // the 10 s call timeout before the retry (observed: two consecutive
                 // 10 s stalls per recovery in the field).
                 if (recovering.get()) {
-                    runCatching { channel.close("bridge-degraded (handshake)") }
+                    runCatching { plane.channel.close("bridge-degraded (handshake)") }
                 }
                 scope.launch { _appErrors.emit(ErrorMapping.protocolFault("bridge-degraded")) }
                 onConnectionLost("bridge-degraded")
@@ -1011,370 +1073,64 @@ class RelayTransport(
     }
 
     // ------------------------------------------------------------------ channel / v4
+    // The shared Channel/v4 engine lives in ChannelV4Plane (Phase 10 extraction);
+    // the transport owns the wire (rpc-frame envelopes) and delegates the plane.
 
-    /** Conversation-topic listen scopes already registered on the CURRENT channel. */
-    private val listenedScopes = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
-
-    /**
-     * FIELD FIX (round 3): the EventListen ARG is the WORKSPACE SCOPE that routes
-     * the zcode-agent channel on production ({workspacePath, workspaceIdentity?}).
-     * FIELD-KILLER #5 (2026-09-30, vc10): the scope routes TOPIC FRAMES TOO — the
-     * bridge scope covers only the pinned workspace, so a session in ANOTHER workspace
-     * subscribed fine (mode=snapshot acked) but its INITIAL snapshot was routed to no
-     * listener and never arrived (field: task 1 in the pinned workspace loaded with
-     * rows=60; tasks in /Users/ernest/ZCodeProject and /Users/ernest/Desktop/pragma
-     * subscribed OK yet no frame ever came). A scoped listener is now attached PER
-     * WORKSPACE before subscribing into it — see [ensureConversationListen].
-     */
-    private fun attachChannelEventListeners(bridge: BridgeInfo) {
-        // Fresh channel → fresh scope registry (the bridge scope re-registers below).
-        listenedScopes.clear()
-        ensureConversationListen(bridge.workspacePath, bridge.workspaceIdentity)
-        // NO v4/connection/flow listen here. FIELD-KILLER (2026-09-29, desktop log
-        // ground truth): the 3.14.x host has no such event on the zcode-agent bridge
-        // channel, and its ChannelServer treats the unknown EventListen as an
-        // UNCAUGHT exception — the whole per-window host process dies (~1s after the
-        // bridge opens, "Event not found: v4/connection/flow" → exit code 1). Every
-        // later workspace-bridge-open on that desktop then fails with
-        // desktop-disconnected (DESKTOP_HOST_MISSING) until ZCode is restarted, and
-        // the desktop UI freezes with it. §28.4 backpressure falls back to the
-        // budget-based coalescing; flowPressure stays DRAINED unless a future
-        // desktop pushes flow frames on its own.
-    }
-
-    /**
-     * Register the scoped onDynamicConversationFrame listener for [workspacePath] if not
-     * already listening. Idempotent per connection; call BEFORE subscribing a session
-     * that lives in this workspace so its INITIAL snapshot routes to us.
-     */
-    fun ensureConversationListen(workspacePath: String?, workspaceIdentity: String?) {
-        // A BLANK scope attaches the channel to no workspace — the desktop then routes
-        // nothing to it AND (mock-observed) it deregisters the prior scoped listen.
-        // A null workspace means "the bridge's pinned workspace" — already covered by
-        // the attach-time listen.
-        if (workspacePath.isNullOrBlank()) return
-        // Path-only key: the desktop routes by workspacePath; registering the SAME path
-        // with a different workspaceIdentity created TWO listeners → the snapshot fired
-        // to both (field: gateway.frame ×2-×5, manager re-applied 60 rows 5×).
-        val key = workspacePath
-        if (!listenedScopes.add(key)) return
-        val scopeJson = buildJsonObject {
-            put("workspacePath", JsonPrimitive(workspacePath ?: ""))
-            workspaceIdentity?.let { put("workspaceIdentity", JsonPrimitive(it)) }
-        }
-        // Downstream topic frames (workspace-level). FIELD-KILLER #3 (2026-09-30, vc8):
-        // production delivers the event arg AS the TopicWireFrame itself
-        // ({wireVersion, kind, topic, frame: <payload>} — desktop schema
-        // chunk-RH3H53JA `N = discriminatedUnion("kind", …)`); the wrapped
-        // {frame: topicFrame} shape (Phase-1 spike / MockZCode) is tolerated —
-        // disambiguated by wireVersion presence in handleTopicWireFrame.
-        channel.listen("zcode-agent", "onDynamicConversationFrame", RpcValue.Obj(scopeJson)) { args ->
-            val obj = (args as? RpcValue.Obj)?.json as? JsonObject ?: return@listen
-            handleTopicWireFrame(obj)
-        }
-    }
-
-    private fun handleTopicWireFrame(obj: JsonObject) {
-        // Shape disambiguation (see the FIELD-KILLER #3 note on the listener): the arg is
-        // the TopicWireFrame when it carries wireVersion; the wrapped {frame: topicFrame}
-        // shape is unwrapped; anything else decodes as-is (mock/legacy direct shape).
-        val wireObj: JsonObject = when {
-            obj["wireVersion"] != null -> obj
-            (obj["frame"] as? JsonObject)?.get("wireVersion") != null -> obj["frame"] as JsonObject
-            else -> obj
-        }
-        val wire = try {
-            TopicWireFrame.decode(wireObj)
-        } catch (e: V4WireVersionException) {
-            scope.launch { _appErrors.emit(ErrorMapping.versionIncompatible(e.message ?: "wire version")) }
-            onConnectionLost("wire version mismatch")
-            return
-        } catch (e: ProtocolException) {
-            // FIELD POLICY (round 12): a malformed TOPIC frame is a data fault, not a
-            // transport fault — surface + drop it (INV-8). Tearing the connection down
-            // here turned a single bad snapshot into an endless reconnect loop.
-            malformedChannelFrames.incrementAndGet()
-            scope.launch { _appErrors.emit(ErrorMapping.serializationFault("topic frame fault (counted): ${e.message?.take(80)}")) }
-            return
-        }
-        val assembled = try {
-            v4Assembler.accept(wire)
-        } catch (e: ProtocolException) {
-            malformedChannelFrames.incrementAndGet()
-            scope.launch { _appErrors.emit(ErrorMapping.serializationFault("assembly fault (counted): ${e.message?.take(80)}")) }
-            return
-        } ?: return
-        val frame = try {
-            TopicFrame.decode(assembled.frame)
-        } catch (e: ProtocolException) {
-            // Wire sound, payload shape unknown → degrade (INV-8), never merge.
-            scope.launch { _appErrors.emit(ErrorMapping.serializationFault(e.message ?: "topic frame decode")) }
-            return
-        }
-        subscriptions[frame.topic]?.let { rec ->
-            subscriptions[frame.topic] = rec.copy(lastSeq = frame.toSeq)
-        }
-        scope.launch {
-            emitInbound(
-                InboundFrame.TopicFrameArrived(
-                    topic = frame.topic,
-                    subscriptionId = frame.subscriptionId,
-                    deliveryKind = assembled.deliveryKind,
-                    fromSeq = frame.fromSeq,
-                    toSeq = frame.toSeq,
-                    frame = frame,
-                )
-            )
-        }
-    }
-
-    private suspend fun channelReady() {
-        try {
-            channel.awaitInitialize(config.channelInitTimeoutMs)
-        } catch (e: ChannelSession.Failure.TimedOut) {
-            throw Failure(ErrorMapping.timeout("channel initialize", config.channelInitTimeoutMs))
-        } catch (e: ChannelSession.Failure) {
-            throw Failure(ErrorMapping.protocolFault(e.message ?: "channel failure"))
-        }
-    }
-
-    /**
-     * Channel call with the LIVE-PROVEN ProxyChannel convention (Phase 1 finding 5):
-     * Promise-call args are wrapped in an ARRAY; a bare object arrives as undefined.
-     */
-    private suspend fun v4Call(name: String, arg: RpcValue): RpcValue {
-        val started = clock()
-        cV4Calls.incrementAndGet()
-        bound().debug("v4.call", "$name begin")
-        return try {
-            val raw = channel.call("zcode-agent", name, RpcValue.Arr(listOf(arg)), config.v4CallTimeoutMs)
-            bound().debug("v4.call", "$name ok in ${clock() - started}ms")
-            raw
-        } catch (e: ChannelSession.Failure.TimedOut) {
-            bound().warn("v4.call", "$name TIMEOUT after ${clock() - started}ms")
-            throw Failure(ErrorMapping.timeout(name, config.v4CallTimeoutMs))
-        } catch (e: ChannelSession.Failure.ChannelError) {
-            // Server-side fault (fault.* namespace) — task-class rejection, user-retry.
-            bound().warn("v4.call", "$name channel error: ${e.detail.take(100)}")
-            throw Failure(ErrorMapping.taskRejected(e.detail))
-        } catch (e: ChannelSession.Failure) {
-            bound().warn("v4.call", "$name failed: ${e.message?.take(100)}")
-            throw Failure(ErrorMapping.protocolFault(e.message ?: "channel call failed"))
-        }
-    }
-
-    private suspend fun helloV4(): Hello {
-        channelReady()
-        bound().debug("v4.call", "helloConversationV4 begin")
-        val raw = try {
-            channel.call("zcode-agent", "helloConversationV4", RpcValue.Arr(emptyList()), config.bridgeHandshakeTimeoutMs)
-        } catch (e: ChannelSession.Failure.TimedOut) {
-            throw Failure(ErrorMapping.timeout("helloConversationV4", config.bridgeHandshakeTimeoutMs))
-        } catch (e: ChannelSession.Failure) {
-            throw Failure(ErrorMapping.protocolFault(e.message ?: "hello failed"))
-        }
-        val obj = (raw as? RpcValue.Obj)?.json as? JsonObject
-            ?: throw Failure(ErrorMapping.protocolFault("hello response not an object"))
-        return try {
-            Hello.decode(obj)
-        } catch (e: V4WireVersionException) {
-            throw Failure(ErrorMapping.versionIncompatible(e.message ?: "wire version"))
-        } catch (e: ProtocolException) {
-            throw Failure(ErrorMapping.protocolFault(e.message ?: "hello decode"))
-        }
-    }
-
-    private suspend fun initializeV4(endpoint: EndpointDescriptor) {
-        val clientHello = ClientHello(
-            clientId = endpoint.id,
-            clientKind = endpoint.clientKind,
-            appVersion = endpoint.appVersion,
-        )
-        v4Call("initializeConversationV4", RpcValue.Obj(clientHello.encode()))
-    }
-
-    // ------------------------------------------------------------------ v4 surface (live-proven shapes)
-
-    /**
-     * Subscribe to `conversation/<sessionId>`. Phone-facing shape (Phase 1 live-proven):
-     * {workspacePath, workspaceIdentity?, sessionId, visibility}.
-     *
-     * Phase 6: an opened task may live outside the endpoint-pinned (active) workspace,
-     * so the workspace target can be supplied per call — the verified wire shape
-     * carries the workspace on EVERY v4 call (docs/protocol/v4-wire.md §4). Null
-     * falls back to the descriptor-pinned workspace exactly as before (the recovery
-     * coordinator's re-anchor path is unchanged).
-     */
-    suspend fun subscribeSession(
-        sessionId: String,
-        visibility: String? = "foreground",
-        workspacePath: String? = null,
-        workspaceIdentity: String? = null,
-    ): SubscribeAck {
-        val endpoint = endpoint ?: throw Failure(ErrorMapping.internal("no endpoint"))
-        val params = buildJsonObject {
-            put("workspacePath", JsonPrimitive(workspacePath ?: endpoint.workspacePath ?: ""))
-            (workspaceIdentity ?: endpoint.workspaceIdentity)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
-            put("sessionId", JsonPrimitive(sessionId))
-            visibility?.let { put("visibility", JsonPrimitive(it)) }
-        }
-        val raw = v4Call("subscribeConversationV4", RpcValue.Obj(params))
-        val obj = (raw as? RpcValue.Obj)?.json as? JsonObject
-            ?: throw Failure(ErrorMapping.protocolFault("subscribe result not an object"))
-        val ackObj = obj["ack"] as? JsonObject
-            ?: throw Failure(ErrorMapping.protocolFault("subscribe ack missing"))
-        val ack = SubscribeAck.decode(ackObj)
-        subscriptions[V4Topics.conversation(sessionId)] = SubscriptionRecord(ack.subscriptionId, ack.logEpoch, -1)
-        synchronized(subscriptionWorkspaces) {
-            subscriptionWorkspaces[sessionId] = workspacePath to (workspaceIdentity ?: endpoint.workspaceIdentity)
-        }
-        return ack
-    }
-
-    /** rowsRange (live-proven shape); limit hard-bounded ≤ 200 (INV-13). */
-    suspend fun rowsRange(sessionId: String, beforeRowId: Long?, limit: Int): RowsRangeResult {
-        val endpoint = endpoint ?: throw Failure(ErrorMapping.internal("no endpoint"))
-        bound().debug("v4.call", "rowsRange session=$sessionId before=$beforeRowId limit=$limit")
-        val params = buildJsonObject {
-            put("workspacePath", JsonPrimitive(endpoint.workspacePath ?: ""))
-            endpoint.workspaceIdentity?.let { put("workspaceIdentity", JsonPrimitive(it)) }
-            put("sessionId", JsonPrimitive(sessionId))
-            beforeRowId?.let { put("beforeRowId", JsonPrimitive(it)) }
-            put("limit", JsonPrimitive(limit))
-        }
-        val raw = v4Call("conversationRowsRangeV4", RpcValue.Obj(params))
-        val obj = (raw as? RpcValue.Obj)?.json as? JsonObject
-            ?: throw Failure(ErrorMapping.protocolFault("rowsRange result not an object"))
-        return RowsRangeResult.decode(obj)
-    }
-
-    suspend fun rowsRange(params: RowsRangeParams): RowsRangeResult =
-        rowsRange(params.sessionId, params.beforeRowId, params.limit)
-
-    /**
-     * v4/conversation/resync — the Phase 5.3 recovery escalation (§15.1/S8/S10):
-     * `base` resumes from a watermark, `base=null`/`forceSnapshot=true` forces a
-     * snapshot. Workspace-target param form, mirroring the live-proven subscribe
-     * shape (the trusted host injects topic/connectionId — docs/protocol/v4-wire.md
-     * §4). The exact phone-facing resync shape on the PRODUCTION relay is
-     * `[REQUIRES VALIDATION]` (verified schema shape carried; MockZCode implements
-     * both forms) — live validation rides the Phase-12 manual canary.
-     */
-    suspend fun resyncSession(
-        sessionId: String,
-        base: Pair<String, Long>?,
-        forceSnapshot: Boolean = false,
-        workspacePath: String? = null,
-        workspaceIdentity: String? = null,
-    ): SubscribeAck {
-        val endpoint = endpoint ?: throw Failure(ErrorMapping.internal("no endpoint"))
-        val params = buildJsonObject {
-            put("workspacePath", JsonPrimitive(workspacePath ?: endpoint.workspacePath ?: ""))
-            (workspaceIdentity ?: endpoint.workspaceIdentity)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
-            put("sessionId", JsonPrimitive(sessionId))
-            if (base == null) put("base", JsonNull) else put("base", buildJsonObject {
-                put("logEpoch", JsonPrimitive(base.first))
-                put("seq", JsonPrimitive(base.second))
-            })
-            if (forceSnapshot) put("forceSnapshot", JsonPrimitive(true))
-        }
-        val raw = v4Call("resyncConversationV4", RpcValue.Obj(params))
-        val obj = (raw as? RpcValue.Obj)?.json as? JsonObject
-            ?: throw Failure(ErrorMapping.protocolFault("resync result not an object"))
-        val ackObj = obj["ack"] as? JsonObject
-            ?: throw Failure(ErrorMapping.protocolFault("resync ack missing"))
-        return SubscribeAck.decode(ackObj)
-    }
-
-    /** Send a v4 command envelope (CAS-validated at build time, INV-4 idempotent). */
-    /** Workspace targets seen at subscribe time (session → §7.11 identity key / path). */
-    private val subscriptionWorkspaces = HashMap<String, Pair<String?, String?>>()
-
-    internal fun subscriptionWorkspace(sessionId: String): Pair<String?, String?>? =
-        synchronized(subscriptionWorkspaces) { subscriptionWorkspaces[sessionId] }
-
-    /**
-     * The clientId the v4 handshake bound for THIS connection (the clientHello's
-     * clientId — zcodeAgentConnectionScope binds it at initializeConversationV4 and
-     * REJECTS any command whose envelope.clientId differs:
-     * fault.command.clientMismatch). Command envelopes MUST carry exactly this.
-     */
-    val commandClientId: String?
+    override val commandClientId: String?
         get() = endpoint?.id
 
-    /** The connected endpoint's discovered workspace target (path, identity) — Phase 9 tool-plane routing. */
-    val activeWorkspaceTarget: Pair<String?, String?>?
+    override val activeWorkspaceTarget: Pair<String?, String?>?
         get() = endpoint?.let { it.workspacePath to it.workspaceIdentity }
 
-    /**
-     * FIELD (2026-10-01, vc21 production-shape fix): the desktop's
-     * `sendConversationCommandV4` takes `{workspacePath?, workspaceIdentity?,
-     * envelope}` (zcodeAgent.ts ZCodeAgentConversationCommandParams extends
-     * ZCodeAgentWorkspaceTarget — the envelope is a NESTED field and the workspace
-     * target drives client routing/getClient). We sent a BARE envelope — the mock
-     * accepted it, production would fail the `params.envelope` lookups. The wrapper
-     * + workspace target (resolved from the subscribe-time record when the caller
-     * does not supply one; createSession has no session and MUST pass it explicitly)
-     * now matches the desktop adapter's own call shape verbatim.
-     */
-    suspend fun sendConversationCommand(
+    override val v4ConnectionId: String?
+        get() = plane.connectionId
+
+    override fun ensureConversationListen(workspacePath: String?, workspaceIdentity: String?) =
+        plane.ensureConversationListen(workspacePath, workspaceIdentity)
+
+    override suspend fun subscribeSession(
+        sessionId: String,
+        visibility: String?,
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ): SubscribeAck = plane.subscribeSession(sessionId, visibility, workspacePath, workspaceIdentity)
+
+    override suspend fun rowsRange(sessionId: String, beforeRowId: Long?, limit: Int): RowsRangeResult =
+        plane.rowsRange(sessionId, beforeRowId, limit)
+
+    override suspend fun rowsRange(params: RowsRangeParams): RowsRangeResult =
+        rowsRange(params.sessionId, params.beforeRowId, params.limit)
+
+    override suspend fun resyncSession(
+        sessionId: String,
+        base: Pair<String, Long>?,
+        forceSnapshot: Boolean,
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ): SubscribeAck = plane.resyncSession(sessionId, base, forceSnapshot, workspacePath, workspaceIdentity)
+
+    override suspend fun sendConversationCommand(
         envelope: CommandEnvelope,
-        workspacePath: String? = null,
-        workspaceIdentity: String? = null,
-    ): CommandAck {
-        val fromSubscription = envelope.sessionId?.let { subscriptionWorkspace(it) }
-        val wp = workspacePath ?: fromSubscription?.first ?: endpoint?.workspacePath
-        val wi = workspaceIdentity ?: fromSubscription?.second ?: endpoint?.workspaceIdentity
-        val arg = buildJsonObject {
-            wp?.let { put("workspacePath", kotlinx.serialization.json.JsonPrimitive(it)) }
-            wi?.let { put("workspaceIdentity", kotlinx.serialization.json.JsonPrimitive(it)) }
-            put("envelope", envelope.encode())
-        }
-        val raw = v4Call("sendConversationCommandV4", RpcValue.Obj(arg))
-        val obj = (raw as? RpcValue.Obj)?.json as? JsonObject
-            ?: throw Failure(ErrorMapping.protocolFault("command ack not an object"))
-        return CommandAck.decode(obj)
-    }
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ): CommandAck = plane.sendConversationCommand(envelope, workspacePath, workspaceIdentity)
 
-    // ------------------------------------------------------------------ Phase 9 read surfaces
-    // docs/protocol/v4-wire.md §10 + docs/protocol/phase9-channels.md. Every call keeps
-    // the established conventions: zcode-agent *V4 methods carry the workspace target
-    // (ZCodeAgentSessionTarget extension — VERIFIED); other service channels are plain
-    // channel methods (promise args ARRAY-wrapped, dynamic event args RAW — Phase 1
-    // finding 5 / proxy-channel.ts:127). READ-ONLY: the terminal surface deliberately
-    // exposes NO write/resize and the git/file surfaces expose no mutation methods
-    // (INV-9 — the typed surface is the enforcement).
+    override fun subscriptionWorkspace(sessionId: String): Pair<String?, String?>? =
+        plane.subscriptionWorkspace(sessionId)
 
-    /** The v4 hello's connectionId — attachment begin/chunk/commit/abort require it. */
-    val v4ConnectionId: String? get() = _capabilities.value?.connectionId
-
-    /** `conversationFileChangesV4` — per-turn diff hunks for the §22 diff viewer. */
-    suspend fun conversationFileChanges(
+    override suspend fun conversationFileChanges(
         sessionId: String,
         targetRowId: Long,
         targetEntityId: String,
         baseRevision: Long,
         baseLogEpoch: String,
-        workspacePath: String? = null,
-        workspaceIdentity: String? = null,
-    ): JsonObject {
-        val endpoint = endpoint ?: throw Failure(ErrorMapping.internal("no endpoint"))
-        val params = buildJsonObject {
-            put("workspacePath", JsonPrimitive(workspacePath ?: endpoint.workspacePath ?: ""))
-            (workspaceIdentity ?: endpoint.workspaceIdentity)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
-            put("sessionId", JsonPrimitive(sessionId))
-            put("target", buildJsonObject {
-                put("rowId", JsonPrimitive(targetRowId))
-                put("entityId", JsonPrimitive(targetEntityId))
-            })
-            put("baseRevision", JsonPrimitive(baseRevision))
-            put("baseLogEpoch", JsonPrimitive(baseLogEpoch))
-        }
-        return v4CallObject("conversationFileChangesV4", params)
-    }
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ): JsonObject = plane.conversationFileChanges(
+        sessionId, targetRowId, targetEntityId, baseRevision, baseLogEpoch, workspacePath, workspaceIdentity,
+    )
 
-    /** Attachment transaction — begin (returns staging/committed discriminator). */
-    suspend fun attachmentBegin(
+    override suspend fun attachmentBegin(
         uploadId: String,
         sessionId: String,
         fileName: String,
@@ -1382,280 +1138,85 @@ class RelayTransport(
         totalBytes: Long,
         totalChunks: Int,
         checksum: String,
-        workspacePath: String? = null,
-        workspaceIdentity: String? = null,
-    ): JsonObject {
-        val endpoint = endpoint ?: throw Failure(ErrorMapping.internal("no endpoint"))
-        val connectionId = v4ConnectionId ?: throw Failure(ErrorMapping.internal("no v4 connectionId (not connected)"))
-        val params = buildJsonObject {
-            put("workspacePath", JsonPrimitive(workspacePath ?: endpoint.workspacePath ?: ""))
-            (workspaceIdentity ?: endpoint.workspaceIdentity)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
-            put("connectionId", JsonPrimitive(connectionId))
-            put("uploadId", JsonPrimitive(uploadId))
-            put("sessionId", JsonPrimitive(sessionId))
-            put("fileName", JsonPrimitive(fileName))
-            put("mime", JsonPrimitive(mime))
-            put("totalBytes", JsonPrimitive(totalBytes))
-            put("totalChunks", JsonPrimitive(totalChunks))
-            put("checksum", JsonPrimitive(checksum))
-        }
-        return v4CallObject("attachmentBeginV4", params)
-    }
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ): JsonObject = plane.attachmentBegin(
+        uploadId, sessionId, fileName, mime, totalBytes, totalChunks, checksum, workspacePath, workspaceIdentity,
+    )
 
-    suspend fun attachmentChunk(
+    override suspend fun attachmentChunk(
         uploadId: String,
         sessionId: String,
         chunkIndex: Int,
         dataBase64: String,
-        workspacePath: String? = null,
-        workspaceIdentity: String? = null,
-    ): JsonObject {
-        val endpoint = endpoint ?: throw Failure(ErrorMapping.internal("no endpoint"))
-        val connectionId = v4ConnectionId ?: throw Failure(ErrorMapping.internal("no v4 connectionId (not connected)"))
-        val params = buildJsonObject {
-            put("workspacePath", JsonPrimitive(workspacePath ?: endpoint.workspacePath ?: ""))
-            (workspaceIdentity ?: endpoint.workspaceIdentity)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
-            put("connectionId", JsonPrimitive(connectionId))
-            put("uploadId", JsonPrimitive(uploadId))
-            put("sessionId", JsonPrimitive(sessionId))
-            put("chunkIndex", JsonPrimitive(chunkIndex))
-            put("dataBase64", JsonPrimitive(dataBase64))
-        }
-        return v4CallObject("attachmentChunkV4", params)
-    }
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ): JsonObject = plane.attachmentChunk(uploadId, sessionId, chunkIndex, dataBase64, workspacePath, workspaceIdentity)
 
-    private suspend fun attachmentTerminal(
-        method: String,
-        uploadId: String,
-        sessionId: String,
-    ): JsonObject {
-        val endpoint = endpoint ?: throw Failure(ErrorMapping.internal("no endpoint"))
-        val connectionId = v4ConnectionId ?: throw Failure(ErrorMapping.internal("no v4 connectionId (not connected)"))
-        val params = buildJsonObject {
-            put("workspacePath", JsonPrimitive(endpoint.workspacePath ?: ""))
-            endpoint.workspaceIdentity?.let { put("workspaceIdentity", JsonPrimitive(it)) }
-            put("connectionId", JsonPrimitive(connectionId))
-            put("uploadId", JsonPrimitive(uploadId))
-            put("sessionId", JsonPrimitive(sessionId))
-        }
-        return v4CallObject(method, params)
-    }
+    override suspend fun attachmentCommit(uploadId: String, sessionId: String): JsonObject =
+        plane.attachmentCommit(uploadId, sessionId)
 
-    suspend fun attachmentCommit(uploadId: String, sessionId: String): JsonObject =
-        attachmentTerminal("attachmentCommitV4", uploadId, sessionId)
+    override suspend fun attachmentAbort(uploadId: String, sessionId: String): JsonObject =
+        plane.attachmentAbort(uploadId, sessionId)
 
-    suspend fun attachmentAbort(uploadId: String, sessionId: String): JsonObject =
-        attachmentTerminal("attachmentAbortV4", uploadId, sessionId)
-
-    /** Chunked attachment READ (`attachmentReadV4`) — image/video/pdf preview plane. */
-    suspend fun attachmentRead(
+    override suspend fun attachmentRead(
         sessionId: String,
         ref: String,
         offset: Long,
         limit: Int,
-        targetRowId: Long? = null,
-        targetEntityId: String? = null,
-        attachmentIndex: Int? = null,
-        workspacePath: String? = null,
-        workspaceIdentity: String? = null,
-    ): JsonObject {
-        val endpoint = endpoint ?: throw Failure(ErrorMapping.internal("no endpoint"))
-        val params = buildJsonObject {
-            put("workspacePath", JsonPrimitive(workspacePath ?: endpoint.workspacePath ?: ""))
-            (workspaceIdentity ?: endpoint.workspaceIdentity)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
-            put("sessionId", JsonPrimitive(sessionId))
-            put("ref", JsonPrimitive(ref))
-            if (targetRowId != null && targetEntityId != null) {
-                put("target", buildJsonObject {
-                    put("rowId", JsonPrimitive(targetRowId))
-                    put("entityId", JsonPrimitive(targetEntityId))
-                })
-            }
-            attachmentIndex?.let { put("attachmentIndex", JsonPrimitive(it)) }
-            put("offset", JsonPrimitive(offset))
-            put("limit", JsonPrimitive(limit))
-        }
-        return v4CallObject("attachmentReadV4", params)
-    }
+        targetRowId: Long?,
+        targetEntityId: String?,
+        attachmentIndex: Int?,
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ): JsonObject = plane.attachmentRead(
+        sessionId, ref, offset, limit, targetRowId, targetEntityId, attachmentIndex, workspacePath, workspaceIdentity,
+    )
 
-    /** v4Call variant returning the decoded JsonObject (the Phase 9 calls all return objects). */
-    private suspend fun v4CallObject(name: String, params: JsonObject): JsonObject {
-        val raw = v4Call(name, RpcValue.Obj(params))
-        return (raw as? RpcValue.Obj)?.json as? JsonObject
-            ?: throw Failure(ErrorMapping.protocolFault("$name result not an object"))
-    }
+    override suspend fun terminalCreate(cols: Int, rows: Int, cwd: String?): JsonObject =
+        plane.terminalCreate(cols, rows, cwd)
 
-    /**
-     * Generic service-channel call (terminal/git/file/model-selection — phase9-channels.md).
-     * Same error mapping as v4Call; a channel REFUSAL (unknown channel / role gate) is a
-     * server-spoke rejection the feature layers translate into their §13.3 disabled state.
-     */
-    private suspend fun channelCall(
-        channelName: String,
-        method: String,
-        arg: RpcValue,
-        timeoutMs: Long = config.controlRequestTimeoutMs,
-    ): RpcValue {
-        cV4Calls.incrementAndGet()
-        bound().debug("channel.call", "$channelName.$method begin")
-        return try {
-            val raw = channel.call(channelName, method, arg, timeoutMs)
-            bound().debug("channel.call", "$channelName.$method ok in ${clock() - cV4CallsStartedAt()}ms")
-            raw
-        } catch (e: ChannelSession.Failure.TimedOut) {
-            bound().warn("channel.call", "$channelName.$method TIMEOUT")
-            throw Failure(ErrorMapping.timeout("$channelName.$method", timeoutMs))
-        } catch (e: ChannelSession.Failure.ChannelError) {
-            bound().warn("channel.call", "$channelName.$method refused: ${e.detail.take(100)}")
-            throw Failure(ErrorMapping.taskRejected(e.detail))
-        } catch (e: ChannelSession.Failure) {
-            bound().warn("channel.call", "$channelName.$method failed: ${e.message?.take(100)}")
-            throw Failure(ErrorMapping.protocolFault(e.message ?: "channel call failed"))
-        }
-    }
+    override suspend fun terminalDispose(id: String) = plane.terminalDispose(id)
 
-    private fun cV4CallsStartedAt(): Long = clock()
+    override fun terminalListenData(id: String, handler: (String) -> Unit): Int =
+        plane.terminalListenData(id, handler)
 
-    // ---- terminal (view-only: create/dispose/data/exit ONLY — INV-9, phase9-channels.md §1)
+    override fun terminalListenExit(id: String, handler: (Int?) -> Unit): Int =
+        plane.terminalListenExit(id, handler)
 
-    suspend fun terminalCreate(cols: Int, rows: Int, cwd: String? = null): JsonObject {
-        val params = buildJsonObject {
-            put("cols", JsonPrimitive(cols))
-            put("rows", JsonPrimitive(rows))
-            cwd?.let { put("cwd", JsonPrimitive(it)) }
-        }
-        val raw = channelCall("terminal", "create", RpcValue.Arr(listOf(RpcValue.Obj(params))), config.authTimeoutMs)
-        return (raw as? RpcValue.Obj)?.json as? JsonObject
-            ?: throw Failure(ErrorMapping.protocolFault("terminal.create result not an object"))
-    }
+    override fun disposeListener(listenerId: Int) = plane.disposeListener(listenerId)
 
-    suspend fun terminalDispose(id: String) {
-        channelCall("terminal", "dispose", RpcValue.Arr(listOf(RpcValue.Obj(buildJsonObject {
-            put("id", JsonPrimitive(id))
-        }))))
-    }
+    override suspend fun gitRepositorySummary(workspacePath: String): JsonObject =
+        plane.gitRepositorySummary(workspacePath)
 
-    /** Dynamic event listen (`onDynamicData(id)`) — arg passed RAW (proxy-channel.ts:127). */
-    fun terminalListenData(id: String, handler: (String) -> Unit): Int =
-        channel.listen("terminal", "onDynamicData", RpcValue.Str(id)) { value ->
-            val text = (value as? RpcValue.Str)?.value
-            if (text != null) handler(text)
-        }
+    override suspend fun gitChanges(workspacePath: String, sourceId: String): JsonObject =
+        plane.gitChanges(workspacePath, sourceId)
 
-    fun terminalListenExit(id: String, handler: (Int?) -> Unit): Int =
-        channel.listen("terminal", "onDynamicExit", RpcValue.Str(id)) { value ->
-            handler((value as? RpcValue.Int)?.value?.toInt())
-        }
+    override suspend fun gitDiff(workspacePath: String, path: String, staged: Boolean?): JsonObject =
+        plane.gitDiff(workspacePath, path, staged)
 
-    fun disposeListener(listenerId: Int) = channel.disposeListener(listenerId)
+    override suspend fun gitCommitGraph(workspacePath: String, maxCount: Int, skip: Int): JsonObject =
+        plane.gitCommitGraph(workspacePath, maxCount, skip)
 
-    // ---- git (read-only subset — phase9-channels.md §2)
+    override suspend fun fileReaddir(path: String, includeHidden: Boolean): RpcValue =
+        plane.fileReaddir(path, includeHidden)
 
-    private suspend fun gitCall(method: String, params: JsonObject): JsonObject {
-        val raw = channelCall("git", method, RpcValue.Arr(listOf(RpcValue.Obj(params))))
-        return (raw as? RpcValue.Obj)?.json as? JsonObject
-            ?: throw Failure(ErrorMapping.protocolFault("git.$method result not an object"))
-    }
+    override suspend fun fileStat(path: String): JsonObject = plane.fileStat(path)
 
-    suspend fun gitRepositorySummary(workspacePath: String): JsonObject =
-        gitCall("getRepositorySummary", buildJsonObject { put("workspacePath", JsonPrimitive(workspacePath)) })
+    override suspend fun fileReadText(path: String, offset: Long?, length: Long?): JsonObject =
+        plane.fileReadText(path, offset, length)
 
-    suspend fun gitChanges(workspacePath: String, sourceId: String): JsonObject {
-        val raw = channelCall("git", "getChanges", RpcValue.Arr(listOf(RpcValue.Obj(buildJsonObject {
-            put("workspacePath", JsonPrimitive(workspacePath))
-            put("sourceId", JsonPrimitive(sourceId))
-        }))))
-        return when (raw) {
-            is RpcValue.Obj -> raw.json as? JsonObject
-                ?: throw Failure(ErrorMapping.protocolFault("git.getChanges result not an object"))
-            is RpcValue.Arr -> buildJsonObject {
-                // getChanges returns a top-level ARRAY (GitFileChange[]) — normalize to
-                // {items:[…]} for the shared decoder.
-                put("items", JsonArray(raw.items.map { el ->
-                    (el as? RpcValue.Obj)?.json as? JsonObject ?: JsonObject(emptyMap())
-                }))
-            }
-            else -> throw Failure(ErrorMapping.protocolFault("git.getChanges result not an object"))
-        }
-    }
+    override suspend fun fileReadBytes(path: String, offset: Long, length: Long): ByteArray =
+        plane.fileReadBytes(path, offset, length)
 
-    suspend fun gitDiff(workspacePath: String, path: String, staged: Boolean?): JsonObject =
-        gitCall("getDiff", buildJsonObject {
-            put("workspacePath", JsonPrimitive(workspacePath))
-            put("path", JsonPrimitive(path))
-            staged?.let { put("staged", JsonPrimitive(it)) }
-        })
+    override suspend fun fileBinaryPreview(path: String, maxBytes: Long?): JsonObject =
+        plane.fileBinaryPreview(path, maxBytes)
 
-    suspend fun gitCommitGraph(workspacePath: String, maxCount: Int, skip: Int): JsonObject =
-        gitCall("getCommitGraph", buildJsonObject {
-            put("workspacePath", JsonPrimitive(workspacePath))
-            put("maxCount", JsonPrimitive(maxCount))
-            put("skip", JsonPrimitive(skip))
-        })
+    override suspend fun fileSearch(rootPath: String, workspaceIdentity: String?, query: String, limit: Int): RpcValue =
+        plane.fileSearch(rootPath, workspaceIdentity, query, limit)
 
-    // ---- file (read-only subset — phase9-channels.md §3)
+    override suspend fun modelSelectionView(): JsonObject = plane.modelSelectionView()
 
-    private suspend fun fileCall(method: String, params: JsonObject, timeoutMs: Long = config.controlRequestTimeoutMs): RpcValue =
-        channelCall("file", method, RpcValue.Arr(listOf(RpcValue.Obj(params))), timeoutMs)
-
-    suspend fun fileReaddir(path: String, includeHidden: Boolean = false): RpcValue =
-        fileCall("readdir", buildJsonObject {
-            put("path", JsonPrimitive(path))
-            put("includeHidden", JsonPrimitive(includeHidden))
-        })
-
-    suspend fun fileStat(path: String): JsonObject {
-        val raw = fileCall("stat", buildJsonObject { put("path", JsonPrimitive(path)) })
-        return (raw as? RpcValue.Obj)?.json as? JsonObject
-            ?: throw Failure(ErrorMapping.protocolFault("file.stat result not an object"))
-    }
-
-    suspend fun fileReadText(path: String, offset: Long?, length: Long?): JsonObject {
-        val raw = fileCall("readTextFile", buildJsonObject {
-            put("path", JsonPrimitive(path))
-            offset?.let { put("offset", JsonPrimitive(it)) }
-            length?.let { put("length", JsonPrimitive(it)) }
-        })
-        return (raw as? RpcValue.Obj)?.json as? JsonObject
-            ?: throw Failure(ErrorMapping.protocolFault("file.readTextFile result not an object"))
-    }
-
-    /** Raw byte range (top-level binary fast path — protocol.ts readFileRange comment). */
-    suspend fun fileReadBytes(path: String, offset: Long, length: Long): ByteArray {
-        val raw = fileCall("readFileRange", buildJsonObject {
-            put("path", JsonPrimitive(path)); put("offset", JsonPrimitive(offset)); put("length", JsonPrimitive(length))
-        })
-        return when (raw) {
-            is RpcValue.Buf -> raw.bytes
-            is RpcValue.Str -> raw.value.toByteArray(Charsets.ISO_8859_1)
-            else -> throw Failure(ErrorMapping.protocolFault("file.readFileRange result not binary"))
-        }
-    }
-
-    suspend fun fileBinaryPreview(path: String, maxBytes: Long?): JsonObject {
-        val raw = fileCall("readBinaryPreview", buildJsonObject {
-            put("path", JsonPrimitive(path))
-            maxBytes?.let { put("maxBytes", JsonPrimitive(it)) }
-        })
-        return (raw as? RpcValue.Obj)?.json as? JsonObject
-            ?: throw Failure(ErrorMapping.protocolFault("file.readBinaryPreview result not an object"))
-    }
-
-    suspend fun fileSearch(rootPath: String, workspaceIdentity: String?, query: String, limit: Int): RpcValue =
-        fileCall("searchWorkspaceFiles", buildJsonObject {
-            put("rootPath", JsonPrimitive(rootPath))
-            workspaceIdentity?.let { put("workspaceIdentity", JsonPrimitive(it)) }
-            put("query", JsonPrimitive(query))
-            put("limit", JsonPrimitive(limit))
-        })
-
-    // ---- model-selection (read-only view for the §19.5 picker — phase9-channels.md §4)
-
-    suspend fun modelSelectionView(): JsonObject {
-        val raw = channelCall("model-selection", "getView", RpcValue.Arr(emptyList()))
-        return (raw as? RpcValue.Obj)?.json as? JsonObject
-            ?: throw Failure(ErrorMapping.protocolFault("model-selection.getView result not an object"))
-    }
 
     // ------------------------------------------------------------------ control plane
 
@@ -1800,7 +1361,7 @@ class RelayTransport(
         closedByUs = true
         heartbeatJob?.cancel()
         ackWatcherJob?.cancel()
-        channel.close(reason)
+        plane.channel.close(reason)
         ws?.let { runCatching { it.close(1000, reason) } }
         ws = null
         bound().info("relay.closed", reason)
@@ -1823,8 +1384,7 @@ class RelayTransport(
      * (including the internal recovery re-subscribe, whose ack carries a possibly
      * moved epoch, §15-S9). Read-only view for the projection gateway's frame stamping.
      */
-    fun subscriptionEpoch(sessionId: String): String? =
-        subscriptions[V4Topics.conversation(sessionId)]?.logEpoch
+    override fun subscriptionEpoch(sessionId: String): String? = plane.subscriptionEpoch(sessionId)
 
     private fun publishState() {
         _states.value = machine.state
@@ -1858,7 +1418,7 @@ class RelayTransport(
     }
 
     /** AppError wrapper used inside the transport; surfaces at connect()/v4 boundaries. */
-    class Failure(val error: AppError) : Exception(error.developerDiagnostic)
+    class Failure(error: AppError) : TransportFailure(error)
 }
 
 /** transport-class loss (§33 transport category). */

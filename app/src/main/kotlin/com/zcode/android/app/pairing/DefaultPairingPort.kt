@@ -158,7 +158,7 @@ class DefaultPairingPort(
             )
             _pairedEndpoint.value = view // retry success → paired (§12.6 recovery)
             PairingPort.ConnectOutcome.Success(view)
-        } catch (e: com.zcode.android.core.transport.RelayTransport.Failure) {
+        } catch (e: com.zcode.android.core.transport.TransportFailure) {
             mapError(e.error)
         } catch (e: Exception) {
             mapError(ErrorMapping.internal("connect: ${e.javaClass.simpleName}: ${e.message}"))
@@ -207,7 +207,7 @@ class DefaultPairingPort(
         return try {
             transport.connect(endpoint) { nonce, role, sid -> signer.proof(nonce, role, sid) }
             PairingPort.ConnectOutcome.Success(toView(raw))
-        } catch (e: com.zcode.android.core.transport.RelayTransport.Failure) {
+        } catch (e: com.zcode.android.core.transport.TransportFailure) {
             mapError(e.error)
         } catch (e: Exception) {
             mapError(ErrorMapping.internal("connect: ${e.javaClass.simpleName}: ${e.message}"))

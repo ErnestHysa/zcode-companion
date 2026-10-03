@@ -39,6 +39,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -112,6 +113,8 @@ class ConnectionHubIntegrationTest {
         transport = RelayTransport(wsFactory = com.zcode.android.core.transport.OkHttpWsFactory(), log = ZLog(sink = {}))
         hub = ConnectionHub(
             transport = transport,
+            directTransport = testDirectTransport(),
+            preferences = FakePreferencesRepository(),
             vault = vault,
             taskRepo = tasks,
             conversationRepo = conversations,
@@ -320,7 +323,7 @@ class ConnectionHubIntegrationTest {
             hub.sessionTotalRows(task.taskId).first(),
         )
         // The §19.4 backward page actually fetches older rows.
-        val page = hub.gateway.rowsRange(sessionId = task.taskId, beforeRowId = 5_000L, limit = 5)
+        val page = hub.gateway().rowsRange(sessionId = task.taskId, beforeRowId = 5_000L, limit = 5)
         assertTrue(page.rows.isNotEmpty(), "rowsRange page must return rows")
         Unit
     }
@@ -346,7 +349,7 @@ class ConnectionHubIntegrationTest {
         }
         kotlin.test.assertEquals(
             1,
-            (hub.gateway as com.zcode.android.data.session.RelayConversationGateway).forwardingCollectorCount(),
+            (hub.gateway() as com.zcode.android.data.session.RelayConversationGateway).forwardingCollectorCount(),
             "snapshot pipeline must have exactly one collector regardless of attach count",
         )
         Unit
@@ -417,6 +420,8 @@ class ConnectionHubIntegrationTest {
         )
         val slowHub = ConnectionHub(
             transport = slowTransport,
+            directTransport = testDirectTransport(),
+            preferences = FakePreferencesRepository(),
             vault = slowVault,
             taskRepo = tasks,
             conversationRepo = conversations,
@@ -494,6 +499,8 @@ class ConnectionHubIntegrationTest {
         )
         val staleHub = ConnectionHub(
             transport = RelayTransport(wsFactory = com.zcode.android.core.transport.OkHttpWsFactory(), log = ZLog(sink = {})),
+            directTransport = testDirectTransport(),
+            preferences = FakePreferencesRepository(),
             vault = staleVault,
             taskRepo = tasks,
             conversationRepo = conversations,
@@ -662,7 +669,14 @@ internal class FakeTaskRepository : TaskRepository {
     override fun observeTasks(endpointId: EndpointId, workspace: WorkspaceIdentityKey): Flow<List<Task>> =
         flows.getOrPut(workspace.raw) { MutableStateFlow(emptyList()) }
 
-    override fun observeAllTasks(endpointId: EndpointId): Flow<List<Task>> = snapshot
+    // Phase 10 fidelity: the REAL repository partitions by (endpoint, workspace) —
+    // observeAllTasks unions ONLY the given endpoint's partitions (the relay row and
+    // a direct row must never bleed into one list).
+    override fun observeAllTasks(endpointId: EndpointId): Flow<List<Task>> =
+        snapshot.map {
+            partitions.filterKeys { key -> key.first == endpointId.raw }.values.flatten()
+                .sortedByDescending { t -> t.updatedAtMs }
+        }
 
     override suspend fun replaceAll(
         endpointId: EndpointId,
@@ -793,3 +807,11 @@ internal class FakeInteractionRepository : InteractionRepository {
         )
     }
 }
+
+/** Phase 10: a DirectTransport whose sockets never connect in relay-only suites. */
+internal fun testDirectTransport(): com.zcode.android.core.transport.DirectTransport =
+    com.zcode.android.core.transport.DirectTransport(
+        tokenProvider = { "" },
+        wsFactory = { throw java.lang.IllegalStateException("direct transport not wired in this suite") },
+        log = com.zcode.android.core.common.log.ZLog(sink = {}),
+    )

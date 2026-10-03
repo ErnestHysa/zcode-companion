@@ -123,7 +123,7 @@ class DefaultGitPort(
         val target = hub.activeWorkspaceTarget() ?: return null
         val workspacePath = target.first ?: return null
         return try {
-            block(hub.phase9, workspacePath, target.second)
+            block(hub.phase9(), workspacePath, target.second)
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             hub.log.warn("gitport.$op", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
@@ -153,7 +153,7 @@ class DefaultFilesPort(
         } ?: FilesPort.TextResult(null, "file read unavailable on this connection")
 
     override suspend fun download(path: String, maxBytes: Long): FilesPort.DownloadResult {
-        val tools = hub.phase9
+        val tools = hub.phase9()
         val safeName = path.substringAfterLast('/').ifBlank { "download.bin" }.replace(Regex("[^A-Za-z0-9._-]"), "_")
         val out = File(cacheDir, safeName)
         return try {
@@ -193,7 +193,7 @@ class DefaultFilesPort(
     private suspend fun <T> run(op: String, block: suspend (Phase9Tools) -> T): T? {
         if (hub.activeWorkspaceTarget()?.first == null) return null
         return try {
-            block(hub.phase9)
+            block(hub.phase9())
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             hub.log.warn("$op", "${e.javaClass.simpleName}: ${e.message?.take(120)}")

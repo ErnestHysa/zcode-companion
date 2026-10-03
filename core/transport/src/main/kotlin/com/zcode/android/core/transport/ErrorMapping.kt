@@ -80,6 +80,52 @@ object ErrorMapping {
         )
     }
 
+    // ---------------------------------------------------- direct transport (§11.4, Phase 10)
+
+    /** Direct server answered the preflight/upgrade with an auth rejection (401/403). */
+    fun directTokenRejected(status: Int?): AppError = AppError(
+        category = ErrorCategory.AUTH,
+        userMessage = "Direct endpoint rejected the token — check it in Settings → Endpoints",
+        developerDiagnostic = "direct auth rejected (http status=${status ?: "unknown"})",
+        retryable = AppError.Retryable.NO,
+        recoverable = true,
+        autoRecovery = RecoveryAction.RECONCILE,
+    )
+
+    /**
+     * Android 16 Local Network Protection class (§25.3.7): EPERM/ECONNABORTED on a
+     * LAN-direct endpoint. Distinct user guidance; the failover loop may still try
+     * the NEXT candidate (e.g. the tailnet URL) — autoRecovery RECONNECT marks that.
+     */
+    fun localNetworkBlocked(reason: String): AppError = AppError(
+        category = ErrorCategory.ANDROID,
+        userMessage = "Local network blocked — allow local network access or use the Tailscale/tunnel URL",
+        developerDiagnostic = "local-network-blocked: $reason".take(180),
+        retryable = AppError.Retryable.AUTO,
+        recoverable = true,
+        autoRecovery = RecoveryAction.RECONNECT,
+    )
+
+    /** TOFU pin mismatch — FAIL CLOSED (§26.2-T11, phase10-direct.md §8). */
+    fun tofuPinMismatch(expectedPrefix: String, actualPrefix: String): AppError = AppError(
+        category = ErrorCategory.TRANSPORT,
+        userMessage = "Endpoint certificate changed — verify the server before reconnecting",
+        developerDiagnostic = "tofu-pin-mismatch expected=${expectedPrefix.take(12)}… actual=${actualPrefix.take(12)}… (fail-closed)",
+        retryable = AppError.Retryable.USER,
+        recoverable = true,
+        autoRecovery = RecoveryAction.NONE,
+    )
+
+    /** Plain-HTTP/WS direct endpoint warning surface (transport-level, honest labeling). */
+    fun insecureDirectTransport(url: String): AppError = AppError(
+        category = ErrorCategory.TRANSPORT,
+        userMessage = "Endpoint uses unencrypted transport (ws://) — anyone on the network can read this traffic",
+        developerDiagnostic = "direct endpoint not TLS: ${url.substringBefore("?").take(60)}",
+        retryable = AppError.Retryable.NO,
+        recoverable = false,
+        autoRecovery = RecoveryAction.NONE,
+    )
+
     // ---------------------------------------------------- relay error frames (§6.2)
 
     fun relayError(code: String, message: String?, correlation: Correlation = Correlation()): AppError = when (code) {

@@ -8,7 +8,11 @@ import com.zcode.android.core.transport.ConnectionStateMachine
 import com.zcode.android.core.transport.EndpointDescriptor
 import com.zcode.android.core.transport.EndpointKind
 import com.zcode.android.core.transport.ErrorMapping
+import com.zcode.android.core.transport.AppTransport
+import com.zcode.android.core.transport.DirectTransport
 import com.zcode.android.core.transport.RelayTransport
+import com.zcode.android.core.transport.ServerInfo
+import com.zcode.android.core.transport.TransportFailure
 import com.zcode.android.data.session.ConversationGateway
 import com.zcode.android.data.session.RecoveryCoordinator
 import com.zcode.android.data.session.RelayConversationGateway
@@ -52,13 +56,17 @@ import kotlinx.serialization.json.JsonObject
  * component that touches the transport; features see state through ports only.
  */
 class ConnectionHub(
+    /** The RELAY transport (§11.4 Option A). The relay pairing/credential flows bind here. */
     private val transport: RelayTransport,
+    /** The DIRECT transport (§11.4 Option B, Phase 10) — token capability from the vault. */
+    private val directTransport: DirectTransport,
     private val vault: CredentialVault,
     private val taskRepo: TaskRepository,
     private val conversationRepo: ConversationRepository,
     private val journalRepo: JournalRepository,
     private val interactions: InteractionRepository,
     private val endpointRepo: EndpointRepository,
+    private val preferences: com.zcode.android.domain.repo.PreferencesRepository,
     /** Phase 7: the REAL outbox + drafts (the Phase 6 OutboxStub is retired). */
     private val outbox: com.zcode.android.domain.repo.OutboxRepository,
     private val drafts: com.zcode.android.domain.repo.DraftRepository,
@@ -73,15 +81,59 @@ class ConnectionHub(
      */
     var notificationRecords: RecoveryCoordinator.NotificationRecordPort? = null
 
-    val gateway: ConversationGateway by lazy { RelayConversationGateway(transport, clientId, log) }
+    /**
+     * Phase 10: per-transport gateway cache (INV-6 — the gateway binds to the ACTIVE
+     * transport; switching endpoints swaps it; §8.3.1 both share the v4 plane).
+     */
+    private val gateways = java.util.concurrent.ConcurrentHashMap<AppTransport, ConversationGateway>()
 
-    private val clientId: String = "zcode-android-" + vault.loadMetadata()?.endpointId.let { it ?: "unpaired" }
+    private fun gatewayFor(t: AppTransport = activeTransport()): ConversationGateway =
+        gateways.getOrPut(t) { RelayConversationGateway(t, clientIdFor(), log) }
+
+    /** Port-facing gateway of the ACTIVE transport (INV-6: one transport downstream). */
+    fun gateway(): ConversationGateway = gatewayFor()
+
+    private fun clientIdFor(): String =
+        "zcode-android-" + activeEndpointIdRaw().let { it ?: vault.loadMetadata()?.endpointId ?: "unpaired" }
 
     private val _phase = MutableStateFlow(ConnectionPhase.UNPAIRED)
     val phase: StateFlow<ConnectionPhase> = _phase.asStateFlow()
 
     private val _endpoint = MutableStateFlow<Endpoint?>(null)
     val endpoint: StateFlow<Endpoint?> = _endpoint.asStateFlow()
+
+    // ------------------------------------------------------------------ Phase 10 registry
+    //
+    // §11.6: multiple paired endpoints (1 relay + N direct), ONE active connection at
+    // a time (the relay slot is single-terminal anyway). Active selection persists in
+    // preferences (selectedEndpointId); the registry lives in endpointRepo.
+
+    private val _endpoints = MutableStateFlow<List<Endpoint>>(emptyList())
+    /** The endpoint registry (§11.3) — every saved endpoint across both kinds. */
+    val endpoints: StateFlow<List<Endpoint>> = _endpoints.asStateFlow()
+
+    private val _directServerInfo = MutableStateFlow<ServerInfo?>(null)
+    /** server-info of the ACTIVE direct endpoint (null on relay / before first connect). */
+    val directServerInfo: StateFlow<ServerInfo?> = _directServerInfo.asStateFlow()
+
+    private val _switching = MutableStateFlow(false)
+    /** True while an endpoint switch tears down + reconnects (UI shows the hub state honestly). */
+    val switching: StateFlow<Boolean> = _switching.asStateFlow()
+
+    private fun activeKind(): EndpointKind = when (_endpoint.value?.kind) {
+        com.zcode.android.domain.model.EndpointKind.DIRECT_SERVER -> EndpointKind.DIRECT_SERVER
+        else -> EndpointKind.RELAY_ZAI
+    }
+
+    private fun activeEndpointIdRaw(): String? = _endpoint.value?.endpointId?.raw
+
+    /** The transport the ACTIVE endpoint is bound to (INV-6: downstream sees ONE transport). */
+    fun activeTransport(): AppTransport =
+        if (activeKind() == EndpointKind.DIRECT_SERVER) directTransport else transport
+
+    private suspend fun refreshRegistry() {
+        _endpoints.value = endpointRepo.endpoints()
+    }
 
     private val _taskLoadError = MutableStateFlow<AppError?>(null)
     val taskLoadError: StateFlow<AppError?> = _taskLoadError.asStateFlow()
@@ -146,7 +198,7 @@ class ConnectionHub(
 
     suspend fun diagnosticsSnapshot(): HubDiagnostics {
         val endpointId = vault.loadMetadata()?.endpointId
-        val caps = transport.capabilities.value
+        val caps = activeTransport().capabilities.value
         val capsLine = caps?.let {
             "conn=${it.connectionId.take(12)}… binary=${it.host.binaryFrames} compression=${it.host.compression} desktop=${it.desktopAppVersion}"
         }
@@ -198,7 +250,7 @@ class ConnectionHub(
     fun coordinatorOrNull(): RecoveryCoordinator? = coordinator
 
     suspend fun currentTasks(): List<Task> {
-        val endpointId = vault.loadMetadata()?.endpointId ?: return emptyList()
+        val endpointId = activeEndpointIdRaw() ?: vault.loadMetadata()?.endpointId ?: return emptyList()
         return taskRepo.observeAllTasks(EndpointId(endpointId)).first()
     }
 
@@ -255,74 +307,69 @@ class ConnectionHub(
     var onDegradedReport: ((String) -> Unit)? = null
     @Volatile private var lastReportedPhase: ConnectionPhase? = null
 
-    /** Idempotent app-start entry: wire state mapping; connect when paired. */
+    /** Idempotent app-start entry: wire state mapping; connect the ACTIVE endpoint when paired. */
     fun start() {
         if (started) return
         started = true
-        val meta = vault.loadMetadata()
-        _endpoint.value = meta?.let {
-            Endpoint(
-                endpointId = EndpointId(it.endpointId),
-                kind = com.zcode.android.domain.model.EndpointKind.RELAY_ZAI,
-                displayName = it.desktopName,
-                wsUrl = wsUrlForOrigin(it.endpointOrigin),
-                pairedAtMs = it.sealedAtMs,
-                deviceSid = it.deviceSid,
-                deviceMid = it.deviceMid,
-                desktopAppVersion = it.desktopAppVersion,
-            )
-        }
-        _phase.value = if (meta == null) ConnectionPhase.UNPAIRED else phaseOf(transport.states.value)
-        _endpointName.value = meta?.desktopName
+        // SYNCHRONOUS seed (first-frame correctness): the nav gate reads the paired
+        // state during the first composition — a relay pairing must be visible
+        // IMMEDIATELY (DefaultPairingPort's initializer had the same property; the
+        // Phase-10 async-only seed flashed the pairing screen and raced the nav on
+        // recreate — device-caught 2026-10-03). The §11.6 selection below refines
+        // this to a direct endpoint when one is persisted (second nav flip only on
+        // that rare path).
+        val seededMeta = vault.loadMetadata()
+        _endpoint.value = seededMeta?.let(::relayEndpointFromMeta)
+        _endpointName.value = seededMeta?.desktopName
+        _phase.value = if (seededMeta == null) ConnectionPhase.UNPAIRED else phaseOf(activeTransport().states.value)
         scope.launch {
-            var last: ConnectionStateMachine.ConnectionState? = null
-            transport.states.collect { state ->
-                if (state != last) {
-                    // Every §14.4.1 machine transition, visible in field diagnostics.
-                    log.info("hub.phase", "transport $last → $state")
-                    last = state
+            refreshRegistry()
+            // §11.6 active-endpoint selection: prefs.selectedEndpointId → registry;
+            // fall back to the paired relay endpoint (legacy single-endpoint behavior).
+            val selectedId = runCatching { preferences.current().selectedEndpointId }.getOrNull()
+            val meta = vault.loadMetadata()
+            // §12.6 fail-closed: a selection whose credential no longer decrypts
+            // (vault wiped/rotated) is DEAD — ignore it and fall back to the relay
+            // pairing. Otherwise a stale selection hijacks cold start (found by the
+            // HistoryPagination instrumented suite: a wiped direct token left the
+            // persisted id pointing at a dead endpoint, 2026-10-03).
+            val selected = selectedId?.let { id ->
+                _endpoints.value.firstOrNull { it.endpointId.raw == id }?.takeUnless { ep ->
+                    ep.kind == com.zcode.android.domain.model.EndpointKind.DIRECT_SERVER &&
+                        !vault.hasDirectToken(ep.endpointId.raw)
                 }
-                val phase = if (vault.loadMetadata() == null) ConnectionPhase.UNPAIRED else phaseOf(state)
-                _phase.value = phase
-                // Round-7e: auto-report exactly once per Degraded ENTRY — the failure
-                // state is captured at the moment it happens, even if the app dies
-                // before the user exports.
-                if (phase == ConnectionPhase.DEGRADED && lastReportedPhase != ConnectionPhase.DEGRADED) {
-                    val report = runCatching {
-                        val stats = transport.statsSnapshot()
-                        "=== AUTO REPORT: DEGRADED (" + java.time.Instant.now() + ") ===\n" +
-                            "desktopDisconnectedConsecutive: " + stats["desktopDisconnectedConsecutive"] + "\n" +
-                            "bridgeErrors: " + stats["bridgeErrors"] + "\n" +
-                            "lastError: " + (_lastError.value?.let { it.category.toString() + " :: " + it.developerDiagnostic.take(160) } ?: "none") + "\n" +
-                            diagnosticsSnapshot().let { d ->
-                                "capabilities: " + (d.capabilities ?: "none") + "\n" +
-                                    "journal: " + d.journalSubscriptions.joinToString(" | ") + "\n" +
-                                    "sessions: " + d.sessions.joinToString(" | ") { s ->
-                                        s.sessionId.take(20) + " state=" + s.taskState + " stale=" + s.stale + " rows=" + s.cachedRows
-                                    }
-                            }
-                    }.getOrDefault("auto-report generation failed")
-                    onDegradedReport?.invoke(report)
-                    log.info("hub.degradedAutoReport", "written len=${report.length}")
-                }
-                lastReportedPhase = phase
-                onTransportState(state)
+            }
+            _endpoint.value = when {
+                selected?.kind == com.zcode.android.domain.model.EndpointKind.DIRECT_SERVER -> selected
+                meta != null -> relayEndpointFromMeta(meta)
+                else -> selected
+            }
+            _endpointName.value = _endpoint.value?.displayName
+            _phase.value = if (_endpoint.value == null) ConnectionPhase.UNPAIRED else phaseOf(activeTransport().states.value)
+            val active = _endpoint.value
+            if (active != null && activeTransport().states.value != ConnectionStateMachine.ConnectionState.CONNECTED) {
+                connect()
             }
         }
+        // Dual collectors gated by the ACTIVE kind: only the active transport drives
+        // the phase (the inactive one is quiet — it was closed on switch, §11.6).
         scope.launch {
-            transport.appErrors.collect { _lastError.value = it }
+            transport.states.collect { state -> onRelayState(state) }
         }
-        if (meta != null && transport.states.value != ConnectionStateMachine.ConnectionState.CONNECTED) {
-            connect()
+        scope.launch {
+            directTransport.states.collect { state -> onDirectState(state) }
+        }
+        scope.launch {
+            transport.appErrors.collect { if (activeKind() == EndpointKind.RELAY_ZAI) _lastError.value = it }
+        }
+        scope.launch {
+            directTransport.appErrors.collect { if (activeKind() == EndpointKind.DIRECT_SERVER) _lastError.value = it }
         }
         observeControlPlanePushes()
     }
 
-    /** Pairing completed → adopt the new endpoint and ride the live transport. */
-    fun onPairingCompleted() {
-        started = true
-        val meta = vault.loadMetadata() ?: return
-        _endpoint.value = Endpoint(
+    private fun relayEndpointFromMeta(meta: com.zcode.android.core.security.vault.CredentialMetadata): Endpoint =
+        Endpoint(
             endpointId = EndpointId(meta.endpointId),
             kind = com.zcode.android.domain.model.EndpointKind.RELAY_ZAI,
             displayName = meta.desktopName,
@@ -332,8 +379,81 @@ class ConnectionHub(
             deviceMid = meta.deviceMid,
             desktopAppVersion = meta.desktopAppVersion,
         )
-        _phase.value = phaseOf(transport.states.value)
+
+    private suspend fun onRelayState(state: ConnectionStateMachine.ConnectionState) {
+        onActiveState(EndpointKind.RELAY_ZAI, state, transport.statsSnapshot())
+    }
+
+    private suspend fun onDirectState(state: ConnectionStateMachine.ConnectionState) {
+        onActiveState(EndpointKind.DIRECT_SERVER, state, directTransport.statsSnapshot())
+    }
+
+    private suspend fun onActiveState(
+        sourceKind: EndpointKind,
+        state: ConnectionStateMachine.ConnectionState,
+        stats: Map<String, Long>,
+    ) {
+        if (sourceKind != activeKind()) return // inactive transport: quiet (closed on switch)
+        log.info("hub.phase", "transport ($sourceKind) → $state")
+        val paired = _endpoint.value != null || vault.loadMetadata() != null
+        val phase = if (!paired) ConnectionPhase.UNPAIRED else phaseOf(state)
+        _phase.value = phase
+        // Round-7e: auto-report exactly once per Degraded ENTRY — the failure state is
+        // captured at the moment it happens, even if the app dies before the user exports.
+        if (phase == ConnectionPhase.DEGRADED && lastReportedPhase != ConnectionPhase.DEGRADED) {
+            val report = runCatching {
+                "=== AUTO REPORT: DEGRADED (" + java.time.Instant.now() + ") ===\n" +
+                    "transport: $sourceKind\n" +
+                    ("desktopDisconnectedConsecutive: " + (stats["desktopDisconnectedConsecutive"] ?: 0L)) + "\n" +
+                    "bridgeErrors: " + (stats["bridgeErrors"] ?: 0L) + "\n" +
+                    "lastError: " + (_lastError.value?.let { it.category.toString() + " :: " + it.developerDiagnostic.take(160) } ?: "none") + "\n" +
+                    diagnosticsSnapshot().let { d ->
+                        "capabilities: " + (d.capabilities ?: "none") + "\n" +
+                            "journal: " + d.journalSubscriptions.joinToString(" | ") + "\n" +
+                            "sessions: " + d.sessions.joinToString(" | ") { s ->
+                                s.sessionId.take(20) + " state=" + s.taskState + " stale=" + s.stale + " rows=" + s.cachedRows
+                            }
+                    }
+            }.getOrDefault("auto-report generation failed")
+            onDegradedReport?.invoke(report)
+            log.info("hub.degradedAutoReport", "written len=${report.length}")
+        }
+        lastReportedPhase = phase
+        onTransportState(state)
+    }
+
+    /**
+     * Pairing completed → adopt the RELAY endpoint. §11.6-aware: when the ACTIVE
+     * endpoint is ALREADY this relay endpoint (the pairing flow connects its own
+     * transport), the live connection is KEPT (Phase-9 semantics — a teardown here
+     * killed the just-established pairing, found by the HistoryPagination suite);
+     * a DIFFERENT active endpoint (a direct one) does a real switch.
+     */
+    fun onPairingCompleted() {
+        started = true
+        val meta = vault.loadMetadata() ?: return
+        val current = _endpoint.value
+        if (current != null && current.endpointId.raw != meta.endpointId) {
+            scope.launch { switchTo(meta.endpointId) }
+            return
+        }
+        _endpoint.value = relayEndpointFromMeta(meta)
         _endpointName.value = meta.desktopName
+        _phase.value = phaseOf(transport.states.value)
+        scope.launch {
+            refreshRegistry()
+            persistEndpoint(
+                EndpointDescriptor(
+                    id = meta.endpointId,
+                    kind = EndpointKind.RELAY_ZAI,
+                    displayName = meta.desktopName,
+                    wsUrl = wsUrlForOrigin(meta.endpointOrigin),
+                    deviceSid = meta.deviceSid,
+                    deviceMid = meta.deviceMid,
+                    desktopAppVersion = meta.desktopAppVersion,
+                ),
+            )
+        }
         observeControlPlanePushes()
     }
 
@@ -349,13 +469,13 @@ class ConnectionHub(
         // it arms the immediate flag on the RUNNING loop, or starts one from
         // Degraded with a fresh budget. connect() itself remains only for the
         // cold-start path (no live machine) and hard-FAILED (re-scan class).
-        when (transport.states.value) {
+        when (activeTransport().states.value) {
             ConnectionStateMachine.ConnectionState.DEGRADED,
             ConnectionStateMachine.ConnectionState.RECONNECTING,
             ConnectionStateMachine.ConnectionState.CONNECTING,
             ConnectionStateMachine.ConnectionState.AUTHENTICATING,
             ConnectionStateMachine.ConnectionState.RECOVERING,
-            -> transport.reconnectNow()
+            -> activeTransport().reconnectNow()
             ConnectionStateMachine.ConnectionState.FAILED -> connect()
             else -> if (connectJob?.isActive != true) connect()
         }
@@ -363,12 +483,12 @@ class ConnectionHub(
 
     /** §15-S3 foreground wake → immediate reconnect, skip backoff. */
     fun foregroundTrigger() {
-        coordinator?.foregroundTrigger() ?: transport.reconnectNow()
+        coordinator?.foregroundTrigger() ?: activeTransport().reconnectNow()
     }
 
     /** §15-S4 network restored → probe. */
     fun networkAvailable() {
-        coordinator?.notifyNetworkAvailable() ?: transport.notifyNetworkAvailable()
+        coordinator?.notifyNetworkAvailable() ?: activeTransport().notifyNetworkAvailable()
     }
 
     // ------------------------------------------------------------------ task plane
@@ -380,7 +500,7 @@ class ConnectionHub(
     private val bootstrapInFlight = java.util.concurrent.atomic.AtomicBoolean(false)
 
     suspend fun refreshTasks(): Boolean {
-        val meta = vault.loadMetadata() ?: return false
+        val activeId = activeEndpointIdRaw() ?: vault.loadMetadata()?.endpointId ?: return false
         // FIELD (2026-10-01, vc21 device log): connect() and the CONNECTED
         // transition both refreshed — TWO ~150 KB bootstrap round trips + two
         // 510-task Room rewrites per connect (log: bootstrapApplied ×2). The
@@ -390,13 +510,17 @@ class ConnectionHub(
             return true
         }
         val ok = try {
-            val payload = transport.bootstrap()
-            applyBootstrap(payload)
+            if (activeKind() == EndpointKind.DIRECT_SERVER) {
+                refreshDirectTasks()
+            } else {
+                val payload = transport.bootstrap()
+                applyBootstrap(payload)
+            }
             true
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            val error = (e as? RelayTransport.Failure)?.error
-                ?: ErrorMapping.networkUnreachable("bootstrap failed: ${e.javaClass.simpleName}")
+            val error = (e as? TransportFailure)?.error
+                ?: ErrorMapping.networkUnreachable("task refresh failed: ${e.javaClass.simpleName}")
             _taskLoadError.value = error
             log.warn("hub.bootstrapFailed", "${error.category} ${error.developerDiagnostic.take(80)}")
             false
@@ -405,22 +529,74 @@ class ConnectionHub(
         return ok
     }
 
+    /**
+     * Direct task plane (phase10-direct.md §6): server-info workspaces → per-workspace
+     * `zcode-task.listTasks` → the SAME Room projection the relay bootstrap feeds
+     * (INV-12 identity keys via §7.11 derivation). No relay control plane is used.
+     */
+    private suspend fun refreshDirectTasks() {
+        val activeId = activeEndpointIdRaw() ?: return
+        val info = directTransport.serverInfo ?: directTransport.refreshServerInfo() ?: return
+        _directServerInfo.value = info
+        val endpointId = EndpointId(activeId)
+        val now = System.currentTimeMillis()
+        val options = ArrayList<com.zcode.android.domain.model.WorkspaceOption>()
+        var total = 0
+        for (wsInfo in info.workspaces) {
+            val path = wsInfo.path ?: continue
+            val metas = runCatching { directTransport.listTasks(path) }
+                .onFailure { log.warn("hub.directListTasks", "${it.javaClass.simpleName} for ${path.take(24)}") }
+                .getOrDefault(emptyList())
+            val identityKey = com.zcode.android.domain.ids.WorkspaceIdentityKey
+                .of(null, path).raw // server-info carries no workspaceIdentity (§7.11: path fallback)
+            options += com.zcode.android.domain.model.WorkspaceOption(
+                key = identityKey,
+                label = wsInfo.label ?: path.substringAfterLast('/'),
+                path = path,
+            )
+            val tasks = metas
+                .sortedByDescending { it.updatedAtMs }
+                .distinctBy { it.taskId }
+                .map { m ->
+                    Task(
+                        taskId = m.taskId,
+                        title = m.title,
+                        status = TaskStatus.fromWire(m.statusWire),
+                        workspace = WorkspaceIdentityKey(
+                            com.zcode.android.domain.ids.WorkspaceIdentityKey
+                                .of(m.workspaceIdentity, m.workspacePath ?: path).raw
+                        ),
+                        createdAtMs = m.createdAtMs,
+                        updatedAtMs = if (m.updatedAtMs > 0) m.updatedAtMs else m.createdAtMs,
+                        workspaceLabel = wsInfo.label,
+                    )
+                }
+            total += tasks.size
+            taskRepo.replaceAll(endpointId, WorkspaceIdentityKey(identityKey), tasks, etag = null, atMs = now)
+        }
+        _workspaces.value = options
+        _taskLoadError.value = null
+        _lastRefreshAtMs.value = now
+        info.version?.let { v -> _endpoint.value = _endpoint.value?.copy(desktopAppVersion = v) }
+        log.info("hub.directTasksApplied", "tasks=$total workspaces=${options.size}")
+    }
+
     private suspend fun applyBootstrap(payload: JsonObject?) {
         val parsed = BootstrapParser.parseBootstrap(payload)
-        val meta = vault.loadMetadata() ?: return
+        val activeId = activeEndpointIdRaw() ?: vault.loadMetadata()?.endpointId ?: return
         // Round-6 field fix: a RESTARTING desktop answers bootstrap with EMPTY view
         // (tasks=0 workspaces=0 — observed live between DEVICE_OFFLINE and the
         // desktop finishing its reload). Applying it would wipe the cached 482-task
         // projection and flash an empty list; keep the cache instead (the stale
         // label stays honest — the connection state is not Connected then).
         if (parsed.tasks.isEmpty() && parsed.workspaces.isEmpty()) {
-            val cached = taskRepo.observeAllTasks(EndpointId(meta.endpointId)).first().isNotEmpty()
+            val cached = taskRepo.observeAllTasks(EndpointId(activeId)).first().isNotEmpty()
             if (cached) {
                 log.warn("hub.bootstrapEmptySkipped", "desktop view empty (restarting?) — cached projection kept")
                 return
             }
         }
-        val endpointId = EndpointId(meta.endpointId)
+        val endpointId = EndpointId(activeId)
         val now = System.currentTimeMillis()
         // Group tasks by §7.11 identity key; each group is one workspace projection.
         val byWorkspace = parsed.tasks.groupBy { it.workspaceIdentityKey }
@@ -506,7 +682,7 @@ class ConnectionHub(
      * manager through the [managersVersion]-rebinding flows.
      */
     suspend fun openConversation(task: Task): RecoveryCoordinator? {
-        val meta = vault.loadMetadata() ?: return null
+        val endpointKnown = activeEndpointIdRaw() ?: vault.loadMetadata()?.endpointId ?: return null
         return openMutex.withLock {
             val coordinator = ensureCoordinator()
             if (openedSessions.add(task.taskId)) {
@@ -565,15 +741,15 @@ class ConnectionHub(
 
     private suspend fun ensureCoordinator(): RecoveryCoordinator = coordinatorMutex.withLock {
         coordinator?.let { return it }
-        val endpointId = EndpointId(vault.loadMetadata()?.endpointId ?: "unpaired")
-        val caps = transport.capabilities.value
+        val endpointId = EndpointId(activeEndpointIdRaw() ?: vault.loadMetadata()?.endpointId ?: "unpaired")
+        val caps = activeTransport().capabilities.value
         val created = RecoveryCoordinator(
             endpointId = endpointId,
-            gateway = gateway,
+            gateway = gatewayFor(),
             store = conversationRepo,
             journalRepo = journalRepo,
             interactions = InteractionCoordinatorFor(endpointId),
-            transport = transport,
+            transport = activeTransport(),
             notificationRecords = notificationRecords,
             scope = scope,
             log = log,
@@ -602,7 +778,7 @@ class ConnectionHub(
             endpointId = endpointId,
             interactions = interactions,
             outbox = outbox,
-            commands = gateway,
+            commands = gatewayFor(),
             log = log,
         )
         interactionCoordinator = created
@@ -620,11 +796,11 @@ class ConnectionHub(
         ensureCoordinator()
         if (commandCoordinator == null) {
             commandCoordinator = com.zcode.android.data.session.CommandCoordinator(
-                endpointId = EndpointId(vault.loadMetadata()?.endpointId ?: "unpaired"),
+                endpointId = EndpointId(activeEndpointIdRaw() ?: vault.loadMetadata()?.endpointId ?: "unpaired"),
                 outbox = outbox,
-                commands = gateway,
-                connectionState = { transport.states.value },
-                ensureConversationListen = { wp, wi -> transport.ensureConversationListen(wp, wi) },
+                commands = gatewayFor(),
+                connectionState = { activeTransport().states.value },
+                ensureConversationListen = { wp, wi -> activeTransport().ensureConversationListen(wp, wi) },
                 log = log,
             )
         }
@@ -638,12 +814,13 @@ class ConnectionHub(
      * files, model options. Lazily built over the hub's transport; the ports in
      * this package are its only consumers (INV-2: features never see this).
      */
-    val phase9: com.zcode.android.data.session.Phase9Tools by lazy {
-        com.zcode.android.data.session.Phase9Tools(transport)
-    }
+    private val phase9Tools = java.util.concurrent.ConcurrentHashMap<AppTransport, com.zcode.android.data.session.Phase9Tools>()
+
+    fun phase9(): com.zcode.android.data.session.Phase9Tools =
+        phase9Tools.getOrPut(activeTransport()) { com.zcode.android.data.session.Phase9Tools(activeTransport()) }
 
     /** The connected workspace target for git/files (§7.11); null when disconnected. */
-    fun activeWorkspaceTarget(): Pair<String?, String?>? = transport.activeWorkspaceTarget
+    fun activeWorkspaceTarget(): Pair<String?, String?>? = activeTransport().activeWorkspaceTarget
 
     /** Approvals-inbox observation source (open interactions across tasks). */
     fun interactionsStore(): com.zcode.android.domain.repo.InteractionRepository = interactions
@@ -652,8 +829,12 @@ class ConnectionHub(
 
     private fun connect() {
         if (connectJob?.isActive == true) return
-        log.info("hub.connect", "cold-start connect begin")
+        log.info("hub.connect", "cold-start connect begin (kind=${activeKind()})")
         connectJob = scope.launch {
+            if (activeKind() == EndpointKind.DIRECT_SERVER) {
+                connectDirect()
+                return@launch
+            }
             val meta = vault.loadMetadata() ?: return@launch
             val signer = vault.loadSigner() ?: run {
                 _phase.value = ConnectionPhase.FAILED
@@ -674,7 +855,7 @@ class ConnectionHub(
                 persistEndpoint(descriptor)
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
-                val err = (e as? RelayTransport.Failure)?.error
+                val err = (e as? TransportFailure)?.error
                 // Log the CATEGORY + DIAGNOSTIC (the field-visible reason — never just
                 // the category again). §14.4.1 self-heal: the transport's recovery loop
                 // already launched itself on retryable failures and owns the EXPONENTIAL
@@ -692,6 +873,207 @@ class ConnectionHub(
             }
         }
     }
+
+    /**
+     * Direct-endpoint connect (§11.4): descriptor from the registry row + candidates;
+     * the token rides the vault capability (§12.4) — the hub never sees it.
+     */
+    private suspend fun connectDirect() {
+        val active = _endpoint.value ?: return
+        val tokenSource = vault.loadDirectTokenSource(active.endpointId.raw) ?: run {
+            _phase.value = ConnectionPhase.FAILED
+            _lastError.value = com.zcode.android.core.transport.ErrorMapping.directTokenRejected(null)
+            return
+        }
+        // The direct transport owns its own tokenProvider (capability custody, §26.3);
+        // reconnects re-answer it — a token rotation propagates on the next connect.
+        directTransport.rebindTokenProvider { tokenSource() }
+        val descriptor = EndpointDescriptor(
+            id = active.endpointId.raw,
+            kind = EndpointKind.DIRECT_SERVER,
+            displayName = active.displayName,
+            wsUrl = active.wsUrl,
+            candidates = active.candidates,
+            desktopAppVersion = active.desktopAppVersion,
+        )
+        try {
+            directTransport.connect(descriptor) { _, _, _ -> "" }
+            refreshTasks()
+            markHealthy(active.endpointId)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            val err = (e as? TransportFailure)?.error
+            log.warn(
+                "hub.directConnectFailed",
+                err?.let { "${it.category} ${it.developerDiagnostic.take(140)}" }
+                    ?: "${e.javaClass.simpleName}: ${e.message?.take(120)}",
+            )
+        }
+    }
+
+    private suspend fun markHealthy(endpointId: EndpointId) {
+        runCatching {
+            endpointRepo.endpoints().firstOrNull { it.endpointId == endpointId }?.let {
+                endpointRepo.save(it.copy(lastHealthyAtMs = System.currentTimeMillis()))
+            }
+            refreshRegistry()
+        }
+    }
+
+    // ------------------------------------------------------------------ §11.6 switcher
+
+    /**
+     * Switch the ACTIVE endpoint (§11.6/U22): closes the current connection, resets
+     * the per-endpoint coordinators (§28.5 single-owner state), selects the new
+     * endpoint, persists the selection, connects. One connection at a time.
+     */
+    suspend fun switchTo(endpointId: String): Boolean {
+        val target = endpointRepo.endpoints().firstOrNull { it.endpointId.raw == endpointId }
+        // Relay ids live in the vault metadata, not always the registry row (the relay
+        // row is written lazily at first connect — tolerate that pre-persist gap).
+        val isRelayTarget = vault.loadMetadata()?.endpointId == endpointId
+        if (target == null && !isRelayTarget) return false
+        if (_endpoint.value?.endpointId?.raw == endpointId && started) return true
+        _switching.value = true
+        try {
+            runCatching { activeTransport().resetForEndpointSwitch() }
+            resetEndpointScopedState()
+            val meta = vault.loadMetadata()
+            _endpoint.value = when {
+                target != null && target.kind == com.zcode.android.domain.model.EndpointKind.DIRECT_SERVER -> target
+                meta != null && meta.endpointId == endpointId -> relayEndpointFromMeta(meta)
+                target != null -> target
+                else -> return false
+            }
+            _endpointName.value = _endpoint.value?.displayName
+            _workspaces.value = emptyList()
+            _lastRefreshAtMs.value = null
+            _taskLoadError.value = null
+            _lastError.value = null
+            _directServerInfo.value = null
+            preferences.update { it.copy(selectedEndpointId = endpointId) }
+            _phase.value = phaseOf(activeTransport().states.value)
+            connect()
+            refreshRegistry()
+            log.info("hub.switched", "endpoint=${endpointId.take(8)}… kind=${activeKind()}")
+            return true
+        } finally {
+            _switching.value = false
+        }
+    }
+
+    /**
+     * Full-unpair bookkeeping (§12.7): the vault wipe destroyed EVERY credential
+     * (relay + all direct tokens share the sealed store) — the active endpoint, the
+     * registry view and the persisted selection must go with it, or the nav gate
+     * would still see a "paired" surrogate after the wipe.
+     */
+    fun onUnpaired() {
+        scope.launch { runCatching { activeTransport().close("unpair") } }
+        resetEndpointScopedState()
+        _endpoint.value = null
+        _endpoints.value = emptyList()
+        _workspaces.value = emptyList()
+        _directServerInfo.value = null
+        _lastRefreshAtMs.value = null
+        _phase.value = ConnectionPhase.UNPAIRED
+        scope.launch {
+            runCatching { preferences.update { it.copy(selectedEndpointId = null) } }
+            runCatching { endpointRepo.deleteAll() }
+        }
+        log.info("hub.unpaired", "active endpoint + registry + selection cleared")
+    }
+
+    /** Per-endpoint coordinator state does NOT survive a switch (§28.5 single-owner). */
+    private fun resetEndpointScopedState() {
+        coordinator = null
+        interactionCoordinator = null
+        commandCoordinator = null
+        openedSessions.clear()
+        managersVersion.value++
+        lastReportedPhase = null
+    }
+
+    /** Validate + add a DIRECT endpoint (§12.2 "write nothing until validation passes"). */
+    sealed class AddDirectOutcome {
+        data class Added(val endpoint: Endpoint) : AddDirectOutcome()
+        data class Rejected(val error: AppError) : AddDirectOutcome()
+    }
+
+    suspend fun addDirectEndpoint(
+        displayName: String,
+        wsUrl: String,
+        token: String,
+        candidates: List<String> = emptyList(),
+    ): AddDirectOutcome {
+        // Normalized ws URL + http origin for the probe (phase10-direct.md §2).
+        val normalized = wsUrl.trim()
+        val origin = com.zcode.android.core.transport.DirectTransport.httpOriginOf(normalized)
+        return when (val probe = com.zcode.android.core.transport.DirectServerProbe.probe(origin, token, 10_000)) {
+            is com.zcode.android.core.transport.ProbeResult.Ok -> {
+                val info = probe.info
+                val endpointId = EndpointId(java.util.UUID.randomUUID().toString())
+                vault.sealDirectToken(
+                    token,
+                    com.zcode.android.core.security.vault.DirectEndpointMetadata(
+                        endpointId = endpointId.raw,
+                        displayName = displayName.ifBlank { info.name ?: info.serverId ?: hostOf(normalized) },
+                        wsUrl = normalized,
+                        serverId = info.serverId,
+                        serverVersion = info.version,
+                        addedAtMs = System.currentTimeMillis(),
+                    ),
+                )
+                val endpoint = Endpoint(
+                    endpointId = endpointId,
+                    kind = com.zcode.android.domain.model.EndpointKind.DIRECT_SERVER,
+                    displayName = displayName.ifBlank { info.name ?: info.serverId ?: hostOf(normalized) },
+                    wsUrl = normalized,
+                    pairedAtMs = System.currentTimeMillis(),
+                    desktopAppVersion = info.version,
+                    candidates = candidates,
+                )
+                endpointRepo.save(endpoint)
+                refreshRegistry()
+                log.info("hub.directAdded", "endpoint=${endpointId.raw.take(8)}… workspaces=${info.workspaces.size}")
+                AddDirectOutcome.Added(endpoint)
+            }
+            is com.zcode.android.core.transport.ProbeResult.TokenRejected ->
+                AddDirectOutcome.Rejected(com.zcode.android.core.transport.ErrorMapping.directTokenRejected(401))
+            is com.zcode.android.core.transport.ProbeResult.LocalNetworkBlocked ->
+                AddDirectOutcome.Rejected(com.zcode.android.core.transport.ErrorMapping.localNetworkBlocked(probe.reason))
+            is com.zcode.android.core.transport.ProbeResult.Unreachable ->
+                AddDirectOutcome.Rejected(
+                    AppError(
+                        category = com.zcode.android.core.common.error.ErrorCategory.NETWORK,
+                        userMessage = "Server unreachable — check the URL and network",
+                        developerDiagnostic = "direct add probe unreachable: ${probe.reason.take(120)}",
+                        retryable = AppError.Retryable.USER,
+                        recoverable = true,
+                        autoRecovery = com.zcode.android.core.common.error.RecoveryAction.NONE,
+                    ),
+                )
+        }
+    }
+
+    /** Remove a DIRECT endpoint (token + registry row). The active relay endpoint is not removable here. */
+    suspend fun removeDirectEndpoint(endpointId: String) {
+        vault.deleteDirectToken(endpointId)
+        endpointRepo.delete(EndpointId(endpointId))
+        if (_endpoint.value?.endpointId?.raw == endpointId) {
+            // Removed the ACTIVE direct endpoint → fall back to the relay pairing.
+            resetEndpointScopedState()
+            runCatching { directTransport.close("endpoint removed") }
+            val meta = vault.loadMetadata()
+            _endpoint.value = meta?.let { relayEndpointFromMeta(it) }
+            preferences.update { it.copy(selectedEndpointId = null) }
+            _phase.value = phaseOf(activeTransport().states.value)
+            if (meta != null) connect()
+        }
+        refreshRegistry()
+    }
+
+    private fun hostOf(url: String): String = com.zcode.android.core.transport.DirectTransport.hostOf(url)
 
     private suspend fun persistEndpoint(descriptor: EndpointDescriptor) {
         val existing = endpointRepo.endpoints().firstOrNull { it.deviceSid == descriptor.deviceSid }

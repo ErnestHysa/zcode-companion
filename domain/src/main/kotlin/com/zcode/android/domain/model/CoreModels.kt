@@ -185,6 +185,8 @@ data class AppPreferences(
     val autoReconnectProbe: Boolean = false,
     /** §21 view-only terminal opt-in — default OFF (terminal = critical sensitivity, §13.3). */
     val terminalOptIn: Boolean = false,
+    /** §11.6 selected (active) endpoint — null = the paired relay endpoint (Phase 10). */
+    val selectedEndpointId: String? = null,
 ) {
     enum class NotificationContentLevel { MINIMAL, CONTENT }
 }

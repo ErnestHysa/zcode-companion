@@ -132,11 +132,11 @@ interface ConversationGateway : CommandSender {
 }
 
 /**
- * Relay binding — wraps [com.zcode.android.core.transport.RelayTransport] (the only
+ * Relay binding — wraps [com.zcode.android.core.transport.AppTransport] (the only
  * production transport; DirectTransport arrives Phase 10 behind this same interface).
  */
 class RelayConversationGateway(
-    private val transport: com.zcode.android.core.transport.RelayTransport,
+    private val transport: com.zcode.android.core.transport.AppTransport,
     private val clientId: String,
     private val traceLog: com.zcode.android.core.common.log.ZLog? = null,
 ) : ConversationGateway {

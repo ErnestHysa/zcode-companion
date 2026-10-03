@@ -2,6 +2,7 @@ package com.zcode.android.data.session
 
 import com.zcode.android.core.common.log.ZLog
 import com.zcode.android.core.transport.CredentialSigner
+import com.zcode.android.core.transport.TransportFailure
 import com.zcode.android.core.transport.EndpointDescriptor
 import com.zcode.android.core.transport.EndpointKind
 import com.zcode.android.core.transport.OkHttpWsFactory
@@ -138,7 +139,7 @@ class Phase9ToolsTest {
     fun `turn fileChanges with no scripted result fails with a typed fault`() {
         connect()
         runBlocking {
-            assertFailsWith<RelayTransport.Failure> {
+            assertFailsWith<TransportFailure> {
                 tools.turnFileChanges("synth-task-1", 7, "ent-7", 100, "epoch-1")
             }
         }
@@ -337,7 +338,7 @@ class Phase9ToolsTest {
         connect { m -> m.script.refuseChannels = setOf("git") }
         runBlocking {
             val err = runCatching { tools.gitSummary("/synthetic/ws") }.exceptionOrNull()
-            assertTrue(err is RelayTransport.Failure)
+            assertTrue(err is TransportFailure)
         }
     }
 

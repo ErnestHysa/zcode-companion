@@ -1,5 +1,7 @@
 package com.zcode.android.core.transport
 
+import com.zcode.android.core.transport.TransportFailure
+
 import com.zcode.android.core.common.error.ErrorCategory
 import com.zcode.android.core.common.log.ZLog
 import com.zcode.android.core.protocol.v4.ConnectionFlowState
@@ -139,8 +141,8 @@ class RelayTransportTest {
                 withTimeout(20_000) {
                     val err = runCatching { t.connect(endpoint(url), signer()) }
                         .exceptionOrNull()
-                    assertTrue(err is RelayTransport.Failure, "expected typed failure, got $err")
-                    assertEquals(ErrorCategory.AUTH, (err as RelayTransport.Failure).error.category)
+                    assertTrue(err is TransportFailure, "expected typed failure, got $err")
+                    assertEquals(ErrorCategory.AUTH, (err as TransportFailure).error.category)
                     assertEquals(ConnectionStateMachine.ConnectionState.FAILED, t.states.value)
                 }
             }
@@ -159,8 +161,8 @@ class RelayTransportTest {
             runBlocking {
                 withTimeout(20_000) {
                     val err = runCatching { t.connect(endpoint(url), signer()) }.exceptionOrNull()
-                    assertTrue(err is RelayTransport.Failure)
-                    assertEquals(ErrorCategory.AUTH, (err as RelayTransport.Failure).error.category)
+                    assertTrue(err is TransportFailure)
+                    assertEquals(ErrorCategory.AUTH, (err as TransportFailure).error.category)
                 }
             }
         } finally {

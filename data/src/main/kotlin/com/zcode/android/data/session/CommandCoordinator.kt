@@ -379,7 +379,7 @@ class CommandCoordinator(
             // refused: authoritative evidence, outbox FAILED_TERMINAL, honest copy)
             // from genuine transport loss (§15.5 UNKNOWN — retryable). The old
             // catch-all sent clientMismatch into the retry loop forever.
-            if (e is com.zcode.android.core.transport.RelayTransport.Failure && e.error.serverSpoke) {
+            if (e is com.zcode.android.core.transport.TransportFailure && e.error.serverSpoke) {
                 val fault = e.error.developerDiagnostic.take(64)
                 runCatching {
                     outbox.apply(

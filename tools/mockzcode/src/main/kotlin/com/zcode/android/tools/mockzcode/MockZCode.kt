@@ -45,7 +45,12 @@ class MockZCode(
     val expectedSid: String,
     val desktopMid: String = "mock-desktop-mid",
     val workspace: MockWorkspace = MockWorkspace(),
+    /** Phase 10: relay-envelope mode (default) vs direct /ws + server-info mode (§11.4). */
+    val mode: Mode = Mode.RELAY,
+    /** The zcode_lite_token secret the direct surface requires (phase10-direct.md §2). */
+    val serverToken: String = "mock-direct-token",
 ) {
+    enum class Mode { RELAY, DIRECT }
     /** Scriptable behavior per test. */
     class Script {
         var authScenario: AuthScenario = AuthScenario.HAPPY
@@ -196,6 +201,16 @@ class MockZCode(
         var commandEffects: Boolean = false
         /** One-shot ack overrides (stale/rejected/failed) — popped in send order. */
         val commandAckOverrides: ArrayDeque<String> = ArrayDeque()
+
+        // ---------------- Phase 10 (direct surface, docs/protocol/phase10-direct.md) ----------------
+        /** Simulate the 401 token gate on /api/server-info + /ws (auth-class fixtures). */
+        var directRejectToken: Boolean = false
+        /** Scripted server-info workspaces (default = the single synthetic workspace). */
+        var directWorkspaces: List<Pair<String, String>>? = null
+        /** Scripted zcode-task.listTasks result rows (ZCodeTaskMeta subset). */
+        var directTasks: List<JsonObject> = emptyList()
+        /** One-shot direct-socket close after N binary frames (loss class). */
+        var directDisconnectAfterFrames: Int? = null
     }
 
     /** Verified pendingInteraction permission payload (snapshot.ts §9). */
@@ -300,6 +315,7 @@ class MockZCode(
                 // the unreachable-endpoint shape.
                 return mockwebserver3.MockResponse.Builder().code(503).build()
             }
+            if (mode == Mode.DIRECT) return dispatchDirect(request)
             return mockwebserver3.MockResponse.Builder().webSocketUpgrade(object : okhttp3.WebSocketListener() {
                 override fun onMessage(webSocket: okhttp3.WebSocket, text: String) {
                     val obj = try {
@@ -311,6 +327,133 @@ class MockZCode(
                 }
             }).build()
         }
+    }
+
+    // -------------------------------------------------------------- direct surface
+    // docs/protocol/phase10-direct.md §1–§3 (verified shapes, packages/server http.ts).
+    // The wire: binary WS messages = 13-byte SocketProtocol frames (id/ack zero),
+    // payload = one serialized Channel frame; server sends {Initialize} on open.
+
+    private fun requestToken(request: mockwebserver3.RecordedRequest): String? {
+        request.url.queryParameter("token")?.let { return it }
+        val cookie = request.headers["Cookie"] ?: return null
+        for (part in cookie.split(";")) {
+            val kv = part.trim()
+            if (kv.startsWith("zcode_lite_token=")) return kv.removePrefix("zcode_lite_token=")
+        }
+        return null
+    }
+
+    private fun tokenValid(request: mockwebserver3.RecordedRequest): Boolean {
+        if (script.directRejectToken) return false
+        return requestToken(request) == serverToken
+    }
+
+    private fun dispatchDirect(request: mockwebserver3.RecordedRequest): mockwebserver3.MockResponse {
+        val path = request.url.encodedPath
+        return when {
+            path == "/api/server-info" -> {
+                if (!tokenValid(request)) {
+                    mockwebserver3.MockResponse.Builder()
+                        .code(401)
+                        .addHeader("Content-Type", "application/json")
+                        .body("""{"error":"Unauthorized"}""")
+                        .build()
+                } else {
+                    mockwebserver3.MockResponse.Builder()
+                        .code(200)
+                        .addHeader("Content-Type", "application/json")
+                        .addHeader(
+                            "Set-Cookie",
+                            "zcode_lite_token=$serverToken; Path=/; HttpOnly; SameSite=Lax",
+                        )
+                        .body(serverInfoJson().toString())
+                        .build()
+                }
+            }
+            path == "/ws" -> {
+                if (!tokenValid(request)) {
+                    mockwebserver3.MockResponse.Builder()
+                        .code(401)
+                        .body("""{"error":"Unauthorized"}""")
+                        .build()
+                } else {
+                    mockwebserver3.MockResponse.Builder().webSocketUpgrade(object : okhttp3.WebSocketListener() {
+                        override fun onOpen(webSocket: okhttp3.WebSocket, response: okhttp3.Response) {
+                            terminalSocket = webSocket
+                            conversationScopeRegistered = false // scope gates the conversation plane
+                            scope.launch { events.emit(ServerEvent.AuthCompleted("direct-token")) }
+                            sendBinaryFrame(webSocket, initializeBytes())
+                        }
+
+                        override fun onMessage(webSocket: okhttp3.WebSocket, bytes: okio.ByteString) {
+                            handleDirectWire(webSocket, bytes.toByteArray())
+                        }
+                    }).build()
+                }
+            }
+            else -> mockwebserver3.MockResponse.Builder().code(404).build()
+        }
+    }
+
+    private fun serverInfoJson(): JsonObject {
+        val workspaces = script.directWorkspaces ?: listOf(workspace.workspacePath to (workspace.workspaceKey))
+        return buildJsonObject {
+            put("serverId", JsonPrimitive("mock-direct-server"))
+            put("version", JsonPrimitive(workspace.desktopAppVersion))
+            put("protocolVersion", JsonPrimitive(1))
+            put("authRequired", JsonPrimitive(true))
+            put("workspaces", JsonArray(workspaces.map { (p, l) ->
+                buildJsonObject { put("path", JsonPrimitive(p)); put("label", JsonPrimitive(l)) }
+            }))
+            put("capabilities", buildJsonObject {
+                put("desktopContinuous", JsonPrimitive(true))
+                put("websocketRpc", JsonPrimitive(true))
+                put("processResourceTelemetry", JsonPrimitive(true))
+            })
+        }
+    }
+
+    /** Server→client direction: one logical Channel frame per SocketProtocol frame. */
+    private fun sendBinaryFrame(webSocket: okhttp3.WebSocket, channelFrame: ByteArray) {
+        val framed = com.zcode.android.core.protocol.socket.SocketFrame.writeMessage(
+            com.zcode.android.core.protocol.socket.SocketFrame.ProtocolMessage(
+                com.zcode.android.core.protocol.socket.SocketFrame.ProtocolMessageType.Regular, 0, 0, channelFrame,
+            ),
+        )
+        try {
+            webSocket.send(okio.ByteString.of(*framed))
+        } catch (e: Exception) {
+            // closed socket — mock-side noise
+        }
+        val limit = script.directDisconnectAfterFrames
+        if (limit != null && directFramesSent + 1 >= limit) {
+            script.directDisconnectAfterFrames = null
+            webSocket.close(1011, "mock direct disconnect storm")
+        }
+        directFramesSent++
+    }
+
+    @Volatile private var directFramesSent: Int = 0
+
+    private fun handleDirectWire(webSocket: okhttp3.WebSocket, bytes: ByteArray) {
+        val frame = try {
+            parseSocketFrame(bytes)
+        } catch (e: Exception) {
+            return
+        } ?: return
+        if (frame.second.isNotEmpty()) {
+            dispatchChannelFrame(frame.second)
+        }
+    }
+
+    /** Tolerant SocketProtocol parse (single-frame messages; stream reassembly not needed on WS). */
+    private fun parseSocketFrame(bytes: ByteArray): Pair<Int, ByteArray>? {
+        val sf = com.zcode.android.core.protocol.socket.SocketFrame
+        if (bytes.size < sf.HEADER_SIZE) return null
+        val (type, _, length) = sf.parseHeader(bytes)
+        if (bytes.size < sf.HEADER_SIZE + length) return null
+        return type to bytes.copyOfRange(sf.HEADER_SIZE, sf.HEADER_SIZE + length)
     }
 
     fun start(): String {
@@ -460,6 +603,13 @@ class MockZCode(
     private fun sendLogicalFrame(bytes: ByteArray) {
         val ws = terminalSocket ?: return
         logicalFramesSent++
+        if (mode == Mode.DIRECT) {
+            // Direct surface (§11.4): raw binary SocketProtocol frames — no relay
+            // envelopes, no fragments, no acks (phase10-direct.md §3).
+            if (script.perFrameLatencyMs > 0) Thread.sleep(script.perFrameLatencyMs)
+            sendBinaryFrame(ws, bytes)
+            return
+        }
         val seq = outSeq.addAndGet(1)
         val messageSeq = outMessageSeq.addAndGet(1)
         if (script.perFrameLatencyMs > 0) Thread.sleep(script.perFrameLatencyMs)
@@ -994,6 +1144,7 @@ class MockZCode(
                 "git" -> handleGitPromise(id, name)
                 "file" -> handleFilePromise(id, name, argAsObject(arg))
                 "model-selection" -> handleModelSelectionPromise(id, name)
+                "zcode-task" -> handleTaskPromise(id, name, argAsObject(arg))
                 else -> respondError(id, "fault.mock.unknownChannel:$channelName")
             }
             return
@@ -1758,6 +1909,23 @@ class MockZCode(
         RpcSerialization.encodeAll(
             listOf(RpcValue.Arr(listOf(RpcValue.Int(ChannelWire.ResponseType.Initialize.id))), RpcValue.Undefined)
         )
+
+    /**
+     * `zcode-task.listTasks({workspacePath, workspaceIdentity?}) → ZCodeTaskMeta[]`
+     * (packages/services/src/session/zcodeTaskService.ts:379, docs/protocol/
+     * phase10-direct.md §6) — the direct task-list plane fixture.
+     */
+    private fun handleTaskPromise(id: Int, name: String?, arg: JsonObject?) {
+        when (name) {
+            "listTasks" -> respond(
+                id, ChannelWire.ResponseType.PromiseSuccess,
+                RpcValue.Arr(script.directTasks.map { RpcValue.Obj(it) }),
+            )
+            "listPinnedTaskIds", "listArchivedTasks", "listPinnedTasks", "listDeletedTaskIds" ->
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(emptyList()))
+            else -> respondError(id, "fault.mock.unknownTaskMethod:${name ?: "?"}")
+        }
+    }
 
     private fun respond(id: Int, type: ChannelWire.ResponseType, data: RpcValue) {
         sendLogicalFrame(

@@ -107,6 +107,72 @@ class CredentialVault(
         return JcaCredentialSigner(secret.passHash)
     }
 
+    // ------------------------------------------------- direct endpoint tokens (§12.4)
+
+    /**
+     * Seal a DIRECT endpoint's server token (§12.4 table: Tink-wrapped like the relay
+     * credential, backup-excluded by the store's location). Atomicity parity: secret
+     * FIRST, metadata second — an interrupted write can never yield usable metadata
+     * without a decryptable token. Re-sealing the same endpoint rotates in place.
+     * The token is registered with the log scrubber (INV-3) before anything else.
+     */
+    fun sealDirectToken(token: String, metadata: DirectEndpointMetadata) {
+        log.registerSecret(token)
+        val aead = obtainAead()
+        val sealed = aead.encrypt(token.encodeToByteArray(), AD_DIRECT_SECRET)
+        store.write(directSecretName(metadata.endpointId), sealed)
+        store.write(
+            directMetaName(metadata.endpointId),
+            json.encodeToString(DirectEndpointMetadata.serializer(), metadata).encodeToByteArray(),
+        )
+        log.info(
+            "vault.directSealed",
+            "endpoint=${metadata.endpointId.take(8)}… url=${metadata.wsUrl.substringBefore("?")}",
+            ZLog.LogContext(endpointId = metadata.endpointId),
+        )
+    }
+
+    /** Non-secret direct-endpoint metadata, or null when absent/undecodable. */
+    fun loadDirectMetadata(endpointId: String): DirectEndpointMetadata? {
+        val raw = store.read(directMetaName(endpointId)) ?: return null
+        return runCatching { json.decodeFromString(DirectEndpointMetadata.serializer(), raw.decodeToString()) }
+            .getOrNull()
+    }
+
+    /** All sealed direct endpoints' metadata (registry view; secrets never leave). */
+    fun listDirectEndpoints(): List<DirectEndpointMetadata> =
+        store.listNames()
+            .filter { it.startsWith(NAME_DIRECT_META_PREFIX) }
+            .mapNotNull { loadDirectMetadata(it.removePrefix(NAME_DIRECT_META_PREFIX)) }
+
+    /**
+     * The token CAPABILITY (§26.3 custody/capability split): decrypts in memory ONLY
+     * inside the returned closure. core:security deliberately has NO core:transport
+     * dependency (§40.2 graph: transport → security, never the reverse) — the caller
+     * (app layer) wraps this source in its transport-side TokenProvider capability.
+     */
+    fun loadDirectTokenSource(endpointId: String): (() -> String)? {
+        val sealed = store.read(directSecretName(endpointId)) ?: return null
+        val aead = obtainAead()
+        val plaintext = runCatching { aead.decrypt(sealed, AD_DIRECT_SECRET) }.getOrNull()
+            ?: return null.also { log.error("vault.directDecrypt.failed", "token envelope undecryptable — treat as unconfigured (fail-closed)") }
+        val token = plaintext.decodeToString()
+        log.registerSecret(token)
+        return { token }
+    }
+
+    /** True when a decryptable token exists for this endpoint. */
+    fun hasDirectToken(endpointId: String): Boolean =
+        loadDirectTokenSource(endpointId) != null
+
+    /** Remove ONE direct endpoint's credential (per-endpoint removal, §11.6). */
+    fun deleteDirectToken(endpointId: String): Boolean {
+        val a = store.delete(directSecretName(endpointId))
+        val b = store.delete(directMetaName(endpointId))
+        log.info("vault.directDeleted", "endpoint=${endpointId.take(8)}… secret=$a meta=$b", ZLog.LogContext(endpointId = endpointId))
+        return a || b
+    }
+
     // ------------------------------------------------------------- wipe (§12.7)
 
     /**
@@ -148,9 +214,15 @@ class CredentialVault(
         const val NAME_METADATA = "credential.meta.v1"
         const val NAME_SECRET = "credential.secret.v1"
         const val NAME_KEYSET = "vault.keyset.v1"
+        const val NAME_DIRECT_SECRET_PREFIX = "direct.secret.v1:"
+        const val NAME_DIRECT_META_PREFIX = "direct.meta.v1:"
 
         /** Tink associated-data domain separation (versioned; never derived from secrets). */
         val AD_SECRET = "zcode-pairing-credential/secret/v1".encodeToByteArray()
         val AD_METADATA = "zcode-pairing-credential/meta/v1".encodeToByteArray()
+        val AD_DIRECT_SECRET = "zcode-direct-endpoint/token/v1".encodeToByteArray()
+
+        fun directSecretName(endpointId: String) = NAME_DIRECT_SECRET_PREFIX + endpointId
+        fun directMetaName(endpointId: String) = NAME_DIRECT_META_PREFIX + endpointId
     }
 }

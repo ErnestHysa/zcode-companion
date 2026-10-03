@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.navigation.compose.NavHost
@@ -67,7 +68,30 @@ fun ZCodeApp(
     scannerContent: @Composable () -> Unit,
 ) {
     val nav = rememberNavController()
-    val paired by container.pairingPort.pairedEndpoint.collectAsState()
+    // §11.6 (Phase 10): "paired" = ANY activatable endpoint — the relay pairing
+    // OR a registry endpoint with a usable credential (direct endpoints have no
+    // vault relay-metadata; a device paired ONLY to a direct server must land on
+    // the task list, not the QR gate). The surrogate carries the deep-link
+    // environment's deviceSid slot (= the endpoint id; routing input only).
+    val relayPaired by container.pairingPort.pairedEndpoint.collectAsState()
+    val hubEndpoint by container.hub.endpoint.collectAsState()
+    // The surrogate is for DIRECT-ONLY devices: once a relay pairing exists in this
+    // process, it is the sole gate (a vault wipe must surface as unpaired — the
+    // always-on surrogate kept a wiped activity "paired", perturbing the teardown
+    // nav state, device-caught 2026-10-03).
+    val sawRelayPairing = remember { androidx.compose.runtime.mutableStateOf(false) }
+    if (relayPaired != null && !sawRelayPairing.value) sawRelayPairing.value = true
+    val paired: com.zcode.android.features.pairing.flow.PairingFlow.LinkView? =
+        if (sawRelayPairing.value) relayPaired
+        else hubEndpoint?.let { ep ->
+            com.zcode.android.features.pairing.flow.PairingFlow.LinkView(
+                deviceSid = ep.deviceSid ?: ep.endpointId.raw,
+                desktopName = ep.displayName,
+                desktopAppVersion = ep.desktopAppVersion ?: "",
+                origin = "",
+                issuedAtMs = ep.pairedAtMs,
+            )
+        }
 
     // Round-7b breadcrumb: every screen change lands in the diagnostics ring.
     androidx.compose.runtime.LaunchedEffect(nav) {
@@ -114,19 +138,30 @@ fun ZCodeApp(
         val taskExists = container.notifications.knowsTask(link.taskId)
         val interactionKnown: Boolean? = link.interactionId?.let { container.notifications.knowsInteraction(it) }
         val linkToResolve = com.zcode.android.domain.recovery.DeepLinkRoute.parse(link.taskId, link.interactionId)
+        // §11.6 cross-endpoint disambiguation: deferred (Phase 11+). The naive
+        // in-effect Room probe (observeAllTasks().first()) perturbed the nav
+        // teardown on device (NavBackStackEntry double-destroy in the FGS
+        // tap-through) — the honest stub stays until the resolution runs off the
+        // composition effect (findings recorded in docs/adr/phase-10-gate.md §4).
+        val existsOnOtherEndpoint = false
         val environment = com.zcode.android.domain.recovery.DeepLinkRoute.Environment.Paired(
             endpointId = paired?.deviceSid ?: "",
             connected = connected,
             taskExists = taskExists,
             interactionKnown = interactionKnown,
-            existsOnOtherEndpoint = false, // single-endpoint MVP; disambiguation is Phase 10 (§11.6)
+            existsOnOtherEndpoint = existsOnOtherEndpoint,
         )
+        fun navigateToTasks() {
+            nav.navigate(Routes.TASKS)
+        }
         when (com.zcode.android.domain.recovery.DeepLinkRoute.resolve(linkToResolve, environment)) {
             com.zcode.android.domain.recovery.DeepLinkRoute.Outcome.OPEN_TASK,
             com.zcode.android.domain.recovery.DeepLinkRoute.Outcome.OPEN_TASK_INTERACTION_STALE,
             -> nav.navigate(Routes.conversation(link.taskId))
             com.zcode.android.domain.recovery.DeepLinkRoute.Outcome.TASK_GONE -> {
-                nav.navigate(Routes.TASKS)
+                navigateToTasks()
+                // The resolve may resume off-main (test interpolators, lifecycle
+                // dispatch) — toasts require a Looper thread.
                 android.widget.Toast.makeText(
                     appContext,
                     "That task is no longer available on the desktop",
@@ -134,7 +169,7 @@ fun ZCodeApp(
                 ).show()
             }
             com.zcode.android.domain.recovery.DeepLinkRoute.Outcome.WRONG_ENDPOINT -> {
-                nav.navigate(Routes.TASKS)
+                navigateToTasks()
                 android.widget.Toast.makeText(
                     appContext,
                     "That task belongs to a different paired desktop",
@@ -311,7 +346,7 @@ private fun ConversationRoute(
         onSwitchMode = vm::switchMode,
         onSwitchModel = vm::switchModel,
         modelOptionsProvider = {
-            val tools = container.hub.phase9
+            val tools = container.hub.phase9()
             runCatching { tools.modelOptions() }.getOrDefault(emptyList())
         },
         turnChangesProvider = { rowId, entityId -> vm.turnFileChanges(rowId, entityId) },

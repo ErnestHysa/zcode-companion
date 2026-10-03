@@ -169,6 +169,21 @@ class DataStoreStoresTest {
     }
 
     @Test
+    fun `selectedEndpointId defaults NULL and round trips (11-6 Phase 10)`() = runTest {
+        val repo = PreferencesRepositoryImpl(newPrefsStore())
+        // §11.6: no selection persisted → null (the paired relay endpoint is the default).
+        assertNull(repo.current().selectedEndpointId)
+        repo.update { it.copy(selectedEndpointId = "direct-ep-42") }
+        assertEquals("direct-ep-42", repo.current().selectedEndpointId)
+        // Clearing the selection (relay fallback on endpoint removal) round-trips.
+        repo.update { it.copy(selectedEndpointId = null) }
+        assertNull(repo.current().selectedEndpointId)
+        // Additive-first: a pre-Phase-10 blob (field 7 absent) reads with the null default.
+        val parsed = AppPreferencesProto.parseFrom(hexToBytes("08011207" + "4D494E494D414C"))
+        assertFalse(parsed.hasSelectedEndpointId())
+    }
+
+    @Test
     fun `notification records round-trip and tolerate unknown kinds (16, INV-8)`() = runTest {
         val store = NotificationRecordStoreImpl(
             DataStoreFactory.create(

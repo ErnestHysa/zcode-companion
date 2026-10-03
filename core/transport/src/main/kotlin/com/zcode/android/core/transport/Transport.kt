@@ -69,6 +69,14 @@ interface Transport {
 
     /** Network-change trigger (ConnectivityManager callback wired by the app layer). */
     fun notifyNetworkAvailable()
+
+    /**
+     * §11.6 endpoint switch: the OLD endpoint's connection was closed — the §14.4.1
+     * machine is reset so the next [connect] is the first-connection path again.
+     * ("Closed → any" is illegal by design; a switch is a NEW logical identity on
+     * the same transport instance, so the machine is re-seeded to Unpaired.)
+     */
+    fun resetForEndpointSwitch()
 }
 
 /** §11.3 endpoint model — descriptors only; credential material stays behind refs. */

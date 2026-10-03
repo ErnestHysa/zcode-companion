@@ -119,14 +119,21 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
         conversationCacheEnabled = if (hasConversationCacheEnabled()) conversationCacheEnabled else true,
         autoReconnectProbe = if (hasAutoReconnectProbe()) autoReconnectProbe else false,
         terminalOptIn = if (hasTerminalOptIn()) terminalOptIn else false,
+        selectedEndpointId = if (hasSelectedEndpointId()) selectedEndpointId else null,
     )
 
-    private fun AppPreferences.toProto() = AppPreferencesProto.newBuilder()
-        .setSchemaVersion(EndpointRepositoryImpl.SCHEMA_VERSION)
-        .setNotificationContentLevel(notificationContentLevel.name)
-        .setScreenshotProtection(screenshotProtection)
-        .setConversationCacheEnabled(conversationCacheEnabled)
-        .setAutoReconnectProbe(autoReconnectProbe)
-        .setTerminalOptIn(terminalOptIn)
-        .build()
+    private fun AppPreferences.toProto(): AppPreferencesProto {
+        // Capture BEFORE the builder scope: the builder exposes its own
+        // selectedEndpointId property, which would shadow the model's inside apply{}.
+        val selected = selectedEndpointId
+        return AppPreferencesProto.newBuilder()
+            .setSchemaVersion(EndpointRepositoryImpl.SCHEMA_VERSION)
+            .setNotificationContentLevel(notificationContentLevel.name)
+            .setScreenshotProtection(screenshotProtection)
+            .setConversationCacheEnabled(conversationCacheEnabled)
+            .setAutoReconnectProbe(autoReconnectProbe)
+            .setTerminalOptIn(terminalOptIn)
+            .apply { selected?.let { setSelectedEndpointId(it) } }
+            .build()
+    }
 }

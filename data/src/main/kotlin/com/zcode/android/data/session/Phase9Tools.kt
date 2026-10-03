@@ -6,7 +6,7 @@ import com.zcode.android.core.protocol.bytes.RpcSerialization.RpcValue
 import com.zcode.android.core.protocol.v4.AttachmentLimits
 import com.zcode.android.core.protocol.v4.FileChangesResult
 import com.zcode.android.core.protocol.v4.V4Attachment
-import com.zcode.android.core.transport.RelayTransport
+import com.zcode.android.core.transport.AppTransport
 import com.zcode.android.domain.model.GitChangeEntry
 import com.zcode.android.domain.model.GitCommit
 import com.zcode.android.domain.model.GitFileDiff
@@ -28,7 +28,7 @@ import kotlinx.serialization.json.JsonPrimitive
  * plane, §23.2) and the switch commands (via the outbox gate, not here). INV-9/16
  * are enforced by the transport's typed surface; paths stay display-only.
  */
-class Phase9Tools(private val transport: RelayTransport) {
+class Phase9Tools(private val transport: AppTransport) {
 
     // ---------------------------------------------------------------- turn diffs (9.1)
 

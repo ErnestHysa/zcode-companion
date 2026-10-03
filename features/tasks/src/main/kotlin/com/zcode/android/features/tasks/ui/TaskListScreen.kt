@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -83,6 +84,8 @@ fun TaskListScreen(
     modifier: Modifier = Modifier,
 ) {
     var showCreate by remember { androidx.compose.runtime.mutableStateOf(false) }
+    // §18.2 workspace switcher selection (endpoint-scoped; null = all workspaces).
+    var selectedWorkspaceKey by remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
             HeaderRow(
@@ -98,6 +101,37 @@ fun TaskListScreen(
                     .testTag("tasks_connection_line")
                     .clickable(onClick = onOpenConnection),
             )
+            // §18.2 workspace switcher (endpoint-scoped): chips = All + one per
+            // workspace; selecting one filters the grouped list (U22 switcher semantics).
+            if (workspaces.isNotEmpty()) {
+                val selectedKey = selectedWorkspaceKey
+                androidx.compose.foundation.lazy.LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .testTag("tasks_workspace_switcher"),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    item {
+                        FilterChip(
+                            selected = selectedWorkspaceKey == null,
+                            onClick = { selectedWorkspaceKey = null },
+                            label = { Text("All") },
+                            modifier = Modifier.testTag("tasks_ws_all"),
+                        )
+                    }
+                    for (ws in workspaces) {
+                        item(key = ws.key) {
+                            FilterChip(
+                                selected = selectedWorkspaceKey == ws.key,
+                                onClick = { selectedWorkspaceKey = if (selectedWorkspaceKey == ws.key) null else ws.key },
+                                label = { Text(ws.label, maxLines = 1) },
+                                modifier = Modifier.testTag("tasks_ws_${ws.key.hashCode()}"),
+                            )
+                        }
+                    }
+                }
+            }
             Spacer(Modifier.height(4.dp))
 
             Box(Modifier.fillMaxSize()) {
@@ -111,7 +145,8 @@ fun TaskListScreen(
                 when (state.loadState) {
                     TasksUiState.Load.LOADING -> LoadingBody()
                     TasksUiState.Load.EMPTY -> EmptyBody(state, onRetry, onRefresh)
-                    TasksUiState.Load.READY -> ReadyBody(state, onTaskClick, onRetry, onRepairPairing)
+                    TasksUiState.Load.READY ->
+                        ReadyBody(state, onTaskClick, onRetry, onRepairPairing, selectedWorkspaceKeyParam = selectedWorkspaceKey)
                 }
             }
                 // §6.1 parity: create tasks in existing workspaces — the "+ New task"
@@ -340,7 +375,13 @@ private fun EmptyBody(state: TasksUiState, onRetry: () -> Unit, onRefresh: () ->
 }
 
 @Composable
-private fun ReadyBody(state: TasksUiState, onTaskClick: (Task) -> Unit, onRetry: () -> Unit, onRepairPairing: () -> Unit) {
+private fun ReadyBody(
+    state: TasksUiState,
+    onTaskClick: (Task) -> Unit,
+    onRetry: () -> Unit,
+    onRepairPairing: () -> Unit,
+    selectedWorkspaceKeyParam: String? = null,
+) {
     Column(Modifier.fillMaxSize()) {
         // §14.4.2 stale overlay — cached rows visible + LABELED (never silent stale).
         if (state.stale) {
@@ -376,11 +417,14 @@ private fun ReadyBody(state: TasksUiState, onTaskClick: (Task) -> Unit, onRetry:
                 modifier = Modifier.testTag("tasks_repair_strip"),
             )
         }
+        val shownGroups = selectedWorkspaceKeyParam
+            ?.let { key -> state.groups.filter { it.workspaceKey == key } }
+            ?: state.groups
         LazyColumn(
             modifier = Modifier.fillMaxSize().testTag("tasks_list"),
             contentPadding = PaddingValues(bottom = 24.dp),
         ) {
-            state.groups.forEach { group ->
+            shownGroups.forEach { group ->
                 item(key = "header-${group.workspaceKey}") {
                     WorkspaceHeader(group.label)
                 }

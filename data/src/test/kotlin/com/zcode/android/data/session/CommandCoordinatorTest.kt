@@ -2,6 +2,7 @@ package com.zcode.android.data.session
 
 import com.zcode.android.core.protocol.v4.CommandAck
 import com.zcode.android.core.transport.ConnectionStateMachine
+import com.zcode.android.core.transport.TransportFailure
 import com.zcode.android.domain.ids.CommandId
 import com.zcode.android.domain.ids.EndpointId
 import com.zcode.android.domain.outbox.OutboxStateMachine
@@ -317,7 +318,7 @@ class CommandCoordinatorTest {
                 workspaceIdentity: String?,
             ): CommandAck {
                 sends.add(commandId)
-                throw com.zcode.android.core.transport.RelayTransport.Failure(
+                throw com.zcode.android.core.transport.TransportFailure(
                     com.zcode.android.core.common.error.AppError(
                         category = com.zcode.android.core.common.error.ErrorCategory.TASK,
                         userMessage = "Conversation changed — please try again",

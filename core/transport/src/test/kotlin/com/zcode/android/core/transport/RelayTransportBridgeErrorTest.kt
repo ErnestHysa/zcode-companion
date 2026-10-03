@@ -1,5 +1,7 @@
 package com.zcode.android.core.transport
 
+import com.zcode.android.core.transport.TransportFailure
+
 import com.zcode.android.core.common.error.ErrorCategory
 import com.zcode.android.core.common.log.ZLog
 import com.zcode.android.tools.mockzcode.MockZCode
@@ -96,7 +98,7 @@ class RelayTransportBridgeErrorTest {
                     t.connect(endpoint(url)) { nonce, role, s -> MockZCode.hmacProof(passHash, nonce, role, s) }
                 }.exceptionOrNull()
                 org.junit.Assert.assertNotNull("connect must fail while the error is queued", failure)
-                val err = (failure as RelayTransport.Failure).error
+                val err = (failure as TransportFailure).error
                 assertEquals(ErrorCategory.SESSION, err.category)
                 assertTrue(
                     err.developerDiagnostic.contains("session-not-found"),

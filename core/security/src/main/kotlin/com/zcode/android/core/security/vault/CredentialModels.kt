@@ -49,6 +49,24 @@ sealed class SealOutcome {
     data class Conflicts(val existingSid: String) : SealOutcome()
 }
 
+/**
+ * Direct-endpoint descriptor metadata (§12.4 "Server token" row + §11.3 registry):
+ * deliberately SECRET-FREE — the token itself only ever exists as Tink ciphertext
+ * at rest and inside the [TokenProvider] capability in memory (INV-3, §26.3).
+ */
+@Serializable
+data class DirectEndpointMetadata(
+    val endpointId: String,
+    val displayName: String,
+    /** ws(s)://… URL of the direct endpoint (registry identity, not a secret). */
+    val wsUrl: String,
+    /** server-info serverId (display/diagnostic; opaque). */
+    val serverId: String? = null,
+    /** server-info version at add time (compat-gate display). */
+    val serverVersion: String? = null,
+    val addedAtMs: Long,
+)
+
 /** Forensic wipe report (§3.5 / §12.7 unpair). */
 data class WipeReport(
     val deletedBlobNames: List<String>,

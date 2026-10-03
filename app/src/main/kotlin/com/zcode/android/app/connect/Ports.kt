@@ -360,7 +360,7 @@ class DefaultConversationPort(
             if (hub.coordinatorOrNull() == null) {
                 return ConversationPort.LoadOlderResult(0, hasMore = false, error = null, epochRejected = false)
             }
-            val page = hub.gateway.rowsRange(
+            val page = hub.gateway().rowsRange(
                 sessionId = taskId,
                 beforeRowId = beforeRowId,
                 limit = ConversationCacheBounds.PAGE_DEFAULT_ROWS,
@@ -388,7 +388,7 @@ class DefaultConversationPort(
             }
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            val error = (e as? com.zcode.android.core.transport.RelayTransport.Failure)?.error
+            val error = (e as? com.zcode.android.core.transport.TransportFailure)?.error
                 ?: com.zcode.android.core.transport.ErrorMapping.timeout("rowsRange", 10_000)
             hub.log.warn("port.pageFault", "session=$taskId ${e.javaClass.simpleName}: ${e.message?.take(120)}")
             ConversationPort.LoadOlderResult(0, hasMore = true, error = error, epochRejected = false)
@@ -418,7 +418,7 @@ class DefaultConversationPort(
             ?: return ConversationPort.TurnChangesResult(null, "conversation state not ready — open the task and retry")
         val (workspacePath, workspaceIdentity) = hub.activeWorkspaceTarget() ?: (null to null)
         return try {
-            val changes = hub.phase9.turnFileChanges(
+            val changes = hub.phase9().turnFileChanges(
                 sessionId = taskId,
                 targetRowId = rowId,
                 targetEntityId = entityId,
@@ -479,7 +479,7 @@ class DefaultConversationPort(
         if (bytes.size > com.zcode.android.core.protocol.v4.AttachmentLimits.MAX_BYTES) {
             return ConversationPort.UploadResult.TooLarge
         }
-        val tools = hub.phase9
+        val tools = hub.phase9()
         val (workspacePath, workspaceIdentity) = hub.activeWorkspaceTarget() ?: (null to null)
         upsertAttachment(
             taskId,
@@ -538,7 +538,7 @@ class DefaultConversationPort(
         val entry = composerAttachments.value.entries.firstOrNull { e -> e.value.any { it.uploadId == uploadId } }
         val att = entry?.value?.firstOrNull { it.uploadId == uploadId }
         if (entry != null && att != null && att.state == "uploading") {
-            runCatching { hub.phase9.attachmentAbort(uploadId, entry.key) }
+            runCatching { hub.phase9().attachmentAbort(uploadId, entry.key) }
         }
         if (entry != null) {
             composerAttachments.value = composerAttachments.value +
@@ -562,7 +562,7 @@ class DefaultConversationPort(
         val safeRef = ref.replace(Regex("[^A-Za-z0-9._-]"), "_")
         val out = java.io.File(attachmentCacheDir, "$taskId-$safeRef.bin")
         return try {
-            val (mediaType, totalBytes) = hub.phase9.attachmentReadAll(
+            val (mediaType, totalBytes) = hub.phase9().attachmentReadAll(
                 sessionId = taskId,
                 ref = ref,
                 targetRowId = targetRowId,
