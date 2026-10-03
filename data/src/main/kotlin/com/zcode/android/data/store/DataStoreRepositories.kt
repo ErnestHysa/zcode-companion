@@ -118,6 +118,7 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
         screenshotProtection = if (hasScreenshotProtection()) screenshotProtection else true,
         conversationCacheEnabled = if (hasConversationCacheEnabled()) conversationCacheEnabled else true,
         autoReconnectProbe = if (hasAutoReconnectProbe()) autoReconnectProbe else false,
+        terminalOptIn = if (hasTerminalOptIn()) terminalOptIn else false,
     )
 
     private fun AppPreferences.toProto() = AppPreferencesProto.newBuilder()
@@ -126,5 +127,6 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
         .setScreenshotProtection(screenshotProtection)
         .setConversationCacheEnabled(conversationCacheEnabled)
         .setAutoReconnectProbe(autoReconnectProbe)
+        .setTerminalOptIn(terminalOptIn)
         .build()
 }

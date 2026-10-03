@@ -150,7 +150,25 @@ class MarkdownParserTest {
 class ConversationViewModelTest {
 
     private class FakePort : ConversationPort {
-        override val phase = MutableStateFlow(ConnectionPhase.CONNECTED)
+
+            // ---- Phase 9 port additions (test fakes: inert defaults) ----
+            override suspend fun fetchTurnFileChanges(taskId: String, rowId: Long, entityId: String): ConversationPort.TurnChangesResult =
+                ConversationPort.TurnChangesResult(null, "not faked")
+            override suspend fun switchModel(taskId: String, provider: String, model: String, thought: String): ConversationPort.SendOutcome =
+                ConversationPort.SendOutcome.ACCEPTED
+            override suspend fun switchMode(taskId: String, mode: String): ConversationPort.SendOutcome =
+                ConversationPort.SendOutcome.ACCEPTED
+            override suspend fun uploadAttachment(
+                taskId: String, fileName: String, mime: String, bytes: ByteArray, uploadId: String,
+                onProgress: (Int, Int) -> Unit,
+            ): ConversationPort.UploadResult = ConversationPort.UploadResult.Failed("not faked")
+            override suspend fun removeUpload(uploadId: String) { }
+            override suspend fun fetchAttachment(
+                taskId: String, ref: String, targetRowId: Long?, targetEntityId: String?, attachmentIndex: Int?,
+            ): ConversationPort.AttachmentFetchResult = ConversationPort.AttachmentFetchResult(null, null, 0, "not faked")
+            override fun observeComposerAttachments(taskId: String): Flow<List<ConversationPort.ComposerAttachment>> =
+                kotlinx.coroutines.flow.MutableStateFlow(emptyList())
+            override val phase = MutableStateFlow(ConnectionPhase.CONNECTED)
         val rowsFlow = MutableStateFlow<List<ConversationRow>>(emptyList())
         val epochFlow = MutableStateFlow<String?>(null)
         val staleFlow = MutableStateFlow(false)
@@ -301,6 +319,24 @@ class ConversationViewModelTest {
 
 /** Shared open fake for Phase 7 ViewModel-level tests (draft/answer contracts). */
 open class Phase7FakePort : ConversationPort {
+
+        // ---- Phase 9 port additions (test fakes: inert defaults) ----
+        override suspend fun fetchTurnFileChanges(taskId: String, rowId: Long, entityId: String): ConversationPort.TurnChangesResult =
+            ConversationPort.TurnChangesResult(null, "not faked")
+        override suspend fun switchModel(taskId: String, provider: String, model: String, thought: String): ConversationPort.SendOutcome =
+            ConversationPort.SendOutcome.ACCEPTED
+        override suspend fun switchMode(taskId: String, mode: String): ConversationPort.SendOutcome =
+            ConversationPort.SendOutcome.ACCEPTED
+        override suspend fun uploadAttachment(
+            taskId: String, fileName: String, mime: String, bytes: ByteArray, uploadId: String,
+            onProgress: (Int, Int) -> Unit,
+        ): ConversationPort.UploadResult = ConversationPort.UploadResult.Failed("not faked")
+        override suspend fun removeUpload(uploadId: String) { }
+        override suspend fun fetchAttachment(
+            taskId: String, ref: String, targetRowId: Long?, targetEntityId: String?, attachmentIndex: Int?,
+        ): ConversationPort.AttachmentFetchResult = ConversationPort.AttachmentFetchResult(null, null, 0, "not faked")
+        override fun observeComposerAttachments(taskId: String): Flow<List<ConversationPort.ComposerAttachment>> =
+            kotlinx.coroutines.flow.MutableStateFlow(emptyList())
     override val phase = MutableStateFlow(ConnectionPhase.CONNECTED)
     private val rowsFlow = MutableStateFlow<List<ConversationRow>>(emptyList())
     private val sessionStateFlow = MutableStateFlow(

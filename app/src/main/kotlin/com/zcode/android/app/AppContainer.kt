@@ -7,6 +7,9 @@ import kotlinx.coroutines.launch
 import com.zcode.android.app.connect.ConnectionHub
 import com.zcode.android.app.diagnostics.DiagnosticsFileStore
 import com.zcode.android.app.connect.DefaultConversationPort
+import com.zcode.android.app.connect.DefaultFilesPort
+import com.zcode.android.app.connect.DefaultGitPort
+import com.zcode.android.app.connect.DefaultTerminalPort
 import com.zcode.android.app.connect.DefaultTasksPort
 import com.zcode.android.app.pairing.DefaultPairingPort
 import com.zcode.android.app.notifications.NotificationWiring
@@ -123,7 +126,40 @@ class AppContainer(activity: FragmentActivity) {
         // Unpair is suspend (vault wipe + transport close) — launch on the activity scope.
         activity.lifecycleScope.launch { pairingPort.unpair() }
     })
-    val conversationPort: DefaultConversationPort = DefaultConversationPort(hub, stores.conversationRepository, vault)
+    val conversationPort: DefaultConversationPort = DefaultConversationPort(
+        hub,
+        stores.conversationRepository,
+        vault,
+        attachmentCacheDir = java.io.File(activity.cacheDir, "attachments").also { it.mkdirs() },
+    )
+
+    /** Phase 9 (§43.2-9): the advanced read-only surfaces + view-only terminal. */
+    val gitPort: DefaultGitPort = DefaultGitPort(hub)
+    val filesPort: DefaultFilesPort = DefaultFilesPort(
+        hub,
+        cacheDir = java.io.File(activity.cacheDir, "downloads").also { it.mkdirs() },
+        onShare = { file, mime ->
+            // §23.4 share-out via FileProvider (app-private storage only, INV-16).
+            runCatching {
+                val shareUri = androidx.core.content.FileProvider.getUriForFile(
+                    activity,
+                    activity.packageName + ".fileprovider",
+                    file,
+                )
+                val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                    type = mime
+                    putExtra(android.content.Intent.EXTRA_STREAM, shareUri)
+                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                activity.startActivity(android.content.Intent.createChooser(intent, "Share file"))
+            }.onFailure { log.warn("files.share", "${it.javaClass.simpleName}: ${it.message?.take(100)}") }
+        },
+    )
+    val terminalPort: DefaultTerminalPort = DefaultTerminalPort(
+        controller = com.zcode.android.data.session.TerminalController(transport, log),
+        preferences = stores.preferencesRepository,
+        log = log,
+    )
 
     /**
      * Phase 8 (§43.2-8.1): the §24.1 broker wiring — the sole notification decision

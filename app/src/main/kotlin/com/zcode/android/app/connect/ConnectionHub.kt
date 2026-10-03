@@ -633,6 +633,18 @@ class ConnectionHub(
 
     fun draftRepository(): com.zcode.android.domain.repo.DraftRepository = drafts
 
+    /**
+     * Phase 9 tool plane (§21–§23 + model switch): diff fetch, attachments, git,
+     * files, model options. Lazily built over the hub's transport; the ports in
+     * this package are its only consumers (INV-2: features never see this).
+     */
+    val phase9: com.zcode.android.data.session.Phase9Tools by lazy {
+        com.zcode.android.data.session.Phase9Tools(transport)
+    }
+
+    /** The connected workspace target for git/files (§7.11); null when disconnected. */
+    fun activeWorkspaceTarget(): Pair<String?, String?>? = transport.activeWorkspaceTarget
+
     /** Approvals-inbox observation source (open interactions across tasks). */
     fun interactionsStore(): com.zcode.android.domain.repo.InteractionRepository = interactions
 

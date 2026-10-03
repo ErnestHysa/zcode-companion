@@ -20,6 +20,9 @@ import com.zcode.android.domain.state.TaskStateMachine
 import com.zcode.android.features.conversation.port.ConversationPort
 import com.zcode.android.features.tasks.port.TasksPort
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.StateFlow
@@ -84,6 +87,8 @@ class DefaultConversationPort(
     private val hub: ConnectionHub,
     private val conversationRepo: ConversationRepository,
     private val vault: CredentialVault,
+    /** Attachment payload cache (§23.3: app cache, LRU-managed by the caller). */
+    private val attachmentCacheDir: java.io.File,
 ) : ConversationPort {
 
     override val phase: StateFlow<ConnectionPhase> get() = hub.phase
@@ -173,8 +178,27 @@ class DefaultConversationPort(
 
     override suspend fun sendPrompt(taskId: String, text: String, heldQueueDisposition: String?): ConversationPort.SendOutcome {
         val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
-        return when (val outcome = coordinator.sendPrompt(taskId, text, heldQueueDisposition = heldQueueDisposition)) {
-            is com.zcode.android.data.session.CommandCoordinator.Outcome.Accepted -> ConversationPort.SendOutcome.ACCEPTED
+        // §23.2: ready (committed) composer uploads ride the sendText payload as
+        // attachment refs; they are consumed on ACCEPTED (§14.2 — the overlay drops).
+        val ready = composerAttachments.value[taskId].orEmpty().filter { it.state == "ready" && it.ref != null }
+        val outcome = coordinator.sendPrompt(
+            taskId,
+            text,
+            heldQueueDisposition = heldQueueDisposition,
+            attachments = ready.map {
+                com.zcode.android.data.session.CommandCoordinator.AttachmentRefPayload(
+                    ref = it.ref!!, fileName = it.fileName, mime = it.mime, bytes = it.bytes,
+                )
+            },
+        )
+        return when (outcome) {
+            is com.zcode.android.data.session.CommandCoordinator.Outcome.Accepted -> {
+                if (ready.isNotEmpty()) {
+                    composerAttachments.value = composerAttachments.value +
+                        (taskId to composerAttachments.value[taskId].orEmpty().filterNot { a -> ready.any { r -> r.uploadId == a.uploadId } })
+                }
+                ConversationPort.SendOutcome.ACCEPTED
+            }
             is com.zcode.android.data.session.CommandCoordinator.Outcome.BlockedOffline -> ConversationPort.SendOutcome.BLOCKED_OFFLINE
             is com.zcode.android.data.session.CommandCoordinator.Outcome.Stale -> ConversationPort.SendOutcome.STALE
             is com.zcode.android.data.session.CommandCoordinator.Outcome.Failed -> ConversationPort.SendOutcome.FAILED
@@ -368,6 +392,194 @@ class DefaultConversationPort(
                 ?: com.zcode.android.core.transport.ErrorMapping.timeout("rowsRange", 10_000)
             hub.log.warn("port.pageFault", "session=$taskId ${e.javaClass.simpleName}: ${e.message?.take(120)}")
             ConversationPort.LoadOlderResult(0, hasMore = true, error = error, epochRejected = false)
+        }
+    }
+
+    // ---------------------------------------------------------------- Phase 9 (§43.2-9)
+
+    /**
+     * CAS currency snapshot for a session: (revision, logEpoch) — fileChanges and
+     * the switch commands carry both (§10.1/§10.3). Null revision = projection not
+     * ready → caller surfaces a typed not-ready failure (never a guessed base).
+     */
+    private suspend fun casCurrency(taskId: String): Pair<Long, String>? {
+        val state = hub.sessionProjectionState(taskId).firstOrNull()
+        val revision = state?.revision ?: return null
+        val epoch = conversationRepo.currentEpoch(com.zcode.android.domain.ids.SessionId(taskId)) ?: return null
+        return revision to epoch
+    }
+
+    override suspend fun fetchTurnFileChanges(
+        taskId: String,
+        rowId: Long,
+        entityId: String,
+    ): ConversationPort.TurnChangesResult {
+        val currency = casCurrency(taskId)
+            ?: return ConversationPort.TurnChangesResult(null, "conversation state not ready — open the task and retry")
+        val (workspacePath, workspaceIdentity) = hub.activeWorkspaceTarget() ?: (null to null)
+        return try {
+            val changes = hub.phase9.turnFileChanges(
+                sessionId = taskId,
+                targetRowId = rowId,
+                targetEntityId = entityId,
+                baseRevision = currency.first,
+                baseLogEpoch = currency.second,
+                workspacePath = workspacePath,
+                workspaceIdentity = workspaceIdentity,
+            )
+            ConversationPort.TurnChangesResult(changes, null)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            hub.log.warn("port.fileChanges", "session=$taskId ${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            ConversationPort.TurnChangesResult(null, e.message ?: "file changes unavailable")
+        }
+    }
+
+    override suspend fun switchModel(
+        taskId: String,
+        provider: String,
+        model: String,
+        thought: String,
+    ): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        val currency = casCurrency(taskId)
+        val outcome = coordinator.switchModelConfig(taskId, provider, model, thought, currency?.first)
+        return mapOutcome(outcome).also { r ->
+            if (r == ConversationPort.SendOutcome.ACCEPTED) hub.log.info("port.switchModel", "session=$taskId model=$model")
+        }
+    }
+
+    override suspend fun switchMode(taskId: String, mode: String): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        val currency = casCurrency(taskId)
+        return mapOutcome(coordinator.switchCollaborationMode(taskId, mode, currency?.first))
+    }
+
+    // ---- composer attachments (§23.2) — in-memory per-task overlay (Android-owned, §14.2)
+
+    private val composerAttachments = MutableStateFlow<Map<String, List<ConversationPort.ComposerAttachment>>>(emptyMap())
+
+    override fun observeComposerAttachments(taskId: String): Flow<List<ConversationPort.ComposerAttachment>> =
+        composerAttachments.map { it[taskId] ?: emptyList() }
+
+    private fun upsertAttachment(taskId: String, att: ConversationPort.ComposerAttachment) {
+        val current = composerAttachments.value[taskId] ?: emptyList()
+        composerAttachments.value = composerAttachments.value +
+            (taskId to (current.filterNot { it.uploadId == att.uploadId } + att))
+    }
+
+    override suspend fun uploadAttachment(
+        taskId: String,
+        fileName: String,
+        mime: String,
+        bytes: ByteArray,
+        uploadId: String,
+        onProgress: (sent: Int, total: Int) -> Unit,
+    ): ConversationPort.UploadResult {
+        if (bytes.size > com.zcode.android.core.protocol.v4.AttachmentLimits.MAX_BYTES) {
+            return ConversationPort.UploadResult.TooLarge
+        }
+        val tools = hub.phase9
+        val (workspacePath, workspaceIdentity) = hub.activeWorkspaceTarget() ?: (null to null)
+        upsertAttachment(
+            taskId,
+            ConversationPort.ComposerAttachment(uploadId, fileName, mime, bytes.size.toLong(), "uploading", 0f, null),
+        )
+        // §23.2: checksum over the WHOLE payload (wire grammar sha256:<64 hex>).
+        val digest = java.security.MessageDigest.getInstance("SHA-256").digest(bytes)
+        val checksum = "sha256:" + digest.joinToString("") { "%02x".format(it) }
+        val totalChunks = if (bytes.isEmpty()) 0 else (bytes.size + com.zcode.android.core.protocol.v4.AttachmentLimits.CHUNK_MAX_BYTES - 1) /
+            com.zcode.android.core.protocol.v4.AttachmentLimits.CHUNK_MAX_BYTES
+        return try {
+            when (val begin = tools.attachmentBegin(uploadId, taskId, fileName, mime, bytes.size.toLong(), checksum, workspacePath, workspaceIdentity)) {
+                is com.zcode.android.core.protocol.v4.V4Attachment.BeginResult.Committed -> {
+                    upsertAttachment(taskId, ConversationPort.ComposerAttachment(uploadId, fileName, mime, bytes.size.toLong(), "ready", 1f, begin.ref))
+                    ConversationPort.UploadResult.Committed(begin.ref, bytes.size.toLong())
+                }
+                is com.zcode.android.core.protocol.v4.V4Attachment.BeginResult.Staging -> {
+                    var index = begin.nextChunkIndex
+                    var offset: Long = index * com.zcode.android.core.protocol.v4.AttachmentLimits.CHUNK_MAX_BYTES.toLong()
+                    while (offset < bytes.size) {
+                        val end = minOf(offset + com.zcode.android.core.protocol.v4.AttachmentLimits.CHUNK_MAX_BYTES, bytes.size.toLong()).toInt()
+                        tools.attachmentChunk(uploadId, taskId, index, bytes.copyOfRange(offset.toInt(), end), workspacePath, workspaceIdentity)
+                        index += 1
+                        offset = index * com.zcode.android.core.protocol.v4.AttachmentLimits.CHUNK_MAX_BYTES.toLong()
+                        onProgress(index, totalChunks)
+                        upsertAttachment(
+                            taskId,
+                            ConversationPort.ComposerAttachment(uploadId, fileName, mime, bytes.size.toLong(), "uploading", index.toFloat() / totalChunks, null),
+                        )
+                    }
+                    val ref = tools.attachmentCommit(uploadId, taskId)
+                    upsertAttachment(taskId, ConversationPort.ComposerAttachment(uploadId, fileName, mime, bytes.size.toLong(), "ready", 1f, ref))
+                    ConversationPort.UploadResult.Committed(ref, bytes.size.toLong())
+                }
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            runCatching { tools.attachmentAbort(uploadId, taskId) }
+            throw e
+        } catch (e: com.zcode.android.data.session.Phase9Tools.AttachmentRejectedException) {
+            upsertAttachment(taskId, ConversationPort.ComposerAttachment(uploadId, fileName, mime, bytes.size.toLong(), "failed", 0f, null))
+            ConversationPort.UploadResult.Failed(e.message)
+        } catch (e: Exception) {
+            if (hub.phase.value != ConnectionPhase.CONNECTED) {
+                upsertAttachment(taskId, ConversationPort.ComposerAttachment(uploadId, fileName, mime, bytes.size.toLong(), "failed", 0f, null))
+                return ConversationPort.UploadResult.BlockedOffline
+            }
+            hub.log.warn("port.upload", "task=$taskId ${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            runCatching { tools.attachmentAbort(uploadId, taskId) }
+            upsertAttachment(taskId, ConversationPort.ComposerAttachment(uploadId, fileName, mime, bytes.size.toLong(), "failed", 0f, null))
+            ConversationPort.UploadResult.Failed(e.message)
+        }
+    }
+
+    override suspend fun removeUpload(uploadId: String) {
+        // Find the owning task + abort the transaction if it was live.
+        val entry = composerAttachments.value.entries.firstOrNull { e -> e.value.any { it.uploadId == uploadId } }
+        val att = entry?.value?.firstOrNull { it.uploadId == uploadId }
+        if (entry != null && att != null && att.state == "uploading") {
+            runCatching { hub.phase9.attachmentAbort(uploadId, entry.key) }
+        }
+        if (entry != null) {
+            composerAttachments.value = composerAttachments.value +
+                (entry.key to entry.value.filterNot { it.uploadId == uploadId })
+        }
+    }
+
+    /** Clear a task's ready attachments after a successful send (consumed refs). */
+    fun clearComposerAttachments(taskId: String) {
+        composerAttachments.value = composerAttachments.value - taskId
+    }
+
+    override suspend fun fetchAttachment(
+        taskId: String,
+        ref: String,
+        targetRowId: Long?,
+        targetEntityId: String?,
+        attachmentIndex: Int?,
+    ): ConversationPort.AttachmentFetchResult {
+        val (workspacePath, workspaceIdentity) = hub.activeWorkspaceTarget() ?: (null to null)
+        val safeRef = ref.replace(Regex("[^A-Za-z0-9._-]"), "_")
+        val out = java.io.File(attachmentCacheDir, "$taskId-$safeRef.bin")
+        return try {
+            val (mediaType, totalBytes) = hub.phase9.attachmentReadAll(
+                sessionId = taskId,
+                ref = ref,
+                targetRowId = targetRowId,
+                targetEntityId = targetEntityId,
+                attachmentIndex = attachmentIndex,
+                sink = { chunk ->
+                    if (!out.exists()) out.writeBytes(chunk) else out.appendBytes(chunk)
+                },
+                workspacePath = workspacePath,
+                workspaceIdentity = workspaceIdentity,
+            )
+            ConversationPort.AttachmentFetchResult(out, mediaType, totalBytes, null)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            hub.log.warn("port.attachmentFetch", "task=$taskId ${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            out.delete()
+            ConversationPort.AttachmentFetchResult(null, null, 0, e.message ?: "attachment unavailable")
         }
     }
 }

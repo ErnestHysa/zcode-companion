@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -51,6 +52,7 @@ import com.zcode.android.domain.model.ConversationRow
 import com.zcode.android.domain.state.ConnectionPhase
 import com.zcode.android.domain.state.TaskStateMachine
 import com.zcode.android.features.conversation.ConversationUiState
+import com.zcode.android.features.conversation.port.ConversationPort
 import com.zcode.android.features.conversation.taskStateLabel
 import kotlinx.coroutines.launch
 
@@ -79,6 +81,18 @@ fun ConversationScreen(
     onEditQueueItem: (queueItemId: String, newText: String) -> Unit,
     onAnswerQuestions: (String, Map<String, List<String>>) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
+    // ---- Phase 9 (§43.2-9): advanced read-only surfaces + model switch ----
+    onOpenFiles: () -> Unit = {},
+    onOpenGit: () -> Unit = {},
+    onOpenTerminal: () -> Unit = {},
+    onSwitchMode: (String) -> Unit = {},
+    onSwitchModel: (provider: String, model: String, thought: String) -> Unit = { _, _, _ -> },
+    modelOptionsProvider: suspend () -> List<com.zcode.android.domain.model.ModelProviderOption> = { emptyList() },
+    turnChangesProvider: suspend (rowId: Long, entityId: String) -> ConversationPort.TurnChangesResult =
+        { _, _ -> ConversationPort.TurnChangesResult(null, "unavailable") },
+    onUploadAttachment: suspend (fileName: String, mime: String, bytes: ByteArray) -> ConversationPort.UploadResult =
+        { _, _, _ -> ConversationPort.UploadResult.Failed("attachments unavailable") },
+    onRemoveAttachment: (uploadId: String) -> Unit = {},
 ) {
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -92,7 +106,28 @@ fun ConversationScreen(
                 .navigationBarsPadding()
                 .imePadding(),
         ) {
-            Header(state = state, phase = phase, onBack = onBack)
+            Header(
+                state = state,
+                phase = phase,
+                onBack = onBack,
+                onOpenFiles = onOpenFiles,
+                onOpenGit = onOpenGit,
+                onOpenTerminal = onOpenTerminal,
+                onSwitchMode = onSwitchMode,
+                onSwitchModel = onSwitchModel,
+                modelOptionsProvider = modelOptionsProvider,
+            )
+            // Phase 9.1: the per-turn diff viewer (opened from a turnHeader's summary).
+            var diffTurn by remember { mutableStateOf<ConversationRow.TurnHeader?>(null) }
+            diffTurn?.let { turn ->
+                TurnDiffDialog(
+                    turnLabel = "turn ${turn.rowId}",
+                    rowId = turn.rowId,
+                    entityId = turn.base.entityId ?: turn.turnId,
+                    provider = turnChangesProvider,
+                    onDismiss = { diffTurn = null },
+                )
+            }
             // Pinned state strips (§15-S1/S9, mockups 09/10/12) — content stays visible.
             if (state.stale) {
                 AttentionStrip(
@@ -187,6 +222,7 @@ if (state.historyChanged) {
                     state = state,
                     onLoadOlder = onLoadOlder,
                     onRetryOlder = onRetryOlder,
+                    onOpenTurnChanges = { diffTurn = it },
                 )
             }
             // §17.4/§17.6 composer (pinned bottom; drafting allowed offline, send
@@ -198,13 +234,25 @@ if (state.historyChanged) {
                 onStop = onStop,
                 onRetrySend = onRetrySend,
                 onDismissNotice = onDismissSendNotice,
+                onUploadAttachment = onUploadAttachment,
+                onRemoveAttachment = onRemoveAttachment,
             )
         }
     }
 }
 
 @Composable
-private fun Header(state: ConversationUiState, phase: ConnectionPhase, onBack: () -> Unit) {
+private fun Header(
+    state: ConversationUiState,
+    phase: ConnectionPhase,
+    onBack: () -> Unit,
+    onOpenFiles: () -> Unit = {},
+    onOpenGit: () -> Unit = {},
+    onOpenTerminal: () -> Unit = {},
+    onSwitchMode: (String) -> Unit = {},
+    onSwitchModel: (provider: String, model: String, thought: String) -> Unit = { _, _, _ -> },
+    modelOptionsProvider: suspend () -> List<com.zcode.android.domain.model.ModelProviderOption> = { emptyList() },
+) {
     Column {
         Row(
             modifier = Modifier
@@ -234,6 +282,24 @@ private fun Header(state: ConversationUiState, phase: ConnectionPhase, onBack: (
             trailing = taskStateLabel(state.taskState),
             modifier = Modifier.padding(horizontal = 16.dp).testTag("conversation_status_line"),
         )
+        // Phase 9: model/mode chips (§10.3 echo) + Files/Git/Terminal entry points.
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SessionModeChips(
+                config = state.sessionState?.config,
+                onSwitchMode = onSwitchMode,
+                onSwitchModel = onSwitchModel,
+                modelOptionsProvider = modelOptionsProvider,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            Spacer(Modifier.weight(1f))
+            AssistChip(onClick = onOpenFiles, label = { Text("Files") }, modifier = Modifier.testTag("conv_open_files"))
+            AssistChip(onClick = onOpenGit, label = { Text("Git") }, modifier = Modifier.testTag("conv_open_git"))
+            AssistChip(onClick = onOpenTerminal, label = { Text("Terminal") }, modifier = Modifier.testTag("conv_open_terminal"))
+        }
         Spacer(Modifier.height(6.dp))
     }
 }
@@ -273,6 +339,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     state: ConversationUiState,
     onLoadOlder: (Long, (Int) -> Unit) -> Unit,
     onRetryOlder: (Long) -> Unit,
+    onOpenTurnChanges: (ConversationRow.TurnHeader) -> Unit = {},
 ) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -413,6 +480,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                     row = state.rows[index],
                     state = state,
                     modifier = Modifier.testTag("conv-row-${state.rows[index].rowId}"),
+                    onOpenTurnChanges = onOpenTurnChanges,
                 )
             }
         }
@@ -450,7 +518,12 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
 }
 
 @Composable
-private fun TimelineRow(row: ConversationRow, state: ConversationUiState, modifier: Modifier = Modifier) {
+private fun TimelineRow(
+    row: ConversationRow,
+    state: ConversationUiState,
+    modifier: Modifier = Modifier,
+    onOpenTurnChanges: (ConversationRow.TurnHeader) -> Unit = {},
+) {
     Box(modifier = modifier) {
     when (row) {
         is ConversationRow.UserInput -> YouBlock(row.text)
@@ -473,7 +546,7 @@ private fun TimelineRow(row: ConversationRow, state: ConversationUiState, modifi
         }
         is ConversationRow.ToolCall -> ToolCard(row)
         is ConversationRow.Reasoning -> ReasoningRow(row)
-        is ConversationRow.TurnHeader -> TurnSeparator(row)
+        is ConversationRow.TurnHeader -> TurnSeparator(row, onOpenChanges = { onOpenTurnChanges(row) })
         is ConversationRow.Artifact -> QuietMetaRow(
             label = row.displayName.ifBlank { "Artifact" },
             detail = formatBytes(row.sizeBytes),
@@ -487,7 +560,7 @@ private fun TimelineRow(row: ConversationRow, state: ConversationUiState, modifi
 
 }
 
-private fun formatBytes(bytes: Long): String = when {
+internal fun formatBytes(bytes: Long): String = when {
     bytes >= 1_048_576 -> "%.1f MB".format(bytes / 1_048_576.0)
     bytes >= 1_024 -> "%.1f KB".format(bytes / 1_024.0)
     bytes > 0 -> "$bytes B"

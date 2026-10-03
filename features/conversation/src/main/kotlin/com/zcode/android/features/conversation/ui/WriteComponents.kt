@@ -1,6 +1,7 @@
 package com.zcode.android.features.conversation.ui
 
 import androidx.compose.foundation.clickable
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,6 +15,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -28,6 +31,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -503,6 +507,9 @@ fun ComposerBar(
     onRetrySend: (commandId: String) -> Unit,
     onDismissNotice: () -> Unit,
     modifier: Modifier = Modifier,
+    onUploadAttachment: suspend (fileName: String, mime: String, bytes: ByteArray) -> ConversationPort.UploadResult =
+        { _, _, _ -> ConversationPort.UploadResult.Failed("attachments unavailable") },
+    onRemoveAttachment: (uploadId: String) -> Unit = {},
 ) {
     val control = state.sessionState?.control
     val routing = state.sessionState?.inputRouting
@@ -522,6 +529,38 @@ fun ComposerBar(
             if (state.pendingSends.isNotEmpty()) {
                 PendingSendsStrip(pending = state.pendingSends, onRetry = onRetrySend, modifier = Modifier.fillMaxWidth())
             }
+            // §23.2 composer attachments (Phase 9): picker → v4 transaction (begin/
+            // chunks/commit with progress; abort on remove). Media picker + document
+            // picker only — NO broad storage permission (§27).
+            val scope = rememberCoroutineScope()
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val photoPicker = androidx.activity.compose.rememberLauncherForActivityResult(
+                androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia(),
+            ) { uri ->
+                if (uri != null) {
+                    scope.launch {
+                        val (name, mime, bytes) = context.readPickedFile(uri)
+                        onUploadAttachment(name, mime, bytes)
+                    }
+                }
+            }
+            val docPicker = androidx.activity.compose.rememberLauncherForActivityResult(
+                androidx.activity.result.contract.ActivityResultContracts.OpenDocument(),
+            ) { uri ->
+                if (uri != null) {
+                    scope.launch {
+                        val (name, mime, bytes) = context.readPickedFile(uri)
+                        onUploadAttachment(name, mime, bytes)
+                    }
+                }
+            }
+            if (state.composerAttachments.isNotEmpty()) {
+                AttachmentStrip(
+                    attachments = state.composerAttachments,
+                    onRemove = onRemoveAttachment,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             Row(verticalAlignment = Alignment.Bottom) {
                 OutlinedTextField(
                     value = state.draft,
@@ -533,6 +572,31 @@ fun ComposerBar(
                     maxLines = 5,
                 )
                 Spacer(Modifier.width(8.dp))
+                // §23.2 attach affordance (Phase 9): image first, then any document.
+                IconButton(
+                    onClick = {
+                        photoPicker.launch(
+                            androidx.activity.result.PickVisualMediaRequest(
+                                androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly,
+                            ),
+                        )
+                    },
+                    enabled = state.connected,
+                    modifier = Modifier
+                        .testTag("composer_attach")
+                        .semantics { contentDescription = "Attach an image" },
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = null)
+                }
+                IconButton(
+                    onClick = { docPicker.launch(arrayOf("*/*")) },
+                    enabled = state.connected,
+                    modifier = Modifier
+                        .testTag("composer_attach_doc")
+                        .semantics { contentDescription = "Attach a file" },
+                ) {
+                    Icon(Icons.Filled.AttachFile, contentDescription = null)
+                }
                 // §7.5 stop: visible only from the AUTHORITATIVE control block.
                 if (control?.canStop == true && control.stopState == com.zcode.android.domain.model.SessionControl.StopState.STOPPABLE) {
                     IconButton(
@@ -649,4 +713,17 @@ fun SendNoticeBar(notice: SendNotice, onDismiss: () -> Unit, modifier: Modifier 
             }
         }
     }
+}
+
+/** §23.2: read a content-URI pick into (name, mime, bytes) — no persistent permission needed. */
+private fun android.content.Context.readPickedFile(uri: android.net.Uri): Triple<String, String, ByteArray> {
+    val name = runCatching {
+        contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+            if (c.moveToFirst()) c.getString(0) else null
+        }
+    }.getOrNull() ?: "attachment"
+    val mime = contentResolver.getType(uri) ?: "application/octet-stream"
+    val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
+        ?: throw IllegalStateException("cannot read the picked file")
+    return Triple(name, mime, bytes)
 }

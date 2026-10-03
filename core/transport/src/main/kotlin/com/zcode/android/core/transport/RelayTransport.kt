@@ -1302,6 +1302,10 @@ class RelayTransport(
     val commandClientId: String?
         get() = endpoint?.id
 
+    /** The connected endpoint's discovered workspace target (path, identity) — Phase 9 tool-plane routing. */
+    val activeWorkspaceTarget: Pair<String?, String?>?
+        get() = endpoint?.let { it.workspacePath to it.workspaceIdentity }
+
     /**
      * FIELD (2026-10-01, vc21 production-shape fix): the desktop's
      * `sendConversationCommandV4` takes `{workspacePath?, workspaceIdentity?,
@@ -1330,6 +1334,327 @@ class RelayTransport(
         val obj = (raw as? RpcValue.Obj)?.json as? JsonObject
             ?: throw Failure(ErrorMapping.protocolFault("command ack not an object"))
         return CommandAck.decode(obj)
+    }
+
+    // ------------------------------------------------------------------ Phase 9 read surfaces
+    // docs/protocol/v4-wire.md §10 + docs/protocol/phase9-channels.md. Every call keeps
+    // the established conventions: zcode-agent *V4 methods carry the workspace target
+    // (ZCodeAgentSessionTarget extension — VERIFIED); other service channels are plain
+    // channel methods (promise args ARRAY-wrapped, dynamic event args RAW — Phase 1
+    // finding 5 / proxy-channel.ts:127). READ-ONLY: the terminal surface deliberately
+    // exposes NO write/resize and the git/file surfaces expose no mutation methods
+    // (INV-9 — the typed surface is the enforcement).
+
+    /** The v4 hello's connectionId — attachment begin/chunk/commit/abort require it. */
+    val v4ConnectionId: String? get() = _capabilities.value?.connectionId
+
+    /** `conversationFileChangesV4` — per-turn diff hunks for the §22 diff viewer. */
+    suspend fun conversationFileChanges(
+        sessionId: String,
+        targetRowId: Long,
+        targetEntityId: String,
+        baseRevision: Long,
+        baseLogEpoch: String,
+        workspacePath: String? = null,
+        workspaceIdentity: String? = null,
+    ): JsonObject {
+        val endpoint = endpoint ?: throw Failure(ErrorMapping.internal("no endpoint"))
+        val params = buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: endpoint.workspacePath ?: ""))
+            (workspaceIdentity ?: endpoint.workspaceIdentity)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("sessionId", JsonPrimitive(sessionId))
+            put("target", buildJsonObject {
+                put("rowId", JsonPrimitive(targetRowId))
+                put("entityId", JsonPrimitive(targetEntityId))
+            })
+            put("baseRevision", JsonPrimitive(baseRevision))
+            put("baseLogEpoch", JsonPrimitive(baseLogEpoch))
+        }
+        return v4CallObject("conversationFileChangesV4", params)
+    }
+
+    /** Attachment transaction — begin (returns staging/committed discriminator). */
+    suspend fun attachmentBegin(
+        uploadId: String,
+        sessionId: String,
+        fileName: String,
+        mime: String,
+        totalBytes: Long,
+        totalChunks: Int,
+        checksum: String,
+        workspacePath: String? = null,
+        workspaceIdentity: String? = null,
+    ): JsonObject {
+        val endpoint = endpoint ?: throw Failure(ErrorMapping.internal("no endpoint"))
+        val connectionId = v4ConnectionId ?: throw Failure(ErrorMapping.internal("no v4 connectionId (not connected)"))
+        val params = buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: endpoint.workspacePath ?: ""))
+            (workspaceIdentity ?: endpoint.workspaceIdentity)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("connectionId", JsonPrimitive(connectionId))
+            put("uploadId", JsonPrimitive(uploadId))
+            put("sessionId", JsonPrimitive(sessionId))
+            put("fileName", JsonPrimitive(fileName))
+            put("mime", JsonPrimitive(mime))
+            put("totalBytes", JsonPrimitive(totalBytes))
+            put("totalChunks", JsonPrimitive(totalChunks))
+            put("checksum", JsonPrimitive(checksum))
+        }
+        return v4CallObject("attachmentBeginV4", params)
+    }
+
+    suspend fun attachmentChunk(
+        uploadId: String,
+        sessionId: String,
+        chunkIndex: Int,
+        dataBase64: String,
+        workspacePath: String? = null,
+        workspaceIdentity: String? = null,
+    ): JsonObject {
+        val endpoint = endpoint ?: throw Failure(ErrorMapping.internal("no endpoint"))
+        val connectionId = v4ConnectionId ?: throw Failure(ErrorMapping.internal("no v4 connectionId (not connected)"))
+        val params = buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: endpoint.workspacePath ?: ""))
+            (workspaceIdentity ?: endpoint.workspaceIdentity)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("connectionId", JsonPrimitive(connectionId))
+            put("uploadId", JsonPrimitive(uploadId))
+            put("sessionId", JsonPrimitive(sessionId))
+            put("chunkIndex", JsonPrimitive(chunkIndex))
+            put("dataBase64", JsonPrimitive(dataBase64))
+        }
+        return v4CallObject("attachmentChunkV4", params)
+    }
+
+    private suspend fun attachmentTerminal(
+        method: String,
+        uploadId: String,
+        sessionId: String,
+    ): JsonObject {
+        val endpoint = endpoint ?: throw Failure(ErrorMapping.internal("no endpoint"))
+        val connectionId = v4ConnectionId ?: throw Failure(ErrorMapping.internal("no v4 connectionId (not connected)"))
+        val params = buildJsonObject {
+            put("workspacePath", JsonPrimitive(endpoint.workspacePath ?: ""))
+            endpoint.workspaceIdentity?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("connectionId", JsonPrimitive(connectionId))
+            put("uploadId", JsonPrimitive(uploadId))
+            put("sessionId", JsonPrimitive(sessionId))
+        }
+        return v4CallObject(method, params)
+    }
+
+    suspend fun attachmentCommit(uploadId: String, sessionId: String): JsonObject =
+        attachmentTerminal("attachmentCommitV4", uploadId, sessionId)
+
+    suspend fun attachmentAbort(uploadId: String, sessionId: String): JsonObject =
+        attachmentTerminal("attachmentAbortV4", uploadId, sessionId)
+
+    /** Chunked attachment READ (`attachmentReadV4`) — image/video/pdf preview plane. */
+    suspend fun attachmentRead(
+        sessionId: String,
+        ref: String,
+        offset: Long,
+        limit: Int,
+        targetRowId: Long? = null,
+        targetEntityId: String? = null,
+        attachmentIndex: Int? = null,
+        workspacePath: String? = null,
+        workspaceIdentity: String? = null,
+    ): JsonObject {
+        val endpoint = endpoint ?: throw Failure(ErrorMapping.internal("no endpoint"))
+        val params = buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: endpoint.workspacePath ?: ""))
+            (workspaceIdentity ?: endpoint.workspaceIdentity)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("sessionId", JsonPrimitive(sessionId))
+            put("ref", JsonPrimitive(ref))
+            if (targetRowId != null && targetEntityId != null) {
+                put("target", buildJsonObject {
+                    put("rowId", JsonPrimitive(targetRowId))
+                    put("entityId", JsonPrimitive(targetEntityId))
+                })
+            }
+            attachmentIndex?.let { put("attachmentIndex", JsonPrimitive(it)) }
+            put("offset", JsonPrimitive(offset))
+            put("limit", JsonPrimitive(limit))
+        }
+        return v4CallObject("attachmentReadV4", params)
+    }
+
+    /** v4Call variant returning the decoded JsonObject (the Phase 9 calls all return objects). */
+    private suspend fun v4CallObject(name: String, params: JsonObject): JsonObject {
+        val raw = v4Call(name, RpcValue.Obj(params))
+        return (raw as? RpcValue.Obj)?.json as? JsonObject
+            ?: throw Failure(ErrorMapping.protocolFault("$name result not an object"))
+    }
+
+    /**
+     * Generic service-channel call (terminal/git/file/model-selection — phase9-channels.md).
+     * Same error mapping as v4Call; a channel REFUSAL (unknown channel / role gate) is a
+     * server-spoke rejection the feature layers translate into their §13.3 disabled state.
+     */
+    private suspend fun channelCall(
+        channelName: String,
+        method: String,
+        arg: RpcValue,
+        timeoutMs: Long = config.controlRequestTimeoutMs,
+    ): RpcValue {
+        cV4Calls.incrementAndGet()
+        bound().debug("channel.call", "$channelName.$method begin")
+        return try {
+            val raw = channel.call(channelName, method, arg, timeoutMs)
+            bound().debug("channel.call", "$channelName.$method ok in ${clock() - cV4CallsStartedAt()}ms")
+            raw
+        } catch (e: ChannelSession.Failure.TimedOut) {
+            bound().warn("channel.call", "$channelName.$method TIMEOUT")
+            throw Failure(ErrorMapping.timeout("$channelName.$method", timeoutMs))
+        } catch (e: ChannelSession.Failure.ChannelError) {
+            bound().warn("channel.call", "$channelName.$method refused: ${e.detail.take(100)}")
+            throw Failure(ErrorMapping.taskRejected(e.detail))
+        } catch (e: ChannelSession.Failure) {
+            bound().warn("channel.call", "$channelName.$method failed: ${e.message?.take(100)}")
+            throw Failure(ErrorMapping.protocolFault(e.message ?: "channel call failed"))
+        }
+    }
+
+    private fun cV4CallsStartedAt(): Long = clock()
+
+    // ---- terminal (view-only: create/dispose/data/exit ONLY — INV-9, phase9-channels.md §1)
+
+    suspend fun terminalCreate(cols: Int, rows: Int, cwd: String? = null): JsonObject {
+        val params = buildJsonObject {
+            put("cols", JsonPrimitive(cols))
+            put("rows", JsonPrimitive(rows))
+            cwd?.let { put("cwd", JsonPrimitive(it)) }
+        }
+        val raw = channelCall("terminal", "create", RpcValue.Arr(listOf(RpcValue.Obj(params))), config.authTimeoutMs)
+        return (raw as? RpcValue.Obj)?.json as? JsonObject
+            ?: throw Failure(ErrorMapping.protocolFault("terminal.create result not an object"))
+    }
+
+    suspend fun terminalDispose(id: String) {
+        channelCall("terminal", "dispose", RpcValue.Arr(listOf(RpcValue.Obj(buildJsonObject {
+            put("id", JsonPrimitive(id))
+        }))))
+    }
+
+    /** Dynamic event listen (`onDynamicData(id)`) — arg passed RAW (proxy-channel.ts:127). */
+    fun terminalListenData(id: String, handler: (String) -> Unit): Int =
+        channel.listen("terminal", "onDynamicData", RpcValue.Str(id)) { value ->
+            val text = (value as? RpcValue.Str)?.value
+            if (text != null) handler(text)
+        }
+
+    fun terminalListenExit(id: String, handler: (Int?) -> Unit): Int =
+        channel.listen("terminal", "onDynamicExit", RpcValue.Str(id)) { value ->
+            handler((value as? RpcValue.Int)?.value?.toInt())
+        }
+
+    fun disposeListener(listenerId: Int) = channel.disposeListener(listenerId)
+
+    // ---- git (read-only subset — phase9-channels.md §2)
+
+    private suspend fun gitCall(method: String, params: JsonObject): JsonObject {
+        val raw = channelCall("git", method, RpcValue.Arr(listOf(RpcValue.Obj(params))))
+        return (raw as? RpcValue.Obj)?.json as? JsonObject
+            ?: throw Failure(ErrorMapping.protocolFault("git.$method result not an object"))
+    }
+
+    suspend fun gitRepositorySummary(workspacePath: String): JsonObject =
+        gitCall("getRepositorySummary", buildJsonObject { put("workspacePath", JsonPrimitive(workspacePath)) })
+
+    suspend fun gitChanges(workspacePath: String, sourceId: String): JsonObject {
+        val raw = channelCall("git", "getChanges", RpcValue.Arr(listOf(RpcValue.Obj(buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath))
+            put("sourceId", JsonPrimitive(sourceId))
+        }))))
+        return when (raw) {
+            is RpcValue.Obj -> raw.json as? JsonObject
+                ?: throw Failure(ErrorMapping.protocolFault("git.getChanges result not an object"))
+            is RpcValue.Arr -> buildJsonObject {
+                // getChanges returns a top-level ARRAY (GitFileChange[]) — normalize to
+                // {items:[…]} for the shared decoder.
+                put("items", JsonArray(raw.items.map { el ->
+                    (el as? RpcValue.Obj)?.json as? JsonObject ?: JsonObject(emptyMap())
+                }))
+            }
+            else -> throw Failure(ErrorMapping.protocolFault("git.getChanges result not an object"))
+        }
+    }
+
+    suspend fun gitDiff(workspacePath: String, path: String, staged: Boolean?): JsonObject =
+        gitCall("getDiff", buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath))
+            put("path", JsonPrimitive(path))
+            staged?.let { put("staged", JsonPrimitive(it)) }
+        })
+
+    suspend fun gitCommitGraph(workspacePath: String, maxCount: Int, skip: Int): JsonObject =
+        gitCall("getCommitGraph", buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath))
+            put("maxCount", JsonPrimitive(maxCount))
+            put("skip", JsonPrimitive(skip))
+        })
+
+    // ---- file (read-only subset — phase9-channels.md §3)
+
+    private suspend fun fileCall(method: String, params: JsonObject, timeoutMs: Long = config.controlRequestTimeoutMs): RpcValue =
+        channelCall("file", method, RpcValue.Arr(listOf(RpcValue.Obj(params))), timeoutMs)
+
+    suspend fun fileReaddir(path: String, includeHidden: Boolean = false): RpcValue =
+        fileCall("readdir", buildJsonObject {
+            put("path", JsonPrimitive(path))
+            put("includeHidden", JsonPrimitive(includeHidden))
+        })
+
+    suspend fun fileStat(path: String): JsonObject {
+        val raw = fileCall("stat", buildJsonObject { put("path", JsonPrimitive(path)) })
+        return (raw as? RpcValue.Obj)?.json as? JsonObject
+            ?: throw Failure(ErrorMapping.protocolFault("file.stat result not an object"))
+    }
+
+    suspend fun fileReadText(path: String, offset: Long?, length: Long?): JsonObject {
+        val raw = fileCall("readTextFile", buildJsonObject {
+            put("path", JsonPrimitive(path))
+            offset?.let { put("offset", JsonPrimitive(it)) }
+            length?.let { put("length", JsonPrimitive(it)) }
+        })
+        return (raw as? RpcValue.Obj)?.json as? JsonObject
+            ?: throw Failure(ErrorMapping.protocolFault("file.readTextFile result not an object"))
+    }
+
+    /** Raw byte range (top-level binary fast path — protocol.ts readFileRange comment). */
+    suspend fun fileReadBytes(path: String, offset: Long, length: Long): ByteArray {
+        val raw = fileCall("readFileRange", buildJsonObject {
+            put("path", JsonPrimitive(path)); put("offset", JsonPrimitive(offset)); put("length", JsonPrimitive(length))
+        })
+        return when (raw) {
+            is RpcValue.Buf -> raw.bytes
+            is RpcValue.Str -> raw.value.toByteArray(Charsets.ISO_8859_1)
+            else -> throw Failure(ErrorMapping.protocolFault("file.readFileRange result not binary"))
+        }
+    }
+
+    suspend fun fileBinaryPreview(path: String, maxBytes: Long?): JsonObject {
+        val raw = fileCall("readBinaryPreview", buildJsonObject {
+            put("path", JsonPrimitive(path))
+            maxBytes?.let { put("maxBytes", JsonPrimitive(it)) }
+        })
+        return (raw as? RpcValue.Obj)?.json as? JsonObject
+            ?: throw Failure(ErrorMapping.protocolFault("file.readBinaryPreview result not an object"))
+    }
+
+    suspend fun fileSearch(rootPath: String, workspaceIdentity: String?, query: String, limit: Int): RpcValue =
+        fileCall("searchWorkspaceFiles", buildJsonObject {
+            put("rootPath", JsonPrimitive(rootPath))
+            workspaceIdentity?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("query", JsonPrimitive(query))
+            put("limit", JsonPrimitive(limit))
+        })
+
+    // ---- model-selection (read-only view for the §19.5 picker — phase9-channels.md §4)
+
+    suspend fun modelSelectionView(): JsonObject {
+        val raw = channelCall("model-selection", "getView", RpcValue.Arr(emptyList()))
+        return (raw as? RpcValue.Obj)?.json as? JsonObject
+            ?: throw Failure(ErrorMapping.protocolFault("model-selection.getView result not an object"))
     }
 
     // ------------------------------------------------------------------ control plane

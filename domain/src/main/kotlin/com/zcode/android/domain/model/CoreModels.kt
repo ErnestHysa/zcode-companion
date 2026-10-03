@@ -183,6 +183,8 @@ data class AppPreferences(
     val conversationCacheEnabled: Boolean = true,
     /** §25.3 auto-reconnect probe: the ONLY periodic work (≥15 min, network-constrained). */
     val autoReconnectProbe: Boolean = false,
+    /** §21 view-only terminal opt-in — default OFF (terminal = critical sensitivity, §13.3). */
+    val terminalOptIn: Boolean = false,
 ) {
     enum class NotificationContentLevel { MINIMAL, CONTENT }
 }

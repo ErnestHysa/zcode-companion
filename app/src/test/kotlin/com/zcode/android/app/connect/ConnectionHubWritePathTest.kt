@@ -105,7 +105,7 @@ class ConnectionHubWritePathTest {
             scope = scope,
             log = ZLog(sink = {}),
         )
-        port = DefaultConversationPort(hub, conversations, vault)
+        port = DefaultConversationPort(hub, conversations, vault, attachmentCacheDir = java.io.File(System.getProperty("java.io.tmpdir"), "phase7-test-attachments"))
         hub.start()
         withTimeout(30_000) { hub.phase.first { it == ConnectionPhase.CONNECTED } }
         val task = try {

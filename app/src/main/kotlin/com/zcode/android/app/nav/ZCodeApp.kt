@@ -1,5 +1,21 @@
 package com.zcode.android.app.nav
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
+
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -35,6 +51,9 @@ object Routes {
     const val CONNECTION = "connection"
     const val SETTINGS = "settings"
     const val APPROVALS = "approvals"
+    const val FILES = "files"
+    const val GIT = "git"
+    const val TERMINAL = "terminal"
 
     fun conversation(taskId: String) = "conversation/$taskId"
 }
@@ -161,7 +180,24 @@ fun ZCodeApp(
         composable(Routes.CONVERSATION) { entry ->
             val taskId = entry.arguments?.getString("taskId").orEmpty()
             val vm = rememberConversationViewModel(container, scope, taskId)
-            ConversationRoute(vm = vm, onBack = { nav.popBackStack() })
+            ConversationRoute(
+                container = container,
+                vm = vm,
+                onBack = { nav.popBackStack() },
+                onOpenFiles = { container.log.info("nav.files", "open"); nav.navigate(Routes.FILES) },
+                onOpenGit = { container.log.info("nav.git", "open"); nav.navigate(Routes.GIT) },
+                onOpenTerminal = { container.log.info("nav.terminal", "open"); nav.navigate(Routes.TERMINAL) },
+            )
+        }
+
+        composable(Routes.FILES) {
+            FilesRoute(container = container, onBack = { nav.popBackStack() })
+        }
+        composable(Routes.GIT) {
+            GitRoute(container = container, onBack = { nav.popBackStack() })
+        }
+        composable(Routes.TERMINAL) {
+            TerminalRoute(container = container, onBack = { nav.popBackStack() })
         }
 
         composable(Routes.CONNECTION) {
@@ -243,7 +279,14 @@ private fun rememberConversationViewModel(
 }
 
 @Composable
-private fun ConversationRoute(vm: ConversationViewModel, onBack: () -> Unit) {
+private fun ConversationRoute(
+    container: AppContainer,
+    vm: ConversationViewModel,
+    onBack: () -> Unit,
+    onOpenFiles: () -> Unit = {},
+    onOpenGit: () -> Unit = {},
+    onOpenTerminal: () -> Unit = {},
+) {
     val state by vm.state.collectAsState()
     ConversationScreen(
         state = state,
@@ -261,7 +304,68 @@ private fun ConversationRoute(vm: ConversationViewModel, onBack: () -> Unit) {
         onSendQueuedNow = vm::sendQueuedNow,
         onEditQueueItem = vm::editQueueItem,
         onAnswerQuestions = vm::answerUserInputQuestions,
+        // Phase 9 (§43.2-9)
+        onOpenFiles = onOpenFiles,
+        onOpenGit = onOpenGit,
+        onOpenTerminal = onOpenTerminal,
+        onSwitchMode = vm::switchMode,
+        onSwitchModel = vm::switchModel,
+        modelOptionsProvider = {
+            val tools = container.hub.phase9
+            runCatching { tools.modelOptions() }.getOrDefault(emptyList())
+        },
+        turnChangesProvider = { rowId, entityId -> vm.turnFileChanges(rowId, entityId) },
+        onUploadAttachment = { fileName, mime, bytes -> vm.uploadAttachment(fileName, mime, bytes) },
+        onRemoveAttachment = vm::removeUpload,
     )
+}
+
+@Composable
+private fun FilesRoute(container: AppContainer, onBack: () -> Unit) {
+    Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, modifier = Modifier.padding(4.dp)) {
+            IconButton(onClick = onBack, modifier = Modifier.testTag("files_back")) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                )
+            }
+            Text("Workspace files", style = MaterialTheme.typography.titleMedium)
+        }
+        com.zcode.android.features.files.ui.FilesScreen(port = container.filesPort, modifier = Modifier.fillMaxSize())
+    }
+}
+
+@Composable
+private fun GitRoute(container: AppContainer, onBack: () -> Unit) {
+    Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, modifier = Modifier.padding(4.dp)) {
+            IconButton(onClick = onBack, modifier = Modifier.testTag("git_back")) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                )
+            }
+            Text("Git", style = MaterialTheme.typography.titleMedium)
+        }
+        com.zcode.android.features.git.ui.GitScreen(port = container.gitPort, modifier = Modifier.fillMaxSize())
+    }
+}
+
+@Composable
+private fun TerminalRoute(container: AppContainer, onBack: () -> Unit) {
+    Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, modifier = Modifier.padding(4.dp)) {
+            IconButton(onClick = onBack, modifier = Modifier.testTag("terminal_back")) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                )
+            }
+            Text("Terminal", style = MaterialTheme.typography.titleMedium)
+        }
+        com.zcode.android.features.terminal.ui.TerminalScreen(port = container.terminalPort, modifier = Modifier.fillMaxSize())
+    }
 }
 
 @Composable

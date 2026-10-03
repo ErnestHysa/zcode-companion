@@ -153,6 +153,29 @@ class MockZCode(
          * Default FALSE keeps the historical suites' bare snapshots unchanged.
          */
         var emitStateKeys: Boolean = false
+        // ---------------- Phase 9 (§43.2-9) ----------------
+        /** Scriptable per-turn fileChanges results (one-shot FIFO; §10.1). */
+        val conversationFileChanges: ArrayDeque<JsonObject> = ArrayDeque()
+        /** Channels the mock REFUSES (authorization-refused fallback fixtures, §13.3). */
+        var refuseChannels: Set<String> = emptySet()
+        /** Reject attachment transactions with the verified oversize/grammar faults. */
+        var rejectAttachments: Boolean = false
+        /** Scriptable git channel fixtures (shared/src/git.ts shapes). */
+        var gitSummary: JsonObject? = null
+        var gitChanges: JsonArray? = null
+        var gitDiff: JsonObject? = null
+        var gitCommits: JsonArray? = null
+        var gitHasMore: Boolean = false
+        /** Scriptable file channel fixtures (protocol.ts shapes). */
+        val fileTree: HashMap<String, JsonArray> = HashMap()
+        val fileText: HashMap<String, String> = HashMap()
+        val fileBytes: HashMap<String, ByteArray> = HashMap()
+        /** Scriptable model-selection view (phase9-channels.md §4). */
+        var modelSelection: JsonObject? = null
+        /** Initial session `config` echo (§10.3); command effects update + patch it. */
+        var sessionConfig: JsonObject? = null
+        /** Scripted terminal output (pushed on onDynamicData listen). */
+        val terminalOutput: ArrayDeque<String> = ArrayDeque()
         /** Verified conversationSnapshotSchema.control (subset the client consumes). */
         @Volatile var controlCanStop: Boolean = false
         @Volatile var controlStopState: String = "idle"
@@ -538,6 +561,7 @@ class MockZCode(
             }))
             put("autoDrain", JsonPrimitive(true))
         }
+        val configBlock = script.sessionConfig
         val pending = JsonArray(listOfNotNull(
             script.pendingPermission?.let { pp ->
                 buildJsonObject {
@@ -584,6 +608,9 @@ class MockZCode(
             put("inputRouting", routing)
             put("queue", queue)
             put("pendingInteractions", pending)
+            // Phase 9 (§10.3): the session `config` echo when scripted (snapshot AND
+            // state.updated patches carry it — the switch commands' reconciliation plane).
+            script.sessionConfig?.let { put("config", it) }
         }
     }
 
@@ -621,6 +648,17 @@ class MockZCode(
             )
             sendLogicalFrame(bytes)
         }
+    }
+
+    /**
+     * Phase 9 driver: seed an authoritative row that RIDES THE INITIAL SNAPSHOT
+     * (appendedRows is the snapshot tail) — used by suites needing turnHeader
+     * fileChanges summaries or pre-subscribe rows. Returns the rowId.
+     */
+    fun appendRow(kind: RowKind, text: String, extra: JsonObject? = null): Long {
+        val row = schemaRow(workspace.sessionId, nextRowId(), kind, text, extra)
+        appendedRows[row["rowId"].toString()] = row
+        return (row["rowId"] as? JsonPrimitive)?.content?.toLongOrNull() ?: -1L
     }
 
     /** Row-appended delta driver (command effects; authoritative rows). */
@@ -897,6 +935,29 @@ class MockZCode(
                     flowListenerId = id
                     sawConnectionFlowListen = true
                 }
+                // Phase 9: terminal dynamic events — listen arg is the terminal id (RAW).
+                if (channelName == "terminal" && (name == "onDynamicData" || name == "onDynamicExit")) {
+                    val terminalId = when (val a = arg) {
+                        is RpcValue.Str -> a.value
+                        is RpcValue.Arr -> (a.items.firstOrNull() as? RpcValue.Str)?.value
+                        else -> null
+                    }
+                    if (terminalId != null) {
+                        if (name == "onDynamicData") {
+                            synchronized(terminalListeners) { terminalListeners.getOrPut(terminalId) { mutableListOf() }.add(id) }
+                            // Emit any scripted output queued before the listen attached.
+                            scope.launch {
+                                kotlinx.coroutines.delay(50)
+                                while (true) {
+                                    val text = synchronized(script.terminalOutput) { script.terminalOutput.removeFirstOrNull() } ?: break
+                                    pushTerminalData(terminalId, text)
+                                }
+                            }
+                        } else {
+                            synchronized(terminalExitListeners) { terminalExitListeners.getOrPut(terminalId) { mutableListOf() }.add(id) }
+                        }
+                    }
+                }
                 if (name == "onDynamicConversationFrame") {
                     val listenArg = when (val a = arg) {
                         is RpcValue.Arr -> (a.items.firstOrNull() as? RpcValue.Obj)?.json as? JsonObject
@@ -921,6 +982,22 @@ class MockZCode(
     }
 
     private fun handlePromise(id: Int, channelName: String?, name: String?, arg: RpcValue?) {
+        // Phase 9: the service channels ride the SAME Channel protocol (§7 convention:
+        // promise args array-wrapped). Refusal scenario = §13.3 fallback fixtures.
+        if (channelName != null && channelName != "zcode-agent") {
+            if (channelName in script.refuseChannels) {
+                respondError(id, "fault.channel.refused:$channelName")
+                return
+            }
+            when (channelName) {
+                "terminal" -> handleTerminalPromise(id, name, argAsObject(arg))
+                "git" -> handleGitPromise(id, name)
+                "file" -> handleFilePromise(id, name, argAsObject(arg))
+                "model-selection" -> handleModelSelectionPromise(id, name)
+                else -> respondError(id, "fault.mock.unknownChannel:$channelName")
+            }
+            return
+        }
         if (channelName != "zcode-agent") return
         // Round-3 field fidelity: the conversation plane is workspace-scoped on
         // production — calls before a scoped listen are SILENT (observed as the
@@ -1118,7 +1195,296 @@ class MockZCode(
                 }
                 respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(ackObj))
             }
+            "conversationFileChangesV4" -> {
+                val result = synchronized(script.conversationFileChanges) { script.conversationFileChanges.removeFirstOrNull() }
+                if (result == null) {
+                    respondError(id, "fault.fileChanges.none")
+                } else {
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(result))
+                }
+            }
+            "attachmentBeginV4" -> {
+                val params = argAsObject(arg)
+                if (params == null || script.rejectAttachments) {
+                    respondError(id, "fault.attachment.rejected")
+                    return
+                }
+                val uploadId = params.str("uploadId")
+                synchronized(attachmentStore) {
+                    val existing = attachmentStore[uploadId]
+                    if (existing?.committedRef != null) {
+                        // Idempotent re-begin of a finished transaction (verified shape).
+                        respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                            put("uploadId", JsonPrimitive(uploadId))
+                            put("state", JsonPrimitive("committed"))
+                            put("nextChunkIndex", JsonPrimitive(existing.chunks))
+                            put("ref", JsonPrimitive(existing.committedRef))
+                        }))
+                        return
+                    }
+                    attachmentStore[uploadId] = MockAttachment(
+                        sessionId = params.str("sessionId"),
+                        fileName = params.str("fileName"),
+                        mime = params.str("mime"),
+                        totalBytes = params.str("totalBytes")?.toLongOrNull() ?: 0L,
+                    )
+                }
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("uploadId", JsonPrimitive(uploadId))
+                    put("state", JsonPrimitive("staging"))
+                    put("nextChunkIndex", JsonPrimitive(0))
+                }))
+            }
+            "attachmentChunkV4" -> {
+                val params = argAsObject(arg)
+                val uploadId = params?.str("uploadId")
+                val att = synchronized(attachmentStore) { attachmentStore[uploadId] }
+                if (params == null || att == null) {
+                    respondError(id, "fault.attachment.unknownUpload")
+                    return
+                }
+                val data = params.str("dataBase64")
+                val decoded = java.util.Base64.getDecoder().decode(data)
+                if (decoded.size > 512 * 1024) {
+                    respondError(id, "fault.attachment.chunkTooLarge")
+                    return
+                }
+                val index = params.str("chunkIndex")?.toIntOrNull() ?: -1
+                synchronized(attachmentStore) {
+                    val expected = att.chunks
+                    if (index != expected) {
+                        respondError(id, "fault.attachment.chunkIndexMismatch")
+                        return
+                    }
+                    att.data.write(decoded)
+                    att.chunks += 1
+                }
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("uploadId", JsonPrimitive(uploadId))
+                    put("nextChunkIndex", JsonPrimitive(att.chunks))
+                }))
+            }
+            "attachmentCommitV4" -> {
+                val uploadId = argAsObject(arg)?.str("uploadId")
+                val att = synchronized(attachmentStore) { attachmentStore[uploadId] }
+                if (uploadId == null || att == null) {
+                    respondError(id, "fault.attachment.unknownUpload")
+                    return
+                }
+                val ref = "att-${uploadId}"
+                synchronized(attachmentStore) {
+                    att.committedRef = ref
+                    committedAttachments[ref] = att
+                }
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("ref", JsonPrimitive(ref))
+                }))
+            }
+            "attachmentAbortV4" -> {
+                val uploadId = argAsObject(arg)?.str("uploadId")
+                synchronized(attachmentStore) { attachmentStore.remove(uploadId) }
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject { }))
+            }
+            "attachmentReadV4" -> {
+                val params = argAsObject(arg)
+                val ref = params?.str("ref")
+                val att = synchronized(committedAttachments) { committedAttachments[ref] }
+                if (ref == null || att == null) {
+                    respondError(id, "fault.attachment.unknownRef")
+                    return
+                }
+                val offset = params.str("offset")?.toLongOrNull() ?: 0L
+                val limit = params.str("limit")?.toIntOrNull() ?: 512 * 1024
+                val bytes = att.data.toByteArray()
+                if (offset >= bytes.size) {
+                    respondError(id, "fault.attachment.offsetEof")
+                    return
+                }
+                val end = minOf(offset + limit, bytes.size.toLong()).toInt()
+                val slice = bytes.copyOfRange(offset.toInt(), end)
+                val next = if (end < bytes.size) end.toLong() else null
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("dataBase64", JsonPrimitive(java.util.Base64.getEncoder().encodeToString(slice)))
+                    put("mediaType", JsonPrimitive(att.mime))
+                    put("totalBytes", JsonPrimitive(bytes.size))
+                    put("nextOffset", if (next == null) JsonNull else JsonPrimitive(next))
+                }))
+            }
             else -> respondError(id, "fault.mock.unknownMethod")
+        }
+    }
+
+    // ------------------------------------------------------------ Phase 9 service channels
+
+    class MockAttachment(
+        val sessionId: String,
+        val fileName: String,
+        val mime: String,
+        val totalBytes: Long,
+    ) {
+        val data = java.io.ByteArrayOutputStream()
+        var chunks: Int = 0
+        var committedRef: String? = null
+    }
+    private val attachmentStore = HashMap<String, MockAttachment>()
+    private val committedAttachments = HashMap<String, MockAttachment>()
+    private val terminalListeners = HashMap<String, MutableList<Int>>()
+    private val terminalExitListeners = HashMap<String, MutableList<Int>>()
+    private val terminalCounter = AtomicLong(0)
+
+    private fun handleTerminalPromise(id: Int, name: String?, params: JsonObject?) {
+        when (name) {
+            "create" -> {
+                val terminalId = "term-${terminalCounter.incrementAndGet()}"
+                val shell = "/bin/zsh"
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("id", JsonPrimitive(terminalId))
+                    put("shell", JsonPrimitive(shell))
+                    put("fontFamily", JsonPrimitive("monospace"))
+                    put("fontFamilySource", JsonPrimitive("system"))
+                }))
+                // Scripted output rides the data listeners as they attach.
+                scope.launch {
+                    kotlinx.coroutines.delay(150)
+                    while (true) {
+                        val text = synchronized(script.terminalOutput) { script.terminalOutput.removeFirstOrNull() } ?: break
+                        pushTerminalData(terminalId, text)
+                    }
+                }
+            }
+            "dispose" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Undefined)
+            else -> respondError(id, "fault.terminal.unknownMethod")
+        }
+    }
+
+    /** Driver: emit `onDynamicData(id)` (RAW id arg — proxy-channel.ts:127 convention). */
+    fun pushTerminalData(terminalId: String, text: String) {
+        val listeners = synchronized(terminalListeners) { terminalListeners[terminalId]?.toList() } ?: return
+        for (listener in listeners) {
+            val bytes = RpcSerialization.encodeAll(
+                listOf(
+                    RpcValue.Arr(listOf(RpcValue.Int(ChannelWire.ResponseType.EventFire.id), RpcValue.Int(listener))),
+                    RpcValue.Str(text),
+                ),
+            )
+            sendLogicalFrame(bytes)
+        }
+    }
+
+    fun pushTerminalExit(terminalId: String, code: Int) {
+        val listeners = synchronized(terminalExitListeners) { terminalExitListeners[terminalId]?.toList() } ?: return
+        for (listener in listeners) {
+            val bytes = RpcSerialization.encodeAll(
+                listOf(
+                    RpcValue.Arr(listOf(RpcValue.Int(ChannelWire.ResponseType.EventFire.id), RpcValue.Int(listener))),
+                    RpcValue.Int(code),
+                ),
+            )
+            sendLogicalFrame(bytes)
+        }
+    }
+
+    private fun handleGitPromise(id: Int, name: String?) {
+        when (name) {
+            "getRepositorySummary" -> {
+                val summary = script.gitSummary
+                if (summary == null) respondError(id, "fault.git.notAvailable")
+                else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(summary))
+            }
+            "getChanges" -> {
+                val changes = script.gitChanges
+                if (changes == null) respondError(id, "fault.git.notAvailable")
+                else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(changes.map { RpcValue.Obj(it) }))
+            }
+            "getDiff" -> {
+                val diff = script.gitDiff
+                if (diff == null) respondError(id, "fault.git.notAvailable")
+                else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(diff))
+            }
+            "getCommitGraph" -> {
+                val commits = script.gitCommits
+                if (commits == null) respondError(id, "fault.git.notAvailable")
+                else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("commits", commits)
+                    put("hasMore", JsonPrimitive(script.gitHasMore))
+                }))
+            }
+            else -> respondError(id, "fault.git.unknownMethod")
+        }
+    }
+
+    private fun handleFilePromise(id: Int, name: String?, params: JsonObject?) {
+        when (name) {
+            "readdir" -> {
+                val path = params?.str("path").orEmpty()
+                val entries = script.fileTree[path]
+                if (entries == null) respondError(id, "fault.file.notFound")
+                else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(entries.map { RpcValue.Obj(it) }))
+            }
+            "stat" -> {
+                val path = params?.str("path").orEmpty()
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("path", JsonPrimitive(path))
+                    put("type", JsonPrimitive(if (script.fileTree.containsKey(path)) "directory" else "file"))
+                    put("size", JsonPrimitive(script.fileBytes[path]?.size?.toLong() ?: script.fileText[path]?.toByteArray()?.size?.toLong() ?: 0L))
+                }))
+            }
+            "readTextFile" -> {
+                val path = params?.str("path").orEmpty()
+                val content = script.fileText[path]
+                if (content == null) respondError(id, "fault.file.notFound")
+                else {
+                    val offset = params?.str("offset")?.toLongOrNull() ?: 0L
+                    val length = params?.str("length")?.toLongOrNull()
+                    val text = content.toByteArray(Charsets.UTF_8)
+                    val from = offset.toInt().coerceIn(0, text.size)
+                    val to = (length?.let { from + it.toInt() } ?: text.size).coerceAtMost(text.size)
+                    val slice = String(text, from, to - from, Charsets.UTF_8)
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("path", JsonPrimitive(path))
+                        put("content", JsonPrimitive(slice))
+                        put("offset", JsonPrimitive(from.toLong()))
+                        put("bytesRead", JsonPrimitive((to - from).toLong()))
+                        put("totalBytes", JsonPrimitive(text.size.toLong()))
+                        put("truncated", JsonPrimitive(script.fileText["truncated:$path"] == "1"))
+                        put("isBinary", JsonPrimitive(false))
+                    }))
+                }
+            }
+            "readFileRange" -> {
+                val path = params?.str("path").orEmpty()
+                val bytes = script.fileBytes[path]
+                if (bytes == null) respondError(id, "fault.file.notFound")
+                else {
+                    val offset = params?.str("offset")?.toLongOrNull() ?: 0L
+                    val length = params?.str("length")?.toLongOrNull() ?: bytes.size.toLong()
+                    val from = offset.toInt().coerceIn(0, bytes.size)
+                    val to = (offset.toInt() + length.toInt()).coerceAtMost(bytes.size)
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Buf(bytes.copyOfRange(from, to)))
+                }
+            }
+            "readBinaryPreview" -> {
+                val path = params?.str("path").orEmpty()
+                val bytes = script.fileBytes[path]
+                if (bytes == null) respondError(id, "fault.file.notFound")
+                else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("path", JsonPrimitive(path))
+                    put("dataBase64", JsonPrimitive(java.util.Base64.getEncoder().encodeToString(bytes)))
+                    put("totalBytes", JsonPrimitive(bytes.size))
+                }))
+            }
+            else -> respondError(id, "fault.file.unknownMethod")
+        }
+    }
+
+    private fun handleModelSelectionPromise(id: Int, name: String?) {
+        when (name) {
+            "getView" -> {
+                val view = script.modelSelection
+                if (view == null) respondError(id, "fault.modelSelection.refused")
+                else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(view))
+            }
+            else -> respondError(id, "fault.modelSelection.unknownMethod")
         }
     }
 
@@ -1242,6 +1608,44 @@ class MockZCode(
                     if (it.queueItemId == qid) it.copy(text = newText ?: it.text) else it
                 }
                 pushQueuePatch()
+            }
+            // Phase 9 (§10.3): switch commands update the `config` echo + patch it —
+            // the echo-reconciliation plane the phone's pickers reconcile against.
+            "switchModelConfig" -> {
+                stateRevision.incrementAndGet()
+                val provider = payload?.strOrNull("provider") ?: return null
+                val model = payload.strOrNull("model") ?: return null
+                val thought = payload.strOrNull("thought") ?: return null
+                val current = script.sessionConfig
+                script.sessionConfig = buildJsonObject {
+                    put("provider", JsonPrimitive(provider))
+                    put("model", JsonPrimitive(model))
+                    put("thought", JsonPrimitive(thought))
+                    put("thoughtLevels", current?.get("thoughtLevels") ?: JsonArray(listOf(JsonPrimitive(thought))))
+                    put("followupMode", JsonPrimitive(current?.strOrNull("followupMode") ?: "queue"))
+                    put("mode", JsonPrimitive(current?.strOrNull("mode") ?: "build"))
+                }
+                pushStatePatch(buildJsonObject {
+                    put("revision", JsonPrimitive(stateRevision.get()))
+                    put("config", script.sessionConfig!!)
+                })
+            }
+            "switchCollaborationMode" -> {
+                stateRevision.incrementAndGet()
+                val mode = payload?.strOrNull("mode") ?: return null
+                val current = script.sessionConfig
+                script.sessionConfig = buildJsonObject {
+                    put("provider", JsonPrimitive(current?.strOrNull("provider") ?: "zai"))
+                    put("model", JsonPrimitive(current?.strOrNull("model") ?: "glm-5.3"))
+                    put("thought", JsonPrimitive(current?.strOrNull("thought") ?: "standard"))
+                    put("thoughtLevels", current?.get("thoughtLevels") ?: JsonArray(listOf(JsonPrimitive("standard"))))
+                    put("followupMode", JsonPrimitive(current?.strOrNull("followupMode") ?: "queue"))
+                    put("mode", JsonPrimitive(mode))
+                }
+                pushStatePatch(buildJsonObject {
+                    put("revision", JsonPrimitive(stateRevision.get()))
+                    put("config", script.sessionConfig!!)
+                })
             }
         }
         return null

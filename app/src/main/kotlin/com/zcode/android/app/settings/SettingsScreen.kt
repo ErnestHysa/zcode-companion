@@ -532,6 +532,21 @@ private fun NotificationsSection(container: AppContainer) {
         },
     )
 
+    // §21/§13.3 terminal opt-in (Phase 9) — default OFF; the view-only terminal
+    // renders nothing until this is on (never enabled silently).
+    SwitchRow(
+        title = "Terminal (view-only)",
+        subtitle = "Show a read-only stream of a desktop terminal (the \"Terminal\" entry in a conversation). Nothing can be typed into it. This is a sensitive surface — keep it off unless you need it.",
+        tag = "settings_terminal_opt_in",
+        checked = prefs.terminalOptIn,
+        onToggle = { want ->
+            scope.launch {
+                container.stores.preferencesRepository.update { p -> p.copy(terminalOptIn = want) }
+                if (!want) container.terminalPort.detach()
+            }
+        },
+    )
+
     // §24.4 honest statement (mandatory copy).
     Text(
         text = "Notifications are delivered while the app is in use or when the Live connection is enabled. ZCode's relay offers no push service, so with both off you'll see updates the next time you open the app.",

@@ -52,6 +52,9 @@ data class ConversationUiState(
     val sendNotice: SendNotice? = null,
     /** Interaction ids with an in-flight submit (double-tap safety at the UI layer). */
     val busyInteractions: Set<String> = emptySet(),
+    // ---- Phase 9 (§43.2-9) ----
+    /** §23.2 composer uploads (per task, port-held overlay). */
+    val composerAttachments: List<ConversationPort.ComposerAttachment> = emptyList(),
 ) {
     val empty: Boolean get() = !loading && rows.isEmpty() && streaming.isEmpty()
 
@@ -125,6 +128,7 @@ class ConversationViewModel(
          *  TextField is fully state-driven, so live-conversation recompositions can
          *  never re-render it with a stale value mid-typing. */
         val draft: String,
+        val composerAttachments: List<ConversationPort.ComposerAttachment>,
     )
 
     // ---- Phase 7 write state (declared BEFORE the state combine that reads it) ----
@@ -144,7 +148,8 @@ class ConversationViewModel(
             port.observePendingSends(taskId),
             _busyInteractions,
             _draft,
-        ) { s, p, b, d -> WriteState(s, p, b, d) },
+            port.observeComposerAttachments(taskId),
+        ) { s, p, b, d, att -> WriteState(s, p, b, d, att) },
     ) { rowsEpoch, staleState, streamPhase, flags, write ->
         // §14.2 overlay reconciliation: a pending send whose authoritative userInput
         // row has landed is DONE — drop it (max lifetime guard renders it degraded).
@@ -173,6 +178,7 @@ class ConversationViewModel(
             pendingSends = livePending,
             sendNotice = _sendNotice.value,
             busyInteractions = write.busy,
+            composerAttachments = write.composerAttachments,
         )
     }.stateIn(scope, SharingStarted.Eagerly, ConversationUiState())
 
@@ -211,6 +217,31 @@ class ConversationViewModel(
                 _loadingOlder.value = false
             }
         }
+    }
+
+    // ---------------------------------------------------------------- Phase 9 (§43.2-9)
+
+    /** §22 diff source — per-turn pre-parsed hunks for the diff viewer. */
+    suspend fun turnFileChanges(rowId: Long, entityId: String): ConversationPort.TurnChangesResult =
+        port.fetchTurnFileChanges(taskId, rowId, entityId)
+
+    /** §28.6 echo-reconciled switches (the `config` projection is the truth). */
+    fun switchMode(mode: String) {
+        scope.launch { port.switchMode(taskId, mode) }
+    }
+
+    fun switchModel(provider: String, model: String, thought: String) {
+        scope.launch { port.switchModel(taskId, provider, model, thought) }
+    }
+
+    /** §23.2 upload (full transaction; progress surfaces via the port overlay). */
+    suspend fun uploadAttachment(fileName: String, mime: String, bytes: ByteArray): ConversationPort.UploadResult {
+        val uploadId = "up-" + java.util.UUID.randomUUID().toString()
+        return port.uploadAttachment(taskId, fileName, mime, bytes, uploadId) { _, _ -> }
+    }
+
+    fun removeUpload(uploadId: String) {
+        scope.launch { port.removeUpload(uploadId) }
     }
 
     fun dismissHistoryNotice() {

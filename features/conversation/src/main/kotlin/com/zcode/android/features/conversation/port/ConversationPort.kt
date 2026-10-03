@@ -122,4 +122,81 @@ interface ConversationPort {
         interactionId: String,
         answers: Map<String, List<String>>,
     ): AnswerOutcome
+
+    // ---------------------------------------------------------------- Phase 9 (§43.2-9)
+
+    /**
+     * §22 diff source: per-turn pre-parsed hunks (`conversationFileChangesV4`)
+     * for the diff viewer. Fails closed as [TurnChangesResult] with a typed error
+     * — the viewer renders the failure state (INV-11), never a guessed empty diff.
+     */
+    suspend fun fetchTurnFileChanges(taskId: String, rowId: Long, entityId: String): TurnChangesResult
+
+    data class TurnChangesResult(
+        val changes: com.zcode.android.domain.model.TurnFileChanges?,
+        val error: String?,
+    )
+
+    /** §28.6 CAS-guarded model switch (echo-reconciled via the `config` projection). */
+    suspend fun switchModel(taskId: String, provider: String, model: String, thought: String): SendOutcome
+
+    /** §28.6 CAS-guarded collaboration-mode switch (build|edit|plan|yolo only). */
+    suspend fun switchMode(taskId: String, mode: String): SendOutcome
+
+    /**
+     * §23.2 composer attachment upload — full transaction (begin→chunks→commit)
+     * with per-chunk progress. Cancel = abort (removeUpload). Client-side gates:
+     * 20 MiB cap + MIME grammar (fail closed pre-wire).
+     */
+    suspend fun uploadAttachment(
+        taskId: String,
+        fileName: String,
+        mime: String,
+        bytes: ByteArray,
+        uploadId: String,
+        onProgress: (sent: Int, total: Int) -> Unit,
+    ): UploadResult
+
+    sealed class UploadResult {
+        /** Committed — [ref] rides the sendText payload's `attachments` array. */
+        data class Committed(val ref: String, val bytes: Long) : UploadResult()
+        data object TooLarge : UploadResult()
+        data object BlockedOffline : UploadResult()
+        data class Failed(val message: String?) : UploadResult()
+    }
+
+    /** Cancel/remove a pending upload (abort transaction + forget its bytes). */
+    suspend fun removeUpload(uploadId: String)
+
+    /**
+     * §23.3 chunked attachment read (image/video/pdf) → local cache file.
+     * Returns the file + media type; null error = success.
+     */
+    suspend fun fetchAttachment(
+        taskId: String,
+        ref: String,
+        targetRowId: Long?,
+        targetEntityId: String?,
+        attachmentIndex: Int?,
+    ): AttachmentFetchResult
+
+    data class AttachmentFetchResult(
+        val file: java.io.File?,
+        val mediaType: String?,
+        val totalBytes: Long,
+        val error: String?,
+    )
+
+    /** Pending composer attachments (per task, in-memory — §14.2 Android-owned). */
+    fun observeComposerAttachments(taskId: String): Flow<List<ComposerAttachment>>
+
+    data class ComposerAttachment(
+        val uploadId: String,
+        val fileName: String,
+        val mime: String,
+        val bytes: Long,
+        val state: String,
+        val progress: Float,
+        val ref: String?,
+    )
 }

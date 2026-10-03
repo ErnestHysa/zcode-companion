@@ -175,3 +175,78 @@ zcode-protocol-v4/snapshot.ts + delta.ts) for the Phase 7 command/permission pla
   (CAS-guarded — verified set); `resolveInteraction {interactionId,
   answer:{optionId?, freeText?, action?, content?}}` — first-come-first-served,
   a late answer ACKs `noop (reasonCode=proto.alreadyResolved)`.
+
+## 10. Phase 9 read surfaces (transport.ts / command.ts / session-config.ts) — `[VERIFIED 2026-10-03, Phase 9]`
+
+Read directly from the reference clone @ `29628c9` for the Phase 9
+diff/attachment/model planes. Channel-method names follow the established
+`*V4` zcode-agent ProxyChannel spellings (§7 convention: promise args
+array-wrapped, event-listen args raw).
+
+### 10.1 `conversationFileChangesV4` → `v4/conversation/fileChanges`
+
+Params (zcodeAgentService.ts:5445 spreads `{sessionId, target, baseRevision,
+baseLogEpoch}` onto the verified `v4ConversationFileChangesParamsSchema`):
+`{sessionId, target: {rowId: int≥0, entityId: string}, baseRevision: int≥0,
+baseLogEpoch: string}` — the row target addresses a `turnHeader` row; the CAS
+currencies come from the session snapshot state. Result
+(`v4ConversationFileChangesResultSchema`, transport.ts:572):
+
+```json
+{ "files": <int>, "additions": <int>, "deletions": <int>, "state": "active"|"reverted"?,
+  "items": [ { "path": "...", "additions": <int>, "deletions": <int>,
+               "writeCount": <int>, "toolNames": ["Write", …],
+               "patches": [ { "oldStart": <int>, "oldLines": <int>,
+                              "newStart": <int>, "newLines": <int>,
+                              "lines": [" context", "+added", "-removed", …] } ] } ] }
+```
+
+Diff hunks arrive PRE-PARSED (`readonlyDiffHunkSchema`) — unified-diff body
+lines prefixed ` `/`+`/`-`; the client never parses patch TEXT on this plane
+(the §22 unified-text parser is for the git channel's `getDiff.patch`).
+
+### 10.2 Attachment transaction plane (`V4_METHODS.attachment*`, transport.ts:370-381)
+
+Phone-facing channel methods `attachmentBeginV4` / `attachmentChunkV4` /
+`attachmentCommitV4` / `attachmentAbortV4` / `attachmentReadV4`
+(zcodeAgent.ts:790-799); the trusted host injects `connectionId` (the v4
+hello's connectionId). Verified schemas (transport.ts:820-1010):
+
+- begin params: `{connectionId, uploadId (≤128 chars, `[A-Za-z0-9][A-Za-z0-9._:-]*`),
+  sessionId, fileName (1..255, no NUL/CR/LF), mime (RFC token/token),
+  totalBytes (0..20 MiB = attachmentMaxBytes), totalChunks (0..64 =
+  attachmentUploadMaxChunks), checksum ("sha256:" + 64 hex)}`; zero-byte upload
+  ⇔ zero chunks (superRefine). Result: discriminated `{state:"staging",
+  nextChunkIndex}` | `{state:"committed", nextChunkIndex, ref}` (idempotent
+  resume of a fully-uploaded transaction).
+- chunk params: `{connectionId, uploadId, sessionId, chunkIndex, dataBase64}`
+  — decoded bytes ≤ 512 KiB (`attachmentChunkMaxBytes`, core.ts:85) enforced
+  schema-side. Result `{uploadId, nextChunkIndex}`.
+- commit/abort params: `{connectionId, uploadId, sessionId}`; commit result
+  `{ref}`; abort result `{}`.
+- read params: `{sessionId, ref, target?+attachmentIndex? (must be paired),
+  offset, limit (1..512 KiB)}`; read result `{dataBase64, mediaType
+  (image/*|video/*|application/pdf only), totalBytes (≤ attachmentPreviewMaxBytes),
+  nextOffset: int|null}` — chunked assembly loops until `nextOffset == null`.
+- `sendText` payload `attachments: AttachmentRef[]` where
+  `attachmentRefSchema = {ref, fileName, mime, bytes, previewRef?}` (strict;
+  content bytes never ride the command envelope).
+
+### 10.3 `switchModelConfig` / `switchCollaborationMode` + the `config` state key
+
+- `switchModelConfig {provider: string, model: string, thought: string}`
+  (command.ts:208) — CAS-guarded (verified set, §5).
+- `switchCollaborationMode {mode: "build"|"edit"|"plan"|"yolo"}` (command.ts:215)
+  — CAS-guarded; `auto` is explicitly NOT user-switchable (schema comment).
+- Snapshot `config` key = `sessionConfigStateSchema` (session-config.ts):
+  `{modelSelection?: {providerId, modelId, options?:{reasoningLevel?}},
+  provider, model, thought, thoughtLevels: string[] (current model's actual
+  set), followupMode: "queue"|"guide", mode: string (default "build"),
+  planEnabled?, permissionGrant?, planTransition?}`. Arrives on snapshots and
+  `state.updated` patches (key-level whole replacement, §9) — the echo the
+  switch commands reconcile against. The available-models LIST is the separate
+  `model-selection` channel (`IModelSelectionService.getView()` →
+  `{revision, providers: [{providerId, providerName, templateId, models:
+  [{modelId, config}]}], preferredSelection?, …}` — provider/facades.ts:201);
+  it is R-classified for the phone (§13.3: W = model switch only, via v4
+  commands, never via provider-settings writes).

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -221,28 +222,46 @@ fun ReasoningRow(
     }
 }
 
-/** Quiet turn separator with authoritative per-turn file summary (verified turnHeader). */
+/** Quiet turn separator with authoritative per-turn file summary (verified turnHeader).
+ * Phase 9.1: the file summary is TAPPABLE — it opens the §22 diff viewer for the turn. */
 @Composable
 fun TurnSeparator(
     row: ConversationRow.TurnHeader,
     modifier: Modifier = Modifier,
+    onOpenChanges: () -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxWidth().padding(vertical = 8.dp).testTag("row_turn")) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.width(20.dp).height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
             Spacer(Modifier.width(8.dp))
+            val fc = row.fileChanges
             val bits = buildList {
                 add("Turn")
                 val activeMs = row.activeMs
                 if (activeMs != null && activeMs > 0) add("${activeMs / 1000}s")
-                val fc = row.fileChanges
-                if (fc != null && fc.files > 0) add("${fc.files} file${if (fc.files == 1L) "" else "s"} +${fc.additions} −${fc.deletions}")
             }
             Text(
                 text = bits.joinToString(" · "),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (fc != null && fc.files > 0) {
+                Spacer(Modifier.width(8.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp),
+                    modifier = Modifier
+                        .testTag("row_turn_changes")
+                        .clickable { onOpenChanges() },
+                ) {
+                    Text(
+                        text = "${fc.files} file${if (fc.files == 1L) "" else "s"} +${fc.additions} −${fc.deletions} · view",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                    )
+                }
+            }
         }
     }
 }

@@ -36,4 +36,5 @@ message AppPreferencesProto {
   optional bool screenshot_protection = 3;
   optional bool conversation_cache_enabled = 4;
   optional bool auto_reconnect_probe = 5; // §25.3 opted-in periodic probe (Phase 8)
+  optional bool terminal_opt_in = 6; // §21 view-only terminal opt-in, default OFF (Phase 9)
 }

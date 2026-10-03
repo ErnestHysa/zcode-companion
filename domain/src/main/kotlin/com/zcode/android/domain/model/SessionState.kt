@@ -23,6 +23,8 @@ data class SessionProjectionState(
     /** Authoritative open interactions (Q11 RESOLVED — snapshots carry them). */
     val pendingInteractions: List<PendingInteraction>? = null,
     val backgroundWorks: List<BackgroundWork>? = null,
+    /** Phase 9 (§10.3): model/mode/thought config — the switch commands' echo plane. */
+    val config: SessionConfigState? = null,
     /** CAS currency for baseRevision-carrying commands (§7.4.4 verified set). */
     val revision: Long? = null,
 ) {
@@ -40,12 +42,14 @@ data class SessionProjectionState(
                 "backgroundWorks" -> asArray(patch[key])?.let {
                     next = next.copy(backgroundWorks = BackgroundWork.decodeList(it))
                 }
+                "config" -> asObject(patch[key])?.let { o -> SessionConfigState.decodeOrNull(o)?.let { next = next.copy(config = it) } }
                 "revision" -> (patch[key] as? JsonPrimitive)?.content?.toLongOrNull()?.let {
                     next = next.copy(revision = it)
                 }
-                // meta/config/usage/pendingCommands/subagents/workflowRuns/goal/plan/
+                // meta/usage/pendingCommands/subagents/workflowRuns/goal/plan/
                 // sharedContextImport/modelTransition/workspaceHookAdmission: not consumed
-                // by any Phase 7 surface — ignored keys, counted, never merged (INV-8).
+                // by any surface — ignored keys, counted, never merged (INV-8).
+                // (`config` joined in Phase 9 — §10.3 of docs/protocol/v4-wire.md.)
                 else -> ignoredKeys++
             }
         }
@@ -73,6 +77,7 @@ data class SessionProjectionState(
                     "backgroundWorks" -> asArray(snapshot[key])?.let {
                         state = state.copy(backgroundWorks = BackgroundWork.decodeList(it))
                     }
+                    "config" -> asObject(snapshot[key])?.let { o -> SessionConfigState.decodeOrNull(o)?.let { state = state.copy(config = it) } }
                     "revision" -> (snapshot[key] as? JsonPrimitive)?.content?.toLongOrNull()?.let {
                         state = state.copy(revision = it)
                     }
@@ -322,6 +327,64 @@ data class BackgroundWork(
                     cancellable = obj.primitiveBool("cancellable"),
                 )
             }
+    }
+}
+
+/**
+ * snapshot.ts `config` key (session-config.ts sessionConfigStateSchema) — Phase 9
+ * (§10.3 of docs/protocol/v4-wire.md). The model/mode/thought echo plane: the
+ * CURRENT effective selection the switch commands reconcile against. INV-8
+ * tolerance: `mode` outside the verified switchable set stays a raw string (the
+ * renderer shows it verbatim; the picker only offers the verified enum); a
+ * malformed KNOWN field drops the whole key + counts (fail closed — the picker
+ * renders "unknown" rather than a guessed selection).
+ */
+data class SessionConfigState(
+    val provider: String,
+    val model: String,
+    val thought: String,
+    /** The CURRENT model's actual thought-level set (runtime-projected, not a UI pref). */
+    val thoughtLevels: List<String>,
+    val followupMode: String?,
+    /** Collaboration mode — verified switchable set: build|edit|plan|yolo (§10.3). */
+    val mode: String,
+    val planEnabled: Boolean?,
+    val modelSelectionProviderId: String?,
+    val modelSelectionModelId: String?,
+) {
+    val modeIsSwitchable: Boolean get() = mode in SWITCHABLE_MODES
+
+    companion object {
+        /** command.ts switchCollaborationMode enum — `auto` deliberately excluded (schema comment). */
+        val SWITCHABLE_MODES = listOf("build", "edit", "plan", "yolo")
+
+        fun decode(obj: JsonObject): SessionConfigState =
+            SessionConfigState(
+                provider = obj.string("provider"),
+                model = obj.string("model"),
+                thought = obj.string("thought"),
+                thoughtLevels = (obj["thoughtLevels"] as? JsonArray)
+                    ?.mapNotNull { (it as? JsonPrimitive)?.content }
+                    ?: emptyList(),
+                followupMode = obj.strOrNull("followupMode"),
+                // Verified default "build" (schema `.default("build")`); absent → default.
+                mode = obj.strOrNull("mode") ?: "build",
+                planEnabled = obj.primitiveBool("planEnabled"),
+                modelSelectionProviderId = (obj["modelSelection"] as? JsonObject)?.strOrNull("providerId"),
+                modelSelectionModelId = (obj["modelSelection"] as? JsonObject)?.strOrNull("modelId"),
+            )
+
+        /**
+         * Key-drop variant for the state merge (the SessionState policy: a malformed
+         * KNOWN key drops THAT KEY + counts — state is auxiliary, it never kills the
+         * frame; §9 decode policy in docs/protocol/v4-wire.md).
+         */
+        fun decodeOrNull(obj: JsonObject): SessionConfigState? = try {
+            decode(obj)
+        } catch (e: RowDecodeException) {
+            SessionProjectionState.malformedKeyDrops++
+            null
+        }
     }
 }
 

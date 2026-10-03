@@ -198,7 +198,8 @@ class RelayConversationGateway(
                             firstRowId = (window?.get("firstRowId") as? JsonPrimitive)?.content?.toLongOrNull(),
                             sessionState = state.takeIf {
                                 it.control != null || it.inputRouting != null || it.queue != null ||
-                                    it.pendingInteractions != null || it.backgroundWorks != null || it.revision != null
+                                    it.pendingInteractions != null || it.backgroundWorks != null ||
+                                    it.config != null || it.revision != null
                             },
                         )
                     )

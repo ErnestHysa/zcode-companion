@@ -17,8 +17,8 @@ android {
         applicationId = "com.zcode.android.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 27
-        versionName = "0.8.0-phase8"
+        versionCode = 29
+        versionName = "0.9.0-phase9"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -65,6 +65,9 @@ dependencies {
     implementation(project(":features:pairing"))
     implementation(project(":features:tasks"))
     implementation(project(":features:conversation"))
+    implementation(project(":features:terminal"))
+    implementation(project(":features:git"))
+    implementation(project(":features:files"))
     implementation(libs.kotlinx.coroutines.android)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)

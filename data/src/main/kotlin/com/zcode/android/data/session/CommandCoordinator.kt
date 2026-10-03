@@ -95,12 +95,17 @@ class CommandCoordinator(
      * `expectedHeldQueueItemIds`) ride the inputRouting decision (§9). sendText is
      * NOT in COMMANDS_REQUIRING_BASE_REVISION (verified set) — no CAS guard here.
      */
+    /** attachmentRefSchema projection ({ref, fileName, mime, bytes} — strict, §10.2). */
+    data class AttachmentRefPayload(val ref: String, val fileName: String, val mime: String, val bytes: Long)
+
     suspend fun sendPrompt(
         sessionId: String,
         text: String,
         requestedDelivery: String? = null,
         heldQueueDisposition: String? = null,
         expectedHeldQueueItemIds: List<String>? = null,
+        /** Phase 9 (§23.2): committed attachment refs — content bytes NEVER ride the envelope. */
+        attachments: List<AttachmentRefPayload>? = null,
     ): Outcome {
         if (connectionState() != ConnectionStateMachine.ConnectionState.CONNECTED) {
             log.warn("command.blockedOffline", "type=sendText session=$sessionId")
@@ -113,6 +118,18 @@ class CommandCoordinator(
             heldQueueDisposition?.let { put("heldQueueDisposition", it) }
             expectedHeldQueueItemIds?.let { ids ->
                 putJsonArray("expectedHeldQueueItemIds") { ids.forEach { add(JsonPrimitive(it)) } }
+            }
+            attachments?.takeIf { it.isNotEmpty() }?.let { refs ->
+                putJsonArray("attachments") {
+                    refs.forEach { a ->
+                        add(buildJsonObject {
+                            put("ref", a.ref)
+                            put("fileName", a.fileName)
+                            put("mime", a.mime)
+                            put("bytes", a.bytes)
+                        })
+                    }
+                }
             }
         }
         val commandId = accept("sendText", sessionId, payload) ?: return Outcome.BlockedOffline
@@ -185,6 +202,41 @@ class CommandCoordinator(
             put("queueItemId", queueItemId)
             put("newText", newText)
         })
+
+    // ---------------------------------------------------------------- model/mode switch (Phase 9.5)
+
+    /**
+     * `switchModelConfig {provider, model, thought}` — CAS-guarded (verified set,
+     * §10.3). Echo-reconciled: the authoritative `config` state patch (key-level
+     * replacement) is the truth; the ACK only confirms admission (§14.2 "runtime
+     * echo wins").
+     */
+    suspend fun switchModelConfig(
+        sessionId: String,
+        provider: String,
+        model: String,
+        thought: String,
+        baseRevision: Long?,
+    ): Outcome = casCommand("switchModelConfig", sessionId, baseRevision, buildJsonObject {
+        put("provider", provider)
+        put("model", model)
+        put("thought", thought)
+    })
+
+    /**
+     * `switchCollaborationMode {mode}` — CAS-guarded; the verified switchable set is
+     * build|edit|plan|yolo (`auto` is NOT user-switchable, schema comment). The
+     * caller validates against [com.zcode.android.domain.model.SessionConfigState.SWITCHABLE_MODES];
+     * this gate re-checks fail-closed (an out-of-set mode is never sent).
+     */
+    suspend fun switchCollaborationMode(sessionId: String, mode: String, baseRevision: Long?): Outcome {
+        if (mode !in com.zcode.android.domain.model.SessionConfigState.SWITCHABLE_MODES) {
+            return Outcome.Failed(null)
+        }
+        return casCommand("switchCollaborationMode", sessionId, baseRevision, buildJsonObject {
+            put("mode", mode)
+        })
+    }
 
     // ---------------------------------------------------------------- retry / recovery
 
