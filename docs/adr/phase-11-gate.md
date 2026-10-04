@@ -190,3 +190,54 @@ Verdict: PASS WITH KNOWN LIMITATIONS (below).
 - ADR-019 — voice-input experiment adoption (§43.2-11.5 mandate).
 - §31 `[CORRECTED 2026-10-03]` — string home (core:ui, pure-JVM core:common)
   + AGP-9 pseudolocale DSL removal (§41.6 process).
+
+## 8. Field fix round (2026-10-04, vc33) — device-caught defects
+
+Ernest's Samsung S24 (SM-S918B, API 36) field session against desktop 3.14.4
+caught the following; each fixed with a regression test (red-green verified) in
+this round:
+
+1. **Conversation layout collapse ("an overlay blocks the chat")** —
+   `SessionModeChips` chained `.fillMaxWidth()` UNDER the caller's
+   `weight(1f, fill = false)`: when the session-config echo arrived (1–2 s after
+   open — the first render was fine), the block was capped at the weighted
+   share; the chips wrapped one character per column to hundreds of dp tall, the
+   header row swallowed the screen, the CenterVertically-aligned Files/Git/
+   Terminal chips landed mid-screen and the weight(1f) timeline collapsed to
+   zero. Invisible to every suite because all of them passed `config = null`.
+   FIX: the chips row respects the incoming constraint; the header uses TWO
+   compact rows (echo chips full-width; Files/Git/Terminal right-aligned below);
+   every chip label is single-line ellipsized; entries externalized
+   (`files_entry`/`git_entry`/`terminal_entry`).
+   REGRESSION: `SessionChipsLayoutTest` (geometry: single-line heights, header
+   stack ≤ 72 dp, model chip ≥ 40 dp, timeline ≥ 120 dp) — RED against the
+   original structure (zero-width model chip, Δ=109.5 dp), GREEN with the fix.
+2. **Watchdog escalated with a stale base → fault.subscription.notOwned** —
+   the relay paused a fresh subscription's snapshot delivery (the vc24 class);
+   the watchdog fired correctly (84 s stall) but `escalate()` re-used the
+   reducer's HYDRATED JOURNAL WATERMARK from the previous connection as the
+   resync base; the server rejected it and the single re-kick chance was wasted
+   (device log: `recovery.escalate … base=mur1xz62…/1255` → `notOwned` →
+   `escalateFailed`). Also: the watchdog's frame stamp was GLOBAL (one streaming
+   session blinded it to all others).
+   FIX: per-session frame stamps (armed at attach — a stalled FIRST snapshot is
+   now covered), per-session resync rate-limit stamps, and any escalation whose
+   base is not the CURRENT connection's ack-stamped epoch FORCES a snapshot (the
+   only base the server honors; a forced snapshot also re-kicks the paused
+   delivery). `ChannelV4Plane.resyncSession` now records the returned
+   subscription (subscribe/resync symmetry — post-resync frame routing ran
+   against a retired generation). `gateway.drop` observability for silently
+   unmatched topic frames (§34).
+   REGRESSION: `StreamWatchdogStaleBaseTest` ×4 (stale-base forces snapshot;
+   current base keeps resume; completed tasks never escalated; per-session
+   stamps) — RED on the stale-base cell without the guard, GREEN with it.
+3. **Not a defect (verified from the same log):** the Sep-30 LazyColumn
+   duplicate-key crash in the retained "last crash" section predates the vc13
+   fix (workspace-prefixed keys) — stale evidence, already fixed; the three
+   10 s reconnect timeouts while backgrounded are Samsung powerSave network
+   suspension (§15-S3 reconnect-on-wake recovered cleanly on foreground).
+
+Suite evidence: JVM full matrix 616 tests with 1–2 MOVING contention flakes in
+`ConnectionHub*Test` (same class, different test per run; 23/23 green ×2 in
+isolation — the documented Phase 6/9/10 load class), instrumented 11/11 on the
+ATD API-30 emulator. Artifact: `app-debug.apk` **0.11.1-phase11 (versionCode 33)**.

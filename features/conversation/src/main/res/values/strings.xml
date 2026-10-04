@@ -113,4 +113,7 @@
     <string name="changes_error">Could not load changes: %1$s</string>
     <string name="attachment_remove">Remove</string>
     <string name="tool_fallback">tool</string>
+    <string name="files_entry">Files</string>
+    <string name="git_entry">Git</string>
+    <string name="terminal_entry">Terminal</string>
 </resources>

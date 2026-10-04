@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -56,13 +57,34 @@ fun SessionModeChips(
     var modelSheet by remember { mutableStateOf(false) }
     val modeA11y = config?.let { stringResource(R.string.mode_a11y, it.mode) }
     val modelA11y = config?.let { stringResource(R.string.model_a11y, it.model, it.thought) }
-    Row(modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    // FIELD (2026-10-04, vc32 device — Samsung S24): this Row used to chain
+    // `.fillMaxWidth()` UNDER the caller's `weight(1f, fill = false)`, capping it at
+    // the weighted share (~58 dp); the chips wrapped one character per column to
+    // hundreds of dp tall, the header row swallowed the whole screen, the
+    // CenterVertically-aligned Files/Git/Terminal chips landed mid-screen and the
+    // weight(1f) timeline collapsed to zero ("overlay blocks the chat" field report).
+    // Rules now: the Row RESPECTS the incoming constraint (no fillMaxWidth), the
+    // model chip takes the flexible remainder, and every label is single-line
+    // ellipsized — no label can ever explode the header height again.
+    Row(
+        modifier = modifier.padding(horizontal = 12.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         if (config == null) return@Row
         // Mode chip — options are the VERIFIED switchable set (auto excluded, §10.3).
         AssistChip(
             onClick = { modeMenu = true },
-            label = { Text("mode: ${config.mode}") },
-            modifier = Modifier.semantics { modeA11y?.let { contentDescription = it } },
+            label = {
+                Text(
+                    "mode: ${config.mode}",
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
+            },
+            modifier = Modifier
+                .testTag("conv_mode_chip")
+                .semantics { modeA11y?.let { contentDescription = it } },
         )
         DropdownMenu(expanded = modeMenu, onDismissRequest = { modeMenu = false }) {
             for (mode in SessionConfigState.SWITCHABLE_MODES) {
@@ -78,8 +100,17 @@ fun SessionModeChips(
         // Model chip — provider/model/thought from the echo; options from model-selection.
         AssistChip(
             onClick = { modelSheet = true },
-            label = { Text("${config.provider}/${config.model} · ${config.thought}") },
-            modifier = Modifier.semantics { modelA11y?.let { contentDescription = it } },
+            label = {
+                Text(
+                    "${config.provider}/${config.model} · ${config.thought}",
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
+            },
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .testTag("conv_model_chip")
+                .semantics { modelA11y?.let { contentDescription = it } },
         )
     }
     if (modelSheet && config != null) {

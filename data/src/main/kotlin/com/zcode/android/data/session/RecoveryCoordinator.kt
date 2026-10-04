@@ -136,6 +136,7 @@ class RecoveryCoordinator(
                     log = log,
                 )
                 wm?.let { managers[t.sessionId]!!.hydrate(it.logEpoch, it.afterSeq) }
+                armWatchdog(t.sessionId)
             }
         }
         log.info("recovery.attach", "sessions=${targets.joinToString { it.sessionId }} fresh=${newlyAttached.map { it.sessionId }}")
@@ -192,7 +193,7 @@ class RecoveryCoordinator(
         forwardJob = scope.launch {
             gateway.topicEvents.collect { event ->
                 kotlinx.coroutines.withContext(projectionDispatcher) {
-                    lastFrameAtMs = clock()
+                    markFrame(event.sessionId)
                     try {
                         managerFor(event)?.handle(event)
                     } catch (e: kotlinx.coroutines.CancellationException) {
@@ -294,8 +295,20 @@ class RecoveryCoordinator(
             // §15-S10: "resync {afterSeq}; failure → full snapshot" — a repeat
             // escalation for the same cursor means the resume could not repair; force
             // the authoritative snapshot (never loop, never a local fill).
-            val forceSnapshot = base == null || count >= 2
-            log.warn("recovery.escalate", "session=$sessionId reason=${reason.take(60)} base=$base/$seq attempt=$count force=$forceSnapshot")
+            // FIELD (2026-10-04, vc32 device log): a base from a PREVIOUS connection's
+            // subscription (the hydrated journal watermark) is rejected by the server
+            // with fault.subscription.notOwned — the current subscription has its own
+            // generation. Any base that is not the CURRENT ack-stamped epoch forces a
+            // snapshot: the fresh subscribe is the only base the server honors, and a
+            // forced snapshot also re-kicks a paused delivery (the vc24 class).
+            val currentEpoch = gateway.currentSubscriptionEpoch(sessionId)
+            val baseIsCurrent = base != null && base == currentEpoch
+            val forceSnapshot = base == null || count >= 2 || !baseIsCurrent
+            log.warn(
+                "recovery.escalate",
+                "session=$sessionId reason=${reason.take(60)} base=$base/$seq attempt=$count force=$forceSnapshot " +
+                    "currentEpoch=${currentEpoch?.take(24)} baseIsCurrent=$baseIsCurrent",
+            )
             val ws = synchronized(sessionWorkspaces) { sessionWorkspaces[sessionId] }
             try {
                 gateway.resync(
@@ -432,32 +445,50 @@ class RecoveryCoordinator(
     private val escalationCounts = HashMap<String, Int>()
     // ---------------------------------------------------------------- stream watchdog
 
-    @Volatile private var lastFrameAtMs: Long = 0
-    @Volatile private var lastWatchdogResyncMs: Long = 0
-
     /**
-     * Delivery-stall watchdog (§15.1 recovery is first-class — a stalled stream IS a
-     * recoverable condition even when the socket is technically healthy). A stateless
-     * base-resync re-kicks the bridge: the ACK + replay forces the desktop's relay
-     * worker to flush what it is holding. Rate-limited; sessions whose task already
-     * reached a terminal state are skipped (nothing to resync).
+     * FIELD (2026-10-04, vc32 device log) — the watchdog was GLOBAL: one
+     * `lastFrameAtMs` for the whole coordinator, so a quiet RUNNING session behind a
+     * streaming one was NEVER watched, and the escalation re-used the reducer's
+     * HYDRATED journal watermark (from a PREVIOUS connection) as the resync base —
+     * the server rejected it with fault.subscription.notOwned and the ONE chance to
+     * re-kick a paused delivery (the vc24 relay-pause class) was wasted. Now:
+     * per-session last-frame stamps (initialized at attach so a stalled FIRST
+     * snapshot is covered too), per-session resync rate-limit stamps, and the
+     * escalation forces a snapshot whenever its base is not the CURRENT
+     * connection's subscription epoch.
      */
+    private val sessionLastFrameAtMs = HashMap<String, Long>()
+    private val sessionLastWatchdogResyncMs = HashMap<String, Long>()
+
+    private fun markFrame(sessionId: String) {
+        synchronized(sessionLastFrameAtMs) { sessionLastFrameAtMs[sessionId] = clock() }
+    }
+
+    private fun armWatchdog(sessionId: String) {
+        synchronized(sessionLastFrameAtMs) { sessionLastFrameAtMs[sessionId] = clock() }
+    }
+
     private suspend fun maybeStreamWatchdog(all: List<ConversationSessionManager>) {
         if (transport?.states?.value != ConnectionStateMachine.ConnectionState.CONNECTED) return
         if (all.isEmpty()) return
         val now = clock()
-        if (lastFrameAtMs == 0L) return // no frames ever — attach hasn't streamed yet
-        if (now - lastFrameAtMs < config.streamWatchdogIdleMs) return
-        if (now - lastWatchdogResyncMs < config.streamWatchdogResyncGapMs) return
         val stalled = all.firstOrNull { m ->
-            m.taskState.value in setOf(
-                com.zcode.android.domain.state.TaskStateMachine.State.RUNNING,
-                com.zcode.android.domain.state.TaskStateMachine.State.LOADING,
-                com.zcode.android.domain.state.TaskStateMachine.State.UNKNOWN,
-            )
+            val state = m.taskState.value
+            if (state !in setOf(
+                    com.zcode.android.domain.state.TaskStateMachine.State.RUNNING,
+                    com.zcode.android.domain.state.TaskStateMachine.State.LOADING,
+                    com.zcode.android.domain.state.TaskStateMachine.State.UNKNOWN,
+                )
+            ) {
+                return@firstOrNull false // terminal: nothing streams — never resync (field: completed tasks)
+            }
+            val lastFrame = synchronized(sessionLastFrameAtMs) { sessionLastFrameAtMs[m.sessionId.raw] } ?: return@firstOrNull false
+            val lastResync = synchronized(sessionLastWatchdogResyncMs) { sessionLastWatchdogResyncMs[m.sessionId.raw] } ?: 0L
+            now - lastFrame >= config.streamWatchdogIdleMs && now - lastResync >= config.streamWatchdogResyncGapMs
         } ?: return
-        lastWatchdogResyncMs = now
-        log.warn("recovery.streamWatchdog", "no frames for ${now - lastFrameAtMs}ms — base-resync session=${stalled.sessionId.raw}")
+        synchronized(sessionLastWatchdogResyncMs) { sessionLastWatchdogResyncMs[stalled.sessionId.raw] = now }
+        val idleMs = now - (synchronized(sessionLastFrameAtMs) { sessionLastFrameAtMs[stalled.sessionId.raw] } ?: now)
+        log.warn("recovery.streamWatchdog", "no frames for ${idleMs}ms — re-kick session=${stalled.sessionId.raw}")
         escalate(stalled.sessionId.raw, reason = "stream watchdog (delivery stalled)", baseEpoch = null, baseSeq = null)
     }
 }

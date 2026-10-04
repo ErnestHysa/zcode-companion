@@ -448,7 +448,18 @@ internal class ChannelV4Plane(
             ?: throw TransportFailure(ErrorMapping.protocolFault("resync result not an object"))
         val ackObj = obj["ack"] as? JsonObject
             ?: throw TransportFailure(ErrorMapping.protocolFault("resync ack missing"))
-        return SubscribeAck.decode(ackObj)
+        val ack = SubscribeAck.decode(ackObj)
+        // FIELD (2026-10-04, vc32): the resync ack REPLACES the session's subscription
+        // record exactly like a subscribe ack — the old code left the stale
+        // subscriptionId/epoch in place, so post-resync frame routing and escalation
+        // base comparisons ran against a generation the server had already retired.
+        synchronized(subscriptions) {
+            subscriptions[V4Topics.conversation(sessionId)] = SubscriptionRecord(ack.subscriptionId, ack.logEpoch, -1)
+        }
+        synchronized(subscriptionWorkspaces) {
+            subscriptionWorkspaces[sessionId] = workspacePath to (workspaceIdentity ?: target?.second)
+        }
+        return ack
     }
 
     suspend fun sendConversationCommand(

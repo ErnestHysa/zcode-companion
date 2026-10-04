@@ -129,6 +129,16 @@ interface ConversationGateway : CommandSender {
     ): GatewayAck
 
     suspend fun rowsRange(sessionId: String, beforeRowId: Long?, limit: Int): GatewayPage
+
+    /**
+     * FIELD (2026-10-04, vc32 device log): the CURRENT connection's ack-stamped
+     * subscription epoch for [sessionId] (null when never subscribed on this
+     * connection). The recovery escalation compares its resync base against this —
+     * a base from a PREVIOUS connection's subscription is rejected by the server
+     * with fault.subscription.notOwned; such escalations must force a snapshot
+     * instead (the fresh subscribe is the only base the server honors).
+     */
+    fun currentSubscriptionEpoch(sessionId: String): String?
 }
 
 /**
@@ -179,7 +189,13 @@ class RelayConversationGateway(
         // epoch, §15-S9) over the gateway's own ack-stamped map.
         val epoch = transport.subscriptionEpoch(sessionId)
             ?: synchronized(epochs) { epochs[sessionId] }
-            ?: return // unsubscribed: ignore
+            ?: run {
+                // FIELD (2026-10-04, vc32 forensics): silent drops here made a stalled
+                // snapshot delivery UNDIAGNOSABLE (frames recv'd at the wire, nothing
+                // decoded downstream). Count + log at DEBUG — never silent (§34).
+                traceLog?.debug("gateway.drop", "session=$sessionId kind=${arrived.deliveryKind} seq=${arrived.fromSeq}..${arrived.toSeq} (no subscription record)")
+                return
+            }
         traceLog?.debug("gateway.frame", "session=$sessionId kind=${arrived.deliveryKind} seq=${arrived.fromSeq}..${arrived.toSeq} epoch=${epoch.take(24)}")
         try {
             when (val payload = arrived.frame.payload) {
@@ -327,6 +343,8 @@ class RelayConversationGateway(
             hasMore = r.hasMore,
         )
     }
+
+    override fun currentSubscriptionEpoch(sessionId: String): String? = transport.subscriptionEpoch(sessionId)
 
     private fun rawOf(row: com.zcode.android.core.protocol.v4.ConversationRow): JsonObject = row.raw
 

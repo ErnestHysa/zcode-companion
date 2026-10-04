@@ -105,4 +105,7 @@
     <string name="changes_error">无法加载变更：%1$s</string>
     <string name="attachment_remove">移除</string>
     <string name="tool_fallback">工具</string>
+    <string name="files_entry">文件</string>
+    <string name="git_entry">Git</string>
+    <string name="terminal_entry">终端</string>
 </resources>

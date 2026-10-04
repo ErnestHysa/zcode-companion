@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zcode.android.data.session.StreamWatchdogStaleBaseTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-04T00:37:22.125Z" hostname="Ernests-MacBook-Air.local" time="9.989">
+  <properties/>
+  <testcase name="perSessionStamps_quietSessionWatched_whileAnotherStreams" classname="com.zcode.android.data.session.StreamWatchdogStaleBaseTest" time="8.192"/>
+  <testcase name="completedTask_isNeverWatchdogEscalated" classname="com.zcode.android.data.session.StreamWatchdogStaleBaseTest" time="0.448"/>
+  <testcase name="staleJournalBase_escalationForcesSnapshot_notResync" classname="com.zcode.android.data.session.StreamWatchdogStaleBaseTest" time="0.055"/>
+  <testcase name="currentEpochBase_healthyResume_keepsBaseResync" classname="com.zcode.android.data.session.StreamWatchdogStaleBaseTest" time="0.058"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

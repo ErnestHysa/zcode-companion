@@ -282,9 +282,13 @@ private fun Header(
             modifier = Modifier.padding(horizontal = 16.dp).testTag("conversation_status_line"),
         )
         // Phase 9: model/mode chips (§10.3 echo) + Files/Git/Terminal entry points.
+        // FIELD (2026-10-04, vc32): FIVE chips cannot share one row on narrow screens —
+        // the weighted session chips starved (zero-width model chip on a 320dp layout;
+        // on the device the crushed chip exploded vertically and blocked the chat).
+        // Two compact rows: the echo chips own the full width; the read-only surface
+        // entries right-align under them.
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             SessionModeChips(
@@ -292,12 +296,18 @@ private fun Header(
                 onSwitchMode = onSwitchMode,
                 onSwitchModel = onSwitchModel,
                 modelOptionsProvider = modelOptionsProvider,
-                modifier = Modifier.weight(1f, fill = false),
+                modifier = Modifier.weight(1f, fill = true),
             )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Spacer(Modifier.weight(1f))
-            AssistChip(onClick = onOpenFiles, label = { Text("Files") }, modifier = Modifier.testTag("conv_open_files"))
-            AssistChip(onClick = onOpenGit, label = { Text("Git") }, modifier = Modifier.testTag("conv_open_git"))
-            AssistChip(onClick = onOpenTerminal, label = { Text("Terminal") }, modifier = Modifier.testTag("conv_open_terminal"))
+            AssistChip(onClick = onOpenFiles, label = { Text(stringResource(R.string.files_entry)) }, modifier = Modifier.testTag("conv_open_files"))
+            AssistChip(onClick = onOpenGit, label = { Text(stringResource(R.string.git_entry)) }, modifier = Modifier.testTag("conv_open_git"))
+            AssistChip(onClick = onOpenTerminal, label = { Text(stringResource(R.string.terminal_entry)) }, modifier = Modifier.testTag("conv_open_terminal"))
         }
         Spacer(Modifier.height(6.dp))
     }
