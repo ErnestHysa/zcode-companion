@@ -1308,20 +1308,59 @@ class RelayTransport(
                 ?: (result["activeWorkspaceKey"] as? JsonPrimitive)?.content // workspace-list shape fallback
             val activeTask = (initialView?.get("activeTaskId") as? JsonPrimitive)?.content
                 ?: (result["activeTaskId"] as? JsonPrimitive)?.content
-            workspaceKey = activeKey
-                ?: ((workspaces.firstOrNull() as? JsonObject)?.get("workspaceKey") as? JsonPrimitive)?.content
-                ?: ((workspaces.firstOrNull() as? JsonObject)?.get("workspacePath") as? JsonPrimitive)?.content
-                ?: cachedKey
-                ?: throw Failure(ErrorMapping.protocolFault("bootstrap has no workspaces"))
-            if (workspacePath == null) {
-                workspacePath = ((workspaces.firstOrNull() as? JsonObject)?.get("workspacePath") as? JsonPrimitive)?.content
-                    ?: endpoint.workspacePath
+            // FIELD (2026-10-04, vc33 device — task duplication report): the desktop's
+            // activeTaskId and activeWorkspaceKey are INDEPENDENT view-state fields —
+            // the active task can live in a DIFFERENT workspace than the active
+            // workspace key. Bridging (activeWorkspaceKey, activeTaskId) then asks the
+            // desktop to open workspace W with a task from workspace V, and the
+            // desktop's resume semantics FORK the task into W (field: a running task
+            // "duplicated" from pragma into android-native and stopped; the original
+            // kept running). §7.11 rule: the (workspaceKey, taskId) pair must be
+            // CONSISTENT — the workspace is resolved FROM the bridged task.
+            fun JsonObject?.strOrNull(key: String): String? =
+                ((this?.get(key)) as? JsonPrimitive)?.takeIf { it !is JsonNull }?.content?.takeIf { it.isNotBlank() }
+            val tasksArr = result["tasks"] as? JsonArray ?: JsonArray(emptyList())
+            fun str(o: JsonObject?, key: String): String? =
+                ((o?.get(key)) as? JsonPrimitive)?.takeIf { it !is JsonNull }?.content?.takeIf { it.isNotBlank() }
+            fun taskRef(obj: JsonObject?): Triple<String, String?, String?>? {
+                val id = str(obj, "taskId") ?: str(obj, "id") ?: return null
+                val wsKey = str(obj, "workspaceIdentity") ?: str(obj, "workspaceKey") ?: str(obj, "workspacePath")
+                return Triple(id, wsKey, str(obj, "workspacePath"))
             }
-            taskId = activeTask
-                ?: (result["tasks"] as? JsonArray)?.asSequence()
-                    ?.mapNotNull { (it as? JsonObject)?.get("taskId") as? JsonPrimitive }
-                    ?.firstOrNull()?.content
-                ?: cachedTask
+            val activeTaskRef = activeTask?.let { named ->
+                tasksArr.firstOrNull { taskRef(it as? JsonObject)?.first == named }
+                    ?.let { taskRef(it as? JsonObject) }
+            }
+            val firstTaskRef = taskRef(tasksArr.firstOrNull() as? JsonObject)
+            fun workspaceFallback(): String? =
+                ((workspaces.firstOrNull() as? JsonObject)?.get("workspaceKey") as? JsonPrimitive)?.content
+                    ?: ((workspaces.firstOrNull() as? JsonObject)?.get("workspacePath") as? JsonPrimitive)?.content
+            val pathFallback: String? =
+                ((workspaces.firstOrNull() as? JsonObject)?.get("workspacePath") as? JsonPrimitive)?.content
+                    ?: endpoint.workspacePath
+            // Consistent-pair resolution (§7.11 — the vc33 field rule): when the
+            // desktop's named active task IS in the bootstrap list, ITS workspace is
+            // authoritative for the bridge (the two view-state fields are independent
+            // and may disagree — bridging the mismatch forks the task). When the named
+            // task is NOT listed, its workspace is unverifiable but the desktop NAMED
+            // it (round-5 verified contract) — bridge the named pair as-is.
+            val resolved: Triple<String, String?, String?> = when {
+                activeTaskRef != null -> Triple(
+                    activeTaskRef.second ?: activeKey ?: workspaceFallback() ?: cachedKey
+                        ?: throw Failure(ErrorMapping.protocolFault("bootstrap has no workspaces")),
+                    activeTaskRef.first,
+                    activeTaskRef.third ?: pathFallback,
+                )
+                else -> Triple(
+                    activeKey ?: workspaceFallback() ?: cachedKey
+                        ?: throw Failure(ErrorMapping.protocolFault("bootstrap has no workspaces")),
+                    activeTask ?: cachedTask,
+                    pathFallback,
+                )
+            }
+            workspaceKey = resolved.first
+            taskId = resolved.second
+            if (workspacePath == null) workspacePath = resolved.third
         }
         val requestId = nextRequestId()
         val open = com.zcode.android.core.protocol.relay.WorkspaceBridgeOpen(

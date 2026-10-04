@@ -71,6 +71,36 @@ class ConversationSessionManager(
         private set
 
     /**
+     * §14.2 command-issuer overlay (model/mode row: "Android = command issuer +
+     * echo; runtime echo wins"): an ACCEPTED switchModelConfig/switchCollaborationMode
+     * is reflected locally so the picker state is truthful immediately; the next
+     * authoritative snapshot/`state.updated` patch REPLACES it wholesale (the overlay
+     * never merges into rows and never survives an echo — INV-1: desktop wins).
+     * FIELD (2026-10-04, vc33): accepted switches showed no change until (and unless)
+     * the echo patch arrived.
+     */
+    fun applyLocalConfigOverlay(provider: String, model: String, thought: String, mode: String? = null) {
+        val current = _sessionState.value
+        // Empty args mean "not part of this switch" (a mode-only overlay must not
+        // clobber the model fields) — keep the current values then.
+        val effProvider = provider.ifBlank { current.config?.provider ?: "" }
+        val effModel = model.ifBlank { current.config?.model ?: "" }
+        val effThought = thought.ifBlank { current.config?.thought ?: "" }
+        val base = current.config ?: com.zcode.android.domain.model.SessionConfigState(
+            provider = effProvider, model = effModel, thought = effThought,
+            thoughtLevels = listOf(effThought), followupMode = null, mode = mode ?: "build",
+            planEnabled = null, modelSelectionProviderId = null, modelSelectionModelId = null,
+        )
+        _sessionState.value = current.copy(
+            config = base.copy(
+                provider = effProvider, model = effModel, thought = effThought,
+                modelSelectionProviderId = effProvider.ifBlank { null } ?: base.modelSelectionProviderId,
+                modelSelectionModelId = effModel.ifBlank { null } ?: base.modelSelectionModelId,
+            ).let { if (mode != null) it.copy(mode = mode) else it },
+        )
+    }
+
+    /**
      * Phase 7 A-side projection (§9): stop control, queue, open interactions, input
      * routing, CAS revision. Published on every snapshot/patch apply (single-writer
      * mutation inside the reducer; the publish rides the same critical section).

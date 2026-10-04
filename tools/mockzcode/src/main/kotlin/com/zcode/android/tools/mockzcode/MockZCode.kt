@@ -1856,7 +1856,16 @@ class MockZCode(
         // observed as desktop-disconnected while the control plane kept answering.
         val expectedKey = script.bootstrapActiveWorkspaceKey ?: workspace.workspaceKey
         val expectedTask = script.bootstrapActiveTaskId ?: workspace.sessionId
-        val staleDiscovery = script.bridgeRequireTaskId && !missingTask &&
+        // FIELD (2026-10-04, vc33 — pair-consistency rule): a bridge whose (workspace,
+        // task) pair is CONSISTENT WITH THE BOOTSTRAP TASK LIST is valid even when the
+        // workspace differs from activeWorkspaceKey — the client resolves the bridged
+        // workspace FROM the task (§7.11; the desktop's two view-state fields are
+        // independent and may disagree). Stale detection now rejects only pairs that
+        // match NEITHER the view state NOR the bootstrap task list.
+        val bootstrapConsistent = script.bootstrapTasks.orEmpty().any { t ->
+            t.taskId == lastBridgeTaskId && (lastBridgeWorkspaceKey == t.workspacePath)
+        }
+        val staleDiscovery = script.bridgeRequireTaskId && !missingTask && !bootstrapConsistent &&
             (lastBridgeWorkspaceKey != expectedKey || lastBridgeTaskId != expectedTask)
         if (forcedReason != null || missingTask || staleDiscovery) {
             val reason = forcedReason ?: if (missingTask) "session-not-found" else "desktop-disconnected"

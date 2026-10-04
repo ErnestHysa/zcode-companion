@@ -362,6 +362,7 @@ private fun ConversationRoute(
         turnChangesProvider = { rowId, entityId -> vm.turnFileChanges(rowId, entityId) },
         onUploadAttachment = { fileName, mime, bytes -> vm.uploadAttachment(fileName, mime, bytes) },
         onRemoveAttachment = vm::removeUpload,
+        onRetryAttachment = vm::retryUpload,
     )
 }
 

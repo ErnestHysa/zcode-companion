@@ -287,12 +287,14 @@ private fun TurnChangesBody(changes: TurnFileChanges) {
     }
 }
 
-/** §23.2 composer attachment chips (uploading/ready/failed states render honestly). */
+/** §23.2 composer attachment chips (uploading/ready/failed states render honestly;
+ *  failed chips carry a one-tap RETRY — the §33 failure is actionable, not a dead end). */
 @Composable
 fun AttachmentStrip(
     attachments: List<ConversationPort.ComposerAttachment>,
     onRemove: (uploadId: String) -> Unit,
     modifier: Modifier = Modifier,
+    onRetry: (uploadId: String) -> Unit = {},
 ) {
     if (attachments.isEmpty()) return
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -320,7 +322,10 @@ fun AttachmentStrip(
                     modifier = Modifier.weight(1f, fill = true),
                     maxLines = 1,
                 )
-                TextButton(onClick = { onRemove(att.uploadId) }) { Text("Remove") }
+                if (att.state == "failed") {
+                    TextButton(onClick = { onRetry(att.uploadId) }) { Text(stringResource(com.zcode.android.core.ui.R.string.action_retry)) }
+                }
+                TextButton(onClick = { onRemove(att.uploadId) }) { Text(stringResource(R.string.attachment_remove)) }
             }
         }
     }

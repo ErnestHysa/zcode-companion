@@ -1,5 +1,6 @@
 package com.zcode.android.data.session
 
+import com.zcode.android.core.common.error.serverSpoke
 import com.zcode.android.core.common.log.ZLog
 import com.zcode.android.core.transport.ConnectionStateMachine
 import com.zcode.android.core.transport.Transport
@@ -92,6 +93,11 @@ class RecoveryCoordinator(
 
     /** Sessions under management (diagnostics/tests). */
     fun managedSessions(): List<String> = synchronized(managers) { managers.keys.toList() }
+
+    /** §14.2 command-issuer overlay for an ACCEPTED model/mode switch (echo wins). */
+    fun applyLocalConfigOverlay(sessionId: String, provider: String, model: String, thought: String, mode: String? = null) {
+        synchronized(managers) { managers[sessionId] }?.applyLocalConfigOverlay(provider, model, thought, mode)
+    }
 
     fun manager(sessionId: String): ConversationSessionManager? = synchronized(managers) { managers[sessionId] }
 
@@ -324,6 +330,27 @@ class RecoveryCoordinator(
                 // Escalation transport failure: the connection machinery owns retry; the
                 // projection stays labeled stale — never silently "recovered" (§15.5).
                 log.warn("recovery.escalateFailed", e.javaClass.simpleName)
+                // FIELD (2026-10-04, vc33 device log): the desktop REJECTED the resync
+                // itself (fault.subscription.notOwned — serverSpoke) and the old path
+                // re-tried the SAME failing resync every watchdog window (5× in the
+                // field, forever). §15-S10's own escape hatch: resync failed → FULL
+                // SNAPSHOT — here a FRESH SUBSCRIBE (a new server-owned subscription
+                // that re-anchors with a snapshot; the resync path is dead for this
+                // session on this connection). Bounded: once per escalation; the
+                // watchdog's per-session rate limit throttles repeats.
+                val serverSpoke = e is com.zcode.android.core.transport.TransportFailure &&
+                    e.error.serverSpoke
+                if (serverSpoke) {
+                    try {
+                        gateway.subscribe(sessionId, workspacePath = ws?.first, workspaceIdentity = ws?.second)
+                        log.warn("recovery.escalateFallback", "session=$sessionId resync refused — fresh subscribe anchored")
+                        return
+                    } catch (e2: kotlinx.coroutines.CancellationException) {
+                        throw e2
+                    } catch (e2: Exception) {
+                        log.warn("recovery.escalateFallbackFailed", "session=$sessionId ${e2.javaClass.simpleName}")
+                    }
+                }
                 m.setStale(true)
             }
     }

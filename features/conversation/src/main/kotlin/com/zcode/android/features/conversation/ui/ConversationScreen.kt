@@ -96,6 +96,7 @@ fun ConversationScreen(
     onUploadAttachment: suspend (fileName: String, mime: String, bytes: ByteArray) -> ConversationPort.UploadResult =
         { _, _, _ -> ConversationPort.UploadResult.Failed("attachments unavailable") },
     onRemoveAttachment: (uploadId: String) -> Unit = {},
+    onRetryAttachment: (uploadId: String) -> Unit = {},
 ) {
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -235,6 +236,7 @@ if (state.historyChanged) {
                 onDismissNotice = onDismissSendNotice,
                 onUploadAttachment = onUploadAttachment,
                 onRemoveAttachment = onRemoveAttachment,
+                onRetryAttachment = onRetryAttachment,
             )
         }
     }

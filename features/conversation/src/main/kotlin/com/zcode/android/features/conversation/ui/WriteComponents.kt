@@ -520,6 +520,7 @@ fun ComposerBar(
     onUploadAttachment: suspend (fileName: String, mime: String, bytes: ByteArray) -> ConversationPort.UploadResult =
         { _, _, _ -> ConversationPort.UploadResult.Failed("attachments unavailable") },
     onRemoveAttachment: (uploadId: String) -> Unit = {},
+    onRetryAttachment: (uploadId: String) -> Unit = {},
     /** §43.2-11.5 voice experiment; tests inject a fake (null = platform, availability-gated). */
     voiceInputOverride: com.zcode.android.features.conversation.voice.VoiceInputPort? = null,
 ) {
@@ -570,6 +571,7 @@ fun ComposerBar(
                 AttachmentStrip(
                     attachments = state.composerAttachments,
                     onRemove = onRemoveAttachment,
+                    onRetry = onRetryAttachment,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }

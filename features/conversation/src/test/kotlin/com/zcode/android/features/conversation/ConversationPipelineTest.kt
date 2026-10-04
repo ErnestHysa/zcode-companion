@@ -163,6 +163,8 @@ class ConversationViewModelTest {
                 onProgress: (Int, Int) -> Unit,
             ): ConversationPort.UploadResult = ConversationPort.UploadResult.Failed("not faked")
             override suspend fun removeUpload(uploadId: String) { }
+            override suspend fun retryUpload(taskId: String, uploadId: String): ConversationPort.UploadResult =
+                ConversationPort.UploadResult.Failed("not faked")
             override suspend fun fetchAttachment(
                 taskId: String, ref: String, targetRowId: Long?, targetEntityId: String?, attachmentIndex: Int?,
             ): ConversationPort.AttachmentFetchResult = ConversationPort.AttachmentFetchResult(null, null, 0, "not faked")
@@ -332,6 +334,8 @@ open class Phase7FakePort : ConversationPort {
             onProgress: (Int, Int) -> Unit,
         ): ConversationPort.UploadResult = ConversationPort.UploadResult.Failed("not faked")
         override suspend fun removeUpload(uploadId: String) { }
+        override suspend fun retryUpload(taskId: String, uploadId: String): ConversationPort.UploadResult =
+            ConversationPort.UploadResult.Failed("not implemented in fake")
         override suspend fun fetchAttachment(
             taskId: String, ref: String, targetRowId: Long?, targetEntityId: String?, attachmentIndex: Int?,
         ): ConversationPort.AttachmentFetchResult = ConversationPort.AttachmentFetchResult(null, null, 0, "not faked")

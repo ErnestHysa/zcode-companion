@@ -225,23 +225,68 @@ class ConversationViewModel(
     suspend fun turnFileChanges(rowId: Long, entityId: String): ConversationPort.TurnChangesResult =
         port.fetchTurnFileChanges(taskId, rowId, entityId)
 
-    /** §28.6 echo-reconciled switches (the `config` projection is the truth). */
+    /** §28.6 echo-reconciled switches (the `config` projection is the truth).
+     *  FIELD (2026-10-04, vc33): the outcome was fire-and-forgotten — a rejected/
+     *  stale/no-op switch looked exactly like a successful one. Non-acceptance is
+     *  now surfaced (§33 copy); acceptance reflects via the §14.2 port overlay. */
     fun switchMode(mode: String) {
-        scope.launch { port.switchMode(taskId, mode) }
+        scope.launch {
+            when (port.switchMode(taskId, mode)) {
+                ConversationPort.SendOutcome.ACCEPTED -> Unit
+                ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
+                    _sendNotice.value = SendNotice("Offline — the switch was not sent. Nothing changed.", SendNotice.Kind.WARNING)
+                ConversationPort.SendOutcome.STALE ->
+                    _sendNotice.value = SendNotice("The session changed on the desktop — try the switch again.", SendNotice.Kind.WARNING)
+                else ->
+                    _sendNotice.value = SendNotice("The desktop refused the switch — nothing changed.", SendNotice.Kind.ERROR)
+            }
+        }
     }
 
     fun switchModel(provider: String, model: String, thought: String) {
-        scope.launch { port.switchModel(taskId, provider, model, thought) }
+        scope.launch {
+            when (port.switchModel(taskId, provider, model, thought)) {
+                ConversationPort.SendOutcome.ACCEPTED -> Unit
+                ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
+                    _sendNotice.value = SendNotice("Offline — the switch was not sent. Nothing changed.", SendNotice.Kind.WARNING)
+                ConversationPort.SendOutcome.STALE ->
+                    _sendNotice.value = SendNotice("The session changed on the desktop — try the switch again.", SendNotice.Kind.WARNING)
+                else ->
+                    _sendNotice.value = SendNotice("The desktop refused the model switch — nothing changed.", SendNotice.Kind.ERROR)
+            }
+        }
     }
 
-    /** §23.2 upload (full transaction; progress surfaces via the port overlay). */
+    /** §23.2 upload (full transaction; progress surfaces via the port overlay).
+     *  FIELD (2026-10-04, vc33): failures were returned but never SHOWN — an upload
+     *  into a reconnect window "didn't go through at all". Honest notice now. */
     suspend fun uploadAttachment(fileName: String, mime: String, bytes: ByteArray): ConversationPort.UploadResult {
         val uploadId = "up-" + java.util.UUID.randomUUID().toString()
-        return port.uploadAttachment(taskId, fileName, mime, bytes, uploadId) { _, _ -> }
+        val result = port.uploadAttachment(taskId, fileName, mime, bytes, uploadId) { _, _ -> }
+        when (result) {
+            is ConversationPort.UploadResult.Committed -> Unit
+            is ConversationPort.UploadResult.TooLarge ->
+                _sendNotice.value = SendNotice("Attachment is over the 20 MB desktop limit — not sent.", SendNotice.Kind.WARNING)
+            is ConversationPort.UploadResult.BlockedOffline ->
+                _sendNotice.value = SendNotice("Offline — the attachment was not sent. Retry when connected.", SendNotice.Kind.WARNING)
+            is ConversationPort.UploadResult.Failed ->
+                _sendNotice.value = SendNotice("Attachment failed to upload (${result.message?.take(60) ?: "connection lost"}) — not sent.", SendNotice.Kind.ERROR)
+        }
+        return result
     }
 
     fun removeUpload(uploadId: String) {
         scope.launch { port.removeUpload(uploadId) }
+    }
+
+    /** One-tap retry of a failed attachment chip (payload retained port-side). */
+    fun retryUpload(uploadId: String) {
+        scope.launch {
+            val result = port.retryUpload(taskId, uploadId)
+            if (result !is ConversationPort.UploadResult.Committed) {
+                _sendNotice.value = SendNotice("Attachment retry failed — not sent.", SendNotice.Kind.ERROR)
+            }
+        }
     }
 
     fun dismissHistoryNotice() {

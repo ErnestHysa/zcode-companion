@@ -157,6 +157,9 @@ interface ConversationPort {
         onProgress: (sent: Int, total: Int) -> Unit,
     ): UploadResult
 
+    /** One-tap retry of a FAILED upload (same uploadId, retained payload). */
+    suspend fun retryUpload(taskId: String, uploadId: String): UploadResult
+
     sealed class UploadResult {
         /** Committed — [ref] rides the sendText payload's `attachments` array. */
         data class Committed(val ref: String, val bytes: Long) : UploadResult()
@@ -198,5 +201,9 @@ interface ConversationPort {
         val state: String,
         val progress: Float,
         val ref: String?,
+        /** FIELD (2026-10-04, vc33): retained ONLY while uploading/failed so a
+         *  failed chip can RETRY one-tap; nulled on commit/remove (INV-5 bound:
+         *  strip is small-count × ≤20 MiB desktop cap). */
+        val payload: ByteArray? = null,
     )
 }

@@ -1102,6 +1102,11 @@ class ConnectionHub(
             ConnectionStateMachine.ConnectionState.CONNECTED -> scope.launch {
                 onConnected?.invoke()
                 refreshTasks()
+                // FIELD (2026-10-04, vc33 device): a stale lastError from the OLD
+                // connection (e.g. bridge-degraded) kept rendering "Sync problem" in
+                // the connection center/diagnostics while the machine was CONNECTED —
+                // a fresh connection invalidates the old failure (§14.4.1).
+                _lastError.value = null
                 // Phase 7 §17.5/§28.6 reconnect pass: SAFE_AGGRESSIVE retransmits +
                 // TTL sweep (sendText stays user-gated — INV-4).
                 runCatching { commandCoordinatorOrNull()?.onConnected() }

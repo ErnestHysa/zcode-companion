@@ -445,7 +445,20 @@ class DefaultConversationPort(
         val currency = casCurrency(taskId)
         val outcome = coordinator.switchModelConfig(taskId, provider, model, thought, currency?.first)
         return mapOutcome(outcome).also { r ->
-            if (r == ConversationPort.SendOutcome.ACCEPTED) hub.log.info("port.switchModel", "session=$taskId model=$model")
+            // FIELD (2026-10-04, vc33): "accepted" ≠ applied — the ack status (incl.
+            // noop/stale reasons) is the diagnostic for "picked a model, nothing
+            // changed" field reports; log it verbatim.
+            val ackStatus = (outcome as? com.zcode.android.data.session.CommandCoordinator.Outcome.Accepted)?.ack?.status
+                ?: (outcome as? com.zcode.android.data.session.CommandCoordinator.Outcome.Stale)?.ack?.status
+                ?: (outcome as? com.zcode.android.data.session.CommandCoordinator.Outcome.Failed)?.ack?.status
+            hub.log.info("port.switchModel", "session=$taskId model=$model outcome=$r ackStatus=$ackStatus")
+            // §14.2 command-issuer overlay: reflect an ACCEPTED switch immediately;
+            // the authoritative echo (patch/snapshot) replaces it (INV-1: echo wins).
+            if (r == ConversationPort.SendOutcome.ACCEPTED &&
+                ackStatus == "accepted"
+            ) {
+                hub.coordinatorOrNull()?.applyLocalConfigOverlay(taskId, provider, model, thought)
+            }
         }
     }
 
@@ -479,11 +492,22 @@ class DefaultConversationPort(
         if (bytes.size > com.zcode.android.core.protocol.v4.AttachmentLimits.MAX_BYTES) {
             return ConversationPort.UploadResult.TooLarge
         }
+        // §17.6 parity (FIELD 2026-10-04, vc33: an upload started inside a reconnect
+        // window hung on a dead socket and "didn't go through at all"): the offline
+        // gate runs BEFORE the transaction, so the user gets an instant honest chip
+        // + notice instead of a silent hang.
+        if (hub.phase.value != ConnectionPhase.CONNECTED) {
+            upsertAttachment(
+                taskId,
+                ConversationPort.ComposerAttachment(uploadId, fileName, mime, bytes.size.toLong(), "failed", 0f, null, bytes),
+            )
+            return ConversationPort.UploadResult.BlockedOffline
+        }
         val tools = hub.phase9()
         val (workspacePath, workspaceIdentity) = hub.activeWorkspaceTarget() ?: (null to null)
         upsertAttachment(
             taskId,
-            ConversationPort.ComposerAttachment(uploadId, fileName, mime, bytes.size.toLong(), "uploading", 0f, null),
+            ConversationPort.ComposerAttachment(uploadId, fileName, mime, bytes.size.toLong(), "uploading", 0f, null, bytes),
         )
         // §23.2: checksum over the WHOLE payload (wire grammar sha256:<64 hex>).
         val digest = java.security.MessageDigest.getInstance("SHA-256").digest(bytes)
@@ -528,9 +552,22 @@ class DefaultConversationPort(
             }
             hub.log.warn("port.upload", "task=$taskId ${e.javaClass.simpleName}: ${e.message?.take(120)}")
             runCatching { tools.attachmentAbort(uploadId, taskId) }
-            upsertAttachment(taskId, ConversationPort.ComposerAttachment(uploadId, fileName, mime, bytes.size.toLong(), "failed", 0f, null))
+            upsertAttachment(taskId, ConversationPort.ComposerAttachment(uploadId, fileName, mime, bytes.size.toLong(), "failed", 0f, null, bytes))
             ConversationPort.UploadResult.Failed(e.message)
         }
+    }
+
+    /** One-tap retry of a FAILED upload (payload retained on the failed chip, INV-5
+     *  bounded); re-enters the same transaction path with the SAME uploadId. */
+    override suspend fun retryUpload(taskId: String, uploadId: String): ConversationPort.UploadResult {
+        val att = composerAttachments.value[taskId]?.firstOrNull { it.uploadId == uploadId }
+            ?: return ConversationPort.UploadResult.Failed("attachment not found")
+        val payload = att.payload ?: return ConversationPort.UploadResult.Failed("attachment payload gone — re-attach the file")
+        // Remove the failed entry first (the transaction re-adds uploading/ready).
+        composerAttachments.value = (composerAttachments.value[taskId] ?: emptyList())
+            .filterNot { it.uploadId == uploadId }
+            .let { composerAttachments.value + (taskId to it) }
+        return uploadAttachment(taskId, att.fileName, att.mime, payload, uploadId) { _, _ -> }
     }
 
     override suspend fun removeUpload(uploadId: String) {

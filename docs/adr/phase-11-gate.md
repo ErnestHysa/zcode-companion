@@ -241,3 +241,56 @@ Suite evidence: JVM full matrix 616 tests with 1–2 MOVING contention flakes in
 `ConnectionHub*Test` (same class, different test per run; 23/23 green ×2 in
 isolation — the documented Phase 6/9/10 load class), instrumented 11/11 on the
 ATD API-30 emulator. Artifact: `app-debug.apk` **0.11.1-phase11 (versionCode 33)**.
+
+## 9. Field fix round 2 (2026-10-04, vc34) — canary session defects
+
+Ernest's second S24 field session (vc33, desktop 3.14.4, production relay) — this
+IS the §43-12-style compatibility canary in early form. Four defects fixed:
+
+1. **Task duplication into another workspace (the big one).** The desktop's
+   bootstrap `initialViewState.activeTaskId` and `activeWorkspaceKey` are
+   INDEPENDENT fields: the active task can live in a different workspace than
+   the active workspace key (field log: `bridge.open ws=…/android-native
+   task=sess_53e16b04` where the task lived in …/pragma). `workspace-bridge-open`
+   with that mismatched pair triggers the desktop's resume semantics = the task
+   FORKS into the wrong workspace (idle duplicate; original keeps running).
+   FIX (`RelayTransport.openBridgeInternal`): the bridged workspace is resolved
+   FROM the bridged task via the bootstrap task list (§7.11); when the named
+   task is NOT in the list its workspace is unverifiable and the desktop-named
+   pair is bridged as-is (round-5 verified contract — asserted by
+   `RelayTransportFreshDiscoveryTest`, which caught my first overreach).
+   REGRESSION: `RelayTransportBridgePairConsistencyTest` ×2 (mismatched pair →
+   the TASK's workspace; unlisted task → named pair preserved). Mock extended:
+   the strict bridge validator accepts pairs consistent with the bootstrap list.
+2. **Model/mode switch "doesn't change anything".** Three switch commands were
+   ACCEPTED by the desktop (`port.switchModel ×3`) yet the picker state never
+   moved: the outcome was fire-and-forgotten and there was no echo overlay.
+   FIX: ack status logged verbatim (`outcome=/ackStatus=`); an ACCEPTED switch
+   applies the §14.2 command-issuer overlay (`manager.applyLocalConfigOverlay`
+   — reflected immediately, replaced wholesale by the runtime echo, INV-1);
+   non-acceptance (blocked/stale/refused) surfaces a §33 composer notice
+   (ViewModel no longer drops outcomes).
+3. **Attachment upload "doesn't go through at all".** The upload started inside
+   a reconnect window and hung on a dead socket (`attachmentBeginV4 failed:
+   channel closed 1006` at 10:21:13); the failure never reached the user (the
+   ViewModel discarded the UploadResult). FIX: §17.6-parity offline gate BEFORE
+   the transaction (instant honest chip), upload/switch outcomes surfaced via
+   composer notices, and failed chips carry a one-tap RETRY (payload retained
+   on the failed chip only — INV-5-bounded; nulled on commit/remove).
+4. **resync notOwned loop** (the vc32 fix's own long tail): with
+   `baseIsCurrent=true` the desktop STILL refused resyncs (`notOwned` ×5, once
+   per watchdog window, forever — the same workspace mismatch as (1) poisoning
+   server-side subscription resolution). FIX: when a resync is refused by the
+   server (serverSpoke fault), the escalation falls back to a FRESH SUBSCRIBE
+   (§15-S10's "resync failed → full snapshot", the subscribe being the only
+   server-honorable re-anchor); verified RED without the guard.
+   Also: the hub's stale `lastError` (bridge-degraded) is now cleared on every
+   CONNECTED (it kept rendering "Sync problem" over a healthy connection).
+
+Suite evidence: JVM 620 tests — the 2 failures in the full-matrix run were (a)
+the known `ConnectionHubWritePathTest` moving contention flake (9/9 green in
+isolation) and (b) `RelayTransportFreshDiscoveryTest` — a REAL regression my
+first fallback introduced (breaking the round-5 named-pair contract), caught by
+the suite and fixed in-round; both bridge classes 4/4 green after. Instrumented
+11/11 (ATD API-30). Watchdog/escalation suite now 6/6 (fallback + overlay cells
+RED-verified). Artifact: `app-debug.apk` **0.11.2-phase11 (versionCode 34)**.

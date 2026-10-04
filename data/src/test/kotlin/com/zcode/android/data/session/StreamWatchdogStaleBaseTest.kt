@@ -59,6 +59,9 @@ class StreamWatchdogStaleBaseTest {
         data class ResyncCall(val sessionId: String, val baseEpoch: String?, val baseSeq: Long?, val force: Boolean)
 
         val resyncCalls = java.util.concurrent.ConcurrentLinkedQueue<ResyncCall>()
+        val subscribeCalls = java.util.concurrent.ConcurrentLinkedQueue<String>()
+        /** When true, resync throws the vc33 serverSpoke fault.subscription.notOwned. */
+        @Volatile var resyncFailsNotOwned = false
         @Volatile var currentEpoch: String? = null
         val bus = MutableSharedFlow<GatewayTopicEvent>(extraBufferCapacity = 64)
         override val topicEvents: SharedFlow<GatewayTopicEvent> = bus
@@ -69,7 +72,10 @@ class StreamWatchdogStaleBaseTest {
             visibility: String?,
             workspacePath: String?,
             workspaceIdentity: String?,
-        ): GatewayAck = GatewayAck("sub-${sessionId.take(6)}", "snapshot", currentEpoch ?: "epoch-unset")
+        ): GatewayAck {
+            subscribeCalls.add(sessionId)
+            return GatewayAck("sub-${sessionId.take(6)}", "snapshot", currentEpoch ?: "epoch-unset")
+        }
 
         override suspend fun resync(
             sessionId: String,
@@ -80,6 +86,18 @@ class StreamWatchdogStaleBaseTest {
             workspaceIdentity: String?,
         ): GatewayAck {
             resyncCalls.add(ResyncCall(sessionId, baseEpoch, baseSeq, forceSnapshot))
+            if (resyncFailsNotOwned) {
+                throw com.zcode.android.core.transport.TransportFailure(
+                    com.zcode.android.core.common.error.AppError(
+                        category = com.zcode.android.core.common.error.ErrorCategory.PROTOCOL,
+                        userMessage = "Sync problem",
+                        developerDiagnostic = "channel error: fault.subscription.notOwned",
+                        retryable = com.zcode.android.core.common.error.AppError.Retryable.AUTO,
+                        recoverable = true,
+                        correlation = com.zcode.android.core.common.error.Correlation(),
+                    ),
+                )
+            }
             return GatewayAck("sub-resync", "snapshot", currentEpoch ?: "epoch-unset")
         }
 
@@ -226,6 +244,52 @@ class StreamWatchdogStaleBaseTest {
             ),
         )
         return Triple(coordinator, gateway, transport)
+    }
+
+    @Test
+    fun resyncRefusedByServer_fallsBackToFreshSubscribe() = runBlocking {
+        // FIELD (vc33): the desktop rejected EVERY resync with
+        // fault.subscription.notOwned — the old path re-sent the SAME failing resync
+        // forever (5× in the field). §15-S10: resync failed → FULL SNAPSHOT, which
+        // here means a FRESH SUBSCRIBE (a new server-owned subscription).
+        var now = 5_000_000L
+        val (coordinator, gateway, _) = harness(clock = { now })
+        gateway.currentEpoch = "epoch-new"
+        gateway.resyncFailsNotOwned = true
+
+        coordinator.startTargets(listOf(RecoveryCoordinator.SessionTarget("S")))
+        now += 5_000
+        // The watchdog escalates once, hits the refused resync, and anchors a fresh
+        // subscribe (the attach subscribe is #1; the fallback is #2).
+        withTimeout(5_000) {
+            while (gateway.subscribeCalls.size < 2) kotlinx.coroutines.delay(25)
+        }
+        assertTrue("escalation happened", gateway.resyncCalls.isNotEmpty())
+        assertEquals("S", gateway.subscribeCalls.last())
+        coordinator.close()
+    }
+
+    @Test
+    fun localConfigOverlay_reflectedUntilEchoReplaces() = runBlocking {
+        // §14.2 command-issuer overlay (vc33: accepted switches showed no change).
+        var now = 6_000_000L
+        val (coordinator, gateway, _) = harness(clock = { now })
+        gateway.currentEpoch = "epoch-new"
+        coordinator.startTargets(listOf(RecoveryCoordinator.SessionTarget("S")))
+        applyDirect(coordinator, "S", "epoch-new", toSeq = 10, rows = listOf(runningTurnRow(1)))
+        awaitTaskState(coordinator, "S", com.zcode.android.domain.state.TaskStateMachine.State.RUNNING)
+        coordinator.applyLocalConfigOverlay("S", provider = "zai", model = "glm-5.3", thought = "high")
+        assertEquals(
+            "the accepted switch is reflected immediately (echo replaces it later)",
+            "glm-5.3",
+            coordinator.manager("S")!!.sessionState.value.config?.model,
+        )
+        // The authoritative echo REPLACES the overlay wholesale (INV-1: desktop wins).
+        applyDirect(
+            coordinator, "S", "epoch-new", toSeq = 11,
+            rows = emptyList(),
+        )
+        coordinator.close()
     }
 
     @Test
