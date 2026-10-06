@@ -362,6 +362,7 @@ class RecoveryCoordinator(
     when (state) {
             ConnectionStateMachine.ConnectionState.CONNECTED -> {
                 for (m in all) m.setStale(false)
+                synchronized(sessionWatchdogStrikes) { sessionWatchdogStrikes.clear() }
                 reconcileAfterRecovery()
                 // Round-8: re-anchor sessions whose original subscribe failed while
                 // the transport was down (field: "task can't load even after retry").
@@ -486,9 +487,18 @@ class RecoveryCoordinator(
      */
     private val sessionLastFrameAtMs = HashMap<String, Long>()
     private val sessionLastWatchdogResyncMs = HashMap<String, Long>()
+    private val sessionWatchdogStrikes = HashMap<String, Int>()
+
+    /** FIELD (vc34): cap consecutive watchdog escalations per session — each round
+     *  re-subscribes, and a desktop cold-resume on a wrong workspace pair can FORK
+     *  the task server-side; hammering every 30 s multiplies the damage. After the
+     *  cap the session stays honestly stale until a frame, a reconnect, or the user
+     *  resets it. */
+    private val watchdogMaxStrikes = 4
 
     private fun markFrame(sessionId: String) {
         synchronized(sessionLastFrameAtMs) { sessionLastFrameAtMs[sessionId] = clock() }
+        synchronized(sessionWatchdogStrikes) { sessionWatchdogStrikes.remove(sessionId) }
     }
 
     private fun armWatchdog(sessionId: String) {
@@ -513,6 +523,17 @@ class RecoveryCoordinator(
             val lastResync = synchronized(sessionLastWatchdogResyncMs) { sessionLastWatchdogResyncMs[m.sessionId.raw] } ?: 0L
             now - lastFrame >= config.streamWatchdogIdleMs && now - lastResync >= config.streamWatchdogResyncGapMs
         } ?: return
+        val strikes = synchronized(sessionWatchdogStrikes) { (sessionWatchdogStrikes[stalled.sessionId.raw] ?: 0) + 1 }
+        if (strikes > watchdogMaxStrikes) {
+            // Cap reached: stop re-subscribing (each round can cold-resume server-side).
+            // Honest staleness; a frame, a reconnect, or the user resets the session.
+            if (strikes == watchdogMaxStrikes + 1) {
+                log.warn("recovery.streamWatchdogCapped", "session=${stalled.sessionId.raw} strikes=$strikes — stopped until reconnect/frame")
+                stalled.setStale(true)
+            }
+            return
+        }
+        synchronized(sessionWatchdogStrikes) { sessionWatchdogStrikes[stalled.sessionId.raw] = strikes }
         synchronized(sessionLastWatchdogResyncMs) { sessionLastWatchdogResyncMs[stalled.sessionId.raw] = now }
         val idleMs = now - (synchronized(sessionLastFrameAtMs) { sessionLastFrameAtMs[stalled.sessionId.raw] } ?: now)
         log.warn("recovery.streamWatchdog", "no frames for ${idleMs}ms — re-kick session=${stalled.sessionId.raw}")

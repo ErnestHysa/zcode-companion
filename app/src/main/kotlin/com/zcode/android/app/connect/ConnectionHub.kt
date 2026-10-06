@@ -686,12 +686,24 @@ class ConnectionHub(
         return openMutex.withLock {
             val coordinator = ensureCoordinator()
             if (openedSessions.add(task.taskId)) {
+                // FIELD (2026-10-06, vc34 device — TASK DUPLICATION round 2): the
+                // subscribe carries `workspacePath` and the desktop COLD-RESUMES the
+                // session into the given workspace when the pair doesn't match its own
+                // tasks-index (transport.ts: "cold resume 优先使用它恢复身份"). We were
+                // sending the §7.11 IDENTITY KEY where a PATH belongs — unresolvable
+                // for workspaces whose key isn't a path (e.g. the "default"/"Tasks"
+                // workspace) → the desktop re-homed the task into the BRIDGE's
+                // workspace (the observed default→android-native duplicates) and
+                // routed the original session's frames to nobody (the freeze/watchdog
+                // loops). Resolve the key to the desktop-reported PATH and send BOTH.
+                val ws = _workspaces.value.firstOrNull { it.key == task.workspace.raw }
+                val wsPath = ws?.path?.takeIf { it.isNotBlank() } ?: taskWorkspacePath(task)
                 coordinator.startTargets(
                     listOf(
                         RecoveryCoordinator.SessionTarget(
                             sessionId = task.taskId,
-                            workspacePath = taskWorkspacePath(task),
-                            workspaceIdentity = null,
+                            workspacePath = wsPath,
+                            workspaceIdentity = task.workspace.raw,
                         ),
                     ),
                 )

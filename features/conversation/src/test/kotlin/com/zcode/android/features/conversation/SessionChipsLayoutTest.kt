@@ -3,7 +3,11 @@ package com.zcode.android.features.conversation
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
 import com.zcode.android.domain.model.SessionConfigState
@@ -116,5 +120,15 @@ class SessionChipsLayoutTest {
 
         // The timeline survives with real height (the field bug collapsed it to 0).
         assertTrue("timeline collapsed: $list", list.height / density >= 120f)
+
+        // §10.3: the mode picker renders ALL FOUR verified modes (build/edit/plan/
+        // yolo — command.ts:216). FIELD (vc34): the user reported seeing three — the
+        // clipped-DropdownMenu class; the dialog lists every option un-clipped.
+        rule.onNodeWithTag("conv_mode_chip").performClick()
+        rule.waitForIdle()
+        for (mode in listOf("build", "edit", "plan", "yolo")) {
+            // substring: the current mode renders as "• <mode>" beside the chip label
+            rule.onAllNodesWithText(mode, substring = true).onFirst().assertExists()
+        }
     }
 }

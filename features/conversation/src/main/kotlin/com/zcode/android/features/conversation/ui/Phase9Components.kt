@@ -53,7 +53,7 @@ fun SessionModeChips(
     modelOptionsProvider: suspend () -> List<ModelProviderOption>,
     modifier: Modifier = Modifier,
 ) {
-    var modeMenu by remember { mutableStateOf(false) }
+    var modeSheet by remember { mutableStateOf(false) }
     var modelSheet by remember { mutableStateOf(false) }
     val modeA11y = config?.let { stringResource(R.string.mode_a11y, it.mode) }
     val modelA11y = config?.let { stringResource(R.string.model_a11y, it.model, it.thought) }
@@ -74,7 +74,7 @@ fun SessionModeChips(
         if (config == null) return@Row
         // Mode chip — options are the VERIFIED switchable set (auto excluded, §10.3).
         AssistChip(
-            onClick = { modeMenu = true },
+            onClick = { modeSheet = true },
             label = {
                 Text(
                     "mode: ${config.mode}",
@@ -86,17 +86,6 @@ fun SessionModeChips(
                 .testTag("conv_mode_chip")
                 .semantics { modeA11y?.let { contentDescription = it } },
         )
-        DropdownMenu(expanded = modeMenu, onDismissRequest = { modeMenu = false }) {
-            for (mode in SessionConfigState.SWITCHABLE_MODES) {
-                DropdownMenuItem(
-                    text = { Text(if (mode == config.mode) "• $mode" else mode) },
-                    onClick = {
-                        modeMenu = false
-                        if (mode != config.mode) onSwitchMode(mode)
-                    },
-                )
-            }
-        }
         // Model chip — provider/model/thought from the echo; options from model-selection.
         AssistChip(
             onClick = { modelSheet = true },
@@ -111,6 +100,34 @@ fun SessionModeChips(
                 .weight(1f, fill = false)
                 .testTag("conv_model_chip")
                 .semantics { modelA11y?.let { contentDescription = it } },
+        )
+    }
+    if (modeSheet && config != null) {
+        // FIELD (2026-10-06, vc34 device): a DropdownMenu anchored at the very top of
+        // the screen (this chip row) can flip upward and CLIP items at the status bar
+        // (edge-to-edge popup insets) — the field report "macOS shows 4 modes, Android
+        // shows 3". A modal dialog lists all options un-clipped, matching the model
+        // picker's pattern.
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { modeSheet = false },
+            confirmButton = { TextButton(onClick = { modeSheet = false }) { Text(stringResource(R.string.action_close)) } },
+            title = { Text(stringResource(R.string.switch_mode_title), style = MaterialTheme.typography.titleSmall) },
+            text = {
+                Column {
+                    for (mode in SessionConfigState.SWITCHABLE_MODES) {
+                        androidx.compose.material3.ListItem(
+                            headlineContent = { Text(if (mode == config.mode) "• $mode" else mode) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    modeSheet = false
+                                    if (mode != config.mode) onSwitchMode(mode)
+                                }
+                                .testTag("mode_option_$mode"),
+                        )
+                    }
+                }
+            },
         )
     }
     if (modelSheet && config != null) {

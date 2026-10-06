@@ -33,6 +33,8 @@ object BootstrapParser {
         val workspacePath: String?,
         val createdAtMs: Long,
         val updatedAtMs: Long,
+        /** Raw desktop-reported workspace identity ("" when absent — diagnostics). */
+        val workspaceIdentityRaw: String = "",
     )
 
     data class Result(
@@ -107,6 +109,7 @@ object BootstrapParser {
                     workspacePath = path,
                     createdAtMs = obj.longOrZero("createdAt"),
                     updatedAtMs = obj.longOrZero("updatedAt"),
+                    workspaceIdentityRaw = identity ?: "",
                 ),
             )
         }

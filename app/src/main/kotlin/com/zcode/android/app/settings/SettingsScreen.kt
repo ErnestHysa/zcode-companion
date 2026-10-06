@@ -500,6 +500,10 @@ private suspend fun buildDiagnosticReport(container: AppContainer, context: andr
     appendLine("desktopAppVersion: ${diagSnap.desktopAppVersion ?: "unknown"}")
     appendLine("desktopAboveTested: ${diagSnap.desktopAboveTested}")
     appendLine()
+    appendLine("--- workspace resolution (key → path, bootstrap-reported) ---")
+    for (ws in container.hub.workspaces.value) {
+        appendLine("  key=${ws.key.take(60)} path=${ws.path?.take(60) ?: "<null>"} label=${ws.label.take(30)}")
+    }
     appendLine("--- pairing identity (non-secret, INV-3) ---")
     appendLine("endpointId: ${endpoint?.endpointId?.raw ?: "n/a"}")
     appendLine("deviceSid: ${endpoint?.deviceSid?.take(8) ?: "n/a"}…")

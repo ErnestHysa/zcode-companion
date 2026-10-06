@@ -294,3 +294,53 @@ first fallback introduced (breaking the round-5 named-pair contract), caught by
 the suite and fixed in-round; both bridge classes 4/4 green after. Instrumented
 11/11 (ATD API-30). Watchdog/escalation suite now 6/6 (fallback + overlay cells
 RED-verified). Artifact: `app-debug.apk` **0.11.2-phase11 (versionCode 34)**.
+
+## 10. Field fix round 3 (2026-10-06, vc35) — duplication root cause + freeze + modes
+
+Third S24 canary session (vc34, desktop 3.14.4). The field log finally exposed
+the COMMON ROOT of the two worst symptoms:
+
+1. **Task duplication (persists) + conversation freeze = ONE root cause.** The
+   v4 subscribe's workspace contract (reference clone transport.ts:421-427):
+   the subscribe carries the current trusted attachment's workspace ref, and a
+   subscribe for a session NOT in that workspace triggers the desktop's COLD
+   RESUME — it creates a NEW session in the given workspace continuing the old
+   conversation (the "duplicate"), while the original keeps running. We sent
+   the §7.11 IDENTITY KEY as `workspacePath`; for workspaces whose key isn't a
+   desktop-resolvable path (the "default"/"Tasks" workspace), the desktop
+   couldn't match the pair → cold-resumed the task into the BRIDGE's workspace
+   (android-native) → the duplicate; and the original session's frames were
+   routed to nobody → subscribe ok but NO snapshot ever → the watchdog/fallback
+   loop re-subscribed (with the same wrong key) every 30 s forever (9× in 4 min
+   for sess_96e37ec8 — each round potentially forking AGAIN). The 1 MB rpc
+   frames in the log were the sessions-index refresh, not conversation frames.
+   FIX (`ConnectionHub.openConversation`): resolve the task's workspace key to
+   the desktop-reported PATH via the workspace list; send workspacePath=<path>
+   AND workspaceIdentity=<key> (the verified both-fields shape,
+   validation.ts:216/246). The freeze and the fork share this fix.
+   DEFENSE: watchdog strike cap — after 4 consecutive per-session watchdog
+   escalations without a frame, stop re-subscribing (honest staleness; each
+   round can cold-resume server-side, so hammering multiplies damage); reset on
+   any frame or CONNECTED. Test: `StreamWatchdogStaleBaseTest` extended.
+   DIAGNOSTICS: the export now prints the workspace resolution table (key →
+   path, bootstrap-reported) and the parser retains the raw identity — next
+   canary round gives ground truth on what the desktop reports per task.
+2. **Stale approval cards in the inbox** — same root: the frozen session's
+   authoritative `pendingInteractions` never arrived, so answered/collapsed
+   interactions never reconciled to RESOLVED. Healed by the routing fix (the
+   reconcile path itself is correct and tested).
+3. **Mode picker shows 3 of 4 modes.** The verified set (build|edit|plan|yolo,
+   command.ts:216 — re-verified in the reference clone today) is what we ship;
+   the dropdown was anchored at the TOP of the screen where a flipped popup can
+   clip items at the status bar (edge-to-edge insets) — exactly a "one option
+   missing" look. FIX: the mode picker is now a modal dialog (all options
+   un-clipped; same pattern as the model picker). UI test pins all four render.
+4. **Background connection drops** — working as designed (§24.4/§25.3): no
+   push exists on the relay and backgrounded sockets die without the
+   Live-connection FGS. The opt-in toggle ships in Settings → Notifications →
+   "Live connection" (Phase 8). User guidance, not a defect.
+
+Suite evidence: JVM 621 tests / 0 failures (forced re-run, includes the 2.2 MB
+large-frame transport probe `RelayTransportLargeFrameTest` and the watchdog
+suite at 6/6). Instrumented 11/11 (ATD API-30). Artifact: `app-debug.apk`
+**0.11.3-phase11 (versionCode 35)**.
