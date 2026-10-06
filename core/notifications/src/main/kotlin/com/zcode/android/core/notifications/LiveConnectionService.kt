@@ -52,7 +52,9 @@ class LiveConnectionService : Service() {
         NotificationChannels.ensure(this)
         startForegroundCompat()
         handler.removeCallbacks(timeoutRunnable)
-        handler.postDelayed(timeoutRunnable, autoTimeoutMs)
+        // §24.5 (vc35 user feedback): the window is user-customizable; 0 = stay
+        // connected until the user turns the toggle off (no auto-timeout).
+        if (autoTimeoutMs > 0) handler.postDelayed(timeoutRunnable, autoTimeoutMs)
         return START_NOT_STICKY
     }
 

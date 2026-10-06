@@ -259,10 +259,11 @@ fun ZCodeApp(
                 phase = phase,
                 onBack = { nav.popBackStack() },
                 onOpenTask = { taskId -> nav.navigate(Routes.conversation(taskId)) },
-                onAnswer = { interactionId, optionId, freeText ->
+                onAnswer = { interactionId, optionId, freeText, onOutcome ->
                     container.log.info("approvals.answer", "interaction=${interactionId.take(12)} option=$optionId")
                     scope.launch {
-                        container.conversationPort.answerFromInbox(interactionId, optionId, freeText)
+                        val outcome = container.conversationPort.answerFromInbox(interactionId, optionId, freeText)
+                        onOutcome(outcome)
                     }
                 },
                 scope = scope,

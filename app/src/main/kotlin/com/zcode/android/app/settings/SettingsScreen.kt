@@ -661,6 +661,26 @@ private fun NotificationsSection(container: AppContainer) {
         },
     )
 
+    // §24.5 (vc35 user feedback): the auto-timeout window is CUSTOMIZABLE — the
+    // fixed 30-minute window stranded users who stepped away (approvals stopped
+    // arriving mid-work). 0 = stay connected until toggled off.
+    val windowOptions = listOf(15, 30, 60, 240, 0)
+    SettingsRow(
+        title = stringResource(R.string.settings_live_window),
+        subtitle = stringResource(
+            R.string.settings_live_window_sub,
+            if (prefs.liveConnectionTimeoutMinutes == 0) stringResource(R.string.settings_live_window_none)
+            else stringResource(R.string.settings_live_window_value, prefs.liveConnectionTimeoutMinutes),
+        ),
+        tag = "settings_live_window",
+        onClick = {
+            scope.launch {
+                val next = windowOptions[(windowOptions.indexOf(prefs.liveConnectionTimeoutMinutes) + 1) % windowOptions.size]
+                container.stores.preferencesRepository.update { p -> p.copy(liveConnectionTimeoutMinutes = next) }
+            }
+        },
+    )
+
     // §24.5/§25.2 Live connection (FGS candidate). Started HERE, from the
     // foreground; API 33+ first asks for POST_NOTIFICATIONS (the indicator IS the
     // required FGS notification).

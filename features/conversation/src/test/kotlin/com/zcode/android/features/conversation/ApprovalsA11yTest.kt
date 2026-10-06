@@ -48,6 +48,8 @@ class ApprovalsA11yTest {
     )
 
     private fun setContent(interactions: List<ConversationPort.InteractionSummary>, onAnswer: (String, String, String?) -> Unit = { _, _, _ -> }) {
+        val wrapped: (String, String, String?, (ConversationPort.AnswerOutcome) -> Unit) -> Unit =
+            { a, b, c, onOutcome -> onAnswer(a, b, c); onOutcome(ConversationPort.AnswerOutcome.SUBMITTED) }
         rule.setContent {
             ZCodeTheme {
                 ApprovalsScreen(
@@ -55,7 +57,7 @@ class ApprovalsA11yTest {
                     phase = ConnectionPhase.CONNECTED,
                     onBack = {},
                     onOpenTask = {},
-                    onAnswer = onAnswer,
+                    onAnswer = wrapped,
                     scope = scope,
                 )
             }
@@ -142,7 +144,7 @@ class ApprovalsZhCnTest {
                 ApprovalsScreen(
                     interactions = listOf(record),
                     phase = ConnectionPhase.CONNECTED,
-                    onBack = {}, onOpenTask = {}, onAnswer = { _, _, _ -> }, scope = scope,
+                    onBack = {}, onOpenTask = {}, onAnswer = { _, _, _, _ -> }, scope = scope,
                 )
             }
         }

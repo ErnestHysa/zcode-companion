@@ -56,4 +56,16 @@ object StoreDiffs {
     /** Interaction ids of an open list (the wiring's previous-snapshot shape). */
     fun interactionIds(records: List<InteractionRepository.InteractionRecord>): Set<String> =
         records.map { it.interactionId.raw }.toSet()
+
+    /**
+     * FIELD (2026-10-06, vc35 user report — "answered approvals re-post on every
+     * background; the badge stays 4"): CLOSED interactions (present before, absent
+     * or resolved now) must DISMISS their broker records. The old wiring only ever
+     * looked for NEW open interactions — a resolved interaction's tray record stayed
+     * unseen forever and §15-S13 re-posted it on every background entry.
+     */
+    fun closedInteractions(previousIds: Set<String>, current: List<InteractionRepository.InteractionRecord>): Set<String> {
+        val openNow = interactionIds(current)
+        return previousIds - openNow
+    }
 }

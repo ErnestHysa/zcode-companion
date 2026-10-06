@@ -120,6 +120,7 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
         autoReconnectProbe = if (hasAutoReconnectProbe()) autoReconnectProbe else false,
         terminalOptIn = if (hasTerminalOptIn()) terminalOptIn else false,
         selectedEndpointId = if (hasSelectedEndpointId()) selectedEndpointId else null,
+        liveConnectionTimeoutMinutes = if (hasLiveConnectionTimeoutMinutes()) liveConnectionTimeoutMinutes else 30,
     )
 
     private fun AppPreferences.toProto(): AppPreferencesProto {
@@ -127,6 +128,7 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
         // selectedEndpointId property, which would shadow the model's inside apply{}.
         val selected = selectedEndpointId
         return AppPreferencesProto.newBuilder()
+            .setLiveConnectionTimeoutMinutes(liveConnectionTimeoutMinutes)
             .setSchemaVersion(EndpointRepositoryImpl.SCHEMA_VERSION)
             .setNotificationContentLevel(notificationContentLevel.name)
             .setScreenshotProtection(screenshotProtection)

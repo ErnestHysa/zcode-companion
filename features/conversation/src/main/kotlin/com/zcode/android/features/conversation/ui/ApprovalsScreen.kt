@@ -56,12 +56,16 @@ fun ApprovalsScreen(
     phase: com.zcode.android.domain.state.ConnectionPhase,
     onBack: () -> Unit,
     onOpenTask: (taskId: String) -> Unit,
-    onAnswer: (interactionId: String, optionId: String, freeText: String?) -> Unit,
+    onAnswer: (interactionId: String, optionId: String, freeText: String?, onOutcome: (ConversationPort.AnswerOutcome) -> Unit) -> Unit,
     scope: CoroutineScope,
     modifier: Modifier = Modifier,
 ) {
     var denyTarget by remember { mutableStateOf<ConversationPort.InteractionSummary?>(null) }
     var busyId by remember { mutableStateOf<String?>(null) }
+    // FIELD (vc35 user report — "answered but the cards stay active"): answer
+    // failures were silent; the user believed a request was handled while the
+    // authoritative answer never landed. Every non-submit outcome surfaces now.
+    var answerError by remember { mutableStateOf<String?>(null) }
 
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -105,6 +109,16 @@ fun ApprovalsScreen(
                     modifier = Modifier
                         .padding(horizontal = 16.dp, vertical = 6.dp)
                         .testTag("approvals_offline_note"),
+                )
+            }
+            answerError?.let { err ->
+                Text(
+                    text = err,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .testTag("approvals_answer_error"),
                 )
             }
             if (interactions.isEmpty()) {
@@ -160,9 +174,15 @@ fun ApprovalsScreen(
                                         Button(
                                             onClick = {
                                                 busyId = record.interactionId
+                                                answerError = null
                                                 scope.launch {
                                                     try {
-                                                        onAnswer(record.interactionId, "allowOnce", null)
+                                                        onAnswer(record.interactionId, "allowOnce", null) { outcome ->
+                                                            busyId = null
+                                                            if (outcome != ConversationPort.AnswerOutcome.SUBMITTED) {
+                                                                answerError = "The answer was not confirmed — open the task and answer there."
+                                                            }
+                                                        }
                                                     } finally {
                                                         busyId = null
                                                     }
@@ -177,7 +197,7 @@ fun ApprovalsScreen(
                                         Spacer(Modifier.height(0.dp))
                                         androidx.compose.foundation.layout.PaddingValues(4.dp)
                                         OutlinedButton(
-                                            onClick = { denyTarget = record },
+                                            onClick = { answerError = null; denyTarget = record },
                                             enabled = busyId == null,
                                             modifier = Modifier
                                                 .heightIn(min = 56.dp)
@@ -208,9 +228,15 @@ fun ApprovalsScreen(
                     onClick = {
                         denyTarget = null
                         busyId = target.interactionId
+                        answerError = null
                         scope.launch {
                             try {
-                                onAnswer(target.interactionId, "deny", null)
+                                onAnswer(target.interactionId, "deny", null) { outcome ->
+                                    busyId = null
+                                    if (outcome != ConversationPort.AnswerOutcome.SUBMITTED) {
+                                        answerError = "The answer was not confirmed — open the task and answer there."
+                                    }
+                                }
                             } finally {
                                 busyId = null
                             }

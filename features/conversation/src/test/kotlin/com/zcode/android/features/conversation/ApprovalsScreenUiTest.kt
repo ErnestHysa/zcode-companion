@@ -46,7 +46,7 @@ class ApprovalsScreenUiTest {
     private fun setContent(
         interactions: List<ConversationPort.InteractionSummary>,
         phase: ConnectionPhase = ConnectionPhase.CONNECTED,
-        onAnswer: (String, String, String?) -> Unit = { _, _, _ -> },
+        onAnswer: (String, String, String?, (ConversationPort.AnswerOutcome) -> Unit) -> Unit = { _, _, _, _ -> },
     ) {
         rule.setContent {
             ZCodeTheme {
@@ -78,7 +78,7 @@ class ApprovalsScreenUiTest {
     @Test
     fun permissionRow_allowOnce_answersImmediately() {
         var answered: Pair<String, String>? = null
-        setContent(listOf(record("i-allow"))) { iid, opt, _ -> answered = iid to opt }
+        setContent(listOf(record("i-allow"))) { iid, opt, _, _ -> answered = iid to opt }
         rule.onNodeWithTag("approvals_allow_once_i-allow").performClick()
         rule.waitForIdle()
         org.junit.Assert.assertEquals("i-allow" to "allowOnce", answered)
@@ -87,7 +87,7 @@ class ApprovalsScreenUiTest {
     @Test
     fun permissionRow_denyRequiresConfirm() {
         var answered: Pair<String, String>? = null
-        setContent(listOf(record("i-deny"))) { iid, opt, _ -> answered = iid to opt }
+        setContent(listOf(record("i-deny"))) { iid, opt, _, _ -> answered = iid to opt }
         rule.onNodeWithTag("approvals_deny_i-deny").performClick()
         rule.waitForIdle()
         org.junit.Assert.assertNull(answered) // §20.2: deny ALWAYS confirms
@@ -108,7 +108,7 @@ class ApprovalsScreenUiTest {
                     phase = ConnectionPhase.CONNECTED,
                     onBack = {},
                     onOpenTask = { opened = it },
-                    onAnswer = { _, _, _ -> },
+                    onAnswer = { _, _, _, _ -> },
                     scope = scope,
                 )
             }

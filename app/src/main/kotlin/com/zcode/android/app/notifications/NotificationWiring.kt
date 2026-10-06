@@ -96,6 +96,15 @@ class NotificationWiring(
             runCatching { stores.preferencesRepository.current().notificationContentLevel }
                 .getOrDefault(com.zcode.android.domain.model.AppPreferences.NotificationContentLevel.MINIMAL)
         }
+        // §24.5 (vc35 user feedback): the Live-connection window is user-customizable
+        // (0 = no auto-timeout). Live-updates the FGS while running; start() re-reads
+        // it on every toggle-on.
+        scope.launch {
+            stores.preferencesRepository.observe().collect { prefs ->
+                com.zcode.android.core.notifications.LiveConnectionService.autoTimeoutMs =
+                    prefs.liveConnectionTimeoutMinutes.coerceAtLeast(0).toLong() * 60_000L
+            }
+        }
 
         // Endpoint-scoped collectors re-bind on pairing changes (the hub phase is
         // the endpoint lifecycle proxy: UNPAIRED → empty sources).
@@ -105,7 +114,8 @@ class NotificationWiring(
                 if (e == null) flowOf(emptyList<InteractionRepository.InteractionRecord>())
                 else stores.interactionRepository.observeOpen(e.endpointId)
             }.collect { records ->
-                val fresh = StoreDiffs.newOpenInteractions(seenInteractionIds, records)
+                val previousIds = seenInteractionIds
+                val fresh = StoreDiffs.newOpenInteractions(previousIds, records)
                 seenInteractionIds = StoreDiffs.interactionIds(records)
                 knownInteractionIds.set(seenInteractionIds)
                 for ((record, kind) in fresh) {
@@ -117,6 +127,17 @@ class NotificationWiring(
                             taskTitle = null,
                         )
                     }.onFailure { log.warn("notify.attentionFault", it.javaClass.simpleName) }
+                }
+                // FIELD (vc35): CLOSED interactions (answered/resolved/expired —
+                // anything that left the authoritative open set) must dismiss their
+                // broker records. Without this, a resolved interaction's tray record
+                // stayed unseen and §15-S13 re-posted it on EVERY background entry
+                // (the "all 4 notifications every time" report), and the badge kept
+                // counting answered requests.
+                val closed = StoreDiffs.closedInteractions(previousIds, records)
+                if (closed.isNotEmpty()) {
+                    runCatching { broker.dismiss(closed.map { "interaction:$it" }) }
+                        .onFailure { log.warn("notify.closedDismiss", it.javaClass.simpleName) }
                 }
             }
         }

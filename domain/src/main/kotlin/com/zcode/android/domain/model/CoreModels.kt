@@ -187,6 +187,10 @@ data class AppPreferences(
     val terminalOptIn: Boolean = false,
     /** §11.6 selected (active) endpoint — null = the paired relay endpoint (Phase 10). */
     val selectedEndpointId: String? = null,
+    /** §24.5 Live-connection FGS auto-timeout in minutes (0 = no timeout). FIELD
+     *  (vc35 user feedback): the fixed 30-minute window stranded users who stepped
+     *  away — approvals stopped arriving mid-work. Customizable, default 30. */
+    val liveConnectionTimeoutMinutes: Int = 30,
 ) {
     enum class NotificationContentLevel { MINIMAL, CONTENT }
 }

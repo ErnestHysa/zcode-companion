@@ -57,8 +57,12 @@ class RecoveryCoordinator(
          * re-send-safe; replay is gap-free) to re-kick delivery, rate-limited to
          * once per [streamWatchdogResyncGapMs].
          */
-        val streamWatchdogIdleMs: Long = 20_000,
-        val streamWatchdogResyncGapMs: Long = 30_000,
+        // FIELD (vc35 device log): 20 s fired on IDLE running sessions between turns
+        // (the agent thinking/tool-running legitimately quiet >20 s) — each kick was
+        // a resync-notOwned → subscribe round that could cold-resume server-side.
+        // 90 s still catches vc24-class stalls quickly; the gap throttles repeats.
+        val streamWatchdogIdleMs: Long = 90_000,
+        val streamWatchdogResyncGapMs: Long = 45_000,
         val helloServerTimeMs: Double? = null,
         val capabilitiesJson: kotlinx.serialization.json.JsonObject? = null,
     )

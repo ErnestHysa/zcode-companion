@@ -344,3 +344,43 @@ Suite evidence: JVM 621 tests / 0 failures (forced re-run, includes the 2.2 MB
 large-frame transport probe `RelayTransportLargeFrameTest` and the watchdog
 suite at 6/6). Instrumented 11/11 (ATD API-30). Artifact: `app-debug.apk`
 **0.11.3-phase11 (versionCode 35)**.
+
+## 11. Field fix round 4 (2026-10-06, vc36) — notification honesty + live-window setting
+
+Fourth S24 canary session (vc35): duplication CONFIRMED FIXED by the user
+(no forks reproducible), notification deep-link → chat → allow worked
+end-to-end with the Live-connection FGS. Two user-reported defects fixed:
+
+1. **Answered approvals stay "active" + re-post on every background; badge
+   stuck at 4.** The wiring looked only for NEW open interactions — a resolved
+   interaction's broker record stayed unseen forever and §15-S13 re-posted it
+   on every background entry; the badge counted answered requests. FIX: the
+   interaction collector now computes the CLOSED diff (open before, not open
+   now) and dismisses those broker records (`StoreDiffs.closedInteractions` →
+   `broker.dismiss("interaction:<id>")`) — answers clear the tray + badge
+   immediately regardless of why the interaction closed (ACK, reconcile,
+   stale). PLUS: inbox answer FAILURES were silent (`approvals.answer`
+   fire-and-forget) — the user believed a request was handled while the
+   authoritative answer never landed. The inbox now surfaces non-submit
+   outcomes ("The answer was not confirmed — open the task and answer there")
+   via an inline error.
+2. **Live-connection window customizable (§24.5).** The fixed 30-minute
+   auto-timeout stranded users who stepped away (approvals stopped arriving
+   mid-work). `AppPreferences.liveConnectionTimeoutMinutes` (proto field 8,
+   additive §32.3; default 30, 0 = no timeout) + Settings row
+   (15/30/60/240/none, tap-to-cycle) + live FGS update
+   (`LiveConnectionService.autoTimeoutMs`, 0 = no auto-disconnect).
+3. **Watchdog false kicks on idle sessions** (field log: 10 kicks in 5 min for
+   an idle RUNNING session between turns — each kick a resync-notOwned →
+   subscribe round that can cold-resume server-side). The idle threshold 20 s
+   → 90 s (a RUNNING session legitimately quiet >20 s between turns), gap
+   30 s → 45 s. The vc24 stall class is still caught; kicks are now rare and
+   strike-capped.
+4. **NOT a defect:** the S13 matrix flake in the full-matrix run (Recovery
+   ScenarioMatrix, load-sensitive class) passed 18/18 twice in isolation; the
+   Sep-30 LazyColumn crash in the retained "last crash" section still predates
+   its vc13 fix.
+
+Suite evidence: JVM 621 tests (1 moving matrix flake in the full run, 18/18
+twice in isolation), instrumented 11/11 (ATD API-30). Artifact:
+`app-debug.apk` **0.11.4-phase11 (versionCode 36)**.

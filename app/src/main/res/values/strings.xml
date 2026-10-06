@@ -118,4 +118,8 @@
 <string name="settings_terminal_opt_in">Terminal (view-only)</string>
 <string name="settings_terminal_opt_in_sub">Show a read-only stream of a desktop terminal (the "Terminal" entry in a conversation). Nothing can be typed into it. This is a sensitive surface — keep it off unless you need it.</string>
 <string name="settings_honest_push">Notifications are delivered while the app is in use or when the Live connection is enabled. ZCode\'s relay offers no push service, so with both off you\'ll see updates the next time you open the app.</string>
+    <string name="settings_live_window">Live-connection window</string>
+    <string name="settings_live_window_sub">Auto-disconnect after %1$s in the background. Longer windows use more battery.</string>
+    <string name="settings_live_window_value">%1$d minutes</string>
+    <string name="settings_live_window_none">no timeout (until you turn it off)</string>
 </resources>

@@ -111,4 +111,8 @@
 <string name="settings_terminal_opt_in">终端（仅查看）</string>
 <string name="settings_terminal_opt_in_sub">显示桌面终端的只读流（对话中的“终端”入口）。无法在其中输入任何内容。这是敏感界面 — 除非需要，否则请保持关闭。</string>
 <string name="settings_honest_push">通知会在应用使用期间或启用“实时连接”时送达。ZCode 的中继不提供推送服务，因此两者都关闭时，您将在下次打开应用时看到更新。</string>
+    <string name="settings_live_window">实时连接窗口</string>
+    <string name="settings_live_window_sub">后台 %1$s 后自动断开。窗口越长耗电越多。</string>
+    <string name="settings_live_window_value">%1$d 分钟</string>
+    <string name="settings_live_window_none">无超时（直到您关闭）</string>
 </resources>
