@@ -147,6 +147,6 @@ class RowTimestampUiTest {
     fun rowWithoutValidTimestamp_rendersNoLabel() {
         setContent(listOf(userRow(1, "ancient row", 0.0)))
         rule.onAllNodesWithTag("row_time_user").assertCountEquals(0)
-        rule.onNodeWithText("please fix the login bug").assertExists()
+        rule.onNodeWithText("ancient row").assertExists()
     }
 }

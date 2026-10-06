@@ -45,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.zcode.android.core.ui.components.messageTimeLabel
 import com.zcode.android.core.ui.theme.LocalZCodeColors
 import com.zcode.android.domain.model.ConversationRow
 import com.zcode.android.features.conversation.markdown.MarkdownParser
@@ -61,9 +62,12 @@ private val YouBubbleRadius = 14.dp
 private val ToolCardRadius = 10.dp
 
 @Composable
-fun YouBlock(text: String, modifier: Modifier = Modifier) {
+fun YouBlock(text: String, createdAtMs: Double? = null, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth().testTag("row_user")) {
-        Overline(stringResource(R.string.row_you), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Overline(stringResource(R.string.row_you), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            RowTimeLabel(createdAtMs = createdAtMs, tag = "row_time_user")
+        }
         Spacer(Modifier.height(4.dp))
         Box(
             modifier = Modifier
@@ -82,9 +86,12 @@ fun YouBlock(text: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun AgentProse(text: String, streaming: Boolean, modifier: Modifier = Modifier) {
+fun AgentProse(text: String, streaming: Boolean, createdAtMs: Double? = null, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth().testTag("row_agent")) {
-        Overline(stringResource(R.string.row_agent), color = LocalZCodeColors.current.accent)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Overline(stringResource(R.string.row_agent), color = LocalZCodeColors.current.accent)
+            RowTimeLabel(createdAtMs = createdAtMs, tag = "row_time_agent")
+        }
         Spacer(Modifier.height(4.dp))
         MarkdownText(
             text = text,
@@ -425,6 +432,28 @@ private fun SpannedText(
 @Composable
 private fun Overline(text: String, color: androidx.compose.ui.graphics.Color) {
     Text(text = text, style = MaterialTheme.typography.labelSmall, color = color)
+}
+
+/**
+ * GAP-13: the desktop renders the message time as a READ-ONLY derivation of
+ * row.createdAt (ConversationRowView.tsx:1469-1472 — subtle label, no renderer
+ * state). Same here: one labelSmall text in the row meta line; invalid/absent
+ * timestamps render nothing (the formatter's null branch).
+ */
+@Composable
+private fun RowTimeLabel(createdAtMs: Double?, tag: String) {
+    if (createdAtMs == null) return
+    val yesterday = stringResource(com.zcode.android.core.ui.R.string.relative_yesterday)
+    val label = remember(createdAtMs, yesterday) {
+        messageTimeLabel(createdAtMs, System.currentTimeMillis(), yesterdayWord = yesterday)
+    } ?: return
+    Spacer(Modifier.width(8.dp))
+    Text(
+        text = label,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.testTag(tag),
+    )
 }
 
 @Composable

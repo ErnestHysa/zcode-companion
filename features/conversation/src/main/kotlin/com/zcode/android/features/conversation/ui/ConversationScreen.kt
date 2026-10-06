@@ -543,7 +543,7 @@ private fun TimelineRow(
 ) {
     Box(modifier = modifier) {
     when (row) {
-        is ConversationRow.UserInput -> YouBlock(row.text)
+        is ConversationRow.UserInput -> YouBlock(row.text, createdAtMs = row.base.createdAt)
         is ConversationRow.AssistantText -> {
             // §19.2 merge: the store row accumulates appends IMMEDIATELY (authoritative),
             // while the coalesced streaming buffer may LEAD it between delta and flush.
@@ -559,7 +559,11 @@ private fun TimelineRow(
                 row.text.endsWith(streamed) -> row.text
                 else -> row.text + streamed
             }
-            AgentProse(text = text, streaming = row.state == ConversationRow.TextState.STREAMING || streamed != null)
+            AgentProse(
+                text = text,
+                streaming = row.state == ConversationRow.TextState.STREAMING || streamed != null,
+                createdAtMs = row.base.createdAt,
+            )
         }
         is ConversationRow.ToolCall -> ToolCard(row)
         is ConversationRow.Reasoning -> ReasoningRow(row)
