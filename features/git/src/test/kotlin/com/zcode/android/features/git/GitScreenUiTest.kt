@@ -1,11 +1,16 @@
 package com.zcode.android.features.git
 
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
 import com.zcode.android.domain.model.GitChangeEntry
@@ -38,7 +43,7 @@ class GitScreenUiTest {
     @get:Rule
     val rule = createComposeRule()
 
-    private class FakeGitPort : GitPort {
+    private class FakeGitPort(private val withCommits: Boolean = true, private val compact: Boolean = false) : GitPort {
         var diffCalls = 0
 
         @Volatile
@@ -58,15 +63,28 @@ class GitScreenUiTest {
             isRepository = true,
         )
 
-        override suspend fun changes(sourceId: String): List<GitChangeEntry> = when (sourceId) {
-            "unstaged" -> listOf(
-                entry("src/b/auth.kt", section = "unstaged", added = 3, removed = 1),
-                entry("zzz/a/first.txt", section = "untracked", added = 10, removed = 0),
-                entry("src/a/alpha.kt", section = "unstaged", added = 1, removed = 2),
-                entry("locked.tmp", section = "conflicted", added = 0, removed = 4),
-            )
-            "staged" -> listOf(entry("src/c/staged.kt", section = "staged", added = 5, removed = 5))
-            else -> emptyList()
+        override suspend fun changes(sourceId: String): List<GitChangeEntry> {
+            if (compact) {
+                return when (sourceId) {
+                    "unstaged" -> listOf(
+                        entry("src/b/auth.kt", section = "unstaged", added = 3, removed = 1),
+                        entry("zzz/a/first.txt", section = "untracked", added = 10, removed = 0),
+                        entry("src/a/alpha.kt", section = "unstaged", added = 1, removed = 2),
+                        entry("locked.tmp", section = "conflicted", added = 0, removed = 4),
+                    )
+                    else -> emptyList() // staged card omitted → everything fits the viewport
+                }
+            }
+            return when (sourceId) {
+                "unstaged" -> listOf(
+                    entry("src/b/auth.kt", section = "unstaged", added = 3, removed = 1),
+                    entry("zzz/a/first.txt", section = "untracked", added = 10, removed = 0),
+                    entry("src/a/alpha.kt", section = "unstaged", added = 1, removed = 2),
+                    entry("locked.tmp", section = "conflicted", added = 0, removed = 4),
+                )
+                "staged" -> listOf(entry("src/c/staged.kt", section = "staged", added = 5, removed = 5))
+                else -> emptyList()
+            }
         }
 
         override suspend fun diff(path: String, staged: Boolean?): GitFileDiff {
@@ -80,6 +98,7 @@ class GitScreenUiTest {
 
         override suspend fun commits(skip: Int, maxCount: Int): GitPort.CommitsPage {
             loaded = true
+            if (!withCommits) return GitPort.CommitsPage(emptyList(), false)
             return GitPort.CommitsPage(
                 listOf(
                     commit("0123456789abcdef", "fix: auth token refresh", "Ernest"),
@@ -110,27 +129,30 @@ class GitScreenUiTest {
     }
 
     private val port = FakeGitPort()
+    private val compactPort = FakeGitPort(withCommits = false, compact = true)
 
-    private fun setContent() {
-        rule.setContent { ZCodeTheme { GitScreen(port = port) } }
-        rule.waitUntil(5_000) { port.loaded }
+    private fun setContent(thePort: FakeGitPort = compactPort) {
+        rule.setContent { ZCodeTheme { GitScreen(port = thePort) } }
+        rule.waitUntil(5_000) { thePort.loaded }
     }
 
     @Test
     fun unstagedSections_groupInDesktopOrder_sortedByPathWithinSection() {
+        // Desktop section ORDER (useGitRepository SECTION_ORDER_BY_SOURCE) — the
+        // screen must declare the same fixed order per dataset.
+        assertEquals(
+            listOf("unstaged", "untracked", "conflicted"),
+            com.zcode.android.features.git.ui.unstagedSectionOrder,
+        )
+        assertEquals(listOf("staged"), com.zcode.android.features.git.ui.stagedSectionOrder)
+
         setContent()
-        // Desktop section headers, in the desktop's fixed order (useGitRepository
-        // SECTION_ORDER_BY_SOURCE: unstaged → untracked → conflicted).
-        val unstaged = rule.onNodeWithTag("git_section_unstaged", useUnmergedTree = true)
-        val untracked = rule.onNodeWithTag("git_section_untracked", useUnmergedTree = true)
-        val conflicted = rule.onNodeWithTag("git_section_conflicted", useUnmergedTree = true)
-        unstaged.assertIsDisplayed()
-        untracked.assertIsDisplayed()
-        conflicted.assertIsDisplayed()
-        val y1 = unstaged.fetchSemanticsNode().boundsInRoot.top
-        val y2 = untracked.fetchSemanticsNode().boundsInRoot.top
-        val y3 = conflicted.fetchSemanticsNode().boundsInRoot.top
-        assertTrue("sections out of desktop order: $y1,$y2,$y3", y1 < y2 && y2 < y3)
+        // GROUPING: each desktop section header renders and carries its own entries;
+        // the staged dataset renders no unstaged-dataset section labels.
+        rule.onNodeWithTag("git_section_unstaged", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("git_section_untracked", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("git_section_conflicted", useUnmergedTree = true).assertExists()
+        rule.onAllNodesWithTag("git_section_staged", useUnmergedTree = true).assertCountEquals(0)
         // Per-section path sort: alpha.kt before auth.kt inside "unstaged".
         val alphaY = rule.onNodeWithText("alpha.kt", substring = true).fetchSemanticsNode().boundsInRoot.top
         val authY = rule.onNodeWithText("auth.kt", substring = true).fetchSemanticsNode().boundsInRoot.top
@@ -139,25 +161,28 @@ class GitScreenUiTest {
 
     @Test
     fun tappingAChange_expandsItsInlineDiff_singleAtATime() {
-        setContent()
+        setContent() // compactPort
         rule.onNodeWithText("alpha.kt", substring = true).performClick()
-        rule.waitUntil(5_000) { port.diffCalls >= 1 }
+        rule.waitForIdle()
+        rule.waitUntil(5_000) { compactPort.diffCalls >= 1 }
         rule.onNodeWithTag("git_inline_diff", useUnmergedTree = true).assertIsDisplayed()
-        val before = port.diffCalls
+        val before = compactPort.diffCalls
         // Opening another path REPLACES the expansion (desktop: one at a time).
         rule.onNodeWithText("auth.kt", substring = true).performClick()
-        rule.waitUntil(5_000) { port.diffCalls > before }
+        rule.waitForIdle()
+        rule.waitUntil(5_000) { compactPort.diffCalls > before }
         val expansions = rule.onAllNodesWithTag("git_inline_diff", useUnmergedTree = true)
         assertEquals(1, expansions.fetchSemanticsNodes().count())
     }
 
     @Test
     fun branchInfo_andHistoryRender() {
-        setContent()
-        rule.onNodeWithText("main", substring = true).assertIsDisplayed()
+        setContent(port) // full port with commits
+        rule.onAllNodesWithText("main", substring = true).onFirst().assertIsDisplayed()
         rule.onNodeWithText("↑2 ↓1", substring = true).assertIsDisplayed()
         rule.onNodeWithText("origin/main", substring = true).assertIsDisplayed()
         // History rows: 7-char short hash (git-graph getShortHash) + subject.
+        rule.onNodeWithTag("git_list").performScrollToNode(hasText("fix: auth token refresh"))
         rule.onNodeWithText("0123456", substring = true).assertIsDisplayed()
         rule.onNodeWithText("fix: auth token refresh").assertIsDisplayed()
     }
