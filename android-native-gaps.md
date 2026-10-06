@@ -213,3 +213,398 @@ Mac live canary (INV-15 leg)     ──┘   only when desktop running: real rel
 ### 14.5 Disposition
 
 Design only — nothing implemented. Suggested landing order: drift-check tool + surface inventory (small, testable, also useful manually) → T1 sensors → T4 update check (Phase 12 §37 overlap) → T2/T3 automation. Phase 12 prerequisites (signing) gate T3.
+
+---
+
+# Android-Gaps Remediation Roadmap (APPENDED — not part of the original audit)
+
+> **Appended:** 2026-10-06, same day the findings above were written. The report's own
+> status stands as of this append: findings only, nothing implemented, nothing spec'd.
+> **How to use this roadmap:** the findings sections above are never edited — tick the
+> checkboxes HERE as work completes; each closed entry gets its commit sha written in
+> parentheses. An LLM/coding harness implements this campaign ONE PHASE AT A TIME,
+> phases in order, sub-phases in order, entries in listed order.
+> **Severity mapping (the report assigns none):** P1/P2/P3 below were assigned by this
+> roadmap from the §10 classes + §12 sequencing + §13.3 classifications. P1 =
+> conversation-critical or zero-risk/high-visibility; P2 = §13.3-sanctioned channel
+> ports, pipeline core, UI overhauls; P3 = §13.3-P3 viewers and the riskiest or
+> lowest-value legs. The ⚠ items from §10 (GAP-3/GAP-4) sit behind the Phase-4 ADR gate.
+> **Withdrawn findings: none.** Four scope areas are DECISION-GATED (see "Deferred /
+> decision-gated scope") and are excluded from every phase until the named written
+> artifact or ruling exists.
+> **Counting:** 18 feature gaps (`GAP-1`…`GAP-18`, identical to §10 rows 1–18) + 5
+> auto-adaptation items (`AAP-1`…`AAP-5`, = §14.5 landing order) = **23 implementable
+> entries** + 1 gate entry (ADR-020, closes no finding by itself). The phase overview
+> counts sum to 23.
+> **The app's own Phase 12 (release/signing) is NOT part of this campaign** — it is
+> referenced only as a prerequisite (it gates AAP-5).
+
+## Binding rules for every fix session
+
+These rules bind THIS campaign in THIS repo — and by standing user rule they are
+campaign-class law for ANY findings-roadmap remediation in ANY repo/app, never scoped
+to one codebase.
+
+1. **Repo + branch + identity.** All work happens in this repo on branch
+   `fix/android-gaps` (cut from `main` at campaign start; rebase onto `main` only
+   BETWEEN phases, never mid-phase). Every commit authored
+   `ErnestHysa <takis312@hotmail.com>` (set repo-locally before the first commit).
+   NEVER push unless explicitly told.
+2. **One finding ≥ one commit.** Message form `fix(<ID>): <summary>` (e.g.
+   `fix(GAP-13): render row timestamps from createdAt`). Never bundle unrelated
+   findings into one commit; docs-only bookkeeping commits say
+   `docs(android-gaps): …`.
+3. **Re-read before touching.** Before writing code, re-read the finding section
+   above + its §10 row + the roadmap entry, AND re-read the cited macOS mechanism
+   (file + line) in the desktop open repo — port the desktop's own behavior, never a
+   guess from the summary.
+4. **TEST-FIRST with shape fidelity.** The failing test comes first and pins the
+   observable shape: decoded field names/values for protocol work, rendered state +
+   user-visible behavior for UI work, command/CAS/retry semantics for coordinator
+   work. A test that would also pass against a different-but-plausible
+   implementation is not shape-faithful.
+5. **Generation rule (spec-first fixtures).** Every new wire surface lands spec-first
+   per the report's governing rule (header table + §41.2): the
+   `docs/protocol/v4-wire.md` inventory entry and its golden fixtures exist BEFORE
+   the decoder/UI code. Golden fixtures and surface inventories are GENERATED from
+   live captures or committed generator code — hand-crafted or hand-edited golden
+   artifacts are forbidden; when a surface changes, regenerate, never patch by hand.
+6. **COMMIT BEFORE ANY TEST RUN.** No uncommitted edits anywhere in the repo when any
+   test suite, instrumented run, or gradle task that executes code starts. (Standing
+   lesson from other repos: suite/rollback machinery has repeatedly eaten in-flight
+   uncommitted work; assume that class of hazard here too.)
+7. **Fresh baseline + zero-new-names gate.** At each phase start, run the relevant
+   suite(s) once and record the baseline FAILING-TEST NAMES. At phase exit, name-diff
+   against it: ZERO new failing test names may exist. A pre-existing or flaky name is
+   only exonerated by re-running it green in isolation in the phase's own tree.
+8. **~150-line/stop rule.** Stop and commit at roughly every ~150 changed lines. No
+   mega-commits, no "while I'm here" refactors.
+9. **Independent per-phase verification — the full loop, unasked.** Every phase (and
+   every fix round inside it) ends with: (1) regression tests added/adjusted, (2) the
+   relevant suite run — unit always, instrumented/on-device whenever the deliverable
+   is device UI, (3) the deliverable REBUILT (`./gradlew assembleRelease`; debug
+   builds for local verification only) so a fresh APK exists, (4) everything
+   committed locally, (5) the artifact path + version marker (versionName/versionCode)
+   stated in the session summary so the right build can be installed. Partial rounds
+   ("fixed but not built", "committed but no APK") are NOT done.
+10. **Architecture-doc duty.** A phase that changes structure, a wire surface, or a
+    §13.3 classification updates the governing docs in the SAME session:
+    `docs/protocol/v4-wire.md` state-key/topic inventory, the §13.3 channel
+    classification table, the §26 threat model (any new trust surface), and
+    `architectural.md` wherever app structure changes.
+11. **Shared-remedy preference.** Two findings with one root cause get ONE shared
+    remedy; a single commit may close multiple IDs only when the mechanism is
+    genuinely shared — and then each closed entry notes the linkage.
+
+## Deferred / decision-gated scope (do NOT implement in this campaign)
+
+- **Marketplace install/uninstall/update actions from the phone** (the write half of
+  GAP-7). §11 trust T-item; v1 is viewer-only. Excluded until a written product
+  ruling exists.
+- **Automations write surfaces** — create/edit/trigger/delete (the write half of
+  GAP-6). Keep read-only until ruled (§2.2 N7 spirit: desktop-only management).
+- **Any `window-controller` / `settings-sync`-class channel port.** Architecture
+  "Never"; out of scope entirely — not even a viewer.
+- **Auto-ship of BREAKING-class releases** (inside AAP-5). The pipeline must always
+  route BREAKING to a human-approved agent-drafted PR. Never auto-ship breaking —
+  this gate has no ruling path; it is absolute.
+
+## Phase overview
+
+| Phase | Theme | Findings | Session risk | Status |
+|---|---|---|---|---|
+| 1 | Class-C quick wins: conversation + lists + selectors + files/git UI | GAP-11, 13–18 (7) | Low — pure UI, zero protocol surface | ☐ pending |
+| 2 | Class A / C+A: data already arriving + half-built plumbing (spec-first) | GAP-1, 2, 10, 12 (4) | Medium — new wire decodes, fixtures each | ☐ pending |
+| 3 | Class B read-only viewers (§13.3-sanctioned channels) | GAP-5–9 (5) | Medium — new channels, all R-class read-only | ☐ pending |
+| 4 | Class B ⚠ ADR-gated: coding-plan quotas + resets | GAP-3, 4 (2) | High — overturns a §13.3 "Never" | ☐ pending |
+| 5 | Auto-adaptation Stage 1: detect (drift tool + sensors) | AAP-1, 2 (2) | Medium — Mac-in-loop leg; INV-15 applies | ☐ pending |
+| 6 | Auto-adaptation Stage 2: verify / build+publish / client update | AAP-3, 4, 5 (3) | High — release automation; signing prereq | ☐ pending |
+
+Sum: 7 + 4 + 5 + 2 + 2 + 3 = 23.
+
+## Phase 1 — Class-C quick wins (pure UI; no protocol risk; §12 step 1)
+
+Order inside the phase: P1 first (conversation surface), then P2 (lists, selectors,
+screens). No `docs/protocol/` changes in this phase; binding rule 5 does not trigger.
+
+### Sub-phase 1A — Conversation surface
+
+- [ ] **GAP-13 (P1)** Message timestamps — rows already carry
+  `createdAt`/`createdAtSeq` (`domain/model/ConversationRow.kt:26-37`); RowRenderers
+  never render time (desktop: `ConversationRowView.tsx:1347,1469` — read-only
+  derivation from `row.createdAt`). Render compact localized timestamps on
+  user/assistant rows (§31 `java.time` formatters; full timestamp in row meta or on
+  tap). Accept: user + assistant rows show a time label derived from that row's
+  `createdAt`; formatter unit test + compose test asserting the label renders; zero
+  new failing test names.
+- [ ] **GAP-11 (P1)** Copy / select / highlight — no `SelectionContainer` anywhere;
+  rows are plain `Text`. Wrap user/assistant rows in `SelectionContainer` (per-row,
+  not whole-timeline, for perf), long-press → copy-row via `ClipData`, per-code-block
+  copy affordance. Copy is user-initiated only (§27 — no new leak surface). Accept:
+  long-press copy puts the exact row text on the clipboard (instrumented test);
+  selection works within a row without selecting the whole timeline; code-block copy
+  button present on assistant code rows.
+
+### Sub-phase 1B — Tasks list + selectors
+
+- [ ] **GAP-14 (P2)** Collapsible workspace groups — TaskListScreen groups are static;
+  desktop collapses per group (`WorkspaceGroupedTasksSection.tsx`). Add expand/
+  collapse per workspace group with persisted collapse state per workspace id.
+  Accept: collapsing a group hides its tasks and persists across app restart; count
+  badge still shows totals while collapsed.
+- [ ] **GAP-17 (P2)** Mode selector UI polish — functional chips/dialog
+  (`Phase9Components.kt`) restyled to desktop mode affordances (same mode vocabulary,
+  desktop ordering/descriptions). Accept: mode picker shows the same vocabulary the
+  desktop shows for the same workspace (3.14.4 vocabulary-check precedent); restyle
+  only — no wire change, existing mode-switch tests stay green.
+- [ ] **GAP-18 (P2)** Model selector UI polish — functional but unstyled dialog →
+  desktop model-picker parity (grouping, current-model marker, disabled states).
+  Accept: picker lists the same models as today (no source change), marks the active
+  model; restyle only; model-switch flow tests stay green.
+
+### Sub-phase 1C — Files & Git screens
+
+- [ ] **GAP-15 (P2)** Files screen overhaul — `features/files/ui/FilesScreen.kt` is a
+  basic list; port desktop file-tree affordances (tree navigation, breadcrumbs,
+  file-type icons, open/preview entry points as the desktop exposes them). Accept:
+  can navigate a real workspace tree to a file and open it; every surface uses
+  today's existing data calls unless the desktop uses the same ones.
+- [ ] **GAP-16 (P2)** Git screen overhaul — `features/git/ui/GitScreen.kt` basic →
+  desktop git-panel parity (status grouping, diff view entry, branch info as the
+  desktop panel shows). Accept: status/diff/branch surfaces render for a real repo
+  workspace; every displayed datum maps 1:1 to a desktop-panel datum.
+
+Phase 1 exit gate: ☐ all seven checkboxes ticked, one `fix(GAP-n)` commit each (rule
+2) · baseline name-diff clean (rule 7) · assembleRelease rebuilt with artifact path +
+versionName/versionCode stated (rule 9) · zero `docs/protocol/` diffs in this phase.
+
+## Phase 2 — Class A / C+A: data already arriving + half-built plumbing (§12 step 2)
+
+Every sub-phase here adds a decoded wire surface → binding rule 5 applies: v4-wire.md
+inventory + generated fixtures BEFORE decoder/UI code, one spec-first pass per
+surface.
+
+### Sub-phase 2A — Context usage panel (GAP-1 + GAP-2, shared remedy)
+
+- [ ] **GAP-1 (P1)** Context window used/size/% — the v4 snapshot already carries
+  `contextUsage` (`ZCodeUsageUpdate`, `zcode-task-types-core.ts:890-911`) but
+  `SessionProjectionState.fromSnapshot` reads only the eight known state keys
+  (`domain/model/SessionState.kt:19-30`). First ONE live capture of a real-traffic
+  snapshot to confirm the key's arrival + exact shape (rule 5); then the v4-wire.md
+  §9 state-key inventory entry + golden fixture; then `SessionProjectionState` + the
+  key-level merge with INV-8 absence-tolerance; then a header panel (used/size + %).
+  Accept: fixture decoded by the projection carries `used`/`size`; panel renders
+  "x / y (z%)" matching the fixture; a snapshot WITHOUT the key still merges (INV-8
+  tolerance test); unknown-field tolerance tests stay green.
+- [ ] **GAP-2 (P1)** Per-source breakdown — the same payload's
+  `breakdown: ZCodeContextUsageBreakdownItem[]` (messages/system/tools/skills/MCP…;
+  desktop passthrough `zcodeTaskServiceAdapter.ts:5269`). Shared remedy with GAP-1
+  (one decode, one panel section). Accept: breakdown list renders per-source
+  estimates when present; fixture pair (with/without breakdown) both decode; absent
+  breakdown leaves the GAP-1 panel valid.
+
+### Sub-phase 2B — Slash commands (GAP-12)
+
+- [ ] **GAP-12 (P1)** Slash commands — `workspace-config/<workspaceId>` topic not
+  subscribed (§7.4.2 topics list); `workspaceConfigState.slashCommands[]`
+  (`workspace-config.ts:40-52`) not decoded; composer has no "/" affordance.
+  Subscribe the topic, decode `slashCommands[]`
+  `{name, description, inputHint, source}` with the desktop's preserve-for-replay
+  rule (`zcodeTaskServiceAdapter.ts:1567-1569` — snapshot slash commands must
+  survive replayable/legacy restore), map /compact and /goal to the existing v4
+  commands (`compact`, `goalSession` — verified set §7.2), and verify BY FIXTURE
+  which send path custom commands take (sendText-with-slash vs direct). UI: composer
+  "/" trigger → catalog menu with name/description/`inputHint`. Accept:
+  fixture-backed decode test for `workspaceConfigState`; "/" menu lists builtin +
+  custom commands for a live workspace; /compact and /goal send the verified v4
+  commands (command-level test); replay/restore keeps the catalog (regression test
+  for the preserve rule).
+
+### Sub-phase 2C — Message edit (GAP-10)
+
+- [ ] **GAP-10 (P1)** Message edit — `editUserQuery` constant exists
+  (`V4Command.kt:31`) and its retry class is known (`CommandRetryClassifier.kt:39`,
+  PRE_TRANSMIT_ONLY, row-targeted), but there is no coordinator method, no UI entry,
+  no row affordance. Add `editUserQuery(sessionId, rowId, newText, baseLogEpoch)` on
+  CommandCoordinator (CAS already carries revision+logEpoch), a long-press edit
+  affordance on user rows → edit sheet → confirm (desktop re-asks the turn — match
+  that UX), and a §20.3-style reconciliation for the row replacement (the desktop
+  rewrites the turn — expect epoch/row churn we must FOLD, not append). Accept:
+  coordinator method sends the row-targeted command with `baseLogEpoch` (unit test
+  on CAS fields); a successful edit REPLACES the turn's rows in the projection
+  (fixture for the churn event); confirm dialog present; retry-class tests unchanged
+  and green.
+
+Phase 2 exit gate: ☐ v4-wire.md inventory updated for every new surface (contextUsage
+state key, workspace-config topic) · golden fixtures generated, not hand-written
+(rule 5) · baseline name-diff clean · assembleRelease rebuilt + artifact/version
+stated.
+
+## Phase 3 — Class B read-only viewers (§13.3-sanctioned channels; §12 step 3)
+
+All read-only, R-class. Every channel/method decode gets a fixture first (rule 5 —
+these are wire surfaces). NO write actions in this phase (see Deferred scope).
+
+### Sub-phase 3A — Usage analytics (GAP-5)
+
+- [ ] **GAP-5 (P2)** Usage dashboard — port `usage/stats` as a one-shot R call (§7.2;
+  request/response, not push) decoding `UsageStatsSnapshot` (`usage-stats.ts:140-159`:
+  summary, gap-filled `daily[]`, heatmap, `models[]`, `tools[]`, peak, streaks,
+  `source`), as a Settings → Usage screen (summary cards, daily bars, per-model list,
+  tools). Reuse desktop formatting semantics (`lib/tokenNumberFormat.js` compact
+  tokens / relative time). One live capture as golden fixture (Z.ai semantics
+  unverified per §13 — capture, don't guess). Accept: fixture decodes into the
+  snapshot model incl. the gap-filled daily series; Usage screen renders all five
+  sections from the fixture; a zero-usage snapshot renders an honest empty state.
+
+### Sub-phase 3B — Automations read-only list (GAP-6)
+
+- [ ] **GAP-6 (P3)** Automations / off-peak list — `automation/*` reads (5 methods,
+  §7.2) + the `off-peak-task` channel (P3, R-class sanctioned). Read-only list as a
+  Tasks-tab section: automations with their state/schedule. No scheduling/edit UI
+  (Deferred scope). Accept: list renders from fixture-decoded `automation/*`
+  responses; a workspace with zero automations shows an empty state; no write
+  command exists anywhere in the UI.
+
+### Sub-phase 3C — Plugins / skills / MCP viewers (GAP-7 + GAP-8 + GAP-9)
+
+- [ ] **GAP-7 (P3)** Plugins viewer — installed-plugins list + enable/disable state
+  display (`plugins`/`plugin-management` channels, `channels.ts:126-131`). Marketplace
+  BROWSING metadata is in-scope only if it arrives on an already-ported R read;
+  INSTALL/UNINSTALL/UPDATE actions are Deferred scope. Accept: viewer lists installed
+  plugins with state from fixture; no install affordance exists anywhere in the APK
+  (grep-level check noted in the phase summary).
+- [ ] **GAP-8 (P3)** Skills catalog viewer — `skills/referenceCatalog` (§7.2):
+  read-only catalog screen (name/description/source) with a search box local to the
+  list. Accept: catalog renders from fixture; zero-skill workspaces show an empty
+  state.
+- [ ] **GAP-9 (P3)** MCP servers viewer — `mcp/list` (§7.2): read-only server list
+  (name, transport/status fields the payload actually carries). Accept: list renders
+  from fixture; status display matches payload fields — no invented states.
+
+Phase 3 exit gate: ☐ all five viewer checkboxes ticked · every new channel/method has
+a v4-wire.md entry + generated fixture · §13.3 rows for `usage-stats` and
+`off-peak-task` updated to "ported (read-only)" with phase reference (rule 10) ·
+baseline name-diff clean · APK rebuilt + artifact/version stated.
+
+## Phase 4 — Class B ⚠ coding-plan quotas + resets (ADR-gated; §12 step 3 tail)
+
+**Hard gate: no GAP-3/GAP-4 code exists before ADR-020 is merged.** This phase
+overturns a §13.3 "Never" — §11 flagged it for product decision; the decision to
+attempt it IS this phase's gate, and GAP-4 carries a second, explicit ruling gate.
+
+- [ ] **ADR-020 (gate — closes no finding)** — ADR: port `coding-plan-subscription`
+  as R-subscribe. Mandated content (§2/§11): what the channel exposes
+  (`UsageQuotaSnapshot`/`UsageQuotaLimit` — quota metadata, not credentials, per
+  `usage-quota.ts`), why the original provider-credential-adjacency concern does not
+  apply to this payload, the §26 threat-model delta, and the ruling space for the
+  destructive-adjacent reset action. Accept: ADR merged; §13.3 row for
+  `coding-plan-subscription` reclassified with a pointer to ADR-020 (rule 10); §26
+  threat-model delta written.
+- [ ] **GAP-3 (P2)** Coding-plan quota panel (read) — subscribe
+  `coding-plan-subscription` (push subscription, `channels.ts:116`), decode
+  `UsageQuotaLimit[]` (`type, period, usage, remaining, percentage, nextResetTime,
+  usageDetails[]`), render the quota panel (5-hour %, tool-calls %, MCP %, next-reset
+  countdown). One live capture for exact Z.ai field values (§13 honest limits — the
+  capture IS the fixture). Accept: fixture decodes limits into the panel model;
+  panel renders 5h/tools/MCP percentages + reset countdown from fixture; channel
+  absence/teardown degrades to a hidden panel (INV-8-style tolerance test).
+- [ ] **GAP-4 (P2)** Quota reset flow — port the reset action on the same channel
+  (desktop: `components/coding-plan-quota-reset/*`, `lib/codingPlanQuotaResetUi.js`).
+  Destructive-adjacent (spends plan quota): typed-confirm dialog, honest result
+  surfaces. **Second gate: do not start until Ernest explicitly rules the reset
+  action in-scope** (§11 flagged it; ADR-020 covers the channel, not the action).
+  Accept: reset sends the verified command only behind the confirmed dialog (test
+  asserts no reset call can fire without it); success/failure states render from
+  fixture.
+
+Phase 4 exit gate: ☐ ADR-020 merged before any code · GAP-3/GAP-4 ticked with the
+second ruling recorded in the GAP-4 commit message · §13.3 + §26 updated (rule 10) ·
+baseline name-diff clean · APK rebuilt + artifact/version stated.
+
+## Phase 5 — Auto-adaptation Stage 1: detect (§14.2 T1, §14.3 Stage 1)
+
+Mac-in-loop phase: the bundle sensor (and later the canary) run on Ernest's Mac —
+INV-15: the production relay NEVER runs in GitHub CI. No Android app code changes in
+this phase beyond tooling under `tools/`.
+
+- [ ] **AAP-1 (P2)** Drift-check tool + surface inventory — implement the §39.4
+  drift-check (documented there as "not implemented in this task"; this pipeline IS
+  its implementation): extract the protocol surface (schema/type names, channel list,
+  mode enums, slash catalog, limits) from the open repo's
+  `packages/shared/src/zcode-protocol-v4/` + `channels.ts` and diff against a
+  committed `tools/drift/surface-inventory.json` (the last-verified surface).
+  Structured `drift-report.json` (added/changed/removed per layer) with ADDITIVE vs
+  BREAKING classification. Accept: running the tool against the current open-repo
+  checkout emits a report identical to the committed inventory (no-drift baseline
+  test); a seeded synthetic change produces the correct added/changed/removed
+  entries (golden test); the tool is usable standalone by hand.
+- [ ] **AAP-2 (P2)** T1 sensors — (a) open-repo sensor: GitHub Action cron `*/10`
+  watching `zai-org/ZCode` tags/releases → checkout → AAP-1 drift-check vs the
+  committed inventory; (b) bundle sensor: Mac launchd daily + on-update hook hashing
+  `app.asar`/`zcode.cjs` and diffing the Phase-1-corpus relay-adapter constants
+  (close codes, frame budgets, envelope fields, ack hints) against a recorded
+  baseline; both write `drift-report.json` with the classification and notify.
+  Accept: end-to-end rehearsal with a seeded fake release + seeded bundle change
+  produces a classified report + notification; the CI leg provably contains no
+  production-relay traffic (INV-15 audit note in the workflow file); the Mac leg is
+  a committed script + launchd plist documented in `docs/`.
+
+Phase 5 exit gate: ☐ inventory + drift tool committed with tests · both sensors
+rehearsed end-to-end on seeded changes · `drift-report.json` schema documented ·
+notification path demonstrated (log/screenshot evidence in the phase summary) ·
+commits per rule 2.
+
+## Phase 6 — Auto-adaptation Stage 2: verify / build+publish / client (§14.2 T2–T4)
+
+Landing order per §14.5: T4 (client) → T2 (CI verify) → T3 (build+publish). AAP-5 is
+gated on Phase 12.1 signing (stable keystore, off-repo) and the scripted Mac canary.
+
+- [ ] **AAP-3 (P2)** T4 client update check — the app already knows the desktop's
+  version (hello/bridge). Add a foreground check against GitHub Releases metadata
+  (the §37-designed non-Play channel): `desktop.version > app.maxTested` AND a newer
+  release exists → banner + **"Update now"** → download APK → user-consented install
+  intent. The connection-center compat warning becomes the same action; no-update +
+  newer-desktop keeps the current honest warning. Accept: with a seeded Releases
+  fixture, banner + button appear and the download → install-intent flow completes
+  on device/emulator; with desktop ≤ maxTested nothing appears; compat-warning
+  integration test green.
+- [ ] **AAP-4 (P2)** T2 CI verify — GitHub Actions (INV-15-clean): regenerate golden
+  fixtures from the new open-repo `packages/shared` schemas, run the fixture suite +
+  transport/protocol tests, compile the Android decoders against the new schemas.
+  Accept: a rehearsed run against a synthetic "new desktop version" branch is green
+  for ADDITIVE drift and red-with-report for BREAKING drift; the workflow contains
+  no relay traffic.
+- [ ] **AAP-5 (P3)** T3 build+publish — the decision matrix: ADDITIVE + suites green +
+  canary green → fully automatic (versionCode bump, `CompatibilityGate.
+  MAX_TESTED_DESKTOP` bump, baseline-profile regen, `assembleRelease`, sign, GitHub
+  Release with notes auto-generated from the drift report); BREAKING → agent-drafted
+  PR + drift report, HUMAN APPROVAL REQUIRED (Deferred scope: never auto-ship
+  breaking). Prerequisites before this entry starts: Phase 12.1 signing (stable
+  keystore, off-repo) + the Mac live canary scripted (pair → subscribe → stream →
+  recover → diagnostics export) with the vc34 cold-resume guards (fixed workspace
+  resolution, disposable synthetic task). Accept: a rehearsed ADDITIVE drift runs
+  T3 end-to-end to a signed draft release; a rehearsed BREAKING drift stops at the
+  PR step with the report attached; matrix decisions recorded in the run log.
+
+Phase 6 exit gate: ☐ T4/T2/T3 ticked in landing order · AAP-5 prerequisites verified
+and cited · one full rehearsal of the chain (seed drift → report → CI → release) with
+evidence in the phase summary · never-auto-ship-breaking asserted by a test on the
+decision matrix · APK artifact/version stated for the T4-bearing build.
+
+## Definition of done (android-gaps remediation)
+
+- [ ] All 23 implementable entries ticked (GAP-1…GAP-18, AAP-1…AAP-5) or explicitly
+      deferred with the named ruling/ADR referenced in place
+- [ ] ADR-020 merged before any Phase-4 code; §13.3 and §26 updated accordingly
+- [ ] Every new wire surface has a `docs/protocol/v4-wire.md` inventory entry +
+      generated golden fixtures (rule 5)
+- [ ] Every phase exited with: zero-new-names name-diff green, regression tests run
+      (unit + instrumented where device UI), fresh APK built, everything committed
+      locally, artifact path + versionName/versionCode stated (rule 9)
+- [ ] Architecture docs current at campaign end (rule 10): v4-wire inventory, §13.3
+      table, §26 threat model, `architectural.md` wherever structure changed
+- [ ] Nothing pushed to any remote (local commits only) unless Ernest explicitly says
+      push
+- [ ] This roadmap is the only place progress is recorded — the findings sections
+      above were never edited
