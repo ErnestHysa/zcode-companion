@@ -88,6 +88,8 @@ fun TaskListScreen(
     creatingTask: Boolean = false,
     createNotice: String? = null,
     onConsumeCreateNotice: () -> Unit = {},
+    /** GAP-14: per-workspace collapse persistence (null = in-memory for the session). */
+    collapseStore: com.zcode.android.features.tasks.ui.WorkspaceCollapseStore? = null,
     modifier: Modifier = Modifier,
 ) {
     var showCreate by remember { androidx.compose.runtime.mutableStateOf(false) }
