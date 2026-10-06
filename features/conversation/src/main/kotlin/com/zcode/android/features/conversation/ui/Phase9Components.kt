@@ -33,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -233,37 +234,46 @@ private fun ModelPickerDialog(
                         }
                     }
                     else -> {
+                        // GAP-18: desktop model-picker parity (ModelConfigSelect.tsx) —
+                        // provider GROUP headers, a radio check on the active model,
+                        // disabled (inert, dimmed) rows for unavailable entries. Same
+                        // options, same two-step pick → thought-level flow, same wire call.
                         for (provider in providers!!) {
                             Text(
-                                provider.providerName ?: provider.providerId,
+                                (provider.providerName ?: provider.providerId).uppercase(),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(top = 8.dp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .padding(top = 8.dp)
+                                    .testTag("model_provider_${provider.providerId}"),
                             )
                             for (model in provider.models) {
                                 val selected = provider.providerId == config.provider && model.id == config.model
-                                Row(
-                                    Modifier
+                                androidx.compose.material3.ListItem(
+                                    headlineContent = {
+                                        Text(
+                                            model.label,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                        )
+                                    },
+                                    trailingContent = {
+                                        androidx.compose.material3.RadioButton(selected = selected, onClick = null)
+                                    },
+                                    modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable {
+                                        .selectable(
+                                            selected = selected,
+                                            enabled = model.available,
+                                            role = androidx.compose.ui.semantics.Role.RadioButton,
+                                        ) {
                                             thoughtMenuFor = provider.providerId to model.id
                                         }
-                                        .padding(vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        if (selected) "• ${model.label}" else model.label,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        modifier = Modifier.weight(1f, fill = true),
-                                    )
-                                    if (selected && config.thoughtLevels.isNotEmpty()) {
-                                        Text(
-                                            "thought: ${config.thought}",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        )
-                                    }
-                                }
+                                        .alpha(if (model.available) 1f else 0.38f)
+                                        .testTag("model_option_${model.id}"),
+                                )
                             }
                         }
                         thoughtMenuFor?.let { (providerId, modelId) ->
@@ -279,6 +289,7 @@ private fun ModelPickerDialog(
                                     AssistChip(
                                         onClick = { onPick(providerId, modelId, level) },
                                         label = { Text(if (level == config.thought) "• $level" else level) },
+                                        modifier = Modifier.testTag("thought_option_$level"),
                                     )
                                 }
                             }
