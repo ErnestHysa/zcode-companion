@@ -313,7 +313,7 @@ to one codebase.
 
 | Phase | Theme | Findings | Session risk | Status |
 |---|---|---|---|---|
-| 1 | Class-C quick wins: conversation + lists + selectors + files/git UI | GAP-11, 13–18 (7) | Low — pure UI, zero protocol surface | ☐ pending |
+| 1 | Class-C quick wins: conversation + lists + selectors + files/git UI | GAP-11, 13–18 (7) | Low — pure UI, zero protocol surface | ☑ done — verified 2026-10-06 23:44:47 BST |
 | 2 | Class A / C+A: data already arriving + half-built plumbing (spec-first) | GAP-1, 2, 10, 12 (4) | Medium — new wire decodes, fixtures each | ☐ pending |
 | 3 | Class B read-only viewers (§13.3-sanctioned channels) | GAP-5–9 (5) | Medium — new channels, all R-class read-only | ☐ pending |
 | 4 | Class B ⚠ ADR-gated: coding-plan quotas + resets | GAP-3, 4 (2) | High — overturns a §13.3 "Never" | ☐ pending |
@@ -329,54 +329,96 @@ screens). No `docs/protocol/` changes in this phase; binding rule 5 does not tri
 
 ### Sub-phase 1A — Conversation surface
 
-- [ ] **GAP-13 (P1)** Message timestamps — rows already carry
+- [x] **GAP-13 (P1)** Message timestamps — rows already carry
   `createdAt`/`createdAtSeq` (`domain/model/ConversationRow.kt:26-37`); RowRenderers
   never render time (desktop: `ConversationRowView.tsx:1347,1469` — read-only
   derivation from `row.createdAt`). Render compact localized timestamps on
   user/assistant rows (§31 `java.time` formatters; full timestamp in row meta or on
   tap). Accept: user + assistant rows show a time label derived from that row's
   `createdAt`; formatter unit test + compose test asserting the label renders; zero
-  new failing test names.
-- [ ] **GAP-11 (P1)** Copy / select / highlight — no `SelectionContainer` anywhere;
+  new failing test names. **DONE — commit 50a46db (tests 2ab54fe; core:ui
+  `messageTimeLabel` desktop decision-table port + RowRenderers meta-line labels;
+  MessageTimeLabelTest 7/7 + RowTimestampUiTest 2/2).**
+- [x] **GAP-11 (P1)** Copy / select / highlight — no `SelectionContainer` anywhere;
   rows are plain `Text`. Wrap user/assistant rows in `SelectionContainer` (per-row,
   not whole-timeline, for perf), long-press → copy-row via `ClipData`, per-code-block
   copy affordance. Copy is user-initiated only (§27 — no new leak surface). Accept:
   long-press copy puts the exact row text on the clipboard (instrumented test);
   selection works within a row without selecting the whole timeline; code-block copy
-  button present on assistant code rows.
+  button present on assistant code rows. **DONE — commit 921125c (tests c168f89;
+  user-row long-press copy verified on-clipboard, per-row SelectionContainers
+  (user bubble = long-press copy, assistant prose = scoped container + copy action),
+  code-block copy buttons; RowCopySelectionUiTest 4/4).**
 
 ### Sub-phase 1B — Tasks list + selectors
 
-- [ ] **GAP-14 (P2)** Collapsible workspace groups — TaskListScreen groups are static;
+- [x] **GAP-14 (P2)** Collapsible workspace groups — TaskListScreen groups are static;
   desktop collapses per group (`WorkspaceGroupedTasksSection.tsx`). Add expand/
   collapse per workspace group with persisted collapse state per workspace id.
   Accept: collapsing a group hides its tasks and persists across app restart; count
-  badge still shows totals while collapsed.
-- [ ] **GAP-17 (P2)** Mode selector UI polish — functional chips/dialog
+  badge still shows totals while collapsed. **DONE — commit ed92e79 (tests 9e9e87c;
+  desktop collapsedGroupIds port: header toggle + count badge, disk-persisted
+  WorkspaceCollapseFileStore wired in AppContainer → survives process restart;
+  TaskListCollapseUiTest 3/3 + WorkspaceCollapseFileStoreTest 4/4).**
+- [x] **GAP-17 (P2)** Mode selector UI polish — functional chips/dialog
   (`Phase9Components.kt`) restyled to desktop mode affordances (same mode vocabulary,
   desktop ordering/descriptions). Accept: mode picker shows the same vocabulary the
   desktop shows for the same workspace (3.14.4 vocabulary-check precedent); restyle
-  only — no wire change, existing mode-switch tests stay green.
-- [ ] **GAP-18 (P2)** Model selector UI polish — functional but unstyled dialog →
+  only — no wire change, existing mode-switch tests stay green. **DONE — commit
+  71dc44c (tests 891bff0; icon+title+description items from desktop
+  mode.label.glm.*/mode.description.glm.*, radio check on current mode, yolo
+  warning-tinted; SWITCHABLE_MODES + onSwitchMode wire values unchanged;
+  ModeSelectorPolishUiTest 3/3; superseded text-pin in SessionChipsLayoutTest
+  updated in the same commit).**
+- [x] **GAP-18 (P2)** Model selector UI polish — functional but unstyled dialog →
   desktop model-picker parity (grouping, current-model marker, disabled states).
   Accept: picker lists the same models as today (no source change), marks the active
-  model; restyle only; model-switch flow tests stay green.
+  model; restyle only; model-switch flow tests stay green. **DONE — commit fe93092
+  (tests 6b72552; provider group headers, radio check on the active model,
+  unavailable entries disabled+dimmed, two-step pick→thought flow and
+  onSwitchModel(provider, model, thought) unchanged; ModelSelectorPolishUiTest 3/3).**
 
 ### Sub-phase 1C — Files & Git screens
 
-- [ ] **GAP-15 (P2)** Files screen overhaul — `features/files/ui/FilesScreen.kt` is a
+- [x] **GAP-15 (P2)** Files screen overhaul — `features/files/ui/FilesScreen.kt` is a
   basic list; port desktop file-tree affordances (tree navigation, breadcrumbs,
   file-type icons, open/preview entry points as the desktop exposes them). Accept:
   can navigate a real workspace tree to a file and open it; every surface uses
-  today's existing data calls unless the desktop uses the same ones.
-- [ ] **GAP-16 (P2)** Git screen overhaul — `features/git/ui/GitScreen.kt` basic →
+  today's existing data calls unless the desktop uses the same ones. **DONE — commit
+  6e2af72 (tests 5c16bc8; desktop resolveIconName family mapping (fileKind +
+  typed icons + a11y kind labels, en/zh), dir chevrons, tappable breadcrumb chain
+  over the visited stack; navigation/viewer still on port.list/readText only;
+  FilesScreenUiTest 4/4).**
+- [x] **GAP-16 (P2)** Git screen overhaul — `features/git/ui/GitScreen.kt` basic →
   desktop git-panel parity (status grouping, diff view entry, branch info as the
   desktop panel shows). Accept: status/diff/branch surfaces render for a real repo
-  workspace; every displayed datum maps 1:1 to a desktop-panel datum.
+  workspace; every displayed datum maps 1:1 to a desktop-panel datum. **DONE —
+  commit 2c1f259 (tests 43f12e3; desktop SECTION_ORDER_BY_SOURCE grouping
+  (unstaged/untracked/conflicted; staged) with per-section path sort, filename +
+  dimmed-directory + colored +N −N rows, ONE inline lazily-fetched diff expansion
+  at a time, branch/tracking/↑↓/dirty card, 7-char short-hash MM/dd history;
+  GitScreenUiTest 3/3).**
 
-Phase 1 exit gate: ☐ all seven checkboxes ticked, one `fix(GAP-n)` commit each (rule
+Phase 1 exit gate: ☑ all seven checkboxes ticked, one `fix(GAP-n)` commit each (rule
 2) · baseline name-diff clean (rule 7) · assembleRelease rebuilt with artifact path +
 versionName/versionCode stated (rule 9) · zero `docs/protocol/` diffs in this phase.
+
+> **Phase 1 verification (2026-10-06 23:44:47 BST).** Verified by **ZCode** (agentic
+> coding harness, interactive session on Ernest's Mac) running model
+> **GLM-5.3-Flash** (`account:zai-individual-coding-plan/GLM-5.3-Flash`), branch
+> `fix/android-gaps` (14 commits, `2ab54fe..2c1f259`, NOT pushed). Evidence: baseline
+> `gradle test` at campaign start = BUILD SUCCESSFUL, zero failing names;
+> phase-tree full unit suites green in every touched module (`:core:ui`,
+> `:features:conversation`, `:features:tasks`, `:features:files`, `:features:git`);
+> instrumented `:app:connectedDebugAndroidTest` on emulator-5554 (zcode-atd AVD) =
+> 11 tests / 0 failures; `:app:assembleRelease` rebuilt →
+> `app/build/outputs/apk/release/app-release-unsigned.apk`, **versionName
+> 0.11.4-phase11 (vc36)**. Name-diff: the only failing name in any phase-tree run is
+> the PRE-EXISTING `ConnectionHubWritePathTest` 20s-timeout flake (class untouched by
+> this phase — `git diff main` on `app/.../connect/` is empty; failing set shifted
+> across runs under external machine load 12–29; every affected name re-run GREEN in
+> isolation in the phase's own tree — rule 7 exoneration). `git diff main --
+> docs/protocol` = empty (zero wire-surface diffs, as this phase requires).
 
 ## Phase 2 — Class A / C+A: data already arriving + half-built plumbing (§12 step 2)
 
