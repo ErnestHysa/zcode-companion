@@ -2,6 +2,8 @@ package com.zcode.android.features.conversation.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +23,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.runtime.LaunchedEffect
@@ -33,6 +37,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.testTag
 import com.zcode.android.features.conversation.R
 import androidx.compose.ui.res.stringResource
@@ -63,6 +69,7 @@ private val ToolCardRadius = 10.dp
 
 @Composable
 fun YouBlock(text: String, createdAtMs: Double? = null, modifier: Modifier = Modifier) {
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
     Column(modifier = modifier.fillMaxWidth().testTag("row_user")) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Overline(stringResource(R.string.row_you), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -74,6 +81,14 @@ fun YouBlock(text: String, createdAtMs: Double? = null, modifier: Modifier = Mod
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(YouBubbleRadius))
                 .padding(horizontal = 14.dp, vertical = 12.dp)
+                // GAP-11: the desktop's user-row copy affordance (CopyRowAction,
+                // ConversationRowView.tsx:1290) as the Android gesture — long-press the
+                // bubble puts the EXACT row text on the clipboard. User-initiated only (§27).
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onLongPress = { clipboard.setText(AnnotatedString(text)) },
+                    )
+                }
                 .semantics(mergeDescendants = true) {},
         ) {
             Text(
@@ -91,12 +106,19 @@ fun AgentProse(text: String, streaming: Boolean, createdAtMs: Double? = null, mo
         Row(verticalAlignment = Alignment.CenterVertically) {
             Overline(stringResource(R.string.row_agent), color = LocalZCodeColors.current.accent)
             RowTimeLabel(createdAtMs = createdAtMs, tag = "row_time_agent")
+            Spacer(Modifier.width(6.dp))
+            // GAP-11: the desktop's assistant-row CopyRowAction (ConversationRowView.tsx:1339).
+            CopyIconButton(text = text, tag = "row_copy_agent")
         }
         Spacer(Modifier.height(4.dp))
-        MarkdownText(
-            text = text,
-            modifier = Modifier.semantics(mergeDescendants = true) {},
-        )
+        // GAP-11: per-row selection (desktop = native text selection). Scoped to THIS
+        // row's prose — never the whole timeline (roadmap acceptance).
+        SelectionContainer(modifier = Modifier.testTag("row_selection_agent")) {
+            MarkdownText(
+                text = text,
+                modifier = Modifier.semantics(mergeDescendants = true) {},
+            )
+        }
         if (streaming) {
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -343,6 +365,8 @@ fun CodeBlock(code: String, lang: String? = null, modifier: Modifier = Modifier,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
                 )
+                // GAP-11: per-code-block copy affordance (desktop code-block copy).
+                CopyIconButton(text = code, tag = "row_copy_code")
             }
             Spacer(Modifier.height(6.dp))
             Box(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
@@ -440,6 +464,34 @@ private fun Overline(text: String, color: androidx.compose.ui.graphics.Color) {
  * state). Same here: one labelSmall text in the row meta line; invalid/absent
  * timestamps render nothing (the formatter's null branch).
  */
+/**
+ * GAP-11: the desktop CopyRowAction as an icon button — copies the exact payload to
+ * the clipboard, then flips to a check for a moment (desktop "chat.message.copy.copied"
+ * feedback). User-initiated only (§27).
+ */
+@Composable
+private fun CopyIconButton(text: String, tag: String) {
+    val clipboard = LocalClipboardManager.current
+    var copied by remember { mutableStateOf(false) }
+    LaunchedEffect(copied) {
+        if (copied) {
+            kotlinx.coroutines.delay(1_500)
+            copied = false
+        }
+    }
+    androidx.compose.material3.IconButton(onClick = {
+        clipboard.setText(AnnotatedString(text))
+        copied = true
+    }, modifier = Modifier.size(24.dp).testTag(tag)) {
+        Icon(
+            imageVector = if (copied) Icons.Filled.Check else Icons.Filled.ContentCopy,
+            contentDescription = stringResource(if (copied) R.string.row_copied else R.string.row_copy),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(14.dp),
+        )
+    }
+}
+
 @Composable
 private fun RowTimeLabel(createdAtMs: Double?, tag: String) {
     if (createdAtMs == null) return

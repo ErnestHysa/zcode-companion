@@ -93,6 +93,9 @@
     <string name="row_turn">Turn</string>
     <string name="row_unsupported">Unsupported entry</string>
     <string name="row_code">CODE</string>
+    <!-- GAP-11: per-row/code-block copy affordances (user-initiated, §27). -->
+    <string name="row_copy">Copy</string>
+    <string name="row_copied">Copied</string>
     <string name="tool_state_running">Running</string>
     <string name="tool_state_needs_approval">Needs approval</string>
     <string name="tool_state_completed">Completed</string>

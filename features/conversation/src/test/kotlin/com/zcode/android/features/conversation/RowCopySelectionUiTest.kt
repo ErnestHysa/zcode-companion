@@ -2,7 +2,10 @@ package com.zcode.android.features.conversation
 
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
@@ -64,14 +67,19 @@ class RowCopySelectionUiTest {
 
     @Test
     fun assistantProse_isSelectable_withinTheRow() {
+        // One SelectionContainer PER prose row — never one wrapping the whole
+        // timeline (that would couple selection to unrelated rows).
         rule.setContent {
-            ZCodeTheme { AgentProse(text = "selectable prose body", streaming = false, createdAtMs = null) }
+            ZCodeTheme {
+                Column {
+                    AgentProse(text = "first selectable prose", streaming = false, createdAtMs = null)
+                    AgentProse(text = "second selectable prose", streaming = false, createdAtMs = null)
+                    YouBlock("user row is NOT wrapped in a selection container", createdAtMs = null)
+                }
+            }
         }
         rule.waitForIdle()
-        val node = rule.onNodeWithTag("row_agent").fetchSemanticsNode()
-        val hasSelectionAction =
-            androidx.compose.ui.semantics.SemanticsActions.SetSelection in node.config
-        assertEquals(true, hasSelectionAction)
+        rule.onAllNodesWithTag("row_selection_agent").assertCountEquals(2)
     }
 
     @Test

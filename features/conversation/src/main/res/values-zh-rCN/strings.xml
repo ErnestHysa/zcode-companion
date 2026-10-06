@@ -86,6 +86,8 @@
     <string name="row_turn">轮次</string>
     <string name="row_unsupported">不支持的条目</string>
     <string name="row_code">代码</string>
+    <string name="row_copy">复制</string>
+    <string name="row_copied">已复制</string>
     <string name="tool_state_running">运行中</string>
     <string name="tool_state_needs_approval">等待批准</string>
     <string name="tool_state_completed">已完成</string>
