@@ -120,4 +120,13 @@
     <string name="git_entry">Git</string>
     <string name="terminal_entry">Terminal</string>
     <string name="switch_mode_title">Switch mode</string>
+    <!-- GAP-17: desktop mode vocabulary (i18n mode.label.glm.* / mode.description.glm.*). -->
+    <string name="mode_title_build">Ask before changes</string>
+    <string name="mode_title_edit">Edit automatically</string>
+    <string name="mode_title_plan">Plan mode</string>
+    <string name="mode_title_yolo">Full access</string>
+    <string name="mode_description_build">Ask before file changes.</string>
+    <string name="mode_description_edit">Edit files automatically.</string>
+    <string name="mode_description_plan">Plan before editing.</string>
+    <string name="mode_description_yolo">Run with fewer confirmations.</string>
 </resources>

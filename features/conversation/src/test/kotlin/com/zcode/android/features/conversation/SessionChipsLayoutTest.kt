@@ -124,11 +124,11 @@ class SessionChipsLayoutTest {
         // §10.3: the mode picker renders ALL FOUR verified modes (build/edit/plan/
         // yolo — command.ts:216). FIELD (vc34): the user reported seeing three — the
         // clipped-DropdownMenu class; the dialog lists every option un-clipped.
+        // GAP-17: rows render the DESKTOP titles (mode.label.glm.*) — pinned here.
         rule.onNodeWithTag("conv_mode_chip").performClick()
         rule.waitForIdle()
-        for (mode in listOf("build", "edit", "plan", "yolo")) {
-            // substring: the current mode renders as "• <mode>" beside the chip label
-            rule.onAllNodesWithText(mode, substring = true).onFirst().assertExists()
+        for (title in listOf("Ask before changes", "Edit automatically", "Plan mode", "Full access")) {
+            rule.onAllNodesWithText(title).onFirst().assertExists()
         }
     }
 }

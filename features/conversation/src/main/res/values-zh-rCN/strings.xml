@@ -111,4 +111,12 @@
     <string name="git_entry">Git</string>
     <string name="terminal_entry">终端</string>
     <string name="switch_mode_title">切换模式</string>
+    <string name="mode_title_build">变更前确认</string>
+    <string name="mode_title_edit">自动编辑</string>
+    <string name="mode_title_plan">计划模式</string>
+    <string name="mode_title_yolo">完全访问</string>
+    <string name="mode_description_build">改文件前先问我。</string>
+    <string name="mode_description_edit">自动编辑文件。</string>
+    <string name="mode_description_plan">编辑前先出计划。</string>
+    <string name="mode_description_yolo">减少确认次数。</string>
 </resources>

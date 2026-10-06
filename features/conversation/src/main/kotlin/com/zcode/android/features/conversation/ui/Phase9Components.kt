@@ -1,6 +1,7 @@
 package com.zcode.android.features.conversation.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,7 +11,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.res.stringResource
 import com.zcode.android.features.conversation.R
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.PanTool
+import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -108,6 +115,9 @@ fun SessionModeChips(
         // (edge-to-edge popup insets) — the field report "macOS shows 4 modes, Android
         // shows 3". A modal dialog lists all options un-clipped, matching the model
         // picker's pattern.
+        // GAP-17: items restyled to the desktop's composite affordance (icon + title +
+        // description, radio check on the current mode, high-permission mode flagged
+        // warning) — V4ComposerModeControls.tsx; vocabulary + wire behavior UNCHANGED.
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { modeSheet = false },
             confirmButton = { TextButton(onClick = { modeSheet = false }) { Text(stringResource(R.string.action_close)) } },
@@ -115,13 +125,32 @@ fun SessionModeChips(
             text = {
                 Column {
                     for (mode in SessionConfigState.SWITCHABLE_MODES) {
+                        val selected = mode == config.mode
                         androidx.compose.material3.ListItem(
-                            headlineContent = { Text(if (mode == config.mode) "• $mode" else mode) },
+                            leadingContent = {
+                                Icon(
+                                    imageVector = modeIcon(mode),
+                                    contentDescription = null,
+                                    tint = if (mode == "yolo") {
+                                        com.zcode.android.core.ui.theme.LocalZCodeColors.current.railWaiting
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                )
+                            },
+                            headlineContent = { Text(modeTitle(mode)) },
+                            supportingContent = { Text(modeDescription(mode)) },
+                            trailingContent = {
+                                androidx.compose.material3.RadioButton(selected = selected, onClick = null)
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
+                                .selectable(
+                                    selected = selected,
+                                    role = androidx.compose.ui.semantics.Role.RadioButton,
+                                ) {
                                     modeSheet = false
-                                    if (mode != config.mode) onSwitchMode(mode)
+                                    if (!selected) onSwitchMode(mode)
                                 }
                                 .testTag("mode_option_$mode"),
                         )
@@ -142,6 +171,37 @@ fun SessionModeChips(
         )
     }
 }
+
+/** GAP-17: desktop mode icons (display.tsx resolveModeOptionIcon): build = hand
+ * (confirm-before-changes), edit = shield-check, plan = lightbulb, yolo = alert. */
+private fun modeIcon(mode: String) = when (mode) {
+    "edit" -> Icons.Filled.VerifiedUser
+    "plan" -> Icons.Filled.Lightbulb
+    "yolo" -> Icons.Filled.Warning
+    else -> Icons.Filled.PanTool
+}
+
+/** GAP-17: desktop mode titles (i18n mode.label.glm.*). */
+@Composable
+private fun modeTitle(mode: String): String = stringResource(
+    when (mode) {
+        "edit" -> R.string.mode_title_edit
+        "plan" -> R.string.mode_title_plan
+        "yolo" -> R.string.mode_title_yolo
+        else -> R.string.mode_title_build
+    },
+)
+
+/** GAP-17: desktop mode descriptions (i18n mode.description.glm.*). */
+@Composable
+private fun modeDescription(mode: String): String = stringResource(
+    when (mode) {
+        "edit" -> R.string.mode_description_edit
+        "plan" -> R.string.mode_description_plan
+        "yolo" -> R.string.mode_description_yolo
+        else -> R.string.mode_description_build
+    },
+)
 
 @Composable
 private fun ModelPickerDialog(
