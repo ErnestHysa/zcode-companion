@@ -1,8 +1,9 @@
 package com.zcode.android.features.tasks.ui
 
 import java.io.File
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 
 /**
  * GAP-14 (android-native-gaps.md): per-workspace COLLAPSE state for the task list,
@@ -20,33 +21,48 @@ interface WorkspaceCollapseStore {
 /** UI state holder: toggle membership in the collapsed set, persisting on each change. */
 class WorkspaceCollapseState(private val store: WorkspaceCollapseStore?) {
 
-    private val _collapsed = MutableStateFlow(store?.load() ?: emptySet())
+    // Snapshot state (not StateFlow): composition must OBSERVE the toggle — the list
+    // hides/shows on the same frame as the header tap.
+    var collapsedKeys: Set<String> by mutableStateOf(store?.load() ?: emptySet())
+        private set
 
-    val collapsed: StateFlow<Set<String>> get() = _collapsed
-
-    fun isCollapsed(workspaceKey: String): Boolean {
-        // Implemented in fix(GAP-14).
-        return false
-    }
+    fun isCollapsed(workspaceKey: String): Boolean = workspaceKey in collapsedKeys
 
     fun toggle(workspaceKey: String) {
-        // Implemented in fix(GAP-14).
+        val next = collapsedKeys.toMutableSet()
+        if (!next.add(workspaceKey)) next.remove(workspaceKey)
+        collapsedKeys = next
+        store?.save(next)
     }
 }
 
 /**
- * Disk-backed store: one workspace key per line (keys are desktop paths / identity
- * strings — no separators ambiguity beyond newlines, which keys never contain).
- * A missing or corrupt file degrades to an empty set, never a crash (INV-8 spirit).
+ * Disk-backed store: a header-marked file with one workspace key per line. The
+ * header guards against foreign/garbage payloads (degrade to an empty set, never a
+ * crash — INV-8 spirit); keys never contain newlines or control characters.
  */
 class WorkspaceCollapseFileStore(private val file: File) : WorkspaceCollapseStore {
 
     override fun load(): Set<String> {
-        // Implemented in fix(GAP-14).
-        return emptySet()
+        if (!file.isFile) return emptySet()
+        return runCatching {
+            val lines = file.readLines()
+            if (lines.firstOrNull() != HEADER) {
+                emptySet()
+            } else {
+                lines.drop(1).filter { it.isNotBlank() }.toSet()
+            }
+        }.getOrDefault(emptySet())
     }
 
     override fun save(collapsed: Set<String>) {
-        // Implemented in fix(GAP-14).
+        runCatching {
+            file.parentFile?.mkdirs()
+            file.writeText((listOf(HEADER) + collapsed.sorted()).joinToString("\n"))
+        }
+    }
+
+    private companion object {
+        const val HEADER = "zcode-workspace-collapse-1"
     }
 }

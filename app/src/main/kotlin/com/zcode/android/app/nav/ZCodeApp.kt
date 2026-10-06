@@ -220,6 +220,7 @@ fun ZCodeApp(
                 creatingTask = taskState.creatingTask,
                 createNotice = taskState.createNotice,
                 onConsumeCreateNotice = tasksVm::consumeCreateNotice,
+                collapseStore = container.workspaceCollapseStore,
             )
         }
         composable(Routes.CONVERSATION) { entry ->
@@ -291,6 +292,7 @@ private fun TasksRoute(
     creatingTask: Boolean = false,
     createNotice: String? = null,
     onConsumeCreateNotice: () -> Unit = {},
+    collapseStore: com.zcode.android.features.tasks.ui.WorkspaceCollapseStore? = null,
 ) {
     val state by vm.state.collectAsState()
     val refreshing by vm.isRefreshing.collectAsState()

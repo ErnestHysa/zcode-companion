@@ -25,6 +25,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.MaterialTheme
@@ -96,6 +98,8 @@ fun TaskListScreen(
     val createdNotice = stringResource(R.string.tasks_created)
     // §18.2 workspace switcher selection (endpoint-scoped; null = all workspaces).
     var selectedWorkspaceKey by remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    // GAP-14: per-workspace collapse state, persisted through the store when supplied.
+    val collapse = remember(collapseStore) { WorkspaceCollapseState(collapseStore) }
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
             HeaderRow(
@@ -156,8 +160,15 @@ fun TaskListScreen(
                 when (state.loadState) {
                     TasksUiState.Load.LOADING -> LoadingBody()
                     TasksUiState.Load.EMPTY -> EmptyBody(state, onRetry, onRefresh)
-                    TasksUiState.Load.READY ->
-                        ReadyBody(state, onTaskClick, onRetry, onRepairPairing, selectedWorkspaceKeyParam = selectedWorkspaceKey)
+            TasksUiState.Load.READY ->
+                ReadyBody(
+                    state,
+                    onTaskClick,
+                    onRetry,
+                    onRepairPairing,
+                    selectedWorkspaceKeyParam = selectedWorkspaceKey,
+                    collapse = collapse,
+                )
                 }
             }
                 // §6.1 parity: create tasks in existing workspaces — the "+ New task"
@@ -392,6 +403,7 @@ private fun ReadyBody(
     onRetry: () -> Unit,
     onRepairPairing: () -> Unit,
     selectedWorkspaceKeyParam: String? = null,
+    collapse: WorkspaceCollapseState = remember { WorkspaceCollapseState(null) },
 ) {
     Column(Modifier.fillMaxSize()) {
         // §14.4.2 stale overlay — cached rows visible + LABELED (never silent stale).
@@ -438,15 +450,27 @@ private fun ReadyBody(
             contentPadding = PaddingValues(bottom = 24.dp),
         ) {
             shownGroups.forEach { group ->
+                // GAP-14 (desktop WorkspaceGroupedTasksSection collapsedGroupIds): the
+                // header toggles the group; a collapsed group hides its tasks but the
+                // count badge still shows the total.
+                val collapsed = collapse.isCollapsed(group.workspaceKey)
                 item(key = "header-${group.workspaceKey}") {
-                    WorkspaceHeader(group.label)
+                    WorkspaceHeader(
+                        workspaceKey = group.workspaceKey,
+                        label = group.label,
+                        taskCount = group.tasks.size,
+                        collapsed = collapsed,
+                        onToggle = { collapse.toggle(group.workspaceKey) },
+                    )
                 }
-                // FIELD (2026-09-30, vc13 crash log): the SAME taskId can appear under MORE than one
-                // workspace group (desktop cross-listing) — a bare taskId key collided and
-                // crashed LazyColumn on fast scroll ("Key was already used").
-                items(group.tasks, key = { "task-${group.workspaceKey.hashCode()}-${it.taskId}" }) { task ->
-                    TaskRow(task, onClick = { onTaskClick(task) })
-                    HorizontalHairline()
+                if (!collapsed) {
+                    // FIELD (2026-09-30, vc13 crash log): the SAME taskId can appear under MORE than one
+                    // workspace group (desktop cross-listing) — a bare taskId key collided and
+                    // crashed LazyColumn on fast scroll ("Key was already used").
+                    items(group.tasks, key = { "task-${group.workspaceKey.hashCode()}-${it.taskId}" }) { task ->
+                        TaskRow(task, onClick = { onTaskClick(task) })
+                        HorizontalHairline()
+                    }
                 }
             }
         }
@@ -454,25 +478,55 @@ private fun ReadyBody(
 }
 
 @Composable
-private fun WorkspaceHeader(label: String) {
+private fun WorkspaceHeader(
+    workspaceKey: String,
+    label: String,
+    taskCount: Int,
+    collapsed: Boolean,
+    onToggle: () -> Unit,
+) {
+    val actionWord = stringResource(if (collapsed) R.string.tasks_a11y_expand else R.string.tasks_a11y_collapse)
+    val a11y = stringResource(R.string.tasks_group_a11y, label, taskCount, actionWord)
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .clickable(onClick = onToggle)
+            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .testTag("tasks_group_collapse_${workspaceKey.hashCode()}")
+            .semantics(mergeDescendants = true) { contentDescription = a11y },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = stringResource(R.string.tasks_workspace_kicker),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.semantics(mergeDescendants = true) {},
         )
         Spacer(Modifier.width(12.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onBackground,
+        )
+        Spacer(Modifier.width(8.dp))
+        // GAP-14: the count badge survives collapsing — totals stay visible.
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+            modifier = Modifier.testTag("tasks_group_count_${workspaceKey.hashCode()}"),
+        ) {
+            Text(
+                text = taskCount.toString(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
+            )
+        }
+        Spacer(Modifier.weight(1f))
+        Icon(
+            imageVector = if (collapsed) Icons.Filled.ExpandMore else Icons.Filled.ExpandLess,
+            contentDescription = null, // the merged header description carries the state
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

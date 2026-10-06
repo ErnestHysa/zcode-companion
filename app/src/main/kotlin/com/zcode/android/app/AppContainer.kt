@@ -147,6 +147,15 @@ class AppContainer(activity: FragmentActivity) {
 
     /** Phase 9 (§43.2-9): the advanced read-only surfaces + view-only terminal. */
     val gitPort: DefaultGitPort = DefaultGitPort(hub)
+
+    /**
+     * GAP-14 (android-gaps roadmap): per-workspace task-group collapse state,
+     * PERSISTED across process restarts (desktop collapsedGroupIds parity).
+     */
+    val workspaceCollapseStore: com.zcode.android.features.tasks.ui.WorkspaceCollapseFileStore =
+        com.zcode.android.features.tasks.ui.WorkspaceCollapseFileStore(
+            java.io.File(activity.filesDir, "ui/workspace-collapse.txt"),
+        )
     val filesPort: DefaultFilesPort = DefaultFilesPort(
         hub,
         cacheDir = java.io.File(activity.cacheDir, "downloads").also { it.mkdirs() },

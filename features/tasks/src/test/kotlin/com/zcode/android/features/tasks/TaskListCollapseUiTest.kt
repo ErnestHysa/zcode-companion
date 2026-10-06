@@ -81,7 +81,7 @@ class TaskListCollapseUiTest {
         val store = RecordingStore()
         setContent(store)
         rule.onNodeWithTag("task_row_a").assertIsDisplayed()
-        rule.onNodeWithTag("tasks_group_count_${wsKey.hashCode()}").assertIsDisplayed()
+        rule.onNodeWithTag("tasks_group_count_${wsKey.hashCode()}", useUnmergedTree = true).assertIsDisplayed()
         rule.onNodeWithText("2").assertIsDisplayed()
 
         rule.onNodeWithTag(headerTag).performClick()
@@ -90,7 +90,7 @@ class TaskListCollapseUiTest {
         rule.onAllNodesWithTag("task_row_a").assertCountEquals(0)
         rule.onAllNodesWithTag("task_row_b").assertCountEquals(0)
         // Acceptance: the count badge still shows totals while collapsed.
-        rule.onNodeWithTag("tasks_group_count_${wsKey.hashCode()}").assertIsDisplayed()
+        rule.onNodeWithTag("tasks_group_count_${wsKey.hashCode()}", useUnmergedTree = true).assertIsDisplayed()
         rule.onNodeWithText("2").assertIsDisplayed()
         // Persisted on toggle.
         assertEquals(setOf(wsKey), store.persisted)
@@ -112,7 +112,7 @@ class TaskListCollapseUiTest {
         val store = RecordingStore(initial = setOf(wsKey))
         setContent(store)
         rule.onAllNodesWithTag("task_row_a").assertCountEquals(0)
-        rule.onNodeWithTag("tasks_group_count_${wsKey.hashCode()}").assertIsDisplayed()
+        rule.onNodeWithTag("tasks_group_count_${wsKey.hashCode()}", useUnmergedTree = true).assertIsDisplayed()
     }
 
 }
