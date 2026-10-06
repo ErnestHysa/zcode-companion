@@ -152,3 +152,64 @@ The desktop adapter exposes it on the task snapshot runtime (`zcodeTaskServiceAd
 - The desktop **renderer** on this machine is the compiled bundle; UI behaviors were read from the open repo (`packages/ui`) at `29628c9` — a 3.14.4 desktop may render slightly newer variants (the mode-vocabulary check earlier this phase already proved 3.14.4 matches `29628c9` for modes).
 - Quota/usage payloads are provider-specific (BigModel monitor vs local aggregation — `usage-stats.ts:154`); the Z.ai 5-hour semantics you described map to `UsageQuotaLimit{period, nextResetTime}` but exact Z.ai field values were not captured (needs one live `usage/stats` capture — same fixture discipline as §41.2).
 - Nothing above has been implemented, committed, or spec'd — findings only, per instruction.
+
+---
+
+## 14. Auto-adaptation pipeline (DESIGN — how the Android app tracks the macOS app)
+
+**User goal (2026-10-06):** when the ZCode macOS app updates, the Android app should follow within minutes: detect what changed, patch/rebuild, publish to GitHub Releases — and the installed Android app offers an "Update now" button that pulls the matching APK. Question asked: possible with CI/GitHub alone, or does an agent/the Mac need to be in the loop?
+
+### 14.1 The honest constraint first
+
+Two facts shape the whole design:
+
+1. **Most desktop releases will NOT need Android code changes.** The wire layers tolerate additive change (INV-8 unknown-tolerance, capability flags, warn-not-block compat gate §39.3). What breaks is: relay-adapter behavior (closed), a schema we strictly decode, or a required-field addition. So the pipeline's main job is *classified detection* — telling "no-op release" apart from "breaking release" — not mass patching.
+2. **The connective tissue is half-closed.** The open repo (`packages/shared/src/zcode-protocol-v4/`, `channels.ts`, …) covers the v4 protocol surface; the RELAY adapter (handshake, envelope, close codes, frame budgets) lives in the installed bundle (`app.asar` → `zcode.cjs`) and is NOT in the open repo. A GitHub-only watcher is blind to relay changes — and the relay is exactly what "can't connect" means. **Therefore the Mac must be in the loop**: it has the installed bundle and it is the only place a live production-relay canary may run (INV-15 forbids the production relay in GitHub CI).
+
+### 14.2 Architecture: four tiers
+
+```
+[T1 DETECT]                          [T2 VERIFY]                  [T3 BUILD+PUBLISH]            [T4 CLIENT]
+GitHub Action (10-min cron)          GitHub Actions:              GitHub Actions:               Android app
+  open-repo tag/release watch  ──┐   fixture suite re-run         versionCode bump          foreground update check
+  protocol-surface diff            │   transport suite re-run       MAX_TESTED_DESKTOP bump     against GitHub Releases
+Mac launchd watcher (daily +    ──┤   schema-compile against       APK assembleRelease         metadata (§37, designed)
+  on-update bundle hash +         │   new shared/ schemas           release notes auto-gen      desktop > max-tested
+  zcode.cjs relay-adapter diff) ──┘                                ↓                       → "Update now" button
+Mac live canary (INV-15 leg)     ──┘   only when desktop running: real relay probe (pair→stream→recover)
+```
+
+**T1 — Detect (two sensors, because each is blind to the other's half):**
+- **Open-repo sensor** (GitHub Action, cron `*/10`): watch `zai-org/ZCode` tags/releases. On new tag: check out, run the §39.4 drift-check (the tool §39.4 documents as "not implemented in this task" — this pipeline IS its implementation): extract methods/schema names/limits/mode enums/channel list/slash catalog from `packages/shared/src/zcode-protocol-v4/` + `channels.ts` and diff against `tools/drift/surface-inventory.json` (the last-verified surface, committed). Output: structured `drift-report.json` (added/changed/removed per layer).
+- **Bundle sensor** (Mac, launchd daily + a `fswatch`/Sparkle hook): hash `/Applications/ZCode.app/.../app.asar` (+ `zcode.cjs`). On change: extract the relay adapter constants the Phase-1 corpus verified (close codes, frame budgets, envelope field names, ack schedule hints) and diff against the recorded baseline. This catches relay-side changes the open repo cannot show.
+- Both sensors write `drift-report.json` + classify: **ADDITIVE** (new/optional only) vs **BREAKING** (changed/removed on a path we strictly decode).
+
+**T2 — Verify:**
+- GitHub CI (INV-15-clean): regenerate golden fixtures from the new `packages/shared` schemas, run the full fixture suite + transport/protocol tests against the new surface, try compiling our decoders against the new schemas.
+- **Live canary — Mac-only leg** (runs when the user's desktop is up): the existing one-session canary drill (pair → subscribe → stream → recover → diagnostics export), automated as a script, run automatically when T1 flags BREAKING or on-demand. INV-15: this is an operator-machine ritual, never CI.
+
+**T3 — Build + publish (the decision matrix):**
+- **ADDITIVE + suites green + canary green:** fully automatic. Bump `versionCode`, bump `CompatibilityGate.MAX_TESTED_DESKTOP` to the new desktop version, regenerate baseline profiles, `assembleRelease`, sign, publish to GitHub Releases with notes auto-generated from the drift report. Minutes, not hours — your "10 minutes" is realistic for this class.
+- **BREAKING:** an agent drafts the patch (decode updates, fixture updates, UI adaptation) and opens a PR with the drift report attached — but a human approves before it ships, because an unverified protocol patch shipped to the phone can strand the user mid-task (the vc34 lesson: wrong-subscribe rounds had server-side side effects). Nothing here justifies autonomous breaking-change release.
+- Either way the release IS the compat-matrix bump ritual (§39.4) — automated for the common case.
+
+**T4 — Client UX (the "Update now" button):**
+- The app already knows the desktop's version (hello/bridge). Add a foreground update check against GitHub Releases metadata (§37's designed non-Play update channel): if `desktop.version > app.maxTested` AND a newer release exists → banner + **"Update now"** → download APK → install intent (user-consented, §37).
+- The existing connection-center compat warning becomes the same action ("Desktop 3.14.5 detected — this build was tested to 3.14.4 — update available").
+- No update present + desktop newer → current honest warning stays ("if connections keep failing, this may be why").
+
+### 14.3 Rollout (two stages, be honest about the seam)
+
+- **Stage 1 — semi-automatic (days of work):** T1 sensors + drift report + notification to you (script → notification) + one-command build/publish (`tools/release-compat.sh`: bump gate → test → sign → release). Breaking changes still patched in a session (by me, with the report as the brief). This alone removes the "weeks later" gap: detection is instant, the fix loop is hours.
+- **Stage 2 — auto-ship clean releases:** T2/T3 in GitHub Actions with the decision matrix above; auto-releases only for ADDITIVE+green; everything else queues for review. The agent-drafted-patch step (an AI opening the PR) is real but should stay behind human approval for BREAKING — the failure mode (bricked update shipped unattended) is worse than the delay.
+
+### 14.4 Risks / open items
+
+- **Relay-only changes** are invisible to the open-repo sensor — covered by the bundle sensor + Mac canary; if Z.ai ever ships a relay change without a repo tag, the bundle hash is the tripwire.
+- **Cold-resume side effects** (vc34 lesson): any automated canary that subscribes with a wrong workspace pair can fork tasks on the live desktop — the canary script must use the fixed workspace resolution and a disposable synthetic task.
+- **Review bottleneck:** acceptable; BREAKING releases are rare (the compatibility model exists precisely so they are).
+- **Signing:** the release keystore (Phase 12.1) is a prerequisite for T3 — stable key, stored off-repo.
+
+### 14.5 Disposition
+
+Design only — nothing implemented. Suggested landing order: drift-check tool + surface inventory (small, testable, also useful manually) → T1 sensors → T4 update check (Phase 12 §37 overlap) → T2/T3 automation. Phase 12 prerequisites (signing) gate T3.
