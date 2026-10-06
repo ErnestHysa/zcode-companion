@@ -93,7 +93,7 @@ class FilesScreenUiTest {
         setContent()
         // Rows render…
         rule.onNodeWithText("src").assertIsDisplayed()
-        rule.onNodeWithText("Main.kt").assertIsDisplayed()
+        rule.onNodeWithText("README.md").assertIsDisplayed()
         // …with kind semantics: folders announce themselves, typed files carry a kind too.
         rule.onNodeWithContentDescription("Folder", substring = true).assertExists()
         rule.onNodeWithContentDescription("Document", substring = true).assertExists()
