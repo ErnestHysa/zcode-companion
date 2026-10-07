@@ -46,10 +46,15 @@ class RowCopySelectionUiTest {
 
     @Test
     fun longPressUserRow_copiesExactRowText() {
+        // GAP-10 supersede note (same phase): long-press now opens the row action
+        sheet with Copy + Edit (the desktop's user-row affordances); Copy keeps the
+        exact-row-text contract.
         rule.setContent {
             ZCodeTheme { YouBlock("copy me exactly", createdAtMs = null) }
         }
         rule.onNodeWithTag("row_user").performTouchInput { longClick() }
+        rule.waitForIdle()
+        rule.onNodeWithTag("row_copy_action").performClick()
         rule.waitForIdle()
         assertEquals("copy me exactly", clipboardText())
     }
