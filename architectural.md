@@ -16,6 +16,20 @@
 
 ## Architecture Revision History
 
+**v1.0.5 — 2026-10-07 (android-gaps Phase 6, AAP-3/AAP-4/AAP-5)**
+- Auto-adaptation Stage 2 implemented (the report's §14.2 T2–T4 on top of the
+  Stage-1 detect tier): T2 verify = `tools/ci/verify-protocol.sh` +
+  `.github/workflows/protocol-verify.yml` (drift-check → regenerate golden
+  fixtures from the NEW open-repo schemas → full unit suite in a scratch clone);
+  T3 = `tools/release/` decision matrix + publish/draft-PR executors (the
+  roadmap's ABSOLUTE gate — never auto-ship breaking — pinned by
+  `decision.test.mjs` exhaustively) + the Mac live canary scripted
+  (`tools/canary/live-canary.sh` + spike `--stage canary`, vc34 guards normative);
+  T4 = the in-app GitHub-Releases update check (`app/.../update/`, §37's
+  non-Play channel, user-consented install intent). Runbook:
+  `docs/runbooks/release.md`. No §13.3/§26 delta (release metadata + public
+  GitHub API only; no new protocol surfaces).
+
 **v1.0.4 — 2026-10-07 (android-gaps Phase 5, AAP-1/AAP-2)**
 - §39.4 updated from "documented, not implemented" to implemented: the drift-check
   tool + T1 sensors exist under `tools/drift/` + `tools/sensors/` (runbook
@@ -2238,7 +2252,7 @@ GitHub Actions: PR → format (ktlint/ktfmt) → detekt/static analysis → JVM 
 
 ## 37. Distribution
 
-Separation (normative): **build** (CI) → **sign** (release keystore; single stable key from day one — rotation breaks Obtainium/assetlinks) → **publish** (channels below) → **update** (in-app update check against GitHub Releases metadata for non-Play builds, user-consented download + install intent) → **rollback** (prior tag). All policy facts in this section were verified 2026-09-27 and are re-verified each release (§39.4 drift watch) — they are time-stamped facts, not permanent truths.
+Separation (normative): **build** (CI) → **sign** (release keystore; single stable key from day one — rotation breaks Obtainium/assetlinks) → **publish** (channels below) → **update** (in-app update check against GitHub Releases metadata for non-Play builds, user-consented download + install intent — **implemented, android-gaps Phase 6 AAP-3**: foreground check on connection-center entry, gated on `desktop > CompatibilityGate.MAX_TESTED_DESKTOP` AND a newer release versionCode, banner + "Update now", SHA-256-verified download, FileProvider install intent; the system installer UI is the consent) → **rollback** (prior tag). Release signing (AAP-5 prerequisite, Phase-12.1 minimum): stable keystore OFF-REPO at `~/.zcode-android-release-keys/` (0600; created 2026-10-07, CN=ZCode Companion, SHA-256 `731eec01…`, 30-year validity; absent file ⇒ unsigned build exactly as before Phase 6). All policy facts in this section were verified 2026-09-27 and are re-verified each release (§39.4 drift watch) — they are time-stamped facts, not permanent truths.
 
 | Channel | Role | Notes |
 |---|---|---|
@@ -2310,7 +2324,7 @@ Unknown message types → `Unknown` case + counter (never crash, INV-8); unknown
 
 ### 39.4 Drift detection (process)
 
-Watch process: **ZCode release → compare protocol contracts → run fixture suite → review breaking changes → update compatibility matrix → ticket if required.** The fixture-regeneration job runs from the *open-source repo* (never the relay — INV-15); new methods/notifications/fields become compatibility tickets before app release. **Implemented (android-gaps Phase 5, AAP-1/AAP-2, 2026-10-07):** the drift-check tool now lives in this repo — `tools/drift/` (open-repo surface extraction + consumed-surface manifest + classified `drift-report.json`, ADDITIVE vs BREAKING per §14.2) plus the T1 sensors: the `open-repo-drift` GitHub Action (cron `*/10`, tag-metadata + source-text only — INV-15 note in the workflow header) and the Mac bundle sensor (`tools/sensors/bundle-sensor.sh` + launchd plist template, sha256 tripwire over `app.asar`/`zcode.cjs` diffing the Phase-1-corpus relay-adapter constants against the generated `tools/drift/relay-baseline.json`). Usage, the report schema, and the post-release ritual: `docs/runbooks/drift.md`; Phase-5 rehearsal evidence: `docs/evidence/phase-5-gaps/`.
+Watch process: **ZCode release → compare protocol contracts → run fixture suite → review breaking changes → update compatibility matrix → ticket if required.** The fixture-regeneration job runs from the *open-source repo* (never the relay — INV-15); new methods/notifications/fields become compatibility tickets before app release. **Implemented (android-gaps Phase 5, AAP-1/AAP-2, 2026-10-07):** the drift-check tool now lives in this repo — `tools/drift/` (open-repo surface extraction + consumed-surface manifest + classified `drift-report.json`, ADDITIVE vs BREAKING per §14.2) plus the T1 sensors: the `open-repo-drift` GitHub Action (cron `*/10`, tag-metadata + source-text only — INV-15 note in the workflow header) and the Mac bundle sensor (`tools/sensors/bundle-sensor.sh` + launchd plist template, sha256 tripwire over `app.asar`/`zcode.cjs` diffing the Phase-1-corpus relay-adapter constants against the generated `tools/drift/relay-baseline.json`). Usage, the report schema, and the post-release ritual: `docs/runbooks/drift.md`; Phase-5 rehearsal evidence: `docs/evidence/phase-5-gaps/`. Stage 2 (Phase 6, v1.0.5) builds on it: the T2 verify leg, the T3 decision matrix/publish pipeline, and the Mac canary live under `tools/ci/`, `tools/release/`, `tools/canary/` — runbook `docs/runbooks/release.md`.
 
 ---
 
