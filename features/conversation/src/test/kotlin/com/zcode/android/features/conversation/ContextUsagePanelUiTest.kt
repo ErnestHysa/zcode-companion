@@ -71,7 +71,7 @@ class ContextUsagePanelUiTest {
         val rows = rule.onAllNodesWithTag("context_usage_breakdown_row").fetchSemanticsNodes()
         assertEquals(7, rows.size)
         val first = rows.first().config.get(SemanticsProperties.Text).single().text
-        assertTrue("largest source first (chars desc), got: $first", "messages" in first)
+        assertTrue("largest source first (chars desc), got: $first", "Messages" in first)
     }
 
     @Test
@@ -84,9 +84,13 @@ class ContextUsagePanelUiTest {
     }
 
     @Test
-    fun nullUsageOrNonRenderable_rendersNothing() {
+    fun nullUsage_rendersNothing() {
         rule.setContent { ZCodeTheme { ContextUsagePanel(usage = null) } }
         rule.onAllNodesWithTag("context_usage_panel").assertCountEquals(0)
+    }
+
+    @Test
+    fun zeroUsed_rendersNothing() {
         // Desktop gate: used=0 is an init fallback, never a 0% meter.
         val zero = fixtureUsage("usage-minimal").let {
             it.copy(contextWindow = it.contextWindow?.copy(usedTokens = 0L))
