@@ -144,6 +144,15 @@ interface V4Plane {
         workspaceIdentity: String? = null,
     ): JsonObject
 
+    // ---- Phase 3 read-only viewer surfaces (INV-9: read methods only — v4-wire.md §12)
+
+    /**
+     * GAP-5: `getAppUsageStats` (zcodeAgent.ts:592, scope passthrough) → the CLI
+     * `v4/usage/stats` — read-only, stateless, safe to re-send (transport.ts:363-366).
+     * Params {range: "all"|"7d"|"30d", timeZone?} (strict); result = AppUsageSnapshot.
+     */
+    suspend fun appUsageStats(range: String, timeZone: String?): JsonObject
+
     // terminal (view-only — INV-9)
     suspend fun terminalCreate(cols: Int, rows: Int, cwd: String? = null): JsonObject
     suspend fun terminalDispose(id: String)
@@ -695,6 +704,20 @@ internal class ChannelV4Plane(
             bound().warn("channel.call", "$channelName.$method failed: ${e.message?.take(100)}")
             throw TransportFailure(ErrorMapping.protocolFault(e.message ?: "channel call failed"))
         }
+    }
+
+    // ---------------------------------------------------------------- Phase 3 read-only viewer surfaces
+    // v4-wire.md §12. Read-only R-class reads on §13.3-sanctioned channels — the
+    // typed surface exposes NO write method (INV-9): no automation create/update/
+    // delete/enable, no plugin install/uninstall/enable, no skills setEnabled, no
+    // mcp mutations (§13.3 fallbacks apply via TransportFailure at the port layer).
+
+    suspend fun appUsageStats(range: String, timeZone: String?): JsonObject {
+        val params = buildJsonObject {
+            put("range", JsonPrimitive(range))
+            timeZone?.let { put("timeZone", JsonPrimitive(it)) }
+        }
+        return v4CallObject("getAppUsageStats", params)
     }
 
     // ---- terminal (view-only: create/dispose/data/exit ONLY — INV-9, phase9-channels.md §1)

@@ -871,6 +871,9 @@ class DirectTransport(
     override suspend fun fileSearch(rootPath: String, workspaceIdentity: String?, query: String, limit: Int): RpcValue =
         plane.fileSearch(rootPath, workspaceIdentity, query, limit)
 
+    override suspend fun appUsageStats(range: String, timeZone: String?): JsonObject =
+        plane.appUsageStats(range, timeZone)
+
     override suspend fun modelSelectionView(): JsonObject = plane.modelSelectionView()
 
     // ------------------------------------------------------------------ direct surface

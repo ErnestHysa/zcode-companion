@@ -170,6 +170,10 @@ class MockZCode(
         // ---------------- Phase 9 (§43.2-9) ----------------
         /** Scriptable per-turn fileChanges results (one-shot FIFO; §10.1). */
         val conversationFileChanges: ArrayDeque<JsonObject> = ArrayDeque()
+
+        // ---------------- Phase 3 viewers (GAP-5..9; v4-wire.md §12) ----------------
+        /** Scriptable app usage snapshot (getAppUsageStats result; null = typed fault). */
+        var appUsageStats: JsonObject? = null
         /** Channels the mock REFUSES (authorization-refused fallback fixtures, §13.3). */
         var refuseChannels: Set<String> = emptySet()
         /** Reject attachment transactions with the verified oversize/grammar faults. */
@@ -1435,6 +1439,15 @@ class MockZCode(
                 val result = synchronized(script.conversationFileChanges) { script.conversationFileChanges.removeFirstOrNull() }
                 if (result == null) {
                     respondError(id, "fault.fileChanges.none")
+                } else {
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(result))
+                }
+            }
+            // ---- Phase 3 viewer methods (v4-wire.md §12) ----
+            "getAppUsageStats" -> {
+                val result = script.appUsageStats
+                if (result == null) {
+                    respondError(id, "fault.mock.unscripted:getAppUsageStats")
                 } else {
                     respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(result))
                 }
