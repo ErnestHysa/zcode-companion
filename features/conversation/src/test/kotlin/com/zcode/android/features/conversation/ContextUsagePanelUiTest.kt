@@ -57,9 +57,9 @@ class ContextUsagePanelUiTest {
         rule.onNodeWithTag("context_usage_label").assertExists()
         // 148234/1000000 → compact "148.2K / 1M (14.8%)" (desktop formatter port).
         val text = renderedText("context_usage_label")
-        assertTrue("148.2K" in text, "compact used tokens in label, got: $text")
-        assertTrue("1M" in text, "compact size tokens in label, got: $text")
-        assertTrue("14.8%" in text, "1-fraction-digit percent in label, got: $text")
+        assertTrue("compact used tokens in label, got: $text", "148.2K" in text)
+        assertTrue("compact size tokens in label, got: $text", "1M" in text)
+        assertTrue("1-fraction-digit percent in label, got: $text", "14.8%" in text)
     }
 
     @Test
@@ -71,7 +71,7 @@ class ContextUsagePanelUiTest {
         val rows = rule.onAllNodesWithTag("context_usage_breakdown_row").fetchSemanticsNodes()
         assertEquals(7, rows.size)
         val first = rows.first().config.get(SemanticsProperties.Text).single().text
-        assertTrue("messages" in first, "largest source first (chars desc), got: $first")
+        assertTrue("largest source first (chars desc), got: $first", "messages" in first)
     }
 
     @Test
