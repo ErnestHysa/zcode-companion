@@ -176,6 +176,7 @@ class ConversationViewModelTest {
             override suspend fun compact(taskId: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
             override suspend fun sendGoal(taskId: String, objective: String, displayText: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
             override suspend fun resumeGoal(taskId: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
+            override suspend fun editUserQuery(taskId: String, rowId: Long, entityId: String, newText: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.FAILED
             override val phase = MutableStateFlow(ConnectionPhase.CONNECTED)
         val rowsFlow = MutableStateFlow<List<ConversationRow>>(emptyList())
         val epochFlow = MutableStateFlow<String?>(null)
@@ -353,6 +354,7 @@ open class Phase7FakePort : ConversationPort {
         override suspend fun compact(taskId: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
         override suspend fun sendGoal(taskId: String, objective: String, displayText: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
         override suspend fun resumeGoal(taskId: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
+        override suspend fun editUserQuery(taskId: String, rowId: Long, entityId: String, newText: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.FAILED
     override val phase = MutableStateFlow(ConnectionPhase.CONNECTED)
     private val rowsFlow = MutableStateFlow<List<ConversationRow>>(emptyList())
     private val sessionStateFlow = MutableStateFlow(

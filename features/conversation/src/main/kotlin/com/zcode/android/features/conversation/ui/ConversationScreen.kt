@@ -97,6 +97,8 @@ fun ConversationScreen(
         { _, _, _ -> ConversationPort.UploadResult.Failed("attachments unavailable") },
     onRemoveAttachment: (uploadId: String) -> Unit = {},
     onRetryAttachment: (uploadId: String) -> Unit = {},
+    // ---- Phase 2 (§11.4, GAP-10): message edit ----
+    onEditUserQuery: (rowId: Long, entityId: String, newText: String) -> Unit = { _, _, _ -> },
 ) {
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -123,6 +125,18 @@ fun ConversationScreen(
             )
             // Phase 9.1: the per-turn diff viewer (opened from a turnHeader's summary).
             var diffTurn by remember { mutableStateOf<ConversationRow.TurnHeader?>(null) }
+            // Phase 2 (§11.4, GAP-10): the message-edit sheet (long-press → Edit).
+            var editingRow by remember { mutableStateOf<ConversationRow.UserInput?>(null) }
+            editingRow?.let { row ->
+                EditUserQueryDialog(
+                    initialText = row.text,
+                    onConfirm = { newText ->
+                        onEditUserQuery(row.rowId, row.base.entityId ?: row.turnId, newText)
+                        editingRow = null
+                    },
+                    onDismiss = { editingRow = null },
+                )
+            }
             diffTurn?.let { turn ->
                 TurnDiffDialog(
                     turnLabel = stringResource(R.string.conv_turn_label, turn.rowId),
@@ -223,6 +237,7 @@ if (state.historyChanged) {
                     onLoadOlder = onLoadOlder,
                     onRetryOlder = onRetryOlder,
                     onOpenTurnChanges = { diffTurn = it },
+                    onEditRow = { row -> editingRow = row },
                 )
             }
             // §17.4/§17.6 composer (pinned bottom; drafting allowed offline, send
@@ -357,6 +372,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     onLoadOlder: (Long, (Int) -> Unit) -> Unit,
     onRetryOlder: (Long) -> Unit,
     onOpenTurnChanges: (ConversationRow.TurnHeader) -> Unit = {},
+    onEditRow: ((ConversationRow.UserInput) -> Unit)? = null,
 ) {
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -500,6 +516,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                     state = state,
                     modifier = Modifier.testTag("conv-row-${state.rows[index].rowId}"),
                     onOpenTurnChanges = onOpenTurnChanges,
+                    onEditRow = onEditRow,
                 )
             }
         }
@@ -546,10 +563,17 @@ private fun TimelineRow(
     state: ConversationUiState,
     modifier: Modifier = Modifier,
     onOpenTurnChanges: (ConversationRow.TurnHeader) -> Unit = {},
+    onEditRow: ((ConversationRow.UserInput) -> Unit)? = null,
 ) {
     Box(modifier = modifier) {
     when (row) {
-        is ConversationRow.UserInput -> YouBlock(row.text, createdAtMs = row.base.createdAt)
+        is ConversationRow.UserInput -> YouBlock(
+            text = row.text,
+            createdAtMs = row.base.createdAt,
+            // Desktop gate (ConversationRowView.tsx:1295): edit needs an entityId.
+            editable = row.base.entityId != null && onEditRow != null,
+            onEdit = onEditRow?.let { cb -> { cb(row) } },
+        )
         is ConversationRow.AssistantText -> {
             // §19.2 merge: the store row accumulates appends IMMEDIATELY (authoritative),
             // while the coalesced streaming buffer may LEAD it between delta and flush.

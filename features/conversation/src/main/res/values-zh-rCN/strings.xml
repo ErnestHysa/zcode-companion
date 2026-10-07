@@ -129,4 +129,15 @@
     <string name="usage_breakdown_tool_prompt">工具提示词</string>
     <string name="usage_breakdown_system_tool_schemas">工具模式</string>
     <string name="usage_breakdown_mcp_tool_schemas">MCP 工具</string>
+    <!-- GAP-10：行操作与消息编辑（§11.4）。 -->
+    <string name="action_copy">复制</string>
+    <string name="action_edit">编辑</string>
+    <string name="action_cancel">取消</string>
+    <string name="row_actions_title">消息操作</string>
+    <string name="edit_title">编辑消息</string>
+    <string name="edit_hint">将以编辑后的文本重新执行该轮；其后的回复会重新生成。</string>
+    <string name="edit_review">检查编辑</string>
+    <string name="edit_confirm_title">重新询问这一轮？</string>
+    <string name="edit_confirm_body">这会用编辑后的文本替换该轮并重新生成回复。文件与后续轮次可能受影响。</string>
+    <string name="edit_confirm_button">编辑并重新询问</string>
 </resources>

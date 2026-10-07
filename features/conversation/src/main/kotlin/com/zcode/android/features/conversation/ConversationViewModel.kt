@@ -469,6 +469,46 @@ class ConversationViewModel(
         _sendNotice.value = SendNotice(notice, SendNotice.Kind.WARNING)
     }
 
+    /**
+     * GAP-10 (§11.4): the confirmed edit — the desktop re-asks the turn; the
+     * replacement arrives as authoritative churn (row.removed + row.appended or
+     * an epoch move). Blank replacements are refused client-side (desktop gate).
+     */
+    fun editUserQuery(rowId: Long, entityId: String, newText: String) {
+        if (newText.isBlank()) {
+            _sendNotice.value = SendNotice(
+                "An edit needs new text — nothing was sent.",
+                SendNotice.Kind.WARNING,
+            )
+            return
+        }
+        scope.launch {
+            when (port.editUserQuery(taskId, rowId, entityId, newText)) {
+                ConversationPort.SendOutcome.ACCEPTED -> {
+                    _sendNotice.value = SendNotice(
+                        "Edit sent — the turn is being re-asked.",
+                        SendNotice.Kind.INFO,
+                    )
+                }
+                ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
+                    _sendNotice.value = SendNotice(
+                        "You're offline — the edit was not sent.",
+                        SendNotice.Kind.WARNING,
+                    )
+                ConversationPort.SendOutcome.STALE ->
+                    _sendNotice.value = SendNotice(
+                        "The conversation moved on the desktop — the edit was not applied. Try again.",
+                        SendNotice.Kind.WARNING,
+                    )
+                else ->
+                    _sendNotice.value = SendNotice(
+                        "The edit was refused by the desktop (a conflicting change may exist — check on the desktop).",
+                        SendNotice.Kind.ERROR,
+                    )
+            }
+        }
+    }
+
     /** User-gated retry of an UNKNOWN send — SAME commandId (INV-4, no duplicate). */
     fun retryPendingSend(commandId: String) {
         scope.launch {

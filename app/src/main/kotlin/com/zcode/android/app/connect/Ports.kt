@@ -293,6 +293,23 @@ class DefaultConversationPort(
         return mapOutcome(coordinator.resumeGoal(taskId, revision))
     }
 
+    /** Phase 2 (§11.4, GAP-10): both CAS currencies — revision from the projection, epoch from the store. */
+    override suspend fun editUserQuery(taskId: String, rowId: Long, entityId: String, newText: String): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        val revision = hub.sessionProjectionState(taskId).first().revision
+        val epoch = conversationRepo.observeEpoch(com.zcode.android.domain.ids.SessionId(taskId)).first()
+        return mapOutcome(
+            coordinator.editUserQuery(
+                sessionId = taskId,
+                rowId = rowId,
+                entityId = entityId,
+                newText = newText,
+                baseRevision = revision,
+                baseLogEpoch = epoch,
+            ),
+        )
+    }
+
     private fun mapOutcome(outcome: com.zcode.android.data.session.CommandCoordinator.Outcome): ConversationPort.SendOutcome =
         when (outcome) {
             is com.zcode.android.data.session.CommandCoordinator.Outcome.Accepted -> ConversationPort.SendOutcome.ACCEPTED

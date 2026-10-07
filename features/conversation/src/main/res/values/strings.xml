@@ -140,4 +140,15 @@
     <string name="usage_breakdown_tool_prompt">Tool prompts</string>
     <string name="usage_breakdown_system_tool_schemas">Tool schemas</string>
     <string name="usage_breakdown_mcp_tool_schemas">MCP tools</string>
+    <!-- GAP-10: row action sheet + message edit (§11.4). -->
+    <string name="action_copy">Copy</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="row_actions_title">Message actions</string>
+    <string name="edit_title">Edit message</string>
+    <string name="edit_hint">The turn is re-asked with the edited text; the reply after it is regenerated.</string>
+    <string name="edit_review">Review edit</string>
+    <string name="edit_confirm_title">Re-ask this turn?</string>
+    <string name="edit_confirm_body">This replaces the turn with your edited text and regenerates the reply. Files and later turns may be affected.</string>
+    <string name="edit_confirm_button">Edit and re-ask</string>
 </resources>

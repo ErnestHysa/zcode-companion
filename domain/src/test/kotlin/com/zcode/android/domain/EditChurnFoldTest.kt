@@ -3,6 +3,7 @@ package com.zcode.android.domain
 import com.zcode.android.domain.model.ConversationRow
 import com.zcode.android.domain.reducer.ConversationTopicReducer
 import com.zcode.android.domain.reducer.ProjectionOp
+import com.zcode.android.domain.reducer.TopicEvent
 import com.zcode.android.domain.repo.ConversationStoreOp
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject

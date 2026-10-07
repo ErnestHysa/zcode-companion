@@ -68,8 +68,16 @@ private val YouBubbleRadius = 14.dp
 private val ToolCardRadius = 10.dp
 
 @Composable
-fun YouBlock(text: String, createdAtMs: Double? = null, modifier: Modifier = Modifier) {
+fun YouBlock(
+    text: String,
+    createdAtMs: Double? = null,
+    /** Desktop gate (ConversationRowView.tsx:1295): the edit entry needs entityId. */
+    editable: Boolean = false,
+    onEdit: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+) {
     val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    var showActions by rememberSaveable { mutableStateOf(false) }
     Column(modifier = modifier.fillMaxWidth().testTag("row_user")) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Overline(stringResource(R.string.row_you), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -81,12 +89,12 @@ fun YouBlock(text: String, createdAtMs: Double? = null, modifier: Modifier = Mod
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(YouBubbleRadius))
                 .padding(horizontal = 14.dp, vertical = 12.dp)
-                // GAP-11: the desktop's user-row copy affordance (CopyRowAction,
-                // ConversationRowView.tsx:1290) as the Android gesture — long-press the
-                // bubble puts the EXACT row text on the clipboard. User-initiated only (§27).
+                // GAP-10 (§11.4): long-press opens the row action sheet — Copy
+                // (always, the GAP-11 affordance) + Edit (only when the row carries
+                // an entityId). User-initiated only (§27).
                 .pointerInput(Unit) {
                     detectTapGestures(
-                        onLongPress = { clipboard.setText(AnnotatedString(text)) },
+                        onLongPress = { showActions = true },
                     )
                 }
                 .semantics(mergeDescendants = true) {},
@@ -97,6 +105,37 @@ fun YouBlock(text: String, createdAtMs: Double? = null, modifier: Modifier = Mod
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
         }
+    }
+    if (showActions) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showActions = false },
+            confirmButton = {},
+            dismissButton = {
+                Row {
+                    TextButton(
+                        onClick = {
+                            showActions = false
+                            clipboard.setText(AnnotatedString(text))
+                        },
+                        modifier = Modifier.testTag("row_copy_action"),
+                    ) {
+                        Text(stringResource(R.string.action_copy))
+                    }
+                    if (editable && onEdit != null) {
+                        TextButton(
+                            onClick = {
+                                showActions = false
+                                onEdit()
+                            },
+                            modifier = Modifier.testTag("row_edit_action"),
+                        ) {
+                            Text(stringResource(R.string.action_edit))
+                        }
+                    }
+                }
+            },
+            title = { Text(stringResource(R.string.row_actions_title)) },
+        )
     }
 }
 

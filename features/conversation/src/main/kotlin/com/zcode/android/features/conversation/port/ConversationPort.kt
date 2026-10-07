@@ -109,6 +109,13 @@ interface ConversationPort {
     suspend fun sendGoal(taskId: String, objective: String, displayText: String): SendOutcome
     suspend fun resumeGoal(taskId: String): SendOutcome
 
+    /**
+     * Phase 2 (§11.4, GAP-10): editUserQuery — row-targeted + CAS-guarded (both
+     * currencies come from the projection/epoch); the turn replacement arrives as
+     * authoritative churn, never an optimistic local edit.
+     */
+    suspend fun editUserQuery(taskId: String, rowId: Long, entityId: String, newText: String): SendOutcome
+
     /** §20 interaction answer (permission or user-input) through the ONE fail-closed gate. */
     suspend fun answerInteraction(
         interactionId: String,

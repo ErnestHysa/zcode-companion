@@ -355,6 +355,67 @@ class CommandCoordinator(
         return transmitPending(commandId, type, sessionId, payload)
     }
 
+    /**
+     * Row-targeting CAS variant (Phase 2, GAP-10): ROW_TARGETING_COMMANDS need
+     * BOTH currencies — baseRevision (verified CAS set) AND baseLogEpoch —
+     * validated LOCALLY before accept (a missing one is never a lenient send;
+     * the envelope builder would reject it later, but the outbox entry must not
+     * exist half-currencied).
+     */
+    private suspend fun rowTargetingCommand(
+        type: String,
+        sessionId: String,
+        baseRevision: Long?,
+        baseLogEpoch: String?,
+        payload: JsonObject,
+    ): Outcome {
+        if (connectionState() != ConnectionStateMachine.ConnectionState.CONNECTED) return Outcome.BlockedOffline
+        if (baseRevision == null || baseLogEpoch.isNullOrBlank()) return Outcome.MissingBaseRevision
+        val commandId = outbox.accept(
+            endpointId = endpointId,
+            sessionId = sessionId,
+            type = type,
+            payloadJson = payload.toString(),
+            baseRevision = baseRevision,
+            baseLogEpoch = baseLogEpoch,
+            issuedAtMs = clock(),
+        )
+        return transmitPending(commandId, type, sessionId, payload)
+    }
+
+    /**
+     * `editUserQuery {target: {rowId, entityId}, newText}` (Phase 2, GAP-10;
+     * docs/protocol/v4-wire.md §11.4): row-targeted AND CAS-guarded — the desktop
+     * sends current.revision + current.logEpoch (SessionPane.tsx:3055-3066).
+     * workspaceMode stays OMITTED (= the desktop's `preserve` default — branch
+     * switch only); attachments omitted = preserve canonical originals. The turn
+     * replacement is authoritative churn (row.removed + row.appended in the same
+     * epoch, or an epoch move → S9 snapshot) — NO optimistic row edit exists here.
+     */
+    suspend fun editUserQuery(
+        sessionId: String,
+        rowId: Long,
+        entityId: String,
+        newText: String,
+        baseRevision: Long?,
+        baseLogEpoch: String?,
+    ): Outcome {
+        if (newText.isBlank()) return Outcome.Failed(null)
+        return rowTargetingCommand(
+            type = "editUserQuery",
+            sessionId = sessionId,
+            baseRevision = baseRevision,
+            baseLogEpoch = baseLogEpoch,
+            payload = buildJsonObject {
+                put("target", buildJsonObject {
+                    put("rowId", JsonPrimitive(rowId))
+                    put("entityId", JsonPrimitive(entityId))
+                })
+                put("newText", newText)
+            },
+        )
+    }
+
     /** TRANSMIT → ACK / SendLost mapping (§15.5: a lost outcome is UNKNOWN, never success). */
     private suspend fun transmitPending(
         commandId: CommandId,

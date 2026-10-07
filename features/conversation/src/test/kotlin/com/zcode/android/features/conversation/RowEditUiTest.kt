@@ -1,6 +1,7 @@
 package com.zcode.android.features.conversation
 
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -8,7 +9,6 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.longClick
-import androidx.compose.ui.test.assertTextContains
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
 import com.zcode.android.features.conversation.ui.EditUserQueryDialog
@@ -54,7 +54,7 @@ class RowEditUiTest {
         rule.onNodeWithTag("row_user").performTouchInput { longClick() }
         rule.waitForIdle()
         rule.onNodeWithTag("row_copy_action").assertExists()
-        rule.onAllNodesWithTag("row_edit_action").assertCountEquals(0, "no entityId → no edit entry (desktop gate)")
+        rule.onAllNodesWithTag("row_edit_action").assertCountEquals(0) // no entityId → no edit entry (desktop gate)
     }
 
     @Test

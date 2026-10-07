@@ -366,6 +366,8 @@ private fun ConversationRoute(
         onUploadAttachment = { fileName, mime, bytes -> vm.uploadAttachment(fileName, mime, bytes) },
         onRemoveAttachment = vm::removeUpload,
         onRetryAttachment = vm::retryUpload,
+        // Phase 2 (§11.4, GAP-10): message edit (long-press → sheet → confirm).
+        onEditUserQuery = { rowId, entityId, newText -> vm.editUserQuery(rowId, entityId, newText) },
     )
 }
 
