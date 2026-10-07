@@ -147,7 +147,9 @@ class SessionStateTest {
         val merged = SessionProjectionState().mergedWith(
             buildJsonObject {
                 put("workflowRuns", buildJsonObject { put("whatever", true) })
-                put("usage", buildJsonObject { put("x", 1) })
+                // Phase 2 note: `usage` WAS the example here; it is a decoded key now
+                // (GAP-1/GAP-2, v4-wire.md §11.1) — `goal` is still not consumed.
+                put("goal", buildJsonObject { put("x", 1) })
             },
         )
         assertNull(merged.control)
