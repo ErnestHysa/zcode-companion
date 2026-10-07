@@ -52,6 +52,8 @@ class UpdateFlowInstrumentedTest {
         val digest = sha256(apkBytes)
 
         val server = MockWebServer()
+        // mockwebserver3: start() FIRST — url() throws before the socket is bound.
+        server.start()
         // Order matters: (1) releases metadata, (2) the APK bytes.
         server.enqueue(
             MockResponse.Builder().code(200)
@@ -65,7 +67,6 @@ class UpdateFlowInstrumentedTest {
                 .body(okio.Buffer().write(apkBytes))
                 .build(),
         )
-        server.start()
         try {
             val updatesDir = File(context.cacheDir, "updates").apply { mkdirs() }
             val controller = AppUpdateController(
