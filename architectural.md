@@ -16,6 +16,12 @@
 
 ## Architecture Revision History
 
+**v1.0.4 — 2026-10-07 (android-gaps Phase 5, AAP-1/AAP-2)**
+- §39.4 updated from "documented, not implemented" to implemented: the drift-check
+  tool + T1 sensors exist under `tools/drift/` + `tools/sensors/` (runbook
+  `docs/runbooks/drift.md`). Detect tier only — no app/wire-surface change, no
+  §13.3/§26 delta.
+
 **v1.0.3 — 2026-10-07 (android-gaps Phase 4, ADR-020)**
 - §13.3 reclassification (rule 10): the Coding-Plan quota plane is PORTED on the
   `usage-stats` channel — the `getEntitlementSnapshot` quota read (GAP-3) plus
@@ -2304,7 +2310,7 @@ Unknown message types → `Unknown` case + counter (never crash, INV-8); unknown
 
 ### 39.4 Drift detection (process)
 
-Watch process: **ZCode release → compare protocol contracts → run fixture suite → review breaking changes → update compatibility matrix → ticket if required.** The fixture-regeneration job runs from the *open-source repo* (never the relay — INV-15); new methods/notifications/fields become compatibility tickets before app release. Future developer tool (documented, **not implemented in this task**): a drift-check script that extracts the protocol surface (methods/schemas/limits) from a ZCode checkout and diffs it against the Android fixture set and ported-schema inventory, emitting a structured report. Until it exists, the weekly diff is manual.
+Watch process: **ZCode release → compare protocol contracts → run fixture suite → review breaking changes → update compatibility matrix → ticket if required.** The fixture-regeneration job runs from the *open-source repo* (never the relay — INV-15); new methods/notifications/fields become compatibility tickets before app release. **Implemented (android-gaps Phase 5, AAP-1/AAP-2, 2026-10-07):** the drift-check tool now lives in this repo — `tools/drift/` (open-repo surface extraction + consumed-surface manifest + classified `drift-report.json`, ADDITIVE vs BREAKING per §14.2) plus the T1 sensors: the `open-repo-drift` GitHub Action (cron `*/10`, tag-metadata + source-text only — INV-15 note in the workflow header) and the Mac bundle sensor (`tools/sensors/bundle-sensor.sh` + launchd plist template, sha256 tripwire over `app.asar`/`zcode.cjs` diffing the Phase-1-corpus relay-adapter constants against the generated `tools/drift/relay-baseline.json`). Usage, the report schema, and the post-release ritual: `docs/runbooks/drift.md`; Phase-5 rehearsal evidence: `docs/evidence/phase-5-gaps/`.
 
 ---
 
