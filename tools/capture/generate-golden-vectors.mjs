@@ -2,14 +2,19 @@
 // (read-only import from the ZCode reference clone) and records expected byte output.
 // Output: fixtures/protocol/golden-vectors.json. Never shipped, never part of CI deps.
 import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
+
+// AAP-4 (§14.2 T2): regenerable against an arbitrary open-repo checkout.
+const REPO = process.env.ZCODE_REFERENCE_REPO ?? "/Users/ernest/Desktop/DEVPROJECTS/zcode/repo";
+const OUT = process.env.ZCODE_FIXTURES_OUT ??
+  "/Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/fixtures/protocol/golden-vectors.json";
 import { Buffer } from "node:buffer";
-import { serialize, deserialize, BufferWriter, BufferReader } from "/Users/ernest/Desktop/DEVPROJECTS/zcode/repo/packages/rpc/src/serialization.ts";
-import { VSBuffer } from "/Users/ernest/Desktop/DEVPROJECTS/zcode/repo/packages/rpc/src/buffer.ts";
-import { writeProtocolMessage, ProtocolMessage, ProtocolMessageType, ChunkStream } from "/Users/ernest/Desktop/DEVPROJECTS/zcode/repo/packages/rpc/src/protocol.ts";
+const { serialize, deserialize, BufferWriter, BufferReader } = await import(`${REPO}/packages/rpc/src/serialization.ts`);
+const { VSBuffer } = await import(`${REPO}/packages/rpc/src/buffer.ts`);
+const { writeProtocolMessage, ProtocolMessage, ProtocolMessageType, ChunkStream } = await import(`${REPO}/packages/rpc/src/protocol.ts`);
 // wire-binary.ts imports zod (only for a base64 validation schema). The reference clone has
 // no node_modules and must stay untouched, so copy its text verbatim minus the zod-only lines.
 {
-  const src = readFileSync("/Users/ernest/Desktop/DEVPROJECTS/zcode/repo/packages/shared/src/zcode-protocol-v4/wire-binary.ts", "utf8");
+  const src = readFileSync(`${REPO}/packages/shared/src/zcode-protocol-v4/wire-binary.ts`, "utf8");
   const stripped = src
     .replace(/^import \{ z \} from "zod";$/m, "")
     .replace(/export const topicWireBase64Schema[\s\S]*?;\n/, "const topicWireBase64Schema = null;\n");
@@ -143,7 +148,7 @@ cases.push({ kind: "channel", name: "request-eventlisten", expected: chanRequest
 
 mkdirSync("/Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/fixtures/protocol", { recursive: true });
 writeFileSync(
-  "/Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/fixtures/protocol/golden-vectors.json",
+  OUT,
   JSON.stringify({
     metadata: {
       source: "ZCode reference clone packages/rpc + packages/shared (v3.14.3, commit 29628c9)",

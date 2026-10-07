@@ -1,0 +1,101 @@
+name: protocol-verify
+
+# AAP-4 open-repo VERIFY leg (android-gaps roadmap Phase 6, report §14.2 T2).
+# Runs the committed verify pipeline (tools/ci/verify-protocol.sh) against an
+# open-repo checkout: drift-check vs the committed inventory → regenerate the
+# golden fixtures from the NEW schemas → full unit suite in a scratch clone.
+#
+# INV-15 AUDIT NOTE (normative, §36): this workflow contains NO production-relay
+# traffic of any kind. It NEVER connects to wss://zcode.z.ai or any relay
+# endpoint, NEVER holds real credentials, NEVER runs the app or an emulator, and
+# NEVER touches real QR codes / conversation content / personal paths. Every
+# step is one of: (1) actions/checkout of this repo + the PUBLIC upstream repo's
+# SOURCE text, (2) a pure text extraction + JSON diff against the committed
+# surface inventory (tools/drift/surface-inventory.json), (3) regeneration of
+# golden fixtures by the committed generators, (4) JVM unit tests that speak
+# only to in-repo mocks (MockZCode/MockWebServer/Robolectric). The Mac-only live
+# canary leg (§14.2 T2) is deliberately NOT in this workflow — INV-15 forbids
+# production-relay traffic in GitHub CI entirely.
+
+on:
+  workflow_dispatch:
+    inputs:
+      upstream_ref:
+        description: "zai-org/ZCode tag/ref to verify against (default: latest release tag)"
+        required: false
+        default: ""
+      skip_gradle:
+        description: "drift + fixture regeneration only (no gradle suite)"
+        required: false
+        default: "false"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout this repo (verify pipeline + committed inventory)
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Resolve the upstream ref (latest release tag when unset)
+        run: |
+          REF="${{ inputs.upstream_ref }}"
+          if [ -z "$REF" ]; then
+            node tools/sensors/open-repo-watch.mjs \
+              --repo https://github.com/zai-org/ZCode.git \
+              --state /tmp/verify-watch-state.json \
+              --out /tmp/watch.json
+            REF=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/watch.json","utf8")).latestTag ?? ""')
+          fi
+          if [ -z "$REF" ]; then echo "no upstream tag resolved"; exit 2; fi
+          echo "UPSTREAM_REF=$REF" >> "$GITHUB_ENV"
+
+      - name: Checkout upstream at the ref
+        uses: actions/checkout@v4
+        with:
+          repository: zai-org/ZCode
+          ref: ${{ env.UPSTREAM_REF }}
+          path: upstream
+
+      - name: Verify (drift → regenerate fixtures → unit suite)
+        id: verify
+        run: |
+          set +e
+          SKIP=""
+          [ "${{ inputs.skip_gradle }}" = "true" ] && SKIP="--skip-gradle"
+          tools/ci/verify-protocol.sh \
+            --shared-root upstream/packages/shared/src \
+            --label "$UPSTREAM_REF" \
+            --work-dir "$PWD/verify-work" \
+            $SKIP
+          code=$?
+          echo "exit=$code" >> "$GITHUB_OUTPUT"
+          exit 0  # artifacts must upload before the gate below fails the job
+
+      - name: Upload verify artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: protocol-verify-report
+          path: |
+            verify-work/drift-report.json
+            verify-work/verify-report.json
+            verify-work/gradle.log
+          if-no-files-found: ignore
+
+      - name: Gate (BREAKING fails the job — red-with-report)
+        if: steps.verify.outputs.exit != '0'
+        run: |
+          echo "::error::protocol-verify verdict BREAKING or suite red for desktop $UPSTREAM_REF. The report artifact carries the classified drift; route: agent-drafted patch PR + HUMAN APPROVAL before any release (§14.2 T3 matrix — never auto-ship breaking)."
+          exit 1

@@ -10,8 +10,12 @@
 import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 import { execSync } from "node:child_process";
 
-const REPO = "/Users/ernest/Desktop/DEVPROJECTS/zcode/repo";
-const OUT = "/Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/fixtures/protocol/phase3-wire-fixtures.json";
+// AAP-4 (§14.2 T2): the CI verify pipeline regenerates fixtures from an ARBITRARY
+// open-repo checkout — the env override points the generator at it. Default keeps
+// the pinned reference clone (dev-time behavior unchanged).
+const REPO = process.env.ZCODE_REFERENCE_REPO ?? "/Users/ernest/Desktop/DEVPROJECTS/zcode/repo";
+const OUT = process.env.ZCODE_FIXTURES_OUT ??
+  "/Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/fixtures/protocol/phase3-wire-fixtures.json";
 const SCRATCH = "/tmp/fixture-gen";
 
 // ---------------------------------------------------------------- zod bootstrap
