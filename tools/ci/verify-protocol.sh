@@ -135,6 +135,7 @@ EXONERATED="[]"
 if [[ $GRADLE_EXIT -ne 0 ]]; then
   node -e '
     const fs=require("fs"),path=require("path");
+    const ROOT=process.argv[2];
     const pairs=[];
     const walk=(mod,d)=>{for(const e of fs.readdirSync(d,{withFileTypes:true})){
       const p=path.join(d,e.name);
@@ -149,12 +150,12 @@ if [[ $GRADLE_EXIT -ne 0 ]]; then
           if(m&&c.includes("<failure")&&!seen.has(m[1])){seen.add(m[1]);pairs.push(mod+"|"+m[1]);}
         }
       }}};
-    for(const mod of fs.readdirSync(".",{withFileTypes:true})){
+    for(const mod of fs.readdirSync(ROOT,{withFileTypes:true})){
       if(!mod.isDirectory())continue;
-      const tr=path.join(mod.name,"build","test-results");
+      const tr=path.join(ROOT,mod.name,"build","test-results");
       if(fs.existsSync(tr))walk(mod.name,tr);}
     fs.writeFileSync(process.argv[1],pairs.join("\n"));
-  ' "$WORK_DIR/failing-pairs.txt" 2>/dev/null || true
+  ' "$WORK_DIR/failing-pairs.txt" "$CLONE" 2>/dev/null || true
   if [[ -s "$WORK_DIR/failing-pairs.txt" ]]; then
     echo "[verify] suite red — re-running failing classes in isolation:"
     sed 's/^/    /' "$WORK_DIR/failing-pairs.txt"
