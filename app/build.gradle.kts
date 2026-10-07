@@ -1,3 +1,4 @@
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -44,6 +45,27 @@ android {
         }
         release {
             isMinifyEnabled = false
+            // AAP-5 prerequisite (Phase-12.1 minimum, §37 "single stable key from day
+            // one"): the release keystore lives OFF-REPO at
+            // ~/.zcode-android-release-keys/ (keystore.properties, 0600). When it is
+            // absent (any other machine / fresh clone) the build stays UNSIGNED —
+            // exactly the pre-Phase-6 behavior. The key is never committed, never in CI.
+            val keystorePropsFile = file(System.getProperty("user.home")
+                ?.let { "$it/.zcode-android-release-keys/keystore.properties" } ?: "")
+            if (keystorePropsFile.isFile) {
+                val keystoreProps = Properties().apply {
+                    keystorePropsFile.inputStream().use { load(it) }
+                }
+                signingConfigs {
+                    create("release") {
+                        storeFile = file(keystoreProps.getProperty("storeFile"))
+                        storePassword = keystoreProps.getProperty("storePassword")
+                        keyAlias = keystoreProps.getProperty("keyAlias")
+                        keyPassword = keystoreProps.getProperty("keyPassword")
+                    }
+                }
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
