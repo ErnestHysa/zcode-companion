@@ -16,6 +16,18 @@
 
 ## Architecture Revision History
 
+**v1.0.2 — 2026-10-07 (android-gaps Phase 3)**
+- §13.3 reclassification (rule 10 of the android-gaps remediation roadmap,
+  `android-native-gaps.md`): `usage-stats` and `off-peak-task` are now PORTED
+  (read-only) — the usage-stats R query (CLI `v4/usage/stats`) and the
+  off-peak-task channel `list` — and the `plugins` / `skills` / `mcp-sync`
+  rows are partially ported as READ-ONLY viewers (plugins/list,
+  skills/referenceCatalog, mcp/list with `mode:"status"`). Every write half
+  stays desktop-only (§11 Deferred scope; INV-9 typed-surface enforcement,
+  pinned by `V4PlaneViewerSurfaceTest`). No §26 delta: all five payloads are
+  display-only metadata on already-sanctioned channels (no credentials, no new
+  trust boundary); inventory in `docs/protocol/v4-wire.md` §12.
+
 **v1.0.0 — 2026-09-27**
 - Initial Phase 0 architecture (reconnaissance, protocol verification, options, roadmap).
 
@@ -1332,18 +1344,18 @@ Legend: **MVP** = minimum viable product (§43.4); P2/P3 = later phases; Class: 
 | `setting` | P3 | 7 | R (subset) | Medium | Settings sync view | Disabled |
 | `provider-settings` / `model-selection` | P2 | 6 | R + W(model switch only) | Medium | Model picker | Disabled |
 | `provider-provisioning-target` | No | — | — | High | — | Never |
-| `usage-stats` | P2 | 6 | R | Low | Usage view | Hidden |
+| `usage-stats` | **Yes (Phase 3 — ported read-only)** | 6 | R | Low | Usage screen (Settings → Insights) | Hidden (error face) |
 | `coding-plan-subscription` | No | — | — | High | — | Never |
 | `client-config` / `client-scenes` | P3 | 7 | R | Low | Feature flags display | Defaults |
-| `skills` / `skill-sync` / `mcp-sync` | P3 | 7 | R | Low | Skills/MCP viewers | Hidden |
-| `plugins` / `plugin-management` / `plugin-sync` | P3 | 7 | R | Medium | Plugins viewer | Hidden |
+| `skills` / `skill-sync` / `mcp-sync` | **Partially (Phase 3 — read-only viewers)**: `skills` referenceCatalog + `mcp-sync`'s `mcp/list` word ported; sync halves stay desktop-only | 7 | R | Low | Skills catalog + MCP servers screens | Hidden (error face) |
+| `plugins` / `plugin-management` / `plugin-sync` | **Partially (Phase 3 — read-only viewer)**: `plugin-management.listPlugins` ported; sync + ALL write methods (install/uninstall/update/enable — §11 T-item) stay desktop-only | 7 | R | Medium | Plugins screen | Hidden (error face) |
 | `subagents` / `commands` / `hooks` | P3 | 7 | R | Low | Inspectors | Hidden |
 | `memory` | P3 | 7 | R | Medium | Memory viewer | Hidden |
 | `settings-sync` | No | — | — | Medium | — | Never (write surface) |
 | `bots` | No (product) | — | W | High | — | Never (webhook is server-side) |
 | `feedback` | P3 | 7 | W | Low | Feedback form | Mailto fallback |
 | `prompt-attachment-transfer` | P2 | 6 | W (via v4 attachment commands preferred) | Medium | Composer attachments | v4 attachment plane only |
-| `off-peak-task` | P3 | 7 | R | Low | Idle-time list | Hidden |
+| `off-peak-task` | **Yes (Phase 3 — ported read-only)**: `list` only; create/cancel/pause/continue/delete are Deferred scope | 7 | R | Low | Tasks-tab idle-time section | Hidden (unavailable face) |
 | `onboarding-record` | No | — | — | Low | — | Never |
 | `broadcast` | P3 | 7 | E | Low | Cross-surface sync | Ignore |
 | `system` | P2 | 6 | R | Medium | Desktop status (hostname, uptime) | Hidden |

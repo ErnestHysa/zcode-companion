@@ -315,7 +315,7 @@ to one codebase.
 |---|---|---|---|---|
 | 1 | Class-C quick wins: conversation + lists + selectors + files/git UI | GAP-11, 13–18 (7) | Low — pure UI, zero protocol surface | ☑ done — verified 2026-10-06 23:44:47 BST |
 | 2 | Class A / C+A: data already arriving + half-built plumbing (spec-first) | GAP-1, 2, 10, 12 (4) | Medium — new wire decodes, fixtures each | ☑ done — verified 2026-10-07 11:53:47 BST |
-| 3 | Class B read-only viewers (§13.3-sanctioned channels) | GAP-5–9 (5) | Medium — new channels, all R-class read-only | ☐ pending |
+| 3 | Class B read-only viewers (§13.3-sanctioned channels) | GAP-5–9 (5) | Medium — new channels, all R-class read-only | ☑ done — verified 2026-10-07 14:32:11 BST |
 | 4 | Class B ⚠ ADR-gated: coding-plan quotas + resets | GAP-3, 4 (2) | High — overturns a §13.3 "Never" | ☐ pending |
 | 5 | Auto-adaptation Stage 1: detect (drift tool + sensors) | AAP-1, 2 (2) | Medium — Mac-in-loop leg; INV-15 applies | ☐ pending |
 | 6 | Auto-adaptation Stage 2: verify / build+publish / client update | AAP-3, 4, 5 (3) | High — release automation; signing prereq | ☐ pending |
@@ -552,7 +552,7 @@ these are wire surfaces). NO write actions in this phase (see Deferred scope).
 
 ### Sub-phase 3A — Usage analytics (GAP-5)
 
-- [ ] **GAP-5 (P2)** Usage dashboard — port `usage/stats` as a one-shot R call (§7.2;
+- [x] **GAP-5 (P2)** Usage dashboard — port `usage/stats` as a one-shot R call (§7.2;
   request/response, not push) decoding `UsageStatsSnapshot` (`usage-stats.ts:140-159`:
   summary, gap-filled `daily[]`, heatmap, `models[]`, `tools[]`, peak, streaks,
   `source`), as a Settings → Usage screen (summary cards, daily bars, per-model list,
@@ -561,36 +561,115 @@ these are wire surfaces). NO write actions in this phase (see Deferred scope).
   unverified per §13 — capture, don't guess). Accept: fixture decodes into the
   snapshot model incl. the gap-filled daily series; Usage screen renders all five
   sections from the fixture; a zero-usage snapshot renders an honest empty state.
+  **DONE — commits 9c969b8 + 0f6e3af (tests 22ec305, RED→GREEN; fixtures from
+  1f127da). RESOLUTION NOTE per rule 3 (re-read the mechanism): the phone surface
+  is `zcode-agent.getAppUsageStats` → CLI `v4/usage/stats` decoding
+  `appUsageSnapshotSchema` (transport.ts:773-779 = `v4UsageStatsResultSchema`;
+  zcodeAgentService.ts:3650-3661) — the agent-DB aggregate (source literal
+  "agent-db"); the roadmap's `UsageStatsSnapshot` cite resolves to the monitor
+  plane (Phase-4 ADR territory), not the §13.3 usage-stats R query. Fixture
+  pair app-usage-full/app-usage-zero decodes exactly; Usage screen renders all
+  five sections (summary strip, heatmap, daily bars, per-model, tools) from the
+  fixture with desktop compact-token labels; the zero snapshot renders the
+  honest empty state (ContextUsageFormat precedents reused). Live-capture leg
+  rides the Phase-12 canary (v4-wire.md §11 precedent, noted in fixture
+  metadata).**
 
 ### Sub-phase 3B — Automations read-only list (GAP-6)
 
-- [ ] **GAP-6 (P3)** Automations / off-peak list — `automation/*` reads (5 methods,
+- [x] **GAP-6 (P3)** Automations / off-peak list — `automation/*` reads (5 methods,
   §7.2) + the `off-peak-task` channel (P3, R-class sanctioned). Read-only list as a
   Tasks-tab section: automations with their state/schedule. No scheduling/edit UI
   (Deferred scope). Accept: list renders from fixture-decoded `automation/*`
   responses; a workspace with zero automations shows an empty state; no write
-  command exists anywhere in the UI.
+  command exists anywhere in the UI. **DONE — commit 1724175 (tests 9323ad9,
+  RED→GREEN). `zcode-agent.listAutomations` (workspace-target form) + the
+  `off-peak-task` channel `list` (no args); ONLY `list` is read-only of the 5
+  automation methods — the other 4 are write words that exist nowhere in the
+  client. Fixture-decoded rows render title/enabled·lifecycle/schedule (the
+  scheduleRule REAL interval with cron fallback — the schema comment mandates
+  reading it) + next-run/run-count; off-peak rows render verbatim status +
+  queue position; the desktop's list projection (workspace filter + createdAt
+  DESC + cap 20, zcodeAgentService.ts:2666-2671) is mirrored client-side and
+  E2E-pinned; zero-automations empty state + §13.3 unavailable face; the UI
+  test pins NO create/edit/delete/enable affordance in the section tree.**
 
 ### Sub-phase 3C — Plugins / skills / MCP viewers (GAP-7 + GAP-8 + GAP-9)
 
-- [ ] **GAP-7 (P3)** Plugins viewer — installed-plugins list + enable/disable state
+- [x] **GAP-7 (P3)** Plugins viewer — installed-plugins list + enable/disable state
   display (`plugins`/`plugin-management` channels, `channels.ts:126-131`). Marketplace
   BROWSING metadata is in-scope only if it arrives on an already-ported R read;
   INSTALL/UNINSTALL/UPDATE actions are Deferred scope. Accept: viewer lists installed
   plugins with state from fixture; no install affordance exists anywhere in the APK
-  (grep-level check noted in the phase summary).
-- [ ] **GAP-8 (P3)** Skills catalog viewer — `skills/referenceCatalog` (§7.2):
+  (grep-level check noted in the phase summary). **DONE — commit 057f78c (tests
+  8cf8701, RED→GREEN). `zcode-agent.listPlugins` → CLI `plugins/list` (STRICT
+  zcodePluginsListResultSchema); rows render name/version/description/marketplace
+  with the enable/disable STATE chip (display-only no-op); diagnostics strip;
+  GREP-LEVEL CHECK (phase summary): zero hits for installPlugin/uninstallPlugin/
+  updatePlugin/setPluginEnabled/configurePlugin/resetPluginConfig/
+  restoreBuiltinPlugin/marketplace-mutations across app/core/data/domain/features
+  main sources (the only "create" hits are the pre-existing sanctioned Phase-7
+  TasksPort.createTask flow); the transport typed-surface pin
+  (V4PlaneViewerSurfaceTest) enforces INV-9 structurally. Marketplace browsing
+  not ported (no already-ported R read carries it).**
+- [x] **GAP-8 (P3)** Skills catalog viewer — `skills/referenceCatalog` (§7.2):
   read-only catalog screen (name/description/source) with a search box local to the
   list. Accept: catalog renders from fixture; zero-skill workspaces show an empty
-  state.
-- [ ] **GAP-9 (P3)** MCP servers viewer — `mcp/list` (§7.2): read-only server list
+  state. **DONE — commit 557ec08 (tests 4ac5c7d, RED→GREEN).
+  `zcode-agent.getSkillReferenceCatalog` → CLI `skills/referenceCatalog` (STRICT
+  schema; the reference projection where `enabled` is z.literal(true) — the
+  model carries NO enabled field, so no enable toggle can be rendered, pinned
+  by reflection + UI tests). Rows render name/description/source(scope+plugin);
+  search box filters LOCALLY, case-insensitive across name/description/plugin
+  (Robolectric-performed input); zero-skill empty state + search-empty + §13.3
+  unavailable faces.**
+- [x] **GAP-9 (P3)** MCP servers viewer — `mcp/list` (§7.2): read-only server list
   (name, transport/status fields the payload actually carries). Accept: list renders
   from fixture; status display matches payload fields — no invented states.
+  **DONE — commit a7b098d (tests 727ec81, RED→GREEN).
+  `zcode-agent.listMcpServerStatuses` → CLI `mcp/list` with `mode: "status"`
+  PINNED (the passive last-known read — mode:"connect" would trigger REAL
+  server connects, a viewer must not side-effect the desktop's MCP runtime).
+  STRICT zcodeMcpListResultSchema record decoded with the closed 6-value status
+  + 19-value failureKind enums kept RAW (unknown future values display
+  verbatim, never guessed); rows render transport · N tools · error ·
+  failureKind exactly as the payload carries; known status faces colored,
+  unknown neutral; empty-record + §13.3 unavailable faces; zero mutation
+  affordances (UI test + V4PlaneViewerSurfaceTest).**
 
-Phase 3 exit gate: ☐ all five viewer checkboxes ticked · every new channel/method has
-a v4-wire.md entry + generated fixture · §13.3 rows for `usage-stats` and
-`off-peak-task` updated to "ported (read-only)" with phase reference (rule 10) ·
-baseline name-diff clean · APK rebuilt + artifact/version stated.
+Phase 3 exit gate: ☑ all five viewer checkboxes ticked · every new channel/method has
+a v4-wire.md entry (§12.1–§12.5) + generated fixture (fixtures/protocol/
+phase3-wire-fixtures.json, tools/capture/generate-phase3-fixtures.mjs — rule 5) ·
+§13.3 rows for `usage-stats` and `off-peak-task` updated to "ported (read-only)"
+with phase reference, and the `plugins` / `skills` / `mcp-sync` rows updated to
+"partially ported (read-only viewers)" (rule 10; + revision-history v1.0.2; §26
+delta NOT required — display-only metadata on already-sanctioned channels) ·
+baseline name-diff clean (760/0 vs 715/0, zero new names) · APK rebuilt +
+artifact/version stated.
+
+> **Phase 3 verification (2026-10-07 14:32:11 BST).** Verified by **ZCode**
+> (agentic coding harness, interactive session on Ernest's Mac) running model
+> **GLM-5.3-Flash** (`account:zai-individual-coding-plan/GLM-5.3-Flash`), branch
+> `fix/android-gaps` (13 commits `1f127da..6a31ba3`, NOT pushed).
+> Evidence: fresh phase-start baseline on the clean tree at e6bf5d4 = **715 tests /
+> 0 failing** (full unit suite, test-results cleared for a real re-run); phase-exit
+> FULL unit suite (`gradle test`, all modules) = **760 tests / 0 failing —
+> name-diff vs baseline: ZERO new failing names** (+45 new tests, all green);
+> instrumented `:app:connectedDebugAndroidTest` on emulator-5554 (zcode-atd AVD) =
+> **11 tests / 0 failures**; `:app:assembleRelease` rebuilt →
+> `app/build/outputs/apk/release/app-release-unsigned.apk`, **versionName
+> 0.11.4-phase11 (versionCode 36)**. Rule-5 discipline: v4-wire.md §12 +
+> generator + all 12 golden fixtures landed (1f127da) BEFORE any decoder/UI code;
+> every fixture parse-validated against the reference clone's own zod schemas at
+> 29628c9. Rule-3 discipline: each surface re-read in the desktop source — the
+> GAP-5 cite resolved to the `v4/usage/stats` agent-DB plane (not the monitor
+> snapshot; noted in the GAP-5 tick), automations ride the richer channel type
+> over the strict protocol face, off-peak list projection mirrored client-side,
+> skills `enabled` is literal-true on the reference plane, MCP read pins
+> `mode: "status"`. INV-9 enforcement is structural (typed V4Plane surface pinned
+> by V4PlaneViewerSurfaceTest) and the GAP-7 grep-level check is recorded in the
+> GAP-7 tick. Ernest's untracked `ui-ux/` directory was deliberately left out of
+> every commit. No push (rule 1).
 
 ## Phase 4 — Class B ⚠ coding-plan quotas + resets (ADR-gated; §12 step 3 tail)
 
