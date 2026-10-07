@@ -16,6 +16,17 @@
 
 ## Architecture Revision History
 
+**v1.0.3 — 2026-10-07 (android-gaps Phase 4, ADR-020)**
+- §13.3 reclassification (rule 10): the Coding-Plan quota plane is PORTED on the
+  `usage-stats` channel — the `getEntitlementSnapshot` quota read (GAP-3) plus
+  the ADR-020-gated reset words (GAP-4, `useCodingPlanReset` = the channel's one
+  W-class word, typed-confirm gated). `coding-plan-subscription` is clarified as
+  the PURCHASE facade and stays "Never" — the gaps report's "quota push
+  subscription" attribution resolved to the polled `usage-stats` read (ADR-020
+  channel resolution; the desktop has no quota event channel). §26 delta: new
+  threat row T19 (quota-reset misuse) + the reset-action ruling recorded
+  (Ernest, 2026-10-07, in scope). Wire inventory: `docs/protocol/v4-wire.md` §13.
+
 **v1.0.2 — 2026-10-07 (android-gaps Phase 3)**
 - §13.3 reclassification (rule 10 of the android-gaps remediation roadmap,
   `android-native-gaps.md`): `usage-stats` and `off-peak-task` are now PORTED
@@ -1344,8 +1355,8 @@ Legend: **MVP** = minimum viable product (§43.4); P2/P3 = later phases; Class: 
 | `setting` | P3 | 7 | R (subset) | Medium | Settings sync view | Disabled |
 | `provider-settings` / `model-selection` | P2 | 6 | R + W(model switch only) | Medium | Model picker | Disabled |
 | `provider-provisioning-target` | No | — | — | High | — | Never |
-| `usage-stats` | **Yes (Phase 3 — ported read-only)** | 6 | R | Low | Usage screen (Settings → Insights) | Hidden (error face) |
-| `coding-plan-subscription` | No | — | — | High | — | Never |
+| `usage-stats` | **Yes (Phase 3 read + Phase 4 coding-plan quota — ADR-020)**: CLI `v4/usage/stats` + the channel `getEntitlementSnapshot` quota read (R) + the reset words `getCodingPlanResetStatus` / `requestCodingPlanResetOpportunity` / `useCodingPlanReset` / `markCodingPlanResetHistoryRead` behind the typed-confirm dialog | 6 | R + W(`useCodingPlanReset` only) | **Medium** (the reset word spends a plan reset opportunity — ADR-020 §T19) | Usage screen quota section + reset | Hidden (error face — the quota section renders nothing) |
+| `coding-plan-subscription` | **No — clarified by ADR-020**: it is the PURCHASE facade (Stripe/PayPal/products/orders); the quota payload the gaps report attributed to this channel actually rides `usage-stats` (the desktop has no quota push channel). Purchases stay desktop-only | — | — | High (payment flows) | — | Never (purchases; no campaign ruling path) |
 | `client-config` / `client-scenes` | P3 | 7 | R | Low | Feature flags display | Defaults |
 | `skills` / `skill-sync` / `mcp-sync` | **Partially (Phase 3 — read-only viewers)**: `skills` referenceCatalog + `mcp-sync`'s `mcp/list` word ported; sync halves stay desktop-only | 7 | R | Low | Skills catalog + MCP servers screens | Hidden (error face) |
 | `plugins` / `plugin-management` / `plugin-sync` | **Partially (Phase 3 — read-only viewer)**: `plugin-management.listPlugins` ported; sync + ALL write methods (install/uninstall/update/enable — §11 T-item) stay desktop-only | 7 | R | Medium | Plugins screen | Hidden (error face) |
@@ -1376,7 +1387,7 @@ Legend: **MVP** = minimum viable product (§43.4); P2/P3 = later phases; Class: 
 
 **MVP-required** (no MVP without these): `zcode-agent` (hello, v4 subscribe/resync/rowsRange/command, sessions-index), `zcode-task` (listTasks, getTaskSnapshot(WithEtag), resumeTask, sendPrompt (or v4 sendText path), stopGeneration, respondPermission, respondElicitation), relay auth + bootstrap/workspace-list. **Why:** these five flows — pair, list, open, stream+send, approve — are the product (§43.4).
 
-**Phase 2:** model/mode switch, usage, attachments (begin/chunk/commit/read), system status. **Phase 3:** file/git read-only, conversation share read-only, skills/plugins viewers, feedback. **Advanced:** terminal interactive, git-checkpoint restore, memory, workflows inspection. **Desktop-only / not appropriate:** window-controller, oauth/credential, coding-plan-subscription, bots (as client), cua-*, settings-sync, onboarding-record, provider-provisioning-target. **Unknown:** exact capability gating per channel on replayable connections (`[REQUIRES VALIDATION]` — spike enumerates what a terminal-role connection may call; e.g. desktop may gate `terminal` to interactive sessions only).
+**Phase 2:** model/mode switch, usage, attachments (begin/chunk/commit/read), system status. **Phase 3:** file/git read-only, conversation share read-only, skills/plugins viewers, feedback. **Advanced:** terminal interactive, git-checkpoint restore, memory, workflows inspection. **Desktop-only / not appropriate:** window-controller, oauth/credential, coding-plan-subscription (the PURCHASE facade — ADR-020 clarified the quota plane itself rides `usage-stats` and IS ported), bots (as client), cua-*, settings-sync, onboarding-record, provider-provisioning-target. **Unknown:** exact capability gating per channel on replayable connections (`[REQUIRES VALIDATION]` — spike enumerates what a terminal-role connection may call; e.g. desktop may gate `terminal` to interactive sessions only).
 
 Every classification above has a fallback row in §13.3 so a server that refuses a channel degrades the feature, never the app.
 
@@ -1945,6 +1956,7 @@ Boundaries: (1) Android app ↔ endpoint = TLS + protocol auth; (2) app internal
 | T16 | Unsafe notification contents (push bridge) | content | bridge compromise | injected push text | Medium | Low | push payloads carry ids only; app renders text from local projection after connect — push text never displayed raw `[PROPOSED]` | — |
 | T17 | Rooted device | all | user-of-device or thief | extract keys, bypass biometric | High | Low | StrongBox when present; biometric gate is deterrent not DRM; documented limitation | inherent to platform |
 | T18 | Endpoint spoofing (fake "desktop") | user trust | MITM at pairing | fake QR / fake relay | Medium | Low | QR must come from desktop app UI; app displays endpoint name + deviceSid prefix on approval of pairing; direct endpoints show TLS fingerprint | — |
+| T19 | Quota-reset misuse — the Coding-Plan reset fires without deliberate user intent (fat-finger, overlay/injected tap, content-driven nudge) | plan quota (a finite server-granted reset opportunity is consumed; the 5h/week window clears — irreversible for the consumed opportunity) | accidental local user; malware driving the UI (T3 class); content/social-engineering nudge (T14 class) | reset fired from a stale or spoofed affordance; double-tap double-spend | Medium | Low | **typed-confirm dialog** — the word `RESET` must be typed before confirm enables; the transport word (`useCodingPlanReset`) is reachable ONLY through that confirmed path (UI test pins zero calls without it); server-side idempotency key dedupes retries (desktop parity, codingPlanQuotaResetUi.ts); quota metadata displayed is display-only on an already-sanctioned channel (ADR-020) | A determined overlay attacker who can also type (T3 residual, disclosed) — unchanged platform limit |
 
 **Explicit non-goals:** DRM-grade protection against rooted-device owners; defense against a fully compromised host OS (documented).
 
