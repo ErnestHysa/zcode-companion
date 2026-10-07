@@ -101,6 +101,10 @@ if (decision.action === "auto-ship") {
     `--gh "${gh}"`,
     `--run-log "${runLog}"`,
   ];
+  const versionName = arg("version-name");
+  if (versionName) args.push(`--version-name "${versionName}"`);
+  const versionCode = arg("version-code");
+  if (versionCode) args.push(`--version-code "${versionCode}"`);
   if (skipBaselineRegen) args.push("--skip-baseline-regen");
   execSync(`node tools/release/publish.mjs ${args.join(" ")}`, { stdio: "inherit", cwd: repoRoot });
 } else if (decision.action === "agent-pr") {
