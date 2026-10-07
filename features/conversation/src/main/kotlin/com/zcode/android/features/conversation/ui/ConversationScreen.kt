@@ -283,6 +283,12 @@ private fun Header(
             trailing = taskStateLabel(state.taskState),
             modifier = Modifier.padding(horizontal = 16.dp).testTag("conversation_status_line"),
         )
+        // GAP-1/GAP-2: the context-window meter + per-source breakdown (§11.1).
+        // Renders nothing until a renderable `usage` key arrives (INV-8 absence).
+        ContextUsagePanel(
+            usage = state.sessionState?.usage,
+            modifier = Modifier.padding(top = 2.dp),
+        )
         // Phase 9: model/mode chips (§10.3 echo) + Files/Git/Terminal entry points.
         // FIELD (2026-10-04, vc32): FIVE chips cannot share one row on narrow screens —
         // the weighted session chips starved (zero-width model chip on a 320dp layout;

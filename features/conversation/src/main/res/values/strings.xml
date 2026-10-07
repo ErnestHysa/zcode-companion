@@ -130,3 +130,14 @@
     <string name="mode_description_plan">Plan before editing.</string>
     <string name="mode_description_yolo">Run with fewer confirmations.</string>
 </resources>
+    <!-- GAP-1/GAP-2: context usage header panel (desktop contextUsage.tsx). -->
+    <string name="context_usage_cd">Context window usage</string>
+    <!-- Desktop chat.contextUsage.breakdown.* labels. -->
+    <string name="usage_breakdown_messages">Messages</string>
+    <string name="usage_breakdown_system_prompt">System prompt</string>
+    <string name="usage_breakdown_meta_user_context">User context</string>
+    <string name="usage_breakdown_skills">Skills</string>
+    <string name="usage_breakdown_tool_prompt">Tool prompts</string>
+    <string name="usage_breakdown_system_tool_schemas">Tool schemas</string>
+    <string name="usage_breakdown_mcp_tool_schemas">MCP tools</string>
+</resources>

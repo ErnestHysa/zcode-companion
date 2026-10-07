@@ -158,6 +158,10 @@ class MockZCode(
          * Default FALSE keeps the historical suites' bare snapshots unchanged.
          */
         var emitStateKeys: Boolean = false
+        // ---------------- Phase 2 (§11.1) ----------------
+        /** Scriptable `usage` state key (sessionUsageStateSchema shape) riding the
+         *  snapshot state block when [emitStateKeys] is on (GAP-1/GAP-2). */
+        var usageState: JsonObject? = null
         // ---------------- Phase 9 (§43.2-9) ----------------
         /** Scriptable per-turn fileChanges results (one-shot FIFO; §10.1). */
         val conversationFileChanges: ArrayDeque<JsonObject> = ArrayDeque()
@@ -761,6 +765,8 @@ class MockZCode(
             // Phase 9 (§10.3): the session `config` echo when scripted (snapshot AND
             // state.updated patches carry it — the switch commands' reconciliation plane).
             script.sessionConfig?.let { put("config", it) }
+            // Phase 2 (§11.1): the usage key when scripted (GAP-1/GAP-2).
+            script.usageState?.let { put("usage", it) }
         }
     }
 

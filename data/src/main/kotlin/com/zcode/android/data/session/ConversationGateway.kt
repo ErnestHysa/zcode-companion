@@ -212,11 +212,7 @@ class RelayConversationGateway(
                             arrived.topic, sessionId, epoch, arrived.fromSeq, arrived.toSeq, rows,
                             totalCount = (window?.get("totalCount") as? JsonPrimitive)?.content?.toLongOrNull(),
                             firstRowId = (window?.get("firstRowId") as? JsonPrimitive)?.content?.toLongOrNull(),
-                            sessionState = state.takeIf {
-                                it.control != null || it.inputRouting != null || it.queue != null ||
-                                    it.pendingInteractions != null || it.backgroundWorks != null ||
-                                    it.config != null || it.revision != null
-                            },
+                            sessionState = state.takeIf { it.hasDecodedStateKeys },
                         )
                     )
                 }

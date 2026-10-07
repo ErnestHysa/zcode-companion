@@ -120,3 +120,13 @@
     <string name="mode_description_plan">编辑前先出计划。</string>
     <string name="mode_description_yolo">减少确认次数。</string>
 </resources>
+    <!-- GAP-1/GAP-2: 上下文用量面板。 -->
+    <string name="context_usage_cd">上下文窗口用量</string>
+    <string name="usage_breakdown_messages">消息</string>
+    <string name="usage_breakdown_system_prompt">系统提示词</string>
+    <string name="usage_breakdown_meta_user_context">用户上下文</string>
+    <string name="usage_breakdown_skills">技能</string>
+    <string name="usage_breakdown_tool_prompt">工具提示词</string>
+    <string name="usage_breakdown_system_tool_schemas">工具模式</string>
+    <string name="usage_breakdown_mcp_tool_schemas">MCP 工具</string>
+</resources>

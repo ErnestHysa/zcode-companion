@@ -1,6 +1,7 @@
 package com.zcode.android.domain.model
 
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
@@ -25,9 +26,21 @@ data class SessionProjectionState(
     val backgroundWorks: List<BackgroundWork>? = null,
     /** Phase 9 (§10.3): model/mode/thought config — the switch commands' echo plane. */
     val config: SessionConfigState? = null,
+    /** Phase 2 (§11.1): context-window usage — the GAP-1/GAP-2 header panel source. */
+    val usage: SessionUsageState? = null,
     /** CAS currency for baseRevision-carrying commands (§7.4.4 verified set). */
     val revision: Long? = null,
 ) {
+    /**
+     * True when the snapshot carried ANY decoded A-side state key — the gateway
+     * emits the block only then ("no state keys" stays distinguishable from "state
+     * keys all absent").
+     */
+    val hasDecodedStateKeys: Boolean
+        get() = control != null || inputRouting != null || queue != null ||
+            pendingInteractions != null || backgroundWorks != null || config != null ||
+            usage != null || revision != null
+
     /** Key-level merge (the verified Object.assign semantics — no deep merge). */
     fun mergedWith(patch: JsonObject): SessionProjectionState {
         var next = this
@@ -43,13 +56,15 @@ data class SessionProjectionState(
                     next = next.copy(backgroundWorks = BackgroundWork.decodeList(it))
                 }
                 "config" -> asObject(patch[key])?.let { o -> SessionConfigState.decodeOrNull(o)?.let { next = next.copy(config = it) } }
+                "usage" -> asObject(patch[key])?.let { o -> SessionUsageState.decodeOrNull(o)?.let { next = next.copy(usage = it) } }
                 "revision" -> (patch[key] as? JsonPrimitive)?.content?.toLongOrNull()?.let {
                     next = next.copy(revision = it)
                 }
-                // meta/usage/pendingCommands/subagents/workflowRuns/goal/plan/
+                // meta/pendingCommands/subagents/workflowRuns/goal/plan/
                 // sharedContextImport/modelTransition/workspaceHookAdmission: not consumed
                 // by any surface — ignored keys, counted, never merged (INV-8).
-                // (`config` joined in Phase 9 — §10.3 of docs/protocol/v4-wire.md.)
+                // (`config` joined in Phase 9 — §10.3; `usage` in Phase 2 — §11.1 of
+                // docs/protocol/v4-wire.md.)
                 else -> ignoredKeys++
             }
         }
@@ -78,6 +93,7 @@ data class SessionProjectionState(
                         state = state.copy(backgroundWorks = BackgroundWork.decodeList(it))
                     }
                     "config" -> asObject(snapshot[key])?.let { o -> SessionConfigState.decodeOrNull(o)?.let { state = state.copy(config = it) } }
+                    "usage" -> asObject(snapshot[key])?.let { o -> SessionUsageState.decodeOrNull(o)?.let { state = state.copy(usage = it) } }
                     "revision" -> (snapshot[key] as? JsonPrimitive)?.content?.toLongOrNull()?.let {
                         state = state.copy(revision = it)
                     }
@@ -394,3 +410,147 @@ data class SessionConfigState(
 
 internal fun JsonObject.primitiveBool(key: String): Boolean? =
     (this[key] as? JsonPrimitive)?.content?.toBooleanStrictOrNull()
+
+/**
+ * snapshot.ts `usage` key (sessionUsageStateSchema) — Phase 2 (§11.1 of
+ * docs/protocol/v4-wire.md), ported for GAP-1/GAP-2. The context-window meter +
+ * the per-source breakdown (chars are per-source ESTIMATES for ratio display,
+ * never a token ledger — schema comment). Conflation: the key is omitted from
+ * patches when the value is unchanged — absence keeps the prior value (INV-8);
+ * a malformed KNOWN key drops THAT KEY + counts (the §9 policy).
+ *
+ * Desktop renderable gate ported verbatim (contextUsage.tsx getRenderableTaskUsage):
+ * used <= 0 || size <= 0 is NOT renderable — "used=0 或非法值…不能渲染成可用的
+ * context meter" (never a misleading 0%). The `cache` block is KNOWN but not
+ * consumed by the Phase-2 panel (roadmap scope) — it rides `raw` for forward
+ * compatibility.
+ */
+data class SessionUsageState(
+    /** `contextWindow: null` = a PRESENT key with no window data (panel hidden). */
+    val contextWindow: ContextWindow?,
+    val cumulative: Cumulative?,
+    /** Full wire object — unknown fields ride along here (INV-8). */
+    val raw: JsonObject,
+) {
+    data class ContextWindow(
+        val usedTokens: Long?,
+        val maxTokens: Long?,
+        val autoCompactThresholdTokens: Long?,
+        val breakdown: List<BreakdownItem>,
+        val raw: JsonObject,
+    )
+
+    /** `{source, chars}` — source retained as the RAW wire string (INV-8: unknown
+     *  values are tolerated, never guessed; the UI maps known sources to labels). */
+    data class BreakdownItem(val source: String, val chars: Long)
+
+    data class Cumulative(
+        val inputTokens: Long?,
+        val outputTokens: Long?,
+        val cacheReadTokens: Long?,
+        val cacheWriteTokens: Long?,
+    )
+
+    /**
+     * Aggregated per-source segments — the desktop buildContextUsageBreakdownSegments
+     * port (contextUsage.tsx:166-202): drop chars <= 0, aggregate per source,
+     * percent = chars/totalChars, sort chars DESC with a stable source-order
+     * tiebreak (messages=0, system_prompt=1, meta_user_context=2, skills=3,
+     * tool_prompt=4, system_tool_schemas=5, mcp_tool_schemas=6).
+     */
+    data class Segment(val source: String, val chars: Long, val percent: Double)
+
+    val renderable: Boolean
+        get() {
+            val window = contextWindow ?: return false
+            val used = window.usedTokens ?: return false
+            val size = window.maxTokens ?: return false
+            return used > 0 && size > 0
+        }
+
+    /** used/size as a 0..1 fraction; null when not renderable. */
+    val usedFraction: Double?
+        get() = contextWindow?.let { w ->
+            val used = w.usedTokens ?: return@let null
+            val size = w.maxTokens ?: return@let null
+            if (used <= 0 || size <= 0) null else used.toDouble() / size.toDouble()
+        }
+
+    val contextWindowBreakdownSegments: List<Segment>
+        get() {
+            val items = contextWindow?.breakdown ?: return emptyList()
+            val charsBySource = LinkedHashMap<String, Long>()
+            for (item in items) {
+                if (item.chars <= 0) continue
+                charsBySource[item.source] = (charsBySource[item.source] ?: 0L) + item.chars
+            }
+            val total = charsBySource.values.sum()
+            if (total <= 0) return emptyList()
+            return charsBySource.entries
+                .map { Segment(it.key, it.value, it.value.toDouble() / total.toDouble()) }
+                .sortedWith(
+                    compareByDescending<Segment> { it.chars }
+                        .thenBy { BREAKDOWN_SOURCE_ORDER[it.source] ?: Int.MAX_VALUE },
+                )
+        }
+
+    companion object {
+        /** contextUsage.tsx BREAKDOWN_SOURCE_ORDER — the desktop's stable tiebreak. */
+        val BREAKDOWN_SOURCE_ORDER = mapOf(
+            "messages" to 0,
+            "system_prompt" to 1,
+            "meta_user_context" to 2,
+            "skills" to 3,
+            "tool_prompt" to 4,
+            "system_tool_schemas" to 5,
+            "mcp_tool_schemas" to 6,
+        )
+
+        fun decode(obj: JsonObject): SessionUsageState {
+            val windowObj = obj["contextWindow"]
+            val contextWindow = when (windowObj) {
+                null -> throw RowDecodeException("usage.contextWindow missing (required, nullable)")
+                is JsonObject -> ContextWindow(
+                    usedTokens = windowObj.longOrNull("usedTokens")
+                        ?: throw RowDecodeException("usage.contextWindow.usedTokens missing"),
+                    maxTokens = windowObj.longOrNull("maxTokens")
+                        ?: throw RowDecodeException("usage.contextWindow.maxTokens missing"),
+                    autoCompactThresholdTokens = windowObj.longOrNull("autoCompactThresholdTokens"),
+                    breakdown = (windowObj["breakdown"] as? JsonArray)
+                        ?.mapNotNull { it as? JsonObject }
+                        ?.map { item ->
+                            BreakdownItem(
+                                source = item.string("source"),
+                                chars = item.long("chars"),
+                            )
+                        }
+                        ?: emptyList(),
+                    raw = windowObj,
+                )
+                // Explicit wire null (JsonNull) — a PRESENT key with no window data.
+                is JsonNull -> null
+                else -> throw RowDecodeException("usage.contextWindow wrong type")
+            }
+            val cumulativeObj = obj["cumulative"] as? JsonObject
+                ?: throw RowDecodeException("usage.cumulative missing")
+            return SessionUsageState(
+                contextWindow = contextWindow,
+                cumulative = Cumulative(
+                    inputTokens = cumulativeObj.longOrNull("inputTokens"),
+                    outputTokens = cumulativeObj.longOrNull("outputTokens"),
+                    cacheReadTokens = cumulativeObj.longOrNull("cacheReadTokens"),
+                    cacheWriteTokens = cumulativeObj.longOrNull("cacheWriteTokens"),
+                ),
+                raw = obj,
+            )
+        }
+
+        /** Key-drop variant for the state merge (§9 policy — drop THAT key + count). */
+        fun decodeOrNull(obj: JsonObject): SessionUsageState? = try {
+            decode(obj)
+        } catch (e: RowDecodeException) {
+            SessionProjectionState.malformedKeyDrops++
+            null
+        }
+    }
+}
