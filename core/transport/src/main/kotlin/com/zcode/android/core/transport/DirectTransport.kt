@@ -879,6 +879,18 @@ class DirectTransport(
 
     override suspend fun offPeakTaskList(): JsonObject = plane.offPeakTaskList()
 
+    override suspend fun listPlugins(workspacePath: String?, workspaceIdentity: String?): JsonObject =
+        plane.listPlugins(workspacePath, workspaceIdentity)
+
+    override suspend fun skillReferenceCatalog(
+        workspacePath: String?,
+        workspaceIdentity: String?,
+        sessionId: String?,
+    ): JsonObject = plane.skillReferenceCatalog(workspacePath, workspaceIdentity, sessionId)
+
+    override suspend fun mcpServerStatuses(workspacePath: String?, workspaceIdentity: String?): JsonObject =
+        plane.mcpServerStatuses(workspacePath, workspaceIdentity)
+
     override suspend fun modelSelectionView(): JsonObject = plane.modelSelectionView()
 
     // ------------------------------------------------------------------ direct surface

@@ -147,4 +147,13 @@
 <string name="settings_section_insights">Insights</string>
 <string name="settings_usage_row">Usage</string>
 <string name="settings_usage_sub">Token usage, activity and tools for the paired desktop</string>
+<string name="settings_plugins_row">Plugins</string>
+<string name="settings_plugins_sub">Installed plugins and their state (read-only)</string>
+<string name="plugins_title">Plugins</string>
+<string name="plugins_loading">Loading plugins…</string>
+<string name="plugins_unavailable">Plugins are unavailable</string>
+<string name="plugins_retry">Retry</string>
+<string name="plugins_empty">No plugins installed</string>
+<string name="plugin_on">On</string>
+<string name="plugin_off">Off</string>
 </resources>

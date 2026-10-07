@@ -167,6 +167,28 @@ interface V4Plane {
      */
     suspend fun offPeakTaskList(): JsonObject
 
+    /**
+     * GAP-7: `listPlugins` (zcodeAgent.ts:608) → the CLI `plugins/list` word
+     * (including the host's own one-retry-on-timeout recovery, which lives
+     * host-side). Result = zcodePluginsListResultSchema (STRICT).
+     */
+    suspend fun listPlugins(workspacePath: String?, workspaceIdentity: String?): JsonObject
+
+    /**
+     * GAP-8: `getSkillReferenceCatalog` (zcodeAgent.ts:617) → the CLI
+     * `skills/referenceCatalog` word. Params {workspacePath, workspaceIdentity?,
+     * sessionId?}; result = zcodeSkillsReferenceCatalogResultSchema (STRICT).
+     */
+    suspend fun skillReferenceCatalog(workspacePath: String?, workspaceIdentity: String?, sessionId: String?): JsonObject
+
+    /**
+     * GAP-9: `listMcpServerStatuses` (zcodeAgent.ts:607) → the CLI `mcp/list`
+     * word. The phone pins `mode: "status"` — the passive last-known read;
+     * `mode: "connect"` triggers REAL server connects (a viewer must not
+     * side-effect the desktop's MCP runtime on browse).
+     */
+    suspend fun mcpServerStatuses(workspacePath: String?, workspaceIdentity: String?): JsonObject
+
     // terminal (view-only — INV-9)
     suspend fun terminalCreate(cols: Int, rows: Int, cwd: String? = null): JsonObject
     suspend fun terminalDispose(id: String)
@@ -767,6 +789,39 @@ internal class ChannelV4Plane(
                 ?: throw TransportFailure(ErrorMapping.protocolFault("off-peak list result missing tasks"))
             else -> throw TransportFailure(ErrorMapping.protocolFault("off-peak list result not a list"))
         }
+
+    suspend fun listPlugins(workspacePath: String?, workspaceIdentity: String?): JsonObject {
+        val target = host.workspaceTarget()
+        val params = buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+            (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+        }
+        return v4CallObject("listPlugins", params)
+    }
+
+    suspend fun skillReferenceCatalog(
+        workspacePath: String?,
+        workspaceIdentity: String?,
+        sessionId: String?,
+    ): JsonObject {
+        val target = host.workspaceTarget()
+        val params = buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+            (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            sessionId?.let { put("sessionId", JsonPrimitive(it)) }
+        }
+        return v4CallObject("getSkillReferenceCatalog", params)
+    }
+
+    suspend fun mcpServerStatuses(workspacePath: String?, workspaceIdentity: String?): JsonObject {
+        val target = host.workspaceTarget()
+        val params = buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+            (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("mode", JsonPrimitive("status"))
+        }
+        return v4CallObject("listMcpServerStatuses", params)
+    }
 
     // ---- terminal (view-only: create/dispose/data/exit ONLY — INV-9, phase9-channels.md §1)
 

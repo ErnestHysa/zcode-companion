@@ -33,6 +33,7 @@ import com.zcode.android.app.R
 import com.zcode.android.features.conversation.ui.ApprovalsScreen
 import com.zcode.android.app.connect.ConnectionCenterScreen
 import com.zcode.android.app.settings.SettingsScreen
+import com.zcode.android.app.settings.PluginsViewerScreen
 import com.zcode.android.app.settings.UsageScreen
 import com.zcode.android.features.conversation.ConversationViewModel
 import com.zcode.android.features.conversation.ui.ConversationScreen
@@ -57,6 +58,7 @@ object Routes {
     const val CONNECTION = "connection"
     const val SETTINGS = "settings"
     const val USAGE = "usage"
+    const val PLUGINS = "plugins"
     const val APPROVALS = "approvals"
     const val FILES = "files"
     const val GIT = "git"
@@ -258,11 +260,16 @@ fun ZCodeApp(
                 pairingVm = pairingVm,
                 onBack = { nav.popBackStack() },
                 onOpenUsage = { nav.navigate(Routes.USAGE) },
+                onOpenPlugins = { nav.navigate(Routes.PLUGINS) },
             )
         }
         composable(Routes.USAGE) {
             // GAP-5 (v4-wire.md §12.1): read-only usage dashboard over the usage-stats R read.
             UsageScreen(port = container.usagePort, onBack = { nav.popBackStack() }, modifier = Modifier.fillMaxSize())
+        }
+        composable(Routes.PLUGINS) {
+            // GAP-7 (v4-wire.md §12.3): read-only plugins viewer — no install surface (INV-9).
+            PluginsViewerScreen(port = container.pluginsPort, onBack = { nav.popBackStack() }, modifier = Modifier.fillMaxSize())
         }
         composable(Routes.APPROVALS) {
             val open by container.conversationPort.observeOpenInteractions().collectAsState(initial = emptyList())
@@ -457,6 +464,7 @@ private fun SettingsRoute(
     pairingVm: PairingViewModel,
     onBack: () -> Unit,
     onOpenUsage: () -> Unit = {},
+    onOpenPlugins: () -> Unit = {},
 ) {
     val endpoint by container.hub.endpoint.collectAsState()
     SettingsScreen(
@@ -465,5 +473,6 @@ private fun SettingsRoute(
         desktopVersion = endpoint?.desktopAppVersion,
         onBack = onBack,
         onOpenUsage = onOpenUsage,
+        onOpenPlugins = onOpenPlugins,
     )
 }

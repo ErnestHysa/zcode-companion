@@ -1,6 +1,7 @@
 package com.zcode.android.app.connect
 
 import com.zcode.android.app.settings.UsagePort
+import com.zcode.android.app.settings.PluginsPort
 import com.zcode.android.features.tasks.port.AutomationsPort
 import java.util.TimeZone
 import kotlinx.coroutines.CancellationException
@@ -52,6 +53,23 @@ class DefaultAutomationsPort(
         } catch (e: Exception) {
             hub.log.warn("automationsport.lists", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
             AutomationsPort.Lists(null, null, e.message ?: "automations unavailable")
+        }
+    }
+}
+
+class DefaultPluginsPort(
+    private val hub: ConnectionHub,
+) : PluginsPort {
+    override suspend fun plugins(): PluginsPort.Result {
+        val target = hub.activeWorkspaceTarget()
+            ?: return PluginsPort.Result(null, "plugins are unavailable on this connection")
+        return try {
+            PluginsPort.Result(hub.viewerTools().plugins(target.first, target.second), null)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("pluginsport.plugins", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            PluginsPort.Result(null, e.message ?: "plugins are unavailable on this connection")
         }
     }
 }

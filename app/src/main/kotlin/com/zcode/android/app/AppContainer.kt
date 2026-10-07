@@ -10,6 +10,7 @@ import com.zcode.android.app.connect.DefaultConversationPort
 import com.zcode.android.app.connect.DefaultFilesPort
 import com.zcode.android.app.connect.DefaultGitPort
 import com.zcode.android.app.connect.DefaultAutomationsPort
+import com.zcode.android.app.connect.DefaultPluginsPort
 import com.zcode.android.app.connect.DefaultUsagePort
 import com.zcode.android.app.connect.DefaultTerminalPort
 import com.zcode.android.app.connect.DefaultTasksPort
@@ -153,6 +154,7 @@ class AppContainer(activity: FragmentActivity) {
     /** Phase 3 viewers (GAP-5..9; v4-wire.md §12): read-only §13.3-sanctioned reads. */
     val usagePort: DefaultUsagePort = DefaultUsagePort(hub)
     val automationsPort: DefaultAutomationsPort = DefaultAutomationsPort(hub)
+    val pluginsPort: DefaultPluginsPort = DefaultPluginsPort(hub)
 
     /**
      * GAP-14 (android-gaps roadmap): per-workspace task-group collapse state,

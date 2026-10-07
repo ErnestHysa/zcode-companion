@@ -3,7 +3,10 @@ package com.zcode.android.data.session
 import com.zcode.android.core.transport.AppTransport
 import com.zcode.android.domain.model.AppUsageSnapshot
 import com.zcode.android.domain.model.AutomationRow
+import com.zcode.android.domain.model.McpStatuses
 import com.zcode.android.domain.model.OffPeakTaskRow
+import com.zcode.android.domain.model.PluginsView
+import com.zcode.android.domain.model.SkillCatalog
 
 /**
  * Phase 3 read-only viewer tool plane (android-native-gaps.md GAP-5…GAP-9;
@@ -46,4 +49,26 @@ class ViewerTools(private val transport: AppTransport) {
             .filter { it.workspaceKey == workspaceKey }
             .sortedByDescending { it.createdAt }
             .take(20)
+
+    // ---------------------------------------------------------------- GAP-7: plugins
+
+    /** `listPlugins` → CLI `plugins/list` (v4-wire.md §12.3). Viewer-only — INV-9. */
+    suspend fun plugins(workspacePath: String?, workspaceIdentity: String?): PluginsView =
+        PluginsView.decode(transport.listPlugins(workspacePath, workspaceIdentity))
+
+    // ---------------------------------------------------------------- GAP-8: skills
+
+    /** `getSkillReferenceCatalog` → CLI `skills/referenceCatalog` (v4-wire.md §12.4). */
+    suspend fun skillCatalog(
+        workspacePath: String?,
+        workspaceIdentity: String?,
+        sessionId: String? = null,
+    ): SkillCatalog =
+        SkillCatalog.decode(transport.skillReferenceCatalog(workspacePath, workspaceIdentity, sessionId))
+
+    // ---------------------------------------------------------------- GAP-9: mcp
+
+    /** `listMcpServerStatuses` with `mode: "status"` (passive; v4-wire.md §12.5). */
+    suspend fun mcpStatuses(workspacePath: String?, workspaceIdentity: String?): McpStatuses =
+        McpStatuses.decode(transport.mcpServerStatuses(workspacePath, workspaceIdentity))
 }

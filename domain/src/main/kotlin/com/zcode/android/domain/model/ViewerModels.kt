@@ -259,6 +259,11 @@ internal fun JsonObject.intList(key: String): List<Int> =
         (el as? JsonPrimitive)?.content?.toIntOrNull() ?: throw RowDecodeException("$key entry not an int")
     } ?: emptyList()
 
+internal fun JsonObject.strList(key: String): List<String> =
+    (this[key] as? JsonArray)?.map { el ->
+        (el as? JsonPrimitive)?.content ?: throw RowDecodeException("$key entry not a string")
+    } ?: emptyList()
+
 
 // ================================================================== GAP-6: automations + off-peak
 
@@ -368,4 +373,159 @@ data class OffPeakTaskRow(
                 )
             }
         }
+}
+
+// ================================================================== GAP-7: plugins
+
+/**
+ * The `zcode-agent` → `listPlugins` result (= the CLI `plugins/list` result,
+ * zcodePluginsListResultSchema — STRICT; v4-wire.md §12.3). The viewer displays
+ * the installed list + the enable/disable STATE; the write half (install/
+ * uninstall/update/enable) is Deferred scope and decoded nowhere.
+ */
+data class PluginsView(
+    val plugins: List<PluginInfo>,
+    val diagnostics: List<PluginDiagnostic>,
+) {
+    data class PluginInfo(
+        val id: String,
+        val name: String,
+        val description: String?,
+        val version: String?,
+        val enabled: Boolean,
+        val source: String,
+        val marketplace: String,
+        val skillRootCount: Int,
+        val commandRootCount: Int,
+        val mcpServerNames: List<String>,
+        val rootPath: String,
+    )
+
+    data class PluginDiagnostic(
+        val code: String,
+        val message: String,
+        /** "warning" | "error" | unknown (kept raw). */
+        val severity: String?,
+        val pluginId: String?,
+    )
+
+    companion object {
+        fun decode(obj: JsonObject): PluginsView = PluginsView(
+            plugins = obj.arrayReq("plugins").map { el ->
+                val o = el.asObject("plugin")
+                PluginInfo(
+                    id = o.strReq("id"),
+                    name = o.strReq("name"),
+                    description = o.strOrNullN("description"),
+                    version = o.strOrNullN("version"),
+                    enabled = o.boolReq("enabled"),
+                    source = o.strReq("source"),
+                    marketplace = o.strReq("marketplace"),
+                    skillRootCount = o.intReq("skillRootCount"),
+                    commandRootCount = o.intReq("commandRootCount"),
+                    mcpServerNames = o.strList("mcpServerNames"),
+                    rootPath = o.strReq("rootPath"),
+                )
+            },
+            diagnostics = obj.arrayReq("diagnostics").map { el ->
+                val o = el.asObject("plugin diagnostic")
+                PluginDiagnostic(
+                    code = o.strReq("code"),
+                    message = o.strReq("message"),
+                    severity = o.strOrNullN("severity"),
+                    pluginId = o.strOrNullN("pluginId"),
+                )
+            },
+        )
+    }
+}
+
+// ================================================================== GAP-8: skills catalog
+
+/**
+ * The `zcode-agent` → `getSkillReferenceCatalog` result (= the CLI
+ * `skills/referenceCatalog` result, zcodeSkillsReferenceCatalogResultSchema —
+ * STRICT; v4-wire.md §12.4). This is the CONVERSATION REFERENCE projection —
+ * `enabled` is z.literal(true) on this plane, so the model carries no enabled
+ * field at all and a viewer must NOT render an enable/disable affordance from
+ * it ("该协议只承载 Composer 的只读引用投影"). `scope` stays RAW.
+ */
+data class SkillCatalog(
+    /** "session" (frozen at session creation) | "workspace" (current scan) — kept raw. */
+    val authority: String,
+    val skills: List<SkillEntry>,
+) {
+    data class SkillEntry(
+        val id: String,
+        val name: String,
+        val description: String,
+        /** Desktop path — display-only metadata (INV-16), never joined locally. */
+        val path: String,
+        /** "workspace" | "user" | "plugin" (closed enum, kept raw). */
+        val scope: String,
+        val pluginName: String?,
+    )
+
+    companion object {
+        fun decode(obj: JsonObject): SkillCatalog = SkillCatalog(
+            authority = obj.strReq("authority"),
+            skills = obj.arrayReq("skills").map { el ->
+                val o = el.asObject("skill entry")
+                SkillEntry(
+                    id = o.strReq("id"),
+                    name = o.strReq("name"),
+                    description = o.strReq("description"),
+                    path = o.strReq("path"),
+                    scope = o.strReq("scope"),
+                    pluginName = o.strOrNullN("pluginName"),
+                )
+            },
+        )
+    }
+}
+
+// ================================================================== GAP-9: mcp servers
+
+/**
+ * The `zcode-agent` → `listMcpServerStatuses` result (= the CLI `mcp/list`
+ * result, zcodeMcpListResultSchema — STRICT; v4-wire.md §12.5). Status display
+ * renders these fields VERBATIM — no invented states (roadmap accept): the
+ * 6-value status enum and 19-value failureKind enum are closed on the wire and
+ * kept RAW here so unknown future values still display truthfully.
+ */
+data class McpStatuses(
+    val statuses: Map<String, McpServerStatus>,
+) {
+    data class McpServerStatus(
+        /** connecting|connected|disabled|disconnected|failed|untrusted (kept raw). */
+        val status: String,
+        /** "stdio" | "http" | "sse" (kept raw). */
+        val transport: String,
+        val toolCount: Int,
+        val updatedAt: String,
+        val error: String?,
+        val failureKind: String?,
+        /** "legacy" | "modern" (kept raw). */
+        val protocolEra: String?,
+    )
+
+    companion object {
+        fun decode(obj: JsonObject): McpStatuses {
+            val record = obj.obj("statuses")
+            return McpStatuses(
+                statuses = record.keys.associateWith { name ->
+                    val o = record.obj(name)
+                    McpServerStatus(
+                        status = o.strReq("status"),
+                        transport = o.strReq("transport"),
+                        toolCount = o.intReq("toolCount"),
+                        updatedAt = o.strReq("updatedAt"),
+                        error = o.strOrNullN("error"),
+                        failureKind = o.strOrNullN("failureKind"),
+                        protocolEra = o.strOrNullN("protocolEra"),
+                    )
+                },
+            )
+        }
+    }
 }

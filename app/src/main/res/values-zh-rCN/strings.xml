@@ -140,4 +140,13 @@
 <string name="settings_section_insights">洞察</string>
 <string name="settings_usage_row">用量</string>
 <string name="settings_usage_sub">配对桌面端的 token 用量、活动与工具</string>
+<string name="settings_plugins_row">插件</string>
+<string name="settings_plugins_sub">已安装插件及其状态（只读）</string>
+<string name="plugins_title">插件</string>
+<string name="plugins_loading">正在加载插件…</string>
+<string name="plugins_unavailable">插件不可用</string>
+<string name="plugins_retry">重试</string>
+<string name="plugins_empty">未安装任何插件</string>
+<string name="plugin_on">启用</string>
+<string name="plugin_off">停用</string>
 </resources>

@@ -178,6 +178,12 @@ class MockZCode(
         var listAutomations: JsonArray? = null
         /** Scriptable off-peak tasks (off-peak-task channel list items; null = typed fault). */
         var offPeakTaskList: JsonArray? = null
+        /** Scriptable plugins list (listPlugins result; null = typed fault). */
+        var listPlugins: JsonObject? = null
+        /** Scriptable skills reference catalog (getSkillReferenceCatalog result; null = typed fault). */
+        var skillReferenceCatalog: JsonObject? = null
+        /** Scriptable MCP server statuses (listMcpServerStatuses result; null = typed fault). */
+        var mcpServerStatuses: JsonObject? = null
         /** Channels the mock REFUSES (authorization-refused fallback fixtures, §13.3). */
         var refuseChannels: Set<String> = emptySet()
         /** Reject attachment transactions with the verified oversize/grammar faults. */
@@ -1200,7 +1206,15 @@ class MockZCode(
     }
 
     /** Live-proven convention: Promise-call args arrive wrapped in an ARRAY. */
-    private fun argAsObject(arg: RpcValue?): JsonObject? = when (arg) {
+private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
+        if (scripted == null) {
+            respondError(id, "fault.mock.unscripted:$label")
+        } else {
+            respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(scripted))
+        }
+    }
+
+        private fun argAsObject(arg: RpcValue?): JsonObject? = when (arg) {
         is RpcValue.Arr -> (arg.items.firstOrNull() as? RpcValue.Obj)?.json as? JsonObject
         is RpcValue.Obj -> arg.json as? JsonObject
         else -> null
@@ -1466,6 +1480,9 @@ class MockZCode(
                     respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(items.map { RpcValue.Obj(it) }))
                 }
             }
+            "listPlugins" -> scriptableObject(id, script.listPlugins, "listPlugins")
+            "getSkillReferenceCatalog" -> scriptableObject(id, script.skillReferenceCatalog, "getSkillReferenceCatalog")
+            "listMcpServerStatuses" -> scriptableObject(id, script.mcpServerStatuses, "listMcpServerStatuses")
             "attachmentBeginV4" -> {
                 val params = argAsObject(arg)
                 if (params == null || script.rejectAttachments) {

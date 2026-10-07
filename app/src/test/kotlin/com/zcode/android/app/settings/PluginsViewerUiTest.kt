@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
@@ -52,8 +53,8 @@ class PluginsViewerUiTest {
         rule.setContent { ZCodeTheme { PluginsViewerScreen(port = fakePort(fixtureView("plugins-list-mixed"))) } }
         rule.onNodeWithTag("plugins_list").assertIsDisplayed()
         rule.onNodeWithTag("plugin_row_com.example.commit-aid").assertExists()
-        rule.onNodeWithText("commit-aid", substring = true).assertExists()
-        rule.onNodeWithText("1.4.0", substring = true).assertExists()
+        rule.onAllNodesWithText("commit-aid", substring = true).assertCountEquals(2) // title + marketplace line
+        rule.onAllNodesWithText("1.4.0", substring = true).assertCountEquals(1)
         rule.onNodeWithTag("plugin_row_builtin.core").assertExists()
         // The disable STATE renders (text tag carries enabled/disabled vocabulary).
         rule.onNodeWithTag("plugin_state_com.example.commit-aid").assertExists()
