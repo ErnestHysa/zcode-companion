@@ -151,4 +151,69 @@ class ViewerToolsCodingPlanTest {
             assertTrue(entitlement.limits.isEmpty())
         }
     }
+
+    // ---------------------------------------------------------------- GAP-4 reset words (ADR-020, §13.2)
+
+    @Test
+    fun `reset status rides getCodingPlanResetStatus with the derived scope descriptor`() {
+        connect { m ->
+            m.script.usageEntitlement = fixtureObject("entitlement-full")
+            m.script.codingPlanResetStatus = fixtureObject("reset-status-full")
+        }
+        runBlocking {
+            val e = tools.entitlement()
+            val s = tools.resetStatus(e.providerId!!, entitled = true)
+            assertEquals(listOf(1791937200000L, 1791940800000L), s.fiveHourExpires)
+            assertEquals(1791922800000L, s.latestFiveHourUsedAt)
+            assertEquals(true, s.hasUnreadHistory)
+            // call shape: the scope request carries the builtin provider id and
+            // the DERIVED accountAccess descriptor (== the generated fixture case)
+            val (method, argKind, params) = mock.script.usageStatsCalls.last()
+            assertEquals("getCodingPlanResetStatus", method)
+            assertEquals("arr", argKind)
+            assertEquals(
+                "account:zai-individual-coding-plan",
+                (params["preferredProviderId"] as kotlinx.serialization.json.JsonPrimitive).content,
+            )
+            assertEquals(fixtureObject("account-access-zai-individual"), params["accountAccess"])
+        }
+    }
+
+    @Test
+    fun `useReset rides useCodingPlanReset with idempotencyKey and resetType - history read returns Unit`() {
+        connect { m -> m.script.resetUse = fixtureObject("reset-use-result") }
+        runBlocking {
+            val result = tools.useReset(
+                "account:zai-individual-coding-plan", true, "synthetic-idempotency-key-0", "FIVE_HOUR",
+            )
+            assertEquals(true, result.used)
+            // markCodingPlanResetHistoryRead must tolerate the Promise<void> reply
+            tools.markResetHistoryRead("account:zai-individual-coding-plan", true)
+            val calls = mock.script.usageStatsCalls
+            assertEquals(2, calls.size)
+            val (useMethod, useArgKind, useParams) = calls[0]
+            assertEquals("useCodingPlanReset", useMethod)
+            assertEquals("arr", useArgKind)
+            assertEquals("FIVE_HOUR", (useParams["resetType"] as kotlinx.serialization.json.JsonPrimitive).content)
+            assertEquals(
+                "synthetic-idempotency-key-0",
+                (useParams["idempotencyKey"] as kotlinx.serialization.json.JsonPrimitive).content,
+            )
+            assertEquals(fixtureObject("account-access-zai-individual"), useParams["accountAccess"])
+            assertEquals("markCodingPlanResetHistoryRead", calls[1].first)
+        }
+    }
+
+    @Test
+    fun `opportunity evaluation rides requestCodingPlanResetOpportunity`() {
+        connect { m -> m.script.resetOpportunity = fixtureObject("reset-opportunity-denied") }
+        runBlocking {
+            val result = tools.resetOpportunity(
+                "account:zai-individual-coding-plan", true, "synthetic-idempotency-key-1",
+            )
+            assertEquals(false, result.granted)
+            assertEquals(1791934200000L, result.nextTryAt)
+            assertEquals("requestCodingPlanResetOpportunity", mock.script.usageStatsCalls.last().first)
+        }
+    }
 }
