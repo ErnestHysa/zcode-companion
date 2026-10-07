@@ -21,6 +21,28 @@ class ApkInstallerTest {
 
     private val context = ApplicationProvider.getApplicationContext<android.content.Context>()
 
+    /** FileProvider caches parsed roots in a STATIC authority-keyed map — under a
+     *  full Robolectric suite any test's entry can point at a stale temp env.
+     *  Clear it around this test so the strategy parses against THIS environment
+     *  and later tests re-parse against theirs (order-independent). */
+    private fun clearFileProviderCache() {
+        runCatching {
+            val f = androidx.core.content.FileProvider::class.java.getDeclaredField("sCache")
+            f.isAccessible = true
+            (f.get(null) as MutableMap<*, *>).remove("${context.packageName}.fileprovider")
+        }
+    }
+
+    @org.junit.Before
+    fun resetProviderBefore() {
+        clearFileProviderCache()
+    }
+
+    @org.junit.After
+    fun resetProviderAfter() {
+        clearFileProviderCache()
+    }
+
     @Test
     fun `install intent is the package-archive VIEW with a granted provider URI`() {
         val apk = java.io.File(context.cacheDir, "updates/app-release.apk")
