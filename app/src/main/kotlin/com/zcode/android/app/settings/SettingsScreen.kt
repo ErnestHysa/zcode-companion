@@ -68,6 +68,8 @@ fun SettingsScreen(
     onOpenPlugins: () -> Unit = {},
     /** GAP-8: opens the read-only skills catalog (v4-wire.md §12.4). */
     onOpenSkills: () -> Unit = {},
+    /** GAP-9: opens the read-only MCP server viewer (v4-wire.md §12.5). */
+    onOpenMcp: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -111,6 +113,12 @@ fun SettingsScreen(
                 subtitle = stringResource(R.string.settings_skills_sub),
                 tag = "settings_skills",
                 onClick = onOpenSkills,
+            )
+            SettingsRow(
+                title = stringResource(R.string.settings_mcp_row),
+                subtitle = stringResource(R.string.settings_mcp_sub),
+                tag = "settings_mcp",
+                onClick = onOpenMcp,
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 

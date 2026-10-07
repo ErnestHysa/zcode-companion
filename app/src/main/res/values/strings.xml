@@ -165,4 +165,12 @@
 <string name="skills_empty">No skills in this workspace</string>
 <string name="skills_search_hint">Search skills</string>
 <string name="skills_search_empty">No skills match the search</string>
+<string name="settings_mcp_row">MCP servers</string>
+<string name="settings_mcp_sub">Server status for the active workspace (read-only)</string>
+<string name="mcp_title">MCP servers</string>
+<string name="mcp_loading">Loading MCP servers…</string>
+<string name="mcp_unavailable">MCP server statuses are unavailable</string>
+<string name="mcp_retry">Retry</string>
+<string name="mcp_empty">No MCP servers configured</string>
+<string name="mcp_tool_count">%1$d tools</string>
 </resources>

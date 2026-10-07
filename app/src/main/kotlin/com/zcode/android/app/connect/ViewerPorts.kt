@@ -2,6 +2,7 @@ package com.zcode.android.app.connect
 
 import com.zcode.android.app.settings.UsagePort
 import com.zcode.android.app.settings.PluginsPort
+import com.zcode.android.app.settings.McpPort
 import com.zcode.android.app.settings.SkillsPort
 import com.zcode.android.features.tasks.port.AutomationsPort
 import java.util.TimeZone
@@ -88,6 +89,23 @@ class DefaultSkillsPort(
         } catch (e: Exception) {
             hub.log.warn("skillsport.catalog", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
             SkillsPort.Result(null, e.message ?: "the skills catalog is unavailable on this connection")
+        }
+    }
+}
+
+class DefaultMcpPort(
+    private val hub: ConnectionHub,
+) : McpPort {
+    override suspend fun statuses(): McpPort.Result {
+        val target = hub.activeWorkspaceTarget()
+            ?: return McpPort.Result(null, "MCP server statuses are unavailable on this connection")
+        return try {
+            McpPort.Result(hub.viewerTools().mcpStatuses(target.first, target.second), null)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("mcpport.statuses", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            McpPort.Result(null, e.message ?: "MCP server statuses are unavailable on this connection")
         }
     }
 }

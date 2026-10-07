@@ -158,4 +158,12 @@
 <string name="skills_empty">此工作区暂无技能</string>
 <string name="skills_search_hint">搜索技能</string>
 <string name="skills_search_empty">没有匹配的技能</string>
+<string name="settings_mcp_row">MCP 服务器</string>
+<string name="settings_mcp_sub">当前工作区的服务器状态（只读）</string>
+<string name="mcp_title">MCP 服务器</string>
+<string name="mcp_loading">正在加载 MCP 服务器…</string>
+<string name="mcp_unavailable">MCP 服务器状态不可用</string>
+<string name="mcp_retry">重试</string>
+<string name="mcp_empty">未配置 MCP 服务器</string>
+<string name="mcp_tool_count">%1$d 个工具</string>
 </resources>

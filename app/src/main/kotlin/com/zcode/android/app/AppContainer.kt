@@ -11,6 +11,7 @@ import com.zcode.android.app.connect.DefaultFilesPort
 import com.zcode.android.app.connect.DefaultGitPort
 import com.zcode.android.app.connect.DefaultAutomationsPort
 import com.zcode.android.app.connect.DefaultPluginsPort
+import com.zcode.android.app.connect.DefaultMcpPort
 import com.zcode.android.app.connect.DefaultSkillsPort
 import com.zcode.android.app.connect.DefaultUsagePort
 import com.zcode.android.app.connect.DefaultTerminalPort
@@ -157,6 +158,7 @@ class AppContainer(activity: FragmentActivity) {
     val automationsPort: DefaultAutomationsPort = DefaultAutomationsPort(hub)
     val pluginsPort: DefaultPluginsPort = DefaultPluginsPort(hub)
     val skillsPort: DefaultSkillsPort = DefaultSkillsPort(hub)
+    val mcpPort: DefaultMcpPort = DefaultMcpPort(hub)
 
     /**
      * GAP-14 (android-gaps roadmap): per-workspace task-group collapse state,

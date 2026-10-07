@@ -34,6 +34,7 @@ import com.zcode.android.features.conversation.ui.ApprovalsScreen
 import com.zcode.android.app.connect.ConnectionCenterScreen
 import com.zcode.android.app.settings.SettingsScreen
 import com.zcode.android.app.settings.PluginsViewerScreen
+import com.zcode.android.app.settings.McpViewerScreen
 import com.zcode.android.app.settings.SkillsViewerScreen
 import com.zcode.android.app.settings.UsageScreen
 import com.zcode.android.features.conversation.ConversationViewModel
@@ -61,6 +62,7 @@ object Routes {
     const val USAGE = "usage"
     const val PLUGINS = "plugins"
     const val SKILLS = "skills"
+    const val MCP = "mcp"
     const val APPROVALS = "approvals"
     const val FILES = "files"
     const val GIT = "git"
@@ -264,6 +266,7 @@ fun ZCodeApp(
                 onOpenUsage = { nav.navigate(Routes.USAGE) },
                 onOpenPlugins = { nav.navigate(Routes.PLUGINS) },
                 onOpenSkills = { nav.navigate(Routes.SKILLS) },
+                onOpenMcp = { nav.navigate(Routes.MCP) },
             )
         }
         composable(Routes.USAGE) {
@@ -277,6 +280,10 @@ fun ZCodeApp(
         composable(Routes.SKILLS) {
             // GAP-8 (v4-wire.md §12.4): read-only skills reference catalog (no enable surface).
             SkillsViewerScreen(port = container.skillsPort, onBack = { nav.popBackStack() }, modifier = Modifier.fillMaxSize())
+        }
+        composable(Routes.MCP) {
+            // GAP-9 (v4-wire.md §12.5): read-only mcp/list status viewer (mode:"status", INV-9).
+            McpViewerScreen(port = container.mcpPort, onBack = { nav.popBackStack() }, modifier = Modifier.fillMaxSize())
         }
         composable(Routes.APPROVALS) {
             val open by container.conversationPort.observeOpenInteractions().collectAsState(initial = emptyList())
@@ -473,6 +480,7 @@ private fun SettingsRoute(
     onOpenUsage: () -> Unit = {},
     onOpenPlugins: () -> Unit = {},
     onOpenSkills: () -> Unit = {},
+    onOpenMcp: () -> Unit = {},
 ) {
     val endpoint by container.hub.endpoint.collectAsState()
     SettingsScreen(
@@ -483,5 +491,6 @@ private fun SettingsRoute(
         onOpenUsage = onOpenUsage,
         onOpenPlugins = onOpenPlugins,
         onOpenSkills = onOpenSkills,
+        onOpenMcp = onOpenMcp,
     )
 }
