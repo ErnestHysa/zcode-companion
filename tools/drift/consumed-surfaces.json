@@ -1,0 +1,31 @@
+{
+  "_comment": [
+    "AAP-1 consumption manifest (android-gaps roadmap Phase 5).",
+    "Hand-curated CONFIGURATION, not a golden artifact: it records which extracted",
+    "surface entries the Android app strictly decodes, so their removal/change",
+    "classifies BREAKING (everything else is ADDITIVE inventory drift).",
+    "Keys are '<layer>/<name>'; 'layer/*' sets the layer default. schemas names are",
+    "'<file>#<Symbol>' with the file deciding consumption; channels entries are",
+    "'<Map>.<Key>'; slash entries are bare command names; limits/enums are bare names.",
+    "Basis: the app decodes the zcode-protocol-v4 spine + workspace-config (Phase 2),",
+    "usage-quota (ADR-020/Phase 4), automation-types (Phase 3), the builtin slash",
+    "catalog with /compact + /goal mapped to v4 commands (Phase 2), the task-mode",
+    "vocabulary (Phase 1 GAP-17), and the PROTOCOL_V4_LIMITS transport geometry.",
+    "usage-stats.ts (the desktop monitor plane) is deliberately NOT consumed —",
+    "the phone reads the agent-DB usage aggregate instead (Phase 3 GAP-5 note).",
+    "Desktop ServiceChannels are desktop-internal IPC names: tracked, not consumed."
+  ],
+  "consumed": {
+    "schemas/zcode-protocol-v4/*": true,
+    "schemas/usage-quota.ts": true,
+    "schemas/usage-stats.ts": false,
+    "schemas/automation-types.ts": true,
+    "schemas/zcode-slash-command-help.ts": true,
+    "schemas/zcode-task-mode-schema.ts": true,
+    "slash/compact": true,
+    "slash/goal": true,
+    "modes/*": true,
+    "limits/*": true,
+    "channels/*": false
+  }
+}

@@ -225,8 +225,12 @@ export const MAX_PERMISSION_FEEDBACK_CHARS = 4_096;
       "zcode-task-mode-schema.ts": `import { z } from "zod";
 export const zcodeTaskModeSchema = z.enum(["yolo", "plan", "autoEdit"]);
 `,
-      // (5) removed consumed slash entry — BREAKING
-      "zcode-slash-command-help.ts": `export const BUILTIN_ZCODE_SLASH_COMMAND_HELP_ENTRIES = [
+      // (5) removed consumed slash entry — BREAKING (type export retained)
+      "zcode-slash-command-help.ts": `export type BuiltinZCodeSlashCommandHelpEntry = {
+  name: string;
+  usage: string;
+};
+export const BUILTIN_ZCODE_SLASH_COMMAND_HELP_ENTRIES = [
   { name: "help", usage: "/help [command]" },
 ];
 `,
