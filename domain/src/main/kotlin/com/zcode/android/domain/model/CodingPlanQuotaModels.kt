@@ -112,3 +112,79 @@ data class UsageEntitlement(
         }
     }
 }
+
+// ================================================================== GAP-4: reset words
+
+/**
+ * The `usage-stats` channel `getCodingPlanResetStatus` result
+ * (coding-plan-reset.ts `CodingPlanResetStatusSnapshot` — TS interface;
+ * v4-wire.md §13.2). `hasUnreadHistory` is a cursor SHARED by both reset types
+ * and owned by the newest history (the state machine's rule).
+ */
+data class CodingPlanResetStatus(
+    val fiveHourExpires: List<Long>,
+    val weekExpires: List<Long>,
+    val latestFiveHourUsedAt: Long?,
+    val latestWeekUsedAt: Long?,
+    val hasUnreadHistory: Boolean,
+) {
+    companion object {
+        fun decode(obj: JsonObject): CodingPlanResetStatus = CodingPlanResetStatus(
+            fiveHourExpires = obj.arrayReq("availableFiveHourResets").map { el ->
+                el.asObject("reset opportunity").longReq("expireAt")
+            },
+            weekExpires = obj.arrayReq("availableWeekResets").map { el ->
+                el.asObject("reset opportunity").longReq("expireAt")
+            },
+            latestFiveHourUsedAt = obj.objOrNull("latestFiveHourResetHistory")?.longOrNullN("usedAt"),
+            latestWeekUsedAt = obj.objOrNull("latestWeekResetHistory")?.longOrNullN("usedAt"),
+            hasUnreadHistory = obj.boolReq("hasUnreadHistory"),
+        )
+    }
+}
+
+/** `requestCodingPlanResetOpportunity` result: `{granted, nextTryAt?}`. */
+data class ResetOpportunityResult(
+    val granted: Boolean,
+    val nextTryAt: Long?,
+) {
+    companion object {
+        fun decode(obj: JsonObject): ResetOpportunityResult = ResetOpportunityResult(
+            granted = obj.boolReq("granted"),
+            nextTryAt = obj.longOrNullN("nextTryAt"),
+        )
+    }
+}
+
+/** `useCodingPlanReset` result: `{used: true}`. */
+data class ResetUseResult(val used: Boolean) {
+    companion object {
+        fun decode(obj: JsonObject): ResetUseResult = ResetUseResult(used = obj.boolReq("used"))
+    }
+}
+
+/** Desktop `CodingPlanResetType` — the closed wire pair, raw strings on the wire. */
+object CodingPlanResetType {
+    const val FIVE_HOUR = "FIVE_HOUR"
+    const val WEEK = "WEEK"
+}
+
+/**
+ * GAP-4 request side (ADR-020): derive the credential-free plan-scope descriptor
+ * `ZCodeProviderAccountAccess` from the desktop's builtin provider-id grammar
+ * (`account:<family>-<planKind>`, model-provider-types.ts:7-16) — the family
+ * and mode tokens mirror the id; nothing is ever guessed for unknown ids (null
+ * ⇒ the reset surface does not exist for that provider). The host resolves the
+ * actual API key from its own store; this descriptor carries no secret.
+ */
+fun accountAccessFromProviderId(providerId: String, entitled: Boolean): JsonObject? {
+    val m = Regex("^account:(zai|bigmodel)-(start-plan|individual-coding-plan|team-coding-plan)$").find(providerId)
+        ?: return null
+    val (family, mode) = m.destructured
+    return kotlinx.serialization.json.buildJsonObject {
+        put("type", JsonPrimitive("zhipu-account"))
+        put("accountType", JsonPrimitive(family))
+        put("mode", JsonPrimitive(mode))
+        put("entitled", JsonPrimitive(entitled))
+    }
+}

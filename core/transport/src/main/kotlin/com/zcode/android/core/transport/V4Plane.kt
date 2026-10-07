@@ -200,6 +200,30 @@ interface V4Plane {
      */
     suspend fun usageEntitlementSnapshot(): JsonObject
 
+    /**
+     * GAP-4 reset words (ADR-020 — the roadmap's second ruling is recorded in
+     * the ADR and the GAP-4 commit). Params are the coding-plan-reset.ts
+     * request interfaces: scope = {preferredProviderId, accountAccess} where
+     * accountAccess is the phone-DERIVED credential-free plan descriptor
+     * (domain accountAccessFromProviderId). `codingPlanResetUse` is the
+     * quota plane's ONLY destructive-adjacent write word — it consumes a
+     * server-granted reset opportunity and is reachable ONLY through the
+     * typed-confirm dialog (T19; pinned by CodingPlanQuotaResetUiTest).
+     */
+    suspend fun codingPlanResetStatus(preferredProviderId: String, accountAccess: JsonObject): JsonObject
+    suspend fun codingPlanResetOpportunity(
+        preferredProviderId: String,
+        accountAccess: JsonObject,
+        idempotencyKey: String,
+    ): JsonObject
+    suspend fun codingPlanResetUse(
+        preferredProviderId: String,
+        accountAccess: JsonObject,
+        idempotencyKey: String,
+        resetType: String,
+    ): JsonObject
+    suspend fun codingPlanResetHistoryRead(preferredProviderId: String, accountAccess: JsonObject)
+
     // terminal (view-only — INV-9)
     suspend fun terminalCreate(cols: Int, rows: Int, cwd: String? = null): JsonObject
     suspend fun terminalDispose(id: String)
@@ -852,6 +876,63 @@ internal class ChannelV4Plane(
                 ?: throw TransportFailure(ErrorMapping.protocolFault("getEntitlementSnapshot result not an object"))
             else -> throw TransportFailure(ErrorMapping.protocolFault("getEntitlementSnapshot result not an object"))
         }
+
+    /** Shared scope-request shape for the reset words (coding-plan-reset.ts). */
+    private fun resetScopeParams(preferredProviderId: String, accountAccess: JsonObject): JsonObject =
+        buildJsonObject {
+            put("preferredProviderId", JsonPrimitive(preferredProviderId))
+            put("accountAccess", accountAccess)
+        }
+
+    private suspend fun usageStatsObject(method: String, request: JsonObject): JsonObject =
+        when (
+            val raw = channelCall(
+                "usage-stats", method, RpcValue.Arr(listOf(RpcValue.Obj(request))),
+                timeouts.controlRequestTimeoutMs,
+            )
+        ) {
+            is RpcValue.Obj -> (raw.json as? JsonObject)
+                ?: throw TransportFailure(ErrorMapping.protocolFault("$method result not an object"))
+            else -> throw TransportFailure(ErrorMapping.protocolFault("$method result not an object"))
+        }
+
+    suspend fun codingPlanResetStatus(preferredProviderId: String, accountAccess: JsonObject): JsonObject =
+        usageStatsObject("getCodingPlanResetStatus", resetScopeParams(preferredProviderId, accountAccess))
+
+    suspend fun codingPlanResetOpportunity(
+        preferredProviderId: String,
+        accountAccess: JsonObject,
+        idempotencyKey: String,
+    ): JsonObject = usageStatsObject(
+        "requestCodingPlanResetOpportunity",
+        buildJsonObject {
+            resetScopeParams(preferredProviderId, accountAccess).forEach { (k, v) -> put(k, v) }
+            put("idempotencyKey", JsonPrimitive(idempotencyKey))
+        },
+    )
+
+    suspend fun codingPlanResetUse(
+        preferredProviderId: String,
+        accountAccess: JsonObject,
+        idempotencyKey: String,
+        resetType: String,
+    ): JsonObject = usageStatsObject(
+        "useCodingPlanReset",
+        buildJsonObject {
+            resetScopeParams(preferredProviderId, accountAccess).forEach { (k, v) -> put(k, v) }
+            put("idempotencyKey", JsonPrimitive(idempotencyKey))
+            put("resetType", JsonPrimitive(resetType))
+        },
+    )
+
+    suspend fun codingPlanResetHistoryRead(preferredProviderId: String, accountAccess: JsonObject) {
+        // Promise<void> on the desktop — the reply is deliberately unexamined.
+        channelCall(
+            "usage-stats", "markCodingPlanResetHistoryRead",
+            RpcValue.Arr(listOf(RpcValue.Obj(resetScopeParams(preferredProviderId, accountAccess)))),
+            timeouts.controlRequestTimeoutMs,
+        )
+    }
 
     // ---- terminal (view-only: create/dispose/data/exit ONLY — INV-9, phase9-channels.md §1)
 

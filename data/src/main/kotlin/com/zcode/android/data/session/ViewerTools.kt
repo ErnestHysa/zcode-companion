@@ -5,9 +5,13 @@ import com.zcode.android.domain.model.AppUsageSnapshot
 import com.zcode.android.domain.model.AutomationRow
 import com.zcode.android.domain.model.McpStatuses
 import com.zcode.android.domain.model.OffPeakTaskRow
+import com.zcode.android.domain.model.CodingPlanResetStatus
+import com.zcode.android.domain.model.ResetOpportunityResult
+import com.zcode.android.domain.model.ResetUseResult
 import com.zcode.android.domain.model.UsageEntitlement
 import com.zcode.android.domain.model.PluginsView
 import com.zcode.android.domain.model.SkillCatalog
+import kotlinx.serialization.json.JsonObject
 
 /**
  * Phase 3 read-only viewer tool plane (android-native-gaps.md GAP-5…GAP-9;
@@ -83,4 +87,43 @@ class ViewerTools(private val transport: AppTransport) {
      */
     suspend fun entitlement(): UsageEntitlement =
         UsageEntitlement.decode(transport.usageEntitlementSnapshot())
+
+    // ---------------------------------------------------------------- GAP-4: reset words (ADR-020)
+
+    /**
+     * `getCodingPlanResetStatus` (v4-wire.md §13.2). [accountAccess] is the
+     * phone-DERIVED plan descriptor (domain accountAccessFromProviderId) — the
+     * [accountAccessFromProviderId] null case means "no reset surface".
+     */
+    suspend fun resetStatus(preferredProviderId: String, accountAccess: JsonObject): CodingPlanResetStatus =
+        CodingPlanResetStatus.decode(transport.codingPlanResetStatus(preferredProviderId, accountAccess))
+
+    /** `requestCodingPlanResetOpportunity` — server-side grant evaluation. */
+    suspend fun resetOpportunity(
+        preferredProviderId: String,
+        accountAccess: JsonObject,
+        idempotencyKey: String,
+    ): ResetOpportunityResult =
+        ResetOpportunityResult.decode(
+            transport.codingPlanResetOpportunity(preferredProviderId, accountAccess, idempotencyKey),
+        )
+
+    /**
+     * `useCodingPlanReset` — the quota plane's ONLY destructive-adjacent word
+     * (ADR-020/T19): consumes a server-granted reset opportunity. The UI layer
+     * reaches this ONLY behind the typed-confirm dialog.
+     */
+    suspend fun useReset(
+        preferredProviderId: String,
+        accountAccess: JsonObject,
+        idempotencyKey: String,
+        resetType: String,
+    ): ResetUseResult = ResetUseResult.decode(
+        transport.codingPlanResetUse(preferredProviderId, accountAccess, idempotencyKey, resetType),
+    )
+
+    /** `markCodingPlanResetHistoryRead` — clears the desktop's unread cursor. */
+    suspend fun markResetHistoryRead(preferredProviderId: String, accountAccess: JsonObject) {
+        transport.codingPlanResetHistoryRead(preferredProviderId, accountAccess)
+    }
 }

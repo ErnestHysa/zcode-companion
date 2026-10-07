@@ -1,6 +1,7 @@
 package com.zcode.android.core.ui.components
 
 import com.zcode.android.domain.model.CodingPlanResetStatus
+import com.zcode.android.domain.model.CodingPlanResetType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -167,24 +168,28 @@ class CodingPlanQuotaResetStateTest {
     }
 
     @Test
-    fun startManualUse_onlyFromAvailable_andReusesRetriedKey() {
+    fun startManualUse_noOpFromNonAvailable_andReusesFailedAttemptKey() {
         val available = CodingPlanQuotaResetState.applyResetStatus(
             null, status(fiveHour = listOf(expires1h)), now,
         )!!
         val first = CodingPlanQuotaResetState.startManualUse(available, "key-a", now)!!
         assertEquals("key-a", first.idempotencyKey)
-        // a retry attempt generates a fresh key candidate, but the entry's
-        // sticky key wins ("同一次失败重试必须复用的幂等键")
-        val retried = CodingPlanQuotaResetState.startManualUse(available, "key-b", now + 1)!!
+        // a retry attempt generates a fresh key candidate, but the FAILED
+        // attempt's sticky key wins ("同一次失败重试必须复用的幂等键")
+        val failed = CodingPlanQuotaResetState.failManualUse(first, "net lost")!!
+        val retried = CodingPlanQuotaResetState.startManualUse(failed, "key-b", now + 1)!!
         assertEquals("key-a", retried.idempotencyKey)
-        // startManualUse from a non-available entry is a no-op
-        assertEquals(available, CodingPlanQuotaResetState.startManualUse(available, "x", now))
+        // startManualUse from a NON-available entry is a no-op (desktop guard)
         val completed = CodingPlanQuotaResetState.applyResetStatus(
             available, status(latestFiveHourUsedAt = usedAt3hAgo, hasUnread = true), now,
         )!!
         assertEquals(
             completed,
             CodingPlanQuotaResetState.startManualUse(completed, "x", now),
+        )
+        assertEquals(
+            first,
+            CodingPlanQuotaResetState.startManualUse(first, "x", now),
         )
     }
 

@@ -6,6 +6,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
@@ -147,8 +148,8 @@ class CodingPlanQuotaResetUiTest {
         // reconciliation loop
         statusQueue = ArrayDeque(
             listOf(
-                fixtureStatus("reset-status-full"),
-                fixtureStatus("reset-status-full"),
+                fixtureStatus("reset-status-available"),
+                fixtureStatus("reset-status-available"),
             ) + extraStatuses,
         ),
         opportunity = ResetOpportunityResult(granted = true, nextTryAt = null),
@@ -173,10 +174,10 @@ class CodingPlanQuotaResetUiTest {
         )
         val port = recordingPort(extraStatuses = listOf(confirmed))
         setContent(port)
-        waitForTag("quota_reset_fiveHour")
+        waitForTag("quota_reset_chip_fiveHour")
 
         // opening the dialog fires NOTHING
-        rule.onNodeWithTag("quota_reset_fiveHour").performClick()
+        rule.onNodeWithTag("quota_reset_chip_fiveHour").performClick()
         waitForTag("quota_reset_dialog")
         assertTrue(port.useCalls.isEmpty())
 
@@ -194,7 +195,8 @@ class CodingPlanQuotaResetUiTest {
         assertTrue(port.useCalls.isEmpty())
 
         // exact word enables the confirm; ONLY then the verified command fires
-        rule.onNodeWithTag("quota_reset_confirm_input").performTextInput("RE")
+        rule.onNodeWithTag("quota_reset_confirm_input").performTextClearance()
+        rule.onNodeWithTag("quota_reset_confirm_input").performTextInput("RESET")
         rule.onNodeWithTag("quota_reset_confirm").assertIsEnabled()
         rule.onNodeWithTag("quota_reset_confirm").performClick()
         waitForTag("quota_reset_done")
@@ -213,8 +215,8 @@ class CodingPlanQuotaResetUiTest {
     fun useFailure_restoresTheResetAffordance_withHonestError() {
         val port = recordingPort(useResult = null, useError = "coding_plan_reset_denied")
         setContent(port)
-        waitForTag("quota_reset_fiveHour")
-        rule.onNodeWithTag("quota_reset_fiveHour").performClick()
+        waitForTag("quota_reset_chip_fiveHour")
+        rule.onNodeWithTag("quota_reset_chip_fiveHour").performClick()
         waitForTag("quota_reset_dialog")
         rule.onNodeWithTag("quota_reset_confirm_input").performTextInput("RESET")
         rule.onNodeWithTag("quota_reset_confirm").performClick()
@@ -222,7 +224,7 @@ class CodingPlanQuotaResetUiTest {
         assertEquals(1, port.useCalls.size)
         // the reset affordance RETURNS (failManualUse restores the pre-click
         // opportunity snapshot) and NO completion face shows
-        waitForTag("quota_reset_fiveHour")
+        waitForTag("quota_reset_chip_fiveHour")
         rule.onAllNodesWithTag("quota_reset_done").fetchSemanticsNodes().isEmpty()
         assertTrue(port.historyReadCalls.isEmpty())
     }
@@ -248,7 +250,7 @@ class CodingPlanQuotaResetUiTest {
         waitForTag("quota_value_fiveHour")
         assertEquals("100%", renderedValue("quota_value_fiveHour"))
         rule.mainClock.advanceTimeBy(1_500)
-        rule.onAllNodesWithTag("quota_reset_fiveHour").fetchSemanticsNodes().isEmpty()
+        rule.onAllNodesWithTag("quota_reset_chip_fiveHour").fetchSemanticsNodes().isEmpty()
         assertTrue(port.useCalls.isEmpty())
     }
 

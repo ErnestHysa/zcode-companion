@@ -3,6 +3,9 @@ package com.zcode.android.app.connect
 import com.zcode.android.app.settings.UsagePort
 import com.zcode.android.app.settings.PluginsPort
 import com.zcode.android.app.settings.CodingPlanPort
+import com.zcode.android.domain.model.ResetOpportunityResult
+import com.zcode.android.domain.model.ResetUseResult
+import com.zcode.android.domain.model.accountAccessFromProviderId
 import com.zcode.android.app.settings.McpPort
 import com.zcode.android.app.settings.SkillsPort
 import com.zcode.android.features.tasks.port.AutomationsPort
@@ -107,6 +110,57 @@ class DefaultCodingPlanPort(
             hub.log.warn("codingplanport.entitlement", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
             CodingPlanPort.Snapshot(null, e.message ?: "the coding-plan quota is unavailable on this connection")
         }
+    }
+
+    /** The reset surface exists ONLY for a derivable builtin provider id —
+     *  the ADR-020 rule: unknown ids derive NOTHING (never guessed). */
+    private fun access(providerId: String, entitled: Boolean) =
+        accountAccessFromProviderId(providerId, entitled)
+
+    override suspend fun resetStatus(providerId: String, entitled: Boolean): CodingPlanPort.ResetStatusResult {
+        val access = access(providerId, entitled)
+            ?: return CodingPlanPort.ResetStatusResult(null, "no coding-plan provider")
+        return try {
+            CodingPlanPort.ResetStatusResult(hub.viewerTools().resetStatus(providerId, access), null)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            CodingPlanPort.ResetStatusResult(null, e.message ?: "reset status unavailable")
+        }
+    }
+
+    override suspend fun requestOpportunity(
+        providerId: String,
+        entitled: Boolean,
+        idempotencyKey: String,
+    ): ResetOpportunityResult? {
+        val access = access(providerId, entitled) ?: return null
+        return try {
+            hub.viewerTools().resetOpportunity(providerId, access, idempotencyKey)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // grant evaluation failures are non-fatal (desktop parity: log + skip)
+            hub.log.warn("codingplanport.opportunity", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            null
+        }
+    }
+
+    override suspend fun useReset(
+        providerId: String,
+        entitled: Boolean,
+        idempotencyKey: String,
+        resetType: String,
+    ): ResetUseResult {
+        val access = access(providerId, entitled)
+            ?: throw IllegalStateException("no coding-plan provider")
+        // Errors PROPAGATE — the section surfaces the honest failure face.
+        return hub.viewerTools().useReset(providerId, access, idempotencyKey, resetType)
+    }
+
+    override suspend fun markHistoryRead(providerId: String, entitled: Boolean) {
+        val access = access(providerId, entitled) ?: return
+        runCatching { hub.viewerTools().markResetHistoryRead(providerId, access) }
     }
 }
 

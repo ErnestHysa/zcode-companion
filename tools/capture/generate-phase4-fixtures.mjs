@@ -161,7 +161,8 @@ const entitlementFull = {
 };
 
 // zai-team-style payload: CREDIT_LIMIT is the SAME category as TOKENS_LIMIT
-// (codingPlanQuotaPresentation.ts:16-33); 5h at percentage 100 = quota FULL.
+// (codingPlanQuotaPresentation.ts:16-33); its 5h face at percentage 100 means
+// FULLY CONSUMED (remaining 0% — desktop quota FULL ⇔ remaining 100 = pct 0).
 const entitlementZaiCredit = {
   generatedAt: BASE,
   authenticated: true,
@@ -205,6 +206,17 @@ const resetStatusFull = {
   latestFiveHourResetHistory: { usedAt: T.usedAt3hAgo },
   latestWeekResetHistory: null,
   hasUnreadHistory: true,
+};
+
+// An AVAILABLE-flow snapshot: live opportunities + NO unread completion (the
+// desktop machine enters completed whenever hasUnreadHistory owns the newest
+// usedAt — an available chip requires the unread cursor cleared).
+const resetStatusAvailable = {
+  availableFiveHourResets: [{ expireAt: T.expires1h }, { expireAt: T.expires2h }],
+  availableWeekResets: [],
+  latestFiveHourResetHistory: null,
+  latestWeekResetHistory: null,
+  hasUnreadHistory: false,
 };
 
 const resetStatusEmpty = {
@@ -257,6 +269,8 @@ export const entitlementZaiCredit: UsageEntitlementSnapshot = ${JSON.stringify(e
 export const entitlementNoPlan: UsageEntitlementSnapshot = ${JSON.stringify(entitlementNoPlan, null, 2)};
 
 export const resetStatusFull: CodingPlanResetStatusSnapshot = ${JSON.stringify(resetStatusFull, null, 2)};
+
+export const resetStatusAvailable: CodingPlanResetStatusSnapshot = ${JSON.stringify(resetStatusAvailable, null, 2)};
 
 export const resetStatusEmpty: CodingPlanResetStatusSnapshot = ${JSON.stringify(resetStatusEmpty, null, 2)};
 
@@ -336,6 +350,7 @@ const fixture = {
     { kind: "usage-stats-channel", name: "entitlement-zai-credit", schema: "UsageEntitlementSnapshot", data: entitlementZaiCredit },
     { kind: "usage-stats-channel", name: "entitlement-no-plan", schema: "UsageEntitlementSnapshot", data: entitlementNoPlan },
     { kind: "coding-plan-reset", name: "reset-status-full", schema: "CodingPlanResetStatusSnapshot", data: resetStatusFull },
+    { kind: "coding-plan-reset", name: "reset-status-available", schema: "CodingPlanResetStatusSnapshot", data: resetStatusAvailable },
     { kind: "coding-plan-reset", name: "reset-status-empty", schema: "CodingPlanResetStatusSnapshot", data: resetStatusEmpty },
     { kind: "coding-plan-reset", name: "reset-opportunity-granted", schema: "CodingPlanResetOpportunityResult", data: resetOpportunityGranted },
     { kind: "coding-plan-reset", name: "reset-opportunity-denied", schema: "CodingPlanResetOpportunityResult", data: resetOpportunityDenied },

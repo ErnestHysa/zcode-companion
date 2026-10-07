@@ -147,6 +147,17 @@
 <string name="quota_not_configured">未找到已连接的编程套餐账号。</string>
 <string name="quota_no_plan">暂无有效编程套餐</string>
 <string name="quota_refresh">刷新额度</string>
+<!-- GAP-4 (ADR-020)：额度重置流程 — 破坏性相邻操作，需输入确认 -->
+<string name="quota_reset_action">重置</string>
+<string name="quota_reset_processing">重置中…</string>
+<string name="quota_reset_done">额度已重置</string>
+<string name="quota_reset_error">重置失败</string>
+<string name="quota_reset_dialog_title">重置%1$s额度？</string>
+<string name="quota_reset_dialog_body">将消耗一次重置机会并清空%1$s使用窗口。此操作无法撤销。</string>
+<string name="quota_reset_opportunity_note">可用重置机会：%1$d</string>
+<string name="quota_reset_confirm_hint">输入 RESET 确认</string>
+<string name="quota_reset_confirm">重置</string>
+<string name="quota_reset_cancel">取消</string>
 <string name="usage_heatmap_range">%1$s – %2$s</string>
 <string name="usage_unknown_model">未知模型</string>
 <string name="settings_section_insights">洞察</string>

@@ -63,11 +63,56 @@ class CodingPlanQuotaPanelUiTest {
     ) = object : CodingPlanPort {
         override suspend fun entitlement(): CodingPlanPort.Snapshot =
             CodingPlanPort.Snapshot(entitlement, error)
+
+        // GAP-4 members — the GAP-3 faces under test never reach the reset plane;
+        // the fakes answer with the "no surface" shapes.
+        override suspend fun resetStatus(
+            providerId: String,
+            entitled: Boolean,
+        ): CodingPlanPort.ResetStatusResult = CodingPlanPort.ResetStatusResult(null, "no surface")
+
+        override suspend fun requestOpportunity(
+            providerId: String,
+            entitled: Boolean,
+            idempotencyKey: String,
+        ): com.zcode.android.domain.model.ResetOpportunityResult? = null
+
+        override suspend fun useReset(
+            providerId: String,
+            entitled: Boolean,
+            idempotencyKey: String,
+            resetType: String,
+        ): com.zcode.android.domain.model.ResetUseResult =
+            error("the GAP-3 faces never fire a reset")
+
+        override suspend fun markHistoryRead(providerId: String, entitled: Boolean) = Unit
     }
 
     private fun neverSettlingPort() = object : CodingPlanPort {
         override suspend fun entitlement(): CodingPlanPort.Snapshot =
             kotlinx.coroutines.awaitCancellation()
+
+        override suspend fun resetStatus(
+            providerId: String,
+            entitled: Boolean,
+        ): CodingPlanPort.ResetStatusResult = kotlinx.coroutines.awaitCancellation()
+
+        override suspend fun requestOpportunity(
+            providerId: String,
+            entitled: Boolean,
+            idempotencyKey: String,
+        ): com.zcode.android.domain.model.ResetOpportunityResult? =
+            kotlinx.coroutines.awaitCancellation()
+
+        override suspend fun useReset(
+            providerId: String,
+            entitled: Boolean,
+            idempotencyKey: String,
+            resetType: String,
+        ): com.zcode.android.domain.model.ResetUseResult =
+            kotlinx.coroutines.awaitCancellation()
+
+        override suspend fun markHistoryRead(providerId: String, entitled: Boolean) = Unit
     }
 
     private fun setContent(port: CodingPlanPort) {

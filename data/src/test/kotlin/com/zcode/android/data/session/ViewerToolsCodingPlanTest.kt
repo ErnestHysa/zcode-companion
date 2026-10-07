@@ -162,7 +162,8 @@ class ViewerToolsCodingPlanTest {
         }
         runBlocking {
             val e = tools.entitlement()
-            val s = tools.resetStatus(e.providerId!!, entitled = true)
+            val access = com.zcode.android.domain.model.accountAccessFromProviderId(e.providerId!!, true)!!
+            val s = tools.resetStatus(e.providerId!!, access)
             assertEquals(listOf(1791937200000L, 1791940800000L), s.fiveHourExpires)
             assertEquals(1791922800000L, s.latestFiveHourUsedAt)
             assertEquals(true, s.hasUnreadHistory)
@@ -183,12 +184,15 @@ class ViewerToolsCodingPlanTest {
     fun `useReset rides useCodingPlanReset with idempotencyKey and resetType - history read returns Unit`() {
         connect { m -> m.script.resetUse = fixtureObject("reset-use-result") }
         runBlocking {
+            val access = com.zcode.android.domain.model.accountAccessFromProviderId(
+                "account:zai-individual-coding-plan", true,
+            )!!
             val result = tools.useReset(
-                "account:zai-individual-coding-plan", true, "synthetic-idempotency-key-0", "FIVE_HOUR",
+                "account:zai-individual-coding-plan", access, "synthetic-idempotency-key-0", "FIVE_HOUR",
             )
             assertEquals(true, result.used)
             // markCodingPlanResetHistoryRead must tolerate the Promise<void> reply
-            tools.markResetHistoryRead("account:zai-individual-coding-plan", true)
+            tools.markResetHistoryRead("account:zai-individual-coding-plan", access)
             val calls = mock.script.usageStatsCalls
             assertEquals(2, calls.size)
             val (useMethod, useArgKind, useParams) = calls[0]
@@ -209,7 +213,11 @@ class ViewerToolsCodingPlanTest {
         connect { m -> m.script.resetOpportunity = fixtureObject("reset-opportunity-denied") }
         runBlocking {
             val result = tools.resetOpportunity(
-                "account:zai-individual-coding-plan", true, "synthetic-idempotency-key-1",
+                "account:zai-individual-coding-plan",
+                com.zcode.android.domain.model.accountAccessFromProviderId(
+                    "account:zai-individual-coding-plan", true,
+                )!!,
+                "synthetic-idempotency-key-1",
             )
             assertEquals(false, result.granted)
             assertEquals(1791934200000L, result.nextTryAt)

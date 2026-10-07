@@ -881,6 +881,25 @@ class DirectTransport(
 
     override suspend fun usageEntitlementSnapshot(): JsonObject = plane.usageEntitlementSnapshot()
 
+    override suspend fun codingPlanResetStatus(preferredProviderId: String, accountAccess: JsonObject): JsonObject =
+        plane.codingPlanResetStatus(preferredProviderId, accountAccess)
+
+    override suspend fun codingPlanResetOpportunity(
+        preferredProviderId: String,
+        accountAccess: JsonObject,
+        idempotencyKey: String,
+    ): JsonObject = plane.codingPlanResetOpportunity(preferredProviderId, accountAccess, idempotencyKey)
+
+    override suspend fun codingPlanResetUse(
+        preferredProviderId: String,
+        accountAccess: JsonObject,
+        idempotencyKey: String,
+        resetType: String,
+    ): JsonObject = plane.codingPlanResetUse(preferredProviderId, accountAccess, idempotencyKey, resetType)
+
+    override suspend fun codingPlanResetHistoryRead(preferredProviderId: String, accountAccess: JsonObject) =
+        plane.codingPlanResetHistoryRead(preferredProviderId, accountAccess)
+
     override suspend fun listPlugins(workspacePath: String?, workspaceIdentity: String?): JsonObject =
         plane.listPlugins(workspacePath, workspaceIdentity)
 

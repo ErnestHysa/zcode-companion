@@ -155,6 +155,17 @@
 <string name="quota_not_configured">No connected Coding Plan account found.</string>
 <string name="quota_no_plan">No active Coding Plan</string>
 <string name="quota_refresh">Refresh quota</string>
+<!-- GAP-4 (ADR-020): quota reset flow — destructive-adjacent, typed-confirm gated -->
+<string name="quota_reset_action">Reset</string>
+<string name="quota_reset_processing">Resetting…</string>
+<string name="quota_reset_done">Quota reset</string>
+<string name="quota_reset_error">Reset failed</string>
+<string name="quota_reset_dialog_title">Reset %1$s quota?</string>
+<string name="quota_reset_dialog_body">This consumes one reset opportunity and clears your %1$s usage window. This cannot be undone.</string>
+<string name="quota_reset_opportunity_note">Resets available: %1$d</string>
+<string name="quota_reset_confirm_hint">Type RESET to confirm</string>
+<string name="quota_reset_confirm">Reset</string>
+<string name="quota_reset_cancel">Cancel</string>
 <string name="usage_unknown_model">unknown model</string>
 <string name="settings_section_insights">Insights</string>
 <string name="settings_usage_row">Usage</string>
