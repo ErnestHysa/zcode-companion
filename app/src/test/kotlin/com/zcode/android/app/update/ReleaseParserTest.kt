@@ -81,12 +81,28 @@ class ReleaseParserTest {
 
     @Test
     fun `unknown fields are tolerated (INV-8) and the meta block survives prose`() {
-        val body = """
-            {"tag_name":"v0.12.0-vc41","assets":[{"name":"app-release.apk",
-            "browser_download_url":"https://x/app-release.apk","future_field":{"a":1}}],
-            "author":{"login":"someone"},"some_new_toplevel":"ignored",
-            "body":"Notes line one.\n\n<!-- zcode-android-release-meta {\"versionName\":\"0.12.0\",\"versionCode\":41,\"maxTestedDesktop\":\"3.14.6\"} -->\nThanks @a}" """.trimIndent()
-        val info = ReleaseParser.parse(body)
+        val metaJson = """
+            {"versionName":"0.12.0","versionCode":41,"maxTestedDesktop":"3.14.6"}
+        """.trimIndent()
+        val bodyText = "Notes line one.\n\n<!-- ${ReleaseParser.META_MARKER} $metaJson -->\nThanks"
+        val doc = kotlinx.serialization.json.buildJsonObject {
+            put("tag_name", kotlinx.serialization.json.JsonPrimitive("v0.12.0-vc41"))
+            put("assets", kotlinx.serialization.json.buildJsonArray {
+                add(kotlinx.serialization.json.buildJsonObject {
+                    put("name", kotlinx.serialization.json.JsonPrimitive("app-release.apk"))
+                    put("browser_download_url", kotlinx.serialization.json.JsonPrimitive("https://x/app-release.apk"))
+                    put("future_field", kotlinx.serialization.json.buildJsonObject {
+                        put("a", kotlinx.serialization.json.JsonPrimitive(1))
+                    })
+                })
+            })
+            put("author", kotlinx.serialization.json.buildJsonObject {
+                put("login", kotlinx.serialization.json.JsonPrimitive("someone"))
+            })
+            put("some_new_toplevel", kotlinx.serialization.json.JsonPrimitive("ignored"))
+            put("body", kotlinx.serialization.json.JsonPrimitive(bodyText))
+        }
+        val info = ReleaseParser.parse(doc.toString())
         assertNotNull(info)
         assertEquals(41L, info!!.versionCode)
         assertEquals("0.12.0", info.versionName)

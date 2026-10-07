@@ -79,13 +79,23 @@ class AppUpdateControllerTest {
     }
 
     @Test
-    fun `a completed check is not restarted on re-entry (no flicker, no re-fetch)`() = runTest(UnconfinedTestDispatcher()) {
-        val fake = FakeChecker(UpdateCheckState.UpToDate)
+    fun `an Available banner is not re-fetched on re-trigger (no flicker)`() = runTest(UnconfinedTestDispatcher()) {
+        val fake = FakeChecker(UpdateCheckState.Available(availableRelease()))
         val installed = mutableMapOf<File, Int>()
         val c = controller(fake, FakeDownloader(DownloadState.Idle), installed)
         c.checkForUpdate("3.14.5")
         c.checkForUpdate("3.14.5")
         assertEquals(1, fake.calls)
+    }
+
+    @Test
+    fun `a terminal state (UpToDate) IS re-checked on the next foreground trigger`() = runTest(UnconfinedTestDispatcher()) {
+        val fake = FakeChecker(UpdateCheckState.UpToDate)
+        val installed = mutableMapOf<File, Int>()
+        val c = controller(fake, FakeDownloader(DownloadState.Idle), installed)
+        c.checkForUpdate("3.14.5")
+        c.checkForUpdate("3.14.5")
+        assertEquals(2, fake.calls)
     }
 
     @Test

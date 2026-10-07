@@ -49,11 +49,11 @@ object ReleaseParser {
             val name = a.string("name") ?: return@mapNotNull null
             val url = a.string("browser_download_url") ?: return@mapNotNull null
             name to url
-        }
+        }.filter { (name, _) -> name.endsWith(".apk", ignoreCase = true) }
         if (apkAssets.isEmpty()) return null
         val meta = root.string("body")?.let { parseMeta(it) }
         val apkName = meta?.apkName
-            ?.let { wanted -> apkAssets.firstOrNull { it.first == wanted }?.first }
+            ?.let { wanted -> apkAssets.firstOrNull { it.first.equals(wanted, ignoreCase = true) }?.first }
             ?: apkAssets.first().first
         val apkUrl = apkAssets.first { it.first == apkName }.second
         val shaFromAsset = assetObjects
@@ -66,7 +66,9 @@ object ReleaseParser {
             apkUrl = apkUrl,
             apkAssetName = apkName,
             sha256Hex = meta?.sha256?.lowercase(),
-            sha256Url = shaFromAsset,
+            // The T3 inline digest is authoritative; the sibling asset is only the
+            // fallback when the release publishes no inline digest.
+            sha256Url = if (meta?.sha256 != null) null else shaFromAsset,
             tag = tag,
             notes = root.string("body"),
             maxTestedDesktop = meta?.maxTestedDesktop,

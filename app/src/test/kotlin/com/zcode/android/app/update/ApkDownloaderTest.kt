@@ -98,12 +98,13 @@ class ApkDownloaderTest {
         val apkBytes = "apk-payload-for-digest-check".toByteArray()
         val digest = sha256(apkBytes)
         val server = MockWebServer()
-        server.enqueue(
-            MockResponse.Builder().code(200).body(okio.Buffer().write(apkBytes)).build(),
-        )
+        // The downloader fetches the digest BEFORE the APK body — enqueue in that order.
         server.enqueue(
             // sha256sum format: "<hex>  <filename>"
             MockResponse.Builder().code(200).body("$digest  app-release.apk\n").build(),
+        )
+        server.enqueue(
+            MockResponse.Builder().code(200).body(okio.Buffer().write(apkBytes)).build(),
         )
         server.start()
         try {
@@ -138,7 +139,7 @@ class ApkDownloaderTest {
     @Test
     fun `stale target from a previous release is replaced`() = runBlocking {
         val dir = tmp.newFolder("updates5")
-        val stale = File(dir, "app-release.apk").writeText("stale-v36")
+        val stale = File(dir, "app-release.apk").apply { writeText("stale-v36") }
         val fresh = "fresh-v37-payload".toByteArray()
         val server = MockWebServer()
         server.enqueue(

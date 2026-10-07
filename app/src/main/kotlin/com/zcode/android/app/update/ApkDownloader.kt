@@ -94,7 +94,7 @@ open class ApkDownloader(
             }
     }.getOrNull()
 
-    var onProgress: ((Running) -> Unit)? = null
+    var onProgress: ((DownloadState.Running) -> Unit)? = null
 
     private fun emitProgress(read: Long, total: Long) {
         onProgress?.invoke(DownloadState.Running(read, total))
