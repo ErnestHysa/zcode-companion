@@ -79,8 +79,8 @@ class ContextUsagePanelUiTest {
         val usage = fixtureUsage("usage-minimal")
         rule.setContent { ZCodeTheme { ContextUsagePanel(usage = usage) } }
         rule.onNodeWithTag("context_usage_label").assertExists()
-        rule.onAllNodesWithTag("context_usage_breakdown_row")
-            .assertCountEquals(0, "absent breakdown leaves the GAP-1 panel valid")
+        // Absent breakdown leaves the GAP-1 panel valid.
+        rule.onAllNodesWithTag("context_usage_breakdown_row").assertCountEquals(0)
     }
 
     @Test
