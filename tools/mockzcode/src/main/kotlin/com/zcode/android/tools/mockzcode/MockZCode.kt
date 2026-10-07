@@ -184,6 +184,25 @@ class MockZCode(
         var skillReferenceCatalog: JsonObject? = null
         /** Scriptable MCP server statuses (listMcpServerStatuses result; null = typed fault). */
         var mcpServerStatuses: JsonObject? = null
+
+        // ---------------- Phase 4 coding-plan quota plane (GAP-3/4; ADR-020, v4-wire.md §13) ----------------
+        /** Scriptable entitlement snapshot (usage-stats getEntitlementSnapshot result; null = typed fault). */
+        var usageEntitlement: JsonObject? = null
+        /** Scriptable reset status (getCodingPlanResetStatus result; null = typed fault). */
+        var codingPlanResetStatus: JsonObject? = null
+        /** Scriptable opportunity evaluation (requestCodingPlanResetOpportunity result; null = typed fault). */
+        var resetOpportunity: JsonObject? = null
+        /** Scriptable reset use (useCodingPlanReset result; null = typed fault). */
+        var resetUse: JsonObject? = null
+        /** FIFO of reset statuses served to the phone (the desktop's post-use
+         *  reconciliation polls until usedAt appears — a queue scripts the
+         *  pre-consume → confirmed progression; falls back to [codingPlanResetStatus]). */
+        val resetStatusQueue: ArrayDeque<JsonObject> = ArrayDeque()
+        /** Recorded usage-stats promise calls: (method, argKind "arr"|"obj"|"other", unwrapped params).
+         *  The GAP-3 wire test pins the §7 ARRAY-wrap convention through this. */
+        val usageStatsCalls = java.util.concurrent.CopyOnWriteArrayList<Triple<String, String, JsonObject>>()
+        /** Read marker (markCodingPlanResetHistoryRead) arrival count. */
+        val resetHistoryReadCount = java.util.concurrent.atomic.AtomicInteger(0)
         /** Channels the mock REFUSES (authorization-refused fallback fixtures, §13.3). */
         var refuseChannels: Set<String> = emptySet()
         /** Reject attachment transactions with the verified oversize/grammar faults. */
@@ -1235,6 +1254,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 "model-selection" -> handleModelSelectionPromise(id, name)
                 "zcode-task" -> handleTaskPromise(id, name, argAsObject(arg))
                 "off-peak-task" -> handleOffPeakTaskPromise(id, name)
+                "usage-stats" -> handleUsageStatsPromise(id, name, arg)
                 else -> respondError(id, "fault.mock.unknownChannel:$channelName")
             }
             return
@@ -2075,6 +2095,35 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?) {
             "listPinnedTaskIds", "listArchivedTasks", "listPinnedTasks", "listDeletedTaskIds" ->
                 respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(emptyList()))
             else -> respondError(id, "fault.mock.unknownTaskMethod:${name ?: "?"}")
+        }
+    }
+
+    /**
+     * Phase 4 coding-plan quota plane (ADR-020; v4-wire.md §13) — the
+     * `usage-stats` ProxyChannel words. Every call is recorded as
+     * (method, argKind, params) so the phone's §7 ARRAY-wrap convention is
+     * pin-able; markCodingPlanResetHistoryRead returns Promise<void> (Undefined).
+     */
+    private fun handleUsageStatsPromise(id: Int, name: String?, arg: RpcValue?) {
+        val argKind = when (arg) {
+            is RpcValue.Arr -> "arr"
+            is RpcValue.Obj -> "obj"
+            else -> "other"
+        }
+        val params = argAsObject(arg) ?: JsonObject(emptyMap())
+        script.usageStatsCalls.add(Triple(name ?: "?", argKind, params))
+        when (name) {
+            "getEntitlementSnapshot" -> scriptableObject(id, script.usageEntitlement, "getEntitlementSnapshot")
+            "getCodingPlanResetStatus" -> {
+                val queued = synchronized(script.resetStatusQueue) { script.resetStatusQueue.removeFirstOrNull() }
+                scriptableObject(id, queued ?: script.codingPlanResetStatus, "getCodingPlanResetStatus")
+            }
+            "requestCodingPlanResetOpportunity" ->
+                scriptableObject(id, script.resetOpportunity, "requestCodingPlanResetOpportunity")
+            "useCodingPlanReset" -> scriptableObject(id, script.resetUse, "useCodingPlanReset")
+            "markCodingPlanResetHistoryRead" ->
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Undefined)
+            else -> respondError(id, "fault.mock.unknownMethod:usage-stats-${name ?: "?"}")
         }
     }
 

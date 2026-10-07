@@ -135,6 +135,18 @@
 <string name="usage_section_models">模型</string>
 <string name="usage_section_tools">工具</string>
 <string name="usage_section_empty">该范围内暂无数据</string>
+<!-- Phase 4 GAP-3 (ADR-020)：编程套餐额度区块 — 桌面 sidebar.usage.plan.* 文案 -->
+<string name="quota_section_title">剩余额度</string>
+<string name="quota_five_hour">5 小时</string>
+<string name="quota_weekly">每周</string>
+<string name="quota_tool_calls">工具调用</string>
+<string name="quota_mcp">ZCode MCP</string>
+<string name="quota_loading">同步中…</string>
+<string name="quota_unavailable_generic">暂无可展示的权益数据。</string>
+<string name="quota_login_required">登录后查看剩余额度。</string>
+<string name="quota_not_configured">未找到已连接的编程套餐账号。</string>
+<string name="quota_no_plan">暂无有效编程套餐</string>
+<string name="quota_refresh">刷新额度</string>
 <string name="usage_heatmap_range">%1$s – %2$s</string>
 <string name="usage_unknown_model">未知模型</string>
 <string name="settings_section_insights">洞察</string>

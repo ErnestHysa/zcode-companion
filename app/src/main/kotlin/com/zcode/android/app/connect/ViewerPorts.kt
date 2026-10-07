@@ -2,6 +2,7 @@ package com.zcode.android.app.connect
 
 import com.zcode.android.app.settings.UsagePort
 import com.zcode.android.app.settings.PluginsPort
+import com.zcode.android.app.settings.CodingPlanPort
 import com.zcode.android.app.settings.McpPort
 import com.zcode.android.app.settings.SkillsPort
 import com.zcode.android.features.tasks.port.AutomationsPort
@@ -89,6 +90,22 @@ class DefaultSkillsPort(
         } catch (e: Exception) {
             hub.log.warn("skillsport.catalog", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
             SkillsPort.Result(null, e.message ?: "the skills catalog is unavailable on this connection")
+        }
+    }
+}
+
+class DefaultCodingPlanPort(
+    private val hub: ConnectionHub,
+) : CodingPlanPort {
+    override suspend fun entitlement(): CodingPlanPort.Snapshot {
+        // Quota is app-level (the account lives on the desktop), not workspace-scoped.
+        return try {
+            CodingPlanPort.Snapshot(hub.viewerTools().entitlement(), null)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("codingplanport.entitlement", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            CodingPlanPort.Snapshot(null, e.message ?: "the coding-plan quota is unavailable on this connection")
         }
     }
 }

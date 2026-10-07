@@ -143,6 +143,18 @@
 <string name="usage_section_tools">Tools</string>
 <string name="usage_section_empty">Nothing in this range</string>
 <string name="usage_heatmap_range">%1$s – %2$s</string>
+<!-- Phase 4 GAP-3 (ADR-020): coding-plan quota section — desktop sidebar.usage.plan.* labels -->
+<string name="quota_section_title">Usage remaining</string>
+<string name="quota_five_hour">5 hours</string>
+<string name="quota_weekly">Weekly</string>
+<string name="quota_tool_calls">Tool calls</string>
+<string name="quota_mcp">ZCode MCP</string>
+<string name="quota_loading">Syncing…</string>
+<string name="quota_unavailable_generic">No available entitlement data yet.</string>
+<string name="quota_login_required">Login to view plan usage.</string>
+<string name="quota_not_configured">No connected Coding Plan account found.</string>
+<string name="quota_no_plan">No active Coding Plan</string>
+<string name="quota_refresh">Refresh quota</string>
 <string name="usage_unknown_model">unknown model</string>
 <string name="settings_section_insights">Insights</string>
 <string name="settings_usage_row">Usage</string>

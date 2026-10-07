@@ -119,12 +119,20 @@ class CodingPlanQuotaPresentationTest {
                 limits, CodingPlanQuotaPresentation.TOOL_LIMIT_TYPES, 5.0, 7.0,
             ),
         )
-        // the unit-9 limit matches NO desktop meter
-        assertNull(
-            CodingPlanQuotaPresentation.findQuotaLimit(
-                limits, CodingPlanQuotaPresentation.TOKEN_LIMIT_TYPES, 9.0, null,
-            ),
+        // The DESKTOP's three fixed meter queries (the only consumers) never
+        // return the unit-9 limit — it renders no meter (exact lookups).
+        val desktopQueries = listOf(
+            Triple(CodingPlanQuotaPresentation.TOKEN_LIMIT_TYPES, 3.0, 5.0),
+            Triple(CodingPlanQuotaPresentation.TOKEN_LIMIT_TYPES, 6.0, null),
+            Triple(CodingPlanQuotaPresentation.TOOL_LIMIT_TYPES, 5.0, 1.0),
         )
+        desktopQueries.forEach { (types, unit, number) ->
+            val found = CodingPlanQuotaPresentation.findQuotaLimit(limits, types, unit, number)
+            assertTrue(
+                "query $unit/$number must never return the unit-9 limit (got $found)",
+                found == null || found.unit != 9.0,
+            )
+        }
     }
 
     // ---- remaining-percentage gate -------------------------------------------

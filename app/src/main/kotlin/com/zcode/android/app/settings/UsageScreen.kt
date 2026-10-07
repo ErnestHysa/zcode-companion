@@ -76,6 +76,7 @@ private val USAGE_RANGES = listOf("7d", "30d", "all")
 @Composable
 fun UsageScreen(
     port: UsagePort,
+    quotaPort: CodingPlanPort? = null,
     onBack: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -159,6 +160,13 @@ fun UsageScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp),
             ) {
+                // GAP-3 (ADR-020, v4-wire.md §13.1): the coding-plan quota meters
+                // sit above the app-usage sections — the desktop's own settings
+                // pairing (quota panel + usage dashboard on one surface). A failed
+                // read degrades to a HIDDEN section (the section's own contract).
+                quotaPort?.let { qp ->
+                    CodingPlanQuotaSection(port = qp, modifier = Modifier.padding(bottom = 8.dp))
+                }
                 RangeTabs(range = range, enabled = !loading, onSelect = { key ->
                     range = key
                     load(key)

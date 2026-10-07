@@ -189,6 +189,17 @@ interface V4Plane {
      */
     suspend fun mcpServerStatuses(workspacePath: String?, workspaceIdentity: String?): JsonObject
 
+    // ---- Phase 4 coding-plan quota plane (ADR-020; v4-wire.md §13)
+
+    /**
+     * GAP-3: `getEntitlementSnapshot` (usageStats.ts:29) on the `usage-stats`
+     * channel — the desktop UI's own quota-panel data source (POLLED; there is
+     * no quota push channel anywhere in the desktop, ADR-020). Args
+     * `Arr([{}])` — every UsageEntitlementRequest field is optional and the
+     * host resolves the current account/provider. Read-only.
+     */
+    suspend fun usageEntitlementSnapshot(): JsonObject
+
     // terminal (view-only — INV-9)
     suspend fun terminalCreate(cols: Int, rows: Int, cwd: String? = null): JsonObject
     suspend fun terminalDispose(id: String)
@@ -822,6 +833,25 @@ internal class ChannelV4Plane(
         }
         return v4CallObject("listMcpServerStatuses", params)
     }
+
+    // ---- Phase 4 coding-plan quota plane (ADR-020; v4-wire.md §13)
+    // The `usage-stats` ProxyChannel (promise args ARRAY-wrapped, §7). The
+    // entitlement read is the GAP-3 data source; the reset words land with
+    // GAP-4 behind the typed-confirm gate (ADR-020: useCodingPlanReset is the
+    // plane's ONE destructive-adjacent word).
+
+    suspend fun usageEntitlementSnapshot(): JsonObject =
+        when (
+            val raw = channelCall(
+                "usage-stats", "getEntitlementSnapshot",
+                RpcValue.Arr(listOf(RpcValue.Obj(JsonObject(emptyMap())))),
+                timeouts.controlRequestTimeoutMs,
+            )
+        ) {
+            is RpcValue.Obj -> (raw.json as? JsonObject)
+                ?: throw TransportFailure(ErrorMapping.protocolFault("getEntitlementSnapshot result not an object"))
+            else -> throw TransportFailure(ErrorMapping.protocolFault("getEntitlementSnapshot result not an object"))
+        }
 
     // ---- terminal (view-only: create/dispose/data/exit ONLY — INV-9, phase9-channels.md §1)
 

@@ -1228,6 +1228,8 @@ class RelayTransport(
 
     override suspend fun offPeakTaskList(): JsonObject = plane.offPeakTaskList()
 
+    override suspend fun usageEntitlementSnapshot(): JsonObject = plane.usageEntitlementSnapshot()
+
     override suspend fun listPlugins(workspacePath: String?, workspaceIdentity: String?): JsonObject =
         plane.listPlugins(workspacePath, workspaceIdentity)
 

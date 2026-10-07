@@ -5,6 +5,7 @@ import com.zcode.android.domain.model.AppUsageSnapshot
 import com.zcode.android.domain.model.AutomationRow
 import com.zcode.android.domain.model.McpStatuses
 import com.zcode.android.domain.model.OffPeakTaskRow
+import com.zcode.android.domain.model.UsageEntitlement
 import com.zcode.android.domain.model.PluginsView
 import com.zcode.android.domain.model.SkillCatalog
 
@@ -71,4 +72,15 @@ class ViewerTools(private val transport: AppTransport) {
     /** `listMcpServerStatuses` with `mode: "status"` (passive; v4-wire.md §12.5). */
     suspend fun mcpStatuses(workspacePath: String?, workspaceIdentity: String?): McpStatuses =
         McpStatuses.decode(transport.mcpServerStatuses(workspacePath, workspaceIdentity))
+
+    // ---------------------------------------------------------------- GAP-3: coding-plan quota (ADR-020)
+
+    /**
+     * `usage-stats` channel `getEntitlementSnapshot` (v4-wire.md §13.1) — the
+     * desktop's own quota-panel read, POLLED client-side (one read per Usage-screen
+     * load + explicit refresh; ADR-020: no push channel exists). The reset words
+     * land with GAP-4 behind the typed-confirm gate.
+     */
+    suspend fun entitlement(): UsageEntitlement =
+        UsageEntitlement.decode(transport.usageEntitlementSnapshot())
 }

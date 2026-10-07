@@ -117,7 +117,7 @@ class ViewerToolsCodingPlanTest {
             val (method, argKind, params) = calls[0]
             assertEquals("getEntitlementSnapshot", method)
             assertEquals("arr", argKind)
-            assertTrue("params should be the empty request object: $params", params.isEmpty())
+            assertTrue(params.isEmpty(), "params should be the empty request object: $params")
         }
     }
 
@@ -135,8 +135,8 @@ class ViewerToolsCodingPlanTest {
         runBlocking {
             val failure = assertFailsWith<TransportFailure> { tools.entitlement() }
             assertTrue(
-                "refusal detail expected: ${failure.message}",
                 (failure.message ?: "").contains("usage-stats"),
+                "refusal detail expected: ${failure.message}",
             )
         }
     }

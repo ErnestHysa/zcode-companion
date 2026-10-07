@@ -271,7 +271,7 @@ fun ZCodeApp(
         }
         composable(Routes.USAGE) {
             // GAP-5 (v4-wire.md §12.1): read-only usage dashboard over the usage-stats R read.
-            UsageScreen(port = container.usagePort, onBack = { nav.popBackStack() }, modifier = Modifier.fillMaxSize())
+            UsageScreen(port = container.usagePort, quotaPort = container.quotaPort, onBack = { nav.popBackStack() }, modifier = Modifier.fillMaxSize())
         }
         composable(Routes.PLUGINS) {
             // GAP-7 (v4-wire.md §12.3): read-only plugins viewer — no install surface (INV-9).
