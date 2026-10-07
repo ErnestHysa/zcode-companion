@@ -64,8 +64,9 @@ SPIKE_BIN="$REPO_ROOT/spike/build/install/spike/bin/spike"
 
 # ── run the drill ────────────────────────────────────────────────────────────
 CAPTURE_ID="canary-$(date +%Y%m%d-%H%M%S)"
+# the spike arg parser consumes a value for every --flag, so give --mock one
 MOCK_FLAG=""
-[[ "$SOURCE" == "mock-rehearsal" ]] && MOCK_FLAG="--mock"
+[[ "$SOURCE" == "mock-rehearsal" ]] && MOCK_FLAG="--mock 1"
 "$SPIKE_BIN" --stage canary \
   --qr "$QR" --relay "$RELAY" \
   --capture-dir "$OUT_DIR" --capture-id "$CAPTURE_ID" \

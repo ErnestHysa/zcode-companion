@@ -51,21 +51,17 @@ fun runCanaryStage(
     val legs = Legs()
 
     fun writeReport(verdict: String, detail: String) {
-        val json = mapOf(
-            "stage" to "canary",
-            "verdict" to verdict,
-            "mode" to if (mockMode) "mock-rehearsal" else "live",
-            "legs" to mapOf(
-                "pair" to legs.pair,
-                "workspaceGuard" to legs.workspaceGuard,
-                "discover" to legs.discover,
-                "stream" to legs.stream,
-                "v4Handshake" to legs.v4Handshake,
-                "recover" to legs.recover,
-            ),
-            "detail" to detail,
-        ).toString()
-        reportFile.writeText(json)
+        // Hand-built JSON (machine-readable envelope consumed by live-canary.sh);
+        // all values are simple strings/booleans — quote + escape the free-text one.
+        val esc = detail.replace("\\", "\\\\").replace("\"", "\\\"")
+        val mode = if (mockMode) "mock-rehearsal" else "live"
+        reportFile.writeText(
+            "{\"stage\":\"canary\",\"verdict\":\"$verdict\",\"mode\":\"$mode\"," +
+                "\"legs\":{\"pair\":${legs.pair},\"workspaceGuard\":\"${legs.workspaceGuard}\"," +
+                "\"discover\":${legs.discover},\"stream\":${legs.stream}," +
+                "\"v4Handshake\":${legs.v4Handshake},\"recover\":${legs.recover}}," +
+                "\"detail\":\"$esc\"}",
+        )
         log("CANARY-REPORT $reportFile verdict=$verdict")
     }
 
