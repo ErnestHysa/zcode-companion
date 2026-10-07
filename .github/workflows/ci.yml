@@ -31,6 +31,9 @@ jobs:
       - name: Redaction tool tests (INV-3 pipeline)
         run: node --test tools/capture/redact.test.mjs
 
+      - name: Drift tool tests (AAP-1 surface + AAP-2 relay/sensors)
+        run: node --test tools/drift/surface.test.mjs tools/drift/relay.test.mjs tools/sensors/sensors.test.mjs
+
       - name: JVM test suite (unit + MockZCode integration + corpus replay + storms + security/Robolectric)
         # ubuntu-latest runners ship the Android SDK (ANDROID_HOME) — android-library /
         # app modules build; Robolectric pulls its android-all jars from Maven (network).
