@@ -199,6 +199,34 @@ class AppContainer(activity: FragmentActivity) {
     )
 
     /**
+     * AAP-3 (android-gaps roadmap; §14.2 T4, §37): the foreground GitHub-Releases
+     * update check. The connection center triggers it on entry (no polling); the
+     * gate is `desktop.version > CompatibilityGate.MAX_TESTED_DESKTOP` AND a newer
+     * release (versionCode) exists. Install is the user-consented system-installer
+     * handoff — never silent (§37).
+     */
+    val appUpdate: com.zcode.android.app.update.AppUpdateController =
+        com.zcode.android.app.update.AppUpdateController(
+            checker = com.zcode.android.app.update.AppUpdateChecker(
+                releasesUrl = "https://api.github.com/repos/$UPDATE_RELEASE_REPO/releases/latest",
+                installedVersionCode = run {
+                    val pm = activity.packageManager.getPackageInfo(activity.packageName, 0)
+                    pm.longVersionCode
+                },
+            ),
+            downloader = com.zcode.android.app.update.ApkDownloader(
+                http = okhttp3.OkHttpClient(),
+                updatesDir = File(activity.cacheDir, "updates").also { it.mkdirs() },
+                log = log,
+            ),
+            scope = activity.lifecycleScope,
+            log = log,
+            installer = { apk ->
+                com.zcode.android.app.update.ApkInstaller.install(activity, apk)
+            },
+        )
+
+    /**
      * Phase 8 (§43.2-8.1): the §24.1 broker wiring — the sole notification decision
      * point fed by the authoritative repositories (interactions, task projection,
      * connection phase) plus the §24.7 deep-link intake. Channels are created at
@@ -245,5 +273,8 @@ class AppContainer(activity: FragmentActivity) {
 
     companion object {
         const val LOG_TAG = "ZCODE-PAIR"
+
+        /** §37 primary channel — the GitHub repo whose Releases carry the APK. */
+        const val UPDATE_RELEASE_REPO = "ErnestHysa/zcode-android"
     }
 }

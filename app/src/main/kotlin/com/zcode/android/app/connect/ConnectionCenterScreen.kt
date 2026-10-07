@@ -58,6 +58,9 @@ fun ConnectionCenterScreen(
     onRetry: () -> Unit,
     onDismissError: () -> Unit,
     onBack: () -> Unit,
+    updateState: com.zcode.android.app.update.UpdateCheckState? = null,
+    downloadState: com.zcode.android.app.update.DownloadState? = null,
+    onUpdateNow: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -111,9 +114,69 @@ fun ConnectionCenterScreen(
                 // Round-8 compat honesty: a desktop NEWER than the tested version may
                 // have drifted relay-plane behavior. (The literal in the message tracks
                 // CompatibilityGate.MAX_TESTED_DESKTOP — 3.14.4 live-verified 2026-09-30.)
-                if (com.zcode.android.core.security.pairing.CompatibilityGate
+                // AAP-3 (§14.2 T4): when the desktop is newer AND a newer app release
+                // exists, the warning BECOMES the update action — banner + "Update now"
+                // (§37 user-consented install). With no update available the honest
+                // warning below stays exactly as it was.
+                val aboveTested = com.zcode.android.core.security.pairing.CompatibilityGate
                     .check(desktopVersion ?: "") is com.zcode.android.core.security.pairing.CompatibilityGate.Verdict.AboveTested
+                if (aboveTested &&
+                    updateState is com.zcode.android.app.update.UpdateCheckState.Available
                 ) {
+                    val release = updateState.release
+                    Spacer(Modifier.height(6.dp))
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.medium)
+                            .padding(12.dp)
+                            .testTag("update_banner"),
+                    ) {
+                        Text(
+                            text = stringResource(
+                                R.string.conn_update_banner,
+                                desktopVersion ?: "",
+                                com.zcode.android.core.security.pairing.CompatibilityGate.MAX_TESTED_DESKTOP,
+                                release.versionName,
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        when (val dl = downloadState) {
+                            is com.zcode.android.app.update.DownloadState.Running ->
+                                Text(
+                                    text = stringResource(R.string.conn_update_progress, progressLabel(dl)),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.testTag("update_progress"),
+                                )
+                            is com.zcode.android.app.update.DownloadState.Ready ->
+                                Text(
+                                    text = stringResource(R.string.conn_update_ready),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.testTag("update_ready"),
+                                )
+                            is com.zcode.android.app.update.DownloadState.Failed ->
+                                Text(
+                                    text = stringResource(R.string.conn_update_failed, dl.detail),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.testTag("update_error"),
+                                )
+                            else -> {}
+                        }
+                        if (downloadState !is com.zcode.android.app.update.DownloadState.Ready &&
+                            downloadState !is com.zcode.android.app.update.DownloadState.Running
+                        ) {
+                            TextButton(
+                                onClick = onUpdateNow,
+                                modifier = Modifier.testTag("update_now"),
+                            ) { Text(stringResource(R.string.conn_update_now)) }
+                        }
+                    }
+                } else if (aboveTested) {
                     Spacer(Modifier.height(6.dp))
                     Text(
                         text = stringResource(
@@ -125,6 +188,49 @@ fun ConnectionCenterScreen(
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.testTag("connection_compat_warning"),
                     )
+                    when (updateState) {
+                        is com.zcode.android.app.update.UpdateCheckState.Checking ->
+                            Text(
+                                text = stringResource(R.string.conn_update_checking),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 4.dp).testTag("update_checking"),
+                            )
+                        is com.zcode.android.app.update.UpdateCheckState.UpToDate ->
+                            Text(
+                                text = stringResource(R.string.conn_update_none),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 4.dp).testTag("update_uptodate"),
+                            )
+                        is com.zcode.android.app.update.UpdateCheckState.Failed ->
+                            Text(
+                                text = stringResource(R.string.conn_update_failed, updateState.detail),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(top = 4.dp).testTag("update_error"),
+                            )
+                        else -> {}
+                    }
+                    downloadState?.let { dl ->
+                        when (dl) {
+                            is com.zcode.android.app.update.DownloadState.Running ->
+                                Text(
+                                    text = stringResource(R.string.conn_update_progress, progressLabel(dl)),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = 4.dp).testTag("update_progress"),
+                                )
+                            is com.zcode.android.app.update.DownloadState.Failed ->
+                                Text(
+                                    text = stringResource(R.string.conn_update_failed, dl.detail),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.padding(top = 4.dp).testTag("update_error"),
+                                )
+                            else -> {}
+                        }
+                    }
                 }
                 lastRefreshAtMs?.let {
                     val ago = relativeTimeLabel(it)
@@ -197,6 +303,15 @@ fun ConnectionCenterScreen(
 }
 
 private data class Chrome(val label: String, val tone: StatusTone, val progress: Boolean)
+
+/** "42%" when the total is known, else a compact byte count ("1.2 MB"). */
+private fun progressLabel(dl: com.zcode.android.app.update.DownloadState.Running): String =
+    if (dl.totalBytes > 0) {
+        "${(dl.bytesRead * 100 / dl.totalBytes)}%"
+    } else {
+        val mb = dl.bytesRead / (1024.0 * 1024.0)
+        String.format(java.util.Locale.ROOT, "%.1f MB", mb)
+    }
 
 @Composable
 private fun currentChrome(phase: ConnectionPhase): Chrome = when (phase) {

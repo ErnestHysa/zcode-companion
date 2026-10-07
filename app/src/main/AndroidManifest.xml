@@ -9,6 +9,11 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- §37/AAP-3 (§14.2 T4): the non-Play update channel hands the downloaded APK to
+         the system installer (user-consented install intent). REQUEST_INSTALL_PACKAGES
+         is what makes packageManager.canRequestPackageInstalls() meaningful on API 26+;
+         the system installer UI remains the consent surface. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application

@@ -460,6 +460,14 @@ private fun ConnectionCenterRoute(container: AppContainer, onBack: () -> Unit) {
     val endpoint by container.hub.endpoint.collectAsState()
     val lastError by container.hub.lastError.collectAsState()
     val lastRefresh by container.hub.lastRefreshAtMs.collectAsState()
+    val updateState by container.appUpdate.check.collectAsState()
+    val downloadState by container.appUpdate.download.collectAsState()
+    // AAP-3 (§14.2 T4): the foreground update check — runs on connection-center
+    // entry when a desktop version is known; no-ops (no network) when the desktop
+    // is within the tested matrix (§29 no-polling: the screen entry is the trigger).
+    LaunchedEffect(endpoint?.desktopAppVersion) {
+        container.appUpdate.checkForUpdate(endpoint?.desktopAppVersion)
+    }
     ConnectionCenterScreen(
         phase = phase,
         endpointName = endpoint?.displayName,
@@ -469,6 +477,9 @@ private fun ConnectionCenterRoute(container: AppContainer, onBack: () -> Unit) {
         onRetry = container.hub::retry,
         onDismissError = container.hub::dismissError,
         onBack = onBack,
+        updateState = updateState,
+        downloadState = downloadState,
+        onUpdateNow = container.appUpdate::updateNow,
     )
 }
 

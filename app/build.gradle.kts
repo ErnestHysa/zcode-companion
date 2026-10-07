@@ -110,6 +110,8 @@ dependencies {
     androidTestImplementation(project(":core:security"))
     androidTestImplementation(project(":core:notifications"))
     androidTestImplementation(libs.work.runtime.ktx)
+    // AAP-3: the update flow instrumented test seeds a loopback releases+APK server.
+    androidTestImplementation(libs.mockwebserver3)
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.compose.ui.test.junit4)

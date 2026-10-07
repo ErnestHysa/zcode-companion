@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "kind": "github-releases-seeded-fixtures",
+  "note": [
+    "AAP-3 (android-gaps roadmap, report §14.2 T4 / §37): SEEDED test input for the",
+    "GitHub Releases metadata channel (api.github.com/repos/<repo>/releases/latest).",
+    "This is NOT a ZCode-protocol golden fixture (rule 5 applies to the ZCode wire;",
+    "this file seeds a third-party API in tests). The 'release-with-meta' shape is",
+    "what tools/release/publish.mjs (T3, AAP-5) writes: body carries the",
+    "zcode-android-release-meta machine block, assets carry the APK + .sha256."
+  ],
+  "cases": [
+    {
+      "name": "release-with-meta",
+      "data": {
+        "tag_name": "v0.11.5-vc37",
+        "name": "ZCode Companion 0.11.5 (vc37)",
+        "draft": false,
+        "prerelease": false,
+        "body": "Adds desktop 3.14.5 compat (drift verdict ADDITIVE).\n\n<!-- zcode-android-release-meta {\"versionName\":\"0.11.5\",\"versionCode\":37,\"maxTestedDesktop\":\"3.14.5\",\"apk\":\"app-release.apk\",\"sha256\":\"1111111111111111111111111111111111111111111111111111111111111111\"} -->",
+        "assets": [
+          {
+            "name": "app-release.apk",
+            "browser_download_url": "https://example.github/releases/v37/app-release.apk",
+            "content_type": "application/vnd.android.package-archive",
+            "size": 48211003
+          },
+          {
+            "name": "app-release.apk.sha256",
+            "browser_download_url": "https://example.github/releases/v37/app-release.apk.sha256",
+            "content_type": "text/plain",
+            "size": 85
+          }
+        ]
+      }
+    },
+    {
+      "name": "release-tag-only",
+      "data": {
+        "tag_name": "v0.11.6-vc38",
+        "name": "ZCode Companion 0.11.6 (vc38)",
+        "body": "No meta block — tag suffix carries the version code.",
+        "assets": [
+          {
+            "name": "app-release.apk",
+            "browser_download_url": "https://example.github/releases/v38/app-release.apk",
+            "content_type": "application/vnd.android.package-archive",
+            "size": 48211111
+          }
+        ]
+      }
+    },
+    {
+      "name": "release-sha-from-asset",
+      "data": {
+        "tag_name": "v0.11.7-vc39",
+        "name": "ZCode Companion 0.11.7 (vc39)",
+        "body": "No inline sha256 — the sibling .sha256 asset carries it.",
+        "assets": [
+          {
+            "name": "app-release.apk",
+            "browser_download_url": "https://example.github/releases/v39/app-release.apk",
+            "content_type": "application/vnd.android.package-archive",
+            "size": 100
+          },
+          {
+            "name": "app-release.apk.sha256",
+            "browser_download_url": "https://example.github/releases/v39/app-release.apk.sha256",
+            "content_type": "text/plain",
+            "size": 85
+          }
+        ]
+      }
+    },
+    {
+      "name": "release-no-apk",
+      "data": {
+        "tag_name": "v0.11.8-vc40",
+        "name": "notes-only release",
+        "body": "No APK asset in this release.",
+        "assets": [
+          {
+            "name": "RELEASE-NOTES.md",
+            "browser_download_url": "https://example.github/releases/v40/RELEASE-NOTES.md",
+            "content_type": "text/markdown",
+            "size": 12
+          }
+        ]
+      }
+    },
+    {
+      "name": "release-no-version",
+      "data": {
+        "tag_name": "nightly",
+        "name": "unnamed nightly",
+        "body": "No meta block and no -vcN tag suffix.",
+        "assets": [
+          {
+            "name": "app-debug.apk",
+            "browser_download_url": "https://example.github/nightly/app-debug.apk",
+            "content_type": "application/vnd.android.package-archive",
+            "size": 10
+          }
+        ]
+      }
+    },
+    {
+      "name": "release-malformed",
+      "data": "not-json-at-all"
+    }
+  ]
+}
