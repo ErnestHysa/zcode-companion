@@ -1,0 +1,245 @@
+{
+  "tool": "redact.mjs v1",
+  "replacements": [
+    {
+      "field": "device_sid",
+      "class": "token"
+    },
+    {
+      "field": "name",
+      "class": "content"
+    },
+    {
+      "field": "nonce",
+      "class": "secret"
+    },
+    {
+      "field": "device_sid",
+      "class": "token"
+    },
+    {
+      "field": "proof",
+      "class": "secret"
+    },
+    {
+      "field": "requestId",
+      "class": "token"
+    },
+    {
+      "field": "requestId",
+      "class": "token"
+    },
+    {
+      "field": "windowControlSessionId",
+      "class": "token"
+    },
+    {
+      "field": "workspacePath",
+      "class": "content"
+    },
+    {
+      "field": "label",
+      "class": "content"
+    },
+    {
+      "field": "workspaceKey",
+      "class": "token"
+    },
+    {
+      "field": "id",
+      "class": "token"
+    },
+    {
+      "field": "title",
+      "class": "content"
+    },
+    {
+      "field": "requestId",
+      "class": "token"
+    },
+    {
+      "field": "bridgeSessionId",
+      "class": "token"
+    },
+    {
+      "field": "workspaceKey",
+      "class": "token"
+    },
+    {
+      "field": "taskId",
+      "class": "token"
+    },
+    {
+      "field": "requestId",
+      "class": "token"
+    },
+    {
+      "field": "bridgeSessionId",
+      "class": "token"
+    },
+    {
+      "field": "bridgeSessionId",
+      "class": "token"
+    },
+    {
+      "field": "workspaceKey",
+      "class": "token"
+    },
+    {
+      "field": "workspacePath",
+      "class": "content"
+    },
+    {
+      "field": "dataBase64",
+      "class": "rpc-frame-payload",
+      "bytes": 128
+    },
+    {
+      "field": "bridgeSessionId",
+      "class": "token"
+    },
+    {
+      "field": "bridgeSessionId",
+      "class": "token"
+    },
+    {
+      "field": "device_sid",
+      "class": "token"
+    },
+    {
+      "field": "name",
+      "class": "content"
+    },
+    {
+      "field": "nonce",
+      "class": "secret"
+    },
+    {
+      "field": "device_sid",
+      "class": "token"
+    },
+    {
+      "field": "proof",
+      "class": "secret"
+    },
+    {
+      "field": "requestId",
+      "class": "token"
+    },
+    {
+      "field": "bridgeSessionId",
+      "class": "token"
+    },
+    {
+      "field": "recoveryId",
+      "class": "token"
+    },
+    {
+      "field": "workspaceKey",
+      "class": "token"
+    },
+    {
+      "field": "requestId",
+      "class": "token"
+    },
+    {
+      "field": "bridgeSessionId",
+      "class": "token"
+    },
+    {
+      "field": "bridgeSessionId",
+      "class": "token"
+    },
+    {
+      "field": "workspaceKey",
+      "class": "token"
+    },
+    {
+      "field": "workspacePath",
+      "class": "content"
+    },
+    {
+      "field": "dataBase64",
+      "class": "rpc-frame-payload",
+      "bytes": 128
+    },
+    {
+      "field": "bridgeSessionId",
+      "class": "token"
+    },
+    {
+      "field": "bridgeSessionId",
+      "class": "token"
+    },
+    {
+      "field": "device_sid",
+      "class": "token"
+    },
+    {
+      "field": "name",
+      "class": "content"
+    },
+    {
+      "field": "nonce",
+      "class": "secret"
+    },
+    {
+      "field": "device_sid",
+      "class": "token"
+    },
+    {
+      "field": "proof",
+      "class": "secret"
+    },
+    {
+      "field": "requestId",
+      "class": "token"
+    },
+    {
+      "field": "bridgeSessionId",
+      "class": "token"
+    },
+    {
+      "field": "recoveryId",
+      "class": "token"
+    },
+    {
+      "field": "workspaceKey",
+      "class": "token"
+    },
+    {
+      "field": "requestId",
+      "class": "token"
+    },
+    {
+      "field": "bridgeSessionId",
+      "class": "token"
+    },
+    {
+      "field": "bridgeSessionId",
+      "class": "token"
+    },
+    {
+      "field": "workspaceKey",
+      "class": "token"
+    },
+    {
+      "field": "workspacePath",
+      "class": "content"
+    },
+    {
+      "field": "dataBase64",
+      "class": "rpc-frame-payload",
+      "bytes": 128
+    },
+    {
+      "field": "bridgeSessionId",
+      "class": "token"
+    },
+    {
+      "field": "bridgeSessionId",
+      "class": "token"
+    }
+  ],
+  "lines": 29
+}

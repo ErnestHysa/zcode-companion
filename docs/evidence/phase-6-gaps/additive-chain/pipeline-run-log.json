@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "tool": "publish.mjs",
+  "startedAt": "2026-10-07T20:45:37.376Z",
+  "inputs": {
+    "driftPath": "/tmp/aap4-evidence/additive/drift-report.json",
+    "verifyPath": "/tmp/aap4-evidence/additive/verify-report.json",
+    "canaryPath": "/Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/docs/evidence/phase-6-gaps/canary-mock/canary-verdict.json",
+    "desktopVersion": "3.14.5",
+    "gh": "/Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/tools/release/rehearsal/gh-recorder.mjs"
+  },
+  "decisionInputs": {
+    "driftVerdict": "ADDITIVE",
+    "suitesGreen": true,
+    "canaryGreen": true
+  },
+  "decision": {
+    "action": "auto-ship",
+    "reasons": [
+      "drift verdict ADDITIVE: no consumed protocol surface changed",
+      "T2 verify green: fixtures regenerated from the new schemas + unit suite passed",
+      "Mac live canary green: pair → subscribe → stream → recover → diagnostics export",
+      "all three matrix legs green → fully automatic pipeline to a SIGNED DRAFT release"
+    ],
+    "steps": [
+      "bump versionCode + versionName (app/build.gradle.kts)",
+      "bump CompatibilityGate.MAX_TESTED_DESKTOP to the verified desktop version",
+      "baseline-profile regen (macrobenchmark workflow; skipped only when flagged)",
+      "assembleRelease (signed via the off-repo stable keystore)",
+      "sha256 the artifact",
+      "gh release create --draft with drift-report-generated notes + APK + .sha256"
+    ]
+  },
+  "steps": [
+    {
+      "at": "2026-10-07T20:45:37.376Z",
+      "name": "decision",
+      "detail": "auto-ship confirmed by the T3 matrix"
+    },
+    {
+      "at": "2026-10-07T20:45:37.379Z",
+      "name": "version-bump",
+      "detail": "versionName 0.11.4-phase11 → 0.11.5, versionCode 36 → 37"
+    },
+    {
+      "at": "2026-10-07T20:45:37.379Z",
+      "name": "max-tested-bump",
+      "detail": "CompatibilityGate.MAX_TESTED_DESKTOP → 3.14.5"
+    },
+    {
+      "at": "2026-10-07T20:45:37.518Z",
+      "name": "commit-bumps",
+      "detail": "e10aeb7f4b2f4c7f6303c32b437c736aa7f285b1"
+    },
+    {
+      "at": "2026-10-07T20:45:37.518Z",
+      "name": "baseline-profile-regen",
+      "detail": "delegated to macrobenchmark.yml (needs a device); assembleRelease packages the committed profiles",
+      "delegatedTo": ".github/workflows/macrobenchmark.yml"
+    },
+    {
+      "at": "2026-10-07T20:49:35.551Z",
+      "name": "assemble-release",
+      "detail": "/tmp/aap5-ship/app/build/outputs/apk/release/app-release.apk"
+    },
+    {
+      "at": "2026-10-07T20:49:35.631Z",
+      "name": "sha256",
+      "detail": "881f49adbcac4611be42966d9386d797830f4ce1f65177d8a5c33c9842aad95a → /tmp/aap5-ship/app/build/outputs/apk/release/app-release.apk.sha256"
+    },
+    {
+      "at": "2026-10-07T20:49:35.654Z",
+      "name": "release-notes",
+      "detail": "/tmp/aap5-ship/build/release-notes.md (T4 meta block embedded)"
+    },
+    {
+      "at": "2026-10-07T20:49:35.779Z",
+      "name": "gh-release-create",
+      "detail": "v0.11.5-vc37 — DRAFT (promoting to public is the human publish click)",
+      "tag": "v0.11.5-vc37",
+      "target": "e10aeb7f4b2f4c7f6303c32b437c736aa7f285b1"
+    }
+  ],
+  "humanApprovalRequired": false,
+  "completedAt": "2026-10-07T20:49:35.779Z",
+  "artifact": {
+    "apk": "/tmp/aap5-ship/app/build/outputs/apk/release/app-release.apk",
+    "sha256": "881f49adbcac4611be42966d9386d797830f4ce1f65177d8a5c33c9842aad95a",
+    "shaPath": "/tmp/aap5-ship/app/build/outputs/apk/release/app-release.apk.sha256",
+    "notesPath": "/tmp/aap5-ship/build/release-notes.md",
+    "tag": "v0.11.5-vc37",
+    "versionName": "0.11.5",
+    "versionCode": 37
+  },
+  "pipeline": {
+    "schemaVersion": 1,
+    "tool": "pipeline.mjs",
+    "startedAt": "2026-10-07T20:45:37.319Z",
+    "label": "3.14.5",
+    "chain": [
+      {
+        "tier": "T2-verify",
+        "reused": true,
+        "from": "/tmp/aap4-evidence/additive"
+      },
+      {
+        "tier": "T1-drift-report",
+        "verdict": "ADDITIVE",
+        "summary": {
+          "added": 2,
+          "changed": 0,
+          "removed": 0,
+          "breaking": 0,
+          "bodyChanged": 0
+        },
+        "report": "/tmp/aap4-evidence/additive/drift-report.json"
+      },
+      {
+        "tier": "canary",
+        "verdict": "green",
+        "report": "/Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/docs/evidence/phase-6-gaps/canary-mock/canary-verdict.json",
+        "source": "mock-rehearsal"
+      }
+    ],
+    "decision": {
+      "inputs": {
+        "driftVerdict": "ADDITIVE",
+        "suitesGreen": true,
+        "canaryGreen": true
+      },
+      "action": "auto-ship",
+      "reasons": [
+        "drift verdict ADDITIVE: no consumed protocol surface changed",
+        "T2 verify green: fixtures regenerated from the new schemas + unit suite passed",
+        "Mac live canary green: pair → subscribe → stream → recover → diagnostics export",
+        "all three matrix legs green → fully automatic pipeline to a SIGNED DRAFT release"
+      ],
+      "steps": [
+        "bump versionCode + versionName (app/build.gradle.kts)",
+        "bump CompatibilityGate.MAX_TESTED_DESKTOP to the verified desktop version",
+        "baseline-profile regen (macrobenchmark workflow; skipped only when flagged)",
+        "assembleRelease (signed via the off-repo stable keystore)",
+        "sha256 the artifact",
+        "gh release create --draft with drift-report-generated notes + APK + .sha256"
+      ]
+    },
+    "completedAt": "2026-10-07T20:49:35.813Z",
+    "runLog": "/Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/docs/evidence/phase-6-gaps/additive-chain/pipeline-run-log.json"
+  }
+}
