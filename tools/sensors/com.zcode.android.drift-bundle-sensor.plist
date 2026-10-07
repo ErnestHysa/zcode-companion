@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  AAP-2 bundle sensor launchd agent (android-gaps roadmap Phase 5, report §14.2 T1b).
+
+  TEMPLATE — install with the repo path substituted (see docs/runbooks/drift.md):
+    sed "s|@REPO_ROOT@|$HOME/Desktop/DEVPROJECTS/zcode/android-native|g" \
+      tools/sensors/com.zcode.android.drift-bundle-sensor.plist \
+      > ~/Library/LaunchAgents/com.zcode.android.drift-bundle-sensor.plist
+    launchctl load ~/Library/LaunchAgents/com.zcode.android.drift-bundle-sensor.plist
+
+  Schedule: daily at 09:00 local AND immediately on any change under
+  /Applications/ZCode.app (WatchPaths = the Sparkle-update hook, §14.2). Unchanged
+  bundles exit quietly (hash heartbeat), so WatchPaths storms are cheap no-ops.
+  Logs: ~/Library/Logs/zcode-android-drift/{sensor,notifications}.log
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.zcode.android.drift-bundle-sensor</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>@REPO_ROOT@/tools/sensors/bundle-sensor.sh</string>
+    </array>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>9</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>WatchPaths</key>
+    <array>
+        <string>/Applications/ZCode.app</string>
+    </array>
+
+    <key>StandardOutPath</key>
+    <string>@REPO_ROOT@/tools/drift/.launchd-stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>@REPO_ROOT@/tools/drift/.launchd-stderr.log</string>
+
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>
