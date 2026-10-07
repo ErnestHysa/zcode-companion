@@ -3,13 +3,12 @@ package com.zcode.android.app.update
 import android.content.Intent
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.zcode.android.app.MainActivity
 import com.zcode.android.app.connect.ConnectionCenterScreen
 import com.zcode.android.core.ui.theme.ZCodeTheme
 import com.zcode.android.domain.state.ConnectionPhase
@@ -39,7 +38,7 @@ import org.junit.runner.RunWith
 class UpdateFlowInstrumentedTest {
 
     @get:Rule
-    val rule = createAndroidComposeRule<MainActivity>()
+    val rule = createComposeRule()
 
     private val context get() = InstrumentationRegistry.getInstrumentation().targetContext
 
