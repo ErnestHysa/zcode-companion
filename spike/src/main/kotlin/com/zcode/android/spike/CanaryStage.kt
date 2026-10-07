@@ -124,17 +124,12 @@ fun runCanaryStage(
         log("canary task: $sessionId (synthetic match ok)")
 
         // ── leg 3: bridge + stream (first pushed frame) ─────────────────────
-        // The listener is attached BEFORE the bridge-open: the desktop (and the
-        // MockRelay) push the first frame as soon as the bridge is ready — the
-        // subscribe stage's own ordering (listen → call). EventFires dispatch to
-        // attached listeners even before the channel Initialize, so this is
-        // race-free against the mock's immediate push.
-        var frameSeen = false
-        val listenArg = RpcValue.Obj(kotlinx.serialization.json.buildJsonObject {
-            put("workspacePath", kotlinx.serialization.json.JsonPrimitive(wsPath))
-            wsIdent?.let { put("workspaceIdentity", kotlinx.serialization.json.JsonPrimitive(it)) }
-        })
-        val listenId = client.channel.listen("zcode-agent", "onDynamicConversationFrame", listenArg) { _ -> frameSeen = true }
+        // Stream evidence = a pushed rpc-frame arriving after the bridge-open,
+        // counted by the client's per-direction decoded-message counter — the
+        // same signal the recover stage uses. (A Channel EventListen id-match is
+        // NOT usable here: the mock fires a fixed id and the live desktop
+        // assigns its own; the counter is transport-truth for both.)
+        val rpcBaseline = client.rpcMessageCount()
         try {
             if (!mockMode) client.awaitChannelReady(15_000)
             val ready = canaryRequest(client, "workspace-bridge-ready") {
@@ -174,15 +169,14 @@ fun runCanaryStage(
             }
             // Stream evidence: a real pushed frame within 20s (the mock pushes one at
             // bridge-open; the live desktop pushes on subscribe).
-            val deadline = System.currentTimeMillis() + 20_000
-            while (System.currentTimeMillis() < deadline && !frameSeen) Thread.sleep(100)
-            legs.stream = frameSeen
-            if (!frameSeen) {
+            legs.stream = client.awaitRpcMessageSince(rpcBaseline, 20_000) != null
+            if (!legs.stream) {
                 writeReport("red", "no pushed frame within 20s")
                 return
             }
-        } finally {
-            client.channel.disposeListener(listenId)
+        } catch (e: Exception) {
+            writeReport("red", "stream leg exception: ${e.javaClass.simpleName}: ${e.message?.take(160)}")
+            return
         }
         client.close()
     } catch (e: Exception) {

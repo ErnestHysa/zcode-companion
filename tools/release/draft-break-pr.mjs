@@ -71,6 +71,7 @@ writeFileSync(`${repoRoot}/PATCH-BRIEF.md`, body.split("### Patch brief")[1]?.sp
 execSync(`git -C "${repoRoot}" add -A && git -C "${repoRoot}" commit -q -m "chore(protocol-drift): BREAKING drift brief for desktop ${label} (AAP-5 agent-drafted PR, human approval required)"`, { stdio: "inherit" });
 
 const bodyPath = `${repoRoot}/build/break-pr-body.md`;
+mkdirSync(`${repoRoot}/build`, { recursive: true });
 writeFileSync(bodyPath, body);
 const title = `Protocol drift BREAKING (desktop ${label}): agent-drafted patch brief — HUMAN APPROVAL REQUIRED`;
 const ghCmd = `"${gh}" pr create --draft --title ${JSON.stringify(title)} --body-file "${bodyPath}" --base main`;
