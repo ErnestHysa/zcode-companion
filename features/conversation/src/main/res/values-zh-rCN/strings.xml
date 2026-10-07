@@ -119,7 +119,7 @@
     <string name="mode_description_edit">自动编辑文件。</string>
     <string name="mode_description_plan">编辑前先出计划。</string>
     <string name="mode_description_yolo">减少确认次数。</string>
-</resources>
+
     <!-- GAP-1/GAP-2: 上下文用量面板。 -->
     <string name="context_usage_cd">上下文窗口用量</string>
     <string name="usage_breakdown_messages">消息</string>

@@ -129,7 +129,7 @@
     <string name="mode_description_edit">Edit files automatically.</string>
     <string name="mode_description_plan">Plan before editing.</string>
     <string name="mode_description_yolo">Run with fewer confirmations.</string>
-</resources>
+
     <!-- GAP-1/GAP-2: context usage header panel (desktop contextUsage.tsx). -->
     <string name="context_usage_cd">Context window usage</string>
     <!-- Desktop chat.contextUsage.breakdown.* labels. -->

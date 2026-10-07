@@ -223,7 +223,7 @@ class SessionUsageStateTest {
                 })
             },
         )
-        val segments = usage.contextWindow?.breakdownSegments.orEmpty()
+        val segments = usage.contextWindowBreakdownSegments
         assertEquals(3, segments.size, "chars <= 0 dropped")
         assertEquals("messages", segments[0].source)
         assertEquals(0.5, segments[0].percent, 1e-9)
