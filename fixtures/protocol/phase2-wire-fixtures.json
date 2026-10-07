@@ -1,0 +1,270 @@
+{
+  "metadata": {
+    "source": "ZCode reference clone packages/shared (v3.14.3, commit 29628c9) — schemas extracted verbatim, payloads parse-validated",
+    "generator": "dev-time script (tools/capture/generate-phase2-fixtures.mjs; zod@4.6.5 bootstrapped into /tmp scratch)",
+    "generatedAt": "2026-10-07T09:23:13.191Z",
+    "zcodeVersion": "3.14.3",
+    "sanitization": "synthetic payloads only — no real credentials, content, or traffic (INV-15/16)",
+    "liveCaptureNote": "usage-key live-traffic confirmation rides the Phase-12 canary (fixtures/relay/live-subscribe-16.fixture.json proves the snapshot-frame mechanism; its rpc-frame content was destroyed by sanitization and cannot ground a payload shape)"
+  },
+  "cases": [
+    {
+      "kind": "usage-state",
+      "name": "usage-full",
+      "schema": "usage-full",
+      "data": {
+        "contextWindow": {
+          "usedTokens": 148234,
+          "maxTokens": 1000000,
+          "autoCompactThresholdTokens": 800000,
+          "cache": {
+            "inputTokens": 142000,
+            "cacheReadTokens": 118000,
+            "cacheWriteTokens": 2400,
+            "latestHitRate": 0.83,
+            "hitRateRequestCount": 12,
+            "totalInputTokens": 1704000,
+            "totalCacheReadTokens": 1416000,
+            "totalCacheWriteTokens": 28800,
+            "hitRate": 0.81
+          },
+          "breakdown": [
+            {
+              "source": "system_prompt",
+              "chars": 12000
+            },
+            {
+              "source": "meta_user_context",
+              "chars": 3400
+            },
+            {
+              "source": "skills",
+              "chars": 8100
+            },
+            {
+              "source": "tool_prompt",
+              "chars": 5400
+            },
+            {
+              "source": "system_tool_schemas",
+              "chars": 9200
+            },
+            {
+              "source": "mcp_tool_schemas",
+              "chars": 4500
+            },
+            {
+              "source": "messages",
+              "chars": 106034
+            }
+          ]
+        },
+        "cumulative": {
+          "inputTokens": 1704000,
+          "outputTokens": 42300,
+          "cacheReadTokens": 1416000,
+          "cacheWriteTokens": 28800
+        }
+      }
+    },
+    {
+      "kind": "usage-state",
+      "name": "usage-null-window",
+      "schema": "usage-null-window",
+      "data": {
+        "contextWindow": null,
+        "cumulative": {
+          "inputTokens": 4200,
+          "outputTokens": 380,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0
+        }
+      }
+    },
+    {
+      "kind": "usage-state",
+      "name": "usage-minimal",
+      "schema": "usage-minimal",
+      "data": {
+        "contextWindow": {
+          "usedTokens": 500,
+          "maxTokens": 200000,
+          "autoCompactThresholdTokens": null
+        },
+        "cumulative": {
+          "inputTokens": 500,
+          "outputTokens": 0,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0
+        }
+      }
+    },
+    {
+      "kind": "workspace-config",
+      "name": "workspace-config-snapshot",
+      "schema": "workspace-config-snapshot",
+      "data": {
+        "protocolVersion": 1,
+        "workspaceId": "synth-ws-identity-key",
+        "logEpoch": "cfg-epoch-1",
+        "config": {
+          "configOptions": [
+            {
+              "id": "model",
+              "name": "Model",
+              "description": "Which model answers this workspace",
+              "category": "model",
+              "type": "select",
+              "currentValue": "glm-5.3",
+              "options": [
+                {
+                  "value": "glm-5.3",
+                  "name": "GLM-5.3",
+                  "description": "Flagship reasoning",
+                  "origin": "native",
+                  "modelProviderId": "zai",
+                  "modelProviderName": "Z.ai",
+                  "modelThoughtLevels": [
+                    "high",
+                    "low"
+                  ],
+                  "modelDefaultThoughtLevel": "high"
+                },
+                {
+                  "value": "glm-5.3-flash",
+                  "name": "GLM-5.3 Flash",
+                  "origin": "native",
+                  "modelProviderId": "zai",
+                  "modelProviderName": "Z.ai",
+                  "modelThoughtLevels": []
+                }
+              ]
+            },
+            {
+              "id": "mode",
+              "name": "Collaboration mode",
+              "type": "select",
+              "currentValue": "build",
+              "options": [
+                {
+                  "value": "build",
+                  "name": "Build"
+                },
+                {
+                  "value": "plan",
+                  "name": "Plan"
+                }
+              ]
+            }
+          ],
+          "slashCommands": [
+            {
+              "name": "compact",
+              "description": "Compact the current conversation with optional instructions.",
+              "inputHint": "[instructions]",
+              "source": "builtin"
+            },
+            {
+              "name": "goal",
+              "description": "Show or set the current session goal.",
+              "inputHint": "[pause|resume|clear|replace <objective>|<objective>]",
+              "source": "builtin"
+            },
+            {
+              "name": "deploy",
+              "description": "Run the workspace deploy script.",
+              "inputHint": "<env>",
+              "source": "custom"
+            },
+            {
+              "name": "review-pr",
+              "description": "Review the open pull request.",
+              "source": "custom"
+            },
+            {
+              "name": "help",
+              "description": "Show this slash command help."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "kind": "workspace-config",
+      "name": "workspace-config-delta",
+      "schema": "workspace-config-delta",
+      "data": {
+        "op": "config.updated",
+        "config": {
+          "configOptions": [],
+          "slashCommands": [
+            {
+              "name": "compact",
+              "description": "Compact the current conversation with optional instructions.",
+              "inputHint": "[instructions]",
+              "source": "builtin"
+            },
+            {
+              "name": "goal",
+              "description": "Show or set the current session goal.",
+              "inputHint": "[pause|resume|clear|replace <objective>|<objective>]",
+              "source": "builtin"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "kind": "edituserquery",
+      "name": "edituserquery-payload",
+      "schema": "edituserquery-payload",
+      "data": {
+        "target": {
+          "rowId": 42,
+          "entityId": "ent-user-row-42"
+        },
+        "newText": "edited question text",
+        "workspaceMode": "preserve"
+      }
+    },
+    {
+      "kind": "edit-churn",
+      "name": "edit-churn-ops",
+      "schema": "rowRemovedOpSchema(op 0 verbatim-validated); rows via Kotlin typed decoder",
+      "data": [
+        {
+          "op": "row.removed",
+          "fromRowId": 41
+        },
+        {
+          "op": "row.appended",
+          "row": {
+            "rowId": 50,
+            "turnId": "turn-50",
+            "kind": "turnHeader",
+            "entityId": "ent-turn-50",
+            "createdAt": 1791000000000,
+            "createdAtSeq": 800,
+            "origin": "userInput",
+            "state": "running",
+            "startedAt": 1791000000000
+          }
+        },
+        {
+          "op": "row.appended",
+          "row": {
+            "rowId": 51,
+            "turnId": "turn-50",
+            "kind": "userInput",
+            "entityId": "ent-user-row-50",
+            "createdAt": 1791000000100,
+            "createdAtSeq": 801,
+            "text": "edited question text",
+            "origin": "realUser",
+            "guided": false
+          }
+        }
+      ]
+    }
+  ]
+}
