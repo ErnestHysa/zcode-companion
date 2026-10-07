@@ -127,13 +127,12 @@ cp "$FIXTURES_DIR"/*.json "$CLONE/fixtures/protocol/"
 
 GRADLE_EXIT=0
 ( cd "$CLONE" && gradle test --continue --console=plain -q > "$WORK_DIR/gradle.log" 2>&1 ) || GRADLE_EXIT=$?
-
+# Rule-7 mechanized exoneration: this machine's documented timing-flake family
+# (RecoveryScenarioMatrixTest, ConnectionHubWritePathTest, …) fires ~once per
+# full-suite run under load. On a red suite, re-run each FAILING CLASS in
+# ISOLATION, in the same clone; only classes that stay red classify as breaking.
 EXONERATED="[]"
 if [[ $GRADLE_EXIT -ne 0 ]]; then
-  # Rule-7 mechanized exoneration: this machine's documented timing-flake family
-  # (RecoveryScenarioMatrixTest, ConnectionHubWritePathTest, …) fires ~once per
-  # full-suite run under load. Re-run each FAILING CLASS in ISOLATION, in the
-  # same clone; only names that stay red classify as breaking.
   node -e '
     const fs=require("fs"),path=require("path");
     const pairs=[];
@@ -141,10 +140,14 @@ if [[ $GRADLE_EXIT -ne 0 ]]; then
       const p=path.join(d,e.name);
       if(e.isDirectory())walk(mod,p);
       else if(e.name.startsWith("TEST-")&&e.name.endsWith(".xml")){
-        const s=fs.readFileSync(p,"utf8");
-        const re=/<testcase name="[^"]*" classname="([^"]*)"[^>]*>(?:(?!<\/testcase>).)*?<failure/s;
-        let m;const seen=new Set();
-        while((m=re.exec(s))){if(!seen.has(m[1])){seen.add(m[1]);pairs.push(mod+"|"+m[1]);}}
+        // Linear chunk split — a tempered-dot regex backtracks catastrophically
+        // on the bigger module XMLs.
+        const chunks=fs.readFileSync(p,"utf8").split("<testcase ");
+        const seen=new Set();
+        for(const c of chunks){
+          const m=c.match(/^name="[^"]*" classname="([^"]*)"/);
+          if(m&&c.includes("<failure")&&!seen.has(m[1])){seen.add(m[1]);pairs.push(mod+"|"+m[1]);}
+        }
       }}};
     for(const mod of fs.readdirSync(".",{withFileTypes:true})){
       if(!mod.isDirectory())continue;
@@ -162,44 +165,12 @@ if [[ $GRADLE_EXIT -ne 0 ]]; then
       [[ -d "$CLONE/$mod/build/test-results/testDebugUnitTest" ]] && TASK=":$mod:testDebugUnitTest"
       ISOL_ARGS+=("$TASK" "--tests" "$cls")
     done < "$WORK_DIR/failing-pairs.txt"
-    ( cd "$CLONE" && gradle "${ISOL_ARGS[@]}" --rerun-tasks --console=plain -q > "$WORK_DIR/gradle-isolation.log" 2>&1 ) \
-      && EXONERATED=$(node -e 'const fs=require("fs");process.stdout.write(JSON.stringify(fs.readFileSync(process.argv[1],"utf8").trim().split("\n").map((l)=>l.replace("|"," > "))))' "$WORK_DIR/failing-pairs.txt") \
-      && GRADLE_EXIT=0 \
-      || GRADLE_EXIT=1
-  fi
-fi
-
-if [[ $GRADLE_EXIT -ne 0 ]]; then
-  # Rule-7 mechanized exoneration: the machine's documented timing-flake family
-  # (RecoveryScenarioMatrixTest, ConnectionHubWritePathTest, …) fires ~once per
-  # full-suite run under load. Re-run the FAILING CLASSES in isolation in the
-  # same clone; only names that stay red classify as breaking.
-  FAILING_CLASSES=$(node -e '
-    const fs=require("fs"),path=require("path");
-    const out=[];
-    const walk=(d)=>{for(const e of fs.readdirSync(d,{withFileTypes:true})){
-      const p=path.join(d,e.name);
-      if(e.isDirectory())walk(p);
-      else if(e.name.startsWith("TEST-")&&e.name.endsWith(".xml")){
-        const s=fs.readFileSync(p,"utf8");
-        const re=/<testcase name="([^"]*)" classname="([^"]*)"[^>]*>(?:(?!<\/testcase>).)*?<failure/s;
-        let m;const seen=new Set();
-        while((m=re.exec(s))){if(!seen.has(m[2])){seen.add(m[2]);out.push(m[2]);}}
-      }}};
-    for(const mod of fs.readdirSync(".",{withFileTypes:true})){
-      if(mod.isDirectory()){const tr=path.join(mod.name,"build","test-results");
-        if(fs.existsSync(tr))walk(tr);}}
-    process.stdout.write(out.join(" "));
-  ' 2>/dev/null)
-  if [[ -n "${FAILING_CLASSES// /}" ]]; then
-    echo "[verify] suite red — re-running failing classes in isolation: $FAILING_CLASSES"
-    ARGS=()
-    for c in $FAILING_CLASSES; do ARGS+=(--tests "$c"); done
-    ( cd "$CLONE" && gradle :app:testDebugUnitTest "${ARGS[@]}" :data:testDebugUnitTest "${ARGS[@]}" \
-        --rerun-tasks --console=plain -q >> "$WORK_DIR/gradle-isolation.log" 2>&1 ) \
-      && EXONERATED=$(node -e 'process.stdout.write(JSON.stringify(process.argv.slice(1)))' $FAILING_CLASSES) \
-      && GRADLE_EXIT=0 \
-      || GRADLE_EXIT=1
+    if ( cd "$CLONE" && gradle "${ISOL_ARGS[@]}" --rerun-tasks --console=plain -q > "$WORK_DIR/gradle-isolation.log" 2>&1 ); then
+      EXONERATED=$(node -e 'const fs=require("fs");process.stdout.write(JSON.stringify(fs.readFileSync(process.argv[1],"utf8").trim().split("\n").map((l)=>l.replace("|"," > "))))' "$WORK_DIR/failing-pairs.txt")
+      GRADLE_EXIT=0
+    else
+      GRADLE_EXIT=1
+    fi
   fi
 fi
 
@@ -208,13 +179,13 @@ if [[ $GRADLE_EXIT -ne 0 ]]; then
     const fs=require("fs");
     fs.writeFileSync(process.argv[1],JSON.stringify({
       schemaVersion:1,label:process.argv[2],verdict:"BREAKING",
-      reason:"unit suite red against fixtures regenerated from the new schemas",
-      gradle:"FAILED (gradle.log in the work dir)"
-    },null,2))' "$CLONE/verify-report.json" "$LABEL" 2>/dev/null || true
+      reason:"unit suite red against fixtures regenerated from the new schemas (failing classes stayed red in isolation)",
+      gradle:"FAILED (gradle.log + gradle-isolation.log in the work dir)"
+    },null,2))' "$WORK_DIR/verify-report.json" "$LABEL" || true
   echo "[verify] VERDICT=BREAKING (suite red vs regenerated fixtures) — log: $WORK_DIR/gradle.log"
   exit 1
 fi
 
 node -e 'const fs=require("fs");fs.writeFileSync(process.argv[1],JSON.stringify({schemaVersion:1,label:process.argv[2],verdict:"ADDITIVE",fixtures:"regenerated",gradle:"green",exoneratedFlakes:JSON.parse(process.argv[3])},null,2))' "$WORK_DIR/verify-report.json" "$LABEL" "$EXONERATED"
-echo "[verify] VERDICT=ADDITIVE — suites green against the regenerated fixtures"
+echo "[verify] VERDICT=ADDITIVE — suites green against the regenerated fixtures (exonerated: $EXONERATED)"
 exit 0
