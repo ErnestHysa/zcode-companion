@@ -317,7 +317,7 @@ to one codebase.
 | 2 | Class A / C+A: data already arriving + half-built plumbing (spec-first) | GAP-1, 2, 10, 12 (4) | Medium — new wire decodes, fixtures each | ☑ done — verified 2026-10-07 11:53:47 BST |
 | 3 | Class B read-only viewers (§13.3-sanctioned channels) | GAP-5–9 (5) | Medium — new channels, all R-class read-only | ☑ done — verified 2026-10-07 14:32:11 BST |
 | 4 | Class B ⚠ ADR-gated: coding-plan quotas + resets | GAP-3, 4 (2) | High — overturns a §13.3 "Never" | ☑ done — verified 2026-10-07 17:04:41 BST |
-| 5 | Auto-adaptation Stage 1: detect (drift tool + sensors) | AAP-1, 2 (2) | Medium — Mac-in-loop leg; INV-15 applies | ☐ pending |
+| 5 | Auto-adaptation Stage 1: detect (drift tool + sensors) | AAP-1, 2 (2) | Medium — Mac-in-loop leg; INV-15 applies | ☑ done — verified 2026-10-07 18:52:40 BST |
 | 6 | Auto-adaptation Stage 2: verify / build+publish / client update | AAP-3, 4, 5 (3) | High — release automation; signing prereq | ☐ pending |
 
 Sum: 7 + 4 + 5 + 2 + 2 + 3 = 23.
@@ -788,7 +788,7 @@ Mac-in-loop phase: the bundle sensor (and later the canary) run on Ernest's Mac 
 INV-15: the production relay NEVER runs in GitHub CI. No Android app code changes in
 this phase beyond tooling under `tools/`.
 
-- [ ] **AAP-1 (P2)** Drift-check tool + surface inventory — implement the §39.4
+- [x] **AAP-1 (P2)** Drift-check tool + surface inventory — implement the §39.4
   drift-check (documented there as "not implemented in this task"; this pipeline IS
   its implementation): extract the protocol surface (schema/type names, channel list,
   mode enums, slash catalog, limits) from the open repo's
@@ -798,8 +798,26 @@ this phase beyond tooling under `tools/`.
   BREAKING classification. Accept: running the tool against the current open-repo
   checkout emits a report identical to the committed inventory (no-drift baseline
   test); a seeded synthetic change produces the correct added/changed/removed
-  entries (golden test); the tool is usable standalone by hand.
-- [ ] **AAP-2 (P2)** T1 sensors — (a) open-repo sensor: GitHub Action cron `*/10`
+  entries (golden test); the tool is usable standalone by hand. **DONE — commits
+  63daa3c (tests bd3a168 RED). extract-surface.mjs GENERATES the committed
+  surface-inventory.json from the reference clone @ 29628c9acdb8 (61 files
+  scanned: 255 channel entries, 17 z.enum exports incl. the 6-mode task
+  vocabulary, 20 builtin slash entries with usage grammars, 69 limits/version
+  scalars fingerprinted as normalized rhs text (`30_000`-style underscores +
+  whitespace collapsed), 584 schema/type names, per-file body digests + entry
+  provenance). consumed-surfaces.json is the hand-curated consumption manifest
+  (config, not a golden artifact): consumed removal/changes classify BREAKING,
+  additions and unconsumed drift ADDITIVE (INV-8 unknown-tolerance semantics),
+  consumed body-digest changes with zero name drift emit `reviewRecommended`
+  advisory items. check-drift.mjs emits the v1 report envelope (verdict binary
+  ADDITIVE|BREAKING; exit 0/1/2). Acceptance: surface.test.mjs 8/8 golden —
+  no-drift empty-ADDITIVE report, six-kind seeded synthetic change with EXACT
+  item multiset + classifications, pure-additive verdict, unconsumed-removal
+  tolerance, digest advisory, missing-file removals — AND the by-hand no-drift
+  run against the LIVE reference clone: `verdict=ADDITIVE added=0 changed=0
+  removed=0 breaking=0 bodyChanged=0`, exit 0. Standalone-by-hand documented in
+  docs/runbooks/drift.md quickstart.**
+- [x] **AAP-2 (P2)** T1 sensors — (a) open-repo sensor: GitHub Action cron `*/10`
   watching `zai-org/ZCode` tags/releases → checkout → AAP-1 drift-check vs the
   committed inventory; (b) bundle sensor: Mac launchd daily + on-update hook hashing
   `app.asar`/`zcode.cjs` and diffing the Phase-1-corpus relay-adapter constants
@@ -808,12 +826,79 @@ this phase beyond tooling under `tools/`.
   Accept: end-to-end rehearsal with a seeded fake release + seeded bundle change
   produces a classified report + notification; the CI leg provably contains no
   production-relay traffic (INV-15 audit note in the workflow file); the Mac leg is
-  a committed script + launchd plist documented in `docs/`.
+  a committed script + launchd plist documented in `docs/`. **DONE — commits a8d6928
+  (relay leg: extract-relay-surface.mjs chunked latin-1 scan of the real 327 MB
+  app.asar + 14.8 MB zcode.cjs — never executed; relay-lib.mjs corpus families =
+  6 close codes + QI adapter limits found by parse-ranked co-location windows (the
+  real 3.14.4 shape `QI={maxPhysicalFrameBytes:fc.maxFrameBytes,…,assemblyTimeoutMs:3e4,…}`
+  fingerprints EXPRESSIONS so alias rebindings and size changes both flag; 3e4 →
+  30000 normalized) + 15 envelope/rpc-frame field literals + 4 relay error codes;
+  GENERATED relay-baseline.json from the INSTALLED desktop 3.14.4 — all six close
+  codes verbatim vs the Phase-1 corpus, 5/5 limits, 15/15 fields, 4/4 codes;
+  check-drift.mjs `--kind relay`) + 11874ec (open-repo-watch.mjs `git ls-remote`
+  tag watch — metadata only, numeric segment sort, first-run-baseline = no false
+  alarm, `--update-state` advances only after reporting; notify.mjs one-JSON-line
+  log + best-effort osascript; bundle-sensor.sh sha256 tripwire → extract →
+  classify → notify, NEVER auto-overwrites the committed baseline — regenerate
+  by hand after review, the documented ritual) + a383ac4 (open-repo-drift.yml
+  cron `*/10`: watch → checkout zai-org/ZCode at the latest tag → drift-check vs
+  the committed inventory → always-upload drift-report artifact → BREAKING fails
+  the job; the workflow HEADER carries the INV-15 audit note — no relay traffic,
+  no credentials, no emulator, no QR/conversation data, metadata + source-text +
+  JSON diff only, live canary deliberately absent; cache-eviction-safe state;
+  launchd plist template = daily 09:00 StartCalendarInterval + WatchPaths on
+  /Applications/ZCode.app, `@REPO_ROOT@` substituted at install, documented in
+  docs/runbooks/drift.md). Tests 152c962 RED → GREEN: relay.test.mjs 5/5 +
+  sensors.test.mjs 7/7 (watch against REAL seeded local git repos incl. version-
+  sort + state semantics; notifier log contract). E2E REHEARSAL on seeded changes
+  (evidence 527fbf0 → docs/evidence/phase-5-gaps/): fake release v3.14.4 built
+  from the real reference sources (+channel, consumed schema/enum rename, consumed
+  limit bump) → watch isNew + 6-item classified BREAKING report exit 1; mutated
+  zcode.cjs copy (maxFragments 64→48, WorkspaceClosed 4012→4014) → tripwire fired,
+  2× BREAKING classified report exit 1, REAL macOS notification `osd:"sent"`;
+  unchanged real-bundle run heartbeats exit 0 (nag-until-actioned semantics
+  demonstrated). Rule-10 docs: §39.4 flipped to implemented (rev v1.0.4) +
+  docs/runbooks/drift.md (drift-report.json v1 schema documented).**
 
-Phase 5 exit gate: ☐ inventory + drift tool committed with tests · both sensors
-rehearsed end-to-end on seeded changes · `drift-report.json` schema documented ·
-notification path demonstrated (log/screenshot evidence in the phase summary) ·
-commits per rule 2.
+Phase 5 exit gate: ☑ inventory + drift tool committed with tests (63daa3c, 8/8
+golden + 20/20 full drift/sensor suite) · both sensors rehearsed end-to-end on
+seeded changes (fake release v3.14.4 → BREAKING report exit 1; mutated
+zcode.cjs → 2× BREAKING + real macOS notification `osd:"sent"`; heartbeats
+exit 0 — evidence 527fbf0) · `drift-report.json` schema documented
+(docs/runbooks/drift.md) · notification path demonstrated (log + OSD evidence
+in docs/evidence/phase-5-gaps/notifications.log, `sent` ×2) · commits per
+rule 2 (`fix(AAP-1)`/`fix(AAP-2)`/`test(...)`/`docs(android-gaps)`).
+
+> **Phase 5 verification (2026-10-07 18:52:40 BST).** Verified by **ZCode**
+> (agentic coding harness, interactive session on Ernest's Mac) running model
+> **GLM-5.3-Flash** (`account:zai-individual-coding-plan/GLM-5.3-Flash`),
+> branch `fix/android-gaps` (9 commits `bd3a168..527fbf0`, NOT pushed).
+> Evidence: fresh phase-start baseline on the clean tree = **816 tests / 1
+> failing name** — the documented `ConnectionHubWritePathTest > stop flips
+> the authoritative control block (U24)` load-flake (class untouched by this
+> phase — the phase's total diff touches only `tools/` (15), `docs/` (7),
+> `.github/` (2), `.gitignore`, `architectural.md`), re-run GREEN in
+> isolation in the phase's own tree (`gradle :app:testDebugUnitTest --tests
+> com.zcode.android.app.connect.ConnectionHubWritePathTest --rerun-tasks` →
+> BUILD SUCCESSFUL — rule-7 exoneration). Phase-exit FULL unit suite
+> (`gradle test --continue`, every module's test-results cleared for a real
+> re-run) = **816 tests / 0 failing — name-diff vs baseline: ZERO new failing
+> names**. Drift-tool suites (`node --test`): surface 8/8 + relay 5/5 +
+> sensors 7/7 = **20/20**. `:app:assembleRelease` rebuilt →
+> `app/build/outputs/apk/release/app-release-unsigned.apk`, **versionName
+> 0.11.4-phase11 (versionCode 36)** — no app code changed (verified: zero
+> diffs under app/core/data/domain/features/baselineprofile/spike for the
+> whole phase); the rebuild satisfies rule 9's fresh-artifact clause.
+> Instrumented on-device suite NOT run: the Phase-5 deliverable is dev
+> tooling, not device UI — rule 9 requires instrumented runs "whenever the
+> deliverable is device UI", which does not apply. INV-15: the rehearsal and
+> all tests are relay-traffic-free (local git metadata + local file text
+> scans only); the CI workflow's audit note pins the same for Actions. Rule-10
+> docs: architectural.md §39.4 "not implemented" → implemented pointer
+> (revision v1.0.4; detect tier only — no §13.3/§26 delta, no wire-surface
+> change) + docs/runbooks/drift.md (report schema, extraction grammar, sensor
+> install, post-release ritual). Ernest's untracked `ui-ux/` directory was
+> deliberately left out of every commit. No push (rule 1).
 
 ## Phase 6 — Auto-adaptation Stage 2: verify / build+publish / client (§14.2 T2–T4)
 
