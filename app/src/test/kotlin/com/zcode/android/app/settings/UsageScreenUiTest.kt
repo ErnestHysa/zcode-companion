@@ -10,6 +10,7 @@ import com.zcode.android.domain.model.AppUsageSnapshot
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -50,8 +51,15 @@ class UsageScreenUiTest {
     }
 
     private fun renderedText(tag: String): String =
-        rule.onAllNodesWithTag(tag)[0].fetchSemanticsNode().config
-            .get(androidx.compose.ui.semantics.SemanticsProperties.Text).single().text
+        renderedTextDeep(rule.onAllNodesWithTag(tag)[0].fetchSemanticsNode())
+
+    /** The row tags sit on CONTAINERS — collect Text from the node + descendants. */
+    private fun renderedTextDeep(node: androidx.compose.ui.semantics.SemanticsNode): String {
+        val own = node.config.getOrElse(androidx.compose.ui.semantics.SemanticsProperties.Text) { emptyList() }
+        return own.joinToString(" ") { it.text }.ifBlank {
+            node.children.joinToString(" ") { renderedTextDeep(it) }
+        }
+    }
 
     @Test
     fun rendersAllFiveSections_fromFixture() {
@@ -67,8 +75,10 @@ class UsageScreenUiTest {
         assertEquals("51.2K", renderedText("usage_peak_day"))
         // Per-model rows: the favorite model id renders with its share.
         val modelsText = renderedText("usage_model_row_glm-5.3")
-        assertEquals(true, "62%" in modelsText || "0.62" in modelsText || "62.0%" in modelsText,
-            "share missing from model row: $modelsText")
+        assertTrue(
+            "share missing from model row: $modelsText",
+            "62%" in modelsText || "0.62" in modelsText || "62.0%" in modelsText,
+        )
         // Tools rows render the tool name verbatim.
         rule.onNodeWithTag("usage_tool_row_Bash").assertExists()
     }
@@ -90,15 +100,14 @@ class UsageScreenUiTest {
     }
 
     @Test
-    fun loadingFace_rendersBeforeFirstSnapshot() {
+    fun loadingFace_rendersWhileTheReadIsInFlight() {
         rule.setContent {
             ZCodeTheme {
                 UsageScreen(
                     port = object : UsagePort {
                         override suspend fun appUsage(range: String): UsagePort.Result =
-                            error("suspends forever in this test")
+                            kotlinx.coroutines.awaitCancellation()
                     },
-                    loadNow = false,
                 )
             }
         }

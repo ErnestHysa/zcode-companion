@@ -850,6 +850,12 @@ class ConnectionHub(
     fun phase9(): com.zcode.android.data.session.Phase9Tools =
         phase9Tools.getOrPut(activeTransport()) { com.zcode.android.data.session.Phase9Tools(activeTransport()) }
 
+    /** Phase 3 read-only viewer plane (usage/automations/plugins/skills/mcp; v4-wire.md §12). */
+    private val viewerTools = java.util.concurrent.ConcurrentHashMap<AppTransport, com.zcode.android.data.session.ViewerTools>()
+
+    fun viewerTools(): com.zcode.android.data.session.ViewerTools =
+        viewerTools.getOrPut(activeTransport()) { com.zcode.android.data.session.ViewerTools(activeTransport()) }
+
     /** The connected workspace target for git/files (§7.11); null when disconnected. */
     fun activeWorkspaceTarget(): Pair<String?, String?>? = activeTransport().activeWorkspaceTarget
 

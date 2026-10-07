@@ -115,4 +115,29 @@
     <string name="settings_live_window_sub">后台 %1$s 后自动断开。窗口越长耗电越多。</string>
     <string name="settings_live_window_value">%1$d 分钟</string>
     <string name="settings_live_window_none">无超时（直到您关闭）</string>
+<!-- GAP-5：设置 → 用量页（v4-wire.md §12.1） -->
+<string name="usage_title">用量</string>
+<string name="usage_loading">正在加载用量…</string>
+<string name="usage_retry">重试</string>
+<string name="usage_error_title">用量不可用</string>
+<string name="usage_range_7d">近 7 天</string>
+<string name="usage_range_30d">近 30 天</string>
+<string name="usage_range_all">全部</string>
+<string name="usage_empty_title">暂无用量</string>
+<string name="usage_empty_desc">在配对的桌面端运行任务后，用量会显示在这里。</string>
+<string name="usage_card_total">总 token</string>
+<string name="usage_card_peak">峰值日</string>
+<string name="usage_card_longest_session">最长会话</string>
+<string name="usage_card_current_streak">连续活跃</string>
+<string name="usage_card_longest_streak">最长连续</string>
+<string name="usage_section_heatmap">活动热力图</string>
+<string name="usage_section_daily">每日活动</string>
+<string name="usage_section_models">模型</string>
+<string name="usage_section_tools">工具</string>
+<string name="usage_section_empty">该范围内暂无数据</string>
+<string name="usage_heatmap_range">%1$s – %2$s</string>
+<string name="usage_unknown_model">未知模型</string>
+<string name="settings_section_insights">洞察</string>
+<string name="settings_usage_row">用量</string>
+<string name="settings_usage_sub">配对桌面端的 token 用量、活动与工具</string>
 </resources>

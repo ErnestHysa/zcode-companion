@@ -33,6 +33,7 @@ import com.zcode.android.app.R
 import com.zcode.android.features.conversation.ui.ApprovalsScreen
 import com.zcode.android.app.connect.ConnectionCenterScreen
 import com.zcode.android.app.settings.SettingsScreen
+import com.zcode.android.app.settings.UsageScreen
 import com.zcode.android.features.conversation.ConversationViewModel
 import com.zcode.android.features.conversation.ui.ConversationScreen
 import com.zcode.android.features.pairing.PairingViewModel
@@ -55,6 +56,7 @@ object Routes {
     const val CONVERSATION = "conversation/{taskId}"
     const val CONNECTION = "connection"
     const val SETTINGS = "settings"
+    const val USAGE = "usage"
     const val APPROVALS = "approvals"
     const val FILES = "files"
     const val GIT = "git"
@@ -250,7 +252,16 @@ fun ZCodeApp(
             ConnectionCenterRoute(container = container, onBack = { nav.popBackStack() })
         }
         composable(Routes.SETTINGS) {
-            SettingsRoute(container = container, pairingVm = pairingVm, onBack = { nav.popBackStack() })
+            SettingsRoute(
+                container = container,
+                pairingVm = pairingVm,
+                onBack = { nav.popBackStack() },
+                onOpenUsage = { nav.navigate(Routes.USAGE) },
+            )
+        }
+        composable(Routes.USAGE) {
+            // GAP-5 (v4-wire.md §12.1): read-only usage dashboard over the usage-stats R read.
+            UsageScreen(port = container.usagePort, onBack = { nav.popBackStack() }, modifier = Modifier.fillMaxSize())
         }
         composable(Routes.APPROVALS) {
             val open by container.conversationPort.observeOpenInteractions().collectAsState(initial = emptyList())
@@ -438,12 +449,18 @@ private fun ConnectionCenterRoute(container: AppContainer, onBack: () -> Unit) {
 }
 
 @Composable
-private fun SettingsRoute(container: AppContainer, pairingVm: PairingViewModel, onBack: () -> Unit) {
+private fun SettingsRoute(
+    container: AppContainer,
+    pairingVm: PairingViewModel,
+    onBack: () -> Unit,
+    onOpenUsage: () -> Unit = {},
+) {
     val endpoint by container.hub.endpoint.collectAsState()
     SettingsScreen(
         container = container,
         endpointName = endpoint?.displayName,
         desktopVersion = endpoint?.desktopAppVersion,
         onBack = onBack,
+        onOpenUsage = onOpenUsage,
     )
 }

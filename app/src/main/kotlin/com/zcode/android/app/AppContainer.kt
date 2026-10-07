@@ -9,6 +9,7 @@ import com.zcode.android.app.diagnostics.DiagnosticsFileStore
 import com.zcode.android.app.connect.DefaultConversationPort
 import com.zcode.android.app.connect.DefaultFilesPort
 import com.zcode.android.app.connect.DefaultGitPort
+import com.zcode.android.app.connect.DefaultUsagePort
 import com.zcode.android.app.connect.DefaultTerminalPort
 import com.zcode.android.app.connect.DefaultTasksPort
 import com.zcode.android.app.pairing.DefaultPairingPort
@@ -147,6 +148,9 @@ class AppContainer(activity: FragmentActivity) {
 
     /** Phase 9 (§43.2-9): the advanced read-only surfaces + view-only terminal. */
     val gitPort: DefaultGitPort = DefaultGitPort(hub)
+
+    /** Phase 3 viewers (GAP-5..9; v4-wire.md §12): read-only §13.3-sanctioned reads. */
+    val usagePort: DefaultUsagePort = DefaultUsagePort(hub)
 
     /**
      * GAP-14 (android-gaps roadmap): per-workspace task-group collapse state,

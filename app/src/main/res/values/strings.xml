@@ -122,4 +122,29 @@
     <string name="settings_live_window_sub">Auto-disconnect after %1$s in the background. Longer windows use more battery.</string>
     <string name="settings_live_window_value">%1$d minutes</string>
     <string name="settings_live_window_none">no timeout (until you turn it off)</string>
+<!-- GAP-5: Settings → Usage screen (v4-wire.md §12.1) -->
+<string name="usage_title">Usage</string>
+<string name="usage_loading">Loading usage…</string>
+<string name="usage_retry">Retry</string>
+<string name="usage_error_title">Usage is unavailable</string>
+<string name="usage_range_7d">7 days</string>
+<string name="usage_range_30d">30 days</string>
+<string name="usage_range_all">All time</string>
+<string name="usage_empty_title">No usage yet</string>
+<string name="usage_empty_desc">Run a task on the paired desktop and usage will appear here.</string>
+<string name="usage_card_total">Total tokens</string>
+<string name="usage_card_peak">Peak day</string>
+<string name="usage_card_longest_session">Longest session</string>
+<string name="usage_card_current_streak">Current streak</string>
+<string name="usage_card_longest_streak">Longest streak</string>
+<string name="usage_section_heatmap">Activity heatmap</string>
+<string name="usage_section_daily">Daily activity</string>
+<string name="usage_section_models">Models</string>
+<string name="usage_section_tools">Tools</string>
+<string name="usage_section_empty">Nothing in this range</string>
+<string name="usage_heatmap_range">%1$s – %2$s</string>
+<string name="usage_unknown_model">unknown model</string>
+<string name="settings_section_insights">Insights</string>
+<string name="settings_usage_row">Usage</string>
+<string name="settings_usage_sub">Token usage, activity and tools for the paired desktop</string>
 </resources>

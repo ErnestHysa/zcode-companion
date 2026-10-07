@@ -1,0 +1,31 @@
+package com.zcode.android.app.connect
+
+import com.zcode.android.app.settings.UsagePort
+import java.util.TimeZone
+import kotlinx.coroutines.CancellationException
+
+/**
+ * Phase 3 app-side viewer port bindings (INV-2/INV-6: screens see ONLY these —
+ * never the transport). Thin adapters over the hub-owned viewer tool plane; the
+ * §13.3 fallback semantics (channel refused / not connected → error face)
+ * live HERE. READ-ONLY: none of these ports expose a write method (INV-9 —
+ * the write half of these channels is Deferred scope and exists nowhere).
+ */
+
+class DefaultUsagePort(
+    private val hub: ConnectionHub,
+) : UsagePort {
+    override suspend fun appUsage(range: String): UsagePort.Result {
+        // Usage is app-level, not workspace-scoped — it needs a connected transport,
+        // not an active workspace (the CLI aggregates across the whole desktop).
+        return try {
+            // The desktop passes the CLIENT's IANA zone (useUsageStats.ts:210-213).
+            UsagePort.Result(hub.viewerTools().appUsageStats(range, TimeZone.getDefault().id), null)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("usageport.appUsage", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            UsagePort.Result(null, e.message ?: "usage is unavailable on this connection")
+        }
+    }
+}

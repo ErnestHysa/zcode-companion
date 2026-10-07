@@ -62,6 +62,8 @@ fun SettingsScreen(
     endpointName: String?,
     desktopVersion: String?,
     onBack: () -> Unit,
+    /** GAP-5: opens the read-only Usage screen (v4-wire.md §12.1). */
+    onOpenUsage: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -85,6 +87,15 @@ fun SettingsScreen(
 
             SectionLabel(stringResource(R.string.settings_section_endpoints))
             EndpointsSection(container = container, endpointName = endpointName, desktopVersion = desktopVersion)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+            SectionLabel(stringResource(R.string.settings_section_insights))
+            SettingsRow(
+                title = stringResource(R.string.settings_usage_row),
+                subtitle = stringResource(R.string.settings_usage_sub),
+                tag = "settings_usage",
+                onClick = onOpenUsage,
+            )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
             SectionLabel(stringResource(R.string.settings_section_diagnostics))
