@@ -1,6 +1,7 @@
 package com.zcode.android.core.protocol.v4
 
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import java.io.File
 import kotlin.test.Test

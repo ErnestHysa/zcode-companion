@@ -9,7 +9,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
 import com.zcode.android.features.conversation.ui.SlashCommandMenu
 import com.zcode.android.features.conversation.port.ConversationPort
-import org.junit.Assert.assertEquals
+import kotlin.test.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -69,9 +69,13 @@ class SlashMenuUiTest {
     }
 
     @Test
-    fun emptyCatalogOrNoMatch_rendersNothing() {
+    fun emptyCatalog_rendersNothing() {
         rule.setContent { ZCodeTheme { SlashCommandMenu(commands = emptyList(), query = "", onPick = {}) } }
         rule.onAllNodesWithTag("slash_menu_item").assertCountEquals(0)
+    }
+
+    @Test
+    fun noMatch_rendersNothing() {
         rule.setContent { ZCodeTheme { SlashCommandMenu(commands = catalog, query = "zzz", onPick = {}) } }
         rule.onAllNodesWithTag("slash_menu_item").assertCountEquals(0)
     }

@@ -69,6 +69,20 @@ sealed class GatewayTopicEvent {
         override val sessionId: String,
         val reason: String,
     ) : GatewayTopicEvent()
+
+    /**
+     * Phase 2 (§11.2, GAP-12): the workspace-level `workspace-config/<workspaceKey>`
+     * catalog — whole replacement state per frame (conflated latest-wins). [state]
+     * null = the frame could not be decoded (counted + logged upstream; the prior
+     * catalog stays — auxiliary surface, never stale-flags the session plane).
+     */
+    data class WorkspaceConfig(
+        override val topic: String,
+        override val sessionId: String,
+        val workspaceKey: String,
+        val state: com.zcode.android.core.protocol.v4.WorkspaceConfigState?,
+        val reason: String? = null,
+    ) : GatewayTopicEvent()
 }
 
 data class GatewayAck(val subscriptionId: String, val mode: String, val logEpoch: String)
@@ -131,6 +145,16 @@ interface ConversationGateway : CommandSender {
     suspend fun rowsRange(sessionId: String, beforeRowId: Long?, limit: Int): GatewayPage
 
     /**
+     * Phase 2 (§11.2, GAP-12): subscribe the workspace-level config catalog topic
+     * (same RPC, explicit topic — the desktop adapter's subscribeWorkspaceConfigV4
+     * shape). Best-effort by the caller: a refusal leaves the catalog absent.
+     */
+    suspend fun subscribeWorkspaceConfig(
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ): GatewayAck
+
+    /**
      * FIELD (2026-10-04, vc32 device log): the CURRENT connection's ack-stamped
      * subscription epoch for [sessionId] (null when never subscribed on this
      * connection). The recovery escalation compares its resync base against this —
@@ -182,6 +206,13 @@ class RelayConversationGateway(
     }
 
     private suspend fun mapTopicFrame(arrived: com.zcode.android.core.transport.InboundFrame.TopicFrameArrived) {
+        // Phase 2 (§11.2): workspace-config frames route BEFORE the conversation
+        // branch — the shared v4/conversation/frame notification carries ALL topic
+        // frames (dispatch is by topic prefix, zcodeAgentService.ts:2061-2097).
+        if (arrived.topic.startsWith(com.zcode.android.core.protocol.v4.V4Topics.WORKSPACE_CONFIG_PREFIX)) {
+            mapWorkspaceConfigFrame(arrived)
+            return
+        }
         val sessionId = arrived.topic.removePrefix("conversation/")
         if (sessionId == arrived.topic) return // not a conversation topic
         // Epoch precedence: the transport's subscription record (updated by EVERY
@@ -243,6 +274,46 @@ class RelayConversationGateway(
             // Known-kind schema violation: fail closed → the manager escalates a resync
             // (§39.3). The frame is dropped WHOLE — no partial merge (INV-14).
             _topicEvents.emit(GatewayTopicEvent.DecodeFaulted(arrived.topic, sessionId, e.message ?: "decode fault"))
+        }
+    }
+
+    private suspend fun mapWorkspaceConfigFrame(arrived: com.zcode.android.core.transport.InboundFrame.TopicFrameArrived) {
+        val workspaceKey = com.zcode.android.core.protocol.v4.parseWorkspaceConfigTopic(arrived.topic)
+        if (workspaceKey == null) {
+            _topicEvents.emit(
+                GatewayTopicEvent.WorkspaceConfig(arrived.topic, "", workspaceKey = "", state = null, reason = "invalid workspace-config topic"),
+            )
+            return
+        }
+        try {
+            when (val payload = arrived.frame.payload) {
+                is TopicFrame.TopicPayload.Snapshot -> {
+                    val snap = com.zcode.android.core.protocol.v4.WorkspaceConfigSnapshot.decode(payload.snapshot)
+                    _topicEvents.emit(
+                        GatewayTopicEvent.WorkspaceConfig(arrived.topic, "", workspaceKey, snap.config),
+                    )
+                }
+                is TopicFrame.TopicPayload.Deltas -> {
+                    for (delta in payload.deltas) {
+                        val decoded = try {
+                            com.zcode.android.core.protocol.v4.WorkspaceConfigDelta.decode(delta.raw)
+                        } catch (e: com.zcode.android.core.protocol.bytes.ProtocolException) {
+                            _topicEvents.emit(
+                                GatewayTopicEvent.WorkspaceConfig(arrived.topic, "", workspaceKey, null, e.message),
+                            )
+                            continue
+                        }
+                        _topicEvents.emit(
+                            GatewayTopicEvent.WorkspaceConfig(arrived.topic, "", workspaceKey, decoded.config),
+                        )
+                    }
+                }
+            }
+        } catch (e: com.zcode.android.core.protocol.bytes.ProtocolException) {
+            // Auxiliary surface: the catalog frame drops whole; the prior catalog stays.
+            _topicEvents.emit(
+                GatewayTopicEvent.WorkspaceConfig(arrived.topic, "", workspaceKey, null, e.message),
+            )
         }
     }
 
@@ -322,6 +393,16 @@ class RelayConversationGateway(
             workspaceIdentity = workspaceIdentity,
         )
         synchronized(epochs) { epochs[sessionId] = ack.logEpoch }
+        return GatewayAck(ack.subscriptionId, ack.mode, ack.logEpoch)
+    }
+
+    override suspend fun subscribeWorkspaceConfig(
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ): GatewayAck {
+        // The scoped listen (per workspace path) routes the catalog frames too.
+        transport.ensureConversationListen(workspacePath, workspaceIdentity)
+        val ack = transport.subscribeWorkspaceConfig(workspacePath, workspaceIdentity)
         return GatewayAck(ack.subscriptionId, ack.mode, ack.logEpoch)
     }
 

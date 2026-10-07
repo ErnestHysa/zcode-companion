@@ -16,10 +16,10 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
-import kotlin.test.After
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
@@ -125,7 +125,7 @@ class ConnectionHubSlashCatalogTest {
         hub.openConversation(task)
         val wsKey = task.workspace.raw
         val catalog = withTimeout(20_000) {
-            hub.workspaceCatalog(wsKey).first { it != null && it.slashCommands.isNotEmpty() }
+            hub.workspaceCatalog(wsKey).first { it != null && it.slashCommands.isNotEmpty() }!!
         }
         assertEquals(2, catalog.slashCommands.size)
         assertEquals(listOf("compact", "deploy"), catalog.slashCommands.map { it.name })
@@ -137,7 +137,7 @@ class ConnectionHubSlashCatalogTest {
         val task2 = tasks.snapshot.first().first { it.taskId == "sess-cfg-2" }
         hub.openConversation(task2)
         val after = withTimeout(10_000) {
-            hub.workspaceCatalog(wsKey).first { it != null && it.slashCommands.isNotEmpty() }
+            hub.workspaceCatalog(wsKey).first { it != null && it.slashCommands.isNotEmpty() }!!
         }
         assertEquals(2, after.slashCommands.size, "catalog preserved across session re-attach")
         assertTrue(after.slashCommands.map { it.name } == listOf("compact", "deploy"))

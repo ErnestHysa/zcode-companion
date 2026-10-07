@@ -46,7 +46,7 @@ class SlashCommandParserTest {
         )
         assertEquals(SlashDispatch.ResumeGoal("/goal resume"), parse("/goal resume"))
         assertEquals(SlashDispatch.EmptyGoal("/goal"), parse("/goal"))
-        assertEquals(SlashDispatch.EmptyGoal("/goal   "), parse("/goal   "))
+        assertEquals(SlashDispatch.EmptyGoal("/goal"), parse("/goal   "), "displayText is the TRIMMED text (desktop verbatim)")
         assertEquals(SlashDispatch.UnsupportedGoal("pause", "/goal pause"), parse("/goal pause"))
         assertEquals(SlashDispatch.UnsupportedGoal("clear", "/goal clear"), parse("/goal clear"))
         assertEquals(SlashDispatch.UnsupportedGoal("show", "/goal show"), parse("/goal show"))

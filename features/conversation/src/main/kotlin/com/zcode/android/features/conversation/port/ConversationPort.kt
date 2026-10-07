@@ -43,6 +43,21 @@ interface ConversationPort {
     /** Phase 7 A-side projection: control/queue/pendingInteractions/inputRouting. */
     fun observeSessionState(taskId: String): Flow<com.zcode.android.domain.model.SessionProjectionState>
 
+    /**
+     * Phase 2 (§11.2, GAP-12): the workspace slash-command catalog from the
+     * `workspace-config/<workspaceKey>` topic — builtin + custom entries verbatim
+     * (`source` null = legacy payload). Empty list = no catalog arrived (the menu
+     * renders nothing — the desktop's EMPTY_SLASH_COMMANDS parity, no fallback).
+     */
+    fun observeSlashCommands(taskId: String): Flow<List<SlashCommandView>>
+
+    data class SlashCommandView(
+        val name: String,
+        val description: String,
+        val inputHint: String?,
+        val source: String?,
+    )
+
     /** Subscribe (Phase 5 coordinator path; journal restore included). */
     suspend fun open(task: Task): Boolean
 
@@ -88,6 +103,11 @@ interface ConversationPort {
     /** §7.5 queue edits — CAS-guarded (verified set; baseRevision from the projection). */
     suspend fun sendQueuedNow(taskId: String, queueItemId: String): SendOutcome
     suspend fun editQueueItem(taskId: String, queueItemId: String, newText: String): SendOutcome
+
+    /** Phase 2 (§11.3): the slash command plane — /compact, /goal send + resume. */
+    suspend fun compact(taskId: String): SendOutcome
+    suspend fun sendGoal(taskId: String, objective: String, displayText: String): SendOutcome
+    suspend fun resumeGoal(taskId: String): SendOutcome
 
     /** §20 interaction answer (permission or user-input) through the ONE fail-closed gate. */
     suspend fun answerInteraction(

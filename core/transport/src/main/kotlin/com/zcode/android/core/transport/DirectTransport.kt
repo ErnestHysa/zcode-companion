@@ -744,6 +744,11 @@ class DirectTransport(
         workspaceIdentity: String?,
     ): SubscribeAck = plane.subscribeSession(sessionId, visibility, workspacePath, workspaceIdentity)
 
+    override suspend fun subscribeWorkspaceConfig(
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ): SubscribeAck = plane.subscribeWorkspaceConfig(workspacePath, workspaceIdentity)
+
     override suspend fun rowsRange(sessionId: String, beforeRowId: Long?, limit: Int): RowsRangeResult =
         plane.rowsRange(sessionId, beforeRowId, limit)
 

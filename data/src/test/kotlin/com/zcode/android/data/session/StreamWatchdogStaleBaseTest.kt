@@ -101,6 +101,11 @@ class StreamWatchdogStaleBaseTest {
             return GatewayAck("sub-resync", "snapshot", currentEpoch ?: "epoch-unset")
         }
 
+        override suspend fun subscribeWorkspaceConfig(
+            workspacePath: String?,
+            workspaceIdentity: String?,
+        ): GatewayAck = GatewayAck("sub-cfg", "snapshot", "cfg-epoch-unset")
+
         override suspend fun rowsRange(sessionId: String, beforeRowId: Long?, limit: Int): GatewayPage =
             throw UnsupportedOperationException("not used in this test")
 

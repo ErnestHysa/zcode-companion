@@ -55,6 +55,9 @@ data class ConversationUiState(
     // ---- Phase 9 (§43.2-9) ----
     /** §23.2 composer uploads (per task, port-held overlay). */
     val composerAttachments: List<ConversationPort.ComposerAttachment> = emptyList(),
+    // ---- Phase 2 (§11.2, GAP-12) ----
+    /** The workspace slash-command catalog (workspace-config topic; empty = none). */
+    val slashCommands: List<ConversationPort.SlashCommandView> = emptyList(),
 ) {
     val empty: Boolean get() = !loading && rows.isEmpty() && streaming.isEmpty()
 
@@ -135,6 +138,7 @@ class ConversationViewModel(
     private val _draft = MutableStateFlow("")
     private val _sendNotice = MutableStateFlow<SendNotice?>(null)
     private val _busyInteractions = MutableStateFlow<Set<String>>(emptySet())
+    private val _slashCommands = MutableStateFlow<List<ConversationPort.SlashCommandView>>(emptyList())
     private var draftLoaded = false
     private var draftSaveJob: kotlinx.coroutines.Job? = null
 
@@ -179,6 +183,7 @@ class ConversationViewModel(
             sendNotice = _sendNotice.value,
             busyInteractions = write.busy,
             composerAttachments = write.composerAttachments,
+            slashCommands = _slashCommands.value,
         )
     }.stateIn(scope, SharingStarted.Eagerly, ConversationUiState())
 
@@ -187,6 +192,12 @@ class ConversationViewModel(
             val task = port.task(taskId)
             _task.value = task
             if (task != null) port.open(task)
+        }
+        // Phase 2 (§11.2): the workspace catalog (totalRows precedent — read at
+        // combine time; the catalog is conflated latest-wins, a stale read is
+        // corrected by the next frame).
+        scope.launch {
+            port.observeSlashCommands(taskId).collect { _slashCommands.value = it }
         }
     }
 
@@ -338,37 +349,124 @@ class ConversationViewModel(
         val text = _draft.value
         if (text.isBlank()) return
         scope.launch {
-            when (port.sendPrompt(taskId, text, heldQueueDisposition)) {
-                ConversationPort.SendOutcome.ACCEPTED -> {
-                    _sendNotice.value = null
+            // Phase 2 (§11.3, GAP-12): the desktop's slash grammar gates the send —
+            // ready composer attachments block the whole plane (desktop parity).
+            val readyAttachments = state.value.composerAttachments.count { it.state == "ready" && it.ref != null }
+            when (val dispatch = parseVisibleSlashCommand(text, readyAttachments)) {
+                null -> routeSendPrompt(text, heldQueueDisposition)
+                is SlashDispatch.Compact -> sendSlash(
+                    { port.compact(taskId) },
+                    text,
+                    failureNotice = "Compact was refused by the desktop" +
+                        " (it may already be running or an active turn blocks it).",
+                    acceptedClearsDraft = true,
+                )
+                is SlashDispatch.SendGoal -> sendSlash(
+                    { port.sendGoal(taskId, dispatch.objective, dispatch.displayText) },
+                    text,
+                    failureNotice = "The goal update was refused by the desktop.",
+                )
+                is SlashDispatch.ResumeGoal -> sendSlash(
+                    { port.resumeGoal(taskId) },
+                    text,
+                    failureNotice = "Goal resume was refused (the conversation may have moved — try again).",
+                )
+                is SlashDispatch.EmptyGoal -> refuseSlash("/goal needs a goal text — e.g. \"/goal finish the report\".")
+                is SlashDispatch.UnsupportedGoal -> refuseSlash(
+                    "The desktop does not support \"/goal ${dispatch.action}\" here — manage it on the desktop.",
+                )
+                is SlashDispatch.UnsupportedPlanShortcut -> refuseSlash(
+                    "Plan mode cannot start with attachments attached — remove them and retry.",
+                )
+                is SlashDispatch.PlanShortcut -> {
+                    // Desktop: the command only CONFIGURES the shortcut (mode + this
+                    // submission's planEnabled) — the task text then rides plain sendText.
+                    when (port.switchMode(taskId, "plan")) {
+                        ConversationPort.SendOutcome.ACCEPTED -> routeSendPrompt(
+                            dispatch.task.ifBlank { "" },
+                            heldQueueDisposition,
+                            skipEmpty = true,
+                        )
+                        else -> _sendNotice.value = SendNotice(
+                            "Could not switch to plan mode — the plan shortcut was not sent.",
+                            SendNotice.Kind.WARNING,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    /** Plain sendText (null dispatch = ordinary prompt; custom slash text rides raw). */
+    private suspend fun routeSendPrompt(text: String, heldQueueDisposition: String?, skipEmpty: Boolean = false) {
+        if (skipEmpty && text.isBlank()) {
+            // Empty /plan only edits the mode (the desktop returns "sent" without a send).
+            _sendNotice.value = null
+            draftSaveJob?.cancel()
+            _draft.value = ""
+            port.clearDraft(taskId)
+            return
+        }
+        when (port.sendPrompt(taskId, text, heldQueueDisposition)) {
+            ConversationPort.SendOutcome.ACCEPTED -> {
+                _sendNotice.value = null
+                draftSaveJob?.cancel()
+                _draft.value = ""
+                port.clearDraft(taskId)
+            }
+            ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
+                _sendNotice.value = SendNotice(
+                    "You're offline — the draft is saved on this phone. Reconnect to send.",
+                    SendNotice.Kind.WARNING,
+                )
+            ConversationPort.SendOutcome.STALE ->
+                _sendNotice.value = SendNotice(
+                    "Conversation changed on the desktop — please try again.",
+                    SendNotice.Kind.WARNING,
+                )
+            ConversationPort.SendOutcome.FAILED ->
+                // FIELD (vc22): a FAILED outcome is now an authoritative DESKTOP
+                // rejection (the command reached it) — never "connection lost".
+                _sendNotice.value = SendNotice(
+                    "The desktop refused the send — see diagnostics (fault reason recorded).",
+                    SendNotice.Kind.ERROR,
+                )
+            ConversationPort.SendOutcome.UNKNOWN_KEPT ->
+                _sendNotice.value = SendNotice(
+                    "Send outcome unknown (connection lost). Retry from the pending list — it will not be duplicated.",
+                    SendNotice.Kind.WARNING,
+                )
+        }
+    }
+
+    /** Fire a slash command; an accepted dispatch clears the draft, failures preserve it. */
+    private suspend fun sendSlash(
+        fire: suspend () -> ConversationPort.SendOutcome,
+        originalText: String,
+        failureNotice: String,
+        acceptedClearsDraft: Boolean = true,
+    ) {
+        when (fire()) {
+            ConversationPort.SendOutcome.ACCEPTED -> {
+                _sendNotice.value = null
+                if (acceptedClearsDraft) {
                     draftSaveJob?.cancel()
                     _draft.value = ""
                     port.clearDraft(taskId)
                 }
-                ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
-                    _sendNotice.value = SendNotice(
-                        "You're offline — the draft is saved on this phone. Reconnect to send.",
-                        SendNotice.Kind.WARNING,
-                    )
-                ConversationPort.SendOutcome.STALE ->
-                    _sendNotice.value = SendNotice(
-                        "Conversation changed on the desktop — please try again.",
-                        SendNotice.Kind.WARNING,
-                    )
-                ConversationPort.SendOutcome.FAILED ->
-                    // FIELD (vc22): a FAILED outcome is now an authoritative DESKTOP
-                    // rejection (the command reached it) — never "connection lost".
-                    _sendNotice.value = SendNotice(
-                        "The desktop refused the send — see diagnostics (fault reason recorded).",
-                        SendNotice.Kind.ERROR,
-                    )
-                ConversationPort.SendOutcome.UNKNOWN_KEPT ->
-                    _sendNotice.value = SendNotice(
-                        "Send outcome unknown (connection lost). Retry from the pending list — it will not be duplicated.",
-                        SendNotice.Kind.WARNING,
-                    )
             }
+            ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
+                _sendNotice.value = SendNotice(
+                    "You're offline — the command was not sent and the draft is preserved.",
+                    SendNotice.Kind.WARNING,
+                )
+            else -> _sendNotice.value = SendNotice(failureNotice, SendNotice.Kind.WARNING)
         }
+    }
+
+    /** Refusal path: NOTHING goes on the wire, the draft is preserved (desktop warn parity). */
+    private fun refuseSlash(notice: String) {
+        _sendNotice.value = SendNotice(notice, SendNotice.Kind.WARNING)
     }
 
     /** User-gated retry of an UNKNOWN send — SAME commandId (INV-4, no duplicate). */

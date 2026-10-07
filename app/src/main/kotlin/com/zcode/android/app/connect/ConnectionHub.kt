@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
@@ -141,6 +142,17 @@ class ConnectionHub(
     /** Workspaces offered by the desktop (bootstrap) — the new-task picker's source. */
     private val _workspaces = MutableStateFlow<List<com.zcode.android.domain.model.WorkspaceOption>>(emptyList())
     val workspaces: StateFlow<List<com.zcode.android.domain.model.WorkspaceOption>> = _workspaces.asStateFlow()
+
+    /**
+     * Phase 2 (§11.2, GAP-12): the workspace-level config catalog per §7.11
+     * identity key — slash commands + config options, WHOLE replacement per
+     * workspace-config frame (conflated latest-wins). Cleared only on endpoint/
+     * workspace lifecycle (the desktop's preserve-for-replay rule: session
+     * re-attach never backfills it to empty).
+     */
+    private val _workspaceCatalogs =
+        MutableStateFlow<Map<String, com.zcode.android.core.protocol.v4.WorkspaceConfigState>>(emptyMap())
+    private var configCollectorJob: kotlinx.coroutines.Job? = null
 
     private val _lastRefreshAtMs = MutableStateFlow<Long?>(null)
     val lastRefreshAtMs: StateFlow<Long?> = _lastRefreshAtMs.asStateFlow()
@@ -714,6 +726,13 @@ class ConnectionHub(
                 // for freshly-attached sessions. Re-bump after the attach.
                 managersVersion.value++
             }
+            // Phase 2 (§11.2, GAP-12): the workspace catalog rides the session attach —
+            // the scoped listen is up (startTargets) and the desktop routes config
+            // frames per workspace. Best-effort: a refusal leaves the catalog absent.
+            ensureWorkspaceConfigCollector()
+            val cfgPath = _workspaces.value.firstOrNull { it.key == task.workspace.raw }?.path
+                ?.takeIf { it.isNotBlank() } ?: taskWorkspacePath(task)
+            launchWorkspaceConfigSubscribe(cfgPath, task.workspace.raw)
             log.info("hub.conversationOpen", "session=${task.taskId}")
             coordinator
         }
@@ -1004,6 +1023,49 @@ class ConnectionHub(
         openedSessions.clear()
         managersVersion.value++
         lastReportedPhase = null
+        // The catalog is endpoint-scoped (§11.2): a switch/unpair drops it.
+        configCollectorJob?.cancel()
+        configCollectorJob = null
+        _workspaceCatalogs.value = emptyMap()
+    }
+
+    /**
+     * Phase 2 (§11.2): the slash-command/config catalog for a workspace identity
+     * key (null until the topic delivers a frame — an honest empty catalog).
+     */
+    fun workspaceCatalog(workspaceKey: String): kotlinx.coroutines.flow.Flow<com.zcode.android.core.protocol.v4.WorkspaceConfigState?> =
+        _workspaceCatalogs.map { it[workspaceKey] }
+
+    /** One collector per gateway instance; re-armed on endpoint lifecycle. */
+    private fun ensureWorkspaceConfigCollector() {
+        if (configCollectorJob?.isActive == true) return
+        val gateway = runCatching { gatewayFor(activeTransport()) }.getOrNull() ?: return
+        configCollectorJob = scope.launch {
+            gateway.topicEvents.collect { event ->
+                if (event is com.zcode.android.data.session.GatewayTopicEvent.WorkspaceConfig) {
+                    val state = event.state
+                    if (state == null) {
+                        log.warn("hub.cfgFault", "${event.reason?.take(80)} (workspace=${event.workspaceKey.take(24)})")
+                    } else {
+                        _workspaceCatalogs.value = _workspaceCatalogs.value + (event.workspaceKey to state)
+                        log.info("hub.cfgCatalog", "workspace=${event.workspaceKey.take(24)} slash=${state.slashCommands.size}")
+                    }
+                }
+            }
+        }
+    }
+
+    /** Best-effort workspace-config subscribe (§11.2): failure = no catalog, logged. */
+    private fun launchWorkspaceConfigSubscribe(wsPath: String?, workspaceIdentity: String?) {
+        scope.launch {
+            runCatching {
+                gatewayFor(activeTransport()).subscribeWorkspaceConfig(wsPath, workspaceIdentity)
+            }.onSuccess { ack ->
+                log.info("hub.cfgSubscribe", "workspace=${(workspaceIdentity ?: wsPath)?.take(24)} epoch=${ack.logEpoch.take(12)}")
+            }.onFailure { e ->
+                log.warn("hub.cfgSubscribe", "refused: ${e.message?.take(80)} (catalog stays absent)")
+            }
+        }
     }
 
     /** Validate + add a DIRECT endpoint (§12.2 "write nothing until validation passes"). */

@@ -170,6 +170,12 @@ class ConversationViewModelTest {
             ): ConversationPort.AttachmentFetchResult = ConversationPort.AttachmentFetchResult(null, null, 0, "not faked")
             override fun observeComposerAttachments(taskId: String): Flow<List<ConversationPort.ComposerAttachment>> =
                 kotlinx.coroutines.flow.MutableStateFlow(emptyList())
+            // ---- Phase 2 (GAP-10/GAP-12) port additions (test fakes: inert defaults) ----
+            override fun observeSlashCommands(taskId: String): Flow<List<ConversationPort.SlashCommandView>> =
+                MutableStateFlow(emptyList())
+            override suspend fun compact(taskId: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
+            override suspend fun sendGoal(taskId: String, objective: String, displayText: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
+            override suspend fun resumeGoal(taskId: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
             override val phase = MutableStateFlow(ConnectionPhase.CONNECTED)
         val rowsFlow = MutableStateFlow<List<ConversationRow>>(emptyList())
         val epochFlow = MutableStateFlow<String?>(null)
@@ -341,6 +347,12 @@ open class Phase7FakePort : ConversationPort {
         ): ConversationPort.AttachmentFetchResult = ConversationPort.AttachmentFetchResult(null, null, 0, "not faked")
         override fun observeComposerAttachments(taskId: String): Flow<List<ConversationPort.ComposerAttachment>> =
             kotlinx.coroutines.flow.MutableStateFlow(emptyList())
+        // ---- Phase 2 (GAP-10/GAP-12) port additions (test fakes: inert defaults) ----
+        override fun observeSlashCommands(taskId: String): Flow<List<ConversationPort.SlashCommandView>> =
+            kotlinx.coroutines.flow.MutableStateFlow(emptyList())
+        override suspend fun compact(taskId: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
+        override suspend fun sendGoal(taskId: String, objective: String, displayText: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
+        override suspend fun resumeGoal(taskId: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
     override val phase = MutableStateFlow(ConnectionPhase.CONNECTED)
     private val rowsFlow = MutableStateFlow<List<ConversationRow>>(emptyList())
     private val sessionStateFlow = MutableStateFlow(

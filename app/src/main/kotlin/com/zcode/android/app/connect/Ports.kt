@@ -131,6 +131,22 @@ class DefaultConversationPort(
     override fun observeSessionState(taskId: String): Flow<com.zcode.android.domain.model.SessionProjectionState> =
         hub.sessionProjectionState(taskId)
 
+    /** Phase 2 (§11.2, GAP-12): the workspace catalog → the port's slash-command views. */
+    override fun observeSlashCommands(taskId: String): Flow<List<ConversationPort.SlashCommandView>> =
+        kotlinx.coroutines.flow.channelFlow {
+            val key = workspaceKeyFor(taskId)
+            hub.workspaceCatalog(key).collect { catalog ->
+                send(
+                    catalog?.slashCommands?.map {
+                        ConversationPort.SlashCommandView(it.name, it.description, it.inputHint, it.source)
+                    } ?: emptyList(),
+                )
+            }
+        }
+
+    private suspend fun workspaceKeyFor(taskId: String): String =
+        workspaceByTask[taskId]?.raw ?: task(taskId)?.workspace?.raw ?: taskId
+
     override suspend fun open(task: Task): Boolean {
         workspaceByTask[task.taskId] = task.workspace
         val coordinator = hub.openConversation(task) ?: return false
@@ -257,6 +273,24 @@ class DefaultConversationPort(
         val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
         val revision = hub.sessionProjectionState(taskId).first().revision
         return mapOutcome(op(revision, coordinator))
+    }
+
+    // ---------------------------------------------------------------- slash commands (Phase 2, §11.3)
+
+    override suspend fun compact(taskId: String): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        return mapOutcome(coordinator.compact(taskId))
+    }
+
+    override suspend fun sendGoal(taskId: String, objective: String, displayText: String): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        return mapOutcome(coordinator.sendGoalCommand(taskId, objective, displayText))
+    }
+
+    override suspend fun resumeGoal(taskId: String): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        val revision = hub.sessionProjectionState(taskId).first().revision
+        return mapOutcome(coordinator.resumeGoal(taskId, revision))
     }
 
     private fun mapOutcome(outcome: com.zcode.android.data.session.CommandCoordinator.Outcome): ConversationPort.SendOutcome =

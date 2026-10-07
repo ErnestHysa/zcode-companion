@@ -1,5 +1,6 @@
 package com.zcode.android.data.session
 
+import com.zcode.android.core.protocol.v4.CommandAck
 import com.zcode.android.core.transport.ConnectionStateMachine
 import com.zcode.android.domain.ids.CommandId
 import com.zcode.android.domain.ids.EndpointId
@@ -51,6 +52,7 @@ class CommandCoordinatorSlashTest {
 
     private class RecordingOutbox : OutboxRepository {
         val rows = mutableListOf<AcceptedRow>()
+        val entries = LinkedHashMap<String, com.zcode.android.domain.outbox.OutboxEntry>()
 
         data class AcceptedRow(
             val type: String,
@@ -68,13 +70,22 @@ class CommandCoordinatorSlashTest {
             issuedAtMs: Long,
         ): CommandId {
             rows.add(AcceptedRow(type, baseRevision, baseLogEpoch))
-            return CommandId("cmd-${rows.size}")
+            val id = CommandId("cmd-${'$'}{rows.size}")
+            entries[id.raw] = com.zcode.android.domain.outbox.OutboxEntry(
+                commandId = id, endpointId = endpointId.raw, sessionId = sessionId,
+                type = type, payloadJson = payloadJson, baseRevision = baseRevision,
+                baseLogEpoch = baseLogEpoch, issuedAtMs = issuedAtMs,
+                state = OutboxStateMachine.State.ACCEPTED_LOCALLY, attempts = 0,
+                lastTransitionAtMs = issuedAtMs,
+            )
+            return id
         }
+
+        override suspend fun get(commandId: CommandId): com.zcode.android.domain.outbox.OutboxEntry? =
+            entries[commandId.raw]
 
         override fun observePending(endpointId: EndpointId): Flow<List<com.zcode.android.domain.outbox.OutboxEntry>> =
             kotlinx.coroutines.flow.flowOf(emptyList())
-
-        override suspend fun get(commandId: CommandId): com.zcode.android.domain.outbox.OutboxEntry? = null
 
         override suspend fun apply(commandId: CommandId, event: OutboxStateMachine.Event, atMs: Long): com.zcode.android.domain.outbox.OutboxEntry? =
             null

@@ -125,6 +125,10 @@ class ConversationSessionManager(
                 log.warn("session.decodeFault", event.reason.take(120))
                 setStale(true)
             }
+            // Phase 2 (§11.2): the workspace-config catalog is NOT session-plane
+            // state — the hub's own collector consumes it; the manager ignores it
+            // (never stale-flags the session, never touches the reducer).
+            is GatewayTopicEvent.WorkspaceConfig -> Unit
         }
     }
 

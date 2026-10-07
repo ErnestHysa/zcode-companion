@@ -575,6 +575,17 @@ fun ComposerBar(
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
+            // GAP-12: the "/" catalog menu — visible while the draft is a bare
+            // slash COMMAND TOKEN (no whitespace yet). Picking inserts into the
+            // draft via onDraftChange (the field stays the single state source).
+            if (state.draft.startsWith("/") && !state.draft.contains(' ')) {
+                SlashCommandMenu(
+                    commands = state.slashCommands,
+                    query = state.draft,
+                    onPick = onDraftChange,
+                    modifier = Modifier.padding(bottom = 4.dp),
+                )
+            }
             // §43.2-11.5 voice input EXPERIMENT (#305): platform recognizer, availability-
             // gated, dictates into the draft (final results only — never partial noise).
             val voice = remember(voiceInputOverride) {

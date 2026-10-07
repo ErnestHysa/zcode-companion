@@ -56,6 +56,20 @@ interface V4Plane {
         workspaceIdentity: String? = null,
     ): SubscribeAck
 
+    /**
+     * Phase 2 (§11.2, GAP-12): subscribe the workspace-level `workspace-config/
+     * <workspaceKey>` catalog topic on the SAME `subscribeConversationV4` RPC with
+     * an EXPLICIT topic (the desktop adapter's own subscribeWorkspaceConfigV4 shape,
+     * zcodeAgentService.ts:5562-5584). workspaceKey = the §7.11 identity key
+     * (workspaceIdentity ?: workspacePath — the desktop's resolveWorkspaceKey).
+     * The initial frame rides the same post-response notification; the scoped
+     * conversation listen already routes it (dispatch is by topic prefix).
+     */
+    suspend fun subscribeWorkspaceConfig(
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ): SubscribeAck
+
     suspend fun rowsRange(sessionId: String, beforeRowId: Long?, limit: Int): RowsRangeResult
     suspend fun rowsRange(params: RowsRangeParams): RowsRangeResult
 
@@ -423,6 +437,37 @@ internal class ChannelV4Plane(
         val obj = (raw as? RpcValue.Obj)?.json as? JsonObject
             ?: throw TransportFailure(ErrorMapping.protocolFault("rowsRange result not an object"))
         return RowsRangeResult.decode(obj)
+    }
+
+    suspend fun subscribeWorkspaceConfig(
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ): SubscribeAck {
+        val target = host.workspaceTarget()
+        val path = workspacePath ?: target?.first
+        val identity = workspaceIdentity ?: target?.second
+        // §7.11 identity key — the desktop's resolveWorkspaceKey (identity ?: path).
+        val workspaceKey = identity?.trim()?.takeIf { it.isNotEmpty() } ?: path
+            ?: throw TransportFailure(ErrorMapping.protocolFault("workspace-config subscribe without a workspace target"))
+        val topic = V4Topics.workspaceConfig(workspaceKey)
+        bound().debug("v4.call", "subscribeWorkspaceConfig topic=$topic")
+        val params = buildJsonObject {
+            put("workspacePath", JsonPrimitive(path ?: ""))
+            identity?.let { put("workspaceIdentity", JsonPrimitive(identity)) }
+            put("topic", JsonPrimitive(topic))
+        }
+        val raw = v4Call("subscribeConversationV4", RpcValue.Obj(params))
+        val obj = (raw as? RpcValue.Obj)?.json as? JsonObject
+            ?: throw TransportFailure(ErrorMapping.protocolFault("subscribe result not an object"))
+        val ackObj = obj["ack"] as? JsonObject
+            ?: throw TransportFailure(ErrorMapping.protocolFault("subscribe ack missing"))
+        val ack = SubscribeAck.decode(ackObj)
+        // Record like a session subscription so recover() knows to re-subscribe the
+        // topic after a reconnect (the subscription lives in the CLI process memory).
+        synchronized(subscriptions) {
+            subscriptions[topic] = SubscriptionRecord(ack.subscriptionId, ack.logEpoch, -1)
+        }
+        return ack
     }
 
     suspend fun resyncSession(

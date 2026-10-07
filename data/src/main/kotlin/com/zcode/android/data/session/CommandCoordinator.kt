@@ -149,6 +149,32 @@ class CommandCoordinator(
     suspend fun cancelBackgroundWork(sessionId: String, workId: String): Outcome =
         simpleCommand("cancelBackgroundWork", sessionId, buildJsonObject { put("workId", workId) })
 
+    // ---------------------------------------------------------------- slash commands (Phase 2, §11.3)
+
+    /**
+     * `/compact` (alias /compress) — `compact {}` is an INPUT-TYPE maintenance
+     * command: NOT CAS-guarded (verified set excludes it, command.ts:148-150);
+     * queued FIFO when busy/held. Duplicate compaction surfaces as a typed ack
+     * (reasonCode compactOperationLock / activeTurn) — the UI toasts, never guesses.
+     */
+    suspend fun compact(sessionId: String): Outcome =
+        simpleCommand("compact", sessionId, buildJsonObject { })
+
+    /**
+     * `/goal <objective>` (and `/goal replace <objective>`) — `sendGoalCommand
+     * {text, displayText}`; not CAS-guarded. displayText carries the ORIGINAL
+     * slash text (the desktop's row-render contract, SessionPane.tsx:2459-2470).
+     */
+    suspend fun sendGoalCommand(sessionId: String, objective: String, displayText: String): Outcome =
+        simpleCommand("sendGoalCommand", sessionId, buildJsonObject {
+            put("text", objective)
+            put("displayText", displayText)
+        })
+
+    /** `/goal resume` — `resumeGoal {}` IS CAS-guarded (verified set §5). */
+    suspend fun resumeGoal(sessionId: String, baseRevision: Long?): Outcome =
+        casCommand("resumeGoal", sessionId, baseRevision, buildJsonObject { })
+
     // ---------------------------------------------------------------- createSession (task creation)
 
     /**

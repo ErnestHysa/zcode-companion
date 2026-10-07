@@ -162,6 +162,11 @@ class MockZCode(
         /** Scriptable `usage` state key (sessionUsageStateSchema shape) riding the
          *  snapshot state block when [emitStateKeys] is on (GAP-1/GAP-2). */
         var usageState: JsonObject? = null
+        // ---------------- Phase 2 (§11.2) ----------------
+        /** Scriptable workspace-config catalog (workspaceConfigStateSchema shape):
+         *  pushed as the initial frame when a workspace-config topic is
+         *  subscribed; null = no frame (honest empty catalog). */
+        var workspaceConfigState: JsonObject? = null
         // ---------------- Phase 9 (§43.2-9) ----------------
         /** Scriptable per-turn fileChanges results (one-shot FIFO; §10.1). */
         val conversationFileChanges: ArrayDeque<JsonObject> = ArrayDeque()
@@ -817,6 +822,62 @@ class MockZCode(
         return (row["rowId"] as? JsonPrimitive)?.content?.toLongOrNull() ?: -1L
     }
 
+    /**
+     * Phase 2 driver: push a workspace-config frame (snapshot on subscribe;
+     * `config.updated` delta via [pushConfigUpdated]). Rides the SAME scoped
+     * conversation listener — the shared v4/conversation/frame notification
+     * carries all topics (dispatch by topic prefix).
+     */
+    private fun pushWorkspaceConfigFrame(topic: String, cfgSubscriptionId: String, config: JsonObject, delta: Boolean = false) {
+        val listener = conversationListenerId ?: return
+        val frame = buildJsonObject {
+            put("topic", JsonPrimitive(topic))
+            put("subscriptionId", JsonPrimitive(cfgSubscriptionId))
+            put("fromSeq", JsonPrimitive(0))
+            put("toSeq", JsonPrimitive(1))
+            put("sentAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
+            put("payload", buildJsonObject {
+                if (!delta) {
+                    put("kind", JsonPrimitive("snapshot"))
+                    put("snapshot", buildJsonObject {
+                        put("protocolVersion", JsonPrimitive(1))
+                        put("workspaceId", JsonPrimitive(topic.removePrefix("workspace-config/")))
+                        put("logEpoch", JsonPrimitive("cfg-epoch-mock-1"))
+                        put("config", config)
+                    })
+                } else {
+                    put("kind", JsonPrimitive("deltas"))
+                    put("deltas", JsonArray(listOf(buildJsonObject {
+                        put("op", JsonPrimitive("config.updated"))
+                        put("config", config)
+                    })))
+                }
+            })
+        }
+        val wireFrames = TopicWireFrameCodec.encode(
+            frame = frame, deliveryKind = DeliveryKind.INITIAL, topic = topic,
+            subscriptionId = cfgSubscriptionId, logicalFrameId = "lf-${System.nanoTime()}",
+            logicalFrameOrdinal = 1,
+        )
+        for (wire in wireFrames) {
+            val bytes = RpcSerialization.encodeAll(
+                listOf(
+                    RpcValue.Arr(listOf(RpcValue.Int(ChannelWire.ResponseType.EventFire.id), RpcValue.Int(listener))),
+                    RpcValue.Obj(buildJsonObject {
+                        put("topic", JsonPrimitive(topic))
+                        put("frame", wireJson(wire))
+                    }),
+                )
+            )
+            sendLogicalFrame(bytes)
+        }
+    }
+
+    /** Server-side `config.updated` driver (catalog refresh test path). */
+    fun pushConfigUpdated(topic: String, config: JsonObject) {
+        pushWorkspaceConfigFrame(topic, "sub-mock-cfg-${topic.hashCode()}", config, delta = true)
+    }
+
     /** Row-appended delta driver (command effects; authoritative rows). */
     private fun pushRowAppended(sessionId: String, row: JsonObject) {
         val listener = conversationListenerId ?: return
@@ -1203,8 +1264,26 @@ class MockZCode(
                 // Round-3 field fidelity: production routes by the workspace scope —
                 // a blank workspacePath is a client-side routing bug, surface it loudly.
                 if (params.str("workspacePath").isBlank()) return respondError(id, "fault.subscribe.workspaceScope")
-                val sessionId = params.str("sessionId")
                 lastSubscribeWorkspacePath = params.str("workspacePath")
+                // Phase 2 (§11.2): a workspace-config topic subscribe carries an
+                // EXPLICIT topic (the desktop adapter's subscribeWorkspaceConfigV4
+                // shape) instead of a sessionId.
+                val explicitTopic = params.str("topic")
+                if (explicitTopic.startsWith("workspace-config/")) {
+                    val cfgSubscriptionId = "sub-mock-cfg-${explicitTopic.hashCode()}"
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("ack", buildJsonObject {
+                            put("subscriptionId", JsonPrimitive(cfgSubscriptionId))
+                            put("mode", JsonPrimitive("snapshot"))
+                            put("logEpoch", JsonPrimitive("cfg-epoch-mock-1"))
+                        })
+                    }))
+                    script.workspaceConfigState?.let { cfg ->
+                        pushWorkspaceConfigFrame(explicitTopic, cfgSubscriptionId, cfg)
+                    }
+                    return
+                }
+                val sessionId = params.str("sessionId")
                 subscriptionId = "sub-mock-$sessionId"
                 respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
                     put("ack", buildJsonObject {
