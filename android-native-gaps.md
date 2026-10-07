@@ -318,7 +318,7 @@ to one codebase.
 | 3 | Class B read-only viewers (§13.3-sanctioned channels) | GAP-5–9 (5) | Medium — new channels, all R-class read-only | ☑ done — verified 2026-10-07 14:32:11 BST |
 | 4 | Class B ⚠ ADR-gated: coding-plan quotas + resets | GAP-3, 4 (2) | High — overturns a §13.3 "Never" | ☑ done — verified 2026-10-07 17:04:41 BST |
 | 5 | Auto-adaptation Stage 1: detect (drift tool + sensors) | AAP-1, 2 (2) | Medium — Mac-in-loop leg; INV-15 applies | ☑ done — verified 2026-10-07 18:52:40 BST |
-| 6 | Auto-adaptation Stage 2: verify / build+publish / client update | AAP-3, 4, 5 (3) | High — release automation; signing prereq | ☐ pending |
+| 6 | Auto-adaptation Stage 2: verify / build+publish / client update | AAP-3, 4, 5 (3) | High — release automation; signing prereq | ☑ done — verified 2026-10-07 22:34:09 BST |
 
 Sum: 7 + 4 + 5 + 2 + 2 + 3 = 23.
 
@@ -905,7 +905,7 @@ rule 2 (`fix(AAP-1)`/`fix(AAP-2)`/`test(...)`/`docs(android-gaps)`).
 Landing order per §14.5: T4 (client) → T2 (CI verify) → T3 (build+publish). AAP-5 is
 gated on Phase 12.1 signing (stable keystore, off-repo) and the scripted Mac canary.
 
-- [ ] **AAP-3 (P2)** T4 client update check — the app already knows the desktop's
+- [x] **AAP-3 (P2)** T4 client update check — the app already knows the desktop's
   version (hello/bridge). Add a foreground check against GitHub Releases metadata
   (the §37-designed non-Play channel): `desktop.version > app.maxTested` AND a newer
   release exists → banner + **"Update now"** → download APK → user-consented install
@@ -913,14 +913,47 @@ gated on Phase 12.1 signing (stable keystore, off-repo) and the scripted Mac can
   newer-desktop keeps the current honest warning. Accept: with a seeded Releases
   fixture, banner + button appear and the download → install-intent flow completes
   on device/emulator; with desktop ≤ maxTested nothing appears; compat-warning
-  integration test green.
-- [ ] **AAP-4 (P2)** T2 CI verify — GitHub Actions (INV-15-clean): regenerate golden
+  integration test green. **DONE — commits 6e2e935 (impl) + 4fc6253/920fcd5/1d83e90
+  (tests, RED→GREEN): AppUpdateChecker gates EXACTLY on
+  CompatibilityGate.check(desktop) is AboveTested AND release.versionCode >
+  installedVersionCode (≤maxTested/unknown ⇒ NotApplicable with ZERO network
+  requests — pinned by requestCount==0 in the MockWebServer truth table);
+  ReleaseParser fail-closed against the seeded
+  fixtures/releases/github-release-fixtures.json (T3 meta block authoritative,
+  -vcN tag fallback, .apk-asset filter — a notes-only release never offers);
+  ApkDownloader streams to the private cache with published-SHA-256 verification
+  (inline or .sha256 asset; mismatch discards); ApkInstaller = FileProvider
+  package-archive VIEW + GRANT_READ with canRequestPackageInstalls() feature
+  detection (REQUEST_INSTALL_PACKAGES declared, §37 no-store-assumption);
+  ConnectionCenterScreen: AboveTested + Available ⇒ the compat warning BECOMES
+  the banner + Update now; no update ⇒ the honest warning stays; ≤maxTested ⇒
+  NOTHING renders (ConnectionCenterUpdateUiTest 9/9 rendered-state matrix, en+zh).
+  ON-DEVICE: UpdateFlowInstrumentedTest green on zcode-atd (12/12 connected run)
+  — seeded loopback Releases server → banner → Update now → real download →
+  SHA-256 verified → FileProvider URI streams → system resolver receives the
+  install intent (the user-consent point).
+- [x] **AAP-4 (P2)** T2 CI verify — GitHub Actions (INV-15-clean): regenerate golden
   fixtures from the new open-repo `packages/shared` schemas, run the fixture suite +
   transport/protocol tests, compile the Android decoders against the new schemas.
   Accept: a rehearsed run against a synthetic "new desktop version" branch is green
   for ADDITIVE drift and red-with-report for BREAKING drift; the workflow contains
-  no relay traffic.
-- [ ] **AAP-5 (P3)** T3 build+publish — the decision matrix: ADDITIVE + suites green +
+  no relay traffic. **DONE — commits 50f9d24 + 7a87a46/09d4bc6/d426bbd (exoneration
+  loop fixes): tools/ci/verify-protocol.sh (drift-check vs the committed inventory →
+  regenerate ALL golden fixtures from the NEW schemas via the committed generators,
+  now env-selectable via ZCODE_REFERENCE_REPO/ZCODE_FIXTURES_OUT, dev defaults
+  unchanged → full unit suite in a scratch clone against the regenerated fixtures;
+  a red suite re-runs failing CLASSES in isolation — rule-7 mechanized — and only
+  classes that stay red classify BREAKING; generator failure = BREAKING) +
+  .github/workflows/protocol-verify.yml (workflow_dispatch upstream_ref, INV-15
+  audit header: checkout source text + JSON diff + JVM unit tests vs in-repo mocks
+  ONLY — no relay, no emulator, no credentials; BREAKING fails the job
+  red-with-report artifact). REHEARSED both directions on synthetic checkouts cut
+  from the real reference clone: additive (new exported schema) → drift
+  2-added/0-breaking → fixtures regenerated → suite green with the two documented
+  flake classes exonerated green-in-isolation → exit 0; breaking (consumed
+  sessionUsageStateSchema rename) → BREAKING report exit 1. Evidence:
+  docs/evidence/phase-6-gaps/rehearsal-{additive,breaking}-leg/.
+- [x] **AAP-5 (P3)** T3 build+publish — the decision matrix: ADDITIVE + suites green +
   canary green → fully automatic (versionCode bump, `CompatibilityGate.
   MAX_TESTED_DESKTOP` bump, baseline-profile regen, `assembleRelease`, sign, GitHub
   Release with notes auto-generated from the drift report); BREAKING → agent-drafted
@@ -931,11 +964,85 @@ gated on Phase 12.1 signing (stable keystore, off-repo) and the scripted Mac can
   resolution, disposable synthetic task). Accept: a rehearsed ADDITIVE drift runs
   T3 end-to-end to a signed draft release; a rehearsed BREAKING drift stops at the
   PR step with the report attached; matrix decisions recorded in the run log.
+  **DONE — PREREQUISITES: (1) signing established 2026-10-07 as the Phase-12.1
+  minimum — stable 4096-bit RSA keystore OFF-REPO at
+  ~/.zcode-android-release-keys/ (0600, never committed, never CI; cert
+  CN=ZCode Companion OU=ErnestHysa, SHA-256 731eec01…, 30-year validity; commit
+  764058a wires signingConfigs with absent-file ⇒ unsigned fallback); (2) the Mac
+  live canary SCRIPTED — spike `--stage canary` (CanaryStage.kt, commits
+  cad9ce7/913d104/d99afb3/7401ee1) with the vc34 guards NORMATIVE
+  (--workspace-match must resolve EXACTLY ONE workspace, --task-match the
+  disposable synthetic task, else REFUSE; never guesses) + tools/canary/
+  live-canary.sh (drill → redact.mjs → validate-fixture.mjs → canary-verdict.json;
+  INV-15 operator-Machine ritual, MockRelay via --relay for zero-side-effect
+  rehearsals; the production-relay canary run remains Ernest's operator step by
+  design). MATRIX: tools/release/decision.mjs + decision.test.mjs 7/7 — the
+  never-auto-ship-breaking gate is pinned EXHAUSTIVELY (no input combination with
+  driftVerdict=BREAKING yields auto-ship); publish.mjs re-verifies the decision
+  before acting and its DRAFT-only release contract keeps the public publish click
+  human. FULL CHAIN REHEARSAL (commits 67e8e4b, 568d32a evidence; pipeline.mjs +
+  publish.mjs + draft-break-pr.mjs + rehearsal/gh-recorder.mjs): seeded drift →
+  drift-report → T2 verify leg (reused AAP-4 legs) → canary green (MockRelay) →
+  ADDITIVE chain = auto-ship → versionCode 36→37 + versionName 0.11.5 +
+  MAX_TESTED_DESKTOP → 3.14.5 in a scratch ship repo → signed assembleRelease
+  (stable cert) → sha256 → drift-generated notes with the T4 meta block → gh
+  release create --DRAFT recorded (exactly one; baseline-profile regen recorded as
+  delegated to macrobenchmark.yml); BREAKING chain = agent-pr → draft PR stop with
+  HUMAN APPROVAL REQUIRED, NO release; 19/19 rehearsal assertions green; every
+  matrix decision recorded in pipeline-run-log-{additive,breaking}.json.
 
-Phase 6 exit gate: ☐ T4/T2/T3 ticked in landing order · AAP-5 prerequisites verified
+Phase 6 exit gate: ☑ T4/T2/T3 ticked in landing order · AAP-5 prerequisites verified
 and cited · one full rehearsal of the chain (seed drift → report → CI → release) with
 evidence in the phase summary · never-auto-ship-breaking asserted by a test on the
 decision matrix · APK artifact/version stated for the T4-bearing build.
+
+> **Phase 6 verification (2026-10-07 22:34:09 BST).** Verified by **ZCode**
+> (agentic coding harness, interactive session on Ernest's Mac) running model
+> **GLM-5.3-Flash** (`account:zai-individual-coding-plan/GLM-5.3-Flash`),
+> branch `fix/android-gaps` (20 commits `6e2e935..a7b04d3` this phase, NOT
+> pushed — the range ends at the evidence commit; this block and Ernest's
+> on-device test fixes land after it). Evidence: fresh phase-start baseline on the clean tree at b42faa3 =
+> **806 tests / 0 failing** (full unit suite, test-results cleared for a real
+> re-run, zero failing names — rule 7). Phase-exit FULL unit suite
+> (`gradle test --continue`, every module's test-results cleared) = **846 tests /
+> 0 failing — name-diff vs baseline: ZERO new failing names** (+40 new tests:
+> ReleaseParserTest 8, AppUpdateCheckerTest 9, ApkDownloaderTest 5,
+> ApkInstallerTest 2, AppUpdateControllerTest 6, ConnectionCenterUpdateUiTest 9,
+> decision.test.mjs 7 counted under node --test, not gradle — all green).
+> Instrumented `:app:connectedDebugAndroidTest` on a REBUILT emulator stack
+> (the machine's emulator package + ATD system image were missing — reinstalled
+> via sdkmanager for this run; zcode-atd AVD, API 30) = **12 tests / 0
+> failures**, including the new on-device `UpdateFlowInstrumentedTest` full
+> flow (seeded loopback Releases server → banner → Update now → download →
+> SHA-256 verify → FileProvider URI → system-resolver install handoff).
+> Drift-tool + release-tool suites (`node --test`): decision.test.mjs **7/7**
+> (the exhaustive never-auto-ship-breaking pin). The full-chain rehearsal ran
+> **19/19 assertions green** (docs/evidence/phase-6-gaps/chain-rehearsal.log):
+> ADDITIVE drift → verify green → canary green (MockRelay, INV-15 — the
+> production-relay canary run remains the documented operator ritual) →
+> auto-ship to a SIGNED DRAFT release v0.11.5-vc37 (stable keystore cert
+> 731eec01…, T4 meta block embedded, exactly one gh release call recorded) and
+> BREAKING drift → agent-PR → draft-PR stop with HUMAN APPROVAL REQUIRED and NO
+> release. `:app:assembleRelease` rebuilt →
+> `app/build/outputs/apk/release/app-release.apk` (44,248,775 bytes, signed,
+> cert SHA-256 731eec01…, APK sha256 86383cf6f3edd5eacb10caf7b586b64cd0dcb1f0e48adb140861a432ed34a6c1),
+> **versionName 0.11.4-phase11 (versionCode 36)** — the T4-bearing build; the
+> rehearsal's vc37 bump lived in the disposable ship clone only. Rule-10 docs:
+> architectural.md rev **v1.0.5** (§37 update-flow + signing prerequisite
+> pointers, §39.4 Stage-2 pointer) + docs/runbooks/release.md; no §13.3/§26
+> delta and no new ZCode wire surface (GitHub Releases metadata is a third-party
+> API, not the protocol — no v4-wire.md entry required). Rule-5 note: the
+> seeded `fixtures/releases/github-release-fixtures.json` is a THIRD-PARTY API
+> test input (GitHub), not a ZCode-protocol golden fixture; the ZCode-wire
+> fixtures were regenerated only inside the verify rehearsal, unchanged.
+> Deferred-scope audit: the BREAKING auto-ship gate is absolute (exhaustively
+> test-pinned); marketplace/purchase/automation-write surfaces untouched.
+> Incident recorded: the ambient drift-branch smoke (draft-break-pr without
+> --ship-repo-root) briefly swept uncommitted work into commit cc47c29 —
+> restored byte-exact from the reflog (incl. Ernest's untracked
+> ui-ux/README.md); ship-repo isolation is now exercised by every rehearsal
+> run. Ernest's untracked `ui-ux/` directory was deliberately left out of every
+> commit. No push (rule 1).
 
 ## Definition of done (android-gaps remediation)
 
