@@ -124,14 +124,11 @@ fun runCanaryStage(
         log("canary task: $sessionId (synthetic match ok)")
 
         // ── leg 3: bridge + stream (first pushed frame) ─────────────────────
-        val ready = canaryRequest(client, "workspace-bridge-ready") {
-            client.sendWorkspaceBridgeOpen(requestId = "spike-canary-bridge", workspaceKey = workspaceKey!!, taskId = sessionId)
-        }
-        if (ready == null) {
-            writeReport("red", "workspace-bridge-ready timed out")
-            return
-        }
-        client.awaitChannelReady(15_000)
+        // The listener is attached BEFORE the bridge-open: the desktop (and the
+        // MockRelay) push the first frame as soon as the bridge is ready — the
+        // subscribe stage's own ordering (listen → call). EventFires dispatch to
+        // attached listeners even before the channel Initialize, so this is
+        // race-free against the mock's immediate push.
         var frameSeen = false
         val listenArg = RpcValue.Obj(kotlinx.serialization.json.buildJsonObject {
             put("workspacePath", kotlinx.serialization.json.JsonPrimitive(wsPath))
@@ -139,6 +136,14 @@ fun runCanaryStage(
         })
         val listenId = client.channel.listen("zcode-agent", "onDynamicConversationFrame", listenArg) { _ -> frameSeen = true }
         try {
+            if (!mockMode) client.awaitChannelReady(15_000)
+            val ready = canaryRequest(client, "workspace-bridge-ready") {
+                client.sendWorkspaceBridgeOpen(requestId = "spike-canary-bridge", workspaceKey = workspaceKey!!, taskId = sessionId)
+            }
+            if (ready == null) {
+                writeReport("red", "workspace-bridge-ready timed out")
+                return
+            }
             if (!mockMode) {
                 // ── leg 4: the v4 handshake (live only; the mock answers no channel calls)
                 val hello = client.channel.call("zcode-agent", "helloConversationV4", RpcValue.Arr(emptyList()))
