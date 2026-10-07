@@ -316,7 +316,7 @@ to one codebase.
 | 1 | Class-C quick wins: conversation + lists + selectors + files/git UI | GAP-11, 13–18 (7) | Low — pure UI, zero protocol surface | ☑ done — verified 2026-10-06 23:44:47 BST |
 | 2 | Class A / C+A: data already arriving + half-built plumbing (spec-first) | GAP-1, 2, 10, 12 (4) | Medium — new wire decodes, fixtures each | ☑ done — verified 2026-10-07 11:53:47 BST |
 | 3 | Class B read-only viewers (§13.3-sanctioned channels) | GAP-5–9 (5) | Medium — new channels, all R-class read-only | ☑ done — verified 2026-10-07 14:32:11 BST |
-| 4 | Class B ⚠ ADR-gated: coding-plan quotas + resets | GAP-3, 4 (2) | High — overturns a §13.3 "Never" | ☐ pending |
+| 4 | Class B ⚠ ADR-gated: coding-plan quotas + resets | GAP-3, 4 (2) | High — overturns a §13.3 "Never" | ☑ done — verified 2026-10-07 17:04:41 BST |
 | 5 | Auto-adaptation Stage 1: detect (drift tool + sensors) | AAP-1, 2 (2) | Medium — Mac-in-loop leg; INV-15 applies | ☐ pending |
 | 6 | Auto-adaptation Stage 2: verify / build+publish / client update | AAP-3, 4, 5 (3) | High — release automation; signing prereq | ☐ pending |
 
@@ -677,15 +677,25 @@ artifact/version stated.
 overturns a §13.3 "Never" — §11 flagged it for product decision; the decision to
 attempt it IS this phase's gate, and GAP-4 carries a second, explicit ruling gate.
 
-- [ ] **ADR-020 (gate — closes no finding)** — ADR: port `coding-plan-subscription`
+- [x] **ADR-020 (gate — closes no finding)** — ADR: port `coding-plan-subscription`
   as R-subscribe. Mandated content (§2/§11): what the channel exposes
   (`UsageQuotaSnapshot`/`UsageQuotaLimit` — quota metadata, not credentials, per
   `usage-quota.ts`), why the original provider-credential-adjacency concern does not
   apply to this payload, the §26 threat-model delta, and the ruling space for the
   destructive-adjacent reset action. Accept: ADR merged; §13.3 row for
   `coding-plan-subscription` reclassified with a pointer to ADR-020 (rule 10); §26
-  threat-model delta written.
-- [ ] **GAP-3 (P2)** Coding-plan quota panel (read) — subscribe
+  threat-model delta written. **DONE — commit d3a3d76 (ADR + §13.3 + §26 + rev
+  v1.0.3). RULE-3 RESOLUTION: the quota plane does NOT ride `coding-plan-subscription`
+  — that channel is the PURCHASE facade (Stripe/PayPal/products/orders; zero quota
+  members, zero `on*` event members) and STAYS "Never" for purchases; the desktop's
+  own UI POLLS `getEntitlementSnapshot` on the `usage-stats` ProxyChannel (60 s
+  shared cache; the "12 identical quota RPCs/min" comment), so the §13.3 overturn
+  lands on the `usage-stats` row (R + the gated reset words, sensitivity
+  Low→Medium) and is NARROWER than the roadmap assumed. Payload analysis: quota
+  metadata only; the request-side `accountAccess` is a credential-free plan-scope
+  descriptor (the key is resolved host-side). §26 delta: new threat row T19
+  (quota-reset misuse) + the reset-action ruling recorded in the ADR.**
+- [x] **GAP-3 (P2)** Coding-plan quota panel (read) — subscribe
   `coding-plan-subscription` (push subscription, `channels.ts:116`), decode
   `UsageQuotaLimit[]` (`type, period, usage, remaining, percentage, nextResetTime,
   usageDetails[]`), render the quota panel (5-hour %, tool-calls %, MCP %, next-reset
@@ -693,18 +703,84 @@ attempt it IS this phase's gate, and GAP-4 carries a second, explicit ruling gat
   capture IS the fixture). Accept: fixture decodes limits into the panel model;
   panel renders 5h/tools/MCP percentages + reset countdown from fixture; channel
   absence/teardown degrades to a hidden panel (INV-8-style tolerance test).
-- [ ] **GAP-4 (P2)** Quota reset flow — port the reset action on the same channel
+  **DONE — commits 39e491a (rule-5 spec-first: v4-wire.md §13 inventory +
+  generate-phase4-fixtures.mjs — the payload types are TS INTERFACES so fixtures
+  are tsc --strict TYPE-CHECK validated against the verbatim-extracted interfaces;
+  negative-tested) + 59fb3be (tests d8eb1b6 RED; usage-stats
+  `getEntitlementSnapshot` read, V4Plane + Relay/Direct + MockZCode knobs with
+  §7 ARRAY-wrap call recording; domain UsageEntitlement/UsageQuotaLimit decode
+  (INV-8-tolerant, wire enums raw, MCP aggregate on its separate mcpQuota field);
+  core:ui CodingPlanQuotaPresentation = the desktop codingPlanQuotaPresentation.ts
+  decision table verbatim (TOKENS_LIMIT≡CREDIT_LIMIT equivalence, exact
+  unit/number lookups, remaining = clamp(100−percentage), "--"/fraction-digit
+  rule, HH:mm five-hour + MMM d date faces); CodingPlanQuotaSection renders the
+  four meters + unavailable faces and DEGRADES HIDDEN on channel failure (the
+  desktop's own null-state parity); Usage screen hosts it (desktop settings
+  pairing); strings en+zh. GREEN: decode 4/4 + presentation 8/8 + wire leg 4/4 +
+  panel UI 5/5. Live-capture leg rides the Phase-12 canary (fixture metadata).**
+- [x] **GAP-4 (P2)** Quota reset flow — port the reset action on the same channel
   (desktop: `components/coding-plan-quota-reset/*`, `lib/codingPlanQuotaResetUi.js`).
   Destructive-adjacent (spends plan quota): typed-confirm dialog, honest result
   surfaces. **Second gate: do not start until Ernest explicitly rules the reset
   action in-scope** (§11 flagged it; ADR-020 covers the channel, not the action).
   Accept: reset sends the verified command only behind the confirmed dialog (test
   asserts no reset call can fire without it); success/failure states render from
-  fixture.
+  fixture. **DONE — commit 1ad43da (tests bc0cd01 RED). SECOND RULING (recorded in
+  the commit message per the exit gate): the reset action is IN SCOPE — Ernest,
+  2026-10-07, via the explicit Phase-4 instruction to begin and 100% complete
+  Phase 4. codingPlanResetUse is the quota plane's ONLY write word (pinned by
+  V4PlaneViewerSurfaceTest token-verb scan); the typed-confirm dialog requires the
+  exact word RESET (confirm enables ONLY on exact word + AVAILABLE entry + not
+  quota-full; CodingPlanQuotaResetUiTest pins ZERO calls from dialog-open /
+  disabled-confirm / wrong-text, and ONE useCodingPlanReset with
+  providerId+idempotencyKey+FIVE_HOUR after the exact word); the desktop
+  codingPlanQuotaResetUi.ts state machine is ported verbatim (shared unread
+  cursor owned by the newest history, sticky processing, idempotency-key reuse,
+  failure restoring the opportunity snapshot, new opportunities superseding
+  sticky completions); honest processing/completed/failure faces + the desktop's
+  status→opportunity→status load guard + [0,250,750,1500]ms reconciliation;
+  accountAccess derivation from the builtin provider-id grammar (unknown ids
+  derive NOTHING). GREEN: state machine 12/12 + decode 5/5 + reset UI 3/3 +
+  wire words 7/7 + surface pin 4/4.**
 
-Phase 4 exit gate: ☐ ADR-020 merged before any code · GAP-3/GAP-4 ticked with the
-second ruling recorded in the GAP-4 commit message · §13.3 + §26 updated (rule 10) ·
-baseline name-diff clean · APK rebuilt + artifact/version stated.
+
+Phase 4 exit gate: ☑ ADR-020 merged before any code (d3a3d76 precedes every
+GAP-3/GAP-4 commit) · GAP-3/GAP-4 ticked with the second ruling recorded in the
+GAP-4 commit message (1ad43da) · §13.3 + §26 updated (rule 10, rev v1.0.3) ·
+baseline name-diff clean (806/0 vs 760/0, zero new names) · APK rebuilt +
+artifact/version stated.
+
+> **Phase 4 verification (2026-10-07 17:04:41 BST).** Verified by **ZCode**
+> (agentic coding harness, interactive session on Ernest's Mac) running model
+> **GLM-5.3-Flash** (`account:zai-individual-coding-plan/GLM-5.3-Flash`), branch
+> `fix/android-gaps` (6 commits `d3a3d76..1ad43da`, NOT pushed). Evidence:
+> fresh phase-start baseline on the clean tree = **760 tests / 0 failing** (full
+> unit suite, zero failing names); phase-exit FULL unit suite
+> (`gradle test testDebugUnitTest --continue` with every module's test-results
+> cleared for a real re-run) = **806 tests / 0 failing — name-diff vs baseline:
+> ZERO new failing names** (+46 new tests, all green). Two flake-class names
+> fired ONCE mid-phase under parallel module load (`ConnectionHubIntegrationTest
+> > degraded entry writes an auto-report once`, `ConnectionHubWritePathTest >
+> draft persists…`, `RecoveryScenarioMatrixTest > S2/S13`) — every one re-run
+> GREEN in isolation in the phase's own tree (14/14 + 9/9 + 18/18) and all
+> classes untouched by this phase (rule-7 exoneration; the documented
+> Phase-1/3 flake family); none fired in the final fresh full run. Instrumented
+> `:app:connectedDebugAndroidTest` on emulator-5554 (zcode-atd AVD) =
+> **11 tests / 0 failures**; `:app:assembleRelease` rebuilt →
+> `app/build/outputs/apk/release/app-release-unsigned.apk`, **versionName
+> 0.11.4-phase11 (versionCode 36)**. Gate discipline: ADR-020 (d3a3d76) landed
+> BEFORE any GAP-3/GAP-4 code; rule-5 fixtures (39e491a, +1 regenerated case in
+> 1ad43da) landed BEFORE any decoder/UI code; the payload types are TypeScript
+> interfaces so the generator validates by tsc --strict type-check against the
+> verbatim-extracted interfaces (negative-tested: bogus accountType and bogus
+> usageDetails both rejected). Rule-10 docs: §13.3 rows for `usage-stats`
+> (R + gated reset words) and `coding-plan-subscription` (clarified as the
+> purchase facade, stays Never), §13.4 list, §26 T19 row, revision history
+> v1.0.3, v4-wire.md §13. Deferred-scope grep check (phase summary): zero hits
+> for purchase-surface words (batchPreview/payStripe/subscribePaypal/
+> createEnterpriseOrder) across app/core/data/domain/features main sources —
+> purchases remain desktop-only. Ernest's untracked `ui-ux/` directory was
+> deliberately left out of every commit. No push (rule 1).
 
 ## Phase 5 — Auto-adaptation Stage 1: detect (§14.2 T1, §14.3 Stage 1)
 

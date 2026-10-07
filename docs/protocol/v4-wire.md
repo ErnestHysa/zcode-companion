@@ -658,8 +658,10 @@ Types in coding-plan-reset.ts (interfaces): `CodingPlanResetType =
   available; failure restores the pre-click opportunity count/expiry and REUSES
   the idempotency key; a new valid opportunity (`expireAt > now`) supersedes an
   old sticky completion; optimistic quota-override (pending until the next
-  entitlement refresh) completes the desktop's flow. DONE display window =
-  2600 ms. Confetti/auto-play garnish is NOT ported.
+  entitlement refresh. Confetti/auto-play/the-2.6-s-auto-collapse garnish is
+  NOT ported — the phone's completion note persists until the next status
+  refresh (the section re-reads quotas immediately after a confirmed reset, so
+  the desktop's quotaOverridePending optimism has no window to fill).
 - Gating (roadmap accept): `useCodingPlanReset` is reachable ONLY behind the
   typed-confirm dialog — the word `RESET` must be typed before confirm enables;
   a UI test pins ZERO transport calls without it. The typed surface carries
