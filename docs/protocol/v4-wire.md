@@ -553,3 +553,115 @@ rows/range：只读、无状态、超时重发安全）", transport.ts:363-366).
   authorization?: {type: "oauth_authorization_code", authorizationUrl,
   startedAt}}`. Status display renders these fields VERBATIM — no invented
   states (roadmap accept).
+
+## 13. Phase 4 coding-plan quota plane (ADR-020) — `[VERIFIED 2026-10-07, Phase 4]`
+
+Read directly from the reference clone @ `29628c9` (paths cited per entry) for the
+GAP-3/GAP-4 roadmap entries. **Channel resolution (ADR-020):** the quota plane rides
+the **`usage-stats`** ProxyChannel — `ICodingPlanSubscriptionService`
+(`coding-plan-subscription`, channels.ts:116) is the PURCHASE facade
+(Stripe/PayPal/products/orders) with no quota member and no `on*` event member; the
+desktop's own UI POLLS `getEntitlementSnapshot` (useUsageEntitlement.ts:26-80;
+`USAGE_ENTITLEMENT_ACCESS_REFRESH_MS = 60_000` — the desktop comment records merging
+12 identical quota RPCs/min). There is NO quota push channel anywhere in the desktop
+(grep: zero event members on both channels). The §13.3 overturn is therefore
+narrower than the roadmap assumed: `usage-stats` gains the read + the ADR-020-gated
+reset words; `coding-plan-subscription` STAYS "Never" (purchases from a phone are
+out of scope, no ruling path in this campaign). Payload types are TypeScript
+INTERFACES (not zod) — the golden fixtures are validated by the committed generator
+TYPE-CHECKING each payload against the verbatim-extracted interfaces
+(`tools/capture/generate-phase4-fixtures.mjs` →
+`fixtures/protocol/phase4-wire-fixtures.json`; `tsc --noEmit`, rule 5's
+committed-generator path adapted to the surface's schema form). Channel-call
+convention = §7 (promise args ARRAY-wrapped). The phone polls CLIENT-SIDE (one
+read per Usage-screen load + explicit refresh — the desktop's 60 s shared cache is
+a four-surface optimization the single-surface phone does not reproduce). §13.3
+fallback: read failure / channel refusal ⇒ the quota section renders NOTHING
+(hidden) — the desktop's own `ChatCodingPlanUsageRemainingPanel` returns `null`
+without state (CodingPlanContextUsage.tsx:206-208); a `no_plan`/
+`not_authenticated` payload face renders the honest unavailable notice.
+
+### 13.1 `getEntitlementSnapshot` → `UsageEntitlementSnapshot` (GAP-3)
+
+- Phone call: `usage-stats` channel, method `getEntitlementSnapshot`, args
+  `Arr([{}])` (all `UsageEntitlementRequest` fields optional; the host resolves the
+  current account/provider — the phone has no provider tabs to arbitrate; ADR-020).
+- Result (usage-stats.ts:73-89, interface):
+  `{generatedAt: number, serverTime?: number, authenticated: boolean,
+  unavailableReason?: "not_authenticated"|"not_configured"|"no_plan"|"unavailable",
+  startPlanExpired?: boolean, teamPlanUnavailableReason?: "expired"|"unassigned",
+  context?: {scope: "personal"|"team", …} | null,
+  provider: {id: string, name: string} | null,
+  remaining: {count: number, isShow: boolean, percentage?: number,
+  nextResetTime?: number|null} | null,
+  subscription: {identityType, identityMasked, details[]} | null,
+  quota: UsageQuotaSnapshot | null,
+  mcpQuota?: {serverTime: number, level: string|null, scope, aggregate:
+  UsageQuotaLimit} | null}`.
+- `UsageQuotaSnapshot` (usage-quota.ts) = `{level: string|null, limits:
+  UsageQuotaLimit[]}`; `UsageQuotaLimit` = `{type: string, bucketId?, userPlanId?,
+  periodStart?, periodEnd?, period?, meter?, unitType?, planId?, unit?, number?,
+  usage?, currentValue?, remaining?, percentage?, nextResetTime?, usageDetails:
+  [{modelCode, displayName?, usage}]}` (usageDetails REQUIRED; everything else
+  optional), `type` kept RAW (unknown future values never guessed).
+- Meter projection (the desktop `codingPlanQuotaPresentation.ts` port — VERBATIM
+  semantics): 5-hour = find(`TOKENS_LIMIT`, unit=3, number=5); weekly =
+  find(`TOKENS_LIMIT`, unit=6); tool-calls = find(`TIME_LIMIT`, unit=5, number=1);
+  MCP = `mcpQuota.aggregate` (a separate entitlement field, NOT in `limits[]`).
+  `TOKENS_LIMIT` ≡ `CREDIT_LIMIT` are the SAME category (zai team backends emit
+  `CREDIT_LIMIT`; bigmodel emits `TOKENS_LIMIT` — identical unit/number semantics,
+  codingPlanQuotaPresentation.ts:16-33). A limit matches only on category + exact
+  `unit` (+ exact `number` when the query carries one).
+- Display semantics (same file:60-131): `percentage` is the USED share — remaining
+  = clamp(100 − percentage, 0, 100), `null` when percentage is absent/non-finite;
+  full ⇔ remaining = 100 (reset affordance hidden); value label = "--" when null,
+  else the number with max 0 fraction digits (≥10) / 1 (<10) + "%"; reset-time
+  labels: 5-hour = HH:mm (h23) always (`formatContextFiveHourResetTime`), weekly /
+  tools / MCP = "MMM d" (`formatQuotaResetTime` format "date"; MCP resets at
+  00:00 daily — the schema comment pins the date-only choice).
+- Unavailable face: `!remaining && limits.length === 0 && !planLevel` ⇒ the
+  desktop's unavailable notice carrying `unavailableReason` verbatim
+  (CodingPlanContextUsage.tsx:254-262).
+
+### 13.2 Reset words (GAP-4; ADR-020-sanctioned, typed-confirm gated)
+
+Types in coding-plan-reset.ts (interfaces): `CodingPlanResetType =
+"FIVE_HOUR"|"WEEK"`; `CodingPlanResetStatusSnapshot` = `{availableFiveHourResets:
+[{expireAt}], availableWeekResets: [{expireAt}], latestFiveHourResetHistory:
+{usedAt}|null, latestWeekResetHistory: {usedAt}|null, hasUnreadHistory: boolean}`;
+`CodingPlanResetOpportunityRequest`/`CodingPlanResetUseRequest` extend
+`CodingPlanResetScopeRequest {preferredProviderId, accountAccess}` with
+`idempotencyKey` (+ `resetType` for use); results `{granted, nextTryAt?}` /
+`{used: true}`.
+
+- Scope descriptors: `preferredProviderId` = the entitlement's `provider.id`
+  (builtin grammar `account:<family>-<planKind>`,
+  model-provider-types.ts:7-16). `accountAccess` = the phone-side DERIVED
+  descriptor `{type: "zhipu-account", accountType: "zai"|"bigmodel", mode:
+  "start-plan"|"individual-coding-plan"|"team-coding-plan"|"off-peak", entitled:
+  boolean}` (`zcodeProviderAccountAccessSchema`, zcode-protocol/index.ts:836-850 —
+  credential-free: the host resolves the actual key from its own store;
+  ADR-020 §why). The phone derives it ONLY from the builtin id grammar + the
+  entitlement's authenticated state — never guessed for unknown ids (no reset
+  surface for them).
+- Call sequence (the desktop `useCodingPlanResetUi`/coordinator port):
+  `getCodingPlanResetStatus` (read) → apply the status state machine →
+  `requestCodingPlanResetOpportunity` (scope-level grant evaluation, throttled by
+  the coordinator; "status 只查询已发放机会；必须再调 /opportunity，否则后端不会执行
+  资格判断") → on manual confirm `useCodingPlanReset` → status reconciliation
+  retries ([0, 250, 750, 1500] ms desktop schedule) until `usedAt` confirms →
+  `markCodingPlanResetHistoryRead` after the completion display.
+- State machine (lib/codingPlanQuotaResetUi.ts port — pure functions): entry
+  status available|processing|completed; completion requires the server's
+  `usedAt` (unread flag owned by the NEWEST of the two histories); processing is
+  STICKY — a pre-consume status snapshot never flips processing back to
+  available; failure restores the pre-click opportunity count/expiry and REUSES
+  the idempotency key; a new valid opportunity (`expireAt > now`) supersedes an
+  old sticky completion; optimistic quota-override (pending until the next
+  entitlement refresh) completes the desktop's flow. DONE display window =
+  2600 ms. Confetti/auto-play garnish is NOT ported.
+- Gating (roadmap accept): `useCodingPlanReset` is reachable ONLY behind the
+  typed-confirm dialog — the word `RESET` must be typed before confirm enables;
+  a UI test pins ZERO transport calls without it. The typed surface carries
+  exactly ONE write word on the whole plane (`codingPlanResetUse`), pinned by
+  `V4PlaneViewerSurfaceTest` (INV-9 stays intact for the viewer group).
