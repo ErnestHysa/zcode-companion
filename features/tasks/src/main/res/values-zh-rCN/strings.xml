@@ -25,4 +25,14 @@
     <string name="tasks_a11y_expand">展开</string>
     <string name="tasks_a11y_collapse">收起</string>
     <string name="tasks_group_a11y">工作区 %1$s，%2$d 个任务。点按以%3$s。</string>
+<!-- GAP-6：只读定时任务 + 闲时任务区（v4-wire.md §12.2） -->
+<string name="automations_title">定时任务</string>
+<string name="automations_loading">加载中…</string>
+<string name="automations_empty">暂无定时任务</string>
+<string name="automations_unavailable">当前连接不支持定时任务</string>
+<string name="automations_offpeak">闲时任务</string>
+<string name="automation_next_run">下次 %1$s</string>
+<string name="automation_runs">%1$d 次</string>
+<string name="automation_on">开</string>
+<string name="automation_off">关</string>
 </resources>

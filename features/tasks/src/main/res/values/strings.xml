@@ -26,4 +26,14 @@
     <string name="tasks_a11y_expand">expand</string>
     <string name="tasks_a11y_collapse">collapse</string>
     <string name="tasks_group_a11y">Workspace %1$s, %2$d tasks. Tap to %3$s.</string>
+<!-- GAP-6: read-only automations + off-peak section (v4-wire.md §12.2) -->
+<string name="automations_title">Automations</string>
+<string name="automations_loading">Loading…</string>
+<string name="automations_empty">No automations yet</string>
+<string name="automations_unavailable">Automations are unavailable on this connection</string>
+<string name="automations_offpeak">Idle-time tasks</string>
+<string name="automation_next_run">Next %1$s</string>
+<string name="automation_runs">%1$d runs</string>
+<string name="automation_on">On</string>
+<string name="automation_off">Off</string>
 </resources>

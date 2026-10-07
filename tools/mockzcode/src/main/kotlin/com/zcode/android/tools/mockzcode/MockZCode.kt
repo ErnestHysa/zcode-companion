@@ -174,6 +174,10 @@ class MockZCode(
         // ---------------- Phase 3 viewers (GAP-5..9; v4-wire.md §12) ----------------
         /** Scriptable app usage snapshot (getAppUsageStats result; null = typed fault). */
         var appUsageStats: JsonObject? = null
+        /** Scriptable automations (listAutomations result items; null = typed fault). */
+        var listAutomations: JsonArray? = null
+        /** Scriptable off-peak tasks (off-peak-task channel list items; null = typed fault). */
+        var offPeakTaskList: JsonArray? = null
         /** Channels the mock REFUSES (authorization-refused fallback fixtures, §13.3). */
         var refuseChannels: Set<String> = emptySet()
         /** Reject attachment transactions with the verified oversize/grammar faults. */
@@ -1216,6 +1220,7 @@ class MockZCode(
                 "file" -> handleFilePromise(id, name, argAsObject(arg))
                 "model-selection" -> handleModelSelectionPromise(id, name)
                 "zcode-task" -> handleTaskPromise(id, name, argAsObject(arg))
+                "off-peak-task" -> handleOffPeakTaskPromise(id, name)
                 else -> respondError(id, "fault.mock.unknownChannel:$channelName")
             }
             return
@@ -1450,6 +1455,15 @@ class MockZCode(
                     respondError(id, "fault.mock.unscripted:getAppUsageStats")
                 } else {
                     respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(result))
+                }
+            }
+            "listAutomations" -> {
+                val items = script.listAutomations
+                if (items == null) {
+                    respondError(id, "fault.mock.unscripted:listAutomations")
+                } else {
+                    // The desktop method returns the array directly (ProxyChannel convention).
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(items.map { RpcValue.Obj(it) }))
                 }
             }
             "attachmentBeginV4" -> {
@@ -2022,7 +2036,20 @@ class MockZCode(
      * (packages/services/src/session/zcodeTaskService.ts:379, docs/protocol/
      * phase10-direct.md §6) — the direct task-list plane fixture.
      */
-    private fun handleTaskPromise(id: Int, name: String?, arg: JsonObject?) {
+private fun handleOffPeakTaskPromise(id: Int, name: String?) {
+        if (name != "list") {
+            respondError(id, "fault.mock.unknownMethod:off-peak-task-$name")
+            return
+        }
+        val items = script.offPeakTaskList
+        if (items == null) {
+            respondError(id, "fault.mock.unscripted:offPeakTaskList")
+        } else {
+            respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(items.map { RpcValue.Obj(it) }))
+        }
+    }
+
+        private fun handleTaskPromise(id: Int, name: String?, arg: JsonObject?) {
         when (name) {
             "listTasks" -> respond(
                 id, ChannelWire.ResponseType.PromiseSuccess,

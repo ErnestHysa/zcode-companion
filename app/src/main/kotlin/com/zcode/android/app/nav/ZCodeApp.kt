@@ -205,6 +205,7 @@ fun ZCodeApp(
                 .collectAsState(initial = emptyList())
             val taskState by tasksVm.state.collectAsState()
             TasksRoute(
+                container = container,
                 vm = tasksVm,
                 onTaskClick = { task ->
                     container.log.info("tasks.open", "task=${task.taskId.take(24)} title=${task.title.take(40)}")
@@ -292,6 +293,7 @@ private fun PairingHostRoute(pairingVm: PairingViewModel, scannerContent: @Compo
 
 @Composable
 private fun TasksRoute(
+    container: AppContainer,
     vm: TasksViewModel,
     onTaskClick: (com.zcode.android.domain.model.Task) -> Unit,
     onOpenSettings: () -> Unit,
@@ -322,6 +324,7 @@ private fun TasksRoute(
         onRetry = vm::retryConnection,
         onRefresh = vm::refresh,
         onRepairPairing = vm::repairPairing,
+        automationsPort = container.automationsPort,
     )
 }
 

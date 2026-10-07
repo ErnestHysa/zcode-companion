@@ -1,6 +1,7 @@
 package com.zcode.android.app.connect
 
 import com.zcode.android.app.settings.UsagePort
+import com.zcode.android.features.tasks.port.AutomationsPort
 import java.util.TimeZone
 import kotlinx.coroutines.CancellationException
 
@@ -26,6 +27,31 @@ class DefaultUsagePort(
         } catch (e: Exception) {
             hub.log.warn("usageport.appUsage", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
             UsagePort.Result(null, e.message ?: "usage is unavailable on this connection")
+        }
+    }
+}
+
+class DefaultAutomationsPort(
+    private val hub: ConnectionHub,
+) : AutomationsPort {
+    override suspend fun lists(): AutomationsPort.Lists {
+        val target = hub.activeWorkspaceTarget()
+        val workspacePath = target?.first
+            ?: return AutomationsPort.Lists(null, null, "no active workspace")
+        // §7.11 identity key (identity ?: path) — the desktop's resolveWorkspaceKey.
+        val workspaceKey = target.second?.trim()?.takeIf { it.isNotEmpty() } ?: workspacePath
+        return try {
+            val tools = hub.viewerTools()
+            AutomationsPort.Lists(
+                automations = tools.automations(workspacePath, target.second),
+                offPeak = tools.offPeakTasks(workspaceKey),
+                error = null,
+            )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("automationsport.lists", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            AutomationsPort.Lists(null, null, e.message ?: "automations unavailable")
         }
     }
 }

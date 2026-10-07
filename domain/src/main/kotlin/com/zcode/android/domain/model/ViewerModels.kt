@@ -242,3 +242,130 @@ internal fun kotlinx.serialization.json.JsonElement.asObject(where: String): Jso
 
 internal fun kotlinx.serialization.json.JsonElement.asJsonObjectOrNull(): JsonObject? =
     this as? JsonObject
+
+internal fun JsonObject.boolReq(key: String): Boolean =
+    (this[key] as? JsonPrimitive)?.content?.toBooleanStrictOrNull()
+        ?: throw RowDecodeException("$key missing (required boolean)")
+
+internal fun JsonObject.intOrNull(key: String): Int? =
+    when (val v = this[key]) {
+        null, is kotlinx.serialization.json.JsonNull -> null
+        is JsonPrimitive -> v.content.toIntOrNull()
+        else -> null
+    }
+
+internal fun JsonObject.intList(key: String): List<Int> =
+    (this[key] as? JsonArray)?.map { el ->
+        (el as? JsonPrimitive)?.content?.toIntOrNull() ?: throw RowDecodeException("$key entry not an int")
+    } ?: emptyList()
+
+
+// ================================================================== GAP-6: automations + off-peak
+
+/**
+ * One automation of the `zcode-agent` → `listAutomations` channel payload
+ * (v4-wire.md §12.2): the CLI protocol face (zcodeAutomationProtocolSchema,
+ * strict) PLUS the channel-only fields of the desktop type (automation-types.ts:65-113).
+ * `lifecycleStatus`/`unit` stay RAW — unknown values render verbatim, never guessed.
+ */
+data class AutomationRow(
+    val automationId: String,
+    val title: String,
+    val cronExpr: String,
+    val prompt: String,
+    val mode: String?,
+    val targetTaskId: String?,
+    val enabled: Boolean,
+    /** "active" | "completed" | "failed" | "paused" (closed enum, kept raw). */
+    val lifecycleStatus: String,
+    val nextRunAt: Long?,
+    val lastRunAt: Long?,
+    val runCount: Int,
+    val recurring: Boolean,
+    val maxRuns: Int?,
+    /** Present when the real interval is NOT expressible in cron (schema comment) — display it then. */
+    val scheduleRule: ScheduleRule?,
+    val workspaceKey: String,
+    /** "local" | "remote" (closed enum, kept raw). */
+    val locationKind: String,
+) {
+    data class ScheduleRule(
+        val unit: String,
+        val interval: Int,
+        val hour: Int,
+        val minute: Int,
+        val anchorAt: Long,
+        val weekdays: List<Int>,
+        val monthDays: List<Int>,
+    )
+
+    companion object {
+        fun decodeList(obj: JsonObject): List<AutomationRow> =
+            obj.arrayReq("automations").map { el ->
+                val o = el.asObject("automation")
+                AutomationRow(
+                    automationId = o.strReq("automationId"),
+                    title = o.strReq("title"),
+                    cronExpr = o.strReq("cronExpr"),
+                    prompt = o.strReq("prompt"),
+                    mode = o.strOrNullN("mode"),
+                    targetTaskId = o.strOrNullN("targetTaskId"),
+                    enabled = o.boolReq("enabled"),
+                    lifecycleStatus = o.strReq("lifecycleStatus"),
+                    nextRunAt = o.longOrNullN("nextRunAt"),
+                    lastRunAt = o.longOrNullN("lastRunAt"),
+                    runCount = o.intReq("runCount"),
+                    recurring = o.boolReq("recurring"),
+                    maxRuns = o.intOrNull("maxRuns"),
+                    scheduleRule = o.objOrNull("scheduleRule")?.let { r ->
+                        ScheduleRule(
+                            unit = r.strReq("unit"),
+                            interval = r.intReq("interval"),
+                            hour = r.intReq("hour"),
+                            minute = r.intReq("minute"),
+                            anchorAt = r.longReq("anchorAt"),
+                            weekdays = r.intList("weekdays"),
+                            monthDays = r.intList("monthDays"),
+                        )
+                    },
+                    workspaceKey = o.strReq("workspaceKey"),
+                    locationKind = o.strReq("locationKind"),
+                )
+            }
+        }
+}
+
+/**
+ * One off-peak (闲时) task of the `off-peak-task` channel `list` payload
+ * (v4-wire.md §12.2): the protocol snapshot face (zcodeOffPeakTaskSnapshotSchema —
+ * "最小字段面。不暴露 serverTicketId") plus the display fields of the desktop
+ * channel type (off-peak-types.ts:102-165). `status` stays RAW (closed enum).
+ */
+data class OffPeakTaskRow(
+    val offPeakTaskId: String,
+    val title: String,
+    /** "queued"|"paused"|"running"|"completed"|"failed"|"cancelled" (kept raw). */
+    val status: String,
+    val queuePosition: Int?,
+    val sessionId: String?,
+    val createdAt: Long,
+    val workspaceKey: String,
+    val failureReason: String?,
+) {
+    companion object {
+        fun decodeList(obj: JsonObject): List<OffPeakTaskRow> =
+            obj.arrayReq("tasks").map { el ->
+                val o = el.asObject("off-peak task")
+                OffPeakTaskRow(
+                    offPeakTaskId = o.strReq("offPeakTaskId"),
+                    title = o.strReq("title"),
+                    status = o.strReq("status"),
+                    queuePosition = o.intOrNull("queuePosition"),
+                    sessionId = o.strOrNullN("sessionId"),
+                    createdAt = o.longReq("createdAt"),
+                    workspaceKey = o.strReq("workspaceKey"),
+                    failureReason = o.strOrNullN("failureReason"),
+                )
+            }
+        }
+}

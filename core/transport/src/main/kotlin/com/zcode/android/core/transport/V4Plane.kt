@@ -153,6 +153,20 @@ interface V4Plane {
      */
     suspend fun appUsageStats(range: String, timeZone: String?): JsonObject
 
+    /**
+     * GAP-6: `listAutomations` (zcodeAgent.ts:677, workspace-target form) → the
+     * automation list. Result = the desktop ZCodeAutomation[] channel type —
+     * a top-level ARRAY (ProxyChannel convention) normalized to {automations:[…]}
+     * for the shared decoder (the git.getChanges precedent).
+     */
+    suspend fun listAutomations(workspacePath: String?, workspaceIdentity: String?): JsonObject
+
+    /**
+     * GAP-6: the `off-peak-task` channel `list` read (offPeakTask.ts:41 — NO args,
+     * Arr([]) like model-selection.getView). Result normalized to {tasks:[…]}.
+     */
+    suspend fun offPeakTaskList(): JsonObject
+
     // terminal (view-only — INV-9)
     suspend fun terminalCreate(cols: Int, rows: Int, cwd: String? = null): JsonObject
     suspend fun terminalDispose(id: String)
@@ -719,6 +733,40 @@ internal class ChannelV4Plane(
         }
         return v4CallObject("getAppUsageStats", params)
     }
+
+    /** Top-level ARRAY results normalize to {key:[…]} for the shared decoders. */
+    private suspend fun v4CallArrayNormalized(name: String, params: JsonObject, key: String): JsonObject =
+        when (val raw = v4Call(name, RpcValue.Obj(params))) {
+            is RpcValue.Arr -> buildJsonObject {
+                put(key, JsonArray(raw.items.map { el ->
+                    (el as? RpcValue.Obj)?.json as? JsonObject ?: JsonObject(emptyMap())
+                }))
+            }
+            is RpcValue.Obj -> (raw.json as? JsonObject)?.takeIf { it[key] is JsonArray }
+                ?: throw TransportFailure(ErrorMapping.protocolFault("$name result missing $key"))
+            else -> throw TransportFailure(ErrorMapping.protocolFault("$name result not a list"))
+        }
+
+    suspend fun listAutomations(workspacePath: String?, workspaceIdentity: String?): JsonObject {
+        val target = host.workspaceTarget()
+        val params = buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+            (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+        }
+        return v4CallArrayNormalized("listAutomations", params, "automations")
+    }
+
+    suspend fun offPeakTaskList(): JsonObject =
+        when (val raw = channelCall("off-peak-task", "list", RpcValue.Arr(emptyList()), timeouts.controlRequestTimeoutMs)) {
+            is RpcValue.Arr -> buildJsonObject {
+                put("tasks", JsonArray(raw.items.map { el ->
+                    (el as? RpcValue.Obj)?.json as? JsonObject ?: JsonObject(emptyMap())
+                }))
+            }
+            is RpcValue.Obj -> (raw.json as? JsonObject)?.takeIf { it["tasks"] is JsonArray }
+                ?: throw TransportFailure(ErrorMapping.protocolFault("off-peak list result missing tasks"))
+            else -> throw TransportFailure(ErrorMapping.protocolFault("off-peak list result not a list"))
+        }
 
     // ---- terminal (view-only: create/dispose/data/exit ONLY — INV-9, phase9-channels.md §1)
 

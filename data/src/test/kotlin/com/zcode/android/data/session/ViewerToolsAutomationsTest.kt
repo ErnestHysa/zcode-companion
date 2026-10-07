@@ -148,9 +148,13 @@ class ViewerToolsAutomationsTest {
             assertEquals(20, rows.size)
             // The /other/ws fixture row must be filtered OUT.
             assertTrue(rows.none { it.workspaceKey == "/other/ws" })
-            // Newest-first: the highest-createdAt bulk rows win the cap.
-            assertEquals("bulk-21", rows.first().offPeakTaskId)
-            assertEquals("bulk-2", rows.last().offPeakTaskId)
+            // Newest-first: the fixture rows carry the newest createdAt values,
+            // then the bulk block fills the 20-cap (25 same-workspace rows → 20:
+            // 3 fixture + bulk-21…bulk-5).
+            assertEquals("opt-1", rows.first().offPeakTaskId)
+            assertEquals("opt-4", rows[2].offPeakTaskId)
+            assertEquals("bulk-21", rows[3].offPeakTaskId)
+            assertEquals("bulk-5", rows.last().offPeakTaskId)
         }
     }
 

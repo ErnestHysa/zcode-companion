@@ -2,7 +2,7 @@ package com.zcode.android.features.tasks
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.fetchSemanticsNodes
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -39,22 +39,28 @@ class AutomationsSectionUiTest {
     @get:Rule
     val rule = createComposeRule()
 
-    private fun fixtureList(name: String, key: String) = sequenceOf(File("."), File(".."), File("../.."), File("../../.."))
-        .map { it.resolve("fixtures/protocol/phase3-wire-fixtures.json") }
-        .firstOrNull { it.isFile }!!
-        .let { file ->
-            val cases = Json.parseToJsonElement(file.readText()).jsonObject["cases"]!!
-                as kotlinx.serialization.json.JsonArray
-            val data = cases.map { it.jsonObject }
-                .first { it["name"]!!.toString().trim('"') == name }["data"]!!
-                .toString()
-            when (key) {
-                "automations" -> AutomationRow.decodeList(Json.parseToJsonElement(data).jsonObject)
-                else -> OffPeakTaskRow.decodeList(Json.parseToJsonElement(data).jsonObject)
-            }
-        }
+    private fun fixtureAutomations(name: String): List<AutomationRow> {
+        val data = fixtureData(name)
+        return AutomationRow.decodeList(Json.parseToJsonElement(data).jsonObject)
+    }
 
-    @Suppress("UNCHECKED_CAST")
+    private fun fixtureOffPeak(name: String): List<OffPeakTaskRow> {
+        val data = fixtureData(name)
+        return OffPeakTaskRow.decodeList(Json.parseToJsonElement(data).jsonObject)
+    }
+
+    private fun fixtureData(name: String): String =
+        sequenceOf(File("."), File(".."), File("../.."), File("../../.."))
+            .map { it.resolve("fixtures/protocol/phase3-wire-fixtures.json") }
+            .firstOrNull { it.isFile }!!
+            .let { file ->
+                val cases = Json.parseToJsonElement(file.readText()).jsonObject["cases"]!!
+                    as kotlinx.serialization.json.JsonArray
+                cases.map { it.jsonObject }
+                    .first { it["name"]!!.toString().trim('"') == name }["data"]!!
+                    .toString()
+            }
+
     private fun port(
         automations: List<AutomationRow>? = null,
         offPeak: List<OffPeakTaskRow>? = null,
@@ -93,15 +99,15 @@ class AutomationsSectionUiTest {
     fun rendersAutomationsAndOffPeakRows_fromFixtures() {
         setContent(
             port(
-                automations = fixtureList("automation-list-mixed", "automations"),
-                offPeak = fixtureList("offpeak-list-mixed", "offpeak").filter { it.workspaceKey == "/synthetic/ws" },
+                automations = fixtureAutomations("automation-list-mixed"),
+                offPeak = fixtureOffPeak("offpeak-list-mixed").filter { it.workspaceKey == "/synthetic/ws" },
             ),
         )
         rule.onNodeWithTag("automations_section").assertIsDisplayed()
         rule.onNodeWithTag("automation_row_auto-1").assertIsDisplayed()
         rule.onNodeWithText("Nightly dependency review", substring = true).assertExists()
         rule.onNodeWithText("Weekly report", substring = true).assertExists()
-        rule.onNodeWithTag("offpeak_row_opt-1").assertIsDisplayed()
+        rule.onNodeWithTag("offpeak_row_opt-1").assertExists() // below the fold in the test viewport is fine
         rule.onNodeWithText("Idle-time refactor", substring = true).assertExists()
     }
 
@@ -121,8 +127,8 @@ class AutomationsSectionUiTest {
     fun noWriteAffordance_existsAnywhereInTheSection() {
         setContent(
             port(
-                automations = fixtureList("automation-list-mixed", "automations"),
-                offPeak = fixtureList("offpeak-list-mixed", "offpeak"),
+                automations = fixtureAutomations("automation-list-mixed"),
+                offPeak = fixtureOffPeak("offpeak-list-mixed"),
             ),
         )
         // Deferred scope (roadmap): NO create/edit/delete/enable/pause targets.
@@ -130,7 +136,7 @@ class AutomationsSectionUiTest {
             "automation_create", "automation_edit", "automation_delete",
             "automation_enable", "automation_run", "offpeak_create", "offpeak_cancel",
         ).forEach { tag ->
-            org.junit.Assert.assertEquals(0, rule.onAllNodesWithTag(tag).fetchSemanticsNodes().size)
+            rule.onAllNodesWithTag(tag).assertCountEquals(0)
         }
     }
 }

@@ -2,6 +2,8 @@ package com.zcode.android.data.session
 
 import com.zcode.android.core.transport.AppTransport
 import com.zcode.android.domain.model.AppUsageSnapshot
+import com.zcode.android.domain.model.AutomationRow
+import com.zcode.android.domain.model.OffPeakTaskRow
 
 /**
  * Phase 3 read-only viewer tool plane (android-native-gaps.md GAP-5…GAP-9;
@@ -24,4 +26,24 @@ class ViewerTools(private val transport: AppTransport) {
      */
     suspend fun appUsageStats(range: String, timeZone: String? = null): AppUsageSnapshot =
         AppUsageSnapshot.decode(transport.appUsageStats(range, timeZone))
+
+    // ---------------------------------------------------------------- GAP-6: automations + off-peak
+
+    /**
+     * `listAutomations` (zcode-agent, workspace-target form; v4-wire.md §12.2).
+     * Read-only: NO create/update/delete/enable surface exists anywhere (Deferred scope).
+     */
+    suspend fun automations(workspacePath: String?, workspaceIdentity: String?): List<AutomationRow> =
+        AutomationRow.decodeList(transport.listAutomations(workspacePath, workspaceIdentity))
+
+    /**
+     * `off-peak-task` channel `list` with the desktop's own list projection mirrored
+     * CLIENT-SIDE (zcodeAgentService.ts:2666-2761): workspace filter, createdAt DESC,
+     * cap 20.
+     */
+    suspend fun offPeakTasks(workspaceKey: String): List<OffPeakTaskRow> =
+        OffPeakTaskRow.decodeList(transport.offPeakTaskList())
+            .filter { it.workspaceKey == workspaceKey }
+            .sortedByDescending { it.createdAt }
+            .take(20)
 }

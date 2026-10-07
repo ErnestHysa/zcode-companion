@@ -92,6 +92,8 @@ fun TaskListScreen(
     onConsumeCreateNotice: () -> Unit = {},
     /** GAP-14: per-workspace collapse persistence (null = in-memory for the session). */
     collapseStore: com.zcode.android.features.tasks.ui.WorkspaceCollapseStore? = null,
+    /** GAP-6: read-only automations + off-peak lists (null = section hidden). */
+    automationsPort: com.zcode.android.features.tasks.port.AutomationsPort? = null,
     modifier: Modifier = Modifier,
 ) {
     var showCreate by remember { androidx.compose.runtime.mutableStateOf(false) }
@@ -147,6 +149,7 @@ fun TaskListScreen(
                     }
                 }
             }
+            automationsPort?.let { port -> AutomationsSection(port = port) }
             Spacer(Modifier.height(4.dp))
 
             Box(Modifier.fillMaxSize()) {

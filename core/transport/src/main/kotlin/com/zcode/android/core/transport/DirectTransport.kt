@@ -874,6 +874,11 @@ class DirectTransport(
     override suspend fun appUsageStats(range: String, timeZone: String?): JsonObject =
         plane.appUsageStats(range, timeZone)
 
+    override suspend fun listAutomations(workspacePath: String?, workspaceIdentity: String?): JsonObject =
+        plane.listAutomations(workspacePath, workspaceIdentity)
+
+    override suspend fun offPeakTaskList(): JsonObject = plane.offPeakTaskList()
+
     override suspend fun modelSelectionView(): JsonObject = plane.modelSelectionView()
 
     // ------------------------------------------------------------------ direct surface
