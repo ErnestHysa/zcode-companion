@@ -34,6 +34,7 @@ import com.zcode.android.features.conversation.ui.ApprovalsScreen
 import com.zcode.android.app.connect.ConnectionCenterScreen
 import com.zcode.android.app.settings.SettingsScreen
 import com.zcode.android.app.settings.PluginsViewerScreen
+import com.zcode.android.app.settings.SkillsViewerScreen
 import com.zcode.android.app.settings.UsageScreen
 import com.zcode.android.features.conversation.ConversationViewModel
 import com.zcode.android.features.conversation.ui.ConversationScreen
@@ -59,6 +60,7 @@ object Routes {
     const val SETTINGS = "settings"
     const val USAGE = "usage"
     const val PLUGINS = "plugins"
+    const val SKILLS = "skills"
     const val APPROVALS = "approvals"
     const val FILES = "files"
     const val GIT = "git"
@@ -261,6 +263,7 @@ fun ZCodeApp(
                 onBack = { nav.popBackStack() },
                 onOpenUsage = { nav.navigate(Routes.USAGE) },
                 onOpenPlugins = { nav.navigate(Routes.PLUGINS) },
+                onOpenSkills = { nav.navigate(Routes.SKILLS) },
             )
         }
         composable(Routes.USAGE) {
@@ -270,6 +273,10 @@ fun ZCodeApp(
         composable(Routes.PLUGINS) {
             // GAP-7 (v4-wire.md §12.3): read-only plugins viewer — no install surface (INV-9).
             PluginsViewerScreen(port = container.pluginsPort, onBack = { nav.popBackStack() }, modifier = Modifier.fillMaxSize())
+        }
+        composable(Routes.SKILLS) {
+            // GAP-8 (v4-wire.md §12.4): read-only skills reference catalog (no enable surface).
+            SkillsViewerScreen(port = container.skillsPort, onBack = { nav.popBackStack() }, modifier = Modifier.fillMaxSize())
         }
         composable(Routes.APPROVALS) {
             val open by container.conversationPort.observeOpenInteractions().collectAsState(initial = emptyList())
@@ -465,6 +472,7 @@ private fun SettingsRoute(
     onBack: () -> Unit,
     onOpenUsage: () -> Unit = {},
     onOpenPlugins: () -> Unit = {},
+    onOpenSkills: () -> Unit = {},
 ) {
     val endpoint by container.hub.endpoint.collectAsState()
     SettingsScreen(
@@ -474,5 +482,6 @@ private fun SettingsRoute(
         onBack = onBack,
         onOpenUsage = onOpenUsage,
         onOpenPlugins = onOpenPlugins,
+        onOpenSkills = onOpenSkills,
     )
 }

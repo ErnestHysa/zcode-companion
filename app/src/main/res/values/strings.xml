@@ -156,4 +156,13 @@
 <string name="plugins_empty">No plugins installed</string>
 <string name="plugin_on">On</string>
 <string name="plugin_off">Off</string>
+<string name="settings_skills_row">Skills</string>
+<string name="settings_skills_sub">Skill catalog for the active workspace (read-only)</string>
+<string name="skills_title">Skills</string>
+<string name="skills_loading">Loading skills…</string>
+<string name="skills_unavailable">The skills catalog is unavailable</string>
+<string name="skills_retry">Retry</string>
+<string name="skills_empty">No skills in this workspace</string>
+<string name="skills_search_hint">Search skills</string>
+<string name="skills_search_empty">No skills match the search</string>
 </resources>

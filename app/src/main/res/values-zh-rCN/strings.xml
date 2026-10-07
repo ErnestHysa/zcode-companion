@@ -149,4 +149,13 @@
 <string name="plugins_empty">未安装任何插件</string>
 <string name="plugin_on">启用</string>
 <string name="plugin_off">停用</string>
+<string name="settings_skills_row">技能</string>
+<string name="settings_skills_sub">当前工作区的技能目录（只读）</string>
+<string name="skills_title">技能</string>
+<string name="skills_loading">正在加载技能…</string>
+<string name="skills_unavailable">技能目录不可用</string>
+<string name="skills_retry">重试</string>
+<string name="skills_empty">此工作区暂无技能</string>
+<string name="skills_search_hint">搜索技能</string>
+<string name="skills_search_empty">没有匹配的技能</string>
 </resources>

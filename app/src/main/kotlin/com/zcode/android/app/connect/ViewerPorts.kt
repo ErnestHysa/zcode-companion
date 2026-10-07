@@ -2,6 +2,7 @@ package com.zcode.android.app.connect
 
 import com.zcode.android.app.settings.UsagePort
 import com.zcode.android.app.settings.PluginsPort
+import com.zcode.android.app.settings.SkillsPort
 import com.zcode.android.features.tasks.port.AutomationsPort
 import java.util.TimeZone
 import kotlinx.coroutines.CancellationException
@@ -70,6 +71,23 @@ class DefaultPluginsPort(
         } catch (e: Exception) {
             hub.log.warn("pluginsport.plugins", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
             PluginsPort.Result(null, e.message ?: "plugins are unavailable on this connection")
+        }
+    }
+}
+
+class DefaultSkillsPort(
+    private val hub: ConnectionHub,
+) : SkillsPort {
+    override suspend fun catalog(): SkillsPort.Result {
+        val target = hub.activeWorkspaceTarget()
+            ?: return SkillsPort.Result(null, "the skills catalog is unavailable on this connection")
+        return try {
+            SkillsPort.Result(hub.viewerTools().skillCatalog(target.first, target.second), null)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("skillsport.catalog", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            SkillsPort.Result(null, e.message ?: "the skills catalog is unavailable on this connection")
         }
     }
 }

@@ -1,9 +1,11 @@
 package com.zcode.android.app.settings
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
@@ -66,6 +68,7 @@ class SkillsViewerUiTest {
         rule.onAllNodesWithTag("skill_row_skill-1").assertCountEquals(0)
         rule.onAllNodesWithTag("skill_row_skill-3").assertCountEquals(0)
         // Case-insensitive: "GIT" matches the plugin skill's name.
+        rule.onNodeWithTag("skills_search").performTextClearance()
         rule.onNodeWithTag("skills_search").performTextInput("git")
         rule.waitForIdle()
         rule.onAllNodesWithTag("skill_row_skill-3").assertCountEquals(1)

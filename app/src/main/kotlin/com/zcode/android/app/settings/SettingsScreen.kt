@@ -66,6 +66,8 @@ fun SettingsScreen(
     onOpenUsage: () -> Unit = {},
     /** GAP-7: opens the read-only plugins viewer (v4-wire.md §12.3). */
     onOpenPlugins: () -> Unit = {},
+    /** GAP-8: opens the read-only skills catalog (v4-wire.md §12.4). */
+    onOpenSkills: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -103,6 +105,12 @@ fun SettingsScreen(
                 subtitle = stringResource(R.string.settings_plugins_sub),
                 tag = "settings_plugins",
                 onClick = onOpenPlugins,
+            )
+            SettingsRow(
+                title = stringResource(R.string.settings_skills_row),
+                subtitle = stringResource(R.string.settings_skills_sub),
+                tag = "settings_skills",
+                onClick = onOpenSkills,
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
