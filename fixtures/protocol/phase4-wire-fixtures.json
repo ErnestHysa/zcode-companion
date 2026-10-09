@@ -282,6 +282,111 @@
         "idempotencyKey": "synthetic-idempotency-key-0",
         "resetType": "FIVE_HOUR"
       }
+    },
+    {
+      "name": "entitlement-live-zai-coding-plan",
+      "note": "LIVE capture 2026-10-09 (spike entitlement stage, production relay, ADR-020 live-capture leg): the DERIVED request {includeSubscription, preferredProviderId: account:zai-individual-coding-plan, accountAccess: zhipu-account static descriptor, requirePreferredProvider} — the EMPTY request answers not_configured (the 'no account' face). Credential-free quota metadata.",
+      "request": {
+        "includeSubscription": true,
+        "preferredProviderId": "account:zai-individual-coding-plan",
+        "accountAccess": {
+          "type": "zhipu-account",
+          "accountType": "zai",
+          "mode": "individual-coding-plan",
+          "entitled": true
+        },
+        "allowDisabledPreferredProvider": true,
+        "requirePreferredProvider": true,
+        "allowEnvApiKey": false
+      },
+      "data": {
+        "generatedAt": 1791540748478,
+        "authenticated": true,
+        "context": {
+          "scope": "personal",
+          "productId": "product-db684c",
+          "displayName": "GLM Coding Lite"
+        },
+        "provider": {
+          "id": "account:zai-individual-coding-plan",
+          "name": "Z.ai - Coding Plan"
+        },
+        "remaining": {
+          "count": 13,
+          "isShow": true,
+          "percentage": 87,
+          "nextResetTime": 1793879520984
+        },
+        "subscription": {
+          "identityType": "unknown",
+          "identityMasked": null,
+          "details": [
+            {
+              "productId": "product-db684c",
+              "productName": "GLM Coding Lite",
+              "billingCycle": "annually",
+              "renewTime": null,
+              "expireTime": "2027-01-05T00:00:00.000Z",
+              "purchaseTime": null,
+              "beginTime": null
+            }
+          ]
+        },
+        "quota": {
+          "level": "lite",
+          "limits": [
+            {
+              "type": "TIME_LIMIT",
+              "unit": 5,
+              "number": 1,
+              "usage": 100,
+              "currentValue": 87,
+              "remaining": 13,
+              "percentage": 87,
+              "nextResetTime": 1793879520984,
+              "usageDetails": [
+                {
+                  "modelCode": "search-prime",
+                  "usage": 80
+                },
+                {
+                  "modelCode": "web-reader",
+                  "usage": 7
+                },
+                {
+                  "modelCode": "zread",
+                  "usage": 0
+                }
+              ]
+            },
+            {
+              "type": "TOKENS_LIMIT",
+              "unit": 3,
+              "number": 5,
+              "percentage": 54,
+              "nextResetTime": 1791555988031,
+              "usageDetails": []
+            }
+          ]
+        },
+        "mcpQuota": {
+          "aggregate": {
+            "type": "MCP_USAGE_LIMIT",
+            "currentValue": 0,
+            "usage": 0,
+            "remaining": 1000,
+            "percentage": 0,
+            "nextResetTime": 1791561600000,
+            "usageDetails": []
+          },
+          "level": "lite",
+          "scope": {
+            "providerFamily": "zai",
+            "targetType": "PERSONAL"
+          },
+          "serverTime": 1791540749000
+        }
+      }
     }
   ]
 }

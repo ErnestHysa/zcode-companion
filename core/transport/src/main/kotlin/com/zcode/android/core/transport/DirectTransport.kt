@@ -879,7 +879,7 @@ class DirectTransport(
 
     override suspend fun offPeakTaskList(): JsonObject = plane.offPeakTaskList()
 
-    override suspend fun usageEntitlementSnapshot(): JsonObject = plane.usageEntitlementSnapshot()
+    override suspend fun usageEntitlementSnapshot(request: JsonObject): JsonObject = plane.usageEntitlementSnapshot(request)
 
     override suspend fun codingPlanResetStatus(preferredProviderId: String, accountAccess: JsonObject): JsonObject =
         plane.codingPlanResetStatus(preferredProviderId, accountAccess)

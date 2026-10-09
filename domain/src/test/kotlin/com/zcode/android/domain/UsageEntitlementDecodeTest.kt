@@ -131,4 +131,22 @@ class UsageEntitlementDecodeTest {
         assertNull(noPercentage.limits[0].percentage)
         assertNull(noPercentage.limits[0].nextResetTime)
     }
+
+    @Test
+    fun decodesLiveZaiCodingPlanSnapshot_theDerivedRequestPayload() {
+        // LIVE capture 2026-10-09 (production relay, spike entitlement stage): the
+        // DERIVED request {preferredProviderId + zhipu-account accountAccess +
+        // requirePreferredProvider} answers with meters; the app's previous EMPTY
+        // request answered unavailableReason=not_configured — the "no account
+        // connected" face. This fixture pins the fix's expected decode.
+        val e = UsageEntitlement.decode(fixture("entitlement-live-zai-coding-plan"))
+        assertEquals("lite", e.planLevel)
+        assertEquals(true, e.authenticated)
+        assertNull(e.unavailableReason)
+        assertEquals(13.0, e.remainingCount)
+        assertEquals(true, e.remainingIsShow)
+        assertEquals(2, e.limits.size)
+        assertEquals("account:zai-individual-coding-plan", e.providerId)
+        assertEquals(1000.0, e.mcpAggregate?.remaining)
+    }
 }

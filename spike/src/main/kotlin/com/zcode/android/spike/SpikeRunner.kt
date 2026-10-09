@@ -357,8 +357,9 @@ fun main(args: Array<String>) {
             b.close()
         }
         "canary" -> runCanaryStage(opts, relayUrl, params, capture, ::log)
+        "entitlement" -> runEntitlementStage(opts, relayUrl, params, capture, ::log)
         else -> {
-            System.err.println("unknown stage: $stage (auth|negative-proof|discover|subscribe|recover|double-terminal|canary)")
+            System.err.println("unknown stage: $stage (auth|negative-proof|discover|subscribe|recover|double-terminal|canary|entitlement)")
             kotlin.system.exitProcess(2)
         }
     }

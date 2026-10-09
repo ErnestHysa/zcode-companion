@@ -85,8 +85,8 @@ class ViewerTools(private val transport: AppTransport) {
      * load + explicit refresh; ADR-020: no push channel exists). The reset words
      * land with GAP-4 behind the typed-confirm gate.
      */
-    suspend fun entitlement(): UsageEntitlement =
-        UsageEntitlement.decode(transport.usageEntitlementSnapshot())
+    suspend fun entitlement(request: kotlinx.serialization.json.JsonObject = kotlinx.serialization.json.JsonObject(emptyMap())): UsageEntitlement =
+        UsageEntitlement.decode(transport.usageEntitlementSnapshot(request))
 
     // ---------------------------------------------------------------- GAP-4: reset words (ADR-020)
 

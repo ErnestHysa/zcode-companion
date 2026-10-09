@@ -198,7 +198,7 @@ interface V4Plane {
      * `Arr([{}])` — every UsageEntitlementRequest field is optional and the
      * host resolves the current account/provider. Read-only.
      */
-    suspend fun usageEntitlementSnapshot(): JsonObject
+    suspend fun usageEntitlementSnapshot(request: JsonObject = JsonObject(emptyMap())): JsonObject
 
     /**
      * GAP-4 reset words (ADR-020 — the roadmap's second ruling is recorded in
@@ -864,11 +864,11 @@ internal class ChannelV4Plane(
     // GAP-4 behind the typed-confirm gate (ADR-020: useCodingPlanReset is the
     // plane's ONE destructive-adjacent word).
 
-    suspend fun usageEntitlementSnapshot(): JsonObject =
+    suspend fun usageEntitlementSnapshot(request: JsonObject = JsonObject(emptyMap())): JsonObject =
         when (
             val raw = channelCall(
                 "usage-stats", "getEntitlementSnapshot",
-                RpcValue.Arr(listOf(RpcValue.Obj(JsonObject(emptyMap())))),
+                RpcValue.Arr(listOf(RpcValue.Obj(request))),
                 timeouts.controlRequestTimeoutMs,
             )
         ) {
