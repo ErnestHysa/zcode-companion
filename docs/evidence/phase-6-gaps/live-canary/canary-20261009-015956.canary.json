@@ -1,0 +1,1 @@
+{"stage":"canary","verdict":"red","mode":"live","legs":{"pair":true,"workspaceGuard":"ok","discover":true,"stream":false,"v4Handshake":false,"recover":false},"detail":"stream leg exception: NullPointerException: null"}

@@ -976,7 +976,13 @@ gated on Phase 12.1 signing (stable keystore, off-repo) and the scripted Mac can
   live-canary.sh (drill → redact.mjs → validate-fixture.mjs → canary-verdict.json;
   INV-15 operator-Machine ritual, MockRelay via --relay for zero-side-effect
   rehearsals; the production-relay canary run remains Ernest's operator step by
-  design). MATRIX: tools/release/decision.mjs + decision.test.mjs 7/7 — the
+  design — **LIVE RUN COMPLETED 2026-10-09 01:01 UTC: verdict GREEN, source=live
+  (production wss://zcode.z.ai), all six legs (pair / fixed-workspace guard /
+  discover / stream / v4 handshake / recover) green, redaction+validation ok;
+  evidence docs/evidence/phase-6-gaps/live-canary/; the drill also hardened the
+  task guard — the live bootstrap returns the desktop's WHOLE task list (566
+  tasks) keyed `taskId`, so the vc34 task match is now workspace-scoped, commit
+  6d5fbaf).** MATRIX: tools/release/decision.mjs + decision.test.mjs 7/7 — the
   never-auto-ship-breaking gate is pinned EXHAUSTIVELY (no input combination with
   driftVerdict=BREAKING yields auto-ship); publish.mjs re-verifies the decision
   before acting and its DRAFT-only release contract keeps the public publish click
