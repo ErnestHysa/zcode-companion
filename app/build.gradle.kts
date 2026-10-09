@@ -20,8 +20,8 @@ android {
         buildConfigField("boolean", "BENCHMARK_SEEDING", "false")
         minSdk = 26
         targetSdk = 36
-        versionCode = 36
-        versionName = "0.11.4-phase11"
+        versionCode = 37
+        versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

@@ -275,6 +275,6 @@ class AppContainer(activity: FragmentActivity) {
         const val LOG_TAG = "ZCODE-PAIR"
 
         /** §37 primary channel — the GitHub repo whose Releases carry the APK. */
-        const val UPDATE_RELEASE_REPO = "ErnestHysa/zcode-android"
+        const val UPDATE_RELEASE_REPO = "ErnestHysa/zcode-companion"
     }
 }
