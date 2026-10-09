@@ -2,6 +2,7 @@ package com.zcode.android.features.conversation
 
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -54,32 +55,51 @@ class ContextUsagePanelUiTest {
     fun rendersUsedSizePercent_matchingFixture() {
         val usage = fixtureUsage("usage-full")
         rule.setContent { ZCodeTheme { ContextUsagePanel(usage = usage) } }
-        rule.onNodeWithTag("context_usage_label").assertExists()
+        // The clickable meter row merges its children; the full label rides the
+        // panel's contentDescription (contextUsageLabel).
+        val desc = rule.onNodeWithTag("context_usage_panel").fetchSemanticsNode()
+            .config.get(SemanticsProperties.ContentDescription).single()
+        assertTrue("label in contentDescription", desc.isNotEmpty())
         // 148234/1000000 → compact "148.2K / 1M (14.8%)" (desktop formatter port).
-        val text = renderedText("context_usage_label")
+        val text = rule.onNodeWithTag("context_usage_panel").fetchSemanticsNode()
+            .config.get(SemanticsProperties.ContentDescription).single()
         assertTrue("compact used tokens in label, got: $text", "148.2K" in text)
         assertTrue("compact size tokens in label, got: $text", "1M" in text)
         assertTrue("1-fraction-digit percent in label, got: $text", "14.8%" in text)
     }
 
     @Test
-    fun breakdownSegments_renderPerSourceEstimates() {
+    fun breakdown_collapsedByDefault_tapExpandsPerSourceRows() {
         val usage = fixtureUsage("usage-full")
         rule.setContent { ZCodeTheme { ContextUsagePanel(usage = usage) } }
+        // FIELD (vc37): the breakdown is COLLAPSED by default — the always-open
+        // panel consumed ~30% of the chat view. Nothing but the one-line meter
+        // renders until the panel is tapped.
+        rule.onAllNodesWithTag("context_usage_breakdown_row").assertCountEquals(0)
+        rule.onNodeWithTag("context_usage_toggle").assertExists()
+        rule.onNodeWithTag("context_usage_toggle").performClick()
         // GAP-2: one row per aggregated source — 7 sources in the fixture, sorted
         // chars-desc (messages first at 106034).
         val rows = rule.onAllNodesWithTag("context_usage_breakdown_row").fetchSemanticsNodes()
         assertEquals(7, rows.size)
         val first = rows.first().config.get(SemanticsProperties.Text).single().text
         assertTrue("largest source first (chars desc), got: $first", "Messages" in first)
+        // Tap again → collapsed.
+        rule.onNodeWithTag("context_usage_toggle").performClick()
+        rule.onAllNodesWithTag("context_usage_breakdown_row").assertCountEquals(0)
     }
 
     @Test
     fun noBreakdown_panelValidWithLabelOnly() {
         val usage = fixtureUsage("usage-minimal")
         rule.setContent { ZCodeTheme { ContextUsagePanel(usage = usage) } }
-        rule.onNodeWithTag("context_usage_label").assertExists()
-        // Absent breakdown leaves the GAP-1 panel valid.
+        // The clickable meter row merges its children; the full label rides the
+        // panel's contentDescription (contextUsageLabel).
+        val desc = rule.onNodeWithTag("context_usage_panel").fetchSemanticsNode()
+            .config.get(SemanticsProperties.ContentDescription).single()
+        assertTrue("label in contentDescription", desc.isNotEmpty())
+        // Absent breakdown leaves the GAP-1 panel valid (expanded or not).
+        rule.onNodeWithTag("context_usage_panel").performClick()
         rule.onAllNodesWithTag("context_usage_breakdown_row").assertCountEquals(0)
     }
 
