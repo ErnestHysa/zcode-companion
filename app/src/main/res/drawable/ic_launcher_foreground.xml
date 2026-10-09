@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Foreground: a flat "Z" bolt — two rails + a diagonal strike, single accent.
+     Drawn inside the adaptive-icon safe zone (66dp circle of the 108dp canvas). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- the strike: top rail → diagonal → bottom rail, one continuous stroke -->
+    <path
+        android:pathData="M 41 41 L 67 41 L 41 67 L 67 67"
+        android:strokeColor="#57E389"
+        android:strokeWidth="7.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+    <!-- the spark: a small detached tick off the diagonal's tail, energy without noise -->
+    <path
+        android:pathData="M 70 54 L 76 48"
+        android:strokeColor="#57E389"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+</vector>
