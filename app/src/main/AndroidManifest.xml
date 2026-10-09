@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Phase 8 (§24/§25): notification surfaces (API 33+ runtime), the opt-in
+         Live-connection foreground service, and its specialUse type (API 34+). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- §37/AAP-3 (§14.2 T4): the non-Play update channel hands the downloaded APK to
+         the system installer (user-consented install intent). REQUEST_INSTALL_PACKAGES
+         is what makes packageManager.canRequestPackageInstalls() meaningful on API 26+;
+         the system installer UI remains the consent surface. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <application
+        android:label="ZCode Companion"
+        android:enableOnBackInvokedCallback="true"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules_legacy"
+        android:theme="@style/Theme.ZCodePairing">
+
+        <!-- §12.4/§26.2-T6: credential + projection stores are excluded from every
+             backup surface (allowBackup=false + explicit rules). -->
+        <!-- §24.7: zcode://task/{taskId}#interaction={id} deep links (notification
+             taps). launchMode=singleTask so a tap re-enters the LIVE activity
+             (onNewIntent) instead of stacking a second hub. -->
+        <activity
+            android:windowSoftInputMode="adjustResize"
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:configChanges="orientation|screenSize|keyboardHidden|screenLayout">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="zcode" android:host="task" />
+            </intent-filter>
+        </activity>
+        <!-- §24.5/§25.2: the Live-connection FGS candidate. specialUse on API 34+
+             with the required subtype property; pre-34 devices run it typeless. -->
+        <service
+            android:name="com.zcode.android.core.notifications.LiveConnectionService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Keeps the user-opted live ZCode agent connection usable while the screen is off; bounded 30-minute window, started from the foreground only." />
+        </service>
+        <!-- §43.2-11.4: the pending-approvals widget. Its ONLY data source is the
+             §24.1 broker's record flow (INV-2/6: no transport access from widgets). -->
+        <receiver
+            android:name=".widget.PendingApprovalsWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_approvals_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/pending_approvals_widget_info" />
+        </receiver>
+        <!-- §25.3: WorkManager runs the default initializer (periodic auto-reconnect
+             probe, ≥15 min, network-constrained; §29 no-polling rule respected). -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+    </application>
+</manifest>

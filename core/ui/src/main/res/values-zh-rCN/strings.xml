@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 简体中文（§31：首个发布 = 英文 + 简体中文，镜像 ZCode 自身的 en/zh i18n）。 -->
+<resources>
+    <string name="status_idle">空闲</string>
+    <string name="status_running">运行中</string>
+    <string name="status_waiting">需要处理</string>
+    <string name="status_paused">已暂停</string>
+    <string name="status_completed">已完成</string>
+    <string name="status_failed">失败</string>
+    <string name="status_unknown">未知</string>
+
+    <string name="conn_connected">已连接</string>
+    <string name="conn_syncing">同步中…</string>
+    <string name="conn_reconnecting">正在重新连接…</string>
+    <string name="conn_connecting">正在连接…</string>
+    <string name="conn_disconnected">已断开</string>
+    <string name="conn_failed">连接失败</string>
+    <string name="conn_not_connected">未连接</string>
+
+    <string name="action_retry">重试</string>
+    <string name="action_refresh">刷新</string>
+    <string name="action_back">返回</string>
+    <string name="action_cancel">取消</string>
+    <string name="action_approve">允许</string>
+    <string name="action_deny">拒绝</string>
+    <string name="action_allow_once">仅允许一次</string>
+    <string name="action_allow_always">始终允许</string>
+    <string name="action_open">打开</string>
+    <string name="a11y_status_icon">状态：%1$s</string>
+
+    <string name="error_auth">配对已过期 — 请重新扫描二维码</string>
+    <string name="error_authz">当前连接不允许此操作</string>
+    <string name="error_transport">连接已断开 — 正在重新连接…</string>
+    <string name="error_network">网络不可用</string>
+    <string name="error_protocol">同步出现问题 — 正在刷新</string>
+    <string name="error_serialization">数据出现问题 — 正在以简化模式继续</string>
+    <string name="error_server">ZCode 中继错误 — 正在重试</string>
+    <string name="error_session">此会话已不可用</string>
+    <string name="error_task">对话已变更 — 请重试</string>
+    <string name="error_permission">此请求已被处理</string>
+    <string name="error_storage">本地数据出现问题 — 缓存已重置</string>
+    <string name="error_android">设备阻止了此操作 — 请检查应用设置</string>
+    <string name="error_notification">通知被阻止 — 请检查应用设置</string>
+    <string name="error_version_incompat">请将 ZCode 桌面端更新到受支持的版本</string>
+    <string name="error_unsupported_feature">当前连接不支持此功能</string>
+    <string name="error_timeout">耗时较长 — 正在重试</string>
+    <string name="error_cancelled">已取消</string>
+    <string name="error_internal">意外错误</string>
+
+    <string name="relative_now">刚刚</string>
+    <string name="relative_yesterday">昨天</string>
+    <plurals name="relative_minutes">
+        <item quantity="other">%1$d 分钟前</item>
+    </plurals>
+    <plurals name="relative_hours">
+        <item quantity="other">%1$d 小时前</item>
+    </plurals>
+    <plurals name="relative_days">
+        <item quantity="other">%1$d 天前</item>
+    </plurals>
+    <plurals name="relative_seconds">
+        <item quantity="other">%1$d 秒前</item>
+    </plurals>
+</resources>

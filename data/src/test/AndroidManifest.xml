@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TEST-ONLY manifest (data module unit tests). The Phase 8 dependency edge
+     data → core:notifications merges WorkManager's app-initialization provider
+     into every Robolectric startup here; the initializer runs on the test main
+     thread and eats the wall-clock budget the transport handshake assertions
+     rely on (S-matrix channel-init timeouts). WorkManager is never exercised by
+     these tests — remove the initialization provider entirely. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application>
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            tools:node="remove" />
+    </application>
+</manifest>

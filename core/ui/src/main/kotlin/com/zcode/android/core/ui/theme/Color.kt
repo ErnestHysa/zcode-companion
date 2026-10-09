@@ -1,0 +1,162 @@
+package com.zcode.android.core.ui.theme
+
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Immutable
+import androidx.compose.ui.graphics.Color
+
+/**
+ * ZCode color system — ui-ux/color-system.md v2 (designed light/dark PAIRS, not
+ * inversions). Accent is indigo–cyan on cool slate neutrals; status colors are
+ * semantic and ALWAYS pair with icon/structure (never color alone, §18.5/§30).
+ *
+ * Dynamic color is intentionally NOT applied: ui-ux rule — "dynamic color optional
+ * for chrome only; status tokens stay fixed". The brand scheme is the designed pair;
+ * reconsideration is a Phase 11 polish item behind an ADR.
+ */
+@Immutable
+data class ZCodeColors(
+    val accent: Color,
+    val onAccent: Color,
+    val accentSoft: Color,
+    val accentMuted: Color,
+    val text: Color,
+    val textSecondary: Color,
+    val textMuted: Color,
+    val textInverse: Color,
+    val statusRunning: Color,
+    val statusWaiting: Color,
+    val statusSuccess: Color,
+    val statusError: Color,
+    val statusInfo: Color,
+    val railRunning: Color,
+    val railWaiting: Color,
+    val railDone: Color,
+    val toolSurface: Color,
+    val codeBg: Color,
+    val codeBorder: Color,
+    val bg: Color,
+    val surface: Color,
+    val surface2: Color,
+    val outline: Color,
+    val outlineStrong: Color,
+)
+
+/** Light tokens (ui-ux/color-system.md — light is the primary designed pair). */
+val ZCodeColorsLight = ZCodeColors(
+    accent = Color(0xFF3D5AFE),
+    onAccent = Color(0xFFFFFFFF),
+    accentSoft = Color(0xFFE8ECFF),
+    accentMuted = Color(0xFF5C6BC0),
+    text = Color(0xFF12151C),
+    textSecondary = Color(0xFF4A5568),
+    textMuted = Color(0xFF7A8499),
+    textInverse = Color(0xFFFFFFFF),
+    statusRunning = Color(0xFF3D5AFE),
+    statusWaiting = Color(0xFFC47A00),
+    statusSuccess = Color(0xFF1B7F4E),
+    statusError = Color(0xFFC62828),
+    statusInfo = Color(0xFF1565C0),
+    railRunning = Color(0xFF3D5AFE),
+    railWaiting = Color(0xFFC47A00),
+    railDone = Color(0xFFB8C0D0),
+    toolSurface = Color(0xFFF0F3FA),
+    codeBg = Color(0xFFF7F8FC),
+    codeBorder = Color(0xFFD5DBE7),
+    bg = Color(0xFFF4F6FA),
+    surface = Color(0xFFFFFFFF),
+    surface2 = Color(0xFFEEF1F7),
+    outline = Color(0xFFD5DBE7),
+    outlineStrong = Color(0xFFB8C0D0),
+)
+
+/** Dark tokens (ui-ux mockups 14/15 — deeper, cooler than generic gray). */
+val ZCodeColorsDark = ZCodeColors(
+    accent = Color(0xFF7C9CFF),
+    onAccent = Color(0xFF0A1020),
+    accentSoft = Color(0xFF1A2240),
+    accentMuted = Color(0xFF9AA8FF),
+    text = Color(0xFFE8ECF4),
+    textSecondary = Color(0xFF9AA3B5),
+    textMuted = Color(0xFF6B7385),
+    textInverse = Color(0xFF0B0E14),
+    statusRunning = Color(0xFF7C9CFF),
+    statusWaiting = Color(0xFFE6A817),
+    statusSuccess = Color(0xFF3DCF8E),
+    statusError = Color(0xFFFF6B6B),
+    statusInfo = Color(0xFF64B5F6),
+    railRunning = Color(0xFF7C9CFF),
+    railWaiting = Color(0xFFE6A817),
+    railDone = Color(0xFF3A4558),
+    toolSurface = Color(0xFF161D2A),
+    codeBg = Color(0xFF0E121A),
+    codeBorder = Color(0xFF2A3344),
+    bg = Color(0xFF0B0E14),
+    surface = Color(0xFF141A24),
+    surface2 = Color(0xFF1C2433),
+    outline = Color(0xFF2A3344),
+    outlineStrong = Color(0xFF3A4558),
+)
+
+/** M3 scheme mapped onto the token system (chrome roles only — status stays extended). */
+val LightScheme: ColorScheme = lightColorScheme(
+    primary = ZCodeColorsLight.accent,
+    onPrimary = ZCodeColorsLight.onAccent,
+    primaryContainer = ZCodeColorsLight.accentSoft,
+    onPrimaryContainer = ZCodeColorsLight.text,
+    inversePrimary = ZCodeColorsLight.accentMuted,
+    secondary = ZCodeColorsLight.accentMuted,
+    onSecondary = ZCodeColorsLight.onAccent,
+    secondaryContainer = ZCodeColorsLight.accentSoft,
+    onSecondaryContainer = ZCodeColorsLight.text,
+    tertiary = ZCodeColorsLight.statusInfo,
+    onTertiary = Color.White,
+    background = ZCodeColorsLight.bg,
+    onBackground = ZCodeColorsLight.text,
+    surface = ZCodeColorsLight.surface,
+    onSurface = ZCodeColorsLight.text,
+    surfaceVariant = ZCodeColorsLight.surface2,
+    onSurfaceVariant = ZCodeColorsLight.textSecondary,
+    surfaceTint = ZCodeColorsLight.accent,
+    inverseSurface = Color(0xFF2A3038),
+    inverseOnSurface = Color(0xFFF1F3F7),
+    error = ZCodeColorsLight.statusError,
+    onError = Color.White,
+    errorContainer = Color(0xFFFDECEA),
+    onErrorContainer = Color(0xFF8C1D18),
+    outline = ZCodeColorsLight.outline,
+    outlineVariant = ZCodeColorsLight.outline,
+    scrim = Color(0xFF000000),
+)
+
+/** Dark scheme — designed pair, not an inversion (ui-ux color-system rule 3). */
+val DarkScheme: ColorScheme = darkColorScheme(
+    primary = ZCodeColorsDark.accent,
+    onPrimary = ZCodeColorsDark.onAccent,
+    primaryContainer = ZCodeColorsDark.accentSoft,
+    onPrimaryContainer = ZCodeColorsDark.text,
+    inversePrimary = ZCodeColorsDark.accentMuted,
+    secondary = ZCodeColorsDark.accentMuted,
+    onSecondary = ZCodeColorsDark.onAccent,
+    secondaryContainer = ZCodeColorsDark.accentSoft,
+    onSecondaryContainer = ZCodeColorsDark.text,
+    tertiary = ZCodeColorsDark.statusInfo,
+    onTertiary = Color(0xFF0B2540),
+    background = ZCodeColorsDark.bg,
+    onBackground = ZCodeColorsDark.text,
+    surface = ZCodeColorsDark.surface,
+    onSurface = ZCodeColorsDark.text,
+    surfaceVariant = ZCodeColorsDark.surface2,
+    onSurfaceVariant = ZCodeColorsDark.textSecondary,
+    surfaceTint = ZCodeColorsDark.accent,
+    inverseSurface = Color(0xFFE8ECF4),
+    inverseOnSurface = Color(0xFF161A22),
+    error = ZCodeColorsDark.statusError,
+    onError = Color(0xFF3B0A0A),
+    errorContainer = Color(0xFF3B1216),
+    onErrorContainer = Color(0xFFFFDAD6),
+    outline = ZCodeColorsDark.outline,
+    outlineVariant = ZCodeColorsDark.outline,
+    scrim = Color(0xFF000000),
+)

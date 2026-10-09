@@ -1,0 +1,287 @@
+{
+  "metadata": {
+    "source": "ZCode reference clone packages/shared (v3.14.3, commit 29628c9) — TypeScript interfaces extracted verbatim, payloads TYPE-CHECK validated (tsc --noEmit --strict); accountAccess descriptor validated against zcodeProviderAccountAccessSchema",
+    "generator": "dev-time script (tools/capture/generate-phase4-fixtures.mjs; typescript@5.5.4 + zod@4.6.5 bootstrapped into /tmp scratch)",
+    "generatedAt": "2026-10-07T15:27:42.453Z",
+    "zcodeVersion": "3.14.3",
+    "sanitization": "synthetic payloads only — no real credentials, content, or traffic (INV-15/16)",
+    "liveCaptureNote": "exact Z.ai field values still ride the Phase-12 canary (the §13 honest-limits note; report §2/§13); these fixtures carry the reference-derived interface shapes meanwhile (the GAP-3/GAP-4 precedent: reference schema grounds the payload, live capture confirms)",
+    "adrNote": "ADR-020 (docs/adr/adr-020-coding-plan-quota-plane.md): the plane rides the usage-stats channel (getEntitlementSnapshot poll + reset words); coding-plan-subscription is the purchase facade and stays Never; useCodingPlanReset is the ONE destructive-adjacent word, typed-confirm gated (T19)",
+    "timestamps": {
+      "baseIso": "2026-10-13T23:20:00Z",
+      "baseMs": 1791933600000
+    }
+  },
+  "cases": [
+    {
+      "kind": "usage-stats-channel",
+      "name": "entitlement-full",
+      "schema": "UsageEntitlementSnapshot",
+      "data": {
+        "generatedAt": 1791933600000,
+        "serverTime": 1791933600123,
+        "authenticated": true,
+        "context": {
+          "scope": "personal",
+          "displayName": "synthetic",
+          "productId": "prod_synth"
+        },
+        "provider": {
+          "id": "account:zai-individual-coding-plan",
+          "name": "Z.ai Coding Plan"
+        },
+        "remaining": {
+          "count": 320,
+          "isShow": true,
+          "percentage": 64,
+          "nextResetTime": 1791951600000
+        },
+        "subscription": null,
+        "quota": {
+          "level": "glm-coding-pro",
+          "limits": [
+            {
+              "type": "TOKENS_LIMIT",
+              "unit": 3,
+              "number": 5,
+              "usage": 36,
+              "remaining": 64,
+              "percentage": 36,
+              "nextResetTime": 1791951600000,
+              "usageDetails": [
+                {
+                  "modelCode": "glm-5.3",
+                  "displayName": "GLM-5.3",
+                  "usage": 30
+                },
+                {
+                  "modelCode": "glm-5.1",
+                  "usage": 6
+                }
+              ]
+            },
+            {
+              "type": "TOKENS_LIMIT",
+              "unit": 6,
+              "usage": 51,
+              "remaining": 49,
+              "percentage": 51,
+              "nextResetTime": 1792538400000,
+              "usageDetails": [
+                {
+                  "modelCode": "glm-5.3",
+                  "usage": 48
+                }
+              ]
+            },
+            {
+              "type": "TIME_LIMIT",
+              "unit": 5,
+              "number": 1,
+              "usage": 12,
+              "remaining": 88,
+              "percentage": 12,
+              "nextResetTime": 1794525600000,
+              "usageDetails": []
+            },
+            {
+              "type": "TOKENS_LIMIT",
+              "unit": 9,
+              "usage": 1,
+              "remaining": 99,
+              "percentage": 1,
+              "nextResetTime": 1792538400000,
+              "usageDetails": []
+            }
+          ]
+        },
+        "mcpQuota": {
+          "serverTime": 1791933600000,
+          "level": null,
+          "scope": {
+            "providerFamily": "zai",
+            "targetType": "PERSONAL"
+          },
+          "aggregate": {
+            "type": "MCP_USAGE_LIMIT",
+            "usage": 22,
+            "remaining": 78,
+            "percentage": 22,
+            "nextResetTime": 1792020000000,
+            "usageDetails": [
+              {
+                "modelCode": "web-reader",
+                "displayName": "Web Reader",
+                "usage": 12
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "usage-stats-channel",
+      "name": "entitlement-zai-credit",
+      "schema": "UsageEntitlementSnapshot",
+      "data": {
+        "generatedAt": 1791933600000,
+        "authenticated": true,
+        "provider": {
+          "id": "account:zai-team-coding-plan",
+          "name": "Z.ai Team Plan"
+        },
+        "remaining": null,
+        "subscription": null,
+        "quota": {
+          "level": "glm-coding-team",
+          "limits": [
+            {
+              "type": "CREDIT_LIMIT",
+              "unit": 3,
+              "number": 5,
+              "percentage": 100,
+              "nextResetTime": 1791951600000,
+              "usageDetails": []
+            },
+            {
+              "type": "TIME_LIMIT",
+              "unit": 5,
+              "number": 1,
+              "percentage": 45,
+              "nextResetTime": 1794525600000,
+              "usageDetails": [
+                {
+                  "modelCode": "glm-5.3",
+                  "usage": 9
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "kind": "usage-stats-channel",
+      "name": "entitlement-no-plan",
+      "schema": "UsageEntitlementSnapshot",
+      "data": {
+        "generatedAt": 1791933600000,
+        "authenticated": true,
+        "unavailableReason": "no_plan",
+        "provider": null,
+        "remaining": null,
+        "subscription": null,
+        "quota": null
+      }
+    },
+    {
+      "kind": "coding-plan-reset",
+      "name": "reset-status-full",
+      "schema": "CodingPlanResetStatusSnapshot",
+      "data": {
+        "availableFiveHourResets": [
+          {
+            "expireAt": 1791937200000
+          },
+          {
+            "expireAt": 1791940800000
+          }
+        ],
+        "availableWeekResets": [
+          {
+            "expireAt": 1792538400000
+          }
+        ],
+        "latestFiveHourResetHistory": {
+          "usedAt": 1791922800000
+        },
+        "latestWeekResetHistory": null,
+        "hasUnreadHistory": true
+      }
+    },
+    {
+      "kind": "coding-plan-reset",
+      "name": "reset-status-available",
+      "schema": "CodingPlanResetStatusSnapshot",
+      "data": {
+        "availableFiveHourResets": [
+          {
+            "expireAt": 1791937200000
+          },
+          {
+            "expireAt": 1791940800000
+          }
+        ],
+        "availableWeekResets": [],
+        "latestFiveHourResetHistory": null,
+        "latestWeekResetHistory": null,
+        "hasUnreadHistory": false
+      }
+    },
+    {
+      "kind": "coding-plan-reset",
+      "name": "reset-status-empty",
+      "schema": "CodingPlanResetStatusSnapshot",
+      "data": {
+        "availableFiveHourResets": [],
+        "availableWeekResets": [],
+        "latestFiveHourResetHistory": null,
+        "latestWeekResetHistory": null,
+        "hasUnreadHistory": false
+      }
+    },
+    {
+      "kind": "coding-plan-reset",
+      "name": "reset-opportunity-granted",
+      "schema": "CodingPlanResetOpportunityResult",
+      "data": {
+        "granted": true,
+        "nextTryAt": null
+      }
+    },
+    {
+      "kind": "coding-plan-reset",
+      "name": "reset-opportunity-denied",
+      "schema": "CodingPlanResetOpportunityResult",
+      "data": {
+        "granted": false,
+        "nextTryAt": 1791934200000
+      }
+    },
+    {
+      "kind": "coding-plan-reset",
+      "name": "reset-use-result",
+      "schema": "CodingPlanResetUseResult",
+      "data": {
+        "used": true
+      }
+    },
+    {
+      "kind": "request-descriptor",
+      "name": "account-access-zai-individual",
+      "schema": "ZCodeProviderAccountAccess",
+      "data": {
+        "type": "zhipu-account",
+        "accountType": "zai",
+        "mode": "individual-coding-plan",
+        "entitled": true
+      }
+    },
+    {
+      "kind": "request-descriptor",
+      "name": "reset-use-request",
+      "schema": "CodingPlanResetUseRequest",
+      "data": {
+        "preferredProviderId": "account:zai-individual-coding-plan",
+        "accountAccess": {
+          "type": "zhipu-account",
+          "accountType": "zai",
+          "mode": "individual-coding-plan",
+          "entitled": true
+        },
+        "idempotencyKey": "synthetic-idempotency-key-0",
+        "resetType": "FIVE_HOUR"
+      }
+    }
+  ]
+}

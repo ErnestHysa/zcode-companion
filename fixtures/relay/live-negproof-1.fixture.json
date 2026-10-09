@@ -1,0 +1,57 @@
+{
+ "metadata": {
+  "source": "production relay wss://zcode.z.ai/ws, terminal role, user's own desktop (sanitized per docs/runbooks/capture.md)",
+  "zcodeVersion": "3.14.3",
+  "capturedAt": "2026-09-28T14:05:00+08:00",
+  "sanitized": true,
+  "sanitizationTool": "tools/capture/redact.mjs v1 (+ validate-fixture.mjs decode-and-scan lint)",
+  "expectedInterpretation": "Wrong-proof rejection: corrupted HMAC proof \u2192 error{code:'AUTH_FAILED'}. Q3 negative-path evidence.",
+  "notes": "rpc-frame dataBase64 values are size-preserving synthetic bytes with recomputed CRC32 (transport geometry survives, content destroyed). Device ids, secrets, paths, labels, titles, model keys replaced with synthetic tokens."
+ },
+ "messages": [
+  {
+   "dir": "send",
+   "ts": 1790600566463,
+   "msg": {
+    "type": "auth_init",
+    "role": "terminal",
+    "device_sid": "d_SYNTHTOKEN000000000000",
+    "meta": {
+     "platform": "android-spike",
+     "version": "1.0.0-phase1",
+     "name": "Synthetic Name"
+    },
+    "client_ts": 1790600566434
+   }
+  },
+  {
+   "dir": "recv",
+   "ts": 1790600566649,
+   "msg": {
+    "type": "auth_challenge",
+    "server_ts": 1790600566,
+    "nonce": "SYNTH-NONCE"
+   }
+  },
+  {
+   "dir": "send",
+   "ts": 1790600566652,
+   "msg": {
+    "type": "auth_response",
+    "device_sid": "d_SYNTHTOKEN000000000000",
+    "proof": "SYNTH-SHA256-BASE64-44chars-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+    "client_ts": 1790600566652
+   }
+  },
+  {
+   "dir": "recv",
+   "ts": 1790600566803,
+   "msg": {
+    "type": "error",
+    "server_ts": 1790600566,
+    "code": "AUTH_FAILED",
+    "message": ""
+   }
+  }
+ ]
+}

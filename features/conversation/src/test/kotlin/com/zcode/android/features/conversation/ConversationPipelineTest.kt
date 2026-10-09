@@ -1,0 +1,528 @@
+package com.zcode.android.features.conversation
+
+import com.zcode.android.core.common.error.AppError
+import com.zcode.android.core.common.error.Correlation
+import com.zcode.android.core.common.error.ErrorCategory
+import com.zcode.android.core.common.error.RecoveryAction
+import com.zcode.android.domain.ids.WorkspaceIdentityKey
+import com.zcode.android.domain.model.ConversationRow
+import com.zcode.android.domain.model.StreamingBuffer
+import com.zcode.android.domain.model.Task
+import com.zcode.android.domain.model.TaskStatus
+import com.zcode.android.domain.state.ConnectionPhase
+import com.zcode.android.domain.state.TaskStateMachine
+import com.zcode.android.features.conversation.markdown.MarkdownParser
+import com.zcode.android.features.conversation.port.ConversationPort
+import com.zcode.android.features.conversation.stream.coalesceForUi
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+
+/**
+ * Phase 6.4 pipeline pieces: coalescer (§19.2 ≤30 Hz), bounded markdown parser
+ * (ADR-015; total on untrusted input — T15), and ViewModel streaming merge +
+ * §15-S9 pagination interplay.
+ */
+/** The stateIn(Eagerly) share-start hops real dispatchers; settle with real yields. */
+suspend fun kotlinx.coroutines.test.TestScope.eventually(timeoutMs: Long = 2_000, cond: () -> Boolean): Boolean {
+    val deadline = System.currentTimeMillis() + timeoutMs
+    while (System.currentTimeMillis() < deadline) {
+        advanceUntilIdle()
+        if (cond()) return true
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { kotlinx.coroutines.delay(10) }
+    }
+    advanceUntilIdle()
+    return cond()
+}
+
+class StreamCoalescerTest {
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `first value emits immediately, then at most one per period`() = runTest {
+        val src = MutableStateFlow(0)
+        val seen = mutableListOf<Int>()
+        val job = launch { src.coalesceForUi(33).collect { seen.add(it) } }
+        runCurrent()
+        assertEquals(listOf(0), seen.toList())
+        // Burst of 40 emissions inside one period → exactly ONE further emission.
+        repeat(40) { src.value = it + 1 }
+        advanceTimeBy(34)
+        runCurrent()
+        assertEquals(2, seen.size) // first + coalesced latest
+        job.cancel()
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `sustained stream does not exceed ~30Hz`() = runTest {
+        val src = MutableStateFlow(0)
+        val seen = mutableListOf<Int>()
+        val job = launch { src.coalesceForUi(33).collect { seen.add(it) } }
+        repeat(300) {
+            src.value = it
+            advanceTimeBy(5) // 5 ms cadence = 200 Hz raw
+        }
+        advanceTimeBy(100)
+        // 300 × 5 ms = 1.5 s at ≤ 33 ms → far under the raw 300 emissions.
+        assertTrue(seen.size < 60, "coalesced=${seen.size}")
+        job.cancel()
+    }
+}
+
+class MarkdownParserTest {
+
+    @Test
+    fun `paragraphs headings lists quotes fences`() {
+        val src = """
+            # Title
+            Plain paragraph with text.
+            - bullet one
+            2. ordered two
+            > quoted line
+            ```kotlin
+            val a = 1
+            ```
+            after
+        """.trimIndent()
+        val blocks = MarkdownParser.parse(src)
+        assertTrue(blocks[0] is MarkdownParser.Block.Heading)
+        assertTrue(blocks[1] is MarkdownParser.Block.Paragraph)
+        val bullet = blocks[2] as MarkdownParser.Block.ListItem
+        assertTrue(!bullet.ordered)
+        val ordered = blocks[3] as MarkdownParser.Block.ListItem
+        assertTrue(ordered.ordered && ordered.number == 2)
+        assertTrue(blocks[4] is MarkdownParser.Block.Quote)
+        val fence = blocks[5] as MarkdownParser.Block.CodeFence
+        assertEquals("kotlin", fence.lang)
+        assertTrue(fence.complete)
+        assertTrue(fence.code.contains("val a = 1"))
+    }
+
+    @Test
+    fun `inline code bold italic links`() {
+        val spans = MarkdownParser.parseInline("run `make check` now, **bold**, *it*, and [docs](https://example.com)")
+        assertTrue(spans.any { it.code && it.text == "make check" })
+        assertTrue(spans.any { it.bold && it.text == "bold" })
+        assertTrue(spans.any { it.italic && it.text == "it" })
+        assertTrue(spans.any { it.linkUrl == "https://example.com" && it.text == "docs" })
+    }
+
+    @Test
+    fun `unclosed fence renders as pending literal (stabilized prefix, 19-2)`() {
+        val blocks = MarkdownParser.parse("before\n```python\nprint('partial'")
+        val fence = blocks.last() as MarkdownParser.Block.CodeFence
+        assertEquals(false, fence.complete)
+        assertEquals("python", fence.lang)
+        assertTrue(fence.code.contains("partial"))
+    }
+
+    @Test
+    fun `unterminated inline markers render literally (no layout jumps)`() {
+        val spans = MarkdownParser.parseInline("streaming **partial and `tick")
+        val joined = spans.joinToString("") { it.text }
+        assertTrue(joined.contains("**partial"))
+        assertTrue(joined.contains("`tick"))
+    }
+
+    @Test
+    fun `parser is TOTAL on hostile input (T15, INV-8)`() {
+        val hostile = listOf("", "```", "```\n", "****", "[][](", "`", "#", "\n\n\n", "a".repeat(100_000), "```js\n```js\n```", "[a](".repeat(500))
+        for (h in hostile) {
+            MarkdownParser.parse(h) // must never throw
+            MarkdownParser.parseInline(h)
+        }
+    }
+}
+
+/** Fakes + ViewModel behavior for the conversation surface. */
+class ConversationViewModelTest {
+
+    private class FakePort : ConversationPort {
+
+            // ---- Phase 9 port additions (test fakes: inert defaults) ----
+            override suspend fun fetchTurnFileChanges(taskId: String, rowId: Long, entityId: String): ConversationPort.TurnChangesResult =
+                ConversationPort.TurnChangesResult(null, "not faked")
+            override suspend fun switchModel(taskId: String, provider: String, model: String, thought: String): ConversationPort.SendOutcome =
+                ConversationPort.SendOutcome.ACCEPTED
+            override suspend fun switchMode(taskId: String, mode: String): ConversationPort.SendOutcome =
+                ConversationPort.SendOutcome.ACCEPTED
+            override suspend fun uploadAttachment(
+                taskId: String, fileName: String, mime: String, bytes: ByteArray, uploadId: String,
+                onProgress: (Int, Int) -> Unit,
+            ): ConversationPort.UploadResult = ConversationPort.UploadResult.Failed("not faked")
+            override suspend fun removeUpload(uploadId: String) { }
+            override suspend fun retryUpload(taskId: String, uploadId: String): ConversationPort.UploadResult =
+                ConversationPort.UploadResult.Failed("not faked")
+            override suspend fun fetchAttachment(
+                taskId: String, ref: String, targetRowId: Long?, targetEntityId: String?, attachmentIndex: Int?,
+            ): ConversationPort.AttachmentFetchResult = ConversationPort.AttachmentFetchResult(null, null, 0, "not faked")
+            override fun observeComposerAttachments(taskId: String): Flow<List<ConversationPort.ComposerAttachment>> =
+                kotlinx.coroutines.flow.MutableStateFlow(emptyList())
+            // ---- Phase 2 (GAP-10/GAP-12) port additions (test fakes: inert defaults) ----
+            override fun observeSlashCommands(taskId: String): Flow<List<ConversationPort.SlashCommandView>> =
+                MutableStateFlow(emptyList())
+            override suspend fun compact(taskId: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
+            override suspend fun sendGoal(taskId: String, objective: String, displayText: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
+            override suspend fun resumeGoal(taskId: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
+            override suspend fun editUserQuery(taskId: String, rowId: Long, entityId: String, newText: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.FAILED
+            override val phase = MutableStateFlow(ConnectionPhase.CONNECTED)
+        val rowsFlow = MutableStateFlow<List<ConversationRow>>(emptyList())
+        val epochFlow = MutableStateFlow<String?>(null)
+        val staleFlow = MutableStateFlow(false)
+        val taskStateFlow = MutableStateFlow(TaskStateMachine.State.UNKNOWN)
+        val streamingFlow = MutableStateFlow<List<StreamingBuffer>>(emptyList())
+        var openCalled = 0
+        val loadOlderCalls = mutableListOf<Long>()
+        var loadOlderResult = ConversationPort.LoadOlderResult(0, hasMore = false, error = null, epochRejected = false)
+
+        override fun observeRows(taskId: String): Flow<List<ConversationRow>> = rowsFlow
+        override fun observeEpoch(taskId: String): Flow<String?> = epochFlow
+        override fun observeStale(taskId: String): Flow<Boolean> = staleFlow
+        override fun observeTaskState(taskId: String): Flow<TaskStateMachine.State> = taskStateFlow
+        override fun observeStreaming(taskId: String): Flow<List<StreamingBuffer>> = streamingFlow
+
+    override fun observeHasMoreHistory(taskId: String): Flow<Boolean> = kotlinx.coroutines.flow.MutableStateFlow(false)
+
+    override fun observeTotalRows(taskId: String): Flow<Long?> = kotlinx.coroutines.flow.MutableStateFlow<Long?>(null)
+
+        override suspend fun task(taskId: String): Task? = Task(
+            taskId = taskId,
+            title = "T",
+            status = TaskStatus.RUNNING,
+            workspace = WorkspaceIdentityKey("/w"),
+            createdAtMs = 1,
+            updatedAtMs = 2,
+        )
+
+        override suspend fun open(task: Task): Boolean {
+            openCalled++
+            return true
+        }
+
+        override suspend fun loadOlder(taskId: String, beforeRowId: Long): ConversationPort.LoadOlderResult {
+            loadOlderCalls.add(beforeRowId)
+            return loadOlderResult
+        }
+
+        // ---- Phase 7 write surface (fakes: empty/offline-neutral defaults) ----
+        val sessionStateFlow = MutableStateFlow<com.zcode.android.domain.model.SessionProjectionState>(
+            com.zcode.android.domain.model.SessionProjectionState(),
+        )
+        val draftFlow = MutableStateFlow<String?>(null)
+        val pendingSendsFlow = MutableStateFlow<List<ConversationPort.PendingSendView>>(emptyList())
+        val openInteractionsFlow = MutableStateFlow<List<ConversationPort.InteractionSummary>>(emptyList())
+        val savedDrafts = mutableListOf<String>()
+        var sendResult = ConversationPort.SendOutcome.ACCEPTED
+
+        override fun observeSessionState(taskId: String) = sessionStateFlow
+        override fun observeDraft(taskId: String): Flow<String?> = draftFlow
+        override suspend fun saveDraft(taskId: String, text: String) { savedDrafts.add(text) }
+        override suspend fun clearDraft(taskId: String) { draftFlow.value = null }
+        override suspend fun sendPrompt(taskId: String, text: String, heldQueueDisposition: String?) = sendResult
+        override fun observePendingSends(taskId: String) = pendingSendsFlow
+        override suspend fun retrySend(commandId: String) = sendResult
+        override suspend fun stopGeneration(taskId: String) = sendResult
+        override suspend fun cancelBackgroundWork(taskId: String, workId: String) = sendResult
+        override suspend fun sendQueuedNow(taskId: String, queueItemId: String) = sendResult
+        override suspend fun editQueueItem(taskId: String, queueItemId: String, newText: String) = sendResult
+        override suspend fun answerInteraction(interactionId: String, optionId: String, freeText: String?, userInput: Boolean) =
+            ConversationPort.AnswerOutcome.SUBMITTED
+        override fun observeOpenInteractions() = openInteractionsFlow
+        override suspend fun answerUserInputQuestions(interactionId: String, answers: Map<String, List<String>>) =
+            ConversationPort.AnswerOutcome.SUBMITTED
+        override suspend fun answerFromInbox(interactionId: String, optionId: String, freeText: String?) =
+            ConversationPort.AnswerOutcome.SUBMITTED    }
+
+    private fun row(id: Long, text: String): ConversationRow.AssistantText =
+        ConversationRow.Decoder.decode(
+            buildJsonObject {
+                put("rowId", JsonPrimitive(id))
+                put("turnId", JsonPrimitive("t"))
+                put("kind", JsonPrimitive("assistantText"))
+                put("createdAt", JsonPrimitive(1.0))
+                put("createdAtSeq", JsonPrimitive(id))
+                put("assistantResponseId", JsonPrimitive("ar"))
+                put("text", JsonPrimitive(text))
+                put("state", JsonPrimitive("complete"))
+            },
+        ) as ConversationRow.AssistantText
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `loading until the authoritative anchor, then ready`() = runTest {
+        val port = FakePort()
+        val vm = ConversationViewModel(port, backgroundScope, "s1")
+        runCurrent()
+        assertTrue(vm.state.value.loading)
+        port.epochFlow.value = "e1"
+        port.taskStateFlow.value = TaskStateMachine.State.IDLE
+        assertTrue(eventually { vm.state.value.empty })
+        port.rowsFlow.value = listOf(row(1, "hello"))
+        assertTrue(eventually { vm.state.value.rows.isNotEmpty() })
+        assertEquals("hello", (vm.state.value.rows.single() as ConversationRow.AssistantText).text)
+        assertTrue(!vm.state.value.loading)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `streaming buffers merge onto their row`() = runTest {
+        val port = FakePort()
+        val vm = ConversationViewModel(port, backgroundScope, "s1")
+        port.epochFlow.value = "e1"
+        port.taskStateFlow.value = TaskStateMachine.State.RUNNING
+        port.rowsFlow.value = listOf(row(1, "par"))
+        port.streamingFlow.value = listOf(StreamingBuffer(1, "partial te", 5))
+        assertTrue(eventually { vm.state.value.streaming[1L] == "partial te" })
+        assertEquals("partial te", vm.state.value.streaming[1L])
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `epoch-rejected page surfaces history-changed and re-anchors (15-S9)`() = runTest {
+        val port = FakePort()
+        port.loadOlderResult = ConversationPort.LoadOlderResult(0, hasMore = false, error = null, epochRejected = true)
+        val vm = ConversationViewModel(port, backgroundScope, "s1")
+        runCurrent()
+        var callbackRows = -1
+        vm.loadOlder(beforeRowId = 10) { callbackRows = it }
+        assertTrue(eventually { vm.state.value.historyChanged })
+        assertEquals(0, callbackRows)
+        assertEquals(10L, port.loadOlderCalls.single())
+        vm.dismissHistoryNotice()
+        assertTrue(eventually { !vm.state.value.historyChanged })
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `loadOlder error surfaces with retry affordance`() = runTest {
+        val port = FakePort()
+        port.loadOlderResult = ConversationPort.LoadOlderResult(
+            0,
+            hasMore = true,
+            error = AppError(
+                ErrorCategory.TIMEOUT, "Taking too long", "diag",
+                AppError.Retryable.AUTO, recoverable = true,
+                autoRecovery = RecoveryAction.NONE, correlation = Correlation(),
+            ),
+            epochRejected = false,
+        )
+        val vm = ConversationViewModel(port, backgroundScope, "s1")
+        runCurrent()
+        vm.loadOlder(5) { }
+        assertTrue(eventually { vm.state.value.loadOlderError?.category == ErrorCategory.TIMEOUT })
+        assertEquals(ErrorCategory.TIMEOUT, vm.state.value.loadOlderError?.category)
+    }
+}
+
+/** Shared open fake for Phase 7 ViewModel-level tests (draft/answer contracts). */
+open class Phase7FakePort : ConversationPort {
+
+        // ---- Phase 9 port additions (test fakes: inert defaults) ----
+        override suspend fun fetchTurnFileChanges(taskId: String, rowId: Long, entityId: String): ConversationPort.TurnChangesResult =
+            ConversationPort.TurnChangesResult(null, "not faked")
+        override suspend fun switchModel(taskId: String, provider: String, model: String, thought: String): ConversationPort.SendOutcome =
+            ConversationPort.SendOutcome.ACCEPTED
+        override suspend fun switchMode(taskId: String, mode: String): ConversationPort.SendOutcome =
+            ConversationPort.SendOutcome.ACCEPTED
+        override suspend fun uploadAttachment(
+            taskId: String, fileName: String, mime: String, bytes: ByteArray, uploadId: String,
+            onProgress: (Int, Int) -> Unit,
+        ): ConversationPort.UploadResult = ConversationPort.UploadResult.Failed("not faked")
+        override suspend fun removeUpload(uploadId: String) { }
+        override suspend fun retryUpload(taskId: String, uploadId: String): ConversationPort.UploadResult =
+            ConversationPort.UploadResult.Failed("not implemented in fake")
+        override suspend fun fetchAttachment(
+            taskId: String, ref: String, targetRowId: Long?, targetEntityId: String?, attachmentIndex: Int?,
+        ): ConversationPort.AttachmentFetchResult = ConversationPort.AttachmentFetchResult(null, null, 0, "not faked")
+        override fun observeComposerAttachments(taskId: String): Flow<List<ConversationPort.ComposerAttachment>> =
+            kotlinx.coroutines.flow.MutableStateFlow(emptyList())
+        // ---- Phase 2 (GAP-10/GAP-12) port additions (test fakes: inert defaults) ----
+        override fun observeSlashCommands(taskId: String): Flow<List<ConversationPort.SlashCommandView>> =
+            kotlinx.coroutines.flow.MutableStateFlow(emptyList())
+        override suspend fun compact(taskId: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
+        override suspend fun sendGoal(taskId: String, objective: String, displayText: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
+        override suspend fun resumeGoal(taskId: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.ACCEPTED
+        override suspend fun editUserQuery(taskId: String, rowId: Long, entityId: String, newText: String): ConversationPort.SendOutcome = ConversationPort.SendOutcome.FAILED
+    override val phase = MutableStateFlow(ConnectionPhase.CONNECTED)
+    private val rowsFlow = MutableStateFlow<List<ConversationRow>>(emptyList())
+    private val sessionStateFlow = MutableStateFlow(
+        com.zcode.android.domain.model.SessionProjectionState(),
+    )
+    private val draftFlow = MutableStateFlow<String?>(null)
+    private val pendingFlow = MutableStateFlow<List<ConversationPort.PendingSendView>>(emptyList())
+    private val interactionsFlow = MutableStateFlow<List<ConversationPort.InteractionSummary>>(emptyList())
+
+    override suspend fun task(taskId: String): Task? = Task(
+        taskId = taskId, title = "T", status = TaskStatus.RUNNING,
+        workspace = WorkspaceIdentityKey("/w"), createdAtMs = 1, updatedAtMs = 2,
+    )
+    override fun observeRows(taskId: String) = rowsFlow
+    override fun observeEpoch(taskId: String) = MutableStateFlow<String?>(null)
+    override fun observeStale(taskId: String) = MutableStateFlow(false)
+    override fun observeTaskState(taskId: String) = MutableStateFlow(TaskStateMachine.State.UNKNOWN)
+    override fun observeStreaming(taskId: String) = MutableStateFlow<List<StreamingBuffer>>(emptyList())
+    override fun observeHasMoreHistory(taskId: String) = MutableStateFlow(false)
+    override fun observeTotalRows(taskId: String) = MutableStateFlow<Long?>(null)
+    override fun observeSessionState(taskId: String) = sessionStateFlow
+    override suspend fun open(task: Task): Boolean = true
+    override suspend fun loadOlder(taskId: String, beforeRowId: Long) =
+        ConversationPort.LoadOlderResult(0, false, null, false)
+    override fun observeDraft(taskId: String) = draftFlow
+    override suspend fun saveDraft(taskId: String, text: String) { draftFlow.value = text }
+    override suspend fun clearDraft(taskId: String) { draftFlow.value = null }
+    override suspend fun sendPrompt(taskId: String, text: String, heldQueueDisposition: String?) =
+        ConversationPort.SendOutcome.ACCEPTED
+    override fun observePendingSends(taskId: String) = pendingFlow
+    override suspend fun retrySend(commandId: String) = ConversationPort.SendOutcome.ACCEPTED
+    override suspend fun stopGeneration(taskId: String) = ConversationPort.SendOutcome.ACCEPTED
+    override suspend fun cancelBackgroundWork(taskId: String, workId: String) = ConversationPort.SendOutcome.ACCEPTED
+    override suspend fun sendQueuedNow(taskId: String, queueItemId: String) = ConversationPort.SendOutcome.ACCEPTED
+    override suspend fun editQueueItem(taskId: String, queueItemId: String, newText: String) = ConversationPort.SendOutcome.ACCEPTED
+    override suspend fun answerInteraction(interactionId: String, optionId: String, freeText: String?, userInput: Boolean) =
+        ConversationPort.AnswerOutcome.SUBMITTED
+    override fun observeOpenInteractions() = interactionsFlow
+    override suspend fun answerFromInbox(interactionId: String, optionId: String, freeText: String?) =
+        ConversationPort.AnswerOutcome.SUBMITTED
+    override suspend fun answerUserInputQuestions(interactionId: String, answers: Map<String, List<String>>) =
+        ConversationPort.AnswerOutcome.SUBMITTED
+}
+
+
+/**
+ * Phase 7 draft lifecycle (§17.4, E8): the accepted send IS the discard; every
+ * failure path PRESERVES the draft (never lost). FakePort records the store calls.
+ */
+class ConversationDraftLifecycleTest {
+
+    private class DraftFakePort : Phase7FakePort() {
+        var sendResult = ConversationPort.SendOutcome.ACCEPTED
+        val sends = mutableListOf<String>()
+        override suspend fun sendPrompt(taskId: String, text: String, heldQueueDisposition: String?): ConversationPort.SendOutcome {
+            sends.add(text)
+            return sendResult
+        }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `accepted send clears the draft`() = runTest {
+        val port = DraftFakePort()
+        val vm = ConversationViewModel(port, backgroundScope, "s1")
+        vm.onDraftChange("hello agent")
+        vm.send()
+        runCurrent()
+        kotlinx.coroutines.delay(1)
+        assertEquals("", vm.state.value.draft)
+        assertEquals(listOf("hello agent"), port.sends)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `offline block preserves the draft and shows the copy (E8, 17-6)`() = runTest {
+        val port = DraftFakePort()
+        port.sendResult = ConversationPort.SendOutcome.BLOCKED_OFFLINE
+        val vm = ConversationViewModel(port, backgroundScope, "s1")
+        vm.onDraftChange("precious draft")
+        vm.send()
+        runCurrent()
+        kotlinx.coroutines.delay(1)
+        assertEquals("precious draft", vm.state.value.draft) // NEVER lost
+        assertTrue(vm.state.value.sendNotice != null)
+        assertEquals(listOf("precious draft"), port.sends) // one attempt, no silent queue
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `stale send preserves the draft with the retry copy`() = runTest {
+        val port = DraftFakePort()
+        port.sendResult = ConversationPort.SendOutcome.STALE
+        val vm = ConversationViewModel(port, backgroundScope, "s1")
+        vm.onDraftChange("try again text")
+        vm.send()
+        runCurrent()
+        kotlinx.coroutines.delay(1)
+        assertEquals("try again text", vm.state.value.draft)
+        assertEquals(SendNotice.Kind.WARNING, vm.state.value.sendNotice?.kind)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `blank send is a no-op`() = runTest {
+        val port = DraftFakePort()
+        val vm = ConversationViewModel(port, backgroundScope, "s1")
+        vm.onDraftChange("   ")
+        vm.send()
+        runCurrent()
+        assertEquals(0, port.sends.size)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `interaction answers are double-tap safe at the UI layer`() = runTest {
+        val port = DraftFakePort()
+        var answers = 0
+        val vm = ConversationViewModel(object : Phase7FakePort() {
+            override suspend fun answerInteraction(interactionId: String, optionId: String, freeText: String?, userInput: Boolean): ConversationPort.AnswerOutcome {
+                answers++
+                return ConversationPort.AnswerOutcome.SUBMITTED
+            }
+        }, backgroundScope, "s1")
+        vm.answerInteraction("i-1", "allowOnce", null, false)
+        vm.answerInteraction("i-1", "allowOnce", null, false) // second tap while busy — dropped
+        runCurrent()
+        kotlinx.coroutines.delay(1)
+        assertEquals(1, answers)
+    }
+}
+
+/**
+ * FIELD (2026-10-01, vc21 device report): "keyboard pops up, I type, nothing shows
+ * up" — two stacked causes: (a) the IME covered the composer (imePadding fix,
+ * device-leg only), and (b) the draft was NOT a combine source, so any state
+ * emission on a live conversation re-rendered the field with the stale value and
+ * wiped typed characters. This suite pins (b): typing must SURVIVE other state
+ * emissions because state.draft is state-driven.
+ */
+class ConversationTypingPersistenceTest {
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `typed draft survives state emissions (stale-draft wipe regression)`() = runTest {
+        val port = Phase7FakePort()
+        val sessionState = MutableStateFlow(
+            com.zcode.android.domain.model.SessionProjectionState(
+                control = com.zcode.android.domain.model.SessionControl(
+                    "running", false, true, com.zcode.android.domain.model.SessionControl.StopState.STOPPABLE, emptyList(),
+                ),
+            ),
+        )
+        val vm = ConversationViewModel(object : Phase7FakePort() {
+            override fun observeSessionState(taskId: String) = sessionState
+        }, backgroundScope, "s1")
+
+        vm.onDraftChange("hel")
+        runCurrent()
+        vm.onDraftChange("hello agent")
+        runCurrent()
+
+        // Live-conversation churn: the desktop pushes state patches while typing.
+        sessionState.value = sessionState.value.copy(revision = 42)
+        runCurrent()
+        sessionState.value = sessionState.value.copy(revision = 43)
+        runCurrent()
+
+        assertEquals("hello agent", vm.state.value.draft, "draft wiped by a state emission")
+    }
+}

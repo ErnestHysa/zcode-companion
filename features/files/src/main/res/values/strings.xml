@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="files_title">Files</string>
+    <string name="files_no_workspace">No workspace connected.</string>
+    <string name="files_up">Up</string>
+    <string name="files_loading">Loading…</string>
+    <string name="files_download">Download</string>
+    <string name="files_load_more">Load more (%1$d/%2$d)</string>
+    <string name="files_dialog_title">File</string>
+    <string name="files_ok">OK</string>
+    <!-- GAP-15: file-kind a11y labels. -->
+    <string name="file_kind_folder">Folder</string>
+    <string name="file_kind_image">Image</string>
+    <string name="file_kind_video">Video</string>
+    <string name="file_kind_audio">Audio</string>
+    <string name="file_kind_code">Source code</string>
+    <string name="file_kind_data">Data</string>
+    <string name="file_kind_document">Document</string>
+    <string name="file_kind_archive">Archive</string>
+    <string name="file_kind_database">Database</string>
+    <string name="file_kind_terminal">Terminal script</string>
+    <string name="file_kind_config">Config</string>
+</resources>

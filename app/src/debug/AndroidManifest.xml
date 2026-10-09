@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Robolectric compose tests (createComposeRule) launch
+     androidx.activity.ComponentActivity; the unit-test ap_ that Robolectric
+     parses is packaged from the DEBUG runtime manifest for this module, so the
+     test-only activity is declared here (debug builds only; the app never
+     launches it — the launcher activity is .MainActivity). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:networkSecurityConfig="@xml/network_security_config">
+        <activity
+            android:name="androidx.activity.ComponentActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar">
+            <intent-filter android:priority="-100">
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

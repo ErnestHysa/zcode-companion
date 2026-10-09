@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "kind": "relay-surface",
+  "generatedAt": "2026-10-07T17:29:29.858Z",
+  "source": {
+    "cjsPath": "/Applications/ZCode.app/Contents/Resources/glm/zcode.cjs",
+    "cjsSha256": "fad4c35c4c36ec210d8a06d3fa0e77de23c8545e2eb6ff90aea1eb38d1e6275f",
+    "cjsBytes": 14820968,
+    "appPath": "/Applications/ZCode.app/Contents/Resources/app.asar",
+    "appSha256": "232e913ea13d60bd0ecc86bf9f2f145328809608fe4d48e76685d61a8076aef0",
+    "appBytes": 326914570,
+    "desktopVersion": "3.14.4",
+    "scannedAt": "2026-10-07T17:29:26.354Z"
+  },
+  "layers": {
+    "closeCodes": {
+      "entries": {
+        "DesktopDisconnected": "4010",
+        "InvalidMobileConnection": "4013",
+        "SessionConflict": "4009",
+        "SessionExpired": "4011",
+        "SessionNotFound": "4004",
+        "WorkspaceClosed": "4012"
+      }
+    },
+    "adapterLimits": {
+      "entries": {
+        "assemblyTimeoutMs": "30000",
+        "maxFragments": "64",
+        "maxMessageBytes": "16*1024*1024",
+        "maxPhysicalFrameBytes": "fc.maxFrameBytes",
+        "transportIdMaxChars": "fc.transportEnvelopeIdMaxChars"
+      }
+    },
+    "envelopeFields": {
+      "entries": {
+        "ackMessageSeq": "present",
+        "bridgeGeneration": "present",
+        "bridgeSessionId": "present",
+        "checksum": "present",
+        "client_ts": "present",
+        "dataBase64": "present",
+        "fragmentCount": "present",
+        "fragmentIndex": "present",
+        "messageBytes": "present",
+        "messageSeq": "present",
+        "recoveryId": "present",
+        "rpc-frame": "present",
+        "rpc-frame-ack": "present",
+        "server_ts": "present",
+        "zcode_type": "present"
+      }
+    },
+    "errorCodes": {
+      "entries": {
+        "AUTH_FAILED": "present",
+        "INTERNAL": "present",
+        "KICKED": "present",
+        "WRONG_PARAM": "present"
+      }
+    }
+  },
+  "meta": {
+    "perFamilySource": {
+      "closeCodes": "zcode.cjs",
+      "adapterLimits": "zcode.cjs"
+    },
+    "occurrences": {
+      "client_ts": 21,
+      "server_ts": 16,
+      "zcode_type": 259,
+      "rpc-frame": 17,
+      "rpc-frame-ack": 15,
+      "bridgeSessionId": 157,
+      "bridgeGeneration": 148,
+      "recoveryId": 146,
+      "messageSeq": 79,
+      "ackMessageSeq": 21,
+      "fragmentIndex": 133,
+      "fragmentCount": 150,
+      "messageBytes": 63,
+      "checksum": 262,
+      "dataBase64": 317,
+      "KICKED": 2,
+      "AUTH_FAILED": 1,
+      "INTERNAL": 109,
+      "WRONG_PARAM": 1
+    },
+    "occurrencesApproximate": true
+  }
+}

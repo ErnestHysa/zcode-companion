@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Conversation screen (§19). -->
+    <string name="conv_stale_title">Showing cached projection · recovering</string>
+    <string name="conv_attention_title">Needs attention</string>
+    <string name="conv_attention_body">The agent is waiting — answer above.</string>
+    <string name="conv_load_earlier">Load earlier messages</string>
+    <string name="conv_showing_latest_of">  ·  showing latest %1$d of %2$d</string>
+    <string name="conv_history_changed">History changed on desktop — jumped to latest</string>
+    <string name="action_dismiss">Dismiss</string>
+    <string name="conv_default_title">Conversation</string>
+    <string name="conv_empty_title">No messages yet</string>
+    <string name="conv_empty_body">Agent activity will stream here when the conversation starts.</string>
+    <string name="conv_loading_older">Loading earlier messages…</string>
+    <string name="conv_load_older_error">Couldn\'t load earlier messages</string>
+    <string name="conv_jump_latest">Jump to latest</string>
+    <string name="conv_turn_label">turn %1$s</string>
+
+    <!-- Approvals inbox (§18.3 "approval first"). -->
+    <string name="approvals_title">Approvals</string>
+    <string name="approvals_subtitle">Requests waiting across your tasks</string>
+    <string name="approvals_offline_note">Offline — answers are blocked until the connection returns. Nothing is queued.</string>
+    <string name="approvals_empty_title">Nothing needs you</string>
+    <string name="approvals_empty_body">Permission requests and questions from your tasks appear here.</string>
+    <string name="approvals_permission">Permission — %1$s</string>
+    <string name="approvals_question">Question</string>
+    <string name="approvals_task_ref">task %1$s · %2$s</string>
+    <string name="approvals_open_task">Open task to answer</string>
+    <string name="approvals_deny_title">Deny this request?</string>
+    <string name="approvals_deny_body">The agent is told no for this request (%1$s).</string>
+
+    <!-- Approval cards (§20.2: consequences spelled out; §20.4 fail-closed). -->
+    <string name="approval_needed">Approval needed</string>
+    <string name="approval_refine_hint">Refinement (required)</string>
+    <string name="approval_refine_send">Send refinement</string>
+    <string name="approval_unsupported">Unsupported option — answer on the desktop</string>
+    <string name="approval_deny_confirm_title">Deny this request?</string>
+    <string name="approval_allow_confirm_title">Allow always?</string>
+    <string name="approval_deny_confirm_body">The agent is told no for this request.</string>
+    <string name="approval_allow_confirm_body">Future identical requests will run WITHOUT asking again.</string>
+    <string name="action_confirm">Confirm</string>
+    <string name="action_save">Save</string>
+    <string name="action_close">Close</string>
+    <string name="action_ok">OK</string>
+    <string name="consequence_allow_once">Allow once — this request only</string>
+    <string name="consequence_allow_always">Allow always — identical requests stop asking</string>
+    <string name="consequence_allow_project">Allow for this project</string>
+    <string name="consequence_deny">Deny — the agent is told no</string>
+    <string name="consequence_refine">Refine instead</string>
+    <string name="consequence_other">Unsupported option</string>
+
+    <!-- User-input cards (U9). -->
+    <string name="userinput_title">Agent needs your input</string>
+    <string name="userinput_own_answer">Or type your own answer</string>
+    <string name="userinput_send_answers">Send answers</string>
+    <string name="userinput_send_answer">Send answer</string>
+    <string name="userinput_own_placeholder">Your answer</string>
+    <string name="userinput_sensitive_placeholder">Answer (sensitive — not saved to drafts)</string>
+    <string name="userinput_desktop_note">Answer this prompt on the desktop.</string>
+
+    <!-- Queue strip / held-queue dialog (§7.5). -->
+    <string name="queue_label">Queued (%1$d)</string>
+    <string name="queue_send_now">Send now</string>
+    <string name="queue_edit">Edit</string>
+    <string name="queue_edit_title">Edit queued message</string>
+    <string name="queue_held_title">Queue is held</string>
+    <string name="queue_held_body">Send now and clear the queue, or keep the queued messages?</string>
+    <string name="queue_clear_send">Clear queue &amp; send</string>
+    <string name="queue_keep_send">Keep queue &amp; send</string>
+
+    <!-- Composer (§17.4). -->
+    <string name="composer_placeholder">Message the agent…</string>
+    <string name="composer_attach_image">Attach an image</string>
+    <string name="composer_attach_file">Attach a file</string>
+    <string name="composer_stop">Stop the agent</string>
+    <string name="composer_send">Send message</string>
+    <string name="composer_voice">Voice input</string>
+    <string name="composer_voice_listening">Listening…</string>
+    <string name="composer_voice_unavailable">Voice input isn\'t available on this device</string>
+
+    <!-- Row renderers (§19.3/§19.5). -->
+    <string name="row_you">YOU</string>
+    <string name="row_agent">AGENT</string>
+    <string name="row_generating">Generating</string>
+    <string name="row_tool_a11y">Tool %1$s, %2$s. Tap to %3$s.</string>
+    <string name="a11y_expand">expand</string>
+    <string name="a11y_collapse">collapse</string>
+    <string name="row_input">INPUT</string>
+    <string name="row_output">OUTPUT</string>
+    <string name="row_error">ERROR</string>
+    <string name="row_reasoning_a11y">Agent reasoning. Tap to %1$s.</string>
+    <string name="row_thinking">THINKING</string>
+    <string name="row_turn">Turn</string>
+    <string name="row_unsupported">Unsupported entry</string>
+    <string name="row_code">CODE</string>
+    <!-- GAP-11: per-row/code-block copy affordances (user-initiated, §27). -->
+    <string name="row_copy">Copy</string>
+    <string name="row_copied">Copied</string>
+    <string name="tool_state_running">Running</string>
+    <string name="tool_state_needs_approval">Needs approval</string>
+    <string name="tool_state_completed">Completed</string>
+    <string name="tool_state_failed">Failed</string>
+    <string name="tool_state_cancelled">Cancelled</string>
+    <string name="tool_state_unknown">Unknown</string>
+
+    <!-- Model/mode switch + turn diffs (Phase 9). -->
+    <string name="mode_a11y">collaboration mode %1$s, tap to change</string>
+    <string name="model_a11y">model %1$s, thought %2$s, tap to change</string>
+    <string name="switch_model_title">Switch model</string>
+    <string name="switch_loading">Loading options…</string>
+    <string name="switch_unavailable">The model list is not available on this connection — switching between known configuration values is still possible.</string>
+    <string name="switch_keep_current">Keep current model</string>
+    <string name="thought_level_for">Thought level for %1$s</string>
+    <string name="changes_title">Changes · %1$s</string>
+    <string name="changes_loading">Loading changes…</string>
+    <string name="changes_error">Could not load changes: %1$s</string>
+    <string name="attachment_remove">Remove</string>
+    <string name="tool_fallback">tool</string>
+    <string name="files_entry">Files</string>
+    <string name="git_entry">Git</string>
+    <string name="terminal_entry">Terminal</string>
+    <string name="switch_mode_title">Switch mode</string>
+    <!-- GAP-17: desktop mode vocabulary (i18n mode.label.glm.* / mode.description.glm.*). -->
+    <string name="mode_title_build">Ask before changes</string>
+    <string name="mode_title_edit">Edit automatically</string>
+    <string name="mode_title_plan">Plan mode</string>
+    <string name="mode_title_yolo">Full access</string>
+    <string name="mode_description_build">Ask before file changes.</string>
+    <string name="mode_description_edit">Edit files automatically.</string>
+    <string name="mode_description_plan">Plan before editing.</string>
+    <string name="mode_description_yolo">Run with fewer confirmations.</string>
+
+    <!-- GAP-1/GAP-2: context usage header panel (desktop contextUsage.tsx). -->
+    <string name="context_usage_cd">Context window usage</string>
+    <!-- Desktop chat.contextUsage.breakdown.* labels. -->
+    <string name="usage_breakdown_messages">Messages</string>
+    <string name="usage_breakdown_system_prompt">System prompt</string>
+    <string name="usage_breakdown_meta_user_context">User context</string>
+    <string name="usage_breakdown_skills">Skills</string>
+    <string name="usage_breakdown_tool_prompt">Tool prompts</string>
+    <string name="usage_breakdown_system_tool_schemas">Tool schemas</string>
+    <string name="usage_breakdown_mcp_tool_schemas">MCP tools</string>
+    <!-- GAP-10: row action sheet + message edit (§11.4). -->
+    <string name="action_copy">Copy</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="row_actions_title">Message actions</string>
+    <string name="edit_title">Edit message</string>
+    <string name="edit_hint">The turn is re-asked with the edited text; the reply after it is regenerated.</string>
+    <string name="edit_review">Review edit</string>
+    <string name="edit_confirm_title">Re-ask this turn?</string>
+    <string name="edit_confirm_body">This replaces the turn with your edited text and regenerates the reply. Files and later turns may be affected.</string>
+    <string name="edit_confirm_button">Edit and re-ask</string>
+</resources>

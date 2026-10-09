@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="files_title">文件</string>
+    <string name="files_no_workspace">未连接工作区。</string>
+    <string name="files_up">上级</string>
+    <string name="files_loading">加载中…</string>
+    <string name="files_download">下载</string>
+    <string name="files_load_more">加载更多（%1$d/%2$d）</string>
+    <string name="files_dialog_title">文件</string>
+    <string name="files_ok">确定</string>
+    <string name="file_kind_folder">文件夹</string>
+    <string name="file_kind_image">图片</string>
+    <string name="file_kind_video">视频</string>
+    <string name="file_kind_audio">音频</string>
+    <string name="file_kind_code">源代码</string>
+    <string name="file_kind_data">数据</string>
+    <string name="file_kind_document">文档</string>
+    <string name="file_kind_archive">压缩包</string>
+    <string name="file_kind_database">数据库</string>
+    <string name="file_kind_terminal">终端脚本</string>
+    <string name="file_kind_config">配置</string>
+</resources>

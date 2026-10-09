@@ -1,0 +1,569 @@
+{
+  "metadata": {
+    "source": "ZCode reference clone packages/shared (v3.14.3, commit 29628c9) — schemas extracted verbatim, payloads parse-validated",
+    "generator": "dev-time script (tools/capture/generate-phase3-fixtures.mjs; zod@4.6.5 bootstrapped into /tmp scratch)",
+    "generatedAt": "2026-10-07T11:47:52.683Z",
+    "zcodeVersion": "3.14.3",
+    "sanitization": "synthetic payloads only — no real credentials, content, or traffic (INV-15/16)",
+    "liveCaptureNote": "all five surfaces are one-shot R reads; live-channel authorization over the production relay rides the Phase-12 manual canary (phase9-channels.md terminal precedent) — MockZCode implements the verified surface with scriptable refusal scenarios",
+    "channelTypeExtensionNote": "automation/off-peak channel payloads are the desktop types (automation-types.ts:65-113, off-peak-types.ts:102-165) = the verbatim protocol schemas extended with the cited channel-only fields; serverTicketId deliberately never modeled (toProtocolOffPeakTaskSnapshot: 不暴露 serverTicketId)"
+  },
+  "cases": [
+    {
+      "kind": "usage-stats",
+      "name": "app-usage-full",
+      "schema": "app-usage-full",
+      "data": {
+        "range": "7d",
+        "generatedAt": 1791440000000,
+        "timeZone": "Europe/London",
+        "source": "agent-db",
+        "summary": {
+          "totalTokens": 184600,
+          "inputTokens": 120000,
+          "outputTokens": 42000,
+          "reasoningTokens": 8600,
+          "cacheCreationTokens": 3200,
+          "cacheReadTokens": 15600,
+          "cacheHitRate": 0.42,
+          "totalSessions": 14,
+          "totalTurns": 96,
+          "toolCallCount": 210,
+          "toolErrorRate": 0.05,
+          "modelErrorRate": 0.02,
+          "avgTimeToFirstTokenMs": 1420,
+          "avgTurnDurationMs": 41000,
+          "activeDays": 5,
+          "currentStreakDays": 3,
+          "longestSessionMs": 5400000,
+          "longestStreakDays": 9,
+          "peakDayTokens": 51200,
+          "favoriteModel": {
+            "modelId": "glm-5.3",
+            "totalTokens": 114452,
+            "share": 0.62
+          }
+        },
+        "heatmap": {
+          "startDate": "2026-09-28",
+          "endDate": "2026-10-11",
+          "maxTokens": 51200,
+          "weeks": [
+            {
+              "weekIndex": 0,
+              "days": [
+                {
+                  "date": "2026-09-28",
+                  "level": 1,
+                  "totalTokens": 8200,
+                  "turnCount": 6,
+                  "toolCallCount": 12
+                },
+                {
+                  "date": "2026-09-29",
+                  "level": 3,
+                  "totalTokens": 30100,
+                  "turnCount": 14,
+                  "toolCallCount": 48
+                },
+                null,
+                null,
+                null,
+                null,
+                null
+              ]
+            },
+            {
+              "weekIndex": 1,
+              "days": [
+                {
+                  "date": "2026-10-05",
+                  "level": 4,
+                  "totalTokens": 51200,
+                  "turnCount": 22,
+                  "toolCallCount": 77
+                },
+                {
+                  "date": "2026-10-06",
+                  "level": 2,
+                  "totalTokens": 15400,
+                  "turnCount": 9,
+                  "toolCallCount": 30
+                },
+                null,
+                null,
+                null,
+                null,
+                null
+              ]
+            }
+          ]
+        },
+        "dailyModelUsage": [
+          {
+            "date": "2026-10-05",
+            "models": [
+              {
+                "modelId": "glm-5.3",
+                "totalTokens": 38400
+              },
+              {
+                "modelId": "glm-5.3-flash",
+                "totalTokens": 12800
+              }
+            ]
+          },
+          {
+            "date": "2026-10-06",
+            "models": [
+              {
+                "modelId": "glm-5.3",
+                "totalTokens": 11500
+              },
+              {
+                "modelId": null,
+                "totalTokens": 3900
+              }
+            ]
+          }
+        ],
+        "models": [
+          {
+            "modelId": "glm-5.3",
+            "totalTokens": 114452,
+            "inputTokens": 74000,
+            "outputTokens": 32000,
+            "requestCount": 420,
+            "share": 0.62
+          },
+          {
+            "modelId": "glm-5.3-flash",
+            "totalTokens": 70148,
+            "inputTokens": 46000,
+            "outputTokens": 10000,
+            "requestCount": 260,
+            "share": 0.38
+          }
+        ],
+        "tools": [
+          {
+            "toolName": "Bash",
+            "callCount": 120,
+            "errorCount": 6,
+            "errorRate": 0.05,
+            "avgDurationMs": 3200
+          },
+          {
+            "toolName": "Read",
+            "callCount": 90,
+            "errorCount": 0,
+            "errorRate": 0,
+            "avgDurationMs": 210
+          }
+        ]
+      }
+    },
+    {
+      "kind": "usage-stats",
+      "name": "app-usage-zero",
+      "schema": "app-usage-zero",
+      "data": {
+        "range": "all",
+        "generatedAt": 1791440000000,
+        "timeZone": "Europe/London",
+        "source": "agent-db",
+        "summary": {
+          "totalTokens": 0,
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "reasoningTokens": 0,
+          "cacheCreationTokens": 0,
+          "cacheReadTokens": 0,
+          "cacheHitRate": 0,
+          "totalSessions": 0,
+          "totalTurns": 0,
+          "toolCallCount": 0,
+          "toolErrorRate": 0,
+          "modelErrorRate": 0,
+          "avgTimeToFirstTokenMs": null,
+          "avgTurnDurationMs": null,
+          "activeDays": 0,
+          "currentStreakDays": 0,
+          "longestSessionMs": 0,
+          "longestStreakDays": 0,
+          "peakDayTokens": 0,
+          "favoriteModel": null
+        },
+        "heatmap": {
+          "startDate": null,
+          "endDate": null,
+          "maxTokens": 0,
+          "weeks": []
+        },
+        "dailyModelUsage": [],
+        "models": [],
+        "tools": []
+      }
+    },
+    {
+      "kind": "automation-list",
+      "name": "automation-list-mixed",
+      "schema": "automation-list-mixed",
+      "data": {
+        "automations": [
+          {
+            "automationId": "auto-1",
+            "title": "Nightly dependency review",
+            "cronExpr": "30 2 * * *",
+            "prompt": "Review yesterday's dependency changes and summarize risks.",
+            "modelSelection": {
+              "providerId": "zai",
+              "modelId": "glm-5.3",
+              "options": {
+                "reasoningLevel": "high"
+              }
+            },
+            "mode": "build",
+            "targetTaskId": "task-77",
+            "enabled": true,
+            "lifecycleStatus": "active",
+            "nextRunAt": 1791500000000,
+            "lastRunAt": 1791410000000,
+            "runCount": 12,
+            "recurring": true,
+            "scheduleRule": {
+              "unit": "daily",
+              "interval": 1,
+              "hour": 2,
+              "minute": 30,
+              "anchorAt": 1791000000000
+            },
+            "workspaceKey": "/synthetic/ws",
+            "workspacePath": "/synthetic/ws",
+            "workspaceIdentity": "synth-ws-identity-key",
+            "locationKind": "local",
+            "dispatchStatus": "dispatched",
+            "dispatchAttempts": 1,
+            "createdAt": 1790000000000,
+            "updatedAt": 1791410000000
+          },
+          {
+            "automationId": "auto-2",
+            "title": "Weekly report",
+            "cronExpr": "0 9 * * 1",
+            "prompt": "Draft the weekly summary.",
+            "enabled": false,
+            "lifecycleStatus": "paused",
+            "runCount": 3,
+            "recurring": true,
+            "maxRuns": 20,
+            "scheduleRule": {
+              "unit": "weekly",
+              "interval": 1,
+              "hour": 9,
+              "minute": 0,
+              "anchorAt": 1790000000000,
+              "weekdays": [
+                1
+              ]
+            },
+            "workspaceKey": "/synthetic/ws",
+            "workspacePath": "/synthetic/ws",
+            "locationKind": "remote",
+            "scheduleEditedByUser": true,
+            "dispatchStatus": "skipped",
+            "dispatchAttempts": 0,
+            "lastError": "disabled by user",
+            "createdAt": 1789000000000,
+            "updatedAt": 1791300000000
+          },
+          {
+            "automationId": "auto-3",
+            "title": "One-shot backup",
+            "cronExpr": "0 12 1 1 *",
+            "prompt": "Run the backup script.",
+            "enabled": true,
+            "lifecycleStatus": "completed",
+            "runCount": 1,
+            "recurring": false,
+            "maxRuns": 1,
+            "workspaceKey": "/synthetic/ws",
+            "workspacePath": "/synthetic/ws",
+            "locationKind": "local",
+            "dispatchStatus": "dispatched",
+            "dispatchAttempts": 1,
+            "retryAt": 1791400000000,
+            "createdAt": 1788000000000,
+            "updatedAt": 1791400000000
+          }
+        ]
+      }
+    },
+    {
+      "kind": "automation-list",
+      "name": "automation-list-empty",
+      "schema": "automation-list-empty",
+      "data": {
+        "automations": []
+      }
+    },
+    {
+      "kind": "offpeak-list",
+      "name": "offpeak-list-mixed",
+      "schema": "offpeak-list-mixed",
+      "data": {
+        "tasks": [
+          {
+            "offPeakTaskId": "opt-1",
+            "title": "Idle-time refactor",
+            "status": "queued",
+            "queuePosition": 3,
+            "createdAt": 1791440000000,
+            "prompt": "Refactor the utils package.",
+            "permissionMode": "build",
+            "workspaceKey": "/synthetic/ws",
+            "workspacePath": "/synthetic/ws",
+            "workspaceIdentity": "synth-ws-identity-key",
+            "queuedAt": 1791440000000
+          },
+          {
+            "offPeakTaskId": "opt-2",
+            "title": "Nightly docs",
+            "status": "running",
+            "sessionId": "sess-9",
+            "createdAt": 1791400000000,
+            "prompt": "Regenerate API docs.",
+            "permissionMode": "yolo",
+            "workspaceKey": "/synthetic/ws",
+            "workspacePath": "/synthetic/ws",
+            "queuedAt": 1791400000000,
+            "startedAt": 1791440100000,
+            "schedulable": true
+          },
+          {
+            "offPeakTaskId": "opt-4",
+            "title": "Broken sweep",
+            "status": "failed",
+            "createdAt": 1791200000000,
+            "prompt": "Sweep TODOs and file issues.",
+            "permissionMode": "plan",
+            "workspaceKey": "/synthetic/ws",
+            "workspacePath": "/synthetic/ws",
+            "queuedAt": 1791200000000,
+            "endedAt": 1791200600000,
+            "failureReason": "workspace unavailable"
+          },
+          {
+            "offPeakTaskId": "opt-3",
+            "title": "Other-workspace sweep",
+            "status": "completed",
+            "sessionId": "sess-5",
+            "createdAt": 1791000000000,
+            "prompt": "Sweep TODOs.",
+            "permissionMode": "plan",
+            "workspaceKey": "/other/ws",
+            "workspacePath": "/other/ws",
+            "queuedAt": 1791000000000,
+            "startedAt": 1791000100000,
+            "endedAt": 1791003600000,
+            "filesChanged": 7
+          }
+        ]
+      }
+    },
+    {
+      "kind": "offpeak-list",
+      "name": "offpeak-list-empty",
+      "schema": "offpeak-list-empty",
+      "data": {
+        "tasks": []
+      }
+    },
+    {
+      "kind": "plugins-list",
+      "name": "plugins-list-mixed",
+      "schema": "plugins-list-mixed",
+      "data": {
+        "plugins": [
+          {
+            "id": "com.example.commit-aid",
+            "name": "commit-aid",
+            "description": "Conventional-commit helper",
+            "version": "1.4.0",
+            "enabled": true,
+            "source": "marketplace",
+            "marketplace": "example",
+            "author": "Example Labs",
+            "homepage": "https://example.com/commit-aid",
+            "skillCount": 2,
+            "skillRootCount": 1,
+            "commandRootCount": 3,
+            "components": [
+              {
+                "kind": "command",
+                "items": [
+                  {
+                    "name": "commit",
+                    "description": "Draft a conventional commit"
+                  }
+                ]
+              },
+              {
+                "kind": "skill",
+                "items": [
+                  {
+                    "name": "commit-style"
+                  },
+                  {
+                    "name": "release-notes",
+                    "description": "Release note templates"
+                  }
+                ]
+              }
+            ],
+            "declaredMcpServerNames": [
+              "git-extra"
+            ],
+            "hostMcpServerNames": [
+              "git-extra"
+            ],
+            "mcpServerNames": [
+              "git-extra"
+            ],
+            "rootPath": "/plugins/commit-aid",
+            "userConfig": {
+              "style": {
+                "type": "string",
+                "default": "conventional",
+                "description": "Commit style"
+              }
+            },
+            "configuredOptions": {
+              "style": "conventional"
+            },
+            "rootSource": "user",
+            "enabledSource": "user"
+          },
+          {
+            "id": "builtin.core",
+            "name": "core",
+            "version": "3.14.3",
+            "enabled": false,
+            "source": "builtin",
+            "marketplace": "builtin",
+            "skillRootCount": 0,
+            "commandRootCount": 0,
+            "mcpServerNames": [],
+            "rootPath": "/builtin/core"
+          }
+        ],
+        "diagnostics": [
+          {
+            "code": "manifest.missing_description",
+            "message": "Plugin 'core' declares no description.",
+            "severity": "warning",
+            "pluginId": "builtin.core"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "plugins-list",
+      "name": "plugins-list-empty",
+      "schema": "plugins-list-empty",
+      "data": {
+        "plugins": [],
+        "diagnostics": []
+      }
+    },
+    {
+      "kind": "skills-catalog",
+      "name": "skills-catalog-mixed",
+      "schema": "skills-catalog-mixed",
+      "data": {
+        "authority": "workspace",
+        "skills": [
+          {
+            "id": "skill-1",
+            "name": "commit-helper",
+            "description": "Drafts conventional commits.",
+            "path": "/synthetic/ws/.zcode/skills/commit-helper/SKILL.md",
+            "scope": "workspace",
+            "enabled": true
+          },
+          {
+            "id": "skill-2",
+            "name": "release-notes",
+            "description": "Release note scaffolding.",
+            "path": "/home/u/.zcode/skills/release-notes/SKILL.md",
+            "scope": "user",
+            "enabled": true
+          },
+          {
+            "id": "skill-3",
+            "name": "git-extra",
+            "description": "Advanced git flows.",
+            "path": "/plugins/commit-aid/skills/git-extra/SKILL.md",
+            "scope": "plugin",
+            "enabled": true,
+            "pluginName": "commit-aid"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "skills-catalog",
+      "name": "skills-catalog-empty",
+      "schema": "skills-catalog-empty",
+      "data": {
+        "authority": "workspace",
+        "skills": []
+      }
+    },
+    {
+      "kind": "mcp-status",
+      "name": "mcp-status-mixed",
+      "schema": "mcp-status-mixed",
+      "data": {
+        "statuses": {
+          "context7": {
+            "status": "connected",
+            "transport": "stdio",
+            "toolCount": 8,
+            "updatedAt": "2026-10-07T09:12:00.000Z",
+            "protocolEra": "modern"
+          },
+          "search": {
+            "status": "failed",
+            "transport": "http",
+            "toolCount": 0,
+            "updatedAt": "2026-10-07T09:00:00.000Z",
+            "error": "connect timeout after 10s",
+            "failureKind": "connection_timeout"
+          },
+          "docs": {
+            "status": "disabled",
+            "transport": "sse",
+            "toolCount": 0,
+            "updatedAt": "2026-10-06T18:40:00.000Z"
+          },
+          "internal-api": {
+            "status": "untrusted",
+            "transport": "stdio",
+            "toolCount": 0,
+            "updatedAt": "2026-10-07T08:00:00.000Z",
+            "failureKind": "official_origin_untrusted"
+          }
+        }
+      }
+    },
+    {
+      "kind": "mcp-status",
+      "name": "mcp-status-empty",
+      "schema": "mcp-status-empty",
+      "data": {
+        "statuses": {}
+      }
+    }
+  ]
+}

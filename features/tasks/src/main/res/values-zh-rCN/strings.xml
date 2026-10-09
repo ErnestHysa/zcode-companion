@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tasks_title">任务</string>
+    <string name="tasks_approvals_a11y">审批</string>
+    <string name="tasks_settings_a11y">设置</string>
+    <string name="tasks_ws_all">全部</string>
+    <string name="tasks_workspace_kicker">工作区</string>
+    <string name="tasks_empty_title">暂无任务</string>
+    <string name="tasks_empty_body">在桌面端的 ZCode 中开始工作后，任务会显示在这里。下拉刷新，或在桌面端启动一个任务。</string>
+    <string name="tasks_error_title">无法刷新任务</string>
+    <string name="tasks_stale_title">连接已断开 — 显示缓存的任务</string>
+    <string name="tasks_reconnecting_to">正在重新连接到 %1$s…</string>
+    <string name="tasks_your_desktop">您的桌面</string>
+    <string name="tasks_repair_title">配对似乎已失效</string>
+    <string name="tasks_repair_body">中继已无法为此配对看到您的桌面。在 Mac 上：打开 ZCode 中的手机图标，按“停止”，然后生成新的二维码并扫描。</string>
+    <string name="tasks_repair_action">重新配对</string>
+    <string name="tasks_new_task">＋ 新任务</string>
+    <string name="tasks_creating">正在创建…</string>
+    <string name="tasks_created">任务已创建</string>
+    <string name="create_task_title">新任务</string>
+    <string name="create_no_workspaces">桌面端尚未提供任何工作区。</string>
+    <string name="create_pick_workspace">选择工作区</string>
+    <string name="create_hint">描述任务 — 这将启动智能体</string>
+    <string name="create_confirm">创建</string>
+    <string name="tasks_a11y_expand">展开</string>
+    <string name="tasks_a11y_collapse">收起</string>
+    <string name="tasks_group_a11y">工作区 %1$s，%2$d 个任务。点按以%3$s。</string>
+<!-- GAP-6：只读定时任务 + 闲时任务区（v4-wire.md §12.2） -->
+<string name="automations_title">定时任务</string>
+<string name="automations_loading">加载中…</string>
+<string name="automations_empty">暂无定时任务</string>
+<string name="automations_unavailable">当前连接不支持定时任务</string>
+<string name="automations_offpeak">闲时任务</string>
+<string name="automation_next_run">下次 %1$s</string>
+<string name="automation_runs">%1$d 次</string>
+<string name="automation_on">开</string>
+<string name="automation_off">关</string>
+</resources>

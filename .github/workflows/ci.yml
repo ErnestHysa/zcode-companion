@@ -1,0 +1,52 @@
+name: ci
+
+# §36 CI constraints (INV-15/16, normative): CI jobs NEVER connect to the production
+# relay, NEVER hold real credentials, and NEVER see real QR codes, conversation
+# content, personal paths, or provider secrets. All transport/protocol suites run
+# exclusively against the in-repo MockZCode (tools/mockzcode) — §35.4.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  jvm-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Fixture lint (INV-15/16 — sanitize validation)
+        run: node tools/capture/validate-fixture.mjs fixtures/relay/*.fixture.json
+
+      - name: Redaction tool tests (INV-3 pipeline)
+        run: node --test tools/capture/redact.test.mjs
+
+      - name: Drift tool tests (surface + relay/sensors)
+        run: node --test tools/drift/surface.test.mjs tools/drift/relay.test.mjs tools/sensors/sensors.test.mjs
+
+      - name: JVM test suite (unit + MockZCode integration + corpus replay + storms + security/Robolectric)
+        # ubuntu-latest runners ship the Android SDK (ANDROID_HOME) — android-library /
+        # app modules build; Robolectric pulls its android-all jars from Maven (network).
+        run: gradle test --no-daemon --console=plain
+
+      - name: Android debug APK compile gate
+        run: gradle :app:assembleDebug --no-daemon --console=plain
+
+      - name: Upload test reports (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            **/build/reports/tests/
+            **/build/test-results/

@@ -1,0 +1,88 @@
+name: open-repo-drift
+
+# Open-repo sensor — the T1 detect leg of the auto-adaptation pipeline.
+#
+# INV-15 AUDIT NOTE (normative, §36): this workflow contains NO production-relay
+# traffic of any kind. It NEVER connects to wss://zcode.z.ai or any relay
+# endpoint, NEVER holds real credentials, NEVER runs the app or an emulator, and
+# NEVER touches real QR codes / conversation content / personal paths. Every
+# step is one of: (1) `git ls-remote` tag METADATA from the public upstream
+# repo, (2) `actions/checkout` of that public repo's SOURCE text, (3) a pure
+# text extraction + JSON diff against the committed surface inventory
+# (tools/drift/surface-inventory.json), (4) artifact upload. The Mac-only live
+# canary leg of the pipeline (§14.2 T2) is deliberately NOT in this workflow —
+# INV-15 forbids production-relay traffic in GitHub CI entirely.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  drift-watch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout this repo (drift tool + committed inventory)
+        uses: actions/checkout@v4
+
+      - name: Restore watch state
+        # Best-effort persistence for the last-seen tag. Cache eviction is safe:
+        # a miss re-baselines silently (the watch script's first-run semantics),
+        # and the drift-check below runs EVERY run regardless of tag changes.
+        uses: actions/cache@v4
+        with:
+          path: tools/drift/.watch-state
+          key: open-repo-watch-state
+          restore-keys: |
+            open-repo-watch-state
+
+      - name: Watch zai-org/ZCode release tags
+        run: |
+          node tools/sensors/open-repo-watch.mjs \
+            --repo https://github.com/zai-org/ZCode.git \
+            --state tools/drift/.watch-state/state.json \
+            --out watch.json \
+            --update-state
+          echo "LATEST_TAG=$(node -p 'JSON.parse(require("fs").readFileSync("watch.json","utf8")).latestTag ?? "")'" >> "$GITHUB_ENV"
+
+      - name: Checkout upstream at the latest release tag
+        if: env.LATEST_TAG != ''
+        uses: actions/checkout@v4
+        with:
+          repository: zai-org/ZCode
+          ref: ${{ env.LATEST_TAG }}
+          path: upstream
+
+      - name: Drift-check upstream surface vs committed inventory
+        if: env.LATEST_TAG != ''
+        id: drift
+        run: |
+          set +e
+          node tools/drift/check-drift.mjs \
+            --shared-root upstream/packages/shared/src \
+            --inventory tools/drift/surface-inventory.json \
+            --manifest tools/drift/consumed-surfaces.json \
+            --commit "$LATEST_TAG" \
+            --out drift-report.json
+          code=$?
+          echo "exit=$code" >> "$GITHUB_OUTPUT"
+          exit 0  # the report must upload before the gate below fails the job
+
+      - name: Upload drift artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: drift-report
+          path: |
+            drift-report.json
+            watch.json
+          if-no-files-found: ignore
+
+      - name: Notify + gate (BREAKING fails the job)
+        if: steps.drift.outputs.exit == '1'
+        run: |
+          echo "::error::BREAKING protocol drift vs the committed surface inventory (desktop $LATEST_TAG). Review the drift-report artifact, patch decoders if a consumed surface changed, regenerate the inventory, and bump CompatibilityGate.MAX_TESTED_DESKTOP only after verification."
+          exit 1

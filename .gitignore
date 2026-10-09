@@ -1,0 +1,30 @@
+# Build output
+build/
+.gradle/
+*/build/
+*/*/build/
+kotlin-js-store/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Local secrets / probe material — NEVER committed (INV-15)
+*.local.*
+local/
+secrets/
+capture-raw/
+*.env
+
+# Dev-time tooling scratch
+tools/capture/node_modules/
+tools/capture/package-lock.json
+
+# OS
+.DS_Store
+local.properties
+
+# Drift sensor runtime state (AAP-2) — never committed
+tools/drift/.watch-state/
+tools/drift/.launchd-*.log

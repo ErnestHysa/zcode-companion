@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- §24 notification copy (§24.1 privacy table; §24.2 channels; §24.5 FGS indicator). -->
+<resources>
+    <string name="notif_approval_public">ZCode needs your approval</string>
+    <string name="notif_question_public">ZCode has a question for you</string>
+    <string name="notif_task_finished">Task completed</string>
+    <string name="notif_task_finished_detail">Task completed: %1$s</string>
+    <string name="notif_task_failed">Task failed</string>
+    <string name="notif_task_failed_detail">Task failed: %1$s</string>
+    <string name="notif_connection_lost">Connection lost</string>
+
+    <string name="channel_permissions_name">Approvals &amp; questions</string>
+    <string name="channel_permissions_desc">ZCode needs your approval or an answer to continue</string>
+    <string name="channel_task_status_name">Task status</string>
+    <string name="channel_task_status_desc">Task finished, failed, or the connection was lost</string>
+    <string name="channel_progress_name">Progress (silent)</string>
+    <string name="channel_progress_desc">Silent background progress updates</string>
+    <string name="channel_live_connection_name">Live connection</string>
+    <string name="channel_live_connection_desc">Persistent indicator shown while the live connection service is enabled</string>
+
+    <string name="fgs_connected_title">Connected to %1$s</string>
+    <string name="fgs_connected_text">Live connection active — tap to disconnect</string>
+    <string name="fgs_default_desktop">ZCode desktop</string>
+    <string name="notif_group_summary_title">ZCode</string>
+    <plurals name="notif_group_summary_text">
+        <item quantity="one">%1$d active notification</item>
+        <item quantity="other">%1$d active notifications</item>
+    </plurals>
+</resources>
