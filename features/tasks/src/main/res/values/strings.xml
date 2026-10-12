@@ -22,6 +22,7 @@
     <string name="create_pick_workspace">Choose a workspace</string>
     <string name="create_hint">Describe the task — this starts the agent</string>
     <string name="create_confirm">Create</string>
+    <string name="create_model_default">Model: workspace default</string>
     <!-- GAP-14: collapsible workspace groups. -->
     <string name="tasks_a11y_expand">expand</string>
     <string name="tasks_a11y_collapse">collapse</string>

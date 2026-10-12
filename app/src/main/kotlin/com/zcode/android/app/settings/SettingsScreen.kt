@@ -696,10 +696,13 @@ private fun NotificationsSection(container: AppContainer) {
         },
     )
 
-    // §24.5 (vc35 user feedback): the auto-timeout window is CUSTOMIZABLE — the
-    // fixed 30-minute window stranded users who stepped away (approvals stopped
-    // arriving mid-work). 0 = stay connected until toggled off.
+    // §24.5 (vc35 + FIELD 2026-10-12): the auto-timeout window is CUSTOMIZABLE via
+    // a RADIO PICKER — the old tap-to-cycle row looked like static text and users
+    // reported the options "don't exist". 0 = stay connected until toggled off.
     val windowOptions = listOf(15, 30, 60, 240, 0)
+    var windowPickerOpen by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf(false)
+    }
     SettingsRow(
         title = stringResource(R.string.settings_live_window),
         subtitle = stringResource(
@@ -708,13 +711,47 @@ private fun NotificationsSection(container: AppContainer) {
             else stringResource(R.string.settings_live_window_value, prefs.liveConnectionTimeoutMinutes),
         ),
         tag = "settings_live_window",
-        onClick = {
-            scope.launch {
-                val next = windowOptions[(windowOptions.indexOf(prefs.liveConnectionTimeoutMinutes) + 1) % windowOptions.size]
-                container.stores.preferencesRepository.update { p -> p.copy(liveConnectionTimeoutMinutes = next) }
-            }
-        },
+        onClick = { windowPickerOpen = true },
     )
+    if (windowPickerOpen) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { windowPickerOpen = false },
+            title = { Text(stringResource(R.string.settings_live_window)) },
+            text = {
+                Column {
+                    for (minutes in windowOptions) {
+                        val selected = prefs.liveConnectionTimeoutMinutes == minutes
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    scope.launch {
+                                        container.stores.preferencesRepository.update { p ->
+                                            p.copy(liveConnectionTimeoutMinutes = minutes)
+                                        }
+                                    }
+                                    windowPickerOpen = false
+                                }
+                                .padding(vertical = 10.dp),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                        ) {
+                            androidx.compose.material3.RadioButton(selected = selected, onClick = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                if (minutes == 0) stringResource(R.string.settings_live_window_none)
+                                else stringResource(R.string.settings_live_window_value, minutes),
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { windowPickerOpen = false }) {
+                    Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
+                }
+            },
+        )
+    }
 
     // §24.5/§25.2 Live connection (FGS candidate). Started HERE, from the
     // foreground; API 33+ first asks for POST_NOTIFICATIONS (the indicator IS the

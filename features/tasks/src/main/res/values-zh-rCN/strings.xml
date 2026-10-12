@@ -22,6 +22,7 @@
     <string name="create_pick_workspace">选择工作区</string>
     <string name="create_hint">描述任务 — 这将启动智能体</string>
     <string name="create_confirm">创建</string>
+    <string name="create_model_default">模型：工作区默认</string>
     <string name="tasks_a11y_expand">展开</string>
     <string name="tasks_a11y_collapse">收起</string>
     <string name="tasks_group_a11y">工作区 %1$s，%2$d 个任务。点按以%3$s。</string>

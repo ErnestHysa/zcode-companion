@@ -119,17 +119,22 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
      * wire shape). The desktop's workspace-list push (≤ 2 s) + the explicit
      * refresh surface the new row; the notice is one-shot user copy.
      */
-    fun createTask(workspaceKey: String, firstText: String) {
+    fun createTask(workspaceKey: String, firstText: String, provider: String? = null, model: String? = null) {
         if (firstText.isBlank() || workspaceKey.isBlank()) return
-        scope.launch { createTaskAndWait(workspaceKey, firstText) }
+        scope.launch { createTaskAndWait(workspaceKey, firstText, provider, model) }
     }
 
     /** Suspend core (the nav layer may drive it directly). Truthful one-shot notice. */
-    suspend fun createTaskAndWait(workspaceKey: String, firstText: String): Boolean {
+    suspend fun createTaskAndWait(
+        workspaceKey: String,
+        firstText: String,
+        provider: String? = null,
+        model: String? = null,
+    ): Boolean {
         if (firstText.isBlank() || workspaceKey.isBlank()) return false
         creating.value = true
         try {
-            val ok = port.createTask(workspaceKey, firstText)
+            val ok = port.createTask(workspaceKey, firstText, provider, model)
             createNotice.value = if (ok) "Task created" else "Couldn't create the task — try again"
             return ok
         } finally {
