@@ -135,11 +135,18 @@ takes effect when this repo is pushed with Actions enabled.
 ### Bundle leg (Mac, launchd + WatchPaths)
 
 ```bash
-sed "s|@REPO_ROOT@|$HOME/Desktop/DEVPROJECTS/zcode/android-native|g" \
-  tools/sensors/com.zcode.android.drift-bundle-sensor.plist \
-  > ~/Library/LaunchAgents/com.zcode.android.drift-bundle-sensor.plist
-launchctl load ~/Library/LaunchAgents/com.zcode.android.drift-bundle-sensor.plist
+tools/sensors/deploy-launchd.sh
+launchctl kickstart -k gui/$(id -u)/com.zcode.android.drift-bundle-sensor   # verify: exit 0
+tail -1 ~/Library/Logs/zcode-android-drift/sensor.log                        # expect: heartbeat
 ```
+
+The deploy copies the sensor runtime (script, drift tools, baseline) to
+`~/Library/Application Support/zcode-drift/` and installs the plist pointing
+there — launchd-spawned processes have NO Desktop access (TCC), so a runtime
+under `~/Desktop/...` fails with exit 126/127 ("Operation not permitted" /
+node not found; both live findings 2026-10-09). The deploy also injects the
+interactive PATH into the job (launchd's default PATH lacks `node`). Re-run
+the deploy after changing any sensor source.
 
 Fires daily at 09:00 and on any change under `/Applications/ZCode.app`
 (WatchPaths = the Sparkle-update hook). Env overrides: `ZCODE_ASAR`,
