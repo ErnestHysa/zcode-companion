@@ -164,13 +164,15 @@ step("release-notes", { detail: `${notesPath} (T4 meta block embedded)` });
 
 // ── DRAFT release via gh ─────────────────────────────────────────────────────
 const tag = `v${newVersionName}-vc${newVersionCode}`;
+const repoSlug = arg("repo");
 const ghCmd = [
   `"${gh}" release create ${tag}`,
+  repoSlug ? `--repo ${repoSlug}` : "",
   "--draft",
   `--target ${target}`,
   `--notes-file "${notesPath}"`,
   `"${apk}" "${shaPath}"`,
-].join(" ");
+].filter(Boolean).join(" ");
 execSync(ghCmd, { stdio: "inherit", shell: "/bin/bash" });
 step("gh-release-create", { detail: `${tag} — DRAFT (promoting to public is the human publish click)`, tag, target });
 
