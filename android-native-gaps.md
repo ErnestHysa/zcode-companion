@@ -982,7 +982,18 @@ gated on Phase 12.1 signing (stable keystore, off-repo) and the scripted Mac can
   evidence docs/evidence/phase-6-gaps/live-canary/; the drill also hardened the
   task guard — the live bootstrap returns the desktop's WHOLE task list (566
   tasks) keyed `taskId`, so the vc34 task match is now workspace-scoped, commit
-  6d5fbaf).** MATRIX: tools/release/decision.mjs + decision.test.mjs 7/7 — the
+  6d5fbaf).
+
+  **FULL PIPELINE EXECUTED LIVE on the real 3.14.5 desktop update (2026-10-12,
+  evidence docs/evidence/phase-6-gaps/3.14.5-flow/): T1 — the launchd bundle
+  sensor fired AUTONOMOUSLY on the installed update (bundle hash changed,
+  zcode.cjs unchanged), classified ADDITIVE, notified; T2 — verify leg green
+  (one load flake exonerated); LIVE CANARY vs the 3.14.5 desktop GREEN;
+  T3 — matrix auto-ship → 1.0.2/vc39 + MAX_TESTED_DESKTOP=3.14.5 pushed to the
+  public repo → signed APK → DRAFT release v1.0.2-vc39 created via real gh
+  (promote = the human step). Live fixes this first real run produced: the
+  sensor's TCC + PATH launchd failures (cf40b16), publish --push/--repo
+  (8e47f5f), and the zod-scratch false-BREAKING class.** MATRIX: tools/release/decision.mjs + decision.test.mjs 7/7 — the
   never-auto-ship-breaking gate is pinned EXHAUSTIVELY (no input combination with
   driftVerdict=BREAKING yields auto-ship); publish.mjs re-verifies the decision
   before acting and its DRAFT-only release contract keeps the public publish click
