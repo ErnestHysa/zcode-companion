@@ -106,6 +106,7 @@ if (decision.action === "auto-ship") {
   const versionCode = arg("version-code");
   if (versionCode) args.push(`--version-code "${versionCode}"`);
   if (skipBaselineRegen) args.push("--skip-baseline-regen");
+  if (process.argv.includes("--push")) args.push("--push");
   execSync(`node tools/release/publish.mjs ${args.join(" ")}`, { stdio: "inherit", cwd: repoRoot });
 } else if (decision.action === "agent-pr") {
   execSync(

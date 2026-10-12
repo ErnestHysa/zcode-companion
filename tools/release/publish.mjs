@@ -99,6 +99,15 @@ execSync(`git -C "${repoRoot}" add -A && git -C "${repoRoot}" commit -q -m "chor
 const target = execSync(`git -C "${repoRoot}" rev-parse HEAD`).toString().trim();
 step("commit-bumps", { detail: target });
 
+// The draft release's --target must exist on the REMOTE. With --push the
+// pipeline advances the remote's main to the bump commit (code already
+// reviewed/tested by the verify leg; the draft itself stays private until
+// the human promotes it).
+if (hasFlag("push")) {
+  execSync(`git -C "${repoRoot}" push origin HEAD:main`, { stdio: "inherit" });
+  step("push-bump", { detail: "bump commit pushed to origin/main (draft-release target)" });
+}
+
 // ── baseline profiles: recorded as delegated (device-dependent) ─────────────
 step("baseline-profile-regen", {
   detail: "delegated to macrobenchmark.yml (needs a device); assembleRelease packages the committed profiles",
