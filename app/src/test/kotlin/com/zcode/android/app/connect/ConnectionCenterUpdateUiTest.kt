@@ -29,7 +29,7 @@ class ConnectionCenterUpdateUiTest {
     @get:Rule
     val rule = createComposeRule()
 
-    private fun release(vc: Long = 37) = ReleaseInfo(
+    private fun release(vc: Long = 37, desktopNewer: Boolean = true) = ReleaseInfo(
         versionName = "0.11.5",
         versionCode = vc,
         apkUrl = "https://x/app-release.apk",
@@ -71,7 +71,7 @@ class ConnectionCenterUpdateUiTest {
 
     @Test
     fun `desktop newer + release available - warning becomes the banner with Update now`() {
-        content("3.14.5", UpdateCheckState.Available(release(37)))
+        content("3.14.5", UpdateCheckState.Available(release(37), desktopNewer = true))
         rule.onNodeWithTag("update_banner").assertExists()
         rule.onNodeWithTag("update_now").assertExists()
         // The honest warning is REPLACED by the action when an update exists.
@@ -103,12 +103,19 @@ class ConnectionCenterUpdateUiTest {
     }
 
     @Test
-    fun `desktop within tested matrix - NOTHING appears`() {
-        content("3.14.4", UpdateCheckState.Available(release(37)))
+    fun `desktop within tested matrix - banner shows WITHOUT compat warning (field fix)`() {
+        // FIELD FIX (2026-10-12): the update offer is no longer gated on the desktop
+        // version — a newer release shows the plain banner, no compat warning.
+        content("3.14.4", UpdateCheckState.Available(release(37), desktopNewer = true))
         assertEquals(false, exists("connection_compat_warning"))
-        assertEquals(false, exists("update_banner"))
-        assertEquals(false, exists("update_now"))
-        assertEquals(false, exists("update_checking"))
+        rule.onNodeWithTag("update_banner").assertExists()
+        rule.onNodeWithTag("update_now").assertExists()
+    }
+
+    @Test
+    fun `manual check button always available`() {
+        content("3.14.4", UpdateCheckState.Idle)
+        rule.onNodeWithTag("update_check_manual").assertExists()
     }
 
     @Test
@@ -122,7 +129,7 @@ class ConnectionCenterUpdateUiTest {
     fun `download progress and ready faces render under the banner`() {
         content(
             "3.14.5",
-            UpdateCheckState.Available(release(37)),
+            UpdateCheckState.Available(release(37), desktopNewer = true),
             DownloadState.Running(bytesRead = 5_000, totalBytes = 10_000),
         )
         rule.onNodeWithTag("update_banner").assertExists()
@@ -141,7 +148,7 @@ class ConnectionCenterUpdateUiTest {
         val apk = java.io.File(System.getProperty("java.io.tmpdir"), "ui-ready.apk")
         content(
             "3.14.5",
-            UpdateCheckState.Available(release(37)),
+            UpdateCheckState.Available(release(37), desktopNewer = true),
             DownloadState.Ready(apk),
         )
         rule.onNodeWithTag("update_ready").assertExists()
@@ -153,7 +160,7 @@ class ConnectionCenterUpdateUiTest {
         var clicked = 0
         content(
             "3.14.5",
-            UpdateCheckState.Available(release(37)),
+            UpdateCheckState.Available(release(37), desktopNewer = true),
             onUpdateNow = { clicked += 1 },
         )
         rule.onNodeWithTag("update_now").performClick()

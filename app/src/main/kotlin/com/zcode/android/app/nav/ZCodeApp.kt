@@ -480,6 +480,7 @@ private fun ConnectionCenterRoute(container: AppContainer, onBack: () -> Unit) {
         updateState = updateState,
         downloadState = downloadState,
         onUpdateNow = container.appUpdate::updateNow,
+        onCheckForUpdate = { container.appUpdate.checkForUpdate(endpoint?.desktopAppVersion, force = true) },
     )
 }
 

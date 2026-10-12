@@ -16,6 +16,8 @@
     <!-- AAP-3（§14.2 T4)：连接中心的更新横幅（§37 非 Play 渠道）。 -->
     <string name="conn_update_banner">检测到桌面端 %1$s — 本应用测试至 %2$s — 有可用更新 %3$s。</string>
     <string name="conn_update_now">立即更新</string>
+    <string name="conn_update_banner_plain">有可用更新 %1$s。</string>
+    <string name="conn_update_check_manual">检查更新</string>
     <string name="conn_update_checking">正在检查更新…</string>
     <string name="conn_update_none">暂无更新的应用版本。</string>
     <string name="conn_update_progress">正在下载更新… %1$s</string>

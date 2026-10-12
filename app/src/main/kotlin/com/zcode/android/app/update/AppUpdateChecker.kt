@@ -11,25 +11,29 @@ sealed interface UpdateCheckState {
     data object Idle : UpdateCheckState
     data object Checking : UpdateCheckState
 
-    /** desktop > maxTested AND a newer release exists → banner + "Update now". */
-    data class Available(val release: ReleaseInfo) : UpdateCheckState
+    /**
+     * A newer release exists. [desktopNewer] = the connected desktop is ALSO newer
+     * than this build's tested range (the compat wording differs; the update itself
+     * is offered EITHER WAY — field feedback 2026-10-12: gating the whole check on
+     * the desktop version left users stuck on old builds with no signal).
+     */
+    data class Available(val release: ReleaseInfo, val desktopNewer: Boolean) : UpdateCheckState
 
-    /** desktop ≤ maxTested (or unknown) — no check was even warranted. */
-    data object NotApplicable : UpdateCheckState
-
-    /** desktop is newer but this build already IS the latest release. */
+    /** This build already IS the latest published release. */
     data object UpToDate : UpdateCheckState
 
-    /** Releases endpoint unreachable/malformed — the honest compat warning stays. */
+    /** Releases endpoint unreachable/malformed — honest failure, retryable. */
     data class Failed(val detail: String) : UpdateCheckState
 }
 
 /**
  * §14.2 T4 client update check against GitHub Releases metadata (§37's non-Play
- * channel). Gate is exactly the report's rule: `desktop.version > app.maxTested`
- * AND a newer release exists. No store assumption (§37): the installer is
- * feature-detected at use time, and the check itself only ever reads public
- * release metadata. Open for test seams only.
+ * channel). FIELD FIX 2026-10-12: the check used to be GATED on
+ * `desktop.version > app.maxTested` — a user whose desktop matched the tested
+ * range never saw any update, ever. The gate now only affects the banner WORDING;
+ * the check itself runs on every app open + manual refresh and offers any newer
+ * release. No store assumption (§37); drafts/prereleases are invisible by GitHub's
+ * own /releases/latest semantics, so "latest" always means published.
  */
 open class AppUpdateChecker(
     private val releasesUrl: String,
@@ -39,14 +43,11 @@ open class AppUpdateChecker(
 ) {
 
     open suspend fun check(desktopVersion: String?): UpdateCheckState {
-        // The check is only warranted when the desktop is NEWER than what this
-        // build was tested against (§14.2 T4: "desktop.version > app.maxTested").
-        val aboveTested = desktopVersion != null &&
+        val desktopNewer = desktopVersion != null &&
             CompatibilityGate.check(desktopVersion) is CompatibilityGate.Verdict.AboveTested
-        if (!aboveTested) return UpdateCheckState.NotApplicable
         return fetchLatestRelease()?.let { release ->
             if (release.versionCode > installedVersionCode) {
-                UpdateCheckState.Available(release)
+                UpdateCheckState.Available(release, desktopNewer)
             } else {
                 UpdateCheckState.UpToDate
             }

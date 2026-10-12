@@ -2,7 +2,6 @@ package com.zcode.android.features.conversation.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -38,12 +37,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.testTag
 import com.zcode.android.features.conversation.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -473,6 +480,8 @@ private fun SpannedText(
     modifier: Modifier = Modifier,
 ) {
     val codeBg = LocalZCodeColors.current.codeBorder.copy(alpha = 0.35f)
+    val context = LocalContext.current
+    val linkRanges = mutableListOf<Triple<Int, Int, String>>()
     val annotated = buildAnnotatedString {
         for (span in spans) {
             val start = length
@@ -481,15 +490,51 @@ private fun SpannedText(
                 span.code -> addStyle(SpanStyle(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, background = codeBg), start, length)
                 span.bold -> addStyle(SpanStyle(fontWeight = FontWeight.SemiBold), start, length)
                 span.italic -> addStyle(SpanStyle(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic), start, length)
-                span.linkUrl != null -> addStyle(
-                    SpanStyle(color = LocalZCodeColors.current.accent, textDecoration = TextDecoration.Underline),
-                    start,
-                    length,
-                )
+                span.linkUrl != null -> {
+                    addStyle(
+                        SpanStyle(color = LocalZCodeColors.current.accent, textDecoration = TextDecoration.Underline),
+                        start,
+                        length,
+                    )
+                    linkRanges.add(Triple(start, length, span.linkUrl))
+                }
             }
         }
     }
-    Text(text = annotated, style = style, color = style.color.takeIf { it != androidx.compose.ui.graphics.Color.Unspecified } ?: MaterialTheme.colorScheme.onSurface, modifier = modifier)
+    // FIELD (2026-10-12): links rendered styled but never opened — hit-test taps
+    // against the link ranges and hand the URL to the browser (user-initiated
+    // ACTION_VIEW; no in-app webview, no silent egress).
+    var layoutResult by remember { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
+    Text(
+        text = annotated,
+        style = style,
+        color = style.color.takeIf { it != androidx.compose.ui.graphics.Color.Unspecified } ?: MaterialTheme.colorScheme.onSurface,
+        onTextLayout = { layoutResult = it },
+        modifier = modifier.pointerInput(annotated, linkRanges.toList()) {
+            awaitEachGesture {
+                val down = awaitFirstDown()
+                val up = waitForUpOrCancellation()
+                if (up != null) {
+                    val pos = up.position
+                    val lr = layoutResult
+                    if (lr != null) {
+                        val offset = lr.getOffsetForPosition(pos)
+                        linkRanges.firstOrNull { (s, e, _) -> offset in s until e }?.third?.let { url ->
+                            runCatching {
+                                context.startActivity(
+                                    android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                                        .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+                                )
+                            }.onFailure {
+                                android.widget.Toast.makeText(context, "Can't open link / 无法打开链接", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                }
+                down // consume gesture scope
+            }
+        },
+    )
 }
 
 @Composable

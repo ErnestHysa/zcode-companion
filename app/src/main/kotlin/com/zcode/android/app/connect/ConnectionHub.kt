@@ -487,6 +487,7 @@ class ConnectionHub(
             ConnectionStateMachine.ConnectionState.CONNECTING,
             ConnectionStateMachine.ConnectionState.AUTHENTICATING,
             ConnectionStateMachine.ConnectionState.RECOVERING,
+            ConnectionStateMachine.ConnectionState.CONNECTED,
             -> activeTransport().reconnectNow()
             ConnectionStateMachine.ConnectionState.FAILED -> connect()
             else -> if (connectJob?.isActive != true) connect()
