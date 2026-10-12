@@ -44,6 +44,25 @@ class ViewerTools(private val transport: AppTransport) {
     suspend fun automations(workspacePath: String?, workspaceIdentity: String?): List<AutomationRow> =
         AutomationRow.decodeList(transport.listAutomations(workspacePath, workspaceIdentity))
 
+    /** FIELD (2026-10-12): automation CRUD — the phone-reachable zcodeAgent surface
+     *  (createAutomation/updateAutomation/deleteAutomation/setAutomationEnabled/
+     *  runAutomationNow — zcodeAgent.ts:679-688). Workspace target comes from the
+     *  caller (the automations section already carries it). */
+    suspend fun createAutomation(workspacePath: String?, workspaceIdentity: String?, request: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject =
+        transport.createAutomation(workspacePath, workspaceIdentity, request)
+
+    suspend fun updateAutomation(workspacePath: String?, workspaceIdentity: String?, automationId: String, request: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject =
+        transport.updateAutomation(workspacePath, workspaceIdentity, automationId, request)
+
+    suspend fun deleteAutomation(workspacePath: String?, workspaceIdentity: String?, automationId: String) =
+        transport.deleteAutomation(workspacePath, workspaceIdentity, automationId)
+
+    suspend fun setAutomationEnabled(workspacePath: String?, workspaceIdentity: String?, automationId: String, enabled: Boolean) =
+        transport.setAutomationEnabled(workspacePath, workspaceIdentity, automationId, enabled)
+
+    suspend fun runAutomationNow(workspacePath: String?, workspaceIdentity: String?, automationId: String): kotlinx.serialization.json.JsonObject =
+        transport.runAutomationNow(workspacePath, workspaceIdentity, automationId)
+
     /**
      * `off-peak-task` channel `list` with the desktop's own list projection mirrored
      * CLIENT-SIDE (zcodeAgentService.ts:2666-2761): workspace filter, createdAt DESC,

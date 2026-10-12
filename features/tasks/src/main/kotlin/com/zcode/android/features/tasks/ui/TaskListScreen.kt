@@ -156,7 +156,12 @@ fun TaskListScreen(
                     }
                 }
             }
-            automationsPort?.let { port -> AutomationsSection(port = port) }
+            automationsPort?.let { port ->
+                AutomationsSection(
+                    port = port,
+                    modelPicker = modelPicker,
+                )
+            }
             Spacer(Modifier.height(4.dp))
 
             Box(Modifier.fillMaxSize()) {

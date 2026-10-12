@@ -37,4 +37,23 @@
 <string name="automation_runs">%1$d runs</string>
 <string name="automation_on">On</string>
 <string name="automation_off">Off</string>
+    <string name="automations_new">+ New automation</string>
+    <string name="automations_create_title">New automation</string>
+    <string name="automations_edit_title">Edit automation</string>
+    <string name="automations_field_title">Title</string>
+    <string name="automations_field_prompt">Prompt (runs on schedule)</string>
+    <string name="automations_field_schedule">Schedule</string>
+    <string name="automations_sched_minutes">Every N minutes</string>
+    <string name="automations_sched_daily">Daily</string>
+    <string name="automations_sched_cron">Cron</string>
+    <string name="automations_sched_daily_time">HH:MM (24h, local)</string>
+    <string name="automations_field_model">Model</string>
+    <string name="automations_field_mode">Permission mode: %1$s</string>
+    <string name="automation_run_now">Run now</string>
+    <string name="automation_edit">Edit</string>
+    <string name="automation_delete">Delete</string>
+    <string name="automations_delete_title">Delete automation?</string>
+    <string name="automations_delete_body">Delete \"%1$s\"? The schedule stops and the definition is removed.</string>
+    <string name="automations_delete_confirm">Delete</string>
+    <string name="automations_delete_cancel">Cancel</string>
 </resources>

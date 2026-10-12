@@ -66,6 +66,98 @@ class DefaultAutomationsPort(
             AutomationsPort.Lists(null, null, e.message ?: "automations unavailable")
         }
     }
+
+    /** FIELD (2026-10-12): automation CRUD (zcodeAgent.ts:679-688 surface). */
+    private fun writeRequest(write: AutomationsPort.AutomationWrite): kotlinx.serialization.json.JsonObject =
+        kotlinx.serialization.json.buildJsonObject {
+            put("title", kotlinx.serialization.json.JsonPrimitive(write.title))
+            put("prompt", kotlinx.serialization.json.JsonPrimitive(write.prompt))
+            put("cronExpr", kotlinx.serialization.json.JsonPrimitive(write.schedule.cronExprOrPlaceholder()))
+            write.schedule.everyMinutes?.let {
+                put("relativeDelayMinutes", kotlinx.serialization.json.JsonPrimitive(it))
+                put("recurring", kotlinx.serialization.json.JsonPrimitive(false))
+            } ?: run {
+                put("recurring", kotlinx.serialization.json.JsonPrimitive(true))
+            }
+            if (write.modelProvider != null && write.modelId != null) {
+                put("modelSelection", kotlinx.serialization.json.buildJsonObject {
+                    put("providerId", kotlinx.serialization.json.JsonPrimitive(write.modelProvider))
+                    put("modelId", kotlinx.serialization.json.JsonPrimitive(write.modelId))
+                })
+            }
+            write.mode?.let { put("mode", kotlinx.serialization.json.JsonPrimitive(it)) }
+        }
+
+    private fun workspaceTarget(): Pair<String, String?>? {
+        val target = hub.activeWorkspaceTarget() ?: return null
+        val path = target.first ?: return null
+        return path to target.second
+    }
+
+    override suspend fun create(workspaceKey: String, write: AutomationsPort.AutomationWrite): Boolean {
+        val (workspacePath, workspaceIdentity) = workspaceTarget() ?: return false
+        return try {
+            hub.viewerTools().createAutomation(workspacePath, workspaceIdentity, writeRequest(write))
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("automationsport.create", "${e.javaClass.simpleName}: ${e.message?.take(140)}")
+            false
+        }
+    }
+
+    override suspend fun update(automationId: String, write: AutomationsPort.AutomationWrite): Boolean {
+        val (workspacePath, workspaceIdentity) = workspaceTarget() ?: return false
+        return try {
+            hub.viewerTools().updateAutomation(workspacePath, workspaceIdentity, automationId, writeRequest(write))
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("automationsport.update", "${e.javaClass.simpleName}: ${e.message?.take(140)}")
+            false
+        }
+    }
+
+    override suspend fun delete(automationId: String): Boolean {
+        val (workspacePath, workspaceIdentity) = workspaceTarget() ?: return false
+        return try {
+            hub.viewerTools().deleteAutomation(workspacePath, workspaceIdentity, automationId)
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("automationsport.delete", "${e.javaClass.simpleName}: ${e.message?.take(140)}")
+            false
+        }
+    }
+
+    override suspend fun setEnabled(automationId: String, enabled: Boolean): Boolean {
+        val (workspacePath, workspaceIdentity) = workspaceTarget() ?: return false
+        return try {
+            hub.viewerTools().setAutomationEnabled(workspacePath, workspaceIdentity, automationId, enabled)
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("automationsport.setEnabled", "${e.javaClass.simpleName}: ${e.message?.take(140)}")
+            false
+        }
+    }
+
+    override suspend fun runNow(automationId: String): Boolean {
+        val (workspacePath, workspaceIdentity) = workspaceTarget() ?: return false
+        return try {
+            hub.viewerTools().runAutomationNow(workspacePath, workspaceIdentity, automationId)
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("automationsport.runNow", "${e.javaClass.simpleName}: ${e.message?.take(140)}")
+            false
+        }
+    }
 }
 
 class DefaultPluginsPort(

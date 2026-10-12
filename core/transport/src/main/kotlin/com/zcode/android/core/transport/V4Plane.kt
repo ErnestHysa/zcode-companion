@@ -161,6 +161,12 @@ interface V4Plane {
      */
     suspend fun listAutomations(workspacePath: String?, workspaceIdentity: String?): JsonObject
 
+    suspend fun createAutomation(workspacePath: String?, workspaceIdentity: String?, request: JsonObject): JsonObject
+    suspend fun updateAutomation(workspacePath: String?, workspaceIdentity: String?, automationId: String, request: JsonObject): JsonObject
+    suspend fun deleteAutomation(workspacePath: String?, workspaceIdentity: String?, automationId: String)
+    suspend fun setAutomationEnabled(workspacePath: String?, workspaceIdentity: String?, automationId: String, enabled: Boolean)
+    suspend fun runAutomationNow(workspacePath: String?, workspaceIdentity: String?, automationId: String): JsonObject
+
     /**
      * GAP-6: the `off-peak-task` channel `list` read (offPeakTask.ts:41 — NO args,
      * Arr([]) like model-selection.getView). Result normalized to {tasks:[…]}.
@@ -811,6 +817,92 @@ internal class ChannelV4Plane(
             (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
         }
         return v4CallArrayNormalized("listAutomations", params, "automations")
+    }
+
+    // ---- FIELD (2026-10-12): automation CRUD — sibling v4 methods to
+    // listAutomations (the phone-reachable zcodeAgent surface). Params mirror
+    // ZCodeAgentCreateAutomationParams (automation-types.ts:149-171).
+
+    suspend fun createAutomation(
+        workspacePath: String?,
+        workspaceIdentity: String?,
+        request: JsonObject,
+    ): JsonObject {
+        val target = host.workspaceTarget()
+        val params = buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+            (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            request.forEach { (k, v) -> put(k, v) }
+        }
+        val raw = v4Call("createAutomation", RpcValue.Obj(params))
+        return ((raw as? RpcValue.Obj)?.json as? kotlinx.serialization.json.JsonObject)
+            ?: throw TransportFailure(ErrorMapping.protocolFault("createAutomation result not an object"))
+    }
+
+    suspend fun updateAutomation(
+        workspacePath: String?,
+        workspaceIdentity: String?,
+        automationId: String,
+        request: JsonObject,
+    ): JsonObject {
+        val target = host.workspaceTarget()
+        val params = buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+            (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("automationId", JsonPrimitive(automationId))
+            request.forEach { (k, v) -> put(k, v) }
+        }
+        val raw = v4Call("updateAutomation", RpcValue.Obj(params))
+        return ((raw as? RpcValue.Obj)?.json as? kotlinx.serialization.json.JsonObject)
+            ?: throw TransportFailure(ErrorMapping.protocolFault("updateAutomation result not an object"))
+    }
+
+    suspend fun deleteAutomation(workspacePath: String?, workspaceIdentity: String?, automationId: String) {
+        val target = host.workspaceTarget()
+        v4Call(
+            "deleteAutomation",
+            RpcValue.Obj(buildJsonObject {
+                put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+                (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+                put("automationId", JsonPrimitive(automationId))
+            }),
+        )
+    }
+
+    suspend fun setAutomationEnabled(
+        workspacePath: String?,
+        workspaceIdentity: String?,
+        automationId: String,
+        enabled: Boolean,
+    ) {
+        val target = host.workspaceTarget()
+        v4Call(
+            "setAutomationEnabled",
+            RpcValue.Obj(buildJsonObject {
+                put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+                (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+                put("automationId", JsonPrimitive(automationId))
+                put("enabled", JsonPrimitive(enabled))
+            }),
+        )
+    }
+
+    suspend fun runAutomationNow(
+        workspacePath: String?,
+        workspaceIdentity: String?,
+        automationId: String,
+    ): JsonObject {
+        val target = host.workspaceTarget()
+        val raw = v4Call(
+            "runAutomationNow",
+            RpcValue.Obj(buildJsonObject {
+                put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+                (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+                put("automationId", JsonPrimitive(automationId))
+            }),
+        )
+        return ((raw as? RpcValue.Obj)?.json as? kotlinx.serialization.json.JsonObject)
+            ?: throw TransportFailure(ErrorMapping.protocolFault("runAutomationNow result not an object"))
     }
 
     suspend fun offPeakTaskList(): JsonObject =

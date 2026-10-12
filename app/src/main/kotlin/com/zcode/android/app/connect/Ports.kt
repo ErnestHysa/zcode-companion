@@ -140,11 +140,23 @@ class DefaultConversationPort(
         kotlinx.coroutines.flow.channelFlow {
             val key = workspaceKeyFor(taskId)
             hub.workspaceCatalog(key).collect { catalog ->
-                send(
-                    catalog?.slashCommands?.map {
-                        ConversationPort.SlashCommandView(it.name, it.description, it.inputHint, it.source)
-                    } ?: emptyList(),
-                )
+                // FIELD (2026-10-12): the relay adapter does not forward
+                // workspace-config subscribes for device connections
+                // (fault.subscribe.sessionNotFound, live-verified) — the live catalog
+                // never loads on the phone. Serve the EMBEDDED builtin catalog as the
+                // floor; custom workspace commands overlay when the subscribe works.
+                val live = catalog?.slashCommands?.map {
+                    ConversationPort.SlashCommandView(it.name, it.description, it.inputHint, it.source)
+                } ?: emptyList()
+                if (live.isNotEmpty()) {
+                    send(live)
+                } else {
+                    send(
+                        com.zcode.android.features.conversation.port.BuiltinSlashCatalog.COMMANDS.map {
+                            ConversationPort.SlashCommandView(it.name, it.description, it.inputHint, "builtin")
+                        },
+                    )
+                }
             }
         }
 

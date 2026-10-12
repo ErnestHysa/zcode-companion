@@ -358,8 +358,9 @@ fun main(args: Array<String>) {
         }
         "canary" -> runCanaryStage(opts, relayUrl, params, capture, ::log)
         "entitlement" -> runEntitlementStage(opts, relayUrl, params, capture, ::log)
+        "wscfg" -> runWsCfgStage(opts, relayUrl, params, capture, ::log)
         else -> {
-            System.err.println("unknown stage: $stage (auth|negative-proof|discover|subscribe|recover|double-terminal|canary|entitlement)")
+            System.err.println("unknown stage: $stage (auth|negative-proof|discover|subscribe|recover|double-terminal|canary|entitlement|wscfg)")
             kotlin.system.exitProcess(2)
         }
     }

@@ -1,0 +1,76 @@
+{
+  "builtin": true,
+  "source": "zcode-slash-command-help.ts BUILTIN_ZCODE_SLASH_COMMAND_HELP_ENTRIES (embedded \u2014 the relay adapter does not forward workspace-config subscribes for device connections; live-verified 2026-10-12)",
+  "commands": [
+    {
+      "name": "help",
+      "description": "Show this slash command help.",
+      "inputHint": "[command]"
+    },
+    {
+      "name": "login",
+      "description": "Set up a Coding Plan provider.",
+      "inputHint": "[zai-coding-plan|bigmodel-coding-plan|zai-coding-plan-api-key <api-key>|bigmodel-coding-plan-api-key <api-key>]"
+    },
+    {
+      "name": "logout",
+      "description": "Remove the shared Z.ai login credentials.",
+      "inputHint": null
+    },
+    {
+      "name": "compact",
+      "description": "Compact the current conversation with optional instructions.",
+      "inputHint": "[instructions]"
+    },
+    {
+      "name": "init",
+      "description": "Create or update workspace AGENTS.md instructions.",
+      "inputHint": "[notes]"
+    },
+    {
+      "name": "expert",
+      "description": "Run or manage the expert workflow.",
+      "inputHint": "[status|resume|stop|<task>]"
+    },
+    {
+      "name": "dwf",
+      "description": "List, cancel, or resume dynamic workflow runs.",
+      "inputHint": "[list|cancel [runId]|resume <runId>]"
+    },
+    {
+      "name": "fork",
+      "description": "Fork a new session from a workspace checkpoint.",
+      "inputHint": "[latest|checkpointId]"
+    },
+    {
+      "name": "mcp",
+      "description": "Show or manage configured MCP servers.",
+      "inputHint": "[list|status|connect <server>|disconnect <server>]"
+    },
+    {
+      "name": "mode",
+      "description": "Show or switch the current permission mode.",
+      "inputHint": "[plan|build|edit|yolo]"
+    },
+    {
+      "name": "model",
+      "description": "Show or switch the current session model.",
+      "inputHint": "[list|provider/model]"
+    },
+    {
+      "name": "rewind",
+      "description": "Inspect or restore workspace checkpoints.",
+      "inputHint": "[latest|checkpointId]"
+    },
+    {
+      "name": "skill",
+      "description": "List skills, or force the next prompt to load one.",
+      "inputHint": "[<skill-name> [task]]"
+    },
+    {
+      "name": "workflow",
+      "description": "Design and launch a dynamic workflow for a task.",
+      "inputHint": "[what the workflow should accomplish]"
+    }
+  ]
+}
