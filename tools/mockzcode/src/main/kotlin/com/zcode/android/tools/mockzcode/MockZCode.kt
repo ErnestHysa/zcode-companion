@@ -504,7 +504,67 @@ class MockZCode(
         return server.url("/ws").toString()
     }
 
+    // ------------------------------------------------------- raw WS server (report E9)
+    // mockwebserver3's webSocketUpgrade MASKS server frames (RFC 6455 §5.1 violation,
+    // probe-confirmed) — OkHttp clients correctly refuse with close 1006, so live
+    // device E2E can never complete a channel call through MockWebServer. startRaw
+    // serves the same routes through RawWsServer, which writes unmasked frames.
+
+    @Volatile private var rawServer: RawWsServer? = null
+
+    fun startRaw(port: Int): String {
+        val raw = RawWsServer(port)
+        raw.start(::rawRoute)
+        rawServer = raw
+        return "ws://127.0.0.1:$port/ws"
+    }
+
+    internal fun rawRoute(path: String, query: Map<String, String>, headers: Map<String, String>): RawWsServer.Route {
+        if (script.rejectConnections) return RawWsServer.Route.Http(503)
+        if (mode == Mode.DIRECT) return rawRouteDirect(path, query, headers)
+        // RELAY: every request upgrades (same semantics as the MockWebServer dispatcher).
+        return RawWsServer.Route.Upgrade(
+            onOpen = { },
+            onText = { ws, text ->
+                runCatching { json.parseToJsonElement(text).jsonObject }.getOrNull()?.let { route(ws, it) }
+            },
+        )
+    }
+
+    private fun rawRouteDirect(path: String, query: Map<String, String>, headers: Map<String, String>): RawWsServer.Route {
+        val token = query["token"] ?: headers["cookie"]?.split(";")?.map { it.trim() }
+            ?.firstOrNull { it.startsWith("zcode_lite_token=") }?.removePrefix("zcode_lite_token=")
+        val valid = !script.directRejectToken && token == serverToken
+        return when (path) {
+            "/api/server-info" -> if (!valid) {
+                RawWsServer.Route.Http(401, contentType = "application/json", body = """{"error":"Unauthorized"}""")
+            } else {
+                RawWsServer.Route.Http(
+                    200,
+                    contentType = "application/json",
+                    body = serverInfoJson().toString(),
+                    setCookie = "zcode_lite_token=$serverToken; Path=/; HttpOnly; SameSite=Lax",
+                )
+            }
+            "/ws" -> if (!valid) {
+                RawWsServer.Route.Http(401, body = """{"error":"Unauthorized"}""")
+            } else {
+                RawWsServer.Route.Upgrade(
+                    onOpen = { ws ->
+                        terminalSocket = ws
+                        conversationScopeRegistered = false
+                        scope.launch { events.emit(ServerEvent.AuthCompleted("direct-token")) }
+                        sendBinaryFrame(ws, initializeBytes())
+                    },
+                    onBytes = { ws, bytes -> handleDirectWire(ws, bytes) },
+                )
+            }
+            else -> RawWsServer.Route.Http(404)
+        }
+    }
+
     fun stop() {
+        rawServer?.stop()
         terminalSocket?.let { runCatching { it.close(1000, "mock stop") } }
         try {
             server.close()

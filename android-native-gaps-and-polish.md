@@ -582,3 +582,96 @@ Pursuing E2 further exposed the rig's transport limit and one more app finding:
   replaces MockWebServer in the rig. The on-device confirmations this pass does carry: the
   "Close"-title dialog structure (E2), the empty-body rendering above, the getView call firing
   and failing at the transport layer, and the full pairing/consent/tasks flow (E1/E4/E5).
+
+---
+
+# PART F — deeper round, pass 6: rig fixed; new live bugs (appended 2026-10-13)
+
+The E9 blocker was eliminated: the mock now runs on a hand-rolled RFC 6455-correct server
+(`RawWsServer.kt`) instead of MockWebServer's masking upgrade. With the wire finally honest,
+the rig completed its first **full end-to-end session ever** (pair → auth → bridge → Connected
+→ create-task accepted → channel calls succeed), and live testing immediately surfaced findings
+the code passes could not see.
+
+## F1. The rig is fixed and now a reusable verification asset (new)
+
+- `RawWsServer.kt` (mock module): HTTP/1.1 upgrade handshake, unmasked server frames, client
+  frame unmasking, ping→pong, close, extended-length forms; `RawSocket` implements
+  `okhttp3.WebSocket` so `MockZCode`'s send paths work unchanged (`startRaw(port)` +
+  `rawRoute` mirroring the dispatcher's RELAY/DIRECT semantics, incl. the /api/server-info
+  token gate).
+- **Probe sequence proves the fix at the byte level:** masked pong (MASK-BIT=1, garbled) on
+  MockWebServer → **MASK-BIT=0, clean payload** on RawWsServer.
+- Regression pin `RawWsServerTest`: a REAL OkHttp client round-trips text + a 70,000-byte
+  frame (8-byte extended length), plus the direct-mode 401/200 auth gate. Green.
+- `MockRelayMain` now boots the raw server and serves the E9 model-selection default. The
+  first honest cold start authed in <1 s (`AUTHENTICATING → CONNECTING → bridge.open →
+  CONNECTED`), workspace bridge "Synthetic One" visible in the list.
+
+## F2. NEW P0 live bug: Retry-from-FAILED cannot recover (new, live-reproduced)
+
+Live logcat, Connection Center → "Retry connection":
+
+```
+hub.retry :: user retry from phase=FAILED (single-flight → reconnectNow)
+hub.connect :: cold-start connect begin (kind=RELAY_ZAI)
+hub.connectFailed :: IllegalStateException: connect() is the first-connection path; use recover() (state=FAILED)
+```
+
+The 1.1.0 fix covered Retry-from-**CONNECTED** only; Retry-from-**FAILED** routes to
+`reconnectNow`, which calls the cold-start `connect()`, which refuses in FAILED state — the
+identical crash class the release notes claim fixed. **User impact: after any connection
+failure, the manual Retry button never recovers; only a force-stop/cold start does.**
+(The rig can now reproduce this deterministically for the fix's regression test.)
+
+## F3. Model picker: populated-list + one-tap pick verified live; geometry measured (new)
+
+With `getView` scripted, the composer picker rendered its real grouped list on-device:
+provider headers ("Z.ai", "OpenAI-compatible") + 4 models under the **"Close"-titled header
+(88 px tall) — the E2 bug seen live a second time, now with content under it**. Live-measured:
+
+- Row pitch ≈ 111 px ≈ **42 dp — under the 48 dp touch minimum** (audit estimate confirmed).
+- One-tap pick flow works end-to-end: tap `glm-5.1` → sheet closes → chip reads `zai/glm-5.1`.
+- The conversation-side two-step flow remains code-evidence (F5 blocks a live session).
+
+## F4. Form factors are broken — new P1/P2 bugs, live-measured (new)
+
+- **Landscape:** the header renders as **vertical one-character columns** — live geometry:
+  "Tasks" h=129 w=58, "MockBook" h=158 w=39, "Connected" h=159 w=39, "+ New task" h=155 w=50,
+  "+ New automation" h=256 w=50. Same narrow-column class as the field-documented vc32 chips
+  bug (weight/`fillMaxWidth` interaction), now on the Tasks header + actions in landscape.
+- **200% font scale:** everything scales except the **"+ New task" FAB label clips to 35 px**
+  while "Refresh" scales to 92 px — violating the app's own §30 invariant ("200% font scale
+  must not clip primary actions"; the typography doc claims "no fixed-height containers on
+  text" — the FAB contradicts it).
+
+## F5. Rig fidelity ledger + one copy nit (new)
+
+- The mock scripts no automations RPC → the section renders "Automations are unavailable on
+  this connection" **while Connected**. Copy nit: an errored channel reads as a
+  capability statement; distinguish "desktop didn't answer" from "not supported".
+- `createTask` is accepted (`outcome=Accepted`, bootstrap `tasks=1 dropped=0`) but the list
+  projection stays "No tasks yet" — the Phase-6-era scripted task row no longer fully decodes
+  into the current list projection. Mock-shape drift (real desktop task creation works — the
+  phone-created kickoffs exist), so flagged as rig work, not an app bug: refresh the scripted
+  row to the current Task decode, then the live conversation/two-step verification unlocks.
+
+## F6. Release-config quick findings (new)
+
+- **No monochrome layer** in the adaptive icon — Android 13+ themed icons unsupported.
+- **`isMinifyEnabled = false`** in release — the 53 MB debug APK size carries into release;
+  no R8 shrinking/optimization configured.
+- **Baseline profiles are measured but never consumed**: the `baselineprofile` module exists
+  (Startup/ConversationScroll benchmarks) yet `app` wires no `profileinstaller`/profile —
+  the cold-start wins the benchmarks measure are left on the table.
+
+## F7. Plan deltas
+
+- **P0 additions:** Retry-from-FAILED recovery fix (F2 — now reproducible via the rig:
+  AUTH_FAILED state + Retry → assert recover path, no IllegalStateException).
+- **P1 additions:** landscape header/action layout fix (F4 — same weight/fill fix family as
+  vc32, needs the rig or a Robolectric width-qualifier pin); FAB label 200%-scale clip (F4);
+  monochrome icon layer, R8 enablement + baseline-profile consumption (F6).
+- **P2 additions:** automations "unavailable vs errored" copy split (F5).
+- **Rig backlog:** refresh the scripted task row to the current Task decode → unlocks live
+  conversation + two-step picker verification (the last code-evidence item).

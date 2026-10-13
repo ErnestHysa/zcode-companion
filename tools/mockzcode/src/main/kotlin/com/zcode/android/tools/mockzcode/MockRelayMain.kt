@@ -29,7 +29,10 @@ fun main() {
     val mock = MockZCode(passHash = passHash, expectedSid = sid)
     mock.script.authScenario = scenario
     mock.script.modelSelection = defaultModelSelection()
-    val url = mock.start()
+    // RawWsServer (not MockWebServer): mockwebserver3 masks server→client frames
+    // (RFC 6455 §5.1 violation, probe-confirmed — report PART E9), which OkHttp
+    // clients refuse with close 1006; the raw server keeps live device E2E possible.
+    val url = mock.startRaw(port)
     val link = "http://127.0.0.1:$port/remote/v4" +
         "?sid=$sid&hash=${java.net.URLEncoder.encode(passHash, "UTF-8")}" +
         "&t=${System.currentTimeMillis()}&mid=$mid&name=MockBook&app_version=3.14.3"
