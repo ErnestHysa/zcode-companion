@@ -172,6 +172,41 @@ fun SettingsScreen(
                 onClick = { showLicenses(context) },
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            // FIELD (2026-10-12): ALWAYS-VISIBLE update check — the user asked for
+            // it "all the time", not buried in the connection center.
+            val updateState by container.appUpdate.check.collectAsState()
+            val updateDownloading by container.appUpdate.download.collectAsState()
+            SettingsRow(
+                title = stringResource(R.string.settings_check_updates),
+                subtitle = when {
+                    updateDownloading is com.zcode.android.app.update.DownloadState.Running ->
+                        stringResource(R.string.conn_update_progress,
+                            "${(updateDownloading.let { it as com.zcode.android.app.update.DownloadState.Running }.bytesRead * 100 / maxOf(1, updateDownloading.let { it as com.zcode.android.app.update.DownloadState.Running }.totalBytes))}%")
+                    updateDownloading is com.zcode.android.app.update.DownloadState.Ready ->
+                        stringResource(R.string.conn_update_ready)
+                    updateState is com.zcode.android.app.update.UpdateCheckState.Checking ->
+                        stringResource(R.string.conn_update_checking)
+                    updateState is com.zcode.android.app.update.UpdateCheckState.Available ->
+                        stringResource(R.string.settings_check_updates_found, updateState.let { it as com.zcode.android.app.update.UpdateCheckState.Available }.release.versionName)
+                    updateState is com.zcode.android.app.update.UpdateCheckState.UpToDate ->
+                        stringResource(R.string.settings_check_updates_latest)
+                    updateState is com.zcode.android.app.update.UpdateCheckState.Failed ->
+                        stringResource(R.string.conn_update_failed, updateState.let { it as com.zcode.android.app.update.UpdateCheckState.Failed }.detail)
+                    else -> stringResource(R.string.settings_check_updates_sub)
+                },
+                tag = "settings_check_updates",
+                onClick = { container.appUpdate.checkForUpdate(desktopVersion, force = true) },
+            )
+            if (updateState is com.zcode.android.app.update.UpdateCheckState.Available &&
+                updateDownloading is com.zcode.android.app.update.DownloadState.Ready
+            ) {
+                TextButton(
+                    onClick = { container.appUpdate.updateNow() },
+                    modifier = Modifier.padding(horizontal = 16.dp).testTag("settings_update_now"),
+                ) { Text(stringResource(R.string.conn_update_now)) }
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
             Spacer(Modifier.height(16.dp))
             if (endpointName != null) {
@@ -700,6 +735,9 @@ private fun NotificationsSection(container: AppContainer) {
     // a RADIO PICKER — the old tap-to-cycle row looked like static text and users
     // reported the options "don't exist". 0 = stay connected until toggled off.
     val windowOptions = listOf(15, 30, 60, 240, 0)
+    var liveConnection by remember {
+        mutableStateOf(com.zcode.android.core.notifications.LiveConnectionService.isRunning)
+    }
     var windowPickerOpen by androidx.compose.runtime.remember {
         androidx.compose.runtime.mutableStateOf(false)
     }
@@ -712,6 +750,7 @@ private fun NotificationsSection(container: AppContainer) {
         ),
         tag = "settings_live_window",
         onClick = { windowPickerOpen = true },
+        enabled = liveConnection,
     )
     if (windowPickerOpen) {
         androidx.compose.material3.AlertDialog(
@@ -756,9 +795,6 @@ private fun NotificationsSection(container: AppContainer) {
     // §24.5/§25.2 Live connection (FGS candidate). Started HERE, from the
     // foreground; API 33+ first asks for POST_NOTIFICATIONS (the indicator IS the
     // required FGS notification).
-    var liveConnection by remember {
-        mutableStateOf(com.zcode.android.core.notifications.LiveConnectionService.isRunning)
-    }
     val notifPermissionLauncher = rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
     ) { granted ->
@@ -873,23 +909,25 @@ private fun SettingsRow(
     subtitle: String?,
     tag: String,
     onClick: (() -> Unit)? = null,
+    enabled: Boolean = true,
 ) {
+    val alpha = if (enabled) 1f else 0.38f
     Row(
         Modifier
             .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(if (onClick != null && enabled) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .testTag(tag),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onBackground)
+            Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onBackground.copy(alpha = alpha))
             if (subtitle != null) {
                 Spacer(Modifier.height(2.dp))
                 Text(
                     subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
                 )
             }
         }

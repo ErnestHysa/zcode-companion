@@ -199,4 +199,8 @@
 <string name="mcp_retry">重试</string>
 <string name="mcp_empty">未配置 MCP 服务器</string>
 <string name="mcp_tool_count">%1$d 个工具</string>
+    <string name="settings_check_updates">检查更新</string>
+    <string name="settings_check_updates_sub">检查 GitHub Releases 是否有更新的版本</string>
+    <string name="settings_check_updates_found">有可用更新 %1$s — 请点击下方的立即更新</string>
+    <string name="settings_check_updates_latest">已是最新版本</string>
 </resources>
