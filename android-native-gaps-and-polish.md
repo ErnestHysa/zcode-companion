@@ -264,3 +264,115 @@ pause-resume (A3.8–10) · checkpoints/rewind preview + plans + trajectory/sear
 (A3.11–14) · share import (A3.16) · then ADR-gated writes: git mutations with AI commit messages,
 terminal input, plugin installs, hooks trust. Auto-adaptation sensors: slash-catalog count +
 facade method list (A4).
+
+---
+
+# PART C — deeper round, pass 2 (appended 2026-10-13; findings only)
+
+What this pass covered that Parts A/B did not: the **channel-level** protocol surface (vs the
+facade method list), notification affordances, live-data flows, i18n depth, process-death
+restoration, and a parity re-read of the desktop's composer panel. Every new claim was verified
+in source or the extracted shipped bundle before being written down. Plan deltas are in C9.
+
+## C1. Channel-level surface diff (new)
+
+The phone today uses six channels: `zcode-agent` (RPC), `usage-stats`, `model-selection`,
+`terminal`, `git`, `file`, `off-peak-task`. The shipped device-host bundle also registers these
+channel strings the phone never touches:
+
+| Channel | Status | Phone opportunity |
+|---|---|---|
+| `conversation-share` | unused | share import/viewing (pairs with A3.16) |
+| `file-watcher` | unused | **live Files screen** — desktop watches the workspace; the phone's Files screen is static until manual reload (verified: zero file-watcher usage app-side) |
+| `media-preview` | unused | rich previews for attachments/files (desktop's `IMediaPreviewService` exists precisely so large media doesn't fall back to `file.readMediaPreview`) — pairs with A3.1 |
+| `commands` | unused | **custom commands in the slash menu** — see C2 |
+| `hooks` | unused | hooks viewer + trust grant (pairs with A3.20) |
+| `skills` | unused as a channel | phone fetches the catalog once via `getSkillReferenceCatalog` RPC; the channel may push catalog updates — probe |
+| `coding-plan-subscription` | **contradicts the app's own ADR-020 note** | `V4Plane.kt:203` says "no quota push channel anywhere in the desktop" — but the string exists in the shipped bundle. Probe device routing; if routable, quota panels become push-live instead of the current poll cadence (ADR-020 delta) |
+| `client-config` / `feedback` / `broadcast` | unused | investigate (may be desktop-scoped; `feedbackService` = user feedback submission — a phone feedback form is a candidate) |
+
+## C2. Slash menu parity — three sections on desktop, one on phone (new, verified)
+
+The desktop's slash panel (`slashCommandPanelSections.tsx`) renders **three sections**:
+**commands** (builtins *and the user's own custom commands*), **skills** (filtered, with
+loading/error states), and **subagents** (same). The phone's `SlashCommandMenu` renders one
+section fed by the workspace-config wire catalog + the embedded builtin fallback. Verified:
+`queryConversationCommandsV4` is never called app-side (zero hits), while the desktop serves it
+(`zcodeAgentService.ts:5111`) — **a user's own custom `/commands` are invisible on the phone**.
+Skills are already fetchable (the viewer uses the catalog); subagents are Tier-1 A3.5. Fix: one
+sectioned menu (Commands / Skills / Agents) over data that already exists on the wire.
+
+## C3. Notifications have zero actions (new, verified)
+
+`core/notifications` contains no `addAction`/`Action.Builder` anywhere — the "approval required"
+notification is tap-only (opens the task). The approvals inbox already answers interactions over
+the wire, so the payload is sufficient for **inline Approve-once / Deny actions in the
+notification shade** — pure phone-side work, and the single biggest "control from your phone"
+upgrade available. Pair with a post-tap haptic and (P3) considering Android's conversation-style
+presentation for task updates.
+
+## C4. Live-data gaps (new)
+
+- Files screen: static (C1 `file-watcher`); even a cheap 5s poll would feel alive vs today.
+- Automation runs: no push; run-now results land nowhere (B2.11) — the runs history (A3.2) plus
+  a poll-on-open covers it.
+
+## C5. i18n is deeper than "30 hardcoded strings" (new, verified)
+
+`values-zh-rCN` is maintained and **fully in sync (191/191 keys)** — so the i18n pipeline works,
+and every hardcoded English string from Part B lands untranslated inside an otherwise-Chinese UI
+(including the bilingual toast, which becomes actively embarrassing). Worse: the **entire error
+taxonomy is English-in-code** — `ErrorMapping`'s `userMessage`s ("Desktop unreachable — wake the
+Mac, relaunch ZCode", "Pairing expired — scan the QR again"…) are compiled literals in
+`core/transport`, so the single most stress-timed copy in the app can never localize. Fix
+direction: `AppError` carries a message **key + args** instead of prose; strings.xml per locale;
+externalize the ~30 Part-B strings in the same pass. This upgrades the B3 i18n bullet into a
+first-class P1 workstream.
+
+## C6. State restoration & navigation (new, verified)
+
+- **No `SavedStateHandle` anywhere**: composer drafts survive process death (Room-backed — good),
+  but scroll position, file-viewer state, expanded diffs, and terminal pause/search all die.
+- **No `BackHandler` anywhere**: the architecture doc's promised Phase-7 draft guard never
+  landed — leaving a conversation with an **unsent draft and a running task** gives zero
+  confirmation. (Predictive back is declared manifest-side; the guard is the missing half.)
+- **No `setTaskDescription`**: the recents card shows a generic label instead of the task name —
+  a one-line polish win for a multi-tasking user.
+- Cold start can flash Pairing before the paired-gate reroutes (`startDestination` from a live
+  flow, `ZCodeApp.kt:202`) — evaluate the gate before first frame.
+
+## C7. New parity items (facade-verified)
+
+- **Scratch workspace:** `createScratchWorkspace` is on the facade and the desktop has a
+  dedicated dialog; the phone's create-task flow can't start one.
+- **@-mentions:** the desktop composer's mention panel suggests workspace files (same
+  workspace-file-search service); the phone already owns `searchWorkspaceFiles` on its port —
+  an "@ to mention a file" chip in the composer is pure UI parity, **zero new wire surface**.
+- **Context-budget strategy:** `getModelContextBudgetStrategy` — the phone's context meter % may
+  drift from the desktop's actual budgeting; align the math.
+- **Efficient tool drill-in:** `getTaskSnapshotToolCallsSlice` / `getTaskSnapshotWithEtag` can
+  power "show full tool output" without loading whole rows (pairs with B2.15's re-parse jank).
+
+## C8. Strengths worth protecting (new — fairness section)
+
+The audit is not all deficits: `ErrorMapping`'s shape (category + user-facing message +
+developer diagnostic + retryable class) is genuinely good design; both main lists key and type
+their LazyColumns correctly; `imePadding` is correctly applied on the conversation screen; and
+the zh catalog's 191/191 discipline proves the localization process works — the holes are the
+hardcoded strings, not the pipeline. These patterns should be the template the polish rounds
+conform to, not casualties of them.
+
+## C9. Plan deltas (extends the UNIFIED PLAN above)
+
+- **P0 additions:** the two new probes (quota-push channel routing — with an ADR-020 delta if
+  positive; `skills` channel) · `BackHandler` draft guard (small, bug-class — the promised
+  Phase-7 guard) · `setTaskDescription` one-liner.
+- **P1 additions:** error-string externalization (`AppError` message keys + locale catalogs) as
+  part of the i18n workstream · `SavedStateHandle`/rememberSaveable sweep for scroll/viewer/
+  expanded/terminal state · paired-gate-before-first-frame.
+- **P2 additions (top of the list):** **notification Approve/Deny actions** (C3 — highest-value
+  phone-side upgrade found in this pass) · slash menu three sections (C2: custom commands +
+  skills + subagents) · `file-watcher`-live Files screen (or poll fallback) · `media-preview`
+  previews · @-mentions in composer · scratch-workspace creation · context-meter strategy parity.
+- **P3 additions:** `conversation-share` channel import flow · `feedback` channel (in-app
+  feedback form) · `client-config`/`broadcast` investigation.
