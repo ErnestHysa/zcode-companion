@@ -757,3 +757,170 @@ Rig fidelity item (the app sent and acked correctly); not an app defect.
 - **Rig backlog update:** remaining item is only the `switchCollaborationMode` echo after
   resync (G3) — everything else on the F5 ledger is done and regression-pinned by
   `RawWsServerTest` + the mock self-tests.
+
+---
+
+# PART H — deeper round, pass 8: the desktop's UI surface + Android platform integration (appended 2026-10-13)
+
+Parts A–G diffed the desktop's **facades** (569 methods), **channels**, and **wire fields**.
+This pass diffs the desktop's **user-facing surface** — the layer none of those see — via the
+renderer's i18n message catalog (`renderer/assets/IntlProvider-*.js`, the complete UI string
+table: ~14k keys, `settings.*` alone is 3,565), cross-checked against the main bundle and
+chunk inventory. Desktop is still 3.14.5 (CFBundle 3.14.5.7961 — no drift). Second leg: an
+Android platform-integration sweep (manifest, widget, theme, search, gestures). Live rig pass
+skipped this round — every claim below is code- or bundle-verified; the rig recipe (E7/G4)
+stands for live-verifying H1.1/H1.3 later.
+
+## H1. Desktop UI-surface inventory — new parity gaps (new, verified)
+
+1. **Command Center + task search — the desktop has an in-app search/palette tier; the phone
+   has none.** `commandCenter.*` (20) + `quickPick.*` (57): one omnibox with scopes
+   **commands / conversations / files**, history, recent tasks + recent changes; `taskSearch.*`
+   (9): dedicated task search whose results carry per-task **search snippets** — carried on the
+   tasks projection itself (`visibleLimit` / `search=` / `workspaces=` parameters and
+   `searchSnippetsByTaskKey` observed in `styles-Qlp0Bew7.js`), not a one-shot RPC. Phone
+   verified zero-search: `TaskListScreen.kt` has no search UI (grep: 0 hits), no palette
+   anywhere. **Consequence:** if the phone's tasks-topic accepts the same projection params,
+   task search is pure UI; `queryConversationCommandsV4` (C2) already covers the commands
+   scope. Investigate the tasks-topic param surface → "Command-Center-lite".
+2. **The desktop ships its own phone client — a browser one.** `webRemoteControl.*` (208):
+   `mobileHome` / `mobileShell` (chat title, reconnecting) / `mobileQr` + `qrAlt` /
+   **`refreshQr` with a confirm dialog** / task status / workspace switching /
+   `statusTag.phone` / `invalidMobileConnection`. Two consequences: (a) the QR-regeneration
+   affordance E1 wished for **already exists on the desktop** (in the web-remote section) —
+   the pairing flow just doesn't offer it; (b) A2's differentiation note sharpens: the native
+   app's competitor for "control ZCode away from the desk" is **ZCode's own web mobile
+   client**, not just Telegram bots. Positioning, not code.
+3. **Markdown rendering parity is a bigger cliff than B2.15.** Desktop bundle carries
+   `markdownTable.*` (copy-markdown, **download-CSV**, preview pane, scroll modes), `codeBlock.*`
+   (line-wrap toggle + **mermaid diagram rendering with zoom controls**), **KaTeX fonts**
+   (`KaTeX_Main-Italic-*.ttf` — math), and a **Shiki grammar + theme set** (hundreds of
+   grammar chunks; `andromeeda` is a Shiki theme). The phone's bounded parser
+   (`MarkdownParser.kt`, ADR-015) handles paragraphs/headings/fences/lists/quotes only: no
+   highlighting, **no tables** (pipe rows become prose), no nested lists (H3.3), no math, no
+   mermaid, single-line blockquotes (each `> ` line = a separate block), no hr/strikethrough.
+   For a coding agent's client the code-reading surface IS the product; minimum-set revisit:
+   tables, nested lists, syntax highlighting, wrap toggle. Per-code-block copy + monospace
+   already exist (RowRenderers.kt:414-422) — the gap is the parser scope, not affordances.
+4. **The phone has zero user preferences; the desktop is preference-rich.** Phone-relevant
+   desktop `settings.*` groups with no phone equivalent: **appearance** (themeMode
+   dark/light/system with preview cards, font size, UI font size, interface zoom — the phone
+   follows the system only, `isSystemInDarkTheme()` with no override), **locale picker**
+   (`settings.locale`), **notification prefs** (sound; per-category — the phone has
+   content-level + live window only), **message-stream display toggles**
+   (`messageStreamShowReasoning/ShowTodos`, `toolGroupingChanges/Explore/Terminal`,
+   `showLineNumbers`/`wrapLongLines`), **task auto-archive (+days)**,
+   `askUserQuestionAutoResolution`. This generalizes B3's theme bullet into a **preferences
+   workstream**. (Reasoning *rendering* exists on the phone — `ReasoningRow`,
+   RowRenderers.kt:260-285, macOS stream-expanded-then-collapse parity — it's the *toggle*
+   that's missing.)
+5. **Onboarding exists desktop-side** (`onboarding.*` 124 + `occupationOnboarding.*` 86,
+   incl. agents-file migration UI); the phone's first-run is pairing screens only (D7/E4).
+   Candidate: a short post-pairing "what your phone can do" pass (approvals, usage,
+   automations, live window) — the features exist, their discoverability doesn't.
+6. **In-app feedback/tickets** (`feedback.*` 576 + `quickPick.command.myTickets`) — sharpens
+   C1's "feedback channel open" row into a real feature (a phone feedback form over the same
+   surface is the P3 candidate).
+7. **Corrections/sharpenings to Part A2:** the "Claude Code import" is a **12-agent settings
+   sync** (`settingsSync.agent.*`: claudeCode, codexCli, goose, openCode, kiroCli, codeBuddy,
+   qode, qodeCn, augment, continue, openClaw, agents); and a **plugin store UI** exists
+   (`onOpenPluginStore` in the header props; `resourceManager.category.builtinPlugin/
+   communityPlugin`) — context for A1's plugin tiers, parity unchanged. `resourceManager.*`
+   itself is the desktop's task manager (processes/CPU/memory/storage) — **out of phone
+   scope**, documented so future passes don't chase it.
+
+## H2. Android platform-integration sweep (new, verified)
+
+1. **No per-app language** (`android:localeConfig` absent, no `locales_config.xml`) — on
+   Android 13+ the system per-app language page offers nothing, despite the fully-maintained
+   zh-CN catalog (C5). One XML + one manifest attribute.
+2. **No app shortcuts** (no `shortcuts.xml`) — long-press on the icon offers nothing.
+   Candidates: New task, Approvals (dynamic shortcut with count), Connection status.
+3. **No share-target** (zero `ACTION_SEND` handling) — "share a URL / stack trace → new
+   task" is a natural coding-companion flow the app can't participate in.
+4. **No physical-keyboard handling** (zero `KeyEvent`/`onKeyDown`) — the desktop is
+   shortcut-first (`settings.shortcuts` = 110 keys); Chromebook/keyboard users get nothing.
+   Note-only, low priority.
+5. **Pull-to-refresh exists ONLY on the task list** (single `PullToRefreshBox`,
+   TaskListScreen.kt:168) — Files (static per C4), Git, and Usage have no refresh gesture.
+   On Files it is the cheap fallback to the watcher gap.
+6. **D1 erratum:** `network_security_config` exists **only in the debug and benchmark source
+   sets**; release builds ship the platform default (cleartext blocked). That is *consistent*
+   with the pairing policy (`PairingLinkParser.kt:92` rejects cleartext origins outside dev
+   loopback — wss-only by design), so no defect — but D1's "network_security_config is
+   present — the baseline is fine" overstates what release ships.
+7. **B2.5 trigger correction:** the activity sets
+   `configChanges="orientation|screenSize|keyboardHidden|screenLayout"` — **rotation does NOT
+   recreate the activity**, so `remember(taskId)` loss fires on **uiMode / density / fontScale
+   changes** instead (dark-mode toggle → conversation state dies). The backstack-scoped
+   ViewModel fix stands; the repro is a theme flip, not a rotation.
+
+## H3. New phone bugs (code-verified)
+
+1. **FGS auto-timeout leaves the Settings switch lying (P2, stale-state class).** The live-
+   connection switch and the live-window row's `enabled` read
+   `LiveConnectionService.isRunning` — a plain companion `var`
+   (LiveConnectionService.kt:129) — into `remember {}` snapshots (SettingsScreen.kt:738-739).
+   Toggles keep it in sync manually (:804/:821/:825), but the service's own **30-minute
+   auto-timeout** stops the FGS (:41-42) without any observable → after expiry the switch
+   still shows ON and the row stays enabled until the screen is recreated. Undermines the
+   d3f4425 gray-out invariant in exactly the timeout case. Fix: expose a StateFlow (or
+   broadcast) and collect it.
+2. **Approvals widget gaps (three, P2):** (a) the whole-widget tap opens `MainActivity` with
+   **no extras/deep link** (PendingApprovalsWidget.kt:54-58,91) — with approvals pending you
+   land on the task list, not the approvals surface; pass the oldest pending interaction's
+   `zcode://task` link. (b) No `android:previewLayout` in the widget info → the Android 12+
+   picker preview shows `glance_default_loading_layout` ("Loading…"), not the widget. (c)
+   **Reboot seam:** `NotificationBrokerSource.current` is a static defaulting to empty until
+   `PendingApprovalsWidgetUpdater.start()` runs in-process (:23-33) — a system-driven widget
+   update after process death/reboot renders "**No pending approvals**" until the app next
+   runs. The updater doc calls staleness a documented limitation, but reset-to-zero is the
+   hostile direction; render the persisted last-count until fresh data arrives.
+3. **Nested lists render as prose (bug-shaped slice of H1.3):** `"  - sub".startsWith("- ")`
+   is false (MarkdownParser.kt:81) and the ORDERED regex anchors at line start (:86-114) —
+   any indented sub-bullet falls to the paragraph branch and renders with literal `- `
+   markers mid-sentence. LLM output nests constantly.
+
+## H4. Strengths worth protecting (fairness)
+
+- **Conversation auto-scroll is genuinely well-engineered** — derived `atBottom`,
+  follow-bottom guard, the re-entry-with-cached-rows fix, and the viewport-taller-growing-
+  message case are all handled deliberately (ConversationScreen.kt:385-441).
+- Terminal honors reduced-motion in its scroll behavior (TerminalScreen.kt:77-78).
+- The Privacy settings row is an intentional static statement ("No analytics. No
+  tracking."), not a dead row (verified before flagging).
+- `searchWorkspaceFiles` verified **zero app-side calls** — C7's @-mentions claim stands
+  with upgraded evidence (the capability is on the port, unused).
+
+## H5. Method & tooling notes (new)
+
+- **The IntlProvider message catalog is the desktop-UI-surface diff method**: one file
+  (`renderer/assets/IntlProvider-*.js`) holds every UI string; the namespace map
+  (`settings.*`, `commandCenter.*`, …) is a complete, greppable feature inventory that
+  complements the facade/channel diffs — and it should join D3's sensor proposal (fingerprint
+  the namespace list per desktop release; a new namespace = new UI surface, exactly the drift
+  class Parts B–H keep finding).
+- **REA on the desktop renderer is heap-blocked on this machine:** MCP
+  `analyze_javascript_application` timed out at its 30 s tool window on both the 5.8 MB main
+  chunk and the 4 MB preload dir; the CLI run (correct flags: `--artifact-format`, `--format`
+  is OUTPUT-only) completed but **every file exhausted the worker's 1 GB heap** in the
+  semantic phase — honest degradation (per-file `resource_constraint`, empty graph, ~300k-token
+  envelope withheld). Raising `--max-heap-mb` on an 8 GB Mac that OOM-kills emulators is not
+  worth it; the string-level extraction stands in. (Confirms the AGENTS.md REA gotchas live.)
+- Live rig pass deferred: no emulator was booted this round; H1.1/H1.3 are the first things
+  to live-verify next session via the E7/G4 recipe.
+
+## H6. Plan deltas
+
+- **P0 additions:** H3.1 (FGS-switch observability — small, restores the d3f4425 invariant);
+  H3.2a (widget deep link — one-liner).
+- **P1 additions:** H2.1 localeConfig · H2.2 app shortcuts · H3.2b widget `previewLayout` ·
+  H3.2c widget reboot seam (persisted last-count) — all cheap platform-native wins.
+- **P2 additions:** **markdown minimum set** (tables, nested lists, syntax highlighting,
+  wrap toggle — ADR-015 revisit, the phone side of H1.3) · Command-Center-lite (H1.1: task/
+  conversation search over existing projections; first probe the tasks-topic `search=`
+  param) · preferences phase 1 (theme override + notification sound, from H1.4) ·
+  pull-to-refresh on Files/Git (H2.5).
+- **P3 additions:** onboarding pass (H1.5) · feedback form (H1.6) · physical-keyboard note
+  stands note-only.
+- **Sensor delta:** add the IntlProvider namespace inventory to D3's facade-extractor leg.
