@@ -376,3 +376,92 @@ conform to, not casualties of them.
   previews · @-mentions in composer · scratch-workspace creation · context-meter strategy parity.
 - **P3 additions:** `conversation-share` channel import flow · `feedback` channel (in-app
   feedback form) · `client-config`/`broadcast` investigation.
+
+---
+
+# PART D — deeper round, pass 3 (appended 2026-10-13; findings only)
+
+This pass went after what code-reading and surface-diffing still hadn't touched: privacy
+exposure, the wire snapshot's *dropped* fields (round 1 checked only contextUsage), the
+auto-adaptation sensors' blind spots, desktop picker detail parity, and a real device-boot
+visual attempt. Every claim verified before writing. Supersedes C1's "broadcast — investigate"
+row (resolved below).
+
+## D1. Privacy UX: conversation content is exposed in recents and recordings (new, verified)
+
+No `FLAG_SECURE` and no `setRecentsScreenshotEnabled` anywhere — the app switcher shows the
+conversation verbatim (prompts, code, file paths), and any screen recording captures it. For a
+companion that gates itself behind biometrics, this is the missing half of the privacy story:
+**recents blurring** (`setRecentsScreenshotEnabled(false)` on sensitive screens) plus an optional
+"block screenshots" toggle (FLAG_SECURE) in Settings → Privacy. (`network_security_config` is
+present — the baseline is fine; the gap is screen exposure specifically.)
+
+## D2. Wire-carried fields the phone decodes but never renders (new, verified)
+
+The desktop reads four `snapshot.runtime`/snapshot fields the phone's `SessionProjectionState`
+does not decode — all arrive on the wire, so all are pure decode+UI work (class A):
+
+| Field | Desktop use | Phone today |
+|---|---|---|
+| `goalVerifications` + `goalVerificationTimeline` | pass/fail criteria timeline for `/goal` sessions | phone sends/resumes goals but renders **no verification state at all** |
+| `activeTurnKind` | turn-kind-aware progress ("running workflow…" vs "generating") | generic "generating" label |
+| `todoGroups` | session todo projection for restore display | no todo state rendered (TodoWrite shows only as a generic tool row) |
+
+The goal-verification timeline is the standout: on a goal session the desktop shows which
+criteria passed/failed; the phone shows nothing — invisible mid-flight progress on its own
+flagship control flow.
+
+## D3. The auto-adaptation sensors are blind to the exact drift class Parts B/C found (new, verified)
+
+`tools/drift/` fingerprints `channels.ts`, the slash catalog, and the relay surface
+(`consumed-surfaces.json` / `surface-inventory.json`) — but has **zero coverage of the
+device-host facade method list** (`facade: 0`, `host/index: 0` in the inventory). So a desktop
+release adding `getModelTrajectory`, bot channels, or checkpoint methods — the entire PART B/C
+finding class — classifies as *nothing* today. Fix is mechanical: a third extractor leg
+(`extract-facade-surface.mjs`) that fingerprints facade method names from the shipped bundle
+(the PART B extraction recipe *is* the implementation), + `consumed-surfaces.json` entries for
+the methods the app actually calls. Without this, "auto-adapt" adapts to version numbers, not
+surfaces.
+
+## D4. Desktop model-picker detail parity (new, verified — feeds the B1 spec)
+
+The desktop's `ModelConfigSelect` carries **badge labels** on models and provider groups
+(`badgeLabel`/`labelBadge`); the phone picker renders plain labels only. Fold into the B1
+redesign: badges + provider grouping + search + current-tag.
+
+## D5. Service classifications closing C1's "investigate" rows (new, verified)
+
+- **`broadcast`** = desktop-internal inter-window broadcast + claim tokens (renderer ↔ host ↔
+  main coordination). **Correctly out of phone scope** — remove from any future consideration.
+- **`clientScenes`** = `IClientScenesService.list()` returning scene configs — desktop UI
+  scenes; low phone relevance. `client-config` / `feedback` remain genuinely open.
+
+## D6. Streaming pipeline verdict (new — precision + fairness)
+
+`coalesceForUi` (33 ms frame-aligned, first-value-immediate, conflated) **is wired**
+(`ConversationViewModel.kt:11` — an earlier suspicion it was dead code is retracted), and
+streaming deltas are transient by design (never persisted). Consequence for B2.15: the
+markdown re-parse runs per **coalesced frame**, not per network delta — the finding stands but
+is softer than written; long-message re-parse cost is ~30 Hz × O(message), still worth the
+chunk-memoization fix, no longer an emergency.
+
+## D7. Visual ground-truth pass: attempted, infrastructure-blocked (new — documented)
+
+The debug APK builds (53 MB), installs, and launches clean on the `zcode-atd` AVD (API 30);
+uiautomator confirms the first-run content renders ("Control ZCode from your phone" / Scan QR /
+Paste pairing link). But `screencap` returns a uniform black frame on this ATD image in **both**
+swiftshader and host-GPU modes — the system Settings app captures identically black while
+SurfaceFlinger reports 66 live layers, i.e. a capture-pipeline limitation of the ATD image, not
+an app defect. **Recipe for the next visual round:** boot a pixel (non-ATD) system image or a
+windowed emulator, then `adb exec-out screencap`. Worth one round: a pixel audit of the model
+picker would show B1's grey-box symptom exactly as Ernest described it.
+
+## D8. Plan deltas (extends the UNIFIED PLAN and C9)
+
+- **P1 additions:** the facade-extractor sensor leg (D3) — small, closes the pipeline's blind
+  spot so future desktop releases are sensed, not manually rediscovered.
+- **P2 additions:** **goal-verification timeline** (D2 — high value, class A wire data) ·
+  recents-blur + screenshot-block toggle (D1) · activeTurnKind-aware streaming label ·
+  todo restore display · model-picker badges (D4, folded into B1).
+- No P0 changes: nothing in this pass is a bug-class defect; the coalescer suspicion was
+  retracted (D6).
