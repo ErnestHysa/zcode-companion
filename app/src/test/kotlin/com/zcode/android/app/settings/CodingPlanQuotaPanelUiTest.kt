@@ -20,7 +20,7 @@ import java.util.Locale
 import java.util.TimeZone
 
 /**
- * GAP-3 (the project roadmap; docs/protocol/v4-wire.md §13.1; ADR-020) — the
+ * GAP-3 (android-native-gaps.md; docs/protocol/v4-wire.md §13.1; ADR-020) — the
  * Coding-Plan quota section rendered from the GENERATED entitlement fixtures.
  * Desktop parity (ChatCodingPlanUsageRemainingPanel): the four meters (5-hour /
  * weekly / tool-calls / MCP) each render remaining-% + reset-time; the

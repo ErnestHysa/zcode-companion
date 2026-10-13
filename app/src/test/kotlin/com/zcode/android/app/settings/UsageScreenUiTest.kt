@@ -18,7 +18,7 @@ import org.robolectric.annotation.Config
 import java.io.File
 
 /**
- * GAP-5 (the project roadmap; docs/protocol/v4-wire.md §12.1) — the Settings →
+ * GAP-5 (android-native-gaps.md; docs/protocol/v4-wire.md §12.1) — the Settings →
  * Usage screen rendered from the GENERATED usage fixtures. Desktop parity
  * (AppUsagePanel.tsx): a lifetime summary strip (totalTokens / peakDay /
  * longestSession / current+longest streak — lines 138-156), the heatmap when

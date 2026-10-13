@@ -10,7 +10,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 /**
- * GAP-12 (the project roadmap; docs/protocol/v4-wire.md §11.2) — the
+ * GAP-12 (android-native-gaps.md; docs/protocol/v4-wire.md §11.2) — the
  * workspace-config topic decode, pinned against the GENERATED golden fixtures
  * (rule 5). Snapshot: {protocolVersion:1, workspaceId, logEpoch, config:
  * {configOptions[], slashCommands[]}}; exactly one delta op `config.updated`.

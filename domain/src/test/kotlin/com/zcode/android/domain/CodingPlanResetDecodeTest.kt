@@ -13,7 +13,7 @@ import org.junit.Test
 import java.io.File
 
 /**
- * GAP-4 (the project roadmap; docs/protocol/v4-wire.md §13.2; ADR-020) — the
+ * GAP-4 (android-native-gaps.md; docs/protocol/v4-wire.md §13.2; ADR-020) — the
  * reset-plane decode pinned to the GENERATED phase-4 fixtures, plus the
  * request-side accountAccess DERIVATION: the descriptor is built ONLY from the
  * desktop's builtin provider-id grammar (`account:<family>-<planKind>`,

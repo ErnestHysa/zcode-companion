@@ -13,7 +13,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "zcode-companion"
+rootProject.name = "zcode-android"
 
 include(":core:common")
 include(":core:ui")

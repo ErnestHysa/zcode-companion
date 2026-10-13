@@ -22,7 +22,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
 /**
- * GAP-18 (the project roadmap): model picker restyle to the desktop's
+ * GAP-18 (android-native-gaps.md): model picker restyle to the desktop's
  * model-picker parity (ModelConfigSelect.tsx: provider GROUP headers, a CHECKED
  * marker on the active model, disabled state for unavailable entries) — same
  * options as today (no source change), same two-step pick → thought-level flow,

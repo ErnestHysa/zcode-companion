@@ -1,7 +1,7 @@
-# Release & Auto-Ship Runbook
+# Release & Auto-Ship Runbook — auto-adaptation Stage 2 (AAP-3/4/5)
 
 Implements the report's §14.2 T2–T4 tiers on top of the Stage-1 drift tooling
-(`docs/runbooks/drift.md`). Ships with this repository.
+(`docs/runbooks/drift.md`). Phase 6 of the android-gaps roadmap.
 
 **INV-15 (normative):** nothing in CI ever touches the production relay. The
 only live-relay leg is the Mac canary — an operator-machine ritual, run from
@@ -24,7 +24,7 @@ whole chain is exercisable with ZERO production side effects.
 | `spike/.../CanaryStage.kt` | The canary drill as one spike stage (`--stage canary`). |
 | `app/.../update/` | **T4 client**: foreground GitHub-Releases update check, gated banner, download + SHA-256 verify, consented install intent. |
 
-## Release signing
+## Release signing (AAP-5 prerequisite — Phase-12.1 minimum)
 
 The stable release keystore lives **off-repo** at
 `~/.zcode-android-release-keys/` (`zcode-release.keystore` +
@@ -67,7 +67,7 @@ node tools/release/pipeline.mjs --shared-root <new-checkout>/packages/shared/src
 | BREAKING | any | any | **agent-PR** → draft PR + report; HUMAN APPROVAL REQUIRED |
 | anything else | not green | not green | **halt** |
 
-The BREAKING row is the pipeline's absolute gate
+The BREAKING row is the roadmap's absolute Deferred-scope gate
 ("never auto-ship breaking"); `decision.test.mjs` pins it exhaustively (no
 input combination with a BREAKING verdict produces an auto-ship decision), and
 `publish.mjs` re-verifies the decision before acting.

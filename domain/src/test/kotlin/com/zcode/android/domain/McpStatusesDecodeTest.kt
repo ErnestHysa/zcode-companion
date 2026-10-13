@@ -10,7 +10,7 @@ import org.junit.Test
 import java.io.File
 
 /**
- * GAP-9 (the project roadmap; docs/protocol/v4-wire.md §12.5) — the MCP
+ * GAP-9 (android-native-gaps.md; docs/protocol/v4-wire.md §12.5) — the MCP
  * server status decode pinned to the GENERATED fixtures. Shape fidelity: the
  * STRICT zcodeMcpListResultSchema record face (status/transport/toolCount/
  * updatedAt + error/failureKind/protocolEra), status values rendered VERBATIM

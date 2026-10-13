@@ -4,7 +4,7 @@ import com.zcode.android.core.protocol.bytes.RpcSerialization.RpcValue
 import java.io.File
 
 /**
- * the release pipeline (T3) prerequisite — the Mac live canary as ONE scripted stage (report §14.2 T2:
+ * AAP-5 prerequisite — the Mac live canary as ONE scripted stage (report §14.2 T2:
  * "the existing one-session canary drill (pair → subscribe → stream → recover →
  * diagnostics export), automated as a script").
  *
@@ -108,19 +108,29 @@ fun runCanaryStage(
         workspaceKey = wsIdent ?: wsPath
         log("canary workspace: $wsPath (fixed resolution ok)")
 
-        // Disposable synthetic task guard.
+        // Disposable synthetic task guard. The LIVE bootstrap returns the desktop's
+        // WHOLE task list across every workspace (live-verified 2026-10-09: 566
+        // tasks, keyed `taskId`, each carrying its own workspacePath) — so the
+        // match is WORKSPACE-SCOPED first, then the id/title match. Matching keys:
+        // the live shape uses `taskId`; the mock uses `id`.
         val tasks = result["tasks"] as? kotlinx.serialization.json.JsonArray
         val taskObj = tasks?.mapNotNull { it as? kotlinx.serialization.json.JsonObject }
+            ?.filter { t ->
+                val tw = (t["workspacePath"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                tw == null || tw == wsPath
+            }
             ?.firstOrNull { t ->
-                val id = (t["id"] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: ""
+                val id = (t["taskId"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                    ?: (t["id"] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: ""
                 val title = (t["title"] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: ""
                 taskMatch in id || taskMatch in title
             }
         if (taskObj == null) {
-            writeReport("red", "vc34 guard: no disposable task matches '$taskMatch' — refusing")
+            writeReport("red", "vc34 guard: no disposable task in '$wsPath' matches '$taskMatch' — refusing")
             return
         }
-        sessionId = (taskObj["id"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+        sessionId = (taskObj["taskId"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+            ?: (taskObj["id"] as? kotlinx.serialization.json.JsonPrimitive)?.content
         log("canary task: $sessionId (synthetic match ok)")
 
         // ── leg 3: bridge + stream (first pushed frame) ─────────────────────

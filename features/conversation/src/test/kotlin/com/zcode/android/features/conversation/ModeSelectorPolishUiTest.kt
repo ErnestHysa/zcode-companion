@@ -19,7 +19,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
 /**
- * GAP-17 (the project roadmap): mode selector restyled to the desktop's mode
+ * GAP-17 (android-native-gaps.md): mode selector restyled to the desktop's mode
  * affordances (V4ComposerModeControls.tsx: icon + title + description per item,
  * current mode marked, high-permission mode visually flagged) — SAME vocabulary
  * (SWITCHABLE_MODES) and SAME wire behavior (onSwitchMode with the mode id), no

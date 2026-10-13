@@ -10,7 +10,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * the update check (T4) — the §14.2 T4 gate, pinned end-to-end against a seeded releases endpoint
+ * AAP-3 — the §14.2 T4 gate, pinned end-to-end against a seeded releases endpoint
  * (MockWebServer): the exact truth table of the report's rule
  * `desktop.version > app.maxTested AND a newer release exists`.
  */
@@ -49,46 +49,50 @@ class AppUpdateCheckerTest {
             val available = state as UpdateCheckState.Available
             assertEquals(37L, available.release.versionCode)
             assertEquals("app-release.apk", available.release.apkAssetName)
+            assertEquals(true, available.desktopNewer)
         } finally {
             server.close()
         }
     }
 
     @Test
-    fun `desktop within tested matrix = NotApplicable with ZERO network requests`() = runBlocking {
+    fun `desktop within tested matrix - update STILL offered (field fix 2026-10-12)`() = runBlocking {
+        // The old gate skipped the check entirely when the desktop matched the
+        // tested range — users were stuck. Now the gate only affects the wording.
         val server = serverWithRelease(vc = 37)
         try {
             val state = checker(server.url("/releases/latest").toString(), installedVc = 36)
                 .check(desktopVersion = "3.14.4")
-            assertEquals(UpdateCheckState.NotApplicable, state)
-            // The §29 no-polling face of the design: no supported desktop → no fetch.
-            assertEquals(0, server.requestCount)
+            val available = state as UpdateCheckState.Available
+            assertEquals(false, available.desktopNewer)
+            assertEquals(37L, available.release.versionCode)
         } finally {
             server.close()
         }
     }
 
     @Test
-    fun `unknown desktop = NotApplicable without network`() = runBlocking {
+    fun `desktop newer - Available carries desktopNewer=true for the compat wording`() = runBlocking {
+        val server = serverWithRelease(vc = 37)
+        try {
+            val state = checker(server.url("/releases/latest").toString(), installedVc = 36)
+                .check(desktopVersion = "3.14.5")
+            val available = state as UpdateCheckState.Available
+            assertEquals(true, available.desktopNewer)
+        } finally {
+            server.close()
+        }
+    }
+
+    @Test
+    fun `unknown desktop - still checked, desktopNewer=false`() = runBlocking {
         val server = serverWithRelease(vc = 37)
         try {
             val state = checker(server.url("/releases/latest").toString(), installedVc = 36)
                 .check(desktopVersion = null)
-            assertEquals(UpdateCheckState.NotApplicable, state)
-            assertEquals(0, server.requestCount)
-        } finally {
-            server.close()
-        }
-    }
-
-    @Test
-    fun `unparseable desktop version = NotApplicable (fail closed, no banner)`() = runBlocking {
-        val server = serverWithRelease(vc = 37)
-        try {
-            val state = checker(server.url("/releases/latest").toString(), installedVc = 36)
-                .check(desktopVersion = "garbage-version")
-            assertEquals(UpdateCheckState.NotApplicable, state)
-            assertEquals(0, server.requestCount)
+            val available = state as UpdateCheckState.Available
+            assertEquals(false, available.desktopNewer)
+            assertEquals(1, server.requestCount)
         } finally {
             server.close()
         }

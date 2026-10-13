@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="2" failures="0" errors="0" skipped="0" time="987.236" timestamp="2026-10-03T22:29:39" hostname="localhost">
+  <testsuite name="com.zcode.android.baselineprofile.ConversationScrollBenchmark" tests="1" failures="0" errors="0" skipped="0" time="588.019" timestamp="2026-10-03T22:29:39" hostname="localhost">
+    <properties>
+      <property name="device" value="zcode-atd(AVD) - 11" />
+      <property name="flavor" value="" />
+      <property name="project" value=":baselineprofile" />
+    </properties>
+    <testcase name="conversationScroll_frameTiming" classname="com.zcode.android.baselineprofile.ConversationScrollBenchmark" time="588.019" />
+  </testsuite>
+  <testsuite name="com.zcode.android.baselineprofile.StartupBenchmark" tests="1" failures="0" errors="0" skipped="0" time="396.911" timestamp="2026-10-03T22:29:39" hostname="localhost">
+    <properties>
+      <property name="device" value="zcode-atd(AVD) - 11" />
+      <property name="flavor" value="" />
+      <property name="project" value=":baselineprofile" />
+    </properties>
+    <testcase name="coldStart_toTaskList" classname="com.zcode.android.baselineprofile.StartupBenchmark" time="396.911" />
+  </testsuite>
+</testsuites>

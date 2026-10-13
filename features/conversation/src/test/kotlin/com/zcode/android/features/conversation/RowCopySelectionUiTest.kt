@@ -23,7 +23,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
 /**
- * GAP-11 (the project roadmap): copy / select / highlight, ported from the
+ * GAP-11 (android-native-gaps.md): copy / select / highlight, ported from the
  * desktop's per-row affordances (ConversationRowView.tsx:1290 CopyRowAction on user
  * rows; :1339 copyLabel on assistant rows; per-code-block copy). Android shape:
  * user row long-press → the EXACT row text lands on the clipboard; assistant rows

@@ -1,4 +1,4 @@
-// Drift-check surface tests. Run: node --test tools/drift/surface.test.mjs
+// AAP-1 drift-tool tests (android-gaps Phase 5). Run: node --test tools/drift/surface.test.mjs
 //
 // Hermetic: builds a synthetic shared-root (packages/shared/src shape) in a tmpdir
 // whose files carry the same structural markers the extractor greps in the real

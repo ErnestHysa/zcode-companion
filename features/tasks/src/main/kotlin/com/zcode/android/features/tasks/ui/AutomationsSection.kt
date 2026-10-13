@@ -1,5 +1,6 @@
 package com.zcode.android.features.tasks.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -7,11 +8,20 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,23 +44,31 @@ import com.zcode.android.features.tasks.port.AutomationsPort
 import kotlinx.coroutines.launch
 
 /**
- * GAP-6 (the project roadmap; docs/protocol/v4-wire.md §12.2) — the Tasks-tab
- * AUTOMATIONS + OFF-PEAK read-only section. Desktop parity: the automation
- * management list shows title, enable state, lifecycle, the REAL schedule (the
- * scheduleRule — "会话卡片必须读到本字段才能展示 cron 无法表达的真实间隔") with the
- * cron fallback, run count and next/last run; the off-peak list shows title,
- * status (verbatim payload value) and queue position. READ-ONLY: the section
- * exposes NO create/edit/delete/enable affordance — the write half is Deferred
- * scope (roadmap) and exists nowhere (INV-9).
+ * GAP-6 + FIELD (2026-10-12): the Tasks-tab AUTOMATIONS + OFF-PEAK section, now
+ * with FULL CRUD (desktop parity — zcodeAgent.ts:677-688: createAutomation/
+ * updateAutomation/deleteAutomation/setAutomationEnabled/runAutomationNow are
+ * phone-reachable zcodeAgent methods). Ernest's ruling: "add automations as well,
+ * exactly how it's done in the macos app". Read-only display of the off-peak list
+ * is unchanged; the automations list gains: "+ New automation" (schedule form),
+ * per-row run-now / enable-toggle / delete (confirm), and tap-to-edit.
  */
 @Composable
 fun AutomationsSection(
     port: AutomationsPort,
     modifier: Modifier = Modifier,
+    modelPicker: @Composable (
+        current: Pair<String, String>?,
+        onPick: (provider: String, model: String) -> Unit,
+        onDismiss: () -> Unit,
+    ) -> Unit = { _, _, _ -> },
 ) {
     var loading by remember { mutableStateOf(true) }
     var lists by remember { mutableStateOf<AutomationsPort.Lists?>(null) }
     val scope = rememberCoroutineScope()
+    var busy by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<AutomationRow?>(null) }
+    var creating by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf<AutomationRow?>(null) }
 
     suspend fun load() {
         lists = port.lists()
@@ -58,18 +76,65 @@ fun AutomationsSection(
     }
     LaunchedEffect(port) { scope.launch { load() } }
 
+    fun refresh() {
+        scope.launch { load() }
+    }
+
+    fun save(
+        existing: AutomationRow?,
+        title: String,
+        prompt: String,
+        schedule: AutomationsPort.ScheduleSpec,
+        model: Pair<String, String>?,
+        mode: String?,
+        onDone: (Boolean) -> Unit,
+    ) {
+        scope.launch {
+            busy = true
+            val write = AutomationsPort.AutomationWrite(
+                title = title,
+                prompt = prompt,
+                schedule = schedule,
+                modelProvider = model?.first,
+                modelId = model?.second,
+                mode = mode,
+            )
+            val ok = if (existing != null) port.update(existing.automationId, write) else port.create(workspaceKeyFor(), write)
+            busy = false
+            onDone(ok)
+            if (ok) refresh()
+        }
+    }
+
+    // The workspace key the port resolves (first active workspace; the section is
+    // workspace-scoped like the list). The port re-resolves from the hub target —
+    // the form only needs a non-blank marker for the create guard.
+    fun workspaceKeyFor(): String = lists?.automations?.firstOrNull()?.workspaceKey ?: "active"
+
     Column(
         Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .testTag("automations_section"),
     ) {
-        Text(
-            stringResource(R.string.automations_title),
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                stringResource(R.string.automations_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            TextButton(
+                onClick = {
+                    creating = true
+                },
+                modifier = Modifier.testTag("automations_new"),
+            ) { Text(stringResource(R.string.automations_new)) }
+        }
         Spacer(Modifier.height(4.dp))
         when {
             loading -> Text(
@@ -91,7 +156,27 @@ fun AutomationsSection(
             )
             else -> {
                 lists?.automations?.forEach { automation ->
-                    AutomationLine(automation)
+                    AutomationLine(
+                        automation,
+                        onRunNow = {
+                            scope.launch {
+                                busy = true
+                                port.runNow(automation.automationId)
+                                busy = false
+                                refresh()
+                            }
+                        },
+                        onToggle = { enabled ->
+                            scope.launch {
+                                busy = true
+                                port.setEnabled(automation.automationId, enabled)
+                                busy = false
+                                refresh()
+                            }
+                        },
+                        onEdit = { editing = automation },
+                        onDelete = { confirmDelete = automation },
+                    )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                 }
             }
@@ -111,10 +196,226 @@ fun AutomationsSection(
             }
         }
     }
+
+    if (creating || editing != null) {
+        AutomationFormDialog(
+            existing = editing,
+            busy = busy,
+            modelPicker = modelPicker,
+            onDismiss = {
+                creating = false
+                editing = null
+            },
+            onSave = { title, prompt, schedule, model, mode ->
+                val target = editing
+                creating = false
+                editing = null
+                scope.launch {
+                    busy = true
+                    if (target != null) {
+                        port.update(target.automationId, AutomationsPort.AutomationWrite(title, prompt, schedule, model?.first, model?.second, mode))
+                    } else {
+                        port.create(workspaceKeyFor(), AutomationsPort.AutomationWrite(title, prompt, schedule, model?.first, model?.second, mode))
+                    }
+                    busy = false
+                    refresh()
+                }
+            },
+        )
+    }
+
+    confirmDelete?.let { doomed ->
+        AlertDialog(
+            onDismissRequest = { confirmDelete = null },
+            title = { Text(stringResource(R.string.automations_delete_title)) },
+            text = { Text(stringResource(R.string.automations_delete_body, doomed.title)) },
+            confirmButton = {
+                Button(onClick = {
+                    scope.launch {
+                        busy = true
+                        port.delete(doomed.automationId)
+                        busy = false
+                        confirmDelete = null
+                        refresh()
+                    }
+                }) { Text(stringResource(R.string.automations_delete_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = null }) { Text(stringResource(R.string.automations_delete_cancel)) }
+            },
+        )
+    }
+}
+
+/** The workspace key the port re-resolves server-side; the form passes a marker. */
+private fun workspaceKeyFor(): String = "active"
+
+/** FIELD (2026-10-12): the automation create/edit form (desktop parity). */
+@Composable
+private fun AutomationFormDialog(
+    existing: AutomationRow?,
+    busy: Boolean,
+    modelPicker: @Composable (
+        current: Pair<String, String>?,
+        onPick: (provider: String, model: String) -> Unit,
+        onDismiss: () -> Unit,
+    ) -> Unit,
+    onDismiss: () -> Unit,
+    onSave: (title: String, prompt: String, schedule: AutomationsPort.ScheduleSpec, model: Pair<String, String>?, mode: String?) -> Unit,
+) {
+    var title by remember { mutableStateOf(existing?.title ?: "") }
+    var prompt by remember { mutableStateOf(existing?.prompt ?: "") }
+    // schedule: 0=every N min, 1=daily, 2=custom cron
+    var scheduleKind by remember { mutableStateOf(if (existing?.scheduleRule?.unit == "minute") 0 else 1) }
+    var everyMinutes by remember { mutableStateOf((existing?.scheduleRule?.interval ?: 30).toString()) }
+    var dailyTime by remember { mutableStateOf("09:00") }
+    var cronExpr by remember { mutableStateOf(existing?.cronExpr ?: "") }
+    var pickedModel by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var modelSheet by remember { mutableStateOf(false) }
+    var mode by remember { mutableStateOf(existing?.mode ?: "build") }
+
+    val schedule = when (scheduleKind) {
+        0 -> AutomationsPort.ScheduleSpec(everyMinutes = everyMinutes.toIntOrNull() ?: 30)
+        1 -> {
+            val parts = dailyTime.split(":")
+            AutomationsPort.ScheduleSpec(
+                dailyHour = parts.getOrNull(0)?.toIntOrNull() ?: 9,
+                dailyMinute = parts.getOrNull(1)?.toIntOrNull() ?: 0,
+            )
+        }
+        else -> AutomationsPort.ScheduleSpec(cronExpr = cronExpr.ifBlank { "0 9 * * *" })
+    }
+    val valid = title.isNotBlank() && prompt.isNotBlank() &&
+        (scheduleKind != 0 || (everyMinutes.toIntOrNull() ?: 0) > 0)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                stringResource(
+                    if (existing != null) R.string.automations_edit_title else R.string.automations_create_title,
+                ),
+            )
+        },
+        text = {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text(stringResource(R.string.automations_field_title)) },
+                    modifier = Modifier.fillMaxWidth().testTag("automation_form_title"),
+                    maxLines = 1,
+                )
+                OutlinedTextField(
+                    value = prompt,
+                    onValueChange = { prompt = it },
+                    label = { Text(stringResource(R.string.automations_field_prompt)) },
+                    modifier = Modifier.fillMaxWidth().testTag("automation_form_prompt"),
+                    minLines = 2,
+                    maxLines = 5,
+                )
+                Text(
+                    stringResource(R.string.automations_field_schedule),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(
+                        0 to stringResource(R.string.automations_sched_minutes),
+                        1 to stringResource(R.string.automations_sched_daily),
+                        2 to stringResource(R.string.automations_sched_cron),
+                    ).forEach { (kind, label) ->
+                        AssistChip(
+                            onClick = { scheduleKind = kind },
+                            label = { Text(label, maxLines = 1) },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = if (scheduleKind == kind) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                },
+                            ),
+                        )
+                    }
+                }
+                when (scheduleKind) {
+                    0 -> OutlinedTextField(
+                        value = everyMinutes,
+                        onValueChange = { everyMinutes = it.filter { c -> c.isDigit() } },
+                        label = { Text(stringResource(R.string.automations_sched_minutes)) },
+                        modifier = Modifier.fillMaxWidth().testTag("automation_form_minutes"),
+                        maxLines = 1,
+                    )
+                    1 -> OutlinedTextField(
+                        value = dailyTime,
+                        onValueChange = { dailyTime = it },
+                        label = { Text(stringResource(R.string.automations_sched_daily_time)) },
+                        modifier = Modifier.fillMaxWidth().testTag("automation_form_daily"),
+                        maxLines = 1,
+                    )
+                    else -> OutlinedTextField(
+                        value = cronExpr,
+                        onValueChange = { cronExpr = it },
+                        label = { Text(stringResource(R.string.automations_sched_cron)) },
+                        modifier = Modifier.fillMaxWidth().testTag("automation_form_cron"),
+                        maxLines = 1,
+                    )
+                }
+                OutlinedButton(
+                    onClick = { modelSheet = true },
+                    modifier = Modifier.fillMaxWidth().testTag("automation_form_model"),
+                ) {
+                    Text(
+                        pickedModel?.let { (p, m) -> "$p/$m" }
+                            ?: stringResource(R.string.create_model_default),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                Text(
+                    stringResource(R.string.automations_field_mode, mode),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(title, prompt, schedule, pickedModel, mode) },
+                enabled = valid && !busy,
+                modifier = Modifier.testTag("automation_form_save"),
+            ) { Text(stringResource(R.string.create_confirm)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel)) }
+        },
+    )
+    if (modelSheet) {
+        modelPicker(
+            pickedModel,
+            { p, m ->
+                pickedModel = p to m
+                modelSheet = false
+            },
+            { modelSheet = false },
+        )
+    }
 }
 
 @Composable
-private fun AutomationLine(a: AutomationRow) {
+private fun AutomationLine(
+    a: AutomationRow,
+    onRunNow: () -> Unit,
+    onToggle: (Boolean) -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -123,7 +424,9 @@ private fun AutomationLine(a: AutomationRow) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(Modifier.weight(1f)) {
+        Column(
+            Modifier.weight(1f).clickable { onEdit() },
+        ) {
             Text(
                 a.title,
                 style = MaterialTheme.typography.bodyMedium,
@@ -153,8 +456,7 @@ private fun AutomationLine(a: AutomationRow) {
             }
         }
         AssistChip(
-            onClick = {}, // display-only chip — no write affordance rides this surface
-            enabled = false,
+            onClick = { onToggle(!a.enabled) },
             label = {
                 Text(
                     stringResource(if (a.enabled) R.string.automation_on else R.string.automation_off) +
@@ -163,11 +465,31 @@ private fun AutomationLine(a: AutomationRow) {
                 )
             },
             colors = AssistChipDefaults.assistChipColors(
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                disabledLabelColor = if (a.enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                labelColor = if (a.enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             ),
             modifier = Modifier.testTag("automation_state_${a.automationId}"),
         )
+    }
+    Row(
+        Modifier.fillMaxWidth().padding(bottom = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        TextButton(onClick = onRunNow, modifier = Modifier.testTag("automation_run_${a.automationId}")) {
+            Text(stringResource(R.string.automation_run_now), style = MaterialTheme.typography.labelSmall)
+        }
+        TextButton(onClick = onEdit, modifier = Modifier.testTag("automation_edit_${a.automationId}")) {
+            Text(stringResource(R.string.automation_edit), style = MaterialTheme.typography.labelSmall)
+        }
+        TextButton(
+            onClick = onDelete,
+            modifier = Modifier.testTag("automation_delete_${a.automationId}"),
+            colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+                contentColor = MaterialTheme.colorScheme.error,
+            ),
+        ) {
+            Text(stringResource(R.string.automation_delete), style = MaterialTheme.typography.labelSmall)
+        }
     }
 }
 

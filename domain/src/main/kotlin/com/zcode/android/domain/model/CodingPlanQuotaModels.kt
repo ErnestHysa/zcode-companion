@@ -5,7 +5,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
 /**
- * GAP-3 (the project roadmap; docs/protocol/v4-wire.md §13.1; ADR-020) —
+ * GAP-3 (android-native-gaps.md; docs/protocol/v4-wire.md §13.1; ADR-020) —
  * the coding-plan entitlement decode. The wire payload is the desktop's
  * TypeScript interface shape (usage-stats.ts:73-89 `UsageEntitlementSnapshot`,
  * usage-quota.ts `UsageQuotaSnapshot`/`UsageQuotaLimit`/`UsageMcpQuotaSnapshot`

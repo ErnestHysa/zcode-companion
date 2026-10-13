@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// the release pipeline (T3) (project roadmap) — §14.2 T3 auto-ship executor.
+// AAP-5 (android-gaps roadmap) — §14.2 T3 auto-ship executor.
 //
 // Runs ONLY on an auto-ship decision (re-verified here — defense in depth; a
 // non-auto-ship decision makes this script refuse). The pipeline:
@@ -95,9 +95,18 @@ if (!gate.includes(`MAX_TESTED_DESKTOP = "${desktopVersion}"`)) {
 step("max-tested-bump", { detail: `CompatibilityGate.MAX_TESTED_DESKTOP → ${desktopVersion}` });
 
 // ── commit the bumps (the --target for the draft release) ────────────────────
-execSync(`git -C "${repoRoot}" add -A && git -C "${repoRoot}" commit -q -m "chore(release): vc${newVersionCode} ${newVersionName} — max-tested desktop ${desktopVersion} (the release pipeline (T3) auto-ship)"`, { stdio: "inherit" });
+execSync(`git -C "${repoRoot}" add -A && git -C "${repoRoot}" commit -q -m "chore(release): vc${newVersionCode} ${newVersionName} — max-tested desktop ${desktopVersion} (AAP-5 auto-ship)"`, { stdio: "inherit" });
 const target = execSync(`git -C "${repoRoot}" rev-parse HEAD`).toString().trim();
 step("commit-bumps", { detail: target });
+
+// The draft release's --target must exist on the REMOTE. With --push the
+// pipeline advances the remote's main to the bump commit (code already
+// reviewed/tested by the verify leg; the draft itself stays private until
+// the human promotes it).
+if (hasFlag("push")) {
+  execSync(`git -C "${repoRoot}" push origin HEAD:main`, { stdio: "inherit" });
+  step("push-bump", { detail: "bump commit pushed to origin/main (draft-release target)" });
+}
 
 // ── baseline profiles: recorded as delegated (device-dependent) ─────────────
 step("baseline-profile-regen", {
@@ -133,7 +142,7 @@ const layerLines = Object.entries(drift.layers ?? {})
   .join("\n");
 const notes = `ZCode Companion ${newVersionName} (versionCode ${newVersionCode})
 
-Auto-shipped by the the release pipeline (T3) pipeline (§14.2 T3) after an ADDITIVE protocol drift
+Auto-shipped by the AAP-5 pipeline (§14.2 T3) after an ADDITIVE protocol drift
 was verified end-to-end: drift classified, golden fixtures regenerated from the
 new open-repo schemas, full unit suite green, Mac live canary green.
 
@@ -155,13 +164,15 @@ step("release-notes", { detail: `${notesPath} (T4 meta block embedded)` });
 
 // ── DRAFT release via gh ─────────────────────────────────────────────────────
 const tag = `v${newVersionName}-vc${newVersionCode}`;
+const repoSlug = arg("repo");
 const ghCmd = [
   `"${gh}" release create ${tag}`,
+  repoSlug ? `--repo ${repoSlug}` : "",
   "--draft",
   `--target ${target}`,
   `--notes-file "${notesPath}"`,
   `"${apk}" "${shaPath}"`,
-].join(" ");
+].filter(Boolean).join(" ");
 execSync(ghCmd, { stdio: "inherit", shell: "/bin/bash" });
 step("gh-release-create", { detail: `${tag} — DRAFT (promoting to public is the human publish click)`, tag, target });
 

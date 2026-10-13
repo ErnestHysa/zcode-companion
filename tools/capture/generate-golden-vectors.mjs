@@ -3,7 +3,7 @@
 // Output: fixtures/protocol/golden-vectors.json. Never shipped, never part of CI deps.
 import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 
-// protocol-verify (T2) (§14.2 T2): regenerable against an arbitrary open-repo checkout.
+// AAP-4 (§14.2 T2): regenerable against an arbitrary open-repo checkout.
 const REPO = process.env.ZCODE_REFERENCE_REPO ?? "/Users/ernest/Desktop/DEVPROJECTS/zcode/repo";
 const OUT = process.env.ZCODE_FIXTURES_OUT ??
   "/Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/fixtures/protocol/golden-vectors.json";

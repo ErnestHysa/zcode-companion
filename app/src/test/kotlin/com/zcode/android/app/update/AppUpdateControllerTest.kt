@@ -11,7 +11,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * the update check (T4) — controller semantics: the foreground check lifecycle and the
+ * AAP-3 — controller semantics: the foreground check lifecycle and the
  * "Update now" download→install handoff, with test seams (§14.2 T4).
  */
 private fun noopLog() = ZLog(minLevel = ZLog.LogLevel.ERROR, ringCapacity = 8, sink = {})

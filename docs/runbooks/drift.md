@@ -1,9 +1,9 @@
-# Drift Detection Runbook
+# Drift Detection Runbook — auto-adaptation Stage 1 (AAP-1/AAP-2)
 
-The drift-check + Stage-1 detect tier of the auto-adaptation pipeline
-(`tools/drift/` + `tools/sensors/`). Scope: DETECT — the verify /
-build+publish / client-update tiers live in `tools/ci/`, `tools/release/`,
-`tools/canary/` and `docs/runbooks/release.md`.
+Implements the §39.4 drift-check (architectural.md documented it as
+"not implemented in this task" — the android-gaps roadmap Phase 5 IS its
+implementation) and the report's §14.2 T1 detect tier. Scope: DETECT only.
+Verify / build+publish / client-update are Phase 6 (AAP-3/4/5).
 
 **INV-15 (normative):** nothing in this pipeline ever connects to the
 production relay. The GitHub Action does git-metadata + source-text + JSON
@@ -85,7 +85,7 @@ Both legs emit the same envelope (v1):
   geometry, §33 mapping); a new constant is `additive`.
 - Relay reports additionally carry `check.baselineSource` /
   `check.currentSource` (bundle paths + streaming sha256 hashes + sizes +
-  desktop version) — the hash tripwire baseline.
+  desktop version) — the hash tripwire evidence.
 
 ### What each open-repo layer fingerprints
 
@@ -135,11 +135,18 @@ takes effect when this repo is pushed with Actions enabled.
 ### Bundle leg (Mac, launchd + WatchPaths)
 
 ```bash
-sed "s|@REPO_ROOT@|$HOME/Desktop/DEVPROJECTS/zcode/android-native|g" \
-  tools/sensors/com.zcode.android.drift-bundle-sensor.plist \
-  > ~/Library/LaunchAgents/com.zcode.android.drift-bundle-sensor.plist
-launchctl load ~/Library/LaunchAgents/com.zcode.android.drift-bundle-sensor.plist
+tools/sensors/deploy-launchd.sh
+launchctl kickstart -k gui/$(id -u)/com.zcode.android.drift-bundle-sensor   # verify: exit 0
+tail -1 ~/Library/Logs/zcode-android-drift/sensor.log                        # expect: heartbeat
 ```
+
+The deploy copies the sensor runtime (script, drift tools, baseline) to
+`~/Library/Application Support/zcode-drift/` and installs the plist pointing
+there — launchd-spawned processes have NO Desktop access (TCC), so a runtime
+under `~/Desktop/...` fails with exit 126/127 ("Operation not permitted" /
+node not found; both live findings 2026-10-09). The deploy also injects the
+interactive PATH into the job (launchd's default PATH lacks `node`). Re-run
+the deploy after changing any sensor source.
 
 Fires daily at 09:00 and on any change under `/Applications/ZCode.app`
 (WatchPaths = the Sparkle-update hook). Env overrides: `ZCODE_ASAR`,
@@ -166,7 +173,8 @@ nag-until-actioned tripwire behavior.
 One JSON line per notification:
 `{"at":"…","title":"…","message":"…","osd":"sent|skipped|failed: …"}`.
 The `osd` field records the real macOS attempt; the log line is the durable
-evidence.
+evidence (the Phase-5 rehearsal evidence lives in
+`docs/evidence/phase-5-gaps/`).
 
 ## Post-release ritual (until Phase 6 automates it)
 
@@ -179,7 +187,7 @@ evidence.
 4. Update `CompatibilityGate.MAX_TESTED_DESKTOP` only after the fixture
    suite is green against the new surface (Phase 6 automates this matrix bump).
 
-## E2E rehearsal
+## E2E rehearsal (Phase-5 acceptance evidence)
 
 Seeded fake release (local git repo built from the real reference sources with
 a +channel / consumed-schema-rename / consumed-limit-bump commit tagged
@@ -187,6 +195,4 @@ a +channel / consumed-schema-rename / consumed-limit-bump commit tagged
 `maxFragments:64→48`, `WorkspaceClosed:4012→4014`) both produce classified
 BREAKING reports + `osd:"sent"` notifications; unchanged-bundle runs
 heartbeat exit 0. Transcript + reports:
-The rehearsal cuts a synthetic upstream checkout from the real reference
-sources, seeds a fake release and a mutated bundle, and expects classified
-BREAKING reports + notifications (see the workflow and sensor scripts).
+`docs/evidence/phase-5-gaps/`.

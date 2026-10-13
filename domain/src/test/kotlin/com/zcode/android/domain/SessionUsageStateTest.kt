@@ -10,7 +10,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * GAP-1/GAP-2 (the project roadmap; docs/protocol/v4-wire.md §11.1) — the
+ * GAP-1/GAP-2 (android-native-gaps.md; docs/protocol/v4-wire.md §11.1) — the
  * snapshot `usage` state key decoded from the GENERATED golden fixtures
  * (fixtures/protocol/phase2-wire-fixtures.json; rule 5 — generated, never
  * hand-written). Pins:

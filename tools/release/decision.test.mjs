@@ -1,4 +1,4 @@
-// the release pipeline (T3) — decision-matrix tests. The load-bearing pin: NO input combination with
+// AAP-5 — decision-matrix tests. The load-bearing pin: NO input combination with
 // driftVerdict=BREAKING ever yields an auto-ship decision (the roadmap's absolute
 // Deferred-scope gate), plus the §14.2 T3 matrix truth table.
 import { test } from "node:test";

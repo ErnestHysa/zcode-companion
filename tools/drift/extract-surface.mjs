@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// the drift-check open-repo surface extractor (project roadmap Phase 5).
+// AAP-1 open-repo surface extractor (android-gaps roadmap Phase 5).
 // Generates the committed golden inventory from a ZCode open-repo checkout:
 //
 //   node tools/drift/extract-surface.mjs --shared-root <repo>/packages/shared/src \

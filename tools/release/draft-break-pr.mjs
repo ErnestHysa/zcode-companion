@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// the release pipeline (T3) (project roadmap) — §14.2 T3 BREAKING route: draft the patch PR and
+// AAP-5 (android-gaps roadmap) — §14.2 T3 BREAKING route: draft the patch PR and
 // STOP. This executor exists so the BREAKING path is a recorded, reviewable
 // artifact chain — never a release:
 //   drift-report.json → PR body (classified findings + patch brief) → branch
@@ -31,7 +31,7 @@ const branch = `fix/protocol-drift-${label.replace(/[^a-zA-Z0-9.-]/g, "-")}`;
 
 const body = `## Protocol drift: BREAKING (desktop \`${label}\`)
 
-Auto-drafted by the the release pipeline (T3) pipeline (§14.2 T3). **HUMAN APPROVAL REQUIRED before
+Auto-drafted by the AAP-5 pipeline (§14.2 T3). **HUMAN APPROVAL REQUIRED before
 any of this ships** — the pipeline stops here by design (roadmap Deferred scope:
 never auto-ship breaking).
 
@@ -68,7 +68,7 @@ execSync(`git -C "${repoRoot}" checkout -q -b "${branch}"`, { stdio: "inherit" }
 mkdirSync(`${repoRoot}/docs/evidence`, { recursive: true });
 copyFileSync(driftPath, `${repoRoot}/docs/evidence/drift-report.json`);
 writeFileSync(`${repoRoot}/PATCH-BRIEF.md`, body.split("### Patch brief")[1]?.split("###")[0]?.trim() ?? "");
-execSync(`git -C "${repoRoot}" add -A && git -C "${repoRoot}" commit -q -m "chore(protocol-drift): BREAKING drift brief for desktop ${label} (the release pipeline (T3) agent-drafted PR, human approval required)"`, { stdio: "inherit" });
+execSync(`git -C "${repoRoot}" add -A && git -C "${repoRoot}" commit -q -m "chore(protocol-drift): BREAKING drift brief for desktop ${label} (AAP-5 agent-drafted PR, human approval required)"`, { stdio: "inherit" });
 
 const bodyPath = `${repoRoot}/build/break-pr-body.md`;
 mkdirSync(`${repoRoot}/build`, { recursive: true });

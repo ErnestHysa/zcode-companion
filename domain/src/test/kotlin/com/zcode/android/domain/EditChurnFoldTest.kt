@@ -14,7 +14,7 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.test.runTest
 
 /**
- * GAP-10 (the project roadmap; docs/protocol/v4-wire.md §11.4) — the
+ * GAP-10 (android-native-gaps.md; docs/protocol/v4-wire.md §11.4) — the
  * §20.3-style reconciliation for the editUserQuery turn replacement: the desktop
  * REWRITES the turn, and the wire consequence is row churn the client must FOLD,
  * never append. Golden ops from the GENERATED fixture (rule 5):

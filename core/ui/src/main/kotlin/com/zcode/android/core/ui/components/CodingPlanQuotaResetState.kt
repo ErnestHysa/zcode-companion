@@ -3,7 +3,7 @@ package com.zcode.android.core.ui.components
 import com.zcode.android.domain.model.CodingPlanResetStatus
 
 /**
- * GAP-4 (the project roadmap; docs/protocol/v4-wire.md §13.2; ADR-020) — the
+ * GAP-4 (android-native-gaps.md; docs/protocol/v4-wire.md §13.2; ADR-020) — the
  * desktop `packages/ui/src/lib/codingPlanQuotaResetUi.ts` reset state machine,
  * ported as pure functions. Entry states: available (server-granted reset
  * opportunities) → processing (manual use awaiting server reconciliation) →

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "tool": "live-canary.sh",
+  "at": "2026-10-09T01:01:56.521Z",
+  "verdict": "green",
+  "source": "live",
+  "redaction": "ok",
+  "legs": {
+    "pair": true,
+    "workspaceGuard": "ok",
+    "discover": true,
+    "stream": true,
+    "v4Handshake": true,
+    "recover": true
+  },
+  "detail": "drill complete",
+  "reportPath": "/tmp/live-canary/canary-20261009-020135.canary.json"
+}

@@ -1,4 +1,4 @@
-// the release pipeline (T3) (project roadmap) — §14.2 T3 decision matrix (report §14.2, and the
+// AAP-5 (android-gaps roadmap) — §14.2 T3 decision matrix (report §14.2, and the
 // roadmap's absolute Deferred-scope gate: "Never auto-ship breaking").
 //
 // Inputs (all boolean/enum, recorded verbatim in the run log):

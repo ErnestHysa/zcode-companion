@@ -11,7 +11,7 @@ import java.time.ZoneOffset
 import java.util.Locale
 
 /**
- * GAP-3 (the project roadmap; docs/protocol/v4-wire.md §13.1) — the desktop
+ * GAP-3 (android-native-gaps.md; docs/protocol/v4-wire.md §13.1) — the desktop
  * `codingPlanQuotaPresentation.ts` decision table, pinned VERBATIM:
  *
  * - TOKENS_LIMIT ≡ CREDIT_LIMIT are the SAME category (zai team backends emit

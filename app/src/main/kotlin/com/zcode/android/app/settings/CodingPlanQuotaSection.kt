@@ -52,7 +52,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * GAP-3 (the project roadmap; docs/protocol/v4-wire.md §13.1; ADR-020) — the
+ * GAP-3 (android-native-gaps.md; docs/protocol/v4-wire.md §13.1; ADR-020) — the
  * Coding-Plan quota section, the desktop ChatCodingPlanUsageRemainingPanel port:
  * four meters (5-hour / weekly / tool-calls / MCP — the desktop's EXACT
  * `codingPlanQuotaPresentation` lookups) each rendering remaining-% + reset time,

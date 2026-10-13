@@ -6,6 +6,11 @@ import com.zcode.android.app.settings.CodingPlanPort
 import com.zcode.android.domain.model.ResetOpportunityResult
 import com.zcode.android.domain.model.ResetUseResult
 import com.zcode.android.domain.model.accountAccessFromProviderId
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import com.zcode.android.app.settings.McpPort
 import com.zcode.android.app.settings.SkillsPort
 import com.zcode.android.features.tasks.port.AutomationsPort
@@ -61,6 +66,98 @@ class DefaultAutomationsPort(
             AutomationsPort.Lists(null, null, e.message ?: "automations unavailable")
         }
     }
+
+    /** FIELD (2026-10-12): automation CRUD (zcodeAgent.ts:679-688 surface). */
+    private fun writeRequest(write: AutomationsPort.AutomationWrite): kotlinx.serialization.json.JsonObject =
+        kotlinx.serialization.json.buildJsonObject {
+            put("title", kotlinx.serialization.json.JsonPrimitive(write.title))
+            put("prompt", kotlinx.serialization.json.JsonPrimitive(write.prompt))
+            put("cronExpr", kotlinx.serialization.json.JsonPrimitive(write.schedule.cronExprOrPlaceholder()))
+            write.schedule.everyMinutes?.let {
+                put("relativeDelayMinutes", kotlinx.serialization.json.JsonPrimitive(it))
+                put("recurring", kotlinx.serialization.json.JsonPrimitive(false))
+            } ?: run {
+                put("recurring", kotlinx.serialization.json.JsonPrimitive(true))
+            }
+            if (write.modelProvider != null && write.modelId != null) {
+                put("modelSelection", kotlinx.serialization.json.buildJsonObject {
+                    put("providerId", kotlinx.serialization.json.JsonPrimitive(write.modelProvider))
+                    put("modelId", kotlinx.serialization.json.JsonPrimitive(write.modelId))
+                })
+            }
+            write.mode?.let { put("mode", kotlinx.serialization.json.JsonPrimitive(it)) }
+        }
+
+    private fun workspaceTarget(): Pair<String, String?>? {
+        val target = hub.activeWorkspaceTarget() ?: return null
+        val path = target.first ?: return null
+        return path to target.second
+    }
+
+    override suspend fun create(workspaceKey: String, write: AutomationsPort.AutomationWrite): Boolean {
+        val (workspacePath, workspaceIdentity) = workspaceTarget() ?: return false
+        return try {
+            hub.viewerTools().createAutomation(workspacePath, workspaceIdentity, writeRequest(write))
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("automationsport.create", "${e.javaClass.simpleName}: ${e.message?.take(140)}")
+            false
+        }
+    }
+
+    override suspend fun update(automationId: String, write: AutomationsPort.AutomationWrite): Boolean {
+        val (workspacePath, workspaceIdentity) = workspaceTarget() ?: return false
+        return try {
+            hub.viewerTools().updateAutomation(workspacePath, workspaceIdentity, automationId, writeRequest(write))
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("automationsport.update", "${e.javaClass.simpleName}: ${e.message?.take(140)}")
+            false
+        }
+    }
+
+    override suspend fun delete(automationId: String): Boolean {
+        val (workspacePath, workspaceIdentity) = workspaceTarget() ?: return false
+        return try {
+            hub.viewerTools().deleteAutomation(workspacePath, workspaceIdentity, automationId)
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("automationsport.delete", "${e.javaClass.simpleName}: ${e.message?.take(140)}")
+            false
+        }
+    }
+
+    override suspend fun setEnabled(automationId: String, enabled: Boolean): Boolean {
+        val (workspacePath, workspaceIdentity) = workspaceTarget() ?: return false
+        return try {
+            hub.viewerTools().setAutomationEnabled(workspacePath, workspaceIdentity, automationId, enabled)
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("automationsport.setEnabled", "${e.javaClass.simpleName}: ${e.message?.take(140)}")
+            false
+        }
+    }
+
+    override suspend fun runNow(automationId: String): Boolean {
+        val (workspacePath, workspaceIdentity) = workspaceTarget() ?: return false
+        return try {
+            hub.viewerTools().runAutomationNow(workspacePath, workspaceIdentity, automationId)
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("automationsport.runNow", "${e.javaClass.simpleName}: ${e.message?.take(140)}")
+            false
+        }
+    }
 }
 
 class DefaultPluginsPort(
@@ -97,20 +194,74 @@ class DefaultSkillsPort(
     }
 }
 
+/**
+ * The desktop usage-summary's request shape, verbatim keys
+ * (WorkspaceSidebarFooterUsageSummary.tsx: includeSubscription +
+ * preferredProviderId + the static zhipu-account descriptor +
+ * requirePreferredProvider/allowDisabledPreferredProvider + allowEnvApiKey:false).
+ * Without these the service resolves nothing and answers
+ * unavailableReason="not_configured" — the "no account connected" face
+ * (live-verified 2026-10-09; fixture entitlement-live-zai-coding-plan).
+ */
+internal fun codingPlanEntitlementRequest(providerId: String): JsonObject {
+    val access = accountAccessFromProviderId(providerId, entitled = true)
+        ?: return JsonObject(emptyMap())
+    return buildJsonObject {
+        put("includeSubscription", JsonPrimitive(true))
+        put("preferredProviderId", JsonPrimitive(providerId))
+        put("accountAccess", access)
+        put("allowDisabledPreferredProvider", JsonPrimitive(true))
+        put("requirePreferredProvider", JsonPrimitive(true))
+        put("allowEnvApiKey", JsonPrimitive(false))
+    }
+}
+
 class DefaultCodingPlanPort(
     private val hub: ConnectionHub,
 ) : CodingPlanPort {
     override suspend fun entitlement(): CodingPlanPort.Snapshot {
         // Quota is app-level (the account lives on the desktop), not workspace-scoped.
-        return try {
-            CodingPlanPort.Snapshot(hub.viewerTools().entitlement(), null)
+        // The desktop's own usage summary (WorkspaceSidebarFooterUsageSummary.tsx)
+        // addresses the builtin coding-plan provider DIRECTLY: preferredProviderId +
+        // the static zhipu-account descriptor + requirePreferredProvider — without
+        // them the service resolves nothing and answers not_configured (the
+        // "no account connected" face; live-verified 2026-10-09).
+        val zai = try {
+            CodingPlanPort.Snapshot(
+                hub.viewerTools().entitlement(codingPlanEntitlementRequest("account:zai-individual-coding-plan")),
+                null,
+            )
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             hub.log.warn("codingplanport.entitlement", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
             CodingPlanPort.Snapshot(null, e.message ?: "the coding-plan quota is unavailable on this connection")
         }
+        val zaiDead = zai.entitlement == null ||
+            zai.entitlement.limits.isEmpty() && zai.entitlement.remainingCount == null
+        if (!zaiDead) return zai
+        // bigmodel twin (the desktop footer queries both families and shows the
+        // one that answers).
+        return try {
+            val bigmodel = CodingPlanPort.Snapshot(
+                hub.viewerTools().entitlement(codingPlanEntitlementRequest("account:bigmodel-individual-coding-plan")),
+                null,
+            )
+            if (bigmodel.entitlement != null &&
+                (bigmodel.entitlement.limits.isNotEmpty() || bigmodel.entitlement.remainingCount != null)
+            ) {
+                bigmodel
+            } else {
+                zai
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            zai
+        }
     }
+
+
 
     /** The reset surface exists ONLY for a derivable builtin provider id —
      *  the ADR-020 rule: unknown ids derive NOTHING (never guessed). */

@@ -5,7 +5,7 @@ import java.text.NumberFormat
 import java.util.Locale
 
 /**
- * GAP-1 (the project roadmap) — context-usage label formatting, ported from the
+ * GAP-1 (android-native-gaps.md) — context-usage label formatting, ported from the
  * desktop's `formatCompactTokenNumber` (packages/ui/src/lib/tokenNumberFormat.ts,
  * 29628c9) and the contextUsage panel label (contextUsage.tsx:104-116).
  *

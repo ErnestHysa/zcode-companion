@@ -27,7 +27,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
 /**
- * GAP-16 (the project roadmap): Git screen overhauled to the desktop git-panel
+ * GAP-16 (android-native-gaps.md): Git screen overhauled to the desktop git-panel
  * parity (GitPane.tsx + GitPaneChangeCard.tsx + git-graph pane):
  *  - working-tree changes grouped by the DESKTOP section order (unstaged dataset =
  *    unstaged/untracked/conflicted; staged separate) with per-section path sort;

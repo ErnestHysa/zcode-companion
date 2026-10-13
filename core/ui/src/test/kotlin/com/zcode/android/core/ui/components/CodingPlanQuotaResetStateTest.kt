@@ -8,7 +8,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * GAP-4 (the project roadmap; docs/protocol/v4-wire.md §13.2; ADR-020) — the
+ * GAP-4 (android-native-gaps.md; docs/protocol/v4-wire.md §13.2; ADR-020) — the
  * desktop `codingPlanQuotaResetUi.ts` state machine, ported VERBATIM. Every pin
  * below cites the desktop comment it preserves:
  *

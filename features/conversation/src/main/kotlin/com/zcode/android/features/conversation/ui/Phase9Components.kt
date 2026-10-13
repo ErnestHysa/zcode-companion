@@ -3,6 +3,15 @@ package com.zcode.android.features.conversation.ui
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,6 +26,8 @@ import androidx.compose.material.icons.filled.PanTool
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
@@ -51,6 +62,64 @@ import com.zcode.android.features.conversation.port.ConversationPort
  * All state renders honestly (INV-11); the picker options are exactly the
  * protocol's (never synthesized — §20.2 discipline applied to model lists).
  */
+
+/**
+ * FIELD (2026-10-12): a STANDALONE model picker for surfaces without a live
+ * SessionConfigState (the new-task composer) — same provider/model options as the
+ * conversation picker, onPick carries (provider, model) only.
+ */
+@Composable
+fun ComposerModelPickerDialog(
+    current: Pair<String, String>?,
+    modelOptionsProvider: suspend () -> List<ModelProviderOption>,
+    onPick: (provider: String, model: String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val providers by produceState<List<ModelProviderOption>?>(initialValue = null) {
+        value = runCatching { modelOptionsProvider() }.getOrDefault(emptyList())
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.action_close)) },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) } },
+        text = {
+            when (val list = providers) {
+                null -> Row(
+                    Modifier.fillMaxWidth().padding(16.dp),
+                    horizontalArrangement = Arrangement.Center,
+                ) { CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) }
+                else -> Column(
+                    Modifier.fillMaxWidth().heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
+                ) {
+                    for (provider in list) {
+                        Text(
+                            provider.providerName ?: provider.providerId,
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.padding(vertical = 4.dp),
+                        )
+                        for (model in provider.models) {
+                            val selected = current?.first == provider.providerId && current?.second == model.id
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onPick(provider.providerId, model.id)
+                                        onDismiss()
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                RadioButton(selected = selected, onClick = null)
+                                Spacer(Modifier.width(8.dp))
+                                Text(model.label, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                            }
+                        }
+                    }
+                }
+            }
+        },
+    )
+}
 
 /** §10.3 echo-reconciled config chips: current mode + model, tap → verified options. */
 @Composable

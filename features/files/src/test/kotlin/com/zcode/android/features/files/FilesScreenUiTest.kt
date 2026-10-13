@@ -22,7 +22,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
 /**
- * GAP-15 (the project roadmap): Files screen overhauled to desktop file-tree
+ * GAP-15 (android-native-gaps.md): Files screen overhauled to desktop file-tree
  * affordances (WorkspaceFileTreeRowView family): per-file-type icons via the
  * extension/filename mapping, a chevron affordance on directories, a workspace
  * header, and BREADCRUMB navigation back up the visited chain — all on today's

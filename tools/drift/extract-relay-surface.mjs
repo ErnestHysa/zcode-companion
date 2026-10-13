@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// the sensors bundle relay-surface extractor (project roadmap Phase 5, Mac leg).
+// AAP-2 bundle relay-surface extractor (android-gaps roadmap Phase 5, Mac leg).
 // Scans the SHIPPED desktop bundle text (zcode.cjs + app.asar) for the
 // Phase-1-corpus relay-adapter constant families and emits a relay-surface JSON:
 //

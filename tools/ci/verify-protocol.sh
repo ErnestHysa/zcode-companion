@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# protocol-verify (T2) (project roadmap) — §14.2 T2 CI verify leg.
+# AAP-4 (android-gaps roadmap) — §14.2 T2 CI verify leg.
 #
 # Given an open-repo checkout (the "new desktop version"), verify the Android
 # client against it: (1) drift-check the protocol surface vs the committed

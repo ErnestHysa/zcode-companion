@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// the release pipeline (T3) (project roadmap) — the §14.2 chain orchestrator:
+// AAP-5 (android-gaps roadmap) — the §14.2 chain orchestrator:
 //   seed drift → T1 drift report → T2 verify (tools/ci/verify-protocol.sh)
 //   → Mac canary verdict → T3 decision matrix → publish | agent-PR | halt.
 // Every tier's inputs/outputs are recorded in one run log (the "matrix
 // decisions recorded in the run log" acceptance) and nothing is ever pushed.
 //
 // --reuse-verify <workdir>: adopt an ALREADY-RUN verify leg's reports (the
-// rehearsal reuses the protocol-verify (T2) leg instead of paying a second gradle run); the
+// rehearsal reuses the AAP-4 leg instead of paying a second gradle run); the
 // reuse is recorded in the run log.
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { execSync } from "node:child_process";
@@ -38,7 +38,7 @@ const log = {
   chain: [],
 };
 
-// ── T2 verify (or reuse the protocol-verify (T2) leg's outputs) ─────────────────────────────
+// ── T2 verify (or reuse the AAP-4 leg's outputs) ─────────────────────────────
 let verifyDir;
 if (reuseVerify) {
   verifyDir = reuseVerify;
@@ -105,7 +105,10 @@ if (decision.action === "auto-ship") {
   if (versionName) args.push(`--version-name "${versionName}"`);
   const versionCode = arg("version-code");
   if (versionCode) args.push(`--version-code "${versionCode}"`);
+  const repoSlug = arg("repo");
+  if (repoSlug) args.push(`--repo "${repoSlug}"`);
   if (skipBaselineRegen) args.push("--skip-baseline-regen");
+  if (process.argv.includes("--push")) args.push("--push");
   execSync(`node tools/release/publish.mjs ${args.join(" ")}`, { stdio: "inherit", cwd: repoRoot });
 } else if (decision.action === "agent-pr") {
   execSync(

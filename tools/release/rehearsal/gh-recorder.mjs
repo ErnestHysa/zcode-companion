@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// the release pipeline (T3) rehearsal shim — a fake `gh` that RECORDS the release/PR calls the T3
+// AAP-5 rehearsal shim — a fake `gh` that RECORDS the release/PR calls the T3
 // pipeline would make, validates their contract, and touches nothing remote.
 // INV-15/16 + "NEVER push unless explicitly told": the rehearsal must not talk
 // to GitHub at all, so the pipeline runs with --gh pointing at this recorder.

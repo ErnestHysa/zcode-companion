@@ -10,7 +10,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * the update check (T4) — the install handoff contract (§14.2 T4, §37 user-consented). The intent
+ * AAP-3 — the install handoff contract (§14.2 T4, §37 user-consented). The intent
  * is the generic package-archive VIEW routed by the system to its installer with
  * a FileProvider URI + explicit read grant; the unknown-sources consent is the
  * system's, feature-detected here (§37: no store assumption).

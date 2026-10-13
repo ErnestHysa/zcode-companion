@@ -19,7 +19,7 @@ import org.robolectric.annotation.Config
 import java.io.File
 
 /**
- * GAP-7 (the project roadmap; docs/protocol/v4-wire.md §12.3) — the plugins
+ * GAP-7 (android-native-gaps.md; docs/protocol/v4-wire.md §12.3) — the plugins
  * viewer rendered from the GENERATED fixtures. Pins: installed plugins render
  * with their enable/disable STATE (the §13.3 accept), the empty list face, and
  * the Deferred-scope gate — NO install/uninstall/update affordance exists

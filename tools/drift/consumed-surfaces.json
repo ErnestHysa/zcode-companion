@@ -1,6 +1,6 @@
 {
   "_comment": [
-    "the drift-check consumption manifest (project roadmap Phase 5).",
+    "AAP-1 consumption manifest (android-gaps roadmap Phase 5).",
     "Hand-curated CONFIGURATION, not a golden artifact: it records which extracted",
     "surface entries the Android app strictly decodes, so their removal/change",
     "classifies BREAKING (everything else is ADDITIVE inventory drift).",

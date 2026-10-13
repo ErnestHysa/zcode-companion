@@ -85,7 +85,14 @@ fun TaskListScreen(
     openApprovals: Int = 0,
     onOpenApprovals: () -> Unit = {},
     /** Phase 7 field: create a task in an existing workspace (§6.1 parity). */
-    onCreateTask: (String, String) -> Unit = { _, _ -> },
+    onCreateTask: (String, String, String?, String?) -> Unit = { _, _, _, _ -> },
+    /** FIELD (2026-10-12): the model picker the nav layer injects (app module owns
+     * the model-selection transport; features:tasks stays transport-free). */
+    modelPicker: @Composable (
+        current: Pair<String, String>?,
+        onPick: (provider: String, model: String) -> Unit,
+        onDismiss: () -> Unit,
+    ) -> Unit = { _, _, _ -> },
     workspaces: List<com.zcode.android.domain.model.WorkspaceOption> = emptyList(),
     creatingTask: Boolean = false,
     createNotice: String? = null,
@@ -149,7 +156,12 @@ fun TaskListScreen(
                     }
                 }
             }
-            automationsPort?.let { port -> AutomationsSection(port = port) }
+            automationsPort?.let { port ->
+                AutomationsSection(
+                    port = port,
+                    modelPicker = modelPicker,
+                )
+            }
             Spacer(Modifier.height(4.dp))
 
             Box(Modifier.fillMaxSize()) {
@@ -205,10 +217,11 @@ fun TaskListScreen(
             workspaces = workspaces,
             creating = creatingTask,
             onDismiss = { showCreate = false },
-            onCreate = { key, text ->
+            onCreate = { key, text, provider, model ->
                 showCreate = false
-                onCreateTask(key, text)
+                onCreateTask(key, text, provider, model)
             },
+            modelPicker = modelPicker,
         )
     }
     LaunchedEffect(createNotice) {
@@ -228,11 +241,21 @@ internal fun CreateTaskDialog(
     workspaces: List<com.zcode.android.domain.model.WorkspaceOption>,
     creating: Boolean,
     onDismiss: () -> Unit,
-    onCreate: (workspaceKey: String, firstText: String) -> Unit,
+    onCreate: (workspaceKey: String, firstText: String, provider: String?, model: String?) -> Unit,
+    modelPicker: @Composable (
+        current: Pair<String, String>?,
+        onPick: (provider: String, model: String) -> Unit,
+        onDismiss: () -> Unit,
+    ) -> Unit = { _, _, _ -> },
 ) {
     var text by remember { androidx.compose.runtime.mutableStateOf("") }
     var expanded by remember { androidx.compose.runtime.mutableStateOf(false) }
     var selected by remember { androidx.compose.runtime.mutableStateOf(workspaces.firstOrNull()) }
+    // FIELD (2026-10-12): model picker on creation — the desktop lets you choose the
+    // model BEFORE the first message; createSessionRequestedConfigSchema carries
+    // {provider, model} as the new session's requested override (command.ts:30-41).
+    var pickedModel by remember { androidx.compose.runtime.mutableStateOf<Pair<String, String>?>(null) }
+    var modelSheet by remember { androidx.compose.runtime.mutableStateOf(false) }
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.create_task_title)) },
@@ -284,11 +307,27 @@ internal fun CreateTaskDialog(
                         .testTag("create_task_text"),
                     maxLines = 4,
                 )
+                Spacer(Modifier.height(8.dp))
+                // Model chip — tap opens the same picker the conversation uses.
+                androidx.compose.material3.OutlinedButton(
+                    onClick = { modelSheet = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("create_model_chip"),
+                ) {
+                    Text(
+                        pickedModel?.let { (p, m) -> "$p/$m" }
+                            ?: stringResource(R.string.create_model_default),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
             }
         },
         confirmButton = {
             Button(
-                onClick = { selected?.let { onCreate(it.key, text) } },
+                onClick = { selected?.let { onCreate(it.key, text, pickedModel?.first, pickedModel?.second) } },
                 enabled = !creating && text.isNotBlank() && selected != null,
                 modifier = Modifier.testTag("create_task_confirm"),
             ) { Text(stringResource(R.string.create_confirm)) }
@@ -297,6 +336,16 @@ internal fun CreateTaskDialog(
             TextButton(onClick = onDismiss, modifier = Modifier.testTag("create_task_cancel")) { Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel)) }
         },
     )
+    if (modelSheet) {
+        modelPicker(
+            pickedModel,
+            { p, m ->
+                pickedModel = p to m
+                modelSheet = false
+            },
+            { modelSheet = false },
+        )
+    }
 }
 
 @Composable

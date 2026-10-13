@@ -14,7 +14,7 @@ import org.junit.Test
 import java.io.File
 
 /**
- * GAP-6 (the project roadmap; docs/protocol/v4-wire.md §12.2) — the automations
+ * GAP-6 (android-native-gaps.md; docs/protocol/v4-wire.md §12.2) — the automations
  * + off-peak list decodes, pinned to the GENERATED fixtures (rule 5). Shape
  * fidelity: the automation protocol face (scheduleRule display fields, closed
  * lifecycle enum kept RAW, recurring/maxRuns) + the channel-type extension fields

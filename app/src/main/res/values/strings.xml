@@ -17,6 +17,8 @@
     <!-- AAP-3 (§14.2 T4): the connection-center update banner (§37 non-Play channel). -->
     <string name="conn_update_banner">Desktop %1$s detected — this build was tested to %2$s — update %3$s is available.</string>
     <string name="conn_update_now">Update now</string>
+    <string name="conn_update_banner_plain">Update %1$s is available.</string>
+    <string name="conn_update_check_manual">Check for updates</string>
     <string name="conn_update_checking">Checking for an update…</string>
     <string name="conn_update_none">No newer app build is available yet.</string>
     <string name="conn_update_progress">Downloading update… %1$s</string>

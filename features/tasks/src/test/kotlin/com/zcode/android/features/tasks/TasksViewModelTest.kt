@@ -36,7 +36,7 @@ class TasksViewModelTest {
 
     private class FakePort : TasksPort {
     override fun observeWorkspaces() = kotlinx.coroutines.flow.MutableStateFlow<List<com.zcode.android.domain.model.WorkspaceOption>>(emptyList())
-    override suspend fun createTask(workspaceKey: String, firstText: String): Boolean = true
+    override suspend fun createTask(workspaceKey: String, firstText: String, provider: String?, model: String?): Boolean = true
         val tasksFlow = MutableStateFlow<List<Task>>(emptyList())
         override val tasks: Flow<List<Task>> get() = tasksFlow
         override val phase = MutableStateFlow(ConnectionPhase.CONNECTING)

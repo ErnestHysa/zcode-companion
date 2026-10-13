@@ -10,7 +10,7 @@ import org.junit.Test
 import java.io.File
 
 /**
- * GAP-7 (the project roadmap; docs/protocol/v4-wire.md §12.3) — the plugins
+ * GAP-7 (android-native-gaps.md; docs/protocol/v4-wire.md §12.3) — the plugins
  * list decode pinned to the GENERATED fixtures. Shape fidelity: the STRICT
  * zcodePluginsListResultSchema face (id/name/enabled/source/marketplace +
  * root counts + mcpServerNames + diagnostics), the enabled STATE the viewer

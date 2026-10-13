@@ -10,7 +10,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * the update check (T4) — the GitHub Releases metadata parser, pinned against the SEEDED fixture
+ * AAP-3 — the GitHub Releases metadata parser, pinned against the SEEDED fixture
  * (fixtures/releases/github-release-fixtures.json, the shape tools/release/publish.mjs
  * writes). Shape-faithful per rule 4: exact field values, fail-closed cases.
  */

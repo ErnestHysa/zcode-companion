@@ -1,4 +1,4 @@
-// the sensors relay-surface library (project roadmap Phase 5): extracts the
+// AAP-2 relay-surface library (android-gaps roadmap Phase 5): extracts the
 // Phase-1-corpus relay-adapter constant families from the SHIPPED desktop bundle
 // text (zcode.cjs + app.asar, raw text scan — the relay side is closed source)
 // and diffs it against the committed baseline. Corpus basis:

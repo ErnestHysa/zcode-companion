@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// the sensors open-repo tag watch (project roadmap Phase 5). Resolves the latest
+// AAP-2 open-repo tag watch (android-gaps roadmap Phase 5). Resolves the latest
 // release tag of the upstream ZCode open repo via `git ls-remote` (metadata
 // only — no relay traffic, no credentials; INV-15-clean by construction) and
 // compares it with the recorded state:

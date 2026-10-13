@@ -1,9 +1,9 @@
-// the drift-check drift library (project roadmap Phase 5) — the §39.4 drift-check,
+// AAP-1 drift library (android-gaps roadmap Phase 5) — the §39.4 drift-check,
 // this campaign's implementation of it. Shared by:
 //   tools/drift/extract-surface.mjs      (open-repo extractor CLI)
 //   tools/drift/check-drift.mjs          (diff CLI: open-repo + relay legs)
 //   tools/drift/surface.test.mjs         (golden tests)
-//   tools/drift/extract-relay-surface.mjs (bundle leg, the sensors)
+//   tools/drift/extract-relay-surface.mjs (bundle leg, AAP-2)
 //
 // Extraction is a text fingerprint, not a TS parse: it greps the structural
 // markers the upstream sources actually use (documented in docs/runbooks/drift.md).

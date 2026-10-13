@@ -1,6 +1,6 @@
 name: open-repo-drift
 
-# Open-repo sensor — the T1 detect leg of the auto-adaptation pipeline.
+# AAP-2 open-repo sensor (android-gaps roadmap Phase 5, report §14.2 T1).
 #
 # INV-15 AUDIT NOTE (normative, §36): this workflow contains NO production-relay
 # traffic of any kind. It NEVER connects to wss://zcode.z.ai or any relay

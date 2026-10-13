@@ -1,4 +1,4 @@
-// Bundle-sensor relay-surface tests. Run:
+// AAP-2 bundle-sensor relay-surface tests (android-gaps Phase 5). Run:
 //   node --test tools/drift/relay.test.mjs
 //
 // Hermetic: feeds synthetic minified-bundle text carrying the Phase-1-corpus

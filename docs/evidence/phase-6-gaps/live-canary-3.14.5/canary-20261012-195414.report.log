@@ -1,0 +1,11 @@
+connecting to wss://zcode.z.ai/ws?mid=9cb0a1b7-59db-470b-b597-280a999cae89
+pair status: matched (waited=true)
+canary pair: ok (pairStatus=matched)
+canary workspace: /Users/ernest/Desktop/zcode-canary-ws (fixed resolution ok)
+canary task: sess_e9df89c6-1fae-4a8c-ae44-89381b4280c3 (synthetic match ok)
+connecting to wss://zcode.z.ai/ws?mid=9cb0a1b7-59db-470b-b597-280a999cae89
+ws close code=1000 reason=
+pair status: matched (waited=true)
+connecting to wss://zcode.z.ai/ws?mid=9cb0a1b7-59db-470b-b597-280a999cae89
+pair status: matched (waited=true)
+CANARY-REPORT /tmp/live-canary-315/canary-20261012-195414.canary.json verdict=green

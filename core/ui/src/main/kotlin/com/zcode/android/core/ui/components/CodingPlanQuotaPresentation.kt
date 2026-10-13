@@ -7,7 +7,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
- * GAP-3 (the project roadmap; docs/protocol/v4-wire.md §13.1) — the desktop
+ * GAP-3 (android-native-gaps.md; docs/protocol/v4-wire.md §13.1) — the desktop
  * `packages/ui/src/lib/codingPlanQuotaPresentation.ts` decision table, ported
  * verbatim. Every constant and branch below cites its desktop line.
  */

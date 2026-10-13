@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "label": "synthetic-breaking",
+  "verdict": "BREAKING",
+  "reason": "consumed protocol surface drifted",
+  "drift": {
+    "verdict": "BREAKING",
+    "summary": {
+      "added": 1,
+      "changed": 0,
+      "removed": 1,
+      "breaking": 1,
+      "bodyChanged": 0
+    }
+  },
+  "gradle": "skipped (BREAKING routes to agent-drafted PR + human approval)"
+}

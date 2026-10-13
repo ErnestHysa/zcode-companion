@@ -26,7 +26,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
 /**
- * GAP-13 (the project roadmap): user + assistant rows render a compact time label
+ * GAP-13 (android-native-gaps.md): user + assistant rows render a compact time label
  * DERIVED READ-ONLY from that row's `base.createdAt` (desktop:
  * ConversationRowView.tsx:1469-1472 — subtle label, no renderer state; formatter
  * decision table pinned in MessageTimeLabelTest). Rows with no valid createdAt render

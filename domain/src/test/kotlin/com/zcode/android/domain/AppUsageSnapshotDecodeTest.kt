@@ -13,7 +13,7 @@ import org.junit.Test
 import java.io.File
 
 /**
- * GAP-5 (the project roadmap; docs/protocol/v4-wire.md §12.1) — the app usage
+ * GAP-5 (android-native-gaps.md; docs/protocol/v4-wire.md §12.1) — the app usage
  * snapshot decode, pinned to the GENERATED fixtures (rule 5). Shape fidelity:
  * exact field values from the reference-validated payload, the nullable faces
  * (favoriteModel / avg durations / heatmap day cells), the literal "agent-db"

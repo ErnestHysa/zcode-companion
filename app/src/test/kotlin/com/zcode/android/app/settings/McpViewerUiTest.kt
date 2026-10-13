@@ -17,7 +17,7 @@ import org.robolectric.annotation.Config
 import java.io.File
 
 /**
- * GAP-9 (the project roadmap; docs/protocol/v4-wire.md §12.5) — the MCP
+ * GAP-9 (android-native-gaps.md; docs/protocol/v4-wire.md §12.5) — the MCP
  * servers viewer rendered from the GENERATED fixtures. Pins: the list renders
  * the payload's OWN fields verbatim (status/transport/toolCount — "status
  * display matches payload fields — no invented states"); the empty face; and

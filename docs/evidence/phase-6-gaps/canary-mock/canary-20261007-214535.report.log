@@ -1,0 +1,12 @@
+connecting to ws://127.0.0.1:18190?mid=mockmid
+pair status: matched (waited=true)
+canary pair: ok (pairStatus=matched)
+canary workspace: /synthetic/ws-one (fixed resolution ok)
+canary task: synth-task-1 (synthetic match ok)
+connecting to ws://127.0.0.1:18190?mid=mockmid
+ws close code=1006 reason=
+pair status: matched (waited=true)
+connecting to ws://127.0.0.1:18190?mid=mockmid
+pair status: matched (waited=true)
+ws close code=1006 reason=
+CANARY-REPORT /Users/ernest/Desktop/DEVPROJECTS/zcode/android-native/docs/evidence/phase-6-gaps/canary-mock/canary-20261007-214535.canary.json verdict=green

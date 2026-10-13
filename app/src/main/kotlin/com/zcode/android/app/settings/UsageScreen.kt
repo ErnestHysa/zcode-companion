@@ -54,7 +54,7 @@ import java.util.Locale
 import kotlinx.coroutines.launch
 
 /**
- * GAP-5 (the project roadmap; docs/protocol/v4-wire.md §12.1) — Settings →
+ * GAP-5 (android-native-gaps.md; docs/protocol/v4-wire.md §12.1) — Settings →
  * Usage screen, the desktop AppUsagePanel.tsx port: lifetime summary strip
  * (totalTokens / peak day / longest session / current + longest streak,
  * AppUsagePanel.tsx:138-156), the weekly heatmap when weeks exist (:86), the

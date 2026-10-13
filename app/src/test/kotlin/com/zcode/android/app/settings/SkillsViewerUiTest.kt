@@ -19,7 +19,7 @@ import org.robolectric.annotation.Config
 import java.io.File
 
 /**
- * GAP-8 (the project roadmap; docs/protocol/v4-wire.md §12.4) — the skills
+ * GAP-8 (android-native-gaps.md; docs/protocol/v4-wire.md §12.4) — the skills
  * catalog viewer rendered from the GENERATED fixtures. Pins: the catalog renders
  * name/description/source; the search box is LOCAL to the list and filters it;
  * the zero-skill empty state; and NO enable/disable affordance exists (the

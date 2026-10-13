@@ -1,0 +1,19 @@
+== Doze: force-idle with FGS running (t+45s) ==
+Unable to go deep idle; not enabled
+after 45s deep-idle:
+  mNetworkConnected=true
+  mState=ACTIVE mLightState=ACTIVE
+    Proc # 2: fg     F/S/FGS  ---  t: 0 15201:com.zcode.android.app/u0a169 (instrumentation)
+    Proc # 2: fg     F/S/FGS  ---  t: 0 15201:com.zcode.android.app/u0a169 (instrumentation)
+
+== Doze exit ==
+Light state: ACTIVE, deep state: ACTIVE
+Unknown command: exit
+  mState=ACTIVE mLightState=ACTIVE
+== Doze enable attempt on ATD ==
+Deep idle mode enabled
+Light idle mode enable
+Now forced in to deep idle mode
+  mState=IDLE mLightState=OVERRIDE
+    Proc # 2: fg     F/S/FGS  ---  t: 0 15201:com.zcode.android.app/u0a169 (instrumentation)
+Light state: ACTIVE, deep state: ACTIVE

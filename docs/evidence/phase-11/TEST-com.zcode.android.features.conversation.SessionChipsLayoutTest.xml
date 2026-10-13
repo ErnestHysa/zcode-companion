@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.zcode.android.features.conversation.SessionChipsLayoutTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-04T00:36:32.058Z" hostname="Ernests-MacBook-Air.local" time="0.257">
+  <properties/>
+  <testcase name="configChips_singleLine_inHeaderRow_timelineAlive" classname="com.zcode.android.features.conversation.SessionChipsLayoutTest" time="0.238"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -14,7 +14,7 @@ import com.zcode.android.domain.model.SkillCatalog
 import kotlinx.serialization.json.JsonObject
 
 /**
- * Phase 3 read-only viewer tool plane (the project roadmap GAP-5…GAP-9;
+ * Phase 3 read-only viewer tool plane (android-native-gaps.md GAP-5…GAP-9;
  * docs/protocol/v4-wire.md §12) — the ONE place the viewer transport surfaces
  * map onto domain models (§40.2). READ-ONLY: every method here is an R-class
  * read; the write half of these channels is Deferred scope and exists nowhere
@@ -43,6 +43,25 @@ class ViewerTools(private val transport: AppTransport) {
      */
     suspend fun automations(workspacePath: String?, workspaceIdentity: String?): List<AutomationRow> =
         AutomationRow.decodeList(transport.listAutomations(workspacePath, workspaceIdentity))
+
+    /** FIELD (2026-10-12): automation CRUD — the phone-reachable zcodeAgent surface
+     *  (createAutomation/updateAutomation/deleteAutomation/setAutomationEnabled/
+     *  runAutomationNow — zcodeAgent.ts:679-688). Workspace target comes from the
+     *  caller (the automations section already carries it). */
+    suspend fun createAutomation(workspacePath: String?, workspaceIdentity: String?, request: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject =
+        transport.createAutomation(workspacePath, workspaceIdentity, request)
+
+    suspend fun updateAutomation(workspacePath: String?, workspaceIdentity: String?, automationId: String, request: kotlinx.serialization.json.JsonObject): kotlinx.serialization.json.JsonObject =
+        transport.updateAutomation(workspacePath, workspaceIdentity, automationId, request)
+
+    suspend fun deleteAutomation(workspacePath: String?, workspaceIdentity: String?, automationId: String) =
+        transport.deleteAutomation(workspacePath, workspaceIdentity, automationId)
+
+    suspend fun setAutomationEnabled(workspacePath: String?, workspaceIdentity: String?, automationId: String, enabled: Boolean) =
+        transport.setAutomationEnabled(workspacePath, workspaceIdentity, automationId, enabled)
+
+    suspend fun runAutomationNow(workspacePath: String?, workspaceIdentity: String?, automationId: String): kotlinx.serialization.json.JsonObject =
+        transport.runAutomationNow(workspacePath, workspaceIdentity, automationId)
 
     /**
      * `off-peak-task` channel `list` with the desktop's own list projection mirrored
@@ -85,8 +104,8 @@ class ViewerTools(private val transport: AppTransport) {
      * load + explicit refresh; ADR-020: no push channel exists). The reset words
      * land with GAP-4 behind the typed-confirm gate.
      */
-    suspend fun entitlement(): UsageEntitlement =
-        UsageEntitlement.decode(transport.usageEntitlementSnapshot())
+    suspend fun entitlement(request: kotlinx.serialization.json.JsonObject = kotlinx.serialization.json.JsonObject(emptyMap())): UsageEntitlement =
+        UsageEntitlement.decode(transport.usageEntitlementSnapshot(request))
 
     // ---------------------------------------------------------------- GAP-4: reset words (ADR-020)
 

@@ -26,7 +26,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 
 /**
- * GAP-6 (the project roadmap; docs/protocol/v4-wire.md §12.2) — the Tasks-tab
+ * GAP-6 (android-native-gaps.md; docs/protocol/v4-wire.md §12.2) — the Tasks-tab
  * AUTOMATIONS + OFF-PEAK read-only section, rendered from the GENERATED fixtures.
  * Pins: rows render with title/state/schedule; the zero-automation empty state;
  * and the DEFERRED-SCOPE gate — the section exposes NO write affordance (no

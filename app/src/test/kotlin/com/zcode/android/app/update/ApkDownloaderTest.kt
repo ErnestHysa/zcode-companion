@@ -16,7 +16,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 /**
- * the update check (T4) — the APK download leg: stream to the private updates dir, honor the
+ * AAP-3 — the APK download leg: stream to the private updates dir, honor the
  * published SHA-256 (inline or .sha256 asset), fail closed on any mismatch
  * (§37: the digest is published and the app verifies it).
  */

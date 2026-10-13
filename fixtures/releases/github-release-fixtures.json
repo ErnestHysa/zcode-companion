@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "kind": "github-releases-seeded-fixtures",
   "note": [
-    "the update check (T4) (project roadmap, report §14.2 T4 / §37): SEEDED test input for the",
+    "AAP-3 (android-gaps roadmap, report §14.2 T4 / §37): SEEDED test input for the",
     "GitHub Releases metadata channel (api.github.com/repos/<repo>/releases/latest).",
     "This is NOT a ZCode-protocol golden fixture (rule 5 applies to the ZCode wire;",
     "this file seeds a third-party API in tests). The 'release-with-meta' shape is",
-    "what tools/release/publish.mjs (T3, the release pipeline (T3)) writes: body carries the",
+    "what tools/release/publish.mjs (T3, AAP-5) writes: body carries the",
     "zcode-android-release-meta machine block, assets carry the APK + .sha256."
   ],
   "cases": [

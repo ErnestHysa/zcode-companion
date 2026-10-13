@@ -7,7 +7,7 @@ import java.time.format.FormatStyle
 import java.util.Locale
 
 /**
- * GAP-13 (the project roadmap): compact read-only message-time label, ported from
+ * GAP-13 (android-native-gaps.md): compact read-only message-time label, ported from
  * the desktop's `formatMessageTimeLabel` (packages/ui/src/v4/messageTimeLabel.ts,
  * 29628c9): createdAt is derived READ-ONLY — same local day → time only; yesterday →
  * "<Yesterday> <time>"; same year → "<Mon d> <time>"; older → "<yyyy Mon d> <time>".

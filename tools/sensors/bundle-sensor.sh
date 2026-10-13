@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# the sensors bundle sensor (project roadmap Phase 5) — the Mac-in-loop leg of
+# AAP-2 bundle sensor (android-gaps roadmap Phase 5) — the Mac-in-loop leg of
 # the auto-adaptation T1 detect tier (report §14.2). INV-15 note: this sensor
 # NEVER connects to the production relay; it hashes and text-scans local bundle
 # files only.

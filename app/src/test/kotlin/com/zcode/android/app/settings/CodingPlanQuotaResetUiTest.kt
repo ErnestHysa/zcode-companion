@@ -28,7 +28,7 @@ import java.util.Locale
 import java.util.TimeZone
 
 /**
- * GAP-4 (the project roadmap; docs/protocol/v4-wire.md §13.2; ADR-020) — the
+ * GAP-4 (android-native-gaps.md; docs/protocol/v4-wire.md §13.2; ADR-020) — the
  * quota reset flow behind the TYPED-CONFIRM gate. The roadmap's accept pin:
  * "reset sends the verified command only behind the confirmed dialog (test
  * asserts no reset call can fire without it); success/failure states render".

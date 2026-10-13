@@ -6,7 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
 /**
- * GAP-14 (the project roadmap): per-workspace COLLAPSE state for the task list,
+ * GAP-14 (android-native-gaps.md): per-workspace COLLAPSE state for the task list,
  * ported from the desktop's WorkspaceGroupedTasksSection collapsedGroupIds set
  * (WorkspaceGroupedTasksSection.tsx:922-939 — toggle membership in a Set of group
  * ids). Persisted per workspace key so it survives app restart.

@@ -39,5 +39,10 @@ interface TasksPort {
     fun observeWorkspaces(): Flow<List<com.zcode.android.domain.model.WorkspaceOption>>
 
     /** Phase 7 field: create a task in an existing workspace; first message starts the turn. */
-    suspend fun createTask(workspaceKey: String, firstText: String): Boolean
+    suspend fun createTask(
+        workspaceKey: String,
+        firstText: String,
+        provider: String? = null,
+        model: String? = null,
+    ): Boolean
 }

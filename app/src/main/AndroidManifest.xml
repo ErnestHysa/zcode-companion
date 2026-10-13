@@ -17,6 +17,8 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:label="ZCode Companion"
         android:enableOnBackInvokedCallback="true"
         android:allowBackup="false"

@@ -1,5 +1,9 @@
 package com.zcode.android.app.update
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import androidx.core.app.NotificationCompat
 import com.zcode.android.core.common.log.ZLog
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -9,9 +13,12 @@ import kotlinx.coroutines.launch
 
 /**
  * §14.2 T4 controller: owns the update-check + download state for the
- * connection-center banner. The check is FOREGROUND (§14.2): it runs when the
- * connection center is open, never in the background (§29 no-polling — the
- * screen open is the trigger, not a timer).
+ * connection-center banner AND the system update notification. FIELD FIX
+ * (2026-10-12): the check runs on EVERY app open (cold + foreground resume) and
+ * from a manual refresh — it is NOT gated on the desktop version anymore (the
+ * desktop gate only changes the banner wording). A newer release posts a system
+ * notification (keyed per release versionCode, so it never stacks) with a deep
+ * link straight into the app.
  */
 class AppUpdateController(
     private val checker: AppUpdateChecker,
@@ -19,6 +26,8 @@ class AppUpdateController(
     private val scope: CoroutineScope,
     private val log: ZLog,
     private val installer: (File) -> Unit,
+    private val notify: ((title: String, body: String) -> Unit)? = null,
+    private val nowMs: () -> Long = System::currentTimeMillis,
 ) {
 
     private val _check = MutableStateFlow<UpdateCheckState>(UpdateCheckState.Idle)
@@ -27,20 +36,30 @@ class AppUpdateController(
     private val _download = MutableStateFlow<DownloadState>(DownloadState.Idle)
     val download: StateFlow<DownloadState> = _download
 
+    /** Newest release versionCode already notified this process (no stacking). */
+    private var lastNotifiedVersionCode: Long = 0
+
+    /** Coalesce: a foreground resume within [MIN_INTERVAL_MS] skips the network. */
+    private var lastCheckAtMs: Long = 0
+
     init {
         downloader.onProgress = { running -> _download.value = running }
     }
 
     /**
-     * Foreground check. Safe to call on every connection-center entry: when the
-     * desktop is ≤ maxTested (or unknown) this returns [UpdateCheckState.NotApplicable]
-     * WITHOUT touching the network, and an in-flight/completed check is not restarted.
+     * Foreground check. [force] = explicit user action (button) — always hits the
+     * network; otherwise a check within the last 10 minutes is reused.
      */
-    fun checkForUpdate(desktopVersion: String?) {
+    fun checkForUpdate(desktopVersion: String?, force: Boolean = false) {
         val current = _check.value
         if (current is UpdateCheckState.Checking) return
-        if (current is UpdateCheckState.Available) return
+        if (!force) {
+            val fresh = nowMs() - lastCheckAtMs < MIN_INTERVAL_MS
+            val known = current is UpdateCheckState.Available || current is UpdateCheckState.UpToDate
+            if (fresh && known) return
+        }
         _check.value = UpdateCheckState.Checking
+        lastCheckAtMs = nowMs()
         scope.launch {
             val next = runCatching { checker.check(desktopVersion) }
                 .getOrElse { UpdateCheckState.Failed("${it.javaClass.simpleName}: ${it.message?.take(120)}") }
@@ -50,6 +69,17 @@ class AppUpdateController(
                 "desktop=${desktopVersion?.take(24)} state=${next::class.simpleName}" +
                     (next as? UpdateCheckState.Available)?.let { " vc=${it.release.versionCode}" } ?: "",
             )
+            if (next is UpdateCheckState.Available && next.release.versionCode != lastNotifiedVersionCode) {
+                lastNotifiedVersionCode = next.release.versionCode
+                notify?.invoke(
+                    "ZCode Companion ${next.release.versionName} available",
+                    if (next.desktopNewer) {
+                        "Your desktop (newer than this build) is verified with the update — tap to update."
+                    } else {
+                        "A newer build is available — tap to update."
+                    },
+                )
+            }
         }
     }
 
@@ -71,6 +101,24 @@ class AppUpdateController(
             } else if (result is DownloadState.Failed) {
                 log.warn("update.download_failed", result.detail)
             }
+        }
+    }
+
+    companion object {
+        private const val MIN_INTERVAL_MS = 10 * 60_000L
+
+        /** System notification channel for update availability (created lazily). */
+        const val UPDATES_CHANNEL = "updates"
+
+        fun ensureUpdatesChannel(context: Context) {
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
+            manager.createNotificationChannel(
+                NotificationChannel(
+                    UPDATES_CHANNEL,
+                    "App updates",
+                    NotificationManager.IMPORTANCE_DEFAULT,
+                ).apply { description = "New ZCode Companion releases" },
+            )
         }
     }
 }

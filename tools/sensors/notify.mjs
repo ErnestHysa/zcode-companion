@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// the sensors notifier (project roadmap Phase 5). One JSON line per call:
+// AAP-2 notifier (android-gaps roadmap Phase 5). One JSON line per call:
 //
 //   {"at":"…","title":"…","message":"…","osd":"sent|skipped|failed: …"}
 //

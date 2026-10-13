@@ -22,7 +22,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
 /**
- * GAP-14 (the project roadmap): collapsible workspace groups — collapsing hides
+ * GAP-14 (android-native-gaps.md): collapsible workspace groups — collapsing hides
  * the group's tasks, the count badge STILL shows totals while collapsed, and the
  * collapse state round-trips through the store (app restart proxy: a freshly
  * constructed screen over the same store starts collapsed).

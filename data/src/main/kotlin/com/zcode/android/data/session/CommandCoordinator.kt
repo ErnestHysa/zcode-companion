@@ -190,6 +190,8 @@ class CommandCoordinator(
         workspacePath: String,
         workspaceIdentity: String?,
         firstText: String,
+        provider: String? = null,
+        model: String? = null,
     ): Outcome {
         if (connectionState() != ConnectionStateMachine.ConnectionState.CONNECTED) {
             log.warn("command.blockedOffline", "type=createSession")
@@ -201,6 +203,15 @@ class CommandCoordinator(
         val payload = buildJsonObject {
             put("workspaceId", identityKey)
             put("firstInput", buildJsonObject { put("text", firstText) })
+            // FIELD (2026-10-12): model picker on task creation — the desktop's
+            // createSessionRequestedConfigSchema carries {provider, model} as the
+            // "requested override" for the new session (command.ts:30-41).
+            if (provider != null || model != null) {
+                put("config", buildJsonObject {
+                    provider?.let { put("provider", JsonPrimitive(it)) }
+                    model?.let { put("model", JsonPrimitive(it)) }
+                })
+            }
         }
         val commandId = accept("createSession", sessionId = null, payload = payload)
             ?: return Outcome.BlockedOffline

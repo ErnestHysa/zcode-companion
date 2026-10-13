@@ -22,6 +22,7 @@
     <string name="create_pick_workspace">选择工作区</string>
     <string name="create_hint">描述任务 — 这将启动智能体</string>
     <string name="create_confirm">创建</string>
+    <string name="create_model_default">模型：工作区默认</string>
     <string name="tasks_a11y_expand">展开</string>
     <string name="tasks_a11y_collapse">收起</string>
     <string name="tasks_group_a11y">工作区 %1$s，%2$d 个任务。点按以%3$s。</string>
@@ -35,4 +36,23 @@
 <string name="automation_runs">%1$d 次</string>
 <string name="automation_on">开</string>
 <string name="automation_off">关</string>
+    <string name="automations_new">+ 新建自动化</string>
+    <string name="automations_create_title">新建自动化</string>
+    <string name="automations_edit_title">编辑自动化</string>
+    <string name="automations_field_title">标题</string>
+    <string name="automations_field_prompt">提示词（按计划运行）</string>
+    <string name="automations_field_schedule">计划</string>
+    <string name="automations_sched_minutes">每 N 分钟</string>
+    <string name="automations_sched_daily">每天</string>
+    <string name="automations_sched_cron">Cron</string>
+    <string name="automations_sched_daily_time">HH:MM（24 小时制，本地）</string>
+    <string name="automations_field_model">模型</string>
+    <string name="automations_field_mode">权限模式：%1$s</string>
+    <string name="automation_run_now">立即运行</string>
+    <string name="automation_edit">编辑</string>
+    <string name="automation_delete">删除</string>
+    <string name="automations_delete_title">删除自动化？</string>
+    <string name="automations_delete_body">删除“%1$s”？计划将停止，定义将被移除。</string>
+    <string name="automations_delete_confirm">删除</string>
+    <string name="automations_delete_cancel">取消</string>
 </resources>

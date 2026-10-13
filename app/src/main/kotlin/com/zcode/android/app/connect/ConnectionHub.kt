@@ -487,6 +487,7 @@ class ConnectionHub(
             ConnectionStateMachine.ConnectionState.CONNECTING,
             ConnectionStateMachine.ConnectionState.AUTHENTICATING,
             ConnectionStateMachine.ConnectionState.RECOVERING,
+            ConnectionStateMachine.ConnectionState.CONNECTED,
             -> activeTransport().reconnectNow()
             ConnectionStateMachine.ConnectionState.FAILED -> connect()
             else -> if (connectJob?.isActive != true) connect()
@@ -747,10 +748,15 @@ class ConnectionHub(
      * session surfaces via the desktop's `workspace-list-updated` push, with an
      * explicit refresh as the immediate-path backstop.
      */
-    suspend fun createTask(workspaceKey: String, firstText: String): Boolean {
+    suspend fun createTask(
+        workspaceKey: String,
+        firstText: String,
+        provider: String? = null,
+        model: String? = null,
+    ): Boolean {
         val wsPath = _workspaces.value.firstOrNull { it.key == workspaceKey }?.path ?: workspaceKey
         val coordinator = commandCoordinatorOrNull() ?: return false
-        val outcome = coordinator.createSession(wsPath, null, firstText)
+        val outcome = coordinator.createSession(wsPath, null, firstText, provider, model)
         val created = outcome is com.zcode.android.data.session.CommandCoordinator.Outcome.Accepted
         log.info(
             "hub.createTask",

@@ -27,7 +27,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * the update check (T4) acceptance, on-device: with a seeded Releases fixture the banner + button
+ * AAP-3 acceptance, on-device: with a seeded Releases fixture the banner + button
  * appear and the download → install-intent flow COMPLETES — real HTTP over device
  * loopback, real file write, real SHA-256 verification, real FileProvider URI, and
  * an install intent the system resolver can route to the installer (the user's

@@ -20,8 +20,8 @@ android {
         buildConfigField("boolean", "BENCHMARK_SEEDING", "false")
         minSdk = 26
         targetSdk = 36
-        versionCode = 39
-        versionName = "1.0.2"
+        versionCode = 40
+        versionName = "1.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -45,7 +45,7 @@ android {
         }
         release {
             isMinifyEnabled = false
-            // the release pipeline (T3) prerequisite (Phase-12.1 minimum, §37 "single stable key from day
+            // AAP-5 prerequisite (Phase-12.1 minimum, §37 "single stable key from day
             // one"): the release keystore lives OFF-REPO at
             // ~/.zcode-android-release-keys/ (keystore.properties, 0600). When it is
             // absent (any other machine / fresh clone) the build stays UNSIGNED —
@@ -132,7 +132,7 @@ dependencies {
     androidTestImplementation(project(":core:security"))
     androidTestImplementation(project(":core:notifications"))
     androidTestImplementation(libs.work.runtime.ktx)
-    // the update check (T4): the update flow instrumented test seeds a loopback releases+APK server.
+    // AAP-3: the update flow instrumented test seeds a loopback releases+APK server.
     androidTestImplementation(libs.mockwebserver3)
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.androidx.test.junit)

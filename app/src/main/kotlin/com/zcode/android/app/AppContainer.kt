@@ -1,6 +1,10 @@
 package com.zcode.android.app
 
+import android.app.NotificationManager
+import android.content.Context
+import androidx.core.app.NotificationCompat
 import androidx.fragment.app.FragmentActivity
+import kotlinx.coroutines.flow.collect
 import androidx.lifecycle.lifecycleScope
 import java.io.File
 import kotlinx.coroutines.launch
@@ -165,7 +169,7 @@ class AppContainer(activity: FragmentActivity) {
     val quotaPort: DefaultCodingPlanPort = DefaultCodingPlanPort(hub)
 
     /**
-     * GAP-14 (project roadmap): per-workspace task-group collapse state,
+     * GAP-14 (android-gaps roadmap): per-workspace task-group collapse state,
      * PERSISTED across process restarts (desktop collapsedGroupIds parity).
      */
     val workspaceCollapseStore: com.zcode.android.features.tasks.ui.WorkspaceCollapseFileStore =
@@ -199,7 +203,7 @@ class AppContainer(activity: FragmentActivity) {
     )
 
     /**
-     * the update check (T4) (project roadmap; §14.2 T4, §37): the foreground GitHub-Releases
+     * AAP-3 (android-gaps roadmap; §14.2 T4, §37): the foreground GitHub-Releases
      * update check. The connection center triggers it on entry (no polling); the
      * gate is `desktop.version > CompatibilityGate.MAX_TESTED_DESKTOP` AND a newer
      * release (versionCode) exists. Install is the user-consented system-installer
@@ -222,9 +226,41 @@ class AppContainer(activity: FragmentActivity) {
             scope = activity.lifecycleScope,
             log = log,
             installer = { apk ->
+                com.zcode.android.app.update.AppUpdateController.ensureUpdatesChannel(activity)
                 com.zcode.android.app.update.ApkInstaller.install(activity, apk)
             },
+            notify = { title, body ->
+                com.zcode.android.app.update.AppUpdateController.ensureUpdatesChannel(activity)
+                val manager = activity.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+                val n = NotificationCompat.Builder(activity, com.zcode.android.app.update.AppUpdateController.UPDATES_CHANNEL)
+                    .setSmallIcon(android.R.drawable.stat_sys_download_done)
+                    .setContentTitle(title)
+                    .setContentText(body)
+                    .setContentIntent(
+                        android.app.PendingIntent.getActivity(
+                            activity,
+                            0,
+                            android.content.Intent(activity, MainActivity::class.java)
+                                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE,
+                        ),
+                    )
+                    .setAutoCancel(true)
+                    .build()
+                if (manager != null) runCatching { manager.notify(NOTIF_ID_UPDATE, n) }
+            },
         )
+
+    init {
+        // FIELD (2026-10-12): the update check runs on EVERY app open + endpoint
+        // change (throttled in the controller) and posts a system notification when
+        // a newer release exists — no longer gated on the desktop version.
+        activity.lifecycleScope.launch {
+            hub.endpoint.collect { endpoint ->
+                appUpdate.checkForUpdate(endpoint?.desktopAppVersion)
+            }
+        }
+    }
 
     /**
      * Phase 8 (§43.2-8.1): the §24.1 broker wiring — the sole notification decision
@@ -276,5 +312,7 @@ class AppContainer(activity: FragmentActivity) {
 
         /** §37 primary channel — the GitHub repo whose Releases carry the APK. */
         const val UPDATE_RELEASE_REPO = "ErnestHysa/zcode-companion"
+
+        private const val NOTIF_ID_UPDATE = 4102
     }
 }

@@ -61,6 +61,7 @@ fun ConnectionCenterScreen(
     updateState: com.zcode.android.app.update.UpdateCheckState? = null,
     downloadState: com.zcode.android.app.update.DownloadState? = null,
     onUpdateNow: () -> Unit = {},
+    onCheckForUpdate: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -114,15 +115,16 @@ fun ConnectionCenterScreen(
                 // Round-8 compat honesty: a desktop NEWER than the tested version may
                 // have drifted relay-plane behavior. (The literal in the message tracks
                 // CompatibilityGate.MAX_TESTED_DESKTOP — 3.14.4 live-verified 2026-09-30.)
-                // the update check (T4) (§14.2 T4): when the desktop is newer AND a newer app release
+                // AAP-3 (§14.2 T4): when the desktop is newer AND a newer app release
                 // exists, the warning BECOMES the update action — banner + "Update now"
                 // (§37 user-consented install). With no update available the honest
                 // warning below stays exactly as it was.
                 val aboveTested = com.zcode.android.core.security.pairing.CompatibilityGate
                     .check(desktopVersion ?: "") is com.zcode.android.core.security.pairing.CompatibilityGate.Verdict.AboveTested
-                if (aboveTested &&
-                    updateState is com.zcode.android.app.update.UpdateCheckState.Available
-                ) {
+                // FIELD FIX (2026-10-12): the update offer is NO LONGER gated on the
+                // desktop version — any newer release shows the banner; the desktop
+                // gate only keeps the compat-honest wording.
+                if (updateState is com.zcode.android.app.update.UpdateCheckState.Available) {
                     val release = updateState.release
                     Spacer(Modifier.height(6.dp))
                     Column(
@@ -133,12 +135,16 @@ fun ConnectionCenterScreen(
                             .testTag("update_banner"),
                     ) {
                         Text(
-                            text = stringResource(
-                                R.string.conn_update_banner,
-                                desktopVersion ?: "",
-                                com.zcode.android.core.security.pairing.CompatibilityGate.MAX_TESTED_DESKTOP,
-                                release.versionName,
-                            ),
+                            text = if (aboveTested) {
+                                stringResource(
+                                    R.string.conn_update_banner,
+                                    desktopVersion ?: "",
+                                    com.zcode.android.core.security.pairing.CompatibilityGate.MAX_TESTED_DESKTOP,
+                                    release.versionName,
+                                )
+                            } else {
+                                stringResource(R.string.conn_update_banner_plain, release.versionName)
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
@@ -170,10 +176,9 @@ fun ConnectionCenterScreen(
                         if (downloadState !is com.zcode.android.app.update.DownloadState.Ready &&
                             downloadState !is com.zcode.android.app.update.DownloadState.Running
                         ) {
-                            TextButton(
-                                onClick = onUpdateNow,
-                                modifier = Modifier.testTag("update_now"),
-                            ) { Text(stringResource(R.string.conn_update_now)) }
+                            TextButton(onClick = onUpdateNow, modifier = Modifier.testTag("update_now")) {
+                                Text(stringResource(R.string.conn_update_now))
+                            }
                         }
                     }
                 } else if (aboveTested) {
@@ -231,6 +236,11 @@ fun ConnectionCenterScreen(
                             else -> {}
                         }
                     }
+                }
+                // Manual refresh — always available (FIELD 2026-10-12: "add a button
+                // to check for any latest updates against my latest releases").
+                TextButton(onClick = onCheckForUpdate, modifier = Modifier.testTag("update_check_manual")) {
+                    Text(stringResource(R.string.conn_update_check_manual))
                 }
                 lastRefreshAtMs?.let {
                     val ago = relativeTimeLabel(it)

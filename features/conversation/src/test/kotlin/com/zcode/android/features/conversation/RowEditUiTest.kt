@@ -20,7 +20,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
 /**
- * GAP-10 (the project roadmap; docs/protocol/v4-wire.md §11.4) — the edit
+ * GAP-10 (android-native-gaps.md; docs/protocol/v4-wire.md §11.4) — the edit
  * affordance: long-press on a user row opens the action sheet (Copy — always,
  * Edit — only when the row carries an entityId, the desktop's own gate
  * ConversationRowView.tsx:1295 `onEdit && row.entityId`); Edit opens the edit

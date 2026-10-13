@@ -11,7 +11,7 @@ import org.junit.Test
 import java.io.File
 
 /**
- * GAP-8 (the project roadmap; docs/protocol/v4-wire.md §12.4) — the skills
+ * GAP-8 (android-native-gaps.md; docs/protocol/v4-wire.md §12.4) — the skills
  * reference-catalog decode pinned to the GENERATED fixtures. Shape fidelity:
  * the STRICT zcodeSkillsReferenceCatalogResultSchema face (authority +
  * id/name/description/path/scope), `enabled` is z.literal(true) on this plane

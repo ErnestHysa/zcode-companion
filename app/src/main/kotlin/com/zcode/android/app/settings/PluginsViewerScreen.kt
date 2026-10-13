@@ -43,7 +43,7 @@ import com.zcode.android.domain.model.PluginsView
 import kotlinx.coroutines.launch
 
 /**
- * GAP-7 (the project roadmap; docs/protocol/v4-wire.md §12.3) — the
+ * GAP-7 (android-native-gaps.md; docs/protocol/v4-wire.md §12.3) — the
  * read-only PLUGINS viewer (Settings → Insights): the installed-plugin list
  * with the enable/disable STATE (§13.3 `plugins`/`plugin-management` R rows)
  * plus diagnostics. The write half — install/uninstall/update/enable/

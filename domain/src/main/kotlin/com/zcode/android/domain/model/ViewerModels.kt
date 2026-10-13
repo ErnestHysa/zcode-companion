@@ -5,7 +5,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
 /**
- * Phase 3 viewer models (the project roadmap GAP-5…GAP-9; docs/protocol/
+ * Phase 3 viewer models (android-native-gaps.md GAP-5…GAP-9; docs/protocol/
  * v4-wire.md §12) — read-only R-class decodes of §13.3-sanctioned channel
  * payloads. Same decode discipline as [SessionUsageState] (the Phase-2
  * precedent): required-field violations of KNOWN shapes throw

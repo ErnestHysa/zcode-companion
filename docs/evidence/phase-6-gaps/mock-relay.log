@@ -1,0 +1,30 @@
+mock relay listening on ws://127.0.0.1:18190 (scenario=happy)
+[mock] frame opcode=1 text={"type":"auth_init","role":"terminal","device_sid":"d_syntheticdevice000001","me
+[mock] send#1 type=auth_challenge zt= bytes=68
+[mock] frame opcode=1 text={"type":"auth_response","device_sid":"d_syntheticdevice000001","proof":"QCnDaK2H
+[mock] send#2 type=auth_ack zt= bytes=43
+[mock] send#3 type=pair_status_ack zt= bytes=50
+[mock] frame opcode=1 text={"type":"data","payload":{"zcode_type":"bootstrap-request","requestId":"spike-ca
+[mock] send#4 type=data zt=bootstrap-response bytes=415
+[mock] frame opcode=1 text={"type":"data","payload":{"zcode_type":"workspace-bridge-open","requestId":"spik
+[mock] send#5 type=data zt=workspace-bridge-ready bytes=343
+[mock] send#6 type=data zt=rpc-frame bytes=428
+[mock] frame opcode=1 text={"type":"data","payload":{"zcode_type":"rpc-frame-ack","bridgeSessionId":"jjnn.4
+[mock] frame opcode=1 text={"type":"auth_init","role":"terminal","device_sid":"d_syntheticdevice000001","me
+[mock] send#1 type=auth_challenge zt= bytes=68
+[mock] frame opcode=1 text={"type":"auth_response","device_sid":"d_syntheticdevice000001","proof":"7uWsZVEP
+[mock] send#2 type=auth_ack zt= bytes=43
+[mock] send#3 type=pair_status_ack zt= bytes=50
+[mock] frame opcode=1 text={"type":"data","payload":{"zcode_type":"workspace-bridge-open","requestId":"spik
+[mock] send#4 type=data zt=workspace-bridge-ready bytes=339
+[mock] send#5 type=data zt=rpc-frame bytes=428
+[mock] frame opcode=1 text={"type":"data","payload":{"zcode_type":"rpc-frame-ack","bridgeSessionId":"5v4oc2
+[mock] frame opcode=1 text={"type":"auth_init","role":"terminal","device_sid":"d_syntheticdevice000001","me
+[mock] send#1 type=auth_challenge zt= bytes=68
+[mock] frame opcode=1 text={"type":"auth_response","device_sid":"d_syntheticdevice000001","proof":"vPM0o6b-
+[mock] send#2 type=auth_ack zt= bytes=43
+[mock] send#3 type=pair_status_ack zt= bytes=50
+[mock] frame opcode=1 text={"type":"data","payload":{"zcode_type":"workspace-bridge-open","requestId":"spik
+[mock] send#4 type=data zt=workspace-bridge-ready bytes=339
+[mock] send#5 type=data zt=rpc-frame bytes=428
+[mock] frame opcode=1 text={"type":"data","payload":{"zcode_type":"rpc-frame-ack","bridgeSessionId":"uddwwx

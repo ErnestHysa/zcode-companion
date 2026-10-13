@@ -40,7 +40,7 @@ import com.zcode.android.domain.model.McpStatuses
 import kotlinx.coroutines.launch
 
 /**
- * GAP-9 (the project roadmap; docs/protocol/v4-wire.md §12.5) — the
+ * GAP-9 (android-native-gaps.md; docs/protocol/v4-wire.md §12.5) — the
  * read-only MCP SERVERS viewer (Settings → Insights): the `mcp/list` status
  * record rendered VERBATIM (status/transport/toolCount + error/failureKind —
  * the wire's closed enums display as-is, no invented states). The phone reads

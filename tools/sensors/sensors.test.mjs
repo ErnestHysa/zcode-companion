@@ -1,4 +1,4 @@
-// Sensor script tests. Run:
+// AAP-2 sensor script tests (android-gaps Phase 5). Run:
 //   node --test tools/sensors/sensors.test.mjs
 //
 // Covers the open-repo tag watch (against a REAL local git repo seeded with

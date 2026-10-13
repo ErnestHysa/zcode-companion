@@ -221,9 +221,9 @@ fun ZCodeApp(
                 onOpenConnection = { container.log.info("nav.connection", "open"); nav.navigate(Routes.CONNECTION) },
                 openApprovals = openApprovals.size,
                 onOpenApprovals = { container.log.info("nav.approvals", "open"); nav.navigate(Routes.APPROVALS) },
-                onCreateTask = { key, text ->
-                    container.log.info("tasks.create", "workspace=${key.take(24)}")
-                    scope.launch { tasksVm.createTaskAndWait(key, text) }
+                onCreateTask = { key, text, provider, model ->
+                    container.log.info("tasks.create", "workspace=${key.take(24)} model=${(provider ?: "default") + "/" + (model ?: "default")}")
+                    scope.launch { tasksVm.createTaskAndWait(key, text, provider, model) }
                 },
                 workspaces = taskState.workspaces,
                 creatingTask = taskState.creatingTask,
@@ -321,7 +321,12 @@ private fun TasksRoute(
     onOpenConnection: () -> Unit,
     openApprovals: Int = 0,
     onOpenApprovals: () -> Unit = {},
-    onCreateTask: (String, String) -> Unit = { _, _ -> },
+    onCreateTask: (String, String, String?, String?) -> Unit = { _, _, _, _ -> },
+    modelPicker: @Composable (
+        current: Pair<String, String>?,
+        onPick: (provider: String, model: String) -> Unit,
+        onDismiss: () -> Unit,
+    ) -> Unit = { _, _, _ -> },
     workspaces: List<com.zcode.android.domain.model.WorkspaceOption> = emptyList(),
     creatingTask: Boolean = false,
     createNotice: String? = null,
@@ -338,6 +343,17 @@ private fun TasksRoute(
         openApprovals = openApprovals,
         onOpenApprovals = onOpenApprovals,
         onCreateTask = onCreateTask,
+        modelPicker = { current, onPick, onDismiss ->
+            com.zcode.android.features.conversation.ui.ComposerModelPickerDialog(
+                current = current,
+                modelOptionsProvider = {
+                    val tools = container.hub.phase9()
+                    runCatching { tools.modelOptions() }.getOrDefault(emptyList())
+                },
+                onPick = onPick,
+                onDismiss = onDismiss,
+            )
+        },
         workspaces = workspaces,
         creatingTask = creatingTask,
         createNotice = createNotice,
@@ -462,7 +478,7 @@ private fun ConnectionCenterRoute(container: AppContainer, onBack: () -> Unit) {
     val lastRefresh by container.hub.lastRefreshAtMs.collectAsState()
     val updateState by container.appUpdate.check.collectAsState()
     val downloadState by container.appUpdate.download.collectAsState()
-    // the update check (T4) (§14.2 T4): the foreground update check — runs on connection-center
+    // AAP-3 (§14.2 T4): the foreground update check — runs on connection-center
     // entry when a desktop version is known; no-ops (no network) when the desktop
     // is within the tested matrix (§29 no-polling: the screen entry is the trigger).
     LaunchedEffect(endpoint?.desktopAppVersion) {
@@ -480,6 +496,7 @@ private fun ConnectionCenterRoute(container: AppContainer, onBack: () -> Unit) {
         updateState = updateState,
         downloadState = downloadState,
         onUpdateNow = container.appUpdate::updateNow,
+        onCheckForUpdate = { container.appUpdate.checkForUpdate(endpoint?.desktopAppVersion, force = true) },
     )
 }
 

@@ -1,6 +1,6 @@
 name: protocol-verify
 
-# Protocol verify — the T2 leg of the auto-adaptation pipeline.
+# AAP-4 open-repo VERIFY leg (android-gaps roadmap Phase 6, report §14.2 T2).
 # Runs the committed verify pipeline (tools/ci/verify-protocol.sh) against an
 # open-repo checkout: drift-check vs the committed inventory → regenerate the
 # golden fixtures from the NEW schemas → full unit suite in a scratch clone.

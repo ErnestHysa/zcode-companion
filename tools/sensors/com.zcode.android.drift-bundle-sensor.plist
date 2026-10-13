@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  the sensors bundle sensor launchd agent (project roadmap Phase 5, report §14.2 T1b).
+  AAP-2 bundle sensor launchd agent (android-gaps roadmap Phase 5, report §14.2 T1b).
 
   TEMPLATE — install with the repo path substituted (see docs/runbooks/drift.md):
     sed "s|@REPO_ROOT@|$HOME/Desktop/DEVPROJECTS/zcode/android-native|g" \

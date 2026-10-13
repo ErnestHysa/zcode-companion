@@ -24,7 +24,7 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * GAP-12 (the project roadmap; docs/protocol/v4-wire.md §11.2) — the
+ * GAP-12 (android-native-gaps.md; docs/protocol/v4-wire.md §11.2) — the
  * workspace-config topic end-to-end through the REAL hub + gateway + transport
  * against MockZCode (INV-15-clean): openConversation subscribes the workspace's
  * config topic; the catalog lands in the hub workspace-scoped bucket; a session

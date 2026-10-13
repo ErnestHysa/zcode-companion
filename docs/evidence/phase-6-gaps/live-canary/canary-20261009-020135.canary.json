@@ -1,0 +1,1 @@
+{"stage":"canary","verdict":"green","mode":"live","legs":{"pair":true,"workspaceGuard":"ok","discover":true,"stream":true,"v4Handshake":true,"recover":true},"detail":"drill complete"}

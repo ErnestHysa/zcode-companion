@@ -40,7 +40,7 @@ import com.zcode.android.domain.model.SkillCatalog
 import kotlinx.coroutines.launch
 
 /**
- * GAP-8 (the project roadmap; docs/protocol/v4-wire.md §12.4) — the
+ * GAP-8 (android-native-gaps.md; docs/protocol/v4-wire.md §12.4) — the
  * read-only SKILLS CATALOG viewer (Settings → Insights): the
  * `skills/referenceCatalog` projection (name/description/source) with a search
  * box LOCAL to the list. `enabled` is literal true on this plane — the viewer

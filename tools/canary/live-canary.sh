@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# the release pipeline (T3) prerequisite — the Mac live canary (report §14.2 T2), scripted end-to-end:
+# AAP-5 prerequisite — the Mac live canary (report §14.2 T2), scripted end-to-end:
 # pair → discover (vc34 fixed-workspace guard) → bridge → stream (pushed frame)
 # → [live only: v4 hello/initialize/subscribe] → recover (same bridge identity
 # across a forced disconnect) → diagnostics export (capture + report).

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// the drift-check/the sensors drift-check CLI (project roadmap Phase 5) — the §39.4 tool.
+// AAP-1/AAP-2 drift-check CLI (android-gaps roadmap Phase 5) — the §39.4 tool.
 //
 // Open-repo leg:
 //   node tools/drift/check-drift.mjs --shared-root <repo>/packages/shared/src \
