@@ -29,6 +29,26 @@ fun main() {
     val mock = MockZCode(passHash = passHash, expectedSid = sid)
     mock.script.authScenario = scenario
     mock.script.modelSelection = defaultModelSelection()
+    mock.script.emitStateKeys = true
+    // Session config echo (§10.3): provider/model/thought are REQUIRED keys — without
+    // them the config state drops and the conversation chips never render.
+    mock.script.sessionConfig = JsonObject(
+        mapOf(
+            "provider" to JsonPrimitive("zai"),
+            "model" to JsonPrimitive("glm-5.1"),
+            "thought" to JsonPrimitive("high"),
+            "thoughtLevels" to JsonArray(
+                listOf(JsonPrimitive("low"), JsonPrimitive("medium"), JsonPrimitive("high")),
+            ),
+            "mode" to JsonPrimitive("build"),
+            "modelSelection" to JsonObject(
+                mapOf(
+                    "providerId" to JsonPrimitive("zai"),
+                    "modelId" to JsonPrimitive("glm-5.1"),
+                ),
+            ),
+        ),
+    )
     // RawWsServer (not MockWebServer): mockwebserver3 masks server→client frames
     // (RFC 6455 §5.1 violation, probe-confirmed — report PART E9), which OkHttp
     // clients refuse with close 1006; the raw server keeps live device E2E possible.

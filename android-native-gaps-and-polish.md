@@ -675,3 +675,85 @@ provider headers ("Z.ai", "OpenAI-compatible") + 4 models under the **"Close"-ti
 - **P2 additions:** automations "unavailable vs errored" copy split (F5).
 - **Rig backlog:** refresh the scripted task row to the current Task decode → unlocks live
   conversation + two-step picker verification (the last code-evidence item).
+
+---
+
+# PART G — deeper round, pass 7: the named symptom, live (appended 2026-10-13)
+
+The F5 rig backlog is cleared — three stacked mock defects diagnosed and fixed — and with a
+fully live session the **user-named model-picker behavior was reproduced and captured on
+device, exactly as reported**. Mock fixes ship with this pass (self-tests green).
+
+## G1. The F5 mystery solved — three stacked mock defects (new, fixed)
+
+"bootstrapApplied tasks=1 workspaces=1" while Room stayed at zero was three bugs deep:
+
+1. **The default bootstrap task row used the legacy `{id,title,status}` shape** — no
+   `workspacePath`. The app's parser keys tasks by `workspaceIdentity ?: workspacePath`, gets
+   `""`, and the `if (key.isBlank()) continue` guard silently skips the write. The log's
+   "workspaces=1" counts the blank group — logged applied, zero persisted. (Diagnosed by
+   pulling the app's Room DB over `run-as`: `SELECT COUNT(*) FROM tasks` = 0, and
+   `task_workspace_meta` = 0 — the transaction never ran.)
+2. **`MockTask` hardcoded Nov-2023 timestamps** — even an override row would be inserted and
+   then **instantly deleted by the store's 7-day stale sweep**, which runs inside the same
+   `replaceAll` transaction (`evictAndSweep(atMs=now)` vs `updatedAtMs=2023`). Timestamps are
+   now recency-relative.
+3. **The state block never emitted** (`emitStateKeys` defaults false) and no `sessionConfig`
+   was scripted — so the conversation's mode/model chips (the §10.3 config echo plane) could
+   not render at all. `MockRelayMain` now enables state keys, scripts a faithful
+   `sessionConfig` (required keys: provider/model/thought + thoughtLevels + modelSelection),
+   and serves the E9 model-selection default.
+
+Live proof: Room row persists (`Synthetic task:idle @/synthetic/ws-one`), the list renders the
+workspace group, and the conversation shows live chips + correctly formatted timestamps.
+
+## G2. The named symptom — live-reproduced with checked-state evidence (new, on-device)
+
+Full sequence on the live conversation screen, real hierarchy dumps:
+
+1. Header chips render: `mode: build` · `zai/glm-5.1 · high`. Tap the model chip →
+   **"Switch model"** dialog (proper title — the "Close"-title bug is composer-only).
+2. Radios: `glm-5.1 checked=true` (current), all others false. Rows measure 154 px ≈ **59 dp**
+   — the conversation picker is correctly sized (the 42 dp offender is composer-only; B1/F3
+   scope sharpened).
+3. **Tap `glm-5.1-air`** → dump: **`checked=true` stays on `glm-5.1`; the tapped row reads
+   `checked=false`** — "when you click on a model it doesn't actually highlight/pick it",
+   verified with the radio's own checked attribute. Simultaneously **"Thought level for
+   glm-5.1-air" appears at the bottom of the dialog** with effort chips — "it changes at the
+   bottom of the model picker saying the correct name", verified. Extra confusion captured:
+   the effort chips show **`• high`** — a bullet marking the *old session's* level, which
+   reads as if "high" were already selected for the new model.
+4. Tap `medium` → dialog closes → chip updates to **`zai/glm-5.1-air · medium`**. The flow
+   DOES complete — the defect is purely the missing intermediate acknowledgment (no pending
+   highlight + the second step hidden below the fold + ambiguous bullet). **B1's fix spec
+   (pending highlight + thought step attached to the tapped row) is now evidence-backed.**
+
+## G3. Mode dialog verified live; one rig gap noted (new)
+
+Tap `mode: build` → the 4-mode dialog renders with localized desktop parity titles ("Ask
+before changes" / "Edit automatically" / "Plan mode" / "Run with fewer confirmations.") and
+the radio on the current mode; tapping "Plan mode" closes the dialog and the app sends
+`sendConversationCommandV4` (acked on the wire). The chip did not re-render — traced to the
+mock: its `switchCollaborationMode` handler drops the `modelSelection` key when rebuilding
+config, and its state patch appears to be lost after the resync the model switch triggered.
+Rig fidelity item (the app sent and acked correctly); not an app defect.
+
+## G4. Rig operations notes (new — for every future session)
+
+- The mock is **single-session**: after restarting the mock you must also cold-restart the app
+  (mid-session reconnects hang at `auth_ack timed out` — the mock's auth state machine doesn't
+  re-arm). Restart both, always.
+- `pkill -f MockRelayMain` does **not** match the gradle-worker process — stale mocks survive
+  and hold :18100 (two listeners round-robin = intermittent auth flaps). Kill by port:
+  `lsof -ti tcp:18100 | xargs kill -9`, then verify one listener and its start time.
+- This 8 GB Mac hit ~28 MB free mid-pass and the emulator was OOM-killed: run `gradle --stop`
+  + `pkill -f KotlinCompileDaemon` before long rig sessions.
+- ATD pixel capture remains dead (D7); hierarchy dumps remain the ground truth.
+
+## G5. Plan deltas
+
+- No new app-side P0/P1 items — this pass *proved* existing ones (B1's picker fix now carries
+  live checked-state evidence; F3's composer-only 42dp/“Close”-title scope sharpened).
+- **Rig backlog update:** remaining item is only the `switchCollaborationMode` echo after
+  resync (G3) — everything else on the F5 ledger is done and regression-pinned by
+  `RawWsServerTest` + the mock self-tests.

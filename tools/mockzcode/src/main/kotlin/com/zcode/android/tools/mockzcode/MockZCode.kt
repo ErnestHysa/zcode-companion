@@ -287,8 +287,11 @@ class MockZCode(
         val displayStatus: String = "running",
         val workspacePath: String = "/synthetic/ws",
         val workspaceLabel: String = "Synthetic Workspace",
-        val createdAtMs: Long = 1_700_000_000_000,
-        val updatedAtMs: Long = 1_700_000_300_000,
+        // Recency-relative (report F5): the store's stale sweep deletes rows older
+        // than 7 days inside replaceAll — hardcoded 2023 timestamps made every
+        // scripted task vanish from Room the moment it was written.
+        val createdAtMs: Long = System.currentTimeMillis() - 5 * 60 * 1000,
+        val updatedAtMs: Long = System.currentTimeMillis() - 60 * 1000,
         val productionShape: Boolean = true,
     ) {
         internal fun toJson(): JsonObject = if (productionShape) {
@@ -1037,7 +1040,7 @@ class MockZCode(
             put("turnId", JsonPrimitive("turn-$sessionId-${(rowId - 1) / 4 + 1}"))
             put("kind", JsonPrimitive(kind.wire))
             put("entityId", JsonPrimitive("ent-$rowId"))
-            put("createdAt", JsonPrimitive(1_700_000_000_000.0 + rowId))
+            put("createdAt", JsonPrimitive(System.currentTimeMillis().toDouble() - 300_000 + rowId))
             put("createdAtSeq", JsonPrimitive(rowId))
         }
         val kindFields = when (kind) {
@@ -1066,7 +1069,7 @@ class MockZCode(
             RowKind.TURN_HEADER -> buildJsonObject {
                 put("origin", JsonPrimitive("user"))
                 put("state", JsonPrimitive(text)) // terminal state rides `text` for scripted headers
-                put("startedAt", JsonPrimitive(1_700_000_000_000.0 + rowId))
+                put("startedAt", JsonPrimitive(System.currentTimeMillis().toDouble() - 300_000 + rowId))
             }
             RowKind.USER_INPUT -> buildJsonObject {
                 put("text", JsonPrimitive(text))
@@ -2358,11 +2361,19 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?) {
                     })))
                     put("tasks", script.bootstrapTasks?.let { override ->
                         JsonArray(override.map { it.toJson() })
-                    } ?: JsonArray(listOf(buildJsonObject {
-                        put("id", JsonPrimitive(workspace.sessionId))
-                        put("title", JsonPrimitive("Synthetic task"))
-                        put("status", JsonPrimitive("idle"))
-                    })))
+                    } ?: JsonArray(listOf(
+                        // PRODUCTION shape (report F5/G1): the legacy {id,title,status}
+                        // row carries no workspacePath — the app's bootstrap parser keys
+                        // tasks by workspaceIdentity ?: workspacePath, and a blank key is
+                        // silently skipped (logged applied, zero rows persisted).
+                        MockTask(
+                            taskId = workspace.sessionId,
+                            title = "Synthetic task",
+                            displayStatus = "idle",
+                            workspacePath = workspace.workspacePath,
+                            workspaceLabel = "Synthetic One",
+                        ).toJson(),
+                    )))
                 })
             })
         ))
