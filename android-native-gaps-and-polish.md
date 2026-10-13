@@ -553,3 +553,32 @@ every future audit and fix round.
 - **P2 additions:** surface Retry/Fork/Rewind when the wire offers them (E3.2, pairs with
   A3.11); post-pairing first-sync sequencing polish (E4); desktop-side QR/link regeneration
   hint (E1).
+
+## E9. Close-out addendum: the live-channel blocker root-caused; what stands where (same day)
+
+Pursuing E2 further exposed the rig's transport limit and one more app finding:
+
+- **Root cause of every "Connection failed" on the rig:** the mock's WebSocket server is
+  `mockwebserver3.MockWebServer` with `webSocketUpgrade`, and it **masks server→client frames**
+  — an RFC 6455 §5.1 violation the app's OkHttp client correctly refuses (`close 1006:
+  Server-sent frames must not be masked`, caught live in logcat: `model-selection.getView
+  begin` → `failed: channel closed: abnormal close 1006`). Pairing succeeds (HTTP link flow);
+  every subsequent channel call dies. This is a library quirk, not fixable from mock code — a
+  live-channel rig needs a real WS server (the masked-frames fact also explains why the
+  instrumented suites seed Room directly instead of relying on the live plane).
+- **Mock extended anyway (prep for a proper rig):** `MockRelayMain` now serves a faithful
+  two-provider `model-selection.getView` default (self-tests green) — previously it refused the
+  call, which is its own trap for future E2E.
+- **NEW verified finding — the composer picker has no empty state at all:** with options
+  unavailable, `ComposerModelPickerDialog` renders `null → spinner; else → bare for-loop` — an
+  empty list produces a **completely empty body** under the "Close" title (live dump shows
+  exactly that, twice: before and after the mock served options). The conversation picker at
+  least has the GAP-18 "unavailable / keep current" branch; the composer one IS the grey
+  skeleton end-to-end: stacked dialog + "Close" title + empty body. Fold into B1's fix.
+- **Honest scope of live verification:** the *populated* picker list, its row geometry, and the
+  conversation-side two-step flow (tap → no highlight moves → bottom thought-level section,
+  Phase9Components.kt:321/341/348-365; composer one-tap :105-108; rows ≈40dp by padding math)
+  stand on **code evidence** — they are unreachable live until a mask-correct WS server
+  replaces MockWebServer in the rig. The on-device confirmations this pass does carry: the
+  "Close"-title dialog structure (E2), the empty-body rendering above, the getView call firing
+  and failing at the transport layer, and the full pairing/consent/tasks flow (E1/E4/E5).

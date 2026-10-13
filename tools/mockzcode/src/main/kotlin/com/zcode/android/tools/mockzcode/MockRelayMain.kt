@@ -1,5 +1,8 @@
 package com.zcode.android.tools.mockzcode
 
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlin.system.exitProcess
 
 /**
@@ -9,6 +12,11 @@ import kotlin.system.exitProcess
  * Prints the synthetic pairing LINK and the ws URL; blocks until killed.
  * Environment overrides: MOCK_PORT (default 18100), MOCK_SCENARIO
  * (HAPPY | WRONG_PROOF | UNKNOWN_SID).
+ *
+ * `model-selection.getView` is answered with a two-provider default view
+ * (phase9-channels.md §4 shape; only providerId/providerName/models[].modelId are
+ * consumed by Phase9Tools.modelOptions) so the pickers render their real grouped
+ * list on device E2E instead of the refused-fault empty branch.
  */
 fun main() {
     val port = System.getenv("MOCK_PORT")?.toIntOrNull() ?: 18_100
@@ -20,6 +28,7 @@ fun main() {
     val mid = "mock-desktop-mid"
     val mock = MockZCode(passHash = passHash, expectedSid = sid)
     mock.script.authScenario = scenario
+    mock.script.modelSelection = defaultModelSelection()
     val url = mock.start()
     val link = "http://127.0.0.1:$port/remote/v4" +
         "?sid=$sid&hash=${java.net.URLEncoder.encode(passHash, "UTF-8")}" +
@@ -31,3 +40,22 @@ fun main() {
     Thread.currentThread().join()
     exitProcess(0)
 }
+
+private fun provider(id: String, name: String, models: List<String>): JsonObject = JsonObject(
+    mapOf(
+        "providerId" to JsonPrimitive(id),
+        "providerName" to JsonPrimitive(name),
+        "models" to JsonArray(models.map { JsonObject(mapOf("modelId" to JsonPrimitive(it))) }),
+    ),
+)
+
+private fun defaultModelSelection(): JsonObject = JsonObject(
+    mapOf(
+        "providers" to JsonArray(
+            listOf(
+                provider("zai", "Z.ai", listOf("glm-5.1", "glm-5.1-air", "glm-5.1-flash")),
+                provider("openai-compat", "OpenAI-compatible", listOf("glm-4.6")),
+            ),
+        ),
+    ),
+)
