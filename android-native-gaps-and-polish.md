@@ -465,3 +465,91 @@ picker would show B1's grey-box symptom exactly as Ernest described it.
   todo restore display · model-picker badges (D4, folded into B1).
 - No P0 changes: nothing in this pass is a bug-class defect; the coalescer suspicion was
   retracted (D6).
+
+---
+
+# PART E — deeper round, pass 5: live-device ground truth (appended 2026-10-13)
+
+This pass booted the **real app on a real (virtual) device**, paired it to the repo's own
+`tools/mockzcode` relay over adb-driven UI, and audited live UI hierarchies — the layer neither
+code reading nor bundle extraction can see. Pixel capture stays blocked on the ATD image (D7;
+`screenrecord` also produces nothing), but **uiautomator hierarchy dumps are pixel-free ground
+truth**: text, structure, and geometry of what actually rendered. Findings:
+
+## E1. The pairing rig works — with one live-use observation (new, verified)
+
+`gradle :tools:mockzcode:mockRelayServer` + "Paste pairing link" (link rewritten to
+`10.0.2.2`) pairs the real app to the mock end-to-end. One real finding on the way: the mock's
+pairing link **expired between passes** — the app showed "Pairing failed — the link was
+rejected / Pairing expired — scan the QR again". That's the same UX a real user hits returning
+to a stale QR/link; the error copy is honest and actionable (good), but the pairing-gate offers
+no "generate a fresh link" affordance from the failure state — you must rescan from scratch
+(desktop-side: the desktop can mint a fresh link instantly). Consider a "desktop: regenerate"
+hint or auto-refresh of the QR on the desktop side.
+
+## E2. Model picker "grey skeleton" — CONFIRMED LIVE on-device (new, verified)
+
+The B1 root cause is no longer inference: with the create-task dialog open, tapping the model
+chip stacks the picker dialog, and the live hierarchy shows a dialog whose **title node renders
+the literal text "Close"** (a 34dp-tall title reading "Close"), a second "Close" TextButton
+below, and an empty body between. Titleless contentless "Close"-titled grey box floating on
+another dialog's scrim — that is precisely the "grey/dark skeleton on the outside and inside"
+symptom, reproduced. The fix remains B1's sheet redesign; the title bug alone is a one-line P0.
+
+## E3. Row capability flags are decoded and entirely unused (new, verified — P0-class)
+
+`ConversationRow.Base.Actions` decodes **`canFork`, `canRetry`, `canRewindFiles`, `canEdit`**
+from every wire row — and zero of the four are consumed anywhere (no hits outside the domain
+model). Two consequences:
+
+1. **Correctness:** the long-press action sheet gates Edit on `entityId` presence — the wire's
+   own `canEdit` verdict is ignored, so the app can offer Edit on rows the desktop forbids (and
+   would hide it on allowed rows lacking an entityId). The round-1 note "mirroring the desktop
+   gate" was wrong. This is a small correctness bug, not just a missing feature.
+2. **Dropped affordances:** when the desktop marks a row `canRetry` / `canFork` /
+   `canRewindFiles`, the phone silently drops those actions. That hands the app Retry, and
+   Fork/Rewind entry points (A3.11), for free — the wire already says which rows support them.
+
+Fix: gate the action sheet on the flags (P0 correctness), then surface offered actions (P2).
+
+## E4. Fresh-paired first impression: failure strip + empty state at once (new, observed)
+
+Immediately after a successful pairing, the Tasks screen rendered **"Connection failed"** and
+"No tasks yet" simultaneously (here mock-caused — the mock scripts no tasks plane — but the
+*pattern* is real: any transient post-pairing handshake failure leaves the raw failure strip up
+with no auto-retry pulse and no explanation linking it to the just-finished pairing). Worth a
+P2 pass: after pairing succeeds, either suppress the transient failure strip until the first
+refresh completes, or annotate it ("first sync failed — Retry"). Honest-machine-state design
+intact; this is sequencing polish.
+
+## E5. Fairness: the reduced-security consent is well-executed (new)
+
+On a device with no screen lock, pairing shows an explicit "No screen lock detected → Continue
+with reduced security / Cancel" gate — exactly the right security UX (informed consent, no
+silent downgrade). Protect this pattern.
+
+## E6. No Compose lint discipline — the polish will rot without it (new, verified)
+
+`app/build.gradle.kts` has no `lint {}` block and no compose lint dependency. The bug classes
+Part B found by hand — bare `clickable {}` without roles, sub-48dp targets, literal ARGB
+colors, un-guarded early-returns before remember — are mechanically catchable with
+`com.slack.lint.compose` + Compose's own checks wired into CI. Add it in P1 so each fix round
+can't regress.
+
+## E7. Tooling note for future visual rounds
+
+ATD pixel capture is dead in all attempted modes (`screencap` exec-out/device-side,
+`screenrecord`) while hierarchies stay fully readable — this pass's method (mock pairing +
+uiautomator dumps) is the ATD-viable ground truth. For real pixels, D7's recipe stands (pixel
+system image or windowed emulator). The mock rig + fresh-link discipline (E1) is reusable for
+every future audit and fix round.
+
+## E8. Plan deltas
+
+- **P0 additions:** gate the row action sheet on `Base.Actions` (E3.1 — correctness: don't
+  offer forbidden actions); the one-line picker-title fix is already covered by B1 but is now
+  proven live (E2).
+- **P1 additions:** `com.slack.lint.compose` + lint wiring (E6).
+- **P2 additions:** surface Retry/Fork/Rewind when the wire offers them (E3.2, pairs with
+  A3.11); post-pairing first-sync sequencing polish (E4); desktop-side QR/link regeneration
+  hint (E1).
