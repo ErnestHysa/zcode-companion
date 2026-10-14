@@ -264,7 +264,7 @@ class TaskCreateUiTest {
                     ),
                     creating = false,
                     onDismiss = {},
-                    onCreate = { key, text -> created = key to text },
+                    onCreate = { key, text, _, _ -> created = key to text },
                 )
             }
         }
@@ -289,7 +289,7 @@ class TaskCreateUiTest {
                     workspaces = emptyList(),
                     creating = false,
                     onDismiss = {},
-                    onCreate = { _, _ -> },
+                    onCreate = { _, _, _, _ -> },
                 )
             }
         }
