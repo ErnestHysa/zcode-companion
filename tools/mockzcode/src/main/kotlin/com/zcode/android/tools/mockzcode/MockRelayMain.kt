@@ -30,6 +30,24 @@ fun main() {
     mock.script.authScenario = scenario
     mock.script.modelSelection = defaultModelSelection()
     mock.script.emitStateKeys = true
+    // PART N rig-fidelity fix: echo sends like production — a sendText command appends
+    // the user row + a synthetic reply and pushes rowAppended. Without this the ack
+    // arrives with no row and the sent message never renders (blocked the I1 leg).
+    mock.script.commandEffects = true
+    // PART N bulk leg (MOCK_ROWS): a long conversation for the gfxinfo scroll-jank leg.
+    System.getenv("MOCK_ROWS")?.toIntOrNull()?.let { n ->
+        mock.script.snapshotRowCount = n
+        mock.script.bulkAssistantText = listOf(
+            "The coordinator batches deltas per frame and memoizes parsed blocks per row id,",
+            "so a long conversation scrolls at the display cadence instead of re-parsing per token.",
+            "",
+            "```kotlin",
+            "val cadence = frameClock.frames().throttle(16.milliseconds)",
+            "```",
+            "",
+            "- derived state stays derived — no mutableStateOf in the render path",
+        ).joinToString("\n")
+    }
     // PART K live leg: one rich-markdown assistant row so the phone's parser renders
     // against real wire content (nested list, table, fenced code, inline code, link).
     mock.script.demoAssistantMarkdown = listOf(

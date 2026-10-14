@@ -94,6 +94,19 @@ class MockZCode(
          */
         var demoAssistantMarkdown: String? = null
 
+        /**
+         * Bulk-leg override (MOCK_ROWS): replaces the workspace's default snapshot row
+         * count so the phone has a long conversation to scroll (gfxinfo jank leg).
+         */
+        var snapshotRowCount: Int? = null
+
+        /**
+         * Bulk-leg row realism (MOCK_ROWS): ASSISTANT_TEXT snapshot rows carry this
+         * multi-line payload instead of the thin "synthetic N" placeholder, so scroll
+         * jank is measured against paragraph + fence rows, not one-liners.
+         */
+        var bulkAssistantText: String? = null
+
         /** When true (with snapshotRowsWindowShape), the window reports firstRowId=1 ⇒ more history above. */
         var snapshotWindowTruncated: Boolean = false
         /** Shuffle fragment envelopes inside each logical message (out-of-order storm). */
@@ -1109,13 +1122,13 @@ class MockZCode(
         val rows = ArrayList<JsonObject>(count + 2)
         var nextId = rowIdBase
         for (i in 1..count) {
-            rows.add(
-                schemaRow(
-                    sessionId, nextId++,
-                    if (i % 2 == 0) RowKind.ASSISTANT_TEXT else RowKind.REASONING,
-                    "synthetic $i",
-                )
-            )
+            val kind = if (i % 2 == 0) RowKind.ASSISTANT_TEXT else RowKind.REASONING
+            val text = if (kind == RowKind.ASSISTANT_TEXT) {
+                script.bulkAssistantText?.let { "$it (row $i)" } ?: "synthetic $i"
+            } else {
+                "synthetic $i"
+            }
+            rows.add(schemaRow(sessionId, nextId++, kind, text))
         }
         sessionTurnOutcome?.let { outcome ->
             rows.add(schemaRow(sessionId, nextId++, RowKind.TURN_HEADER, outcome))
@@ -1344,6 +1357,10 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             println("MOCK: silenced unscoped conversation call $name (id=$id) — production behavior")
             return
         }
+        // UI-only action probe (I1 class): every zcodeAgent method the phone sends is
+        // logged, so "the Retry/Fork/Rewind/Like sheet is UI-only" is provable by the
+        // mock stdout between tap and screenshot.
+        println("MOCK: v4call $name (id=$id)")
         when (name) {
             "helloConversationV4" -> {
                 val hello = buildJsonObject {
@@ -2248,9 +2265,9 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?) {
                     put("kind", JsonPrimitive("snapshot"))
                     put("snapshot", buildJsonObject {
                         put("sessionId", JsonPrimitive(sessionId))
-                        val rows = JsonArray(
-                            snapshotRows(sessionId, workspace.rowCount) + appendedRows.values.toList(),
-                        )
+        val rows = JsonArray(
+            snapshotRows(sessionId, script.snapshotRowCount ?: workspace.rowCount) + appendedRows.values.toList(),
+        )
                         if (script.snapshotRowsWindowShape) {
                             // Production rowsWindowSchema: {window, totalCount, firstRowId}.
                             put("rows", buildJsonObject {

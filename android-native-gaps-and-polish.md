@@ -1808,3 +1808,209 @@ decoders, self-tests green), so all three viewers were captured **populated**, l
   code-verified only — the fix round should pixel-verify the new icon from a Robolectric pin or
   a manual toggle instead of the dump-driven attempt.
 
+---
+
+# PART N — deeper round, pass 14: the desktop's actual pixels side-by-side, the shipped design-token extraction, the first quantitative scroll-leg, first-run journey pixels, and the I1 absence proof — live (appended 2026-10-14)
+
+**Method (new for this pass).** Drift re-check first: desktop still 3.14.5.7961, app still
+1.1.0-vc40 — every prior finding stands. Then two evidence legs no earlier pass had: (1) the
+RUNNING desktop window was captured pixel-for-pixel (`screencapture -l <windowid>`, no focus
+steal, zero interference — it happened to be running this very audit session, so the capture
+is a genuine in-use screenshot, design facts only recorded here); (2) the shipped asar was
+mined for the built CSS (`styles-C8Nayk5k.css`, 410 KB), the i18n catalog
+(`IntlProvider-B-44tSXQ.js`, `"key":`value`` format), the shortcuts module, and
+`package.json`. On the phone side: a first-run journey (`pm clear` → launch → pair → land)
+with pixels at every step, a bulk-conversation scroll leg (`gfxinfo`), a landscape sweep of
+the never-dumped screens, and a live action-sheet probe with a NEW always-on wire-log
+instrument in the mock. Nothing implemented; findings only.
+
+## N1. The desktop's shipped design tokens, extracted — K1's "different brand" becomes a concrete spec (new, verified; one K1 erratum)
+
+- **Fonts — the desktop rides PLATFORM-NATIVE type.** `--font-sans: ui-sans-serif, system-ui, …`
+  and `--font-mono: ui-monospace, SFMono-Regular, Menlo, …`. There is no brand typeface.
+  **K1 erratum:** "Zai Light" (cited in K1's brand extraction) appears **nowhere** in the
+  shipped 3.14.5.7961 bundle — not in the built CSS, not in the i18n catalog, not in the
+  entry chunk. Treat it as unverified/withdrawn; the shipped identity is system type.
+  Consequence that flips a conclusion: the phone's Roboto default is therefore brand-CORRECT —
+  the gap K1 described is scale/weight/spacing discipline, not font family.
+- **Radius — a complete 5-step scale:** `--radius-xs .125rem` (2px), `sm .25rem` (4px),
+  `md .375rem` (6px), `lg .5rem` (8px), `xl .75rem` (12px). The phone's 9 ad-hoc 3–10dp
+  literals (K1) have no desktop counterpart, and **the phone's full-pill buttons (999dp) —
+  seen live this pass on the onboarding CTAs, the Git "Retry" button, and the red "Unpair
+  this device" button — use a radius the desktop language never uses, on the very first
+  screen a user sees.** Max desktop radius = 12px.
+- **Spacing — a 4px base** (`--spacing: .25rem`), the tailwind-style grid the phone's
+  spacing lacks (B3's spacing-token item gets concrete numbers).
+- **Elevation — shadow- and focus-ring-led, now counted:** `box-shadow` ×70, `ring-color` ×61,
+  `border: …solid` ×11, `backdrop-filter` ×1. K1's "phone is tonal-only, desktop is
+  border-led" sharpened: the desktop's overlays are SHADOW-led with a heavy focus-ring
+  vocabulary; the phone has zero `.shadow()` anywhere (K1) and no focus-ring equivalent.
+- **Brand — `--color-brand: var(--color-sky-400)` / `sky-500`** confirmed (K1 was right);
+  accent roles are sky-50/950 mixes; context-usage breakdown bands are sky-400/300/200.
+- **Iconography:** `out/renderer/material-icons/` ships Material icon SVGs for file-tree
+  glyphs; the sidebar/toolbar icons are a stroke icon set (visual, unattributed — no lucide
+  dependency in `package.json`; icons come from the bundled `@zcode/ui`).
+
+## N2. The desktop pixels themselves — the side-by-side K1 never had (new, captured live)
+
+The captured window (1201×800pt @2x) pairs against this pass's phone pixels. New concrete
+diffs beyond everything already logged:
+
+1. **The sidebar is navigation-first:** "New task ⌘N" and "Search ⌘K" as the top two entries,
+   Automations and Plugin Marketplace as first-class siblings, a Group/Project segmented
+   filter, PROJECTS sections with task rows + relative times, and an account row with the
+   connection pill, a companion-phone icon, and settings. The phone's Tasks screen is a flat
+   per-workspace list with no search entry, no groups (L6), Automations embedded
+   (J2's editor context), and no marketplace (A3).
+2. **Queue state is communicated in TWO places on desktop:** the composer placeholder swaps
+   to `chat.placeholder.followUpQueue` = "Keep typing to queue follow-up changes", AND a
+   queued pill renders inline next to the steered message (captured: a right-aligned
+   "→ …" pill at the top of the message being steered). The phone's only queue signal is the
+   hardcoded "Busy — this message will be queued on the desktop." strip — live-confirmed in
+   pixels this pass (B3's hardcoded-strings class; I1's queue lacks reorder/auto-drain).
+3. **The composer toolbar is six LABELED, state-aware controls** — `+` attach; "Full access"
+   with a shield icon, amber tint and chevron; "Computer Use" with a SIX-STATE tooltip
+   lifecycle (`chat.toolbar.computerUse.tooltip.{idle,starting,ready,permissionRequired,
+   error,sessionBusy}`); spacer; model chip with a live status dot + name + chevron;
+   thought-level chip ("Max") + chevron; stop. The phone's counterpart (K3's five
+   equal-weight icon buttons + two chips above the content) has no labels, no states, no
+   tooltips — K3's redesign now has the exact target shape.
+4. **Tool rows carry metadata:** "Explore · 2 searches", "Thought · 38 seconds" — durations
+   and counts inline, muted. The phone's tool status rails (M1.2-verified) show state but no
+   duration/count vocabulary (joins I2.7's `chat.toolCall.*` gap).
+5. **The desktop itself models a phone surface:** `chat.placeholder.newTaskMobile` = "Ask
+   ZCode anything…" exists in the catalog — a mobile-specific placeholder variant.
+6. **Drag-drop affordances:** `chat.attachments.dragHint` ("Drop to add attachments") and
+   `chat.composer.workspaceFileDragHint` ("Drop to mention this file or…") — I5's
+   attachment gap has a desktop-native interaction (drag) the phone can never mirror;
+   picker/camera remain the phone-side answer.
+
+## N3. First quantitative scroll leg — the render budget, measured (new)
+
+With the new `MOCK_ROWS` bulk knob (60 rows, paragraph+fence assistant rows — feat(mock),
+self-tests green), 8 flings through the bulk conversation, `dumpsys gfxinfo`:
+
+- **Pass 1 (cold, upward through history):** 361 frames, **30.19% janky**, P50 8ms,
+  P90 22ms, P95 23ms, **P99 44ms**. **GPU percentiles 2/3/8ms — the GPU is idle; the cost
+  is UI-thread**, the exact signature D6/B2.15 predicted (per-coalesced-frame markdown
+  re-parse + Compose overhead). The histogram shows a steady 18–24ms band (~90 frames just
+  over the 16.7ms budget) and only one >100ms frame — micro-jank, not freezes.
+- **Pass 2 (warm, reverse):** 277 frames, 23.47% janky, P50 8ms, P90 22ms, **P99 27ms** —
+  the first-composition spikes are gone (44→27ms) but the P90 band does not move: even warm,
+  ~1 in 4–5 fling frames misses budget on the emulator.
+- **Fairness:** SwiftShader emulator numbers are relative evidence — the SHAPE (GPU idle,
+  UI-thread expensive; a persistent just-over-budget band) is the finding, not the absolute
+  values. On the S918B the same shape would matter less per-frame but the memoization fix
+  (B2.15) targets exactly this profile.
+
+## N4. First-run journey pixels — the moment that defines the app (new, captured)
+
+`pm clear` → cold launch → pair → land, all on the pixel rig:
+
+1. **The cold launch shows a blank white window for seconds** — at 1s: featureless white
+   (only system bars); content visible by the 5s shot, consistent with M6's 3.1–3.5s cold
+   start. B3's "no core-splashscreen / no branded window background" is now pixel-proven at
+   the exact moment a first-time user judges the app.
+2. **The onboarding screen:** white title band ("ZCode Companion" as a plain text row), then
+   a content panel in the baseline M3 grey with the two paragraphs + the filled "Scan QR
+   code" and outlined "Paste pairing link" buttons — **both full pills (see N1's radius
+   erratum), no icons, no illustration, and the grey panel is the J5 unmapped-surfaceContainer
+   tell, on the app's first screen.** There is also a visible two-tone seam between the white
+   title band and the grey content panel.
+3. **The pairing flow itself is clean** (link entry → security-setup consent → landing):
+   E5's fairness note re-confirmed live. One rig-fidelity observation: the "Continue"
+   button's bounds must be re-dumped after the link field grows (dialog reflow — the L9
+   recipe, re-proven).
+
+## N5. The I1/E3 absence proof — live, and it's stronger than "UI-only" (new, on-device)
+
+The mock gained an **always-on call log** (`MOCK: v4call <method> (id=…)`) and a
+**rig-fidelity fix**: `MockRelayMain` now sets `script.commandEffects = true`, because the
+mock previously acked `sendConversationCommandV4` with **no user/reply row** — a sent message
+never rendered anywhere (neither optimistic pending-send nor echoed row). That was a MOCK
+gap, not an app bug (the production desktop echoes immediately); with effects on, the full
+send→YOU-row→synthetic-reply loop renders live. Then:
+
+- Long-press on the user row opens the **"Message actions"** sheet — it ships exactly
+  **Copy and Edit**. Nothing else. Assistant rows have no menu at all (platform
+  text-selection over the `SelectionContainer` only). **Retry/Fork/Rewind/Like are offered
+  NOWHERE in the shipped UI** — E3's four decoded capability flags and I1's nine decoded
+  commands are not merely UI-only, they are entirely absent from the row affordances.
+- The sheet renders as a **centered M3 dialog**, not a ModalBottomSheet (B3's
+  "ModalBottomSheet used nowhere" re-confirmed in pixels).
+- Also live-seen in the same capture: the red stop square (wire `control.canStop` gating
+  working) and the send button correctly disabled when the composer is empty.
+
+## N6. Landscape sweep completion + Terminal L2 in pixels (extends M2 — no new P-findings)
+
+Files, Git, and Terminal in landscape re-confirm M2's zero-width discipline (full-bleed
+single-line texts, full-width consent prose). New visual confirmations only: **L2's glued
+sentence is pixel-visible** ("…you can turn it off at any time**.your machine.**" with the
+orphaned "here." starting the next line); Git's unavailability is a raw sentence + pill
+"Retry"; Files' "workspace files unavailable on this connection" is a **raw red error line**
+(M5/K6 fault-leak family). No new per-screen breakage beyond M2's systemic statement.
+
+## N7. Live checks that PASSED — verified-healthy ledger additions (do not re-chase)
+
+1. **Selection/copy on assistant rows works end-to-end** — long-press raises the platform
+   Copy/Select-all toolbar over the `SelectionContainer`; per-code-block copy buttons render
+   (GAP-10/GAP-11, previously unit-verified, now live-pixel-verified).
+2. **Auto-scroll etiquette is as engineered (H4):** after sending from a scrolled-up
+   position, the list does NOT yank to bottom — the jump-to-bottom FAB appears instead.
+3. **The d3f4425 update row is live-verified:** Settings → About → "Check for updates" ran a
+   REAL GitHub round-trip against `ErnestHysa/zcode-companion` from the emulator and settled
+   at "You are on the latest build" (1.1.0-vc40 vs the published 1.1.0). The row, its forced
+   check, and its state text all work.
+4. **The send path is on the wire:** `sendConversationCommandV4` observed in the mock log on
+   tap (the call-log instrument now makes every future I1-class claim provable for free).
+
+## N8. A11y addition (extends B3's class, code-level)
+
+The conversation module contains **zero `liveRegion`/announcement semantics** — streamed
+assistant text never announces to TalkBack; a screen-reader user gets no signal that content
+is arriving (grep across `features/conversation`: only `contentDescription`/`mergeDescendants`,
+which are correct — rows merge descendants properly). A live TalkBack leg is impossible on
+this AVD (TalkBack is not shipped in the google_apis image — `pm list packages` empty), so
+this stands code-level.
+
+## N9. Rig notes (for every future session)
+
+- **The emulator crashed mid-session on host GPU** ("Failed to find ColorBuffer", process
+  exit) — **use `-gpu swiftshader_indirect`** for layout/wire legs; host GPU is only worth it
+  for frame-accuracy legs, and gfxinfo was already captured before the crash.
+- **`user_rotation` reverts when the app is relaunched** mid-sweep — re-assert
+  `settings put system accelerometer_rotation 0 && settings put system user_rotation 1`
+  per leg and verify orientation from the DUMP's coordinate range (a portrait dump has
+  x ≤ ~1080) before trusting tap coords.
+- **The rotation transition itself can be caught as a full-screen DIAGONAL frame** (the
+  pre-rotation layout drawn at ~45°, washed out) — capture artifact, wait 2s and re-shoot.
+- **Chip taps must come from a fresh dump every time** — Files/Git/Terminal chips reflow per
+  route and rotation; one attempt burned on stale portrait coords read off a scaled image.
+  Always `uiautomator dump` → compute center from bounds → tap; never eyeball scaled PNGs.
+- **Mock additions are permanent rig assets:** `MOCK_ROWS=60` (bulk conversation via
+  `script.snapshotRowCount` + `bulkAssistantText`), the unconditional `v4call` log, and
+  `commandEffects = true` (send echo). `gradle :tools:mockzcode:test` green with all three.
+- TalkBack absent from google_apis images — a11y legs stay code-level or need a
+  playstore image.
+
+## N10. Plan deltas
+
+- **P1 additions:** splash/branded launch window (B3's P1, now pixel-evidenced — N4.1) ·
+  the K1 "different brand" remediation gets concrete targets from N1: adopt the desktop's
+  radius scale (2/4/6/8/12 — kill the 999dp pills), map `surfaceContainer*` (J5, and the
+  onboarding seam shows it on the first screen), and decide the elevation language
+  (adopt subtle shadows + focus-ring vocabulary, or ADR the tonal-only divergence with N1's
+  counts as the reference).
+- **P2 additions:** labeled state-aware composer toolbar (N2.3's six-control shape with
+  tooltip lifecycles) · queue-state pill + placeholder swap (N2.2 — replaces the hardcoded
+  strip; rides the I1 queue work) · tool-row metadata (N2.4, joins I2.7) · Retry/Fork/
+  Rewind/Like row actions stay the I1/E3 P2 — now with sheet pixels proving absence and the
+  wire-log instrument to prove delivery the day they ship · streaming liveRegion
+  announcement (N8 — one semantics line per streaming row).
+- **Sensor delta:** D3's extractor should also fingerprint the desktop's shipped CSS custom
+  properties (the N1 set: radius/font/elevation/brand) — a THEME drift class the i18n
+  namespace diff cannot see.
+- No P0 additions this pass; no prior finding retracted except the K1 "Zai Light" font
+  citation (N1 erratum) — and that erratum softens the phone-side conclusion (Roboto is
+  brand-correct; the work is scale/spacing/tokens, not a font).
+
