@@ -2,18 +2,16 @@ package com.zcode.android.core.notifications
 
 import android.app.Service
 import android.os.Looper
-import androidx.test.core.app.ApplicationProvider
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
+import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
@@ -25,18 +23,18 @@ import org.robolectric.annotation.Config
  * service lifecycle (and therefore the timeout stop path) is the single writer,
  * and the Settings switch collects it — no recreation needed.
  */
-@RunWith(AndroidJUnit4::class)
+@RunWith(RobolectricTestRunner::class)
 @Config(sdk = [30])
 class LiveConnectionServiceTimeoutTest {
 
     @Test
     fun `isRunning is an observable StateFlow (the stale-switch fix seam)`() {
         // Pre-fix this reads the plain Boolean var through Any — the runtime probe
-        // fails (Boolean is not a StateFlow); post-fix `isRunning` IS the flow.
+        // fails (Boolean is not StateFlow); post-fix `isRunning` IS the flow.
         val observable: Any = LiveConnectionService.isRunning
         assertTrue(
-            observable is StateFlow<*>,
             "LiveConnectionService.isRunning must be an observable StateFlow (H3.1)",
+            observable is StateFlow<*>,
         )
     }
 
@@ -63,19 +61,15 @@ class LiveConnectionServiceTimeoutTest {
         try {
             LiveConnectionService.autoTimeoutMs = 50
             val controller = Robolectric.buildService(LiveConnectionService::class.java)
-            val service = controller.create().startCommand(0, 1).get()
+            val service = controller.create().startCommand(0, 1).get() as Service
             shadowOf(Looper.getMainLooper()).idle()
 
-            val shadow = shadowOf(service as Service)
-            assertTrue(shadow.isForegroundStopped, "the timeout path must stopForeground")
-            assertTrue(shadow.isStoppedBySelf, "the timeout path must stopSelf")
-            // Robolectric records stopSelf without invoking onDestroy; the flow
-            // flip happens in onDestroy — the lifecycle pin above covers it.
-            assertFalse(shadow.isStoppedBySelf == false)
+            val shadow = shadowOf(service)
+            assertTrue("the timeout path must stopForeground", shadow.isForegroundStopped)
+            assertTrue("the timeout path must stopSelf", shadow.isStoppedBySelf)
         } finally {
             LiveConnectionService.autoTimeoutMs = previousTimeout
         }
-        ApplicationProvider.getApplicationContext<android.content.Context>().toString() // touch context unused-guard
     }
 
     @Test
@@ -84,10 +78,12 @@ class LiveConnectionServiceTimeoutTest {
         try {
             LiveConnectionService.autoTimeoutMs = 0
             val controller = Robolectric.buildService(LiveConnectionService::class.java)
-            val service = controller.create().startCommand(0, 1).get()
+            val service = controller.create().startCommand(0, 1).get() as Service
             shadowOf(Looper.getMainLooper()).idle()
-            val shadow = shadowOf(service as Service)
-            assertFalse(shadow.isStoppedBySelf, "0 = stay connected until toggled off (§24.5 vc35)")
+            assertFalse(
+                "0 = stay connected until toggled off (§24.5 vc35)",
+                shadowOf(service).isStoppedBySelf,
+            )
         } finally {
             LiveConnectionService.autoTimeoutMs = previousTimeout
         }

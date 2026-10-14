@@ -477,19 +477,21 @@ class ConnectionHub(
         // call connect() DIRECTLY — a SECOND concurrent full handshake racing the
         // transport's own recovery loop (field log: 3 hub.connectFailed
         // IllegalStateException in 1.4 s + the #328-class desktop freeze). ALL user
-        // retries now route through reconnectNow(), which is single-flight-aware:
+        // retries route through reconnectNow(), which is single-flight-aware:
         // it arms the immediate flag on the RUNNING loop, or starts one from
-        // Degraded with a fresh budget. connect() itself remains only for the
-        // cold-start path (no live machine) and hard-FAILED (re-scan class).
+        // Degraded/FAILED (the F2 arm — an AUTH-failed state recovers via the
+        // transport's own user-retry path with a fresh budget; connect() here used
+        // to throw "connect() is the first-connection path"). connect() itself
+        // remains only for the cold-start path (no live machine).
         when (activeTransport().states.value) {
             ConnectionStateMachine.ConnectionState.DEGRADED,
+            ConnectionStateMachine.ConnectionState.FAILED,
             ConnectionStateMachine.ConnectionState.RECONNECTING,
             ConnectionStateMachine.ConnectionState.CONNECTING,
             ConnectionStateMachine.ConnectionState.AUTHENTICATING,
             ConnectionStateMachine.ConnectionState.RECOVERING,
             ConnectionStateMachine.ConnectionState.CONNECTED,
             -> activeTransport().reconnectNow()
-            ConnectionStateMachine.ConnectionState.FAILED -> connect()
             else -> if (connectJob?.isActive != true) connect()
         }
     }
