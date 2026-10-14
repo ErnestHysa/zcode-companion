@@ -29,6 +29,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.zcode.android.app.AppContainer
+import com.zcode.android.app.updateRecentsTaskLabel
 import com.zcode.android.app.R
 import com.zcode.android.features.conversation.ui.ApprovalsScreen
 import com.zcode.android.app.connect.ConnectionCenterScreen
@@ -44,6 +45,7 @@ import com.zcode.android.features.pairing.flow.PairingFlow
 import com.zcode.android.features.tasks.TasksViewModel
 import com.zcode.android.features.tasks.ui.TaskListScreen
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -234,7 +236,7 @@ fun ZCodeApp(
         }
         composable(Routes.CONVERSATION) { entry ->
             val taskId = entry.arguments?.getString("taskId").orEmpty()
-            val vm = rememberConversationViewModel(container, scope, taskId)
+            val vm = rememberConversationViewModel(container, taskId)
             ConversationRoute(
                 container = container,
                 vm = vm,
@@ -365,16 +367,41 @@ private fun TasksRoute(
     )
 }
 
+/**
+ * B2.5: backstack-scoped conversation VM. The old `remember(taskId)` wiring died
+ * on ANY activity recreation (uiMode/density/fontScale flips — rotation is covered
+ * by the manifest's configChanges), discarding the conversation state. The holder
+ * lives on the NavBackStackEntry's ViewModelStore: it survives recreation, is
+ * per-entry (each conversation route push = a new entry), and clears on pop. The
+ * VM's scope is the holder's (entry-lived), not a composition scope.
+ */
+class ConversationVmHolder : androidx.lifecycle.ViewModel() {
+    var vm: ConversationViewModel? = null
+
+    /** Entry-lived scope: survives recreation, cancelled when the entry pops. */
+    private val holderScope = kotlinx.coroutines.CoroutineScope(
+        kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Main.immediate,
+    )
+
+    val scope: CoroutineScope get() = holderScope
+
+    override fun onCleared() {
+        holderScope.cancel()
+        super.onCleared()
+    }
+}
+
 @Composable
 private fun rememberConversationViewModel(
     container: AppContainer,
-    scope: CoroutineScope,
     taskId: String,
 ): ConversationViewModel {
-    val vm = androidx.compose.runtime.remember(taskId) {
-        ConversationViewModel(container.conversationPort, scope, taskId)
-    }
-    return vm
+    val holder: ConversationVmHolder = androidx.lifecycle.viewmodel.compose.viewModel()
+    return holder.vm ?: ConversationViewModel(
+        container.conversationPort,
+        holder.scope,
+        taskId,
+    ).also { holder.vm = it }
 }
 
 @Composable
@@ -387,6 +414,11 @@ private fun ConversationRoute(
     onOpenTerminal: () -> Unit = {},
 ) {
     val state by vm.state.collectAsState()
+    // C6-taskdesc: the recents card carries the open task's name.
+    val activity = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity
+    androidx.compose.runtime.LaunchedEffect(state.task?.title) {
+        activity?.updateRecentsTaskLabel(state.task?.title)
+    }
     ConversationScreen(
         state = state,
         phase = state.phase,
