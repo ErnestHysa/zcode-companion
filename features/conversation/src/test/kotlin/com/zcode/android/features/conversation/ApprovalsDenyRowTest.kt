@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
@@ -66,12 +67,11 @@ class ApprovalsDenyRowTest {
         rule.waitForIdle()
 
         val density = rule.density.density
-        val allow = rule.onAllNodesWithTag("approvals_allow_once_${id.take(12)}")
+        val allow = rule.onAllNodesWithTag("approvals_allow_once_${id.take(12)}")[0]
             .fetchSemanticsNode().let { it.positionInRoot.x + it.size.width }
-        val denyStart = rule.onNodeWithTag("approvals_deny_${id.take(12)}")
-            .fetchSemanticsNode().positionInRoot.x
-        val denyEnd = rule.onNodeWithTag("approvals_deny_${id.take(12)}")
-            .fetchSemanticsNode().let { it.positionInRoot.x + it.size.width }
+        val denyNode = rule.onNodeWithTag("approvals_deny_${id.take(12)}").fetchSemanticsNode()
+        val denyStart = denyNode.positionInRoot.x
+        val denyEnd = denyNode.positionInRoot.x + denyNode.size.width
 
         assertTrue(
             "the buttons must not sit flush (dead Spacer(0) / discarded PaddingValues)",

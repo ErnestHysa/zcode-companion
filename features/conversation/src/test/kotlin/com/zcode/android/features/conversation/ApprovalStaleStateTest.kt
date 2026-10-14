@@ -2,7 +2,7 @@ package com.zcode.android.features.conversation
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.test.assertExists
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -17,6 +17,7 @@ import com.zcode.android.features.conversation.ui.EditUserQueryDialog
 import com.zcode.android.features.conversation.ui.UserInputCard
 import kotlinx.serialization.json.buildJsonObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -70,10 +71,7 @@ class ApprovalStaleStateTest {
             prompt = null,
             freeText = false,
             sensitive = false,
-            options = listOf(
-                PendingInteraction.UserInputPayload.Option("opt-a", "A"),
-                PendingInteraction.UserInputPayload.Option("opt-b", "B"),
-            ),
+            options = listOf(PermissionOption("opt-a"), PermissionOption("opt-b")),
             questions = emptyList(),
             toolName = null,
             raw = buildJsonObject {},
@@ -89,7 +87,10 @@ class ApprovalStaleStateTest {
         }
         rule.onNodeWithTag("approval_allowAlways").performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag("approval_confirm_yes").assertExists()
+        assertTrue(
+            "expected the armed confirm dialog",
+            rule.onAllNodesWithTag("approval_confirm_yes").fetchSemanticsNodes().isNotEmpty(),
+        )
 
         rule.runOnIdle { current.value = permissionInteraction("stale-b") }
         rule.waitForIdle()
