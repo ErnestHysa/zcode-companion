@@ -34,6 +34,8 @@ class VoiceInputTest {
         override var available = true
         // B2.2 contract: `listening` MUST be observable state — the composer's tint
         // and "Listening…" label read it in composition.
+        @androidx.compose.runtime.getValue
+        @androidx.compose.runtime.setValue
         override var listening by androidx.compose.runtime.mutableStateOf(false)
         var onPartial: ((String) -> Unit)? = null
         var onFinal: ((String) -> Unit)? = null

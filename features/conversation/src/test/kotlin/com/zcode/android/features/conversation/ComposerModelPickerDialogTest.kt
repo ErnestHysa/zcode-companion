@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
+import com.zcode.android.domain.model.ModelOption
 import com.zcode.android.domain.model.ModelProviderOption
 import com.zcode.android.features.conversation.ui.ComposerModelPickerDialog
 import org.junit.Assert.assertEquals
@@ -30,7 +31,7 @@ class ComposerModelPickerDialogTest {
     private fun provider(id: String, model: String) = ModelProviderOption(
         providerId = id,
         providerName = id.uppercase(),
-        models = listOf(ModelProviderOption.ModelOption(id = model, label = model, available = true)),
+        models = listOf(ModelOption(id = model, label = model, available = true)),
     )
 
     private fun assertTagExists(tag: String) {
