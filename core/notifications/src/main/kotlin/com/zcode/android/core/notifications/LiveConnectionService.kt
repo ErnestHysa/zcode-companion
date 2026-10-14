@@ -45,7 +45,7 @@ class LiveConnectionService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        isRunning = true
+        _isRunning.value = true
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -60,7 +60,7 @@ class LiveConnectionService : Service() {
 
     override fun onDestroy() {
         handler.removeCallbacks(timeoutRunnable)
-        isRunning = false
+        _isRunning.value = false
         super.onDestroy()
     }
 
@@ -124,10 +124,16 @@ class LiveConnectionService : Service() {
         @Volatile
         var LAUNCHER_ACTIVITY: Class<*>? = null
 
-        /** Process-truth for Settings/worker/spike probes. */
-        @Volatile
-        var isRunning: Boolean = false
-            private set
+        /** Process-truth for Settings/worker/spike probes. OBSERVABLE (H3.1): the
+         *  Settings switch collects this flow, so the 30-min auto-timeout stop flips
+         *  the switch live — the old plain `var` was snapshotted into `remember {}`
+         *  and left the switch ON until the screen was recreated. The service
+         *  lifecycle (onCreate/onDestroy — including the timeout stop path) is the
+         *  ONLY writer. */
+        val isRunning: kotlinx.coroutines.flow.StateFlow<Boolean>
+            get() = _isRunning
+
+        private val _isRunning = kotlinx.coroutines.flow.MutableStateFlow(false)
 
         fun start(context: Context) {
             NotificationChannels.ensure(context)

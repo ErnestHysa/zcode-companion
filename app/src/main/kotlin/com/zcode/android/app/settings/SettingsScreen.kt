@@ -735,9 +735,11 @@ private fun NotificationsSection(container: AppContainer) {
     // a RADIO PICKER — the old tap-to-cycle row looked like static text and users
     // reported the options "don't exist". 0 = stay connected until toggled off.
     val windowOptions = listOf(15, 30, 60, 240, 0)
-    var liveConnection by remember {
-        mutableStateOf(com.zcode.android.core.notifications.LiveConnectionService.isRunning)
-    }
+    // H3.1: the switch COLLECTS the service's observable state — the FGS 30-min
+    // auto-timeout flips it OFF live (the old remember{} snapshot lied until the
+    // screen was recreated). The service lifecycle is the single writer; no manual
+    // mirroring on toggle.
+    val liveConnection by com.zcode.android.core.notifications.LiveConnectionService.isRunning.collectAsState()
     var windowPickerOpen by androidx.compose.runtime.remember {
         androidx.compose.runtime.mutableStateOf(false)
     }
@@ -801,7 +803,6 @@ private fun NotificationsSection(container: AppContainer) {
         container.log.info("settings.notifPermission", "granted=$granted")
         if (granted || android.os.Build.VERSION.SDK_INT < 33) {
             com.zcode.android.core.notifications.LiveConnectionService.start(context)
-            liveConnection = true
         }
     }
     SwitchRow(
@@ -818,11 +819,9 @@ private fun NotificationsSection(container: AppContainer) {
                     notifPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                 } else {
                     com.zcode.android.core.notifications.LiveConnectionService.start(context)
-                    liveConnection = true
                 }
             } else {
                 com.zcode.android.core.notifications.LiveConnectionService.stop(context)
-                liveConnection = false
             }
         },
     )

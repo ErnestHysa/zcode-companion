@@ -203,14 +203,14 @@ class Phase8InstrumentedTest {
 
         // ---- 3. §24.5/§25.2 Live-connection FGS candidate (spike leg)
         com.zcode.android.core.notifications.LiveConnectionService.start(context)
-        rule.waitUntil(15_000) { com.zcode.android.core.notifications.LiveConnectionService.isRunning }
+        rule.waitUntil(15_000) { com.zcode.android.core.notifications.LiveConnectionService.isRunning.value }
         rule.waitUntil(15_000) {
             nm.activeNotifications.any { it.notification.channelId == NotificationChannels.LIVE_CONNECTION }
         }
         val fgsNotification = nm.activeNotifications.first { it.notification.channelId == NotificationChannels.LIVE_CONNECTION }
         assertEquals("Connected to Phase8Book", fgsNotification.notification.extras.getCharSequence(android.app.Notification.EXTRA_TITLE))
         com.zcode.android.core.notifications.LiveConnectionService.stop(context)
-        rule.waitUntil(15_000) { !com.zcode.android.core.notifications.LiveConnectionService.isRunning }
+        rule.waitUntil(15_000) { !com.zcode.android.core.notifications.LiveConnectionService.isRunning.value }
 
         // ---- 4. §25.3 WorkManager probe (opted-in endpoint registration)
         ReconnectProbeWorker.schedule(context)
