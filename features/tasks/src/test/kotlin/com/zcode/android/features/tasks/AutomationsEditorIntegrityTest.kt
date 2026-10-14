@@ -178,9 +178,9 @@ class AutomationsEditorIntegrityTest {
         rule.onNodeWithTag("automation_form_save").performClick()
         rule.waitForIdle()
         assertEquals(
+            "a blank cron must never silently save the 09:00 default",
             0,
             port.created.size,
-            "a blank cron must never silently save the 09:00 default",
         )
     }
 
