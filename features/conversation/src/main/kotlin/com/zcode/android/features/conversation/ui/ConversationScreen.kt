@@ -570,8 +570,11 @@ private fun TimelineRow(
         is ConversationRow.UserInput -> YouBlock(
             text = row.text,
             createdAtMs = row.base.createdAt,
-            // Desktop gate (ConversationRowView.tsx:1295): edit needs an entityId.
-            editable = row.base.entityId != null && onEditRow != null,
+            // E3.1: the sheet gates Edit on the WIRE'S OWN capability flag
+            // (actions.canEdit — ConversationRowView.tsx:1295 class), not on
+            // entityId presence: rows the desktop forbids lose Edit, allowed rows
+            // without an entityId keep it.
+            editable = row.base.actions?.canEdit == true && onEditRow != null,
             onEdit = onEditRow?.let { cb -> { cb(row) } },
         )
         is ConversationRow.AssistantText -> {
