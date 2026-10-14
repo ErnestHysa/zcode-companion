@@ -135,7 +135,7 @@ class AutomationsEditorIntegrityTest {
         rule.onNodeWithTag("automation_form_save").performClick()
         rule.waitForIdle()
 
-        assertEquals(1, port.updated.size, "bare Save must reach update exactly once")
+        assertEquals("bare Save must reach update exactly once", 1, port.updated.size)
         val (_, write) = port.updated.first()
         assertEquals(
             "30 5 * * 1",
@@ -215,6 +215,6 @@ class AutomationsEditorIntegrityTest {
 
         rule.onNodeWithTag("automation_form_save").performClick()
         rule.waitForIdle()
-        assertEquals(1, port.created.size, "a valid 5-field cron must be savable")
+        assertEquals("a valid 5-field cron must be savable", 1, port.created.size)
     }
 }
