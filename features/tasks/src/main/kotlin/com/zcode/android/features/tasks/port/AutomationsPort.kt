@@ -47,6 +47,20 @@ interface AutomationsPort {
             fun everyNMinutes(n: Int) = ScheduleSpec(everyMinutes = n)
             fun dailyAt(hour: Int, minute: Int) = ScheduleSpec(dailyHour = hour, dailyMinute = minute)
             fun cron(expr: String) = ScheduleSpec(cronExpr = expr)
+
+            /**
+             * B2.1: the phone-side cron syntax gate — a 5-field cron in the standard
+             * charset (digits, `*`, `,`, `-`, `/`, name/step tokens like MON/1-5/5L).
+             * Deliberately PERMISSIVE: exact semantics stay the desktop write-path's
+             * concern; the gate only refuses garbage that would silently corrupt the
+             * schedule (or the editor's old blank-to-"0 9 * * *" default).
+             */
+            fun isWellFormedCron(expr: String): Boolean {
+                val fields = expr.trim().split(Regex("\\s+"))
+                if (fields.size != 5) return false
+                val field = Regex("[0-9A-Za-z*,\\-/#+?]+")
+                return fields.all { it.isNotEmpty() && field.matches(it) }
+            }
         }
     }
 

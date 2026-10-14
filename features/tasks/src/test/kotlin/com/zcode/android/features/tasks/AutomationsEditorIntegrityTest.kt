@@ -138,9 +138,9 @@ class AutomationsEditorIntegrityTest {
         assertEquals("bare Save must reach update exactly once", 1, port.updated.size)
         val (_, write) = port.updated.first()
         assertEquals(
+            "a WEEKLY automation edited on the phone must not silently become daily 09:00",
             "30 5 * * 1",
             write.schedule.cronExprOrPlaceholder(),
-            "a WEEKLY automation edited on the phone must not silently become daily 09:00",
         )
     }
 
@@ -158,8 +158,8 @@ class AutomationsEditorIntegrityTest {
         rule.waitForIdle()
 
         val (_, write) = port.updated.first()
-        assertEquals("zai", write.modelProvider, "the configured model must round-trip")
-        assertEquals("glm-5.1", write.modelId, "the configured model must round-trip")
+        assertEquals("the configured model must round-trip", "zai", write.modelProvider)
+        assertEquals("the configured model must round-trip", "glm-5.1", write.modelId)
     }
 
     @Test

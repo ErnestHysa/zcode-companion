@@ -293,6 +293,11 @@ data class AutomationRow(
     val workspaceKey: String,
     /** "local" | "remote" (closed enum, kept raw). */
     val locationKind: String,
+    /** The carried model (B2.1/J2 model round-trip): `modelSelection.{providerId,modelId}`
+     *  — the SAME shape the write path sends (ViewerPorts.writeRequest). Tolerant:
+     *  absent/blank → null (the editor falls back to the workspace default). */
+    val modelProvider: String? = null,
+    val modelId: String? = null,
 ) {
     data class ScheduleRule(
         val unit: String,
@@ -335,6 +340,8 @@ data class AutomationRow(
                     },
                     workspaceKey = o.strReq("workspaceKey"),
                     locationKind = o.strReq("locationKind"),
+                    modelProvider = o.objOrNull("modelSelection")?.strOrNullN("providerId"),
+                    modelId = o.objOrNull("modelSelection")?.strOrNullN("modelId"),
                 )
             }
         }

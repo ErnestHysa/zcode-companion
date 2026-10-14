@@ -250,6 +250,46 @@ fun AutomationsSection(
 /** The workspace key the port re-resolves server-side; the form passes a marker. */
 private fun workspaceKeyFor(): String = "active"
 
+/**
+ * B2.1+J2: the editor seeds from the row's REAL schedule carrier — the old form
+ * opened every non-minute schedule as Daily with a hardcoded 09:00, dropped the
+ * carried model, and silently saved a blank cron as "0 9 * * *".
+ */
+private data class AutomationFormSeed(
+    val kind: Int,
+    val minutes: String,
+    val dailyTime: String,
+    val cron: String,
+    val model: Pair<String, String>?,
+) {
+    companion object {
+        /** "M H * * *" (the daily carrier's own placeholder shape) → the Daily picker. */
+        private val DAILY_CRON = Regex("^(\\d{1,2}) (\\d{1,2}) \\* \\* \\*$")
+
+        fun of(row: AutomationRow?): AutomationFormSeed {
+            if (row == null) return AutomationFormSeed(0, "30", "09:00", "", null)
+            val rule = row.scheduleRule
+            if (rule?.unit == "minute") {
+                return AutomationFormSeed(0, rule.interval.toString(), "09:00", "", carriedModel(row))
+            }
+            DAILY_CRON.find(row.cronExpr.trim())?.let { m ->
+                val minute = m.groupValues[1].toIntOrNull() ?: 0
+                val hour = m.groupValues[2].toIntOrNull() ?: 0
+                return AutomationFormSeed(1, "30", "%02d:%02d".format(hour, minute), "", carriedModel(row))
+            }
+            // Any other carrier (weekly/monthly/yearly/once/custom cron) opens as the
+            // CRON kind with the row's own expression — a bare Save round-trips it.
+            return AutomationFormSeed(2, "30", "09:00", row.cronExpr, carriedModel(row))
+        }
+
+        private fun carriedModel(row: AutomationRow): Pair<String, String>? {
+            val provider = row.modelProvider?.trim().orEmpty()
+            val model = row.modelId?.trim().orEmpty()
+            return if (provider.isNotEmpty() && model.isNotEmpty()) provider to model else null
+        }
+    }
+}
+
 /** FIELD (2026-10-12): the automation create/edit form (desktop parity). */
 @Composable
 private fun AutomationFormDialog(
@@ -265,12 +305,13 @@ private fun AutomationFormDialog(
 ) {
     var title by remember { mutableStateOf(existing?.title ?: "") }
     var prompt by remember { mutableStateOf(existing?.prompt ?: "") }
-    // schedule: 0=every N min, 1=daily, 2=custom cron
-    var scheduleKind by remember { mutableStateOf(if (existing?.scheduleRule?.unit == "minute") 0 else 1) }
-    var everyMinutes by remember { mutableStateOf((existing?.scheduleRule?.interval ?: 30).toString()) }
-    var dailyTime by remember { mutableStateOf("09:00") }
-    var cronExpr by remember { mutableStateOf(existing?.cronExpr ?: "") }
-    var pickedModel by remember { mutableStateOf<Pair<String, String>?>(null) }
+    // schedule: 0=every N min, 1=daily, 2=custom cron — SEEDED from the row (B2.1+J2).
+    val seed = remember(existing) { AutomationFormSeed.of(existing) }
+    var scheduleKind by remember(existing) { mutableStateOf(seed.kind) }
+    var everyMinutes by remember(existing) { mutableStateOf(seed.minutes) }
+    var dailyTime by remember(existing) { mutableStateOf(seed.dailyTime) }
+    var cronExpr by remember(existing) { mutableStateOf(seed.cron) }
+    var pickedModel by remember(existing) { mutableStateOf(seed.model) }
     var modelSheet by remember { mutableStateOf(false) }
     var mode by remember { mutableStateOf(existing?.mode ?: "build") }
 
@@ -283,10 +324,12 @@ private fun AutomationFormDialog(
                 dailyMinute = parts.getOrNull(1)?.toIntOrNull() ?: 0,
             )
         }
-        else -> AutomationsPort.ScheduleSpec(cronExpr = cronExpr.ifBlank { "0 9 * * *" })
+        // B2.1: a blank cron is REFUSED by the gate below — never silently "0 9 * * *".
+        else -> AutomationsPort.ScheduleSpec(cronExpr = cronExpr.trim())
     }
     val valid = title.isNotBlank() && prompt.isNotBlank() &&
-        (scheduleKind != 0 || (everyMinutes.toIntOrNull() ?: 0) > 0)
+        (scheduleKind != 0 || (everyMinutes.toIntOrNull() ?: 0) > 0) &&
+        (scheduleKind != 2 || AutomationsPort.ScheduleSpec.isWellFormedCron(cronExpr))
 
     AlertDialog(
         onDismissRequest = onDismiss,
