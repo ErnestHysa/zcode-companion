@@ -140,9 +140,10 @@ class UserInputQuestionShapesTest {
         setContent(optionsInteraction("shape-opts"))
 
         val row = node("userinput_option_opt-a")
+        val clickable = row.config[androidx.compose.ui.semantics.SemanticsActions.OnClick]
         assertNotNull(
             "the options-plane row must be clickable end-to-end",
-            row.config[SemanticsProperties.OnClick],
+            clickable,
         )
         assertTrue(
             "the options-plane row must be a ≥48dp target (height=${row.size.height})",
