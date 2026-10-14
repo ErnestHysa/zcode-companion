@@ -1044,3 +1044,200 @@ exists); camera = `TakePicture` contract. Cheap native wins for a chat-first app
   `/goal pause` unlock (I1) · preview cards (I2.8) · summary panel (I2.3).
 - No corrections to prior parts this pass; D2's goal-render gap gains its control-side
   counterpart (I1).
+
+---
+
+# PART J — deeper round, pass 10: the un-diffed desktop namespaces + measured theme + the verified-healthy ledger (appended 2026-10-14)
+
+Method: the complete IntlProvider namespace table was re-enumerated (~90 namespaces) and the
+namespaces Parts H/I had not diffed were read key-by-key against the phone screens —
+`git`(308) + `gitGraph`(54) + `diff`(20), `automations`(174), `taskList`(140),
+`workspaceSidebar`(44) + `workspace`(13), `mode`(47), `terminal`(20), `todo`/`planTool`/
+`taskTimeline`, `sidebar.usage.plan`(51). Second leg: WCAG contrast ratios **computed** from
+the shipped token values (39 fg/bg pairs, both themes). Third leg: the platform/security
+surface H2 hypothesized about — manifest, backup rules, deep links, benchmark seeding,
+biometric gate. Desktop unchanged (3.14.5). No live-rig leg this pass; the probes queued
+below are the first live items.
+
+## J1. The desktop git surface, re-diffed — the phone is closer than Part A implied; two read-only gaps + one write-spec enrichment (new, verified)
+
+The phone's git panel already renders: branch + ↑ahead ↓behind + tracking + detached
+(`GitScreen.kt:127-137`), the desktop's four sections in desktop order
+(`unstagedSectionOrder`/`stagedSectionOrder`, :226-229), paginated commit history with
+load-more (:178-212), and inline diffs through the §22 `DiffViewerContent` + `DiffCountBadge`
+(:371 — the component is wired; a pass-10 early suspicion that it was dead code is
+**retracted** — it is referenced by import, not by name). New findings:
+
+1. **Last-turn diff section is missing and possibly one probe away.** The desktop has a
+   `git.section.lastTurn` / `git.source.lastTurn(Turn)` view ("what did the agent just
+   change") alongside staged/unstaged; the phone's port documents the verified source set as
+   **only `"unstaged" | "staged"`** (`GitPort.kt:23`). If the desktop's `getChanges` accepts a
+   last-turn sourceId (probe), the phone gains its highest-signal git view as one row — it
+   pairs with I2.1's per-turn change card from the other direction.
+2. **No tree view.** `git.tree.*` (search placeholder, folder toggle, empty-search states) —
+   the desktop's change list is a navigable tree with search; the phone renders a flat list.
+   Matters only on large repos. P3.
+3. **Write-side spec enrichment for A3.17.** The desktop's ADR-gated git surface is fully
+   enumerable now: commit dialog with AI **generate/regenerate**, include-unstaged toggle,
+   identity-missing state, commit-and-push; push dialog with ahead/behind values, untracked
+   description, error copy button; and a **branch switcher with a typed error taxonomy**
+   (`branchAlreadyExists`, `branchInOtherWorktree`, `conflictsPresent`, `invalidBranchName`,
+   `operationInProgress`, `targetBranchNotFound`, `trackedOverwrite`, `untrackedOverwrite`).
+   The A3.17 ADR should spec against THIS vocabulary, not a generic "git mutations" line.
+4. `gitGraph` (commit history with parents/merges/refs metrics) — the phone's flat history is
+   functionally sufficient; graph rendering is desktop eye-candy. Note-only.
+
+## J2. Automations: opening any non-minute schedule silently rewrites it as Daily 09:00 — and the desktop editor is ~5× richer (new, verified — sharpens B2.1)
+
+- **The full corruption mechanism, now precise** (`AutomationsSection.kt:268-289`): the kind
+  is initialized `if (unit == "minute") 0 else 1` — so **every** existing automation whose
+  rule is not minute-interval (daily/weekly/monthly/yearly/once) opens the editor with
+  **"Daily" preselected and `dailyTime` hardcoded "09:00"** (:271); a bare Save writes
+  `ScheduleSpec(dailyHour=9, dailyMinute=0)` (:283-289). B2.1 named the daily-time reset and
+  the model drop (`pickedModel` starts null, :273) — the kind *conversion* is the same root
+  with a wider blast radius. Two more teeth in the Cron branch: a blank cron field **silently
+  saves the default `"0 9 * * *"`** (:286), and the `valid` gate checks only title/prompt/
+  interval — **cron syntax is never validated**, so `"abc"` saves clean.
+- **The desktop's target shape** (`automations.*`, 174 keys): schedule kinds **once / daily /
+  hourly / weekly / monthly-by-dates / monthly-by-weekday / yearly** plus a **custom repeat
+  builder** (every N × minute/hour/day/week/month/year, ends option, weekday picker); a
+  **schedule preview** line; a **maxRuns** field; lifecycle pause/resume; runs history with
+  **pagination, trigger column, status filter, and open-session-from-run** (A3.2's history
+  plus this UX); **create-via-chat** (the agent builds the automation from a prompt);
+  templates; an **unsaved-changes guard**; a create-limit error; and a workflow tab sharing
+  the page (`pageTab.automation|workflow`). The P2 automations redesign should be specced
+  against this, with the editor refusing to open unsupported kinds for edit (or round-tripping
+  them untouched) until the kind set exists.
+
+## J3. Mode vocabulary is GLM-only on the phone; desktop sessions are multi-runtime (new, verified)
+
+Desktop `mode.*` (47 keys) carries **per-runtime label/description pairs**: claude
+(default/acceptEdits/dontAsk/bypassPermissions/plan/auto), codex (readOnly/agent/
+agentFullAccess/fullAccess/auto), gemini (default/autoEdit/plan/yolo), glm
+(default/build/edit/plan/yolo), opencode (build/plan) — and `taskList.newTask.claude|codex|
+gemini|opencode` + `selectProvider` make multi-runtime tasks first-class desktop-side. The
+phone pins the **glm four** in the port contract itself ("build|edit|plan|yolo only",
+`ConversationPort.kt:170`) and maps exactly those in the chip/dialog (`Phase9Components.kt:
+246-271`). Consequence: attached to a claude/codex-runtime task, the mode value decodes
+through the fallback chain (wrong icon/label), and the switch dialog offers glm's vocabulary
+for a runtime that doesn't define it. Fix direction is the pattern I2.9 already praised:
+**drive the mode list from the wire `sessionConfig`** with per-runtime label tables embedded
+the way the desktop does. Priority stays P2/P3 pending one probe — how often non-glm runtimes
+appear on the phone-reachable desktop in practice.
+
+## J4. Task-row affordances: per-task change stats are decoded and unrendered; the desktop row vocabulary is richer (new, verified — D2/E3 class)
+
+- **`Task.TaskSummary(additions, deletions, files)`** (`CoreModels.kt:82`) has **zero render
+  sites** (grep across `features/tasks`: none) — the desktop shows `taskList.changeStats`
+  (+N −N on the row). Same decode-but-unused class as E3/D2; pure UI work.
+- Desktop row tags with no phone counterpart: `attentionCount`, `permissionTag`,
+  `userInputTag`, `cronTaskLabel`/`offPeakTaskLabel`, `workflowRun.liveCount`,
+  `stopCountdown`, `markAsUnread` (the wire half is A3.8), `forkedUntitled`,
+  `viewModelTrajectory`; `mobileActive` is desktop-side state — note-only.
+- **Status-vocabulary probe:** the phone enum is idle/running/waiting/paused/completed/error
+  with a tolerant → UNKNOWN parse (`CoreModels.kt:47-59`); the desktop tag set includes
+  `ready`/`notReady`/`restoring`/`streaming`/`failed`. If those exact strings arrive on the
+  wire the phone renders UNKNOWN rows — no crash (raw preserved), but verify the actual wire
+  values before building on either list.
+- Fairness note: relative-time labels exist and are used in four places
+  (`relativeTimeLabel`) — B2.15's "never refresh" stands, but the utility is there.
+
+## J5. The M3 scheme leaves `surfaceContainer*` unmapped — dialogs, menus, and sheets render the baseline palette, not the designed pair (new, mechanically confirmed)
+
+`LightScheme`/`DarkScheme` (`Color.kt:139-189`) set `surface`/`surfaceVariant`/`inverse*` but
+**no `surfaceContainer`, `surfaceContainerLowest/Low/High/Highest`, `surfaceDim`,
+`surfaceBright`** — those roles fall back to M3's neutral baseline. Every `AlertDialog`,
+dropdown, and (future) `ModalBottomSheet` — the app's dominant chrome per B3's
+"dialog-everywhere" — paints M3 default grey inside the designed-slate screens: two palettes
+visible in one flow (the B1 stacked-dialog experience is exactly this). Fix is one
+role-mapping block per theme, and it lands automatically under B3's sheet migration (sheets
+take `surfaceContainerLow`). `outline` and `outlineVariant` are the **same token**, so every
+M3 divider renders at strong weight — give dividers their own softer variant.
+
+## J6. Token contrast audit — computed, not eyeballed (new)
+
+All 39 computed fg/bg pairs pass 4.5:1 with three exceptions worth owning:
+
+| Token pair | Light | Dark | Verdict |
+|---|---|---|---|
+| `textMuted` on surface / bg / surface2 | 3.32–3.76 | 3.67–4.06 | large-text/non-text only; **1 usage** app-side today — a latent trap for the polish rounds |
+| `statusWaiting` as text | 3.43 | 8.29 | light-mode WAITING chip labels (11sp, on the 16% tint ≈ similar) sit **below AA small-text**; the `StatusComponents` tone text path is the site |
+| everything else (39 pairs) | ≥4.86 | ≥6.13 | pass, most by a wide margin — the designed pair is genuinely good |
+
+Corrections/sharpenings to B3 (fairness): **dynamic color** absence is a *documented
+decision* (`Color.kt` header: "dynamic color optional for chrome only; status tokens stay
+fixed", Phase 11 ADR gate) — B3's bullet should be read as an ADR candidate, not drift. The
+**compact type scale** is likewise `ui-ux/typography.md v2` spec ("operational screens claim
+less vertical space; content wins") — the 11sp `labelSmall` is a spec'd choice and remains
+the readability-floor candidate, but it is not an accident.
+
+## J7. The terminal is read-only *and* copy-less (new, verified)
+
+`TerminalScreen` contains **zero copy/selection affordance** (grep: no `SelectionContainer`,
+no clipboard, no copy action) — a view-only terminal from which the user cannot copy an error
+or a command output. The desktop has `terminal.contextMenu.copy/paste`. Paste stays
+ADR-gated (A3.18), but copy-out is read-side: a `SelectionContainer` over the visible buffer
+or a "copy visible output" action is a cheap native win. (`rememberReducedMotion` IS honored
+here — the one Motion.kt consumer; the component is alive, H4 stands.)
+
+## J8. Verified-healthy ledger (new — hypotheses that did NOT survive; future passes should not re-chase them)
+
+- **Backups:** `allowBackup=false` **plus** `data_extraction_rules` excluding root `.` from
+  BOTH cloud-backup and device-transfer — the conversation DB never leaves the device
+  (manifest §12.4/§26.2-T6 comments match the XML).
+- **Deep links:** strict parser (scheme/host/≤1 segment/512-char caps, `DeepLinks.kt`), the
+  pending-link slot re-validated after pairing, `singleTask` re-entry — well designed.
+- **Benchmark seeding** (`MainActivity.seedForBenchmark`): gated on
+  `BuildConfig.BENCHMARK_SEEDING`, which is `false` by default and `true` only in the
+  benchmark build type (verified in `app/build.gradle.kts:20,40`) — the exported-activity
+  credential-seeding path is inert in release.
+- **Platform currency:** targetSdk 36 / compileSdk 37 — current for late 2026 (exceeds the
+  Play floor); `enableOnBackInvokedCallback` + `enableEdgeToEdge` are consistent with API 35+
+  behavior; FGS `specialUse` carries the required subtype property; widget receiver and
+  FileProvider both `exported=false`.
+- **Biometric gate:** CryptoObject pattern with a dedicated auth-bound Keystore key, typed
+  invalidation on re-enrollment (INV-14, "never a silent fallback"), and honest capability
+  classes (`AVAILABLE`/`SECURE_LOCK_ONLY`/`NO_SECURE_LOCK`) with the androidx 1.1.0
+  credential-fallback constraint documented at the site; E5's reduced-security consent is the
+  correct UX for the `NO_SECURE_LOCK` class.
+- **Small things already right:** the git panel's parity basics (J1), the workspace switcher
+  + create-into-workspace (§18.2/§6.1), per-row text selection with a UI test
+  (`RowCopySelectionUiTest`), tappable markdown links (FIELD fix 2026-10-12), and the §30
+  reduced-motion flag consumed by the terminal.
+
+## J9. Method + live-leg status (new)
+
+- The namespace re-enumeration is now **complete** (~90 namespaces table in hand); the
+  un-diffed set this pass was git/gitGraph/diff/terminal/taskList/workspaceSidebar/workspace/
+  mode/automations/todo/planTool/taskTimeline/sidebar.usage.plan. Remaining un-diffed:
+  `bots`(518), `conversationShare`(330), `workflows`(210), `feedback`(576), `login`/`ssh`/
+  `remote` (desktop connection management), `whiteboard`, `browser`+`cuaPermission` — all
+  either out of phone scope (A3/D5 families) or already covered (A2/A3.3/A3.16/H1.6); no new
+  phone-relevant rows found skimming them. `sidebar.usage.plan`'s five-hour vs weekly window
+  split is a one-probe row against `CodingPlanQuotaSection` (fold into the P2 usage redesign).
+- Contrast ratios: computed from the literal token values with the WCAG 2.x relative-luminance
+  formula; the table above is the whole audit, reproducible from `Color.kt` alone.
+- Live rig: not run. First live probes queued: J1.1's last-turn `getChanges` sourceId,
+  J4's status-vocabulary strings, and the I1/I2 items already queued.
+
+## J10. Plan deltas
+
+- **P0:** no new items — J2's conversion is B2.1's P0 already, but its regression pin must
+  widen: seed a **weekly** automation → open the editor → bare Save → assert the schedule is
+  unchanged (or an explicit "kind not editable phone-side" gate appears); the same pin for
+  the blank-cron silent default.
+- **P1 additions:** `surfaceContainer*` role mapping (J5 — one block per theme, rides along
+  with any dialog/sheet work) · `outlineVariant` as a distinct softer divider token (J5) ·
+  contrast tokens: darken `textMuted` one step or restrict it to large text; AA the WAITING
+  chip label in light mode (J6) · terminal copy affordance (J7).
+- **P2 additions:** automations editor target shape per J2 (8 kinds, maxRuns, preview,
+  structured pickers, unsaved guard, runs status filter + pagination with open-session,
+  cron validation) · task-row change stats from the decoded `TaskSummary` (J4) · per-runtime
+  mode tables driven by wire sessionConfig (J3) · last-turn git section if the probe passes
+  (J1.1).
+- **P3 additions:** git tree view + search (J1.2) · plan/todo panel keys fold into D2/A3.12 ·
+  usage plan-window split probe (J9) · A3.17's ADR spec against the branch-switcher error
+  taxonomy (J1.3).
+- **Sensor delta:** D3's facade extractor should also emit the **full namespace→count table**
+  (this pass's method) so a desktop release that grows a namespace surfaces mechanically
+  instead of by manual re-enumeration.
