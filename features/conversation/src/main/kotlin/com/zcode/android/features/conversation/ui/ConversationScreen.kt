@@ -29,6 +29,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -100,6 +101,35 @@ fun ConversationScreen(
     // ---- Phase 2 (§11.4, GAP-10): message edit ----
     onEditUserQuery: (rowId: Long, entityId: String, newText: String) -> Unit = { _, _, _ -> },
 ) {
+    // C6-BackHandler: back with an unsent draft raises a confirm (the promised
+    // Phase-7 draft guard). The draft is Room-backed — the guard is the CONFIRMATION
+    // UX only; "Leave" just proceeds. Empty draft passes straight through.
+    var confirmLeave by remember { mutableStateOf(false) }
+    val attemptBack = {
+        if (state.draft.isNotBlank()) confirmLeave = true else onBack()
+        Unit
+    }
+    androidx.activity.compose.BackHandler(enabled = state.draft.isNotBlank()) { confirmLeave = true }
+    if (confirmLeave) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmLeave = false },
+            modifier = Modifier.testTag("conversation_leave_confirm"),
+            title = { Text(stringResource(R.string.conv_leave_title)) },
+            text = { Text(stringResource(R.string.conv_leave_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = { confirmLeave = false; onBack() },
+                    modifier = Modifier.testTag("conversation_leave_discard"),
+                ) { Text(stringResource(R.string.conv_leave_discard)) }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { confirmLeave = false },
+                    modifier = Modifier.testTag("conversation_leave_keep"),
+                ) { Text(stringResource(R.string.conv_leave_keep)) }
+            },
+        )
+    }
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
             Modifier
@@ -115,7 +145,7 @@ fun ConversationScreen(
             Header(
                 state = state,
                 phase = phase,
-                onBack = onBack,
+                onBack = attemptBack,
                 onOpenFiles = onOpenFiles,
                 onOpenGit = onOpenGit,
                 onOpenTerminal = onOpenTerminal,
