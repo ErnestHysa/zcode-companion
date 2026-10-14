@@ -924,3 +924,123 @@ stands for live-verifying H1.1/H1.3 later.
 - **P3 additions:** onboarding pass (H1.5) · feedback form (H1.6) · physical-keyboard note
   stands note-only.
 - **Sensor delta:** add the IntlProvider namespace inventory to D3's facade-extractor leg.
+
+---
+
+# PART I — deeper round, pass 9: the conversation surface itself + viewer/usage/composer parity (appended 2026-10-14)
+
+Method: the desktop's `chat.*` namespace (2,556 keys — the conversation UI's complete string
+table) diffed against the phone's actual conversation feature set, and the phone's OWN protocol
+layer (`core/protocol/.../V4Command.kt`) diffed against real send sites. Plus code audits of
+the phone's file viewer, usage screen, and composer. Desktop unchanged (3.14.5). Live rig leg
+infeasible this pass — ~56 MB free at start (3,575 pages × 16 KB; G4's OOM precedent) — so all
+claims below are code/bundle-verified, and I1/I2 are the first items to live-verify next
+session.
+
+## I1. Nine conversation commands are decoded in the app's protocol layer and never sent by any UI (new, verified — completes E3's circuit)
+
+`V4Command.kt` models the full desktop conversation-command vocabulary; a grep across every
+app send site shows these have **zero senders**: `retryTurn`, `forkAssistant`,
+`applyFileRewind`, `setAssistantFeedback` (schema enum confirms `like`/`dislike`),
+`setAutoDrain`, `setFollowupMode`, `startSavedWorkflow`, `reorderQueueItem`, and
+`createSelectionSideSession` (desktop-editor scoped, correctly unused). Combined with E3
+(the wire's `canRetry`/`canFork`/`canRewindFiles`/`canEdit` row flags are also unused), the
+circuit is now closed: **the wire says which rows allow it, and the protocol layer can already
+send it — the missing work is exclusively UI** for Retry/Fork/Rewind/Like-Dislike. Two more
+queue gaps in the same neighborhood: the phone queue has send-now + edit, but **reordering
+(`reorderQueueItem`) and auto-drain (`setAutoDrain`) are unsent** — the desktop's queue does
+both (schema confirms the `queue`/`guide` follow-up modes adjacent to the drain flag).
+Goal control is asymmetric by documented decision: `resumeGoal` is wired via `/goal resume`,
+while `/goal pause|clear|show` are **deliberately refused client-side**
+(SlashCommandParser.kt:8-11, "never a silent prompt") — `pauseGoal` is wire-supported, so
+unlocking it is a P3 candidate once goal state renders (D2).
+
+## I2. Conversation-surface affordances the phone lacks (new, verified)
+
+1. **Per-turn change summary card** (`chat.changeSummary.*`: "N files changed", review,
+   **reapply**, **revert**, rewind, open-in-editor) — the phone renders flat tool rows; no
+   aggregated per-turn change card. Derived from events the phone already receives. Pairs
+   with A3.11 checkpoints.
+2. **Session status strip** (`chat.statusPanel.*`: branch, changes/clean, agents, ended
+   agents/workflows, environment, goal, commitPush) — live git branch + working-tree state
+   inside the conversation header; the phone's git channel data never reaches its
+   conversation screen.
+3. **Session summary panel** (`chat.summaryPanel.*`: duration, goal iteration, running
+   background tasks, open running subagent session, display modes).
+4. **Context-compaction lifecycle** (`chat.contextCompaction.*`: started / completedAuto /
+   failed / retry) — the phone's context meter shows nothing about compaction.
+5. **Turn navigator** (`chat.turnNavigator.*`: jump between user queries) — small.
+6. **Follow-up suggestions + turn steering** (`chat.followup.*`: send-now / add-to-queue;
+   `chat.message.turnSteer.*`: guided/pending) — driven by `setFollowupMode` (I1), already in
+   the phone's protocol layer.
+7. **Tool-call presentation** (`chat.toolCall.*`, 1,218 keys; `changesGroup`/`executeGroup`
+   keys + the H1.4 toolGrouping settings; `toolSlice`/`toolSnapshot`/`bodyPreview` load-more
+   keys) — the desktop groups tool rows and lazy-loads long outputs; the phone renders every
+   tool as a flat ungrouped full-output row (RowRenderers: zero grouping). Pairs with C7's
+   slice methods.
+8. **Generated-artifact preview cards** (`chat.previewCards.*`: audio/docx/html/markdown/
+   pdf/pptx/text + open-external) — the phone renders none; pairs with C1 media-preview.
+9. Desktop per-message keys also confirm fork (with no-checkpoint/unavailable states),
+   like/dislike, collapse/expand, and relative dates (`time.yesterday`). **Fairness:** the
+   phone's stop control exists and is gated on the authoritative `control.canStop`
+   (WriteComponents.kt:508-516) — the correct trust-the-wire pattern.
+
+## I3. The file viewer is a monospace slab (new, verified)
+
+Desktop `codeViewer.*` = 142 keys, plus `showLineNumbers`/`wrapLongLines` settings and Shiki.
+The phone's viewer (FilesScreen.kt:201-253) is paged 64 KB monospace slices with a **manual
+"Load more" tap** (no scroll-end prefetch), no line numbers, no highlighting, no in-file
+search — and **binary/image files render "binary file — use Download"** (:170): the file
+browser cannot preview a PNG at all (distinct from A0.1's conversation-attachment gap).
+Additive i18n findings: three more hardcoded English strings in the download path
+("downloading…", "downloaded N bytes — share sheet opened", "download failed", :213-218),
+and `downloadState.startsWith("binary")` is a string-keyed state machine (B2.16 class).
+
+## I4. Usage analytics parity (new, verified)
+
+The phone's usage screen has stat cards (total/peak/longest session/streaks), a heatmap, and
+honest loading/error/empty states. The desktop adds a **per-model pie**, **daily/model trend
+charts** (`AppUsageModelUsagePieChart` / `AppUsageDailyModelTrendChart` /
+`CodingPlanUsageBar|LineChart` chunks; `settings.usage.modelChart/dailyChart/codingPlanRange`
+keys) and **cache-hit-rate** + call counts. Modest delta — fold into the existing P2
+usage-redesign item rather than a new workstream.
+
+## I5. Composer attachments are picker-only (new, verified)
+
+Photo picker (`PickVisualMedia.ImageOnly`) and `OpenDocument` are wired; **clipboard image
+paste and camera capture are absent** (zero paste/camera code — the only clipboard use in the
+app is copy-OUT). The desktop's `chat.attachments` (70 keys) includes paste/drag flows. On
+Android, paste-image = observe the clipboard + offer a chip (the picker pipeline already
+exists); camera = `TakePicture` contract. Cheap native wins for a chat-first app.
+
+## I6. Strengths worth protecting (fairness)
+
+- The conversation command layer is **protocol-complete**: `V4Command.kt` already models the
+  desktop's full command surface, so E3/I1 are UI backlog, not protocol debt — the right
+  architecture.
+- Stop gating on `control.canStop` (not local guessing) is the correct pattern (I2.9).
+- The `/goal pause` refusal is documented at the parse site with its rationale
+  (SlashCommandParser.kt:8-11) — deliberate scope, visible to future maintainers.
+
+## I7. Method + live-leg status (new)
+
+- The `chat.*` namespace diff is the conversation-surface complement to H1's settings/surface
+  diff; the `V4Command.kt`-vs-send-sites grep is the mechanical way to find "decoded but
+  unusable" protocol surface. Both repeat per desktop release — candidates for the D3/H5
+  sensor legs alongside the IntlProvider namespaces.
+- Live rig: infeasible this pass (memory above). The E7/G4 recipe stands; the queue here is
+  live-verifying I1's row actions and I2's grouping/status panels once machine memory allows.
+
+## I8. Plan deltas
+
+- **P1 additions:** the three I3 hardcoded strings join the i18n sweep list. Nothing else —
+  I1/I2 are feature work and correctly P2+.
+- **P2 additions (top of list):** **Retry/Fork/Like-Dislike row actions** (I1+E3: wire flags
+  gate → protocol commands exist → UI only) · per-turn change summary card (I2.1) · session
+  status strip (I2.2) · tool-row grouping + lazy output slices (I2.7) · paste-image/camera
+  (I5) · file-viewer minimums: line numbers, scroll-end prefetch, image preview (I3).
+- **P3 additions:** queue reorder + auto-drain (I1) · turn navigator (I2.5) · follow-up
+  suggestions via `setFollowupMode` (I2.6) · compaction lifecycle notices (I2.4) ·
+  `/goal pause` unlock (I1) · preview cards (I2.8) · summary panel (I2.3).
+- No corrections to prior parts this pass; D2's goal-render gap gains its control-side
+  counterpart (I1).
