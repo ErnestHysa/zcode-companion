@@ -217,4 +217,37 @@ class AutomationsEditorIntegrityTest {
         rule.waitForIdle()
         assertEquals("a valid 5-field cron must be savable", 1, port.created.size)
     }
+
+    // -------------------------------------------------- decode (modelSelection)
+
+    @Test
+    fun `decode - modelSelection carried tolerantly, absent means null`() {
+        assertEquals("zai", weeklyRow().modelProvider)
+        assertEquals("glm-5.1", weeklyRow().modelId)
+
+        val json = buildJsonObject {
+            put(
+                "automations",
+                buildJsonArray {
+                    add(
+                        buildJsonObject {
+                            put("automationId", "auto-bare")
+                            put("title", "No model row")
+                            put("cronExpr", "0 9 * * *")
+                            put("prompt", "p")
+                            put("enabled", true)
+                            put("lifecycleStatus", "active")
+                            put("runCount", 0)
+                            put("recurring", true)
+                            put("workspaceKey", "/synthetic/ws")
+                            put("locationKind", "remote")
+                        },
+                    )
+                },
+            )
+        }
+        val decoded = AutomationRow.decodeList(json.toString().let { Json.parseToJsonElement(it).jsonObject }).first()
+        assertEquals(null, decoded.modelProvider)
+        assertEquals(null, decoded.modelId)
+    }
 }
