@@ -145,7 +145,10 @@ class VoiceInputTest {
         assertExistsFallback("composer_voice_listening")
 
         // A terminal callback flips the port off — the label must go away.
-        rule.runOnIdle { fake.onFinal?.invoke("done") }
+        rule.runOnIdle {
+            fake.listening = false
+            fake.onFinal?.invoke("done")
+        }
         rule.waitForIdle()
         rule.onAllNodesWithTag("composer_voice_listening").assertCountEquals(0)
     }
@@ -170,7 +173,7 @@ class VoiceInputTest {
 
         // The user TYPES while listening (RED: the callback captured the click-time
         // draft and clobbered it).
-        rule.runOnIdle { draft.value = "typed while listening " }
+        rule.runOnIdle { draft.value = "typed while listening" }
         rule.waitForIdle()
         rule.runOnIdle { fake.onFinal?.invoke("and spoken") }
         rule.waitForIdle()

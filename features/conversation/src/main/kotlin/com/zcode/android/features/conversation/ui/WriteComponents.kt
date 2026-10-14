@@ -617,6 +617,10 @@ fun ComposerBar(
                     .takeIf { it.available }
             }
             var voiceError by remember { mutableStateOf(false) }
+            // B2.2: dictation merges into the CURRENT field value — the callback must
+            // not append to the draft captured when the mic was tapped (text typed
+            // while listening was discarded).
+            val currentDraft by androidx.compose.runtime.rememberUpdatedState(state.draft)
             val conductor = stringResource(R.string.composer_attach_image)
             val attachFileDesc = stringResource(R.string.composer_attach_file)
             val stopDesc = stringResource(R.string.composer_stop)
@@ -644,7 +648,8 @@ fun ComposerBar(
                                     onPartial = {},
                                     onFinal = { spoken ->
                                         if (spoken.isNotBlank()) {
-                                            onDraftChange(state.draft + (if (state.draft.isBlank()) "" else " ") + spoken)
+                                            val base = currentDraft
+                                            onDraftChange(base + (if (base.isBlank()) "" else " ") + spoken)
                                         }
                                     },
                                     onError = { voiceError = true },
