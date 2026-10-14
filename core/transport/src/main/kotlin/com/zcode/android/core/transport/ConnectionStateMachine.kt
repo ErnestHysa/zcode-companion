@@ -37,7 +37,9 @@ class ConnectionStateMachine(
         RESYNC_SNAPSHOT_REPLACED,   // Recovering → Connected (epoch mismatch / gap unresolvable)
         UNPAIR_OR_WIPE,             // Any → Closed
         RECONNECT_BUDGET_EXHAUSTED, // Reconnecting → Degraded
-        RETRY_REQUESTED,            // Degraded → Reconnecting (manual retry / network restored)
+        RETRY_REQUESTED,            // Degraded → Reconnecting (manual retry / network restored);
+                                    // FAILED → Reconnecting (F2: the USER retry from the
+                                    // auth-failed state — the automatic loop stays quiesced)
         DESKTOP_DISCONNECTED,       // Connected → Degraded (close 4010 class)
         RESCAN_REQUESTED,           // Failed → Pairing (the "(→ Pairing via re-scan)" path)
     }
@@ -83,6 +85,10 @@ class ConnectionStateMachine(
             mapOf(
                 ConnectionEvent.WS_AUTH_OK to ConnectionState.RECOVERING,
                 ConnectionEvent.RECONNECT_BUDGET_EXHAUSTED to ConnectionState.DEGRADED,
+                // DIRECT surface (F2 user-retry arm): its auth completes at the
+                // server-info token gate, so the reconnect handshake's TERMINAL
+                // event is hello (the relay exits via WS_AUTH_OK→RESYNC instead).
+                ConnectionEvent.HELLO_RECEIVED to ConnectionState.CONNECTED,
             ),
         )
         put(
@@ -99,7 +105,16 @@ class ConnectionStateMachine(
             ConnectionState.DEGRADED,
             mapOf(ConnectionEvent.RETRY_REQUESTED to ConnectionState.RECONNECTING),
         )
-        put(ConnectionState.FAILED, mapOf(ConnectionEvent.RESCAN_REQUESTED to ConnectionState.PAIRING))
+        // Failed: RESCAN = re-pair; RETRY (F2) = the user's explicit retry opens a
+        // fresh budget and re-runs the handshake (a transient auth fault must not
+        // brick the session — the AUTOMATIC loop still never retries FAILED).
+        put(
+            ConnectionState.FAILED,
+            mapOf(
+                ConnectionEvent.RESCAN_REQUESTED to ConnectionState.PAIRING,
+                ConnectionEvent.RETRY_REQUESTED to ConnectionState.RECONNECTING,
+            ),
+        )
         // CLOSED: absorbing — no exits (identity destroyed)
     }
 

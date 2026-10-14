@@ -416,8 +416,12 @@ class DirectTransport(
             endpointKind = EndpointKind.DIRECT_SERVER,
         )
         if (machine.state == ConnectionStateMachine.ConnectionState.AUTHENTICATING ||
-            machine.state == ConnectionStateMachine.ConnectionState.CONNECTING
+            machine.state == ConnectionStateMachine.ConnectionState.CONNECTING ||
+            machine.state == ConnectionStateMachine.ConnectionState.RECONNECTING
         ) {
+            // The RECONNECTING arm (F2): a user retry from FAILED re-enters here and
+            // completes the handshake at hello — the DIRECT auth already passed at the
+            // server-info token gate. Without it the machine strands in RECONNECTING.
             machine.on(ConnectionStateMachine.ConnectionEvent.HELLO_RECEIVED) // → CONNECTED
         }
         publishState()
@@ -668,7 +672,11 @@ class DirectTransport(
     }
 
     override fun reconnectNow() {
-        if (machine.state == ConnectionStateMachine.ConnectionState.DEGRADED) {
+        if (machine.state == ConnectionStateMachine.ConnectionState.DEGRADED ||
+            machine.state == ConnectionStateMachine.ConnectionState.FAILED
+        ) {
+            // §14.4.1 user-action exit (F2 arm for FAILED): an explicit retry opens a
+            // fresh budget and re-runs the handshake — the automatic loop stays quiesced.
             reconnect.reset()
             runCatching { machine.on(ConnectionStateMachine.ConnectionEvent.RETRY_REQUESTED) }
             publishState()

@@ -123,7 +123,9 @@ class FailedRetryRecoveryTest {
     private fun directTransport() = DirectTransport(
         tokenProvider = { "direct-f2-token" },
         wsFactory = OkHttpWsFactory(),
-        log = ZLog(sink = {}),
+        log = ZLog(minLevel = ZLog.LogLevel.DEBUG, sink = { e ->
+            if (System.getenv("F2_DIRECT_DEBUG") != null) println("[f2log] ${e.level} ${e.event} ${e.details ?: ""}")
+        }),
         config = DirectTransport.Config(
             connectTimeoutMs = 4_000, authTimeoutMs = 4_000, channelInitTimeoutMs = 4_000,
             v4CallTimeoutMs = 4_000, bridgeHandshakeTimeoutMs = 4_000, controlRequestTimeoutMs = 4_000,
@@ -135,13 +137,28 @@ class FailedRetryRecoveryTest {
         wsUrl = url, workspacePath = "/synthetic/ws-one",
     )
 
+    private val directToken = "direct-f2-token"
+
     @Test
     fun `direct - user retry from FAILED recovers to CONNECTED`() {
-        val m = MockZCode(passHash = passHash, expectedSid = sid)
+        val m = MockZCode(
+            passHash = "unused-direct", expectedSid = "unused",
+            mode = MockZCode.Mode.DIRECT, serverToken = directToken,
+        )
         m.script.directRejectToken = true // the 401 token gate (auth-class)
         mock = m
         val url = m.start()
-        val t = directTransport()
+        val t = DirectTransport(
+            tokenProvider = { directToken },
+            wsFactory = OkHttpWsFactory(),
+            log = ZLog(minLevel = ZLog.LogLevel.DEBUG, sink = { e ->
+                if (System.getenv("F2_DIRECT_DEBUG") != null) println("[f2log] ${e.level} ${e.event} ${e.details ?: ""}")
+            }),
+            config = DirectTransport.Config(
+                connectTimeoutMs = 4_000, authTimeoutMs = 4_000, channelInitTimeoutMs = 4_000,
+                v4CallTimeoutMs = 4_000, bridgeHandshakeTimeoutMs = 4_000, controlRequestTimeoutMs = 4_000,
+            ),
+        )
         runBlocking {
             try {
                 runCatching { t.connect(directEndpoint(url)) { _, _, _ -> "" } }

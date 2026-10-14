@@ -729,11 +729,14 @@ class RelayTransport(
 
     override fun reconnectNow() {
         kicked = false
-        if (machine.state == ConnectionStateMachine.ConnectionState.DEGRADED) {
-            // §14.4.1 Degraded → (manual retry / network restored) → Reconnecting: the
-            // attempt budget bounds AUTOMATIC retrying; an explicit user action opens a
-            // fresh budget (otherwise the retry could never leave Degraded — §11.5
-            // "attempt budget then degraded state (user action available)").
+        if (machine.state == ConnectionStateMachine.ConnectionState.DEGRADED ||
+            machine.state == ConnectionStateMachine.ConnectionState.FAILED
+        ) {
+            // §14.4.1 Degraded/FAILED → (manual retry / network restored) → Reconnecting:
+            // the attempt budget bounds AUTOMATIC retrying; an explicit user action opens
+            // a fresh budget (otherwise the retry could never leave the state — §11.5
+            // "attempt budget then degraded state (user action available)"). FAILED is
+            // the F2 arm: an AUTH-class fault was a dead end for the user's Retry.
             reconnect.reset()
             runCatching { machine.on(ConnectionStateMachine.ConnectionEvent.RETRY_REQUESTED) }
             publishState()
