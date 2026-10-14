@@ -1,6 +1,9 @@
 package com.zcode.android.features.conversation.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.material3.Checkbox
+import androidx.compose.foundation.selection.selectable
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -81,8 +84,10 @@ fun ApprovalCard(
     modifier: Modifier = Modifier,
 ) {
     val payload = interaction.permission ?: return
-    var confirmOption by remember { mutableStateOf<PermissionOption?>(null) }
-    var refineText by remember { mutableStateOf("") }
+    // B2.13: keyed on the interaction — a second request landing in the same card
+    // slot must not inherit the first one's armed confirm or typed refine text.
+    var confirmOption by remember(interaction.interactionId) { mutableStateOf<PermissionOption?>(null) }
+    var refineText by remember(interaction.interactionId) { mutableStateOf("") }
 
     Surface(
         modifier = modifier
@@ -255,8 +260,9 @@ fun UserInputCard(
     onAnswerQuestions: (Map<String, List<String>>) -> Unit = {},
 ) {
     val payload = interaction.userInput ?: return
-    var selected by remember { mutableStateOf<String?>(null) }
-    var freeText by remember { mutableStateOf("") }
+    // B2.13: keyed on the interaction — selections never leak across requests.
+    var selected by remember(interaction.interactionId) { mutableStateOf<String?>(null) }
+    var freeText by remember(interaction.interactionId) { mutableStateOf("") }
     // AskUserQuestion plane: per-question selected option values + custom answers.
     val qSelections = remember(interaction.interactionId) { androidx.compose.runtime.mutableStateMapOf<String, List<String>>() }
     val qCustom = remember(interaction.interactionId) { androidx.compose.runtime.mutableStateMapOf<String, String>() }
@@ -301,28 +307,35 @@ fun UserInputCard(
                     )
                     for (option in q.options) {
                         val checked = qSelections[q.question].orEmpty().contains(option.value)
+                        val multi = q.multiSelect == true
+                        // B2.4: the ROW is the touch target (≥48dp) with the RIGHT
+                        // affordance — checkbox for multi-select, a radio that SELECTS
+                        // (never toggles off) for single-select. The inner control is
+                        // display-only; the row owns the toggle.
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .heightIn(min = 48.dp)
                                 .testTag("userinput_q${qIndex}_opt_${option.value.take(24)}")
-                                .clickable(enabled = !busy) {
+                                .selectable(
+                                    selected = checked,
+                                    enabled = !busy,
+                                    role = if (multi) Role.Checkbox else Role.RadioButton,
+                                ) {
                                     val current = qSelections[q.question].orEmpty()
-                                    qSelections[q.question] = if (q.multiSelect == true) {
+                                    qSelections[q.question] = if (multi) {
                                         if (checked) current.filter { it != option.value } else current + option.value
                                     } else {
                                         listOf(option.value)
                                     }
                                 },
                         ) {
-                            RadioButton(
-                                selected = checked,
-                                onClick = {
-                                    val current = qSelections[q.question].orEmpty()
-                                    qSelections[q.question] = if (checked) current.filter { it != option.value } else current + option.value
-                                },
-                                enabled = !busy,
-                            )
+                            if (multi) {
+                                Checkbox(checked = checked, onCheckedChange = null, enabled = !busy)
+                            } else {
+                                RadioButton(selected = checked, onClick = null, enabled = !busy)
+                            }
                             Text(
                                 text = option.label.ifBlank { option.value },
                                 style = MaterialTheme.typography.bodyMedium,
@@ -363,15 +376,23 @@ fun UserInputCard(
                 ) { Text(stringResource(R.string.userinput_send_answers)) }
             } else if (payload.options.isNotEmpty()) {
                 for (option in payload.options) {
+                    // B2.4: the whole row is the touch target — the label was dead
+                    // (~20dp radio-only) before.
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .testTag("userinput_option_${option.optionId}"),
+                            .heightIn(min = 48.dp)
+                            .testTag("userinput_option_${option.optionId}")
+                            .selectable(
+                                selected = selected == option.optionId,
+                                enabled = !busy,
+                                role = Role.RadioButton,
+                            ) { selected = option.optionId },
                     ) {
                         RadioButton(
                             selected = selected == option.optionId,
-                            onClick = { selected = option.optionId },
+                            onClick = null,
                             enabled = !busy,
                         )
                         Text(
