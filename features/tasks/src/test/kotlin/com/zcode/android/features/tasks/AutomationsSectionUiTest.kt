@@ -71,6 +71,12 @@ class AutomationsSectionUiTest {
         return object : AutomationsPort {
             override suspend fun lists(): AutomationsPort.Lists =
                 AutomationsPort.Lists(autos, peaks, error)
+
+            override suspend fun create(workspaceKey: String, write: AutomationsPort.AutomationWrite): Boolean = false
+            override suspend fun update(automationId: String, write: AutomationsPort.AutomationWrite): Boolean = false
+            override suspend fun delete(automationId: String): Boolean = false
+            override suspend fun setEnabled(automationId: String, enabled: Boolean): Boolean = false
+            override suspend fun runNow(automationId: String): Boolean = false
         }
     }
 

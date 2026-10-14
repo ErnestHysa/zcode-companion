@@ -73,14 +73,14 @@ class AppUpdateControllerTest {
     fun `checkForUpdate publishes the checker's Available state`() = runTest(UnconfinedTestDispatcher()) {
         val release = availableRelease()
         val installed = mutableMapOf<File, Int>()
-        val c = controller(FakeChecker(UpdateCheckState.Available(release)), FakeDownloader(DownloadState.Idle), installed)
+        val c = controller(FakeChecker(UpdateCheckState.Available(release, desktopNewer = false)), FakeDownloader(DownloadState.Idle), installed)
         c.checkForUpdate("3.14.5")
         assertEquals(release, (c.check.value as UpdateCheckState.Available).release)
     }
 
     @Test
     fun `an Available banner is not re-fetched on re-trigger (no flicker)`() = runTest(UnconfinedTestDispatcher()) {
-        val fake = FakeChecker(UpdateCheckState.Available(availableRelease()))
+        val fake = FakeChecker(UpdateCheckState.Available(availableRelease(), desktopNewer = false))
         val installed = mutableMapOf<File, Int>()
         val c = controller(fake, FakeDownloader(DownloadState.Idle), installed)
         c.checkForUpdate("3.14.5")
@@ -103,7 +103,7 @@ class AppUpdateControllerTest {
         val installed = mutableMapOf<File, Int>()
         val apk = File.createTempFile("fake", ".apk")
         val c = controller(
-            FakeChecker(UpdateCheckState.Available(availableRelease())),
+            FakeChecker(UpdateCheckState.Available(availableRelease(), desktopNewer = false)),
             FakeDownloader(DownloadState.Ready(apk)),
             installed,
         )
@@ -131,7 +131,7 @@ class AppUpdateControllerTest {
     fun `download failure surfaces Failed and the installer is never called`() = runTest(UnconfinedTestDispatcher()) {
         val installed = mutableMapOf<File, Int>()
         val c = controller(
-            FakeChecker(UpdateCheckState.Available(availableRelease())),
+            FakeChecker(UpdateCheckState.Available(availableRelease(), desktopNewer = false)),
             FakeDownloader(DownloadState.Failed("boom")),
             installed,
         )
@@ -145,7 +145,7 @@ class AppUpdateControllerTest {
     fun `updateNow while a download is running is ignored (no double install)`() = runTest(UnconfinedTestDispatcher()) {
         val installed = mutableMapOf<File, Int>()
         val c = controller(
-            FakeChecker(UpdateCheckState.Available(availableRelease())),
+            FakeChecker(UpdateCheckState.Available(availableRelease(), desktopNewer = false)),
             HangingDownloader(),
             installed,
         )
