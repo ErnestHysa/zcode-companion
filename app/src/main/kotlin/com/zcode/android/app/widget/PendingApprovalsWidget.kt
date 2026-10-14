@@ -44,18 +44,15 @@ import com.zcode.android.domain.model.NotificationRecord
 class PendingApprovalsWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val state = WidgetState.from(NotificationBrokerSource.current(context))
-        provideContent { Content(state) }
+        val records = NotificationBrokerSource.current(context)
+        val state = WidgetState.from(records)
+        provideContent { Content(state, records) }
     }
 
     @Composable
-    private fun Content(state: WidgetState) {
+    private fun Content(state: WidgetState, records: List<NotificationRecord>) {
         val context = LocalContext.current
-        val openApp = actionStartActivity(
-            Intent(context, MainActivity::class.java)
-                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
-            actionParametersOf(),
-        )
+        val openApp = actionStartActivity(launchIntent(context, records), actionParametersOf())
         GlanceTheme {
             Box(
                 modifier = GlanceModifier.fillMaxSize().background(GlanceTheme.colors.background),
@@ -93,6 +90,11 @@ class PendingApprovalsWidget : GlanceAppWidget() {
         }
     }
 }
+
+/** The widget's whole-tap launch intent (H3.2a seam — pure, unit-pinnable). */
+internal fun launchIntent(context: Context, records: List<NotificationRecord>): Intent =
+    Intent(context, MainActivity::class.java)
+        .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
 
 /** Pure derivation — unit-tested without Glance (§35.1). */
 data class WidgetState(val count: Int) {
