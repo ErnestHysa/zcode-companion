@@ -1413,3 +1413,221 @@ conversation:
   D7's pixel-image rig; the markdown + approval mock legs (K8) are reusable for every fix
   round's regression pins.
 - No P0 additions this pass; no prior findings retracted.
+
+---
+
+# PART L — deeper round, pass 12: the first pixel-true visual pass + the last un-diffed namespaces + the task-lifecycle gap (appended 2026-10-14)
+
+Method: three legs no prior pass combined. First, **D7's pixel recipe finally executed** —
+`system-images;android-30;google_apis;arm64-v8a` downloaded (the ATD image's capture pipeline was
+the only blocker; on the new image `screencap` worked first try), AVD `zcode-pixel` (Pixel 5 shape,
+1080×2340 @ 440dpi), the 10-13 vc40 debug build, and the RawWsServer mock (`MOCK_APPROVAL=1`,
+markdown leg armed); pairing re-driven end-to-end on a fresh install and **15 screens captured as
+PNGs and read as pixels** — the audit's first true visual ground truth. Second, the **last
+un-diffed desktop namespaces** (~55 never read key-by-key; asar extraction, values decoded UTF-8 —
+completing the J1 enumeration). Third, a code-pin leg for every live observation. Desktop
+unchanged (3.14.5).
+
+## L1. K6's bottom-geometry ledger item RESOLVES — there is no clipping on a normal image
+
+Captured pixels of the composer (idle + keyboard-open), the Tasks "+ New task" FAB, and the
+approvals card show **everything fully rendered and comfortably inside the safe area**: the
+composer sits above the 3-button nav divider with visible clearance, and with the IME open the
+whole strip lifts correctly above the keyboard (`adjustResize` + insets working — K6's suspected
+`imePadding` gap does not exist). The ATD's "flush-to-window-bottom with severe visible clipping"
+was an artifact of that image's window-frame reporting, not an app defect. Ledger entry closed;
+D7's pixel rig (now just "the zcode-pixel AVD + screencap") is the standing visual tool. The
+J2 automations pin and the F4 form-factor checks can now be pixel-verified in any fix round.
+
+## L2. NEW P2 copy defect: the Terminal consent sentence is glued and half-hardcoded
+
+Live pixels (Terminal gate, light theme): "…you can turn it off at any time.**your machine.** It
+is view-only…" — two sentences fused. Root (`TerminalScreen.kt:178-181`):
+`stringResource(R.string.terminal_consent_body) + "" + "your machine. It is view-only …"` — the
+`+ ""` no-op spacer marks a botched edit, and worse, the entire second fragment is **hardcoded
+English concatenated onto a localized string**, so no translation can ever carry it (a new,
+worse instance of the C5 i18n class). The fragment itself is also broken English ("at any time.
+your machine." — the lead-in "…streams a live shell view of the workspace on your machine" lost
+its first half). Fix: one localized string, whole sentence.
+
+## L3. NEW P1: the approvals inbox is approve-blind — the payload exists but never reaches the card
+
+Live pixels: the inbox card reads "Permission — Bash / task ? · 5 min ago" with Allow-once/Deny —
+**no command preview**. The user's single most consequential decision on this app is made blind,
+while the desktop's permission dialog (and even its *notifications* — `notification.command` =
+"命令：{command}", `notification.file` = "文件：{paths}") shows the actual command/files. The data
+is already on the phone: `SupportRepositories.StoredInteraction` retains the full
+`payload: JsonObject` (`SupportRepositories.kt:42`); only the projection drops it —
+`ConversationPort.InteractionSummary` (`ConversationPort.kt:132-139`) carries
+`toolName` but no preview field, and `ApprovalsScreen.kt:159` renders the tool name only. Fix
+direction: add a bounded one-line preview (stringified `input` truncated to ~1 line, redacted per
+the diagnostics rules) to the summary — P1 because it rides the K4 task-title fix on the same
+card. (K4's `task ?` reconfirmed live a second time; same fix session.)
+
+## L4. NEW P2/P3: Settings subtitle leaks the raw enum and loses its separators to AAPT
+
+Live pixels: `Relay (QR pairing)· v3.14.3· connected: CONNECTED`. Two independent defects:
+1. **Raw enum leak** (`SettingsScreen.kt:295`): `phase.name` is interpolated into
+   `settings_connected_suffix`, printing the internal constant `CONNECTED` in all caps. Joins
+   K6's fault-code leak in the error-copy/i18n taxonomy (new instance, trivial fix: a localized
+   label per phase).
+2. **AAPT leading-space trimming**: `settings_version_suffix`/`settings_connected_suffix`
+   (`strings.xml:96-97`) begin with a literal space — Android's resource compiler trims leading
+   whitespace in string resources, so the " · " separators render as "·" glued to the previous
+   word. Classic aapt gotcha; fix is `\u0020` escapes (or build the subtitle with spacing in
+   code).
+
+## L5. NEW P3 visual findings, pixel-measured (K1's structural diagnosis, now seen)
+
+- **The Idle status glyph is a minus sign.** `StatusComponents.kt:118` maps
+  `IDLE/UNKNOWN → Icons.Filled.Remove` — the app's most common task state renders as a stray
+  "—" before the status word (visible on every fresh Tasks list). A dot (filled/outlined) or
+  clock glyph is the obvious substitution.
+- **"+ New automation" is offered over a permanently-unavailable section.** The header button
+  renders unconditionally (`AutomationsSection.kt:135-141`), including in the
+  `lists?.error != null` branch (:146) that shows "Automations are unavailable on this
+  connection" — on the mock rig (and any relay-only connection) the affordance invites a form
+  whose Save cannot succeed. Hide or disable while the channel is unavailable (sharpens F5/J2).
+- **Two chip families on one screen.** The conversation header shows outlined transparent chips
+  ("mode: build", "zai/glm-5.1 · high") two rows above filled-white bordered chips
+  ("Files/Git/Terminal") — K1.2's shape-system absence, now visible as two visual languages for
+  the same concept on one screen.
+- **Zero-elevation overlays, confirmed in pixels**: the "+ New task" FAB, the scroll-to-bottom
+  FAB, and the dialogs all render as flat fills distinguished only by tint — against the
+  background they read as inert labels, not raised interactive surfaces (K1.3's elevation
+  diagnosis, seen). The task-row selection indicator is a 3px grey rail that reads as a
+  scrollbar artifact rather than selection.
+- **Keyboard word-suggestions pollute slash-command entry**: with the Gboard suggestion strip
+  showing "he / her / here" above a `/he` command, the phone offers autocomplete in a context
+  that is not prose. Minor; a `inputType`/`imeOptions` tweak or an explicit `KeyboardType` for
+  the command state.
+
+## L6. The last namespaces — five phone-shaped feature gaps (the J1 enumeration completes)
+
+The ~55 namespaces H/I/J never read were read key-by-key. Phone-relevant finds:
+
+1. **conversationShare (165) — the desktop can share a conversation; the phone cannot, and
+   Android is the better sharing platform.** Permission tiers (private / link-viewer /
+   link-editor with import-and-continue), link generation + copy, and a ~30-entry **typed error
+   taxonomy** (running-turn, streaming-row, artifact-type/size/outside-workspace, rate-limit,
+   safety-check-timeout…). Zero phone surface. The fix is not a port — it's the Android share
+   sheet as the delivery mechanism for whatever the desktop's share service can produce.
+2. **offPeak (89) — a whole product the phone doesn't know exists.** Idle-time task queue:
+   templates carousel, queue position ("第 {position} 位"), pause/continue with re-queue rules,
+   completed/failed notifications, "keep the computer awake" banner, and a tab that shares the
+   automations page (`offPeak.tabs.scheduled|idle`). J4's `offPeakTaskLabel` note was the tip;
+   the feature is a queued-compute product with its own status vocabulary
+   (queued/paused/running/completed/failed/cancelled).
+3. **Task lifecycle is create-only on the phone (P2).** `TasksPort` (`TasksPort.kt:39-44`) is
+   refresh / retryConnection / repairPairing / observeWorkspaces / createTask — **no delete, no
+   archive, no rename, no move**. The desktop ships delete AND archive with explicit
+   confirmations (`confirmDialog.taskDelete*` "records cannot be recovered",
+   `confirmDialog.taskArchive*` "can be restored later") plus user task **groups** with colors
+   and drag-to-organize (`taskGroup.*`, 24 keys — colors, move-to-group, move-to-top, cron
+   group). The phone's list only ever grows; "manage my tasks" is the gap, not any one button.
+4. **workflows (90) — the saved-workflow hub.** Run with required args, revise-in-chat,
+   promote-to-global, move-between-projects, delete-with-confirmation, last-run states
+   (never/completed/errored/running/stopped), create-via-chat. The phone's I1 note
+   (`startSavedWorkflow` decoded, unsent) is the wire half; there is no hub surface to run
+   anything from.
+5. **codeViewer (71) — the desktop file viewer is an order of magnitude richer than the phone's
+   monospace slab (I3).** Markdown preview/source toggle, SVG preview/source, PDF paging with
+   zoom, PPTX slide viewer with thumbnails, **element-level AI-edit and per-line comments that
+   post back into the conversation**, media/image preview, wrap-lines toggle, binary detection,
+   and a 256KB preview cap with honest oversize copy. Whatever the phone's viewer becomes, this
+   is the target vocabulary.
+
+## L7. The last namespaces — one-liners + three sharpeners for existing findings
+
+- **appError (11): the desktop has an error-boundary product surface** — section-scoped failure
+  ("this area broke; other areas keep working"), retry-this-area vs reload-app, stack captured
+  to diagnostics. The phone has none: any composition crash takes the whole app (adjacent to
+  E6's lint-discipline finding — this is the runtime half of robustness).
+- **codeBlock (18): Mermaid diagrams** render as zoomable/pannable previews with copy — K5's
+  phone-parser missing set grows a fourth member (tables, nesting, strikethrough, mermaid).
+- **markdownTable (10):** desktop tables carry copy-as-Markdown, download-as-CSV, and an
+  expanded scroll preview — more evidence the phone's raw-pipe rendering (K5) is the outlier.
+- **notification (11):** desktop notifications carry payloads (command/files) and a
+  plan-approval type — C3's "zero actions" gap is also a "zero content" gap.
+- **sidebar (51):** in-app theme picker (light/dark/**system**) and **interface zoom**; the
+  phone follows the system (code-verified this pass) and offers neither override.
+- Desktop-only, no phone action indicated: settingsSync (imports config from 17 other agent
+  CLIs), update/updateDialog/updateReady (auto-update UX; phone is store-driven),
+  modelTrajectory (per-call trajectory viewer — P3 debugging parity at most), feedback center
+  (288 — ticketed issue reporting; the phone has diagnostics export), bots (253 —
+  chat-tool/webhook integrations), browser (41 — in-app browser pane), remote/ssh (83 —
+  desktop-side connection wizards), startup (26 — boot states), resourceManager (65 — storage
+  manager), startPlan/manualClaimPlan/occupationOnboarding/rewards/codingPlan/login (~170 —
+  billing/plan/account surfaces), cuaPermission/subagentDirectory/forms (computer-use consent,
+  subagent creation with validated forms), v4Pane/sidePane/titleBar/appHeader/desktopMenu/
+  taskNav/welcome/logout (desktop chrome), directoryBrowser/workspaceFileTree/fileTree/
+  fileActions (desktop file surface), tokenDebug/developerTools/debugInfo (dev surfaces),
+  common (16 shared verbs — useful when the phone grows a shared component library).
+
+## L8. Live-leg ledger + fairness
+
+- **Held up under pixels:** the Settings IA (clean sections, one-line explanations), the
+  reduced-security consent flow (third live re-verification), honest error states with Retry on
+  Files/Git/Usage, the terminal VIEW-ONLY gate concept, conversation send path, inline-code/link
+  rendering, the focused composer's indigo border, the enabled/disabled send transition.
+- **New in the ledger (do not re-chase):** bottom-geometry clipping (L1 — resolved as
+  ATD-artifact); voice input is REAL (`VoiceInput.kt:78` uses `RecognizerIntent.ACTION_RECOGNIZE_SPEECH`
+  — the mic button is not a stub); notification channels exist and are managed
+  (`NotificationChannels.ensure`, plus an update channel); task rows carry merged a11y
+  descriptions ("Synthetic task, Idle, Synthetic One · 7 min ago") and standard ripples
+  (`clickable` at TaskListScreen.kt:599); predictive back is enabled and `adjustResize` set.
+- **Second error-leak instance live-captured** (dark mode, post-uimode-switch): the Usage error
+  rendered "channel closed: no outbound sink attached" — a raw transport error string, distinct
+  from K6's `fault.mock.unscripted:…`. The error-copy taxonomy (K9) needs to own at least these
+  two families plus L4.1's enum.
+- **C3 live-proof:** the pending approval fired a real heads-up notification ("ZCode needs your
+  approval") with no actions and no payload — C3's finding, now on-camera.
+- **K6's approvals-inbox touch target re-measured from the dump:** the bell button is 66×66px
+  at 440dpi = **24×24dp** (Android minimum 48dp) — confirmed twice now.
+
+## L9. Rig notes (for every future session)
+
+- **Pixel rig recipe (replaces D7's "worth one round"):** one-time
+  `sdkmanager "system-images;android-30;google_apis;arm64-v8a"` (~2.5GB; disk had 13GB — the
+  ATD image stays for hierarchy-only passes) →
+  `avdmanager create avd -n zcode-pixel -k … -d pixel_5` →
+  `emulator -avd zcode-pixel -no-window -gpu swiftshader_indirect -memory 2048` →
+  `adb exec-out screencap -p` works immediately (100KB+ PNGs vs the ATD's ~black frames).
+- **The mock runs via `gradle :tools:mockzcode:mockRelayServer`** (the thin `mockzcode.jar` has
+  no Main-Class and no fat deps — `java -jar` fails both ways). Env: `MOCK_PORT`,
+  `MOCK_APPROVAL=1` (arms the approval row). Fresh-pair flow: `pm clear` → paste-link entry →
+  consent → Connected; the mock link's `mid` passes validation as-is.
+- **`adb shell input text` TRUNCATED a 170-char URL at ~42 chars** on this image (twice, at
+  different cut points — looks length- and timing-dependent). Type long strings in ≤28-char
+  segments in a loop; the earlier single-shot attempt produced a mid-`sid` truncation that the
+  parser correctly rejected as BAD_SID (the security gate worked; the rig was lying).
+- **Dialog buttons move when content reflows** (the pairing field grows multiline and pushes
+  Continue down ~140px; dark dialogs lay out Close differently than light). Dump-then-tap every
+  step; never reuse coordinates across screens or themes.
+- `cmd uimode night yes|no` switches the app's theme live (system-follow confirmed — the app
+  re-themes without restart); use it for dark-pass captures.
+
+## L10. Plan deltas
+
+- **P1 additions:** **approvals payload preview** (L3 — rides the K4 card fix; the store already
+  retains the payload, so it is one projection field + one Text line) · regression pins for the
+  approvals card: pending record with a `Bash` payload must render a one-line command preview
+  and the task title (mock already arms this via `MOCK_APPROVAL=1`).
+- **P2 additions:** Terminal consent string fix (L2 — un-glue + localize; one string resource) ·
+  Settings subtitle fixes (L4 — localized phase labels + `\u0020` escapes) · task-lifecycle
+  surface: delete/archive/rename with the desktop's confirmation copy (L6.3 — TasksPort gains
+  the operations; ADR against `confirmDialog.taskDelete*/taskArchive*` vocabulary) ·
+  "+ New automation" hidden/disabled while the channel is unavailable (L5).
+- **P3 additions:** Idle glyph swap (L5 — one `when` arm) · chip-family unification and
+  elevation/radius pass (L5 — rides K1/K9's Shapes work; the pixel evidence is on file) ·
+  conversation share via the Android share sheet (L6.1 — needs the desktop share service probe
+  first) · offPeak + workflows surfaces (L6.2/L6.4 — P3 pending the product question of whether
+  the phone should host queued-compute and workflow hubs at all; the wire half of workflows is
+  I1's already-decoded command) · error-boundary scaffold (L7 — section-scoped catch + retry,
+  desktop appError vocabulary) · slash-input suggestion suppression (L5).
+- **Ledger deltas:** bottom-geometry clipping resolved (L1); do NOT file "mic is a stub",
+  "no notification channels", "no row a11y", or "no predictive back" — all four are false
+  (L8).
+- No P0 additions this pass; no prior findings retracted (K6's ATD clipping observation
+  converts from unresolved-ledger to resolved-artifact, which is a retraction of the *symptom*,
+  not of any finding).
