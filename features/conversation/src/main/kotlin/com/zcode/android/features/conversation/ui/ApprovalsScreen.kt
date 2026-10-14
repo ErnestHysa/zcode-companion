@@ -166,7 +166,10 @@ fun ApprovalsScreen(
                                     fontFamily = FontFamily.Monospace,
                                 )
                                 Spacer(Modifier.height(8.dp))
-                                Row {
+                                // B2.3: weighted + spaced — the unweighted Row sat FLUSH
+                                // (dead Spacer(0), discarded PaddingValues) and the Deny
+                                // button overflowed narrow cards.
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     if (isPermission) {
                                         // §20.2 one-tap approve: the recognized low-risk
                                         // primary (allowOnce) — higher-risk choices live
@@ -192,15 +195,15 @@ fun ApprovalsScreen(
                                             modifier = Modifier
                                                 // §30: approval actions ≥ 56 dp.
                                                 .heightIn(min = 56.dp)
+                                                .weight(1f)
                                                 .testTag("approvals_allow_once_${record.interactionId.take(12)}"),
                                         ) { Text(stringResource(com.zcode.android.core.ui.R.string.action_allow_once)) }
-                                        Spacer(Modifier.height(0.dp))
-                                        androidx.compose.foundation.layout.PaddingValues(4.dp)
                                         OutlinedButton(
                                             onClick = { answerError = null; denyTarget = record },
                                             enabled = busyId == null,
                                             modifier = Modifier
                                                 .heightIn(min = 56.dp)
+                                                .weight(1f)
                                                 .testTag("approvals_deny_${record.interactionId.take(12)}"),
                                         ) { Text(stringResource(com.zcode.android.core.ui.R.string.action_deny)) }
                                     } else {
