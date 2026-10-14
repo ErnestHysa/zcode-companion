@@ -30,6 +30,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.zcode.android.app.MainActivity
+import com.zcode.android.app.notifications.DeepLinks
 import com.zcode.android.app.R
 import com.zcode.android.domain.model.NotificationRecord
 
@@ -91,10 +92,33 @@ class PendingApprovalsWidget : GlanceAppWidget() {
     }
 }
 
-/** The widget's whole-tap launch intent (H3.2a seam — pure, unit-pinnable). */
-internal fun launchIntent(context: Context, records: List<NotificationRecord>): Intent =
-    Intent(context, MainActivity::class.java)
+/**
+ * H3.2a: the widget's whole-tap launch intent. With open approvals it carries the
+ * VALIDATED `zcode://task/{taskId}#interaction={id}` deep link of the NEWEST open
+ * attention record (the §24.7 intake parser is the validation gate — a link that
+ * does not parse degrades to a plain launch, never a malformed intent); with
+ * nothing pending it is the plain launcher intent.
+ */
+internal fun launchIntent(context: Context, records: List<NotificationRecord>): Intent {
+    val base = Intent(context, MainActivity::class.java)
         .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+    val target = records
+        .filter {
+            it.seenAtMs == null && it.taskId != null &&
+                (it.kind == NotificationRecord.Kind.APPROVAL_NEEDED ||
+                    it.kind == NotificationRecord.Kind.USER_INPUT_NEEDED)
+        }
+        .maxByOrNull { it.createdAtMs } ?: return base
+    val uri = android.net.Uri.parse("zcode://task/${target.taskId}").buildUpon()
+    if (!target.interactionId.isNullOrBlank()) uri.fragment("interaction=${target.interactionId}")
+    base.action = Intent.ACTION_VIEW
+    base.data = uri.build()
+    return if (DeepLinks.intake(base) != null) base else {
+        // Fail closed to the plain launch — never a malformed deep link.
+        Intent(context, MainActivity::class.java)
+            .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+    }
+}
 
 /** Pure derivation — unit-tested without Glance (§35.1). */
 data class WidgetState(val count: Int) {
