@@ -33,6 +33,17 @@ import com.zcode.android.features.pairing.ui.QrScanner
  * (+ connection center / settings), one NavHost, edge-to-edge + predictive back
  * (§18.1). extends FragmentActivity — BiometricPrompt (androidx.biometric) requires it.
  */
+/**
+ * C6-taskdesc: the recents card shows the open task's name (the label is the ONE
+ * thing the OS recents surface reads), never a generic app label. No-op on a
+ * blank label — never a wiped description.
+ */
+internal fun android.app.Activity.updateRecentsTaskLabel(label: String?) {
+    if (label.isNullOrBlank()) return
+    @Suppress("DEPRECATION")
+    setTaskDescription(android.app.ActivityManager.TaskDescription(label))
+}
+
 class MainActivity : FragmentActivity() {
 
     // internal: the instrumented suites assert wiring state directly (no product surface).
