@@ -33,7 +33,8 @@ fun EditUserQueryDialog(
     onConfirm: (newText: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var text by remember { mutableStateOf(initialText) }
+    // B2.13: keyed on the row's current text — reopening with different text re-seeds.
+    var text by remember(initialText) { mutableStateOf(initialText) }
     var confirmOpen by remember { mutableStateOf(false) }
     if (confirmOpen) {
         AlertDialog(
