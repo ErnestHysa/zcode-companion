@@ -76,6 +76,12 @@
     <string name="composer_send">Send message</string>
     <string name="composer_voice">Voice input</string>
     <string name="composer_voice_listening">Listening…</string>
+    <string name="composer_model_picker_title">Choose a model</string>
+    <string name="conv_leave_title">Leave this conversation?</string>
+    <string name="conv_leave_body">You have an unsent draft. It stays saved on this device, but the task keeps running — are you sure you want to leave?</string>
+    <string name="conv_leave_keep">Keep editing</string>
+    <string name="conv_leave_discard">Leave</string>
+    <string name="composer_model_picker_empty">No models available on this connection.</string>
     <string name="composer_voice_unavailable">Voice input isn\'t available on this device</string>
 
     <!-- Row renderers (§19.3/§19.5). -->

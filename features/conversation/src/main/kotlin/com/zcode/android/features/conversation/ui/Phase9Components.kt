@@ -80,7 +80,13 @@ fun ComposerModelPickerDialog(
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.action_close)) },
+        // E2: the title slot carried action_close (copy-paste) — live-verified twice.
+        title = {
+            Text(
+                stringResource(R.string.composer_model_picker_title),
+                modifier = Modifier.testTag("composer_model_picker_title"),
+            )
+        },
         confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) } },
         text = {
             when (val list = providers) {
@@ -88,6 +94,17 @@ fun ComposerModelPickerDialog(
                     Modifier.fillMaxWidth().padding(16.dp),
                     horizontalArrangement = Arrangement.Center,
                 ) { CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) }
+                // E9: an empty list rendered a completely EMPTY body — an honest
+                // unavailable state instead.
+                emptyList<ModelProviderOption>() -> Text(
+                    stringResource(R.string.composer_model_picker_empty),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .testTag("composer_model_picker_empty"),
+                )
                 else -> Column(
                     Modifier.fillMaxWidth().heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
                 ) {
@@ -106,7 +123,8 @@ fun ComposerModelPickerDialog(
                                         onPick(provider.providerId, model.id)
                                         onDismiss()
                                     }
-                                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                                    .padding(horizontal = 8.dp, vertical = 8.dp)
+                                    .testTag("composer_model_row_${model.id}"),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 RadioButton(selected = selected, onClick = null)
