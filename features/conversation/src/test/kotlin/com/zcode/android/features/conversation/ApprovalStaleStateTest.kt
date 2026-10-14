@@ -54,6 +54,7 @@ class ApprovalStaleStateTest {
                 PermissionOption("allowOnce"),
                 PermissionOption("allowAlways"),
                 PermissionOption("deny"),
+                PermissionOption("workflowRefine"),
             ),
             raw = buildJsonObject {},
         ),
@@ -111,7 +112,7 @@ class ApprovalStaleStateTest {
         rule.waitForIdle()
 
         val text = rule.onNodeWithTag("approval_refine_text").fetchSemanticsNode()
-            .config[SemanticsProperties.EditableText]
+            .config[SemanticsProperties.EditableText].text
         assertEquals("typed refine text must not leak into the next interaction", "", text)
     }
 
@@ -129,7 +130,10 @@ class ApprovalStaleStateTest {
 
         val selected = rule.onNodeWithTag("userinput_option_opt-a").fetchSemanticsNode()
             .config[SemanticsProperties.Selected]
-        assertEquals("a selection must not survive into the next interaction", null, selected)
+        assertTrue(
+            "a selection must not survive into the next interaction (found $selected)",
+            selected != true,
+        )
     }
 
     @Test
@@ -144,7 +148,7 @@ class ApprovalStaleStateTest {
         rule.waitForIdle()
 
         val text = rule.onNodeWithTag("edit_text_field").fetchSemanticsNode()
-            .config[SemanticsProperties.EditableText]
+            .config[SemanticsProperties.EditableText].text
         assertEquals("the field must re-seed from the row's current text", "new message", text)
     }
 }
