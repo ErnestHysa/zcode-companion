@@ -1241,3 +1241,175 @@ here — the one Motion.kt consumer; the component is alive, H4 stands.)
 - **Sensor delta:** D3's facade extractor should also emit the **full namespace→count table**
   (this pass's method) so a desktop release that grows a namespace surfaces mechanically
   instead of by manual re-enumeration.
+
+---
+
+# PART K — deeper round, pass 11: the desktop's design language as the reference spec + the screens E–G never dumped, live (appended 2026-10-14)
+
+Method: two legs no prior pass ran. First, the **desktop's design language itself** — `DESIGN.md`
+(the written design system, 537 lines: type scale, radius nesting rules, spacing rhythm, elevation
+discipline, motion principle, overlay specs) plus `packages/ui/src/styles.css` tokens — diffed
+against the phone's theme as a *brand/spec* question, not an M3-conformance question; token
+currency spot-verified in the shipped 3.14.5 asar (`text-ui-base` ×75, `zcode-stream-text-in`,
+"Zai Light" ×24). Second, a **live rig leg** (first since G): emulator + RawWsServer mock, driving
+the screens E–G never dumped — Files/Git/Terminal/Usage/Settings/Approvals — plus a NEW mock leg
+scripting a rich-markdown assistant row and a pending approval. Desktop unchanged (CFBundle
+re-checked: 3.14.5.7961 — no drift).
+
+## K1. The desktop has a written design system; the phone implements a different brand (new, verified)
+
+The desktop's UI is governed by `DESIGN.md` + token CSS, and the phone matches **none of its
+structural vocabulary** — not because the phone is unstyled, but because it was built against
+generic Material instead of this product's system:
+
+1. **Brand color is a different hue.** Desktop `--color-brand` = **sky-400/500** (Tailwind sky
+   family) with `--color-primary` = **neutral-950/50** — near-black primary buttons, sky accents.
+   The phone's `accent` (mapped to M3 `primary`, `Color.kt:48/104/135`) = **`#3D5AFE` indigo** —
+   a Material Indigo A400 the desktop never uses, with indigo filled buttons. Side by side these
+   are two different products. Fix direction: retint the phone's accent family to the desktop's
+   sky (or write the divergence down as a deliberate companion-brand decision — it currently
+   exists as neither).
+2. **No radius system.** The desktop's radius is a *nesting rule* (first rounded container
+   `xl` → `lg` → `md` → `sm`, dialogs `2xl`, menus `lg`, controls step down by parent). The phone
+   theme defines **no `Shapes(...)` at all** (grep: zero) — M3 defaults (4/8/12/16/28dp) apply —
+   next to **9 literal `RoundedCornerShape`** call sites (3dp ×4, 4dp, 6dp ×2, 8dp, 10dp). Chips
+   at 3dp inside 28dp dialogs: the incoherence J5 found in color, repeated in shape. One
+   `Shapes(...)` block + a nesting rule lands most of it.
+3. **No elevation system.** Desktop: "layer through background contrast, borders, and radius";
+   overlays carry `border-popover-border` + `shadow-md`, toasts `shadow-lg`. Phone: **zero
+   `.shadow(...)` anywhere**; `tonalElevation` ×3 (1dp/2dp); dialogs/menus are border-less tonal
+   fills (which, per J5, also paint the wrong palette). The overlay language is tonal-only where
+   the product language is border-led.
+4. **Typography:** the desktop's `text-ui-*` scale (14px base, role table, 9px floor restricted
+   to axis furniture) vs the phone's locally-spec'd compact scale (J6's fairness note) — two
+   different design authorities. Whatever the phone scale should be, it should cite the desktop's
+   as its parent (or the divergence should be written down next to it).
+
+## K2. The desktop's motion vocabulary, extracted — the concrete target for B3's "zero motion" (new, verified)
+
+B3 established the phone has no motion; the desktop's shipped CSS now supplies the **numbers** the
+fix should target (all `styles.css`, reduced-motion-guarded at each site):
+
+- **Conversation entrance**: `zcode-stream-text-in` 900ms `cubic-bezier(0.16, 1, 0.3, 1)` with a
+  per-marker stagger (`--zcode-stream-animation-delay`) — the desktop's single most
+  identity-defining animation: rows/streams *arrive*, they don't pop.
+- Collapsible sections: 300ms ease-in-out. Draft-prompt waterfall: 260ms
+  `cubic-bezier(0.22, 1, 0.36, 1)`. Reaction pop: 450ms. Alarm ring: 600ms. Markdown image
+  loading: 1.8s shimmer.
+- DESIGN.md's motion principle matches: "fast and low-drama; subtle fade, zoom, and directional
+  slide; never springy in the workspace."
+
+Phone re-census today (post-vc40 + field fixes): `AnimatedVisibility` **0**, `animateContentSize`
+**0**, `animate*AsState` **0**, `Crossfade` **0**, `animateItem` **0**, haptics **0**,
+`ModalBottomSheet` **0** — B3 stands unchanged. The B1/P1 motion workstream now has a target
+vocabulary: NavHost shared-axis ≈ 300ms, row stream-in with stagger, `animateContentSize` on
+collapsibles, haptic ticks on send/pick/copy.
+
+## K3. The composer: five equal-weight icon buttons and no designed shell (new, verified)
+
+`ComposerBar` (`WriteComponents.kt:603-700`): the input is a bare `OutlinedTextField` on a flat
+`Surface`, flanked by up to **five same-weight 48dp icon buttons** — mic, add (photo picker),
+attach-file, stop, send. The send is a plain `Icons.Filled.Send` icon distinguished only by being
+last; there is no filled/primary send treatment, no designed input shell, no hierarchy among the
+actions (the desktop's `ChatPromptEditor` is a *designed* object — the one approved `rounded-2xl`
+shell, with attachments living inside it and segmented primary+overflow patterns elsewhere).
+Also: the composer column stacks up to **six strips** above the input (routing hint, pending
+sends, attachment strip, slash menu, voice state, send notice) with no collapse policy — B2.12's
+top-of-screen pile has a bottom-of-screen twin. Fix direction (rides the B1/P2 sheet-and-shell
+migration): a designed input shell, ONE primary send that morphs to Stop (keeping the
+authoritative `control.canStop` gating), attach/attach-file/mic folded into a single add-menu,
+and a stack budget for the strips.
+
+## K4. The approvals card identifies the task by a raw session-id prefix — or a literal "?" (new, live-captured — P1)
+
+With a real pending approval on the rig, the approvals card's context line renders
+**"task ? · 4 min ago"**. Root: `ApprovalsScreen.kt:163` renders
+`record.sessionId?.take(16) ?: "?"` — on a real desktop this shows a 16-char hex session prefix
+where the user needs the **task name**, and a bare `?` when the record carries no session id.
+The desktop's permission dialog names the task/conversation; the phone's highest-stakes surface
+names a machine identifier. Fix: resolve the title from the task store by sessionId (the store is
+already on the phone); keep `?` only as the last-resort fallback. (The Allow-once/Deny buttons
+themselves measured well-spaced on this pass's dump — B2.3's narrow-screen flush/overflow remains
+the separate, standing risk.)
+
+## K5. Markdown ground truth — now live (new, live-captured; completes H3.3 and sharpens H1.3)
+
+The mock gained a `demoAssistantMarkdown` leg (heading, inline code, link, nested list, pipe
+table, fenced kotlin block, strikethrough) + a `MOCK_APPROVAL=1` env arming a pending approval
+(mock self-tests green: `MockZCodeSelfTest`, `RawWsServerTest`). Live hierarchy dump of the
+conversation:
+
+- Top-level bullets render (• + item). **Nested sub-items render as ONE prose line with literal
+  markers: `- nested sub-item A - nested sub-item B`** — H3.3's parser prediction,
+  now on-device fact.
+- **The entire 2×2 pipe table renders as one raw text block** (`| File | Status | | ---- |…`) —
+  H1.3's "no tables", live-proven on the primary reading surface.
+- **`~~temporarily~~` renders with literal tildes** — strikethrough joins the parser's missing
+  set (trivial to add in the bounded parser).
+- Fairness: the **fenced code block renders correctly** (a "CODE · kotlin" chip + code text with
+  angle brackets and newlines preserved), h2/inline-code/link render — the parser's core paths
+  work; the missing set is exactly tables, nesting, strikethrough.
+
+## K6. Screen-by-screen live sweep — what E–G never dumped (new, live-captured)
+
+- **Usage leaks raw fault codes into the UI**: the error state shows
+  `fault.mock.unscripted:getAppUsageStats` verbatim above its Retry button, while the Automations
+  section paraphrases ("unavailable on this connection", F5). One error-copy taxonomy, please —
+  joins the C5/i18n workstream.
+- **Duplicated page titles live on two more screens**: "Workspace files" over "Files", "Git" over
+  "Git" (B2.18's rot, re-confirmed beyond the Files screen).
+- **The approvals inbox entry is a 24dp icon-button with a 17px count digit** in the Tasks header
+  (live-measured [827..893]×[72..138] with the digit inside) — sub-minimum target + low salience
+  for the app's single most important destination (B3 touch-target class, new instance).
+- **Unresolved bottom-geometry observation — ledger, NOT a finding:** on the ATD, BOTH bottom
+  action rows (conversation composer, Tasks "+ New task") report flush-to-window-bottom with
+  severe visible clipping (composer field 44px of ~154px, its buttons 22px of 132px). Taps still
+  land — the send was wire-verified live (`sendConversationCommandV4 ok in 57ms`) — and both
+  screens *do* declare `navigationBarsPadding()` (`TaskListScreen.kt:113`,
+  `ConversationScreen.kt:112-113`), while the ATD window frame reports [0..2148] of the 2280
+  display. Pixel capture stays dead (D7), so this cannot be adjudicated from hierarchies alone;
+  recorded here so the pixel-image rig recipe (D7) checks this exact geometry FIRST.
+- Fairness: the Terminal gate screen reads well (VIEW-ONLY chip + honest sensitive-surface
+  explainer + Enable button); the Settings IA is clean (Endpoints / Insights / Plugins / Skills /
+  MCP / Diagnostics with one-line explanations); the reduced-security consent re-verified live
+  (E5 stands); Files/Git/Usage all carry honest error states with Retry; F5's "Automations are
+  unavailable … while Connected" copy nit re-confirmed.
+
+## K7. Verified-healthy ledger additions (new — do not re-chase)
+
+- The **send path works end-to-end on the real wire** (composer → `sendConversationCommandV4` →
+  mock ack → list/state flows), so composer clipping (above) is not a functional defect.
+- Approval one-tap buttons present and adequately spaced on the card (K4 dump); manual pairing
+  entry + consent + first-sync sequence re-verified live for the third time.
+- The pairing link parser tolerates a raw `=` where `%3D` was encoded (typed-link entry path
+  exercised live); `adb input text` note below is tooling, not an app defect.
+
+## K8. Method + rig notes (new — for every future session)
+
+- **Mock additions (committed with this part, additive, self-tests green):**
+  `script.demoAssistantMarkdown` (one rich-markdown assistant row in the snapshot) and
+  `MOCK_APPROVAL=1` (arms a pending-approval tool row). Any future fix round can regression-pin
+  markdown nesting/tables and the approvals surface against the live rig.
+- **adb driving gotchas:** `adb shell input text` runs through the device shell — an unquoted
+  `&` background-truncates the URL (use device-side single quotes around the whole remote
+  command); `?`/`=`/`%3D` type fine raw. The Files/Git/Terminal chips are separate ROUTES, not
+  in-place tabs: press back before tapping the next chip. The approvals inbox is the header
+  icon-button (content-desc "Approvals", top-right), not a list row. Fresh-AVD pairing: `pm
+  clear` → manual entry → rewritten link (`10.0.2.2`) → consent → Connected worked first try.
+- Desktop REA: still not directly usable on this machine (H5's heap verdict stands — not
+  re-chased); the token/string extraction method used here is the standing substitute.
+
+## K9. Plan deltas
+
+- **P1 additions:** `Shapes(...)` definition + radius consolidation (K1.2 — rides any dialog/
+  sheet work) · **approvals task-title resolution** (K4 — small, high-stakes) · error-copy
+  taxonomy: stop leaking raw `fault.*` codes (K6, joins C5's i18n/error workstream).
+- **P2 additions:** **brand-alignment one-pager**: sky-vs-indigo + near-black primary buttons —
+  adopt the desktop's palette or document the divergence (K1.1; the single most visible
+  "different product" signal) · composer shell + primary-send redesign per K3 (rides the B1/P2
+  sheet migration) · motion target vocabulary per K2 (rides B3's motion workstream — the numbers
+  are now on file).
+- **Rig/pixel deltas:** the unresolved ATD bottom-geometry check (K6) is the FIRST item for
+  D7's pixel-image rig; the markdown + approval mock legs (K8) are reusable for every fix
+  round's regression pins.
+- No P0 additions this pass; no prior findings retracted.

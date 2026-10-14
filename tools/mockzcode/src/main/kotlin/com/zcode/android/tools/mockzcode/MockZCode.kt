@@ -87,6 +87,13 @@ class MockZCode(
         /** Row-id base for snapshot rows (tail-window simulation: base > firstRowId ⇒ truncated). */
         var snapshotRowIdBase: Long = 1L
 
+        /**
+         * When set, the snapshot appends ONE assistantText row carrying this markdown
+         * payload (nested list / table / fenced code) — exercises the phone's bounded
+         * parser live instead of inferring rendering from MarkdownParser.kt alone.
+         */
+        var demoAssistantMarkdown: String? = null
+
         /** When true (with snapshotRowsWindowShape), the window reports firstRowId=1 ⇒ more history above. */
         var snapshotWindowTruncated: Boolean = false
         /** Shuffle fragment envelopes inside each logical message (out-of-order storm). */
@@ -1112,6 +1119,9 @@ class MockZCode(
         }
         sessionTurnOutcome?.let { outcome ->
             rows.add(schemaRow(sessionId, nextId++, RowKind.TURN_HEADER, outcome))
+        }
+        script.demoAssistantMarkdown?.let { md ->
+            rows.add(schemaRow(sessionId, nextId++, RowKind.ASSISTANT_TEXT, md))
         }
         pendingApproval?.let { (tool, iid) ->
             rows.add(schemaRow(sessionId, nextId++, RowKind.TOOL_CALL, "pendingApproval:$iid", extra = buildJsonObject {

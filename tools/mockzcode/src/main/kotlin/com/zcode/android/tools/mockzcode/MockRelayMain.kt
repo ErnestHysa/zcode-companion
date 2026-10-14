@@ -30,6 +30,35 @@ fun main() {
     mock.script.authScenario = scenario
     mock.script.modelSelection = defaultModelSelection()
     mock.script.emitStateKeys = true
+    // PART K live leg: one rich-markdown assistant row so the phone's parser renders
+    // against real wire content (nested list, table, fenced code, inline code, link).
+    mock.script.demoAssistantMarkdown = listOf(
+        "## Rewrite plan",
+        "",
+        "Applied `Parser.kt` fixes in [the workspace](https://example.test/ws):",
+        "",
+        "- Top-level item one",
+        "  - nested sub-item A",
+        "  - nested sub-item B",
+        "- Top-level item two",
+        "",
+        "| File | Status |",
+        "| ---- | ------ |",
+        "| Parser.kt | rewritten |",
+        "| ParserTest.kt | +12 −3 |",
+        "",
+        "```kotlin",
+        "fun parse(input: String): List<Node> =",
+        "    input.lines().mapNotNull(::parseLine)",
+        "```",
+        "",
+        "Done ~~temporarily~~ permanently.",
+    ).joinToString("\n")
+    // MOCK_APPROVAL=1 arms one pending-approval tool row so the Approvals screen
+    // renders live (B2.3/B2.4 geometry checks need a real interaction on-device).
+    if (System.getenv("MOCK_APPROVAL") != null) {
+        mock.setPendingApproval("Bash", "mock-approval-1")
+    }
     // Session config echo (§10.3): provider/model/thought are REQUIRED keys — without
     // them the config state drops and the conversation chips never render.
     mock.script.sessionConfig = JsonObject(
