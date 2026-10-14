@@ -1631,3 +1631,180 @@ The ~55 namespaces H/I/J never read were read key-by-key. Phone-relevant finds:
 - No P0 additions this pass; no prior findings retracted (K6's ATD clipping observation
   converts from unresolved-ledger to resolved-artifact, which is a retraction of the *symptom*,
   not of any finding).
+
+---
+
+# PART M — deeper round, pass 13: large screens/RTL/notification brand + the never-audited Settings viewers, live, dark, and landscape (appended 2026-10-14)
+
+Method: first, drift re-checks — the desktop is **still 3.14.5** (CFBundle 3.14.5.7961; asar
+mtime unchanged since Sep 30) and the app's Kotlin is **unchanged since d3f4425/vc40** (git log
+over `app/core/data/domain/features`), so every prior finding stands as written. Second, the
+**repo's own design package (`ui-ux/`) is now a stub** — README.md only; the ~18 files the
+README indexes (design-system, color-system, typography, mockups/…) exist nowhere in the
+workspace, including the `ui-ux/typography.md v2` J6 cited. Third, four legs no prior pass ran:
+**large screens / multi-window / RTL** (manifest + code sweep, then live landscape + dark pixel
+verification), **the never-audited Settings viewers** (Connection Center, MCP, Plugins, Skills —
+populated live via three NEW scripted mock legs, this pass's commit), the **desktop-side
+diff** of those same surfaces (`settings.mcp.*`, `settings.plugins.*`, `settings.skills.*` —
+the namespaces J9 counted but never read), and **notification brand + cold-start numbers**.
+
+## M1. The design package is a stub — the spec's authority is now one README (new, verified)
+
+`ui-ux/` contains README.md (2026-10-07) and nothing else; the README's folder-structure section
+promises 18 files + 15 mockups that no longer exist anywhere on disk. Two consequences:
+
+1. **Process:** the "visual source of truth" is unenforceable — J6's typography citation and any
+   future token dispute have nothing to check against. Restore the package (it exists in
+   whatever ZIP it came from) or archive the README as historical and write the divergences
+   down in-code. RowRenderers.kt:67 still cites "ui-ux component-library v2" in its KDoc — the
+   code references a spec the repo no longer contains.
+2. **Conformance (the checkable residue):** the README's design-language summary holds up well
+   against the shipped app — **fairness/ledger**: YOU/AGENT overlines exist (RowRenderers.kt:90/
+   153), the connection dot+label line sits under the app bar (TaskListScreen `ConnectionStatusLine`,
+   48dp min-height, tappable), and the **tool blocks with internal status rails are real** — the
+   landscape capture shows the Bash-needs-approval row with an amber left rail (first time the
+   README's "agent-timeline grammar" claim is confirmed in pixels). The one README claim with
+   **zero code**: the "small Z mark on pairing/connection" — no brand mark exists anywhere
+   (grep: none; L's pairing pixels: none). Either add the mark or strike the claim.
+
+## M2. Large screens have zero width discipline — and the app is multi-window-reachable (new, P1/P2)
+
+- **Code:** zero `WindowSizeClass`, zero `BoxWithConstraints`, zero `widthIn(max = …)` /
+  content max-width anywhere in the app's UI modules. Manifest has no `resizeableActivity`
+  (defaults **true**) and no orientation locks — split-screen, DeX, and tablets are all
+  reachable form factors the app does nothing for.
+- **Live, landscape (dark, zcode-pixel):** the conversation screen renders prose, code blocks,
+  and the composer at **full device width** — a 915dp line length (the readability ceiling is
+  ~60–75dp×10); the composer's text field stretches ~75% of the screen with three icon buttons
+  trailing (K3's shell problem amplified). F4's Tasks-header vertical-columns bug re-measured
+  live a second time ("Tasks" 129×58px, "MockBook" 158×39px, "Connected" 159×39px — one-to-two
+  characters per line) and it is **Tasks-header-specific**: the conversation header lays out
+  fine in landscape, so the fix is the Tasks header's width/weight chain, not a global one.
+- **Fix direction:** a `WindowWidthSizeClass` gate (or a single `BoxWithConstraints` content
+  wrapper) capping conversation/reader content at ~600dp centered, a two-pane list-detail for
+  the task list at expanded width (the desktop's task-list + conversation split is the model),
+  and the F4 header fix. This is the concrete "Samsung/foldable would ship it" gap — a foldable
+  opened flat today shows a phone UI stretched edge to edge.
+
+## M3. RTL: the app is LTR-locked by declaration (new, note-level P3)
+
+No `android:supportsRtl` in the manifest (defaults false) — the app cannot be mirrored even if
+localized RTL. Today this is *coherent*: both shipped locales (en, zh-CN) are LTR, and B3's
+"`Icons.Filled.Send` not auto-mirrored" is therefore moot in practice (it bites only if RTL ever
+ships, at which point WriteComponents.kt:698 needs `Icons.AutoMirrored`). Record so a future
+i18n pass doesn't discover the lock at runtime.
+
+## M4. Notifications carry no brand — every icon is a platform stock glyph (new, P2)
+
+The FGS "connected" notification uses `android.R.drawable.stat_notify_sync_noanim`
+(LiveConnectionService.kt:85) and **every broker notification uses
+`android.R.drawable.stat_notify_chat`** (AndroidNotificationSink.kt:28) — the approval
+notification, the app's single most important push, renders with Android's generic chat-bubble
+icon and looks like a message from a person, not a security decision. This is F6's
+monochrome-launcher finding's twin in the shade: a small monochrome-aware app icon (or a
+designed glyph set per channel) is the fix. Code-verified; the live pixel attempt (toggle FGS →
+shade capture) aborted because the Compose switch wasn't hittable from the dump — the code
+evidence is conclusive, the pixel is a nice-to-have for the fix round.
+
+## M5. The Settings viewers + Connection Center, finally audited — live, populated, dark (new)
+
+Never captured or diffed before (K6 dumped only their error states). The rig gained three
+scripted mock legs (`script.mcpServerStatuses` / `script.listPlugins` /
+`script.skillReferenceCatalog` in MockRelayMain — committed this pass, shapes mirror the domain
+decoders, self-tests green), so all three viewers were captured **populated**, light and dark:
+
+1. **The raw-fault leak is now the dominant error style: ×3 new screens** (K6's taxonomy
+   family grows from 2 to 6+ live instances). McpViewerScreen.kt:106, PluginsViewerScreen.kt:111,
+   SkillsViewerScreen.kt:106 all print `result?.error` verbatim — on the rig:
+   `fault.mock.unscripted:listMcpServerStatuses` above a Retry button, on all three. Joins the
+   C5/K9 error-copy workstream as its largest evidence block.
+2. **"Last refreshed 1 min ago ago"** (Connection Center, pixel-confirmed): the template
+   `conn_last_refreshed` = `Last refreshed %1$s ago` (strings.xml:27) receives
+   `relativeTimeLabel(it)` output — which **already ends in "ago"** (ConnectionCenterScreen.kt:248-
+   249). Fix: drop " ago" from the template or pass a bare duration. P2 copy, exact root.
+3. **The AAPT whitespace family grows to three instances + a new code-literal sibling.**
+   L4.2's leading-space trimming also bites `conn_desktop_version` (`" · desktop %1$s"`,
+   strings.xml:15 → "MockBook· desktop 3.14.3", pixel-confirmed) — and the Settings endpoint
+   row's active marker is a **hardcoded `"  •"` literal appended in code**
+   (SettingsScreen.kt:287, `if (active) "  •" else ""`), rendering "MockBook  •": a glued,
+   symbol-only active indicator with no label and no semantics — TalkBack reads a stray bullet.
+   Fix family: `\u0020` escapes / build spacing in code / a real Badge with a contentDescription.
+4. **Dark-mode contrast: the MCP literal greens/reds fail on dark (J6 table extension).**
+   `statusColor`'s `Color(0xFF2E7D32)` / `Color(0xFFC62828)` (McpViewerScreen.kt:138,140) are
+   light-theme-weight green/red 800s; on the dark scheme they compute ≈3.0–3.5:1 against the
+   surface — below AA for their 12sp `labelMedium`, and visibly dim in the dark capture
+   ("connected" nearly sinks into the background). J6's computed table covered theme tokens
+   only; these literals are outside it. Same fix family: status roles, not literals.
+5. **The Plugins viewer abuses a disabled AssistChip as a state badge**
+   (PluginsViewerScreen.kt:192-206): `AssistChip(onClick = {}, enabled = false)` renders the
+   ON/OFF state as a *disabled control* — 38%-alpha grey with a colored label — which reads as
+   "can't tap" not "enabled", and is the B3 component-misuse class's clearest instance. A
+   tonal `Badge`/`Surface+Text` is the primitive. Its diagnostics rows add `"⚠ ${diag.code} — …"`
+   (⚠ glyph-as-icon + raw code, :141), and the row leaks a desktop filesystem path fragment
+   (`rootPath.substringAfterLast('/')`, :183) as metadata.
+6. **All three viewers + MCP: bare-text loading states (B3 family ×3 more), no pull-to-refresh,
+   single-shot fetch** — the catalog can silently go stale for a whole session; H2.5's
+   pull-to-refresh note gains three more screens, and C4's "static screen" class grows.
+7. **The desktop-side diff of the same surfaces (settings.mcp.*/plugins.*/skills.*, extracted
+   key-by-key):** the desktop **localizes the exact MCP statuses the phone renders verbatim**
+   (`settings.mcp.status.connectedReason/connectingReason/disconnectedReason/errorReason/
+   unknownReason` + a `toolCount` line + per-status reason *descriptions*) — so the phone's
+   KDoc'd "closed enums display as-is, no invented states" principle has a parity target it is
+   missing: the enum values are desktop display *words*, and zh users get English enums where
+   the desktop shows Chinese. The desktop pages also carry (read-side, phone-relevant):
+   MCP search + empty states + local-vs-plugin grouping + OAuth authorization states; **plugin
+   detail pages with 6 component inventories** (agents/commands/hooks/lsp/mcp/skills), config
+   with show/hide/clear-secret handling, `versionChanged`/`updateAvailable` states, installed-at/
+   source; **skills grouped per agent** (`settings.skills.agent.common/glm/unknown`), detail
+   metadata (slug/version/publishedAt), copy-to-common, diagnostics. The phone's flat
+   name+description+enum rows are an order thinner on the READ side (the write half stays
+   ADR-gated per fb03b80's ground truth). Also new: `chat.toolCall.mcp.*` (callDetails/
+   copyResult/parameters/result/wrapLines) and `chat.toolCall.skill.*` (ran/running/args/
+   noOutput) — the desktop presents MCP/skill tool invocations as first-class conversation
+   blocks; the phone renders them as generic tool rows (I2.7's grouping family gains its
+   MCP/skill specifics).
+8. **Fairness:** the Connection Center's "Connection states" legend is genuinely good design —
+   eight honest states, each with a one-line explanation, the active one marked by
+   **dot + tint + label** (never color alone — the README rule kept); Skills is the **only
+   searchable catalog** in the app (works, with a proper no-results state); the Skills search
+   filters name+description+plugin correctly.
+
+## M6. Quantitative facts (new)
+
+- **Cold start:** 3.13s / 3.34s / 3.54s (`adb am start -W` TotalTime, three force-stopped
+  starts on zcode-pixel) — with the standing caveats: swiftshader GPU and no baseline profile
+  (F6). The number to beat, reproducible with the L9 recipe.
+- **F6.3 precision note:** the APK **does** carry `META-INF/androidx.profileinstaller_
+  profileinstaller.version` (profileinstaller arrives transitively via Compose) but embeds **no
+  `assets/dexopt/baseline.prof`** — so the dependency is present while the measured profile is
+  still unconsumed; F6's claim stands, with "wire the baselineprofile module's output" as the
+  precise remedy. Debug APK 53,438,236 bytes (D7's figure re-measured).
+- **Rig lesson (new):** the `mockRelayServer` task runs as the Gradle daemon's JavaExec child —
+  **`gradle --stop` kills a running mock** (exit 137 mid-serve, diagnosed live). Order matters:
+  stop daemons *before* starting the mock, never while it serves. Also: `uiautomator dump
+  /dev/tty` output carries trailing junk after `</hierarchy>` — XML-parse only up to that
+  marker (regex node-scanning silently skips nodes for the same reason); and the Compose
+  Settings switches expose no Switch class/bounds to uiautomator, so pixel-driving the
+  notification legs needs coordinate taps at current-layout moments (or Robolectric pins).
+
+## M7. Plan deltas
+
+- **P1 additions:** **large-screen minimums** (M2 — content max-width + WindowSizeClass gate;
+  the F4 Tasks-header fix folds in) · **notification brand icons** (M4 — one monochrome-aware
+  icon resource, per-channel tint allowed; rides any notification work).
+- **P2 additions:** fault-leak cleanup on the three viewers (M5.1 — rides the K9 error-copy
+  taxonomy) · double-ago template fix (M5.2 — one string) · AAPT whitespace family + the
+  `"  •"` active marker → Badge (M5.3) · MCP status color roles for dark (M5.4) ·
+  AssistChip-as-badge → Badge (M5.5) · localized MCP status labels + reasons from
+  `settings.mcp.status.*Reason` as the parity target (M5.7 — folds into the viewers' zh pass).
+- **P3 additions:** RTL decision note (M3 — supportsRtl stays off until RTL locales exist; fix
+  the Send icon then) · viewer richness (plugin detail components/skills agent grouping — the
+  read-side parity rows of M5.7) · restore the `ui-ux/` design package or archive the README
+  (M1.1 — process, not code) · the Z brand mark on pairing (M1.2 — either add it or strike it).
+- **Ledger deltas:** README headline grammar verified implemented (M1.2 — do not re-audit
+  YOU/AGENT overlines, connection line, tool rails); profileinstaller nuance (M6); F4 confirmed
+  Tasks-header-specific (M2 — the conversation header is innocent in landscape).
+- No P0 additions this pass; no prior findings retracted. The FGS pixel leg (M4) is
+  code-verified only — the fix round should pixel-verify the new icon from a Robolectric pin or
+  a manual toggle instead of the dump-driven attempt.
+

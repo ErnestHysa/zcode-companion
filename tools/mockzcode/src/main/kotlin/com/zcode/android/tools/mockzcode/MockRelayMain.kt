@@ -59,6 +59,140 @@ fun main() {
     if (System.getenv("MOCK_APPROVAL") != null) {
         mock.setPendingApproval("Bash", "mock-approval-1")
     }
+    // PART M live leg: populated MCP / plugins / skills viewers (shapes mirror the
+    // domain decoders: ViewerModels.McpStatuses / PluginsView / SkillCatalog) so the
+    // three Settings viewers render their real lists on device instead of the
+    // fault.mock.unscripted error states.
+    mock.script.mcpServerStatuses = JsonObject(
+        mapOf(
+            "statuses" to JsonObject(
+                mapOf(
+                    "github" to JsonObject(
+                        mapOf(
+                            "status" to JsonPrimitive("connected"),
+                            "transport" to JsonPrimitive("stdio"),
+                            "toolCount" to JsonPrimitive(12),
+                            "updatedAt" to JsonPrimitive("2026-10-14T09:30:00Z"),
+                            "error" to JsonPrimitive(null as String?),
+                            "failureKind" to JsonPrimitive(null as String?),
+                            "protocolEra" to JsonPrimitive("modern"),
+                        ),
+                    ),
+                    "playwright" to JsonObject(
+                        mapOf(
+                            "status" to JsonPrimitive("failed"),
+                            "transport" to JsonPrimitive("sse"),
+                            "toolCount" to JsonPrimitive(0),
+                            "updatedAt" to JsonPrimitive("2026-10-14T09:31:00Z"),
+                            "error" to JsonPrimitive("ECONNREFUSED 127.0.0.1:9222"),
+                            "failureKind" to JsonPrimitive("connectionRefused"),
+                            "protocolEra" to JsonPrimitive("modern"),
+                        ),
+                    ),
+                    "docs-search" to JsonObject(
+                        mapOf(
+                            "status" to JsonPrimitive("disabled"),
+                            "transport" to JsonPrimitive("http"),
+                            "toolCount" to JsonPrimitive(0),
+                            "updatedAt" to JsonPrimitive("2026-10-14T09:00:00Z"),
+                            "error" to JsonPrimitive(null as String?),
+                            "failureKind" to JsonPrimitive(null as String?),
+                            "protocolEra" to JsonPrimitive("legacy"),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    )
+    mock.script.listPlugins = JsonObject(
+        mapOf(
+            "plugins" to JsonArray(
+                listOf(
+                    JsonObject(
+                        mapOf(
+                            "id" to JsonPrimitive("plugin-prisma"),
+                            "name" to JsonPrimitive("prisma-toolkit"),
+                            "description" to JsonPrimitive("Schema-first database workflows and migrations."),
+                            "version" to JsonPrimitive("2.4.0"),
+                            "enabled" to JsonPrimitive(true),
+                            "source" to JsonPrimitive("marketplace"),
+                            "marketplace" to JsonPrimitive("official"),
+                            "skillRootCount" to JsonPrimitive(3),
+                            "commandRootCount" to JsonPrimitive(2),
+                            "mcpServerNames" to JsonArray(listOf(JsonPrimitive("prisma-mcp"))),
+                            "rootPath" to JsonPrimitive("/Users/mock/.zcode/plugins/cache/prisma-toolkit/2.4.0"),
+                        ),
+                    ),
+                    JsonObject(
+                        mapOf(
+                            "id" to JsonPrimitive("plugin-review"),
+                            "name" to JsonPrimitive("code-review"),
+                            "description" to JsonPrimitive("Structured PR review commands and review subagents."),
+                            "version" to JsonPrimitive(null as String?),
+                            "enabled" to JsonPrimitive(false),
+                            "source" to JsonPrimitive("local"),
+                            "marketplace" to JsonPrimitive("none"),
+                            "skillRootCount" to JsonPrimitive(1),
+                            "commandRootCount" to JsonPrimitive(4),
+                            "mcpServerNames" to JsonArray(emptyList()),
+                            "rootPath" to JsonPrimitive("/Users/mock/proj/.zcode/plugins/code-review"),
+                        ),
+                    ),
+                ),
+            ),
+            "diagnostics" to JsonArray(
+                listOf(
+                    JsonObject(
+                        mapOf(
+                            "code" to JsonPrimitive("plugin.missingDependency"),
+                            "message" to JsonPrimitive("code-review requires a workspace plugin root"),
+                            "severity" to JsonPrimitive("warning"),
+                            "pluginId" to JsonPrimitive("plugin-review"),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    )
+    mock.script.skillReferenceCatalog = JsonObject(
+        mapOf(
+            "authority" to JsonPrimitive("workspace"),
+            "skills" to JsonArray(
+                listOf(
+                    JsonObject(
+                        mapOf(
+                            "id" to JsonPrimitive("skill-release"),
+                            "name" to JsonPrimitive("release"),
+                            "description" to JsonPrimitive("Cut a release: bump version, changelog, tag, build artifact."),
+                            "path" to JsonPrimitive("/Users/mock/proj/.zcode/skills/release/SKILL.md"),
+                            "scope" to JsonPrimitive("workspace"),
+                            "pluginName" to JsonPrimitive(null as String?),
+                        ),
+                    ),
+                    JsonObject(
+                        mapOf(
+                            "id" to JsonPrimitive("skill-sql-migrate"),
+                            "name" to JsonPrimitive("sql-migrate"),
+                            "description" to JsonPrimitive("Generate and apply safe SQL migrations from schema diffs."),
+                            "path" to JsonPrimitive("/Users/mock/.zcode/plugins/cache/prisma-toolkit/2.4.0/skills/sql-migrate/SKILL.md"),
+                            "scope" to JsonPrimitive("plugin"),
+                            "pluginName" to JsonPrimitive("prisma-toolkit"),
+                        ),
+                    ),
+                    JsonObject(
+                        mapOf(
+                            "id" to JsonPrimitive("skill-commit"),
+                            "name" to JsonPrimitive("commit"),
+                            "description" to JsonPrimitive("Stage and commit the current change set with a good message."),
+                            "path" to JsonPrimitive("/Users/mock/.zcode/skills/commit/SKILL.md"),
+                            "scope" to JsonPrimitive("user"),
+                            "pluginName" to JsonPrimitive(null as String?),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    )
     // Session config echo (§10.3): provider/model/thought are REQUIRED keys — without
     // them the config state drops and the conversation chips never render.
     mock.script.sessionConfig = JsonObject(
