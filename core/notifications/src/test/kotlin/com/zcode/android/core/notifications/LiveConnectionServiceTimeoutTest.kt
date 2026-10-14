@@ -39,19 +39,24 @@ class LiveConnectionServiceTimeoutTest {
     }
 
     @Test
-    fun `service lifecycle flips the observable - create on, destroy off`() = runBlocking {
+    fun `service lifecycle flips the observable - create on, destroy off`() {
+        runBlocking {
         val controller = Robolectric.buildService(LiveConnectionService::class.java)
         try {
+            // The cast is the seam probe: pre-fix (plain Boolean var) this throws
+            // ClassCastException — the observable contract did not exist.
+            val isRunning = LiveConnectionService.isRunning as StateFlow<Boolean>
             controller.create()
             withTimeout(2_000) {
-                LiveConnectionService.isRunning.first { it == true }
+                isRunning.first { it == true }
             }
             controller.destroy()
             withTimeout(2_000) {
-                LiveConnectionService.isRunning.first { it == false }
+                isRunning.first { it == false }
             }
         } finally {
             LiveConnectionService.autoTimeoutMs = LiveConnectionService.AUTO_TIMEOUT_MS_DEFAULT
+        }
         }
     }
 
@@ -62,7 +67,7 @@ class LiveConnectionServiceTimeoutTest {
             LiveConnectionService.autoTimeoutMs = 50
             val controller = Robolectric.buildService(LiveConnectionService::class.java)
             val service = controller.create().startCommand(0, 1).get() as Service
-            shadowOf(Looper.getMainLooper()).idle()
+            shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(200))
 
             val shadow = shadowOf(service)
             assertTrue("the timeout path must stopForeground", shadow.isForegroundStopped)
@@ -79,7 +84,7 @@ class LiveConnectionServiceTimeoutTest {
             LiveConnectionService.autoTimeoutMs = 0
             val controller = Robolectric.buildService(LiveConnectionService::class.java)
             val service = controller.create().startCommand(0, 1).get() as Service
-            shadowOf(Looper.getMainLooper()).idle()
+            shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(200))
             assertFalse(
                 "0 = stay connected until toggled off (§24.5 vc35)",
                 shadowOf(service).isStoppedBySelf,
