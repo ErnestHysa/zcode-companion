@@ -954,11 +954,14 @@ internal fun AutoDismissMessage(
     delay: suspend (Long) -> Unit = { kotlinx.coroutines.delay(it) },
 ) {
     if (message == null) return
-    val scope = androidx.compose.runtime.rememberCoroutineScope()
     androidx.compose.material3.ListItem(
         headlineContent = { Text(message) },
         modifier = Modifier.testTag("settings_switch_message"),
     )
-    // RED (B2.6): launched IN COMPOSITION — every recomposition re-arms the timer.
-    scope.launch { delay(autoDismissMs); onDismiss() }
+    // B2.6 fix: ONE effect keyed on the message — parent recompositions never
+    // re-arm it; the dismissal is exactly once per message, after the full window.
+    androidx.compose.runtime.LaunchedEffect(message) {
+        delay(autoDismissMs)
+        onDismiss()
+    }
 }
