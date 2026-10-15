@@ -95,13 +95,14 @@ class PairingViewModel(
                             compatAboveTested = v.compatAboveTested,
                             requireE7Consent = v.requireE7Consent,
                             offerBiometricEnrollment = v.offerBiometricEnrollment,
+                            maxTestedDesktop = v.maxTestedDesktop,
                         ),
                     )
                 }
                 is PairingPort.Validation.Invalid ->
                     dispatch(PairingFlow.Event.ValidationRejected(v.reason, v.detail))
                 is PairingPort.Validation.CompatBlocked ->
-                    dispatch(PairingFlow.Event.ValidationCompatBlocked(v.version, v.detail))
+                    dispatch(PairingFlow.Event.ValidationCompatBlocked(v.version, v.detail, v.minSupported))
             }
         }
     }

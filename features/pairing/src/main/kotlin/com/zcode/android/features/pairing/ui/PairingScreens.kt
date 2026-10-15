@@ -256,7 +256,13 @@ private fun CompatBlockedScreen(s: PairingFlow.State.CompatBlocked, vm: PairingV
         ) {
             Text(stringResource(R.string.compat_blocked_title), style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.error)
             Text(
-                stringResource(R.string.compat_blocked_detail, s.version, "3.14.0"),
+                // B2.10: the boundary comes from the gate (through the port), never
+                // a UI literal; blank falls back to the blocked version's own copy.
+                stringResource(
+                    R.string.compat_blocked_detail,
+                    s.version,
+                    s.minSupported?.takeIf { it.isNotBlank() } ?: s.version,
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.testTag("compat-detail"),
             )
@@ -277,7 +283,11 @@ private fun CompatAboveScreen(s: PairingFlow.State.CompatAboveTested, vm: Pairin
         ) {
             Text(stringResource(R.string.compat_above_title), style = MaterialTheme.typography.headlineSmall)
             Text(
-                stringResource(R.string.compat_above_detail, s.link.desktopAppVersion, "3.14.3"),
+                stringResource(
+                    R.string.compat_above_detail,
+                    s.link.desktopAppVersion,
+                    s.maxTestedDesktop?.takeIf { it.isNotBlank() } ?: s.link.desktopAppVersion,
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.testTag("compat-above-detail"),
             )
