@@ -28,11 +28,13 @@ class AutoDismissMessageTest {
     fun `recompositions do not re-arm the dismiss timer - exactly one dismissal per message`() {
         val launches = mutableListOf<CompletableDeferred<Unit>>()
         val visible = mutableStateOf<String?>("endpoint switched")
+        val churn = mutableStateOf(0)
         var dismissed = 0
 
         rule.setContent {
             AutoDismissMessage(
                 message = visible.value,
+                churn = churn.value,
                 onDismiss = { dismissed += 1 },
                 delay = { millis ->
                     val d = CompletableDeferred<Unit>()
@@ -43,11 +45,11 @@ class AutoDismissMessageTest {
         }
         rule.waitForIdle()
 
-        // Unrelated state churn recomposes the banner 3 extra times.
+        // Unrelated parent state churn recomposes the banner 3 extra times.
         repeat(3) {
-            rule.runOnIdle { visible.value = visible.value }
+            rule.runOnIdle { churn.value += 1 }
+            rule.waitForIdle()
         }
-        rule.waitForIdle()
 
         assertEquals(
             "the timer must arm ONCE per message (found ${launches.size} armed dismissals)",

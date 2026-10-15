@@ -939,15 +939,17 @@ private fun SettingsRow(
 
 /**
  * B2.6 seam: the endpoint-switch message banner with its auto-clear. [delay] is
- * injectable so the pin can observe launches without real clocks. The RED state
- * replicates the OLD inline behavior (a `scope.launch` per recomposition — the
- * timer restarted on every recomposition, could pile up dismisses, and vanished
- * abruptly); the fix keys the effect on the message.
+ * injectable so the pin can observe launches without real clocks. [churn] models
+ * ANY unrelated parent state change: the original inline code re-ran its launch
+ * on EVERY recomposition while visible (timer restarted, dismissals piled up,
+ * message vanished abruptly) — the red state replicates that by re-arming per
+ * recomposition; the fix keys ONE effect on the message.
  */
 @Composable
 internal fun AutoDismissMessage(
     message: String?,
     autoDismissMs: Long = 2_500,
+    churn: Int = 0,
     onDismiss: () -> Unit,
     delay: suspend (Long) -> Unit = { kotlinx.coroutines.delay(it) },
 ) {
