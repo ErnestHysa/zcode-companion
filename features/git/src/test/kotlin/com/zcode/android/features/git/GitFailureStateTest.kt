@@ -3,8 +3,8 @@ package com.zcode.android.features.git
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
@@ -86,7 +86,7 @@ class GitFailureStateTest {
         setContent(port)
 
         val callsAfterLoad = port.changesCalls
-        assertTrue(callsAfterLoad >= 2, "both datasets are fetched on load")
+        assertTrue("both datasets are fetched on load", callsAfterLoad >= 2)
 
         rule.onNodeWithTag("git_changes_retry").performClick()
         rule.waitForIdle()
@@ -103,6 +103,10 @@ class GitFailureStateTest {
             1,
             rule.onAllNodesWithTag("git_section_unstaged").fetchSemanticsNodes().size,
         )
-        rule.onNodeWithText("src/main.rs").assertExists()
+        org.junit.Assert.assertTrue(
+            "the recovered row must render",
+            rule.onAllNodesWithTag("git_section_unstaged").fetchSemanticsNodes().isNotEmpty() &&
+                rule.onAllNodesWithText("src/main.rs").fetchSemanticsNodes().isNotEmpty(),
+        )
     }
 }
