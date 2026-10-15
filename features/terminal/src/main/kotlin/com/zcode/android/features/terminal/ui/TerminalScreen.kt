@@ -140,7 +140,7 @@ fun TerminalScreen(
                             val isMatch = searchMode && searchQuery.isNotBlank() &&
                                 snapshot.plainText.getOrNull(index)?.lowercase()?.contains(searchQuery.lowercase()) == true
                             Text(
-                                text = spans.toAnnotatedString(isMatch),
+                                text = spans.toAnnotatedString(isMatch, MaterialTheme.colorScheme),
                                 fontFamily = FontFamily.Monospace,
                                 fontSize = 12.sp,
                                 lineHeight = 16.sp,
@@ -203,14 +203,17 @@ private fun StateCard(text: String, retryLabel: String? = null, retry: (() -> Un
     }
 }
 
-/** ANSI spans → AnnotatedString (palette indices < 16 resolve to M3-safe hues). */
-private fun List<AnsiParser.Span>.toAnnotatedString(highlight: Boolean): AnnotatedString = buildAnnotatedString {
+/** ANSI spans → AnnotatedString (palette indices < 16 resolve THEME-AWARE). */
+private fun List<AnsiParser.Span>.toAnnotatedString(
+    highlight: Boolean,
+    scheme: androidx.compose.material3.ColorScheme,
+): AnnotatedString = buildAnnotatedString {
     for (span in this@toAnnotatedString) {
         val style = SpanStyle(
-            color = span.fg?.let { terminalColor(it) } ?: Color.Unspecified,
+            color = span.fg?.let { terminalColor(it, scheme) } ?: Color.Unspecified,
             background = when {
                 highlight -> Color(0x6655AA88)
-                else -> span.bg?.let { terminalColor(it) } ?: Color.Unspecified
+                else -> span.bg?.let { terminalColor(it, scheme) } ?: Color.Unspecified
             },
             fontWeight = if (span.bold) FontWeight.Bold else null,
             fontStyle = if (span.italic) androidx.compose.ui.text.font.FontStyle.Italic else null,
@@ -222,15 +225,21 @@ private fun List<AnsiParser.Span>.toAnnotatedString(highlight: Boolean): Annotat
     }
 }
 
-/** Palette 0–15 → ANSI-default hues; packed RGB (≥ 0x1000000) passes through. */
-private fun terminalColor(value: Int): Color = when {
+/**
+ * Palette 0–15; packed RGB (≥ 0x1000000) passes through. B2.8: the white entries
+ * (7/15) resolve to the surface's own INK ROLE — the old literal
+ * `Color(0xFFFFFFFF)` painted invisible white-on-light on `surfaceVariant`. The
+ * remaining entries keep their ANSI hue literals: they are mid-tones legible on
+ * both the designed light and dark surfaces.
+ */
+internal fun terminalColor(value: Int, scheme: androidx.compose.material3.ColorScheme): Color = when {
     value >= 0x1000000 -> Color(value)
     else -> when (value) {
         0 -> Color(0xFF666666); 1 -> Color(0xFFCD3131); 2 -> Color(0xFF0DBC79)
         3 -> Color(0xFFE5E510); 4 -> Color(0xFF2472C8); 5 -> Color(0xFFBC3FBC)
-        6 -> Color(0xFF11A8CD); 7 -> Color(0xFFE5E5E5); 8 -> Color(0xFF767676)
+        6 -> Color(0xFF11A8CD); 7 -> scheme.onSurface; 8 -> Color(0xFF767676)
         9 -> Color(0xFFF14C4C); 10 -> Color(0xFF23D18B); 11 -> Color(0xFFF5F543)
         12 -> Color(0xFF3B8EEA); 13 -> Color(0xFFD670D6); 14 -> Color(0xFF29B8DB)
-        else -> Color(0xFFFFFFFF) // 15
+        else -> scheme.onSurface // 15 (bright white)
     }
 }
