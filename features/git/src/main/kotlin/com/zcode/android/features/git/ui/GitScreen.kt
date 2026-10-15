@@ -76,16 +76,29 @@ fun GitScreen(
     var ui by remember { mutableStateOf(GitUiState()) }
     val scope = rememberCoroutineScope()
 
+    // B2.7: both datasets fetched through ONE path so the error state and the
+    // Retry share it. A failure renders an error state — never a lying empty list.
+    suspend fun fetchChanges(): Pair<List<GitChangeEntry>, List<GitChangeEntry>> {
+        val unstaged = runCatching { port.changes("unstaged") }
+        val staged = runCatching { port.changes("staged") }
+        val error = unstaged.exceptionOrNull() ?: staged.exceptionOrNull()
+        ui = ui.copy(
+            unstaged = unstaged.getOrElse { emptyList() },
+            staged = staged.getOrElse { emptyList() },
+            changesError = error?.message ?: error?.javaClass?.simpleName,
+        )
+        return unstaged.getOrElse { emptyList() } to staged.getOrElse { emptyList() }
+    }
+
     LaunchedEffect(Unit) {
         val summary = port.summary()
         if (summary == null || !summary.isRepository) {
             ui = ui.copy(unavailable = true)
             return@LaunchedEffect
         }
+        ui = ui.copy(summary = summary)
+        fetchChanges()
         ui = ui.copy(
-            summary = summary,
-            unstaged = runCatching { port.changes("unstaged") }.getOrDefault(emptyList()),
-            staged = runCatching { port.changes("staged") }.getOrDefault(emptyList()),
             commits = port.commits(0, COMMIT_PAGE)?.let { it.commits to it.hasMore }
                 ?: (emptyList<GitCommit>() to false),
         )
@@ -101,6 +114,25 @@ fun GitScreen(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.git_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Text("read-only", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
+        ui.changesError?.let { errorText ->
+            item(key = "changes-error") {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        errorText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.testTag("git_changes_error"),
+                    )
+                    Button(
+                        onClick = {
+                            scope.launch { fetchChanges() }
+                        },
+                        modifier = Modifier.testTag("git_changes_retry"),
+                    ) { Text("Retry") }
+                }
             }
         }
 
@@ -379,4 +411,6 @@ private data class GitUiState(
     /** The ONE expanded diff (desktop expandedPath), with its dataset (staged flag). */
     val expanded: Pair<String, Boolean>? = null,
     val unavailable: Boolean = false,
+    /** B2.7: a changes() failure — rendered with a Retry; empty is never a lie. */
+    val changesError: String? = null,
 )
