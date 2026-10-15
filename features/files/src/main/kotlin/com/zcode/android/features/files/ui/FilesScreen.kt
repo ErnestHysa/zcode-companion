@@ -64,7 +64,9 @@ fun FilesScreen(
     var viewer by remember { mutableStateOf<String?>(null) }
     var textState by remember { mutableStateOf(listOf<com.zcode.android.domain.model.WorkspaceTextSlice>()) }
     var textLoading by remember { mutableStateOf(false) }
-    var downloadState by remember { mutableStateOf<String?>(null) }
+    // B2.16: TYPED state — display strings no longer double as the state machine
+    // (the old machine routed its dialog on downloadState.startsWith("binary")).
+    var downloadState by remember { mutableStateOf<DownloadUi?>(null) }
 
     fun currentPath(): String = stack.lastOrNull() ?: root.orEmpty()
 
@@ -152,6 +154,7 @@ fun FilesScreen(
                     Row(
                         Modifier
                             .fillMaxWidth()
+                            .testTag("files_row_${entry.path}")
                             .clickable {
                                 if (entry.isDirectory) {
                                     scope.launch {
@@ -167,9 +170,11 @@ fun FilesScreen(
                                         if (first.slice != null) {
                                             textState = listOf(first.slice)
                                             // Binary files never render as text (protocol-gated).
-                                            if (first.slice.isBinary) downloadState = "binary file — use Download"
-                                        } else {
-                                            downloadState = first.error ?: "cannot display this file"
+                                            if (first.slice.isBinary) {
+                                                downloadState = DownloadUi.Binary("binary file — use Download")
+                                            } else {
+                                                downloadState = first.error?.let { DownloadUi.Failed(it) }
+                                            }
                                         }
                                         textLoading = false
                                     }
@@ -208,19 +213,30 @@ fun FilesScreen(
                 AssistChip(
                     onClick = {
                         scope.launch {
-                            downloadState = "downloading…"
+                            downloadState = DownloadUi.Downloading
                             val result = port.download(viewer!!)
                             downloadState = when {
-                                result.file != null -> "downloaded ${result.bytes} bytes — share sheet opened"
-                                else -> result.error ?: "download failed"
+                                result.file != null -> DownloadUi.Done(result.bytes)
+                                else -> DownloadUi.Failed(result.error ?: "download failed")
                             }
                         }
                     },
+                    modifier = Modifier.testTag("files_download_button"),
                     label = { Text(stringResource(R.string.files_download)) },
                 )
             }
-            if (downloadState != null) {
-                Text(downloadState!!, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            downloadState?.let { state ->
+                Text(
+                    state.display,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag(
+                        when (state) {
+                            is DownloadUi.Binary -> "files_binary_notice"
+                            else -> "files_download_state"
+                        },
+                    ),
+                )
             }
             if (textLoading) {
                 Text(stringResource(R.string.files_loading), style = MaterialTheme.typography.bodySmall)
@@ -252,15 +268,36 @@ fun FilesScreen(
         }
     }
 
-    // Malformed/error download notice dialog (never a silent failure).
-    if (downloadState != null && viewer == null && error == null && downloadState!!.startsWith("binary")) {
+    // Malformed/error download notice dialog (never a silent failure). The routing
+    // is TYPED (B2.16) — no display-string prefix matching.
+    val dialogState = downloadState
+    if (dialogState is DownloadUi.Binary && viewer == null && error == null) {
         AlertDialog(
             onDismissRequest = { downloadState = null },
+            modifier = Modifier.testTag("files_download_dialog"),
             confirmButton = { TextButton(onClick = { downloadState = null }) { Text(stringResource(R.string.files_ok)) } },
             title = { Text(stringResource(R.string.files_dialog_title)) },
-            text = { Text(downloadState!!) },
+            text = { Text(dialogState.message) },
         )
     }
 }
 
 private const val TEXT_CHUNK: Long = 64L * 1024
+
+/** B2.16: the download/notice states — display text derives from the type. */
+private sealed interface DownloadUi {
+    data object Downloading : DownloadUi
+    data class Done(val bytes: Long) : DownloadUi
+    data class Failed(val message: String) : DownloadUi
+
+    /** A binary file opened in the (text) viewer — the "use Download" notice. */
+    data class Binary(val message: String) : DownloadUi
+
+    val display: String
+        get() = when (this) {
+            Downloading -> "downloading…"
+            is Done -> "downloaded $bytes bytes — share sheet opened"
+            is Failed -> message
+            is Binary -> message
+        }
+}
