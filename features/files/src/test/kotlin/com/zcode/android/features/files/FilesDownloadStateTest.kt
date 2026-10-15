@@ -2,6 +2,7 @@ package com.zcode.android.features.files
 
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -33,13 +34,13 @@ class FilesDownloadStateTest {
 
     private class FakeFilesPort : FilesPort {
         var binaryFile = "assets/data.bin"
-        var downloadResult: DownloadResult = DownloadResult(file = null, bytes = 0, error = "boom")
+        var downloadResult: FilesPort.DownloadResult = FilesPort.DownloadResult(file = null, bytes = 0, error = "boom")
 
         override fun workspaceRoot(): String? = "/ws"
-        override suspend fun list(path: String): ListingResult {
+        override suspend fun list(path: String): FilesPort.ListingResult {
             delay(20)
             return if (path == "/ws") {
-                ListingResult(
+                FilesPort.ListingResult(
                     listOf(
                         WorkspaceFileEntry("data.bin", "/ws/assets/data.bin", isDirectory = false, isSymbolicLink = false),
                         WorkspaceFileEntry("readme.md", "/ws/readme.md", isDirectory = false, isSymbolicLink = false),
@@ -47,14 +48,14 @@ class FilesDownloadStateTest {
                     error = null,
                 )
             } else {
-                ListingResult(emptyList(), error = null)
+                FilesPort.ListingResult(emptyList(), error = null)
             }
         }
 
-        override suspend fun readText(path: String, offset: Long?, length: Long?): TextResult {
+        override suspend fun readText(path: String, offset: Long?, length: Long?): FilesPort.TextResult {
             delay(20)
             return if (path.endsWith(".bin")) {
-                TextResult(
+                FilesPort.TextResult(
                     WorkspaceTextSlice(
                         path = path, content = "", offset = 0, bytesRead = 0,
                         totalBytes = 1024, truncated = false, isBinary = true,
@@ -62,7 +63,7 @@ class FilesDownloadStateTest {
                     error = null,
                 )
             } else {
-                TextResult(
+                FilesPort.TextResult(
                     WorkspaceTextSlice(
                         path = path, content = "hello world", offset = 0, bytesRead = 11,
                         totalBytes = 11, truncated = false, isBinary = false,
@@ -72,7 +73,7 @@ class FilesDownloadStateTest {
             }
         }
 
-        override suspend fun download(path: String, maxBytes: Long): DownloadResult = downloadResult
+        override suspend fun download(path: String, maxBytes: Long): FilesPort.DownloadResult = downloadResult
     }
 
     private fun setContent(port: FakeFilesPort) {
