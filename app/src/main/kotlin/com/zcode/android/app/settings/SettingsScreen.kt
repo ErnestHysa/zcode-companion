@@ -322,11 +322,7 @@ private fun EndpointsSection(container: AppContainer, endpointName: String?, des
         tag = "settings_add_direct",
         onClick = { showAddDialog = true },
     )
-    switchMessage?.let {
-        androidx.compose.material3.ListItem(headlineContent = { Text(it) })
-        // auto-clear
-        scope.launch { kotlinx.coroutines.delay(2500); switchMessage = null }
-    }
+    AutoDismissMessage(message = switchMessage, onDismiss = { switchMessage = null })
 
     if (showAddDialog) {
         AddDirectEndpointDialog(
@@ -939,4 +935,28 @@ private fun SettingsRow(
             )
         }
     }
+}
+
+/**
+ * B2.6 seam: the endpoint-switch message banner with its auto-clear. [delay] is
+ * injectable so the pin can observe launches without real clocks. The RED state
+ * replicates the OLD inline behavior (a `scope.launch` per recomposition — the
+ * timer restarted on every recomposition, could pile up dismisses, and vanished
+ * abruptly); the fix keys the effect on the message.
+ */
+@Composable
+internal fun AutoDismissMessage(
+    message: String?,
+    autoDismissMs: Long = 2_500,
+    onDismiss: () -> Unit,
+    delay: suspend (Long) -> Unit = { kotlinx.coroutines.delay(it) },
+) {
+    if (message == null) return
+    val scope = rememberCoroutineScope()
+    androidx.compose.material3.ListItem(
+        headlineContent = { Text(message) },
+        modifier = Modifier.testTag("settings_switch_message"),
+    )
+    // RED (B2.6): launched IN COMPOSITION — every recomposition re-arms the timer.
+    scope.launch { delay(autoDismissMs); onDismiss() }
 }
