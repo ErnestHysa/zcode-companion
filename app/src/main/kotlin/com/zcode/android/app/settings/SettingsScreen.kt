@@ -952,7 +952,7 @@ internal fun AutoDismissMessage(
     delay: suspend (Long) -> Unit = { kotlinx.coroutines.delay(it) },
 ) {
     if (message == null) return
-    val scope = rememberCoroutineScope()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     androidx.compose.material3.ListItem(
         headlineContent = { Text(message) },
         modifier = Modifier.testTag("settings_switch_message"),
