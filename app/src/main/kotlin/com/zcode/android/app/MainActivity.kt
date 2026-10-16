@@ -27,6 +27,7 @@ import com.zcode.android.features.pairing.PairingViewModel
 import com.zcode.android.features.pairing.flow.PairingFlow
 import com.zcode.android.features.tasks.TasksViewModel
 import com.zcode.android.features.pairing.ui.QrScanner
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 
 /**
  * Single-activity root (§18.2). Phase 6 destination: pairing → tasks → conversation
@@ -53,6 +54,9 @@ class MainActivity : FragmentActivity() {
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // B3-splash (N4.1): the branded launch window — must run BEFORE super.onCreate
+        // so the first visible frame is the splash (never the blank white window).
+        installSplashScreen()
         super.onCreate(savedInstanceState)
 
         // FIELD (2026-09-30, vc12): the ring is persisted line-by-line; capture the

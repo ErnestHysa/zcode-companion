@@ -22,6 +22,7 @@ ksp = "2.3.12"
 protobuf = "4.36.2"
 protobufPlugin = "0.10.0"
 androidxCore = "1.15.0"
+coreSplashscreen = "1.0.1"
 work = "2.10.0"
 glance = "1.2.0"
 benchmarkMacro = "1.5.0"
@@ -67,6 +68,8 @@ datastore-preferences = { module = "androidx.datastore:datastore-preferences", v
 datastore = { module = "androidx.datastore:datastore", version.ref = "datastore" }
 protobuf-javalite = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobuf" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
+# B3-splash (gaps-and-polish 2B): the branded launch window.
+core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
 work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
 work-testing = { module = "androidx.work:work-testing", version.ref = "work" }
 glance-appwidget = { module = "androidx.glance:glance-appwidget", version.ref = "glance" }

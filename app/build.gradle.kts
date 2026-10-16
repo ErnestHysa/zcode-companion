@@ -129,6 +129,7 @@ dependencies {
     implementation(project(":features:git"))
     implementation(project(":features:files"))
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.core.splashscreen)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.material3)

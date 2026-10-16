@@ -24,7 +24,7 @@
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules_legacy"
-        android:theme="@style/Theme.ZCodePairing">
+        android:theme="@style/Theme.ZCode">
 
         <!-- §12.4/§26.2-T6: credential + projection stores are excluded from every
              backup surface (allowBackup=false + explicit rules). -->
@@ -32,6 +32,7 @@
              taps). launchMode=singleTask so a tap re-enters the LIVE activity
              (onNewIntent) instead of stacking a second hub. -->
         <activity
+            android:theme="@style/Theme.ZCode.Launch"
             android:windowSoftInputMode="adjustResize"
             android:name=".MainActivity"
             android:exported="true"

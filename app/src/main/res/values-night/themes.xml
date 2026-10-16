@@ -1,7 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.ZCodePairing" parent="android:Theme.Material.NoActionBar">
+    <style name="Theme.ZCode" parent="android:Theme.Material.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">@color/window_bg</item>
+    </style>
+
+    <!-- The launch theme parent stays the library's; only the app theme re-parents
+         for night (the splash background color comes from values-night/colors.xml). -->
+    <style name="Theme.ZCode.Launch" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/window_bg</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/Theme.ZCode</item>
     </style>
 </resources>
