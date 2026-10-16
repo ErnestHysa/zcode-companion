@@ -4,4 +4,6 @@
      to ZCodeColorsLight/Dark.bg — keep them in lockstep. -->
 <resources>
     <color name="window_bg">#F4F6FA</color>
+    <color name="widget_preview_ink">#12151C</color>
+    <color name="widget_preview_accent">#8F5800</color>
 </resources>

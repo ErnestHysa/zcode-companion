@@ -215,4 +215,5 @@
     <string name="usage_heatmap_legend_more">More</string>
     <string name="usage_heatmap_cell_a11y">%1$s: activity level %2$d of %3$d</string>
     <string name="usage_heatmap_cell_empty">No activity</string>
+    <string name="widget_preview_headline">2 approvals pending</string>
 </resources>
