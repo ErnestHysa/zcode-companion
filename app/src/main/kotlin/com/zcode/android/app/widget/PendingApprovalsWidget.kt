@@ -45,8 +45,10 @@ import com.zcode.android.domain.model.NotificationRecord
 class PendingApprovalsWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val records = NotificationBrokerSource.current(context)
-        val state = WidgetState.from(records)
+        // H3.2c: a fresh process (reboot / process death) has no attached broker yet —
+        // render the persisted last count instead of resetting to zero.
+        val records = if (NotificationBrokerSource.attached) NotificationBrokerSource.current(context) else emptyList()
+        val state = WidgetState.resolve(context)
         provideContent { Content(state, records) }
     }
 
@@ -127,6 +129,28 @@ data class WidgetState(val count: Int) {
         else context.resources.getQuantityString(R.plurals.widget_approvals_count, count, count)
 
     companion object {
+        private const val PREFS = "pending_approvals_widget"
+        private const val KEY_LAST_COUNT = "last_count"
+
+        /**
+         * H3.2c: the state the widget renders. With an attached broker the live record
+         * set is authoritative (and refreshes the persisted count); before the app has
+         * run in this process the PERSISTED last count stands in — never a reset to zero.
+         */
+        fun resolve(context: Context): WidgetState =
+            if (NotificationBrokerSource.attached) {
+                from(NotificationBrokerSource.current(context)).also { persist(context, it.count) }
+            } else {
+                WidgetState(persistedCount(context))
+            }
+
+        fun persist(context: Context, count: Int) {
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putInt(KEY_LAST_COUNT, count).apply()
+        }
+
+        fun persistedCount(context: Context): Int =
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(KEY_LAST_COUNT, 0)
+
         /**
          * The widget counts OPEN attention items: unseen APPROVAL/USER-INPUT
          * records (the §24.3 "one per open interaction" set). Seen/informational
@@ -146,6 +170,23 @@ data class WidgetState(val count: Int) {
 object NotificationBrokerSource {
     @Volatile
     var current: (Context) -> List<NotificationRecord> = { emptyList() }
+        private set
+
+    /** H3.2c: false until the in-process updater attaches the live broker. */
+    @Volatile
+    var attached: Boolean = false
+        private set
+
+    fun attach(source: (Context) -> List<NotificationRecord>) {
+        current = source
+        attached = true
+    }
+
+    /** Test seam — the post-reboot static default. */
+    fun detach() {
+        current = { emptyList() }
+        attached = false
+    }
 }
 
 /** Manifest receiver (app manifest registers it with the APPWIDGET_UPDATE filter). */
