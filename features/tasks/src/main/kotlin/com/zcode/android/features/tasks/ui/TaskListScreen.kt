@@ -99,6 +99,7 @@ fun TaskListScreen(
     onConsumeCreateNotice: () -> Unit = {},
     /** GAP-14: per-workspace collapse persistence (null = in-memory for the session). */
     collapseStore: com.zcode.android.features.tasks.ui.WorkspaceCollapseStore? = null,
+    collapseExecutor: java.util.concurrent.Executor = com.zcode.android.features.tasks.ui.WorkspaceCollapseStateBackgroundExecutor(),
     /** GAP-6: read-only automations + off-peak lists (null = section hidden). */
     automationsPort: com.zcode.android.features.tasks.port.AutomationsPort? = null,
     modifier: Modifier = Modifier,
@@ -108,7 +109,7 @@ fun TaskListScreen(
     // §18.2 workspace switcher selection (endpoint-scoped; null = all workspaces).
     var selectedWorkspaceKey by remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
     // GAP-14: per-workspace collapse state, persisted through the store when supplied.
-    val collapse = remember(collapseStore) { WorkspaceCollapseState(collapseStore) }
+    val collapse = remember(collapseStore) { WorkspaceCollapseState(collapseStore, collapseExecutor) }
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
             HeaderRow(
