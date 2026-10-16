@@ -44,6 +44,11 @@ import androidx.compose.ui.unit.sp
 import com.zcode.android.core.common.ansi.AnsiParser
 import com.zcode.android.features.terminal.port.TerminalPort
 import com.zcode.android.core.ui.components.ZCodeButton
+import android.content.Context
+import android.content.ClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.ui.platform.testTag
 
 /**
  * §21 view-only terminal surface. Streaming output with ANSI SGR colors, bounded
@@ -64,6 +69,8 @@ fun TerminalScreen(
     var searchMode by remember { mutableStateOf(false) }
     var paused by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var copied by remember { mutableStateOf(false) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val matches = remember(searchQuery, snapshot) {
         if (searchMode) port.search(searchQuery) else emptyList()
@@ -135,6 +142,9 @@ fun TerminalScreen(
                     }
                 }
                 Surface(tonalElevation = 1.dp, modifier = Modifier.weight(1f).fillMaxWidth()) {
+                    // J7: copy-OUT is read-side — the visible buffer is selectable and one
+                    // action copies it (paste stays ADR-gated, A3.18).
+                    SelectionContainer(modifier = Modifier.fillMaxSize()) {
                     LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(6.dp)) {
                         items(snapshot.lines.size, key = { it }) { index ->
                             val spans = snapshot.lines[index]
@@ -154,17 +164,27 @@ fun TerminalScreen(
                         if (snapshot.droppedBytes > 0) {
                             item {
                                 Text(
-                                    "… ${snapshot.droppedBytes} earlier bytes dropped (ring bound 512 KiB) …",
+                                    stringResource(R.string.terminal_dropped_bytes, snapshot.droppedBytes),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         }
                     }
+                    }
                 }
                 // Detach affordance — the ONLY control that talks to the desktop, and
                 // it is the protocol `dispose` (view-only: no write/resize exists).
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    AssistChip(
+                        onClick = {
+                            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("terminal", snapshot.plainText.joinToString("\n")))
+                            copied = true
+                        },
+                        label = { Text(stringResource(if (copied) R.string.terminal_copied else R.string.terminal_copy_output)) },
+                        modifier = Modifier.testTag("terminal_copy_output"),
+                    )
                     AssistChip(onClick = { port.detach() }, label = { Text(stringResource(R.string.terminal_detach)) })
                 }
             }

@@ -22,4 +22,7 @@
     <string name="terminal_status_attaching">正在连接…</string>
     <string name="terminal_status_idle">空闲</string>
     <string name="terminal_line_a11y">终端第 %1$d 行</string>
+    <string name="terminal_copy_output">复制可见输出</string>
+    <string name="terminal_copied">已复制</string>
+    <string name="terminal_dropped_bytes">… 早已丢弃 %1$d 字节（环形缓冲上限 512 KiB）…</string>
 </resources>

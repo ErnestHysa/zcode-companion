@@ -22,4 +22,7 @@
     <string name="terminal_status_attaching">attaching…</string>
     <string name="terminal_status_idle">idle</string>
     <string name="terminal_line_a11y">terminal line %1$d</string>
+    <string name="terminal_copy_output">Copy visible output</string>
+    <string name="terminal_copied">Copied</string>
+    <string name="terminal_dropped_bytes">… %1$d earlier bytes dropped (ring bound 512 KiB) …</string>
 </resources>
