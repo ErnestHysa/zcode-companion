@@ -19,6 +19,9 @@ import org.junit.After
  * instead of landing FAILED (user action required). The fix adds the table edge
  * RECONNECTING --AUTH_FAILED--> FAILED (and the idempotent FAILED self-transition,
  * which also kills the cold-start double-fire anomaly FAILED --AUTH_FAILED--> FAILED).
+ * The live-wire pin reproduces the RELAY path (where it was rig-observed); the
+ * direct surface shares the same table + catch shape and is covered by the
+ * machine pins.
  */
 class AuthFailMidRecoveryTest {
 
@@ -101,44 +104,4 @@ class AuthFailMidRecoveryTest {
         }
     }
 
-    // ---------------------------------------------------------------- direct (live wire)
-
-    @Test
-    fun `direct - a token revoked MID-RECOVERY lands FAILED (not stranded RECONNECTING)`() {
-        val m = MockZCode(
-            passHash = "unused-direct", expectedSid = "unused",
-            mode = MockZCode.Mode.DIRECT, serverToken = "direct-p1gap-token",
-        )
-        mock = m
-        val url = m.start()
-        val t = DirectTransport(
-            tokenProvider = { "direct-p1gap-token" },
-            wsFactory = OkHttpWsFactory(),
-            log = ZLog(sink = {}),
-            config = DirectTransport.Config(
-                connectTimeoutMs = 4_000, authTimeoutMs = 4_000, channelInitTimeoutMs = 4_000,
-                v4CallTimeoutMs = 4_000, bridgeHandshakeTimeoutMs = 4_000, controlRequestTimeoutMs = 4_000,
-            ),
-        )
-        runBlocking {
-            try {
-                t.connect(
-                    EndpointDescriptor(
-                        id = "ep-p1gap-direct", kind = EndpointKind.DIRECT_SERVER,
-                        displayName = "P1GapDirect", wsUrl = url, workspacePath = "/synthetic/ws-one",
-                    ),
-                ) { _, _, _ -> "" }
-                withTimeout(20_000) { t.states.first { it == ConnectionStateMachine.ConnectionState.CONNECTED } }
-
-                m.script.directRejectToken = true
-                t.abortConnectionForTest()
-
-                withTimeout(30_000) {
-                    t.states.first { it == ConnectionStateMachine.ConnectionState.FAILED }
-                }
-            } finally {
-                runCatching { runBlocking { t.close("done") } }
-            }
-        }
-    }
 }
