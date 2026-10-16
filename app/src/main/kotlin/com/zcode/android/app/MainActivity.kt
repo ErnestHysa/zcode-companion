@@ -84,6 +84,7 @@ class MainActivity : FragmentActivity() {
         container.hub.start()
         registerNetworkProbe()
         handleDeepLink(intent)
+        handleShortcut(intent)
         setContent {
             ZCodeTheme {
                 ZCodeApp(
@@ -148,9 +149,17 @@ class MainActivity : FragmentActivity() {
         // §24.7 singleTask: a notification tap re-enters the LIVE activity here.
         container.log.info("app deeplink", "onNewIntent data=${intent.data?.toString()?.take(120)}")
         handleDeepLink(intent)
+        handleShortcut(intent)
     }
 
     /** §24.7: a deep link is a routing HINT — parse here, the nav graph resolves. */
+    /** H2.2: launcher shortcuts ride the notifications seam like deep links. */
+    internal fun handleShortcut(intent: Intent?) {
+        val target = com.zcode.android.app.notifications.AppShortcuts.intake(intent) ?: return
+        container.log.info("app.shortcut", "target=${target.id}")
+        container.notifications.offerShortcut(target)
+    }
+
     internal fun handleDeepLink(intent: Intent?) {
         val candidate = com.zcode.android.app.notifications.DeepLinks.intake(intent) ?: return
         container.notifications.offerDeepLink(candidate.taskId, candidate.interactionId)

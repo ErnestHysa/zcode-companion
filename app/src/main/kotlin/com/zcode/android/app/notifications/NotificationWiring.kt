@@ -62,6 +62,13 @@ class NotificationWiring(
 
     fun consumeDeepLink() = pending.consume()
 
+    // H2.2: launcher-shortcut routing hint (same shape as the deep-link seam: offered by
+    // MainActivity on intake, consumed by ZCodeApp before navigating).
+    private val pendingShortcutState = kotlinx.coroutines.flow.MutableStateFlow<AppShortcuts.Target?>(null)
+    val pendingShortcut: StateFlow<AppShortcuts.Target?> get() = pendingShortcutState
+    fun offerShortcut(target: AppShortcuts.Target) { pendingShortcutState.value = target }
+    fun consumeShortcut() { pendingShortcutState.value = null }
+
     // ------------------------------------------------------------- collectors
 
     private var started = false

@@ -50,6 +50,10 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="zcode" android:host="task" />
             </intent-filter>
+            <!-- H2.2: launcher long-press shortcuts (static set; Approvals also dynamic with count). -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
         <!-- §24.5/§25.2: the Live-connection FGS candidate. specialUse on API 34+
              with the required subtype property; pre-34 devices run it typeless. -->

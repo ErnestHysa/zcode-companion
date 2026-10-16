@@ -43,6 +43,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import androidx.compose.material3.Scaffold
 import com.zcode.android.core.ui.components.rememberSnackbarNotifier
+import androidx.compose.runtime.setValue
 
 /**
  * Phase 6 navigation graph (§18.2; ui-ux navigation.md): pairing (unpaired gate) →
@@ -136,6 +137,23 @@ fun ZCodeApp(
     // route (never a crash, never an empty screen). An UNPAIRED device keeps the
     // link pending; it re-resolves after pairing completes (§24.7 re-validation).
     val pendingLink by container.notifications.pendingLink.collectAsState()
+    // H2.2: launcher shortcuts — routed after the paired gate like deep links.
+    val pendingShortcut by container.notifications.pendingShortcut.collectAsState()
+    var createRequested by remember { androidx.compose.runtime.mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(pendingShortcut, paired) {
+        val target = pendingShortcut ?: return@LaunchedEffect
+        if (paired == null) return@LaunchedEffect // UNPAIRED → hold; re-routed post-pairing
+        container.notifications.consumeShortcut()
+        when (target) {
+            com.zcode.android.app.notifications.AppShortcuts.Target.NEW_TASK -> {
+                createRequested = true
+                nav.navigate(Routes.TASKS) { popUpTo(Routes.TASKS) { inclusive = false }; launchSingleTop = true }
+            }
+            com.zcode.android.app.notifications.AppShortcuts.Target.APPROVALS -> nav.navigate(Routes.APPROVALS)
+            com.zcode.android.app.notifications.AppShortcuts.Target.CONNECTION -> nav.navigate(Routes.CONNECTION)
+        }
+        container.log.info("nav.shortcut", "target=${target.id}")
+    }
     val appContext = androidx.compose.ui.platform.LocalContext.current
     androidx.compose.runtime.LaunchedEffect(pendingLink, paired) {
         val link = pendingLink ?: return@LaunchedEffect
@@ -240,6 +258,8 @@ fun ZCodeApp(
                 createNotice = taskState.createNotice,
                 onConsumeCreateNotice = tasksVm::consumeCreateNotice,
                 collapseStore = container.workspaceCollapseStore,
+                requestCreate = createRequested,
+                onCreateRequestConsumed = { createRequested = false },
             )
         }
         composable(Routes.CONVERSATION) { entry ->
@@ -345,7 +365,9 @@ private fun TasksRoute(
     createNotice: String? = null,
     onConsumeCreateNotice: () -> Unit = {},
     collapseStore: com.zcode.android.features.tasks.ui.WorkspaceCollapseStore? = null,
-) {
+
+    requestCreate: Boolean = false,
+    onCreateRequestConsumed: () -> Unit = {},) {
     val state by vm.state.collectAsState()
     val refreshing by vm.isRefreshing.collectAsState()
     TaskListScreen(
@@ -375,6 +397,8 @@ private fun TasksRoute(
         onRefresh = vm::refresh,
         onRepairPairing = vm::repairPairing,
         automationsPort = container.automationsPort,
+        requestCreate = requestCreate,
+        onCreateRequestConsumed = onCreateRequestConsumed,
     )
 }
 

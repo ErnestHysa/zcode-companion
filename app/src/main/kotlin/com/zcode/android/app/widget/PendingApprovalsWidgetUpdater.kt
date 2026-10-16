@@ -26,6 +26,8 @@ class PendingApprovalsWidgetUpdater(
         NotificationBrokerSource.current = { broker.visible() }
         scope.launch {
             broker.recordsFlow.collectLatest { records ->
+                // H2.2: the dynamic Approvals shortcut carries the live count (same event source).
+                com.zcode.android.app.notifications.AppShortcuts.publishApprovalsCount(context, WidgetState.from(records).count)
                 runCatching { PendingApprovalsWidget().updateAll(context) }
                     .onFailure { com.zcode.android.core.common.log.ZLog(sink = {}).warn("widget.updateFailed", it.javaClass.simpleName) }
             }

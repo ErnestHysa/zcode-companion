@@ -216,4 +216,11 @@
     <string name="usage_heatmap_cell_a11y">%1$s: activity level %2$d of %3$d</string>
     <string name="usage_heatmap_cell_empty">No activity</string>
     <string name="widget_preview_headline">2 approvals pending</string>
+    <string name="shortcut_new_task">New task</string>
+    <string name="shortcut_new_task_long">Start a new task</string>
+    <string name="shortcut_approvals">Approvals</string>
+    <string name="shortcut_approvals_long">Open the approvals inbox</string>
+    <string name="shortcut_approvals_count">Approvals (%1$d)</string>
+    <string name="shortcut_connection">Connection</string>
+    <string name="shortcut_connection_long">Connection status</string>
 </resources>

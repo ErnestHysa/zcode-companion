@@ -112,9 +112,18 @@ fun TaskListScreen(
     /** GAP-6: read-only automations + off-peak lists (null = section hidden). */
     automationsPort: com.zcode.android.features.tasks.port.AutomationsPort? = null,
     modifier: Modifier = Modifier,
-) {
+
+    /** H2.2: a launcher shortcut asked for a new task — open the create dialog once. */
+    requestCreate: Boolean = false,
+    onCreateRequestConsumed: () -> Unit = {},) {
     val motion = rememberMotionSpec()
     var showCreate by remember { androidx.compose.runtime.mutableStateOf(false) }
+    LaunchedEffect(requestCreate) {
+        if (requestCreate) {
+            showCreate = true
+            onCreateRequestConsumed()
+        }
+    }
     val createdNotice = stringResource(R.string.tasks_created)
     // §18.2 workspace switcher selection (endpoint-scoped; null = all workspaces).
     var selectedWorkspaceKey by remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
