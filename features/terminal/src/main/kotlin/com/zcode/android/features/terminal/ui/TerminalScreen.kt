@@ -49,6 +49,7 @@ import android.content.ClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.ui.platform.testTag
+import androidx.compose.runtime.saveable.rememberSaveable
 
 /**
  * §21 view-only terminal surface. Streaming output with ANSI SGR colors, bounded
@@ -65,9 +66,10 @@ fun TerminalScreen(
     val state by port.state.collectAsState()
     val snapshot by port.snapshot.collectAsState()
     val optIn by port.optIn.collectAsState()
-    var searchQuery by remember { mutableStateOf("") }
-    var searchMode by remember { mutableStateOf(false) }
-    var paused by remember { mutableStateOf(false) }
+    // C6: pause/search survive process death.
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var searchMode by rememberSaveable { mutableStateOf(false) }
+    var paused by rememberSaveable { mutableStateOf(false) }
     val listState = rememberLazyListState()
     val context = androidx.compose.ui.platform.LocalContext.current
     var copied by remember { mutableStateOf(false) }

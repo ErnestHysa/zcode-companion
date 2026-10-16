@@ -56,7 +56,7 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         // B3-splash (N4.1): the branded launch window — must run BEFORE super.onCreate
         // so the first visible frame is the splash (never the blank white window).
-        installSplashScreen()
+        val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
 
         // FIELD (2026-09-30, vc12): the ring is persisted line-by-line; capture the
@@ -82,6 +82,10 @@ class MainActivity : FragmentActivity() {
         pairingVm = PairingViewModel(container.pairingPort, lifecycleScope)
         tasksVm = TasksViewModel(container.tasksPort, lifecycleScope)
         container.hub.start()
+        // C6 (gate-before-first-frame): hold the splash until §11.6's active-endpoint
+        // selection has run — the first composed frame then reads a settled paired
+        // gate, so a cold start with an existing pairing never flashes Pairing.
+        splash.setKeepOnScreenCondition { !container.hub.gateResolved.value }
         registerNetworkProbe()
         handleDeepLink(intent)
         handleShortcut(intent)

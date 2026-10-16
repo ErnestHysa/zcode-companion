@@ -44,6 +44,7 @@ import com.zcode.android.features.files.port.FilesPort
 import kotlinx.coroutines.launch
 import com.zcode.android.core.ui.components.minRowTouchTarget
 import androidx.compose.ui.semantics.Role
+import androidx.compose.runtime.saveable.rememberSaveable
 
 /**
  * §23.4 read-only workspace file browser (Phase 9.2): folder navigation via
@@ -61,11 +62,12 @@ fun FilesScreen(
     val downloadFailed = stringResource(R.string.files_download_failed)
     val root = port.workspaceRoot()
     // Directory navigation stack (INV-16: only protocol-returned paths are pushed).
-    var stack by remember { mutableStateOf(listOf<String>()) }
+    // C6: the navigation stack + open viewer survive process death.
+    var stack by rememberSaveable { mutableStateOf(listOf<String>()) }
     var entries by remember { mutableStateOf(listOf<com.zcode.android.domain.model.WorkspaceFileEntry>()) }
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
-    var viewer by remember { mutableStateOf<String?>(null) }
+    var viewer by rememberSaveable { mutableStateOf<String?>(null) }
     var textState by remember { mutableStateOf(listOf<com.zcode.android.domain.model.WorkspaceTextSlice>()) }
     var textLoading by remember { mutableStateOf(false) }
     // B2.16: TYPED state — display strings no longer double as the state machine
@@ -213,7 +215,7 @@ fun FilesScreen(
             }
         } else {
             // Text viewer (paged, INV-13: slice-by-slice loads only).
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.testTag("files_viewer")) {
                 AssistChip(onClick = { viewer = null; downloadState = null }, label = { Text(stringResource(com.zcode.android.core.ui.R.string.action_back)) })
                 AssistChip(
                     onClick = {

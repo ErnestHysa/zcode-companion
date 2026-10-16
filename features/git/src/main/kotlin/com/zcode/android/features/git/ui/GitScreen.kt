@@ -54,6 +54,7 @@ import kotlinx.coroutines.launch
 import com.zcode.android.core.ui.components.ZCodeButton
 import com.zcode.android.core.ui.components.minRowTouchTarget
 import androidx.compose.ui.semantics.Role
+import androidx.compose.runtime.saveable.rememberSaveable
 
 /**
  * §9.4 git panel — READ-ONLY (INV-9). GAP-16 overhaul to the desktop git-panel
@@ -76,6 +77,18 @@ fun GitScreen(
     modifier: Modifier = Modifier,
 ) {
     var ui by remember { mutableStateOf(GitUiState()) }
+    // C6: the ONE expanded inline diff (desktop expandedPath) survives process death.
+    var expandedPath by rememberSaveable { mutableStateOf<String?>(null) }
+    var expandedStaged by rememberSaveable { mutableStateOf(false) }
+    val expandedDiff: Pair<String, Boolean>? = expandedPath?.let { it to expandedStaged }
+    fun toggleExpanded(key: Pair<String, Boolean>) {
+        if (expandedDiff == key) {
+            expandedPath = null
+        } else {
+            expandedPath = key.first
+            expandedStaged = key.second
+        }
+    }
     val scope = rememberCoroutineScope()
 
     // B2.7: both datasets fetched through ONE path so the error state and the
@@ -189,22 +202,22 @@ fun GitScreen(
                         title = stringResource(R.string.git_section_unstaged),
                         staged = false,
                         entries = ui.unstaged,
-                        expanded = ui.expanded,
+                        expanded = expandedDiff,
                         load = { path, isStaged -> port.diff(path, isStaged) },
                         onToggle = { path, wasStaged ->
                             val key = path to wasStaged
-                            ui = ui.copy(expanded = if (ui.expanded == key) null else key)
+                            toggleExpanded(key)
                         },
                     )
                     ChangeCard(
                         title = stringResource(R.string.git_section_staged),
                         staged = true,
                         entries = ui.staged,
-                        expanded = ui.expanded,
+                        expanded = expandedDiff,
                         load = { path, isStaged -> port.diff(path, isStaged) },
                         onToggle = { path, wasStaged ->
                             val key = path to wasStaged
-                            ui = ui.copy(expanded = if (ui.expanded == key) null else key)
+                            toggleExpanded(key)
                         },
                     )
                 }
@@ -413,8 +426,6 @@ private data class GitUiState(
     val unstaged: List<GitChangeEntry> = emptyList(),
     val staged: List<GitChangeEntry> = emptyList(),
     val commits: Pair<List<GitCommit>, Boolean> = emptyList<GitCommit>() to false,
-    /** The ONE expanded diff (desktop expandedPath), with its dataset (staged flag). */
-    val expanded: Pair<String, Boolean>? = null,
     val unavailable: Boolean = false,
     /** B2.7: a changes() failure — rendered with a Retry; empty is never a lie. */
     val changesError: String? = null,

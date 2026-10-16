@@ -110,6 +110,15 @@ class ConnectionHub(
     // preferences (selectedEndpointId); the registry lives in endpointRepo.
 
     private val _endpoints = MutableStateFlow<List<Endpoint>>(emptyList())
+
+    /**
+     * C6 (gate-before-first-frame): false until §11.6's active-endpoint selection has
+     * run (the sync seed covers relay pairings; a DIRECT-only device's endpoint arrives
+     * in the async refinement). MainActivity holds the splash screen while this is
+     * false — no pairing flash on cold start with an existing pairing.
+     */
+    private val _gateResolved = MutableStateFlow(false)
+    val gateResolved: StateFlow<Boolean> = _gateResolved.asStateFlow()
     /** The endpoint registry (§11.3) — every saved endpoint across both kinds. */
     val endpoints: StateFlow<List<Endpoint>> = _endpoints.asStateFlow()
 
@@ -335,32 +344,10 @@ class ConnectionHub(
         _endpointName.value = seededMeta?.desktopName
         _phase.value = if (seededMeta == null) ConnectionPhase.UNPAIRED else phaseOf(activeTransport().states.value)
         scope.launch {
-            refreshRegistry()
-            // §11.6 active-endpoint selection: prefs.selectedEndpointId → registry;
-            // fall back to the paired relay endpoint (legacy single-endpoint behavior).
-            val selectedId = runCatching { preferences.current().selectedEndpointId }.getOrNull()
-            val meta = vault.loadMetadata()
-            // §12.6 fail-closed: a selection whose credential no longer decrypts
-            // (vault wiped/rotated) is DEAD — ignore it and fall back to the relay
-            // pairing. Otherwise a stale selection hijacks cold start (found by the
-            // HistoryPagination instrumented suite: a wiped direct token left the
-            // persisted id pointing at a dead endpoint, 2026-10-03).
-            val selected = selectedId?.let { id ->
-                _endpoints.value.firstOrNull { it.endpointId.raw == id }?.takeUnless { ep ->
-                    ep.kind == com.zcode.android.domain.model.EndpointKind.DIRECT_SERVER &&
-                        !vault.hasDirectToken(ep.endpointId.raw)
-                }
-            }
-            _endpoint.value = when {
-                selected?.kind == com.zcode.android.domain.model.EndpointKind.DIRECT_SERVER -> selected
-                meta != null -> relayEndpointFromMeta(meta)
-                else -> selected
-            }
-            _endpointName.value = _endpoint.value?.displayName
-            _phase.value = if (_endpoint.value == null) ConnectionPhase.UNPAIRED else phaseOf(activeTransport().states.value)
-            val active = _endpoint.value
-            if (active != null && activeTransport().states.value != ConnectionStateMachine.ConnectionState.CONNECTED) {
-                connect()
+            try {
+                resolveActiveEndpoint()
+            } finally {
+                _gateResolved.value = true
             }
         }
         // Dual collectors gated by the ACTIVE kind: only the active transport drives
@@ -378,6 +365,37 @@ class ConnectionHub(
             directTransport.appErrors.collect { if (activeKind() == EndpointKind.DIRECT_SERVER) _lastError.value = it }
         }
         observeControlPlanePushes()
+    }
+
+    /** §11.6 active-endpoint selection (the async half of [start]'s seed). */
+    private suspend fun resolveActiveEndpoint() {
+        refreshRegistry()
+        // §11.6 active-endpoint selection: prefs.selectedEndpointId → registry;
+        // fall back to the paired relay endpoint (legacy single-endpoint behavior).
+        val selectedId = runCatching { preferences.current().selectedEndpointId }.getOrNull()
+        val meta = vault.loadMetadata()
+        // §12.6 fail-closed: a selection whose credential no longer decrypts
+        // (vault wiped/rotated) is DEAD — ignore it and fall back to the relay
+        // pairing. Otherwise a stale selection hijacks cold start (found by the
+        // HistoryPagination instrumented suite: a wiped direct token left the
+        // persisted id pointing at a dead endpoint, 2026-10-03).
+        val selected = selectedId?.let { id ->
+            _endpoints.value.firstOrNull { it.endpointId.raw == id }?.takeUnless { ep ->
+                ep.kind == com.zcode.android.domain.model.EndpointKind.DIRECT_SERVER &&
+                    !vault.hasDirectToken(ep.endpointId.raw)
+            }
+        }
+        _endpoint.value = when {
+            selected?.kind == com.zcode.android.domain.model.EndpointKind.DIRECT_SERVER -> selected
+            meta != null -> relayEndpointFromMeta(meta)
+            else -> selected
+        }
+        _endpointName.value = _endpoint.value?.displayName
+        _phase.value = if (_endpoint.value == null) ConnectionPhase.UNPAIRED else phaseOf(activeTransport().states.value)
+        val active = _endpoint.value
+        if (active != null && activeTransport().states.value != ConnectionStateMachine.ConnectionState.CONNECTED) {
+            connect()
+        }
     }
 
     private fun relayEndpointFromMeta(meta: com.zcode.android.core.security.vault.CredentialMetadata): Endpoint =
