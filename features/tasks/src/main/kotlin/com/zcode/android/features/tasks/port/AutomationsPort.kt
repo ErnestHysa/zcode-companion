@@ -4,9 +4,12 @@ import com.zcode.android.domain.model.AutomationRow
 import com.zcode.android.domain.model.OffPeakTaskRow
 
 /**
- * GAP-6 consumer-side port (INV-2/INV-6): the Tasks-tab read-only automations +
- * off-peak lists. The write half (create/edit/trigger/delete/enable — the
- * roadmap's Deferred scope) exists NOWHERE in this port or its implementation.
+ * GAP-6 consumer-side port (INV-2/INV-6): the Tasks-tab automations + off-peak
+ * lists with FULL CRUD. (A1.3, 2026-10-14: this doc previously claimed the write
+ * half "exists NOWHERE" — that was stale; the create/update/delete/setEnabled/
+ * runNow half SHIPPED 2026-10-12, desktop parity zcodeAgent.ts:677-688, with the
+ * AutomationFormDialog editor. Read-only INV-9 applies to TASKS/GIT/FILES, not to
+ * this port — automations CRUD is the desktop's own sanctioned write surface.)
  */
 interface AutomationsPort {
 
