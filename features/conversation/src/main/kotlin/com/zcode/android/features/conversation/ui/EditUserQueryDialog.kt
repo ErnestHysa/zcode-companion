@@ -3,7 +3,6 @@ package com.zcode.android.features.conversation.ui
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -18,6 +17,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.zcode.android.features.conversation.R
+import com.zcode.android.core.ui.components.ZCodeModalBottomSheet
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 
 /**
  * GAP-10 (§11.4) — the edit sheet + its explicit confirm step: the desktop
@@ -36,31 +41,28 @@ fun EditUserQueryDialog(
     // B2.13: keyed on the row's current text — reopening with different text re-seeds.
     var text by remember(initialText) { mutableStateOf(initialText) }
     var confirmOpen by remember { mutableStateOf(false) }
-    if (confirmOpen) {
-        AlertDialog(
-            onDismissRequest = { confirmOpen = false },
-            modifier = Modifier.testTag("edit_confirm_dialog"),
-            title = { Text(stringResource(R.string.edit_confirm_title)) },
-            text = { Text(stringResource(R.string.edit_confirm_body)) },
-            confirmButton = {
-                TextButton(
-                    onClick = { confirmOpen = false; onConfirm(text.trim()) },
-                    modifier = Modifier.testTag("edit_confirm_button"),
-                ) { Text(stringResource(R.string.edit_confirm_button)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmOpen = false }) {
-                    Text(stringResource(R.string.action_cancel))
+    // B3-sheets: ONE sheet — the edit, then an in-sheet review step (the old edit →
+    // confirm double modal is gone; the confirm is still a deliberate second tap).
+    ZCodeModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+            if (confirmOpen) {
+                Column(Modifier.testTag("edit_confirm_dialog")) {
+                    Text(stringResource(R.string.edit_confirm_title), style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.height(8.dp))
+                    Text(stringResource(R.string.edit_confirm_body), style = MaterialTheme.typography.bodyMedium)
+                    Spacer(Modifier.height(12.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        TextButton(onClick = { confirmOpen = false }) { Text(stringResource(R.string.action_cancel)) }
+                        Spacer(Modifier.width(8.dp))
+                        TextButton(
+                            onClick = { confirmOpen = false; onConfirm(text.trim()) },
+                            modifier = Modifier.testTag("edit_confirm_button"),
+                        ) { Text(stringResource(R.string.edit_confirm_button)) }
+                    }
                 }
-            },
-        )
-        return
-    }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.edit_title)) },
-        text = {
-            Column {
+            } else {
+                Text(stringResource(R.string.edit_title), style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(8.dp))
                 Text(
                     text = stringResource(R.string.edit_hint),
                     style = MaterialTheme.typography.bodySmall,
@@ -75,19 +77,20 @@ fun EditUserQueryDialog(
                         .testTag("edit_text_field"),
                     maxLines = 6,
                 )
+                Spacer(Modifier.height(12.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDismiss, modifier = Modifier.testTag("edit_dismiss")) {
+                        Text(stringResource(R.string.action_cancel))
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    TextButton(
+                        onClick = { confirmOpen = true },
+                        enabled = text.isNotBlank() && text != initialText,
+                        modifier = Modifier.testTag("edit_review"),
+                    ) { Text(stringResource(R.string.edit_review)) }
+                }
             }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { confirmOpen = true },
-                enabled = text.isNotBlank() && text != initialText,
-                modifier = Modifier.testTag("edit_review"),
-            ) { Text(stringResource(R.string.edit_review)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss, modifier = Modifier.testTag("edit_dismiss")) {
-                Text(stringResource(R.string.action_cancel))
-            }
-        },
-    )
+            Spacer(Modifier.height(16.dp))
+        }
+    }
 }

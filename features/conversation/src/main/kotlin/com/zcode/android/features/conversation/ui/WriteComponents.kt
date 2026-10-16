@@ -60,6 +60,7 @@ import com.zcode.android.features.conversation.port.ConversationPort
 import com.zcode.android.core.ui.components.ZCodeOutlinedButton
 import com.zcode.android.core.ui.components.ZCodeButton
 import com.zcode.android.core.ui.components.rememberZCodeHaptics
+import com.zcode.android.core.ui.components.ZCodeModalBottomSheet
 
 /**
  * Phase 7 write-surface components (§18.3, ui-ux future-phase-ui.md "Phase 7"):
@@ -497,10 +498,11 @@ fun QueueStrip(
     }
     editing?.let { (id, text) ->
         var newText by remember(id) { mutableStateOf(text) }
-        AlertDialog(
-            onDismissRequest = { editing = null },
-            title = { Text(stringResource(R.string.queue_edit_title)) },
-            text = {
+        // B3-sheets: the queue item edit is a bottom sheet, not a dialog.
+        ZCodeModalBottomSheet(onDismissRequest = { editing = null }) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                Text(stringResource(R.string.queue_edit_title), style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = newText,
                     onValueChange = { newText = it },
@@ -508,18 +510,21 @@ fun QueueStrip(
                         .fillMaxWidth()
                         .testTag("queue_edit_text"),
                 )
-            },
-            confirmButton = {
-                ZCodeButton(
-                    onClick = {
-                        onEdit(id, newText)
-                        editing = null
-                    },
-                    modifier = Modifier.testTag("queue_edit_save"),
-                ) { Text(stringResource(R.string.action_save)) }
-            },
-            dismissButton = { TextButton(onClick = { editing = null }) { Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel)) } },
-        )
+                Spacer(Modifier.height(12.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = { editing = null }) { Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel)) }
+                    Spacer(Modifier.width(8.dp))
+                    ZCodeButton(
+                        onClick = {
+                            onEdit(id, newText)
+                            editing = null
+                        },
+                        modifier = Modifier.testTag("queue_edit_save"),
+                    ) { Text(stringResource(R.string.action_save)) }
+                }
+                Spacer(Modifier.height(16.dp))
+            }
+        }
     }
 }
 

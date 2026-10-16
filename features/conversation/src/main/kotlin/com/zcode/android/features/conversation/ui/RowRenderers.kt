@@ -66,6 +66,11 @@ import com.zcode.android.core.ui.theme.ZCodeRadius
 import com.zcode.android.core.ui.components.animateCollapse
 import com.zcode.android.core.ui.components.rememberZCodeHaptics
 import com.zcode.android.core.ui.components.LocalNotifier
+import androidx.compose.material3.ListItem
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.ui.draw.clip
+import com.zcode.android.core.ui.components.ZCodeModalBottomSheet
 
 /**
  * Row renderers — the agent-timeline grammar (ui-ux component-library v2): YOU
@@ -119,36 +124,40 @@ fun YouBlock(
     }
     val haptics = rememberZCodeHaptics()
     if (showActions) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showActions = false },
-            confirmButton = {},
-            dismissButton = {
-                Row {
-                    TextButton(
-                        onClick = {
+        // B3-sheets: the row-action menu is a bottom sheet (copy / edit), not a dialog.
+        ZCodeModalBottomSheet(onDismissRequest = { showActions = false }) {
+            Text(
+                text = stringResource(R.string.row_actions_title),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.action_copy)) },
+                leadingContent = { Icon(Icons.Outlined.ContentCopy, contentDescription = null) },
+                modifier = Modifier
+                    .clip(MaterialTheme.shapes.medium)
+                    .clickable {
+                        showActions = false
+                        clipboard.setText(AnnotatedString(text))
+                        haptics.tick()
+                    }
+                    .testTag("row_copy_action"),
+            )
+            if (editable && onEdit != null) {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.action_edit)) },
+                    leadingContent = { Icon(Icons.Outlined.Edit, contentDescription = null) },
+                    modifier = Modifier
+                        .clip(MaterialTheme.shapes.medium)
+                        .clickable {
                             showActions = false
-                            clipboard.setText(AnnotatedString(text))
-                            haptics.tick()
-                        },
-                        modifier = Modifier.testTag("row_copy_action"),
-                    ) {
-                        Text(stringResource(R.string.action_copy))
-                    }
-                    if (editable && onEdit != null) {
-                        TextButton(
-                            onClick = {
-                                showActions = false
-                                onEdit()
-                            },
-                            modifier = Modifier.testTag("row_edit_action"),
-                        ) {
-                            Text(stringResource(R.string.action_edit))
+                            onEdit()
                         }
-                    }
-                }
-            },
-            title = { Text(stringResource(R.string.row_actions_title)) },
-        )
+                        .testTag("row_edit_action"),
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+        }
     }
 }
 

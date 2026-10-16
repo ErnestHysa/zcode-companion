@@ -52,6 +52,7 @@ import com.zcode.android.domain.model.SessionConfigState
 import com.zcode.android.domain.model.TurnFileChanges
 import com.zcode.android.features.conversation.port.ConversationPort
 import com.zcode.android.core.ui.components.rememberZCodeHaptics
+import com.zcode.android.core.ui.components.ZCodeModalBottomSheet
 
 /**
  * Phase 9 conversation affordances (§43.2-9): model/mode switch chips (9.5),
@@ -76,66 +77,67 @@ fun ComposerModelPickerDialog(
     val providers by produceState<List<ModelProviderOption>?>(initialValue = null) {
         value = runCatching { modelOptionsProvider() }.getOrDefault(emptyList())
     }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        // E2: the title slot carried action_close (copy-paste) — live-verified twice.
-        title = {
-            Text(
-                stringResource(R.string.composer_model_picker_title),
-                modifier = Modifier.testTag("composer_model_picker_title"),
+    // B3-sheets: the model picker is a bottom sheet (create-task keeps ONE dialog).
+    ZCodeModalBottomSheet(onDismissRequest = onDismiss) {
+        Text(
+            stringResource(R.string.composer_model_picker_title),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .testTag("composer_model_picker_title"),
+        )
+        when (val list = providers) {
+            null -> Row(
+                Modifier.fillMaxWidth().padding(16.dp),
+                horizontalArrangement = Arrangement.Center,
+            ) { CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) }
+            // E9: an empty list rendered a completely EMPTY body — an honest
+            // unavailable state instead.
+            emptyList<ModelProviderOption>() -> Text(
+                stringResource(R.string.composer_model_picker_empty),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .testTag("composer_model_picker_empty"),
             )
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) } },
-        text = {
-            when (val list = providers) {
-                null -> Row(
-                    Modifier.fillMaxWidth().padding(16.dp),
-                    horizontalArrangement = Arrangement.Center,
-                ) { CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) }
-                // E9: an empty list rendered a completely EMPTY body — an honest
-                // unavailable state instead.
-                emptyList<ModelProviderOption>() -> Text(
-                    stringResource(R.string.composer_model_picker_empty),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .testTag("composer_model_picker_empty"),
-                )
-                else -> Column(
-                    Modifier.fillMaxWidth().heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
-                ) {
-                    for (provider in list) {
-                        Text(
-                            provider.providerName ?: provider.providerId,
-                            style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.padding(vertical = 4.dp),
-                        )
-                        for (model in provider.models) {
-                            val selected = current?.first == provider.providerId && current?.second == model.id
-                            Row(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        haptics.tick()
-                                        onPick(provider.providerId, model.id)
-                                        onDismiss()
-                                    }
-                                    .padding(horizontal = 8.dp, vertical = 8.dp)
-                                    .testTag("composer_model_row_${model.id}"),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                RadioButton(selected = selected, onClick = null)
-                                Spacer(Modifier.width(8.dp))
-                                Text(model.label, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                            }
+            else -> Column(
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 420.dp)
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                for (provider in list) {
+                    Text(
+                        provider.providerName ?: provider.providerId,
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(vertical = 4.dp),
+                    )
+                    for (model in provider.models) {
+                        val selected = current?.first == provider.providerId && current?.second == model.id
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    haptics.tick()
+                                    onPick(provider.providerId, model.id)
+                                    onDismiss()
+                                }
+                                .padding(horizontal = 8.dp, vertical = 8.dp)
+                                .testTag("composer_model_row_${model.id}"),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(selected = selected, onClick = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(model.label, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                         }
                     }
                 }
             }
-        },
-    )
+        }
+        Spacer(Modifier.height(12.dp))
+    }
 }
 
 /** §10.3 echo-reconciled config chips: current mode + model, tap → verified options. */
