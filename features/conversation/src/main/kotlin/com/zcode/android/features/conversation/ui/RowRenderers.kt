@@ -75,6 +75,8 @@ import androidx.compose.ui.res.pluralStringResource
 import com.zcode.android.core.ui.components.minTouchTarget
 import com.zcode.android.core.ui.components.minRowTouchTarget
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 
 /**
  * Row renderers — the agent-timeline grammar (ui-ux component-library v2): YOU
@@ -181,7 +183,11 @@ fun AgentProse(text: String, streaming: Boolean, createdAtMs: Double? = null, mo
         SelectionContainer(modifier = Modifier.testTag("row_selection_agent")) {
             MarkdownText(
                 text = text,
-                modifier = Modifier.semantics(mergeDescendants = true) {},
+                // N8: a STREAMING row is a polite live region so TalkBack announces the
+                // arriving text; a completed row is not (no re-announce on scroll-back).
+                modifier = Modifier.semantics(mergeDescendants = true) {
+                    if (streaming) liveRegion = LiveRegionMode.Polite
+                },
             )
         }
         if (streaming) {
