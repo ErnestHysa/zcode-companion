@@ -51,6 +51,18 @@ fun toneColor(tone: StatusTone): Color = when (tone) {
     StatusTone.MUTED -> LocalZCodeColors.current.textMuted
 }
 
+/** L4.1: the localized phase label (never the raw enum name). */
+@Composable
+fun connectionPhaseLabel(phase: ConnectionPhase): String = when (phase) {
+    ConnectionPhase.CONNECTED -> stringResource(R.string.conn_connected)
+    ConnectionPhase.RECOVERING -> stringResource(R.string.conn_syncing)
+    ConnectionPhase.RECONNECTING -> stringResource(R.string.conn_reconnecting)
+    ConnectionPhase.CONNECTING, ConnectionPhase.AUTHENTICATING, ConnectionPhase.PAIRING -> stringResource(R.string.conn_connecting)
+    ConnectionPhase.DEGRADED -> stringResource(R.string.conn_disconnected)
+    ConnectionPhase.FAILED -> stringResource(R.string.conn_failed)
+    ConnectionPhase.UNPAIRED, ConnectionPhase.CLOSED -> stringResource(R.string.conn_not_connected)
+}
+
 /** ui-ux connection chrome: compact dot + muted label under the app bar title. */
 @Composable
 fun ConnectionStatusLine(

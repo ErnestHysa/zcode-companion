@@ -42,6 +42,7 @@ import com.zcode.android.features.tasks.port.AutomationsPort
 import kotlinx.coroutines.launch
 import com.zcode.android.core.ui.components.ZCodeOutlinedButton
 import com.zcode.android.core.ui.components.ZCodeButton
+import com.zcode.android.core.ui.components.friendlyFaultMessage
 
 /**
  * GAP-6 + FIELD (2026-10-12): the Tasks-tab AUTOMATIONS + OFF-PEAK section, now
@@ -116,8 +117,10 @@ fun AutomationsSection(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            // F5: an errored channel is not a capability statement — classify it
+            // (unsupported/unscripted → "not available on this desktop"; transport → connection).
             lists?.error != null -> Text(
-                stringResource(R.string.automations_unavailable),
+                friendlyFaultMessage(lists?.error),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.testTag("automations_error"),

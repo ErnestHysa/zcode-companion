@@ -5,7 +5,7 @@
     <string name="conv_attention_title">Needs attention</string>
     <string name="conv_attention_body">The agent is waiting — answer above.</string>
     <string name="conv_load_earlier">Load earlier messages</string>
-    <string name="conv_showing_latest_of">  ·  showing latest %1$d of %2$d</string>
+    <string name="conv_showing_latest_of">"  ·  showing latest %1$d of %2$d"</string>
     <string name="conv_history_changed">History changed on desktop — jumped to latest</string>
     <string name="action_dismiss">Dismiss</string>
     <string name="conv_default_title">Conversation</string>

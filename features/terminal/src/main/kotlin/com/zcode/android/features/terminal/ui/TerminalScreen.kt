@@ -175,10 +175,7 @@ fun TerminalScreen(
 @Composable
 private fun OptInGate(enabled: Boolean, onToggle: (Boolean) -> Unit, onContinue: () -> Unit) {
     StateCard(
-        text = stringResource(R.string.terminal_consent_body) +
-                "" +
-            "your machine. It is view-only (nothing you type can reach the shell) and stays " +
-            "off unless you enable it here.",
+        text = stringResource(R.string.terminal_consent_body),
         extra = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Switch(checked = enabled, onCheckedChange = onToggle)

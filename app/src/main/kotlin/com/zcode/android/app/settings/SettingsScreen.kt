@@ -50,6 +50,11 @@ import com.zcode.android.core.ui.components.rememberZCodeTopBarScroll
 import com.zcode.android.core.ui.components.LocalNotifier
 import com.zcode.android.core.ui.components.SectionHeader
 import com.zcode.android.core.ui.components.Notifier
+import com.zcode.android.core.ui.components.connectionPhaseLabel
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.size
 
 /**
  * Basic Phase 6 settings (ui-ux 13): paired desktop identity, connection entry,
@@ -291,7 +296,8 @@ private fun EndpointsSection(container: AppContainer, endpointName: String?, des
     for ((index, row) in rows.withIndex()) {
         val active = row != null && activeEndpoint?.endpointId == row.endpointId
         SettingsRow(
-            title = (row?.displayName ?: endpointName ?: stringResource(R.string.settings_not_paired_row)) + if (active) "  •" else "",
+            title = row?.displayName ?: endpointName ?: stringResource(R.string.settings_not_paired_row),
+            active = active,
             subtitle = buildString {
                 val localized = stringResource(
                     if (row?.kind == com.zcode.android.domain.model.EndpointKind.DIRECT_SERVER) R.string.settings_kind_direct
@@ -299,7 +305,7 @@ private fun EndpointsSection(container: AppContainer, endpointName: String?, des
                 )
                 append(localized)
                 row?.desktopAppVersion?.let { append(stringResource(R.string.settings_version_suffix, it)) }
-                if (active) append(stringResource(R.string.settings_connected_suffix, phase.name))
+                if (active) append(stringResource(R.string.settings_connected_suffix, connectionPhaseLabel(phase)))
             },
             tag = "settings_endpoint_$index",
             onClick = {
@@ -899,6 +905,8 @@ private fun SettingsRow(
     tag: String,
     onClick: (() -> Unit)? = null,
     enabled: Boolean = true,
+    /** M5.3: the active-endpoint marker is a semantic badge (TalkBack reads it), not a symbol-only suffix. */
+    active: Boolean = false,
 ) {
     val alpha = if (enabled) 1f else 0.38f
     Row(
@@ -910,7 +918,19 @@ private fun SettingsRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onBackground.copy(alpha = alpha))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onBackground.copy(alpha = alpha))
+                if (active) {
+                    Spacer(Modifier.width(8.dp))
+                    val activeA11y = stringResource(R.string.settings_active_endpoint_a11y)
+                    androidx.compose.foundation.layout.Box(
+                        Modifier
+                            .size(8.dp)
+                            .background(MaterialTheme.colorScheme.primary, androidx.compose.foundation.shape.CircleShape)
+                            .semantics { contentDescription = activeA11y },
+                    )
+                }
+            }
             if (subtitle != null) {
                 Spacer(Modifier.height(2.dp))
                 Text(

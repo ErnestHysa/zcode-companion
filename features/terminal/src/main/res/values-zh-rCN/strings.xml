@@ -12,7 +12,7 @@
     <string name="terminal_detach">断开</string>
     <string name="terminal_attach">连接</string>
     <string name="terminal_consent_title">终端（仅查看）</string>
-    <string name="terminal_consent_body">终端输出是敏感界面：它会实时显示工作区的 shell 视图。在设置中按端点启用一次；随时可以关闭。</string>
+    <string name="terminal_consent_body">终端输出是敏感内容：它会实时显示你电脑上工作区的 shell 画面。它是只读的（你输入的任何内容都不会到达 shell），除非你在此处启用，否则保持关闭。每个端点只需在设置中启用一次；你可以随时关闭。</string>
     <string name="terminal_enable">启用终端（仅查看）</string>
     <string name="terminal_title">终端</string>
     <string name="terminal_status_live">运行中 — %1$s</string>

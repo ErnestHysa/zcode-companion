@@ -4,7 +4,7 @@
     <string name="conv_attention_title">需要处理</string>
     <string name="conv_attention_body">智能体正在等待 — 请在上方回答。</string>
     <string name="conv_load_earlier">加载更早的消息</string>
-    <string name="conv_showing_latest_of">  ·  显示最新的 %1$d 条（共 %2$d 条）</string>
+    <string name="conv_showing_latest_of">"  ·  显示最新的 %1$d 条（共 %2$d 条）"</string>
     <string name="conv_history_changed">桌面端历史已变更 — 已跳到最新</string>
     <string name="action_dismiss">忽略</string>
     <string name="conv_default_title">对话</string>

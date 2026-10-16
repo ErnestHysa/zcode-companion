@@ -12,7 +12,7 @@
     <string name="terminal_detach">Detach</string>
     <string name="terminal_attach">Attach</string>
     <string name="terminal_consent_title">Terminal (view-only)</string>
-    <string name="terminal_consent_body">Terminal output is a sensitive surface: it streams a live shell view of the workspace. Enable it once per endpoint in Settings; you can turn it off at any time.</string>
+    <string name="terminal_consent_body">Terminal output is a sensitive surface: it streams a live shell view of the workspace on your machine. It is view-only (nothing you type can reach the shell) and stays off unless you enable it here. Enable it once per endpoint in Settings; you can turn it off at any time.</string>
     <string name="terminal_enable">Enable terminal (view-only)</string>
     <string name="terminal_title">Terminal</string>
     <string name="terminal_status_live">live — %1$s</string>

@@ -11,7 +11,7 @@
     <string name="conn_center_failed">连接失败</string>
     <string name="conn_center_not_paired">未配对</string>
     <string name="conn_center_closed">已关闭</string>
-    <string name="conn_desktop_version"> · 桌面端 %1$s</string>
+    <string name="conn_desktop_version">" · 桌面端 %1$s"</string>
     <string name="conn_compat_warning">桌面端 %1$s 比本应用测试过的版本（%2$s）更新 — 如果连接持续失败，可能与此有关。</string>
     <!-- AAP-3（§14.2 T4)：连接中心的更新横幅（§37 非 Play 渠道）。 -->
     <string name="conn_update_banner">检测到桌面端 %1$s — 本应用测试至 %2$s — 有可用更新 %3$s。</string>
@@ -23,7 +23,7 @@
     <string name="conn_update_progress">正在下载更新… %1$s</string>
     <string name="conn_update_ready">更新已下载 — 请确认安装以完成。</string>
     <string name="conn_update_failed">更新失败：%1$s</string>
-    <string name="conn_last_refreshed">%1$s前刷新</string>
+    <string name="conn_last_refreshed">%1$s刷新</string>
     <string name="conn_takeover_title">另一个 ZCode 远程页面接管了此连接</string>
     <string name="conn_takeover_body">同一时间只能连接一部手机。重新连接即可接管。</string>
     <string name="conn_takeover_reconnect">重新连接</string>
@@ -86,8 +86,8 @@
 <string name="settings_not_paired_row">未配对</string>
 <string name="settings_kind_direct">直连服务器</string>
 <string name="settings_kind_relay">中继（二维码配对）</string>
-<string name="settings_connected_suffix"> · 已连接：%1$s</string>
-<string name="settings_version_suffix"> · v%1$s</string>
+<string name="settings_connected_suffix">" · 已连接：%1$s"</string>
+<string name="settings_version_suffix">" · v%1$s"</string>
 <string name="settings_switched">已切换</string>
 <string name="settings_switch_failed">切换失败</string>
 <string name="settings_added_connecting">已添加 — 正在连接…</string>
@@ -203,4 +203,5 @@
     <string name="settings_check_updates_sub">检查 GitHub Releases 是否有更新的版本</string>
     <string name="settings_check_updates_found">有可用更新 %1$s — 请点击下方的立即更新</string>
     <string name="settings_check_updates_latest">已是最新版本</string>
+    <string name="settings_active_endpoint_a11y">当前端点</string>
 </resources>

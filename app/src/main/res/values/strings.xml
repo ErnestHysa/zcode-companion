@@ -12,7 +12,7 @@
     <string name="conn_center_failed">Connection failed</string>
     <string name="conn_center_not_paired">Not paired</string>
     <string name="conn_center_closed">Closed</string>
-    <string name="conn_desktop_version"> · desktop %1$s</string>
+    <string name="conn_desktop_version">" · desktop %1$s"</string>
     <string name="conn_compat_warning">Desktop %1$s is newer than the version this app was tested against (%2$s) — if connections keep failing, this may be why.</string>
     <!-- AAP-3 (§14.2 T4): the connection-center update banner (§37 non-Play channel). -->
     <string name="conn_update_banner">Desktop %1$s detected — this build was tested to %2$s — update %3$s is available.</string>
@@ -24,7 +24,7 @@
     <string name="conn_update_progress">Downloading update… %1$s</string>
     <string name="conn_update_ready">Update downloaded — confirm the install to finish.</string>
     <string name="conn_update_failed">Update failed: %1$s</string>
-    <string name="conn_last_refreshed">Last refreshed %1$s ago</string>
+    <string name="conn_last_refreshed">Last refreshed %1$s</string>
     <string name="conn_takeover_title">Another ZCode Remote page took over this connection</string>
     <string name="conn_takeover_body">Only one phone can be connected at a time. Reconnect to take over.</string>
     <string name="conn_takeover_reconnect">Reconnect</string>
@@ -93,8 +93,8 @@
 <string name="settings_not_paired_row">Not paired</string>
 <string name="settings_kind_direct">Direct server</string>
 <string name="settings_kind_relay">Relay (QR pairing)</string>
-<string name="settings_connected_suffix"> · connected: %1$s</string>
-<string name="settings_version_suffix"> · v%1$s</string>
+<string name="settings_connected_suffix">" · connected: %1$s"</string>
+<string name="settings_version_suffix">" · v%1$s"</string>
 <string name="settings_switched">Switched</string>
 <string name="settings_switch_failed">Switch failed</string>
 <string name="settings_added_connecting">Added — connecting…</string>
@@ -210,4 +210,5 @@
     <string name="settings_check_updates_sub">Check GitHub Releases for a newer build</string>
     <string name="settings_check_updates_found">Update %1$s is available — tap Update now below</string>
     <string name="settings_check_updates_latest">You are on the latest build</string>
+    <string name="settings_active_endpoint_a11y">Active endpoint</string>
 </resources>
