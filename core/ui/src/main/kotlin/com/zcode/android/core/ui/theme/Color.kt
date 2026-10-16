@@ -59,7 +59,14 @@ data class ZCodeColors(
     val surfaceContainerHighest: Color,
 )
 
-/** Light tokens (ui-ux/color-system.md — light is the primary designed pair). */
+/**
+ * Light tokens (ui-ux/color-system.md — light is the primary designed pair).
+ *
+ * J6 contrast floor: every TEXT-role token clears WCAG AA small text (4.5:1) on
+ * surface/bg/surface2 — `textMuted`, `statusWaiting` and `statusSuccess` were each
+ * darkened one step (3.3–4.4:1 before). `statusWaiting` also clears AA on its own
+ * 16%-tint AttentionStrip. The table is pinned by TokenContrastTest.
+ */
 val ZCodeColorsLight = ZCodeColors(
     accent = Color(0xFF3D5AFE),
     onAccent = Color(0xFFFFFFFF),
@@ -67,15 +74,15 @@ val ZCodeColorsLight = ZCodeColors(
     accentMuted = Color(0xFF5C6BC0),
     text = Color(0xFF12151C),
     textSecondary = Color(0xFF4A5568),
-    textMuted = Color(0xFF7A8499),
+    textMuted = Color(0xFF656E82),
     textInverse = Color(0xFFFFFFFF),
     statusRunning = Color(0xFF3D5AFE),
-    statusWaiting = Color(0xFFC47A00),
-    statusSuccess = Color(0xFF1B7F4E),
+    statusWaiting = Color(0xFF8F5800),
+    statusSuccess = Color(0xFF1A7B4B),
     statusError = Color(0xFFC62828),
     statusInfo = Color(0xFF1565C0),
     railRunning = Color(0xFF3D5AFE),
-    railWaiting = Color(0xFFC47A00),
+    railWaiting = Color(0xFF8F5800),
     railDone = Color(0xFFB8C0D0),
     toolSurface = Color(0xFFF0F3FA),
     codeBg = Color(0xFFF7F8FC),
@@ -103,7 +110,7 @@ val ZCodeColorsDark = ZCodeColors(
     accentMuted = Color(0xFF9AA8FF),
     text = Color(0xFFE8ECF4),
     textSecondary = Color(0xFF9AA3B5),
-    textMuted = Color(0xFF6B7385),
+    textMuted = Color(0xFF828B9E),
     textInverse = Color(0xFF0B0E14),
     statusRunning = Color(0xFF7C9CFF),
     statusWaiting = Color(0xFFE6A817),
