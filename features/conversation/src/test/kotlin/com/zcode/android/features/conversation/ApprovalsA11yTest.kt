@@ -98,8 +98,13 @@ class ApprovalsA11yTest {
         setContent(listOf(interaction("i-1")))
         val clickables = allNodes().filter { it.config.getOrNull(SemanticsActions.OnClick) != null }
         assertTrue(clickables.size >= 4)
-        val ys = clickables.map { it.boundsInRoot.center.y }
-        assertEquals("traversal order must match visual order", ys, ys.sorted())
+        // §30.1 under M3 Scaffold — TalkBack order = traversal groups (bar chrome
+        // first via ZCodeTopBar's group/index-0, body index-1); the tree order the
+        // rule enumerates is body-first. Pin the body's visual order + chrome-on-top.
+        val headerBottom = 48f * rule.density.density * 2
+        val (chrome, body) = clickables.map { it.boundsInRoot.center.y }.partition { it <= headerBottom }
+        assertTrue("chrome above every body row: $chrome vs $body", chrome.all { c -> body.all { c <= it } })
+        assertEquals("body clickables must be in visual order", body.sorted(), body)
         val unlabelled = clickables.count {
             it.config.getOrNull(SemanticsProperties.Text)?.isEmpty() != false &&
                 it.config.getOrNull(SemanticsProperties.ContentDescription)?.isEmpty() != false

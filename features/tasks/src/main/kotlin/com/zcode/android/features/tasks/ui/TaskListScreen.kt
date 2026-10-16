@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -69,6 +67,11 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import com.zcode.android.core.ui.components.ZCodeMotion
 import com.zcode.android.core.ui.components.rememberMotionSpec
+import androidx.compose.material3.Scaffold
+import com.zcode.android.core.ui.components.ZCodeTopBar
+import com.zcode.android.core.ui.components.rememberZCodeTopBarScroll
+import androidx.compose.ui.semantics.isTraversalGroup
+import androidx.compose.ui.semantics.traversalIndex
 
 /**
  * Task list (§43.2-6.2; ui-ux screen-spec 03/04/14). Dense rows, left status rail,
@@ -115,14 +118,39 @@ fun TaskListScreen(
     var selectedWorkspaceKey by remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
     // GAP-14: per-workspace collapse state, persisted through the store when supplied.
     val collapse = remember(collapseStore) { WorkspaceCollapseState(collapseStore, collapseExecutor) }
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-            HeaderRow(
-                state = state,
-                onOpenSettings = onOpenSettings,
-                openApprovals = openApprovals,
-                onOpenApprovals = onOpenApprovals,
+    val topBarScroll = rememberZCodeTopBarScroll()
+    Scaffold(
+        // §30.1 traversal order: M3 Scaffold subcomposes the BODY before the top bar,
+        // so without grouping, TalkBack reads rows before the header actions. The
+        // traversal group + indexes pin the header first, matching the visual order.
+        modifier = modifier
+            .fillMaxSize()
+            .semantics { isTraversalGroup = true },
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            ZCodeTopBar(
+                title = stringResource(R.string.tasks_title),
+                subtitle = state.endpointName,
+                titleTestTag = "tasks-title",
+                backTestTag = "tasks_back",
+                actions = {
+                    ApprovalsBellAction(openApprovals, onOpenApprovals)
+                    IconButton(onClick = onOpenSettings, modifier = Modifier.size(48.dp).testTag("tasks_settings")) {
+                        Icon(
+                            imageVector = Icons.Filled.Settings,
+                            contentDescription = stringResource(R.string.tasks_settings_a11y),
+                        )
+                    }
+                },
             )
+        },
+    ) { inner ->
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(inner)
+                .semantics { traversalIndex = 1f },
+        ) {
             ConnectionStatusLine(
                 phase = state.phase,
                 modifier = Modifier
@@ -361,66 +389,35 @@ internal fun CreateTaskDialog(
     }
 }
 
+/** "Approval first" (§18.3): the inbox entry with a live "needs you" count badge. */
 @Composable
-private fun HeaderRow(
-    state: TasksUiState,
-    onOpenSettings: () -> Unit,
+private fun ApprovalsBellAction(
     openApprovals: Int,
     onOpenApprovals: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 16.dp, end = 8.dp, top = 14.dp, bottom = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = stringResource(R.string.tasks_title),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.testTag("tasks-title"),
-            )
-            state.endpointName?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        // §18.3 "approval first": the inbox entry with a live "needs you" count.
-        IconButton(onClick = onOpenApprovals, modifier = Modifier.size(48.dp).testTag("tasks_approvals")) {
-            Box {
-                Icon(
-                    imageVector = Icons.Filled.Notifications,
-                    contentDescription = stringResource(R.string.tasks_approvals_a11y),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                if (openApprovals > 0) {
-                    Box(
-                        Modifier
-                            .align(Alignment.TopEnd)
-                            .size(16.dp)
-                            .background(MaterialTheme.colorScheme.error, androidx.compose.foundation.shape.CircleShape),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = openApprovals.coerceAtMost(9).toString(),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onError,
-                            modifier = Modifier.testTag("tasks_approvals_badge"),
-                        )
-                    }
-                }
-            }
-        }
-        IconButton(onClick = onOpenSettings, modifier = Modifier.size(48.dp).testTag("tasks_settings")) {
+    IconButton(onClick = onOpenApprovals, modifier = Modifier.size(48.dp).testTag("tasks_approvals")) {
+        Box {
             Icon(
-                imageVector = Icons.Filled.Settings,
-                contentDescription = stringResource(R.string.tasks_settings_a11y),
+                imageVector = Icons.Filled.Notifications,
+                contentDescription = stringResource(R.string.tasks_approvals_a11y),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (openApprovals > 0) {
+                Box(
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .size(16.dp)
+                        .background(MaterialTheme.colorScheme.error, androidx.compose.foundation.shape.CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = openApprovals.coerceAtMost(9).toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onError,
+                        modifier = Modifier.testTag("tasks_approvals_badge"),
+                    )
+                }
+            }
         }
     }
 }

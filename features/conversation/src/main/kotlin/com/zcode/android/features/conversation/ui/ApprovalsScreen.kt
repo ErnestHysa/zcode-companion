@@ -10,17 +10,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -35,13 +28,19 @@ import com.zcode.android.features.conversation.R
 import androidx.compose.ui.res.stringResource
 import com.zcode.android.core.ui.components.relativeTimeLabel
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zcode.android.features.conversation.port.ConversationPort
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import com.zcode.android.core.ui.components.ZCodeOutlinedButton
 import com.zcode.android.core.ui.components.ZCodeButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import com.zcode.android.core.ui.components.ZCodeTopBar
+import com.zcode.android.core.ui.components.rememberZCodeTopBarScroll
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.isTraversalGroup
+import androidx.compose.ui.semantics.traversalIndex
 
 /**
  * Approvals inbox (§18.2/§18.3 "approval first"): cross-task open interactions in
@@ -67,40 +66,32 @@ fun ApprovalsScreen(
     // authoritative answer never landed. Every non-submit outcome surfaces now.
     var answerError by remember { mutableStateOf<String?>(null) }
 
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    val topBarScroll = rememberZCodeTopBarScroll()
+    Scaffold(
+        // §30.1 traversal order (see ZCodeTopBar): body before chrome in the tree —
+        // grouped so TalkBack reads the header first, and the body keeps its order.
+        modifier = modifier
+            .fillMaxSize()
+            .nestedScroll(topBarScroll.nestedScrollConnection)
+            .semantics { isTraversalGroup = true },
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            ZCodeTopBar(
+                title = stringResource(R.string.approvals_title),
+                subtitle = stringResource(R.string.approvals_subtitle),
+                titleTestTag = "approvals-title",
+                onBack = onBack,
+                backTestTag = "approvals_back",
+                scrollBehavior = topBarScroll,
+            )
+        },
+    ) { inner ->
         Column(
             Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
+                .padding(inner)
+                .semantics { traversalIndex = 1f },
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(end = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onBack, modifier = Modifier.testTag("approvals_back")) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(com.zcode.android.core.ui.R.string.action_back),
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.approvals_title),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.testTag("approvals-title"),
-                    )
-                    Text(
-                        text = stringResource(R.string.approvals_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
             if (phase != com.zcode.android.domain.state.ConnectionPhase.CONNECTED) {
                 Text(
                     text = stringResource(R.string.approvals_offline_note),

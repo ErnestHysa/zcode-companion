@@ -51,6 +51,10 @@ import com.zcode.android.domain.model.AppUsageSnapshot
 import java.util.Locale
 import kotlinx.coroutines.launch
 import com.zcode.android.core.ui.components.ZCodeButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import com.zcode.android.core.ui.components.ZCodeTopBar
+import com.zcode.android.core.ui.components.rememberZCodeTopBarScroll
 
 /**
  * GAP-5 (android-native-gaps.md; docs/protocol/v4-wire.md §12.1) — Settings →
@@ -97,27 +101,24 @@ fun UsageScreen(
     }
     LaunchedEffect(Unit) { load(range) }
 
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    val topBarScroll = rememberZCodeTopBarScroll()
+    Scaffold(
+        modifier = modifier.fillMaxSize().nestedScroll(topBarScroll.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            ZCodeTopBar(
+                title = stringResource(R.string.usage_title),
+                onBack = onBack,
+                backTestTag = "usage_back",
+                scrollBehavior = topBarScroll,
+            )
+        },
+    ) { inner ->
         Column(
             Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
+                .padding(inner),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack, modifier = Modifier.testTag("usage_back")) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(com.zcode.android.core.ui.R.string.action_back),
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-                Text(
-                    stringResource(R.string.usage_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onBackground,
-                )
-            }
             if (loading && snapshot == null && error == null) {
                 Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     SkeletonBar(Modifier.fillMaxWidth())

@@ -1,17 +1,10 @@
 package com.zcode.android.app.nav
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
@@ -48,6 +41,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import androidx.compose.material3.Scaffold
 
 /**
  * Phase 6 navigation graph (§18.2; ui-ux navigation.md): pairing (unpaired gate) →
@@ -463,49 +457,58 @@ private fun ConversationRoute(
 
 @Composable
 private fun FilesRoute(container: AppContainer, onBack: () -> Unit) {
-    Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, modifier = Modifier.padding(4.dp)) {
-            IconButton(onClick = onBack, modifier = Modifier.testTag("files_back")) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                )
-            }
-            Text(stringResource(R.string.nav_files_title), style = MaterialTheme.typography.titleMedium)
-        }
-        com.zcode.android.features.files.ui.FilesScreen(port = container.filesPort, modifier = Modifier.fillMaxSize())
+    val topBarScroll = com.zcode.android.core.ui.components.rememberZCodeTopBarScroll()
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            com.zcode.android.core.ui.components.ZCodeTopBar(
+                title = stringResource(R.string.nav_files_title),
+                onBack = onBack,
+                backTestTag = "files_back",
+                scrollBehavior = topBarScroll,
+            )
+        },
+    ) { inner ->
+        com.zcode.android.features.files.ui.FilesScreen(port = container.filesPort, modifier = Modifier.fillMaxSize().padding(inner))
     }
 }
 
 @Composable
 private fun GitRoute(container: AppContainer, onBack: () -> Unit) {
-    Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, modifier = Modifier.padding(4.dp)) {
-            IconButton(onClick = onBack, modifier = Modifier.testTag("git_back")) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                )
-            }
-            Text(stringResource(R.string.nav_git_title), style = MaterialTheme.typography.titleMedium)
-        }
-        com.zcode.android.features.git.ui.GitScreen(port = container.gitPort, modifier = Modifier.fillMaxSize())
+    val topBarScroll = com.zcode.android.core.ui.components.rememberZCodeTopBarScroll()
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            com.zcode.android.core.ui.components.ZCodeTopBar(
+                title = stringResource(R.string.nav_git_title),
+                onBack = onBack,
+                backTestTag = "git_back",
+                scrollBehavior = topBarScroll,
+            )
+        },
+    ) { inner ->
+        com.zcode.android.features.git.ui.GitScreen(port = container.gitPort, modifier = Modifier.fillMaxSize().padding(inner))
     }
 }
 
 @Composable
 private fun TerminalRoute(container: AppContainer, onBack: () -> Unit) {
-    Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, modifier = Modifier.padding(4.dp)) {
-            IconButton(onClick = onBack, modifier = Modifier.testTag("terminal_back")) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                )
-            }
-            Text(stringResource(R.string.nav_terminal_title), style = MaterialTheme.typography.titleMedium)
-        }
-        com.zcode.android.features.terminal.ui.TerminalScreen(port = container.terminalPort, modifier = Modifier.fillMaxSize())
+    val topBarScroll = com.zcode.android.core.ui.components.rememberZCodeTopBarScroll()
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            com.zcode.android.core.ui.components.ZCodeTopBar(
+                title = stringResource(R.string.nav_terminal_title),
+                onBack = onBack,
+                backTestTag = "terminal_back",
+                scrollBehavior = topBarScroll,
+            )
+        },
+    ) { inner ->
+        com.zcode.android.features.terminal.ui.TerminalScreen(port = container.terminalPort, modifier = Modifier.fillMaxSize().padding(inner))
     }
 }
 

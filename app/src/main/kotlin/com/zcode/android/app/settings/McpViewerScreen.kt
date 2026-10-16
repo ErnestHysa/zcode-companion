@@ -38,6 +38,10 @@ import com.zcode.android.app.R
 import com.zcode.android.domain.model.McpStatuses
 import kotlinx.coroutines.launch
 import com.zcode.android.core.ui.components.ZCodeButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import com.zcode.android.core.ui.components.ZCodeTopBar
+import com.zcode.android.core.ui.components.rememberZCodeTopBarScroll
 
 /**
  * GAP-9 (android-native-gaps.md; docs/protocol/v4-wire.md §12.5) — the
@@ -65,27 +69,24 @@ fun McpViewerScreen(
 
     LaunchedEffect(port) { scope.launch { result = port.statuses(); loading = false } }
 
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    val topBarScroll = rememberZCodeTopBarScroll()
+    Scaffold(
+        modifier = modifier.fillMaxSize().nestedScroll(topBarScroll.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            ZCodeTopBar(
+                title = stringResource(R.string.mcp_title),
+                onBack = onBack,
+                backTestTag = "mcp_back",
+                scrollBehavior = topBarScroll,
+            )
+        },
+    ) { inner ->
         Column(
             Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
+                .padding(inner),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack, modifier = Modifier.testTag("mcp_back")) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(com.zcode.android.core.ui.R.string.action_back),
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-                Text(
-                    stringResource(R.string.mcp_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onBackground,
-                )
-            }
             when {
                 loading && result == null -> Column(Modifier.fillMaxSize().padding(16.dp)) {
                     Text(

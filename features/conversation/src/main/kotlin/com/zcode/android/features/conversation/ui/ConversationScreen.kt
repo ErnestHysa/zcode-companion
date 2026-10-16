@@ -12,20 +12,16 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -46,7 +42,6 @@ import androidx.compose.ui.platform.testTag
 import com.zcode.android.core.ui.components.rememberReducedMotion
 import com.zcode.android.features.conversation.R
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zcode.android.core.ui.components.AttentionStrip
 import com.zcode.android.core.ui.components.ConnectionStatusLine
@@ -66,6 +61,8 @@ import androidx.compose.animation.fadeOut
 import com.zcode.android.core.ui.components.ZCodeMotion
 import com.zcode.android.core.ui.components.rememberMotionSpec
 import com.zcode.android.core.ui.components.streamIn
+import com.zcode.android.core.ui.components.ZCodeTopBar
+import androidx.compose.material3.Scaffold
 
 /**
  * Conversation surface (§43.2-6.3/6.4 + Phase 7 write path; ui-ux 06/07/09/10/12).
@@ -137,16 +134,19 @@ fun ConversationScreen(
             },
         )
     }
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {},
+    ) { inner ->
         Column(
             Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
+                .padding(inner)
                 // FIELD (2026-10-01, vc21 device): edge-to-edge draws the IME as an
                 // overlay — without imePadding the keyboard covered the pinned
                 // composer entirely ("typing but nothing shows up": the field was
                 // UNDER the keyboard).
-                .navigationBarsPadding()
                 .imePadding(),
         ) {
             Header(
@@ -307,29 +307,11 @@ private fun Header(
     modelOptionsProvider: suspend () -> List<com.zcode.android.domain.model.ModelProviderOption> = { emptyList() },
 ) {
     Column {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(end = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onBack, modifier = Modifier.testTag("conversation_back")) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(com.zcode.android.core.ui.R.string.action_back),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = state.task?.title ?: stringResource(R.string.conv_default_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
+        ZCodeTopBar(
+            title = state.task?.title ?: stringResource(R.string.conv_default_title),
+            onBack = onBack,
+            backTestTag = "conversation_back",
+        )
         ConnectionStatusLine(
             phase = phase,
             trailing = taskStateLabel(state.taskState),
