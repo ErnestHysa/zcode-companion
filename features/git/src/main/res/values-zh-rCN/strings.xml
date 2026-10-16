@@ -11,5 +11,5 @@
     <string name="git_no_textual_diff">没有可用的文本差异（可用性：%1$s）。</string>
     <string name="git_section_unstaged">未暂存</string>
     <string name="git_section_staged">已暂存</string>
-    <string name="git_dirty_marker">  • 有未提交更改</string>
+    <string name="git_dirty_marker">"  • 有未提交更改"</string>
 </resources>

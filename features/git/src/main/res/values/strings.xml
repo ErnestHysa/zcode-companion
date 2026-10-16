@@ -11,5 +11,5 @@
     <string name="git_no_textual_diff">No textual diff available (availability: %1$s).</string>
     <string name="git_section_unstaged">Unstaged</string>
     <string name="git_section_staged">Staged</string>
-    <string name="git_dirty_marker">  • dirty</string>
+    <string name="git_dirty_marker">"  • dirty"</string>
 </resources>

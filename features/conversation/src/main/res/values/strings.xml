@@ -162,7 +162,7 @@
     <string name="composer_busy_queued">Busy — this message will be queued on the desktop.</string>
     <string name="row_subagent">Subagent · %1$s</string>
     <string name="row_hook">Hook · %1$s</string>
-    <string name="queue_paused_suffix"> · paused</string>
+    <string name="queue_paused_suffix">" · paused"</string>
     <string name="pending_sending">Sending…</string>
     <string name="pending_sent_unknown">Send uncertain — connection lost (will not duplicate)</string>
     <string name="pending_not_sent">Not sent</string>
