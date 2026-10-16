@@ -183,4 +183,6 @@
         <item quantity="one">%d file</item>
         <item quantity="other">%d files</item>
     </plurals>
+    <string name="composer_mode_echo">mode: %1$s</string>
+    <string name="row_diff_empty_file">no textual diff recorded for this file</string>
 </resources>

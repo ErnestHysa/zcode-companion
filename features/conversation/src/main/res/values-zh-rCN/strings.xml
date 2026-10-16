@@ -171,4 +171,6 @@
     <plurals name="row_files_count">
         <item quantity="other">%d 个文件</item>
     </plurals>
+    <string name="composer_mode_echo">模式：%1$s</string>
+    <string name="row_diff_empty_file">此文件没有记录到文本差异</string>
 </resources>

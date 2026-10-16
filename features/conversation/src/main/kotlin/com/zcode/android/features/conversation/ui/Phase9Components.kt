@@ -173,7 +173,7 @@ fun SessionModeChips(
             onClick = { modeSheet = true },
             label = {
                 Text(
-                    "mode: ${config.mode}",
+                    stringResource(R.string.composer_mode_echo, config.mode),
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
@@ -446,7 +446,7 @@ private fun TurnChangesBody(changes: TurnFileChanges) {
                             }
                             if (item.hunks.isEmpty()) {
                                 Text(
-                                    "no textual diff recorded for this file",
+                                    stringResource(R.string.row_diff_empty_file),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )

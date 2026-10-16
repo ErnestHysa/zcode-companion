@@ -12,4 +12,5 @@
     <string name="git_section_unstaged">未暂存</string>
     <string name="git_section_staged">已暂存</string>
     <string name="git_dirty_marker">"  • 有未提交更改"</string>
+    <string name="git_tracking">跟踪：%1$s</string>
 </resources>

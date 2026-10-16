@@ -12,4 +12,5 @@
     <string name="git_section_unstaged">Unstaged</string>
     <string name="git_section_staged">Staged</string>
     <string name="git_dirty_marker">"  • dirty"</string>
+    <string name="git_tracking">tracking: %1$s</string>
 </resources>

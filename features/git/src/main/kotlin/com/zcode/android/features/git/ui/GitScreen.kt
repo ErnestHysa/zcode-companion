@@ -168,7 +168,7 @@ fun GitScreen(
                             style = MaterialTheme.typography.titleSmall,
                         )
                         Text(
-                            "tracking: ${s.trackingBranchName ?: "—"}",
+                            stringResource(R.string.git_tracking, s.trackingBranchName ?: "—"),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

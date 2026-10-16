@@ -35,6 +35,11 @@ class I18nLiteralGateTest {
     )
     private val allow = listOf("testTag", "ClipData", "label = \"", "@Suppress")
 
+    /** Text( followed by a literal on the NEXT line (the line scanner can't see it). */
+    private val multilineLiteral = Regex("""Text\(\s*"[A-Za-z][^"]*"""")
+    /** A clipboard payload label is not user-facing UI text. */
+    private val multilineExempt = Regex("""newPlainText\(""")
+
     @Test
     fun `no user-facing English literal in the UI layer`() {
         val offenders = uiSources().flatMap { f ->
@@ -43,6 +48,11 @@ class I18nLiteralGateTest {
                 if (trimmed.startsWith("//") || trimmed.startsWith("*")) return@mapIndexedNotNull null
                 if (allow.any { it in line } && "Text(" !in line && "contentDescription" !in line) return@mapIndexedNotNull null
                 if (literal.containsMatchIn(line) && "stringResource(" !in line && "getString(" !in line) "${f.relativeTo(root)}:${i + 1}: $trimmed" else null
+            }.ifEmpty {
+                // multiline pattern: Text( at a line end, literal on the next line
+                val joined = f.readText().replace("\r", "")
+                val m = multilineLiteral.find(joined)
+                if (m != null && !multilineExempt.containsMatchIn(joined)) listOf("${f.relativeTo(root)}: multiline Text(\"…\") literal") else emptyList()
             }
         }.toList()
         assertTrue("hardcoded user-facing English (externalize to strings.xml):\n" + offenders.joinToString("\n"), offenders.isEmpty())

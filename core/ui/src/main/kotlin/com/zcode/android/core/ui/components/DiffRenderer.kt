@@ -141,7 +141,7 @@ fun DiffFileCard(
                 )
                 expanded -> DiffHunksList(file)
                 else -> Text(
-                    "Tap to expand",
+                    stringResource(R.string.diff_tap_to_expand),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),

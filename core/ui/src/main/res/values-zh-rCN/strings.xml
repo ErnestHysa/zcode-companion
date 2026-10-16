@@ -98,4 +98,5 @@
     <string name="err_fault_unavailable">所连接的桌面端不提供此功能。</string>
     <string name="a11y_expanded">已展开</string>
     <string name="a11y_collapsed">已折叠</string>
+    <string name="diff_tap_to_expand">点按展开</string>
 </resources>
