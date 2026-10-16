@@ -51,6 +51,7 @@ import com.zcode.android.domain.model.ModelProviderOption
 import com.zcode.android.domain.model.SessionConfigState
 import com.zcode.android.domain.model.TurnFileChanges
 import com.zcode.android.features.conversation.port.ConversationPort
+import com.zcode.android.core.ui.components.rememberZCodeHaptics
 
 /**
  * Phase 9 conversation affordances (§43.2-9): model/mode switch chips (9.5),
@@ -71,6 +72,7 @@ fun ComposerModelPickerDialog(
     onPick: (provider: String, model: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val haptics = rememberZCodeHaptics()
     val providers by produceState<List<ModelProviderOption>?>(initialValue = null) {
         value = runCatching { modelOptionsProvider() }.getOrDefault(emptyList())
     }
@@ -116,6 +118,7 @@ fun ComposerModelPickerDialog(
                                 Modifier
                                     .fillMaxWidth()
                                     .clickable {
+                                        haptics.tick()
                                         onPick(provider.providerId, model.id)
                                         onDismiss()
                                     }

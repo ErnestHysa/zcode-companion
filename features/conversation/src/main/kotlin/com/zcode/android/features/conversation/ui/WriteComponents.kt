@@ -59,6 +59,7 @@ import com.zcode.android.features.conversation.SendNotice
 import com.zcode.android.features.conversation.port.ConversationPort
 import com.zcode.android.core.ui.components.ZCodeOutlinedButton
 import com.zcode.android.core.ui.components.ZCodeButton
+import com.zcode.android.core.ui.components.rememberZCodeHaptics
 
 /**
  * Phase 7 write-surface components (§18.3, ui-ux future-phase-ui.md "Phase 7"):
@@ -545,6 +546,7 @@ fun ComposerBar(
     /** §43.2-11.5 voice experiment; tests inject a fake (null = platform, availability-gated). */
     voiceInputOverride: com.zcode.android.features.conversation.voice.VoiceInputPort? = null,
 ) {
+    val haptics = rememberZCodeHaptics()
     val control = state.sessionState?.control
     val routing = state.sessionState?.inputRouting
     var dispositionDialog by remember { mutableStateOf(false) }
@@ -712,6 +714,7 @@ fun ComposerBar(
                         if (routing?.mode == com.zcode.android.domain.model.InputRouting.Mode.CHOICE) {
                             dispositionDialog = true
                         } else {
+                            haptics.confirm()
                             onSend(null)
                         }
                     },
@@ -755,6 +758,7 @@ fun ComposerBar(
                 ZCodeButton(
                     onClick = {
                         dispositionDialog = false
+                        haptics.confirm()
                         onSend("clearQueueAndSend")
                     },
                     modifier = Modifier.testTag("composer_disposition_clear"),
@@ -764,6 +768,7 @@ fun ComposerBar(
                 ZCodeOutlinedButton(
                     onClick = {
                         dispositionDialog = false
+                        haptics.confirm()
                         onSend("keepQueueAndSend")
                     },
                     modifier = Modifier.testTag("composer_disposition_keep"),

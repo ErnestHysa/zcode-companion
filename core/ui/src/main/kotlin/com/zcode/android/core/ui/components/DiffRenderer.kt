@@ -89,7 +89,7 @@ fun DiffFileCard(
         tonalElevation = 1.dp,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Column {
+        Column(Modifier.animateCollapse()) {
             // Header — the toggle target (≥48dp combined affordance, §30); the
             // a11y description carries the counts so color is never the only signal.
             Row(

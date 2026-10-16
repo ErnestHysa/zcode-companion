@@ -63,6 +63,8 @@ import com.zcode.android.core.ui.theme.LocalZCodeColors
 import com.zcode.android.domain.model.ConversationRow
 import com.zcode.android.features.conversation.markdown.MarkdownParser
 import com.zcode.android.core.ui.theme.ZCodeRadius
+import com.zcode.android.core.ui.components.animateCollapse
+import com.zcode.android.core.ui.components.rememberZCodeHaptics
 
 /**
  * Row renderers — the agent-timeline grammar (ui-ux component-library v2): YOU
@@ -114,6 +116,7 @@ fun YouBlock(
             )
         }
     }
+    val haptics = rememberZCodeHaptics()
     if (showActions) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showActions = false },
@@ -124,6 +127,7 @@ fun YouBlock(
                         onClick = {
                             showActions = false
                             clipboard.setText(AnnotatedString(text))
+                            haptics.tick()
                         },
                         modifier = Modifier.testTag("row_copy_action"),
                     ) {
@@ -202,6 +206,7 @@ fun ToolCard(
             .fillMaxWidth()
             .background(LocalZCodeColors.current.toolSurface, RoundedCornerShape(ToolCardRadius))
             .drawBehind { drawRect(railColor, size = size.copy(width = 3.dp.toPx())) }
+            .animateCollapse()
             .clickable { expanded = !expanded }
             .padding(start = 15.dp, end = 12.dp, top = 12.dp, bottom = 12.dp)
             .testTag("row_tool_${row.toolName}")
@@ -274,6 +279,7 @@ fun ReasoningRow(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .animateCollapse()
             .clickable { expanded = !expanded }
             .padding(vertical = 2.dp)
             .testTag("row_reasoning")

@@ -31,6 +31,7 @@ import com.zcode.android.core.ui.components.contextUsageLabel
 import com.zcode.android.domain.model.SessionUsageState
 import com.zcode.android.features.conversation.R
 import java.util.Locale
+import com.zcode.android.core.ui.components.animateCollapse
 
 /**
  * GAP-1/GAP-2 (android-native-gaps.md; docs/protocol/v4-wire.md §11.1) — the
@@ -64,7 +65,7 @@ fun ContextUsagePanel(usage: SessionUsageState?, modifier: Modifier = Modifier) 
                 )
             },
     ) {
-        Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
+        Column(Modifier.animateCollapse().padding(horizontal = 10.dp, vertical = 6.dp)) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

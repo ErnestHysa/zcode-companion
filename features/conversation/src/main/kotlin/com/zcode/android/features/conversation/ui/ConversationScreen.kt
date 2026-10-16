@@ -59,6 +59,13 @@ import com.zcode.android.features.conversation.ConversationUiState
 import com.zcode.android.features.conversation.port.ConversationPort
 import com.zcode.android.features.conversation.taskStateLabel
 import kotlinx.coroutines.launch
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import com.zcode.android.core.ui.components.ZCodeMotion
+import com.zcode.android.core.ui.components.rememberMotionSpec
+import com.zcode.android.core.ui.components.streamIn
 
 /**
  * Conversation surface (§43.2-6.3/6.4 + Phase 7 write path; ui-ux 06/07/09/10/12).
@@ -405,6 +412,9 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     onEditRow: ((ConversationRow.UserInput) -> Unit)? = null,
 ) {
     val listState = rememberLazyListState()
+    // B3-motion + K2: rows that have already arrived (scroll-back never re-animates).
+    val arrivedRows = remember { mutableSetOf<Any>() }
+    val motion = rememberMotionSpec()
     val scope = rememberCoroutineScope()
     var unread by remember { mutableIntStateOf(0) }
     var lastKnownCount by remember { mutableIntStateOf(0) }
@@ -541,16 +551,30 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                 key = { state.rows[it].rowId },
                 contentType = { state.rows[it].kind },
             ) { index ->
+                // B3-motion + K2: rows ARRIVE (900ms stream-in, staggered from the
+                // viewport top) and reflow with animateItem; each row arrives once.
                 TimelineRow(
                     row = state.rows[index],
                     state = state,
-                    modifier = Modifier.testTag("conv-row-${state.rows[index].rowId}"),
+                    modifier = Modifier
+                        .animateItem()
+                        .streamIn(
+                            key = state.rows[index].rowId,
+                            index = (index - listState.firstVisibleItemIndex).coerceIn(0, 10),
+                            seen = arrivedRows,
+                        )
+                        .testTag("conv-row-${state.rows[index].rowId}"),
                     onOpenTurnChanges = onOpenTurnChanges,
                     onEditRow = onEditRow,
                 )
             }
         }
-        if (!followBottom || !atBottom) {
+        androidx.compose.animation.AnimatedVisibility(
+            visible = !followBottom || !atBottom,
+            modifier = Modifier.align(Alignment.BottomEnd),
+            enter = fadeIn(tween(motion.ms(ZCodeMotion.WaterfallMs))),
+            exit = fadeOut(tween(motion.ms(ZCodeMotion.WaterfallMs))),
+        ) {
             FloatingActionButton(
                 onClick = {
                     followBottom = true
@@ -564,7 +588,6 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                     }
                 },
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
                     .padding(16.dp)
                     .testTag("conversation_jump_latest"),
                 containerColor = MaterialTheme.colorScheme.primaryContainer,

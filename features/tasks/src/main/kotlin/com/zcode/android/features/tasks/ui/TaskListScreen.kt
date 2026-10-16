@@ -65,6 +65,10 @@ import com.zcode.android.domain.model.Task
 import com.zcode.android.domain.model.TaskStatus
 import com.zcode.android.features.tasks.TasksUiState
 import com.zcode.android.core.ui.components.ZCodeButton
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import com.zcode.android.core.ui.components.ZCodeMotion
+import com.zcode.android.core.ui.components.rememberMotionSpec
 
 /**
  * Task list (§43.2-6.2; ui-ux screen-spec 03/04/14). Dense rows, left status rail,
@@ -104,6 +108,7 @@ fun TaskListScreen(
     automationsPort: com.zcode.android.features.tasks.port.AutomationsPort? = null,
     modifier: Modifier = Modifier,
 ) {
+    val motion = rememberMotionSpec()
     var showCreate by remember { androidx.compose.runtime.mutableStateOf(false) }
     val createdNotice = stringResource(R.string.tasks_created)
     // §18.2 workspace switcher selection (endpoint-scoped; null = all workspaces).
@@ -173,18 +178,25 @@ fun TaskListScreen(
                     .fillMaxSize()
                     .testTag("tasks_pull_container"),
             ) {
-                when (state.loadState) {
-                    TasksUiState.Load.LOADING -> LoadingBody()
-                    TasksUiState.Load.EMPTY -> EmptyBody(state, onRetry, onRefresh)
-            TasksUiState.Load.READY ->
-                ReadyBody(
-                    state,
-                    onTaskClick,
-                    onRetry,
-                    onRepairPairing,
-                    selectedWorkspaceKeyParam = selectedWorkspaceKey,
-                    collapse = collapse,
-                )
+                // B3-motion: the loading/empty/ready swap cross-fades (reduced motion → 0ms).
+                Crossfade(
+                    targetState = state.loadState,
+                    animationSpec = tween(motion.ms(ZCodeMotion.CollapseMs)),
+                    label = "tasksLoadState",
+                ) { loadState ->
+                    when (loadState) {
+                        TasksUiState.Load.LOADING -> LoadingBody()
+                        TasksUiState.Load.EMPTY -> EmptyBody(state, onRetry, onRefresh)
+                        TasksUiState.Load.READY ->
+                            ReadyBody(
+                                state,
+                                onTaskClick,
+                                onRetry,
+                                onRepairPairing,
+                                selectedWorkspaceKeyParam = selectedWorkspaceKey,
+                                collapse = collapse,
+                            )
+                    }
                 }
             }
                 // §6.1 parity: create tasks in existing workspaces — the "+ New task"
@@ -509,6 +521,7 @@ private fun ReadyBody(
                 val collapsed = collapse.isCollapsed(group.workspaceKey)
                 item(key = "header-${group.workspaceKey}") {
                     WorkspaceHeader(
+                        modifier = Modifier.animateItem(),
                         workspaceKey = group.workspaceKey,
                         label = group.label,
                         taskCount = group.tasks.size,
@@ -521,7 +534,7 @@ private fun ReadyBody(
                     // workspace group (desktop cross-listing) — a bare taskId key collided and
                     // crashed LazyColumn on fast scroll ("Key was already used").
                     items(group.tasks, key = { "task-${group.workspaceKey.hashCode()}-${it.taskId}" }) { task ->
-                        TaskRow(task, onClick = { onTaskClick(task) })
+                        TaskRow(task, onClick = { onTaskClick(task) }, modifier = Modifier.animateItem())
                         HorizontalHairline()
                     }
                 }
@@ -537,11 +550,12 @@ private fun WorkspaceHeader(
     taskCount: Int,
     collapsed: Boolean,
     onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val actionWord = stringResource(if (collapsed) R.string.tasks_a11y_expand else R.string.tasks_a11y_collapse)
     val a11y = stringResource(R.string.tasks_group_a11y, label, taskCount, actionWord)
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background)
             .clickable(onClick = onToggle)

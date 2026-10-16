@@ -199,10 +199,17 @@ fun ZCodeApp(
 
     // testTagsAsResourceId: exposes Compose testTags to UiAutomator/Macrobenchmark
     // (§43.2-11.1 waits); pure test plumbing, no behavioral surface.
+    // B3-motion + K2: shared-axis route transitions (≈300ms fade + directional slide),
+    // EnterTransition.None/ExitTransition.None under the system reduced-motion switch.
+    val navMotion = com.zcode.android.core.ui.components.rememberNavTransitions()
     NavHost(
         navController = nav,
         startDestination = if (paired != null) Routes.TASKS else Routes.PAIRING,
         modifier = Modifier.semantics { testTagsAsResourceId = true },
+        enterTransition = { navMotion.enter },
+        exitTransition = { navMotion.exit },
+        popEnterTransition = { navMotion.popEnter },
+        popExitTransition = { navMotion.popExit },
     ) {
         composable(Routes.PAIRING) {
             PairingHostRoute(pairingVm = pairingVm, scannerContent = scannerContent)
