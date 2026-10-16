@@ -34,6 +34,8 @@ kotlin {
 }
 
 dependencies {
+    // E6-lint (gaps-and-polish 2A): Compose lint discipline runs over this module.
+    lintChecks(libs.compose.lint.checks)
     api(project(":core:common"))
     // K1.2 (gaps-and-polish 2A): the design system — ZCodeTheme shapes + the pill-free buttons.
     implementation(project(":core:ui"))

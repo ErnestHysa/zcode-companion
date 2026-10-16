@@ -85,6 +85,25 @@ android {
     testOptions {
         unitTests.isIncludeAndroidResources = true
     }
+
+    // E6-lint (gaps-and-polish 2A): Compose lint discipline. slack compose-lints
+    // (lintChecks below) + Compose's own bundled checks gate the build; the bug
+    // classes Part B found by hand (bare clickable{} without roles, sub-48dp targets,
+    // literal ARGB, early-return-before-remember) can no longer regress silently.
+    // checkDependencies runs the whole set over every feature module from this one
+    // task (`gradle :app:lintDebug`, also the CI gate). Pre-existing findings are
+    // triaged into lint-baseline.xml — new ones fail the build; burn the baseline down
+    // as the a11y/chrome phases land (never add to it without a finding ID).
+    lint {
+        checkDependencies = true
+        abortOnError = true
+        warningsAsErrors = false
+        baseline = file("lint-baseline.xml")
+        htmlReport = true
+        xmlReport = true
+        // Not a finding class we act on: the app is a companion and pins its own sdk.
+        disable += listOf("GradleDependency", "AndroidGradlePluginVersion", "OldTargetApi")
+    }
 }
 
 kotlin {
@@ -94,6 +113,8 @@ kotlin {
 }
 
 dependencies {
+    // E6-lint (gaps-and-polish 2A): Compose lint discipline runs over this module.
+    lintChecks(libs.compose.lint.checks)
     implementation(project(":core:common"))
     implementation(project(":core:notifications"))
     implementation(project(":core:security"))

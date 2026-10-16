@@ -34,6 +34,8 @@ kotlin {
 }
 
 dependencies {
+    // E6-lint (gaps-and-polish 2A): Compose lint discipline runs over this module.
+    lintChecks(libs.compose.lint.checks)
     implementation(project(":core:common"))
     // UI-facing domain vocabulary only (ConnectionPhase, TaskStatus — pure Kotlin
     // types created as the UI mirror of the §14 machines; ADR-016). No reducers,

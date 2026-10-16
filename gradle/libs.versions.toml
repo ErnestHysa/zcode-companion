@@ -25,6 +25,7 @@ androidxCore = "1.15.0"
 work = "2.10.0"
 glance = "1.2.0"
 benchmarkMacro = "1.5.0"
+composeLintChecks = "1.4.2"
 
 [libraries]
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
@@ -71,6 +72,8 @@ work-testing = { module = "androidx.work:work-testing", version.ref = "work" }
 glance-appwidget = { module = "androidx.glance:glance-appwidget", version.ref = "glance" }
 benchmark-macro-junit4 = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "benchmarkMacro" }
 benchmark-junit4 = { module = "androidx.benchmark:benchmark-junit4", version.ref = "benchmarkMacro" }
+# E6-lint (gaps-and-polish 2A): slack compose-lints — Compose discipline (bare clickable, ARGB literals, modifier rules…).
+compose-lint-checks = { module = "com.slack.lint.compose:compose-lint-checks", version.ref = "composeLintChecks" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

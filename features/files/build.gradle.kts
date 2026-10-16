@@ -29,6 +29,8 @@ kotlin {
 }
 
 dependencies {
+    // E6-lint (gaps-and-polish 2A): Compose lint discipline runs over this module.
+    lintChecks(libs.compose.lint.checks)
     api(project(":core:common"))
     api(project(":domain"))
     implementation(project(":core:ui"))
