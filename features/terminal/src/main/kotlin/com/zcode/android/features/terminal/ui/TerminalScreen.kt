@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -44,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zcode.android.core.common.ansi.AnsiParser
 import com.zcode.android.features.terminal.port.TerminalPort
+import com.zcode.android.core.ui.components.ZCodeButton
 
 /**
  * §21 view-only terminal surface. Streaming output with ANSI SGR colors, bounded
@@ -184,7 +184,7 @@ private fun OptInGate(enabled: Boolean, onToggle: (Boolean) -> Unit, onContinue:
                 Text(stringResource(R.string.terminal_enable), style = MaterialTheme.typography.bodyMedium)
             }
             if (enabled) {
-                Button(onClick = onContinue) { Text(stringResource(R.string.terminal_attach)) }
+                ZCodeButton(onClick = onContinue) { Text(stringResource(R.string.terminal_attach)) }
             }
         },
     )
@@ -199,7 +199,7 @@ private fun StateCard(text: String, retryLabel: String? = null, retry: (() -> Un
     ) {
         Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         extra?.invoke()
-        retry?.let { Button(onClick = it) { Text(retryLabel ?: "") } }
+        retry?.let { ZCodeButton(onClick = it) { Text(retryLabel ?: "") } }
     }
 }
 

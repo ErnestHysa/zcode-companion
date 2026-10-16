@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -86,7 +85,7 @@ fun DiffFileCard(
     var expanded by rememberSaveable(file.path, file.oldPath) { mutableStateOf(false) }
     val isLarge = file.changedLines > DiffRendererDefaults.LARGE_FILE_LINES
     Surface(
-        shape = RoundedCornerShape(10.dp),
+        shape = MaterialTheme.shapes.large,
         tonalElevation = 1.dp,
         modifier = Modifier.fillMaxWidth(),
     ) {

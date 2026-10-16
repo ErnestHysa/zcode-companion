@@ -16,7 +16,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -41,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import com.zcode.android.app.R
 import com.zcode.android.domain.model.PluginsView
 import kotlinx.coroutines.launch
+import com.zcode.android.core.ui.components.ZCodeButton
 
 /**
  * GAP-7 (android-native-gaps.md; docs/protocol/v4-wire.md §12.3) — the
@@ -112,7 +112,7 @@ fun PluginsViewerScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Button(onClick = { loading = true; scope.launch { result = port.plugins(); loading = false } }) {
+                    ZCodeButton(onClick = { loading = true; scope.launch { result = port.plugins(); loading = false } }) {
                         Text(stringResource(R.string.plugins_retry))
                     }
                 }

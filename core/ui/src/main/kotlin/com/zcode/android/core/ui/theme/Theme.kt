@@ -10,7 +10,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
  * ZCodeTheme — M3 scheme + extended semantic tokens (§18.5; ui-ux design system v2).
  * Dark follows the system; light/dark are designed pairs. Dynamic color is not
  * applied (ui-ux color-system rule: status tokens stay fixed; reconsider at Phase 11
- * behind an ADR).
+ * behind an ADR). Shapes are the desktop radius scale ([ZCodeShapes], K1.2).
  */
 @Composable
 fun ZCodeTheme(content: @Composable () -> Unit) {
@@ -19,6 +19,7 @@ fun ZCodeTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = if (dark) DarkScheme else LightScheme,
         typography = ZCodeTypographyLight.m3,
+        shapes = ZCodeShapes,
         content = {
             CompositionLocalProvider(LocalZCodeColors provides tokens) { content() }
         },

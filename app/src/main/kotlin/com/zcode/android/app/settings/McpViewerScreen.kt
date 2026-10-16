@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import com.zcode.android.app.R
 import com.zcode.android.domain.model.McpStatuses
 import kotlinx.coroutines.launch
+import com.zcode.android.core.ui.components.ZCodeButton
 
 /**
  * GAP-9 (android-native-gaps.md; docs/protocol/v4-wire.md §12.5) — the
@@ -107,7 +107,7 @@ fun McpViewerScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Button(onClick = { loading = true; scope.launch { result = port.statuses(); loading = false } }) {
+                    ZCodeButton(onClick = { loading = true; scope.launch { result = port.statuses(); loading = false } }) {
                         Text(stringResource(R.string.mcp_retry))
                     }
                 }

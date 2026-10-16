@@ -1,13 +1,24 @@
 package com.zcode.android.core.ui.theme
 
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
+import androidx.compose.material3.Text
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.Density
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.zcode.android.core.ui.components.ZCodeButton
+import com.zcode.android.core.ui.components.ZCodeOutlinedButton
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
@@ -15,6 +26,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
 /**
@@ -29,7 +41,8 @@ import java.io.File
  * outside the theme spells a dp literal into `RoundedCornerShape(...)`.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [30])
+@Config(sdk = [30], qualifiers = "w411dp-h891dp")
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class ThemeShapesTest {
 
     @get:Rule
@@ -85,6 +98,31 @@ class ThemeShapesTest {
             "literal RoundedCornerShape(<n>.dp) sites must come from the Shapes source:\n" + offenders.joinToString("\n"),
             offenders.isEmpty(),
         )
+    }
+
+    @Test
+    fun `pixel pin - ZCodeButton and ZCodeOutlinedButton are the lg step - never the M3 pill`() {
+        var density = 1f
+        rule.setContent {
+            density = LocalDensity.current.density
+            ZCodeTheme {
+                androidx.compose.foundation.layout.Column {
+                    ZCodeButton(onClick = {}, modifier = Modifier.fillMaxWidth().testTag("filled")) { Text("Filled") }
+                    ZCodeOutlinedButton(onClick = {}, modifier = Modifier.fillMaxWidth().testTag("outlined")) { Text("Outlined") }
+                }
+            }
+        }
+        for (tag in listOf("filled", "outlined")) {
+            val img = rule.onNodeWithTag(tag).captureToImage()
+            val pm = img.toPixelMap()
+            val x = (8f * density + 1).toInt()
+            val topCenter = pm[img.width / 2, 0].toArgb()
+            assertEquals("$tag: the flat top edge must reach x=${x}px (a 50% pill leaves it empty)", topCenter, pm[x, 0].toArgb())
+            assertNotEquals("$tag: the corner must still be rounded", topCenter, pm[0, 0].toArgb())
+            // and NOT a larger radius either: x = 12dp+1 is inside for every step <= 12dp,
+            // while x = 4dp-1 must still be outside for the 8dp step (proves it is lg, not sm).
+            assertNotEquals("$tag: at x=${(4f * density - 1).toInt()}px the 8dp corner is still curving", topCenter, pm[(4f * density - 1).toInt(), 0].toArgb())
+        }
     }
 
     private fun repoRoot(): File {

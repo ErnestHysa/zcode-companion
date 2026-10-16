@@ -17,10 +17,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
@@ -52,6 +50,7 @@ import com.zcode.android.core.ui.components.toneColor
 import com.zcode.android.domain.model.AppUsageSnapshot
 import java.util.Locale
 import kotlinx.coroutines.launch
+import com.zcode.android.core.ui.components.ZCodeButton
 
 /**
  * GAP-5 (android-native-gaps.md; docs/protocol/v4-wire.md §12.1) — Settings →
@@ -147,7 +146,7 @@ fun UsageScreen(
                         modifier = Modifier.testTag("usage_error"),
                     )
                     Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Button(onClick = { load(range) }, modifier = Modifier.testTag("usage_retry")) {
+                    ZCodeButton(onClick = { load(range) }, modifier = Modifier.testTag("usage_retry")) {
                         Text(stringResource(R.string.usage_retry))
                     }
                 }
@@ -336,7 +335,7 @@ private fun HeatmapSection(heatmap: AppUsageSnapshot.Heatmap) {
                     Box(
                         Modifier
                             .size(20.dp)
-                            .clip(RoundedCornerShape(4.dp))
+                            .clip(MaterialTheme.shapes.small)
                             .background(tone),
                     )
                 }
@@ -381,14 +380,14 @@ private fun DailySection(days: List<AppUsageSnapshot.DailyModelUsage>, maxTokens
                     Modifier
                         .fillMaxWidth()
                         .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp))
+                        .clip(MaterialTheme.shapes.extraSmall)
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                 ) {
                     Box(
                         Modifier
                             .fillMaxWidth(total.toFloat() / peak)
                             .height(6.dp)
-                            .clip(RoundedCornerShape(3.dp))
+                            .clip(MaterialTheme.shapes.extraSmall)
                             .background(MaterialTheme.colorScheme.primary),
                     )
                 }

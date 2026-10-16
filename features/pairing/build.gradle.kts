@@ -35,6 +35,8 @@ kotlin {
 
 dependencies {
     api(project(":core:common"))
+    // K1.2 (gaps-and-polish 2A): the design system — ZCodeTheme shapes + the pill-free buttons.
+    implementation(project(":core:ui"))
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
     implementation(platform(libs.compose.bom))

@@ -16,13 +16,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -50,6 +48,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.zcode.android.app.AppContainer
 import com.zcode.android.app.R
+import com.zcode.android.core.ui.components.ZCodeButton
 
 /**
  * Basic Phase 6 settings (ui-ux 13): paired desktop identity, connection entry,
@@ -210,7 +209,7 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(16.dp))
             if (endpointName != null) {
-                Button(
+                ZCodeButton(
                     onClick = { showUnpairConfirm = true },
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
@@ -308,7 +307,7 @@ private fun EndpointsSection(container: AppContainer, endpointName: String?, des
             },
         )
         if (row?.kind == com.zcode.android.domain.model.EndpointKind.DIRECT_SERVER) {
-            androidx.compose.material3.OutlinedButton(
+            com.zcode.android.core.ui.components.ZCodeOutlinedButton(
                 onClick = { removeTarget = row.endpointId.raw },
                 modifier = Modifier
                     .padding(start = 16.dp, bottom = 8.dp)

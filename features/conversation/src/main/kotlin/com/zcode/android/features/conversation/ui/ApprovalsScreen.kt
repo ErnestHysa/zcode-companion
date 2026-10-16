@@ -17,11 +17,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,6 +40,8 @@ import androidx.compose.ui.unit.dp
 import com.zcode.android.features.conversation.port.ConversationPort
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import com.zcode.android.core.ui.components.ZCodeOutlinedButton
+import com.zcode.android.core.ui.components.ZCodeButton
 
 /**
  * Approvals inbox (§18.2/§18.3 "approval first"): cross-task open interactions in
@@ -174,7 +174,7 @@ fun ApprovalsScreen(
                                         // §20.2 one-tap approve: the recognized low-risk
                                         // primary (allowOnce) — higher-risk choices live
                                         // on the card inside the task.
-                                        Button(
+                                        ZCodeButton(
                                             onClick = {
                                                 busyId = record.interactionId
                                                 answerError = null
@@ -198,7 +198,7 @@ fun ApprovalsScreen(
                                                 .weight(1f)
                                                 .testTag("approvals_allow_once_${record.interactionId.take(12)}"),
                                         ) { Text(stringResource(com.zcode.android.core.ui.R.string.action_allow_once)) }
-                                        OutlinedButton(
+                                        ZCodeOutlinedButton(
                                             onClick = { answerError = null; denyTarget = record },
                                             enabled = busyId == null,
                                             modifier = Modifier
@@ -227,7 +227,7 @@ fun ApprovalsScreen(
             title = { Text(stringResource(R.string.approvals_deny_title)) },
             text = { Text(stringResource(R.string.approvals_deny_body, target.toolName ?: stringResource(R.string.tool_fallback))) },
             confirmButton = {
-                Button(
+                ZCodeButton(
                     onClick = {
                         denyTarget = null
                         busyId = target.interactionId

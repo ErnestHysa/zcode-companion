@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -65,6 +64,7 @@ import com.zcode.android.core.ui.components.toneColor
 import com.zcode.android.domain.model.Task
 import com.zcode.android.domain.model.TaskStatus
 import com.zcode.android.features.tasks.TasksUiState
+import com.zcode.android.core.ui.components.ZCodeButton
 
 /**
  * Task list (§43.2-6.2; ui-ux screen-spec 03/04/14). Dense rows, left status rail,
@@ -269,7 +269,7 @@ internal fun CreateTaskDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
-                    androidx.compose.material3.OutlinedButton(
+                    com.zcode.android.core.ui.components.ZCodeOutlinedButton(
                         onClick = { expanded = true },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -310,7 +310,7 @@ internal fun CreateTaskDialog(
                 )
                 Spacer(Modifier.height(8.dp))
                 // Model chip — tap opens the same picker the conversation uses.
-                androidx.compose.material3.OutlinedButton(
+                com.zcode.android.core.ui.components.ZCodeOutlinedButton(
                     onClick = { modelSheet = true },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -327,7 +327,7 @@ internal fun CreateTaskDialog(
             }
         },
         confirmButton = {
-            Button(
+            ZCodeButton(
                 onClick = { selected?.let { onCreate(it.key, text, pickedModel?.first, pickedModel?.second) } },
                 enabled = !creating && text.isNotBlank() && selected != null,
                 modifier = Modifier.testTag("create_task_confirm"),
@@ -565,7 +565,7 @@ private fun WorkspaceHeader(
         // GAP-14: the count badge survives collapsing — totals stay visible.
         Surface(
             color = MaterialTheme.colorScheme.surfaceVariant,
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+            shape = MaterialTheme.shapes.large,
             modifier = Modifier.testTag("tasks_group_count_${workspaceKey.hashCode()}"),
         ) {
             Text(

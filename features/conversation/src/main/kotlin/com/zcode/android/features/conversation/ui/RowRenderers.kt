@@ -62,6 +62,7 @@ import com.zcode.android.core.ui.components.messageTimeLabel
 import com.zcode.android.core.ui.theme.LocalZCodeColors
 import com.zcode.android.domain.model.ConversationRow
 import com.zcode.android.features.conversation.markdown.MarkdownParser
+import com.zcode.android.core.ui.theme.ZCodeRadius
 
 /**
  * Row renderers — the agent-timeline grammar (ui-ux component-library v2): YOU
@@ -71,8 +72,8 @@ import com.zcode.android.features.conversation.markdown.MarkdownParser
  * parser; links render styled but never auto-open.
  */
 
-private val YouBubbleRadius = 14.dp
-private val ToolCardRadius = 10.dp
+private val YouBubbleRadius = ZCodeRadius.xl
+private val ToolCardRadius = ZCodeRadius.lg
 
 @Composable
 fun YouBlock(
@@ -330,7 +331,7 @@ fun TurnSeparator(
                 Spacer(Modifier.width(8.dp))
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp),
+                    shape = MaterialTheme.shapes.medium,
                     modifier = Modifier
                         .testTag("row_turn_changes")
                         .clickable { onOpenChanges() },
@@ -401,7 +402,7 @@ fun CodeBlock(code: String, lang: String? = null, modifier: Modifier = Modifier,
         Column(
             Modifier
                 .fillMaxWidth()
-                .background(LocalZCodeColors.current.codeBg, RoundedCornerShape(ToolCardRadius - 1.dp))
+                .background(LocalZCodeColors.current.codeBg, RoundedCornerShape(ZCodeRadius.md))
                 .padding(horizontal = 12.dp, vertical = 10.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -597,7 +598,7 @@ private fun MonospaceDetail(label: String, content: String) {
     Column(
         Modifier
             .fillMaxWidth()
-            .background(LocalZCodeColors.current.codeBg, RoundedCornerShape(6.dp))
+            .background(LocalZCodeColors.current.codeBg, MaterialTheme.shapes.medium)
             .padding(8.dp),
     ) {
         Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

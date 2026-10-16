@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -52,6 +51,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.launch
+import com.zcode.android.core.ui.components.ZCodeButton
 
 /**
  * §9.4 git panel — READ-ONLY (INV-9). GAP-16 overhaul to the desktop git-panel
@@ -126,7 +126,7 @@ fun GitScreen(
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.testTag("git_changes_error"),
                     )
-                    Button(
+                    ZCodeButton(
                         onClick = {
                             scope.launch { fetchChanges() }
                         },
@@ -144,7 +144,7 @@ fun GitScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Button(onClick = {
+                    ZCodeButton(onClick = {
                         scope.launch {
                             val summary = port.summary()
                             ui = ui.copy(unavailable = summary == null || !summary.isRepository)

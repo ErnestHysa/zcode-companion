@@ -24,13 +24,11 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
@@ -59,6 +57,8 @@ import com.zcode.android.domain.model.QueueState
 import com.zcode.android.features.conversation.ConversationUiState
 import com.zcode.android.features.conversation.SendNotice
 import com.zcode.android.features.conversation.port.ConversationPort
+import com.zcode.android.core.ui.components.ZCodeOutlinedButton
+import com.zcode.android.core.ui.components.ZCodeButton
 
 /**
  * Phase 7 write-surface components (§18.3, ui-ux future-phase-ui.md "Phase 7"):
@@ -138,7 +138,7 @@ fun ApprovalCard(
                 val label = consequenceLabel(option, payload)
                 when (option.semantics) {
                     PermissionOption.Semantics.ALLOW_ONCE, PermissionOption.Semantics.ALLOW_PROJECT -> {
-                        Button(
+                        ZCodeButton(
                             onClick = { onAnswer(option.optionId, null) },
                             enabled = !busy,
                             modifier = Modifier
@@ -151,7 +151,7 @@ fun ApprovalCard(
                     }
                     PermissionOption.Semantics.ALLOW_ALWAYS, PermissionOption.Semantics.DENY -> {
                         // §20.2: confirm step for allowAlways-class; Deny ALWAYS confirms.
-                        OutlinedButton(
+                        ZCodeOutlinedButton(
                             onClick = { confirmOption = option },
                             enabled = !busy,
                             colors = if (option.semantics == PermissionOption.Semantics.DENY) {
@@ -176,7 +176,7 @@ fun ApprovalCard(
                                 .fillMaxWidth()
                                 .testTag("approval_refine_text"),
                         )
-                        Button(
+                        ZCodeButton(
                             onClick = { onAnswer(option.optionId, refineText) },
                             enabled = !busy && refineText.isNotBlank(),
                             modifier = Modifier
@@ -186,7 +186,7 @@ fun ApprovalCard(
                     }
                     // §20.4 row 2: unknown/custom ids render inert — NEVER sent.
                     PermissionOption.Semantics.OTHER -> {
-                        OutlinedButton(
+                        ZCodeOutlinedButton(
                             onClick = {},
                             enabled = false,
                             modifier = Modifier
@@ -214,7 +214,7 @@ fun ApprovalCard(
                 )
             },
             confirmButton = {
-                Button(
+                ZCodeButton(
                     onClick = {
                         confirmOption = null
                         onAnswer(option.optionId, null)
@@ -354,7 +354,7 @@ fun UserInputCard(
                     )
                 }
                 Spacer(Modifier.height(8.dp))
-                Button(
+                ZCodeButton(
                     onClick = {
                         val answers = buildMap {
                             for (q in payload.questions) {
@@ -403,7 +403,7 @@ fun UserInputCard(
                     }
                 }
                 Spacer(Modifier.height(8.dp))
-                Button(
+                ZCodeButton(
                     onClick = { selected?.let { onAnswer(it, null) } },
                     enabled = !busy && selected != null,
                     modifier = Modifier
@@ -420,7 +420,7 @@ fun UserInputCard(
                         .testTag("userinput_free_text"),
                 )
                 Spacer(Modifier.height(8.dp))
-                Button(
+                ZCodeButton(
                     onClick = { onAnswer("", freeText) },
                     enabled = !busy && freeText.isNotBlank(),
                     modifier = Modifier
@@ -509,7 +509,7 @@ fun QueueStrip(
                 )
             },
             confirmButton = {
-                Button(
+                ZCodeButton(
                     onClick = {
                         onEdit(id, newText)
                         editing = null
@@ -752,7 +752,7 @@ fun ComposerBar(
             title = { Text(stringResource(R.string.queue_held_title)) },
             text = { Text(stringResource(R.string.queue_held_body)) },
             confirmButton = {
-                Button(
+                ZCodeButton(
                     onClick = {
                         dispositionDialog = false
                         onSend("clearQueueAndSend")
@@ -761,7 +761,7 @@ fun ComposerBar(
                 ) { Text(stringResource(R.string.queue_clear_send)) }
             },
             dismissButton = {
-                OutlinedButton(
+                ZCodeOutlinedButton(
                     onClick = {
                         dispositionDialog = false
                         onSend("keepQueueAndSend")

@@ -14,10 +14,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -42,6 +40,8 @@ import com.zcode.android.domain.model.OffPeakTaskRow
 import com.zcode.android.features.tasks.R
 import com.zcode.android.features.tasks.port.AutomationsPort
 import kotlinx.coroutines.launch
+import com.zcode.android.core.ui.components.ZCodeOutlinedButton
+import com.zcode.android.core.ui.components.ZCodeButton
 
 /**
  * GAP-6 + FIELD (2026-10-12): the Tasks-tab AUTOMATIONS + OFF-PEAK section, now
@@ -211,7 +211,7 @@ fun AutomationsSection(
             title = { Text(stringResource(R.string.automations_delete_title)) },
             text = { Text(stringResource(R.string.automations_delete_body, doomed.title)) },
             confirmButton = {
-                Button(onClick = {
+                ZCodeButton(onClick = {
                     scope.launch {
                         busy = true
                         port.delete(doomed.automationId)
@@ -387,7 +387,7 @@ private fun AutomationFormDialog(
                         maxLines = 1,
                     )
                 }
-                OutlinedButton(
+                ZCodeOutlinedButton(
                     onClick = { modelSheet = true },
                     modifier = Modifier.fillMaxWidth().testTag("automation_form_model"),
                 ) {
@@ -407,7 +407,7 @@ private fun AutomationFormDialog(
             }
         },
         confirmButton = {
-            Button(
+            ZCodeButton(
                 onClick = { onSave(title, prompt, schedule, pickedModel, mode) },
                 enabled = valid && !busy,
                 modifier = Modifier.testTag("automation_form_save"),
