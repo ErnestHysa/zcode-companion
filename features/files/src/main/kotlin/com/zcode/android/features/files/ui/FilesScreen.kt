@@ -87,7 +87,7 @@ fun FilesScreen(
 
     Column(modifier = modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.files_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            // B2.18: the route already renders "Workspace files" — no second header.
             Text("read-only", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
             if (stack.isNotEmpty()) {

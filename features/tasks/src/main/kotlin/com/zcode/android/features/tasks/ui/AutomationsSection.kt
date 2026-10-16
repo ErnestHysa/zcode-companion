@@ -80,32 +80,6 @@ fun AutomationsSection(
         scope.launch { load() }
     }
 
-    fun save(
-        existing: AutomationRow?,
-        title: String,
-        prompt: String,
-        schedule: AutomationsPort.ScheduleSpec,
-        model: Pair<String, String>?,
-        mode: String?,
-        onDone: (Boolean) -> Unit,
-    ) {
-        scope.launch {
-            busy = true
-            val write = AutomationsPort.AutomationWrite(
-                title = title,
-                prompt = prompt,
-                schedule = schedule,
-                modelProvider = model?.first,
-                modelId = model?.second,
-                mode = mode,
-            )
-            val ok = if (existing != null) port.update(existing.automationId, write) else port.create(workspaceKeyFor(), write)
-            busy = false
-            onDone(ok)
-            if (ok) refresh()
-        }
-    }
-
     // The workspace key the port resolves (first active workspace; the section is
     // workspace-scoped like the list). The port re-resolves from the hub target —
     // the form only needs a non-blank marker for the create guard.
@@ -155,7 +129,8 @@ fun AutomationsSection(
                 modifier = Modifier.testTag("automations_empty"),
             )
             else -> {
-                lists?.automations?.forEach { automation ->
+                val autos = lists?.automations.orEmpty()
+                autos.forEachIndexed { index, automation ->
                     AutomationLine(
                         automation,
                         onRunNow = {
@@ -177,7 +152,11 @@ fun AutomationsSection(
                         onEdit = { editing = automation },
                         onDelete = { confirmDelete = automation },
                     )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                    // B2.18: dividers BETWEEN rows — no dangling divider before the
+                    // off-peak section (the doubled-line rot).
+                    if (index != autos.lastIndex) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                    }
                 }
             }
         }
@@ -190,9 +169,11 @@ fun AutomationsSection(
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onBackground,
             )
-            peaks.forEach { task ->
+            peaks.forEachIndexed { index, task ->
                 OffPeakLine(task)
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                if (index != peaks.lastIndex) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                }
             }
         }
     }
@@ -246,9 +227,6 @@ fun AutomationsSection(
         )
     }
 }
-
-/** The workspace key the port re-resolves server-side; the form passes a marker. */
-private fun workspaceKeyFor(): String = "active"
 
 /**
  * B2.1+J2: the editor seeds from the row's REAL schedule carrier — the old form

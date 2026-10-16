@@ -112,7 +112,7 @@ fun GitScreen(
     ) {
         item(key = "header") {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(R.string.git_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                // B2.18: the route already renders "Git" — no second header.
                 Text("read-only", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
