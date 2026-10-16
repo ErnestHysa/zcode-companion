@@ -90,6 +90,7 @@ fun TaskListScreen(
     onOpenConnection: () -> Unit,
     onRetry: () -> Unit,
     onRefresh: () -> Unit,
+    modifier: Modifier = Modifier,
     onRepairPairing: () -> Unit = {},
     /** Phase 7 §18.3: approvals inbox entry with the open-request count. */
     openApprovals: Int = 0,
@@ -112,11 +113,10 @@ fun TaskListScreen(
     collapseExecutor: java.util.concurrent.Executor = com.zcode.android.features.tasks.ui.WorkspaceCollapseStateBackgroundExecutor(),
     /** GAP-6: read-only automations + off-peak lists (null = section hidden). */
     automationsPort: com.zcode.android.features.tasks.port.AutomationsPort? = null,
-    modifier: Modifier = Modifier,
-
     /** H2.2: a launcher shortcut asked for a new task — open the create dialog once. */
     requestCreate: Boolean = false,
-    onCreateRequestConsumed: () -> Unit = {},) {
+    onCreateRequestConsumed: () -> Unit = {},
+) {
     val motion = rememberMotionSpec()
     var showCreate by remember { androidx.compose.runtime.mutableStateOf(false) }
     LaunchedEffect(requestCreate) {

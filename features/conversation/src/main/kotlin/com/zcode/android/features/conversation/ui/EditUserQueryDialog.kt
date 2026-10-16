@@ -37,13 +37,14 @@ fun EditUserQueryDialog(
     initialText: String,
     onConfirm: (newText: String) -> Unit,
     onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     // B2.13: keyed on the row's current text — reopening with different text re-seeds.
     var text by remember(initialText) { mutableStateOf(initialText) }
     var confirmOpen by remember { mutableStateOf(false) }
     // B3-sheets: ONE sheet — the edit, then an in-sheet review step (the old edit →
     // confirm double modal is gone; the confirm is still a deliberate second tap).
-    ZCodeModalBottomSheet(onDismissRequest = onDismiss) {
+    ZCodeModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
             if (confirmOpen) {
                 Column(Modifier.testTag("edit_confirm_dialog")) {

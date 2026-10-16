@@ -28,6 +28,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import androidx.compose.foundation.layout.padding
 
 /**
  * B3-chrome (Phase 2C, P1): the ONE header component — pinned: a single title node,
@@ -54,7 +55,7 @@ class ZCodeTopBarTest {
                         onBack = {},
                         backTestTag = "usage_back",
                     )
-                }) { inner -> Text("content", Modifier.testTag("content")) }
+                }) { inner -> Text("content", Modifier.padding(inner).testTag("content")) }
             }
         }
         rule.onAllNodesWithText("Workspace files").assertCountEquals(1)
@@ -85,7 +86,7 @@ class ZCodeTopBarTest {
                         ZCodeTopBar(title = "Elevation", onBack = null, scrollBehavior = scroll, modifier = Modifier.testTag("bar"))
                     },
                 ) { inner ->
-                    LazyColumn(Modifier.testTag("list")) {
+                    LazyColumn(Modifier.padding(inner).testTag("list")) {
                         items(count = 200, key = { it }) { i ->
                             Text("row $i", modifier = Modifier.testTag("row-$i"))
                         }

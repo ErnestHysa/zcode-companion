@@ -141,10 +141,22 @@ fun Modifier.animateCollapse(): Modifier {
  * pass a `seen` set so rows scrolled back into view do not re-arrive. Identity under
  * reduced motion.
  */
+@Immutable
+class ArrivalTracker internal constructor(private val seen: MutableSet<Any>) {
+    /** true iff [key] had not arrived before (and records it). */
+    fun arrive(key: Any): Boolean = seen.add(key)
+}
+
 @Composable
-fun Modifier.streamIn(key: Any, index: Int, seen: MutableSet<Any>): Modifier {
+fun rememberArrivalTracker(): ArrivalTracker {
+    val seen = remember { mutableSetOf<Any>() }
+    return remember(seen) { ArrivalTracker(seen) }
+}
+
+@Composable
+fun Modifier.streamIn(key: Any, index: Int, tracker: ArrivalTracker): Modifier {
     val spec = rememberMotionSpec()
-    val firstArrival = remember(key) { seen.add(key) }
+    val firstArrival = remember(key) { tracker.arrive(key) }
     if (!spec.enabled || !firstArrival) return this
     var target by remember(key) { mutableStateOf(0f) }
     LaunchedEffect(key) { target = 1f }

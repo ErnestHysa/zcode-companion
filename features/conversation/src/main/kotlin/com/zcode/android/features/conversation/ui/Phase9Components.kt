@@ -72,13 +72,14 @@ fun ComposerModelPickerDialog(
     modelOptionsProvider: suspend () -> List<ModelProviderOption>,
     onPick: (provider: String, model: String) -> Unit,
     onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val haptics = rememberZCodeHaptics()
     val providers by produceState<List<ModelProviderOption>?>(initialValue = null) {
         value = runCatching { modelOptionsProvider() }.getOrDefault(emptyList())
     }
     // B3-sheets: the model picker is a bottom sheet (create-task keeps ONE dialog).
-    ZCodeModalBottomSheet(onDismissRequest = onDismiss) {
+    ZCodeModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier) {
         Text(
             stringResource(R.string.composer_model_picker_title),
             style = MaterialTheme.typography.titleMedium,

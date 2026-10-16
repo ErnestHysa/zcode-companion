@@ -100,10 +100,10 @@ class MotionSystemTest {
         val base = Modifier
         var collapse: Modifier? = null
         var stream: Modifier? = null
-        val seen = mutableSetOf<Any>()
         rule.setContent {
+            val tracker = rememberArrivalTracker()
             collapse = base.animateCollapse()
-            stream = base.streamIn(key = "row-1", index = 0, seen = seen)
+            stream = base.streamIn(key = "row-1", index = 0, tracker = tracker)
         }
         rule.runOnIdle {
             assertSame("animateCollapse must be a no-op under reduced motion", base, collapse)
@@ -115,17 +115,20 @@ class MotionSystemTest {
     fun `streamIn arrives once per key - a seen row is the identity modifier`() {
         setAnimatorScale(1f)
         val base = Modifier
-        val seen = mutableSetOf<Any>("already-here")
         var fresh: Modifier? = null
         var repeat: Modifier? = null
+        var arrived: Boolean? = null
         rule.setContent {
-            fresh = base.streamIn(key = "new-row", index = 0, seen = seen)
-            repeat = base.streamIn(key = "already-here", index = 0, seen = seen)
+            val tracker = rememberArrivalTracker()
+            tracker.arrive("already-here")
+            fresh = base.streamIn(key = "new-row", index = 0, tracker = tracker)
+            repeat = base.streamIn(key = "already-here", index = 0, tracker = tracker)
+            arrived = tracker.arrive("new-row") // second call: the fresh row is already recorded
         }
         rule.runOnIdle {
             assertNotEquals("a fresh row must get the arrival animation", base, fresh)
             assertSame("a row already seen must not re-arrive", base, repeat)
-            assertTrue("arrival is recorded", "new-row" in seen)
+            assertEquals("arrival is recorded exactly once", false, arrived)
         }
     }
 }

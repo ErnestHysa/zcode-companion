@@ -59,6 +59,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import com.zcode.android.core.ui.components.ZCodeMotion
+import com.zcode.android.core.ui.components.rememberArrivalTracker
 import com.zcode.android.core.ui.components.rememberMotionSpec
 import com.zcode.android.core.ui.components.streamIn
 import com.zcode.android.core.ui.components.ZCodeTopBar
@@ -397,7 +398,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
 ) {
     val listState = rememberLazyListState()
     // B3-motion + K2: rows that have already arrived (scroll-back never re-animates).
-    val arrivedRows = remember { mutableSetOf<Any>() }
+    val arrivedRows = rememberArrivalTracker()
     val motion = rememberMotionSpec()
     val scope = rememberCoroutineScope()
     var unread by remember { mutableIntStateOf(0) }
@@ -548,7 +549,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                         .streamIn(
                             key = state.rows[index].rowId,
                             index = (index - listState.firstVisibleItemIndex).coerceIn(0, 10),
-                            seen = arrivedRows,
+                            tracker = arrivedRows,
                         )
                         .testTag("conv-row-${state.rows[index].rowId}"),
                     onOpenTurnChanges = onOpenTurnChanges,

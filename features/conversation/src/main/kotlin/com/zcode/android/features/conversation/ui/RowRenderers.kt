@@ -515,6 +515,7 @@ private fun SpannedText(
     val codeBg = LocalZCodeColors.current.codeBorder.copy(alpha = 0.35f)
     val context = LocalContext.current
     val notifier = LocalNotifier.current
+    val linkFailedText = stringResource(R.string.row_link_open_failed)
     val linkRanges = mutableListOf<Triple<Int, Int, String>>()
     val annotated = buildAnnotatedString {
         for (span in spans) {
@@ -560,7 +561,7 @@ private fun SpannedText(
                                         .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
                                 )
                             }.onFailure {
-                                notifier.show(context.getString(R.string.row_link_open_failed))
+                                notifier.show(linkFailedText)
                             }
                         }
                     }
