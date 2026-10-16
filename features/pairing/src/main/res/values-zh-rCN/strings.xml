@@ -52,4 +52,5 @@
     <string name="unpair_title">取消此设备的配对？</string>
     <string name="unpair_detail">这将删除此手机上的配对凭据和所有密钥材料。另请在桌面端的远程控制对话框中按“停止” — 关闭对话框并不会停止远程控制。</string>
     <string name="action_unpair_confirm">取消配对并清除</string>
+    <string name="security_explainer_a11y">安全说明</string>
 </resources>

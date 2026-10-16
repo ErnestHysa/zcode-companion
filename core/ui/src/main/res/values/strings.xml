@@ -79,4 +79,36 @@
         <item quantity="one">%1$d s ago</item>
         <item quantity="other">%1$d s ago</item>
     </plurals>
+    <!-- C5-i18n: the §33 user-message vocabulary (AppError.messageKey → copy). userMessage in code is the English fallback only. -->
+    <string name="err_msg_connection_lost_reconnecting">Connection lost — reconnecting…</string>
+    <string name="err_msg_session_taken_over">Another ZCode Remote page took over this connection</string>
+    <string name="err_msg_desktop_unreachable">Desktop unreachable — wake the Mac, relaunch ZCode</string>
+    <string name="err_msg_pairing_expired">Pairing expired — scan the QR again</string>
+    <string name="err_msg_workspace_closed">This workspace was closed on the desktop</string>
+    <string name="err_msg_direct_token_rejected">Direct endpoint rejected the token — check it in Settings → Endpoints</string>
+    <string name="err_msg_local_network_blocked">Local network blocked — allow local network access or use the Tailscale/tunnel URL</string>
+    <string name="err_msg_endpoint_cert_changed">Endpoint certificate changed — verify the server before reconnecting</string>
+    <string name="err_msg_endpoint_unencrypted">Endpoint uses unencrypted transport (ws://) — anyone on the network can read this traffic</string>
+    <string name="err_msg_desktop_relay_lost">The desktop lost its relay connection — restart ZCode on your Mac, then retry</string>
+    <string name="err_msg_relay_error_retrying">ZCode relay error — retrying</string>
+    <string name="err_msg_unexpected_error_code">Unexpected error (code)</string>
+    <string name="err_msg_something_went_wrong">Something went wrong</string>
+    <string name="err_msg_sync_problem_refreshing">Sync problem — refreshing</string>
+    <string name="err_msg_network_unavailable">Network unavailable — check your connection</string>
+    <string name="err_msg_taking_too_long">Taking too long — retrying</string>
+    <string name="err_msg_update_desktop">Update ZCode desktop to a compatible version</string>
+    <string name="err_msg_still_offline_cached">Still offline — showing cached state</string>
+    <string name="err_msg_session_unavailable">This session is no longer available</string>
+    <string name="err_msg_workspace_not_ready">The desktop workspace is not ready yet — reconnecting…</string>
+    <string name="err_msg_connection_problem_retrying">Connection problem — retrying</string>
+    <string name="err_msg_conversation_changed">Conversation changed — please try again</string>
+    <string name="err_msg_request_already_handled">This request was already handled</string>
+    <string name="err_msg_local_data_reset">Local data problem — cache reset</string>
+    <string name="err_msg_permission_needed">Permission needed — open Settings</string>
+    <string name="err_msg_notifications_blocked">Notifications are blocked — enable them in Settings</string>
+    <string name="err_msg_not_allowed">This connection doesn\'t allow that</string>
+    <string name="err_msg_none"></string>
+    <string name="diff_renamed">(renamed)</string>
+    <string name="diff_new">new</string>
+    <string name="diff_deleted">deleted</string>
 </resources>

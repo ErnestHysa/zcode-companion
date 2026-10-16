@@ -78,8 +78,23 @@ data class ConversationUiState(
 }
 
 /** §33-mapped user copy for send-path outcomes (never raw exceptions). */
-data class SendNotice(val text: String, val kind: Kind) {
+/**
+ * A send-outcome notice. [text] is the English fallback; when [key] is set the UI
+ * resolves it per locale (C5-i18n — view models hold no Android resources).
+ */
+data class SendNotice(
+    val text: String,
+    val kind: Kind,
+    val key: Key? = null,
+    val args: List<String> = emptyList(),
+) {
     enum class Kind { INFO, WARNING, ERROR }
+
+    enum class Key {
+        SWITCH_OFFLINE, SESSION_CHANGED, SWITCH_REFUSED, MODEL_SWITCH_REFUSED,
+        ATTACHMENT_TOO_LARGE, ATTACHMENT_OFFLINE, ATTACHMENT_FAILED, ATTACHMENT_RETRY_FAILED,
+        COMPACT_REFUSED, GOAL_REFUSED, GOAL_RESUME_REFUSED,
+    }
 }
 
 class ConversationViewModel(
@@ -245,11 +260,11 @@ class ConversationViewModel(
             when (port.switchMode(taskId, mode)) {
                 ConversationPort.SendOutcome.ACCEPTED -> Unit
                 ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
-                    _sendNotice.value = SendNotice("Offline — the switch was not sent. Nothing changed.", SendNotice.Kind.WARNING)
+                    _sendNotice.value = SendNotice("Offline — the switch was not sent. Nothing changed.", SendNotice.Kind.WARNING, SendNotice.Key.SWITCH_OFFLINE)
                 ConversationPort.SendOutcome.STALE ->
-                    _sendNotice.value = SendNotice("The session changed on the desktop — try the switch again.", SendNotice.Kind.WARNING)
+                    _sendNotice.value = SendNotice("The session changed on the desktop — try the switch again.", SendNotice.Kind.WARNING, SendNotice.Key.SESSION_CHANGED)
                 else ->
-                    _sendNotice.value = SendNotice("The desktop refused the switch — nothing changed.", SendNotice.Kind.ERROR)
+                    _sendNotice.value = SendNotice("The desktop refused the switch — nothing changed.", SendNotice.Kind.ERROR, SendNotice.Key.SWITCH_REFUSED)
             }
         }
     }
@@ -259,11 +274,11 @@ class ConversationViewModel(
             when (port.switchModel(taskId, provider, model, thought)) {
                 ConversationPort.SendOutcome.ACCEPTED -> Unit
                 ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
-                    _sendNotice.value = SendNotice("Offline — the switch was not sent. Nothing changed.", SendNotice.Kind.WARNING)
+                    _sendNotice.value = SendNotice("Offline — the switch was not sent. Nothing changed.", SendNotice.Kind.WARNING, SendNotice.Key.SWITCH_OFFLINE)
                 ConversationPort.SendOutcome.STALE ->
-                    _sendNotice.value = SendNotice("The session changed on the desktop — try the switch again.", SendNotice.Kind.WARNING)
+                    _sendNotice.value = SendNotice("The session changed on the desktop — try the switch again.", SendNotice.Kind.WARNING, SendNotice.Key.SESSION_CHANGED)
                 else ->
-                    _sendNotice.value = SendNotice("The desktop refused the model switch — nothing changed.", SendNotice.Kind.ERROR)
+                    _sendNotice.value = SendNotice("The desktop refused the model switch — nothing changed.", SendNotice.Kind.ERROR, SendNotice.Key.MODEL_SWITCH_REFUSED)
             }
         }
     }
@@ -277,11 +292,11 @@ class ConversationViewModel(
         when (result) {
             is ConversationPort.UploadResult.Committed -> Unit
             is ConversationPort.UploadResult.TooLarge ->
-                _sendNotice.value = SendNotice("Attachment is over the 20 MB desktop limit — not sent.", SendNotice.Kind.WARNING)
+                _sendNotice.value = SendNotice("Attachment is over the 20 MB desktop limit — not sent.", SendNotice.Kind.WARNING, SendNotice.Key.ATTACHMENT_TOO_LARGE)
             is ConversationPort.UploadResult.BlockedOffline ->
-                _sendNotice.value = SendNotice("Offline — the attachment was not sent. Retry when connected.", SendNotice.Kind.WARNING)
+                _sendNotice.value = SendNotice("Offline — the attachment was not sent. Retry when connected.", SendNotice.Kind.WARNING, SendNotice.Key.ATTACHMENT_OFFLINE)
             is ConversationPort.UploadResult.Failed ->
-                _sendNotice.value = SendNotice("Attachment failed to upload (${result.message?.take(60) ?: "connection lost"}) — not sent.", SendNotice.Kind.ERROR)
+                _sendNotice.value = SendNotice("Attachment failed to upload (${result.message?.take(60) ?: "connection lost"}) — not sent.", SendNotice.Kind.ERROR, SendNotice.Key.ATTACHMENT_FAILED, listOf(result.message?.take(60) ?: ""))
         }
         return result
     }
@@ -295,7 +310,7 @@ class ConversationViewModel(
         scope.launch {
             val result = port.retryUpload(taskId, uploadId)
             if (result !is ConversationPort.UploadResult.Committed) {
-                _sendNotice.value = SendNotice("Attachment retry failed — not sent.", SendNotice.Kind.ERROR)
+                _sendNotice.value = SendNotice("Attachment retry failed — not sent.", SendNotice.Kind.ERROR, SendNotice.Key.ATTACHMENT_RETRY_FAILED)
             }
         }
     }
@@ -359,17 +374,20 @@ class ConversationViewModel(
                     text,
                     failureNotice = "Compact was refused by the desktop" +
                         " (it may already be running or an active turn blocks it).",
+                    failureKey = SendNotice.Key.COMPACT_REFUSED,
                     acceptedClearsDraft = true,
                 )
                 is SlashDispatch.SendGoal -> sendSlash(
                     { port.sendGoal(taskId, dispatch.objective, dispatch.displayText) },
                     text,
                     failureNotice = "The goal update was refused by the desktop.",
+                    failureKey = SendNotice.Key.GOAL_REFUSED,
                 )
                 is SlashDispatch.ResumeGoal -> sendSlash(
                     { port.resumeGoal(taskId) },
                     text,
                     failureNotice = "Goal resume was refused (the conversation may have moved — try again).",
+                    failureKey = SendNotice.Key.GOAL_RESUME_REFUSED,
                 )
                 is SlashDispatch.EmptyGoal -> refuseSlash("/goal needs a goal text — e.g. \"/goal finish the report\".")
                 is SlashDispatch.UnsupportedGoal -> refuseSlash(
@@ -444,6 +462,7 @@ class ConversationViewModel(
         fire: suspend () -> ConversationPort.SendOutcome,
         originalText: String,
         failureNotice: String,
+        failureKey: SendNotice.Key? = null,
         acceptedClearsDraft: Boolean = true,
     ) {
         when (fire()) {
@@ -460,7 +479,7 @@ class ConversationViewModel(
                     "You're offline — the command was not sent and the draft is preserved.",
                     SendNotice.Kind.WARNING,
                 )
-            else -> _sendNotice.value = SendNotice(failureNotice, SendNotice.Kind.WARNING)
+            else -> _sendNotice.value = SendNotice(failureNotice, SendNotice.Kind.WARNING, failureKey)
         }
     }
 

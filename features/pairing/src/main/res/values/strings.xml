@@ -53,4 +53,5 @@
     <string name="unpair_title">Unpair this device?</string>
     <string name="unpair_detail">This deletes the pairing credential and all key material on this phone. Also press Stop in the desktop\u2019s Remote Control dialog — closing the dialog does not stop remote control.</string>
     <string name="action_unpair_confirm">Unpair and wipe</string>
+    <string name="security_explainer_a11y">security explainer</string>
 </resources>

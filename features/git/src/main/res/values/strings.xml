@@ -2,4 +2,14 @@
 <resources>
     <string name="git_title">Git</string>
     <string name="git_unavailable">Git is not available for this workspace (not a repository, or this connection does not expose the git channel).</string>
+    <string name="git_read_only">read-only</string>
+    <string name="git_changes_header">Changes</string>
+    <string name="git_history_header">History</string>
+    <string name="git_load_more">Load more</string>
+    <string name="git_binary_changed">binary file changed</string>
+    <string name="git_diff_truncated">diff truncated by the desktop</string>
+    <string name="git_no_textual_diff">No textual diff available (availability: %1$s).</string>
+    <string name="git_section_unstaged">Unstaged</string>
+    <string name="git_section_staged">Staged</string>
+    <string name="git_dirty_marker">  • dirty</string>
 </resources>

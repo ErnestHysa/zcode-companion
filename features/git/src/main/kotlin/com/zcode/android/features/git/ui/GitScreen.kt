@@ -113,7 +113,7 @@ fun GitScreen(
         item(key = "header") {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 // B2.18: the route already renders "Git" — no second header.
-                Text("read-only", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.git_read_only), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 
@@ -131,7 +131,7 @@ fun GitScreen(
                             scope.launch { fetchChanges() }
                         },
                         modifier = Modifier.testTag("git_changes_retry"),
-                    ) { Text("Retry") }
+                    ) { Text(stringResource(com.zcode.android.core.ui.R.string.action_retry)) }
                 }
             }
         }
@@ -149,18 +149,19 @@ fun GitScreen(
                             val summary = port.summary()
                             ui = ui.copy(unavailable = summary == null || !summary.isRepository)
                         }
-                    }) { Text("Retry") }
+                    }) { Text(stringResource(com.zcode.android.core.ui.R.string.action_retry)) }
                 }
             }
         } else {
             item(key = "summary") { ui.summary?.let { s ->
                 Surface(tonalElevation = 1.dp) {
                     Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        val dirtyMarker = stringResource(R.string.git_dirty_marker)
                         Text(
                             buildString {
                                 append(s.branchName ?: "(detached)")
                                 if (s.ahead > 0 || s.behind > 0) append("  ↑${s.ahead} ↓${s.behind}")
-                                if (s.isDirty) append("  • dirty")
+                                if (s.isDirty) append(dirtyMarker)
                             },
                             style = MaterialTheme.typography.titleSmall,
                         )
@@ -175,7 +176,7 @@ fun GitScreen(
             }
 
             item(key = "changes-title") {
-                Text("Changes", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.git_changes_header), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             }
             // Desktop datasets: unstaged = [unstaged, untracked, conflicted]; staged = [staged].
             // ONE item: every section header then carries real placed bounds even when
@@ -183,7 +184,7 @@ fun GitScreen(
             item(key = "changes") {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     ChangeCard(
-                        title = "Unstaged",
+                        title = stringResource(R.string.git_section_unstaged),
                         staged = false,
                         entries = ui.unstaged,
                         expanded = ui.expanded,
@@ -194,7 +195,7 @@ fun GitScreen(
                         },
                     )
                     ChangeCard(
-                        title = "Staged",
+                        title = stringResource(R.string.git_section_staged),
                         staged = true,
                         entries = ui.staged,
                         expanded = ui.expanded,
@@ -208,7 +209,7 @@ fun GitScreen(
             }
 
             item(key = "history-title") {
-                Text("History", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.git_history_header), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             }
                 items(ui.commits.first, key = { it.hash }) { commit ->
                     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -241,7 +242,7 @@ fun GitScreen(
                                     ui = ui.copy(commits = (ui.commits.first + page.commits) to page.hasMore)
                                 }
                             },
-                            label = { Text("Load more") },
+                            label = { Text(stringResource(R.string.git_load_more)) },
                         )
                     }
                 }
@@ -382,14 +383,14 @@ private fun InlineDiff(
     ) {
         when {
             content == null -> com.zcode.android.core.ui.components.SkeletonBar(Modifier.fillMaxWidth(0.6f).testTag("git_diff_loading"))
-            content!!.availability == "binary" -> Text("binary file changed", style = MaterialTheme.typography.labelSmall)
+            content!!.availability == "binary" -> Text(stringResource(R.string.git_binary_changed), style = MaterialTheme.typography.labelSmall)
             content!!.availability == "truncated" ->
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("diff truncated by the desktop", style = MaterialTheme.typography.labelSmall)
+                    Text(stringResource(R.string.git_diff_truncated), style = MaterialTheme.typography.labelSmall)
                     DiffBody(content!!.patch.orEmpty())
                 }
             content!!.patch.isNullOrBlank() ->
-                Text("No textual diff available (availability: ${content!!.availability}).", style = MaterialTheme.typography.labelSmall)
+                Text(stringResource(R.string.git_no_textual_diff, content!!.availability), style = MaterialTheme.typography.labelSmall)
             else -> DiffBody(content!!.patch.orEmpty())
         }
     }

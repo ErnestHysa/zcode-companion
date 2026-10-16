@@ -93,11 +93,11 @@ fun TerminalScreen(
             )
             when (val s = state) {
                 is TerminalPort.TerminalState.Live ->
-                    Text("live${s.shell?.let { " — $it" } ?: ""}", style = MaterialTheme.typography.bodySmall)
+                    Text(s.shell?.let { stringResource(R.string.terminal_status_live, it) } ?: stringResource(R.string.terminal_status_live_plain), style = MaterialTheme.typography.bodySmall)
                 is TerminalPort.TerminalState.Exited ->
-                    Text("exited (${s.code ?: "no status"})", style = MaterialTheme.typography.bodySmall)
-                TerminalPort.TerminalState.Attaching -> Text("attaching…", style = MaterialTheme.typography.bodySmall)
-                TerminalPort.TerminalState.Idle -> Text("idle", style = MaterialTheme.typography.bodySmall)
+                    Text(s.code?.let { stringResource(R.string.terminal_status_exited, it.toString()) } ?: stringResource(R.string.terminal_status_exited_no_status), style = MaterialTheme.typography.bodySmall)
+                TerminalPort.TerminalState.Attaching -> Text(stringResource(R.string.terminal_status_attaching), style = MaterialTheme.typography.bodySmall)
+                TerminalPort.TerminalState.Idle -> Text(stringResource(R.string.terminal_status_idle), style = MaterialTheme.typography.bodySmall)
                 else -> Unit
             }
             Spacer(Modifier.weight(1f))
@@ -121,6 +121,7 @@ fun TerminalScreen(
             state is TerminalPort.TerminalState.Idle -> StateCard(stringResource(R.string.terminal_not_attached), retry = { scope.launch { port.attach() } }, retryLabel = stringResource(R.string.terminal_attach))
             state is TerminalPort.TerminalState.Attaching -> StateCard(stringResource(R.string.terminal_attaching))
             else -> {
+                val lineA11y = stringResource(R.string.terminal_line_a11y)
                 if (searchMode) {
                     OutlinedTextField(
                         value = searchQuery,
@@ -147,7 +148,7 @@ fun TerminalScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .background(if (isMatch) MaterialTheme.colorScheme.tertiaryContainer else Color.Transparent)
-                                    .semantics { contentDescription = "terminal line ${index + 1}" },
+                                    .semantics { contentDescription = lineA11y.format(index + 1) },
                             )
                         }
                         if (snapshot.droppedBytes > 0) {

@@ -158,4 +158,29 @@
     <string name="edit_confirm_body">This replaces the turn with your edited text and regenerates the reply. Files and later turns may be affected.</string>
     <string name="edit_confirm_button">Edit and re-ask</string>
     <string name="row_link_open_failed">Can\'t open link</string>
+    <string name="row_writing">writing…</string>
+    <string name="composer_busy_queued">Busy — this message will be queued on the desktop.</string>
+    <string name="row_subagent">Subagent · %1$s</string>
+    <string name="row_hook">Hook · %1$s</string>
+    <string name="queue_paused_suffix"> · paused</string>
+    <string name="pending_sending">Sending…</string>
+    <string name="pending_sent_unknown">Send uncertain — connection lost (will not duplicate)</string>
+    <string name="pending_not_sent">Not sent</string>
+    <string name="row_turn_changes">%1$s +%2$d −%3$d · view</string>
+    <string name="notice_switch_offline">Offline — the switch was not sent. Nothing changed.</string>
+    <string name="notice_session_changed">The session changed on the desktop — try the switch again.</string>
+    <string name="notice_switch_refused">The desktop refused the switch — nothing changed.</string>
+    <string name="notice_model_switch_refused">The desktop refused the model switch — nothing changed.</string>
+    <string name="notice_attachment_too_large">Attachment is over the 20 MB desktop limit — not sent.</string>
+    <string name="notice_attachment_offline">Offline — the attachment was not sent. Retry when connected.</string>
+    <string name="notice_attachment_failed">Attachment failed to upload (%1$s) — not sent.</string>
+    <string name="notice_attachment_retry_failed">Attachment retry failed — not sent.</string>
+    <string name="notice_compact_refused">Compact was refused by the desktop (it may already be running or an active turn blocks it).</string>
+    <string name="notice_goal_refused">The goal update was refused by the desktop.</string>
+    <string name="notice_goal_resume_refused">Goal resume was refused (the conversation may have moved — try again).</string>
+    <string name="notice_connection_lost">connection lost</string>
+    <plurals name="row_files_count">
+        <item quantity="one">%d file</item>
+        <item quantity="other">%d files</item>
+    </plurals>
 </resources>

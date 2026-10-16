@@ -15,4 +15,11 @@
     <string name="terminal_consent_body">Terminal output is a sensitive surface: it streams a live shell view of the workspace. Enable it once per endpoint in Settings; you can turn it off at any time.</string>
     <string name="terminal_enable">Enable terminal (view-only)</string>
     <string name="terminal_title">Terminal</string>
+    <string name="terminal_status_live">live — %1$s</string>
+    <string name="terminal_status_live_plain">live</string>
+    <string name="terminal_status_exited">exited (%1$s)</string>
+    <string name="terminal_status_exited_no_status">exited (no status)</string>
+    <string name="terminal_status_attaching">attaching…</string>
+    <string name="terminal_status_idle">idle</string>
+    <string name="terminal_line_a11y">terminal line %1$d</string>
 </resources>

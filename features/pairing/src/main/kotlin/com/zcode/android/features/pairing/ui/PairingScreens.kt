@@ -71,6 +71,7 @@ private fun PairingTitle() {
 
 @Composable
 private fun WelcomeScreen(s: PairingFlow.State.Welcome, vm: PairingViewModel) {
+    val securityExplainerA11y = stringResource(R.string.security_explainer_a11y)
     Scaffold(topBar = { PairingTitle() }) { pad ->
         Column(
             modifier = Modifier
@@ -87,7 +88,7 @@ private fun WelcomeScreen(s: PairingFlow.State.Welcome, vm: PairingViewModel) {
             Text(
                 stringResource(R.string.welcome_explainer),
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.semantics { contentDescription = "security explainer" },
+                modifier = Modifier.semantics { contentDescription = securityExplainerA11y },
             )
             if (s.link != null) {
                 Card(colors = CardDefaults.cardColors()) {
@@ -356,7 +357,11 @@ private fun ConnectFailedScreen(s: PairingFlow.State.ConnectFailed, vm: PairingV
             if (s.error.rePair) {
                 Text(stringResource(R.string.connect_failed_repair_detail), style = MaterialTheme.typography.bodyMedium)
             }
-            Text(s.error.userMessage, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag("fail-message"))
+            Text(
+                errorUserMessageForView(s.error),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.testTag("fail-message"),
+            )
             if (s.error.retryable) {
                 ZCodeButton(
                     onClick = { vm.dispatch(PairingFlow.Event.RetryRequested) },
@@ -433,3 +438,8 @@ private fun UnpairConfirmScreen(s: PairingFlow.State.UnpairConfirm, vm: PairingV
         }
     }
 }
+
+/** C5-i18n: the pairing ErrorView's copy per locale; `userMessage` is the English fallback. */
+@Composable
+private fun errorUserMessageForView(e: PairingFlow.ErrorView): String =
+    e.messageKey?.let { stringResource(com.zcode.android.core.ui.components.userMessageRes(it), *e.messageArgs.toTypedArray()) } ?: e.userMessage

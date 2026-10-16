@@ -71,6 +71,7 @@ import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.ui.draw.clip
 import com.zcode.android.core.ui.components.ZCodeModalBottomSheet
+import androidx.compose.ui.res.pluralStringResource
 
 /**
  * Row renderers — the agent-timeline grammar (ui-ux component-library v2): YOU
@@ -353,7 +354,12 @@ fun TurnSeparator(
                         .clickable { onOpenChanges() },
                 ) {
                     Text(
-                        text = "${fc.files} file${if (fc.files == 1L) "" else "s"} +${fc.additions} −${fc.deletions} · view",
+                        text = stringResource(
+                            R.string.row_turn_changes,
+                            pluralStringResource(R.plurals.row_files_count, fc.files.toInt(), fc.files.toInt()),
+                            fc.additions,
+                            fc.deletions,
+                        ),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
@@ -446,7 +452,7 @@ fun CodeBlock(code: String, lang: String? = null, modifier: Modifier = Modifier,
             if (!complete) {
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "writing…",
+                    text = stringResource(R.string.row_writing),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

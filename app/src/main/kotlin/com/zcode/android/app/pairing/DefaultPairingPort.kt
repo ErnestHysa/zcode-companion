@@ -234,6 +234,8 @@ class DefaultPairingPort(
                 diagnostic = error.developerDiagnostic,
                 rePair = rePair,
                 retryable = !rePair,
+                messageKey = error.messageKey,
+                messageArgs = error.messageArgs,
             ),
         )
     }

@@ -4,6 +4,7 @@ import com.zcode.android.core.common.error.AppError
 import com.zcode.android.core.common.error.Correlation
 import com.zcode.android.core.common.error.ErrorCategory
 import com.zcode.android.core.common.error.RecoveryAction
+import com.zcode.android.core.common.error.UserMessageKey
 
 /**
  * §33 close-code / relay-error-code → AppError mapping (normative table, §33.1 rules +
@@ -18,6 +19,7 @@ object ErrorMapping {
         4000, 4004 -> AppError(
             category = ErrorCategory.TRANSPORT,
             userMessage = "Connection lost — reconnecting…",
+            messageKey = UserMessageKey.CONNECTION_LOST_RECONNECTING,
             developerDiagnostic = "ws close code=$code (direct-server class)",
             retryable = AppError.Retryable.AUTO,
             recoverable = true,
@@ -27,6 +29,7 @@ object ErrorMapping {
         4009 -> AppError(
             category = ErrorCategory.SESSION,
             userMessage = "Another ZCode Remote page took over this connection",
+            messageKey = UserMessageKey.SESSION_TAKEN_OVER,
             developerDiagnostic = "ws close 4009 SessionConflict (single-terminal rule, §15.3)",
             retryable = AppError.Retryable.USER,
             recoverable = true,
@@ -36,6 +39,7 @@ object ErrorMapping {
         4010 -> AppError(
             category = ErrorCategory.TRANSPORT,
             userMessage = "Desktop unreachable — wake the Mac, relaunch ZCode",
+            messageKey = UserMessageKey.DESKTOP_UNREACHABLE,
             developerDiagnostic = "ws close 4010 DesktopDisconnected",
             retryable = AppError.Retryable.AUTO,
             recoverable = true,
@@ -45,6 +49,7 @@ object ErrorMapping {
         4011 -> AppError(
             category = ErrorCategory.AUTH,
             userMessage = "Pairing expired — scan the QR again",
+            messageKey = UserMessageKey.PAIRING_EXPIRED,
             developerDiagnostic = "ws close 4011 SessionExpired",
             retryable = AppError.Retryable.NO,
             recoverable = true,
@@ -54,6 +59,7 @@ object ErrorMapping {
         4012 -> AppError(
             category = ErrorCategory.SESSION,
             userMessage = "This workspace was closed on the desktop",
+            messageKey = UserMessageKey.WORKSPACE_CLOSED,
             developerDiagnostic = "ws close 4012 WorkspaceClosed",
             retryable = AppError.Retryable.NO,
             recoverable = true,
@@ -63,6 +69,7 @@ object ErrorMapping {
         4013 -> AppError(
             category = ErrorCategory.AUTH,
             userMessage = "Pairing expired — scan the QR again",
+            messageKey = UserMessageKey.PAIRING_EXPIRED,
             developerDiagnostic = "ws close 4013 InvalidMobileConnection",
             retryable = AppError.Retryable.NO,
             recoverable = true,
@@ -72,6 +79,7 @@ object ErrorMapping {
         else -> AppError(
             category = ErrorCategory.TRANSPORT,
             userMessage = "Connection lost — reconnecting…",
+            messageKey = UserMessageKey.CONNECTION_LOST_RECONNECTING,
             developerDiagnostic = "ws close code=$code (unclassified close)",
             retryable = AppError.Retryable.AUTO,
             recoverable = true,
@@ -86,6 +94,7 @@ object ErrorMapping {
     fun directTokenRejected(status: Int?): AppError = AppError(
         category = ErrorCategory.AUTH,
         userMessage = "Direct endpoint rejected the token — check it in Settings → Endpoints",
+        messageKey = UserMessageKey.DIRECT_TOKEN_REJECTED,
         developerDiagnostic = "direct auth rejected (http status=${status ?: "unknown"})",
         retryable = AppError.Retryable.NO,
         recoverable = true,
@@ -100,6 +109,7 @@ object ErrorMapping {
     fun localNetworkBlocked(reason: String): AppError = AppError(
         category = ErrorCategory.ANDROID,
         userMessage = "Local network blocked — allow local network access or use the Tailscale/tunnel URL",
+        messageKey = UserMessageKey.LOCAL_NETWORK_BLOCKED,
         developerDiagnostic = "local-network-blocked: $reason".take(180),
         retryable = AppError.Retryable.AUTO,
         recoverable = true,
@@ -110,6 +120,7 @@ object ErrorMapping {
     fun tofuPinMismatch(expectedPrefix: String, actualPrefix: String): AppError = AppError(
         category = ErrorCategory.TRANSPORT,
         userMessage = "Endpoint certificate changed — verify the server before reconnecting",
+        messageKey = UserMessageKey.ENDPOINT_CERT_CHANGED,
         developerDiagnostic = "tofu-pin-mismatch expected=${expectedPrefix.take(12)}… actual=${actualPrefix.take(12)}… (fail-closed)",
         retryable = AppError.Retryable.USER,
         recoverable = true,
@@ -120,6 +131,7 @@ object ErrorMapping {
     fun insecureDirectTransport(url: String): AppError = AppError(
         category = ErrorCategory.TRANSPORT,
         userMessage = "Endpoint uses unencrypted transport (ws://) — anyone on the network can read this traffic",
+        messageKey = UserMessageKey.ENDPOINT_UNENCRYPTED,
         developerDiagnostic = "direct endpoint not TLS: ${url.substringBefore("?").take(60)}",
         retryable = AppError.Retryable.NO,
         recoverable = false,
@@ -132,6 +144,7 @@ object ErrorMapping {
         "AUTH_FAILED" -> AppError(
             category = ErrorCategory.AUTH,
             userMessage = "Pairing expired — scan the QR again",
+            messageKey = UserMessageKey.PAIRING_EXPIRED,
             developerDiagnostic = "relay AUTH_FAILED",
             retryable = AppError.Retryable.NO,
             recoverable = true,
@@ -144,6 +157,7 @@ object ErrorMapping {
         "DEVICE_OFFLINE" -> AppError(
             category = ErrorCategory.TRANSPORT,
             userMessage = "The desktop lost its relay connection — restart ZCode on your Mac, then retry",
+            messageKey = UserMessageKey.DESKTOP_RELAY_LOST,
             developerDiagnostic = "relay DEVICE_OFFLINE (desktop relay session gone)",
             retryable = AppError.Retryable.USER,
             recoverable = true,
@@ -153,6 +167,7 @@ object ErrorMapping {
         "KICKED" -> AppError(
             category = ErrorCategory.SESSION,
             userMessage = "Another ZCode Remote page took over this connection",
+            messageKey = UserMessageKey.SESSION_TAKEN_OVER,
             developerDiagnostic = "relay KICKED (takeover, §15.3)",
             retryable = AppError.Retryable.USER,
             recoverable = true,
@@ -162,6 +177,7 @@ object ErrorMapping {
         "INTERNAL" -> AppError(
             category = ErrorCategory.SERVER,
             userMessage = "ZCode relay error — retrying",
+            messageKey = UserMessageKey.RELAY_ERROR_RETRYING,
             developerDiagnostic = "relay INTERNAL (observed in the wild, §33)",
             retryable = AppError.Retryable.AUTO,
             recoverable = true,
@@ -171,6 +187,7 @@ object ErrorMapping {
         "WRONG_PARAM" -> AppError(
             category = ErrorCategory.INTERNAL,
             userMessage = "Unexpected error (code)",
+            messageKey = UserMessageKey.UNEXPECTED_ERROR_CODE,
             developerDiagnostic = "relay WRONG_PARAM — client-constructed request rejected (client bug class)",
             retryable = AppError.Retryable.NO,
             recoverable = false,
@@ -180,6 +197,7 @@ object ErrorMapping {
         else -> AppError(
             category = ErrorCategory.INTERNAL,
             userMessage = "Something went wrong",
+            messageKey = UserMessageKey.SOMETHING_WENT_WRONG,
             developerDiagnostic = "relay error code=$code (unclassified)",
             retryable = AppError.Retryable.NO,
             recoverable = false,
@@ -193,6 +211,7 @@ object ErrorMapping {
     fun protocolFault(diagnostic: String, correlation: Correlation = Correlation()): AppError = AppError(
         category = ErrorCategory.PROTOCOL,
         userMessage = "Sync problem — refreshing",
+        messageKey = UserMessageKey.SYNC_PROBLEM_REFRESHING,
         developerDiagnostic = diagnostic,
         retryable = AppError.Retryable.AUTO,
         recoverable = true,
@@ -203,6 +222,7 @@ object ErrorMapping {
     fun serializationFault(diagnostic: String, correlation: Correlation = Correlation()): AppError = AppError(
         category = ErrorCategory.SERIALIZATION,
         userMessage = "Something went wrong",
+        messageKey = UserMessageKey.SOMETHING_WENT_WRONG,
         developerDiagnostic = diagnostic,
         retryable = AppError.Retryable.NO,
         recoverable = true,
@@ -213,6 +233,7 @@ object ErrorMapping {
     fun networkUnreachable(diagnostic: String, correlation: Correlation = Correlation()): AppError = AppError(
         category = ErrorCategory.NETWORK,
         userMessage = "Network unavailable — check your connection",
+        messageKey = UserMessageKey.NETWORK_UNAVAILABLE,
         developerDiagnostic = diagnostic,
         retryable = AppError.Retryable.AUTO,
         recoverable = true,
@@ -223,6 +244,7 @@ object ErrorMapping {
     fun timeout(what: String, timeoutMs: Long, correlation: Correlation = Correlation()): AppError = AppError(
         category = ErrorCategory.TIMEOUT,
         userMessage = "Taking too long — retrying",
+        messageKey = UserMessageKey.TAKING_TOO_LONG,
         developerDiagnostic = "$what timed out after ${timeoutMs}ms",
         retryable = AppError.Retryable.AUTO,
         recoverable = true,
@@ -234,6 +256,7 @@ object ErrorMapping {
     fun versionIncompatible(diagnostic: String, correlation: Correlation = Correlation()): AppError = AppError(
         category = ErrorCategory.VERSION_INCOMPAT,
         userMessage = "Update ZCode desktop to a compatible version",
+        messageKey = UserMessageKey.UPDATE_DESKTOP,
         developerDiagnostic = diagnostic,
         retryable = AppError.Retryable.NO,
         recoverable = false,
@@ -244,6 +267,7 @@ object ErrorMapping {
     fun degradedBudget(diagnostic: String, correlation: Correlation = Correlation()): AppError = AppError(
         category = ErrorCategory.TRANSPORT,
         userMessage = "Still offline — showing cached state",
+        messageKey = UserMessageKey.STILL_OFFLINE_CACHED,
         developerDiagnostic = diagnostic,
         retryable = AppError.Retryable.USER,
         recoverable = true,
@@ -255,6 +279,7 @@ object ErrorMapping {
     fun sessionUnavailable(correlation: Correlation = Correlation()) = AppError(
         category = ErrorCategory.SESSION,
         userMessage = "This session is no longer available",
+        messageKey = UserMessageKey.SESSION_UNAVAILABLE,
         developerDiagnostic = "sessionUnavailable -32004",
         retryable = AppError.Retryable.NO,
         recoverable = true,
@@ -297,6 +322,14 @@ object ErrorMapping {
             "desktop-disconnected" -> "Desktop unreachable — wake the Mac, relaunch ZCode"
             else -> "Connection problem — retrying"
         },
+        messageKey = when (reason) {
+            "session-conflict" -> UserMessageKey.SESSION_TAKEN_OVER
+            "session-not-found", "session-expired" -> UserMessageKey.WORKSPACE_NOT_READY
+            "workspace-closed" -> UserMessageKey.WORKSPACE_CLOSED
+            "invalid-mobile-connection" -> UserMessageKey.PAIRING_EXPIRED
+            "desktop-disconnected" -> UserMessageKey.DESKTOP_UNREACHABLE
+            else -> UserMessageKey.CONNECTION_PROBLEM_RETRYING
+        },
         developerDiagnostic = "workspace-bridge-error: $reason",
         retryable = AppError.Retryable.AUTO,
         recoverable = true,
@@ -314,6 +347,7 @@ object ErrorMapping {
     fun taskRejected(message: String, correlation: Correlation = Correlation()) = AppError(
         category = ErrorCategory.TASK,
         userMessage = "Conversation changed — please try again",
+        messageKey = UserMessageKey.CONVERSATION_CHANGED,
         developerDiagnostic = message,
         retryable = AppError.Retryable.USER,
         recoverable = true,
@@ -324,6 +358,7 @@ object ErrorMapping {
     fun permissionStale(correlation: Correlation = Correlation()) = AppError(
         category = ErrorCategory.PERMISSION,
         userMessage = "This request was already handled",
+        messageKey = UserMessageKey.REQUEST_ALREADY_HANDLED,
         developerDiagnostic = "interaction resolved/expired elsewhere",
         retryable = AppError.Retryable.NO,
         recoverable = true,
@@ -334,6 +369,7 @@ object ErrorMapping {
     fun storageQuarantine(correlation: Correlation = Correlation()) = AppError(
         category = ErrorCategory.STORAGE,
         userMessage = "Local data problem — cache reset",
+        messageKey = UserMessageKey.LOCAL_DATA_RESET,
         developerDiagnostic = "store corruption; quarantine+reinit (§32.3)",
         retryable = AppError.Retryable.NO,
         recoverable = true,
@@ -344,6 +380,7 @@ object ErrorMapping {
     fun androidPermission(what: String, correlation: Correlation = Correlation()) = AppError(
         category = ErrorCategory.ANDROID,
         userMessage = "Permission needed — open Settings",
+        messageKey = UserMessageKey.PERMISSION_NEEDED,
         developerDiagnostic = what,
         retryable = AppError.Retryable.USER,
         recoverable = true,
@@ -354,6 +391,7 @@ object ErrorMapping {
     fun notificationBlocked(correlation: Correlation = Correlation()) = AppError(
         category = ErrorCategory.NOTIFICATION,
         userMessage = "Notifications are blocked — enable them in Settings",
+        messageKey = UserMessageKey.NOTIFICATIONS_BLOCKED,
         developerDiagnostic = "channel blocked",
         retryable = AppError.Retryable.NO,
         recoverable = true,
@@ -364,6 +402,7 @@ object ErrorMapping {
     fun unsupportedFeature(feature: String, correlation: Correlation = Correlation()) = AppError(
         category = ErrorCategory.UNSUPPORTED_FEATURE,
         userMessage = "",
+        messageKey = UserMessageKey.NONE,
         developerDiagnostic = "capability absent: $feature — hide quietly, never error",
         retryable = AppError.Retryable.NO,
         recoverable = true,
@@ -374,6 +413,7 @@ object ErrorMapping {
     fun cancelled(correlation: Correlation = Correlation()) = AppError(
         category = ErrorCategory.CANCELLED,
         userMessage = "",
+        messageKey = UserMessageKey.NONE,
         developerDiagnostic = "cancelled by user/scope",
         retryable = AppError.Retryable.NO,
         recoverable = false,
@@ -384,6 +424,7 @@ object ErrorMapping {
     fun authzRefusal(what: String, correlation: Correlation = Correlation()) = AppError(
         category = ErrorCategory.AUTHZ,
         userMessage = "This connection doesn't allow that",
+        messageKey = UserMessageKey.NOT_ALLOWED,
         developerDiagnostic = what,
         retryable = AppError.Retryable.NO,
         recoverable = true,
@@ -394,6 +435,7 @@ object ErrorMapping {
     fun internal(diagnostic: String, correlation: Correlation = Correlation()) = AppError(
         category = ErrorCategory.INTERNAL,
         userMessage = "Unexpected error (code)",
+        messageKey = UserMessageKey.UNEXPECTED_ERROR_CODE,
         developerDiagnostic = diagnostic,
         retryable = AppError.Retryable.NO,
         recoverable = false,

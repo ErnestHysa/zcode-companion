@@ -15,4 +15,11 @@
     <string name="terminal_consent_body">终端输出是敏感界面：它会实时显示工作区的 shell 视图。在设置中按端点启用一次；随时可以关闭。</string>
     <string name="terminal_enable">启用终端（仅查看）</string>
     <string name="terminal_title">终端</string>
+    <string name="terminal_status_live">运行中 — %1$s</string>
+    <string name="terminal_status_live_plain">运行中</string>
+    <string name="terminal_status_exited">已退出（%1$s）</string>
+    <string name="terminal_status_exited_no_status">已退出（无状态码）</string>
+    <string name="terminal_status_attaching">正在连接…</string>
+    <string name="terminal_status_idle">空闲</string>
+    <string name="terminal_line_a11y">终端第 %1$d 行</string>
 </resources>

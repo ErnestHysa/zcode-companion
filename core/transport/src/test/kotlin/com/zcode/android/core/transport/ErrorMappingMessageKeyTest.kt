@@ -1,5 +1,6 @@
 package com.zcode.android.core.transport
 
+import com.zcode.android.core.common.error.AppError
 import org.junit.Assert.assertTrue
 import org.junit.Test
 

@@ -55,6 +55,8 @@ fun FilesScreen(
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
+    val binaryNotice = stringResource(R.string.files_binary_use_download)
+    val downloadFailed = stringResource(R.string.files_download_failed)
     val root = port.workspaceRoot()
     // Directory navigation stack (INV-16: only protocol-returned paths are pushed).
     var stack by remember { mutableStateOf(listOf<String>()) }
@@ -88,7 +90,7 @@ fun FilesScreen(
     Column(modifier = modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             // B2.18: the route already renders "Workspace files" — no second header.
-            Text("read-only", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.files_read_only), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
             if (stack.isNotEmpty()) {
                 AssistChip(
@@ -171,7 +173,7 @@ fun FilesScreen(
                                             textState = listOf(first.slice)
                                             // Binary files never render as text (protocol-gated).
                                             if (first.slice.isBinary) {
-                                                downloadState = DownloadUi.Binary("binary file — use Download")
+                                                downloadState = DownloadUi.Binary(binaryNotice)
                                             } else {
                                                 downloadState = first.error?.let { DownloadUi.Failed(it) }
                                             }
@@ -217,7 +219,7 @@ fun FilesScreen(
                             val result = port.download(viewer!!)
                             downloadState = when {
                                 result.file != null -> DownloadUi.Done(result.bytes)
-                                else -> DownloadUi.Failed(result.error ?: "download failed")
+                                else -> DownloadUi.Failed(result.error ?: downloadFailed)
                             }
                         }
                     },

@@ -2,4 +2,14 @@
 <resources>
     <string name="git_title">Git</string>
     <string name="git_unavailable">此工作区无法使用 Git（不是仓库，或此连接未开放 git 通道）。</string>
+    <string name="git_read_only">只读</string>
+    <string name="git_changes_header">更改</string>
+    <string name="git_history_header">历史</string>
+    <string name="git_load_more">加载更多</string>
+    <string name="git_binary_changed">二进制文件已更改</string>
+    <string name="git_diff_truncated">差异已被桌面端截断</string>
+    <string name="git_no_textual_diff">没有可用的文本差异（可用性：%1$s）。</string>
+    <string name="git_section_unstaged">未暂存</string>
+    <string name="git_section_staged">已暂存</string>
+    <string name="git_dirty_marker">  • 有未提交更改</string>
 </resources>

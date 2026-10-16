@@ -20,4 +20,7 @@
     <string name="file_kind_database">Database</string>
     <string name="file_kind_terminal">Terminal script</string>
     <string name="file_kind_config">Config</string>
+    <string name="files_read_only">read-only</string>
+    <string name="files_download_failed">download failed</string>
+    <string name="files_binary_use_download">binary file — use Download</string>
 </resources>

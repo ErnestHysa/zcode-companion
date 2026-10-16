@@ -63,6 +63,7 @@ import com.zcode.android.core.ui.components.rememberMotionSpec
 import com.zcode.android.core.ui.components.streamIn
 import com.zcode.android.core.ui.components.ZCodeTopBar
 import androidx.compose.material3.Scaffold
+import com.zcode.android.core.ui.components.errorUserMessage
 
 /**
  * Conversation surface (§43.2-6.3/6.4 + Phase 7 write path; ui-ux 06/07/09/10/12).
@@ -520,7 +521,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                 item(key = "older-error") {
                     AttentionStrip(
                         title = stringResource(R.string.conv_load_older_error),
-                        message = state.loadOlderError.userMessage,
+                        message = errorUserMessage(state.loadOlderError),
                         tone = StatusTone.ERROR,
                         actionLabel = stringResource(com.zcode.android.core.ui.R.string.action_retry),
                         onAction = { state.rows.firstOrNull()?.let { onRetryOlder(it.rowId) } },
@@ -640,8 +641,8 @@ private fun TimelineRow(
             label = row.displayName.ifBlank { "Artifact" },
             detail = formatBytes(row.sizeBytes),
         )
-        is ConversationRow.Subagent -> QuietMetaRow(label = "Subagent · ${row.subagentType}", detail = row.summaryText.take(80))
-        is ConversationRow.HookInvocation -> QuietMetaRow(label = "Hook · ${row.hookEventName}", detail = null)
+        is ConversationRow.Subagent -> QuietMetaRow(label = stringResource(R.string.row_subagent, row.subagentType), detail = row.summaryText.take(80))
+        is ConversationRow.HookInvocation -> QuietMetaRow(label = stringResource(R.string.row_hook, row.hookEventName), detail = null)
         is ConversationRow.TimelineMarker -> QuietMetaRow(label = row.markerType, detail = null)
         is ConversationRow.Unknown -> UnknownKindRow(row)
     }

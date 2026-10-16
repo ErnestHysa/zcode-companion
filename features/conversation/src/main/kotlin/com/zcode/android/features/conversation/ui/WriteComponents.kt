@@ -461,10 +461,11 @@ fun QueueStrip(
         shape = MaterialTheme.shapes.small,
     ) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+            val pausedSuffix = stringResource(R.string.queue_paused_suffix)
             Text(
                 text = buildString {
                     append(stringResource(R.string.queue_label, queue.items.size))
-                    if (queue.autoDrain == false) append(" · paused")
+                    if (queue.autoDrain == false) append(pausedSuffix)
                     queue.pauseReason?.let { append(" · $it") }
                 },
                 style = MaterialTheme.typography.labelMedium,
@@ -561,7 +562,7 @@ fun ComposerBar(
             // Routing hint (verified inputRouting modes, §9).
             if (routing?.mode == com.zcode.android.domain.model.InputRouting.Mode.ENQUEUE) {
                 Text(
-                    text = "Busy — this message will be queued on the desktop.",
+                    text = stringResource(R.string.composer_busy_queued),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.testTag("composer_route_hint"),
@@ -795,9 +796,9 @@ fun PendingSendsStrip(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = when (send.state) {
-                        "SENDING" -> "Sending…"
-                        "SENT_UNKNOWN" -> "Send uncertain — connection lost (will not duplicate)"
-                        else -> "Not sent"
+                        "SENDING" -> stringResource(R.string.pending_sending)
+                        "SENT_UNKNOWN" -> stringResource(R.string.pending_sent_unknown)
+                        else -> stringResource(R.string.pending_not_sent)
                     },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -829,7 +830,7 @@ fun SendNoticeBar(notice: SendNotice, onDismiss: () -> Unit, modifier: Modifier 
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 10.dp)) {
             Text(
-                text = notice.text,
+                text = sendNoticeText(notice),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onErrorContainer,
                 modifier = Modifier.weight(1f),
@@ -852,4 +853,29 @@ private fun android.content.Context.readPickedFile(uri: android.net.Uri): Triple
     val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
         ?: throw IllegalStateException("cannot read the picked file")
     return Triple(name, mime, bytes)
+}
+
+/** C5-i18n: the notice copy per locale (the view model's [SendNotice.text] is the English fallback). */
+@Composable
+fun sendNoticeText(notice: SendNotice): String {
+    val key = notice.key ?: return notice.text
+    val res = when (key) {
+        SendNotice.Key.SWITCH_OFFLINE -> R.string.notice_switch_offline
+        SendNotice.Key.SESSION_CHANGED -> R.string.notice_session_changed
+        SendNotice.Key.SWITCH_REFUSED -> R.string.notice_switch_refused
+        SendNotice.Key.MODEL_SWITCH_REFUSED -> R.string.notice_model_switch_refused
+        SendNotice.Key.ATTACHMENT_TOO_LARGE -> R.string.notice_attachment_too_large
+        SendNotice.Key.ATTACHMENT_OFFLINE -> R.string.notice_attachment_offline
+        SendNotice.Key.ATTACHMENT_FAILED -> R.string.notice_attachment_failed
+        SendNotice.Key.ATTACHMENT_RETRY_FAILED -> R.string.notice_attachment_retry_failed
+        SendNotice.Key.COMPACT_REFUSED -> R.string.notice_compact_refused
+        SendNotice.Key.GOAL_REFUSED -> R.string.notice_goal_refused
+        SendNotice.Key.GOAL_RESUME_REFUSED -> R.string.notice_goal_resume_refused
+    }
+    val args = if (key == SendNotice.Key.ATTACHMENT_FAILED) {
+        listOf(notice.args.firstOrNull()?.takeIf { it.isNotBlank() } ?: stringResource(R.string.notice_connection_lost))
+    } else {
+        notice.args
+    }
+    return stringResource(res, *args.toTypedArray())
 }

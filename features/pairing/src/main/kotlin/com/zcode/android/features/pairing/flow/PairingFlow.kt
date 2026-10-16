@@ -28,12 +28,15 @@ object PairingFlow {
     )
 
     data class ErrorView(
+        /** English fallback; the UI localizes [messageKey] when present (C5-i18n). */
         val userMessage: String,
         val diagnostic: String,
         /** true = AUTH class (E5): the only remedy is re-pair (re-scan). */
         val rePair: Boolean,
         /** true = transport/network class (E4): retry makes sense. */
         val retryable: Boolean,
+        val messageKey: com.zcode.android.core.common.error.UserMessageKey? = null,
+        val messageArgs: List<String> = emptyList(),
     )
 
     sealed class State {

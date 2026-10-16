@@ -52,7 +52,8 @@ class I18nLiteralGateTest {
     fun `no UI file displays userMessage directly`() {
         val offenders = uiSources().flatMap { f ->
             f.readLines().mapIndexedNotNull { i, l ->
-                if (".userMessage" in l && "developerDiagnostic" !in l && "errorUserMessage" !in l) "${f.relativeTo(root)}:${i + 1}" else null
+                // A line that consults messageKey first IS the resolver (key → copy, English fallback).
+                if (".userMessage" in l && "developerDiagnostic" !in l && "errorUserMessage" !in l && "messageKey" !in l) "${f.relativeTo(root)}:${i + 1}" else null
             }
         }.toList()
         assertTrue("UI reads .userMessage for display (use errorUserMessage / the key):\n" + offenders.joinToString("\n"), offenders.isEmpty())

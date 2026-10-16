@@ -62,4 +62,36 @@
     <plurals name="relative_seconds">
         <item quantity="other">%1$d 秒前</item>
     </plurals>
+    <!-- C5-i18n: §33 用户消息词汇表 -->
+    <string name="err_msg_connection_lost_reconnecting">连接已断开 — 正在重新连接…</string>
+    <string name="err_msg_session_taken_over">另一个 ZCode Remote 页面接管了此连接</string>
+    <string name="err_msg_desktop_unreachable">无法连接桌面端 — 请唤醒 Mac 并重新启动 ZCode</string>
+    <string name="err_msg_pairing_expired">配对已过期 — 请重新扫描二维码</string>
+    <string name="err_msg_workspace_closed">此工作区已在桌面端关闭</string>
+    <string name="err_msg_direct_token_rejected">直连端点拒绝了令牌 — 请在「设置 → 端点」中检查</string>
+    <string name="err_msg_local_network_blocked">本地网络被阻止 — 请允许本地网络访问，或使用 Tailscale/隧道地址</string>
+    <string name="err_msg_endpoint_cert_changed">端点证书已更改 — 重新连接前请先核实服务器</string>
+    <string name="err_msg_endpoint_unencrypted">端点使用未加密传输（ws://）— 同一网络中的任何人都能读取此流量</string>
+    <string name="err_msg_desktop_relay_lost">桌面端失去了中继连接 — 请在 Mac 上重启 ZCode 后重试</string>
+    <string name="err_msg_relay_error_retrying">ZCode 中继错误 — 正在重试</string>
+    <string name="err_msg_unexpected_error_code">意外错误（代码）</string>
+    <string name="err_msg_something_went_wrong">出了点问题</string>
+    <string name="err_msg_sync_problem_refreshing">同步出现问题 — 正在刷新</string>
+    <string name="err_msg_network_unavailable">网络不可用 — 请检查连接</string>
+    <string name="err_msg_taking_too_long">耗时过长 — 正在重试</string>
+    <string name="err_msg_update_desktop">请将 ZCode 桌面端更新到兼容版本</string>
+    <string name="err_msg_still_offline_cached">仍处于离线状态 — 显示缓存内容</string>
+    <string name="err_msg_session_unavailable">此会话已不可用</string>
+    <string name="err_msg_workspace_not_ready">桌面工作区尚未就绪 — 正在重新连接…</string>
+    <string name="err_msg_connection_problem_retrying">连接出现问题 — 正在重试</string>
+    <string name="err_msg_conversation_changed">对话已更改 — 请重试</string>
+    <string name="err_msg_request_already_handled">此请求已被处理</string>
+    <string name="err_msg_local_data_reset">本地数据出现问题 — 缓存已重置</string>
+    <string name="err_msg_permission_needed">需要权限 — 请打开设置</string>
+    <string name="err_msg_notifications_blocked">通知已被阻止 — 请在设置中启用</string>
+    <string name="err_msg_not_allowed">此连接不允许该操作</string>
+    <string name="err_msg_none"></string>
+    <string name="diff_renamed">（已重命名）</string>
+    <string name="diff_new">新增</string>
+    <string name="diff_deleted">已删除</string>
 </resources>
