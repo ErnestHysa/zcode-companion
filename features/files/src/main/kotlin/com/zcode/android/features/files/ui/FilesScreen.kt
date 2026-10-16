@@ -42,6 +42,8 @@ import com.zcode.android.features.files.fileKind
 import com.zcode.android.features.files.fileKindLabel
 import com.zcode.android.features.files.port.FilesPort
 import kotlinx.coroutines.launch
+import com.zcode.android.core.ui.components.minRowTouchTarget
+import androidx.compose.ui.semantics.Role
 
 /**
  * §23.4 read-only workspace file browser (Phase 9.2): folder navigation via
@@ -157,7 +159,8 @@ fun FilesScreen(
                         Modifier
                             .fillMaxWidth()
                             .testTag("files_row_${entry.path}")
-                            .clickable {
+                            .minRowTouchTarget()
+                            .clickable(role = Role.Button) {
                                 if (entry.isDirectory) {
                                     scope.launch {
                                         stack = stack + entry.path

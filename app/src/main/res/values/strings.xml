@@ -211,4 +211,8 @@
     <string name="settings_check_updates_found">Update %1$s is available — tap Update now below</string>
     <string name="settings_check_updates_latest">You are on the latest build</string>
     <string name="settings_active_endpoint_a11y">Active endpoint</string>
+    <string name="usage_heatmap_legend_less">Less</string>
+    <string name="usage_heatmap_legend_more">More</string>
+    <string name="usage_heatmap_cell_a11y">%1$s: activity level %2$d of %3$d</string>
+    <string name="usage_heatmap_cell_empty">No activity</string>
 </resources>

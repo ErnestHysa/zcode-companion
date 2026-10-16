@@ -17,6 +17,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zcode.android.features.conversation.port.ConversationPort
+import com.zcode.android.core.ui.components.minRowTouchTarget
+import androidx.compose.ui.semantics.Role
 
 /**
  * GAP-12 — the composer "/" catalog menu. The commands are the WIRE catalog
@@ -51,7 +53,8 @@ fun SlashCommandMenu(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable {
+                        .minRowTouchTarget()
+                        .clickable(role = Role.Button) {
                             onPick(
                                 if (command.inputHint != null) "/${command.name} " else "/${command.name}",
                             )

@@ -204,4 +204,8 @@
     <string name="settings_check_updates_found">有可用更新 %1$s — 请点击下方的立即更新</string>
     <string name="settings_check_updates_latest">已是最新版本</string>
     <string name="settings_active_endpoint_a11y">当前端点</string>
+    <string name="usage_heatmap_legend_less">少</string>
+    <string name="usage_heatmap_legend_more">多</string>
+    <string name="usage_heatmap_cell_a11y">%1$s：活跃等级 %2$d / %3$d</string>
+    <string name="usage_heatmap_cell_empty">无活动</string>
 </resources>

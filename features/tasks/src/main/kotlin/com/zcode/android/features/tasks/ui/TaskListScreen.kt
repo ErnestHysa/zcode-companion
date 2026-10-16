@@ -73,6 +73,7 @@ import com.zcode.android.core.ui.components.rememberZCodeTopBarScroll
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.traversalIndex
 import com.zcode.android.core.ui.components.EmptyState
+import androidx.compose.ui.semantics.Role
 
 /**
  * Task list (§43.2-6.2; ui-ux screen-spec 03/04/14). Dense rows, left status rail,
@@ -609,7 +610,7 @@ fun TaskRow(task: Task, onClick: () -> Unit, modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface)
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .drawBehind { drawRect(rail, size = size.copy(width = railWidthPx())) }
             .padding(start = 16.dp + 3.dp, end = 16.dp, top = 12.dp, bottom = 12.dp)
             .testTag("task_row_${task.taskId}")

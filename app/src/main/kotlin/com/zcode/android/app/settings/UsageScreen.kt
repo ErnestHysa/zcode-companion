@@ -59,6 +59,8 @@ import com.zcode.android.core.ui.components.EmptyState
 import com.zcode.android.core.ui.components.ErrorState
 import com.zcode.android.core.ui.components.LoadingSkeleton
 import com.zcode.android.core.ui.components.friendlyFaultMessage
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 
 /**
  * GAP-5 (android-native-gaps.md; docs/protocol/v4-wire.md §12.1) — Settings →
@@ -305,14 +307,33 @@ private fun HeatmapSection(heatmap: AppUsageSnapshot.Heatmap) {
                         level <= 0 -> MaterialTheme.colorScheme.surfaceVariant
                         else -> toneColor(StatusTone.SUCCESS).copy(alpha = 0.15f + 0.2f * level.coerceAtMost(maxLevel))
                     }
+                    // §30.6: color is never the only signal — every cell describes its day + level.
+                    val cellA11y = if (day == null) stringResource(R.string.usage_heatmap_cell_empty)
+                    else stringResource(R.string.usage_heatmap_cell_a11y, day.date, level, maxLevel)
                     Box(
                         Modifier
                             .size(20.dp)
                             .clip(MaterialTheme.shapes.small)
-                            .background(tone),
+                            .background(tone)
+                            .semantics { contentDescription = cellA11y }
+                            .testTag("usage_heatmap_cell"),
                     )
                 }
             }
+        }
+        // M5.8's pattern: a text-labelled legend (Less … More) beside the swatches.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.testTag("usage_heatmap_legend"),
+        ) {
+            Text(stringResource(R.string.usage_heatmap_legend_less), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            for (l in 0..maxLevel) {
+                val swatch = if (l == 0) MaterialTheme.colorScheme.surfaceVariant
+                else toneColor(StatusTone.SUCCESS).copy(alpha = 0.15f + 0.2f * l)
+                Box(Modifier.size(12.dp).clip(MaterialTheme.shapes.extraSmall).background(swatch))
+            }
+            Text(stringResource(R.string.usage_heatmap_legend_more), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Text(
             stringResource(R.string.usage_heatmap_range, heatmap.startDate ?: "—", heatmap.endDate ?: "—"),

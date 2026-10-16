@@ -32,6 +32,9 @@ import com.zcode.android.domain.model.SessionUsageState
 import com.zcode.android.features.conversation.R
 import java.util.Locale
 import com.zcode.android.core.ui.components.animateCollapse
+import com.zcode.android.core.ui.components.minRowTouchTarget
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.stateDescription
 
 /**
  * GAP-1/GAP-2 (android-native-gaps.md; docs/protocol/v4-wire.md §11.1) — the
@@ -66,10 +69,13 @@ fun ContextUsagePanel(usage: SessionUsageState?, modifier: Modifier = Modifier) 
             },
     ) {
         Column(Modifier.animateCollapse().padding(horizontal = 10.dp, vertical = 6.dp)) {
+            val expandState = stringResource(if (expanded) com.zcode.android.core.ui.R.string.a11y_expanded else com.zcode.android.core.ui.R.string.a11y_collapsed)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { expanded = !expanded }
+                    .minRowTouchTarget()
+                    .clickable(role = Role.Button) { expanded = !expanded }
+                    .semantics { stateDescription = expandState }
                     .testTag("context_usage_toggle"),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

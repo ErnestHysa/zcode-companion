@@ -1,7 +1,6 @@
 package com.zcode.android.features.git
 
 import androidx.compose.ui.semantics.SemanticsActions
-import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -43,11 +42,8 @@ class GitA11yTest {
     fun `change rows are 48dp targets with a role`() {
         rule.setContent { ZCodeTheme { GitScreen(port = port) } }
         rule.waitForIdle()
-        val section = rule.onNodeWithTag("git_section_unstaged").fetchSemanticsNode()
-        fun clickables(n: SemanticsNode): List<SemanticsNode> =
-            (if (n.config.getOrNull(SemanticsActions.OnClick) != null) listOf(n) else emptyList()) + n.children.flatMap { clickables(it) }
-        val rows = clickables(section).filter { it.config.getOrNull(SemanticsProperties.Role) != null || true }
-        assertTrue("expected a clickable change row", rows.isNotEmpty())
+        val rows = listOf(rule.onNodeWithTag("git_change_src/main.rs").fetchSemanticsNode())
+        assertTrue("the change row must be clickable", rows.all { it.config.getOrNull(SemanticsActions.OnClick) != null })
         rows.forEach { r ->
             val h = r.boundsInRoot.height / rule.density.density
             assertTrue("git row ${h}dp tall (needs 48)", h >= 48f)

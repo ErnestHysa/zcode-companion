@@ -114,4 +114,6 @@
     <!-- K9-errorcopy: raw fault/transport strings never reach the screen -->
     <string name="err_fault_desktop">The desktop couldn\'t complete this request.</string>
     <string name="err_fault_unavailable">This feature isn\'t available on the connected desktop.</string>
+    <string name="a11y_expanded">Expanded</string>
+    <string name="a11y_collapsed">Collapsed</string>
 </resources>

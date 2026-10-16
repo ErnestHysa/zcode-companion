@@ -72,6 +72,9 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.ui.draw.clip
 import com.zcode.android.core.ui.components.ZCodeModalBottomSheet
 import androidx.compose.ui.res.pluralStringResource
+import com.zcode.android.core.ui.components.minTouchTarget
+import com.zcode.android.core.ui.components.minRowTouchTarget
+import androidx.compose.ui.semantics.Role
 
 /**
  * Row renderers — the agent-timeline grammar (ui-ux component-library v2): YOU
@@ -351,7 +354,8 @@ fun TurnSeparator(
                     shape = MaterialTheme.shapes.medium,
                     modifier = Modifier
                         .testTag("row_turn_changes")
-                        .clickable { onOpenChanges() },
+                        .minRowTouchTarget()
+                        .clickable(role = Role.Button) { onOpenChanges() },
                 ) {
                     Text(
                         text = stringResource(
@@ -590,12 +594,12 @@ private fun CopyIconButton(text: String, tag: String) {
     androidx.compose.material3.IconButton(onClick = {
         clipboard.setText(AnnotatedString(text))
         copied = true
-    }, modifier = Modifier.size(24.dp).testTag(tag)) {
+    }, modifier = Modifier.minTouchTarget().testTag(tag)) {
         Icon(
             imageVector = if (copied) Icons.Filled.Check else Icons.Filled.ContentCopy,
             contentDescription = stringResource(if (copied) R.string.row_copied else R.string.row_copy),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(14.dp),
+            modifier = Modifier.size(18.dp),
         )
     }
 }

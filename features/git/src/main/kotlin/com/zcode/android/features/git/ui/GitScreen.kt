@@ -52,6 +52,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.launch
 import com.zcode.android.core.ui.components.ZCodeButton
+import com.zcode.android.core.ui.components.minRowTouchTarget
+import androidx.compose.ui.semantics.Role
 
 /**
  * §9.4 git panel — READ-ONLY (INV-9). GAP-16 overhaul to the desktop git-panel
@@ -318,8 +320,10 @@ private fun ChangeRow(
         Row(
             Modifier
                 .fillMaxWidth()
-                .clickable { onToggle(entry.path, staged) }
-                .padding(vertical = 4.dp),
+                .minRowTouchTarget()
+                .clickable(role = Role.Button) { onToggle(entry.path, staged) }
+                .padding(vertical = 4.dp)
+                .testTag("git_change_${entry.repoRelativePath}"),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(

@@ -96,4 +96,6 @@
     <string name="diff_deleted">已删除</string>
     <string name="err_fault_desktop">桌面端无法完成此请求。</string>
     <string name="err_fault_unavailable">所连接的桌面端不提供此功能。</string>
+    <string name="a11y_expanded">已展开</string>
+    <string name="a11y_collapsed">已折叠</string>
 </resources>
