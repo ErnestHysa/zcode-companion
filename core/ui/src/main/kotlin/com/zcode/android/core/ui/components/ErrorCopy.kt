@@ -109,3 +109,32 @@ private fun errorCategoryMessageText(context: android.content.Context, error: Ap
     ErrorCategory.CANCELLED -> context.getString(R.string.error_cancelled)
     ErrorCategory.INTERNAL -> context.getString(R.string.error_internal)
 }
+
+// ---------------------------------------------------------------- K9-errorcopy
+
+/**
+ * K9-errorcopy: a port's RAW error string (desktop `fault.*` codes, transport
+ * internals like "channel closed: no outbound sink attached") classified into the
+ * §33 vocabulary. The raw string stays in the diagnostics ring (the transport logs
+ * every frame) and never reaches an error state on screen.
+ */
+fun faultMessageRes(raw: String?): Int {
+    val r = raw.orEmpty().lowercase()
+    return when {
+        r.isBlank() -> R.string.err_msg_something_went_wrong
+        r.startsWith("fault.") && (r.contains("unscripted") || r.contains("unsupported") || r.contains("not_found") || r.contains("notfound") || r.contains("unknown method") || r.contains("no handler")) ->
+            R.string.err_fault_unavailable
+        r.startsWith("fault.") -> R.string.err_fault_desktop
+        r.contains("timed out") || r.contains("timeout") -> R.string.err_msg_taking_too_long
+        r.contains("channel closed") || r.contains("outbound sink") || r.contains("not connected") || r.contains("socket") || r.contains("eof") || r.contains("disconnected") ->
+            R.string.err_msg_connection_lost_reconnecting
+        r.contains("refused") || r.contains("denied") || r.contains("unauthori") || r.contains("forbidden") || r.contains("403") -> R.string.err_msg_not_allowed
+        r.contains("unreachable") || r.contains("network") || r.contains("dns") -> R.string.err_msg_network_unavailable
+        else -> R.string.err_fault_desktop
+    }
+}
+
+@Composable
+fun friendlyFaultMessage(raw: String?): String = stringResource(faultMessageRes(raw))
+
+fun friendlyFaultMessage(context: android.content.Context, raw: String?): String = context.getString(faultMessageRes(raw))

@@ -48,6 +48,7 @@ import com.zcode.android.core.ui.components.rememberZCodeTopBarScroll
 import com.zcode.android.core.ui.components.EmptyState
 import com.zcode.android.core.ui.components.ErrorState
 import com.zcode.android.core.ui.components.LoadingSkeleton
+import com.zcode.android.core.ui.components.friendlyFaultMessage
 
 /**
  * GAP-7 (android-native-gaps.md; docs/protocol/v4-wire.md §12.3) — the
@@ -101,7 +102,7 @@ fun PluginsViewerScreen(
                 result?.error != null ->
                     ErrorState(
                         title = stringResource(R.string.plugins_unavailable),
-                        detail = result?.error,
+                        message = friendlyFaultMessage(result?.error),
                         modifier = Modifier.testTag("plugins_error"),
                         onRetry = { loading = true; scope.launch { result = port.plugins(); loading = false } },
                     )

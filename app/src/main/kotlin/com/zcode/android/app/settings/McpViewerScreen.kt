@@ -45,6 +45,7 @@ import com.zcode.android.core.ui.components.rememberZCodeTopBarScroll
 import com.zcode.android.core.ui.components.EmptyState
 import com.zcode.android.core.ui.components.ErrorState
 import com.zcode.android.core.ui.components.LoadingSkeleton
+import com.zcode.android.core.ui.components.friendlyFaultMessage
 
 /**
  * GAP-9 (android-native-gaps.md; docs/protocol/v4-wire.md §12.5) — the
@@ -96,7 +97,7 @@ fun McpViewerScreen(
                 result?.error != null ->
                     ErrorState(
                         title = stringResource(R.string.mcp_unavailable),
-                        detail = result?.error,
+                        message = friendlyFaultMessage(result?.error),
                         modifier = Modifier.testTag("mcp_error"),
                         onRetry = { loading = true; scope.launch { result = port.statuses(); loading = false } },
                     )

@@ -111,4 +111,7 @@
     <string name="diff_renamed">(renamed)</string>
     <string name="diff_new">new</string>
     <string name="diff_deleted">deleted</string>
+    <!-- K9-errorcopy: raw fault/transport strings never reach the screen -->
+    <string name="err_fault_desktop">The desktop couldn\'t complete this request.</string>
+    <string name="err_fault_unavailable">This feature isn\'t available on the connected desktop.</string>
 </resources>

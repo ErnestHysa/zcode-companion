@@ -58,6 +58,7 @@ import com.zcode.android.core.ui.components.rememberZCodeTopBarScroll
 import com.zcode.android.core.ui.components.EmptyState
 import com.zcode.android.core.ui.components.ErrorState
 import com.zcode.android.core.ui.components.LoadingSkeleton
+import com.zcode.android.core.ui.components.friendlyFaultMessage
 
 /**
  * GAP-5 (android-native-gaps.md; docs/protocol/v4-wire.md §12.1) — Settings →
@@ -129,7 +130,7 @@ fun UsageScreen(
             error?.let { message ->
                 ErrorState(
                     title = stringResource(R.string.usage_error_title),
-                    detail = message,
+                    message = friendlyFaultMessage(message),
                     modifier = Modifier.fillMaxSize().testTag("usage_error"),
                     onRetry = { load(range) },
                     retryLabel = stringResource(R.string.usage_retry),
