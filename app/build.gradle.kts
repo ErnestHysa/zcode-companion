@@ -44,7 +44,15 @@ android {
             proguardFiles("proguard-rules.pro")
         }
         release {
-            isMinifyEnabled = false
+            // F6.2 (gaps-and-polish 2G): R8 + resource shrinking — the release APK
+            // shrinks from the 53MB debug footprint (M6.2). Keep rules in
+            // proguard-rules.pro; the release smoke runs on the rig at the exit gate.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
             // AAP-5 prerequisite (Phase-12.1 minimum, §37 "single stable key from day
             // one"): the release keystore lives OFF-REPO at
             // ~/.zcode-android-release-keys/ (keystore.properties, 0600). When it is
