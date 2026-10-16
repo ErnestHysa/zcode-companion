@@ -63,11 +63,20 @@ class ThemeSurfaceRolesTest {
         val ours = surfaceRoles(LightScheme)
         val baseline = surfaceRoles(m3LightBaseline)
         for ((role, color) in ours) {
-            assertNotEquals(
-                "$role must be a designed token, not M3's baseline ${baseline[role]}",
-                baseline[role],
-                color,
-            )
+            if (color == baseline[role]) {
+                // One designed coincidence: M3's lowest is also pure white. Every OTHER
+                // overlap with the baseline family is the unmapped-palette bug.
+                assertEquals(
+                    "$role may only coincide with the baseline at the designed white",
+                    Color(0xFFFFFFFF),
+                    color,
+                )
+                assertEquals(
+                    "$role must be the designed surface token itself",
+                    ZCodeColorsLight.surface,
+                    color,
+                )
+            }
         }
     }
 
@@ -82,6 +91,23 @@ class ThemeSurfaceRolesTest {
                 color,
             )
         }
+    }
+
+    @Test
+    fun `every surface role resolves to its designed token in both themes`() {
+        fun check(scheme: ColorScheme, t: ZCodeColors, name: String) {
+            assertEquals("$name surfaceDim", t.surfaceDim, scheme.surfaceDim)
+            assertEquals("$name surfaceBright", t.surfaceBright, scheme.surfaceBright)
+            assertEquals("$name surfaceContainerLowest", t.surfaceContainerLowest, scheme.surfaceContainerLowest)
+            assertEquals("$name surfaceContainerLow", t.surfaceContainerLow, scheme.surfaceContainerLow)
+            assertEquals("$name surfaceContainer", t.surfaceContainer, scheme.surfaceContainer)
+            assertEquals("$name surfaceContainerHigh", t.surfaceContainerHigh, scheme.surfaceContainerHigh)
+            assertEquals("$name surfaceContainerHighest", t.surfaceContainerHighest, scheme.surfaceContainerHighest)
+            assertEquals("$name outlineVariant is the soft divider token", t.outlineSoft, scheme.outlineVariant)
+            assertEquals("$name outline stays the control-border token", t.outline, scheme.outline)
+        }
+        check(LightScheme, ZCodeColorsLight, "light")
+        check(DarkScheme, ZCodeColorsDark, "dark")
     }
 
     @Test
