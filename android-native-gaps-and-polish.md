@@ -2329,6 +2329,35 @@ verification block); full-suite name-diff clean; fresh APK stated per rule 12.**
   the F2 user-retry path is unaffected (verified). Suggested for Phase 6 (platform
   decisions) or an appended Phase-1 follow-up.
 
+### APPENDED FINDING (rig discovery, out-of-count) — fixed + verified same session
+
+- [x] **P1-GAP (P1, appended 2026-10-16 — discovered during the Phase-1 rig pass; NOT
+  part of the 22-finding count above)** `RelayTransport.recoverLocked`/`DirectTransport.
+  recoverLocked` auth-failure catch fires `safeMachine(AUTH_FAILED)` from RECONNECTING —
+  an ILLEGAL §14.4.1 transition that safeMachine swallows (`state.anomaly ::
+  RECONNECTING --AUTH_FAILED--> RECONNECTING`, observed live twice on the rig), so a
+  credential revoked mid-recovery strands the machine in RECONNECTING (the catch returns;
+  no loop running) instead of landing FAILED. Accept: the machine lands FAILED (user
+  action required, Retry-able via the F2 arm); no swallowed anomaly; the cold-start
+  double-fire `FAILED --AUTH_FAILED--> FAILED` anomaly dies too.
+  - **Fixed** in `fix(P1-GAP)` (commit `766f734`): table edges
+    `RECONNECTING --AUTH_FAILED--> FAILED` + idempotent
+    `FAILED --AUTH_FAILED--> FAILED`; both recovery catches re-commented, zero
+    call-site changes (they already stop on auth failures, §12.6).
+  - **Pins (red 3/3 pre-fix, green post):** `AuthFailMidRecoveryTest` — both table
+    edges + a live-wire relay repro (credential revoked while connected → socket drop →
+    recovery handshake auth failure → FAILED → user Retry → CONNECTED). Transport suite
+    name-diff: only the 4 recurring baseline names.
+  - **Rig live-verification (2026-10-16 ~02:48-02:51):** app CONNECTED → credential
+    revoked + socket dropped → the recovery handshake failed auth → `hub.phase →
+    FAILED` with **NO state.anomaly** (pre-fix this exact sequence logged the swallowed
+    illegal transition and stayed RECONNECTING) → mock restored → Retry → `RECOVERING`
+    → `relay.recovered` → **CONNECTED**. Evidence PNGs in /tmp (rig2-02-failed.png,
+    rig2-04-recovered.png).
+  - **Verified by:** GLM-5.3-Flash via ZCode CLI, 2026-10-16 at 02-51-52 (hh-mm-ss).
+  - Fresh APK with this fix: `app/build/outputs/apk/debug/app-debug.apk`
+    (1.1.0/vc40, branch tip `766f734`+).
+
 ---
 
 ## Phase 2 — P1 foundation lift (mechanical; lifts every screen)
