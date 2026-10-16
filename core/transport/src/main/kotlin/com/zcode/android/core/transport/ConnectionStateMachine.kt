@@ -89,6 +89,11 @@ class ConnectionStateMachine(
                 // server-info token gate, so the reconnect handshake's TERMINAL
                 // event is hello (the relay exits via WS_AUTH_OK→RESYNC instead).
                 ConnectionEvent.HELLO_RECEIVED to ConnectionState.CONNECTED,
+                // P1-GAP (rig 2026-10-16): a credential that fails auth DURING the
+                // recovery handshake is USER ACTION REQUIRED — the loop stops and the
+                // machine must land FAILED (Retry-able via the F2 arm), not strand in
+                // RECONNECTING behind a swallowed illegal transition.
+                ConnectionEvent.AUTH_FAILED to ConnectionState.FAILED,
             ),
         )
         put(
@@ -113,6 +118,10 @@ class ConnectionStateMachine(
             mapOf(
                 ConnectionEvent.RESCAN_REQUESTED to ConnectionState.PAIRING,
                 ConnectionEvent.RETRY_REQUESTED to ConnectionState.RECONNECTING,
+                // P1-GAP: a second auth-failure signal while already FAILED is an
+                // idempotent re-affirm (the cold-start double-fire logged a spurious
+                // state.anomaly before).
+                ConnectionEvent.AUTH_FAILED to ConnectionState.FAILED,
             ),
         )
         // CLOSED: absorbing — no exits (identity destroyed)

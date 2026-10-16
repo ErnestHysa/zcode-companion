@@ -607,9 +607,12 @@ class DirectTransport(
                 return
             } catch (e: TransportFailure) {
                 if (e.error.category == ErrorCategory.AUTH) {
+                    // P1-GAP: lands FAILED (RECONNECTING --AUTH_FAILED--> FAILED) — the
+                    // user action path (re-enter the token / Retry). Never loop auth
+                    // failures (§12.6).
                     safeMachine(ConnectionStateMachine.ConnectionEvent.AUTH_FAILED)
                     _appErrors.emit(e.error)
-                    return // re-entry = user re-enters the token; never loop auth failures (§12.6)
+                    return
                 }
                 bound().warn("direct.reconnectFailed", e.error.developerDiagnostic.take(140))
             } catch (e: CancellationException) {

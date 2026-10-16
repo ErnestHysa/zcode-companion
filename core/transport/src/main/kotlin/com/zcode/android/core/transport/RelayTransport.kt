@@ -617,9 +617,12 @@ class RelayTransport(
                     delay(BRIDGE_REJECT_FLOOR_MS)
                 }
                 if (e.error.category == com.zcode.android.core.common.error.ErrorCategory.AUTH) {
+                    // P1-GAP: lands FAILED (RECONNECTING --AUTH_FAILED--> FAILED) — the
+                    // user action path, Retry-able via the F2 arm. Never loop auth
+                    // failures (§12.6).
                     safeMachine(ConnectionStateMachine.ConnectionEvent.AUTH_FAILED)
                     _appErrors.emit(e.error)
-                    return // re-pair required; never loop auth failures (§12.6)
+                    return
                 }
                 if (e.error.category == com.zcode.android.core.common.error.ErrorCategory.SESSION) {
                     safeMachine(ConnectionStateMachine.ConnectionEvent.SOCKET_LOST)
