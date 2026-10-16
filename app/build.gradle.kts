@@ -112,6 +112,7 @@ kotlin {
         // B3-chrome (gaps-and-polish 2C): M3 TopAppBar scroll behaviors are still
         // @ExperimentalMaterial3Api — opted in module-wide, as every M3 app does.
         freeCompilerArgs.add("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")
+        freeCompilerArgs.add("-opt-in=androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi")
     }
 }
 
@@ -137,6 +138,7 @@ dependencies {
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.material3)
+    implementation(libs.compose.material3.wsc)
     implementation(libs.compose.material.icons.core)
     implementation(libs.navigation.compose)
     // §43.2-11.4: the pending-approvals Glance widget (§44 "Glance (Phase 3, widget)"; ADR-018).

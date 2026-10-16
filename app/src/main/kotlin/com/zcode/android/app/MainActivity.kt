@@ -90,7 +90,11 @@ class MainActivity : FragmentActivity() {
         handleDeepLink(intent)
         handleShortcut(intent)
         setContent {
+            val windowSize = androidx.compose.material3.windowsizeclass.calculateWindowSizeClass(this)
             ZCodeTheme {
+                androidx.compose.runtime.CompositionLocalProvider(
+                    com.zcode.android.core.ui.components.LocalWindowWidthClass provides windowSize.widthSizeClass,
+                ) {
                 ZCodeApp(
                     container = container,
                     pairingVm = pairingVm,
@@ -98,6 +102,7 @@ class MainActivity : FragmentActivity() {
                     scope = lifecycleScope,
                     scannerContent = { ScannerWithPermission() },
                 )
+                }
             }
         }
     }

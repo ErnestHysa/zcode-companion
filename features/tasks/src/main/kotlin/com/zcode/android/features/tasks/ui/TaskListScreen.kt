@@ -74,6 +74,7 @@ import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.traversalIndex
 import com.zcode.android.core.ui.components.EmptyState
 import androidx.compose.ui.semantics.Role
+import com.zcode.android.core.ui.components.readerWidth
 
 /**
  * Task list (§43.2-6.2; ui-ux screen-spec 03/04/14). Dense rows, left status rail,
@@ -518,8 +519,11 @@ private fun ReadyBody(
         val shownGroups = selectedWorkspaceKeyParam
             ?.let { key -> state.groups.filter { it.workspaceKey == key } }
             ?: state.groups
+        // M2: reader width discipline — the task list caps at the reading ceiling and
+        // centers on wide windows (the two-pane split is Phase 4D's redesign cluster).
+        val reader = Modifier.readerWidth()
         LazyColumn(
-            modifier = Modifier.fillMaxSize().testTag("tasks_list"),
+            modifier = reader.fillMaxSize().align(Alignment.CenterHorizontally).testTag("tasks_list"),
             contentPadding = PaddingValues(bottom = 24.dp),
         ) {
             shownGroups.forEach { group ->

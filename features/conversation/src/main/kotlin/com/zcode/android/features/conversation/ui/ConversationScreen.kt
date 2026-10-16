@@ -64,6 +64,7 @@ import com.zcode.android.core.ui.components.streamIn
 import com.zcode.android.core.ui.components.ZCodeTopBar
 import androidx.compose.material3.Scaffold
 import com.zcode.android.core.ui.components.errorUserMessage
+import com.zcode.android.core.ui.components.readerWidth
 
 /**
  * Conversation surface (§43.2-6.3/6.4 + Phase 7 write path; ui-ux 06/07/09/10/12).
@@ -502,10 +503,13 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     // box in the Column; fillMaxSize consumed the entire column and pushed the
     // composer off-screen the moment rows loaded (field: 2026-10-01, vc20).
     Box(Modifier.fillMaxWidth().weight(1f)) {
+        // M2: reader width discipline — prose caps at the reading ceiling and centers.
+        val reader = Modifier.readerWidth()
         LazyColumn(
             state = listState,
-            modifier = Modifier
+            modifier = reader
                 .fillMaxSize()
+                .align(Alignment.TopCenter)
                 .testTag("conversation_list"),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),

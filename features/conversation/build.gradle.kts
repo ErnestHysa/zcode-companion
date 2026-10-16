@@ -31,6 +31,7 @@ kotlin {
         // B3-chrome (gaps-and-polish 2C): M3 TopAppBar scroll behaviors are still
         // @ExperimentalMaterial3Api — opted in module-wide, as every M3 app does.
         freeCompilerArgs.add("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")
+        freeCompilerArgs.add("-opt-in=androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi")
     }
 }
 
