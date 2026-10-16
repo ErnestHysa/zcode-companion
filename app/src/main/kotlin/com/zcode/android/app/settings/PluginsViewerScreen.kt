@@ -45,6 +45,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.zcode.android.core.ui.components.ZCodeTopBar
 import com.zcode.android.core.ui.components.rememberZCodeTopBarScroll
+import com.zcode.android.core.ui.components.EmptyState
+import com.zcode.android.core.ui.components.ErrorState
+import com.zcode.android.core.ui.components.LoadingSkeleton
 
 /**
  * GAP-7 (android-native-gaps.md; docs/protocol/v4-wire.md §12.3) — the
@@ -93,37 +96,17 @@ fun PluginsViewerScreen(
                 .padding(inner),
         ) {
             when {
-                loading && result == null -> Column(Modifier.fillMaxSize().padding(16.dp)) {
-                    Text(
-                        stringResource(R.string.plugins_loading),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.testTag("plugins_loading"),
-                    )
-                }
-                result?.error != null -> Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        stringResource(R.string.plugins_unavailable),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.error,
+                loading && result == null ->
+                    LoadingSkeleton(Modifier.fillMaxSize().testTag("plugins_loading"), rows = 4)
+                result?.error != null ->
+                    ErrorState(
+                        title = stringResource(R.string.plugins_unavailable),
+                        detail = result?.error,
                         modifier = Modifier.testTag("plugins_error"),
+                        onRetry = { loading = true; scope.launch { result = port.plugins(); loading = false } },
                     )
-                    Text(
-                        result?.error ?: "",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    ZCodeButton(onClick = { loading = true; scope.launch { result = port.plugins(); loading = false } }) {
-                        Text(stringResource(R.string.plugins_retry))
-                    }
-                }
-                result?.view?.plugins?.isEmpty() == true -> Column(Modifier.fillMaxSize().padding(16.dp)) {
-                    Text(
-                        stringResource(R.string.plugins_empty),
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.testTag("plugins_empty"),
-                    )
-                }
+                result?.view?.plugins?.isEmpty() == true ->
+                    EmptyState(title = stringResource(R.string.plugins_empty), modifier = Modifier.fillMaxSize().testTag("plugins_empty"))
                 else -> {
                     val view = result?.view ?: return@Column
                     LazyColumn(

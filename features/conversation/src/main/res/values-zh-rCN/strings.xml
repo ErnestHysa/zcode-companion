@@ -140,4 +140,5 @@
     <string name="edit_confirm_title">重新询问这一轮？</string>
     <string name="edit_confirm_body">这会用编辑后的文本替换该轮并重新生成回复。文件与后续轮次可能受影响。</string>
     <string name="edit_confirm_button">编辑并重新询问</string>
+    <string name="row_link_open_failed">无法打开链接</string>
 </resources>

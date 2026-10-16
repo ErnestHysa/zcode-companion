@@ -42,6 +42,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import androidx.compose.material3.Scaffold
+import com.zcode.android.core.ui.components.rememberSnackbarNotifier
 
 /**
  * Phase 6 navigation graph (§18.2; ui-ux navigation.md): pairing (unpaired gate) →
@@ -76,6 +77,9 @@ fun ZCodeApp(
     scannerContent: @Composable () -> Unit,
 ) {
     val nav = rememberNavController()
+    // B3-states: in-app notices ride the root SnackbarHost (Toast → Snackbar).
+    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
+    val notifier = com.zcode.android.core.ui.components.rememberSnackbarNotifier(snackbarHostState)
     // §11.6 (Phase 10): "paired" = ANY activatable endpoint — the relay pairing
     // OR a registry endpoint with a usable credential (direct endpoints have no
     // vault relay-metadata; a device paired ONLY to a direct server must land on
@@ -168,21 +172,11 @@ fun ZCodeApp(
             -> nav.navigate(Routes.conversation(link.taskId))
             com.zcode.android.domain.recovery.DeepLinkRoute.Outcome.TASK_GONE -> {
                 navigateToTasks()
-                // The resolve may resume off-main (test interpolators, lifecycle
-                // dispatch) — toasts require a Looper thread.
-                android.widget.Toast.makeText(
-                    appContext,
-                    appContext.getString(R.string.deeplink_task_gone),
-                    android.widget.Toast.LENGTH_LONG,
-                ).show()
+                notifier.show(appContext.getString(R.string.deeplink_task_gone), long = true)
             }
             com.zcode.android.domain.recovery.DeepLinkRoute.Outcome.WRONG_ENDPOINT -> {
                 navigateToTasks()
-                android.widget.Toast.makeText(
-                    appContext,
-                    appContext.getString(R.string.deeplink_wrong_endpoint),
-                    android.widget.Toast.LENGTH_LONG,
-                ).show()
+                notifier.show(appContext.getString(R.string.deeplink_wrong_endpoint), long = true)
             }
             // MALFORMED never reaches here (parse filtered at intake) — drop silently.
             com.zcode.android.domain.recovery.DeepLinkRoute.Outcome.MALFORMED -> Unit
@@ -196,6 +190,19 @@ fun ZCodeApp(
     // B3-motion + K2: shared-axis route transitions (≈300ms fade + directional slide),
     // EnterTransition.None/ExitTransition.None under the system reduced-motion switch.
     val navMotion = com.zcode.android.core.ui.components.rememberNavTransitions()
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
+        // Each route hosts its own Scaffold (ZCodeTopBar insets): the root must not
+        // add system-bar insets a second time. The snackbar still avoids the nav bar
+        // through its own host placement.
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
+    ) { inner ->
+        androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(inner)) {
+            androidx.compose.runtime.CompositionLocalProvider(
+                com.zcode.android.core.ui.components.LocalNotifier provides notifier,
+            ) {
     NavHost(
         navController = nav,
         startDestination = if (paired != null) Routes.TASKS else Routes.PAIRING,
@@ -307,6 +314,9 @@ fun ZCodeApp(
             )
         }
 
+    }
+            }
+        }
     }
 }
 

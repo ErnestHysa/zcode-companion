@@ -381,7 +381,7 @@ private fun InlineDiff(
             .testTag("git_inline_diff"),
     ) {
         when {
-            content == null -> Text("Loading diff…", style = MaterialTheme.typography.labelSmall)
+            content == null -> com.zcode.android.core.ui.components.SkeletonBar(Modifier.fillMaxWidth(0.6f).testTag("git_diff_loading"))
             content!!.availability == "binary" -> Text("binary file changed", style = MaterialTheme.typography.labelSmall)
             content!!.availability == "truncated" ->
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {

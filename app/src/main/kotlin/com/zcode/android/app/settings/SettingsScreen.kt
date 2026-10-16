@@ -47,6 +47,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.zcode.android.core.ui.components.ZCodeTopBar
 import com.zcode.android.core.ui.components.rememberZCodeTopBarScroll
+import com.zcode.android.core.ui.components.LocalNotifier
+import com.zcode.android.core.ui.components.SectionHeader
+import com.zcode.android.core.ui.components.Notifier
 
 /**
  * Basic Phase 6 settings (ui-ux 13): paired desktop identity, connection entry,
@@ -70,6 +73,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val notifier = LocalNotifier.current
     var showUnpairConfirm by remember { mutableStateOf(false) }
 
     val topBarScroll = rememberZCodeTopBarScroll()
@@ -93,11 +97,11 @@ fun SettingsScreen(
                 .testTag("settings_scroll"),
         ) {
 
-            SectionLabel(stringResource(R.string.settings_section_endpoints))
+            SectionHeader(stringResource(R.string.settings_section_endpoints))
             EndpointsSection(container = container, endpointName = endpointName, desktopVersion = desktopVersion)
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            SectionLabel(stringResource(R.string.settings_section_insights))
+            SectionHeader(stringResource(R.string.settings_section_insights))
             SettingsRow(
                 title = stringResource(R.string.settings_usage_row),
                 subtitle = stringResource(R.string.settings_usage_sub),
@@ -124,19 +128,19 @@ fun SettingsScreen(
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            SectionLabel(stringResource(R.string.settings_section_diagnostics))
+            SectionHeader(stringResource(R.string.settings_section_diagnostics))
             val diagBusy = remember { mutableStateOf(false) }
             SettingsRow(
                 title = stringResource(if (diagBusy.value) R.string.settings_diag_export_busy else R.string.settings_diag_export),
                 subtitle = stringResource(if (diagBusy.value) R.string.settings_diag_export_busy_sub else R.string.settings_diag_export_sub),
                 tag = "settings_export_diagnostics",
-                onClick = { if (!diagBusy.value) exportDiagnostics(container, context) { diagBusy.value = it } },
+                onClick = { if (!diagBusy.value) exportDiagnostics(container, context, notifier) { diagBusy.value = it } },
             )
             SettingsRow(
                 title = stringResource(if (diagBusy.value) R.string.settings_diag_export_busy else R.string.settings_diag_copy),
                 subtitle = stringResource(R.string.settings_diag_copy_sub),
                 tag = "settings_copy_diagnostics",
-                onClick = { if (!diagBusy.value) copyDiagnostics(container, context) { diagBusy.value = it } },
+                onClick = { if (!diagBusy.value) copyDiagnostics(container, context, notifier) { diagBusy.value = it } },
             )
             SettingsRow(
                 title = stringResource(R.string.settings_diag_marker),
@@ -144,16 +148,16 @@ fun SettingsScreen(
                 tag = "settings_add_marker",
                 onClick = {
                     container.log.info("diagnostics.mark", "user marker at ${java.time.Instant.now()} phase=${container.hub.phase.value}")
-                    android.widget.Toast.makeText(context, context.getString(R.string.settings_marker_toast), android.widget.Toast.LENGTH_SHORT).show()
+                    notifier.show(context.getString(R.string.settings_marker_toast))
                 },
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            SectionLabel(stringResource(R.string.settings_section_notifications))
+            SectionHeader(stringResource(R.string.settings_section_notifications))
             NotificationsSection(container = container)
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            SectionLabel(stringResource(R.string.settings_section_privacy))
+            SectionHeader(stringResource(R.string.settings_section_privacy))
             SettingsRow(
                 title = stringResource(R.string.settings_privacy_row),
                 subtitle = stringResource(R.string.settings_privacy_sub),
@@ -161,7 +165,7 @@ fun SettingsScreen(
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            SectionLabel(stringResource(R.string.settings_section_about))
+            SectionHeader(stringResource(R.string.settings_section_about))
             SettingsRow(
                 title = stringResource(R.string.settings_about_row),
                 subtitle = stringResource(R.string.settings_about_sub),
@@ -267,6 +271,7 @@ fun SettingsScreen(
 @Composable
 private fun EndpointsSection(container: AppContainer, endpointName: String?, desktopVersion: String?) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val notifier = LocalNotifier.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val endpoints by container.hub.endpoints.collectAsState()
     val activeEndpoint by container.hub.endpoint.collectAsState()
@@ -431,7 +436,7 @@ private fun AddDirectEndpointDialog(
     )
 }
 
-private fun copyDiagnostics(container: AppContainer, context: android.content.Context, onBusy: (Boolean) -> Unit) {
+private fun copyDiagnostics(container: AppContainer, context: android.content.Context, notifier: Notifier, onBusy: (Boolean) -> Unit) {
     val act = context as? androidx.fragment.app.FragmentActivity
     val scope = act?.lifecycleScope ?: return
     onBusy(true)
@@ -452,17 +457,13 @@ private fun copyDiagnostics(container: AppContainer, context: android.content.Co
                 val payload = if (clipped) text.take(clipLimit) + suffix else text
                 val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
                 cm?.setPrimaryClip(android.content.ClipData.newPlainText("ZCode diagnostics", payload))
-                android.widget.Toast.makeText(
-                    context,
-                    context.getString(if (clipped) R.string.settings_clip_copied_truncated else R.string.settings_clip_copied),
-                    android.widget.Toast.LENGTH_SHORT,
-                ).show()
+                notifier.show(context.getString(if (clipped) R.string.settings_clip_copied_truncated else R.string.settings_clip_copied))
             }
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
             withContext(kotlinx.coroutines.Dispatchers.Main) {
-                android.widget.Toast.makeText(context, context.getString(R.string.settings_clip_failed, e.message?.take(80) ?: ""), android.widget.Toast.LENGTH_LONG).show()
+                notifier.show(context.getString(R.string.settings_clip_failed, e.message?.take(80) ?: ""), long = true)
             }
         } finally {
             withContext(kotlinx.coroutines.Dispatchers.Main) { onBusy(false) }
@@ -470,7 +471,7 @@ private fun copyDiagnostics(container: AppContainer, context: android.content.Co
     }
 }
 
-private fun exportDiagnostics(container: AppContainer, context: android.content.Context, onBusy: (Boolean) -> Unit) {
+private fun exportDiagnostics(container: AppContainer, context: android.content.Context, notifier: Notifier, onBusy: (Boolean) -> Unit) {
     val act = context as? androidx.fragment.app.FragmentActivity
     val scope = act?.lifecycleScope ?: return
     onBusy(true)
@@ -507,7 +508,7 @@ private fun exportDiagnostics(container: AppContainer, context: android.content.
             throw e
         } catch (e: Exception) {
             withContext(kotlinx.coroutines.Dispatchers.Main) {
-                android.widget.Toast.makeText(context, context.getString(R.string.settings_export_failed, e.message?.take(80) ?: ""), android.widget.Toast.LENGTH_LONG).show()
+                notifier.show(context.getString(R.string.settings_export_failed, e.message?.take(80) ?: ""), long = true)
             }
         } finally {
             withContext(kotlinx.coroutines.Dispatchers.Main) { onBusy(false) }
@@ -677,16 +678,6 @@ private fun showLicenses(context: android.content.Context) {
     context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.settings_licenses_chooser)))
 }
 
-@Composable
-private fun SectionLabel(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 16.dp, top = 20.dp, bottom = 6.dp),
-    )
-}
-
 /**
  * Phase 8 notifications surface (§24.2/§24.4/§24.5/§25.3): the content-level privacy
  * toggle, the opt-in Live-connection FGS (started from the foreground ONLY — this
@@ -697,6 +688,7 @@ private fun SectionLabel(text: String) {
 @Composable
 private fun NotificationsSection(container: AppContainer) {
     val context = LocalContext.current
+    val notifier = LocalNotifier.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val prefs by container.stores.preferencesRepository.observe()
         .collectAsState(initial = com.zcode.android.domain.model.AppPreferences())

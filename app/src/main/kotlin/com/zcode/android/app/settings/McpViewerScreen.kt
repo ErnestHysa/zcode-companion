@@ -42,6 +42,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.zcode.android.core.ui.components.ZCodeTopBar
 import com.zcode.android.core.ui.components.rememberZCodeTopBarScroll
+import com.zcode.android.core.ui.components.EmptyState
+import com.zcode.android.core.ui.components.ErrorState
+import com.zcode.android.core.ui.components.LoadingSkeleton
 
 /**
  * GAP-9 (android-native-gaps.md; docs/protocol/v4-wire.md §12.5) — the
@@ -88,37 +91,17 @@ fun McpViewerScreen(
                 .padding(inner),
         ) {
             when {
-                loading && result == null -> Column(Modifier.fillMaxSize().padding(16.dp)) {
-                    Text(
-                        stringResource(R.string.mcp_loading),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.testTag("mcp_loading"),
-                    )
-                }
-                result?.error != null -> Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        stringResource(R.string.mcp_unavailable),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.error,
+                loading && result == null ->
+                    LoadingSkeleton(Modifier.fillMaxSize().testTag("mcp_loading"), rows = 4)
+                result?.error != null ->
+                    ErrorState(
+                        title = stringResource(R.string.mcp_unavailable),
+                        detail = result?.error,
                         modifier = Modifier.testTag("mcp_error"),
+                        onRetry = { loading = true; scope.launch { result = port.statuses(); loading = false } },
                     )
-                    Text(
-                        result?.error ?: "",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    ZCodeButton(onClick = { loading = true; scope.launch { result = port.statuses(); loading = false } }) {
-                        Text(stringResource(R.string.mcp_retry))
-                    }
-                }
-                result?.statuses?.statuses?.isEmpty() == true -> Column(Modifier.fillMaxSize().padding(16.dp)) {
-                    Text(
-                        stringResource(R.string.mcp_empty),
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.testTag("mcp_empty"),
-                    )
-                }
+                result?.statuses?.statuses?.isEmpty() == true ->
+                    EmptyState(title = stringResource(R.string.mcp_empty), modifier = Modifier.fillMaxSize().testTag("mcp_empty"))
                 else -> {
                     val statuses = result?.statuses?.statuses ?: return@Column
                     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp).testTag("mcp_list")) {

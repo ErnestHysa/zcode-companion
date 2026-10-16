@@ -193,13 +193,3 @@ fun AttentionStrip(
     }
 }
 
-/** Placeholder skeleton bar for loading states (§18.3: skeletons over spinners). */
-@Composable
-fun SkeletonBar(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(14.dp)
-            .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small),
-    )
-}

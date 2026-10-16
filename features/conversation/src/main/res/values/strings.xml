@@ -157,4 +157,5 @@
     <string name="edit_confirm_title">Re-ask this turn?</string>
     <string name="edit_confirm_body">This replaces the turn with your edited text and regenerates the reply. Files and later turns may be affected.</string>
     <string name="edit_confirm_button">Edit and re-ask</string>
+    <string name="row_link_open_failed">Can\'t open link</string>
 </resources>

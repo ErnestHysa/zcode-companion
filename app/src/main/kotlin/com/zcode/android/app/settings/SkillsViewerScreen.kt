@@ -42,6 +42,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.zcode.android.core.ui.components.ZCodeTopBar
 import com.zcode.android.core.ui.components.rememberZCodeTopBarScroll
+import com.zcode.android.core.ui.components.EmptyState
+import com.zcode.android.core.ui.components.ErrorState
+import com.zcode.android.core.ui.components.LoadingSkeleton
 
 /**
  * GAP-8 (android-native-gaps.md; docs/protocol/v4-wire.md §12.4) — the
@@ -88,30 +91,15 @@ fun SkillsViewerScreen(
                 .padding(inner),
         ) {
             when {
-                loading && result == null -> Column(Modifier.fillMaxSize().padding(16.dp)) {
-                    Text(
-                        stringResource(R.string.skills_loading),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.testTag("skills_loading"),
-                    )
-                }
-                result?.error != null -> Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        stringResource(R.string.skills_unavailable),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.error,
+                loading && result == null ->
+                    LoadingSkeleton(Modifier.fillMaxSize().testTag("skills_loading"), rows = 4)
+                result?.error != null ->
+                    ErrorState(
+                        title = stringResource(R.string.skills_unavailable),
+                        detail = result?.error,
                         modifier = Modifier.testTag("skills_error"),
+                        onRetry = { loading = true; scope.launch { result = port.catalog(); loading = false } },
                     )
-                    Text(
-                        result?.error ?: "",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    ZCodeButton(onClick = { loading = true; scope.launch { result = port.catalog(); loading = false } }) {
-                        Text(stringResource(R.string.skills_retry))
-                    }
-                }
                 else -> {
                     val catalog = result?.catalog ?: return@Column
                     val filtered = remember(catalog, query) {
@@ -133,11 +121,7 @@ fun SkillsViewerScreen(
                         placeholder = { Text(stringResource(R.string.skills_search_hint)) },
                     )
                     if (catalog.skills.isEmpty()) {
-                        Text(
-                            stringResource(R.string.skills_empty),
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(16.dp).testTag("skills_empty"),
-                        )
+                        EmptyState(title = stringResource(R.string.skills_empty), modifier = Modifier.testTag("skills_empty"))
                         return@Column
                     }
                     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp).testTag("skills_list")) {

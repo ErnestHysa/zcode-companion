@@ -55,6 +55,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.zcode.android.core.ui.components.ZCodeTopBar
 import com.zcode.android.core.ui.components.rememberZCodeTopBarScroll
+import com.zcode.android.core.ui.components.EmptyState
+import com.zcode.android.core.ui.components.ErrorState
+import com.zcode.android.core.ui.components.LoadingSkeleton
 
 /**
  * GAP-5 (android-native-gaps.md; docs/protocol/v4-wire.md §12.1) — Settings →
@@ -120,37 +123,18 @@ fun UsageScreen(
                 .padding(inner),
         ) {
             if (loading && snapshot == null && error == null) {
-                Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    SkeletonBar(Modifier.fillMaxWidth())
-                    SkeletonBar(Modifier.fillMaxWidth(0.7f))
-                    SkeletonBar(Modifier.fillMaxWidth(0.85f))
-                    Text(
-                        stringResource(R.string.usage_loading),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.testTag("usage_loading"),
-                    )
-                }
+                LoadingSkeleton(Modifier.fillMaxSize().testTag("usage_loading"), rows = 4)
                 return@Column
             }
             error?.let { message ->
-                Column(
-                    Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Text(
-                        stringResource(R.string.usage_error_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.testTag("usage_error"),
-                    )
-                    Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    ZCodeButton(onClick = { load(range) }, modifier = Modifier.testTag("usage_retry")) {
-                        Text(stringResource(R.string.usage_retry))
-                    }
-                }
+                ErrorState(
+                    title = stringResource(R.string.usage_error_title),
+                    detail = message,
+                    modifier = Modifier.fillMaxSize().testTag("usage_error"),
+                    onRetry = { load(range) },
+                    retryLabel = stringResource(R.string.usage_retry),
+                    retryTestTag = "usage_retry",
+                )
                 return@Column
             }
             val current = snapshot
@@ -174,24 +158,11 @@ fun UsageScreen(
                 if (current == null || current.summary.totalTokens == 0L) {
                     // Honest empty state (desktop UsageEmptyState, AppUsagePanel.tsx:71-97):
                     // zero activity renders an explicit empty card, never zeros-as-charts.
-                    Column(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(
-                            stringResource(R.string.usage_empty_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.testTag("usage_empty"),
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            stringResource(R.string.usage_empty_desc),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                    EmptyState(
+                        title = stringResource(R.string.usage_empty_title),
+                        message = stringResource(R.string.usage_empty_desc),
+                        modifier = Modifier.testTag("usage_empty"),
+                    )
                     return@Column
                 }
                 SummaryStrip(current.summary)

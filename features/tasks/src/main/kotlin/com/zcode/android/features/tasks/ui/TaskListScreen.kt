@@ -72,6 +72,7 @@ import com.zcode.android.core.ui.components.ZCodeTopBar
 import com.zcode.android.core.ui.components.rememberZCodeTopBarScroll
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.traversalIndex
+import com.zcode.android.core.ui.components.EmptyState
 
 /**
  * Task list (§43.2-6.2; ui-ux screen-spec 03/04/14). Dense rows, left status rail,
@@ -669,29 +670,15 @@ private fun HorizontalHairline() {
 /** Empty state per ui-ux 04: short copy, next step, no fake create-task FAB (§2.2 N7). */
 @Composable
 fun EmptyTasksContent(modifier: Modifier = Modifier, onRefresh: () -> Unit = {}) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 32.dp)
-            .testTag("tasks_empty"),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Text(
-            text = stringResource(R.string.tasks_empty_title),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = stringResource(R.string.tasks_empty_body),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(12.dp))
-        TextButton(onClick = onRefresh) {
-            Text(stringResource(com.zcode.android.core.ui.R.string.action_refresh))
-        }
-    }
+    EmptyState(
+        title = stringResource(R.string.tasks_empty_title),
+        message = stringResource(R.string.tasks_empty_body),
+        modifier = modifier.testTag("tasks_empty"),
+        action = {
+            TextButton(onClick = onRefresh) {
+                Text(stringResource(com.zcode.android.core.ui.R.string.action_refresh))
+            }
+        },
+    )
 }
 

@@ -65,6 +65,7 @@ import com.zcode.android.features.conversation.markdown.MarkdownParser
 import com.zcode.android.core.ui.theme.ZCodeRadius
 import com.zcode.android.core.ui.components.animateCollapse
 import com.zcode.android.core.ui.components.rememberZCodeHaptics
+import com.zcode.android.core.ui.components.LocalNotifier
 
 /**
  * Row renderers — the agent-timeline grammar (ui-ux component-library v2): YOU
@@ -488,6 +489,7 @@ private fun SpannedText(
 ) {
     val codeBg = LocalZCodeColors.current.codeBorder.copy(alpha = 0.35f)
     val context = LocalContext.current
+    val notifier = LocalNotifier.current
     val linkRanges = mutableListOf<Triple<Int, Int, String>>()
     val annotated = buildAnnotatedString {
         for (span in spans) {
@@ -533,7 +535,7 @@ private fun SpannedText(
                                         .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
                                 )
                             }.onFailure {
-                                android.widget.Toast.makeText(context, "Can't open link / 无法打开链接", android.widget.Toast.LENGTH_SHORT).show()
+                                notifier.show(context.getString(R.string.row_link_open_failed))
                             }
                         }
                     }
