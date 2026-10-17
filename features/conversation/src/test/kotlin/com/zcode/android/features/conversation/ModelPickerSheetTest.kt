@@ -227,7 +227,14 @@ class ModelPickerSheetTest {
         }
         rule.waitForIdle()
         rule.onNodeWithTag("composer_model_row_glm-5.1", useUnmergedTree = true).assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithTag("composer_model_row_glm-5.1-air", useUnmergedTree = true).assertHeightIsAtLeast(48.dp)
+    }
+
+    @Test
+    fun `F3 - conversation picker rows are at least 48dp too`() {
+        openConversationPicker()
         rule.onNodeWithTag("model_option_glm-5.1", useUnmergedTree = true).assertHeightIsAtLeast(48.dp)
+        rule.onNodeWithTag("model_option_gpt-x", useUnmergedTree = true).assertHeightIsAtLeast(48.dp)
     }
 
     @Test
@@ -244,7 +251,11 @@ class ModelPickerSheetTest {
             }
         }
         rule.waitForIdle()
-        assertTrue(selected("glm-5.1"))
+        fun composerSelected(id: String) = rule.onNodeWithTag("composer_model_row_$id", useUnmergedTree = true)
+            .fetchSemanticsNode().config[SemanticsProperties.Selected]
+        assertTrue(composerSelected("glm-5.1"))
+        assertFalse(composerSelected("glm-5.1-air"))
+        // No thought levels on the composer → one tap completes the pick.
         rule.onNodeWithTag("composer_model_row_glm-5.1-air", useUnmergedTree = true).performClick()
         rule.waitForIdle()
         assertEquals("zai" to "glm-5.1-air", picked)
