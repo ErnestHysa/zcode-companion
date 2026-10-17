@@ -97,6 +97,7 @@ private val ToolCardRadius = ZCodeRadius.lg
 @Composable
 fun YouBlock(
     text: String,
+    modifier: Modifier = Modifier,
     createdAtMs: Double? = null,
     /** Desktop gate (ConversationRowView.tsx:1295): the edit entry needs entityId. */
     editable: Boolean = false,
@@ -105,7 +106,6 @@ fun YouBlock(
      *  never see again; images render as thumbnails through [loadAttachment]. */
     attachments: List<ConversationRow.UserInput.AttachmentMeta> = emptyList(),
     loadAttachment: (suspend (ConversationRow.UserInput.AttachmentMeta) -> ByteArray?)? = null,
-    modifier: Modifier = Modifier,
 ) {
     val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
     var showActions by rememberSaveable { mutableStateOf(false) }
