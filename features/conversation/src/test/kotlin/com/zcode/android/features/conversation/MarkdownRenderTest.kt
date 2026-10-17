@@ -9,6 +9,11 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.Modifier
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
 import com.zcode.android.features.conversation.ui.MarkdownText
@@ -54,7 +59,13 @@ class MarkdownRenderTest {
     ).joinToString("\n")
 
     private fun render() {
-        rule.setContent { ZCodeTheme { MarkdownText(text = k5) } }
+        // The fixture is taller than the test window: a scrollable host so lower
+        // blocks can be scrolled into view (the real reader is a LazyColumn).
+        rule.setContent {
+            ZCodeTheme {
+                Column(Modifier.verticalScroll(rememberScrollState())) { MarkdownText(text = k5) }
+            }
+        }
         rule.waitForIdle()
     }
 
@@ -85,24 +96,24 @@ class MarkdownRenderTest {
     fun `strikethrough renders without literal tildes`() {
         render()
         rule.onAllNodesWithText("~~", substring = true).assertCountEquals(0)
-        rule.onNodeWithText("Done temporarily permanently.").assertIsDisplayed()
+        rule.onNodeWithText("Done temporarily permanently.").performScrollTo().assertIsDisplayed()
     }
 
     @Test
     fun `the code block carries a wrap toggle that flips its state`() {
         render()
         val toggle = rule.onNodeWithTag("row_code_wrap_toggle", useUnmergedTree = true)
-        toggle.assertIsDisplayed()
-        rule.onNodeWithTag("row_code_scroll", useUnmergedTree = true).assertIsDisplayed()
+        toggle.performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("row_code_scroll", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
         toggle.performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag("row_code_wrapped", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithTag("row_code_wrapped", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
         assertTrue(rule.onAllNodesWithTag("row_code_scroll", useUnmergedTree = true).fetchSemanticsNodes().isEmpty())
     }
 
     @Test
     fun `the code block text is syntax highlighted (spans present)`() {
         render()
-        rule.onNodeWithTag("row_code_text", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithTag("row_code_text", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
     }
 }
