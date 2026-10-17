@@ -111,6 +111,8 @@ fun ConversationScreen(
     toolOutputProvider: (suspend (ConversationRow.ToolCall) -> String?)? = null,
     // ---- Phase 3C (I2.2): the session status strip source (git summary; null → no strip) ----
     sessionStatusProvider: suspend () -> com.zcode.android.domain.model.GitSummary? = { null },
+    // ---- Phase 3D (A3.1): in-conversation attachment previews ----
+    loadAttachment: (suspend (ConversationRow.UserInput.AttachmentMeta) -> ByteArray?)? = null,
 ) {
     // C6-BackHandler: back with an unsent draft raises a confirm (the promised
     // Phase-7 draft guard). The draft is Room-backed — the guard is the CONFIRMATION
@@ -431,6 +433,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     onOpenTurnChanges: (ConversationRow.TurnHeader) -> Unit = {},
     onEditRow: ((ConversationRow.UserInput) -> Unit)? = null,
     toolOutputProvider: (suspend (ConversationRow.ToolCall) -> String?)? = null,
+    loadAttachment: (suspend (ConversationRow.UserInput.AttachmentMeta) -> ByteArray?)? = null,
 ) {
     val listState = rememberLazyListState()
     // B3-motion + K2: rows that have already arrived (scroll-back never re-animates).
@@ -600,6 +603,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                         onOpenTurnChanges = onOpenTurnChanges,
                         onEditRow = onEditRow,
                         toolOutputProvider = toolOutputProvider,
+                        loadAttachment = loadAttachment,
                     )
                     is TimelineEntry.ToolGroup -> ToolGroupBlock(
                         group = entry,
@@ -660,11 +664,14 @@ private fun TimelineRow(
     onOpenTurnChanges: (ConversationRow.TurnHeader) -> Unit = {},
     onEditRow: ((ConversationRow.UserInput) -> Unit)? = null,
     toolOutputProvider: (suspend (ConversationRow.ToolCall) -> String?)? = null,
+    loadAttachment: (suspend (ConversationRow.UserInput.AttachmentMeta) -> ByteArray?)? = null,
 ) {
     Box(modifier = modifier) {
     when (row) {
         is ConversationRow.UserInput -> YouBlock(
             text = row.text,
+            attachments = row.attachments,
+            loadAttachment = loadAttachment,
             createdAtMs = row.base.createdAt,
             // E3.1: the sheet gates Edit on the WIRE'S OWN capability flag
             // (actions.canEdit — ConversationRowView.tsx:1295 class), not on

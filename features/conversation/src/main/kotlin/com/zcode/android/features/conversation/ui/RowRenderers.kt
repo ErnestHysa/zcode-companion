@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -26,7 +27,9 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.WrapText
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -98,6 +101,10 @@ fun YouBlock(
     /** Desktop gate (ConversationRowView.tsx:1295): the edit entry needs entityId. */
     editable: Boolean = false,
     onEdit: (() -> Unit)? = null,
+    /** A3.1 (Phase 3D): the row's own attachments — the phone sends images it could
+     *  never see again; images render as thumbnails through [loadAttachment]. */
+    attachments: List<ConversationRow.UserInput.AttachmentMeta> = emptyList(),
+    loadAttachment: (suspend (ConversationRow.UserInput.AttachmentMeta) -> ByteArray?)? = null,
     modifier: Modifier = Modifier,
 ) {
     val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
@@ -128,6 +135,16 @@ fun YouBlock(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
+            // A3.1: attachments render in-conversation (images as thumbnails, loaded
+            // once through the attachment-read channel; other files as named chips).
+            if (attachments.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                    for (att in attachments) {
+                        AttachmentView(att = att, load = loadAttachment)
+                    }
+                }
+            }
         }
     }
     val haptics = rememberZCodeHaptics()
@@ -932,4 +949,103 @@ fun toolMetaLine(row: ConversationRow.ToolCall): String {
     val output = row.outputPreview
     if (output != null) return output.toString().take(160)
     return ""
+}
+
+/**
+ * A3.1: one attachment — an image (thumbnail, bytes fetched once and cached in the
+ * small in-memory LRU) or a named file chip. A failed/absent loader still renders the
+ * chip (INV-11: never a blank hole).
+ */
+@Composable
+private fun AttachmentView(
+    att: ConversationRow.UserInput.AttachmentMeta,
+    load: (suspend (ConversationRow.UserInput.AttachmentMeta) -> ByteArray?)?,
+    modifier: Modifier = Modifier,
+) {
+    val isImage = att.mime.startsWith("image/")
+    val bytes by androidx.compose.runtime.produceState<ByteArray?>(initialValue = null, key1 = att.ref) {
+        if (isImage && load != null) {
+            value = AttachmentImageCache.get(att.ref) ?: run {
+                val loaded = runCatching { load(att) }.getOrNull()
+                if (loaded != null) AttachmentImageCache.put(att.ref, loaded)
+                loaded
+            }
+        }
+    }
+    if (isImage) {
+        val bitmap = bytes?.let { b ->
+            runCatching {
+                android.graphics.BitmapFactory.decodeByteArray(b, 0, b.size)
+            }.getOrNull()?.asImageBitmap()
+        }
+        Surface(
+            shape = MaterialTheme.shapes.small,
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            modifier = modifier
+                .testTag("row_attachment_${att.ref}")
+                .size(width = 132.dp, height = 96.dp),
+        ) {
+            if (bitmap != null) {
+                androidx.compose.foundation.Image(
+                    bitmap = bitmap,
+                    contentDescription = att.fileName,
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier,
+                )
+            } else {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = stringResource(R.string.row_attachment_loading),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    } else {
+        Surface(
+            shape = MaterialTheme.shapes.small,
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            modifier = modifier
+                .heightIn(min = 32.dp)
+                .testTag("row_attachment_${att.ref}"),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                Icon(
+                    imageVector = Icons.Filled.AttachFile,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(14.dp),
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    text = att.fileName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+/** Small LRU for in-conversation attachment thumbnails (refs are stable per row). */
+private object AttachmentImageCache {
+    private const val MAX_BYTES = 8 * 1024 * 1024
+    private val map = LinkedHashMap<String, ByteArray>(16, 0.75f, true)
+
+    @Synchronized
+    fun get(ref: String): ByteArray? = map[ref]
+
+    @Synchronized
+    fun put(ref: String, bytes: ByteArray) {
+        map[ref] = bytes
+        var total = map.values.sumOf { it.size }
+        val it2 = map.entries.iterator()
+        while (total > MAX_BYTES && it2.hasNext()) {
+            total -= it2.next().value.size
+            it2.remove()
+        }
+    }
 }

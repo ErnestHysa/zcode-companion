@@ -170,6 +170,13 @@ interface ConversationPort {
      */
     suspend fun fetchToolCallOutput(taskId: String, toolCallId: String): String? = null
 
+    /**
+     * Phase 3D (A3.1): a bounded preview read of the row's own attachment (thumbnails
+     * render in-conversation; the phone sent images it could never see again). Null =
+     * refused/unavailable (INV-11: the chip still renders).
+     */
+    suspend fun fetchAttachmentPreview(taskId: String, ref: String): ByteArray? = null
+
     data class TurnChangesResult(
         val changes: com.zcode.android.domain.model.TurnFileChanges?,
         val error: String?,

@@ -380,6 +380,14 @@ class DefaultConversationPort(
             null
         }
 
+    override suspend fun fetchAttachmentPreview(taskId: String, ref: String): ByteArray? =
+        try {
+            hub.phase9().attachmentPreview(taskId, ref)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            null
+        }
+
     override suspend fun answerUserInputQuestions(
         interactionId: String,
         answers: Map<String, List<String>>,

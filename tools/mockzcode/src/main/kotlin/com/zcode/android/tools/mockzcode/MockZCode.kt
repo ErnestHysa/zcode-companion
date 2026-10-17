@@ -1115,6 +1115,16 @@ class MockZCode(
     @Volatile private var pendingApproval: Pair<String, String>? = null
     fun setPendingApproval(toolName: String, interactionId: String) { pendingApproval = toolName to interactionId }
 
+    /**
+     * A3.1 (gaps-and-polish Phase 3D rig leg): one pre-committed image attachment,
+     * stamped into the NEXT snapshot as a user-row attachment — the phone can render
+     * an image it sent earlier (the read channel answers from [committedAttachments]).
+     */
+    @Volatile private var scriptedAttachment: Triple<String, String, ByteArray>? = null
+    fun setScriptedAttachment(ref: String, mime: String, bytes: ByteArray) {
+        scriptedAttachment = Triple(ref, mime, bytes)
+    }
+
     private fun snapshotRows(sessionId: String, count: Int): JsonArray =
         snapshotRows(sessionId, count, script.snapshotRowIdBase)
 
@@ -1139,6 +1149,20 @@ class MockZCode(
         pendingApproval?.let { (tool, iid) ->
             rows.add(schemaRow(sessionId, nextId++, RowKind.TOOL_CALL, "pendingApproval:$iid", extra = buildJsonObject {
                 put("toolName", JsonPrimitive(tool))
+            }))
+        }
+        scriptedAttachment?.let { (ref, mime, bytes) ->
+            val att = MockAttachment(sessionId = sessionId, fileName = "mock.png", mime = mime, totalBytes = bytes.size.toLong())
+            att.data.write(bytes)
+            synchronized(committedAttachments) { committedAttachments[ref] = att }
+            rows.add(schemaRow(sessionId, nextId++, RowKind.USER_INPUT, "here is the screenshot", extra = buildJsonObject {
+                put("attachments", JsonArray(listOf(buildJsonObject {
+                    put("ref", JsonPrimitive(ref))
+                    put("fileName", JsonPrimitive("mock.png"))
+                    put("mime", JsonPrimitive(mime))
+                    put("bytes", JsonPrimitive(bytes.size))
+                    put("previewRef", JsonNull)
+                })))
             }))
         }
         return JsonArray(rows)

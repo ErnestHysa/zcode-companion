@@ -490,6 +490,10 @@ private fun ConversationRoute(
             val target = container.hub.activeWorkspaceTarget() ?: return@label null
             target.first?.let { ws -> runCatching { container.hub.phase9().gitSummary(ws) }.getOrNull() }
         },
+        // Phase 3D (A3.1): in-conversation attachment previews off the read channel.
+        loadAttachment = { att ->
+            state.task?.taskId?.let { container.conversationPort.fetchAttachmentPreview(it, att.ref) }
+        },
         // Phase 9 (§43.2-9)
         onOpenFiles = onOpenFiles,
         onOpenGit = onOpenGit,

@@ -136,6 +136,34 @@ class Phase9Tools(private val transport: AppTransport) {
      * null`, streaming decoded bytes into [sink]. The verified media gate (image/
      * video/pdf only) re-fails closed here on every chunk (INV-14).
      */
+    /**
+     * A3.1 (Phase 3D): the attachment's FIRST chunk only, capped for thumbnails —
+     * the conversation renders a preview, never the whole object on scroll.
+     */
+    suspend fun attachmentPreview(
+        sessionId: String,
+        ref: String,
+        maxBytes: Int = 512 * 1024,
+        targetRowId: Long? = null,
+        targetEntityId: String? = null,
+        attachmentIndex: Int? = null,
+        workspacePath: String? = null,
+        workspaceIdentity: String? = null,
+    ): ByteArray? {
+        val params = V4Attachment.ReadParams(
+            sessionId = sessionId, ref = ref, targetRowId = targetRowId,
+            targetEntityId = targetEntityId, attachmentIndex = attachmentIndex,
+            offset = 0, limit = minOf(maxBytes, AttachmentLimits.CHUNK_MAX_BYTES),
+        )
+        params.validate()
+        val raw = transport.attachmentRead(
+            sessionId, ref, 0, params.limit, targetRowId, targetEntityId, attachmentIndex,
+            workspacePath, workspaceIdentity,
+        )
+        val result = V4Attachment.ReadResult.decode(raw)
+        return runCatching { java.util.Base64.getDecoder().decode(result.dataBase64) }.getOrNull()
+    }
+
     suspend fun attachmentReadAll(
         sessionId: String,
         ref: String,

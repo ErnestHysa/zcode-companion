@@ -148,6 +148,14 @@
     <string name="row_link_open_failed">无法打开链接</string>
     <string name="composer_model_picker_empty">此连接上没有可用的模型。</string>
     <string name="composer_model_picker_title">选择模型</string>
+    <string name="composer_add_desc">添加附件</string>
+    <string name="composer_menu_photo">照片</string>
+    <string name="composer_menu_camera">拍照</string>
+    <string name="composer_menu_paste_image">粘贴图片</string>
+    <string name="composer_menu_voice">语音输入</string>
+    <string name="composer_placeholder_queue">继续输入即可排队后续更改</string>
+    <string name="composer_queue_pill">已排队</string>
+    <string name="row_attachment_loading">加载中…</string>
     <string name="conv_leave_body">你有一条未发送的草稿。它会保存在此设备上，但任务会继续运行 — 确定要离开吗？</string>
     <string name="conv_leave_discard">离开</string>
     <string name="conv_leave_keep">继续编辑</string>

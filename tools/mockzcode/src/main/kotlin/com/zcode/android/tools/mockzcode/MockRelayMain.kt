@@ -77,6 +77,14 @@ fun main() {
     if (System.getenv("MOCK_APPROVAL") != null) {
         mock.setPendingApproval("Bash", "mock-approval-1")
     }
+    // A3.1 (Phase 3D): one pre-committed 1x1 PNG as a sent user attachment — the
+    // conversation renders the image it "sent" (read channel serves the bytes).
+    if (System.getenv("MOCK_ATTACHMENT") != null) {
+        val png = java.util.Base64.getDecoder().decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC",
+        )
+        mock.setScriptedAttachment("mock-attachment-1", "image/png", png)
+    }
     // PART M live leg: populated MCP / plugins / skills viewers (shapes mirror the
     // domain decoders: ViewerModels.McpStatuses / PluginsView / SkillCatalog) so the
     // three Settings viewers render their real lists on device instead of the

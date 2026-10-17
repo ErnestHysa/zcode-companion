@@ -79,6 +79,15 @@
     <string name="composer_voice">Voice input</string>
     <string name="composer_voice_listening">Listening…</string>
     <string name="composer_model_picker_title">Choose a model</string>
+    <!-- K3+N2.2 (Phase 3D): the designed composer shell + queue-in-two-places. -->
+    <string name="composer_add_desc">Add attachment</string>
+    <string name="composer_menu_photo">Photo</string>
+    <string name="composer_menu_camera">Take photo</string>
+    <string name="composer_menu_paste_image">Paste image</string>
+    <string name="composer_menu_voice">Dictate</string>
+    <string name="composer_placeholder_queue">Keep typing to queue follow-up changes</string>
+    <string name="composer_queue_pill">Queued</string>
+    <string name="row_attachment_loading">Loading…</string>
     <string name="conv_leave_title">Leave this conversation?</string>
     <string name="conv_leave_body">You have an unsent draft. It stays saved on this device, but the task keeps running — are you sure you want to leave?</string>
     <string name="conv_leave_keep">Keep editing</string>

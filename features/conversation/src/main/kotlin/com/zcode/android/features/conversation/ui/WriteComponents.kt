@@ -4,8 +4,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.ui.semantics.Role
 import androidx.compose.material3.Checkbox
 import androidx.compose.foundation.selection.selectable
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -556,45 +559,49 @@ fun ComposerBar(
     val control = state.sessionState?.control
     val routing = state.sessionState?.inputRouting
     var dispositionDialog by remember { mutableStateOf(false) }
+    // N2.2: the queue state rides TWO places like the desktop — the placeholder swaps
+    // to the follow-up-queue text AND an inline pill marks the queued send. The old
+    // standalone busy strip is gone (replaced by this pair).
+    val enqueue = routing?.mode == com.zcode.android.domain.model.InputRouting.Mode.ENQUEUE
 
     Surface(modifier = modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-            // Routing hint (verified inputRouting modes, §9).
-            if (routing?.mode == com.zcode.android.domain.model.InputRouting.Mode.ENQUEUE) {
-                Text(
-                    text = stringResource(R.string.composer_busy_queued),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.testTag("composer_route_hint"),
-                )
-            }
             if (state.pendingSends.isNotEmpty()) {
                 PendingSendsStrip(pending = state.pendingSends, onRetry = onRetrySend, modifier = Modifier.fillMaxWidth())
             }
             // §23.2 composer attachments (Phase 9): picker → v4 transaction (begin/
             // chunks/commit with progress; abort on remove). Media picker + document
             // picker only — NO broad storage permission (§27).
+            // K3: photo / file / camera / paste / voice fold into ONE add-menu.
+            // B2.14: the bytes are read withContext(Dispatchers.IO) — the picker
+            // callback ran them on the MAIN thread (ANR class).
             val scope = rememberCoroutineScope()
             val context = androidx.compose.ui.platform.LocalContext.current
-            val photoPicker = androidx.activity.compose.rememberLauncherForActivityResult(
-                androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia(),
-            ) { uri ->
-                if (uri != null) {
-                    scope.launch {
-                        val (name, mime, bytes) = context.readPickedFile(uri)
-                        onUploadAttachment(name, mime, bytes)
-                    }
+            fun onPicked(uri: android.net.Uri?) {
+                if (uri == null) return
+                scope.launch {
+                    val (name, mime, bytes) = context.readPickedAttachment(uri)
+                    onUploadAttachment(name, mime, bytes)
                 }
             }
+            val photoPicker = androidx.activity.compose.rememberLauncherForActivityResult(
+                androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia(),
+            ) { uri -> onPicked(uri) }
             val docPicker = androidx.activity.compose.rememberLauncherForActivityResult(
                 androidx.activity.result.contract.ActivityResultContracts.OpenDocument(),
-            ) { uri ->
-                if (uri != null) {
-                    scope.launch {
-                        val (name, mime, bytes) = context.readPickedFile(uri)
-                        onUploadAttachment(name, mime, bytes)
-                    }
-                }
+            ) { uri -> onPicked(uri) }
+            // I5: camera capture via the TakePicture contract — the JPEG lands in the
+            // FileProvider-shared cache dir (file_paths "shared"; never raw file://).
+            val cameraUri = remember { java.util.concurrent.atomic.AtomicReference<android.net.Uri?>(null) }
+            val cameraLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                androidx.activity.result.contract.ActivityResultContracts.TakePicture(),
+            ) { ok -> if (ok) cameraUri.get()?.let { onPicked(it) } }
+            val cameraItem = remember {
+                runCatching {
+                    val dir = java.io.File(context.cacheDir, "shared").apply { mkdirs() }
+                    val out = java.io.File(dir, "camera-${System.currentTimeMillis()}.jpg")
+                    androidx.core.content.FileProvider.getUriForFile(context, context.packageName + ".fileprovider", out)
+                }.getOrNull()
             }
             if (state.composerAttachments.isNotEmpty()) {
                 AttachmentStrip(
@@ -629,117 +636,189 @@ fun ComposerBar(
             // not append to the draft captured when the mic was tapped (text typed
             // while listening was discarded).
             val currentDraft by androidx.compose.runtime.rememberUpdatedState(state.draft)
-            val conductor = stringResource(R.string.composer_attach_image)
-            val attachFileDesc = stringResource(R.string.composer_attach_file)
-            val stopDesc = stringResource(R.string.composer_stop)
-            val sendDesc = stringResource(R.string.composer_send)
-            Row(verticalAlignment = Alignment.Bottom) {
-                OutlinedTextField(
-                    value = state.draft,
-                    onValueChange = onDraftChange,
-                    placeholder = { Text(stringResource(R.string.composer_placeholder)) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("composer_field"),
-                    maxLines = 5,
-                )
-                Spacer(Modifier.width(8.dp))
-                if (voice != null) {
-                    val voiceDesc = stringResource(R.string.composer_voice)
-                    IconButton(
-                        onClick = {
-                            voiceError = false
-                            if (voice.listening) {
-                                voice.stop()
-                            } else {
-                                voice.start(
-                                    onPartial = {},
-                                    onFinal = { spoken ->
-                                        if (spoken.isNotBlank()) {
-                                            val base = currentDraft
-                                            onDraftChange(base + (if (base.isBlank()) "" else " ") + spoken)
-                                        }
+            val conductor = stringResource(R.string.composer_add_desc)
+            var addMenu by remember { mutableStateOf(false) }
+            // I5: paste-image chip — an image-typed clipboard offers the last capture.
+            var pasteImage by remember { mutableStateOf(false) }
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                pasteImage = clipboardHasImage(context)
+            }
+            if (pasteImage) {
+                ComposerPasteChip(visible = true, onPaste = {
+                    pasteImage = false
+                    scope.launch {
+                        clipboardImageUri(context)?.let { uri ->
+                            val (name, mime, bytes) = context.readPickedAttachment(uri)
+                            onUploadAttachment(name, mime, bytes)
+                        }
+                    }
+                })
+            }
+            // K3: the ONE designed input shell — the field, the add-menu and the
+            // single primary control live inside one bordered surface (the desktop's
+            // ChatPromptEditor shape), not five flat icon buttons on a flat bar.
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(com.zcode.android.core.ui.theme.ZCodeRadius.xl),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            ) {
+                Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
+                    OutlinedTextField(
+                        value = state.draft,
+                        onValueChange = onDraftChange,
+                        placeholder = {
+                            Text(
+                                stringResource(
+                                    if (enqueue) R.string.composer_placeholder_queue else R.string.composer_placeholder,
+                                ),
+                            )
+                        },
+                        colors = androidx.compose.material3.TextFieldDefaults.colors(
+                            focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                            unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                            focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                            unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("composer_field"),
+                        maxLines = 5,
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // ONE add affordance: photo / file / camera / paste / voice.
+                        Box {
+                            androidx.compose.material3.FilledTonalIconButton(
+                                onClick = { addMenu = true },
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .testTag("composer_attach")
+                                    .semantics { contentDescription = conductor },
+                            ) {
+                                Icon(Icons.Filled.Add, contentDescription = null)
+                            }
+                            androidx.compose.material3.DropdownMenu(expanded = addMenu, onDismissRequest = { addMenu = false }) {
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.composer_menu_photo)) },
+                                    onClick = {
+                                        addMenu = false
+                                        photoPicker.launch(
+                                            androidx.activity.result.PickVisualMediaRequest(
+                                                androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly,
+                                            ),
+                                        )
                                     },
-                                    onError = { voiceError = true },
+                                    modifier = Modifier.testTag("composer_attach_photo"),
+                                )
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.composer_attach_file)) },
+                                    onClick = {
+                                        addMenu = false
+                                        docPicker.launch(arrayOf("*/*"))
+                                    },
+                                    modifier = Modifier.testTag("composer_attach_doc"),
+                                )
+                                if (cameraItem != null) {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.composer_menu_camera)) },
+                                        onClick = {
+                                            addMenu = false
+                                            cameraUri.set(cameraItem)
+                                            cameraLauncher.launch(cameraItem)
+                                        },
+                                        modifier = Modifier.testTag("composer_attach_camera"),
+                                    )
+                                }
+                                if (voice != null) {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.composer_menu_voice)) },
+                                        onClick = {
+                                            addMenu = false
+                                            voiceError = false
+                                            if (voice.listening) voice.stop() else voice.start(
+                                                onPartial = {},
+                                                onFinal = { spoken ->
+                                                    if (spoken.isNotBlank()) {
+                                                        val base = currentDraft
+                                                        onDraftChange(base + (if (base.isBlank()) "" else " ") + spoken)
+                                                    }
+                                                },
+                                                onError = { voiceError = true },
+                                            )
+                                        },
+                                        modifier = Modifier.testTag("composer_voice_menu"),
+                                    )
+                                }
+                            }
+                        }
+                        if (voice != null && voice.listening) {
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = stringResource(R.string.composer_voice_listening),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.testTag("composer_voice_listening"),
+                            )
+                        }
+                        Spacer(Modifier.weight(1f))
+                        // N2.2 place 2: the inline queued pill (placeholder is place 1).
+                        if (enqueue) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                shape = MaterialTheme.shapes.small,
+                                modifier = Modifier.testTag("composer_queue_pill"),
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.composer_queue_pill),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                                 )
                             }
-                        },
-                        modifier = Modifier
-                            .size(48.dp)
-                            .testTag("composer_voice")
-                            .semantics { contentDescription = voiceDesc },
-                    ) {
-                        Icon(
-                            Icons.Filled.Mic,
-                            contentDescription = null,
-                            tint = if (voice.listening) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                // §23.2 attach affordance (Phase 9): image first, then any document.
-                IconButton(
-                    onClick = {
-                        photoPicker.launch(
-                            androidx.activity.result.PickVisualMediaRequest(
-                                androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly,
-                            ),
-                        )
-                    },
-                    enabled = state.connected,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .testTag("composer_attach")
-                        .semantics { contentDescription = conductor },
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = null)
-                }
-                IconButton(
-                    onClick = { docPicker.launch(arrayOf("*/*")) },
-                    enabled = state.connected,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .testTag("composer_attach_doc")
-                        .semantics { contentDescription = attachFileDesc },
-                ) {
-                    Icon(Icons.Filled.AttachFile, contentDescription = null)
-                }
-                // §7.5 stop: visible only from the AUTHORITATIVE control block.
-                if (control?.canStop == true && control.stopState == com.zcode.android.domain.model.SessionControl.StopState.STOPPABLE) {
-                    IconButton(
-                        onClick = onStop,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .testTag("composer_stop")
-                            .semantics { contentDescription = stopDesc },
-                    ) {
-                        Icon(Icons.Filled.Stop, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                    }
-                }
-                IconButton(
-                    onClick = {
-                        if (routing?.mode == com.zcode.android.domain.model.InputRouting.Mode.CHOICE) {
-                            dispositionDialog = true
-                        } else {
-                            haptics.confirm()
-                            onSend(null)
+                            Spacer(Modifier.width(6.dp))
                         }
-                    },
-                    enabled = state.draft.isNotBlank(),
-                    modifier = Modifier
-                        .size(48.dp)
-                        .testTag("composer_send")
-                        .semantics { contentDescription = sendDesc },
-                ) {
-                    Icon(Icons.Filled.Send, contentDescription = null)
+                        // §7.5 K3: ONE primary control that MORPHS — the authoritative
+                        // `control.canStop` gating is preserved verbatim: the slot shows
+                        // STOP only while the wire says stoppable, else SEND.
+                        val stoppable = control?.canStop == true &&
+                            control.stopState == com.zcode.android.domain.model.SessionControl.StopState.STOPPABLE
+                        if (stoppable) {
+                            val stopDesc = stringResource(R.string.composer_stop)
+                            androidx.compose.material3.FilledIconButton(
+                                onClick = onStop,
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .testTag("composer_stop")
+                                    .semantics { contentDescription = stopDesc },
+                                colors = androidx.compose.material3.IconButtonDefaults.filledIconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                                ),
+                            ) {
+                                Icon(Icons.Filled.Stop, contentDescription = null)
+                            }
+                        } else {
+                            val sendDesc = stringResource(R.string.composer_send)
+                            androidx.compose.material3.FilledIconButton(
+                                onClick = {
+                                    if (routing?.mode == com.zcode.android.domain.model.InputRouting.Mode.CHOICE) {
+                                        dispositionDialog = true
+                                    } else {
+                                        haptics.confirm()
+                                        onSend(null)
+                                    }
+                                },
+                                enabled = state.draft.isNotBlank(),
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .testTag("composer_send")
+                                    .semantics { contentDescription = sendDesc },
+                            ) {
+                                Icon(Icons.Filled.Send, contentDescription = null)
+                            }
+                        }
+                    }
                 }
-            }
-            if (voice?.listening == true) {
-                Text(
-                    text = stringResource(R.string.composer_voice_listening),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.testTag("composer_voice_listening"),
-                )
             }
             if (voiceError) {
                 Text(
@@ -842,18 +921,44 @@ fun SendNoticeBar(notice: SendNotice, onDismiss: () -> Unit, modifier: Modifier 
     }
 }
 
-/** §23.2: read a content-URI pick into (name, mime, bytes) — no persistent permission needed. */
-private fun android.content.Context.readPickedFile(uri: android.net.Uri): Triple<String, String, ByteArray> {
+/**
+ * §23.2: read a content-URI pick into (name, mime, bytes) — no persistent permission
+ * needed. B2.14: ALWAYS [Dispatchers.IO] — the picker callback used to read the bytes
+ * on the MAIN thread (ANR class).
+ */
+internal suspend fun android.content.Context.readPickedAttachment(uri: android.net.Uri): Triple<String, String, ByteArray> =
+    withContext(Dispatchers.IO) { readPickedFileSync(uri) }
+
+internal fun android.content.Context.readPickedFileSync(uri: android.net.Uri): Triple<String, String, ByteArray> {
     val name = runCatching {
         contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
             if (c.moveToFirst()) c.getString(0) else null
         }
-    }.getOrNull() ?: "attachment"
-    val mime = contentResolver.getType(uri) ?: "application/octet-stream"
+    }.getOrNull() ?: uri.lastPathSegment ?: "attachment"
+    val mime = contentResolver.getType(uri)
+        ?: android.webkit.MimeTypeMap.getSingleton()
+            .getMimeTypeFromExtension(uri.lastPathSegment?.substringAfterLast('.')?.lowercase() ?: "")
+        ?: "application/octet-stream"
     val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
         ?: throw IllegalStateException("cannot read the picked file")
     return Triple(name, mime, bytes)
 }
+
+/** I5: does the clipboard carry an image (content URI)? */
+internal fun clipboardHasImage(context: android.content.Context): Boolean =
+    clipboardImageUri(context) != null
+
+internal fun clipboardImageUri(context: android.content.Context): android.net.Uri? = runCatching {
+    val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager ?: return null
+    val clip = cm.primaryClip ?: return null
+    // Manual prefix match (hasMimeType's wildcard path varies by platform/shadow).
+    var hasImage = false
+    for (i in 0 until clip.description.mimeTypeCount) {
+        if (clip.description.getMimeType(i).startsWith("image/")) hasImage = true
+    }
+    if (!hasImage) return null
+    clip.getItemAt(0)?.uri
+}.getOrNull()
 
 /** C5-i18n: the notice copy per locale (the view model's [SendNotice.text] is the English fallback). */
 @Composable
@@ -878,4 +983,24 @@ fun sendNoticeText(notice: SendNotice): String {
         notice.args
     }
     return stringResource(res, *args.toTypedArray())
+}
+
+/**
+ * I5: one-tap paste of the clipboard image (the picker pipeline reused). Shown only
+ * while the clipboard carries an image (the composer probes it on open).
+ */
+@Composable
+fun ComposerPasteChip(visible: Boolean, onPaste: () -> Unit, modifier: Modifier = Modifier) {
+    if (!visible) return
+    val desc = stringResource(R.string.composer_menu_paste_image)
+    TextButton(
+        onClick = onPaste,
+        modifier = modifier
+            .testTag("composer_attach_paste_chip")
+            .semantics { contentDescription = desc },
+    ) {
+        Icon(Icons.Filled.AttachFile, contentDescription = null, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(4.dp))
+        Text(stringResource(R.string.composer_menu_paste_image))
+    }
 }

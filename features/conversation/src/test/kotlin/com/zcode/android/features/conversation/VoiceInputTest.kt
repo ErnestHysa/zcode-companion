@@ -81,7 +81,7 @@ class VoiceInputTest {
             }
         }
         rule.waitForIdle()
-        rule.onAllNodesWithTag("composer_voice").assertCountEquals(0)
+        rule.onAllNodesWithTag("composer_voice_menu").assertCountEquals(0)
     }
 
     @Test
@@ -99,7 +99,9 @@ class VoiceInputTest {
             }
         }
         rule.waitForIdle()
-        rule.onNodeWithTag("composer_voice").performClick()
+        rule.onNodeWithTag("composer_attach").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("composer_voice_menu").performClick()
         rule.runOnIdle { assertTrue(fake.listening) }
         // The recognizer lands a final result mid-listening — draft appends.
         rule.runOnIdle { fake.onFinal?.invoke("fix the login flow") }
@@ -120,7 +122,9 @@ class VoiceInputTest {
             }
         }
         rule.waitForIdle()
-        rule.onNodeWithTag("composer_voice").performClick()
+        rule.onNodeWithTag("composer_attach").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("composer_voice_menu").performClick()
         rule.runOnIdle { fake.onError?.invoke(6 /* ERROR_INSUFFICIENT_PERMISSIONS */) }
         rule.onNodeWithTag("composer_voice_error").assertExists()
     }
@@ -140,7 +144,9 @@ class VoiceInputTest {
         }
         rule.waitForIdle()
         // RED (B2.2): the port's plain getter never recomposed the label/tint.
-        rule.onNodeWithTag("composer_voice").performClick()
+        rule.onNodeWithTag("composer_attach").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("composer_voice_menu").performClick()
         rule.waitForIdle()
         assertExistsFallback("composer_voice_listening")
 
@@ -168,7 +174,9 @@ class VoiceInputTest {
             }
         }
         rule.waitForIdle()
-        rule.onNodeWithTag("composer_voice").performClick()
+        rule.onNodeWithTag("composer_attach").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("composer_voice_menu").performClick()
         rule.waitForIdle()
 
         // The user TYPES while listening (RED: the callback captured the click-time
@@ -199,7 +207,10 @@ class VoiceInputTest {
             }
         }
         rule.waitForIdle()
-        rule.onNodeWithTag("composer_voice").assertExists()
+        // K3: the mic folds into the add-menu — OPEN the menu and expect the item.
+        rule.onNodeWithTag("composer_attach").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("composer_voice_menu").assertExists()
         rule.onAllNodesWithTag("composer_voice_listening").assertCountEquals(0)
     }
 }
