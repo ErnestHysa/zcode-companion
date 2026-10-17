@@ -102,7 +102,13 @@ data class Session(
  * ModelOption / ModeOption (§16) — picker vocabulary; availability is
  * capability/snapshot-declared, never client-guessed (§42 INV-6).
  */
-data class ModelOption(val id: String, val label: String, val available: Boolean = true)
+data class ModelOption(
+    val id: String,
+    val label: String,
+    val available: Boolean = true,
+    /** D4: the desktop picker's `badgeLabel` — a wire-fed display tag, never synthesized. */
+    val badge: String? = null,
+)
 data class ModeOption(val id: String, val label: String, val available: Boolean = true)
 
 /**
