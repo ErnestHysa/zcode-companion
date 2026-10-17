@@ -216,4 +216,11 @@
     <string name="shortcut_approvals_count">审批（%1$d）</string>
     <string name="shortcut_connection">连接</string>
     <string name="shortcut_connection_long">连接状态</string>
+    <string name="mcp_status_connected">已连接</string>
+    <string name="mcp_status_connecting">连接中</string>
+    <string name="mcp_status_disconnected">已断开</string>
+    <string name="mcp_status_failed">失败</string>
+    <string name="mcp_status_untrusted">不受信任</string>
+    <string name="mcp_status_disabled">已停用</string>
+    <string name="mcp_status_unknown">未知</string>
 </resources>

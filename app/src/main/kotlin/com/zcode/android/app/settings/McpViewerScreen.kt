@@ -130,15 +130,38 @@ fun McpViewerScreen(
     }
 }
 
-/** The wire enums are closed sets on the desktop — colors only for the KNOWN faces. */
+/**
+ * M5.4: status COLORS are theme ROLES — the light-weight literal greens/reds computed
+ * ≈3.0–3.5:1 against the dark surface (below AA at 12sp); the designed roles pass in
+ * both themes (J6's computed table). Unknown future values stay neutral — never guessed.
+ */
+@Composable
 private fun statusColor(status: String): Color? = when (status) {
-    "connected" -> Color(0xFF2E7D32)
+    "connected" -> MaterialTheme.colorScheme.primary
     "connecting" -> null // neutral
-    "failed", "untrusted" -> Color(0xFFC62828)
+    "failed", "untrusted" -> MaterialTheme.colorScheme.error
     "disabled" -> null
     "disconnected" -> null
     else -> null // unknown future values stay neutral — never guessed
 }
+
+/**
+ * M5.7: the desktop LOCALIZES these exact enums (`settings.mcp.status.*Reason`) —
+ * the phone rendered them verbatim (zh users got English words). Unknown future
+ * values render raw (INV-8), never guessed copy.
+ */
+@Composable
+private fun mcpStatusLabel(status: String): String = stringResource(
+    when (status) {
+        "connected" -> R.string.mcp_status_connected
+        "connecting" -> R.string.mcp_status_connecting
+        "disconnected" -> R.string.mcp_status_disconnected
+        "failed" -> R.string.mcp_status_failed
+        "untrusted" -> R.string.mcp_status_untrusted
+        "disabled" -> R.string.mcp_status_disabled
+        else -> return status
+    },
+)
 
 @Composable
 private fun McpLine(name: String, s: McpStatuses.McpServerStatus) {
@@ -175,7 +198,7 @@ private fun McpLine(name: String, s: McpStatuses.McpServerStatus) {
         }
         val color = statusColor(s.status)
         Text(
-            s.status,
+            mcpStatusLabel(s.status),
             style = MaterialTheme.typography.labelMedium,
             color = color ?: MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier

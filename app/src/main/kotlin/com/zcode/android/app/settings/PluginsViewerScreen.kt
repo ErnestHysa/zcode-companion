@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
@@ -133,12 +134,22 @@ fun PluginsViewerScreen(
                         }
                         view.diagnostics.forEach { diag ->
                             item(key = diag.code + diag.pluginId) {
-                                Text(
-                                    "⚠ ${diag.code} — ${diag.message}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.padding(vertical = 6.dp).testTag("plugin_diag_${diag.code}"),
-                                )
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Warning,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(end = 6.dp),
+                                    )
+                                    Text(
+                                        "${diag.code} — ${diag.message}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
                             }
                         }
                         item { Spacer(Modifier.height(24.dp)) }
@@ -176,30 +187,29 @@ private fun PluginLine(plugin: PluginsView.PluginInfo) {
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+            // M5.5: the desktop filesystem path FRAGMENT no longer leaks as metadata
+            // (INV-16: paths are the desktop's, not display copy).
             Text(
-                plugin.marketplace + " · " + plugin.rootPath.substringAfterLast('/'),
+                plugin.marketplace,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        // Display-only state chip (§13.3 "enable/disable state DISPLAY") — the
-        // onClick is a no-op and no enabled-write method exists anywhere.
-        AssistChip(
-            onClick = {},
-            enabled = false,
-            label = {
-                Text(
-                    stringResource(if (plugin.enabled) R.string.plugin_on else R.string.plugin_off),
-                    style = MaterialTheme.typography.labelSmall,
-                )
-            },
-            colors = AssistChipDefaults.assistChipColors(
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                disabledLabelColor = if (plugin.enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-            ),
-            modifier = Modifier.testTag("plugin_state_${plugin.id}"),
-        )
+        // M5.5: a TONAL BADGE, not a disabled AssistChip — the state reads "enabled",
+        // never "can't tap" (§13.3: the state is DISPLAY-only, no write method exists).
+        Surface(
+            shape = MaterialTheme.shapes.small,
+            color = if (plugin.enabled) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+            modifier = Modifier.testTag("plugin_state_badge"),
+        ) {
+            Text(
+                stringResource(if (plugin.enabled) R.string.plugin_on else R.string.plugin_off),
+                style = MaterialTheme.typography.labelSmall,
+                color = if (plugin.enabled) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            )
+        }
     }
 }

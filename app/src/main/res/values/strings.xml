@@ -223,4 +223,12 @@
     <string name="shortcut_approvals_count">Approvals (%1$d)</string>
     <string name="shortcut_connection">Connection</string>
     <string name="shortcut_connection_long">Connection status</string>
+    <!-- M5.7 (Phase 3F): the closed MCP statuses localize (desktop settings.mcp.status.*). -->
+    <string name="mcp_status_connected">Connected</string>
+    <string name="mcp_status_connecting">Connecting</string>
+    <string name="mcp_status_disconnected">Disconnected</string>
+    <string name="mcp_status_failed">Failed</string>
+    <string name="mcp_status_untrusted">Untrusted</string>
+    <string name="mcp_status_disabled">Disabled</string>
+    <string name="mcp_status_unknown">Unknown</string>
 </resources>
