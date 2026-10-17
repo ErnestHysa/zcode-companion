@@ -57,12 +57,8 @@ class RelativeNowTest {
         }
         rule.waitForIdle()
         assertEquals(expected, label)
-        // And it is NOT the wall clock's answer (then is ~55 years before "now").
-        var wall: String? = "x"
-        rule.runOnIdle { }
+        // The provided clock (not the wall clock) resolved it: ~55 years ago would be null.
         assertTrue(label != null)
-        wall = null
-        assertEquals(null, wall)
     }
 
     @Test
