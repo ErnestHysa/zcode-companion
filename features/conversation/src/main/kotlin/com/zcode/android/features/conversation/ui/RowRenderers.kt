@@ -878,8 +878,7 @@ private fun MonospaceDetail(label: String, content: String, tag: String? = null)
         Modifier
             .fillMaxWidth()
             .background(LocalZCodeColors.current.codeBg, MaterialTheme.shapes.medium)
-            .padding(8.dp)
-            .then(if (tag != null) Modifier.testTag(tag) else Modifier),
+            .padding(8.dp),
     ) {
         Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(4.dp))
@@ -888,6 +887,7 @@ private fun MonospaceDetail(label: String, content: String, tag: String? = null)
                 text = content,
                 style = MaterialTheme.typography.bodySmall.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
                 color = MaterialTheme.colorScheme.onSurface,
+                modifier = if (tag != null) Modifier.testTag(tag) else Modifier,
             )
         }
     }

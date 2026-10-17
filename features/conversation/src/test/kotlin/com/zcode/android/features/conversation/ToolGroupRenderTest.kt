@@ -3,7 +3,10 @@ package com.zcode.android.features.conversation
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -40,7 +43,7 @@ class ToolGroupRenderTest {
     val rule = createComposeRule()
 
     /** Scrollable host (the reader scrolls; lazy controls can live below the fold). */
-    private fun setContent(content: @Composable () -> Unit) {
+    private fun setContent(content: @androidx.compose.runtime.Composable () -> Unit) {
         rule.setContent {
             ZCodeTheme {
                 Column(Modifier.verticalScroll(rememberScrollState())) { content() }
