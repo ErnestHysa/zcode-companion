@@ -65,6 +65,6 @@ class SettingsViewersPolishTest {
     fun `M5 dot 7 - the label map covers every known face and falls back to the raw value`() {
         assertEquals("已连接 (spot-check zh shape exists)", "mcp_status_connected" /* proven by resources above */, "mcp_status_connected")
         val s = src("app/src/main/kotlin/com/zcode/android/app/settings/McpViewerScreen.kt")
-        assertTrue("unknown future values stay raw (INV-8, never guessed)", "else -> status" in s)
+        assertTrue("unknown future values stay raw (INV-8, never guessed)", "else -> return status" in s)
     }
 }
