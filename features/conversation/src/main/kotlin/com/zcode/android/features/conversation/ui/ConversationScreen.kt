@@ -109,6 +109,8 @@ fun ConversationScreen(
     onEditUserQuery: (rowId: Long, entityId: String, newText: String) -> Unit = { _, _, _ -> },
     // ---- Phase 3C (C7): lazy full tool output (slice first, row payload fallback) ----
     toolOutputProvider: (suspend (ConversationRow.ToolCall) -> String?)? = null,
+    // ---- Phase 3C (I2.2): the session status strip source (git summary; null → no strip) ----
+    sessionStatusProvider: suspend () -> com.zcode.android.domain.model.GitSummary? = { null },
 ) {
     // C6-BackHandler: back with an unsent draft raises a confirm (the promised
     // Phase-7 draft guard). The draft is Room-backed — the guard is the CONFIRMATION
@@ -164,6 +166,7 @@ fun ConversationScreen(
                 onSwitchMode = onSwitchMode,
                 onSwitchModel = onSwitchModel,
                 modelOptionsProvider = modelOptionsProvider,
+                sessionStatusProvider = sessionStatusProvider,
             )
             // Phase 9.1: the per-turn diff viewer (opened from a turnHeader's summary).
             var diffTurn by remember { mutableStateOf<ConversationRow.TurnHeader?>(null) }
@@ -311,6 +314,7 @@ private fun Header(
     onSwitchMode: (String) -> Unit = {},
     onSwitchModel: (provider: String, model: String, thought: String) -> Unit = { _, _, _ -> },
     modelOptionsProvider: suspend () -> List<com.zcode.android.domain.model.ModelProviderOption> = { emptyList() },
+    sessionStatusProvider: suspend () -> com.zcode.android.domain.model.GitSummary? = { null },
 ) {
     Column {
         ZCodeTopBar(
@@ -347,6 +351,18 @@ private fun Header(
                 modifier = Modifier.weight(1f, fill = true),
             )
         }
+        // I2.2: branch · clean/changes · agents — from the git summary channel + the
+        // timeline's running subagents; refused/not-a-repository → honest absence.
+        val sessionStatus by androidx.compose.runtime.produceState<com.zcode.android.domain.model.GitSummary?>(
+            initialValue = null,
+        ) {
+            value = runCatching { sessionStatusProvider() }.getOrNull()
+        }
+        SessionStatusStrip(
+            summary = sessionStatus,
+            runningAgents = countRunningAgents(state.rows),
+            modifier = Modifier.padding(horizontal = 8.dp),
+        )
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),

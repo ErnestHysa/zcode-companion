@@ -485,6 +485,11 @@ private fun ConversationRoute(
         toolOutputProvider = { row ->
             state.task?.taskId?.let { container.conversationPort.fetchToolCallOutput(it, row.toolCallId) }
         },
+        // Phase 3C (I2.2): the status strip rides the git summary channel for this workspace.
+        sessionStatusProvider = label@{
+            val target = container.hub.activeWorkspaceTarget() ?: return@label null
+            target.first?.let { ws -> runCatching { container.hub.phase9().gitSummary(ws) }.getOrNull() }
+        },
         // Phase 9 (§43.2-9)
         onOpenFiles = onOpenFiles,
         onOpenGit = onOpenGit,

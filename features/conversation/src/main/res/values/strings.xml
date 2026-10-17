@@ -218,6 +218,13 @@
     <string name="tool_show_full_output">Show full output</string>
     <string name="tool_loading_full_output">Loading full output…</string>
     <string name="tool_full_output_label">full output</string>
+    <!-- I2.2 (Phase 3C): the session status strip (desktop chat.statusPanel.*). -->
+    <string name="session_status_clean">clean</string>
+    <string name="session_status_dirty">uncommitted changes</string>
+    <plurals name="session_status_agents">
+        <item quantity="one">%d agent running</item>
+        <item quantity="other">%d agents running</item>
+    </plurals>
     <string name="composer_mode_echo">mode: %1$s</string>
     <string name="row_diff_empty_file">no textual diff recorded for this file</string>
 </resources>

@@ -395,45 +395,61 @@ fun TurnSeparator(
     modifier: Modifier = Modifier,
     onOpenChanges: () -> Unit = {},
 ) {
-    Column(modifier = modifier.fillMaxWidth().padding(vertical = 8.dp).testTag("row_turn")) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.width(20.dp).height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
-            Spacer(Modifier.width(8.dp))
-            val fc = row.fileChanges
-            val bits = buildList {
-                add(stringResource(R.string.row_turn))
-                val activeMs = row.activeMs
-                if (activeMs != null && activeMs > 0) add("${activeMs / 1000}s")
-            }
-            Text(
-                text = bits.joinToString(" · "),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            if (fc != null && fc.files > 0) {
+    // I2.1: a turn that changed files renders as the change summary CARD (desktop
+    // chat.changeSummary.*); quiet turns keep the bare separator.
+    val hasChanges = (row.fileChanges?.files ?: 0) > 0
+    val body: @Composable (Modifier) -> Unit = { m ->
+        Column(modifier = m.testTag("row_turn")) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.width(20.dp).height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
                 Spacer(Modifier.width(8.dp))
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = MaterialTheme.shapes.medium,
-                    modifier = Modifier
-                        .testTag("row_turn_changes")
-                        .minRowTouchTarget()
-                        .clickable(role = Role.Button) { onOpenChanges() },
-                ) {
-                    Text(
-                        text = stringResource(
-                            R.string.row_turn_changes,
-                            pluralStringResource(R.plurals.row_files_count, fc.files.toInt(), fc.files.toInt()),
-                            fc.additions,
-                            fc.deletions,
-                        ),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                    )
+                val fc = row.fileChanges
+                val bits = buildList {
+                    add(stringResource(R.string.row_turn))
+                    val activeMs = row.activeMs
+                    if (activeMs != null && activeMs > 0) add("${activeMs / 1000}s")
+                }
+                Text(
+                    text = bits.joinToString(" · "),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (fc != null && fc.files > 0) {
+                    Spacer(Modifier.width(8.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier
+                            .testTag("row_turn_changes")
+                            .minRowTouchTarget()
+                            .clickable(role = Role.Button) { onOpenChanges() },
+                    ) {
+                        Text(
+                            text = stringResource(
+                                R.string.row_turn_changes,
+                                pluralStringResource(R.plurals.row_files_count, fc.files.toInt(), fc.files.toInt()),
+                                fc.additions,
+                                fc.deletions,
+                            ),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        )
+                    }
                 }
             }
         }
+    }
+    if (hasChanges) {
+        androidx.compose.foundation.layout.Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.shapes.medium)
+                .padding(12.dp)
+                .testTag("row_turn_card"),
+        ) { body(Modifier.fillMaxWidth()) }
+    } else {
+        body(modifier.fillMaxWidth().padding(vertical = 8.dp))
     }
 }
 
