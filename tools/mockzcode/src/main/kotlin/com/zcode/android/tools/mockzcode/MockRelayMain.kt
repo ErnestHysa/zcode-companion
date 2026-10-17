@@ -245,19 +245,43 @@ fun main() {
     exitProcess(0)
 }
 
-private fun provider(id: String, name: String, models: List<String>): JsonObject = JsonObject(
-    mapOf(
-        "providerId" to JsonPrimitive(id),
-        "providerName" to JsonPrimitive(name),
-        "models" to JsonArray(models.map { JsonObject(mapOf("modelId" to JsonPrimitive(it))) }),
-    ),
+/**
+ * D4 (Phase 3A): the shipped view's `{modelId, config}` rows may carry the desktop
+ * picker's badge fields — `config.badgeLabel` per model, `labelBadge` per provider
+ * group. The default selection scripts one of each so the rig renders the badge slot.
+ */
+private fun provider(
+    id: String,
+    name: String,
+    models: List<String>,
+    badge: String? = null,
+    modelBadges: Map<String, String> = emptyMap(),
+): JsonObject = JsonObject(
+    buildMap {
+        put("providerId", JsonPrimitive(id))
+        put("providerName", JsonPrimitive(name))
+        badge?.let { put("labelBadge", JsonPrimitive(it)) }
+        put(
+            "models",
+            JsonArray(
+                models.map { m ->
+                    JsonObject(
+                        buildMap {
+                            put("modelId", JsonPrimitive(m))
+                            modelBadges[m]?.let { put("config", JsonObject(mapOf("badgeLabel" to JsonPrimitive(it)))) }
+                        },
+                    )
+                },
+            ),
+        )
+    },
 )
 
 private fun defaultModelSelection(): JsonObject = JsonObject(
     mapOf(
         "providers" to JsonArray(
             listOf(
-                provider("zai", "Z.ai", listOf("glm-5.1", "glm-5.1-air", "glm-5.1-flash")),
+                provider("zai", "Z.ai", listOf("glm-5.1", "glm-5.1-air", "glm-5.1-flash"), badge = "Default", modelBadges = mapOf("glm-5.1-flash" to "Preview")),
                 provider("openai-compat", "OpenAI-compatible", listOf("glm-4.6")),
             ),
         ),

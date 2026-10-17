@@ -273,7 +273,12 @@ class Phase9Tools(private val transport: AppTransport) {
 
     // ---------------------------------------------------------------- model picker (9.5)
 
-    /** `model-selection.getView()` → provider/model options (graceful on refusal). */
+    /**
+     * `model-selection.getView()` → provider/model options (graceful on refusal).
+     * D4 (Phase 3A): the desktop picker's badge/display fields ride along when present —
+     * provider `labelBadge`, model `config.badgeLabel` / `config.label` — tolerant (INV-8):
+     * absent → null/modelId, never synthesized.
+     */
     suspend fun modelOptions(): List<ModelProviderOption> {
         val o = transport.modelSelectionView()
         val providers = o["providers"] as? JsonArray ?: return emptyList()
@@ -281,12 +286,20 @@ class Phase9Tools(private val transport: AppTransport) {
             val p = el as? JsonObject ?: return@mapNotNull null
             val providerId = p.strOrNull("providerId") ?: return@mapNotNull null
             val models = (p["models"] as? JsonArray)?.mapNotNull { m ->
-                (m as? JsonObject)?.strOrNull("modelId")
+                val mo = m as? JsonObject ?: return@mapNotNull null
+                val modelId = mo.strOrNull("modelId") ?: return@mapNotNull null
+                val config = mo["config"] as? JsonObject
+                ModelOption(
+                    id = modelId,
+                    label = config?.strOrNull("label") ?: config?.strOrNull("displayName") ?: mo.strOrNull("label") ?: modelId,
+                    badge = mo.strOrNull("badgeLabel") ?: config?.strOrNull("badgeLabel"),
+                )
             } ?: emptyList()
             ModelProviderOption(
                 providerId = providerId,
                 providerName = p.strOrNull("providerName"),
-                models = models.map { ModelOption(id = it, label = it) },
+                models = models,
+                badge = p.strOrNull("labelBadge") ?: p.strOrNull("badgeLabel"),
             )
         }
     }
