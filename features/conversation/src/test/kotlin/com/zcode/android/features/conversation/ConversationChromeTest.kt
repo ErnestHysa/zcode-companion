@@ -1,6 +1,7 @@
 package com.zcode.android.features.conversation
 
 import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
@@ -55,7 +56,7 @@ class ConversationChromeTest {
 
     // ------------------------------------------------------------------ B2.12 strip budget
 
-    private fun strip(i: Int): @Composable () -> Unit = {
+    private fun strip(i: Int): @androidx.compose.runtime.Composable () -> Unit = {
         Text("strip $i", modifier = Modifier.testTag("strip_$i"))
     }
 
