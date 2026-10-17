@@ -37,7 +37,8 @@ class MarkdownParseCacheTest {
         val cache = MarkdownParseCache()
         cache.parse("$a\n\n$b\n\nStreaming par")
         val afterFirst = cache.parseCalls
-        assertEquals(3, afterFirst)
+        // `a` itself holds a blank line → heading, paragraph, the list, the live tail = 4 segments.
+        assertEquals(4, afterFirst)
         cache.parse("$a\n\n$b\n\nStreaming paragraph grows")
         assertEquals("only the tail re-parses", afterFirst + 1, cache.parseCalls)
         cache.parse("$a\n\n$b\n\nStreaming paragraph grows more")
@@ -83,7 +84,7 @@ class MarkdownParseCacheTest {
         rule.setContent { ZCodeTheme { MarkdownText(text = text, cache = cache) } }
         rule.waitForIdle()
         val first = cache.parseCalls
-        assertEquals(3, first)
+        assertEquals(4, first)
         text = "$a\n\n$b\n\nStreaming more"
         rule.waitForIdle()
         assertEquals(first + 1, cache.parseCalls)

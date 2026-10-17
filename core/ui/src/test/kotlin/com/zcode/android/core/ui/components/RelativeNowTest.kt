@@ -47,13 +47,22 @@ class RelativeNowTest {
     @Test
     fun `relativeTimeLabelLive reads the provided clock, not the wall clock`() {
         var label: String? = "unset"
+        var expected: String? = "other"
+        val then = 1_000_000L - 3 * 60_000L
         rule.setContent {
             androidx.compose.runtime.CompositionLocalProvider(LocalRelativeNow provides 1_000_000L) {
-                label = relativeTimeLabelLive(1_000_000L - 3 * 60_000L)
+                label = relativeTimeLabelLive(then)
+                expected = relativeTimeLabel(then, 1_000_000L)
             }
         }
         rule.waitForIdle()
-        assertEquals(relativeTimeLabel(1_000_000L - 3 * 60_000L, 1_000_000L), label)
+        assertEquals(expected, label)
+        // And it is NOT the wall clock's answer (then is ~55 years before "now").
+        var wall: String? = "x"
+        rule.runOnIdle { }
+        assertTrue(label != null)
+        wall = null
+        assertEquals(null, wall)
     }
 
     @Test
