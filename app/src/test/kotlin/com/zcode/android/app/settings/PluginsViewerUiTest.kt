@@ -53,12 +53,12 @@ class PluginsViewerUiTest {
         rule.setContent { ZCodeTheme { PluginsViewerScreen(port = fakePort(fixtureView("plugins-list-mixed"))) } }
         rule.onNodeWithTag("plugins_list").assertIsDisplayed()
         rule.onNodeWithTag("plugin_row_com.example.commit-aid").assertExists()
-        rule.onAllNodesWithText("commit-aid", substring = true).assertCountEquals(2) // title + marketplace line
+        rule.onAllNodesWithText("commit-aid", substring = true).assertCountEquals(1) // title only — M5.5 dropped the marketplace·path metadata line
         rule.onAllNodesWithText("1.4.0", substring = true).assertCountEquals(1)
         rule.onNodeWithTag("plugin_row_builtin.core").assertExists()
         // The disable STATE renders (text tag carries enabled/disabled vocabulary).
-        rule.onNodeWithTag("plugin_state_com.example.commit-aid").assertExists()
-        rule.onNodeWithTag("plugin_state_builtin.core").assertExists()
+        rule.onAllNodesWithTag("plugin_state_badge").assertCountEquals(2) // M5.5: one tonal badge per row
+        
         // NO write affordance (Deferred scope): no install/uninstall/update targets.
         listOf("plugin_install", "plugin_uninstall", "plugin_update", "plugin_enable", "plugin_configure")
             .forEach { tag -> rule.onAllNodesWithTag(tag).assertCountEquals(0) }

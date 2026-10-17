@@ -11,15 +11,15 @@
     "usage-quota (ADR-020/Phase 4), automation-types (Phase 3), the builtin slash",
     "catalog with /compact + /goal mapped to v4 commands (Phase 2), the task-mode",
     "vocabulary (Phase 1 GAP-17), and the PROTOCOL_V4_LIMITS transport geometry.",
-    "usage-stats.ts (the desktop monitor plane) is deliberately NOT consumed \u2014",
+    "usage-stats.ts (the desktop monitor plane) is deliberately NOT consumed —",
     "the phone reads the agent-DB usage aggregate instead (Phase 3 GAP-5 note).",
     "Desktop ServiceChannels are desktop-internal IPC names: tracked, not consumed.",
     "Phase 2H (gaps-and-polish): 'facade' maps the desktop remote-facade methods the app calls",
-    "(the v4 ports) \u2014 their removal classifies BREAKING in the bundle sensor leg.",
+    "(the v4 ports) — their removal classifies BREAKING in the bundle sensor leg.",
     "Phase 2H cross-check note: 11 consumed names (applyAgentPatch, cancelBackgroundWork, cancelWorkflowRun,",
     "clearTaskUnreadIfMatches, createSelectionSideSession, deleteSession, getAgentSessionEvents, getTaskState,",
     "renameSession, sendGoalCommand, sendText) are NOT matched by the shipped-bundle extractors (phone-side port",
-    "names for desktop-shaped methods) \u2014 the sensor is blind to their removal until the extractor gains their",
+    "names for desktop-shaped methods) — the sensor is blind to their removal until the extractor gains their",
     "registration shape. Recorded, not silently absorbed."
   ],
   "consumed": {
@@ -100,6 +100,7 @@
     "subscribeConversationV4": true,
     "uninstallPlugin": true,
     "updateAutomation": true,
-    "updatePlugin": true
+    "updatePlugin": true,
+    "getTaskSnapshotToolCallsSlice": true
   }
 }
