@@ -435,7 +435,7 @@ internal fun CreateTaskSheet(
 
 /** "Approval first" (§18.3): the inbox entry with a live "needs you" count badge. */
 @Composable
-private fun ApprovalsBellAction(
+internal fun ApprovalsBellAction(
     openApprovals: Int,
     onOpenApprovals: () -> Unit,
 ) {
