@@ -26,7 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.zcode.android.features.conversation.R
 import androidx.compose.ui.res.stringResource
-import com.zcode.android.core.ui.components.relativeTimeLabel
+import com.zcode.android.core.ui.components.relativeTimeLabelLive
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.zcode.android.features.conversation.port.ConversationPort
@@ -157,7 +157,7 @@ fun ApprovalsScreen(
                                     ?: record.sessionId?.take(16)
                                     ?: "?"
                                 Text(
-                                    text = stringResource(R.string.approvals_task_ref, taskRef, relativeTimeLabel(record.createdAtMs) ?: ""),
+                                    text = stringResource(R.string.approvals_task_ref, taskRef, relativeTimeLabelLive(record.createdAtMs) ?: ""),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontFamily = if (record.taskTitle.isNullOrBlank()) FontFamily.Monospace else FontFamily.Default,

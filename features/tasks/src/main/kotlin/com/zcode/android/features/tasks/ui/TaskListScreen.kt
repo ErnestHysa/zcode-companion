@@ -52,7 +52,7 @@ import com.zcode.android.core.ui.components.ConnectionStatusLine
 import com.zcode.android.core.ui.components.SkeletonBar
 import com.zcode.android.features.tasks.R
 import com.zcode.android.core.ui.components.errorUserMessage
-import com.zcode.android.core.ui.components.relativeTimeLabel
+import com.zcode.android.core.ui.components.relativeTimeLabelLive
 import com.zcode.android.core.ui.components.taskStatusGlyph
 import com.zcode.android.core.ui.components.taskStatusLabel
 import androidx.compose.ui.res.stringResource
@@ -648,7 +648,7 @@ fun TaskRow(task: Task, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val label = taskStatusLabel(task.status)
     val glyph = taskStatusGlyph(task.status)
     val tone = taskStatusTone(task.status)
-    val time = relativeTimeLabel(task.updatedAtMs)
+    val time = relativeTimeLabelLive(task.updatedAtMs)
     val meta = listOfNotNull(task.workspaceLabel ?: task.workspace.raw.substringAfterLast('/').ifBlank { null }, time)
         .joinToString(" · ")
     Row(

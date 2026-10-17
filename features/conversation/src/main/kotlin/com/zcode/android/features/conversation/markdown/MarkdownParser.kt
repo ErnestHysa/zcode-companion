@@ -159,6 +159,34 @@ object MarkdownParser {
     private val RULE = Regex("^(?:-{3,}|\\*{3,}|_{3,})\\s*$")
     private val ALIGN_CELL = Regex("^:?-+:?$")
 
+    /**
+     * B2.15: blank-line segments, never split inside a fence. No block spans a blank line
+     * outside a fence, so `parse(text) == segments(text).flatMap(parse)` — the memo key
+     * for [MarkdownParseCache]. An unclosed fence runs to the end as one live segment.
+     */
+    fun segments(src: String): List<String> {
+        val out = ArrayList<String>()
+        val cur = ArrayList<String>()
+        var inFence = false
+        for (line in src.lines()) {
+            if (line.startsWith("```")) {
+                inFence = !inFence
+                cur.add(line)
+                continue
+            }
+            if (!inFence && line.isBlank()) {
+                if (cur.isNotEmpty()) {
+                    out.add(cur.joinToString("\n"))
+                    cur.clear()
+                }
+                continue
+            }
+            cur.add(line)
+        }
+        if (cur.isNotEmpty()) out.add(cur.joinToString("\n"))
+        return out
+    }
+
     /** Indentation → nesting level: two spaces or one tab per level, clamped. */
     private fun indentLevel(line: String): Int {
         var spaces = 0

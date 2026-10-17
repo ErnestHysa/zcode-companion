@@ -31,7 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.zcode.android.app.R
 import com.zcode.android.core.ui.components.StatusTone
 import com.zcode.android.core.ui.components.errorUserMessage
-import com.zcode.android.core.ui.components.relativeTimeLabel
+import com.zcode.android.core.ui.components.relativeTimeLabelLive
 import com.zcode.android.core.ui.components.toneColor
 import com.zcode.android.domain.state.ConnectionPhase
 import androidx.compose.material3.Scaffold
@@ -245,7 +245,7 @@ fun ConnectionCenterScreen(
                     Text(stringResource(R.string.conn_update_check_manual))
                 }
                 lastRefreshAtMs?.let {
-                    val ago = relativeTimeLabel(it)
+                    val ago = relativeTimeLabelLive(it)
                     if (ago != null) {
                         Text(
                             text = stringResource(R.string.conn_last_refreshed, ago),

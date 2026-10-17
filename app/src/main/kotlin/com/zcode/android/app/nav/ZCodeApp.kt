@@ -221,6 +221,8 @@ fun ZCodeApp(
             androidx.compose.runtime.CompositionLocalProvider(
                 com.zcode.android.core.ui.components.LocalNotifier provides notifier,
             ) {
+    // B2.15/J4: ONE ticking clock for every relative-time label in the app.
+    com.zcode.android.core.ui.components.ProvideRelativeNow {
     NavHost(
         navController = nav,
         startDestination = if (paired != null) Routes.TASKS else Routes.PAIRING,
@@ -334,6 +336,7 @@ fun ZCodeApp(
             )
         }
 
+    }
     }
             }
         }

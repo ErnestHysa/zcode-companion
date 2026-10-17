@@ -34,7 +34,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.zcode.android.core.ui.components.relativeTimeLabel
+import com.zcode.android.core.ui.components.relativeTimeLabelLive
 import com.zcode.android.domain.model.AutomationRow
 import com.zcode.android.domain.model.OffPeakTaskRow
 import com.zcode.android.features.tasks.R
@@ -467,7 +467,7 @@ private fun AutomationLine(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 a.nextRunAt?.let { next ->
                     Text(
-                        stringResource(R.string.automation_next_run, relativeTimeLabel(next) ?: ""),
+                        stringResource(R.string.automation_next_run, relativeTimeLabelLive(next) ?: ""),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -550,7 +550,7 @@ private fun OffPeakLine(t: OffPeakTaskRow) {
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                relativeTimeLabel(t.createdAt) ?: "",
+                relativeTimeLabelLive(t.createdAt) ?: "",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

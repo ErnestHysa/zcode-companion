@@ -542,10 +542,19 @@ private fun highlightedCode(code: String, lang: String?): AnnotatedString {
     }
 }
 
-/** Markdown renderer over the bounded parser (ADR-015); spans are style-only. */
+/**
+ * Markdown renderer over the bounded parser (ADR-015); spans are style-only.
+ * B2.15: the parse is memoized per blank-line segment in ONE [MarkdownParseCache] per
+ * row — a streamed delta re-parses only the segment it touched, not the whole message.
+ */
 @Composable
-fun MarkdownText(text: String, modifier: Modifier = Modifier) {
-    val blocks = remember(text) { MarkdownParser.parse(text) }
+fun MarkdownText(
+    text: String,
+    modifier: Modifier = Modifier,
+    cache: com.zcode.android.features.conversation.markdown.MarkdownParseCache =
+        remember { com.zcode.android.features.conversation.markdown.MarkdownParseCache() },
+) {
+    val blocks = remember(text, cache) { cache.parse(text) }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         var listIndex = 0
         blocks.forEach { block ->
@@ -793,8 +802,10 @@ private fun CopyIconButton(text: String, tag: String) {
 private fun RowTimeLabel(createdAtMs: Double?, tag: String) {
     if (createdAtMs == null) return
     val yesterday = stringResource(com.zcode.android.core.ui.R.string.relative_yesterday)
-    val label = remember(createdAtMs, yesterday) {
-        messageTimeLabel(createdAtMs, System.currentTimeMillis(), yesterdayWord = yesterday)
+    // B2.15/J4: keyed on the ticking clock so "2 min ago" becomes "3 min ago" unprompted.
+    val now = com.zcode.android.core.ui.components.LocalRelativeNow.current
+    val label = remember(createdAtMs, yesterday, now) {
+        messageTimeLabel(createdAtMs, now, yesterdayWord = yesterday)
     } ?: return
     Spacer(Modifier.width(8.dp))
     Text(
