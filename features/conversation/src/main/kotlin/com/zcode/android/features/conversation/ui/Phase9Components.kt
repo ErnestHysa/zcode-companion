@@ -1,16 +1,9 @@
 package com.zcode.android.features.conversation.ui
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -22,12 +15,10 @@ import androidx.compose.material.icons.filled.PanTool
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -40,19 +31,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.zcode.android.core.ui.components.DiffViewerContent
 import com.zcode.android.domain.model.ModelProviderOption
 import com.zcode.android.domain.model.SessionConfigState
 import com.zcode.android.domain.model.TurnFileChanges
 import com.zcode.android.features.conversation.port.ConversationPort
-import com.zcode.android.core.ui.components.rememberZCodeHaptics
-import com.zcode.android.core.ui.components.ZCodeModalBottomSheet
 
 /**
  * Phase 9 conversation affordances (§43.2-9): model/mode switch chips (9.5),
@@ -65,6 +52,10 @@ import com.zcode.android.core.ui.components.ZCodeModalBottomSheet
  * FIELD (2026-10-12): a STANDALONE model picker for surfaces without a live
  * SessionConfigState (the new-task composer) — same provider/model options as the
  * conversation picker, onPick carries (provider, model) only.
+ *
+ * B1 (Phase 3A): a thin entry point over the ONE shared [ModelPickerSheet] — no
+ * thought step here (the new session has no runtime-projected level set yet), so
+ * every row is a one-tap pick; the composer's own row tags are preserved.
  */
 @Composable
 fun ComposerModelPickerDialog(
@@ -74,71 +65,19 @@ fun ComposerModelPickerDialog(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val haptics = rememberZCodeHaptics()
-    val providers by produceState<List<ModelProviderOption>?>(initialValue = null) {
-        value = runCatching { modelOptionsProvider() }.getOrDefault(emptyList())
-    }
-    // B3-sheets: the model picker is a bottom sheet (create-task keeps ONE dialog).
-    ZCodeModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier) {
-        Text(
-            stringResource(R.string.composer_model_picker_title),
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .testTag("composer_model_picker_title"),
-        )
-        when (val list = providers) {
-            null -> Row(
-                Modifier.fillMaxWidth().padding(16.dp),
-                horizontalArrangement = Arrangement.Center,
-            ) { CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) }
-            // E9: an empty list rendered a completely EMPTY body — an honest
-            // unavailable state instead.
-            emptyList<ModelProviderOption>() -> Text(
-                stringResource(R.string.composer_model_picker_empty),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .testTag("composer_model_picker_empty"),
-            )
-            else -> Column(
-                Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 420.dp)
-                    .verticalScroll(rememberScrollState()),
-            ) {
-                for (provider in list) {
-                    Text(
-                        provider.providerName ?: provider.providerId,
-                        style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier.padding(vertical = 4.dp),
-                    )
-                    for (model in provider.models) {
-                        val selected = current?.first == provider.providerId && current?.second == model.id
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    haptics.tick()
-                                    onPick(provider.providerId, model.id)
-                                    onDismiss()
-                                }
-                                .padding(horizontal = 8.dp, vertical = 8.dp)
-                                .testTag("composer_model_row_${model.id}"),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            RadioButton(selected = selected, onClick = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text(model.label, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                        }
-                    }
-                }
-            }
-        }
-        Spacer(Modifier.height(12.dp))
-    }
+    ModelPickerSheet(
+        current = current,
+        currentThought = null,
+        thoughtLevels = emptyList(),
+        modelOptionsProvider = modelOptionsProvider,
+        onPick = { provider, model, _ -> onPick(provider, model) },
+        onDismiss = onDismiss,
+        modifier = modifier,
+        title = stringResource(R.string.composer_model_picker_title),
+        rowTagPrefix = "composer_model_row_",
+        titleTag = "composer_model_picker_title",
+        emptyTag = "composer_model_picker_empty",
+    )
 }
 
 /** §10.3 echo-reconciled config chips: current mode + model, tap → verified options. */
@@ -293,6 +232,12 @@ private fun modeDescription(mode: String): String = stringResource(
     },
 )
 
+/**
+ * The conversation-side entry point (the header model chip) over the ONE shared
+ * [ModelPickerSheet]. B1/G2: the pending highlight is the sheet's LOCAL state (never
+ * `config` — the echo only supplies the starting point) and the thought step is
+ * attached to the tapped row; the switch itself still rides the §10.3 CAS command.
+ */
 @Composable
 private fun ModelPickerDialog(
     config: SessionConfigState,
@@ -300,93 +245,15 @@ private fun ModelPickerDialog(
     onPick: (provider: String, model: String, thought: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val providers by produceState<List<ModelProviderOption>?>(initialValue = null) {
-        value = runCatching { modelOptionsProvider() }.getOrDefault(emptyList())
-    }
-    var thoughtMenuFor by remember { mutableStateOf<Pair<String, String>?>(null) } // provider to model
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) } },
-        title = { Text(stringResource(R.string.switch_model_title), style = MaterialTheme.typography.titleSmall) },
-        text = {
-            Column(Modifier.verticalScroll(rememberScrollState())) {
-                when {
-                    providers == null -> Text(stringResource(R.string.switch_loading), style = MaterialTheme.typography.bodySmall)
-                    providers!!.isEmpty() -> Column {
-                        Text(
-                            stringResource(R.string.switch_unavailable),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        TextButton(onClick = { onPick(config.provider, config.model, config.thought) }) {
-                            Text(stringResource(R.string.switch_keep_current))
-                        }
-                    }
-                    else -> {
-                        // GAP-18: desktop model-picker parity (ModelConfigSelect.tsx) —
-                        // provider GROUP headers, a radio check on the active model,
-                        // disabled (inert, dimmed) rows for unavailable entries. Same
-                        // options, same two-step pick → thought-level flow, same wire call.
-                        for (provider in providers!!) {
-                            Text(
-                                (provider.providerName ?: provider.providerId).uppercase(),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier
-                                    .padding(top = 8.dp)
-                                    .testTag("model_provider_${provider.providerId}"),
-                            )
-                            for (model in provider.models) {
-                                val selected = provider.providerId == config.provider && model.id == config.model
-                                androidx.compose.material3.ListItem(
-                                    headlineContent = {
-                                        Text(
-                                            model.label,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            maxLines = 1,
-                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                        )
-                                    },
-                                    trailingContent = {
-                                        androidx.compose.material3.RadioButton(selected = selected, onClick = null)
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .selectable(
-                                            selected = selected,
-                                            enabled = model.available,
-                                            role = androidx.compose.ui.semantics.Role.RadioButton,
-                                        ) {
-                                            thoughtMenuFor = provider.providerId to model.id
-                                        }
-                                        .alpha(if (model.available) 1f else 0.38f)
-                                        .testTag("model_option_${model.id}"),
-                                )
-                            }
-                        }
-                        thoughtMenuFor?.let { (providerId, modelId) ->
-                            Text(
-                                stringResource(R.string.thought_level_for, modelId),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(top = 10.dp),
-                            )
-                            val levels = config.thoughtLevels.ifEmpty { listOf(config.thought) }
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                for (level in levels) {
-                                    AssistChip(
-                                        onClick = { onPick(providerId, modelId, level) },
-                                        label = { Text(if (level == config.thought) "• $level" else level) },
-                                        modifier = Modifier.testTag("thought_option_$level"),
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
+    ModelPickerSheet(
+        current = config.provider to config.model,
+        currentThought = config.thought,
+        thoughtLevels = config.thoughtLevels,
+        modelOptionsProvider = modelOptionsProvider,
+        onPick = { provider, model, thought -> onPick(provider, model, thought ?: config.thought) },
+        onDismiss = onDismiss,
+        title = stringResource(R.string.switch_model_title),
+        keepCurrentOnEmpty = true,
     )
 }
 

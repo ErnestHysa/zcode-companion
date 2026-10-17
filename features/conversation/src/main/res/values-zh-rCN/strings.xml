@@ -102,6 +102,10 @@
     <string name="switch_unavailable">此连接上模型列表不可用 — 仍可在已知配置值之间切换。</string>
     <string name="switch_keep_current">保留当前模型</string>
     <string name="thought_level_for">%1$s 的思考档位</string>
+    <string name="model_picker_search_hint">搜索模型</string>
+    <string name="model_picker_current">当前</string>
+    <string name="model_picker_no_results">没有与“%1$s”匹配的模型</string>
+    <string name="model_picker_effort_caption">选择思考档位</string>
     <string name="changes_title">变更 · %1$s</string>
     <string name="changes_loading">正在加载变更…</string>
     <string name="changes_error">无法加载变更：%1$s</string>

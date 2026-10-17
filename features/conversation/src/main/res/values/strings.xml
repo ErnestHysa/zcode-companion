@@ -117,6 +117,11 @@
     <string name="switch_unavailable">The model list is not available on this connection — switching between known configuration values is still possible.</string>
     <string name="switch_keep_current">Keep current model</string>
     <string name="thought_level_for">Thought level for %1$s</string>
+    <!-- B1+D4 (Phase 3A): the one shared model picker sheet. -->
+    <string name="model_picker_search_hint">Search models</string>
+    <string name="model_picker_current">Current</string>
+    <string name="model_picker_no_results">No models match “%1$s”</string>
+    <string name="model_picker_effort_caption">Choose an effort level</string>
     <string name="changes_title">Changes · %1$s</string>
     <string name="changes_loading">Loading changes…</string>
     <string name="changes_error">Could not load changes: %1$s</string>
