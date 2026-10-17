@@ -113,10 +113,10 @@ class ToolGroupingTest {
     fun `group ui model counts files for changes and durations for all`() {
         val changes = ToolGroupUi.of(listOf(tool(1, "Write", file = "/a.kt"), tool(2, "Edit", file = "/a.kt"), tool(3, "Edit", file = "/b.kt")))
         assertEquals(2, changes.fileCount)
-        assertEquals(3.0, changes.durationSeconds, 0.001)
+        assertEquals(3.0, changes.durationSeconds!!, 0.001)
         val explore = ToolGroupUi.of(listOf(tool(1, "Grep"), tool(2, "Grep")))
         assertNull(explore.fileCount)
-        assertEquals(2.0, explore.durationSeconds, 0.001)
+        assertEquals(2.0, explore.durationSeconds!!, 0.001)
         val noTimes = ToolGroupUi.of(listOf(tool(1, "Bash", started = null, ended = null)))
         assertNull(noTimes.durationSeconds)
     }

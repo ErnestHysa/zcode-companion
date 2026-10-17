@@ -168,7 +168,7 @@ interface ConversationPort {
      * facade has a body; null means "no slice" and the caller renders the row's own
      * retained payload (3.14.5.7961 ships the slice as a `return null` stub).
      */
-    suspend fun fetchToolCallOutput(taskId: String, toolCallId: String): String?
+    suspend fun fetchToolCallOutput(taskId: String, toolCallId: String): String? = null
 
     data class TurnChangesResult(
         val changes: com.zcode.android.domain.model.TurnFileChanges?,
