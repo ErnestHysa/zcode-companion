@@ -26,6 +26,7 @@
     <string name="approvals_open_task">打开任务回答</string>
     <string name="approvals_deny_title">拒绝此请求？</string>
     <string name="approvals_deny_body">智能体会被告知此请求被拒绝（%1$s）。</string>
+    <string name="approvals_deny_preview">请求：%1$s</string>
 
     <string name="approval_needed">需要批准</string>
     <string name="approval_refine_hint">改进说明（必填）</string>

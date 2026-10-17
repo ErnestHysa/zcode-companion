@@ -150,12 +150,37 @@ fun ApprovalsScreen(
                                     text = if (isPermission) stringResource(R.string.approvals_permission, record.toolName ?: stringResource(R.string.tool_fallback)) else stringResource(R.string.approvals_question),
                                     style = MaterialTheme.typography.labelLarge,
                                 )
+                                // K4: name the TASK (resolved from the task store by
+                                // sessionId); the raw session prefix is the fallback and a
+                                // bare "?" only the last resort — live "task ? · 4 min ago".
+                                val taskRef = record.taskTitle?.takeIf { it.isNotBlank() }
+                                    ?: record.sessionId?.take(16)
+                                    ?: "?"
                                 Text(
-                                    text = stringResource(R.string.approvals_task_ref, record.sessionId?.take(16) ?: "?", relativeTimeLabel(record.createdAtMs) ?: ""),
+                                    text = stringResource(R.string.approvals_task_ref, taskRef, relativeTimeLabel(record.createdAtMs) ?: ""),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontFamily = FontFamily.Monospace,
+                                    fontFamily = if (record.taskTitle.isNullOrBlank()) FontFamily.Monospace else FontFamily.Default,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                    modifier = Modifier.testTag("approvals_task_ref_${record.interactionId}"),
                                 )
+                                // L3: the one-line command/file preview — the decision is
+                                // never made blind (desktop parity: notification.command).
+                                record.preview?.takeIf { it.isNotBlank() }?.let { preview ->
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        text = preview,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .testTag("approvals_preview_${record.interactionId}"),
+                                    )
+                                }
                                 Spacer(Modifier.height(8.dp))
                                 // B2.3: weighted + spaced — the unweighted Row sat FLUSH
                                 // (dead Spacer(0), discarded PaddingValues) and the Deny
@@ -216,7 +241,23 @@ fun ApprovalsScreen(
         AlertDialog(
             onDismissRequest = { denyTarget = null },
             title = { Text(stringResource(R.string.approvals_deny_title)) },
-            text = { Text(stringResource(R.string.approvals_deny_body, target.toolName ?: stringResource(R.string.tool_fallback))) },
+            text = {
+                Column {
+                    Text(stringResource(R.string.approvals_deny_body, target.toolName ?: stringResource(R.string.tool_fallback)))
+                    // L3: quote the preview so the user denies the RIGHT request.
+                    target.preview?.takeIf { it.isNotBlank() }?.let { preview ->
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.approvals_deny_preview, preview),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontFamily = FontFamily.Monospace,
+                            maxLines = 3,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            modifier = Modifier.testTag("approvals_deny_preview"),
+                        )
+                    }
+                }
+            },
             confirmButton = {
                 ZCodeButton(
                     onClick = {

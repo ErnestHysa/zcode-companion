@@ -136,6 +136,10 @@ interface ConversationPort {
         val lifecycle: String,
         val toolName: String?,
         val createdAtMs: Long,
+        /** K4: the task's title resolved from the task store by sessionId; null = unresolved. */
+        val taskTitle: String? = null,
+        /** L3: one bounded, redacted preview line from the retained payload; null = none. */
+        val preview: String? = null,
     )
 
     /** One-tap approve from the inbox (hydrates the card from the store — §18.3). */

@@ -362,20 +362,12 @@ class DefaultConversationPort(
                     send(emptyList())
                 }
             } else {
-                hub.interactionsStore().observeOpen(EndpointId(endpointId)).collect { list ->
-                    send(
-                        list.map {
-                            ConversationPort.InteractionSummary(
-                                interactionId = it.interactionId.raw,
-                                sessionId = it.sessionId?.raw,
-                                kind = it.kind.name,
-                                lifecycle = it.lifecycle.name,
-                                toolName = it.toolName,
-                                createdAtMs = it.createdAtMs,
-                            )
-                        },
-                    )
-                }
+                // K4: join the open interactions with the task projection so the card
+                // can name the task (title by sessionId) instead of a session prefix.
+                kotlinx.coroutines.flow.combine(
+                    hub.interactionsStore().observeOpen(EndpointId(endpointId)),
+                    hub.taskStore().observeAllTasks(EndpointId(endpointId)),
+                ) { records, tasks -> interactionSummaries(records, tasks) }.collect { send(it) }
             }
         }
 
@@ -685,5 +677,34 @@ class DefaultConversationPort(
             out.delete()
             ConversationPort.AttachmentFetchResult(null, null, 0, e.message ?: "attachment unavailable")
         }
+    }
+}
+
+/**
+ * K4 + L3 (Phase 3B): the inbox projection. Title = the task whose id equals the
+ * interaction's sessionId (the phone's task ids ARE the session-level ids — the same value
+ * the card navigates with), blank titles count as unresolved; the preview rides through
+ * from the record (derived once at the store boundary).
+ */
+internal fun interactionSummaries(
+    records: List<com.zcode.android.domain.repo.InteractionRepository.InteractionRecord>,
+    tasks: List<com.zcode.android.domain.model.Task>,
+): List<ConversationPort.InteractionSummary> {
+    val titles = HashMap<String, String>(tasks.size)
+    for (t in tasks) {
+        val title = t.title.trim()
+        if (title.isNotEmpty()) titles.putIfAbsent(t.taskId, title)
+    }
+    return records.map {
+        ConversationPort.InteractionSummary(
+            interactionId = it.interactionId.raw,
+            sessionId = it.sessionId?.raw,
+            kind = it.kind.name,
+            lifecycle = it.lifecycle.name,
+            toolName = it.toolName,
+            createdAtMs = it.createdAtMs,
+            taskTitle = it.sessionId?.raw?.let(titles::get),
+            preview = it.preview,
+        )
     }
 }

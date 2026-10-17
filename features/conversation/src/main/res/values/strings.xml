@@ -28,6 +28,8 @@
     <string name="approvals_open_task">Open task to answer</string>
     <string name="approvals_deny_title">Deny this request?</string>
     <string name="approvals_deny_body">The agent is told no for this request (%1$s).</string>
+    <!-- L3 (Phase 3B): the deny confirmation quotes the bounded request preview. -->
+    <string name="approvals_deny_preview">Request: %1$s</string>
 
     <!-- Approval cards (§20.2: consequences spelled out; §20.4 fail-closed). -->
     <string name="approval_needed">Approval needed</string>

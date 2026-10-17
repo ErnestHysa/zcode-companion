@@ -888,6 +888,9 @@ class ConnectionHub(
     /** Approvals-inbox observation source (open interactions across tasks). */
     fun interactionsStore(): com.zcode.android.domain.repo.InteractionRepository = interactions
 
+    /** K4: the task projection cache — the inbox resolves task TITLES from it by sessionId. */
+    fun taskStore(): TaskRepository = taskRepo
+
     // ------------------------------------------------------------------ internals
 
     private fun connect() {

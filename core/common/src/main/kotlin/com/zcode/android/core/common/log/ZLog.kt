@@ -134,10 +134,7 @@ class ZLog(
                 if (out.contains(s)) out = out.replace(s, REDACTED)
             }
         }
-        for (p in STRUCTURAL_PATTERNS) {
-            out = p.replace(out, "$1$2$REDACTED")
-        }
-        return out
+        return scrubStructural(out)
     }
 
     companion object {
@@ -145,6 +142,20 @@ class ZLog(
         const val RING_CAPACITY = 500
         const val REDACTED = "[REDACTED]"
         private const val MAX_DETAIL_CHARS = 400
+
+        /**
+         * The structural (key-shape) half of the diagnostics scrub, reusable by any
+         * user-facing surface that echoes untrusted payload text (L3: the approvals
+         * command preview). Instance-registered exact secrets are NOT applied here —
+         * those belong to the log; a preview never carries pairing material.
+         */
+        fun scrubStructural(input: String): String {
+            var out = input
+            for (p in STRUCTURAL_PATTERNS) {
+                out = p.replace(out, "$1$2$REDACTED")
+            }
+            return out
+        }
 
         /**
          * Key-value shapes whose VALUES are secret-shaped. Keys follow the verified

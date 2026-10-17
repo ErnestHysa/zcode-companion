@@ -49,6 +49,8 @@ interface InteractionRepository {
         val toolName: String?,
         val createdAtMs: Long,
         val resolvedAtMs: Long?,
+        /** L3: one bounded, redacted line from the retained payload ([com.zcode.android.domain.model.InteractionPreview]). */
+        val preview: String? = null,
     ) {
         enum class Kind { PERMISSION, USER_INPUT }
     }
