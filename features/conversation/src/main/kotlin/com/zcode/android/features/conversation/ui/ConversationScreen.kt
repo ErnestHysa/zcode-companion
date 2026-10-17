@@ -91,6 +91,10 @@ fun ConversationScreen(
     onSendQueuedNow: (queueItemId: String) -> Unit,
     onEditQueueItem: (queueItemId: String, newText: String) -> Unit,
     onAnswerQuestions: (String, Map<String, List<String>>) -> Unit = { _, _ -> },
+    // ---- Phase 3C/3D: tool-output slice, session strip, attachment previews ----
+    toolOutputProvider: (suspend (ConversationRow.ToolCall) -> String?)? = null,
+    sessionStatusProvider: suspend () -> com.zcode.android.domain.model.GitSummary? = { null },
+    loadAttachment: (suspend (ConversationRow.UserInput.AttachmentMeta) -> ByteArray?)? = null,
     modifier: Modifier = Modifier,
     // ---- Phase 9 (§43.2-9): advanced read-only surfaces + model switch ----
     onOpenFiles: () -> Unit = {},
@@ -107,13 +111,6 @@ fun ConversationScreen(
     onRetryAttachment: (uploadId: String) -> Unit = {},
     // ---- Phase 2 (§11.4, GAP-10): message edit ----
     onEditUserQuery: (rowId: Long, entityId: String, newText: String) -> Unit = { _, _, _ -> },
-    // ---- Phase 3C (C7): lazy full tool output (slice first, row payload fallback) ----
-    toolOutputProvider: (suspend (ConversationRow.ToolCall) -> String?)? = null,
-    // ---- Phase 3C (I2.2): the session status strip source (git summary; null → no strip) ----
-    sessionStatusProvider: suspend () -> com.zcode.android.domain.model.GitSummary? = { null },
-    // ---- Phase 3D (A3.1): in-conversation attachment previews ----
-    loadAttachment: (suspend (ConversationRow.UserInput.AttachmentMeta) -> ByteArray?)? = null,
-) {
     // C6-BackHandler: back with an unsent draft raises a confirm (the promised
     // Phase-7 draft guard). The draft is Room-backed — the guard is the CONFIRMATION
     // UX only; "Leave" just proceeds. Empty draft passes straight through.
