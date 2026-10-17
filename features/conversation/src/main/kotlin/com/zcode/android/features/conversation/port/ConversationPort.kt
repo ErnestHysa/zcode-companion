@@ -163,6 +163,13 @@ interface ConversationPort {
      */
     suspend fun fetchTurnFileChanges(taskId: String, rowId: Long, entityId: String): TurnChangesResult
 
+    /**
+     * Phase 3C (C7): lazy FULL tool output — the desktop's tool-calls slice when the
+     * facade has a body; null means "no slice" and the caller renders the row's own
+     * retained payload (3.14.5.7961 ships the slice as a `return null` stub).
+     */
+    suspend fun fetchToolCallOutput(taskId: String, toolCallId: String): String?
+
     data class TurnChangesResult(
         val changes: com.zcode.android.domain.model.TurnFileChanges?,
         val error: String?,

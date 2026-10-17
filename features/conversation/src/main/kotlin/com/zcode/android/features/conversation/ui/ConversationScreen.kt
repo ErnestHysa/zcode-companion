@@ -107,6 +107,8 @@ fun ConversationScreen(
     onRetryAttachment: (uploadId: String) -> Unit = {},
     // ---- Phase 2 (§11.4, GAP-10): message edit ----
     onEditUserQuery: (rowId: Long, entityId: String, newText: String) -> Unit = { _, _, _ -> },
+    // ---- Phase 3C (C7): lazy full tool output (slice first, row payload fallback) ----
+    toolOutputProvider: (suspend (ConversationRow.ToolCall) -> String?)? = null,
 ) {
     // C6-BackHandler: back with an unsent draft raises a confirm (the promised
     // Phase-7 draft guard). The draft is Room-backed — the guard is the CONFIRMATION
@@ -278,6 +280,7 @@ if (state.historyChanged) {
                     onRetryOlder = onRetryOlder,
                     onOpenTurnChanges = { diffTurn = it },
                     onEditRow = { row -> editingRow = row },
+                    toolOutputProvider = toolOutputProvider,
                 )
             }
             // §17.4/§17.6 composer (pinned bottom; drafting allowed offline, send
@@ -395,6 +398,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     onRetryOlder: (Long) -> Unit,
     onOpenTurnChanges: (ConversationRow.TurnHeader) -> Unit = {},
     onEditRow: ((ConversationRow.UserInput) -> Unit)? = null,
+    toolOutputProvider: (suspend (ConversationRow.ToolCall) -> String?)? = null,
 ) {
     val listState = rememberLazyListState()
     // B3-motion + K2: rows that have already arrived (scroll-back never re-animates).
@@ -444,6 +448,9 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     // earlier messages" flash) and showing "jump to newest". Cold opens worked (rows
     // arrived while the list was empty), which is why it was intermittent.
     var anchoredToTail by remember { mutableStateOf(false) }
+    // I2.7: one LazyColumn item per timeline ENTRY — settled tool runs collapse into
+    // groups (pure map; the scroll index space below is the entry space).
+    val entries = remember(state.rows) { groupTimeline(state.rows) }
 
     // Stick-to-bottom (§19.2, macOS parity): while following, ANY content growth —
     // new rows OR streaming text into the last row — clamps the viewport to the true
@@ -457,13 +464,13 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
             // Header items ("loading earlier…"/error strips) occupy index 0+.
             val headerItems =
                 (if (state.loadingOlder) 1 else 0) + (if (state.loadOlderError != null) 1 else 0)
-            listState.scrollToItem(headerItems + state.rows.size - 1)
+            listState.scrollToItem(headerItems + entries.size - 1)
             anchoredToTail = true
             lastKnownCount = state.rows.size
             return@LaunchedEffect
         }
         if (followBottom && state.rows.isNotEmpty()) {
-            listState.scrollToItem(state.rows.size - 1, Int.MAX_VALUE / 2)
+            listState.scrollToItem(entries.size - 1, Int.MAX_VALUE / 2)
         }
         val grew = state.rows.size > lastKnownCount
         if (grew && !followBottom && lastKnownCount > 0) {
@@ -535,26 +542,46 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                 }
             }
             items(
-                count = state.rows.size,
-                key = { state.rows[it].rowId },
-                contentType = { state.rows[it].kind },
+                count = entries.size,
+                key = { entries[it].key },
+                contentType = {
+                    when (val e = entries[it]) {
+                        is TimelineEntry.Single -> e.row.kind
+                        is TimelineEntry.ToolGroup -> "toolGroup"
+                    }
+                },
             ) { index ->
                 // B3-motion + K2: rows ARRIVE (900ms stream-in, staggered from the
                 // viewport top) and reflow with animateItem; each row arrives once.
-                TimelineRow(
-                    row = state.rows[index],
-                    state = state,
-                    modifier = Modifier
-                        .animateItem()
-                        .streamIn(
-                            key = state.rows[index].rowId,
-                            index = (index - listState.firstVisibleItemIndex).coerceIn(0, 10),
-                            tracker = arrivedRows,
-                        )
-                        .testTag("conv-row-${state.rows[index].rowId}"),
-                    onOpenTurnChanges = onOpenTurnChanges,
-                    onEditRow = onEditRow,
-                )
+                when (val entry = entries[index]) {
+                    is TimelineEntry.Single -> TimelineRow(
+                        row = entry.row,
+                        state = state,
+                        modifier = Modifier
+                            .animateItem()
+                            .streamIn(
+                                key = entry.row.rowId,
+                                index = (index - listState.firstVisibleItemIndex).coerceIn(0, 10),
+                                tracker = arrivedRows,
+                            )
+                            .testTag("conv-row-${entry.row.rowId}"),
+                        onOpenTurnChanges = onOpenTurnChanges,
+                        onEditRow = onEditRow,
+                        toolOutputProvider = toolOutputProvider,
+                    )
+                    is TimelineEntry.ToolGroup -> ToolGroupBlock(
+                        group = entry,
+                        modifier = Modifier
+                            .animateItem()
+                            .streamIn(
+                                key = entry.rows.first().rowId,
+                                index = (index - listState.firstVisibleItemIndex).coerceIn(0, 10),
+                                tracker = arrivedRows,
+                            )
+                            .testTag("conv-row-${entry.rows.first().rowId}"),
+                        fullOutputProvider = toolOutputProvider,
+                    )
+                }
             }
         }
         androidx.compose.animation.AnimatedVisibility(
@@ -570,8 +597,8 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                     scope.launch {
                         if (state.rows.isNotEmpty()) {
                             // §30.5: honor the system reduced-motion switch.
-                            if (reducedMotion) listState.scrollToItem(state.rows.size - 1)
-                            else listState.animateScrollToItem(state.rows.size - 1)
+                            if (reducedMotion) listState.scrollToItem(entries.size - 1)
+                            else listState.animateScrollToItem(entries.size - 1)
                         }
                     }
                 },
@@ -605,6 +632,7 @@ private fun TimelineRow(
     modifier: Modifier = Modifier,
     onOpenTurnChanges: (ConversationRow.TurnHeader) -> Unit = {},
     onEditRow: ((ConversationRow.UserInput) -> Unit)? = null,
+    toolOutputProvider: (suspend (ConversationRow.ToolCall) -> String?)? = null,
 ) {
     Box(modifier = modifier) {
     when (row) {
@@ -639,7 +667,7 @@ private fun TimelineRow(
                 createdAtMs = row.base.createdAt,
             )
         }
-        is ConversationRow.ToolCall -> ToolCard(row)
+        is ConversationRow.ToolCall -> ToolCard(row, fullOutputProvider = toolOutputProvider)
         is ConversationRow.Reasoning -> ReasoningRow(row)
         is ConversationRow.TurnHeader -> TurnSeparator(row, onOpenChanges = { onOpenTurnChanges(row) })
         is ConversationRow.Artifact -> QuietMetaRow(

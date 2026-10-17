@@ -178,6 +178,26 @@
     <plurals name="row_files_count">
         <item quantity="other">%d 个文件</item>
     </plurals>
+    <string name="tool_group_explore">探索</string>
+    <string name="tool_group_changes">更改</string>
+    <string name="tool_group_execute">执行</string>
+    <string name="tool_group_other">工具</string>
+    <plurals name="tool_group_searches">
+        <item quantity="other">%d 次搜索</item>
+    </plurals>
+    <plurals name="tool_group_files">
+        <item quantity="other">%d 个文件</item>
+    </plurals>
+    <plurals name="tool_group_commands">
+        <item quantity="other">%d 条命令</item>
+    </plurals>
+    <plurals name="tool_group_calls">
+        <item quantity="other">%d 次调用</item>
+    </plurals>
+    <string name="tool_duration_seconds">%1$s 秒</string>
+    <string name="tool_show_full_output">显示完整输出</string>
+    <string name="tool_loading_full_output">正在加载完整输出…</string>
+    <string name="tool_full_output_label">完整输出</string>
     <string name="composer_mode_echo">模式：%1$s</string>
     <string name="row_diff_empty_file">此文件没有记录到文本差异</string>
 </resources>

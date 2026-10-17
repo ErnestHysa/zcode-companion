@@ -929,6 +929,8 @@ class DirectTransport(
         plane.mcpServerStatuses(workspacePath, workspaceIdentity)
 
     override suspend fun modelSelectionView(): JsonObject = plane.modelSelectionView()
+    override suspend fun taskSnapshotToolCallsSlice(taskId: String, toolCallIds: List<String>): JsonObject? =
+        plane.taskSnapshotToolCallsSlice(taskId, toolCallIds)
 
     // ------------------------------------------------------------------ direct surface
 

@@ -78,6 +78,7 @@ import com.zcode.android.core.ui.components.minRowTouchTarget
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
+import kotlinx.coroutines.launch
 
 /**
  * Row renderers — the agent-timeline grammar (ui-ux component-library v2): YOU
@@ -210,18 +211,29 @@ fun AgentProse(text: String, streaming: Boolean, createdAtMs: Double? = null, mo
     }
 }
 
-/** Generic tool card (§19.5 anatomy); expandable input/output previews. */
+/**
+ * Generic tool card (§19.5 anatomy); expandable input/output previews.
+ * N2.4: a metadata line (duration) on the status row. C7: the output preview is capped
+ * at [TOOL_PREVIEW_CAP] and "show full output" loads LAZILY through [fullOutputProvider]
+ * (the port's slice call; null → the row's own uncapped payload).
+ */
 @Composable
 fun ToolCard(
     row: ConversationRow.ToolCall,
     modifier: Modifier = Modifier,
+    fullOutputProvider: (suspend (ConversationRow.ToolCall) -> String?)? = null,
 ) {
     val tokens = toolStatusPresentation(row.status)
     var expanded by rememberSaveable(row.rowId) { mutableStateOf(false) }
+    var fullOutput by rememberSaveable(row.rowId) { mutableStateOf<String?>(null) }
+    var loadingFull by remember(row.rowId) { mutableStateOf(false) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     val expandWord = stringResource(if (expanded) R.string.a11y_collapse else R.string.a11y_expand)
     val toolA11y = stringResource(R.string.row_tool_a11y, row.toolName, tokens.first, expandWord)
     val railColor = tokens.second
     val meta = toolMetaLine(row)
+    val duration = toolDurationSeconds(row)?.let { stringResource(R.string.tool_duration_seconds, formatSeconds(it)) }
+    val previewText = row.outputPreview?.toString()
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -252,12 +264,21 @@ fun ToolCard(
             )
         }
         Spacer(Modifier.height(2.dp))
-        Text(
-            text = tokens.first,
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.SemiBold,
-            color = tokens.second,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.testTag("tool_meta_${row.rowId}")) {
+            Text(
+                text = tokens.first,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                color = tokens.second,
+            )
+            if (duration != null) {
+                Text(
+                    text = " · $duration",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         if (meta.isNotBlank()) {
             Spacer(Modifier.height(2.dp))
             Text(
@@ -271,9 +292,33 @@ fun ToolCard(
         if (expanded) {
             Spacer(Modifier.height(8.dp))
             MonospaceDetail(label = stringResource(R.string.row_input), content = row.inputText.ifBlank { "—" })
-            row.outputPreview?.let { preview ->
+            val full = fullOutput
+            if (full != null) {
                 Spacer(Modifier.height(6.dp))
-                MonospaceDetail(label = stringResource(R.string.row_output), content = preview.toString().take(2_000))
+                MonospaceDetail(
+                    label = stringResource(R.string.tool_full_output_label),
+                    content = full,
+                    tag = "tool_full_output_text_${row.rowId}",
+                )
+            } else if (previewText != null) {
+                Spacer(Modifier.height(6.dp))
+                MonospaceDetail(label = stringResource(R.string.row_output), content = previewText.take(TOOL_PREVIEW_CAP))
+                if (previewText.length > TOOL_PREVIEW_CAP) {
+                    TextButton(
+                        onClick = {
+                            if (loadingFull) return@TextButton
+                            loadingFull = true
+                            scope.launch {
+                                val fromSlice = runCatching { fullOutputProvider?.invoke(row) }.getOrNull()
+                                fullOutput = fromSlice ?: previewText
+                                loadingFull = false
+                            }
+                        },
+                        modifier = Modifier.testTag("tool_full_output_${row.rowId}"),
+                    ) {
+                        Text(stringResource(if (loadingFull) R.string.tool_loading_full_output else R.string.tool_show_full_output))
+                    }
+                }
             }
             row.error?.let { err ->
                 Spacer(Modifier.height(6.dp))
@@ -281,6 +326,17 @@ fun ToolCard(
             }
         }
     }
+}
+
+/** C7: the on-row preview cap; anything longer loads lazily on request. */
+const val TOOL_PREVIEW_CAP = 2_000
+
+/** N2.4: wall-clock duration from the row's own timestamps (ms → s); null when absent. */
+fun toolDurationSeconds(row: ConversationRow.ToolCall): Double? {
+    val s = row.startedAt ?: return null
+    val e = row.endedAt ?: return null
+    if (e < s) return null
+    return (e - s) / 1000.0
 }
 
 @Composable
@@ -817,12 +873,13 @@ private fun RowTimeLabel(createdAtMs: Double?, tag: String) {
 }
 
 @Composable
-private fun MonospaceDetail(label: String, content: String) {
+private fun MonospaceDetail(label: String, content: String, tag: String? = null) {
     Column(
         Modifier
             .fillMaxWidth()
             .background(LocalZCodeColors.current.codeBg, MaterialTheme.shapes.medium)
-            .padding(8.dp),
+            .padding(8.dp)
+            .then(if (tag != null) Modifier.testTag(tag) else Modifier),
     ) {
         Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(4.dp))

@@ -193,6 +193,31 @@
         <item quantity="one">%d file</item>
         <item quantity="other">%d files</item>
     </plurals>
+    <!-- I2.7+N2.4+C7 (Phase 3C): tool grouping headers, metadata, lazy full output. -->
+    <string name="tool_group_explore">Explore</string>
+    <string name="tool_group_changes">Changes</string>
+    <string name="tool_group_execute">Execute</string>
+    <string name="tool_group_other">Tools</string>
+    <plurals name="tool_group_searches">
+        <item quantity="one">%d search</item>
+        <item quantity="other">%d searches</item>
+    </plurals>
+    <plurals name="tool_group_files">
+        <item quantity="one">%d file</item>
+        <item quantity="other">%d files</item>
+    </plurals>
+    <plurals name="tool_group_commands">
+        <item quantity="one">%d command</item>
+        <item quantity="other">%d commands</item>
+    </plurals>
+    <plurals name="tool_group_calls">
+        <item quantity="one">%d call</item>
+        <item quantity="other">%d calls</item>
+    </plurals>
+    <string name="tool_duration_seconds">%1$ss</string>
+    <string name="tool_show_full_output">Show full output</string>
+    <string name="tool_loading_full_output">Loading full output…</string>
+    <string name="tool_full_output_label">full output</string>
     <string name="composer_mode_echo">mode: %1$s</string>
     <string name="row_diff_empty_file">no textual diff recorded for this file</string>
 </resources>

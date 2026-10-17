@@ -304,6 +304,25 @@ class Phase9Tools(private val transport: AppTransport) {
         }
     }
 
+    // ---------------------------------------------------------------- C7 (Phase 3C)
+
+    /**
+     * Lazy full tool output (C7): the desktop's slice when it has a body, null otherwise
+     * (3.14.5 ships a null stub — the caller falls back to the row's retained payload).
+     */
+    suspend fun toolCallOutput(taskId: String, toolCallId: String): String? {
+        // A refused/unscripted slice degrades the FEATURE (§13.3), never surfaces.
+        val o = runCatching { transport.taskSnapshotToolCallsSlice(taskId, listOf(toolCallId)) }.getOrNull() ?: return null
+        val calls = (o["toolCalls"] as? JsonArray) ?: return null
+        val call = calls
+            .mapNotNull { it as? JsonObject }
+            .firstOrNull { (it["toolCallId"] as? JsonPrimitive)?.content == toolCallId }
+            ?: return null
+        return call.strOrNull("output")
+            ?: call.strOrNull("result")
+            ?: (call["outputPreview"] as? JsonObject)?.toString()
+    }
+
     // ---------------------------------------------------------------- json helpers
 
     private fun JsonObject.str(key: String): String =

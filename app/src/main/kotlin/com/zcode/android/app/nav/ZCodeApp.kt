@@ -481,6 +481,10 @@ private fun ConversationRoute(
         onSendQueuedNow = vm::sendQueuedNow,
         onEditQueueItem = vm::editQueueItem,
         onAnswerQuestions = vm::answerUserInputQuestions,
+        // Phase 3C (C7): lazy full tool output — slice when the desktop answers, else the row payload.
+        toolOutputProvider = { row ->
+            state.task?.taskId?.let { container.conversationPort.fetchToolCallOutput(it, row.toolCallId) }
+        },
         // Phase 9 (§43.2-9)
         onOpenFiles = onOpenFiles,
         onOpenGit = onOpenGit,

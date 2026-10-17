@@ -371,6 +371,15 @@ class DefaultConversationPort(
             }
         }
 
+    override suspend fun fetchToolCallOutput(taskId: String, toolCallId: String): String? =
+        try {
+            hub.phase9().toolCallOutput(taskId, toolCallId)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            hub.log.warn("port.toolOutput", "task=${taskId.take(12)} ${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            null
+        }
+
     override suspend fun answerUserInputQuestions(
         interactionId: String,
         answers: Map<String, List<String>>,

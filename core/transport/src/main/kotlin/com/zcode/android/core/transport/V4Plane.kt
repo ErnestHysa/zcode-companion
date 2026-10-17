@@ -253,6 +253,11 @@ interface V4Plane {
 
     // model-selection (read-only view)
     suspend fun modelSelectionView(): JsonObject
+
+    // C7 (Phase 3C): task-plane tool-output slice. The 3.14.5.7961 facade body is a
+    // `return null` stub — a null result is DISTINCT here (the caller falls back to the
+    // row's retained payload), so this returns JsonObject?, never throws on null.
+    suspend fun taskSnapshotToolCallsSlice(taskId: String, toolCallIds: List<String>): JsonObject?
 }
 
 /** Transport + v4 plane — what the data/app layers consume (INV-2/INV-6). */
@@ -1165,6 +1170,23 @@ internal class ChannelV4Plane(
         val raw = channelCall("model-selection", "getView", RpcValue.Arr(emptyList()), timeouts.controlRequestTimeoutMs)
         return (raw as? RpcValue.Obj)?.json as? JsonObject
             ?: throw TransportFailure(ErrorMapping.protocolFault("model-selection.getView result not an object"))
+    }
+
+    // ---- C7 (Phase 3C): task-plane tool-output slice — phase3c notes; the shipped
+    // facade answers null (stub), which maps to a null result (fallback path).
+
+    suspend fun taskSnapshotToolCallsSlice(taskId: String, toolCallIds: List<String>): JsonObject? {
+        val target = host.workspaceTarget()
+        val params = buildJsonObject {
+            put("taskId", JsonPrimitive(taskId))
+            put("workspacePath", JsonPrimitive(target?.first ?: ""))
+            target?.second?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("toolCallIds", JsonArray(toolCallIds.map { JsonPrimitive(it) }))
+        }
+        return when (val raw = v4Call("getTaskSnapshotToolCallsSlice", RpcValue.Obj(params))) {
+            is RpcValue.Obj -> raw.json as? JsonObject
+            else -> null
+        }
     }
 
     /** The hello's connectionId, stamped by [helloAndInitialize]. */

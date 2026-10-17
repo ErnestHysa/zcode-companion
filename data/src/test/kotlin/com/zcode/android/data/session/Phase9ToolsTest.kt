@@ -398,6 +398,20 @@ class Phase9ToolsTest {
     }
 
     @Test
+    fun `C7 - the tool-output slice degrades to null on an unscripted facade (3.14.5 ships a null stub)`() {
+        connect { m ->
+            m.script.modelSelection = buildJsonObject {
+                put("revision", 1)
+                putJsonArray("providers") { add(buildJsonObject { put("providerId", "zai"); putJsonArray("models") { add(buildJsonObject { put("modelId", "glm-5.1") }) } }) }
+            }
+        }
+        runBlocking {
+            // fault.mock.unscripted → null: the caller renders the row's own payload.
+            assertEquals(null, tools.toolCallOutput("sess-1", "tool-1"))
+        }
+    }
+
+    @Test
     fun `D4 - model-selection badges and display labels decode from the wire, absent means null`() {
         connect { m ->
             m.script.modelSelection = buildJsonObject {
