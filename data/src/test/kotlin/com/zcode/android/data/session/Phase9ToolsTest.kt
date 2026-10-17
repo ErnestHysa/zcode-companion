@@ -398,7 +398,7 @@ class Phase9ToolsTest {
     }
 
     @Test
-    fun `C7 - the tool-output slice degrades to null on an unscripted facade (3.14.5 ships a null stub)`() {
+    fun `C7 - the tool-output slice degrades to null on an unscripted facade (3145 ships a null stub)`() {
         connect { m ->
             m.script.modelSelection = buildJsonObject {
                 put("revision", 1)

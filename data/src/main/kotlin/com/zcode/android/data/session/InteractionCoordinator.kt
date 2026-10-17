@@ -469,7 +469,7 @@ class InteractionCoordinator(
      * interactions ABSENT from the snapshot flip to STALE (§14.4.3 — submit disabled
      * until authoritative state confirms).
      */
-    suspend fun reconcileFromSnapshot(rows: List<ConversationRow>) {
+    suspend fun reconcileFromSnapshot(rows: List<ConversationRow>, sessionId: String? = null) {
         val snapshotInteractionIds = HashSet<InteractionId>()
         for (row in rows) {
             if (row !is ConversationRow.ToolCall) continue
@@ -480,9 +480,11 @@ class InteractionCoordinator(
             snapshotInteractionIds.add(interactionId)
             if (interactionId in requests) continue
             // Recovered open interaction — card + record now (S13 "create card + notification now").
+            // K4 (Phase 3B): the snapshot IS session-scoped even though the row plane
+            // carries no per-row id — stamp the binding so the inbox can name the task.
             val request = PermissionRequest(
                 interactionId = interactionId,
-                sessionId = null, // the row plane carries no session id; binding arrives with the Phase 7 event plane
+                sessionId = sessionId,
                 toolName = row.toolName,
                 reason = null,
                 input = row.input,

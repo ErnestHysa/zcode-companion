@@ -54,6 +54,10 @@ object InteractionPreview {
             val first = input.entries.firstOrNull { (_, v) -> (v as? JsonPrimitive)?.isString == true && v.content.isNotBlank() }
             if (first != null) return "${first.key}: ${(first.value as JsonPrimitive).content}"
         }
+        // The toolCall-ROW shape (the snapshot path stores the row itself): its
+        // input line IS the command the user is approving.
+        val inputText = (payload["inputText"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+        if (!inputText.isNullOrBlank()) return inputText
         // Permission without a usable detail: the desktop's summary/reason line.
         for (key in SUMMARY_KEYS) {
             val v = (payload[key] as? JsonPrimitive)?.takeIf { it.isString }?.content
