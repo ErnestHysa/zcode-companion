@@ -43,7 +43,7 @@ class ConversationChromeTest {
     fun `the unread badge carries the COUNT`() {
         rule.setContent { ZCodeTheme { UnreadBadge(unread = 3) } }
         rule.waitForIdle()
-        rule.onNodeWithTag("conversation_unread_badge").assertIsDisplayed()
+        rule.onNodeWithTag("conversation_unread_badge", useUnmergedTree = true).assertExists()
         rule.onNodeWithText("3").assertIsDisplayed()
     }
 

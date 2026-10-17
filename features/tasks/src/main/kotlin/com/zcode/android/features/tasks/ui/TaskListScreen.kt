@@ -440,29 +440,21 @@ internal fun ApprovalsBellAction(
     onOpenApprovals: () -> Unit,
 ) {
     IconButton(onClick = onOpenApprovals, modifier = Modifier.size(48.dp).testTag("tasks_approvals")) {
-        Box {
+        androidx.compose.material3.BadgedBox(
+            badge = {
+                if (openApprovals > 0) {
+                    androidx.compose.material3.Badge(modifier = Modifier.testTag("tasks_approvals_badge")) {
+                        // B2.9: the TRUE count — 12 pending approvals never read as "9".
+                        Text(openApprovals.toString())
+                    }
+                }
+            },
+        ) {
             Icon(
                 imageVector = Icons.Filled.Notifications,
                 contentDescription = stringResource(R.string.tasks_approvals_a11y),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (openApprovals > 0) {
-                Box(
-                    Modifier
-                        .align(Alignment.TopEnd)
-                        .size(16.dp)
-                        .background(MaterialTheme.colorScheme.error, androidx.compose.foundation.shape.CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        // B2.9: the TRUE count — 12 pending approvals never read as "9".
-                        text = openApprovals.toString(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onError,
-                        modifier = Modifier.testTag("tasks_approvals_badge"),
-                    )
-                }
-            }
         }
     }
 }

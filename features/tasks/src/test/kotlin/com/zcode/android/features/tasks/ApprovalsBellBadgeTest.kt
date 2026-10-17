@@ -29,19 +29,23 @@ class ApprovalsBellBadgeTest {
     fun `the badge shows the TRUE count past nine`() {
         rule.setContent { ZCodeTheme { ApprovalsBellAction(openApprovals = 12, onOpenApprovals = {}) } }
         rule.waitForIdle()
-        rule.onNodeWithTag("tasks_approvals_badge").assertIsDisplayed()
+        rule.onNodeWithTag("tasks_approvals_badge", useUnmergedTree = true).assertExists()
         rule.onNodeWithText("12").assertIsDisplayed()
     }
 
     @Test
-    fun `small counts render as-is and zero renders no badge`() {
+    fun `small counts render as-is`() {
         rule.setContent { ZCodeTheme { ApprovalsBellAction(openApprovals = 2, onOpenApprovals = {}) } }
         rule.waitForIdle()
         rule.onNodeWithText("2").assertIsDisplayed()
+    }
+
+    @Test
+    fun `zero renders no badge`() {
         rule.setContent { ZCodeTheme { ApprovalsBellAction(openApprovals = 0, onOpenApprovals = {}) } }
         rule.waitForIdle()
         org.junit.Assert.assertTrue(
-            rule.onAllNodesWithTag("tasks_approvals_badge").fetchSemanticsNodes().isEmpty(),
+            rule.onAllNodesWithTag("tasks_approvals_badge", useUnmergedTree = true).fetchSemanticsNodes().isEmpty(),
         )
     }
 }

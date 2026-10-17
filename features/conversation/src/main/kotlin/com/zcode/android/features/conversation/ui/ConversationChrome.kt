@@ -35,7 +35,10 @@ fun UnreadBadge(unread: Int, modifier: Modifier = Modifier) {
                 Text(unread.toString())
             }
         },
-    ) {}
+    ) {
+        // A small anchor so the badge offsets from real content in any host.
+        Box(Modifier.padding(2.dp))
+    }
 }
 
 /**
