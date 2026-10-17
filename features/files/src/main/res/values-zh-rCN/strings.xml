@@ -22,4 +22,7 @@
     <string name="files_read_only">只读</string>
     <string name="files_download_failed">下载失败</string>
     <string name="files_binary_use_download">二进制文件 — 请使用下载</string>
+    <string name="files_downloading">下载中…</string>
+    <string name="files_download_done">已下载 %1$,d 字节 — 已打开分享面板</string>
+    <string name="files_preview_cap">预览上限 256 KB — 完整文件请使用下载。</string>
 </resources>

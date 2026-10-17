@@ -32,6 +32,16 @@ interface FilesPort {
      */
     suspend fun download(path: String, maxBytes: Long = DEFAULT_DOWNLOAD_CAP): DownloadResult
 
+    /** I3: a bounded preview read for image files (null content = refused/unavailable). */
+    suspend fun binaryPreview(path: String, maxBytes: Long = 512L * 1024): BinaryPreviewResult
+
+    data class BinaryPreviewResult(
+        val bytes: ByteArray?,
+        val mediaType: String?,
+        val totalBytes: Long?,
+        val error: String?,
+    )
+
     data class DownloadResult(val file: File?, val bytes: Long, val error: String?)
 
     companion object {

@@ -120,6 +120,18 @@ fun UsageScreen(
             )
         },
     ) { inner ->
+        var refreshing by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+            isRefreshing = refreshing,
+            onRefresh = {
+                scope.launch {
+                    refreshing = true
+                    load(range)
+                    refreshing = false
+                }
+            },
+            modifier = Modifier.padding(inner).testTag("usage_pull"),
+        ) {
         Column(
             Modifier
                 .fillMaxSize()
@@ -175,6 +187,7 @@ fun UsageScreen(
                 ToolsSection(current.tools)
                 Spacer(Modifier.height(24.dp))
             }
+        }
         }
     }
 }

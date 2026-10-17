@@ -299,6 +299,10 @@ class Phase9Tools(private val transport: AppTransport) {
     suspend fun fileBytes(path: String, offset: Long, length: Long): ByteArray =
         transport.fileReadBytes(path, offset, length)
 
+    /** I3 (Phase 3E): a bounded binary preview (image thumbs render in the browser). */
+    suspend fun fileBinaryPreview(path: String, maxBytes: Long): JsonObject =
+        transport.fileBinaryPreview(path, maxBytes)
+
     // ---------------------------------------------------------------- model picker (9.5)
 
     /**

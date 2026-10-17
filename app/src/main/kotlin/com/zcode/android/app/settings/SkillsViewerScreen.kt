@@ -86,10 +86,21 @@ fun SkillsViewerScreen(
             )
         },
     ) { inner ->
+        var refreshing by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+            isRefreshing = refreshing,
+            onRefresh = {
+                scope.launch {
+                    refreshing = true
+                    result = port.catalog()
+                    refreshing = false
+                }
+            },
+            modifier = Modifier.padding(inner).testTag("skills_pull"),
+        ) {
         Column(
             Modifier
-                .fillMaxSize()
-                .padding(inner),
+                .fillMaxSize(),
         ) {
             when {
                 loading && result == null ->
@@ -144,6 +155,7 @@ fun SkillsViewerScreen(
                     }
                 }
             }
+        }
         }
     }
 }

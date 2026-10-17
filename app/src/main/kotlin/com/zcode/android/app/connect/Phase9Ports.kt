@@ -152,6 +152,19 @@ class DefaultFilesPort(
             FilesPort.TextResult(tools.fileText(path, offset, length), null)
         } ?: FilesPort.TextResult(null, "file read unavailable on this connection")
 
+    override suspend fun binaryPreview(path: String, maxBytes: Long): FilesPort.BinaryPreviewResult =
+        run("files.binaryPreview") { tools ->
+            val o = tools.fileBinaryPreview(path, maxBytes)
+            fun str(k: String): String? = (o[k] as? kotlinx.serialization.json.JsonPrimitive)?.takeIf { it.isString }?.content
+            val b64 = str("dataBase64")
+            FilesPort.BinaryPreviewResult(
+                bytes = b64?.let { java.util.Base64.getDecoder().decode(it) },
+                mediaType = str("mediaType"),
+                totalBytes = (o["totalBytes"] as? kotlinx.serialization.json.JsonPrimitive)?.content?.toLongOrNull(),
+                error = null,
+            )
+        } ?: FilesPort.BinaryPreviewResult(null, null, null, "preview unavailable on this connection")
+
     override suspend fun download(path: String, maxBytes: Long): FilesPort.DownloadResult {
         val tools = hub.phase9()
         val safeName = path.substringAfterLast('/').ifBlank { "download.bin" }.replace(Regex("[^A-Za-z0-9._-]"), "_")

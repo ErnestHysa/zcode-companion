@@ -121,8 +121,25 @@ fun GitScreen(
 
     // ONE scroll container: long change lists + an expanded inline diff must both
     // stay reachable (the old fixed Column pushed lower sections off-viewport).
+    // H2.5 (Phase 3E): pull-to-refresh — one reload path re-fetches summary+changes.
+    var refreshing by remember { mutableStateOf(false) }
+    androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+        isRefreshing = refreshing,
+        onRefresh = {
+            scope.launch {
+                refreshing = true
+                val summary = port.summary()
+                if (summary != null && summary.isRepository) {
+                    ui = ui.copy(summary = summary, unavailable = false)
+                    fetchChanges()
+                }
+                refreshing = false
+            }
+        },
+        modifier = modifier.fillMaxSize().testTag("git_pull"),
+    ) {
     LazyColumn(
-        modifier = modifier.fillMaxSize().padding(8.dp).testTag("git_list"),
+        modifier = Modifier.fillMaxSize().padding(8.dp).testTag("git_list"),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item(key = "header") {
@@ -262,6 +279,7 @@ fun GitScreen(
                     }
                 }
         }
+    }
     }
 }
 
