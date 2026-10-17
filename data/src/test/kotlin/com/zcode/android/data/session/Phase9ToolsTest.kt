@@ -398,6 +398,44 @@ class Phase9ToolsTest {
     }
 
     @Test
+    fun `D4 - model-selection badges and display labels decode from the wire, absent means null`() {
+        connect { m ->
+            m.script.modelSelection = buildJsonObject {
+                put("revision", 4)
+                putJsonArray("providers") {
+                    add(buildJsonObject {
+                        put("providerId", "zai"); put("providerName", "Z.ai"); put("templateId", "zai")
+                        put("labelBadge", "Default")
+                        putJsonArray("models") {
+                            add(buildJsonObject {
+                                put("modelId", "glm-5.3-air")
+                                put("config", buildJsonObject { put("badgeLabel", "Preview"); put("label", "GLM-5.3 Air") })
+                            })
+                            add(buildJsonObject { put("modelId", "glm-5.1") })
+                        }
+                    })
+                    add(buildJsonObject {
+                        put("providerId", "oai"); put("providerName", "OpenAI-compatible"); put("templateId", "oai")
+                        putJsonArray("models") { add(buildJsonObject { put("modelId", "gpt-x") }) }
+                    })
+                }
+            }
+        }
+        runBlocking {
+            val options = tools.modelOptions()
+            val zai = options.first { it.providerId == "zai" }
+            assertEquals("Default", zai.badge)
+            val air = zai.models.first { it.id == "glm-5.3-air" }
+            assertEquals("Preview", air.badge)
+            assertEquals("GLM-5.3 Air", air.label)
+            val plain = zai.models.first { it.id == "glm-5.1" }
+            assertEquals(null, plain.badge)
+            assertEquals("glm-5.1", plain.label)
+            assertEquals(null, options.first { it.providerId == "oai" }.badge)
+        }
+    }
+
+    @Test
     fun `switch commands via the outbox gate ACK with CAS and fail closed on bad modes`() {
         connect { m ->
             m.script.commandEffects = true
