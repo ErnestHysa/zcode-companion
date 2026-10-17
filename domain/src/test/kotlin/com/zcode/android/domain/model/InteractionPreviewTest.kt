@@ -30,6 +30,30 @@ class InteractionPreviewTest {
     }
 
     @Test
+    fun `verified wire shape - detail dot command is the preview (snapshot pendingInteraction + permission event)`() {
+        // InteractionCoordinator maps payload.detail → PermissionRequest.input; the stored raw
+        // payload therefore carries `detail`, not `input`.
+        val payload = buildJsonObject {
+            put("kind", "permission")
+            put("toolName", "Bash")
+            put("summary", "Run a synthetic command?")
+            put("detail", buildJsonObject { put("command", "echo synthetic") })
+        }
+        assertEquals("echo synthetic", InteractionPreview.of("Bash", payload))
+    }
+
+    @Test
+    fun `verified wire shape - no detail keys fall back to the summary line`() {
+        val payload = buildJsonObject {
+            put("kind", "permission")
+            put("toolName", "Bash")
+            put("summary", "Run a synthetic command?")
+            put("detail", buildJsonObject { put("count", 1) })
+        }
+        assertEquals("Run a synthetic command?", InteractionPreview.of("Bash", payload))
+    }
+
+    @Test
     fun `file tools - the path is the preview`() {
         val p = InteractionPreview.of("Write", permission(buildJsonObject { put("file_path", "/repo/src/Main.kt"); put("content", "a".repeat(5000)) }))
         assertEquals("/repo/src/Main.kt", p)
