@@ -200,6 +200,7 @@
     <string name="tool_full_output_label">完整输出</string>
     <string name="session_status_clean">无未提交更改</string>
     <string name="session_status_dirty">有未提交的更改</string>
+    <string name="strip_budget_more">显示另外 %1$d 条</string>
     <plurals name="session_status_agents">
         <item quantity="other">%d 个智能体运行中</item>
     </plurals>

@@ -221,6 +221,8 @@
     <!-- I2.2 (Phase 3C): the session status strip (desktop chat.statusPanel.*). -->
     <string name="session_status_clean">clean</string>
     <string name="session_status_dirty">uncommitted changes</string>
+    <!-- B2.12 (Phase 3C): the strip-stack collapse toggle. -->
+    <string name="strip_budget_more">Show %1$d more</string>
     <plurals name="session_status_agents">
         <item quantity="one">%d agent running</item>
         <item quantity="other">%d agents running</item>

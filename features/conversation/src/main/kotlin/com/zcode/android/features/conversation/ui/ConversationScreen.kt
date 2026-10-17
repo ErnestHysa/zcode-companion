@@ -191,16 +191,9 @@ fun ConversationScreen(
                     onDismiss = { diffTurn = null },
                 )
             }
-            // Pinned state strips (§15-S1/S9, mockups 09/10/12) — content stays visible.
-            if (state.stale) {
-                AttentionStrip(
-                    title = stringResource(R.string.conv_stale_title),
-                    tone = StatusTone.WAITING,
-                    modifier = Modifier.testTag("conversation_stale_strip"),
-                )
-            }
             // §20.2 "approval first": the open interaction cards are PINNED above the
             // timeline (the agent is blocked until answered — G2a ≤ 3 interactions).
+            // B2.12: they are NEVER inside the strip budget.
             for (interaction in state.pendingPermissions) {
                 ApprovalCard(
                     interaction = interaction,
@@ -224,56 +217,79 @@ fun ConversationScreen(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                 )
             }
-            if (state.taskState == TaskStateMachine.State.WAITING_FOR_PERMISSION ||
-                state.taskState == TaskStateMachine.State.WAITING_FOR_USER
-            ) {
-                AttentionStrip(
-                    title = stringResource(R.string.conv_attention_title),
-                    message = stringResource(R.string.conv_attention_body),
-                    tone = StatusTone.WAITING,
-                    modifier = Modifier.testTag("conversation_attention_strip"),
-                )
-            }
-            // §7.5 queue display + edit (sendQueuedNow / editQueueItem, CAS upstream).
-            state.sessionState?.queue?.let { queue ->
-                QueueStrip(
-                    queue = queue,
-                    busy = false,
-                    onSendNow = onSendQueuedNow,
-                    onEdit = onEditQueueItem,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                )
-            }
-                        // §19.4 FIELD (2026-09-30, vc11): the desktop truncates the initial snapshot
-            // to a tail window — make the remaining history DISCOVERABLE and tappable,
-            // not just a scroll-prefetch hint. Scalable: pages of PAGE_MAX_ROWS until
-            // the window's firstRowId is reached (no hardcoded total).
-            if (state.hasMoreHistory && !state.loadingOlder && state.rows.isNotEmpty()) {
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("conversation_load_older_strip")
-                        .clickable { onLoadOlder(state.rows.first().rowId) { /* page fetched; list updates via the store */ } },
-                ) {
-                    Text(
-                        text = stringResource(R.string.conv_load_earlier) +
-                            (state.totalRows?.let { total -> stringResource(R.string.conv_showing_latest_of, state.rows.size, total) } ?: ""),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    )
-                }
-            }
-if (state.historyChanged) {
-                AttentionStrip(
-                    title = stringResource(R.string.conv_history_changed),
-                    tone = StatusTone.INFO,
-                    actionLabel = stringResource(R.string.action_dismiss),
-                    onAction = onDismissHistoryNotice,
-                    modifier = Modifier.testTag("conversation_history_strip"),
-                )
-            }
+            // B2.12: the status-strip stack is BUDGETED (§15-S1/S9 mockups) — an
+            // unbounded stack in this non-scrollable column squeezed the timeline.
+            StripBudget(
+                strips = buildList {
+                    if (state.stale) {
+                        add {
+                            AttentionStrip(
+                                title = stringResource(R.string.conv_stale_title),
+                                tone = StatusTone.WAITING,
+                                modifier = Modifier.testTag("conversation_stale_strip"),
+                            )
+                        }
+                    }
+                    if (state.taskState == TaskStateMachine.State.WAITING_FOR_PERMISSION ||
+                        state.taskState == TaskStateMachine.State.WAITING_FOR_USER
+                    ) {
+                        add {
+                            AttentionStrip(
+                                title = stringResource(R.string.conv_attention_title),
+                                message = stringResource(R.string.conv_attention_body),
+                                tone = StatusTone.WAITING,
+                                modifier = Modifier.testTag("conversation_attention_strip"),
+                            )
+                        }
+                    }
+                    // §7.5 queue display + edit (sendQueuedNow / editQueueItem, CAS upstream).
+                    state.sessionState?.queue?.let { queue ->
+                        add {
+                            QueueStrip(
+                                queue = queue,
+                                busy = false,
+                                onSendNow = onSendQueuedNow,
+                                onEdit = onEditQueueItem,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            )
+                        }
+                    }
+                    // §19.4 FIELD (2026-09-30, vc11): the desktop truncates the initial
+                    // snapshot to a tail window — make the remaining history DISCOVERABLE
+                    // and tappable (pages of PAGE_MAX_ROWS; no hardcoded total).
+                    if (state.hasMoreHistory && !state.loadingOlder && state.rows.isNotEmpty()) {
+                        add {
+                            Surface(
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("conversation_load_older_strip")
+                                    .clickable { onLoadOlder(state.rows.first().rowId) { /* page fetched; list updates via the store */ } },
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.conv_load_earlier) +
+                                        (state.totalRows?.let { total -> stringResource(R.string.conv_showing_latest_of, state.rows.size, total) } ?: ""),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                )
+                            }
+                        }
+                    }
+                    if (state.historyChanged) {
+                        add {
+                            AttentionStrip(
+                                title = stringResource(R.string.conv_history_changed),
+                                tone = StatusTone.INFO,
+                                actionLabel = stringResource(R.string.action_dismiss),
+                                onAction = onDismissHistoryNotice,
+                                modifier = Modifier.testTag("conversation_history_strip"),
+                            )
+                        }
+                    }
+                },
+                modifier = Modifier.padding(horizontal = 0.dp),
+            )
             when {
                 state.loading && state.rows.isEmpty() -> LoadingBody()
                 state.empty -> EmptyBody()
@@ -625,15 +641,10 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             ) {
                 Box {
-                    Icon(imageVector = Icons.Filled.ArrowDownward, contentDescription = stringResource(R.string.conv_jump_latest))
-                    if (unread > 0) {
-                        Box(
-                            Modifier
-                                .align(Alignment.TopEnd)
-                                .size(16.dp)
-                                .background(MaterialTheme.colorScheme.primary, androidx.compose.foundation.shape.CircleShape)
-                                .testTag("conversation_unread_badge"),
-                        )
+                    // B2.9: a NUMBERED badge (the bare 16dp dot had no count/semantics).
+                    androidx.compose.foundation.layout.Box(Modifier) {
+                        Icon(imageVector = Icons.Filled.ArrowDownward, contentDescription = stringResource(R.string.conv_jump_latest))
+                        UnreadBadge(unread = unread, modifier = Modifier.align(Alignment.TopEnd))
                     }
                 }
             }

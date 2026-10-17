@@ -455,7 +455,8 @@ internal fun ApprovalsBellAction(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = openApprovals.coerceAtMost(9).toString(),
+                        // B2.9: the TRUE count — 12 pending approvals never read as "9".
+                        text = openApprovals.toString(),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onError,
                         modifier = Modifier.testTag("tasks_approvals_badge"),
