@@ -111,6 +111,9 @@ class ApprovalsCardContextTest {
         rule.onNodeWithTag("approvals_deny_int-1").assertIsDisplayed()
         rule.onNodeWithTag("approvals_deny_int-1").performClick()
         rule.waitForIdle()
-        rule.onNodeWithText("git push --force origin main", substring = true).assertIsDisplayed()
+        // Both the card and the confirmation carry the request text — the dialog's is tagged.
+        rule.onNodeWithTag("approvals_deny_preview", useUnmergedTree = true)
+            .assertTextContains("git push --force origin main", substring = true)
+        rule.onAllNodesWithText("git push --force origin main", substring = true).assertCountEquals(2)
     }
 }
