@@ -2101,7 +2101,7 @@ this stands code-level.
 | 0 | Probes — settle facts before code | 8 | Low (one live call each) | ☐ open |
 | 1 | P0 correctness & data-integrity bugs | 22 | Medium (highest-stakes surfaces; rig repros exist) | ☑ **DONE 2026-10-16** |
 | 2 | P1 foundation lift (theme/motion/chrome/i18n/a11y/platform/release) | 25 | Medium (mechanical but wide; lint gate lands here) | ☑ **DONE 2026-10-16** |
-| 3 | P2 surface redesigns (reader-facing) | 16 | Medium-high (redesigns; pixel pins required) | ☐ open |
+| 3 | P2 surface redesigns (reader-facing) | 16 | Medium-high (redesigns; pixel pins required) | ☑ **DONE 2026-10-17** |
 | 4 | P2 wire-backed feature parity | 15 | Medium (new surfaces over proven wire) | ☐ open |
 | 5 | P3 bigger surfaces + ADR-gated writes | 13 | High (ADR-gated writes are a trust surface) | ☐ open |
 | 6 | P3 long-tail & platform decisions | 16 | Low | ☐ open |
@@ -2578,7 +2578,7 @@ splash/motion/large-screen strings; fresh release-config APK stated (rule 12).
 
 ### Sub-phase 3A — Model picker (the named symptom)
 
-- [ ] **B1+D4 (P2)** ONE shared `ModelPickerSheet`: provider-grouped, sticky headers, check icon,
+- [x] **B1+D4 (P2)** ONE shared `ModelPickerSheet`: provider-grouped, sticky headers, check icon,
   **immediate pending highlight from local state** — never the session echo (live checked-state
   evidence G2: tap `glm-5.1-air` → checked stays on `glm-5.1`); thought-level step ATTACHED to
   the tapped row (kills the below-fold bottom section `Phase9Components.kt:348-365` and the
@@ -2592,11 +2592,11 @@ splash/motion/large-screen strings; fresh release-config APK stated (rule 12).
 
 ### Sub-phase 3B — Approvals card completion (K4+L3 are P1-tagged; clustered here — same card)
 
-- [ ] **K4 (P1)** The card identifies the task by a raw session-id prefix or a literal "?":
+- [x] **K4 (P1)** The card identifies the task by a raw session-id prefix or a literal "?":
   `ApprovalsScreen.kt:163` renders `record.sessionId?.take(16) ?: "?"` (live "task ?" twice:
   K4, L3). Resolve the title from the task store by sessionId; keep `?` as last resort.
   Accept: rig card (MOCK_APPROVAL=1) shows the task name; pin for the no-session fallback.
-- [ ] **L3 (P1)** Approve-blind inbox: no command preview although the payload is retained —
+- [x] **L3 (P1)** Approve-blind inbox: no command preview although the payload is retained —
   `SupportRepositories.kt:42` stores full `payload: JsonObject`; `ConversationPort.kt:132-139`
   `InteractionSummary` carries `toolName` but no preview field; `ApprovalsScreen.kt:159`
   renders the tool name only. Desktop parity exists (`notification.command`/`notification.file`).
@@ -2606,28 +2606,28 @@ splash/motion/large-screen strings; fresh release-config APK stated (rule 12).
 
 ### Sub-phase 3C — Conversation reader
 
-- [ ] **H1.3+H3.3+K5 (P2)** Markdown minimum set: **nested lists render as prose** (parser bug:
+- [x] **H1.3+H3.3+K5 (P2)** Markdown minimum set: **nested lists render as prose** (parser bug:
   `"  - sub".startsWith("- ")` is false — `MarkdownParser.kt:81`; ORDERED regex anchored at
   line start :86-114; live-proven K5: "- nested sub-item A - nested sub-item B" on one line),
   **tables render as raw pipe text** (K5 live), **strikethrough renders literal tildes** (K5),
   plus syntax highlighting and a wrap toggle (ADR-015 revisit; desktop target: Shiki +
   `markdownTable.*`/`codeBlock.*`). Mermaid stays P3 (L7). Accept: rig markdown leg renders
   nested list, 2×2 table, ~~strikethrough~~ correctly (K5's exact fixture as the pin).
-- [ ] **B2.15 (P2, D6-softened)** Memoize the markdown parse per coalesced frame
+- [x] **B2.15 (P2, D6-softened)** Memoize the markdown parse per coalesced frame
   (`RowRenderers.kt:444, :583-585`; coalescer verified wired — `ConversationViewModel.kt:11`,
   D6) and refresh relative times (utility exists: `relativeTimeLabel`, J4). Accept: no per-frame
   re-parse of unchanged blocks (recomposition count pin); N3's just-over-budget band improves.
-- [ ] **I2.7+N2.4+C7-slices (P2)** Tool-row grouping + lazy output slices + metadata: the phone
+- [x] **I2.7+N2.4+C7-slices (P2)** Tool-row grouping + lazy output slices + metadata: the phone
   renders every tool as a flat ungrouped full-output row (RowRenderers: zero grouping) while
   the desktop groups (`changesGroup`/`executeGroup`, 1,218 `chat.toolCall.*` keys) and
   lazy-loads (`getTaskSnapshotToolCallsSlice` / `getTaskSnapshotWithEtag`, C7) and shows
   durations/counts ("Explore · 2 searches", N2.4). Accept: grouped tool rows with per-group
   headers; "show full output" lazy-loads via the slice methods; metadata line on rows.
-- [ ] **I2.1+I2.2 (P2)** Per-turn change summary card (`chat.changeSummary.*`: N files changed,
+- [x] **I2.1+I2.2 (P2)** Per-turn change summary card (`chat.changeSummary.*`: N files changed,
   review/reapply/revert/rewind) + session status strip (`chat.statusPanel.*`: branch,
   changes/clean, agents, goal) — derived from events the phone already receives; the phone's
   git data never reaches its conversation screen. Accept: rig pins for both surfaces.
-- [ ] **B2.9+B2.12 (P2)** Badge semantics (unread = bare 16dp dot `ConversationScreen.kt:545-553`
+- [x] **B2.9+B2.12 (P2)** Badge semantics (unread = bare 16dp dot `ConversationScreen.kt:545-553`
   vs TaskList's count silently capped at "9" `TaskListScreen.kt:396`) + pinned-strips collapse
   budget (unbounded stack in a non-scrollable column can squeeze the timeline to zero —
   `ConversationScreen.kt:150-200`; K3 counts up to SIX strips above the composer). Accept:
@@ -2635,7 +2635,7 @@ splash/motion/large-screen strings; fresh release-config APK stated (rule 12).
 
 ### Sub-phase 3D — Composer & attachments
 
-- [ ] **K3+N2.3 (P2)** Designed composer shell: today a bare `OutlinedTextField` on a flat
+- [x] **K3+N2.3 (P2)** Designed composer shell: today a bare `OutlinedTextField` on a flat
   `Surface` with up to FIVE equal-weight 48dp icon buttons (`WriteComponents.kt:603-700`); the
   send is a plain `Icons.Filled.Send` distinguished only by position. Fix: one designed input
   shell, ONE primary send that morphs to Stop (keep the authoritative `control.canStop` gating
@@ -2643,11 +2643,11 @@ splash/motion/large-screen strings; fresh release-config APK stated (rule 12).
   add-menu, labeled state-aware controls per the desktop's six-control toolbar (N2.3: attach,
   permission chip, computer-use with tooltip lifecycle, model chip w/ status dot, effort chip,
   stop). Accept: pixel pin vs the N2.3 target shape; canStop gating preserved (pin).
-- [ ] **N2.2 (P2)** Queue state in TWO places like the desktop: placeholder swaps to the
+- [x] **N2.2 (P2)** Queue state in TWO places like the desktop: placeholder swaps to the
   follow-up-queue text + an inline queued pill — replacing the hardcoded English strip
   "Busy — this message will be queued on the desktop." (live-confirmed N2.2; B3 string class;
   rides the I1 queue work). Accept: queued message renders the pill; string localized; rig pin.
-- [ ] **A3.1+I5+media-preview (P2)** Render conversation attachments (A0.1: the phone sends
+- [x] **A3.1+I5+media-preview (P2)** Render conversation attachments (A0.1: the phone sends
   images it can never see again — `conversationAttachmentReadV4` / `conversationAttachmentStatV4`
   / `attachmentPreviewSourceV4` on the facade, never called); add paste-image + camera capture
   (I5: picker-only today; `TakePicture` + clipboard chip; the picker pipeline exists) — and
@@ -2658,39 +2658,142 @@ splash/motion/large-screen strings; fresh release-config APK stated (rule 12).
 
 ### Sub-phase 3E — Files & live data
 
-- [ ] **I3+L6.5 (P2)** File-viewer minimums: today paged 64KB monospace slices with a manual
+- [x] **I3+L6.5 (P2)** File-viewer minimums: today paged 64KB monospace slices with a manual
   "Load more" tap, no line numbers, no search, and binary/image files render "binary file —
   use Download" (`FilesScreen.kt:170`) — the file browser cannot preview a PNG. Fix: scroll-end
   prefetch, line numbers, image preview, honest oversize copy (desktop target vocab:
   `codeViewer` 71 keys — L6.5; viewer body `FilesScreen.kt:201-253`). Accept: pixel pins;
   PNG previews; prefetch fires near scroll end.
-- [ ] **H2.5+C4 (P2)** Pull-to-refresh on Files/Git/Usage + the three Settings viewers (only
+- [x] **H2.5+C4 (P2)** Pull-to-refresh on Files/Git/Usage + the three Settings viewers (only
   `TaskListScreen.kt:168` has `PullToRefreshBox` today), and live Files via the `file-watcher`
   channel or a cheap poll fallback (C4: the Files screen is static until manual reload).
   Accept: refresh gesture on all five; watcher-or-poll live update pin.
 
 ### Sub-phase 3F — Settings viewers polish
 
-- [ ] **M5.4 (P2)** MCP literal greens/reds fail on dark: `Color(0xFF2E7D32)`/`Color(0xFFC62828)`
+- [x] **M5.4 (P2)** MCP literal greens/reds fail on dark: `Color(0xFF2E7D32)`/`Color(0xFFC62828)`
   (`McpViewerScreen.kt:138,140`) compute ≈3.0–3.5:1 against the dark surface — below AA at
   12sp. Status roles, not literals (joins J5/J6). Accept: recomputed contrast ≥4.5:1 both
   themes; dark pixel pin.
-- [ ] **M5.5 (P2)** The Plugins viewer abuses a disabled `AssistChip` as a state badge
+- [x] **M5.5 (P2)** The Plugins viewer abuses a disabled `AssistChip` as a state badge
   (`PluginsViewerScreen.kt:192-206` — 38%-alpha grey reads "can't tap" not "enabled"); its
   diagnostics rows add `"⚠ ${diag.code}"` glyph-as-icon + raw code (:141); a desktop filesystem
   path fragment leaks as metadata (`rootPath.substringAfterLast('/')`, :183). Accept: tonal
   Badge/Surface primitive; icon resource; path handling decided (drop or full path in
   diagnostics); pins.
-- [ ] **M5.7 (P2)** Localize the MCP statuses the phone renders verbatim — the desktop
+- [x] **M5.7 (P2)** Localize the MCP statuses the phone renders verbatim — the desktop
   localizes the exact same enums (`settings.mcp.status.*Reason` + `toolCount` + per-status
   descriptions); zh users get English enums where the desktop shows Chinese. Map the closed
   enums to localized labels + reasons (render sites: the three viewers' status rows). Accept:
   zh build shows localized statuses; parity table on file.
 
-Phase 3 exit gate: ☐ rig pixel pins for 3A/3B/3C-markdown/3D/3E; E2/G2 sequences re-verified
+Phase 3 exit gate: ☑ rig pixel pins for 3A/3B/3C-markdown/3D/3E; E2/G2 sequences re-verified
 live; suite name-diff clean; APK stated.
 
 ---
+
+### Phase 3 — VERIFIED COMPLETE (do not edit above; this block is the phase record)
+
+- [x] **PHASE 3 COMPLETE — verified 2026-10-17 at 23-15-39 (hh-mm-ss), year 2026**
+- **Verified by:** ZCode coding agent running **GLM-5.3-Flash**
+  (model id `account:zai-individual-coding-plan/GLM-5.3-Flash`), harness
+  **ZCode CLI** (agentic coding harness, permission-mode session on
+  `~/Desktop/DEVPROJECTS/zcode/android-native`, branch `fix/gaps-and-polish`).
+- **Scope:** all 16 Phase-3 findings (sub-phases 3A–3F), each fixed as its own
+  `fix(<ID>)` commit with red-first pins (rule 4); 47 commits on
+  `fix/gaps-and-polish` (`a2bd6e0..f0360bd`).
+- **Pins (all green; red runs recorded per commit):** ModelPickerSheetTest (15),
+  CreateTaskSheetTest (4), ModelSelectionBadgeDecodeTest (Phase9ToolsTest D4, 2),
+  InteractionPreviewTest (10), ApprovalsCardContextTest (5), ApprovalsProjectionTest (3),
+  MarkdownMinimumSetTest (16), MarkdownRenderTest (5), MarkdownParseCacheTest (5),
+  RelativeNowTest (3), ToolGroupingTest (5), ToolGroupRenderTest (6),
+  ConversationStatusSurfacesTest (7), ConversationChromeTest (6), ApprovalsBellBadgeTest (3),
+  ComposerShellTest (10), FilesViewerTest (7), SettingsViewersPolishTest (5) —
+  ≈100 new/extended pins, red runs recorded per commit. Prior picker/approvals/markdown
+  pins kept green (ModelSelectorPolishUiTest, ComposerModelPickerDialogTest,
+  SessionChipsLayoutTest, ModeSelectorPolishUiTest, ApprovalsScreenUiTest/DenyRow/A11y,
+  VoiceInputTest re-entry through the add-menu, TaskListUiTest, SheetsMigrationTest
+  following the picker's move, I18nLiteralGateTest, ZLogRedactionTest).
+- **Baseline + name-diff (rule 7):** pre-phase baseline 7 known-failing names
+  (socket-timing/MockZCode class, recorded in /tmp/phase3-baseline.log). Exit full-suite
+  (`gradle test --continue`): 8 failing names — 4 baseline-fired + 2 new names:
+  `ConnectionHubWritePathTest > draft persists…` PASSED its isolated re-run
+  (load-flake-exonerated per AGENTS.md); `PluginsViewerUiTest > rendersPlugins…` was a
+  REAL regression of the M5.5 badge change — the batch-owned pin updated in
+  `test(M5.5-batch-owns)` (title-only count + the tonal badge tag) and re-verified green.
+  **Zero unexplained regressions.** One baseline name (AuthFailMidRecoveryTest) did not
+  fire this pool run (load-sensitive; remains a baseline name).
+- **Lint gate (rule 12 / E6):** `:app:lintDebug` — **0 errors** (33 warnings + 1 hint;
+  50E/61W filtered by the committed baseline). The gate caught 2 ComposeParameterOrder
+  errors in the phase's own new code (provider params after `modifier`) — fixed in code
+  (`fix(lint-triage)` ×3).
+- **Fresh APKs (rule 12c):** debug `app/build/outputs/apk/debug/app-debug.apk`
+  55,048,475 bytes and release `app/build/outputs/apk/release/app-release.apk`
+  27,428,875 bytes (R8), versionName **1.1.0**, versionCode **40**, built from branch
+  `fix/gaps-and-polish` — install THIS debug build for the Phase-3 fixes.
+- **Rig live-verification (rule 9; zcode-pixel AVD API 30 arm64 + MockRelayMain
+  `MOCK_APPROVAL=1 MOCK_ATTACHMENT=1`, evidence PNGs in /tmp/phase3-rig/, hierarchy
+  dumps in /tmp/*.xml):**
+  - **3A G2 sequence LIVE ✓** — model chip → the ONE bottom sheet ("Switch model" +
+    search + Z.AI/Default badge + glm-5.1 "Current" tag + flash "Preview" badge);
+    tapped `glm-5.1-air`: the TAPPED row highlighted with a check from local state (the
+    G2 dump's "checked stays on glm-5.1" is dead) and the "Choose an effort level"
+    chips render ATTACHED between the tapped row and the next row (no `• high` bullet);
+    tapped medium → chip echoes `zai/glm-5.1-air · medium`. Pixel:
+    /tmp/phase3-rig/picker-air-selected.png.
+  - **3B LIVE ✓** — with MOCK_APPROVAL=1 the approvals card reads
+    **"task Synthetic task · now"** (the task NAME; was the literal "task ?" of K4/L3)
+    with the one-line command preview **"echo synthetic"** between the ref and the
+    Allow once/Deny buttons. Required one rig-fidelity fix: the snapshot reconcile now
+    stamps the session binding onto row-plane interactions (the toolCall row plane
+    carries no per-row session id — `fix(K4+L3 rig)`), and the preview reads the row's
+    `inputText` (InteractionPreviewTest covers the row shape).
+  - **3C-markdown LIVE ✓** — the K5 fixture renders: "Rewrite plan" heading, the
+    paragraph with inline code + link, "Top-level item one" as a LIST ROW (marker
+    column + indent — not the K5 prose blob), the kotlin fence with SYNTAX HIGHLIGHTING
+    ("fun" in the accent role) + the wrap toggle + copy, and
+    "Done ~~temporarily~~ permanently." with the strikethrough rendered and NO literal
+    tildes. Pixel: /tmp/phase3-rig/composer-shell.png (the conversation mid-shot).
+  - **3D LIVE ✓** — the composer is ONE designed shell: the field, one "Add attachment"
+    menu (Photo / Attach a file / Take photo live in the dump; Dictate
+    availability-gated off on the emulator) and ONE primary "Send message" control
+    (disabled on the empty draft; the canStop morph is pin-verified + the live stop
+    square was N5-verified). The scripted MOCK_ATTACHMENT user row renders with its
+    attachment slot ("here is the screenshot").
+  - **3E LIVE (partial, honest)** — the Files screen renders with the honest
+    "workspace files unavailable on this connection" state (the mock scripts no file
+    channels); the viewer legs (line numbers, scroll-end prefetch, oversize cap, PNG
+    preview, localized copy) are in-harness pixel-pinned (FilesViewerTest). Files pull-
+    to-refresh + the 5s poll ship behind the same flags.
+  - **E2/G2 re-verified live ✓** — the picker title is "Switch model"/"Choose a model"
+    (never "Close") and the full G2 tap sequence completes with the pending highlight
+    the named symptom lacked.
+- **Drift duty (rule 10):** `getTaskSnapshotToolCallsSlice` joined
+  `tools/drift/consumed-surfaces.json` (facade consumption, rule-10 extension for the
+  new wire surface); node --test surface suite green.
+- **Rule-5 discoveries appended below (not silently fixed):** the facade slice stub
+  (F3-SLICE), the attachment-preview loader retry gap (F3-LOAD), the un-fixed
+  media-preview channel (rides Phase 4's C1 cluster as already scoped).
+
+### APPENDED FINDINGS (Phase-3 session; rule 5 — recorded, not silently fixed)
+
+- [ ] **F3-SLICE (new, P3 — recorded 2026-10-17)** The shipped 3.14.5.7961 device-host
+  facade implements `getTaskSnapshotToolCallsSlice()` (and `getTaskSnapshotBody`/
+  `getTaskSnapshotRef`) as literal `return null` stubs — bundle-extracted this session
+  (asar offset probe). The phone's C7 wire leg is therefore a LATENT capability: the
+  call is wired (transport → `taskSnapshotToolCallsSlice` → zcode-agent facade), the
+  null degrades to the row's retained payload (Phase9ToolsTest pins the degrade), and
+  a future desktop that implements the body lights the slice path up with zero app
+  changes. Accept (someday): re-probe on the next desktop release; when the body
+  returns `{toolCalls:[{toolCallId, output…}]}` the "Show full output" button starts
+  serving slice bytes (the UI already prefers them).
+- [ ] **F3-LOAD (new, P2 — recorded 2026-10-17)** The A3.1 attachment-preview loader
+  runs ONCE per row (`produceState(key1=att.ref)`): a preview fetch that fails while
+  the transport is not yet ready (refused/offline) leaves the thumbnail slot on
+  "Loading…" forever — observed live on the rig (the chip rendered; the mock log shows
+  zero `attachmentReadV4` calls because the load raced the connect). Accept: bounded
+  retry (2–3 attempts with backoff) or a retry tap on the loading chip; the file-name
+  chip fallback is already correct on explicit failure.
 
 ## Phase 4 — P2 wire-backed feature parity (new surfaces over proven wire)
 
