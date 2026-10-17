@@ -166,6 +166,9 @@
     <string name="edit_confirm_button">Edit and re-ask</string>
     <string name="row_link_open_failed">Can\'t open link</string>
     <string name="row_writing">writing…</string>
+    <!-- H1.3 (Phase 3C): code-block wrap toggle (desktop codeBlock.wrapLongLines). -->
+    <string name="row_code_wrap_lines">Wrap long lines</string>
+    <string name="row_code_scroll_lines">Scroll long lines</string>
     <string name="composer_busy_queued">Busy — this message will be queued on the desktop.</string>
     <string name="row_subagent">Subagent · %1$s</string>
     <string name="row_hook">Hook · %1$s</string>

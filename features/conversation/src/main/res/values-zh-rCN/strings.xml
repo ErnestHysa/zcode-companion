@@ -153,6 +153,8 @@
     <string name="conv_leave_keep">继续编辑</string>
     <string name="conv_leave_title">离开此对话？</string>
     <string name="row_writing">正在写入…</string>
+    <string name="row_code_wrap_lines">自动换行</string>
+    <string name="row_code_scroll_lines">横向滚动</string>
     <string name="composer_busy_queued">忙碌中 — 此消息将在桌面端排队。</string>
     <string name="row_subagent">子代理 · %1$s</string>
     <string name="row_hook">钩子 · %1$s</string>

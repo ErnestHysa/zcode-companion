@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.WrapText
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -424,6 +425,10 @@ fun UnknownKindRow(row: ConversationRow.Unknown, modifier: Modifier = Modifier) 
 
 @Composable
 fun CodeBlock(code: String, lang: String? = null, modifier: Modifier = Modifier, complete: Boolean = true) {
+    // H1.3: wrap toggle (desktop `codeBlock.wrapLongLines`) — default = scroll, like the
+    // desktop; remembered per block so a long reply keeps each block's choice.
+    var wrapped by rememberSaveable(code.hashCode(), lang) { mutableStateOf(false) }
+    val highlighted = highlightedCode(code, lang)
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -444,20 +449,46 @@ fun CodeBlock(code: String, lang: String? = null, modifier: Modifier = Modifier,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
                 )
+                androidx.compose.material3.IconButton(
+                    onClick = { wrapped = !wrapped },
+                    modifier = Modifier.minTouchTarget().testTag("row_code_wrap_toggle"),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.WrapText,
+                        contentDescription = stringResource(if (wrapped) R.string.row_code_scroll_lines else R.string.row_code_wrap_lines),
+                        tint = if (wrapped) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
                 // GAP-11: per-code-block copy affordance (desktop code-block copy).
                 CopyIconButton(text = code, tag = "row_copy_code")
             }
             Spacer(Modifier.height(6.dp))
-            Box(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-                Text(
-                    text = code,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                        lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
+            val codeStyle = MaterialTheme.typography.bodySmall.copy(
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
+            )
+            if (wrapped) {
+                Box(Modifier.fillMaxWidth().testTag("row_code_wrapped")) {
+                    Text(
+                        text = highlighted,
+                        style = codeStyle,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        softWrap = true,
+                        modifier = Modifier.testTag("row_code_text"),
+                    )
+                }
+            } else {
+                Box(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).testTag("row_code_scroll")) {
+                    Text(
+                        text = highlighted,
+                        style = codeStyle,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        softWrap = false,
+                        modifier = Modifier.testTag("row_code_text"),
+                    )
+                }
             }
             if (!complete) {
                 Spacer(Modifier.height(4.dp))
@@ -471,11 +502,52 @@ fun CodeBlock(code: String, lang: String? = null, modifier: Modifier = Modifier,
     }
 }
 
+/**
+ * H1.3: the bounded highlighter's tokens → an AnnotatedString in theme roles (no literal
+ * ARGB — J6/lint discipline): keywords = accent, strings = success, comments = muted
+ * variant, numbers = info. Memoized per (code, lang) — B2.15's per-frame budget.
+ */
+@Composable
+private fun highlightedCode(code: String, lang: String?): AnnotatedString {
+    val c = LocalZCodeColors.current
+    val keyword = c.accent
+    val string = c.statusSuccess
+    val comment = MaterialTheme.colorScheme.onSurfaceVariant
+    val number = c.statusInfo
+    val tokens = remember(code, lang) { com.zcode.android.features.conversation.markdown.CodeHighlighter.tokenize(lang, code) }
+    return remember(tokens, keyword, string, comment, number) {
+        buildAnnotatedString {
+            for (t in tokens) {
+                val start = length
+                append(t.text)
+                val color = when (t.kind) {
+                    com.zcode.android.features.conversation.markdown.CodeHighlighter.Kind.KEYWORD -> keyword
+                    com.zcode.android.features.conversation.markdown.CodeHighlighter.Kind.STRING -> string
+                    com.zcode.android.features.conversation.markdown.CodeHighlighter.Kind.COMMENT -> comment
+                    com.zcode.android.features.conversation.markdown.CodeHighlighter.Kind.NUMBER -> number
+                    com.zcode.android.features.conversation.markdown.CodeHighlighter.Kind.PLAIN -> null
+                }
+                if (color != null) {
+                    addStyle(
+                        SpanStyle(
+                            color = color,
+                            fontStyle = if (t.kind == com.zcode.android.features.conversation.markdown.CodeHighlighter.Kind.COMMENT) androidx.compose.ui.text.font.FontStyle.Italic else null,
+                        ),
+                        start,
+                        length,
+                    )
+                }
+            }
+        }
+    }
+}
+
 /** Markdown renderer over the bounded parser (ADR-015); spans are style-only. */
 @Composable
 fun MarkdownText(text: String, modifier: Modifier = Modifier) {
     val blocks = remember(text) { MarkdownParser.parse(text) }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        var listIndex = 0
         blocks.forEach { block ->
             when (block) {
                 is MarkdownParser.Block.Paragraph -> SpannedText(block.spans, MaterialTheme.typography.bodyMedium)
@@ -487,19 +559,123 @@ fun MarkdownText(text: String, modifier: Modifier = Modifier) {
                     },
                 )
                 is MarkdownParser.Block.CodeFence -> CodeBlock(code = block.code, lang = block.lang, complete = block.complete)
-                is MarkdownParser.Block.ListItem -> Row {
-                    Text(
-                        text = if (block.ordered) "${block.number}." else "•",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.width(18.dp),
-                    )
-                    SpannedText(block.spans, MaterialTheme.typography.bodyMedium, Modifier.weight(1f))
+                // H3.3/K5: nesting level → indent + a per-level marker; each item is its own row.
+                is MarkdownParser.Block.ListItem -> {
+                    val index = listIndex++
+                    Row(
+                        modifier = Modifier
+                            .padding(start = (block.level * 16).dp)
+                            .testTag("md_list_item_$index"),
+                    ) {
+                        Text(
+                            text = if (block.ordered) "${block.number}." else listMarker(block.level),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.width(18.dp),
+                        )
+                        SpannedText(block.spans, MaterialTheme.typography.bodyMedium, Modifier.weight(1f))
+                    }
                 }
                 is MarkdownParser.Block.Quote -> Row {
                     Box(Modifier.width(3.dp).height(18.dp).background(LocalZCodeColors.current.railDone))
                     Spacer(Modifier.width(8.dp))
                     SpannedText(block.spans, MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant))
+                }
+                is MarkdownParser.Block.Table -> MarkdownTable(block)
+                is MarkdownParser.Block.Rule -> androidx.compose.material3.HorizontalDivider(
+                    modifier = Modifier.fillMaxWidth().testTag("md_rule"),
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                )
+            }
+        }
+    }
+}
+
+private fun listMarker(level: Int): String = when (level % 3) {
+    0 -> "•"
+    1 -> "◦"
+    else -> "▪"
+}
+
+/**
+ * H1.3/K5: a pipe table as a real grid. Column widths are the max intrinsic cell width
+ * per column (capped), rows the max cell height — one custom Layout, horizontally
+ * scrollable when wider than the reader. Header row bold on a tonal band, hairlines
+ * between rows. The band and the hairlines are measured CHILDREN of the same layout
+ * (no draw-time geometry hand-off).
+ */
+@Composable
+private fun MarkdownTable(table: MarkdownParser.Block.Table, modifier: Modifier = Modifier) {
+    val cols = table.header.size
+    if (cols == 0) return
+    val allRows = listOf(table.header) + table.rows
+    val rowCount = allRows.size
+    val cellPad = 8.dp
+    val maxCellWidth = 240.dp
+    val hairline = MaterialTheme.colorScheme.outlineVariant
+    val headerBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    Box(
+        modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .testTag("md_table"),
+    ) {
+        androidx.compose.ui.layout.Layout(
+            content = {
+                // [0] header band, [1..rowCount] hairlines, then the cells row-major.
+                Box(Modifier.background(headerBg))
+                repeat(rowCount) { Box(Modifier.background(hairline)) }
+                allRows.forEachIndexed { r, row ->
+                    for (c in 0 until cols) {
+                        val spans = row.getOrNull(c) ?: emptyList()
+                        val style = if (r == 0) {
+                            MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
+                        } else {
+                            MaterialTheme.typography.bodySmall
+                        }
+                        Box(Modifier.padding(horizontal = cellPad, vertical = 6.dp).testTag("md_table_cell_${r}_$c")) {
+                            SpannedText(spans, style)
+                        }
+                    }
+                }
+            },
+        ) { measurables, _ ->
+            val cap = maxCellWidth.roundToPx()
+            val cellStart = 1 + rowCount
+            val cells = measurables.drop(cellStart).map { it.measure(androidx.compose.ui.unit.Constraints(maxWidth = cap)) }
+            val colWidths = IntArray(cols)
+            val rowHeights = IntArray(rowCount)
+            cells.forEachIndexed { idx, p ->
+                val r = idx / cols
+                val c = idx % cols
+                if (p.width > colWidths[c]) colWidths[c] = p.width
+                if (p.height > rowHeights[r]) rowHeights[r] = p.height
+            }
+            val width = colWidths.sum().coerceAtLeast(1)
+            val height = rowHeights.sum().coerceAtLeast(1)
+            val band = measurables[0].measure(androidx.compose.ui.unit.Constraints.fixed(width, rowHeights.firstOrNull() ?: 0))
+            val lines = (1 until cellStart).map { measurables[it].measure(androidx.compose.ui.unit.Constraints.fixed(width, 1)) }
+            layout(width, height) {
+                band.placeRelative(0, 0)
+                var y = 0
+                for (r in 0 until rowCount) {
+                    y += rowHeights[r]
+                    lines[r].placeRelative(0, (y - 1).coerceAtLeast(0))
+                }
+                y = 0
+                for (r in 0 until rowCount) {
+                    var x = 0
+                    for (c in 0 until cols) {
+                        val p = cells[r * cols + c]
+                        val dx = when (table.align.getOrNull(c)) {
+                            MarkdownParser.Align.RIGHT -> colWidths[c] - p.width
+                            MarkdownParser.Align.CENTER -> (colWidths[c] - p.width) / 2
+                            else -> 0
+                        }
+                        p.placeRelative(x + dx, y)
+                        x += colWidths[c]
+                    }
+                    y += rowHeights[r]
                 }
             }
         }
@@ -525,6 +701,8 @@ private fun SpannedText(
                 span.code -> addStyle(SpanStyle(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace, background = codeBg), start, length)
                 span.bold -> addStyle(SpanStyle(fontWeight = FontWeight.SemiBold), start, length)
                 span.italic -> addStyle(SpanStyle(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic), start, length)
+                // K5: ~~strikethrough~~ (rendered with literal tildes before).
+                span.strikethrough -> addStyle(SpanStyle(textDecoration = TextDecoration.LineThrough), start, length)
                 span.linkUrl != null -> {
                     addStyle(
                         SpanStyle(color = LocalZCodeColors.current.accent, textDecoration = TextDecoration.Underline),
