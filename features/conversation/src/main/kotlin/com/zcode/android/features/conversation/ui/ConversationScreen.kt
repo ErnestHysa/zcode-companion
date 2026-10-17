@@ -111,6 +111,7 @@ fun ConversationScreen(
     onRetryAttachment: (uploadId: String) -> Unit = {},
     // ---- Phase 2 (§11.4, GAP-10): message edit ----
     onEditUserQuery: (rowId: Long, entityId: String, newText: String) -> Unit = { _, _, _ -> },
+) {
     // C6-BackHandler: back with an unsent draft raises a confirm (the promised
     // Phase-7 draft guard). The draft is Room-backed — the guard is the CONFIRMATION
     // UX only; "Leave" just proceeds. Empty draft passes straight through.
