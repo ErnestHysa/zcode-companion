@@ -379,14 +379,22 @@ private fun TasksRoute(
         onOpenApprovals = onOpenApprovals,
         onCreateTask = onCreateTask,
         modelPicker = { current, onPick, onDismiss ->
-            com.zcode.android.features.conversation.ui.ComposerModelPickerDialog(
+            // B1 (Phase 3A): the create-task SHEET hosts the shared picker BODY inline —
+            // never a second sheet stacked on it (the live E2/F3 "grey skeleton").
+            com.zcode.android.features.conversation.ui.ModelPickerContent(
                 current = current,
+                currentThought = null,
+                thoughtLevels = emptyList(),
                 modelOptionsProvider = {
                     val tools = container.hub.phase9()
                     runCatching { tools.modelOptions() }.getOrDefault(emptyList())
                 },
-                onPick = onPick,
+                onPick = { provider, model, _ -> onPick(provider, model) },
                 onDismiss = onDismiss,
+                title = stringResource(com.zcode.android.features.conversation.R.string.composer_model_picker_title),
+                rowTagPrefix = "composer_model_row_",
+                titleTag = "composer_model_picker_title",
+                emptyTag = "composer_model_picker_empty",
             )
         },
         workspaces = workspaces,

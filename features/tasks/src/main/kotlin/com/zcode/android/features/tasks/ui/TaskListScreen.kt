@@ -266,7 +266,7 @@ fun TaskListScreen(
     }
 
     if (showCreate) {
-        CreateTaskDialog(
+        CreateTaskSheet(
             workspaces = workspaces,
             creating = creatingTask,
             onDismiss = { showCreate = false },
@@ -286,11 +286,17 @@ fun TaskListScreen(
 }
 
 /**
- * §6.1 parity dialog: pick an existing workspace, write the first message — the
+ * §6.1 parity sheet: pick an existing workspace, write the first message — the
  * verified `createSession {workspaceId, firstInput{text}}` command does the rest.
+ *
+ * B1 (Phase 3A): create-task is ONE bottom sheet with TWO pages. The composer's model
+ * chip used to open the picker ON TOP of this AlertDialog — two overlays, double scrim,
+ * the live "grey skeleton" (E2/F3). Now the chip swaps this sheet's content to the
+ * shared picker BODY ([modelPicker] is injected as a body, not a sheet) and a pick — or
+ * Back — swaps the form back in. Nothing ever stacks on this sheet.
  */
 @Composable
-internal fun CreateTaskDialog(
+internal fun CreateTaskSheet(
     workspaces: List<com.zcode.android.domain.model.WorkspaceOption>,
     creating: Boolean,
     onDismiss: () -> Unit,
@@ -308,12 +314,41 @@ internal fun CreateTaskDialog(
     // model BEFORE the first message; createSessionRequestedConfigSchema carries
     // {provider, model} as the new session's requested override (command.ts:30-41).
     var pickedModel by remember { androidx.compose.runtime.mutableStateOf<Pair<String, String>?>(null) }
-    var modelSheet by remember { androidx.compose.runtime.mutableStateOf(false) }
-    androidx.compose.material3.AlertDialog(
+    var pickingModel by remember { androidx.compose.runtime.mutableStateOf(false) }
+    com.zcode.android.core.ui.components.ZCodeModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.create_task_title)) },
-        text = {
-            Column {
+        modifier = Modifier.testTag("create_task_sheet"),
+    ) {
+        if (pickingModel) {
+            // Page 2 — the shared picker body INLINE (B1: no second overlay).
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(
+                    onClick = { pickingModel = false },
+                    modifier = Modifier.testTag("create_picker_back"),
+                ) { Text(stringResource(com.zcode.android.core.ui.R.string.action_back)) }
+            }
+            modelPicker(
+                pickedModel,
+                { p, m ->
+                    pickedModel = p to m
+                    pickingModel = false
+                },
+                { pickingModel = false },
+            )
+        } else {
+            Column(Modifier.padding(horizontal = 16.dp)) {
+                Text(
+                    stringResource(R.string.create_task_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier
+                        .padding(vertical = 8.dp)
+                        .testTag("create_task_title"),
+                )
                 if (workspaces.isEmpty()) {
                     Text(
                         stringResource(R.string.create_no_workspaces),
@@ -361,9 +396,9 @@ internal fun CreateTaskDialog(
                     maxLines = 4,
                 )
                 Spacer(Modifier.height(8.dp))
-                // Model chip — tap opens the same picker the conversation uses.
+                // Model chip — tap swaps in the shared picker page.
                 com.zcode.android.core.ui.components.ZCodeOutlinedButton(
-                    onClick = { modelSheet = true },
+                    onClick = { pickingModel = true },
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("create_model_chip"),
@@ -376,28 +411,25 @@ internal fun CreateTaskDialog(
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TextButton(onClick = onDismiss, modifier = Modifier.testTag("create_task_cancel")) {
+                        Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    ZCodeButton(
+                        onClick = { selected?.let { onCreate(it.key, text, pickedModel?.first, pickedModel?.second) } },
+                        enabled = !creating && text.isNotBlank() && selected != null,
+                        modifier = Modifier.testTag("create_task_confirm"),
+                    ) { Text(stringResource(R.string.create_confirm)) }
+                }
+                Spacer(Modifier.height(16.dp))
             }
-        },
-        confirmButton = {
-            ZCodeButton(
-                onClick = { selected?.let { onCreate(it.key, text, pickedModel?.first, pickedModel?.second) } },
-                enabled = !creating && text.isNotBlank() && selected != null,
-                modifier = Modifier.testTag("create_task_confirm"),
-            ) { Text(stringResource(R.string.create_confirm)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss, modifier = Modifier.testTag("create_task_cancel")) { Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel)) }
-        },
-    )
-    if (modelSheet) {
-        modelPicker(
-            pickedModel,
-            { p, m ->
-                pickedModel = p to m
-                modelSheet = false
-            },
-            { modelSheet = false },
-        )
+        }
     }
 }
 

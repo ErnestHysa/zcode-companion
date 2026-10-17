@@ -257,7 +257,7 @@ class TaskCreateUiTest {
         var created: Pair<String, String>? = null
         rule.setContent {
             ZCodeTheme {
-                com.zcode.android.features.tasks.ui.CreateTaskDialog(
+                com.zcode.android.features.tasks.ui.CreateTaskSheet(
                     workspaces = listOf(
                         com.zcode.android.domain.model.WorkspaceOption("/ws/a", "Alpha", "/ws/a"),
                         com.zcode.android.domain.model.WorkspaceOption("/ws/b", "Beta", "/ws/b"),
@@ -285,7 +285,7 @@ class TaskCreateUiTest {
     fun createDialog_staysDisabledWithoutWorkspaceSelection_orText() {
         rule.setContent {
             ZCodeTheme {
-                com.zcode.android.features.tasks.ui.CreateTaskDialog(
+                com.zcode.android.features.tasks.ui.CreateTaskSheet(
                     workspaces = emptyList(),
                     creating = false,
                     onDismiss = {},

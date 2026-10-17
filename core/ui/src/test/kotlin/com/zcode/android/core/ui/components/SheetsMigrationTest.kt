@@ -23,9 +23,12 @@ class SheetsMigrationTest {
 
     @Test
     fun `the four flows are sheets - the conversation module hosts at least four`() {
+        // Phase 3A moved the model-picker flow into its own file (the ONE shared
+        // ModelPickerSheet); the flow count is unchanged, its home is not.
         val s = read("features/conversation/src/main/kotlin/com/zcode/android/features/conversation/ui/WriteComponents.kt") +
             read("features/conversation/src/main/kotlin/com/zcode/android/features/conversation/ui/RowRenderers.kt") +
             read("features/conversation/src/main/kotlin/com/zcode/android/features/conversation/ui/Phase9Components.kt") +
+            read("features/conversation/src/main/kotlin/com/zcode/android/features/conversation/ui/ModelPickerSheet.kt") +
             read("features/conversation/src/main/kotlin/com/zcode/android/features/conversation/ui/EditUserQueryDialog.kt")
         val count = Regex("""ZCodeModalBottomSheet\(""").findAll(s).count()
         assertTrue("expected >=4 sheet flows, found $count", count >= 4)
