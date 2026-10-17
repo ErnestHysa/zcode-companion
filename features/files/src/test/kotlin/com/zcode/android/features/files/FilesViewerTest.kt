@@ -5,7 +5,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performScrollToItem
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
 import com.zcode.android.domain.model.WorkspaceFileEntry
@@ -34,13 +35,9 @@ class FilesViewerTest {
     @get:Rule
     val rule = createComposeRule()
 
-    private fun slice(content: String, offset: Long, read: Long, total: Long, binary: Boolean = false) = WorkspaceTextSlice(
-        path = "/f.txt", content = content, offset = offset, bytesRead = read,
-        totalBytes = total, truncated = false, isBinary = binary,
-    )
 
     /** Two-chunk file: the first slice hasMore, the second completes it. */
-    private class TwoChunkPort : FilesPort {
+    private open class TwoChunkPort : FilesPort {
         var listCalls = 0
         val reads = mutableListOf<Long>()
         override fun workspaceRoot(): String? = "/ws"
@@ -85,13 +82,16 @@ class FilesViewerTest {
     fun `scroll-end prefetch loads the next chunk without a Load more tap`() {
         val port = TwoChunkPort()
         openViewer(port)
-        assertEquals(1, port.reads.size)
+        // A short file auto-completes immediately (nearEnd is true on first layout).
+        rule.mainClock.advanceTimeBy(1_000)
+        rule.waitForIdle()
+        assertEquals(2, port.reads.size)
         rule.onNodeWithTag("files_viewer_list", useUnmergedTree = true)
-            .performScrollToItem(port.reads.size * 1000)
+            .performScrollToIndex(200)
         rule.waitForIdle()
         rule.mainClock.advanceTimeBy(1_500)
         rule.waitForIdle()
-        assertTrue("the second chunk must auto-load on scroll end: $reads", port.reads.size >= 2)
+        assertTrue("the second chunk must auto-load on scroll end", port.reads.size >= 2)
         assertTrue(rule.onAllNodesWithTag("files_load_more", useUnmergedTree = true).fetchSemanticsNodes().isEmpty())
     }
 
@@ -99,7 +99,7 @@ class FilesViewerTest {
     fun `oversize files show the honest cap copy instead of endless load-more`() {
         val port = object : TwoChunkPort() {
             override suspend fun readText(path: String, offset: Long?, length: Long?): FilesPort.TextResult =
-                FilesPort.TextResult(slice("x", 0, 1, totalBytes = 4L * 1024 * 1024), null)
+                FilesPort.TextResult(slice("x", 0, 1, 4L * 1024 * 1024), null)
         }
         openViewer(port)
         rule.onNodeWithTag("files_preview_cap", useUnmergedTree = true).assertIsDisplayed()
@@ -108,14 +108,12 @@ class FilesViewerTest {
 
     @Test
     fun `image files preview as images - not binary - use Download`() {
+        val png = java.util.Base64.getDecoder().decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC",
+        )
         val port = object : TwoChunkPort() {
-            // A real 1x1 PNG.
-            private val png = java.util.Base64.getDecoder().decode(
-                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC",
-            )
-
-            override suspend fun download(path: String, maxBytes: Long): FilesPort.DownloadResult =
-                FilesPort.DownloadResult(File.createTempFile("shot", ".png").apply { writeBytes(png) }, png.size.toLong(), null)
+            override suspend fun binaryPreview(path: String, maxBytes: Long): FilesPort.BinaryPreviewResult =
+                FilesPort.BinaryPreviewResult(png, "image/png", png.size.toLong(), null)
         }
         openViewer(port, entry = "/shot.png")
         rule.onNodeWithTag("files_image_preview", useUnmergedTree = true).assertIsDisplayed()
@@ -143,7 +141,7 @@ class FilesViewerTest {
     }
 
     @Test
-    fun `H2.5 - the viewer screens carry pull-to-refresh and the poll`() {
+    fun `H25 - the viewer screens carry pull-to-refresh and the poll`() {
         val root = repoRoot()
         for (f in listOf(
             "features/files/src/main/kotlin/com/zcode/android/features/files/ui/FilesScreen.kt",
@@ -164,3 +162,8 @@ class FilesViewerTest {
         return requireNotNull(dir)
     }
 }
+
+private fun slice(content: String, offset: Long, read: Long, total: Long, binary: Boolean = false) = WorkspaceTextSlice(
+    path = "/f.txt", content = content, offset = offset, bytesRead = read,
+    totalBytes = total, truncated = false, isBinary = binary,
+)
