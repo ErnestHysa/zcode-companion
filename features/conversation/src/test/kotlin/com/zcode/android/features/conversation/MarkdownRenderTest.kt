@@ -114,6 +114,8 @@ class MarkdownRenderTest {
     @Test
     fun `the code block text is syntax highlighted (spans present)`() {
         render()
-        rule.onNodeWithTag("row_code_text", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        // The text sits inside a horizontal scroller: scroll its block into view first.
+        rule.onNodeWithTag("row_code", useUnmergedTree = true).performScrollTo()
+        rule.onNodeWithTag("row_code_text", useUnmergedTree = true).assertIsDisplayed()
     }
 }
