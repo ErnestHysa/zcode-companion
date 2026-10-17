@@ -152,7 +152,7 @@ class FilesDownloadStateTest {
 
         rule.onNodeWithTag("files_download_button").performClick()
         rule.waitUntil(5_000) {
-            rule.onAllNodesWithText("downloaded 2048 bytes — share sheet opened")
+            rule.onAllNodesWithText("2,048 bytes", substring = true) // I3: the copy is localized (files_download_done)
                 .fetchSemanticsNodes().isNotEmpty()
         }
     }

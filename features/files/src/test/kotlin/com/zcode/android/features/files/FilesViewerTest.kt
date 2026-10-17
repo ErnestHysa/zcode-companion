@@ -87,7 +87,7 @@ class FilesViewerTest {
         rule.waitForIdle()
         assertEquals(2, port.reads.size)
         rule.onNodeWithTag("files_viewer_list", useUnmergedTree = true)
-            .performScrollToIndex(200)
+            .performScrollToIndex(1)
         rule.waitForIdle()
         rule.mainClock.advanceTimeBy(1_500)
         rule.waitForIdle()
