@@ -100,7 +100,7 @@ class ComposerShellTest {
     @Test
     fun `I5 - the clipboard probe detects an image and the chip renders for it`() {
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<Context>()
-        val clip = ClipData(ClipDescription("img", arrayOf("image/png")), ClipData.Item("content://x/img"))
+        val clip = ClipData(ClipDescription("img", arrayOf("image/png")), ClipData.Item(android.net.Uri.parse("content://x/img")))
         context.getSystemService(Context.CLIPBOARD_SERVICE).let { it as android.content.ClipboardManager }.setPrimaryClip(clip)
         assertEquals(true, clipboardHasImage(context))
         rule.setContent { ZCodeTheme { ComposerPasteChip(visible = true, onPaste = {}) } }
