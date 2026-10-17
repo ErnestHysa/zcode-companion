@@ -10,7 +10,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
 import com.zcode.android.domain.model.ConversationRow
 import com.zcode.android.domain.model.GitSummary
-import com.zcode.android.domain.model.TurnFileChanges
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import com.zcode.android.features.conversation.ui.SessionStatusStrip
 import com.zcode.android.features.conversation.ui.TurnSeparator
 import org.junit.Assert.assertEquals
@@ -95,7 +96,7 @@ class ConversationStatusSurfacesTest {
         activeMs = 1000,
         sourceCommandId = null,
         historyRoundCount = null,
-        fileChanges = TurnFileChanges(files = files.toInt(), additions = 12, deletions = 4, state = "active", items = emptyList()),
+        fileChanges = ConversationRow.TurnHeader.FileChanges(additions = 12, deletions = 4, files = files, state = "active"),
         raw = buildJsonObject { },
     )
 
