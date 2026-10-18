@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.click
@@ -36,7 +37,7 @@ import org.robolectric.annotation.Config
  * J10 pins: weekly round-trip unchanged, blank cron refused, model round-trips.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [30])
+@Config(sdk = [30], qualifiers = "w411dp-h891dp")
 class AutomationsEditorIntegrityTest {
 
     @get:Rule
@@ -171,7 +172,7 @@ class AutomationsEditorIntegrityTest {
         rule.waitForIdle()
         rule.onNodeWithTag("automation_form_title").performTextInput("Nightly")
         rule.onNodeWithTag("automation_form_prompt").performTextInput("Do the thing")
-        rule.onNodeWithText("Cron").performClick()
+        rule.onNodeWithTag("automation_freq_cron").performScrollTo().performClick()
         rule.waitForIdle()
 
         rule.onNodeWithTag("automation_form_save").assertIsNotEnabled()
@@ -193,8 +194,8 @@ class AutomationsEditorIntegrityTest {
         rule.waitForIdle()
         rule.onNodeWithTag("automation_form_title").performTextInput("Nightly")
         rule.onNodeWithTag("automation_form_prompt").performTextInput("Do the thing")
-        rule.onNodeWithText("Cron").performClick()
-        rule.onNodeWithTag("automation_form_cron").performTextInput("not a cron")
+        rule.onNodeWithTag("automation_freq_cron").performScrollTo().performClick()
+        rule.onNodeWithTag("automation_form_cron").performScrollTo().performTextInput("not a cron")
         rule.waitForIdle()
 
         rule.onNodeWithTag("automation_form_save").assertIsNotEnabled()
@@ -209,8 +210,8 @@ class AutomationsEditorIntegrityTest {
         rule.waitForIdle()
         rule.onNodeWithTag("automation_form_title").performTextInput("Nightly")
         rule.onNodeWithTag("automation_form_prompt").performTextInput("Do the thing")
-        rule.onNodeWithText("Cron").performClick()
-        rule.onNodeWithTag("automation_form_cron").performTextInput("30 5 * * 1")
+        rule.onNodeWithTag("automation_freq_cron").performScrollTo().performClick()
+        rule.onNodeWithTag("automation_form_cron").performScrollTo().performTextInput("30 5 * * 1")
         rule.waitForIdle()
 
         rule.onNodeWithTag("automation_form_save").performClick()

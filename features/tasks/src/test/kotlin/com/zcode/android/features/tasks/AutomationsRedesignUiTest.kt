@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -43,7 +44,7 @@ import org.robolectric.annotation.Config
  * landed Run-Now (busy + toast + double-tap guard).
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [30])
+@Config(sdk = [30], qualifiers = "w411dp-h891dp")
 class AutomationsRedesignUiTest {
 
     @get:Rule
@@ -145,7 +146,7 @@ class AutomationsRedesignUiTest {
         val port = RecordingPort(listOf(row("c", "30 5 * * 1,3", ruleJson)))
         setContent(port)
         openEditor("c")
-        rule.onNodeWithTag("automation_form_preview").assertTextContains("Every 2 weeks", substring = true)
+        rule.onNodeWithTag("automation_form_preview").performScrollTo().assertTextContains("Every 2 weeks", substring = true)
         save()
         val w = port.updated.first().second
         val r = w.scheduleRule!!
@@ -161,7 +162,7 @@ class AutomationsRedesignUiTest {
         val port = RecordingPort(listOf(row("c2", "0 9 */3 * *", ruleJson)))
         setContent(port)
         openEditor("c2")
-        rule.onNodeWithTag("automation_freq_daily").performClick(); rule.waitForIdle()
+        rule.onNodeWithTag("automation_freq_daily").performScrollTo().performClick(); rule.waitForIdle()
         save()
         val w = port.updated.first().second
         assertNull(w.scheduleRule)
@@ -176,14 +177,14 @@ class AutomationsRedesignUiTest {
         val port = RecordingPort(emptyList())
         setContent(port)
         rule.onNodeWithTag("automations_new").performClick(); rule.waitForIdle()
-        rule.onNodeWithTag("automation_form_preview").assertTextContains("Daily at 09:00")
-        rule.onNodeWithTag("automation_freq_weekdays").performClick(); rule.waitForIdle()
-        rule.onNodeWithTag("automation_form_preview").assertTextContains("Every weekday at 09:00")
-        rule.onNodeWithTag("automation_freq_custom").performClick(); rule.waitForIdle()
-        rule.onNodeWithTag("automation_form_interval").performTextClearance()
-        rule.onNodeWithTag("automation_form_interval").performTextInput("3")
-        rule.onNodeWithTag("automation_unit_daily").performClick(); rule.waitForIdle()
-        rule.onNodeWithTag("automation_form_preview").assertTextContains("Every 3 days at 09:00")
+        rule.onNodeWithTag("automation_form_preview").performScrollTo().assertTextContains("Daily at 09:00")
+        rule.onNodeWithTag("automation_freq_weekdays").performScrollTo().performClick(); rule.waitForIdle()
+        rule.onNodeWithTag("automation_form_preview").performScrollTo().assertTextContains("Every weekday at 09:00")
+        rule.onNodeWithTag("automation_freq_custom").performScrollTo().performClick(); rule.waitForIdle()
+        rule.onNodeWithTag("automation_form_interval").performScrollTo().performTextClearance()
+        rule.onNodeWithTag("automation_form_interval").performScrollTo().performTextInput("3")
+        rule.onNodeWithTag("automation_unit_daily").performScrollTo().performClick(); rule.waitForIdle()
+        rule.onNodeWithTag("automation_form_preview").performScrollTo().assertTextContains("Every 3 days at 09:00")
     }
 
     @Test
@@ -193,11 +194,11 @@ class AutomationsRedesignUiTest {
         rule.onNodeWithTag("automations_new").performClick(); rule.waitForIdle()
         rule.onNodeWithTag("automation_form_title").performTextInput("Custom")
         rule.onNodeWithTag("automation_form_prompt").performTextInput("do")
-        rule.onNodeWithTag("automation_freq_custom").performClick(); rule.waitForIdle()
-        rule.onNodeWithTag("automation_form_interval").performTextClearance()
-        rule.onNodeWithTag("automation_form_interval").performTextInput("61")
-        rule.onNodeWithTag("automation_unit_minute").performClick(); rule.waitForIdle()
-        rule.onNodeWithTag("automation_form_maxruns").performTextInput("5")
+        rule.onNodeWithTag("automation_freq_custom").performScrollTo().performClick(); rule.waitForIdle()
+        rule.onNodeWithTag("automation_form_interval").performScrollTo().performTextClearance()
+        rule.onNodeWithTag("automation_form_interval").performScrollTo().performTextInput("61")
+        rule.onNodeWithTag("automation_unit_minute").performScrollTo().performClick(); rule.waitForIdle()
+        rule.onNodeWithTag("automation_form_maxruns").performScrollTo().performTextInput("5")
         save()
         val w = port.created.single()
         assertEquals("minute", w.scheduleRule!!.unit); assertEquals(61, w.scheduleRule!!.interval)
@@ -212,12 +213,12 @@ class AutomationsRedesignUiTest {
         rule.onNodeWithTag("automations_new").performClick(); rule.waitForIdle()
         rule.onNodeWithTag("automation_form_title").performTextInput("W")
         rule.onNodeWithTag("automation_form_prompt").performTextInput("p")
-        rule.onNodeWithTag("automation_freq_weekly").performClick(); rule.waitForIdle()
+        rule.onNodeWithTag("automation_freq_weekly").performScrollTo().performClick(); rule.waitForIdle()
         // Default Mon; drop it → invalid; add Wed + Fri → "0 9 * * 3,5".
-        rule.onNodeWithTag("automation_wd_1").performClick(); rule.waitForIdle()
+        rule.onNodeWithTag("automation_wd_1").performScrollTo().performClick(); rule.waitForIdle()
         rule.onNodeWithTag("automation_form_save").assertIsNotEnabled()
-        rule.onNodeWithTag("automation_wd_3").performClick()
-        rule.onNodeWithTag("automation_wd_5").performClick(); rule.waitForIdle()
+        rule.onNodeWithTag("automation_wd_3").performScrollTo().performClick()
+        rule.onNodeWithTag("automation_wd_5").performScrollTo().performClick(); rule.waitForIdle()
         save()
         assertEquals("0 9 * * 3,5", port.created.single().schedule.cronExprOrPlaceholder())
     }
@@ -229,8 +230,8 @@ class AutomationsRedesignUiTest {
         rule.onNodeWithTag("automations_new").performClick(); rule.waitForIdle()
         rule.onNodeWithTag("automation_form_title").performTextInput("E")
         rule.onNodeWithTag("automation_form_prompt").performTextInput("p")
-        rule.onNodeWithTag("automation_ends_date").performClick(); rule.waitForIdle()
-        rule.onNodeWithTag("automation_form_enddate").performTextInput("2030-01-31")
+        rule.onNodeWithTag("automation_ends_date").performScrollTo().performClick(); rule.waitForIdle()
+        rule.onNodeWithTag("automation_form_enddate").performScrollTo().performTextInput("2030-01-31")
         save()
         val endAt = port.created.single().endAt!!
         val cal = java.util.Calendar.getInstance().apply { timeInMillis = endAt }
@@ -245,12 +246,12 @@ class AutomationsRedesignUiTest {
         rule.onNodeWithTag("automations_new").performClick(); rule.waitForIdle()
         rule.onNodeWithTag("automation_form_title").performTextInput("X")
         rule.onNodeWithTag("automation_form_prompt").performTextInput("p")
-        rule.onNodeWithTag("automation_form_time").performTextClearance()
-        rule.onNodeWithTag("automation_form_time").performTextInput("25:99")
+        rule.onNodeWithTag("automation_form_time").performScrollTo().performTextClearance()
+        rule.onNodeWithTag("automation_form_time").performScrollTo().performTextInput("25:99")
         rule.waitForIdle()
         rule.onNodeWithTag("automation_form_save").assertIsNotEnabled()
-        rule.onNodeWithTag("automation_freq_cron").performClick(); rule.waitForIdle()
-        rule.onNodeWithTag("automation_form_cron").performTextInput("garbage")
+        rule.onNodeWithTag("automation_freq_cron").performScrollTo().performClick(); rule.waitForIdle()
+        rule.onNodeWithTag("automation_form_cron").performScrollTo().performTextInput("garbage")
         rule.waitForIdle()
         rule.onNodeWithTag("automation_form_save").assertIsNotEnabled()
     }
