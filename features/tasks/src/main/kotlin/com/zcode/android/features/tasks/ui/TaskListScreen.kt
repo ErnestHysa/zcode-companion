@@ -116,6 +116,8 @@ fun TaskListScreen(
     /** H2.2: a launcher shortcut asked for a new task — open the create dialog once. */
     requestCreate: Boolean = false,
     onCreateRequestConsumed: () -> Unit = {},
+    /** Phase 4B (A3.2): open-session-from-run — the automation run's back-filled sessionId. */
+    onOpenTaskId: (taskId: String) -> Unit = {},
 ) {
     val motion = rememberMotionSpec()
     var showCreate by remember { androidx.compose.runtime.mutableStateOf(false) }
@@ -206,6 +208,7 @@ fun TaskListScreen(
                 AutomationsSection(
                     port = port,
                     modelPicker = modelPicker,
+                    onOpenTask = onOpenTaskId,
                 )
             }
             Spacer(Modifier.height(4.dp))

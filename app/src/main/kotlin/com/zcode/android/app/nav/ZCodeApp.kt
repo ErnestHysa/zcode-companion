@@ -262,6 +262,8 @@ fun ZCodeApp(
                 collapseStore = container.workspaceCollapseStore,
                 requestCreate = createRequested,
                 onCreateRequestConsumed = { createRequested = false },
+                // Phase 4B (A3.2): open-session-from-run lands on the run's session.
+                onOpenTaskId = { id -> container.log.info("tasks.openRun", "task=${id.take(24)}"); nav.navigate(Routes.conversation(id)) },
             )
         }
         composable(Routes.CONVERSATION) { entry ->
@@ -372,7 +374,9 @@ private fun TasksRoute(
     collapseStore: com.zcode.android.features.tasks.ui.WorkspaceCollapseStore? = null,
 
     requestCreate: Boolean = false,
-    onCreateRequestConsumed: () -> Unit = {},) {
+    onCreateRequestConsumed: () -> Unit = {},
+    onOpenTaskId: (String) -> Unit = {},
+) {
     val state by vm.state.collectAsState()
     val refreshing by vm.isRefreshing.collectAsState()
     TaskListScreen(
@@ -412,6 +416,7 @@ private fun TasksRoute(
         automationsPort = container.automationsPort,
         requestCreate = requestCreate,
         onCreateRequestConsumed = onCreateRequestConsumed,
+        onOpenTaskId = onOpenTaskId,
     )
 }
 
