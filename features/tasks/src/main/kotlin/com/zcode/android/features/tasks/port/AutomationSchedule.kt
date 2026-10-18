@@ -254,8 +254,10 @@ object AutomationSchedule {
             rawExpr = "",
             customInterval = rule.interval,
             customUnit = unit,
-            customWeekdays = rule.weekdays.ifEmpty { listOf(1) },
-            customMonthDays = rule.monthDays.ifEmpty { listOf(1) },
+            // Carried lists are preserved AS-IS (a bare Save must re-serialize the same
+            // rule); the cron compat builder supplies its own defaults for empties.
+            customWeekdays = rule.weekdays,
+            customMonthDays = rule.monthDays,
             customMonth = rule.months?.firstOrNull() ?: anchorMonth,
             customMonthlyMode = if (rule.monthlyMode == MonthlyMode.WEEKDAY.wire) MonthlyMode.WEEKDAY else MonthlyMode.DATE,
         )
