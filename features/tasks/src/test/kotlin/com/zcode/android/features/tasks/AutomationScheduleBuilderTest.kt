@@ -17,7 +17,7 @@ import kotlin.test.assertTrue
  * every kind round-trips UNTOUCHED through parse→build (the J2 corruption class —
  * "opening any non-minute schedule silently rewrites it as Daily 09:00"), custom
  * repeats serialize the authoritative scheduleRule, cron compat obeys croner's
- * step limits (`*/61` would fail the desktop's save validation), and the preview
+ * step limits (a minute step of 61 would fail the desktop's save validation), and the preview
  * line is the desktop's own vocabulary.
  */
 class AutomationScheduleBuilderTest {
