@@ -165,7 +165,7 @@ class RowActionsUiTest {
     @Test
     fun `no canRewindFiles - no Undo files even with changes`() {
         setContent(turnRow(21, canRewind = false, files = 2))
-        assertEquals(1, count("row_turn_changes"), "the change chip still renders")
+        assertEquals("the change chip still renders", 1, count("row_turn_changes"))
         assertEquals(0, count("row_turn_rewind"))
     }
 
