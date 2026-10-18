@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -385,7 +383,6 @@ private fun AutomationLine(
  * column, status (the dispatch+outcome fold), duration, open-session-from-run,
  * delete run, a status filter and client-side paging ("Show more").
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AutomationRunsSheet(
     automation: AutomationRow,
@@ -409,7 +406,7 @@ private fun AutomationRunsSheet(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp),
             )
-            FlowRow(Modifier.padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(Modifier.horizontalScroll(rememberScrollState()).padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 for ((key, label) in listOf(
                     "all" to R.string.automations_runs_filter_all,
                     "running" to R.string.automations_runs_status_running,

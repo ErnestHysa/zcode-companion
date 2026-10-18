@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -171,7 +169,6 @@ internal fun scheduleLabels(): AutomationSchedule.Labels {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun AutomationEditorDialog(
     existing: AutomationRow?,
@@ -256,20 +253,20 @@ internal fun AutomationEditorDialog(
                 )
                 Text(stringResource(R.string.automations_field_schedule), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 // ---- frequency chips (desktop CronFrequency + once + raw cron) ----
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    FreqChip(stringResource(R.string.automations_freq_once), s.once, "automation_freq_once") { s = s.copy(once = true) }
-                    for ((freq, label, tag) in listOf(
-                        Triple(Frequency.HOURLY, R.string.automations_freq_hourly, "hourly"),
-                        Triple(Frequency.DAILY, R.string.automations_freq_daily, "daily"),
-                        Triple(Frequency.WEEKDAYS, R.string.automations_freq_weekdays, "weekdays"),
-                        Triple(Frequency.WEEKLY, R.string.automations_freq_weekly, "weekly"),
-                        Triple(Frequency.MONTHLY, R.string.automations_freq_monthly, "monthly"),
-                        Triple(Frequency.CUSTOM, R.string.automations_freq_custom, "custom"),
-                        Triple(Frequency.RAW, R.string.automations_sched_cron, "cron"),
-                    )) {
-                        FreqChip(stringResource(label), !s.once && f == freq, "automation_freq_$tag") {
-                            s = s.copy(once = false, builder = s.builder.copy(frequency = freq))
-                        }
+                val freqChips: List<Triple<Frequency?, Int, String>> = listOf(
+                    Triple(null, R.string.automations_freq_once, "once"),
+                    Triple(Frequency.HOURLY, R.string.automations_freq_hourly, "hourly"),
+                    Triple(Frequency.DAILY, R.string.automations_freq_daily, "daily"),
+                    Triple(Frequency.WEEKDAYS, R.string.automations_freq_weekdays, "weekdays"),
+                    Triple(Frequency.WEEKLY, R.string.automations_freq_weekly, "weekly"),
+                    Triple(Frequency.MONTHLY, R.string.automations_freq_monthly, "monthly"),
+                    Triple(Frequency.CUSTOM, R.string.automations_freq_custom, "custom"),
+                    Triple(Frequency.RAW, R.string.automations_sched_cron, "cron"),
+                )
+                ChipGrid(freqChips, perRow = 4) { (freq, label, tag) ->
+                    val selected = if (freq == null) s.once else !s.once && f == freq
+                    FreqChip(stringResource(label), selected, "automation_freq_$tag") {
+                        s = if (freq == null) s.copy(once = true) else s.copy(once = false, builder = s.builder.copy(frequency = freq))
                     }
                 }
                 // ---- per-kind controls ----
@@ -300,15 +297,16 @@ internal fun AutomationEditorDialog(
                                     isError = (interval ?: 0) !in 1..200,
                                 )
                             }
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                for ((unit, label) in listOf(
+                            ChipGrid(
+                                listOf(
                                     CustomUnit.MINUTE to R.string.automations_unit_minute, CustomUnit.HOURLY to R.string.automations_unit_hourly,
                                     CustomUnit.DAILY to R.string.automations_unit_daily, CustomUnit.WEEKLY to R.string.automations_unit_weekly,
                                     CustomUnit.MONTHLY to R.string.automations_unit_monthly, CustomUnit.YEARLY to R.string.automations_unit_yearly,
-                                )) {
-                                    FreqChip(stringResource(label), builder.customUnit == unit, "automation_unit_${unit.wire}") {
-                                        s = s.copy(builder = s.builder.copy(customUnit = unit))
-                                    }
+                                ),
+                                perRow = 3,
+                            ) { (unit, label) ->
+                                FreqChip(stringResource(label), builder.customUnit == unit, "automation_unit_${unit.wire}") {
+                                    s = s.copy(builder = s.builder.copy(customUnit = unit))
                                 }
                             }
                             if (builder.customUnit == CustomUnit.MONTHLY) {
@@ -339,16 +337,14 @@ internal fun AutomationEditorDialog(
                         if (f == Frequency.WEEKLY || (f == Frequency.CUSTOM && (builder.customUnit == CustomUnit.WEEKLY || (builder.customUnit == CustomUnit.MONTHLY && builder.customMonthlyMode == MonthlyMode.WEEKDAY)))) {
                             val single = f == Frequency.CUSTOM && builder.customUnit == CustomUnit.MONTHLY
                             val selected = if (f == Frequency.WEEKLY) builder.weekdays else builder.customWeekdays
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                for (d in AutomationSchedule.WEEKDAY_ORDER) {
-                                    FreqChip(labels.weekday(d), d in selected, "automation_wd_$d") {
-                                        val next = when {
-                                            single -> listOf(d)
-                                            d in selected -> selected - d
-                                            else -> (selected + d).sorted()
-                                        }
-                                        s = if (f == Frequency.WEEKLY) s.copy(builder = s.builder.copy(weekdays = next)) else s.copy(builder = s.builder.copy(customWeekdays = next))
+                            ChipGrid(AutomationSchedule.WEEKDAY_ORDER, perRow = 4) { d ->
+                                FreqChip(labels.weekday(d), d in selected, "automation_wd_$d") {
+                                    val next = when {
+                                        single -> listOf(d)
+                                        d in selected -> selected - d
+                                        else -> (selected + d).sorted()
                                     }
+                                    s = if (f == Frequency.WEEKLY) s.copy(builder = s.builder.copy(weekdays = next)) else s.copy(builder = s.builder.copy(customWeekdays = next))
                                 }
                             }
                         }
@@ -457,6 +453,19 @@ internal fun AutomationEditorDialog(
                 }
             },
         )
+    }
+}
+
+/**
+ * Deterministic chip wrapping: fixed chips per row, no intrinsic measurement — a
+ * FlowRow inside M3's intrinsically-sized AlertDialog oscillated (Compose never idled).
+ */
+@Composable
+private fun <T> ChipGrid(items: List<T>, perRow: Int, chip: @Composable (T) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        items.chunked(perRow).forEach { line ->
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { line.forEach { chip(it) } }
+        }
     }
 }
 
