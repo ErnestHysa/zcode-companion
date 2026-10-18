@@ -168,6 +168,17 @@ interface V4Plane {
     suspend fun runAutomationNow(workspacePath: String?, workspaceIdentity: String?, automationId: String): JsonObject
 
     /**
+     * Phase 4B (A3.2): the run-history trio on the shipped 3.14.5 facade (bundle offset
+     * ~348362: `listAutomationRuns(m){return o.listRuns(m.automationId,{workspacePath,
+     * workspaceIdentity})}` / `deleteAutomationRun(m){o.deleteRun(m.runId,…)}` /
+     * `restartAutomation(m){o.restart(m.automationId,…)}`). listAutomationRuns returns a
+     * top-level ARRAY normalized to {runs:[…]} (the listAutomations precedent).
+     */
+    suspend fun listAutomationRuns(workspacePath: String?, workspaceIdentity: String?, automationId: String): JsonObject
+    suspend fun deleteAutomationRun(workspacePath: String?, workspaceIdentity: String?, runId: String)
+    suspend fun restartAutomation(workspacePath: String?, workspaceIdentity: String?, automationId: String)
+
+    /**
      * GAP-6: the `off-peak-task` channel `list` read (offPeakTask.ts:41 — NO args,
      * Arr([]) like model-selection.getView). Result normalized to {tasks:[…]}.
      */
@@ -908,6 +919,42 @@ internal class ChannelV4Plane(
         )
         return ((raw as? RpcValue.Obj)?.json as? kotlinx.serialization.json.JsonObject)
             ?: throw TransportFailure(ErrorMapping.protocolFault("runAutomationNow result not an object"))
+    }
+
+    // ---- Phase 4B (A3.2): run history — ZCodeAgentAutomationIdParams / DeleteAutomationRunParams.
+
+    suspend fun listAutomationRuns(workspacePath: String?, workspaceIdentity: String?, automationId: String): JsonObject {
+        val target = host.workspaceTarget()
+        val params = buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+            (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("automationId", JsonPrimitive(automationId))
+        }
+        return v4CallArrayNormalized("listAutomationRuns", params, "runs")
+    }
+
+    suspend fun deleteAutomationRun(workspacePath: String?, workspaceIdentity: String?, runId: String) {
+        val target = host.workspaceTarget()
+        v4Call(
+            "deleteAutomationRun",
+            RpcValue.Obj(buildJsonObject {
+                put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+                (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+                put("runId", JsonPrimitive(runId))
+            }),
+        )
+    }
+
+    suspend fun restartAutomation(workspacePath: String?, workspaceIdentity: String?, automationId: String) {
+        val target = host.workspaceTarget()
+        v4Call(
+            "restartAutomation",
+            RpcValue.Obj(buildJsonObject {
+                put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+                (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+                put("automationId", JsonPrimitive(automationId))
+            }),
+        )
     }
 
     suspend fun offPeakTaskList(): JsonObject =

@@ -895,6 +895,9 @@ class DirectTransport(
     override suspend fun deleteAutomation(workspacePath: String?, workspaceIdentity: String?, automationId: String) = plane.deleteAutomation(workspacePath, workspaceIdentity, automationId)
     override suspend fun setAutomationEnabled(workspacePath: String?, workspaceIdentity: String?, automationId: String, enabled: Boolean) = plane.setAutomationEnabled(workspacePath, workspaceIdentity, automationId, enabled)
     override suspend fun runAutomationNow(workspacePath: String?, workspaceIdentity: String?, automationId: String): JsonObject = plane.runAutomationNow(workspacePath, workspaceIdentity, automationId)
+    override suspend fun listAutomationRuns(workspacePath: String?, workspaceIdentity: String?, automationId: String): JsonObject = plane.listAutomationRuns(workspacePath, workspaceIdentity, automationId)
+    override suspend fun deleteAutomationRun(workspacePath: String?, workspaceIdentity: String?, runId: String) = plane.deleteAutomationRun(workspacePath, workspaceIdentity, runId)
+    override suspend fun restartAutomation(workspacePath: String?, workspaceIdentity: String?, automationId: String) = plane.restartAutomation(workspacePath, workspaceIdentity, automationId)
     override suspend fun usageEntitlementSnapshot(request: JsonObject): JsonObject = plane.usageEntitlementSnapshot(request)
 
     override suspend fun codingPlanResetStatus(preferredProviderId: String, accountAccess: JsonObject): JsonObject =

@@ -362,6 +362,60 @@ data class AutomationRow(
 }
 
 /**
+ * A3.2+B2.11 (Phase 4B): one `listAutomationRuns` entry — ZCodeAutomationRun
+ * (automation-types.ts). Closed enums stay RAW (INV-8): trigger schedule|manual,
+ * dispatchStatus claimed|dispatched|failed_to_dispatch|skipped, outcome
+ * running|succeeded|failed|stopped. `sessionId` is back-filled on dispatch and is
+ * the open-session-from-run target.
+ */
+data class AutomationRunRow(
+    val runId: String,
+    val automationId: String,
+    val trigger: String,
+    val dispatchStatus: String,
+    val outcome: String?,
+    val sessionId: String?,
+    val error: String?,
+    val attempts: Int,
+    val scheduledAt: Long?,
+    val createdAt: Long,
+    val updatedAt: Long,
+) {
+    /** automations.runs.status.* — the desktop's fold of dispatch + outcome. */
+    val status: String get() = displayStatus(dispatchStatus, outcome)
+
+    /** Wall time from claim to the last update (terminal runs only; running → null). */
+    val durationMs: Long? get() = if (status == "running") null else (updatedAt - createdAt).coerceAtLeast(0)
+
+    companion object {
+        fun displayStatus(dispatchStatus: String, outcome: String?): String = when {
+            outcome != null -> outcome
+            dispatchStatus == "failed_to_dispatch" -> "failed"
+            dispatchStatus == "skipped" -> "skipped"
+            else -> "running"
+        }
+
+        fun decodeList(obj: JsonObject): List<AutomationRunRow> =
+            obj.arrayReq("runs").map { el ->
+                val o = el.asObject("automation run")
+                AutomationRunRow(
+                    runId = o.strReq("runId"),
+                    automationId = o.strReq("automationId"),
+                    trigger = o.strReq("trigger"),
+                    dispatchStatus = o.strReq("dispatchStatus"),
+                    outcome = o.strOrNullN("outcome"),
+                    sessionId = o.strOrNullN("sessionId"),
+                    error = o.strOrNullN("error"),
+                    attempts = o.intOrNull("attempts") ?: 0,
+                    scheduledAt = o.longOrNullN("scheduledAt"),
+                    createdAt = o.longReq("createdAt"),
+                    updatedAt = o.longReq("updatedAt"),
+                )
+            }
+    }
+}
+
+/**
  * One off-peak (闲时) task of the `off-peak-task` channel `list` payload
  * (v4-wire.md §12.2): the protocol snapshot face (zcodeOffPeakTaskSnapshotSchema —
  * "最小字段面。不暴露 serverTicketId") plus the display fields of the desktop

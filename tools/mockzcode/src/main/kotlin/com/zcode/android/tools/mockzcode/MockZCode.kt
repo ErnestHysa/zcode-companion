@@ -196,6 +196,8 @@ class MockZCode(
         var appUsageStats: JsonObject? = null
         /** Scriptable automations (listAutomations result items; null = typed fault). */
         var listAutomations: JsonArray? = null
+        /** Phase 4B (A3.2): scripted run history; null = the run-history surface is unscripted (typed fault). */
+        var automationRuns: JsonArray? = null
         /** Scriptable off-peak tasks (off-peak-task channel list items; null = typed fault). */
         var offPeakTaskList: JsonArray? = null
         /** Scriptable plugins list (listPlugins result; null = typed fault). */
@@ -1659,6 +1661,130 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(items.map { RpcValue.Obj(it) }))
                 }
             }
+            // ---- Phase 4B (J2/A3.2/B2.11): the automation CRUD + run-history surface.
+            // Shapes mirror ZCodeAutomationCreateParams/UpdateParams and ZCodeAgentRunAutomationNowResult.
+            "createAutomation" -> {
+                val params = argAsObject(arg)
+                if (params == null || script.listAutomations == null) {
+                    respondError(id, "fault.mock.unscripted:createAutomation")
+                } else if ((params.strOrNull("title") ?: "").contains("LIMIT") || automationCreateLimitArmed) {
+                    automationCreateLimitArmed = false
+                    respondError(id, "AUTOMATION_CREATE_LIMIT_REACHED: automation limit reached (20)")
+                } else {
+                    val row = schemaAutomationRow(params, workspace.workspacePath)
+                    script.listAutomations = JsonArray((script.listAutomations ?: JsonArray(emptyList())) + row)
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(row))
+                }
+            }
+            "updateAutomation" -> {
+                val params = argAsObject(arg)
+                val target = params?.strOrNull("automationId")
+                val current = script.listAutomations
+                if (params == null || target == null || current == null) {
+                    respondError(id, "fault.mock.unscripted:updateAutomation")
+                } else {
+                    val updated = schemaAutomationRow(params, workspace.workspacePath, automationId = target)
+                    script.listAutomations = JsonArray(current.map { el ->
+                        if ((el.jsonObject["automationId"] as? JsonPrimitive)?.content == target) updated else el
+                    })
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(updated))
+                }
+            }
+            "deleteAutomation" -> {
+                val params = argAsObject(arg)
+                val target = params?.strOrNull("automationId")
+                if (target == null || script.listAutomations == null) {
+                    respondError(id, "fault.mock.unscripted:deleteAutomation")
+                } else {
+                    script.listAutomations = JsonArray(script.listAutomations!!.filter {
+                        (it.jsonObject["automationId"] as? JsonPrimitive)?.content != target
+                    })
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
+                }
+            }
+            "setAutomationEnabled" -> {
+                val params = argAsObject(arg)
+                val target = params?.strOrNull("automationId")
+                val enabled = params?.get("enabled") as? JsonPrimitive
+                if (target == null || enabled == null || script.listAutomations == null) {
+                    respondError(id, "fault.mock.unscripted:setAutomationEnabled")
+                } else {
+                    script.listAutomations = JsonArray(script.listAutomations!!.map { el ->
+                        if ((el.jsonObject["automationId"] as? JsonPrimitive)?.content == target) {
+                            JsonObject(el.jsonObject + ("enabled" to enabled))
+                        } else el
+                    })
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
+                }
+            }
+            "runAutomationNow" -> {
+                val params = argAsObject(arg)
+                val target = params?.strOrNull("automationId")
+                if (target == null || script.automationRuns == null) {
+                    respondError(id, "fault.mock.unscripted:runAutomationNow")
+                } else {
+                    // ZCodeAgentRunAutomationNowResult {status: queued|duplicate} — the
+                    // second Run-Now for an automation whose last run is still `running`
+                    // lands `duplicate` (desktop: an in-flight run already exists).
+                    val running = synchronized(automationRunLedger) {
+                        automationRunLedger.any { it.jsonObject["automationId"]?.let { a -> (a as JsonPrimitive).content } == target &&
+                            it.jsonObject["outcome"] == null }
+                    }
+                    if (running) {
+                        respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                            put("status", JsonPrimitive("duplicate"))
+                        }))
+                    } else {
+                        recordAutomationRun(target, trigger = "manual")
+                        respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                            put("status", JsonPrimitive("queued"))
+                        }))
+                    }
+                }
+            }
+            "listAutomationRuns" -> {
+                val params = argAsObject(arg)
+                val target = params?.strOrNull("automationId")
+                val ledger = script.automationRuns
+                if (target == null || ledger == null) {
+                    respondError(id, "fault.mock.unscripted:listAutomationRuns")
+                } else {
+                    val filtered = synchronized(automationRunLedger) {
+                        automationRunLedger.filter { (it.jsonObject["automationId"] as? JsonPrimitive)?.content == target }
+                    } + ledger.filter { (it.jsonObject["automationId"] as? JsonPrimitive)?.content == target }
+                    // Desktop method returns the array directly (ProxyChannel convention).
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(filtered.map { RpcValue.Obj(it) }))
+                }
+            }
+            "deleteAutomationRun" -> {
+                val params = argAsObject(arg)
+                val runId = params?.strOrNull("runId")
+                if (runId == null) {
+                    respondError(id, "fault.mock.unscripted:deleteAutomationRun")
+                } else {
+                    synchronized(automationRunLedger) {
+                        automationRunLedger.removeAll { (it.jsonObject["runId"] as? JsonPrimitive)?.content == runId }
+                    }
+                    script.automationRuns = script.automationRuns?.filter {
+                        (it.jsonObject["runId"] as? JsonPrimitive)?.content != runId
+                    }?.let { JsonArray(it) }
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
+                }
+            }
+            "restartAutomation" -> {
+                val params = argAsObject(arg)
+                val target = params?.strOrNull("automationId")
+                if (target == null || script.listAutomations == null) {
+                    respondError(id, "fault.mock.unscripted:restartAutomation")
+                } else {
+                    script.listAutomations = JsonArray(script.listAutomations!!.map { el ->
+                        if ((el.jsonObject["automationId"] as? JsonPrimitive)?.content == target) {
+                            JsonObject(el.jsonObject + ("lifecycleStatus" to JsonPrimitive("active")))
+                        } else el
+                    })
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
+                }
+            }
             "listPlugins" -> scriptableObject(id, script.listPlugins, "listPlugins")
             "getSkillReferenceCatalog" -> scriptableObject(id, script.skillReferenceCatalog, "getSkillReferenceCatalog")
             "listMcpServerStatuses" -> scriptableObject(id, script.mcpServerStatuses, "listMcpServerStatuses")
@@ -2191,6 +2317,77 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
 
     /** Test seam for the command-effect machinery (the socket path calls the same function). */
     internal fun applyCommandEffectForTest(type: String, env: JsonObject?): JsonObject? = applyCommandEffect(type, env)
+
+    // ---- Phase 4B (J2/A3.2/B2.11): automation CRUD + run ledger (synthetic, INV-15/16).
+
+    /** Runs recorded by runAutomationNow (newest first when listed after the scripted ones). */
+    private val automationRunLedger = ArrayList<JsonObject>()
+
+    /** One-shot: the next createAutomation answers the desktop's create-limit error. */
+    @Volatile var automationCreateLimitArmed: Boolean = false
+
+    /** Rows the mock's CRUD produces — the ZCodeAutomation channel shape the phone decodes. */
+    private fun schemaAutomationRow(params: JsonObject, wsPath: String, automationId: String? = null): JsonObject {
+        val id = automationId ?: "auto-created-${createdCount.incrementAndGet()}"
+        val existing = script.listAutomations?.firstOrNull { (it.jsonObject["automationId"] as? JsonPrimitive)?.content == id }?.jsonObject
+        val now = System.currentTimeMillis()
+        val m = LinkedHashMap<String, kotlinx.serialization.json.JsonElement>()
+        existing?.forEach { (k, v) -> m[k] = v }
+        m["automationId"] = JsonPrimitive(id)
+        m["title"] = params["title"] ?: existing?.get("title") ?: JsonPrimitive("Untitled")
+        m["cronExpr"] = params["cronExpr"] ?: existing?.get("cronExpr") ?: JsonPrimitive("0 9 * * *")
+        m["prompt"] = params["prompt"] ?: existing?.get("prompt") ?: JsonPrimitive("")
+        params["mode"]?.let { m["mode"] = it }
+        m["enabled"] = existing?.get("enabled") ?: JsonPrimitive(true)
+        m["lifecycleStatus"] = existing?.get("lifecycleStatus") ?: JsonPrimitive("active")
+        m["runCount"] = existing?.get("runCount") ?: JsonPrimitive(0)
+        m["recurring"] = params["recurring"] ?: existing?.get("recurring") ?: JsonPrimitive(true)
+        params["maxRuns"]?.let { m["maxRuns"] = it }
+        params["endAt"]?.let { m["endAt"] = it }
+        // scheduleRule: a present object sets it, an explicit null clears it, absence keeps it.
+        when (val r = params["scheduleRule"]) {
+            is JsonObject -> m["scheduleRule"] = r
+            is JsonNull -> m.remove("scheduleRule")
+            else -> Unit
+        }
+        params["modelSelection"]?.let { m["modelSelection"] = it }
+        m["workspaceKey"] = JsonPrimitive(wsPath)
+        m["workspacePath"] = JsonPrimitive(wsPath)
+        m["locationKind"] = JsonPrimitive("local")
+        m["dispatchStatus"] = JsonPrimitive("idle")
+        m["dispatchAttempts"] = JsonPrimitive(0)
+        m["createdAt"] = existing?.get("createdAt") ?: JsonPrimitive(now)
+        m["updatedAt"] = JsonPrimitive(now)
+        m["nextRunAt"] = JsonPrimitive(now + 3_600_000)
+        return JsonObject(m)
+    }
+
+    /** A manual run lands as an in-flight ledger row (`automationId:manual:<uuid>`, no outcome yet). */
+    private fun recordAutomationRun(automationId: String, trigger: String) {
+        val now = System.currentTimeMillis()
+        val run = buildJsonObject {
+            put("runId", JsonPrimitive("$automationId:manual:${java.util.UUID.randomUUID()}"))
+            put("automationId", JsonPrimitive(automationId))
+            put("workspaceKey", JsonPrimitive(workspace.workspacePath))
+            put("trigger", JsonPrimitive(trigger))
+            put("dispatchStatus", JsonPrimitive("dispatched"))
+            put("sessionId", JsonPrimitive(workspace.sessionId))
+            put("attempts", JsonPrimitive(1))
+            put("createdAt", JsonPrimitive(now))
+            put("updatedAt", JsonPrimitive(now))
+        }
+        synchronized(automationRunLedger) { automationRunLedger.add(0, run) }
+    }
+
+    /** Self-test seam: finish the latest in-flight ledger run with an outcome. */
+    internal fun completeLatestRunForTest(outcome: String) {
+        synchronized(automationRunLedger) {
+            val i = automationRunLedger.indexOfFirst { it["outcome"] == null }
+            if (i >= 0) automationRunLedger[i] = JsonObject(automationRunLedger[i] + ("outcome" to JsonPrimitive(outcome)) + ("updatedAt" to JsonPrimitive(System.currentTimeMillis())))
+        }
+    }
+
+    internal fun automationRunLedgerForTest(): List<JsonObject> = synchronized(automationRunLedger) { ArrayList(automationRunLedger) }
 
     private fun pushQueuePatch() {
         pushStatePatch(buildJsonObject {

@@ -69,24 +69,7 @@ class DefaultAutomationsPort(
 
     /** FIELD (2026-10-12): automation CRUD (zcodeAgent.ts:679-688 surface). */
     private fun writeRequest(write: AutomationsPort.AutomationWrite): kotlinx.serialization.json.JsonObject =
-        kotlinx.serialization.json.buildJsonObject {
-            put("title", kotlinx.serialization.json.JsonPrimitive(write.title))
-            put("prompt", kotlinx.serialization.json.JsonPrimitive(write.prompt))
-            put("cronExpr", kotlinx.serialization.json.JsonPrimitive(write.schedule.cronExprOrPlaceholder()))
-            write.schedule.everyMinutes?.let {
-                put("relativeDelayMinutes", kotlinx.serialization.json.JsonPrimitive(it))
-                put("recurring", kotlinx.serialization.json.JsonPrimitive(false))
-            } ?: run {
-                put("recurring", kotlinx.serialization.json.JsonPrimitive(true))
-            }
-            if (write.modelProvider != null && write.modelId != null) {
-                put("modelSelection", kotlinx.serialization.json.buildJsonObject {
-                    put("providerId", kotlinx.serialization.json.JsonPrimitive(write.modelProvider))
-                    put("modelId", kotlinx.serialization.json.JsonPrimitive(write.modelId))
-                })
-            }
-            write.mode?.let { put("mode", kotlinx.serialization.json.JsonPrimitive(it)) }
-        }
+        automationWriteRequest(write)
 
     private fun workspaceTarget(): Pair<String, String?>? {
         val target = hub.activeWorkspaceTarget() ?: return null
@@ -146,19 +129,131 @@ class DefaultAutomationsPort(
         }
     }
 
-    override suspend fun runNow(automationId: String): Boolean {
-        val (workspacePath, workspaceIdentity) = workspaceTarget() ?: return false
+    override suspend fun runNow(automationId: String): Boolean =
+        runNowTyped(automationId) != AutomationsPort.RunNowOutcome.FAILED
+
+    // ---------------------------------------------------------------- Phase 4B (J2 / A3.2 / B2.11)
+
+    /** automation-types.ts: the create limit surfaces as `AUTOMATION_CREATE_LIMIT_REACHED` in the error text. */
+    override suspend fun createTyped(workspaceKey: String, write: AutomationsPort.AutomationWrite): AutomationsPort.CreateOutcome {
+        val (workspacePath, workspaceIdentity) = workspaceTarget() ?: return AutomationsPort.CreateOutcome.FAILED
         return try {
-            hub.viewerTools().runAutomationNow(workspacePath, workspaceIdentity, automationId)
-            true
+            hub.viewerTools().createAutomation(workspacePath, workspaceIdentity, writeRequest(write))
+            AutomationsPort.CreateOutcome.OK
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("automationsport.create", "${e.javaClass.simpleName}: ${e.message?.take(140)}")
+            if (e.message?.contains(AUTOMATION_CREATE_LIMIT_ERROR_CODE) == true) AutomationsPort.CreateOutcome.LIMIT_REACHED
+            else AutomationsPort.CreateOutcome.FAILED
+        }
+    }
+
+    /** B2.11: `{status: queued|duplicate}` lands as a typed outcome (never fire-and-forget). */
+    override suspend fun runNowTyped(automationId: String): AutomationsPort.RunNowOutcome {
+        val (workspacePath, workspaceIdentity) = workspaceTarget() ?: return AutomationsPort.RunNowOutcome.FAILED
+        return try {
+            val result = hub.viewerTools().runAutomationNow(workspacePath, workspaceIdentity, automationId)
+            when ((result["status"] as? kotlinx.serialization.json.JsonPrimitive)?.content) {
+                "duplicate" -> AutomationsPort.RunNowOutcome.DUPLICATE
+                else -> AutomationsPort.RunNowOutcome.QUEUED
+            }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             hub.log.warn("automationsport.runNow", "${e.javaClass.simpleName}: ${e.message?.take(140)}")
+            AutomationsPort.RunNowOutcome.FAILED
+        }
+    }
+
+    override suspend fun runs(automationId: String): AutomationsPort.RunsResult {
+        val (workspacePath, workspaceIdentity) = workspaceTarget()
+            ?: return AutomationsPort.RunsResult(null, "no active workspace")
+        return try {
+            AutomationsPort.RunsResult(hub.viewerTools().automationRuns(workspacePath, workspaceIdentity, automationId), null)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("automationsport.runs", "${e.javaClass.simpleName}: ${e.message?.take(140)}")
+            AutomationsPort.RunsResult(null, e.message ?: "run history unavailable")
+        }
+    }
+
+    override suspend fun deleteRun(runId: String): Boolean {
+        val (workspacePath, workspaceIdentity) = workspaceTarget() ?: return false
+        return try {
+            hub.viewerTools().deleteAutomationRun(workspacePath, workspaceIdentity, runId)
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("automationsport.deleteRun", "${e.javaClass.simpleName}: ${e.message?.take(140)}")
             false
         }
     }
+
+    override suspend fun restart(automationId: String): Boolean {
+        val (workspacePath, workspaceIdentity) = workspaceTarget() ?: return false
+        return try {
+            hub.viewerTools().restartAutomation(workspacePath, workspaceIdentity, automationId)
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("automationsport.restart", "${e.javaClass.simpleName}: ${e.message?.take(140)}")
+            false
+        }
+    }
+
+    private companion object {
+        /** automation-types.ts AUTOMATION_CREATE_LIMIT_ERROR_CODE. */
+        const val AUTOMATION_CREATE_LIMIT_ERROR_CODE = "AUTOMATION_CREATE_LIMIT_REACHED"
+    }
 }
+
+/**
+ * J2-target: the automation write request — ZCodeAutomationCreateParams / UpdateParams
+ * (automation-types.ts). A CUSTOM repeat carries the authoritative `scheduleRule`
+ * beside the compat `cronExpr`; plain-cron kinds carry none; `clearScheduleRule`
+ * (update) sends an explicit null so a carried rule is dropped — "undefined=不修改；
+ * null=恢复为普通 cron".
+ */
+internal fun automationWriteRequest(write: AutomationsPort.AutomationWrite): kotlinx.serialization.json.JsonObject =
+    kotlinx.serialization.json.buildJsonObject {
+        put("title", kotlinx.serialization.json.JsonPrimitive(write.title))
+        put("prompt", kotlinx.serialization.json.JsonPrimitive(write.prompt))
+        put("cronExpr", kotlinx.serialization.json.JsonPrimitive(write.schedule.cronExprOrPlaceholder()))
+        write.schedule.everyMinutes?.let {
+            put("relativeDelayMinutes", kotlinx.serialization.json.JsonPrimitive(it))
+            put("recurring", kotlinx.serialization.json.JsonPrimitive(false))
+        } ?: run {
+            put("recurring", kotlinx.serialization.json.JsonPrimitive(write.recurring))
+        }
+        write.maxRuns?.let { put("maxRuns", kotlinx.serialization.json.JsonPrimitive(it)) }
+        write.endAt?.let { put("endAt", kotlinx.serialization.json.JsonPrimitive(it)) }
+        val rule = write.scheduleRule
+        when {
+            rule != null -> put("scheduleRule", kotlinx.serialization.json.buildJsonObject {
+                put("unit", kotlinx.serialization.json.JsonPrimitive(rule.unit))
+                put("interval", kotlinx.serialization.json.JsonPrimitive(rule.interval))
+                put("hour", kotlinx.serialization.json.JsonPrimitive(rule.hour))
+                put("minute", kotlinx.serialization.json.JsonPrimitive(rule.minute))
+                put("anchorAt", kotlinx.serialization.json.JsonPrimitive(rule.anchorAt))
+                put("weekdays", kotlinx.serialization.json.JsonArray(rule.weekdays.map { kotlinx.serialization.json.JsonPrimitive(it) }))
+                put("monthDays", kotlinx.serialization.json.JsonArray(rule.monthDays.map { kotlinx.serialization.json.JsonPrimitive(it) }))
+                rule.months?.let { m -> put("months", kotlinx.serialization.json.JsonArray(m.map { kotlinx.serialization.json.JsonPrimitive(it) })) }
+                rule.monthlyMode?.let { put("monthlyMode", kotlinx.serialization.json.JsonPrimitive(it)) }
+            })
+            write.clearScheduleRule -> put("scheduleRule", kotlinx.serialization.json.JsonNull)
+        }
+        if (write.modelProvider != null && write.modelId != null) {
+            put("modelSelection", kotlinx.serialization.json.buildJsonObject {
+                put("providerId", kotlinx.serialization.json.JsonPrimitive(write.modelProvider))
+                put("modelId", kotlinx.serialization.json.JsonPrimitive(write.modelId))
+            })
+        }
+        write.mode?.let { put("mode", kotlinx.serialization.json.JsonPrimitive(it)) }
+    }
 
 class DefaultPluginsPort(
     private val hub: ConnectionHub,

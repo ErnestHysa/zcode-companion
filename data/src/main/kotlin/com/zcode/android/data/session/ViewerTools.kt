@@ -63,6 +63,16 @@ class ViewerTools(private val transport: AppTransport) {
     suspend fun runAutomationNow(workspacePath: String?, workspaceIdentity: String?, automationId: String): kotlinx.serialization.json.JsonObject =
         transport.runAutomationNow(workspacePath, workspaceIdentity, automationId)
 
+    /** Phase 4B (A3.2): run history — `listAutomationRuns` (array normalized to {runs}) + delete + restart. */
+    suspend fun automationRuns(workspacePath: String?, workspaceIdentity: String?, automationId: String): List<com.zcode.android.domain.model.AutomationRunRow> =
+        com.zcode.android.domain.model.AutomationRunRow.decodeList(transport.listAutomationRuns(workspacePath, workspaceIdentity, automationId))
+
+    suspend fun deleteAutomationRun(workspacePath: String?, workspaceIdentity: String?, runId: String) =
+        transport.deleteAutomationRun(workspacePath, workspaceIdentity, runId)
+
+    suspend fun restartAutomation(workspacePath: String?, workspaceIdentity: String?, automationId: String) =
+        transport.restartAutomation(workspacePath, workspaceIdentity, automationId)
+
     /**
      * `off-peak-task` channel `list` with the desktop's own list projection mirrored
      * CLIENT-SIDE (zcodeAgentService.ts:2666-2761): workspace filter, createdAt DESC,

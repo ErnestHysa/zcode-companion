@@ -75,6 +75,16 @@ interface AutomationsPort {
         val modelProvider: String? = null,
         val modelId: String? = null,
         val mode: String? = null,
+        // ---- Phase 4B (J2-target): the desktop's full write shape (automation-types.ts) ----
+        /** The authoritative rule for CUSTOM repeats (every N × unit); null = plain cron. */
+        val scheduleRule: com.zcode.android.domain.model.AutomationRow.ScheduleRule? = null,
+        /** true = unbounded loop; false = finite (maxRuns). Edits keep the row's own value. */
+        val recurring: Boolean = true,
+        val maxRuns: Int? = null,
+        /** Custom-repeat end bound (local day-end ms); null = never. */
+        val endAt: Long? = null,
+        /** Update only: the user replaced a carried rule with a plain cron → `scheduleRule: null`. */
+        val clearScheduleRule: Boolean = false,
     )
 
     suspend fun create(workspaceKey: String, write: AutomationWrite): Boolean
@@ -88,4 +98,31 @@ interface AutomationsPort {
     suspend fun runNow(automationId: String): Boolean
 
     suspend fun lists(): Lists
+
+    // ---------------------------------------------------------------- Phase 4B typed outcomes + run history
+
+    /** automation-types.ts AUTOMATION_CREATE_LIMIT (20) → `AUTOMATION_CREATE_LIMIT_REACHED`. */
+    enum class CreateOutcome { OK, LIMIT_REACHED, FAILED }
+
+    /** Typed create: the limit error is a distinct, copy-worthy outcome (desktop automations.limit.*). */
+    suspend fun createTyped(workspaceKey: String, write: AutomationWrite): CreateOutcome =
+        if (create(workspaceKey, write)) CreateOutcome.OK else CreateOutcome.FAILED
+
+    /** ZCodeAgentRunAutomationNowResult.status: queued | duplicate (an in-flight run already exists). */
+    enum class RunNowOutcome { QUEUED, DUPLICATE, FAILED }
+
+    /** B2.11: Run Now lands its result instead of being fire-and-forgotten. */
+    suspend fun runNowTyped(automationId: String): RunNowOutcome =
+        if (runNow(automationId)) RunNowOutcome.QUEUED else RunNowOutcome.FAILED
+
+    data class RunsResult(val runs: List<com.zcode.android.domain.model.AutomationRunRow>?, val error: String?)
+
+    /** A3.2: `listAutomationRuns` — the run history (null = unavailable, typed error). */
+    suspend fun runs(automationId: String): RunsResult = RunsResult(null, "run history unavailable")
+
+    /** `deleteAutomationRun`. */
+    suspend fun deleteRun(runId: String): Boolean = false
+
+    /** `restartAutomation` — re-arms a completed/failed automation (desktop automations.restart). */
+    suspend fun restart(automationId: String): Boolean = false
 }
