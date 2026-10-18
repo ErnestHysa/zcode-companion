@@ -44,7 +44,7 @@ import org.robolectric.annotation.Config
  * landed Run-Now (busy + toast + double-tap guard).
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [30], qualifiers = "w411dp-h891dp")
+@Config(sdk = [30])
 class AutomationsRedesignUiTest {
 
     @get:Rule
