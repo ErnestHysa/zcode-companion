@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -331,8 +332,8 @@ class AutomationsRedesignUiTest {
         rule.onNodeWithTag("automation_history_r").performClick(); rule.waitForIdle()
         rule.onNodeWithTag("automation_runs_sheet").assertIsDisplayed()
         assertEquals(2, rule.onAllNodesWithTag("automation_run_row").fetchSemanticsNodes().size)
-        rule.onNodeWithText("Succeeded").assertIsDisplayed()
-        rule.onNodeWithText("Failure").assertIsDisplayed()
+        assertEquals("filter chip + the row status", 2, rule.onAllNodesWithText("Succeeded").fetchSemanticsNodes().size)
+        assertEquals("filter chip + the row status", 2, rule.onAllNodesWithText("Failure").fetchSemanticsNodes().size)
         rule.onNodeWithTag("automation_run_open_r:1").performClick(); rule.waitForIdle()
         assertEquals(listOf("sess-r1"), opened)
         rule.onNodeWithTag("automation_run_delete_r:manual:x").performClick(); rule.waitForIdle()

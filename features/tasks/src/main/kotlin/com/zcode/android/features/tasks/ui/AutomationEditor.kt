@@ -5,7 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -170,6 +171,7 @@ internal fun scheduleLabels(): AutomationSchedule.Labels {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun AutomationEditorDialog(
     existing: AutomationRow?,
@@ -254,7 +256,7 @@ internal fun AutomationEditorDialog(
                 )
                 Text(stringResource(R.string.automations_field_schedule), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 // ---- frequency chips (desktop CronFrequency + once + raw cron) ----
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     FreqChip(stringResource(R.string.automations_freq_once), s.once, "automation_freq_once") { s = s.copy(once = true) }
                     for ((freq, label, tag) in listOf(
                         Triple(Frequency.HOURLY, R.string.automations_freq_hourly, "hourly"),
@@ -298,7 +300,7 @@ internal fun AutomationEditorDialog(
                                     isError = (interval ?: 0) !in 1..200,
                                 )
                             }
-                            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 for ((unit, label) in listOf(
                                     CustomUnit.MINUTE to R.string.automations_unit_minute, CustomUnit.HOURLY to R.string.automations_unit_hourly,
                                     CustomUnit.DAILY to R.string.automations_unit_daily, CustomUnit.WEEKLY to R.string.automations_unit_weekly,
@@ -337,7 +339,7 @@ internal fun AutomationEditorDialog(
                         if (f == Frequency.WEEKLY || (f == Frequency.CUSTOM && (builder.customUnit == CustomUnit.WEEKLY || (builder.customUnit == CustomUnit.MONTHLY && builder.customMonthlyMode == MonthlyMode.WEEKDAY)))) {
                             val single = f == Frequency.CUSTOM && builder.customUnit == CustomUnit.MONTHLY
                             val selected = if (f == Frequency.WEEKLY) builder.weekdays else builder.customWeekdays
-                            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 for (d in AutomationSchedule.WEEKDAY_ORDER) {
                                     FreqChip(labels.weekday(d), d in selected, "automation_wd_$d") {
                                         val next = when {
