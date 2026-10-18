@@ -2129,9 +2129,11 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     // Echo the feedback onto the row (rows.ts `feedback`), null clears it.
                     val base = appendedRows[rowId.toString()]
                         ?: JsonObject(schemaRow(workspace.sessionId, rowId, RowKind.ASSISTANT_TEXT, "synthetic") + ("actions" to ROW_ACTIONS_ASSISTANT))
-                    val next = if (feedback is JsonPrimitive) JsonObject(base + ("feedback" to feedback)) else JsonObject(base - "feedback")
+                    // JsonNull IS a JsonPrimitive — an explicit null clears, a string sets.
+                    val set = feedback is JsonPrimitive && feedback !is JsonNull
+                    val next = if (set) JsonObject(base + ("feedback" to feedback!!)) else JsonObject(base - "feedback")
                     appendedRows[rowId.toString()] = next
-                    lastFeedback = (feedback as? JsonPrimitive)?.content
+                    lastFeedback = if (set) (feedback as JsonPrimitive).content else null
                     pushRowUpserted(workspace.sessionId, next)
                 }
                 pushRevisionPatch()
