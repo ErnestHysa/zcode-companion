@@ -22,6 +22,10 @@ android {
     buildFeatures { compose = true }
     testOptions {
         unitTests.isIncludeAndroidResources = true
+        // Phase 4B: the phone-shaped Robolectric device (w411dp-h891dp) + the editor's
+        // compose pins exceed Gradle's 512 MB default test-worker heap (OOM cascaded
+        // through the fork). One worker, 1.5 GB — fits the 8 GB machine beside the daemon.
+        unitTests.all { test -> test.maxHeapSize = "1536m" }
     }
 }
 
