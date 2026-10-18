@@ -72,7 +72,7 @@ class AutomationWriteRequestTest {
     }
 
     @Test
-    fun `clearScheduleRule sends an explicit null (update: rule replaced by a plain cron)`() {
+    fun `clearScheduleRule sends an explicit null (update - rule replaced by a plain cron)`() {
         val req = automationWriteRequest(write(clearRule = true))
         assertTrue(req["scheduleRule"] is JsonNull)
     }
