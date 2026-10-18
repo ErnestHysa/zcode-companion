@@ -298,6 +298,11 @@ data class AutomationRow(
      *  absent/blank → null (the editor falls back to the workspace default). */
     val modelProvider: String? = null,
     val modelId: String? = null,
+    /** Phase 4B (J2): the custom-repeat end bound (local day-end ms); null = never ends. */
+    val endAt: Long? = null,
+    /** Phase 4B (A3.2): last dispatch error + state (`idle|claimed|dispatched|failed_to_dispatch`, raw). */
+    val lastError: String? = null,
+    val dispatchStatus: String? = null,
 ) {
     data class ScheduleRule(
         val unit: String,
@@ -307,6 +312,10 @@ data class AutomationRow(
         val anchorAt: Long,
         val weekdays: List<Int>,
         val monthDays: List<Int>,
+        /** yearly: 1-12 human months (absent on older records → the anchor's month). */
+        val months: List<Int>? = null,
+        /** monthly: `date` | `weekday` (raw; absent = date). */
+        val monthlyMode: String? = null,
     )
 
     companion object {
@@ -336,12 +345,17 @@ data class AutomationRow(
                             anchorAt = r.longReq("anchorAt"),
                             weekdays = r.intList("weekdays"),
                             monthDays = r.intList("monthDays"),
+                            months = (r["months"] as? JsonArray)?.let { r.intList("months") },
+                            monthlyMode = r.strOrNullN("monthlyMode"),
                         )
                     },
                     workspaceKey = o.strReq("workspaceKey"),
                     locationKind = o.strReq("locationKind"),
                     modelProvider = o.objOrNull("modelSelection")?.strOrNullN("providerId"),
                     modelId = o.objOrNull("modelSelection")?.strOrNullN("modelId"),
+                    endAt = o.longOrNullN("endAt"),
+                    lastError = o.strOrNullN("lastError"),
+                    dispatchStatus = o.strOrNullN("dispatchStatus"),
                 )
             }
         }
