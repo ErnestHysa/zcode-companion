@@ -115,7 +115,7 @@ class AutomationScheduleBuilderTest {
     }
 
     @Test
-    fun `non-custom frequencies carry NO scheduleRule (desktop: plain cron path)`() {
+    fun `non-custom frequencies carry NO scheduleRule (desktop plain cron path)`() {
         assertNull(AutomationSchedule.parseCron("0 9 * * *").toScheduleRule(anchorAt = 1L))
         assertNull(AutomationSchedule.parseCron("30 5 * * 1").toScheduleRule(anchorAt = 1L))
     }
