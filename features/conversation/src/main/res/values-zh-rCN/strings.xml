@@ -139,6 +139,18 @@
     <string name="action_edit">编辑</string>
     <string name="action_cancel">取消</string>
     <string name="row_actions_title">消息操作</string>
+    <!-- Phase 4A 行操作 — 桌面 chat.message.* / chat.changeSummary.rewindDialog.* -->
+    <string name="row_like">赞</string>
+    <string name="row_liked">已赞</string>
+    <string name="row_dislike">踩</string>
+    <string name="row_disliked">已踩</string>
+    <string name="row_fork">分叉</string>
+    <string name="row_retry">重试</string>
+    <string name="row_rewind_files">撤销文件</string>
+    <string name="rewind_dialog_title">撤销文件更改</string>
+    <string name="rewind_dialog_body">恢复该轮更改的工作区文件（%1$s）。对话本身会保留。</string>
+    <string name="rewind_dialog_confirm">撤销文件</string>
+    <string name="fork_opened">已分叉——正在打开新对话</string>
     <string name="edit_title">编辑消息</string>
     <string name="edit_hint">将以编辑后的文本重新执行该轮；其后的回复会重新生成。</string>
     <string name="edit_review">检查编辑</string>

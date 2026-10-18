@@ -94,6 +94,8 @@ data class SendNotice(
         SWITCH_OFFLINE, SESSION_CHANGED, SWITCH_REFUSED, MODEL_SWITCH_REFUSED,
         ATTACHMENT_TOO_LARGE, ATTACHMENT_OFFLINE, ATTACHMENT_FAILED, ATTACHMENT_RETRY_FAILED,
         COMPACT_REFUSED, GOAL_REFUSED, GOAL_RESUME_REFUSED,
+        // Phase 4A row actions
+        ROW_ACTION_OFFLINE, RETRY_REFUSED, FORK_REFUSED, REWIND_APPLIED, REWIND_REFUSED, FEEDBACK_REFUSED,
     }
 }
 
@@ -525,6 +527,66 @@ class ConversationViewModel(
                         SendNotice.Kind.ERROR,
                     )
             }
+        }
+    }
+
+    // ---------------------------------------------------------------- Phase 4A row actions (E3.2+I1+N5)
+
+    private val _forkedSession = MutableStateFlow<String?>(null)
+
+    /** One-shot: the CHILD session an accepted fork created — the screen navigates there, then consumes. */
+    val forkedSession: StateFlow<String?> = _forkedSession.asStateFlow()
+
+    fun consumeForkedSession() {
+        _forkedSession.value = null
+    }
+
+    /** retryTurn — accepted is silent (the re-asked turn is the feedback; desktop logs refusals only). */
+    fun retryTurn(rowId: Long, entityId: String) {
+        scope.launch {
+            rowActionNotice(port.retryTurn(taskId, rowId, entityId), refusedText = "The desktop refused the retry — nothing changed.", refusedKey = SendNotice.Key.RETRY_REFUSED)
+        }
+    }
+
+    /** forkAssistant — the desktop switches to the child session in place (SessionPane.tsx:3039). */
+    fun forkAssistant(rowId: Long, entityId: String) {
+        scope.launch {
+            val result = port.forkAssistant(taskId, rowId, entityId)
+            if (result.outcome == ConversationPort.SendOutcome.ACCEPTED) {
+                _sendNotice.value = null
+                _forkedSession.value = result.childSessionId
+                return@launch
+            }
+            rowActionNotice(result.outcome, refusedText = "Could not fork the conversation — the desktop refused it.", refusedKey = SendNotice.Key.FORK_REFUSED)
+        }
+    }
+
+    /** applyFileRewind on the turn — the confirm step lives in the UI (desktop rewindDialog parity). */
+    fun applyFileRewind(rowId: Long, entityId: String) {
+        scope.launch {
+            when (val outcome = port.applyFileRewind(taskId, rowId, entityId)) {
+                ConversationPort.SendOutcome.ACCEPTED ->
+                    _sendNotice.value = SendNotice("File changes from that turn were undone.", SendNotice.Kind.INFO, SendNotice.Key.REWIND_APPLIED)
+                else -> rowActionNotice(outcome, refusedText = "The file undo request failed — nothing was changed.", refusedKey = SendNotice.Key.REWIND_REFUSED)
+            }
+        }
+    }
+
+    /** setAssistantFeedback — accepted is silent; the row's `feedback` echo is the truth. */
+    fun setAssistantFeedback(rowId: Long, entityId: String, feedback: String?) {
+        scope.launch {
+            rowActionNotice(port.setAssistantFeedback(taskId, rowId, entityId, feedback), refusedText = "The desktop refused the feedback — nothing changed.", refusedKey = SendNotice.Key.FEEDBACK_REFUSED)
+        }
+    }
+
+    private fun rowActionNotice(outcome: ConversationPort.SendOutcome, refusedText: String, refusedKey: SendNotice.Key) {
+        when (outcome) {
+            ConversationPort.SendOutcome.ACCEPTED -> Unit
+            ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
+                _sendNotice.value = SendNotice("Offline — the action was not sent. Nothing changed.", SendNotice.Kind.WARNING, SendNotice.Key.ROW_ACTION_OFFLINE)
+            ConversationPort.SendOutcome.STALE ->
+                _sendNotice.value = SendNotice("The session changed on the desktop — try again.", SendNotice.Kind.WARNING, SendNotice.Key.SESSION_CHANGED)
+            else -> _sendNotice.value = SendNotice(refusedText, SendNotice.Kind.ERROR, refusedKey)
         }
     }
 

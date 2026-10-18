@@ -274,6 +274,8 @@ fun ZCodeApp(
                 onOpenFiles = { container.log.info("nav.files", "open"); nav.navigate(Routes.FILES) },
                 onOpenGit = { container.log.info("nav.git", "open"); nav.navigate(Routes.GIT) },
                 onOpenTerminal = { container.log.info("nav.terminal", "open"); nav.navigate(Routes.TERMINAL) },
+                // Phase 4A: an accepted fork opens the CHILD session in place (desktop onSessionCreated parity).
+                onOpenTask = { child -> container.log.info("nav.fork", "open ${child.take(12)}"); nav.navigate(Routes.conversation(child)) },
             )
         }
 
@@ -458,12 +460,20 @@ private fun ConversationRoute(
     onOpenFiles: () -> Unit = {},
     onOpenGit: () -> Unit = {},
     onOpenTerminal: () -> Unit = {},
+    onOpenTask: (taskId: String) -> Unit = {},
 ) {
     val state by vm.state.collectAsState()
     // C6-taskdesc: the recents card carries the open task's name.
     val activity = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity
     androidx.compose.runtime.LaunchedEffect(state.task?.title) {
         activity?.updateRecentsTaskLabel(state.task?.title)
+    }
+    // Phase 4A: an accepted fork names the child session — navigate once, then consume.
+    val forked by vm.forkedSession.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(forked) {
+        val child = forked ?: return@LaunchedEffect
+        vm.consumeForkedSession()
+        onOpenTask(child)
     }
     ConversationScreen(
         state = state,
@@ -510,6 +520,11 @@ private fun ConversationRoute(
         onRetryAttachment = vm::retryUpload,
         // Phase 2 (§11.4, GAP-10): message edit (long-press → sheet → confirm).
         onEditUserQuery = { rowId, entityId, newText -> vm.editUserQuery(rowId, entityId, newText) },
+        // Phase 4A (E3.2+I1+N5): the flag-gated row actions over the proven wire.
+        onRetryTurn = vm::retryTurn,
+        onForkAssistant = vm::forkAssistant,
+        onApplyFileRewind = vm::applyFileRewind,
+        onAssistantFeedback = vm::setAssistantFeedback,
     )
 }
 

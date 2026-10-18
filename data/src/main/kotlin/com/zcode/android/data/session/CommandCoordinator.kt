@@ -427,6 +427,52 @@ class CommandCoordinator(
         )
     }
 
+    // ---------------------------------------------------------------- row actions (Phase 4A: E3.2+I1+N5)
+
+    /** `{target: {rowId, entityId}}` — the shared row-target payload (core.ts conversationRowTargetSchema). */
+    private fun rowTarget(rowId: Long, entityId: String): JsonObject = buildJsonObject {
+        put("target", buildJsonObject {
+            put("rowId", JsonPrimitive(rowId))
+            put("entityId", JsonPrimitive(entityId))
+        })
+    }
+
+    /** `retryTurn {target}` — re-asks the turn (command.ts:161; the desktop's handleRetry). */
+    suspend fun retryTurn(sessionId: String, rowId: Long, entityId: String, baseRevision: Long?, baseLogEpoch: String?): Outcome =
+        rowTargetingCommand("retryTurn", sessionId, baseRevision, baseLogEpoch, rowTarget(rowId, entityId))
+
+    /**
+     * `forkAssistant {target}` — the ack's `result.sessionId` names the CHILD session
+     * (commandResultSchema type=forkAssistant); the caller navigates there exactly like
+     * the desktop (`onSessionCreated(ack.result.sessionId)`). Read it via [forkedSessionId].
+     */
+    suspend fun forkAssistant(sessionId: String, rowId: Long, entityId: String, baseRevision: Long?, baseLogEpoch: String?): Outcome =
+        rowTargetingCommand("forkAssistant", sessionId, baseRevision, baseLogEpoch, rowTarget(rowId, entityId))
+
+    /** `applyFileRewind {target}` — workspace-only file undo for the turn; chat history is not truncated. */
+    suspend fun applyFileRewind(sessionId: String, rowId: Long, entityId: String, baseRevision: Long?, baseLogEpoch: String?): Outcome =
+        rowTargetingCommand("applyFileRewind", sessionId, baseRevision, baseLogEpoch, rowTarget(rowId, entityId))
+
+    /**
+     * `setAssistantFeedback {target, feedback}` — `feedback: like|dislike|null` (strict
+     * enum, NULLABLE): clearing is an EXPLICIT JSON null, an out-of-enum value never goes
+     * on the wire (fail closed, INV-14).
+     */
+    suspend fun setAssistantFeedback(
+        sessionId: String,
+        rowId: Long,
+        entityId: String,
+        feedback: String?,
+        baseRevision: Long?,
+        baseLogEpoch: String?,
+    ): Outcome {
+        if (feedback != null && feedback !in FEEDBACK_VALUES) return Outcome.Failed(null)
+        val payload = JsonObject(
+            rowTarget(rowId, entityId) + ("feedback" to (feedback?.let { JsonPrimitive(it) } ?: kotlinx.serialization.json.JsonNull)),
+        )
+        return rowTargetingCommand("setAssistantFeedback", sessionId, baseRevision, baseLogEpoch, payload)
+    }
+
     /** TRANSMIT → ACK / SendLost mapping (§15.5: a lost outcome is UNKNOWN, never success). */
     private suspend fun transmitPending(
         commandId: CommandId,
@@ -524,6 +570,18 @@ class CommandCoordinator(
     // ---------------------------------------------------------------- observe (UI)
 
     fun observePendingSends(): StateFlow<List<PendingSend>> = pendingSends
+
+    companion object {
+        /** command.ts setAssistantFeedback: `z.enum(["like","dislike"]).nullable()`. */
+        val FEEDBACK_VALUES = setOf("like", "dislike")
+
+        /** The forkAssistant ack's child session (`result.type == "forkAssistant"`); null otherwise. */
+        fun forkedSessionId(ack: CommandAck): String? {
+            val result = ack.result ?: return null
+            if ((result["type"] as? JsonPrimitive)?.content != "forkAssistant") return null
+            return (result["sessionId"] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() }
+        }
+    }
 }
 
 internal val jsonParser = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }

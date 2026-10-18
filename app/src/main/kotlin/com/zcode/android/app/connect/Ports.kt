@@ -326,6 +326,42 @@ class DefaultConversationPort(
         )
     }
 
+    // ---------------------------------------------------------------- Phase 4A row actions (E3.2+I1+N5)
+
+    /** Both CAS currencies, the editUserQuery pattern — revision from the projection, epoch from the store. */
+    private suspend fun rowCurrencies(taskId: String): Pair<Long?, String?> =
+        hub.sessionProjectionState(taskId).first().revision to
+            conversationRepo.observeEpoch(com.zcode.android.domain.ids.SessionId(taskId)).first()
+
+    override suspend fun retryTurn(taskId: String, rowId: Long, entityId: String): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        val (revision, epoch) = rowCurrencies(taskId)
+        return mapOutcome(coordinator.retryTurn(taskId, rowId, entityId, revision, epoch))
+    }
+
+    override suspend fun forkAssistant(taskId: String, rowId: Long, entityId: String): ConversationPort.ForkOutcome {
+        val coordinator = hub.commandCoordinatorOrNull()
+            ?: return ConversationPort.ForkOutcome(ConversationPort.SendOutcome.FAILED, null)
+        val (revision, epoch) = rowCurrencies(taskId)
+        val outcome = coordinator.forkAssistant(taskId, rowId, entityId, revision, epoch)
+        val child = (outcome as? com.zcode.android.data.session.CommandCoordinator.Outcome.Accepted)
+            ?.let { com.zcode.android.data.session.CommandCoordinator.forkedSessionId(it.ack) }
+        hub.log.info("port.fork", "session=${taskId.take(12)} row=$rowId outcome=${outcome.javaClass.simpleName} child=${child?.take(12)}")
+        return ConversationPort.ForkOutcome(mapOutcome(outcome), child)
+    }
+
+    override suspend fun applyFileRewind(taskId: String, rowId: Long, entityId: String): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        val (revision, epoch) = rowCurrencies(taskId)
+        return mapOutcome(coordinator.applyFileRewind(taskId, rowId, entityId, revision, epoch))
+    }
+
+    override suspend fun setAssistantFeedback(taskId: String, rowId: Long, entityId: String, feedback: String?): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        val (revision, epoch) = rowCurrencies(taskId)
+        return mapOutcome(coordinator.setAssistantFeedback(taskId, rowId, entityId, feedback, revision, epoch))
+    }
+
     private fun mapOutcome(outcome: com.zcode.android.data.session.CommandCoordinator.Outcome): ConversationPort.SendOutcome =
         when (outcome) {
             is com.zcode.android.data.session.CommandCoordinator.Outcome.Accepted -> ConversationPort.SendOutcome.ACCEPTED

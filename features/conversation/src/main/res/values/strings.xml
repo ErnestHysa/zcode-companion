@@ -167,6 +167,18 @@
     <string name="action_edit">Edit</string>
     <string name="action_cancel">Cancel</string>
     <string name="row_actions_title">Message actions</string>
+    <!-- Phase 4A (E3.2+I1+N5) row actions — desktop chat.message.* / chat.changeSummary.rewindDialog.* -->
+    <string name="row_like">Like</string>
+    <string name="row_liked">Liked</string>
+    <string name="row_dislike">Dislike</string>
+    <string name="row_disliked">Disliked</string>
+    <string name="row_fork">Fork</string>
+    <string name="row_retry">Retry</string>
+    <string name="row_rewind_files">Undo files</string>
+    <string name="rewind_dialog_title">Undo file changes</string>
+    <string name="rewind_dialog_body">Restore the workspace files this turn changed (%1$s). The conversation itself is kept.</string>
+    <string name="rewind_dialog_confirm">Undo files</string>
+    <string name="fork_opened">Forked — opening the new conversation</string>
     <string name="edit_title">Edit message</string>
     <string name="edit_hint">The turn is re-asked with the edited text; the reply after it is regenerated.</string>
     <string name="edit_review">Review edit</string>

@@ -104,6 +104,9 @@ sealed class ConversationRow {
         val state: TextState,
         val model: String?,
         override val raw: JsonObject,
+        /** rows.ts `feedback: like|dislike` (optional) — the Like/Dislike echo (Phase 4A).
+         *  Tolerant: absent → null; an unknown value is retained raw (INV-8). */
+        val feedback: String? = null,
     ) : ConversationRow() {
         override val kind: String get() = KIND
     override val createdAtSeq: Long get() = base.createdAtSeq
@@ -373,6 +376,7 @@ sealed class ConversationRow {
                     state = TextState.fromWire(obj.strOrNull("state")),
                     model = obj.strOrNull("model"),
                     raw = obj,
+                    feedback = obj.strOrNull("feedback"),
                 )
                 Reasoning.KIND -> Reasoning(
                     rowId = rowId,

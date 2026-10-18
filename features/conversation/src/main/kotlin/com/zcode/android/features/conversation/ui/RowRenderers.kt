@@ -73,6 +73,12 @@ import com.zcode.android.core.ui.components.LocalNotifier
 import androidx.compose.material3.ListItem
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.filled.ThumbUp
+import androidx.compose.material.icons.filled.ThumbDown
+import androidx.compose.material.icons.outlined.ThumbUp
+import androidx.compose.material.icons.outlined.ThumbDown
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.automirrored.outlined.CallSplit
 import androidx.compose.ui.draw.clip
 import com.zcode.android.core.ui.components.ZCodeModalBottomSheet
 import androidx.compose.ui.res.pluralStringResource
@@ -187,7 +193,22 @@ fun YouBlock(
 }
 
 @Composable
-fun AgentProse(text: String, streaming: Boolean, createdAtMs: Double? = null, modifier: Modifier = Modifier) {
+fun AgentProse(
+    text: String,
+    streaming: Boolean,
+    createdAtMs: Double? = null,
+    modifier: Modifier = Modifier,
+    /** Phase 4A (E3.2+I1+N5): the row's OWN capability flags gate Fork/Retry — desktop
+     *  `latestAssistantTextRow.actions?.canRetry === true` (ConversationTurnGroup.tsx:867). */
+    canFork: Boolean = false,
+    canRetry: Boolean = false,
+    /** rows.ts `feedback` echo (like|dislike|null) — the Liked/Disliked state of record. */
+    feedback: String? = null,
+    onFork: (() -> Unit)? = null,
+    onRetry: (() -> Unit)? = null,
+    /** like | dislike | null (clear) — null callback = feedback unavailable on this row. */
+    onFeedback: ((String?) -> Unit)? = null,
+) {
     Column(modifier = modifier.fillMaxWidth().testTag("row_agent")) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Overline(stringResource(R.string.row_agent), color = LocalZCodeColors.current.accent)
@@ -223,6 +244,77 @@ fun AgentProse(text: String, streaming: Boolean, createdAtMs: Double? = null, mo
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+        } else if (onFeedback != null || (canFork && onFork != null) || (canRetry && onRetry != null)) {
+            // Phase 4A: the completed row's action rail — the desktop's hover bar as a
+            // persistent compact row (no hover on touch). Every entry is flag-gated;
+            // Like/Dislike always exist on a completed row (rows.ts carries `feedback`).
+            AssistantActionRow(
+                feedback = feedback,
+                onFeedback = onFeedback,
+                onFork = if (canFork) onFork else null,
+                onRetry = if (canRetry) onRetry else null,
+            )
+        }
+    }
+}
+
+/**
+ * Phase 4A (E3.2+I1+N5): Like / Dislike / Fork / Retry on a completed assistant row.
+ * Labels are the desktop's chat.message.* keys (Like/Liked, Dislike/Disliked, Fork,
+ * Retry). A set feedback renders FILLED + announces its state; tapping the set one
+ * clears it (explicit null on the wire).
+ */
+@Composable
+private fun AssistantActionRow(
+    feedback: String?,
+    onFeedback: ((String?) -> Unit)?,
+    onFork: (() -> Unit)?,
+    onRetry: (() -> Unit)?,
+) {
+    val haptics = rememberZCodeHaptics()
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(top = 2.dp).testTag("row_agent_actions"),
+    ) {
+        if (onFeedback != null) {
+            val liked = feedback == "like"
+            val disliked = feedback == "dislike"
+            androidx.compose.material3.IconButton(
+                onClick = { haptics.tick(); onFeedback(if (liked) null else "like") },
+                modifier = Modifier.minTouchTarget().testTag("row_like"),
+            ) {
+                Icon(
+                    imageVector = if (liked) Icons.Filled.ThumbUp else Icons.Outlined.ThumbUp,
+                    contentDescription = stringResource(if (liked) R.string.row_liked else R.string.row_like),
+                    tint = if (liked) LocalZCodeColors.current.accent else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            androidx.compose.material3.IconButton(
+                onClick = { haptics.tick(); onFeedback(if (disliked) null else "dislike") },
+                modifier = Modifier.minTouchTarget().testTag("row_dislike"),
+            ) {
+                Icon(
+                    imageVector = if (disliked) Icons.Filled.ThumbDown else Icons.Outlined.ThumbDown,
+                    contentDescription = stringResource(if (disliked) R.string.row_disliked else R.string.row_dislike),
+                    tint = if (disliked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
+        if (onFork != null) {
+            TextButton(onClick = { onFork() }, modifier = Modifier.testTag("row_fork")) {
+                Icon(Icons.AutoMirrored.Outlined.CallSplit, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text(stringResource(R.string.row_fork), style = MaterialTheme.typography.labelMedium)
+            }
+        }
+        if (onRetry != null) {
+            TextButton(onClick = { onRetry() }, modifier = Modifier.testTag("row_retry")) {
+                Icon(Icons.Outlined.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text(stringResource(R.string.row_retry), style = MaterialTheme.typography.labelMedium)
             }
         }
     }
@@ -411,10 +503,18 @@ fun TurnSeparator(
     row: ConversationRow.TurnHeader,
     modifier: Modifier = Modifier,
     onOpenChanges: () -> Unit = {},
+    /** Phase 4A: applyFileRewind on this turn — offered only under the desktop's gate. */
+    onRewindFiles: (() -> Unit)? = null,
 ) {
     // I2.1: a turn that changed files renders as the change summary CARD (desktop
     // chat.changeSummary.*); quiet turns keep the bare separator.
     val hasChanges = (row.fileChanges?.files ?: 0) > 0
+    // Desktop editWorkspaceRewindAvailability (ConversationTurnGroup.tsx:1227-1235):
+    // files > 0 AND not reverted AND not running AND actions.canRewindFiles === true.
+    val fcState = row.fileChanges?.state
+    val rewindAvailable = onRewindFiles != null && hasChanges && fcState != "reverted" &&
+        row.state != ConversationRow.TurnState.RUNNING && row.base.actions?.canRewindFiles == true
+    var confirmRewind by rememberSaveable { mutableStateOf(false) }
     val body: @Composable (Modifier) -> Unit = { m ->
         Column(modifier = m.testTag("row_turn")) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -454,8 +554,40 @@ fun TurnSeparator(
                         )
                     }
                 }
+                if (rewindAvailable) {
+                    Spacer(Modifier.width(4.dp))
+                    TextButton(onClick = { confirmRewind = true }, modifier = Modifier.testTag("row_turn_rewind")) {
+                        Text(stringResource(R.string.row_rewind_files), style = MaterialTheme.typography.labelSmall)
+                    }
+                }
             }
         }
+    }
+    if (confirmRewind && onRewindFiles != null) {
+        // Desktop chat.changeSummary.rewindDialog: an explicit confirm before the workspace write.
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmRewind = false },
+            title = { Text(stringResource(R.string.rewind_dialog_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.rewind_dialog_body,
+                        pluralStringResource(R.plurals.row_files_count, (row.fileChanges?.files ?: 0).toInt(), (row.fileChanges?.files ?: 0).toInt()),
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { confirmRewind = false; onRewindFiles() },
+                    modifier = Modifier.testTag("rewind_confirm"),
+                ) { Text(stringResource(R.string.rewind_dialog_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmRewind = false }) {
+                    Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
+                }
+            },
+        )
     }
     if (hasChanges) {
         androidx.compose.foundation.layout.Box(

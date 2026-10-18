@@ -116,6 +116,27 @@ interface ConversationPort {
      */
     suspend fun editUserQuery(taskId: String, rowId: Long, entityId: String, newText: String): SendOutcome
 
+    // ---------------------------------------------------------------- Phase 4A row actions (E3.2+I1+N5)
+
+    /**
+     * The four row commands the protocol layer modeled with zero senders — all
+     * row-targeted + CAS-guarded (both currencies from the projection/epoch, the
+     * editUserQuery pattern). Visibility is gated by the ROW'S OWN flags
+     * (`actions.canRetry/canFork/canRewindFiles`) — the wire decides, never the phone.
+     */
+    suspend fun retryTurn(taskId: String, rowId: Long, entityId: String): SendOutcome = SendOutcome.FAILED
+
+    /** forkAssistant: an accepted ack names the CHILD session (the desktop navigates to it). */
+    suspend fun forkAssistant(taskId: String, rowId: Long, entityId: String): ForkOutcome = ForkOutcome(SendOutcome.FAILED, null)
+
+    data class ForkOutcome(val outcome: SendOutcome, val childSessionId: String?)
+
+    /** applyFileRewind on a turnHeader target — workspace-only undo of that turn's files. */
+    suspend fun applyFileRewind(taskId: String, rowId: Long, entityId: String): SendOutcome = SendOutcome.FAILED
+
+    /** setAssistantFeedback: `like` | `dislike` | null (clear). The row's `feedback` echo renders the result. */
+    suspend fun setAssistantFeedback(taskId: String, rowId: Long, entityId: String, feedback: String?): SendOutcome = SendOutcome.FAILED
+
     /** §20 interaction answer (permission or user-input) through the ONE fail-closed gate. */
     suspend fun answerInteraction(
         interactionId: String,

@@ -111,7 +111,15 @@ fun ConversationScreen(
     toolOutputProvider: (suspend (ConversationRow.ToolCall) -> String?)? = null,
     sessionStatusProvider: suspend () -> com.zcode.android.domain.model.GitSummary? = { null },
     loadAttachment: (suspend (ConversationRow.UserInput.AttachmentMeta) -> ByteArray?)? = null,
+    // ---- Phase 4A (E3.2+I1+N5): flag-gated row actions over the proven wire ----
+    onRetryTurn: (rowId: Long, entityId: String) -> Unit = { _, _ -> },
+    onForkAssistant: (rowId: Long, entityId: String) -> Unit = { _, _ -> },
+    onApplyFileRewind: (rowId: Long, entityId: String) -> Unit = { _, _ -> },
+    onAssistantFeedback: (rowId: Long, entityId: String, feedback: String?) -> Unit = { _, _, _ -> },
 ) {
+    val rowActions = remember(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback) {
+        RowActionCallbacks(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback)
+    }
     // C6-BackHandler: back with an unsent draft raises a confirm (the promised
     // Phase-7 draft guard). The draft is Room-backed — the guard is the CONFIRMATION
     // UX only; "Leave" just proceeds. Empty draft passes straight through.
@@ -300,6 +308,10 @@ fun ConversationScreen(
                     onOpenTurnChanges = { diffTurn = it },
                     onEditRow = { row -> editingRow = row },
                     toolOutputProvider = toolOutputProvider,
+                    rowActions = rowActions,
+                    // F3-LOAD root cause (Phase 4A discovery): the loader was accepted by the
+                    // screen but never reached the timeline — previews could never load.
+                    loadAttachment = loadAttachment,
                 )
             }
             // §17.4/§17.6 composer (pinned bottom; drafting allowed offline, send
@@ -432,6 +444,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     onEditRow: ((ConversationRow.UserInput) -> Unit)? = null,
     toolOutputProvider: (suspend (ConversationRow.ToolCall) -> String?)? = null,
     loadAttachment: (suspend (ConversationRow.UserInput.AttachmentMeta) -> ByteArray?)? = null,
+    rowActions: RowActionCallbacks = RowActionCallbacks(),
 ) {
     val listState = rememberLazyListState()
     // B3-motion + K2: rows that have already arrived (scroll-back never re-animates).
@@ -602,6 +615,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                         onEditRow = onEditRow,
                         toolOutputProvider = toolOutputProvider,
                         loadAttachment = loadAttachment,
+                        rowActions = rowActions,
                     )
                     is TimelineEntry.ToolGroup -> ToolGroupBlock(
                         group = entry,
@@ -654,6 +668,14 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     }
 }
 
+/** Phase 4A (E3.2+I1+N5): the four flag-gated row actions, bundled for the timeline pass-through. */
+data class RowActionCallbacks(
+    val onRetryTurn: (rowId: Long, entityId: String) -> Unit = { _, _ -> },
+    val onForkAssistant: (rowId: Long, entityId: String) -> Unit = { _, _ -> },
+    val onApplyFileRewind: (rowId: Long, entityId: String) -> Unit = { _, _ -> },
+    val onAssistantFeedback: (rowId: Long, entityId: String, feedback: String?) -> Unit = { _, _, _ -> },
+)
+
 @Composable
 private fun TimelineRow(
     row: ConversationRow,
@@ -663,6 +685,7 @@ private fun TimelineRow(
     onEditRow: ((ConversationRow.UserInput) -> Unit)? = null,
     toolOutputProvider: (suspend (ConversationRow.ToolCall) -> String?)? = null,
     loadAttachment: (suspend (ConversationRow.UserInput.AttachmentMeta) -> ByteArray?)? = null,
+    rowActions: RowActionCallbacks = RowActionCallbacks(),
 ) {
     Box(modifier = modifier) {
     when (row) {
@@ -693,15 +716,29 @@ private fun TimelineRow(
                 row.text.endsWith(streamed) -> row.text
                 else -> row.text + streamed
             }
+            // Phase 4A: the row target the commands need — entityId is the wire's own
+            // (conversationRowTargetSchema requires a non-empty entityId; a row without
+            // one cannot be targeted, so its actions stay withheld).
+            val entityId = row.base.entityId
             AgentProse(
                 text = text,
                 streaming = row.state == ConversationRow.TextState.STREAMING || streamed != null,
                 createdAtMs = row.base.createdAt,
+                canFork = row.base.actions?.canFork == true && entityId != null,
+                canRetry = row.base.actions?.canRetry == true && entityId != null,
+                feedback = row.feedback,
+                onFork = entityId?.let { e -> { rowActions.onForkAssistant(row.rowId, e) } },
+                onRetry = entityId?.let { e -> { rowActions.onRetryTurn(row.rowId, e) } },
+                onFeedback = entityId?.let { e -> { f: String? -> rowActions.onAssistantFeedback(row.rowId, e, f) } },
             )
         }
         is ConversationRow.ToolCall -> ToolCard(row, fullOutputProvider = toolOutputProvider)
         is ConversationRow.Reasoning -> ReasoningRow(row)
-        is ConversationRow.TurnHeader -> TurnSeparator(row, onOpenChanges = { onOpenTurnChanges(row) })
+        is ConversationRow.TurnHeader -> TurnSeparator(
+            row,
+            onOpenChanges = { onOpenTurnChanges(row) },
+            onRewindFiles = row.base.entityId?.let { e -> { rowActions.onApplyFileRewind(row.rowId, e) } },
+        )
         is ConversationRow.Artifact -> QuietMetaRow(
             label = row.displayName.ifBlank { "Artifact" },
             detail = formatBytes(row.sizeBytes),
