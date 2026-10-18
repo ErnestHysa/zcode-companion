@@ -976,6 +976,13 @@ fun sendNoticeText(notice: SendNotice): String {
         SendNotice.Key.COMPACT_REFUSED -> R.string.notice_compact_refused
         SendNotice.Key.GOAL_REFUSED -> R.string.notice_goal_refused
         SendNotice.Key.GOAL_RESUME_REFUSED -> R.string.notice_goal_resume_refused
+        // Phase 4A row actions
+        SendNotice.Key.ROW_ACTION_OFFLINE -> R.string.notice_row_action_offline
+        SendNotice.Key.RETRY_REFUSED -> R.string.notice_retry_refused
+        SendNotice.Key.FORK_REFUSED -> R.string.notice_fork_refused
+        SendNotice.Key.REWIND_APPLIED -> R.string.notice_rewind_applied
+        SendNotice.Key.REWIND_REFUSED -> R.string.notice_rewind_refused
+        SendNotice.Key.FEEDBACK_REFUSED -> R.string.notice_feedback_refused
     }
     val args = if (key == SendNotice.Key.ATTACHMENT_FAILED) {
         listOf(notice.args.firstOrNull()?.takeIf { it.isNotBlank() } ?: stringResource(R.string.notice_connection_lost))

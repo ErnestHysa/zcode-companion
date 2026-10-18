@@ -209,6 +209,12 @@
     <string name="notice_compact_refused">Compact was refused by the desktop (it may already be running or an active turn blocks it).</string>
     <string name="notice_goal_refused">The goal update was refused by the desktop.</string>
     <string name="notice_goal_resume_refused">Goal resume was refused (the conversation may have moved — try again).</string>
+    <string name="notice_row_action_offline">Offline — the action was not sent. Nothing changed.</string>
+    <string name="notice_retry_refused">The desktop refused the retry — nothing changed.</string>
+    <string name="notice_fork_refused">Could not fork the conversation — the desktop refused it.</string>
+    <string name="notice_rewind_applied">File changes from that turn were undone.</string>
+    <string name="notice_rewind_refused">The file undo request failed — nothing was changed.</string>
+    <string name="notice_feedback_refused">The desktop refused the feedback — nothing changed.</string>
     <string name="notice_connection_lost">connection lost</string>
     <plurals name="row_files_count">
         <item quantity="one">%d file</item>
