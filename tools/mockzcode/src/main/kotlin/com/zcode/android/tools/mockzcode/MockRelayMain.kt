@@ -85,6 +85,14 @@ fun main() {
         )
         mock.setScriptedAttachment("mock-attachment-1", "image/png", png)
     }
+    // Phase 4A (E3.2+I1+N5) rig leg: MOCK_ROW_ACTIONS=1 stamps canFork/canRetry on the
+    // latest assistant row + a completed turn with fileChanges/canRewindFiles, and the
+    // four row commands land real effects (retried reply row, forked child task,
+    // reverted turn, feedback echo) — the `v4call sendConversationCommandV4` log line
+    // is the wire proof.
+    if (System.getenv("MOCK_ROW_ACTIONS") != null) {
+        mock.script.rowActionsDemo = true
+    }
     // PART M live leg: populated MCP / plugins / skills viewers (shapes mirror the
     // domain decoders: ViewerModels.McpStatuses / PluginsView / SkillCatalog) so the
     // three Settings viewers render their real lists on device instead of the

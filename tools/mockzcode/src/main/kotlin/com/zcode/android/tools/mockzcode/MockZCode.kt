@@ -263,6 +263,14 @@ class MockZCode(
         var commandEffects: Boolean = false
         /** One-shot ack overrides (stale/rejected/failed) — popped in send order. */
         val commandAckOverrides: ArrayDeque<String> = ArrayDeque()
+        /**
+         * Phase 4A rig leg (E3.2+I1+N5, MOCK_ROW_ACTIONS=1): the LAST assistant row of
+         * every snapshot carries `actions:{canFork,canRetry}` (the product projection
+         * sets them on the latest retryable row) and a completed turnHeader carries
+         * `fileChanges` + `actions.canRewindFiles` — so the phone's flag-gated row
+         * actions render and their commands reach [applyCommandEffect].
+         */
+        var rowActionsDemo: Boolean = false
 
         // ---------------- Phase 10 (direct surface, docs/protocol/phase10-direct.md) ----------------
         /** Simulate the 401 token gate on /api/server-info + /ws (auth-class fixtures). */
@@ -995,7 +1003,12 @@ class MockZCode(
     }
 
     /** Row-appended delta driver (command effects; authoritative rows). */
-    private fun pushRowAppended(sessionId: String, row: JsonObject) {
+    private fun pushRowAppended(sessionId: String, row: JsonObject) = pushRowDelta(sessionId, "row.appended", row)
+
+    /** Phase 4A: `row.upserted` for in-place authoritative edits (feedback echo, reverted turn). */
+    private fun pushRowUpserted(sessionId: String, row: JsonObject) = pushRowDelta(sessionId, "row.upserted", row)
+
+    private fun pushRowDelta(sessionId: String, op: String, row: JsonObject) {
         val listener = conversationListenerId ?: return
         val topic = "conversation/$sessionId"
         val from = nextSeq()
@@ -1008,7 +1021,7 @@ class MockZCode(
             put("payload", buildJsonObject {
                 put("kind", JsonPrimitive("deltas"))
                 put("deltas", JsonArray(listOf(buildJsonObject {
-                    put("op", JsonPrimitive("row.appended"))
+                    put("op", JsonPrimitive(op))
                     put("row", row)
                 })))
             })
@@ -1165,7 +1178,35 @@ class MockZCode(
                 })))
             }))
         }
+        if (script.rowActionsDemo) {
+            // A completed turn that changed files: the Undo-files gate needs files>0,
+            // state != reverted, a terminal turn state AND actions.canRewindFiles.
+            rows.add(schemaRow(sessionId, nextId++, RowKind.TURN_HEADER, "completedSuccess", extra = rowActionsTurnExtra("active")))
+            // The latest assistant row of the snapshot is the retryable/forkable one.
+            val lastAssistant = rows.indexOfLast { it["kind"]?.let { k -> (k as JsonPrimitive).content } == RowKind.ASSISTANT_TEXT.wire }
+            if (lastAssistant >= 0) rows[lastAssistant] = JsonObject(rows[lastAssistant] + ("actions" to ROW_ACTIONS_ASSISTANT))
+        }
         return JsonArray(rows)
+    }
+
+    /** Phase 4A: `actions:{canFork:true,canRetry:true}` — rows.ts only ever sends TRUE keys. */
+    private val ROW_ACTIONS_ASSISTANT: JsonObject = buildJsonObject {
+        put("canFork", JsonPrimitive(true))
+        put("canRetry", JsonPrimitive(true))
+    }
+
+    private fun rowActionsTurnExtra(fileState: String): JsonObject = buildJsonObject {
+        put("endedAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
+        put("activeMs", JsonPrimitive(4200))
+        put("fileChanges", buildJsonObject {
+            put("additions", JsonPrimitive(5))
+            put("deletions", JsonPrimitive(1))
+            put("files", JsonPrimitive(2))
+            put("state", JsonPrimitive(fileState))
+        })
+        if (fileState != "reverted") {
+            put("actions", buildJsonObject { put("canRewindFiles", JsonPrimitive(true)) })
+        }
     }
 
     // ------------------------------------------------------------ scripted deltas / resync
@@ -1237,6 +1278,10 @@ class MockZCode(
     internal fun revisionForTest(): Long = stateRevision.get()
     internal fun pendingPermissionForTest(): PendingPermission? = script.pendingPermission
     internal fun pendingUserInputForTest(): PendingUserInput? = script.pendingUserInput
+    // Phase 4A self-test seams: the snapshot row builder + the appended/upserted row ledger.
+    internal fun snapshotRowsForTestSeam(sessionId: String, count: Int): JsonArray = snapshotRows(sessionId, count)
+    internal fun appendedRowForTest(rowId: Long): JsonObject? = synchronized(appendedRows) { appendedRows[rowId.toString()] }
+    internal fun appendedRowsForTest(): Map<String, JsonObject> = synchronized(appendedRows) { LinkedHashMap(appendedRows) }
 
     /**
      * Phase 7 test driver: inject a pending permission interaction (E2E approval
@@ -1934,7 +1979,9 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 val text = payload?.strOrNull("text") ?: return null
                 stateRevision.incrementAndGet()
                 val userRow = schemaRow(workspace.sessionId, nextRowId(), RowKind.USER_INPUT, text)
-                val replyRow = schemaRow(workspace.sessionId, nextRowId(), RowKind.ASSISTANT_TEXT, "synthetic reply to: ${text.take(24)}")
+                val replyBase = schemaRow(workspace.sessionId, nextRowId(), RowKind.ASSISTANT_TEXT, "synthetic reply to: ${text.take(24)}")
+                // Phase 4A: the live reply is the latest assistant row → it carries the flags.
+                val replyRow = if (script.rowActionsDemo) JsonObject(replyBase + ("actions" to ROW_ACTIONS_ASSISTANT)) else replyBase
                 appendedRows[userRow["rowId"].toString()] = userRow
                 appendedRows[replyRow["rowId"].toString()] = replyRow
                 pushRowAppended(workspace.sessionId, userRow)
@@ -2023,6 +2070,72 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 }
                 pushQueuePatch()
             }
+            // ---- Phase 4A (E3.2+I1+N5): the four row commands — effects shaped on
+            // the verified ack results (command.ts commandResultSchema) + row deltas.
+            "retryTurn" -> {
+                stateRevision.incrementAndGet()
+                // The desktop re-asks the turn: a fresh assistant row arrives (authoritative).
+                val reply = JsonObject(
+                    schemaRow(workspace.sessionId, nextRowId(), RowKind.ASSISTANT_TEXT, "retried reply") +
+                        ("actions" to ROW_ACTIONS_ASSISTANT),
+                )
+                appendedRows[reply["rowId"].toString()] = reply
+                pushRowAppended(workspace.sessionId, reply)
+                pushRevisionPatch()
+            }
+            "forkAssistant" -> {
+                stateRevision.incrementAndGet()
+                val child = "sess-forked-${createdCount.incrementAndGet()}"
+                script.bootstrapTasks = script.bootstrapTasks.orEmpty() + MockTask(
+                    taskId = child,
+                    title = "Fork of ${workspace.sessionId.take(12)}",
+                    displayStatus = "idle",
+                    workspacePath = lastCommandWorkspacePath ?: workspace.workspacePath,
+                    createdAtMs = System.currentTimeMillis(),
+                    updatedAtMs = System.currentTimeMillis(),
+                )
+                pushWorkspaceListUpdated(script.bootstrapTasks.orEmpty())
+                lastForkedSessionId = child
+                return buildJsonObject {
+                    put("type", JsonPrimitive("forkAssistant"))
+                    put("sessionId", JsonPrimitive(child))
+                }
+            }
+            "applyFileRewind" -> {
+                stateRevision.incrementAndGet()
+                val target = payload?.get("target") as? JsonObject
+                val rowId = target?.strOrNull("rowId")?.toLongOrNull()
+                // The turn's fileChanges flip to `reverted` (the desktop's rewindDialog outcome) —
+                // an in-place upsert so the Undo-files gate closes authoritatively.
+                if (rowId != null) {
+                    val reverted = schemaRow(workspace.sessionId, rowId, RowKind.TURN_HEADER, "completedSuccess", extra = rowActionsTurnExtra("reverted"))
+                    appendedRows[rowId.toString()] = reverted
+                    pushRowUpserted(workspace.sessionId, reverted)
+                }
+                pushRevisionPatch()
+                return buildJsonObject {
+                    put("type", JsonPrimitive("applyFileRewind"))
+                    put("applied", JsonPrimitive(true))
+                    put("response", JsonPrimitive("Reverted 2 files"))
+                    put("preview", buildJsonObject { put("files", JsonArray(emptyList())) })
+                }
+            }
+            "setAssistantFeedback" -> {
+                stateRevision.incrementAndGet()
+                val target = payload?.get("target") as? JsonObject
+                val rowId = target?.strOrNull("rowId")?.toLongOrNull()
+                val feedback = payload?.get("feedback")
+                if (rowId != null) {
+                    // Echo the feedback onto the row (rows.ts `feedback`), null clears it.
+                    val base = appendedRows[rowId.toString()]
+                        ?: JsonObject(schemaRow(workspace.sessionId, rowId, RowKind.ASSISTANT_TEXT, "synthetic") + ("actions" to ROW_ACTIONS_ASSISTANT))
+                    val next = if (feedback is JsonPrimitive) JsonObject(base + ("feedback" to feedback)) else JsonObject(base - "feedback")
+                    appendedRows[rowId.toString()] = next
+                    lastFeedback = (feedback as? JsonPrimitive)?.content
+                    pushRowUpserted(workspace.sessionId, next)
+                }
+                pushRevisionPatch()
+            }
             // Phase 9 (§10.3): switch commands update the `config` echo + patch it —
             // the echo-reconciliation plane the phone's pickers reconcile against.
             "switchModelConfig" -> {
@@ -2064,6 +2177,18 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
         }
         return null
     }
+
+    /** Phase 4A: a revision-only patch (the CAS currency moved; no other key changed). */
+    private fun pushRevisionPatch() {
+        pushStatePatch(buildJsonObject { put("revision", JsonPrimitive(stateRevision.get())) })
+    }
+
+    /** Phase 4A observability (self-tests + rig): the last fork's child id / last feedback echo. */
+    @Volatile var lastForkedSessionId: String? = null
+    @Volatile var lastFeedback: String? = null
+
+    /** Test seam for the command-effect machinery (the socket path calls the same function). */
+    internal fun applyCommandEffectForTest(type: String, env: JsonObject?): JsonObject? = applyCommandEffect(type, env)
 
     private fun pushQueuePatch() {
         pushStatePatch(buildJsonObject {
