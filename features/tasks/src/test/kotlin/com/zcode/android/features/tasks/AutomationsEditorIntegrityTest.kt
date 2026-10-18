@@ -37,7 +37,7 @@ import org.robolectric.annotation.Config
  * J10 pins: weekly round-trip unchanged, blank cron refused, model round-trips.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [30], qualifiers = "w411dp-h891dp")
+@Config(sdk = [30])
 class AutomationsEditorIntegrityTest {
 
     @get:Rule
