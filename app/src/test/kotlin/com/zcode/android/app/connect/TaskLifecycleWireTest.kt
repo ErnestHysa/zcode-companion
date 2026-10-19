@@ -82,7 +82,7 @@ class TaskLifecycleWireTest {
         val (archiveName, archiveArg) = calls[2]
         assertEquals("archiveTask", archiveName)
         assertEquals("task-3", (archiveArg["taskId"] as JsonPrimitive).content)
-        assertEquals("true", (archiveArg["archived"] as JsonPrimitive).content)
+        // archived=false routes to the desktop's separate unarchiveTask — no flag on the wire.
         assertEquals("/synthetic/ws", (calls[0].second["workspacePath"] as JsonPrimitive).content)
         assertEquals("New title", (calls[1].second["title"] as JsonPrimitive).content)
     }

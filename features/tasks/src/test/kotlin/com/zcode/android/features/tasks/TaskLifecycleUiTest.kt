@@ -112,7 +112,8 @@ class TaskLifecycleUiTest {
     @Test
     fun `change stats render on the row when the wire carries them`() {
         setContent(task("t4", files = 2))
-        org.junit.Assert.assertEquals(1, rule.onAllNodesWithTag("task_changes_t4").fetchSemanticsNodes().size)
+        // The row merges descendants — the child tag lives in the unmerged tree.
+        org.junit.Assert.assertEquals(1, rule.onAllNodesWithTag("task_changes_t4", useUnmergedTree = true).fetchSemanticsNodes().size)
         rule.onNodeWithText("+12 −3").assertIsDisplayed()
     }
 
