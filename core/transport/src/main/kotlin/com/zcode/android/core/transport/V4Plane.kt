@@ -197,6 +197,12 @@ interface V4Plane {
      * create-params schema would refuse them).
      */
     suspend fun createScratchWorkspace(name: String): JsonObject
+    /**
+     * Generic service-channel call (terminal/git/file/model-selection — phase9-channels.md).
+     * Same error mapping as v4Call; a channel REFUSAL is a server-spoke rejection the
+     * feature layers translate into their §13.3 disabled state.
+     */
+    suspend fun channelCall(channelName: String, method: String, arg: RpcValue, timeoutMs: Long): RpcValue
 
     /**
      * GAP-6: the `off-peak-task` channel `list` read (offPeakTask.ts:41 — NO args,
