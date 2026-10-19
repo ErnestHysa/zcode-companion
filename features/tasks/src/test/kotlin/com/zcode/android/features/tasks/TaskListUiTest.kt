@@ -19,6 +19,7 @@ import com.zcode.android.domain.model.TaskStatus
 import com.zcode.android.domain.state.ConnectionPhase
 import com.zcode.android.features.tasks.ui.TaskListScreen
 import org.junit.Rule
+import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
