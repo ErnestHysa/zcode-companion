@@ -732,9 +732,9 @@ private fun EmptyBody(state: TasksUiState, onRetry: () -> Unit, onRefresh: () ->
                 tone = com.zcode.android.core.ui.components.StatusTone.ERROR,
                 actionLabel = stringResource(com.zcode.android.core.ui.R.string.action_retry),
                 onAction = onRetry,
-                modifier = Modifier
-                    .testTag("tasks_error_strip")
-                    .then(if (firstSync) Modifier.testTag("tasks_first_sync_strip") else Modifier),
+                modifier = Modifier.testTag(
+                    if (firstSync) "tasks_first_sync_strip" else "tasks_error_strip",
+                )
             )
         }
         EmptyTasksContent(modifier = Modifier.weight(1f), onRefresh = onRefresh)
@@ -780,9 +780,9 @@ private fun ReadyBody(
                 tone = com.zcode.android.core.ui.components.StatusTone.ERROR,
                 actionLabel = stringResource(com.zcode.android.core.ui.R.string.action_retry),
                 onAction = onRetry,
-                modifier = Modifier
-                    .testTag("tasks_error_strip")
-                    .then(if (firstSync) Modifier.testTag("tasks_first_sync_strip") else Modifier),
+                modifier = Modifier.testTag(
+                    if (firstSync) "tasks_first_sync_strip" else "tasks_error_strip",
+                )
             )
         }
         // Round-4: stale-pairing repair — Degraded on repeated desktop-disconnected

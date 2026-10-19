@@ -133,7 +133,7 @@ class TaskListUiTest {
         rule.setContent {
             TaskListScreen(state, onTaskClick = {}, onOpenSettings = {}, onOpenConnection = {}, onRetry = {}, onRefresh = {})
         }
-        rule.onNodeWithTag("tasks_first_sync_strip").performScrollTo()
+        rule.onNodeWithTag("tasks_first_sync_strip").assertIsDisplayed()
         rule.onNodeWithText("First sync failed").assertIsDisplayed()
     }
 
