@@ -91,7 +91,16 @@ class MainActivity : FragmentActivity() {
         handleShortcut(intent)
         setContent {
             val windowSize = androidx.compose.material3.windowsizeclass.calculateWindowSizeClass(this)
-            ZCodeTheme {
+            // Phase 4F (H1.4-phase1): the theme override applies WITHOUT restart
+            // (the pref is a StateFlow read; recomposition follows the toggle).
+            val prefs by container.stores.preferencesRepository.observe()
+                .collectAsState(com.zcode.android.domain.model.AppPreferences())
+            val themeMode = when (prefs.themeMode) {
+                com.zcode.android.domain.model.AppPreferences.ThemeMode.LIGHT -> com.zcode.android.core.ui.theme.ThemeMode.LIGHT
+                com.zcode.android.domain.model.AppPreferences.ThemeMode.DARK -> com.zcode.android.core.ui.theme.ThemeMode.DARK
+                com.zcode.android.domain.model.AppPreferences.ThemeMode.SYSTEM -> com.zcode.android.core.ui.theme.ThemeMode.SYSTEM
+            }
+            ZCodeTheme(themeMode = themeMode) {
                 androidx.compose.runtime.CompositionLocalProvider(
                     com.zcode.android.core.ui.components.LocalWindowWidthClass provides windowSize.widthSizeClass,
                 ) {

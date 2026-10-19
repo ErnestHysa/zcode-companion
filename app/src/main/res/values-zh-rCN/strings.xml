@@ -61,6 +61,16 @@
 <string name="settings_section_endpoints">端点</string>
 <string name="settings_section_diagnostics">诊断</string>
 <string name="settings_section_notifications">通知</string>
+<string name="settings_section_appearance">外观</string>
+<string name="settings_theme_row">主题：%1$s</string>
+<string name="settings_theme_row_title">主题</string>
+<string name="settings_theme_light">浅色</string>
+<string name="settings_theme_dark">深色</string>
+<string name="settings_theme_system">跟随系统</string>
+<string name="settings_theme_sub">立即生效，无需重启。</string>
+<string name="settings_notif_cat_approvals">审批请求</string>
+<string name="settings_notif_cat_tasks">任务完成 / 失败</string>
+<string name="settings_notif_cat_connection">连接断开</string>
 <string name="settings_section_privacy">隐私</string>
 <string name="settings_section_about">关于</string>
 <string name="settings_diag_export">导出诊断信息</string>

@@ -13,8 +13,13 @@ import androidx.compose.runtime.staticCompositionLocalOf
  * behind an ADR). Shapes are the desktop radius scale ([ZCodeShapes], K1.2).
  */
 @Composable
-fun ZCodeTheme(content: @Composable () -> Unit) {
-    val dark = isSystemInDarkTheme()
+fun ZCodeTheme(themeMode: com.zcode.android.core.ui.theme.ThemeMode = com.zcode.android.core.ui.theme.ThemeMode.SYSTEM, content: @Composable () -> Unit) {
+    // H1.4-phase1: the override wins; SYSTEM keeps the pre-4F behavior.
+    val dark = when (themeMode) {
+        com.zcode.android.core.ui.theme.ThemeMode.LIGHT -> false
+        com.zcode.android.core.ui.theme.ThemeMode.DARK -> true
+        com.zcode.android.core.ui.theme.ThemeMode.SYSTEM -> isSystemInDarkTheme()
+    }
     val tokens = if (dark) ZCodeColorsDark else ZCodeColorsLight
     MaterialTheme(
         colorScheme = if (dark) DarkScheme else LightScheme,
@@ -33,3 +38,6 @@ val LocalZCodeColors = staticCompositionLocalOf { ZCodeColorsLight }
 object ZCodeText {
     val typography = ZCodeTypographyLight
 }
+
+/** H1.4-phase1: the phone's first theme override (the desktop's themeMode). */
+enum class ThemeMode { LIGHT, DARK, SYSTEM }

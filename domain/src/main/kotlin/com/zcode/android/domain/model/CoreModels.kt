@@ -197,8 +197,18 @@ data class AppPreferences(
      *  (vc35 user feedback): the fixed 30-minute window stranded users who stepped
      *  away — approvals stopped arriving mid-work. Customizable, default 30. */
     val liveConnectionTimeoutMinutes: Int = 30,
+    // ---- Phase 4F (H1.4-phase1): the first phone preferences (the desktop's
+    // settings.appearance / notification groups; the phone followed the system only) ----
+    /** themeMode: LIGHT | DARK | SYSTEM (default = the pre-Phase-4F behavior). */
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    /** Per-category toggles (the channel-level switches; null = unset → channel default ON). */
+    val notifyApprovals: Boolean = true,
+    val notifyTaskOutcomes: Boolean = true,
+    val notifyConnection: Boolean = true,
 ) {
     enum class NotificationContentLevel { MINIMAL, CONTENT }
+
+    enum class ThemeMode { LIGHT, DARK, SYSTEM }
 }
 
 /** Workspace list entry as delivered by bootstrap / workspace-list-response (§9.5, Q9). */

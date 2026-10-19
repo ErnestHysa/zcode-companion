@@ -121,6 +121,15 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
         terminalOptIn = if (hasTerminalOptIn()) terminalOptIn else false,
         selectedEndpointId = if (hasSelectedEndpointId()) selectedEndpointId else null,
         liveConnectionTimeoutMinutes = if (hasLiveConnectionTimeoutMinutes()) liveConnectionTimeoutMinutes else 30,
+        // Phase 4F (H1.4-phase1): additive-first — unset → the pre-Phase-4F behavior.
+        themeMode = when (themeMode) {
+            "LIGHT" -> com.zcode.android.domain.model.AppPreferences.ThemeMode.LIGHT
+            "DARK" -> com.zcode.android.domain.model.AppPreferences.ThemeMode.DARK
+            else -> com.zcode.android.domain.model.AppPreferences.ThemeMode.SYSTEM
+        },
+        notifyApprovals = if (hasNotifyApprovals()) notifyApprovals else true,
+        notifyTaskOutcomes = if (hasNotifyTaskOutcomes()) notifyTaskOutcomes else true,
+        notifyConnection = if (hasNotifyConnection()) notifyConnection else true,
     )
 
     private fun AppPreferences.toProto(): AppPreferencesProto {
@@ -135,6 +144,10 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
             .setConversationCacheEnabled(conversationCacheEnabled)
             .setAutoReconnectProbe(autoReconnectProbe)
             .setTerminalOptIn(terminalOptIn)
+            .setThemeMode(themeMode.name)
+            .setNotifyApprovals(notifyApprovals)
+            .setNotifyTaskOutcomes(notifyTaskOutcomes)
+            .setNotifyConnection(notifyConnection)
             .apply { selected?.let { setSelectedEndpointId(it) } }
             .build()
     }

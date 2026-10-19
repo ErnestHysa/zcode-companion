@@ -39,4 +39,8 @@ message AppPreferencesProto {
   optional bool terminal_opt_in = 6; // §21 view-only terminal opt-in, default OFF (Phase 9)
   optional string selected_endpoint_id = 7; // §11.6 active endpoint (Phase 10; null = relay pairing default)
   optional int32 live_connection_timeout_minutes = 8; // §24.5 FGS auto-timeout (Phase 11; 0 = no timeout)
+  optional string theme_mode = 9; // Phase 4F: LIGHT | DARK | SYSTEM (absent = SYSTEM)
+  optional bool notify_approvals = 10; // Phase 4F: the approvals channel toggle (default ON)
+  optional bool notify_task_outcomes = 11; // Phase 4F: the task-status channel toggle (default ON)
+  optional bool notify_connection = 12; // Phase 4F: the connection-loss toggle (default ON)
 }

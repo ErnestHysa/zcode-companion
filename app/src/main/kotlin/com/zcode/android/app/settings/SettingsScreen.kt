@@ -158,6 +158,11 @@ fun SettingsScreen(
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
+            // Phase 4F (H1.4-phase1): the first phone appearance preference.
+            SectionHeader(stringResource(R.string.settings_section_appearance))
+            AppearanceSection(container = container)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
             SectionHeader(stringResource(R.string.settings_section_notifications))
             NotificationsSection(container = container)
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
@@ -727,6 +732,30 @@ private fun NotificationsSection(container: AppContainer) {
         },
     )
 
+    // Phase 4F (H1.4-phase1): the PER-CATEGORY toggles (the desktop's notification
+    // prefs groups) — approvals / task outcomes / connection loss. Unset = ON.
+    CategoryToggle(
+        label = stringResource(R.string.settings_notif_cat_approvals),
+        checked = prefs.notifyApprovals,
+        tag = "settings_notif_cat_approvals",
+    ) { checked ->
+        scope.launch { container.stores.preferencesRepository.update { p -> p.copy(notifyApprovals = checked) } }
+    }
+    CategoryToggle(
+        label = stringResource(R.string.settings_notif_cat_tasks),
+        checked = prefs.notifyTaskOutcomes,
+        tag = "settings_notif_cat_tasks",
+    ) { checked ->
+        scope.launch { container.stores.preferencesRepository.update { p -> p.copy(notifyTaskOutcomes = checked) } }
+    }
+    CategoryToggle(
+        label = stringResource(R.string.settings_notif_cat_connection),
+        checked = prefs.notifyConnection,
+        tag = "settings_notif_cat_connection",
+    ) { checked ->
+        scope.launch { container.stores.preferencesRepository.update { p -> p.copy(notifyConnection = checked) } }
+    }
+
     // §24.5 (vc35 + FIELD 2026-10-12): the auto-timeout window is CUSTOMIZABLE via
     // a RADIO PICKER — the old tap-to-cycle row looked like static text and users
     // reported the options "don't exist". 0 = stay connected until toggled off.
@@ -977,5 +1006,85 @@ internal fun AutoDismissMessage(
     androidx.compose.runtime.LaunchedEffect(message) {
         delay(autoDismissMs)
         onDismiss()
+    }
+}
+
+/** Phase 4F (H1.4-phase1): the theme override — light/dark/system radio row (the desktop's settings.appearance.themeMode); applies WITHOUT restart. */
+@Composable
+private fun AppearanceSection(container: AppContainer) {
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val prefs by container.stores.preferencesRepository.observe()
+        .collectAsState(com.zcode.android.domain.model.AppPreferences())
+    var pickerOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    @androidx.compose.runtime.Composable
+    fun modeLabel(mode: com.zcode.android.domain.model.AppPreferences.ThemeMode): String = stringResource(
+        when (mode) {
+            com.zcode.android.domain.model.AppPreferences.ThemeMode.LIGHT -> R.string.settings_theme_light
+            com.zcode.android.domain.model.AppPreferences.ThemeMode.DARK -> R.string.settings_theme_dark
+            com.zcode.android.domain.model.AppPreferences.ThemeMode.SYSTEM -> R.string.settings_theme_system
+        },
+    )
+    SettingsRow(
+        title = stringResource(R.string.settings_theme_row, modeLabel(prefs.themeMode)),
+        subtitle = stringResource(R.string.settings_theme_sub),
+        tag = "settings_theme",
+        onClick = { pickerOpen = true },
+    )
+    if (pickerOpen) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { pickerOpen = false },
+            title = { Text(stringResource(R.string.settings_theme_row_title)) },
+            text = {
+                Column {
+                    for (mode in com.zcode.android.domain.model.AppPreferences.ThemeMode.entries) {
+                        val selected = prefs.themeMode == mode
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    scope.launch {
+                                        container.stores.preferencesRepository.update { p -> p.copy(themeMode = mode) }
+                                    }
+                                    pickerOpen = false
+                                }
+                                .padding(vertical = 10.dp)
+                                .testTag("settings_theme_${mode.name}"),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                        ) {
+                            androidx.compose.material3.RadioButton(selected = selected, onClick = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(modeLabel(mode))
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { pickerOpen = false }) {
+                    Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
+                }
+            },
+        )
+    }
+}
+
+/** Phase 4F: one per-category notification switch (the desktop's per-category prefs). */
+@Composable
+private fun CategoryToggle(
+    label: String,
+    checked: Boolean,
+    tag: String,
+    onChange: (Boolean) -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .testTag(tag),
+        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        androidx.compose.material3.Switch(checked = checked, onCheckedChange = onChange)
     }
 }
