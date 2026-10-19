@@ -34,6 +34,10 @@ data class SessionProjectionState(
     val goal: GoalState? = null,
     /** Phase 4C (D2): the todo projection (TodoWrite restore display). */
     val plan: PlanState? = null,
+    /** D2: the `goal`/`plan` KEYS were carried (they are REQUIRED-nullable on the wire —
+     *  an explicit null is a decoded fact, not an absent key). */
+    val goalKeyPresent: Boolean = false,
+    val planKeyPresent: Boolean = false,
 ) {
     /**
      * True when the snapshot carried ANY decoded A-side state key — the gateway
@@ -43,7 +47,8 @@ data class SessionProjectionState(
     val hasDecodedStateKeys: Boolean
         get() = control != null || inputRouting != null || queue != null ||
             pendingInteractions != null || backgroundWorks != null || config != null ||
-            usage != null || revision != null || goal != null || plan != null
+            usage != null || revision != null || goal != null || plan != null ||
+            goalKeyPresent || planKeyPresent
 
     /** Key-level merge (the verified Object.assign semantics — no deep merge). */
     fun mergedWith(patch: JsonObject): SessionProjectionState {
@@ -65,13 +70,13 @@ data class SessionProjectionState(
                     next = next.copy(revision = it)
                 }
                 "goal" -> when (patch[key]) {
-                    is JsonNull -> next = next.copy(goal = null) // explicit nullable key
-                    is JsonObject -> GoalState.decodeOrNull(patch[key] as JsonObject)?.let { next = next.copy(goal = it) }
+                    is JsonNull -> next = next.copy(goal = null, goalKeyPresent = true) // explicit nullable key
+                    is JsonObject -> GoalState.decodeOrNull(patch[key] as JsonObject)?.let { next = next.copy(goal = it, goalKeyPresent = true) }
                     else -> malformedKeyDrops++
                 }
                 "plan" -> when (patch[key]) {
-                    is JsonNull -> next = next.copy(plan = null)
-                    is JsonObject -> PlanState.decodeOrNull(patch[key] as JsonObject)?.let { next = next.copy(plan = it) }
+                    is JsonNull -> next = next.copy(plan = null, planKeyPresent = true)
+                    is JsonObject -> PlanState.decodeOrNull(patch[key] as JsonObject)?.let { next = next.copy(plan = it, planKeyPresent = true) }
                     else -> malformedKeyDrops++
                 }
                 // meta/pendingCommands/subagents/workflowRuns/
@@ -112,13 +117,13 @@ data class SessionProjectionState(
                         state = state.copy(revision = it)
                     }
                     "goal" -> when (snapshot[key]) {
-                        is JsonNull -> state = state.copy(goal = null)
-                        is JsonObject -> GoalState.decodeOrNull(snapshot[key] as JsonObject)?.let { state = state.copy(goal = it) }
+                        is JsonNull -> state = state.copy(goal = null, goalKeyPresent = true)
+                        is JsonObject -> GoalState.decodeOrNull(snapshot[key] as JsonObject)?.let { state = state.copy(goal = it, goalKeyPresent = true) }
                         else -> malformedKeyDrops++
                     }
                     "plan" -> when (snapshot[key]) {
-                        is JsonNull -> state = state.copy(plan = null)
-                        is JsonObject -> PlanState.decodeOrNull(snapshot[key] as JsonObject)?.let { state = state.copy(plan = it) }
+                        is JsonNull -> state = state.copy(plan = null, planKeyPresent = true)
+                        is JsonObject -> PlanState.decodeOrNull(snapshot[key] as JsonObject)?.let { state = state.copy(plan = it, planKeyPresent = true) }
                         else -> malformedKeyDrops++
                     }
                     else -> ignoredKeys++

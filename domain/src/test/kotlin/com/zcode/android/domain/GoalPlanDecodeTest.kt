@@ -80,7 +80,7 @@ class GoalPlanDecodeTest {
     @Test
     fun `a malformed goal drops THAT key and counts`() {
         val before = SessionProjectionState.malformedKeyDrops
-        val state = SessionProjectionState.fromSnapshot(Json.parseToJsonElement("""{"goal":{"objective":42}}""").jsonObject)
+        val state = SessionProjectionState.fromSnapshot(Json.parseToJsonElement("""{"goal":{"status":"active","iteration":1,"verifications":[]}}""").jsonObject)
         assertNull(state.goal)
         assertTrue(SessionProjectionState.malformedKeyDrops > before, "counted, never a crash")
     }
