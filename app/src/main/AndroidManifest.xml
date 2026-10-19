@@ -78,6 +78,15 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/pending_approvals_widget_info" />
         </receiver>
+        <!-- Phase 4E (C3): the shade-level Approve-once/Deny receiver — the decision
+             routes through the SAME fail-closed inbox gate as the approvals screen. -->
+        <receiver
+            android:name=".notifications.NotificationActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.zcode.android.action.NOTIFICATION_DECISION" />
+            </intent-filter>
+        </receiver>
         <!-- §25.3: WorkManager runs the default initializer (periodic auto-reconnect
              probe, ≥15 min, network-constrained; §29 no-polling rule respected). -->
         <provider

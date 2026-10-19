@@ -132,6 +132,8 @@ class NotificationWiring(
                             taskId = record.sessionId?.raw,
                             interactionId = record.interactionId.raw,
                             taskTitle = null,
+                            // C3: approvals carry the shade Approve-once/Deny actions.
+                            permission = kind == com.zcode.android.domain.model.NotificationRecord.Kind.APPROVAL_NEEDED,
                         )
                     }.onFailure { log.warn("notify.attentionFault", it.javaClass.simpleName) }
                 }

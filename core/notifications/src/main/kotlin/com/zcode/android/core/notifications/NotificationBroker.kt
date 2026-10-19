@@ -52,6 +52,21 @@ class NotificationBroker(
         val groupKey: String?,
         val deepLinkTaskId: String?,
         val deepLinkInteractionId: String?,
+        /** C3 (Phase 4E): shade-level actions (Approve-once / Deny on approvals). */
+        val actions: List<SpecAction> = emptyList(),
+    )
+
+    /**
+     * A shade action the SINK renders (the broker stays transport-independent; the
+     * sink turns id+labels into PendingIntents against the app's receiver).
+     */
+    data class SpecAction(
+        val id: String,
+        val title: String,
+        val interactionId: String,
+        val taskId: String?,
+        /** The resolved option ("allowOnce" / "deny") — semantic, optionId-classified. */
+        val optionId: String,
     )
 
     /** §31: user-visible copy (default English; the wiring binds resources). */
@@ -91,7 +106,14 @@ class NotificationBroker(
     // ------------------------------------------------------------- event entries
 
     /** Attention event: approval / user-input / task outcome / connection lost. */
-    suspend fun onEvent(kind: NotificationRecord.Kind, taskId: String?, interactionId: String?, taskTitle: String?) {
+    suspend fun onEvent(
+        kind: NotificationRecord.Kind,
+        taskId: String?,
+        interactionId: String?,
+        taskTitle: String?,
+        /** C3: a PERMISSION notification carries the shade Approve-once/Deny actions. */
+        permission: Boolean = false,
+    ) {
         val key = NotificationPlan.notificationKey(kind, taskId, interactionId)
             ?: run {
                 log.warn("notify.noKey", "kind=$kind")
@@ -113,6 +135,14 @@ class NotificationBroker(
             log.debug("notify.suppressed", "key=${key.take(24)} foreground=$foreground")
             return
         }
+        val actions = if (permission && interactionId != null && taskId != null) {
+            listOf(
+                SpecAction(NotificationActions.ID_APPROVE, copy.approveAction(), interactionId, taskId, "allowOnce"),
+                SpecAction(NotificationActions.ID_DENY, copy.denyAction(), interactionId, taskId, "deny"),
+            )
+        } else {
+            emptyList()
+        }
         sink.show(
             Spec(
                 key = key,
@@ -122,6 +152,7 @@ class NotificationBroker(
                 groupKey = groupKey,
                 deepLinkTaskId = taskId,
                 deepLinkInteractionId = interactionId,
+                actions = actions,
             ),
         )
         log.info("notify.show", "key=${key.take(24)} channel=${decision.channelId}")

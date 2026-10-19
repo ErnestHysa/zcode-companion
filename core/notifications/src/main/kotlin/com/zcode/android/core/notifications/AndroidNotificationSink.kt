@@ -25,7 +25,8 @@ class AndroidNotificationSink(
 
     override fun show(spec: NotificationBroker.Spec) {
         val builder = NotificationCompat.Builder(context, spec.channelId)
-            .setSmallIcon(android.R.drawable.stat_notify_chat)
+            // M4: the branded monochrome glyph — a security decision, not a chat message.
+            .setSmallIcon(com.zcode.android.core.notifications.R.drawable.ic_notif_shield)
             .setContentTitle(spec.publicText)
             .setContentText(spec.detailText)
             .setStyle(
@@ -53,6 +54,14 @@ class AndroidNotificationSink(
             )
         spec.deepLinkTaskId?.let { taskId ->
             builder.setContentIntent(deepLinkPendingIntent(taskId, spec.deepLinkInteractionId))
+        }
+        // C3: shade-level actions — Approve-once / Deny without opening the app.
+        spec.actions.forEach { action ->
+            builder.addAction(
+                0,
+                action.title,
+                actionPendingIntent(action, spec.key),
+            )
         }
         spec.groupKey?.let { group ->
             builder.setGroup(group)
@@ -83,13 +92,34 @@ class AndroidNotificationSink(
 
     private fun postGroupSummary(group: String, count: Int) {
         val summary = NotificationCompat.Builder(context, NotificationChannels.TASK_STATUS)
-            .setSmallIcon(android.R.drawable.stat_notify_chat)
+            .setSmallIcon(com.zcode.android.core.notifications.R.drawable.ic_notif_shield)
             .setContentTitle(context.getString(R.string.notif_group_summary_title))
             .setContentText(context.resources.getQuantityString(R.plurals.notif_group_summary_text, count, count))
             .setGroup(group)
             .setGroupSummary(true)
             .setAutoCancel(false)
         NotificationManagerCompat.from(context).notify(groupSummaryId(group), summary.build())
+    }
+
+    /**
+     * C3: the action PendingIntent targets the app's [NotificationActionReceiver] BY
+     * CLASS NAME (a String — core never imports the app class; the receiver resolves
+     * at runtime). The interactionId/optionId ride as extras; the notification key
+     * lets the receiver cancel the shade entry once the decision lands.
+     */
+    private fun actionPendingIntent(action: NotificationBroker.SpecAction, notificationKey: String): PendingIntent {
+        val intent = Intent(NotificationActions.ACTION)
+            .setPackage(context.packageName)
+            .putExtra(NotificationActions.EXTRA_INTERACTION_ID, action.interactionId)
+            .putExtra(NotificationActions.EXTRA_OPTION_ID, action.optionId)
+            .putExtra(NotificationActions.EXTRA_TASK_ID, action.taskId)
+            .putExtra(NotificationActions.EXTRA_NOTIFICATION_KEY, notificationKey)
+        return PendingIntent.getBroadcast(
+            context,
+            stableId("action:${action.id}:${action.interactionId}:${action.optionId}"),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
     }
 
     /** §24.7: the tap target is a routing HINT — MainActivity validates everything. */

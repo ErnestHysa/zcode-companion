@@ -43,6 +43,18 @@ import com.zcode.android.core.notifications.NotificationChannels
  */
 class AppContainer(activity: FragmentActivity) {
 
+    init {
+        // Phase 4E (C3): the shade Approve/Deny actions answer through the SAME
+        // fail-closed inbox gate; the scope is the app-level stores scope (the
+        // receiver outlives any screen).
+        com.zcode.android.app.notifications.NotificationActionReceiver.answerDelegate = { interactionId, optionId, _ ->
+            stores.appScope.launch {
+                runCatching { conversationPort.answerFromInbox(interactionId, optionId, null) }
+                    .onFailure { log.warn("notif.action", "${it.javaClass.simpleName}: ${it.message?.take(120)}") }
+            }
+        }
+    }
+
     /**
      * Round-7b: the ring is PERSISTED across process restarts (redacted lines only).
      * The field workflow "first launch fails → force-close → reopen" previously lost

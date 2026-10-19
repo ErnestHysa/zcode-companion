@@ -7,6 +7,8 @@
     <string name="notif_task_failed">任务失败</string>
     <string name="notif_task_failed_detail">任务失败：%1$s</string>
     <string name="notif_connection_lost">连接已断开</string>
+    <string name="notif_action_approve">批准</string>
+    <string name="notif_action_deny">拒绝</string>
 
     <string name="channel_permissions_name">批准与提问</string>
     <string name="channel_permissions_desc">ZCode 需要您的批准或回答才能继续</string>

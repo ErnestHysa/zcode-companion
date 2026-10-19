@@ -82,7 +82,7 @@ class LiveConnectionService : Service() {
             )
         }
         val notification = NotificationCompat.Builder(this, NotificationChannels.LIVE_CONNECTION)
-            .setSmallIcon(android.R.drawable.stat_notify_sync_noanim)
+            .setSmallIcon(com.zcode.android.core.notifications.R.drawable.ic_notif_shield)
             .setContentTitle(getString(R.string.fgs_connected_title, endpointLabel))
             .setContentText(getString(R.string.fgs_connected_text))
             .also { b -> pending?.let { b.setContentIntent(it) } }
