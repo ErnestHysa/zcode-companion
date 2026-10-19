@@ -1447,6 +1447,13 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
         println("MOCK: v4call $name (id=$id)")
         synchronized(recentV4Calls) { recentV4Calls[name ?: "?"] = argAsObject(arg) }
         when (name) {
+            // Phase 4C (C7): the scratch-workspace facade call — {name} → {path}.
+            "createScratchWorkspace" -> {
+                val name = (argAsObject(arg)?.get("name") as? JsonPrimitive)?.content
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("path", JsonPrimitive("/synthetic/scratch-${name?.takeIf { it.isNotBlank() } ?: createdCount.incrementAndGet()}"))
+                }))
+            }
             // Phase 4C (A3.4): the effort-level facade call (zcodeAgent.ts:705) — the
             // echo plane's `thought` updates and a state patch carries the config.
             "setThoughtLevel" -> {
@@ -2051,6 +2058,18 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     put("path", JsonPrimitive(path))
                     put("type", JsonPrimitive(if (script.fileTree.containsKey(path)) "directory" else "file"))
                     put("size", JsonPrimitive(script.fileBytes[path]?.size?.toLong() ?: script.fileText[path]?.toByteArray()?.size?.toLong() ?: 0L))
+                }))
+            }
+            // Phase 4C (C7): workspace file search for the composer @-mentions.
+            "searchWorkspaceFiles" -> {
+                val query = (params?.get("query") as? JsonPrimitive)?.content.orEmpty().lowercase()
+                val limit = (params?.get("limit") as? JsonPrimitive)?.content?.toIntOrNull() ?: 20
+                val hits = script.fileTree.keys.filter { it.lowercase().contains(query) && query.isNotEmpty() }.take(limit)
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(hits.map { path ->
+                    RpcValue.Obj(buildJsonObject {
+                        put("path", JsonPrimitive(path))
+                        put("type", JsonPrimitive(if (script.fileTree.containsKey(path)) "directory" else "file"))
+                    })
                 }))
             }
             "readTextFile" -> {
