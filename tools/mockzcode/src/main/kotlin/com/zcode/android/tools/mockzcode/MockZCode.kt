@@ -1441,6 +1441,31 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
         println("MOCK: v4call $name (id=$id)")
         synchronized(recentV4Calls) { recentV4Calls[name ?: "?"] = argAsObject(arg) }
         when (name) {
+            // Phase 4C (A3.4): the effort-level facade call (zcodeAgent.ts:705) — the
+            // echo plane's `thought` updates and a state patch carries the config.
+            "setThoughtLevel" -> {
+                val params = argAsObject(arg)
+                val level = params?.strOrNull("thoughtLevel")
+                if (level == null) {
+                    respondError(id, "fault.mock.unscripted:setThoughtLevel")
+                } else {
+                    stateRevision.incrementAndGet()
+                    val current = script.sessionConfig
+                    script.sessionConfig = buildJsonObject {
+                        put("provider", JsonPrimitive(current?.strOrNull("provider") ?: "zai"))
+                        put("model", JsonPrimitive(current?.strOrNull("model") ?: "glm-5.3"))
+                        put("thought", JsonPrimitive(level))
+                        put("thoughtLevels", current?.get("thoughtLevels") ?: JsonArray(listOf(JsonPrimitive(level))))
+                        put("followupMode", JsonPrimitive(current?.strOrNull("followupMode") ?: "queue"))
+                        put("mode", JsonPrimitive(current?.strOrNull("mode") ?: "build"))
+                    }
+                    pushStatePatch(buildJsonObject {
+                        put("revision", JsonPrimitive(stateRevision.get()))
+                        put("config", script.sessionConfig!!)
+                    })
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(script.sessionConfig!!))
+                }
+            }
             "helloConversationV4" -> {
                 val hello = buildJsonObject {
                     put("kind", JsonPrimitive("hello"))
@@ -2309,27 +2334,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     put("revision", JsonPrimitive(stateRevision.get()))
                     put("config", script.sessionConfig!!)
                 })
-            }
-            // Phase 4C (A3.4): the effort-level facade call (zcodeAgent.ts:705) — the
-            // echo plane's `thought` updates and a state patch carries the config.
-            "setThoughtLevel" -> {
-                stateRevision.incrementAndGet()
-                val level = payload?.strOrNull("thoughtLevel") ?: return null
-                val current = script.sessionConfig
-                script.sessionConfig = buildJsonObject {
-                    put("provider", JsonPrimitive(current?.strOrNull("provider") ?: "zai"))
-                    put("model", JsonPrimitive(current?.strOrNull("model") ?: "glm-5.3"))
-                    put("thought", JsonPrimitive(level))
-                    put("thoughtLevels", current?.get("thoughtLevels") ?: JsonArray(listOf(JsonPrimitive(level))))
-                    put("followupMode", JsonPrimitive(current?.strOrNull("followupMode") ?: "queue"))
-                    put("mode", JsonPrimitive(current?.strOrNull("mode") ?: "build"))
-                }
-                pushStatePatch(buildJsonObject {
-                    put("revision", JsonPrimitive(stateRevision.get()))
-                    put("config", script.sessionConfig!!)
-                })
-            }
-        }
+            }        }
         return null
     }
 
