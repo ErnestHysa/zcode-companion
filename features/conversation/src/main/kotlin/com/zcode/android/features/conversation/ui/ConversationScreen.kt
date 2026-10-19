@@ -121,6 +121,8 @@ fun ConversationScreen(
     onSlashMenuOpen: () -> Unit = {},
     /** Phase 4C (A3.4): the effort switch (setThoughtLevel). */
     onSetThoughtLevel: (String) -> Unit = {},
+    /** Phase 4C (C7): the @-mention workspace file search. */
+    fileSearchProvider: suspend (String) -> List<String> = { emptyList() },
 ) {
     val rowActions = remember(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback) {
         RowActionCallbacks(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback)
@@ -333,6 +335,7 @@ fun ConversationScreen(
                 onRemoveAttachment = onRemoveAttachment,
                 onRetryAttachment = onRetryAttachment,
                 onSlashMenuOpen = onSlashMenuOpen,
+                fileSearchProvider = fileSearchProvider,
             )
         }
     }
