@@ -58,6 +58,7 @@ import com.zcode.android.core.ui.components.ConnectionStatusLine
 import com.zcode.android.core.ui.components.SkeletonBar
 import com.zcode.android.features.tasks.R
 import com.zcode.android.core.ui.components.errorUserMessage
+import com.zcode.android.core.ui.components.minTouchTarget
 import com.zcode.android.core.ui.components.relativeTimeLabelLive
 import com.zcode.android.core.ui.components.taskStatusGlyph
 import com.zcode.android.core.ui.components.taskStatusLabel
@@ -937,7 +938,9 @@ fun TaskRow(
             androidx.compose.foundation.layout.Box {
                 androidx.compose.material3.IconButton(
                     onClick = { menuOpen = true },
-                    modifier = Modifier.testTag("task_actions_${task.taskId}"),
+                    modifier = Modifier
+                        .minTouchTarget()
+                        .testTag("task_actions_${task.taskId}"),
                 ) {
                     androidx.compose.material3.Icon(
                         imageVector = Icons.Filled.MoreVert,
