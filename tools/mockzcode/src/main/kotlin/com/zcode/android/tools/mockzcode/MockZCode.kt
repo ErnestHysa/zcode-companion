@@ -198,6 +198,9 @@ class MockZCode(
         var listAutomations: JsonArray? = null
         /** Phase 4B (A3.2): scripted run history; null = the run-history surface is unscripted (typed fault). */
         var automationRuns: JsonArray? = null
+        /** Phase 4C (D2): scripted goal (with verifications) + todo keys (null = absent). */
+        var goalState: JsonObject? = null
+        var planState: JsonObject? = null
         /** Phase 4C (C2): slash-panel extras — commands.list result (null = typed fault). */
         var commandsList: JsonObject? = null
         /** subagents.list result (null = typed fault). */
@@ -902,6 +905,9 @@ class MockZCode(
             script.sessionConfig?.let { put("config", it) }
             // Phase 2 (§11.1): the usage key when scripted (GAP-1/GAP-2).
             script.usageState?.let { put("usage", it) }
+            // Phase 4C (D2): the goal (with its verification timeline) + todo keys.
+            script.goalState?.let { put("goal", it) }
+            script.planState?.let { put("plan", it) }
         }
     }
 

@@ -93,6 +93,31 @@ fun main() {
     if (System.getenv("MOCK_ROW_ACTIONS") != null) {
         mock.script.rowActionsDemo = true
     }
+    // Phase 4C (D2) rig leg: MOCK_GOAL=1 scripts a goal (with a pass/notSatisfied
+    // verification timeline) + a todo list into the state block — the goal/plan
+    // panels and the turn-kind label render live.
+    if (System.getenv("MOCK_GOAL") != null) {
+        mock.script.goalState = JsonObject(mapOf(
+            "targetId" to JsonPrimitive("g-rig"),
+            "objective" to JsonPrimitive("Ship the release"),
+            "summaryTitle" to JsonPrimitive("Ship it"),
+            "timeUsedSeconds" to JsonPrimitive(120),
+            "activeRunStartedAtMs" to JsonPrimitive(System.currentTimeMillis()),
+            "status" to JsonPrimitive("verifying"),
+            "iteration" to JsonPrimitive(3),
+            "verifications" to JsonArray(listOf(
+                JsonObject(mapOf("iteration" to JsonPrimitive(1), "outcome" to JsonPrimitive("pass"), "at" to JsonPrimitive(System.currentTimeMillis() - 200_000), "anchorRowId" to JsonPrimitive(12))),
+                JsonObject(mapOf("iteration" to JsonPrimitive(2), "outcome" to JsonPrimitive("notSatisfied"), "at" to JsonPrimitive(System.currentTimeMillis() - 100_000), "reason" to JsonPrimitive("2 criteria unmet"), "nextAction" to JsonPrimitive("continue"))),
+            )),
+        ))
+        mock.script.planState = JsonObject(mapOf(
+            "items" to JsonArray(listOf(
+                JsonObject(mapOf("id" to JsonPrimitive("t1"), "content" to JsonPrimitive("Write the changelog"), "status" to JsonPrimitive("completed"))),
+                JsonObject(mapOf("id" to JsonPrimitive("t2"), "content" to JsonPrimitive("Bump the version"), "status" to JsonPrimitive("inProgress"))),
+            )),
+            "updatedAt" to JsonPrimitive(System.currentTimeMillis()),
+        ))
+    }
     // Phase 4C (C2) rig leg: the slash panel's extra sections — one custom command,
     // one skill, one agent (synthetic, INV-15/16).
     mock.script.commandsList = JsonObject(mapOf(
