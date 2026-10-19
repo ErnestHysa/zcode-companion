@@ -2391,6 +2391,9 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
     @Volatile var lastFeedback: String? = null
     /** Phase 4C seam: the most recent zcode-agent call's params per method (wire-shape pins). */
     private val recentV4Calls = HashMap<String, JsonObject?>()
+    /** Phase 4D seam: every `zcode-task` channel call (method, params) in send order. */
+    private val taskChannelLedger = ArrayList<Pair<String, JsonObject>>()
+    fun taskChannelCallsForTest(): List<Pair<String, JsonObject>> = synchronized(taskChannelLedger) { ArrayList(taskChannelLedger) }
     fun lastV4CallParamsForTest(name: String): JsonObject? = synchronized(recentV4Calls) { recentV4Calls[name] }
 
     /** Test seam for the command-effect machinery (the socket path calls the same function). */
@@ -2603,6 +2606,7 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?) {
     }
 
         private fun handleTaskPromise(id: Int, name: String?, arg: JsonObject?) {
+        synchronized(taskChannelLedger) { taskChannelLedger.add((name ?: "?") to (arg ?: JsonObject(emptyMap()))) }
         when (name) {
             "listTasks" -> respond(
                 id, ChannelWire.ResponseType.PromiseSuccess,
@@ -2610,6 +2614,44 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?) {
             )
             "listPinnedTaskIds", "listArchivedTasks", "listPinnedTasks", "listDeletedTaskIds" ->
                 respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(emptyList()))
+            // Phase 4D (L6.3+J4 / H1.1): the lifecycle + search methods (shipped 3.14.5).
+            "deleteTask" -> {
+                val taskId = arg?.str("taskId")
+                if (taskId == null) respondError(id, "fault.mock.unscripted:deleteTask")
+                else {
+                    script.directTasks = script.directTasks.filterNot { (it.jsonObject["taskId"] as? JsonPrimitive)?.content == taskId }
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
+                }
+            }
+            "renameTask" -> {
+                val taskId = arg?.str("taskId")
+                val title = arg?.str("title")
+                if (taskId == null || title == null) respondError(id, "fault.mock.unscripted:renameTask")
+                else {
+                    script.directTasks = script.directTasks.map {
+                        if ((it.jsonObject["taskId"] as? JsonPrimitive)?.content == taskId) {
+                            JsonObject(it.jsonObject + ("title" to JsonPrimitive(title)))
+                        } else it
+                    }
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
+                }
+            }
+            "archiveTask", "unarchiveTask" -> {
+                val taskId = arg?.str("taskId")
+                if (taskId == null) respondError(id, "fault.mock.unscripted:" + name)
+                else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
+            }
+            "listTaskList" -> {
+                val search = arg?.str("search").orEmpty().lowercase()
+                val hits = script.directTasks
+                    .filter { search.isEmpty() || ((it.jsonObject["title"] as? JsonPrimitive)?.content?.lowercase()?.contains(search) == true) }
+                    .map { JsonObject(it.jsonObject) }
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("items", JsonArray(hits))
+                    put("total", JsonPrimitive(hits.size))
+                    put("hasMore", JsonPrimitive(false))
+                }))
+            }
             else -> respondError(id, "fault.mock.unknownTaskMethod:${name ?: "?"}")
         }
     }
