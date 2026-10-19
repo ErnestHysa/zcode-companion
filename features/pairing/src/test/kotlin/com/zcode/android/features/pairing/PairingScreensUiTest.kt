@@ -159,6 +159,8 @@ class PairingScreensUiTest {
         compose.onNodeWithTag("open-manual").performClick()
         compose.onNodeWithTag("manual-field").performTextInput("x")
         compose.onNodeWithTag("manual-submit").performClick()
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("setup-confirm").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("setup-confirm").performClick()
         compose.waitUntil(5_000) { compose.onAllNodesWithTag("fail-rescan").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("fail-refresh-hint").assertIsDisplayed()
         compose.onNodeWithText("refresh the QR", substring = true).assertIsDisplayed()
