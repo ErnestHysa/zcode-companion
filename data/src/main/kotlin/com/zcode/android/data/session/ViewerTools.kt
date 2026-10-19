@@ -87,12 +87,12 @@ class ViewerTools(private val transport: AppTransport) {
     /** Phase 4C (C7): workspace file search for the composer @-mentions (paths, tolerant). */
     suspend fun searchWorkspaceFiles(workspacePath: String?, workspaceIdentity: String?, query: String, limit: Int = 20): List<String> {
         val raw = transport.fileSearch(workspacePath.orEmpty(), workspaceIdentity, query, limit)
-        val arr = (raw as? com.zcode.android.core.protocol.bytes.RpcValue.Arr)?.items
+        val arr = (raw as? com.zcode.android.core.protocol.bytes.RpcSerialization.RpcValue.Arr)?.items
             ?: return emptyList()
         return arr.mapNotNull { el ->
             when (el) {
-                is com.zcode.android.core.protocol.bytes.RpcValue.Obj -> (el.json["path"] as? kotlinx.serialization.json.JsonPrimitive)?.content
-                is com.zcode.android.core.protocol.bytes.RpcValue.Str -> el.value
+                is com.zcode.android.core.protocol.bytes.RpcSerialization.RpcValue.Obj -> (el.json["path"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                is com.zcode.android.core.protocol.bytes.RpcSerialization.RpcValue.Str -> el.value
                 else -> null
             }
         }
