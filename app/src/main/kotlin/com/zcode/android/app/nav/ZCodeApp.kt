@@ -532,7 +532,7 @@ private fun ConversationRoute(
         onAssistantFeedback = vm::setAssistantFeedback,
         onSlashMenuOpen = vm::onSlashMenuOpen,
         onSetThoughtLevel = vm::setThoughtLevel,
-        fileSearchProvider = { query -> container.conversationPort.searchWorkspaceFiles(state.task?.taskId ?: taskId, query) },
+        fileSearchProvider = { query -> container.conversationPort.searchWorkspaceFiles(state.task?.taskId.orEmpty(), query) },
     )
 }
 
