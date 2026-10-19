@@ -8,6 +8,8 @@
     <string name="tasks_empty_title">暂无任务</string>
     <string name="tasks_empty_body">在桌面端的 ZCode 中开始工作后，任务会显示在这里。下拉刷新，或在桌面端启动一个任务。</string>
     <string name="tasks_error_title">无法刷新任务</string>
+    <string name="tasks_first_sync_title">首次同步失败</string>
+    <string name="tasks_first_sync_body">刚完成配对？从桌面端的首次任务拉取未完成。请重试——配对本身没有问题。</string>
     <string name="tasks_stale_title">连接已断开 — 显示缓存的任务</string>
     <string name="tasks_reconnecting_to">正在重新连接到 %1$s…</string>
     <string name="tasks_your_desktop">您的桌面</string>

@@ -113,7 +113,53 @@ class TaskListUiTest {
     }
 
     @Test
-    fun error_stripShownWithRetry_andEmptyGuidance() {
+    // E4 (gaps-and-polish Phase 4G): the FIRST sync failure (never refreshed since
+    // pairing) is ANNOTATED — not the bare "Connection failed" beside "No tasks yet".
+    @Test
+    fun firstSyncFailure_showsAnnotatedStrip_withRetry() {
+        val state = TasksUiState(
+            phase = ConnectionPhase.CONNECTED,
+            loadState = TasksUiState.Load.EMPTY,
+            error = com.zcode.android.core.common.error.AppError(
+                category = com.zcode.android.core.common.error.ErrorCategory.NETWORK,
+                userMessage = "bootstrap failed",
+                developerDiagnostic = "bootstrap failed",
+                retryable = com.zcode.android.core.common.error.AppError.Retryable.USER,
+                recoverable = true,
+            ),
+            lastRefreshAtMs = null,
+        )
+        rule.setContent {
+            TaskListScreen(state, onTaskClick = {}, onOpenSettings = {}, onOpenConnection = {}, onRetry = {}, onRefresh = {})
+        }
+        rule.onNodeWithTag("tasks_first_sync_strip").assertIsDisplayed()
+        rule.onNodeWithText("First sync failed").assertIsDisplayed()
+    }
+
+    @Test
+    fun postRefreshFailure_showsThePlainStrip() {
+        val state = TasksUiState(
+            phase = ConnectionPhase.CONNECTED,
+            loadState = TasksUiState.Load.READY,
+            groups = listOf(TaskGroup("/ws/demo", "demo", listOf(task("a", TaskStatus.RUNNING, "Fix authentication token refresh")))),
+            taskCount = 1,
+            error = com.zcode.android.core.common.error.AppError(
+                category = com.zcode.android.core.common.error.ErrorCategory.NETWORK,
+                userMessage = "refresh failed",
+                developerDiagnostic = "refresh failed",
+                retryable = com.zcode.android.core.common.error.AppError.Retryable.USER,
+                recoverable = true,
+            ),
+            lastRefreshAtMs = 42,
+        )
+        rule.setContent {
+            TaskListScreen(state, onTaskClick = {}, onOpenSettings = {}, onOpenConnection = {}, onRetry = {}, onRefresh = {})
+        }
+        assertEquals(0, rule.onAllNodesWithTag("tasks_first_sync_strip").fetchSemanticsNodes().size)
+        rule.onNodeWithTag("tasks_error_strip").assertIsDisplayed()
+    }
+
+        fun error_stripShownWithRetry_andEmptyGuidance() {
         val state = TasksUiState(
             phase = ConnectionPhase.CONNECTED,
             loadState = TasksUiState.Load.EMPTY,

@@ -721,13 +721,20 @@ private fun LoadingBody() {
 private fun EmptyBody(state: TasksUiState, onRetry: () -> Unit, onRefresh: () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         if (state.error != null) {
+            // E4 (Phase 4G): a failure with NO successful refresh yet IS the
+            // post-pairing first sync — the strip is annotated as such ("first sync
+            // failed") instead of rendering a bare "Connection failed" beside "No
+            // tasks yet" with no link to the just-finished pairing.
+            val firstSync = state.lastRefreshAtMs == null
             AttentionStrip(
-                title = stringResource(R.string.tasks_error_title),
-                message = errorUserMessage(state.error),
+                title = if (firstSync) stringResource(R.string.tasks_first_sync_title) else stringResource(R.string.tasks_error_title),
+                message = if (firstSync) stringResource(R.string.tasks_first_sync_body) else errorUserMessage(state.error),
                 tone = com.zcode.android.core.ui.components.StatusTone.ERROR,
                 actionLabel = stringResource(com.zcode.android.core.ui.R.string.action_retry),
                 onAction = onRetry,
-                modifier = Modifier.testTag("tasks_error_strip"),
+                modifier = Modifier
+                    .testTag("tasks_error_strip")
+                    .then(if (firstSync) Modifier.testTag("tasks_first_sync_strip") else Modifier),
             )
         }
         EmptyTasksContent(modifier = Modifier.weight(1f), onRefresh = onRefresh)
@@ -762,13 +769,20 @@ private fun ReadyBody(
             )
         }
         if (state.error != null) {
+            // E4 (Phase 4G): a failure with NO successful refresh yet IS the
+            // post-pairing first sync — the strip is annotated as such ("first sync
+            // failed") instead of rendering a bare "Connection failed" beside "No
+            // tasks yet" with no link to the just-finished pairing.
+            val firstSync = state.lastRefreshAtMs == null
             AttentionStrip(
-                title = stringResource(R.string.tasks_error_title),
-                message = errorUserMessage(state.error),
+                title = if (firstSync) stringResource(R.string.tasks_first_sync_title) else stringResource(R.string.tasks_error_title),
+                message = if (firstSync) stringResource(R.string.tasks_first_sync_body) else errorUserMessage(state.error),
                 tone = com.zcode.android.core.ui.components.StatusTone.ERROR,
                 actionLabel = stringResource(com.zcode.android.core.ui.R.string.action_retry),
                 onAction = onRetry,
-                modifier = Modifier.testTag("tasks_error_strip"),
+                modifier = Modifier
+                    .testTag("tasks_error_strip")
+                    .then(if (firstSync) Modifier.testTag("tasks_first_sync_strip") else Modifier),
             )
         }
         // Round-4: stale-pairing repair — Degraded on repeated desktop-disconnected
