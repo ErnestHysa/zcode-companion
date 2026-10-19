@@ -78,7 +78,7 @@ class TaskLifecycleWireTest {
             tasks.archiveTask("/synthetic/ws", "synthetic-ws", "task-4", archived = false)
         }
         val calls = mock.taskChannelCallsForTest()
-        assertEquals(listOf("deleteTask", "renameTask", "archiveTask", "archiveTask"), calls.map { it.first })
+        assertEquals(listOf("deleteTask", "renameTask", "archiveTask", "unarchiveTask"), calls.map { it.first }, "archived=false routes to the desktop's separate unarchiveTask method")
         val (archiveName, archiveArg) = calls[2]
         assertEquals("archiveTask", archiveName)
         assertEquals("task-3", (archiveArg["taskId"] as JsonPrimitive).content)
