@@ -44,6 +44,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zcode.android.app.R
 import com.zcode.android.core.ui.components.formatCompactTokenCount
+import com.zcode.android.core.ui.theme.LocalZCodeColors
 import com.zcode.android.core.ui.components.SkeletonBar
 import com.zcode.android.core.ui.components.StatusTone
 import com.zcode.android.core.ui.components.toneColor
@@ -181,8 +182,14 @@ fun UsageScreen(
                     return@Column
                 }
                 SummaryStrip(current.summary)
+                // I4+J9 (Phase 4E): cache-hit rate + call counts (the desktop's
+                // settings.usage.* analytics) — the stat cards' honesty, now with
+                // the model pie and the daily/model trend the desktop carries.
+                CacheCallsSection(current.summary)
                 if (current.heatmap.weeks.isNotEmpty()) HeatmapSection(current.heatmap)
+                if (current.dailyModelUsage.isNotEmpty()) DailyModelTrendSection(current.dailyModelUsage)
                 DailySection(current.dailyModelUsage, current.heatmap.maxTokens)
+                if (current.models.isNotEmpty()) ModelPieSection(current.models)
                 ModelsSection(current.models)
                 ToolsSection(current.tools)
                 Spacer(Modifier.height(24.dp))
@@ -485,4 +492,131 @@ private fun SectionTitle(text: String, tag: String) {
             .padding(top = 16.dp, bottom = 6.dp)
             .testTag(tag),
     )
+}
+
+/** I4+J9: cache-hit rate + call counts — the desktop's settings.usage modelChart peers. */
+@Composable
+private fun CacheCallsSection(summary: AppUsageSnapshot.Summary) {
+    val locale = Locale.getDefault()
+    val percent = java.text.NumberFormat.getPercentInstance(locale).apply { maximumFractionDigits = 1 }
+    SectionTitle(stringResource(R.string.usage_section_efficiency), tag = "usage_efficiency")
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        SummaryCard(
+            Modifier.weight(1f),
+            label = stringResource(R.string.usage_cache_hit),
+            value = percent.format(summary.cacheHitRate),
+            valueTag = "usage_cache_hit",
+        )
+        SummaryCard(
+            Modifier.weight(1f),
+            label = stringResource(R.string.usage_tool_calls),
+            value = java.text.NumberFormat.getIntegerInstance(locale).format(summary.toolCallCount),
+            valueTag = "usage_tool_calls",
+        )
+        SummaryCard(
+            Modifier.weight(1f),
+            label = stringResource(R.string.usage_turns),
+            value = java.text.NumberFormat.getIntegerInstance(locale).format(summary.totalTurns),
+            valueTag = "usage_turns",
+        )
+    }
+}
+
+/** I4: the per-model share PIE (the desktop's AppUsageModelUsagePieChart port). */
+@Composable
+private fun ModelPieSection(models: List<AppUsageSnapshot.ModelUsage>) {
+    SectionTitle(stringResource(R.string.usage_section_pie), tag = "usage_pie")
+    val top = models.take(4)
+    val palette = listOf(
+        MaterialTheme.colorScheme.primary,
+        MaterialTheme.colorScheme.secondary,
+        LocalZCodeColors.current.accent,
+        MaterialTheme.colorScheme.tertiary,
+    )
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 8.dp)) {
+        androidx.compose.foundation.Canvas(modifier = Modifier.size(96.dp).testTag("usage_pie_canvas")) {
+            val total = top.sumOf { it.totalTokens }.coerceAtLeast(1L)
+            var start = -90f
+            top.forEachIndexed { i, model ->
+                val sweep = (model.totalTokens.toDouble() / total * 360.0).toFloat()
+                drawArc(
+                    color = palette[i % palette.size],
+                    startAngle = start,
+                    sweepAngle = sweep,
+                    useCenter = true,
+                )
+                start += sweep
+            }
+        }
+        Spacer(Modifier.width(16.dp))
+        Column {
+            top.forEachIndexed { i, model ->
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
+                    androidx.compose.foundation.layout.Box(
+                        Modifier.size(10.dp).background(palette[i % palette.size], androidx.compose.foundation.shape.CircleShape),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        (model.modelId ?: stringResource(R.string.usage_unknown_model)),
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** I4: the daily/model trend (the desktop's AppUsageDailyModelTrendChart, as bars). */
+@Composable
+private fun DailyModelTrendSection(daily: List<AppUsageSnapshot.DailyModelUsage>) {
+    val locale = Locale.getDefault()
+    SectionTitle(stringResource(R.string.usage_section_trend), tag = "usage_trend")
+    val topModels = daily.flatMap { it.models }
+        .groupBy { it.modelId }
+        .map { (id, items) -> (id ?: "?") to items.sumOf { it.totalTokens } }
+        .sortedByDescending { it.second }
+        .take(3)
+        .map { it.first }
+        .toSet()
+    Column(Modifier.padding(vertical = 6.dp)) {
+        daily.takeLast(14).forEach { day ->
+            val total = day.models.sumOf { it.totalTokens }
+            Row(
+                Modifier.fillMaxWidth().padding(vertical = 2.dp).testTag("usage_trend_row_${day.date}"),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    day.date.take(5),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.width(44.dp),
+                )
+                day.models.sortedByDescending { it.totalTokens }.forEach { m ->
+                    if (m.modelId in topModels && total > 0) {
+                        val frac = (m.totalTokens.toFloat() / total).coerceIn(0f, 1f)
+                        androidx.compose.foundation.layout.Box(
+                            Modifier
+                                .weight(frac.coerceAtLeast(0.05f))
+                                .height(10.dp)
+                                .background(
+                                    if ((m.modelId ?: "") == topModels.first()) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.secondary,
+                                ),
+                        ) {}
+                    }
+                }
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    formatCompactTokenCount(total, locale),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
 }

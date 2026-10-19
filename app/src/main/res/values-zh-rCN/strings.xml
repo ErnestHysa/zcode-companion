@@ -143,6 +143,12 @@
 <string name="usage_section_heatmap">活动热力图</string>
 <string name="usage_section_daily">每日活动</string>
 <string name="usage_section_models">模型</string>
+<string name="usage_section_efficiency">效率</string>
+<string name="usage_cache_hit">缓存命中率</string>
+<string name="usage_tool_calls">工具调用</string>
+<string name="usage_turns">轮次</string>
+<string name="usage_section_pie">按模型占比</string>
+<string name="usage_section_trend">每日趋势</string>
 <string name="usage_section_tools">工具</string>
 <string name="usage_section_empty">该范围内暂无数据</string>
 <!-- Phase 4 GAP-3 (ADR-020)：编程套餐额度区块 — 桌面 sidebar.usage.plan.* 文案 -->

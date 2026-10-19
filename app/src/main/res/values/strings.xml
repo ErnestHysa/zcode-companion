@@ -150,6 +150,12 @@
 <string name="usage_section_heatmap">Activity heatmap</string>
 <string name="usage_section_daily">Daily activity</string>
 <string name="usage_section_models">Models</string>
+<string name="usage_section_efficiency">Efficiency</string>
+<string name="usage_cache_hit">Cache hit rate</string>
+<string name="usage_tool_calls">Tool calls</string>
+<string name="usage_turns">Turns</string>
+<string name="usage_section_pie">Share by model</string>
+<string name="usage_section_trend">Daily trend</string>
 <string name="usage_section_tools">Tools</string>
 <string name="usage_section_empty">Nothing in this range</string>
 <string name="usage_heatmap_range">%1$s – %2$s</string>
