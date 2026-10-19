@@ -25,6 +25,7 @@
     <string name="stale_detail">该链接生成于 10 多分钟前。通常仍然有效 — 但如果配对失败，请在桌面端刷新二维码后重新扫描。</string>
     <string name="action_continue_anyway">仍然继续</string>
     <string name="action_rescan">重新扫描</string>
+    <string name="pair_expired_hint">配对链接由桌面端生成——请打开桌面端的“远程控制”对话框刷新二维码获取新链接，然后重新扫描。</string>
     <string name="compat_blocked_title">桌面端版本不受支持</string>
     <string name="compat_blocked_detail">桌面端报告的版本为 %1$s。本应用支持 ZCode 桌面端 %2$s 或更新版本。请更新桌面端并重新生成二维码。</string>
     <string name="compat_above_title">未经测试的桌面端版本</string>

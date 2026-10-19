@@ -26,6 +26,7 @@
     <string name="stale_detail">The link was generated more than 10 minutes ago. It usually still works — but if pairing fails, refresh the QR on the desktop and scan again.</string>
     <string name="action_continue_anyway">Continue anyway</string>
     <string name="action_rescan">Scan again</string>
+    <string name="pair_expired_hint">The pairing link was minted by the desktop — open its Remote Control dialog and refresh the QR for a fresh link, then scan again.</string>
     <string name="compat_blocked_title">Desktop version not supported</string>
     <string name="compat_blocked_detail">The desktop app reports version %1$s. This app supports ZCode desktop %2$s or newer. Update the desktop app and regenerate the QR code.</string>
     <string name="compat_above_title">Untested desktop version</string>

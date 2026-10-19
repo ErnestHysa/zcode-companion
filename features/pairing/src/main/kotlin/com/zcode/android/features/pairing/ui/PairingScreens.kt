@@ -368,6 +368,17 @@ private fun ConnectFailedScreen(s: PairingFlow.State.ConnectFailed, vm: PairingV
                     modifier = Modifier.fillMaxWidth().testTag("fail-retry"),
                 ) { Text(stringResource(R.string.action_retry)) }
             }
+            // E1-hint (Phase 4G): a stale QR is the DESKTOP's to refresh (the
+            // web-remote section already has refreshQr + confirm) — the failure state
+            // must SAY so instead of dead-ending into a blind re-scan loop.
+            if (s.error.rePair) {
+                Text(
+                    stringResource(R.string.pair_expired_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("fail-refresh-hint"),
+                )
+            }
             ZCodeOutlinedButton(
                 onClick = { vm.dispatch(PairingFlow.Event.StartScan) },
                 modifier = Modifier.fillMaxWidth().testTag("fail-rescan"),
