@@ -2102,7 +2102,7 @@ this stands code-level.
 | 1 | P0 correctness & data-integrity bugs | 22 | Medium (highest-stakes surfaces; rig repros exist) | ☑ **DONE 2026-10-16** |
 | 2 | P1 foundation lift (theme/motion/chrome/i18n/a11y/platform/release) | 25 | Medium (mechanical but wide; lint gate lands here) | ☑ **DONE 2026-10-16** |
 | 3 | P2 surface redesigns (reader-facing) | 16 | Medium-high (redesigns; pixel pins required) | ☑ **DONE 2026-10-17** |
-| 4 | P2 wire-backed feature parity | 15 | Medium (new surfaces over proven wire) | ☐ open |
+| 4 | P2 wire-backed feature parity | 15 | Medium (new surfaces over proven wire) | ☑ **DONE 2026-10-19** |
 | 5 | P3 bigger surfaces + ADR-gated writes | 13 | High (ADR-gated writes are a trust surface) | ☐ open |
 | 6 | P3 long-tail & platform decisions | 16 | Low | ☐ open |
 | 7 | Rig & verification assets | 2 | Low | ☐ open |
@@ -2787,7 +2787,7 @@ live; suite name-diff clean; APK stated.
   changes. Accept (someday): re-probe on the next desktop release; when the body
   returns `{toolCalls:[{toolCallId, output…}]}` the "Show full output" button starts
   serving slice bytes (the UI already prefers them).
-- [ ] **F3-LOAD (new, P2 — recorded 2026-10-17)** The A3.1 attachment-preview loader
+- [x] **F3-LOAD (new, P2 — recorded 2026-10-17; ROOT CAUSE FIXED 2026-10-19 — see the Phase-4 erratum)** The A3.1 attachment-preview loader
   runs ONCE per row (`produceState(key1=att.ref)`): a preview fetch that fails while
   the transport is not yet ready (refused/offline) leaves the thumbnail slot on
   "Loading…" forever — observed live on the rig (the chip rendered; the mock log shows
@@ -2795,11 +2795,40 @@ live; suite name-diff clean; APK stated.
   retry (2–3 attempts with backoff) or a retry tap on the loading chip; the file-name
   chip fallback is already correct on explicit failure.
 
+### APPENDED FINDINGS + ERRATA (Phase-4 session; rule 5 — recorded, not silently fixed)
+
+- [x] **F3-LOAD ROOT CAUSE (corrects the Phase-3 entry above — fixed 2026-10-19):** the
+  attachment-preview loader was accepted by ConversationScreen but NEVER PASSED into the
+  timeline body — previews could not load by construction, regardless of transport timing.
+  Fixed in `561ad19` (the wiring line); the bounded-retry remedy is unnecessary.
+- [ ] **F4-RIG (new, P3 — rig note 2026-10-19)** `AlertDialog` content composed under the
+  Robolectric `w411dp-h891dp` qualifier with a `FlowRow` inside the M3 dialog NEVER goes
+  idle (FlowRow's intrinsic measurement + the dialog's intrinsic sizing loop); the same
+  code passes on the default ATD-size device and with deterministic `ChipGrid` chunking.
+  Rig rule: pin editor dialogs on the default device + `performScrollTo`, never widen the
+  qualifier, and prefer fixed rows-of-N chip grids in dialogs.
+- [x] **C2 ERRATUM (corrects the C2 finding — verified 2026-10-19):** `queryConversationCommandsV4`
+  is the v4 command-ACK QUERY (`{commands:[{sessionId,commandId}]} → results`, command.ts:447-482),
+  NOT a slash-command catalog — C2's "never called app-side" observation was true but the
+  method is irrelevant to the menu. The custom-command source is the `commands` channel
+  (`commands.list` → CommandsListResult.userCommands/pluginCommands) + the skills/subagents
+  channels; implemented that way.
+- [x] **AppUpdateController UpToDate defect (pre-existing, repaired 2026-10-19):** the
+  flicker guard treated UpToDate as `known`, so a terminal state never re-checked —
+  contradicting the pinned 920fcd5 contract ("terminal states re-check on next trigger").
+  One-line repair (`known` = Available only); both pins green.
+- [ ] **F4-VERIFY (new, P3 — recorded 2026-10-19)** the pre-phase baseline for the exit
+  name-diff must be re-extracted from the SAME module test-results the exit pass reads:
+  the phase-4 baseline pool was taken with `-q` (names lost) and reconstructed from stale
+  XMLs, which mis-adjudicated AppUpdateControllerTest for one pass. Rule-7 refinement:
+  always regenerate `phase<N>-baseline-names.txt` from the XML reports immediately after
+  the baseline run completes.
+
 ## Phase 4 — P2 wire-backed feature parity (new surfaces over proven wire)
 
 ### Sub-phase 4A — Row actions (the flagship: wire says it, protocol sends it, UI is the only missing work)
 
-- [ ] **E3.2+I1+N5 (P2)** Surface **Retry / Fork / Rewind-files / Like-Dislike** row actions.
+- [x] E3.2+I1+N5 (P2) ✓ fixed+verified 2026-10-19 Surface **Retry / Fork / Rewind-files / Like-Dislike** row actions.
   Circuit closed by three passes: the wire decodes the flags (`ConversationRow.kt:41-44`),
   the protocol layer already models the commands (`V4Command.kt` — `RETRY_TURN` :32,
   `forkAssistant`, `applyFileRewind`, `setAssistantFeedback` with like/dislike; zero senders
@@ -2810,13 +2839,13 @@ live; suite name-diff clean; APK stated.
 
 ### Sub-phase 4B — Automations redesign
 
-- [ ] **J2-target (P2)** Editor to the desktop's shape (`automations.*`, 174 keys): schedule
+- [x] J2-target (P2) ✓ fixed+verified 2026-10-19 Editor to the desktop's shape (`automations.*`, 174 keys): schedule
   kinds once/daily/hourly/weekly/monthly-by-dates/monthly-by-weekday/yearly + custom repeat
   builder (every N × unit, ends option, weekday picker), schedule preview line, maxRuns,
   lifecycle pause/resume, unsaved-changes guard, cron validation, create-limit error.
   Unsupported kinds refuse to open for edit (or round-trip untouched) until the kind set
   exists. Accept: each kind round-trips untouched (pin per kind); preview renders; guard fires.
-- [ ] **A3.2+B2.11 (P2)** Run history + Run-Now feedback: `listAutomationRuns` /
+- [x] A3.2+B2.11 (P2) ✓ fixed+verified 2026-10-19 Run history + Run-Now feedback: `listAutomationRuns` /
   `deleteAutomationRun` / `restartAutomation` (on the facade, unused); Run Now currently
   ignores the result with no busy/toast and double-tap double-fires
   (`AutomationsSection.kt:73-81, :92-106, :227-247`). Desktop UX target (J2): pagination,
@@ -2825,11 +2854,11 @@ live; suite name-diff clean; APK stated.
 
 ### Sub-phase 4C — Conversation data surfaces
 
-- [ ] **C2 (P2)** Slash menu three sections: commands (builtins AND the user's custom commands
+- [x] C2 (P2) ✓ fixed+verified 2026-10-19 Slash menu three sections: commands (builtins AND the user's custom commands
   — `queryConversationCommandsV4` is never called app-side while the desktop serves it),
   skills, subagents. Fix: one sectioned menu (Commands / Skills / Agents) over existing wire
   data. Accept: custom `/command` from the desktop appears; three sections; rig pins.
-- [ ] **A3.4+J3 (P2)** Reasoning-effort picker (`setThoughtLevel`; `/effort`) + wire-driven
+- [x] A3.4+J3 (P2) ✓ fixed+verified 2026-10-19 Reasoning-effort picker (`setThoughtLevel`; `/effort`) + wire-driven
   per-runtime mode tables: the phone pins the glm four in the port contract
   (`ConversationPort.kt:170` "build|edit|plan|yolo only") and maps exactly those
   (`Phase9Components.kt:246-271`) — attached to a claude/codex-runtime task the mode decodes
@@ -2837,13 +2866,13 @@ live; suite name-diff clean; APK stated.
   `sessionConfig` with per-runtime label tables (desktop `mode.*`, 47 keys). Priority gated on
   the non-glm-runtime frequency question (J3). Accept: effort picker live; non-glm session
   shows its own vocabulary (rig-scripted claude-mode session pin).
-- [ ] **D2 (P2)** Decode + render the dropped snapshot fields: `goalVerifications` +
+- [x] D2 (P2) ✓ fixed+verified 2026-10-19 Decode + render the dropped snapshot fields: `goalVerifications` +
   `goalVerificationTimeline` (pass/fail criteria timeline — the phone sends/resumes goals but
   renders NO verification state), `activeTurnKind` (turn-kind-aware progress label),
   `todoGroups` (todo restore display). Definition site: `domain/.../model/SessionState.kt:20`
   (`SessionProjectionState` — fields absent; verified undecoded). Accept: rig-scripted goal
   session renders the criteria timeline; streaming label reflects turn kind; todos restore.
-- [ ] **C7 (P2)** Composer/parity quick wins: @-mentions in the composer (the port already owns
+- [x] C7 (P2) ✓ fixed+verified 2026-10-19 Composer/parity quick wins: @-mentions in the composer (the port already owns
   `searchWorkspaceFiles` — zero app-side calls, H4-verified); scratch-workspace creation
   (`createScratchWorkspace` on the facade, desktop has the dialog); context-budget strategy
   parity (`getModelContextBudgetStrategy` — the phone's context-meter % may drift from the
@@ -2852,7 +2881,7 @@ live; suite name-diff clean; APK stated.
 
 ### Sub-phase 4D — Task list & git
 
-- [ ] **L6.3+J4 (P2)** Task lifecycle is create-only: `TasksPort.kt:39-44` is
+- [x] L6.3+J4 (P2) ✓ fixed+verified 2026-10-19 Task lifecycle is create-only: `TasksPort.kt:39-44` is
   refresh/retryConnection/repairPairing/observeWorkspaces/createTask — no delete, no archive,
   no rename, no move. Add delete/archive/rename (+unarchive via `listArchivedTasks`) with the
   desktop's confirmation copy (`confirmDialog.taskDelete*` "records cannot be recovered",
@@ -2860,19 +2889,19 @@ live; suite name-diff clean; APK stated.
   per-task change stats (`CoreModels.kt:82` `TaskSummary(additions, deletions, files)` — zero
   render sites, verified). Accept: delete/archive/rename round-trip on the rig; +N −N on rows;
   confirmation copy localized.
-- [ ] **H1.1 (P2, gated PROBE-H1a)** Command-Center-lite: task/conversation search over the
+- [x] H1.1 (P2, gated PROBE-H1a) ✓ fixed+verified 2026-10-19 (probe verdict: search = `zcode-task.listTaskList{kind,workspaceScopes,sortBy,search,limit}` → items with searchSnippets — implemented verbatim) Command-Center-lite: task/conversation search over the
   existing tasks projection (`search=`/`workspaces=`/`visibleLimit` params) + commands scope
   via `queryConversationCommandsV4`; the phone has zero search UI (`TaskListScreen.kt` grep: 0)
   and J4's status-vocabulary alignment rides PROBE-J4's verdict. Accept: search field returns
   the desktop's results incl. snippets; no UNKNOWN rows for any real status.
-- [ ] **J1.1 (P2, gated PROBE-J1)** Last-turn git section: if `getChanges` accepts a last-turn
+- [x] J1.1 (P2, gated PROBE-J1) ✓ RESOLVED-BY-PROBE 2026-10-19 (probe verdict NEGATIVE: getChanges accepts only unstaged|staged — shipped host + zod type; the desktop's last-turn view is computed client-side from per-turn snapshots, which the phone ALREADY renders via the Phase-3 turn card + TurnDiffDialog; no new git section is possible or needed) Last-turn git section: if `getChanges` accepts a last-turn
   sourceId (phone port `GitPort.kt:23` currently `"unstaged" | "staged"` only), add the
   "what did the agent just change" section — pairs with I2.1's change card. Accept: rig pin
   shows the last-turn diff after a scripted turn.
 
 ### Sub-phase 4E — Notifications & usage
 
-- [ ] **C3+M4+L7-notif (P2)** Notification actions + brand + content: `core/notifications`
+- [x] C3+M4+L7-notif (P2) ✓ fixed+verified 2026-10-19 Notification actions + brand + content: `core/notifications`
   contains zero `addAction` (verified) — the "approval required" notification is tap-only and
   content-less while the wire payload suffices for inline Approve/Deny (the single biggest
   "control from your phone" upgrade); and every notification uses platform stock glyphs —
@@ -2881,34 +2910,127 @@ live; suite name-diff clean; APK stated.
   carry the actual command/files (`notification.command`/`notification.file`). Accept:
   shade-level Approve-once/Deny actions round-trip (rig pin + `v4call` log); branded
   monochrome-aware icon per channel; payload line in the notification.
-- [ ] **I4+J9 (P2)** Usage analytics: add the desktop's per-model pie, daily/model trend
+- [x] I4+J9 (P2) ✓ fixed+verified 2026-10-19 (PROBE-J9 verdict: the five-hour/weekly split is desktop UI-side over the same snapshot data — the phone's range tabs remain the authority; no quota-push channel) Usage analytics: add the desktop's per-model pie, daily/model trend
   charts, cache-hit rate + call counts (fold into the existing usage redesign; the phone's
   stat cards/heatmap/honest states are the base — I4 fairness). The five-hour vs weekly window
   split per PROBE-J9. Accept: charts render from existing data; window split correct.
 
 ### Sub-phase 4F — Preferences phase 1
 
-- [ ] **H1.4-phase1 (P2)** First preferences: theme override (light/dark/system — the phone
+- [x] H1.4-phase1 (P2) ✓ fixed+verified 2026-10-19 First preferences: theme override (light/dark/system — the phone
   follows the system only, `isSystemInDarkTheme()` with no override; L8 confirmed system-follow
   live) + notification sound/per-category prefs (desktop `settings.*` groups). Accept:
   override persists and applies without restart; per-category toggle affects the channel.
 
 ### Sub-phase 4G — Connection UX sequencing
 
-- [ ] **E4 (P2)** Post-pairing first-sync sequencing: right after pairing, the "Connection
+- [x] E4 (P2) ✓ fixed+verified 2026-10-19 Post-pairing first-sync sequencing: right after pairing, the "Connection
   failed" strip and "No tasks yet" render simultaneously with no retry pulse and no link to
   the just-finished pairing (observed E4). Suppress the transient strip until first refresh
   completes, or annotate it ("first sync failed — Retry"). Accept: fresh-pair journey shows
   either clean loading or an annotated retryable strip; journey pixel pin.
-- [ ] **E1-hint (P2)** Stale pairing link dead-end: on "Pairing expired" there is no
+- [x] E1-hint (P2) ✓ fixed+verified 2026-10-19 Stale pairing link dead-end: on "Pairing expired" there is no
   "generate a fresh link" affordance — the desktop already has one in its web-remote section
   (`refreshQr` + confirm dialog, H1.2). Surface a hint (or auto-refresh) in the failure state.
   Accept: expired-link journey shows the regeneration path; pin.
 
-Phase 4 exit gate: ☐ rig end-to-end pins per entry incl. `v4call` proofs for new commands;
-zh catalog updated; suite name-diff clean; APK stated.
+Phase 4 exit gate: ☑ rig end-to-end pins per entry incl. `v4call` proofs for new commands;
+zh catalog updated; suite name-diff clean; APK stated. (verified 2026-10-19 — see the phase record)
 
 ---
+
+### Phase 4 — VERIFIED COMPLETE (do not edit above; this block is the phase record)
+
+- [x] **PHASE 4 COMPLETE — verified 2026-10-19 at 23-31-11 (hh-mm-ss), year 2026**
+- **Verified by:** ZCode coding agent running **GLM-5.3-Flash**
+  (model id `account:zai-individual-coding-plan/GLM-5.3-Flash`), harness
+  **ZCode CLI** (agentic coding harness, permission-mode session on
+  `~/Desktop/DEVPROJECTS/zcode/android-native`, branch `fix/gaps-and-polish`).
+- **Scope:** all 15 Phase-4 findings (sub-phases 4A–4G), each fixed as its own
+  `fix(<ID>)` commit with red-first pins (rule 4); 93 commits this phase
+  (`cbf3dff..dd12955` at the lint fix; see git log).
+- **Pins (all green; red runs recorded per commit):** CommandCoordinatorRowActionsTest (8),
+  AssistantFeedbackDecodeTest (3), RowActionsRoutingTest (7), RowActionsUiTest (10),
+  MockZCodeRowActionsSelfTest (6), AutomationScheduleBuilderTest (19),
+  AutomationRunDecodeTest (3), AutomationWriteRequestTest (5),
+  AutomationsRedesignUiTest (24), SlashMenuSectionsUiTest (10), SlashExtrasRoutingTest (2),
+  SlashCatalogExtrasDecodeTest (3), ThoughtLevelRoutingTest (3), ThoughtLevelPickerUiTest (5),
+  ViewerToolsThoughtLevelTest (1), GoalPlanDecodeTest (7), GoalPlanPanelsUiTest (4),
+  MentionFilesUiTest (4), ScratchWorkspaceUiTest (4), TaskLifecycleVmTest (4),
+  TaskLifecycleUiTest (7), TaskLifecycleWireTest (3), NotificationActionsTest (3),
+  UsageChartsUiTest (3), ThemePrefsTest (3), PairingScreensUiTest +2 (E1-hint),
+  TaskListUiTest +2 (E4) — **≈160 new/extended pins**. Prior suites kept green
+  (tasks module 100/100 at the 4B checkpoint; conversation/domain/data 511/511 at the 4A checkpoint).
+- **Baseline + name-diff (rule 7):** pre-phase baseline 7 known-failing names
+  (socket-timing class, /tmp/phase4-baseline-names.txt). Exit full-suite
+  (`gradle test --continue`): first pass 10 names — 5 baseline-family + 4 batch-owned
+  regressions (SessionStateTest `goal`-now-decoded pin; SheetsMigrationTest rewind-confirm
+  dialog → converted to a sheet per the B3 pin; AccessibilityAudit ×2 — the new row overflow
+  button lacked a label and the search FAB was 40dp) + AppUpdateControllerTest
+  (pre-existing deterministic defect: UpToDate rode the flicker guard, contradicting the
+  920fcd5 contract — repaired, pin green). Final pass: **5 failing names, ALL in the
+  baseline socket-timing family (ConnectionHubIntegrationTest ×1, RelayTransportBridgeError ×2,
+  FreshDiscovery ×1, ScopedChannel ×1) — zero new names.**
+- **Lint gate (rule 12 / E6):** `:app:lintDebug` — **0 errors** (40 warnings + 1 hint;
+  49E/58W filtered by the committed baseline). The gate caught 8 batch errors
+  (VIBRATE permission, ComposeParameterOrder on AgentProse, MultipleEmitters +
+  NonObservableLocale on the three new usage sections) — all fixed in code
+  (`fix(lint-gate)`).
+- **Fresh APKs (rule 12c):** debug `app/build/outputs/apk/debug/app-debug.apk`
+  55,116,377 bytes and release `app/build/outputs/apk/release/app-release.apk`
+  27,579,008 bytes (R8), versionName **1.1.0**, versionCode **40**, built from branch
+  `fix/gaps-and-polish` — install THIS debug build for the Phase-4 fixes.
+- **Drift duty (rule 10):** `tools/drift/consumed-surfaces.json` extended with the
+  session's new wire surfaces (retryTurn, forkAssistant, setThoughtLevel,
+  createScratchWorkspace, listAutomationRuns/deleteAutomationRun/restartAutomation,
+  archiveTask/unarchiveTask/listArchivedTasks/renameTask/deleteTask, listTaskList,
+  commands/subagents lists); `node --test tools/drift/surface.test.mjs` 8/8 green.
+- **Rig live-verification (rule 9; zcode-pixel AVD API 30 arm64 + MockRelayMain
+  `MOCK_ROW_ACTIONS=1 MOCK_GOAL=1`, evidence PNGs + mock v4call logs in /tmp/phase4-rig/):**
+  - **4A LIVE ✓** — the conversation renders Like / Dislike / **Fork** / **Retry** on the
+    latest assistant row (flag-gated: the non-flagged first mock run showed ONLY
+    Like/Dislike — the wire decides); tapping Like flipped the row to **Liked** (the
+    feedback echo), tapping **Fork navigated to the CHILD session**
+    ("Fork of synth-task-1" appeared in the task list — onSessionCreated parity), Retry
+    rendered the "retried reply". Mock v4call log:
+    `sendConversationCommandV4` ×3 (setAssistantFeedback / forkAssistant / retryTurn).
+  - **4A-rewind LIVE ✓** — the turn card's **Undo files** (canRewindFiles-gated) opens the
+    confirm sheet with the rewindDialog copy ("Restore the workspace files this turn
+    changed (2 files)…"); the applyFileRewind effect flips the turn to `reverted`
+    (self-tested; sheet captured live).
+  - **4C-goal LIVE ✓** — MOCK_GOAL=1: the goal panel renders **"Ship it" · verifying ·
+    iteration 3** with the verification timeline, and the todo panel renders **"Write the
+    changelog" (completed) / "Bump the version" (in progress)**.
+  - **4D LIVE ✓** — the row "⋯" menu renders **Rename / Archive / Delete**; Delete → the
+    confirm dialog → the task is REMOVED from the live list (deleteTask round-trip);
+    the row change stats (**+12 −3**, decoded-but-unrendered since Phase 2) render on the row.
+  - The reconnect storms during the rig are the documented mock-restart artifact
+    (auth_ack timeout under emulator load), NOT an app defect — every recovery landed via
+    the app's own Retry.
+- **PROBE verdicts (Phase 0 rows resolved by this phase's needs; recorded here per
+  rule 5 — the Phase-0 checkboxes remain for their own session):**
+  - **PROBE-H1a RESOLVED (bundle-extracted):** task search is the `zcode-task.listTaskList`
+    RPC — `{kind, workspaceScopes[], sortBy, search?, limit?}` → `{items[] (ZCodeTaskListItem
+    carries searchSnippet/searchSnippets), total, hasMore}` (zcodeTaskListTypes.ts; shipped
+    host `async listTaskList(w){...queryTaskList...}`). NOT a projection param. Implemented verbatim.
+  - **PROBE-J1 RESOLVED NEGATIVE (bundle + zod-extracted):** `GitChangesRequest.sourceId`
+    is `Extract<GitRepositoryChangeSourceId, "unstaged" | "staged">` — "last-turn" exists only
+    in the UI-side `GitChangeSourceId` union; `getChanges` cannot serve it. J1.1 resolved by
+    its own terms: the per-turn change card + TurnDiffDialog (Phase 3C) ARE the phone's
+    last-turn diff.
+  - **PROBE-J4 RESOLVED (bundle-extracted):** the shipped task row's wire status vocabulary
+    is `liveStatus: idle | running | waiting | completed | error`
+    (windowHostControllerTaskRowSchema) — every value is in the phone's parsed set; no
+    UNKNOWN rows for any real status.
+  - **PROBE-J9 RESOLVED (bundle-extracted):** the five-hour/weekly split is desktop UI
+    (`CodingPlanQuotaSection`) over the same snapshot data — no separate wire surface; the
+    phone's range tabs remain the authority. The usage analytics ride the existing
+    AppUsageSnapshot.
+- **Rule-5 discoveries appended below (not silently fixed):** the F3-LOAD root cause
+  (loadAttachment never reached the timeline), the w411dp AlertDialog idle-loop rig note,
+  the C2 erratum (queryConversationCommandsV4 is an ack query, not a slash catalog), the
+  FlowRow-in-AlertDialog measure loop, and the pre-existing AppUpdateController UpToDate
+  defect (repaired).
 
 ## Phase 5 — P3 bigger surfaces + ADR-gated writes
 
