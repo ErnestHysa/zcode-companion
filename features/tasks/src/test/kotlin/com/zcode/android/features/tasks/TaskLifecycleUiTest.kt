@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
@@ -81,6 +82,7 @@ class TaskLifecycleUiTest {
         setContent(task("t1"))
         openMenu("t1")
         rule.onNodeWithTag("task_menu_rename_t1").performClick(); rule.waitForIdle()
+        rule.onNodeWithTag("task_rename_field").performTextClearance()
         rule.onNodeWithTag("task_rename_field").performTextInput("Renamed auth")
         rule.onNodeWithTag("task_rename_confirm").performClick(); rule.waitForIdle()
         assertEquals(listOf("rename:t1:Renamed auth"), calls)
@@ -110,7 +112,7 @@ class TaskLifecycleUiTest {
     @Test
     fun `change stats render on the row when the wire carries them`() {
         setContent(task("t4", files = 2))
-        rule.onNodeWithTag("task_changes_t4").assertIsDisplayed()
+        org.junit.Assert.assertEquals(1, rule.onAllNodesWithTag("task_changes_t4").fetchSemanticsNodes().size)
         rule.onNodeWithText("+12 −3").assertIsDisplayed()
     }
 
@@ -132,7 +134,7 @@ class TaskLifecycleUiTest {
 
     @Test
     fun `search hits render with snippets and tapping one opens the task`() {
-        var opened: String? = null
+        val opened = mutableListOf<String>()
         val clicked = mutableListOf<String>()
         rule.setContent {
             ZCodeTheme {
@@ -146,12 +148,13 @@ class TaskLifecycleUiTest {
                             com.zcode.android.features.tasks.port.TaskSearchHit("t9", "Fix auth", "refresh token rotation"),
                         ),
                     ),
-                    onTaskClick = { opened = it.taskId },
+                    onTaskClick = {},
                     onOpenSettings = {},
                     onOpenConnection = {},
                     onRetry = {},
                     onRefresh = {},
                     onSearch = { clicked += it },
+                    onOpenTaskId = { opened = it },
                 )
             }
         }
@@ -159,7 +162,7 @@ class TaskLifecycleUiTest {
         rule.onNodeWithTag("tasks_search_hit_t9").assertIsDisplayed()
         rule.onNodeWithText("refresh token rotation").assertIsDisplayed()
         rule.onNodeWithTag("tasks_search_hit_t9").performClick(); rule.waitForIdle()
-        org.junit.Assert.assertEquals("t9", opened)
+        org.junit.Assert.assertEquals(listOf("t9"), opened)
         org.junit.Assert.assertEquals("picking a hit clears the query", listOf(""), clicked)
     }
 }

@@ -112,7 +112,7 @@ class TaskLifecycleWireTest {
         assertEquals("auth", (arg["search"] as JsonPrimitive).content)
         assertEquals("10", (arg["limit"] as JsonPrimitive).content)
         val scopes = arg["workspaceScopes"] as kotlinx.serialization.json.JsonArray
-        val scope = scopes.first().jsonObject
+        val scope = (scopes.first() as kotlinx.serialization.json.JsonObject)
         assertEquals("/synthetic/ws", (scope["workspacePath"] as JsonPrimitive).content)
     }
 }

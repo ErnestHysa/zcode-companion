@@ -359,6 +359,8 @@ fun TaskListScreen(
                         .clickable(role = androidx.compose.ui.semantics.Role.Button) {
                             searchOpen = false
                             onSearch("")
+                            // Open the hit (the run/session path — same as the automation run).
+                            onOpenTaskId(hit.taskId)
                         }
                         .padding(horizontal = 16.dp, vertical = 10.dp)
                         .testTag("tasks_search_hit_${hit.taskId}"),
