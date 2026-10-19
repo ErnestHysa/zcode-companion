@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
@@ -68,9 +69,9 @@ class ScratchWorkspaceUiTest {
         setContent()
         rule.onNodeWithTag("create_workspace_picker").performClick(); rule.waitForIdle()
         rule.onNodeWithText("New scratch workspace").performClick(); rule.waitForIdle()
-        rule.onNodeWithTag("create_scratch_name").performTextInput("demo")
-        rule.onNodeWithTag("create_task_text").performTextInput("Say hello")
-        rule.onNodeWithTag("create_task_confirm").performClick(); rule.waitForIdle()
+        rule.onNodeWithTag("create_scratch_name").performScrollTo().performTextInput("demo")
+        rule.onNodeWithTag("create_task_text").performScrollTo().performTextInput("Say hello")
+        rule.onNodeWithTag("create_task_confirm").performScrollTo().performClick(); rule.waitForIdle()
         assertEquals(1, created.size)
         assertEquals("the scratch sentinel name rides the create callback", "scratch:demo", created.first().first)
         assertEquals("Say hello", created.first().second)
@@ -81,7 +82,7 @@ class ScratchWorkspaceUiTest {
         setContent()
         rule.onNodeWithTag("create_workspace_picker").performClick(); rule.waitForIdle()
         rule.onNodeWithText("New scratch workspace").performClick(); rule.waitForIdle()
-        rule.onNodeWithTag("create_task_text").performTextInput("Say hello")
+        rule.onNodeWithTag("create_task_text").performScrollTo().performTextInput("Say hello")
         rule.onNodeWithTag("create_task_confirm").performClick(); rule.waitForIdle()
         assertTrue("no scratch name → nothing created", created.isEmpty())
     }

@@ -2,6 +2,8 @@ package com.zcode.android.features.tasks.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -356,7 +358,13 @@ internal fun CreateTaskSheet(
                 { pickingModel = false },
             )
         } else {
-            Column(Modifier.padding(horizontal = 16.dp)) {
+            // C7: scrollable — the scratch name field + confirm stay reachable when the
+            // sheet grows past a small viewport (the ATD test device's fold).
+            Column(
+                Modifier
+                    .padding(horizontal = 16.dp)
+                    .verticalScroll(rememberScrollState()),
+            ) {
                 Text(
                     stringResource(R.string.create_task_title),
                     style = MaterialTheme.typography.titleMedium,
