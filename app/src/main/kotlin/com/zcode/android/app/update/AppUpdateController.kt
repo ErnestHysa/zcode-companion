@@ -55,7 +55,11 @@ class AppUpdateController(
         if (current is UpdateCheckState.Checking) return
         if (!force) {
             val fresh = nowMs() - lastCheckAtMs < MIN_INTERVAL_MS
-            val known = current is UpdateCheckState.Available || current is UpdateCheckState.UpToDate
+            // Only the Available banner is flicker-protected (920fcd5's contract:
+            // "Available blocks re-fetch — no flicker; TERMINAL states re-check on
+            // the next trigger"). UpToDate previously rode `known` and stranded the
+            // re-check — the pre-existing red pin this repair closes.
+            val known = current is UpdateCheckState.Available
             if (fresh && known) return
         }
         _check.value = UpdateCheckState.Checking
