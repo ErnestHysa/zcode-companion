@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
@@ -132,7 +133,7 @@ class TaskListUiTest {
         rule.setContent {
             TaskListScreen(state, onTaskClick = {}, onOpenSettings = {}, onOpenConnection = {}, onRetry = {}, onRefresh = {})
         }
-        rule.onNodeWithTag("tasks_first_sync_strip").assertIsDisplayed()
+        rule.onNodeWithTag("tasks_first_sync_strip").performScrollTo()
         rule.onNodeWithText("First sync failed").assertIsDisplayed()
     }
 
