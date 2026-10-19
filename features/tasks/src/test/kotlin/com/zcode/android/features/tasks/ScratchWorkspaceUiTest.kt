@@ -83,7 +83,7 @@ class ScratchWorkspaceUiTest {
         rule.onNodeWithText("New scratch workspace").performClick(); rule.waitForIdle()
         rule.onNodeWithTag("create_task_text").performTextInput("Say hello")
         rule.onNodeWithTag("create_task_confirm").performClick(); rule.waitForIdle()
-        assertTrue(created.isEmpty(), "no scratch name → nothing created")
+        assertTrue("no scratch name → nothing created", created.isEmpty())
     }
 
     @Test
