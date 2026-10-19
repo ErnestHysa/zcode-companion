@@ -101,6 +101,21 @@
     "uninstallPlugin": true,
     "updateAutomation": true,
     "updatePlugin": true,
-    "getTaskSnapshotToolCallsSlice": true
+    "getTaskSnapshotToolCallsSlice": true,
+    "retryTurn": true,
+    "forkAssistant": true,
+    "setThoughtLevel": true,
+    "createScratchWorkspace": true,
+    "listAutomationRuns": true,
+    "deleteAutomationRun": true,
+    "restartAutomation": true,
+    "archiveTask": true,
+    "unarchiveTask": true,
+    "listArchivedTasks": true,
+    "renameTask": true,
+    "deleteTask": true,
+    "listTaskList": true,
+    "commandsList": true,
+    "subagentsList": true
   }
 }
