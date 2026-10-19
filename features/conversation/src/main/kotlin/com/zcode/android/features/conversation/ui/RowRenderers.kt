@@ -564,30 +564,36 @@ fun TurnSeparator(
         }
     }
     if (confirmRewind && onRewindFiles != null) {
-        // Desktop chat.changeSummary.rewindDialog: an explicit confirm before the workspace write.
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { confirmRewind = false },
-            title = { Text(stringResource(R.string.rewind_dialog_title)) },
-            text = {
-                Text(
-                    stringResource(
-                        R.string.rewind_dialog_body,
-                        pluralStringResource(R.plurals.row_files_count, (row.fileChanges?.files ?: 0).toInt(), (row.fileChanges?.files ?: 0).toInt()),
-                    ),
-                )
-            },
-            confirmButton = {
+        // B3-sheets: the destructive confirm is a bottom sheet (the architecture pin:
+        // RowRenderers hosts no AlertDialog); desktop rewindDialog copy preserved.
+        ZCodeModalBottomSheet(onDismissRequest = { confirmRewind = false }) {
+            Text(
+                stringResource(R.string.rewind_dialog_title),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+            Text(
+                stringResource(
+                    R.string.rewind_dialog_body,
+                    pluralStringResource(R.plurals.row_files_count, (row.fileChanges?.files ?: 0).toInt(), (row.fileChanges?.files ?: 0).toInt()),
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+            Row(
+                Modifier.fillMaxWidth().padding(16.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(onClick = { confirmRewind = false }) {
+                    Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
+                }
                 TextButton(
                     onClick = { confirmRewind = false; onRewindFiles() },
                     modifier = Modifier.testTag("rewind_confirm"),
                 ) { Text(stringResource(R.string.rewind_dialog_confirm)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmRewind = false }) {
-                    Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
-                }
-            },
-        )
+            }
+            Spacer(Modifier.height(12.dp))
+        }
     }
     if (hasChanges) {
         androidx.compose.foundation.layout.Box(

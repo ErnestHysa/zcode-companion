@@ -25,6 +25,7 @@
     <string name="tasks_search_hint">搜索任务</string>
     <string name="tasks_search_empty">没有匹配的任务。</string>
     <string name="task_delete_title">删除任务？</string>
+    <string name="task_actions_desc">任务操作</string>
     <string name="task_delete_body">删除“%1$s”？该任务的所有记录无法恢复。</string>
     <string name="task_delete_confirm">删除</string>
     <string name="task_archive_title">归档任务？</string>

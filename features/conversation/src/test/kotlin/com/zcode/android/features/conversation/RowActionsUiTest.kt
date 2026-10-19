@@ -154,8 +154,9 @@ class RowActionsUiTest {
         assertEquals(1, count("row_turn_rewind"))
         rule.onNodeWithTag("row_turn_rewind").performClick()
         rule.waitForIdle()
-        // Desktop: chat.changeSummary.rewindDialog — confirm "Undo files" before the command.
-        rule.onNodeWithTag("rewind_confirm").assertIsDisplayed()
+        // Desktop: chat.changeSummary.rewindDialog — confirm "Undo files" before the
+        // command (a bottom sheet — B3-sheets).
+        rule.waitUntil(5_000) { rule.onAllNodesWithTag("rewind_confirm").fetchSemanticsNodes().isNotEmpty() }
         assertEquals(emptyList<String>(), calls)
         rule.onNodeWithTag("rewind_confirm").performClick()
         rule.waitForIdle()

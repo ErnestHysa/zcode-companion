@@ -25,6 +25,7 @@
     <string name="tasks_search_hint">Search tasks</string>
     <string name="tasks_search_empty">No tasks match.</string>
     <string name="task_delete_title">Delete task?</string>
+    <string name="task_actions_desc">Task actions</string>
     <string name="task_delete_body">Delete \"%1$s\"? All records for this task cannot be recovered.</string>
     <string name="task_delete_confirm">Delete</string>
     <string name="task_archive_title">Archive task?</string>

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -276,6 +277,7 @@ fun TaskListScreen(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(start = 16.dp, end = 16.dp, bottom = 88.dp)
+                        .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
                         .testTag("tasks_search_fab"),
                 ) {
                     Icon(
@@ -939,7 +941,7 @@ fun TaskRow(
                 ) {
                     androidx.compose.material3.Icon(
                         imageVector = Icons.Filled.MoreVert,
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.task_actions_desc),
                     )
                 }
                 androidx.compose.material3.DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
