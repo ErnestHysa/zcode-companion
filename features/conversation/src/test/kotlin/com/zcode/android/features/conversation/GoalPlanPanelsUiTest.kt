@@ -7,7 +7,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
-import com.zcode.android.domain.model.ActiveWork
 import com.zcode.android.domain.model.GoalState
 import com.zcode.android.domain.model.PlanState
 import com.zcode.android.domain.model.SessionControl
@@ -122,7 +121,7 @@ class GoalPlanPanelsUiTest {
                 control = SessionControl(
                     phase = "running", sessionEnded = false, canStop = true,
                     stopState = SessionControl.StopState.STOPPABLE,
-                    activeWorks = listOf(ActiveWork(kind = "compact", foregroundExecutionId = null)),
+                    activeWorks = listOf(com.zcode.android.domain.model.SessionControl.ActiveWork(kind = "compact", foregroundExecutionId = null)),
                 ),
             ),
         )

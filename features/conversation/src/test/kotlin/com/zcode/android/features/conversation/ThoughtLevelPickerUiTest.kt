@@ -63,7 +63,7 @@ class ThoughtLevelPickerUiTest {
         rule.onNodeWithTag("conv_effort_chip").assertIsDisplayed()
         rule.onNodeWithTag("conv_effort_chip").performClick(); rule.waitForIdle()
         for (level in listOf("minimal", "low", "medium", "high")) {
-            assertEquals(1, rule.onAllNodesWithTag("effort_option_$level").fetchSemanticsNodes().size, level)
+            assertEquals(level, 1, rule.onAllNodesWithTag("effort_option_$level").fetchSemanticsNodes().size)
         }
     }
 
@@ -94,7 +94,7 @@ class ThoughtLevelPickerUiTest {
         rule.onNodeWithTag("conv_mode_chip").performClick(); rule.waitForIdle()
         // The WIRE's four modes (toZCodeMode normalizes every runtime onto them)…
         for (mode in listOf("build", "edit", "plan", "yolo")) {
-            assertEquals(1, rule.onAllNodesWithTag("mode_option_$mode").fetchSemanticsNodes().size, mode)
+            assertEquals(mode, 1, rule.onAllNodesWithTag("mode_option_$mode").fetchSemanticsNodes().size)
         }
         // …with NEUTRAL copy, not glm's "Ask before changes".
         assertEquals(0, rule.onAllNodesWithText("Ask before changes").fetchSemanticsNodes().size)
