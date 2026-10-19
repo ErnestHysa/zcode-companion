@@ -75,7 +75,7 @@ class UsageChartsUiTest {
             }
         }
         rule.onNodeWithTag("usage_pie_canvas").performScrollTo()
-        assertTrue(rule.onAllNodesWithText("glm-5.1").fetchSemanticsNodes().isNotEmpty(), "the pie legend names the top model")
+        org.junit.Assert.assertTrue("the pie legend names the top model", rule.onAllNodesWithText("glm-5.1").fetchSemanticsNodes().isNotEmpty())
     }
 
     @Test
