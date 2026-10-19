@@ -27,6 +27,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -110,6 +113,7 @@ fun TaskListScreen(
     creatingTask: Boolean = false,
     createNotice: String? = null,
     onConsumeCreateNotice: () -> Unit = {},
+    onConsumeActionNotice: () -> Unit = {},
     /** GAP-14: per-workspace collapse persistence (null = in-memory for the session). */
     collapseStore: com.zcode.android.features.tasks.ui.WorkspaceCollapseStore? = null,
     collapseExecutor: java.util.concurrent.Executor = com.zcode.android.features.tasks.ui.WorkspaceCollapseStateBackgroundExecutor(),
@@ -122,9 +126,20 @@ fun TaskListScreen(
     onOpenTaskId: (taskId: String) -> Unit = {},
     /** Phase 4C (C7): a scratch create — the caller resolves `{name}` → `{path}` then creates. */
     onCreateScratchTask: (name: String, firstText: String, provider: String?, model: String?) -> Unit = { _, _, _, _ -> },
+    // ---- Phase 4D (L6.3+J4 / H1.1) ----
+    onDeleteTask: (taskId: String) -> Unit = {},
+    onRenameTask: (taskId: String, title: String) -> Unit = { _, _ -> },
+    onSetTaskArchived: (taskId: String, archived: Boolean) -> Unit = { _, _ -> },
+    onSearch: (query: String) -> Unit = {},
 ) {
     val motion = rememberMotionSpec()
     var showCreate by remember { androidx.compose.runtime.mutableStateOf(false) }
+    var searchOpen by remember { androidx.compose.runtime.mutableStateOf(false) }
+    // Phase 4D (L6.3+J4): the lifecycle dialog anchors.
+    var confirmDelete by remember { androidx.compose.runtime.mutableStateOf<com.zcode.android.domain.model.Task?>(null) }
+    var confirmArchive by remember { androidx.compose.runtime.mutableStateOf<com.zcode.android.domain.model.Task?>(null) }
+    var renameFor by remember { androidx.compose.runtime.mutableStateOf<com.zcode.android.domain.model.Task?>(null) }
+    var renameText by remember { androidx.compose.runtime.mutableStateOf("") }
     LaunchedEffect(requestCreate) {
         if (requestCreate) {
             showCreate = true
@@ -242,10 +257,32 @@ fun TaskListScreen(
                                 onRepairPairing,
                                 selectedWorkspaceKeyParam = selectedWorkspaceKey,
                                 collapse = collapse,
+                                onRowDelete = { confirmDelete = it },
+                                onRowArchive = { confirmArchive = it },
+                                onRowRename = {
+                                    renameFor = it
+                                    renameText = it.title
+                                },
                             )
                     }
                 }
             }
+                // Phase 4D (H1.1): the task-search toggle (a small FAB above the create FAB).
+                androidx.compose.material3.SmallFloatingActionButton(
+                    onClick = {
+                        searchOpen = !searchOpen
+                        if (!searchOpen) onSearch("")
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(start = 16.dp, end = 16.dp, bottom = 88.dp)
+                        .testTag("tasks_search_fab"),
+                ) {
+                    Icon(
+                        Icons.Filled.Search,
+                        contentDescription = stringResource(R.string.tasks_search_hint),
+                    )
+                }
                 // §6.1 parity: create tasks in existing workspaces — the "+ New task"
                 // entry lives where the eye lands after scanning the list.
                 androidx.compose.material3.ExtendedFloatingActionButton(
@@ -289,10 +326,158 @@ fun TaskListScreen(
             modelPicker = modelPicker,
         )
     }
-    LaunchedEffect(createNotice) {
-        if (createNotice != null) {
+    // ---- Phase 4D (H1.1): the task-search field — a live port query over
+    // `zcode-task.listTaskList` (the desktop's own search surface). ----
+    if (searchOpen) {
+        androidx.compose.material3.OutlinedTextField(
+            value = state.searchQuery,
+            onValueChange = onSearch,
+            placeholder = { Text(stringResource(R.string.tasks_search_hint)) },
+            singleLine = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp)
+                .testTag("tasks_search_field"),
+        )
+    }
+
+    // H1.1: while a query is active the search results REPLACE the grouped list
+    // (the desktop's taskSearch.* behaviour; snippets render under the title).
+    if (state.searchQuery.isNotBlank()) {
+        if (state.searchResults.isEmpty()) {
+            Text(
+                stringResource(R.string.tasks_search_empty),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp).testTag("tasks_search_empty"),
+            )
+        } else {
+            state.searchResults.forEach { hit ->
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(role = androidx.compose.ui.semantics.Role.Button) {
+                            searchOpen = false
+                            onSearch("")
+                        }
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                        .testTag("tasks_search_hit_${hit.taskId}"),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(hit.title, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        hit.snippet?.let { snippet ->
+                            Text(
+                                snippet,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+            }
+        }
+        LaunchedEffect(createNotice) {
+            if (createNotice != null) {
+                kotlinx.coroutines.delay(4000)
+                onConsumeCreateNotice()
+            }
+        }
+        return
+    }
+
+    // ---- Phase 4D (L6.3+J4): the lifecycle confirm dialogs ----
+    confirmDelete?.let { doomed ->
+        // Desktop confirmDialog.taskDelete*: "records cannot be recovered".
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmDelete = null },
+            title = { Text(stringResource(R.string.task_delete_title)) },
+            text = { Text(stringResource(R.string.task_delete_body, doomed.title)) },
+            confirmButton = {
+                com.zcode.android.core.ui.components.ZCodeButton(
+                    onClick = { val id = doomed.taskId; confirmDelete = null; onDeleteTask(id) },
+                    modifier = Modifier.testTag("task_delete_confirm"),
+                ) { Text(stringResource(R.string.task_delete_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = null }) {
+                    Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
+                }
+            },
+        )
+    }
+    confirmArchive?.let { target ->
+        // Desktop confirmDialog.taskArchive*: "can be restored later".
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmArchive = null },
+            title = { Text(stringResource(if (target.archivedAtMs == null) R.string.task_archive_title else R.string.task_unarchive_title)) },
+            text = { Text(stringResource(R.string.task_archive_body, target.title)) },
+            confirmButton = {
+                com.zcode.android.core.ui.components.ZCodeButton(
+                    onClick = {
+                        val id = target.taskId
+                        val to = target.archivedAtMs == null
+                        confirmArchive = null
+                        onSetTaskArchived(id, to)
+                    },
+                    modifier = Modifier.testTag("task_archive_confirm"),
+                ) { Text(stringResource(R.string.task_archive_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmArchive = null }) {
+                    Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
+                }
+            },
+        )
+    }
+    renameFor?.let { target ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { renameFor = null },
+            title = { Text(stringResource(R.string.task_rename_title)) },
+            text = {
+                androidx.compose.material3.OutlinedTextField(
+                    value = renameText,
+                    onValueChange = { renameText = it },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().testTag("task_rename_field"),
+                )
+            },
+            confirmButton = {
+                com.zcode.android.core.ui.components.ZCodeButton(
+                    onClick = {
+                        val id = target.taskId
+                        val t = renameText
+                        renameFor = null
+                        if (t.isNotBlank()) onRenameTask(id, t)
+                    },
+                    enabled = renameText.isNotBlank(),
+                    modifier = Modifier.testTag("task_rename_confirm"),
+                ) { Text(stringResource(R.string.task_rename_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { renameFor = null }) {
+                    Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
+                }
+            },
+        )
+    }
+    // The lifecycle one-shot notice (auto-clears like createNotice).
+    state.actionNotice?.let { notice ->
+        Text(
+            notice,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).testTag("tasks_action_notice"),
+        )
+    }
+    LaunchedEffect(createNotice, state.actionNotice) {
+        if (createNotice != null || state.actionNotice != null) {
             kotlinx.coroutines.delay(4000)
             onConsumeCreateNotice()
+            onConsumeActionNotice()
         }
     }
 }
@@ -555,6 +740,9 @@ private fun ReadyBody(
     onRepairPairing: () -> Unit,
     selectedWorkspaceKeyParam: String? = null,
     collapse: WorkspaceCollapseState = remember { WorkspaceCollapseState(null) },
+    onRowDelete: ((com.zcode.android.domain.model.Task) -> Unit)? = null,
+    onRowArchive: ((com.zcode.android.domain.model.Task) -> Unit)? = null,
+    onRowRename: ((com.zcode.android.domain.model.Task) -> Unit)? = null,
 ) {
     Column(Modifier.fillMaxSize()) {
         // §14.4.2 stale overlay — cached rows visible + LABELED (never silent stale).
@@ -623,7 +811,14 @@ private fun ReadyBody(
                     // workspace group (desktop cross-listing) — a bare taskId key collided and
                     // crashed LazyColumn on fast scroll ("Key was already used").
                     items(group.tasks, key = { "task-${group.workspaceKey.hashCode()}-${it.taskId}" }) { task ->
-                        TaskRow(task, onClick = { onTaskClick(task) }, modifier = Modifier.animateItem())
+                        TaskRow(
+                            task,
+                            onClick = { onTaskClick(task) },
+                            modifier = Modifier.animateItem(),
+                            onDelete = onRowDelete?.let { cb -> { cb(task) } },
+                            onArchive = onRowArchive?.let { cb -> { cb(task) } },
+                            onRename = onRowRename?.let { cb -> { cb(task) } },
+                        )
                         HorizontalHairline()
                     }
                 }
@@ -688,7 +883,15 @@ private fun WorkspaceHeader(
 }
 
 @Composable
-fun TaskRow(task: Task, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun TaskRow(
+    task: Task,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    /** Phase 4D (L6.3+J4): the lifecycle entry points (null = read-only context). */
+    onDelete: (() -> Unit)? = null,
+    onArchive: (() -> Unit)? = null,
+    onRename: (() -> Unit)? = null,
+) {
     val rail = taskStatusRail(task.status)
     val label = taskStatusLabel(task.status)
     val glyph = taskStatusGlyph(task.status)
@@ -709,6 +912,45 @@ fun TaskRow(task: Task, onClick: () -> Unit, modifier: Modifier = Modifier) {
             },
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // Phase 4D (L6.3+J4): the lifecycle overflow ("⋯") — Delete / Archive /
+        // Rename; the confirms live in the screen (desktop confirmDialog.* copy).
+        if (onDelete != null || onArchive != null || onRename != null) {
+            var menuOpen by remember { androidx.compose.runtime.mutableStateOf(false) }
+            androidx.compose.foundation.layout.Box {
+                androidx.compose.material3.IconButton(
+                    onClick = { menuOpen = true },
+                    modifier = Modifier.testTag("task_actions_${task.taskId}"),
+                ) {
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Filled.MoreVert,
+                        contentDescription = null,
+                    )
+                }
+                androidx.compose.material3.DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    onRename?.let { cb ->
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text(stringResource(R.string.task_rename_confirm)) },
+                            onClick = { menuOpen = false; cb() },
+                            modifier = Modifier.testTag("task_menu_rename_${task.taskId}"),
+                        )
+                    }
+                    onArchive?.let { cb ->
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text(stringResource(R.string.task_archive_confirm)) },
+                            onClick = { menuOpen = false; cb() },
+                            modifier = Modifier.testTag("task_menu_archive_${task.taskId}"),
+                        )
+                    }
+                    onDelete?.let { cb ->
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text(stringResource(R.string.task_delete_confirm)) },
+                            onClick = { menuOpen = false; cb() },
+                            modifier = Modifier.testTag("task_menu_delete_${task.taskId}"),
+                        )
+                    }
+                }
+            }
+        }
         Column(Modifier.weight(1f)) {
             Text(
                 text = task.title,
@@ -717,6 +959,19 @@ fun TaskRow(task: Task, onClick: () -> Unit, modifier: Modifier = Modifier) {
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
+            // J4: the per-task change stats the wire always carried (+N −N on the row,
+            // desktop taskList.changeStats) — decoded since Phase 2, never rendered.
+            task.summary?.let { sum ->
+                if (sum.files > 0) {
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = "+${sum.additions} −${sum.deletions}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.testTag("task_changes_${task.taskId}"),
+                    )
+                }
+            }
             Spacer(Modifier.height(3.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(

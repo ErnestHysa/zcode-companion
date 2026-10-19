@@ -52,4 +52,22 @@ interface TasksPort {
      * or unavailable (the sheet keeps the regular picker).
      */
     suspend fun createScratchWorkspace(name: String): String? = null
+
+    // ---------------------------------------------------------------- Phase 4D (L6.3+J4 / H1.1)
+
+    /**
+     * The task lifecycle on the `zcode-task` channel (shipped 3.14.5 facade): delete
+     * ("records cannot be recovered" — a typed confirm precedes), rename, and
+     * archive/unarchive ("can be restored later"). Null/false results are honest
+     * refusals; the UI toasts and refreshes, never guesses.
+     */
+    suspend fun deleteTask(taskId: String): Boolean = false
+    suspend fun renameTask(taskId: String, title: String): Boolean = false
+    suspend fun setTaskArchived(taskId: String, archived: Boolean): Boolean = false
+
+    /** H1.1: the desktop's full-text task search (listTaskList; snippets included). */
+    suspend fun searchTasks(query: String): List<TaskSearchHit> = emptyList()
 }
+
+/** A `listTaskList` hit — the snippet is the desktop's searchable_text projection. */
+data class TaskSearchHit(val taskId: String, val title: String, val snippet: String?)

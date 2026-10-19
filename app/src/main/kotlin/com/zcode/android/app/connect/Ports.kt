@@ -88,6 +88,64 @@ class DefaultTasksPort(
             null
         }
 
+    // ---------------------------------------------------------------- Phase 4D (L6.3+J4 / H1.1)
+
+    override suspend fun deleteTask(taskId: String): Boolean {
+        val target = hub.activeWorkspaceTarget() ?: return false
+        val ws = target.first ?: return false
+        return try {
+            hub.taskService().deleteTask(ws, target.second, taskId)
+            true
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("tasksport.delete", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            false
+        }
+    }
+
+    override suspend fun renameTask(taskId: String, title: String): Boolean {
+        val target = hub.activeWorkspaceTarget() ?: return false
+        val ws = target.first ?: return false
+        return try {
+            hub.taskService().renameTask(ws, target.second, taskId, title)
+            true
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("tasksport.rename", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            false
+        }
+    }
+
+    override suspend fun setTaskArchived(taskId: String, archived: Boolean): Boolean {
+        val target = hub.activeWorkspaceTarget() ?: return false
+        val ws = target.first ?: return false
+        return try {
+            hub.taskService().archiveTask(ws, target.second, taskId, archived)
+            true
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("tasksport.archive", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            false
+        }
+    }
+
+    override suspend fun searchTasks(query: String): List<com.zcode.android.features.tasks.port.TaskSearchHit> {
+        val target = hub.activeWorkspaceTarget() ?: return emptyList()
+        val ws = target.first ?: return emptyList()
+        return try {
+            hub.taskService().searchTasks(ws, target.second, query)
+                .items.map { com.zcode.android.features.tasks.port.TaskSearchHit(it.taskId, it.title, it.snippets.firstOrNull()) }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("tasksport.search", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            emptyList()
+        }
+    }
+
     override suspend fun createTask(
         workspaceKey: String,
         firstText: String,

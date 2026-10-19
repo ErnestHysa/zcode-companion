@@ -19,6 +19,18 @@
     <string name="tasks_created">任务已创建</string>
     <string name="create_task_title">新任务</string>
     <string name="create_scratch_entry">新建临时工作区</string>
+    <!-- Phase 4D (L6.3+J4 / H1.1)：任务生命周期 + 搜索 -->
+    <string name="tasks_search_hint">搜索任务</string>
+    <string name="tasks_search_empty">没有匹配的任务。</string>
+    <string name="task_delete_title">删除任务？</string>
+    <string name="task_delete_body">删除“%1$s”？该任务的所有记录无法恢复。</string>
+    <string name="task_delete_confirm">删除</string>
+    <string name="task_archive_title">归档任务？</string>
+    <string name="task_unarchive_title">取消归档？</string>
+    <string name="task_archive_body">归档“%1$s”？归档的任务以后可以恢复。</string>
+    <string name="task_archive_confirm">归档</string>
+    <string name="task_rename_title">重命名任务</string>
+    <string name="task_rename_confirm">重命名</string>
     <string name="create_scratch_name">临时工作区名称</string>
     <string name="create_no_workspaces">桌面端尚未提供任何工作区。</string>
     <string name="create_pick_workspace">选择工作区</string>

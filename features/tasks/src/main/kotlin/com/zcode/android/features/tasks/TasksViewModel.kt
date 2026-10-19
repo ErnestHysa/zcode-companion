@@ -35,6 +35,13 @@ data class TasksUiState(
     /** Non-null while a create is in flight; result surfaces once via [createNotice]. */
     val creatingTask: Boolean = false,
     val createNotice: String? = null,
+    // ---- Phase 4D (L6.3+J4 / H1.1) ----
+    /** H1.1: live task-search results (empty = no query / no matches). */
+    val searchResults: List<com.zcode.android.features.tasks.port.TaskSearchHit> = emptyList(),
+    /** The active search query (drives the results surface). */
+    val searchQuery: String = "",
+    /** One-shot lifecycle-action notice (delete/archive/rename outcome). */
+    val actionNotice: String? = null,
 ) {
     enum class Load { LOADING, EMPTY, READY }
 
@@ -56,6 +63,11 @@ data class TaskGroup(
 )
 
 class TasksViewModel(private val port: TasksPort, private val scope: CoroutineScope) {
+
+    // ---- Phase 4D: task lifecycle + search ----
+    private val searchResults = kotlinx.coroutines.flow.MutableStateFlow<List<com.zcode.android.features.tasks.port.TaskSearchHit>>(emptyList())
+    private val searchQuery = kotlinx.coroutines.flow.MutableStateFlow("")
+    private val actionNotice = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
 
 
     private val refreshing = MutableStateFlow(false)
@@ -79,12 +91,40 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
         val suggestRepair: Boolean,
     )
 
-    private val tertiary = combine(
-        port.observeWorkspaces(), creating, createNotice,
-    ) { w, c, n -> Triple(w, c, n) }
+    @Suppress("UNCHECKED_CAST")
+    private val quaternary = kotlinx.coroutines.flow.combine(
+        port.observeWorkspaces(),
+        creating,
+        createNotice,
+        searchResults,
+        searchQuery,
+        actionNotice,
+    ) { arr ->
+        @kotlin.Suppress("UNCHECKED_CAST")
+        Sextet(
+            arr[0] as List<com.zcode.android.domain.model.WorkspaceOption>,
+            arr[1] as Boolean,
+            arr[2] as String?,
+            arr[3] as List<com.zcode.android.features.tasks.port.TaskSearchHit>,
+            arr[4] as String,
+            arr[5] as String?,
+        )
+    }
 
-    val state: StateFlow<TasksUiState> = combine(primary, secondary, tertiary) { (tasks, phase, error), extra, (workspaces, creatingNow, notice) ->
+    private data class Sextet(
+        val workspaces: List<com.zcode.android.domain.model.WorkspaceOption>,
+        val creating: Boolean,
+        val notice: String?,
+        val searchResults: List<com.zcode.android.features.tasks.port.TaskSearchHit>,
+        val searchQuery: String,
+        val actionNotice: String?,
+    )
+
+    val state: StateFlow<TasksUiState> = combine(primary, secondary, quaternary) { (tasks, phase, error), extra, q ->
         TasksUiState(
+            searchResults = q.searchResults,
+            searchQuery = q.searchQuery,
+            actionNotice = q.actionNotice,
             phase = phase,
             loadState = when {
                 tasks.isNotEmpty() -> TasksUiState.Load.READY
@@ -95,9 +135,9 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
             groups = groupTasks(tasks),
             taskCount = tasks.size,
             error = error,
-            workspaces = workspaces,
-            creatingTask = creatingNow,
-            createNotice = notice,
+            workspaces = q.workspaces,
+            creatingTask = q.creating,
+            createNotice = q.notice,
             refreshing = extra.refreshing,
             lastRefreshAtMs = extra.lastRefresh,
             endpointName = extra.endpointName,
@@ -144,6 +184,62 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
 
     fun consumeCreateNotice() {
         createNotice.value = null
+    }
+
+    // ---------------------------------------------------------------- Phase 4D lifecycle + search
+
+    /** Delete ("records cannot be recovered" — the UI confirms BEFORE this). */
+    fun deleteTask(taskId: String) {
+        scope.launch {
+            val ok = port.deleteTask(taskId)
+            actionNotice.value = if (ok) {
+                refresh()
+                "Task deleted"
+            } else {
+                "Couldn't delete the task — try again"
+            }
+        }
+    }
+
+    fun renameTask(taskId: String, title: String) {
+        if (title.isBlank()) return
+        scope.launch {
+            val ok = port.renameTask(taskId, title)
+            actionNotice.value = if (ok) {
+                refresh()
+                "Task renamed"
+            } else {
+                "Couldn't rename the task — try again"
+            }
+        }
+    }
+
+    fun setTaskArchived(taskId: String, archived: Boolean) {
+        scope.launch {
+            val ok = port.setTaskArchived(taskId, archived)
+            actionNotice.value = if (ok) {
+                refresh()
+                if (archived) "Task archived — restore it on the desktop" else "Task unarchived"
+            } else {
+                "Couldn't update the task — try again"
+            }
+        }
+    }
+
+    fun consumeActionNotice() {
+        actionNotice.value = null
+    }
+
+    /** H1.1: a blank query clears; anything else is a live port search. */
+    fun search(query: String) {
+        searchQuery.value = query
+        if (query.isBlank()) {
+            searchResults.value = emptyList()
+            return
+        }
+        scope.launch {
+            searchResults.value = port.searchTasks(query)
+        }
     }
 
     fun refresh() {

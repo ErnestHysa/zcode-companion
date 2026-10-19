@@ -19,6 +19,18 @@
     <string name="tasks_created">Task created</string>
     <string name="create_task_title">New task</string>
     <string name="create_scratch_entry">New scratch workspace</string>
+    <!-- Phase 4D (L6.3+J4 / H1.1): task lifecycle + search — the desktop's confirm copy -->
+    <string name="tasks_search_hint">Search tasks</string>
+    <string name="tasks_search_empty">No tasks match.</string>
+    <string name="task_delete_title">Delete task?</string>
+    <string name="task_delete_body">Delete \"%1$s\"? All records for this task cannot be recovered.</string>
+    <string name="task_delete_confirm">Delete</string>
+    <string name="task_archive_title">Archive task?</string>
+    <string name="task_unarchive_title">Unarchive task?</string>
+    <string name="task_archive_body">Archive \"%1$s\"? Archived tasks can be restored later.</string>
+    <string name="task_archive_confirm">Archive</string>
+    <string name="task_rename_title">Rename task</string>
+    <string name="task_rename_confirm">Rename</string>
     <string name="create_scratch_name">Scratch workspace name</string>
     <string name="create_no_workspaces">No workspaces offered by the desktop yet.</string>
     <string name="create_pick_workspace">Choose a workspace</string>
