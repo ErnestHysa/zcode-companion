@@ -82,7 +82,8 @@ class MentionFilesUiTest {
     @Test
     fun `typing an at-token suggests workspace files`() {
         setContent(draft = "look at @read")
-        rule.waitForIdle()
+        // The suggestion query is debounce-delayed (150ms real time) — wait for it.
+        rule.waitUntil(3_000) { queries.isNotEmpty() }
         assertEquals(listOf("read"), queries)
         rule.onNodeWithText("/synthetic/ws/docs/readme.md").assertIsDisplayed()
         assertEquals(0, rule.onAllNodesWithText("/synthetic/ws/src/main.rs").fetchSemanticsNodes().size)
@@ -91,6 +92,8 @@ class MentionFilesUiTest {
     @Test
     fun `picking a suggestion inserts the path in place of the at-token`() {
         setContent(draft = "look at @read")
+        rule.waitUntil(3_000) { queries.isNotEmpty() }
+        rule.waitUntil(3_000) { rule.onAllNodesWithTag("mention_file_/synthetic/ws/docs/readme.md", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithTag("mention_file_/synthetic/ws/docs/readme.md", useUnmergedTree = true).performClick()
         rule.waitForIdle()
         assertEquals(listOf("look at /synthetic/ws/docs/readme.md "), inserted)
@@ -106,7 +109,7 @@ class MentionFilesUiTest {
     @Test
     fun `the add menu carries a discoverable Mention-a-file entry`() {
         setContent()
-        rule.onNodeWithTag("composer_add").performClick(); rule.waitForIdle()
+        rule.onNodeWithTag("composer_attach").performClick(); rule.waitForIdle()
         rule.onNodeWithText("Mention a file").assertIsDisplayed()
     }
 }
