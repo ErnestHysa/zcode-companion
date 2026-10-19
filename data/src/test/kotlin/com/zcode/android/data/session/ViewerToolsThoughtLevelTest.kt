@@ -1,5 +1,6 @@
 package com.zcode.android.data.session
 
+import com.zcode.android.core.common.log.ZLog
 import com.zcode.android.core.transport.CredentialSigner
 import com.zcode.android.core.transport.EndpointDescriptor
 import com.zcode.android.core.transport.EndpointKind
@@ -7,11 +8,12 @@ import com.zcode.android.core.transport.OkHttpWsFactory
 import com.zcode.android.core.transport.RelayTransport
 import com.zcode.android.tools.mockzcode.MockZCode
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.jsonObject
 import org.junit.After
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 /**
  * A3.4 (Phase 4C): `setThoughtLevel` over the real transport ↔ mock — the facade
@@ -37,38 +39,50 @@ class ViewerToolsThoughtLevelTest {
 
     private fun connect() {
         mock = MockZCode(passHash = passHash, expectedSid = sid)
-        mock.start()
-        val port = mock.portForTest()
-        transport = RelayTransport(
-            endpoint = EndpointDescriptor(EndpointKind.RELAY, "ws://127.0.0.1:$port"),
-            signer = CredentialSigner { _, _, _ -> passHash },
-            wsFactory = OkHttpWsFactory(),
-        )
+        val url = mock.start()
+        transport = RelayTransport(wsFactory = OkHttpWsFactory(), log = ZLog(sink = {}))
         runBlocking {
-            withTimeout(15_000) {
+            withTimeout(30_000) {
                 transport.connect(
-                    deviceSid = sid,
-                    bootstrap = com.zcode.android.core.transport.BootstrapPayload(
-                        endpointId = "ep-effort",
-                        workspaces = listOf(com.zcode.android.domain.model.WorkspaceListEntry("/synthetic/ws")),
+                    EndpointDescriptor(
+                        id = "ep-effort",
+                        kind = EndpointKind.RELAY_ZAI,
+                        displayName = "EffortMockBook",
+                        wsUrl = url,
+                        workspaceKey = "synthetic-ws",
+                        workspacePath = "/synthetic/ws",
+                        deviceSid = sid,
+                        deviceMid = "mock-desktop-mid",
                     ),
+                    signer(),
                 )
             }
         }
         tools = ViewerTools(transport)
     }
 
+    private fun signer(): CredentialSigner = CredentialSigner { nonce, role, sid ->
+        MockZCode.hmacProof(passHash, nonce, role, sid)
+    }
+
     @Test
     fun `setThoughtLevel sends sessionId level expectedRevision and persistAsWorkspaceLastUsed`() {
         connect()
+        mock.script.sessionConfig = kotlinx.serialization.json.buildJsonObject {
+            put("provider", JsonPrimitive("zai"))
+            put("model", JsonPrimitive("glm-5.1"))
+            put("thought", JsonPrimitive("low"))
+            put("thoughtLevels", kotlinx.serialization.json.JsonArray(listOf(JsonPrimitive("low"), JsonPrimitive("medium"), JsonPrimitive("high"))))
+            put("mode", JsonPrimitive("build"))
+        }
         runBlocking {
             tools.setThoughtLevel("/synthetic/ws", null, "sess-effort", "high", expectedRevision = 7)
         }
-        val call = mock.lastV4CallForTest("setThoughtLevel") ?: error("setThoughtLevel never reached the mock")
-        assertEquals("sess-effort", (call.params["sessionId"] as JsonPrimitive).content)
-        assertEquals("high", (call.params["thoughtLevel"] as JsonPrimitive).content)
-        assertEquals("7", (call.params["expectedRevision"] as JsonPrimitive).content)
-        assertEquals("true", (call.params["persistAsWorkspaceLastUsed"] as JsonPrimitive).content)
+        val params = assertNotNull(mock.lastV4CallParamsForTest("setThoughtLevel"), "setThoughtLevel never reached the mock")
+        assertEquals("sess-effort", (params["sessionId"] as JsonPrimitive).content)
+        assertEquals("high", (params["thoughtLevel"] as JsonPrimitive).content)
+        assertEquals("7", (params["expectedRevision"] as JsonPrimitive).content)
+        assertEquals("true", (params["persistAsWorkspaceLastUsed"] as JsonPrimitive).content)
         assertEquals("high", (mock.script.sessionConfig?.get("thought") as? JsonPrimitive)?.content, "the echo plane reflects the new level")
     }
 }

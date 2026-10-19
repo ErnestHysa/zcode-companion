@@ -1439,6 +1439,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
         // logged, so "the Retry/Fork/Rewind/Like sheet is UI-only" is provable by the
         // mock stdout between tap and screenshot.
         println("MOCK: v4call $name (id=$id)")
+        synchronized(recentV4Calls) { recentV4Calls[name ?: "?"] = argAsObject(arg) }
         when (name) {
             "helloConversationV4" -> {
                 val hello = buildJsonObject {
@@ -2309,6 +2310,25 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     put("config", script.sessionConfig!!)
                 })
             }
+            // Phase 4C (A3.4): the effort-level facade call (zcodeAgent.ts:705) — the
+            // echo plane's `thought` updates and a state patch carries the config.
+            "setThoughtLevel" -> {
+                stateRevision.incrementAndGet()
+                val level = payload?.strOrNull("thoughtLevel") ?: return null
+                val current = script.sessionConfig
+                script.sessionConfig = buildJsonObject {
+                    put("provider", JsonPrimitive(current?.strOrNull("provider") ?: "zai"))
+                    put("model", JsonPrimitive(current?.strOrNull("model") ?: "glm-5.3"))
+                    put("thought", JsonPrimitive(level))
+                    put("thoughtLevels", current?.get("thoughtLevels") ?: JsonArray(listOf(JsonPrimitive(level))))
+                    put("followupMode", JsonPrimitive(current?.strOrNull("followupMode") ?: "queue"))
+                    put("mode", JsonPrimitive(current?.strOrNull("mode") ?: "build"))
+                }
+                pushStatePatch(buildJsonObject {
+                    put("revision", JsonPrimitive(stateRevision.get()))
+                    put("config", script.sessionConfig!!)
+                })
+            }
         }
         return null
     }
@@ -2339,6 +2359,9 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
     /** Phase 4A observability (self-tests + rig): the last fork's child id / last feedback echo. */
     @Volatile var lastForkedSessionId: String? = null
     @Volatile var lastFeedback: String? = null
+    /** Phase 4C seam: the most recent zcode-agent call's params per method (wire-shape pins). */
+    private val recentV4Calls = HashMap<String, JsonObject>()
+    fun lastV4CallParamsForTest(name: String): JsonObject? = synchronized(recentV4Calls) { recentV4Calls[name] }
 
     /** Test seam for the command-effect machinery (the socket path calls the same function). */
     internal fun applyCommandEffectForTest(type: String, env: JsonObject?): JsonObject? = applyCommandEffect(type, env)
