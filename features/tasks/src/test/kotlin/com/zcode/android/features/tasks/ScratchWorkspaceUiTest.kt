@@ -72,7 +72,7 @@ class ScratchWorkspaceUiTest {
         rule.onNodeWithTag("create_task_text").performTextInput("Say hello")
         rule.onNodeWithTag("create_task_confirm").performClick(); rule.waitForIdle()
         assertEquals(1, created.size)
-        assertEquals("scratch:demo", created.first().first, "the scratch sentinel name rides the create callback")
+        assertEquals("the scratch sentinel name rides the create callback", "scratch:demo", created.first().first)
         assertEquals("Say hello", created.first().second)
     }
 
