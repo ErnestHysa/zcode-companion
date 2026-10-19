@@ -48,6 +48,7 @@ import com.zcode.android.core.ui.components.ConnectionStatusLine
 import com.zcode.android.core.ui.components.SkeletonBar
 import com.zcode.android.core.ui.components.StatusTone
 import com.zcode.android.domain.model.ConversationRow
+import com.zcode.android.domain.model.GoalState
 import com.zcode.android.domain.state.ConnectionPhase
 import com.zcode.android.domain.state.TaskStateMachine
 import com.zcode.android.features.conversation.ConversationUiState
