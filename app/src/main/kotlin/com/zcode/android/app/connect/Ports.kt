@@ -606,6 +606,21 @@ class DefaultConversationPort(
         }
     }
 
+    /** Phase 4C (A3.4): the effort switch — expectedRevision from the projection (echo-reconciled). */
+    override suspend fun setThoughtLevel(taskId: String, thought: String): ConversationPort.SendOutcome {
+        val target = hub.activeWorkspaceTarget() ?: return ConversationPort.SendOutcome.FAILED
+        return try {
+            val revision = hub.sessionProjectionState(taskId).first().revision
+            hub.viewerTools().setThoughtLevel(target.first, target.second, taskId, thought, revision)
+            ConversationPort.SendOutcome.ACCEPTED
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("port.setThoughtLevel", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            ConversationPort.SendOutcome.FAILED
+        }
+    }
+
     override suspend fun switchMode(taskId: String, mode: String): ConversationPort.SendOutcome {
         val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
         val currency = casCurrency(taskId)

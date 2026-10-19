@@ -88,9 +88,12 @@ fun SessionModeChips(
     onSwitchModel: (provider: String, model: String, thought: String) -> Unit,
     modelOptionsProvider: suspend () -> List<ModelProviderOption>,
     modifier: Modifier = Modifier,
+    /** Phase 4C (A3.4): the wire-driven effort switch (setThoughtLevel). */
+    onSetThoughtLevel: (String) -> Unit = {},
 ) {
     var modeSheet by remember { mutableStateOf(false) }
     var modelSheet by remember { mutableStateOf(false) }
+    var effortSheet by remember { mutableStateOf(false) }
     val modeA11y = config?.let { stringResource(R.string.mode_a11y, it.mode) }
     val modelA11y = config?.let { stringResource(R.string.model_a11y, it.model, it.thought) }
     // FIELD (2026-10-04, vc32 device — Samsung S24): this Row used to chain
@@ -122,6 +125,21 @@ fun SessionModeChips(
                 .testTag("conv_mode_chip")
                 .semantics { modeA11y?.let { contentDescription = it } },
         )
+        // Effort chip (A3.4) — WIRE-DRIVEN: the offered levels are the CURRENT model's
+        // config.thoughtLevels (runtime-projected); no levels → nothing to offer.
+        if (config.thoughtLevels.isNotEmpty()) {
+            AssistChip(
+                onClick = { effortSheet = true },
+                label = {
+                    Text(
+                        "${stringResource(R.string.effort_chip_prefix)}${config.thought}",
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    )
+                },
+                modifier = Modifier.testTag("conv_effort_chip"),
+            )
+        }
         // Model chip — provider/model/thought from the echo; options from model-selection.
         AssistChip(
             onClick = { modelSheet = true },
@@ -167,8 +185,8 @@ fun SessionModeChips(
                                     },
                                 )
                             },
-                            headlineContent = { Text(modeTitle(mode)) },
-                            supportingContent = { Text(modeDescription(mode)) },
+                            headlineContent = { Text(modeTitle(mode, config.provider)) },
+                            supportingContent = { Text(modeDescription(mode, config.provider)) },
                             trailingContent = {
                                 androidx.compose.material3.RadioButton(selected = selected, onClick = null)
                             },
@@ -182,6 +200,36 @@ fun SessionModeChips(
                                     if (!selected) onSwitchMode(mode)
                                 }
                                 .testTag("mode_option_$mode"),
+                        )
+                    }
+                }
+            },
+        )
+    }
+    if (effortSheet && config != null) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { effortSheet = false },
+            confirmButton = { TextButton(onClick = { effortSheet = false }) { Text(stringResource(R.string.action_close)) } },
+            title = { Text(stringResource(R.string.effort_dialog_title), style = MaterialTheme.typography.titleSmall) },
+            text = {
+                Column {
+                    for (level in config.thoughtLevels) {
+                        val selected = level == config.thought
+                        androidx.compose.material3.ListItem(
+                            headlineContent = { Text(level) },
+                            trailingContent = {
+                                androidx.compose.material3.RadioButton(selected = selected, onClick = null)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .selectable(
+                                    selected = selected,
+                                    role = androidx.compose.ui.semantics.Role.RadioButton,
+                                ) {
+                                    effortSheet = false
+                                    if (!selected) onSetThoughtLevel(level)
+                                }
+                                .testTag("effort_option_$level"),
                         )
                     }
                 }
@@ -210,25 +258,34 @@ private fun modeIcon(mode: String) = when (mode) {
     else -> Icons.Filled.PanTool
 }
 
-/** GAP-17: desktop mode titles (i18n mode.label.glm.*). */
+/**
+ * J3: per-runtime label tables (desktop mode.label.*). The WIRE vocabulary stays the
+ * verified switchable four for every runtime — the shipped host normalizes claude/
+ * codex/gemini vocabularies onto them (toZCodeMode) — but a NON-glm runtime gets the
+ * neutral copy, never glm's "Ask before changes" branding.
+ */
+private fun isGlmRuntime(provider: String?): Boolean =
+    provider == null || provider == "zai" || provider == "glm" || provider.startsWith("glm")
+
+/** GAP-17 + J3: desktop mode titles (i18n mode.label.glm.* / neutral for other runtimes). */
 @Composable
-private fun modeTitle(mode: String): String = stringResource(
+private fun modeTitle(mode: String, provider: String? = null): String = stringResource(
     when (mode) {
-        "edit" -> R.string.mode_title_edit
-        "plan" -> R.string.mode_title_plan
-        "yolo" -> R.string.mode_title_yolo
-        else -> R.string.mode_title_build
+        "edit" -> if (isGlmRuntime(provider)) R.string.mode_title_edit else R.string.mode_title_neutral_edit
+        "plan" -> if (isGlmRuntime(provider)) R.string.mode_title_plan else R.string.mode_title_neutral_plan
+        "yolo" -> if (isGlmRuntime(provider)) R.string.mode_title_yolo else R.string.mode_title_neutral_yolo
+        else -> if (isGlmRuntime(provider)) R.string.mode_title_build else R.string.mode_title_neutral_build
     },
 )
 
-/** GAP-17: desktop mode descriptions (i18n mode.description.glm.*). */
+/** GAP-17 + J3: desktop mode descriptions (mode.description.glm.* / neutral). */
 @Composable
-private fun modeDescription(mode: String): String = stringResource(
+private fun modeDescription(mode: String, provider: String? = null): String = stringResource(
     when (mode) {
-        "edit" -> R.string.mode_description_edit
-        "plan" -> R.string.mode_description_plan
-        "yolo" -> R.string.mode_description_yolo
-        else -> R.string.mode_description_build
+        "edit" -> if (isGlmRuntime(provider)) R.string.mode_description_edit else R.string.mode_description_neutral_edit
+        "plan" -> if (isGlmRuntime(provider)) R.string.mode_description_plan else R.string.mode_description_neutral_plan
+        "yolo" -> if (isGlmRuntime(provider)) R.string.mode_description_yolo else R.string.mode_description_neutral_yolo
+        else -> if (isGlmRuntime(provider)) R.string.mode_description_build else R.string.mode_description_neutral_build
     },
 )
 

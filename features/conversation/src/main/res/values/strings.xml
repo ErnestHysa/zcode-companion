@@ -216,6 +216,18 @@
     <string name="notice_compact_refused">Compact was refused by the desktop (it may already be running or an active turn blocks it).</string>
     <string name="notice_goal_refused">The goal update was refused by the desktop.</string>
     <string name="notice_goal_resume_refused">Goal resume was refused (the conversation may have moved — try again).</string>
+    <!-- Phase 4C (A3.4+J3): the wire-driven effort picker + per-runtime mode labels -->
+    <string name="effort_chip_prefix">Effort · </string>
+    <string name="effort_dialog_title">Reasoning effort</string>
+    <string name="mode_title_neutral_build">Build</string>
+    <string name="mode_title_neutral_edit">Edit</string>
+    <string name="mode_title_neutral_plan">Plan</string>
+    <string name="mode_title_neutral_yolo">Full access</string>
+    <string name="mode_description_neutral_build">Confirm changes before running.</string>
+    <string name="mode_description_neutral_edit">Edit files automatically.</string>
+    <string name="mode_description_neutral_plan">Plan before editing.</string>
+    <string name="mode_description_neutral_yolo">Run with fewer confirmations.</string>
+    <string name="notice_effort_refused">The desktop refused the effort switch — nothing changed.</string>
     <string name="notice_row_action_offline">Offline — the action was not sent. Nothing changed.</string>
     <string name="notice_retry_refused">The desktop refused the retry — nothing changed.</string>
     <string name="notice_fork_refused">Could not fork the conversation — the desktop refused it.</string>

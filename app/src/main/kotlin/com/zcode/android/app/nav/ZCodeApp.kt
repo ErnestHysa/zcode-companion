@@ -531,6 +531,7 @@ private fun ConversationRoute(
         onApplyFileRewind = vm::applyFileRewind,
         onAssistantFeedback = vm::setAssistantFeedback,
         onSlashMenuOpen = vm::onSlashMenuOpen,
+        onSetThoughtLevel = vm::setThoughtLevel,
     )
 }
 

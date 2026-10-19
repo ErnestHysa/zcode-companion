@@ -93,7 +93,7 @@ data class SendNotice(
     enum class Kind { INFO, WARNING, ERROR }
 
     enum class Key {
-        SWITCH_OFFLINE, SESSION_CHANGED, SWITCH_REFUSED, MODEL_SWITCH_REFUSED,
+        SWITCH_OFFLINE, SESSION_CHANGED, SWITCH_REFUSED, MODEL_SWITCH_REFUSED EFFORT_REFUSED,
         ATTACHMENT_TOO_LARGE, ATTACHMENT_OFFLINE, ATTACHMENT_FAILED, ATTACHMENT_RETRY_FAILED,
         COMPACT_REFUSED, GOAL_REFUSED, GOAL_RESUME_REFUSED,
         // Phase 4A row actions
@@ -288,6 +288,21 @@ class ConversationViewModel(
                     _sendNotice.value = SendNotice("The session changed on the desktop — try the switch again.", SendNotice.Kind.WARNING, SendNotice.Key.SESSION_CHANGED)
                 else ->
                     _sendNotice.value = SendNotice("The desktop refused the switch — nothing changed.", SendNotice.Kind.ERROR, SendNotice.Key.SWITCH_REFUSED)
+            }
+        }
+    }
+
+    /** Phase 4C (A3.4): the wire-driven effort switch (setThoughtLevel; echo-reconciled). */
+    fun setThoughtLevel(thought: String) {
+        scope.launch {
+            when (port.setThoughtLevel(taskId, thought)) {
+                ConversationPort.SendOutcome.ACCEPTED -> Unit
+                ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
+                    _sendNotice.value = SendNotice("Offline — the switch was not sent. Nothing changed.", SendNotice.Kind.WARNING, SendNotice.Key.SWITCH_OFFLINE)
+                ConversationPort.SendOutcome.STALE ->
+                    _sendNotice.value = SendNotice("The session changed on the desktop — try the switch again.", SendNotice.Kind.WARNING, SendNotice.Key.SESSION_CHANGED)
+                else ->
+                    _sendNotice.value = SendNotice("The desktop refused the effort switch — nothing changed.", SendNotice.Kind.ERROR, SendNotice.Key.EFFORT_REFUSED)
             }
         }
     }

@@ -235,6 +235,13 @@ interface ConversationPort {
     suspend fun switchMode(taskId: String, mode: String): SendOutcome
 
     /**
+     * Phase 4C (A3.4): the reasoning-effort switch — `setThoughtLevel` on the shipped
+     * facade; the offered levels come from the wire's `config.thoughtLevels` and the
+     * result reconciles through the §10.3 `config` echo.
+     */
+    suspend fun setThoughtLevel(taskId: String, thought: String): SendOutcome = SendOutcome.FAILED
+
+    /**
      * §23.2 composer attachment upload — full transaction (begin→chunks→commit)
      * with per-chunk progress. Cancel = abort (removeUpload). Client-side gates:
      * 20 MiB cap + MIME grammar (fail closed pre-wire).

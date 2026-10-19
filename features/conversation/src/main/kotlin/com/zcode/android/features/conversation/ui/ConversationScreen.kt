@@ -117,7 +117,10 @@ fun ConversationScreen(
     onApplyFileRewind: (rowId: Long, entityId: String) -> Unit = { _, _ -> },
     onAssistantFeedback: (rowId: Long, entityId: String, feedback: String?) -> Unit = { _, _, _ -> },
     /** Phase 4C (C2): the "/" menu opened — fetch the skills/agents/custom-command extras. */
-    onSlashMenuOpen: () -> Unit = {},
+    onSlashMenuOpen: () -> Unit = {
+    /** Phase 4C (A3.4): the effort switch (setThoughtLevel). */
+    onSetThoughtLevel: (String) -> Unit = {},
+,
 ) {
     val rowActions = remember(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback) {
         RowActionCallbacks(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback)
@@ -379,6 +382,7 @@ private fun Header(
                 onSwitchMode = onSwitchMode,
                 onSwitchModel = onSwitchModel,
                 modelOptionsProvider = modelOptionsProvider,
+                onSetThoughtLevel = onSetThoughtLevel,
                 modifier = Modifier.weight(1f, fill = true),
             )
         }

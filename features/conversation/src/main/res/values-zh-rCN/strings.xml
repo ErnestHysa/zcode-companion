@@ -201,6 +201,18 @@
     <string name="notice_compact_refused">桌面端拒绝了压缩（可能正在运行，或有活动轮次阻止）。</string>
     <string name="notice_goal_refused">桌面端拒绝了目标更新。</string>
     <string name="notice_goal_resume_refused">恢复目标被拒绝（对话可能已变化 — 请重试）。</string>
+    <!-- Phase 4C (A3.4+J3)：推理力度选择器 + 各运行时的模式文案 -->
+    <string name="effort_chip_prefix">力度 · </string>
+    <string name="effort_dialog_title">推理力度</string>
+    <string name="mode_title_neutral_build">构建</string>
+    <string name="mode_title_neutral_edit">编辑</string>
+    <string name="mode_title_neutral_plan">计划</string>
+    <string name="mode_title_neutral_yolo">完全访问</string>
+    <string name="mode_description_neutral_build">运行前确认更改。</string>
+    <string name="mode_description_neutral_edit">自动编辑文件。</string>
+    <string name="mode_description_neutral_plan">先计划再编辑。</string>
+    <string name="mode_description_neutral_yolo">以更少的确认运行。</string>
+    <string name="notice_effort_refused">桌面端拒绝了力度切换 — 没有任何更改。</string>
     <string name="notice_row_action_offline">离线 — 操作未发送，没有任何更改。</string>
     <string name="notice_retry_refused">桌面端拒绝了重试 — 没有任何更改。</string>
     <string name="notice_fork_refused">无法分叉对话 — 桌面端拒绝了该操作。</string>
