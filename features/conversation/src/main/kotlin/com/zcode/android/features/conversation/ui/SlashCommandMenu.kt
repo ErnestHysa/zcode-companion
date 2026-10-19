@@ -60,7 +60,7 @@ fun SlashCommandMenu(
             .testTag("slash_menu"),
     ) {
         Column {
-            if (extras != null) {
+            if (extras != null && (catalog.isNotEmpty() || userCommands.isNotEmpty())) {
                 SectionHeader(stringResourceSlashCommands(), tag = "commands")
             }
             (catalog + userCommands).forEach { command ->

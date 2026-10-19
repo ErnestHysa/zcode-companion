@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithTag as onNodeWithTagUnmerged
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -89,14 +90,14 @@ class SlashMenuSectionsUiTest {
     @Test
     fun `picking a skill inserts the skill mention form`() {
         setContent("/pd")
-        rule.onNodeWithTag("slash_skill_pdf").performClick(); rule.waitForIdle()
+        rule.onNodeWithTag("slash_skill_pdf", useUnmergedTree = true).performClick(); rule.waitForIdle()
         assertEquals(listOf("\$pdf "), picks)
     }
 
     @Test
     fun `picking an agent inserts the agent mention form`() {
         setContent("/exp")
-        rule.onNodeWithTag("slash_agent_Explore").performClick(); rule.waitForIdle()
+        rule.onNodeWithTag("slash_agent_Explore", useUnmergedTree = true).performClick(); rule.waitForIdle()
         assertEquals(listOf("@Explore "), picks)
     }
 
