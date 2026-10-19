@@ -96,8 +96,8 @@ class GoalPlanPanelsUiTest {
         rule.onNodeWithText("verifying").assertIsDisplayed()
         assertEquals(3, rule.onAllNodesWithTag("goal_verification_row").fetchSemanticsNodes().size)
         // Existence (the panel scrolls in a small test viewport; display is not the pin).
-        org.junit.Assert.assertEquals(1, rule.onAllNodesWithText("2 criteria unmet").fetchSemanticsNodes().size)
-        org.junit.Assert.assertEquals(1, rule.onAllNodesWithText("verifier crashed").fetchSemanticsNodes().size)
+        org.junit.Assert.assertEquals(1, rule.onAllNodesWithText("2 criteria unmet", substring = true).fetchSemanticsNodes().size)
+        org.junit.Assert.assertEquals(1, rule.onAllNodesWithText("verifier crashed", substring = true).fetchSemanticsNodes().size)
     }
 
     @Test
