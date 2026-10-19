@@ -360,7 +360,10 @@ private fun Header(
         )
         ConnectionStatusLine(
             phase = phase,
-            trailing = taskStateLabel(state.taskState),
+            // D2: the progress label is TURN-KIND-AWARE — control.activeWorks[].kind
+            // (compacting / verifying goal / running subagents…) refines "Running".
+            trailing = listOfNotNull(taskStateLabel(state.taskState), GoalState.turnKindLabel(state.sessionState?.control?.activeWorks?.firstOrNull()?.kind))
+                .joinToString(" · ").ifEmpty { null },
             modifier = Modifier.padding(horizontal = 16.dp).testTag("conversation_status_line"),
         )
         // GAP-1/GAP-2: the context-window meter + per-source breakdown (§11.1).
@@ -400,6 +403,13 @@ private fun Header(
             runningAgents = countRunningAgents(state.rows),
             modifier = Modifier.padding(horizontal = 8.dp),
         )
+        // D2: the goal + todo surfaces — keys the wire always carried; absent → nothing.
+        state.sessionState?.goal?.let { goal ->
+            GoalPanel(goal, modifier = Modifier.padding(horizontal = 8.dp))
+        }
+        state.sessionState?.plan?.let { plan ->
+            PlanPanel(plan, modifier = Modifier.padding(horizontal = 8.dp))
+        }
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),

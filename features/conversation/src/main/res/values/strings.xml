@@ -228,6 +228,10 @@
     <string name="mode_description_neutral_plan">Plan before editing.</string>
     <string name="mode_description_neutral_yolo">Run with fewer confirmations.</string>
     <string name="notice_effort_refused">The desktop refused the effort switch — nothing changed.</string>
+    <!-- Phase 4C (D2): the goal + todo surfaces -->
+    <string name="goal_iteration">iteration %1$d</string>
+    <string name="goal_verification_iteration">iter %1$d</string>
+    <string name="plan_title">Todos</string>
     <string name="notice_row_action_offline">Offline — the action was not sent. Nothing changed.</string>
     <string name="notice_retry_refused">The desktop refused the retry — nothing changed.</string>
     <string name="notice_fork_refused">Could not fork the conversation — the desktop refused it.</string>

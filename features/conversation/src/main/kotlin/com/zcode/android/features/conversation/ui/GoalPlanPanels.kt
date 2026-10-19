@@ -1,0 +1,159 @@
+package com.zcode.android.features.conversation.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Remove
+import com.zcode.android.core.ui.theme.LocalZCodeColors
+import com.zcode.android.domain.model.GoalState
+import com.zcode.android.domain.model.PlanState
+
+/**
+ * D2 (gaps-and-polish Phase 4C): the goal + todo data surfaces the wire always
+ * carried and the phone never rendered.
+ *  - [GoalPanel]: the /goal plane — objective, status, iteration AND the desktop's
+ *    pass/fail verification timeline (chat goal panel parity);
+ *  - [PlanPanel]: the todo projection (TodoWrite restore display).
+ * Both are pinned headers under the status strip; absent keys render nothing.
+ */
+@Composable
+fun GoalPanel(goal: GoalState, modifier: Modifier = Modifier) {
+    Column(
+        modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.shapes.medium)
+            .padding(12.dp)
+            .testTag("goal_panel"),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                goal.summaryTitle?.takeIf { it.isNotBlank() } ?: goal.objective,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false).testTag("goal_objective"),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                goal.status,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.testTag("goal_status"),
+            )
+            if (goal.iteration > 0) {
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    stringResource(com.zcode.android.features.conversation.R.string.goal_iteration, goal.iteration.toInt()),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        if (goal.verifications.isNotEmpty()) {
+            Spacer(Modifier.height(6.dp))
+            goal.verifications.takeLast(5).forEach { v ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp)
+                        .testTag("goal_verification_row"),
+                ) {
+                    val (icon, tint) = when (v.outcome) {
+                        "pass" -> Icons.Filled.Check to MaterialTheme.colorScheme.primary
+                        "failed" -> Icons.Filled.Close to MaterialTheme.colorScheme.error
+                        else -> Icons.Filled.Remove to MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                    Icon(icon, contentDescription = v.outcome, tint = tint, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        listOfNotNull(
+                            stringResource(com.zcode.android.features.conversation.R.string.goal_verification_iteration, v.iteration.toInt()),
+                            v.reason?.takeIf { it.isNotBlank() },
+                        ).joinToString(" — "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PlanPanel(plan: PlanState, modifier: Modifier = Modifier) {
+    Column(
+        modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.shapes.medium)
+            .padding(12.dp)
+            .testTag("plan_panel"),
+    ) {
+        Text(
+            stringResource(com.zcode.android.features.conversation.R.string.plan_title),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(Modifier.height(4.dp))
+        plan.items.forEach { item ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 2.dp)
+                    .testTag("plan_row"),
+            ) {
+                val done = item.status == "completed"
+                val dot = when (item.status) {
+                    "completed" -> MaterialTheme.colorScheme.primary
+                    "inProgress" -> LocalZCodeColors.current.accent
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                }
+                if (done) {
+                    Icon(Icons.Filled.Check, contentDescription = item.status, tint = dot, modifier = Modifier.size(14.dp))
+                } else {
+                    androidx.compose.foundation.layout.Box(
+                        Modifier
+                            .size(10.dp)
+                            .background(dot, CircleShape),
+                    )
+                }
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    item.content,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        textDecoration = if (done) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
+                    ),
+                    color = if (item.status == "pending") MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}

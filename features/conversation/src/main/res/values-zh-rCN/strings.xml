@@ -213,6 +213,10 @@
     <string name="mode_description_neutral_plan">先计划再编辑。</string>
     <string name="mode_description_neutral_yolo">以更少的确认运行。</string>
     <string name="notice_effort_refused">桌面端拒绝了力度切换 — 没有任何更改。</string>
+    <!-- Phase 4C (D2)：目标与待办面板 -->
+    <string name="goal_iteration">第 %1$d 次迭代</string>
+    <string name="goal_verification_iteration">迭代 %1$d</string>
+    <string name="plan_title">待办</string>
     <string name="notice_row_action_offline">离线 — 操作未发送，没有任何更改。</string>
     <string name="notice_retry_refused">桌面端拒绝了重试 — 没有任何更改。</string>
     <string name="notice_fork_refused">无法分叉对话 — 桌面端拒绝了该操作。</string>
