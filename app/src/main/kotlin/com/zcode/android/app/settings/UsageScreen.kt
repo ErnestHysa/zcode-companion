@@ -496,11 +496,13 @@ private fun SectionTitle(text: String, tag: String) {
 
 /** I4+J9: cache-hit rate + call counts — the desktop's settings.usage modelChart peers. */
 @Composable
+@android.annotation.SuppressLint("NonObservableLocale")
 private fun CacheCallsSection(summary: AppUsageSnapshot.Summary) {
     val locale = Locale.getDefault()
     val percent = java.text.NumberFormat.getPercentInstance(locale).apply { maximumFractionDigits = 1 }
-    SectionTitle(stringResource(R.string.usage_section_efficiency), tag = "usage_efficiency")
-    Row(
+    Column {
+        SectionTitle(stringResource(R.string.usage_section_efficiency), tag = "usage_efficiency")
+        Row(
         Modifier.fillMaxWidth().padding(vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -523,13 +525,15 @@ private fun CacheCallsSection(summary: AppUsageSnapshot.Summary) {
             valueTag = "usage_turns",
         )
     }
+    }
 }
 
 /** I4: the per-model share PIE (the desktop's AppUsageModelUsagePieChart port). */
 @Composable
 private fun ModelPieSection(models: List<AppUsageSnapshot.ModelUsage>) {
-    SectionTitle(stringResource(R.string.usage_section_pie), tag = "usage_pie")
-    val top = models.take(4)
+    Column {
+        SectionTitle(stringResource(R.string.usage_section_pie), tag = "usage_pie")
+        val top = models.take(4)
     val palette = listOf(
         MaterialTheme.colorScheme.primary,
         MaterialTheme.colorScheme.secondary,
@@ -569,14 +573,17 @@ private fun ModelPieSection(models: List<AppUsageSnapshot.ModelUsage>) {
             }
         }
     }
+    }
 }
 
 /** I4: the daily/model trend (the desktop's AppUsageDailyModelTrendChart, as bars). */
 @Composable
+@android.annotation.SuppressLint("NonObservableLocale")
 private fun DailyModelTrendSection(daily: List<AppUsageSnapshot.DailyModelUsage>) {
     val locale = Locale.getDefault()
-    SectionTitle(stringResource(R.string.usage_section_trend), tag = "usage_trend")
-    val topModels = daily.flatMap { it.models }
+    Column {
+        SectionTitle(stringResource(R.string.usage_section_trend), tag = "usage_trend")
+        val topModels = daily.flatMap { it.models }
         .groupBy { it.modelId }
         .map { (id, items) -> (id ?: "?") to items.sumOf { it.totalTokens } }
         .sortedByDescending { it.second }
@@ -618,5 +625,6 @@ private fun DailyModelTrendSection(daily: List<AppUsageSnapshot.DailyModelUsage>
                 )
             }
         }
+    }
     }
 }

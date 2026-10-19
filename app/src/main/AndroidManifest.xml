@@ -8,6 +8,8 @@
     <!-- Phase 8 (§24/§25): notification surfaces (API 33+ runtime), the opt-in
          Live-connection foreground service, and its specialUse type (API 34+). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Phase 4E (C3): the post-decision haptic on shade Approve/Deny. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <!-- §37/AAP-3 (§14.2 T4): the non-Play update channel hands the downloaded APK to

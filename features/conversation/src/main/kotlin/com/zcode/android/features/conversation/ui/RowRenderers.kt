@@ -196,8 +196,8 @@ fun YouBlock(
 fun AgentProse(
     text: String,
     streaming: Boolean,
-    createdAtMs: Double? = null,
     modifier: Modifier = Modifier,
+    createdAtMs: Double? = null,
     /** Phase 4A (E3.2+I1+N5): the row's OWN capability flags gate Fork/Retry — desktop
      *  `latestAssistantTextRow.actions?.canRetry === true` (ConversationTurnGroup.tsx:867). */
     canFork: Boolean = false,
