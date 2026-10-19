@@ -91,7 +91,7 @@ class ViewerTools(private val transport: AppTransport) {
             ?: return emptyList()
         return arr.mapNotNull { el ->
             when (el) {
-                is com.zcode.android.core.protocol.bytes.RpcSerialization.RpcValue.Obj -> (el.json["path"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                is com.zcode.android.core.protocol.bytes.RpcSerialization.RpcValue.Obj -> ((el.json as? kotlinx.serialization.json.JsonObject)["path"] as? kotlinx.serialization.json.JsonPrimitive)?.content
                 is com.zcode.android.core.protocol.bytes.RpcSerialization.RpcValue.Str -> el.value
                 else -> null
             }
