@@ -40,6 +40,7 @@ class TaskLifecycleVmTest {
 
         override suspend fun refresh() = outcome
         override fun retryConnection() {}
+        override fun repairPairing() {}
         override fun observeWorkspaces() = MutableStateFlow(emptyList<com.zcode.android.domain.model.WorkspaceOption>())
         override suspend fun createTask(workspaceKey: String, firstText: String, provider: String?, model: String?) = outcome
 
