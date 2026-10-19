@@ -80,6 +80,10 @@ class ViewerTools(private val transport: AppTransport) {
     suspend fun subagents(workspacePath: String?, workspaceIdentity: String?, provider: String?): List<com.zcode.android.domain.model.SlashCatalogExtras.AgentEntry> =
         com.zcode.android.domain.model.SlashCatalogExtras.decodeAgents(transport.subagentsList(workspacePath, workspaceIdentity, provider))
 
+    /** Phase 4C (A3.4): the reasoning-effort switch (zcodeAgent.ts:705; echo-reconciled). */
+    suspend fun setThoughtLevel(workspacePath: String?, workspaceIdentity: String?, sessionId: String, thoughtLevel: String, expectedRevision: Long?): kotlinx.serialization.json.JsonObject =
+        transport.setThoughtLevel(workspacePath, workspaceIdentity, sessionId, thoughtLevel, expectedRevision)
+
     /**
      * `off-peak-task` channel `list` with the desktop's own list projection mirrored
      * CLIENT-SIDE (zcodeAgentService.ts:2666-2761): workspace filter, createdAt DESC,

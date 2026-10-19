@@ -185,6 +185,12 @@ interface V4Plane {
      */
     suspend fun commandsList(workspacePath: String?, workspaceIdentity: String?): JsonObject
     suspend fun subagentsList(workspacePath: String?, workspaceIdentity: String?, provider: String?): JsonObject
+    /**
+     * Phase 4C (A3.4): the reasoning-effort facade call (zcodeAgent.ts:705) —
+     * `{sessionId, thoughtLevel, expectedRevision, persistAsWorkspaceLastUsed}`.
+     * Returns the session snapshot (tolerant: the §10.3 `config` echo is the truth).
+     */
+    suspend fun setThoughtLevel(workspacePath: String?, workspaceIdentity: String?, sessionId: String, thoughtLevel: String, expectedRevision: Long?): JsonObject
 
     /**
      * GAP-6: the `off-peak-task` channel `list` read (offPeakTask.ts:41 — NO args,
@@ -971,8 +977,8 @@ internal class ChannelV4Plane(
             put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
             (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
         }))), timeouts.v4CallTimeoutMs)) {
-            is RpcValue.Obj -> raw.json
-            is RpcValue.Arr -> buildJsonObject { put("commands", JsonArray(raw.items.map { (it as? RpcValue.Obj)?.json ?: JsonObject(emptyMap()) })) }
+            is RpcValue.Obj -> raw.json as JsonObject
+            is RpcValue.Arr -> buildJsonObject { put("commands", JsonArray(raw.items.map { (it as? RpcValue.Obj)?.json as? JsonObject ?: JsonObject(emptyMap()) })) }
             else -> throw TransportFailure(ErrorMapping.protocolFault("commands.list result not an object"))
         }
     }
@@ -984,10 +990,24 @@ internal class ChannelV4Plane(
             (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
             provider?.let { put("provider", JsonPrimitive(it)) }
         }))), timeouts.v4CallTimeoutMs)) {
-            is RpcValue.Obj -> raw.json
-            is RpcValue.Arr -> buildJsonObject { put("agents", JsonArray(raw.items.map { (it as? RpcValue.Obj)?.json ?: JsonObject(emptyMap()) })) }
+            is RpcValue.Obj -> raw.json as JsonObject
+            is RpcValue.Arr -> buildJsonObject { put("agents", JsonArray(raw.items.map { (it as? RpcValue.Obj)?.json as? JsonObject ?: JsonObject(emptyMap()) })) }
             else -> throw TransportFailure(ErrorMapping.protocolFault("subagents.list result not an object"))
         }
+    }
+
+    suspend fun setThoughtLevel(workspacePath: String?, workspaceIdentity: String?, sessionId: String, thoughtLevel: String, expectedRevision: Long?): JsonObject {
+        val target = host.workspaceTarget()
+        val raw = v4Call("setThoughtLevel", RpcValue.Obj(buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+            (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("sessionId", JsonPrimitive(sessionId))
+            put("thoughtLevel", JsonPrimitive(thoughtLevel))
+            expectedRevision?.let { put("expectedRevision", JsonPrimitive(it)) }
+            put("persistAsWorkspaceLastUsed", JsonPrimitive(true))
+        }))
+        return ((raw as? RpcValue.Obj)?.json as? kotlinx.serialization.json.JsonObject)
+            ?: throw TransportFailure(ErrorMapping.protocolFault("setThoughtLevel result not an object"))
     }
 
     suspend fun offPeakTaskList(): JsonObject =

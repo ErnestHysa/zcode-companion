@@ -2360,7 +2360,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
     @Volatile var lastForkedSessionId: String? = null
     @Volatile var lastFeedback: String? = null
     /** Phase 4C seam: the most recent zcode-agent call's params per method (wire-shape pins). */
-    private val recentV4Calls = HashMap<String, JsonObject>()
+    private val recentV4Calls = HashMap<String, JsonObject?>()
     fun lastV4CallParamsForTest(name: String): JsonObject? = synchronized(recentV4Calls) { recentV4Calls[name] }
 
     /** Test seam for the command-effect machinery (the socket path calls the same function). */
