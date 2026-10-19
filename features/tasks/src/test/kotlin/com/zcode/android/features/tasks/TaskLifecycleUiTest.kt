@@ -11,8 +11,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
 import com.zcode.android.domain.model.Task
 import com.zcode.android.domain.model.TaskStatus
-import com.zcode.android.domain.model.TaskSummary
-import com.zcode.android.domain.model.WorkspaceIdentityKey
+import com.zcode.android.domain.model.Task.TaskSummary
+import com.zcode.android.domain.ids.WorkspaceIdentityKey
 import com.zcode.android.domain.state.ConnectionPhase
 import com.zcode.android.features.tasks.ui.TaskListScreen
 import org.junit.Assert.assertEquals
@@ -50,15 +50,13 @@ class TaskLifecycleUiTest {
             ZCodeTheme {
                 TaskListScreen(
                     state = TasksUiState(
-                        phase = ConnectionPhase.CONNECTED,
-                        loadState = TasksUiState.Load.READY,
+                            loadState = TasksUiState.Load.READY,
                         endpointName = "TestBook",
                         lastRefreshAtMs = 1,
                         groups = listOf(TaskGroup("/ws/demo", "demo", tasks.toList())),
                         taskCount = tasks.size,
                         searchQuery = "",
                     ),
-                    phase = ConnectionPhase.CONNECTED,
                     onTaskClick = {},
                     onOpenSettings = {},
                     onOpenConnection = {},
@@ -140,8 +138,7 @@ class TaskLifecycleUiTest {
             ZCodeTheme {
                 TaskListScreen(
                     state = TasksUiState(
-                        phase = ConnectionPhase.CONNECTED,
-                        loadState = TasksUiState.Load.READY,
+                            loadState = TasksUiState.Load.READY,
                         groups = listOf(TaskGroup("/ws/demo", "demo", listOf(task("t7")))),
                         taskCount = 1,
                         searchQuery = "auth",
@@ -149,7 +146,6 @@ class TaskLifecycleUiTest {
                             com.zcode.android.features.tasks.port.TaskSearchHit("t9", "Fix auth", "refresh token rotation"),
                         ),
                     ),
-                    phase = ConnectionPhase.CONNECTED,
                     onTaskClick = { opened = it.taskId },
                     onOpenSettings = {},
                     onOpenConnection = {},

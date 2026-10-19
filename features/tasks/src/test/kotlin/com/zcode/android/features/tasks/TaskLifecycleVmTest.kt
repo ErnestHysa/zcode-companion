@@ -8,7 +8,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.flow.MutableStateFlow
 import com.zcode.android.domain.model.Task
 import com.zcode.android.domain.model.TaskStatus
-import com.zcode.android.domain.model.WorkspaceIdentityKey
+import com.zcode.android.domain.ids.WorkspaceIdentityKey
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
