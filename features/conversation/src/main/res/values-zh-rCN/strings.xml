@@ -76,6 +76,13 @@
     <string name="row_you">你</string>
     <string name="row_agent">智能体</string>
     <string name="row_generating">正在生成</string>
+    <!-- Phase 4C (C2)：斜杠面板的三个分区 -->
+    <string name="slash_section_commands">命令</string>
+    <string name="slash_section_skills">技能</string>
+    <string name="slash_section_agents">智能体</string>
+    <string name="slash_section_loading">加载中…</string>
+    <string name="slash_section_empty_skills">暂无可用技能</string>
+    <string name="slash_section_empty_agents">暂无可用智能体</string>
     <string name="row_tool_a11y">工具 %1$s，%2$s。点按以%3$s。</string>
     <string name="a11y_expand">展开</string>
     <string name="a11y_collapse">收起</string>

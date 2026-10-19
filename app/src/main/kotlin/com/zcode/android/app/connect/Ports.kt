@@ -424,6 +424,38 @@ class DefaultConversationPort(
             null
         }
 
+    /**
+     * Phase 4C (C2): three INDEPENDENT legs — custom/plugin commands (`commands.list`),
+     * skills (the reference catalog, session-scoped) and subagents (`subagents.list`,
+     * provider-filtered like the desktop's useSubagents). One failing channel carries
+     * its own error; the others still render.
+     */
+    override suspend fun fetchSlashExtras(taskId: String): ConversationPort.SlashExtras {
+        val target = hub.activeWorkspaceTarget()
+        val workspacePath = target?.first
+        val workspaceIdentity = target?.second
+        val tools = hub.viewerTools()
+        val provider = runCatching { hub.sessionProjectionState(taskId).first().config?.provider }.getOrNull()
+        val commands = runCatching { tools.slashUserCommands(workspacePath, workspaceIdentity) }
+            .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
+            .getOrDefault(emptyList())
+            .map { ConversationPort.SlashCommandView(it.name, it.description, it.inputHint, it.source) }
+        val skills = runCatching { tools.skillCatalog(workspacePath, workspaceIdentity, taskId) }
+            .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
+        val agents = runCatching { tools.subagents(workspacePath, workspaceIdentity, provider) }
+            .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
+        skills.exceptionOrNull()?.let { hub.log.warn("port.slashSkills", "${it.javaClass.simpleName}: ${it.message?.take(120)}") }
+        agents.exceptionOrNull()?.let { hub.log.warn("port.slashAgents", "${it.javaClass.simpleName}: ${it.message?.take(120)}") }
+        return ConversationPort.SlashExtras(
+            userCommands = commands,
+            skills = skills.getOrNull()?.skills?.map { ConversationPort.SlashSkillView(it.name, it.description, it.scope) },
+            skillsError = skills.exceptionOrNull()?.message,
+            agents = agents.getOrNull()?.map { ConversationPort.SlashAgentView(it.name, it.description, it.scope) },
+            agentsError = agents.exceptionOrNull()?.message,
+            loading = false,
+        )
+    }
+
     override suspend fun answerUserInputQuestions(
         interactionId: String,
         answers: Map<String, List<String>>,

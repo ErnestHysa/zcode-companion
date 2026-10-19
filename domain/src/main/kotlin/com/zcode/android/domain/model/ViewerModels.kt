@@ -604,3 +604,38 @@ data class McpStatuses(
         }
     }
 }
+
+/**
+ * C2 (Phase 4C): the slash panel's extra sections — `commands.list` (command-types.ts
+ * CommandsListResult: userCommands + pluginCommands, `enabled` filtered, `argumentHint`
+ * = the input hint) and `subagents.list` (subagents-types.ts AgentsListResult.agents,
+ * `enabled` filtered — absent means enabled). Scope/source stay raw (INV-8).
+ */
+object SlashCatalogExtras {
+    data class CommandEntry(val name: String, val description: String, val inputHint: String?, val source: String)
+    data class AgentEntry(val name: String, val description: String, val scope: String?)
+
+    fun decodeCommands(obj: JsonObject): List<CommandEntry> {
+        fun entries(key: String, source: String): List<CommandEntry> =
+            (obj[key] as? JsonArray)?.mapNotNull { el ->
+                val o = el as? JsonObject ?: return@mapNotNull null
+                val name = o.strOrNullN("name")?.trim()?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+                if ((o["enabled"] as? JsonPrimitive)?.content == "false") return@mapNotNull null
+                CommandEntry(
+                    name = name,
+                    description = o.strOrNullN("description") ?: "",
+                    inputHint = o.strOrNullN("argumentHint")?.takeIf { it.isNotBlank() },
+                    source = source,
+                )
+            } ?: emptyList()
+        return entries("userCommands", "user") + entries("pluginCommands", "plugin")
+    }
+
+    fun decodeAgents(obj: JsonObject): List<AgentEntry> =
+        (obj["agents"] as? JsonArray)?.mapNotNull { el ->
+            val o = el as? JsonObject ?: return@mapNotNull null
+            val name = o.strOrNullN("name")?.trim()?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+            if ((o["enabled"] as? JsonPrimitive)?.content == "false") return@mapNotNull null
+            AgentEntry(name = name, description = o.strOrNullN("description") ?: "", scope = o.strOrNullN("scope"))
+        } ?: emptyList()
+}

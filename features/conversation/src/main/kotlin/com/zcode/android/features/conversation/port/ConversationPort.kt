@@ -58,6 +58,31 @@ interface ConversationPort {
         val source: String?,
     )
 
+    // ---------------------------------------------------------------- Phase 4C (C2): the other two slash sections
+
+    data class SlashSkillView(val name: String, val description: String, val scope: String)
+    data class SlashAgentView(val name: String, val description: String, val scope: String?)
+
+    /**
+     * The desktop slash panel's extra sections (slashCommandPanelSections.tsx): the
+     * user's custom + plugin commands (`commands.list`), skills (the reference catalog)
+     * and subagents (`subagents.list`). Each leg carries its OWN error so one failing
+     * channel never blanks the others (desktop: per-section loading/error states).
+     * null lists = not loaded; [loading] = fetch in flight.
+     */
+    data class SlashExtras(
+        val userCommands: List<SlashCommandView>,
+        val skills: List<SlashSkillView>?,
+        val skillsError: String?,
+        val agents: List<SlashAgentView>?,
+        val agentsError: String?,
+        val loading: Boolean,
+    )
+
+    /** Lazy (on first "/"): one fetch per session (desktop useSkills enabled-on-trigger). */
+    suspend fun fetchSlashExtras(taskId: String): SlashExtras =
+        SlashExtras(emptyList(), null, null, null, null, loading = false)
+
     /** Subscribe (Phase 5 coordinator path; journal restore included). */
     suspend fun open(task: Task): Boolean
 

@@ -93,6 +93,29 @@ fun main() {
     if (System.getenv("MOCK_ROW_ACTIONS") != null) {
         mock.script.rowActionsDemo = true
     }
+    // Phase 4C (C2) rig leg: the slash panel's extra sections — one custom command,
+    // one skill, one agent (synthetic, INV-15/16).
+    mock.script.commandsList = JsonObject(mapOf(
+        "commands" to JsonArray(emptyList()),
+        "userCommands" to JsonArray(listOf(JsonObject(mapOf(
+            "id" to JsonPrimitive("cmd-deploy"),
+            "name" to JsonPrimitive("deploy"),
+            "description" to JsonPrimitive("Deploy the project"),
+            "argumentHint" to JsonPrimitive("[env]"),
+            "enabled" to JsonPrimitive(true),
+            "source" to JsonPrimitive("user"),
+        )))),
+        "pluginCommands" to JsonArray(emptyList()),
+    ))
+    mock.script.subagentsList = JsonObject(mapOf(
+        "agents" to JsonArray(listOf(JsonObject(mapOf(
+            "id" to JsonPrimitive("a-explore"),
+            "name" to JsonPrimitive("Explore"),
+            "description" to JsonPrimitive("Read-only search agent"),
+            "scope" to JsonPrimitive("built-in"),
+            "enabled" to JsonPrimitive(true),
+        )))),
+    ))
     // PART M live leg: populated MCP / plugins / skills viewers (shapes mirror the
     // domain decoders: ViewerModels.McpStatuses / PluginsView / SkillCatalog) so the
     // three Settings viewers render their real lists on device instead of the

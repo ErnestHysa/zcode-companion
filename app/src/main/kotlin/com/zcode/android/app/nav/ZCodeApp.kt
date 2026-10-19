@@ -530,6 +530,7 @@ private fun ConversationRoute(
         onForkAssistant = vm::forkAssistant,
         onApplyFileRewind = vm::applyFileRewind,
         onAssistantFeedback = vm::setAssistantFeedback,
+        onSlashMenuOpen = vm::onSlashMenuOpen,
     )
 }
 

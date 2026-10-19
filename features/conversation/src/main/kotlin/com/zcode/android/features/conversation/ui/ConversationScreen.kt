@@ -116,6 +116,8 @@ fun ConversationScreen(
     onForkAssistant: (rowId: Long, entityId: String) -> Unit = { _, _ -> },
     onApplyFileRewind: (rowId: Long, entityId: String) -> Unit = { _, _ -> },
     onAssistantFeedback: (rowId: Long, entityId: String, feedback: String?) -> Unit = { _, _, _ -> },
+    /** Phase 4C (C2): the "/" menu opened — fetch the skills/agents/custom-command extras. */
+    onSlashMenuOpen: () -> Unit = {},
 ) {
     val rowActions = remember(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback) {
         RowActionCallbacks(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback)
@@ -326,6 +328,7 @@ fun ConversationScreen(
                 onUploadAttachment = onUploadAttachment,
                 onRemoveAttachment = onRemoveAttachment,
                 onRetryAttachment = onRetryAttachment,
+                onSlashMenuOpen = onSlashMenuOpen,
             )
         }
     }

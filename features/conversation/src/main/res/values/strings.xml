@@ -99,6 +99,13 @@
     <string name="row_you">YOU</string>
     <string name="row_agent">AGENT</string>
     <string name="row_generating">Generating</string>
+    <!-- Phase 4C (C2): the slash panel's three sections (desktop chat.slash.*-class) -->
+    <string name="slash_section_commands">Commands</string>
+    <string name="slash_section_skills">Skills</string>
+    <string name="slash_section_agents">Agents</string>
+    <string name="slash_section_loading">Loading…</string>
+    <string name="slash_section_empty_skills">No skills available</string>
+    <string name="slash_section_empty_agents">No agents available</string>
     <string name="row_tool_a11y">Tool %1$s, %2$s. Tap to %3$s.</string>
     <string name="a11y_expand">expand</string>
     <string name="a11y_collapse">collapse</string>

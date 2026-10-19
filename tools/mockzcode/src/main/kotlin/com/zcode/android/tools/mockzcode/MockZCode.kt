@@ -198,6 +198,10 @@ class MockZCode(
         var listAutomations: JsonArray? = null
         /** Phase 4B (A3.2): scripted run history; null = the run-history surface is unscripted (typed fault). */
         var automationRuns: JsonArray? = null
+        /** Phase 4C (C2): slash-panel extras — commands.list result (null = typed fault). */
+        var commandsList: JsonObject? = null
+        /** subagents.list result (null = typed fault). */
+        var subagentsList: JsonObject? = null
         /** Scriptable off-peak tasks (off-peak-task channel list items; null = typed fault). */
         var offPeakTaskList: JsonArray? = null
         /** Scriptable plugins list (listPlugins result; null = typed fault). */
@@ -1412,6 +1416,9 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 "zcode-task" -> handleTaskPromise(id, name, argAsObject(arg))
                 "off-peak-task" -> handleOffPeakTaskPromise(id, name)
                 "usage-stats" -> handleUsageStatsPromise(id, name, arg)
+                // Phase 4C (C2): the slash panel's extra sections over their own channels.
+                "commands" -> handleCommandsPromise(id, name)
+                "subagents" -> handleSubagentsPromise(id, name)
                 else -> respondError(id, "fault.mock.unknownChannel:$channelName")
             }
             return
@@ -2304,6 +2311,24 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             }
         }
         return null
+    }
+
+    private fun handleCommandsPromise(id: Int, name: String?) {
+        val result = script.commandsList
+        if (result == null) {
+            respondError(id, "fault.mock.unscripted:commands.list")
+        } else {
+            respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(result))
+        }
+    }
+
+    private fun handleSubagentsPromise(id: Int, name: String?) {
+        val result = script.subagentsList
+        if (result == null) {
+            respondError(id, "fault.mock.unscripted:subagents.list")
+        } else {
+            respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(result))
+        }
     }
 
     /** Phase 4A: a revision-only patch (the CAS currency moved; no other key changed). */

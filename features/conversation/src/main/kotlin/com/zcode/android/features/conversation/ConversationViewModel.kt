@@ -57,7 +57,9 @@ data class ConversationUiState(
     val composerAttachments: List<ConversationPort.ComposerAttachment> = emptyList(),
     // ---- Phase 2 (§11.2, GAP-12) ----
     /** The workspace slash-command catalog (workspace-config topic; empty = none). */
-    val slashCommands: List<ConversationPort.SlashCommandView> = emptyList(),
+    val slashCommands: List<ConversationPort.SlashCommandView> = emptyList(),    // ---- Phase 4C (C2): the other two slash sections ----
+    /** Skills / custom+plugin commands / subagents extras (null = not loaded yet). */
+    val slashExtras: ConversationPort.SlashExtras? = null,
 ) {
     val empty: Boolean get() = !loading && rows.isEmpty() && streaming.isEmpty()
 
@@ -156,6 +158,8 @@ class ConversationViewModel(
     private val _sendNotice = MutableStateFlow<SendNotice?>(null)
     private val _busyInteractions = MutableStateFlow<Set<String>>(emptySet())
     private val _slashCommands = MutableStateFlow<List<ConversationPort.SlashCommandView>>(emptyList())
+    private val _slashExtras = MutableStateFlow<ConversationPort.SlashExtras?>(null)
+    private var slashExtrasLoaded = false
     private var draftLoaded = false
     private var draftSaveJob: kotlinx.coroutines.Job? = null
 
@@ -201,6 +205,7 @@ class ConversationViewModel(
             busyInteractions = write.busy,
             composerAttachments = write.composerAttachments,
             slashCommands = _slashCommands.value,
+            slashExtras = _slashExtras.value,
         )
     }.stateIn(scope, SharingStarted.Eagerly, ConversationUiState())
 
@@ -215,6 +220,22 @@ class ConversationViewModel(
         // corrected by the next frame).
         scope.launch {
             port.observeSlashCommands(taskId).collect { _slashCommands.value = it }
+        }
+   
+        // Phase 4C (C2): the extras load LAZILY on the first "/" (desktop useSkills
+        // enabled-on-trigger), once per session.
+        scope.launch {
+            port.observeSlashCommands(taskId).collect { _slashCommands.value = it }
+        }
+    }
+
+    /** Called by the screen when the slash menu becomes visible. */
+    fun onSlashMenuOpen() {
+        if (slashExtrasLoaded) return
+        slashExtrasLoaded = true
+        _slashExtras.value = ConversationPort.SlashExtras(emptyList(), null, null, null, null, loading = true)
+        scope.launch {
+            _slashExtras.value = port.fetchSlashExtras(taskId)
         }
     }
 

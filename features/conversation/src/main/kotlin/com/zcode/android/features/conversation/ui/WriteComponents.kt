@@ -554,6 +554,8 @@ fun ComposerBar(
     onRetryAttachment: (uploadId: String) -> Unit = {},
     /** §43.2-11.5 voice experiment; tests inject a fake (null = platform, availability-gated). */
     voiceInputOverride: com.zcode.android.features.conversation.voice.VoiceInputPort? = null,
+    /** Phase 4C (C2): fired when the "/" menu becomes visible — the extras load lazily then. */
+    onSlashMenuOpen: () -> Unit = {},
 ) {
     val haptics = rememberZCodeHaptics()
     val control = state.sessionState?.control
@@ -614,12 +616,16 @@ fun ComposerBar(
             // GAP-12: the "/" catalog menu — visible while the draft is a bare
             // slash COMMAND TOKEN (no whitespace yet). Picking inserts into the
             // draft via onDraftChange (the field stays the single state source).
-            if (state.draft.startsWith("/") && !state.draft.contains(' ')) {
+            val slashMenuVisible = state.draft.startsWith("/") && !state.draft.contains(' ')
+            if (slashMenuVisible) {
+                // C2: the extras (skills / agents / custom commands) load on FIRST open.
+                LaunchedEffect(Unit) { onSlashMenuOpen() }
                 SlashCommandMenu(
                     commands = state.slashCommands,
                     query = state.draft,
                     onPick = onDraftChange,
                     modifier = Modifier.padding(bottom = 4.dp),
+                    extras = state.slashExtras,
                 )
             }
             // §43.2-11.5 voice input EXPERIMENT (#305): platform recognizer, availability-

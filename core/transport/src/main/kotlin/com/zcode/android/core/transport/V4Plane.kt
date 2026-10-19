@@ -179,6 +179,14 @@ interface V4Plane {
     suspend fun restartAutomation(workspacePath: String?, workspaceIdentity: String?, automationId: String)
 
     /**
+     * Phase 4C (C2): the slash panel's extra sections over their own service channels
+     * (C1's unused-channel rows): `commands.list` → CommandsListResult and
+     * `subagents.list` → AgentsListResult. Both take the workspace-target form.
+     */
+    suspend fun commandsList(workspacePath: String?, workspaceIdentity: String?): JsonObject
+    suspend fun subagentsList(workspacePath: String?, workspaceIdentity: String?, provider: String?): JsonObject
+
+    /**
      * GAP-6: the `off-peak-task` channel `list` read (offPeakTask.ts:41 — NO args,
      * Arr([]) like model-selection.getView). Result normalized to {tasks:[…]}.
      */
@@ -955,6 +963,31 @@ internal class ChannelV4Plane(
                 put("automationId", JsonPrimitive(automationId))
             }),
         )
+    }
+
+    suspend fun commandsList(workspacePath: String?, workspaceIdentity: String?): JsonObject {
+        val target = host.workspaceTarget()
+        return when (val raw = channelCall("commands", "list", RpcValue.Arr(listOf(RpcValue.Obj(buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+            (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+        }))), timeouts.v4CallTimeoutMs)) {
+            is RpcValue.Obj -> raw.json
+            is RpcValue.Arr -> buildJsonObject { put("commands", JsonArray(raw.items.map { (it as? RpcValue.Obj)?.json ?: JsonObject(emptyMap()) })) }
+            else -> throw TransportFailure(ErrorMapping.protocolFault("commands.list result not an object"))
+        }
+    }
+
+    suspend fun subagentsList(workspacePath: String?, workspaceIdentity: String?, provider: String?): JsonObject {
+        val target = host.workspaceTarget()
+        return when (val raw = channelCall("subagents", "list", RpcValue.Arr(listOf(RpcValue.Obj(buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+            (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            provider?.let { put("provider", JsonPrimitive(it)) }
+        }))), timeouts.v4CallTimeoutMs)) {
+            is RpcValue.Obj -> raw.json
+            is RpcValue.Arr -> buildJsonObject { put("agents", JsonArray(raw.items.map { (it as? RpcValue.Obj)?.json ?: JsonObject(emptyMap()) })) }
+            else -> throw TransportFailure(ErrorMapping.protocolFault("subagents.list result not an object"))
+        }
     }
 
     suspend fun offPeakTaskList(): JsonObject =

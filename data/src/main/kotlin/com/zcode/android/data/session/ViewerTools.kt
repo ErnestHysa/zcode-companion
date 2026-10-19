@@ -73,6 +73,13 @@ class ViewerTools(private val transport: AppTransport) {
     suspend fun restartAutomation(workspacePath: String?, workspaceIdentity: String?, automationId: String) =
         transport.restartAutomation(workspacePath, workspaceIdentity, automationId)
 
+    /** Phase 4C (C2): the slash panel's extra sections — custom/plugin commands + subagents. */
+    suspend fun slashUserCommands(workspacePath: String?, workspaceIdentity: String?): List<com.zcode.android.domain.model.SlashCatalogExtras.CommandEntry> =
+        com.zcode.android.domain.model.SlashCatalogExtras.decodeCommands(transport.commandsList(workspacePath, workspaceIdentity))
+
+    suspend fun subagents(workspacePath: String?, workspaceIdentity: String?, provider: String?): List<com.zcode.android.domain.model.SlashCatalogExtras.AgentEntry> =
+        com.zcode.android.domain.model.SlashCatalogExtras.decodeAgents(transport.subagentsList(workspacePath, workspaceIdentity, provider))
+
     /**
      * `off-peak-task` channel `list` with the desktop's own list projection mirrored
      * CLIENT-SIDE (zcodeAgentService.ts:2666-2761): workspace filter, createdAt DESC,

@@ -1242,6 +1242,8 @@ class RelayTransport(
     override suspend fun listAutomationRuns(workspacePath: String?, workspaceIdentity: String?, automationId: String): JsonObject = plane.listAutomationRuns(workspacePath, workspaceIdentity, automationId)
     override suspend fun deleteAutomationRun(workspacePath: String?, workspaceIdentity: String?, runId: String) = plane.deleteAutomationRun(workspacePath, workspaceIdentity, runId)
     override suspend fun restartAutomation(workspacePath: String?, workspaceIdentity: String?, automationId: String) = plane.restartAutomation(workspacePath, workspaceIdentity, automationId)
+    override suspend fun commandsList(workspacePath: String?, workspaceIdentity: String?): JsonObject = plane.commandsList(workspacePath, workspaceIdentity)
+    override suspend fun subagentsList(workspacePath: String?, workspaceIdentity: String?, provider: String?): JsonObject = plane.subagentsList(workspacePath, workspaceIdentity, provider)
     override suspend fun usageEntitlementSnapshot(request: JsonObject): JsonObject = plane.usageEntitlementSnapshot(request)
 
     override suspend fun codingPlanResetStatus(preferredProviderId: String, accountAccess: JsonObject): JsonObject =
