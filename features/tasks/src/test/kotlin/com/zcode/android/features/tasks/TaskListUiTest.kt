@@ -112,7 +112,6 @@ class TaskListUiTest {
         rule.onNodeWithTag("task_row_a").assertIsDisplayed() // cached rows stay visible
     }
 
-    @Test
     // E4 (gaps-and-polish Phase 4G): the FIRST sync failure (never refreshed since
     // pairing) is ANNOTATED — not the bare "Connection failed" beside "No tasks yet".
     @Test
