@@ -77,6 +77,17 @@ class DefaultTasksPort(
     override fun observeWorkspaces(): Flow<List<com.zcode.android.domain.model.WorkspaceOption>> =
         hub.workspaces
 
+    /** Phase 4C (C7): the scratch workspace — `{name}` → `{path}` (null = refused). */
+    override suspend fun createScratchWorkspace(name: String): String? =
+        try {
+            hub.viewerTools().createScratchWorkspace(name)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("tasksport.scratch", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            null
+        }
+
     override suspend fun createTask(
         workspaceKey: String,
         firstText: String,

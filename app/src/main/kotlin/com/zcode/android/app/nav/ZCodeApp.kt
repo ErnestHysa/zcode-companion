@@ -264,6 +264,19 @@ fun ZCodeApp(
                 onCreateRequestConsumed = { createRequested = false },
                 // Phase 4B (A3.2): open-session-from-run lands on the run's session.
                 onOpenTaskId = { id -> container.log.info("tasks.openRun", "task=${id.take(24)}"); nav.navigate(Routes.conversation(id)) },
+                // Phase 4C (C7): scratch create — resolve `{name}` → `{path}` (createScratchWorkspace),
+                // then the SAME createTaskAndWait against the returned path.
+                onCreateScratchTask = { name, text, provider, model ->
+                    scope.launch {
+                        container.log.info("tasks.scratch", "name=${name.take(24)}")
+                        val path = container.tasksPort.createScratchWorkspace(name)
+                        if (path != null) {
+                            tasksVm.createTaskAndWait(path, text, provider, model)
+                        } else {
+                            container.log.warn("tasks.scratch", "createScratchWorkspace refused — nothing created")
+                        }
+                    }
+                },
             )
         }
         composable(Routes.CONVERSATION) { entry ->
@@ -376,6 +389,7 @@ private fun TasksRoute(
     requestCreate: Boolean = false,
     onCreateRequestConsumed: () -> Unit = {},
     onOpenTaskId: (String) -> Unit = {},
+    onCreateScratchTask: (name: String, firstText: String, provider: String?, model: String?) -> Unit = { _, _, _, _ -> },
 ) {
     val state by vm.state.collectAsState()
     val refreshing by vm.isRefreshing.collectAsState()
@@ -417,6 +431,7 @@ private fun TasksRoute(
         requestCreate = requestCreate,
         onCreateRequestConsumed = onCreateRequestConsumed,
         onOpenTaskId = onOpenTaskId,
+        onCreateScratchTask = onCreateScratchTask,
     )
 }
 

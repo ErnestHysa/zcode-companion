@@ -118,6 +118,8 @@ fun TaskListScreen(
     onCreateRequestConsumed: () -> Unit = {},
     /** Phase 4B (A3.2): open-session-from-run — the automation run's back-filled sessionId. */
     onOpenTaskId: (taskId: String) -> Unit = {},
+    /** Phase 4C (C7): a scratch create — the caller resolves `{name}` → `{path}` then creates. */
+    onCreateScratchTask: (name: String, firstText: String, provider: String?, model: String?) -> Unit = { _, _, _, _ -> },
 ) {
     val motion = rememberMotionSpec()
     var showCreate by remember { androidx.compose.runtime.mutableStateOf(false) }
@@ -275,7 +277,12 @@ fun TaskListScreen(
             onDismiss = { showCreate = false },
             onCreate = { key, text, provider, model ->
                 showCreate = false
-                onCreateTask(key, text, provider, model)
+                if (key.startsWith("scratch:")) {
+                    // C7: resolve the scratch name → path, then create against it.
+                    onCreateScratchTask(key.removePrefix("scratch:"), text, provider, model)
+                } else {
+                    onCreateTask(key, text, provider, model)
+                }
             },
             modelPicker = modelPicker,
         )
@@ -313,6 +320,11 @@ internal fun CreateTaskSheet(
     var text by remember { androidx.compose.runtime.mutableStateOf("") }
     var expanded by remember { androidx.compose.runtime.mutableStateOf(false) }
     var selected by remember { androidx.compose.runtime.mutableStateOf(workspaces.firstOrNull()) }
+    // Phase 4C (C7): the desktop's scratch workspace — "New scratch workspace" in the
+    // picker reveals a name field; creating flows the "scratch:<name>" sentinel key
+    // through the SAME create callback (the caller resolves the path first).
+    var scratchName by remember { androidx.compose.runtime.mutableStateOf("") }
+    var scratchSelected by remember { androidx.compose.runtime.mutableStateOf(false) }
     // FIELD (2026-10-12): model picker on creation — the desktop lets you choose the
     // model BEFORE the first message; createSessionRequestedConfigSchema carries
     // {provider, model} as the new session's requested override (command.ts:30-41).
@@ -381,11 +393,23 @@ internal fun CreateTaskSheet(
                                 text = { Text(ws.label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                                 onClick = {
                                     selected = ws
+                                    scratchSelected = false
                                     expanded = false
                                 },
                                 modifier = Modifier.testTag("create_workspace_${ws.key.take(20)}"),
                             )
                         }
+                        // C7: the desktop's scratch-workspace entry.
+                        androidx.compose.material3.HorizontalDivider()
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text(stringResource(R.string.create_scratch_entry)) },
+                            onClick = {
+                                scratchSelected = true
+                                selected = null
+                                expanded = false
+                            },
+                            modifier = Modifier.testTag("create_workspace_scratch"),
+                        )
                     }
                 }
                 Spacer(Modifier.height(10.dp))
@@ -423,10 +447,27 @@ internal fun CreateTaskSheet(
                     TextButton(onClick = onDismiss, modifier = Modifier.testTag("create_task_cancel")) {
                         Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
                     }
+                    if (scratchSelected) {
+                        Spacer(Modifier.height(8.dp))
+                        androidx.compose.material3.OutlinedTextField(
+                            value = scratchName,
+                            onValueChange = { scratchName = it },
+                            label = { Text(stringResource(R.string.create_scratch_name)) },
+                            modifier = Modifier.fillMaxWidth().testTag("create_scratch_name"),
+                            maxLines = 1,
+                        )
+                    }
                     Spacer(Modifier.width(8.dp))
                     ZCodeButton(
-                        onClick = { selected?.let { onCreate(it.key, text, pickedModel?.first, pickedModel?.second) } },
-                        enabled = !creating && text.isNotBlank() && selected != null,
+                        onClick = {
+                            if (scratchSelected) {
+                                onCreate("scratch:$scratchName", text, pickedModel?.first, pickedModel?.second)
+                            } else {
+                                selected?.let { onCreate(it.key, text, pickedModel?.first, pickedModel?.second) }
+                            }
+                        },
+                        enabled = !creating && text.isNotBlank() &&
+                            (if (scratchSelected) scratchName.isNotBlank() else selected != null),
                         modifier = Modifier.testTag("create_task_confirm"),
                     ) { Text(stringResource(R.string.create_confirm)) }
                 }

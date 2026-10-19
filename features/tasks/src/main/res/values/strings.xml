@@ -18,6 +18,8 @@
     <string name="tasks_creating">Creating…</string>
     <string name="tasks_created">Task created</string>
     <string name="create_task_title">New task</string>
+    <string name="create_scratch_entry">New scratch workspace</string>
+    <string name="create_scratch_name">Scratch workspace name</string>
     <string name="create_no_workspaces">No workspaces offered by the desktop yet.</string>
     <string name="create_pick_workspace">Choose a workspace</string>
     <string name="create_hint">Describe the task — this starts the agent</string>

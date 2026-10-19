@@ -18,6 +18,8 @@
     <string name="tasks_creating">正在创建…</string>
     <string name="tasks_created">任务已创建</string>
     <string name="create_task_title">新任务</string>
+    <string name="create_scratch_entry">新建临时工作区</string>
+    <string name="create_scratch_name">临时工作区名称</string>
     <string name="create_no_workspaces">桌面端尚未提供任何工作区。</string>
     <string name="create_pick_workspace">选择工作区</string>
     <string name="create_hint">描述任务 — 这将启动智能体</string>

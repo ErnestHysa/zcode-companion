@@ -45,4 +45,11 @@ interface TasksPort {
         provider: String? = null,
         model: String? = null,
     ): Boolean
+
+    /**
+     * Phase 4C (C7): `createScratchWorkspace` on the shipped facade (`{name}` →
+     * `{path}`) — the phone could never START a scratch workspace. Null = refused
+     * or unavailable (the sheet keeps the regular picker).
+     */
+    suspend fun createScratchWorkspace(name: String): String? = null
 }
