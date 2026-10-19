@@ -66,7 +66,7 @@ class GoalPlanDecodeTest {
         val plan = state.plan!!
         assertEquals(listOf("completed", "inProgress", "pending"), plan.items.map { it.status })
         assertEquals("Bump the version", plan.items[1].content)
-        assertEquals(1760000040000L, plan.updatedAt)
+        assertEquals(1760000040000L, plan.updatedAtMs)
     }
 
     @Test
