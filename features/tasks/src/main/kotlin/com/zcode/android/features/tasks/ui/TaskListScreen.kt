@@ -446,6 +446,16 @@ internal fun CreateTaskSheet(
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
+                if (scratchSelected) {
+                    Spacer(Modifier.height(8.dp))
+                    androidx.compose.material3.OutlinedTextField(
+                        value = scratchName,
+                        onValueChange = { scratchName = it },
+                        label = { Text(stringResource(R.string.create_scratch_name)) },
+                        modifier = Modifier.fillMaxWidth().testTag("create_scratch_name"),
+                        maxLines = 1,
+                    )
+                }
                 Spacer(Modifier.height(12.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -454,16 +464,6 @@ internal fun CreateTaskSheet(
                 ) {
                     TextButton(onClick = onDismiss, modifier = Modifier.testTag("create_task_cancel")) {
                         Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
-                    }
-                    if (scratchSelected) {
-                        Spacer(Modifier.height(8.dp))
-                        androidx.compose.material3.OutlinedTextField(
-                            value = scratchName,
-                            onValueChange = { scratchName = it },
-                            label = { Text(stringResource(R.string.create_scratch_name)) },
-                            modifier = Modifier.fillMaxWidth().testTag("create_scratch_name"),
-                            maxLines = 1,
-                        )
                     }
                     Spacer(Modifier.width(8.dp))
                     ZCodeButton(
