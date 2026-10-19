@@ -49,6 +49,11 @@ fun SlashCommandMenu(
         .filter { cmd -> matches(cmd.name) && catalog.none { it.name.equals(cmd.name, ignoreCase = true) } }
     val skills = (extras?.skills ?: emptyList()).filter { matches(it.name) }
     val agents = (extras?.agents ?: emptyList()).filter { matches(it.name) }
+    // A section FILTERED OUT (token non-empty, no rows, not loading/errored) vanishes;
+    // a genuine empty state (bare "/") keeps its header + note.
+    val filtering = token.isNotEmpty()
+    val showSkills = extras != null && (skills.isNotEmpty() || extras.loading || extras.skillsError != null || !filtering)
+    val showAgents = extras != null && (agents.isNotEmpty() || extras.agentsError != null || !filtering)
     if (catalog.isEmpty() && userCommands.isEmpty() &&
         (extras == null || (skills.isEmpty() && agents.isEmpty()))
     ) return
@@ -73,7 +78,7 @@ fun SlashCommandMenu(
                     },
                 )
             }
-            if (extras != null) {
+            if (showSkills) {
                 SectionHeader(stringResourceSlashSkills(), tag = "skills")
                 when {
                     extras.loading -> MenuNote(
@@ -97,23 +102,25 @@ fun SlashCommandMenu(
                         )
                     }
                 }
-                SectionHeader(stringResourceSlashAgents(), tag = "agents")
-                when {
-                    extras.agentsError != null -> MenuNote(
-                        friendlyFaultMessage(extras.agentsError),
-                        tag = "slash_agents_error",
-                    )
-                    agents.isEmpty() -> MenuNote(
-                        stringResourceSlashEmptyAgents(),
-                        tag = "slash_agents_empty",
-                    )
-                    else -> agents.forEach { agent ->
-                        MenuRow(
-                            primary = "@${agent.name}",
-                            primaryTag = "slash_agent_${agent.name}",
-                            detail = agent.description,
-                            onPick = { onPick("@${agent.name} ") },
+                if (showAgents) {
+                    SectionHeader(stringResourceSlashAgents(), tag = "agents")
+                    when {
+                        extras.agentsError != null -> MenuNote(
+                            friendlyFaultMessage(extras.agentsError),
+                            tag = "slash_agents_error",
                         )
+                        agents.isEmpty() -> MenuNote(
+                            stringResourceSlashEmptyAgents(),
+                            tag = "slash_agents_empty",
+                        )
+                        else -> agents.forEach { agent ->
+                            MenuRow(
+                                primary = "@${agent.name}",
+                                primaryTag = "slash_agent_${agent.name}",
+                                detail = agent.description,
+                                onPick = { onPick("@${agent.name} ") },
+                            )
+                        }
                     }
                 }
             }
