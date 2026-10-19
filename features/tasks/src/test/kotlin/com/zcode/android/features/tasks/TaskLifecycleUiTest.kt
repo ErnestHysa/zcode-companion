@@ -154,7 +154,7 @@ class TaskLifecycleUiTest {
                     onRetry = {},
                     onRefresh = {},
                     onSearch = { clicked += it },
-                    onOpenTaskId = { opened = it },
+                    onOpenTaskId = { opened += it },
                 )
             }
         }
