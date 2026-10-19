@@ -84,6 +84,24 @@ class ViewerTools(private val transport: AppTransport) {
     suspend fun setThoughtLevel(workspacePath: String?, workspaceIdentity: String?, sessionId: String, thoughtLevel: String, expectedRevision: Long?): kotlinx.serialization.json.JsonObject =
         transport.setThoughtLevel(workspacePath, workspaceIdentity, sessionId, thoughtLevel, expectedRevision)
 
+    /** Phase 4C (C7): workspace file search for the composer @-mentions (paths, tolerant). */
+    suspend fun searchWorkspaceFiles(workspacePath: String?, workspaceIdentity: String?, query: String, limit: Int = 20): List<String> {
+        val raw = transport.fileSearch(workspacePath.orEmpty(), workspaceIdentity, query, limit)
+        val arr = (raw as? com.zcode.android.core.protocol.bytes.RpcValue.Arr)?.items
+            ?: return emptyList()
+        return arr.mapNotNull { el ->
+            when (el) {
+                is com.zcode.android.core.protocol.bytes.RpcValue.Obj -> (el.json["path"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                is com.zcode.android.core.protocol.bytes.RpcValue.Str -> el.value
+                else -> null
+            }
+        }
+    }
+
+    /** Phase 4C (C7): the scratch workspace — `{name}` → `{path}`; null = refused. */
+    suspend fun createScratchWorkspace(name: String): String? =
+        (transport.createScratchWorkspace(name)["path"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+
     /**
      * `off-peak-task` channel `list` with the desktop's own list projection mirrored
      * CLIENT-SIDE (zcodeAgentService.ts:2666-2761): workspace filter, createdAt DESC,

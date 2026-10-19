@@ -1245,6 +1245,7 @@ class RelayTransport(
     override suspend fun commandsList(workspacePath: String?, workspaceIdentity: String?): JsonObject = plane.commandsList(workspacePath, workspaceIdentity)
     override suspend fun subagentsList(workspacePath: String?, workspaceIdentity: String?, provider: String?): JsonObject = plane.subagentsList(workspacePath, workspaceIdentity, provider)
     override suspend fun setThoughtLevel(workspacePath: String?, workspaceIdentity: String?, sessionId: String, thoughtLevel: String, expectedRevision: Long?): JsonObject = plane.setThoughtLevel(workspacePath, workspaceIdentity, sessionId, thoughtLevel, expectedRevision)
+    override suspend fun createScratchWorkspace(name: String): JsonObject = plane.createScratchWorkspace(name)
     override suspend fun usageEntitlementSnapshot(request: JsonObject): JsonObject = plane.usageEntitlementSnapshot(request)
 
     override suspend fun codingPlanResetStatus(preferredProviderId: String, accountAccess: JsonObject): JsonObject =

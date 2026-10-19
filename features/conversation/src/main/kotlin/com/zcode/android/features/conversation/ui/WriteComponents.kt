@@ -557,6 +557,8 @@ fun ComposerBar(
     voiceInputOverride: com.zcode.android.features.conversation.voice.VoiceInputPort? = null,
     /** Phase 4C (C2): fired when the "/" menu becomes visible — the extras load lazily then. */
     onSlashMenuOpen: () -> Unit = {},
+    /** Phase 4C (C7): the @-mention file search (the port's workspace file search). */
+    fileSearchProvider: suspend (String) -> List<String> = { emptyList() },
 ) {
     val haptics = rememberZCodeHaptics()
     val control = state.sessionState?.control
@@ -617,6 +619,50 @@ fun ComposerBar(
             // GAP-12: the "/" catalog menu — visible while the draft is a bare
             // slash COMMAND TOKEN (no whitespace yet). Picking inserts into the
             // draft via onDraftChange (the field stays the single state source).
+            // Phase 4C (C7): @-mentions — a trailing "@token" (no space yet) queries the
+            // workspace file search; picking inserts the path in place of the token.
+            val atToken = state.draft.substringAfterLast(' ', "").takeIf { it.startsWith("@") && it.length >= 2 }?.removePrefix("@")
+            var mentionHits by remember { mutableStateOf<List<String>>(emptyList()) }
+            LaunchedEffect(atToken) {
+                if (atToken.isNullOrEmpty()) {
+                    mentionHits = emptyList()
+                } else {
+                    kotlinx.coroutines.delay(150)
+                    mentionHits = runCatching { fileSearchProvider(atToken) }.getOrDefault(emptyList())
+                }
+            }
+            if (!atToken.isNullOrEmpty() && mentionHits.isNotEmpty()) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    tonalElevation = 2.dp,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp).testTag("mention_menu"),
+                ) {
+                    Column {
+                        mentionHits.take(6).forEach { path ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .minRowTouchTarget()
+                                    .clickable(role = androidx.compose.ui.semantics.Role.Button) {
+                                        val head = state.draft.substringBeforeLast("@")
+                                        onDraftChange("$head$path ")
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                                    .testTag("mention_file_$path"),
+                            ) {
+                                Text(
+                                    path,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
             val slashMenuVisible = state.draft.startsWith("/") && !state.draft.contains(' ')
             if (slashMenuVisible) {
                 // C2: the extras (skills / agents / custom commands) load on FIRST open.
@@ -705,6 +751,14 @@ fun ComposerBar(
                                 Icon(Icons.Filled.Add, contentDescription = null)
                             }
                             androidx.compose.material3.DropdownMenu(expanded = addMenu, onDismissRequest = { addMenu = false }) {
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.composer_menu_mention_file)) },
+                                    onClick = {
+                                        addMenu = false
+                                        onDraftChange(currentDraft + if (currentDraft.endsWith(" ") || currentDraft.isEmpty()) "@" else " @")
+                                    },
+                                    modifier = Modifier.testTag("composer_menu_mention"),
+                                )
                                 androidx.compose.material3.DropdownMenuItem(
                                     text = { Text(stringResource(R.string.composer_menu_photo)) },
                                     onClick = {

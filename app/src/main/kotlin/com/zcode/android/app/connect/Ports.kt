@@ -430,6 +430,19 @@ class DefaultConversationPort(
      * provider-filtered like the desktop's useSubagents). One failing channel carries
      * its own error; the others still render.
      */
+    /** Phase 4C (C7): the @-mention file search over the file channel. */
+    override suspend fun searchWorkspaceFiles(taskId: String, query: String): List<String> {
+        val target = hub.activeWorkspaceTarget() ?: return emptyList()
+        return try {
+            hub.viewerTools().searchWorkspaceFiles(target.first, target.second, query)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("port.fileSearch", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            emptyList()
+        }
+    }
+
     override suspend fun fetchSlashExtras(taskId: String): ConversationPort.SlashExtras {
         val target = hub.activeWorkspaceTarget()
         val workspacePath = target?.first

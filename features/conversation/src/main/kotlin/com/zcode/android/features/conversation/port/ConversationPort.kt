@@ -83,6 +83,13 @@ interface ConversationPort {
     suspend fun fetchSlashExtras(taskId: String): SlashExtras =
         SlashExtras(emptyList(), null, null, null, null, loading = false)
 
+    /**
+     * Phase 4C (C7): workspace file search for the composer @-mentions (the desktop's
+     * mention panel uses the same service; the port has owned the file channel since
+     * Phase 3C). Empty = no matches (or the channel refused — the menu just hides).
+     */
+    suspend fun searchWorkspaceFiles(taskId: String, query: String): List<String> = emptyList()
+
     /** Subscribe (Phase 5 coordinator path; journal restore included). */
     suspend fun open(task: Task): Boolean
 

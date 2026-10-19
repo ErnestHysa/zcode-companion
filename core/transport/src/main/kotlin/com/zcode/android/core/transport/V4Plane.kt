@@ -191,6 +191,12 @@ interface V4Plane {
      * Returns the session snapshot (tolerant: the §10.3 `config` echo is the truth).
      */
     suspend fun setThoughtLevel(workspacePath: String?, workspaceIdentity: String?, sessionId: String, thoughtLevel: String, expectedRevision: Long?): JsonObject
+    /**
+     * Phase 4C (C7): the scratch-workspace facade call (shipped 3.14.5: params
+     * `{name}` → `{path}` — desktop-local; NO workspace target keys, the strict
+     * create-params schema would refuse them).
+     */
+    suspend fun createScratchWorkspace(name: String): JsonObject
 
     /**
      * GAP-6: the `off-peak-task` channel `list` read (offPeakTask.ts:41 — NO args,
@@ -1008,6 +1014,14 @@ internal class ChannelV4Plane(
         }))
         return ((raw as? RpcValue.Obj)?.json as? kotlinx.serialization.json.JsonObject)
             ?: throw TransportFailure(ErrorMapping.protocolFault("setThoughtLevel result not an object"))
+    }
+
+    suspend fun createScratchWorkspace(name: String): JsonObject {
+        val raw = v4Call("createScratchWorkspace", RpcValue.Obj(buildJsonObject {
+            put("name", JsonPrimitive(name))
+        }))
+        return ((raw as? RpcValue.Obj)?.json as? kotlinx.serialization.json.JsonObject)
+            ?: throw TransportFailure(ErrorMapping.protocolFault("createScratchWorkspace result not an object"))
     }
 
     suspend fun offPeakTaskList(): JsonObject =
