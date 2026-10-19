@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zcode.android.core.ui.components.friendlyFaultMessage
 import com.zcode.android.core.ui.components.minRowTouchTarget
+import com.zcode.android.features.conversation.port.ConversationPort
 import androidx.compose.ui.semantics.Role
 
 /**
