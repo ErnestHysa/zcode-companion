@@ -159,7 +159,7 @@ class TaskLifecycleUiTest {
         rule.onNodeWithTag("tasks_search_hit_t9").assertIsDisplayed()
         rule.onNodeWithText("refresh token rotation").assertIsDisplayed()
         rule.onNodeWithTag("tasks_search_hit_t9").performClick(); rule.waitForIdle()
-        org.junit.Assert.assertEquals("t9", opened as Any?)
-        assertEquals(listOf(""), clicked, "picking a hit clears the query")
+        org.junit.Assert.assertEquals("t9", opened)
+        org.junit.Assert.assertEquals("picking a hit clears the query", listOf(""), clicked)
     }
 }

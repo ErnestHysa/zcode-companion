@@ -6,6 +6,7 @@ import com.zcode.android.core.transport.EndpointDescriptor
 import com.zcode.android.core.transport.EndpointKind
 import com.zcode.android.core.transport.OkHttpWsFactory
 import com.zcode.android.core.transport.RelayTransport
+import com.zcode.android.data.session.TaskServiceClient
 import com.zcode.android.tools.mockzcode.MockZCode
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -30,7 +31,7 @@ class TaskLifecycleWireTest {
 
     private lateinit var mock: MockZCode
     private lateinit var transport: RelayTransport
-    private lateinit var tasks: TaskServiceClient
+    private lateinit var tasks: com.zcode.android.data.session.TaskServiceClient
 
     @After
     fun tearDown() {
