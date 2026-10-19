@@ -179,6 +179,7 @@ fun ConversationScreen(
                 onSwitchModel = onSwitchModel,
                 modelOptionsProvider = modelOptionsProvider,
                 sessionStatusProvider = sessionStatusProvider,
+                onSetThoughtLevel = onSetThoughtLevel,
             )
             // Phase 9.1: the per-turn diff viewer (opened from a turnHeader's summary).
             var diffTurn by remember { mutableStateOf<ConversationRow.TurnHeader?>(null) }
@@ -348,6 +349,8 @@ private fun Header(
     onSwitchModel: (provider: String, model: String, thought: String) -> Unit = { _, _, _ -> },
     modelOptionsProvider: suspend () -> List<com.zcode.android.domain.model.ModelProviderOption> = { emptyList() },
     sessionStatusProvider: suspend () -> com.zcode.android.domain.model.GitSummary? = { null },
+    /** Phase 4C (A3.4): the effort switch (setThoughtLevel). */
+    onSetThoughtLevel: (String) -> Unit = {},
 ) {
     Column {
         ZCodeTopBar(
