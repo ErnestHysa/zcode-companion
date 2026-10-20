@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.WrapText
+import androidx.compose.material.icons.outlined.Article
 import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Description
