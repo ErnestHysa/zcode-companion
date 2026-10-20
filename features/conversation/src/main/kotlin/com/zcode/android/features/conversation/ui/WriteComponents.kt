@@ -267,6 +267,8 @@ fun UserInputCard(
     onAnswer: (optionId: String, freeText: String?) -> Unit,
     modifier: Modifier = Modifier,
     onAnswerQuestions: (Map<String, List<String>>) -> Unit = {},
+    /** A3.14 (Phase 5B): decline — the resolveInteraction `action: "decline"` arm. */
+    onDecline: (() -> Unit)? = null,
 ) {
     val payload = interaction.userInput ?: return
     // B2.13: keyed on the interaction — selections never leak across requests.
@@ -383,6 +385,17 @@ fun UserInputCard(
                         .fillMaxWidth()
                         .testTag("userinput_questions_submit"),
                 ) { Text(stringResource(R.string.userinput_send_answers)) }
+                // A3.14: the decline arm — the agent continues on best judgment (never a
+                // silent drop: the card stays until the desktop resolves it).
+                if (onDecline != null) {
+                    TextButton(
+                        onClick = onDecline,
+                        enabled = !busy,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("userinput_decline"),
+                    ) { Text(stringResource(R.string.userinput_decline)) }
+                }
             } else if (payload.options.isNotEmpty()) {
                 for (option in payload.options) {
                     // B2.4: the whole row is the touch target — the label was dead

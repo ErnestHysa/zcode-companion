@@ -695,6 +695,13 @@ class DefaultConversationPort(
         )
     }
 
+
+    // A3.14 (Phase 5B): the decline/cancel arm of the elicitation answer.
+    override suspend fun declineUserInput(interactionId: String, action: String): ConversationPort.AnswerOutcome {
+        val coordinator = hub.interactionCoordinatorOrNull() ?: return ConversationPort.AnswerOutcome.UNKNOWN_INTERACTION
+        return mapAnswer(coordinator.submitElicitationDecline(com.zcode.android.domain.ids.InteractionId(interactionId), action))
+    }
+
     override suspend fun answerFromInbox(interactionId: String, optionId: String, freeText: String?): ConversationPort.AnswerOutcome {
         val coordinator = hub.interactionCoordinatorOrNull() ?: return ConversationPort.AnswerOutcome.UNKNOWN_INTERACTION
         return mapAnswer(

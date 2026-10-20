@@ -460,6 +460,90 @@ class InteractionCoordinator(
         }
     }
 
+    /**
+     * A3.14 (Phase 5B): DECLINE/CANCEL an elicitation — the resolveInteraction answer's
+     * `action` arm (chunk-LNGNUNBX `$r`: `action: accept|decline|cancel`): the agent
+     * continues on best judgment without the user's preference. Same INV-4 minting +
+     * machine path as submitElicitationAnswers; empty content (the schema omits it).
+     */
+    suspend fun submitElicitationDecline(
+        interactionId: InteractionId,
+        action: String = "decline",
+    ): SubmitOutcome {
+        require(action in setOf("decline", "cancel")) { "not a decline-class action: $action" }
+        val machine = machines[interactionId] ?: return SubmitOutcome.UnknownInteraction
+        val request = requests[interactionId] ?: return SubmitOutcome.UnknownInteraction
+        if (request.userInput == null) return SubmitOutcome.NotApprovable
+
+        runCatching { machine.on(PermissionStateMachine.Event.UserChose("decline", null)) }
+            .onFailure { return SubmitOutcome.DuplicateNoOp }
+        if (machine.state != PermissionStateMachine.State.SUBMITTING) {
+            return SubmitOutcome.DuplicateNoOp
+        }
+        updateLifecycle(interactionId, machine.state)
+
+        val payload = buildJsonObject {
+            put("interactionId", interactionId.raw)
+            put("answer", buildJsonObject { put("action", action) })
+        }
+        val existing = pendingCommands[interactionId]
+        val commandId: CommandId = when {
+            existing == null -> {
+                val minted = outbox.accept(
+                    endpointId = endpointId,
+                    sessionId = request.sessionId,
+                    type = "resolveInteraction",
+                    payloadJson = payload.toString(),
+                    baseRevision = null,
+                    baseLogEpoch = null,
+                    issuedAtMs = clock(),
+                )
+                pendingCommands[interactionId] = minted
+                minted
+            }
+            outbox.get(existing)?.state == OutboxStateMachine.State.UNKNOWN ||
+                outbox.get(existing)?.state == OutboxStateMachine.State.FAILED_RETRYABLE -> {
+                outbox.apply(existing, OutboxStateMachine.Event.UserGatedRetry, clock())
+                existing
+            }
+            else -> return SubmitOutcome.DuplicateNoOp
+        }
+        return try {
+            if (outbox.get(commandId)?.state == OutboxStateMachine.State.ACCEPTED_LOCALLY) {
+                outbox.apply(commandId, OutboxStateMachine.Event.Transmit, clock())
+            }
+            val ack = commands.send(
+                type = "resolveInteraction",
+                sessionId = request.sessionId,
+                payload = payload,
+                baseRevision = null,
+                baseLogEpoch = null,
+                commandId = commandId.raw,
+            )
+            outbox.apply(commandId, OutboxStateMachine.Event.Ack(ack.status), clock())
+            val machineEvent = when (ack.status) {
+                "accepted", "duplicate", "noop" -> PermissionStateMachine.Event.AckConfirmed
+                "stale" -> PermissionStateMachine.Event.AckStale
+                else -> PermissionStateMachine.Event.AckRejected
+            }
+            runCatching { machine.on(machineEvent) }
+            if (machine.state == PermissionStateMachine.State.RESOLVED) {
+                interactions.markResolved(endpointId, interactionId, clock(), resolvedBySelf = !machine.resolvedByElsewhere)
+                pendingCommands.remove(interactionId)
+            } else if (machine.state in TERMINAL_MACHINE_STATES) {
+                pendingCommands.remove(interactionId)
+            }
+            updateLifecycle(interactionId, machine.state)
+            SubmitOutcome.Submitted(ack)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            runCatching { outbox.apply(commandId, OutboxStateMachine.Event.SendLost, clock()) }
+            runCatching { machine.on(PermissionStateMachine.Event.SendFailedPreContact) }
+            updateLifecycle(interactionId, machine.state)
+            SubmitOutcome.RetryableKept(commandId)
+        }
+    }
+
     // ---------------------------------------------------------------- recovery reconcile (S13)
 
     /**

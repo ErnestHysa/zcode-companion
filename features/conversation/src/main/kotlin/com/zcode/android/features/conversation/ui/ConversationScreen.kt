@@ -93,6 +93,8 @@ fun ConversationScreen(
     onEditQueueItem: (queueItemId: String, newText: String) -> Unit,
     modifier: Modifier = Modifier,
     onAnswerQuestions: (String, Map<String, List<String>>) -> Unit = { _, _ -> },
+    /** A3.14 (Phase 5B): decline the elicitation (resolveInteraction action=decline). */
+    onDeclineQuestions: (String) -> Unit = {},
     // ---- Phase 9 (§43.2-9): advanced read-only surfaces + model switch ----
     onOpenFiles: () -> Unit = {},
     onOpenGit: () -> Unit = {},
@@ -271,6 +273,7 @@ fun ConversationScreen(
                     onAnswerQuestions = { answers ->
                         onAnswerQuestions(interaction.interactionId, answers)
                     },
+                    onDecline = { onDeclineQuestions(interaction.interactionId) },
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                 )
             }

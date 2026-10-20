@@ -890,6 +890,19 @@ class ConversationViewModel(
     }
 
     /** Phase 7 field: AskUserQuestion answers through the ONE fail-closed gate. */
+    /** A3.14: decline the elicitation (the agent continues on best judgment). */
+    fun declineUserInput(interactionId: String) {
+        if (interactionId in _busyInteractions.value) return
+        _busyInteractions.value = _busyInteractions.value + interactionId
+        scope.launch {
+            try {
+                port.declineUserInput(interactionId, "decline")
+            } finally {
+                _busyInteractions.value = _busyInteractions.value - interactionId
+            }
+        }
+    }
+
     fun answerUserInputQuestions(interactionId: String, answers: Map<String, List<String>>) {
         if (interactionId in _busyInteractions.value) return
         _busyInteractions.value = _busyInteractions.value + interactionId

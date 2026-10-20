@@ -383,3 +383,36 @@ private class InMemoryTestOutbox : com.zcode.android.domain.repo.OutboxRepositor
     override suspend fun countByState(endpointId: EndpointId, state: com.zcode.android.domain.outbox.OutboxStateMachine.State): Int =
         rows.values.count { it.state == state }
 }
+    /**
+     * A3.14 (Phase 5B): the DECLINE arm — `resolveInteraction answer {action: "decline"}`
+     * (no optionId/freeText), the same INV-4 minting + machine path as the answers; a
+     * non-decline action is refused locally; a permission card is not decline-able.
+     */
+    @Test
+    fun `decline rides resolveInteraction with the action arm and refuses out-of-set actions`() = runTest {
+        val (coordinator, _, sender, _) = coordinator()
+        coordinator.reconcileFromSessionState("sess-1", userInputState("q-1", options = listOf("a", "b"), freeText = false))
+        val outcome = coordinator.submitElicitationDecline(InteractionId("q-1"), "decline")
+        assertTrue(outcome is com.zcode.android.data.session.InteractionCoordinator.SubmitOutcome.Submitted)
+        val (type, payload) = sender.sent.single()
+        assertEquals("resolveInteraction", type)
+        val answer = payload["answer"]!!.jsonObject
+        assertEquals("decline", (answer["action"] as JsonPrimitive).content)
+        assertTrue(answer["optionId"] == null, "no optionId on the decline arm")
+        assertTrue(answer["freeText"] == null, "no freeText on the decline arm")
+        // out-of-set: refused locally, nothing on the wire
+        val refused = runCatching { coordinator.submitElicitationDecline(InteractionId("q-1"), "allow") }
+        assertTrue(refused.isFailure)
+        assertEquals(1, sender.sent.size)
+        // cancel is also in-set
+        val cancelState = userInputState("q-2", options = emptyList(), freeText = true)
+        coordinator.reconcileFromSessionState("sess-1", cancelState)
+        coordinator.submitElicitationDecline(InteractionId("q-2"), "cancel")
+        assertEquals(2, sender.sent.size)
+        assertEquals("cancel", ((sender.sent[1].second["answer"] as JsonObject)["action"] as JsonPrimitive).content)
+        // a PERMISSION card is not decline-able
+        coordinator.reconcileFromSessionState("sess-1", permissionState("p-1"))
+        val notApprovable = coordinator.submitElicitationDecline(InteractionId("p-1"))
+        assertTrue(notApprovable is com.zcode.android.data.session.InteractionCoordinator.SubmitOutcome.NotApprovable)
+    }
+}

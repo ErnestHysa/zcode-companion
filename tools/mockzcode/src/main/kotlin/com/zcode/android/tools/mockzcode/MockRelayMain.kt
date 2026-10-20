@@ -221,6 +221,41 @@ fun main() {
         )))
         mock.script.taskGroupMembers["task-group-rig"] = mutableListOf("synth-task-3")
     }
+    // Phase 5B (A3.14) rig leg: MOCK_QUESTION=1 scripts a blocking AskUserQuestion
+    // elicitation (two questions, one multi-select) into the snapshot's pending
+    // interactions — the card renders and the answer/decline ride resolveInteraction.
+    if (System.getenv("MOCK_QUESTION") != null) {
+        mock.script.pendingUserInput = MockZCode.PendingUserInput(
+            interactionId = "q-rig-1",
+            prompt = "How should I ship this?",
+            freeText = false,
+            options = emptyList(),
+        )
+        mock.script.pendingQuestion = JsonObject(mapOf(
+            "interactionId" to JsonPrimitive("q-rig-1"),
+            "prompt" to JsonPrimitive("How should I ship this?"),
+            "questions" to JsonArray(listOf(
+                JsonObject(mapOf(
+                    "question" to JsonPrimitive("Which channel?"),
+                    "header" to JsonPrimitive("Channel"),
+                    "multiSelect" to JsonPrimitive(false),
+                    "options" to JsonArray(listOf(
+                        JsonObject(mapOf("value" to JsonPrimitive("tag"), "label" to JsonPrimitive("Tag the release"))),
+                        JsonObject(mapOf("value" to JsonPrimitive("branch"), "label" to JsonPrimitive("Cut a branch"))),
+                    )),
+                )),
+                JsonObject(mapOf(
+                    "question" to JsonPrimitive("Which extras?"),
+                    "header" to JsonPrimitive("Extras"),
+                    "multiSelect" to JsonPrimitive(true),
+                    "options" to JsonArray(listOf(
+                        JsonObject(mapOf("value" to JsonPrimitive("notes"), "label" to JsonPrimitive("Release notes"))),
+                        JsonObject(mapOf("value" to JsonPrimitive("changelog"), "label" to JsonPrimitive("Changelog"))),
+                    )),
+                )),
+            )),
+        ))
+    }
     // Phase 4C (C2) rig leg: the slash panel's extra sections — one custom command,
     // one skill, one agent (synthetic, INV-15/16).
     mock.script.commandsList = JsonObject(mapOf(

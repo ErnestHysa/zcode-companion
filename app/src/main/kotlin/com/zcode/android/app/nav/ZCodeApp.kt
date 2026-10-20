@@ -558,6 +558,7 @@ private fun ConversationRoute(
         onSendQueuedNow = vm::sendQueuedNow,
         onEditQueueItem = vm::editQueueItem,
         onAnswerQuestions = vm::answerUserInputQuestions,
+        onDeclineQuestions = vm::declineUserInput,
         // Phase 3C (C7): lazy full tool output — slice when the desktop answers, else the row payload.
         toolOutputProvider = { row ->
             state.task?.taskId?.let { container.conversationPort.fetchToolCallOutput(it, row.toolCallId) }

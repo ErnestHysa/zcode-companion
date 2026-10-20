@@ -252,6 +252,13 @@ interface ConversationPort {
         answers: Map<String, List<String>>,
     ): AnswerOutcome
 
+    /**
+     * A3.14: DECLINE an elicitation (`resolveInteraction answer {action: decline|cancel}`) —
+     * the agent continues on best judgment; the card closes.
+     */
+    suspend fun declineUserInput(interactionId: String, action: String = "decline"): AnswerOutcome =
+        AnswerOutcome.UNKNOWN_INTERACTION
+
     // ---------------------------------------------------------------- Phase 9 (§43.2-9)
 
     /**

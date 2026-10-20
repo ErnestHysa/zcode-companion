@@ -295,4 +295,6 @@
     <string name="rewind_preview_unavailable">无法读取撤销预览 — 确认时仅显示上方摘要</string>
     <string name="rewind_ignored_count">%1$d 个工作区外的文件将被跳过</string>
     <string name="rewind_cannot_apply">此撤销无法安全执行 — 不会做任何更改。</string>
+    <!-- Phase 5B (A3.14): 引导问题跳过 -->
+    <string name="userinput_decline">跳过 — 不回答并继续</string>
 </resources>

@@ -318,6 +318,8 @@ class MockZCode(
         // ---------------- Phase 5B (A3.11) ----------------
         /** `conversationFileRewindPreviewV4` result (nt shape; null = typed fault → copy-only confirm). */
         var rewindPreview: JsonObject? = null
+        /** A3.14 rig: a pending AskUserQuestion interaction stamped into snapshots + state. */
+        var pendingQuestion: JsonObject? = null
 
         // ---------------- Phase 5B (A3.12 + A3.13) ----------------
         /** `conversationPlansV4` result (plans projection; null = typed fault → the panel hides). */
@@ -931,6 +933,8 @@ class MockZCode(
                         put("kind", JsonPrimitive("userInput"))
                         put("prompt", JsonPrimitive(pu.prompt))
                         put("freeText", JsonPrimitive(pu.freeText))
+                        // A3.14: the AskUserQuestion multi-question plane (MOCK_QUESTION).
+                        script.pendingQuestion?.get("questions")?.let { put("questions", it) }
                         put("options", JsonArray(pu.options.map { id ->
                             buildJsonObject { put("optionId", JsonPrimitive(id)); put("label", JsonPrimitive(id)) }
                         }))
