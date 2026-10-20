@@ -18,14 +18,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.FormatListNumbered
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -469,6 +473,13 @@ private fun Header(
             runningAgents = countRunningAgents(state.rows),
             modifier = Modifier.padding(horizontal = 8.dp),
         )
+        // I2.3: the session summary panel (duration · goal iteration · background tasks
+        // · subagents) — capsule collapsed; nothing renders for an empty session.
+        SessionSummaryPanel(
+            sessionState = state.sessionState,
+            rows = state.rows,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+        )
         // D2: the goal + todo surfaces — keys the wire always carried; absent → nothing.
         state.sessionState?.goal?.let { goal ->
             GoalPanel(goal, modifier = Modifier.padding(horizontal = 8.dp))
@@ -594,6 +605,17 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     // I2.7: one LazyColumn item per timeline ENTRY — settled tool runs collapse into
     // groups (pure map; the scroll index space below is the entry space).
     val entries = remember(state.rows) { groupTimeline(state.rows) }
+    // I2.5: the turn navigator's query map — user inputs in timeline order, with the
+    // entry index the jump scrolls to (the sheet adds the header-item offset itself).
+    data class NavigatorQuery(val entryIndex: Int, val rowId: Long, val preview: String)
+    val navigatorQueries = remember(entries) {
+        entries.mapIndexedNotNull { idx, entry ->
+            val row = (entry as? TimelineEntry.Single)?.row ?: return@mapIndexedNotNull null
+            val text = (row as? ConversationRow.UserInput)?.text ?: return@mapIndexedNotNull null
+            NavigatorQuery(idx, row.rowId, text.trim())
+        }
+    }
+    var navigatorOpen by remember { mutableStateOf(false) }
 
     // Stick-to-bottom (§19.2, macOS parity): while following, ANY content growth —
     // new rows OR streaming text into the last row — clamps the viewport to the true
@@ -735,29 +757,90 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
             enter = fadeIn(tween(motion.ms(ZCodeMotion.WaterfallMs))),
             exit = fadeOut(tween(motion.ms(ZCodeMotion.WaterfallMs))),
         ) {
-            FloatingActionButton(
-                onClick = {
-                    followBottom = true
-                    unread = 0
-                    scope.launch {
-                        if (state.rows.isNotEmpty()) {
-                            // §30.5: honor the system reduced-motion switch.
-                            if (reducedMotion) listState.scrollToItem(entries.size - 1)
-                            else listState.animateScrollToItem(entries.size - 1)
+            Column(horizontalAlignment = Alignment.End) {
+                // I2.5: the turn navigator (desktop chat.turnNavigator.*) — a query map
+                // over the session's user inputs; two or more queries earn the affordance.
+                if (navigatorQueries.size >= 2) {
+                    SmallFloatingActionButton(
+                        onClick = { navigatorOpen = true },
+                        modifier = Modifier.padding(bottom = 10.dp).testTag("turnnav_open"),
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.FormatListNumbered,
+                            contentDescription = stringResource(R.string.turnnav_label),
+                        )                    }
+                }
+                FloatingActionButton(
+                    onClick = {
+                        followBottom = true
+                        unread = 0
+                        scope.launch {
+                            if (state.rows.isNotEmpty()) {
+                                // §30.5: honor the system reduced-motion switch.
+                                if (reducedMotion) listState.scrollToItem(entries.size - 1)
+                                else listState.animateScrollToItem(entries.size - 1)
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .testTag("conversation_jump_latest"),
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ) {
+                    Box {
+                        // B2.9: a NUMBERED badge (the bare 16dp dot had no count/semantics).
+                        androidx.compose.foundation.layout.Box(Modifier) {
+                            Icon(imageVector = Icons.Filled.ArrowDownward, contentDescription = stringResource(R.string.conv_jump_latest))
+                            UnreadBadge(unread = unread, modifier = Modifier.align(Alignment.TopEnd))
                         }
                     }
-                },
-                modifier = Modifier
-                    .padding(16.dp)
-                    .testTag("conversation_jump_latest"),
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                }
+            }
+        }
+    }
+    if (navigatorOpen) {
+        com.zcode.android.core.ui.components.ZCodeModalBottomSheet(onDismissRequest = { navigatorOpen = false }) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .testTag("turnnav_sheet")
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
             ) {
-                Box {
-                    // B2.9: a NUMBERED badge (the bare 16dp dot had no count/semantics).
-                    androidx.compose.foundation.layout.Box(Modifier) {
-                        Icon(imageVector = Icons.Filled.ArrowDownward, contentDescription = stringResource(R.string.conv_jump_latest))
-                        UnreadBadge(unread = unread, modifier = Modifier.align(Alignment.TopEnd))
+                Text(
+                    stringResource(R.string.turnnav_label),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.height(6.dp))
+                navigatorQueries.forEachIndexed { i, query ->
+                    TextButton(
+                        onClick = {
+                            navigatorOpen = false
+                            followBottom = false
+                            scope.launch {
+                                val headerItems =
+                                    (if (state.loadingOlder) 1 else 0) + (if (state.loadOlderError != null) 1 else 0)
+                                listState.scrollToItem(headerItems + query.entryIndex)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().testTag("turnnav_item_${i + 1}"),
+                    ) {
+                        Text(
+                            stringResource(R.string.turnnav_jump, i + 1),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            query.preview,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
                 }
             }
