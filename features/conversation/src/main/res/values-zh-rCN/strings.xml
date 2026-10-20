@@ -311,4 +311,21 @@
     <string name="compaction_completed_auto">上下文已自动压缩</string>
     <string name="compaction_retry">重试</string>
     <string name="compaction_tokens">%1$s → %2$s tokens</string>
+    <!-- Phase 6A (I2.5)：问题导航（桌面端 chat.turnNavigator.*） -->
+    <string name="turnnav_label">对话问题导航</string>
+    <string name="turnnav_jump">跳转到第 %1$d 条问题</string>
+    <!-- Phase 6A (I2.3)：会话状态面板（桌面端 chat.summaryPanel.*） -->
+    <string name="summary_title">状态</string>
+    <string name="summary_show_panel">展开状态</string>
+    <string name="summary_show_mini">收起为胶囊</string>
+    <string name="summary_duration_h">%1$d 小时</string>
+    <string name="summary_duration_m">%1$d 分</string>
+    <string name="summary_duration_s">%1$d 秒</string>
+    <string name="summary_goal_iteration">第 %1$d 次迭代</string>
+    <string name="summary_background_tasks">%1$d 后台</string>
+    <string name="summary_background_label">运行中的后台任务</string>
+    <string name="summary_subagents">%1$d 个子智能体运行中</string>
+    <string name="summary_subagents_plural">%1$d 个子智能体运行中</string>
+    <string name="summary_subagent_label">打开子智能体会话</string>
+    <string name="summary_duration_label">会话时长</string>
 </resources>

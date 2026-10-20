@@ -335,4 +335,21 @@
     <string name="compaction_completed_auto">Context automatically compressed</string>
     <string name="compaction_retry">Retry</string>
     <string name="compaction_tokens">%1$s → %2$s tokens</string>
+    <!-- Phase 6A (I2.5): the turn navigator (desktop chat.turnNavigator.*) -->
+    <string name="turnnav_label">Conversation query map</string>
+    <string name="turnnav_jump">Jump to query %1$d</string>
+    <!-- Phase 6A (I2.3): the session summary panel (desktop chat.summaryPanel.*) -->
+    <string name="summary_title">Status</string>
+    <string name="summary_show_panel">Expand status</string>
+    <string name="summary_show_mini">Collapse to capsule</string>
+    <string name="summary_duration_h">%1$dh</string>
+    <string name="summary_duration_m">%1$dm</string>
+    <string name="summary_duration_s">%1$ds</string>
+    <string name="summary_goal_iteration">Iteration %1$d</string>
+    <string name="summary_background_tasks">%1$d background</string>
+    <string name="summary_background_label">Running background tasks</string>
+    <string name="summary_subagents">%1$d agent running</string>
+    <string name="summary_subagents_plural">%1$d agents running</string>
+    <string name="summary_subagent_label">Open running subagent session</string>
+    <string name="summary_duration_label">Session duration</string>
 </resources>
