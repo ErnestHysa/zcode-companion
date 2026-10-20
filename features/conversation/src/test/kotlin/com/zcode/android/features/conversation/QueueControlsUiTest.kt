@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -76,7 +77,7 @@ class QueueControlsUiTest {
     @Test
     fun `auto-send switch is hidden when the wire carries no autoDrain`() {
         setContent(autoDrain = null)
-        rule.onAllNodes(androidx.compose.ui.test.hasTestTag("queue_auto_drain")).assertCountEquals(0)
+        rule.onAllNodesWithTag("queue_auto_drain").assertCountEquals(0)
     }
 
     @Test
