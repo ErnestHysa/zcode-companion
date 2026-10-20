@@ -432,6 +432,27 @@ private fun TasksRoute(
         onCreateRequestConsumed = onCreateRequestConsumed,
         onOpenTaskId = onOpenTaskId,
         onCreateScratchTask = onCreateScratchTask,
+        // F5-WIRE (Phase 5A discovery): the Phase-4D lifecycle + search callbacks were never
+        // passed here — the menu and confirms rendered, the confirmed actions were no-ops.
+        onDeleteTask = vm::deleteTask,
+        onRenameTask = vm::renameTask,
+        onSetTaskArchived = vm::setTaskArchived,
+        onSearch = vm::search,
+        onConsumeActionNotice = vm::consumeActionNotice,
+        collapseStore = collapseStore,
+        // Phase 5A (A3.8–A3.10): pin / unread / resume / groups / archived viewer.
+        onSetTaskPinned = vm::setTaskPinned,
+        onSetTaskUnread = vm::setTaskUnread,
+        onResumeTask = vm::resumeTask,
+        onMoveTaskToGroup = vm::moveTaskToGroup,
+        onCreateGroup = vm::createGroup,
+        onRenameGroup = vm::renameGroup,
+        onRecolorGroup = vm::recolorGroup,
+        onDeleteGroup = vm::deleteGroup,
+        onLoadArchived = vm::loadArchived,
+        onUnarchive = vm::unarchiveFromViewer,
+        onDeleteArchived = vm::deleteArchivedTask,
+        onLoadGroups = vm::loadGroups,
     )
 }
 

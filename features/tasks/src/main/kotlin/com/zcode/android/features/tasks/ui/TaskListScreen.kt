@@ -30,7 +30,13 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LinearProgressIndicator
+import com.zcode.android.core.ui.components.ZCodeModalBottomSheet
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -133,10 +139,30 @@ fun TaskListScreen(
     onRenameTask: (taskId: String, title: String) -> Unit = { _, _ -> },
     onSetTaskArchived: (taskId: String, archived: Boolean) -> Unit = { _, _ -> },
     onSearch: (query: String) -> Unit = {},
+    // ---- Phase 5A (A3.8–A3.10): pin / unread / resume / groups / archived viewer ----
+    onSetTaskPinned: (taskId: String, pinned: Boolean) -> Unit = { _, _ -> },
+    onSetTaskUnread: (task: Task, unread: Boolean) -> Unit = { _, _ -> },
+    onResumeTask: (taskId: String) -> Unit = {},
+    onMoveTaskToGroup: (taskId: String, groupId: String?) -> Unit = { _, _ -> },
+    onCreateGroup: (title: String, color: com.zcode.android.domain.model.TaskGroupColor) -> Unit = { _, _ -> },
+    onRenameGroup: (groupId: String, title: String) -> Unit = { _, _ -> },
+    onRecolorGroup: (groupId: String, color: com.zcode.android.domain.model.TaskGroupColor) -> Unit = { _, _ -> },
+    onDeleteGroup: (groupId: String) -> Unit = {},
+    onLoadArchived: () -> Unit = {},
+    onUnarchive: (taskId: String) -> Unit = {},
+    onDeleteArchived: (taskId: String) -> Unit = {},
+    onLoadGroups: () -> Unit = {},
 ) {
     val motion = rememberMotionSpec()
     var showCreate by remember { androidx.compose.runtime.mutableStateOf(false) }
     var searchOpen by remember { androidx.compose.runtime.mutableStateOf(false) }
+    // Phase 5A: the management sheets + confirms.
+    var showArchived by remember { androidx.compose.runtime.mutableStateOf(false) }
+    var moveFor by remember { androidx.compose.runtime.mutableStateOf<com.zcode.android.domain.model.Task?>(null) }
+    var groupEditor by remember { androidx.compose.runtime.mutableStateOf<GroupEditorTarget?>(null) }
+    var confirmDeleteArchived by remember { androidx.compose.runtime.mutableStateOf<com.zcode.android.domain.model.TaskMeta?>(null) }
+    var confirmDeleteGroup by remember { androidx.compose.runtime.mutableStateOf<com.zcode.android.domain.model.TaskGroupInfo?>(null) }
+    LaunchedEffect(Unit) { onLoadGroups() }
     // Phase 4D (L6.3+J4): the lifecycle dialog anchors.
     var confirmDelete by remember { androidx.compose.runtime.mutableStateOf<com.zcode.android.domain.model.Task?>(null) }
     var confirmArchive by remember { androidx.compose.runtime.mutableStateOf<com.zcode.android.domain.model.Task?>(null) }
@@ -175,6 +201,25 @@ fun TaskListScreen(
                             imageVector = Icons.Filled.Settings,
                             contentDescription = stringResource(R.string.tasks_settings_a11y),
                         )
+                    }
+                    // Phase 5A: the list-level management overflow (archived viewer, new group).
+                    var moreOpen by remember { androidx.compose.runtime.mutableStateOf(false) }
+                    androidx.compose.foundation.layout.Box {
+                        IconButton(onClick = { moreOpen = true }, modifier = Modifier.size(48.dp).testTag("tasks_more")) {
+                            Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.tasks_more_desc))
+                        }
+                        androidx.compose.material3.DropdownMenu(expanded = moreOpen, onDismissRequest = { moreOpen = false }) {
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text(stringResource(R.string.tasks_archived_action)) },
+                                onClick = { moreOpen = false; showArchived = true; onLoadArchived() },
+                                modifier = Modifier.testTag("tasks_menu_archived"),
+                            )
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text(stringResource(R.string.tasks_new_group_action)) },
+                                onClick = { moreOpen = false; groupEditor = GroupEditorTarget.Create },
+                                modifier = Modifier.testTag("tasks_menu_new_group"),
+                            )
+                        }
                     }
                 },
             )
@@ -265,6 +310,11 @@ fun TaskListScreen(
                                     renameFor = it
                                     renameText = it.title
                                 },
+                                onRowPin = { t -> onSetTaskPinned(t.taskId, !t.pinned) },
+                                onRowUnread = { t -> onSetTaskUnread(t, !t.isUnread) },
+                                onRowResume = { t -> onResumeTask(t.taskId) },
+                                onRowMove = { moveFor = it },
+                                onEditGroup = { groupEditor = GroupEditorTarget.Edit(it) },
                             )
                     }
                 }
@@ -464,6 +514,148 @@ fun TaskListScreen(
             },
             dismissButton = {
                 TextButton(onClick = { renameFor = null }) {
+                    Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
+                }
+            },
+        )
+    }
+    // ---- Phase 5A: the archived viewer (A3.8) ----
+    if (showArchived) {
+        ZCodeModalBottomSheet(onDismissRequest = { showArchived = false }, modifier = Modifier.testTag("archived_sheet")) {
+            Text(
+                stringResource(R.string.archived_title),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+            val archivedList = state.archived
+            when {
+                state.archivedLoading -> {
+                    LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = 16.dp))
+                }
+                archivedList == null -> {
+                    Text(
+                        stringResource(R.string.archived_unavailable),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp).testTag("archived_unavailable"),
+                    )
+                }
+                archivedList.isEmpty() -> {
+                    Text(
+                        stringResource(R.string.archived_empty),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp).testTag("archived_empty"),
+                    )
+                }
+                else -> {
+                    archivedList.forEach { meta ->
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(meta.title, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(
+                                    relativeTimeLabelLive(meta.updatedAtMs) ?: "",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            TextButton(onClick = { onUnarchive(meta.taskId) }, modifier = Modifier.testTag("archived_unarchive_${meta.taskId}")) {
+                                Text(stringResource(R.string.archived_unarchive))
+                            }
+                            TextButton(onClick = { confirmDeleteArchived = meta }, modifier = Modifier.testTag("archived_delete_${meta.taskId}")) {
+                                Text(stringResource(R.string.archived_delete), color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+        }
+    }
+    confirmDeleteArchived?.let { meta ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmDeleteArchived = null },
+            title = { Text(stringResource(R.string.archived_delete)) },
+            text = { Text(stringResource(R.string.archived_delete_body, meta.title)) },
+            confirmButton = {
+                com.zcode.android.core.ui.components.ZCodeButton(
+                    onClick = { val id = meta.taskId; confirmDeleteArchived = null; onDeleteArchived(id) },
+                    modifier = Modifier.testTag("archived_delete_confirm"),
+                ) { Text(stringResource(R.string.archived_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDeleteArchived = null }) {
+                    Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
+                }
+            },
+        )
+    }
+    // ---- Phase 5A: move-to-group sheet (A3.9) ----
+    moveFor?.let { task ->
+        ZCodeModalBottomSheet(onDismissRequest = { moveFor = null }, modifier = Modifier.testTag("move_group_sheet")) {
+            Text(
+                stringResource(R.string.group_move_title),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+            val current = state.groupMembership[task.taskId]
+            androidx.compose.material3.ListItem(
+                headlineContent = { Text(stringResource(R.string.group_none)) },
+                modifier = Modifier
+                    .clickable(role = Role.Button) { val id = task.taskId; moveFor = null; onMoveTaskToGroup(id, null) }
+                    .testTag("move_group_none"),
+            )
+            state.taskGroups.forEach { g ->
+                androidx.compose.material3.ListItem(
+                    leadingContent = {
+                        androidx.compose.foundation.layout.Box(
+                            Modifier.size(12.dp).background(groupColor(g.color), androidx.compose.foundation.shape.CircleShape),
+                        )
+                    },
+                    headlineContent = { Text(g.title) },
+                    trailingContent = { if (current == g.id) Icon(Icons.Filled.Check, contentDescription = null) },
+                    modifier = Modifier
+                        .clickable(role = Role.Button) { val id = task.taskId; moveFor = null; onMoveTaskToGroup(id, g.id) }
+                        .testTag("move_group_${g.id}"),
+                )
+            }
+            androidx.compose.material3.ListItem(
+                headlineContent = { Text(stringResource(R.string.group_new)) },
+                modifier = Modifier
+                    .clickable(role = Role.Button) { moveFor = null; groupEditor = GroupEditorTarget.Create }
+                    .testTag("move_group_new"),
+            )
+            Spacer(Modifier.height(12.dp))
+        }
+    }
+    // ---- Phase 5A: group editor sheet (create / rename+recolor / delete) ----
+    groupEditor?.let { target ->
+        GroupEditorSheet(
+            target = target,
+            onDismiss = { groupEditor = null },
+            onCreate = { title, color -> groupEditor = null; onCreateGroup(title, color) },
+            onSave = { id, title, color -> groupEditor = null; onRenameGroup(id, title); onRecolorGroup(id, color) },
+            onDelete = { g -> confirmDeleteGroup = g },
+        )
+    }
+    confirmDeleteGroup?.let { g ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmDeleteGroup = null },
+            title = { Text(stringResource(R.string.group_delete)) },
+            text = { Text(stringResource(R.string.group_delete_body, g.title)) },
+            confirmButton = {
+                com.zcode.android.core.ui.components.ZCodeButton(
+                    onClick = { val id = g.id; confirmDeleteGroup = null; onDeleteGroup(id) },
+                    modifier = Modifier.testTag("group_delete_confirm"),
+                ) { Text(stringResource(R.string.group_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDeleteGroup = null }) {
                     Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
                 }
             },
@@ -755,6 +947,12 @@ private fun ReadyBody(
     onRowDelete: ((com.zcode.android.domain.model.Task) -> Unit)? = null,
     onRowArchive: ((com.zcode.android.domain.model.Task) -> Unit)? = null,
     onRowRename: ((com.zcode.android.domain.model.Task) -> Unit)? = null,
+    // Phase 5A (A3.8–A3.10)
+    onRowPin: ((com.zcode.android.domain.model.Task) -> Unit)? = null,
+    onRowUnread: ((com.zcode.android.domain.model.Task) -> Unit)? = null,
+    onRowResume: ((com.zcode.android.domain.model.Task) -> Unit)? = null,
+    onRowMove: ((com.zcode.android.domain.model.Task) -> Unit)? = null,
+    onEditGroup: ((com.zcode.android.domain.model.TaskGroupInfo) -> Unit)? = null,
 ) {
     Column(Modifier.fillMaxSize()) {
         // §14.4.2 stale overlay — cached rows visible + LABELED (never silent stale).
@@ -806,10 +1004,40 @@ private fun ReadyBody(
         // M2: reader width discipline — the task list caps at the reading ceiling and
         // centers on wide windows (the two-pane split is Phase 4D's redesign cluster).
         val reader = Modifier.readerWidth()
+        // Phase 5A: the row helper carries every lifecycle + management entry point.
+        val rowFor: @Composable (Task, Modifier) -> Unit = { task, rowModifier ->
+            TaskRow(
+                task,
+                onClick = { onTaskClick(task) },
+                modifier = rowModifier,
+                onDelete = onRowDelete?.let { cb -> { cb(task) } },
+                onArchive = onRowArchive?.let { cb -> { cb(task) } },
+                onRename = onRowRename?.let { cb -> { cb(task) } },
+                onPin = onRowPin?.let { cb -> { cb(task) } },
+                onUnread = onRowUnread?.let { cb -> { cb(task) } },
+                onResume = onRowResume?.let { cb -> { cb(task) } },
+                onMove = onRowMove?.let { cb -> { cb(task) } },
+            )
+        }
         LazyColumn(
             modifier = reader.fillMaxSize().align(Alignment.CenterHorizontally).testTag("tasks_list"),
             contentPadding = PaddingValues(bottom = 24.dp),
         ) {
+            // A3.8: the pinned section — a wire fact (`pinned`), cross-workspace, first.
+            val pinnedShown = selectedWorkspaceKeyParam?.let { key -> state.pinned.filter { it.workspace.raw == key } } ?: state.pinned
+            if (pinnedShown.isNotEmpty()) {
+                item(key = "header-pinned") {
+                    SectionLabel(
+                        text = stringResource(R.string.tasks_pinned_section),
+                        count = pinnedShown.size,
+                        modifier = Modifier.animateItem().testTag("tasks_pinned_header"),
+                    )
+                }
+                items(pinnedShown, key = { "pinned-${it.workspace.raw.hashCode()}-${it.taskId}" }) { task ->
+                    rowFor(task, Modifier.animateItem())
+                    HorizontalHairline()
+                }
+            }
             shownGroups.forEach { group ->
                 // GAP-14 (desktop WorkspaceGroupedTasksSection collapsedGroupIds): the
                 // header toggles the group; a collapsed group hides its tasks but the
@@ -826,23 +1054,202 @@ private fun ReadyBody(
                     )
                 }
                 if (!collapsed) {
+                    // A3.9: custom groups render as colored sub-sections inside the
+                    // workspace; members are the host's membership (groupMembership).
+                    val byGroup = group.tasks.groupBy { state.groupMembership[it.taskId] }
+                    state.taskGroups.forEach { g ->
+                        val members = byGroup[g.id] ?: return@forEach
+                        item(key = "group-${group.workspaceKey.hashCode()}-${g.id}") {
+                            GroupHeader(
+                                group = g,
+                                count = members.size,
+                                modifier = Modifier.animateItem(),
+                                onEdit = onEditGroup?.let { cb -> { cb(g) } },
+                            )
+                        }
+                        items(members, key = { "task-${group.workspaceKey.hashCode()}-${g.id}-${it.taskId}" }) { task ->
+                            rowFor(task, Modifier.animateItem())
+                            HorizontalHairline()
+                        }
+                    }
                     // FIELD (2026-09-30, vc13 crash log): the SAME taskId can appear under MORE than one
                     // workspace group (desktop cross-listing) — a bare taskId key collided and
                     // crashed LazyColumn on fast scroll ("Key was already used").
-                    items(group.tasks, key = { "task-${group.workspaceKey.hashCode()}-${it.taskId}" }) { task ->
-                        TaskRow(
-                            task,
-                            onClick = { onTaskClick(task) },
-                            modifier = Modifier.animateItem(),
-                            onDelete = onRowDelete?.let { cb -> { cb(task) } },
-                            onArchive = onRowArchive?.let { cb -> { cb(task) } },
-                            onRename = onRowRename?.let { cb -> { cb(task) } },
-                        )
+                    items(byGroup[null] ?: emptyList(), key = { "task-${group.workspaceKey.hashCode()}-${it.taskId}" }) { task ->
+                        rowFor(task, Modifier.animateItem())
                         HorizontalHairline()
                     }
                 }
             }
         }
+    }
+}
+
+/** A3.8: the pinned section label (count badge like the workspace header). */
+@Composable
+private fun SectionLabel(text: String, count: Int, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .semantics(mergeDescendants = true) {},
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.PushPin,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(16.dp),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(text, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
+        Spacer(Modifier.width(8.dp))
+        Text("$count", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** A3.9: a custom task group's sub-header — colored dot + title + count (desktop taskGroup.*). */
+@Composable
+private fun GroupHeader(
+    group: com.zcode.android.domain.model.TaskGroupInfo,
+    count: Int,
+    modifier: Modifier = Modifier,
+    onEdit: (() -> Unit)? = null,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(start = 24.dp, end = 4.dp, top = 4.dp, bottom = 2.dp)
+            .testTag("task_group_header_${group.id}"),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        androidx.compose.foundation.layout.Box(
+            Modifier
+                .size(10.dp)
+                .background(groupColor(group.color), androidx.compose.foundation.shape.CircleShape),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(group.title, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text("$count", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        onEdit?.let { cb ->
+            IconButton(onClick = cb, modifier = Modifier.minTouchTarget().testTag("task_group_edit_${group.id}")) {
+                Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.group_edit_desc), modifier = Modifier.size(16.dp))
+            }
+        }
+    }
+}
+
+/** The desktop's seven group colors as theme-stable swatches (hue-only is never the sole cue — the title labels it). */
+@Composable
+internal fun groupColor(color: com.zcode.android.domain.model.TaskGroupColor): Color = when (color) {
+    com.zcode.android.domain.model.TaskGroupColor.GRAY -> MaterialTheme.colorScheme.outline
+    com.zcode.android.domain.model.TaskGroupColor.RED -> MaterialTheme.colorScheme.error
+    com.zcode.android.domain.model.TaskGroupColor.ORANGE -> Color(0xFFE08A1E)
+    com.zcode.android.domain.model.TaskGroupColor.YELLOW -> Color(0xFFC9A400)
+    com.zcode.android.domain.model.TaskGroupColor.GREEN -> Color(0xFF3B8F4A)
+    com.zcode.android.domain.model.TaskGroupColor.BLUE -> MaterialTheme.colorScheme.primary
+    com.zcode.android.domain.model.TaskGroupColor.PURPLE -> MaterialTheme.colorScheme.tertiary
+}
+
+@Composable
+internal fun groupColorLabel(color: com.zcode.android.domain.model.TaskGroupColor): String = stringResource(
+    when (color) {
+        com.zcode.android.domain.model.TaskGroupColor.GRAY -> R.string.group_color_gray
+        com.zcode.android.domain.model.TaskGroupColor.RED -> R.string.group_color_red
+        com.zcode.android.domain.model.TaskGroupColor.ORANGE -> R.string.group_color_orange
+        com.zcode.android.domain.model.TaskGroupColor.YELLOW -> R.string.group_color_yellow
+        com.zcode.android.domain.model.TaskGroupColor.GREEN -> R.string.group_color_green
+        com.zcode.android.domain.model.TaskGroupColor.BLUE -> R.string.group_color_blue
+        com.zcode.android.domain.model.TaskGroupColor.PURPLE -> R.string.group_color_purple
+    },
+)
+
+/** Phase 5A: what the group editor sheet is for. */
+internal sealed class GroupEditorTarget {
+    data object Create : GroupEditorTarget()
+    data class Edit(val group: com.zcode.android.domain.model.TaskGroupInfo) : GroupEditorTarget()
+}
+
+/**
+ * A3.9: the custom-group editor — name + one of the desktop's seven colors
+ * (fixed rows-of-N chips, the F4-RIG dialog rule), with delete for existing groups.
+ */
+@Composable
+private fun GroupEditorSheet(
+    target: GroupEditorTarget,
+    onDismiss: () -> Unit,
+    onCreate: (String, com.zcode.android.domain.model.TaskGroupColor) -> Unit,
+    onSave: (String, String, com.zcode.android.domain.model.TaskGroupColor) -> Unit,
+    onDelete: (com.zcode.android.domain.model.TaskGroupInfo) -> Unit,
+) {
+    val existing = (target as? GroupEditorTarget.Edit)?.group
+    var title by remember(existing) { androidx.compose.runtime.mutableStateOf(existing?.title ?: "") }
+    var color by remember(existing) { androidx.compose.runtime.mutableStateOf(existing?.color ?: com.zcode.android.domain.model.TaskGroupColor.GRAY) }
+    ZCodeModalBottomSheet(onDismissRequest = onDismiss, modifier = Modifier.testTag("group_editor_sheet")) {
+        Text(
+            stringResource(if (existing == null) R.string.group_create_title else R.string.group_edit_title),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        )
+        androidx.compose.material3.OutlinedTextField(
+            value = title,
+            onValueChange = { title = it },
+            label = { Text(stringResource(R.string.group_title_hint)) },
+            singleLine = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .testTag("group_title_field"),
+        )
+        Text(
+            stringResource(R.string.group_color),
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        )
+        // Fixed rows-of-4 chip grids (F4-RIG: FlowRow never idles inside dialogs).
+        val palette = com.zcode.android.domain.model.TaskGroupColor.PALETTE
+        palette.chunked(4).forEachIndexed { rowIndex, row ->
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                row.forEach { c ->
+                    androidx.compose.material3.FilterChip(
+                        selected = color == c,
+                        onClick = { color = c },
+                        label = { Text(groupColorLabel(c), style = MaterialTheme.typography.labelSmall, maxLines = 1) },
+                        leadingIcon = {
+                            androidx.compose.foundation.layout.Box(
+                                Modifier.size(10.dp).background(groupColor(c), androidx.compose.foundation.shape.CircleShape),
+                            )
+                        },
+                        modifier = Modifier.testTag("group_color_${c.wire}_$rowIndex"),
+                    )
+                }
+            }
+        }
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            if (existing != null) {
+                TextButton(onClick = { onDelete(existing) }, modifier = Modifier.testTag("group_edit_delete")) {
+                    Text(stringResource(R.string.group_delete), color = MaterialTheme.colorScheme.error)
+                }
+            }
+            Spacer(Modifier.weight(1f))
+            com.zcode.android.core.ui.components.ZCodeButton(
+                onClick = {
+                    if (existing == null) onCreate(title, color)
+                    else onSave(existing.id, title, color)
+                },
+                enabled = title.isNotBlank(),
+                modifier = Modifier.testTag(if (existing == null) "group_create_confirm" else "group_save_confirm"),
+            ) {
+                Text(stringResource(if (existing == null) R.string.group_create else R.string.group_save))
+            }
+        }
+        Spacer(Modifier.height(8.dp))
     }
 }
 
@@ -910,6 +1317,11 @@ fun TaskRow(
     onDelete: (() -> Unit)? = null,
     onArchive: (() -> Unit)? = null,
     onRename: (() -> Unit)? = null,
+    /** Phase 5A (A3.8–A3.10): pin / unread / resume / move-to-group (null = hidden). */
+    onPin: (() -> Unit)? = null,
+    onUnread: (() -> Unit)? = null,
+    onResume: (() -> Unit)? = null,
+    onMove: (() -> Unit)? = null,
 ) {
     val rail = taskStatusRail(task.status)
     val label = taskStatusLabel(task.status)
@@ -918,6 +1330,8 @@ fun TaskRow(
     val time = relativeTimeLabelLive(task.updatedAtMs)
     val meta = listOfNotNull(task.workspaceLabel ?: task.workspace.raw.substringAfterLast('/').ifBlank { null }, time)
         .joinToString(" · ")
+    val unreadA11y = stringResource(R.string.task_unread_a11y)
+    val pinnedA11y = stringResource(R.string.task_pinned_a11y)
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -927,13 +1341,16 @@ fun TaskRow(
             .padding(start = 16.dp + 3.dp, end = 16.dp, top = 12.dp, bottom = 12.dp)
             .testTag("task_row_${task.taskId}")
             .semantics(mergeDescendants = true) {
-                contentDescription = "${task.title}, $label${if (meta.isBlank()) "" else ", $meta"}"
+                // A3.8: unread/pinned are part of the merged description (never hue-only).
+                val flags = listOfNotNull(if (task.isUnread) unreadA11y else null, if (task.pinned) pinnedA11y else null)
+                contentDescription = "${task.title}, $label${if (meta.isBlank()) "" else ", $meta"}" +
+                    (if (flags.isEmpty()) "" else ", " + flags.joinToString(", "))
             },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Phase 4D (L6.3+J4): the lifecycle overflow ("⋯") — Delete / Archive /
         // Rename; the confirms live in the screen (desktop confirmDialog.* copy).
-        if (onDelete != null || onArchive != null || onRename != null) {
+        if (onDelete != null || onArchive != null || onRename != null || onPin != null || onUnread != null || onResume != null || onMove != null) {
             var menuOpen by remember { androidx.compose.runtime.mutableStateOf(false) }
             androidx.compose.foundation.layout.Box {
                 androidx.compose.material3.IconButton(
@@ -948,6 +1365,37 @@ fun TaskRow(
                     )
                 }
                 androidx.compose.material3.DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    // Phase 5A (A3.8): pin / unread first — the two most-used management verbs.
+                    onPin?.let { cb ->
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text(stringResource(if (task.pinned) R.string.task_unpin else R.string.task_pin)) },
+                            onClick = { menuOpen = false; cb() },
+                            modifier = Modifier.testTag("task_menu_pin_${task.taskId}"),
+                        )
+                    }
+                    onUnread?.let { cb ->
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text(stringResource(if (task.isUnread) R.string.task_mark_read else R.string.task_mark_unread)) },
+                            onClick = { menuOpen = false; cb() },
+                            modifier = Modifier.testTag("task_menu_unread_${task.taskId}"),
+                        )
+                    }
+                    // A3.10: resume a FINISHED task's session (idle/completed/error — never a running one).
+                    if (onResume != null && task.status != com.zcode.android.domain.model.TaskStatus.RUNNING && task.status != com.zcode.android.domain.model.TaskStatus.WAITING) {
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text(stringResource(R.string.task_resume)) },
+                            onClick = { menuOpen = false; onResume() },
+                            modifier = Modifier.testTag("task_menu_resume_${task.taskId}"),
+                        )
+                    }
+                    // A3.9: move-to-group (pinned tasks are refused by the host — hidden here).
+                    if (onMove != null && !task.pinned) {
+                        androidx.compose.material3.DropdownMenuItem(
+                            text = { Text(stringResource(R.string.task_move_to_group)) },
+                            onClick = { menuOpen = false; onMove() },
+                            modifier = Modifier.testTag("task_menu_move_${task.taskId}"),
+                        )
+                    }
                     onRename?.let { cb ->
                         androidx.compose.material3.DropdownMenuItem(
                             text = { Text(stringResource(R.string.task_rename_confirm)) },
@@ -973,13 +1421,35 @@ fun TaskRow(
             }
         }
         Column(Modifier.weight(1f)) {
-            Text(
-                text = task.title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // A3.8: the unread dot (wire `unreadAt`) + the pin glyph — both also in the a11y text.
+                if (task.isUnread) {
+                    androidx.compose.foundation.layout.Box(
+                        Modifier
+                            .size(8.dp)
+                            .background(MaterialTheme.colorScheme.primary, androidx.compose.foundation.shape.CircleShape)
+                            .testTag("task_unread_${task.taskId}"),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                }
+                if (task.pinned) {
+                    Icon(
+                        imageVector = Icons.Filled.PushPin,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(14.dp).testTag("task_pinned_${task.taskId}"),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                }
+                Text(
+                    text = task.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = if (task.isUnread) FontWeight.Bold else null,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             // J4: the per-task change stats the wire always carried (+N −N on the row,
             // desktop taskList.changeStats) — decoded since Phase 2, never rendered.
             task.summary?.let { sum ->

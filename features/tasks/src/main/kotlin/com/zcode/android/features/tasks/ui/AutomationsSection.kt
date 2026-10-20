@@ -188,7 +188,13 @@ fun AutomationsSection(
                 color = MaterialTheme.colorScheme.onBackground,
             )
             peaks.forEachIndexed { index, task ->
-                OffPeakLine(task)
+                // Phase 5A (A3.10 as shipped): pause/continue ride the off-peak channel words.
+                OffPeakLine(
+                    task,
+                    busy = task.offPeakTaskId in busyIds,
+                    onPause = { guarded(task.offPeakTaskId) { port.pauseOffPeak(task.offPeakTaskId); load() } },
+                    onContinue = { guarded(task.offPeakTaskId) { port.continueOffPeak(task.offPeakTaskId); load() } },
+                )
                 if (index != peaks.lastIndex) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                 }
@@ -514,7 +520,12 @@ private fun RunRow(run: AutomationRunRow, onOpen: (() -> Unit)?, onDelete: () ->
 private const val PAGE = 10
 
 @Composable
-private fun OffPeakLine(t: OffPeakTaskRow) {
+private fun OffPeakLine(
+    t: OffPeakTaskRow,
+    busy: Boolean = false,
+    onPause: (() -> Unit)? = null,
+    onContinue: (() -> Unit)? = null,
+) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -535,5 +546,19 @@ private fun OffPeakLine(t: OffPeakTaskRow) {
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        // A3.10: queued/running → Pause; paused → Continue (the status vocabulary is the wire's).
+        when (t.status) {
+            "queued", "running" -> onPause?.let { cb ->
+                TextButton(onClick = cb, enabled = !busy, modifier = Modifier.testTag("offpeak_pause_${t.offPeakTaskId}")) {
+                    Text(stringResource(R.string.offpeak_pause))
+                }
+            }
+            "paused" -> onContinue?.let { cb ->
+                TextButton(onClick = cb, enabled = !busy, modifier = Modifier.testTag("offpeak_continue_${t.offPeakTaskId}")) {
+                    Text(stringResource(R.string.offpeak_continue))
+                }
+            }
+            else -> Unit
+        }
     }
 }

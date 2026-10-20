@@ -10,9 +10,12 @@ import androidx.room.RoomDatabase
  *
  * v1 → v2 (Phase 6, §43.2-6.2): tasks.workspaceLabel — additive display-only column
  * (INV-12: never an identity); forward ALTER TABLE, null-safe for existing rows.
+ *
+ * v2 → v3 (gaps-and-polish Phase 5A, A3.8): tasks.unreadAtMs — the desktop's unread
+ * marker; additive + null-safe (NULL = read, which is what every pre-v3 row was).
  */
 @Database(
-    version = 2,
+    version = 3,
     exportSchema = true,
     entities = [
         TaskEntity::class,
@@ -44,5 +47,15 @@ abstract class ZcodeDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE tasks ADD COLUMN workspaceLabel TEXT")
             }
         }
+
+        /** v2 → v3 (Phase 5A, A3.8): tasks.unreadAtMs — additive, null-safe (§32.3). */
+        val MIGRATION_2_3 = object : androidx.room.migration.Migration(2, 3) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tasks ADD COLUMN unreadAtMs INTEGER")
+            }
+        }
+
+        /** Every forward migration, in order — the one list the app builder registers. */
+        val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
     }
 }

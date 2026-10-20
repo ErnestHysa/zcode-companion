@@ -663,6 +663,8 @@ class ConnectionHub(
                     createdAtMs = t.createdAtMs,
                     updatedAtMs = if (t.updatedAtMs > 0) t.updatedAtMs else t.createdAtMs,
                     workspaceLabel = t.workspaceLabel,
+                    pinned = t.pinned,
+                    unreadAt = t.unreadAtMs,
                 )
             }
             taskRepo.replaceAll(endpointId, WorkspaceIdentityKey(key), tasks, etag = null, atMs = now)

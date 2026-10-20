@@ -125,4 +125,14 @@ interface AutomationsPort {
 
     /** `restartAutomation` — re-arms a completed/failed automation (desktop automations.restart). */
     suspend fun restart(automationId: String): Boolean = false
+
+    // ---------------------------------------------------------------- Phase 5A (A3.10 as shipped)
+
+    /**
+     * Off-peak pause/continue — the `off-peak-task` channel's `pauseTask`/`continueTask`
+     * words (the host's OffPeakTaskService; A3.10's "pauseTask/continueTask" live HERE,
+     * not on zcode-task — recorded erratum). queued/running → pause; paused → continue.
+     */
+    suspend fun pauseOffPeak(offPeakTaskId: String): Boolean = false
+    suspend fun continueOffPeak(offPeakTaskId: String): Boolean = false
 }

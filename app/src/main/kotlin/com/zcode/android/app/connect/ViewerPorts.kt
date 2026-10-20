@@ -209,6 +209,21 @@ class DefaultAutomationsPort(
         /** automation-types.ts AUTOMATION_CREATE_LIMIT_ERROR_CODE. */
         const val AUTOMATION_CREATE_LIMIT_ERROR_CODE = "AUTOMATION_CREATE_LIMIT_REACHED"
     }
+    // ---------------------------------------------------------------- Phase 5A (A3.10 as shipped)
+
+    override suspend fun pauseOffPeak(offPeakTaskId: String): Boolean = offPeak("pause") { hub.taskService().offPeakPause(offPeakTaskId) }
+
+    override suspend fun continueOffPeak(offPeakTaskId: String): Boolean = offPeak("continue") { hub.taskService().offPeakContinue(offPeakTaskId) }
+
+    private suspend fun offPeak(tag: String, call: suspend () -> Any?): Boolean = try {
+        call(); true
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        hub.log.warn("automationsport.offpeak.$tag", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+        false
+    }
+
 }
 
 /**

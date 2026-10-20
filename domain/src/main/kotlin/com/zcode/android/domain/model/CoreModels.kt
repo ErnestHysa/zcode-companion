@@ -77,12 +77,21 @@ data class Task(
     val rawStatus: String? = null,
     /** Display-only workspace label from the task plane (INV-12: never an identity). */
     val workspaceLabel: String? = null,
+    /**
+     * A3.8 (Phase 5A): the desktop's unread marker — the bootstrap task row's
+     * `unreadAt` (windowHostController task row schema) and the `setTaskUnread`
+     * echo. Null = read. The phone never derives unread locally (INV-1).
+     */
+    val unreadAt: Long? = null,
 ) {
     /** Per-turn/summary file change rollup (TurnFileChangeSummary semantics, §22). */
     data class TaskSummary(val additions: Long, val deletions: Long, val files: Long)
 
     /** Archived tasks sort after live ones (§7.8 listTasks semantics). */
     val isArchived: Boolean get() = archivedAtMs != null
+
+    /** A3.8: unread is a wire fact (`unreadAt` set), never a local guess. */
+    val isUnread: Boolean get() = unreadAt != null
 }
 
 /** Protocol-level session info (§16 Session — strict-schema port vocabulary). */

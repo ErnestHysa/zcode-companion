@@ -37,6 +37,8 @@ data class TaskEntity(
     val updatedAtMs: Long,
     /** Display-only workspace label (schema v2; INV-12 — never an identity). */
     val workspaceLabel: String? = null,
+    /** A3.8 (schema v3): the desktop's unread marker (`unreadAt`); null = read. */
+    val unreadAtMs: Long? = null,
 )
 
 /** Per-workspace snapshot validator (§7.8 getTaskSnapshotWithEtag; §17.3 cache row 1). */

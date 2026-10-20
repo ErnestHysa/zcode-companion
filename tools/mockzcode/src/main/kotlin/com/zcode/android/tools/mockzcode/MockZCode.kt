@@ -288,6 +288,19 @@ class MockZCode(
         var directWorkspaces: List<Pair<String, String>>? = null
         /** Scripted zcode-task.listTasks result rows (ZCodeTaskMeta subset). */
         var directTasks: List<JsonObject> = emptyList()
+
+        // ---------------- Phase 5A (A3.8–A3.10) task management state ----------------
+        /** Pinned / unread / archived task ids the lifecycle words mutate (rig round-trips). */
+        val pinnedTaskIds: MutableSet<String> = java.util.concurrent.ConcurrentHashMap.newKeySet()
+        val unreadTaskIds: MutableMap<String, Long> = java.util.concurrent.ConcurrentHashMap()
+        val archivedTaskIds: MutableSet<String> = java.util.concurrent.ConcurrentHashMap.newKeySet()
+        /** Custom groups `{id, title, color, createdAt, updatedAt}` + membership (groupId → taskIds). */
+        val taskGroups: MutableList<JsonObject> = java.util.Collections.synchronizedList(ArrayList())
+        val taskGroupMembers: MutableMap<String, MutableList<String>> = java.util.concurrent.ConcurrentHashMap()
+        /** Off-peak ids the `pauseTask`/`continueTask` channel words have paused. */
+        val offPeakPausedIds: MutableSet<String> = java.util.concurrent.ConcurrentHashMap.newKeySet()
+        /** `resumeTask` calls (taskId) — the "continue a finished task" word. */
+        val resumedTaskIds: MutableList<String> = java.util.Collections.synchronizedList(ArrayList())
         /** One-shot direct-socket close after N binary frames (loss class). */
         var directDisconnectAfterFrames: Int? = null
     }
@@ -1420,7 +1433,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 "file" -> handleFilePromise(id, name, argAsObject(arg))
                 "model-selection" -> handleModelSelectionPromise(id, name)
                 "zcode-task" -> handleTaskPromise(id, name, argAsObject(arg))
-                "off-peak-task" -> handleOffPeakTaskPromise(id, name)
+                "off-peak-task" -> handleOffPeakTaskPromise(id, name, arg)
                 "usage-stats" -> handleUsageStatsPromise(id, name, arg)
                 // Phase 4C (C2): the slash panel's extra sections over their own channels.
                 "commands" -> handleCommandsPromise(id, name)
@@ -2394,6 +2407,36 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
     /** Phase 4D seam: every `zcode-task` channel call (method, params) in send order. */
     private val taskChannelLedger = ArrayList<Pair<String, JsonObject>>()
     fun taskChannelCallsForTest(): List<Pair<String, JsonObject>> = synchronized(taskChannelLedger) { ArrayList(taskChannelLedger) }
+
+    private fun taskIdOf(task: JsonObject): String? = (task["taskId"] as? JsonPrimitive)?.content
+
+    /** A directTasks row decorated with the mutable pinned/unread/archived flags (ZCodeTaskMeta-ish). */
+    private fun decorateMeta(task: JsonObject): JsonObject {
+        val tid = taskIdOf(task)
+        return JsonObject(task +
+            ("pinned" to JsonPrimitive(tid in script.pinnedTaskIds)) +
+            ("archived" to JsonPrimitive(tid in script.archivedTaskIds)) +
+            (script.unreadTaskIds[tid]?.let { "unreadAt" to JsonPrimitive(it) } ?: ("unreadAt" to kotlinx.serialization.json.JsonNull)))
+    }
+
+    /** `listGroupedTaskViewStructure` result: group nodes (with member metas) then loose tasks. */
+    private fun groupedStructure(): JsonObject {
+        val grouped = script.taskGroupMembers.values.flatten().toSet()
+        val nodes = ArrayList<JsonObject>()
+        synchronized(script.taskGroups) {
+            script.taskGroups.forEach { g ->
+                val gid = (g["id"] as? JsonPrimitive)?.content
+                val members = script.taskGroupMembers[gid] ?: emptyList()
+                nodes += buildJsonObject {
+                    put("type", JsonPrimitive("group")); put("group", g)
+                    put("tasks", JsonArray(script.directTasks.filter { taskIdOf(it) in members }.map(::decorateMeta)))
+                }
+            }
+        }
+        script.directTasks.filter { taskIdOf(it) !in grouped && taskIdOf(it) !in script.pinnedTaskIds && taskIdOf(it) !in script.archivedTaskIds }
+            .forEach { nodes += buildJsonObject { put("type", JsonPrimitive("task")); put("task", decorateMeta(it)) } }
+        return buildJsonObject { put("nodes", JsonArray(nodes)) }
+    }
     fun lastV4CallParamsForTest(name: String): JsonObject? = synchronized(recentV4Calls) { recentV4Calls[name] }
 
     /** Test seam for the command-effect machinery (the socket path calls the same function). */
@@ -2592,12 +2635,33 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
      * (packages/services/src/session/zcodeTaskService.ts:379, docs/protocol/
      * phase10-direct.md §6) — the direct task-list plane fixture.
      */
-private fun handleOffPeakTaskPromise(id: Int, name: String?) {
+private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
+        // Phase 5A (A3.10 erratum): pauseTask/continueTask are OffPeakTaskService words
+        // (bare positional id). Paused ids are reflected in the next `list`.
+        if (name == "pauseTask" || name == "continueTask") {
+            val offPeakId = (arg as? RpcValue.Arr)?.items?.firstOrNull()?.let { (it as? RpcValue.Str)?.value }
+            if (offPeakId == null) {
+                respondError(id, "fault.mock.unscripted:$name")
+                return
+            }
+            if (name == "pauseTask") script.offPeakPausedIds.add(offPeakId) else script.offPeakPausedIds.remove(offPeakId)
+            respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                put("id", JsonPrimitive(offPeakId))
+                put("status", JsonPrimitive(if (name == "pauseTask") "paused" else "queued"))
+            }))
+            return
+        }
         if (name != "list") {
             respondError(id, "fault.mock.unknownMethod:off-peak-task-$name")
             return
         }
-        val items = script.offPeakTaskList
+        val items = script.offPeakTaskList?.let { arr ->
+            JsonArray(arr.map { el ->
+                val o = el as? JsonObject ?: return@map el
+                val oid = (o["id"] as? JsonPrimitive)?.content
+                if (oid != null && oid in script.offPeakPausedIds) JsonObject(o + ("status" to JsonPrimitive("paused"))) else o
+            })
+        }
         if (items == null) {
             respondError(id, "fault.mock.unscripted:offPeakTaskList")
         } else {
@@ -2612,8 +2676,105 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?) {
                 id, ChannelWire.ResponseType.PromiseSuccess,
                 RpcValue.Arr(script.directTasks.map { RpcValue.Obj(it) }),
             )
-            "listPinnedTaskIds", "listArchivedTasks", "listPinnedTasks", "listDeletedTaskIds" ->
-                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(emptyList()))
+            "listDeletedTaskIds" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(emptyList()))
+            "listPinnedTaskIds" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(script.pinnedTaskIds.map { RpcValue.Str(it) }))
+            // Phase 5A (A3.8–A3.10): metas filtered by the mutable flags so round-trips are provable.
+            "listPinnedTasks" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(
+                script.directTasks.filter { taskIdOf(it) in script.pinnedTaskIds }.map { RpcValue.Obj(decorateMeta(it)) },
+            ))
+            "listArchivedTasks" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(
+                script.directTasks.filter { taskIdOf(it) in script.archivedTaskIds }.map { RpcValue.Obj(decorateMeta(it)) },
+            ))
+            "setTaskPinned" -> {
+                val taskId = arg?.str("taskId")
+                val pinned = (arg?.get("pinned") as? JsonPrimitive)?.content?.toBooleanStrictOrNull()
+                if (taskId == null || pinned == null) respondError(id, "fault.mock.unscripted:setTaskPinned")
+                else {
+                    if (pinned) script.pinnedTaskIds.add(taskId) else script.pinnedTaskIds.remove(taskId)
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("taskId", JsonPrimitive(taskId)); put("pinned", JsonPrimitive(pinned))
+                    }))
+                }
+            }
+            "setTaskUnread" -> {
+                val taskId = arg?.str("taskId")
+                val unread = (arg?.get("unread") as? JsonPrimitive)?.content?.toBooleanStrictOrNull()
+                if (taskId == null || unread == null) respondError(id, "fault.mock.unscripted:setTaskUnread")
+                else {
+                    val stamp = if (unread) System.currentTimeMillis().also { script.unreadTaskIds[taskId] = it } else { script.unreadTaskIds.remove(taskId); null }
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("taskId", JsonPrimitive(taskId))
+                        if (stamp != null) put("unreadAt", JsonPrimitive(stamp)) else put("unreadAt", kotlinx.serialization.json.JsonNull)
+                    }))
+                }
+            }
+            "resumeTask" -> {
+                val taskId = arg?.str("taskId")
+                if (taskId == null) respondError(id, "fault.mock.unscripted:resumeTask")
+                else {
+                    script.resumedTaskIds.add(taskId)
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("taskId", JsonPrimitive(taskId)); put("status", JsonPrimitive("idle"))
+                    }))
+                }
+            }
+            "deleteArchivedTask" -> {
+                val taskId = arg?.str("taskId")
+                if (taskId == null || taskId !in script.archivedTaskIds) respondError(id, "fault.mock.unscripted:deleteArchivedTask")
+                else {
+                    script.archivedTaskIds.remove(taskId)
+                    script.directTasks = script.directTasks.filterNot { taskIdOf(it) == taskId }
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
+                }
+            }
+            "createTaskGroup" -> {
+                val now = System.currentTimeMillis()
+                val group = buildJsonObject {
+                    put("id", JsonPrimitive("task-group-${script.taskGroups.size + 1}"))
+                    put("title", JsonPrimitive(arg?.strOrNull("title")?.trim()?.ifEmpty { null } ?: "New Group"))
+                    put("color", JsonPrimitive(arg?.strOrNull("color") ?: "gray"))
+                    put("createdAt", JsonPrimitive(now)); put("updatedAt", JsonPrimitive(now))
+                }
+                script.taskGroups.add(group)
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(group))
+            }
+            "renameTaskGroup", "updateTaskGroupColor" -> {
+                val groupId = arg?.str("groupId")
+                val idx = script.taskGroups.indexOfFirst { (it["id"] as? JsonPrimitive)?.content == groupId }
+                if (groupId == null || idx < 0) respondError(id, "fault.mock.taskGroupMissing")
+                else {
+                    val key = if (name == "renameTaskGroup") "title" else "color"
+                    val updated = JsonObject(script.taskGroups[idx] + (key to JsonPrimitive(arg.str(key))) + ("updatedAt" to JsonPrimitive(System.currentTimeMillis())))
+                    script.taskGroups[idx] = updated
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(updated))
+                }
+            }
+            "deleteTaskGroup" -> {
+                val groupId = arg?.str("groupId")
+                script.taskGroups.removeAll { (it["id"] as? JsonPrimitive)?.content == groupId }
+                if (groupId != null) script.taskGroupMembers.remove(groupId)
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Undefined)
+            }
+            "listGroupedTaskViewStructure" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(groupedStructure()))
+            "applyGroupedTaskViewOrder" -> {
+                val groups = arg?.get("groups") as? JsonArray
+                if (groups == null) respondError(id, "fault.mock.unscripted:applyGroupedTaskViewOrder")
+                else {
+                    // The host refuses pinned/archived members ("Grouped task order 包含不可见 task").
+                    val refs = groups.flatMap { g -> ((g as JsonObject)["taskRefs"] as? JsonArray)?.mapNotNull { (it as? JsonObject)?.str("taskId") } ?: emptyList() }
+                    if (refs.any { it in script.pinnedTaskIds || it in script.archivedTaskIds }) {
+                        respondError(id, "Grouped task order 包含不可见 task")
+                    } else {
+                        script.taskGroupMembers.clear()
+                        groups.forEach { g ->
+                            val go = g as JsonObject
+                            val gid = go.str("groupId")
+                            script.taskGroupMembers[gid] = (go["taskRefs"] as? JsonArray)?.mapNotNull { (it as? JsonObject)?.str("taskId") }?.toMutableList() ?: mutableListOf()
+                        }
+                        respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(groupedStructure()))
+                    }
+                }
+            }
             // Phase 4D (L6.3+J4 / H1.1): the lifecycle + search methods (shipped 3.14.5).
             "deleteTask" -> {
                 val taskId = arg?.str("taskId")

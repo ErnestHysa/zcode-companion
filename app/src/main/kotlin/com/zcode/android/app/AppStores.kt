@@ -46,7 +46,7 @@ import java.io.File
 class AppStores private constructor(appContext: Context) {
 
     val database: ZcodeDatabase = Room.databaseBuilder(appContext, ZcodeDatabase::class.java, ZcodeDatabase.NAME)
-        .addMigrations(ZcodeDatabase.MIGRATION_1_2)
+        .addMigrations(*ZcodeDatabase.ALL_MIGRATIONS)
         .build()
 
     // DataStore files under noBackupFilesDir — the §12.4/§27 conservative default

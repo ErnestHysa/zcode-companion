@@ -154,6 +154,88 @@ class DefaultTasksPort(
     ): Boolean = hub.createTask(workspaceKey, firstText, provider, model)
 
     override fun retryConnection() = hub.retry()
+
+    // ---------------------------------------------------------------- Phase 5A (A3.8–A3.10)
+
+    /** One guarded zcode-task call: false/null on refusal, logged under the given tag. */
+    private suspend fun <T> guarded(tag: String, block: suspend (ws: String, identity: String?) -> T): T? {
+        val target = hub.activeWorkspaceTarget() ?: return null
+        val ws = target.first ?: return null
+        return try {
+            block(ws, target.second)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("tasksport.$tag", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            null
+        }
+    }
+
+    override suspend fun setTaskPinned(taskId: String, pinned: Boolean): Boolean =
+        guarded("pin") { ws, id -> hub.taskService().setTaskPinned(ws, id, taskId, pinned); true } ?: false
+
+    override suspend fun setTaskUnread(taskId: String, unread: Boolean, expectedUnreadAt: Long?): Boolean =
+        guarded("unread") { ws, id -> hub.taskService().setTaskUnread(ws, id, taskId, unread, expectedUnreadAt); true } ?: false
+
+    override suspend fun resumeTask(taskId: String): Boolean =
+        guarded("resume") { ws, id -> hub.taskService().resumeTask(ws, id, taskId); true } ?: false
+
+    override suspend fun listArchivedTasks(): List<com.zcode.android.domain.model.TaskMeta>? =
+        guarded("archived") { ws, id ->
+            hub.taskService().listArchivedTasks(ws, id).mapNotNull(com.zcode.android.domain.model.TaskMeta::decode)
+        }
+
+    override suspend fun deleteArchivedTask(taskId: String): Boolean =
+        guarded("deleteArchived") { ws, id -> hub.taskService().deleteArchivedTask(ws, id, taskId); true } ?: false
+
+    override suspend fun listGroupedView(): List<com.zcode.android.domain.model.GroupedTaskNode>? =
+        guarded("groups") { ws, id ->
+            com.zcode.android.domain.model.GroupedTaskNode.decodeAll(hub.taskService().listGroupedTaskViewStructure(ws, id))
+        }
+
+    override suspend fun createTaskGroup(title: String, color: com.zcode.android.domain.model.TaskGroupColor): com.zcode.android.domain.model.TaskGroupInfo? =
+        guarded("createGroup") { ws, id ->
+            com.zcode.android.domain.model.TaskGroupInfo.decode(hub.taskService().createTaskGroup(ws, id, title, color.wire))
+        }
+
+    override suspend fun renameTaskGroup(groupId: String, title: String): Boolean =
+        guarded("renameGroup") { ws, id -> hub.taskService().renameTaskGroup(ws, id, groupId, title); true } ?: false
+
+    override suspend fun updateTaskGroupColor(groupId: String, color: com.zcode.android.domain.model.TaskGroupColor): Boolean =
+        guarded("recolorGroup") { ws, id -> hub.taskService().updateTaskGroupColor(ws, id, groupId, color.wire); true } ?: false
+
+    override suspend fun deleteTaskGroup(groupId: String): Boolean =
+        guarded("deleteGroup") { ws, id -> hub.taskService().deleteTaskGroup(ws, id, groupId); true } ?: false
+
+    /**
+     * Read-modify-write over the live structure: every existing group keeps its members
+     * (minus the moved task), the target group gains it, loose tasks stay top-level.
+     */
+    override suspend fun moveTaskToGroup(taskId: String, groupId: String?): Boolean =
+        guarded("moveToGroup") { ws, id ->
+            val service = hub.taskService()
+            val nodes = com.zcode.android.domain.model.GroupedTaskNode.decodeAll(service.listGroupedTaskViewStructure(ws, id))
+            val groups = LinkedHashMap<String, MutableList<String>>()
+            val topLevel = ArrayList<com.zcode.android.data.session.TaskServiceClient.GroupedOrderNode>()
+            nodes.forEach { n ->
+                when (n) {
+                    is com.zcode.android.domain.model.GroupedTaskNode.Group -> {
+                        groups[n.group.id] = n.taskIds.filterNot { it == taskId }.toMutableList()
+                        topLevel += com.zcode.android.data.session.TaskServiceClient.GroupedOrderNode.Group(n.group.id)
+                    }
+                    is com.zcode.android.domain.model.GroupedTaskNode.Single ->
+                        if (n.taskId != taskId) topLevel += com.zcode.android.data.session.TaskServiceClient.GroupedOrderNode.Task(n.taskId)
+                }
+            }
+            if (groupId == null) {
+                topLevel += com.zcode.android.data.session.TaskServiceClient.GroupedOrderNode.Task(taskId)
+            } else {
+                val members = groups[groupId] ?: return@guarded false
+                members += taskId
+            }
+            service.applyGroupedTaskViewOrder(ws, id, topLevel, groups)
+            true
+        } ?: false
 }
 
 class DefaultConversationPort(
