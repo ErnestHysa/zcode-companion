@@ -1,5 +1,6 @@
 package com.zcode.android.app.connect
 
+import kotlinx.serialization.json.JsonObject
 import com.zcode.android.core.transport.RelayTransport
 import com.zcode.android.data.session.Phase9Tools
 import com.zcode.android.data.session.TerminalController
@@ -158,6 +159,56 @@ class DefaultGitPort(
             null
         }
     }
+
+    // ---------------------------------------------------------------- Phase 5D (ADR-021): the write tier
+
+    private suspend fun <T> writeOp(tag: String, block: suspend (wp: String) -> T): T? {
+        val wp = workspacePath() ?: return null
+        return try {
+            block(wp)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("gitport.$tag", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            null
+        }
+    }
+
+    override suspend fun stagePaths(paths: List<String>): Boolean =
+        writeOp("stage") { hub.activeTransport().gitStagePaths(it, paths); true } ?: false
+
+    override suspend fun unstagePaths(paths: List<String>): Boolean =
+        writeOp("unstage") { hub.activeTransport().gitUnstagePaths(it, paths); true } ?: false
+
+    override suspend fun discardPaths(paths: List<String>, staged: Boolean): Boolean =
+        writeOp("discard") { hub.activeTransport().gitDiscardPaths(it, paths, staged); true } ?: false
+
+    override suspend fun commit(message: String, stagedOnly: Boolean): com.zcode.android.domain.model.GitCommitResult? =
+        writeOp("commit") { com.zcode.android.domain.model.GitCommitResult.decode(hub.activeTransport().gitCommit(it, message, null, stagedOnly)) }
+
+    override suspend fun generateCommitMessage(includeUnstaged: Boolean): String? =
+        writeOp("genCommit") { o ->
+            val obj = hub.activeTransport().gitGenerateCommitMessage(o, includeUnstaged)
+            obj.rpStr("message") ?: obj.rpStr("commitMessage")
+        }
+
+    override suspend fun push(): com.zcode.android.domain.model.GitPushResult? =
+        writeOp("push") { com.zcode.android.domain.model.GitPushResult.decode(hub.activeTransport().gitPush(it)) }
+
+    override suspend fun switchBranch(targetBranchName: String): com.zcode.android.domain.model.GitBranchResult? =
+        writeOp("switchBranch") { com.zcode.android.domain.model.GitBranchResult.decode(hub.activeTransport().gitSwitchBranch(it, targetBranchName)) }
+
+    override suspend fun createBranchAndSwitch(branchName: String): com.zcode.android.domain.model.GitBranchResult? =
+        writeOp("createBranch") { com.zcode.android.domain.model.GitBranchResult.decode(hub.activeTransport().gitCreateBranchAndSwitch(it, branchName, null)) }
+
+    override suspend fun localBranches(): com.zcode.android.domain.model.GitBranchList? =
+        writeOp("branches") { com.zcode.android.domain.model.GitBranchList.decode(hub.activeTransport().gitLocalBranches(it)) }
+
+    override suspend fun identity(): com.zcode.android.domain.model.GitIdentity? =
+        writeOp("identity") { com.zcode.android.domain.model.GitIdentity.decode(hub.activeTransport().gitIdentity(it)) }
+
+    private fun JsonObject.rpStr(key: String): String? =
+        (this[key] as? kotlinx.serialization.json.JsonPrimitive)?.takeIf { it !is kotlinx.serialization.json.JsonNull }?.content?.takeIf { it.isNotBlank() }
 
     /** Channel-refusal wrapper: ANY failure → null (the §13.3 disabled state). */
     private suspend fun <T> run(op: String, block: suspend (Phase9Tools, String, String?) -> T): T? {

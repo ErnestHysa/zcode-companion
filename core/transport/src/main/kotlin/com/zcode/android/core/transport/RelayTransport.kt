@@ -1273,6 +1273,17 @@ class RelayTransport(
     override suspend fun setPluginEnabled(workspacePath: String?, workspaceIdentity: String?, pluginId: String, enabled: Boolean): JsonObject =
         plane.setPluginEnabled(workspacePath, workspaceIdentity, pluginId, enabled)
 
+    override suspend fun gitStagePaths(workspacePath: String, paths: List<String>) = plane.gitStagePaths(workspacePath, paths)
+    override suspend fun gitUnstagePaths(workspacePath: String, paths: List<String>) = plane.gitUnstagePaths(workspacePath, paths)
+    override suspend fun gitDiscardPaths(workspacePath: String, paths: List<String>, staged: Boolean) = plane.gitDiscardPaths(workspacePath, paths, staged)
+    override suspend fun gitCommit(workspacePath: String, message: String, paths: List<String>?, stagedOnly: Boolean): JsonObject = plane.gitCommit(workspacePath, message, paths, stagedOnly)
+    override suspend fun gitGenerateCommitMessage(workspacePath: String, includeUnstaged: Boolean): JsonObject = plane.gitGenerateCommitMessage(workspacePath, includeUnstaged)
+    override suspend fun gitPush(workspacePath: String): JsonObject = plane.gitPush(workspacePath)
+    override suspend fun gitSwitchBranch(workspacePath: String, targetBranchName: String): JsonObject = plane.gitSwitchBranch(workspacePath, targetBranchName)
+    override suspend fun gitCreateBranchAndSwitch(workspacePath: String, branchName: String, startPoint: String?): JsonObject = plane.gitCreateBranchAndSwitch(workspacePath, branchName, startPoint)
+    override suspend fun gitLocalBranches(workspacePath: String): JsonObject = plane.gitLocalBranches(workspacePath)
+    override suspend fun gitIdentity(workspacePath: String): JsonObject = plane.gitIdentity(workspacePath)
+
     override suspend fun skillReferenceCatalog(
         workspacePath: String?,
         workspaceIdentity: String?,

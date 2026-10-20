@@ -274,11 +274,30 @@ interface V4Plane {
     fun terminalListenExit(id: String, handler: (Int?) -> Unit): Int
     fun disposeListener(listenerId: Int)
 
-    // git (read-only subset)
+    // git (read-only subset + the ADR-021 write tier — the ONLY sanctioned git mutations)
     suspend fun gitRepositorySummary(workspacePath: String): JsonObject
     suspend fun gitChanges(workspacePath: String, sourceId: String): JsonObject
     suspend fun gitDiff(workspacePath: String, path: String, staged: Boolean?): JsonObject
     suspend fun gitCommitGraph(workspacePath: String, maxCount: Int, skip: Int): JsonObject
+
+    /**
+     * ADR-021 (gaps-and-polish Phase 5D, A3.17+J1.3): the git write tier — stage/unstage
+     * (reversible, one tap), commit/push/switch/createBranchAndSwitch (dialog-gated),
+     * discardPaths (Tier C: the DESTRUCTIVE worktree write, typed-confirm DISCARD).
+     * Shapes bundle-extracted (host/index.js ≈200265–202500); the branch result carries
+     * the typed issue map (`issues:[{code: kebab-case, message, detail?, paths?}]`).
+     * NEVER ported: pull/fetch/force-push/rebase/merge/reset/stash/identity-mutation.
+     */
+    suspend fun gitStagePaths(workspacePath: String, paths: List<String>)
+    suspend fun gitUnstagePaths(workspacePath: String, paths: List<String>)
+    suspend fun gitDiscardPaths(workspacePath: String, paths: List<String>, staged: Boolean)
+    suspend fun gitCommit(workspacePath: String, message: String, paths: List<String>?, stagedOnly: Boolean): JsonObject
+    suspend fun gitGenerateCommitMessage(workspacePath: String, includeUnstaged: Boolean): JsonObject
+    suspend fun gitPush(workspacePath: String): JsonObject
+    suspend fun gitSwitchBranch(workspacePath: String, targetBranchName: String): JsonObject
+    suspend fun gitCreateBranchAndSwitch(workspacePath: String, branchName: String, startPoint: String?): JsonObject
+    suspend fun gitLocalBranches(workspacePath: String): JsonObject
+    suspend fun gitIdentity(workspacePath: String): JsonObject
 
     // file (read-only subset)
     suspend fun fileReaddir(path: String, includeHidden: Boolean = false): RpcValue
@@ -1169,6 +1188,71 @@ internal class ChannelV4Plane(
             timeouts.controlRequestTimeoutMs,
         )
     }
+
+    // ---- ADR-021 git write tier (channel `git`; the workspace target is the resolved one)
+    private suspend fun gitWrite(method: String, params: JsonObject): JsonObject =
+        when (val raw = channelCall("git", method, RpcValue.Arr(listOf(RpcValue.Obj(params))), 60_000)) {
+            is RpcValue.Obj -> raw.json as? JsonObject ?: JsonObject(emptyMap())
+            is RpcValue.Undefined, null -> JsonObject(emptyMap())
+            else -> throw TransportFailure(ErrorMapping.protocolFault("git.$method result not an object"))
+        }
+
+    suspend fun gitStagePaths(workspacePath: String, paths: List<String>) {
+        gitWrite("stagePaths", buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath)); put("paths", JsonArray(paths.map { JsonPrimitive(it) }))
+        })
+    }
+
+    suspend fun gitUnstagePaths(workspacePath: String, paths: List<String>) {
+        gitWrite("unstagePaths", buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath)); put("paths", JsonArray(paths.map { JsonPrimitive(it) }))
+        })
+    }
+
+    suspend fun gitDiscardPaths(workspacePath: String, paths: List<String>, staged: Boolean) {
+        gitWrite("discardPaths", buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath)); put("paths", JsonArray(paths.map { JsonPrimitive(it) }))
+            put("staged", JsonPrimitive(staged))
+        })
+    }
+
+    suspend fun gitCommit(workspacePath: String, message: String, paths: List<String>?, stagedOnly: Boolean): JsonObject =
+        gitWrite("commit", buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath)); put("message", JsonPrimitive(message))
+            paths?.let { put("paths", JsonArray(it.map { p -> JsonPrimitive(p) })) }
+            put("stagedOnly", JsonPrimitive(stagedOnly))
+        })
+
+    suspend fun gitGenerateCommitMessage(workspacePath: String, includeUnstaged: Boolean): JsonObject =
+        gitWrite("generateCommitMessage", buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath)); put("includeUnstaged", JsonPrimitive(includeUnstaged))
+        })
+
+    suspend fun gitPush(workspacePath: String): JsonObject =
+        gitWrite("push", buildJsonObject { put("workspacePath", JsonPrimitive(workspacePath)) })
+
+    suspend fun gitSwitchBranch(workspacePath: String, targetBranchName: String): JsonObject =
+        gitWrite("switchBranch", buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath)); put("targetBranchName", JsonPrimitive(targetBranchName))
+        })
+
+    suspend fun gitCreateBranchAndSwitch(workspacePath: String, branchName: String, startPoint: String?): JsonObject =
+        gitWrite("createBranchAndSwitch", buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath)); put("branchName", JsonPrimitive(branchName))
+            startPoint?.let { put("startPoint", JsonPrimitive(it)) }
+        })
+
+    suspend fun gitLocalBranches(workspacePath: String): JsonObject =
+        when (val raw = channelCall("git", "getLocalBranches", RpcValue.Arr(listOf(RpcValue.Obj(buildJsonObject { put("workspacePath", JsonPrimitive(workspacePath)) }))), 30_000)) {
+            is RpcValue.Obj -> raw.json as? JsonObject ?: JsonObject(emptyMap())
+            else -> throw TransportFailure(ErrorMapping.protocolFault("git.getLocalBranches result not an object"))
+        }
+
+    suspend fun gitIdentity(workspacePath: String): JsonObject =
+        when (val raw = channelCall("git", "getIdentity", RpcValue.Arr(listOf(RpcValue.Obj(buildJsonObject { put("workspacePath", JsonPrimitive(workspacePath)) }))), 30_000)) {
+            is RpcValue.Obj -> raw.json as? JsonObject ?: JsonObject(emptyMap())
+            else -> throw TransportFailure(ErrorMapping.protocolFault("git.getIdentity result not an object"))
+        }
 
     // ---- terminal (view-only: create/dispose/data/exit ONLY — INV-9, phase9-channels.md §1)
 

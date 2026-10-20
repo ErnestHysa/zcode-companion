@@ -91,6 +91,21 @@ fun GitScreen(
         }
     }
     val scope = rememberCoroutineScope()
+    // ADR-021 (Phase 5D): the write-tier sheet state.
+    var showCommit by remember { mutableStateOf(false) }
+    var showBranches by remember { mutableStateOf(false) }
+    var gitIdentity by remember { mutableStateOf<com.zcode.android.domain.model.GitIdentity?>(null) }
+    var gitBranches by remember { mutableStateOf<com.zcode.android.domain.model.GitBranchList?>(null) }
+    var gitBranchIssue by remember { mutableStateOf<com.zcode.android.domain.model.GitBranchIssue?>(null) }
+    var generating by remember { mutableStateOf(false) }
+    var pushFor by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
+    var discardFor by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
+    val notifierGit = com.zcode.android.core.ui.components.LocalNotifier.current
+    val commitDoneFmt = stringResource(R.string.commit_done, "x")
+    val pushDoneFmt = stringResource(R.string.push_done, "x")
+    val discardOneCopy = stringResource(R.string.discard_done, 1)
+    val switchedFmt = stringResource(R.string.branches_switched, "x")
+    val generateUnavailableCopy = stringResource(R.string.commit_generate_unavailable)
 
     // B2.7: both datasets fetched through ONE path so the error state and the
     // Retry share it. A failure renders an error state — never a lying empty list.
@@ -218,6 +233,19 @@ fun GitScreen(
                 }
             }
 
+            // ADR-021 Tier B: the write actions row (commit / branches) — dialog-gated.
+            item(key = "git-write-actions") {
+                Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = {
+                        scope.launch { gitIdentity = port.identity() }
+                        showCommit = true
+                    }, modifier = Modifier.testTag("git_commit_open")) { Text(stringResource(R.string.git_commit_action)) }
+                    TextButton(onClick = {
+                        scope.launch { gitBranches = port.localBranches(); gitBranchIssue = null }
+                        showBranches = true
+                    }, modifier = Modifier.testTag("git_branches_open")) { Text(stringResource(R.string.git_branches_action)) }
+                }
+            }
             item(key = "changes-title") {
                 Text(stringResource(R.string.git_changes_header), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             }
@@ -236,6 +264,12 @@ fun GitScreen(
                             val key = path to wasStaged
                             toggleExpanded(key)
                         },
+                        onStage = { path, stage ->
+                            scope.launch {
+                                if (if (stage) port.stagePaths(listOf(path)) else port.unstagePaths(listOf(path))) fetchChanges()
+                            }
+                        },
+                        onDiscard = { path, staged -> discardFor = path to staged },
                     )
                     ChangeCard(
                         title = stringResource(R.string.git_section_staged),
@@ -247,6 +281,12 @@ fun GitScreen(
                             val key = path to wasStaged
                             toggleExpanded(key)
                         },
+                        onStage = { path, stage ->
+                            scope.launch {
+                                if (if (stage) port.stagePaths(listOf(path)) else port.unstagePaths(listOf(path))) fetchChanges()
+                            }
+                        },
+                        onDiscard = { path, staged -> discardFor = path to staged },
                     )
                 }
             }
@@ -292,6 +332,92 @@ fun GitScreen(
         }
     }
     }
+    // ---- ADR-021 (Phase 5D): the write-tier sheets ----
+    if (showCommit) {
+        CommitSheet(
+            identity = gitIdentity,
+            generating = generating,
+            onDismiss = { showCommit = false },
+            onGenerate = {
+                scope.launch {
+                    generating = true
+                    try {
+                        port.generateCommitMessage(includeUnstaged = true)
+                    } finally {
+                        generating = false
+                    }
+                }
+            },
+            onCommit = { message, includeUnstaged, andPush ->
+                showCommit = false
+                scope.launch {
+                    val result = port.commit(message, stagedOnly = !includeUnstaged)
+                    val hash = result?.commitHash
+                    if (hash != null) {
+                        notifierGit.show(commitDoneFmt.replace("x", hash.take(8)))
+                        fetchChanges()
+                        if (andPush) {
+                            val summary = ui.summary
+                            pushFor = (summary?.branchName ?: "") to (summary?.trackingBranchName != null)
+                        }
+                    }
+                }
+            },
+        )
+    }
+    pushFor?.let { (branch, hasUpstream) ->
+        PushConfirm(
+            branchName = branch,
+            hasUpstream = hasUpstream,
+            onDismiss = { pushFor = null },
+            onPush = {
+                val branchName = branch
+                pushFor = null
+                scope.launch {
+                    if (port.push() != null) notifierGit.show(pushDoneFmt.replace("x", branchName))
+                }
+            },
+        )
+    }
+    discardFor?.let { (path, staged) ->
+        DiscardConfirm(
+            paths = listOf(path),
+            onDismiss = { discardFor = null },
+            onDiscard = {
+                val target = path to staged
+                discardFor = null
+                scope.launch {
+                    if (port.discardPaths(listOf(target.first), target.second)) {
+                        notifierGit.show(discardOneCopy)
+                        fetchChanges()
+                    }
+                }
+            },
+        )
+    }
+    if (showBranches) {
+        BranchSheet(
+            branches = gitBranches,
+            issue = gitBranchIssue,
+            onDismiss = { showBranches = false; gitBranchIssue = null },
+            onSwitch = { name ->
+                showBranches = false
+                scope.launch {
+                    val result = port.switchBranch(name)
+                    if (result?.issues?.isNotEmpty() == true) gitBranchIssue = result.issues.first()
+                    else if (result != null) notifierGit.show(switchedFmt.replace("x", name))
+                }
+            },
+            onCreateAndSwitch = { name ->
+                showBranches = false
+                scope.launch {
+                    val result = port.createBranchAndSwitch(name)
+                    if (result?.issues?.isNotEmpty() == true) gitBranchIssue = result.issues.first()
+                    else if (result != null) notifierGit.show(switchedFmt.replace("x", name))
+                }
+            },
+        )
+    }
 }
 
 private const val COMMIT_PAGE = 50
@@ -313,6 +439,9 @@ private fun ChangeCard(
     expanded: Pair<String, Boolean>?,
     load: suspend (String, Boolean) -> GitFileDiff?,
     onToggle: (path: String, staged: Boolean) -> Unit,
+    // ---- ADR-021 (Phase 5D): the write tier (null = read-only) ----
+    onStage: ((path: String, stage: Boolean) -> Unit)? = null,
+    onDiscard: ((path: String, staged: Boolean) -> Unit)? = null,
 ) {
     if (entries.isEmpty()) return
     Surface(tonalElevation = 1.dp) {
@@ -343,6 +472,8 @@ private fun ChangeCard(
                         expanded = expanded == (entry.path to staged),
                         load = load,
                         onToggle = onToggle,
+                        onStage = onStage,
+                        onDiscard = onDiscard,
                     )
                 }
             }
@@ -357,6 +488,8 @@ private fun ChangeRow(
     expanded: Boolean,
     load: suspend (String, Boolean) -> GitFileDiff?,
     onToggle: (path: String, staged: Boolean) -> Unit,
+    onStage: ((path: String, stage: Boolean) -> Unit)? = null,
+    onDiscard: ((path: String, staged: Boolean) -> Unit)? = null,
 ) {
     Column(Modifier.fillMaxWidth()) {
         Row(
@@ -395,6 +528,24 @@ private fun ChangeRow(
             }
             // GitPaneChangeCard: colored +N −N (desktop diff-added/diff-removed colors).
             DiffCountBadge(added = entry.added, removed = entry.removed)
+            // ADR-021 Tier A: reversible index moves — one tap, no confirm; the DISCARD
+            // entry (Tier C) opens the typed-confirm (never an inline destructive tap).
+            if (onStage != null) {
+                TextButton(
+                    onClick = { onStage(entry.repoRelativePath.ifBlank { entry.path }, !staged) },
+                    modifier = Modifier
+                        .minRowTouchTarget()
+                        .testTag("git_stage_${entry.repoRelativePath}"),
+                ) { Text(stringResource(if (staged) R.string.git_unstage else R.string.git_stage), style = MaterialTheme.typography.labelSmall) }
+            }
+            if (onDiscard != null) {
+                TextButton(
+                    onClick = { onDiscard(entry.repoRelativePath.ifBlank { entry.path }, staged) },
+                    modifier = Modifier
+                        .minRowTouchTarget()
+                        .testTag("git_discard_entry_${entry.repoRelativePath}"),
+                ) { Text(stringResource(R.string.git_discard), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error) }
+            }
             Icon(
                 imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
                 contentDescription = null,

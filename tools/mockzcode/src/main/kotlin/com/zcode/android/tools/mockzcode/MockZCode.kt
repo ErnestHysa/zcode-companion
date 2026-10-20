@@ -333,6 +333,16 @@ class MockZCode(
         val checkpoints: MutableList<JsonObject> = java.util.Collections.synchronizedList(ArrayList())
         /** A3.15: per-task assistant feedback (`setAssistantMessageFeedback` snapshots). */
         val assistantFeedback: MutableMap<String, MutableList<String?>> = java.util.concurrent.ConcurrentHashMap()
+
+        // ---------------- ADR-021 (Phase 5D): git write tier ----------------
+        val stagedPaths: MutableList<String> = java.util.Collections.synchronizedList(ArrayList())
+        val discardedPaths: MutableList<String> = java.util.Collections.synchronizedList(ArrayList())
+        val commits: MutableList<String> = java.util.Collections.synchronizedList(ArrayList())
+        var generatedCommitMessage: JsonObject? = null
+        var gitPushFails: Boolean = false
+        /** A scripted typed issue (nt-style JsonObject with code/message) — non-null = refusals. */
+        var gitBranchIssue: JsonObject? = null
+        var gitIdentityMissing: Boolean = false
         var checkpointDiffFiles: List<String> = listOf("src/version.ts", "scratch/probe.txt")
         /** Scripted conflict on a non-forced restore (the force-overwrite branch). */
         var checkpointConflicts: Boolean = false
@@ -1466,7 +1476,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             }
             when (channelName) {
                 "terminal" -> handleTerminalPromise(id, name, argAsObject(arg))
-                "git" -> handleGitPromise(id, name)
+                "git" -> handleGitPromise(id, name, arg)
                 "git-checkpoint" -> handleGitCheckpointPromise(id, name, argAsObject(arg))
                 "file" -> handleFilePromise(id, name, argAsObject(arg))
                 "model-selection" -> handleModelSelectionPromise(id, name)
@@ -2227,8 +2237,79 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
         }
     }
 
-    private fun handleGitPromise(id: Int, name: String?) {
+    private val gitChannelLedger = ArrayList<Pair<String, JsonObject>>()
+    fun taskChannelLedgerForTest(channel: String): List<Pair<String, JsonObject>> =
+        if (channel == "git") synchronized(gitChannelLedger) { ArrayList(gitChannelLedger) } else emptyList()
+
+    private fun handleGitPromise(id: Int, name: String?, arg: RpcValue?) {
+        synchronized(gitChannelLedger) { gitChannelLedger.add((name ?: "?") to (argAsObject(arg) ?: JsonObject(emptyMap()))) }
         when (name) {
+            // ADR-021 (Phase 5D): the write tier — stage/unstage/discard mutate the
+            // scripted changes; commit/push/branch echo the bundle-extracted shapes
+            // (with the scripted typed-issue branch).
+            "stagePaths", "unstagePaths" -> {
+                val paths = (argAsObject(arg)?.get("paths") as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.content } ?: emptyList()
+                if (paths.isEmpty()) respondError(id, "fault.mock.unscripted:$name")
+                else {
+                    if (name == "stagePaths") script.stagedPaths.addAll(paths) else script.stagedPaths.removeAll(paths.toSet())
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Undefined)
+                }
+            }
+            "discardPaths" -> {
+                val paths = (argAsObject(arg)?.get("paths") as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.content } ?: emptyList()
+                if (paths.isEmpty()) respondError(id, "fault.mock.unscripted:discardPaths")
+                else {
+                    script.discardedPaths.addAll(paths)
+                    script.stagedPaths.removeAll(paths.toSet())
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Undefined)
+                }
+            }
+            "commit" -> {
+                val message = argAsObject(arg)?.str("message") ?: ""
+                if (message.isBlank()) respondError(id, "Commit message cannot be empty")
+                else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("commitHash", JsonPrimitive("abc123${script.commits.size}"))
+                    put("summary", buildJsonObject { put("additions", JsonPrimitive(1)); put("deletions", JsonPrimitive(0)); put("files", JsonPrimitive(1)) })
+                }))
+            }
+            "generateCommitMessage" -> scriptableObject(id, script.generatedCommitMessage, "generateCommitMessage")
+            "push" -> {
+                if (script.gitPushFails) respondError(id, "Cannot push while HEAD is detached.")
+                else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("branchName", JsonPrimitive("main")); put("trackingBranchName", JsonPrimitive("origin/main"))
+                }))
+            }
+            "switchBranch", "createBranchAndSwitch" -> {
+                val branch = argAsObject(arg)?.str("targetBranchName") ?: argAsObject(arg)?.str("branchName") ?: ""
+                if (script.gitBranchIssue != null) {
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("action", JsonPrimitive(if (name == "switchBranch") "switch" else "create-and-switch"))
+                        put("branchName", JsonPrimitive(branch))
+                        put("didChange", JsonPrimitive(false)); put("created", JsonPrimitive(name == "createBranchAndSwitch"))
+                        put("issues", JsonArray(listOf(script.gitBranchIssue!!)))
+                    }))
+                } else {
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("action", JsonPrimitive(if (name == "switchBranch") "switch" else "create-and-switch"))
+                        put("branchName", JsonPrimitive(branch))
+                        put("didChange", JsonPrimitive(true)); put("created", JsonPrimitive(name == "createBranchAndSwitch"))
+                        put("issues", JsonArray(emptyList()))
+                    }))
+                }
+            }
+            "getLocalBranches" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                put("headRefType", JsonPrimitive("branch")); put("currentBranchName", JsonPrimitive("main"))
+                put("branches", JsonArray(listOf("main", "feature/a").map { b ->
+                    buildJsonObject { put("name", JsonPrimitive(b)); put("upstream", JsonPrimitive(if (b == "main") "origin/main" else null)) }
+                }))
+            }))
+            "getIdentity" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                if (script.gitIdentityMissing) {
+                    put("userName", kotlinx.serialization.json.JsonNull); put("userEmail", kotlinx.serialization.json.JsonNull)
+                } else {
+                    put("userName", JsonPrimitive("Ernest")); put("userEmail", JsonPrimitive("takis312@hotmail.com"))
+                }
+            }))
             "getRepositorySummary" -> {
                 val summary = script.gitSummary
                 if (summary == null) respondError(id, "fault.git.notAvailable")
