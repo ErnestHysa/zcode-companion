@@ -88,9 +88,29 @@ class DefaultTerminalPort(
         return mapState(controller.attach())
     }
 
-    override fun detach() = controller.detach()
+    override fun detach() {
+        controller.disarm() // ADR-022: detach disarms
+        controller.detach()
+    }
 
     override fun search(query: String): List<Int> = controller.search(query)
+
+    // ---------------------------------------------------------------- ADR-022 (Phase 5D): input
+
+    override val inputOptIn: StateFlow<Boolean> get() = controller.inputOptIn
+    override val armed: StateFlow<Boolean> get() = controller.armed
+
+    /**
+     * Layer 3: the SECOND opt-in — the credential result (`granted`) gates the flip;
+     * a refused/cancelled prompt leaves it OFF. Turning it off never prompts.
+     */
+    override suspend fun setInputOptIn(enabled: Boolean, granted: Boolean) {
+        if (enabled && !granted) return
+        controller.setInputOptIn(enabled)
+    }
+
+    override suspend fun arm() = controller.arm()
+    override fun disarm() = controller.disarm()
 }
 
 // ---------------------------------------------------------------- git (§9.4)

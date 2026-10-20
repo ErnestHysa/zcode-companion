@@ -32,6 +32,27 @@ interface TerminalPort {
     /** Case-insensitive ring search → matching line indexes. */
     fun search(query: String): List<Int>
 
+    // ---------------------------------------------------------------- ADR-022 (Phase 5D): input
+
+    /**
+     * The four-layer input gate (ADR-022): hello `localTerminal` (1) + the view opt-in
+     * (2) + the SECOND credential-confirmed input opt-in (3, default OFF) + the
+     * PER-ATTACH ARM (4, auto-disarms on detach/exit/background/10-min idle). `write`
+     * and `resize` are reachable ONLY while an arm is held (pinned: zero calls while
+     * disarmed).
+     */
+    val inputOptIn: StateFlow<Boolean>
+    val armed: StateFlow<Boolean>
+
+    /** Flip the input opt-in; `granted=false` (credential refused) leaves it OFF. */
+    suspend fun setInputOptIn(enabled: Boolean, granted: Boolean)
+
+    /** Arm the attached session (no-op when the input opt-in is off or not Live). */
+    suspend fun arm()
+
+    /** Disarm now (detach/exit/background/expiry). */
+    fun disarm()
+
     sealed class TerminalState {
         data object Idle : TerminalState()
         data object Attaching : TerminalState()

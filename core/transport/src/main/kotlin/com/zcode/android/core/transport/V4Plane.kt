@@ -267,9 +267,18 @@ interface V4Plane {
     ): JsonObject
     suspend fun codingPlanResetHistoryRead(preferredProviderId: String, accountAccess: JsonObject)
 
-    // terminal (view-only — INV-9)
+    // terminal (view-only — INV-9 EXCEPT the ADR-022 armed write tier)
     suspend fun terminalCreate(cols: Int, rows: Int, cwd: String? = null): JsonObject
     suspend fun terminalDispose(id: String)
+
+    /**
+     * ADR-022 (Phase 5D, A3.18): the armed write tier — `write {id, data}` /
+     * `resize {id, cols, rows}` (host/index.js ≈250695 createTerminalService). The typed
+     * gate is the CONTROLLER's arm (check{} above): the plane methods are reachable only
+     * through the armed composer (pinned: zero calls while disarmed).
+     */
+    suspend fun terminalWrite(id: String, data: String)
+    suspend fun terminalResize(id: String, cols: Int, rows: Int)
     fun terminalListenData(id: String, handler: (String) -> Unit): Int
     fun terminalListenExit(id: String, handler: (Int?) -> Unit): Int
     fun disposeListener(listenerId: Int)
@@ -1265,6 +1274,18 @@ internal class ChannelV4Plane(
         val raw = channelCall("terminal", "create", RpcValue.Arr(listOf(RpcValue.Obj(params))), timeouts.authTimeoutMs)
         return (raw as? RpcValue.Obj)?.json as? JsonObject
             ?: throw TransportFailure(ErrorMapping.protocolFault("terminal.create result not an object"))
+    }
+
+    suspend fun terminalWrite(id: String, data: String) {
+        channelCall("terminal", "write", RpcValue.Arr(listOf(RpcValue.Obj(buildJsonObject {
+            put("id", JsonPrimitive(id)); put("data", JsonPrimitive(data))
+        }))), 30_000)
+    }
+
+    suspend fun terminalResize(id: String, cols: Int, rows: Int) {
+        channelCall("terminal", "resize", RpcValue.Arr(listOf(RpcValue.Obj(buildJsonObject {
+            put("id", JsonPrimitive(id)); put("cols", JsonPrimitive(cols)); put("rows", JsonPrimitive(rows))
+        }))), 30_000)
     }
 
     suspend fun terminalDispose(id: String) {

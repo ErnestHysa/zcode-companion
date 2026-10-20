@@ -320,6 +320,8 @@ class MockZCode(
         var rewindPreview: JsonObject? = null
         /** A3.14 rig: a pending AskUserQuestion interaction stamped into snapshots + state. */
         var pendingQuestion: JsonObject? = null
+        /** ADR-022 rig: the writes the armed terminal tier sent. */
+        val terminalWrites: MutableList<String> = java.util.Collections.synchronizedList(ArrayList())
 
         // ---------------- Phase 5B (A3.12 + A3.13) ----------------
         /** `conversationPlansV4` result (plans projection; null = typed fault → the panel hides). */
@@ -1476,6 +1478,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             }
             when (channelName) {
                 "terminal" -> handleTerminalPromise(id, name, argAsObject(arg))
+                // (write/resize ride handleTerminalPromise too — the armed input tier)
                 "git" -> handleGitPromise(id, name, arg)
                 "git-checkpoint" -> handleGitCheckpointPromise(id, name, argAsObject(arg))
                 "file" -> handleFilePromise(id, name, argAsObject(arg))
@@ -2146,6 +2149,16 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
 
     private fun handleTerminalPromise(id: Int, name: String?, params: JsonObject?) {
         when (name) {
+            // ADR-022 (Phase 5D): the armed input tier — write echoes the bytes back on
+            // onDynamicData (the rig proves the round-trip); resize acks.
+            "write" -> {
+                val data = params?.str("data") ?: ""
+                val terminalId = params?.str("id") ?: ""
+                script.terminalWrites.add(data)
+                pushTerminalData(terminalId, data)
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Undefined)
+            }
+            "resize" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Undefined)
             "create" -> {
                 val terminalId = "term-${terminalCounter.incrementAndGet()}"
                 val shell = "/bin/zsh"
