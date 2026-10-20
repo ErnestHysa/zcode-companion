@@ -1364,8 +1364,8 @@ Legend: **MVP** = minimum viable product (§43.4); P2/P3 = later phases; Class: 
 | `zcode-session` | MVP-adjacent | 4 | R (legacy read/list) | Medium | Tasks (legacy list fallback) | Prefer v4 sessions-index |
 | `file` | P2 | 6 | R (read-only scope enforced app-side) | High (arbitrary read) | Files viewer | Disabled |
 | `media-preview` | P2 | 6 | R | Low | Image/video in chat | Link-out placeholder |
-| `terminal` | P2 | 6 | R (view-only first) | **Critical** (shell access) | Terminal viewer | Disabled; never enabled silently |
-| `git` | P2 | 6 | R | Medium | Git panel | Disabled |
+| `terminal` | **P2 (Phase 5D update, ADR-022)**: R + ADR-022-gated W — `write`/`resize` behind capability + view opt-in + **credential-confirmed input opt-in** + **per-attach arm** (visible banner, auto-disarm on detach/exit/background/10-min idle; T23) · Critical (unchanged) | Terminal viewer (armed composer) | Disabled; never enabled silently |
+| `git` | **P2 (Phase 5D update, ADR-021)**: R + ADR-021-gated W (stage/unstage one-tap; commit/push/branch dialog-gated; discardPaths typed-confirm DISCARD — the ONLY key to the destructive word; T20–T22) · sensitivity **High** · pull/fetch/force-push/rebase/merge/reset/stash/identity-mutation stay desktop-only | Git panel + the write tier | Disabled |
 | `git-checkpoint` | P3 | 7 | R | Medium | History/restore view (read-only) | Disabled |
 | `window-controller` | No | — | — | High (desktop window control) | — | Never |
 | `conversation-share` | P3 | 7 | R | Medium | Share/read-only timeline | Disabled |
@@ -1379,8 +1379,9 @@ Legend: **MVP** = minimum viable product (§43.4); P2/P3 = later phases; Class: 
 | `coding-plan-subscription` | **No — clarified by ADR-020**: it is the PURCHASE facade (Stripe/PayPal/products/orders); the quota payload the gaps report attributed to this channel actually rides `usage-stats` (the desktop has no quota push channel). Purchases stay desktop-only | — | — | High (payment flows) | — | Never (purchases; no campaign ruling path) |
 | `client-config` / `client-scenes` | P3 | 7 | R | Low | Feature flags display | Defaults |
 | `skills` / `skill-sync` / `mcp-sync` | **Partially (Phase 3 — read-only viewers)**: `skills` referenceCatalog + `mcp-sync`'s `mcp/list` word ported; sync halves stay desktop-only | 7 | R | Low | Skills catalog + MCP servers screens | Hidden (error face) |
-| `plugins` / `plugin-management` / `plugin-sync` | **Partially (Phase 3 — read-only viewer)**: `plugin-management.listPlugins` ported; sync + ALL write methods (install/uninstall/update/enable — §11 T-item) stay desktop-only | 7 | R | Medium | Plugins screen | Hidden (error face) |
-| `subagents` / `commands` / `hooks` | P3 | 7 | R | Low | Inspectors | Hidden |
+| `plugins` / `plugin-management` / `plugin-sync` | **Phase 5D update (ADR-023, PROBE-A1)**: read-only viewer + `setPluginEnabled` (the ONE sanctioned write — toggling an installed plugin; T24); install/uninstall/update/configure stay **Deferred (desktop-only; a provenance ADR is the future path)** — PROBE-A1 RESOLVED (bundle-extracted): the agent-scope Proxy passes every facade word to the phone, so these words are REACHABLE by the wire even though the phone offers no affordance | Plugins screen + enable Switch | Hidden (error face) |
+| `subagents` / `commands` | P3 | 7 | R | Low | Inspectors | Hidden |
+| `hooks` | **Phase 5D update (ADR-024)**: R + ADR-024 W — the workspaceHookReview blocking card (full displayCommand, per-item opt-in trust_selected, confirm sheet repeating the commands + digest; no trust-all word; T25) + grantWorkspaceHookTrust from the confirmed path only | Conversation interaction card | Read-only card when a send is refused |
 | `memory` | P3 | 7 | R | Medium | Memory viewer | Hidden |
 | `settings-sync` | No | — | — | Medium | — | Never (write surface) |
 | `bots` | No (product) | — | W | High | — | Never (webhook is server-side) |
@@ -3394,3 +3395,27 @@ Meaningful corrections applied by Red-Team Pass 2 (v1.0.0 → v1.0.1):
 ---
 
 *End of document. v1.0.1 (Red-Team Pass 2), 2026-09-27, against ZCode v3.14.3 (commit `29628c9`). This document is the master blueprint; implementation agents begin at Phase 1 (§43.2) and must not deviate from its invariants without an ADR.*
+
+## 13.3.1 Phase-5 write surfaces (gaps-and-polish Phase 5D, appended 2026-10-20)
+
+The four ADR-gated write tiers (ADR-021..024, all merged in `docs/adr/` BEFORE any write
+code per the Phase-5 exit gate) each land with their transport words on the shared
+`V4Plane` surface and their gates at the port/screen layer:
+
+- **ADR-021 git** (`git` channel): stagePaths/unstagePaths/discardPaths/commit/
+  generateCommitMessage/push/switchBranch/createBranchAndSwitch + getLocalBranches/
+  getIdentity reads. Pins: GitWriteWireTest (mock round-trips + the typed branch-issue
+  map with the J1.3 camelKey 1:1) + the DISCARD typed-confirm in the Git screen.
+- **ADR-022 terminal** (`terminal` channel): write/resize behind TerminalController's
+  arm gate (check(armed) BEFORE the wire; zero calls while disarmed). Pins:
+  TerminalArmGateTest (4).
+- **ADR-023 plugins** (`zcode-agent` facade): setPluginEnabled ONLY (the ack drives a
+  re-list; no optimistic flip). Pins: PluginEnableUiTest + MockZCodePluginSelfTest.
+- **ADR-024 hooks** (v4 commands + the facade grant): the four review commands +
+  grantWorkspaceHookTrust; the WorkspaceHookReview decode keeps unknown trust states
+  raw and inert. Pins: HooksTrustWireTest (3).
+
+The Phase-5 read surfaces (task management, workflow runs + saved hub, plans, the
+trajectory/session reads, the feedback snapshot word, share capabilities) ride
+`data/session/AgentFacadeClient.kt` (zcode-agent) + `TaskServiceClient` (zcode-task) —
+all names in `tools/drift/consumed-surfaces.json#facade` (118 consumed entries).
