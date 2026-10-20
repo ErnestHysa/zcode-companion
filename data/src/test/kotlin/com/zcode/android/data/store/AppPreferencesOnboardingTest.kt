@@ -1,6 +1,8 @@
 package com.zcode.android.data.store
 
 import androidx.datastore.core.DataStoreFactory
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import androidx.test.core.app.ApplicationProvider
 import android.content.Context
 import com.zcode.android.data.proto.AppPreferencesProto
@@ -19,6 +21,7 @@ import org.junit.Test
  * preference proto — a store that never wrote the field reads the domain default
  * (false → the pass shows once), and the flip survives the wire round-trip.
  */
+@RunWith(RobolectricTestRunner::class)
 class AppPreferencesOnboardingTest {
 
     private lateinit var dir: File
