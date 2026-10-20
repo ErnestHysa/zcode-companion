@@ -1,8 +1,5 @@
 package com.zcode.android.features.conversation.ui
 
-/** I2.8: the preview-card kind, re-exported for the renderer's exhaustive `when`s. */
-typealias GeneratedArtifactPreviewKind = com.zcode.android.features.conversation.GeneratedArtifactPreview.Kind
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -749,6 +746,9 @@ fun CompactionNoticeRow(
         Box(Modifier.width(20.dp).height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
     }
 }
+
+/** I2.8: the preview-card kind, re-exported for the renderer's exhaustive `when`s. */
+typealias GeneratedArtifactPreviewKind = com.zcode.android.features.conversation.GeneratedArtifactPreview.Kind
 
 /**
  * I2.8 (Phase 6A): the generated-artifact preview card (desktop `chat.previewCards.*`)
