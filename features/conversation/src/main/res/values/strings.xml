@@ -321,4 +321,7 @@
     <string name="rewind_cannot_apply">This rewind cannot be applied safely — nothing will change.</string>
     <!-- Phase 5B (A3.14): the elicitation decline -->
     <string name="userinput_decline">Skip — continue without my answer</string>
+    <!-- Phase 5C (A3.16): the share-out -->
+    <string name="conv_share_entry">Share</string>
+    <string name="share_shared">Shared via the share sheet</string>
 </resources>

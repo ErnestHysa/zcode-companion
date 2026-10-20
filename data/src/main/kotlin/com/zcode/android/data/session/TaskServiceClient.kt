@@ -203,6 +203,29 @@ class TaskServiceClient(private val transport: AppTransport) {
         data class Task(val taskId: String) : GroupedOrderNode()
     }
 
+    // ---------------------------------------------------------------- Phase 5C (A3.15): assistant feedback (snapshot plane)
+
+    /**
+     * `setAssistantMessageFeedback {…, taskId, turnIndex, feedback}` (host/index.js
+     * ≈440502): mutates the task SNAPSHOT's assistant message at `turnIndex`
+     * (`messages.filter(role=="assistant")[turnIndex].feedback = feedback`) and returns
+     * the updated snapshot — the persisted half of the row Like/Dislike (the v4 command
+     * `setAssistantFeedback` is the conversation-plane half, Phase 4A). `feedback` is
+     * "like" | "dislike" | null (clear).
+     */
+    suspend fun setAssistantMessageFeedback(
+        workspacePath: String,
+        workspaceIdentity: String?,
+        taskId: String,
+        turnIndex: Int,
+        feedback: String?,
+    ): JsonObject = taskCall("setAssistantMessageFeedback", buildJsonObject {
+        target(workspacePath, workspaceIdentity).forEach { (k, v) -> put(k, v) }
+        put("taskId", JsonPrimitive(taskId))
+        put("turnIndex", JsonPrimitive(turnIndex))
+        if (feedback == null) put("feedback", kotlinx.serialization.json.JsonNull) else put("feedback", JsonPrimitive(feedback))
+    })
+
     // ---- off-peak pause / continue (the `off-peak-task` channel; A3.10 erratum)
 
     /**

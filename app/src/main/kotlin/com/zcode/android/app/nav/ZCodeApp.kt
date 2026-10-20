@@ -531,6 +531,8 @@ private fun ConversationRoute(
     // Phase 5A (A3.3): the workflow runs panel + run sheet follow the VM's flows.
     val workflowRuns by vm.workflowRuns.collectAsState()
     val openWorkflowRun by vm.openWorkflowRun.collectAsState()
+    val shareCopy = androidx.compose.ui.res.stringResource(com.zcode.android.features.conversation.R.string.conv_share_entry)
+    val context = androidx.compose.ui.platform.LocalContext.current
     // Phase 5B (A3.12 + A3.13): plans + the trajectory/search sheet.
     val plans by vm.plans.collectAsState()
     val trajectory by vm.trajectory.collectAsState()
@@ -616,6 +618,22 @@ private fun ConversationRoute(
         rewindPreviewProvider = { rowId, entityId ->
             val taskId = state.task?.taskId
             if (taskId == null) null else container.conversationPort.fetchRewindPreview(taskId, rowId, entityId)
+        },
+        // A3.16 (Phase 5C): share-OUT via the Android system sheet — the transcript is
+        // built from the timeline rows (TranscriptBuilder); import/publish stay
+        // desktop-only per PROBE-L6 (the host's rejectMobileShare stub).
+        onShareTranscript = {
+            val transcript = com.zcode.android.features.conversation.TranscriptBuilder.build(
+                state.task?.title,
+                state.rows,
+            )
+            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(android.content.Intent.EXTRA_SUBJECT, state.task?.title ?: "Conversation")
+                putExtra(android.content.Intent.EXTRA_TEXT, transcript)
+                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(android.content.Intent.createChooser(intent, shareCopy))
         },
     )
 }

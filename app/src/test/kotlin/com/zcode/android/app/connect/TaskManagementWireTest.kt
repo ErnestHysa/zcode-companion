@@ -179,4 +179,21 @@ class TaskManagementWireTest {
             assertEquals("queued", (resumed!!["status"] as JsonPrimitive).content)
         }
     }
+
+    @Test
+    fun `setAssistantMessageFeedback rides the snapshot plane with turnIndex and the nullable feedback`() {
+        connect { it.directTasks = listOf(row("t1", "One")) }
+        runBlocking {
+            val snapshot = tasks.setAssistantMessageFeedback("/synthetic/ws", "synthetic-ws", "t1", turnIndex = 0, feedback = "like")
+            assertEquals("t1", (snapshot["taskId"] as JsonPrimitive).content)
+            assertEquals("like", ((snapshot["feedbacks"] as JsonArray)[0] as JsonPrimitive).content)
+            val cleared = tasks.setAssistantMessageFeedback("/synthetic/ws", "synthetic-ws", "t1", 0, null)
+            assertTrue(cleared["feedbacks"] is JsonArray, "the echo carries the (nulled) list")
+        }
+        val calls = mock.taskChannelCallsForTest().filter { it.first == "setAssistantMessageFeedback" }
+        assertEquals(2, calls.size)
+        assertEquals("0", (calls[0].second["turnIndex"] as JsonPrimitive).content)
+        assertEquals("like", (calls[0].second["feedback"] as JsonPrimitive).content)
+        assertTrue(calls[1].second["feedback"] is kotlinx.serialization.json.JsonNull, "clear sends an explicit null")
+    }
 }

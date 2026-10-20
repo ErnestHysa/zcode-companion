@@ -121,6 +121,8 @@ fun ConversationScreen(
     onAssistantFeedback: (rowId: Long, entityId: String, feedback: String?) -> Unit = { _, _, _ -> },
     /** A3.11 (Phase 5B): the rewind preview loader (null = the copy-only confirm). */
     rewindPreviewProvider: (suspend (rowId: Long, entityId: String) -> com.zcode.android.domain.model.RewindPreview?)? = null,
+    /** A3.16 (Phase 5C): share the transcript via the Android system sheet. */
+    onShareTranscript: () -> Unit = {},
     /** Phase 4C (C2): the "/" menu opened — fetch the skills/agents/custom-command extras. */
     onSlashMenuOpen: () -> Unit = {},
     /** Phase 4C (A3.4): the effort switch (setThoughtLevel). */
@@ -411,6 +413,8 @@ private fun Header(
     plans: List<com.zcode.android.domain.model.ConversationPlan>? = null,
     /** Phase 5B (A3.13): open the trajectory sheet. */
     onOpenTrajectory: () -> Unit = {},
+    /** Phase 5C (A3.16): share the transcript via the Android system sheet. */
+    onShareTranscript: () -> Unit = {},
 ) {
     Column {
         ZCodeTopBar(
@@ -488,6 +492,7 @@ private fun Header(
             AssistChip(onClick = onOpenGit, label = { Text(stringResource(R.string.git_entry)) }, modifier = Modifier.testTag("conv_open_git"))
             AssistChip(onClick = onOpenTerminal, label = { Text(stringResource(R.string.terminal_entry)) }, modifier = Modifier.testTag("conv_open_terminal"))
             AssistChip(onClick = onOpenTrajectory, label = { Text(stringResource(R.string.conv_trajectory_entry)) }, modifier = Modifier.testTag("conv_open_trajectory"))
+            AssistChip(onClick = onShareTranscript, label = { Text(stringResource(R.string.conv_share_entry)) }, modifier = Modifier.testTag("conv_share"))
         }
         Spacer(Modifier.height(6.dp))
     }

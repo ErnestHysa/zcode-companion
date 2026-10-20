@@ -331,6 +331,8 @@ class MockZCode(
 
         // ---------------- Phase 5B (A3.11) git checkpoints ----------------
         val checkpoints: MutableList<JsonObject> = java.util.Collections.synchronizedList(ArrayList())
+        /** A3.15: per-task assistant feedback (`setAssistantMessageFeedback` snapshots). */
+        val assistantFeedback: MutableMap<String, MutableList<String?>> = java.util.concurrent.ConcurrentHashMap()
         var checkpointDiffFiles: List<String> = listOf("src/version.ts", "scratch/probe.txt")
         /** Scripted conflict on a non-forced restore (the force-overwrite branch). */
         var checkpointConflicts: Boolean = false
@@ -3019,6 +3021,23 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
                 else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
             }
             "getModelTrajectory" -> scriptableObject(id, script.modelTrajectory, "getModelTrajectory")
+            // Phase 5C (A3.15): the feedback SNAPSHOT word — the mock keeps per-task lists.
+            "setAssistantMessageFeedback" -> {
+                val taskId = arg?.str("taskId")
+                if (taskId == null) respondError(id, "fault.mock.unscripted:setAssistantMessageFeedback")
+                else {
+                    val list = script.assistantFeedback.getOrPut(taskId) { mutableListOf() }
+                    val turnIndex = arg.str("turnIndex").toIntOrNull() ?: 0
+                    val fb = arg["feedback"]
+                    val value = if (fb is kotlinx.serialization.json.JsonNull) null else (fb as? JsonPrimitive)?.content
+                    while (list.size <= turnIndex) list.add(null)
+                    list[turnIndex] = value
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("taskId", JsonPrimitive(taskId))
+                        put("feedbacks", JsonArray(list.map { if (it == null) kotlinx.serialization.json.JsonNull else JsonPrimitive(it) }))
+                    }))
+                }
+            }
             "listTaskList" -> {
                 val search = arg?.str("search").orEmpty().lowercase()
                 val hits = script.directTasks

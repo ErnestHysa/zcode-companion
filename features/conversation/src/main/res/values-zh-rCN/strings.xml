@@ -297,4 +297,7 @@
     <string name="rewind_cannot_apply">此撤销无法安全执行 — 不会做任何更改。</string>
     <!-- Phase 5B (A3.14): 引导问题跳过 -->
     <string name="userinput_decline">跳过 — 不回答并继续</string>
+    <!-- Phase 5C (A3.16): 分享 -->
+    <string name="conv_share_entry">分享</string>
+    <string name="share_shared">已通过系统分享面板分享</string>
 </resources>
