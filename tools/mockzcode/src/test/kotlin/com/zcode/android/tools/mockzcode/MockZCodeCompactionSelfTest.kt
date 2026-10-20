@@ -21,7 +21,7 @@ class MockZCodeCompactionSelfTest {
         val passHash = java.util.Base64.getEncoder().encodeToString(ByteArray(32) { 7 })
         val m = MockZCode(passHash = passHash, expectedSid = "d_compact")
         m.script.compactionDemo = true
-        val rows = m.snapshotRowsForTest("sess-compact", 2)
+        val rows = m.snapshotRowsForTestSeam("sess-compact", 2)
         val markers = rows.filter { (it as JsonObject)["kind"]?.let { k -> k is JsonPrimitive && k.content == "timelineMarker" } == true }
             .map { it.jsonObject }
         assertEquals(3, markers.size, "started:auto, completed:auto, failed:manual")
