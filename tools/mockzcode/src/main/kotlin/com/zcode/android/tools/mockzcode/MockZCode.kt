@@ -1550,6 +1550,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 "model-selection" -> handleModelSelectionPromise(id, name)
                 "zcode-task" -> handleTaskPromise(id, name, argAsObject(arg))
                 "off-peak-task" -> handleOffPeakTaskPromise(id, name, arg)
+                "feedback" -> handleFeedbackPromise(id, name, argAsObject(arg))
                 "usage-stats" -> handleUsageStatsPromise(id, name, arg)
                 // Phase 4C (C2): the slash panel's extra sections over their own channels.
                 "commands" -> handleCommandsPromise(id, name)
@@ -3069,6 +3070,48 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
      * (packages/services/src/session/zcodeTaskService.ts:379, docs/protocol/
      * phase10-direct.md §6) — the direct task-list plane fixture.
      */
+/**
+ * H1.6 (Phase 6B): the `feedback` channel — `create` echoes a normalized ticket
+ * (the host's cCe face: ticket_id/title/type/status/created_at/updated_at), `list`
+ * returns {items, total}. The phone holds no credentials; the HOST is the submitter.
+ */
+private fun handleFeedbackPromise(id: Int, name: String?, arg: JsonObject?) {
+    when (name) {
+        "create" -> {
+            val payload = arg ?: JsonObject(emptyMap())
+            val description = (payload["description"] as? JsonPrimitive)?.content.orEmpty()
+            if (description.isBlank()) {
+                respondError(id, "fault.mock.unscripted:feedback.create-empty-description")
+                return
+            }
+            val now = System.currentTimeMillis()
+            respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                put("ticket_id", JsonPrimitive("mock-ticket-${(description.hashCode().toLong() and 0xFFFF) + 1}"))
+                put("title", JsonPrimitive((payload["title"] as? JsonPrimitive)?.content ?: description.lineSequence().firstOrNull().orEmpty().take(80)))
+                put("type", JsonPrimitive((payload["type"] as? JsonPrimitive)?.content ?: "bug"))
+                put("status", JsonPrimitive("open"))
+                put("created_at", JsonPrimitive(now.toString()))
+                put("updated_at", JsonPrimitive(now.toString()))
+            }))
+        }
+        "list" -> {
+            val now = System.currentTimeMillis()
+            respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                put("items", JsonArray(listOf(buildJsonObject {
+                    put("ticket_id", JsonPrimitive("mock-ticket-1"))
+                    put("title", JsonPrimitive("mock feedback"))
+                    put("type", JsonPrimitive("bug"))
+                    put("status", JsonPrimitive("open"))
+                    put("created_at", JsonPrimitive(now.toString()))
+                    put("updated_at", JsonPrimitive(now.toString()))
+                })))
+                put("total", JsonPrimitive(1))
+            }))
+        }
+        else -> respondError(id, "fault.mock.unknownMethod:feedback-$name")
+    }
+}
+
 private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
         // Phase 5A (A3.10 erratum): pauseTask/continueTask are OffPeakTaskService words
         // (bare positional id). Paused ids are reflected in the next `list`.

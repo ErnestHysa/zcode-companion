@@ -243,6 +243,43 @@ class TaskServiceClient(private val transport: AppTransport) {
     /** L6.2 (Phase 6B): `cancelTask(t)` — terminal `cancelled`; a running task is stopped. */
     suspend fun offPeakCancel(offPeakTaskId: String): JsonObject? = offPeakCall("cancelTask", offPeakTaskId)
 
+    // ---- H1.6 (Phase 6B): the `feedback` channel — create + list (ticketed issue reporting)
+
+    /**
+     * The host's feedback service IS reachable for the phone (registered in the same
+     * local collection as the hooks service, no scoping stub — bundle-pinned
+     * host/index.js ≈1376102). `create` posts {title?, description, type
+     * bug|feature|performance|usage, severity, module, source, locale, contact?};
+     * the HOST adds its device-mid + auth and POSTs /feedback/ticket (the phone
+     * holds no credentials). severity/module carry the desktop lightweight-form
+     * defaults ("P2-中"/"其它" — wire literals, zh by protocol convention).
+     */
+    suspend fun feedbackCreate(
+        type: String,
+        description: String,
+        contact: String?,
+        title: String?,
+        locale: String,
+    ): JsonObject? = transport.channelCall(
+        "feedback",
+        "create",
+        RpcValue.Obj(buildJsonObject {
+            title?.takeIf { it.isNotBlank() }?.let { put("title", JsonPrimitive(it)) }
+            put("description", JsonPrimitive(description))
+            put("type", JsonPrimitive(type))
+            put("severity", JsonPrimitive("P2-中"))
+            put("module", JsonPrimitive("其它"))
+            put("source", JsonPrimitive("android-app"))
+            put("locale", JsonPrimitive(locale))
+            contact?.takeIf { it.isNotBlank() }?.let { put("contact", JsonPrimitive(it)) }
+        }),
+        30_000,
+    ).let { (it as? RpcValue.Obj)?.json as? JsonObject }
+
+    suspend fun feedbackList(): JsonObject? = transport.channelCall(
+        "feedback", "list", RpcValue.Obj(buildJsonObject { }), 30_000,
+    ).let { (it as? RpcValue.Obj)?.json as? JsonObject }
+
     private suspend fun offPeakCall(method: String, offPeakTaskId: String): JsonObject? {
         val raw = transport.channelCall("off-peak-task", method, RpcValue.Arr(listOf(RpcValue.Str(offPeakTaskId))), 30_000)
         return (raw as? RpcValue.Obj)?.json as? JsonObject

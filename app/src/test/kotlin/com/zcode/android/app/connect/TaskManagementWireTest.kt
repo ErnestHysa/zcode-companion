@@ -199,6 +199,26 @@ class TaskManagementWireTest {
     }
 
     @Test
+    fun `feedback create and list ride the feedback channel (H16) - the host is the submitter`() {
+        connect { }
+        runBlocking {
+            val ticket = tasks.feedbackCreate(
+                type = "bug",
+                description = "The automations editor reset my schedule",
+                contact = "me@example.test",
+                title = null,
+                locale = "en-US",
+            )
+            assertEquals("open", (ticket!!["status"] as JsonPrimitive).content)
+            assertTrue((ticket["ticket_id"] as JsonPrimitive).content.startsWith("mock-ticket-"), "the normalized ticket face")
+            assertEquals("bug", (ticket["type"] as JsonPrimitive).content)
+            val listed = tasks.feedbackList()!!
+            assertEquals(1, ((listed["total"] as JsonPrimitive).content).toInt())
+            assertEquals("mock-ticket-1", (((listed["items"] as JsonArray)[0] as JsonObject)["ticket_id"] as JsonPrimitive).content)
+        }
+    }
+
+    @Test
     fun `setAssistantMessageFeedback rides the snapshot plane with turnIndex and the nullable feedback`() {
         connect { it.directTasks = listOf(row("t1", "One")) }
         runBlocking {
