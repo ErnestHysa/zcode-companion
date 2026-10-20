@@ -74,8 +74,8 @@ class OffPeakLongTailUiTest {
         rule.onNodeWithText("Succeeded").assertIsDisplayed()
         rule.onAllNodesWithTag("offpeak_row_q1").fetchSemanticsNodes().single()
         org.junit.Assert.assertTrue(
-            rule.onAllNodesWithText("queued").fetchSemanticsNodes().isEmpty(),
             "the raw wire status must not render",
+            rule.onAllNodesWithText("queued").fetchSemanticsNodes().isEmpty(),
         )
     }
 
@@ -113,15 +113,15 @@ class OffPeakLongTailUiTest {
         setContent(listOf(row("q1", "queued"), row("p1", "paused")))
         rule.onNodeWithTag("offpeak_pause_q1").assertIsDisplayed()
         org.junit.Assert.assertTrue(
+            "the pause hint rides the button's semantics",
             rule.onAllNodesWithTag("offpeak_pause_q1").fetchSemanticsNodes().first().config
                 .toString().contains("placed back in the queue"),
-            "the pause hint rides the button's semantics",
         )
         rule.onNodeWithTag("offpeak_continue_p1").assertIsDisplayed()
         org.junit.Assert.assertTrue(
+            "the continue hint rides the button's semantics",
             rule.onAllNodesWithTag("offpeak_continue_p1").fetchSemanticsNodes().first().config
                 .toString().contains("re-queues the task at the back"),
-            "the continue hint rides the button's semantics",
         )
     }
 }

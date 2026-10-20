@@ -181,7 +181,7 @@ class TaskManagementWireTest {
     }
 
     @Test
-    fun `off-peak cancel rides the off-peak-task channel and lands terminal in the next list (L6.2)`() {
+    fun `off-peak cancel rides the off-peak-task channel and lands terminal in the next list (L62)`() {
         connect {
             it.offPeakTaskList = JsonArray(listOf(buildJsonObject {
                 put("id", JsonPrimitive("op-9")); put("offPeakTaskId", JsonPrimitive("op-9")); put("title", JsonPrimitive("Idle job"))
