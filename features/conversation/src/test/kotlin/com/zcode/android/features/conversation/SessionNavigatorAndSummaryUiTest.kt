@@ -150,7 +150,7 @@ class SessionNavigatorAndSummaryUiTest {
     fun `summary panel renders duration, goal iteration, background tasks - capsule expands`() {
         setContent(
             listOf(
-                turnRow(1, 1_000_000.0, 1_070_000.0), // 700s span → 11m 40s
+                turnRow(1, 1_000_000.0, 1_700_000.0), // 700_000ms span → 11m 40s
                 userRow(2, "question"),
                 assistantRow(3),
             ),
