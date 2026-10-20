@@ -47,7 +47,9 @@ class SlashCommandParserTest {
         assertEquals(SlashDispatch.ResumeGoal("/goal resume"), parse("/goal resume"))
         assertEquals(SlashDispatch.EmptyGoal("/goal"), parse("/goal"))
         assertEquals(SlashDispatch.EmptyGoal("/goal"), parse("/goal   "), "displayText is the TRIMMED text (desktop verbatim)")
-        assertEquals(SlashDispatch.UnsupportedGoal("pause", "/goal pause"), parse("/goal pause"))
+        // I1-goal (Phase 6A): pauseGoal is wire-supported and CAS-guarded — the unlock
+        // lands once goal state renders (D2, Phase 4C); clear|show stay refused.
+        assertEquals(SlashDispatch.PauseGoal("/goal pause"), parse("/goal pause"))
         assertEquals(SlashDispatch.UnsupportedGoal("clear", "/goal clear"), parse("/goal clear"))
         assertEquals(SlashDispatch.UnsupportedGoal("show", "/goal show"), parse("/goal show"))
     }

@@ -41,6 +41,11 @@ class SlashSendRoutingTest {
             return outcome
         }
 
+        override suspend fun pauseGoal(taskId: String): ConversationPort.SendOutcome {
+            calls += "pauseGoal"
+            return outcome
+        }
+
         override suspend fun switchMode(taskId: String, mode: String): ConversationPort.SendOutcome {
             calls += "switchMode:$mode"
             return outcome
@@ -84,14 +89,25 @@ class SlashSendRoutingTest {
     }
 
     @Test
-    fun `unsupported goal action is refused - draft preserved, honest notice`() = runTest {
+    fun `slash dispatch - goal pause rides the CAS-guarded pauseGoal word (I1-goal unlock)`() = runTest {
         val port = RoutingPort()
         val vm = vmWith(port, this)
         vm.onDraftChange("/goal pause")
         vm.send()
         runCurrent()
-        assertTrue(port.calls.isEmpty(), "nothing may go on the wire for /goal pause")
-        assertEquals("/goal pause", vm.state.value.draft, "draft preserved — the user's text is never eaten")
+        assertEquals(listOf("pauseGoal"), port.calls)
+        assertEquals("", vm.state.value.draft, "accepted dispatch clears the draft")
+    }
+
+    @Test
+    fun `unsupported goal actions still refused - draft preserved, honest notice`() = runTest {
+        val port = RoutingPort()
+        val vm = vmWith(port, this)
+        vm.onDraftChange("/goal clear")
+        vm.send()
+        runCurrent()
+        assertTrue(port.calls.isEmpty(), "nothing may go on the wire for /goal clear|show")
+        assertEquals("/goal clear", vm.state.value.draft, "draft preserved — the user's text is never eaten")
         assertTrue(vm.state.value.sendNotice != null, "honest notice shown")
     }
 
