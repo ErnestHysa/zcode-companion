@@ -70,10 +70,10 @@ class IdleGlyphPixelPinTest {
             if (pm[x, midY].toArgb() != 0) inkNearMidline++
             if (pm[x, (img.height * 0.25f).toInt()].toArgb() != 0) inkNearTop++
         }
-        assertTrue(inkNearMidline > 0, "the glyph draws at all")
+        assertTrue("the glyph draws at all", inkNearMidline > 0)
         assertTrue(
-            inkNearTop > 0,
             "the idle glyph must carry ink off the vertical midline (a clock rim) — a minus bar has none",
+            inkNearTop > 0,
         )
     }
 }
