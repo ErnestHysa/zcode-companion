@@ -136,6 +136,13 @@ interface AutomationsPort {
     suspend fun pauseOffPeak(offPeakTaskId: String): Boolean = false
     suspend fun continueOffPeak(offPeakTaskId: String): Boolean = false
 
+    /**
+     * L6.2 (Phase 6B): `cancelTask` — the third control word on the same channel
+     * (host OffPeakTaskService: marks terminal `cancelled` and stops a running task;
+     * files already changed are kept). Terminal rows offer it behind a confirm.
+     */
+    suspend fun cancelOffPeak(offPeakTaskId: String): Boolean = false
+
     // ---------------------------------------------------------------- Phase 5A (L6.4): the saved-workflow hub
 
     /** `listSavedWorkflows` for the active workspace; null = unavailable (the hub hides). */

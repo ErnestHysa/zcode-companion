@@ -31,6 +31,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -80,6 +82,8 @@ fun AutomationsSection(
     var busyIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     var editing by remember { mutableStateOf<AutomationRow?>(null) }
     var creating by remember { mutableStateOf(false) }
+    // L6.2: the off-peak row awaiting its cancel confirm.
+    var pendingCancel by remember { mutableStateOf<OffPeakTaskRow?>(null) }
     var confirmDelete by remember { mutableStateOf<AutomationRow?>(null) }
     var historyFor by remember { mutableStateOf<AutomationRow?>(null) }
 
@@ -196,17 +200,44 @@ fun AutomationsSection(
             )
             peaks.forEachIndexed { index, task ->
                 // Phase 5A (A3.10 as shipped): pause/continue ride the off-peak channel words.
+                // L6.2 (Phase 6B): localized status vocabulary, queue badges, failure
+                // reasons, re-queue hints, and Cancel behind the desktop confirm.
                 OffPeakLine(
                     task,
                     busy = task.offPeakTaskId in busyIds,
                     onPause = { guarded(task.offPeakTaskId) { port.pauseOffPeak(task.offPeakTaskId); load() } },
                     onContinue = { guarded(task.offPeakTaskId) { port.continueOffPeak(task.offPeakTaskId); load() } },
+                    onCancel = { pendingCancel = task },
                 )
                 if (index != peaks.lastIndex) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                 }
             }
         }
+    }
+
+    // L6.2: the desktop's cancel confirm ("Files it already changed are kept.").
+    pendingCancel?.let { target ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { pendingCancel = null },
+            title = { Text(stringResource(R.string.offpeak_cancel_confirm_title)) },
+            text = { Text(stringResource(R.string.offpeak_cancel_confirm_body, target.title)) },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        val id = target.offPeakTaskId
+                        pendingCancel = null
+                        guarded(id) { port.cancelOffPeak(id); load() }
+                    },
+                    modifier = Modifier.testTag("offpeak_cancel_confirm"),
+                ) { Text(stringResource(R.string.offpeak_cancel_confirm_yes)) }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { pendingCancel = null }) {
+                    Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
+                }
+            },
+        )
     }
 
     if (creating || editing != null) {
@@ -532,7 +563,11 @@ private fun OffPeakLine(
     busy: Boolean = false,
     onPause: (() -> Unit)? = null,
     onContinue: (() -> Unit)? = null,
+    // L6.2 (Phase 6B): cancel arms the section-level confirm.
+    onCancel: (() -> Unit)? = null,
 ) {
+    val pauseHint = stringResource(R.string.offpeak_hint_pause)
+    val continueHint = stringResource(R.string.offpeak_hint_continue)
     Row(
         Modifier
             .fillMaxWidth()
@@ -543,12 +578,32 @@ private fun OffPeakLine(
     ) {
         Column(Modifier.weight(1f)) {
             Text(t.title, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            // L6.2: failed rows surface the desktop's failure reason under the title.
+            if (!t.failureReason.isNullOrBlank()) {
+                Text(
+                    t.failureReason,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             Text(relativeTimeLabelLive(t.createdAt) ?: "", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        // L6.2: the localized status vocabulary + the desktop's queue badges — the raw
+        // wire word never renders. paused keeps its position badge; queued shows "in queue".
         Text(
             buildString {
-                append(t.status)
-                t.queuePosition?.let { append(" · #").append(it) }
+                append(offPeakStatusLabel(t.status))
+                if (t.queuePosition != null) {
+                    append(" · ")
+                    append(
+                        stringResource(
+                            if (t.status == "paused") R.string.offpeak_badge_paused else R.string.offpeak_badge_queue,
+                            t.queuePosition,
+                        ),
+                    )
+                }
             },
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -556,16 +611,50 @@ private fun OffPeakLine(
         // A3.10: queued/running → Pause; paused → Continue (the status vocabulary is the wire's).
         when (t.status) {
             "queued", "running" -> onPause?.let { cb ->
-                TextButton(onClick = cb, enabled = !busy, modifier = Modifier.testTag("offpeak_pause_${t.offPeakTaskId}")) {
+                TextButton(
+                    onClick = cb,
+                    enabled = !busy,
+                    modifier = Modifier
+                        .testTag("offpeak_pause_${t.offPeakTaskId}")
+                        .semantics { contentDescription = pauseHint },
+                ) {
                     Text(stringResource(R.string.offpeak_pause))
                 }
             }
             "paused" -> onContinue?.let { cb ->
-                TextButton(onClick = cb, enabled = !busy, modifier = Modifier.testTag("offpeak_continue_${t.offPeakTaskId}")) {
+                TextButton(
+                    onClick = cb,
+                    enabled = !busy,
+                    modifier = Modifier
+                        .testTag("offpeak_continue_${t.offPeakTaskId}")
+                        .semantics { contentDescription = continueHint },
+                ) {
                     Text(stringResource(R.string.offpeak_continue))
                 }
             }
             else -> Unit
         }
+        // L6.2: queued/running rows can be cancelled (terminal `cancelled`, files kept) —
+        // behind the section-level confirm.
+        if ((t.status == "queued" || t.status == "running") && onCancel != null) {
+            TextButton(onClick = onCancel, enabled = !busy, modifier = Modifier.testTag("offpeak_cancel_${t.offPeakTaskId}")) {
+                Text(stringResource(R.string.offpeak_cancel))
+            }
+        }
     }
+}
+
+/** L6.2: the desktop `offPeak.status.*` vocabulary (INV-8: unknown → the raw word). */
+@Composable
+private fun offPeakStatusLabel(status: String): String {
+    val res = when (status) {
+        "queued" -> R.string.offpeak_status_queued
+        "paused" -> R.string.offpeak_status_paused
+        "running" -> R.string.offpeak_status_running
+        "completed" -> R.string.offpeak_status_completed
+        "failed" -> R.string.offpeak_status_failed
+        "cancelled" -> R.string.offpeak_status_cancelled
+        else -> return status
+    }
+    return stringResource(res)
 }

@@ -245,6 +245,8 @@ class DefaultAutomationsPort(
 
     override suspend fun continueOffPeak(offPeakTaskId: String): Boolean = offPeak("continue") { hub.taskService().offPeakContinue(offPeakTaskId) }
 
+    override suspend fun cancelOffPeak(offPeakTaskId: String): Boolean = offPeak("cancel") { hub.taskService().offPeakCancel(offPeakTaskId) }
+
     private suspend fun offPeak(tag: String, call: suspend () -> Any?): Boolean = try {
         call(); true
     } catch (e: CancellationException) {

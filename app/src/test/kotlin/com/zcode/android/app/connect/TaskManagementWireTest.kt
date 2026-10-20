@@ -181,6 +181,24 @@ class TaskManagementWireTest {
     }
 
     @Test
+    fun `off-peak cancel rides the off-peak-task channel and lands terminal in the next list (L6.2)`() {
+        connect {
+            it.offPeakTaskList = JsonArray(listOf(buildJsonObject {
+                put("id", JsonPrimitive("op-9")); put("offPeakTaskId", JsonPrimitive("op-9")); put("title", JsonPrimitive("Idle job"))
+                put("status", JsonPrimitive("running")); put("createdAt", JsonPrimitive(1)); put("workspaceKey", JsonPrimitive("synthetic-ws"))
+            }))
+        }
+        runBlocking {
+            val cancelled = tasks.offPeakCancel("op-9")
+            assertEquals("cancelled", (cancelled!!["status"] as JsonPrimitive).content)
+            val listAfter = transport.offPeakTaskList()
+            assertEquals("cancelled", (((listAfter["tasks"] as JsonArray)[0] as JsonObject)["status"] as JsonPrimitive).content, "the cancelled id is reflected in the next list")
+        }
+        val calls = mock.taskChannelCallsForTest().filter { it.first == "cancelTask" }
+        assertEquals(1, calls.size)
+    }
+
+    @Test
     fun `setAssistantMessageFeedback rides the snapshot plane with turnIndex and the nullable feedback`() {
         connect { it.directTasks = listOf(row("t1", "One")) }
         runBlocking {

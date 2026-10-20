@@ -309,6 +309,8 @@ class MockZCode(
         val taskGroupMembers: MutableMap<String, MutableList<String>> = java.util.concurrent.ConcurrentHashMap()
         /** Off-peak ids the `pauseTask`/`continueTask` channel words have paused. */
         val offPeakPausedIds: MutableSet<String> = java.util.concurrent.ConcurrentHashMap.newKeySet()
+        /** L6.2: `cancelTask` marks terminal — the next `list` reports `cancelled`. */
+        val offPeakCancelledIds: MutableSet<String> = java.util.concurrent.ConcurrentHashMap.newKeySet()
         /** `resumeTask` calls (taskId) — the "continue a finished task" word. */
         val resumedTaskIds: MutableList<String> = java.util.Collections.synchronizedList(ArrayList())
 
@@ -3083,6 +3085,20 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
             }))
             return
         }
+        if (name == "cancelTask") {
+            // L6.2 (Phase 6B): terminal `cancelled`; reflected in the next `list`.
+            val offPeakId = (arg as? RpcValue.Arr)?.items?.firstOrNull()?.let { (it as? RpcValue.Str)?.value }
+            if (offPeakId == null) {
+                respondError(id, "fault.mock.unscripted:cancelTask")
+                return
+            }
+            script.offPeakCancelledIds.add(offPeakId)
+            respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                put("id", JsonPrimitive(offPeakId))
+                put("status", JsonPrimitive("cancelled"))
+            }))
+            return
+        }
         if (name != "list") {
             respondError(id, "fault.mock.unknownMethod:off-peak-task-$name")
             return
@@ -3091,7 +3107,11 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
             JsonArray(arr.map { el ->
                 val o = el as? JsonObject ?: return@map el
                 val oid = (o["id"] as? JsonPrimitive)?.content
-                if (oid != null && oid in script.offPeakPausedIds) JsonObject(o + ("status" to JsonPrimitive("paused"))) else o
+                when {
+                    oid != null && oid in script.offPeakCancelledIds -> JsonObject(o + ("status" to JsonPrimitive("cancelled")))
+                    oid != null && oid in script.offPeakPausedIds -> JsonObject(o + ("status" to JsonPrimitive("paused")))
+                    else -> o
+                }
             })
         }
         if (items == null) {

@@ -206,4 +206,19 @@
     <string name="workflow_lastrun_stopped">上次运行已停止</string>
     <string name="workflow_start_refused">桌面端拒绝了该工作流（%1$s）</string>
     <string name="workflow_start_sent">工作流已启动</string>
+    <!-- Phase 6B (L6.2)：闲时任务观察/控制面（桌面端 offPeak.*） -->
+    <string name="offpeak_status_queued">等待闲时算力</string>
+    <string name="offpeak_status_paused">已暂停</string>
+    <string name="offpeak_status_running">运行中</string>
+    <string name="offpeak_status_completed">已完成</string>
+    <string name="offpeak_status_failed">失败</string>
+    <string name="offpeak_status_cancelled">已取消</string>
+    <string name="offpeak_badge_queue">排队第 %1$d 位</string>
+    <string name="offpeak_badge_paused">#%1$d 已暂停</string>
+    <string name="offpeak_cancel">取消任务</string>
+    <string name="offpeak_cancel_confirm_title">取消闲时任务？</string>
+    <string name="offpeak_cancel_confirm_body">「%1$s」将停止执行，已修改的文件会保留。</string>
+    <string name="offpeak_cancel_confirm_yes">取消</string>
+    <string name="offpeak_hint_pause">暂停时长超过队列等待时限的任务，将会被重新放回队列。</string>
+    <string name="offpeak_hint_continue">票已失效时，「继续」会把任务重新排到队尾。</string>
 </resources>

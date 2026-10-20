@@ -240,6 +240,9 @@ class TaskServiceClient(private val transport: AppTransport) {
 
     suspend fun offPeakContinue(offPeakTaskId: String): JsonObject? = offPeakCall("continueTask", offPeakTaskId)
 
+    /** L6.2 (Phase 6B): `cancelTask(t)` — terminal `cancelled`; a running task is stopped. */
+    suspend fun offPeakCancel(offPeakTaskId: String): JsonObject? = offPeakCall("cancelTask", offPeakTaskId)
+
     private suspend fun offPeakCall(method: String, offPeakTaskId: String): JsonObject? {
         val raw = transport.channelCall("off-peak-task", method, RpcValue.Arr(listOf(RpcValue.Str(offPeakTaskId))), 30_000)
         return (raw as? RpcValue.Obj)?.json as? JsonObject
