@@ -67,4 +67,7 @@
     <string name="branch_issue_operation_in_progress">Another Git operation is still in progress.</string>
     <string name="branch_issue_invalid_branch_name">Branch name is invalid.</string>
     <string name="branch_issue_unknown">Git could not complete the branch operation.</string>
+    <string name="git_stage_cd">Stage %1$s</string>
+    <string name="git_unstage_cd">Unstage %1$s</string>
+    <string name="git_discard_cd">Discard %1$s</string>
 </resources>

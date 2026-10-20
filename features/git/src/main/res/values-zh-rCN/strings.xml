@@ -67,4 +67,7 @@
     <string name="branch_issue_operation_in_progress">另一个 Git 操作仍在进行中。</string>
     <string name="branch_issue_invalid_branch_name">分支名无效。</string>
     <string name="branch_issue_unknown">Git 无法完成该分支操作。</string>
+    <string name="git_stage_cd">暂存 %1$s</string>
+    <string name="git_unstage_cd">取消暂存 %1$s</string>
+    <string name="git_discard_cd">丢弃 %1$s</string>
 </resources>

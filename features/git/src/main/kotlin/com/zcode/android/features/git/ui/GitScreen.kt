@@ -493,6 +493,9 @@ private fun ChangeRow(
     onStage: ((path: String, stage: Boolean) -> Unit)? = null,
     onDiscard: ((path: String, staged: Boolean) -> Unit)? = null,
 ) {
+    val stageCdFmt = stringResource(R.string.git_stage_cd)
+    val unstageCdFmt = stringResource(R.string.git_unstage_cd)
+    val discardCdFmt = stringResource(R.string.git_discard_cd)
     Column(Modifier.fillMaxWidth()) {
         Row(
             Modifier
@@ -542,7 +545,7 @@ private fun ChangeRow(
                     modifier = Modifier
                         .height(32.dp)
                         .testTag("git_stage_${entry.repoRelativePath}")
-                        .semantics { contentDescription = if (staged) "Unstage ${entry.repoRelativePath}" else "Stage ${entry.repoRelativePath}" },
+                        .semantics { contentDescription = stageCdFmt.replace("%s", entry.repoRelativePath) },
                 ) { Text(stringResource(if (staged) R.string.git_unstage else R.string.git_stage), style = MaterialTheme.typography.labelSmall) }
             }
             if (onDiscard != null) {
@@ -552,7 +555,7 @@ private fun ChangeRow(
                     modifier = Modifier
                         .height(32.dp)
                         .testTag("git_discard_entry_${entry.repoRelativePath}")
-                        .semantics { contentDescription = "Discard ${entry.repoRelativePath}" },
+                        .semantics { contentDescription = discardCdFmt.replace("%s", entry.repoRelativePath) },
                 ) { Text(stringResource(R.string.git_discard), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error) }
             }
             Icon(
