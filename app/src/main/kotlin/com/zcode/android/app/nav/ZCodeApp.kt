@@ -612,6 +612,10 @@ private fun ConversationRoute(
         onTrajectoryQueryChange = { trajectoryQuery = it; vm.searchSession(it) },
         onOpenTrajectory = { showTrajectory = true; vm.loadTrajectory() },
         onCloseTrajectory = { showTrajectory = false; trajectoryQuery = ""; vm.searchSession("") },
+        rewindPreviewProvider = { rowId, entityId ->
+            val taskId = state.task?.taskId
+            if (taskId == null) null else container.conversationPort.fetchRewindPreview(taskId, rowId, entityId)
+        },
     )
 }
 

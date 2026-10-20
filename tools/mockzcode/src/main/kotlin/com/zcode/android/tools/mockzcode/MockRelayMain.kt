@@ -92,6 +92,21 @@ fun main() {
     // is the wire proof.
     if (System.getenv("MOCK_ROW_ACTIONS") != null) {
         mock.script.rowActionsDemo = true
+        // Phase 5B (A3.11): the rewind preview for the completed turn — one safe restore,
+        // one unsafe (externally modified), one ignored (bash_ignored), canApply=true.
+        mock.script.rewindPreview = JsonObject(mapOf(
+            "canApply" to JsonPrimitive(true),
+            "safeFiles" to JsonArray(listOf(
+                JsonObject(mapOf("action" to JsonPrimitive("restore"), "path" to JsonPrimitive("src/version.ts"), "operationCount" to JsonPrimitive(1), "toolNames" to JsonArray(listOf(JsonPrimitive("edit"))))),
+                JsonObject(mapOf("action" to JsonPrimitive("delete"), "path" to JsonPrimitive("scratch/probe.txt"), "operationCount" to JsonPrimitive(1), "toolNames" to JsonArray(listOf(JsonPrimitive("write"))))),
+            )),
+            "unsafeFiles" to JsonArray(listOf(
+                JsonObject(mapOf("path" to JsonPrimitive("src/config.ts"), "reason" to JsonPrimitive("external_modified"), "message" to JsonPrimitive("Modified after the checkpoint"), "toolNames" to JsonArray(emptyList()))),
+            )),
+            "ignoredFiles" to JsonArray(listOf(
+                JsonObject(mapOf("path" to JsonPrimitive("tmp/build.log"), "reason" to JsonPrimitive("bash_ignored"), "toolNames" to JsonArray(listOf(JsonPrimitive("bash"))))),
+            )),
+        ))
     }
     // Phase 4C (D2) rig leg: MOCK_GOAL=1 scripts a goal (with a pass/notSatisfied
     // verification timeline) + a todo list into the state block — the goal/plan

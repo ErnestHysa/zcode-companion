@@ -882,6 +882,7 @@ class ConnectionHub(
     private val viewerTools = java.util.concurrent.ConcurrentHashMap<AppTransport, com.zcode.android.data.session.ViewerTools>()
     private val taskServices = java.util.concurrent.ConcurrentHashMap<Any, com.zcode.android.data.session.TaskServiceClient>()
     private val agentFacades = java.util.concurrent.ConcurrentHashMap<Any, com.zcode.android.data.session.AgentFacadeClient>()
+    private val checkpointClients = java.util.concurrent.ConcurrentHashMap<Any, com.zcode.android.data.session.GitCheckpointClient>()
 
     fun viewerTools(): com.zcode.android.data.session.ViewerTools =
         viewerTools.getOrPut(activeTransport()) { com.zcode.android.data.session.ViewerTools(activeTransport()) }
@@ -893,6 +894,10 @@ class ConnectionHub(
     /** Phase 5 (A3.3/A3.11/A3.12/A3.13/L6.4): the zcode-agent facade READ words the phone never called. */
     fun agentFacade(): com.zcode.android.data.session.AgentFacadeClient =
         agentFacades.getOrPut(activeTransport()) { com.zcode.android.data.session.AgentFacadeClient(activeTransport()) }
+
+    /** Phase 5B (A3.11): the git-checkpoint channel trio (create/diff/restoreBetween). */
+    fun checkpoints(): com.zcode.android.data.session.GitCheckpointClient =
+        checkpointClients.getOrPut(activeTransport()) { com.zcode.android.data.session.GitCheckpointClient(activeTransport()) }
 
     /** The connected workspace target for git/files (§7.11); null when disconnected. */
     fun activeWorkspaceTarget(): Pair<String?, String?>? = activeTransport().activeWorkspaceTarget

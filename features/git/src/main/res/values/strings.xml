@@ -13,4 +13,18 @@
     <string name="git_section_staged">Staged</string>
     <string name="git_dirty_marker">"  • dirty"</string>
     <string name="git_tracking">tracking: %1$s</string>
+    <!-- Phase 5B (A3.11): git checkpoints (restore = ⚠) -->
+    <string name="checkpoints_title">Checkpoints</string>
+    <string name="checkpoint_create">Snapshot</string>
+    <string name="checkpoints_empty">No snapshots in this session — create one before risky changes</string>
+    <string name="checkpoints_session_only">Snapshots created elsewhere aren\'t listed here</string>
+    <string name="checkpoint_restore">Restore</string>
+    <string name="checkpoint_restore_title">Restore this checkpoint?</string>
+    <string name="checkpoint_restore_body">Restore the workspace to snapshot %1$s (from %2$s)? Files changed between the two are overwritten.</string>
+    <string name="checkpoint_conflict_title">Local changes conflict</string>
+    <string name="checkpoint_conflict_body">%1$d file(s) were modified since the snapshot (%2$s…). Overwrite them?</string>
+    <string name="checkpoint_force">Overwrite</string>
+    <string name="checkpoint_created">Snapshot %1$s created</string>
+    <string name="checkpoint_restored">%1$d file(s) restored</string>
+    <string name="checkpoint_failed">The checkpoint operation failed — try again</string>
 </resources>

@@ -117,6 +117,8 @@ fun ConversationScreen(
     onForkAssistant: (rowId: Long, entityId: String) -> Unit = { _, _ -> },
     onApplyFileRewind: (rowId: Long, entityId: String) -> Unit = { _, _ -> },
     onAssistantFeedback: (rowId: Long, entityId: String, feedback: String?) -> Unit = { _, _, _ -> },
+    /** A3.11 (Phase 5B): the rewind preview loader (null = the copy-only confirm). */
+    rewindPreviewProvider: (suspend (rowId: Long, entityId: String) -> com.zcode.android.domain.model.RewindPreview?)? = null,
     /** Phase 4C (C2): the "/" menu opened — fetch the skills/agents/custom-command extras. */
     onSlashMenuOpen: () -> Unit = {},
     /** Phase 4C (A3.4): the effort switch (setThoughtLevel). */
@@ -360,6 +362,7 @@ fun ConversationScreen(
                     onEditRow = { row -> editingRow = row },
                     toolOutputProvider = toolOutputProvider,
                     rowActions = rowActions,
+                        rewindPreviewProvider = rewindPreviewProvider,
                     // F3-LOAD root cause (Phase 4A discovery): the loader was accepted by the
                     // screen but never reached the timeline — previews could never load.
                     loadAttachment = loadAttachment,
@@ -527,6 +530,8 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     toolOutputProvider: (suspend (ConversationRow.ToolCall) -> String?)? = null,
     loadAttachment: (suspend (ConversationRow.UserInput.AttachmentMeta) -> ByteArray?)? = null,
     rowActions: RowActionCallbacks = RowActionCallbacks(),
+    /** A3.11 (Phase 5B): the rewind preview loader threaded to the turn card. */
+    rewindPreviewProvider: (suspend (rowId: Long, entityId: String) -> com.zcode.android.domain.model.RewindPreview?)? = null,
 ) {
     val listState = rememberLazyListState()
     // B3-motion + K2: rows that have already arrived (scroll-back never re-animates).
@@ -768,6 +773,8 @@ private fun TimelineRow(
     toolOutputProvider: (suspend (ConversationRow.ToolCall) -> String?)? = null,
     loadAttachment: (suspend (ConversationRow.UserInput.AttachmentMeta) -> ByteArray?)? = null,
     rowActions: RowActionCallbacks = RowActionCallbacks(),
+    /** A3.11 (Phase 5B): the rewind preview loader threaded to the turn card. */
+    rewindPreviewProvider: (suspend (rowId: Long, entityId: String) -> com.zcode.android.domain.model.RewindPreview?)? = null,
 ) {
     Box(modifier = modifier) {
     when (row) {
@@ -820,6 +827,7 @@ private fun TimelineRow(
             row,
             onOpenChanges = { onOpenTurnChanges(row) },
             onRewindFiles = row.base.entityId?.let { e -> { rowActions.onApplyFileRewind(row.rowId, e) } },
+            rewindPreviewProvider = rewindPreviewProvider,
         )
         is ConversationRow.Artifact -> QuietMetaRow(
             label = row.displayName.ifBlank { "Artifact" },

@@ -315,6 +315,10 @@ class MockZCode(
         /** Every `startSavedWorkflow` envelope payload the mock saw (name/scope/args). */
         val startedWorkflows: MutableList<JsonObject> = java.util.Collections.synchronizedList(ArrayList())
 
+        // ---------------- Phase 5B (A3.11) ----------------
+        /** `conversationFileRewindPreviewV4` result (nt shape; null = typed fault → copy-only confirm). */
+        var rewindPreview: JsonObject? = null
+
         // ---------------- Phase 5B (A3.12 + A3.13) ----------------
         /** `conversationPlansV4` result (plans projection; null = typed fault → the panel hides). */
         var plansState: JsonObject? = null
@@ -322,6 +326,12 @@ class MockZCode(
         var modelTrajectory: JsonObject? = null
         /** `readSessionMessages` items (role/content) — the search corpus. */
         var sessionMessages: JsonArray? = null
+
+        // ---------------- Phase 5B (A3.11) git checkpoints ----------------
+        val checkpoints: MutableList<JsonObject> = java.util.Collections.synchronizedList(ArrayList())
+        var checkpointDiffFiles: List<String> = listOf("src/version.ts", "scratch/probe.txt")
+        /** Scripted conflict on a non-forced restore (the force-overwrite branch). */
+        var checkpointConflicts: Boolean = false
         /** One-shot direct-socket close after N binary frames (loss class). */
         var directDisconnectAfterFrames: Int? = null
     }
@@ -1451,6 +1461,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             when (channelName) {
                 "terminal" -> handleTerminalPromise(id, name, argAsObject(arg))
                 "git" -> handleGitPromise(id, name)
+                "git-checkpoint" -> handleGitCheckpointPromise(id, name, argAsObject(arg))
                 "file" -> handleFilePromise(id, name, argAsObject(arg))
                 "model-selection" -> handleModelSelectionPromise(id, name)
                 "zcode-task" -> handleTaskPromise(id, name, argAsObject(arg))
@@ -1791,6 +1802,8 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             "conversationWorkflowRunArtifactReadV4" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
                 put("dataBase64", JsonPrimitive("")); put("mediaType", JsonPrimitive("text/plain")); put("totalBytes", JsonPrimitive(0)); put("nextOffset", kotlinx.serialization.json.JsonNull)
             }))
+            // ---- Phase 5B (A3.11): the rewind preview (nt shape: canApply + safe/unsafe/ignored) ----
+            "conversationFileRewindPreviewV4" -> scriptableObject(id, script.rewindPreview, "conversationFileRewindPreviewV4")
             // ---- Phase 5B (A3.12): the plans projection ----
             "conversationPlansV4" -> scriptableObject(id, script.plansState, "conversationPlansV4")
             // ---- Phase 5B (A3.13): the trajectory + session reads ----
@@ -2141,6 +2154,47 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 ),
             )
             sendLogicalFrame(bytes)
+        }
+    }
+
+    // Phase 5B (A3.11): the git-checkpoint trio — stateful so the rig proves create →
+    // diff → restore (with the conflict branch on a scripted flag).
+    private fun handleGitCheckpointPromise(id: Int, name: String?, arg: JsonObject?) {
+        when (name) {
+            "createCheckpoint" -> {
+                val now = System.currentTimeMillis()
+                val meta = buildJsonObject {
+                    put("checkpointId", JsonPrimitive("ckpt-${script.checkpoints.size + 1}"))
+                    put("workspacePath", JsonPrimitive(arg?.strOrNull("workspacePath") ?: ""))
+                    put("repoRoot", JsonPrimitive("/synthetic/repo")); put("workspaceInRepoPath", JsonPrimitive("."))
+                    put("createdAt", JsonPrimitive(now))
+                    put("refName", JsonPrimitive("refs/zcode/checkpoints/ckpt")); put("commitOid", JsonPrimitive("deadbeef"))
+                    put("scope", JsonPrimitive("workspace"))
+                }
+                script.checkpoints.add(meta)
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(meta))
+            }
+            "diffCheckpoints" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                put("files", JsonArray(script.checkpointDiffFiles.map { buildJsonObject {
+                    put("kind", JsonPrimitive("modified")); put("repoRelativePath", JsonPrimitive(it))
+                } }))
+            }))
+            "restoreBetweenCheckpoints" -> {
+                val force = (arg?.get("force") as? JsonPrimitive)?.content?.toBooleanStrictOrNull() ?: false
+                if (script.checkpointConflicts && !force) {
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("success", JsonPrimitive(false))
+                        put("conflicts", JsonArray(listOf(JsonPrimitive("src/config.ts"))))
+                    }))
+                } else {
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("success", JsonPrimitive(true))
+                        put("restoredPaths", JsonArray(script.checkpointDiffFiles.map { JsonPrimitive(it) }))
+                    }))
+                }
+            }
+            "deleteCheckpoint" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
+            else -> respondError(id, "fault.mock.unknownMethod:git-checkpoint-${name ?: "?"}")
         }
     }
 

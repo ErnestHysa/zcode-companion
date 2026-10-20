@@ -553,6 +553,15 @@ class DefaultConversationPort(
     override suspend fun fetchSessionMessages(taskId: String, limit: Int): List<JsonObject> =
         facadeRead("sessionMessages") { it.sessionMessages(taskId, limit = limit) } ?: emptyList()
 
+    // A3.11: the rewind preview rides the row's CAS currencies (the editUserQuery pattern).
+    override suspend fun fetchRewindPreview(taskId: String, rowId: Long, entityId: String): com.zcode.android.domain.model.RewindPreview? {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return null
+        val (revision, epoch) = rowCurrencies(taskId) ?: return null
+        return facadeRead("rewindPreview") {
+            com.zcode.android.domain.model.RewindPreview.decode(it.fileRewindPreview(taskId, rowId, entityId, baseRevision = revision ?: 0, baseLogEpoch = epoch ?: return@facadeRead null))
+        }
+    }
+
     override suspend fun startSavedWorkflow(taskId: String, name: String, scope: String?, args: Map<String, String>): ConversationPort.StartWorkflowOutcome {
         val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.StartWorkflowOutcome(ConversationPort.SendOutcome.FAILED, null)
         val argsJson = if (args.isEmpty()) null else kotlinx.serialization.json.buildJsonObject {

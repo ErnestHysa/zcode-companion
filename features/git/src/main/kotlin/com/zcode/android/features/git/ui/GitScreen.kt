@@ -4,6 +4,7 @@ import androidx.compose.ui.res.stringResource
 import com.zcode.android.features.git.R
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -147,6 +148,16 @@ fun GitScreen(
                 // B2.18: the route already renders "Git" — no second header.
                 Text(stringResource(R.string.git_read_only), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+        }
+
+        // A3.11 (Phase 5B): the checkpoints card — create (snapshot), diff/restore between
+        // session-known checkpoints (restore = ⚠: a warned confirm; force overwriting local
+        // modifications needs a SECOND confirm).
+        item(key = "checkpoints") {
+            CheckpointsCard(
+                port = port,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
 
         ui.changesError?.let { errorText ->
@@ -448,3 +459,175 @@ private data class GitUiState(
     /** B2.7: a changes() failure — rendered with a Retry; empty is never a lie. */
     val changesError: String? = null,
 )
+
+/**
+ * A3.11 (Phase 5B): the git-checkpoint card. Create snapshots a workspace (the meta's
+ * short id + relative time render); Restore between two checkpoints is the ⚠ surface —
+ * the confirm names BOTH ids and the diff's files; a conflict result offers the
+ * force-overwrite behind a second confirm. The checkpoint list is SESSION-KNOWN only
+ * (the channel has no list word — snapshots created elsewhere are invisible here, said so).
+ */
+@Composable
+private fun CheckpointsCard(port: GitPort, modifier: Modifier = Modifier) {
+    val scope = rememberCoroutineScope()
+    val notifier = com.zcode.android.core.ui.components.LocalNotifier.current
+    val createdFmt = stringResource(R.string.checkpoint_created, "x")
+    val failedCopy = stringResource(R.string.checkpoint_failed)
+    val restoredFmt = stringResource(R.string.checkpoint_restored, 0)
+
+    var checkpoints by remember { mutableStateOf<List<com.zcode.android.domain.model.CheckpointMeta>>(emptyList()) }
+    var busy by remember { mutableStateOf(false) }
+    var restoringFor by remember { mutableStateOf<com.zcode.android.domain.model.CheckpointMeta?>(null) }
+    var forceConfirmFor by remember { mutableStateOf<Pair<com.zcode.android.domain.model.CheckpointMeta, List<String>>?>(null) }
+    var diffText by remember { mutableStateOf<String?>(null) }
+
+    Column(
+        modifier
+            .background(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.shapes.medium)
+            .padding(12.dp)
+            .testTag("git_checkpoints"),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                stringResource(R.string.checkpoints_title),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(
+                onClick = {
+                    if (busy) return@TextButton
+                    busy = true
+                    scope.launch {
+                        try {
+                            val meta = port.createCheckpoint()
+                            if (meta != null) {
+                                checkpoints = listOf(meta) + checkpoints
+                                notifier.show(createdFmt.replace("x", meta.checkpointId))
+                            } else {
+                                notifier.show(failedCopy, long = true)
+                            }
+                        } finally {
+                            busy = false
+                        }
+                    }
+                },
+                enabled = !busy,
+                modifier = Modifier.testTag("checkpoint_create"),
+            ) { Text(stringResource(R.string.checkpoint_create)) }
+        }
+        if (checkpoints.isEmpty()) {
+            Text(
+                stringResource(R.string.checkpoints_empty),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("checkpoints_empty"),
+            )
+        } else {
+            checkpoints.forEachIndexed { index, cp ->
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            cp.checkpointId,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.testTag("checkpoint_id_$index"),
+                        )
+                        com.zcode.android.core.ui.components.relativeTimeLabelLive(cp.createdAtMs)?.let {
+                            Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    // Restore into an EARLIER checkpoint (the newest is the head; index+1 exists).
+                    if (index + 1 < checkpoints.size) {
+                        TextButton(
+                            onClick = { restoringFor = checkpoints[index + 1] },
+                            enabled = !busy,
+                            modifier = Modifier.testTag("checkpoint_restore_$index"),
+                        ) { Text(stringResource(R.string.checkpoint_restore)) }
+                    }
+                }
+            }
+            Text(
+                stringResource(R.string.checkpoints_session_only),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        diffText?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp).testTag("checkpoint_diff"))
+        }
+    }
+    restoringFor?.let { from ->
+        val to = checkpoints.firstOrNull()
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { restoringFor = null },
+            title = { Text(stringResource(R.string.checkpoint_restore_title)) },
+            text = { Text(stringResource(R.string.checkpoint_restore_body, from.checkpointId, to?.checkpointId ?: "")) },
+            confirmButton = {
+                com.zcode.android.core.ui.components.ZCodeButton(
+                    onClick = {
+                        val f = from
+                        val t = to
+                        restoringFor = null
+                        if (t != null) {
+                            busy = true
+                            scope.launch {
+                                try {
+                                    val result = port.restoreCheckpoints(f.checkpointId, t.checkpointId, force = false)
+                                    when {
+                                        result == null -> notifier.show(failedCopy, long = true)
+                                        result.success -> {
+                                            diffText = null
+                                            notifier.show(restoredFmt.replace("0", result.restoredPaths.size.toString()))
+                                        }
+                                        else -> forceConfirmFor = t to result.conflicts
+                                    }
+                                } finally {
+                                    busy = false
+                                }
+                            }
+                        }
+                    },
+                    modifier = Modifier.testTag("checkpoint_restore_confirm"),
+                ) { Text(stringResource(R.string.checkpoint_restore)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { restoringFor = null }) { Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel)) }
+            },
+        )
+    }
+    forceConfirmFor?.let { (to, conflicts) ->
+        val from = checkpoints.getOrNull(1)
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { forceConfirmFor = null },
+            title = { Text(stringResource(R.string.checkpoint_conflict_title)) },
+            text = { Text(stringResource(R.string.checkpoint_conflict_body, conflicts.size, conflicts.take(3).joinToString(", "))) },
+            confirmButton = {
+                com.zcode.android.core.ui.components.ZCodeButton(
+                    onClick = {
+                        val f = from
+                        forceConfirmFor = null
+                        if (f != null) {
+                            busy = true
+                            scope.launch {
+                                try {
+                                    val result = port.restoreCheckpoints(f.checkpointId, to.checkpointId, force = true)
+                                    if (result?.success == true) notifier.show(restoredFmt.replace("0", result.restoredPaths.size.toString()))
+                                    else notifier.show(failedCopy, long = true)
+                                } finally {
+                                    busy = false
+                                }
+                            }
+                        }
+                    },
+                    modifier = Modifier.testTag("checkpoint_force_confirm"),
+                ) { Text(stringResource(R.string.checkpoint_force)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { forceConfirmFor = null }) { Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel)) }
+            },
+        )
+    }
+}
+

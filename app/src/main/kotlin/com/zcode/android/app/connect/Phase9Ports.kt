@@ -118,6 +118,47 @@ class DefaultGitPort(
 
     override fun workspacePath(): String? = hub.activeWorkspaceTarget()?.first
 
+    // ---------------------------------------------------------------- Phase 5B (A3.11): checkpoints
+
+    /** The per-transport checkpoint client (the git-checkpoint channel trio). */
+    private fun checkpoints() = hub.checkpoints()
+
+    override suspend fun createCheckpoint(): com.zcode.android.domain.model.CheckpointMeta? {
+        val wp = workspacePath() ?: return null
+        return try {
+            com.zcode.android.domain.model.CheckpointMeta.decode(checkpoints().createCheckpoint(wp))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("gitport.checkpointCreate", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            null
+        }
+    }
+
+    override suspend fun diffCheckpoints(fromCheckpointId: String, toCheckpointId: String): com.zcode.android.domain.model.CheckpointDiff? {
+        val wp = workspacePath() ?: return null
+        return try {
+            com.zcode.android.domain.model.CheckpointDiff.decode(checkpoints().diffCheckpoints(wp, fromCheckpointId, toCheckpointId))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("gitport.checkpointDiff", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            null
+        }
+    }
+
+    override suspend fun restoreCheckpoints(fromCheckpointId: String, toCheckpointId: String, force: Boolean): com.zcode.android.domain.model.CheckpointRestore? {
+        val wp = workspacePath() ?: return null
+        return try {
+            com.zcode.android.domain.model.CheckpointRestore.decode(checkpoints().restoreBetweenCheckpoints(wp, fromCheckpointId, toCheckpointId, force))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("gitport.checkpointRestore", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            null
+        }
+    }
+
     /** Channel-refusal wrapper: ANY failure → null (the §13.3 disabled state). */
     private suspend fun <T> run(op: String, block: suspend (Phase9Tools, String, String?) -> T): T? {
         val target = hub.activeWorkspaceTarget() ?: return null

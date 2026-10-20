@@ -13,4 +13,18 @@
     <string name="git_section_staged">已暂存</string>
     <string name="git_dirty_marker">"  • 有未提交更改"</string>
     <string name="git_tracking">跟踪：%1$s</string>
+    <!-- Phase 5B (A3.11): git 检查点（恢复 = ⚠） -->
+    <string name="checkpoints_title">检查点</string>
+    <string name="checkpoint_create">快照</string>
+    <string name="checkpoints_empty">本次会话没有快照 — 在高风险操作前先创建一个</string>
+    <string name="checkpoints_session_only">其他地方创建的快照不会在这里列出</string>
+    <string name="checkpoint_restore">恢复</string>
+    <string name="checkpoint_restore_title">恢复此检查点？</string>
+    <string name="checkpoint_restore_body">将工作区恢复到快照 %1$s（从 %2$s）？两者之间更改的文件将被覆盖。</string>
+    <string name="checkpoint_conflict_title">本地更改冲突</string>
+    <string name="checkpoint_conflict_body">%1$d 个文件自快照以来被修改（%2$s…）。是否覆盖？</string>
+    <string name="checkpoint_force">覆盖</string>
+    <string name="checkpoint_created">快照 %1$s 已创建</string>
+    <string name="checkpoint_restored">已恢复 %1$d 个文件</string>
+    <string name="checkpoint_failed">检查点操作失败 — 请重试</string>
 </resources>

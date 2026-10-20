@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -505,6 +506,11 @@ fun TurnSeparator(
     onOpenChanges: () -> Unit = {},
     /** Phase 4A: applyFileRewind on this turn — offered only under the desktop's gate. */
     onRewindFiles: (() -> Unit)? = null,
+    /**
+     * A3.11 (Phase 5B): the rewind PREVIEW loader (`conversationFileRewindPreviewV4`) —
+     * null = unavailable, the confirm falls back to the copy-only sheet (the Phase-4 pin).
+     */
+    rewindPreviewProvider: (suspend (rowId: Long, entityId: String) -> com.zcode.android.domain.model.RewindPreview?)? = null,
 ) {
     // I2.1: a turn that changed files renders as the change summary CARD (desktop
     // chat.changeSummary.*); quiet turns keep the bare separator.
@@ -515,6 +521,22 @@ fun TurnSeparator(
     val rewindAvailable = onRewindFiles != null && hasChanges && fcState != "reverted" &&
         row.state != ConversationRow.TurnState.RUNNING && row.base.actions?.canRewindFiles == true
     var confirmRewind by rememberSaveable { mutableStateOf(false) }
+    // A3.11: the preview loads once per open (row-anchored); loading renders its own state.
+    var preview by remember { mutableStateOf<com.zcode.android.domain.model.RewindPreview?>(null) }
+    var previewLoading by remember { mutableStateOf(false) }
+    var previewUnavailable by remember { mutableStateOf(false) }
+    val openPreview: () -> Unit = {
+        confirmRewind = true
+        val provider = rewindPreviewProvider
+        val entityId = row.base.entityId
+        if (provider != null && entityId != null && preview == null && !previewLoading && !previewUnavailable) {
+            previewLoading = true
+            rowScopePreviewJob(provider, row.rowId, entityId) { result ->
+                previewLoading = false
+                if (result == null) previewUnavailable = true else preview = result
+            }
+        }
+    }
     val body: @Composable (Modifier) -> Unit = { m ->
         Column(modifier = m.testTag("row_turn")) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -556,7 +578,7 @@ fun TurnSeparator(
                 }
                 if (rewindAvailable) {
                     Spacer(Modifier.width(4.dp))
-                    TextButton(onClick = { confirmRewind = true }, modifier = Modifier.testTag("row_turn_rewind")) {
+                    TextButton(onClick = openPreview, modifier = Modifier.testTag("row_turn_rewind")) {
                         Text(stringResource(R.string.row_rewind_files), style = MaterialTheme.typography.labelSmall)
                     }
                 }
@@ -566,6 +588,8 @@ fun TurnSeparator(
     if (confirmRewind && onRewindFiles != null) {
         // B3-sheets: the destructive confirm is a bottom sheet (the architecture pin:
         // RowRenderers hosts no AlertDialog); desktop rewindDialog copy preserved.
+        // A3.11: the PREVIEW upgrades the sheet — safe/unsafe/ignored files with the
+        // desktop's canApply gating the Confirm; unavailable falls back to the copy-only form.
         ZCodeModalBottomSheet(onDismissRequest = { confirmRewind = false }) {
             Text(
                 stringResource(R.string.rewind_dialog_title),
@@ -580,6 +604,19 @@ fun TurnSeparator(
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
+            when {
+                previewLoading -> LinearProgressIndicator(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp).testTag("rewind_preview_loading"),
+                )
+                preview != null -> RewindPreviewBody(preview!!)
+                previewUnavailable -> Text(
+                    stringResource(R.string.rewind_preview_unavailable),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp).testTag("rewind_preview_unavailable"),
+                )
+                else -> Unit
+            }
             Row(
                 Modifier.fillMaxWidth().padding(16.dp),
                 horizontalArrangement = Arrangement.End,
@@ -589,6 +626,9 @@ fun TurnSeparator(
                 }
                 TextButton(
                     onClick = { confirmRewind = false; onRewindFiles() },
+                    // A3.11: the desktop's canApply gates the destructive Confirm (a loaded
+                    // preview with canApply=false renders the reasons and refuses to fire).
+                    enabled = preview?.canApply != false,
                     modifier = Modifier.testTag("rewind_confirm"),
                 ) { Text(stringResource(R.string.rewind_dialog_confirm)) }
             }
@@ -1184,6 +1224,70 @@ private object AttachmentImageCache {
         while (total > MAX_BYTES && it2.hasNext()) {
             total -= it2.next().value.size
             it2.remove()
+        }
+    }
+}
+
+/** A3.11: fire-and-track the preview load without holding a coroutine scope in the row. */
+private fun rowScopePreviewJob(
+    provider: suspend (Long, String) -> com.zcode.android.domain.model.RewindPreview?,
+    rowId: Long,
+    entityId: String,
+    onResult: (com.zcode.android.domain.model.RewindPreview?) -> Unit,
+) {
+    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main.immediate).launch {
+        onResult(runCatching { provider(rowId, entityId) }.getOrNull())
+    }
+}
+
+@Composable
+private fun RewindPreviewBody(preview: com.zcode.android.domain.model.RewindPreview) {
+    Column(Modifier.padding(horizontal = 16.dp).testTag("rewind_preview")) {
+        preview.safeFiles.take(6).forEach { f ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (f.action == "delete") "−" else "↩",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.testTag("rewind_safe_${f.path.hashCode()}"),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(f.path, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            }
+        }
+        if (preview.safeFiles.size > 6) {
+            Text("… +${preview.safeFiles.size - 6}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        preview.unsafeFiles.forEach { f ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("!", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                Spacer(Modifier.width(6.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(f.path, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        f.message ?: f.reason,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.testTag("rewind_unsafe_${f.reason}"),
+                    )
+                }
+            }
+        }
+        if (preview.ignoredFiles.isNotEmpty()) {
+            Text(
+                stringResource(R.string.rewind_ignored_count, preview.ignoredFiles.size),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("rewind_ignored"),
+            )
+        }
+        if (!preview.canApply) {
+            Text(
+                stringResource(R.string.rewind_cannot_apply),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 4.dp).testTag("rewind_cannot_apply"),
+            )
         }
     }
 }

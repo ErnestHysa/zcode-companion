@@ -204,6 +204,13 @@ interface ConversationPort {
     /** `readSessionMessages {sessionId, limit}` — the full message list for client-side search. */
     suspend fun fetchSessionMessages(taskId: String, limit: Int = 200): List<JsonObject> = emptyList()
 
+    /**
+     * A3.11: `conversationFileRewindPreviewV4 {sessionId, target, baseRevision, baseLogEpoch}` —
+     * what undoing this turn's files WOULD do (safe/unsafe/ignored + the desktop's canApply).
+     * Null = unavailable (the confirm falls back to the copy-only sheet).
+     */
+    suspend fun fetchRewindPreview(taskId: String, rowId: Long, entityId: String): com.zcode.android.domain.model.RewindPreview? = null
+
     /** The ack's typed reasonCode rides along (StartSavedWorkflowErrors vocabulary). */
     data class StartWorkflowOutcome(val outcome: SendOutcome, val reasonCode: String?)
 
