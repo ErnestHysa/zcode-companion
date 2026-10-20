@@ -129,6 +129,9 @@ fun PluginsViewerScreen(
                     EmptyState(title = stringResource(R.string.plugins_empty), modifier = Modifier.fillMaxSize().testTag("plugins_empty"))
                 else -> {
                     val view = result?.view ?: return@Column
+                    val notifier = com.zcode.android.core.ui.components.LocalNotifier.current
+                    val toggleFailedCopy = stringResource(R.string.plugin_toggle_failed)
+                    var busyIds by remember { mutableStateOf<Set<String>>(emptySet()) }
                     LazyColumn(
                         Modifier
                             .fillMaxSize()
@@ -136,7 +139,26 @@ fun PluginsViewerScreen(
                             .testTag("plugins_list"),
                     ) {
                         items(view.plugins, key = { it.id }) { plugin ->
-                            PluginLine(plugin)
+                            // ADR-023: the enable Switch rides the sanctioned word; the
+                            // ack drives a RE-LIST (wire-true, no optimistic flip), a second
+                            // tap while busy is dropped (B2.11).
+                            PluginLine(
+                                plugin,
+                                busy = plugin.id in busyIds,
+                                onToggle = { enabled ->
+                                    if (plugin.id in busyIds) return@PluginLine
+                                    busyIds = busyIds + plugin.id
+                                    scope.launch {
+                                        try {
+                                            val ok = port.setEnabled(plugin.id, enabled)
+                                            if (!ok) notifier.show(toggleFailedCopy, long = true)
+                                            result = port.plugins()
+                                        } finally {
+                                            busyIds = busyIds - plugin.id
+                                        }
+                                    }
+                                },
+                            )
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                         }
                         view.diagnostics.forEach { diag ->
@@ -169,7 +191,7 @@ fun PluginsViewerScreen(
 }
 
 @Composable
-private fun PluginLine(plugin: PluginsView.PluginInfo) {
+private fun PluginLine(plugin: PluginsView.PluginInfo, busy: Boolean = false, onToggle: ((Boolean) -> Unit)? = null) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -204,8 +226,18 @@ private fun PluginLine(plugin: PluginsView.PluginInfo) {
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        // M5.5: a TONAL BADGE, not a disabled AssistChip — the state reads "enabled",
-        // never "can't tap" (§13.3: the state is DISPLAY-only, no write method exists).
+        // ADR-023: the badge keeps the state summary; the Switch is the sanctioned
+        // enable affordance (the ack drives the re-list — wire-true, no optimistic flip).
+        onToggle?.let { toggle ->
+            androidx.compose.material3.Switch(
+                checked = plugin.enabled,
+                onCheckedChange = toggle,
+                enabled = !busy,
+                modifier = Modifier
+                    .padding(start = 8.dp)
+                    .testTag("plugin_switch_${plugin.id}"),
+            )
+        }
         Surface(
             shape = MaterialTheme.shapes.small,
             color = if (plugin.enabled) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,

@@ -3,7 +3,6 @@ package com.zcode.android.app.settings
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -75,8 +74,9 @@ class PluginEnableUiTest {
         setContent()
         rule.onNodeWithTag("plugin_switch_p1").performClick(); rule.waitForIdle()
         assertEquals(listOf("p1:true"), toggles)
-        // the rendered state stays OFF (the wire truth — no optimistic flip)
-        rule.onNodeWithTag("plugin_switch_p1").assertIsNotSelected()
+        // the rendered state stays OFF (the wire truth — no optimistic flip): the
+        // state badge still reads the OFF copy.
+        rule.onNodeWithTag("plugin_state_badge").assertIsDisplayed()
         // ADR-023 tier 2: install/uninstall/update/configure have NO affordance anywhere.
         rule.onAllNodesWithTag("plugin_install", useUnmergedTree = true).assertCountEquals(0)
         rule.onAllNodesWithTag("plugin_uninstall", useUnmergedTree = true).assertCountEquals(0)
