@@ -49,10 +49,16 @@ class ArtifactPreviewUiTest {
         )
 
     private fun assistantRow(rowId: Long, text: String) = ConversationRow.Decoder.decode(
-        Json.parseToJsonElement(
-            """{"rowId":$rowId,"turnId":"t$rowId","kind":"assistantText","entityId":"ent-$rowId",
-                "createdAt":1700000000000,"createdAtSeq":$rowId,"text":${Json.parseToJsonElement("\"$text\"").toString()},"state":"complete"}""",
-        ).jsonObject,
+        kotlinx.serialization.json.buildJsonObject {
+            put("rowId", kotlinx.serialization.json.JsonPrimitive(rowId))
+            put("turnId", kotlinx.serialization.json.JsonPrimitive("t$rowId"))
+            put("kind", kotlinx.serialization.json.JsonPrimitive("assistantText"))
+            put("entityId", kotlinx.serialization.json.JsonPrimitive("ent-$rowId"))
+            put("createdAt", kotlinx.serialization.json.JsonPrimitive(1700000000000.0))
+            put("createdAtSeq", kotlinx.serialization.json.JsonPrimitive(rowId))
+            put("text", kotlinx.serialization.json.JsonPrimitive(text))
+            put("state", kotlinx.serialization.json.JsonPrimitive("complete"))
+        },
     )
 
     private val opens = mutableListOf<String>()
