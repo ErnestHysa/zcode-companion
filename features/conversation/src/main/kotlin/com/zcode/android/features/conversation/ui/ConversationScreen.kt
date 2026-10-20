@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.zcode.android.core.ui.components.rememberReducedMotion
+import com.zcode.android.features.conversation.GeneratedArtifactPreview
 import com.zcode.android.features.conversation.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -125,6 +126,8 @@ fun ConversationScreen(
     onAssistantFeedback: (rowId: Long, entityId: String, feedback: String?) -> Unit = { _, _, _ -> },
     /** I2.4 (Phase 6A): retry a failed context compaction (`/compact` over the same path). */
     onRetryCompaction: () -> Unit = {},
+    /** I2.8 (Phase 6A): open a generated artifact externally (ref + mime). */
+    onOpenArtifact: (ref: String, mime: String) -> Unit = { _, _ -> },
     /** A3.11 (Phase 5B): the rewind preview loader (null = the copy-only confirm). */
     rewindPreviewProvider: (suspend (rowId: Long, entityId: String) -> com.zcode.android.domain.model.RewindPreview?)? = null,
     /** A3.16 (Phase 5C): share the transcript via the Android system sheet. */
@@ -156,8 +159,8 @@ fun ConversationScreen(
     onOpenTrajectory: () -> Unit = {},
     onCloseTrajectory: () -> Unit = {},
 ) {
-    val rowActions = remember(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction) {
-        RowActionCallbacks(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction)
+    val rowActions = remember(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction, onOpenArtifact) {
+        RowActionCallbacks(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction, onOpenArtifact)
     }
     // C6-BackHandler: back with an unsent draft raises a confirm (the promised
     // Phase-7 draft guard). The draft is Room-backed — the guard is the CONFIRMATION
@@ -862,6 +865,8 @@ data class RowActionCallbacks(
     val onAssistantFeedback: (rowId: Long, entityId: String, feedback: String?) -> Unit = { _, _, _ -> },
     /** I2.4 (Phase 6A): re-run a failed context compaction. */
     val onRetryCompaction: () -> Unit = {},
+    /** I2.8 (Phase 6A): open a generated artifact externally (ref + mime). */
+    val onOpenArtifact: (ref: String, mime: String) -> Unit = { _, _ -> },
 )
 
 @Composable
@@ -921,6 +926,24 @@ private fun TimelineRow(
                 onRetry = entityId?.let { e -> { rowActions.onRetryTurn(row.rowId, e) } },
                 onFeedback = entityId?.let { e -> { f: String? -> rowActions.onAssistantFeedback(row.rowId, e, f) } },
             )
+            // I2.8: settled assistant text that mentions generated documents surfaces
+            // the same preview cards the artifact rows get (desktop gZe text detection).
+            if (row.state == ConversationRow.TextState.COMPLETE && streamed == null) {
+                val cards = remember(row.text) { GeneratedArtifactPreview.detectCards(text) }
+                cards.forEachIndexed { i, card ->
+                    val suffix = if (i == 0) "" else "_$i"
+                    val mime = GeneratedArtifactPreview.mimeFor(card.kind)
+                    ArtifactPreviewCard(
+                        rowId = row.rowId,
+                        name = card.path.substringAfterLast('/'),
+                        kind = card.kind,
+                        ref = card.path,
+                        mime = mime,
+                        tagSuffix = suffix,
+                        onOpen = { rowActions.onOpenArtifact(card.path, mime) },
+                    )
+                }
+            }
         }
         is ConversationRow.ToolCall -> ToolCard(row, fullOutputProvider = toolOutputProvider)
         is ConversationRow.Reasoning -> ReasoningRow(row)
@@ -930,10 +953,28 @@ private fun TimelineRow(
             onRewindFiles = row.base.entityId?.let { e -> { rowActions.onApplyFileRewind(row.rowId, e) } },
             rewindPreviewProvider = rewindPreviewProvider,
         )
-        is ConversationRow.Artifact -> QuietMetaRow(
-            label = row.displayName.ifBlank { "Artifact" },
-            detail = formatBytes(row.sizeBytes),
-        )
+        is ConversationRow.Artifact -> {
+            // I2.8: an artifact row renders as the preview card (kind by extension);
+            // an unrecognized extension keeps the quiet fallback (INV-8).
+            val kind = GeneratedArtifactPreview.forArtifactRow(row)
+            if (kind != null) {
+                val ref = row.ref.ifBlank { row.displayName }
+                val mime = row.mimeType.ifBlank { GeneratedArtifactPreview.mimeFor(kind) }
+                ArtifactPreviewCard(
+                    rowId = row.rowId,
+                    name = row.displayName.ifBlank { row.logicalArtifactKey },
+                    kind = kind,
+                    ref = ref,
+                    mime = mime,
+                    onOpen = { rowActions.onOpenArtifact(ref, mime) },
+                )
+            } else {
+                QuietMetaRow(
+                    label = row.displayName.ifBlank { "Artifact" },
+                    detail = formatBytes(row.sizeBytes),
+                )
+            }
+        }
         is ConversationRow.Subagent -> QuietMetaRow(label = stringResource(R.string.row_subagent, row.subagentType), detail = row.summaryText.take(80))
         is ConversationRow.HookInvocation -> QuietMetaRow(label = stringResource(R.string.row_hook, row.hookEventName), detail = null)
         is ConversationRow.TimelineMarker -> {

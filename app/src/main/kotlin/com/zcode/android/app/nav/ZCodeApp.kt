@@ -533,6 +533,7 @@ private fun ConversationRoute(
     val openWorkflowRun by vm.openWorkflowRun.collectAsState()
     val shareCopy = androidx.compose.ui.res.stringResource(com.zcode.android.features.conversation.R.string.conv_share_entry)
     val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     // Phase 5B (A3.12 + A3.13): plans + the trajectory/search sheet.
     val plans by vm.plans.collectAsState()
     val trajectory by vm.trajectory.collectAsState()
@@ -596,6 +597,29 @@ private fun ConversationRoute(
         onApplyFileRewind = vm::applyFileRewind,
         onAssistantFeedback = vm::setAssistantFeedback,
         onRetryCompaction = vm::retryCompaction,
+        // I2.8: open a generated artifact externally — download via the file channel
+        // (app cache, never desktop paths) then the system viewer chooser.
+        onOpenArtifact = { ref, mime ->
+            scope.launch {
+                val result = runCatching { container.filesPort.download(ref) }.getOrNull()
+                val file = result?.file
+                if (file == null) {
+                    container.log.warn("preview.open", "download failed: ${result?.error?.take(80)}")
+                    return@launch
+                }
+                runCatching {
+                    val uri = androidx.core.content.FileProvider.getUriForFile(
+                        context, context.packageName + ".fileprovider", file,
+                    )
+                    context.startActivity(
+                        android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                            setDataAndType(uri, mime)
+                            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        },
+                    )
+                }.onFailure { container.log.warn("preview.open", "${it.javaClass.simpleName}: ${it.message?.take(80)}") }
+            }
+        },
         onSlashMenuOpen = vm::onSlashMenuOpen,
         onSetThoughtLevel = vm::setThoughtLevel,
         fileSearchProvider = { query -> container.conversationPort.searchWorkspaceFiles(state.task?.taskId.orEmpty(), query) },

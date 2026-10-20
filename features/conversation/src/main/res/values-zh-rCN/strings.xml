@@ -328,4 +328,17 @@
     <string name="summary_subagents_plural">%1$d 个子智能体运行中</string>
     <string name="summary_subagent_label">打开子智能体会话</string>
     <string name="summary_duration_label">会话时长</string>
+    <!-- Phase 6A (I2.8)：生成物预览卡片（桌面端 chat.previewCards.*） -->
+    <string name="preview_markdown">文档 · MD</string>
+    <string name="preview_html">网站 · HTML</string>
+    <string name="preview_docx">文档 · DOCX</string>
+    <string name="preview_xlsx">表格 · XLSX</string>
+    <string name="preview_pptx">演示文稿 · PPTX</string>
+    <string name="preview_pdf">文档 · PDF</string>
+    <string name="preview_audio">音频</string>
+    <string name="preview_video">视频</string>
+    <string name="preview_text">文本 · TXT</string>
+    <string name="preview_open">打开</string>
+    <string name="preview_open_a11y">用外部应用打开</string>
+    <string name="preview_open_failed">无法用外部应用打开此文件</string>
 </resources>

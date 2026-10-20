@@ -1,5 +1,8 @@
 package com.zcode.android.features.conversation.ui
 
+/** I2.8: the preview-card kind, re-exported for the renderer's exhaustive `when`s. */
+typealias GeneratedArtifactPreviewKind = com.zcode.android.features.conversation.GeneratedArtifactPreview.Kind
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -18,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.MaterialTheme
@@ -32,8 +36,17 @@ import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.WrapText
 import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.GraphicEq
+import androidx.compose.material.icons.outlined.InsertDriveFile
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Movie
+import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Pause
+import androidx.compose.material.icons.outlined.PictureAsPdf
+import androidx.compose.material.icons.outlined.Slideshow
+import androidx.compose.material.icons.outlined.TableChart
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
@@ -734,6 +747,88 @@ fun CompactionNoticeRow(
             }
         }
         Box(Modifier.width(20.dp).height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
+    }
+}
+
+/**
+ * I2.8 (Phase 6A): the generated-artifact preview card (desktop `chat.previewCards.*`)
+ * — kind icon + the desktop's subtitle copy + display name, with the open-external
+ * action (download via the file channel, then the system viewer chooser).
+ */
+@Composable
+fun ArtifactPreviewCard(
+    rowId: Long,
+    name: String,
+    kind: GeneratedArtifactPreviewKind,
+    ref: String,
+    mime: String,
+    modifier: Modifier = Modifier,
+    /** Multiple cards on one assistant row disambiguate their tags ("_1", "_2", …). */
+    tagSuffix: String = "",
+    onOpen: () -> Unit = {},
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = MaterialTheme.shapes.medium,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .testTag("preview_card_$rowId$tagSuffix")
+            .semantics(mergeDescendants = true) {},
+    ) {
+        Row(
+            Modifier.padding(start = 12.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = when (kind) {
+                    GeneratedArtifactPreviewKind.MARKDOWN -> Icons.Outlined.Article
+                    GeneratedArtifactPreviewKind.HTML -> Icons.Outlined.Language
+                    GeneratedArtifactPreviewKind.DOCX -> Icons.Outlined.Description
+                    GeneratedArtifactPreviewKind.XLSX -> Icons.Outlined.TableChart
+                    GeneratedArtifactPreviewKind.PPTX -> Icons.Outlined.Slideshow
+                    GeneratedArtifactPreviewKind.PDF -> Icons.Outlined.PictureAsPdf
+                    GeneratedArtifactPreviewKind.AUDIO -> Icons.Outlined.GraphicEq
+                    GeneratedArtifactPreviewKind.VIDEO -> Icons.Outlined.Movie
+                    GeneratedArtifactPreviewKind.TEXT -> Icons.Outlined.InsertDriveFile
+                },
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = stringResource(
+                        when (kind) {
+                            GeneratedArtifactPreviewKind.MARKDOWN -> R.string.preview_markdown
+                            GeneratedArtifactPreviewKind.HTML -> R.string.preview_html
+                            GeneratedArtifactPreviewKind.DOCX -> R.string.preview_docx
+                            GeneratedArtifactPreviewKind.XLSX -> R.string.preview_xlsx
+                            GeneratedArtifactPreviewKind.PPTX -> R.string.preview_pptx
+                            GeneratedArtifactPreviewKind.PDF -> R.string.preview_pdf
+                            GeneratedArtifactPreviewKind.AUDIO -> R.string.preview_audio
+                            GeneratedArtifactPreviewKind.VIDEO -> R.string.preview_video
+                            GeneratedArtifactPreviewKind.TEXT -> R.string.preview_text
+                        },
+                    ),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            IconButton(onClick = onOpen, modifier = Modifier.testTag("preview_open_$rowId$tagSuffix")) {
+                Icon(
+                    imageVector = Icons.Outlined.OpenInNew,
+                    contentDescription = stringResource(R.string.preview_open_a11y),
+                )
+            }
+        }
     }
 }
 

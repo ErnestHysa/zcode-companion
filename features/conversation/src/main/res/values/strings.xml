@@ -352,4 +352,17 @@
     <string name="summary_subagents_plural">%1$d agents running</string>
     <string name="summary_subagent_label">Open running subagent session</string>
     <string name="summary_duration_label">Session duration</string>
+    <!-- Phase 6A (I2.8): generated-artifact preview cards (desktop chat.previewCards.*) -->
+    <string name="preview_markdown">Document · MD</string>
+    <string name="preview_html">Website · HTML</string>
+    <string name="preview_docx">Document · DOCX</string>
+    <string name="preview_xlsx">Spreadsheet · XLSX</string>
+    <string name="preview_pptx">Presentation · PPTX</string>
+    <string name="preview_pdf">Document · PDF</string>
+    <string name="preview_audio">Audio</string>
+    <string name="preview_video">Video</string>
+    <string name="preview_text">Text · TXT</string>
+    <string name="preview_open">Open</string>
+    <string name="preview_open_a11y">Open externally</string>
+    <string name="preview_open_failed">Could not open this file externally</string>
 </resources>
