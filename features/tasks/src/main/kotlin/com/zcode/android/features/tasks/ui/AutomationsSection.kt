@@ -579,9 +579,10 @@ private fun OffPeakLine(
         Column(Modifier.weight(1f)) {
             Text(t.title, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             // L6.2: failed rows surface the desktop's failure reason under the title.
-            if (!t.failureReason.isNullOrBlank()) {
+            val failureReason = t.failureReason
+            if (!failureReason.isNullOrBlank()) {
                 Text(
-                    t.failureReason,
+                    failureReason,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                     maxLines = 2,
@@ -592,15 +593,16 @@ private fun OffPeakLine(
         }
         // L6.2: the localized status vocabulary + the desktop's queue badges — the raw
         // wire word never renders. paused keeps its position badge; queued shows "in queue".
+        val position = t.queuePosition
         Text(
             buildString {
                 append(offPeakStatusLabel(t.status))
-                if (t.queuePosition != null) {
+                if (position != null) {
                     append(" · ")
                     append(
                         stringResource(
                             if (t.status == "paused") R.string.offpeak_badge_paused else R.string.offpeak_badge_queue,
-                            t.queuePosition,
+                            position,
                         ),
                     )
                 }
