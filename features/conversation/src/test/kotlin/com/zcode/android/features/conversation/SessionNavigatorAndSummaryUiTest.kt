@@ -135,9 +135,13 @@ class SessionNavigatorAndSummaryUiTest {
     }
 
     @Test
-    fun `navigator stays hidden for single-query and empty sessions`() {
+    fun `navigator stays hidden for single-query sessions`() {
         setContent(listOf(turnRow(1, 1_000_000.0, 1_010_000.0), userRow(2, "only one"), assistantRow(3)))
         rule.onAllNodesWithTag("turnnav_open").assertCountEquals(0)
+    }
+
+    @Test
+    fun `navigator stays hidden for empty sessions`() {
         setContent(emptyList())
         rule.onAllNodesWithTag("turnnav_open").assertCountEquals(0)
     }
