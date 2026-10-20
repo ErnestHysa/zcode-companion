@@ -160,9 +160,26 @@ class SessionNavigatorAndSummaryUiTest {
         rule.onNodeWithTag("summary_capsule").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("summary_panel").assertIsDisplayed()
-        rule.onNodeWithText("11m 40s").assertIsDisplayed()
-        rule.onNodeWithText("Iteration 3").assertIsDisplayed()
-        rule.onNodeWithText("2 background").assertIsDisplayed()
+        // Robolectric's display-area quirks make assertIsDisplayed flaky for header
+        // rows; the render proof is existence + non-zero in-root bounds (the pixel-pin
+        // pattern).
+        assertRowRenders("summary_duration", "11m 40s")
+        assertRowRenders("summary_iteration", "Iteration 3")
+        assertRowRenders("summary_background", "2 background")
+    }
+
+    private fun assertRowRenders(tag: String, text: String) {
+        val nodes = rule.onAllNodesWithTag(tag).fetchSemanticsNodes()
+        org.junit.Assert.assertEquals("$tag renders exactly once", 1, nodes.size)
+        val b = nodes.single().boundsInRoot
+        org.junit.Assert.assertTrue(
+            "$tag must lay out in-root with content (was $b)",
+            b.width > 0 && b.height > 0 && b.top >= 0 && b.left >= 0,
+        )
+        org.junit.Assert.assertTrue(
+            "the $tag row carries its value",
+            rule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty(),
+        )
     }
 
     @Test

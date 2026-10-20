@@ -751,51 +751,57 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                 }
             }
         }
+        // I2.5: the turn navigator (desktop chat.turnNavigator.*) — a query map over
+        // the session's user inputs; two or more queries earn the affordance. It is
+        // ALWAYS visible (not gated on being scrolled up): discoverability is the
+        // finding's whole point.
+        androidx.compose.animation.AnimatedVisibility(
+            visible = navigatorQueries.size >= 2,
+            modifier = Modifier.align(Alignment.BottomEnd),
+            enter = fadeIn(tween(motion.ms(ZCodeMotion.WaterfallMs))),
+            exit = fadeOut(tween(motion.ms(ZCodeMotion.WaterfallMs))),
+        ) {
+            SmallFloatingActionButton(
+                onClick = { navigatorOpen = true },
+                modifier = Modifier.padding(end = 16.dp, bottom = 10.dp).testTag("turnnav_open"),
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.FormatListNumbered,
+                    contentDescription = stringResource(R.string.turnnav_label),
+                )
+            }
+        }
         androidx.compose.animation.AnimatedVisibility(
             visible = !followBottom || !atBottom,
             modifier = Modifier.align(Alignment.BottomEnd),
             enter = fadeIn(tween(motion.ms(ZCodeMotion.WaterfallMs))),
             exit = fadeOut(tween(motion.ms(ZCodeMotion.WaterfallMs))),
         ) {
-            Column(horizontalAlignment = Alignment.End) {
-                // I2.5: the turn navigator (desktop chat.turnNavigator.*) — a query map
-                // over the session's user inputs; two or more queries earn the affordance.
-                if (navigatorQueries.size >= 2) {
-                    SmallFloatingActionButton(
-                        onClick = { navigatorOpen = true },
-                        modifier = Modifier.padding(bottom = 10.dp).testTag("turnnav_open"),
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        contentColor = MaterialTheme.colorScheme.onSurface,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.FormatListNumbered,
-                            contentDescription = stringResource(R.string.turnnav_label),
-                        )                    }
-                }
-                FloatingActionButton(
-                    onClick = {
-                        followBottom = true
-                        unread = 0
-                        scope.launch {
-                            if (state.rows.isNotEmpty()) {
-                                // §30.5: honor the system reduced-motion switch.
-                                if (reducedMotion) listState.scrollToItem(entries.size - 1)
-                                else listState.animateScrollToItem(entries.size - 1)
-                            }
+            FloatingActionButton(
+                onClick = {
+                    followBottom = true
+                    unread = 0
+                    scope.launch {
+                        if (state.rows.isNotEmpty()) {
+                            // §30.5: honor the system reduced-motion switch.
+                            if (reducedMotion) listState.scrollToItem(entries.size - 1)
+                            else listState.animateScrollToItem(entries.size - 1)
                         }
-                    },
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .testTag("conversation_jump_latest"),
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                ) {
-                    Box {
-                        // B2.9: a NUMBERED badge (the bare 16dp dot had no count/semantics).
-                        androidx.compose.foundation.layout.Box(Modifier) {
-                            Icon(imageVector = Icons.Filled.ArrowDownward, contentDescription = stringResource(R.string.conv_jump_latest))
-                            UnreadBadge(unread = unread, modifier = Modifier.align(Alignment.TopEnd))
-                        }
+                    }
+                },
+                modifier = Modifier
+                    .padding(16.dp)
+                    .testTag("conversation_jump_latest"),
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            ) {
+                Box {
+                    // B2.9: a NUMBERED badge (the bare 16dp dot had no count/semantics).
+                    androidx.compose.foundation.layout.Box(Modifier) {
+                        Icon(imageVector = Icons.Filled.ArrowDownward, contentDescription = stringResource(R.string.conv_jump_latest))
+                        UnreadBadge(unread = unread, modifier = Modifier.align(Alignment.TopEnd))
                     }
                 }
             }
