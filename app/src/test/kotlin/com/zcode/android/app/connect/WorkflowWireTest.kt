@@ -144,7 +144,9 @@ class WorkflowWireTest {
         val calls = mock.v4CallsForTest().filter { it.first.startsWith("conversationWorkflowRun") }
         assertEquals(listOf("conversationWorkflowRunsV4", "conversationWorkflowRunArtifactsV4", "conversationWorkflowRunArtifactDataV4"), calls.map { it.first })
         val runsArg = calls[0].second
-        assertEquals("/synthetic/ws", (runsArg["workspacePath"] as JsonPrimitive).content)
+        // The target is the DISCOVERED workspace (the bootstrap's path), not the descriptor's hint.
+        assertEquals(transport.activeWorkspaceTarget?.first, (runsArg["workspacePath"] as JsonPrimitive).content)
+        assertTrue((runsArg["workspacePath"] as JsonPrimitive).content.isNotBlank())
         assertEquals("synth-task-1", (runsArg["sessionId"] as JsonPrimitive).content)
         assertEquals("8", (runsArg["limit"] as JsonPrimitive).content)
         val dataArg = calls[2].second
