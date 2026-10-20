@@ -80,6 +80,28 @@ fun SettingsScreen(
     val context = LocalContext.current
     val notifier = LocalNotifier.current
     var showUnpairConfirm by remember { mutableStateOf(false) }
+    // H1.6: the feedback form + its channel-backed sender.
+    var feedbackOpen by remember { mutableStateOf(false) }
+    val feedbackSender = remember {
+        FeedbackSender { type, description, contact ->
+            val service = runCatching { container.hub.taskService() }.getOrNull()
+                ?: return@FeedbackSender FeedbackResult.Failed("not connected")
+            val ticket = service.feedbackCreate(
+                type = type,
+                description = description,
+                contact = contact,
+                title = null,
+                locale = java.util.Locale.getDefault().toLanguageTag(),
+            ) ?: return@FeedbackSender FeedbackResult.Failed(null)
+            val id = (ticket["ticket_id"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                ?: return@FeedbackSender FeedbackResult.Failed(null)
+            val status = (ticket["status"] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: "open"
+            FeedbackResult.Ticket(id, status)
+        }
+    }
+    if (feedbackOpen) {
+        FeedbackFormDialog(onDismiss = { feedbackOpen = false }, sender = feedbackSender)
+    }
 
     val topBarScroll = rememberZCodeTopBarScroll()
     Scaffold(
@@ -155,6 +177,14 @@ fun SettingsScreen(
                     container.log.info("diagnostics.mark", "user marker at ${java.time.Instant.now()} phase=${container.hub.phase.value}")
                     notifier.show(context.getString(R.string.settings_marker_toast))
                 },
+            )
+            // H1.6: the in-app feedback form — the host submits the ticket (device-mid
+            // + auth live desktop-side; the phone holds no credentials).
+            SettingsRow(
+                title = stringResource(R.string.settings_feedback_entry),
+                subtitle = stringResource(R.string.settings_feedback_entry_sub),
+                tag = "settings_send_feedback",
+                onClick = { feedbackOpen = true },
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 

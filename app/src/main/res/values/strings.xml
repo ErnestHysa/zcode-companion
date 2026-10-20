@@ -249,4 +249,18 @@
     <string name="mcp_status_unknown">Unknown</string>
     <!-- Phase 5D (ADR-023): the sanctioned plugin enable switch -->
     <string name="plugin_toggle_failed">The desktop refused the plugin change — the list is re-read from the wire</string>
+    <!-- Phase 6B (H1.6): the in-app feedback form (desktop feedback.* tickets) -->
+    <string name="settings_feedback_entry">Send feedback</string>
+    <string name="settings_feedback_entry_sub">Report a problem or suggest an improvement — submitted via your desktop</string>
+    <string name="settings_feedback_title">Send feedback</string>
+    <string name="settings_feedback_type_bug">Bug</string>
+    <string name="settings_feedback_type_feature">Suggestion</string>
+    <string name="settings_feedback_type_performance">Slow performance</string>
+    <string name="settings_feedback_type_usage">How-to help</string>
+    <string name="settings_feedback_description">What happened?</string>
+    <string name="settings_feedback_contact">Contact (optional)</string>
+    <string name="settings_feedback_submit">Submit</string>
+    <string name="settings_feedback_submitted">Ticket %1$s created — thank you!</string>
+    <string name="settings_feedback_failed">The feedback could not be sent — check the connection and try again.</string>
+    <string name="feedback_close">Close</string>
 </resources>

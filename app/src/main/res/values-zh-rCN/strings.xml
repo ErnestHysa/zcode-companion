@@ -241,4 +241,18 @@
     <string name="mcp_status_unknown">未知</string>
     <!-- Phase 5D (ADR-023): 插件启用开关 -->
     <string name="plugin_toggle_failed">桌面端拒绝了该插件更改 — 列表已从 wire 重新读取</string>
+    <!-- Phase 6B (H1.6)：应用内反馈表单（桌面端 feedback.* 工单） -->
+    <string name="settings_feedback_entry">发送反馈</string>
+    <string name="settings_feedback_entry_sub">报告问题或提出建议 — 通过你的桌面端提交</string>
+    <string name="settings_feedback_title">发送反馈</string>
+    <string name="settings_feedback_type_bug">缺陷</string>
+    <string name="settings_feedback_type_feature">建议</string>
+    <string name="settings_feedback_type_performance">性能问题</string>
+    <string name="settings_feedback_type_usage">使用帮助</string>
+    <string name="settings_feedback_description">遇到了什么问题？</string>
+    <string name="settings_feedback_contact">联系方式（可选）</string>
+    <string name="settings_feedback_submit">提交</string>
+    <string name="settings_feedback_submitted">工单 %1$s 已创建 — 感谢反馈！</string>
+    <string name="settings_feedback_failed">反馈发送失败 — 请检查连接后重试。</string>
+    <string name="feedback_close">关闭</string>
 </resources>
