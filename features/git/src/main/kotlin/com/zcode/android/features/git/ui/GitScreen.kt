@@ -37,6 +37,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -531,19 +533,26 @@ private fun ChangeRow(
             // ADR-021 Tier A: reversible index moves — one tap, no confirm; the DISCARD
             // entry (Tier C) opens the typed-confirm (never an inline destructive tap).
             if (onStage != null) {
+                // ADR-021 Tier A: reversible index moves — one tap, no confirm. Compact
+                // text (the a11y description carries the verb; the row height stays stable
+                // so the desktop section sort stays observable in pixels).
                 TextButton(
                     onClick = { onStage(entry.repoRelativePath.ifBlank { entry.path }, !staged) },
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp),
                     modifier = Modifier
-                        .minRowTouchTarget()
-                        .testTag("git_stage_${entry.repoRelativePath}"),
+                        .height(32.dp)
+                        .testTag("git_stage_${entry.repoRelativePath}")
+                        .semantics { contentDescription = if (staged) "Unstage ${entry.repoRelativePath}" else "Stage ${entry.repoRelativePath}" },
                 ) { Text(stringResource(if (staged) R.string.git_unstage else R.string.git_stage), style = MaterialTheme.typography.labelSmall) }
             }
             if (onDiscard != null) {
                 TextButton(
                     onClick = { onDiscard(entry.repoRelativePath.ifBlank { entry.path }, staged) },
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp),
                     modifier = Modifier
-                        .minRowTouchTarget()
-                        .testTag("git_discard_entry_${entry.repoRelativePath}"),
+                        .height(32.dp)
+                        .testTag("git_discard_entry_${entry.repoRelativePath}")
+                        .semantics { contentDescription = "Discard ${entry.repoRelativePath}" },
                 ) { Text(stringResource(R.string.git_discard), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error) }
             }
             Icon(

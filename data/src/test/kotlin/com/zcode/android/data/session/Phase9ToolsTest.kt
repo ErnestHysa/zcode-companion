@@ -1,5 +1,6 @@
 package com.zcode.android.data.session
 
+import com.zcode.android.core.transport.AppTransport
 import com.zcode.android.core.common.log.ZLog
 import com.zcode.android.core.transport.CredentialSigner
 import com.zcode.android.core.transport.TransportFailure
@@ -277,14 +278,32 @@ class Phase9ToolsTest {
         }
     }
 
+    /**
+     * ADR-022 (Phase 5D) UPDATE of the view-only pin: write/resize now EXIST (the armed
+     * tier) but their GATE is the controller's arm — the transport method alone cannot
+     * send (the arm check throws before the wire). The pin asserts the ADR-022 contract:
+     * the methods exist AND the arm gate is real (disarmed write throws, zero calls).
+     */
     @Test
-    fun `INV-9 terminal transport surface exposes NO write or resize (API check)`() {
+    fun `ADR-022 terminal write tier is gated by the controller arm (API check)`() {
         val methods = RelayTransport::class.java.methods.map { it.name }
         assertTrue(methods.contains("terminalCreate"))
         assertTrue(methods.contains("terminalDispose"))
-        assertTrue(!methods.contains("terminalWrite"), "write MUST NOT exist on the view-only surface")
-        assertTrue(!methods.contains("terminalResize"), "resize MUST NOT exist on the view-only surface")
+        assertTrue(methods.contains("terminalWrite"), "the ADR-022 armed write tier exists")
+        assertTrue(methods.contains("terminalResize"), "the ADR-022 armed resize tier exists")
+        // the typed gate: a DISARMED controller refuses write/resize locally (zero wire calls)
+        val controller = com.zcode.android.data.session.TerminalController(throwingTransport())
+        val e = kotlinx.coroutines.runBlocking {
+            runCatching { controller.write("ls\n") }.exceptionOrNull()
+        }
+        assertTrue(e is IllegalStateException && (e.message ?: "").contains("not armed"), "disarmed write throws the typed gate")
     }
+
+    /** A disarmed write throws BEFORE any transport use — an all-throwing proxy suffices. */
+    private fun throwingTransport(): AppTransport =
+        java.lang.reflect.Proxy.newProxyInstance(
+            AppTransport::class.java.classLoader, arrayOf(AppTransport::class.java),
+        ) { _, _, _ -> throw UnsupportedOperationException("not used while disarmed") } as AppTransport
 
     // ---------------------------------------------------------------- 9.4 git
 
