@@ -54,6 +54,7 @@ import androidx.compose.runtime.setValue
 object Routes {
     const val PAIRING = "pairing"
     const val TASKS = "tasks"
+    const val ONBOARDING = "onboarding"
     const val CONVERSATION = "conversation/{taskId}"
     const val CONNECTION = "connection"
     const val SETTINGS = "settings"
@@ -86,6 +87,8 @@ fun ZCodeApp(
     // vault relay-metadata; a device paired ONLY to a direct server must land on
     // the task list, not the QR gate). The surrogate carries the deep-link
     // environment's deviceSid slot (= the endpoint id; routing input only).
+    val prefs by container.stores.preferencesRepository.observe()
+        .collectAsState(com.zcode.android.domain.model.AppPreferences())
     val relayPaired by container.pairingPort.pairedEndpoint.collectAsState()
     val hubEndpoint by container.hub.endpoint.collectAsState()
     // The surrogate is for DIRECT-ONLY devices: once a relay pairing exists in this
@@ -125,7 +128,12 @@ fun ZCodeApp(
                 if (!onPairing) nav.navigate(Routes.PAIRING) { popUpTo(0) { inclusive = true } }
             onPairing -> {
                 container.hub.onPairingCompleted()
-                nav.navigate(Routes.TASKS) { popUpTo(Routes.PAIRING) { inclusive = true } }
+                // H1.5: the ONE-TIME post-pairing pass — skippable; never re-shown.
+                if (!prefs.onboardingDone) {
+                    nav.navigate(Routes.ONBOARDING) { popUpTo(Routes.PAIRING) { inclusive = true } }
+                } else {
+                    nav.navigate(Routes.TASKS) { popUpTo(Routes.PAIRING) { inclusive = true } }
+                }
             }
             else -> container.hub.onPairingCompleted()
         }
@@ -234,6 +242,19 @@ fun ZCodeApp(
     ) {
         composable(Routes.PAIRING) {
             PairingHostRoute(pairingVm = pairingVm, scannerContent = scannerContent)
+        }
+        composable(Routes.ONBOARDING) {
+            // H1.5: the one-time "what your phone can do" pass — Skip and Get-started
+            // both mark the pref done and land on the task list.
+            androidx.compose.runtime.LaunchedEffect(Unit) { container.hub.onPairingCompleted() }
+            com.zcode.android.features.pairing.ui.OnboardingPager(
+                onFinish = {
+                    scope.launch {
+                        container.stores.preferencesRepository.update { p -> p.copy(onboardingDone = true) }
+                        nav.navigate(Routes.TASKS) { popUpTo(0) { inclusive = true } }
+                    }
+                },
+            )
         }
         composable(Routes.TASKS) {
             // §18.3 "Needs you": the approvals inbox entry carries the open count.

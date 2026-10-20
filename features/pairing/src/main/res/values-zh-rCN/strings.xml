@@ -54,4 +54,16 @@
     <string name="unpair_detail">这将删除此手机上的配对凭据和所有密钥材料。另请在桌面端的远程控制对话框中按“停止” — 关闭对话框并不会停止远程控制。</string>
     <string name="action_unpair_confirm">取消配对并清除</string>
     <string name="security_explainer_a11y">安全说明</string>
+    <!-- Phase 6B (H1.5)：可跳过的配对后引导 -->
+    <string name="onboarding_skip">跳过</string>
+    <string name="onboarding_next">下一步</string>
+    <string name="onboarding_done">开始使用</string>
+    <string name="onboarding_approvals_title">随处审批</string>
+    <string name="onboarding_approvals_body">ZCode 执行前会先征询 — 直接在手机上批准或拒绝，锁屏上也可以。</string>
+    <string name="onboarding_live_title">实时查看工作</string>
+    <string name="onboarding_live_body">智能体在桌面端工作时，实时跟随对话、文件、git 和终端。</string>
+    <string name="onboarding_automations_title">自动化与闲时任务</string>
+    <string name="onboarding_automations_body">查看定时任务与闲时队列；在这里暂停、继续或取消。</string>
+    <string name="onboarding_usage_title">用量与诊断</string>
+    <string name="onboarding_usage_body">按模型查看 token 用量；遇到问题时导出诊断。</string>
 </resources>

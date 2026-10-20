@@ -214,6 +214,8 @@ data class AppPreferences(
     val notifyApprovals: Boolean = true,
     val notifyTaskOutcomes: Boolean = true,
     val notifyConnection: Boolean = true,
+    /** H1.5 (Phase 6B): the skippable post-pairing pass ran once (never re-shown). */
+    val onboardingDone: Boolean = false,
 ) {
     enum class NotificationContentLevel { MINIMAL, CONTENT }
 

@@ -43,4 +43,5 @@ message AppPreferencesProto {
   optional bool notify_approvals = 10; // Phase 4F: the approvals channel toggle (default ON)
   optional bool notify_task_outcomes = 11; // Phase 4F: the task-status channel toggle (default ON)
   optional bool notify_connection = 12; // Phase 4F: the connection-loss toggle (default ON)
+  optional bool onboarding_done = 13; // H1.5: the post-pairing pass ran once (skippable)
 }

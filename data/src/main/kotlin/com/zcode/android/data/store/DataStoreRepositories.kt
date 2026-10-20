@@ -130,6 +130,7 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
         notifyApprovals = if (hasNotifyApprovals()) notifyApprovals else true,
         notifyTaskOutcomes = if (hasNotifyTaskOutcomes()) notifyTaskOutcomes else true,
         notifyConnection = if (hasNotifyConnection()) notifyConnection else true,
+        onboardingDone = if (hasOnboardingDone()) onboardingDone else false,
     )
 
     private fun AppPreferences.toProto(): AppPreferencesProto {
@@ -148,6 +149,7 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
             .setNotifyApprovals(notifyApprovals)
             .setNotifyTaskOutcomes(notifyTaskOutcomes)
             .setNotifyConnection(notifyConnection)
+            .setOnboardingDone(onboardingDone)
             .apply { selected?.let { setSelectedEndpointId(it) } }
             .build()
     }
