@@ -54,9 +54,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.testTag
 import com.zcode.android.features.conversation.R
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.getValue
@@ -677,11 +675,13 @@ fun CompactionNoticeRow(
         },
     )
     val failed = notice.phase == com.zcode.android.domain.model.CompactionNotice.Phase.FAILED
-    val tokenDetail = if (notice.tokensBefore != null && notice.tokensAfter != null) {
+    val before = notice.tokensBefore
+    val after = notice.tokensAfter
+    val tokenDetail = if (before != null && after != null) {
         stringResource(
             R.string.compaction_tokens,
-            com.zcode.android.core.ui.components.formatCompactTokenCount(notice.tokensBefore),
-            com.zcode.android.core.ui.components.formatCompactTokenCount(notice.tokensAfter),
+            com.zcode.android.core.ui.components.formatCompactTokenCount(before),
+            com.zcode.android.core.ui.components.formatCompactTokenCount(after),
         )
     } else null
     Row(
