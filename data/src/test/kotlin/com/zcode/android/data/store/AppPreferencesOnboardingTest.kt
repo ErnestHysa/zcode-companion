@@ -41,9 +41,9 @@ class AppPreferencesOnboardingTest {
     @Test
     fun `onboardingDone defaults false and round-trips the update`() = runTest {
         val preferences = repo()
-        assertFalse(preferences.current().onboardingDone, "a fresh store has not run the pass")
+        assertFalse("a fresh store has not run the pass", preferences.current().onboardingDone)
         preferences.update { it.copy(onboardingDone = true) }
-        assertTrue(preferences.current().onboardingDone, "the flip survives the proto round-trip")
+        assertTrue("the flip survives the proto round-trip", preferences.current().onboardingDone)
     }
 
     @Test
@@ -54,6 +54,6 @@ class AppPreferencesOnboardingTest {
             .setScreenshotProtection(true)
             .build()
         val decoded = AppPreferencesSerializer.readFrom(ByteArrayInputStream(legacy.toByteArray()))
-        assertFalse(decoded.onboardingDone, "unset optional field → domain default (additive-first)")
+        assertFalse("unset optional field → domain default (additive-first)", decoded.onboardingDone)
     }
 }
