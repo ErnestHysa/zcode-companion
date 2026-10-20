@@ -111,8 +111,7 @@ fun main() {
     // Phase 4C (D2) rig leg: MOCK_GOAL=1 scripts a goal (with a pass/notSatisfied
     // verification timeline) + a todo list into the state block — the goal/plan
     // panels and the turn-kind label render live.
-    if (System.getenv("MOCK_GOAL") != null) {
-        mock.script.goalState = JsonObject(mapOf(
+    if (System.getenv("MOCK_GOAL") != null) {        mock.script.goalState = JsonObject(mapOf(
             "targetId" to JsonPrimitive("g-rig"),
             "objective" to JsonPrimitive("Ship the release"),
             "summaryTitle" to JsonPrimitive("Ship it"),
@@ -172,6 +171,13 @@ fun main() {
             JsonObject(mapOf("role" to JsonPrimitive("user"), "content" to JsonPrimitive("Ship the release this week"))),
             JsonObject(mapOf("role" to JsonPrimitive("assistant"), "content" to JsonPrimitive("I'll draft the changelog and bump the version"))),
         ))
+    }
+    // Phase 6A (I2.4) rig leg: MOCK_COMPACT=1 stamps the context-compaction lifecycle
+    // markers (started:auto → completed:auto with token counts → failed:manual) into the
+    // NEXT snapshot — the conversation renders the compaction notice rows per phase and
+    // the failed one offers Retry (vm.retryCompaction → the compact command).
+    if (System.getenv("MOCK_COMPACT") != null) {
+        mock.script.compactionDemo = true
     }
     // Phase 5A (A3.3 + L6.4) rig leg: MOCK_WORKFLOWS=1 scripts two saved workflows (one with a
     // required arg), one live session run with an event timeline, and one completed saved run —

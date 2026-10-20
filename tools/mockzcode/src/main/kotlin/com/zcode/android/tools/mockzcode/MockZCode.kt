@@ -283,6 +283,14 @@ class MockZCode(
          */
         var rowActionsDemo: Boolean = false
 
+        /**
+         * I2.4 (Phase 6A): stamp the context-compaction lifecycle into the NEXT
+         * snapshot — three `timelineMarker` rows (`marker.type == "compact"`):
+         * started:auto, completed:auto with token counts, failed:manual — the
+         * phone's notice row renders per phase and offers Retry on the failed one.
+         */
+        var compactionDemo: Boolean = false
+
         // ---------------- Phase 10 (direct surface, docs/protocol/phase10-direct.md) ----------------
         /** Simulate the 401 token gate on /api/server-info + /ws (auth-class fixtures). */
         var directRejectToken: Boolean = false
@@ -1206,6 +1214,17 @@ class MockZCode(
                 put("state", JsonPrimitive(text)) // terminal state rides `text` for scripted headers
                 put("startedAt", JsonPrimitive(System.currentTimeMillis().toDouble() - 300_000 + rowId))
             }
+            RowKind.TIMELINE_MARKER -> buildJsonObject {
+                // I2.4 (Phase 6A): `text` carries "status:origin" (the schemaRow
+                // status-carrying convention); the marker payload mirrors the host's
+                // projectMarker compact arm {type, origin, status}.
+                put("lane", JsonPrimitive("turnTailBoundary"))
+                put("marker", buildJsonObject {
+                    put("type", JsonPrimitive("compact"))
+                    put("origin", JsonPrimitive(text.substringAfter(":", "manual")))
+                    put("status", JsonPrimitive(text.substringBefore(":")))
+                })
+            }
             RowKind.USER_INPUT -> buildJsonObject {
                 put("text", JsonPrimitive(text))
                 put("origin", JsonPrimitive("typed"))
@@ -1219,7 +1238,7 @@ class MockZCode(
     /** Kinds the mock emits (subset of the verified rows.ts union, all schema-faithful). */
     enum class RowKind(val wire: String) {
         TURN_HEADER("turnHeader"), USER_INPUT("userInput"), ASSISTANT_TEXT("assistantText"),
-        REASONING("reasoning"), TOOL_CALL("toolCall"),
+        REASONING("reasoning"), TOOL_CALL("toolCall"), TIMELINE_MARKER("timelineMarker"),
     }
 
     /** S12 driver: authoritative terminal turn state stamped into the NEXT snapshot. */
@@ -1287,6 +1306,22 @@ class MockZCode(
             // The latest assistant row of the snapshot is the retryable/forkable one.
             val lastAssistant = rows.indexOfLast { it["kind"]?.let { k -> (k as JsonPrimitive).content } == RowKind.ASSISTANT_TEXT.wire }
             if (lastAssistant >= 0) rows[lastAssistant] = JsonObject(rows[lastAssistant] + ("actions" to ROW_ACTIONS_ASSISTANT))
+        }
+        if (script.compactionDemo) {
+            // I2.4: the lifecycle the desktop sends around an auto compaction —
+            // started, then the terminal auto success (with token counts), then a
+            // failed manual compaction for the Retry affordance.
+            rows.add(schemaRow(sessionId, nextId++, RowKind.TIMELINE_MARKER, "running:auto"))
+            rows.add(schemaRow(sessionId, nextId++, RowKind.TIMELINE_MARKER, "completed:auto", extra = buildJsonObject {
+                put("marker", buildJsonObject {
+                    put("type", JsonPrimitive("compact"))
+                    put("origin", JsonPrimitive("auto"))
+                    put("status", JsonPrimitive("completed"))
+                    put("tokensBefore", JsonPrimitive(180_000))
+                    put("tokensAfter", JsonPrimitive(42_000))
+                })
+            }))
+            rows.add(schemaRow(sessionId, nextId++, RowKind.TIMELINE_MARKER, "failed:manual"))
         }
         return JsonArray(rows)
     }
