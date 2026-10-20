@@ -291,6 +291,14 @@ interface V4Plane {
     // model-selection (read-only view)
     suspend fun modelSelectionView(): JsonObject
 
+    /**
+     * ADR-023 (gaps-and-polish Phase 5D, A3.19): the ONE sanctioned plugin write —
+     * `setPluginEnabled {workspacePath, workspaceIdentity, pluginId, enabled, operationId?,
+     * scope?}` (host/index.js ≈346624 → the CLI `plugins/setEnabled` word).
+     * install/uninstall/update/configure stay desktop-only per the ADR (T24).
+     */
+    suspend fun setPluginEnabled(workspacePath: String?, workspaceIdentity: String?, pluginId: String, enabled: Boolean): JsonObject
+
     // C7 (Phase 3C): task-plane tool-output slice. The 3.14.5.7961 facade body is a
     // `return null` stub — a null result is DISTINCT here (the caller falls back to the
     // row's retained payload), so this returns JsonObject?, never throws on null.
@@ -1049,6 +1057,17 @@ internal class ChannelV4Plane(
             (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
         }
         return v4CallObject("listPlugins", params)
+    }
+
+    suspend fun setPluginEnabled(workspacePath: String?, workspaceIdentity: String?, pluginId: String, enabled: Boolean): JsonObject {
+        val target = host.workspaceTarget()
+        val params = buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+            (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("pluginId", JsonPrimitive(pluginId))
+            put("enabled", JsonPrimitive(enabled))
+        }
+        return v4CallObject("setPluginEnabled", params)
     }
 
     suspend fun skillReferenceCatalog(

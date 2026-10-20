@@ -65,6 +65,13 @@ interface PluginsPort {
     data class Result(val view: PluginsView?, val error: String?)
 
     suspend fun plugins(): Result
+
+    /**
+     * ADR-023 (Phase 5D, A3.19): the ONE sanctioned plugin write — enable/disable an
+     * ALREADY-installed plugin. `false` = refused (the viewer re-lists from the wire and
+     * keeps the rendered state wire-true; no optimistic flip).
+     */
+    suspend fun setEnabled(pluginId: String, enabled: Boolean): Boolean = false
 }
 
 @Composable

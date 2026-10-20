@@ -1819,6 +1819,29 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             "readSessionEvents" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(emptyList()))
             "readSessionDebug" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
             // ---- Phase 5A (L6.4): the saved-workflow hub words (BJ / FJ / JJ shapes) ----
+            "setPluginEnabled" -> {
+                val pluginId = argAsObject(arg)?.str("pluginId")
+                val enabled = (argAsObject(arg)?.get("enabled") as? JsonPrimitive)?.content?.toBooleanStrictOrNull()
+                if (pluginId == null || enabled == null) respondError(id, "fault.mock.unscripted:setPluginEnabled")
+                else {
+                    // flip the scripted plugin's flag so the next listPlugins is wire-true
+                    script.listPlugins?.let { lp ->
+                        val arr = lp["plugins"] as? JsonArray
+                        if (arr != null) {
+                            val rebuilt = arr.map { item ->
+                                val o = item as? JsonObject
+                                if (o != null && (o["id"] as? JsonPrimitive)?.content == pluginId) {
+                                    JsonObject(o + ("enabled" to JsonPrimitive(enabled)))
+                                } else item
+                            }
+                            script.listPlugins = JsonObject(lp + ("plugins" to JsonArray(rebuilt)))
+                        }
+                    }
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("pluginId", JsonPrimitive(pluginId)); put("enabled", JsonPrimitive(enabled))
+                    }))
+                }
+            }
             "listSavedWorkflows" -> scriptableObject(id, script.savedWorkflows, "listSavedWorkflows")
             "getSavedWorkflow" -> {
                 val name = argAsObject(arg)?.strOrNull("name")

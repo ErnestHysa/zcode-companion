@@ -1270,6 +1270,8 @@ class RelayTransport(
 
     override suspend fun listPlugins(workspacePath: String?, workspaceIdentity: String?): JsonObject =
         plane.listPlugins(workspacePath, workspaceIdentity)
+    override suspend fun setPluginEnabled(workspacePath: String?, workspaceIdentity: String?, pluginId: String, enabled: Boolean): JsonObject =
+        plane.setPluginEnabled(workspacePath, workspaceIdentity, pluginId, enabled)
 
     override suspend fun skillReferenceCatalog(
         workspacePath: String?,

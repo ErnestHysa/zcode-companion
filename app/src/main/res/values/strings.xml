@@ -247,4 +247,6 @@
     <string name="mcp_status_untrusted">Untrusted</string>
     <string name="mcp_status_disabled">Disabled</string>
     <string name="mcp_status_unknown">Unknown</string>
+    <!-- Phase 5D (ADR-023): the sanctioned plugin enable switch -->
+    <string name="plugin_toggle_failed">The desktop refused the plugin change — the list is re-read from the wire</string>
 </resources>

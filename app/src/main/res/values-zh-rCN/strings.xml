@@ -239,4 +239,6 @@
     <string name="mcp_status_untrusted">不受信任</string>
     <string name="mcp_status_disabled">已停用</string>
     <string name="mcp_status_unknown">未知</string>
+    <!-- Phase 5D (ADR-023): 插件启用开关 -->
+    <string name="plugin_toggle_failed">桌面端拒绝了该插件更改 — 列表已从 wire 重新读取</string>
 </resources>
