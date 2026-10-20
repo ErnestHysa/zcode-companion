@@ -129,7 +129,7 @@ class SessionNavigatorAndSummaryUiTest {
         rule.waitForIdle()
         // The jump landed on the FIRST query: its text is on screen again.
         org.junit.Assert.assertTrue(
-            onAllNodesWithText("first question about the parser").fetchSemanticsNodes().isNotEmpty(),
+            rule.onAllNodesWithText("first question about the parser").fetchSemanticsNodes().isNotEmpty(),
             "the first query is visible after the jump",
         )
     }
