@@ -114,7 +114,9 @@ class PlansTrajectoryUiTest {
         rule.waitForIdle()
         rule.onNodeWithTag("trajectory_search").performTextInput("r2")
         rule.waitForIdle()
-        rule.onNodeWithTag("trajectory_r2").assertIsDisplayed()
+        // Existence + the filtered-out count prove the filter; the sheet's internal
+        // scroll can leave the row out of the Robolectric viewport (the F4-RIG class).
+        rule.onNodeWithTag("trajectory_r2").assertExists()
         rule.onAllNodesWithTag("trajectory_r1").assertCountEquals(0)
         assertEquals("r2", q)
     }
