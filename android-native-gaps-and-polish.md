@@ -2103,7 +2103,7 @@ this stands code-level.
 | 2 | P1 foundation lift (theme/motion/chrome/i18n/a11y/platform/release) | 25 | Medium (mechanical but wide; lint gate lands here) | ☑ **DONE 2026-10-16** |
 | 3 | P2 surface redesigns (reader-facing) | 16 | Medium-high (redesigns; pixel pins required) | ☑ **DONE 2026-10-17** |
 | 4 | P2 wire-backed feature parity | 15 | Medium (new surfaces over proven wire) | ☑ **DONE 2026-10-19** |
-| 5 | P3 bigger surfaces + ADR-gated writes | 13 | High (ADR-gated writes are a trust surface) | ☐ open |
+| 5 | P3 bigger surfaces + ADR-gated writes | 13 | High (ADR-gated writes are a trust surface) | ☑ **DONE 2026-10-20** |
 | 6 | P3 long-tail & platform decisions | 16 | Low | ☐ open |
 | 7 | Rig & verification assets | 2 | Low | ☐ open |
 | | **Total** | **117** | | |
@@ -3032,48 +3032,79 @@ zh catalog updated; suite name-diff clean; APK stated. (verified 2026-10-19 — 
   FlowRow-in-AlertDialog measure loop, and the pre-existing AppUpdateController UpToDate
   defect (repaired).
 
+### APPENDED FINDINGS + ERRATA (Phase-5 session; rule 5 — recorded, not silently fixed)
+
+- [x] **F5-WIRE (new, P0-class — discovered + fixed 2026-10-20, e0a3435):** the Phase-4D
+  task lifecycle/search callbacks (onDeleteTask/onRenameTask/onSetTaskArchived/onSearch/
+  onConsumeActionNotice) were NEVER passed from TasksRoute into TaskListScreen — the row
+  menu and confirm dialogs RENDERED but every confirmed action was a no-op in production
+  (GAP-14's collapseStore was likewise dropped). The Phase-4 "4D LIVE ✓" delete round-trip
+  ran against the FAKE port, not this wiring. Fixed: all callbacks + the Phase-5 additions
+  wired; TaskManagementUiTest covers the live path.
+- [x] **A3.10 ERRATUM (corrects the Tier-2 row — bundle-extracted 2026-10-20):**
+  `pauseTask`/`continueTask` are methods of the desktop's **OffPeakTaskService** (host/index.js
+  ≈1204961, `off-peak-task` channel; repo.setPaused + ticket batchStatus) — NOT zcode-task
+  words. Implemented on the off-peak channel (AutomationsSection Pause/Continue by status);
+  `resumeTask` IS the zcode-task "continue a finished task" word.
+- [x] **A3.14 ERRATUM (corrects the Tier-2 row — bundle-extracted 2026-10-20):**
+  create/update/deleteTransientInteractionCard are desktop **Bots**-service methods
+  (Feishu/Lark interactive cards via open-apis/interactive/v1/card/update, host/index.js
+  ≈693797) — NOT the phone-reachable plane (`bots` stays "No (product)"). A3.14's phone
+  half is the elicitation answer plane: the decline/cancel arm landed.
+- [x] **PROBE-A1 RESOLVED — ROUTABLE (bundle-extracted 2026-10-20; gates A3.19):** the
+  phone's zcode-agent channel is a Proxy whose Reflect.get falls through to the full
+  zcodeAgentService — every plugin word is wire-reachable (the retired createPluginsService
+  stubs are the `plugins` channel, a different object). ADR-023 tiers: setPluginEnabled
+  ported; install/update/configure/uninstall stay desktop-only.
+- [x] **PROBE-L6 RESOLVED — NOT REACHABLE for import/publish (bundle-extracted 2026-10-20;
+  gates 5C-share):** scopeConversationShareServiceForAttachment returns rejectMobileShare for
+  every non-desktop client — preflight/publish/importShare/getContinuation ALL throw
+  "Conversation sharing is only available from Desktop" (kind feature_disabled); only
+  getCapabilities/getPreview pass through. Share-OUT is phone-local (Android system sheet);
+  the ~30-entry typed taxonomy is decoded (ConversationShareErrors).
+
 ## Phase 5 — P3 bigger surfaces + ADR-gated writes
 
 ### Sub-phase 5A — Task & workflow management
 
-- [ ] **A3.8–A3.10 (P3)** Full task management: pin (`setTaskPinned`/`listPinnedTasks`),
+- [x] **A3.8–A3.10 (P3)** Full task management: pin (`setTaskPinned`/`listPinnedTasks`),
   custom groups with colors (`createTaskGroup`/`updateTaskGroupColor`/
   `listGroupedTaskViewStructure`/`applyGroupedTaskViewOrder`), pause/resume/continue
   (`pauseTask`/`resumeTask`/`continueTask`), `setTaskUnread`, archived viewer. All on the
   shipped facade; builds on 4D's lifecycle core. Accept: each operation round-trips on the
   rig; grouped/pinned sections render.
-- [ ] **A3.3+L6.4 (P3)** Workflow runs viewer + saved-workflow hub: seven
+- [x] **A3.3+L6.4 (P3)** Workflow runs viewer + saved-workflow hub: seven
   `conversationWorkflowRun*V4` methods + `listSavedWorkflows`/`getSavedWorkflow`/
   `listSavedWorkflowRuns` (unused); `startSavedWorkflow` is decoded-unsent (I1). Desktop
   target vocab: `workflows` 90 keys (run with required args, revise-in-chat, last-run states,
   create-via-chat). Accept: hub lists saved workflows; run renders live status from run
   events; rig pins.
-- [ ] **I1-queue (P3)** Queue reorder + auto-drain + follow-ups: `reorderQueueItem` and
+- [x] **I1-queue (P3)** Queue reorder + auto-drain + follow-ups: `reorderQueueItem` and
   `setAutoDrain` are decoded-unsent (the desktop queue does both); follow-up suggestions /
   turn steering via `setFollowupMode` (I2.6). Accept: drag-reorder persists over the wire;
   drain toggle round-trips; `v4call` proofs.
 
 ### Sub-phase 5B — Checkpoints & session history
 
-- [ ] **A3.11 (P3)** Checkpoints & rewind preview: `conversationFileRewindPreviewV4`;
+- [x] **A3.11 (P3)** Checkpoints & rewind preview: `conversationFileRewindPreviewV4`;
   `gitCheckpointService` create/diff/restore; `/rewind`, `/fork` (restore = ⚠). Pairs with
   I2.1's per-turn change card (Phase 3C). Accept: rewind preview renders; restore ADR-gated
   or clearly warned; rig pin.
-- [ ] **A3.12+D2-fold (P3)** Plans viewer (`conversationPlansV4`) + the todo/plan panel keys
+- [x] **A3.12+D2-fold (P3)** Plans viewer (`conversationPlansV4`) + the todo/plan panel keys
   (fold D2's todo render into the panel). Accept: plans list + detail render from the wire.
-- [ ] **A3.13 (P3)** Trajectory viewer v1 + conversation search: `getModelTrajectory`,
+- [x] **A3.13 (P3)** Trajectory viewer v1 + conversation search: `getModelTrajectory`,
   `readSessionMessages`/`readSessionEvents`/`readSessionDebug` (unused). Accept: searchable
   step timeline for a completed task; rig pin.
 
 ### Sub-phase 5C — Elicitation, feedback, share
 
-- [ ] **A3.14 (P3)** Elicitation & transient interaction cards (`respondElicitation`,
+- [x] **A3.14 (P3)** Elicitation & transient interaction cards (`respondElicitation`,
   create/update/deleteTransientInteractionCard). Accept: rig-scripted elicitation renders and
   answers over the wire.
-- [ ] **A3.15+I1-feedback (P3)** Assistant message feedback (`setAssistantMessageFeedback`
+- [x] **A3.15+I1-feedback (P3)** Assistant message feedback (`setAssistantMessageFeedback`
   facade method; `setAssistantFeedback` decoded-unsent command with the like/dislike schema
   enum). Accept: like/dislike on assistant rows round-trips; state persists.
-- [ ] **A3.16+L6.1+C9-share (P3, gated PROBE-L6)** Share import + Android share-sheet
+- [x] **A3.16+L6.1+C9-share (P3, gated PROBE-L6)** Share import + Android share-sheet
   delivery: `importShare`/`publish` (publish = ⚠) + the `conversation-share` channel; Android
   is the better sharing platform — the share sheet is the delivery mechanism for whatever the
   desktop share service produces (165-key surface with a ~30-entry typed error taxonomy).
@@ -3082,7 +3113,7 @@ zh catalog updated; suite name-diff clean; APK stated. (verified 2026-10-19 — 
 
 ### Sub-phase 5D — ADR-gated writes (INV-9 family; each needs its ADR before code)
 
-- [ ] **A3.17+J1.3 (ADR)** Git mutations incl. AI commit messages: `stage/unstage/discard/
+- [x] **A3.17+J1.3 (ADR)** Git mutations incl. AI commit messages: `stage/unstage/discard/
   commit`, `generateCommitMessage`, `switchBranch`, `getBranchComparison`. Spec against the
   desktop's FULL vocabulary (J1.3): commit dialog (generate/regenerate, include-unstaged
   toggle, identity-missing state, commit-and-push), push dialog (ahead/behind, untracked
@@ -3090,17 +3121,133 @@ zh catalog updated; suite name-diff clean; APK stated. (verified 2026-10-19 — 
   (`branchAlreadyExists`, `branchInOtherWorktree`, `conflictsPresent`, `invalidBranchName`,
   `operationInProgress`, `targetBranchNotFound`, `trackedOverwrite`, `untrackedOverwrite`).
   Accept: ADR merged; then implementation with per-operation pins + the typed error map.
-- [ ] **A3.18 (ADR)** Terminal input (phone is view-only by gate today; J7's copy-out lands
+- [x] **A3.18 (ADR)** Terminal input (phone is view-only by gate today; J7's copy-out lands
   first in 2F). Accept: ADR merged; gated implementation follows its ruling.
-- [ ] **A3.19 (ADR, gated PROBE-A1)** Plugin writes: enable/disable low-risk; install = trust
+- [x] **A3.19 (ADR, gated PROBE-A1)** Plugin writes: enable/disable low-risk; install = trust
   surface. Tiering per the probe verdict. Accept: ADR + tiered implementation per verdict.
-- [ ] **A3.20 (ADR)** Hooks trust grant (`grantWorkspaceHookTrust`): a session can block on
+- [x] **A3.20 (ADR)** Hooks trust grant (`grantWorkspaceHookTrust`): a session can block on
   hook trust with NO phone remedy today. Accept: ADR + grant flow.
 
-Phase 5 exit gate: ☐ ADRs merged for all four 5D entries before any write code; rig pins for
-every new surface; name-diff clean; APK stated.
+Phase 5 exit gate: ☑ ADRs merged for all four 5D entries before any write code (c67aa87);
+rig pins for every new surface; name-diff clean; APK stated.
 
 ---
+
+### Phase 5 — VERIFIED COMPLETE (do not edit above; this block is the phase record)
+
+- [x] **PHASE 5 COMPLETE — verified 2026-10-20 at 19-41-38 (hh-mm-ss), year 2026**
+- **Verified by:** ZCode coding agent running **GLM-5.3-Flash**
+  (model id `account:zai-individual-coding-plan/GLM-5.3-Flash`), harness
+  **ZCode CLI** (agentic coding harness, permission-mode session on
+  `~/Desktop/DEVPROJECTS/zcode/android-native`, branch `fix/gaps-and-polish`).
+- **Scope:** all 13 Phase-5 findings (sub-phases 5A–5D), each fixed as its own
+  `fix(<ID>)` commit with red-first pins (rule 4); 31 commits this phase
+  (`c67aa87..ac6370a`, from the four merged ADRs to the lint gate; see git log).
+- **Exit-gate order (5D first):** ADR-021 (git mutations, tiered + typed-confirm
+  DISCARD, T20–T22) / ADR-022 (terminal input, 4-layer armed gate, T23) /
+  ADR-023 (plugins: setPluginEnabled ported, install/update/configure stay
+  desktop-only, T24) / ADR-024 (hooks trust review card + grant, T25) — merged in
+  `c67aa87` BEFORE any write code; every wire shape in the ADRs extracted from the
+  installed 3.14.5.7961 bundle (asar → /tmp, offsets cited per ADR).
+- **5A (commit e0a3435 + b28812f + cb311b7):** task management — setTaskPinned/
+  setTaskUnread (CAS expectedUnreadAt)/resumeTask/groups (closed 7-color set, GRAY
+  default like rowToTaskGroup)/archived viewer (unavailable-face honest)/off-peak
+  pauseTask+continueTask; the workflow runs viewer (7 conversationWorkflowRun*V4) +
+  saved-workflow hub (list/get/runs + startSavedWorkflow with the Bu error
+  vocabulary, typed-rejected acks); the queue trio reorderQueueItem (explicit JSON
+  null = to the END)/setAutoDrain/setFollowupMode (out-of-set refused locally).
+  Room v3 (tasks.unreadAtMs, MIGRATION_2_3 + the v1→3 chain drill).
+- **5B (9e3a5db + 8e41df7):** the plans viewer (the desktop's OWN parsePlanStep
+  normalization) folded under the todo panel; the trajectory viewer v1 +
+  conversation search (getModelTrajectory + readSessionMessages; the filter matches
+  requestId/callKind too); the rewind PREVIEW upgrades the turn card's Undo-files
+  sheet (safe/unsafe/ignored + the desktop's canApply gating the Confirm; the copy-
+  only confirm stays the null-preview fallback) + the git-checkpoint trio in the Git
+  screen (restore = ⚠ warned confirm; conflicts → SECOND force confirm).
+- **5C (c148903 + 0dffa1f):** the elicitation decline/cancel arm
+  (`answer {action:"decline"}`, no optionId/freeText; permission cards not
+  decline-able); the assistant-feedback SNAPSHOT word
+  `setAssistantMessageFeedback {taskId, turnIndex, feedback|null}` (the persisted
+  half; the conversation plane shipped Phase 4A); share-OUT via the Android system
+  sheet (TranscriptBuilder: prose kept, tools collapsed, reasoning OMITTED) + the
+  desktop's typed error taxonomy (ConversationShareErrors, 15 kinds).
+- **5D implementations (62689c6 + 60c463b + ADR-023 commit + 5460187):** the git
+  write tier (stage/unstage one-tap; commit sheet with identity gate + AI generate +
+  include-unstaged + commit-and-push; push confirm naming the no-upstream
+  consequence; branch sheet with the TYPED issue map — wire kebab codes with the
+  J1.3 camelKey 1:1; discard typed-confirm `DISCARD`); terminal input behind the
+  controller arm (check(armed) BEFORE the wire; zero calls while disarmed — pinned);
+  the plugins enable Switch (ack drives a RE-LIST, no optimistic flip; tier-2 words
+  have NO affordance — pinned); the hooks review card path (respond trust_selected /
+  toggle / revoke / request + grantWorkspaceHookTrust from the confirmed path only).
+- **Pins (all green; red runs recorded per commit):** TaskManagementDecodeTest (4),
+  MigrationHarnessTest +1 (v2→3 + full chain), BootstrapParserTest +1,
+  TaskManagementVmTest (8), TaskManagementUiTest (9), OffPeakControlsUiTest (1),
+  TaskManagementWireTest (6), MockZCodeTaskManagementSelfTest (2),
+  WorkflowModelsDecodeTest (5), WorkflowRunsVmTest (6), WorkflowPanelsUiTest (4),
+  WorkflowsHubUiTest (5), WorkflowWireTest (3), CommandCoordinatorQueueTest (3),
+  QueueControlsTest (3), QueueControlsUiTest (4), QueueWireTest (2),
+  ConversationPlansDecodeTest (1), ModelTrajectoryDecodeTest (1),
+  PlansTrajectoryUiTest (5), PlansTrajectoryWireTest (2), RewindCheckpointDecodeTest
+  (2), CheckpointsCardUiTest (2), RewindCheckpointWireTest (2),
+  InteractionCoordinatorPhase7Test +1 (decline), ElicitationDeclineUiTest (2),
+  TranscriptBuilderTest (3), TaskLifecycleUiTest/VmTest/WireTest kept green,
+  TerminalArmGateTest (4), Phase9ToolsTest (17, ADR-022 pin rewritten),
+  PluginEnableUiTest (2), MockZCodePluginSelfTest (1), HooksTrustWireTest (3),
+  AccessibilityAuditTest + GitScreenUiTest + ApprovalsBellBadge + AutomationsSection
+  suites kept green — **≈140 new/extended pins**.
+- **Baseline + name-diff (rule 7):** pre-phase baseline 6 known-failing names
+  (socket-timing family, /tmp/phase5-baseline-names.txt, XML-extracted per the
+  F4-VERIFY refinement). Exit full-suite (`gradle test --continue`): first pass 8
+  names — 6 baseline-family + 3 batch-owned regressions (GitScreenUiTest ×2: the
+  Tier-A row actions made rows taller so off-viewport text carries ZERO bounds —
+  the sort pin now walks the root semantics tree in COMPOSITION order and the tap
+  test scrolls git_list first; Phase9ToolsTest: the INV-9 no-write/resize pin
+  SUPERSEDED by ADR-022 and rewritten to the gated contract) — all three fixed in
+  `9f5e863`. Second pass: 1 new name (I18nLiteralGateTest — the Tier-A a11y
+  contentDescriptions) fixed in `7da6ad9` (localized strings en+zh). Final: **zero
+  new names; all remaining failures in the baseline socket-timing family.**
+- **Lint gate (rule 12 / E6):** `:app:lintDebug` — **0 errors** (60 warnings + 1
+  hint; 49E/58W filtered by the committed baseline). The gate caught 8 batch errors
+  (ComposeModifierMissing on the seven Phase-5 sheets) — fixed in `ac6370a`.
+- **Fresh APKs (rule 12c):** debug `app/build/outputs/apk/debug/app-debug.apk`
+  55,184,325 bytes and release `app/build/outputs/apk/release/app-release.apk`
+  27,745,060 bytes (R8), versionName **1.1.0**, versionCode **40**, built from
+  branch `fix/gaps-and-polish` — install THIS debug build for the Phase-5 fixes.
+- **Drift duty (rule 10):** `tools/drift/consumed-surfaces.json` extended with 37
+  new facade names (118 total: the task-management group, workflow runs + saved
+  hub, plans, trajectory/session reads, the feedback snapshot word, the ADR-021
+  git write tier, ADR-022 terminal write tier, setPluginEnabled, hooks grant, the
+  share read words); `node --test` surface 8/8 + bundle 7/7 green. The atlas
+  (§13.3 rows git/terminal/plugins/hooks + the new §13.3.1 appendix) updated in
+  the same session.
+- **PROBE verdicts (recorded here per rule 5 — the Phase-0 checkboxes remain for
+  their own session):**
+  - **PROBE-A1 RESOLVED (bundle-extracted): ROUTABLE.** The zcode-agent channel
+    for a `web-remote-replayable` client is `createZCodeAgentConnectionScope`'s
+    Proxy — Reflect.get falls THROUGH to the full zcodeAgentService, so
+    installPlugin/uninstallPlugin/updatePlugin/setPluginEnabled/configurePlugin
+    are all wire-reachable (the retired `createPluginsService` stubs at
+    ≈1056431 are a DIFFERENT object — the `plugins` channel, not the facade).
+    Per ADR-023's tiering only setPluginEnabled got an affordance.
+  - **PROBE-L6 RESOLVED (bundle-extracted): NOT reachable for import/publish.**
+    `scopeConversationShareServiceForAttachment` (host/index.js ≈1417900) returns
+    a stub for every non-desktop client whose preflight/publish/importShare/
+    getContinuation ALL throw "Conversation sharing is only available from
+    Desktop" (kind `feature_disabled`) — the rejectMobileShare closure; only
+    getCapabilities/getPreview pass through. Share-OUT (the L6.1 delivery
+    mechanism) is therefore phone-local: the Android system sheet over
+    TranscriptBuilder output; the typed taxonomy is on file for any future read.
+- **Rule-5 discoveries appended (not silently fixed):** **F5-WIRE** (the Phase-4D
+  lifecycle + search callbacks were never passed into TaskListScreen by
+  TasksRoute — menus and confirms rendered but the confirmed actions were no-ops;
+  GAP-14's collapseStore likewise; wired in e0a3435), the **A3.10 erratum**
+  (pauseTask/continueTask are OffPeakTaskService words on the `off-peak-task`
+  channel, NOT zcode-task — implemented there; resumeTask is the zcode-task
+  "continue"), the **A3.14 erratum** (create/update/deleteTransientInteractionCard
+  are desktop BOTS-service methods — Feishu/Lark cards — not the phone plane;
+  A3.14's phone half is the elicitation answer plane), and the two PROBE verdicts
+  above.
 
 ## Phase 6 — P3 long-tail & platform decisions
 
