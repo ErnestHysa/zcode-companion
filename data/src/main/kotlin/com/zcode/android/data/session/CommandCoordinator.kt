@@ -262,6 +262,76 @@ class CommandCoordinator(
         return casCommand("setFollowupMode", sessionId, baseRevision, buildJsonObject { put("mode", mode) })
     }
 
+    // ---------------------------------------------------------------- ADR-024 (Phase 5D): hooks trust
+
+    /**
+     * The workspaceHookReview commands (chunk-LNGNUNBX `$r` — NOT CAS-guarded). Shapes
+     * bundle-extracted: base {sessionId, taskId, runId, remoteSessionId?, workspaceIdentity,
+     * bundleDigest, reviewFlowId, generation, interactionId}; respond {decision:{action:
+     * "trust_selected", reviewItemIds}}; toggle {reviewItemId, enabled}; revoke
+     * {reviewItemIds[≥1]} (the review-ids arm); request {sessionId, workspaceIdentity,
+     * bundleDigest}. `grantWorkspaceHookTrust` (the Settings-side persistent grant) is the
+     * V4Plane facade word, reachable ONLY from the review card's confirmed path.
+     */
+    suspend fun respondWorkspaceHookReview(
+        sessionId: String,
+        hook: com.zcode.android.domain.model.WorkspaceHookReview,
+        reviewItemIds: List<String>,
+    ): Outcome = simpleCommand("respondWorkspaceHookReview", sessionId, buildJsonObject {
+        put("sessionId", hook.sessionId)
+        put("taskId", hook.taskId)
+        put("runId", hook.runId)
+        put("workspaceIdentity", hook.workspaceIdentity)
+        put("bundleDigest", hook.bundleDigest)
+        put("reviewFlowId", hook.reviewFlowId)
+        put("generation", hook.generation)
+        put("interactionId", hook.interactionId)
+        put("decision", buildJsonObject {
+            put("action", "trust_selected")
+            put("reviewItemIds", kotlinx.serialization.json.buildJsonArray {
+                reviewItemIds.forEach { add(kotlinx.serialization.json.JsonPrimitive(it)) }
+            })
+        })
+    })
+
+    suspend fun toggleWorkspaceHookReviewItem(
+        sessionId: String,
+        hook: com.zcode.android.domain.model.WorkspaceHookReview,
+        reviewItemId: String,
+        enabled: Boolean,
+    ): Outcome = simpleCommand("toggleWorkspaceHookReviewItem", sessionId, buildJsonObject {
+        put("sessionId", hook.sessionId)
+        put("taskId", hook.taskId)
+        put("runId", hook.runId)
+        put("workspaceIdentity", hook.workspaceIdentity)
+        put("bundleDigest", hook.bundleDigest)
+        put("reviewFlowId", hook.reviewFlowId)
+        put("generation", hook.generation)
+        put("interactionId", hook.interactionId)
+        put("reviewItemId", reviewItemId)
+        put("enabled", enabled)
+    })
+
+    suspend fun revokeWorkspaceHookTrust(
+        sessionId: String,
+        hook: com.zcode.android.domain.model.WorkspaceHookReview,
+        reviewItemIds: List<String>,
+    ): Outcome = simpleCommand("revokeWorkspaceHookTrust", sessionId, buildJsonObject {
+        put("sessionId", hook.sessionId)
+        put("workspaceIdentity", hook.workspaceIdentity)
+        put("bundleDigest", hook.bundleDigest)
+        put("reviewItemIds", kotlinx.serialization.json.buildJsonArray {
+            reviewItemIds.forEach { add(kotlinx.serialization.json.JsonPrimitive(it)) }
+        })
+    })
+
+    suspend fun requestWorkspaceHookReview(sessionId: String, workspaceIdentity: String, bundleDigest: String): Outcome =
+        simpleCommand("requestWorkspaceHookReview", sessionId, buildJsonObject {
+            put("sessionId", sessionId)
+            put("workspaceIdentity", workspaceIdentity)
+            put("bundleDigest", bundleDigest)
+        })
+
     // ---------------------------------------------------------------- saved workflows (Phase 5A, L6.4 + I1)
 
     /**

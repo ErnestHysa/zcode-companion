@@ -242,6 +242,8 @@ data class PendingInteraction(
     val createdAtMs: Long?,
     val permission: PermissionPayload?,
     val userInput: UserInputPayload?,
+    /** ADR-024 (Phase 5D): the workspaceHookReview payload (hooks trust = permission for shell code). */
+    val hookReview: WorkspaceHookReview? = null,
     val raw: JsonObject,
 ) {
     enum class Kind(val wire: String) {
@@ -339,6 +341,7 @@ data class PendingInteraction(
                         raw = p,
                     )
                 },
+                hookReview = payload?.takeIf { it.strOrNull("kind") == "workspaceHookReview" }?.let { WorkspaceHookReview.decode(it) },
                 raw = obj,
             )
         }

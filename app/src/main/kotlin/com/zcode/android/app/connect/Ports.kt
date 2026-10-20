@@ -702,6 +702,39 @@ class DefaultConversationPort(
         return mapAnswer(coordinator.submitElicitationDecline(com.zcode.android.domain.ids.InteractionId(interactionId), action))
     }
 
+
+    // ---------------------------------------------------------------- ADR-024 (Phase 5D): hooks trust
+
+    override suspend fun respondHookReview(
+        taskId: String,
+        hook: com.zcode.android.domain.model.WorkspaceHookReview,
+        reviewItemIds: List<String>,
+    ): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        return mapOutcome(coordinator.respondWorkspaceHookReview(taskId, hook, reviewItemIds))
+    }
+
+    override suspend fun toggleHookReviewItem(taskId: String, hook: com.zcode.android.domain.model.WorkspaceHookReview, reviewItemId: String, enabled: Boolean): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        return mapOutcome(coordinator.toggleWorkspaceHookReviewItem(taskId, hook, reviewItemId, enabled))
+    }
+
+    override suspend fun revokeHookTrust(taskId: String, hook: com.zcode.android.domain.model.WorkspaceHookReview, reviewItemIds: List<String>): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        return mapOutcome(coordinator.revokeWorkspaceHookTrust(taskId, hook, reviewItemIds))
+    }
+
+    override suspend fun grantHookTrust(hook: com.zcode.android.domain.model.WorkspaceHookReview, hookDeclarationDigest: String): Boolean =
+        try {
+            hub.activeTransport().grantWorkspaceHookTrust(hook.workspacePath, hook.workspaceIdentity, hook.bundleDigest, hookDeclarationDigest)
+            true
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("port.hookGrant", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            false
+        }
+
     override suspend fun answerFromInbox(interactionId: String, optionId: String, freeText: String?): ConversationPort.AnswerOutcome {
         val coordinator = hub.interactionCoordinatorOrNull() ?: return ConversationPort.AnswerOutcome.UNKNOWN_INTERACTION
         return mapAnswer(

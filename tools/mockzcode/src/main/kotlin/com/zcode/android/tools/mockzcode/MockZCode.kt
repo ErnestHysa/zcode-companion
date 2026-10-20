@@ -323,6 +323,13 @@ class MockZCode(
         /** ADR-022 rig: the writes the armed terminal tier sent. */
         val terminalWrites: MutableList<String> = java.util.Collections.synchronizedList(ArrayList())
 
+        // ---------------- ADR-024 (Phase 5D): hooks trust ----------------
+        /** Scripted workspaceHookReview payload (the yS shape); null = no review pending. */
+        var hookReview: JsonObject? = null
+        /** Per-item trust states the review commands mutate (rig round-trips). */
+        val hookTrustStates: MutableMap<String, String> = java.util.concurrent.ConcurrentHashMap()
+        var hookReviewsResolved: Boolean = false
+
         // ---------------- Phase 5B (A3.12 + A3.13) ----------------
         /** `conversationPlansV4` result (plans projection; null = typed fault → the panel hides). */
         var plansState: JsonObject? = null
@@ -967,6 +974,26 @@ class MockZCode(
             script.sessionConfig?.let { put("config", it) }
             // Phase 2 (§11.1): the usage key when scripted (GAP-1/GAP-2).
             script.usageState?.let { put("usage", it) }
+            // ADR-024 (Phase 5D): the hook review with the mutated trust states.
+            script.hookReview?.let { hr ->
+                val items = (hr["items"] as? JsonArray)?.map { el ->
+                    val o = el as? JsonObject ?: return@map el
+                    val id = (o["reviewItemId"] as? JsonPrimitive)?.content
+                    val ts = script.hookTrustStates[id]
+                    if (ts != null) JsonObject(o + ("trustState" to JsonPrimitive(ts))) else o
+                }
+                put("pendingInteractions", JsonArray(listOf(buildJsonObject {
+                    put("interactionId", hr["interactionId"] ?: JsonPrimitive("hook-rig"))
+                    put("kind", JsonPrimitive("workspaceHookReview"))
+                    put("anchorRowId", kotlinx.serialization.json.JsonNull)
+                    put("createdAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
+                    put("payload", buildJsonObject {
+                        put("kind", JsonPrimitive("workspaceHookReview"))
+                        (hr as? JsonObject)?.forEach { (k, v) -> if (k != "items") put(k, v) }
+                        put("items", JsonArray(items ?: emptyList()))
+                    })
+                })))
+            }
             // Phase 4C (D2): the goal (with its verification timeline) + todo keys.
             script.goalState?.let { put("goal", it) }
             script.planState?.let { put("plan", it) }
@@ -974,7 +1001,8 @@ class MockZCode(
     }
 
     /** Server-side state.updated driver (races, effects) — §9 key-level replacement. */
-    fun pushStatePatch(patch: JsonObject) {        val listener = conversationListenerId ?: return
+    fun pushStatePatch(patch: JsonObject) {
+        val listener = conversationListenerId ?: return
         val topic = "conversation/${workspace.sessionId}"
         val frame = buildJsonObject {
             put("topic", JsonPrimitive(topic))
@@ -1832,6 +1860,16 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             "readSessionEvents" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(emptyList()))
             "readSessionDebug" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
             // ---- Phase 5A (L6.4): the saved-workflow hub words (BJ / FJ / JJ shapes) ----
+            // ADR-024 (Phase 5D): the Settings-side grant — echoes the digest pair granted.
+            "grantWorkspaceHookTrust" -> {
+                val params = argAsObject(arg)
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("workspacePath", JsonPrimitive(params?.strOrNull("workspacePath") ?: ""))
+                    put("bundleDigest", JsonPrimitive(params?.strOrNull("bundleDigest") ?: ""))
+                    put("hookDeclarationDigest", JsonPrimitive(params?.strOrNull("hookDeclarationDigest") ?: ""))
+                    put("granted", JsonPrimitive(true))
+                }))
+            }
             "setPluginEnabled" -> {
                 val pluginId = argAsObject(arg)?.str("pluginId")
                 val enabled = (argAsObject(arg)?.get("enabled") as? JsonPrimitive)?.content?.toBooleanStrictOrNull()
@@ -2490,6 +2528,30 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 script.controlCanStop = true
                 script.controlStopState = "stoppable"
                 script.inputRoutingMode = "enqueue"
+            }
+            "respondWorkspaceHookReview" -> {
+                stateRevision.incrementAndGet()
+                val decision = payload?.get("decision") as? JsonObject
+                val ids = (decision?.get("reviewItemIds") as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.content } ?: emptyList()
+                ids.forEach { id2 -> script.hookTrustStates[id2] = "trusted_persistent" }
+                script.hookReviewsResolved = true
+                pushStatePatch(buildJsonObject { put("revision", JsonPrimitive(stateRevision.get())) })
+            }
+            "toggleWorkspaceHookReviewItem" -> {
+                stateRevision.incrementAndGet()
+                val itemId = payload?.str("reviewItemId") ?: return null
+                script.hookTrustStates[itemId] = if (payload.str("enabled") == "true") "trusted_persistent" else "revoked"
+                pushStatePatch(buildJsonObject { put("revision", JsonPrimitive(stateRevision.get())) })
+            }
+            "revokeWorkspaceHookTrust" -> {
+                stateRevision.incrementAndGet()
+                val ids = (payload?.get("reviewItemIds") as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.content } ?: emptyList()
+                ids.forEach { id2 -> script.hookTrustStates[id2] = "revoked" }
+                pushStatePatch(buildJsonObject { put("revision", JsonPrimitive(stateRevision.get())) })
+            }
+            "requestWorkspaceHookReview" -> {
+                stateRevision.incrementAndGet()
+                pushStatePatch(buildJsonObject { put("revision", JsonPrimitive(stateRevision.get())) })
             }
             "resolveInteraction" -> {
                 val iid = payload?.strOrNull("interactionId") ?: return null

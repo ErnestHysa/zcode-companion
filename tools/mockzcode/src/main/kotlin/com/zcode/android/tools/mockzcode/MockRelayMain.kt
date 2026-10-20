@@ -256,6 +256,44 @@ fun main() {
             )),
         ))
     }
+    // Phase 5D (ADR-024) rig leg: MOCK_HOOKS=1 scripts a workspaceHookReview (2 pending +
+    // 1 trusted item) — the blocking card renders; trust_selected flips the states live.
+    if (System.getenv("MOCK_HOOKS") != null) {
+        mock.script.hookReview = JsonObject(mapOf(
+            "kind" to JsonPrimitive("workspaceHookReview"),
+            "reviewFlowId" to JsonPrimitive("flow-rig"), "generation" to JsonPrimitive(1),
+            "interactionId" to JsonPrimitive("hook-rig"), "sessionId" to JsonPrimitive("synth-task-1"),
+            "taskId" to JsonPrimitive("synth-task-1"), "runId" to JsonPrimitive("run-rig"),
+            "workspaceIdentity" to JsonPrimitive("synthetic-ws"), "workspaceLabel" to JsonPrimitive("Synthetic Workspace"),
+            "bundleDigest" to JsonPrimitive("a".repeat(64)),
+            "createdAt" to JsonPrimitive(System.currentTimeMillis() - 60_000),
+            "deadlineAt" to JsonPrimitive(System.currentTimeMillis() + 300_000),
+            "summary" to JsonObject(mapOf("eventCount" to JsonPrimitive(2), "hookCount" to JsonPrimitive(3), "pendingCount" to JsonPrimitive(2))),
+            "items" to JsonArray(listOf(
+                JsonObject(mapOf(
+                    "reviewItemId" to JsonPrimitive("h1"), "event" to JsonPrimitive("SessionStart"),
+                    "type" to JsonPrimitive("command"), "displayName" to JsonPrimitive("Warm build cache"),
+                    "displayCommand" to JsonPrimitive("echo warming"), "sourcePath" to JsonPrimitive(".zcode/hooks.json"),
+                    "executionMode" to JsonPrimitive("foreground"), "configuredEnabled" to JsonPrimitive(true),
+                    "editable" to JsonPrimitive(true), "trustState" to JsonPrimitive("pending_trust"),
+                )),
+                JsonObject(mapOf(
+                    "reviewItemId" to JsonPrimitive("h2"), "event" to JsonPrimitive("PreToolUse"),
+                    "type" to JsonPrimitive("command"), "displayName" to JsonPrimitive("Lint gate"),
+                    "displayCommand" to JsonPrimitive("npm run lint"), "sourcePath" to JsonPrimitive(".zcode/hooks.json"),
+                    "executionMode" to JsonPrimitive("background"), "configuredEnabled" to JsonPrimitive(true),
+                    "editable" to JsonPrimitive(false), "trustState" to JsonPrimitive("pending_trust"),
+                )),
+                JsonObject(mapOf(
+                    "reviewItemId" to JsonPrimitive("h3"), "event" to JsonPrimitive("Stop"),
+                    "type" to JsonPrimitive("process"), "displayName" to JsonPrimitive("Watcher"),
+                    "displayCommand" to JsonPrimitive("watch build"), "sourcePath" to JsonPrimitive(".zcode/hooks.json"),
+                    "executionMode" to JsonPrimitive("background"), "configuredEnabled" to JsonPrimitive(true),
+                    "editable" to JsonPrimitive(true), "trustState" to JsonPrimitive("trusted_persistent"),
+                )),
+            )),
+        ))
+    }
     // Phase 4C (C2) rig leg: the slash panel's extra sections — one custom command,
     // one skill, one agent (synthetic, INV-15/16).
     mock.script.commandsList = JsonObject(mapOf(

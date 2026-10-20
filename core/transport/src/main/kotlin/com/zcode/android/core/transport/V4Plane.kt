@@ -320,6 +320,13 @@ interface V4Plane {
     suspend fun modelSelectionView(): JsonObject
 
     /**
+     * ADR-024 (gaps-and-polish Phase 5D, A3.20): the hooks-trust grant (host/index.js
+     * ≈340201 → `workspaceHookTrustGrant`). Reachable ONLY from the review card's
+     * confirmed path (the ADR's §26 T25 gates); never a free-form digest entry UI.
+     */
+    suspend fun grantWorkspaceHookTrust(workspacePath: String?, workspaceIdentity: String?, bundleDigest: String, hookDeclarationDigest: String): JsonObject
+
+    /**
      * ADR-023 (gaps-and-polish Phase 5D, A3.19): the ONE sanctioned plugin write —
      * `setPluginEnabled {workspacePath, workspaceIdentity, pluginId, enabled, operationId?,
      * scope?}` (host/index.js ≈346624 → the CLI `plugins/setEnabled` word).
@@ -1085,6 +1092,17 @@ internal class ChannelV4Plane(
             (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
         }
         return v4CallObject("listPlugins", params)
+    }
+
+    suspend fun grantWorkspaceHookTrust(workspacePath: String?, workspaceIdentity: String?, bundleDigest: String, hookDeclarationDigest: String): JsonObject {
+        val target = host.workspaceTarget()
+        val params = buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+            (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("bundleDigest", JsonPrimitive(bundleDigest))
+            put("hookDeclarationDigest", JsonPrimitive(hookDeclarationDigest))
+        }
+        return v4CallObject("grantWorkspaceHookTrust", params)
     }
 
     suspend fun setPluginEnabled(workspacePath: String?, workspaceIdentity: String?, pluginId: String, enabled: Boolean): JsonObject {

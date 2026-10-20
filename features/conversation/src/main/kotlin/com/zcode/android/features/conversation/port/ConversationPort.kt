@@ -259,6 +259,24 @@ interface ConversationPort {
     suspend fun declineUserInput(interactionId: String, action: String = "decline"): AnswerOutcome =
         AnswerOutcome.UNKNOWN_INTERACTION
 
+    // ---- ADR-024 (Phase 5D, A3.20): the hooks-trust review ----
+
+    /** `respondWorkspaceHookReview {decision:{action:"trust_selected", reviewItemIds}}`. */
+    suspend fun respondHookReview(
+        taskId: String,
+        hook: com.zcode.android.domain.model.WorkspaceHookReview,
+        reviewItemIds: List<String>,
+    ): SendOutcome = SendOutcome.FAILED
+
+    /** `toggleWorkspaceHookReviewItem {reviewItemId, enabled}` (editable items only). */
+    suspend fun toggleHookReviewItem(taskId: String, hook: com.zcode.android.domain.model.WorkspaceHookReview, reviewItemId: String, enabled: Boolean): SendOutcome = SendOutcome.FAILED
+
+    /** `revokeWorkspaceHookTrust {reviewItemIds}` — the safe direction, still confirmed. */
+    suspend fun revokeHookTrust(taskId: String, hook: com.zcode.android.domain.model.WorkspaceHookReview, reviewItemIds: List<String>): SendOutcome = SendOutcome.FAILED
+
+    /** The Settings-side persistent grant — ONLY from the review card's confirmed path. */
+    suspend fun grantHookTrust(hook: com.zcode.android.domain.model.WorkspaceHookReview, hookDeclarationDigest: String): Boolean = false
+
     // ---------------------------------------------------------------- Phase 9 (§43.2-9)
 
     /**

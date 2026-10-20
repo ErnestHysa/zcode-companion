@@ -930,6 +930,7 @@ class DirectTransport(
         plane.setPluginEnabled(workspacePath, workspaceIdentity, pluginId, enabled)
 
     override suspend fun terminalWrite(id: String, data: String) = plane.terminalWrite(id, data)
+    override suspend fun grantWorkspaceHookTrust(workspacePath: String?, workspaceIdentity: String?, bundleDigest: String, hookDeclarationDigest: String): JsonObject = plane.grantWorkspaceHookTrust(workspacePath, workspaceIdentity, bundleDigest, hookDeclarationDigest)
     override suspend fun terminalResize(id: String, cols: Int, rows: Int) = plane.terminalResize(id, cols, rows)
 
     override suspend fun gitStagePaths(workspacePath: String, paths: List<String>) = plane.gitStagePaths(workspacePath, paths)

@@ -670,6 +670,35 @@ class ConversationViewModel(
         _openRun.value = null
     }
 
+    // ---------------------------------------------------------------- ADR-024 (Phase 5D): hooks trust
+
+    /** Trust the CHECKED hooks — the confirm sheet fires this (never a trust-all). */
+    fun trustHooks(hook: com.zcode.android.domain.model.WorkspaceHookReview, reviewItemIds: List<String>) {
+        scope.launch {
+            val outcome = port.respondHookReview(taskId, hook, reviewItemIds)
+            _sendNotice.value = when (outcome) {
+                ConversationPort.SendOutcome.ACCEPTED -> SendNotice(
+                    "Trusted ${reviewItemIds.size} hook(s) — the session continues.",
+                    SendNotice.Kind.INFO, SendNotice.Key.ROW_ACTION_OFFLINE, // honest generic info key
+                )
+                else -> SendNotice("The desktop refused the hook trust.", SendNotice.Kind.ERROR, SendNotice.Key.WORKFLOW_REFUSED, listOf("trust_selected"))
+            }
+        }
+    }
+
+    fun revokeHooks(hook: com.zcode.android.domain.model.WorkspaceHookReview, reviewItemIds: List<String>) {
+        scope.launch { port.revokeHookTrust(taskId, hook, reviewItemIds) }
+    }
+
+    fun toggleHookItem(hook: com.zcode.android.domain.model.WorkspaceHookReview, reviewItemId: String, enabled: Boolean) {
+        scope.launch { port.toggleHookReviewItem(taskId, hook, reviewItemId, enabled) }
+    }
+
+    /** The persistent grant — the card's confirmed path only (ADR-024 decision 4). */
+    fun grantHookTrust(hook: com.zcode.android.domain.model.WorkspaceHookReview, hookDeclarationDigest: String) {
+        scope.launch { port.grantHookTrust(hook, hookDeclarationDigest) }
+    }
+
     // ---------------------------------------------------------------- Phase 5B (A3.12 + A3.13)
 
     private val _plans = MutableStateFlow<List<com.zcode.android.domain.model.ConversationPlan>?>(null)
