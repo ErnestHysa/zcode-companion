@@ -119,6 +119,8 @@ fun ConversationScreen(
     onForkAssistant: (rowId: Long, entityId: String) -> Unit = { _, _ -> },
     onApplyFileRewind: (rowId: Long, entityId: String) -> Unit = { _, _ -> },
     onAssistantFeedback: (rowId: Long, entityId: String, feedback: String?) -> Unit = { _, _, _ -> },
+    /** I2.4 (Phase 6A): retry a failed context compaction (`/compact` over the same path). */
+    onRetryCompaction: () -> Unit = {},
     /** A3.11 (Phase 5B): the rewind preview loader (null = the copy-only confirm). */
     rewindPreviewProvider: (suspend (rowId: Long, entityId: String) -> com.zcode.android.domain.model.RewindPreview?)? = null,
     /** A3.16 (Phase 5C): share the transcript via the Android system sheet. */
@@ -150,8 +152,8 @@ fun ConversationScreen(
     onOpenTrajectory: () -> Unit = {},
     onCloseTrajectory: () -> Unit = {},
 ) {
-    val rowActions = remember(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback) {
-        RowActionCallbacks(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback)
+    val rowActions = remember(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction) {
+        RowActionCallbacks(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction)
     }
     // C6-BackHandler: back with an unsent draft raises a confirm (the promised
     // Phase-7 draft guard). The draft is Room-backed — the guard is the CONFIRMATION
@@ -769,6 +771,8 @@ data class RowActionCallbacks(
     val onForkAssistant: (rowId: Long, entityId: String) -> Unit = { _, _ -> },
     val onApplyFileRewind: (rowId: Long, entityId: String) -> Unit = { _, _ -> },
     val onAssistantFeedback: (rowId: Long, entityId: String, feedback: String?) -> Unit = { _, _, _ -> },
+    /** I2.4 (Phase 6A): re-run a failed context compaction. */
+    val onRetryCompaction: () -> Unit = {},
 )
 
 @Composable

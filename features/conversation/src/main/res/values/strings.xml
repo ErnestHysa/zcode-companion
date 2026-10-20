@@ -324,4 +324,13 @@
     <!-- Phase 5C (A3.16): the share-out -->
     <string name="conv_share_entry">Share</string>
     <string name="share_shared">Shared via the share sheet</string>
+    <!-- Phase 6A (I2.4): the context-compaction lifecycle notice (desktop chat.contextCompaction.*) -->
+    <string name="compaction_started">Compressing context</string>
+    <string name="compaction_skipped">Context is up to date; no compression needed</string>
+    <string name="compaction_interrupted">Context compression interrupted</string>
+    <string name="compaction_failed">Context compression failed</string>
+    <string name="compaction_completed">Context compressed</string>
+    <string name="compaction_completed_auto">Context automatically compressed</string>
+    <string name="compaction_retry">Retry</string>
+    <string name="compaction_tokens">%1$s → %2$s tokens</string>
 </resources>

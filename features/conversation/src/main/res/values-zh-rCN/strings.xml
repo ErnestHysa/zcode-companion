@@ -300,4 +300,13 @@
     <!-- Phase 5C (A3.16): 分享 -->
     <string name="conv_share_entry">分享</string>
     <string name="share_shared">已通过系统分享面板分享</string>
+    <!-- Phase 6A (I2.4): 上下文压缩生命周期提示（桌面端 chat.contextCompaction.*） -->
+    <string name="compaction_started">正在压缩上下文</string>
+    <string name="compaction_skipped">上下文已是最新，无需压缩</string>
+    <string name="compaction_interrupted">上下文压缩已中断</string>
+    <string name="compaction_failed">上下文压缩失败</string>
+    <string name="compaction_completed">上下文已压缩</string>
+    <string name="compaction_completed_auto">上下文已自动压缩</string>
+    <string name="compaction_retry">重试</string>
+    <string name="compaction_tokens">%1$s → %2$s tokens</string>
 </resources>

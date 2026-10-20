@@ -595,6 +595,7 @@ private fun ConversationRoute(
         onForkAssistant = vm::forkAssistant,
         onApplyFileRewind = vm::applyFileRewind,
         onAssistantFeedback = vm::setAssistantFeedback,
+        onRetryCompaction = vm::retryCompaction,
         onSlashMenuOpen = vm::onSlashMenuOpen,
         onSetThoughtLevel = vm::setThoughtLevel,
         fileSearchProvider = { query -> container.conversationPort.searchWorkspaceFiles(state.task?.taskId.orEmpty(), query) },

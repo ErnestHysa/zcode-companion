@@ -772,6 +772,26 @@ class ConversationViewModel(
         }
     }
 
+    /**
+     * I2.4 (Phase 6A): the compaction notice's Retry affordance — the same `/compact`
+     * path the slash command rides (desktop compactOperationLock surfaces as the typed
+     * ack), so a failed marker re-arms compaction without touching the draft.
+     */
+    fun retryCompaction() {
+        scope.launch {
+            when (port.compact(taskId)) {
+                ConversationPort.SendOutcome.ACCEPTED -> _sendNotice.value = null
+                ConversationPort.SendOutcome.BLOCKED_OFFLINE -> _sendNotice.value =
+                    SendNotice("You're offline — the command was not sent and the draft is preserved.", SendNotice.Kind.WARNING)
+                else -> _sendNotice.value = SendNotice(
+                    "Compact was refused by the desktop (it may already be running or an active turn blocks it).",
+                    SendNotice.Kind.WARNING,
+                    SendNotice.Key.COMPACT_REFUSED,
+                )
+            }
+        }
+    }
+
     /** forkAssistant — the desktop switches to the child session in place (SessionPane.tsx:3039). */
     fun forkAssistant(rowId: Long, entityId: String) {
         scope.launch {
