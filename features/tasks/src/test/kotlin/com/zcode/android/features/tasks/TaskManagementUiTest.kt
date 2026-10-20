@@ -1,6 +1,7 @@
 package com.zcode.android.features.tasks
 
-import androidx.compose.ui.test.assertContentDescriptionContains
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -116,7 +117,7 @@ class TaskManagementUiTest {
         rule.onNodeWithTag("tasks_pinned_header").assertIsDisplayed()
         rule.onNodeWithTag("task_unread_p1", useUnmergedTree = true).assertIsDisplayed()
         rule.onNodeWithTag("task_pinned_p1", useUnmergedTree = true).assertIsDisplayed()
-        rule.onNodeWithTag("task_row_p1").assertContentDescriptionContains("unread").assertContentDescriptionContains("pinned")
+        rule.onNodeWithTag("task_row_p1").assert(hasContentDescription("unread", substring = true)).assert(hasContentDescription("pinned", substring = true))
         openMenu("p1")
         rule.onNodeWithText("Unpin").assertIsDisplayed()
         rule.onNodeWithText("Mark read").assertIsDisplayed()

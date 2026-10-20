@@ -5,7 +5,6 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
 import com.zcode.android.domain.model.OffPeakTaskRow
@@ -65,8 +64,8 @@ class OffPeakControlsUiTest {
     @Test
     fun `queued shows Pause paused shows Continue completed shows neither and taps ride the port`() {
         setContent(listOf(row("q1", "queued"), row("p1", "paused"), row("c1", "completed")))
-        rule.onNodeWithTag("offpeak_pause_q1").performScrollTo().performClick(); rule.waitForIdle()
-        rule.onNodeWithTag("offpeak_continue_p1").performScrollTo().performClick(); rule.waitForIdle()
+        rule.onNodeWithTag("offpeak_pause_q1").assertExists().performClick(); rule.waitForIdle()
+        rule.onNodeWithTag("offpeak_continue_p1").assertExists().performClick(); rule.waitForIdle()
         rule.onAllNodesWithTag("offpeak_pause_c1").assertCountEquals(0)
         rule.onAllNodesWithTag("offpeak_continue_c1").assertCountEquals(0)
         rule.onAllNodesWithTag("offpeak_continue_q1").assertCountEquals(0)

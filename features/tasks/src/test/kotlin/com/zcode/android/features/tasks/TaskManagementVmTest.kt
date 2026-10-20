@@ -81,7 +81,10 @@ class TaskManagementVmTest {
         vm.setTaskPinned("t1", false)
         vm.resumeTask("t2")
         runCurrent()
-        assertEquals(listOf("pin:t2:true", "refresh", "pin:t1:false", "refresh", "resume:t2", "refresh"), port.calls.filter { !it.startsWith("groups") })
+        val calls = port.calls.filter { !it.startsWith("groups") }
+        // The three words land in order; each success schedules a refresh (its own coroutine).
+        assertEquals(listOf("pin:t2:true", "pin:t1:false", "resume:t2"), calls.filter { it != "refresh" })
+        assertEquals(3, calls.count { it == "refresh" }, "one refresh per success: $calls")
         assertEquals("Task resumed", vm.state.value.actionNotice)
     }
 
