@@ -256,4 +256,23 @@
     </plurals>
     <string name="composer_mode_echo">模式：%1$s</string>
     <string name="row_diff_empty_file">此文件没有记录到文本差异</string>
+    <!-- Phase 5A (A3.3 + L6.4): 工作流运行面板 + 运行详情 + 启动提示 -->
+    <string name="workflow_runs_title">工作流运行</string>
+    <string name="workflow_run_untitled">工作流运行</string>
+    <string name="workflow_status_pending">等待中</string>
+    <string name="workflow_status_running">运行中</string>
+    <string name="workflow_status_completed">已完成</string>
+    <string name="workflow_status_errored">出错</string>
+    <string name="workflow_status_stopped">已停止</string>
+    <string name="workflow_status_unknown">未知</string>
+    <string name="workflow_resumable">可恢复</string>
+    <string name="workflow_events_title">事件</string>
+    <string name="workflow_events_empty">暂无事件</string>
+    <string name="workflow_events_unavailable">当前连接无法读取运行事件</string>
+    <string name="workflow_events_more">加载更多事件</string>
+    <string name="workflow_event_truncated">（已截断）</string>
+    <string name="workflow_stop_reason">已停止：%1$s</string>
+    <string name="workflow_failure">失败：%1$s</string>
+    <string name="notice_workflow_started">工作流“%1$s”已启动。</string>
+    <string name="notice_workflow_refused">桌面端拒绝了该工作流（%1$s）。</string>
 </resources>

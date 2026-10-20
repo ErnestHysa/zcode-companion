@@ -881,6 +881,7 @@ class ConnectionHub(
     /** Phase 3 read-only viewer plane (usage/automations/plugins/skills/mcp; v4-wire.md §12). */
     private val viewerTools = java.util.concurrent.ConcurrentHashMap<AppTransport, com.zcode.android.data.session.ViewerTools>()
     private val taskServices = java.util.concurrent.ConcurrentHashMap<Any, com.zcode.android.data.session.TaskServiceClient>()
+    private val agentFacades = java.util.concurrent.ConcurrentHashMap<Any, com.zcode.android.data.session.AgentFacadeClient>()
 
     fun viewerTools(): com.zcode.android.data.session.ViewerTools =
         viewerTools.getOrPut(activeTransport()) { com.zcode.android.data.session.ViewerTools(activeTransport()) }
@@ -888,6 +889,10 @@ class ConnectionHub(
     /** Phase 4D (L6.3+J4/H1.1): the `zcode-task` lifecycle + search client. */
     fun taskService(): com.zcode.android.data.session.TaskServiceClient =
         taskServices.getOrPut(activeTransport()) { com.zcode.android.data.session.TaskServiceClient(activeTransport()) }
+
+    /** Phase 5 (A3.3/A3.11/A3.12/A3.13/L6.4): the zcode-agent facade READ words the phone never called. */
+    fun agentFacade(): com.zcode.android.data.session.AgentFacadeClient =
+        agentFacades.getOrPut(activeTransport()) { com.zcode.android.data.session.AgentFacadeClient(activeTransport()) }
 
     /** The connected workspace target for git/files (§7.11); null when disconnected. */
     fun activeWorkspaceTarget(): Pair<String?, String?>? = activeTransport().activeWorkspaceTarget

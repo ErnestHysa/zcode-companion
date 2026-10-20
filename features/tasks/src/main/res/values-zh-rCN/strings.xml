@@ -189,4 +189,21 @@
     <string name="group_color_purple">紫色</string>
     <string name="offpeak_pause">暂停</string>
     <string name="offpeak_continue">继续</string>
+    <!-- Phase 5A (L6.4): 已保存工作流中心 -->
+    <string name="workflows_title">工作流</string>
+    <string name="workflows_empty">此工作区没有已保存的工作流</string>
+    <string name="workflows_invalid">%1$d 个工作流文件无法读取</string>
+    <string name="workflow_scope_project">项目</string>
+    <string name="workflow_scope_global">全局</string>
+    <string name="workflow_run_action">运行</string>
+    <string name="workflow_run_title">运行 %1$s</string>
+    <string name="workflow_target_task">在任务中运行</string>
+    <string name="workflow_no_tasks">没有可运行的任务 — 请先创建一个</string>
+    <string name="workflow_lastrun_never">从未运行</string>
+    <string name="workflow_lastrun_completed">上次运行已完成</string>
+    <string name="workflow_lastrun_errored">上次运行出错</string>
+    <string name="workflow_lastrun_running">运行中</string>
+    <string name="workflow_lastrun_stopped">上次运行已停止</string>
+    <string name="workflow_start_refused">桌面端拒绝了该工作流（%1$s）</string>
+    <string name="workflow_start_sent">工作流已启动</string>
 </resources>

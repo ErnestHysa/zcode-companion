@@ -152,6 +152,8 @@ fun TaskListScreen(
     onUnarchive: (taskId: String) -> Unit = {},
     onDeleteArchived: (taskId: String) -> Unit = {},
     onLoadGroups: () -> Unit = {},
+    /** L6.4 (Phase 5A): start a saved workflow in a task (null = hub hidden). */
+    onStartWorkflow: ((taskId: String, name: String, scope: String?, args: Map<String, String>) -> Unit)? = null,
 ) {
     val motion = rememberMotionSpec()
     var showCreate by remember { androidx.compose.runtime.mutableStateOf(false) }
@@ -275,6 +277,8 @@ fun TaskListScreen(
                     port = port,
                     modelPicker = modelPicker,
                     onOpenTask = onOpenTaskId,
+                    workflowTasks = state.pinned + state.groups.flatMap { it.tasks },
+                    onStartWorkflow = onStartWorkflow,
                 )
             }
             Spacer(Modifier.height(4.dp))

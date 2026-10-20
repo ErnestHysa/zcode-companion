@@ -67,6 +67,9 @@ fun AutomationsSection(
     ) -> Unit = { _, _, _ -> },
     /** A3.2: open-session-from-run (the run's back-filled sessionId). */
     onOpenTask: (taskId: String) -> Unit = {},
+    /** L6.4 (Phase 5A): the saved-workflow hub — the tasks a run can target + the start sender. */
+    workflowTasks: List<com.zcode.android.domain.model.Task> = emptyList(),
+    onStartWorkflow: ((taskId: String, name: String, scope: String?, args: Map<String, String>) -> Unit)? = null,
 ) {
     var loading by remember { mutableStateOf(true) }
     var lists by remember { mutableStateOf<AutomationsPort.Lists?>(null) }
@@ -179,6 +182,10 @@ fun AutomationsSection(
             }
         }
 
+        // L6.4: the saved-workflow hub shares the automations page (desktop pageTab.workflow).
+        onStartWorkflow?.let { start ->
+            WorkflowsHub(port = port, tasks = workflowTasks, onStartWorkflow = start, reloadKey = lists)
+        }
         lists?.offPeak?.takeIf { it.isNotEmpty() }?.let { peaks ->
             Spacer(Modifier.height(8.dp))
             Text(

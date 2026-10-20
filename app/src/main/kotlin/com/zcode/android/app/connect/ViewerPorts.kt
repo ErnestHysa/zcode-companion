@@ -211,6 +211,36 @@ class DefaultAutomationsPort(
     }
     // ---------------------------------------------------------------- Phase 5A (A3.10 as shipped)
 
+    // ---------------------------------------------------------------- Phase 5A (L6.4): saved-workflow hub
+
+    private suspend fun <T> hubRead(tag: String, block: suspend (com.zcode.android.data.session.AgentFacadeClient) -> T): T? = try {
+        block(hub.agentFacade())
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        hub.log.warn("automationsport.workflows.$tag", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+        null
+    }
+
+    override suspend fun savedWorkflows(): com.zcode.android.domain.model.SavedWorkflowList? =
+        hubRead("list") { com.zcode.android.domain.model.SavedWorkflowList.decode(it.listSavedWorkflows()) }
+
+    override suspend fun savedWorkflowRuns(name: String?, limit: Int): List<com.zcode.android.domain.model.SavedWorkflowRun>? =
+        hubRead("runs") { com.zcode.android.domain.model.SavedWorkflowRun.decodeList(it.listSavedWorkflowRuns(name, limit)) }
+
+    override suspend fun savedWorkflow(name: String, scope: String?): com.zcode.android.domain.model.SavedWorkflow? =
+        hubRead("get") { facade ->
+            val obj = facade.getSavedWorkflow(name, scope)
+            val ok = (obj["ok"] as? kotlinx.serialization.json.JsonPrimitive)?.content?.toBooleanStrictOrNull() ?: true
+            if (!ok) null else com.zcode.android.domain.model.SavedWorkflow.decode(
+                // FJ ok-arm carries name/path/scope + meta{description, whenToUse, args}; flatten meta for the row decoder.
+                kotlinx.serialization.json.buildJsonObject {
+                    obj.forEach { (k, v) -> if (k != "meta") put(k, v) }
+                    (obj["meta"] as? kotlinx.serialization.json.JsonObject)?.forEach { (k, v) -> put(k, v) }
+                },
+            )
+        }
+
     override suspend fun pauseOffPeak(offPeakTaskId: String): Boolean = offPeak("pause") { hub.taskService().offPeakPause(offPeakTaskId) }
 
     override suspend fun continueOffPeak(offPeakTaskId: String): Boolean = offPeak("continue") { hub.taskService().offPeakContinue(offPeakTaskId) }

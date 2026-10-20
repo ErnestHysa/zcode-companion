@@ -240,6 +240,21 @@ class CommandCoordinator(
             put("newText", newText)
         })
 
+    // ---------------------------------------------------------------- saved workflows (Phase 5A, L6.4 + I1)
+
+    /**
+     * `startSavedWorkflow {name, scope?, args?}` — NOT CAS-guarded (absent from the
+     * baseRevision set, chunk-LNGNUNBX `$r`). The ack's `reasonCode` carries the typed
+     * error vocabulary `Bu` (invalid_name | not_found | invalid_args | compile_failed |
+     * session_busy | start_failed) — the caller maps it to copy, never guesses.
+     */
+    suspend fun startSavedWorkflow(sessionId: String, name: String, scope: String?, args: JsonObject?): Outcome =
+        simpleCommand("startSavedWorkflow", sessionId, buildJsonObject {
+            put("name", name)
+            scope?.let { put("scope", it) }
+            args?.let { put("args", it) }
+        })
+
     // ---------------------------------------------------------------- model/mode switch (Phase 9.5)
 
     /**

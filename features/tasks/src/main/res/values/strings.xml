@@ -190,4 +190,21 @@
     <string name="group_color_purple">Purple</string>
     <string name="offpeak_pause">Pause</string>
     <string name="offpeak_continue">Continue</string>
+    <!-- Phase 5A (L6.4): the saved-workflow hub -->
+    <string name="workflows_title">Workflows</string>
+    <string name="workflows_empty">No saved workflows in this workspace</string>
+    <string name="workflows_invalid">%1$d workflow file(s) could not be read</string>
+    <string name="workflow_scope_project">project</string>
+    <string name="workflow_scope_global">global</string>
+    <string name="workflow_run_action">Run</string>
+    <string name="workflow_run_title">Run %1$s</string>
+    <string name="workflow_target_task">Run in task</string>
+    <string name="workflow_no_tasks">No task to run in — create one first</string>
+    <string name="workflow_lastrun_never">Never run</string>
+    <string name="workflow_lastrun_completed">Last run completed</string>
+    <string name="workflow_lastrun_errored">Last run errored</string>
+    <string name="workflow_lastrun_running">Running</string>
+    <string name="workflow_lastrun_stopped">Last run stopped</string>
+    <string name="workflow_start_refused">The desktop refused the workflow (%1$s)</string>
+    <string name="workflow_start_sent">Workflow started</string>
 </resources>

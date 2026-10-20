@@ -118,6 +118,54 @@ fun main() {
             "updatedAt" to JsonPrimitive(System.currentTimeMillis()),
         ))
     }
+    // Phase 5A (A3.3 + L6.4) rig leg: MOCK_WORKFLOWS=1 scripts two saved workflows (one with a
+    // required arg), one live session run with an event timeline, and one completed saved run —
+    // the runs panel, the run sheet, and the hub's last-run states render live; Run… sends
+    // startSavedWorkflow and the new run appears on the next refresh.
+    if (System.getenv("MOCK_WORKFLOWS") != null) {
+        val now = System.currentTimeMillis()
+        mock.script.savedWorkflows = JsonObject(mapOf(
+            "workflows" to JsonArray(listOf(
+                JsonObject(mapOf(
+                    "name" to JsonPrimitive("release-notes"), "description" to JsonPrimitive("Draft the release notes"),
+                    "whenToUse" to JsonPrimitive("Before tagging a release"), "scope" to JsonPrimitive("project"),
+                    "path" to JsonPrimitive("/synthetic/ws/.zcode/workflows/release-notes.ts"),
+                    "args" to JsonObject(mapOf("version" to JsonObject(mapOf("type" to JsonPrimitive("string"), "required" to JsonPrimitive(true), "description" to JsonPrimitive("semver"))))),
+                )),
+                JsonObject(mapOf(
+                    "name" to JsonPrimitive("lint-all"), "description" to JsonPrimitive("Lint every module"),
+                    "scope" to JsonPrimitive("global"), "path" to JsonPrimitive("/synthetic/global/lint-all.ts"), "args" to JsonObject(emptyMap()),
+                )),
+            )),
+            "invalid" to JsonArray(listOf(JsonObject(mapOf("path" to JsonPrimitive("/synthetic/ws/.zcode/workflows/broken.ts"), "reason" to JsonPrimitive("parse error"))))),
+            "dir" to JsonPrimitive("/synthetic/ws/.zcode/workflows"),
+        ))
+        mock.script.workflowRuns.add(JsonObject(mapOf(
+            "runId" to JsonPrimitive("wf-run-0"), "label" to JsonPrimitive("lint-all"), "status" to JsonPrimitive("running"),
+            "updatedAt" to JsonPrimitive(now - 30_000), "resumable" to JsonPrimitive(false),
+        )))
+        mock.script.workflowRunEvents["wf-run-0"] = mutableListOf(
+            JsonObject(mapOf("sequence" to JsonPrimitive(1), "type" to JsonPrimitive("run.started"), "payload" to JsonObject(mapOf("message" to JsonPrimitive("started lint-all"))))),
+            JsonObject(mapOf("sequence" to JsonPrimitive(2), "type" to JsonPrimitive("node.dispatched"), "payload" to JsonObject(mapOf("siteId" to JsonPrimitive("s1"), "ordinal" to JsonPrimitive(0), "message" to JsonPrimitive("lint :core"))))),
+            JsonObject(mapOf("sequence" to JsonPrimitive(3), "type" to JsonPrimitive("node.settled"), "payload" to JsonObject(mapOf("siteId" to JsonPrimitive("s1"), "ordinal" to JsonPrimitive(0), "outcome" to JsonPrimitive("ok"))))),
+        )
+        mock.script.savedWorkflowRuns.add(JsonObject(mapOf(
+            "runId" to JsonPrimitive("wf-run-old"), "name" to JsonPrimitive("release-notes"), "status" to JsonPrimitive("completed"),
+            "createdAt" to JsonPrimitive(now - 86_400_000), "updatedAt" to JsonPrimitive(now - 86_000_000), "spentTokens" to JsonPrimitive(4321),
+        )))
+    }
+    // Phase 5A (A3.8–A3.10) rig leg: MOCK_TASKMGMT=1 pins the first synthetic task, marks the
+    // second unread, and seeds one custom group — the pinned section, the unread dot and the
+    // group sub-section render live; the ⋯ verbs round-trip against the mock's state.
+    if (System.getenv("MOCK_TASKMGMT") != null) {
+        mock.script.pinnedTaskIds.add("synth-task-1")
+        mock.script.unreadTaskIds["synth-task-2"] = System.currentTimeMillis()
+        mock.script.taskGroups.add(JsonObject(mapOf(
+            "id" to JsonPrimitive("task-group-rig"), "title" to JsonPrimitive("Backend"), "color" to JsonPrimitive("green"),
+            "createdAt" to JsonPrimitive(System.currentTimeMillis()), "updatedAt" to JsonPrimitive(System.currentTimeMillis()),
+        )))
+        mock.script.taskGroupMembers["task-group-rig"] = mutableListOf("synth-task-3")
+    }
     // Phase 4C (C2) rig leg: the slash panel's extra sections — one custom command,
     // one skill, one agent (synthetic, INV-15/16).
     mock.script.commandsList = JsonObject(mapOf(

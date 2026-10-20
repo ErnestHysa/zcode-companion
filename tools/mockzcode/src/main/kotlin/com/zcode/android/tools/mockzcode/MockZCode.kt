@@ -301,6 +301,17 @@ class MockZCode(
         val offPeakPausedIds: MutableSet<String> = java.util.concurrent.ConcurrentHashMap.newKeySet()
         /** `resumeTask` calls (taskId) — the "continue a finished task" word. */
         val resumedTaskIds: MutableList<String> = java.util.Collections.synchronizedList(ArrayList())
+
+        // ---------------- Phase 5A (A3.3 + L6.4) workflows ----------------
+        /** `listSavedWorkflows` payload (BJ shape); null = unscripted → typed fault (hub hidden). */
+        var savedWorkflows: JsonObject? = null
+        /** `listSavedWorkflowRuns` items (cz shape) — appended when `startSavedWorkflow` runs. */
+        val savedWorkflowRuns: MutableList<JsonObject> = java.util.Collections.synchronizedList(ArrayList())
+        /** The session's runs (`conversationWorkflowRunsV4` Br shape) + per-run events (Rl). */
+        val workflowRuns: MutableList<JsonObject> = java.util.Collections.synchronizedList(ArrayList())
+        val workflowRunEvents: MutableMap<String, MutableList<JsonObject>> = java.util.concurrent.ConcurrentHashMap()
+        /** Every `startSavedWorkflow` envelope payload the mock saw (name/scope/args). */
+        val startedWorkflows: MutableList<JsonObject> = java.util.Collections.synchronizedList(ArrayList())
         /** One-shot direct-socket close after N binary frames (loss class). */
         var directDisconnectAfterFrames: Int? = null
     }
@@ -1459,6 +1470,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
         // mock stdout between tap and screenshot.
         println("MOCK: v4call $name (id=$id)")
         synchronized(recentV4Calls) { recentV4Calls[name ?: "?"] = argAsObject(arg) }
+        synchronized(v4CallLedger) { v4CallLedger.add((name ?: "?") to (argAsObject(arg) ?: JsonObject(emptyMap()))) }
         when (name) {
             // Phase 4C (C7): the scratch-workspace facade call — {name} → {path}.
             "createScratchWorkspace" -> {
@@ -1682,6 +1694,48 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     }))
                     return
                 }
+                // Phase 5A (L6.4 + I1): startSavedWorkflow — the typed Bu vocabulary rides reasonCode.
+                if (type == "startSavedWorkflow") {
+                    val payload = env?.get("payload") as? JsonObject
+                    val name = payload?.strOrNull("name")
+                    script.startedWorkflows.add(payload ?: JsonObject(emptyMap()))
+                    val known = (script.savedWorkflows?.get("workflows") as? JsonArray)
+                        ?.any { (it as? JsonObject)?.strOrNull("name") == name } == true
+                    val reason = when {
+                        name.isNullOrBlank() -> "invalid_name"
+                        !known -> "not_found"
+                        else -> null
+                    }
+                    if (reason != null) {
+                        respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                            put("commandId", JsonPrimitive(commandId))
+                            put("status", JsonPrimitive("rejected"))
+                            put("reasonCode", JsonPrimitive(reason))
+                            put("revisionAtDecision", JsonPrimitive(stateRevision.get()))
+                        }))
+                        return
+                    }
+                    val runId = "wf-run-${script.workflowRuns.size + 1}"
+                    val now = System.currentTimeMillis()
+                    script.workflowRuns.add(buildJsonObject {
+                        put("runId", JsonPrimitive(runId)); put("label", JsonPrimitive(name!!))
+                        put("status", JsonPrimitive("running")); put("updatedAt", JsonPrimitive(now)); put("resumable", JsonPrimitive(false))
+                    })
+                    script.workflowRunEvents[runId] = mutableListOf(
+                        buildJsonObject { put("sequence", JsonPrimitive(1)); put("type", JsonPrimitive("run.started")); put("payload", buildJsonObject { put("message", JsonPrimitive("started $name")) }) },
+                    )
+                    script.savedWorkflowRuns.add(buildJsonObject {
+                        put("runId", JsonPrimitive(runId)); put("name", JsonPrimitive(name)); put("status", JsonPrimitive("running"))
+                        put("createdAt", JsonPrimitive(now)); put("updatedAt", JsonPrimitive(now)); put("spentTokens", JsonPrimitive(0))
+                    })
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("commandId", JsonPrimitive(commandId))
+                        put("status", JsonPrimitive("accepted"))
+                        put("revisionAtDecision", JsonPrimitive(stateRevision.get()))
+                        put("result", buildJsonObject { put("runId", JsonPrimitive(runId)) })
+                    }))
+                    return
+                }
                 var createResult: JsonObject? = null
                 if (script.commandEffects) {
                     createResult = applyCommandEffect(type, env)
@@ -1701,6 +1755,50 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 } else {
                     respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(result))
                 }
+            }
+            // ---- Phase 5A (A3.3): workflow runs — Br/Rl shapes over the mock's run state ----
+            "conversationWorkflowRunsV4" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                put("runs", JsonArray(ArrayList(script.workflowRuns)))
+            }))
+            "conversationWorkflowRunEventsV4" -> {
+                val a = argAsObject(arg)
+                val runId = a?.strOrNull("runId")
+                val after = a?.strOrNull("afterSequence")?.toLongOrNull() ?: 0L
+                val limit = a?.strOrNull("limit")?.toIntOrNull() ?: 200
+                val all = script.workflowRunEvents[runId] ?: emptyList()
+                val page = all.filter { ((it["sequence"] as? JsonPrimitive)?.content?.toLongOrNull() ?: 0L) > after }
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("events", JsonArray(page.take(limit)))
+                    put("hasMore", JsonPrimitive(page.size > limit))
+                }))
+            }
+            "conversationWorkflowRunArtifactsV4" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject { put("artifacts", JsonArray(emptyList())) }))
+            "conversationWorkflowRunNodeResultV4", "conversationWorkflowRunWorkspaceV4" ->
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
+            "conversationWorkflowRunArtifactDataV4" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                put("items", JsonArray(emptyList())); put("hasMore", JsonPrimitive(false))
+            }))
+            "conversationWorkflowRunArtifactReadV4" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                put("dataBase64", JsonPrimitive("")); put("mediaType", JsonPrimitive("text/plain")); put("totalBytes", JsonPrimitive(0)); put("nextOffset", kotlinx.serialization.json.JsonNull)
+            }))
+            // ---- Phase 5A (L6.4): the saved-workflow hub words (BJ / FJ / JJ shapes) ----
+            "listSavedWorkflows" -> scriptableObject(id, script.savedWorkflows, "listSavedWorkflows")
+            "getSavedWorkflow" -> {
+                val name = argAsObject(arg)?.strOrNull("name")
+                val wf = (script.savedWorkflows?.get("workflows") as? JsonArray)?.firstOrNull { (it as? JsonObject)?.strOrNull("name") == name } as? JsonObject
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(
+                    if (wf == null) buildJsonObject { put("ok", JsonPrimitive(false)); put("reason", JsonPrimitive("not_found")) }
+                    else buildJsonObject {
+                        put("ok", JsonPrimitive(true)); put("name", wf["name"]!!); put("path", wf["path"] ?: JsonPrimitive("")); put("scope", wf["scope"] ?: JsonPrimitive("project"))
+                        put("meta", buildJsonObject { wf["description"]?.let { put("description", it) }; wf["whenToUse"]?.let { put("whenToUse", it) }; wf["args"]?.let { put("args", it) } })
+                        put("script", JsonPrimitive("// synthetic"))
+                    },
+                ))
+            }
+            "listSavedWorkflowRuns" -> {
+                val name = argAsObject(arg)?.strOrNull("name")
+                val runs = script.savedWorkflowRuns.filter { name == null || it.strOrNull("name") == name }
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject { put("runs", JsonArray(runs)) }))
             }
             // ---- Phase 3 viewer methods (v4-wire.md §12) ----
             "getAppUsageStats" -> {
@@ -2407,6 +2505,10 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
     /** Phase 4D seam: every `zcode-task` channel call (method, params) in send order. */
     private val taskChannelLedger = ArrayList<Pair<String, JsonObject>>()
     fun taskChannelCallsForTest(): List<Pair<String, JsonObject>> = synchronized(taskChannelLedger) { ArrayList(taskChannelLedger) }
+
+    /** Phase 5: the ORDERED zcode-agent v4call ledger (method, params) — the rule-9 wire proof for every facade read. */
+    private val v4CallLedger = ArrayList<Pair<String, JsonObject>>()
+    fun v4CallsForTest(): List<Pair<String, JsonObject>> = synchronized(v4CallLedger) { ArrayList(v4CallLedger) }
 
     private fun taskIdOf(task: JsonObject): String? = (task["taskId"] as? JsonPrimitive)?.content
 

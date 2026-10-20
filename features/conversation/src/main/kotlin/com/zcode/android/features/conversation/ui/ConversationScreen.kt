@@ -123,6 +123,12 @@ fun ConversationScreen(
     onSetThoughtLevel: (String) -> Unit = {},
     /** Phase 4C (C7): the @-mention workspace file search. */
     fileSearchProvider: suspend (String) -> List<String> = { emptyList() },
+    // ---- Phase 5A (A3.3): workflow runs panel + run sheet ----
+    workflowRuns: List<com.zcode.android.domain.model.WorkflowRunSummary>? = null,
+    openWorkflowRun: com.zcode.android.features.conversation.ConversationViewModel.OpenWorkflowRun? = null,
+    onOpenWorkflowRun: (com.zcode.android.domain.model.WorkflowRunSummary) -> Unit = {},
+    onCloseWorkflowRun: () -> Unit = {},
+    onLoadMoreRunEvents: () -> Unit = {},
 ) {
     val rowActions = remember(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback) {
         RowActionCallbacks(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback)
@@ -183,7 +189,13 @@ fun ConversationScreen(
                 modelOptionsProvider = modelOptionsProvider,
                 sessionStatusProvider = sessionStatusProvider,
                 onSetThoughtLevel = onSetThoughtLevel,
+                workflowRuns = workflowRuns,
+                onOpenWorkflowRun = onOpenWorkflowRun,
             )
+            // A3.3: the run detail sheet (an overlay — position in the tree is immaterial).
+            openWorkflowRun?.let { open ->
+                WorkflowRunSheet(open, onDismiss = onCloseWorkflowRun, onLoadMore = onLoadMoreRunEvents)
+            }
             // Phase 9.1: the per-turn diff viewer (opened from a turnHeader's summary).
             var diffTurn by remember { mutableStateOf<ConversationRow.TurnHeader?>(null) }
             // Phase 2 (§11.4, GAP-10): the message-edit sheet (long-press → Edit).
@@ -355,6 +367,9 @@ private fun Header(
     sessionStatusProvider: suspend () -> com.zcode.android.domain.model.GitSummary? = { null },
     /** Phase 4C (A3.4): the effort switch (setThoughtLevel). */
     onSetThoughtLevel: (String) -> Unit = {},
+    /** Phase 5A (A3.3): the session's workflow runs (null/empty → no panel). */
+    workflowRuns: List<com.zcode.android.domain.model.WorkflowRunSummary>? = null,
+    onOpenWorkflowRun: (com.zcode.android.domain.model.WorkflowRunSummary) -> Unit = {},
 ) {
     Column {
         ZCodeTopBar(
@@ -413,6 +428,10 @@ private fun Header(
         }
         state.sessionState?.plan?.let { plan ->
             PlanPanel(plan, modifier = Modifier.padding(horizontal = 8.dp))
+        }
+        // A3.3: the session's workflow runs (conversationWorkflowRunsV4); null/empty → nothing.
+        workflowRuns?.takeIf { it.isNotEmpty() }?.let { runs ->
+            WorkflowRunsPanel(runs, onOpen = onOpenWorkflowRun, modifier = Modifier.padding(horizontal = 8.dp))
         }
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),

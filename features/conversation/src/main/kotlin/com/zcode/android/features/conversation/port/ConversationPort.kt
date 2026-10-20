@@ -169,6 +169,21 @@ interface ConversationPort {
     /** setAssistantFeedback: `like` | `dislike` | null (clear). The row's `feedback` echo renders the result. */
     suspend fun setAssistantFeedback(taskId: String, rowId: Long, entityId: String, feedback: String?): SendOutcome = SendOutcome.FAILED
 
+    // ---------------------------------------------------------------- Phase 5A (A3.3 + L6.4): workflow runs
+
+    /** `conversationWorkflowRunsV4` — the session's runs; null = unavailable (the panel hides). */
+    suspend fun fetchWorkflowRuns(taskId: String): List<com.zcode.android.domain.model.WorkflowRunSummary>? = null
+
+    /** `conversationWorkflowRunEventsV4` page (afterSequence paging); null = unavailable. */
+    suspend fun fetchWorkflowRunEvents(taskId: String, runId: String, afterSequence: Long?): com.zcode.android.domain.model.WorkflowRunEventsPage? = null
+
+    /** `startSavedWorkflow {name, scope?, args?}` (I1: decoded-unsent until now). */
+    suspend fun startSavedWorkflow(taskId: String, name: String, scope: String?, args: Map<String, String>): StartWorkflowOutcome =
+        StartWorkflowOutcome(SendOutcome.FAILED, null)
+
+    /** The ack's typed reasonCode rides along (StartSavedWorkflowErrors vocabulary). */
+    data class StartWorkflowOutcome(val outcome: SendOutcome, val reasonCode: String?)
+
     /** §20 interaction answer (permission or user-input) through the ONE fail-closed gate. */
     suspend fun answerInteraction(
         interactionId: String,

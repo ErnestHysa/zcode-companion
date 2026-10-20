@@ -1046,6 +1046,9 @@ fun sendNoticeText(notice: SendNotice): String {
         SendNotice.Key.REWIND_REFUSED -> R.string.notice_rewind_refused
         SendNotice.Key.FEEDBACK_REFUSED -> R.string.notice_feedback_refused
         SendNotice.Key.EFFORT_REFUSED -> R.string.notice_effort_refused
+        // Phase 5A (L6.4 + I1)
+        SendNotice.Key.WORKFLOW_STARTED -> R.string.notice_workflow_started
+        SendNotice.Key.WORKFLOW_REFUSED -> R.string.notice_workflow_refused
     }
     val args = if (key == SendNotice.Key.ATTACHMENT_FAILED) {
         listOf(notice.args.firstOrNull()?.takeIf { it.isNotBlank() } ?: stringResource(R.string.notice_connection_lost))

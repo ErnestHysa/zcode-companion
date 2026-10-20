@@ -393,6 +393,10 @@ private fun TasksRoute(
 ) {
     val state by vm.state.collectAsState()
     val refreshing by vm.isRefreshing.collectAsState()
+    val startScope = androidx.compose.runtime.rememberCoroutineScope()
+    val notifier = com.zcode.android.core.ui.components.LocalNotifier.current
+    val startedCopy = stringResource(com.zcode.android.features.tasks.R.string.workflow_start_sent)
+    val refusedCopy = stringResource(com.zcode.android.features.tasks.R.string.workflow_start_refused)
     TaskListScreen(
         state = state.copy(refreshing = refreshing),
         onTaskClick = onTaskClick,
@@ -453,6 +457,19 @@ private fun TasksRoute(
         onUnarchive = vm::unarchiveFromViewer,
         onDeleteArchived = vm::deleteArchivedTask,
         onLoadGroups = vm::loadGroups,
+        // L6.4 (Phase 5A): start a saved workflow in the chosen task, then open it (the runs
+        // panel shows the run); a refusal surfaces the typed reason through the notifier.
+        onStartWorkflow = { taskId, name, scope, args ->
+            startScope.launch {
+                val result = container.conversationPort.startSavedWorkflow(taskId, name, scope, args)
+                if (result.outcome == com.zcode.android.features.conversation.port.ConversationPort.SendOutcome.ACCEPTED && result.reasonCode == null) {
+                    notifier.show(startedCopy)
+                    onOpenTaskId(taskId)
+                } else {
+                    notifier.show(refusedCopy.format(result.reasonCode ?: result.outcome.name.lowercase()), long = true)
+                }
+            }
+        },
     )
 }
 
@@ -511,6 +528,9 @@ private fun ConversationRoute(
     }
     // Phase 4A: an accepted fork names the child session — navigate once, then consume.
     val forked by vm.forkedSession.collectAsState()
+    // Phase 5A (A3.3): the workflow runs panel + run sheet follow the VM's flows.
+    val workflowRuns by vm.workflowRuns.collectAsState()
+    val openWorkflowRun by vm.openWorkflowRun.collectAsState()
     androidx.compose.runtime.LaunchedEffect(forked) {
         val child = forked ?: return@LaunchedEffect
         vm.consumeForkedSession()
@@ -569,6 +589,11 @@ private fun ConversationRoute(
         onSlashMenuOpen = vm::onSlashMenuOpen,
         onSetThoughtLevel = vm::setThoughtLevel,
         fileSearchProvider = { query -> container.conversationPort.searchWorkspaceFiles(state.task?.taskId.orEmpty(), query) },
+        workflowRuns = workflowRuns,
+        openWorkflowRun = openWorkflowRun,
+        onOpenWorkflowRun = vm::openWorkflowRun,
+        onCloseWorkflowRun = vm::closeWorkflowRun,
+        onLoadMoreRunEvents = vm::loadMoreRunEvents,
     )
 }
 

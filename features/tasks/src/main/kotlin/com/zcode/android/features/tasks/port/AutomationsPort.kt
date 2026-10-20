@@ -135,4 +135,15 @@ interface AutomationsPort {
      */
     suspend fun pauseOffPeak(offPeakTaskId: String): Boolean = false
     suspend fun continueOffPeak(offPeakTaskId: String): Boolean = false
+
+    // ---------------------------------------------------------------- Phase 5A (L6.4): the saved-workflow hub
+
+    /** `listSavedWorkflows` for the active workspace; null = unavailable (the hub hides). */
+    suspend fun savedWorkflows(): com.zcode.android.domain.model.SavedWorkflowList? = null
+
+    /** `listSavedWorkflowRuns` — last-run states (name = null → every workflow); null = unavailable. */
+    suspend fun savedWorkflowRuns(name: String? = null, limit: Int = 50): List<com.zcode.android.domain.model.SavedWorkflowRun>? = null
+
+    /** `getSavedWorkflow` — the script + meta for the detail sheet; null = unavailable / not found. */
+    suspend fun savedWorkflow(name: String, scope: String?): com.zcode.android.domain.model.SavedWorkflow? = null
 }

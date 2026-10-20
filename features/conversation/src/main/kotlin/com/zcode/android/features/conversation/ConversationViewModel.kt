@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -98,9 +100,12 @@ data class SendNotice(
         COMPACT_REFUSED, GOAL_REFUSED, GOAL_RESUME_REFUSED,
         // Phase 4A row actions
         ROW_ACTION_OFFLINE, RETRY_REFUSED, FORK_REFUSED, REWIND_APPLIED, REWIND_REFUSED, FEEDBACK_REFUSED,
+        // Phase 5A (L6.4 + I1): saved workflows
+        WORKFLOW_STARTED, WORKFLOW_REFUSED,
     }
 }
 
+@OptIn(kotlinx.coroutines.FlowPreview::class)
 class ConversationViewModel(
     private val port: ConversationPort,
     private val scope: CoroutineScope,
@@ -575,6 +580,107 @@ class ConversationViewModel(
 
     fun consumeForkedSession() {
         _forkedSession.value = null
+    }
+
+    // ---------------------------------------------------------------- Phase 5A (A3.3 + L6.4): workflow runs
+
+    private val _workflowRuns = MutableStateFlow<List<com.zcode.android.domain.model.WorkflowRunSummary>?>(null)
+
+    /** The session's workflow runs (`conversationWorkflowRunsV4`); null = not loaded / unavailable → the panel hides. */
+    val workflowRuns: StateFlow<List<com.zcode.android.domain.model.WorkflowRunSummary>?> = _workflowRuns.asStateFlow()
+
+    /** The run detail sheet's data: the run + its event timeline (paged by afterSequence). */
+    data class OpenWorkflowRun(
+        val run: com.zcode.android.domain.model.WorkflowRunSummary,
+        val events: List<com.zcode.android.domain.model.WorkflowRunEvent>,
+        val hasMore: Boolean,
+        val loading: Boolean,
+        val unavailable: Boolean,
+    )
+
+    private val _openRun = MutableStateFlow<OpenWorkflowRun?>(null)
+    val openWorkflowRun: StateFlow<OpenWorkflowRun?> = _openRun.asStateFlow()
+
+    private var workflowTicker: kotlinx.coroutines.Job? = null
+
+    init {
+        // A3.3: the run list follows the projection — every revision change re-reads it
+        // (debounced), and a ticker keeps LIVE runs fresh between frames (status, not events).
+        scope.launch {
+            state.map { it.sessionState?.revision }.distinctUntilChanged().debounce(400).collect { refreshWorkflowRuns() }
+        }
+    }
+
+    fun refreshWorkflowRuns() {
+        scope.launch {
+            val runs = port.fetchWorkflowRuns(taskId)
+            _workflowRuns.value = runs
+            // Keep the open sheet's run status in step with the list.
+            _openRun.value?.let { open -> runs?.firstOrNull { it.runId == open.run.runId }?.let { _openRun.value = open.copy(run = it) } }
+            val live = runs?.any { it.status.isLive } == true
+            if (live && workflowTicker?.isActive != true) {
+                workflowTicker = scope.launch {
+                    while (true) {
+                        kotlinx.coroutines.delay(8_000)
+                        val latest = port.fetchWorkflowRuns(taskId) ?: break
+                        _workflowRuns.value = latest
+                        _openRun.value?.let { open -> latest.firstOrNull { it.runId == open.run.runId }?.let { _openRun.value = open.copy(run = it) } }
+                        if (latest.none { it.status.isLive }) break
+                    }
+                }
+            }
+        }
+    }
+
+    /** Open a run: the first events page loads; `loadMoreRunEvents` pages forward. */
+    fun openWorkflowRun(run: com.zcode.android.domain.model.WorkflowRunSummary) {
+        _openRun.value = OpenWorkflowRun(run, emptyList(), hasMore = false, loading = true, unavailable = false)
+        scope.launch {
+            val page = port.fetchWorkflowRunEvents(taskId, run.runId, afterSequence = null)
+            _openRun.value = _openRun.value?.takeIf { it.run.runId == run.runId }?.copy(
+                events = page?.events ?: emptyList(),
+                hasMore = page?.hasMore ?: false,
+                loading = false,
+                unavailable = page == null,
+            )
+        }
+    }
+
+    fun loadMoreRunEvents() {
+        val open = _openRun.value ?: return
+        if (open.loading || !open.hasMore) return
+        _openRun.value = open.copy(loading = true)
+        scope.launch {
+            val after = open.events.maxOfOrNull { it.sequence }
+            val page = port.fetchWorkflowRunEvents(taskId, open.run.runId, afterSequence = after)
+            _openRun.value = _openRun.value?.takeIf { it.run.runId == open.run.runId }?.copy(
+                events = open.events + (page?.events ?: emptyList()),
+                hasMore = page?.hasMore ?: false,
+                loading = false,
+                unavailable = page == null && open.events.isEmpty(),
+            )
+        }
+    }
+
+    fun closeWorkflowRun() {
+        _openRun.value = null
+    }
+
+    /** L6.4 + I1: `startSavedWorkflow` in THIS session; the ack's typed reason feeds the notice. */
+    fun startSavedWorkflow(name: String, scope: String?, args: Map<String, String>) {
+        this.scope.launch {
+            val result = port.startSavedWorkflow(taskId, name, scope, args)
+            _sendNotice.value = when (result.outcome) {
+                ConversationPort.SendOutcome.ACCEPTED -> if (result.reasonCode == null) {
+                    refreshWorkflowRuns()
+                    SendNotice("Workflow started", SendNotice.Kind.INFO, SendNotice.Key.WORKFLOW_STARTED, listOf(name))
+                } else {
+                    SendNotice("The desktop refused the workflow (${result.reasonCode})", SendNotice.Kind.ERROR, SendNotice.Key.WORKFLOW_REFUSED, listOf(result.reasonCode))
+                }
+                ConversationPort.SendOutcome.BLOCKED_OFFLINE -> SendNotice("Not connected", SendNotice.Kind.WARNING, SendNotice.Key.ROW_ACTION_OFFLINE)
+                else -> SendNotice("The desktop refused the workflow", SendNotice.Kind.ERROR, SendNotice.Key.WORKFLOW_REFUSED, listOf(result.reasonCode ?: "start_failed"))
+            }
+        }
     }
 
     /** retryTurn — accepted is silent (the re-asked turn is the feedback; desktop logs refusals only). */

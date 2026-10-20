@@ -513,6 +513,38 @@ class DefaultConversationPort(
         return mapOutcome(coordinator.setAssistantFeedback(taskId, rowId, entityId, feedback, revision, epoch))
     }
 
+    // ---------------------------------------------------------------- Phase 5A (A3.3 + L6.4): workflow runs
+
+    /** One guarded facade read: null on refusal/unavailable, logged under the tag. */
+    private suspend fun <T> facadeRead(tag: String, block: suspend (com.zcode.android.data.session.AgentFacadeClient) -> T): T? =
+        try {
+            block(hub.agentFacade())
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("port.$tag", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            null
+        }
+
+    override suspend fun fetchWorkflowRuns(taskId: String): List<com.zcode.android.domain.model.WorkflowRunSummary>? =
+        facadeRead("workflowRuns") { com.zcode.android.domain.model.WorkflowRunSummary.decodeList(it.workflowRuns(taskId)) }
+
+    override suspend fun fetchWorkflowRunEvents(taskId: String, runId: String, afterSequence: Long?): com.zcode.android.domain.model.WorkflowRunEventsPage? =
+        facadeRead("workflowRunEvents") { com.zcode.android.domain.model.WorkflowRunEventsPage.decode(it.workflowRunEvents(taskId, runId, afterSequence, limit = 200)) }
+
+    override suspend fun startSavedWorkflow(taskId: String, name: String, scope: String?, args: Map<String, String>): ConversationPort.StartWorkflowOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.StartWorkflowOutcome(ConversationPort.SendOutcome.FAILED, null)
+        val argsJson = if (args.isEmpty()) null else kotlinx.serialization.json.buildJsonObject {
+            args.forEach { (k, v) -> put(k, kotlinx.serialization.json.JsonPrimitive(v)) }
+        }
+        val outcome = coordinator.startSavedWorkflow(taskId, name, scope, argsJson)
+        val reason = (outcome as? com.zcode.android.data.session.CommandCoordinator.Outcome.Accepted)?.ack
+            ?.takeIf { it.status == "rejected" || it.status == "failed" }?.reasonCode
+            ?: (outcome as? com.zcode.android.data.session.CommandCoordinator.Outcome.Failed)?.let { f -> f.ack?.reasonCode }
+        hub.log.info("port.startWorkflow", "session=${taskId.take(12)} name=$name outcome=${outcome.javaClass.simpleName} reason=$reason")
+        return ConversationPort.StartWorkflowOutcome(mapOutcome(outcome), reason)
+    }
+
     private fun mapOutcome(outcome: com.zcode.android.data.session.CommandCoordinator.Outcome): ConversationPort.SendOutcome =
         when (outcome) {
             is com.zcode.android.data.session.CommandCoordinator.Outcome.Accepted -> ConversationPort.SendOutcome.ACCEPTED

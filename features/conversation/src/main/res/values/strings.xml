@@ -280,4 +280,23 @@
     </plurals>
     <string name="composer_mode_echo">mode: %1$s</string>
     <string name="row_diff_empty_file">no textual diff recorded for this file</string>
+    <!-- Phase 5A (A3.3 + L6.4): workflow runs panel + run sheet + start notices -->
+    <string name="workflow_runs_title">Workflow runs</string>
+    <string name="workflow_run_untitled">Workflow run</string>
+    <string name="workflow_status_pending">Pending</string>
+    <string name="workflow_status_running">Running</string>
+    <string name="workflow_status_completed">Completed</string>
+    <string name="workflow_status_errored">Errored</string>
+    <string name="workflow_status_stopped">Stopped</string>
+    <string name="workflow_status_unknown">Unknown</string>
+    <string name="workflow_resumable">Resumable</string>
+    <string name="workflow_events_title">Events</string>
+    <string name="workflow_events_empty">No events yet</string>
+    <string name="workflow_events_unavailable">Run events are unavailable on this connection</string>
+    <string name="workflow_events_more">Load more events</string>
+    <string name="workflow_event_truncated">(truncated)</string>
+    <string name="workflow_stop_reason">Stopped: %1$s</string>
+    <string name="workflow_failure">Failed: %1$s</string>
+    <string name="notice_workflow_started">Workflow \"%1$s\" started.</string>
+    <string name="notice_workflow_refused">The desktop refused the workflow (%1$s).</string>
 </resources>
