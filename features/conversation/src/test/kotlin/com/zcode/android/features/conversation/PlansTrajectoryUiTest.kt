@@ -99,7 +99,7 @@ class PlansTrajectoryUiTest {
 
     @Test
     fun `trajectory search filters the timeline`() {
-        var q = ""
+        var q by androidx.compose.runtime.mutableStateOf("")
         rule.setContent {
             ZCodeTheme {
                 TrajectorySheet(
@@ -110,16 +110,6 @@ class PlansTrajectoryUiTest {
         }
         rule.waitForIdle()
         rule.onNodeWithTag("trajectory_search").performTextInput("r2")
-        rule.waitForIdle()
-        // The state is parent-owned in this pin; assert through a re-set with the filtered query.
-        rule.setContent {
-            ZCodeTheme {
-                TrajectorySheet(
-                    trajectory = TrajectoryResult(records = listOf(rec("r1"), rec("r2")), sourceFiles = emptyList(), truncated = false),
-                    loading = false, searchResults = null, query = "r2", onQueryChange = { q = it }, onDismiss = {},
-                )
-            }
-        }
         rule.waitForIdle()
         rule.onNodeWithTag("trajectory_r2").assertIsDisplayed()
         rule.onAllNodesWithTag("trajectory_r1").assertCountEquals(0)
