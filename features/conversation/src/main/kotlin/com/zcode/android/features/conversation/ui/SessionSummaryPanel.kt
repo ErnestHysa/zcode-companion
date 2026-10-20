@@ -54,13 +54,14 @@ fun SessionSummaryPanel(
     }
 
     if (!expanded) {
+        val expandLabel = stringResource(R.string.summary_show_panel)
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainerLow,
             shape = MaterialTheme.shapes.small,
             modifier = modifier
                 .fillMaxWidth()
                 .testTag("summary_capsule")
-                .semantics(mergeDescendants = true) { contentDescription = stringResource(R.string.summary_show_panel) }
+                .semantics(mergeDescendants = true) { contentDescription = expandLabel }
                 .clickable { expanded = true },
         ) {
             Text(
