@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Add
@@ -455,6 +457,11 @@ fun QueueStrip(
     onSendNow: (queueItemId: String) -> Unit,
     onEdit: (queueItemId: String, newText: String) -> Unit,
     modifier: Modifier = Modifier,
+    // ---- I1 queue (Phase 5A): reorder (move up/down → reorderQueueItem), drain toggle, follow-up mode ----
+    onMove: ((queueItemId: String, delta: Int) -> Unit)? = null,
+    onSetAutoDrain: ((Boolean) -> Unit)? = null,
+    followupMode: String? = null,
+    onSetFollowupMode: ((String) -> Unit)? = null,
 ) {
     if (queue.items.isEmpty()) return
     var editing by remember { mutableStateOf<Pair<String, String>?>(null) }
@@ -467,17 +474,59 @@ fun QueueStrip(
     ) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
             val pausedSuffix = stringResource(R.string.queue_paused_suffix)
-            Text(
-                text = buildString {
-                    append(stringResource(R.string.queue_label, queue.items.size))
-                    if (queue.autoDrain == false) append(pausedSuffix)
-                    queue.pauseReason?.let { append(" · $it") }
-                },
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            for (item in queue.items) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = buildString {
+                        append(stringResource(R.string.queue_label, queue.items.size))
+                        if (queue.autoDrain == false) append(pausedSuffix)
+                        queue.pauseReason?.let { append(" · $it") }
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                // I1: the desktop's auto-drain toggle (setAutoDrain) — the wire echo (`autoDrain`) is the truth.
+                val autoDrain = queue.autoDrain
+                if (onSetAutoDrain != null && autoDrain != null) {
+                    Text(stringResource(R.string.queue_auto_send), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.width(4.dp))
+                    androidx.compose.material3.Switch(
+                        checked = autoDrain,
+                        onCheckedChange = { onSetAutoDrain(it) },
+                        enabled = !busy,
+                        modifier = Modifier.testTag("queue_auto_drain"),
+                    )
+                }
+            }
+            // I2.6: follow-up steering — Queue (hold follow-ups) vs Guide (steer the running turn).
+            if (onSetFollowupMode != null && followupMode != null) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(vertical = 2.dp)) {
+                    for (mode in listOf("queue", "guide")) {
+                        androidx.compose.material3.FilterChip(
+                            selected = followupMode == mode,
+                            onClick = { if (followupMode != mode) onSetFollowupMode(mode) },
+                            enabled = !busy,
+                            label = { Text(stringResource(if (mode == "queue") R.string.queue_followup_queue else R.string.queue_followup_guide), style = MaterialTheme.typography.labelSmall) },
+                            modifier = Modifier.testTag("queue_followup_$mode"),
+                        )
+                    }
+                }
+            }
+            queue.items.forEachIndexed { index, item ->
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    // I1: reorder — up/down produce the exact `reorderQueueItem` a drag-drop would.
+                    onMove?.let { move ->
+                        androidx.compose.material3.IconButton(
+                            onClick = { move(item.queueItemId, -1) },
+                            enabled = !busy && index > 0,
+                            modifier = Modifier.size(32.dp).testTag("queue_move_up_${item.queueItemId}"),
+                        ) { Icon(Icons.Filled.KeyboardArrowUp, contentDescription = stringResource(R.string.queue_move_up), modifier = Modifier.size(18.dp)) }
+                        androidx.compose.material3.IconButton(
+                            onClick = { move(item.queueItemId, +1) },
+                            enabled = !busy && index < queue.items.lastIndex,
+                            modifier = Modifier.size(32.dp).testTag("queue_move_down_${item.queueItemId}"),
+                        ) { Icon(Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(R.string.queue_move_down), modifier = Modifier.size(18.dp)) }
+                    }
                     Text(
                         text = item.text.take(80),
                         style = MaterialTheme.typography.bodySmall,

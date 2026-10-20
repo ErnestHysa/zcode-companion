@@ -240,6 +240,28 @@ class CommandCoordinator(
             put("newText", newText)
         })
 
+    // ---------------------------------------------------------------- I1 queue (Phase 5A): reorder · auto-drain · follow-up mode
+
+    /**
+     * `reorderQueueItem {queueItemId, beforeQueueItemId: string|null}` — CAS-guarded (verified
+     * set). The item moves BEFORE `beforeQueueItemId`; null = to the END of the queue.
+     */
+    suspend fun reorderQueueItem(sessionId: String, queueItemId: String, beforeQueueItemId: String?, baseRevision: Long?): Outcome =
+        casCommand("reorderQueueItem", sessionId, baseRevision, buildJsonObject {
+            put("queueItemId", queueItemId)
+            if (beforeQueueItemId == null) put("beforeQueueItemId", kotlinx.serialization.json.JsonNull) else put("beforeQueueItemId", beforeQueueItemId)
+        })
+
+    /** `setAutoDrain {autoDrain}` — CAS-guarded; false pauses the queue (the desktop's drain toggle). */
+    suspend fun setAutoDrain(sessionId: String, autoDrain: Boolean, baseRevision: Long?): Outcome =
+        casCommand("setAutoDrain", sessionId, baseRevision, buildJsonObject { put("autoDrain", autoDrain) })
+
+    /** `setFollowupMode {mode: queue|guide}` — CAS-guarded; the out-of-set gate is fail-closed. */
+    suspend fun setFollowupMode(sessionId: String, mode: String, baseRevision: Long?): Outcome {
+        if (mode !in FOLLOWUP_MODES) return Outcome.Failed(null)
+        return casCommand("setFollowupMode", sessionId, baseRevision, buildJsonObject { put("mode", mode) })
+    }
+
     // ---------------------------------------------------------------- saved workflows (Phase 5A, L6.4 + I1)
 
     /**
@@ -591,6 +613,9 @@ class CommandCoordinator(
         val FEEDBACK_VALUES = setOf("like", "dislike")
 
         /** The forkAssistant ack's child session (`result.type == "forkAssistant"`); null otherwise. */
+        /** setFollowupMode's closed enum (chunk-LNGNUNBX `$r`: `mode: queue | guide`). */
+        val FOLLOWUP_MODES: Set<String> = setOf("queue", "guide")
+
         fun forkedSessionId(ack: CommandAck): String? {
             val result = ack.result ?: return null
             if ((result["type"] as? JsonPrimitive)?.content != "forkAssistant") return null

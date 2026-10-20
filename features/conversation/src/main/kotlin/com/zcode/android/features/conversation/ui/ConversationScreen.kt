@@ -129,6 +129,10 @@ fun ConversationScreen(
     onOpenWorkflowRun: (com.zcode.android.domain.model.WorkflowRunSummary) -> Unit = {},
     onCloseWorkflowRun: () -> Unit = {},
     onLoadMoreRunEvents: () -> Unit = {},
+    // ---- I1 queue (Phase 5A): reorder · auto-drain · follow-up mode ----
+    onMoveQueueItem: ((queueItemId: String, delta: Int) -> Unit)? = null,
+    onSetAutoDrain: ((Boolean) -> Unit)? = null,
+    onSetFollowupMode: ((String) -> Unit)? = null,
 ) {
     val rowActions = remember(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback) {
         RowActionCallbacks(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback)
@@ -279,6 +283,10 @@ fun ConversationScreen(
                                 onSendNow = onSendQueuedNow,
                                 onEdit = onEditQueueItem,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                onMove = onMoveQueueItem,
+                                onSetAutoDrain = onSetAutoDrain,
+                                followupMode = state.sessionState?.config?.followupMode,
+                                onSetFollowupMode = onSetFollowupMode,
                             )
                         }
                     }

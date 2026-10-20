@@ -432,6 +432,16 @@ class DefaultConversationPort(
             coordinator.editQueueItem(taskId, queueItemId, newText, baseRevision = revision)
         }
 
+    // I1 queue (Phase 5A): the same CAS currency (projection revision) as the other queue edits.
+    override suspend fun reorderQueueItem(taskId: String, queueItemId: String, beforeQueueItemId: String?): ConversationPort.SendOutcome =
+        queueOp(taskId) { revision, coordinator -> coordinator.reorderQueueItem(taskId, queueItemId, beforeQueueItemId, baseRevision = revision) }
+
+    override suspend fun setAutoDrain(taskId: String, autoDrain: Boolean): ConversationPort.SendOutcome =
+        queueOp(taskId) { revision, coordinator -> coordinator.setAutoDrain(taskId, autoDrain, baseRevision = revision) }
+
+    override suspend fun setFollowupMode(taskId: String, mode: String): ConversationPort.SendOutcome =
+        queueOp(taskId) { revision, coordinator -> coordinator.setFollowupMode(taskId, mode, baseRevision = revision) }
+
     /** CAS currency (baseRevision) comes from the session projection's latest revision. */
     private suspend fun queueOp(
         taskId: String,

@@ -299,4 +299,10 @@
     <string name="workflow_failure">Failed: %1$s</string>
     <string name="notice_workflow_started">Workflow \"%1$s\" started.</string>
     <string name="notice_workflow_refused">The desktop refused the workflow (%1$s).</string>
+    <!-- I1 queue (Phase 5A): reorder · auto-drain · follow-up mode -->
+    <string name="queue_auto_send">Auto-send</string>
+    <string name="queue_move_up">Move up</string>
+    <string name="queue_move_down">Move down</string>
+    <string name="queue_followup_queue">Queue</string>
+    <string name="queue_followup_guide">Guide</string>
 </resources>

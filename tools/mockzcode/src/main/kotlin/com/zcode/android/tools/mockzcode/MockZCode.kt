@@ -257,6 +257,8 @@ class MockZCode(
         @Volatile var controlStopState: String = "idle"
         /** Verified queueStateSchema (display + edit sources). */
         @Volatile var queueItems: List<QueueItem>? = null
+        /** I1: the queue's drain state the `setAutoDrain` word flips (echoed in queue patches). */
+        @Volatile var autoDrain: Boolean = true
         /** Verified inputRoutingSchema.mode. */
         @Volatile var inputRoutingMode: String = "startNow"
         /** Pending open interaction stamped into snapshots + state (Q11 shape). */
@@ -2365,6 +2367,44 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 }
                 pushQueuePatch()
             }
+            // ---- Phase 5A (I1): the two decoded-unsent queue words + follow-up mode — REAL
+            // state so the rig proves the reorder round-trip (the moved row renders in place).
+            "reorderQueueItem" -> {
+                stateRevision.incrementAndGet()
+                val qid = payload?.strOrNull("queueItemId")
+                val before = if (payload?.get("beforeQueueItemId") is kotlinx.serialization.json.JsonNull) null else payload?.strOrNull("beforeQueueItemId")
+                val items = script.queueItems.orEmpty().toMutableList()
+                val moved = items.firstOrNull { it.queueItemId == qid }
+                if (moved != null) {
+                    items.remove(moved)
+                    val index = if (before == null) items.size else items.indexOfFirst { it.queueItemId == before }.coerceAtLeast(0)
+                    items.add(index, moved)
+                    script.queueItems = items
+                }
+                pushQueuePatch()
+            }
+            "setAutoDrain" -> {
+                stateRevision.incrementAndGet()
+                script.autoDrain = payload?.strOrNull("autoDrain")?.toBooleanStrictOrNull() ?: script.autoDrain
+                pushQueuePatch()
+            }
+            "setFollowupMode" -> {
+                stateRevision.incrementAndGet()
+                val mode = payload?.strOrNull("mode") ?: return null
+                val current = script.sessionConfig
+                script.sessionConfig = buildJsonObject {
+                    put("provider", JsonPrimitive(current?.strOrNull("provider") ?: "zai"))
+                    put("model", JsonPrimitive(current?.strOrNull("model") ?: "glm-5.3"))
+                    put("thought", JsonPrimitive(current?.strOrNull("thought") ?: "standard"))
+                    put("thoughtLevels", current?.get("thoughtLevels") ?: JsonArray(listOf(JsonPrimitive("standard"))))
+                    put("followupMode", JsonPrimitive(mode))
+                    put("mode", JsonPrimitive(current?.strOrNull("mode") ?: "build"))
+                }
+                pushStatePatch(buildJsonObject {
+                    put("revision", JsonPrimitive(stateRevision.get()))
+                    put("config", script.sessionConfig!!)
+                })
+            }
             // ---- Phase 4A (E3.2+I1+N5): the four row commands — effects shaped on
             // the verified ack results (command.ts commandResultSchema) + row deltas.
             "retryTurn" -> {
@@ -2627,7 +2667,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                         put("dispatch", buildJsonObject { put("state", JsonPrimitive(qi.dispatchState)) })
                     }
                 }))
-                put("autoDrain", JsonPrimitive(true))
+                put("autoDrain", JsonPrimitive(script.autoDrain))
             })
         })
     }

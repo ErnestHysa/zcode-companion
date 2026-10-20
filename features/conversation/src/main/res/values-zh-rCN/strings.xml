@@ -275,4 +275,10 @@
     <string name="workflow_failure">失败：%1$s</string>
     <string name="notice_workflow_started">工作流“%1$s”已启动。</string>
     <string name="notice_workflow_refused">桌面端拒绝了该工作流（%1$s）。</string>
+    <!-- I1 队列 (Phase 5A): 重排 · 自动发送 · 跟进模式 -->
+    <string name="queue_auto_send">自动发送</string>
+    <string name="queue_move_up">上移</string>
+    <string name="queue_move_down">下移</string>
+    <string name="queue_followup_queue">排队</string>
+    <string name="queue_followup_guide">引导</string>
 </resources>

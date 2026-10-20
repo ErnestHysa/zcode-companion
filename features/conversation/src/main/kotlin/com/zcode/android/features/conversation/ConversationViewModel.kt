@@ -773,6 +773,48 @@ class ConversationViewModel(
         }
     }
 
+    // ---------------------------------------------------------------- I1 queue (Phase 5A): reorder · drain · follow-up
+
+    private fun queueStaleNotice(outcome: ConversationPort.SendOutcome) {
+        if (outcome == ConversationPort.SendOutcome.STALE) {
+            _sendNotice.value = SendNotice("Queue changed on the desktop — please try again.", SendNotice.Kind.WARNING)
+        }
+    }
+
+    /** `reorderQueueItem` — the item moves before [beforeQueueItemId] (null = to the end). */
+    fun reorderQueueItem(queueItemId: String, beforeQueueItemId: String?) {
+        scope.launch { queueStaleNotice(port.reorderQueueItem(taskId, queueItemId, beforeQueueItemId)) }
+    }
+
+    /**
+     * Move an item up/down one slot — computes the desktop's `beforeQueueItemId` from the
+     * CURRENT projection order (the same shape a drag-drop produces): moving up targets the
+     * item currently above; moving down targets the item two below (or null = end).
+     */
+    fun moveQueueItem(queueItemId: String, delta: Int) {
+        val items = state.value.sessionState?.queue?.items?.map { it.queueItemId } ?: return
+        val index = items.indexOf(queueItemId)
+        if (index < 0) return
+        val target = index + delta
+        if (target < 0 || target >= items.size || delta == 0) return
+        val before = when {
+            delta < 0 -> items[target]
+            target + 1 < items.size -> items[target + 1]
+            else -> null
+        }
+        reorderQueueItem(queueItemId, before)
+    }
+
+    /** `setAutoDrain` — the queue's drain toggle (false pauses sending). */
+    fun setAutoDrain(autoDrain: Boolean) {
+        scope.launch { queueStaleNotice(port.setAutoDrain(taskId, autoDrain)) }
+    }
+
+    /** `setFollowupMode {queue|guide}` — the follow-up steering (I2.6). */
+    fun setFollowupMode(mode: String) {
+        scope.launch { queueStaleNotice(port.setFollowupMode(taskId, mode)) }
+    }
+
     /** §20 answer through the ONE fail-closed gate (double-tap-safe via busy set). */
     fun answerInteraction(interactionId: String, optionId: String, freeText: String?, userInput: Boolean) {
         if (interactionId in _busyInteractions.value) return

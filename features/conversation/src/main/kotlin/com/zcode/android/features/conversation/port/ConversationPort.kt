@@ -136,6 +136,17 @@ interface ConversationPort {
     suspend fun sendQueuedNow(taskId: String, queueItemId: String): SendOutcome
     suspend fun editQueueItem(taskId: String, queueItemId: String, newText: String): SendOutcome
 
+    // ---- I1 queue (Phase 5A): the two decoded-unsent queue words + the follow-up mode (I2.6) ----
+
+    /** `reorderQueueItem` — the item moves before `beforeQueueItemId` (null = to the end). */
+    suspend fun reorderQueueItem(taskId: String, queueItemId: String, beforeQueueItemId: String?): SendOutcome = SendOutcome.FAILED
+
+    /** `setAutoDrain` — the queue's drain toggle (false = paused). */
+    suspend fun setAutoDrain(taskId: String, autoDrain: Boolean): SendOutcome = SendOutcome.FAILED
+
+    /** `setFollowupMode {mode: queue|guide}` — turn steering for follow-ups. */
+    suspend fun setFollowupMode(taskId: String, mode: String): SendOutcome = SendOutcome.FAILED
+
     /** Phase 2 (§11.3): the slash command plane — /compact, /goal send + resume. */
     suspend fun compact(taskId: String): SendOutcome
     suspend fun sendGoal(taskId: String, objective: String, displayText: String): SendOutcome
