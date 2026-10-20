@@ -45,8 +45,9 @@ fun TrajectorySheet(
     query: String,
     onQueryChange: (String) -> Unit,
     onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    ZCodeModalBottomSheet(onDismissRequest = onDismiss, modifier = Modifier.testTag("trajectory_sheet")) {
+    ZCodeModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier.testTag("trajectory_sheet")) {
         Text(
             stringResource(R.string.trajectory_title),
             style = MaterialTheme.typography.titleMedium,

@@ -49,11 +49,12 @@ fun CommitSheet(
     onDismiss: () -> Unit,
     onGenerate: () -> Unit,
     onCommit: (message: String, includeUnstaged: Boolean, andPush: Boolean) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var message by remember { mutableStateOf("") }
     var includeUnstaged by remember { mutableStateOf(false) }
     var andPush by remember { mutableStateOf(false) }
-    ZCodeModalBottomSheet(onDismissRequest = onDismiss, modifier = Modifier.testTag("commit_sheet")) {
+    ZCodeModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier.testTag("commit_sheet")) {
         Text(
             stringResource(R.string.commit_title),
             style = MaterialTheme.typography.titleMedium,
@@ -120,9 +121,11 @@ fun PushConfirm(
     hasUpstream: Boolean,
     onDismiss: () -> Unit,
     onPush: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = modifier,
         title = { Text(stringResource(R.string.push_title)) },
         text = { Text(stringResource(R.string.push_body, branchName, if (hasUpstream) "" else stringResource(R.string.push_no_upstream))) },
         confirmButton = {
@@ -140,11 +143,13 @@ fun DiscardConfirm(
     paths: List<String>,
     onDismiss: () -> Unit,
     onDiscard: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var typed by remember { mutableStateOf("") }
     val word = stringResource(R.string.discard_confirm)
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = modifier,
         title = { Text(stringResource(R.string.discard_title), color = MaterialTheme.colorScheme.error) },
         text = {
             Column {
@@ -184,9 +189,10 @@ fun BranchSheet(
     onDismiss: () -> Unit,
     onSwitch: (String) -> Unit,
     onCreateAndSwitch: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var newName by remember { mutableStateOf("") }
-    ZCodeModalBottomSheet(onDismissRequest = onDismiss, modifier = Modifier.testTag("branch_sheet")) {
+    ZCodeModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier.testTag("branch_sheet")) {
         Text(
             stringResource(R.string.branches_title),
             style = MaterialTheme.typography.titleMedium,
@@ -225,8 +231,8 @@ fun BranchSheet(
 
 /** The typed issue map — code kebab-case → the localized line (+ paths listed, detail copyable). */
 @Composable
-fun IssueLine(issue: GitBranchIssue) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).testTag("branch_issue_${issue.code}")) {
+fun IssueLine(issue: GitBranchIssue, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).testTag("branch_issue_${issue.code}")) {
         Text(
             branchIssueCopy(issue.code),
             style = MaterialTheme.typography.bodySmall,

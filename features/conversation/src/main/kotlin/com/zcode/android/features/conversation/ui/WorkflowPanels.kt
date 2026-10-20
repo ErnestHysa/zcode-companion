@@ -115,8 +115,9 @@ fun WorkflowRunSheet(
     open: ConversationViewModel.OpenWorkflowRun,
     onDismiss: () -> Unit,
     onLoadMore: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    ZCodeModalBottomSheet(onDismissRequest = onDismiss, modifier = Modifier.testTag("workflow_run_sheet")) {
+    ZCodeModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier.testTag("workflow_run_sheet")) {
         val run = open.run
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
