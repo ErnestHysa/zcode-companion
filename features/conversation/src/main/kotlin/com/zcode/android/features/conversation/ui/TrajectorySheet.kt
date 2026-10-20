@@ -93,7 +93,8 @@ fun TrajectorySheet(
             else -> {
                 val needle = query.trim().lowercase()
                 val filtered = if (needle.isEmpty()) trajectory.records else trajectory.records.filter { rec ->
-                    listOfNotNull(rec.modelId, rec.textHead, rec.error, rec.finishReason).any { it.lowercase().contains(needle) } ||
+                    listOfNotNull(rec.modelId, rec.textHead, rec.error, rec.finishReason, rec.requestId, rec.callKind)
+                        .any { it.lowercase().contains(needle) } ||
                         rec.toolNames.any { it.lowercase().contains(needle) }
                 }
                 if (trajectory.truncated) {
