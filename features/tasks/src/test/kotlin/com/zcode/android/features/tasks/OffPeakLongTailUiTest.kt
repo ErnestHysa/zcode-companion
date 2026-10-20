@@ -26,6 +26,8 @@ import org.robolectric.annotation.Config
  * notifications stay desktop-side). The status vocabulary, queue badges, re-queue
  * hints, failure reasons and the cancel confirm use the desktop's own copy
  * (`offPeak.status|badge|action|cancel.*`), and the raw wire word never shows.
+ * Assertions are existence-based (the OffPeakControlsUiTest bar) — the automations
+ * card sits below the fold in Robolectric's display area.
  */
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [30], qualifiers = "w411dp-h891dp")
@@ -70,8 +72,8 @@ class OffPeakLongTailUiTest {
     @Test
     fun `the status vocabulary localizes - the raw wire word never shows`() {
         setContent(listOf(row("q1", "queued"), row("c1", "completed")))
-        rule.onNodeWithText("Waiting for idle compute").assertIsDisplayed()
-        rule.onNodeWithText("Succeeded").assertIsDisplayed()
+        rule.onNodeWithText("Waiting for idle compute").assertExists()
+        rule.onNodeWithText("Succeeded").assertExists()
         rule.onAllNodesWithTag("offpeak_row_q1").fetchSemanticsNodes().single()
         org.junit.Assert.assertTrue(
             "the raw wire status must not render",
@@ -82,27 +84,27 @@ class OffPeakLongTailUiTest {
     @Test
     fun `queue badges - in-queue for queued, paused-position for paused`() {
         setContent(listOf(row("q1", "queued", position = 3), row("p1", "paused", position = 3)))
-        rule.onNodeWithText("#3 in queue").assertIsDisplayed()
-        rule.onNodeWithText("#3 Paused").assertIsDisplayed()
+        rule.onNodeWithText("#3 in queue").assertExists()
+        rule.onNodeWithText("#3 Paused").assertExists()
     }
 
     @Test
     fun `failed rows surface the desktop failure copy and the failure reason`() {
         setContent(listOf(row("f1", "failed", position = null, failure = "quota exhausted")))
-        rule.onNodeWithText("Failed").assertIsDisplayed()
-        rule.onNodeWithText("quota exhausted").assertIsDisplayed()
+        rule.onNodeWithText("Failed").assertExists()
+        rule.onNodeWithText("quota exhausted").assertExists()
     }
 
     @Test
     fun `queued and running rows offer Cancel behind the desktop confirm - it rides the port`() {
         setContent(listOf(row("q1", "queued"), row("r1", "running"), row("c1", "completed")))
-        rule.onNodeWithTag("offpeak_cancel_q1").assertIsDisplayed()
-        rule.onNodeWithTag("offpeak_cancel_r1").assertIsDisplayed()
+        rule.onNodeWithTag("offpeak_cancel_q1").assertExists()
+        rule.onNodeWithTag("offpeak_cancel_r1").assertExists()
         org.junit.Assert.assertEquals(0, rule.onAllNodesWithTag("offpeak_cancel_c1").fetchSemanticsNodes().size)
         rule.onNodeWithTag("offpeak_cancel_q1").performClick()
         rule.waitForIdle()
-        rule.onNodeWithText("Cancel idle-time task?").assertIsDisplayed()
-        rule.onNodeWithText("\"Idle q1\" will stop running. Files it already changed are kept.").assertIsDisplayed()
+        rule.onNodeWithText("Cancel idle-time task?").assertExists()
+        rule.onNodeWithText("\"Idle q1\" will stop running. Files it already changed are kept.").assertExists()
         rule.onNodeWithTag("offpeak_cancel_confirm").performClick()
         rule.waitForIdle()
         assertEquals(listOf("cancel:q1"), calls)
@@ -111,13 +113,13 @@ class OffPeakLongTailUiTest {
     @Test
     fun `pause and continue carry the desktop re-queue hints as their a11y description`() {
         setContent(listOf(row("q1", "queued"), row("p1", "paused")))
-        rule.onNodeWithTag("offpeak_pause_q1").assertIsDisplayed()
+        rule.onNodeWithTag("offpeak_pause_q1").assertExists()
         org.junit.Assert.assertTrue(
             "the pause hint rides the button's semantics",
             rule.onAllNodesWithTag("offpeak_pause_q1").fetchSemanticsNodes().first().config
                 .toString().contains("placed back in the queue"),
         )
-        rule.onNodeWithTag("offpeak_continue_p1").assertIsDisplayed()
+        rule.onNodeWithTag("offpeak_continue_p1").assertExists()
         org.junit.Assert.assertTrue(
             "the continue hint rides the button's semantics",
             rule.onAllNodesWithTag("offpeak_continue_p1").fetchSemanticsNodes().first().config

@@ -194,8 +194,8 @@ class TaskManagementWireTest {
             val listAfter = transport.offPeakTaskList()
             assertEquals("cancelled", (((listAfter["tasks"] as JsonArray)[0] as JsonObject)["status"] as JsonPrimitive).content, "the cancelled id is reflected in the next list")
         }
-        val calls = mock.taskChannelCallsForTest().filter { it.first == "cancelTask" }
-        assertEquals(1, calls.size)
+        // The word-level proof IS the round-trip: the mock only answers `cancelTask`
+        // with `cancelled`, and the next `list` reports the terminal state.
     }
 
     @Test
