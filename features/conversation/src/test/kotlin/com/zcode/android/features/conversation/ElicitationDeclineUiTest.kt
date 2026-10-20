@@ -33,14 +33,14 @@ class ElicitationDeclineUiTest {
     @get:Rule
     val rule = createComposeRule()
 
-    private val payload: PendingInteraction = PendingInteraction.decode(
+    private val payload: PendingInteraction = requireNotNull(PendingInteraction.decode(
         Json.parseToJsonElement(
             """{"interactionId":"q-1","kind":"userInput","anchorRowId":null,"createdAt":1,
                 "payload":{"kind":"userInput","prompt":"How should I ship this?","questions":[
                   {"question":"Which channel?","header":"Channel","multiSelect":false,
                    "options":[{"value":"tag","label":"Tag the release"},{"value":"branch","label":"Cut a branch"}]}]}}""",
         ).jsonObject,
-    )
+    ))
 
     private fun card(onDecline: (() -> Unit)? = null) {
         rule.setContent {
