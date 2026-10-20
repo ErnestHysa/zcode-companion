@@ -31,7 +31,7 @@ import org.robolectric.annotation.Config
  * collapsed capsule and an expanded card; nothing renders for an empty session.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [30])
+@Config(sdk = [30], qualifiers = "w411dp-h891dp")
 class SessionNavigatorAndSummaryUiTest {
 
     @get:Rule
