@@ -847,7 +847,16 @@ private fun TimelineRow(
         )
         is ConversationRow.Subagent -> QuietMetaRow(label = stringResource(R.string.row_subagent, row.subagentType), detail = row.summaryText.take(80))
         is ConversationRow.HookInvocation -> QuietMetaRow(label = stringResource(R.string.row_hook, row.hookEventName), detail = null)
-        is ConversationRow.TimelineMarker -> QuietMetaRow(label = row.markerType, detail = null)
+        is ConversationRow.TimelineMarker -> {
+            // I2.4 (Phase 6A): a `compact` marker renders the context-compaction
+            // lifecycle notice; every other marker keeps the generic quiet row.
+            val compaction = remember(row.raw) { com.zcode.android.domain.model.CompactionNotice.from(row) }
+            if (compaction != null) {
+                CompactionNoticeRow(notice = compaction, onRetry = rowActions.onRetryCompaction)
+            } else {
+                QuietMetaRow(label = row.markerType, detail = null)
+            }
+        }
         is ConversationRow.Unknown -> UnknownKindRow(row)
     }
     }

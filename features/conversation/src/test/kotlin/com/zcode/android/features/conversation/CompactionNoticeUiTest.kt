@@ -96,7 +96,7 @@ class CompactionNoticeUiTest {
     fun `auto terminal success renders completedAuto`() {
         setContent(compactMarker(42, "completed", "auto", ""","tokensBefore":180000,"tokensAfter":42000"""))
         rule.onNodeWithText("Context automatically compressed").assertIsDisplayed()
-        rule.onNodeWithText("180.0k → 42.0k tokens").assertIsDisplayed()
+        rule.onNodeWithText("180K → 42K tokens").assertIsDisplayed()
     }
 
     @Test

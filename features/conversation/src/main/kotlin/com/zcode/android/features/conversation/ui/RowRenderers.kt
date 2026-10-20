@@ -30,6 +30,10 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.WrapText
+import androidx.compose.material.icons.outlined.Autorenew
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
@@ -50,7 +54,9 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.testTag
 import com.zcode.android.features.conversation.R
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.getValue
@@ -649,6 +655,89 @@ fun TurnSeparator(
 }
 
 /**
+ * I2.4 (Phase 6A): the context-compaction lifecycle notice (desktop
+ * `chat.contextCompaction.*`) — a quiet centered marker line, phase copy localized,
+ * token counts when the host sent them, and a Retry affordance on the failed phase
+ * (the desktop's `chat.contextCompaction.retry` button).
+ */
+@Composable
+fun CompactionNoticeRow(
+    notice: com.zcode.android.domain.model.CompactionNotice,
+    modifier: Modifier = Modifier,
+    onRetry: () -> Unit = {},
+) {
+    val label = stringResource(
+        when (notice.phase) {
+            com.zcode.android.domain.model.CompactionNotice.Phase.STARTED -> R.string.compaction_started
+            com.zcode.android.domain.model.CompactionNotice.Phase.SKIPPED -> R.string.compaction_skipped
+            com.zcode.android.domain.model.CompactionNotice.Phase.INTERRUPTED -> R.string.compaction_interrupted
+            com.zcode.android.domain.model.CompactionNotice.Phase.FAILED -> R.string.compaction_failed
+            com.zcode.android.domain.model.CompactionNotice.Phase.COMPLETED_AUTO -> R.string.compaction_completed_auto
+            com.zcode.android.domain.model.CompactionNotice.Phase.COMPLETED -> R.string.compaction_completed
+        },
+    )
+    val failed = notice.phase == com.zcode.android.domain.model.CompactionNotice.Phase.FAILED
+    val tokenDetail = if (notice.tokensBefore != null && notice.tokensAfter != null) {
+        stringResource(
+            R.string.compaction_tokens,
+            com.zcode.android.core.ui.components.formatCompactTokenCount(notice.tokensBefore),
+            com.zcode.android.core.ui.components.formatCompactTokenCount(notice.tokensAfter),
+        )
+    } else null
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .testTag("row_compaction")
+            .semantics(mergeDescendants = true) {
+                contentDescription = if (tokenDetail == null) label else "$label, $tokenDetail"
+                if (notice.running || failed) liveRegion = LiveRegionMode.Polite
+            },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.width(20.dp).height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
+        Spacer(Modifier.width(8.dp))
+        Icon(
+            imageVector = when (notice.phase) {
+                com.zcode.android.domain.model.CompactionNotice.Phase.STARTED -> Icons.Outlined.Autorenew
+                com.zcode.android.domain.model.CompactionNotice.Phase.SKIPPED -> Icons.Outlined.Check
+                com.zcode.android.domain.model.CompactionNotice.Phase.INTERRUPTED -> Icons.Outlined.Pause
+                com.zcode.android.domain.model.CompactionNotice.Phase.FAILED -> Icons.Outlined.ErrorOutline
+                else -> Icons.Outlined.Check
+            },
+            contentDescription = null,
+            tint = if (failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(14.dp),
+        )
+        Spacer(Modifier.width(6.dp))
+        Column(Modifier.weight(1f, fill = false)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (tokenDetail != null) {
+                Text(
+                    text = tokenDetail,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        if (failed) {
+            TextButton(onClick = onRetry, modifier = Modifier.testTag("compaction_retry")) {
+                Text(stringResource(R.string.compaction_retry))
+            }
+        }
+        Box(Modifier.width(20.dp).height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
+    }
+}
+
+/**
  * INV-8 generic fallback for the non-MVP row kinds (subagent/hookInvocation/
  * timelineMarker/artifact) and unknown kinds: quiet, informative, never blank.
  */
@@ -658,8 +747,7 @@ fun QuietMetaRow(
     detail: String?,
     modifier: Modifier = Modifier,
     tag: String = "row_other",
-) {
-    Row(
+) {    Row(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
