@@ -79,7 +79,7 @@ class CheckpointsCardUiTest {
         rule.onAllNodesWithTag("checkpoint_restore_1").assertCountEquals(0)
         rule.onNodeWithTag("checkpoint_restore_0").performClick(); rule.waitForIdle()
         rule.onNodeWithTag("checkpoint_restore_confirm").assertIsDisplayed()
-        assertTrue(calls.none { it.startsWith("restore") }, "nothing fired before the confirm")
+        assertTrue("nothing fired before the confirm", calls.none { it.startsWith("restore") })
         rule.onNodeWithTag("checkpoint_restore_confirm").performClick(); rule.waitForIdle()
         assertEquals(listOf("create", "create", "restore:ckpt-1:ckpt-2:force=false"), calls)
     }
@@ -94,6 +94,6 @@ class CheckpointsCardUiTest {
         rule.onNodeWithTag("checkpoint_restore_confirm").performClick(); rule.waitForIdle()
         rule.onNodeWithTag("checkpoint_force_confirm").assertIsDisplayed()
         rule.onNodeWithTag("checkpoint_force_confirm").performClick(); rule.waitForIdle()
-        assertTrue("restore:ckpt-1:ckpt-2:force=true" in calls, "force rides the SECOND confirm only")
+        assertTrue("force rides the SECOND confirm only", "restore:ckpt-1:ckpt-2:force=true" in calls)
     }
 }
