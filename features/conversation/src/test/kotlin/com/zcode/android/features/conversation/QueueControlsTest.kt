@@ -41,22 +41,28 @@ class QueueControlsTest {
         var outcome = ConversationPort.SendOutcome.ACCEPTED
         val sessionState = MutableStateFlow(projection(ids))
         override fun observeSessionState(taskId: String) = sessionState
+        // A queue command is ALWAYS followed by the desktop's state patch (the mock and
+        // production both re-emit the projection) — modeled here so the notice plane's
+        // re-emission is exercised like the real pipeline's.
+        private fun bump() { sessionState.value = sessionState.value.copy(revision = (sessionState.value.revision ?: 0) + 1) }
         override suspend fun reorderQueueItem(taskId: String, queueItemId: String, beforeQueueItemId: String?): ConversationPort.SendOutcome {
-            calls += "reorder:$queueItemId:${beforeQueueItemId ?: "end"}"; return outcome
+            calls += "reorder:$queueItemId:${beforeQueueItemId ?: "end"}"; bump(); return outcome
         }
-        override suspend fun setAutoDrain(taskId: String, autoDrain: Boolean): ConversationPort.SendOutcome { calls += "drain:$autoDrain"; return outcome }
-        override suspend fun setFollowupMode(taskId: String, mode: String): ConversationPort.SendOutcome { calls += "followup:$mode"; return outcome }
+        override suspend fun setAutoDrain(taskId: String, autoDrain: Boolean): ConversationPort.SendOutcome { calls += "drain:$autoDrain"; bump(); return outcome }
+        override suspend fun setFollowupMode(taskId: String, mode: String): ConversationPort.SendOutcome { calls += "followup:$mode"; bump(); return outcome }
     }
 
     @Test
-    fun `up targets the item above and down-to-last sends null`() = runTest {
+    fun `up targets the item above down-to-last sends null and last-row-down sends nothing`() = runTest {
         val port = QueuePort(listOf("a", "b", "c"))
         val vm = ConversationViewModel(port, backgroundScope, "s")
         runCurrent()
         vm.moveQueueItem("b", -1); runCurrent()
         vm.moveQueueItem("a", +1); runCurrent()
-        vm.moveQueueItem("c", +1); runCurrent()
-        assertEquals(listOf("reorder:b:a", "reorder:a:c", "reorder:c:end"), port.calls)
+        vm.moveQueueItem("c", +1); runCurrent() // edge: the LAST row cannot move down (the UI disables it)
+        assertEquals(listOf("reorder:b:a", "reorder:a:c"), port.calls)
+        vm.moveQueueItem("b", +1); runCurrent() // second-to-last down → null = to the END
+        assertEquals(listOf("reorder:b:a", "reorder:a:c", "reorder:b:end"), port.calls)
     }
 
     @Test
