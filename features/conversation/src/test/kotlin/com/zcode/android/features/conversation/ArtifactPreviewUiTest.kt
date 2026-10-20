@@ -101,15 +101,15 @@ class ArtifactPreviewUiTest {
         assertEquals(GeneratedArtifactPreview.Kind.AUDIO, GeneratedArtifactPreview.kindFor("take2.mp3"))
         assertEquals(GeneratedArtifactPreview.Kind.VIDEO, GeneratedArtifactPreview.kindFor("demo.webm"))
         assertEquals(GeneratedArtifactPreview.Kind.TEXT, GeneratedArtifactPreview.kindFor("notes.txt"))
-        assertNull(GeneratedArtifactPreview.kindFor("archive.tar.gz"), "unknown extensions make no card")
+        assertNull("unknown extensions make no card", GeneratedArtifactPreview.kindFor("archive.tar.gz"))
         // artifactKind cross-check (desktop cZe): the card survives only on agreement.
         assertEquals(
             GeneratedArtifactPreview.Kind.DOCX,
             GeneratedArtifactPreview.kindFor("report.docx", artifactKind = "document"),
         )
         assertNull(
-            GeneratedArtifactPreview.kindFor("report.pdf", artifactKind = "document"),
             "a pdf path labeled as a document artifact makes no card (desktop mismatch rule)",
+            GeneratedArtifactPreview.kindFor("report.pdf", artifactKind = "document"),
         )
     }
 
