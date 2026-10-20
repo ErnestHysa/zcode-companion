@@ -72,7 +72,8 @@ class OffPeakLongTailUiTest {
     @Test
     fun `the status vocabulary localizes - the raw wire word never shows`() {
         setContent(listOf(row("q1", "queued"), row("c1", "completed")))
-        rule.onNodeWithText("Waiting for idle compute").assertExists()
+        // Status + badge join into one label; queued rows carry the queue badge.
+        rule.onNodeWithText("Waiting for idle compute · #2 in queue").assertExists()
         rule.onNodeWithText("Succeeded").assertExists()
         rule.onAllNodesWithTag("offpeak_row_q1").fetchSemanticsNodes().single()
         org.junit.Assert.assertTrue(
@@ -84,8 +85,8 @@ class OffPeakLongTailUiTest {
     @Test
     fun `queue badges - in-queue for queued, paused-position for paused`() {
         setContent(listOf(row("q1", "queued", position = 3), row("p1", "paused", position = 3)))
-        rule.onNodeWithText("#3 in queue").assertExists()
-        rule.onNodeWithText("#3 Paused").assertExists()
+        rule.onNodeWithText("Waiting for idle compute · #3 in queue").assertExists()
+        rule.onNodeWithText("Paused · #3 Paused").assertExists()
     }
 
     @Test

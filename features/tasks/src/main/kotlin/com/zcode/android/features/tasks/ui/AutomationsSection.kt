@@ -597,14 +597,14 @@ private fun OffPeakLine(
         Text(
             buildString {
                 append(offPeakStatusLabel(t.status))
-                if (position != null) {
-                    append(" · ")
-                    append(
-                        stringResource(
-                            if (t.status == "paused") R.string.offpeak_badge_paused else R.string.offpeak_badge_queue,
-                            position,
-                        ),
-                    )
+                // The desktop's badges: "#N in queue" while queued, "#N Paused" while
+                // paused; terminal states keep the plain status word.
+                when {
+                    t.status == "queued" && position != null ->
+                        append(" · ").append(stringResource(R.string.offpeak_badge_queue, position))
+                    t.status == "paused" && position != null ->
+                        append(" · ").append(stringResource(R.string.offpeak_badge_paused, position))
+                    else -> Unit
                 }
             },
             style = MaterialTheme.typography.labelSmall,

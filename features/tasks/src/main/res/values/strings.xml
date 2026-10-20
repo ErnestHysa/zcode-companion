@@ -218,7 +218,7 @@
     <string name="offpeak_badge_paused">#%1$d Paused</string>
     <string name="offpeak_cancel">Cancel task</string>
     <string name="offpeak_cancel_confirm_title">Cancel idle-time task?</string>
-    <string name="offpeak_cancel_confirm_body">“%1$s” will stop running. Files it already changed are kept.</string>
+    <string name="offpeak_cancel_confirm_body">"%1$s" will stop running. Files it already changed are kept.</string>
     <string name="offpeak_cancel_confirm_yes">Cancel</string>
     <string name="offpeak_hint_pause">Tasks paused beyond the queue wait time will be placed back in the queue</string>
     <string name="offpeak_hint_continue">If the queue ticket has expired, Continue re-queues the task at the back.</string>
