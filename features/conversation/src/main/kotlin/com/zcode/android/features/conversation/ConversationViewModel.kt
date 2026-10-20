@@ -98,7 +98,7 @@ data class SendNotice(
     enum class Key {
         SWITCH_OFFLINE, SESSION_CHANGED, SWITCH_REFUSED, MODEL_SWITCH_REFUSED, EFFORT_REFUSED,
         ATTACHMENT_TOO_LARGE, ATTACHMENT_OFFLINE, ATTACHMENT_FAILED, ATTACHMENT_RETRY_FAILED,
-        COMPACT_REFUSED, GOAL_REFUSED, GOAL_RESUME_REFUSED,
+        COMPACT_REFUSED, GOAL_REFUSED, GOAL_RESUME_REFUSED, GOAL_PAUSE_REFUSED,
         // Phase 4A row actions
         ROW_ACTION_OFFLINE, RETRY_REFUSED, FORK_REFUSED, REWIND_APPLIED, REWIND_REFUSED, FEEDBACK_REFUSED,
         // Phase 5A (L6.4 + I1): saved workflows
@@ -432,6 +432,12 @@ class ConversationViewModel(
                     text,
                     failureNotice = "Goal resume was refused (the conversation may have moved — try again).",
                     failureKey = SendNotice.Key.GOAL_RESUME_REFUSED,
+                )
+                is SlashDispatch.PauseGoal -> sendSlash(
+                    { port.pauseGoal(taskId) },
+                    text,
+                    failureNotice = "Goal pause was refused (the goal may not be pausable right now).",
+                    failureKey = SendNotice.Key.GOAL_PAUSE_REFUSED,
                 )
                 is SlashDispatch.EmptyGoal -> refuseSlash("/goal needs a goal text — e.g. \"/goal finish the report\".")
                 is SlashDispatch.UnsupportedGoal -> refuseSlash(

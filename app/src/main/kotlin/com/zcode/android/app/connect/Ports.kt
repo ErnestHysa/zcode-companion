@@ -471,6 +471,13 @@ class DefaultConversationPort(
         return mapOutcome(coordinator.resumeGoal(taskId, revision))
     }
 
+    /** I1-goal (Phase 6A): `/goal pause` — same CAS currency as resumeGoal. */
+    override suspend fun pauseGoal(taskId: String): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        val revision = hub.sessionProjectionState(taskId).first().revision
+        return mapOutcome(coordinator.pauseGoal(taskId, revision))
+    }
+
     /** Phase 2 (§11.4, GAP-10): both CAS currencies — revision from the projection, epoch from the store. */
     override suspend fun editUserQuery(taskId: String, rowId: Long, entityId: String, newText: String): ConversationPort.SendOutcome {
         val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED

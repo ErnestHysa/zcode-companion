@@ -175,6 +175,10 @@ class CommandCoordinator(
     suspend fun resumeGoal(sessionId: String, baseRevision: Long?): Outcome =
         casCommand("resumeGoal", sessionId, baseRevision, buildJsonObject { })
 
+    /** I1-goal (Phase 6A): `/goal pause` — `pauseGoal {}`, same CAS set as resumeGoal. */
+    suspend fun pauseGoal(sessionId: String, baseRevision: Long?): Outcome =
+        casCommand("pauseGoal", sessionId, baseRevision, buildJsonObject { })
+
     // ---------------------------------------------------------------- createSession (task creation)
 
     /**

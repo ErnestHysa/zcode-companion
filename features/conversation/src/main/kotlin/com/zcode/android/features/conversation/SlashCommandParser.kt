@@ -7,7 +7,13 @@ package com.zcode.android.features.conversation
  *  - /compact (alias /compress) → the v4 `compact` command (not CAS-guarded);
  *  - /goal <objective>, /goal replace <objective> → `sendGoalCommand`;
  *  - /goal resume → `resumeGoal` (CAS-guarded);
- *  - /goal pause|clear|show → UNSUPPORTED — refused client-side, never a silent prompt;
+ *  - /goal pause → `pauseGoal` (CAS-guarded) — I1-goal (Phase 6A) UNLOCK: the word is
+ *    wire-supported (COMMANDS_REQUIRING_BASE_REVISION) and the goal state renders
+ *    (D2, Phase 4C), so the old blanket refusal no longer applies; refusals surface
+ *    as a typed notice, never a silent prompt;
+ *  - /goal clear|show → UNSUPPORTED — refused client-side, never a silent prompt
+ *    (clear would drop the goal state; show renders nothing the desktop doesn't
+ *    already show in its header);
  *  - empty /goal → refused with a notice;
  *  - /plan <task> → mode shortcut: planEnabled + switch to plan, then the TASK text
  *    as ordinary sendText (the desktop: "命令只负责配置 shortcut；后续必须走普通
@@ -23,6 +29,7 @@ sealed class SlashDispatch {
     data class Compact(override val displayText: String) : SlashDispatch()
     data class SendGoal(val objective: String, override val displayText: String) : SlashDispatch()
     data class ResumeGoal(override val displayText: String) : SlashDispatch()
+    data class PauseGoal(override val displayText: String) : SlashDispatch()
     data class EmptyGoal(override val displayText: String) : SlashDispatch()
     data class UnsupportedGoal(val action: String, override val displayText: String) : SlashDispatch()
     data class PlanShortcut(val task: String, override val displayText: String) : SlashDispatch()
@@ -55,7 +62,8 @@ fun parseVisibleSlashCommand(content: String, attachmentCount: Int = 0): SlashDi
 
     val action = args.split(Regex("\\s+"), limit = 2).first().lowercase()
     if (action == "resume") return SlashDispatch.ResumeGoal(displayText)
-    if (action == "pause" || action == "clear" || action == "show") {
+    if (action == "pause") return SlashDispatch.PauseGoal(displayText)
+    if (action == "clear" || action == "show") {
         return SlashDispatch.UnsupportedGoal(action, displayText)
     }
     val objective = if (action == "replace") args.replace(Regex("^replace\\s*", RegexOption.IGNORE_CASE), "").trim() else args

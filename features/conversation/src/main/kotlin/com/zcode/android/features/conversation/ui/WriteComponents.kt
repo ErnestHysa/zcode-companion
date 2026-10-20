@@ -1100,6 +1100,7 @@ fun sendNoticeText(notice: SendNotice): String {
         SendNotice.Key.COMPACT_REFUSED -> R.string.notice_compact_refused
         SendNotice.Key.GOAL_REFUSED -> R.string.notice_goal_refused
         SendNotice.Key.GOAL_RESUME_REFUSED -> R.string.notice_goal_resume_refused
+        SendNotice.Key.GOAL_PAUSE_REFUSED -> R.string.notice_goal_pause_refused
         // Phase 4A row actions
         SendNotice.Key.ROW_ACTION_OFFLINE -> R.string.notice_row_action_offline
         SendNotice.Key.RETRY_REFUSED -> R.string.notice_retry_refused

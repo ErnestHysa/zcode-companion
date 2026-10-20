@@ -216,6 +216,8 @@
     <string name="notice_compact_refused">Compact was refused by the desktop (it may already be running or an active turn blocks it).</string>
     <string name="notice_goal_refused">The goal update was refused by the desktop.</string>
     <string name="notice_goal_resume_refused">Goal resume was refused (the conversation may have moved — try again).</string>
+    <!-- Phase 6A (I1-goal): the /goal pause unlock -->
+    <string name="notice_goal_pause_refused">Goal pause was refused (the goal may not be pausable right now).</string>
     <!-- Phase 4C (A3.4+J3): the wire-driven effort picker + per-runtime mode labels -->
     <string name="effort_chip_prefix">Effort · </string>
     <string name="effort_dialog_title">Reasoning effort</string>

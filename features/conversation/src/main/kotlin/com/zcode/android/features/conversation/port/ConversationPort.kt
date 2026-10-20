@@ -148,10 +148,16 @@ interface ConversationPort {
     /** `setFollowupMode {mode: queue|guide}` — turn steering for follow-ups. */
     suspend fun setFollowupMode(taskId: String, mode: String): SendOutcome = SendOutcome.FAILED
 
-    /** Phase 2 (§11.3): the slash command plane — /compact, /goal send + resume. */
+    /** Phase 2 (§11.3): the slash command plane — /compact, /goal send + resume + pause. */
     suspend fun compact(taskId: String): SendOutcome
     suspend fun sendGoal(taskId: String, objective: String, displayText: String): SendOutcome
     suspend fun resumeGoal(taskId: String): SendOutcome
+
+    /**
+     * I1-goal (Phase 6A): `pauseGoal {}` — CAS-guarded like resumeGoal (verified
+     * desktop set); non-accepted outcomes surface as the typed pause-refused notice.
+     */
+    suspend fun pauseGoal(taskId: String): SendOutcome = SendOutcome.FAILED
 
     /**
      * Phase 2 (§11.4, GAP-10): editUserQuery — row-targeted + CAS-guarded (both

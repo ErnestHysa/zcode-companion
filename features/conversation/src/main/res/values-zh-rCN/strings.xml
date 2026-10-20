@@ -201,6 +201,8 @@
     <string name="notice_compact_refused">桌面端拒绝了压缩（可能正在运行，或有活动轮次阻止）。</string>
     <string name="notice_goal_refused">桌面端拒绝了目标更新。</string>
     <string name="notice_goal_resume_refused">恢复目标被拒绝（对话可能已变化 — 请重试）。</string>
+    <!-- Phase 6A (I1-goal)：/goal pause 解锁 -->
+    <string name="notice_goal_pause_refused">暂停目标被拒绝（目标当前可能不可暂停）。</string>
     <!-- Phase 4C (A3.4+J3)：推理力度选择器 + 各运行时的模式文案 -->
     <string name="effort_chip_prefix">力度 · </string>
     <string name="effort_dialog_title">推理力度</string>
