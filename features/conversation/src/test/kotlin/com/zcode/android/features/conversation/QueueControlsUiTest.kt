@@ -84,7 +84,7 @@ class QueueControlsUiTest {
     fun `followup chips mark the mode and fire only on change`() {
         setContent(followup = "queue")
         rule.onNodeWithTag("queue_followup_queue").performClick(); rule.waitForIdle()
-        assertEquals(emptyList<String>(), calls, "re-tapping the selected mode sends nothing")
+        assertEquals(emptyList<String>(), calls)
         rule.onNodeWithTag("queue_followup_guide").performClick(); rule.waitForIdle()
         assertEquals(listOf("followup:guide"), calls)
     }
