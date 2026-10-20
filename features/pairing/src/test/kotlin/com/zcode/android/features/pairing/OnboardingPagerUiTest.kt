@@ -46,7 +46,7 @@ class OnboardingPagerUiTest {
         rule.onNodeWithTag("onboarding_page_0").assertIsDisplayed()
         rule.onNodeWithText("Approve from anywhere").assertIsDisplayed()
         rule.onNodeWithTag("onboarding_skip").assertIsDisplayed()
-        rule.onAllNodesWithTag("onboarding_done").assertCountEquals(0, "the last-page CTA is not on page 1")
+        rule.onAllNodesWithTag("onboarding_done").assertCountEquals(0) // the last-page CTA is not on page 1
     }
 
     @Test

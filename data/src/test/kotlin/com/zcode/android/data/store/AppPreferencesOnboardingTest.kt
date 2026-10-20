@@ -3,6 +3,7 @@ package com.zcode.android.data.store
 import androidx.datastore.core.DataStoreFactory
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import androidx.test.core.app.ApplicationProvider
 import android.content.Context
 import com.zcode.android.data.proto.AppPreferencesProto
@@ -22,6 +23,7 @@ import org.junit.Test
  * (false → the pass shows once), and the flip survives the wire round-trip.
  */
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [30])
 class AppPreferencesOnboardingTest {
 
     private lateinit var dir: File
