@@ -2,6 +2,7 @@ package com.zcode.android.domain
 
 import com.zcode.android.domain.model.TrajectoryResult
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -27,7 +28,7 @@ class ModelTrajectoryDecodeTest {
                      "error":{"name":"RateLimitError","message":"429"}},
                     {"attempt":1}
                   ]}""",
-            ),
+            ).jsonObject,
         )
         assertTrue(result.truncated)
         assertEquals(listOf("model-io-t1.jsonl"), result.sourceFiles)

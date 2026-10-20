@@ -11,6 +11,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
 import com.zcode.android.domain.model.ConversationPlan
+import com.zcode.android.domain.model.ConversationPlanStep
 import com.zcode.android.domain.model.PlanStepStatus
 import com.zcode.android.domain.model.TrajectoryRecord
 import com.zcode.android.domain.model.TrajectoryResult

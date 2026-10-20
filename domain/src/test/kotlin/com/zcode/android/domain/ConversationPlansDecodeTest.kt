@@ -3,6 +3,7 @@ package com.zcode.android.domain
 import com.zcode.android.domain.model.ConversationPlan
 import com.zcode.android.domain.model.PlanStepStatus
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -45,6 +46,6 @@ class ConversationPlansDecodeTest {
         assertEquals("only the step key", plans[1].steps.single().title, "the step-key ladder")
         assertTrue(ConversationPlan.decodeAll(null).isEmpty())
         assertTrue(ConversationPlan.decodeAll(Json.parseToJsonElement("""{"other":1}""")).isEmpty())
-        assertNull(ConversationPlan.decode(Json.parseToJsonElement("""{"steps":[]}""")))
+        assertNull(ConversationPlan.decode(Json.parseToJsonElement("""{"steps":[]}""").jsonObject))
     }
 }

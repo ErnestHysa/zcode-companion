@@ -89,7 +89,7 @@ class PlansTrajectoryWireTest {
         assertEquals("conversationPlansV4", mock.v4CallsForTest().last { it.first == "conversationPlansV4" }.first)
         val arg = mock.v4CallsForTest().last { it.first == "conversationPlansV4" }.second
         assertEquals("synth-task-1", (arg["sessionId"] as JsonPrimitive).content)
-        assertEquals("/synthetic/ws", (arg["workspacePath"] as JsonPrimitive).content)
+        assertEquals(transport.activeWorkspaceTarget?.first, (arg["workspacePath"] as JsonPrimitive).content)
     }
 
     @Test
