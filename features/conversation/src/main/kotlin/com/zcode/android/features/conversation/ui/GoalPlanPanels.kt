@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import com.zcode.android.features.conversation.R
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -154,6 +155,81 @@ fun PlanPanel(plan: PlanState, modifier: Modifier = Modifier) {
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+        }
+    }
+}
+
+
+/**
+ * A3.12 (Phase 5B): the plans viewer — `conversationPlansV4`'s list rendered as titled
+ * step checklists (the desktop's plan-step normalization; D2's todo projection stays the
+ * [PlanPanel] above it — one panel surface, two sections). Absent/empty → nothing.
+ */
+@Composable
+fun PlansViewer(
+    plans: List<com.zcode.android.domain.model.ConversationPlan>,
+    modifier: Modifier = Modifier,
+) {
+    if (plans.isEmpty()) return
+    Column(
+        modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.shapes.medium)
+            .padding(12.dp)
+            .testTag("plans_viewer"),
+    ) {
+        Text(
+            stringResource(R.string.plans_title),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(Modifier.height(6.dp))
+        plans.forEachIndexed { index, plan ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    plan.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f).testTag("plan_title_$index"),
+                )
+                Text(
+                    "${plan.completedCount}/${plan.steps.size}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            plan.steps.forEachIndexed { stepIndex, step ->
+                Row(
+                    Modifier.padding(start = 12.dp, top = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        when (step.status) {
+                            com.zcode.android.domain.model.PlanStepStatus.COMPLETED -> "✓"
+                            com.zcode.android.domain.model.PlanStepStatus.IN_PROGRESS -> "▸"
+                            com.zcode.android.domain.model.PlanStepStatus.PENDING -> "○"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = when (step.status) {
+                            com.zcode.android.domain.model.PlanStepStatus.COMPLETED -> MaterialTheme.colorScheme.primary
+                            com.zcode.android.domain.model.PlanStepStatus.IN_PROGRESS -> MaterialTheme.colorScheme.tertiary
+                            com.zcode.android.domain.model.PlanStepStatus.PENDING -> MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        modifier = Modifier.testTag("plan_step_${index}_$stepIndex"),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        step.title,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+            if (index != plans.lastIndex) Spacer(Modifier.height(6.dp))
         }
     }
 }

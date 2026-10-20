@@ -281,4 +281,14 @@
     <string name="queue_move_down">下移</string>
     <string name="queue_followup_queue">排队</string>
     <string name="queue_followup_guide">引导</string>
+    <!-- Phase 5B: 计划查看器 + 轨迹/搜索 -->
+    <string name="plans_title">计划</string>
+    <string name="trajectory_title">模型调用</string>
+    <string name="trajectory_search_hint">搜索会话与模型调用</string>
+    <string name="trajectory_unavailable">当前连接无法读取模型调用</string>
+    <string name="trajectory_empty">此会话没有记录模型调用</string>
+    <string name="trajectory_truncated">仅显示最近的调用</string>
+    <string name="trajectory_call">模型调用</string>
+    <string name="trajectory_tools">工具：</string>
+    <string name="conv_trajectory_entry">模型调用</string>
 </resources>

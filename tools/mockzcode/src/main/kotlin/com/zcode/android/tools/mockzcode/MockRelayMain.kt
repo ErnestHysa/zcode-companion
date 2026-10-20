@@ -117,6 +117,46 @@ fun main() {
             )),
             "updatedAt" to JsonPrimitive(System.currentTimeMillis()),
         ))
+        // Phase 5B (A3.12 + A3.13): the plans viewer + the trajectory/search corpus.
+        mock.script.plansState = JsonObject(mapOf(
+            "plans" to JsonArray(listOf(
+                JsonObject(mapOf(
+                    "title" to JsonPrimitive("Ship the release"),
+                    "steps" to JsonArray(listOf(
+                        JsonObject(mapOf("content" to JsonPrimitive("Write the changelog"), "status" to JsonPrimitive("completed"))),
+                        JsonObject(mapOf("content" to JsonPrimitive("Bump the version"), "status" to JsonPrimitive("in-progress"))),
+                        JsonObject(mapOf("content" to JsonPrimitive("Tag and publish"), "status" to JsonPrimitive("pending"))),
+                    )),
+                )),
+            )),
+        ))
+        mock.script.modelTrajectory = JsonObject(mapOf(
+            "taskId" to JsonPrimitive("synth-task-1"), "available" to JsonPrimitive(true), "truncated" to JsonPrimitive(false),
+            "sourceFiles" to JsonArray(listOf(JsonPrimitive("model-io-synth-task-1.jsonl"))),
+            "records" to JsonArray(listOf(
+                JsonObject(mapOf(
+                    "requestId" to JsonPrimitive("req-1"), "attempt" to JsonPrimitive(1),
+                    "startedAt" to JsonPrimitive("2026-10-20T10:00:00Z"), "durationMs" to JsonPrimitive(4200),
+                    "callSource" to JsonObject(mapOf("kind" to JsonPrimitive("main"))),
+                    "model" to JsonObject(mapOf("modelId" to JsonPrimitive("glm-5.3"), "providerId" to JsonPrimitive("zai"))),
+                    "response" to JsonObject(mapOf(
+                        "finishReason" to JsonPrimitive("tool_calls"), "text" to JsonPrimitive("Checking the workspace state"),
+                        "toolCalls" to JsonArray(listOf(JsonObject(mapOf("name" to JsonPrimitive("bash"))))),
+                    )),
+                )),
+                JsonObject(mapOf(
+                    "requestId" to JsonPrimitive("req-2"), "attempt" to JsonPrimitive(1),
+                    "startedAt" to JsonPrimitive("2026-10-20T10:01:00Z"), "durationMs" to JsonPrimitive(950),
+                    "callSource" to JsonObject(mapOf("kind" to JsonPrimitive("main"))),
+                    "model" to JsonObject(mapOf("modelId" to JsonPrimitive("glm-5.3"), "providerId" to JsonPrimitive("zai"))),
+                    "error" to JsonObject(mapOf("name" to JsonPrimitive("RateLimitError"), "message" to JsonPrimitive("429"))),
+                )),
+            )),
+        ))
+        mock.script.sessionMessages = JsonArray(listOf(
+            JsonObject(mapOf("role" to JsonPrimitive("user"), "content" to JsonPrimitive("Ship the release this week"))),
+            JsonObject(mapOf("role" to JsonPrimitive("assistant"), "content" to JsonPrimitive("I'll draft the changelog and bump the version"))),
+        ))
     }
     // Phase 5A (A3.3 + L6.4) rig leg: MOCK_WORKFLOWS=1 scripts two saved workflows (one with a
     // required arg), one live session run with an event timeline, and one completed saved run —

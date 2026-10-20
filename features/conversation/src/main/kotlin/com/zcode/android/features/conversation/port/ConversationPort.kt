@@ -8,6 +8,7 @@ import com.zcode.android.domain.state.ConnectionPhase
 import com.zcode.android.domain.state.TaskStateMachine
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.serialization.json.JsonObject
 
 /**
  * Consumer-side port for the conversation surface (INV-2/INV-6: no transport types).
@@ -191,6 +192,17 @@ interface ConversationPort {
     /** `startSavedWorkflow {name, scope?, args?}` (I1: decoded-unsent until now). */
     suspend fun startSavedWorkflow(taskId: String, name: String, scope: String?, args: Map<String, String>): StartWorkflowOutcome =
         StartWorkflowOutcome(SendOutcome.FAILED, null)
+
+    // ---- Phase 5B: plans (A3.12) + trajectory/session search (A3.13) ----
+
+    /** `conversationPlansV4 {sessionId}` — the session's plans; null = unavailable. */
+    suspend fun fetchPlans(taskId: String): List<com.zcode.android.domain.model.ConversationPlan>? = null
+
+    /** `getModelTrajectory {taskId, limit?}` — the model-call timeline; null = unavailable. */
+    suspend fun fetchTrajectory(taskId: String): com.zcode.android.domain.model.TrajectoryResult? = null
+
+    /** `readSessionMessages {sessionId, limit}` — the full message list for client-side search. */
+    suspend fun fetchSessionMessages(taskId: String, limit: Int = 200): List<JsonObject> = emptyList()
 
     /** The ack's typed reasonCode rides along (StartSavedWorkflowErrors vocabulary). */
     data class StartWorkflowOutcome(val outcome: SendOutcome, val reasonCode: String?)

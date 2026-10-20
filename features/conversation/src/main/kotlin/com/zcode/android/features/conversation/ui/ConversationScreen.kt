@@ -133,6 +133,16 @@ fun ConversationScreen(
     onMoveQueueItem: ((queueItemId: String, delta: Int) -> Unit)? = null,
     onSetAutoDrain: ((Boolean) -> Unit)? = null,
     onSetFollowupMode: ((String) -> Unit)? = null,
+    // ---- Phase 5B (A3.12 + A3.13): plans viewer + trajectory/search ----
+    plans: List<com.zcode.android.domain.model.ConversationPlan>? = null,
+    showTrajectory: Boolean = false,
+    trajectory: com.zcode.android.domain.model.TrajectoryResult? = null,
+    trajectoryLoading: Boolean = false,
+    trajectorySearchResults: List<com.zcode.android.features.conversation.ConversationViewModel.SessionSearchResult>? = null,
+    trajectoryQuery: String = "",
+    onTrajectoryQueryChange: (String) -> Unit = {},
+    onOpenTrajectory: () -> Unit = {},
+    onCloseTrajectory: () -> Unit = {},
 ) {
     val rowActions = remember(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback) {
         RowActionCallbacks(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback)
@@ -194,11 +204,24 @@ fun ConversationScreen(
                 sessionStatusProvider = sessionStatusProvider,
                 onSetThoughtLevel = onSetThoughtLevel,
                 workflowRuns = workflowRuns,
+                plans = plans,
+                onOpenTrajectory = onOpenTrajectory,
                 onOpenWorkflowRun = onOpenWorkflowRun,
             )
             // A3.3: the run detail sheet (an overlay — position in the tree is immaterial).
             openWorkflowRun?.let { open ->
                 WorkflowRunSheet(open, onDismiss = onCloseWorkflowRun, onLoadMore = onLoadMoreRunEvents)
+            }
+            // A3.13: the trajectory sheet (search field + the model-call timeline).
+            if (showTrajectory) {
+                TrajectorySheet(
+                    trajectory = trajectory,
+                    loading = trajectoryLoading,
+                    searchResults = trajectorySearchResults,
+                    query = trajectoryQuery,
+                    onQueryChange = onTrajectoryQueryChange,
+                    onDismiss = onCloseTrajectory,
+                )
             }
             // Phase 9.1: the per-turn diff viewer (opened from a turnHeader's summary).
             var diffTurn by remember { mutableStateOf<ConversationRow.TurnHeader?>(null) }
@@ -378,6 +401,10 @@ private fun Header(
     /** Phase 5A (A3.3): the session's workflow runs (null/empty → no panel). */
     workflowRuns: List<com.zcode.android.domain.model.WorkflowRunSummary>? = null,
     onOpenWorkflowRun: (com.zcode.android.domain.model.WorkflowRunSummary) -> Unit = {},
+    /** Phase 5B (A3.12): the plans projection (null/empty → no panel). */
+    plans: List<com.zcode.android.domain.model.ConversationPlan>? = null,
+    /** Phase 5B (A3.13): open the trajectory sheet. */
+    onOpenTrajectory: () -> Unit = {},
 ) {
     Column {
         ZCodeTopBar(
@@ -441,6 +468,10 @@ private fun Header(
         workflowRuns?.takeIf { it.isNotEmpty() }?.let { runs ->
             WorkflowRunsPanel(runs, onOpen = onOpenWorkflowRun, modifier = Modifier.padding(horizontal = 8.dp))
         }
+        // A3.12: the plans viewer folds under the todo panel (one panel surface, two sections).
+        plans?.takeIf { it.isNotEmpty() }?.let { list ->
+            PlansViewer(list, modifier = Modifier.padding(horizontal = 8.dp))
+        }
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -450,6 +481,7 @@ private fun Header(
             AssistChip(onClick = onOpenFiles, label = { Text(stringResource(R.string.files_entry)) }, modifier = Modifier.testTag("conv_open_files"))
             AssistChip(onClick = onOpenGit, label = { Text(stringResource(R.string.git_entry)) }, modifier = Modifier.testTag("conv_open_git"))
             AssistChip(onClick = onOpenTerminal, label = { Text(stringResource(R.string.terminal_entry)) }, modifier = Modifier.testTag("conv_open_terminal"))
+            AssistChip(onClick = onOpenTrajectory, label = { Text(stringResource(R.string.conv_trajectory_entry)) }, modifier = Modifier.testTag("conv_open_trajectory"))
         }
         Spacer(Modifier.height(6.dp))
     }

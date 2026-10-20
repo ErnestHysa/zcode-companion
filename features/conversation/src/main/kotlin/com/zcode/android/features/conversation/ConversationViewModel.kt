@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.JsonObject
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -607,7 +608,10 @@ class ConversationViewModel(
         // A3.3: the run list follows the projection — every revision change re-reads it
         // (debounced), and a ticker keeps LIVE runs fresh between frames (status, not events).
         scope.launch {
-            state.map { it.sessionState?.revision }.distinctUntilChanged().debounce(400).collect { refreshWorkflowRuns() }
+            state.map { it.sessionState?.revision }.distinctUntilChanged().debounce(400).collect {
+                refreshWorkflowRuns()
+                refreshPlans()
+            }
         }
     }
 
@@ -665,6 +669,55 @@ class ConversationViewModel(
     fun closeWorkflowRun() {
         _openRun.value = null
     }
+
+    // ---------------------------------------------------------------- Phase 5B (A3.12 + A3.13)
+
+    private val _plans = MutableStateFlow<List<com.zcode.android.domain.model.ConversationPlan>?>(null)
+
+    /** The plans projection (`conversationPlansV4`); null = unavailable → the panel hides. */
+    val plans: StateFlow<List<com.zcode.android.domain.model.ConversationPlan>?> = _plans.asStateFlow()
+
+    private val _trajectory = MutableStateFlow<com.zcode.android.domain.model.TrajectoryResult?>(null)
+
+    /** The model-call timeline (`getModelTrajectory`); null = not loaded / unavailable. */
+    val trajectory: StateFlow<com.zcode.android.domain.model.TrajectoryResult?> = _trajectory.asStateFlow()
+
+    data class SessionSearchResult(val role: String, val head: String)
+
+    private val _sessionSearch = MutableStateFlow<List<SessionSearchResult>?>(null)
+
+    /** Matches of the current session-search query (null = no query / not run). */
+    val sessionSearch: StateFlow<List<SessionSearchResult>?> = _sessionSearch.asStateFlow()
+
+    fun refreshPlans() {
+        scope.launch { _plans.value = port.fetchPlans(taskId) }
+    }
+
+    /** The trajectory loads when the sheet opens (A3.13). */
+    fun loadTrajectory() {
+        scope.launch { _trajectory.value = port.fetchTrajectory(taskId) }
+    }
+
+    /** Client-side search over `readSessionMessages` (role + content contains, case-insensitive). */
+    fun searchSession(query: String) {
+        if (query.isBlank()) {
+            _sessionSearch.value = null
+            return
+        }
+        scope.launch {
+            val needle = query.trim().lowercase()
+            _sessionSearch.value = port.fetchSessionMessages(taskId)
+                .mapNotNull { msg ->
+                    val role = msg.str6("role") ?: return@mapNotNull null
+                    val content = listOf("content", "text", "summary").firstNotNullOfOrNull { msg.str6(it) } ?: return@mapNotNull null
+                    if (!content.lowercase().contains(needle)) return@mapNotNull null
+                    SessionSearchResult(role, content.take(200))
+                }
+        }
+    }
+
+    private fun JsonObject.str6(key: String): String? =
+        (this[key] as? kotlinx.serialization.json.JsonPrimitive)?.takeIf { it !is kotlinx.serialization.json.JsonNull }?.content
 
     /** L6.4 + I1: `startSavedWorkflow` in THIS session; the ack's typed reason feeds the notice. */
     fun startSavedWorkflow(name: String, scope: String?, args: Map<String, String>) {

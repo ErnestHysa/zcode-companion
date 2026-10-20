@@ -314,6 +314,14 @@ class MockZCode(
         val workflowRunEvents: MutableMap<String, MutableList<JsonObject>> = java.util.concurrent.ConcurrentHashMap()
         /** Every `startSavedWorkflow` envelope payload the mock saw (name/scope/args). */
         val startedWorkflows: MutableList<JsonObject> = java.util.Collections.synchronizedList(ArrayList())
+
+        // ---------------- Phase 5B (A3.12 + A3.13) ----------------
+        /** `conversationPlansV4` result (plans projection; null = typed fault → the panel hides). */
+        var plansState: JsonObject? = null
+        /** `getModelTrajectory` result (readModelTrajectory shape; null = typed fault). */
+        var modelTrajectory: JsonObject? = null
+        /** `readSessionMessages` items (role/content) — the search corpus. */
+        var sessionMessages: JsonArray? = null
         /** One-shot direct-socket close after N binary frames (loss class). */
         var directDisconnectAfterFrames: Int? = null
     }
@@ -1783,6 +1791,14 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             "conversationWorkflowRunArtifactReadV4" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
                 put("dataBase64", JsonPrimitive("")); put("mediaType", JsonPrimitive("text/plain")); put("totalBytes", JsonPrimitive(0)); put("nextOffset", kotlinx.serialization.json.JsonNull)
             }))
+            // ---- Phase 5B (A3.12): the plans projection ----
+            "conversationPlansV4" -> scriptableObject(id, script.plansState, "conversationPlansV4")
+            // ---- Phase 5B (A3.13): the trajectory + session reads ----
+            "readSessionMessages" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(
+                (script.sessionMessages ?: JsonArray(emptyList())).map { RpcValue.Obj(it as JsonObject) },
+            ))
+            "readSessionEvents" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(emptyList()))
+            "readSessionDebug" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
             // ---- Phase 5A (L6.4): the saved-workflow hub words (BJ / FJ / JJ shapes) ----
             "listSavedWorkflows" -> scriptableObject(id, script.savedWorkflows, "listSavedWorkflows")
             "getSavedWorkflow" -> {
@@ -2944,6 +2960,7 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
                 if (taskId == null) respondError(id, "fault.mock.unscripted:" + name)
                 else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
             }
+            "getModelTrajectory" -> scriptableObject(id, script.modelTrajectory, "getModelTrajectory")
             "listTaskList" -> {
                 val search = arg?.str("search").orEmpty().lowercase()
                 val hits = script.directTasks

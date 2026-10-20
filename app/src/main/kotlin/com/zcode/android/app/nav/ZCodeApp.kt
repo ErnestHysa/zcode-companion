@@ -531,6 +531,12 @@ private fun ConversationRoute(
     // Phase 5A (A3.3): the workflow runs panel + run sheet follow the VM's flows.
     val workflowRuns by vm.workflowRuns.collectAsState()
     val openWorkflowRun by vm.openWorkflowRun.collectAsState()
+    // Phase 5B (A3.12 + A3.13): plans + the trajectory/search sheet.
+    val plans by vm.plans.collectAsState()
+    val trajectory by vm.trajectory.collectAsState()
+    val trajectorySearch by vm.sessionSearch.collectAsState()
+    var showTrajectory by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var trajectoryQuery by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
     androidx.compose.runtime.LaunchedEffect(forked) {
         val child = forked ?: return@LaunchedEffect
         vm.consumeForkedSession()
@@ -597,6 +603,15 @@ private fun ConversationRoute(
         onMoveQueueItem = vm::moveQueueItem,
         onSetAutoDrain = vm::setAutoDrain,
         onSetFollowupMode = vm::setFollowupMode,
+        plans = plans,
+        showTrajectory = showTrajectory,
+        trajectory = trajectory,
+        trajectoryLoading = trajectory == null && showTrajectory,
+        trajectorySearchResults = trajectorySearch,
+        trajectoryQuery = trajectoryQuery,
+        onTrajectoryQueryChange = { trajectoryQuery = it; vm.searchSession(it) },
+        onOpenTrajectory = { showTrajectory = true; vm.loadTrajectory() },
+        onCloseTrajectory = { showTrajectory = false; trajectoryQuery = ""; vm.searchSession("") },
     )
 }
 

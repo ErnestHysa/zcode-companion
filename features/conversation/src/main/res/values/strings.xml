@@ -305,4 +305,14 @@
     <string name="queue_move_down">Move down</string>
     <string name="queue_followup_queue">Queue</string>
     <string name="queue_followup_guide">Guide</string>
+    <!-- Phase 5B: plans viewer + trajectory/search -->
+    <string name="plans_title">Plans</string>
+    <string name="trajectory_title">Model calls</string>
+    <string name="trajectory_search_hint">Search the conversation and model calls</string>
+    <string name="trajectory_unavailable">Model calls are unavailable on this connection</string>
+    <string name="trajectory_empty">No model calls recorded for this session</string>
+    <string name="trajectory_truncated">Showing the most recent calls</string>
+    <string name="trajectory_call">model call</string>
+    <string name="trajectory_tools">tools:</string>
+    <string name="conv_trajectory_entry">Model calls</string>
 </resources>

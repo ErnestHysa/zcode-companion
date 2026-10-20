@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.JsonObject
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.StateFlow
@@ -541,6 +542,16 @@ class DefaultConversationPort(
 
     override suspend fun fetchWorkflowRunEvents(taskId: String, runId: String, afterSequence: Long?): com.zcode.android.domain.model.WorkflowRunEventsPage? =
         facadeRead("workflowRunEvents") { com.zcode.android.domain.model.WorkflowRunEventsPage.decode(it.workflowRunEvents(taskId, runId, afterSequence, limit = 200)) }
+
+    // Phase 5B: plans (A3.12) + trajectory/session search (A3.13).
+    override suspend fun fetchPlans(taskId: String): List<com.zcode.android.domain.model.ConversationPlan>? =
+        facadeRead("plans") { com.zcode.android.domain.model.ConversationPlan.decodeAll(it.plans(taskId)) }
+
+    override suspend fun fetchTrajectory(taskId: String): com.zcode.android.domain.model.TrajectoryResult? =
+        facadeRead("trajectory") { com.zcode.android.domain.model.TrajectoryResult.decode(it.modelTrajectory(taskId)) }
+
+    override suspend fun fetchSessionMessages(taskId: String, limit: Int): List<JsonObject> =
+        facadeRead("sessionMessages") { it.sessionMessages(taskId, limit = limit) } ?: emptyList()
 
     override suspend fun startSavedWorkflow(taskId: String, name: String, scope: String?, args: Map<String, String>): ConversationPort.StartWorkflowOutcome {
         val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.StartWorkflowOutcome(ConversationPort.SendOutcome.FAILED, null)
