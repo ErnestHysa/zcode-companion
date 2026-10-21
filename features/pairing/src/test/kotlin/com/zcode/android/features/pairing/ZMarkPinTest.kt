@@ -10,6 +10,9 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.components.ZMark
+import com.zcode.android.features.pairing.flow.PairingFlow
+import com.zcode.android.features.pairing.port.PairingPort
+import com.zcode.android.features.pairing.ui.PairingHost
 import com.zcode.android.core.ui.theme.ZCodeTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
