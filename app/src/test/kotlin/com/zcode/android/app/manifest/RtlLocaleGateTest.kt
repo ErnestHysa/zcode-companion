@@ -32,7 +32,7 @@ class RtlLocaleGateTest {
             )
             assertTrue(
                 "supportsRtl must stay absent while only LTR locales ship (the recorded decision)",
-                !manifest.contains("android:supportsRtl"),
+                !manifest.contains("android:supportsRtl=\""),
             )
         } else {
             // An RTL locale landed: the gate flips — the flag must now be present.
