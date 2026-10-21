@@ -508,7 +508,10 @@ private fun ChangeCard(
                         dir = tree,
                         depth = 0,
                         staged = staged,
-                        collapsed = collapsed,
+                        collapsed = collapsed.value,
+                        onCollapseDir = { path ->
+                            collapsed.value = if (path in collapsed.value) collapsed.value - path else collapsed.value + path
+                        },
                         expanded = expanded,
                         load = load,
                         onToggle = onToggle,
@@ -527,7 +530,8 @@ private fun GitTreeRows(
     dir: GitChangeTree.Dir,
     depth: Int,
     staged: Boolean,
-    collapsed: androidx.compose.runtime.MutableState<Set<String>>,
+    collapsed: Set<String>,
+    onCollapseDir: (String) -> Unit,
     expanded: Pair<String, Boolean>?,
     load: suspend (String, Boolean) -> GitFileDiff?,
     onToggle: (path: String, staged: Boolean) -> Unit,
@@ -536,14 +540,12 @@ private fun GitTreeRows(
 ) {
     val indent = Modifier.padding(start = (depth * 12).dp)
     if (dir.name.isNotEmpty()) {
-        val isCollapsed = dir.path in collapsed.value
+        val isCollapsed = dir.path in collapsed
         Row(
             Modifier
                 .fillMaxWidth()
                 .then(indent)
-                .clickable {
-                    collapsed.value = if (isCollapsed) collapsed.value - dir.path else collapsed.value + dir.path
-                }
+                .clickable { onCollapseDir(dir.path) }
                 .padding(vertical = 4.dp)
                 .testTag("git_tree_dir_${dir.path}")
                 .semantics(mergeDescendants = true) {},
@@ -569,7 +571,7 @@ private fun GitTreeRows(
             )
         }
     }
-    if (dir.name.isEmpty() || dir.path !in collapsed.value) {
+    if (dir.name.isEmpty() || dir.path !in collapsed) {
         dir.files.forEach { entry ->
             ChangeRow(
                 entry = entry,
@@ -583,7 +585,7 @@ private fun GitTreeRows(
             )
         }
         dir.dirs.forEach { child ->
-            GitTreeRows(child, depth + 1, staged, collapsed, expanded, load, onToggle, onStage, onDiscard)
+            GitTreeRows(child, depth + 1, staged, collapsed, onCollapseDir, expanded, load, onToggle, onStage, onDiscard)
         }
     }
 }
