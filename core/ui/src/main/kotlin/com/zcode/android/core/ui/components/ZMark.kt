@@ -21,7 +21,7 @@ import com.zcode.android.core.ui.theme.ZCodeRadius
  * reads the screen's heading, not the mark.
  */
 @Composable
-fun ZMark(size: Dp = 40.dp, modifier: Modifier = Modifier) {
+fun ZMark(modifier: Modifier = Modifier, size: Dp = 40.dp) {
     Box(
         modifier = modifier
             .size(size)
