@@ -159,4 +159,59 @@ class MockZCodeSwitchEchoSelfTest {
             "row.appended effect frames survive the journal (authoritative rows replay like snapshots)",
         )
     }
+
+    @Test
+    fun `effort switch (setThoughtLevel) preserves modelSelection too — fourth rebuild site`() {
+        val m = mock { s -> s.sessionConfig = faithfulConfig() }
+        val next = m.thoughtLevelConfig("medium")
+        assertEquals("medium", (next["thought"] as JsonPrimitive).content)
+        assertNotNull(next["modelSelection"]?.jsonObject, "the effort switch must not drop modelSelection (same defect class)")
+        assertEquals("glm-5.1", (next["modelSelection"]!!.jsonObject["modelId"] as JsonPrimitive).content)
+        assertEquals("build", (next["mode"] as JsonPrimitive).content, "unmanaged keys ride through")
+    }
+}
+
+/**
+ * RIG-ledger pin (gaps-and-polish Phase 7): the rig assets are PERMANENT — the
+ * inventory every fix round regression-pins against must stay present in the mock
+ * sources (assets extended, never forked; K8/L9/N5/N9). This is a source-contract
+ * pin: removing or forking any listed asset knob fails here before a rig round can
+ * silently lose its fixture.
+ */
+class RigAssetsLedgerSelfTest {
+
+    private fun source(name: String): String =
+        java.io.File("src/main/kotlin/com/zcode/android/tools/mockzcode/$name").readText()
+
+    private fun assertKnob(where: String, text: String, needle: String) =
+        assertTrue(text.contains(needle), "rig asset missing from $where: `$needle`")
+
+    @Test
+    fun `relay-main wires the canonical rig asset knobs`() {
+        val main = source("MockRelayMain.kt")
+        assertKnob("MockRelayMain", main, "MOCK_APPROVAL")
+        assertKnob("MockRelayMain", main, "script.demoAssistantMarkdown")
+        assertKnob("MockRelayMain", main, "MOCK_ROWS")
+        assertKnob("MockRelayMain", main, "commandEffects = true")
+        assertKnob("MockRelayMain", main, "MOCKZCODE_WS_URL")
+        assertKnob("MockRelayMain", main, "MOCKZCODE_LINK")
+        assertKnob("MockRelayMain", main, "MOCKZCODE_READY")
+    }
+
+    @Test
+    fun `the v4call wire-proof log is unconditional`() {
+        val mockzcode = source("MockZCode.kt")
+        val line = mockzcode.lineSequence().firstOrNull { it.contains("v4call") }
+        assertNotNull(line, "the v4call log line is missing — the rig's wire proof is gone")
+        assertTrue(line.contains("println(\"MOCK: v4call"), "the v4call log must be a plain unconditional println")
+        assertTrue(!line.trimStart().startsWith("//"), "the v4call log must not be commented out")
+    }
+
+    @Test
+    fun `RawWsServer stays the transport and keeps its behavior pin`() {
+        val raw = source("RawWsServer.kt")
+        assertTrue(raw.contains("class RawWsServer"), "RawWsServer is the RFC 6455-correct transport — do not fork to MockWebServer")
+        val pin = java.io.File("src/test/kotlin/com/zcode/android/tools/mockzcode/RawWsServerTest.kt")
+        assertTrue(pin.exists() && pin.readText().contains("echoRoundTripWithRealOkHttpClient"), "RawWsServerTest behavior pin missing")
+    }
 }

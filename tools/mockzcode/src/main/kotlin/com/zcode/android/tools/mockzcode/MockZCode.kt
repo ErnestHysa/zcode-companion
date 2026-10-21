@@ -1561,15 +1561,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     respondError(id, "fault.mock.unscripted:setThoughtLevel")
                 } else {
                     stateRevision.incrementAndGet()
-                    val current = script.sessionConfig
-                    script.sessionConfig = buildJsonObject {
-                        put("provider", JsonPrimitive(current?.strOrNull("provider") ?: "zai"))
-                        put("model", JsonPrimitive(current?.strOrNull("model") ?: "glm-5.3"))
-                        put("thought", JsonPrimitive(level))
-                        put("thoughtLevels", current?.get("thoughtLevels") ?: JsonArray(listOf(JsonPrimitive(level))))
-                        put("followupMode", JsonPrimitive(current?.strOrNull("followupMode") ?: "queue"))
-                        put("mode", JsonPrimitive(current?.strOrNull("mode") ?: "build"))
-                    }
+                    script.sessionConfig = thoughtLevelConfig(level)
                     pushStatePatch(buildJsonObject {
                         put("revision", JsonPrimitive(stateRevision.get()))
                         put("config", script.sessionConfig!!)
@@ -2792,6 +2784,23 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
         current: JsonObject?,
         vararg changes: Pair<String, kotlinx.serialization.json.JsonElement>,
     ): JsonObject = JsonObject((current ?: JsonObject(emptyMap())) + changes.toMap())
+
+    /**
+     * The effort switch's config rebuild (`setThoughtLevel` channel word) — the FOURTH
+     * member of the fixed-key rebuild class G3 named; same key-preserving merge.
+     */
+    internal fun thoughtLevelConfig(level: String): JsonObject {
+        val current = script.sessionConfig
+        return mergeSessionConfig(
+            current,
+            "provider" to JsonPrimitive(current?.strOrNull("provider") ?: "zai"),
+            "model" to JsonPrimitive(current?.strOrNull("model") ?: "glm-5.3"),
+            "thought" to JsonPrimitive(level),
+            "thoughtLevels" to (current?.get("thoughtLevels") ?: JsonArray(listOf(JsonPrimitive(level)))),
+            "followupMode" to JsonPrimitive(current?.strOrNull("followupMode") ?: "queue"),
+            "mode" to JsonPrimitive(current?.strOrNull("mode") ?: "build"),
+        )
+    }
 
     private fun handleCommandsPromise(id: Int, name: String?) {
         val result = script.commandsList
