@@ -121,12 +121,12 @@ class GitTreeSearchUiTest {
     @Test
     fun `the pure builder nests and search matches case-insensitively`() {
         val root = GitChangeTree.build(large)
-        assertEquals(listOf("src", "tools"), root.dirs.map { it.name }, "the top-level directories")
-        assertEquals(5, root.files.size, "the root-level files live on the synthetic root")
+        assertEquals("the top-level directories", listOf("src", "tools"), root.dirs.map { it.name })
+        assertEquals("the root-level files live on the synthetic root", 5, root.files.size)
         val src = root.dirs.first { it.name == "src" }
-        assertEquals(listOf("main", "test"), src.dirs.map { it.name })
+        assertEquals("src splits into main and test", listOf("main", "test"), src.dirs.map { it.name })
         assertTrue("a dir with only subdirs carries no direct files", src.files.isEmpty())
-        assertEquals("src/main", src.dirs.first().path, "dir paths nest from the repo root")
+        assertEquals("dir paths nest from the repo root", "src/main", src.dirs.first().path)
         val hits = GitChangeTree.search(large, "SPEC1")
         assertTrue("the match survives", hits.isNotEmpty())
         assertTrue(hits.all { it.repoRelativePath.contains("spec1", ignoreCase = true) })
