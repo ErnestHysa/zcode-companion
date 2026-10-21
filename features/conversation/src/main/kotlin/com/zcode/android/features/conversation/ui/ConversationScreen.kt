@@ -202,7 +202,18 @@ fun ConversationScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
-        topBar = {},
+        // U2 (verification pass 2, 2026-10-21): the ONE header lives in the topBar slot —
+        // its contract (the M3 TopAppBar insets own the status bar). Hosted inside the
+        // content column it sat UNDER `padding(inner)`, which already carries the
+        // status-bar inset: the header floated a whole status bar (~53dp on a cutout
+        // device) below where every other screen's title sits.
+        topBar = {
+            ZCodeTopBar(
+                title = state.task?.title ?: stringResource(R.string.conv_default_title),
+                onBack = attemptBack,
+                backTestTag = "conversation_back",
+            )
+        },
     ) { inner ->
         Column(
             Modifier
@@ -217,7 +228,6 @@ fun ConversationScreen(
             Header(
                 state = state,
                 phase = phase,
-                onBack = attemptBack,
                 onOpenFiles = onOpenFiles,
                 onOpenGit = onOpenGit,
                 onOpenTerminal = onOpenTerminal,
@@ -414,7 +424,6 @@ fun ConversationScreen(
 private fun Header(
     state: ConversationUiState,
     phase: ConnectionPhase,
-    onBack: () -> Unit,
     onOpenFiles: () -> Unit = {},
     onOpenGit: () -> Unit = {},
     onOpenTerminal: () -> Unit = {},
@@ -435,11 +444,6 @@ private fun Header(
     onShareTranscript: () -> Unit = {},
 ) {
     Column {
-        ZCodeTopBar(
-            title = state.task?.title ?: stringResource(R.string.conv_default_title),
-            onBack = onBack,
-            backTestTag = "conversation_back",
-        )
         ConnectionStatusLine(
             phase = phase,
             // D2: the progress label is TURN-KIND-AWARE — control.activeWorks[].kind
