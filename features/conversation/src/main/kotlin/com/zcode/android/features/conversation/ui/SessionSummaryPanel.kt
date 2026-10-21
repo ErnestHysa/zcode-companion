@@ -53,42 +53,41 @@ fun SessionSummaryPanel(
         }
     }
 
-    if (!expanded) {
-        val expandLabel = stringResource(R.string.summary_show_panel)
-        val capsuleModifier = Modifier
-            .then(modifier)
-            .fillMaxWidth()
-        Surface(
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            shape = MaterialTheme.shapes.small,
-            modifier = capsuleModifier
-                .testTag("summary_capsule")
-                .semantics(mergeDescendants = true) { contentDescription = expandLabel }
-                .clickable { expanded = true },
-        ) {
-            Text(
-                text = listOfNotNull(
-                    stringResource(R.string.summary_title),
-                    duration,
-                    goalIteration?.let { stringResource(R.string.summary_goal_iteration, it) },
-                    background.takeIf { it > 0 }?.let { stringResource(R.string.summary_background_tasks, it) },
-                    subagents.takeIf { it > 0 }?.let { stringResource(R.string.summary_subagents, it) },
-                ).joinToString("  ·  "),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            )
+    // One root use of the modifier parameter (ComposeModifierReused); the capsule/
+    // panel tags live on the inner elements so the pins stay put.
+    Column(modifier = modifier) {
+        if (!expanded) {
+            val expandLabel = stringResource(R.string.summary_show_panel)
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("summary_capsule")
+                    .semantics(mergeDescendants = true) { contentDescription = expandLabel }
+                    .clickable { expanded = true },
+            ) {
+                Text(
+                    text = listOfNotNull(
+                        stringResource(R.string.summary_title),
+                        duration,
+                        goalIteration?.let { stringResource(R.string.summary_goal_iteration, it) },
+                        background.takeIf { it > 0 }?.let { stringResource(R.string.summary_background_tasks, it) },
+                        subagents.takeIf { it > 0 }?.let { stringResource(R.string.summary_subagents, it) },
+                    ).joinToString("  -  "),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                )
+            }
+            return@Column
         }
-        return
-    }
-    val panelModifier = Modifier
-        .then(modifier)
-        .fillMaxWidth()
-    Column(
-        modifier = panelModifier
-            .testTag("summary_panel"),
-    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("summary_panel"),
+        ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 stringResource(R.string.summary_title),
@@ -127,6 +126,7 @@ fun SessionSummaryPanel(
                 tag = "summary_subagents",
             )
         }
+    }
     }
 }
 
