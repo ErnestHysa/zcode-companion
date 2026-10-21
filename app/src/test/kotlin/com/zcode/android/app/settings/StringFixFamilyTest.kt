@@ -47,6 +47,25 @@ class StringFixFamilyTest {
         assertTrue(s.contains("1 min ago"))
     }
 
+    /**
+     * Found LIVE 2026-10-21 (whole-campaign verification): the conversation's effort chip
+     * rendered "Effort ·high" — `effort_chip_prefix` carried an UNQUOTED trailing space
+     * that AAPT trims (the L4.2 class, trailing edge), in BOTH locales; the git push
+     * sheet's `push_no_upstream` leading space had the same fate (glued "…branch(no
+     * upstream…"). Same family remedy (quoted resource), one pin per missed site.
+     */
+    @Test
+    fun `L4_2 trailing edge - the effort chip prefix and the push suffix keep their edge space`() {
+        assertTrue(context.getString(com.zcode.android.features.conversation.R.string.effort_chip_prefix).endsWith(" · "))
+        val zh = context.createConfigurationContext(
+            android.content.res.Configuration(context.resources.configuration).apply {
+                setLocale(java.util.Locale.SIMPLIFIED_CHINESE)
+            },
+        )
+        assertTrue(zh.getString(com.zcode.android.features.conversation.R.string.effort_chip_prefix).endsWith(" · "))
+        assertTrue(context.getString(com.zcode.android.features.git.R.string.push_no_upstream).startsWith(" ("))
+    }
+
     @Test
     fun `L4_1 - Settings never prints the raw phase enum`() {
         val settings = File(root, "app/src/main/kotlin/com/zcode/android/app/settings/SettingsScreen.kt").readText()
