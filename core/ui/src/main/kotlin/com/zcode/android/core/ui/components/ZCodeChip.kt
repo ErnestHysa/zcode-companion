@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,8 +23,7 @@ import androidx.compose.ui.unit.dp
  * outlined + transparent, the selected state adds the subtle
  * `surfaceContainerHighest` fill, radius = the theme's chip step (`small`, 4dp —
  * [com.zcode.android.core.ui.theme.ZCodeRadius.sm]), label = labelMedium,
- * single-line, and the M3 48dp interactive-touch minimum kept without inflating
- * the visual height.
+ * single-line, with the same interactive profile as the M3 chips it replaces.
  */
 @Composable
 fun ZCodeChip(
@@ -45,7 +43,6 @@ fun ZCodeChip(
             color = if (selected) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.outlineVariant,
         ),
         modifier = modifier
-            .minimumInteractiveComponentSize()
             .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
             .semantics(mergeDescendants = true) {
                 contentDescription?.let { this.contentDescription = it }

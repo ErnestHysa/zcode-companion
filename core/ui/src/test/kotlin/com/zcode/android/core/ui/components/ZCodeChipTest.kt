@@ -79,8 +79,10 @@ class ZCodeChipTest {
 
     @Test
     fun `the chip radius is the theme's chip step - not a pill`() {
+        var density = 1f
         rule.setContent {
             com.zcode.android.core.ui.theme.ZCodeTheme {
+                density = androidx.compose.ui.platform.LocalDensity.current.density
                 ZCodeChip(
                     onClick = {},
                     label = "Git",
@@ -90,10 +92,9 @@ class ZCodeChipTest {
             }
         }
         rule.waitForIdle()
-        val density = androidx.compose.ui.platform.LocalDensity.current
         // The flat top edge reaches x = radius + 1 (the OnboardingPillPin math).
         val img = rule.onNodeWithTag("chip_radius").captureToImage().toPixelMap()
-        val x = ((ZCodeRadius.sm.value * density.density) + 1).toInt()
+        val x = ((ZCodeRadius.sm.value * density) + 1).toInt()
         val topCenter = img[img.width / 2, 0].toArgb()
         assertEquals(topCenter, img[x.coerceAtMost(img.width - 1), 0].toArgb(), "the flat top edge reaches the radius step")
         assertNotEquals(topCenter, img[0, 0].toArgb(), "the corner is still rounded")
