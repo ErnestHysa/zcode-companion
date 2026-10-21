@@ -103,7 +103,7 @@ class GitTreeSearchUiTest {
         setContent(large)
         rule.onNodeWithTag("git_search").performTextInput("spec1")
         rule.waitForIdle()
-        assertEquals("the spec1 match survives", 1, count("git_change_src/test/spec10.kt") + count("git_change_src/test/spec1.kt"))
+        assertEquals("the spec1 matches survive (spec1 + spec10)", 2, count("git_change_src/test/spec10.kt") + count("git_change_src/test/spec1.kt"))
         assertTrue(
             "non-matching rows are filtered out",
             count("git_change_src/main/file5.kt") == 0,
