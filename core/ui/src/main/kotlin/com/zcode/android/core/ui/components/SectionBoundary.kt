@@ -27,8 +27,8 @@ import com.zcode.android.core.ui.R
 fun <T> SectionBoundary(
     key: Any?,
     prepare: () -> T,
-    onCrash: (Throwable) -> Unit = {},
     modifier: Modifier = Modifier,
+    onCrash: (Throwable) -> Unit = {},
     content: @Composable (T) -> Unit,
 ) {
     var failure by remember(key) { mutableStateOf<Throwable?>(null) }
