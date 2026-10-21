@@ -45,7 +45,7 @@ class ZCodeChipTest {
     fun `one language - selected carries the subtle fill, unselected stays transparent`() {
         rule.setContent {
             com.zcode.android.core.ui.theme.ZCodeTheme {
-                Box(Modifier.size(width = 320.dp, height = 96.dp)) {
+                androidx.compose.foundation.layout.Column(Modifier.size(width = 320.dp, height = 96.dp)) {
                     ZCodeChip(
                         onClick = {},
                         label = "mode: build",
@@ -131,7 +131,7 @@ class ZCodeChipTest {
         val sheet = java.io.File(root, "core/ui/src/main/kotlin/com/zcode/android/core/ui/components/ZCodeModalBottomSheet.kt").readText()
         assertTrue(
             "the sheet must be elevated by ZCodeElevation.sheet (never zero — M3 exposes tonal on the sheet)",
-            Regex("""tonalElevation\s*=\s*ZCodeElevation\.sheet""").containsMatchIn(sheet),
+            Regex("""tonalElevation\s*=\s*(?:[a-zA-Z0-9_.]+\.)?ZCodeElevation\.sheet""").containsMatchIn(sheet),
         )
     }
 }
