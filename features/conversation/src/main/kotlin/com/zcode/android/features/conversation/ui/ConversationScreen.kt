@@ -73,6 +73,7 @@ import androidx.compose.material3.Scaffold
 import com.zcode.android.core.ui.components.errorUserMessage
 import com.zcode.android.core.ui.components.readerWidth
 import com.zcode.android.core.ui.components.ZCodeChip
+import com.zcode.android.core.ui.components.SectionBoundary
 
 /**
  * Conversation surface (§43.2-6.3/6.4 + Phase 7 write path; ui-ux 06/07/09/10/12).
@@ -129,6 +130,8 @@ fun ConversationScreen(
     onRetryCompaction: () -> Unit = {},
     /** I2.8 (Phase 6A): open a generated artifact externally (ref + mime). */
     onOpenArtifact: (ref: String, mime: String) -> Unit = { _, _ -> },
+    /** L7 (Phase 6C): a timeline-section crash reaches diagnostics (the boundary seam). */
+    onSectionCrash: (Throwable) -> Unit = {},
     /** A3.11 (Phase 5B): the rewind preview loader (null = the copy-only confirm). */
     rewindPreviewProvider: (suspend (rowId: Long, entityId: String) -> com.zcode.android.domain.model.RewindPreview?)? = null,
     /** A3.16 (Phase 5C): share the transcript via the Android system sheet. */
@@ -559,6 +562,8 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     rowActions: RowActionCallbacks = RowActionCallbacks(),
     /** A3.11 (Phase 5B): the rewind preview loader threaded to the turn card. */
     rewindPreviewProvider: (suspend (rowId: Long, entityId: String) -> com.zcode.android.domain.model.RewindPreview?)? = null,
+    /** L7 (Phase 6C): the section boundary's diagnostics seam. */
+    onSectionCrash: (Throwable) -> Unit = {},
 ) {
     val listState = rememberLazyListState()
     // B3-motion + K2: rows that have already arrived (scroll-back never re-animates).
@@ -608,9 +613,15 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     // earlier messages" flash) and showing "jump to newest". Cold opens worked (rows
     // arrived while the list was empty), which is why it was intermittent.
     var anchoredToTail by remember { mutableStateOf(false) }
-    // I2.7: one LazyColumn item per timeline ENTRY — settled tool runs collapse into
-    // groups (pure map; the scroll index space below is the entry space).
-    val entries = remember(state.rows) { groupTimeline(state.rows) }
+    // L7 (Phase 6C): the timeline's render-preparation (the row→entry grouping) is
+    // section-scoped — a crash there degrades THIS section to the error card with a
+    // Retry while the header and composer stay alive; the stack reaches diagnostics.
+    androidx.compose.runtime.key(state.rows.size) {
+        SectionBoundary(
+            key = state.rows,
+            prepare = { groupTimeline(state.rows) },
+            onCrash = onSectionCrash,
+        ) { entries ->
     // I2.5: the turn navigator's query map — user inputs in timeline order, with the
     // entry index the jump scrolls to (the sheet adds the header-item offset itself).
     data class NavigatorQuery(val entryIndex: Int, val rowId: Long, val preview: String)
@@ -1004,3 +1015,6 @@ internal fun formatBytes(bytes: Long): String = when {
 }
 
 private const val PAGE_EDGE = 12
+
+        }
+    }

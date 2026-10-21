@@ -618,6 +618,10 @@ private fun ConversationRoute(
         onApplyFileRewind = vm::applyFileRewind,
         onAssistantFeedback = vm::setAssistantFeedback,
         onRetryCompaction = vm::retryCompaction,
+        // L7: a timeline-section crash lands in the diagnostics store (the boundary seam).
+        onSectionCrash = { t ->
+            runCatching { container.diagnosticsStore.writeCrash("conversation-timeline", t.stackTraceToString()) }
+        },
         // I2.8: open a generated artifact externally — download via the file channel
         // (app cache, never desktop paths) then the system viewer chooser.
         onOpenArtifact = { ref, mime ->
