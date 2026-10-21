@@ -72,6 +72,7 @@ import com.zcode.android.core.ui.components.ZCodeTopBar
 import androidx.compose.material3.Scaffold
 import com.zcode.android.core.ui.components.errorUserMessage
 import com.zcode.android.core.ui.components.readerWidth
+import com.zcode.android.core.ui.components.ZCodeChip
 
 /**
  * Conversation surface (§43.2-6.3/6.4 + Phase 7 write path; ui-ux 06/07/09/10/12).
@@ -504,11 +505,13 @@ private fun Header(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Spacer(Modifier.weight(1f))
-            AssistChip(onClick = onOpenFiles, label = { Text(stringResource(R.string.files_entry)) }, modifier = Modifier.testTag("conv_open_files"))
-            AssistChip(onClick = onOpenGit, label = { Text(stringResource(R.string.git_entry)) }, modifier = Modifier.testTag("conv_open_git"))
-            AssistChip(onClick = onOpenTerminal, label = { Text(stringResource(R.string.terminal_entry)) }, modifier = Modifier.testTag("conv_open_terminal"))
-            AssistChip(onClick = onOpenTrajectory, label = { Text(stringResource(R.string.conv_trajectory_entry)) }, modifier = Modifier.testTag("conv_open_trajectory"))
-            AssistChip(onClick = onShareTranscript, label = { Text(stringResource(R.string.conv_share_entry)) }, modifier = Modifier.testTag("conv_share"))
+            // L5-chips (Phase 6C): the route chips are the SAME ZCodeChip language as
+            // the session chips above — one visual language for chip-shaped affordances.
+            ZCodeChip(onClick = onOpenFiles, label = stringResource(R.string.files_entry), testTag = "conv_open_files")
+            ZCodeChip(onClick = onOpenGit, label = stringResource(R.string.git_entry), testTag = "conv_open_git")
+            ZCodeChip(onClick = onOpenTerminal, label = stringResource(R.string.terminal_entry), testTag = "conv_open_terminal")
+            ZCodeChip(onClick = onOpenTrajectory, label = stringResource(R.string.conv_trajectory_entry), testTag = "conv_open_trajectory")
+            ZCodeChip(onClick = onShareTranscript, label = stringResource(R.string.conv_share_entry), testTag = "conv_share")
         }
         Spacer(Modifier.height(6.dp))
     }

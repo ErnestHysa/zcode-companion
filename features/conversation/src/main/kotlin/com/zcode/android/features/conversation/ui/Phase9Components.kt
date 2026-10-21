@@ -17,7 +17,6 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -40,6 +39,7 @@ import com.zcode.android.domain.model.ModelProviderOption
 import com.zcode.android.domain.model.SessionConfigState
 import com.zcode.android.domain.model.TurnFileChanges
 import com.zcode.android.features.conversation.port.ConversationPort
+import com.zcode.android.core.ui.components.ZCodeChip
 
 /**
  * Phase 9 conversation affordances (§43.2-9): model/mode switch chips (9.5),
@@ -111,49 +111,30 @@ fun SessionModeChips(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (config == null) return@Row
+        // L5-chips (Phase 6C): ALL header chips are ZCodeChip — the ONE chip language.
         // Mode chip — options are the VERIFIED switchable set (auto excluded, §10.3).
-        AssistChip(
+        ZCodeChip(
             onClick = { modeSheet = true },
-            label = {
-                Text(
-                    stringResource(R.string.composer_mode_echo, config.mode),
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                )
-            },
-            modifier = Modifier
-                .testTag("conv_mode_chip")
-                .semantics { modeA11y?.let { contentDescription = it } },
+            label = stringResource(R.string.composer_mode_echo, config.mode),
+            testTag = "conv_mode_chip",
+            contentDescription = modeA11y,
         )
         // Effort chip (A3.4) — WIRE-DRIVEN: the offered levels are the CURRENT model's
         // config.thoughtLevels (runtime-projected); no levels → nothing to offer.
         if (config.thoughtLevels.isNotEmpty()) {
-            AssistChip(
+            ZCodeChip(
                 onClick = { effortSheet = true },
-                label = {
-                    Text(
-                        "${stringResource(R.string.effort_chip_prefix)}${config.thought}",
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    )
-                },
-                modifier = Modifier.testTag("conv_effort_chip"),
+                label = "${stringResource(R.string.effort_chip_prefix)}${config.thought}",
+                testTag = "conv_effort_chip",
             )
         }
         // Model chip — provider/model/thought from the echo; options from model-selection.
-        AssistChip(
+        ZCodeChip(
             onClick = { modelSheet = true },
-            label = {
-                Text(
-                    "${config.provider}/${config.model} · ${config.thought}",
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                )
-            },
-            modifier = Modifier
-                .weight(1f, fill = false)
-                .testTag("conv_model_chip")
-                .semantics { modelA11y?.let { contentDescription = it } },
+            label = "${config.provider}/${config.model} · ${config.thought}",
+            testTag = "conv_model_chip",
+            contentDescription = modelA11y,
+            modifier = Modifier.weight(1f, fill = false),
         )
     }
     if (modeSheet && config != null) {
