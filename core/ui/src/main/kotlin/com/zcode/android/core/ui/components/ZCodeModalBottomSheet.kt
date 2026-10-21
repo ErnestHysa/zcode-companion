@@ -34,7 +34,7 @@ fun ZCodeModalBottomSheet(
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         shape = RoundedCornerShape(topStart = ZCodeRadius.xl, topEnd = ZCodeRadius.xl),
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        tonalElevation = 0.dp,
+        // L5-chips (Phase 6C): never zero — the sheet lifts by the token's tonal step.
         tonalElevation = com.zcode.android.core.ui.theme.ZCodeElevation.sheet,
         content = content,
     )
