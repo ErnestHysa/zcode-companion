@@ -45,7 +45,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import com.zcode.android.core.ui.components.rememberReducedMotion
 import com.zcode.android.features.conversation.GeneratedArtifactPreview
@@ -494,7 +495,7 @@ private fun Header(
         // plans together left the timeline a 46dp viewport on a Pixel 5 (zero with the
         // status capsule expanded) — the B2.12 squeeze class, which budgeted the strips
         // but not these panels. The timeline keeps its weight; the panels stay reachable.
-        val panelBudget = (LocalConfiguration.current.screenHeightDp * CONTEXT_PANEL_BUDGET_FRACTION).dp
+        val panelBudget = with(LocalDensity.current) { (LocalWindowInfo.current.containerSize.height * CONTEXT_PANEL_BUDGET_FRACTION).toDp() }
         Column(
             Modifier
                 .fillMaxWidth()
