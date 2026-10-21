@@ -81,6 +81,10 @@ private fun WelcomeScreen(s: PairingFlow.State.Welcome, vm: PairingViewModel) {
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            // M1.2 (Phase 6D): the small Z mark — the README brand claim is now code.
+            com.zcode.android.core.ui.components.ZMark(
+                modifier = Modifier.testTag("z_mark"),
+            )
             Text(
                 stringResource(R.string.welcome_heading),
                 style = MaterialTheme.typography.headlineSmall,
