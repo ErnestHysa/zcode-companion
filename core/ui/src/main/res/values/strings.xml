@@ -117,4 +117,7 @@
     <string name="a11y_expanded">Expanded</string>
     <string name="a11y_collapsed">Collapsed</string>
     <string name="diff_tap_to_expand">Tap to expand</string>
+    <!-- Phase 6C (L7): the section-scoped error boundary -->
+    <string name="section_broken_title">This area broke</string>
+    <string name="section_broken_body">Other areas keep working — retry this section.</string>
 </resources>

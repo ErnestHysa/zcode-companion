@@ -99,4 +99,7 @@
     <string name="a11y_expanded">已展开</string>
     <string name="a11y_collapsed">已折叠</string>
     <string name="diff_tap_to_expand">点按展开</string>
+    <!-- Phase 6C (L7): the section-scoped error boundary -->
+    <string name="section_broken_title">此区域出现问题</string>
+    <string name="section_broken_body">其他区域不受影响 — 可重试此区域。</string>
 </resources>
