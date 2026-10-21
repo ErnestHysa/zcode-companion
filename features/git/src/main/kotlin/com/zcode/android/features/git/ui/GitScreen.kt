@@ -601,9 +601,9 @@ private fun ChangeRow(
     expanded: Boolean,
     load: suspend (String, Boolean) -> GitFileDiff?,
     onToggle: (path: String, staged: Boolean) -> Unit,
+    modifier: Modifier = Modifier,
     onStage: ((path: String, stage: Boolean) -> Unit)? = null,
     onDiscard: ((path: String, staged: Boolean) -> Unit)? = null,
-    modifier: Modifier = Modifier,
 ) {
     val stageCdFmt = stringResource(R.string.git_stage_cd)
     val unstageCdFmt = stringResource(R.string.git_unstage_cd)
