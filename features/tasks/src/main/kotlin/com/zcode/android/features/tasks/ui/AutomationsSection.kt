@@ -72,6 +72,8 @@ fun AutomationsSection(
     /** L6.4 (Phase 5A): the saved-workflow hub — the tasks a run can target + the start sender. */
     workflowTasks: List<com.zcode.android.domain.model.Task> = emptyList(),
     onStartWorkflow: ((taskId: String, name: String, scope: String?, args: Map<String, String>) -> Unit)? = null,
+    /** Connect-race: the hub's CONNECTED truth — a flip to true re-runs the load. */
+    connected: Boolean = true,
 ) {
     var loading by remember { mutableStateOf(true) }
     var lists by remember { mutableStateOf<AutomationsPort.Lists?>(null) }
