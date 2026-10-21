@@ -531,12 +531,12 @@ private fun GitTreeRows(
     depth: Int,
     staged: Boolean,
     collapsed: Set<String>,
-    onCollapseDir: (String) -> Unit,
     expanded: Pair<String, Boolean>?,
     load: suspend (String, Boolean) -> GitFileDiff?,
     onToggle: (path: String, staged: Boolean) -> Unit,
-    onStage: ((path: String, stage: Boolean) -> Unit)?,
-    onDiscard: ((path: String, staged: Boolean) -> Unit)?,
+    onCollapseDir: (String) -> Unit,
+    onStage: ((path: String, stage: Boolean) -> Unit)? = null,
+    onDiscard: ((path: String, staged: Boolean) -> Unit)? = null,
 ) {
     val indent = Modifier.padding(start = (depth * 12).dp)
     if (dir.name.isNotEmpty()) {
@@ -585,7 +585,7 @@ private fun GitTreeRows(
             )
         }
         dir.dirs.forEach { child ->
-            GitTreeRows(child, depth + 1, staged, collapsed, onCollapseDir, expanded, load, onToggle, onStage, onDiscard)
+            GitTreeRows(child, depth + 1, staged, collapsed, expanded, load, onToggle, onCollapseDir, onStage, onDiscard)
         }
     }
 }
