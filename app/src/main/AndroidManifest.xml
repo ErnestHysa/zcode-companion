@@ -19,6 +19,12 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
+    <!-- M3-RTL (Phase 6D, recorded decision): `android:supportsRtl` stays OFF by
+         design — both shipped locales (en, zh-CN) are LTR, and mirroring an LTR-locked
+         UI would flip untested layouts. NO RTL locale work until values-<rtl> dirs
+         ship; at that point: add supportsRtl + swap WriteComponents' Send icon to
+         Icons.AutoMirrored + audit the ZCodeChip/icon set. The RtlLocaleGateTest
+         tripwire fails the build if an RTL locale appears without the flag. -->
     <application
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
