@@ -65,9 +65,6 @@ fun SessionSummaryPanel(
                 .testTag("summary_capsule")
                 .semantics(mergeDescendants = true) { contentDescription = expandLabel }
                 .clickable { expanded = true },
-                .testTag("summary_capsule")
-                .semantics(mergeDescendants = true) { contentDescription = expandLabel }
-                .clickable { expanded = true },
         ) {
             Text(
                 text = listOfNotNull(
