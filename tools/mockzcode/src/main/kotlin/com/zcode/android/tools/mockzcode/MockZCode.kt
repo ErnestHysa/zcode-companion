@@ -1012,39 +1012,33 @@ class MockZCode(
 
     /** Server-side state.updated driver (races, effects) — §9 key-level replacement. */
     fun pushStatePatch(patch: JsonObject) {
-        val listener = conversationListenerId ?: return
         val topic = "conversation/${workspace.sessionId}"
-        val frame = buildJsonObject {
-            put("topic", JsonPrimitive(topic))
-            put("subscriptionId", JsonPrimitive(subscriptionId))
-            put("fromSeq", JsonPrimitive(nextSeq()))
-            put("toSeq", JsonPrimitive(seqHeadNow))
-            put("sentAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
-            put("payload", buildJsonObject {
-                put("kind", JsonPrimitive("deltas"))
-                put("deltas", JsonArray(listOf(buildJsonObject {
-                    put("op", JsonPrimitive("state.updated"))
-                    put("patch", patch)
-                })))
-            })
-        }
-        val wireFrames = TopicWireFrameCodec.encode(
-            frame = frame, deliveryKind = DeliveryKind.ONLINE, topic = topic,
-            subscriptionId = subscriptionId, logicalFrameId = "lf-${System.nanoTime()}",
-            logicalFrameOrdinal = 1,
-        )
-        for (wire in wireFrames) {
-            val bytes = RpcSerialization.encodeAll(
-                listOf(
-                    RpcValue.Arr(listOf(RpcValue.Int(ChannelWire.ResponseType.EventFire.id), RpcValue.Int(listener))),
-                    RpcValue.Obj(buildJsonObject {
-                        put("topic", JsonPrimitive(topic))
-                        put("frame", wireJson(wire))
-                    }),
-                )
-            )
-            sendLogicalFrame(bytes)
-        }
+        // G3 rig fidelity: journal the frame BEFORE emitting — a resumable
+        // resyncConversationV4 (base epoch + baseSeq) replays the opLog, and an
+        // unjournaled effect patch is lost to exactly that replay (the G3 "state patch
+        // appears lost after the resync the model switch triggered").
+        val ops = JsonArray(listOf(buildJsonObject {
+            put("op", JsonPrimitive("state.updated"))
+            put("patch", patch)
+        }))
+        journalAndEmit(workspace.sessionId, ops)
+    }
+
+    /** Replay-journal bound — the app's own subscriber-buffer order (INV-5, holdBufferMaxOps=500). */
+    private val opLogMaxFrames = 512
+
+    /**
+     * Journal one delta frame (monotonic seq) for resync replay, then emit it live.
+     * G3: every command-effect frame (state patches, row deltas) routes through here
+     * so effect state survives a resumable resync, not just full snapshots.
+     */
+    private fun journalAndEmit(sessionId: String, ops: JsonArray) {
+        val from = nextSeq()
+        val frame = DeltaFrame(from, seqHeadNow, ops)
+        val log = opLog.getOrPut(sessionId) { ArrayDeque() }
+        log.addLast(frame)
+        while (log.size > opLogMaxFrames) log.removeFirst()
+        emitDeltasFrame(sessionId, listOf(frame), DeliveryKind.ONLINE)
     }
 
     /**
@@ -1121,40 +1115,13 @@ class MockZCode(
     private fun pushRowUpserted(sessionId: String, row: JsonObject) = pushRowDelta(sessionId, "row.upserted", row)
 
     private fun pushRowDelta(sessionId: String, op: String, row: JsonObject) {
-        val listener = conversationListenerId ?: return
-        val topic = "conversation/$sessionId"
-        val from = nextSeq()
-        val frame = buildJsonObject {
-            put("topic", JsonPrimitive(topic))
-            put("subscriptionId", JsonPrimitive(subscriptionId))
-            put("fromSeq", JsonPrimitive(from))
-            put("toSeq", JsonPrimitive(seqHeadNow))
-            put("sentAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
-            put("payload", buildJsonObject {
-                put("kind", JsonPrimitive("deltas"))
-                put("deltas", JsonArray(listOf(buildJsonObject {
-                    put("op", JsonPrimitive(op))
-                    put("row", row)
-                })))
-            })
-        }
-        val wireFrames = TopicWireFrameCodec.encode(
-            frame = frame, deliveryKind = DeliveryKind.ONLINE, topic = topic,
-            subscriptionId = subscriptionId, logicalFrameId = "lf-${System.nanoTime()}",
-            logicalFrameOrdinal = 1,
-        )
-        for (wire in wireFrames) {
-            val bytes = RpcSerialization.encodeAll(
-                listOf(
-                    RpcValue.Arr(listOf(RpcValue.Int(ChannelWire.ResponseType.EventFire.id), RpcValue.Int(listener))),
-                    RpcValue.Obj(buildJsonObject {
-                        put("topic", JsonPrimitive(topic))
-                        put("frame", wireJson(wire))
-                    }),
-                )
-            )
-            sendLogicalFrame(bytes)
-        }
+        // G3: the same journal+emit path as state patches — authoritative row effects
+        // replay after a resumable resync instead of living only in the snapshot tail.
+        val ops = JsonArray(listOf(buildJsonObject {
+            put("op", JsonPrimitive(op))
+            put("row", row)
+        }))
+        journalAndEmit(sessionId, ops)
     }
 
     /**
@@ -2685,14 +2652,15 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 stateRevision.incrementAndGet()
                 val mode = payload?.strOrNull("mode") ?: return null
                 val current = script.sessionConfig
-                script.sessionConfig = buildJsonObject {
-                    put("provider", JsonPrimitive(current?.strOrNull("provider") ?: "zai"))
-                    put("model", JsonPrimitive(current?.strOrNull("model") ?: "glm-5.3"))
-                    put("thought", JsonPrimitive(current?.strOrNull("thought") ?: "standard"))
-                    put("thoughtLevels", current?.get("thoughtLevels") ?: JsonArray(listOf(JsonPrimitive("standard"))))
-                    put("followupMode", JsonPrimitive(mode))
-                    put("mode", JsonPrimitive(current?.strOrNull("mode") ?: "build"))
-                }
+                script.sessionConfig = mergeSessionConfig(
+                    current,
+                    "provider" to JsonPrimitive(current?.strOrNull("provider") ?: "zai"),
+                    "model" to JsonPrimitive(current?.strOrNull("model") ?: "glm-5.3"),
+                    "thought" to JsonPrimitive(current?.strOrNull("thought") ?: "standard"),
+                    "thoughtLevels" to (current?.get("thoughtLevels") ?: JsonArray(listOf(JsonPrimitive("standard")))),
+                    "followupMode" to JsonPrimitive(mode),
+                    "mode" to JsonPrimitive(current?.strOrNull("mode") ?: "build"),
+                )
                 pushStatePatch(buildJsonObject {
                     put("revision", JsonPrimitive(stateRevision.get()))
                     put("config", script.sessionConfig!!)
@@ -2774,14 +2742,20 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 val model = payload.strOrNull("model") ?: return null
                 val thought = payload.strOrNull("thought") ?: return null
                 val current = script.sessionConfig
-                script.sessionConfig = buildJsonObject {
-                    put("provider", JsonPrimitive(provider))
-                    put("model", JsonPrimitive(model))
-                    put("thought", JsonPrimitive(thought))
-                    put("thoughtLevels", current?.get("thoughtLevels") ?: JsonArray(listOf(JsonPrimitive(thought))))
-                    put("followupMode", JsonPrimitive(current?.strOrNull("followupMode") ?: "queue"))
-                    put("mode", JsonPrimitive(current?.strOrNull("mode") ?: "build"))
-                }
+                script.sessionConfig = mergeSessionConfig(
+                    current,
+                    "provider" to JsonPrimitive(provider),
+                    "model" to JsonPrimitive(model),
+                    "thought" to JsonPrimitive(thought),
+                    "thoughtLevels" to (current?.get("thoughtLevels") ?: JsonArray(listOf(JsonPrimitive(thought)))),
+                    "followupMode" to JsonPrimitive(current?.strOrNull("followupMode") ?: "queue"),
+                    "mode" to JsonPrimitive(current?.strOrNull("mode") ?: "build"),
+                    // The §10.3 echo carries the CURRENT selection — refresh it to the pick.
+                    "modelSelection" to buildJsonObject {
+                        put("providerId", JsonPrimitive(provider))
+                        put("modelId", JsonPrimitive(model))
+                    },
+                )
                 pushStatePatch(buildJsonObject {
                     put("revision", JsonPrimitive(stateRevision.get()))
                     put("config", script.sessionConfig!!)
@@ -2791,14 +2765,15 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 stateRevision.incrementAndGet()
                 val mode = payload?.strOrNull("mode") ?: return null
                 val current = script.sessionConfig
-                script.sessionConfig = buildJsonObject {
-                    put("provider", JsonPrimitive(current?.strOrNull("provider") ?: "zai"))
-                    put("model", JsonPrimitive(current?.strOrNull("model") ?: "glm-5.3"))
-                    put("thought", JsonPrimitive(current?.strOrNull("thought") ?: "standard"))
-                    put("thoughtLevels", current?.get("thoughtLevels") ?: JsonArray(listOf(JsonPrimitive("standard"))))
-                    put("followupMode", JsonPrimitive(current?.strOrNull("followupMode") ?: "queue"))
-                    put("mode", JsonPrimitive(mode))
-                }
+                script.sessionConfig = mergeSessionConfig(
+                    current,
+                    "provider" to JsonPrimitive(current?.strOrNull("provider") ?: "zai"),
+                    "model" to JsonPrimitive(current?.strOrNull("model") ?: "glm-5.3"),
+                    "thought" to JsonPrimitive(current?.strOrNull("thought") ?: "standard"),
+                    "thoughtLevels" to (current?.get("thoughtLevels") ?: JsonArray(listOf(JsonPrimitive("standard")))),
+                    "followupMode" to JsonPrimitive(current?.strOrNull("followupMode") ?: "queue"),
+                    "mode" to JsonPrimitive(mode),
+                )
                 pushStatePatch(buildJsonObject {
                     put("revision", JsonPrimitive(stateRevision.get()))
                     put("config", script.sessionConfig!!)
@@ -2806,6 +2781,17 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             }        }
         return null
     }
+
+    /**
+     * G3 rig fidelity: a switch rebuilds the config keys it manages but must never
+     * DROP the keys it does not — the shipped desktop's mode switch left
+     * `modelSelection` (and any other §10.3 keys) intact, and the phone's chips
+     * reconcile against the whole echo. Key-preserving merge over the current config.
+     */
+    private fun mergeSessionConfig(
+        current: JsonObject?,
+        vararg changes: Pair<String, kotlinx.serialization.json.JsonElement>,
+    ): JsonObject = JsonObject((current ?: JsonObject(emptyMap())) + changes.toMap())
 
     private fun handleCommandsPromise(id: Int, name: String?) {
         val result = script.commandsList
