@@ -70,4 +70,6 @@
     <string name="git_stage_cd">暂存 %1$s</string>
     <string name="git_unstage_cd">取消暂存 %1$s</string>
     <string name="git_discard_cd">丢弃 %1$s</string>
+    <!-- Phase 6C (J1.2): the change-list search -->
+    <string name="git_tree_search">筛选已更改的文件</string>
 </resources>

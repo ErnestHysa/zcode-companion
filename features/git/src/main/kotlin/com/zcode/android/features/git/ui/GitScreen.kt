@@ -19,6 +19,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material3.OutlinedTextField
+import com.zcode.android.features.git.GitChangeTree
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
@@ -453,9 +455,27 @@ private fun ChangeCard(
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
             )
+            // J1.2 (Phase 6C): search + the collapsible tree — gated to the sizes where
+            // they beat the flat list (the desktop `git.tree.*` surface).
+            var query by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf("") }
+            if (entries.size > GitChangeTree.SEARCH_GATE) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    placeholder = { Text(stringResource(com.zcode.android.features.git.R.string.git_tree_search)) },
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp)
+                        .testTag("git_search"),
+                )
+            }
+            val visible = if (query.isBlank()) entries else GitChangeTree.search(entries, query)
+            val collapsed = androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(setOf<String>()) }
             val sections = if (staged) STAGED_SECTIONS else UNSTAGED_SECTIONS
             for (section in sections) {
-                val group = entries
+                val group = visible
                     .filter { it.section == section }
                     .sortedBy { it.repoRelativePath.ifBlank { it.path } }
                 if (group.isEmpty()) continue
@@ -467,11 +487,28 @@ private fun ChangeCard(
                         .padding(top = 4.dp, bottom = 2.dp)
                         .testTag("git_section_$section"),
                 )
-                for (entry in group) {
-                    ChangeRow(
-                        entry = entry,
+                val tree = if (visible.size > GitChangeTree.TREE_GATE) {
+                    remember(group) { GitChangeTree.build(group) }
+                } else null
+                if (tree == null) {
+                    for (entry in group) {
+                        ChangeRow(
+                            entry = entry,
+                            staged = staged,
+                            expanded = expanded == (entry.path to staged),
+                            load = load,
+                            onToggle = onToggle,
+                            onStage = onStage,
+                            onDiscard = onDiscard,
+                        )
+                    }
+                } else {
+                    GitTreeRows(
+                        dir = tree,
+                        depth = 0,
                         staged = staged,
-                        expanded = expanded == (entry.path to staged),
+                        collapsed = collapsed,
+                        expanded = expanded,
                         load = load,
                         onToggle = onToggle,
                         onStage = onStage,
@@ -483,6 +520,76 @@ private fun ChangeCard(
     }
 }
 
+/** J1.2: the collapsible directory walk — dirs toggle, files render as ChangeRows. */
+@Composable
+private fun GitTreeRows(
+    dir: GitChangeTree.Dir,
+    depth: Int,
+    staged: Boolean,
+    collapsed: androidx.compose.runtime.MutableState<Set<String>>,
+    expanded: Pair<String, Boolean>?,
+    load: suspend (String, Boolean) -> GitFileDiff?,
+    onToggle: (path: String, staged: Boolean) -> Unit,
+    onStage: ((path: String, stage: Boolean) -> Unit)?,
+    onDiscard: ((path: String, staged: Boolean) -> Unit)?,
+) {
+    val indent = Modifier.padding(start = (depth * 12).dp)
+    if (dir.name.isNotEmpty()) {
+        val isCollapsed = dir.path in collapsed.value
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .then(indent)
+                .clickable {
+                    collapsed.value = if (isCollapsed) collapsed.value - dir.path else collapsed.value + dir.path
+                }
+                .padding(vertical = 4.dp)
+                .testTag("git_tree_dir_${dir.path}")
+                .semantics(mergeDescendants = true) {},
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = if (isCollapsed) Icons.Filled.ExpandMore else Icons.Filled.ExpandLess,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(
+                dir.name,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.weight(1f))
+            Text(
+                (dir.dirs.sumOf { countTree(it) } + dir.files.size).toString(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+    if (dir.name.isEmpty() || dir.path !in collapsed.value) {
+        dir.files.forEach { entry ->
+            ChangeRow(
+                entry = entry,
+                staged = staged,
+                expanded = expanded == (entry.path to staged),
+                load = load,
+                onToggle = onToggle,
+                onStage = onStage,
+                onDiscard = onDiscard,
+                modifier = Modifier.padding(start = ((depth + 1) * 12).dp),
+            )
+        }
+        dir.dirs.forEach { child ->
+            GitTreeRows(child, depth + 1, staged, collapsed, expanded, load, onToggle, onStage, onDiscard)
+        }
+    }
+}
+
+private fun countTree(dir: GitChangeTree.Dir): Int =
+    dir.files.size + dir.dirs.sumOf { countTree(it) }
+
 @Composable
 private fun ChangeRow(
     entry: GitChangeEntry,
@@ -492,11 +599,12 @@ private fun ChangeRow(
     onToggle: (path: String, staged: Boolean) -> Unit,
     onStage: ((path: String, stage: Boolean) -> Unit)? = null,
     onDiscard: ((path: String, staged: Boolean) -> Unit)? = null,
+    modifier: Modifier = Modifier,
 ) {
     val stageCdFmt = stringResource(R.string.git_stage_cd)
     val unstageCdFmt = stringResource(R.string.git_unstage_cd)
     val discardCdFmt = stringResource(R.string.git_discard_cd)
-    Column(Modifier.fillMaxWidth()) {
+    Column(modifier.fillMaxWidth()) {
         Row(
             Modifier
                 .fillMaxWidth()
