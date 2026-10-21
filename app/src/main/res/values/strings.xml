@@ -103,7 +103,7 @@
 <string name="settings_not_paired_row">Not paired</string>
 <string name="settings_kind_direct">Direct server</string>
 <string name="settings_kind_relay">Relay (QR pairing)</string>
-<string name="settings_connected_suffix">" · connected: %1$s"</string>
+<string name="settings_connected_suffix">" · %1$s"</string>
 <string name="settings_version_suffix">" · v%1$s"</string>
 <string name="settings_switched">Switched</string>
 <string name="settings_switch_failed">Switch failed</string>

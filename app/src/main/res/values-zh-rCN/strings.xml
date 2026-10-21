@@ -96,7 +96,7 @@
 <string name="settings_not_paired_row">未配对</string>
 <string name="settings_kind_direct">直连服务器</string>
 <string name="settings_kind_relay">中继（二维码配对）</string>
-<string name="settings_connected_suffix">" · 已连接：%1$s"</string>
+<string name="settings_connected_suffix">" · %1$s"</string>
 <string name="settings_version_suffix">" · v%1$s"</string>
 <string name="settings_switched">已切换</string>
 <string name="settings_switch_failed">切换失败</string>
