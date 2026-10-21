@@ -3757,3 +3757,179 @@ Accept — chip re-rendered `build`→`plan` on-device) and the last two Phase-0
   Six commits this pass: `08b784d`, `581c8bd`, `ce2e5f2`, `06b2614`, `5bc1db9`, plus this
   record's docs commit. Rig torn down (mock killed by port, emulator killed, no daemons).
 
+
+---
+
+## Whole-campaign verification pass 2 — 2026-10-21 (APPENDED — the real-user rig audit, every mock scenario armed)
+
+> A second independent redo of the closing audit, requested as a real-user walk: the
+> roadmap (checkboxes, gates, DoD), the repo state, the static gates, and the app itself
+> on a live emulator (zcode-pixel, Pixel 5 / API 30), light AND dark, with EVERY mock
+> scenario armed at once (`MOCK_APPROVAL ATTACHMENT ROW_ACTIONS GOAL COMPACT WORKFLOWS
+> TASKMGMT QUESTION HOOKS` + `MOCK_ROWS=60`). Verification model
+> `account:zai-individual-coding-plan/GLM-5.3-Flash` on ZCode CLI, branch
+> `fix/gaps-and-polish`, clean tree, identity ErnestHysa, NO remote (nothing pushed).
+> Verdict: the roadmap state stands exactly as pass 1 recorded (130 ticked; the 11
+> unticked boxes are the by-design probes/F3-SLICE/process notes; DoD 8/8; both APK
+> markers byte-identical to the record) and V1/V2/V3 re-proved live — AND the all-flags
+> rig exposed NINE defects the single-flag rigs of every prior exit could not see, three
+> of them P1 (a conversation that could not be read, a Share chip that did nothing, a
+> blocking question that could be neither answered nor skipped). All nine fixed
+> test-first in 17 commits `f0f6a10..5f65697`; everything live re-proved on the rebuilt
+> build.
+
+- [x] **U1 (P1, live-found) — the conversation's context panels squeezed the timeline
+  to 46dp, and to ZERO with the status capsule expanded.** `Header` stacked goal · todos
+  · workflow runs · plans UNBOUNDED in the non-scrollable column; with all four populated
+  (a session that has a goal, todos, a running workflow and a plan) the chat was
+  unreadable. The B2.12 squeeze class — strips were budgeted, these panels never were;
+  the vc32 geometry pin composed only config chips and could not see it. RED `f0f6a10`
+  (`HeaderPanelBudgetTest`: "timeline squeezed to 0.0dp") → GREEN `24a74e1`: the panels
+  live in one bounded region (`conv_context_budget`, 30% of the available height,
+  scrolling inside); `5fa1602` moves the budget source to `LocalWindowInfo` (lint
+  `ConfigurationScreenWidthHeight`), and `f073070` (U8) re-derives it from
+  `BoxWithConstraints` inside the IME padding. LIVE: panels bounded, timeline readable.
+- [x] **U2 (P2, live-found) — the conversation header floated ~53dp below the status
+  bar.** `ConversationScreen` alone passed `topBar = {}` and composed `ZCodeTopBar`
+  inside the content column under `padding(inner)`, which already carries the
+  status-bar inset; the M3 TopAppBar applied its own → the inset landed TWICE (145px
+  cutout inset → bar content at 290px; every other screen's title at ~145). Against
+  ZCodeTopBar's own contract ("every screen hosts it as a Scaffold topBar"). RED
+  `0c1f8ff` (`HeaderInsetTest` injects a synthetic 120px statusBars inset into the
+  AndroidComposeView — Robolectric dispatches none — and measures the back control:
+  252px, two insets) → GREEN `946e762` (hosted in the topBar slot; Header drops onBack).
+  LIVE: the title sits under the status bar like every other screen.
+- [x] **U3 (P1, live-found) — the Share chip did nothing.** ZCodeApp wires the system
+  share sheet into `ConversationScreen.onShareTranscript` (ZCodeApp.kt:675), the screen
+  declares it, but its `Header(...)` call never forwarded it → `Header`'s default `{}`
+  won; the Phase-5C share-out (A3.16) was unreachable from the phone. The F5-WIRE class
+  one hop lower. RED `f0f6a10` (`ShareChipWiringTest`) → GREEN `24a74e1`. LIVE: the chip
+  opens `ChooserActivity` with the transcript ("Synthetic task" + Copy/Gmail/Drive…).
+- [x] **U4 (P3, rig tooling) — `MOCK_HOOKS` silently hid `MOCK_APPROVAL`/`MOCK_QUESTION`.**
+  MockZCode's hook-review branch `put("pendingInteractions", JsonArray(listOf(hook)))`
+  REPLACED the permission + userInput interactions assembled just above — the inbox
+  badge said 1 while the conversation pinned nothing. The G3-mock clobber class
+  (key-preserving merge), on the interactions key. RED `e50656b` (`MockZCodeHookMergeSelfTest`:
+  `[workspaceHookReview]` only) → GREEN `f10f2af` (merge). Mock 32/32. (Also
+  established: `MOCK_APPROVAL` arms a pending-approval TOOL ROW — the rows plane → inbox
+  + inline row — not a state-block permission; no pinned ApprovalCard is expected there.)
+- [x] **U5 (P2, live-found) — the three notification toggle rows rendered flush
+  against both screen edges.** `CategoryToggle` padded vertically only: "Approval
+  requests" / "Task finished / failed" / "Connection lost" labels at x=0, the switch's
+  track on the right edge, between properly inset neighbours. RED `c20d1b4`
+  (`CategoryToggleInsetTest` on the real SettingsScreen: "starts at x=0.0px") → GREEN
+  `2d570ec` (the list's 16dp inset + 8dp gap; switches tagged `${tag}_switch`). LIVE:
+  labels at x=44, switches end at x=1036 — the neighbours' geometry.
+- [x] **U6 (P3, live-found) — "Relay (QR pairing) · v3.14.3 · connected: Connected".**
+  `settings_connected_suffix` prefixed the phase LABEL with a "connected:" label —
+  redundant when connected, contradictory for "connected: Disconnected". RED `db964de`
+  (`ConnectedSuffixCopyTest`, en + zh-rCN) → GREEN `7edd448` (" · %1$s" both; zh dropped
+  its "已连接：" prefix). LIVE: "Relay (QR pairing) · v3.14.3 · Connected".
+- [x] **U7 (P2, live-found) — Dark in Settings left the status-bar clock/icons dark on
+  the dark background and the nav bar's LIGHT scrim under the dark app.**
+  `enableEdgeToEdge()` ran once in onCreate with the SYSTEM-uiMode detector; the in-app
+  override never reached the window (a ModalBottomSheet's own window flipped correctly —
+  the main window alone was stale). RED `dcff271` (`SystemBarsFollowThemeTest`: the helper
+  at sdk 29 where the light-bar flags are readable + a MainActivity source pin; seam
+  `applySystemBarsFor` compile-only) → GREEN `1bde869`: `ThemeMode.resolveDark()` (core/ui)
+  is the ONE resolution the scheme and the window share; MainActivity runs
+  `LaunchedEffect(dark) { applySystemBarsFor(dark) }` (transparent status bar; the nav
+  bar stays transparent on API 29+ and the system paints its contrast scrim from the
+  appearance flag). LIVE: white clock/icons and a dark nav bar under the dark theme.
+- [x] **U8 (P1, live-found once U4 let the question reach the conversation) — the
+  pinned question card pushed its own Submit/Decline, the timeline and the composer
+  off-screen.** The pinned interaction stack was unbounded too: a two-question
+  AskUserQuestion card (radio + free text + multi-select) is taller than half a phone;
+  under the goal/todos panels it was clipped at its second question — unanswerable. RED
+  `cd27129` (`PinnedInteractionBudgetTest` at a phone's CONTENT height w411dp-h731dp:
+  "timeline squeezed to 0.0dp under the pinned card") → GREEN `f073070`:
+  `BoxWithConstraints` inside the IME padding feeds both budgets from the REAL available
+  height (shrinking while typing); the pinned stack takes everything the chrome (~190dp),
+  the composer (~140dp) and the 120dp timeline floor do not need — never less than 30% —
+  scrolling inside (`conv_pinned_budget`); while a card is open the context panels step
+  aside (approval first — the card carries its own context) and the WAITING attention
+  strip, which only repeated the card beneath it, is not added. `ConversationWriteUiTest`
+  moves from Robolectric's 320×470dp default (no device; it folded the approval card's
+  options) to the same phone geometry; its three approval pins hold unchanged. LIVE:
+  header → status → route chips → the card scrolling in its budget (Send answers / Skip
+  reachable) → timeline (turn header, compaction rows) → composer, all on one screen.
+- [x] **U9 (P1, live-found) — the blocking question could be neither answered nor
+  skipped: both taps were silent.** No wire call, no error, no log. The rows-snapshot
+  reconcile (§15-S13, `reconcileFromSnapshot`) recognises only interactions anchored to
+  PENDING_APPROVAL tool-call rows and flipped EVERY other known machine to STALE; a
+  user-input interaction never has a row — delivered through the authoritative
+  `pendingInteractions` state plane — so the open-time rows reconcile running after the
+  state reconcile (the live order: `reconcile.pendingKind` at .702, `snapshotReconcile`
+  at .882) staled it, and STALE refuses `UserChose` → `runCatching` → `DuplicateNoOp`.
+  RED `8e03ee8` (`InteractionCoordinatorPhase7Test` U9 pin: "staled by the rows sweep:
+  STALE") → GREEN `5f65697`: the sweep skips machines whose request is a user input; the
+  state plane's own disappearance rule still resolves them by-elsewhere. data 160/160.
+  LIVE: Skip → `sendConversationCommandV4` reaches the mock, the card clears, the panels
+  return, the timeline echoes "(answered)".
+- **Flake adjudication (rule 7, recorded with numbers):** three full pools this pass
+  (pre-fix, post-U8, post-U9). Pre-fix: failures BYTE-IDENTICAL to the frozen 5-name
+  baseline. Post-U8: + `ConnectionHubIntegrationTest > degraded entry writes an
+  auto-report once` (the member pass 1 recorded as a flapper) — 2 of 6 isolated runs
+  failed while the APK build ran in the same project; at the pre-pass sha `b3c1db0` in a
+  worktree 6/6 pass; the current tree on an idle machine 6/6 pass → load flake of the
+  recorded family. Post-U9: + `RecoveryScenarioMatrixTest > S8 out-of-order frames`
+  (the S9 sibling was exonerated in Phase 6) — 3/3 isolated green. Also seen once under
+  load: `ConnectionHubWritePathTest > commands carry the production wire shape` (5/6,
+  its own 20 s socket wait; green in every pool). No unexplained new names.
+- **Rig session record (the app itself, live, pass 2):** zcode-pixel cold launches
+  auto-CONNECTED each time (deterministic mock pairing). Walked in light AND dark: Tasks
+  (V2's honest Automations copy on the very first frame, both scripted workflows + Run,
+  the unreadable-file row, workspace group, task row a11y merged description, Search FAB,
+  New task sheet, More menu Archived/New group, row menu Pin/Mark unread/Resume/Move/
+  Rename/Archive/Delete) · conversation (V3 "Effort · high", mode/effort/model dialogs
+  incl. the 3-model picker with Current/Default/Preview badges, status capsule
+  expand/collapse, goal/todos/runs/plans, compaction lifecycle rows, Files/Git/Terminal/
+  Model calls/Share) · Files ("unavailable on this connection") · Git (not-a-repository +
+  Retry + Checkpoints/Snapshot) · Terminal (default-OFF consent → enable → Attach → "live
+  — /bin/zsh" → Copy/Detach) · Model calls sheet (two scripted calls, the 429 styled;
+  search filters live above the keyboard) · Approvals inbox (L3 payload "echo synthetic",
+  Allow once/Deny) · Settings (endpoints, insights, diagnostics, appearance,
+  notifications) · share sheet. **0 crashes, 0 ANRs** on the final build; the 14 WARN
+  lines are honest degradations (unscripted `listAutomations`, channel-closed on
+  teardown, the partial attachment stub).
+- **Rule-5 observations recorded (not fixed):** (1) the Files/Git/Terminal/Model calls/
+  Share chip row is right-aligned under the echo chips — a documented vc32 field
+  decision, not a defect; (2) the Git screen mixes an 8dp page margin with the 16dp
+  Checkpoints card (cosmetic); (3) the Terminal consent copy says "Enable it once per
+  endpoint in Settings" beside an on-screen toggle (L2 copy was audited; left); (4) the
+  rows-snapshot stale sweep still applies to state-plane PERMISSION interactions whose
+  row falls outside the §19.4 tail window — the U9 exemption is user-input only
+  (conservative: the approvals plane is pinned "approve-blind" end to end) — a future
+  session should make the sweep origin-aware; (5) the debug APK's size varies ±0.9MB
+  between incremental and `--rerun-tasks` builds (29 unminified multidex files;
+  dex-packing variance) — the R8 release artifact is stable within 36 bytes.
+- **New rig notes (for every future session):** (a) `gradle testDebugUnitTest` runs only
+  the Android modules — the six pure-JVM modules (core/common, core/protocol,
+  core/transport, domain, spike, tools/mockzcode) need their `test` tasks (or `gradle
+  test`); a name-diff over the Android pool alone is blind to them. (b) The mock runs on
+  plain `java -cp` (mockzcode.jar + core/protocol.jar + kotlin-stdlib 2.4.20 +
+  coroutines 1.10.2 + okhttp-jvm/mockwebserver3 5.1.0 + okio 3.15.0 + serialization
+  json/core 1.9.0 from `~/.gradle/caches`) — no gradle build slot held. (c) On this 8GB
+  machine ONE emulator + a Gradle lint/R8/test pool crashes the emulator (three times
+  this pass, `process_memory_mac.cc invalid address`), and a quick-boot from the
+  crashed AVD snapshot crashes again within a minute: PARK the AVD during builds and
+  cold-boot with `-no-snapshot-load` afterwards. (d) Arm EVERY mock flag for UI walks —
+  U1/U4/U8/U9 were invisible to every single-flag rig. (e) Synthetic WindowInsets
+  injection into the AndroidComposeView works in Robolectric (`HeaderInsetTest`) — the
+  way to pin inset bugs. (f) `uiautomator dump` bounds for taps; screenshots for truth
+  (the preview scale lies by ~17%). (g) `kotlin.test.assertTrue` takes
+  (condition, message) — the reverse of JUnit's.
+- **Final gates (rule 12), post-fix:** full suite (Android `testDebugUnitTest` + the six
+  JVM `test` tasks, `--rerun-tasks`) — **1457 tests / 17 modules (1447 + 10 new pins), 0
+  compile failures, only test-failure tasks in the failure list; failures = the frozen
+  5-name baseline + S8 (3/3 isolated)**; `:app:lintDebug` **0 errors, 69 warnings**
+  (back to the recorded baseline after the `LocalWindowInfo` polish — the pass's only
+  new warning); mock **32/32**; data 160/160, features:conversation 292/292, app
+  217/217 modulo the baseline name, core/ui 104/104. Fresh APKs: debug
+  `app/build/outputs/apk/debug/app-debug.apk` 56,127,045 bytes (sha256 7c0d0945b4c2aa93…)
+  and release `app/build/outputs/apk/release/app-release.apk` 27,829,472 bytes (R8,
+  20b1d2d2201750e4…), both versionName 1.1.0 / versionCode 40 — install the DEBUG build.
+  Seventeen commits this pass: `f0f6a10 24a74e1 0c1f8ff 946e762 c20d1b4 dcff271 db964de
+  2d570ec 1bde869 7edd448 e50656b f10f2af 5fa1602 cd27129 f073070 8e03ee8 5f65697`, plus
+  this record's docs commit. Rig torn down (mock killed by port, emulator killed, gradle
+  daemons stopped).
