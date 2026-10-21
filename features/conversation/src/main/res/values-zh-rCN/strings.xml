@@ -204,7 +204,7 @@
     <!-- Phase 6A (I1-goal)：/goal pause 解锁 -->
     <string name="notice_goal_pause_refused">暂停目标被拒绝（目标当前可能不可暂停）。</string>
     <!-- Phase 4C (A3.4+J3)：推理力度选择器 + 各运行时的模式文案 -->
-    <string name="effort_chip_prefix">力度 · </string>
+    <string name="effort_chip_prefix">"力度 · "</string>
     <string name="effort_dialog_title">推理力度</string>
     <string name="mode_title_neutral_build">构建</string>
     <string name="mode_title_neutral_edit">编辑</string>

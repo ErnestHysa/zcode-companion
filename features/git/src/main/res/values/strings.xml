@@ -45,7 +45,7 @@
     <string name="commit_done">Committed %1$s</string>
     <string name="push_title">Push to the remote?</string>
     <string name="push_body">Push branch %1$s%2$s? The desktop runs git push — publishing cannot be undone from the phone.</string>
-    <string name="push_no_upstream"> (no upstream — it will be set to origin)</string>
+    <string name="push_no_upstream">" (no upstream — it will be set to origin)"</string>
     <string name="push_send">Push</string>
     <string name="push_done">Pushed %1$s</string>
     <string name="discard_title">Discard changes?</string>

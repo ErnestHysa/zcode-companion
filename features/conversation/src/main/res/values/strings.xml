@@ -219,7 +219,7 @@
     <!-- Phase 6A (I1-goal): the /goal pause unlock -->
     <string name="notice_goal_pause_refused">Goal pause was refused (the goal may not be pausable right now).</string>
     <!-- Phase 4C (A3.4+J3): the wire-driven effort picker + per-runtime mode labels -->
-    <string name="effort_chip_prefix">Effort · </string>
+    <string name="effort_chip_prefix">"Effort · "</string>
     <string name="effort_dialog_title">Reasoning effort</string>
     <string name="mode_title_neutral_build">Build</string>
     <string name="mode_title_neutral_edit">Edit</string>
