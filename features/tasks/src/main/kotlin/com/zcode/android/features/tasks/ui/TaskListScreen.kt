@@ -74,6 +74,7 @@ import com.zcode.android.core.ui.components.taskStatusTone
 import com.zcode.android.core.ui.components.toneColor
 import com.zcode.android.domain.model.Task
 import com.zcode.android.domain.model.TaskStatus
+import com.zcode.android.domain.state.ConnectionPhase
 import com.zcode.android.features.tasks.TasksUiState
 import com.zcode.android.core.ui.components.ZCodeButton
 import androidx.compose.animation.Crossfade
@@ -279,6 +280,7 @@ fun TaskListScreen(
                     onOpenTask = onOpenTaskId,
                     workflowTasks = state.pinned + state.groups.flatMap { it.tasks },
                     onStartWorkflow = onStartWorkflow,
+                    connected = state.phase == ConnectionPhase.CONNECTED,
                 )
             }
             Spacer(Modifier.height(4.dp))

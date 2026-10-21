@@ -99,7 +99,10 @@ fun AutomationsSection(
         lists = port.lists()
         loading = false
     }
-    LaunchedEffect(port) { scope.launch { load() } }
+    // Connect-race: a cold launch composes this BEFORE hub.phase reaches CONNECTED, so a
+    // port-only key loads once into "no active workspace" and never recovers. Keying on
+    // `connected` re-runs the load on the flip (and cancels a stale in-flight one).
+    LaunchedEffect(port, connected) { load() }
 
     fun refresh() {
         scope.launch { load() }
