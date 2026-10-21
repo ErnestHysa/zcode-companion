@@ -29,17 +29,16 @@ class ComposerKeyboardOptionsTest {
     @Test
     fun `a draft that merely contains a slash is still prose - only the LEADING slash commands`() {
         val options = composerKeyboardOptions("fix the a/b split")
+        assertEquals(androidx.compose.foundation.text.KeyboardOptions.Default, options, "prose keeps the platform defaults verbatim")
         assertTrue(composerAutoCorrectEnabled(options))
-        assertEquals(KeyboardCapitalization.Sentences, options.capitalization)
-        assertEquals(KeyboardType.Text, options.keyboardType)
     }
 
     @Test
     fun `empty and plain drafts keep the prose defaults`() {
         for (draft in listOf("", "fix the parser")) {
             val options = composerKeyboardOptions(draft)
+            assertEquals(androidx.compose.foundation.text.KeyboardOptions.Default, options)
             assertTrue(composerAutoCorrectEnabled(options))
-            assertEquals(KeyboardType.Text, options.keyboardType)
         }
     }
 }
