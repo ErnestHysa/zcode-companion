@@ -96,8 +96,8 @@ class ZCodeChipTest {
         val img = rule.onNodeWithTag("chip_radius").captureToImage().toPixelMap()
         val x = ((ZCodeRadius.sm.value * density) + 1).toInt()
         val topCenter = img[img.width / 2, 0].toArgb()
-        assertEquals(topCenter, img[x.coerceAtMost(img.width - 1), 0].toArgb(), "the flat top edge reaches the radius step")
-        assertNotEquals(topCenter, img[0, 0].toArgb(), "the corner is still rounded")
+        assertEquals("the flat top edge reaches the radius step", topCenter, img[x.coerceAtMost(img.width - 1), 0].toArgb())
+        assertNotEquals("the corner is still rounded", topCenter, img[0, 0].toArgb())
     }
 
     @Test

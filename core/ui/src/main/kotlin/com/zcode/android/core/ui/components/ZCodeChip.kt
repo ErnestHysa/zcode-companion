@@ -2,6 +2,7 @@ package com.zcode.android.core.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -23,7 +24,8 @@ import androidx.compose.ui.unit.dp
  * outlined + transparent, the selected state adds the subtle
  * `surfaceContainerHighest` fill, radius = the theme's chip step (`small`, 4dp —
  * [com.zcode.android.core.ui.theme.ZCodeRadius.sm]), label = labelMedium,
- * single-line, with the same interactive profile as the M3 chips it replaces.
+ * single-line, with the M3 chip's 58dp minimum width (so a squeezed header can never
+ * crush a chip invisible) and the same interactive profile as the chips it replaces.
  */
 @Composable
 fun ZCodeChip(
@@ -43,6 +45,7 @@ fun ZCodeChip(
             color = if (selected) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.outlineVariant,
         ),
         modifier = modifier
+            .defaultMinSize(minWidth = 58.dp)
             .then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
             .semantics(mergeDescendants = true) {
                 contentDescription?.let { this.contentDescription = it }
