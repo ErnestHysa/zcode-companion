@@ -2105,7 +2105,7 @@ this stands code-level.
 | 4 | P2 wire-backed feature parity | 15 | Medium (new surfaces over proven wire) | ☑ **DONE 2026-10-19** |
 | 5 | P3 bigger surfaces + ADR-gated writes | 13 | High (ADR-gated writes are a trust surface) | ☑ **DONE 2026-10-20** |
 | 6 | P3 long-tail & platform decisions | 16 | Low | ☑ **DONE 2026-10-21** |
-| 7 | Rig & verification assets | 2 | Low | ☐ open |
+| 7 | Rig & verification assets | 2 | Low | ☑ **DONE 2026-10-21** |
 | | **Total** | **117** | | |
 
 ---
@@ -2146,8 +2146,10 @@ each outcome as an appended finding ("PROBE-x resolved: …") — do not edit th
 - [ ] **PROBE-J9 (gates 4E-2)** `sidebar.usage.plan`'s five-hour vs weekly window split vs
   `CodingPlanQuotaSection`. Accept: window-split verdict folded into the usage redesign spec.
 
-Phase 0 exit gate: ☐ all eight probes resolved and recorded as appended findings; every gated
-Phase 4/5 entry has its verdict on file.
+Phase 0 exit gate: ☑ **all eight probes resolved and recorded as appended findings —
+H1a/J1/J4/J9 (Phase-4 record), A1/L6 (Phase-5 record), C1a/C1b (Phase-7 record,
+2026-10-21); every gated Phase 4/5 entry has its verdict on file, and C1a's verdict
+closes the quota-push question as an explicit dead end (ADR-020 stands).**
 
 ---
 
@@ -3481,12 +3483,15 @@ nothing re-chased from the verified-healthy ledger.
 
 ## Phase 7 — Rig & verification assets (continuous)
 
-- [ ] **G3-mock (rig fidelity)** The mock's `switchCollaborationMode` handler drops the
+- [x] **G3-mock (rig fidelity)** ✓ fixed+verified 2026-10-21 (f93d41d RED pins → bea9f04
+  fix → bf7df9b shared remedy; live rig leg PROVEN, see the phase record) The mock's
+  `switchCollaborationMode` handler drops the
   `modelSelection` key when rebuilding config and its state patch appears lost after the resync
   a model switch triggers (`MockRelayMain`) — the APP sent and acked correctly (G3); fix the
   mock so mode-chip re-render is verifiable live. Accept: mode switch on the rig re-renders
   the chip; mock self-tests green.
-- [ ] **RIG-ledger (continuous duty)** The rig assets are permanent and every fix round uses
+- [x] **RIG-ledger (continuous duty)** ✓ verified 2026-10-21 (inventory matches item-by-item;
+  new `RigAssetsLedgerSelfTest` source-contract pin enforces it; 31/31 mock tests) The rig assets are permanent and every fix round uses
   them: RawWsServer (RFC 6455-correct; `RawWsServerTest` pin), `MOCK_APPROVAL=1`,
   `script.demoAssistantMarkdown`, `MOCK_ROWS=60`, the unconditional `v4call` log,
   `commandEffects = true` (K8/L9/N5/N9); pixel rig = zcode-pixel AVD + `screencap`
@@ -3494,17 +3499,157 @@ nothing re-chased from the verified-healthy ledger.
   Every UI fix round regression-pins against these instead of ad-hoc fixtures. Accept:
   `gradle :tools:mockzcode:test` green before each round; assets extended, never forked.
 
-Phase 7 exit gate: ☐ G3 mock fix merged; rig assets inventory matches this list.
+Phase 7 exit gate: ☑ **G3 mock fix merged (f93d41d..bf7df9b — key-preserving echo across
+ALL FOUR rebuild sites, `modelSelection` refreshed on the model pick, effect frames
+journal-before-emit so a resumable resync replays them; 9 pins green); rig assets
+inventory matches this list (verified live on the zcode-pixel rig + enforced by the
+`RigAssetsLedgerSelfTest` source-contract pin, mock module 31/31). The two items the
+Phase-6 session folded into this wrap-up are also done: the live-AVD rig leg (the G3
+Accept — chip re-rendered `build`→`plan` on-device) and the last two Phase-0 probes
+(C1a/C1b verdicts recorded in the phase record below).**
+
+
+### Phase 7 — VERIFIED COMPLETE (do not edit above; this block is the phase record)
+
+- [x] **PHASE 7 COMPLETE — verified 2026-10-21 at 17-07-34 (hh-mm-ss), year 2026**
+- **Verified by:** ZCode coding agent running **GLM-5.3-Flash**
+  (model id `account:zai-individual-coding-plan/GLM-5.3-Flash`), harness
+  **ZCode CLI** (agentic coding harness, permission-mode session on
+  `~/Desktop/DEVPROJECTS/zcode/android-native`, branch `fix/gaps-and-polish`).
+- **Scope:** both Phase-7 entries (G3-mock, RIG-ledger) PLUS the two items the Phase-6
+  session's note folded into this wrap-up — the live-AVD rig leg (which is G3's own
+  Accept criterion) and the two remaining Phase-0 probes (C1a/C1b). Three commits this
+  phase (`f93d41d` red-first pins → `bea9f04` the G3 fix → `bf7df9b` shared remedy +
+  ledger pins); the folded legs verified in the same session. Nothing pushed.
+- **G3-mock — the rig defect, root-caused and fixed (rule 4 red-first).** Two stacked
+  mock defects, exactly as G3 named them: (1) every config-REBUILD site rebuilt
+  `script.sessionConfig` from a FIXED key list and silently dropped `modelSelection` —
+  and the sweep found not one site but FOUR: `switchCollaborationMode`,
+  `switchModelConfig`, `setFollowupMode`, and the `setThoughtLevel` channel word (the
+  effort switch — joined under the same `mergeSessionConfig` mechanism, rule 11); the
+  model pick now REFRESHES `modelSelection` to the picked pair (the §10.3 echo carries
+  the CURRENT selection — MockRelayMain's own scripted config pairs them). (2) The
+  effect's `state.updated` frame was delivered live but never JOURNALED into the
+  per-session opLog, so the resumable `resyncConversationV4` replay (§15.1: matching
+  epoch + baseSeq → opLog replay) could not deliver it — "the state patch lost after
+  the resync the model switch triggered". Fix: a key-preserving `mergeSessionConfig`
+  (a switch rebuilds the keys it manages, never drops the keys it does not), and every
+  effect frame (state patches AND row deltas) now routes through `journalAndEmit` —
+  journal BEFORE emit, bounded at 512 frames (the app's own INV-5 hold-buffer order) —
+  so a resync replay carries the patch and a patch pushed into a listener gap replays
+  instead of vanishing. Pre-fix: a resumable resync replayed NOTHING for effect state.
+- **RIG-ledger — inventory verified item-by-item and now machine-enforced.** All six
+  listed assets confirmed in the live sources: RawWsServer (RFC 6455-correct; the
+  `RawWsServerTest` behavior pin green — real OkHttp client refuses masked frames +
+  the 70 KB extended-length echo), `MOCK_APPROVAL=1` (MockRelayMain),
+  `script.demoAssistantMarkdown` (MockRelayMain), `MOCK_ROWS` (env-driven bulk leg),
+  the UNCONDITIONAL `MOCK: v4call` log (MockZCode — a plain println, verified not
+  gated), `commandEffects = true` (MockRelayMain), plus the `MOCKZCODE_WS_URL/LINK/
+  READY` boot prints; pixel rig = zcode-pixel AVD + `screencap` under
+  `-gpu swiftshader_indirect` (N9 — used live this session). NEW: `RigAssetsLedger
+  SelfTest` — a source-contract pin (the asset knobs, the unconditional log,
+  RawWsServer no-fork) so "extended, never forked" is enforced by the suite, and the
+  Accept's "`gradle :tools:mockzcode:test` green before each round" is checkable in
+  seconds.
+- **Folded live-AVD rig leg — the G3 Accept, on-device.** Fresh mock (`:18100`, one
+  listener; killed by port per G4) + zcode-pixel under swiftshader_indirect + the
+  1.1.0-vc40 debug build (adb-reverse pairing; the AVD's prior pairing persisted and
+  auto-connected). The conversation rendered the chips (`mode: build` ·
+  `zai/glm-5.1 · high` — G3's exact pre-condition). Tap mode chip → the 4-mode dialog
+  with the desktop-parity titles → tap "Plan mode" → the app sent
+  `sendConversationCommandV4` (the unconditional v4call log carries the wire proof) and
+  **THE CHIP RE-RENDERED `mode: plan`** with the model chip untouched — the re-render
+  G3 could not produce before the fix. Second leg (the reverse direction): model pick
+  `glm-5.1/high` → `glm-5.1-air/medium` — the chip re-rendered
+  `zai/glm-5.1-air · medium` (B1's attached thought-step live) AND `mode: plan`
+  SURVIVED the model switch (the preserved-keys echo working both ways). Pixel
+  evidence: `/tmp/phase7-rig/{before-mode-switch,after-mode-switch,after-model-switch}.png`
+  (1080×2340; sha256 ba96d9dba5c96b4f…, e3fdd1d5ae2c517a…, 220877b319a4b331…).
+  Rig torn down cleanly (mock killed by port, emulator killed, daemons stopped per
+  rule 6).
+- **PROBE-C1a RESOLVED — REGISTERED BUT NO QUOTA PUSH; quota-push work = DEAD END
+  (bundle-extracted 2026-10-21; gates the quota-push question, ADR-020 delta).** The
+  `coding-plan-subscription` channel IS registered on the host channel server in all
+  three scopes (`host/index.js`: `.register(Ol,mn)` ≈byte 1374138,
+  `e.connectionServices.codingPlanSubscriptionService` ≈1400475, + a remote-scoped
+  site), where `mn = createCodingPlanSubscriptionService(...)` (`function Np` ≈988800;
+  BigModel/Zai CodingPlanSubscriptionProvider) — the PROBE-A1 routing mechanism, with
+  no per-client scoping wrapper (unlike conversation-share's `XJ(...)`). BUT the
+  surface is a pure RPC BILLING/COMMERCE plane (≈33 methods: getStaticProducts,
+  preview, subscribePaypal, payStripe, enterprise pricing/orders,
+  getOffPeakClientConfig, getModelContextBudgetStrategy, …) with NO `listen` member
+  and no `onX` members — and the channel proxy exposes push ONLY through `on*`
+  members (`fromService`'s get: `onX → s.listen(o)`, everything else → `s.call(o,h)`),
+  so the channel cannot push anything. The quota source the phone already polls
+  (`getEntitlementSnapshot` on `usage-stats` — V4Plane.kt:240) is pull-only too
+  (getAppUsageSnapshot/getCodingPlanUsageSnapshot/getEntitlementSnapshot — no onX).
+  VERDICT: the C1 table row's "contradiction" was a naming collision — the channel is
+  the subscription-PURCHASE domain, not quota telemetry; there is NO quota push
+  channel anywhere in the desktop, exactly as the app's ADR-020 note claims. ADR-020's
+  poll cadence stands unchanged (explicit dead-end record per the Accept).
+- **PROBE-C1b RESOLVED — PULL ONLY (bundle-extracted 2026-10-21).** The `skills`
+  channel registers the real skillsService (`.register(Ll,…)` ≈1398775;
+  `createSkillsService` = `tR` ≈1010086) whose surface is list / setEnabled /
+  buildPromptContext / copyToCommon / removeFromCommon / deleteSkill — `list` re-reads
+  the catalog from disk ON EVERY CALL, and there is no `listen`/`onX` member, so the
+  channel never pushes catalog updates. The sibling `skill-sync` channel (`lR`
+  ≈1016886: listLocalUserSkillCandidates / listRemoteUserSkillStatuses /
+  exportSkillsArchive / checkRemoteUserSkillWriteAccess / importSkillsArchive) is the
+  desktop↔remote-workspace ARCHIVE sync — also RPC-only. VERDICT: push-vs-pull =
+  PULL. Catalog freshness on the phone is a re-pull concern (a future freshness fix
+  is a re-pull trigger, not a channel subscription).
+- **Phase 0 exit gate now fully closed:** all eight probes have recorded verdicts —
+  H1a/J1/J4/J9 (Phase-4 record), A1/L6 (Phase-5 record), C1a/C1b (this record). No
+  gated entry anywhere was built on an assumed verdict.
+- **Pins (all green; red runs recorded per commit):** MockZCodeSwitchEchoSelfTest (5:
+  mode-preserves-modelSelection, model-refresh, followup-preserves, journal-replay,
+  sendText-journal) + the effort-switch pin (the 4th rebuild site) +
+  RigAssetsLedgerSelfTest (3) — **9 new/extended pins**; the mock module went 27→31
+  tests, all green; RawWsServerTest + the existing self-tests kept green.
+- **Baseline + name-diff (rule 7):** pre-phase baseline = the Phase-6 frozen list (5
+  socket-timing names; `/tmp/phase6-baseline-names.frozen.txt`), and the mock module
+  itself verified green at 826aef8 before any edit. Exit full suite (`gradle test
+  --continue`): the failing-name set is BYTE-IDENTICAL to the frozen baseline (5
+  names, the socket-timing family). One transient name appeared in the first pool run
+  only — `ConnectionHubWritePathTest > pending approval … (U8, G2a)` — and is
+  EXONERATED: it timed out inside `connectAndOpen` (before any effect or journaling
+  could run — structurally untouched by this phase) and passed 3 consecutive isolated
+  runs plus the second pool run. Final: **zero unexplained new names.** Everything
+  except :app and :tools:mockzcode was up-to-date at the Phase-6 exit state (this
+  phase touched only the mock module's sources).
+- **Lint gate (rule 12/E6):** `:app:lintDebug` — **0 errors, 69 warnings, 2 hints**
+  (49E/58W/1H filtered by the committed baseline; 16 stale baseline entries
+  reported LintBaselineFixed) — byte-identical to the Phase-6 exit verdict; this
+  session introduced zero new lint findings.
+- **Fresh APKs (rule 12c):** debug `app/build/outputs/apk/debug/app-debug.apk`
+  55,219,817 bytes and release `app/build/outputs/apk/release/app-release.apk`
+  27,829,508 bytes (R8), versionName **1.1.0**, versionCode **40**, built from
+  branch `fix/gaps-and-polish` — install THIS debug build (it is the build the live
+  rig leg ran against).
+- **Drift duty (rule 10):** no structural changes — the fixes live inside the
+  existing `tools:mockzcode` module (no new module, port surface, or dependency
+  edge); the atlas needs no update. The `node --test` surface/bundle/relay sensors
+  are untouched by this phase.
+- **Rule-5 discoveries recorded (not silently fixed):** the FOURTH config-rebuild
+  site (the `setThoughtLevel` channel word) found during the shared-remedy sweep and
+  fixed under the same mechanism; the unjournaled-frame class extends to row deltas
+  (fixed together); and one accepted behavior consequence — effect frames that fire
+  BEFORE a subscribe now journal, so a post-subscribe gap after pre-subscribe
+  effects recovers via the pinned S10 path (5 s hold → resumable replay) instead of
+  the old silent drop; that is exactly the production recovery contract.
 
 ---
 
 ## Definition of done (gaps-and-polish remediation)
 
-- ☐ All eight Phase-0 probes resolved and recorded; no gated entry built on an assumed verdict.
+- ☑ All eight Phase-0 probes resolved and recorded; no gated entry built on an assumed verdict.
+  *(closed by the Phase-7 session 2026-10-21 — C1a/C1b verdicts in the Phase-7 record)*
 - ☐ Every Phase 1–4 checkbox ticked with its pin green; live-found findings live-verified
   (rig pixels/hierarchy/`v4call` per the finding's evidence class).
 - ☐ Phase 5 ADRs merged and honored; no ADR-gated write shipped without its ADR.
-- ☐ Phase 6 decisions recorded; Phase 7 rig assets in place for the NEXT audit generation.
+- ☑ Phase 6 decisions recorded; Phase 7 rig assets in place for the NEXT audit generation.
+  *(Phase-7 session 2026-10-21: inventory verified live + the `RigAssetsLedgerSelfTest`
+  enforcement pin; the switch-echo/journal fidelity fix landed with 9 pins)*
 - ☐ Drift sensors (2H) consuming facade + namespace + CSS legs — a desktop 3.14.6 tripwire
   exists, and the re-audit trigger is mechanical, not manual.
 - ☐ Withdrawn list respected end-to-end: no Zai-Light font work; no mic/notification-channel/
