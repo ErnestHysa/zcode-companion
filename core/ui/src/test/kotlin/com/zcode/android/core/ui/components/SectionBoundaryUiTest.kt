@@ -76,7 +76,7 @@ class SectionBoundaryUiTest {
     @Test
     fun `a crashing section renders the error card - its sibling keeps rendering`() {
         setContent(failFirstPrepare = true)
-        rule.onNodeWithTag("boundary_a").assertExistsFor("the crashing section renders (the boundary card)")
+        rule.onNodeWithTag("section_boundary").assertExistsFor("the crashing section renders (the boundary card)")
         rule.onNodeWithText("This area broke").assertExistsFor("the desktop appError title")
         rule.onNodeWithText("Other areas keep working — retry this section.").assertExistsFor("the body")
         rule.onNodeWithText("bad projection").assertExistsFor("the throwable's message is the detail")
