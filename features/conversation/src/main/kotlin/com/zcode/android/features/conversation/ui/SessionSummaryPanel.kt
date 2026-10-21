@@ -55,11 +55,16 @@ fun SessionSummaryPanel(
 
     if (!expanded) {
         val expandLabel = stringResource(R.string.summary_show_panel)
+        val capsuleModifier = Modifier
+            .then(modifier)
+            .fillMaxWidth()
         Surface(
             color = MaterialTheme.colorScheme.surfaceContainerLow,
             shape = MaterialTheme.shapes.small,
-            modifier = modifier
-                .fillMaxWidth()
+            modifier = capsuleModifier
+                .testTag("summary_capsule")
+                .semantics(mergeDescendants = true) { contentDescription = expandLabel }
+                .clickable { expanded = true },
                 .testTag("summary_capsule")
                 .semantics(mergeDescendants = true) { contentDescription = expandLabel }
                 .clickable { expanded = true },
@@ -80,9 +85,11 @@ fun SessionSummaryPanel(
         }
         return
     }
+    val panelModifier = Modifier
+        .then(modifier)
+        .fillMaxWidth()
     Column(
-        modifier = modifier
-            .fillMaxWidth()
+        modifier = panelModifier
             .testTag("summary_panel"),
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
