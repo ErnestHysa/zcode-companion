@@ -15,11 +15,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 @Composable
 fun ZCodeTheme(themeMode: com.zcode.android.core.ui.theme.ThemeMode = com.zcode.android.core.ui.theme.ThemeMode.SYSTEM, content: @Composable () -> Unit) {
     // H1.4-phase1: the override wins; SYSTEM keeps the pre-4F behavior.
-    val dark = when (themeMode) {
-        com.zcode.android.core.ui.theme.ThemeMode.LIGHT -> false
-        com.zcode.android.core.ui.theme.ThemeMode.DARK -> true
-        com.zcode.android.core.ui.theme.ThemeMode.SYSTEM -> isSystemInDarkTheme()
-    }
+    val dark = themeMode.resolveDark()
     val tokens = if (dark) ZCodeColorsDark else ZCodeColorsLight
     MaterialTheme(
         colorScheme = if (dark) DarkScheme else LightScheme,
@@ -41,3 +37,14 @@ object ZCodeText {
 
 /** H1.4-phase1: the phone's first theme override (the desktop's themeMode). */
 enum class ThemeMode { LIGHT, DARK, SYSTEM }
+
+/**
+ * The ONE resolution of a theme mode to a dark flag (U7): the scheme and the window's
+ * system bars must agree, so both read it here. The override wins; SYSTEM reads the system.
+ */
+@Composable
+fun ThemeMode.resolveDark(): Boolean = when (this) {
+    ThemeMode.LIGHT -> false
+    ThemeMode.DARK -> true
+    ThemeMode.SYSTEM -> isSystemInDarkTheme()
+}

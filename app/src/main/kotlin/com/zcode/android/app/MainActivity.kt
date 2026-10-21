@@ -11,6 +11,9 @@ import android.os.Bundle
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.LaunchedEffect
+import com.zcode.android.app.theme.applySystemBarsFor
+import com.zcode.android.core.ui.theme.resolveDark
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
@@ -100,6 +103,12 @@ class MainActivity : FragmentActivity() {
                 com.zcode.android.domain.model.AppPreferences.ThemeMode.DARK -> com.zcode.android.core.ui.theme.ThemeMode.DARK
                 com.zcode.android.domain.model.AppPreferences.ThemeMode.SYSTEM -> com.zcode.android.core.ui.theme.ThemeMode.SYSTEM
             }
+            // U7 (verification pass 2): the window's system bars follow the RESOLVED theme.
+            // onCreate's enableEdgeToEdge() reads the SYSTEM uiMode once — an in-app Dark
+            // override on a light system left dark status icons on the dark background
+            // and the light nav scrim under the dark app. Re-applied whenever it flips.
+            val dark = themeMode.resolveDark()
+            LaunchedEffect(dark) { applySystemBarsFor(dark) }
             ZCodeTheme(themeMode = themeMode) {
                 androidx.compose.runtime.CompositionLocalProvider(
                     com.zcode.android.core.ui.components.LocalWindowWidthClass provides windowSize.widthSizeClass,

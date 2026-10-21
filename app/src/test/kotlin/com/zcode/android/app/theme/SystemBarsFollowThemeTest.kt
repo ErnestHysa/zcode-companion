@@ -4,7 +4,6 @@ import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -41,13 +40,14 @@ class SystemBarsFollowThemeTest {
         val lightFlags = decor.systemUiVisibility
         assertTrue("light theme → light status bar (dark icons)", lightFlags and View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR != 0)
         assertTrue("light theme → light navigation bar (dark icons)", lightFlags and View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR != 0)
-        val lightNav = activity.window.navigationBarColor
 
         activity.applySystemBarsFor(dark = true)
         val darkFlags = decor.systemUiVisibility
         assertEquals("dark theme → light icons on the status bar", 0, darkFlags and View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR)
         assertEquals("dark theme → light icons on the navigation bar", 0, darkFlags and View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR)
-        assertNotEquals("dark theme → the dark nav scrim, not the light one", lightNav, activity.window.navigationBarColor)
+        // API 29+: the nav bar stays TRANSPARENT and the system paints its contrast scrim
+        // from the light/dark appearance flag above — the flag IS the scrim's source.
+        assertEquals("edge-to-edge keeps the nav bar transparent", android.graphics.Color.TRANSPARENT, activity.window.navigationBarColor)
     }
 
     @Test
