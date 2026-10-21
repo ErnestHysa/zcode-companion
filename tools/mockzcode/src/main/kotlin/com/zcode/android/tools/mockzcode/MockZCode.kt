@@ -2877,6 +2877,9 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
     /** Test seam for the command-effect machinery (the socket path calls the same function). */
     internal fun applyCommandEffectForTest(type: String, env: JsonObject?): JsonObject? = applyCommandEffect(type, env)
 
+    /** Test seam for the resync replay journal (G3 pins): the per-session DeltaFrames. */
+    internal fun opLogForTest(sessionId: String): List<DeltaFrame> = opLog[sessionId]?.toList() ?: emptyList()
+
     // ---- Phase 4B (J2/A3.2/B2.11): automation CRUD + run ledger (synthetic, INV-15/16).
 
     /** Runs recorded by runAutomationNow (newest first when listed after the scripted ones). */
