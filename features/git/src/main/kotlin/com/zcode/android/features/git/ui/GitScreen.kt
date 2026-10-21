@@ -534,8 +534,8 @@ private fun GitTreeRows(
     expanded: Pair<String, Boolean>?,
     load: suspend (String, Boolean) -> GitFileDiff?,
     onToggle: (path: String, staged: Boolean) -> Unit,
-    onCollapseDir: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onCollapseDir: (String) -> Unit = { },
     onStage: ((path: String, stage: Boolean) -> Unit)? = null,
     onDiscard: ((path: String, staged: Boolean) -> Unit)? = null,
 ) {
@@ -586,7 +586,7 @@ private fun GitTreeRows(
             )
         }
         dir.dirs.forEach { child ->
-            GitTreeRows(child, depth + 1, staged, collapsed, expanded, load, onToggle, onCollapseDir, onStage = onStage, onDiscard = onDiscard)
+            GitTreeRows(child, depth + 1, staged, collapsed, expanded, load, onToggle, onCollapseDir = onCollapseDir, onStage = onStage, onDiscard = onDiscard)
         }
     }
 }
