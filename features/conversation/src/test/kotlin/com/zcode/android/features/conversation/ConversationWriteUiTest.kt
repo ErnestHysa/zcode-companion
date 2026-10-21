@@ -30,7 +30,9 @@ import org.robolectric.annotation.Config
  * the queue strip, and the §30 a11y semantics of approval actions.
  */
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [30])
+// U8: a PHONE content height — the pinned stack is budgeted from the real available
+// height now; Robolectric's 320×470dp default is no device and folded the card's options.
+@Config(sdk = [30], qualifiers = "w411dp-h731dp")
 class ConversationWriteUiTest {
 
     @get:Rule

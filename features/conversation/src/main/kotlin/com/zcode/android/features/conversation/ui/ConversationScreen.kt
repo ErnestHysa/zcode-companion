@@ -3,6 +3,7 @@ package com.zcode.android.features.conversation.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -45,8 +46,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import com.zcode.android.core.ui.components.rememberReducedMotion
 import com.zcode.android.features.conversation.GeneratedArtifactPreview
@@ -216,7 +215,9 @@ fun ConversationScreen(
             )
         },
     ) { inner ->
-        Column(
+        // U1/U8: the budgets below derive from the REAL available height (inside the
+        // IME padding, so they shrink while typing) — never from the window size.
+        BoxWithConstraints(
             Modifier
                 .fillMaxSize()
                 .padding(inner)
@@ -226,9 +227,14 @@ fun ConversationScreen(
                 // UNDER the keyboard).
                 .imePadding(),
         ) {
+        val available = maxHeight
+        Column(Modifier.fillMaxSize()) {
+            val blocked = state.pendingPermissions.isNotEmpty() || state.pendingUserInputs.isNotEmpty()
             Header(
                 state = state,
                 phase = phase,
+                blocked = blocked,
+                available = available,
                 onOpenFiles = onOpenFiles,
                 onOpenGit = onOpenGit,
                 onOpenTerminal = onOpenTerminal,
@@ -284,29 +290,48 @@ fun ConversationScreen(
             // §20.2 "approval first": the open interaction cards are PINNED above the
             // timeline (the agent is blocked until answered — G2a ≤ 3 interactions).
             // B2.12: they are NEVER inside the strip budget.
-            for (interaction in state.pendingPermissions) {
-                ApprovalCard(
-                    interaction = interaction,
-                    busy = interaction.interactionId in state.busyInteractions,
-                    onAnswer = { optionId, freeText ->
-                        onAnswer(interaction.interactionId, optionId, freeText, false)
-                    },
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                )
-            }
-            for (interaction in state.pendingUserInputs) {
-                UserInputCard(
-                    interaction = interaction,
-                    busy = interaction.interactionId in state.busyInteractions,
-                    onAnswer = { optionId, freeText ->
-                        onAnswer(interaction.interactionId, optionId, freeText, true)
-                    },
-                    onAnswerQuestions = { answers ->
-                        onAnswerQuestions(interaction.interactionId, answers)
-                    },
-                    onDecline = { onDeclineQuestions(interaction.interactionId) },
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                )
+            // U8 (verification pass 2, 2026-10-21): the pinned stack is BUDGETED too — a
+            // multi-question card is taller than half a phone; unbounded it pushed its own
+            // Submit/Decline, the timeline and the composer off-screen (unanswerable). Up
+            // to PINNED_BUDGET_FRACTION of the window, scrolling inside; the header's
+            // context panels yield their room while a card is open (approval first).
+            if (blocked) {
+                // Everything the chrome, the composer and the timeline floor do not need,
+                // and never less than a screen share — Allow/Submit stay on screen on a
+                // phone; a taller card scrolls inside.
+                val pinnedBudget = maxOf(available * PINNED_BUDGET_FRACTION, available - PINNED_RESERVE)
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = pinnedBudget)
+                        .verticalScroll(rememberScrollState())
+                        .testTag("conv_pinned_budget"),
+                ) {
+                    for (interaction in state.pendingPermissions) {
+                        ApprovalCard(
+                            interaction = interaction,
+                            busy = interaction.interactionId in state.busyInteractions,
+                            onAnswer = { optionId, freeText ->
+                                onAnswer(interaction.interactionId, optionId, freeText, false)
+                            },
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        )
+                    }
+                    for (interaction in state.pendingUserInputs) {
+                        UserInputCard(
+                            interaction = interaction,
+                            busy = interaction.interactionId in state.busyInteractions,
+                            onAnswer = { optionId, freeText ->
+                                onAnswer(interaction.interactionId, optionId, freeText, true)
+                            },
+                            onAnswerQuestions = { answers ->
+                                onAnswerQuestions(interaction.interactionId, answers)
+                            },
+                            onDecline = { onDeclineQuestions(interaction.interactionId) },
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        )
+                    }
+                }
             }
             // B2.12: the status-strip stack is BUDGETED (§15-S1/S9 mockups) — an
             // unbounded stack in this non-scrollable column squeezed the timeline.
@@ -321,8 +346,12 @@ fun ConversationScreen(
                             )
                         }
                     }
-                    if (state.taskState == TaskStateMachine.State.WAITING_FOR_PERMISSION ||
-                        state.taskState == TaskStateMachine.State.WAITING_FOR_USER
+                    // U8: the attention strip is for a WAITING task whose card could not be
+                    // pinned — under a pinned card it only repeats the card and steals its room.
+                    if (!blocked && (
+                            state.taskState == TaskStateMachine.State.WAITING_FOR_PERMISSION ||
+                                state.taskState == TaskStateMachine.State.WAITING_FOR_USER
+                            )
                     ) {
                         add {
                             AttentionStrip(
@@ -418,6 +447,7 @@ fun ConversationScreen(
                 fileSearchProvider = fileSearchProvider,
             )
         }
+        }
     }
 }
 
@@ -425,6 +455,10 @@ fun ConversationScreen(
 private fun Header(
     state: ConversationUiState,
     phase: ConnectionPhase,
+    /** U8: a blocking card is open — the context panels yield their room (approval first). */
+    blocked: Boolean = false,
+    /** U1: the content height the budgets derive from (BoxWithConstraints, inside the IME padding). */
+    available: androidx.compose.ui.unit.Dp = 0.dp,
     onOpenFiles: () -> Unit = {},
     onOpenGit: () -> Unit = {},
     onOpenTerminal: () -> Unit = {},
@@ -495,7 +529,7 @@ private fun Header(
         // plans together left the timeline a 46dp viewport on a Pixel 5 (zero with the
         // status capsule expanded) — the B2.12 squeeze class, which budgeted the strips
         // but not these panels. The timeline keeps its weight; the panels stay reachable.
-        val panelBudget = with(LocalDensity.current) { (LocalWindowInfo.current.containerSize.height * CONTEXT_PANEL_BUDGET_FRACTION).toDp() }
+        val panelBudget = available * CONTEXT_PANEL_BUDGET_FRACTION
         Column(
             Modifier
                 .fillMaxWidth()
@@ -510,20 +544,24 @@ private fun Header(
                 rows = state.rows,
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
             )
-            // D2: the goal + todo surfaces — keys the wire always carried; absent → nothing.
-            state.sessionState?.goal?.let { goal ->
-                GoalPanel(goal, modifier = Modifier.padding(horizontal = 8.dp))
-            }
-            state.sessionState?.plan?.let { plan ->
-                PlanPanel(plan, modifier = Modifier.padding(horizontal = 8.dp))
-            }
-            // A3.3: the session's workflow runs (conversationWorkflowRunsV4); null/empty → nothing.
-            workflowRuns?.takeIf { it.isNotEmpty() }?.let { runs ->
-                WorkflowRunsPanel(runs, onOpen = onOpenWorkflowRun, modifier = Modifier.padding(horizontal = 8.dp))
-            }
-            // A3.12: the plans viewer folds under the todo panel (one panel surface, two sections).
-            plans?.takeIf { it.isNotEmpty() }?.let { list ->
-                PlansViewer(list, modifier = Modifier.padding(horizontal = 8.dp))
+            // U8: while a blocking card is open the panels step aside — the question/approval
+            // carries its own context and must keep its answer controls on screen.
+            if (!blocked) {
+                // D2: the goal + todo surfaces — keys the wire always carried; absent → nothing.
+                state.sessionState?.goal?.let { goal ->
+                    GoalPanel(goal, modifier = Modifier.padding(horizontal = 8.dp))
+                }
+                state.sessionState?.plan?.let { plan ->
+                    PlanPanel(plan, modifier = Modifier.padding(horizontal = 8.dp))
+                }
+                // A3.3: the session's workflow runs (conversationWorkflowRunsV4); null/empty → nothing.
+                workflowRuns?.takeIf { it.isNotEmpty() }?.let { runs ->
+                    WorkflowRunsPanel(runs, onOpen = onOpenWorkflowRun, modifier = Modifier.padding(horizontal = 8.dp))
+                }
+                // A3.12: the plans viewer folds under the todo panel (one panel surface, two sections).
+                plans?.takeIf { it.isNotEmpty() }?.let { list ->
+                    PlansViewer(list, modifier = Modifier.padding(horizontal = 8.dp))
+                }
             }
         }
         Row(
@@ -1043,3 +1081,9 @@ private const val PAGE_EDGE = 12
 
 /** U1: the context-panel stack (goal · todos · runs · plans) may take at most this share of the screen. */
 private const val CONTEXT_PANEL_BUDGET_FRACTION = 0.30f
+
+/** U8: the pinned approval/question stack may take at most this share of the window. */
+private const val PINNED_BUDGET_FRACTION = 0.30f
+
+/** U8: the pinned stack keeps everything above this reserve (chrome ≈ 190dp + composer ≈ 140dp + the 120dp timeline floor). */
+private val PINNED_RESERVE = 450.dp
