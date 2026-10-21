@@ -16,8 +16,10 @@ import com.zcode.android.core.ui.theme.ZCodeRadius
  * dialogs. Shape = the scale's `xl` top corners (dialogs' step, K1.2), container =
  * `surfaceContainerLow` (the J5 sheet role), and `skipPartiallyExpanded` — an action
  * menu has no half-state worth stopping at. L5-chips (Phase 6C, the N1 decision):
- * overlays are SHADOW-led — the sheet rides [com.zcode.android.core.ui.theme.ZCodeElevation.sheet]
- * so raised chrome reads as raised (zero-elevation overlays read as inert labels).
+ * overlays are ELEVATED, never zero — the sheet rides
+ * [com.zcode.android.core.ui.theme.ZCodeElevation.sheet] as its tonal step (M3's
+ * ModalBottomSheet exposes no shadow parameter; the token carries the elevation
+ * intent wherever the API allows).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,7 +35,7 @@ fun ZCodeModalBottomSheet(
         shape = RoundedCornerShape(topStart = ZCodeRadius.xl, topEnd = ZCodeRadius.xl),
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         tonalElevation = 0.dp,
-        shadowElevation = com.zcode.android.core.ui.theme.ZCodeElevation.sheet,
+        tonalElevation = com.zcode.android.core.ui.theme.ZCodeElevation.sheet,
         content = content,
     )
 }

@@ -5,9 +5,10 @@ import androidx.compose.ui.unit.dp
 
 /**
  * L5-chips (Phase 6C) elevation tokens — the N1 decision: the desktop's overlays are
- * SHADOW-led (box-shadow ×70), the phone rendered them tonal-only/zero and overlays
- * read as inert labels. Overlays ride a shadow elevation; surfaces inside them stay
- * tonal (the established `surfaceContainer*` ladder carries the fill).
+ * shadow-led (box-shadow ×70), the phone rendered them tonal-only/zero and overlays
+ * read as inert labels. M3's sheet/dialog surfaces expose only a tonal parameter, so
+ * the tokens are applied as the tonal step wherever the API allows (the sheet) —
+ * zero-elevation overlays are no longer in the language.
  */
 object ZCodeElevation {
     /** Bottom sheets and dialogs — raised chrome above the screen. */

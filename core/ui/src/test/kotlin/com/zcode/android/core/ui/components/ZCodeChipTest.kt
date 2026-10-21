@@ -129,8 +129,8 @@ class ZCodeChipTest {
         }
         val sheet = java.io.File(root, "core/ui/src/main/kotlin/com/zcode/android/core/ui/components/ZCodeModalBottomSheet.kt").readText()
         assertTrue(
-            "the sheet must apply ZCodeElevation.sheet as its shadowElevation",
-            Regex("""shadowElevation\s*=\s*ZCodeElevation\.sheet""").containsMatchIn(sheet),
+            "the sheet must be elevated by ZCodeElevation.sheet (never zero — M3 exposes tonal on the sheet)",
+            Regex("""tonalElevation\s*=\s*ZCodeElevation\.sheet""").containsMatchIn(sheet),
         )
     }
 }
