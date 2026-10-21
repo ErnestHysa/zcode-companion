@@ -1,5 +1,7 @@
 package com.zcode.android.features.conversation
 
+import com.zcode.android.features.conversation.ui.composerAutoCorrectEnabled
+import com.zcode.android.features.conversation.ui.composerKeyboardOptions
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import kotlin.test.Test
