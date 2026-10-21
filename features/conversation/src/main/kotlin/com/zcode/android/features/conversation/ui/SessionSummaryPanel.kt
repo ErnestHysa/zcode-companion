@@ -74,7 +74,7 @@ fun SessionSummaryPanel(
                         goalIteration?.let { stringResource(R.string.summary_goal_iteration, it) },
                         background.takeIf { it > 0 }?.let { stringResource(R.string.summary_background_tasks, it) },
                         subagents.takeIf { it > 0 }?.let { stringResource(R.string.summary_subagents, it) },
-                    ).joinToString("  -  "),
+                    ).joinToString("  ·  "),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
