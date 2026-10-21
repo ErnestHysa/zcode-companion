@@ -783,6 +783,7 @@ fun ComposerBar(
                     OutlinedTextField(
                         value = state.draft,
                         onValueChange = onDraftChange,
+                        keyboardOptions = composerKeyboardOptions(state.draft),
                         placeholder = {
                             Text(
                                 stringResource(
@@ -1140,3 +1141,24 @@ fun ComposerPasteChip(visible: Boolean, onPaste: () -> Unit, modifier: Modifier 
         Text(stringResource(R.string.composer_menu_paste_image))
     }
 }
+
+/**
+ * L5-slash (Phase 6C): the composer's IME options derive from the draft — a LEADING
+ * slash is command context, not prose: no word-suggestions (autocorrect off), no
+ * capitalization, ASCII (the slash catalog is ASCII). Everything else keeps the
+ * platform defaults (bilingual prose typing must not regress).
+ */
+fun composerKeyboardOptions(draft: String): androidx.compose.foundation.text.KeyboardOptions =
+    if (draft.startsWith("/")) {
+        androidx.compose.foundation.text.KeyboardOptions(
+            capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.NONE,
+            autoCorrectEnabled = false,
+            keyboardType = androidx.compose.ui.text.input.KeyboardType.Ascii,
+        )
+    } else {
+        androidx.compose.foundation.text.KeyboardOptions.Default
+    }
+
+/** The autocorrect flag across compose-ui's autoCorrect → autoCorrectEnabled rename. */
+fun composerAutoCorrectEnabled(options: androidx.compose.foundation.text.KeyboardOptions): Boolean =
+    options.autoCorrectEnabled ?: options.autoCorrect
