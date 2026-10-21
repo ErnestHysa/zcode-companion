@@ -1106,15 +1106,19 @@ private fun CategoryToggle(
     tag: String,
     onChange: (Boolean) -> Unit,
 ) {
+    // U5 (verification pass 2, 2026-10-21): the list's 16dp horizontal inset — without it
+    // the three category rows rendered flush against both screen edges (label at x=0,
+    // the switch's track on the right edge) between properly inset neighbours.
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
+            .padding(horizontal = 16.dp, vertical = 4.dp)
             .testTag(tag),
         horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
     ) {
         Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-        androidx.compose.material3.Switch(checked = checked, onCheckedChange = onChange)
+        Spacer(Modifier.width(8.dp))
+        androidx.compose.material3.Switch(checked = checked, onCheckedChange = onChange, modifier = Modifier.testTag("${tag}_switch"))
     }
 }
