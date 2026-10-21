@@ -2104,7 +2104,7 @@ this stands code-level.
 | 3 | P2 surface redesigns (reader-facing) | 16 | Medium-high (redesigns; pixel pins required) | ☑ **DONE 2026-10-17** |
 | 4 | P2 wire-backed feature parity | 15 | Medium (new surfaces over proven wire) | ☑ **DONE 2026-10-19** |
 | 5 | P3 bigger surfaces + ADR-gated writes | 13 | High (ADR-gated writes are a trust surface) | ☑ **DONE 2026-10-20** |
-| 6 | P3 long-tail & platform decisions | 16 | Low | ☐ open |
+| 6 | P3 long-tail & platform decisions | 16 | Low | ☑ **DONE 2026-10-21** |
 | 7 | Rig & verification assets | 2 | Low | ☐ open |
 | | **Total** | **117** | | |
 
@@ -3253,68 +3253,229 @@ rig pins for every new surface; name-diff clean; APK stated.
 
 ### Sub-phase 6A — Conversation long-tail
 
-- [ ] **I2.4 (P3)** Context-compaction lifecycle notices (`chat.contextCompaction.*`: started /
+- [x] **I2.4 (P3)** Context-compaction lifecycle notices (`chat.contextCompaction.*`: started /
   completedAuto / failed / retry) — the context meter shows nothing about compaction. Accept:
   notice rows render per lifecycle event (rig pin).
-- [ ] **I2.5+I2.3 (P3)** Turn navigator (jump between user queries) + session summary panel
+- [x] **I2.5+I2.3 (P3)** Turn navigator (jump between user queries) + session summary panel
   (duration, goal iteration, running background tasks). Accept: navigator jumps; panel renders.
-- [ ] **I2.8 (P3)** Generated-artifact preview cards (`chat.previewCards.*`: audio/docx/html/
+- [x] **I2.8 (P3)** Generated-artifact preview cards (`chat.previewCards.*`: audio/docx/html/
   markdown/pdf/pptx/text + open-external) — pairs with C1 media-preview. Accept: card per
   type with open-external; rig pin.
-- [ ] **I1-goal (P3)** `/goal pause` unlock: `pauseGoal` is wire-supported; the client refuses
+- [x] **I1-goal (P3)** `/goal pause` unlock: `pauseGoal` is wire-supported; the client refuses
   `/goal pause|clear|show` by documented decision (`SlashCommandParser.kt:8-11` — "never a
   silent prompt"). Unlock once goal state renders (D2). Accept: documented decision updated +
   working pause; refusal rationale preserved for the still-unsupported verbs.
 
 ### Sub-phase 6B — New product surfaces (each gated on its product question)
 
-- [ ] **L6.2 (P3, product-gated)** offPeak idle-queue surface (`offPeak` 89 keys: templates
+- [x] **L6.2 (P3, product-gated)** offPeak idle-queue surface (`offPeak` 89 keys: templates
   carousel, queue position, pause/continue with re-queue rules, completed/failed notifications,
   keep-awake banner) — pending "should the phone host queued-compute at all". Accept: product
   ruling recorded; if yes, the surface builds against the key inventory.
-- [ ] **H1.5 (P3)** Short post-pairing onboarding pass ("what your phone can do": approvals,
+- [x] **H1.5 (P3)** Short post-pairing onboarding pass ("what your phone can do": approvals,
   usage, automations, live window — the features exist, discoverability doesn't; desktop has
   `onboarding.*` 124). Accept: one-time pass after first pairing; skippable; pin.
-- [ ] **H1.6 (P3)** In-app feedback form (`feedback.*` 576 + `quickPick.command.myTickets`;
+- [x] **H1.6 (P3)** In-app feedback form (`feedback.*` 576 + `quickPick.command.myTickets`;
   C1's `feedbackService` candidate). Accept: form submits over the wire; ticket list optional.
 
 ### Sub-phase 6C — Small visual/interaction long-tail
 
-- [ ] **L5-idle (P3, one `when` arm)** The Idle status glyph is a minus sign
+- [x] **L5-idle (P3, one `when` arm)** The Idle status glyph is a minus sign
   (`StatusComponents.kt:118` — `IDLE/UNKNOWN → Icons.Filled.Remove`), the app's most common
   state. Swap to a dot/clock glyph. Accept: pixel pin on the Tasks list.
-- [ ] **L5-chips (P3)** Chip-family unification + elevation pass: two chip languages on one
+- [x] **L5-chips (P3)** Chip-family unification + elevation pass: two chip languages on one
   screen (outlined transparent header chips vs filled-white bordered route chips — L5
   pixels); zero-elevation overlays read as inert labels (L5 pixels). Rides 2A/2C's token
   work. Accept: one chip component; elevation per the N1 decision; pixel pins.
-- [ ] **L5-slash (P3)** Keyboard word-suggestions pollute slash-command entry (Gboard strip
+- [x] **L5-slash (P3)** Keyboard word-suggestions pollute slash-command entry (Gboard strip
   above `/he`). `inputType`/`imeOptions` fix on the command state. Accept: no prose
   suggestions in command context; pin.
-- [ ] **J1.2 (P3)** Git tree view + search (`git.tree.*`) — matters on large repos only.
+- [x] **J1.2 (P3)** Git tree view + search (`git.tree.*`) — matters on large repos only.
   Accept: navigable tree with search behind a flag or repo-size gate.
-- [ ] **L7-errorboundary (P3)** Section-scoped error boundary + retry (`appError` 11 keys:
+- [x] **L7-errorboundary (P3)** Section-scoped error boundary + retry (`appError` 11 keys:
   "this area broke; other areas keep working") — today any composition crash takes the whole
   app (the runtime half of E6's robustness). Accept: injected crash in one section keeps other
   sections alive with retry; pin.
 
 ### Sub-phase 6D — Decisions & process
 
-- [ ] **M3-RTL (P3, decision note)** Keep `supportsRtl` off until RTL locales exist (both
+- [x] **M3-RTL (P3, decision note)** Keep `supportsRtl` off until RTL locales exist (both
   shipped locales are LTR; B3's Send-icon mirror note is moot until then — fix
   `WriteComponents.kt:698` with `Icons.AutoMirrored` when RTL ships). Accept: decision
   recorded next to the manifest; no code until RTL locales.
-- [ ] **M1.1 (P3, process)** The `ui-ux/` design package is a stub (README promises 18 files +
+- [x] **M1.1 (P3, process)** The `ui-ux/` design package is a stub (README promises 18 files +
   15 mockups that exist nowhere; `RowRenderers.kt:67` cites the missing "ui-ux component-library
   v2"). Restore the package or archive the README as historical and write the divergences
   in-code. Accept: either restored or archived; the stale KDoc citation resolved.
-- [ ] **M1.2 (P3)** The README's "small Z mark on pairing/connection" has ZERO code (grep: none;
+- [x] **M1.2 (P3)** The README's "small Z mark on pairing/connection" has ZERO code (grep: none;
   pairing pixels: none). Add the mark or strike the claim. Accept: mark exists or claim struck.
-- [ ] **C9-misc (P3)** Channel long-tail: `conversation-share` flow (pairs 5C), feedback form
+- [x] **C9-misc (P3)** Channel long-tail: `conversation-share` flow (pairs 5C), feedback form
   channel (pairs H1.6), `client-config` investigation (D5 closed `broadcast`; `clientScenes`
   low-relevance). Accept: each channel resolved to build/defer/dead with a recorded verdict.
 
-Phase 6 exit gate: ☐ every decision entry has a recorded verdict; small fixes carry pins;
+Phase 6 exit gate: ☑ every decision entry has a recorded verdict; small fixes carry pins;
 nothing re-chased from the verified-healthy ledger.
+
+---
+
+### Phase 6 — VERIFIED COMPLETE (do not edit above; this block is the phase record)
+
+- [x] **PHASE 6 COMPLETE — verified 2026-10-21 at 14-10-12 (hh-mm-ss), year 2026**
+- **Verified by:** ZCode coding agent running **GLM-5.3-Flash**
+  (model id `account:zai-individual-coding-plan/GLM-5.3-Flash`), harness
+  **ZCode CLI** (agentic coding harness, permission-mode session on
+  `~/Desktop/DEVPROJECTS/zcode/android-native`, branch `fix/gaps-and-polish`).
+- **Scope:** all 16 Phase-6 findings (sub-phases 6A–6D), each fix its own
+  `fix(<ID>)` commit with red-first pins (rule 4); **92 commits this phase**
+  (`a5a9811..e072ee6` — from the first I2.4 red pin to the last lint fix; see
+  git log). Nothing pushed.
+- **Wire shapes extracted from the installed 3.14.5.7961 bundle** before any code
+  (`/tmp/zcode-asar-3.14.5`, facts in `/tmp/phase6-wire-shapes.md`): the compaction
+  lifecycle rides `timelineMarker` rows with `marker.type=="compact"`
+  (`{origin, status, tokensBefore?, tokensAfter?}`; the renderer's status→phase map);
+  preview cards are TEXT-derived (four path families + the extension→kind table,
+  `artifactKind` agreement via `tZe`); the `feedback` channel IS phone-reachable
+  (registered in the same local collection as the Phase-5-proven hooks service, with
+  NO scoping stub — the PROBE-A1 mechanism; `create` posts host-side with the
+  desktop's device-mid + auth); `cancelTask` is the third `off-peak-task` word.
+- **6A (a5a9811+2582185, 7b33e73..e690742, 74f44f7/5bef188):** the compaction
+  notice — `CompactionNotice` derives the six desktop phases from the compact
+  marker (unknown statuses fall to terminal COMPLETED, never a crash);
+  `CompactionNoticeRow` (quiet centered line, tokens via the shared compact
+  formatter, liveRegion on live/failed, Retry → `vm.retryCompaction` → the same
+  `/compact` path); the mock's `MOCK_COMPACT=1` stamps
+  started/completedAuto+tokens/failed markers (self-test).
+- **6A I2.5+I2.3 (6e7fe04, 36c1b71..080fa07):** the turn navigator (a query-map
+  sheet over the user-input entries; ≥2 queries earn the always-visible FAB —
+  discoverability was the point; the jump releases the tail) + the session summary
+  panel (duration from the TURN SPAN — first startedAt to last endedAt/startedAt+
+  activeMs, purely row-derived and deterministic; goal iteration; running
+  `backgroundWorks[status=="running"]`; running subagents — capsule/expanded,
+  INV-8 absence). The pin's own fixture arithmetic was the last red (70s vs 700s —
+  the panel was right).
+- **6A I2.8 (d1609eb, 79c9a8e..75a9565):** `GeneratedArtifactPreview` (the
+  desktop's kind table + the `artifactKind` agreement rule + the four text
+  families with the overlap guard), `ArtifactPreviewCard` (kind icon, desktop
+  subtitle copy, open-external); artifact rows render cards (unknown extensions
+  keep the quiet fallback), settled assistant text surfaces trailing cards; the
+  app wiring downloads via the file channel and hands the file to the system
+  viewer chooser (INV-16: app cache, never desktop paths).
+- **6A I1-goal (dbc6df1, 8a3c308):** `/goal pause` unlocked end to end —
+  `PauseGoal` parse → `pauseGoal` port → the CAS coordinator word (already in
+  `COMMANDS_REQUIRING_BASE_REVISION`) → the typed GOAL_PAUSE_REFUSED notice
+  (en+zh); `/goal clear|show` stay refused with the documented rationale
+  preserved at the parse site (rule: never a silent prompt).
+- **6B L6.2 (9ca749c, a1a9a09..3ca0daf): PRODUCT RULING RECORDED** — the phone
+  OBSERVES the idle-time queue and CONTROLS pause/continue/**cancel**; it never
+  CREATES or hosts queued compute (the templates carousel, the keep-awake banner
+  and shade notifications stay desktop-side: the queue runs on the DESKTOP's idle
+  compute, and the phone's poll-on-open cannot honestly drive shade
+  notifications). Built against the key inventory: the localized status
+  vocabulary (the raw wire word never renders), the `#N in queue`/`#N Paused`
+  badges (queued/paused only), failure reasons, the re-queue hints in the
+  buttons' semantics, and `cancelTask` (port+client+mock terminal set) behind the
+  desktop's cancel confirm. The bound-session line is deferred (the row carries
+  only a sessionId — no title to render).
+- **6B H1.5 (322914f, 38ae4d9..8c22efd):** the skippable post-pairing pass —
+  `OnboardingPager` (4 feature pages: approvals / live work / automations+idle /
+  usage; Skip on every page; one finish), the additive `onboarding_done` pref
+  through proto field 13 → domain → mapping (the pre-field payload decodes the
+  default), and the paired gate landing on ONBOARDING exactly once (TASKS after).
+- **6B H1.6 (796bd19, 3231b21..92cfd5a):** the in-app feedback form —
+  `feedbackCreate`/`feedbackList` on the `feedback` channel (the host is the
+  submitter; the phone holds NO credentials; severity/module carry the desktop
+  lightweight defaults "P2-中"/"其它" as wire literals), the mock's create/list
+  handlers with the normalized ticket face, and `FeedbackFormDialog` (the four
+  desktop ticket types, required description gating submit, optional contact,
+  the ticket notice / honest failure) behind the Settings entry.
+- **6C L5-idle (c4cfcb6..9b1c53f):** the Idle/UNKNOWN glyph is the clock (was the
+  minus bar) — mapping pin + the off-midline-ink pixel pin.
+- **6C L5-slash (0061f58, 9420bff..b1b119a):** the composer's KeyboardOptions
+  derive from the draft — a LEADING slash commands the IME (no autocorrect, no
+  capitalization, ASCII); prose (mid-text slashes included) keeps
+  `KeyboardOptions.Default` verbatim.
+- **6C L5-chips (a6ad69c, e858644..2eed801, 9cdd2fa):** `ZCodeChip` — the ONE
+  chip language (outlined transparent, selected = surfaceContainerHighest fill,
+  the 4dp chip radius, the M3 58dp width floor so a squeezed header cannot crush
+  a chip invisible); the session chips AND the route chips migrate;
+  `ZCodeElevation` tokens (the N1 decision: overlays never zero — M3's sheet
+  exposes tonal only, so the token applies as the sheet's tonal step) with the
+  sheet-source pin. The sheet's own pixel pin was superseded by this batch (the
+  designed role is the elevated composite; the pin samples an explicitly
+  elevated reference Surface).
+- **6C J1.2 (c1f1d99, d55f028..15ed19b):** the change list grows search + the
+  collapsible tree behind size gates (`GitChangeTree`: the pure segment-fold
+  builder over a synthetic root; SEARCH_GATE=10, TREE_GATE=40) — file rows keep
+  every ChangeRow affordance; small sections stay flat.
+- **6C L7 (835b344, 2af59bc..184d496, 70b4715):** `SectionBoundary` — the
+  section-scoped error card (the desktop `appError` copy, the throwable's message
+  as detail, Retry re-runs the preparation, `onCrash` is the diagnostics seam)
+  **at the render-preparation layer**, with the engineering constraint recorded
+  in the KDoc: Compose cannot catch composition-phase exceptions (slot-table
+  imbalance — there is no ErrorBoundary in Compose); the boundary owns the pure
+  derivation layer. Applied at the highest-value preparation: the conversation
+  timeline's row→entry grouping (a crash degrades the timeline to the error card
+  while the header/composer stay alive; the stack reaches
+  `diagnosticsStore.writeCrash`).
+- **6D (d7a27ea/ecd86bf, 0fa153c, 5549675/b5ec794):** M3-RTL — the recorded
+  decision beside the manifest (`supportsRtl` stays OFF until RTL locales ship;
+  the AutoMirrored Send swap is named in the note) + the `RtlLocaleGateTest`
+  tripwire (an RTL locale dir flips the gate to require the flag). M1.1 — the
+  ui-ux package ARCHIVED as historical (the promised 18 docs + 15 mockups never
+  existed in git history — `ui-ux/` has exactly one touching commit); the design
+  authority named in-code (theme tokens + the gate tests); the stale
+  component-library citations resolved. M1.2 — the Z mark is CODE:
+  `ZMark` on the pairing Welcome screen (tile fill + glyph ink pins).
+  C9-misc — **channel verdicts (bundle-pinned 2026-10-20/21):**
+  `conversation-share` = import/publish DEAD (PROBE-L6 rejectMobileShare; share-OUT
+  phone-local, DONE in 5C); `feedback` = BUILD (H1.6, reachable); `client-config`
+  = DEAD (a diagnostic label on the desktop's cloud HTTP fetch
+  `/api/v1/client/configs` for its own bootstrap — not a device channel plane);
+  `clientScenes` = DEAD/deferred (D5).
+- **Pins (all green; red runs recorded per commit):** CompactionNoticeDecodeTest
+  (5) + CompactionNoticeUiTest (5) + MockZCodeCompactionSelfTest (1);
+  SessionNavigatorAndSummaryUiTest (5); ArtifactPreviewUiTest (5);
+  SlashCommandParserTest + SlashSendRoutingTest (the pause routing + the clear
+  refusal) + the coordinator suite; OffPeakLongTailUiTest (5) +
+  TaskManagementWireTest (+2: cancel, feedback) + the mock suite;
+  OnboardingPagerUiTest (3) + AppPreferencesOnboardingTest (2) + FeedbackFormUiTest
+  (2); IdleGlyphPixelPinTest (2); ComposerKeyboardOptionsTest (3); ZCodeChipTest
+  (4); GitTreeSearchUiTest (4) + GitScreenUiTest kept green; SectionBoundaryUiTest
+  (3); RtlLocaleGateTest (1); ZMarkPinTest (2); SessionChipsLayoutTest,
+  ZCodeModalBottomSheetTest (superseded), the AccessibilityAudit/I18n gates kept
+  green — **≈55 new/extended pins**.
+- **Baseline + name-diff (rule 7):** pre-phase baseline 5 known-failing names
+  (the socket-timing family; `/tmp/phase6-baseline-names.frozen.txt`). Exit full
+  suite: 7 names — 5 baseline + 2 new: `RecoveryScenarioMatrixTest > S9
+  stale-epoch snapshot` **exonerated** (3 consecutive isolated runs green — a
+  pool-load flake in the transport family) and `ZCodeModalBottomSheetTest >
+  pixel pin` **superseded by this batch** (the L5-chips elevation changes the
+  sheet's rendered role; the pin updated to sample the elevated reference and
+  green). Final: **zero unexplained new names.**
+- **Lint gate (rule 12/E6):** `:app:lintDebug` — **0 errors** (69 warnings + 2
+  hints; 49E/58W/1H filtered by the committed baseline). The gate caught 6
+  batch errors (ComposeModifierReused on SessionSummaryPanel ×2, the sheet
+  shadowElevation misuse → tonal, UnrememberedMutableState + ComposableParameterOrder
+  on GitTreeRows/ChangeRow/SectionBoundary/ZMark) — all fixed in
+  f9c521d-era..last lint commits.
+- **Fresh APKs (rule 12c):** debug `app/build/outputs/apk/debug/app-debug.apk`
+  55,219,817 bytes and release `app/build/outputs/apk/release/app-release.apk`
+  27,829,508 bytes (R8), versionName **1.1.0**, versionCode **40**, built from
+  branch `fix/gaps-and-polish` — install THIS debug build for the Phase-6 fixes.
+- **Drift duty (rule 10):** the feedback channel words + `cancelTask` fall under
+  the manifest's `channels/*` (no new class); `node --test` surface+bundle+relay
+  **20/20 green**. No structural package/module changes this phase — the atlas
+  needs no update (the new surfaces live in existing modules; the L6.2 ruling is
+  product scope, not a dependency edge).
+- **Rule-5 discoveries recorded (not silently fixed):** the **M3 sheet
+  API constraint** (ModalBottomSheet exposes no shadowElevation — the N1
+  shadow-led decision applies as the tonal step wherever the API allows; the
+  token carries the intent), the **Compose error-boundary constraint**
+  (composition-phase exceptions are uncatchable; SectionBoundary owns the
+  render-preparation layer — the L7 Accept is met at the layer Compose permits),
+  and the **L6.2 scope split** (observe/control built; create/host + shade
+  notifications deferred with reasons — the ruling above).
+
 
 ---
 
