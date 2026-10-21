@@ -82,8 +82,8 @@ class SectionBoundaryUiTest {
         rule.onNodeWithText("bad projection").assertExistsFor("the throwable's message is the detail")
         rule.onAllNodesWithTag("content_b").assertCountEquals(1)
         org.junit.Assert.assertEquals(0, rule.onAllNodesWithTag("content_a").fetchSemanticsNodes().size)
-        assertEquals(1, crashes.size, "the crash reached the diagnostics seam")
-        assertTrue(crashes.single() is IllegalStateException)
+        assertEquals("the crash reached the diagnostics seam", 1, crashes.size)
+        assertTrue("the crash is the projection failure", crashes.single() is IllegalStateException)
     }
 
     @Test
