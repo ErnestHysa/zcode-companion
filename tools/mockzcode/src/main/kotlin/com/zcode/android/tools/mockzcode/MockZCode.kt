@@ -978,21 +978,17 @@ class MockZCode(
             put("control", control)
             put("inputRouting", routing)
             put("queue", queue)
-            put("pendingInteractions", pending)
-            // Phase 9 (§10.3): the session `config` echo when scripted (snapshot AND
-            // state.updated patches carry it — the switch commands' reconciliation plane).
-            script.sessionConfig?.let { put("config", it) }
-            // Phase 2 (§11.1): the usage key when scripted (GAP-1/GAP-2).
-            script.usageState?.let { put("usage", it) }
-            // ADR-024 (Phase 5D): the hook review with the mutated trust states.
-            script.hookReview?.let { hr ->
+            // ADR-024 (Phase 5D): the hook review with the mutated trust states — MERGED
+            // beside the permission/userInput interactions (U4: it used to REPLACE the key,
+            // so MOCK_HOOKS silently dropped MOCK_APPROVAL/MOCK_QUESTION from the state).
+            val hookInteraction = script.hookReview?.let { hr ->
                 val items = (hr["items"] as? JsonArray)?.map { el ->
                     val o = el as? JsonObject ?: return@map el
                     val id = (o["reviewItemId"] as? JsonPrimitive)?.content
                     val ts = script.hookTrustStates[id]
                     if (ts != null) JsonObject(o + ("trustState" to JsonPrimitive(ts))) else o
                 }
-                put("pendingInteractions", JsonArray(listOf(buildJsonObject {
+                buildJsonObject {
                     put("interactionId", hr["interactionId"] ?: JsonPrimitive("hook-rig"))
                     put("kind", JsonPrimitive("workspaceHookReview"))
                     put("anchorRowId", kotlinx.serialization.json.JsonNull)
@@ -1002,8 +998,14 @@ class MockZCode(
                         (hr as? JsonObject)?.forEach { (k, v) -> if (k != "items") put(k, v) }
                         put("items", JsonArray(items ?: emptyList()))
                     })
-                })))
+                }
             }
+            put("pendingInteractions", JsonArray(pending + listOfNotNull(hookInteraction)))
+            // Phase 9 (§10.3): the session `config` echo when scripted (snapshot AND
+            // state.updated patches carry it — the switch commands' reconciliation plane).
+            script.sessionConfig?.let { put("config", it) }
+            // Phase 2 (§11.1): the usage key when scripted (GAP-1/GAP-2).
+            script.usageState?.let { put("usage", it) }
             // Phase 4C (D2): the goal (with its verification timeline) + todo keys.
             script.goalState?.let { put("goal", it) }
             script.planState?.let { put("plan", it) }
