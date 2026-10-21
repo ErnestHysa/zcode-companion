@@ -44,6 +44,11 @@ class TerminalCopyTest {
         override suspend fun attach(): TerminalPort.TerminalState = TerminalPort.TerminalState.Live("zsh")
         override fun detach() {}
         override fun search(query: String): List<Int> = emptyList()
+        override val inputOptIn = MutableStateFlow(false)
+        override val armed = MutableStateFlow(false)
+        override suspend fun setInputOptIn(enabled: Boolean, granted: Boolean) {}
+        override suspend fun arm() {}
+        override fun disarm() {}
     }
 
     private fun clipboard(): ClipboardManager =
