@@ -28,3 +28,4 @@ local.properties
 # Drift sensor runtime state (AAP-2) — never committed
 tools/drift/.watch-state/
 tools/drift/.launchd-*.log
+.kotlin/
