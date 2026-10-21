@@ -869,6 +869,8 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
             }
         }
     }
+        }
+    }
 }
 
 /** Phase 4A (E3.2+I1+N5): the four flag-gated row actions, bundled for the timeline pass-through. */
@@ -1004,7 +1006,6 @@ private fun TimelineRow(
         is ConversationRow.Unknown -> UnknownKindRow(row)
     }
     }
-
 }
 
 internal fun formatBytes(bytes: Long): String = when {
@@ -1015,6 +1016,3 @@ internal fun formatBytes(bytes: Long): String = when {
 }
 
 private const val PAGE_EDGE = 12
-
-        }
-    }
