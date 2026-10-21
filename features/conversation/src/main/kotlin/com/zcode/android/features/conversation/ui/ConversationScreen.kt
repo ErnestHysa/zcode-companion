@@ -12,11 +12,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FormatListNumbered
 import androidx.compose.material.icons.filled.ArrowDownward
@@ -42,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import com.zcode.android.core.ui.components.rememberReducedMotion
 import com.zcode.android.features.conversation.GeneratedArtifactPreview
@@ -226,6 +230,7 @@ fun ConversationScreen(
                 plans = plans,
                 onOpenTrajectory = onOpenTrajectory,
                 onOpenWorkflowRun = onOpenWorkflowRun,
+                onShareTranscript = onShareTranscript,
             )
             // A3.3: the run detail sheet (an overlay — position in the tree is immaterial).
             openWorkflowRun?.let { open ->
@@ -480,27 +485,41 @@ private fun Header(
             runningAgents = countRunningAgents(state.rows),
             modifier = Modifier.padding(horizontal = 8.dp),
         )
-        // I2.3: the session summary panel (duration · goal iteration · background tasks
-        // · subagents) — capsule collapsed; nothing renders for an empty session.
-        SessionSummaryPanel(
-            sessionState = state.sessionState,
-            rows = state.rows,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-        )
-        // D2: the goal + todo surfaces — keys the wire always carried; absent → nothing.
-        state.sessionState?.goal?.let { goal ->
-            GoalPanel(goal, modifier = Modifier.padding(horizontal = 8.dp))
-        }
-        state.sessionState?.plan?.let { plan ->
-            PlanPanel(plan, modifier = Modifier.padding(horizontal = 8.dp))
-        }
-        // A3.3: the session's workflow runs (conversationWorkflowRunsV4); null/empty → nothing.
-        workflowRuns?.takeIf { it.isNotEmpty() }?.let { runs ->
-            WorkflowRunsPanel(runs, onOpen = onOpenWorkflowRun, modifier = Modifier.padding(horizontal = 8.dp))
-        }
-        // A3.12: the plans viewer folds under the todo panel (one panel surface, two sections).
-        plans?.takeIf { it.isNotEmpty() }?.let { list ->
-            PlansViewer(list, modifier = Modifier.padding(horizontal = 8.dp))
+        // U1 (verification pass 2, 2026-10-21): the context panels below are BUDGETED to a
+        // screen fraction and scroll inside it. Unbounded, goal + todos + workflow runs +
+        // plans together left the timeline a 46dp viewport on a Pixel 5 (zero with the
+        // status capsule expanded) — the B2.12 squeeze class, which budgeted the strips
+        // but not these panels. The timeline keeps its weight; the panels stay reachable.
+        val panelBudget = (LocalConfiguration.current.screenHeightDp * CONTEXT_PANEL_BUDGET_FRACTION).dp
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(max = panelBudget)
+                .verticalScroll(rememberScrollState())
+                .testTag("conv_context_budget"),
+        ) {
+            // I2.3: the session summary panel (duration · goal iteration · background tasks
+            // · subagents) — capsule collapsed; nothing renders for an empty session.
+            SessionSummaryPanel(
+                sessionState = state.sessionState,
+                rows = state.rows,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+            )
+            // D2: the goal + todo surfaces — keys the wire always carried; absent → nothing.
+            state.sessionState?.goal?.let { goal ->
+                GoalPanel(goal, modifier = Modifier.padding(horizontal = 8.dp))
+            }
+            state.sessionState?.plan?.let { plan ->
+                PlanPanel(plan, modifier = Modifier.padding(horizontal = 8.dp))
+            }
+            // A3.3: the session's workflow runs (conversationWorkflowRunsV4); null/empty → nothing.
+            workflowRuns?.takeIf { it.isNotEmpty() }?.let { runs ->
+                WorkflowRunsPanel(runs, onOpen = onOpenWorkflowRun, modifier = Modifier.padding(horizontal = 8.dp))
+            }
+            // A3.12: the plans viewer folds under the todo panel (one panel surface, two sections).
+            plans?.takeIf { it.isNotEmpty() }?.let { list ->
+                PlansViewer(list, modifier = Modifier.padding(horizontal = 8.dp))
+            }
         }
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
@@ -1016,3 +1035,6 @@ internal fun formatBytes(bytes: Long): String = when {
 }
 
 private const val PAGE_EDGE = 12
+
+/** U1: the context-panel stack (goal · todos · runs · plans) may take at most this share of the screen. */
+private const val CONTEXT_PANEL_BUDGET_FRACTION = 0.30f
