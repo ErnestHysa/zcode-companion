@@ -33,7 +33,8 @@ import com.zcode.android.domain.model.TaskStatus
 import com.zcode.android.domain.state.ConnectionPhase
 
 /**
- * Shared presentational status components (ui-ux/component-library.md v2).
+ * Shared presentational status components (the ui-ux design package is ARCHIVED —
+ * M1.1, Phase 6D; the in-repo authority is core/ui/theme + the gate tests).
  * Status is ALWAYS structural + textual — color is never the sole signal (§18.5,
  * §30 color-independence). TalkBack users get one flattened announcement per
  * component (clearAndSetSemantics) instead of decorative dot nodes.
@@ -63,7 +64,7 @@ fun connectionPhaseLabel(phase: ConnectionPhase): String = when (phase) {
     ConnectionPhase.UNPAIRED, ConnectionPhase.CLOSED -> stringResource(R.string.conn_not_connected)
 }
 
-/** ui-ux connection chrome: compact dot + muted label under the app bar title. */
+/** Connection chrome (the archived ui-ux grammar): compact dot + muted label under the app bar title. */
 @Composable
 fun ConnectionStatusLine(
     phase: ConnectionPhase,
@@ -154,7 +155,7 @@ fun taskStatusRail(status: TaskStatus): Color = when (status) {
         LocalZCodeColors.current.railDone
 }
 
-/** ui-ux error/attention strip: tinted surface, clear title + action — not a full-screen alarm. */
+/** Error/attention strip (the archived ui-ux grammar): tinted surface, clear title + action — not a full-screen alarm. */
 @Composable
 fun AttentionStrip(
     title: String,

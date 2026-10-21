@@ -106,7 +106,8 @@ import androidx.compose.ui.semantics.liveRegion
 import kotlinx.coroutines.launch
 
 /**
- * Row renderers — the agent-timeline grammar (ui-ux component-library v2): YOU
+ * Row renderers — the agent-timeline grammar (the ui-ux design package is ARCHIVED,
+ * M1.1 Phase 6D; the in-repo authority is core/ui/theme + the gate tests): YOU
  * blocks, AGENT prose, tool blocks with internal status rails, code blocks, quiet
  * separators. §19.5: unknown tool/kind → generic fallback, NEVER crash/blank (INV-8,
  * §48 U6). Content is untrusted (T15): markdown is rendered through the restrictive

@@ -1,3 +1,14 @@
+> **ARCHIVED 2026-10-21 (M1.1, gaps-and-polish Phase 6D) — HISTORICAL, not the source of truth.**
+> The "folder structure" this README promises (18 docs + 15 mockups) NEVER existed in this
+> repository (verified against the full git history — `ui-ux/` has exactly one touching
+> commit, which added only this README). The design authority is now IN CODE and ENFORCED:
+> `core/ui/src/main/kotlin/com/zcode/android/core/ui/theme/` (the ZCodeRadius 5-step scale,
+> the surface roles, the ZCodeElevation tokens) plus the shape/i18n/a11y gate tests
+> (ThemeShapesTest, I18nLiteralGateTest, AccessibilityAuditTest). The conformance residue
+> that did hold up is recorded in the audit report's Part M1; the one claim with zero code
+> ("small Z mark on pairing/connection") is resolved by `ZMark` (M1.2, in code). Do not
+> cite this README as a spec.
+
 # ZCode Native Android — UI/UX Design Package
 
 **Version:** 1.0.0  
