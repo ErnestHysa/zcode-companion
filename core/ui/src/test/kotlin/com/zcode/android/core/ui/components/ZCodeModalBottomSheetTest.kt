@@ -38,10 +38,22 @@ class ZCodeModalBottomSheetTest {
 
     @Test
     fun `pixel pin - sheet content is composed over the designed sheet role`() {
-        var sheetRole = 0
+        var reference = 0
         rule.setContent {
             ZCodeTheme {
-                sheetRole = MaterialTheme.colorScheme.surfaceContainerLow.toArgb()
+                // L5-chips (Phase 6C) supersession: the designed role is
+                // surfaceContainerLow ELEVATED by ZCodeElevation.sheet (never zero —
+                // the N1 decision; M3 exposes the elevation tonally on the sheet), so
+                // the pixel reference is an explicitly elevated Surface, not the raw
+                // container color.
+                androidx.compose.material3.Surface(
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    tonalElevation = com.zcode.android.core.ui.theme.ZCodeElevation.sheet,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .testTag("sheet_reference"),
+                ) {}
                 ZCodeModalBottomSheet(onDismissRequest = {}) {
                     Box(
                         Modifier
@@ -55,7 +67,12 @@ class ZCodeModalBottomSheetTest {
         rule.waitForIdle()
         val img = rule.onNodeWithTag("sheet_body").captureToImage()
         val px = img.toPixelMap()[img.width / 2, img.height / 2].toArgb()
-        assertEquals("the sheet body shows the surfaceContainerLow role (J5), not M3 baseline", sheetRole, px)
+        val elevated = rule.onNodeWithTag("sheet_reference").captureToImage().toPixelMap()[10, 10].toArgb()
+        assertEquals(
+            "the sheet body shows surfaceContainerLow elevated by ZCodeElevation.sheet (L5-chips), not the raw container color",
+            elevated,
+            px,
+        )
         assertNotEquals("and it is not the screen background", ZCodeThemeBackgroundArgb(), px)
     }
 
