@@ -89,7 +89,7 @@ class GitTreeSearchUiTest {
         val src = rule.onAllNodesWithTag("git_tree_dir_src").fetchSemanticsNodes()
         assertTrue(src.isNotEmpty(), "the top-level src directory renders")
         val childTag = "git_change_src/main/file1.kt"
-        assertTrue(count(childTag) == 1, "a child file is visible initially")
+        assertTrue("a child file is visible initially", count(childTag) == 1)
         rule.onNodeWithTag("git_tree_dir_src").performClick()
         rule.waitForIdle()
         assertEquals(0, count(childTag), "collapsing src hides its descendants")
@@ -105,8 +105,8 @@ class GitTreeSearchUiTest {
         rule.waitForIdle()
         assertEquals(1, count("git_change_src/test/spec10.kt") + count("git_change_src/test/spec1.kt"), "the spec1 match survives")
         assertTrue(
-            count("git_change_src/main/file5.kt") == 0,
             "non-matching rows are filtered out",
+            count("git_change_src/main/file5.kt") == 0,
         )
     }
 
@@ -121,11 +121,11 @@ class GitTreeSearchUiTest {
     @Test
     fun `the pure builder nests and search matches case-insensitively`() {
         val tree = GitChangeTree.build(large)
-        assertTrue(tree.any { it.name == "src" && it.dirs.any { d -> d.name == "main" } }, "nested dirs build")
-        assertTrue(tree.any { it.name == "src" && it.files.isEmpty() }, "a dir with only subdirs carries no direct files")
+        assertTrue("nested dirs build", tree.any { it.name == "src" && it.dirs.any { d -> d.name == "main" } })
+        assertTrue("a dir with only subdirs carries no direct files", tree.any { it.name == "src" && it.files.isEmpty() })
         assertEquals(4, tree.size, "src, tools and the root files' siblings")
         val hits = GitChangeTree.search(large, "SPEC1")
+        assertTrue("the match survives", hits.isNotEmpty())
         assertTrue(hits.all { it.repoRelativePath.contains("spec1", ignoreCase = true) })
-        assertTrue(hits.isNotEmpty())
     }
 }
