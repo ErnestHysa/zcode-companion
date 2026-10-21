@@ -87,15 +87,15 @@ class GitTreeSearchUiTest {
     fun `above the gate the section renders collapsible directory rows`() {
         setContent(large)
         val src = rule.onAllNodesWithTag("git_tree_dir_src").fetchSemanticsNodes()
-        assertTrue(src.isNotEmpty(), "the top-level src directory renders")
+        assertTrue("the top-level src directory renders", src.isNotEmpty())
         val childTag = "git_change_src/main/file1.kt"
         assertTrue("a child file is visible initially", count(childTag) == 1)
         rule.onNodeWithTag("git_tree_dir_src").performClick()
         rule.waitForIdle()
-        assertEquals(0, count(childTag), "collapsing src hides its descendants")
+        assertEquals("collapsing src hides its descendants", 0, count(childTag))
         rule.onNodeWithTag("git_tree_dir_src").performClick()
         rule.waitForIdle()
-        assertEquals(1, count(childTag), "re-expanding brings the descendants back")
+        assertEquals("re-expanding brings the descendants back", 1, count(childTag))
     }
 
     @Test
@@ -103,7 +103,7 @@ class GitTreeSearchUiTest {
         setContent(large)
         rule.onNodeWithTag("git_search").performTextInput("spec1")
         rule.waitForIdle()
-        assertEquals(1, count("git_change_src/test/spec10.kt") + count("git_change_src/test/spec1.kt"), "the spec1 match survives")
+        assertEquals("the spec1 match survives", 1, count("git_change_src/test/spec10.kt") + count("git_change_src/test/spec1.kt"))
         assertTrue(
             "non-matching rows are filtered out",
             count("git_change_src/main/file5.kt") == 0,
