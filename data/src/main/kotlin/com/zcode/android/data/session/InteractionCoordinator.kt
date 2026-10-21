@@ -586,8 +586,13 @@ class InteractionCoordinator(
             render(interactionId)
         }
         // Known interactions missing from the authoritative snapshot → STALE.
+        // U9 (verification pass 2): the ROWS plane only ever anchors permissions; a
+        // user-input interaction lives on the `pendingInteractions` state plane, which
+        // owns its lifecycle (its own disappearance rule resolves it by-elsewhere).
+        // Staling it here left a live question unanswerable — UserChose from STALE is
+        // a silent DuplicateNoOp.
         for ((iid, machine) in machines.toList()) {
-            if (iid !in snapshotInteractionIds) {
+            if (iid !in snapshotInteractionIds && requests[iid]?.userInput == null) {
                 runCatching { machine.on(PermissionStateMachine.Event.ResnapshotLacks) }
                 updateLifecycle(iid, machine.state)
             }
