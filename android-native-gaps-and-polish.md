@@ -2098,7 +2098,7 @@ this stands code-level.
 
 | Phase | Theme | Findings | Session risk | Status |
 |---|---|---|---|---|
-| 0 | Probes — settle facts before code | 8 | Low (one live call each) | ☐ open |
+| 0 | Probes — settle facts before code | 8 | Low (one live call each) | ☑ **DONE 2026-10-21** (all eight verdicts on file; the probe entries above stay unticked by this phase's own record-don't-tick convention) |
 | 1 | P0 correctness & data-integrity bugs | 22 | Medium (highest-stakes surfaces; rig repros exist) | ☑ **DONE 2026-10-16** |
 | 2 | P1 foundation lift (theme/motion/chrome/i18n/a11y/platform/release) | 25 | Medium (mechanical but wide; lint gate lands here) | ☑ **DONE 2026-10-16** |
 | 3 | P2 surface redesigns (reader-facing) | 16 | Medium-high (redesigns; pixel pins required) | ☑ **DONE 2026-10-17** |
@@ -3644,22 +3644,116 @@ Accept — chip re-rendered `build`→`plan` on-device) and the last two Phase-0
 
 - ☑ All eight Phase-0 probes resolved and recorded; no gated entry built on an assumed verdict.
   *(closed by the Phase-7 session 2026-10-21 — C1a/C1b verdicts in the Phase-7 record)*
-- ☐ Every Phase 1–4 checkbox ticked with its pin green; live-found findings live-verified
+- ☑ Every Phase 1–4 checkbox ticked with its pin green; live-found findings live-verified
   (rig pixels/hierarchy/`v4call` per the finding's evidence class).
-- ☐ Phase 5 ADRs merged and honored; no ADR-gated write shipped without its ADR.
+  *(verified 2026-10-21: Phases 1/2/4 fully ticked; Phase 3's three unticked entries are
+  F3-SLICE — gated on a future desktop release — and the F4-RIG/F4-VERIFY process notes;
+  the final full suite runs 1447 pins green modulo the frozen socket-timing baseline)*
+- ☑ Phase 5 ADRs merged and honored; no ADR-gated write shipped without its ADR.
+  *(verified 2026-10-21: ADR-021..024 merged c67aa87 before any write code; docs/adr/ has all four)*
 - ☑ Phase 6 decisions recorded; Phase 7 rig assets in place for the NEXT audit generation.
   *(Phase-7 session 2026-10-21: inventory verified live + the `RigAssetsLedgerSelfTest`
   enforcement pin; the switch-echo/journal fidelity fix landed with 9 pins)*
-- ☐ Drift sensors (2H) consuming facade + namespace + CSS legs — a desktop 3.14.6 tripwire
+- ☑ Drift sensors (2H) consuming facade + namespace + CSS legs — a desktop 3.14.6 tripwire
   exists, and the re-audit trigger is mechanical, not manual.
-- ☐ Withdrawn list respected end-to-end: no Zai-Light font work; no mic/notification-channel/
+  *(verified 2026-10-21: `node --test tools/drift` 20/20 — surface + bundle + relay legs
+  including the `check-drift` CLI exit-1-on-delta pin)*
+- ☑ Withdrawn list respected end-to-end: no Zai-Light font work; no mic/notification-channel/
   row-a11y/predictive-back "fixes"; no clipping chase; B2.15 memoized, not dramatized.
-- ☐ Full suite green or name-diffed to the phase baseline with exonerations recorded;
+  *(verified 2026-10-21: grep-verified negatives — zero ZaiLight hits in sources;
+  `VoiceInput.kt:85` ACTION_RECOGNIZE_SPEECH; `NotificationChannels.ensure`;
+  `enableOnBackInvokedCallback="true"` in the merged manifest; B2.15's per-frame memoization pin green)*
+- ☑ Full suite green or name-diffed to the phase baseline with exonerations recorded;
   zero unexplained new failing names across the campaign.
-- ☐ Fresh APK built and its path + version marker stated at every round's close (rule 12);
+  *(verified 2026-10-21: final pool 1447 tests / 17 modules — the 5 failing names are
+  BYTE-IDENTICAL to `/tmp/phase6-baseline-names.frozen.txt`; one transient member of the
+  same ConnectionHub socket-timing family passed 3/3 isolated runs; the first pass also
+  caught a test-COMPILE failure the name-diff could not see — fixed and recorded below)*
+- ☑ Fresh APK built and its path + version marker stated at every round's close (rule 12);
   everything committed on `fix/gaps-and-polish` as ErnestHysa; nothing pushed without
   explicit instruction.
-- ☐ `architectural.md` updated for any structural change (rule 10); the appended PROBE/errata
+  *(verified 2026-10-21: 378 branch commits all ErnestHysa; NO remote configured on this
+  repo, so nothing was pushed; fresh APKs below)*
+- ☑ `architectural.md` updated for any structural change (rule 10); the appended PROBE/errata
   findings from this roadmap folded back into this file as dated addenda, never as edits to
   the review above.
+  *(verified 2026-10-21: atlas commits 087baa4 + 088eef8 record the Phase-2 deltas and the
+  §13.3 ADR write-tier rows; PROBE verdicts live as dated addenda in the phase records)*
+
+---
+
+## Whole-campaign verification pass — 2026-10-21 (APPENDED — the campaign-closing audit record)
+
+> A full independent audit of this roadmap (every checkbox, gate, and DoD line), the repo
+> state, the test/lint/drift gates, and the app itself on the live rig. Verification model
+> `account:zai-individual-coding-plan/GLM-5.3-Flash` (GLM-5.3-Flash) on ZCode CLI, branch
+> `fix/gaps-and-polish`, clean tree, identity ErnestHysa, nothing pushed. Verdict: the
+> campaign IS complete as recorded — all 8 gates closed, all DoD lines now evidenced — and
+> the pass found and fixed three latent defects the phase exits could not see (rule-5
+> records below), plus two recorded-not-fixed observations. The doc's own inconsistencies
+> (Phase-0 overview row, the unticked DoD block) are corrected in the same edit.
+
+- [x] **V1 (P1, test-infrastructure) — `:features:terminal` test sources stopped compiling
+  on 2026-10-20 and 7 pins silently never ran for three phase exits.** `60c463b` (ADR-022)
+  added `inputOptIn/armed/setInputOptIn/arm/disarm` to `TerminalPort` but left the anonymous
+  fakes in `StateRestorationTest` and `TerminalCopyTest` untouched →
+  `ABSTRACT_MEMBER_NOT_IMPLEMENTED`. A compile failure emits NO test XML, so the rule-7
+  name-diff — which reads failing test NAMES — was structurally blind to it (the F4-VERIFY
+  lesson generalized: a name-diff must ALSO assert the gradle task-failure list contains
+  only test-failure tasks). Fixed `08b784d` (inert defaults per the interface's own
+  documented OFF semantics); the 7 pins now run green; campaign total is 1447 pins, not 1437.
+- [x] **V2 (P2, live-found on the rig) — the Automations section's load raced the connect
+  and never recovered.** On a cold launch the Tasks screen composes ~1.4 s before
+  `hub.phase → CONNECTED`; `AutomationsSection`'s `LaunchedEffect(port)` fired once into
+  "no active workspace", the generic "The desktop couldn't complete this request." line
+  rendered forever, and logcat showed ZERO re-attempts after CONNECTED (both attempts
+  18:06:42, CONNECTED 18:06:44). The F3-LOAD class, on the Phase-5 Automations surface.
+  RED `581c8bd` → GREEN `ce2e5f2` (the effect is keyed on `(port, connected)`;
+  TaskListScreen feeds `state.phase == ConnectionPhase.CONNECTED`; default `true` keeps the
+  single-load contract for every other caller). features:tasks 146/146. LIVE-PROVEN: after
+  Retry → RECONNECTING → RECOVERING → CONNECTED, `listAutomations` fired 66 ms later and the
+  honest post-connect copy ("This feature isn't available on the connected desktop." for the
+  unarmed mock) replaced the stuck line.
+- [x] **V3 (P3, live-found on the rig) — the effort chip rendered "Effort ·high".**
+  `effort_chip_prefix` (en + zh-rCN) and git's `push_no_upstream` were the last UNQUOTED
+  edge-whitespace resources; AAPT trims them (the L4.2 family, trailing edge). The Phase-2D
+  sweep quoted every other site but missed these three. RED `06b2614` → GREEN `5bc1db9`;
+  StringFixFamilyTest 5/5; the chip reads "Effort · high".
+- [x] **Flake adjudication (rule 7, recorded):** the final pool's 6 failing names = the 5
+  frozen-baseline socket-timing names (BYTE-IDENTICAL to
+  `/tmp/phase6-baseline-names.frozen.txt`) + 1 transient (`ConnectionHubIntegrationTest >
+  retries after a connect failure respect backoff`) that passed 3/3 isolated runs; a second
+  member (`degraded entry writes an auto-report once`) flapped once during the same
+  exoneration and passed 3/3 targeted. Zero unexplained new names.
+- **Rig session record (the app itself, live):** zcode-pixel AVD + fresh mock (`:18100`,
+  `MOCK_APPROVAL=1`, deterministic sid/mid/hash → the AVD's persisted pairing auto-connects
+  on install of the claimed vc40 debug build). Cold launch 3.3 s, auto-CONNECTED; Tasks,
+  conversation (config chips + Files/Git/Terminal/Model calls/Share + rich markdown +
+  thumbs), Files ("workspace files unavailable"), Git (not-available + Retry + Checkpoints
+  surface), Terminal (default-OFF consent; the L2 sentence intact), Approvals inbox (the L3
+  fix LIVE: the card carries "echo synthetic" with Allow once/Deny), Settings (endpoints,
+  usage, plugins, skills, MCP) — **0 crashes, 0 ANRs across the whole walk**. DEGRADED
+  renders honestly (red "Disconnected" + "Connection lost — showing cached tasks" + Retry)
+  and Retry reconnects in ~1.2 s (RECONNECTING→RECOVERING→CONNECTED).
+- **New rig note (for every future session):** a mock whose previous client DIED holds the
+  stale session — every new connection's `auth_ack` times out (15 s × 4) and the app walks
+  RECONNECTING → DEGRADED in ~2 min. Restart the mock by port (`lsof -tiTCP:18100 | xargs
+  kill`) before re-running a rig leg; the G4 "one listener, killed by port" practice is the
+  reason, not a bug.
+- **Rule-5 observations recorded (not silently fixed):** (1) the pre-connect `lists()`
+  result "no active workspace" classifies to the generic desktop-fault copy ("couldn't
+  complete this request") — since V2 it is transient (replaced on CONNECTED), but a
+  dedicated connecting-state classification would read truer in the window; copy taxonomy
+  is the F5 contract, so recorded. (2) the Terminal consent screen shows Pause/Search while
+  the opt-in is OFF (empty buffer) — cosmetic; the actions are harmless on the empty state.
+- **Final gates (rule 12), post-fix:** full suite `gradle test --continue` — **1447 tests /
+  17 modules, failures byte-identical to the frozen baseline, 0 compile failures**;
+  `:app:lintDebug` **0 errors, 69 warnings, 2 hints** (49E/58W/1H baseline-filtered —
+  byte-identical to the Phase-6/7 exit verdict); drift sensors `node --test tools/drift`
+  **20/20**; mock module **31/31**. Fresh APKs: debug
+  `app/build/outputs/apk/debug/app-debug.apk` 55,219,821 bytes (sha256 d69746df667c1e98…)
+  and release `app/build/outputs/apk/release/app-release.apk` 27,829,508 bytes (R8,
+  ff4602b2433fe2ca…), both versionName 1.1.0 / versionCode 40 — install the DEBUG build.
+  Six commits this pass: `08b784d`, `581c8bd`, `ce2e5f2`, `06b2614`, `5bc1db9`, plus this
+  record's docs commit. Rig torn down (mock killed by port, emulator killed, no daemons).
 
