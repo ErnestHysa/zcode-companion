@@ -22,7 +22,7 @@ class ComposerKeyboardOptionsTest {
     fun `slash mode - no suggestions, no capitalization, ascii`() {
         val options = composerKeyboardOptions("/he")
         assertFalse(composerAutoCorrectEnabled(options), "prose word-suggestions must not fire in command context")
-        assertEquals(KeyboardCapitalization.NONE, options.capitalization)
+        assertEquals(KeyboardCapitalization.None, options.capitalization)
         assertEquals(KeyboardType.Ascii, options.keyboardType)
     }
 
@@ -30,7 +30,7 @@ class ComposerKeyboardOptionsTest {
     fun `a draft that merely contains a slash is still prose - only the LEADING slash commands`() {
         val options = composerKeyboardOptions("fix the a/b split")
         assertTrue(composerAutoCorrectEnabled(options))
-        assertEquals(KeyboardCapitalization.SENTENCES, options.capitalization)
+        assertEquals(KeyboardCapitalization.Sentences, options.capitalization)
         assertEquals(KeyboardType.Text, options.keyboardType)
     }
 
