@@ -53,7 +53,9 @@ fun <T> SectionBoundary(
                 version += 1
             },
             retryTestTag = "section_boundary_retry",
-            modifier = modifier.testTag("section_boundary"),
+            // The boundary's own tag comes FIRST so a caller's tag (later in the
+            // chain) overrides it for per-section queries.
+            modifier = Modifier.testTag("section_boundary").then(modifier),
         )
     } else {
         androidx.compose.runtime.key(version) {

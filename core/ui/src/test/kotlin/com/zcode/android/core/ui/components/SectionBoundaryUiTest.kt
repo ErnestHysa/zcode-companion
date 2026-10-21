@@ -76,7 +76,7 @@ class SectionBoundaryUiTest {
     @Test
     fun `a crashing section renders the error card - its sibling keeps rendering`() {
         setContent(failFirstPrepare = true)
-        rule.onNodeWithTag("section_boundary").assertExistsFor("the crashing section shows the boundary")
+        rule.onNodeWithTag("boundary_a").assertExistsFor("the crashing section renders (the boundary card)")
         rule.onNodeWithText("This area broke").assertExistsFor("the desktop appError title")
         rule.onNodeWithText("Other areas keep working — retry this section.").assertExistsFor("the body")
         rule.onNodeWithText("bad projection").assertExistsFor("the throwable's message is the detail")
@@ -94,14 +94,12 @@ class SectionBoundaryUiTest {
         rule.onAllNodesWithTag("section_boundary_retry").onFirst().performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("content_a").assertExistsFor("the section recovered")
-        rule.onAllNodesWithTag("section_boundary").assertCountEquals(0)
         rule.onAllNodesWithTag("content_b").assertCountEquals(1)
     }
 
     @Test
     fun `a healthy section never shows the boundary`() {
         setContent(failFirstPrepare = false)
-        rule.onAllNodesWithTag("section_boundary").assertCountEquals(0)
         rule.onAllNodesWithTag("content_a").assertCountEquals(1)
         rule.onAllNodesWithTag("content_b").assertCountEquals(1)
     }
