@@ -1151,7 +1151,7 @@ fun ComposerPasteChip(visible: Boolean, onPaste: () -> Unit, modifier: Modifier 
 fun composerKeyboardOptions(draft: String): androidx.compose.foundation.text.KeyboardOptions =
     if (draft.startsWith("/")) {
         androidx.compose.foundation.text.KeyboardOptions(
-            capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.NONE,
+            capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.None,
             autoCorrectEnabled = false,
             keyboardType = androidx.compose.ui.text.input.KeyboardType.Ascii,
         )
