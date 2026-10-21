@@ -14,7 +14,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -127,7 +127,9 @@ fun taskStatusLabel(status: TaskStatus): String = when (status) {
  * sighted color-blind users always have the symbol + the textual label.
  */
 fun taskStatusGlyph(status: TaskStatus): androidx.compose.ui.graphics.vector.ImageVector = when (status) {
-    TaskStatus.IDLE, TaskStatus.UNKNOWN -> Icons.Filled.Remove
+    // L5-idle (Phase 6C): Idle is the app's most common state — a minus bar read as a
+    // stray "—"; a clock says "waiting for its window" (UNKNOWN shares the quiet glyph).
+    TaskStatus.IDLE, TaskStatus.UNKNOWN -> Icons.Outlined.Schedule
     TaskStatus.RUNNING -> Icons.Filled.PlayArrow
     TaskStatus.WAITING -> Icons.Filled.Warning
     TaskStatus.PAUSED -> Icons.Filled.Pause
