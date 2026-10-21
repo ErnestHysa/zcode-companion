@@ -355,6 +355,33 @@ class InteractionCoordinatorPhase7Test {
         assertTrue(notApprovable is com.zcode.android.data.session.InteractionCoordinator.SubmitOutcome.NotApprovable)
     }
 
+
+    /**
+     * U9 (verification pass 2, 2026-10-21, live-found on the rig): a question delivered
+     * through the authoritative `pendingInteractions` state plane could be neither
+     * answered nor skipped — both taps were silent. The rows-snapshot reconcile
+     * (§15-S13) recognises only interactions anchored to PENDING_APPROVAL tool-call
+     * rows and flips every OTHER known machine to STALE; a user-input interaction is
+     * never a row, so the recovery/open-time rows reconcile running after the state
+     * reconcile staled it, and STALE refuses UserChose → DuplicateNoOp, no wire call.
+     * The state plane owns those interactions (its own disappearance rule resolves
+     * them); the rows sweep must leave them alone.
+     */
+    @Test
+    fun `rows reconcile does not stale a state-plane user input - the answer still reaches the wire (U9)`() = runTest {
+        val (coordinator, _, sender, _) = coordinator()
+        coordinator.reconcileFromSessionState("sess-1", userInputState("q-1", options = emptyList(), freeText = true))
+        coordinator.render(InteractionId("q-1"))
+        // The rows snapshot (a tail window) never carries a row for the question.
+        coordinator.reconcileFromSnapshot(rows = emptyList(), sessionId = "sess-1")
+        assertTrue(
+            coordinator.machineStateForTest(InteractionId("q-1")) != PermissionStateMachine.State.STALE,
+            "the state-plane question was staled by the rows sweep: ${coordinator.machineStateForTest(InteractionId("q-1"))}",
+        )
+        coordinator.submitElicitationAnswers(InteractionId("q-1"), mapOf("Pick one" to listOf("yes")))
+        assertTrue(sender.sent.any { it.first == "resolveInteraction" }, "the answer must reach the wire (resolveInteraction); sent=${sender.sent.map { it.first }}")
+    }
+
 }
 
 private val JsonNull = kotlinx.serialization.json.JsonNull
