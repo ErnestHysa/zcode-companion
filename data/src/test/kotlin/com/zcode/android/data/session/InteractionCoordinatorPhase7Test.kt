@@ -382,6 +382,47 @@ class InteractionCoordinatorPhase7Test {
         assertTrue(sender.sent.any { it.first == "resolveInteraction" }, "the answer must reach the wire (resolveInteraction); sent=${sender.sent.map { it.first }}")
     }
 
+    /**
+     * W4 (verification pass 3, 2026-10-22, live-found on the rig): the approvals
+     * inbox's "Allow once" failed on a FRESH session — "The answer was not
+     * confirmed", no wire call. The rig's approval is ROW-anchored only
+     * (MOCK_APPROVAL arms a pendingApproval tool row — the U4 record): the rows
+     * sweep creates the machine, and the NEXT state-plane reconcile — whose
+     * `pendingInteractions` legitimately does not repeat the row-anchored
+     * interaction — ran its disappearance rule over it and resolved it
+     * by-elsewhere. RESOLVED refuses UserChose → DuplicateNoOp. The state plane is
+     * authoritative only for interactions IT delivered; a row-anchored machine's
+     * lifecycle belongs to the rows plane (the sweep's own ResnapshotLacks and
+     * resolved-row rules). The mirror of U9: a reconcile pass must only touch
+     * interactions it owns.
+     */
+    @Test
+    fun `state reconcile does not resolve a row-anchored permission - the inbox answer still reaches the wire (W4)`() = runTest {
+        val (coordinator, _, sender, _) = coordinator()
+        val row = com.zcode.android.domain.model.ConversationRow.ToolCall(
+            rowId = 62, turnId = "turn-1",
+            base = com.zcode.android.domain.model.ConversationRow.Base(entityId = "ent-62", createdAt = 1.0, createdAtSeq = 62),
+            assistantResponseId = "ar-1",
+            toolCallId = "tool-62", toolName = "Bash",
+            status = com.zcode.android.domain.model.ConversationRow.ToolCallStatus.PENDING_APPROVAL,
+            inputText = "echo synthetic", input = null, outputPreview = null, error = null,
+            approvalInteractionId = "i-row-1", startedAt = null, endedAt = null,
+            raw = buildJsonObject { },
+        )
+        coordinator.reconcileFromSnapshot(rows = listOf(row), sessionId = "sess-1")
+        coordinator.render(InteractionId("i-row-1"))
+        // The state plane never repeats the row-anchored interaction (its list is
+        // the question + hook only) — the disappearance rule must NOT resolve it.
+        coordinator.reconcileFromSessionState("sess-1", SessionProjectionState(pendingInteractions = emptyList()))
+        assertTrue(
+            coordinator.machineStateForTest(InteractionId("i-row-1")) != PermissionStateMachine.State.RESOLVED,
+            "the row-anchored permission was resolved by the state reconcile: ${coordinator.machineStateForTest(InteractionId("i-row-1"))}",
+        )
+        val outcome = coordinator.submitFromStore(InteractionId("i-row-1"), "allowOnce")
+        assertTrue(outcome is InteractionCoordinator.SubmitOutcome.Submitted, "outcome=$outcome")
+        assertTrue(sender.sent.any { it.first == "resolveInteraction" }, "the answer must reach the wire; sent=${sender.sent.map { it.first }}")
+    }
+
 }
 
 private val JsonNull = kotlinx.serialization.json.JsonNull
