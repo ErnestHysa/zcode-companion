@@ -285,6 +285,11 @@ class InteractionCoordinator(
             ?: return SubmitOutcome.UnknownInteraction
         if (stored.record.resolvedAtMs != null) return SubmitOutcome.DuplicateNoOp
         val payload = stored.payload
+        // W4b (verification pass 3): a ROW-anchored stored payload is the ROW schema —
+        // it carries NO options array (the rows sweep synthesizes the §7.4.4
+        // vocabulary only in memory). Hydrating it with an empty option set made
+        // every inbox answer inert (NotApprovable, no wire call). Apply the same
+        // verified synthesized vocabulary the sweep uses when the payload lacks it.
         val answerKind = when (stored.record.kind) {
             InteractionRepository.InteractionRecord.Kind.USER_INPUT -> {
                 onUserInputRequested(
@@ -300,6 +305,13 @@ class InteractionCoordinator(
                 AnswerKind.USER_INPUT
             }
             InteractionRepository.InteractionRecord.Kind.PERMISSION -> {
+                val options = optionIdsOf(payload).ifEmpty {
+                    listOf(
+                        com.zcode.android.domain.model.PermissionOption("allowOnce"),
+                        com.zcode.android.domain.model.PermissionOption("allowAlways"),
+                        com.zcode.android.domain.model.PermissionOption("deny"),
+                    )
+                }
                 onPermissionRequested(
                     PermissionRequest(
                         interactionId = interactionId,
@@ -307,7 +319,7 @@ class InteractionCoordinator(
                         toolName = stored.record.toolName ?: payload.strOrNull("toolName") ?: "",
                         reason = payload.strOrNull("summary"),
                         input = payload["detail"] as? JsonObject,
-                        options = optionIdsOf(payload),
+                        options = options,
                         createdAtMs = stored.record.createdAtMs,
                         raw = payload,
                     )
