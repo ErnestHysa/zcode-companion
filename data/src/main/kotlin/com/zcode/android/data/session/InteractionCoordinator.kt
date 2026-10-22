@@ -56,6 +56,14 @@ class InteractionCoordinator(
         val options: List<com.zcode.android.domain.model.PermissionOption>,
         val permission: PermissionRequest? = null,
         val userInput: UserInputRequest? = null,
+        /**
+         * W4 (verification pass 3): the interaction was recovered from a
+         * PENDING_APPROVAL tool-call row (§15-S13), not delivered by the
+         * `pendingInteractions` state plane. The state plane never repeats such
+         * interactions, so its disappearance rule must not claim them (the rows
+         * plane owns their lifecycle — its own ResnapshotLacks / resolved-row rules).
+         */
+        val fromRowsSnapshot: Boolean = false,
     )
 
     private val requests = HashMap<InteractionId, KnownRequest>()
@@ -65,9 +73,10 @@ class InteractionCoordinator(
 
     // ---------------------------------------------------------------- events in
 
-    suspend fun onPermissionRequested(request: PermissionRequest) {
+    suspend fun onPermissionRequested(request: PermissionRequest, fromRowsSnapshot: Boolean = false) {
         machines[request.interactionId] = PermissionStateMachine(request.interactionId)
-        requests[request.interactionId] = KnownRequest(request.sessionId, request.options, permission = request)
+        requests[request.interactionId] =
+            KnownRequest(request.sessionId, request.options, permission = request, fromRowsSnapshot = fromRowsSnapshot)
         interactions.upsertPermission(request, endpointId, InteractionLifecycle.REQUESTED)
     }
 
@@ -582,7 +591,7 @@ class InteractionCoordinator(
                 createdAtMs = clock(),
                 raw = row.raw,
             )
-            onPermissionRequested(request)
+            onPermissionRequested(request, fromRowsSnapshot = true)
             render(interactionId)
         }
         // Known interactions missing from the authoritative snapshot → STALE.
@@ -643,8 +652,14 @@ class InteractionCoordinator(
                         onPermissionRequested(request)
                         render(iid)
                     } else {
-                        // Refresh the payload (detail/summary may evolve); lifecycle state unchanged.
-                        requests[iid] = KnownRequest(request.sessionId, request.options, permission = request)
+                        // Refresh the payload (detail/summary may evolve); lifecycle state
+                        // unchanged. A row-anchored machine the state plane repeats keeps
+                        // its origin marker (W4): the state plane repeating it does not
+                        // make the state plane its lifecycle owner.
+                        requests[iid] = KnownRequest(
+                            request.sessionId, request.options, permission = request,
+                            fromRowsSnapshot = requests[iid]?.fromRowsSnapshot == true,
+                        )
                         interactions.upsertPermission(request, endpointId, lifecycleOf(machines[iid]!!.state))
                     }
                 }
@@ -673,8 +688,13 @@ class InteractionCoordinator(
             }
         }
         // Disappearance = authoritative resolution (the list is the whole truth —
-        // key-level replacement, never a delta). Only THIS session's interactions.
+        // key-level replacement, never a delta). Only THIS session's interactions,
+        // and only interactions the state plane OWNS (W4): a row-anchored machine
+        // (recovered from a PENDING_APPROVAL tool row) is never repeated in this
+        // list, and the rows plane owns its lifecycle — absence here is not a
+        // resolution signal for it.
         for ((iid, machine) in machines.toList()) {
+            if (requests[iid]?.fromRowsSnapshot == true) continue
             if (requests[iid]?.sessionId == sessionId && iid !in openIds) {
                 runCatching { machine.on(PermissionStateMachine.Event.ResolvedElsewhere) }
                 if (machine.state == PermissionStateMachine.State.RESOLVED) {
