@@ -3933,3 +3933,109 @@ Accept — chip re-rendered `build`→`plan` on-device) and the last two Phase-0
   2d570ec 1bde869 7edd448 e50656b f10f2af 5fa1602 cd27129 f073070 8e03ee8 5f65697`, plus
   this record's docs commit. Rig torn down (mock killed by port, emulator killed, gradle
   daemons stopped).
+
+
+---
+
+## Whole-campaign verification pass 3 — 2026-10-22 (APPENDED — the third independent redo, live rig + two new P1 fixes)
+
+> A third independent redo of the closing audit, again as a real-user walk: the roadmap
+> (139 ticked / 11 by-design unticked, all 8 phase gates ☑, DoD fully evidenced — the
+> 130→139 delta is pass 2's own nine U-entries, appended ticked), the static gates, and
+> the app on a live emulator (zcode-pixel, cold boots, light AND dark) with EVERY mock
+> scenario armed (`MOCK_APPROVAL ATTACHMENT ROW_ACTIONS GOAL COMPACT WORKFLOWS TASKMGMT
+> QUESTION HOOKS` + `MOCK_ROWS=60`). Verification model
+> `account:zai-individual-coding-plan/GLM-5.3-Flash` on ZCode CLI, branch
+> `fix/gaps-and-polish`, clean tree, identity ErnestHysa, NO remote (nothing pushed).
+> Verdict: every pass-1/pass-2 fix re-proved live (V1 compile-gate rule, V2 Automations
+> connect-race, V3 "Effort · high", U1 bounded panels, U2 single inset, U3 Share →
+> ChooserActivity, U8 budgeted scrolling question card with Send answers/Skip reachable,
+> U9 answer → `sendConversationCommandV4` + "(answered)" echo + panels return, U5 toggle
+> insets, U6 "· Connected" copy, U7 theme flip follows the system bars BOTH directions) —
+> AND the all-flags rig exposed TWO more defects the earlier passes could not see, both
+> P1, both in the row-anchored approval plane that every prior exit had only ever pinned
+> at rendering level. Fixed test-first in six commits `24c178e..ad42442`.
+
+- [x] **W4 (P1, live-found) — the approvals inbox' "Allow once" failed on a FRESH
+  session: "The answer was not confirmed — open the task and answer there.", no wire
+  call.** The rig's approval is ROW-anchored only (MOCK_APPROVAL arms a pendingApproval
+  tool row — the U4 record; `pushPendingPermission` is never called by the relay main),
+  so the rows sweep recovers the machine — and the NEXT state-plane reconcile, whose
+  `pendingInteractions` legitimately does not repeat the row-anchored interaction, ran
+  its authoritative-disappearance rule over it (ResolvedElsewhere → markResolved).
+  RESOLVED refuses UserChose → DuplicateNoOp. The mirror of U9: a reconcile pass must
+  only touch interactions it owns. Fix: `KnownRequest.fromRowsSnapshot` — the sweep
+  stamps TRUE, the state reconcile's refresh preserves it, and its disappearance loop
+  skips those machines (the rows plane owns their lifecycle via its own
+  ResnapshotLacks / resolved-row rules). RED `24c178e` (machine RESOLVED by the state
+  reconcile) → GREEN `bcef616`. data 162/162.
+- [x] **W4b (P1, live-found, same surface one layer down) — the inbox was unanswerable
+  from COLD START even with W4 fixed: the store hydrate built the request with an EMPTY
+  option set.** A ROW-anchored stored payload is the ROW schema — it carries NO options
+  array (the sweep synthesizes the §7.4.4 vocabulary only in memory) — so
+  `submitFromStore` hydrated `options = []` and `AnswerPolicy` refused every answer
+  (`NotApprovable`, no wire call). The pass-2 hydration pin only covered state-plane
+  payloads that carry options. Fix: the PERMISSION hydrate falls back to the same
+  verified `[allowOnce, allowAlways, deny]` list when the payload lacks options.
+  RED `1012798` (`outcome=NotApprovable`) → GREEN `ad42442`. LIVE-PROVEN on the rebuilt
+  build: fresh boot → inbox → Allow once (conversation never opened) →
+  `sendConversationCommandV4` reaches the mock, no error banner.
+- [x] **W1 (P1, live-found) — a YOU message carrying an attachment rendered the message
+  text INVISIBLE.** The bubble stacked the text and the attachment thumbnail as TWO
+  direct children of one Box (children share the top-start origin; the Spacer between
+  them is meaningless there) — the thumbnail drew over the text until only its last
+  glyph escaped the image's right edge (live: "here is the screenshot" measured at a
+  9px-wide box, a lone "t" beside the image). The Anikku Box-stacking class, on the
+  A3.1 surface. Fix: the bubble content is a Column — text first, attachments below;
+  the long-press semantics untouched. RED `3ff3bd2` (pin reads the live overlap:
+  attachment top 51.0 == text top 51.0; re-verified against the stashed fix) → GREEN
+  `c901c0b`. LIVE (dark and light): the text renders above the thumbnail at full width.
+  features:conversation 293/293.
+- [x] **Flake adjudication (rule 7):** the final pool's failures vs the frozen 5-name
+  baseline below; `RecoveryScenarioMatrixTest > S13` flapped once around the W4b rebuild
+  (two failures with DIFFERENT failure points — `DISPLAYED→REQUESTED`, then `timeout
+  awaiting: rows`) and passed 3/3 isolated with the fix — the recorded matrix family
+  (S8/S9 precedent), exonerated under the equal-load rule.
+- **Rig session record (the app itself, live, pass 3):** cold boots auto-CONNECTED each
+  time; walked in dark AND light: Tasks (workflows + Run, automations honest copy,
+  unreadable-file row, workspace group, search + New task FABs) · conversation (U2
+  single inset, V3 chips, status capsule expand/collapse, bounded Ship it/Todos panels,
+  markdown + code highlight + wrap toggle, compaction rows incl. failed+Retry, the
+  U8 question card scrolling in its budget with Send answers/Skip reachable and the
+  radio answer riding resolveInteraction (U9), the pending-approval tool row
+  (Needs approval / echo synthetic / amber rail) with its INPUT expansion, the W1-fixed
+  attachment bubble, Model calls sheet with the live "429" search filter, Files honest
+  unavailable, Git not-a-repository + Retry + Checkpoints/Snapshot, Terminal
+  default-OFF consent → enable → Attach → "live — /bin/zsh" → Copy/Detach, Share →
+  ChooserActivity) · Approvals inbox (L3 payload; W4/W4b now answerable) · Settings
+  (endpoints U6 copy, insights, diagnostics, feedback, Appearance theme dialog Light/
+  Dark/Follow-the-system with U7 bars following BOTH directions, Notifications U5
+  inset toggle rows, Live-connection window) — **0 crashes, 0 ANRs across the walk**.
+- **Rule-5 observations recorded (not fixed):** (1) the in-conversation attachment
+  thumbnail can stick at "Loading…" when its read races the connect — re-entering the
+  conversation reloads it successfully (the Phase-4 retry-on-recompose works; the
+  recorded F3-LOAD "bounded retry" note remains the owner); (2) the inbox keeps listing
+  an interaction the mock still reports pending after it was answered (honest rendering
+  of the desktop's truth — mock scripting); (3) the emulator crashed ~6× this pass
+  (process_memory_mac.cc) roughly every 10–15 min including idle — booting under
+  `caffeinate -disu` and NEVER running gradle while the AVD is up kept boots stable;
+  cold-boot with `-no-snapshot-load` + `-gpu angle_indirect`.
+- **New rig notes (for every future session):** (a) the mock launch recipe must use
+  `:-`-defaults so scenario flags can be INDIVIDUALLY disarmed from the environment —
+  and note `MOCK_APPROVAL` arms the ROW plane only (a state-plane permission needs
+  `pushPendingPermission`, which no relay-main path calls); (b) a test-name diff must
+  be read together with FRESH XMLs — a compile failure leaves the previous run's XML in
+  place and will otherwise be misread as a run result (hit twice this pass);
+  (c) `uiautomator` bounds are DEVICE pixels — taps from on-screen estimates must be
+  scaled (the screencap preview lies); dump-then-tap.
+- **Final gates (rule 12), post-fix:** full suite (Android `testDebugUnitTest` + the six
+  JVM `test` tasks) — **1460 tests / 17 modules (1457 + W4 + W4b + W1 pins), failures =
+  the frozen 5-name socket-timing baseline (byte-identical) + S13 exonerated 3/3
+  isolated, 0 compile failures**; `:app:lintDebug` **0 errors, 69 warnings, 2 hints**
+  (byte-identical to the recorded baseline); drift `node --test tools/drift/*.test.mjs`
+  **20/20**; mock module green. Fresh APKs (1.1.0 / versionCode 40) — debug
+  `app/build/outputs/apk/debug/app-debug.apk` 56,127,706 bytes (sha256 24e056ac…) and
+  release `app/build/outputs/apk/release/app-release.apk` 27,829,472 bytes (R8,
+  192d57f8…) — **install the DEBUG build**. Six fix commits `24c178e bcef616 3ff3bd2
+  c901c0b 1012798 ad42442`, plus this record's docs commit. Rig torn down (mock killed
+  by port, emulator killed, theme restored to Follow-the-system).
