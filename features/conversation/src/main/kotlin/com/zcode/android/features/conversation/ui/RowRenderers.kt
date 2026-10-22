@@ -153,18 +153,25 @@ fun YouBlock(
                 }
                 .semantics(mergeDescendants = true) {},
         ) {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
-            // A3.1: attachments render in-conversation (images as thumbnails, loaded
-            // once through the attachment-read channel; other files as named chips).
-            if (attachments.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
-                    for (att in attachments) {
-                        AttachmentView(att = att, load = loadAttachment)
+            // W1 (verification pass 3, 2026-10-22): the text and the attachments were
+            // BOTH direct Box children — stacked at the same top-start origin (the
+            // Spacer between them is meaningless in a Box), so the thumbnail drew over
+            // the message text until only its last glyph escaped the image's right
+            // edge. Chat-bubble order: the text first, the attachments BELOW it.
+            Column {
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+                // A3.1: attachments render in-conversation (images as thumbnails, loaded
+                // once through the attachment-read channel; other files as named chips).
+                if (attachments.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                        for (att in attachments) {
+                            AttachmentView(att = att, load = loadAttachment)
+                        }
                     }
                 }
             }
