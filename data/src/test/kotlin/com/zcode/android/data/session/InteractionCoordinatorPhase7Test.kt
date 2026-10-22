@@ -423,6 +423,30 @@ class InteractionCoordinatorPhase7Test {
         assertTrue(sender.sent.any { it.first == "resolveInteraction" }, "the answer must reach the wire; sent=${sender.sent.map { it.first }}")
     }
 
+    /**
+     * W4b (verification pass 3, 2026-10-22, live-found on the rig): the inbox is
+     * answerable BEFORE the conversation's rows sweep ever ran — the store hydrate
+     * path. A ROW-anchored stored payload is the ROW schema: it carries NO options
+     * array (the sweep synthesizes the §7.4.4 vocabulary only in memory), so the
+     * hydrate built the request with an EMPTY option set and EVERY answer was
+     * inert ("The answer was not confirmed", no wire call). The hydrate must apply
+     * the same verified synthesized vocabulary for permission payloads that lack
+     * options — the exact list the rows sweep uses.
+     */
+    @Test
+    fun `store hydration of a row-shaped permission payload synthesizes the option vocabulary - the cold inbox answer reaches the wire (W4b)`() = runTest {
+        val (coordinator, interactions, sender, _) = coordinator()
+        interactions.payloads["i-row-store"] = Json.parseToJsonElement(
+            """
+            {"rowId":62,"kind":"toolCall","toolName":"Bash","status":"pendingApproval",
+             "inputText":"echo synthetic","approvalInteractionId":"i-row-store"}
+            """.trimIndent(),
+        ).let { it as JsonObject }
+        val outcome = coordinator.submitFromStore(InteractionId("i-row-store"), "allowOnce")
+        assertTrue(outcome is InteractionCoordinator.SubmitOutcome.Submitted, "outcome=$outcome")
+        assertTrue(sender.sent.any { it.first == "resolveInteraction" }, "sent=${sender.sent.map { it.first }}")
+    }
+
 }
 
 private val JsonNull = kotlinx.serialization.json.JsonNull
