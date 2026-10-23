@@ -4039,3 +4039,153 @@ Accept — chip re-rendered `build`→`plan` on-device) and the last two Phase-0
   192d57f8…) — **install the DEBUG build**. Six fix commits `24c178e bcef616 3ff3bd2
   c901c0b 1012798 ad42442`, plus this record's docs commit. Rig torn down (mock killed
   by port, emulator killed, theme restored to Follow-the-system).
+
+
+---
+
+## Whole-campaign verification pass 4 — 2026-10-23 (APPENDED — the fourth independent redo, live rig, one rig gap fixed + two new P2 findings recorded)
+
+> A fourth independent redo of the closing audit, again as a real-user walk: the roadmap
+> (143 ticked / 11 by-design unticked — 8 probes + F3-SLICE + F4-RIG + F4-VERIFY; all 8
+> phase gates ☑; DoD 8/8 — re-counted mechanically, the 139→143 delta is pass 3's own four
+> ticked entries), the static gates, and the app on a live emulator (zcode-pixel, cold
+> boots, light AND dark, portrait AND landscape, font scale 1.0 AND 1.3) with EVERY mock
+> scenario armed (`MOCK_APPROVAL ATTACHMENT ROW_ACTIONS GOAL COMPACT WORKFLOWS TASKMGMT
+> QUESTION HOOKS` + `MOCK_ROWS=60`, launched via a `:-`-defaulted script on plain `java -cp`).
+> Verification model `account:zai-individual-coding-plan/claude-fable-5-1` on ZCode CLI,
+> branch `fix/gaps-and-polish`, clean tree at `68a9aa1`, identity ErnestHysa, NO remote
+> (nothing pushed). Verdict: every pass-1/2/3 fix re-proved live (listed below) — AND the
+> pass found that one Phase-5A surface had NEVER actually rendered on any rig walk (a rig
+> arming gap, fixed test-first, now live-proven), plus two P2 defects the earlier passes'
+> portrait-only / single-answer walks could not reach, RECORDED per rule 5 with repro,
+> evidence and accept criteria (each is a budget/lifecycle-semantics change that deserves
+> its own test-first round rather than a late-pass patch to the most safety-pinned planes).
+
+- [x] **T1 (P2, rig tooling — the U4 class) — `MOCK_TASKMGMT` armed ids and groups but
+  NO rows: the A3.8–A3.10 Pinned section, unread dot and custom-group sub-section had never
+  rendered on the relay rig in any pass.** Two layers: (1) every management word
+  (`listPinnedTasks` / `listArchivedTasks` / `listGroupedTaskViewStructure`) decorates rows
+  FILTERED FROM `script.directTasks`, which the relay main never populated (the only task
+  came from the sessions bootstrap); (2) the main list's `pinned`/`unreadAt` flags ride the
+  BOOTSTRAP rows (`BootstrapParser.kt:38-39,116` reads windowHostController's row schema —
+  A3.8's own citation; `listPinnedTasks` has no production caller, correctly), and
+  `MockTask.toJson` emitted neither field. The app's data path was complete end to end; the
+  rig could not exercise it — the Phase-5A "render live" claim rested on Robolectric
+  port-level pins alone. Fix: `armTaskManagementRig(mock)` (the extracted seam) overrides
+  `bootstrapTasks` with three production-shape rows (task-1 pinned — identity keys mirror
+  the bootstrap row so the upsert refreshes in place; task-2 `unreadAt`; task-3 plain),
+  mirrors them into `directTasks`, and `MockTask` gained `pinned`/`unreadAtMs`, emitted
+  ONLY when non-default so the default row keeps its live-corpus key set (INV-8). RED
+  `b56df17` (`MockZCodeTaskManagementSelfTest` T1 pin: `expected [synth-task-1, -2, -3]
+  but was []`) → GREEN `ccb7e6d` → `886e5ca` (bootstrap flags + the emitted-key shape
+  pinned). Mock 33/33. **LIVE-PROVEN (first time in the campaign):** Tasks renders
+  `📌 Pinned 1` with the pinned row (a11y "…, pinned"), `WORKSPACE Synthetic One 2`, the
+  `Backend` group (with "Edit group") holding "Synthetic task 3", and task-2's a11y carries
+  "unread"; the workflow Run sheet's "Run in task" picker lists all three tasks.
+- **T2 (P2, live-found — RECORDED, not fixed; the pass-2 observation (4) family with its
+  user-visible harm now reproduced):** answering the AskUserQuestion card appends echo rows
+  (the mock's `commandEffects` reply) that push the OLDER row-anchored pending-approval row
+  out of the §19.4 tail window; the rows reconcile's ResnapshotLacks rule then resolves the
+  still-pending machine; a LATER inbox "Allow once" hits the resolved-elsewhere (§20-3) path
+  — the card vanishes, NO `sendConversationCommandV4`, NO banner — while the desktop (mock)
+  still reports the approval pending. Control: a fresh cold start → inbox → Allow once fires
+  `sendConversationCommandV4 ok in 102ms` with no banner (W4/W4b hold). Repro: all-flags
+  rig → open the task → answer the question (Send answers) → re-enter the task → inbox →
+  Allow once. Accept for the eventual fix: a row-anchored machine is never resolved from
+  tail-window ABSENCE alone (origin-aware sweep / pending-grace until the desktop resolves
+  it), OR the resolved-elsewhere path surfaces typed copy ("already handled on the desktop")
+  instead of a silent vanish; pin at `InteractionCoordinator` level (eviction then Allow →
+  either a wire call or a typed outcome, never `DuplicateNoOp` silence).
+- **T3 (P2, live-found — RECORDED, not fixed): landscape with a pinned interaction card.**
+  The U1/U8 budgets assume portrait heights; in landscape (2072×1080 window at density
+  2.75 ≈ 393dp tall) with the question card pinned: the TIMELINE is zero height (no
+  `Turn ·`/compaction rows in the AX tree at all), the card's viewport is ~200px (its
+  radios/Send/Skip reachable only by scrolling inside it), and the composer overflows — the
+  send button's AX bounds are (2022..2072) of a 132px button, i.e. CLIPPED at the window
+  edge to a 50px sliver; at font scale 1.3 both composer buttons additionally crush to
+  ~15px pills. Landscape is an audited form factor (M2 + N6 "landscape sweep completion")
+  — those sweeps predate the pass-2 budgets, and passes 2/3 never rotated. Repro: rotate
+  (`settings put system user_rotation 1`) with the card pinned. Accept: a short-height
+  budget mode (when the available height cannot hold chrome + 30% card + 120dp timeline
+  floor + intrinsic composer, drop the card minimum before the composer and floor), the
+  composer keeps its intrinsic size and never overflows the window width, the timeline
+  floor holds; pin = `PinnedInteractionBudgetTest` at w731dp-h411dp (landscape phone) +
+  a composer-bounds-within-window pin.
+- **Re-proved live this pass (pass-1/2/3 fixes):** U2 single status-bar inset · V3 "Effort
+  · high" · V2 honest Automations copy on the first frame · U1 bounded Ship-it/Todos panels
+  (returning after the card resolves) · U8 card scrolling in its budget with "Send answers"
+  AND "Skip — continue without my answer" reachable · U9 both paths fire
+  `sendConversationCommandV4` (Send answers: `ok in 75ms`; Skip: begin→ok) with the
+  "(answered)" echo · W1 "here is the screenshot" renders ABOVE its thumbnail · W4/W4b
+  cold-start inbox Allow once (`ok in 102ms`, no banner) · U3 Share → ChooserActivity
+  (Copy/Bluetooth/Gmail/Drive) · U5 toggle labels at x=44 · U6 "Relay (QR pairing) ·
+  v3.14.3 · Connected" · U7 Dark → light glyphs on dark bars, restored to Follow-the-system
+  · E8 draft guard ("Leave this conversation?" with Keep editing/Leave; the draft survives
+  Leave) · Files honest unavailable · Git not-a-repository + Retry + Snapshot → "ckpt-1"
+  listed + snackbar · Terminal Attach → "live — /bin/zsh" + Copy/Detach · Model calls sheet
+  with the live search filter (typing "429" filters the tool_calls entry out) · Plugins /
+  Skills / MCP viewers populated · the §22 diff viewer's honest typed fault
+  (`fault.fileChanges.none` — the mock scripts the summary chip, not the detail). **0
+  crashes, 0 ANRs of the APP across the whole walk** (the five crashes were the emulator's).
+- **Flake adjudication (rule 7, with numbers):** pre-fix pool 1460 tests / 17 modules, 0
+  compile failures, only test-failure tasks; failures = the frozen 5 (byte-identical) +
+  `ConnectionHubWritePathTest > offline sends are BLOCKED…` (timed out at its own 20 s
+  socket wait; 3/3 green isolated — the pass-2 `commands carry the production wire shape`
+  sibling's family) + `ConnectionHubIntegrationTest > degraded entry writes an auto-report
+  once` (4/4 green ALONE, 2/3 failing inside its class at the current sha AND 2/3 at the
+  pre-pass-3 sha `c63824f` in a worktree — identical behavior ⇒ pre-existing intra-class
+  interference, not a regression). Post-fix pool 1461 / 17 (+ the T1 pin), 0 compile
+  failures; failures = frozen 5 + `RecoveryScenarioMatrixTest > S8` (green in isolation;
+  its S13 sibling flapped 1 of 3 GENUINE isolated reruns — the recorded matrix family).
+- **Rule-5 observations recorded (not fixed):** (1) the pinned budget's bottom edge clips
+  the NEXT pending card's top-left badge into a bare colored rectangle (light normally; it
+  rendered solid RED once at font 1.3 right after the scale flip — the hook card's
+  pending-trust badge state) — a cosmetic sliver a user reads as a stray bar; fade or
+  whole-card clipping would remove it; (2) the slash panel showed only the four builtins
+  (/help /login /logout /compact) with no Skills/Agents sections and no custom `/deploy`,
+  and no `commands`/`subagents`/`getSkillReferenceCatalog` wire call was captured — but
+  the logcat buffer wraps every ~2 min under the 8 s workflow-runs poll and the IME
+  choreography failed twice, so this leg is INCONCLUSIVE, not a finding; discriminator for
+  the next session: `logcat -c` → type "/" → grep those three names; (3) the Run-sheet
+  submit (release-notes, required `version`) could not be driven through adb: the field
+  took "1.2.0" (AX-confirmed) but every Run tap / IME Enter closed the sheet with neither
+  the accept path (navigate to the task) nor the refusal path (typed snackbar) — i.e.
+  `onStartWorkflow` was never invoked; the sheet re-lays when the IME shows/hides and the
+  taps land around the button — rig choreography, not a defect claim; (4) screencaps taken
+  within ~2 s of a layout change twice showed the Turn row's "2 files +5 −1 · view" text
+  painted ~50px above its own container (and once persisting on a static screen) while the
+  AX tree was coherent every time and the next redraw-forcing event cleared it — the
+  recorded L1 capture-artifact class on this GPU stack; rule for future passes: AX-vs-paint
+  divergence that clears on redraw = capture artifact; persistent bleed WITH coherent AX
+  after a forced redraw = real.
+- **New rig notes (for every future session):** (a) the stale-session rule applies to APP
+  kills too — any `am force-stop` (not only an emulator death) leaves the mock holding the
+  dead session and the next connection walks `auth_ack timed out` → RECONNECTING; restart
+  the mock by port before EVERY app relaunch; (b) the emulator crashed five times this pass
+  (`process_memory_mac.cc`), including while idle — park it during ANY gradle work and keep
+  rig legs short; (c) `gradle … --tests` re-runs that finish in ~2 s are UP-TO-DATE hits,
+  not test runs — delete the module's `build/test-results` between isolation runs or the
+  "3/3 green" is fiction; (d) `sips -c H W --cropOffset Y X` — Y first; (e) uiautomator
+  bounds and `screencap` pixels diverge for seconds after any layout change on this
+  software GPU: dump-then-tap in ONE shell chain, and never trust a single capture;
+  (f) the logcat ring wraps in ~2 min under the workflow-runs poll — `logcat -c`
+  immediately before the leg you need to prove; (g) uiautomator exposes some Compose text
+  fields with no `EditText` node (the Run sheet's) — find the placeholder TEXT node and tap
+  its center, then confirm `dumpsys input_method` shows `mInputShown=true` before typing.
+- **Final gates (rule 12), post-fix:** full suite (Android `testDebugUnitTest` + the six
+  JVM `test` tasks) — **1461 tests / 17 modules, 0 compile failures, only test-failure
+  tasks; failures = the frozen 5-name baseline + the exonerated matrix member above**;
+  `:app:lintDebug` **0 errors, 69 warnings, 4 hints** (the two `LintBaseline`/
+  `LintBaselineFixed` meta-hints + two `AutoboxingStateCreation` advisories in
+  `core/ui` `Motion.kt:161` / `SectionBoundary.kt:35` — the same code as pass 3; its
+  "2 hints" was a narrower count, not a code delta); drift `node --test tools/drift/*.test.mjs`
+  **20/20**; mock **33/33**; the AAPT edge-whitespace sweep over all 18 string resources:
+  **0 unquoted sites**. APKs: the app's sources are UNTOUCHED this pass (every code change
+  is mock-module only), so the shipped artifacts are the pass-3 build — debug
+  `app/build/outputs/apk/debug/app-debug.apk` 56,127,706 bytes (sha256 24e056ac…,
+  byte-identical to the pass-3 record) and release `app/build/outputs/apk/release/app-release.apk`
+  27,829,472 bytes (R8, sha256 fa3ccdd5…, rebuilt 2026-10-23 00:45 from the same sources),
+  both versionName 1.1.0 / versionCode 40 — **install the DEBUG build**. Three fix
+  commits `b56df17 ccb7e6d 886e5ca`, plus this record's docs commit. Rig torn down (mock
+  killed by port, emulator killed, font scale 1.0 / auto-rotate / Follow-the-system
+  restored).
