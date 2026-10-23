@@ -494,7 +494,29 @@ fun main() {
  * listTasks upsert refreshes the projection row in place instead of duplicating it.
  */
 internal fun armTaskManagementRig(mock: MockZCode) {
-    // RED-STATE: directTasks population stripped for the T1 RED run.
+    mock.script.directTasks = listOf(
+        MockZCode.MockTask(
+            taskId = "synth-task-1",
+            title = "Synthetic task",
+            displayStatus = "idle",
+            workspacePath = "/synthetic/ws-one",
+            workspaceLabel = "Synthetic One",
+        ).toJson(),
+        MockZCode.MockTask(
+            taskId = "synth-task-2",
+            title = "Synthetic task 2",
+            displayStatus = "idle",
+            workspacePath = "/synthetic/ws-one",
+            workspaceLabel = "Synthetic One",
+        ).toJson(),
+        MockZCode.MockTask(
+            taskId = "synth-task-3",
+            title = "Synthetic task 3",
+            displayStatus = "idle",
+            workspacePath = "/synthetic/ws-one",
+            workspaceLabel = "Synthetic One",
+        ).toJson(),
+    )
     mock.script.pinnedTaskIds.add("synth-task-1")
     mock.script.unreadTaskIds["synth-task-2"] = System.currentTimeMillis()
     mock.script.taskGroups.add(JsonObject(mapOf(
