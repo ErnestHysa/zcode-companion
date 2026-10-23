@@ -494,34 +494,29 @@ fun main() {
  * listTasks upsert refreshes the projection row in place instead of duplicating it.
  */
 internal fun armTaskManagementRig(mock: MockZCode) {
-    mock.script.directTasks = listOf(
+    val now = System.currentTimeMillis()
+    mock.script.bootstrapTasks = listOf(
         MockZCode.MockTask(
-            taskId = "synth-task-1",
-            title = "Synthetic task",
-            displayStatus = "idle",
-            workspacePath = "/synthetic/ws-one",
-            workspaceLabel = "Synthetic One",
-        ).toJson(),
+            taskId = "synth-task-1", title = "Synthetic task", displayStatus = "idle",
+            workspacePath = "/synthetic/ws-one", workspaceLabel = "Synthetic One",
+            pinned = true,
+        ),
         MockZCode.MockTask(
-            taskId = "synth-task-2",
-            title = "Synthetic task 2",
-            displayStatus = "idle",
-            workspacePath = "/synthetic/ws-one",
-            workspaceLabel = "Synthetic One",
-        ).toJson(),
+            taskId = "synth-task-2", title = "Synthetic task 2", displayStatus = "idle",
+            workspacePath = "/synthetic/ws-one", workspaceLabel = "Synthetic One",
+            unreadAtMs = now,
+        ),
         MockZCode.MockTask(
-            taskId = "synth-task-3",
-            title = "Synthetic task 3",
-            displayStatus = "idle",
-            workspacePath = "/synthetic/ws-one",
-            workspaceLabel = "Synthetic One",
-        ).toJson(),
+            taskId = "synth-task-3", title = "Synthetic task 3", displayStatus = "idle",
+            workspacePath = "/synthetic/ws-one", workspaceLabel = "Synthetic One",
+        ),
     )
+    mock.script.directTasks = mock.script.bootstrapTasks!!.map { it.toJson() }
     mock.script.pinnedTaskIds.add("synth-task-1")
-    mock.script.unreadTaskIds["synth-task-2"] = System.currentTimeMillis()
+    mock.script.unreadTaskIds["synth-task-2"] = now
     mock.script.taskGroups.add(JsonObject(mapOf(
         "id" to JsonPrimitive("task-group-rig"), "title" to JsonPrimitive("Backend"), "color" to JsonPrimitive("green"),
-        "createdAt" to JsonPrimitive(System.currentTimeMillis()), "updatedAt" to JsonPrimitive(System.currentTimeMillis()),
+        "createdAt" to JsonPrimitive(now), "updatedAt" to JsonPrimitive(now),
     )))
     mock.script.taskGroupMembers["task-group-rig"] = mutableListOf("synth-task-3")
 }

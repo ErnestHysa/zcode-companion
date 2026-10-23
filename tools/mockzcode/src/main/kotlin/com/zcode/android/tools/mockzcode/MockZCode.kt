@@ -407,6 +407,11 @@ class MockZCode(
         val createdAtMs: Long = System.currentTimeMillis() - 5 * 60 * 1000,
         val updatedAtMs: Long = System.currentTimeMillis() - 60 * 1000,
         val productionShape: Boolean = true,
+        // A3.8 windowHostController row schema (the app's BootstrapParser reads both
+        // on the relay bootstrap): emitted only when non-default so the default row
+        // keeps the exact live-corpus key set (INV-8).
+        val pinned: Boolean = false,
+        val unreadAtMs: Long? = null,
     ) {
         internal fun toJson(): JsonObject = if (productionShape) {
             buildJsonObject {
@@ -418,6 +423,8 @@ class MockZCode(
                 put("workspaceKind", JsonPrimitive("local"))
                 put("createdAt", JsonPrimitive(createdAtMs))
                 put("updatedAt", JsonPrimitive(updatedAtMs))
+                if (pinned) put("pinned", JsonPrimitive(true))
+                unreadAtMs?.let { put("unreadAt", JsonPrimitive(it)) }
             }
         } else {
             buildJsonObject {

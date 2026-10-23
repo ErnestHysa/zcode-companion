@@ -63,5 +63,16 @@ class MockZCodeTaskManagementSelfTest {
         assertTrue("synth-task-1" in m.script.pinnedTaskIds)
         assertTrue(m.script.unreadTaskIds.containsKey("synth-task-2"))
         assertEquals("synth-task-3", m.script.taskGroupMembers["task-group-rig"]?.single())
+        // A3.8: the pinned/unread flags must ALSO ride the BOOTSTRAP rows — the main
+        // list's flags come from the sessions bootstrap (BootstrapParser), not from
+        // the management words.
+        val boot = m.script.bootstrapTasks.orEmpty()
+        assertEquals(listOf("synth-task-1", "synth-task-2", "synth-task-3"), boot.map { it.taskId })
+        assertTrue(boot.first().pinned)
+        assertTrue((boot[1].unreadAtMs ?: 0L) > 0L)
+        assertTrue(!boot[2].pinned && boot[2].unreadAtMs == null)
+        assertTrue((boot.first().toJson()["pinned"] as JsonPrimitive).content.toBoolean())
+        assertTrue(boot[1].toJson().containsKey("unreadAt"))
+        assertTrue(!boot[2].toJson().containsKey("pinned"))
     }
 }
