@@ -219,13 +219,7 @@ fun main() {
     // second unread, and seeds one custom group — the pinned section, the unread dot and the
     // group sub-section render live; the ⋯ verbs round-trip against the mock's state.
     if (System.getenv("MOCK_TASKMGMT") != null) {
-        mock.script.pinnedTaskIds.add("synth-task-1")
-        mock.script.unreadTaskIds["synth-task-2"] = System.currentTimeMillis()
-        mock.script.taskGroups.add(JsonObject(mapOf(
-            "id" to JsonPrimitive("task-group-rig"), "title" to JsonPrimitive("Backend"), "color" to JsonPrimitive("green"),
-            "createdAt" to JsonPrimitive(System.currentTimeMillis()), "updatedAt" to JsonPrimitive(System.currentTimeMillis()),
-        )))
-        mock.script.taskGroupMembers["task-group-rig"] = mutableListOf("synth-task-3")
+        armTaskManagementRig(mock)
     }
     // Phase 5B (A3.14) rig leg: MOCK_QUESTION=1 scripts a blocking AskUserQuestion
     // elicitation (two questions, one multi-select) into the snapshot's pending
@@ -492,11 +486,29 @@ fun main() {
 }
 
 /**
+ * T1 (pass-4 rig fix): the task-management rig leg — the pins/unread/group STATE the
+ * management words serve is decorated from `directTasks` (`listPinnedTasks`,
+ * `listGroupedTaskViewStructure` all filter it), so arming ids alone renders nothing:
+ * before this arming populated rows, the A3.8–A3.10 surfaces never appeared on the rig
+ * in any pass. Task-1 mirrors the sessions bootstrap row's identity keys so the
+ * listTasks upsert refreshes the projection row in place instead of duplicating it.
+ */
+internal fun armTaskManagementRig(mock: MockZCode) {
+    // RED-STATE: directTasks population stripped for the T1 RED run.
+    mock.script.pinnedTaskIds.add("synth-task-1")
+    mock.script.unreadTaskIds["synth-task-2"] = System.currentTimeMillis()
+    mock.script.taskGroups.add(JsonObject(mapOf(
+        "id" to JsonPrimitive("task-group-rig"), "title" to JsonPrimitive("Backend"), "color" to JsonPrimitive("green"),
+        "createdAt" to JsonPrimitive(System.currentTimeMillis()), "updatedAt" to JsonPrimitive(System.currentTimeMillis()),
+    )))
+    mock.script.taskGroupMembers["task-group-rig"] = mutableListOf("synth-task-3")
+}
+
+/**
  * D4 (Phase 3A): the shipped view's `{modelId, config}` rows may carry the desktop
  * picker's badge fields — `config.badgeLabel` per model, `labelBadge` per provider
  * group. The default selection scripts one of each so the rig renders the badge slot.
- */
-private fun provider(
+ */private fun provider(
     id: String,
     name: String,
     models: List<String>,

@@ -42,4 +42,26 @@ class MockZCodeTaskManagementSelfTest {
         })
         assertEquals("t1", (m.script.directTasks.single()["taskId"] as JsonPrimitive).content)
     }
+
+    @Test
+    fun `the relay arming populates directTasks so the pinned-unread-group legs render (T1)`() {
+        val m = mock()
+        com.zcode.android.tools.mockzcode.armTaskManagementRig(m)
+        // T1: every management word (listPinnedTasks / listArchivedTasks / the grouped
+        // view) decorates rows FILTERED FROM script.directTasks — ids/groups alone armed
+        // nothing and the A3.8–A3.10 surfaces never rendered on the rig.
+        val ids = m.script.directTasks.mapNotNull { (it["taskId"] as? JsonPrimitive)?.content }
+        assertEquals(listOf("synth-task-1", "synth-task-2", "synth-task-3"), ids)
+        // Task-1 mirrors the bootstrap row's identity keys so the listTasks upsert
+        // refreshes the projection row in place (no duplicate).
+        val first = m.script.directTasks.first()
+        assertEquals("Synthetic task", (first["title"] as JsonPrimitive).content)
+        assertEquals("idle", (first["displayStatus"] as JsonPrimitive).content)
+        assertEquals("/synthetic/ws-one", (first["workspacePath"] as JsonPrimitive).content)
+        assertEquals("Synthetic One", (first["workspaceLabel"] as JsonPrimitive).content)
+        // And the flags the decorations read stay armed against rows that exist.
+        assertTrue("synth-task-1" in m.script.pinnedTaskIds)
+        assertTrue(m.script.unreadTaskIds.containsKey("synth-task-2"))
+        assertEquals("synth-task-3", m.script.taskGroupMembers["task-group-rig"]?.single())
+    }
 }
