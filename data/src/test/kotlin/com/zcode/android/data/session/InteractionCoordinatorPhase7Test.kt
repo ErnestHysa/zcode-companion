@@ -233,9 +233,11 @@ class InteractionCoordinatorPhase7Test {
         coordinator.reconcileFromSessionState("sess-1", permissionState("i-1"))
         // Desktop resolves first (the state patch raced ahead of our ack):
         coordinator.reconcileFromSessionState("sess-1", SessionProjectionState(pendingInteractions = emptyList()))
-        // Our tap arrives late — the machine refuses (RESOLVED → SUBMITTING is illegal):
+        // Our tap arrives late — the machine refuses (RESOLVED → SUBMITTING is illegal).
+        // T2: the refusal is the TYPED §20-3 answer now — sayable "already handled",
+        // never a silent DuplicateNoOp.
         val outcome = coordinator.submit(InteractionId("i-1"), "allowOnce")
-        assertEquals(InteractionCoordinator.SubmitOutcome.DuplicateNoOp, outcome)
+        assertEquals(InteractionCoordinator.SubmitOutcome.AlreadyResolved, outcome)
         // Exactly ONE resolution, attributed to elsewhere.
         assertEquals(1, interactions.resolved.size)
         assertEquals(false, interactions.resolved.single().second)

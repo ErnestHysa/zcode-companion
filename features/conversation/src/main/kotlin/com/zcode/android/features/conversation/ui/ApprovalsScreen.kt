@@ -65,6 +65,10 @@ fun ApprovalsScreen(
     // failures were silent; the user believed a request was handled while the
     // authoritative answer never landed. Every non-submit outcome surfaces now.
     var answerError by remember { mutableStateOf<String?>(null) }
+    // T2: the answer callbacks run OUTSIDE composition — resolve the typed outcome
+    // copy here (per locale) and let the callbacks pick the resolved strings.
+    val alreadyResolvedCopy = stringResource(R.string.approvals_already_resolved)
+    val unconfirmedCopy = stringResource(R.string.approvals_answer_unconfirmed)
 
     val topBarScroll = rememberZCodeTopBarScroll()
     Scaffold(
@@ -198,8 +202,12 @@ fun ApprovalsScreen(
                                                     try {
                                                         onAnswer(record.interactionId, "allowOnce", null) { outcome ->
                                                             busyId = null
-                                                            if (outcome != ConversationPort.AnswerOutcome.SUBMITTED) {
-                                                                answerError = "The answer was not confirmed — open the task and answer there."
+                                                            // T2: the resolved-elsewhere answer is SAYABLE — typed
+                                                            // copy instead of a generic fault (or worse, silence).
+                                                            answerError = when (outcome) {
+                                                                ConversationPort.AnswerOutcome.SUBMITTED -> null
+                                                                ConversationPort.AnswerOutcome.ALREADY_RESOLVED -> alreadyResolvedCopy
+                                                                else -> unconfirmedCopy
                                                             }
                                                         }
                                                     } finally {
@@ -268,8 +276,10 @@ fun ApprovalsScreen(
                             try {
                                 onAnswer(target.interactionId, "deny", null) { outcome ->
                                     busyId = null
-                                    if (outcome != ConversationPort.AnswerOutcome.SUBMITTED) {
-                                        answerError = "The answer was not confirmed — open the task and answer there."
+                                    answerError = when (outcome) {
+                                        ConversationPort.AnswerOutcome.SUBMITTED -> null
+                                        ConversationPort.AnswerOutcome.ALREADY_RESOLVED -> alreadyResolvedCopy
+                                        else -> unconfirmedCopy
                                     }
                                 }
                             } finally {

@@ -301,6 +301,10 @@
     <string name="workflow_failure">Failed: %1$s</string>
     <string name="notice_workflow_started">Workflow \"%1$s\" started.</string>
     <string name="notice_workflow_refused">The desktop refused the workflow (%1$s).</string>
+    <!-- T2: the resolved-elsewhere answer -->
+    <string name="notice_answer_already_resolved">Already handled on the desktop.</string>
+    <string name="approvals_already_resolved">Already handled on the desktop.</string>
+    <string name="approvals_answer_unconfirmed">The answer was not confirmed — open the task and answer there.</string>
     <!-- I1 queue (Phase 5A): reorder · auto-drain · follow-up mode -->
     <string name="queue_auto_send">Auto-send</string>
     <string name="queue_move_up">Move up</string>

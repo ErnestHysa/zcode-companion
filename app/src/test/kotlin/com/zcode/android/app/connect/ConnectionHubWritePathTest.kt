@@ -283,11 +283,12 @@ class ConnectionHubWritePathTest {
         withTimeout(20_000) {
             hub.sessionProjectionState(task.taskId).first { it.pendingInteractions?.isEmpty() == true }
         }
-        // Our late tap is a typed no-op (machine RESOLVED → SUBMITTING is illegal).
+        // Our late tap answers TYPED (T2): the machine RESOLVED → SUBMITTING is
+        // illegal, and the refusal is the sayable AlreadyResolved outcome.
         val coordinator = assertNotNull(hub.interactionCoordinatorOrNull())
         val outcome = coordinator.submit(com.zcode.android.domain.ids.InteractionId("i-race-1"), "allowOnce")
         assertEquals(
-            com.zcode.android.data.session.InteractionCoordinator.SubmitOutcome.DuplicateNoOp,
+            com.zcode.android.data.session.InteractionCoordinator.SubmitOutcome.AlreadyResolved,
             outcome,
         )
         assertEquals(0, outbox.entries.size) // nothing was ever sent — INV-4

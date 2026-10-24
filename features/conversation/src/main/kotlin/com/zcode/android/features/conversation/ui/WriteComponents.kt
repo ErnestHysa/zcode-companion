@@ -1113,6 +1113,8 @@ fun sendNoticeText(notice: SendNotice): String {
         // Phase 5A (L6.4 + I1)
         SendNotice.Key.WORKFLOW_STARTED -> R.string.notice_workflow_started
         SendNotice.Key.WORKFLOW_REFUSED -> R.string.notice_workflow_refused
+        // T2: the resolved-elsewhere answer, per locale
+        SendNotice.Key.ANSWER_ALREADY_RESOLVED -> R.string.notice_answer_already_resolved
     }
     val args = if (key == SendNotice.Key.ATTACHMENT_FAILED) {
         listOf(notice.args.firstOrNull()?.takeIf { it.isNotBlank() } ?: stringResource(R.string.notice_connection_lost))

@@ -103,6 +103,8 @@ data class SendNotice(
         ROW_ACTION_OFFLINE, RETRY_REFUSED, FORK_REFUSED, REWIND_APPLIED, REWIND_REFUSED, FEEDBACK_REFUSED,
         // Phase 5A (L6.4 + I1): saved workflows
         WORKFLOW_STARTED, WORKFLOW_REFUSED,
+        // T2: the §20-3 resolved-elsewhere answer — typed, never a silent no-op
+        ANSWER_ALREADY_RESOLVED,
     }
 }
 
@@ -936,6 +938,13 @@ class ConversationViewModel(
                         _sendNotice.value = SendNotice("This request can't be answered here — check the desktop.", SendNotice.Kind.ERROR)
                     ConversationPort.AnswerOutcome.RETRYABLE_KEPT ->
                         _sendNotice.value = SendNotice("Answer not confirmed — retry when connected.", SendNotice.Kind.WARNING)
+                    // T2: the resolved-elsewhere answer is SAYABLE — typed copy, not silence.
+                    ConversationPort.AnswerOutcome.ALREADY_RESOLVED ->
+                        _sendNotice.value = SendNotice(
+                            "Already handled on the desktop.",
+                            SendNotice.Kind.INFO,
+                            SendNotice.Key.ANSWER_ALREADY_RESOLVED,
+                        )
                     else -> Unit // SUBMITTED / INERT (button disabled) / DUPLICATE (no-op) are silent
                 }
             } finally {
