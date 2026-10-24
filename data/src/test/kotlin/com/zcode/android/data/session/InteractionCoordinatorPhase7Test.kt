@@ -36,6 +36,9 @@ class InteractionCoordinatorPhase7Test {
         val resolved = mutableListOf<Pair<InteractionId, Boolean>>() // id to resolvedBySelf
         val payloads = HashMap<String, JsonObject>()
 
+        /** T2: the store may hold an ALREADY-resolved record (resolved-elsewhere path). */
+        var storedResolvedAtMs: Long? = null
+
         override fun observeOpen(endpointId: EndpointId) =
             kotlinx.coroutines.flow.flowOf(emptyList<InteractionRepository.InteractionRecord>())
 
@@ -66,7 +69,7 @@ class InteractionCoordinatorPhase7Test {
                     lifecycle = InteractionLifecycle.DISPLAYED,
                     toolName = "Bash",
                     createdAtMs = 1,
-                    resolvedAtMs = null,
+                    resolvedAtMs = storedResolvedAtMs,
                 ),
                 payload = payload,
             )
@@ -445,6 +448,105 @@ class InteractionCoordinatorPhase7Test {
         val outcome = coordinator.submitFromStore(InteractionId("i-row-store"), "allowOnce")
         assertTrue(outcome is InteractionCoordinator.SubmitOutcome.Submitted, "outcome=$outcome")
         assertTrue(sender.sent.any { it.first == "resolveInteraction" }, "sent=${sender.sent.map { it.first }}")
+    }
+
+    /** Shared row shape for the T2 pins (the W4 row, parameterised). */
+    private fun approvalRow(
+        rowId: Int,
+        interactionId: String,
+        status: com.zcode.android.domain.model.ConversationRow.ToolCallStatus =
+            com.zcode.android.domain.model.ConversationRow.ToolCallStatus.PENDING_APPROVAL,
+    ) = com.zcode.android.domain.model.ConversationRow.ToolCall(
+        rowId = rowId, turnId = "turn-$rowId",
+        base = com.zcode.android.domain.model.ConversationRow.Base(entityId = "ent-$rowId", createdAt = 1.0, createdAtSeq = rowId),
+        assistantResponseId = "ar-$rowId",
+        toolCallId = "tool-$rowId", toolName = "Bash",
+        status = status,
+        inputText = "echo synthetic", input = null, outputPreview = null, error = null,
+        approvalInteractionId = interactionId, startedAt = null, endedAt = null,
+        raw = buildJsonObject { },
+    )
+
+    /**
+     * T2 (verification pass 4, 2026-10-23, live-found on the rig): the §19.4 rows
+     * window is a TAIL. Answering an AskUserQuestion appends echo rows that evict
+     * the OLDER row-anchored pending-approval row from the snapshot — with no
+     * resolution signal from the desktop. The rows sweep's absence rule then staled
+     * the still-pending machine, and the later inbox "Allow once" died a silent
+     * DuplicateNoOp (no wire call, no banner) while the desktop still reported the
+     * approval pending. Tail-window ABSENCE is not a resolution signal for a
+     * row-anchored machine — only its own plane's positive evidence is.
+     */
+    @Test
+    fun `rows reconcile does not stale a row-anchored permission evicted from the tail - the inbox answer still reaches the wire (T2)`() = runTest {
+        val (coordinator, _, sender, _) = coordinator()
+        coordinator.reconcileFromSnapshot(rows = listOf(approvalRow(62, "i-row-t2")), sessionId = "sess-1")
+        coordinator.render(InteractionId("i-row-t2"))
+        // The echo rows push the approval row out of the §19.4 tail window.
+        coordinator.reconcileFromSnapshot(rows = emptyList(), sessionId = "sess-1")
+        assertTrue(
+            coordinator.machineStateForTest(InteractionId("i-row-t2")) != PermissionStateMachine.State.STALE,
+            "the evicted row-anchored approval was staled: ${coordinator.machineStateForTest(InteractionId("i-row-t2"))}",
+        )
+        val outcome = coordinator.submitFromStore(InteractionId("i-row-t2"), "allowOnce")
+        assertTrue(outcome is InteractionCoordinator.SubmitOutcome.Submitted, "outcome=$outcome")
+        assertTrue(sender.sent.any { it.first == "resolveInteraction" }, "the answer must reach the wire; sent=${sender.sent.map { it.first }}")
+    }
+
+    /**
+     * T2 (defense in depth): a submit that lands on an already-terminal machine is
+     * the typed AlreadyResolved outcome — never a silent DuplicateNoOp. The §20-3
+     * path (resolved-elsewhere) must be SAYABLE: the inbox surfaces "already
+     * handled" copy instead of eating the tap.
+     */
+    @Test
+    fun `submit on a resolved-elsewhere machine surfaces the typed outcome - never a silent no-op (T2)`() = runTest {
+        val (coordinator, _, sender, _) = coordinator()
+        coordinator.reconcileFromSnapshot(rows = listOf(approvalRow(63, "i-row-t2b")), sessionId = "sess-1")
+        coordinator.render(InteractionId("i-row-t2b"))
+        coordinator.onResolvedElsewhere(InteractionId("i-row-t2b"))
+        val outcome = coordinator.submit(InteractionId("i-row-t2b"), "allowOnce")
+        assertTrue(outcome is InteractionCoordinator.SubmitOutcome.AlreadyResolved, "outcome=$outcome")
+        assertTrue(sender.sent.isEmpty(), "a resolved interaction never re-answers; sent=${sender.sent}")
+    }
+
+    /** T2 (defense in depth): the STORE-resolved record answers typed, not silent. */
+    @Test
+    fun `inbox answer on a store-resolved record is the typed outcome (T2)`() = runTest {
+        val (coordinator, interactions, sender, _) = coordinator()
+        interactions.payloads["i-row-t2c"] = buildJsonObject { put("toolName", "Bash") }
+        interactions.storedResolvedAtMs = 5L
+        val outcome = coordinator.submitFromStore(InteractionId("i-row-t2c"), "allowOnce")
+        assertTrue(outcome is InteractionCoordinator.SubmitOutcome.AlreadyResolved, "outcome=$outcome")
+        assertTrue(sender.sent.isEmpty(), "sent=${sender.sent}")
+    }
+
+    /**
+     * T2 (the pending-grace complement): when the desktop RESOLVES a row-anchored
+     * approval, the row itself leaves the pending-approval state (the tool can only
+     * run once answered) — that row-status transition is POSITIVE evidence and
+     * resolves the machine by-elsewhere with truthful attribution. Absence never
+     * resolves it; a present terminal-status row does.
+     */
+    @Test
+    fun `a row-anchored approval whose row left the pending state resolves by-elsewhere - truthful attribution (T2)`() = runTest {
+        val (coordinator, interactions, _, _) = coordinator()
+        coordinator.reconcileFromSnapshot(rows = listOf(approvalRow(64, "i-row-t2d")), sessionId = "sess-1")
+        coordinator.render(InteractionId("i-row-t2d"))
+        // The desktop answered: the same toolCall row is now RUNNING.
+        coordinator.reconcileFromSnapshot(
+            rows = listOf(approvalRow(64, "i-row-t2d", status = com.zcode.android.domain.model.ConversationRow.ToolCallStatus.RUNNING)),
+            sessionId = "sess-1",
+        )
+        assertEquals(
+            PermissionStateMachine.State.RESOLVED,
+            coordinator.machineStateForTest(InteractionId("i-row-t2d")),
+            "a present terminal-status row is positive resolution evidence",
+        )
+        assertTrue(
+            interactions.resolved.any { it.first == InteractionId("i-row-t2d") && it.second == false },
+            "resolved by-elsewhere, not by self; resolved=${interactions.resolved}",
+        )
     }
 
 }
