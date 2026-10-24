@@ -761,6 +761,7 @@ class DefaultConversationPort(
             is com.zcode.android.data.session.InteractionCoordinator.SubmitOutcome.RefineRequiresText -> ConversationPort.AnswerOutcome.REFINE_REQUIRES_TEXT
             is com.zcode.android.data.session.InteractionCoordinator.SubmitOutcome.NotApprovable -> ConversationPort.AnswerOutcome.NOT_APPROVABLE
             is com.zcode.android.data.session.InteractionCoordinator.SubmitOutcome.DuplicateNoOp -> ConversationPort.AnswerOutcome.DUPLICATE_NO_OP
+            is com.zcode.android.data.session.InteractionCoordinator.SubmitOutcome.AlreadyResolved -> ConversationPort.AnswerOutcome.ALREADY_RESOLVED
             is com.zcode.android.data.session.InteractionCoordinator.SubmitOutcome.UnknownInteraction -> ConversationPort.AnswerOutcome.UNKNOWN_INTERACTION
         }
 

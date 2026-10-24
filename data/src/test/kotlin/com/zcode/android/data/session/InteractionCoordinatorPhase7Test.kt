@@ -452,7 +452,7 @@ class InteractionCoordinatorPhase7Test {
 
     /** Shared row shape for the T2 pins (the W4 row, parameterised). */
     private fun approvalRow(
-        rowId: Int,
+        rowId: Long,
         interactionId: String,
         status: com.zcode.android.domain.model.ConversationRow.ToolCallStatus =
             com.zcode.android.domain.model.ConversationRow.ToolCallStatus.PENDING_APPROVAL,
@@ -480,7 +480,7 @@ class InteractionCoordinatorPhase7Test {
     @Test
     fun `rows reconcile does not stale a row-anchored permission evicted from the tail - the inbox answer still reaches the wire (T2)`() = runTest {
         val (coordinator, _, sender, _) = coordinator()
-        coordinator.reconcileFromSnapshot(rows = listOf(approvalRow(62, "i-row-t2")), sessionId = "sess-1")
+        coordinator.reconcileFromSnapshot(rows = listOf(approvalRow(62L, "i-row-t2")), sessionId = "sess-1")
         coordinator.render(InteractionId("i-row-t2"))
         // The echo rows push the approval row out of the §19.4 tail window.
         coordinator.reconcileFromSnapshot(rows = emptyList(), sessionId = "sess-1")
@@ -502,7 +502,7 @@ class InteractionCoordinatorPhase7Test {
     @Test
     fun `submit on a resolved-elsewhere machine surfaces the typed outcome - never a silent no-op (T2)`() = runTest {
         val (coordinator, _, sender, _) = coordinator()
-        coordinator.reconcileFromSnapshot(rows = listOf(approvalRow(63, "i-row-t2b")), sessionId = "sess-1")
+        coordinator.reconcileFromSnapshot(rows = listOf(approvalRow(63L, "i-row-t2b")), sessionId = "sess-1")
         coordinator.render(InteractionId("i-row-t2b"))
         coordinator.onResolvedElsewhere(InteractionId("i-row-t2b"))
         val outcome = coordinator.submit(InteractionId("i-row-t2b"), "allowOnce")
@@ -531,11 +531,11 @@ class InteractionCoordinatorPhase7Test {
     @Test
     fun `a row-anchored approval whose row left the pending state resolves by-elsewhere - truthful attribution (T2)`() = runTest {
         val (coordinator, interactions, _, _) = coordinator()
-        coordinator.reconcileFromSnapshot(rows = listOf(approvalRow(64, "i-row-t2d")), sessionId = "sess-1")
+        coordinator.reconcileFromSnapshot(rows = listOf(approvalRow(64L, "i-row-t2d")), sessionId = "sess-1")
         coordinator.render(InteractionId("i-row-t2d"))
         // The desktop answered: the same toolCall row is now RUNNING.
         coordinator.reconcileFromSnapshot(
-            rows = listOf(approvalRow(64, "i-row-t2d", status = com.zcode.android.domain.model.ConversationRow.ToolCallStatus.RUNNING)),
+            rows = listOf(approvalRow(64L, "i-row-t2d", status = com.zcode.android.domain.model.ConversationRow.ToolCallStatus.RUNNING)),
             sessionId = "sess-1",
         )
         assertEquals(

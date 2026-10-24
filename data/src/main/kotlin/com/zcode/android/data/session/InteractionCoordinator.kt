@@ -125,6 +125,9 @@ class InteractionCoordinator(
         data object NotApprovable : SubmitOutcome()
         /** Double-tap while submitting — no-op (§14.4.3). */
         data object DuplicateNoOp : SubmitOutcome()
+        /** The interaction is already terminal (resolved/stale elsewhere) — the typed
+         * §20-3 answer (T2): surfaces "already handled" copy, never a silent no-op. */
+        data object AlreadyResolved : SubmitOutcome()
         data object UnknownInteraction : SubmitOutcome()
     }
 

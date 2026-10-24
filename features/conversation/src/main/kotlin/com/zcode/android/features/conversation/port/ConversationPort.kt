@@ -228,7 +228,7 @@ interface ConversationPort {
         userInput: Boolean,
     ): AnswerOutcome
 
-    enum class AnswerOutcome { SUBMITTED, RETRYABLE_KEPT, INERT_OPTION, REFINE_REQUIRES_TEXT, NOT_APPROVABLE, DUPLICATE_NO_OP, UNKNOWN_INTERACTION }
+    enum class AnswerOutcome { SUBMITTED, RETRYABLE_KEPT, INERT_OPTION, REFINE_REQUIRES_TEXT, NOT_APPROVABLE, DUPLICATE_NO_OP, ALREADY_RESOLVED, UNKNOWN_INTERACTION }
 
     /** Approvals inbox source (§18.3): open interactions across tasks. */
     fun observeOpenInteractions(): Flow<List<InteractionSummary>>
