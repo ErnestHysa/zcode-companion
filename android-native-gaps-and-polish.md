@@ -4189,3 +4189,59 @@ Accept — chip re-rendered `build`→`plan` on-device) and the last two Phase-0
   commits `b56df17 ccb7e6d 886e5ca`, plus this record's docs commit. Rig torn down (mock
   killed by port, emulator killed, font scale 1.0 / auto-rotate / Follow-the-system
   restored).
+
+---
+
+## T2/T3 fix round — 2026-10-24 (APPENDED — the two recorded pass-4 P2s fixed, live-verified, vc41/1.2.0)
+
+> Branch `fix/t2-t3` (RED pins → fixes → gates → live rig), identity ErnestHysa, tree clean,
+> NO remote (nothing pushed). The emulator crashed 2× mid-round (the 8GB class) and the disk
+> filled twice (build intermediates + stale AVD snapshots freed; artifacts archived at
+> /tmp/vc41-apks).
+
+- **T2 FIXED (`bc0179c`; RED `2d3a8d6`):** root fix in `InteractionCoordinator.reconcileFromSnapshot` —
+  the rows window is a TAIL, so the absence sweep no longer stales row-anchored
+  (`fromRowsSnapshot`) machines; a row-anchored approval resolves only on POSITIVE evidence
+  (its row present but no longer `PENDING_APPROVAL` → ResolvedElsewhere, truthful attribution).
+  Defense in depth: `submit()` on a terminal machine and `submitFromStore()` on a store-resolved
+  record return the new typed `AlreadyResolved` outcome → `AnswerOutcome.ALREADY_RESOLVED` → the
+  inbox surfaces "Already handled on the desktop." (en+zh; `notice_answer_already_resolved` /
+  `approvals_already_resolved` / `approvals_answer_unconfirmed` — the two ApprovalsScreen answer
+  literals localized in the same stroke). Two race pins that asserted the silent `DuplicateNoOp`
+  are owned + updated. State-plane PERMISSION machines outside the tail window still stale
+  (pre-existing, deliberately untouched — the pass-2 note's fuller origin-aware sweep).
+- **T3 FIXED (`e1f3a48`; RED `9b716f5`):** short-height budget mode in `ConversationScreen` —
+  below `SHORT_HEIGHT_THRESHOLD` (480dp content) the pinned budget switches from
+  `max(30%, available−450)` to `(available − 323dp)` floored at a 24dp scrollable card sliver.
+  Constants are MEASURED, not estimated: the landscape fixed chrome is header 135dp + composer
+  140dp = 275dp, so the portrait 120dp timeline floor is arithmetically impossible in a ~347dp
+  window; the floor becomes 48dp and the card minimum yields FIRST. Pin at w731dp-h411dp
+  (`PinnedInteractionLandscapeBudgetTest`) + composer-within-window.
+- **Gates:** full suite (all 17 modules' tasks) — failures = the frozen 5-name baseline
+  BYTE-IDENTICAL, zero new names, zero compile failures (the only FAILED tasks are test tasks);
+  `:app:lintDebug` 0E/69W/2H byte-identical to the recorded baseline (the standalone
+  `:features:conversation:lintDebug` 2 errors at RowRenderers.kt:886/1260 are pre-existing
+  main-side, among the 49 app-baseline-filtered entries). data 167/167 incl. the 4 new T2 pins
+  + 2 owned race pins; conversation green incl. the landscape pin; mock untouched.
+- **LIVE RIG (zcode-pixel, vc41 debug aeb4d2ce…, fresh mock :18100 all-flags):**
+  **T2 PROVEN**: composer send appends echo rows → the approval row evicts from the §19.4 tail →
+  Approvals inbox "Allow once" → `approvals.answer :: option=allowOnce` (logcat INFO) →
+  `rpc.send` 402 bytes → the mock's ledger records the command (`sendConversationCommandV4
+  id=75`) — the wire call pre-fix passes recorded as SILENTly absent; the inbox entry stays
+  honestly listed (the mock still reports it pending); a SECOND Allow surfaces the typed
+  "Already handled on the desktop." banner with NO new wire call (count stayed 3). The recorded
+  repro's AskUserQuestion leg could not be re-armed on this round's rig (the question card
+  de-arms after re-subscribes — the pass-4 "rig choreography" class); the composer-send route
+  exercises the SAME eviction mechanism (tail-window rows-append).
+  **T3 PROVEN**: landscape (2072×1080) with the question card pinned: timeline 133px (≈ the
+  48dp floor; pre-fix: ZERO) + the card as its scrollable sliver + the composer fully painted
+  in-window — PIXELS (`/tmp/t3-card-landscape.png`, sha256 8cb46e5f373fbd4a…), while the AX dump
+  still reports the send at (2022..2072) = the known AX-vs-paint capture artifact (the pass-4
+  X-bounds "clip" line was this artifact class; Robolectric never reproduced it either).
+- **New build:** versionCode 41 / versionName 1.2.0 (`2a9974e`) — debug
+  `app-debug.apk` 54,622,244 B (sha256 aeb4d2cec3ad510d…), release `app-release.apk`
+  27,830,920 B (sha256 80f270709ee072f6…) — install DEBUG for rig walks; the release build is
+  the publishable artifact. NOT pushed anywhere (no remote); publishing is Ernest's call.
+- Recorded-not-fixed (unchanged scope): the no-card landscape timeline squeeze (U1 panel budget
+  × landscape — the vc32/M2 class), the Tasks screen not scrolling in landscape (observed this
+  round; pre-existing, unfiled), the question-card rig arming fragility.
