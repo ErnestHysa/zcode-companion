@@ -299,7 +299,20 @@ fun ConversationScreen(
                 // Everything the chrome, the composer and the timeline floor do not need,
                 // and never less than a screen share — Allow/Submit stay on screen on a
                 // phone; a taller card scrolls inside.
-                val pinnedBudget = maxOf(available * PINNED_BUDGET_FRACTION, available - PINNED_RESERVE)
+                // T3 (verification pass 4): SHORT-HEIGHT windows (landscape phones
+                // ≈ 250-350dp of content) invert the priority. There the FIXED chrome
+                // (header intrinsics + intrinsic composer) alone can consume the window:
+                // the budgeted card still starved the weighted timeline to ZERO and the
+                // composer clipped. Short-height mode yields the card's minimum FIRST —
+                // it keeps a scrollable sliver (answer controls stay reachable inside its
+                // own scroll) while the composer keeps its intrinsic size and the
+                // timeline keeps a real 48dp floor (the measured-geometry maximum).
+                val pinnedBudget =
+                    if (available < SHORT_HEIGHT_THRESHOLD) {
+                        (available - SHORT_HEIGHT_RESERVE).coerceAtLeast(SHORT_HEIGHT_CARD_MIN)
+                    } else {
+                        maxOf(available * PINNED_BUDGET_FRACTION, available - PINNED_RESERVE)
+                    }
                 Column(
                     Modifier
                         .fillMaxWidth()
@@ -1087,3 +1100,17 @@ private const val PINNED_BUDGET_FRACTION = 0.30f
 
 /** U8: the pinned stack keeps everything above this reserve (chrome ≈ 190dp + composer ≈ 140dp + the 120dp timeline floor). */
 private val PINNED_RESERVE = 450.dp
+
+/** T3: below this content height (landscape phones ≈ 250-350dp) the pinned budget switches to short-height mode. */
+private val SHORT_HEIGHT_THRESHOLD = 480.dp
+
+/**
+ * T3: short-height reserve — the measured fixed chrome (header intrinsics 135dp +
+ * intrinsic composer 140dp = 275dp; the context panels already yield while a card
+ * is open) + the short-height timeline floor (48dp — the portrait 120dp floor is
+ * arithmetically impossible beside 275dp of chrome in a ~347dp landscape window).
+ */
+private val SHORT_HEIGHT_RESERVE = 323.dp
+
+/** T3: the card never disappears — a scrollable sliver keeps its answer controls reachable. */
+private val SHORT_HEIGHT_CARD_MIN = 24.dp
