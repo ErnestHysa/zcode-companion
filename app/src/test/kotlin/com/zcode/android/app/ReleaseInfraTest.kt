@@ -36,4 +36,27 @@ class ReleaseInfraTest {
         val rules = File(root, "app/proguard-rules.pro").readText()
         assertTrue("kotlinx-serialization keep rules (the wire models)", "serializer(" in rules && "-keep,includedescriptorclasses" in rules)
     }
+
+    /**
+     * F-CRASH (field 2026-10-25, live-reproduced on the upgrade rig): the protobuf
+     * runtime builds each message's schema by reflecting the message's DECLARED
+     * FIELD NAMES (`MessageSchema` → `getDeclaredField("schemaVersion_")` …). R8
+     * renames those fields, so the FIRST parse of a stored proto file crashes the
+     * app at launch — invisible to every fresh install (nothing to parse), biting
+     * only devices UPGRADED from an older build with data on disk (the field
+     * report: 1.0.x → 1.2.0 over a stored credential envelope). The rules must
+     * keep the protobuf runtime and every generated message's fields, verbatim.
+     */
+    @Test
+    fun `protobuf keep rules survive R8 - stored envelopes parse on upgrade (F-CRASH)`() {
+        val rules = File(root, "app/proguard-rules.pro").readText()
+        assertTrue(
+            "the protobuf runtime must be kept whole (its schema machinery reflects by name)",
+            Regex("""-keep\s+class\s+com\.google\.protobuf\.\*\*\s*\{\s*\*;\s*\}""").containsMatchIn(rules),
+        )
+        assertTrue(
+            "generated message fields must keep their names (schemaVersion_, entries, …)",
+            Regex("""-keepclassmembers\s+class\s+\*\s+extends\s+com\.google\.protobuf\.GeneratedMessageLite\s*\{\s*<fields>;\s*\}""").containsMatchIn(rules),
+        )
+    }
 }
