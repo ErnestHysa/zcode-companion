@@ -48,6 +48,15 @@ internal fun android.app.Activity.updateRecentsTaskLabel(label: String?) {
     setTaskDescription(android.app.ActivityManager.TaskDescription(label))
 }
 
+/**
+ * F-PERM (field 2026-10-25): the registry key for the camera-permission launcher.
+ * The legacy requestPermissions path validates the key's HASH against the 16-bit
+ * request-code contract; Compose-generated slot keys overflowed it, crashing every
+ * fresh install at the camera prompt (release + debug, both devices). Any
+ * two-character alphanumeric key hashes inside the contract — "zx" → 3902.
+ */
+internal const val CAMERA_PERMISSION_REGISTRY_KEY = "zx"
+
 class MainActivity : FragmentActivity() {
 
     // internal: the instrumented suites assert wiring state directly (no product surface).
@@ -249,10 +258,18 @@ class MainActivity : FragmentActivity() {
             )
         }
         val state by pairingVm.state.collectAsState()
-        val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { g ->
-            granted = g
-            pairingVm.dispatch(if (g) PairingFlow.Event.CameraPermissionGranted else PairingFlow.Event.CameraPermissionDenied)
+        // F-PERM: stable, 16-bit-safe registry key (see CAMERA_PERMISSION_REGISTRY_KEY).
+        val registry = androidx.activity.compose.LocalActivityResultRegistryOwner.current!!.activityResultRegistry
+        val launcher = remember(registry) {
+            registry.register(
+                CAMERA_PERMISSION_REGISTRY_KEY,
+                ActivityResultContracts.RequestPermission(),
+            ) { g ->
+                granted = g
+                pairingVm.dispatch(if (g) PairingFlow.Event.CameraPermissionGranted else PairingFlow.Event.CameraPermissionDenied)
+            }
         }
+        androidx.compose.runtime.DisposableEffect(launcher) { onDispose { launcher.unregister() } }
         LaunchedEffect(Unit) {
             if (granted) {
                 pairingVm.dispatch(PairingFlow.Event.CameraPermissionGranted)
