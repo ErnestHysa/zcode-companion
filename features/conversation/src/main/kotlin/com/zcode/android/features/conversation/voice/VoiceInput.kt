@@ -6,6 +6,9 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+
 /**
  * §43.2-11.5 voice input EXPERIMENT (community ask #305 — dictation into the
  * composer). Deliberately the smallest possible surface: platform
@@ -22,7 +25,9 @@ interface VoiceInputPort {
     /** Platform availability (device + recognition service). */
     val available: Boolean
 
-    /** True between start() and a terminal callback. */
+    /** True between start() and a terminal callback. MUST be observable state
+     *  (Compose state) — the composer's tint and "Listening…" label read it in
+     *  composition (B2.2: a plain getter recomposed nothing). */
     val listening: Boolean
 
     fun start(onPartial: (String) -> Unit, onFinal: (String) -> Unit, onError: (Int) -> Unit)
@@ -44,13 +49,15 @@ class PlatformVoiceInput(private val context: android.content.Context) : VoiceIn
 
     private var recognizer: SpeechRecognizer? = null
 
-    override val listening: Boolean
-        get() = recognizer != null
+    // B2.2: observable state — the affordance recomposes on start/teardown.
+    override var listening: Boolean by androidx.compose.runtime.mutableStateOf(false)
+        private set
 
     override fun start(onPartial: (String) -> Unit, onFinal: (String) -> Unit, onError: (Int) -> Unit) {
         if (!available || recognizer != null) return
         val rec = runCatching { SpeechRecognizer.createSpeechRecognizer(context) }.getOrNull() ?: return
         recognizer = rec
+        listening = true
         rec.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) = Unit
             override fun onBeginningOfSpeech() = Unit
@@ -90,5 +97,6 @@ class PlatformVoiceInput(private val context: android.content.Context) : VoiceIn
     private fun teardown() {
         runCatching { recognizer?.destroy() }
         recognizer = null
+        listening = false
     }
 }

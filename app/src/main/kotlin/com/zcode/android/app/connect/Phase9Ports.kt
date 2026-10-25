@@ -1,5 +1,6 @@
 package com.zcode.android.app.connect
 
+import kotlinx.serialization.json.JsonObject
 import com.zcode.android.core.transport.RelayTransport
 import com.zcode.android.data.session.Phase9Tools
 import com.zcode.android.data.session.TerminalController
@@ -87,9 +88,29 @@ class DefaultTerminalPort(
         return mapState(controller.attach())
     }
 
-    override fun detach() = controller.detach()
+    override fun detach() {
+        controller.disarm() // ADR-022: detach disarms
+        controller.detach()
+    }
 
     override fun search(query: String): List<Int> = controller.search(query)
+
+    // ---------------------------------------------------------------- ADR-022 (Phase 5D): input
+
+    override val inputOptIn: StateFlow<Boolean> get() = controller.inputOptIn
+    override val armed: StateFlow<Boolean> get() = controller.armed
+
+    /**
+     * Layer 3: the SECOND opt-in — the credential result (`granted`) gates the flip;
+     * a refused/cancelled prompt leaves it OFF. Turning it off never prompts.
+     */
+    override suspend fun setInputOptIn(enabled: Boolean, granted: Boolean) {
+        if (enabled && !granted) return
+        controller.setInputOptIn(enabled)
+    }
+
+    override suspend fun arm() = controller.arm()
+    override fun disarm() = controller.disarm()
 }
 
 // ---------------------------------------------------------------- git (§9.4)
@@ -117,6 +138,97 @@ class DefaultGitPort(
     }
 
     override fun workspacePath(): String? = hub.activeWorkspaceTarget()?.first
+
+    // ---------------------------------------------------------------- Phase 5B (A3.11): checkpoints
+
+    /** The per-transport checkpoint client (the git-checkpoint channel trio). */
+    private fun checkpoints() = hub.checkpoints()
+
+    override suspend fun createCheckpoint(): com.zcode.android.domain.model.CheckpointMeta? {
+        val wp = workspacePath() ?: return null
+        return try {
+            com.zcode.android.domain.model.CheckpointMeta.decode(checkpoints().createCheckpoint(wp))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("gitport.checkpointCreate", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            null
+        }
+    }
+
+    override suspend fun diffCheckpoints(fromCheckpointId: String, toCheckpointId: String): com.zcode.android.domain.model.CheckpointDiff? {
+        val wp = workspacePath() ?: return null
+        return try {
+            com.zcode.android.domain.model.CheckpointDiff.decode(checkpoints().diffCheckpoints(wp, fromCheckpointId, toCheckpointId))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("gitport.checkpointDiff", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            null
+        }
+    }
+
+    override suspend fun restoreCheckpoints(fromCheckpointId: String, toCheckpointId: String, force: Boolean): com.zcode.android.domain.model.CheckpointRestore? {
+        val wp = workspacePath() ?: return null
+        return try {
+            com.zcode.android.domain.model.CheckpointRestore.decode(checkpoints().restoreBetweenCheckpoints(wp, fromCheckpointId, toCheckpointId, force))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("gitport.checkpointRestore", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            null
+        }
+    }
+
+    // ---------------------------------------------------------------- Phase 5D (ADR-021): the write tier
+
+    private suspend fun <T> writeOp(tag: String, block: suspend (wp: String) -> T): T? {
+        val wp = workspacePath() ?: return null
+        return try {
+            block(wp)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("gitport.$tag", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            null
+        }
+    }
+
+    override suspend fun stagePaths(paths: List<String>): Boolean =
+        writeOp("stage") { hub.activeTransport().gitStagePaths(it, paths); true } ?: false
+
+    override suspend fun unstagePaths(paths: List<String>): Boolean =
+        writeOp("unstage") { hub.activeTransport().gitUnstagePaths(it, paths); true } ?: false
+
+    override suspend fun discardPaths(paths: List<String>, staged: Boolean): Boolean =
+        writeOp("discard") { hub.activeTransport().gitDiscardPaths(it, paths, staged); true } ?: false
+
+    override suspend fun commit(message: String, stagedOnly: Boolean): com.zcode.android.domain.model.GitCommitResult? =
+        writeOp("commit") { com.zcode.android.domain.model.GitCommitResult.decode(hub.activeTransport().gitCommit(it, message, null, stagedOnly)) }
+
+    override suspend fun generateCommitMessage(includeUnstaged: Boolean): String? =
+        writeOp("genCommit") { o ->
+            val obj = hub.activeTransport().gitGenerateCommitMessage(o, includeUnstaged)
+            obj.rpStr("message") ?: obj.rpStr("commitMessage")
+        }
+
+    override suspend fun push(): com.zcode.android.domain.model.GitPushResult? =
+        writeOp("push") { com.zcode.android.domain.model.GitPushResult.decode(hub.activeTransport().gitPush(it)) }
+
+    override suspend fun switchBranch(targetBranchName: String): com.zcode.android.domain.model.GitBranchResult? =
+        writeOp("switchBranch") { com.zcode.android.domain.model.GitBranchResult.decode(hub.activeTransport().gitSwitchBranch(it, targetBranchName)) }
+
+    override suspend fun createBranchAndSwitch(branchName: String): com.zcode.android.domain.model.GitBranchResult? =
+        writeOp("createBranch") { com.zcode.android.domain.model.GitBranchResult.decode(hub.activeTransport().gitCreateBranchAndSwitch(it, branchName, null)) }
+
+    override suspend fun localBranches(): com.zcode.android.domain.model.GitBranchList? =
+        writeOp("branches") { com.zcode.android.domain.model.GitBranchList.decode(hub.activeTransport().gitLocalBranches(it)) }
+
+    override suspend fun identity(): com.zcode.android.domain.model.GitIdentity? =
+        writeOp("identity") { com.zcode.android.domain.model.GitIdentity.decode(hub.activeTransport().gitIdentity(it)) }
+
+    private fun JsonObject.rpStr(key: String): String? =
+        (this[key] as? kotlinx.serialization.json.JsonPrimitive)?.takeIf { it !is kotlinx.serialization.json.JsonNull }?.content?.takeIf { it.isNotBlank() }
 
     /** Channel-refusal wrapper: ANY failure → null (the §13.3 disabled state). */
     private suspend fun <T> run(op: String, block: suspend (Phase9Tools, String, String?) -> T): T? {
@@ -151,6 +263,19 @@ class DefaultFilesPort(
         run("files.readText") { tools ->
             FilesPort.TextResult(tools.fileText(path, offset, length), null)
         } ?: FilesPort.TextResult(null, "file read unavailable on this connection")
+
+    override suspend fun binaryPreview(path: String, maxBytes: Long): FilesPort.BinaryPreviewResult =
+        run("files.binaryPreview") { tools ->
+            val o = tools.fileBinaryPreview(path, maxBytes)
+            fun str(k: String): String? = (o[k] as? kotlinx.serialization.json.JsonPrimitive)?.takeIf { it.isString }?.content
+            val b64 = str("dataBase64")
+            FilesPort.BinaryPreviewResult(
+                bytes = b64?.let { java.util.Base64.getDecoder().decode(it) },
+                mediaType = str("mediaType"),
+                totalBytes = (o["totalBytes"] as? kotlinx.serialization.json.JsonPrimitive)?.content?.toLongOrNull(),
+                error = null,
+            )
+        } ?: FilesPort.BinaryPreviewResult(null, null, null, "preview unavailable on this connection")
 
     override suspend fun download(path: String, maxBytes: Long): FilesPort.DownloadResult {
         val tools = hub.phase9()

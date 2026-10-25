@@ -45,4 +45,61 @@ interface TasksPort {
         provider: String? = null,
         model: String? = null,
     ): Boolean
+
+    /**
+     * Phase 4C (C7): `createScratchWorkspace` on the shipped facade (`{name}` →
+     * `{path}`) — the phone could never START a scratch workspace. Null = refused
+     * or unavailable (the sheet keeps the regular picker).
+     */
+    suspend fun createScratchWorkspace(name: String): String? = null
+
+    // ---------------------------------------------------------------- Phase 4D (L6.3+J4 / H1.1)
+
+    /**
+     * The task lifecycle on the `zcode-task` channel (shipped 3.14.5 facade): delete
+     * ("records cannot be recovered" — a typed confirm precedes), rename, and
+     * archive/unarchive ("can be restored later"). Null/false results are honest
+     * refusals; the UI toasts and refreshes, never guesses.
+     */
+    suspend fun deleteTask(taskId: String): Boolean = false
+    suspend fun renameTask(taskId: String, title: String): Boolean = false
+    suspend fun setTaskArchived(taskId: String, archived: Boolean): Boolean = false
+
+    /** H1.1: the desktop's full-text task search (listTaskList; snippets included). */
+    suspend fun searchTasks(query: String): List<TaskSearchHit> = emptyList()
+
+    // ---------------------------------------------------------------- Phase 5A (A3.8–A3.10)
+
+    /** `setTaskPinned` — the pinned section is a wire fact; false = refused. */
+    suspend fun setTaskPinned(taskId: String, pinned: Boolean): Boolean = false
+
+    /** `setTaskUnread` — mark-read passes the row's `unreadAt` as `expectedUnreadAt` (CAS-style). */
+    suspend fun setTaskUnread(taskId: String, unread: Boolean, expectedUnreadAt: Long? = null): Boolean = false
+
+    /** `resumeTask` — re-open a finished task's session (the desktop's "continue"). */
+    suspend fun resumeTask(taskId: String): Boolean = false
+
+    /** `listArchivedTasks` — null = unavailable (the viewer renders its error face). */
+    suspend fun listArchivedTasks(): List<com.zcode.android.domain.model.TaskMeta>? = null
+
+    /** `deleteArchivedTask` — permanent ("records cannot be recovered"); a confirm precedes. */
+    suspend fun deleteArchivedTask(taskId: String): Boolean = false
+
+    /** `listGroupedTaskViewStructure` — null = unavailable (plain workspace sections). */
+    suspend fun listGroupedView(): List<com.zcode.android.domain.model.GroupedTaskNode>? = null
+
+    suspend fun createTaskGroup(title: String, color: com.zcode.android.domain.model.TaskGroupColor): com.zcode.android.domain.model.TaskGroupInfo? = null
+    suspend fun renameTaskGroup(groupId: String, title: String): Boolean = false
+    suspend fun updateTaskGroupColor(groupId: String, color: com.zcode.android.domain.model.TaskGroupColor): Boolean = false
+    suspend fun deleteTaskGroup(groupId: String): Boolean = false
+
+    /**
+     * Move one task into a group (null = out of every group) — a read-modify-write of
+     * `applyGroupedTaskViewOrder` over the current structure (the host refuses pinned/
+     * archived members; the port surfaces that as false).
+     */
+    suspend fun moveTaskToGroup(taskId: String, groupId: String?): Boolean = false
 }
+
+/** A `listTaskList` hit — the snippet is the desktop's searchable_text projection. */
+data class TaskSearchHit(val taskId: String, val title: String, val snippet: String?)

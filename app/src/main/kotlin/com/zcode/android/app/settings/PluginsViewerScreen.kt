@@ -14,9 +14,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -41,6 +41,15 @@ import androidx.compose.ui.unit.dp
 import com.zcode.android.app.R
 import com.zcode.android.domain.model.PluginsView
 import kotlinx.coroutines.launch
+import com.zcode.android.core.ui.components.ZCodeButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import com.zcode.android.core.ui.components.ZCodeTopBar
+import com.zcode.android.core.ui.components.rememberZCodeTopBarScroll
+import com.zcode.android.core.ui.components.EmptyState
+import com.zcode.android.core.ui.components.ErrorState
+import com.zcode.android.core.ui.components.LoadingSkeleton
+import com.zcode.android.core.ui.components.friendlyFaultMessage
 
 /**
  * GAP-7 (android-native-gaps.md; docs/protocol/v4-wire.md §12.3) — the
@@ -56,6 +65,13 @@ interface PluginsPort {
     data class Result(val view: PluginsView?, val error: String?)
 
     suspend fun plugins(): Result
+
+    /**
+     * ADR-023 (Phase 5D, A3.19): the ONE sanctioned plugin write — enable/disable an
+     * ALREADY-installed plugin. `false` = refused (the viewer re-lists from the wire and
+     * keeps the rendered state wire-true; no optimistic flip).
+     */
+    suspend fun setEnabled(pluginId: String, enabled: Boolean): Boolean = false
 }
 
 @Composable
@@ -70,61 +86,52 @@ fun PluginsViewerScreen(
 
     LaunchedEffect(port) { scope.launch { result = port.plugins(); loading = false } }
 
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    val topBarScroll = rememberZCodeTopBarScroll()
+    Scaffold(
+        modifier = modifier.fillMaxSize().nestedScroll(topBarScroll.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            ZCodeTopBar(
+                title = stringResource(R.string.plugins_title),
+                onBack = onBack,
+                backTestTag = "plugins_back",
+                scrollBehavior = topBarScroll,
+            )
+        },
+    ) { inner ->
+        var refreshing by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+            isRefreshing = refreshing,
+            onRefresh = {
+                scope.launch {
+                    refreshing = true
+                    result = port.plugins()
+                    refreshing = false
+                }
+            },
+            modifier = Modifier.padding(inner).testTag("plugins_pull"),
+        ) {
         Column(
             Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
+                .fillMaxSize(),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack, modifier = Modifier.testTag("plugins_back")) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(com.zcode.android.core.ui.R.string.action_back),
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-                Text(
-                    stringResource(R.string.plugins_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onBackground,
-                )
-            }
             when {
-                loading && result == null -> Column(Modifier.fillMaxSize().padding(16.dp)) {
-                    Text(
-                        stringResource(R.string.plugins_loading),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.testTag("plugins_loading"),
-                    )
-                }
-                result?.error != null -> Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        stringResource(R.string.plugins_unavailable),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.error,
+                loading && result == null ->
+                    LoadingSkeleton(Modifier.fillMaxSize().testTag("plugins_loading"), rows = 4)
+                result?.error != null ->
+                    ErrorState(
+                        title = stringResource(R.string.plugins_unavailable),
+                        message = friendlyFaultMessage(result?.error),
                         modifier = Modifier.testTag("plugins_error"),
+                        onRetry = { loading = true; scope.launch { result = port.plugins(); loading = false } },
                     )
-                    Text(
-                        result?.error ?: "",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Button(onClick = { loading = true; scope.launch { result = port.plugins(); loading = false } }) {
-                        Text(stringResource(R.string.plugins_retry))
-                    }
-                }
-                result?.view?.plugins?.isEmpty() == true -> Column(Modifier.fillMaxSize().padding(16.dp)) {
-                    Text(
-                        stringResource(R.string.plugins_empty),
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.testTag("plugins_empty"),
-                    )
-                }
+                result?.view?.plugins?.isEmpty() == true ->
+                    EmptyState(title = stringResource(R.string.plugins_empty), modifier = Modifier.fillMaxSize().testTag("plugins_empty"))
                 else -> {
                     val view = result?.view ?: return@Column
+                    val notifier = com.zcode.android.core.ui.components.LocalNotifier.current
+                    val toggleFailedCopy = stringResource(R.string.plugin_toggle_failed)
+                    var busyIds by remember { mutableStateOf<Set<String>>(emptySet()) }
                     LazyColumn(
                         Modifier
                             .fillMaxSize()
@@ -132,17 +139,46 @@ fun PluginsViewerScreen(
                             .testTag("plugins_list"),
                     ) {
                         items(view.plugins, key = { it.id }) { plugin ->
-                            PluginLine(plugin)
+                            // ADR-023: the enable Switch rides the sanctioned word; the
+                            // ack drives a RE-LIST (wire-true, no optimistic flip), a second
+                            // tap while busy is dropped (B2.11).
+                            PluginLine(
+                                plugin,
+                                busy = plugin.id in busyIds,
+                                onToggle = { enabled ->
+                                    if (plugin.id in busyIds) return@PluginLine
+                                    busyIds = busyIds + plugin.id
+                                    scope.launch {
+                                        try {
+                                            val ok = port.setEnabled(plugin.id, enabled)
+                                            if (!ok) notifier.show(toggleFailedCopy, long = true)
+                                            result = port.plugins()
+                                        } finally {
+                                            busyIds = busyIds - plugin.id
+                                        }
+                                    }
+                                },
+                            )
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                         }
                         view.diagnostics.forEach { diag ->
                             item(key = diag.code + diag.pluginId) {
-                                Text(
-                                    "⚠ ${diag.code} — ${diag.message}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.padding(vertical = 6.dp).testTag("plugin_diag_${diag.code}"),
-                                )
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Warning,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(end = 6.dp),
+                                    )
+                                    Text(
+                                        "${diag.code} — ${diag.message}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
                             }
                         }
                         item { Spacer(Modifier.height(24.dp)) }
@@ -150,11 +186,12 @@ fun PluginsViewerScreen(
                 }
             }
         }
+        }
     }
 }
 
 @Composable
-private fun PluginLine(plugin: PluginsView.PluginInfo) {
+private fun PluginLine(plugin: PluginsView.PluginInfo, busy: Boolean = false, onToggle: ((Boolean) -> Unit)? = null) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -179,30 +216,39 @@ private fun PluginLine(plugin: PluginsView.PluginInfo) {
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+            // M5.5: the desktop filesystem path FRAGMENT no longer leaks as metadata
+            // (INV-16: paths are the desktop's, not display copy).
             Text(
-                plugin.marketplace + " · " + plugin.rootPath.substringAfterLast('/'),
+                plugin.marketplace,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        // Display-only state chip (§13.3 "enable/disable state DISPLAY") — the
-        // onClick is a no-op and no enabled-write method exists anywhere.
-        AssistChip(
-            onClick = {},
-            enabled = false,
-            label = {
-                Text(
-                    stringResource(if (plugin.enabled) R.string.plugin_on else R.string.plugin_off),
-                    style = MaterialTheme.typography.labelSmall,
-                )
-            },
-            colors = AssistChipDefaults.assistChipColors(
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                disabledLabelColor = if (plugin.enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-            ),
-            modifier = Modifier.testTag("plugin_state_${plugin.id}"),
-        )
+        // ADR-023: the badge keeps the state summary; the Switch is the sanctioned
+        // enable affordance (the ack drives the re-list — wire-true, no optimistic flip).
+        onToggle?.let { toggle ->
+            androidx.compose.material3.Switch(
+                checked = plugin.enabled,
+                onCheckedChange = toggle,
+                enabled = !busy,
+                modifier = Modifier
+                    .padding(start = 8.dp)
+                    .testTag("plugin_switch_${plugin.id}"),
+            )
+        }
+        Surface(
+            shape = MaterialTheme.shapes.small,
+            color = if (plugin.enabled) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+            modifier = Modifier.testTag("plugin_state_badge"),
+        ) {
+            Text(
+                stringResource(if (plugin.enabled) R.string.plugin_on else R.string.plugin_off),
+                style = MaterialTheme.typography.labelSmall,
+                color = if (plugin.enabled) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            )
+        }
     }
 }

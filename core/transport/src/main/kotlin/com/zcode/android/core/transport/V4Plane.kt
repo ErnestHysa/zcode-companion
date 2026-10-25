@@ -168,6 +168,43 @@ interface V4Plane {
     suspend fun runAutomationNow(workspacePath: String?, workspaceIdentity: String?, automationId: String): JsonObject
 
     /**
+     * Phase 4B (A3.2): the run-history trio on the shipped 3.14.5 facade (bundle offset
+     * ~348362: `listAutomationRuns(m){return o.listRuns(m.automationId,{workspacePath,
+     * workspaceIdentity})}` / `deleteAutomationRun(m){o.deleteRun(m.runId,…)}` /
+     * `restartAutomation(m){o.restart(m.automationId,…)}`). listAutomationRuns returns a
+     * top-level ARRAY normalized to {runs:[…]} (the listAutomations precedent).
+     */
+    suspend fun listAutomationRuns(workspacePath: String?, workspaceIdentity: String?, automationId: String): JsonObject
+    suspend fun deleteAutomationRun(workspacePath: String?, workspaceIdentity: String?, runId: String)
+    suspend fun restartAutomation(workspacePath: String?, workspaceIdentity: String?, automationId: String)
+
+    /**
+     * Phase 4C (C2): the slash panel's extra sections over their own service channels
+     * (C1's unused-channel rows): `commands.list` → CommandsListResult and
+     * `subagents.list` → AgentsListResult. Both take the workspace-target form.
+     */
+    suspend fun commandsList(workspacePath: String?, workspaceIdentity: String?): JsonObject
+    suspend fun subagentsList(workspacePath: String?, workspaceIdentity: String?, provider: String?): JsonObject
+    /**
+     * Phase 4C (A3.4): the reasoning-effort facade call (zcodeAgent.ts:705) —
+     * `{sessionId, thoughtLevel, expectedRevision, persistAsWorkspaceLastUsed}`.
+     * Returns the session snapshot (tolerant: the §10.3 `config` echo is the truth).
+     */
+    suspend fun setThoughtLevel(workspacePath: String?, workspaceIdentity: String?, sessionId: String, thoughtLevel: String, expectedRevision: Long?): JsonObject
+    /**
+     * Phase 4C (C7): the scratch-workspace facade call (shipped 3.14.5: params
+     * `{name}` → `{path}` — desktop-local; NO workspace target keys, the strict
+     * create-params schema would refuse them).
+     */
+    suspend fun createScratchWorkspace(name: String): JsonObject
+    /**
+     * Generic service-channel call (terminal/git/file/model-selection — phase9-channels.md).
+     * Same error mapping as v4Call; a channel REFUSAL is a server-spoke rejection the
+     * feature layers translate into their §13.3 disabled state.
+     */
+    suspend fun channelCall(channelName: String, method: String, arg: RpcValue, timeoutMs: Long): RpcValue
+
+    /**
      * GAP-6: the `off-peak-task` channel `list` read (offPeakTask.ts:41 — NO args,
      * Arr([]) like model-selection.getView). Result normalized to {tasks:[…]}.
      */
@@ -230,18 +267,46 @@ interface V4Plane {
     ): JsonObject
     suspend fun codingPlanResetHistoryRead(preferredProviderId: String, accountAccess: JsonObject)
 
-    // terminal (view-only — INV-9)
+    // terminal (view-only — INV-9 EXCEPT the ADR-022 armed write tier)
     suspend fun terminalCreate(cols: Int, rows: Int, cwd: String? = null): JsonObject
     suspend fun terminalDispose(id: String)
+
+    /**
+     * ADR-022 (Phase 5D, A3.18): the armed write tier — `write {id, data}` /
+     * `resize {id, cols, rows}` (host/index.js ≈250695 createTerminalService). The typed
+     * gate is the CONTROLLER's arm (check{} above): the plane methods are reachable only
+     * through the armed composer (pinned: zero calls while disarmed).
+     */
+    suspend fun terminalWrite(id: String, data: String)
+    suspend fun terminalResize(id: String, cols: Int, rows: Int)
     fun terminalListenData(id: String, handler: (String) -> Unit): Int
     fun terminalListenExit(id: String, handler: (Int?) -> Unit): Int
     fun disposeListener(listenerId: Int)
 
-    // git (read-only subset)
+    // git (read-only subset + the ADR-021 write tier — the ONLY sanctioned git mutations)
     suspend fun gitRepositorySummary(workspacePath: String): JsonObject
     suspend fun gitChanges(workspacePath: String, sourceId: String): JsonObject
     suspend fun gitDiff(workspacePath: String, path: String, staged: Boolean?): JsonObject
     suspend fun gitCommitGraph(workspacePath: String, maxCount: Int, skip: Int): JsonObject
+
+    /**
+     * ADR-021 (gaps-and-polish Phase 5D, A3.17+J1.3): the git write tier — stage/unstage
+     * (reversible, one tap), commit/push/switch/createBranchAndSwitch (dialog-gated),
+     * discardPaths (Tier C: the DESTRUCTIVE worktree write, typed-confirm DISCARD).
+     * Shapes bundle-extracted (host/index.js ≈200265–202500); the branch result carries
+     * the typed issue map (`issues:[{code: kebab-case, message, detail?, paths?}]`).
+     * NEVER ported: pull/fetch/force-push/rebase/merge/reset/stash/identity-mutation.
+     */
+    suspend fun gitStagePaths(workspacePath: String, paths: List<String>)
+    suspend fun gitUnstagePaths(workspacePath: String, paths: List<String>)
+    suspend fun gitDiscardPaths(workspacePath: String, paths: List<String>, staged: Boolean)
+    suspend fun gitCommit(workspacePath: String, message: String, paths: List<String>?, stagedOnly: Boolean): JsonObject
+    suspend fun gitGenerateCommitMessage(workspacePath: String, includeUnstaged: Boolean): JsonObject
+    suspend fun gitPush(workspacePath: String): JsonObject
+    suspend fun gitSwitchBranch(workspacePath: String, targetBranchName: String): JsonObject
+    suspend fun gitCreateBranchAndSwitch(workspacePath: String, branchName: String, startPoint: String?): JsonObject
+    suspend fun gitLocalBranches(workspacePath: String): JsonObject
+    suspend fun gitIdentity(workspacePath: String): JsonObject
 
     // file (read-only subset)
     suspend fun fileReaddir(path: String, includeHidden: Boolean = false): RpcValue
@@ -253,6 +318,26 @@ interface V4Plane {
 
     // model-selection (read-only view)
     suspend fun modelSelectionView(): JsonObject
+
+    /**
+     * ADR-024 (gaps-and-polish Phase 5D, A3.20): the hooks-trust grant (host/index.js
+     * ≈340201 → `workspaceHookTrustGrant`). Reachable ONLY from the review card's
+     * confirmed path (the ADR's §26 T25 gates); never a free-form digest entry UI.
+     */
+    suspend fun grantWorkspaceHookTrust(workspacePath: String?, workspaceIdentity: String?, bundleDigest: String, hookDeclarationDigest: String): JsonObject
+
+    /**
+     * ADR-023 (gaps-and-polish Phase 5D, A3.19): the ONE sanctioned plugin write —
+     * `setPluginEnabled {workspacePath, workspaceIdentity, pluginId, enabled, operationId?,
+     * scope?}` (host/index.js ≈346624 → the CLI `plugins/setEnabled` word).
+     * install/uninstall/update/configure stay desktop-only per the ADR (T24).
+     */
+    suspend fun setPluginEnabled(workspacePath: String?, workspaceIdentity: String?, pluginId: String, enabled: Boolean): JsonObject
+
+    // C7 (Phase 3C): task-plane tool-output slice. The 3.14.5.7961 facade body is a
+    // `return null` stub — a null result is DISTINCT here (the caller falls back to the
+    // row's retained payload), so this returns JsonObject?, never throws on null.
+    suspend fun taskSnapshotToolCallsSlice(taskId: String, toolCallIds: List<String>): JsonObject?
 }
 
 /** Transport + v4 plane — what the data/app layers consume (INV-2/INV-6). */
@@ -905,6 +990,89 @@ internal class ChannelV4Plane(
             ?: throw TransportFailure(ErrorMapping.protocolFault("runAutomationNow result not an object"))
     }
 
+    // ---- Phase 4B (A3.2): run history — ZCodeAgentAutomationIdParams / DeleteAutomationRunParams.
+
+    suspend fun listAutomationRuns(workspacePath: String?, workspaceIdentity: String?, automationId: String): JsonObject {
+        val target = host.workspaceTarget()
+        val params = buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+            (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("automationId", JsonPrimitive(automationId))
+        }
+        return v4CallArrayNormalized("listAutomationRuns", params, "runs")
+    }
+
+    suspend fun deleteAutomationRun(workspacePath: String?, workspaceIdentity: String?, runId: String) {
+        val target = host.workspaceTarget()
+        v4Call(
+            "deleteAutomationRun",
+            RpcValue.Obj(buildJsonObject {
+                put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+                (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+                put("runId", JsonPrimitive(runId))
+            }),
+        )
+    }
+
+    suspend fun restartAutomation(workspacePath: String?, workspaceIdentity: String?, automationId: String) {
+        val target = host.workspaceTarget()
+        v4Call(
+            "restartAutomation",
+            RpcValue.Obj(buildJsonObject {
+                put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+                (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+                put("automationId", JsonPrimitive(automationId))
+            }),
+        )
+    }
+
+    suspend fun commandsList(workspacePath: String?, workspaceIdentity: String?): JsonObject {
+        val target = host.workspaceTarget()
+        return when (val raw = channelCall("commands", "list", RpcValue.Arr(listOf(RpcValue.Obj(buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+            (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+        }))), timeouts.v4CallTimeoutMs)) {
+            is RpcValue.Obj -> raw.json as JsonObject
+            is RpcValue.Arr -> buildJsonObject { put("commands", JsonArray(raw.items.map { (it as? RpcValue.Obj)?.json as? JsonObject ?: JsonObject(emptyMap()) })) }
+            else -> throw TransportFailure(ErrorMapping.protocolFault("commands.list result not an object"))
+        }
+    }
+
+    suspend fun subagentsList(workspacePath: String?, workspaceIdentity: String?, provider: String?): JsonObject {
+        val target = host.workspaceTarget()
+        return when (val raw = channelCall("subagents", "list", RpcValue.Arr(listOf(RpcValue.Obj(buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+            (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            provider?.let { put("provider", JsonPrimitive(it)) }
+        }))), timeouts.v4CallTimeoutMs)) {
+            is RpcValue.Obj -> raw.json as JsonObject
+            is RpcValue.Arr -> buildJsonObject { put("agents", JsonArray(raw.items.map { (it as? RpcValue.Obj)?.json as? JsonObject ?: JsonObject(emptyMap()) })) }
+            else -> throw TransportFailure(ErrorMapping.protocolFault("subagents.list result not an object"))
+        }
+    }
+
+    suspend fun setThoughtLevel(workspacePath: String?, workspaceIdentity: String?, sessionId: String, thoughtLevel: String, expectedRevision: Long?): JsonObject {
+        val target = host.workspaceTarget()
+        val raw = v4Call("setThoughtLevel", RpcValue.Obj(buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+            (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("sessionId", JsonPrimitive(sessionId))
+            put("thoughtLevel", JsonPrimitive(thoughtLevel))
+            expectedRevision?.let { put("expectedRevision", JsonPrimitive(it)) }
+            put("persistAsWorkspaceLastUsed", JsonPrimitive(true))
+        }))
+        return ((raw as? RpcValue.Obj)?.json as? kotlinx.serialization.json.JsonObject)
+            ?: throw TransportFailure(ErrorMapping.protocolFault("setThoughtLevel result not an object"))
+    }
+
+    suspend fun createScratchWorkspace(name: String): JsonObject {
+        val raw = v4Call("createScratchWorkspace", RpcValue.Obj(buildJsonObject {
+            put("name", JsonPrimitive(name))
+        }))
+        return ((raw as? RpcValue.Obj)?.json as? kotlinx.serialization.json.JsonObject)
+            ?: throw TransportFailure(ErrorMapping.protocolFault("createScratchWorkspace result not an object"))
+    }
+
     suspend fun offPeakTaskList(): JsonObject =
         when (val raw = channelCall("off-peak-task", "list", RpcValue.Arr(emptyList()), timeouts.controlRequestTimeoutMs)) {
             is RpcValue.Arr -> buildJsonObject {
@@ -924,6 +1092,28 @@ internal class ChannelV4Plane(
             (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
         }
         return v4CallObject("listPlugins", params)
+    }
+
+    suspend fun grantWorkspaceHookTrust(workspacePath: String?, workspaceIdentity: String?, bundleDigest: String, hookDeclarationDigest: String): JsonObject {
+        val target = host.workspaceTarget()
+        val params = buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+            (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("bundleDigest", JsonPrimitive(bundleDigest))
+            put("hookDeclarationDigest", JsonPrimitive(hookDeclarationDigest))
+        }
+        return v4CallObject("grantWorkspaceHookTrust", params)
+    }
+
+    suspend fun setPluginEnabled(workspacePath: String?, workspaceIdentity: String?, pluginId: String, enabled: Boolean): JsonObject {
+        val target = host.workspaceTarget()
+        val params = buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+            (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("pluginId", JsonPrimitive(pluginId))
+            put("enabled", JsonPrimitive(enabled))
+        }
+        return v4CallObject("setPluginEnabled", params)
     }
 
     suspend fun skillReferenceCatalog(
@@ -1026,6 +1216,71 @@ internal class ChannelV4Plane(
         )
     }
 
+    // ---- ADR-021 git write tier (channel `git`; the workspace target is the resolved one)
+    private suspend fun gitWrite(method: String, params: JsonObject): JsonObject =
+        when (val raw = channelCall("git", method, RpcValue.Arr(listOf(RpcValue.Obj(params))), 60_000)) {
+            is RpcValue.Obj -> raw.json as? JsonObject ?: JsonObject(emptyMap())
+            is RpcValue.Undefined, null -> JsonObject(emptyMap())
+            else -> throw TransportFailure(ErrorMapping.protocolFault("git.$method result not an object"))
+        }
+
+    suspend fun gitStagePaths(workspacePath: String, paths: List<String>) {
+        gitWrite("stagePaths", buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath)); put("paths", JsonArray(paths.map { JsonPrimitive(it) }))
+        })
+    }
+
+    suspend fun gitUnstagePaths(workspacePath: String, paths: List<String>) {
+        gitWrite("unstagePaths", buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath)); put("paths", JsonArray(paths.map { JsonPrimitive(it) }))
+        })
+    }
+
+    suspend fun gitDiscardPaths(workspacePath: String, paths: List<String>, staged: Boolean) {
+        gitWrite("discardPaths", buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath)); put("paths", JsonArray(paths.map { JsonPrimitive(it) }))
+            put("staged", JsonPrimitive(staged))
+        })
+    }
+
+    suspend fun gitCommit(workspacePath: String, message: String, paths: List<String>?, stagedOnly: Boolean): JsonObject =
+        gitWrite("commit", buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath)); put("message", JsonPrimitive(message))
+            paths?.let { put("paths", JsonArray(it.map { p -> JsonPrimitive(p) })) }
+            put("stagedOnly", JsonPrimitive(stagedOnly))
+        })
+
+    suspend fun gitGenerateCommitMessage(workspacePath: String, includeUnstaged: Boolean): JsonObject =
+        gitWrite("generateCommitMessage", buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath)); put("includeUnstaged", JsonPrimitive(includeUnstaged))
+        })
+
+    suspend fun gitPush(workspacePath: String): JsonObject =
+        gitWrite("push", buildJsonObject { put("workspacePath", JsonPrimitive(workspacePath)) })
+
+    suspend fun gitSwitchBranch(workspacePath: String, targetBranchName: String): JsonObject =
+        gitWrite("switchBranch", buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath)); put("targetBranchName", JsonPrimitive(targetBranchName))
+        })
+
+    suspend fun gitCreateBranchAndSwitch(workspacePath: String, branchName: String, startPoint: String?): JsonObject =
+        gitWrite("createBranchAndSwitch", buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath)); put("branchName", JsonPrimitive(branchName))
+            startPoint?.let { put("startPoint", JsonPrimitive(it)) }
+        })
+
+    suspend fun gitLocalBranches(workspacePath: String): JsonObject =
+        when (val raw = channelCall("git", "getLocalBranches", RpcValue.Arr(listOf(RpcValue.Obj(buildJsonObject { put("workspacePath", JsonPrimitive(workspacePath)) }))), 30_000)) {
+            is RpcValue.Obj -> raw.json as? JsonObject ?: JsonObject(emptyMap())
+            else -> throw TransportFailure(ErrorMapping.protocolFault("git.getLocalBranches result not an object"))
+        }
+
+    suspend fun gitIdentity(workspacePath: String): JsonObject =
+        when (val raw = channelCall("git", "getIdentity", RpcValue.Arr(listOf(RpcValue.Obj(buildJsonObject { put("workspacePath", JsonPrimitive(workspacePath)) }))), 30_000)) {
+            is RpcValue.Obj -> raw.json as? JsonObject ?: JsonObject(emptyMap())
+            else -> throw TransportFailure(ErrorMapping.protocolFault("git.getIdentity result not an object"))
+        }
+
     // ---- terminal (view-only: create/dispose/data/exit ONLY — INV-9, phase9-channels.md §1)
 
     suspend fun terminalCreate(cols: Int, rows: Int, cwd: String?): JsonObject {
@@ -1037,6 +1292,18 @@ internal class ChannelV4Plane(
         val raw = channelCall("terminal", "create", RpcValue.Arr(listOf(RpcValue.Obj(params))), timeouts.authTimeoutMs)
         return (raw as? RpcValue.Obj)?.json as? JsonObject
             ?: throw TransportFailure(ErrorMapping.protocolFault("terminal.create result not an object"))
+    }
+
+    suspend fun terminalWrite(id: String, data: String) {
+        channelCall("terminal", "write", RpcValue.Arr(listOf(RpcValue.Obj(buildJsonObject {
+            put("id", JsonPrimitive(id)); put("data", JsonPrimitive(data))
+        }))), 30_000)
+    }
+
+    suspend fun terminalResize(id: String, cols: Int, rows: Int) {
+        channelCall("terminal", "resize", RpcValue.Arr(listOf(RpcValue.Obj(buildJsonObject {
+            put("id", JsonPrimitive(id)); put("cols", JsonPrimitive(cols)); put("rows", JsonPrimitive(rows))
+        }))), 30_000)
     }
 
     suspend fun terminalDispose(id: String) {
@@ -1165,6 +1432,23 @@ internal class ChannelV4Plane(
         val raw = channelCall("model-selection", "getView", RpcValue.Arr(emptyList()), timeouts.controlRequestTimeoutMs)
         return (raw as? RpcValue.Obj)?.json as? JsonObject
             ?: throw TransportFailure(ErrorMapping.protocolFault("model-selection.getView result not an object"))
+    }
+
+    // ---- C7 (Phase 3C): task-plane tool-output slice — phase3c notes; the shipped
+    // facade answers null (stub), which maps to a null result (fallback path).
+
+    suspend fun taskSnapshotToolCallsSlice(taskId: String, toolCallIds: List<String>): JsonObject? {
+        val target = host.workspaceTarget()
+        val params = buildJsonObject {
+            put("taskId", JsonPrimitive(taskId))
+            put("workspacePath", JsonPrimitive(target?.first ?: ""))
+            target?.second?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("toolCallIds", JsonArray(toolCallIds.map { JsonPrimitive(it) }))
+        }
+        return when (val raw = v4Call("getTaskSnapshotToolCallsSlice", RpcValue.Obj(params))) {
+            is RpcValue.Obj -> raw.json as? JsonObject
+            else -> null
+        }
     }
 
     /** The hello's connectionId, stamped by [helloAndInitialize]. */

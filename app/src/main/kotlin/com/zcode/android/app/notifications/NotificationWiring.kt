@@ -62,6 +62,13 @@ class NotificationWiring(
 
     fun consumeDeepLink() = pending.consume()
 
+    // H2.2: launcher-shortcut routing hint (same shape as the deep-link seam: offered by
+    // MainActivity on intake, consumed by ZCodeApp before navigating).
+    private val pendingShortcutState = kotlinx.coroutines.flow.MutableStateFlow<AppShortcuts.Target?>(null)
+    val pendingShortcut: StateFlow<AppShortcuts.Target?> get() = pendingShortcutState
+    fun offerShortcut(target: AppShortcuts.Target) { pendingShortcutState.value = target }
+    fun consumeShortcut() { pendingShortcutState.value = null }
+
     // ------------------------------------------------------------- collectors
 
     private var started = false
@@ -119,12 +126,25 @@ class NotificationWiring(
                 seenInteractionIds = StoreDiffs.interactionIds(records)
                 knownInteractionIds.set(seenInteractionIds)
                 for ((record, kind) in fresh) {
+                    // Phase 4F: the PER-CATEGORY toggle gates the emission (the prefs
+                    // are read per event — a toggle applies to the NEXT request).
+                    val prefs = runCatching { stores.preferencesRepository.current() }.getOrNull()
+                    val gated = when (kind) {
+                        com.zcode.android.domain.model.NotificationRecord.Kind.APPROVAL_NEEDED -> prefs?.notifyApprovals ?: true
+                        com.zcode.android.domain.model.NotificationRecord.Kind.TASK_FINISHED,
+                        com.zcode.android.domain.model.NotificationRecord.Kind.TASK_FAILED,
+                        -> prefs?.notifyTaskOutcomes ?: true
+                        else -> true
+                    }
+                    if (!gated) continue
                     runCatching {
                         broker.onEvent(
                             kind = kind,
                             taskId = record.sessionId?.raw,
                             interactionId = record.interactionId.raw,
                             taskTitle = null,
+                            // C3: approvals carry the shade Approve-once/Deny actions.
+                            permission = kind == com.zcode.android.domain.model.NotificationRecord.Kind.APPROVAL_NEEDED,
                         )
                     }.onFailure { log.warn("notify.attentionFault", it.javaClass.simpleName) }
                 }
@@ -167,9 +187,13 @@ class NotificationWiring(
                 if (current == ConnectionPhase.DEGRADED && previous != ConnectionPhase.DEGRADED) {
                     val anyRunning = taskStatuses.values.any { it == TaskStatus.RUNNING }
                     if (anyRunning) {
-                        log.info("notify.connectionLost", "degraded while tasks running")
-                        runCatching {
-                            broker.onEvent(NotificationRecord.Kind.CONNECTION_LOST, null, null, null)
+                        // Phase 4F: the connection category toggle gates this too.
+                        val connOn = runCatching { stores.preferencesRepository.current().notifyConnection }.getOrDefault(true)
+                        if (connOn) {
+                            log.info("notify.connectionLost", "degraded while tasks running")
+                            runCatching {
+                                broker.onEvent(NotificationRecord.Kind.CONNECTION_LOST, null, null, null)
+                            }
                         }
                     }
                 }

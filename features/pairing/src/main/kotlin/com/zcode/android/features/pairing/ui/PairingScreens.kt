@@ -7,13 +7,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -33,6 +31,8 @@ import androidx.compose.ui.unit.dp
 import com.zcode.android.features.pairing.PairingViewModel
 import com.zcode.android.features.pairing.flow.PairingFlow
 import com.zcode.android.features.pairing.R
+import com.zcode.android.core.ui.components.ZCodeOutlinedButton
+import com.zcode.android.core.ui.components.ZCodeButton
 
 /**
  * Pairing screens — §18.3 (Welcome/Pairing row) + §2.6 journey states E1–E7.
@@ -71,6 +71,7 @@ private fun PairingTitle() {
 
 @Composable
 private fun WelcomeScreen(s: PairingFlow.State.Welcome, vm: PairingViewModel) {
+    val securityExplainerA11y = stringResource(R.string.security_explainer_a11y)
     Scaffold(topBar = { PairingTitle() }) { pad ->
         Column(
             modifier = Modifier
@@ -80,6 +81,10 @@ private fun WelcomeScreen(s: PairingFlow.State.Welcome, vm: PairingViewModel) {
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            // M1.2 (Phase 6D): the small Z mark — the README brand claim is now code.
+            com.zcode.android.core.ui.components.ZMark(
+                modifier = Modifier.testTag("z_mark"),
+            )
             Text(
                 stringResource(R.string.welcome_heading),
                 style = MaterialTheme.typography.headlineSmall,
@@ -87,7 +92,7 @@ private fun WelcomeScreen(s: PairingFlow.State.Welcome, vm: PairingViewModel) {
             Text(
                 stringResource(R.string.welcome_explainer),
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.semantics { contentDescription = "security explainer" },
+                modifier = Modifier.semantics { contentDescription = securityExplainerA11y },
             )
             if (s.link != null) {
                 Card(colors = CardDefaults.cardColors()) {
@@ -96,19 +101,19 @@ private fun WelcomeScreen(s: PairingFlow.State.Welcome, vm: PairingViewModel) {
                             stringResource(R.string.welcome_resumed_with, s.link.desktopName),
                             style = MaterialTheme.typography.titleMedium,
                         )
-                        Button(onClick = { vm.dispatch(PairingFlow.Event.RetryRequested) }, modifier = Modifier.testTag("resume-connect")) {
+                        ZCodeButton(onClick = { vm.dispatch(PairingFlow.Event.RetryRequested) }, modifier = Modifier.testTag("resume-connect")) {
                             Text(stringResource(R.string.action_connect))
                         }
-                        OutlinedButton(onClick = { vm.dispatch(PairingFlow.Event.UnpairRequested) }, modifier = Modifier.testTag("resume-unpair")) {
+                        ZCodeOutlinedButton(onClick = { vm.dispatch(PairingFlow.Event.UnpairRequested) }, modifier = Modifier.testTag("resume-unpair")) {
                             Text(stringResource(R.string.action_unpair))
                         }
                     }
                 }
             }
-            Button(onClick = { vm.dispatch(PairingFlow.Event.StartScan) }, modifier = Modifier.fillMaxWidth().testTag("start-scan")) {
+            ZCodeButton(onClick = { vm.dispatch(PairingFlow.Event.StartScan) }, modifier = Modifier.fillMaxWidth().testTag("start-scan")) {
                 Text(stringResource(R.string.action_scan_qr))
             }
-            OutlinedButton(onClick = { vm.dispatch(PairingFlow.Event.OpenManualEntry) }, modifier = Modifier.fillMaxWidth().testTag("open-manual")) {
+            ZCodeOutlinedButton(onClick = { vm.dispatch(PairingFlow.Event.OpenManualEntry) }, modifier = Modifier.fillMaxWidth().testTag("open-manual")) {
                 Text(stringResource(R.string.action_enter_link))
             }
         }
@@ -124,11 +129,11 @@ private fun CameraNeededScreen(vm: PairingViewModel) {
         ) {
             Text(stringResource(R.string.camera_needed_title), style = MaterialTheme.typography.headlineSmall)
             Text(stringResource(R.string.camera_needed_rationale), style = MaterialTheme.typography.bodyMedium)
-            Button(
+            ZCodeButton(
                 onClick = { vm.dispatch(PairingFlow.Event.CameraPermissionGranted) }, // re-asks via host launcher
                 modifier = Modifier.fillMaxWidth().testTag("retry-camera"),
             ) { Text(stringResource(R.string.action_grant_camera)) }
-            OutlinedButton(
+            ZCodeOutlinedButton(
                 onClick = { vm.dispatch(PairingFlow.Event.OpenManualEntry) },
                 modifier = Modifier.fillMaxWidth().testTag("manual-from-camera"),
             ) { Text(stringResource(R.string.action_use_manual)) }
@@ -149,7 +154,7 @@ private fun ScanScreen(vm: PairingViewModel, scannerContent: @Composable (() -> 
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(horizontal = 24.dp),
             )
-            OutlinedButton(
+            ZCodeOutlinedButton(
                 onClick = { vm.dispatch(PairingFlow.Event.OpenManualEntry) },
                 modifier = Modifier.padding(24.dp).fillMaxWidth().testTag("manual-from-scan"),
             ) { Text(stringResource(R.string.action_use_manual)) }
@@ -175,12 +180,12 @@ private fun ManualEntryScreen(s: PairingFlow.State.ManualEntry, vm: PairingViewM
                 minLines = 3,
                 modifier = Modifier.fillMaxWidth().testTag("manual-field"),
             )
-            Button(
+            ZCodeButton(
                 onClick = { vm.dispatch(PairingFlow.Event.QrDecoded(s.draft)) },
                 enabled = s.draft.isNotBlank(),
                 modifier = Modifier.fillMaxWidth().testTag("manual-submit"),
             ) { Text(stringResource(R.string.action_validate)) }
-            OutlinedButton(
+            ZCodeOutlinedButton(
                 onClick = { vm.dispatch(PairingFlow.Event.CancelScan) },
                 modifier = Modifier.fillMaxWidth().testTag("manual-cancel"),
             ) { Text(stringResource(R.string.action_cancel)) }
@@ -210,11 +215,11 @@ private fun RejectedScreen(s: PairingFlow.State.Rejected, vm: PairingViewModel) 
             Text(stringResource(R.string.rejected_title), style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.error)
             Text(stringResource(R.string.rejected_format), style = MaterialTheme.typography.bodyMedium)
             Text(s.detail, style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag("reject-detail"))
-            Button(
+            ZCodeButton(
                 onClick = { vm.dispatch(PairingFlow.Event.StartScan) },
                 modifier = Modifier.fillMaxWidth().testTag("rejected-rescan"),
             ) { Text(stringResource(R.string.action_rescan)) }
-            OutlinedButton(
+            ZCodeOutlinedButton(
                 onClick = { vm.dispatch(PairingFlow.Event.OpenManualEntry) },
                 modifier = Modifier.fillMaxWidth().testTag("rejected-edit"),
             ) { Text(stringResource(R.string.action_enter_link)) }
@@ -235,11 +240,11 @@ private fun StaleScreen(s: PairingFlow.State.StaleWarning, vm: PairingViewModel)
                 "${s.link.desktopName} · ${s.link.desktopAppVersion}",
                 style = MaterialTheme.typography.bodySmall,
             )
-            Button(
+            ZCodeButton(
                 onClick = { vm.dispatch(PairingFlow.Event.StaleAccepted) },
                 modifier = Modifier.fillMaxWidth().testTag("stale-continue"),
             ) { Text(stringResource(R.string.action_continue_anyway)) }
-            OutlinedButton(
+            ZCodeOutlinedButton(
                 onClick = { vm.dispatch(PairingFlow.Event.StartScan) },
                 modifier = Modifier.fillMaxWidth().testTag("stale-rescan"),
             ) { Text(stringResource(R.string.action_rescan)) }
@@ -256,11 +261,17 @@ private fun CompatBlockedScreen(s: PairingFlow.State.CompatBlocked, vm: PairingV
         ) {
             Text(stringResource(R.string.compat_blocked_title), style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.error)
             Text(
-                stringResource(R.string.compat_blocked_detail, s.version, "3.14.0"),
+                // B2.10: the boundary comes from the gate (through the port), never
+                // a UI literal; blank falls back to the blocked version's own copy.
+                stringResource(
+                    R.string.compat_blocked_detail,
+                    s.version,
+                    s.minSupported?.takeIf { it.isNotBlank() } ?: s.version,
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.testTag("compat-detail"),
             )
-            OutlinedButton(
+            ZCodeOutlinedButton(
                 onClick = { vm.dispatch(PairingFlow.Event.CancelScan) },
                 modifier = Modifier.fillMaxWidth().testTag("compat-close"),
             ) { Text(stringResource(R.string.action_cancel)) }
@@ -277,15 +288,19 @@ private fun CompatAboveScreen(s: PairingFlow.State.CompatAboveTested, vm: Pairin
         ) {
             Text(stringResource(R.string.compat_above_title), style = MaterialTheme.typography.headlineSmall)
             Text(
-                stringResource(R.string.compat_above_detail, s.link.desktopAppVersion, "3.14.3"),
+                stringResource(
+                    R.string.compat_above_detail,
+                    s.link.desktopAppVersion,
+                    s.maxTestedDesktop?.takeIf { it.isNotBlank() } ?: s.link.desktopAppVersion,
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.testTag("compat-above-detail"),
             )
-            Button(
+            ZCodeButton(
                 onClick = { vm.dispatch(PairingFlow.Event.CompatAccepted) },
                 modifier = Modifier.fillMaxWidth().testTag("compat-continue"),
             ) { Text(stringResource(R.string.action_continue_anyway)) }
-            OutlinedButton(
+            ZCodeOutlinedButton(
                 onClick = { vm.dispatch(PairingFlow.Event.StartScan) },
                 modifier = Modifier.fillMaxWidth().testTag("compat-above-rescan"),
             ) { Text(stringResource(R.string.action_rescan)) }
@@ -310,7 +325,7 @@ private fun SecuritySetupScreen(s: PairingFlow.State.SecuritySetup, vm: PairingV
                         Text(stringResource(R.string.setup_no_lock_detail), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
-                Button(
+                ZCodeButton(
                     onClick = { vm.dispatch(PairingFlow.Event.SecurityConfirmed(reducedSecurityConsent = true)) },
                     modifier = Modifier.fillMaxWidth().testTag("consent-reduced"),
                 ) { Text(stringResource(R.string.action_accept_reduced)) }
@@ -318,12 +333,12 @@ private fun SecuritySetupScreen(s: PairingFlow.State.SecuritySetup, vm: PairingV
                 if (s.offerBiometricEnrollment) {
                     Text(stringResource(R.string.setup_biometric_offer), style = MaterialTheme.typography.bodyMedium)
                 }
-                Button(
+                ZCodeButton(
                     onClick = { vm.dispatch(PairingFlow.Event.SecurityConfirmed(reducedSecurityConsent = false)) },
                     modifier = Modifier.fillMaxWidth().testTag("setup-confirm"),
                 ) { Text(stringResource(R.string.action_continue_anyway)) }
             }
-            OutlinedButton(
+            ZCodeOutlinedButton(
                 onClick = { vm.dispatch(PairingFlow.Event.CancelScan) },
                 modifier = Modifier.fillMaxWidth().testTag("setup-cancel"),
             ) { Text(stringResource(R.string.action_cancel)) }
@@ -346,14 +361,29 @@ private fun ConnectFailedScreen(s: PairingFlow.State.ConnectFailed, vm: PairingV
             if (s.error.rePair) {
                 Text(stringResource(R.string.connect_failed_repair_detail), style = MaterialTheme.typography.bodyMedium)
             }
-            Text(s.error.userMessage, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag("fail-message"))
+            Text(
+                errorUserMessageForView(s.error),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.testTag("fail-message"),
+            )
             if (s.error.retryable) {
-                Button(
+                ZCodeButton(
                     onClick = { vm.dispatch(PairingFlow.Event.RetryRequested) },
                     modifier = Modifier.fillMaxWidth().testTag("fail-retry"),
                 ) { Text(stringResource(R.string.action_retry)) }
             }
-            OutlinedButton(
+            // E1-hint (Phase 4G): a stale QR is the DESKTOP's to refresh (the
+            // web-remote section already has refreshQr + confirm) — the failure state
+            // must SAY so instead of dead-ending into a blind re-scan loop.
+            if (s.error.rePair) {
+                Text(
+                    stringResource(R.string.pair_expired_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("fail-refresh-hint"),
+                )
+            }
+            ZCodeOutlinedButton(
                 onClick = { vm.dispatch(PairingFlow.Event.StartScan) },
                 modifier = Modifier.fillMaxWidth().testTag("fail-rescan"),
             ) { Text(stringResource(R.string.action_rescan)) }
@@ -370,11 +400,11 @@ private fun TakenOverScreen(vm: PairingViewModel) {
         ) {
             Text(stringResource(R.string.takenover_title), style = MaterialTheme.typography.headlineSmall)
             Text(stringResource(R.string.takenover_detail), style = MaterialTheme.typography.bodyMedium)
-            Button(
+            ZCodeButton(
                 onClick = { vm.dispatch(PairingFlow.Event.TakeOverRequested) },
                 modifier = Modifier.fillMaxWidth().testTag("takeover-reconnect"),
             ) { Text(stringResource(R.string.action_takeover_back)) }
-            OutlinedButton(
+            ZCodeOutlinedButton(
                 onClick = { vm.dispatch(PairingFlow.Event.DismissTakenOver) },
                 modifier = Modifier.fillMaxWidth().testTag("takeover-dismiss"),
             ) { Text(stringResource(R.string.action_dismiss)) }
@@ -395,7 +425,7 @@ private fun ConnectedScreen(s: PairingFlow.State.Connected, vm: PairingViewModel
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.testTag("connected-detail"),
             )
-            OutlinedButton(
+            ZCodeOutlinedButton(
                 onClick = { vm.dispatch(PairingFlow.Event.UnpairRequested) },
                 modifier = Modifier.fillMaxWidth().testTag("connected-unpair"),
             ) { Text(stringResource(R.string.action_unpair)) }
@@ -412,14 +442,19 @@ private fun UnpairConfirmScreen(s: PairingFlow.State.UnpairConfirm, vm: PairingV
         ) {
             Text(stringResource(R.string.unpair_title), style = MaterialTheme.typography.headlineSmall)
             Text(stringResource(R.string.unpair_detail), style = MaterialTheme.typography.bodyMedium)
-            Button(
+            ZCodeButton(
                 onClick = { vm.dispatch(PairingFlow.Event.UnpairConfirmed) },
                 modifier = Modifier.fillMaxWidth().testTag("unpair-confirm"),
             ) { Text(stringResource(R.string.action_unpair_confirm)) }
-            OutlinedButton(
+            ZCodeOutlinedButton(
                 onClick = { vm.dispatch(PairingFlow.Event.UnpairCancelled) },
                 modifier = Modifier.fillMaxWidth().testTag("unpair-cancel"),
             ) { Text(stringResource(R.string.action_cancel)) }
         }
     }
 }
+
+/** C5-i18n: the pairing ErrorView's copy per locale; `userMessage` is the English fallback. */
+@Composable
+private fun errorUserMessageForView(e: PairingFlow.ErrorView): String =
+    e.messageKey?.let { stringResource(com.zcode.android.core.ui.components.userMessageRes(it), *e.messageArgs.toTypedArray()) } ?: e.userMessage

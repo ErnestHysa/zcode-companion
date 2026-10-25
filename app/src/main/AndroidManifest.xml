@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -7,6 +8,8 @@
     <!-- Phase 8 (§24/§25): notification surfaces (API 33+ runtime), the opt-in
          Live-connection foreground service, and its specialUse type (API 34+). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Phase 4E (C3): the post-decision haptic on shade Approve/Deny. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <!-- §37/AAP-3 (§14.2 T4): the non-Play update channel hands the downloaded APK to
@@ -16,6 +19,12 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
+    <!-- M3-RTL (Phase 6D, recorded decision): `android:supportsRtl` stays OFF by
+         design — both shipped locales (en, zh-CN) are LTR, and mirroring an LTR-locked
+         UI would flip untested layouts. NO RTL locale work until values-<rtl> dirs
+         ship; at that point: add supportsRtl + swap WriteComponents' Send icon to
+         Icons.AutoMirrored + audit the ZCodeChip/icon set. The RtlLocaleGateTest
+         tripwire fails the build if an RTL locale appears without the flag. -->
     <application
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -24,7 +33,8 @@
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules_legacy"
-        android:theme="@style/Theme.ZCodePairing">
+        android:theme="@style/Theme.ZCode"
+        android:localeConfig="@xml/locales_config">
 
         <!-- §12.4/§26.2-T6: credential + projection stores are excluded from every
              backup surface (allowBackup=false + explicit rules). -->
@@ -32,6 +42,7 @@
              taps). launchMode=singleTask so a tap re-enters the LIVE activity
              (onNewIntent) instead of stacking a second hub. -->
         <activity
+            android:theme="@style/Theme.ZCode.Launch"
             android:windowSoftInputMode="adjustResize"
             android:name=".MainActivity"
             android:exported="true"
@@ -47,6 +58,10 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="zcode" android:host="task" />
             </intent-filter>
+            <!-- H2.2: launcher long-press shortcuts (static set; Approvals also dynamic with count). -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
         <!-- §24.5/§25.2: the Live-connection FGS candidate. specialUse on API 34+
              with the required subtype property; pre-34 devices run it typeless. -->
@@ -70,6 +85,15 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/pending_approvals_widget_info" />
+        </receiver>
+        <!-- Phase 4E (C3): the shade-level Approve-once/Deny receiver — the decision
+             routes through the SAME fail-closed inbox gate as the approvals screen. -->
+        <receiver
+            android:name=".notifications.NotificationActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.zcode.android.action.NOTIFICATION_DECISION" />
+            </intent-filter>
         </receiver>
         <!-- §25.3: WorkManager runs the default initializer (periodic auto-reconnect
              probe, ≥15 min, network-constrained; §29 no-polling rule respected). -->

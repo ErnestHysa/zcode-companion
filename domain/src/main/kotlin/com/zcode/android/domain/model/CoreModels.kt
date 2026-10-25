@@ -77,12 +77,21 @@ data class Task(
     val rawStatus: String? = null,
     /** Display-only workspace label from the task plane (INV-12: never an identity). */
     val workspaceLabel: String? = null,
+    /**
+     * A3.8 (Phase 5A): the desktop's unread marker — the bootstrap task row's
+     * `unreadAt` (windowHostController task row schema) and the `setTaskUnread`
+     * echo. Null = read. The phone never derives unread locally (INV-1).
+     */
+    val unreadAt: Long? = null,
 ) {
     /** Per-turn/summary file change rollup (TurnFileChangeSummary semantics, §22). */
     data class TaskSummary(val additions: Long, val deletions: Long, val files: Long)
 
     /** Archived tasks sort after live ones (§7.8 listTasks semantics). */
     val isArchived: Boolean get() = archivedAtMs != null
+
+    /** A3.8: unread is a wire fact (`unreadAt` set), never a local guess. */
+    val isUnread: Boolean get() = unreadAt != null
 }
 
 /** Protocol-level session info (§16 Session — strict-schema port vocabulary). */
@@ -102,7 +111,13 @@ data class Session(
  * ModelOption / ModeOption (§16) — picker vocabulary; availability is
  * capability/snapshot-declared, never client-guessed (§42 INV-6).
  */
-data class ModelOption(val id: String, val label: String, val available: Boolean = true)
+data class ModelOption(
+    val id: String,
+    val label: String,
+    val available: Boolean = true,
+    /** D4: the desktop picker's `badgeLabel` — a wire-fed display tag, never synthesized. */
+    val badge: String? = null,
+)
 data class ModeOption(val id: String, val label: String, val available: Boolean = true)
 
 /**
@@ -191,8 +206,20 @@ data class AppPreferences(
      *  (vc35 user feedback): the fixed 30-minute window stranded users who stepped
      *  away — approvals stopped arriving mid-work. Customizable, default 30. */
     val liveConnectionTimeoutMinutes: Int = 30,
+    // ---- Phase 4F (H1.4-phase1): the first phone preferences (the desktop's
+    // settings.appearance / notification groups; the phone followed the system only) ----
+    /** themeMode: LIGHT | DARK | SYSTEM (default = the pre-Phase-4F behavior). */
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    /** Per-category toggles (the channel-level switches; null = unset → channel default ON). */
+    val notifyApprovals: Boolean = true,
+    val notifyTaskOutcomes: Boolean = true,
+    val notifyConnection: Boolean = true,
+    /** H1.5 (Phase 6B): the skippable post-pairing pass ran once (never re-shown). */
+    val onboardingDone: Boolean = false,
 ) {
     enum class NotificationContentLevel { MINIMAL, CONTENT }
+
+    enum class ThemeMode { LIGHT, DARK, SYSTEM }
 }
 
 /** Workspace list entry as delivered by bootstrap / workspace-list-response (§9.5, Q9). */

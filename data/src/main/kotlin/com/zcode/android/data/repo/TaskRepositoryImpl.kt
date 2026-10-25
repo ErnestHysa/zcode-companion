@@ -107,6 +107,7 @@ class TaskRepositoryImpl(
         pinned = pinned,
         rawStatus = if (TaskStatus.fromWire(statusWire) == TaskStatus.UNKNOWN) statusWire else null,
         workspaceLabel = workspaceLabel,
+        unreadAt = unreadAtMs,
     )
 
     private fun Task.toEntity(endpointId: EndpointId, workspace: WorkspaceIdentityKey): TaskEntity = TaskEntity(
@@ -125,5 +126,6 @@ class TaskRepositoryImpl(
         createdAtMs = createdAtMs,
         updatedAtMs = updatedAtMs,
         workspaceLabel = workspaceLabel,
+        unreadAtMs = unreadAt,
     )
 }

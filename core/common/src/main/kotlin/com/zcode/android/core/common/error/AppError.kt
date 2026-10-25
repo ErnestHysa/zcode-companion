@@ -10,6 +10,7 @@ package com.zcode.android.core.common.error
  */
 data class AppError(
     val category: ErrorCategory,
+    /** English FALLBACK only (logs, diagnostics). The UI localizes [messageKey]. */
     val userMessage: String,
     val developerDiagnostic: String,
     val retryable: Retryable,
@@ -17,8 +18,47 @@ data class AppError(
     val autoRecovery: RecoveryAction? = null,
     val correlation: Correlation = Correlation(),
     val safeToExpose: Boolean = true,
+    /**
+     * C5-i18n: the user-facing message as a KEY (+ [messageArgs]) resolved per locale at
+     * the UI boundary (core/ui `errorUserMessage`). Pure layers never hold Android
+     * resources, so the taxonomy carries keys, not prose.
+     */
+    val messageKey: UserMessageKey? = null,
+    val messageArgs: List<String> = emptyList(),
 ) {
     enum class Retryable { NO, AUTO, USER }
+}
+
+/** C5-i18n: the §33 user-message vocabulary — one key per distinct message the mapping table emits. */
+enum class UserMessageKey {
+    CONNECTION_LOST_RECONNECTING,
+    SESSION_TAKEN_OVER,
+    DESKTOP_UNREACHABLE,
+    PAIRING_EXPIRED,
+    WORKSPACE_CLOSED,
+    DIRECT_TOKEN_REJECTED,
+    LOCAL_NETWORK_BLOCKED,
+    ENDPOINT_CERT_CHANGED,
+    ENDPOINT_UNENCRYPTED,
+    DESKTOP_RELAY_LOST,
+    RELAY_ERROR_RETRYING,
+    UNEXPECTED_ERROR_CODE,
+    SOMETHING_WENT_WRONG,
+    SYNC_PROBLEM_REFRESHING,
+    NETWORK_UNAVAILABLE,
+    TAKING_TOO_LONG,
+    UPDATE_DESKTOP,
+    STILL_OFFLINE_CACHED,
+    SESSION_UNAVAILABLE,
+    WORKSPACE_NOT_READY,
+    CONNECTION_PROBLEM_RETRYING,
+    CONVERSATION_CHANGED,
+    REQUEST_ALREADY_HANDLED,
+    LOCAL_DATA_RESET,
+    PERMISSION_NEEDED,
+    NOTIFICATIONS_BLOCKED,
+    NOT_ALLOWED,
+    NONE,
 }
 
 /** §33 categories — contiguous, mapped 1:1 to the taxonomy table. */

@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import org.junit.Rule
+import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -142,6 +143,47 @@ class PairingScreensUiTest {
     }
 
     // ------------------------------------------------------------- E5 re-pair
+
+    // E1-hint (gaps-and-polish Phase 4G): a stale link's failure state NAMES the
+    // desktop-side remedy (refreshQr) instead of dead-ending into a blind re-scan.
+    @Test
+    fun `a rePair-class failure carries the desktop-refresh hint`() = runWith { port, vm ->
+        port.validateResult = PairingPort.Validation.Ready(
+            link = link, stale = false, compatAboveTested = false,
+            requireE7Consent = false, offerBiometricEnrollment = false,
+        )
+        port.connectResult = PairingPort.ConnectOutcome.Failure(
+            PairingFlow.ErrorView("Pairing expired — scan the QR again", "relay AUTH_FAILED", rePair = true, retryable = false),
+        )
+        host(vm)
+        compose.onNodeWithTag("open-manual").performClick()
+        compose.onNodeWithTag("manual-field").performTextInput("x")
+        compose.onNodeWithTag("manual-submit").performClick()
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("setup-confirm").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("setup-confirm").performClick()
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("fail-rescan").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("fail-refresh-hint").assertIsDisplayed()
+        compose.onNodeWithText("refresh the QR", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `a transport-class failure does NOT carry the hint (retry is the remedy)`() = runWith { port, vm ->
+        port.validateResult = PairingPort.Validation.Ready(
+            link = link, stale = false, compatAboveTested = false,
+            requireE7Consent = false, offerBiometricEnrollment = false,
+        )
+        port.connectResult = PairingPort.ConnectOutcome.Failure(
+            PairingFlow.ErrorView("Connection failed", "timeout", rePair = false, retryable = true),
+        )
+        host(vm)
+        compose.onNodeWithTag("open-manual").performClick()
+        compose.onNodeWithTag("manual-field").performTextInput("x")
+        compose.onNodeWithTag("manual-submit").performClick()
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("setup-confirm").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("setup-confirm").performClick()
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("fail-retry").fetchSemanticsNodes().isNotEmpty() }
+        assertEquals(0, compose.onAllNodesWithTag("fail-refresh-hint").fetchSemanticsNodes().size)
+    }
 
     @Test
     fun `auth failure shows re-pair screen without retry button (E5)`() = runWith { port, vm ->

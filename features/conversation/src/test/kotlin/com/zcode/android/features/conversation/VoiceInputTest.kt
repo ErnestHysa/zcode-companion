@@ -1,5 +1,7 @@
 package com.zcode.android.features.conversation
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.assertCountEquals
@@ -32,7 +34,9 @@ class VoiceInputTest {
 
     private class FakeVoice : VoiceInputPort {
         override var available = true
-        override var listening = false
+        // B2.2 contract: `listening` MUST be observable state — the composer's tint
+        // and "Listening…" label read it in composition.
+        override var listening by androidx.compose.runtime.mutableStateOf(false)
         var onPartial: ((String) -> Unit)? = null
         var onFinal: ((String) -> Unit)? = null
         var onError: ((Int) -> Unit)? = null
@@ -46,6 +50,13 @@ class VoiceInputTest {
         override fun stop() {
             listening = false
         }
+    }
+
+    private fun assertExistsFallback(tag: String) {
+        org.junit.Assert.assertTrue(
+            "expected node with tag $tag",
+            rule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty(),
+        )
     }
 
     private fun state(draft: String = "") = ConversationUiState(
@@ -70,7 +81,7 @@ class VoiceInputTest {
             }
         }
         rule.waitForIdle()
-        rule.onAllNodesWithTag("composer_voice").assertCountEquals(0)
+        rule.onAllNodesWithTag("composer_voice_menu").assertCountEquals(0)
     }
 
     @Test
@@ -88,7 +99,9 @@ class VoiceInputTest {
             }
         }
         rule.waitForIdle()
-        rule.onNodeWithTag("composer_voice").performClick()
+        rule.onNodeWithTag("composer_attach").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("composer_voice_menu").performClick()
         rule.runOnIdle { assertTrue(fake.listening) }
         // The recognizer lands a final result mid-listening — draft appends.
         rule.runOnIdle { fake.onFinal?.invoke("fix the login flow") }
@@ -109,9 +122,75 @@ class VoiceInputTest {
             }
         }
         rule.waitForIdle()
-        rule.onNodeWithTag("composer_voice").performClick()
+        rule.onNodeWithTag("composer_attach").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("composer_voice_menu").performClick()
         rule.runOnIdle { fake.onError?.invoke(6 /* ERROR_INSUFFICIENT_PERMISSIONS */) }
         rule.onNodeWithTag("composer_voice_error").assertExists()
+    }
+
+    @Test
+    fun `listening state recomposes - the label and tint follow the port`() {
+        val fake = FakeVoice()
+        rule.setContent {
+            ZCodeTheme {
+                ComposerBar(
+                    state = state(),
+                    onDraftChange = {}, onSend = {}, onStop = {}, onRetrySend = {},
+                    onDismissNotice = {},
+                    voiceInputOverride = fake,
+                )
+            }
+        }
+        rule.waitForIdle()
+        // RED (B2.2): the port's plain getter never recomposed the label/tint.
+        rule.onNodeWithTag("composer_attach").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("composer_voice_menu").performClick()
+        rule.waitForIdle()
+        assertExistsFallback("composer_voice_listening")
+
+        // A terminal callback flips the port off — the label must go away.
+        rule.runOnIdle {
+            fake.listening = false
+            fake.onFinal?.invoke("done")
+        }
+        rule.waitForIdle()
+        rule.onAllNodesWithTag("composer_voice_listening").assertCountEquals(0)
+    }
+
+    @Test
+    fun `onFinal merges into the CURRENT draft - text typed while listening is kept`() {
+        val fake = FakeVoice()
+        val draft = androidx.compose.runtime.mutableStateOf("")
+        rule.setContent {
+            ZCodeTheme {
+                ComposerBar(
+                    state = state(draft = draft.value),
+                    onDraftChange = { draft.value = it }, onSend = {}, onStop = {}, onRetrySend = {},
+                    onDismissNotice = {},
+                    voiceInputOverride = fake,
+                )
+            }
+        }
+        rule.waitForIdle()
+        rule.onNodeWithTag("composer_attach").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("composer_voice_menu").performClick()
+        rule.waitForIdle()
+
+        // The user TYPES while listening (RED: the callback captured the click-time
+        // draft and clobbered it).
+        rule.runOnIdle { draft.value = "typed while listening" }
+        rule.waitForIdle()
+        rule.runOnIdle { fake.onFinal?.invoke("and spoken") }
+        rule.waitForIdle()
+
+        org.junit.Assert.assertEquals(
+            "dictation must merge into the CURRENT field value",
+            "typed while listening and spoken",
+            draft.value,
+        )
     }
 
     @Test
@@ -128,7 +207,10 @@ class VoiceInputTest {
             }
         }
         rule.waitForIdle()
-        rule.onNodeWithTag("composer_voice").assertExists()
+        // K3: the mic folds into the add-menu — OPEN the menu and expect the item.
+        rule.onNodeWithTag("composer_attach").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("composer_voice_menu").assertExists()
         rule.onAllNodesWithTag("composer_voice_listening").assertCountEquals(0)
     }
 }

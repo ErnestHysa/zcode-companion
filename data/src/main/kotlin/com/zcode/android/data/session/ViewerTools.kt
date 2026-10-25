@@ -63,6 +63,45 @@ class ViewerTools(private val transport: AppTransport) {
     suspend fun runAutomationNow(workspacePath: String?, workspaceIdentity: String?, automationId: String): kotlinx.serialization.json.JsonObject =
         transport.runAutomationNow(workspacePath, workspaceIdentity, automationId)
 
+    /** Phase 4B (A3.2): run history — `listAutomationRuns` (array normalized to {runs}) + delete + restart. */
+    suspend fun automationRuns(workspacePath: String?, workspaceIdentity: String?, automationId: String): List<com.zcode.android.domain.model.AutomationRunRow> =
+        com.zcode.android.domain.model.AutomationRunRow.decodeList(transport.listAutomationRuns(workspacePath, workspaceIdentity, automationId))
+
+    suspend fun deleteAutomationRun(workspacePath: String?, workspaceIdentity: String?, runId: String) =
+        transport.deleteAutomationRun(workspacePath, workspaceIdentity, runId)
+
+    suspend fun restartAutomation(workspacePath: String?, workspaceIdentity: String?, automationId: String) =
+        transport.restartAutomation(workspacePath, workspaceIdentity, automationId)
+
+    /** Phase 4C (C2): the slash panel's extra sections — custom/plugin commands + subagents. */
+    suspend fun slashUserCommands(workspacePath: String?, workspaceIdentity: String?): List<com.zcode.android.domain.model.SlashCatalogExtras.CommandEntry> =
+        com.zcode.android.domain.model.SlashCatalogExtras.decodeCommands(transport.commandsList(workspacePath, workspaceIdentity))
+
+    suspend fun subagents(workspacePath: String?, workspaceIdentity: String?, provider: String?): List<com.zcode.android.domain.model.SlashCatalogExtras.AgentEntry> =
+        com.zcode.android.domain.model.SlashCatalogExtras.decodeAgents(transport.subagentsList(workspacePath, workspaceIdentity, provider))
+
+    /** Phase 4C (A3.4): the reasoning-effort switch (zcodeAgent.ts:705; echo-reconciled). */
+    suspend fun setThoughtLevel(workspacePath: String?, workspaceIdentity: String?, sessionId: String, thoughtLevel: String, expectedRevision: Long?): kotlinx.serialization.json.JsonObject =
+        transport.setThoughtLevel(workspacePath, workspaceIdentity, sessionId, thoughtLevel, expectedRevision)
+
+    /** Phase 4C (C7): workspace file search for the composer @-mentions (paths, tolerant). */
+    suspend fun searchWorkspaceFiles(workspacePath: String?, workspaceIdentity: String?, query: String, limit: Int = 20): List<String> {
+        val raw = transport.fileSearch(workspacePath.orEmpty(), workspaceIdentity, query, limit)
+        val arr = (raw as? com.zcode.android.core.protocol.bytes.RpcSerialization.RpcValue.Arr)?.items
+            ?: return emptyList()
+        return arr.mapNotNull { el ->
+            when (el) {
+                is com.zcode.android.core.protocol.bytes.RpcSerialization.RpcValue.Obj -> ((el.json as? kotlinx.serialization.json.JsonObject)?.get("path") as? kotlinx.serialization.json.JsonPrimitive)?.content
+                is com.zcode.android.core.protocol.bytes.RpcSerialization.RpcValue.Str -> el.value
+                else -> null
+            }
+        }
+    }
+
+    /** Phase 4C (C7): the scratch workspace — `{name}` → `{path}`; null = refused. */
+    suspend fun createScratchWorkspace(name: String): String? =
+        (transport.createScratchWorkspace(name)["path"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+
     /**
      * `off-peak-task` channel `list` with the desktop's own list projection mirrored
      * CLIENT-SIDE (zcodeAgentService.ts:2666-2761): workspace filter, createdAt DESC,

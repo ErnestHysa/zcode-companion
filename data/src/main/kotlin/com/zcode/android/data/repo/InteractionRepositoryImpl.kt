@@ -122,6 +122,11 @@ class InteractionRepositoryImpl(
         toolName = toolName,
         createdAtMs = createdAtMs,
         resolvedAtMs = resolvedAtMs,
+        // L3: the retained payload reaches the inbox as ONE bounded, redacted line.
+        preview = com.zcode.android.domain.model.InteractionPreview.of(
+            toolName,
+            runCatching { json.parseToJsonElement(payloadJson).jsonObject }.getOrNull(),
+        ),
     )
 
     private object Kind {

@@ -56,6 +56,14 @@ class InteractionCoordinator(
         val options: List<com.zcode.android.domain.model.PermissionOption>,
         val permission: PermissionRequest? = null,
         val userInput: UserInputRequest? = null,
+        /**
+         * W4 (verification pass 3): the interaction was recovered from a
+         * PENDING_APPROVAL tool-call row (§15-S13), not delivered by the
+         * `pendingInteractions` state plane. The state plane never repeats such
+         * interactions, so its disappearance rule must not claim them (the rows
+         * plane owns their lifecycle — its own ResnapshotLacks / resolved-row rules).
+         */
+        val fromRowsSnapshot: Boolean = false,
     )
 
     private val requests = HashMap<InteractionId, KnownRequest>()
@@ -65,9 +73,10 @@ class InteractionCoordinator(
 
     // ---------------------------------------------------------------- events in
 
-    suspend fun onPermissionRequested(request: PermissionRequest) {
+    suspend fun onPermissionRequested(request: PermissionRequest, fromRowsSnapshot: Boolean = false) {
         machines[request.interactionId] = PermissionStateMachine(request.interactionId)
-        requests[request.interactionId] = KnownRequest(request.sessionId, request.options, permission = request)
+        requests[request.interactionId] =
+            KnownRequest(request.sessionId, request.options, permission = request, fromRowsSnapshot = fromRowsSnapshot)
         interactions.upsertPermission(request, endpointId, InteractionLifecycle.REQUESTED)
     }
 
@@ -116,6 +125,9 @@ class InteractionCoordinator(
         data object NotApprovable : SubmitOutcome()
         /** Double-tap while submitting — no-op (§14.4.3). */
         data object DuplicateNoOp : SubmitOutcome()
+        /** The interaction is already terminal (resolved/stale elsewhere) — the typed
+         * §20-3 answer (T2): surfaces "already handled" copy, never a silent no-op. */
+        data object AlreadyResolved : SubmitOutcome()
         data object UnknownInteraction : SubmitOutcome()
     }
 
@@ -130,6 +142,10 @@ class InteractionCoordinator(
     ): SubmitOutcome {
         val machine = machines[interactionId] ?: return SubmitOutcome.UnknownInteraction
         val request = requests[interactionId] ?: return SubmitOutcome.UnknownInteraction
+        // T2 (verification pass 4): a terminal machine is the TYPED §20-3 answer —
+        // the UI surfaces "already handled" copy instead of eating the tap in a
+        // silent DuplicateNoOp.
+        if (machine.state in TERMINAL_MACHINE_STATES) return SubmitOutcome.AlreadyResolved
         // §20.4: classification BEFORE any state change — an unknown option never
         // reaches the machine, the outbox, or the wire.
         val decision = when (kind) {
@@ -274,8 +290,13 @@ class InteractionCoordinator(
         }
         val stored = interactions.loadStored(endpointId, interactionId)
             ?: return SubmitOutcome.UnknownInteraction
-        if (stored.record.resolvedAtMs != null) return SubmitOutcome.DuplicateNoOp
+        if (stored.record.resolvedAtMs != null) return SubmitOutcome.AlreadyResolved
         val payload = stored.payload
+        // W4b (verification pass 3): a ROW-anchored stored payload is the ROW schema —
+        // it carries NO options array (the rows sweep synthesizes the §7.4.4
+        // vocabulary only in memory). Hydrating it with an empty option set made
+        // every inbox answer inert (NotApprovable, no wire call). Apply the same
+        // verified synthesized vocabulary the sweep uses when the payload lacks it.
         val answerKind = when (stored.record.kind) {
             InteractionRepository.InteractionRecord.Kind.USER_INPUT -> {
                 onUserInputRequested(
@@ -291,6 +312,13 @@ class InteractionCoordinator(
                 AnswerKind.USER_INPUT
             }
             InteractionRepository.InteractionRecord.Kind.PERMISSION -> {
+                val options = optionIdsOf(payload).ifEmpty {
+                    listOf(
+                        com.zcode.android.domain.model.PermissionOption("allowOnce"),
+                        com.zcode.android.domain.model.PermissionOption("allowAlways"),
+                        com.zcode.android.domain.model.PermissionOption("deny"),
+                    )
+                }
                 onPermissionRequested(
                     PermissionRequest(
                         interactionId = interactionId,
@@ -298,7 +326,7 @@ class InteractionCoordinator(
                         toolName = stored.record.toolName ?: payload.strOrNull("toolName") ?: "",
                         reason = payload.strOrNull("summary"),
                         input = payload["detail"] as? JsonObject,
-                        options = optionIdsOf(payload),
+                        options = options,
                         createdAtMs = stored.record.createdAtMs,
                         raw = payload,
                     )
@@ -460,6 +488,90 @@ class InteractionCoordinator(
         }
     }
 
+    /**
+     * A3.14 (Phase 5B): DECLINE/CANCEL an elicitation — the resolveInteraction answer's
+     * `action` arm (chunk-LNGNUNBX `$r`: `action: accept|decline|cancel`): the agent
+     * continues on best judgment without the user's preference. Same INV-4 minting +
+     * machine path as submitElicitationAnswers; empty content (the schema omits it).
+     */
+    suspend fun submitElicitationDecline(
+        interactionId: InteractionId,
+        action: String = "decline",
+    ): SubmitOutcome {
+        require(action in setOf("decline", "cancel")) { "not a decline-class action: $action" }
+        val machine = machines[interactionId] ?: return SubmitOutcome.UnknownInteraction
+        val request = requests[interactionId] ?: return SubmitOutcome.UnknownInteraction
+        if (request.userInput == null) return SubmitOutcome.NotApprovable
+
+        runCatching { machine.on(PermissionStateMachine.Event.UserChose("decline", null)) }
+            .onFailure { return SubmitOutcome.DuplicateNoOp }
+        if (machine.state != PermissionStateMachine.State.SUBMITTING) {
+            return SubmitOutcome.DuplicateNoOp
+        }
+        updateLifecycle(interactionId, machine.state)
+
+        val payload = buildJsonObject {
+            put("interactionId", interactionId.raw)
+            put("answer", buildJsonObject { put("action", action) })
+        }
+        val existing = pendingCommands[interactionId]
+        val commandId: CommandId = when {
+            existing == null -> {
+                val minted = outbox.accept(
+                    endpointId = endpointId,
+                    sessionId = request.sessionId,
+                    type = "resolveInteraction",
+                    payloadJson = payload.toString(),
+                    baseRevision = null,
+                    baseLogEpoch = null,
+                    issuedAtMs = clock(),
+                )
+                pendingCommands[interactionId] = minted
+                minted
+            }
+            outbox.get(existing)?.state == OutboxStateMachine.State.UNKNOWN ||
+                outbox.get(existing)?.state == OutboxStateMachine.State.FAILED_RETRYABLE -> {
+                outbox.apply(existing, OutboxStateMachine.Event.UserGatedRetry, clock())
+                existing
+            }
+            else -> return SubmitOutcome.DuplicateNoOp
+        }
+        return try {
+            if (outbox.get(commandId)?.state == OutboxStateMachine.State.ACCEPTED_LOCALLY) {
+                outbox.apply(commandId, OutboxStateMachine.Event.Transmit, clock())
+            }
+            val ack = commands.send(
+                type = "resolveInteraction",
+                sessionId = request.sessionId,
+                payload = payload,
+                baseRevision = null,
+                baseLogEpoch = null,
+                commandId = commandId.raw,
+            )
+            outbox.apply(commandId, OutboxStateMachine.Event.Ack(ack.status), clock())
+            val machineEvent = when (ack.status) {
+                "accepted", "duplicate", "noop" -> PermissionStateMachine.Event.AckConfirmed
+                "stale" -> PermissionStateMachine.Event.AckStale
+                else -> PermissionStateMachine.Event.AckRejected
+            }
+            runCatching { machine.on(machineEvent) }
+            if (machine.state == PermissionStateMachine.State.RESOLVED) {
+                interactions.markResolved(endpointId, interactionId, clock(), resolvedBySelf = !machine.resolvedByElsewhere)
+                pendingCommands.remove(interactionId)
+            } else if (machine.state in TERMINAL_MACHINE_STATES) {
+                pendingCommands.remove(interactionId)
+            }
+            updateLifecycle(interactionId, machine.state)
+            SubmitOutcome.Submitted(ack)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            runCatching { outbox.apply(commandId, OutboxStateMachine.Event.SendLost, clock()) }
+            runCatching { machine.on(PermissionStateMachine.Event.SendFailedPreContact) }
+            updateLifecycle(interactionId, machine.state)
+            SubmitOutcome.RetryableKept(commandId)
+        }
+    }
+
     // ---------------------------------------------------------------- recovery reconcile (S13)
 
     /**
@@ -469,20 +581,29 @@ class InteractionCoordinator(
      * interactions ABSENT from the snapshot flip to STALE (§14.4.3 — submit disabled
      * until authoritative state confirms).
      */
-    suspend fun reconcileFromSnapshot(rows: List<ConversationRow>) {
+    suspend fun reconcileFromSnapshot(rows: List<ConversationRow>, sessionId: String? = null) {
         val snapshotInteractionIds = HashSet<InteractionId>()
+        // T2: EVERY row carrying an approvalInteractionId — pending or not. A known
+        // row-anchored machine whose row is present but no longer PENDING_APPROVAL
+        // has POSITIVE resolution evidence (the tool can only leave the pending
+        // state once the desktop answered it), while a row EVICTED from the tail
+        // window has none.
+        val presentInteractionIds = HashSet<InteractionId>()
         for (row in rows) {
             if (row !is ConversationRow.ToolCall) continue
             log.debug("reconcile.toolCall", "tool=${row.toolName} status=${row.status.wire} approval=${row.approvalInteractionId}")
-            val iid = row.approvalInteractionId ?: continue
+            val iidRaw = row.approvalInteractionId ?: continue
+            val iid = InteractionId(iidRaw)
+            presentInteractionIds.add(iid)
             if (row.status != ConversationRow.ToolCallStatus.PENDING_APPROVAL) continue
-            val interactionId = InteractionId(iid)
-            snapshotInteractionIds.add(interactionId)
-            if (interactionId in requests) continue
+            snapshotInteractionIds.add(iid)
+            if (iid in requests) continue
             // Recovered open interaction — card + record now (S13 "create card + notification now").
+            // K4 (Phase 3B): the snapshot IS session-scoped even though the row plane
+            // carries no per-row id — stamp the binding so the inbox can name the task.
             val request = PermissionRequest(
-                interactionId = interactionId,
-                sessionId = null, // the row plane carries no session id; binding arrives with the Phase 7 event plane
+                interactionId = iid,
+                sessionId = sessionId,
                 toolName = row.toolName,
                 reason = null,
                 input = row.input,
@@ -496,15 +617,40 @@ class InteractionCoordinator(
                 createdAtMs = clock(),
                 raw = row.raw,
             )
-            onPermissionRequested(request)
-            render(interactionId)
+            onPermissionRequested(request, fromRowsSnapshot = true)
+            render(iid)
         }
-        // Known interactions missing from the authoritative snapshot → STALE.
-        for ((iid, machine) in machines.toList()) {
-            if (iid !in snapshotInteractionIds) {
-                runCatching { machine.on(PermissionStateMachine.Event.ResnapshotLacks) }
+        // T2 (positive leg): the desktop ANSWERED a row-anchored approval — its row
+        // left the pending-approval state while the interaction is still known.
+        // Resolve by-elsewhere with truthful attribution; never re-ask.
+        for (iid in presentInteractionIds) {
+            if (iid in snapshotInteractionIds) continue
+            val machine = machines[iid] ?: continue
+            if (requests[iid]?.fromRowsSnapshot != true) continue
+            runCatching { machine.on(PermissionStateMachine.Event.ResolvedElsewhere) }
+            if (machine.state == PermissionStateMachine.State.RESOLVED) {
+                interactions.markResolved(endpointId, iid, clock(), resolvedBySelf = false)
                 updateLifecycle(iid, machine.state)
             }
+        }
+        // Known interactions missing from the authoritative snapshot → STALE.
+        // U9 (verification pass 2): the ROWS plane only ever anchors permissions; a
+        // user-input interaction lives on the `pendingInteractions` state plane, which
+        // owns its lifecycle (its own disappearance rule resolves it by-elsewhere).
+        // Staling it here left a live question unanswerable — UserChose from STALE is
+        // a silent DuplicateNoOp.
+        // T2 (verification pass 4): the rows window is a TAIL — a row-anchored
+        // machine EVICTED from it (newer echo rows pushing the older approval row
+        // out) was staled here while the desktop still reported the approval
+        // pending, and the later inbox answer died a silent DuplicateNoOp. Absence
+        // from the tail is not a resolution signal for a machine the rows plane
+        // anchored; only the positive leg above resolves it.
+        for ((iid, machine) in machines.toList()) {
+            if (iid in snapshotInteractionIds) continue
+            val known = requests[iid] ?: continue
+            if (known.userInput != null || known.fromRowsSnapshot) continue
+            runCatching { machine.on(PermissionStateMachine.Event.ResnapshotLacks) }
+            updateLifecycle(iid, machine.state)
         }
         interactions.sweep(endpointId, clock())
     }
@@ -552,8 +698,14 @@ class InteractionCoordinator(
                         onPermissionRequested(request)
                         render(iid)
                     } else {
-                        // Refresh the payload (detail/summary may evolve); lifecycle state unchanged.
-                        requests[iid] = KnownRequest(request.sessionId, request.options, permission = request)
+                        // Refresh the payload (detail/summary may evolve); lifecycle state
+                        // unchanged. A row-anchored machine the state plane repeats keeps
+                        // its origin marker (W4): the state plane repeating it does not
+                        // make the state plane its lifecycle owner.
+                        requests[iid] = KnownRequest(
+                            request.sessionId, request.options, permission = request,
+                            fromRowsSnapshot = requests[iid]?.fromRowsSnapshot == true,
+                        )
                         interactions.upsertPermission(request, endpointId, lifecycleOf(machines[iid]!!.state))
                     }
                 }
@@ -582,8 +734,13 @@ class InteractionCoordinator(
             }
         }
         // Disappearance = authoritative resolution (the list is the whole truth —
-        // key-level replacement, never a delta). Only THIS session's interactions.
+        // key-level replacement, never a delta). Only THIS session's interactions,
+        // and only interactions the state plane OWNS (W4): a row-anchored machine
+        // (recovered from a PENDING_APPROVAL tool row) is never repeated in this
+        // list, and the rows plane owns its lifecycle — absence here is not a
+        // resolution signal for it.
         for ((iid, machine) in machines.toList()) {
+            if (requests[iid]?.fromRowsSnapshot == true) continue
             if (requests[iid]?.sessionId == sessionId && iid !in openIds) {
                 runCatching { machine.on(PermissionStateMachine.Event.ResolvedElsewhere) }
                 if (machine.state == PermissionStateMachine.State.RESOLVED) {

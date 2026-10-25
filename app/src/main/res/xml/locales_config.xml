@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- H2.1 (gaps-and-polish 2F): per-app language (Android 13+ Settings → App languages).
+     Keep in lockstep with the maintained resource qualifiers (values/, values-zh-rCN/). -->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en" />
+    <locale android:name="zh-CN" />
+</locale-config>

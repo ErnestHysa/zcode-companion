@@ -1,2 +1,0 @@
-app|com.zcode.android.app.connect.ConnectionHubIntegrationTest
-data|com.zcode.android.data.RecoveryScenarioMatrixTest

@@ -44,12 +44,19 @@ interface PairingPort {
             /** §3.3 policy decision surface for the SecuritySetup step. */
             val requireE7Consent: Boolean,
             val offerBiometricEnrollment: Boolean,
+            /** B2.10: the gate's max-tested boundary (the warn-continue copy). */
+            val maxTestedDesktop: String? = null,
         ) : Validation()
 
         data class Invalid(val reason: String, val detail: String) : Validation()
 
         /** E3 — hard block. */
-        data class CompatBlocked(val version: String, val detail: String) : Validation()
+        data class CompatBlocked(
+            val version: String,
+            val detail: String,
+            /** B2.10: the gate's minimum-supported boundary (the block copy). */
+            val minSupported: String? = null,
+        ) : Validation()
     }
 
     sealed class ConnectOutcome {

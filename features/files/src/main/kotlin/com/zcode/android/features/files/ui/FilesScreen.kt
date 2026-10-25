@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -42,6 +43,9 @@ import com.zcode.android.features.files.fileKind
 import com.zcode.android.features.files.fileKindLabel
 import com.zcode.android.features.files.port.FilesPort
 import kotlinx.coroutines.launch
+import com.zcode.android.core.ui.components.minRowTouchTarget
+import androidx.compose.ui.semantics.Role
+import androidx.compose.runtime.saveable.rememberSaveable
 
 /**
  * §23.4 read-only workspace file browser (Phase 9.2): folder navigation via
@@ -55,16 +59,23 @@ fun FilesScreen(
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
+    val binaryNotice = stringResource(R.string.files_binary_use_download)
+    val downloadFailed = stringResource(R.string.files_download_failed)
     val root = port.workspaceRoot()
     // Directory navigation stack (INV-16: only protocol-returned paths are pushed).
-    var stack by remember { mutableStateOf(listOf<String>()) }
+    // C6: the navigation stack + open viewer survive process death.
+    var stack by rememberSaveable { mutableStateOf(listOf<String>()) }
     var entries by remember { mutableStateOf(listOf<com.zcode.android.domain.model.WorkspaceFileEntry>()) }
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
-    var viewer by remember { mutableStateOf<String?>(null) }
+    var viewer by rememberSaveable { mutableStateOf<String?>(null) }
     var textState by remember { mutableStateOf(listOf<com.zcode.android.domain.model.WorkspaceTextSlice>()) }
     var textLoading by remember { mutableStateOf(false) }
-    var downloadState by remember { mutableStateOf<String?>(null) }
+    // B2.16: TYPED state — display strings no longer double as the state machine
+    // (the old machine routed its dialog on downloadState.startsWith("binary")).
+    var downloadState by remember { mutableStateOf<DownloadUi?>(null) }
+    // I3: image preview bytes for the open entry (null = not an image / loading).
+    var imageBytes by remember { mutableStateOf<ByteArray?>(null) }
 
     fun currentPath(): String = stack.lastOrNull() ?: root.orEmpty()
 
@@ -82,11 +93,31 @@ fun FilesScreen(
         if (root != null) load(root)
         else error = noWorkspaceMsg
     }
+    // C4 (Phase 3E): the browser is LIVE — a cheap poll fallback for the (absent)
+    // file-watcher channel; a manual pull still works (H2.5).
+    var refreshing by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(5_000)
+            if (root != null && !loading) load(currentPath())
+        }
+    }
 
-    Column(modifier = modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+        isRefreshing = refreshing,
+        onRefresh = {
+            scope.launch {
+                refreshing = true
+                if (root != null) load(currentPath())
+                refreshing = false
+            }
+        },
+        modifier = modifier.fillMaxSize(),
+    ) {
+    Column(Modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.files_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text("read-only", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            // B2.18: the route already renders "Workspace files" — no second header.
+            Text(stringResource(R.string.files_read_only), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
             if (stack.isNotEmpty()) {
                 AssistChip(
@@ -152,11 +183,25 @@ fun FilesScreen(
                     Row(
                         Modifier
                             .fillMaxWidth()
-                            .clickable {
+                            .testTag("files_row_${entry.path}")
+                            .minRowTouchTarget()
+                            .clickable(role = Role.Button) {
                                 if (entry.isDirectory) {
                                     scope.launch {
                                         stack = stack + entry.path
                                         load(entry.path)
+                                    }
+                                } else if (isImageName(entry.name)) {
+                                    // I3: images PREVIEW — the file browser can finally
+                                    // show a PNG (bounded read; "use Download" was the
+                                    // only option before).
+                                    viewer = entry.path
+                                    imageBytes = null
+                                    downloadState = null
+                                    scope.launch {
+                                        val p = port.binaryPreview(entry.path, IMAGE_PREVIEW_CAP)
+                                        imageBytes = p.bytes
+                                        if (p.error != null) downloadState = DownloadUi.Failed(p.error)
                                     }
                                 } else {
                                     viewer = entry.path
@@ -167,9 +212,11 @@ fun FilesScreen(
                                         if (first.slice != null) {
                                             textState = listOf(first.slice)
                                             // Binary files never render as text (protocol-gated).
-                                            if (first.slice.isBinary) downloadState = "binary file — use Download"
-                                        } else {
-                                            downloadState = first.error ?: "cannot display this file"
+                                            if (first.slice.isBinary) {
+                                                downloadState = DownloadUi.Binary(binaryNotice)
+                                            } else {
+                                                downloadState = first.error?.let { DownloadUi.Failed(it) }
+                                            }
                                         }
                                         textLoading = false
                                     }
@@ -203,64 +250,168 @@ fun FilesScreen(
             }
         } else {
             // Text viewer (paged, INV-13: slice-by-slice loads only).
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.testTag("files_viewer")) {
                 AssistChip(onClick = { viewer = null; downloadState = null }, label = { Text(stringResource(com.zcode.android.core.ui.R.string.action_back)) })
                 AssistChip(
                     onClick = {
                         scope.launch {
-                            downloadState = "downloading…"
+                            downloadState = DownloadUi.Downloading
                             val result = port.download(viewer!!)
                             downloadState = when {
-                                result.file != null -> "downloaded ${result.bytes} bytes — share sheet opened"
-                                else -> result.error ?: "download failed"
+                                result.file != null -> DownloadUi.Done(result.bytes)
+                                else -> DownloadUi.Failed(result.error ?: downloadFailed)
                             }
                         }
                     },
+                    modifier = Modifier.testTag("files_download_button"),
                     label = { Text(stringResource(R.string.files_download)) },
                 )
             }
-            if (downloadState != null) {
-                Text(downloadState!!, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            downloadState?.let { state ->
+                Text(
+                    state.display(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag(
+                        when (state) {
+                            is DownloadUi.Binary -> "files_binary_notice"
+                            else -> "files_download_state"
+                        },
+                    ),
+                )
             }
-            if (textLoading) {
+            if (viewer != null && isImageName(viewer!!)) {
+                // I3: the image preview surface.
+                val bmp = imageBytes?.let { b ->
+                    runCatching { android.graphics.BitmapFactory.decodeByteArray(b, 0, b.size) }.getOrNull()
+                }
+                Surface(tonalElevation = 1.dp, modifier = Modifier.fillMaxSize()) {
+                    if (bmp != null) {
+                        androidx.compose.foundation.Image(
+                            bitmap = bmp.asImageBitmap(),
+                            contentDescription = viewer,
+                            contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(8.dp)
+                                .testTag("files_image_preview"),
+                        )
+                    } else {
+                        Text(
+                            stringResource(R.string.files_loading),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(12.dp),
+                        )
+                    }
+                }
+            } else if (textLoading) {
                 Text(stringResource(R.string.files_loading), style = MaterialTheme.typography.bodySmall)
             }
             Surface(tonalElevation = 1.dp, modifier = Modifier.fillMaxSize()) {
-                LazyColumn(Modifier.padding(6.dp)) {
+                val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+                // I3: scroll-end prefetch — near the last loaded line the next chunk
+                // loads itself (the manual "Load more" tap is gone). The honest cap:
+                // a file beyond the preview budget stops here with copy that says so.
+                val oversize = (textState.firstOrNull()?.totalBytes ?: 0L) > PREVIEW_CAP_BYTES
+                val lastSlice = textState.lastOrNull()
+                val nearEnd by androidx.compose.runtime.remember {
+                    androidx.compose.runtime.derivedStateOf {
+                        val info = listState.layoutInfo
+                        (info.visibleItemsInfo.lastOrNull()?.index ?: 0) >= info.totalItemsCount - 2
+                    }
+                }
+                androidx.compose.runtime.LaunchedEffect(nearEnd, textState.size) {
+                    if (nearEnd && !oversize && !textLoading &&
+                        lastSlice != null && lastSlice.hasMore && !lastSlice.isBinary
+                    ) {
+                        textLoading = true
+                        val next = port.readText(viewer!!, lastSlice.offset + lastSlice.bytesRead, TEXT_CHUNK)
+                        next.slice?.let { textState = textState + it }
+                        textLoading = false
+                    }
+                }
+                LazyColumn(state = listState, modifier = Modifier.padding(6.dp).testTag("files_viewer_list")) {
+                    // Line numbers with the ABSOLUTE running count across slices.
+                    var runningLine = 0
                     items(textState.size) { index ->
                         val slice = textState[index]
-                        Text(
-                            slice.content,
-                            fontFamily = FontFamily.Monospace,
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                        if (index == textState.lastIndex && slice.hasMore && !slice.isBinary) {
-                            TextButton(onClick = {
-                                scope.launch {
-                                    textLoading = true
-                                    val next = port.readText(viewer!!, slice.offset + slice.bytesRead, TEXT_CHUNK)
-                                    next.slice?.let { textState = textState + it }
-                                    textLoading = false
-                                }
-                            }) {
-                                Text(stringResource(R.string.files_load_more, slice.offset + slice.bytesRead, slice.totalBytes))
+                        val lines = slice.content.split('\n')
+                        val firstLine = runningLine
+                        runningLine += lines.size
+                        for ((i, line) in lines.withIndex()) {
+                            Row(Modifier.fillMaxWidth()) {
+                                Text(
+                                    text = (firstLine + i + 1).toString(),
+                                    fontFamily = FontFamily.Monospace,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier
+                                        .width(48.dp)
+                                        .testTag("files_line_no_${firstLine + i}"),
+                                )
+                                Text(
+                                    text = line,
+                                    fontFamily = FontFamily.Monospace,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
                             }
                         }
                     }
                 }
+                if (oversize) {
+                    Text(
+                        stringResource(com.zcode.android.features.files.R.string.files_preview_cap),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(8.dp).testTag("files_preview_cap"),
+                    )
+                }
             }
         }
     }
+    }
 
-    // Malformed/error download notice dialog (never a silent failure).
-    if (downloadState != null && viewer == null && error == null && downloadState!!.startsWith("binary")) {
+    // Malformed/error download notice dialog (never a silent failure). The routing
+    // is TYPED (B2.16) — no display-string prefix matching.
+    val dialogState = downloadState
+    if (dialogState is DownloadUi.Binary && viewer == null && error == null) {
         AlertDialog(
             onDismissRequest = { downloadState = null },
+            modifier = Modifier.testTag("files_download_dialog"),
             confirmButton = { TextButton(onClick = { downloadState = null }) { Text(stringResource(R.string.files_ok)) } },
             title = { Text(stringResource(R.string.files_dialog_title)) },
-            text = { Text(downloadState!!) },
+            text = { Text(dialogState.message) },
         )
     }
 }
 
 private const val TEXT_CHUNK: Long = 64L * 1024
+
+/** I3: the honest preview budget — past it, the viewer says so instead of paging forever. */
+private const val PREVIEW_CAP_BYTES: Long = 256L * 1024
+
+/** I3: bounded image preview read (the browser can show a PNG at last). */
+private const val IMAGE_PREVIEW_CAP: Long = 512L * 1024
+
+private fun isImageName(name: String): Boolean =
+    name.substringAfterLast('.', "").lowercase() in setOf("png", "jpg", "jpeg", "gif", "webp", "bmp", "svg")
+
+
+/** B2.16: the download/notice states — display text derives from the type. */
+private sealed interface DownloadUi {
+    data object Downloading : DownloadUi
+    data class Done(val bytes: Long) : DownloadUi
+    data class Failed(val message: String) : DownloadUi
+
+    /** A binary file opened in the (text) viewer — the "use Download" notice. */
+    data class Binary(val message: String) : DownloadUi
+}
+
+/** I3: the copy is LOCALIZED — these were English literals in code. */
+@Composable
+private fun DownloadUi.display(): String = when (this) {
+    DownloadUi.Downloading -> stringResource(com.zcode.android.features.files.R.string.files_downloading)
+    is DownloadUi.Done -> stringResource(com.zcode.android.features.files.R.string.files_download_done, bytes)
+    is DownloadUi.Failed -> message
+    is DownloadUi.Binary -> message
+}

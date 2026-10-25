@@ -416,8 +416,12 @@ class DirectTransport(
             endpointKind = EndpointKind.DIRECT_SERVER,
         )
         if (machine.state == ConnectionStateMachine.ConnectionState.AUTHENTICATING ||
-            machine.state == ConnectionStateMachine.ConnectionState.CONNECTING
+            machine.state == ConnectionStateMachine.ConnectionState.CONNECTING ||
+            machine.state == ConnectionStateMachine.ConnectionState.RECONNECTING
         ) {
+            // The RECONNECTING arm (F2): a user retry from FAILED re-enters here and
+            // completes the handshake at hello — the DIRECT auth already passed at the
+            // server-info token gate. Without it the machine strands in RECONNECTING.
             machine.on(ConnectionStateMachine.ConnectionEvent.HELLO_RECEIVED) // → CONNECTED
         }
         publishState()
@@ -603,9 +607,12 @@ class DirectTransport(
                 return
             } catch (e: TransportFailure) {
                 if (e.error.category == ErrorCategory.AUTH) {
+                    // P1-GAP: lands FAILED (RECONNECTING --AUTH_FAILED--> FAILED) — the
+                    // user action path (re-enter the token / Retry). Never loop auth
+                    // failures (§12.6).
                     safeMachine(ConnectionStateMachine.ConnectionEvent.AUTH_FAILED)
                     _appErrors.emit(e.error)
-                    return // re-entry = user re-enters the token; never loop auth failures (§12.6)
+                    return
                 }
                 bound().warn("direct.reconnectFailed", e.error.developerDiagnostic.take(140))
             } catch (e: CancellationException) {
@@ -668,7 +675,11 @@ class DirectTransport(
     }
 
     override fun reconnectNow() {
-        if (machine.state == ConnectionStateMachine.ConnectionState.DEGRADED) {
+        if (machine.state == ConnectionStateMachine.ConnectionState.DEGRADED ||
+            machine.state == ConnectionStateMachine.ConnectionState.FAILED
+        ) {
+            // §14.4.1 user-action exit (F2 arm for FAILED): an explicit retry opens a
+            // fresh budget and re-runs the handshake — the automatic loop stays quiesced.
             reconnect.reset()
             runCatching { machine.on(ConnectionStateMachine.ConnectionEvent.RETRY_REQUESTED) }
             publishState()
@@ -884,6 +895,14 @@ class DirectTransport(
     override suspend fun deleteAutomation(workspacePath: String?, workspaceIdentity: String?, automationId: String) = plane.deleteAutomation(workspacePath, workspaceIdentity, automationId)
     override suspend fun setAutomationEnabled(workspacePath: String?, workspaceIdentity: String?, automationId: String, enabled: Boolean) = plane.setAutomationEnabled(workspacePath, workspaceIdentity, automationId, enabled)
     override suspend fun runAutomationNow(workspacePath: String?, workspaceIdentity: String?, automationId: String): JsonObject = plane.runAutomationNow(workspacePath, workspaceIdentity, automationId)
+    override suspend fun listAutomationRuns(workspacePath: String?, workspaceIdentity: String?, automationId: String): JsonObject = plane.listAutomationRuns(workspacePath, workspaceIdentity, automationId)
+    override suspend fun deleteAutomationRun(workspacePath: String?, workspaceIdentity: String?, runId: String) = plane.deleteAutomationRun(workspacePath, workspaceIdentity, runId)
+    override suspend fun restartAutomation(workspacePath: String?, workspaceIdentity: String?, automationId: String) = plane.restartAutomation(workspacePath, workspaceIdentity, automationId)
+    override suspend fun commandsList(workspacePath: String?, workspaceIdentity: String?): JsonObject = plane.commandsList(workspacePath, workspaceIdentity)
+    override suspend fun subagentsList(workspacePath: String?, workspaceIdentity: String?, provider: String?): JsonObject = plane.subagentsList(workspacePath, workspaceIdentity, provider)
+    override suspend fun setThoughtLevel(workspacePath: String?, workspaceIdentity: String?, sessionId: String, thoughtLevel: String, expectedRevision: Long?): JsonObject = plane.setThoughtLevel(workspacePath, workspaceIdentity, sessionId, thoughtLevel, expectedRevision)
+    override suspend fun createScratchWorkspace(name: String): JsonObject = plane.createScratchWorkspace(name)
+    override suspend fun channelCall(channelName: String, method: String, arg: RpcValue, timeoutMs: Long): RpcValue = plane.channelCall(channelName, method, arg, timeoutMs)
     override suspend fun usageEntitlementSnapshot(request: JsonObject): JsonObject = plane.usageEntitlementSnapshot(request)
 
     override suspend fun codingPlanResetStatus(preferredProviderId: String, accountAccess: JsonObject): JsonObject =
@@ -907,6 +926,23 @@ class DirectTransport(
 
     override suspend fun listPlugins(workspacePath: String?, workspaceIdentity: String?): JsonObject =
         plane.listPlugins(workspacePath, workspaceIdentity)
+    override suspend fun setPluginEnabled(workspacePath: String?, workspaceIdentity: String?, pluginId: String, enabled: Boolean): JsonObject =
+        plane.setPluginEnabled(workspacePath, workspaceIdentity, pluginId, enabled)
+
+    override suspend fun terminalWrite(id: String, data: String) = plane.terminalWrite(id, data)
+    override suspend fun grantWorkspaceHookTrust(workspacePath: String?, workspaceIdentity: String?, bundleDigest: String, hookDeclarationDigest: String): JsonObject = plane.grantWorkspaceHookTrust(workspacePath, workspaceIdentity, bundleDigest, hookDeclarationDigest)
+    override suspend fun terminalResize(id: String, cols: Int, rows: Int) = plane.terminalResize(id, cols, rows)
+
+    override suspend fun gitStagePaths(workspacePath: String, paths: List<String>) = plane.gitStagePaths(workspacePath, paths)
+    override suspend fun gitUnstagePaths(workspacePath: String, paths: List<String>) = plane.gitUnstagePaths(workspacePath, paths)
+    override suspend fun gitDiscardPaths(workspacePath: String, paths: List<String>, staged: Boolean) = plane.gitDiscardPaths(workspacePath, paths, staged)
+    override suspend fun gitCommit(workspacePath: String, message: String, paths: List<String>?, stagedOnly: Boolean): JsonObject = plane.gitCommit(workspacePath, message, paths, stagedOnly)
+    override suspend fun gitGenerateCommitMessage(workspacePath: String, includeUnstaged: Boolean): JsonObject = plane.gitGenerateCommitMessage(workspacePath, includeUnstaged)
+    override suspend fun gitPush(workspacePath: String): JsonObject = plane.gitPush(workspacePath)
+    override suspend fun gitSwitchBranch(workspacePath: String, targetBranchName: String): JsonObject = plane.gitSwitchBranch(workspacePath, targetBranchName)
+    override suspend fun gitCreateBranchAndSwitch(workspacePath: String, branchName: String, startPoint: String?): JsonObject = plane.gitCreateBranchAndSwitch(workspacePath, branchName, startPoint)
+    override suspend fun gitLocalBranches(workspacePath: String): JsonObject = plane.gitLocalBranches(workspacePath)
+    override suspend fun gitIdentity(workspacePath: String): JsonObject = plane.gitIdentity(workspacePath)
 
     override suspend fun skillReferenceCatalog(
         workspacePath: String?,
@@ -918,6 +954,8 @@ class DirectTransport(
         plane.mcpServerStatuses(workspacePath, workspaceIdentity)
 
     override suspend fun modelSelectionView(): JsonObject = plane.modelSelectionView()
+    override suspend fun taskSnapshotToolCallsSlice(taskId: String, toolCallIds: List<String>): JsonObject? =
+        plane.taskSnapshotToolCallsSlice(taskId, toolCallIds)
 
     // ------------------------------------------------------------------ direct surface
 

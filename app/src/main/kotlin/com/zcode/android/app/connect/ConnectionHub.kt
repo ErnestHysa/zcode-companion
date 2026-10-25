@@ -110,6 +110,15 @@ class ConnectionHub(
     // preferences (selectedEndpointId); the registry lives in endpointRepo.
 
     private val _endpoints = MutableStateFlow<List<Endpoint>>(emptyList())
+
+    /**
+     * C6 (gate-before-first-frame): false until §11.6's active-endpoint selection has
+     * run (the sync seed covers relay pairings; a DIRECT-only device's endpoint arrives
+     * in the async refinement). MainActivity holds the splash screen while this is
+     * false — no pairing flash on cold start with an existing pairing.
+     */
+    private val _gateResolved = MutableStateFlow(false)
+    val gateResolved: StateFlow<Boolean> = _gateResolved.asStateFlow()
     /** The endpoint registry (§11.3) — every saved endpoint across both kinds. */
     val endpoints: StateFlow<List<Endpoint>> = _endpoints.asStateFlow()
 
@@ -335,32 +344,10 @@ class ConnectionHub(
         _endpointName.value = seededMeta?.desktopName
         _phase.value = if (seededMeta == null) ConnectionPhase.UNPAIRED else phaseOf(activeTransport().states.value)
         scope.launch {
-            refreshRegistry()
-            // §11.6 active-endpoint selection: prefs.selectedEndpointId → registry;
-            // fall back to the paired relay endpoint (legacy single-endpoint behavior).
-            val selectedId = runCatching { preferences.current().selectedEndpointId }.getOrNull()
-            val meta = vault.loadMetadata()
-            // §12.6 fail-closed: a selection whose credential no longer decrypts
-            // (vault wiped/rotated) is DEAD — ignore it and fall back to the relay
-            // pairing. Otherwise a stale selection hijacks cold start (found by the
-            // HistoryPagination instrumented suite: a wiped direct token left the
-            // persisted id pointing at a dead endpoint, 2026-10-03).
-            val selected = selectedId?.let { id ->
-                _endpoints.value.firstOrNull { it.endpointId.raw == id }?.takeUnless { ep ->
-                    ep.kind == com.zcode.android.domain.model.EndpointKind.DIRECT_SERVER &&
-                        !vault.hasDirectToken(ep.endpointId.raw)
-                }
-            }
-            _endpoint.value = when {
-                selected?.kind == com.zcode.android.domain.model.EndpointKind.DIRECT_SERVER -> selected
-                meta != null -> relayEndpointFromMeta(meta)
-                else -> selected
-            }
-            _endpointName.value = _endpoint.value?.displayName
-            _phase.value = if (_endpoint.value == null) ConnectionPhase.UNPAIRED else phaseOf(activeTransport().states.value)
-            val active = _endpoint.value
-            if (active != null && activeTransport().states.value != ConnectionStateMachine.ConnectionState.CONNECTED) {
-                connect()
+            try {
+                resolveActiveEndpoint()
+            } finally {
+                _gateResolved.value = true
             }
         }
         // Dual collectors gated by the ACTIVE kind: only the active transport drives
@@ -378,6 +365,37 @@ class ConnectionHub(
             directTransport.appErrors.collect { if (activeKind() == EndpointKind.DIRECT_SERVER) _lastError.value = it }
         }
         observeControlPlanePushes()
+    }
+
+    /** §11.6 active-endpoint selection (the async half of [start]'s seed). */
+    private suspend fun resolveActiveEndpoint() {
+        refreshRegistry()
+        // §11.6 active-endpoint selection: prefs.selectedEndpointId → registry;
+        // fall back to the paired relay endpoint (legacy single-endpoint behavior).
+        val selectedId = runCatching { preferences.current().selectedEndpointId }.getOrNull()
+        val meta = vault.loadMetadata()
+        // §12.6 fail-closed: a selection whose credential no longer decrypts
+        // (vault wiped/rotated) is DEAD — ignore it and fall back to the relay
+        // pairing. Otherwise a stale selection hijacks cold start (found by the
+        // HistoryPagination instrumented suite: a wiped direct token left the
+        // persisted id pointing at a dead endpoint, 2026-10-03).
+        val selected = selectedId?.let { id ->
+            _endpoints.value.firstOrNull { it.endpointId.raw == id }?.takeUnless { ep ->
+                ep.kind == com.zcode.android.domain.model.EndpointKind.DIRECT_SERVER &&
+                    !vault.hasDirectToken(ep.endpointId.raw)
+            }
+        }
+        _endpoint.value = when {
+            selected?.kind == com.zcode.android.domain.model.EndpointKind.DIRECT_SERVER -> selected
+            meta != null -> relayEndpointFromMeta(meta)
+            else -> selected
+        }
+        _endpointName.value = _endpoint.value?.displayName
+        _phase.value = if (_endpoint.value == null) ConnectionPhase.UNPAIRED else phaseOf(activeTransport().states.value)
+        val active = _endpoint.value
+        if (active != null && activeTransport().states.value != ConnectionStateMachine.ConnectionState.CONNECTED) {
+            connect()
+        }
     }
 
     private fun relayEndpointFromMeta(meta: com.zcode.android.core.security.vault.CredentialMetadata): Endpoint =
@@ -477,19 +495,21 @@ class ConnectionHub(
         // call connect() DIRECTLY — a SECOND concurrent full handshake racing the
         // transport's own recovery loop (field log: 3 hub.connectFailed
         // IllegalStateException in 1.4 s + the #328-class desktop freeze). ALL user
-        // retries now route through reconnectNow(), which is single-flight-aware:
+        // retries route through reconnectNow(), which is single-flight-aware:
         // it arms the immediate flag on the RUNNING loop, or starts one from
-        // Degraded with a fresh budget. connect() itself remains only for the
-        // cold-start path (no live machine) and hard-FAILED (re-scan class).
+        // Degraded/FAILED (the F2 arm — an AUTH-failed state recovers via the
+        // transport's own user-retry path with a fresh budget; connect() here used
+        // to throw "connect() is the first-connection path"). connect() itself
+        // remains only for the cold-start path (no live machine).
         when (activeTransport().states.value) {
             ConnectionStateMachine.ConnectionState.DEGRADED,
+            ConnectionStateMachine.ConnectionState.FAILED,
             ConnectionStateMachine.ConnectionState.RECONNECTING,
             ConnectionStateMachine.ConnectionState.CONNECTING,
             ConnectionStateMachine.ConnectionState.AUTHENTICATING,
             ConnectionStateMachine.ConnectionState.RECOVERING,
             ConnectionStateMachine.ConnectionState.CONNECTED,
             -> activeTransport().reconnectNow()
-            ConnectionStateMachine.ConnectionState.FAILED -> connect()
             else -> if (connectJob?.isActive != true) connect()
         }
     }
@@ -643,6 +663,8 @@ class ConnectionHub(
                     createdAtMs = t.createdAtMs,
                     updatedAtMs = if (t.updatedAtMs > 0) t.updatedAtMs else t.createdAtMs,
                     workspaceLabel = t.workspaceLabel,
+                    pinned = t.pinned,
+                    unreadAt = t.unreadAtMs,
                 )
             }
             taskRepo.replaceAll(endpointId, WorkspaceIdentityKey(key), tasks, etag = null, atMs = now)
@@ -858,15 +880,33 @@ class ConnectionHub(
 
     /** Phase 3 read-only viewer plane (usage/automations/plugins/skills/mcp; v4-wire.md §12). */
     private val viewerTools = java.util.concurrent.ConcurrentHashMap<AppTransport, com.zcode.android.data.session.ViewerTools>()
+    private val taskServices = java.util.concurrent.ConcurrentHashMap<Any, com.zcode.android.data.session.TaskServiceClient>()
+    private val agentFacades = java.util.concurrent.ConcurrentHashMap<Any, com.zcode.android.data.session.AgentFacadeClient>()
+    private val checkpointClients = java.util.concurrent.ConcurrentHashMap<Any, com.zcode.android.data.session.GitCheckpointClient>()
 
     fun viewerTools(): com.zcode.android.data.session.ViewerTools =
         viewerTools.getOrPut(activeTransport()) { com.zcode.android.data.session.ViewerTools(activeTransport()) }
+
+    /** Phase 4D (L6.3+J4/H1.1): the `zcode-task` lifecycle + search client. */
+    fun taskService(): com.zcode.android.data.session.TaskServiceClient =
+        taskServices.getOrPut(activeTransport()) { com.zcode.android.data.session.TaskServiceClient(activeTransport()) }
+
+    /** Phase 5 (A3.3/A3.11/A3.12/A3.13/L6.4): the zcode-agent facade READ words the phone never called. */
+    fun agentFacade(): com.zcode.android.data.session.AgentFacadeClient =
+        agentFacades.getOrPut(activeTransport()) { com.zcode.android.data.session.AgentFacadeClient(activeTransport()) }
+
+    /** Phase 5B (A3.11): the git-checkpoint channel trio (create/diff/restoreBetween). */
+    fun checkpoints(): com.zcode.android.data.session.GitCheckpointClient =
+        checkpointClients.getOrPut(activeTransport()) { com.zcode.android.data.session.GitCheckpointClient(activeTransport()) }
 
     /** The connected workspace target for git/files (§7.11); null when disconnected. */
     fun activeWorkspaceTarget(): Pair<String?, String?>? = activeTransport().activeWorkspaceTarget
 
     /** Approvals-inbox observation source (open interactions across tasks). */
     fun interactionsStore(): com.zcode.android.domain.repo.InteractionRepository = interactions
+
+    /** K4: the task projection cache — the inbox resolves task TITLES from it by sessionId. */
+    fun taskStore(): TaskRepository = taskRepo
 
     // ------------------------------------------------------------------ internals
 

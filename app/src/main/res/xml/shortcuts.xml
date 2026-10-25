@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- H2.2 (gaps-and-polish 2F): long-press launcher shortcuts. Each intent carries the
+     zcode.shortcut extra that MainActivity routes through NotificationWiring. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="new_task"
+        android:enabled="true"
+        android:icon="@drawable/ic_launcher_foreground"
+        android:shortcutShortLabel="@string/shortcut_new_task"
+        android:shortcutLongLabel="@string/shortcut_new_task_long">
+        <intent
+            android:action="com.zcode.android.app.action.SHORTCUT"
+            android:targetPackage="com.zcode.android.app"
+            android:targetClass="com.zcode.android.app.MainActivity">
+            <extra android:name="zcode.shortcut" android:value="new_task" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="approvals"
+        android:enabled="true"
+        android:icon="@drawable/ic_launcher_foreground"
+        android:shortcutShortLabel="@string/shortcut_approvals"
+        android:shortcutLongLabel="@string/shortcut_approvals_long">
+        <intent
+            android:action="com.zcode.android.app.action.SHORTCUT"
+            android:targetPackage="com.zcode.android.app"
+            android:targetClass="com.zcode.android.app.MainActivity">
+            <extra android:name="zcode.shortcut" android:value="approvals" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="connection"
+        android:enabled="true"
+        android:icon="@drawable/ic_launcher_foreground"
+        android:shortcutShortLabel="@string/shortcut_connection"
+        android:shortcutLongLabel="@string/shortcut_connection_long">
+        <intent
+            android:action="com.zcode.android.app.action.SHORTCUT"
+            android:targetPackage="com.zcode.android.app"
+            android:targetClass="com.zcode.android.app.MainActivity">
+            <extra android:name="zcode.shortcut" android:value="connection" />
+        </intent>
+    </shortcut>
+</shortcuts>

@@ -17,10 +17,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
@@ -46,12 +44,24 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zcode.android.app.R
 import com.zcode.android.core.ui.components.formatCompactTokenCount
+import com.zcode.android.core.ui.theme.LocalZCodeColors
 import com.zcode.android.core.ui.components.SkeletonBar
 import com.zcode.android.core.ui.components.StatusTone
 import com.zcode.android.core.ui.components.toneColor
 import com.zcode.android.domain.model.AppUsageSnapshot
 import java.util.Locale
 import kotlinx.coroutines.launch
+import com.zcode.android.core.ui.components.ZCodeButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import com.zcode.android.core.ui.components.ZCodeTopBar
+import com.zcode.android.core.ui.components.rememberZCodeTopBarScroll
+import com.zcode.android.core.ui.components.EmptyState
+import com.zcode.android.core.ui.components.ErrorState
+import com.zcode.android.core.ui.components.LoadingSkeleton
+import com.zcode.android.core.ui.components.friendlyFaultMessage
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 
 /**
  * GAP-5 (android-native-gaps.md; docs/protocol/v4-wire.md §12.1) — Settings →
@@ -98,59 +108,49 @@ fun UsageScreen(
     }
     LaunchedEffect(Unit) { load(range) }
 
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    val topBarScroll = rememberZCodeTopBarScroll()
+    Scaffold(
+        modifier = modifier.fillMaxSize().nestedScroll(topBarScroll.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            ZCodeTopBar(
+                title = stringResource(R.string.usage_title),
+                onBack = onBack,
+                backTestTag = "usage_back",
+                scrollBehavior = topBarScroll,
+            )
+        },
+    ) { inner ->
+        var refreshing by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+            isRefreshing = refreshing,
+            onRefresh = {
+                scope.launch {
+                    refreshing = true
+                    load(range)
+                    refreshing = false
+                }
+            },
+            modifier = Modifier.padding(inner).testTag("usage_pull"),
+        ) {
         Column(
             Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
+                .padding(inner),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack, modifier = Modifier.testTag("usage_back")) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(com.zcode.android.core.ui.R.string.action_back),
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-                Text(
-                    stringResource(R.string.usage_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onBackground,
-                )
-            }
             if (loading && snapshot == null && error == null) {
-                Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    SkeletonBar(Modifier.fillMaxWidth())
-                    SkeletonBar(Modifier.fillMaxWidth(0.7f))
-                    SkeletonBar(Modifier.fillMaxWidth(0.85f))
-                    Text(
-                        stringResource(R.string.usage_loading),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.testTag("usage_loading"),
-                    )
-                }
+                LoadingSkeleton(Modifier.fillMaxSize().testTag("usage_loading"), rows = 4)
                 return@Column
             }
             error?.let { message ->
-                Column(
-                    Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Text(
-                        stringResource(R.string.usage_error_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.testTag("usage_error"),
-                    )
-                    Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Button(onClick = { load(range) }, modifier = Modifier.testTag("usage_retry")) {
-                        Text(stringResource(R.string.usage_retry))
-                    }
-                }
+                ErrorState(
+                    title = stringResource(R.string.usage_error_title),
+                    message = friendlyFaultMessage(message),
+                    modifier = Modifier.fillMaxSize().testTag("usage_error"),
+                    onRetry = { load(range) },
+                    retryLabel = stringResource(R.string.usage_retry),
+                    retryTestTag = "usage_retry",
+                )
                 return@Column
             }
             val current = snapshot
@@ -174,33 +174,27 @@ fun UsageScreen(
                 if (current == null || current.summary.totalTokens == 0L) {
                     // Honest empty state (desktop UsageEmptyState, AppUsagePanel.tsx:71-97):
                     // zero activity renders an explicit empty card, never zeros-as-charts.
-                    Column(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(
-                            stringResource(R.string.usage_empty_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.testTag("usage_empty"),
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            stringResource(R.string.usage_empty_desc),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                    EmptyState(
+                        title = stringResource(R.string.usage_empty_title),
+                        message = stringResource(R.string.usage_empty_desc),
+                        modifier = Modifier.testTag("usage_empty"),
+                    )
                     return@Column
                 }
                 SummaryStrip(current.summary)
+                // I4+J9 (Phase 4E): cache-hit rate + call counts (the desktop's
+                // settings.usage.* analytics) — the stat cards' honesty, now with
+                // the model pie and the daily/model trend the desktop carries.
+                CacheCallsSection(current.summary)
                 if (current.heatmap.weeks.isNotEmpty()) HeatmapSection(current.heatmap)
+                if (current.dailyModelUsage.isNotEmpty()) DailyModelTrendSection(current.dailyModelUsage)
                 DailySection(current.dailyModelUsage, current.heatmap.maxTokens)
+                if (current.models.isNotEmpty()) ModelPieSection(current.models)
                 ModelsSection(current.models)
                 ToolsSection(current.tools)
                 Spacer(Modifier.height(24.dp))
             }
+        }
         }
     }
 }
@@ -333,14 +327,33 @@ private fun HeatmapSection(heatmap: AppUsageSnapshot.Heatmap) {
                         level <= 0 -> MaterialTheme.colorScheme.surfaceVariant
                         else -> toneColor(StatusTone.SUCCESS).copy(alpha = 0.15f + 0.2f * level.coerceAtMost(maxLevel))
                     }
+                    // §30.6: color is never the only signal — every cell describes its day + level.
+                    val cellA11y = if (day == null) stringResource(R.string.usage_heatmap_cell_empty)
+                    else stringResource(R.string.usage_heatmap_cell_a11y, day.date, level, maxLevel)
                     Box(
                         Modifier
                             .size(20.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(tone),
+                            .clip(MaterialTheme.shapes.small)
+                            .background(tone)
+                            .semantics { contentDescription = cellA11y }
+                            .testTag("usage_heatmap_cell"),
                     )
                 }
             }
+        }
+        // M5.8's pattern: a text-labelled legend (Less … More) beside the swatches.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.testTag("usage_heatmap_legend"),
+        ) {
+            Text(stringResource(R.string.usage_heatmap_legend_less), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            for (l in 0..maxLevel) {
+                val swatch = if (l == 0) MaterialTheme.colorScheme.surfaceVariant
+                else toneColor(StatusTone.SUCCESS).copy(alpha = 0.15f + 0.2f * l)
+                Box(Modifier.size(12.dp).clip(MaterialTheme.shapes.extraSmall).background(swatch))
+            }
+            Text(stringResource(R.string.usage_heatmap_legend_more), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Text(
             stringResource(R.string.usage_heatmap_range, heatmap.startDate ?: "—", heatmap.endDate ?: "—"),
@@ -381,14 +394,14 @@ private fun DailySection(days: List<AppUsageSnapshot.DailyModelUsage>, maxTokens
                     Modifier
                         .fillMaxWidth()
                         .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp))
+                        .clip(MaterialTheme.shapes.extraSmall)
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                 ) {
                     Box(
                         Modifier
                             .fillMaxWidth(total.toFloat() / peak)
                             .height(6.dp)
-                            .clip(RoundedCornerShape(3.dp))
+                            .clip(MaterialTheme.shapes.extraSmall)
                             .background(MaterialTheme.colorScheme.primary),
                     )
                 }
@@ -479,4 +492,139 @@ private fun SectionTitle(text: String, tag: String) {
             .padding(top = 16.dp, bottom = 6.dp)
             .testTag(tag),
     )
+}
+
+/** I4+J9: cache-hit rate + call counts — the desktop's settings.usage modelChart peers. */
+@Composable
+@android.annotation.SuppressLint("NonObservableLocale")
+private fun CacheCallsSection(summary: AppUsageSnapshot.Summary) {
+    val locale = Locale.getDefault()
+    val percent = java.text.NumberFormat.getPercentInstance(locale).apply { maximumFractionDigits = 1 }
+    Column {
+        SectionTitle(stringResource(R.string.usage_section_efficiency), tag = "usage_efficiency")
+        Row(
+        Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        SummaryCard(
+            Modifier.weight(1f),
+            label = stringResource(R.string.usage_cache_hit),
+            value = percent.format(summary.cacheHitRate),
+            valueTag = "usage_cache_hit",
+        )
+        SummaryCard(
+            Modifier.weight(1f),
+            label = stringResource(R.string.usage_tool_calls),
+            value = java.text.NumberFormat.getIntegerInstance(locale).format(summary.toolCallCount),
+            valueTag = "usage_tool_calls",
+        )
+        SummaryCard(
+            Modifier.weight(1f),
+            label = stringResource(R.string.usage_turns),
+            value = java.text.NumberFormat.getIntegerInstance(locale).format(summary.totalTurns),
+            valueTag = "usage_turns",
+        )
+    }
+    }
+}
+
+/** I4: the per-model share PIE (the desktop's AppUsageModelUsagePieChart port). */
+@Composable
+private fun ModelPieSection(models: List<AppUsageSnapshot.ModelUsage>) {
+    Column {
+        SectionTitle(stringResource(R.string.usage_section_pie), tag = "usage_pie")
+        val top = models.take(4)
+    val palette = listOf(
+        MaterialTheme.colorScheme.primary,
+        MaterialTheme.colorScheme.secondary,
+        LocalZCodeColors.current.accent,
+        MaterialTheme.colorScheme.tertiary,
+    )
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 8.dp)) {
+        androidx.compose.foundation.Canvas(modifier = Modifier.size(96.dp).testTag("usage_pie_canvas")) {
+            val total = top.sumOf { it.totalTokens }.coerceAtLeast(1L)
+            var start = -90f
+            top.forEachIndexed { i, model ->
+                val sweep = (model.totalTokens.toDouble() / total * 360.0).toFloat()
+                drawArc(
+                    color = palette[i % palette.size],
+                    startAngle = start,
+                    sweepAngle = sweep,
+                    useCenter = true,
+                )
+                start += sweep
+            }
+        }
+        Spacer(Modifier.width(16.dp))
+        Column {
+            top.forEachIndexed { i, model ->
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
+                    androidx.compose.foundation.layout.Box(
+                        Modifier.size(10.dp).background(palette[i % palette.size], androidx.compose.foundation.shape.CircleShape),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        (model.modelId ?: stringResource(R.string.usage_unknown_model)),
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+    }
+}
+
+/** I4: the daily/model trend (the desktop's AppUsageDailyModelTrendChart, as bars). */
+@Composable
+@android.annotation.SuppressLint("NonObservableLocale")
+private fun DailyModelTrendSection(daily: List<AppUsageSnapshot.DailyModelUsage>) {
+    val locale = Locale.getDefault()
+    Column {
+        SectionTitle(stringResource(R.string.usage_section_trend), tag = "usage_trend")
+        val topModels = daily.flatMap { it.models }
+        .groupBy { it.modelId }
+        .map { (id, items) -> (id ?: "?") to items.sumOf { it.totalTokens } }
+        .sortedByDescending { it.second }
+        .take(3)
+        .map { it.first }
+        .toSet()
+    Column(Modifier.padding(vertical = 6.dp)) {
+        daily.takeLast(14).forEach { day ->
+            val total = day.models.sumOf { it.totalTokens }
+            Row(
+                Modifier.fillMaxWidth().padding(vertical = 2.dp).testTag("usage_trend_row_${day.date}"),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    day.date.take(5),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.width(44.dp),
+                )
+                day.models.sortedByDescending { it.totalTokens }.forEach { m ->
+                    if (m.modelId in topModels && total > 0) {
+                        val frac = (m.totalTokens.toFloat() / total).coerceIn(0f, 1f)
+                        androidx.compose.foundation.layout.Box(
+                            Modifier
+                                .weight(frac.coerceAtLeast(0.05f))
+                                .height(10.dp)
+                                .background(
+                                    if ((m.modelId ?: "") == topModels.first()) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.secondary,
+                                ),
+                        ) {}
+                    }
+                }
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    formatCompactTokenCount(total, locale),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+    }
 }

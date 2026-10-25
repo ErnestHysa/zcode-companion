@@ -35,6 +35,9 @@ object BootstrapParser {
         val updatedAtMs: Long,
         /** Raw desktop-reported workspace identity ("" when absent — diagnostics). */
         val workspaceIdentityRaw: String = "",
+        /** A3.8: the row's `pinned` / `unreadAt` (windowHostController task row schema). */
+        val pinned: Boolean = false,
+        val unreadAtMs: Long? = null,
     )
 
     data class Result(
@@ -110,6 +113,8 @@ object BootstrapParser {
                     createdAtMs = obj.longOrZero("createdAt"),
                     updatedAtMs = obj.longOrZero("updatedAt"),
                     workspaceIdentityRaw = identity ?: "",
+                    pinned = (obj["pinned"] as? kotlinx.serialization.json.JsonPrimitive)?.content?.toBooleanStrictOrNull() ?: false,
+                    unreadAtMs = obj.longOrNull("unreadAt"),
                 ),
             )
         }
@@ -126,7 +131,9 @@ object BootstrapParser {
 
     private fun JsonObject.strOrNull(key: String): String? = str(key)?.takeIf { it.isNotBlank() }
 
-    private fun JsonObject.longOrZero(key: String): Long = runCatching {
-        (this[key] as? kotlinx.serialization.json.JsonPrimitive)?.takeIf { it !is kotlinx.serialization.json.JsonNull }?.content?.toLong()
-    }.getOrNull() ?: 0L
+    private fun JsonObject.longOrZero(key: String): Long = longOrNull(key) ?: 0L
+
+    private fun JsonObject.longOrNull(key: String): Long? = runCatching {
+        (this[key] as? kotlinx.serialization.json.JsonPrimitive)?.takeIf { it !is kotlinx.serialization.json.JsonNull }?.content?.toDouble()?.toLong()
+    }.getOrNull()
 }

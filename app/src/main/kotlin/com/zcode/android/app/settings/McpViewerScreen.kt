@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,6 +37,15 @@ import androidx.compose.ui.unit.dp
 import com.zcode.android.app.R
 import com.zcode.android.domain.model.McpStatuses
 import kotlinx.coroutines.launch
+import com.zcode.android.core.ui.components.ZCodeButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import com.zcode.android.core.ui.components.ZCodeTopBar
+import com.zcode.android.core.ui.components.rememberZCodeTopBarScroll
+import com.zcode.android.core.ui.components.EmptyState
+import com.zcode.android.core.ui.components.ErrorState
+import com.zcode.android.core.ui.components.LoadingSkeleton
+import com.zcode.android.core.ui.components.friendlyFaultMessage
 
 /**
  * GAP-9 (android-native-gaps.md; docs/protocol/v4-wire.md §12.5) — the
@@ -65,59 +73,47 @@ fun McpViewerScreen(
 
     LaunchedEffect(port) { scope.launch { result = port.statuses(); loading = false } }
 
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    val topBarScroll = rememberZCodeTopBarScroll()
+    Scaffold(
+        modifier = modifier.fillMaxSize().nestedScroll(topBarScroll.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            ZCodeTopBar(
+                title = stringResource(R.string.mcp_title),
+                onBack = onBack,
+                backTestTag = "mcp_back",
+                scrollBehavior = topBarScroll,
+            )
+        },
+    ) { inner ->
+        var refreshing by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+            isRefreshing = refreshing,
+            onRefresh = {
+                scope.launch {
+                    refreshing = true
+                    result = port.statuses()
+                    refreshing = false
+                }
+            },
+            modifier = Modifier.padding(inner).testTag("mcp_pull"),
+        ) {
         Column(
             Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
+                .fillMaxSize(),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack, modifier = Modifier.testTag("mcp_back")) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(com.zcode.android.core.ui.R.string.action_back),
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-                Text(
-                    stringResource(R.string.mcp_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onBackground,
-                )
-            }
             when {
-                loading && result == null -> Column(Modifier.fillMaxSize().padding(16.dp)) {
-                    Text(
-                        stringResource(R.string.mcp_loading),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.testTag("mcp_loading"),
-                    )
-                }
-                result?.error != null -> Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        stringResource(R.string.mcp_unavailable),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.error,
+                loading && result == null ->
+                    LoadingSkeleton(Modifier.fillMaxSize().testTag("mcp_loading"), rows = 4)
+                result?.error != null ->
+                    ErrorState(
+                        title = stringResource(R.string.mcp_unavailable),
+                        message = friendlyFaultMessage(result?.error),
                         modifier = Modifier.testTag("mcp_error"),
+                        onRetry = { loading = true; scope.launch { result = port.statuses(); loading = false } },
                     )
-                    Text(
-                        result?.error ?: "",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Button(onClick = { loading = true; scope.launch { result = port.statuses(); loading = false } }) {
-                        Text(stringResource(R.string.mcp_retry))
-                    }
-                }
-                result?.statuses?.statuses?.isEmpty() == true -> Column(Modifier.fillMaxSize().padding(16.dp)) {
-                    Text(
-                        stringResource(R.string.mcp_empty),
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.testTag("mcp_empty"),
-                    )
-                }
+                result?.statuses?.statuses?.isEmpty() == true ->
+                    EmptyState(title = stringResource(R.string.mcp_empty), modifier = Modifier.fillMaxSize().testTag("mcp_empty"))
                 else -> {
                     val statuses = result?.statuses?.statuses ?: return@Column
                     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp).testTag("mcp_list")) {
@@ -130,18 +126,42 @@ fun McpViewerScreen(
                 }
             }
         }
+        }
     }
 }
 
-/** The wire enums are closed sets on the desktop — colors only for the KNOWN faces. */
+/**
+ * M5.4: status COLORS are theme ROLES — the light-weight literal greens/reds computed
+ * ≈3.0–3.5:1 against the dark surface (below AA at 12sp); the designed roles pass in
+ * both themes (J6's computed table). Unknown future values stay neutral — never guessed.
+ */
+@Composable
 private fun statusColor(status: String): Color? = when (status) {
-    "connected" -> Color(0xFF2E7D32)
+    "connected" -> MaterialTheme.colorScheme.primary
     "connecting" -> null // neutral
-    "failed", "untrusted" -> Color(0xFFC62828)
+    "failed", "untrusted" -> MaterialTheme.colorScheme.error
     "disabled" -> null
     "disconnected" -> null
     else -> null // unknown future values stay neutral — never guessed
 }
+
+/**
+ * M5.7: the desktop LOCALIZES these exact enums (`settings.mcp.status.*Reason`) —
+ * the phone rendered them verbatim (zh users got English words). Unknown future
+ * values render raw (INV-8), never guessed copy.
+ */
+@Composable
+private fun mcpStatusLabel(status: String): String = stringResource(
+    when (status) {
+        "connected" -> R.string.mcp_status_connected
+        "connecting" -> R.string.mcp_status_connecting
+        "disconnected" -> R.string.mcp_status_disconnected
+        "failed" -> R.string.mcp_status_failed
+        "untrusted" -> R.string.mcp_status_untrusted
+        "disabled" -> R.string.mcp_status_disabled
+        else -> return status
+    },
+)
 
 @Composable
 private fun McpLine(name: String, s: McpStatuses.McpServerStatus) {
@@ -178,7 +198,7 @@ private fun McpLine(name: String, s: McpStatuses.McpServerStatus) {
         }
         val color = statusColor(s.status)
         Text(
-            s.status,
+            mcpStatusLabel(s.status),
             style = MaterialTheme.typography.labelMedium,
             color = color ?: MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier

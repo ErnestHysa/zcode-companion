@@ -87,6 +87,26 @@ class MockZCode(
         /** Row-id base for snapshot rows (tail-window simulation: base > firstRowId ⇒ truncated). */
         var snapshotRowIdBase: Long = 1L
 
+        /**
+         * When set, the snapshot appends ONE assistantText row carrying this markdown
+         * payload (nested list / table / fenced code) — exercises the phone's bounded
+         * parser live instead of inferring rendering from MarkdownParser.kt alone.
+         */
+        var demoAssistantMarkdown: String? = null
+
+        /**
+         * Bulk-leg override (MOCK_ROWS): replaces the workspace's default snapshot row
+         * count so the phone has a long conversation to scroll (gfxinfo jank leg).
+         */
+        var snapshotRowCount: Int? = null
+
+        /**
+         * Bulk-leg row realism (MOCK_ROWS): ASSISTANT_TEXT snapshot rows carry this
+         * multi-line payload instead of the thin "synthetic N" placeholder, so scroll
+         * jank is measured against paragraph + fence rows, not one-liners.
+         */
+        var bulkAssistantText: String? = null
+
         /** When true (with snapshotRowsWindowShape), the window reports firstRowId=1 ⇒ more history above. */
         var snapshotWindowTruncated: Boolean = false
         /** Shuffle fragment envelopes inside each logical message (out-of-order storm). */
@@ -176,6 +196,15 @@ class MockZCode(
         var appUsageStats: JsonObject? = null
         /** Scriptable automations (listAutomations result items; null = typed fault). */
         var listAutomations: JsonArray? = null
+        /** Phase 4B (A3.2): scripted run history; null = the run-history surface is unscripted (typed fault). */
+        var automationRuns: JsonArray? = null
+        /** Phase 4C (D2): scripted goal (with verifications) + todo keys (null = absent). */
+        var goalState: JsonObject? = null
+        var planState: JsonObject? = null
+        /** Phase 4C (C2): slash-panel extras — commands.list result (null = typed fault). */
+        var commandsList: JsonObject? = null
+        /** subagents.list result (null = typed fault). */
+        var subagentsList: JsonObject? = null
         /** Scriptable off-peak tasks (off-peak-task channel list items; null = typed fault). */
         var offPeakTaskList: JsonArray? = null
         /** Scriptable plugins list (listPlugins result; null = typed fault). */
@@ -228,6 +257,8 @@ class MockZCode(
         @Volatile var controlStopState: String = "idle"
         /** Verified queueStateSchema (display + edit sources). */
         @Volatile var queueItems: List<QueueItem>? = null
+        /** I1: the queue's drain state the `setAutoDrain` word flips (echoed in queue patches). */
+        @Volatile var autoDrain: Boolean = true
         /** Verified inputRoutingSchema.mode. */
         @Volatile var inputRoutingMode: String = "startNow"
         /** Pending open interaction stamped into snapshots + state (Q11 shape). */
@@ -243,6 +274,22 @@ class MockZCode(
         var commandEffects: Boolean = false
         /** One-shot ack overrides (stale/rejected/failed) — popped in send order. */
         val commandAckOverrides: ArrayDeque<String> = ArrayDeque()
+        /**
+         * Phase 4A rig leg (E3.2+I1+N5, MOCK_ROW_ACTIONS=1): the LAST assistant row of
+         * every snapshot carries `actions:{canFork,canRetry}` (the product projection
+         * sets them on the latest retryable row) and a completed turnHeader carries
+         * `fileChanges` + `actions.canRewindFiles` — so the phone's flag-gated row
+         * actions render and their commands reach [applyCommandEffect].
+         */
+        var rowActionsDemo: Boolean = false
+
+        /**
+         * I2.4 (Phase 6A): stamp the context-compaction lifecycle into the NEXT
+         * snapshot — three `timelineMarker` rows (`marker.type == "compact"`):
+         * started:auto, completed:auto with token counts, failed:manual — the
+         * phone's notice row renders per phase and offers Retry on the failed one.
+         */
+        var compactionDemo: Boolean = false
 
         // ---------------- Phase 10 (direct surface, docs/protocol/phase10-direct.md) ----------------
         /** Simulate the 401 token gate on /api/server-info + /ws (auth-class fixtures). */
@@ -251,6 +298,73 @@ class MockZCode(
         var directWorkspaces: List<Pair<String, String>>? = null
         /** Scripted zcode-task.listTasks result rows (ZCodeTaskMeta subset). */
         var directTasks: List<JsonObject> = emptyList()
+
+        // ---------------- Phase 5A (A3.8–A3.10) task management state ----------------
+        /** Pinned / unread / archived task ids the lifecycle words mutate (rig round-trips). */
+        val pinnedTaskIds: MutableSet<String> = java.util.concurrent.ConcurrentHashMap.newKeySet()
+        val unreadTaskIds: MutableMap<String, Long> = java.util.concurrent.ConcurrentHashMap()
+        val archivedTaskIds: MutableSet<String> = java.util.concurrent.ConcurrentHashMap.newKeySet()
+        /** Custom groups `{id, title, color, createdAt, updatedAt}` + membership (groupId → taskIds). */
+        val taskGroups: MutableList<JsonObject> = java.util.Collections.synchronizedList(ArrayList())
+        val taskGroupMembers: MutableMap<String, MutableList<String>> = java.util.concurrent.ConcurrentHashMap()
+        /** Off-peak ids the `pauseTask`/`continueTask` channel words have paused. */
+        val offPeakPausedIds: MutableSet<String> = java.util.concurrent.ConcurrentHashMap.newKeySet()
+        /** L6.2: `cancelTask` marks terminal — the next `list` reports `cancelled`. */
+        val offPeakCancelledIds: MutableSet<String> = java.util.concurrent.ConcurrentHashMap.newKeySet()
+        /** `resumeTask` calls (taskId) — the "continue a finished task" word. */
+        val resumedTaskIds: MutableList<String> = java.util.Collections.synchronizedList(ArrayList())
+
+        // ---------------- Phase 5A (A3.3 + L6.4) workflows ----------------
+        /** `listSavedWorkflows` payload (BJ shape); null = unscripted → typed fault (hub hidden). */
+        var savedWorkflows: JsonObject? = null
+        /** `listSavedWorkflowRuns` items (cz shape) — appended when `startSavedWorkflow` runs. */
+        val savedWorkflowRuns: MutableList<JsonObject> = java.util.Collections.synchronizedList(ArrayList())
+        /** The session's runs (`conversationWorkflowRunsV4` Br shape) + per-run events (Rl). */
+        val workflowRuns: MutableList<JsonObject> = java.util.Collections.synchronizedList(ArrayList())
+        val workflowRunEvents: MutableMap<String, MutableList<JsonObject>> = java.util.concurrent.ConcurrentHashMap()
+        /** Every `startSavedWorkflow` envelope payload the mock saw (name/scope/args). */
+        val startedWorkflows: MutableList<JsonObject> = java.util.Collections.synchronizedList(ArrayList())
+
+        // ---------------- Phase 5B (A3.11) ----------------
+        /** `conversationFileRewindPreviewV4` result (nt shape; null = typed fault → copy-only confirm). */
+        var rewindPreview: JsonObject? = null
+        /** A3.14 rig: a pending AskUserQuestion interaction stamped into snapshots + state. */
+        var pendingQuestion: JsonObject? = null
+        /** ADR-022 rig: the writes the armed terminal tier sent. */
+        val terminalWrites: MutableList<String> = java.util.Collections.synchronizedList(ArrayList())
+
+        // ---------------- ADR-024 (Phase 5D): hooks trust ----------------
+        /** Scripted workspaceHookReview payload (the yS shape); null = no review pending. */
+        var hookReview: JsonObject? = null
+        /** Per-item trust states the review commands mutate (rig round-trips). */
+        val hookTrustStates: MutableMap<String, String> = java.util.concurrent.ConcurrentHashMap()
+        var hookReviewsResolved: Boolean = false
+
+        // ---------------- Phase 5B (A3.12 + A3.13) ----------------
+        /** `conversationPlansV4` result (plans projection; null = typed fault → the panel hides). */
+        var plansState: JsonObject? = null
+        /** `getModelTrajectory` result (readModelTrajectory shape; null = typed fault). */
+        var modelTrajectory: JsonObject? = null
+        /** `readSessionMessages` items (role/content) — the search corpus. */
+        var sessionMessages: JsonArray? = null
+
+        // ---------------- Phase 5B (A3.11) git checkpoints ----------------
+        val checkpoints: MutableList<JsonObject> = java.util.Collections.synchronizedList(ArrayList())
+        /** A3.15: per-task assistant feedback (`setAssistantMessageFeedback` snapshots). */
+        val assistantFeedback: MutableMap<String, MutableList<String?>> = java.util.concurrent.ConcurrentHashMap()
+
+        // ---------------- ADR-021 (Phase 5D): git write tier ----------------
+        val stagedPaths: MutableList<String> = java.util.Collections.synchronizedList(ArrayList())
+        val discardedPaths: MutableList<String> = java.util.Collections.synchronizedList(ArrayList())
+        val commits: MutableList<String> = java.util.Collections.synchronizedList(ArrayList())
+        var generatedCommitMessage: JsonObject? = null
+        var gitPushFails: Boolean = false
+        /** A scripted typed issue (nt-style JsonObject with code/message) — non-null = refusals. */
+        var gitBranchIssue: JsonObject? = null
+        var gitIdentityMissing: Boolean = false
+        var checkpointDiffFiles: List<String> = listOf("src/version.ts", "scratch/probe.txt")
+        /** Scripted conflict on a non-forced restore (the force-overwrite branch). */
+        var checkpointConflicts: Boolean = false
         /** One-shot direct-socket close after N binary frames (loss class). */
         var directDisconnectAfterFrames: Int? = null
     }
@@ -287,9 +401,17 @@ class MockZCode(
         val displayStatus: String = "running",
         val workspacePath: String = "/synthetic/ws",
         val workspaceLabel: String = "Synthetic Workspace",
-        val createdAtMs: Long = 1_700_000_000_000,
-        val updatedAtMs: Long = 1_700_000_300_000,
+        // Recency-relative (report F5): the store's stale sweep deletes rows older
+        // than 7 days inside replaceAll — hardcoded 2023 timestamps made every
+        // scripted task vanish from Room the moment it was written.
+        val createdAtMs: Long = System.currentTimeMillis() - 5 * 60 * 1000,
+        val updatedAtMs: Long = System.currentTimeMillis() - 60 * 1000,
         val productionShape: Boolean = true,
+        // A3.8 windowHostController row schema (the app's BootstrapParser reads both
+        // on the relay bootstrap): emitted only when non-default so the default row
+        // keeps the exact live-corpus key set (INV-8).
+        val pinned: Boolean = false,
+        val unreadAtMs: Long? = null,
     ) {
         internal fun toJson(): JsonObject = if (productionShape) {
             buildJsonObject {
@@ -301,6 +423,8 @@ class MockZCode(
                 put("workspaceKind", JsonPrimitive("local"))
                 put("createdAt", JsonPrimitive(createdAtMs))
                 put("updatedAt", JsonPrimitive(updatedAtMs))
+                if (pinned) put("pinned", JsonPrimitive(true))
+                unreadAtMs?.let { put("unreadAt", JsonPrimitive(it)) }
             }
         } else {
             buildJsonObject {
@@ -504,7 +628,67 @@ class MockZCode(
         return server.url("/ws").toString()
     }
 
+    // ------------------------------------------------------- raw WS server (report E9)
+    // mockwebserver3's webSocketUpgrade MASKS server frames (RFC 6455 §5.1 violation,
+    // probe-confirmed) — OkHttp clients correctly refuse with close 1006, so live
+    // device E2E can never complete a channel call through MockWebServer. startRaw
+    // serves the same routes through RawWsServer, which writes unmasked frames.
+
+    @Volatile private var rawServer: RawWsServer? = null
+
+    fun startRaw(port: Int): String {
+        val raw = RawWsServer(port)
+        raw.start(::rawRoute)
+        rawServer = raw
+        return "ws://127.0.0.1:$port/ws"
+    }
+
+    internal fun rawRoute(path: String, query: Map<String, String>, headers: Map<String, String>): RawWsServer.Route {
+        if (script.rejectConnections) return RawWsServer.Route.Http(503)
+        if (mode == Mode.DIRECT) return rawRouteDirect(path, query, headers)
+        // RELAY: every request upgrades (same semantics as the MockWebServer dispatcher).
+        return RawWsServer.Route.Upgrade(
+            onOpen = { },
+            onText = { ws, text ->
+                runCatching { json.parseToJsonElement(text).jsonObject }.getOrNull()?.let { route(ws, it) }
+            },
+        )
+    }
+
+    private fun rawRouteDirect(path: String, query: Map<String, String>, headers: Map<String, String>): RawWsServer.Route {
+        val token = query["token"] ?: headers["cookie"]?.split(";")?.map { it.trim() }
+            ?.firstOrNull { it.startsWith("zcode_lite_token=") }?.removePrefix("zcode_lite_token=")
+        val valid = !script.directRejectToken && token == serverToken
+        return when (path) {
+            "/api/server-info" -> if (!valid) {
+                RawWsServer.Route.Http(401, contentType = "application/json", body = """{"error":"Unauthorized"}""")
+            } else {
+                RawWsServer.Route.Http(
+                    200,
+                    contentType = "application/json",
+                    body = serverInfoJson().toString(),
+                    setCookie = "zcode_lite_token=$serverToken; Path=/; HttpOnly; SameSite=Lax",
+                )
+            }
+            "/ws" -> if (!valid) {
+                RawWsServer.Route.Http(401, body = """{"error":"Unauthorized"}""")
+            } else {
+                RawWsServer.Route.Upgrade(
+                    onOpen = { ws ->
+                        terminalSocket = ws
+                        conversationScopeRegistered = false
+                        scope.launch { events.emit(ServerEvent.AuthCompleted("direct-token")) }
+                        sendBinaryFrame(ws, initializeBytes())
+                    },
+                    onBytes = { ws, bytes -> handleDirectWire(ws, bytes) },
+                )
+            }
+            else -> RawWsServer.Route.Http(404)
+        }
+    }
+
     fun stop() {
+        rawServer?.stop()
         terminalSocket?.let { runCatching { it.close(1000, "mock stop") } }
         try {
             server.close()
@@ -787,6 +971,8 @@ class MockZCode(
                         put("kind", JsonPrimitive("userInput"))
                         put("prompt", JsonPrimitive(pu.prompt))
                         put("freeText", JsonPrimitive(pu.freeText))
+                        // A3.14: the AskUserQuestion multi-question plane (MOCK_QUESTION).
+                        script.pendingQuestion?.get("questions")?.let { put("questions", it) }
                         put("options", JsonArray(pu.options.map { id ->
                             buildJsonObject { put("optionId", JsonPrimitive(id)); put("label", JsonPrimitive(id)) }
                         }))
@@ -799,49 +985,69 @@ class MockZCode(
             put("control", control)
             put("inputRouting", routing)
             put("queue", queue)
-            put("pendingInteractions", pending)
+            // ADR-024 (Phase 5D): the hook review with the mutated trust states — MERGED
+            // beside the permission/userInput interactions (U4: it used to REPLACE the key,
+            // so MOCK_HOOKS silently dropped MOCK_APPROVAL/MOCK_QUESTION from the state).
+            val hookInteraction = script.hookReview?.let { hr ->
+                val items = (hr["items"] as? JsonArray)?.map { el ->
+                    val o = el as? JsonObject ?: return@map el
+                    val id = (o["reviewItemId"] as? JsonPrimitive)?.content
+                    val ts = script.hookTrustStates[id]
+                    if (ts != null) JsonObject(o + ("trustState" to JsonPrimitive(ts))) else o
+                }
+                buildJsonObject {
+                    put("interactionId", hr["interactionId"] ?: JsonPrimitive("hook-rig"))
+                    put("kind", JsonPrimitive("workspaceHookReview"))
+                    put("anchorRowId", kotlinx.serialization.json.JsonNull)
+                    put("createdAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
+                    put("payload", buildJsonObject {
+                        put("kind", JsonPrimitive("workspaceHookReview"))
+                        (hr as? JsonObject)?.forEach { (k, v) -> if (k != "items") put(k, v) }
+                        put("items", JsonArray(items ?: emptyList()))
+                    })
+                }
+            }
+            put("pendingInteractions", JsonArray(pending + listOfNotNull(hookInteraction)))
             // Phase 9 (§10.3): the session `config` echo when scripted (snapshot AND
             // state.updated patches carry it — the switch commands' reconciliation plane).
             script.sessionConfig?.let { put("config", it) }
             // Phase 2 (§11.1): the usage key when scripted (GAP-1/GAP-2).
             script.usageState?.let { put("usage", it) }
+            // Phase 4C (D2): the goal (with its verification timeline) + todo keys.
+            script.goalState?.let { put("goal", it) }
+            script.planState?.let { put("plan", it) }
         }
     }
 
     /** Server-side state.updated driver (races, effects) — §9 key-level replacement. */
-    fun pushStatePatch(patch: JsonObject) {        val listener = conversationListenerId ?: return
+    fun pushStatePatch(patch: JsonObject) {
         val topic = "conversation/${workspace.sessionId}"
-        val frame = buildJsonObject {
-            put("topic", JsonPrimitive(topic))
-            put("subscriptionId", JsonPrimitive(subscriptionId))
-            put("fromSeq", JsonPrimitive(nextSeq()))
-            put("toSeq", JsonPrimitive(seqHeadNow))
-            put("sentAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
-            put("payload", buildJsonObject {
-                put("kind", JsonPrimitive("deltas"))
-                put("deltas", JsonArray(listOf(buildJsonObject {
-                    put("op", JsonPrimitive("state.updated"))
-                    put("patch", patch)
-                })))
-            })
-        }
-        val wireFrames = TopicWireFrameCodec.encode(
-            frame = frame, deliveryKind = DeliveryKind.ONLINE, topic = topic,
-            subscriptionId = subscriptionId, logicalFrameId = "lf-${System.nanoTime()}",
-            logicalFrameOrdinal = 1,
-        )
-        for (wire in wireFrames) {
-            val bytes = RpcSerialization.encodeAll(
-                listOf(
-                    RpcValue.Arr(listOf(RpcValue.Int(ChannelWire.ResponseType.EventFire.id), RpcValue.Int(listener))),
-                    RpcValue.Obj(buildJsonObject {
-                        put("topic", JsonPrimitive(topic))
-                        put("frame", wireJson(wire))
-                    }),
-                )
-            )
-            sendLogicalFrame(bytes)
-        }
+        // G3 rig fidelity: journal the frame BEFORE emitting — a resumable
+        // resyncConversationV4 (base epoch + baseSeq) replays the opLog, and an
+        // unjournaled effect patch is lost to exactly that replay (the G3 "state patch
+        // appears lost after the resync the model switch triggered").
+        val ops = JsonArray(listOf(buildJsonObject {
+            put("op", JsonPrimitive("state.updated"))
+            put("patch", patch)
+        }))
+        journalAndEmit(workspace.sessionId, ops)
+    }
+
+    /** Replay-journal bound — the app's own subscriber-buffer order (INV-5, holdBufferMaxOps=500). */
+    private val opLogMaxFrames = 512
+
+    /**
+     * Journal one delta frame (monotonic seq) for resync replay, then emit it live.
+     * G3: every command-effect frame (state patches, row deltas) routes through here
+     * so effect state survives a resumable resync, not just full snapshots.
+     */
+    private fun journalAndEmit(sessionId: String, ops: JsonArray) {
+        val from = nextSeq()
+        val frame = DeltaFrame(from, seqHeadNow, ops)
+        val log = opLog.getOrPut(sessionId) { ArrayDeque() }
+        log.addLast(frame)
+        while (log.size > opLogMaxFrames) log.removeFirst()
+        emitDeltasFrame(sessionId, listOf(frame), DeliveryKind.ONLINE)
     }
 
     /**
@@ -912,41 +1118,19 @@ class MockZCode(
     }
 
     /** Row-appended delta driver (command effects; authoritative rows). */
-    private fun pushRowAppended(sessionId: String, row: JsonObject) {
-        val listener = conversationListenerId ?: return
-        val topic = "conversation/$sessionId"
-        val from = nextSeq()
-        val frame = buildJsonObject {
-            put("topic", JsonPrimitive(topic))
-            put("subscriptionId", JsonPrimitive(subscriptionId))
-            put("fromSeq", JsonPrimitive(from))
-            put("toSeq", JsonPrimitive(seqHeadNow))
-            put("sentAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
-            put("payload", buildJsonObject {
-                put("kind", JsonPrimitive("deltas"))
-                put("deltas", JsonArray(listOf(buildJsonObject {
-                    put("op", JsonPrimitive("row.appended"))
-                    put("row", row)
-                })))
-            })
-        }
-        val wireFrames = TopicWireFrameCodec.encode(
-            frame = frame, deliveryKind = DeliveryKind.ONLINE, topic = topic,
-            subscriptionId = subscriptionId, logicalFrameId = "lf-${System.nanoTime()}",
-            logicalFrameOrdinal = 1,
-        )
-        for (wire in wireFrames) {
-            val bytes = RpcSerialization.encodeAll(
-                listOf(
-                    RpcValue.Arr(listOf(RpcValue.Int(ChannelWire.ResponseType.EventFire.id), RpcValue.Int(listener))),
-                    RpcValue.Obj(buildJsonObject {
-                        put("topic", JsonPrimitive(topic))
-                        put("frame", wireJson(wire))
-                    }),
-                )
-            )
-            sendLogicalFrame(bytes)
-        }
+    private fun pushRowAppended(sessionId: String, row: JsonObject) = pushRowDelta(sessionId, "row.appended", row)
+
+    /** Phase 4A: `row.upserted` for in-place authoritative edits (feedback echo, reverted turn). */
+    private fun pushRowUpserted(sessionId: String, row: JsonObject) = pushRowDelta(sessionId, "row.upserted", row)
+
+    private fun pushRowDelta(sessionId: String, op: String, row: JsonObject) {
+        // G3: the same journal+emit path as state patches — authoritative row effects
+        // replay after a resumable resync instead of living only in the snapshot tail.
+        val ops = JsonArray(listOf(buildJsonObject {
+            put("op", JsonPrimitive(op))
+            put("row", row)
+        }))
+        journalAndEmit(sessionId, ops)
     }
 
     /**
@@ -977,7 +1161,7 @@ class MockZCode(
             put("turnId", JsonPrimitive("turn-$sessionId-${(rowId - 1) / 4 + 1}"))
             put("kind", JsonPrimitive(kind.wire))
             put("entityId", JsonPrimitive("ent-$rowId"))
-            put("createdAt", JsonPrimitive(1_700_000_000_000.0 + rowId))
+            put("createdAt", JsonPrimitive(System.currentTimeMillis().toDouble() - 300_000 + rowId))
             put("createdAtSeq", JsonPrimitive(rowId))
         }
         val kindFields = when (kind) {
@@ -1006,7 +1190,18 @@ class MockZCode(
             RowKind.TURN_HEADER -> buildJsonObject {
                 put("origin", JsonPrimitive("user"))
                 put("state", JsonPrimitive(text)) // terminal state rides `text` for scripted headers
-                put("startedAt", JsonPrimitive(1_700_000_000_000.0 + rowId))
+                put("startedAt", JsonPrimitive(System.currentTimeMillis().toDouble() - 300_000 + rowId))
+            }
+            RowKind.TIMELINE_MARKER -> buildJsonObject {
+                // I2.4 (Phase 6A): `text` carries "status:origin" (the schemaRow
+                // status-carrying convention); the marker payload mirrors the host's
+                // projectMarker compact arm {type, origin, status}.
+                put("lane", JsonPrimitive("turnTailBoundary"))
+                put("marker", buildJsonObject {
+                    put("type", JsonPrimitive("compact"))
+                    put("origin", JsonPrimitive(text.substringAfter(":", "manual")))
+                    put("status", JsonPrimitive(text.substringBefore(":")))
+                })
             }
             RowKind.USER_INPUT -> buildJsonObject {
                 put("text", JsonPrimitive(text))
@@ -1021,7 +1216,7 @@ class MockZCode(
     /** Kinds the mock emits (subset of the verified rows.ts union, all schema-faithful). */
     enum class RowKind(val wire: String) {
         TURN_HEADER("turnHeader"), USER_INPUT("userInput"), ASSISTANT_TEXT("assistantText"),
-        REASONING("reasoning"), TOOL_CALL("toolCall"),
+        REASONING("reasoning"), TOOL_CALL("toolCall"), TIMELINE_MARKER("timelineMarker"),
     }
 
     /** S12 driver: authoritative terminal turn state stamped into the NEXT snapshot. */
@@ -1032,6 +1227,16 @@ class MockZCode(
     @Volatile private var pendingApproval: Pair<String, String>? = null
     fun setPendingApproval(toolName: String, interactionId: String) { pendingApproval = toolName to interactionId }
 
+    /**
+     * A3.1 (gaps-and-polish Phase 3D rig leg): one pre-committed image attachment,
+     * stamped into the NEXT snapshot as a user-row attachment — the phone can render
+     * an image it sent earlier (the read channel answers from [committedAttachments]).
+     */
+    @Volatile private var scriptedAttachment: Triple<String, String, ByteArray>? = null
+    fun setScriptedAttachment(ref: String, mime: String, bytes: ByteArray) {
+        scriptedAttachment = Triple(ref, mime, bytes)
+    }
+
     private fun snapshotRows(sessionId: String, count: Int): JsonArray =
         snapshotRows(sessionId, count, script.snapshotRowIdBase)
 
@@ -1039,23 +1244,84 @@ class MockZCode(
         val rows = ArrayList<JsonObject>(count + 2)
         var nextId = rowIdBase
         for (i in 1..count) {
-            rows.add(
-                schemaRow(
-                    sessionId, nextId++,
-                    if (i % 2 == 0) RowKind.ASSISTANT_TEXT else RowKind.REASONING,
-                    "synthetic $i",
-                )
-            )
+            val kind = if (i % 2 == 0) RowKind.ASSISTANT_TEXT else RowKind.REASONING
+            val text = if (kind == RowKind.ASSISTANT_TEXT) {
+                script.bulkAssistantText?.let { "$it (row $i)" } ?: "synthetic $i"
+            } else {
+                "synthetic $i"
+            }
+            rows.add(schemaRow(sessionId, nextId++, kind, text))
         }
         sessionTurnOutcome?.let { outcome ->
             rows.add(schemaRow(sessionId, nextId++, RowKind.TURN_HEADER, outcome))
+        }
+        script.demoAssistantMarkdown?.let { md ->
+            rows.add(schemaRow(sessionId, nextId++, RowKind.ASSISTANT_TEXT, md))
         }
         pendingApproval?.let { (tool, iid) ->
             rows.add(schemaRow(sessionId, nextId++, RowKind.TOOL_CALL, "pendingApproval:$iid", extra = buildJsonObject {
                 put("toolName", JsonPrimitive(tool))
             }))
         }
+        scriptedAttachment?.let { (ref, mime, bytes) ->
+            val att = MockAttachment(sessionId = sessionId, fileName = "mock.png", mime = mime, totalBytes = bytes.size.toLong())
+            att.data.write(bytes)
+            synchronized(committedAttachments) { committedAttachments[ref] = att }
+            rows.add(schemaRow(sessionId, nextId++, RowKind.USER_INPUT, "here is the screenshot", extra = buildJsonObject {
+                put("attachments", JsonArray(listOf(buildJsonObject {
+                    put("ref", JsonPrimitive(ref))
+                    put("fileName", JsonPrimitive("mock.png"))
+                    put("mime", JsonPrimitive(mime))
+                    put("bytes", JsonPrimitive(bytes.size))
+                    put("previewRef", JsonNull)
+                })))
+            }))
+        }
+        if (script.rowActionsDemo) {
+            // A completed turn that changed files: the Undo-files gate needs files>0,
+            // state != reverted, a terminal turn state AND actions.canRewindFiles.
+            rows.add(schemaRow(sessionId, nextId++, RowKind.TURN_HEADER, "completedSuccess", extra = rowActionsTurnExtra("active")))
+            // The latest assistant row of the snapshot is the retryable/forkable one.
+            val lastAssistant = rows.indexOfLast { it["kind"]?.let { k -> (k as JsonPrimitive).content } == RowKind.ASSISTANT_TEXT.wire }
+            if (lastAssistant >= 0) rows[lastAssistant] = JsonObject(rows[lastAssistant] + ("actions" to ROW_ACTIONS_ASSISTANT))
+        }
+        if (script.compactionDemo) {
+            // I2.4: the lifecycle the desktop sends around an auto compaction —
+            // started, then the terminal auto success (with token counts), then a
+            // failed manual compaction for the Retry affordance.
+            rows.add(schemaRow(sessionId, nextId++, RowKind.TIMELINE_MARKER, "running:auto"))
+            rows.add(schemaRow(sessionId, nextId++, RowKind.TIMELINE_MARKER, "completed:auto", extra = buildJsonObject {
+                put("marker", buildJsonObject {
+                    put("type", JsonPrimitive("compact"))
+                    put("origin", JsonPrimitive("auto"))
+                    put("status", JsonPrimitive("completed"))
+                    put("tokensBefore", JsonPrimitive(180_000))
+                    put("tokensAfter", JsonPrimitive(42_000))
+                })
+            }))
+            rows.add(schemaRow(sessionId, nextId++, RowKind.TIMELINE_MARKER, "failed:manual"))
+        }
         return JsonArray(rows)
+    }
+
+    /** Phase 4A: `actions:{canFork:true,canRetry:true}` — rows.ts only ever sends TRUE keys. */
+    private val ROW_ACTIONS_ASSISTANT: JsonObject = buildJsonObject {
+        put("canFork", JsonPrimitive(true))
+        put("canRetry", JsonPrimitive(true))
+    }
+
+    private fun rowActionsTurnExtra(fileState: String): JsonObject = buildJsonObject {
+        put("endedAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
+        put("activeMs", JsonPrimitive(4200))
+        put("fileChanges", buildJsonObject {
+            put("additions", JsonPrimitive(5))
+            put("deletions", JsonPrimitive(1))
+            put("files", JsonPrimitive(2))
+            put("state", JsonPrimitive(fileState))
+        })
+        if (fileState != "reverted") {
+            put("actions", buildJsonObject { put("canRewindFiles", JsonPrimitive(true)) })
+        }
     }
 
     // ------------------------------------------------------------ scripted deltas / resync
@@ -1127,6 +1393,10 @@ class MockZCode(
     internal fun revisionForTest(): Long = stateRevision.get()
     internal fun pendingPermissionForTest(): PendingPermission? = script.pendingPermission
     internal fun pendingUserInputForTest(): PendingUserInput? = script.pendingUserInput
+    // Phase 4A self-test seams: the snapshot row builder + the appended/upserted row ledger.
+    internal fun snapshotRowsForTestSeam(sessionId: String, count: Int): JsonArray = snapshotRows(sessionId, count)
+    internal fun appendedRowForTest(rowId: Long): JsonObject? = synchronized(appendedRows) { appendedRows[rowId.toString()] }
+    internal fun appendedRowsForTest(): Map<String, JsonObject> = synchronized(appendedRows) { LinkedHashMap(appendedRows) }
 
     /**
      * Phase 7 test driver: inject a pending permission interaction (E2E approval
@@ -1249,12 +1519,18 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             }
             when (channelName) {
                 "terminal" -> handleTerminalPromise(id, name, argAsObject(arg))
-                "git" -> handleGitPromise(id, name)
+                // (write/resize ride handleTerminalPromise too — the armed input tier)
+                "git" -> handleGitPromise(id, name, arg)
+                "git-checkpoint" -> handleGitCheckpointPromise(id, name, argAsObject(arg))
                 "file" -> handleFilePromise(id, name, argAsObject(arg))
                 "model-selection" -> handleModelSelectionPromise(id, name)
                 "zcode-task" -> handleTaskPromise(id, name, argAsObject(arg))
-                "off-peak-task" -> handleOffPeakTaskPromise(id, name)
+                "off-peak-task" -> handleOffPeakTaskPromise(id, name, arg)
+                "feedback" -> handleFeedbackPromise(id, name, argAsObject(arg))
                 "usage-stats" -> handleUsageStatsPromise(id, name, arg)
+                // Phase 4C (C2): the slash panel's extra sections over their own channels.
+                "commands" -> handleCommandsPromise(id, name)
+                "subagents" -> handleSubagentsPromise(id, name)
                 else -> respondError(id, "fault.mock.unknownChannel:$channelName")
             }
             return
@@ -1271,7 +1547,37 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             println("MOCK: silenced unscoped conversation call $name (id=$id) — production behavior")
             return
         }
+        // UI-only action probe (I1 class): every zcodeAgent method the phone sends is
+        // logged, so "the Retry/Fork/Rewind/Like sheet is UI-only" is provable by the
+        // mock stdout between tap and screenshot.
+        println("MOCK: v4call $name (id=$id)")
+        synchronized(recentV4Calls) { recentV4Calls[name ?: "?"] = argAsObject(arg) }
+        synchronized(v4CallLedger) { v4CallLedger.add((name ?: "?") to (argAsObject(arg) ?: JsonObject(emptyMap()))) }
         when (name) {
+            // Phase 4C (C7): the scratch-workspace facade call — {name} → {path}.
+            "createScratchWorkspace" -> {
+                val name = (argAsObject(arg)?.get("name") as? JsonPrimitive)?.content
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("path", JsonPrimitive("/synthetic/scratch-${name?.takeIf { it.isNotBlank() } ?: createdCount.incrementAndGet()}"))
+                }))
+            }
+            // Phase 4C (A3.4): the effort-level facade call (zcodeAgent.ts:705) — the
+            // echo plane's `thought` updates and a state patch carries the config.
+            "setThoughtLevel" -> {
+                val params = argAsObject(arg)
+                val level = params?.strOrNull("thoughtLevel")
+                if (level == null) {
+                    respondError(id, "fault.mock.unscripted:setThoughtLevel")
+                } else {
+                    stateRevision.incrementAndGet()
+                    script.sessionConfig = thoughtLevelConfig(level)
+                    pushStatePatch(buildJsonObject {
+                        put("revision", JsonPrimitive(stateRevision.get()))
+                        put("config", script.sessionConfig!!)
+                    })
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(script.sessionConfig!!))
+                }
+            }
             "helloConversationV4" -> {
                 val hello = buildJsonObject {
                     put("kind", JsonPrimitive("hello"))
@@ -1462,6 +1768,48 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     }))
                     return
                 }
+                // Phase 5A (L6.4 + I1): startSavedWorkflow — the typed Bu vocabulary rides reasonCode.
+                if (type == "startSavedWorkflow") {
+                    val payload = env?.get("payload") as? JsonObject
+                    val name = payload?.strOrNull("name")
+                    script.startedWorkflows.add(payload ?: JsonObject(emptyMap()))
+                    val known = (script.savedWorkflows?.get("workflows") as? JsonArray)
+                        ?.any { (it as? JsonObject)?.strOrNull("name") == name } == true
+                    val reason = when {
+                        name.isNullOrBlank() -> "invalid_name"
+                        !known -> "not_found"
+                        else -> null
+                    }
+                    if (reason != null) {
+                        respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                            put("commandId", JsonPrimitive(commandId))
+                            put("status", JsonPrimitive("rejected"))
+                            put("reasonCode", JsonPrimitive(reason))
+                            put("revisionAtDecision", JsonPrimitive(stateRevision.get()))
+                        }))
+                        return
+                    }
+                    val runId = "wf-run-${script.workflowRuns.size + 1}"
+                    val now = System.currentTimeMillis()
+                    script.workflowRuns.add(buildJsonObject {
+                        put("runId", JsonPrimitive(runId)); put("label", JsonPrimitive(name!!))
+                        put("status", JsonPrimitive("running")); put("updatedAt", JsonPrimitive(now)); put("resumable", JsonPrimitive(false))
+                    })
+                    script.workflowRunEvents[runId] = mutableListOf(
+                        buildJsonObject { put("sequence", JsonPrimitive(1)); put("type", JsonPrimitive("run.started")); put("payload", buildJsonObject { put("message", JsonPrimitive("started $name")) }) },
+                    )
+                    script.savedWorkflowRuns.add(buildJsonObject {
+                        put("runId", JsonPrimitive(runId)); put("name", JsonPrimitive(name)); put("status", JsonPrimitive("running"))
+                        put("createdAt", JsonPrimitive(now)); put("updatedAt", JsonPrimitive(now)); put("spentTokens", JsonPrimitive(0))
+                    })
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("commandId", JsonPrimitive(commandId))
+                        put("status", JsonPrimitive("accepted"))
+                        put("revisionAtDecision", JsonPrimitive(stateRevision.get()))
+                        put("result", buildJsonObject { put("runId", JsonPrimitive(runId)) })
+                    }))
+                    return
+                }
                 var createResult: JsonObject? = null
                 if (script.commandEffects) {
                     createResult = applyCommandEffect(type, env)
@@ -1482,6 +1830,93 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(result))
                 }
             }
+            // ---- Phase 5A (A3.3): workflow runs — Br/Rl shapes over the mock's run state ----
+            "conversationWorkflowRunsV4" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                put("runs", JsonArray(ArrayList(script.workflowRuns)))
+            }))
+            "conversationWorkflowRunEventsV4" -> {
+                val a = argAsObject(arg)
+                val runId = a?.strOrNull("runId")
+                val after = a?.strOrNull("afterSequence")?.toLongOrNull() ?: 0L
+                val limit = a?.strOrNull("limit")?.toIntOrNull() ?: 200
+                val all = script.workflowRunEvents[runId] ?: emptyList()
+                val page = all.filter { ((it["sequence"] as? JsonPrimitive)?.content?.toLongOrNull() ?: 0L) > after }
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("events", JsonArray(page.take(limit)))
+                    put("hasMore", JsonPrimitive(page.size > limit))
+                }))
+            }
+            "conversationWorkflowRunArtifactsV4" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject { put("artifacts", JsonArray(emptyList())) }))
+            "conversationWorkflowRunNodeResultV4", "conversationWorkflowRunWorkspaceV4" ->
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
+            "conversationWorkflowRunArtifactDataV4" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                put("items", JsonArray(emptyList())); put("hasMore", JsonPrimitive(false))
+            }))
+            "conversationWorkflowRunArtifactReadV4" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                put("dataBase64", JsonPrimitive("")); put("mediaType", JsonPrimitive("text/plain")); put("totalBytes", JsonPrimitive(0)); put("nextOffset", kotlinx.serialization.json.JsonNull)
+            }))
+            // ---- Phase 5B (A3.11): the rewind preview (nt shape: canApply + safe/unsafe/ignored) ----
+            "conversationFileRewindPreviewV4" -> scriptableObject(id, script.rewindPreview, "conversationFileRewindPreviewV4")
+            // ---- Phase 5B (A3.12): the plans projection ----
+            "conversationPlansV4" -> scriptableObject(id, script.plansState, "conversationPlansV4")
+            // ---- Phase 5B (A3.13): the trajectory + session reads ----
+            "readSessionMessages" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(
+                (script.sessionMessages ?: JsonArray(emptyList())).map { RpcValue.Obj(it as JsonObject) },
+            ))
+            "readSessionEvents" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(emptyList()))
+            "readSessionDebug" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
+            // ---- Phase 5A (L6.4): the saved-workflow hub words (BJ / FJ / JJ shapes) ----
+            // ADR-024 (Phase 5D): the Settings-side grant — echoes the digest pair granted.
+            "grantWorkspaceHookTrust" -> {
+                val params = argAsObject(arg)
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("workspacePath", JsonPrimitive(params?.strOrNull("workspacePath") ?: ""))
+                    put("bundleDigest", JsonPrimitive(params?.strOrNull("bundleDigest") ?: ""))
+                    put("hookDeclarationDigest", JsonPrimitive(params?.strOrNull("hookDeclarationDigest") ?: ""))
+                    put("granted", JsonPrimitive(true))
+                }))
+            }
+            "setPluginEnabled" -> {
+                val pluginId = argAsObject(arg)?.str("pluginId")
+                val enabled = (argAsObject(arg)?.get("enabled") as? JsonPrimitive)?.content?.toBooleanStrictOrNull()
+                if (pluginId == null || enabled == null) respondError(id, "fault.mock.unscripted:setPluginEnabled")
+                else {
+                    // flip the scripted plugin's flag so the next listPlugins is wire-true
+                    script.listPlugins?.let { lp ->
+                        val arr = lp["plugins"] as? JsonArray
+                        if (arr != null) {
+                            val rebuilt = arr.map { item ->
+                                val o = item as? JsonObject
+                                if (o != null && (o["id"] as? JsonPrimitive)?.content == pluginId) {
+                                    JsonObject(o + ("enabled" to JsonPrimitive(enabled)))
+                                } else item
+                            }
+                            script.listPlugins = JsonObject(lp + ("plugins" to JsonArray(rebuilt)))
+                        }
+                    }
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("pluginId", JsonPrimitive(pluginId)); put("enabled", JsonPrimitive(enabled))
+                    }))
+                }
+            }
+            "listSavedWorkflows" -> scriptableObject(id, script.savedWorkflows, "listSavedWorkflows")
+            "getSavedWorkflow" -> {
+                val name = argAsObject(arg)?.strOrNull("name")
+                val wf = (script.savedWorkflows?.get("workflows") as? JsonArray)?.firstOrNull { (it as? JsonObject)?.strOrNull("name") == name } as? JsonObject
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(
+                    if (wf == null) buildJsonObject { put("ok", JsonPrimitive(false)); put("reason", JsonPrimitive("not_found")) }
+                    else buildJsonObject {
+                        put("ok", JsonPrimitive(true)); put("name", wf["name"]!!); put("path", wf["path"] ?: JsonPrimitive("")); put("scope", wf["scope"] ?: JsonPrimitive("project"))
+                        put("meta", buildJsonObject { wf["description"]?.let { put("description", it) }; wf["whenToUse"]?.let { put("whenToUse", it) }; wf["args"]?.let { put("args", it) } })
+                        put("script", JsonPrimitive("// synthetic"))
+                    },
+                ))
+            }
+            "listSavedWorkflowRuns" -> {
+                val name = argAsObject(arg)?.strOrNull("name")
+                val runs = script.savedWorkflowRuns.filter { name == null || it.strOrNull("name") == name }
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject { put("runs", JsonArray(runs)) }))
+            }
             // ---- Phase 3 viewer methods (v4-wire.md §12) ----
             "getAppUsageStats" -> {
                 val result = script.appUsageStats
@@ -1498,6 +1933,130 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 } else {
                     // The desktop method returns the array directly (ProxyChannel convention).
                     respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(items.map { RpcValue.Obj(it) }))
+                }
+            }
+            // ---- Phase 4B (J2/A3.2/B2.11): the automation CRUD + run-history surface.
+            // Shapes mirror ZCodeAutomationCreateParams/UpdateParams and ZCodeAgentRunAutomationNowResult.
+            "createAutomation" -> {
+                val params = argAsObject(arg)
+                if (params == null || script.listAutomations == null) {
+                    respondError(id, "fault.mock.unscripted:createAutomation")
+                } else if ((params.strOrNull("title") ?: "").contains("LIMIT") || automationCreateLimitArmed) {
+                    automationCreateLimitArmed = false
+                    respondError(id, "AUTOMATION_CREATE_LIMIT_REACHED: automation limit reached (20)")
+                } else {
+                    val row = schemaAutomationRow(params, workspace.workspacePath)
+                    script.listAutomations = JsonArray((script.listAutomations ?: JsonArray(emptyList())) + row)
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(row))
+                }
+            }
+            "updateAutomation" -> {
+                val params = argAsObject(arg)
+                val target = params?.strOrNull("automationId")
+                val current = script.listAutomations
+                if (params == null || target == null || current == null) {
+                    respondError(id, "fault.mock.unscripted:updateAutomation")
+                } else {
+                    val updated = schemaAutomationRow(params, workspace.workspacePath, automationId = target)
+                    script.listAutomations = JsonArray(current.map { el ->
+                        if ((el.jsonObject["automationId"] as? JsonPrimitive)?.content == target) updated else el
+                    })
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(updated))
+                }
+            }
+            "deleteAutomation" -> {
+                val params = argAsObject(arg)
+                val target = params?.strOrNull("automationId")
+                if (target == null || script.listAutomations == null) {
+                    respondError(id, "fault.mock.unscripted:deleteAutomation")
+                } else {
+                    script.listAutomations = JsonArray(script.listAutomations!!.filter {
+                        (it.jsonObject["automationId"] as? JsonPrimitive)?.content != target
+                    })
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
+                }
+            }
+            "setAutomationEnabled" -> {
+                val params = argAsObject(arg)
+                val target = params?.strOrNull("automationId")
+                val enabled = params?.get("enabled") as? JsonPrimitive
+                if (target == null || enabled == null || script.listAutomations == null) {
+                    respondError(id, "fault.mock.unscripted:setAutomationEnabled")
+                } else {
+                    script.listAutomations = JsonArray(script.listAutomations!!.map { el ->
+                        if ((el.jsonObject["automationId"] as? JsonPrimitive)?.content == target) {
+                            JsonObject(el.jsonObject + ("enabled" to enabled))
+                        } else el
+                    })
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
+                }
+            }
+            "runAutomationNow" -> {
+                val params = argAsObject(arg)
+                val target = params?.strOrNull("automationId")
+                if (target == null || script.automationRuns == null) {
+                    respondError(id, "fault.mock.unscripted:runAutomationNow")
+                } else {
+                    // ZCodeAgentRunAutomationNowResult {status: queued|duplicate} — the
+                    // second Run-Now for an automation whose last run is still `running`
+                    // lands `duplicate` (desktop: an in-flight run already exists).
+                    val running = synchronized(automationRunLedger) {
+                        automationRunLedger.any { it.jsonObject["automationId"]?.let { a -> (a as JsonPrimitive).content } == target &&
+                            it.jsonObject["outcome"] == null }
+                    }
+                    if (running) {
+                        respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                            put("status", JsonPrimitive("duplicate"))
+                        }))
+                    } else {
+                        recordAutomationRun(target, trigger = "manual")
+                        respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                            put("status", JsonPrimitive("queued"))
+                        }))
+                    }
+                }
+            }
+            "listAutomationRuns" -> {
+                val params = argAsObject(arg)
+                val target = params?.strOrNull("automationId")
+                val ledger = script.automationRuns
+                if (target == null || ledger == null) {
+                    respondError(id, "fault.mock.unscripted:listAutomationRuns")
+                } else {
+                    val filtered = synchronized(automationRunLedger) {
+                        automationRunLedger.filter { (it.jsonObject["automationId"] as? JsonPrimitive)?.content == target }
+                    } + ledger.filter { (it.jsonObject["automationId"] as? JsonPrimitive)?.content == target }
+                    // Desktop method returns the array directly (ProxyChannel convention).
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(filtered.map { RpcValue.Obj(it) }))
+                }
+            }
+            "deleteAutomationRun" -> {
+                val params = argAsObject(arg)
+                val runId = params?.strOrNull("runId")
+                if (runId == null) {
+                    respondError(id, "fault.mock.unscripted:deleteAutomationRun")
+                } else {
+                    synchronized(automationRunLedger) {
+                        automationRunLedger.removeAll { (it.jsonObject["runId"] as? JsonPrimitive)?.content == runId }
+                    }
+                    script.automationRuns = script.automationRuns?.filter {
+                        (it.jsonObject["runId"] as? JsonPrimitive)?.content != runId
+                    }?.let { JsonArray(it) }
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
+                }
+            }
+            "restartAutomation" -> {
+                val params = argAsObject(arg)
+                val target = params?.strOrNull("automationId")
+                if (target == null || script.listAutomations == null) {
+                    respondError(id, "fault.mock.unscripted:restartAutomation")
+                } else {
+                    script.listAutomations = JsonArray(script.listAutomations!!.map { el ->
+                        if ((el.jsonObject["automationId"] as? JsonPrimitive)?.content == target) {
+                            JsonObject(el.jsonObject + ("lifecycleStatus" to JsonPrimitive("active")))
+                        } else el
+                    })
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
                 }
             }
             "listPlugins" -> scriptableObject(id, script.listPlugins, "listPlugins")
@@ -1634,6 +2193,16 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
 
     private fun handleTerminalPromise(id: Int, name: String?, params: JsonObject?) {
         when (name) {
+            // ADR-022 (Phase 5D): the armed input tier — write echoes the bytes back on
+            // onDynamicData (the rig proves the round-trip); resize acks.
+            "write" -> {
+                val data = params?.str("data") ?: ""
+                val terminalId = params?.str("id") ?: ""
+                script.terminalWrites.add(data)
+                pushTerminalData(terminalId, data)
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Undefined)
+            }
+            "resize" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Undefined)
             "create" -> {
                 val terminalId = "term-${terminalCounter.incrementAndGet()}"
                 val shell = "/bin/zsh"
@@ -1684,8 +2253,120 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
         }
     }
 
-    private fun handleGitPromise(id: Int, name: String?) {
+    // Phase 5B (A3.11): the git-checkpoint trio — stateful so the rig proves create →
+    // diff → restore (with the conflict branch on a scripted flag).
+    private fun handleGitCheckpointPromise(id: Int, name: String?, arg: JsonObject?) {
         when (name) {
+            "createCheckpoint" -> {
+                val now = System.currentTimeMillis()
+                val meta = buildJsonObject {
+                    put("checkpointId", JsonPrimitive("ckpt-${script.checkpoints.size + 1}"))
+                    put("workspacePath", JsonPrimitive(arg?.strOrNull("workspacePath") ?: ""))
+                    put("repoRoot", JsonPrimitive("/synthetic/repo")); put("workspaceInRepoPath", JsonPrimitive("."))
+                    put("createdAt", JsonPrimitive(now))
+                    put("refName", JsonPrimitive("refs/zcode/checkpoints/ckpt")); put("commitOid", JsonPrimitive("deadbeef"))
+                    put("scope", JsonPrimitive("workspace"))
+                }
+                script.checkpoints.add(meta)
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(meta))
+            }
+            "diffCheckpoints" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                put("files", JsonArray(script.checkpointDiffFiles.map { buildJsonObject {
+                    put("kind", JsonPrimitive("modified")); put("repoRelativePath", JsonPrimitive(it))
+                } }))
+            }))
+            "restoreBetweenCheckpoints" -> {
+                val force = (arg?.get("force") as? JsonPrimitive)?.content?.toBooleanStrictOrNull() ?: false
+                if (script.checkpointConflicts && !force) {
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("success", JsonPrimitive(false))
+                        put("conflicts", JsonArray(listOf(JsonPrimitive("src/config.ts"))))
+                    }))
+                } else {
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("success", JsonPrimitive(true))
+                        put("restoredPaths", JsonArray(script.checkpointDiffFiles.map { JsonPrimitive(it) }))
+                    }))
+                }
+            }
+            "deleteCheckpoint" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
+            else -> respondError(id, "fault.mock.unknownMethod:git-checkpoint-${name ?: "?"}")
+        }
+    }
+
+    private val gitChannelLedger = ArrayList<Pair<String, JsonObject>>()
+    fun taskChannelLedgerForTest(channel: String): List<Pair<String, JsonObject>> =
+        if (channel == "git") synchronized(gitChannelLedger) { ArrayList(gitChannelLedger) } else emptyList()
+
+    private fun handleGitPromise(id: Int, name: String?, arg: RpcValue?) {
+        synchronized(gitChannelLedger) { gitChannelLedger.add((name ?: "?") to (argAsObject(arg) ?: JsonObject(emptyMap()))) }
+        when (name) {
+            // ADR-021 (Phase 5D): the write tier — stage/unstage/discard mutate the
+            // scripted changes; commit/push/branch echo the bundle-extracted shapes
+            // (with the scripted typed-issue branch).
+            "stagePaths", "unstagePaths" -> {
+                val paths = (argAsObject(arg)?.get("paths") as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.content } ?: emptyList()
+                if (paths.isEmpty()) respondError(id, "fault.mock.unscripted:$name")
+                else {
+                    if (name == "stagePaths") script.stagedPaths.addAll(paths) else script.stagedPaths.removeAll(paths.toSet())
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Undefined)
+                }
+            }
+            "discardPaths" -> {
+                val paths = (argAsObject(arg)?.get("paths") as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.content } ?: emptyList()
+                if (paths.isEmpty()) respondError(id, "fault.mock.unscripted:discardPaths")
+                else {
+                    script.discardedPaths.addAll(paths)
+                    script.stagedPaths.removeAll(paths.toSet())
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Undefined)
+                }
+            }
+            "commit" -> {
+                val message = argAsObject(arg)?.str("message") ?: ""
+                if (message.isBlank()) respondError(id, "Commit message cannot be empty")
+                else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("commitHash", JsonPrimitive("abc123${script.commits.size}"))
+                    put("summary", buildJsonObject { put("additions", JsonPrimitive(1)); put("deletions", JsonPrimitive(0)); put("files", JsonPrimitive(1)) })
+                }))
+            }
+            "generateCommitMessage" -> scriptableObject(id, script.generatedCommitMessage, "generateCommitMessage")
+            "push" -> {
+                if (script.gitPushFails) respondError(id, "Cannot push while HEAD is detached.")
+                else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("branchName", JsonPrimitive("main")); put("trackingBranchName", JsonPrimitive("origin/main"))
+                }))
+            }
+            "switchBranch", "createBranchAndSwitch" -> {
+                val branch = argAsObject(arg)?.str("targetBranchName") ?: argAsObject(arg)?.str("branchName") ?: ""
+                if (script.gitBranchIssue != null) {
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("action", JsonPrimitive(if (name == "switchBranch") "switch" else "create-and-switch"))
+                        put("branchName", JsonPrimitive(branch))
+                        put("didChange", JsonPrimitive(false)); put("created", JsonPrimitive(name == "createBranchAndSwitch"))
+                        put("issues", JsonArray(listOf(script.gitBranchIssue!!)))
+                    }))
+                } else {
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("action", JsonPrimitive(if (name == "switchBranch") "switch" else "create-and-switch"))
+                        put("branchName", JsonPrimitive(branch))
+                        put("didChange", JsonPrimitive(true)); put("created", JsonPrimitive(name == "createBranchAndSwitch"))
+                        put("issues", JsonArray(emptyList()))
+                    }))
+                }
+            }
+            "getLocalBranches" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                put("headRefType", JsonPrimitive("branch")); put("currentBranchName", JsonPrimitive("main"))
+                put("branches", JsonArray(listOf("main", "feature/a").map { b ->
+                    buildJsonObject { put("name", JsonPrimitive(b)); put("upstream", JsonPrimitive(if (b == "main") "origin/main" else null)) }
+                }))
+            }))
+            "getIdentity" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                if (script.gitIdentityMissing) {
+                    put("userName", kotlinx.serialization.json.JsonNull); put("userEmail", kotlinx.serialization.json.JsonNull)
+                } else {
+                    put("userName", JsonPrimitive("Ernest")); put("userEmail", JsonPrimitive("takis312@hotmail.com"))
+                }
+            }))
             "getRepositorySummary" -> {
                 val summary = script.gitSummary
                 if (summary == null) respondError(id, "fault.git.notAvailable")
@@ -1727,6 +2408,18 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     put("path", JsonPrimitive(path))
                     put("type", JsonPrimitive(if (script.fileTree.containsKey(path)) "directory" else "file"))
                     put("size", JsonPrimitive(script.fileBytes[path]?.size?.toLong() ?: script.fileText[path]?.toByteArray()?.size?.toLong() ?: 0L))
+                }))
+            }
+            // Phase 4C (C7): workspace file search for the composer @-mentions.
+            "searchWorkspaceFiles" -> {
+                val query = (params?.get("query") as? JsonPrimitive)?.content.orEmpty().lowercase()
+                val limit = (params?.get("limit") as? JsonPrimitive)?.content?.toIntOrNull() ?: 20
+                val hits = script.fileTree.keys.filter { it.lowercase().contains(query) && query.isNotEmpty() }.take(limit)
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(hits.map { path ->
+                    RpcValue.Obj(buildJsonObject {
+                        put("path", JsonPrimitive(path))
+                        put("type", JsonPrimitive(if (script.fileTree.containsKey(path)) "directory" else "file"))
+                    })
                 }))
             }
             "readTextFile" -> {
@@ -1820,7 +2513,9 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 val text = payload?.strOrNull("text") ?: return null
                 stateRevision.incrementAndGet()
                 val userRow = schemaRow(workspace.sessionId, nextRowId(), RowKind.USER_INPUT, text)
-                val replyRow = schemaRow(workspace.sessionId, nextRowId(), RowKind.ASSISTANT_TEXT, "synthetic reply to: ${text.take(24)}")
+                val replyBase = schemaRow(workspace.sessionId, nextRowId(), RowKind.ASSISTANT_TEXT, "synthetic reply to: ${text.take(24)}")
+                // Phase 4A: the live reply is the latest assistant row → it carries the flags.
+                val replyRow = if (script.rowActionsDemo) JsonObject(replyBase + ("actions" to ROW_ACTIONS_ASSISTANT)) else replyBase
                 appendedRows[userRow["rowId"].toString()] = userRow
                 appendedRows[replyRow["rowId"].toString()] = replyRow
                 pushRowAppended(workspace.sessionId, userRow)
@@ -1839,6 +2534,30 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 script.controlCanStop = true
                 script.controlStopState = "stoppable"
                 script.inputRoutingMode = "enqueue"
+            }
+            "respondWorkspaceHookReview" -> {
+                stateRevision.incrementAndGet()
+                val decision = payload?.get("decision") as? JsonObject
+                val ids = (decision?.get("reviewItemIds") as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.content } ?: emptyList()
+                ids.forEach { id2 -> script.hookTrustStates[id2] = "trusted_persistent" }
+                script.hookReviewsResolved = true
+                pushStatePatch(buildJsonObject { put("revision", JsonPrimitive(stateRevision.get())) })
+            }
+            "toggleWorkspaceHookReviewItem" -> {
+                stateRevision.incrementAndGet()
+                val itemId = payload?.str("reviewItemId") ?: return null
+                script.hookTrustStates[itemId] = if (payload.str("enabled") == "true") "trusted_persistent" else "revoked"
+                pushStatePatch(buildJsonObject { put("revision", JsonPrimitive(stateRevision.get())) })
+            }
+            "revokeWorkspaceHookTrust" -> {
+                stateRevision.incrementAndGet()
+                val ids = (payload?.get("reviewItemIds") as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.content } ?: emptyList()
+                ids.forEach { id2 -> script.hookTrustStates[id2] = "revoked" }
+                pushStatePatch(buildJsonObject { put("revision", JsonPrimitive(stateRevision.get())) })
+            }
+            "requestWorkspaceHookReview" -> {
+                stateRevision.incrementAndGet()
+                pushStatePatch(buildJsonObject { put("revision", JsonPrimitive(stateRevision.get())) })
             }
             "resolveInteraction" -> {
                 val iid = payload?.strOrNull("interactionId") ?: return null
@@ -1909,6 +2628,113 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 }
                 pushQueuePatch()
             }
+            // ---- Phase 5A (I1): the two decoded-unsent queue words + follow-up mode — REAL
+            // state so the rig proves the reorder round-trip (the moved row renders in place).
+            "reorderQueueItem" -> {
+                stateRevision.incrementAndGet()
+                val qid = payload?.strOrNull("queueItemId")
+                val before = if (payload?.get("beforeQueueItemId") is kotlinx.serialization.json.JsonNull) null else payload?.strOrNull("beforeQueueItemId")
+                val items = script.queueItems.orEmpty().toMutableList()
+                val moved = items.firstOrNull { it.queueItemId == qid }
+                if (moved != null) {
+                    items.remove(moved)
+                    val index = if (before == null) items.size else items.indexOfFirst { it.queueItemId == before }.coerceAtLeast(0)
+                    items.add(index, moved)
+                    script.queueItems = items
+                }
+                pushQueuePatch()
+            }
+            "setAutoDrain" -> {
+                stateRevision.incrementAndGet()
+                script.autoDrain = payload?.strOrNull("autoDrain")?.toBooleanStrictOrNull() ?: script.autoDrain
+                pushQueuePatch()
+            }
+            "setFollowupMode" -> {
+                stateRevision.incrementAndGet()
+                val mode = payload?.strOrNull("mode") ?: return null
+                val current = script.sessionConfig
+                script.sessionConfig = mergeSessionConfig(
+                    current,
+                    "provider" to JsonPrimitive(current?.strOrNull("provider") ?: "zai"),
+                    "model" to JsonPrimitive(current?.strOrNull("model") ?: "glm-5.3"),
+                    "thought" to JsonPrimitive(current?.strOrNull("thought") ?: "standard"),
+                    "thoughtLevels" to (current?.get("thoughtLevels") ?: JsonArray(listOf(JsonPrimitive("standard")))),
+                    "followupMode" to JsonPrimitive(mode),
+                    "mode" to JsonPrimitive(current?.strOrNull("mode") ?: "build"),
+                )
+                pushStatePatch(buildJsonObject {
+                    put("revision", JsonPrimitive(stateRevision.get()))
+                    put("config", script.sessionConfig!!)
+                })
+            }
+            // ---- Phase 4A (E3.2+I1+N5): the four row commands — effects shaped on
+            // the verified ack results (command.ts commandResultSchema) + row deltas.
+            "retryTurn" -> {
+                stateRevision.incrementAndGet()
+                // The desktop re-asks the turn: a fresh assistant row arrives (authoritative).
+                val reply = JsonObject(
+                    schemaRow(workspace.sessionId, nextRowId(), RowKind.ASSISTANT_TEXT, "retried reply") +
+                        ("actions" to ROW_ACTIONS_ASSISTANT),
+                )
+                appendedRows[reply["rowId"].toString()] = reply
+                pushRowAppended(workspace.sessionId, reply)
+                pushRevisionPatch()
+            }
+            "forkAssistant" -> {
+                stateRevision.incrementAndGet()
+                val child = "sess-forked-${createdCount.incrementAndGet()}"
+                script.bootstrapTasks = script.bootstrapTasks.orEmpty() + MockTask(
+                    taskId = child,
+                    title = "Fork of ${workspace.sessionId.take(12)}",
+                    displayStatus = "idle",
+                    workspacePath = lastCommandWorkspacePath ?: workspace.workspacePath,
+                    createdAtMs = System.currentTimeMillis(),
+                    updatedAtMs = System.currentTimeMillis(),
+                )
+                pushWorkspaceListUpdated(script.bootstrapTasks.orEmpty())
+                lastForkedSessionId = child
+                return buildJsonObject {
+                    put("type", JsonPrimitive("forkAssistant"))
+                    put("sessionId", JsonPrimitive(child))
+                }
+            }
+            "applyFileRewind" -> {
+                stateRevision.incrementAndGet()
+                val target = payload?.get("target") as? JsonObject
+                val rowId = target?.strOrNull("rowId")?.toLongOrNull()
+                // The turn's fileChanges flip to `reverted` (the desktop's rewindDialog outcome) —
+                // an in-place upsert so the Undo-files gate closes authoritatively.
+                if (rowId != null) {
+                    val reverted = schemaRow(workspace.sessionId, rowId, RowKind.TURN_HEADER, "completedSuccess", extra = rowActionsTurnExtra("reverted"))
+                    appendedRows[rowId.toString()] = reverted
+                    pushRowUpserted(workspace.sessionId, reverted)
+                }
+                pushRevisionPatch()
+                return buildJsonObject {
+                    put("type", JsonPrimitive("applyFileRewind"))
+                    put("applied", JsonPrimitive(true))
+                    put("response", JsonPrimitive("Reverted 2 files"))
+                    put("preview", buildJsonObject { put("files", JsonArray(emptyList())) })
+                }
+            }
+            "setAssistantFeedback" -> {
+                stateRevision.incrementAndGet()
+                val target = payload?.get("target") as? JsonObject
+                val rowId = target?.strOrNull("rowId")?.toLongOrNull()
+                val feedback = payload?.get("feedback")
+                if (rowId != null) {
+                    // Echo the feedback onto the row (rows.ts `feedback`), null clears it.
+                    val base = appendedRows[rowId.toString()]
+                        ?: JsonObject(schemaRow(workspace.sessionId, rowId, RowKind.ASSISTANT_TEXT, "synthetic") + ("actions" to ROW_ACTIONS_ASSISTANT))
+                    // JsonNull IS a JsonPrimitive — an explicit null clears, a string sets.
+                    val set = feedback is JsonPrimitive && feedback !is JsonNull
+                    val next = if (set) JsonObject(base + ("feedback" to feedback!!)) else JsonObject(base - "feedback")
+                    appendedRows[rowId.toString()] = next
+                    lastFeedback = if (set) (feedback as JsonPrimitive).content else null
+                    pushRowUpserted(workspace.sessionId, next)
+                }
+                pushRevisionPatch()
+            }
             // Phase 9 (§10.3): switch commands update the `config` echo + patch it —
             // the echo-reconciliation plane the phone's pickers reconcile against.
             "switchModelConfig" -> {
@@ -1917,14 +2743,20 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 val model = payload.strOrNull("model") ?: return null
                 val thought = payload.strOrNull("thought") ?: return null
                 val current = script.sessionConfig
-                script.sessionConfig = buildJsonObject {
-                    put("provider", JsonPrimitive(provider))
-                    put("model", JsonPrimitive(model))
-                    put("thought", JsonPrimitive(thought))
-                    put("thoughtLevels", current?.get("thoughtLevels") ?: JsonArray(listOf(JsonPrimitive(thought))))
-                    put("followupMode", JsonPrimitive(current?.strOrNull("followupMode") ?: "queue"))
-                    put("mode", JsonPrimitive(current?.strOrNull("mode") ?: "build"))
-                }
+                script.sessionConfig = mergeSessionConfig(
+                    current,
+                    "provider" to JsonPrimitive(provider),
+                    "model" to JsonPrimitive(model),
+                    "thought" to JsonPrimitive(thought),
+                    "thoughtLevels" to (current?.get("thoughtLevels") ?: JsonArray(listOf(JsonPrimitive(thought)))),
+                    "followupMode" to JsonPrimitive(current?.strOrNull("followupMode") ?: "queue"),
+                    "mode" to JsonPrimitive(current?.strOrNull("mode") ?: "build"),
+                    // The §10.3 echo carries the CURRENT selection — refresh it to the pick.
+                    "modelSelection" to buildJsonObject {
+                        put("providerId", JsonPrimitive(provider))
+                        put("modelId", JsonPrimitive(model))
+                    },
+                )
                 pushStatePatch(buildJsonObject {
                     put("revision", JsonPrimitive(stateRevision.get()))
                     put("config", script.sessionConfig!!)
@@ -1934,22 +2766,194 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 stateRevision.incrementAndGet()
                 val mode = payload?.strOrNull("mode") ?: return null
                 val current = script.sessionConfig
-                script.sessionConfig = buildJsonObject {
-                    put("provider", JsonPrimitive(current?.strOrNull("provider") ?: "zai"))
-                    put("model", JsonPrimitive(current?.strOrNull("model") ?: "glm-5.3"))
-                    put("thought", JsonPrimitive(current?.strOrNull("thought") ?: "standard"))
-                    put("thoughtLevels", current?.get("thoughtLevels") ?: JsonArray(listOf(JsonPrimitive("standard"))))
-                    put("followupMode", JsonPrimitive(current?.strOrNull("followupMode") ?: "queue"))
-                    put("mode", JsonPrimitive(mode))
-                }
+                script.sessionConfig = mergeSessionConfig(
+                    current,
+                    "provider" to JsonPrimitive(current?.strOrNull("provider") ?: "zai"),
+                    "model" to JsonPrimitive(current?.strOrNull("model") ?: "glm-5.3"),
+                    "thought" to JsonPrimitive(current?.strOrNull("thought") ?: "standard"),
+                    "thoughtLevels" to (current?.get("thoughtLevels") ?: JsonArray(listOf(JsonPrimitive("standard")))),
+                    "followupMode" to JsonPrimitive(current?.strOrNull("followupMode") ?: "queue"),
+                    "mode" to JsonPrimitive(mode),
+                )
                 pushStatePatch(buildJsonObject {
                     put("revision", JsonPrimitive(stateRevision.get()))
                     put("config", script.sessionConfig!!)
                 })
-            }
-        }
+            }        }
         return null
     }
+
+    /**
+     * G3 rig fidelity: a switch rebuilds the config keys it manages but must never
+     * DROP the keys it does not — the shipped desktop's mode switch left
+     * `modelSelection` (and any other §10.3 keys) intact, and the phone's chips
+     * reconcile against the whole echo. Key-preserving merge over the current config.
+     */
+    private fun mergeSessionConfig(
+        current: JsonObject?,
+        vararg changes: Pair<String, kotlinx.serialization.json.JsonElement>,
+    ): JsonObject = JsonObject((current ?: JsonObject(emptyMap())) + changes.toMap())
+
+    /**
+     * The effort switch's config rebuild (`setThoughtLevel` channel word) — the FOURTH
+     * member of the fixed-key rebuild class G3 named; same key-preserving merge.
+     */
+    internal fun thoughtLevelConfig(level: String): JsonObject {
+        val current = script.sessionConfig
+        return mergeSessionConfig(
+            current,
+            "provider" to JsonPrimitive(current?.strOrNull("provider") ?: "zai"),
+            "model" to JsonPrimitive(current?.strOrNull("model") ?: "glm-5.3"),
+            "thought" to JsonPrimitive(level),
+            "thoughtLevels" to (current?.get("thoughtLevels") ?: JsonArray(listOf(JsonPrimitive(level)))),
+            "followupMode" to JsonPrimitive(current?.strOrNull("followupMode") ?: "queue"),
+            "mode" to JsonPrimitive(current?.strOrNull("mode") ?: "build"),
+        )
+    }
+
+    private fun handleCommandsPromise(id: Int, name: String?) {
+        val result = script.commandsList
+        if (result == null) {
+            respondError(id, "fault.mock.unscripted:commands.list")
+        } else {
+            respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(result))
+        }
+    }
+
+    private fun handleSubagentsPromise(id: Int, name: String?) {
+        val result = script.subagentsList
+        if (result == null) {
+            respondError(id, "fault.mock.unscripted:subagents.list")
+        } else {
+            respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(result))
+        }
+    }
+
+    /** Phase 4A: a revision-only patch (the CAS currency moved; no other key changed). */
+    private fun pushRevisionPatch() {
+        pushStatePatch(buildJsonObject { put("revision", JsonPrimitive(stateRevision.get())) })
+    }
+
+    /** Phase 4A observability (self-tests + rig): the last fork's child id / last feedback echo. */
+    @Volatile var lastForkedSessionId: String? = null
+    @Volatile var lastFeedback: String? = null
+    /** Phase 4C seam: the most recent zcode-agent call's params per method (wire-shape pins). */
+    private val recentV4Calls = HashMap<String, JsonObject?>()
+    /** Phase 4D seam: every `zcode-task` channel call (method, params) in send order. */
+    private val taskChannelLedger = ArrayList<Pair<String, JsonObject>>()
+    fun taskChannelCallsForTest(): List<Pair<String, JsonObject>> = synchronized(taskChannelLedger) { ArrayList(taskChannelLedger) }
+
+    /** Phase 5: the ORDERED zcode-agent v4call ledger (method, params) — the rule-9 wire proof for every facade read. */
+    private val v4CallLedger = ArrayList<Pair<String, JsonObject>>()
+    fun v4CallsForTest(): List<Pair<String, JsonObject>> = synchronized(v4CallLedger) { ArrayList(v4CallLedger) }
+
+    private fun taskIdOf(task: JsonObject): String? = (task["taskId"] as? JsonPrimitive)?.content
+
+    /** A directTasks row decorated with the mutable pinned/unread/archived flags (ZCodeTaskMeta-ish). */
+    private fun decorateMeta(task: JsonObject): JsonObject {
+        val tid = taskIdOf(task)
+        return JsonObject(task +
+            ("pinned" to JsonPrimitive(tid in script.pinnedTaskIds)) +
+            ("archived" to JsonPrimitive(tid in script.archivedTaskIds)) +
+            (script.unreadTaskIds[tid]?.let { "unreadAt" to JsonPrimitive(it) } ?: ("unreadAt" to kotlinx.serialization.json.JsonNull)))
+    }
+
+    /** `listGroupedTaskViewStructure` result: group nodes (with member metas) then loose tasks. */
+    private fun groupedStructure(): JsonObject {
+        val grouped = script.taskGroupMembers.values.flatten().toSet()
+        val nodes = ArrayList<JsonObject>()
+        synchronized(script.taskGroups) {
+            script.taskGroups.forEach { g ->
+                val gid = (g["id"] as? JsonPrimitive)?.content
+                val members = script.taskGroupMembers[gid] ?: emptyList()
+                nodes += buildJsonObject {
+                    put("type", JsonPrimitive("group")); put("group", g)
+                    put("tasks", JsonArray(script.directTasks.filter { taskIdOf(it) in members }.map(::decorateMeta)))
+                }
+            }
+        }
+        script.directTasks.filter { taskIdOf(it) !in grouped && taskIdOf(it) !in script.pinnedTaskIds && taskIdOf(it) !in script.archivedTaskIds }
+            .forEach { nodes += buildJsonObject { put("type", JsonPrimitive("task")); put("task", decorateMeta(it)) } }
+        return buildJsonObject { put("nodes", JsonArray(nodes)) }
+    }
+    fun lastV4CallParamsForTest(name: String): JsonObject? = synchronized(recentV4Calls) { recentV4Calls[name] }
+
+    /** Test seam for the command-effect machinery (the socket path calls the same function). */
+    internal fun applyCommandEffectForTest(type: String, env: JsonObject?): JsonObject? = applyCommandEffect(type, env)
+
+    /** Test seam for the resync replay journal (G3 pins): the per-session DeltaFrames. */
+    internal fun opLogForTest(sessionId: String): List<DeltaFrame> = opLog[sessionId]?.toList() ?: emptyList()
+
+    // ---- Phase 4B (J2/A3.2/B2.11): automation CRUD + run ledger (synthetic, INV-15/16).
+
+    /** Runs recorded by runAutomationNow (newest first when listed after the scripted ones). */
+    private val automationRunLedger = ArrayList<JsonObject>()
+
+    /** One-shot: the next createAutomation answers the desktop's create-limit error. */
+    @Volatile var automationCreateLimitArmed: Boolean = false
+
+    /** Rows the mock's CRUD produces — the ZCodeAutomation channel shape the phone decodes. */
+    private fun schemaAutomationRow(params: JsonObject, wsPath: String, automationId: String? = null): JsonObject {
+        val id = automationId ?: "auto-created-${createdCount.incrementAndGet()}"
+        val existing = script.listAutomations?.firstOrNull { (it.jsonObject["automationId"] as? JsonPrimitive)?.content == id }?.jsonObject
+        val now = System.currentTimeMillis()
+        val m = LinkedHashMap<String, kotlinx.serialization.json.JsonElement>()
+        existing?.forEach { (k, v) -> m[k] = v }
+        m["automationId"] = JsonPrimitive(id)
+        m["title"] = params["title"] ?: existing?.get("title") ?: JsonPrimitive("Untitled")
+        m["cronExpr"] = params["cronExpr"] ?: existing?.get("cronExpr") ?: JsonPrimitive("0 9 * * *")
+        m["prompt"] = params["prompt"] ?: existing?.get("prompt") ?: JsonPrimitive("")
+        params["mode"]?.let { m["mode"] = it }
+        m["enabled"] = existing?.get("enabled") ?: JsonPrimitive(true)
+        m["lifecycleStatus"] = existing?.get("lifecycleStatus") ?: JsonPrimitive("active")
+        m["runCount"] = existing?.get("runCount") ?: JsonPrimitive(0)
+        m["recurring"] = params["recurring"] ?: existing?.get("recurring") ?: JsonPrimitive(true)
+        params["maxRuns"]?.let { m["maxRuns"] = it }
+        params["endAt"]?.let { m["endAt"] = it }
+        // scheduleRule: a present object sets it, an explicit null clears it, absence keeps it.
+        when (val r = params["scheduleRule"]) {
+            is JsonObject -> m["scheduleRule"] = r
+            is JsonNull -> m.remove("scheduleRule")
+            else -> Unit
+        }
+        params["modelSelection"]?.let { m["modelSelection"] = it }
+        m["workspaceKey"] = JsonPrimitive(wsPath)
+        m["workspacePath"] = JsonPrimitive(wsPath)
+        m["locationKind"] = JsonPrimitive("local")
+        m["dispatchStatus"] = JsonPrimitive("idle")
+        m["dispatchAttempts"] = JsonPrimitive(0)
+        m["createdAt"] = existing?.get("createdAt") ?: JsonPrimitive(now)
+        m["updatedAt"] = JsonPrimitive(now)
+        m["nextRunAt"] = JsonPrimitive(now + 3_600_000)
+        return JsonObject(m)
+    }
+
+    /** A manual run lands as an in-flight ledger row (`automationId:manual:<uuid>`, no outcome yet). */
+    private fun recordAutomationRun(automationId: String, trigger: String) {
+        val now = System.currentTimeMillis()
+        val run = buildJsonObject {
+            put("runId", JsonPrimitive("$automationId:manual:${java.util.UUID.randomUUID()}"))
+            put("automationId", JsonPrimitive(automationId))
+            put("workspaceKey", JsonPrimitive(workspace.workspacePath))
+            put("trigger", JsonPrimitive(trigger))
+            put("dispatchStatus", JsonPrimitive("dispatched"))
+            put("sessionId", JsonPrimitive(workspace.sessionId))
+            put("attempts", JsonPrimitive(1))
+            put("createdAt", JsonPrimitive(now))
+            put("updatedAt", JsonPrimitive(now))
+        }
+        synchronized(automationRunLedger) { automationRunLedger.add(0, run) }
+    }
+
+    /** Self-test seam: finish the latest in-flight ledger run with an outcome. */
+    internal fun completeLatestRunForTest(outcome: String) {
+        synchronized(automationRunLedger) {
+            val i = automationRunLedger.indexOfFirst { it["outcome"] == null }
+            if (i >= 0) automationRunLedger[i] = JsonObject(automationRunLedger[i] + ("outcome" to JsonPrimitive(outcome)) + ("updatedAt" to JsonPrimitive(System.currentTimeMillis())))
+        }
+    }
+
+    internal fun automationRunLedgerForTest(): List<JsonObject> = synchronized(automationRunLedger) { ArrayList(automationRunLedger) }
 
     private fun pushQueuePatch() {
         pushStatePatch(buildJsonObject {
@@ -1963,7 +2967,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                         put("dispatch", buildJsonObject { put("state", JsonPrimitive(qi.dispatchState)) })
                     }
                 }))
-                put("autoDrain", JsonPrimitive(true))
+                put("autoDrain", JsonPrimitive(script.autoDrain))
             })
         })
     }
@@ -2073,12 +3077,93 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
      * (packages/services/src/session/zcodeTaskService.ts:379, docs/protocol/
      * phase10-direct.md §6) — the direct task-list plane fixture.
      */
-private fun handleOffPeakTaskPromise(id: Int, name: String?) {
+/**
+ * H1.6 (Phase 6B): the `feedback` channel — `create` echoes a normalized ticket
+ * (the host's cCe face: ticket_id/title/type/status/created_at/updated_at), `list`
+ * returns {items, total}. The phone holds no credentials; the HOST is the submitter.
+ */
+private fun handleFeedbackPromise(id: Int, name: String?, arg: JsonObject?) {
+    when (name) {
+        "create" -> {
+            val payload = arg ?: JsonObject(emptyMap())
+            val description = (payload["description"] as? JsonPrimitive)?.content.orEmpty()
+            if (description.isBlank()) {
+                respondError(id, "fault.mock.unscripted:feedback.create-empty-description")
+                return
+            }
+            val now = System.currentTimeMillis()
+            respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                put("ticket_id", JsonPrimitive("mock-ticket-${(description.hashCode().toLong() and 0xFFFF) + 1}"))
+                put("title", JsonPrimitive((payload["title"] as? JsonPrimitive)?.content ?: description.lineSequence().firstOrNull().orEmpty().take(80)))
+                put("type", JsonPrimitive((payload["type"] as? JsonPrimitive)?.content ?: "bug"))
+                put("status", JsonPrimitive("open"))
+                put("created_at", JsonPrimitive(now.toString()))
+                put("updated_at", JsonPrimitive(now.toString()))
+            }))
+        }
+        "list" -> {
+            val now = System.currentTimeMillis()
+            respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                put("items", JsonArray(listOf(buildJsonObject {
+                    put("ticket_id", JsonPrimitive("mock-ticket-1"))
+                    put("title", JsonPrimitive("mock feedback"))
+                    put("type", JsonPrimitive("bug"))
+                    put("status", JsonPrimitive("open"))
+                    put("created_at", JsonPrimitive(now.toString()))
+                    put("updated_at", JsonPrimitive(now.toString()))
+                })))
+                put("total", JsonPrimitive(1))
+            }))
+        }
+        else -> respondError(id, "fault.mock.unknownMethod:feedback-$name")
+    }
+}
+
+private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
+        // Phase 5A (A3.10 erratum): pauseTask/continueTask are OffPeakTaskService words
+        // (bare positional id). Paused ids are reflected in the next `list`.
+        if (name == "pauseTask" || name == "continueTask") {
+            val offPeakId = (arg as? RpcValue.Arr)?.items?.firstOrNull()?.let { (it as? RpcValue.Str)?.value }
+            if (offPeakId == null) {
+                respondError(id, "fault.mock.unscripted:$name")
+                return
+            }
+            if (name == "pauseTask") script.offPeakPausedIds.add(offPeakId) else script.offPeakPausedIds.remove(offPeakId)
+            respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                put("id", JsonPrimitive(offPeakId))
+                put("status", JsonPrimitive(if (name == "pauseTask") "paused" else "queued"))
+            }))
+            return
+        }
+        if (name == "cancelTask") {
+            // L6.2 (Phase 6B): terminal `cancelled`; reflected in the next `list`.
+            val offPeakId = (arg as? RpcValue.Arr)?.items?.firstOrNull()?.let { (it as? RpcValue.Str)?.value }
+            if (offPeakId == null) {
+                respondError(id, "fault.mock.unscripted:cancelTask")
+                return
+            }
+            script.offPeakCancelledIds.add(offPeakId)
+            respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                put("id", JsonPrimitive(offPeakId))
+                put("status", JsonPrimitive("cancelled"))
+            }))
+            return
+        }
         if (name != "list") {
             respondError(id, "fault.mock.unknownMethod:off-peak-task-$name")
             return
         }
-        val items = script.offPeakTaskList
+        val items = script.offPeakTaskList?.let { arr ->
+            JsonArray(arr.map { el ->
+                val o = el as? JsonObject ?: return@map el
+                val oid = (o["id"] as? JsonPrimitive)?.content
+                when {
+                    oid != null && oid in script.offPeakCancelledIds -> JsonObject(o + ("status" to JsonPrimitive("cancelled")))
+                    oid != null && oid in script.offPeakPausedIds -> JsonObject(o + ("status" to JsonPrimitive("paused")))
+                    else -> o
+                }
+            })
+        }
         if (items == null) {
             respondError(id, "fault.mock.unscripted:offPeakTaskList")
         } else {
@@ -2087,13 +3172,167 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?) {
     }
 
         private fun handleTaskPromise(id: Int, name: String?, arg: JsonObject?) {
+        synchronized(taskChannelLedger) { taskChannelLedger.add((name ?: "?") to (arg ?: JsonObject(emptyMap()))) }
         when (name) {
             "listTasks" -> respond(
                 id, ChannelWire.ResponseType.PromiseSuccess,
                 RpcValue.Arr(script.directTasks.map { RpcValue.Obj(it) }),
             )
-            "listPinnedTaskIds", "listArchivedTasks", "listPinnedTasks", "listDeletedTaskIds" ->
-                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(emptyList()))
+            "listDeletedTaskIds" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(emptyList()))
+            "listPinnedTaskIds" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(script.pinnedTaskIds.map { RpcValue.Str(it) }))
+            // Phase 5A (A3.8–A3.10): metas filtered by the mutable flags so round-trips are provable.
+            "listPinnedTasks" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(
+                script.directTasks.filter { taskIdOf(it) in script.pinnedTaskIds }.map { RpcValue.Obj(decorateMeta(it)) },
+            ))
+            "listArchivedTasks" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(
+                script.directTasks.filter { taskIdOf(it) in script.archivedTaskIds }.map { RpcValue.Obj(decorateMeta(it)) },
+            ))
+            "setTaskPinned" -> {
+                val taskId = arg?.str("taskId")
+                val pinned = (arg?.get("pinned") as? JsonPrimitive)?.content?.toBooleanStrictOrNull()
+                if (taskId == null || pinned == null) respondError(id, "fault.mock.unscripted:setTaskPinned")
+                else {
+                    if (pinned) script.pinnedTaskIds.add(taskId) else script.pinnedTaskIds.remove(taskId)
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("taskId", JsonPrimitive(taskId)); put("pinned", JsonPrimitive(pinned))
+                    }))
+                }
+            }
+            "setTaskUnread" -> {
+                val taskId = arg?.str("taskId")
+                val unread = (arg?.get("unread") as? JsonPrimitive)?.content?.toBooleanStrictOrNull()
+                if (taskId == null || unread == null) respondError(id, "fault.mock.unscripted:setTaskUnread")
+                else {
+                    val stamp = if (unread) System.currentTimeMillis().also { script.unreadTaskIds[taskId] = it } else { script.unreadTaskIds.remove(taskId); null }
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("taskId", JsonPrimitive(taskId))
+                        if (stamp != null) put("unreadAt", JsonPrimitive(stamp)) else put("unreadAt", kotlinx.serialization.json.JsonNull)
+                    }))
+                }
+            }
+            "resumeTask" -> {
+                val taskId = arg?.str("taskId")
+                if (taskId == null) respondError(id, "fault.mock.unscripted:resumeTask")
+                else {
+                    script.resumedTaskIds.add(taskId)
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("taskId", JsonPrimitive(taskId)); put("status", JsonPrimitive("idle"))
+                    }))
+                }
+            }
+            "deleteArchivedTask" -> {
+                val taskId = arg?.str("taskId")
+                if (taskId == null || taskId !in script.archivedTaskIds) respondError(id, "fault.mock.unscripted:deleteArchivedTask")
+                else {
+                    script.archivedTaskIds.remove(taskId)
+                    script.directTasks = script.directTasks.filterNot { taskIdOf(it) == taskId }
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
+                }
+            }
+            "createTaskGroup" -> {
+                val now = System.currentTimeMillis()
+                val group = buildJsonObject {
+                    put("id", JsonPrimitive("task-group-${script.taskGroups.size + 1}"))
+                    put("title", JsonPrimitive(arg?.strOrNull("title")?.trim()?.ifEmpty { null } ?: "New Group"))
+                    put("color", JsonPrimitive(arg?.strOrNull("color") ?: "gray"))
+                    put("createdAt", JsonPrimitive(now)); put("updatedAt", JsonPrimitive(now))
+                }
+                script.taskGroups.add(group)
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(group))
+            }
+            "renameTaskGroup", "updateTaskGroupColor" -> {
+                val groupId = arg?.str("groupId")
+                val idx = script.taskGroups.indexOfFirst { (it["id"] as? JsonPrimitive)?.content == groupId }
+                if (groupId == null || idx < 0) respondError(id, "fault.mock.taskGroupMissing")
+                else {
+                    val key = if (name == "renameTaskGroup") "title" else "color"
+                    val updated = JsonObject(script.taskGroups[idx] + (key to JsonPrimitive(arg.str(key))) + ("updatedAt" to JsonPrimitive(System.currentTimeMillis())))
+                    script.taskGroups[idx] = updated
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(updated))
+                }
+            }
+            "deleteTaskGroup" -> {
+                val groupId = arg?.str("groupId")
+                script.taskGroups.removeAll { (it["id"] as? JsonPrimitive)?.content == groupId }
+                if (groupId != null) script.taskGroupMembers.remove(groupId)
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Undefined)
+            }
+            "listGroupedTaskViewStructure" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(groupedStructure()))
+            "applyGroupedTaskViewOrder" -> {
+                val groups = arg?.get("groups") as? JsonArray
+                if (groups == null) respondError(id, "fault.mock.unscripted:applyGroupedTaskViewOrder")
+                else {
+                    // The host refuses pinned/archived members ("Grouped task order 包含不可见 task").
+                    val refs = groups.flatMap { g -> ((g as JsonObject)["taskRefs"] as? JsonArray)?.mapNotNull { (it as? JsonObject)?.str("taskId") } ?: emptyList() }
+                    if (refs.any { it in script.pinnedTaskIds || it in script.archivedTaskIds }) {
+                        respondError(id, "Grouped task order 包含不可见 task")
+                    } else {
+                        script.taskGroupMembers.clear()
+                        groups.forEach { g ->
+                            val go = g as JsonObject
+                            val gid = go.str("groupId")
+                            script.taskGroupMembers[gid] = (go["taskRefs"] as? JsonArray)?.mapNotNull { (it as? JsonObject)?.str("taskId") }?.toMutableList() ?: mutableListOf()
+                        }
+                        respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(groupedStructure()))
+                    }
+                }
+            }
+            // Phase 4D (L6.3+J4 / H1.1): the lifecycle + search methods (shipped 3.14.5).
+            "deleteTask" -> {
+                val taskId = arg?.str("taskId")
+                if (taskId == null) respondError(id, "fault.mock.unscripted:deleteTask")
+                else {
+                    script.directTasks = script.directTasks.filterNot { (it.jsonObject["taskId"] as? JsonPrimitive)?.content == taskId }
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
+                }
+            }
+            "renameTask" -> {
+                val taskId = arg?.str("taskId")
+                val title = arg?.str("title")
+                if (taskId == null || title == null) respondError(id, "fault.mock.unscripted:renameTask")
+                else {
+                    script.directTasks = script.directTasks.map {
+                        if ((it.jsonObject["taskId"] as? JsonPrimitive)?.content == taskId) {
+                            JsonObject(it.jsonObject + ("title" to JsonPrimitive(title)))
+                        } else it
+                    }
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
+                }
+            }
+            "archiveTask", "unarchiveTask" -> {
+                val taskId = arg?.str("taskId")
+                if (taskId == null) respondError(id, "fault.mock.unscripted:" + name)
+                else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
+            }
+            "getModelTrajectory" -> scriptableObject(id, script.modelTrajectory, "getModelTrajectory")
+            // Phase 5C (A3.15): the feedback SNAPSHOT word — the mock keeps per-task lists.
+            "setAssistantMessageFeedback" -> {
+                val taskId = arg?.str("taskId")
+                if (taskId == null) respondError(id, "fault.mock.unscripted:setAssistantMessageFeedback")
+                else {
+                    val list = script.assistantFeedback.getOrPut(taskId) { mutableListOf() }
+                    val turnIndex = arg.str("turnIndex").toIntOrNull() ?: 0
+                    val fb = arg["feedback"]
+                    val value = if (fb is kotlinx.serialization.json.JsonNull) null else (fb as? JsonPrimitive)?.content
+                    while (list.size <= turnIndex) list.add(null)
+                    list[turnIndex] = value
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("taskId", JsonPrimitive(taskId))
+                        put("feedbacks", JsonArray(list.map { if (it == null) kotlinx.serialization.json.JsonNull else JsonPrimitive(it) }))
+                    }))
+                }
+            }
+            "listTaskList" -> {
+                val search = arg?.str("search").orEmpty().lowercase()
+                val hits = script.directTasks
+                    .filter { search.isEmpty() || ((it.jsonObject["title"] as? JsonPrimitive)?.content?.lowercase()?.contains(search) == true) }
+                    .map { JsonObject(it.jsonObject) }
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("items", JsonArray(hits))
+                    put("total", JsonPrimitive(hits.size))
+                    put("hasMore", JsonPrimitive(false))
+                }))
+            }
             else -> respondError(id, "fault.mock.unknownTaskMethod:${name ?: "?"}")
         }
     }
@@ -2175,9 +3414,9 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?) {
                     put("kind", JsonPrimitive("snapshot"))
                     put("snapshot", buildJsonObject {
                         put("sessionId", JsonPrimitive(sessionId))
-                        val rows = JsonArray(
-                            snapshotRows(sessionId, workspace.rowCount) + appendedRows.values.toList(),
-                        )
+        val rows = JsonArray(
+            snapshotRows(sessionId, script.snapshotRowCount ?: workspace.rowCount) + appendedRows.values.toList(),
+        )
                         if (script.snapshotRowsWindowShape) {
                             // Production rowsWindowSchema: {window, totalCount, firstRowId}.
                             put("rows", buildJsonObject {
@@ -2298,11 +3537,19 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?) {
                     })))
                     put("tasks", script.bootstrapTasks?.let { override ->
                         JsonArray(override.map { it.toJson() })
-                    } ?: JsonArray(listOf(buildJsonObject {
-                        put("id", JsonPrimitive(workspace.sessionId))
-                        put("title", JsonPrimitive("Synthetic task"))
-                        put("status", JsonPrimitive("idle"))
-                    })))
+                    } ?: JsonArray(listOf(
+                        // PRODUCTION shape (report F5/G1): the legacy {id,title,status}
+                        // row carries no workspacePath — the app's bootstrap parser keys
+                        // tasks by workspaceIdentity ?: workspacePath, and a blank key is
+                        // silently skipped (logged applied, zero rows persisted).
+                        MockTask(
+                            taskId = workspace.sessionId,
+                            title = "Synthetic task",
+                            displayStatus = "idle",
+                            workspacePath = workspace.workspacePath,
+                            workspaceLabel = "Synthetic One",
+                        ).toJson(),
+                    )))
                 })
             })
         ))

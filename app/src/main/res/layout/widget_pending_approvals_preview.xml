@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- H3.2b (gaps-and-polish 2F): the widget PICKER preview (Android 12+ previewLayout).
+     A RemoteViews-compatible mirror of PendingApprovalsWidget's shape: title + headline. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center_vertical"
+    android:padding="12dp"
+    android:background="@color/window_bg">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/widget_approvals_title"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:maxLines="1"
+        android:textColor="@color/widget_preview_ink" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="@string/widget_preview_headline"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:maxLines="2"
+        android:textColor="@color/widget_preview_accent" />
+</LinearLayout>

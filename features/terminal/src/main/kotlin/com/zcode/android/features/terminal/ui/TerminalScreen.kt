@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -44,6 +43,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.zcode.android.core.common.ansi.AnsiParser
 import com.zcode.android.features.terminal.port.TerminalPort
+import com.zcode.android.core.ui.components.ZCodeButton
+import android.content.Context
+import android.content.ClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.ui.platform.testTag
+import androidx.compose.runtime.saveable.rememberSaveable
 
 /**
  * §21 view-only terminal surface. Streaming output with ANSI SGR colors, bounded
@@ -60,10 +66,13 @@ fun TerminalScreen(
     val state by port.state.collectAsState()
     val snapshot by port.snapshot.collectAsState()
     val optIn by port.optIn.collectAsState()
-    var searchQuery by remember { mutableStateOf("") }
-    var searchMode by remember { mutableStateOf(false) }
-    var paused by remember { mutableStateOf(false) }
+    // C6: pause/search survive process death.
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var searchMode by rememberSaveable { mutableStateOf(false) }
+    var paused by rememberSaveable { mutableStateOf(false) }
     val listState = rememberLazyListState()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var copied by remember { mutableStateOf(false) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val matches = remember(searchQuery, snapshot) {
         if (searchMode) port.search(searchQuery) else emptyList()
@@ -93,11 +102,11 @@ fun TerminalScreen(
             )
             when (val s = state) {
                 is TerminalPort.TerminalState.Live ->
-                    Text("live${s.shell?.let { " — $it" } ?: ""}", style = MaterialTheme.typography.bodySmall)
+                    Text(s.shell?.let { stringResource(R.string.terminal_status_live, it) } ?: stringResource(R.string.terminal_status_live_plain), style = MaterialTheme.typography.bodySmall)
                 is TerminalPort.TerminalState.Exited ->
-                    Text("exited (${s.code ?: "no status"})", style = MaterialTheme.typography.bodySmall)
-                TerminalPort.TerminalState.Attaching -> Text("attaching…", style = MaterialTheme.typography.bodySmall)
-                TerminalPort.TerminalState.Idle -> Text("idle", style = MaterialTheme.typography.bodySmall)
+                    Text(s.code?.let { stringResource(R.string.terminal_status_exited, it.toString()) } ?: stringResource(R.string.terminal_status_exited_no_status), style = MaterialTheme.typography.bodySmall)
+                TerminalPort.TerminalState.Attaching -> Text(stringResource(R.string.terminal_status_attaching), style = MaterialTheme.typography.bodySmall)
+                TerminalPort.TerminalState.Idle -> Text(stringResource(R.string.terminal_status_idle), style = MaterialTheme.typography.bodySmall)
                 else -> Unit
             }
             Spacer(Modifier.weight(1f))
@@ -121,6 +130,7 @@ fun TerminalScreen(
             state is TerminalPort.TerminalState.Idle -> StateCard(stringResource(R.string.terminal_not_attached), retry = { scope.launch { port.attach() } }, retryLabel = stringResource(R.string.terminal_attach))
             state is TerminalPort.TerminalState.Attaching -> StateCard(stringResource(R.string.terminal_attaching))
             else -> {
+                val lineA11y = stringResource(R.string.terminal_line_a11y)
                 if (searchMode) {
                     OutlinedTextField(
                         value = searchQuery,
@@ -134,36 +144,49 @@ fun TerminalScreen(
                     }
                 }
                 Surface(tonalElevation = 1.dp, modifier = Modifier.weight(1f).fillMaxWidth()) {
+                    // J7: copy-OUT is read-side — the visible buffer is selectable and one
+                    // action copies it (paste stays ADR-gated, A3.18).
+                    SelectionContainer(modifier = Modifier.fillMaxSize()) {
                     LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(6.dp)) {
                         items(snapshot.lines.size, key = { it }) { index ->
                             val spans = snapshot.lines[index]
                             val isMatch = searchMode && searchQuery.isNotBlank() &&
                                 snapshot.plainText.getOrNull(index)?.lowercase()?.contains(searchQuery.lowercase()) == true
                             Text(
-                                text = spans.toAnnotatedString(isMatch),
+                                text = spans.toAnnotatedString(isMatch, MaterialTheme.colorScheme),
                                 fontFamily = FontFamily.Monospace,
                                 fontSize = 12.sp,
                                 lineHeight = 16.sp,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .background(if (isMatch) MaterialTheme.colorScheme.tertiaryContainer else Color.Transparent)
-                                    .semantics { contentDescription = "terminal line ${index + 1}" },
+                                    .semantics { contentDescription = lineA11y.format(index + 1) },
                             )
                         }
                         if (snapshot.droppedBytes > 0) {
                             item {
                                 Text(
-                                    "… ${snapshot.droppedBytes} earlier bytes dropped (ring bound 512 KiB) …",
+                                    stringResource(R.string.terminal_dropped_bytes, snapshot.droppedBytes),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                         }
                     }
+                    }
                 }
                 // Detach affordance — the ONLY control that talks to the desktop, and
                 // it is the protocol `dispose` (view-only: no write/resize exists).
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    AssistChip(
+                        onClick = {
+                            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("terminal", snapshot.plainText.joinToString("\n")))
+                            copied = true
+                        },
+                        label = { Text(stringResource(if (copied) R.string.terminal_copied else R.string.terminal_copy_output)) },
+                        modifier = Modifier.testTag("terminal_copy_output"),
+                    )
                     AssistChip(onClick = { port.detach() }, label = { Text(stringResource(R.string.terminal_detach)) })
                 }
             }
@@ -174,17 +197,14 @@ fun TerminalScreen(
 @Composable
 private fun OptInGate(enabled: Boolean, onToggle: (Boolean) -> Unit, onContinue: () -> Unit) {
     StateCard(
-        text = stringResource(R.string.terminal_consent_body) +
-                "" +
-            "your machine. It is view-only (nothing you type can reach the shell) and stays " +
-            "off unless you enable it here.",
+        text = stringResource(R.string.terminal_consent_body),
         extra = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Switch(checked = enabled, onCheckedChange = onToggle)
                 Text(stringResource(R.string.terminal_enable), style = MaterialTheme.typography.bodyMedium)
             }
             if (enabled) {
-                Button(onClick = onContinue) { Text(stringResource(R.string.terminal_attach)) }
+                ZCodeButton(onClick = onContinue) { Text(stringResource(R.string.terminal_attach)) }
             }
         },
     )
@@ -199,18 +219,21 @@ private fun StateCard(text: String, retryLabel: String? = null, retry: (() -> Un
     ) {
         Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         extra?.invoke()
-        retry?.let { Button(onClick = it) { Text(retryLabel ?: "") } }
+        retry?.let { ZCodeButton(onClick = it) { Text(retryLabel ?: "") } }
     }
 }
 
-/** ANSI spans → AnnotatedString (palette indices < 16 resolve to M3-safe hues). */
-private fun List<AnsiParser.Span>.toAnnotatedString(highlight: Boolean): AnnotatedString = buildAnnotatedString {
+/** ANSI spans → AnnotatedString (palette indices < 16 resolve THEME-AWARE). */
+private fun List<AnsiParser.Span>.toAnnotatedString(
+    highlight: Boolean,
+    scheme: androidx.compose.material3.ColorScheme,
+): AnnotatedString = buildAnnotatedString {
     for (span in this@toAnnotatedString) {
         val style = SpanStyle(
-            color = span.fg?.let { terminalColor(it) } ?: Color.Unspecified,
+            color = span.fg?.let { terminalColor(it, scheme) } ?: Color.Unspecified,
             background = when {
                 highlight -> Color(0x6655AA88)
-                else -> span.bg?.let { terminalColor(it) } ?: Color.Unspecified
+                else -> span.bg?.let { terminalColor(it, scheme) } ?: Color.Unspecified
             },
             fontWeight = if (span.bold) FontWeight.Bold else null,
             fontStyle = if (span.italic) androidx.compose.ui.text.font.FontStyle.Italic else null,
@@ -222,15 +245,21 @@ private fun List<AnsiParser.Span>.toAnnotatedString(highlight: Boolean): Annotat
     }
 }
 
-/** Palette 0–15 → ANSI-default hues; packed RGB (≥ 0x1000000) passes through. */
-private fun terminalColor(value: Int): Color = when {
+/**
+ * Palette 0–15; packed RGB (≥ 0x1000000) passes through. B2.8: the white entries
+ * (7/15) resolve to the surface's own INK ROLE — the old literal
+ * `Color(0xFFFFFFFF)` painted invisible white-on-light on `surfaceVariant`. The
+ * remaining entries keep their ANSI hue literals: they are mid-tones legible on
+ * both the designed light and dark surfaces.
+ */
+internal fun terminalColor(value: Int, scheme: androidx.compose.material3.ColorScheme): Color = when {
     value >= 0x1000000 -> Color(value)
     else -> when (value) {
         0 -> Color(0xFF666666); 1 -> Color(0xFFCD3131); 2 -> Color(0xFF0DBC79)
         3 -> Color(0xFFE5E510); 4 -> Color(0xFF2472C8); 5 -> Color(0xFFBC3FBC)
-        6 -> Color(0xFF11A8CD); 7 -> Color(0xFFE5E5E5); 8 -> Color(0xFF767676)
+        6 -> Color(0xFF11A8CD); 7 -> scheme.onSurface; 8 -> Color(0xFF767676)
         9 -> Color(0xFFF14C4C); 10 -> Color(0xFF23D18B); 11 -> Color(0xFFF5F543)
         12 -> Color(0xFF3B8EEA); 13 -> Color(0xFFD670D6); 14 -> Color(0xFF29B8DB)
-        else -> Color(0xFFFFFFFF) // 15
+        else -> scheme.onSurface // 15 (bright white)
     }
 }

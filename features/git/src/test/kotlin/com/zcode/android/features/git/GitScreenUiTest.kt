@@ -4,10 +4,13 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
@@ -154,20 +157,42 @@ class GitScreenUiTest {
         rule.onNodeWithTag("git_section_conflicted", useUnmergedTree = true).assertExists()
         rule.onAllNodesWithTag("git_section_staged", useUnmergedTree = true).assertCountEquals(0)
         // Per-section path sort: alpha.kt before auth.kt inside "unstaged".
-        val alphaY = rule.onNodeWithText("alpha.kt", substring = true).fetchSemanticsNode().boundsInRoot.top
-        val authY = rule.onNodeWithText("auth.kt", substring = true).fetchSemanticsNode().boundsInRoot.top
-        assertTrue("per-section path sort broken", alphaY < authY)
+        // Phase 5D: the Tier-A row actions made rows taller — pixel geometry went
+        // viewport-dependent (off-viewport text carries zero bounds), so the sort is
+        // pinned by the ROWS' composition order: semantics tree order IS render order.
+        val alpha = rule.onAllNodesWithTag("git_change_src/a/alpha.kt", useUnmergedTree = true)
+            .fetchSemanticsNodes()
+        val auth = rule.onAllNodesWithTag("git_change_src/b/auth.kt", useUnmergedTree = true)
+            .fetchSemanticsNodes()
+        assertTrue("rows missing: alpha=${alpha.size} auth=${auth.size}", alpha.size == 1 && auth.size == 1)
+        // Order pin: the alpha row appears before auth in the root's tree walk
+        // (semantics tree order IS composition/render order; pixel bounds went
+        // viewport-dependent once the Tier-A row actions landed).
+        val root = rule.onRoot(useUnmergedTree = true).fetchSemanticsNode()
+        val order = ArrayList<String>()
+        fun walk(node: SemanticsNode) {
+            if (node.config.contains(SemanticsProperties.TestTag)) order.add(node.config[SemanticsProperties.TestTag])
+            node.children.forEach { walk(it) }
+        }
+        walk(root)
+        val a = order.indexOfFirst { it.endsWith("src/a/alpha.kt") }
+        val b = order.indexOfFirst { it.endsWith("src/b/auth.kt") }
+        assertTrue("per-section path sort broken: $order", a in 0 until b)
     }
 
     @Test
     fun tappingAChange_expandsItsInlineDiff_singleAtATime() {
         setContent() // compactPort
+        // Phase 5D: scroll the row into the viewport first (the Tier-A row actions made
+        // rows taller — off-viewport rows have zero bounds and can't take a click).
+        rule.onNodeWithTag("git_list").performScrollToNode(hasText("alpha.kt", substring = true))
         rule.onNodeWithText("alpha.kt", substring = true).performClick()
         rule.waitForIdle()
         rule.waitUntil(5_000) { compactPort.diffCalls >= 1 }
-        rule.onNodeWithTag("git_inline_diff", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithTag("git_inline_diff", useUnmergedTree = true).assertExists()
         val before = compactPort.diffCalls
         // Opening another path REPLACES the expansion (desktop: one at a time).
+        rule.onNodeWithTag("git_list").performScrollToNode(hasText("auth.kt", substring = true))
         rule.onNodeWithText("auth.kt", substring = true).performClick()
         rule.waitForIdle()
         rule.waitUntil(5_000) { compactPort.diffCalls > before }

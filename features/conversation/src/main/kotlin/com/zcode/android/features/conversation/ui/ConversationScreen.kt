@@ -3,6 +3,7 @@ package com.zcode.android.features.conversation.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -12,23 +13,27 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.FormatListNumbered
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -43,21 +48,36 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.zcode.android.core.ui.components.rememberReducedMotion
+import com.zcode.android.features.conversation.GeneratedArtifactPreview
 import com.zcode.android.features.conversation.R
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zcode.android.core.ui.components.AttentionStrip
 import com.zcode.android.core.ui.components.ConnectionStatusLine
 import com.zcode.android.core.ui.components.SkeletonBar
 import com.zcode.android.core.ui.components.StatusTone
 import com.zcode.android.domain.model.ConversationRow
+import com.zcode.android.domain.model.GoalState
 import com.zcode.android.domain.state.ConnectionPhase
 import com.zcode.android.domain.state.TaskStateMachine
 import com.zcode.android.features.conversation.ConversationUiState
 import com.zcode.android.features.conversation.port.ConversationPort
 import com.zcode.android.features.conversation.taskStateLabel
 import kotlinx.coroutines.launch
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import com.zcode.android.core.ui.components.ZCodeMotion
+import com.zcode.android.core.ui.components.rememberArrivalTracker
+import com.zcode.android.core.ui.components.rememberMotionSpec
+import com.zcode.android.core.ui.components.streamIn
+import com.zcode.android.core.ui.components.ZCodeTopBar
+import androidx.compose.material3.Scaffold
+import com.zcode.android.core.ui.components.errorUserMessage
+import com.zcode.android.core.ui.components.readerWidth
+import com.zcode.android.core.ui.components.ZCodeChip
+import com.zcode.android.core.ui.components.SectionBoundary
 
 /**
  * Conversation surface (§43.2-6.3/6.4 + Phase 7 write path; ui-ux 06/07/09/10/12).
@@ -82,8 +102,10 @@ fun ConversationScreen(
     onAnswer: (String, String, String?, Boolean) -> Unit,
     onSendQueuedNow: (queueItemId: String) -> Unit,
     onEditQueueItem: (queueItemId: String, newText: String) -> Unit,
-    onAnswerQuestions: (String, Map<String, List<String>>) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
+    onAnswerQuestions: (String, Map<String, List<String>>) -> Unit = { _, _ -> },
+    /** A3.14 (Phase 5B): decline the elicitation (resolveInteraction action=decline). */
+    onDeclineQuestions: (String) -> Unit = {},
     // ---- Phase 9 (§43.2-9): advanced read-only surfaces + model switch ----
     onOpenFiles: () -> Unit = {},
     onOpenGit: () -> Unit = {},
@@ -99,30 +121,149 @@ fun ConversationScreen(
     onRetryAttachment: (uploadId: String) -> Unit = {},
     // ---- Phase 2 (§11.4, GAP-10): message edit ----
     onEditUserQuery: (rowId: Long, entityId: String, newText: String) -> Unit = { _, _, _ -> },
+    // ---- Phase 3C/3D: tool-output slice, session strip, attachment previews ----
+    toolOutputProvider: (suspend (ConversationRow.ToolCall) -> String?)? = null,
+    sessionStatusProvider: suspend () -> com.zcode.android.domain.model.GitSummary? = { null },
+    loadAttachment: (suspend (ConversationRow.UserInput.AttachmentMeta) -> ByteArray?)? = null,
+    // ---- Phase 4A (E3.2+I1+N5): flag-gated row actions over the proven wire ----
+    onRetryTurn: (rowId: Long, entityId: String) -> Unit = { _, _ -> },
+    onForkAssistant: (rowId: Long, entityId: String) -> Unit = { _, _ -> },
+    onApplyFileRewind: (rowId: Long, entityId: String) -> Unit = { _, _ -> },
+    onAssistantFeedback: (rowId: Long, entityId: String, feedback: String?) -> Unit = { _, _, _ -> },
+    /** I2.4 (Phase 6A): retry a failed context compaction (`/compact` over the same path). */
+    onRetryCompaction: () -> Unit = {},
+    /** I2.8 (Phase 6A): open a generated artifact externally (ref + mime). */
+    onOpenArtifact: (ref: String, mime: String) -> Unit = { _, _ -> },
+    /** L7 (Phase 6C): a timeline-section crash reaches diagnostics (the boundary seam). */
+    onSectionCrash: (Throwable) -> Unit = {},
+    /** A3.11 (Phase 5B): the rewind preview loader (null = the copy-only confirm). */
+    rewindPreviewProvider: (suspend (rowId: Long, entityId: String) -> com.zcode.android.domain.model.RewindPreview?)? = null,
+    /** A3.16 (Phase 5C): share the transcript via the Android system sheet. */
+    onShareTranscript: () -> Unit = {},
+    /** Phase 4C (C2): the "/" menu opened — fetch the skills/agents/custom-command extras. */
+    onSlashMenuOpen: () -> Unit = {},
+    /** Phase 4C (A3.4): the effort switch (setThoughtLevel). */
+    onSetThoughtLevel: (String) -> Unit = {},
+    /** Phase 4C (C7): the @-mention workspace file search. */
+    fileSearchProvider: suspend (String) -> List<String> = { emptyList() },
+    // ---- Phase 5A (A3.3): workflow runs panel + run sheet ----
+    workflowRuns: List<com.zcode.android.domain.model.WorkflowRunSummary>? = null,
+    openWorkflowRun: com.zcode.android.features.conversation.ConversationViewModel.OpenWorkflowRun? = null,
+    onOpenWorkflowRun: (com.zcode.android.domain.model.WorkflowRunSummary) -> Unit = {},
+    onCloseWorkflowRun: () -> Unit = {},
+    onLoadMoreRunEvents: () -> Unit = {},
+    // ---- I1 queue (Phase 5A): reorder · auto-drain · follow-up mode ----
+    onMoveQueueItem: ((queueItemId: String, delta: Int) -> Unit)? = null,
+    onSetAutoDrain: ((Boolean) -> Unit)? = null,
+    onSetFollowupMode: ((String) -> Unit)? = null,
+    // ---- Phase 5B (A3.12 + A3.13): plans viewer + trajectory/search ----
+    plans: List<com.zcode.android.domain.model.ConversationPlan>? = null,
+    showTrajectory: Boolean = false,
+    trajectory: com.zcode.android.domain.model.TrajectoryResult? = null,
+    trajectoryLoading: Boolean = false,
+    trajectorySearchResults: List<com.zcode.android.features.conversation.ConversationViewModel.SessionSearchResult>? = null,
+    trajectoryQuery: String = "",
+    onTrajectoryQueryChange: (String) -> Unit = {},
+    onOpenTrajectory: () -> Unit = {},
+    onCloseTrajectory: () -> Unit = {},
 ) {
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(
+    val rowActions = remember(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction, onOpenArtifact) {
+        RowActionCallbacks(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction, onOpenArtifact)
+    }
+    // C6-BackHandler: back with an unsent draft raises a confirm (the promised
+    // Phase-7 draft guard). The draft is Room-backed — the guard is the CONFIRMATION
+    // UX only; "Leave" just proceeds. Empty draft passes straight through.
+    var confirmLeave by remember { mutableStateOf(false) }
+    val attemptBack = {
+        if (state.draft.isNotBlank()) confirmLeave = true else onBack()
+        Unit
+    }
+    androidx.activity.compose.BackHandler(enabled = state.draft.isNotBlank()) { confirmLeave = true }
+    if (confirmLeave) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmLeave = false },
+            modifier = Modifier.testTag("conversation_leave_confirm"),
+            title = { Text(stringResource(R.string.conv_leave_title)) },
+            text = { Text(stringResource(R.string.conv_leave_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = { confirmLeave = false; onBack() },
+                    modifier = Modifier.testTag("conversation_leave_discard"),
+                ) { Text(stringResource(R.string.conv_leave_discard)) }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { confirmLeave = false },
+                    modifier = Modifier.testTag("conversation_leave_keep"),
+                ) { Text(stringResource(R.string.conv_leave_keep)) }
+            },
+        )
+    }
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background,
+        // U2 (verification pass 2, 2026-10-21): the ONE header lives in the topBar slot —
+        // its contract (the M3 TopAppBar insets own the status bar). Hosted inside the
+        // content column it sat UNDER `padding(inner)`, which already carries the
+        // status-bar inset: the header floated a whole status bar (~53dp on a cutout
+        // device) below where every other screen's title sits.
+        topBar = {
+            ZCodeTopBar(
+                title = state.task?.title ?: stringResource(R.string.conv_default_title),
+                onBack = attemptBack,
+                backTestTag = "conversation_back",
+            )
+        },
+    ) { inner ->
+        // U1/U8: the budgets below derive from the REAL available height (inside the
+        // IME padding, so they shrink while typing) — never from the window size.
+        BoxWithConstraints(
             Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
+                .padding(inner)
                 // FIELD (2026-10-01, vc21 device): edge-to-edge draws the IME as an
                 // overlay — without imePadding the keyboard covered the pinned
                 // composer entirely ("typing but nothing shows up": the field was
                 // UNDER the keyboard).
-                .navigationBarsPadding()
                 .imePadding(),
         ) {
+        val available = maxHeight
+        Column(Modifier.fillMaxSize()) {
+            val blocked = state.pendingPermissions.isNotEmpty() || state.pendingUserInputs.isNotEmpty()
             Header(
                 state = state,
                 phase = phase,
-                onBack = onBack,
+                blocked = blocked,
+                available = available,
                 onOpenFiles = onOpenFiles,
                 onOpenGit = onOpenGit,
                 onOpenTerminal = onOpenTerminal,
                 onSwitchMode = onSwitchMode,
                 onSwitchModel = onSwitchModel,
                 modelOptionsProvider = modelOptionsProvider,
+                sessionStatusProvider = sessionStatusProvider,
+                onSetThoughtLevel = onSetThoughtLevel,
+                workflowRuns = workflowRuns,
+                plans = plans,
+                onOpenTrajectory = onOpenTrajectory,
+                onOpenWorkflowRun = onOpenWorkflowRun,
+                onShareTranscript = onShareTranscript,
             )
+            // A3.3: the run detail sheet (an overlay — position in the tree is immaterial).
+            openWorkflowRun?.let { open ->
+                WorkflowRunSheet(open, onDismiss = onCloseWorkflowRun, onLoadMore = onLoadMoreRunEvents)
+            }
+            // A3.13: the trajectory sheet (search field + the model-call timeline).
+            if (showTrajectory) {
+                TrajectorySheet(
+                    trajectory = trajectory,
+                    loading = trajectoryLoading,
+                    searchResults = trajectorySearchResults,
+                    query = trajectoryQuery,
+                    onQueryChange = onTrajectoryQueryChange,
+                    onDismiss = onCloseTrajectory,
+                )
+            }
             // Phase 9.1: the per-turn diff viewer (opened from a turnHeader's summary).
             var diffTurn by remember { mutableStateOf<ConversationRow.TurnHeader?>(null) }
             // Phase 2 (§11.4, GAP-10): the message-edit sheet (long-press → Edit).
@@ -146,89 +287,146 @@ fun ConversationScreen(
                     onDismiss = { diffTurn = null },
                 )
             }
-            // Pinned state strips (§15-S1/S9, mockups 09/10/12) — content stays visible.
-            if (state.stale) {
-                AttentionStrip(
-                    title = stringResource(R.string.conv_stale_title),
-                    tone = StatusTone.WAITING,
-                    modifier = Modifier.testTag("conversation_stale_strip"),
-                )
-            }
             // §20.2 "approval first": the open interaction cards are PINNED above the
             // timeline (the agent is blocked until answered — G2a ≤ 3 interactions).
-            for (interaction in state.pendingPermissions) {
-                ApprovalCard(
-                    interaction = interaction,
-                    busy = interaction.interactionId in state.busyInteractions,
-                    onAnswer = { optionId, freeText ->
-                        onAnswer(interaction.interactionId, optionId, freeText, false)
-                    },
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                )
-            }
-            for (interaction in state.pendingUserInputs) {
-                UserInputCard(
-                    interaction = interaction,
-                    busy = interaction.interactionId in state.busyInteractions,
-                    onAnswer = { optionId, freeText ->
-                        onAnswer(interaction.interactionId, optionId, freeText, true)
-                    },
-                    onAnswerQuestions = { answers ->
-                        onAnswerQuestions(interaction.interactionId, answers)
-                    },
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                )
-            }
-            if (state.taskState == TaskStateMachine.State.WAITING_FOR_PERMISSION ||
-                state.taskState == TaskStateMachine.State.WAITING_FOR_USER
-            ) {
-                AttentionStrip(
-                    title = stringResource(R.string.conv_attention_title),
-                    message = stringResource(R.string.conv_attention_body),
-                    tone = StatusTone.WAITING,
-                    modifier = Modifier.testTag("conversation_attention_strip"),
-                )
-            }
-            // §7.5 queue display + edit (sendQueuedNow / editQueueItem, CAS upstream).
-            state.sessionState?.queue?.let { queue ->
-                QueueStrip(
-                    queue = queue,
-                    busy = false,
-                    onSendNow = onSendQueuedNow,
-                    onEdit = onEditQueueItem,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                )
-            }
-                        // §19.4 FIELD (2026-09-30, vc11): the desktop truncates the initial snapshot
-            // to a tail window — make the remaining history DISCOVERABLE and tappable,
-            // not just a scroll-prefetch hint. Scalable: pages of PAGE_MAX_ROWS until
-            // the window's firstRowId is reached (no hardcoded total).
-            if (state.hasMoreHistory && !state.loadingOlder && state.rows.isNotEmpty()) {
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier
+            // B2.12: they are NEVER inside the strip budget.
+            // U8 (verification pass 2, 2026-10-21): the pinned stack is BUDGETED too — a
+            // multi-question card is taller than half a phone; unbounded it pushed its own
+            // Submit/Decline, the timeline and the composer off-screen (unanswerable). Up
+            // to PINNED_BUDGET_FRACTION of the window, scrolling inside; the header's
+            // context panels yield their room while a card is open (approval first).
+            if (blocked) {
+                // Everything the chrome, the composer and the timeline floor do not need,
+                // and never less than a screen share — Allow/Submit stay on screen on a
+                // phone; a taller card scrolls inside.
+                // T3 (verification pass 4): SHORT-HEIGHT windows (landscape phones
+                // ≈ 250-350dp of content) invert the priority. There the FIXED chrome
+                // (header intrinsics + intrinsic composer) alone can consume the window:
+                // the budgeted card still starved the weighted timeline to ZERO and the
+                // composer clipped. Short-height mode yields the card's minimum FIRST —
+                // it keeps a scrollable sliver (answer controls stay reachable inside its
+                // own scroll) while the composer keeps its intrinsic size and the
+                // timeline keeps a real 48dp floor (the measured-geometry maximum).
+                val pinnedBudget =
+                    if (available < SHORT_HEIGHT_THRESHOLD) {
+                        (available - SHORT_HEIGHT_RESERVE).coerceAtLeast(SHORT_HEIGHT_CARD_MIN)
+                    } else {
+                        maxOf(available * PINNED_BUDGET_FRACTION, available - PINNED_RESERVE)
+                    }
+                Column(
+                    Modifier
                         .fillMaxWidth()
-                        .testTag("conversation_load_older_strip")
-                        .clickable { onLoadOlder(state.rows.first().rowId) { /* page fetched; list updates via the store */ } },
+                        .heightIn(max = pinnedBudget)
+                        .verticalScroll(rememberScrollState())
+                        .testTag("conv_pinned_budget"),
                 ) {
-                    Text(
-                        text = stringResource(R.string.conv_load_earlier) +
-                            (state.totalRows?.let { total -> stringResource(R.string.conv_showing_latest_of, state.rows.size, total) } ?: ""),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    )
+                    for (interaction in state.pendingPermissions) {
+                        ApprovalCard(
+                            interaction = interaction,
+                            busy = interaction.interactionId in state.busyInteractions,
+                            onAnswer = { optionId, freeText ->
+                                onAnswer(interaction.interactionId, optionId, freeText, false)
+                            },
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        )
+                    }
+                    for (interaction in state.pendingUserInputs) {
+                        UserInputCard(
+                            interaction = interaction,
+                            busy = interaction.interactionId in state.busyInteractions,
+                            onAnswer = { optionId, freeText ->
+                                onAnswer(interaction.interactionId, optionId, freeText, true)
+                            },
+                            onAnswerQuestions = { answers ->
+                                onAnswerQuestions(interaction.interactionId, answers)
+                            },
+                            onDecline = { onDeclineQuestions(interaction.interactionId) },
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        )
+                    }
                 }
             }
-if (state.historyChanged) {
-                AttentionStrip(
-                    title = stringResource(R.string.conv_history_changed),
-                    tone = StatusTone.INFO,
-                    actionLabel = stringResource(R.string.action_dismiss),
-                    onAction = onDismissHistoryNotice,
-                    modifier = Modifier.testTag("conversation_history_strip"),
-                )
-            }
+            // B2.12: the status-strip stack is BUDGETED (§15-S1/S9 mockups) — an
+            // unbounded stack in this non-scrollable column squeezed the timeline.
+            StripBudget(
+                strips = buildList {
+                    if (state.stale) {
+                        add {
+                            AttentionStrip(
+                                title = stringResource(R.string.conv_stale_title),
+                                tone = StatusTone.WAITING,
+                                modifier = Modifier.testTag("conversation_stale_strip"),
+                            )
+                        }
+                    }
+                    // U8: the attention strip is for a WAITING task whose card could not be
+                    // pinned — under a pinned card it only repeats the card and steals its room.
+                    if (!blocked && (
+                            state.taskState == TaskStateMachine.State.WAITING_FOR_PERMISSION ||
+                                state.taskState == TaskStateMachine.State.WAITING_FOR_USER
+                            )
+                    ) {
+                        add {
+                            AttentionStrip(
+                                title = stringResource(R.string.conv_attention_title),
+                                message = stringResource(R.string.conv_attention_body),
+                                tone = StatusTone.WAITING,
+                                modifier = Modifier.testTag("conversation_attention_strip"),
+                            )
+                        }
+                    }
+                    // §7.5 queue display + edit (sendQueuedNow / editQueueItem, CAS upstream).
+                    state.sessionState?.queue?.let { queue ->
+                        add {
+                            QueueStrip(
+                                queue = queue,
+                                busy = false,
+                                onSendNow = onSendQueuedNow,
+                                onEdit = onEditQueueItem,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                onMove = onMoveQueueItem,
+                                onSetAutoDrain = onSetAutoDrain,
+                                followupMode = state.sessionState?.config?.followupMode,
+                                onSetFollowupMode = onSetFollowupMode,
+                            )
+                        }
+                    }
+                    // §19.4 FIELD (2026-09-30, vc11): the desktop truncates the initial
+                    // snapshot to a tail window — make the remaining history DISCOVERABLE
+                    // and tappable (pages of PAGE_MAX_ROWS; no hardcoded total).
+                    if (state.hasMoreHistory && !state.loadingOlder && state.rows.isNotEmpty()) {
+                        add {
+                            Surface(
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("conversation_load_older_strip")
+                                    .clickable { onLoadOlder(state.rows.first().rowId) { /* page fetched; list updates via the store */ } },
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.conv_load_earlier) +
+                                        (state.totalRows?.let { total -> stringResource(R.string.conv_showing_latest_of, state.rows.size, total) } ?: ""),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                )
+                            }
+                        }
+                    }
+                    if (state.historyChanged) {
+                        add {
+                            AttentionStrip(
+                                title = stringResource(R.string.conv_history_changed),
+                                tone = StatusTone.INFO,
+                                actionLabel = stringResource(R.string.action_dismiss),
+                                onAction = onDismissHistoryNotice,
+                                modifier = Modifier.testTag("conversation_history_strip"),
+                            )
+                        }
+                    }
+                },
+                modifier = Modifier.padding(horizontal = 0.dp),
+            )
             when {
                 state.loading && state.rows.isEmpty() -> LoadingBody()
                 state.empty -> EmptyBody()
@@ -238,6 +436,12 @@ if (state.historyChanged) {
                     onRetryOlder = onRetryOlder,
                     onOpenTurnChanges = { diffTurn = it },
                     onEditRow = { row -> editingRow = row },
+                    toolOutputProvider = toolOutputProvider,
+                    rowActions = rowActions,
+                        rewindPreviewProvider = rewindPreviewProvider,
+                    // F3-LOAD root cause (Phase 4A discovery): the loader was accepted by the
+                    // screen but never reached the timeline — previews could never load.
+                    loadAttachment = loadAttachment,
                 )
             }
             // §17.4/§17.6 composer (pinned bottom; drafting allowed offline, send
@@ -252,7 +456,10 @@ if (state.historyChanged) {
                 onUploadAttachment = onUploadAttachment,
                 onRemoveAttachment = onRemoveAttachment,
                 onRetryAttachment = onRetryAttachment,
+                onSlashMenuOpen = onSlashMenuOpen,
+                fileSearchProvider = fileSearchProvider,
             )
+        }
         }
     }
 }
@@ -261,41 +468,36 @@ if (state.historyChanged) {
 private fun Header(
     state: ConversationUiState,
     phase: ConnectionPhase,
-    onBack: () -> Unit,
+    /** U8: a blocking card is open — the context panels yield their room (approval first). */
+    blocked: Boolean = false,
+    /** U1: the content height the budgets derive from (BoxWithConstraints, inside the IME padding). */
+    available: androidx.compose.ui.unit.Dp = 0.dp,
     onOpenFiles: () -> Unit = {},
     onOpenGit: () -> Unit = {},
     onOpenTerminal: () -> Unit = {},
     onSwitchMode: (String) -> Unit = {},
     onSwitchModel: (provider: String, model: String, thought: String) -> Unit = { _, _, _ -> },
     modelOptionsProvider: suspend () -> List<com.zcode.android.domain.model.ModelProviderOption> = { emptyList() },
+    sessionStatusProvider: suspend () -> com.zcode.android.domain.model.GitSummary? = { null },
+    /** Phase 4C (A3.4): the effort switch (setThoughtLevel). */
+    onSetThoughtLevel: (String) -> Unit = {},
+    /** Phase 5A (A3.3): the session's workflow runs (null/empty → no panel). */
+    workflowRuns: List<com.zcode.android.domain.model.WorkflowRunSummary>? = null,
+    onOpenWorkflowRun: (com.zcode.android.domain.model.WorkflowRunSummary) -> Unit = {},
+    /** Phase 5B (A3.12): the plans projection (null/empty → no panel). */
+    plans: List<com.zcode.android.domain.model.ConversationPlan>? = null,
+    /** Phase 5B (A3.13): open the trajectory sheet. */
+    onOpenTrajectory: () -> Unit = {},
+    /** Phase 5C (A3.16): share the transcript via the Android system sheet. */
+    onShareTranscript: () -> Unit = {},
 ) {
     Column {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(end = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onBack, modifier = Modifier.testTag("conversation_back")) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(com.zcode.android.core.ui.R.string.action_back),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = state.task?.title ?: stringResource(R.string.conv_default_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
         ConnectionStatusLine(
             phase = phase,
-            trailing = taskStateLabel(state.taskState),
+            // D2: the progress label is TURN-KIND-AWARE — control.activeWorks[].kind
+            // (compacting / verifying goal / running subagents…) refines "Running".
+            trailing = listOfNotNull(taskStateLabel(state.taskState), GoalState.turnKindLabel(state.sessionState?.control?.activeWorks?.firstOrNull()?.kind))
+                .joinToString(" · ").ifEmpty { null },
             modifier = Modifier.padding(horizontal = 16.dp).testTag("conversation_status_line"),
         )
         // GAP-1/GAP-2: the context-window meter + per-source breakdown (§11.1).
@@ -319,8 +521,61 @@ private fun Header(
                 onSwitchMode = onSwitchMode,
                 onSwitchModel = onSwitchModel,
                 modelOptionsProvider = modelOptionsProvider,
+                onSetThoughtLevel = onSetThoughtLevel,
                 modifier = Modifier.weight(1f, fill = true),
             )
+        }
+        // I2.2: branch · clean/changes · agents — from the git summary channel + the
+        // timeline's running subagents; refused/not-a-repository → honest absence.
+        val sessionStatus by androidx.compose.runtime.produceState<com.zcode.android.domain.model.GitSummary?>(
+            initialValue = null,
+        ) {
+            value = runCatching { sessionStatusProvider() }.getOrNull()
+        }
+        SessionStatusStrip(
+            summary = sessionStatus,
+            runningAgents = countRunningAgents(state.rows),
+            modifier = Modifier.padding(horizontal = 8.dp),
+        )
+        // U1 (verification pass 2, 2026-10-21): the context panels below are BUDGETED to a
+        // screen fraction and scroll inside it. Unbounded, goal + todos + workflow runs +
+        // plans together left the timeline a 46dp viewport on a Pixel 5 (zero with the
+        // status capsule expanded) — the B2.12 squeeze class, which budgeted the strips
+        // but not these panels. The timeline keeps its weight; the panels stay reachable.
+        val panelBudget = available * CONTEXT_PANEL_BUDGET_FRACTION
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(max = panelBudget)
+                .verticalScroll(rememberScrollState())
+                .testTag("conv_context_budget"),
+        ) {
+            // I2.3: the session summary panel (duration · goal iteration · background tasks
+            // · subagents) — capsule collapsed; nothing renders for an empty session.
+            SessionSummaryPanel(
+                sessionState = state.sessionState,
+                rows = state.rows,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+            )
+            // U8: while a blocking card is open the panels step aside — the question/approval
+            // carries its own context and must keep its answer controls on screen.
+            if (!blocked) {
+                // D2: the goal + todo surfaces — keys the wire always carried; absent → nothing.
+                state.sessionState?.goal?.let { goal ->
+                    GoalPanel(goal, modifier = Modifier.padding(horizontal = 8.dp))
+                }
+                state.sessionState?.plan?.let { plan ->
+                    PlanPanel(plan, modifier = Modifier.padding(horizontal = 8.dp))
+                }
+                // A3.3: the session's workflow runs (conversationWorkflowRunsV4); null/empty → nothing.
+                workflowRuns?.takeIf { it.isNotEmpty() }?.let { runs ->
+                    WorkflowRunsPanel(runs, onOpen = onOpenWorkflowRun, modifier = Modifier.padding(horizontal = 8.dp))
+                }
+                // A3.12: the plans viewer folds under the todo panel (one panel surface, two sections).
+                plans?.takeIf { it.isNotEmpty() }?.let { list ->
+                    PlansViewer(list, modifier = Modifier.padding(horizontal = 8.dp))
+                }
+            }
         }
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
@@ -328,9 +583,13 @@ private fun Header(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Spacer(Modifier.weight(1f))
-            AssistChip(onClick = onOpenFiles, label = { Text(stringResource(R.string.files_entry)) }, modifier = Modifier.testTag("conv_open_files"))
-            AssistChip(onClick = onOpenGit, label = { Text(stringResource(R.string.git_entry)) }, modifier = Modifier.testTag("conv_open_git"))
-            AssistChip(onClick = onOpenTerminal, label = { Text(stringResource(R.string.terminal_entry)) }, modifier = Modifier.testTag("conv_open_terminal"))
+            // L5-chips (Phase 6C): the route chips are the SAME ZCodeChip language as
+            // the session chips above — one visual language for chip-shaped affordances.
+            ZCodeChip(onClick = onOpenFiles, label = stringResource(R.string.files_entry), testTag = "conv_open_files")
+            ZCodeChip(onClick = onOpenGit, label = stringResource(R.string.git_entry), testTag = "conv_open_git")
+            ZCodeChip(onClick = onOpenTerminal, label = stringResource(R.string.terminal_entry), testTag = "conv_open_terminal")
+            ZCodeChip(onClick = onOpenTrajectory, label = stringResource(R.string.conv_trajectory_entry), testTag = "conv_open_trajectory")
+            ZCodeChip(onClick = onShareTranscript, label = stringResource(R.string.conv_share_entry), testTag = "conv_share")
         }
         Spacer(Modifier.height(6.dp))
     }
@@ -373,8 +632,18 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     onRetryOlder: (Long) -> Unit,
     onOpenTurnChanges: (ConversationRow.TurnHeader) -> Unit = {},
     onEditRow: ((ConversationRow.UserInput) -> Unit)? = null,
+    toolOutputProvider: (suspend (ConversationRow.ToolCall) -> String?)? = null,
+    loadAttachment: (suspend (ConversationRow.UserInput.AttachmentMeta) -> ByteArray?)? = null,
+    rowActions: RowActionCallbacks = RowActionCallbacks(),
+    /** A3.11 (Phase 5B): the rewind preview loader threaded to the turn card. */
+    rewindPreviewProvider: (suspend (rowId: Long, entityId: String) -> com.zcode.android.domain.model.RewindPreview?)? = null,
+    /** L7 (Phase 6C): the section boundary's diagnostics seam. */
+    onSectionCrash: (Throwable) -> Unit = {},
 ) {
     val listState = rememberLazyListState()
+    // B3-motion + K2: rows that have already arrived (scroll-back never re-animates).
+    val arrivedRows = rememberArrivalTracker()
+    val motion = rememberMotionSpec()
     val scope = rememberCoroutineScope()
     var unread by remember { mutableIntStateOf(0) }
     var lastKnownCount by remember { mutableIntStateOf(0) }
@@ -419,6 +688,26 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     // earlier messages" flash) and showing "jump to newest". Cold opens worked (rows
     // arrived while the list was empty), which is why it was intermittent.
     var anchoredToTail by remember { mutableStateOf(false) }
+    // L7 (Phase 6C): the timeline's render-preparation (the row→entry grouping) is
+    // section-scoped — a crash there degrades THIS section to the error card with a
+    // Retry while the header and composer stay alive; the stack reaches diagnostics.
+    androidx.compose.runtime.key(state.rows.size) {
+        SectionBoundary(
+            key = state.rows,
+            prepare = { groupTimeline(state.rows) },
+            onCrash = onSectionCrash,
+        ) { entries ->
+    // I2.5: the turn navigator's query map — user inputs in timeline order, with the
+    // entry index the jump scrolls to (the sheet adds the header-item offset itself).
+    data class NavigatorQuery(val entryIndex: Int, val rowId: Long, val preview: String)
+    val navigatorQueries = remember(entries) {
+        entries.mapIndexedNotNull { idx, entry ->
+            val row = (entry as? TimelineEntry.Single)?.row ?: return@mapIndexedNotNull null
+            val text = (row as? ConversationRow.UserInput)?.text ?: return@mapIndexedNotNull null
+            NavigatorQuery(idx, row.rowId, text.trim())
+        }
+    }
+    var navigatorOpen by remember { mutableStateOf(false) }
 
     // Stick-to-bottom (§19.2, macOS parity): while following, ANY content growth —
     // new rows OR streaming text into the last row — clamps the viewport to the true
@@ -432,13 +721,13 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
             // Header items ("loading earlier…"/error strips) occupy index 0+.
             val headerItems =
                 (if (state.loadingOlder) 1 else 0) + (if (state.loadOlderError != null) 1 else 0)
-            listState.scrollToItem(headerItems + state.rows.size - 1)
+            listState.scrollToItem(headerItems + entries.size - 1)
             anchoredToTail = true
             lastKnownCount = state.rows.size
             return@LaunchedEffect
         }
         if (followBottom && state.rows.isNotEmpty()) {
-            listState.scrollToItem(state.rows.size - 1, Int.MAX_VALUE / 2)
+            listState.scrollToItem(entries.size - 1, Int.MAX_VALUE / 2)
         }
         val grew = state.rows.size > lastKnownCount
         if (grew && !followBottom && lastKnownCount > 0) {
@@ -479,10 +768,13 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     // box in the Column; fillMaxSize consumed the entire column and pushed the
     // composer off-screen the moment rows loaded (field: 2026-10-01, vc20).
     Box(Modifier.fillMaxWidth().weight(1f)) {
+        // M2: reader width discipline — prose caps at the reading ceiling and centers.
+        val reader = Modifier.readerWidth()
         LazyColumn(
             state = listState,
-            modifier = Modifier
+            modifier = reader
                 .fillMaxSize()
+                .align(Alignment.TopCenter)
                 .testTag("conversation_list"),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -498,7 +790,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                 item(key = "older-error") {
                     AttentionStrip(
                         title = stringResource(R.string.conv_load_older_error),
-                        message = state.loadOlderError.userMessage,
+                        message = errorUserMessage(state.loadOlderError),
                         tone = StatusTone.ERROR,
                         actionLabel = stringResource(com.zcode.android.core.ui.R.string.action_retry),
                         onAction = { state.rows.firstOrNull()?.let { onRetryOlder(it.rowId) } },
@@ -507,20 +799,78 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                 }
             }
             items(
-                count = state.rows.size,
-                key = { state.rows[it].rowId },
-                contentType = { state.rows[it].kind },
+                count = entries.size,
+                key = { entries[it].key },
+                contentType = {
+                    when (val e = entries[it]) {
+                        is TimelineEntry.Single -> e.row.kind
+                        is TimelineEntry.ToolGroup -> "toolGroup"
+                    }
+                },
             ) { index ->
-                TimelineRow(
-                    row = state.rows[index],
-                    state = state,
-                    modifier = Modifier.testTag("conv-row-${state.rows[index].rowId}"),
-                    onOpenTurnChanges = onOpenTurnChanges,
-                    onEditRow = onEditRow,
+                // B3-motion + K2: rows ARRIVE (900ms stream-in, staggered from the
+                // viewport top) and reflow with animateItem; each row arrives once.
+                when (val entry = entries[index]) {
+                    is TimelineEntry.Single -> TimelineRow(
+                        row = entry.row,
+                        state = state,
+                        modifier = Modifier
+                            .animateItem()
+                            .streamIn(
+                                key = entry.row.rowId,
+                                index = (index - listState.firstVisibleItemIndex).coerceIn(0, 10),
+                                tracker = arrivedRows,
+                            )
+                            .testTag("conv-row-${entry.row.rowId}"),
+                        onOpenTurnChanges = onOpenTurnChanges,
+                        onEditRow = onEditRow,
+                        toolOutputProvider = toolOutputProvider,
+                        loadAttachment = loadAttachment,
+                        rowActions = rowActions,
+                    )
+                    is TimelineEntry.ToolGroup -> ToolGroupBlock(
+                        group = entry,
+                        modifier = Modifier
+                            .animateItem()
+                            .streamIn(
+                                key = entry.rows.first().rowId,
+                                index = (index - listState.firstVisibleItemIndex).coerceIn(0, 10),
+                                tracker = arrivedRows,
+                            )
+                            .testTag("conv-row-${entry.rows.first().rowId}"),
+                        fullOutputProvider = toolOutputProvider,
+                    )
+                }
+            }
+        }
+        // I2.5: the turn navigator (desktop chat.turnNavigator.*) — a query map over
+        // the session's user inputs; two or more queries earn the affordance. It is
+        // ALWAYS visible (not gated on being scrolled up): discoverability is the
+        // finding's whole point.
+        androidx.compose.animation.AnimatedVisibility(
+            visible = navigatorQueries.size >= 2,
+            modifier = Modifier.align(Alignment.BottomEnd),
+            enter = fadeIn(tween(motion.ms(ZCodeMotion.WaterfallMs))),
+            exit = fadeOut(tween(motion.ms(ZCodeMotion.WaterfallMs))),
+        ) {
+            SmallFloatingActionButton(
+                onClick = { navigatorOpen = true },
+                modifier = Modifier.padding(end = 16.dp, bottom = 10.dp).testTag("turnnav_open"),
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.FormatListNumbered,
+                    contentDescription = stringResource(R.string.turnnav_label),
                 )
             }
         }
-        if (!followBottom || !atBottom) {
+        androidx.compose.animation.AnimatedVisibility(
+            visible = !followBottom || !atBottom,
+            modifier = Modifier.align(Alignment.BottomEnd),
+            enter = fadeIn(tween(motion.ms(ZCodeMotion.WaterfallMs))),
+            exit = fadeOut(tween(motion.ms(ZCodeMotion.WaterfallMs))),
+        ) {
             FloatingActionButton(
                 onClick = {
                     followBottom = true
@@ -528,34 +878,87 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                     scope.launch {
                         if (state.rows.isNotEmpty()) {
                             // §30.5: honor the system reduced-motion switch.
-                            if (reducedMotion) listState.scrollToItem(state.rows.size - 1)
-                            else listState.animateScrollToItem(state.rows.size - 1)
+                            if (reducedMotion) listState.scrollToItem(entries.size - 1)
+                            else listState.animateScrollToItem(entries.size - 1)
                         }
                     }
                 },
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
                     .padding(16.dp)
                     .testTag("conversation_jump_latest"),
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             ) {
                 Box {
-                    Icon(imageVector = Icons.Filled.ArrowDownward, contentDescription = stringResource(R.string.conv_jump_latest))
-                    if (unread > 0) {
-                        Box(
-                            Modifier
-                                .align(Alignment.TopEnd)
-                                .size(16.dp)
-                                .background(MaterialTheme.colorScheme.primary, androidx.compose.foundation.shape.CircleShape)
-                                .testTag("conversation_unread_badge"),
+                    // B2.9: a NUMBERED badge (the bare 16dp dot had no count/semantics).
+                    androidx.compose.foundation.layout.Box(Modifier) {
+                        Icon(imageVector = Icons.Filled.ArrowDownward, contentDescription = stringResource(R.string.conv_jump_latest))
+                        UnreadBadge(unread = unread, modifier = Modifier.align(Alignment.TopEnd))
+                    }
+                }
+            }
+        }
+    }
+    if (navigatorOpen) {
+        com.zcode.android.core.ui.components.ZCodeModalBottomSheet(onDismissRequest = { navigatorOpen = false }) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .testTag("turnnav_sheet")
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            ) {
+                Text(
+                    stringResource(R.string.turnnav_label),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.height(6.dp))
+                navigatorQueries.forEachIndexed { i, query ->
+                    TextButton(
+                        onClick = {
+                            navigatorOpen = false
+                            followBottom = false
+                            scope.launch {
+                                val headerItems =
+                                    (if (state.loadingOlder) 1 else 0) + (if (state.loadOlderError != null) 1 else 0)
+                                listState.scrollToItem(headerItems + query.entryIndex)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().testTag("turnnav_item_${i + 1}"),
+                    ) {
+                        Text(
+                            stringResource(R.string.turnnav_jump, i + 1),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            query.preview,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                 }
             }
         }
     }
+        }
+    }
 }
+
+/** Phase 4A (E3.2+I1+N5): the four flag-gated row actions, bundled for the timeline pass-through. */
+data class RowActionCallbacks(
+    val onRetryTurn: (rowId: Long, entityId: String) -> Unit = { _, _ -> },
+    val onForkAssistant: (rowId: Long, entityId: String) -> Unit = { _, _ -> },
+    val onApplyFileRewind: (rowId: Long, entityId: String) -> Unit = { _, _ -> },
+    val onAssistantFeedback: (rowId: Long, entityId: String, feedback: String?) -> Unit = { _, _, _ -> },
+    /** I2.4 (Phase 6A): re-run a failed context compaction. */
+    val onRetryCompaction: () -> Unit = {},
+    /** I2.8 (Phase 6A): open a generated artifact externally (ref + mime). */
+    val onOpenArtifact: (ref: String, mime: String) -> Unit = { _, _ -> },
+)
 
 @Composable
 private fun TimelineRow(
@@ -564,14 +967,24 @@ private fun TimelineRow(
     modifier: Modifier = Modifier,
     onOpenTurnChanges: (ConversationRow.TurnHeader) -> Unit = {},
     onEditRow: ((ConversationRow.UserInput) -> Unit)? = null,
+    toolOutputProvider: (suspend (ConversationRow.ToolCall) -> String?)? = null,
+    loadAttachment: (suspend (ConversationRow.UserInput.AttachmentMeta) -> ByteArray?)? = null,
+    rowActions: RowActionCallbacks = RowActionCallbacks(),
+    /** A3.11 (Phase 5B): the rewind preview loader threaded to the turn card. */
+    rewindPreviewProvider: (suspend (rowId: Long, entityId: String) -> com.zcode.android.domain.model.RewindPreview?)? = null,
 ) {
     Box(modifier = modifier) {
     when (row) {
         is ConversationRow.UserInput -> YouBlock(
             text = row.text,
+            attachments = row.attachments,
+            loadAttachment = loadAttachment,
             createdAtMs = row.base.createdAt,
-            // Desktop gate (ConversationRowView.tsx:1295): edit needs an entityId.
-            editable = row.base.entityId != null && onEditRow != null,
+            // E3.1: the sheet gates Edit on the WIRE'S OWN capability flag
+            // (actions.canEdit — ConversationRowView.tsx:1295 class), not on
+            // entityId presence: rows the desktop forbids lose Edit, allowed rows
+            // without an entityId keep it.
+            editable = row.base.actions?.canEdit == true && onEditRow != null,
             onEdit = onEditRow?.let { cb -> { cb(row) } },
         )
         is ConversationRow.AssistantText -> {
@@ -589,26 +1002,85 @@ private fun TimelineRow(
                 row.text.endsWith(streamed) -> row.text
                 else -> row.text + streamed
             }
+            // Phase 4A: the row target the commands need — entityId is the wire's own
+            // (conversationRowTargetSchema requires a non-empty entityId; a row without
+            // one cannot be targeted, so its actions stay withheld).
+            val entityId = row.base.entityId
             AgentProse(
                 text = text,
                 streaming = row.state == ConversationRow.TextState.STREAMING || streamed != null,
                 createdAtMs = row.base.createdAt,
+                canFork = row.base.actions?.canFork == true && entityId != null,
+                canRetry = row.base.actions?.canRetry == true && entityId != null,
+                feedback = row.feedback,
+                onFork = entityId?.let { e -> { rowActions.onForkAssistant(row.rowId, e) } },
+                onRetry = entityId?.let { e -> { rowActions.onRetryTurn(row.rowId, e) } },
+                onFeedback = entityId?.let { e -> { f: String? -> rowActions.onAssistantFeedback(row.rowId, e, f) } },
             )
+            // I2.8: settled assistant text that mentions generated documents surfaces
+            // the same preview cards the artifact rows get (desktop gZe text detection).
+            if (row.state == ConversationRow.TextState.COMPLETE && streamed == null) {
+                val cards = remember(row.text) { GeneratedArtifactPreview.detectCards(text) }
+                cards.forEachIndexed { i, card ->
+                    val suffix = if (i == 0) "" else "_$i"
+                    val mime = GeneratedArtifactPreview.mimeFor(card.kind)
+                    ArtifactPreviewCard(
+                        rowId = row.rowId,
+                        name = card.path.substringAfterLast('/'),
+                        kind = card.kind,
+                        ref = card.path,
+                        mime = mime,
+                        tagSuffix = suffix,
+                        onOpen = { rowActions.onOpenArtifact(card.path, mime) },
+                    )
+                }
+            }
         }
-        is ConversationRow.ToolCall -> ToolCard(row)
+        is ConversationRow.ToolCall -> ToolCard(row, fullOutputProvider = toolOutputProvider)
         is ConversationRow.Reasoning -> ReasoningRow(row)
-        is ConversationRow.TurnHeader -> TurnSeparator(row, onOpenChanges = { onOpenTurnChanges(row) })
-        is ConversationRow.Artifact -> QuietMetaRow(
-            label = row.displayName.ifBlank { "Artifact" },
-            detail = formatBytes(row.sizeBytes),
+        is ConversationRow.TurnHeader -> TurnSeparator(
+            row,
+            onOpenChanges = { onOpenTurnChanges(row) },
+            onRewindFiles = row.base.entityId?.let { e -> { rowActions.onApplyFileRewind(row.rowId, e) } },
+            rewindPreviewProvider = rewindPreviewProvider,
         )
-        is ConversationRow.Subagent -> QuietMetaRow(label = "Subagent · ${row.subagentType}", detail = row.summaryText.take(80))
-        is ConversationRow.HookInvocation -> QuietMetaRow(label = "Hook · ${row.hookEventName}", detail = null)
-        is ConversationRow.TimelineMarker -> QuietMetaRow(label = row.markerType, detail = null)
+        is ConversationRow.Artifact -> {
+            // I2.8: an artifact row renders as the preview card (kind by extension);
+            // an unrecognized extension keeps the quiet fallback (INV-8).
+            val kind = GeneratedArtifactPreview.forArtifactRow(row)
+            if (kind != null) {
+                val ref = row.ref.ifBlank { row.displayName }
+                val mime = row.mimeType.ifBlank { GeneratedArtifactPreview.mimeFor(kind) }
+                ArtifactPreviewCard(
+                    rowId = row.rowId,
+                    name = row.displayName.ifBlank { row.logicalArtifactKey },
+                    kind = kind,
+                    ref = ref,
+                    mime = mime,
+                    onOpen = { rowActions.onOpenArtifact(ref, mime) },
+                )
+            } else {
+                QuietMetaRow(
+                    label = row.displayName.ifBlank { "Artifact" },
+                    detail = formatBytes(row.sizeBytes),
+                )
+            }
+        }
+        is ConversationRow.Subagent -> QuietMetaRow(label = stringResource(R.string.row_subagent, row.subagentType), detail = row.summaryText.take(80))
+        is ConversationRow.HookInvocation -> QuietMetaRow(label = stringResource(R.string.row_hook, row.hookEventName), detail = null)
+        is ConversationRow.TimelineMarker -> {
+            // I2.4 (Phase 6A): a `compact` marker renders the context-compaction
+            // lifecycle notice; every other marker keeps the generic quiet row.
+            val compaction = remember(row.raw) { com.zcode.android.domain.model.CompactionNotice.from(row) }
+            if (compaction != null) {
+                CompactionNoticeRow(notice = compaction, onRetry = rowActions.onRetryCompaction)
+            } else {
+                QuietMetaRow(label = row.markerType, detail = null)
+            }
+        }
         is ConversationRow.Unknown -> UnknownKindRow(row)
     }
     }
-
 }
 
 internal fun formatBytes(bytes: Long): String = when {
@@ -619,3 +1091,26 @@ internal fun formatBytes(bytes: Long): String = when {
 }
 
 private const val PAGE_EDGE = 12
+
+/** U1: the context-panel stack (goal · todos · runs · plans) may take at most this share of the screen. */
+private const val CONTEXT_PANEL_BUDGET_FRACTION = 0.30f
+
+/** U8: the pinned approval/question stack may take at most this share of the window. */
+private const val PINNED_BUDGET_FRACTION = 0.30f
+
+/** U8: the pinned stack keeps everything above this reserve (chrome ≈ 190dp + composer ≈ 140dp + the 120dp timeline floor). */
+private val PINNED_RESERVE = 450.dp
+
+/** T3: below this content height (landscape phones ≈ 250-350dp) the pinned budget switches to short-height mode. */
+private val SHORT_HEIGHT_THRESHOLD = 480.dp
+
+/**
+ * T3: short-height reserve — the measured fixed chrome (header intrinsics 135dp +
+ * intrinsic composer 140dp = 275dp; the context panels already yield while a card
+ * is open) + the short-height timeline floor (48dp — the portrait 120dp floor is
+ * arithmetically impossible beside 275dp of chrome in a ~347dp landscape window).
+ */
+private val SHORT_HEIGHT_RESERVE = 323.dp
+
+/** T3: the card never disappears — a scrollable sliver keeps its answer controls reachable. */
+private val SHORT_HEIGHT_CARD_MIN = 24.dp

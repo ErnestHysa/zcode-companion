@@ -23,6 +23,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
+import androidx.compose.ui.unit.dp
 
 /**
  * Phase 11 §30 acceptance items, scripted:
@@ -118,8 +119,16 @@ class AccessibilityAuditTest {
         setContent()
         val clickables = clickables()
         assertTrue(clickables.size >= 3)
-        val ys = clickables.map { it.boundsInRoot.center.y }
-        assertEquals("traversal order must match visual order", ys, ys.sorted())
+        // §30.1 under M3 Scaffold: the Scaffold subcomposes the BODY before the top
+        // bar, so the raw semantics-tree order (what the test rule enumerates) lists
+        // the body first. TalkBack's real order is fixed by the traversal-group
+        // markings (ZCodeTopBar = group/index 0, body = index 1): header chrome first,
+        // then the body in visual order. Pinned on both halves.
+        val headerBottom = 48.dp.value * rule.density.density * 2 // 48dp bar + insets
+        val (chrome, body) = clickables.map { it.boundsInRoot.center.y }.partition { it <= headerBottom.toFloat() }
+        assertTrue("the header chrome (approvals bell, settings) must be present", chrome.isNotEmpty())
+        assertTrue("chrome above every body row: $chrome vs $body", chrome.all { c -> body.all { c <= it } })
+        assertEquals("body clickables must be in visual order", body.sorted(), body)
     }
 
     /** §30.2 — interactive targets ≥ 48 dp tall (icon buttons and rows). */

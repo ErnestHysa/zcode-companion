@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
@@ -19,6 +20,7 @@ import com.zcode.android.domain.model.TaskStatus
 import com.zcode.android.domain.state.ConnectionPhase
 import com.zcode.android.features.tasks.ui.TaskListScreen
 import org.junit.Rule
+import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
@@ -112,8 +114,53 @@ class TaskListUiTest {
         rule.onNodeWithTag("task_row_a").assertIsDisplayed() // cached rows stay visible
     }
 
+    // E4 (gaps-and-polish Phase 4G): the FIRST sync failure (never refreshed since
+    // pairing) is ANNOTATED — not the bare "Connection failed" beside "No tasks yet".
     @Test
-    fun error_stripShownWithRetry_andEmptyGuidance() {
+    fun firstSyncFailure_showsAnnotatedStrip_withRetry() {
+        val state = TasksUiState(
+            phase = ConnectionPhase.CONNECTED,
+            loadState = TasksUiState.Load.EMPTY,
+            error = com.zcode.android.core.common.error.AppError(
+                category = com.zcode.android.core.common.error.ErrorCategory.NETWORK,
+                userMessage = "bootstrap failed",
+                developerDiagnostic = "bootstrap failed",
+                retryable = com.zcode.android.core.common.error.AppError.Retryable.USER,
+                recoverable = true,
+            ),
+            lastRefreshAtMs = null,
+        )
+        rule.setContent {
+            TaskListScreen(state, onTaskClick = {}, onOpenSettings = {}, onOpenConnection = {}, onRetry = {}, onRefresh = {})
+        }
+        rule.onNodeWithTag("tasks_first_sync_strip").assertIsDisplayed()
+        rule.onNodeWithText("First sync failed").assertIsDisplayed()
+    }
+
+    @Test
+    fun postRefreshFailure_showsThePlainStrip() {
+        val state = TasksUiState(
+            phase = ConnectionPhase.CONNECTED,
+            loadState = TasksUiState.Load.READY,
+            groups = listOf(TaskGroup("/ws/demo", "demo", listOf(task("a", TaskStatus.RUNNING, "Fix authentication token refresh")))),
+            taskCount = 1,
+            error = com.zcode.android.core.common.error.AppError(
+                category = com.zcode.android.core.common.error.ErrorCategory.NETWORK,
+                userMessage = "refresh failed",
+                developerDiagnostic = "refresh failed",
+                retryable = com.zcode.android.core.common.error.AppError.Retryable.USER,
+                recoverable = true,
+            ),
+            lastRefreshAtMs = 42,
+        )
+        rule.setContent {
+            TaskListScreen(state, onTaskClick = {}, onOpenSettings = {}, onOpenConnection = {}, onRetry = {}, onRefresh = {})
+        }
+        assertEquals(0, rule.onAllNodesWithTag("tasks_first_sync_strip").fetchSemanticsNodes().size)
+        rule.onNodeWithTag("tasks_error_strip").assertIsDisplayed()
+    }
+
+        fun error_stripShownWithRetry_andEmptyGuidance() {
         val state = TasksUiState(
             phase = ConnectionPhase.CONNECTED,
             loadState = TasksUiState.Load.EMPTY,
@@ -257,14 +304,14 @@ class TaskCreateUiTest {
         var created: Pair<String, String>? = null
         rule.setContent {
             ZCodeTheme {
-                com.zcode.android.features.tasks.ui.CreateTaskDialog(
+                com.zcode.android.features.tasks.ui.CreateTaskSheet(
                     workspaces = listOf(
                         com.zcode.android.domain.model.WorkspaceOption("/ws/a", "Alpha", "/ws/a"),
                         com.zcode.android.domain.model.WorkspaceOption("/ws/b", "Beta", "/ws/b"),
                     ),
                     creating = false,
                     onDismiss = {},
-                    onCreate = { key, text -> created = key to text },
+                    onCreate = { key, text, _, _ -> created = key to text },
                 )
             }
         }
@@ -285,11 +332,11 @@ class TaskCreateUiTest {
     fun createDialog_staysDisabledWithoutWorkspaceSelection_orText() {
         rule.setContent {
             ZCodeTheme {
-                com.zcode.android.features.tasks.ui.CreateTaskDialog(
+                com.zcode.android.features.tasks.ui.CreateTaskSheet(
                     workspaces = emptyList(),
                     creating = false,
                     onDismiss = {},
-                    onCreate = { _, _ -> },
+                    onCreate = { _, _, _, _ -> },
                 )
             }
         }

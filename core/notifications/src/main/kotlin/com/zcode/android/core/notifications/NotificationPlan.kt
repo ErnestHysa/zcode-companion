@@ -65,6 +65,9 @@ object NotificationPlan {
         fun taskFailedPublic(): String
         fun taskFailedDetail(taskTitle: String): String
         fun connectionLostPublic(): String
+        /** C3: the shade action labels (defaults for the pure tests). */
+        fun approveAction(): String = "Approve"
+        fun denyAction(): String = "Deny"
     }
 
     /** English copy (the §24.1 table verbatim) — the default for pure tests. */

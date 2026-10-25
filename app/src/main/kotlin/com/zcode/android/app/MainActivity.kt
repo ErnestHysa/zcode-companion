@@ -11,6 +11,9 @@ import android.os.Bundle
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.LaunchedEffect
+import com.zcode.android.app.theme.applySystemBarsFor
+import com.zcode.android.core.ui.theme.resolveDark
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.setValue
@@ -27,12 +30,24 @@ import com.zcode.android.features.pairing.PairingViewModel
 import com.zcode.android.features.pairing.flow.PairingFlow
 import com.zcode.android.features.tasks.TasksViewModel
 import com.zcode.android.features.pairing.ui.QrScanner
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 
 /**
  * Single-activity root (§18.2). Phase 6 destination: pairing → tasks → conversation
  * (+ connection center / settings), one NavHost, edge-to-edge + predictive back
  * (§18.1). extends FragmentActivity — BiometricPrompt (androidx.biometric) requires it.
  */
+/**
+ * C6-taskdesc: the recents card shows the open task's name (the label is the ONE
+ * thing the OS recents surface reads), never a generic app label. No-op on a
+ * blank label — never a wiped description.
+ */
+internal fun android.app.Activity.updateRecentsTaskLabel(label: String?) {
+    if (label.isNullOrBlank()) return
+    @Suppress("DEPRECATION")
+    setTaskDescription(android.app.ActivityManager.TaskDescription(label))
+}
+
 class MainActivity : FragmentActivity() {
 
     // internal: the instrumented suites assert wiring state directly (no product surface).
@@ -42,6 +57,9 @@ class MainActivity : FragmentActivity() {
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // B3-splash (N4.1): the branded launch window — must run BEFORE super.onCreate
+        // so the first visible frame is the splash (never the blank white window).
+        val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
 
         // FIELD (2026-09-30, vc12): the ring is persisted line-by-line; capture the
@@ -67,10 +85,34 @@ class MainActivity : FragmentActivity() {
         pairingVm = PairingViewModel(container.pairingPort, lifecycleScope)
         tasksVm = TasksViewModel(container.tasksPort, lifecycleScope)
         container.hub.start()
+        // C6 (gate-before-first-frame): hold the splash until §11.6's active-endpoint
+        // selection has run — the first composed frame then reads a settled paired
+        // gate, so a cold start with an existing pairing never flashes Pairing.
+        splash.setKeepOnScreenCondition { !container.hub.gateResolved.value }
         registerNetworkProbe()
         handleDeepLink(intent)
+        handleShortcut(intent)
         setContent {
-            ZCodeTheme {
+            val windowSize = androidx.compose.material3.windowsizeclass.calculateWindowSizeClass(this)
+            // Phase 4F (H1.4-phase1): the theme override applies WITHOUT restart
+            // (the pref is a StateFlow read; recomposition follows the toggle).
+            val prefs by container.stores.preferencesRepository.observe()
+                .collectAsState(com.zcode.android.domain.model.AppPreferences())
+            val themeMode = when (prefs.themeMode) {
+                com.zcode.android.domain.model.AppPreferences.ThemeMode.LIGHT -> com.zcode.android.core.ui.theme.ThemeMode.LIGHT
+                com.zcode.android.domain.model.AppPreferences.ThemeMode.DARK -> com.zcode.android.core.ui.theme.ThemeMode.DARK
+                com.zcode.android.domain.model.AppPreferences.ThemeMode.SYSTEM -> com.zcode.android.core.ui.theme.ThemeMode.SYSTEM
+            }
+            // U7 (verification pass 2): the window's system bars follow the RESOLVED theme.
+            // onCreate's enableEdgeToEdge() reads the SYSTEM uiMode once — an in-app Dark
+            // override on a light system left dark status icons on the dark background
+            // and the light nav scrim under the dark app. Re-applied whenever it flips.
+            val dark = themeMode.resolveDark()
+            LaunchedEffect(dark) { applySystemBarsFor(dark) }
+            ZCodeTheme(themeMode = themeMode) {
+                androidx.compose.runtime.CompositionLocalProvider(
+                    com.zcode.android.core.ui.components.LocalWindowWidthClass provides windowSize.widthSizeClass,
+                ) {
                 ZCodeApp(
                     container = container,
                     pairingVm = pairingVm,
@@ -78,6 +120,7 @@ class MainActivity : FragmentActivity() {
                     scope = lifecycleScope,
                     scannerContent = { ScannerWithPermission() },
                 )
+                }
             }
         }
     }
@@ -133,9 +176,17 @@ class MainActivity : FragmentActivity() {
         // §24.7 singleTask: a notification tap re-enters the LIVE activity here.
         container.log.info("app deeplink", "onNewIntent data=${intent.data?.toString()?.take(120)}")
         handleDeepLink(intent)
+        handleShortcut(intent)
     }
 
     /** §24.7: a deep link is a routing HINT — parse here, the nav graph resolves. */
+    /** H2.2: launcher shortcuts ride the notifications seam like deep links. */
+    internal fun handleShortcut(intent: Intent?) {
+        val target = com.zcode.android.app.notifications.AppShortcuts.intake(intent) ?: return
+        container.log.info("app.shortcut", "target=${target.id}")
+        container.notifications.offerShortcut(target)
+    }
+
     internal fun handleDeepLink(intent: Intent?) {
         val candidate = com.zcode.android.app.notifications.DeepLinks.intake(intent) ?: return
         container.notifications.offerDeepLink(candidate.taskId, candidate.interactionId)

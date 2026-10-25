@@ -175,6 +175,10 @@ class CommandCoordinator(
     suspend fun resumeGoal(sessionId: String, baseRevision: Long?): Outcome =
         casCommand("resumeGoal", sessionId, baseRevision, buildJsonObject { })
 
+    /** I1-goal (Phase 6A): `/goal pause` — `pauseGoal {}`, same CAS set as resumeGoal. */
+    suspend fun pauseGoal(sessionId: String, baseRevision: Long?): Outcome =
+        casCommand("pauseGoal", sessionId, baseRevision, buildJsonObject { })
+
     // ---------------------------------------------------------------- createSession (task creation)
 
     /**
@@ -238,6 +242,113 @@ class CommandCoordinator(
         casCommand("editQueueItem", sessionId, baseRevision, buildJsonObject {
             put("queueItemId", queueItemId)
             put("newText", newText)
+        })
+
+    // ---------------------------------------------------------------- I1 queue (Phase 5A): reorder · auto-drain · follow-up mode
+
+    /**
+     * `reorderQueueItem {queueItemId, beforeQueueItemId: string|null}` — CAS-guarded (verified
+     * set). The item moves BEFORE `beforeQueueItemId`; null = to the END of the queue.
+     */
+    suspend fun reorderQueueItem(sessionId: String, queueItemId: String, beforeQueueItemId: String?, baseRevision: Long?): Outcome =
+        casCommand("reorderQueueItem", sessionId, baseRevision, buildJsonObject {
+            put("queueItemId", queueItemId)
+            if (beforeQueueItemId == null) put("beforeQueueItemId", kotlinx.serialization.json.JsonNull) else put("beforeQueueItemId", beforeQueueItemId)
+        })
+
+    /** `setAutoDrain {autoDrain}` — CAS-guarded; false pauses the queue (the desktop's drain toggle). */
+    suspend fun setAutoDrain(sessionId: String, autoDrain: Boolean, baseRevision: Long?): Outcome =
+        casCommand("setAutoDrain", sessionId, baseRevision, buildJsonObject { put("autoDrain", autoDrain) })
+
+    /** `setFollowupMode {mode: queue|guide}` — CAS-guarded; the out-of-set gate is fail-closed. */
+    suspend fun setFollowupMode(sessionId: String, mode: String, baseRevision: Long?): Outcome {
+        if (mode !in FOLLOWUP_MODES) return Outcome.Failed(null)
+        return casCommand("setFollowupMode", sessionId, baseRevision, buildJsonObject { put("mode", mode) })
+    }
+
+    // ---------------------------------------------------------------- ADR-024 (Phase 5D): hooks trust
+
+    /**
+     * The workspaceHookReview commands (chunk-LNGNUNBX `$r` — NOT CAS-guarded). Shapes
+     * bundle-extracted: base {sessionId, taskId, runId, remoteSessionId?, workspaceIdentity,
+     * bundleDigest, reviewFlowId, generation, interactionId}; respond {decision:{action:
+     * "trust_selected", reviewItemIds}}; toggle {reviewItemId, enabled}; revoke
+     * {reviewItemIds[≥1]} (the review-ids arm); request {sessionId, workspaceIdentity,
+     * bundleDigest}. `grantWorkspaceHookTrust` (the Settings-side persistent grant) is the
+     * V4Plane facade word, reachable ONLY from the review card's confirmed path.
+     */
+    suspend fun respondWorkspaceHookReview(
+        sessionId: String,
+        hook: com.zcode.android.domain.model.WorkspaceHookReview,
+        reviewItemIds: List<String>,
+    ): Outcome = simpleCommand("respondWorkspaceHookReview", sessionId, buildJsonObject {
+        put("sessionId", hook.sessionId)
+        put("taskId", hook.taskId)
+        put("runId", hook.runId)
+        put("workspaceIdentity", hook.workspaceIdentity)
+        put("bundleDigest", hook.bundleDigest)
+        put("reviewFlowId", hook.reviewFlowId)
+        put("generation", hook.generation)
+        put("interactionId", hook.interactionId)
+        put("decision", buildJsonObject {
+            put("action", "trust_selected")
+            put("reviewItemIds", kotlinx.serialization.json.buildJsonArray {
+                reviewItemIds.forEach { add(kotlinx.serialization.json.JsonPrimitive(it)) }
+            })
+        })
+    })
+
+    suspend fun toggleWorkspaceHookReviewItem(
+        sessionId: String,
+        hook: com.zcode.android.domain.model.WorkspaceHookReview,
+        reviewItemId: String,
+        enabled: Boolean,
+    ): Outcome = simpleCommand("toggleWorkspaceHookReviewItem", sessionId, buildJsonObject {
+        put("sessionId", hook.sessionId)
+        put("taskId", hook.taskId)
+        put("runId", hook.runId)
+        put("workspaceIdentity", hook.workspaceIdentity)
+        put("bundleDigest", hook.bundleDigest)
+        put("reviewFlowId", hook.reviewFlowId)
+        put("generation", hook.generation)
+        put("interactionId", hook.interactionId)
+        put("reviewItemId", reviewItemId)
+        put("enabled", enabled)
+    })
+
+    suspend fun revokeWorkspaceHookTrust(
+        sessionId: String,
+        hook: com.zcode.android.domain.model.WorkspaceHookReview,
+        reviewItemIds: List<String>,
+    ): Outcome = simpleCommand("revokeWorkspaceHookTrust", sessionId, buildJsonObject {
+        put("sessionId", hook.sessionId)
+        put("workspaceIdentity", hook.workspaceIdentity)
+        put("bundleDigest", hook.bundleDigest)
+        put("reviewItemIds", kotlinx.serialization.json.buildJsonArray {
+            reviewItemIds.forEach { add(kotlinx.serialization.json.JsonPrimitive(it)) }
+        })
+    })
+
+    suspend fun requestWorkspaceHookReview(sessionId: String, workspaceIdentity: String, bundleDigest: String): Outcome =
+        simpleCommand("requestWorkspaceHookReview", sessionId, buildJsonObject {
+            put("sessionId", sessionId)
+            put("workspaceIdentity", workspaceIdentity)
+            put("bundleDigest", bundleDigest)
+        })
+
+    // ---------------------------------------------------------------- saved workflows (Phase 5A, L6.4 + I1)
+
+    /**
+     * `startSavedWorkflow {name, scope?, args?}` — NOT CAS-guarded (absent from the
+     * baseRevision set, chunk-LNGNUNBX `$r`). The ack's `reasonCode` carries the typed
+     * error vocabulary `Bu` (invalid_name | not_found | invalid_args | compile_failed |
+     * session_busy | start_failed) — the caller maps it to copy, never guesses.
+     */
+    suspend fun startSavedWorkflow(sessionId: String, name: String, scope: String?, args: JsonObject?): Outcome =
+        simpleCommand("startSavedWorkflow", sessionId, buildJsonObject {
+            put("name", name)
+            scope?.let { put("scope", it) }
+            args?.let { put("args", it) }
         })
 
     // ---------------------------------------------------------------- model/mode switch (Phase 9.5)
@@ -427,6 +538,52 @@ class CommandCoordinator(
         )
     }
 
+    // ---------------------------------------------------------------- row actions (Phase 4A: E3.2+I1+N5)
+
+    /** `{target: {rowId, entityId}}` — the shared row-target payload (core.ts conversationRowTargetSchema). */
+    private fun rowTarget(rowId: Long, entityId: String): JsonObject = buildJsonObject {
+        put("target", buildJsonObject {
+            put("rowId", JsonPrimitive(rowId))
+            put("entityId", JsonPrimitive(entityId))
+        })
+    }
+
+    /** `retryTurn {target}` — re-asks the turn (command.ts:161; the desktop's handleRetry). */
+    suspend fun retryTurn(sessionId: String, rowId: Long, entityId: String, baseRevision: Long?, baseLogEpoch: String?): Outcome =
+        rowTargetingCommand("retryTurn", sessionId, baseRevision, baseLogEpoch, rowTarget(rowId, entityId))
+
+    /**
+     * `forkAssistant {target}` — the ack's `result.sessionId` names the CHILD session
+     * (commandResultSchema type=forkAssistant); the caller navigates there exactly like
+     * the desktop (`onSessionCreated(ack.result.sessionId)`). Read it via [forkedSessionId].
+     */
+    suspend fun forkAssistant(sessionId: String, rowId: Long, entityId: String, baseRevision: Long?, baseLogEpoch: String?): Outcome =
+        rowTargetingCommand("forkAssistant", sessionId, baseRevision, baseLogEpoch, rowTarget(rowId, entityId))
+
+    /** `applyFileRewind {target}` — workspace-only file undo for the turn; chat history is not truncated. */
+    suspend fun applyFileRewind(sessionId: String, rowId: Long, entityId: String, baseRevision: Long?, baseLogEpoch: String?): Outcome =
+        rowTargetingCommand("applyFileRewind", sessionId, baseRevision, baseLogEpoch, rowTarget(rowId, entityId))
+
+    /**
+     * `setAssistantFeedback {target, feedback}` — `feedback: like|dislike|null` (strict
+     * enum, NULLABLE): clearing is an EXPLICIT JSON null, an out-of-enum value never goes
+     * on the wire (fail closed, INV-14).
+     */
+    suspend fun setAssistantFeedback(
+        sessionId: String,
+        rowId: Long,
+        entityId: String,
+        feedback: String?,
+        baseRevision: Long?,
+        baseLogEpoch: String?,
+    ): Outcome {
+        if (feedback != null && feedback !in FEEDBACK_VALUES) return Outcome.Failed(null)
+        val payload = JsonObject(
+            rowTarget(rowId, entityId) + ("feedback" to (feedback?.let { JsonPrimitive(it) } ?: kotlinx.serialization.json.JsonNull)),
+        )
+        return rowTargetingCommand("setAssistantFeedback", sessionId, baseRevision, baseLogEpoch, payload)
+    }
+
     /** TRANSMIT → ACK / SendLost mapping (§15.5: a lost outcome is UNKNOWN, never success). */
     private suspend fun transmitPending(
         commandId: CommandId,
@@ -524,6 +681,21 @@ class CommandCoordinator(
     // ---------------------------------------------------------------- observe (UI)
 
     fun observePendingSends(): StateFlow<List<PendingSend>> = pendingSends
+
+    companion object {
+        /** command.ts setAssistantFeedback: `z.enum(["like","dislike"]).nullable()`. */
+        val FEEDBACK_VALUES = setOf("like", "dislike")
+
+        /** The forkAssistant ack's child session (`result.type == "forkAssistant"`); null otherwise. */
+        /** setFollowupMode's closed enum (chunk-LNGNUNBX `$r`: `mode: queue | guide`). */
+        val FOLLOWUP_MODES: Set<String> = setOf("queue", "guide")
+
+        fun forkedSessionId(ack: CommandAck): String? {
+            val result = ack.result ?: return null
+            if ((result["type"] as? JsonPrimitive)?.content != "forkAssistant") return null
+            return (result["sessionId"] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() }
+        }
+    }
 }
 
 internal val jsonParser = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }

@@ -8,6 +8,7 @@ import com.zcode.android.domain.state.ConnectionPhase
 import com.zcode.android.domain.state.TaskStateMachine
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.serialization.json.JsonObject
 
 /**
  * Consumer-side port for the conversation surface (INV-2/INV-6: no transport types).
@@ -58,6 +59,38 @@ interface ConversationPort {
         val source: String?,
     )
 
+    // ---------------------------------------------------------------- Phase 4C (C2): the other two slash sections
+
+    data class SlashSkillView(val name: String, val description: String, val scope: String)
+    data class SlashAgentView(val name: String, val description: String, val scope: String?)
+
+    /**
+     * The desktop slash panel's extra sections (slashCommandPanelSections.tsx): the
+     * user's custom + plugin commands (`commands.list`), skills (the reference catalog)
+     * and subagents (`subagents.list`). Each leg carries its OWN error so one failing
+     * channel never blanks the others (desktop: per-section loading/error states).
+     * null lists = not loaded; [loading] = fetch in flight.
+     */
+    data class SlashExtras(
+        val userCommands: List<SlashCommandView>,
+        val skills: List<SlashSkillView>?,
+        val skillsError: String?,
+        val agents: List<SlashAgentView>?,
+        val agentsError: String?,
+        val loading: Boolean,
+    )
+
+    /** Lazy (on first "/"): one fetch per session (desktop useSkills enabled-on-trigger). */
+    suspend fun fetchSlashExtras(taskId: String): SlashExtras =
+        SlashExtras(emptyList(), null, null, null, null, loading = false)
+
+    /**
+     * Phase 4C (C7): workspace file search for the composer @-mentions (the desktop's
+     * mention panel uses the same service; the port has owned the file channel since
+     * Phase 3C). Empty = no matches (or the channel refused — the menu just hides).
+     */
+    suspend fun searchWorkspaceFiles(taskId: String, query: String): List<String> = emptyList()
+
     /** Subscribe (Phase 5 coordinator path; journal restore included). */
     suspend fun open(task: Task): Boolean
 
@@ -104,10 +137,27 @@ interface ConversationPort {
     suspend fun sendQueuedNow(taskId: String, queueItemId: String): SendOutcome
     suspend fun editQueueItem(taskId: String, queueItemId: String, newText: String): SendOutcome
 
-    /** Phase 2 (§11.3): the slash command plane — /compact, /goal send + resume. */
+    // ---- I1 queue (Phase 5A): the two decoded-unsent queue words + the follow-up mode (I2.6) ----
+
+    /** `reorderQueueItem` — the item moves before `beforeQueueItemId` (null = to the end). */
+    suspend fun reorderQueueItem(taskId: String, queueItemId: String, beforeQueueItemId: String?): SendOutcome = SendOutcome.FAILED
+
+    /** `setAutoDrain` — the queue's drain toggle (false = paused). */
+    suspend fun setAutoDrain(taskId: String, autoDrain: Boolean): SendOutcome = SendOutcome.FAILED
+
+    /** `setFollowupMode {mode: queue|guide}` — turn steering for follow-ups. */
+    suspend fun setFollowupMode(taskId: String, mode: String): SendOutcome = SendOutcome.FAILED
+
+    /** Phase 2 (§11.3): the slash command plane — /compact, /goal send + resume + pause. */
     suspend fun compact(taskId: String): SendOutcome
     suspend fun sendGoal(taskId: String, objective: String, displayText: String): SendOutcome
     suspend fun resumeGoal(taskId: String): SendOutcome
+
+    /**
+     * I1-goal (Phase 6A): `pauseGoal {}` — CAS-guarded like resumeGoal (verified
+     * desktop set); non-accepted outcomes surface as the typed pause-refused notice.
+     */
+    suspend fun pauseGoal(taskId: String): SendOutcome = SendOutcome.FAILED
 
     /**
      * Phase 2 (§11.4, GAP-10): editUserQuery — row-targeted + CAS-guarded (both
@@ -115,6 +165,60 @@ interface ConversationPort {
      * authoritative churn, never an optimistic local edit.
      */
     suspend fun editUserQuery(taskId: String, rowId: Long, entityId: String, newText: String): SendOutcome
+
+    // ---------------------------------------------------------------- Phase 4A row actions (E3.2+I1+N5)
+
+    /**
+     * The four row commands the protocol layer modeled with zero senders — all
+     * row-targeted + CAS-guarded (both currencies from the projection/epoch, the
+     * editUserQuery pattern). Visibility is gated by the ROW'S OWN flags
+     * (`actions.canRetry/canFork/canRewindFiles`) — the wire decides, never the phone.
+     */
+    suspend fun retryTurn(taskId: String, rowId: Long, entityId: String): SendOutcome = SendOutcome.FAILED
+
+    /** forkAssistant: an accepted ack names the CHILD session (the desktop navigates to it). */
+    suspend fun forkAssistant(taskId: String, rowId: Long, entityId: String): ForkOutcome = ForkOutcome(SendOutcome.FAILED, null)
+
+    data class ForkOutcome(val outcome: SendOutcome, val childSessionId: String?)
+
+    /** applyFileRewind on a turnHeader target — workspace-only undo of that turn's files. */
+    suspend fun applyFileRewind(taskId: String, rowId: Long, entityId: String): SendOutcome = SendOutcome.FAILED
+
+    /** setAssistantFeedback: `like` | `dislike` | null (clear). The row's `feedback` echo renders the result. */
+    suspend fun setAssistantFeedback(taskId: String, rowId: Long, entityId: String, feedback: String?): SendOutcome = SendOutcome.FAILED
+
+    // ---------------------------------------------------------------- Phase 5A (A3.3 + L6.4): workflow runs
+
+    /** `conversationWorkflowRunsV4` — the session's runs; null = unavailable (the panel hides). */
+    suspend fun fetchWorkflowRuns(taskId: String): List<com.zcode.android.domain.model.WorkflowRunSummary>? = null
+
+    /** `conversationWorkflowRunEventsV4` page (afterSequence paging); null = unavailable. */
+    suspend fun fetchWorkflowRunEvents(taskId: String, runId: String, afterSequence: Long?): com.zcode.android.domain.model.WorkflowRunEventsPage? = null
+
+    /** `startSavedWorkflow {name, scope?, args?}` (I1: decoded-unsent until now). */
+    suspend fun startSavedWorkflow(taskId: String, name: String, scope: String?, args: Map<String, String>): StartWorkflowOutcome =
+        StartWorkflowOutcome(SendOutcome.FAILED, null)
+
+    // ---- Phase 5B: plans (A3.12) + trajectory/session search (A3.13) ----
+
+    /** `conversationPlansV4 {sessionId}` — the session's plans; null = unavailable. */
+    suspend fun fetchPlans(taskId: String): List<com.zcode.android.domain.model.ConversationPlan>? = null
+
+    /** `getModelTrajectory {taskId, limit?}` — the model-call timeline; null = unavailable. */
+    suspend fun fetchTrajectory(taskId: String): com.zcode.android.domain.model.TrajectoryResult? = null
+
+    /** `readSessionMessages {sessionId, limit}` — the full message list for client-side search. */
+    suspend fun fetchSessionMessages(taskId: String, limit: Int = 200): List<JsonObject> = emptyList()
+
+    /**
+     * A3.11: `conversationFileRewindPreviewV4 {sessionId, target, baseRevision, baseLogEpoch}` —
+     * what undoing this turn's files WOULD do (safe/unsafe/ignored + the desktop's canApply).
+     * Null = unavailable (the confirm falls back to the copy-only sheet).
+     */
+    suspend fun fetchRewindPreview(taskId: String, rowId: Long, entityId: String): com.zcode.android.domain.model.RewindPreview? = null
+
+    /** The ack's typed reasonCode rides along (StartSavedWorkflowErrors vocabulary). */
+    data class StartWorkflowOutcome(val outcome: SendOutcome, val reasonCode: String?)
 
     /** §20 interaction answer (permission or user-input) through the ONE fail-closed gate. */
     suspend fun answerInteraction(
@@ -124,7 +228,7 @@ interface ConversationPort {
         userInput: Boolean,
     ): AnswerOutcome
 
-    enum class AnswerOutcome { SUBMITTED, RETRYABLE_KEPT, INERT_OPTION, REFINE_REQUIRES_TEXT, NOT_APPROVABLE, DUPLICATE_NO_OP, UNKNOWN_INTERACTION }
+    enum class AnswerOutcome { SUBMITTED, RETRYABLE_KEPT, INERT_OPTION, REFINE_REQUIRES_TEXT, NOT_APPROVABLE, DUPLICATE_NO_OP, ALREADY_RESOLVED, UNKNOWN_INTERACTION }
 
     /** Approvals inbox source (§18.3): open interactions across tasks. */
     fun observeOpenInteractions(): Flow<List<InteractionSummary>>
@@ -136,6 +240,10 @@ interface ConversationPort {
         val lifecycle: String,
         val toolName: String?,
         val createdAtMs: Long,
+        /** K4: the task's title resolved from the task store by sessionId; null = unresolved. */
+        val taskTitle: String? = null,
+        /** L3: one bounded, redacted preview line from the retained payload; null = none. */
+        val preview: String? = null,
     )
 
     /** One-tap approve from the inbox (hydrates the card from the store — §18.3). */
@@ -150,6 +258,31 @@ interface ConversationPort {
         answers: Map<String, List<String>>,
     ): AnswerOutcome
 
+    /**
+     * A3.14: DECLINE an elicitation (`resolveInteraction answer {action: decline|cancel}`) —
+     * the agent continues on best judgment; the card closes.
+     */
+    suspend fun declineUserInput(interactionId: String, action: String = "decline"): AnswerOutcome =
+        AnswerOutcome.UNKNOWN_INTERACTION
+
+    // ---- ADR-024 (Phase 5D, A3.20): the hooks-trust review ----
+
+    /** `respondWorkspaceHookReview {decision:{action:"trust_selected", reviewItemIds}}`. */
+    suspend fun respondHookReview(
+        taskId: String,
+        hook: com.zcode.android.domain.model.WorkspaceHookReview,
+        reviewItemIds: List<String>,
+    ): SendOutcome = SendOutcome.FAILED
+
+    /** `toggleWorkspaceHookReviewItem {reviewItemId, enabled}` (editable items only). */
+    suspend fun toggleHookReviewItem(taskId: String, hook: com.zcode.android.domain.model.WorkspaceHookReview, reviewItemId: String, enabled: Boolean): SendOutcome = SendOutcome.FAILED
+
+    /** `revokeWorkspaceHookTrust {reviewItemIds}` — the safe direction, still confirmed. */
+    suspend fun revokeHookTrust(taskId: String, hook: com.zcode.android.domain.model.WorkspaceHookReview, reviewItemIds: List<String>): SendOutcome = SendOutcome.FAILED
+
+    /** The Settings-side persistent grant — ONLY from the review card's confirmed path. */
+    suspend fun grantHookTrust(hook: com.zcode.android.domain.model.WorkspaceHookReview, hookDeclarationDigest: String): Boolean = false
+
     // ---------------------------------------------------------------- Phase 9 (§43.2-9)
 
     /**
@@ -158,6 +291,20 @@ interface ConversationPort {
      * — the viewer renders the failure state (INV-11), never a guessed empty diff.
      */
     suspend fun fetchTurnFileChanges(taskId: String, rowId: Long, entityId: String): TurnChangesResult
+
+    /**
+     * Phase 3C (C7): lazy FULL tool output — the desktop's tool-calls slice when the
+     * facade has a body; null means "no slice" and the caller renders the row's own
+     * retained payload (3.14.5.7961 ships the slice as a `return null` stub).
+     */
+    suspend fun fetchToolCallOutput(taskId: String, toolCallId: String): String? = null
+
+    /**
+     * Phase 3D (A3.1): a bounded preview read of the row's own attachment (thumbnails
+     * render in-conversation; the phone sent images it could never see again). Null =
+     * refused/unavailable (INV-11: the chip still renders).
+     */
+    suspend fun fetchAttachmentPreview(taskId: String, ref: String): ByteArray? = null
 
     data class TurnChangesResult(
         val changes: com.zcode.android.domain.model.TurnFileChanges?,
@@ -169,6 +316,13 @@ interface ConversationPort {
 
     /** §28.6 CAS-guarded collaboration-mode switch (build|edit|plan|yolo only). */
     suspend fun switchMode(taskId: String, mode: String): SendOutcome
+
+    /**
+     * Phase 4C (A3.4): the reasoning-effort switch — `setThoughtLevel` on the shipped
+     * facade; the offered levels come from the wire's `config.thoughtLevels` and the
+     * result reconciles through the §10.3 `config` echo.
+     */
+    suspend fun setThoughtLevel(taskId: String, thought: String): SendOutcome = SendOutcome.FAILED
 
     /**
      * §23.2 composer attachment upload — full transaction (begin→chunks→commit)

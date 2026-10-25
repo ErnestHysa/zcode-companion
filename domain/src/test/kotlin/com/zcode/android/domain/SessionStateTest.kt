@@ -148,8 +148,9 @@ class SessionStateTest {
             buildJsonObject {
                 put("workflowRuns", buildJsonObject { put("whatever", true) })
                 // Phase 2 note: `usage` WAS the example here; it is a decoded key now
-                // (GAP-1/GAP-2, v4-wire.md §11.1) — `goal` is still not consumed.
-                put("goal", buildJsonObject { put("x", 1) })
+                // (GAP-1/GAP-2, v4-wire.md §11.1). Phase 4C note: `goal` is ALSO decoded
+                // now (D2) — `workflowRuns` remains the unknown-key example.
+                put("planzz", buildJsonObject { put("x", 1) })
             },
         )
         assertNull(merged.control)

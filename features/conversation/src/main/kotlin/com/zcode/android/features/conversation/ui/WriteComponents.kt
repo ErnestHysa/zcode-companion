@@ -1,8 +1,14 @@
 package com.zcode.android.features.conversation.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.material3.Checkbox
+import androidx.compose.foundation.selection.selectable
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,25 +21,26 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,6 +63,11 @@ import com.zcode.android.domain.model.QueueState
 import com.zcode.android.features.conversation.ConversationUiState
 import com.zcode.android.features.conversation.SendNotice
 import com.zcode.android.features.conversation.port.ConversationPort
+import com.zcode.android.core.ui.components.ZCodeOutlinedButton
+import com.zcode.android.core.ui.components.ZCodeButton
+import com.zcode.android.core.ui.components.rememberZCodeHaptics
+import com.zcode.android.core.ui.components.ZCodeModalBottomSheet
+import com.zcode.android.core.ui.components.minRowTouchTarget
 
 /**
  * Phase 7 write-surface components (§18.3, ui-ux future-phase-ui.md "Phase 7"):
@@ -81,8 +93,10 @@ fun ApprovalCard(
     modifier: Modifier = Modifier,
 ) {
     val payload = interaction.permission ?: return
-    var confirmOption by remember { mutableStateOf<PermissionOption?>(null) }
-    var refineText by remember { mutableStateOf("") }
+    // B2.13: keyed on the interaction — a second request landing in the same card
+    // slot must not inherit the first one's armed confirm or typed refine text.
+    var confirmOption by remember(interaction.interactionId) { mutableStateOf<PermissionOption?>(null) }
+    var refineText by remember(interaction.interactionId) { mutableStateOf("") }
 
     Surface(
         modifier = modifier
@@ -133,7 +147,7 @@ fun ApprovalCard(
                 val label = consequenceLabel(option, payload)
                 when (option.semantics) {
                     PermissionOption.Semantics.ALLOW_ONCE, PermissionOption.Semantics.ALLOW_PROJECT -> {
-                        Button(
+                        ZCodeButton(
                             onClick = { onAnswer(option.optionId, null) },
                             enabled = !busy,
                             modifier = Modifier
@@ -146,7 +160,7 @@ fun ApprovalCard(
                     }
                     PermissionOption.Semantics.ALLOW_ALWAYS, PermissionOption.Semantics.DENY -> {
                         // §20.2: confirm step for allowAlways-class; Deny ALWAYS confirms.
-                        OutlinedButton(
+                        ZCodeOutlinedButton(
                             onClick = { confirmOption = option },
                             enabled = !busy,
                             colors = if (option.semantics == PermissionOption.Semantics.DENY) {
@@ -171,7 +185,7 @@ fun ApprovalCard(
                                 .fillMaxWidth()
                                 .testTag("approval_refine_text"),
                         )
-                        Button(
+                        ZCodeButton(
                             onClick = { onAnswer(option.optionId, refineText) },
                             enabled = !busy && refineText.isNotBlank(),
                             modifier = Modifier
@@ -181,7 +195,7 @@ fun ApprovalCard(
                     }
                     // §20.4 row 2: unknown/custom ids render inert — NEVER sent.
                     PermissionOption.Semantics.OTHER -> {
-                        OutlinedButton(
+                        ZCodeOutlinedButton(
                             onClick = {},
                             enabled = false,
                             modifier = Modifier
@@ -209,7 +223,7 @@ fun ApprovalCard(
                 )
             },
             confirmButton = {
-                Button(
+                ZCodeButton(
                     onClick = {
                         confirmOption = null
                         onAnswer(option.optionId, null)
@@ -253,10 +267,13 @@ fun UserInputCard(
     onAnswer: (optionId: String, freeText: String?) -> Unit,
     modifier: Modifier = Modifier,
     onAnswerQuestions: (Map<String, List<String>>) -> Unit = {},
+    /** A3.14 (Phase 5B): decline — the resolveInteraction `action: "decline"` arm. */
+    onDecline: (() -> Unit)? = null,
 ) {
     val payload = interaction.userInput ?: return
-    var selected by remember { mutableStateOf<String?>(null) }
-    var freeText by remember { mutableStateOf("") }
+    // B2.13: keyed on the interaction — selections never leak across requests.
+    var selected by remember(interaction.interactionId) { mutableStateOf<String?>(null) }
+    var freeText by remember(interaction.interactionId) { mutableStateOf("") }
     // AskUserQuestion plane: per-question selected option values + custom answers.
     val qSelections = remember(interaction.interactionId) { androidx.compose.runtime.mutableStateMapOf<String, List<String>>() }
     val qCustom = remember(interaction.interactionId) { androidx.compose.runtime.mutableStateMapOf<String, String>() }
@@ -301,28 +318,35 @@ fun UserInputCard(
                     )
                     for (option in q.options) {
                         val checked = qSelections[q.question].orEmpty().contains(option.value)
+                        val multi = q.multiSelect == true
+                        // B2.4: the ROW is the touch target (≥48dp) with the RIGHT
+                        // affordance — checkbox for multi-select, a radio that SELECTS
+                        // (never toggles off) for single-select. The inner control is
+                        // display-only; the row owns the toggle.
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .heightIn(min = 48.dp)
                                 .testTag("userinput_q${qIndex}_opt_${option.value.take(24)}")
-                                .clickable(enabled = !busy) {
+                                .selectable(
+                                    selected = checked,
+                                    enabled = !busy,
+                                    role = if (multi) Role.Checkbox else Role.RadioButton,
+                                ) {
                                     val current = qSelections[q.question].orEmpty()
-                                    qSelections[q.question] = if (q.multiSelect == true) {
+                                    qSelections[q.question] = if (multi) {
                                         if (checked) current.filter { it != option.value } else current + option.value
                                     } else {
                                         listOf(option.value)
                                     }
                                 },
                         ) {
-                            RadioButton(
-                                selected = checked,
-                                onClick = {
-                                    val current = qSelections[q.question].orEmpty()
-                                    qSelections[q.question] = if (checked) current.filter { it != option.value } else current + option.value
-                                },
-                                enabled = !busy,
-                            )
+                            if (multi) {
+                                Checkbox(checked = checked, onCheckedChange = null, enabled = !busy)
+                            } else {
+                                RadioButton(selected = checked, onClick = null, enabled = !busy)
+                            }
                             Text(
                                 text = option.label.ifBlank { option.value },
                                 style = MaterialTheme.typography.bodyMedium,
@@ -341,7 +365,7 @@ fun UserInputCard(
                     )
                 }
                 Spacer(Modifier.height(8.dp))
-                Button(
+                ZCodeButton(
                     onClick = {
                         val answers = buildMap {
                             for (q in payload.questions) {
@@ -361,17 +385,36 @@ fun UserInputCard(
                         .fillMaxWidth()
                         .testTag("userinput_questions_submit"),
                 ) { Text(stringResource(R.string.userinput_send_answers)) }
+                // A3.14: the decline arm — the agent continues on best judgment (never a
+                // silent drop: the card stays until the desktop resolves it).
+                if (onDecline != null) {
+                    TextButton(
+                        onClick = onDecline,
+                        enabled = !busy,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("userinput_decline"),
+                    ) { Text(stringResource(R.string.userinput_decline)) }
+                }
             } else if (payload.options.isNotEmpty()) {
                 for (option in payload.options) {
+                    // B2.4: the whole row is the touch target — the label was dead
+                    // (~20dp radio-only) before.
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .testTag("userinput_option_${option.optionId}"),
+                            .heightIn(min = 48.dp)
+                            .testTag("userinput_option_${option.optionId}")
+                            .selectable(
+                                selected = selected == option.optionId,
+                                enabled = !busy,
+                                role = Role.RadioButton,
+                            ) { selected = option.optionId },
                     ) {
                         RadioButton(
                             selected = selected == option.optionId,
-                            onClick = { selected = option.optionId },
+                            onClick = null,
                             enabled = !busy,
                         )
                         Text(
@@ -382,7 +425,7 @@ fun UserInputCard(
                     }
                 }
                 Spacer(Modifier.height(8.dp))
-                Button(
+                ZCodeButton(
                     onClick = { selected?.let { onAnswer(it, null) } },
                     enabled = !busy && selected != null,
                     modifier = Modifier
@@ -399,7 +442,7 @@ fun UserInputCard(
                         .testTag("userinput_free_text"),
                 )
                 Spacer(Modifier.height(8.dp))
-                Button(
+                ZCodeButton(
                     onClick = { onAnswer("", freeText) },
                     enabled = !busy && freeText.isNotBlank(),
                     modifier = Modifier
@@ -427,6 +470,11 @@ fun QueueStrip(
     onSendNow: (queueItemId: String) -> Unit,
     onEdit: (queueItemId: String, newText: String) -> Unit,
     modifier: Modifier = Modifier,
+    // ---- I1 queue (Phase 5A): reorder (move up/down → reorderQueueItem), drain toggle, follow-up mode ----
+    onMove: ((queueItemId: String, delta: Int) -> Unit)? = null,
+    onSetAutoDrain: ((Boolean) -> Unit)? = null,
+    followupMode: String? = null,
+    onSetFollowupMode: ((String) -> Unit)? = null,
 ) {
     if (queue.items.isEmpty()) return
     var editing by remember { mutableStateOf<Pair<String, String>?>(null) }
@@ -438,17 +486,60 @@ fun QueueStrip(
         shape = MaterialTheme.shapes.small,
     ) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-            Text(
-                text = buildString {
-                    append(stringResource(R.string.queue_label, queue.items.size))
-                    if (queue.autoDrain == false) append(" · paused")
-                    queue.pauseReason?.let { append(" · $it") }
-                },
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            for (item in queue.items) {
+            val pausedSuffix = stringResource(R.string.queue_paused_suffix)
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = buildString {
+                        append(stringResource(R.string.queue_label, queue.items.size))
+                        if (queue.autoDrain == false) append(pausedSuffix)
+                        queue.pauseReason?.let { append(" · $it") }
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                // I1: the desktop's auto-drain toggle (setAutoDrain) — the wire echo (`autoDrain`) is the truth.
+                val autoDrain = queue.autoDrain
+                if (onSetAutoDrain != null && autoDrain != null) {
+                    Text(stringResource(R.string.queue_auto_send), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.width(4.dp))
+                    androidx.compose.material3.Switch(
+                        checked = autoDrain,
+                        onCheckedChange = { onSetAutoDrain(it) },
+                        enabled = !busy,
+                        modifier = Modifier.testTag("queue_auto_drain"),
+                    )
+                }
+            }
+            // I2.6: follow-up steering — Queue (hold follow-ups) vs Guide (steer the running turn).
+            if (onSetFollowupMode != null && followupMode != null) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(vertical = 2.dp)) {
+                    for (mode in listOf("queue", "guide")) {
+                        androidx.compose.material3.FilterChip(
+                            selected = followupMode == mode,
+                            onClick = { if (followupMode != mode) onSetFollowupMode(mode) },
+                            enabled = !busy,
+                            label = { Text(stringResource(if (mode == "queue") R.string.queue_followup_queue else R.string.queue_followup_guide), style = MaterialTheme.typography.labelSmall) },
+                            modifier = Modifier.testTag("queue_followup_$mode"),
+                        )
+                    }
+                }
+            }
+            queue.items.forEachIndexed { index, item ->
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    // I1: reorder — up/down produce the exact `reorderQueueItem` a drag-drop would.
+                    onMove?.let { move ->
+                        androidx.compose.material3.IconButton(
+                            onClick = { move(item.queueItemId, -1) },
+                            enabled = !busy && index > 0,
+                            modifier = Modifier.size(32.dp).testTag("queue_move_up_${item.queueItemId}"),
+                        ) { Icon(Icons.Filled.KeyboardArrowUp, contentDescription = stringResource(R.string.queue_move_up), modifier = Modifier.size(18.dp)) }
+                        androidx.compose.material3.IconButton(
+                            onClick = { move(item.queueItemId, +1) },
+                            enabled = !busy && index < queue.items.lastIndex,
+                            modifier = Modifier.size(32.dp).testTag("queue_move_down_${item.queueItemId}"),
+                        ) { Icon(Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(R.string.queue_move_down), modifier = Modifier.size(18.dp)) }
+                    }
                     Text(
                         text = item.text.take(80),
                         style = MaterialTheme.typography.bodySmall,
@@ -475,10 +566,11 @@ fun QueueStrip(
     }
     editing?.let { (id, text) ->
         var newText by remember(id) { mutableStateOf(text) }
-        AlertDialog(
-            onDismissRequest = { editing = null },
-            title = { Text(stringResource(R.string.queue_edit_title)) },
-            text = {
+        // B3-sheets: the queue item edit is a bottom sheet, not a dialog.
+        ZCodeModalBottomSheet(onDismissRequest = { editing = null }) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                Text(stringResource(R.string.queue_edit_title), style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = newText,
                     onValueChange = { newText = it },
@@ -486,18 +578,21 @@ fun QueueStrip(
                         .fillMaxWidth()
                         .testTag("queue_edit_text"),
                 )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        onEdit(id, newText)
-                        editing = null
-                    },
-                    modifier = Modifier.testTag("queue_edit_save"),
-                ) { Text(stringResource(R.string.action_save)) }
-            },
-            dismissButton = { TextButton(onClick = { editing = null }) { Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel)) } },
-        )
+                Spacer(Modifier.height(12.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = { editing = null }) { Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel)) }
+                    Spacer(Modifier.width(8.dp))
+                    ZCodeButton(
+                        onClick = {
+                            onEdit(id, newText)
+                            editing = null
+                        },
+                        modifier = Modifier.testTag("queue_edit_save"),
+                    ) { Text(stringResource(R.string.action_save)) }
+                }
+                Spacer(Modifier.height(16.dp))
+            }
+        }
     }
 }
 
@@ -523,49 +618,58 @@ fun ComposerBar(
     onRetryAttachment: (uploadId: String) -> Unit = {},
     /** §43.2-11.5 voice experiment; tests inject a fake (null = platform, availability-gated). */
     voiceInputOverride: com.zcode.android.features.conversation.voice.VoiceInputPort? = null,
+    /** Phase 4C (C2): fired when the "/" menu becomes visible — the extras load lazily then. */
+    onSlashMenuOpen: () -> Unit = {},
+    /** Phase 4C (C7): the @-mention file search (the port's workspace file search). */
+    fileSearchProvider: suspend (String) -> List<String> = { emptyList() },
 ) {
+    val haptics = rememberZCodeHaptics()
     val control = state.sessionState?.control
     val routing = state.sessionState?.inputRouting
     var dispositionDialog by remember { mutableStateOf(false) }
+    // N2.2: the queue state rides TWO places like the desktop — the placeholder swaps
+    // to the follow-up-queue text AND an inline pill marks the queued send. The old
+    // standalone busy strip is gone (replaced by this pair).
+    val enqueue = routing?.mode == com.zcode.android.domain.model.InputRouting.Mode.ENQUEUE
 
     Surface(modifier = modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-            // Routing hint (verified inputRouting modes, §9).
-            if (routing?.mode == com.zcode.android.domain.model.InputRouting.Mode.ENQUEUE) {
-                Text(
-                    text = "Busy — this message will be queued on the desktop.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.testTag("composer_route_hint"),
-                )
-            }
             if (state.pendingSends.isNotEmpty()) {
                 PendingSendsStrip(pending = state.pendingSends, onRetry = onRetrySend, modifier = Modifier.fillMaxWidth())
             }
             // §23.2 composer attachments (Phase 9): picker → v4 transaction (begin/
             // chunks/commit with progress; abort on remove). Media picker + document
             // picker only — NO broad storage permission (§27).
+            // K3: photo / file / camera / paste / voice fold into ONE add-menu.
+            // B2.14: the bytes are read withContext(Dispatchers.IO) — the picker
+            // callback ran them on the MAIN thread (ANR class).
             val scope = rememberCoroutineScope()
             val context = androidx.compose.ui.platform.LocalContext.current
-            val photoPicker = androidx.activity.compose.rememberLauncherForActivityResult(
-                androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia(),
-            ) { uri ->
-                if (uri != null) {
-                    scope.launch {
-                        val (name, mime, bytes) = context.readPickedFile(uri)
-                        onUploadAttachment(name, mime, bytes)
-                    }
+            fun onPicked(uri: android.net.Uri?) {
+                if (uri == null) return
+                scope.launch {
+                    val (name, mime, bytes) = context.readPickedAttachment(uri)
+                    onUploadAttachment(name, mime, bytes)
                 }
             }
+            val photoPicker = androidx.activity.compose.rememberLauncherForActivityResult(
+                androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia(),
+            ) { uri -> onPicked(uri) }
             val docPicker = androidx.activity.compose.rememberLauncherForActivityResult(
                 androidx.activity.result.contract.ActivityResultContracts.OpenDocument(),
-            ) { uri ->
-                if (uri != null) {
-                    scope.launch {
-                        val (name, mime, bytes) = context.readPickedFile(uri)
-                        onUploadAttachment(name, mime, bytes)
-                    }
-                }
+            ) { uri -> onPicked(uri) }
+            // I5: camera capture via the TakePicture contract — the JPEG lands in the
+            // FileProvider-shared cache dir (file_paths "shared"; never raw file://).
+            val cameraUri = remember { java.util.concurrent.atomic.AtomicReference<android.net.Uri?>(null) }
+            val cameraLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                androidx.activity.result.contract.ActivityResultContracts.TakePicture(),
+            ) { ok -> if (ok) cameraUri.get()?.let { onPicked(it) } }
+            val cameraItem = remember {
+                runCatching {
+                    val dir = java.io.File(context.cacheDir, "shared").apply { mkdirs() }
+                    val out = java.io.File(dir, "camera-${System.currentTimeMillis()}.jpg")
+                    androidx.core.content.FileProvider.getUriForFile(context, context.packageName + ".fileprovider", out)
+                }.getOrNull()
             }
             if (state.composerAttachments.isNotEmpty()) {
                 AttachmentStrip(
@@ -578,12 +682,60 @@ fun ComposerBar(
             // GAP-12: the "/" catalog menu — visible while the draft is a bare
             // slash COMMAND TOKEN (no whitespace yet). Picking inserts into the
             // draft via onDraftChange (the field stays the single state source).
-            if (state.draft.startsWith("/") && !state.draft.contains(' ')) {
+            // Phase 4C (C7): @-mentions — a trailing "@token" (no space yet) queries the
+            // workspace file search; picking inserts the path in place of the token.
+            val atToken = state.draft.substringAfterLast(' ', "").takeIf { it.startsWith("@") && it.length >= 2 }?.removePrefix("@")
+            var mentionHits by remember { mutableStateOf<List<String>>(emptyList()) }
+            LaunchedEffect(atToken) {
+                if (atToken.isNullOrEmpty()) {
+                    mentionHits = emptyList()
+                } else {
+                    kotlinx.coroutines.delay(150)
+                    mentionHits = runCatching { fileSearchProvider(atToken) }.getOrDefault(emptyList())
+                }
+            }
+            if (!atToken.isNullOrEmpty() && mentionHits.isNotEmpty()) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    tonalElevation = 2.dp,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp).testTag("mention_menu"),
+                ) {
+                    Column {
+                        mentionHits.take(6).forEach { path ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .minRowTouchTarget()
+                                    .clickable(role = androidx.compose.ui.semantics.Role.Button) {
+                                        val head = state.draft.substringBeforeLast("@")
+                                        onDraftChange("$head$path ")
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                                    .testTag("mention_file_$path"),
+                            ) {
+                                Text(
+                                    path,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            val slashMenuVisible = state.draft.startsWith("/") && !state.draft.contains(' ')
+            if (slashMenuVisible) {
+                // C2: the extras (skills / agents / custom commands) load on FIRST open.
+                LaunchedEffect(Unit) { onSlashMenuOpen() }
                 SlashCommandMenu(
                     commands = state.slashCommands,
                     query = state.draft,
                     onPick = onDraftChange,
                     modifier = Modifier.padding(bottom = 4.dp),
+                    extras = state.slashExtras,
                 )
             }
             // §43.2-11.5 voice input EXPERIMENT (#305): platform recognizer, availability-
@@ -596,115 +748,202 @@ fun ComposerBar(
                     .takeIf { it.available }
             }
             var voiceError by remember { mutableStateOf(false) }
-            val conductor = stringResource(R.string.composer_attach_image)
-            val attachFileDesc = stringResource(R.string.composer_attach_file)
-            val stopDesc = stringResource(R.string.composer_stop)
-            val sendDesc = stringResource(R.string.composer_send)
-            Row(verticalAlignment = Alignment.Bottom) {
-                OutlinedTextField(
-                    value = state.draft,
-                    onValueChange = onDraftChange,
-                    placeholder = { Text(stringResource(R.string.composer_placeholder)) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("composer_field"),
-                    maxLines = 5,
-                )
-                Spacer(Modifier.width(8.dp))
-                if (voice != null) {
-                    val voiceDesc = stringResource(R.string.composer_voice)
-                    IconButton(
-                        onClick = {
-                            voiceError = false
-                            if (voice.listening) {
-                                voice.stop()
-                            } else {
-                                voice.start(
-                                    onPartial = {},
-                                    onFinal = { spoken ->
-                                        if (spoken.isNotBlank()) {
-                                            onDraftChange(state.draft + (if (state.draft.isBlank()) "" else " ") + spoken)
-                                        }
+            // B2.2: dictation merges into the CURRENT field value — the callback must
+            // not append to the draft captured when the mic was tapped (text typed
+            // while listening was discarded).
+            val currentDraft by androidx.compose.runtime.rememberUpdatedState(state.draft)
+            val conductor = stringResource(R.string.composer_add_desc)
+            var addMenu by remember { mutableStateOf(false) }
+            // I5: paste-image chip — an image-typed clipboard offers the last capture.
+            var pasteImage by remember { mutableStateOf(false) }
+            androidx.compose.runtime.LaunchedEffect(Unit) {
+                pasteImage = clipboardHasImage(context)
+            }
+            if (pasteImage) {
+                ComposerPasteChip(visible = true, onPaste = {
+                    pasteImage = false
+                    scope.launch {
+                        clipboardImageUri(context)?.let { uri ->
+                            val (name, mime, bytes) = context.readPickedAttachment(uri)
+                            onUploadAttachment(name, mime, bytes)
+                        }
+                    }
+                })
+            }
+            // K3: the ONE designed input shell — the field, the add-menu and the
+            // single primary control live inside one bordered surface (the desktop's
+            // ChatPromptEditor shape), not five flat icon buttons on a flat bar.
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(com.zcode.android.core.ui.theme.ZCodeRadius.xl),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            ) {
+                Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
+                    OutlinedTextField(
+                        value = state.draft,
+                        onValueChange = onDraftChange,
+                        keyboardOptions = composerKeyboardOptions(state.draft),
+                        placeholder = {
+                            Text(
+                                stringResource(
+                                    if (enqueue) R.string.composer_placeholder_queue else R.string.composer_placeholder,
+                                ),
+                            )
+                        },
+                        colors = androidx.compose.material3.TextFieldDefaults.colors(
+                            focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                            unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                            focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                            unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("composer_field"),
+                        maxLines = 5,
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // ONE add affordance: photo / file / camera / paste / voice.
+                        Box {
+                            androidx.compose.material3.FilledTonalIconButton(
+                                onClick = { addMenu = true },
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .testTag("composer_attach")
+                                    .semantics { contentDescription = conductor },
+                            ) {
+                                Icon(Icons.Filled.Add, contentDescription = null)
+                            }
+                            androidx.compose.material3.DropdownMenu(expanded = addMenu, onDismissRequest = { addMenu = false }) {
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.composer_menu_mention_file)) },
+                                    onClick = {
+                                        addMenu = false
+                                        onDraftChange(currentDraft + if (currentDraft.endsWith(" ") || currentDraft.isEmpty()) "@" else " @")
                                     },
-                                    onError = { voiceError = true },
+                                    modifier = Modifier.testTag("composer_menu_mention"),
+                                )
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.composer_menu_photo)) },
+                                    onClick = {
+                                        addMenu = false
+                                        photoPicker.launch(
+                                            androidx.activity.result.PickVisualMediaRequest(
+                                                androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly,
+                                            ),
+                                        )
+                                    },
+                                    modifier = Modifier.testTag("composer_attach_photo"),
+                                )
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.composer_attach_file)) },
+                                    onClick = {
+                                        addMenu = false
+                                        docPicker.launch(arrayOf("*/*"))
+                                    },
+                                    modifier = Modifier.testTag("composer_attach_doc"),
+                                )
+                                if (cameraItem != null) {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.composer_menu_camera)) },
+                                        onClick = {
+                                            addMenu = false
+                                            cameraUri.set(cameraItem)
+                                            cameraLauncher.launch(cameraItem)
+                                        },
+                                        modifier = Modifier.testTag("composer_attach_camera"),
+                                    )
+                                }
+                                if (voice != null) {
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.composer_menu_voice)) },
+                                        onClick = {
+                                            addMenu = false
+                                            voiceError = false
+                                            if (voice.listening) voice.stop() else voice.start(
+                                                onPartial = {},
+                                                onFinal = { spoken ->
+                                                    if (spoken.isNotBlank()) {
+                                                        val base = currentDraft
+                                                        onDraftChange(base + (if (base.isBlank()) "" else " ") + spoken)
+                                                    }
+                                                },
+                                                onError = { voiceError = true },
+                                            )
+                                        },
+                                        modifier = Modifier.testTag("composer_voice_menu"),
+                                    )
+                                }
+                            }
+                        }
+                        if (voice != null && voice.listening) {
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = stringResource(R.string.composer_voice_listening),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.testTag("composer_voice_listening"),
+                            )
+                        }
+                        Spacer(Modifier.weight(1f))
+                        // N2.2 place 2: the inline queued pill (placeholder is place 1).
+                        if (enqueue) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                shape = MaterialTheme.shapes.small,
+                                modifier = Modifier.testTag("composer_queue_pill"),
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.composer_queue_pill),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                                 )
                             }
-                        },
-                        modifier = Modifier
-                            .size(48.dp)
-                            .testTag("composer_voice")
-                            .semantics { contentDescription = voiceDesc },
-                    ) {
-                        Icon(
-                            Icons.Filled.Mic,
-                            contentDescription = null,
-                            tint = if (voice.listening) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                // §23.2 attach affordance (Phase 9): image first, then any document.
-                IconButton(
-                    onClick = {
-                        photoPicker.launch(
-                            androidx.activity.result.PickVisualMediaRequest(
-                                androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly,
-                            ),
-                        )
-                    },
-                    enabled = state.connected,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .testTag("composer_attach")
-                        .semantics { contentDescription = conductor },
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = null)
-                }
-                IconButton(
-                    onClick = { docPicker.launch(arrayOf("*/*")) },
-                    enabled = state.connected,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .testTag("composer_attach_doc")
-                        .semantics { contentDescription = attachFileDesc },
-                ) {
-                    Icon(Icons.Filled.AttachFile, contentDescription = null)
-                }
-                // §7.5 stop: visible only from the AUTHORITATIVE control block.
-                if (control?.canStop == true && control.stopState == com.zcode.android.domain.model.SessionControl.StopState.STOPPABLE) {
-                    IconButton(
-                        onClick = onStop,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .testTag("composer_stop")
-                            .semantics { contentDescription = stopDesc },
-                    ) {
-                        Icon(Icons.Filled.Stop, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                    }
-                }
-                IconButton(
-                    onClick = {
-                        if (routing?.mode == com.zcode.android.domain.model.InputRouting.Mode.CHOICE) {
-                            dispositionDialog = true
-                        } else {
-                            onSend(null)
+                            Spacer(Modifier.width(6.dp))
                         }
-                    },
-                    enabled = state.draft.isNotBlank(),
-                    modifier = Modifier
-                        .size(48.dp)
-                        .testTag("composer_send")
-                        .semantics { contentDescription = sendDesc },
-                ) {
-                    Icon(Icons.Filled.Send, contentDescription = null)
+                        // §7.5 K3: ONE primary control that MORPHS — the authoritative
+                        // `control.canStop` gating is preserved verbatim: the slot shows
+                        // STOP only while the wire says stoppable, else SEND.
+                        val stoppable = control?.canStop == true &&
+                            control.stopState == com.zcode.android.domain.model.SessionControl.StopState.STOPPABLE
+                        if (stoppable) {
+                            val stopDesc = stringResource(R.string.composer_stop)
+                            androidx.compose.material3.FilledIconButton(
+                                onClick = onStop,
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .testTag("composer_stop")
+                                    .semantics { contentDescription = stopDesc },
+                                colors = androidx.compose.material3.IconButtonDefaults.filledIconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                                ),
+                            ) {
+                                Icon(Icons.Filled.Stop, contentDescription = null)
+                            }
+                        } else {
+                            val sendDesc = stringResource(R.string.composer_send)
+                            androidx.compose.material3.FilledIconButton(
+                                onClick = {
+                                    if (routing?.mode == com.zcode.android.domain.model.InputRouting.Mode.CHOICE) {
+                                        dispositionDialog = true
+                                    } else {
+                                        haptics.confirm()
+                                        onSend(null)
+                                    }
+                                },
+                                enabled = state.draft.isNotBlank(),
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .testTag("composer_send")
+                                    .semantics { contentDescription = sendDesc },
+                            ) {
+                                Icon(Icons.Filled.Send, contentDescription = null)
+                            }
+                        }
+                    }
                 }
-            }
-            if (voice?.listening == true) {
-                Text(
-                    text = stringResource(R.string.composer_voice_listening),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.testTag("composer_voice_listening"),
-                )
             }
             if (voiceError) {
                 Text(
@@ -726,18 +965,20 @@ fun ComposerBar(
             title = { Text(stringResource(R.string.queue_held_title)) },
             text = { Text(stringResource(R.string.queue_held_body)) },
             confirmButton = {
-                Button(
+                ZCodeButton(
                     onClick = {
                         dispositionDialog = false
+                        haptics.confirm()
                         onSend("clearQueueAndSend")
                     },
                     modifier = Modifier.testTag("composer_disposition_clear"),
                 ) { Text(stringResource(R.string.queue_clear_send)) }
             },
             dismissButton = {
-                OutlinedButton(
+                ZCodeOutlinedButton(
                     onClick = {
                         dispositionDialog = false
+                        haptics.confirm()
                         onSend("keepQueueAndSend")
                     },
                     modifier = Modifier.testTag("composer_disposition_keep"),
@@ -759,9 +1000,9 @@ fun PendingSendsStrip(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = when (send.state) {
-                        "SENDING" -> "Sending…"
-                        "SENT_UNKNOWN" -> "Send uncertain — connection lost (will not duplicate)"
-                        else -> "Not sent"
+                        "SENDING" -> stringResource(R.string.pending_sending)
+                        "SENT_UNKNOWN" -> stringResource(R.string.pending_sent_unknown)
+                        else -> stringResource(R.string.pending_not_sent)
                     },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -793,7 +1034,7 @@ fun SendNoticeBar(notice: SendNotice, onDismiss: () -> Unit, modifier: Modifier 
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 10.dp)) {
             Text(
-                text = notice.text,
+                text = sendNoticeText(notice),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onErrorContainer,
                 modifier = Modifier.weight(1f),
@@ -805,15 +1046,121 @@ fun SendNoticeBar(notice: SendNotice, onDismiss: () -> Unit, modifier: Modifier 
     }
 }
 
-/** §23.2: read a content-URI pick into (name, mime, bytes) — no persistent permission needed. */
-private fun android.content.Context.readPickedFile(uri: android.net.Uri): Triple<String, String, ByteArray> {
+/**
+ * §23.2: read a content-URI pick into (name, mime, bytes) — no persistent permission
+ * needed. B2.14: ALWAYS [Dispatchers.IO] — the picker callback used to read the bytes
+ * on the MAIN thread (ANR class).
+ */
+internal suspend fun android.content.Context.readPickedAttachment(uri: android.net.Uri): Triple<String, String, ByteArray> =
+    withContext(Dispatchers.IO) { readPickedFileSync(uri) }
+
+internal fun android.content.Context.readPickedFileSync(uri: android.net.Uri): Triple<String, String, ByteArray> {
     val name = runCatching {
         contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
             if (c.moveToFirst()) c.getString(0) else null
         }
-    }.getOrNull() ?: "attachment"
-    val mime = contentResolver.getType(uri) ?: "application/octet-stream"
+    }.getOrNull() ?: uri.lastPathSegment ?: "attachment"
+    val mime = contentResolver.getType(uri)
+        ?: android.webkit.MimeTypeMap.getSingleton()
+            .getMimeTypeFromExtension(uri.lastPathSegment?.substringAfterLast('.')?.lowercase() ?: "")
+        ?: "application/octet-stream"
     val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
         ?: throw IllegalStateException("cannot read the picked file")
     return Triple(name, mime, bytes)
 }
+
+/** I5: does the clipboard carry an image (content URI)? */
+internal fun clipboardHasImage(context: android.content.Context): Boolean =
+    clipboardImageUri(context) != null
+
+internal fun clipboardImageUri(context: android.content.Context): android.net.Uri? = runCatching {
+    val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager ?: return null
+    val clip = cm.primaryClip ?: return null
+    // Manual prefix match (hasMimeType's wildcard path varies by platform/shadow).
+    var hasImage = false
+    for (i in 0 until clip.description.mimeTypeCount) {
+        if (clip.description.getMimeType(i).startsWith("image/")) hasImage = true
+    }
+    if (!hasImage) return null
+    clip.getItemAt(0)?.uri
+}.getOrNull()
+
+/** C5-i18n: the notice copy per locale (the view model's [SendNotice.text] is the English fallback). */
+@Composable
+fun sendNoticeText(notice: SendNotice): String {
+    val key = notice.key ?: return notice.text
+    val res = when (key) {
+        SendNotice.Key.SWITCH_OFFLINE -> R.string.notice_switch_offline
+        SendNotice.Key.SESSION_CHANGED -> R.string.notice_session_changed
+        SendNotice.Key.SWITCH_REFUSED -> R.string.notice_switch_refused
+        SendNotice.Key.MODEL_SWITCH_REFUSED -> R.string.notice_model_switch_refused
+        SendNotice.Key.ATTACHMENT_TOO_LARGE -> R.string.notice_attachment_too_large
+        SendNotice.Key.ATTACHMENT_OFFLINE -> R.string.notice_attachment_offline
+        SendNotice.Key.ATTACHMENT_FAILED -> R.string.notice_attachment_failed
+        SendNotice.Key.ATTACHMENT_RETRY_FAILED -> R.string.notice_attachment_retry_failed
+        SendNotice.Key.COMPACT_REFUSED -> R.string.notice_compact_refused
+        SendNotice.Key.GOAL_REFUSED -> R.string.notice_goal_refused
+        SendNotice.Key.GOAL_RESUME_REFUSED -> R.string.notice_goal_resume_refused
+        SendNotice.Key.GOAL_PAUSE_REFUSED -> R.string.notice_goal_pause_refused
+        // Phase 4A row actions
+        SendNotice.Key.ROW_ACTION_OFFLINE -> R.string.notice_row_action_offline
+        SendNotice.Key.RETRY_REFUSED -> R.string.notice_retry_refused
+        SendNotice.Key.FORK_REFUSED -> R.string.notice_fork_refused
+        SendNotice.Key.REWIND_APPLIED -> R.string.notice_rewind_applied
+        SendNotice.Key.REWIND_REFUSED -> R.string.notice_rewind_refused
+        SendNotice.Key.FEEDBACK_REFUSED -> R.string.notice_feedback_refused
+        SendNotice.Key.EFFORT_REFUSED -> R.string.notice_effort_refused
+        // Phase 5A (L6.4 + I1)
+        SendNotice.Key.WORKFLOW_STARTED -> R.string.notice_workflow_started
+        SendNotice.Key.WORKFLOW_REFUSED -> R.string.notice_workflow_refused
+        // T2: the resolved-elsewhere answer, per locale
+        SendNotice.Key.ANSWER_ALREADY_RESOLVED -> R.string.notice_answer_already_resolved
+    }
+    val args = if (key == SendNotice.Key.ATTACHMENT_FAILED) {
+        listOf(notice.args.firstOrNull()?.takeIf { it.isNotBlank() } ?: stringResource(R.string.notice_connection_lost))
+    } else {
+        notice.args
+    }
+    return stringResource(res, *args.toTypedArray())
+}
+
+/**
+ * I5: one-tap paste of the clipboard image (the picker pipeline reused). Shown only
+ * while the clipboard carries an image (the composer probes it on open).
+ */
+@Composable
+fun ComposerPasteChip(visible: Boolean, onPaste: () -> Unit, modifier: Modifier = Modifier) {
+    if (!visible) return
+    val desc = stringResource(R.string.composer_menu_paste_image)
+    TextButton(
+        onClick = onPaste,
+        modifier = modifier
+            .testTag("composer_attach_paste_chip")
+            .semantics { contentDescription = desc },
+    ) {
+        Icon(Icons.Filled.AttachFile, contentDescription = null, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(4.dp))
+        Text(stringResource(R.string.composer_menu_paste_image))
+    }
+}
+
+/**
+ * L5-slash (Phase 6C): the composer's IME options derive from the draft — a LEADING
+ * slash is command context, not prose: no word-suggestions (autocorrect off), no
+ * capitalization, ASCII (the slash catalog is ASCII). Everything else keeps the
+ * platform defaults (bilingual prose typing must not regress).
+ */
+fun composerKeyboardOptions(draft: String): androidx.compose.foundation.text.KeyboardOptions =
+    if (draft.startsWith("/")) {
+        androidx.compose.foundation.text.KeyboardOptions(
+            capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.None,
+            autoCorrectEnabled = false,
+            keyboardType = androidx.compose.ui.text.input.KeyboardType.Ascii,
+        )
+    } else {
+        androidx.compose.foundation.text.KeyboardOptions.Default
+    }
+
+/** The autocorrect flag across compose-ui's autoCorrect → autoCorrectEnabled rename. */
+fun composerAutoCorrectEnabled(options: androidx.compose.foundation.text.KeyboardOptions): Boolean =
+    options.autoCorrectEnabled ?: options.autoCorrect

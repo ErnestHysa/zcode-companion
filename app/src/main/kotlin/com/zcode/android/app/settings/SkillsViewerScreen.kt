@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,6 +37,15 @@ import androidx.compose.ui.unit.dp
 import com.zcode.android.app.R
 import com.zcode.android.domain.model.SkillCatalog
 import kotlinx.coroutines.launch
+import com.zcode.android.core.ui.components.ZCodeButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import com.zcode.android.core.ui.components.ZCodeTopBar
+import com.zcode.android.core.ui.components.rememberZCodeTopBarScroll
+import com.zcode.android.core.ui.components.EmptyState
+import com.zcode.android.core.ui.components.ErrorState
+import com.zcode.android.core.ui.components.LoadingSkeleton
+import com.zcode.android.core.ui.components.friendlyFaultMessage
 
 /**
  * GAP-8 (android-native-gaps.md; docs/protocol/v4-wire.md §12.4) — the
@@ -65,52 +73,45 @@ fun SkillsViewerScreen(
 
     LaunchedEffect(port) { scope.launch { result = port.catalog(); loading = false } }
 
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    val topBarScroll = rememberZCodeTopBarScroll()
+    Scaffold(
+        modifier = modifier.fillMaxSize().nestedScroll(topBarScroll.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            ZCodeTopBar(
+                title = stringResource(R.string.skills_title),
+                onBack = onBack,
+                backTestTag = "skills_back",
+                scrollBehavior = topBarScroll,
+            )
+        },
+    ) { inner ->
+        var refreshing by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+            isRefreshing = refreshing,
+            onRefresh = {
+                scope.launch {
+                    refreshing = true
+                    result = port.catalog()
+                    refreshing = false
+                }
+            },
+            modifier = Modifier.padding(inner).testTag("skills_pull"),
+        ) {
         Column(
             Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
+                .fillMaxSize(),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack, modifier = Modifier.testTag("skills_back")) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(com.zcode.android.core.ui.R.string.action_back),
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-                Text(
-                    stringResource(R.string.skills_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onBackground,
-                )
-            }
             when {
-                loading && result == null -> Column(Modifier.fillMaxSize().padding(16.dp)) {
-                    Text(
-                        stringResource(R.string.skills_loading),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.testTag("skills_loading"),
-                    )
-                }
-                result?.error != null -> Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        stringResource(R.string.skills_unavailable),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.error,
+                loading && result == null ->
+                    LoadingSkeleton(Modifier.fillMaxSize().testTag("skills_loading"), rows = 4)
+                result?.error != null ->
+                    ErrorState(
+                        title = stringResource(R.string.skills_unavailable),
+                        message = friendlyFaultMessage(result?.error),
                         modifier = Modifier.testTag("skills_error"),
+                        onRetry = { loading = true; scope.launch { result = port.catalog(); loading = false } },
                     )
-                    Text(
-                        result?.error ?: "",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Button(onClick = { loading = true; scope.launch { result = port.catalog(); loading = false } }) {
-                        Text(stringResource(R.string.skills_retry))
-                    }
-                }
                 else -> {
                     val catalog = result?.catalog ?: return@Column
                     val filtered = remember(catalog, query) {
@@ -132,11 +133,7 @@ fun SkillsViewerScreen(
                         placeholder = { Text(stringResource(R.string.skills_search_hint)) },
                     )
                     if (catalog.skills.isEmpty()) {
-                        Text(
-                            stringResource(R.string.skills_empty),
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(16.dp).testTag("skills_empty"),
-                        )
+                        EmptyState(title = stringResource(R.string.skills_empty), modifier = Modifier.testTag("skills_empty"))
                         return@Column
                     }
                     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp).testTag("skills_list")) {
@@ -158,6 +155,7 @@ fun SkillsViewerScreen(
                     }
                 }
             }
+        }
         }
     }
 }

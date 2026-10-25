@@ -61,7 +61,7 @@ class MigrationHarnessTest {
             "direct-open-test.db",
         ).allowMainThreadQueries().build()
         db.openHelper.writableDatabase
-        assertEquals(2, db.openHelper.writableDatabase.version)
+        assertEquals(3, db.openHelper.writableDatabase.version)
         db.close()
     }
 
@@ -99,8 +99,59 @@ class MigrationHarnessTest {
         }
     }
 
+    /**
+     * Phase 5A (A3.8) schema v2 → v3 drill: tasks.unreadAtMs is additive and null-safe —
+     * pre-existing v2 rows survive as READ (NULL), v3 writes carry the desktop's marker;
+     * and the whole forward chain v1 → v3 runs through ALL_MIGRATIONS.
+     */
+    @Test
+    fun `migration 2 to 3 adds unreadAtMs without data loss and the full chain from v1 runs`() {
+        helper.createDatabase(DB_V23, 2).use { db ->
+            db.execSQL(
+                "INSERT INTO tasks (endpointId, workspaceKey, taskId, title, statusWire, mode, model," +
+                    "archivedAtMs, additions, deletions, files, pinned, createdAtMs, updatedAtMs, workspaceLabel) VALUES " +
+                    "('ep','/ws','t1','Task one','running',NULL,NULL,NULL,NULL,NULL,NULL,1,1,2,'demo')",
+            )
+        }
+        helper.runMigrationsAndValidate(DB_V23, 3, true, ZcodeDatabase.MIGRATION_2_3).use { db ->
+            db.query("SELECT taskId, pinned, unreadAtMs FROM tasks").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("t1", cursor.getString(0))
+                assertEquals(1, cursor.getInt(1), "pinned survives the migration")
+                assertTrue(cursor.isNull(2), "pre-v3 rows are READ (NULL unreadAtMs)")
+            }
+            db.execSQL(
+                "INSERT INTO tasks (endpointId, workspaceKey, taskId, title, statusWire, mode, model," +
+                    "archivedAtMs, additions, deletions, files, pinned, createdAtMs, updatedAtMs, workspaceLabel, unreadAtMs)" +
+                    " VALUES ('ep','/ws','t2','Task two','idle',NULL,NULL,NULL,NULL,NULL,NULL,0,3,4,'demo',1700000000000)",
+            )
+            db.query("SELECT unreadAtMs FROM tasks WHERE taskId = 't2'").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals(1700000000000L, cursor.getLong(0))
+            }
+        }
+        // The full chain from the frozen v1 export.
+        helper.createDatabase(DB_V13, 1).use { db ->
+            db.execSQL(
+                "INSERT INTO tasks (endpointId, workspaceKey, taskId, title, statusWire, mode, model," +
+                    "archivedAtMs, additions, deletions, files, pinned, createdAtMs, updatedAtMs) VALUES " +
+                    "('ep','/ws','t0','Task zero','idle',NULL,NULL,NULL,NULL,NULL,NULL,0,1,2)",
+            )
+        }
+        helper.runMigrationsAndValidate(DB_V13, 3, true, *ZcodeDatabase.ALL_MIGRATIONS).use { db ->
+            db.query("SELECT taskId, workspaceLabel, unreadAtMs FROM tasks").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("t0", cursor.getString(0))
+                assertTrue(cursor.isNull(1))
+                assertTrue(cursor.isNull(2))
+            }
+        }
+    }
+
     companion object {
         private const val DB = "migration-test.db"
         private const val DB_V12 = "migration-v1-2.db"
+        private const val DB_V23 = "migration-v2-3.db"
+        private const val DB_V13 = "migration-v1-3.db"
     }
 }

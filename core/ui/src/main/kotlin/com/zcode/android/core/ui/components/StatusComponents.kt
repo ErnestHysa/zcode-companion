@@ -14,7 +14,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -33,7 +33,8 @@ import com.zcode.android.domain.model.TaskStatus
 import com.zcode.android.domain.state.ConnectionPhase
 
 /**
- * Shared presentational status components (ui-ux/component-library.md v2).
+ * Shared presentational status components (the ui-ux design package is ARCHIVED —
+ * M1.1, Phase 6D; the in-repo authority is core/ui/theme + the gate tests).
  * Status is ALWAYS structural + textual — color is never the sole signal (§18.5,
  * §30 color-independence). TalkBack users get one flattened announcement per
  * component (clearAndSetSemantics) instead of decorative dot nodes.
@@ -51,7 +52,19 @@ fun toneColor(tone: StatusTone): Color = when (tone) {
     StatusTone.MUTED -> LocalZCodeColors.current.textMuted
 }
 
-/** ui-ux connection chrome: compact dot + muted label under the app bar title. */
+/** L4.1: the localized phase label (never the raw enum name). */
+@Composable
+fun connectionPhaseLabel(phase: ConnectionPhase): String = when (phase) {
+    ConnectionPhase.CONNECTED -> stringResource(R.string.conn_connected)
+    ConnectionPhase.RECOVERING -> stringResource(R.string.conn_syncing)
+    ConnectionPhase.RECONNECTING -> stringResource(R.string.conn_reconnecting)
+    ConnectionPhase.CONNECTING, ConnectionPhase.AUTHENTICATING, ConnectionPhase.PAIRING -> stringResource(R.string.conn_connecting)
+    ConnectionPhase.DEGRADED -> stringResource(R.string.conn_disconnected)
+    ConnectionPhase.FAILED -> stringResource(R.string.conn_failed)
+    ConnectionPhase.UNPAIRED, ConnectionPhase.CLOSED -> stringResource(R.string.conn_not_connected)
+}
+
+/** Connection chrome (the archived ui-ux grammar): compact dot + muted label under the app bar title. */
 @Composable
 fun ConnectionStatusLine(
     phase: ConnectionPhase,
@@ -115,7 +128,9 @@ fun taskStatusLabel(status: TaskStatus): String = when (status) {
  * sighted color-blind users always have the symbol + the textual label.
  */
 fun taskStatusGlyph(status: TaskStatus): androidx.compose.ui.graphics.vector.ImageVector = when (status) {
-    TaskStatus.IDLE, TaskStatus.UNKNOWN -> Icons.Filled.Remove
+    // L5-idle (Phase 6C): Idle is the app's most common state — a minus bar read as a
+    // stray "—"; a clock says "waiting for its window" (UNKNOWN shares the quiet glyph).
+    TaskStatus.IDLE, TaskStatus.UNKNOWN -> Icons.Outlined.Schedule
     TaskStatus.RUNNING -> Icons.Filled.PlayArrow
     TaskStatus.WAITING -> Icons.Filled.Warning
     TaskStatus.PAUSED -> Icons.Filled.Pause
@@ -140,7 +155,7 @@ fun taskStatusRail(status: TaskStatus): Color = when (status) {
         LocalZCodeColors.current.railDone
 }
 
-/** ui-ux error/attention strip: tinted surface, clear title + action — not a full-screen alarm. */
+/** Error/attention strip (the archived ui-ux grammar): tinted surface, clear title + action — not a full-screen alarm. */
 @Composable
 fun AttentionStrip(
     title: String,
@@ -193,13 +208,3 @@ fun AttentionStrip(
     }
 }
 
-/** Placeholder skeleton bar for loading states (§18.3: skeletons over spinners). */
-@Composable
-fun SkeletonBar(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(14.dp)
-            .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small),
-    )
-}

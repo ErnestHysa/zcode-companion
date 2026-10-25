@@ -26,6 +26,7 @@
     <string name="stale_detail">The link was generated more than 10 minutes ago. It usually still works — but if pairing fails, refresh the QR on the desktop and scan again.</string>
     <string name="action_continue_anyway">Continue anyway</string>
     <string name="action_rescan">Scan again</string>
+    <string name="pair_expired_hint">The pairing link was minted by the desktop — open its Remote Control dialog and refresh the QR for a fresh link, then scan again.</string>
     <string name="compat_blocked_title">Desktop version not supported</string>
     <string name="compat_blocked_detail">The desktop app reports version %1$s. This app supports ZCode desktop %2$s or newer. Update the desktop app and regenerate the QR code.</string>
     <string name="compat_above_title">Untested desktop version</string>
@@ -53,4 +54,17 @@
     <string name="unpair_title">Unpair this device?</string>
     <string name="unpair_detail">This deletes the pairing credential and all key material on this phone. Also press Stop in the desktop\u2019s Remote Control dialog — closing the dialog does not stop remote control.</string>
     <string name="action_unpair_confirm">Unpair and wipe</string>
+    <string name="security_explainer_a11y">security explainer</string>
+    <!-- Phase 6B (H1.5): the skippable post-pairing pass -->
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_done">Get started</string>
+    <string name="onboarding_approvals_title">Approve from anywhere</string>
+    <string name="onboarding_approvals_body">ZCode asks before acting — approve or deny right from your phone, even from the lock screen.</string>
+    <string name="onboarding_live_title">Watch the work live</string>
+    <string name="onboarding_live_body">Follow the conversation, files, git and terminal as the agent works on your desktop.</string>
+    <string name="onboarding_automations_title">Automations and idle-time tasks</string>
+    <string name="onboarding_automations_body">See schedules and the idle-time queue; pause, continue or cancel from here.</string>
+    <string name="onboarding_usage_title">Usage and diagnostics</string>
+    <string name="onboarding_usage_body">Track token usage per model, and export diagnostics if something breaks.</string>
 </resources>

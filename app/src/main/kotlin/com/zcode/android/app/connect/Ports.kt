@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.JsonObject
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.StateFlow
@@ -77,6 +78,75 @@ class DefaultTasksPort(
     override fun observeWorkspaces(): Flow<List<com.zcode.android.domain.model.WorkspaceOption>> =
         hub.workspaces
 
+    /** Phase 4C (C7): the scratch workspace — `{name}` → `{path}` (null = refused). */
+    override suspend fun createScratchWorkspace(name: String): String? =
+        try {
+            hub.viewerTools().createScratchWorkspace(name)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("tasksport.scratch", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            null
+        }
+
+    // ---------------------------------------------------------------- Phase 4D (L6.3+J4 / H1.1)
+
+    override suspend fun deleteTask(taskId: String): Boolean {
+        val target = hub.activeWorkspaceTarget() ?: return false
+        val ws = target.first ?: return false
+        return try {
+            hub.taskService().deleteTask(ws, target.second, taskId)
+            true
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("tasksport.delete", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            false
+        }
+    }
+
+    override suspend fun renameTask(taskId: String, title: String): Boolean {
+        val target = hub.activeWorkspaceTarget() ?: return false
+        val ws = target.first ?: return false
+        return try {
+            hub.taskService().renameTask(ws, target.second, taskId, title)
+            true
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("tasksport.rename", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            false
+        }
+    }
+
+    override suspend fun setTaskArchived(taskId: String, archived: Boolean): Boolean {
+        val target = hub.activeWorkspaceTarget() ?: return false
+        val ws = target.first ?: return false
+        return try {
+            hub.taskService().archiveTask(ws, target.second, taskId, archived)
+            true
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("tasksport.archive", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            false
+        }
+    }
+
+    override suspend fun searchTasks(query: String): List<com.zcode.android.features.tasks.port.TaskSearchHit> {
+        val target = hub.activeWorkspaceTarget() ?: return emptyList()
+        val ws = target.first ?: return emptyList()
+        return try {
+            hub.taskService().searchTasks(ws, target.second, query)
+                .items.map { com.zcode.android.features.tasks.port.TaskSearchHit(it.taskId, it.title, it.snippets.firstOrNull()) }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("tasksport.search", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            emptyList()
+        }
+    }
+
     override suspend fun createTask(
         workspaceKey: String,
         firstText: String,
@@ -85,6 +155,88 @@ class DefaultTasksPort(
     ): Boolean = hub.createTask(workspaceKey, firstText, provider, model)
 
     override fun retryConnection() = hub.retry()
+
+    // ---------------------------------------------------------------- Phase 5A (A3.8–A3.10)
+
+    /** One guarded zcode-task call: false/null on refusal, logged under the given tag. */
+    private suspend fun <T> guarded(tag: String, block: suspend (ws: String, identity: String?) -> T): T? {
+        val target = hub.activeWorkspaceTarget() ?: return null
+        val ws = target.first ?: return null
+        return try {
+            block(ws, target.second)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("tasksport.$tag", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            null
+        }
+    }
+
+    override suspend fun setTaskPinned(taskId: String, pinned: Boolean): Boolean =
+        guarded("pin") { ws, id -> hub.taskService().setTaskPinned(ws, id, taskId, pinned); true } ?: false
+
+    override suspend fun setTaskUnread(taskId: String, unread: Boolean, expectedUnreadAt: Long?): Boolean =
+        guarded("unread") { ws, id -> hub.taskService().setTaskUnread(ws, id, taskId, unread, expectedUnreadAt); true } ?: false
+
+    override suspend fun resumeTask(taskId: String): Boolean =
+        guarded("resume") { ws, id -> hub.taskService().resumeTask(ws, id, taskId); true } ?: false
+
+    override suspend fun listArchivedTasks(): List<com.zcode.android.domain.model.TaskMeta>? =
+        guarded("archived") { ws, id ->
+            hub.taskService().listArchivedTasks(ws, id).mapNotNull(com.zcode.android.domain.model.TaskMeta::decode)
+        }
+
+    override suspend fun deleteArchivedTask(taskId: String): Boolean =
+        guarded("deleteArchived") { ws, id -> hub.taskService().deleteArchivedTask(ws, id, taskId); true } ?: false
+
+    override suspend fun listGroupedView(): List<com.zcode.android.domain.model.GroupedTaskNode>? =
+        guarded("groups") { ws, id ->
+            com.zcode.android.domain.model.GroupedTaskNode.decodeAll(hub.taskService().listGroupedTaskViewStructure(ws, id))
+        }
+
+    override suspend fun createTaskGroup(title: String, color: com.zcode.android.domain.model.TaskGroupColor): com.zcode.android.domain.model.TaskGroupInfo? =
+        guarded("createGroup") { ws, id ->
+            com.zcode.android.domain.model.TaskGroupInfo.decode(hub.taskService().createTaskGroup(ws, id, title, color.wire))
+        }
+
+    override suspend fun renameTaskGroup(groupId: String, title: String): Boolean =
+        guarded("renameGroup") { ws, id -> hub.taskService().renameTaskGroup(ws, id, groupId, title); true } ?: false
+
+    override suspend fun updateTaskGroupColor(groupId: String, color: com.zcode.android.domain.model.TaskGroupColor): Boolean =
+        guarded("recolorGroup") { ws, id -> hub.taskService().updateTaskGroupColor(ws, id, groupId, color.wire); true } ?: false
+
+    override suspend fun deleteTaskGroup(groupId: String): Boolean =
+        guarded("deleteGroup") { ws, id -> hub.taskService().deleteTaskGroup(ws, id, groupId); true } ?: false
+
+    /**
+     * Read-modify-write over the live structure: every existing group keeps its members
+     * (minus the moved task), the target group gains it, loose tasks stay top-level.
+     */
+    override suspend fun moveTaskToGroup(taskId: String, groupId: String?): Boolean =
+        guarded("moveToGroup") { ws, id ->
+            val service = hub.taskService()
+            val nodes = com.zcode.android.domain.model.GroupedTaskNode.decodeAll(service.listGroupedTaskViewStructure(ws, id))
+            val groups = LinkedHashMap<String, MutableList<String>>()
+            val topLevel = ArrayList<com.zcode.android.data.session.TaskServiceClient.GroupedOrderNode>()
+            nodes.forEach { n ->
+                when (n) {
+                    is com.zcode.android.domain.model.GroupedTaskNode.Group -> {
+                        groups[n.group.id] = n.taskIds.filterNot { it == taskId }.toMutableList()
+                        topLevel += com.zcode.android.data.session.TaskServiceClient.GroupedOrderNode.Group(n.group.id)
+                    }
+                    is com.zcode.android.domain.model.GroupedTaskNode.Single ->
+                        if (n.taskId != taskId) topLevel += com.zcode.android.data.session.TaskServiceClient.GroupedOrderNode.Task(n.taskId)
+                }
+            }
+            if (groupId == null) {
+                topLevel += com.zcode.android.data.session.TaskServiceClient.GroupedOrderNode.Task(taskId)
+            } else {
+                val members = groups[groupId] ?: return@guarded false
+                members += taskId
+            }
+            service.applyGroupedTaskViewOrder(ws, id, topLevel, groups)
+            true
+        } ?: false
 }
 
 class DefaultConversationPort(
@@ -281,6 +433,16 @@ class DefaultConversationPort(
             coordinator.editQueueItem(taskId, queueItemId, newText, baseRevision = revision)
         }
 
+    // I1 queue (Phase 5A): the same CAS currency (projection revision) as the other queue edits.
+    override suspend fun reorderQueueItem(taskId: String, queueItemId: String, beforeQueueItemId: String?): ConversationPort.SendOutcome =
+        queueOp(taskId) { revision, coordinator -> coordinator.reorderQueueItem(taskId, queueItemId, beforeQueueItemId, baseRevision = revision) }
+
+    override suspend fun setAutoDrain(taskId: String, autoDrain: Boolean): ConversationPort.SendOutcome =
+        queueOp(taskId) { revision, coordinator -> coordinator.setAutoDrain(taskId, autoDrain, baseRevision = revision) }
+
+    override suspend fun setFollowupMode(taskId: String, mode: String): ConversationPort.SendOutcome =
+        queueOp(taskId) { revision, coordinator -> coordinator.setFollowupMode(taskId, mode, baseRevision = revision) }
+
     /** CAS currency (baseRevision) comes from the session projection's latest revision. */
     private suspend fun queueOp(
         taskId: String,
@@ -309,6 +471,13 @@ class DefaultConversationPort(
         return mapOutcome(coordinator.resumeGoal(taskId, revision))
     }
 
+    /** I1-goal (Phase 6A): `/goal pause` — same CAS currency as resumeGoal. */
+    override suspend fun pauseGoal(taskId: String): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        val revision = hub.sessionProjectionState(taskId).first().revision
+        return mapOutcome(coordinator.pauseGoal(taskId, revision))
+    }
+
     /** Phase 2 (§11.4, GAP-10): both CAS currencies — revision from the projection, epoch from the store. */
     override suspend fun editUserQuery(taskId: String, rowId: Long, entityId: String, newText: String): ConversationPort.SendOutcome {
         val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
@@ -324,6 +493,93 @@ class DefaultConversationPort(
                 baseLogEpoch = epoch,
             ),
         )
+    }
+
+    // ---------------------------------------------------------------- Phase 4A row actions (E3.2+I1+N5)
+
+    /** Both CAS currencies, the editUserQuery pattern — revision from the projection, epoch from the store. */
+    private suspend fun rowCurrencies(taskId: String): Pair<Long?, String?> =
+        hub.sessionProjectionState(taskId).first().revision to
+            conversationRepo.observeEpoch(com.zcode.android.domain.ids.SessionId(taskId)).first()
+
+    override suspend fun retryTurn(taskId: String, rowId: Long, entityId: String): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        val (revision, epoch) = rowCurrencies(taskId)
+        return mapOutcome(coordinator.retryTurn(taskId, rowId, entityId, revision, epoch))
+    }
+
+    override suspend fun forkAssistant(taskId: String, rowId: Long, entityId: String): ConversationPort.ForkOutcome {
+        val coordinator = hub.commandCoordinatorOrNull()
+            ?: return ConversationPort.ForkOutcome(ConversationPort.SendOutcome.FAILED, null)
+        val (revision, epoch) = rowCurrencies(taskId)
+        val outcome = coordinator.forkAssistant(taskId, rowId, entityId, revision, epoch)
+        val child = (outcome as? com.zcode.android.data.session.CommandCoordinator.Outcome.Accepted)
+            ?.let { com.zcode.android.data.session.CommandCoordinator.forkedSessionId(it.ack) }
+        hub.log.info("port.fork", "session=${taskId.take(12)} row=$rowId outcome=${outcome.javaClass.simpleName} child=${child?.take(12)}")
+        return ConversationPort.ForkOutcome(mapOutcome(outcome), child)
+    }
+
+    override suspend fun applyFileRewind(taskId: String, rowId: Long, entityId: String): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        val (revision, epoch) = rowCurrencies(taskId)
+        return mapOutcome(coordinator.applyFileRewind(taskId, rowId, entityId, revision, epoch))
+    }
+
+    override suspend fun setAssistantFeedback(taskId: String, rowId: Long, entityId: String, feedback: String?): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        val (revision, epoch) = rowCurrencies(taskId)
+        return mapOutcome(coordinator.setAssistantFeedback(taskId, rowId, entityId, feedback, revision, epoch))
+    }
+
+    // ---------------------------------------------------------------- Phase 5A (A3.3 + L6.4): workflow runs
+
+    /** One guarded facade read: null on refusal/unavailable, logged under the tag. */
+    private suspend fun <T> facadeRead(tag: String, block: suspend (com.zcode.android.data.session.AgentFacadeClient) -> T): T? =
+        try {
+            block(hub.agentFacade())
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("port.$tag", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            null
+        }
+
+    override suspend fun fetchWorkflowRuns(taskId: String): List<com.zcode.android.domain.model.WorkflowRunSummary>? =
+        facadeRead("workflowRuns") { com.zcode.android.domain.model.WorkflowRunSummary.decodeList(it.workflowRuns(taskId)) }
+
+    override suspend fun fetchWorkflowRunEvents(taskId: String, runId: String, afterSequence: Long?): com.zcode.android.domain.model.WorkflowRunEventsPage? =
+        facadeRead("workflowRunEvents") { com.zcode.android.domain.model.WorkflowRunEventsPage.decode(it.workflowRunEvents(taskId, runId, afterSequence, limit = 200)) }
+
+    // Phase 5B: plans (A3.12) + trajectory/session search (A3.13).
+    override suspend fun fetchPlans(taskId: String): List<com.zcode.android.domain.model.ConversationPlan>? =
+        facadeRead("plans") { com.zcode.android.domain.model.ConversationPlan.decodeAll(it.plans(taskId)) }
+
+    override suspend fun fetchTrajectory(taskId: String): com.zcode.android.domain.model.TrajectoryResult? =
+        facadeRead("trajectory") { com.zcode.android.domain.model.TrajectoryResult.decode(it.modelTrajectory(taskId)) }
+
+    override suspend fun fetchSessionMessages(taskId: String, limit: Int): List<JsonObject> =
+        facadeRead("sessionMessages") { it.sessionMessages(taskId, limit = limit) } ?: emptyList()
+
+    // A3.11: the rewind preview rides the row's CAS currencies (the editUserQuery pattern).
+    override suspend fun fetchRewindPreview(taskId: String, rowId: Long, entityId: String): com.zcode.android.domain.model.RewindPreview? {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return null
+        val (revision, epoch) = rowCurrencies(taskId) ?: return null
+        return facadeRead("rewindPreview") {
+            com.zcode.android.domain.model.RewindPreview.decode(it.fileRewindPreview(taskId, rowId, entityId, baseRevision = revision ?: 0, baseLogEpoch = epoch ?: return@facadeRead null))
+        }
+    }
+
+    override suspend fun startSavedWorkflow(taskId: String, name: String, scope: String?, args: Map<String, String>): ConversationPort.StartWorkflowOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.StartWorkflowOutcome(ConversationPort.SendOutcome.FAILED, null)
+        val argsJson = if (args.isEmpty()) null else kotlinx.serialization.json.buildJsonObject {
+            args.forEach { (k, v) -> put(k, kotlinx.serialization.json.JsonPrimitive(v)) }
+        }
+        val outcome = coordinator.startSavedWorkflow(taskId, name, scope, argsJson)
+        val reason = (outcome as? com.zcode.android.data.session.CommandCoordinator.Outcome.Accepted)?.ack
+            ?.takeIf { it.status == "rejected" || it.status == "failed" }?.reasonCode
+            ?: (outcome as? com.zcode.android.data.session.CommandCoordinator.Outcome.Failed)?.let { f -> f.ack?.reasonCode }
+        hub.log.info("port.startWorkflow", "session=${taskId.take(12)} name=$name outcome=${outcome.javaClass.simpleName} reason=$reason")
+        return ConversationPort.StartWorkflowOutcome(mapOutcome(outcome), reason)
     }
 
     private fun mapOutcome(outcome: com.zcode.android.data.session.CommandCoordinator.Outcome): ConversationPort.SendOutcome =
@@ -362,22 +618,76 @@ class DefaultConversationPort(
                     send(emptyList())
                 }
             } else {
-                hub.interactionsStore().observeOpen(EndpointId(endpointId)).collect { list ->
-                    send(
-                        list.map {
-                            ConversationPort.InteractionSummary(
-                                interactionId = it.interactionId.raw,
-                                sessionId = it.sessionId?.raw,
-                                kind = it.kind.name,
-                                lifecycle = it.lifecycle.name,
-                                toolName = it.toolName,
-                                createdAtMs = it.createdAtMs,
-                            )
-                        },
-                    )
-                }
+                // K4: join the open interactions with the task projection so the card
+                // can name the task (title by sessionId) instead of a session prefix.
+                kotlinx.coroutines.flow.combine(
+                    hub.interactionsStore().observeOpen(EndpointId(endpointId)),
+                    hub.taskStore().observeAllTasks(EndpointId(endpointId)),
+                ) { records, tasks -> interactionSummaries(records, tasks) }.collect { send(it) }
             }
         }
+
+    override suspend fun fetchToolCallOutput(taskId: String, toolCallId: String): String? =
+        try {
+            hub.phase9().toolCallOutput(taskId, toolCallId)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            hub.log.warn("port.toolOutput", "task=${taskId.take(12)} ${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            null
+        }
+
+    override suspend fun fetchAttachmentPreview(taskId: String, ref: String): ByteArray? =
+        try {
+            hub.phase9().attachmentPreview(taskId, ref)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            null
+        }
+
+    /**
+     * Phase 4C (C2): three INDEPENDENT legs — custom/plugin commands (`commands.list`),
+     * skills (the reference catalog, session-scoped) and subagents (`subagents.list`,
+     * provider-filtered like the desktop's useSubagents). One failing channel carries
+     * its own error; the others still render.
+     */
+    /** Phase 4C (C7): the @-mention file search over the file channel. */
+    override suspend fun searchWorkspaceFiles(taskId: String, query: String): List<String> {
+        val target = hub.activeWorkspaceTarget() ?: return emptyList()
+        return try {
+            hub.viewerTools().searchWorkspaceFiles(target.first, target.second, query)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("port.fileSearch", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            emptyList()
+        }
+    }
+
+    override suspend fun fetchSlashExtras(taskId: String): ConversationPort.SlashExtras {
+        val target = hub.activeWorkspaceTarget()
+        val workspacePath = target?.first
+        val workspaceIdentity = target?.second
+        val tools = hub.viewerTools()
+        val provider = runCatching { hub.sessionProjectionState(taskId).first().config?.provider }.getOrNull()
+        val commands = runCatching { tools.slashUserCommands(workspacePath, workspaceIdentity) }
+            .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
+            .getOrDefault(emptyList())
+            .map { ConversationPort.SlashCommandView(it.name, it.description, it.inputHint, it.source) }
+        val skills = runCatching { tools.skillCatalog(workspacePath, workspaceIdentity, taskId) }
+            .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
+        val agents = runCatching { tools.subagents(workspacePath, workspaceIdentity, provider) }
+            .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
+        skills.exceptionOrNull()?.let { hub.log.warn("port.slashSkills", "${it.javaClass.simpleName}: ${it.message?.take(120)}") }
+        agents.exceptionOrNull()?.let { hub.log.warn("port.slashAgents", "${it.javaClass.simpleName}: ${it.message?.take(120)}") }
+        return ConversationPort.SlashExtras(
+            userCommands = commands,
+            skills = skills.getOrNull()?.skills?.map { ConversationPort.SlashSkillView(it.name, it.description, it.scope) },
+            skillsError = skills.exceptionOrNull()?.message,
+            agents = agents.getOrNull()?.map { ConversationPort.SlashAgentView(it.name, it.description, it.scope) },
+            agentsError = agents.exceptionOrNull()?.message,
+            loading = false,
+        )
+    }
 
     override suspend fun answerUserInputQuestions(
         interactionId: String,
@@ -391,6 +701,46 @@ class DefaultConversationPort(
             ),
         )
     }
+
+
+    // A3.14 (Phase 5B): the decline/cancel arm of the elicitation answer.
+    override suspend fun declineUserInput(interactionId: String, action: String): ConversationPort.AnswerOutcome {
+        val coordinator = hub.interactionCoordinatorOrNull() ?: return ConversationPort.AnswerOutcome.UNKNOWN_INTERACTION
+        return mapAnswer(coordinator.submitElicitationDecline(com.zcode.android.domain.ids.InteractionId(interactionId), action))
+    }
+
+
+    // ---------------------------------------------------------------- ADR-024 (Phase 5D): hooks trust
+
+    override suspend fun respondHookReview(
+        taskId: String,
+        hook: com.zcode.android.domain.model.WorkspaceHookReview,
+        reviewItemIds: List<String>,
+    ): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        return mapOutcome(coordinator.respondWorkspaceHookReview(taskId, hook, reviewItemIds))
+    }
+
+    override suspend fun toggleHookReviewItem(taskId: String, hook: com.zcode.android.domain.model.WorkspaceHookReview, reviewItemId: String, enabled: Boolean): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        return mapOutcome(coordinator.toggleWorkspaceHookReviewItem(taskId, hook, reviewItemId, enabled))
+    }
+
+    override suspend fun revokeHookTrust(taskId: String, hook: com.zcode.android.domain.model.WorkspaceHookReview, reviewItemIds: List<String>): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        return mapOutcome(coordinator.revokeWorkspaceHookTrust(taskId, hook, reviewItemIds))
+    }
+
+    override suspend fun grantHookTrust(hook: com.zcode.android.domain.model.WorkspaceHookReview, hookDeclarationDigest: String): Boolean =
+        try {
+            hub.activeTransport().grantWorkspaceHookTrust(hook.workspacePath, hook.workspaceIdentity, hook.bundleDigest, hookDeclarationDigest)
+            true
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("port.hookGrant", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            false
+        }
 
     override suspend fun answerFromInbox(interactionId: String, optionId: String, freeText: String?): ConversationPort.AnswerOutcome {
         val coordinator = hub.interactionCoordinatorOrNull() ?: return ConversationPort.AnswerOutcome.UNKNOWN_INTERACTION
@@ -411,6 +761,7 @@ class DefaultConversationPort(
             is com.zcode.android.data.session.InteractionCoordinator.SubmitOutcome.RefineRequiresText -> ConversationPort.AnswerOutcome.REFINE_REQUIRES_TEXT
             is com.zcode.android.data.session.InteractionCoordinator.SubmitOutcome.NotApprovable -> ConversationPort.AnswerOutcome.NOT_APPROVABLE
             is com.zcode.android.data.session.InteractionCoordinator.SubmitOutcome.DuplicateNoOp -> ConversationPort.AnswerOutcome.DUPLICATE_NO_OP
+            is com.zcode.android.data.session.InteractionCoordinator.SubmitOutcome.AlreadyResolved -> ConversationPort.AnswerOutcome.ALREADY_RESOLVED
             is com.zcode.android.data.session.InteractionCoordinator.SubmitOutcome.UnknownInteraction -> ConversationPort.AnswerOutcome.UNKNOWN_INTERACTION
         }
 
@@ -526,6 +877,21 @@ class DefaultConversationPort(
             ) {
                 hub.coordinatorOrNull()?.applyLocalConfigOverlay(taskId, provider, model, thought)
             }
+        }
+    }
+
+    /** Phase 4C (A3.4): the effort switch — expectedRevision from the projection (echo-reconciled). */
+    override suspend fun setThoughtLevel(taskId: String, thought: String): ConversationPort.SendOutcome {
+        val target = hub.activeWorkspaceTarget() ?: return ConversationPort.SendOutcome.FAILED
+        return try {
+            val revision = hub.sessionProjectionState(taskId).first().revision
+            hub.viewerTools().setThoughtLevel(target.first, target.second, taskId, thought, revision)
+            ConversationPort.SendOutcome.ACCEPTED
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("port.setThoughtLevel", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            ConversationPort.SendOutcome.FAILED
         }
     }
 
@@ -685,5 +1051,34 @@ class DefaultConversationPort(
             out.delete()
             ConversationPort.AttachmentFetchResult(null, null, 0, e.message ?: "attachment unavailable")
         }
+    }
+}
+
+/**
+ * K4 + L3 (Phase 3B): the inbox projection. Title = the task whose id equals the
+ * interaction's sessionId (the phone's task ids ARE the session-level ids — the same value
+ * the card navigates with), blank titles count as unresolved; the preview rides through
+ * from the record (derived once at the store boundary).
+ */
+internal fun interactionSummaries(
+    records: List<com.zcode.android.domain.repo.InteractionRepository.InteractionRecord>,
+    tasks: List<com.zcode.android.domain.model.Task>,
+): List<ConversationPort.InteractionSummary> {
+    val titles = HashMap<String, String>(tasks.size)
+    for (t in tasks) {
+        val title = t.title.trim()
+        if (title.isNotEmpty()) titles.putIfAbsent(t.taskId, title)
+    }
+    return records.map {
+        ConversationPort.InteractionSummary(
+            interactionId = it.interactionId.raw,
+            sessionId = it.sessionId?.raw,
+            kind = it.kind.name,
+            lifecycle = it.lifecycle.name,
+            toolName = it.toolName,
+            createdAtMs = it.createdAtMs,
+            taskTitle = it.sessionId?.raw?.let(titles::get),
+            preview = it.preview,
+        )
     }
 }

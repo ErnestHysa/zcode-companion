@@ -20,8 +20,8 @@ android {
         buildConfigField("boolean", "BENCHMARK_SEEDING", "false")
         minSdk = 26
         targetSdk = 36
-        versionCode = 40
-        versionName = "1.1.0"
+        versionCode = 41
+        versionName = "1.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -44,7 +44,15 @@ android {
             proguardFiles("proguard-rules.pro")
         }
         release {
-            isMinifyEnabled = false
+            // F6.2 (gaps-and-polish 2G): R8 + resource shrinking — the release APK
+            // shrinks from the 53MB debug footprint (M6.2). Keep rules in
+            // proguard-rules.pro; the release smoke runs on the rig at the exit gate.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
             // AAP-5 prerequisite (Phase-12.1 minimum, §37 "single stable key from day
             // one"): the release keystore lives OFF-REPO at
             // ~/.zcode-android-release-keys/ (keystore.properties, 0600). When it is
@@ -85,15 +93,40 @@ android {
     testOptions {
         unitTests.isIncludeAndroidResources = true
     }
+
+    // E6-lint (gaps-and-polish 2A): Compose lint discipline. slack compose-lints
+    // (lintChecks below) + Compose's own bundled checks gate the build; the bug
+    // classes Part B found by hand (bare clickable{} without roles, sub-48dp targets,
+    // literal ARGB, early-return-before-remember) can no longer regress silently.
+    // checkDependencies runs the whole set over every feature module from this one
+    // task (`gradle :app:lintDebug`, also the CI gate). Pre-existing findings are
+    // triaged into lint-baseline.xml — new ones fail the build; burn the baseline down
+    // as the a11y/chrome phases land (never add to it without a finding ID).
+    lint {
+        checkDependencies = true
+        abortOnError = true
+        warningsAsErrors = false
+        baseline = file("lint-baseline.xml")
+        htmlReport = true
+        xmlReport = true
+        // Not a finding class we act on: the app is a companion and pins its own sdk.
+        disable += listOf("GradleDependency", "AndroidGradlePluginVersion", "OldTargetApi")
+    }
 }
 
 kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)
+        // B3-chrome (gaps-and-polish 2C): M3 TopAppBar scroll behaviors are still
+        // @ExperimentalMaterial3Api — opted in module-wide, as every M3 app does.
+        freeCompilerArgs.add("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")
+        freeCompilerArgs.add("-opt-in=androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi")
     }
 }
 
 dependencies {
+    // E6-lint (gaps-and-polish 2A): Compose lint discipline runs over this module.
+    lintChecks(libs.compose.lint.checks)
     implementation(project(":core:common"))
     implementation(project(":core:notifications"))
     implementation(project(":core:security"))
@@ -108,9 +141,12 @@ dependencies {
     implementation(project(":features:git"))
     implementation(project(":features:files"))
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.core.splashscreen)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.material3)
+    implementation(libs.compose.material3.wsc)
     implementation(libs.compose.material.icons.core)
     implementation(libs.navigation.compose)
     // §43.2-11.4: the pending-approvals Glance widget (§44 "Glance (Phase 3, widget)"; ADR-018).

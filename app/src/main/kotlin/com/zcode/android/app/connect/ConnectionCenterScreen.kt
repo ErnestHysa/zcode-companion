@@ -8,20 +8,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,9 +31,13 @@ import androidx.compose.ui.unit.dp
 import com.zcode.android.app.R
 import com.zcode.android.core.ui.components.StatusTone
 import com.zcode.android.core.ui.components.errorUserMessage
-import com.zcode.android.core.ui.components.relativeTimeLabel
+import com.zcode.android.core.ui.components.relativeTimeLabelLive
 import com.zcode.android.core.ui.components.toneColor
 import com.zcode.android.domain.state.ConnectionPhase
+import androidx.compose.material3.Scaffold
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import com.zcode.android.core.ui.components.ZCodeTopBar
+import com.zcode.android.core.ui.components.rememberZCodeTopBarScroll
 
 /**
  * Connection center (§43.2-6.5; §18.3 "Connection center"): the §14.4.1 machine
@@ -64,20 +61,25 @@ fun ConnectionCenterScreen(
     onCheckForUpdate: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    val topBarScroll = rememberZCodeTopBarScroll()
+    Scaffold(
+        modifier = modifier.fillMaxSize().nestedScroll(topBarScroll.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            ZCodeTopBar(
+                title = stringResource(R.string.connection_title),
+                onBack = onBack,
+                backTestTag = "connection_back",
+                scrollBehavior = topBarScroll,
+            )
+        },
+    ) { inner ->
         Column(
             Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
+                .padding(inner)
                 .verticalScroll(rememberScrollState()),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack, modifier = Modifier.testTag("connection_back")) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(com.zcode.android.core.ui.R.string.action_back), tint = MaterialTheme.colorScheme.onSurface)
-                }
-                Text(stringResource(R.string.connection_title), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
-            }
             Column(Modifier.padding(horizontal = 16.dp)) {
                 val current = currentChrome(phase)
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -243,7 +245,7 @@ fun ConnectionCenterScreen(
                     Text(stringResource(R.string.conn_update_check_manual))
                 }
                 lastRefreshAtMs?.let {
-                    val ago = relativeTimeLabel(it)
+                    val ago = relativeTimeLabelLive(it)
                     if (ago != null) {
                         Text(
                             text = stringResource(R.string.conn_last_refreshed, ago),

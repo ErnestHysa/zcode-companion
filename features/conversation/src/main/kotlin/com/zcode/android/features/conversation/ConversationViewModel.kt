@@ -14,8 +14,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.JsonObject
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -57,7 +60,9 @@ data class ConversationUiState(
     val composerAttachments: List<ConversationPort.ComposerAttachment> = emptyList(),
     // ---- Phase 2 (§11.2, GAP-12) ----
     /** The workspace slash-command catalog (workspace-config topic; empty = none). */
-    val slashCommands: List<ConversationPort.SlashCommandView> = emptyList(),
+    val slashCommands: List<ConversationPort.SlashCommandView> = emptyList(),    // ---- Phase 4C (C2): the other two slash sections ----
+    /** Skills / custom+plugin commands / subagents extras (null = not loaded yet). */
+    val slashExtras: ConversationPort.SlashExtras? = null,
 ) {
     val empty: Boolean get() = !loading && rows.isEmpty() && streaming.isEmpty()
 
@@ -78,10 +83,32 @@ data class ConversationUiState(
 }
 
 /** §33-mapped user copy for send-path outcomes (never raw exceptions). */
-data class SendNotice(val text: String, val kind: Kind) {
+/**
+ * A send-outcome notice. [text] is the English fallback; when [key] is set the UI
+ * resolves it per locale (C5-i18n — view models hold no Android resources).
+ */
+data class SendNotice(
+    val text: String,
+    val kind: Kind,
+    val key: Key? = null,
+    val args: List<String> = emptyList(),
+) {
     enum class Kind { INFO, WARNING, ERROR }
+
+    enum class Key {
+        SWITCH_OFFLINE, SESSION_CHANGED, SWITCH_REFUSED, MODEL_SWITCH_REFUSED, EFFORT_REFUSED,
+        ATTACHMENT_TOO_LARGE, ATTACHMENT_OFFLINE, ATTACHMENT_FAILED, ATTACHMENT_RETRY_FAILED,
+        COMPACT_REFUSED, GOAL_REFUSED, GOAL_RESUME_REFUSED, GOAL_PAUSE_REFUSED,
+        // Phase 4A row actions
+        ROW_ACTION_OFFLINE, RETRY_REFUSED, FORK_REFUSED, REWIND_APPLIED, REWIND_REFUSED, FEEDBACK_REFUSED,
+        // Phase 5A (L6.4 + I1): saved workflows
+        WORKFLOW_STARTED, WORKFLOW_REFUSED,
+        // T2: the §20-3 resolved-elsewhere answer — typed, never a silent no-op
+        ANSWER_ALREADY_RESOLVED,
+    }
 }
 
+@OptIn(kotlinx.coroutines.FlowPreview::class)
 class ConversationViewModel(
     private val port: ConversationPort,
     private val scope: CoroutineScope,
@@ -139,6 +166,8 @@ class ConversationViewModel(
     private val _sendNotice = MutableStateFlow<SendNotice?>(null)
     private val _busyInteractions = MutableStateFlow<Set<String>>(emptySet())
     private val _slashCommands = MutableStateFlow<List<ConversationPort.SlashCommandView>>(emptyList())
+    private val _slashExtras = MutableStateFlow<ConversationPort.SlashExtras?>(null)
+    private var slashExtrasLoaded = false
     private var draftLoaded = false
     private var draftSaveJob: kotlinx.coroutines.Job? = null
 
@@ -184,6 +213,7 @@ class ConversationViewModel(
             busyInteractions = write.busy,
             composerAttachments = write.composerAttachments,
             slashCommands = _slashCommands.value,
+            slashExtras = _slashExtras.value,
         )
     }.stateIn(scope, SharingStarted.Eagerly, ConversationUiState())
 
@@ -198,6 +228,22 @@ class ConversationViewModel(
         // corrected by the next frame).
         scope.launch {
             port.observeSlashCommands(taskId).collect { _slashCommands.value = it }
+        }
+   
+        // Phase 4C (C2): the extras load LAZILY on the first "/" (desktop useSkills
+        // enabled-on-trigger), once per session.
+        scope.launch {
+            port.observeSlashCommands(taskId).collect { _slashCommands.value = it }
+        }
+    }
+
+    /** Called by the screen when the slash menu becomes visible. */
+    fun onSlashMenuOpen() {
+        if (slashExtrasLoaded) return
+        slashExtrasLoaded = true
+        _slashExtras.value = ConversationPort.SlashExtras(emptyList(), null, null, null, null, loading = true)
+        scope.launch {
+            _slashExtras.value = port.fetchSlashExtras(taskId)
         }
     }
 
@@ -245,11 +291,26 @@ class ConversationViewModel(
             when (port.switchMode(taskId, mode)) {
                 ConversationPort.SendOutcome.ACCEPTED -> Unit
                 ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
-                    _sendNotice.value = SendNotice("Offline — the switch was not sent. Nothing changed.", SendNotice.Kind.WARNING)
+                    _sendNotice.value = SendNotice("Offline — the switch was not sent. Nothing changed.", SendNotice.Kind.WARNING, SendNotice.Key.SWITCH_OFFLINE)
                 ConversationPort.SendOutcome.STALE ->
-                    _sendNotice.value = SendNotice("The session changed on the desktop — try the switch again.", SendNotice.Kind.WARNING)
+                    _sendNotice.value = SendNotice("The session changed on the desktop — try the switch again.", SendNotice.Kind.WARNING, SendNotice.Key.SESSION_CHANGED)
                 else ->
-                    _sendNotice.value = SendNotice("The desktop refused the switch — nothing changed.", SendNotice.Kind.ERROR)
+                    _sendNotice.value = SendNotice("The desktop refused the switch — nothing changed.", SendNotice.Kind.ERROR, SendNotice.Key.SWITCH_REFUSED)
+            }
+        }
+    }
+
+    /** Phase 4C (A3.4): the wire-driven effort switch (setThoughtLevel; echo-reconciled). */
+    fun setThoughtLevel(thought: String) {
+        scope.launch {
+            when (port.setThoughtLevel(taskId, thought)) {
+                ConversationPort.SendOutcome.ACCEPTED -> Unit
+                ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
+                    _sendNotice.value = SendNotice("Offline — the switch was not sent. Nothing changed.", SendNotice.Kind.WARNING, SendNotice.Key.SWITCH_OFFLINE)
+                ConversationPort.SendOutcome.STALE ->
+                    _sendNotice.value = SendNotice("The session changed on the desktop — try the switch again.", SendNotice.Kind.WARNING, SendNotice.Key.SESSION_CHANGED)
+                else ->
+                    _sendNotice.value = SendNotice("The desktop refused the effort switch — nothing changed.", SendNotice.Kind.ERROR, SendNotice.Key.EFFORT_REFUSED)
             }
         }
     }
@@ -259,11 +320,11 @@ class ConversationViewModel(
             when (port.switchModel(taskId, provider, model, thought)) {
                 ConversationPort.SendOutcome.ACCEPTED -> Unit
                 ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
-                    _sendNotice.value = SendNotice("Offline — the switch was not sent. Nothing changed.", SendNotice.Kind.WARNING)
+                    _sendNotice.value = SendNotice("Offline — the switch was not sent. Nothing changed.", SendNotice.Kind.WARNING, SendNotice.Key.SWITCH_OFFLINE)
                 ConversationPort.SendOutcome.STALE ->
-                    _sendNotice.value = SendNotice("The session changed on the desktop — try the switch again.", SendNotice.Kind.WARNING)
+                    _sendNotice.value = SendNotice("The session changed on the desktop — try the switch again.", SendNotice.Kind.WARNING, SendNotice.Key.SESSION_CHANGED)
                 else ->
-                    _sendNotice.value = SendNotice("The desktop refused the model switch — nothing changed.", SendNotice.Kind.ERROR)
+                    _sendNotice.value = SendNotice("The desktop refused the model switch — nothing changed.", SendNotice.Kind.ERROR, SendNotice.Key.MODEL_SWITCH_REFUSED)
             }
         }
     }
@@ -277,11 +338,11 @@ class ConversationViewModel(
         when (result) {
             is ConversationPort.UploadResult.Committed -> Unit
             is ConversationPort.UploadResult.TooLarge ->
-                _sendNotice.value = SendNotice("Attachment is over the 20 MB desktop limit — not sent.", SendNotice.Kind.WARNING)
+                _sendNotice.value = SendNotice("Attachment is over the 20 MB desktop limit — not sent.", SendNotice.Kind.WARNING, SendNotice.Key.ATTACHMENT_TOO_LARGE)
             is ConversationPort.UploadResult.BlockedOffline ->
-                _sendNotice.value = SendNotice("Offline — the attachment was not sent. Retry when connected.", SendNotice.Kind.WARNING)
+                _sendNotice.value = SendNotice("Offline — the attachment was not sent. Retry when connected.", SendNotice.Kind.WARNING, SendNotice.Key.ATTACHMENT_OFFLINE)
             is ConversationPort.UploadResult.Failed ->
-                _sendNotice.value = SendNotice("Attachment failed to upload (${result.message?.take(60) ?: "connection lost"}) — not sent.", SendNotice.Kind.ERROR)
+                _sendNotice.value = SendNotice("Attachment failed to upload (${result.message?.take(60) ?: "connection lost"}) — not sent.", SendNotice.Kind.ERROR, SendNotice.Key.ATTACHMENT_FAILED, listOf(result.message?.take(60) ?: ""))
         }
         return result
     }
@@ -295,7 +356,7 @@ class ConversationViewModel(
         scope.launch {
             val result = port.retryUpload(taskId, uploadId)
             if (result !is ConversationPort.UploadResult.Committed) {
-                _sendNotice.value = SendNotice("Attachment retry failed — not sent.", SendNotice.Kind.ERROR)
+                _sendNotice.value = SendNotice("Attachment retry failed — not sent.", SendNotice.Kind.ERROR, SendNotice.Key.ATTACHMENT_RETRY_FAILED)
             }
         }
     }
@@ -359,17 +420,26 @@ class ConversationViewModel(
                     text,
                     failureNotice = "Compact was refused by the desktop" +
                         " (it may already be running or an active turn blocks it).",
+                    failureKey = SendNotice.Key.COMPACT_REFUSED,
                     acceptedClearsDraft = true,
                 )
                 is SlashDispatch.SendGoal -> sendSlash(
                     { port.sendGoal(taskId, dispatch.objective, dispatch.displayText) },
                     text,
                     failureNotice = "The goal update was refused by the desktop.",
+                    failureKey = SendNotice.Key.GOAL_REFUSED,
                 )
                 is SlashDispatch.ResumeGoal -> sendSlash(
                     { port.resumeGoal(taskId) },
                     text,
                     failureNotice = "Goal resume was refused (the conversation may have moved — try again).",
+                    failureKey = SendNotice.Key.GOAL_RESUME_REFUSED,
+                )
+                is SlashDispatch.PauseGoal -> sendSlash(
+                    { port.pauseGoal(taskId) },
+                    text,
+                    failureNotice = "Goal pause was refused (the goal may not be pausable right now).",
+                    failureKey = SendNotice.Key.GOAL_PAUSE_REFUSED,
                 )
                 is SlashDispatch.EmptyGoal -> refuseSlash("/goal needs a goal text — e.g. \"/goal finish the report\".")
                 is SlashDispatch.UnsupportedGoal -> refuseSlash(
@@ -444,6 +514,7 @@ class ConversationViewModel(
         fire: suspend () -> ConversationPort.SendOutcome,
         originalText: String,
         failureNotice: String,
+        failureKey: SendNotice.Key? = null,
         acceptedClearsDraft: Boolean = true,
     ) {
         when (fire()) {
@@ -460,7 +531,7 @@ class ConversationViewModel(
                     "You're offline — the command was not sent and the draft is preserved.",
                     SendNotice.Kind.WARNING,
                 )
-            else -> _sendNotice.value = SendNotice(failureNotice, SendNotice.Kind.WARNING)
+            else -> _sendNotice.value = SendNotice(failureNotice, SendNotice.Kind.WARNING, failureKey)
         }
     }
 
@@ -509,6 +580,268 @@ class ConversationViewModel(
         }
     }
 
+    // ---------------------------------------------------------------- Phase 4A row actions (E3.2+I1+N5)
+
+    private val _forkedSession = MutableStateFlow<String?>(null)
+
+    /** One-shot: the CHILD session an accepted fork created — the screen navigates there, then consumes. */
+    val forkedSession: StateFlow<String?> = _forkedSession.asStateFlow()
+
+    fun consumeForkedSession() {
+        _forkedSession.value = null
+    }
+
+    // ---------------------------------------------------------------- Phase 5A (A3.3 + L6.4): workflow runs
+
+    private val _workflowRuns = MutableStateFlow<List<com.zcode.android.domain.model.WorkflowRunSummary>?>(null)
+
+    /** The session's workflow runs (`conversationWorkflowRunsV4`); null = not loaded / unavailable → the panel hides. */
+    val workflowRuns: StateFlow<List<com.zcode.android.domain.model.WorkflowRunSummary>?> = _workflowRuns.asStateFlow()
+
+    /** The run detail sheet's data: the run + its event timeline (paged by afterSequence). */
+    data class OpenWorkflowRun(
+        val run: com.zcode.android.domain.model.WorkflowRunSummary,
+        val events: List<com.zcode.android.domain.model.WorkflowRunEvent>,
+        val hasMore: Boolean,
+        val loading: Boolean,
+        val unavailable: Boolean,
+    )
+
+    private val _openRun = MutableStateFlow<OpenWorkflowRun?>(null)
+    val openWorkflowRun: StateFlow<OpenWorkflowRun?> = _openRun.asStateFlow()
+
+    private var workflowTicker: kotlinx.coroutines.Job? = null
+
+    init {
+        // A3.3: the run list follows the projection — every revision change re-reads it
+        // (debounced), and a ticker keeps LIVE runs fresh between frames (status, not events).
+        scope.launch {
+            state.map { it.sessionState?.revision }.distinctUntilChanged().debounce(400).collect {
+                refreshWorkflowRuns()
+                refreshPlans()
+            }
+        }
+    }
+
+    fun refreshWorkflowRuns() {
+        scope.launch {
+            val runs = port.fetchWorkflowRuns(taskId)
+            _workflowRuns.value = runs
+            // Keep the open sheet's run status in step with the list.
+            _openRun.value?.let { open -> runs?.firstOrNull { it.runId == open.run.runId }?.let { _openRun.value = open.copy(run = it) } }
+            val live = runs?.any { it.status.isLive } == true
+            if (live && workflowTicker?.isActive != true) {
+                workflowTicker = scope.launch {
+                    while (true) {
+                        kotlinx.coroutines.delay(8_000)
+                        val latest = port.fetchWorkflowRuns(taskId) ?: break
+                        _workflowRuns.value = latest
+                        _openRun.value?.let { open -> latest.firstOrNull { it.runId == open.run.runId }?.let { _openRun.value = open.copy(run = it) } }
+                        if (latest.none { it.status.isLive }) break
+                    }
+                }
+            }
+        }
+    }
+
+    /** Open a run: the first events page loads; `loadMoreRunEvents` pages forward. */
+    fun openWorkflowRun(run: com.zcode.android.domain.model.WorkflowRunSummary) {
+        _openRun.value = OpenWorkflowRun(run, emptyList(), hasMore = false, loading = true, unavailable = false)
+        scope.launch {
+            val page = port.fetchWorkflowRunEvents(taskId, run.runId, afterSequence = null)
+            _openRun.value = _openRun.value?.takeIf { it.run.runId == run.runId }?.copy(
+                events = page?.events ?: emptyList(),
+                hasMore = page?.hasMore ?: false,
+                loading = false,
+                unavailable = page == null,
+            )
+        }
+    }
+
+    fun loadMoreRunEvents() {
+        val open = _openRun.value ?: return
+        if (open.loading || !open.hasMore) return
+        _openRun.value = open.copy(loading = true)
+        scope.launch {
+            val after = open.events.maxOfOrNull { it.sequence }
+            val page = port.fetchWorkflowRunEvents(taskId, open.run.runId, afterSequence = after)
+            _openRun.value = _openRun.value?.takeIf { it.run.runId == open.run.runId }?.copy(
+                events = open.events + (page?.events ?: emptyList()),
+                hasMore = page?.hasMore ?: false,
+                loading = false,
+                unavailable = page == null && open.events.isEmpty(),
+            )
+        }
+    }
+
+    fun closeWorkflowRun() {
+        _openRun.value = null
+    }
+
+    // ---------------------------------------------------------------- ADR-024 (Phase 5D): hooks trust
+
+    /** Trust the CHECKED hooks — the confirm sheet fires this (never a trust-all). */
+    fun trustHooks(hook: com.zcode.android.domain.model.WorkspaceHookReview, reviewItemIds: List<String>) {
+        scope.launch {
+            val outcome = port.respondHookReview(taskId, hook, reviewItemIds)
+            _sendNotice.value = when (outcome) {
+                ConversationPort.SendOutcome.ACCEPTED -> SendNotice(
+                    "Trusted ${reviewItemIds.size} hook(s) — the session continues.",
+                    SendNotice.Kind.INFO, SendNotice.Key.ROW_ACTION_OFFLINE, // honest generic info key
+                )
+                else -> SendNotice("The desktop refused the hook trust.", SendNotice.Kind.ERROR, SendNotice.Key.WORKFLOW_REFUSED, listOf("trust_selected"))
+            }
+        }
+    }
+
+    fun revokeHooks(hook: com.zcode.android.domain.model.WorkspaceHookReview, reviewItemIds: List<String>) {
+        scope.launch { port.revokeHookTrust(taskId, hook, reviewItemIds) }
+    }
+
+    fun toggleHookItem(hook: com.zcode.android.domain.model.WorkspaceHookReview, reviewItemId: String, enabled: Boolean) {
+        scope.launch { port.toggleHookReviewItem(taskId, hook, reviewItemId, enabled) }
+    }
+
+    /** The persistent grant — the card's confirmed path only (ADR-024 decision 4). */
+    fun grantHookTrust(hook: com.zcode.android.domain.model.WorkspaceHookReview, hookDeclarationDigest: String) {
+        scope.launch { port.grantHookTrust(hook, hookDeclarationDigest) }
+    }
+
+    // ---------------------------------------------------------------- Phase 5B (A3.12 + A3.13)
+
+    private val _plans = MutableStateFlow<List<com.zcode.android.domain.model.ConversationPlan>?>(null)
+
+    /** The plans projection (`conversationPlansV4`); null = unavailable → the panel hides. */
+    val plans: StateFlow<List<com.zcode.android.domain.model.ConversationPlan>?> = _plans.asStateFlow()
+
+    private val _trajectory = MutableStateFlow<com.zcode.android.domain.model.TrajectoryResult?>(null)
+
+    /** The model-call timeline (`getModelTrajectory`); null = not loaded / unavailable. */
+    val trajectory: StateFlow<com.zcode.android.domain.model.TrajectoryResult?> = _trajectory.asStateFlow()
+
+    data class SessionSearchResult(val role: String, val head: String)
+
+    private val _sessionSearch = MutableStateFlow<List<SessionSearchResult>?>(null)
+
+    /** Matches of the current session-search query (null = no query / not run). */
+    val sessionSearch: StateFlow<List<SessionSearchResult>?> = _sessionSearch.asStateFlow()
+
+    fun refreshPlans() {
+        scope.launch { _plans.value = port.fetchPlans(taskId) }
+    }
+
+    /** The trajectory loads when the sheet opens (A3.13). */
+    fun loadTrajectory() {
+        scope.launch { _trajectory.value = port.fetchTrajectory(taskId) }
+    }
+
+    /** Client-side search over `readSessionMessages` (role + content contains, case-insensitive). */
+    fun searchSession(query: String) {
+        if (query.isBlank()) {
+            _sessionSearch.value = null
+            return
+        }
+        scope.launch {
+            val needle = query.trim().lowercase()
+            _sessionSearch.value = port.fetchSessionMessages(taskId)
+                .mapNotNull { msg ->
+                    val role = msg.str6("role") ?: return@mapNotNull null
+                    val content = listOf("content", "text", "summary").firstNotNullOfOrNull { msg.str6(it) } ?: return@mapNotNull null
+                    if (!content.lowercase().contains(needle)) return@mapNotNull null
+                    SessionSearchResult(role, content.take(200))
+                }
+        }
+    }
+
+    private fun JsonObject.str6(key: String): String? =
+        (this[key] as? kotlinx.serialization.json.JsonPrimitive)?.takeIf { it !is kotlinx.serialization.json.JsonNull }?.content
+
+    /** L6.4 + I1: `startSavedWorkflow` in THIS session; the ack's typed reason feeds the notice. */
+    fun startSavedWorkflow(name: String, scope: String?, args: Map<String, String>) {
+        this.scope.launch {
+            val result = port.startSavedWorkflow(taskId, name, scope, args)
+            _sendNotice.value = when (result.outcome) {
+                ConversationPort.SendOutcome.ACCEPTED -> if (result.reasonCode == null) {
+                    refreshWorkflowRuns()
+                    SendNotice("Workflow started", SendNotice.Kind.INFO, SendNotice.Key.WORKFLOW_STARTED, listOf(name))
+                } else {
+                    SendNotice("The desktop refused the workflow (${result.reasonCode})", SendNotice.Kind.ERROR, SendNotice.Key.WORKFLOW_REFUSED, listOf(result.reasonCode))
+                }
+                ConversationPort.SendOutcome.BLOCKED_OFFLINE -> SendNotice("Not connected", SendNotice.Kind.WARNING, SendNotice.Key.ROW_ACTION_OFFLINE)
+                else -> SendNotice("The desktop refused the workflow", SendNotice.Kind.ERROR, SendNotice.Key.WORKFLOW_REFUSED, listOf(result.reasonCode ?: "start_failed"))
+            }
+        }
+    }
+
+    /** retryTurn — accepted is silent (the re-asked turn is the feedback; desktop logs refusals only). */
+    fun retryTurn(rowId: Long, entityId: String) {
+        scope.launch {
+            rowActionNotice(port.retryTurn(taskId, rowId, entityId), refusedText = "The desktop refused the retry — nothing changed.", refusedKey = SendNotice.Key.RETRY_REFUSED)
+        }
+    }
+
+    /**
+     * I2.4 (Phase 6A): the compaction notice's Retry affordance — the same `/compact`
+     * path the slash command rides (desktop compactOperationLock surfaces as the typed
+     * ack), so a failed marker re-arms compaction without touching the draft.
+     */
+    fun retryCompaction() {
+        scope.launch {
+            when (port.compact(taskId)) {
+                ConversationPort.SendOutcome.ACCEPTED -> _sendNotice.value = null
+                ConversationPort.SendOutcome.BLOCKED_OFFLINE -> _sendNotice.value =
+                    SendNotice("You're offline — the command was not sent and the draft is preserved.", SendNotice.Kind.WARNING)
+                else -> _sendNotice.value = SendNotice(
+                    "Compact was refused by the desktop (it may already be running or an active turn blocks it).",
+                    SendNotice.Kind.WARNING,
+                    SendNotice.Key.COMPACT_REFUSED,
+                )
+            }
+        }
+    }
+
+    /** forkAssistant — the desktop switches to the child session in place (SessionPane.tsx:3039). */
+    fun forkAssistant(rowId: Long, entityId: String) {
+        scope.launch {
+            val result = port.forkAssistant(taskId, rowId, entityId)
+            if (result.outcome == ConversationPort.SendOutcome.ACCEPTED) {
+                _sendNotice.value = null
+                _forkedSession.value = result.childSessionId
+                return@launch
+            }
+            rowActionNotice(result.outcome, refusedText = "Could not fork the conversation — the desktop refused it.", refusedKey = SendNotice.Key.FORK_REFUSED)
+        }
+    }
+
+    /** applyFileRewind on the turn — the confirm step lives in the UI (desktop rewindDialog parity). */
+    fun applyFileRewind(rowId: Long, entityId: String) {
+        scope.launch {
+            when (val outcome = port.applyFileRewind(taskId, rowId, entityId)) {
+                ConversationPort.SendOutcome.ACCEPTED ->
+                    _sendNotice.value = SendNotice("File changes from that turn were undone.", SendNotice.Kind.INFO, SendNotice.Key.REWIND_APPLIED)
+                else -> rowActionNotice(outcome, refusedText = "The file undo request failed — nothing was changed.", refusedKey = SendNotice.Key.REWIND_REFUSED)
+            }
+        }
+    }
+
+    /** setAssistantFeedback — accepted is silent; the row's `feedback` echo is the truth. */
+    fun setAssistantFeedback(rowId: Long, entityId: String, feedback: String?) {
+        scope.launch {
+            rowActionNotice(port.setAssistantFeedback(taskId, rowId, entityId, feedback), refusedText = "The desktop refused the feedback — nothing changed.", refusedKey = SendNotice.Key.FEEDBACK_REFUSED)
+        }
+    }
+
+    private fun rowActionNotice(outcome: ConversationPort.SendOutcome, refusedText: String, refusedKey: SendNotice.Key) {
+        when (outcome) {
+            ConversationPort.SendOutcome.ACCEPTED -> Unit
+            ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
+                _sendNotice.value = SendNotice("Offline — the action was not sent. Nothing changed.", SendNotice.Kind.WARNING, SendNotice.Key.ROW_ACTION_OFFLINE)
+            ConversationPort.SendOutcome.STALE ->
+                _sendNotice.value = SendNotice("The session changed on the desktop — try again.", SendNotice.Kind.WARNING, SendNotice.Key.SESSION_CHANGED)
+            else -> _sendNotice.value = SendNotice(refusedText, SendNotice.Kind.ERROR, refusedKey)
+        }
+    }
+
     /** User-gated retry of an UNKNOWN send — SAME commandId (INV-4, no duplicate). */
     fun retryPendingSend(commandId: String) {
         scope.launch {
@@ -550,6 +883,48 @@ class ConversationViewModel(
         }
     }
 
+    // ---------------------------------------------------------------- I1 queue (Phase 5A): reorder · drain · follow-up
+
+    private fun queueStaleNotice(outcome: ConversationPort.SendOutcome) {
+        if (outcome == ConversationPort.SendOutcome.STALE) {
+            _sendNotice.value = SendNotice("Queue changed on the desktop — please try again.", SendNotice.Kind.WARNING)
+        }
+    }
+
+    /** `reorderQueueItem` — the item moves before [beforeQueueItemId] (null = to the end). */
+    fun reorderQueueItem(queueItemId: String, beforeQueueItemId: String?) {
+        scope.launch { queueStaleNotice(port.reorderQueueItem(taskId, queueItemId, beforeQueueItemId)) }
+    }
+
+    /**
+     * Move an item up/down one slot — computes the desktop's `beforeQueueItemId` from the
+     * CURRENT projection order (the same shape a drag-drop produces): moving up targets the
+     * item currently above; moving down targets the item two below (or null = end).
+     */
+    fun moveQueueItem(queueItemId: String, delta: Int) {
+        val items = state.value.sessionState?.queue?.items?.map { it.queueItemId } ?: return
+        val index = items.indexOf(queueItemId)
+        if (index < 0) return
+        val target = index + delta
+        if (target < 0 || target >= items.size || delta == 0) return
+        val before = when {
+            delta < 0 -> items[target]
+            target + 1 < items.size -> items[target + 1]
+            else -> null
+        }
+        reorderQueueItem(queueItemId, before)
+    }
+
+    /** `setAutoDrain` — the queue's drain toggle (false pauses sending). */
+    fun setAutoDrain(autoDrain: Boolean) {
+        scope.launch { queueStaleNotice(port.setAutoDrain(taskId, autoDrain)) }
+    }
+
+    /** `setFollowupMode {queue|guide}` — the follow-up steering (I2.6). */
+    fun setFollowupMode(mode: String) {
+        scope.launch { queueStaleNotice(port.setFollowupMode(taskId, mode)) }
+    }
+
     /** §20 answer through the ONE fail-closed gate (double-tap-safe via busy set). */
     fun answerInteraction(interactionId: String, optionId: String, freeText: String?, userInput: Boolean) {
         if (interactionId in _busyInteractions.value) return
@@ -563,6 +938,13 @@ class ConversationViewModel(
                         _sendNotice.value = SendNotice("This request can't be answered here — check the desktop.", SendNotice.Kind.ERROR)
                     ConversationPort.AnswerOutcome.RETRYABLE_KEPT ->
                         _sendNotice.value = SendNotice("Answer not confirmed — retry when connected.", SendNotice.Kind.WARNING)
+                    // T2: the resolved-elsewhere answer is SAYABLE — typed copy, not silence.
+                    ConversationPort.AnswerOutcome.ALREADY_RESOLVED ->
+                        _sendNotice.value = SendNotice(
+                            "Already handled on the desktop.",
+                            SendNotice.Kind.INFO,
+                            SendNotice.Key.ANSWER_ALREADY_RESOLVED,
+                        )
                     else -> Unit // SUBMITTED / INERT (button disabled) / DUPLICATE (no-op) are silent
                 }
             } finally {
@@ -572,6 +954,19 @@ class ConversationViewModel(
     }
 
     /** Phase 7 field: AskUserQuestion answers through the ONE fail-closed gate. */
+    /** A3.14: decline the elicitation (the agent continues on best judgment). */
+    fun declineUserInput(interactionId: String) {
+        if (interactionId in _busyInteractions.value) return
+        _busyInteractions.value = _busyInteractions.value + interactionId
+        scope.launch {
+            try {
+                port.declineUserInput(interactionId, "decline")
+            } finally {
+                _busyInteractions.value = _busyInteractions.value - interactionId
+            }
+        }
+    }
+
     fun answerUserInputQuestions(interactionId: String, answers: Map<String, List<String>>) {
         if (interactionId in _busyInteractions.value) return
         _busyInteractions.value = _busyInteractions.value + interactionId

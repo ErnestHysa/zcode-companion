@@ -1,6 +1,8 @@
 package com.zcode.android.app.connect
 
 import kotlin.test.Test
+import kotlin.test.assertNull
+import kotlin.test.assertFalse
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlinx.serialization.json.Json
@@ -149,5 +151,30 @@ class BootstrapParserTest {
         val result = BootstrapParser.parseWorkspaceList(payload)
         assertEquals(1, result.workspaces.size)
         assertEquals("Synthetic One", result.workspaces[0].label)
+    }
+
+    /**
+     * A3.8 (Phase 5A): the bootstrap task row's `pinned` / `unreadAt` (windowHostController
+     * task row schema) are decoded — the pinned section + unread dot are wire facts; absent
+     * fields decode to the READ / unpinned defaults.
+     */
+    @Test
+    fun `pinned and unreadAt decode from the task row and default when absent`() {
+        val payload = Json.parseToJsonElement(
+            """
+            {"result":{"workspaces":[{"kind":"local","label":"demo","workspacePath":"/ws"}],
+             "tasks":[
+               {"taskId":"t1","title":"Pinned unread","workspacePath":"/ws","workspaceLabel":"demo","createdAt":1,"updatedAt":2,"pinned":true,"unreadAt":1700000000000},
+               {"taskId":"t2","title":"Plain","workspacePath":"/ws","workspaceLabel":"demo","createdAt":3,"updatedAt":4}
+             ]}}
+            """,
+        ).jsonObject
+        val result = BootstrapParser.parseBootstrap(payload)
+        val t1 = result.tasks.first { it.taskId == "t1" }
+        val t2 = result.tasks.first { it.taskId == "t2" }
+        assertTrue(t1.pinned)
+        assertEquals(1700000000000L, t1.unreadAtMs)
+        assertFalse(t2.pinned)
+        assertNull(t2.unreadAtMs)
     }
 }

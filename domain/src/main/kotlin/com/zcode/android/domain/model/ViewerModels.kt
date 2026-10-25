@@ -293,6 +293,16 @@ data class AutomationRow(
     val workspaceKey: String,
     /** "local" | "remote" (closed enum, kept raw). */
     val locationKind: String,
+    /** The carried model (B2.1/J2 model round-trip): `modelSelection.{providerId,modelId}`
+     *  — the SAME shape the write path sends (ViewerPorts.writeRequest). Tolerant:
+     *  absent/blank → null (the editor falls back to the workspace default). */
+    val modelProvider: String? = null,
+    val modelId: String? = null,
+    /** Phase 4B (J2): the custom-repeat end bound (local day-end ms); null = never ends. */
+    val endAt: Long? = null,
+    /** Phase 4B (A3.2): last dispatch error + state (`idle|claimed|dispatched|failed_to_dispatch`, raw). */
+    val lastError: String? = null,
+    val dispatchStatus: String? = null,
 ) {
     data class ScheduleRule(
         val unit: String,
@@ -302,6 +312,10 @@ data class AutomationRow(
         val anchorAt: Long,
         val weekdays: List<Int>,
         val monthDays: List<Int>,
+        /** yearly: 1-12 human months (absent on older records → the anchor's month). */
+        val months: List<Int>? = null,
+        /** monthly: `date` | `weekday` (raw; absent = date). */
+        val monthlyMode: String? = null,
     )
 
     companion object {
@@ -331,13 +345,74 @@ data class AutomationRow(
                             anchorAt = r.longReq("anchorAt"),
                             weekdays = r.intList("weekdays"),
                             monthDays = r.intList("monthDays"),
+                            months = (r["months"] as? JsonArray)?.let { r.intList("months") },
+                            monthlyMode = r.strOrNullN("monthlyMode"),
                         )
                     },
                     workspaceKey = o.strReq("workspaceKey"),
                     locationKind = o.strReq("locationKind"),
+                    modelProvider = o.objOrNull("modelSelection")?.strOrNullN("providerId"),
+                    modelId = o.objOrNull("modelSelection")?.strOrNullN("modelId"),
+                    endAt = o.longOrNullN("endAt"),
+                    lastError = o.strOrNullN("lastError"),
+                    dispatchStatus = o.strOrNullN("dispatchStatus"),
                 )
             }
         }
+}
+
+/**
+ * A3.2+B2.11 (Phase 4B): one `listAutomationRuns` entry — ZCodeAutomationRun
+ * (automation-types.ts). Closed enums stay RAW (INV-8): trigger schedule|manual,
+ * dispatchStatus claimed|dispatched|failed_to_dispatch|skipped, outcome
+ * running|succeeded|failed|stopped. `sessionId` is back-filled on dispatch and is
+ * the open-session-from-run target.
+ */
+data class AutomationRunRow(
+    val runId: String,
+    val automationId: String,
+    val trigger: String,
+    val dispatchStatus: String,
+    val outcome: String?,
+    val sessionId: String?,
+    val error: String?,
+    val attempts: Int,
+    val scheduledAt: Long?,
+    val createdAt: Long,
+    val updatedAt: Long,
+) {
+    /** automations.runs.status.* — the desktop's fold of dispatch + outcome. */
+    val status: String get() = displayStatus(dispatchStatus, outcome)
+
+    /** Wall time from claim to the last update (terminal runs only; running → null). */
+    val durationMs: Long? get() = if (status == "running") null else (updatedAt - createdAt).coerceAtLeast(0)
+
+    companion object {
+        fun displayStatus(dispatchStatus: String, outcome: String?): String = when {
+            outcome != null -> outcome
+            dispatchStatus == "failed_to_dispatch" -> "failed"
+            dispatchStatus == "skipped" -> "skipped"
+            else -> "running"
+        }
+
+        fun decodeList(obj: JsonObject): List<AutomationRunRow> =
+            obj.arrayReq("runs").map { el ->
+                val o = el.asObject("automation run")
+                AutomationRunRow(
+                    runId = o.strReq("runId"),
+                    automationId = o.strReq("automationId"),
+                    trigger = o.strReq("trigger"),
+                    dispatchStatus = o.strReq("dispatchStatus"),
+                    outcome = o.strOrNullN("outcome"),
+                    sessionId = o.strOrNullN("sessionId"),
+                    error = o.strOrNullN("error"),
+                    attempts = o.intOrNull("attempts") ?: 0,
+                    scheduledAt = o.longOrNullN("scheduledAt"),
+                    createdAt = o.longReq("createdAt"),
+                    updatedAt = o.longReq("updatedAt"),
+                )
+            }
+    }
 }
 
 /**
@@ -528,4 +603,39 @@ data class McpStatuses(
             )
         }
     }
+}
+
+/**
+ * C2 (Phase 4C): the slash panel's extra sections — `commands.list` (command-types.ts
+ * CommandsListResult: userCommands + pluginCommands, `enabled` filtered, `argumentHint`
+ * = the input hint) and `subagents.list` (subagents-types.ts AgentsListResult.agents,
+ * `enabled` filtered — absent means enabled). Scope/source stay raw (INV-8).
+ */
+object SlashCatalogExtras {
+    data class CommandEntry(val name: String, val description: String, val inputHint: String?, val source: String)
+    data class AgentEntry(val name: String, val description: String, val scope: String?)
+
+    fun decodeCommands(obj: JsonObject): List<CommandEntry> {
+        fun entries(key: String, source: String): List<CommandEntry> =
+            (obj[key] as? JsonArray)?.mapNotNull { el ->
+                val o = el as? JsonObject ?: return@mapNotNull null
+                val name = o.strOrNullN("name")?.trim()?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+                if ((o["enabled"] as? JsonPrimitive)?.content == "false") return@mapNotNull null
+                CommandEntry(
+                    name = name,
+                    description = o.strOrNullN("description") ?: "",
+                    inputHint = o.strOrNullN("argumentHint")?.takeIf { it.isNotBlank() },
+                    source = source,
+                )
+            } ?: emptyList()
+        return entries("userCommands", "user") + entries("pluginCommands", "plugin")
+    }
+
+    fun decodeAgents(obj: JsonObject): List<AgentEntry> =
+        (obj["agents"] as? JsonArray)?.mapNotNull { el ->
+            val o = el as? JsonObject ?: return@mapNotNull null
+            val name = o.strOrNullN("name")?.trim()?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+            if ((o["enabled"] as? JsonPrimitive)?.content == "false") return@mapNotNull null
+            AgentEntry(name = name, description = o.strOrNullN("description") ?: "", scope = o.strOrNullN("scope"))
+        } ?: emptyList()
 }

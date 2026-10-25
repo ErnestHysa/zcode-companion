@@ -14,6 +14,14 @@ import androidx.compose.ui.graphics.Color
  * Dynamic color is intentionally NOT applied: ui-ux rule — "dynamic color optional
  * for chrome only; status tokens stay fixed". The brand scheme is the designed pair;
  * reconsideration is a Phase 11 polish item behind an ADR.
+ *
+ * Surface ladder (J5): the M3 `surfaceContainer*` / `surfaceDim` / `surfaceBright`
+ * roles are explicit tokens of the designed pair — never M3's neutral baseline. The
+ * container steps reuse the chrome tokens they coincide with (light: surface → codeBg →
+ * bg → toolSurface → surface2; dark: bg → surface → toolSurface → surface2 → a raised
+ * step) so dialogs (surfaceContainerHigh), menus and sheets (surfaceContainerLow) paint
+ * the same slate family as the screens around them. `outlineSoft` is the divider
+ * variant — a softer weight than `outline`, which stays the control-border token.
  */
 @Immutable
 data class ZCodeColors(
@@ -41,9 +49,24 @@ data class ZCodeColors(
     val surface2: Color,
     val outline: Color,
     val outlineStrong: Color,
+    val outlineSoft: Color,
+    val surfaceDim: Color,
+    val surfaceBright: Color,
+    val surfaceContainerLowest: Color,
+    val surfaceContainerLow: Color,
+    val surfaceContainer: Color,
+    val surfaceContainerHigh: Color,
+    val surfaceContainerHighest: Color,
 )
 
-/** Light tokens (ui-ux/color-system.md — light is the primary designed pair). */
+/**
+ * Light tokens (ui-ux/color-system.md — light is the primary designed pair).
+ *
+ * J6 contrast floor: every TEXT-role token clears WCAG AA small text (4.5:1) on
+ * surface/bg/surface2 — `textMuted`, `statusWaiting` and `statusSuccess` were each
+ * darkened one step (3.3–4.4:1 before). `statusWaiting` also clears AA on its own
+ * 16%-tint AttentionStrip. The table is pinned by TokenContrastTest.
+ */
 val ZCodeColorsLight = ZCodeColors(
     accent = Color(0xFF3D5AFE),
     onAccent = Color(0xFFFFFFFF),
@@ -51,15 +74,15 @@ val ZCodeColorsLight = ZCodeColors(
     accentMuted = Color(0xFF5C6BC0),
     text = Color(0xFF12151C),
     textSecondary = Color(0xFF4A5568),
-    textMuted = Color(0xFF7A8499),
+    textMuted = Color(0xFF656E82),
     textInverse = Color(0xFFFFFFFF),
     statusRunning = Color(0xFF3D5AFE),
-    statusWaiting = Color(0xFFC47A00),
-    statusSuccess = Color(0xFF1B7F4E),
+    statusWaiting = Color(0xFF8F5800),
+    statusSuccess = Color(0xFF1A7B4B),
     statusError = Color(0xFFC62828),
     statusInfo = Color(0xFF1565C0),
     railRunning = Color(0xFF3D5AFE),
-    railWaiting = Color(0xFFC47A00),
+    railWaiting = Color(0xFF8F5800),
     railDone = Color(0xFFB8C0D0),
     toolSurface = Color(0xFFF0F3FA),
     codeBg = Color(0xFFF7F8FC),
@@ -69,6 +92,14 @@ val ZCodeColorsLight = ZCodeColors(
     surface2 = Color(0xFFEEF1F7),
     outline = Color(0xFFD5DBE7),
     outlineStrong = Color(0xFFB8C0D0),
+    outlineSoft = Color(0xFFE6EAF2),
+    surfaceDim = Color(0xFFE4E8F0),
+    surfaceBright = Color(0xFFFFFFFF),
+    surfaceContainerLowest = Color(0xFFFFFFFF),
+    surfaceContainerLow = Color(0xFFF7F8FC),
+    surfaceContainer = Color(0xFFF4F6FA),
+    surfaceContainerHigh = Color(0xFFF0F3FA),
+    surfaceContainerHighest = Color(0xFFEEF1F7),
 )
 
 /** Dark tokens (ui-ux mockups 14/15 — deeper, cooler than generic gray). */
@@ -79,7 +110,7 @@ val ZCodeColorsDark = ZCodeColors(
     accentMuted = Color(0xFF9AA8FF),
     text = Color(0xFFE8ECF4),
     textSecondary = Color(0xFF9AA3B5),
-    textMuted = Color(0xFF6B7385),
+    textMuted = Color(0xFF828B9E),
     textInverse = Color(0xFF0B0E14),
     statusRunning = Color(0xFF7C9CFF),
     statusWaiting = Color(0xFFE6A817),
@@ -97,6 +128,14 @@ val ZCodeColorsDark = ZCodeColors(
     surface2 = Color(0xFF1C2433),
     outline = Color(0xFF2A3344),
     outlineStrong = Color(0xFF3A4558),
+    outlineSoft = Color(0xFF1F2736),
+    surfaceDim = Color(0xFF0B0E14),
+    surfaceBright = Color(0xFF283140),
+    surfaceContainerLowest = Color(0xFF0B0E14),
+    surfaceContainerLow = Color(0xFF141A24),
+    surfaceContainer = Color(0xFF161D2A),
+    surfaceContainerHigh = Color(0xFF1C2433),
+    surfaceContainerHighest = Color(0xFF243040),
 )
 
 /** M3 scheme mapped onto the token system (chrome roles only — status stays extended). */
@@ -126,8 +165,16 @@ val LightScheme: ColorScheme = lightColorScheme(
     errorContainer = Color(0xFFFDECEA),
     onErrorContainer = Color(0xFF8C1D18),
     outline = ZCodeColorsLight.outline,
-    outlineVariant = ZCodeColorsLight.outline,
+    outlineVariant = ZCodeColorsLight.outlineSoft,
     scrim = Color(0xFF000000),
+    // J5 — the surface ladder (dialogs/menus/sheets) is the designed pair, not M3 baseline.
+    surfaceDim = ZCodeColorsLight.surfaceDim,
+    surfaceBright = ZCodeColorsLight.surfaceBright,
+    surfaceContainerLowest = ZCodeColorsLight.surfaceContainerLowest,
+    surfaceContainerLow = ZCodeColorsLight.surfaceContainerLow,
+    surfaceContainer = ZCodeColorsLight.surfaceContainer,
+    surfaceContainerHigh = ZCodeColorsLight.surfaceContainerHigh,
+    surfaceContainerHighest = ZCodeColorsLight.surfaceContainerHighest,
 )
 
 /** Dark scheme — designed pair, not an inversion (ui-ux color-system rule 3). */
@@ -157,6 +204,14 @@ val DarkScheme: ColorScheme = darkColorScheme(
     errorContainer = Color(0xFF3B1216),
     onErrorContainer = Color(0xFFFFDAD6),
     outline = ZCodeColorsDark.outline,
-    outlineVariant = ZCodeColorsDark.outline,
+    outlineVariant = ZCodeColorsDark.outlineSoft,
     scrim = Color(0xFF000000),
+    // J5 — the surface ladder (dialogs/menus/sheets) is the designed pair, not M3 baseline.
+    surfaceDim = ZCodeColorsDark.surfaceDim,
+    surfaceBright = ZCodeColorsDark.surfaceBright,
+    surfaceContainerLowest = ZCodeColorsDark.surfaceContainerLowest,
+    surfaceContainerLow = ZCodeColorsDark.surfaceContainerLow,
+    surfaceContainer = ZCodeColorsDark.surfaceContainer,
+    surfaceContainerHigh = ZCodeColorsDark.surfaceContainerHigh,
+    surfaceContainerHighest = ZCodeColorsDark.surfaceContainerHighest,
 )

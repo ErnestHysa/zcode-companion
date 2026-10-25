@@ -1,0 +1,1360 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 9.3.3" type="baseline" client="gradle" dependencies="true" name="AGP (9.3.3)" variant="all" version="9.3.3">
+
+    <issue
+        id="EmptySuperCall"
+        message="No need to call `super.onCleared`; the super method is defined to be empty"
+        errorLine1="        super.onCleared()"
+        errorLine2="              ~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/nav/ZCodeApp.kt"
+            line="390"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="MissingPermission"
+        message="Call requires permission which may be rejected by user: code should explicitly check to see if permission is available (with `checkPermission`) or explicitly handle a potential `SecurityException`"
+        errorLine1="        NotificationManagerCompat.from(context).notify(groupSummaryId(group), summary.build())"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/core/notifications/AndroidNotificationSink.kt"
+            line="92"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="MissingPermission"
+        message="Call requires permission which may be rejected by user: code should explicitly check to see if permission is available (with `checkPermission`) or explicitly handle a potential `SecurityException`"
+        errorLine1="        manager.notify(stableId(key), builder.build())"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/core/notifications/AndroidNotificationSink.kt"
+            line="113"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 28 (current min is 26): `android.security.keystore.KeyGenParameterSpec.Builder#setIsStrongBoxBacked`"
+        errorLine1="                builder.setIsStrongBoxBacked(true)"
+        errorLine2="                        ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/core/security/vault/AndroidKeystoreKeyWrap.kt"
+            line="55"
+            column="25"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 28 (current min is 26): `android.security.keystore.KeyGenParameterSpec.Builder#setIsStrongBoxBacked`"
+        errorLine1="                builder.setIsStrongBoxBacked(false)"
+        errorLine2="                        ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/core/security/vault/AndroidKeystoreKeyWrap.kt"
+            line="60"
+            column="25"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 28 (current min is 26): `android.content.pm.PackageInfo#getLongVersionCode`"
+        errorLine1="            &quot;version=${pm.versionName} (vc${pm.longVersionCode}) &quot; +"
+        errorLine2="                                               ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/AppContainer.kt"
+            line="88"
+            column="48"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 28 (current min is 26): `android.content.pm.PackageInfo#getLongVersionCode`"
+        errorLine1="                    pm.longVersionCode"
+        errorLine2="                       ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/AppContainer.kt"
+            line="218"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="NewApi"
+        message="Call requires API level 28 (current min is 26): `android.content.pm.PackageInfo#getLongVersionCode`"
+        errorLine1="    appendLine(&quot;app: ${pm.versionName} (vc${pm.longVersionCode})&quot;)"
+        errorLine2="                                               ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/SettingsScreen.kt"
+            line="542"
+            column="48"/>
+    </issue>
+
+    <issue
+        id="UnusedAttribute"
+        message="Attribute `enableOnBackInvokedCallback` is only used in API level 33 and higher (current min is 26)"
+        errorLine1="        android:enableOnBackInvokedCallback=&quot;true&quot;"
+        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="23"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="UnusedAttribute"
+        message="Attribute `targetCellWidth` is only used in API level 31 and higher (current min is 26)"
+        errorLine1="    android:targetCellWidth=&quot;2&quot;"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/xml/pending_approvals_widget_info.xml"
+            line="6"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UnusedAttribute"
+        message="Attribute `targetCellHeight` is only used in API level 31 and higher (current min is 26)"
+        errorLine1="    android:targetCellHeight=&quot;1&quot;"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/xml/pending_approvals_widget_info.xml"
+            line="7"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="WrongConstant"
+        message="Must be one of: NotificationManager.IMPORTANCE_UNSPECIFIED, NotificationManager.IMPORTANCE_NONE, NotificationManager.IMPORTANCE_MIN, NotificationManager.IMPORTANCE_LOW, NotificationManager.IMPORTANCE_DEFAULT, NotificationManager.IMPORTANCE_HIGH"
+        errorLine1="                NotificationManagerCompat.IMPORTANCE_HIGH,"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/core/notifications/NotificationChannels.kt"
+            line="29"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="WrongConstant"
+        message="Must be one of: NotificationManager.IMPORTANCE_UNSPECIFIED, NotificationManager.IMPORTANCE_NONE, NotificationManager.IMPORTANCE_MIN, NotificationManager.IMPORTANCE_LOW, NotificationManager.IMPORTANCE_DEFAULT, NotificationManager.IMPORTANCE_HIGH"
+        errorLine1="                NotificationManagerCompat.IMPORTANCE_DEFAULT,"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/core/notifications/NotificationChannels.kt"
+            line="36"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="WrongConstant"
+        message="Must be one of: NotificationManager.IMPORTANCE_UNSPECIFIED, NotificationManager.IMPORTANCE_NONE, NotificationManager.IMPORTANCE_MIN, NotificationManager.IMPORTANCE_LOW, NotificationManager.IMPORTANCE_DEFAULT, NotificationManager.IMPORTANCE_HIGH"
+        errorLine1="                NotificationManagerCompat.IMPORTANCE_MIN,"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/core/notifications/NotificationChannels.kt"
+            line="43"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="WrongConstant"
+        message="Must be one of: NotificationManager.IMPORTANCE_UNSPECIFIED, NotificationManager.IMPORTANCE_NONE, NotificationManager.IMPORTANCE_MIN, NotificationManager.IMPORTANCE_LOW, NotificationManager.IMPORTANCE_DEFAULT, NotificationManager.IMPORTANCE_HIGH"
+        errorLine1="                NotificationManagerCompat.IMPORTANCE_LOW,"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/core/notifications/NotificationChannels.kt"
+            line="50"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="NonObservableLocale"
+        message="Reading locale in a non-observable way in a composable function"
+        errorLine1="    val locale = Locale.getDefault()"
+        errorLine2="                 ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/CodingPlanQuotaSection.kt"
+            line="382"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="NonObservableLocale"
+        message="Reading locale in a non-observable way in a composable function"
+        errorLine1="    val locale = Locale.getDefault()"
+        errorLine2="                 ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/UsageScreen.kt"
+            line="240"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="NonObservableLocale"
+        message="Reading locale in a non-observable way in a composable function"
+        errorLine1="                        formatCompactTokenCount(total, Locale.getDefault()),"
+        errorLine2="                                                       ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/UsageScreen.kt"
+            line="374"
+            column="56"/>
+    </issue>
+
+    <issue
+        id="NonObservableLocale"
+        message="Reading locale in a non-observable way in a composable function"
+        errorLine1="    val locale = Locale.getDefault()"
+        errorLine2="                 ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/UsageScreen.kt"
+            line="410"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="NonObservableLocale"
+        message="Reading locale in a non-observable way in a composable function"
+        errorLine1="    val locale = Locale.getDefault()"
+        errorLine2="                 ~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/UsageScreen.kt"
+            line="446"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="UnsafeOptInUsageError"
+        message="This declaration is opt-in and its usage should be marked with `@androidx.camera.core.ExperimentalGetImage` or `@OptIn(markerClass = androidx.camera.core.ExperimentalGetImage.class)`"
+        errorLine1="    val media = proxy.image"
+        errorLine2="                      ~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/features/pairing/ui/QrScanner.kt"
+            line="91"
+            column="23"/>
+    </issue>
+
+    <issue
+        id="ContextCastToActivity"
+        message="LocalContext should not be cast to Activity, use LocalActivity instead"
+        errorLine1="    val activity = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/nav/ZCodeApp.kt"
+            line="418"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="LocalContextGetResourceValueCall"
+        message="Querying resource values using LocalContext.current is not configuration-aware and may return stale values if the Configuration changes"
+        errorLine1="                        text = context.getString(R.string.widget_approvals_title),"
+        errorLine2="                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/widget/PendingApprovalsWidget.kt"
+            line="64"
+            column="32"/>
+    </issue>
+
+    <issue
+        id="LocalContextGetResourceValueCall"
+        message="Querying resource values using LocalContext.current is not configuration-aware and may return stale values if the Configuration changes"
+        errorLine1="                    android.widget.Toast.makeText(context, context.getString(R.string.settings_marker_toast), android.widget.Toast.LENGTH_SHORT).show()"
+        errorLine2="                                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/SettingsScreen.kt"
+            line="144"
+            column="60"/>
+    </issue>
+
+    <issue
+        id="LocalContextGetResourceValueCall"
+        message="Querying resource values using LocalContext.current is not configuration-aware and may return stale values if the Configuration changes"
+        errorLine1="            title = { Text(stringResource(R.string.settings_unpair_title, endpointName ?: context.getString(R.string.settings_your_desktop_fallback))) },"
+        errorLine2="                                                                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/SettingsScreen.kt"
+            line="237"
+            column="91"/>
+    </issue>
+
+    <issue
+        id="LocalContextGetResourceValueCall"
+        message="Querying resource values using LocalContext.current is not configuration-aware and may return stale values if the Configuration changes"
+        errorLine1="                        switchMessage = context.getString("
+        errorLine2="                                        ^">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/SettingsScreen.kt"
+            line="302"
+            column="41"/>
+    </issue>
+
+    <issue
+        id="LocalContextGetResourceValueCall"
+        message="Querying resource values using LocalContext.current is not configuration-aware and may return stale values if the Configuration changes"
+        errorLine1="                            switchMessage = context.getString(R.string.settings_added_connecting)"
+        errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/SettingsScreen.kt"
+            line="334"
+            column="45"/>
+    </issue>
+
+    <issue
+        id="LocalContextGetResourceValueCall"
+        message="Querying resource values using LocalContext.current is not configuration-aware and may return stale values if the Configuration changes"
+        errorLine1="                    appContext.getString(R.string.deeplink_task_gone),"
+        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/nav/ZCodeApp.kt"
+            line="181"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="LocalContextGetResourceValueCall"
+        message="Querying resource values using LocalContext.current is not configuration-aware and may return stale values if the Configuration changes"
+        errorLine1="                    appContext.getString(R.string.deeplink_wrong_endpoint),"
+        errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/nav/ZCodeApp.kt"
+            line="189"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier,"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/connect/ConnectionCenterScreen.kt"
+            line="65"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier,"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/features/conversation/ui/ConversationScreen.kt"
+            line="87"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="fun DiffLineRow(line: DiffLine, counterpart: String? = null, modifier: Modifier = Modifier) {"
+        errorLine2="                                                             ~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/core/ui/components/DiffRenderer.kt"
+            line="241"
+            column="62"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier,"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/McpViewerScreen.kt"
+            line="60"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier,"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/PluginsViewerScreen.kt"
+            line="65"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier,"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/features/conversation/ui/RowRenderers.kt"
+            line="85"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="fun AgentProse(text: String, streaming: Boolean, createdAtMs: Double? = null, modifier: Modifier = Modifier) {"
+        errorLine2="                                                                              ~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/features/conversation/ui/RowRenderers.kt"
+            line="151"
+            column="79"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="fun CodeBlock(code: String, lang: String? = null, modifier: Modifier = Modifier, complete: Boolean = true) {"
+        errorLine2="                                                  ~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/features/conversation/ui/RowRenderers.kt"
+            line="394"
+            column="51"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier,"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/SettingsScreen.kt"
+            line="72"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier,"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/SkillsViewerScreen.kt"
+            line="59"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier,"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/features/tasks/ui/TaskListScreen.kt"
+            line="105"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ModifierParameter"
+        message="Modifier parameter should be the first optional parameter"
+        errorLine1="    modifier: Modifier = Modifier,"
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/UsageScreen.kt"
+            line="80"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;composer_model_picker_title&quot; is not translated in &quot;zh&quot; (Chinese)"
+        errorLine1="    &lt;string name=&quot;composer_model_picker_title&quot;>Choose a model&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="79"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;conv_leave_title&quot; is not translated in &quot;zh&quot; (Chinese)"
+        errorLine1="    &lt;string name=&quot;conv_leave_title&quot;>Leave this conversation?&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="80"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;conv_leave_body&quot; is not translated in &quot;zh&quot; (Chinese)"
+        errorLine1="    &lt;string name=&quot;conv_leave_body&quot;>You have an unsent draft. It stays saved on this device, but the task keeps running — are you sure you want to leave?&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="81"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;conv_leave_keep&quot; is not translated in &quot;zh&quot; (Chinese)"
+        errorLine1="    &lt;string name=&quot;conv_leave_keep&quot;>Keep editing&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="82"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;conv_leave_discard&quot; is not translated in &quot;zh&quot; (Chinese)"
+        errorLine1="    &lt;string name=&quot;conv_leave_discard&quot;>Leave&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="83"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;composer_model_picker_empty&quot; is not translated in &quot;zh&quot; (Chinese)"
+        errorLine1="    &lt;string name=&quot;composer_model_picker_empty&quot;>No models available on this connection.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="84"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="PluralsCandidate"
+        message="Formatting %d followed by words (&quot;tasks&quot;): This should probably be a plural rather than a string"
+        errorLine1="    &lt;string name=&quot;tasks_group_a11y&quot;>Workspace %1$s, %2$d tasks. Tap to %3$s.&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="29"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="PluralsCandidate"
+        message="Formatting %d followed by words (&quot;runs&quot;): This should probably be a plural rather than a string"
+        errorLine1="&lt;string name=&quot;automation_runs&quot;>%1$d runs&lt;/string>"
+        errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="37"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="PluralsCandidate"
+        message="Formatting %d followed by words (&quot;chars&quot;): This should probably be a plural rather than a string"
+        errorLine1="&lt;string name=&quot;settings_clip_truncated_suffix&quot;>\n\n…(truncated at %1$d chars — use Export diagnostics for the full report)&lt;/string>"
+        errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="115"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="PluralsCandidate"
+        message="Formatting %d followed by words (&quot;minutes&quot;): This should probably be a plural rather than a string"
+        errorLine1="    &lt;string name=&quot;settings_live_window_value&quot;>%1$d minutes&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="133"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="PluralsCandidate"
+        message="Formatting %d followed by words (&quot;tools&quot;): This should probably be a plural rather than a string"
+        errorLine1="&lt;string name=&quot;mcp_tool_count&quot;>%1$d tools&lt;/string>"
+        errorLine2="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="208"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="This folder configuration (`v26`) is unnecessary; `minSdkVersion` is 26. Merge all the resources in this folder into `mipmap-anydpi`.">
+        <location
+            file="src/main/res/mipmap-anydpi-v26"/>
+    </issue>
+
+    <issue
+        id="AutoboxingStateCreation"
+        message="Prefer `mutableIntStateOf` instead of `mutableStateOf`"
+        errorLine1="    var scheduleKind by remember(existing) { mutableStateOf(seed.kind) }"
+        errorLine2="                                             ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/features/tasks/ui/AutomationsSection.kt"
+            line="288"
+            column="46"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.raw.builtin_slash_catalog` appears to be unused">
+        <location
+            file="../features/conversation/src/main/res/raw/builtin_slash_catalog.json"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.files_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;files_title&quot;>Files&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="../features/files/src/main/res/values/strings.xml"
+            line="3"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.git_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;git_title&quot;>Git&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~">
+        <location
+            file="../features/git/src/main/res/values/strings.xml"
+            line="3"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.terminal_consent_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;terminal_consent_title&quot;>Terminal (view-only)&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="../features/terminal/src/main/res/values/strings.xml"
+            line="14"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.scan_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;scan_title&quot;>Scan the pairing QR&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="../features/pairing/src/main/res/values/strings.xml"
+            line="16"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.terminal_title` appears to be unused"
+        errorLine1="    &lt;string name=&quot;terminal_title&quot;>Terminal&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="../features/terminal/src/main/res/values/strings.xml"
+            line="17"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.action_approve` appears to be unused"
+        errorLine1="    &lt;string name=&quot;action_approve&quot;>Approve&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="../core/ui/src/main/res/values/strings.xml"
+            line="34"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.setup_biometric_enable` appears to be unused"
+        errorLine1="    &lt;string name=&quot;setup_biometric_enable&quot;>Require biometric unlock&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="../features/pairing/src/main/res/values/strings.xml"
+            line="36"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.action_allow_always` appears to be unused"
+        errorLine1="    &lt;string name=&quot;action_allow_always&quot;>Allow always&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="../core/ui/src/main/res/values/strings.xml"
+            line="37"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.action_open` appears to be unused"
+        errorLine1="    &lt;string name=&quot;action_open&quot;>Open&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="../core/ui/src/main/res/values/strings.xml"
+            line="38"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.a11y_status_icon` appears to be unused"
+        errorLine1="    &lt;string name=&quot;a11y_status_icon&quot;>Status: %1$s&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="../core/ui/src/main/res/values/strings.xml"
+            line="39"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.connecting_detail` appears to be unused"
+        errorLine1="    &lt;string name=&quot;connecting_detail&quot;>Authenticating with the pairing credential. This usually takes a few seconds.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="../features/pairing/src/main/res/values/strings.xml"
+            line="42"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.action_ok` appears to be unused"
+        errorLine1="    &lt;string name=&quot;action_ok&quot;>OK&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~">
+        <location
+            file="../features/conversation/src/main/res/values/strings.xml"
+            line="44"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.automations_field_model` appears to be unused"
+        errorLine1="    &lt;string name=&quot;automations_field_model&quot;>Model&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="../features/tasks/src/main/res/values/strings.xml"
+            line="50"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.widget_open_a11y` appears to be unused"
+        errorLine1="    &lt;string name=&quot;widget_open_a11y&quot;>Open ZCode Companion&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="61"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.plurals.relative_seconds` appears to be unused"
+        errorLine1="    &lt;plurals name=&quot;relative_seconds&quot;>"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="../core/ui/src/main/res/values/strings.xml"
+            line="77"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.context_usage_cd` appears to be unused"
+        errorLine1="    &lt;string name=&quot;context_usage_cd&quot;>Context window usage&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="../features/conversation/src/main/res/values/strings.xml"
+            line="140"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="TypographyDashes"
+        message="Replace &quot;--&quot; with an &quot;em dash&quot; character (—, &amp;#8212;) ?"
+        errorLine1="&lt;string name=&quot;settings_add_direct_sub&quot;>通过 URL + 令牌连接自托管的 ZCode 服务器（zcode --web）&lt;/string>"
+        errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rCN/strings.xml"
+            line="96"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="TypographyDashes"
+        message="Replace &quot;--&quot; with an &quot;em dash&quot; character (—, &amp;#8212;) ?"
+        errorLine1="&lt;string name=&quot;settings_add_token_label&quot;>令牌（zcode --web --token …）&lt;/string>"
+        errorLine2="                                        ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rCN/strings.xml"
+            line="102"
+            column="41"/>
+    </issue>
+
+    <issue
+        id="TypographyDashes"
+        message="Replace &quot;--&quot; with an &quot;em dash&quot; character (—, &amp;#8212;) ?"
+        errorLine1="&lt;string name=&quot;settings_add_direct_sub&quot;>Connect to a self-hosted ZCode server (zcode --web) by URL + token&lt;/string>"
+        errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="103"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="TypographyDashes"
+        message="Replace &quot;--&quot; with an &quot;em dash&quot; character (—, &amp;#8212;) ?"
+        errorLine1="&lt;string name=&quot;settings_add_token_label&quot;>Token (zcode --web --token …)&lt;/string>"
+        errorLine2="                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="109"
+            column="41"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="        val uri = Uri.parse(&quot;zcode://task/$taskId&quot; + (interactionId?.let { &quot;#interaction=$it&quot; } ?: &quot;&quot;))"
+        errorLine2="                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/core/notifications/AndroidNotificationSink.kt"
+            line="97"
+            column="19"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="    val uri = android.net.Uri.parse(&quot;zcode://task/${target.taskId}&quot;).buildUpon()"
+        errorLine2="              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/widget/PendingApprovalsWidget.kt"
+            line="112"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="UseKtx"
+        message="Use the KTX extension function `String.toUri` instead?"
+        errorLine1="                                    android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))"
+        errorLine2="                                                                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/features/conversation/ui/RowRenderers.kt"
+            line="526"
+            column="96"/>
+    </issue>
+
+    <issue
+        id="ComposeCompositionLocalUsage"
+        message="`CompositionLocal`s are implicit dependencies and creating new ones should be avoided. See https://slackhq.github.io/compose-lints/rules/#compositionlocals for more information."
+        errorLine1="/** Extended semantic tokens outside the M3 scheme (status/timeline/code chrome). */"
+        errorLine2="^">
+        <location
+            file="src/main/kotlin/com/zcode/android/core/ui/theme/Theme.kt"
+            line="29"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="ComposeModifierMissing"
+        message="This @Composable function emits content but doesn&apos;t have a modifier parameter.See https://slackhq.github.io/compose-lints/rules/#when-should-i-expose-modifier-parameters for more information."
+        errorLine1="fun DiffFileCard("
+        errorLine2="    ~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/core/ui/components/DiffRenderer.kt"
+            line="80"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposeModifierMissing"
+        message="This @Composable function emits content but doesn&apos;t have a modifier parameter.See https://slackhq.github.io/compose-lints/rules/#when-should-i-expose-modifier-parameters for more information."
+        errorLine1="fun DiffCountBadge(added: Long, removed: Long) {"
+        errorLine2="    ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/core/ui/components/DiffRenderer.kt"
+            line="170"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposeModifierMissing"
+        message="This @Composable function emits content but doesn&apos;t have a modifier parameter.See https://slackhq.github.io/compose-lints/rules/#when-should-i-expose-modifier-parameters for more information."
+        errorLine1="fun PairingHost(vm: PairingViewModel, scannerContent: @Composable (() -> Unit)?) {"
+        errorLine2="    ~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/features/pairing/ui/PairingScreens.kt"
+            line="43"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposeModifierMissing"
+        message="This @Composable function emits content but doesn&apos;t have a modifier parameter.See https://slackhq.github.io/compose-lints/rules/#when-should-i-expose-modifier-parameters for more information."
+        errorLine1="fun QrScanner(lifecycleOwner: LifecycleOwner, onDecoded: (String) -> Unit) {"
+        errorLine2="    ~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/features/pairing/ui/QrScanner.kt"
+            line="36"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposeModifierMissing"
+        message="This @Composable function emits content but doesn&apos;t have a modifier parameter.See https://slackhq.github.io/compose-lints/rules/#when-should-i-expose-modifier-parameters for more information."
+        errorLine1="fun ZCodeApp("
+        errorLine2="    ~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/nav/ZCodeApp.kt"
+            line="77"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposeModifierReused"
+        message="Modifiers should only be used once and by the root level layout of a Composable. This is true even if appended to or with other modifiers e.g. modifier.fillMaxWidth().Use Modifier (with a capital &apos;M&apos;) to construct a new Modifier that you can pass to other composables.See https://slackhq.github.io/compose-lints/rules/#dont-re-use-modifiers for more information."
+        errorLine1="        Text("
+        errorLine2="        ^">
+        <location
+            file="src/main/kotlin/com/zcode/android/core/ui/components/DiffRenderer.kt"
+            line="65"
+            column="9"/>
+    </issue>
+
+    <issue
+        id="ComposeModifierReused"
+        message="Modifiers should only be used once and by the root level layout of a Composable. This is true even if appended to or with other modifiers e.g. modifier.fillMaxWidth().Use Modifier (with a capital &apos;M&apos;) to construct a new Modifier that you can pass to other composables.See https://slackhq.github.io/compose-lints/rules/#dont-re-use-modifiers for more information."
+        errorLine1="    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {"
+        errorLine2="    ^">
+        <location
+            file="src/main/kotlin/com/zcode/android/core/ui/components/DiffRenderer.kt"
+            line="72"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="ComposeModifierWithoutDefault"
+        message="This @Composable function has a modifier parameter but it doesn&apos;t have a default value.See https://slackhq.github.io/compose-lints/rules/#modifiers-should-have-default-parameters for more information."
+        errorLine1="private fun SummaryCard(modifier: Modifier, label: String, value: String, valueTag: String? = null) {"
+        errorLine2="                        ~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/UsageScreen.kt"
+            line="282"
+            column="25"/>
+    </issue>
+
+    <issue
+        id="ComposeMultipleContentEmitters"
+        message="Composable functions should only be emitting content into the composition from one source at their top level.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#do-not-emit-multiple-pieces-of-content for more information."
+        errorLine1="@Composable"
+        errorLine2="^">
+        <location
+            file="src/main/kotlin/com/zcode/android/features/tasks/ui/AutomationsSection.kt"
+            line="432"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="ComposeMultipleContentEmitters"
+        message="Composable functions should only be emitting content into the composition from one source at their top level.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#do-not-emit-multiple-pieces-of-content for more information."
+        errorLine1="@Composable"
+        errorLine2="^">
+        <location
+            file="src/main/kotlin/com/zcode/android/features/conversation/ui/RowRenderers.kt"
+            line="580"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="ComposeMultipleContentEmitters"
+        message="Composable functions should only be emitting content into the composition from one source at their top level.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#do-not-emit-multiple-pieces-of-content for more information."
+        errorLine1="/**"
+        errorLine2="^">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/SettingsScreen.kt"
+            line="687"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="ComposeMultipleContentEmitters"
+        message="Composable functions should only be emitting content into the composition from one source at their top level.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#do-not-emit-multiple-pieces-of-content for more information."
+        errorLine1="@Composable"
+        errorLine2="^">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/UsageScreen.kt"
+            line="321"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="ComposeMultipleContentEmitters"
+        message="Composable functions should only be emitting content into the composition from one source at their top level.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#do-not-emit-multiple-pieces-of-content for more information."
+        errorLine1="@Composable"
+        errorLine2="^">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/UsageScreen.kt"
+            line="352"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="ComposeMultipleContentEmitters"
+        message="Composable functions should only be emitting content into the composition from one source at their top level.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#do-not-emit-multiple-pieces-of-content for more information."
+        errorLine1="@Composable"
+        errorLine2="^">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/UsageScreen.kt"
+            line="399"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="ComposeMultipleContentEmitters"
+        message="Composable functions should only be emitting content into the composition from one source at their top level.&#xA;&#xA;See https://slackhq.github.io/compose-lints/rules/#do-not-emit-multiple-pieces-of-content for more information."
+        errorLine1="@Composable"
+        errorLine2="^">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/UsageScreen.kt"
+            line="435"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [phase: ConnectionPhase, endpointName: String?, desktopVersion: String?, lastError: com.zcode.android.core.common.error.AppError?, lastRefreshAtMs: Long?, onRetry: () -> Unit, onDismissError: () -> Unit, onBack: () -> Unit, updateState: com.zcode.android.app.update.UpdateCheckState? = null, downloadState: com.zcode.android.app.update.DownloadState? = null, onUpdateNow: () -> Unit = {}, onCheckForUpdate: () -> Unit = {}, modifier: Modifier = Modifier] but should be [phase: ConnectionPhase, endpointName: String?, desktopVersion: String?, lastError: com.zcode.android.core.common.error.AppError?, lastRefreshAtMs: Long?, onRetry: () -> Unit, onDismissError: () -> Unit, onBack: () -> Unit, modifier: Modifier = Modifier, updateState: com.zcode.android.app.update.UpdateCheckState? = null, downloadState: com.zcode.android.app.update.DownloadState? = null, onUpdateNow: () -> Unit = {}, onCheckForUpdate: () -> Unit = {}].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun ConnectionCenterScreen("
+        errorLine2="                          ^">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/connect/ConnectionCenterScreen.kt"
+            line="52"
+            column="27"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [state: ConversationUiState, phase: ConnectionPhase, onBack: () -> Unit, onLoadOlder: (Long, (Int) -> Unit) -> Unit, onDismissHistoryNotice: () -> Unit, onRetryOlder: (Long) -> Unit, onDraftChange: (String) -> Unit, onSend: (heldQueueDisposition: String?) -> Unit, onStop: () -> Unit, onRetrySend: (commandId: String) -> Unit, onDismissSendNotice: () -> Unit, onAnswer: (String, String, String?, Boolean) -> Unit, onSendQueuedNow: (queueItemId: String) -> Unit, onEditQueueItem: (queueItemId: String, newText: String) -> Unit, onAnswerQuestions: (String, Map&lt;String, List&lt;String>>) -> Unit = { _, _ -> }, modifier: Modifier = Modifier, onOpenFiles: () -> Unit = {}, onOpenGit: () -> Unit = {}, onOpenTerminal: () -> Unit = {}, onSwitchMode: (String) -> Unit = {}, onSwitchModel: (provider: String, model: String, thought: String) -> Unit = { _, _, _ -> }, modelOptionsProvider: suspend () -> List&lt;com.zcode.android.domain.model.ModelProviderOption> = { emptyList() }, turnChangesProvider: suspend (rowId: Long, entityId: String) -> ConversationPort.TurnChangesResult =&#xA;{ _, _ -> ConversationPort.TurnChangesResult(null, &quot;unavailable&quot;) }, onUploadAttachment: suspend (fileName: String, mime: String, bytes: ByteArray) -> ConversationPort.UploadResult =&#xA;{ _, _, _ -> ConversationPort.UploadResult.Failed(&quot;attachments unavailable&quot;) }, onRemoveAttachment: (uploadId: String) -> Unit = {}, onRetryAttachment: (uploadId: String) -> Unit = {}, onEditUserQuery: (rowId: Long, entityId: String, newText: String) -> Unit = { _, _, _ -> }] but should be [state: ConversationUiState, phase: ConnectionPhase, onBack: () -> Unit, onLoadOlder: (Long, (Int) -> Unit) -> Unit, onDismissHistoryNotice: () -> Unit, onRetryOlder: (Long) -> Unit, onDraftChange: (String) -> Unit, onSend: (heldQueueDisposition: String?) -> Unit, onStop: () -> Unit, onRetrySend: (commandId: String) -> Unit, onDismissSendNotice: () -> Unit, onAnswer: (String, String, String?, Boolean) -> Unit, onSendQueuedNow: (queueItemId: String) -> Unit, onEditQueueItem: (queueItemId: String, newText: String) -> Unit, modifier: Modifier = Modifier, onAnswerQuestions: (String, Map&lt;String, List&lt;String>>) -> Unit = { _, _ -> }, onOpenFiles: () -> Unit = {}, onOpenGit: () -> Unit = {}, onOpenTerminal: () -> Unit = {}, onSwitchMode: (String) -> Unit = {}, onSwitchModel: (provider: String, model: String, thought: String) -> Unit = { _, _, _ -> }, modelOptionsProvider: suspend () -> List&lt;com.zcode.android.domain.model.ModelProviderOption> = { emptyList() }, turnChangesProvider: suspend (rowId: Long, entityId: String) -> ConversationPort.TurnChangesResult =&#xA;{ _, _ -> ConversationPort.TurnChangesResult(null, &quot;unavailable&quot;) }, onUploadAttachment: suspend (fileName: String, mime: String, bytes: ByteArray) -> ConversationPort.UploadResult =&#xA;{ _, _, _ -> ConversationPort.UploadResult.Failed(&quot;attachments unavailable&quot;) }, onRemoveAttachment: (uploadId: String) -> Unit = {}, onRetryAttachment: (uploadId: String) -> Unit = {}, onEditUserQuery: (rowId: Long, entityId: String, newText: String) -> Unit = { _, _, _ -> }].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun ConversationScreen("
+        errorLine2="                      ^">
+        <location
+            file="src/main/kotlin/com/zcode/android/features/conversation/ui/ConversationScreen.kt"
+            line="71"
+            column="23"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [line: DiffLine, counterpart: String? = null, modifier: Modifier = Modifier] but should be [line: DiffLine, modifier: Modifier = Modifier, counterpart: String? = null].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun DiffLineRow(line: DiffLine, counterpart: String? = null, modifier: Modifier = Modifier) {"
+        errorLine2="               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/core/ui/components/DiffRenderer.kt"
+            line="241"
+            column="16"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [port: McpPort, onBack: () -> Unit = {}, modifier: Modifier = Modifier] but should be [port: McpPort, modifier: Modifier = Modifier, onBack: () -> Unit = {}].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun McpViewerScreen("
+        errorLine2="                   ^">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/McpViewerScreen.kt"
+            line="57"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [port: PluginsPort, onBack: () -> Unit = {}, modifier: Modifier = Modifier] but should be [port: PluginsPort, modifier: Modifier = Modifier, onBack: () -> Unit = {}].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun PluginsViewerScreen("
+        errorLine2="                       ^">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/PluginsViewerScreen.kt"
+            line="62"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="    Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;    Current params are: [text: String, createdAtMs: Double? = null, /** Desktop gate (ConversationRowView.tsx:1295): the edit entry needs entityId. */&#xA;editable: Boolean = false, onEdit: (() -> Unit)? = null, modifier: Modifier = Modifier] but should be [text: String, modifier: Modifier = Modifier, createdAtMs: Double? = null, /** Desktop gate (ConversationRowView.tsx:1295): the edit entry needs entityId. */&#xA;editable: Boolean = false, onEdit: (() -> Unit)? = null].&#xA;    See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun YouBlock("
+        errorLine2="            ^">
+        <location
+            file="src/main/kotlin/com/zcode/android/features/conversation/ui/RowRenderers.kt"
+            line="79"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [text: String, streaming: Boolean, createdAtMs: Double? = null, modifier: Modifier = Modifier] but should be [text: String, streaming: Boolean, modifier: Modifier = Modifier, createdAtMs: Double? = null].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun AgentProse(text: String, streaming: Boolean, createdAtMs: Double? = null, modifier: Modifier = Modifier) {"
+        errorLine2="              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/features/conversation/ui/RowRenderers.kt"
+            line="151"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [code: String, lang: String? = null, modifier: Modifier = Modifier, complete: Boolean = true] but should be [code: String, modifier: Modifier = Modifier, lang: String? = null, complete: Boolean = true].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun CodeBlock(code: String, lang: String? = null, modifier: Modifier = Modifier, complete: Boolean = true) {"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/features/conversation/ui/RowRenderers.kt"
+            line="394"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="    Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;    Current params are: [container: AppContainer, endpointName: String?, desktopVersion: String?, onBack: () -> Unit, /** GAP-5: opens the read-only Usage screen (v4-wire.md §12.1). */&#xA;onOpenUsage: () -> Unit = {}, /** GAP-7: opens the read-only plugins viewer (v4-wire.md §12.3). */&#xA;onOpenPlugins: () -> Unit = {}, /** GAP-8: opens the read-only skills catalog (v4-wire.md §12.4). */&#xA;onOpenSkills: () -> Unit = {}, /** GAP-9: opens the read-only MCP server viewer (v4-wire.md §12.5). */&#xA;onOpenMcp: () -> Unit = {}, modifier: Modifier = Modifier] but should be [container: AppContainer, endpointName: String?, desktopVersion: String?, onBack: () -> Unit, modifier: Modifier = Modifier, /** GAP-5: opens the read-only Usage screen (v4-wire.md §12.1). */&#xA;onOpenUsage: () -> Unit = {}, /** GAP-7: opens the read-only plugins viewer (v4-wire.md §12.3). */&#xA;onOpenPlugins: () -> Unit = {}, /** GAP-8: opens the read-only skills catalog (v4-wire.md §12.4). */&#xA;onOpenSkills: () -> Unit = {}, /** GAP-9: opens the read-only MCP server viewer (v4-wire.md §12.5). */&#xA;onOpenMcp: () -> Unit = {}].&#xA;    See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun SettingsScreen("
+        errorLine2="                  ^">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/SettingsScreen.kt"
+            line="59"
+            column="19"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [message: String?, autoDismissMs: Long = 2_500, churn: Int = 0, onDismiss: () -> Unit, delay: suspend (Long) -> Unit = { kotlinx.coroutines.delay(it) }] but should be [message: String?, onDismiss: () -> Unit, autoDismissMs: Long = 2_500, churn: Int = 0, delay: suspend (Long) -> Unit = { kotlinx.coroutines.delay(it) }].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="internal fun AutoDismissMessage("
+        errorLine2="                               ^">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/SettingsScreen.kt"
+            line="948"
+            column="32"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [port: SkillsPort, onBack: () -> Unit = {}, modifier: Modifier = Modifier] but should be [port: SkillsPort, modifier: Modifier = Modifier, onBack: () -> Unit = {}].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun SkillsViewerScreen("
+        errorLine2="                      ^">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/SkillsViewerScreen.kt"
+            line="56"
+            column="23"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="    Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;    Current params are: [state: TasksUiState, onTaskClick: (Task) -> Unit, onOpenSettings: () -> Unit, onOpenConnection: () -> Unit, onRetry: () -> Unit, onRefresh: () -> Unit, onRepairPairing: () -> Unit = {}, /** Phase 7 §18.3: approvals inbox entry with the open-request count. */&#xA;openApprovals: Int = 0, onOpenApprovals: () -> Unit = {}, /** Phase 7 field: create a task in an existing workspace (§6.1 parity). */&#xA;onCreateTask: (String, String, String?, String?) -> Unit = { _, _, _, _ -> }, /** FIELD (2026-10-12): the model picker the nav layer injects (app module owns&#xA; * the model-selection transport; features:tasks stays transport-free). */&#xA;modelPicker: @Composable (&#xA;    current: Pair&lt;String, String>?,&#xA;    onPick: (provider: String, model: String) -> Unit,&#xA;    onDismiss: () -> Unit,&#xA;) -> Unit = { _, _, _ -> }, workspaces: List&lt;com.zcode.android.domain.model.WorkspaceOption> = emptyList(), creatingTask: Boolean = false, createNotice: String? = null, onConsumeCreateNotice: () -> Unit = {}, /** GAP-14: per-workspace collapse persistence (null = in-memory for the session). */&#xA;collapseStore: com.zcode.android.features.tasks.ui.WorkspaceCollapseStore? = null, collapseExecutor: java.util.concurrent.Executor = com.zcode.android.features.tasks.ui.WorkspaceCollapseStateBackgroundExecutor(), /** GAP-6: read-only automations + off-peak lists (null = section hidden). */&#xA;automationsPort: com.zcode.android.features.tasks.port.AutomationsPort? = null, modifier: Modifier = Modifier] but should be [state: TasksUiState, onTaskClick: (Task) -> Unit, onOpenSettings: () -> Unit, onOpenConnection: () -> Unit, onRetry: () -> Unit, onRefresh: () -> Unit, modifier: Modifier = Modifier, onRepairPairing: () -> Unit = {}, /** Phase 7 §18.3: approvals inbox entry with the open-request count. */&#xA;openApprovals: Int = 0, onOpenApprovals: () -> Unit = {}, /** Phase 7 field: create a task in an existing workspace (§6.1 parity). */&#xA;onCreateTask: (String, String, String?, String?) -> Unit = { _, _, _, _ -> }, /** FIELD (2026-10-12): the model picker the nav layer injects (app module owns&#xA; * the model-selection transport; features:tasks stays transport-free). */&#xA;modelPicker: @Composable (&#xA;    current: Pair&lt;String, String>?,&#xA;    onPick: (provider: String, model: String) -> Unit,&#xA;    onDismiss: () -> Unit,&#xA;) -> Unit = { _, _, _ -> }, workspaces: List&lt;com.zcode.android.domain.model.WorkspaceOption> = emptyList(), creatingTask: Boolean = false, createNotice: String? = null, onConsumeCreateNotice: () -> Unit = {}, /** GAP-14: per-workspace collapse persistence (null = in-memory for the session). */&#xA;collapseStore: com.zcode.android.features.tasks.ui.WorkspaceCollapseStore? = null, collapseExecutor: java.util.concurrent.Executor = com.zcode.android.features.tasks.ui.WorkspaceCollapseStateBackgroundExecutor(), /** GAP-6: read-only automations + off-peak lists (null = section hidden). */&#xA;automationsPort: com.zcode.android.features.tasks.port.AutomationsPort? = null].&#xA;    See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun TaskListScreen("
+        errorLine2="                  ^">
+        <location
+            file="src/main/kotlin/com/zcode/android/features/tasks/ui/TaskListScreen.kt"
+            line="76"
+            column="19"/>
+    </issue>
+
+    <issue
+        id="ComposeParameterOrder"
+        message="Parameters in a composable function should be ordered following this pattern: params without defaults, modifiers, params with defaults and optionally, a trailing function that might not have a default param.&#xA;Current params are: [port: UsagePort, quotaPort: CodingPlanPort? = null, onBack: () -> Unit = {}, modifier: Modifier = Modifier] but should be [port: UsagePort, modifier: Modifier = Modifier, quotaPort: CodingPlanPort? = null, onBack: () -> Unit = {}].&#xA;See https://slackhq.github.io/compose-lints/rules/#ordering-composable-parameters-properly for more information."
+        errorLine1="fun UsageScreen("
+        errorLine2="               ^">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/UsageScreen.kt"
+            line="76"
+            column="16"/>
+    </issue>
+
+    <issue
+        id="ComposeUnstableCollections"
+        message="The Compose Compiler cannot infer the stability of a parameter if a List&lt;ConversationPort.InteractionSummary> is used in it, even if the item type is stable.&#xA;You should use Kotlinx Immutable Collections instead: `interactions: ImmutableList&lt;ConversationPort.InteractionSummary>` or create an `@Immutable` wrapper for this class: `@Immutable data class InteractionsList(val items: List&lt;ConversationPort.InteractionSummary>)`&#xA;See https://slackhq.github.io/compose-lints/rules/#avoid-using-unstable-collections for more information."
+        errorLine1="    interactions: List&lt;ConversationPort.InteractionSummary>,"
+        errorLine2="                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/features/conversation/ui/ApprovalsScreen.kt"
+            line="55"
+            column="19"/>
+    </issue>
+
+    <issue
+        id="ComposeUnstableCollections"
+        message="The Compose Compiler cannot infer the stability of a parameter if a List&lt;Long> is used in it, even if the item type is stable.&#xA;You should use Kotlinx Immutable Collections instead: `useRetryDelaysMs: ImmutableList&lt;Long>` or create an `@Immutable` wrapper for this class: `@Immutable data class UseRetryDelaysMsList(val items: List&lt;Long>)`&#xA;See https://slackhq.github.io/compose-lints/rules/#avoid-using-unstable-collections for more information."
+        errorLine1="    useRetryDelaysMs: List&lt;Long> = listOf(0, 250, 750, 1_500),"
+        errorLine2="                      ~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/CodingPlanQuotaSection.kt"
+            line="125"
+            column="23"/>
+    </issue>
+
+    <issue
+        id="ComposeUnstableCollections"
+        message="The Compose Compiler cannot infer the stability of a parameter if a List&lt;DiffFile> is used in it, even if the item type is stable.&#xA;You should use Kotlinx Immutable Collections instead: `files: ImmutableList&lt;DiffFile>` or create an `@Immutable` wrapper for this class: `@Immutable data class FilesList(val items: List&lt;DiffFile>)`&#xA;See https://slackhq.github.io/compose-lints/rules/#avoid-using-unstable-collections for more information."
+        errorLine1="    files: List&lt;DiffFile>,"
+        errorLine2="           ~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/core/ui/components/DiffRenderer.kt"
+            line="60"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="ComposeUnstableCollections"
+        message="The Compose Compiler cannot infer the stability of a parameter if a List&lt;GitChangeEntry> is used in it, even if the item type is stable.&#xA;You should use Kotlinx Immutable Collections instead: `entries: ImmutableList&lt;GitChangeEntry>` or create an `@Immutable` wrapper for this class: `@Immutable data class EntriesList(val items: List&lt;GitChangeEntry>)`&#xA;See https://slackhq.github.io/compose-lints/rules/#avoid-using-unstable-collections for more information."
+        errorLine1="    entries: List&lt;GitChangeEntry>,"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/features/git/ui/GitScreen.kt"
+            line="267"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="ComposeUnstableCollections"
+        message="The Compose Compiler cannot infer the stability of a parameter if a List&lt;NotificationRecord> is used in it, even if the item type is stable.&#xA;You should use Kotlinx Immutable Collections instead: `records: ImmutableList&lt;NotificationRecord>` or create an `@Immutable` wrapper for this class: `@Immutable data class RecordsList(val items: List&lt;NotificationRecord>)`&#xA;See https://slackhq.github.io/compose-lints/rules/#avoid-using-unstable-collections for more information."
+        errorLine1="    private fun Content(state: WidgetState, records: List&lt;NotificationRecord>) {"
+        errorLine2="                                                     ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/widget/PendingApprovalsWidget.kt"
+            line="54"
+            column="54"/>
+    </issue>
+
+    <issue
+        id="ComposeUnstableCollections"
+        message="The Compose Compiler cannot infer the stability of a parameter if a List&lt;ConversationPort.ComposerAttachment> is used in it, even if the item type is stable.&#xA;You should use Kotlinx Immutable Collections instead: `attachments: ImmutableList&lt;ConversationPort.ComposerAttachment>` or create an `@Immutable` wrapper for this class: `@Immutable data class AttachmentsList(val items: List&lt;ConversationPort.ComposerAttachment>)`&#xA;See https://slackhq.github.io/compose-lints/rules/#avoid-using-unstable-collections for more information."
+        errorLine1="    attachments: List&lt;ConversationPort.ComposerAttachment>,"
+        errorLine2="                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/features/conversation/ui/Phase9Components.kt"
+            line="465"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="ComposeUnstableCollections"
+        message="The Compose Compiler cannot infer the stability of a parameter if a List&lt;MarkdownParser.Span> is used in it, even if the item type is stable.&#xA;You should use Kotlinx Immutable Collections instead: `spans: ImmutableList&lt;MarkdownParser.Span>` or create an `@Immutable` wrapper for this class: `@Immutable data class SpansList(val items: List&lt;MarkdownParser.Span>)`&#xA;See https://slackhq.github.io/compose-lints/rules/#avoid-using-unstable-collections for more information."
+        errorLine1="    spans: List&lt;MarkdownParser.Span>,"
+        errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/features/conversation/ui/RowRenderers.kt"
+            line="479"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="ComposeUnstableCollections"
+        message="The Compose Compiler cannot infer the stability of a parameter if a List&lt;ConversationPort.SlashCommandView> is used in it, even if the item type is stable.&#xA;You should use Kotlinx Immutable Collections instead: `commands: ImmutableList&lt;ConversationPort.SlashCommandView>` or create an `@Immutable` wrapper for this class: `@Immutable data class CommandsList(val items: List&lt;ConversationPort.SlashCommandView>)`&#xA;See https://slackhq.github.io/compose-lints/rules/#avoid-using-unstable-collections for more information."
+        errorLine1="    commands: List&lt;ConversationPort.SlashCommandView>,"
+        errorLine2="              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/features/conversation/ui/SlashCommandMenu.kt"
+            line="32"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="ComposeUnstableCollections"
+        message="The Compose Compiler cannot infer the stability of a parameter if a List&lt;com.zcode.android.domain.model.WorkspaceOption> is used in it, even if the item type is stable.&#xA;You should use Kotlinx Immutable Collections instead: `workspaces: ImmutableList&lt;com.zcode.android.domain.model.WorkspaceOption>` or create an `@Immutable` wrapper for this class: `@Immutable data class WorkspacesList(val items: List&lt;com.zcode.android.domain.model.WorkspaceOption>)`&#xA;See https://slackhq.github.io/compose-lints/rules/#avoid-using-unstable-collections for more information."
+        errorLine1="    workspaces: List&lt;com.zcode.android.domain.model.WorkspaceOption> = emptyList(),"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/features/tasks/ui/TaskListScreen.kt"
+            line="96"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="ComposeUnstableCollections"
+        message="The Compose Compiler cannot infer the stability of a parameter if a List&lt;com.zcode.android.domain.model.WorkspaceOption> is used in it, even if the item type is stable.&#xA;You should use Kotlinx Immutable Collections instead: `workspaces: ImmutableList&lt;com.zcode.android.domain.model.WorkspaceOption>` or create an `@Immutable` wrapper for this class: `@Immutable data class WorkspacesList(val items: List&lt;com.zcode.android.domain.model.WorkspaceOption>)`&#xA;See https://slackhq.github.io/compose-lints/rules/#avoid-using-unstable-collections for more information."
+        errorLine1="    workspaces: List&lt;com.zcode.android.domain.model.WorkspaceOption>,"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/features/tasks/ui/TaskListScreen.kt"
+            line="242"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="ComposeUnstableCollections"
+        message="The Compose Compiler cannot infer the stability of a parameter if a List&lt;AppUsageSnapshot.DailyModelUsage> is used in it, even if the item type is stable.&#xA;You should use Kotlinx Immutable Collections instead: `days: ImmutableList&lt;AppUsageSnapshot.DailyModelUsage>` or create an `@Immutable` wrapper for this class: `@Immutable data class DaysList(val items: List&lt;AppUsageSnapshot.DailyModelUsage>)`&#xA;See https://slackhq.github.io/compose-lints/rules/#avoid-using-unstable-collections for more information."
+        errorLine1="private fun DailySection(days: List&lt;AppUsageSnapshot.DailyModelUsage>, maxTokens: Long) {"
+        errorLine2="                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/UsageScreen.kt"
+            line="353"
+            column="32"/>
+    </issue>
+
+    <issue
+        id="ComposeUnstableCollections"
+        message="The Compose Compiler cannot infer the stability of a parameter if a List&lt;AppUsageSnapshot.ModelUsage> is used in it, even if the item type is stable.&#xA;You should use Kotlinx Immutable Collections instead: `models: ImmutableList&lt;AppUsageSnapshot.ModelUsage>` or create an `@Immutable` wrapper for this class: `@Immutable data class ModelsList(val items: List&lt;AppUsageSnapshot.ModelUsage>)`&#xA;See https://slackhq.github.io/compose-lints/rules/#avoid-using-unstable-collections for more information."
+        errorLine1="private fun ModelsSection(models: List&lt;AppUsageSnapshot.ModelUsage>) {"
+        errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/UsageScreen.kt"
+            line="400"
+            column="35"/>
+    </issue>
+
+    <issue
+        id="ComposeUnstableCollections"
+        message="The Compose Compiler cannot infer the stability of a parameter if a List&lt;AppUsageSnapshot.ToolUsage> is used in it, even if the item type is stable.&#xA;You should use Kotlinx Immutable Collections instead: `tools: ImmutableList&lt;AppUsageSnapshot.ToolUsage>` or create an `@Immutable` wrapper for this class: `@Immutable data class ToolsList(val items: List&lt;AppUsageSnapshot.ToolUsage>)`&#xA;See https://slackhq.github.io/compose-lints/rules/#avoid-using-unstable-collections for more information."
+        errorLine1="private fun ToolsSection(tools: List&lt;AppUsageSnapshot.ToolUsage>) {"
+        errorLine2="                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/settings/UsageScreen.kt"
+            line="436"
+            column="33"/>
+    </issue>
+
+    <issue
+        id="ComposeUnstableCollections"
+        message="The Compose Compiler cannot infer the stability of a parameter if a List&lt;ConversationPort.PendingSendView> is used in it, even if the item type is stable.&#xA;You should use Kotlinx Immutable Collections instead: `pending: ImmutableList&lt;ConversationPort.PendingSendView>` or create an `@Immutable` wrapper for this class: `@Immutable data class PendingList(val items: List&lt;ConversationPort.PendingSendView>)`&#xA;See https://slackhq.github.io/compose-lints/rules/#avoid-using-unstable-collections for more information."
+        errorLine1="    pending: List&lt;ConversationPort.PendingSendView>,"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/features/conversation/ui/WriteComponents.kt"
+            line="779"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="ComposeUnstableCollections"
+        message="The Compose Compiler cannot infer the stability of a parameter if a List&lt;com.zcode.android.domain.model.WorkspaceOption> is used in it, even if the item type is stable.&#xA;You should use Kotlinx Immutable Collections instead: `workspaces: ImmutableList&lt;com.zcode.android.domain.model.WorkspaceOption>` or create an `@Immutable` wrapper for this class: `@Immutable data class WorkspacesList(val items: List&lt;com.zcode.android.domain.model.WorkspaceOption>)`&#xA;See https://slackhq.github.io/compose-lints/rules/#avoid-using-unstable-collections for more information."
+        errorLine1="    workspaces: List&lt;com.zcode.android.domain.model.WorkspaceOption> = emptyList(),"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/nav/ZCodeApp.kt"
+            line="332"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="ComposeUnstableReceiver"
+        message="Instance composable functions on non-stable classes will always be recomposed. If possible, make the receiver type stable or refactor this function if that isn&apos;t possible. See https://slackhq.github.io/compose-lints/rules/#unstable-receivers for more information."
+        errorLine1="    private fun ScannerWithPermission() {"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/MainActivity.kt"
+            line="201"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="ComposeUnstableReceiver"
+        message="Instance composable functions on non-stable classes will always be recomposed. If possible, make the receiver type stable or refactor this function if that isn&apos;t possible. See https://slackhq.github.io/compose-lints/rules/#unstable-receivers for more information."
+        errorLine1="    private fun Content(state: WidgetState, records: List&lt;NotificationRecord>) {"
+        errorLine2="                ~~~~~~~">
+        <location
+            file="src/main/kotlin/com/zcode/android/app/widget/PendingApprovalsWidget.kt"
+            line="54"
+            column="17"/>
+    </issue>
+
+</issues>

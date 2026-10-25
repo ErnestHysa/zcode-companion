@@ -418,7 +418,7 @@ class RecoveryCoordinator(
     val resolvedInteractions = HashSet<String>()
     for (m in all) {
             val rows = m.lastSnapshotRows
-            interactions.reconcileFromSnapshot(rows)
+            interactions.reconcileFromSnapshot(rows, m.sessionId.raw)
             for (row in rows.filterIsInstance<com.zcode.android.domain.model.ConversationRow.TurnHeader>()) {
                 when (row.state) {
                     com.zcode.android.domain.model.ConversationRow.TurnState.COMPLETED_SUCCESS,
@@ -454,7 +454,7 @@ class RecoveryCoordinator(
     private suspend fun onSnapshotReconcile(sessionId: String, rows: List<com.zcode.android.domain.model.ConversationRow>) {
     synchronized(escalationCounts) { escalationCounts.remove(sessionId) } // healthy base restored
     log.debug("recovery.snapshotReconcile", "session=$sessionId rows=${rows.size}")
-    interactions.reconcileFromSnapshot(rows)
+    interactions.reconcileFromSnapshot(rows, sessionId)
     val port = notificationRecords ?: return
     val consumed = rows.filterIsInstance<com.zcode.android.domain.model.ConversationRow.TurnHeader>().mapNotNull { row ->
             when (row.state) {

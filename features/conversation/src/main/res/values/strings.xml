@@ -5,7 +5,7 @@
     <string name="conv_attention_title">Needs attention</string>
     <string name="conv_attention_body">The agent is waiting — answer above.</string>
     <string name="conv_load_earlier">Load earlier messages</string>
-    <string name="conv_showing_latest_of">  ·  showing latest %1$d of %2$d</string>
+    <string name="conv_showing_latest_of">"  ·  showing latest %1$d of %2$d"</string>
     <string name="conv_history_changed">History changed on desktop — jumped to latest</string>
     <string name="action_dismiss">Dismiss</string>
     <string name="conv_default_title">Conversation</string>
@@ -28,6 +28,8 @@
     <string name="approvals_open_task">Open task to answer</string>
     <string name="approvals_deny_title">Deny this request?</string>
     <string name="approvals_deny_body">The agent is told no for this request (%1$s).</string>
+    <!-- L3 (Phase 3B): the deny confirmation quotes the bounded request preview. -->
+    <string name="approvals_deny_preview">Request: %1$s</string>
 
     <!-- Approval cards (§20.2: consequences spelled out; §20.4 fail-closed). -->
     <string name="approval_needed">Approval needed</string>
@@ -76,12 +78,34 @@
     <string name="composer_send">Send message</string>
     <string name="composer_voice">Voice input</string>
     <string name="composer_voice_listening">Listening…</string>
+    <string name="composer_model_picker_title">Choose a model</string>
+    <!-- K3+N2.2 (Phase 3D): the designed composer shell + queue-in-two-places. -->
+    <string name="composer_add_desc">Add attachment</string>
+    <string name="composer_menu_photo">Photo</string>
+    <string name="composer_menu_camera">Take photo</string>
+    <string name="composer_menu_paste_image">Paste image</string>
+    <string name="composer_menu_voice">Dictate</string>
+    <string name="composer_placeholder_queue">Keep typing to queue follow-up changes</string>
+    <string name="composer_queue_pill">Queued</string>
+    <string name="row_attachment_loading">Loading…</string>
+    <string name="conv_leave_title">Leave this conversation?</string>
+    <string name="conv_leave_body">You have an unsent draft. It stays saved on this device, but the task keeps running — are you sure you want to leave?</string>
+    <string name="conv_leave_keep">Keep editing</string>
+    <string name="conv_leave_discard">Leave</string>
+    <string name="composer_model_picker_empty">No models available on this connection.</string>
     <string name="composer_voice_unavailable">Voice input isn\'t available on this device</string>
 
     <!-- Row renderers (§19.3/§19.5). -->
     <string name="row_you">YOU</string>
     <string name="row_agent">AGENT</string>
     <string name="row_generating">Generating</string>
+    <!-- Phase 4C (C2): the slash panel's three sections (desktop chat.slash.*-class) -->
+    <string name="slash_section_commands">Commands</string>
+    <string name="slash_section_skills">Skills</string>
+    <string name="slash_section_agents">Agents</string>
+    <string name="slash_section_loading">Loading…</string>
+    <string name="slash_section_empty_skills">No skills available</string>
+    <string name="slash_section_empty_agents">No agents available</string>
     <string name="row_tool_a11y">Tool %1$s, %2$s. Tap to %3$s.</string>
     <string name="a11y_expand">expand</string>
     <string name="a11y_collapse">collapse</string>
@@ -111,6 +135,11 @@
     <string name="switch_unavailable">The model list is not available on this connection — switching between known configuration values is still possible.</string>
     <string name="switch_keep_current">Keep current model</string>
     <string name="thought_level_for">Thought level for %1$s</string>
+    <!-- B1+D4 (Phase 3A): the one shared model picker sheet. -->
+    <string name="model_picker_search_hint">Search models</string>
+    <string name="model_picker_current">Current</string>
+    <string name="model_picker_no_results">No models match “%1$s”</string>
+    <string name="model_picker_effort_caption">Choose an effort level</string>
     <string name="changes_title">Changes · %1$s</string>
     <string name="changes_loading">Loading changes…</string>
     <string name="changes_error">Could not load changes: %1$s</string>
@@ -145,10 +174,199 @@
     <string name="action_edit">Edit</string>
     <string name="action_cancel">Cancel</string>
     <string name="row_actions_title">Message actions</string>
+    <!-- Phase 4A (E3.2+I1+N5) row actions — desktop chat.message.* / chat.changeSummary.rewindDialog.* -->
+    <string name="row_like">Like</string>
+    <string name="row_liked">Liked</string>
+    <string name="row_dislike">Dislike</string>
+    <string name="row_disliked">Disliked</string>
+    <string name="row_fork">Fork</string>
+    <string name="row_retry">Retry</string>
+    <string name="row_rewind_files">Undo files</string>
+    <string name="rewind_dialog_title">Undo file changes</string>
+    <string name="rewind_dialog_body">Restore the workspace files this turn changed (%1$s). The conversation itself is kept.</string>
+    <string name="rewind_dialog_confirm">Undo files</string>
+    <string name="fork_opened">Forked — opening the new conversation</string>
     <string name="edit_title">Edit message</string>
     <string name="edit_hint">The turn is re-asked with the edited text; the reply after it is regenerated.</string>
     <string name="edit_review">Review edit</string>
     <string name="edit_confirm_title">Re-ask this turn?</string>
     <string name="edit_confirm_body">This replaces the turn with your edited text and regenerates the reply. Files and later turns may be affected.</string>
     <string name="edit_confirm_button">Edit and re-ask</string>
+    <string name="row_link_open_failed">Can\'t open link</string>
+    <string name="row_writing">writing…</string>
+    <!-- H1.3 (Phase 3C): code-block wrap toggle (desktop codeBlock.wrapLongLines). -->
+    <string name="row_code_wrap_lines">Wrap long lines</string>
+    <string name="row_code_scroll_lines">Scroll long lines</string>
+    <string name="composer_busy_queued">Busy — this message will be queued on the desktop.</string>
+    <string name="row_subagent">Subagent · %1$s</string>
+    <string name="row_hook">Hook · %1$s</string>
+    <string name="queue_paused_suffix">" · paused"</string>
+    <string name="pending_sending">Sending…</string>
+    <string name="pending_sent_unknown">Send uncertain — connection lost (will not duplicate)</string>
+    <string name="pending_not_sent">Not sent</string>
+    <string name="row_turn_changes">%1$s +%2$d −%3$d · view</string>
+    <string name="notice_switch_offline">Offline — the switch was not sent. Nothing changed.</string>
+    <string name="notice_session_changed">The session changed on the desktop — try the switch again.</string>
+    <string name="notice_switch_refused">The desktop refused the switch — nothing changed.</string>
+    <string name="notice_model_switch_refused">The desktop refused the model switch — nothing changed.</string>
+    <string name="notice_attachment_too_large">Attachment is over the 20 MB desktop limit — not sent.</string>
+    <string name="notice_attachment_offline">Offline — the attachment was not sent. Retry when connected.</string>
+    <string name="notice_attachment_failed">Attachment failed to upload (%1$s) — not sent.</string>
+    <string name="notice_attachment_retry_failed">Attachment retry failed — not sent.</string>
+    <string name="notice_compact_refused">Compact was refused by the desktop (it may already be running or an active turn blocks it).</string>
+    <string name="notice_goal_refused">The goal update was refused by the desktop.</string>
+    <string name="notice_goal_resume_refused">Goal resume was refused (the conversation may have moved — try again).</string>
+    <!-- Phase 6A (I1-goal): the /goal pause unlock -->
+    <string name="notice_goal_pause_refused">Goal pause was refused (the goal may not be pausable right now).</string>
+    <!-- Phase 4C (A3.4+J3): the wire-driven effort picker + per-runtime mode labels -->
+    <string name="effort_chip_prefix">"Effort · "</string>
+    <string name="effort_dialog_title">Reasoning effort</string>
+    <string name="mode_title_neutral_build">Build</string>
+    <string name="mode_title_neutral_edit">Edit</string>
+    <string name="mode_title_neutral_plan">Plan</string>
+    <string name="mode_title_neutral_yolo">Full access</string>
+    <string name="mode_description_neutral_build">Confirm changes before running.</string>
+    <string name="mode_description_neutral_edit">Edit files automatically.</string>
+    <string name="mode_description_neutral_plan">Plan before editing.</string>
+    <string name="mode_description_neutral_yolo">Run with fewer confirmations.</string>
+    <string name="notice_effort_refused">The desktop refused the effort switch — nothing changed.</string>
+    <!-- Phase 4C (D2): the goal + todo surfaces -->
+    <string name="goal_iteration">iteration %1$d</string>
+    <string name="goal_verification_iteration">iter %1$d</string>
+    <string name="plan_title">Todos</string>
+    <string name="composer_menu_mention_file">Mention a file</string>
+    <string name="notice_row_action_offline">Offline — the action was not sent. Nothing changed.</string>
+    <string name="notice_retry_refused">The desktop refused the retry — nothing changed.</string>
+    <string name="notice_fork_refused">Could not fork the conversation — the desktop refused it.</string>
+    <string name="notice_rewind_applied">File changes from that turn were undone.</string>
+    <string name="notice_rewind_refused">The file undo request failed — nothing was changed.</string>
+    <string name="notice_feedback_refused">The desktop refused the feedback — nothing changed.</string>
+    <string name="notice_connection_lost">connection lost</string>
+    <plurals name="row_files_count">
+        <item quantity="one">%d file</item>
+        <item quantity="other">%d files</item>
+    </plurals>
+    <!-- I2.7+N2.4+C7 (Phase 3C): tool grouping headers, metadata, lazy full output. -->
+    <string name="tool_group_explore">Explore</string>
+    <string name="tool_group_changes">Changes</string>
+    <string name="tool_group_execute">Execute</string>
+    <string name="tool_group_other">Tools</string>
+    <plurals name="tool_group_searches">
+        <item quantity="one">%d search</item>
+        <item quantity="other">%d searches</item>
+    </plurals>
+    <plurals name="tool_group_files">
+        <item quantity="one">%d file</item>
+        <item quantity="other">%d files</item>
+    </plurals>
+    <plurals name="tool_group_commands">
+        <item quantity="one">%d command</item>
+        <item quantity="other">%d commands</item>
+    </plurals>
+    <plurals name="tool_group_calls">
+        <item quantity="one">%d call</item>
+        <item quantity="other">%d calls</item>
+    </plurals>
+    <string name="tool_duration_seconds">%1$ss</string>
+    <string name="tool_show_full_output">Show full output</string>
+    <string name="tool_loading_full_output">Loading full output…</string>
+    <string name="tool_full_output_label">full output</string>
+    <!-- I2.2 (Phase 3C): the session status strip (desktop chat.statusPanel.*). -->
+    <string name="session_status_clean">clean</string>
+    <string name="session_status_dirty">uncommitted changes</string>
+    <!-- B2.12 (Phase 3C): the strip-stack collapse toggle. -->
+    <string name="strip_budget_more">Show %1$d more</string>
+    <plurals name="session_status_agents">
+        <item quantity="one">%d agent running</item>
+        <item quantity="other">%d agents running</item>
+    </plurals>
+    <string name="composer_mode_echo">mode: %1$s</string>
+    <string name="row_diff_empty_file">no textual diff recorded for this file</string>
+    <!-- Phase 5A (A3.3 + L6.4): workflow runs panel + run sheet + start notices -->
+    <string name="workflow_runs_title">Workflow runs</string>
+    <string name="workflow_run_untitled">Workflow run</string>
+    <string name="workflow_status_pending">Pending</string>
+    <string name="workflow_status_running">Running</string>
+    <string name="workflow_status_completed">Completed</string>
+    <string name="workflow_status_errored">Errored</string>
+    <string name="workflow_status_stopped">Stopped</string>
+    <string name="workflow_status_unknown">Unknown</string>
+    <string name="workflow_resumable">Resumable</string>
+    <string name="workflow_events_title">Events</string>
+    <string name="workflow_events_empty">No events yet</string>
+    <string name="workflow_events_unavailable">Run events are unavailable on this connection</string>
+    <string name="workflow_events_more">Load more events</string>
+    <string name="workflow_event_truncated">(truncated)</string>
+    <string name="workflow_stop_reason">Stopped: %1$s</string>
+    <string name="workflow_failure">Failed: %1$s</string>
+    <string name="notice_workflow_started">Workflow \"%1$s\" started.</string>
+    <string name="notice_workflow_refused">The desktop refused the workflow (%1$s).</string>
+    <!-- T2: the resolved-elsewhere answer -->
+    <string name="notice_answer_already_resolved">Already handled on the desktop.</string>
+    <string name="approvals_already_resolved">Already handled on the desktop.</string>
+    <string name="approvals_answer_unconfirmed">The answer was not confirmed — open the task and answer there.</string>
+    <!-- I1 queue (Phase 5A): reorder · auto-drain · follow-up mode -->
+    <string name="queue_auto_send">Auto-send</string>
+    <string name="queue_move_up">Move up</string>
+    <string name="queue_move_down">Move down</string>
+    <string name="queue_followup_queue">Queue</string>
+    <string name="queue_followup_guide">Guide</string>
+    <!-- Phase 5B: plans viewer + trajectory/search -->
+    <string name="plans_title">Plans</string>
+    <string name="trajectory_title">Model calls</string>
+    <string name="trajectory_search_hint">Search the conversation and model calls</string>
+    <string name="trajectory_unavailable">Model calls are unavailable on this connection</string>
+    <string name="trajectory_empty">No model calls recorded for this session</string>
+    <string name="trajectory_truncated">Showing the most recent calls</string>
+    <string name="trajectory_call">model call</string>
+    <string name="trajectory_tools">tools:</string>
+    <string name="conv_trajectory_entry">Model calls</string>
+    <!-- Phase 5B (A3.11): the rewind preview -->
+    <string name="rewind_preview_unavailable">The rewind preview is unavailable — the confirm falls back to the summary above</string>
+    <string name="rewind_ignored_count">%1$d file(s) this turn touched outside the workspace are skipped</string>
+    <string name="rewind_cannot_apply">This rewind cannot be applied safely — nothing will change.</string>
+    <!-- Phase 5B (A3.14): the elicitation decline -->
+    <string name="userinput_decline">Skip — continue without my answer</string>
+    <!-- Phase 5C (A3.16): the share-out -->
+    <string name="conv_share_entry">Share</string>
+    <string name="share_shared">Shared via the share sheet</string>
+    <!-- Phase 6A (I2.4): the context-compaction lifecycle notice (desktop chat.contextCompaction.*) -->
+    <string name="compaction_started">Compressing context</string>
+    <string name="compaction_skipped">Context is up to date; no compression needed</string>
+    <string name="compaction_interrupted">Context compression interrupted</string>
+    <string name="compaction_failed">Context compression failed</string>
+    <string name="compaction_completed">Context compressed</string>
+    <string name="compaction_completed_auto">Context automatically compressed</string>
+    <string name="compaction_retry">Retry</string>
+    <string name="compaction_tokens">%1$s → %2$s tokens</string>
+    <!-- Phase 6A (I2.5): the turn navigator (desktop chat.turnNavigator.*) -->
+    <string name="turnnav_label">Conversation query map</string>
+    <string name="turnnav_jump">Jump to query %1$d</string>
+    <!-- Phase 6A (I2.3): the session summary panel (desktop chat.summaryPanel.*) -->
+    <string name="summary_title">Status</string>
+    <string name="summary_show_panel">Expand status</string>
+    <string name="summary_show_mini">Collapse to capsule</string>
+    <string name="summary_duration_h">%1$dh</string>
+    <string name="summary_duration_m">%1$dm</string>
+    <string name="summary_duration_s">%1$ds</string>
+    <string name="summary_goal_iteration">Iteration %1$d</string>
+    <string name="summary_background_tasks">%1$d background</string>
+    <string name="summary_background_label">Running background tasks</string>
+    <string name="summary_subagents">%1$d agent running</string>
+    <string name="summary_subagents_plural">%1$d agents running</string>
+    <string name="summary_subagent_label">Open running subagent session</string>
+    <string name="summary_duration_label">Session duration</string>
+    <!-- Phase 6A (I2.8): generated-artifact preview cards (desktop chat.previewCards.*) -->
+    <string name="preview_markdown">Document · MD</string>
+    <string name="preview_html">Website · HTML</string>
+    <string name="preview_docx">Document · DOCX</string>
+    <string name="preview_xlsx">Spreadsheet · XLSX</string>
+    <string name="preview_pptx">Presentation · PPTX</string>
+    <string name="preview_pdf">Document · PDF</string>
+    <string name="preview_audio">Audio</string>
+    <string name="preview_video">Video</string>
+    <string name="preview_text">Text · TXT</string>
+    <string name="preview_open">Open</string>
+    <string name="preview_open_a11y">Open externally</string>
+    <string name="preview_open_failed">Could not open this file externally</string>
 </resources>

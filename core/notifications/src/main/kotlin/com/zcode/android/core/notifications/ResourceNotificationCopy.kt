@@ -12,4 +12,6 @@ class ResourceNotificationCopy(private val context: Context) : NotificationPlan.
     override fun taskFailedPublic() = context.getString(R.string.notif_task_failed)
     override fun taskFailedDetail(taskTitle: String) = context.getString(R.string.notif_task_failed_detail, taskTitle)
     override fun connectionLostPublic() = context.getString(R.string.notif_connection_lost)
+    override fun approveAction() = context.getString(R.string.notif_action_approve)
+    override fun denyAction() = context.getString(R.string.notif_action_deny)
 }

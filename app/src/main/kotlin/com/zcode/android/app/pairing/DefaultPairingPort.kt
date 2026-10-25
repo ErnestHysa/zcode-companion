@@ -52,7 +52,11 @@ class DefaultPairingPort(
         when (val compat = CompatibilityGate.check(link.appVersion)) {
             is CompatibilityGate.Verdict.Blocked -> {
                 log.warn("pairing.compat.blocked", "desktop=$${link.appVersion}")
-                return PairingPort.Validation.CompatBlocked(version = compat.version, detail = compat.detail)
+                return PairingPort.Validation.CompatBlocked(
+                    version = compat.version,
+                    detail = compat.detail,
+                    minSupported = CompatibilityGate.MIN_SUPPORTED_DESKTOP,
+                )
             }
             is CompatibilityGate.Verdict.AboveTested -> {
                 val stale = (parsed as? PairingLinkParser.Result.Ready)?.staleWarning ?: false
@@ -63,6 +67,7 @@ class DefaultPairingPort(
                     compatAboveTested = true,
                     requireE7Consent = policyDecision().first,
                     offerBiometricEnrollment = policyDecision().second,
+                    maxTestedDesktop = CompatibilityGate.MAX_TESTED_DESKTOP,
                 )
             }
             CompatibilityGate.Verdict.Supported -> Unit
@@ -229,6 +234,8 @@ class DefaultPairingPort(
                 diagnostic = error.developerDiagnostic,
                 rePair = rePair,
                 retryable = !rePair,
+                messageKey = error.messageKey,
+                messageArgs = error.messageArgs,
             ),
         )
     }

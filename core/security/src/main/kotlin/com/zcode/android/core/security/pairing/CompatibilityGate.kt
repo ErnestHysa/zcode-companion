@@ -16,7 +16,7 @@ object CompatibilityGate {
     /** §39.2: 3.14.0–3.14.4 supported. 3.14.4 live-verified 2026-09-30 (real device:
      * pairing, auth, bridge-open, bootstrap 493 tasks, stable connection, v4 conversation
      * plane; the round-9 host-killer fix is what made 3.14.4 work). */
-    const val MAX_TESTED_DESKTOP = "3.14.5"
+    const val MAX_TESTED_DESKTOP = "3.14.4"
 
     sealed class Verdict {
         /** Inside the tested range. */

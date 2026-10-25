@@ -10,19 +10,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -35,13 +26,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.zcode.android.features.conversation.R
 import androidx.compose.ui.res.stringResource
-import com.zcode.android.core.ui.components.relativeTimeLabel
+import com.zcode.android.core.ui.components.relativeTimeLabelLive
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zcode.android.features.conversation.port.ConversationPort
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import com.zcode.android.core.ui.components.ZCodeOutlinedButton
+import com.zcode.android.core.ui.components.ZCodeButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import com.zcode.android.core.ui.components.ZCodeTopBar
+import com.zcode.android.core.ui.components.rememberZCodeTopBarScroll
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.isTraversalGroup
+import androidx.compose.ui.semantics.traversalIndex
 
 /**
  * Approvals inbox (§18.2/§18.3 "approval first"): cross-task open interactions in
@@ -66,41 +65,37 @@ fun ApprovalsScreen(
     // failures were silent; the user believed a request was handled while the
     // authoritative answer never landed. Every non-submit outcome surfaces now.
     var answerError by remember { mutableStateOf<String?>(null) }
+    // T2: the answer callbacks run OUTSIDE composition — resolve the typed outcome
+    // copy here (per locale) and let the callbacks pick the resolved strings.
+    val alreadyResolvedCopy = stringResource(R.string.approvals_already_resolved)
+    val unconfirmedCopy = stringResource(R.string.approvals_answer_unconfirmed)
 
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    val topBarScroll = rememberZCodeTopBarScroll()
+    Scaffold(
+        // §30.1 traversal order (see ZCodeTopBar): body before chrome in the tree —
+        // grouped so TalkBack reads the header first, and the body keeps its order.
+        modifier = modifier
+            .fillMaxSize()
+            .nestedScroll(topBarScroll.nestedScrollConnection)
+            .semantics { isTraversalGroup = true },
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            ZCodeTopBar(
+                title = stringResource(R.string.approvals_title),
+                subtitle = stringResource(R.string.approvals_subtitle),
+                titleTestTag = "approvals-title",
+                onBack = onBack,
+                backTestTag = "approvals_back",
+                scrollBehavior = topBarScroll,
+            )
+        },
+    ) { inner ->
         Column(
             Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
+                .padding(inner)
+                .semantics { traversalIndex = 1f },
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(end = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onBack, modifier = Modifier.testTag("approvals_back")) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(com.zcode.android.core.ui.R.string.action_back),
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.approvals_title),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.testTag("approvals-title"),
-                    )
-                    Text(
-                        text = stringResource(R.string.approvals_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
             if (phase != com.zcode.android.domain.state.ConnectionPhase.CONNECTED) {
                 Text(
                     text = stringResource(R.string.approvals_offline_note),
@@ -159,19 +154,47 @@ fun ApprovalsScreen(
                                     text = if (isPermission) stringResource(R.string.approvals_permission, record.toolName ?: stringResource(R.string.tool_fallback)) else stringResource(R.string.approvals_question),
                                     style = MaterialTheme.typography.labelLarge,
                                 )
+                                // K4: name the TASK (resolved from the task store by
+                                // sessionId); the raw session prefix is the fallback and a
+                                // bare "?" only the last resort — live "task ? · 4 min ago".
+                                val taskRef = record.taskTitle?.takeIf { it.isNotBlank() }
+                                    ?: record.sessionId?.take(16)
+                                    ?: "?"
                                 Text(
-                                    text = stringResource(R.string.approvals_task_ref, record.sessionId?.take(16) ?: "?", relativeTimeLabel(record.createdAtMs) ?: ""),
+                                    text = stringResource(R.string.approvals_task_ref, taskRef, relativeTimeLabelLive(record.createdAtMs) ?: ""),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontFamily = FontFamily.Monospace,
+                                    fontFamily = if (record.taskTitle.isNullOrBlank()) FontFamily.Monospace else FontFamily.Default,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                    modifier = Modifier.testTag("approvals_task_ref_${record.interactionId}"),
                                 )
+                                // L3: the one-line command/file preview — the decision is
+                                // never made blind (desktop parity: notification.command).
+                                record.preview?.takeIf { it.isNotBlank() }?.let { preview ->
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        text = preview,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .testTag("approvals_preview_${record.interactionId}"),
+                                    )
+                                }
                                 Spacer(Modifier.height(8.dp))
-                                Row {
+                                // B2.3: weighted + spaced — the unweighted Row sat FLUSH
+                                // (dead Spacer(0), discarded PaddingValues) and the Deny
+                                // button overflowed narrow cards.
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     if (isPermission) {
                                         // §20.2 one-tap approve: the recognized low-risk
                                         // primary (allowOnce) — higher-risk choices live
                                         // on the card inside the task.
-                                        Button(
+                                        ZCodeButton(
                                             onClick = {
                                                 busyId = record.interactionId
                                                 answerError = null
@@ -179,8 +202,12 @@ fun ApprovalsScreen(
                                                     try {
                                                         onAnswer(record.interactionId, "allowOnce", null) { outcome ->
                                                             busyId = null
-                                                            if (outcome != ConversationPort.AnswerOutcome.SUBMITTED) {
-                                                                answerError = "The answer was not confirmed — open the task and answer there."
+                                                            // T2: the resolved-elsewhere answer is SAYABLE — typed
+                                                            // copy instead of a generic fault (or worse, silence).
+                                                            answerError = when (outcome) {
+                                                                ConversationPort.AnswerOutcome.SUBMITTED -> null
+                                                                ConversationPort.AnswerOutcome.ALREADY_RESOLVED -> alreadyResolvedCopy
+                                                                else -> unconfirmedCopy
                                                             }
                                                         }
                                                     } finally {
@@ -192,15 +219,15 @@ fun ApprovalsScreen(
                                             modifier = Modifier
                                                 // §30: approval actions ≥ 56 dp.
                                                 .heightIn(min = 56.dp)
+                                                .weight(1f)
                                                 .testTag("approvals_allow_once_${record.interactionId.take(12)}"),
                                         ) { Text(stringResource(com.zcode.android.core.ui.R.string.action_allow_once)) }
-                                        Spacer(Modifier.height(0.dp))
-                                        androidx.compose.foundation.layout.PaddingValues(4.dp)
-                                        OutlinedButton(
+                                        ZCodeOutlinedButton(
                                             onClick = { answerError = null; denyTarget = record },
                                             enabled = busyId == null,
                                             modifier = Modifier
                                                 .heightIn(min = 56.dp)
+                                                .weight(1f)
                                                 .testTag("approvals_deny_${record.interactionId.take(12)}"),
                                         ) { Text(stringResource(com.zcode.android.core.ui.R.string.action_deny)) }
                                     } else {
@@ -222,9 +249,25 @@ fun ApprovalsScreen(
         AlertDialog(
             onDismissRequest = { denyTarget = null },
             title = { Text(stringResource(R.string.approvals_deny_title)) },
-            text = { Text(stringResource(R.string.approvals_deny_body, target.toolName ?: stringResource(R.string.tool_fallback))) },
+            text = {
+                Column {
+                    Text(stringResource(R.string.approvals_deny_body, target.toolName ?: stringResource(R.string.tool_fallback)))
+                    // L3: quote the preview so the user denies the RIGHT request.
+                    target.preview?.takeIf { it.isNotBlank() }?.let { preview ->
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.approvals_deny_preview, preview),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontFamily = FontFamily.Monospace,
+                            maxLines = 3,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            modifier = Modifier.testTag("approvals_deny_preview"),
+                        )
+                    }
+                }
+            },
             confirmButton = {
-                Button(
+                ZCodeButton(
                     onClick = {
                         denyTarget = null
                         busyId = target.interactionId
@@ -233,8 +276,10 @@ fun ApprovalsScreen(
                             try {
                                 onAnswer(target.interactionId, "deny", null) { outcome ->
                                     busyId = null
-                                    if (outcome != ConversationPort.AnswerOutcome.SUBMITTED) {
-                                        answerError = "The answer was not confirmed — open the task and answer there."
+                                    answerError = when (outcome) {
+                                        ConversationPort.AnswerOutcome.SUBMITTED -> null
+                                        ConversationPort.AnswerOutcome.ALREADY_RESOLVED -> alreadyResolvedCopy
+                                        else -> unconfirmedCopy
                                     }
                                 }
                             } finally {

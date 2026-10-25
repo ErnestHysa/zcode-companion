@@ -97,4 +97,6 @@ data class ModelProviderOption(
     val providerId: String,
     val providerName: String?,
     val models: List<ModelOption>,
+    /** D4: the desktop provider-group `labelBadge` — wire-fed, never synthesized. */
+    val badge: String? = null,
 )

@@ -31,6 +31,54 @@ class TerminalController(
         /** Terminal grid offered at create (view-only stream — rows/cols matter little; keep sane). */
         const val COLS = 120
         const val ROWS = 32
+        /** ADR-022: the arm's idle expiry (every keystroke re-arms). */
+        const val ARM_EXPIRY_MS = 10 * 60 * 1000L
+    }
+
+    // ---- ADR-022 (Phase 5D): the armed input plane ----
+
+    /** Layer 3: the credential-confirmed input opt-in (default OFF, never persisted here). */
+    val inputOptIn = kotlinx.coroutines.flow.MutableStateFlow(false)
+    /** Layer 4: the per-attach arm (write/resize reachable ONLY while held). */
+    val armed = kotlinx.coroutines.flow.MutableStateFlow(false)
+    private var armExpiryJob: kotlinx.coroutines.Job? = null
+
+    suspend fun setInputOptIn(enabled: Boolean) {
+        inputOptIn.value = enabled
+        if (!enabled) disarm()
+    }
+
+    suspend fun arm() {
+        if (!inputOptIn.value) return
+        if (state.value !is State.Live) return
+        armed.value = true
+        log.info("terminal.arm", "input armed")
+        armExpiryJob?.cancel()
+        armExpiryJob = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            kotlinx.coroutines.delay(ARM_EXPIRY_MS)
+            disarm()
+            log.info("terminal.arm", "expired")
+        }
+    }
+
+    fun disarm() {
+        armed.value = false
+        armExpiryJob?.cancel()
+    }
+
+    /** ADR-022: write reaches the wire ONLY while armed (the typed-surface gate). */
+    suspend fun write(data: String) {
+        check(armed.value) { "terminal input is not armed (ADR-022)" }
+        val id = (state.value as? State.Live)?.terminalId ?: error("terminal not live")
+        transport.terminalWrite(id, data)
+        // every keystroke extends the idle window
+        if (armed.value) arm()
+    }
+
+    suspend fun resize(cols: Int, rows: Int) {
+        check(armed.value) { "terminal input is not armed (ADR-022)" }
+        val id = (state.value as? State.Live)?.terminalId ?: error("terminal not live")
+        transport.terminalResize(id, cols, rows)
     }
 
     sealed class State {

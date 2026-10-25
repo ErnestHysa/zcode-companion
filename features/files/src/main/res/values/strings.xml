@@ -20,4 +20,11 @@
     <string name="file_kind_database">Database</string>
     <string name="file_kind_terminal">Terminal script</string>
     <string name="file_kind_config">Config</string>
+    <string name="files_read_only">read-only</string>
+    <string name="files_download_failed">download failed</string>
+    <string name="files_binary_use_download">binary file — use Download</string>
+    <!-- I3 (Phase 3E): viewer minimums - localized download copy + honest oversize cap. -->
+    <string name="files_downloading">downloading…</string>
+    <string name="files_download_done">Downloaded %1$,d bytes — share sheet opened</string>
+    <string name="files_preview_cap">Preview capped at 256 KB — use Download for the full file.</string>
 </resources>

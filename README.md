@@ -15,16 +15,30 @@ same approvals. Leave the laptop closed; the work keeps moving.
 - **Pair by QR** — scan the code from the desktop's *Mobile Remote Control*
   dialog once; credentials are sealed with the Android Keystore and never
   leave your devices.
-- **Live conversations** — full v4 conversation streaming: assistant output,
-  tool activity, row-level edits, message retry and edit, slash commands.
-- **Approvals on the go** — permission requests land as interactive cards and
-  notifications; approve or reject from the lock screen if you like.
-- **Tasks & queues** — bootstrap, browse, queue, and manage every workspace
-  the desktop can see, with reconnect-and-recover that survives tunnels,
-  airplain mode, and process death.
-- **Side views that earn their keep** — files and git for every workspace,
-  a view-only terminal, usage analytics, coding-plan quota meters,
-  automations, plugins, skills, and MCP server status.
+- **Live conversations that read like the desktop** — full v4 streaming with
+  real markdown (nested lists, tables, strikethrough, syntax-highlighted
+  code), per-message **Retry / Fork / Rewind files / Like–Dislike** row
+  actions, conversation search, plans and trajectory viewers, artifact
+  preview cards, compaction notices, a turn navigator, and @-mentions.
+- **A composer that keeps up** — photo, file, camera, clipboard-paste and
+  voice input; attachments render as thumbnails in the thread; the whole
+  transcript shares out through the Android share sheet.
+- **Approvals on the go, safely** — permission requests land as interactive
+  cards and shade notifications with **Approve / Deny buttons**, every card
+  shows the command you are actually approving, and a request that was
+  already handled on the desktop says so instead of silently doing nothing.
+- **Real task management** — rename, archive, delete, pin, unread dots,
+  groups, and search; queue reorder, auto-drain and follow-up steering;
+  saved-workflow hub with run history and run-now.
+- **Side views that earn their keep** — files with line numbers and image
+  previews, a git panel with tree view, search and **write actions**
+  (stage/unstage one-tap; commit, push, branch and discard behind typed
+  confirmations), a terminal with **opt-in input** (layered arming,
+  auto-disarm) and copy, usage charts, coding-plan quota meters, automations
+  with a desktop-shaped cron editor, and plugins, skills and MCP status.
+- **Yours to shape** — light/dark theme override, full English and Chinese
+  localization, home-screen shortcuts, an approvals widget, onboarding, and
+  a feedback form straight to the developer.
 - **Update on your terms** — the app checks GitHub Releases when your desktop
   is newer than what it was tested against; downloads, verifies the SHA-256,
   and hands off to the system installer. No accounts, no third parties.
@@ -63,7 +77,7 @@ ZCode moves fast, so the repo carries its own drift radar:
 ```bash
 ./gradlew :app:assembleDebug      # debug APK
 ./gradlew :app:assembleRelease    # release build (unsigned without a keystore)
-./gradlew test                    # full unit suite (846 tests)
+./gradlew test                    # full unit suite (1,475+ tests)
 ```
 
 Android Studio (or the command-line SDK) with JDK 17. Release signing reads a

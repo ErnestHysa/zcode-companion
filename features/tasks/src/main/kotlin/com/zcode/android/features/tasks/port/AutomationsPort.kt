@@ -4,9 +4,12 @@ import com.zcode.android.domain.model.AutomationRow
 import com.zcode.android.domain.model.OffPeakTaskRow
 
 /**
- * GAP-6 consumer-side port (INV-2/INV-6): the Tasks-tab read-only automations +
- * off-peak lists. The write half (create/edit/trigger/delete/enable — the
- * roadmap's Deferred scope) exists NOWHERE in this port or its implementation.
+ * GAP-6 consumer-side port (INV-2/INV-6): the Tasks-tab automations + off-peak
+ * lists with FULL CRUD. (A1.3, 2026-10-14: this doc previously claimed the write
+ * half "exists NOWHERE" — that was stale; the create/update/delete/setEnabled/
+ * runNow half SHIPPED 2026-10-12, desktop parity zcodeAgent.ts:677-688, with the
+ * AutomationFormDialog editor. Read-only INV-9 applies to TASKS/GIT/FILES, not to
+ * this port — automations CRUD is the desktop's own sanctioned write surface.)
  */
 interface AutomationsPort {
 
@@ -47,6 +50,20 @@ interface AutomationsPort {
             fun everyNMinutes(n: Int) = ScheduleSpec(everyMinutes = n)
             fun dailyAt(hour: Int, minute: Int) = ScheduleSpec(dailyHour = hour, dailyMinute = minute)
             fun cron(expr: String) = ScheduleSpec(cronExpr = expr)
+
+            /**
+             * B2.1: the phone-side cron syntax gate — a 5-field cron in the standard
+             * charset (digits, `*`, `,`, `-`, `/`, name/step tokens like MON/1-5/5L).
+             * Deliberately PERMISSIVE: exact semantics stay the desktop write-path's
+             * concern; the gate only refuses garbage that would silently corrupt the
+             * schedule (or the editor's old blank-to-"0 9 * * *" default).
+             */
+            fun isWellFormedCron(expr: String): Boolean {
+                val fields = expr.trim().split(Regex("\\s+"))
+                if (fields.size != 5) return false
+                val field = Regex("[0-9A-Za-z*,\\-/#+?]+")
+                return fields.all { it.isNotEmpty() && field.matches(it) }
+            }
         }
     }
 
@@ -58,6 +75,16 @@ interface AutomationsPort {
         val modelProvider: String? = null,
         val modelId: String? = null,
         val mode: String? = null,
+        // ---- Phase 4B (J2-target): the desktop's full write shape (automation-types.ts) ----
+        /** The authoritative rule for CUSTOM repeats (every N × unit); null = plain cron. */
+        val scheduleRule: com.zcode.android.domain.model.AutomationRow.ScheduleRule? = null,
+        /** true = unbounded loop; false = finite (maxRuns). Edits keep the row's own value. */
+        val recurring: Boolean = true,
+        val maxRuns: Int? = null,
+        /** Custom-repeat end bound (local day-end ms); null = never. */
+        val endAt: Long? = null,
+        /** Update only: the user replaced a carried rule with a plain cron → `scheduleRule: null`. */
+        val clearScheduleRule: Boolean = false,
     )
 
     suspend fun create(workspaceKey: String, write: AutomationWrite): Boolean
@@ -71,4 +98,59 @@ interface AutomationsPort {
     suspend fun runNow(automationId: String): Boolean
 
     suspend fun lists(): Lists
+
+    // ---------------------------------------------------------------- Phase 4B typed outcomes + run history
+
+    /** automation-types.ts AUTOMATION_CREATE_LIMIT (20) → `AUTOMATION_CREATE_LIMIT_REACHED`. */
+    enum class CreateOutcome { OK, LIMIT_REACHED, FAILED }
+
+    /** Typed create: the limit error is a distinct, copy-worthy outcome (desktop automations.limit.*). */
+    suspend fun createTyped(workspaceKey: String, write: AutomationWrite): CreateOutcome =
+        if (create(workspaceKey, write)) CreateOutcome.OK else CreateOutcome.FAILED
+
+    /** ZCodeAgentRunAutomationNowResult.status: queued | duplicate (an in-flight run already exists). */
+    enum class RunNowOutcome { QUEUED, DUPLICATE, FAILED }
+
+    /** B2.11: Run Now lands its result instead of being fire-and-forgotten. */
+    suspend fun runNowTyped(automationId: String): RunNowOutcome =
+        if (runNow(automationId)) RunNowOutcome.QUEUED else RunNowOutcome.FAILED
+
+    data class RunsResult(val runs: List<com.zcode.android.domain.model.AutomationRunRow>?, val error: String?)
+
+    /** A3.2: `listAutomationRuns` — the run history (null = unavailable, typed error). */
+    suspend fun runs(automationId: String): RunsResult = RunsResult(null, "run history unavailable")
+
+    /** `deleteAutomationRun`. */
+    suspend fun deleteRun(runId: String): Boolean = false
+
+    /** `restartAutomation` — re-arms a completed/failed automation (desktop automations.restart). */
+    suspend fun restart(automationId: String): Boolean = false
+
+    // ---------------------------------------------------------------- Phase 5A (A3.10 as shipped)
+
+    /**
+     * Off-peak pause/continue — the `off-peak-task` channel's `pauseTask`/`continueTask`
+     * words (the host's OffPeakTaskService; A3.10's "pauseTask/continueTask" live HERE,
+     * not on zcode-task — recorded erratum). queued/running → pause; paused → continue.
+     */
+    suspend fun pauseOffPeak(offPeakTaskId: String): Boolean = false
+    suspend fun continueOffPeak(offPeakTaskId: String): Boolean = false
+
+    /**
+     * L6.2 (Phase 6B): `cancelTask` — the third control word on the same channel
+     * (host OffPeakTaskService: marks terminal `cancelled` and stops a running task;
+     * files already changed are kept). Terminal rows offer it behind a confirm.
+     */
+    suspend fun cancelOffPeak(offPeakTaskId: String): Boolean = false
+
+    // ---------------------------------------------------------------- Phase 5A (L6.4): the saved-workflow hub
+
+    /** `listSavedWorkflows` for the active workspace; null = unavailable (the hub hides). */
+    suspend fun savedWorkflows(): com.zcode.android.domain.model.SavedWorkflowList? = null
+
+    /** `listSavedWorkflowRuns` — last-run states (name = null → every workflow); null = unavailable. */
+    suspend fun savedWorkflowRuns(name: String? = null, limit: Int = 50): List<com.zcode.android.domain.model.SavedWorkflowRun>? = null
+
+    /** `getSavedWorkflow` — the script + meta for the detail sheet; null = unavailable / not found. */
+    suspend fun savedWorkflow(name: String, scope: String?): com.zcode.android.domain.model.SavedWorkflow? = null
 }

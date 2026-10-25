@@ -28,12 +28,15 @@ object PairingFlow {
     )
 
     data class ErrorView(
+        /** English fallback; the UI localizes [messageKey] when present (C5-i18n). */
         val userMessage: String,
         val diagnostic: String,
         /** true = AUTH class (E5): the only remedy is re-pair (re-scan). */
         val rePair: Boolean,
         /** true = transport/network class (E4): retry makes sense. */
         val retryable: Boolean,
+        val messageKey: com.zcode.android.core.common.error.UserMessageKey? = null,
+        val messageArgs: List<String> = emptyList(),
     )
 
     sealed class State {
@@ -64,12 +67,22 @@ object PairingFlow {
         data class StaleWarning(override val link: LinkView) : State()
 
         /** E3: below minimum supported desktop — pairing blocked. */
-        data class CompatBlocked(val version: String, val detail: String) : State() {
+        data class CompatBlocked(
+            val version: String,
+            val detail: String,
+            /** B2.10: the gate's minimum-supported boundary — rendered from the gate,
+             *  never a UI literal. */
+            val minSupported: String? = null,
+        ) : State() {
             override val link: LinkView? = null
         }
 
         /** Above maximum-tested → warn-continue (§39.2). */
-        data class CompatAboveTested(override val link: LinkView) : State()
+        data class CompatAboveTested(
+            override val link: LinkView,
+            /** B2.10: the gate's max-tested boundary — rendered from the gate. */
+            val maxTestedDesktop: String? = null,
+        ) : State()
 
         /**
          * Keystore setup + biometric policy presentation. [requireE7Consent] marks the
@@ -114,8 +127,13 @@ object PairingFlow {
             val compatAboveTested: Boolean,
             val requireE7Consent: Boolean,
             val offerBiometricEnrollment: Boolean,
+            val maxTestedDesktop: String? = null,
         ) : Event()
-        data class ValidationCompatBlocked(val version: String, val detail: String) : Event()
+        data class ValidationCompatBlocked(
+            val version: String,
+            val detail: String,
+            val minSupported: String? = null,
+        ) : Event()
 
         object StaleAccepted : Event()
         object CompatAccepted : Event()
@@ -149,10 +167,11 @@ object PairingFlow {
             is Event.CancelScan -> State.Welcome(resumedLink(state))
             is Event.QrDecoded -> State.Validating
             is Event.ValidationRejected -> State.Rejected(event.reason, event.detail)
-            is Event.ValidationCompatBlocked -> State.CompatBlocked(event.version, event.detail)
+            is Event.ValidationCompatBlocked ->
+                State.CompatBlocked(event.version, event.detail, event.minSupported)
             is Event.ValidationReady -> when {
                 event.stale -> State.StaleWarning(event.link)
-                event.compatAboveTested -> State.CompatAboveTested(event.link)
+                event.compatAboveTested -> State.CompatAboveTested(event.link, event.maxTestedDesktop)
                 else -> State.SecuritySetup(
                     link = event.link,
                     requireE7Consent = event.requireE7Consent,

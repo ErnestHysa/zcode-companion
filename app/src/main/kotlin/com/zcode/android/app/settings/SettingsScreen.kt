@@ -7,23 +7,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -50,6 +42,19 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.zcode.android.app.AppContainer
 import com.zcode.android.app.R
+import com.zcode.android.core.ui.components.ZCodeButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import com.zcode.android.core.ui.components.ZCodeTopBar
+import com.zcode.android.core.ui.components.rememberZCodeTopBarScroll
+import com.zcode.android.core.ui.components.LocalNotifier
+import com.zcode.android.core.ui.components.SectionHeader
+import com.zcode.android.core.ui.components.Notifier
+import com.zcode.android.core.ui.components.connectionPhaseLabel
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.size
 
 /**
  * Basic Phase 6 settings (ui-ux 13): paired desktop identity, connection entry,
@@ -73,29 +78,57 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val notifier = LocalNotifier.current
     var showUnpairConfirm by remember { mutableStateOf(false) }
+    // H1.6: the feedback form + its channel-backed sender.
+    var feedbackOpen by remember { mutableStateOf(false) }
+    val feedbackSender = remember {
+        FeedbackSender { type, description, contact ->
+            val service = runCatching { container.hub.taskService() }.getOrNull()
+                ?: return@FeedbackSender FeedbackResult.Failed("not connected")
+            val ticket = service.feedbackCreate(
+                type = type,
+                description = description,
+                contact = contact,
+                title = null,
+                locale = java.util.Locale.getDefault().toLanguageTag(),
+            ) ?: return@FeedbackSender FeedbackResult.Failed(null)
+            val id = (ticket["ticket_id"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+                ?: return@FeedbackSender FeedbackResult.Failed(null)
+            val status = (ticket["status"] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: "open"
+            FeedbackResult.Ticket(id, status)
+        }
+    }
+    if (feedbackOpen) {
+        FeedbackFormDialog(onDismiss = { feedbackOpen = false }, sender = feedbackSender)
+    }
 
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    val topBarScroll = rememberZCodeTopBarScroll()
+    Scaffold(
+        modifier = modifier.fillMaxSize().nestedScroll(topBarScroll.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            ZCodeTopBar(
+                title = stringResource(R.string.settings_title),
+                onBack = onBack,
+                backTestTag = "settings_back",
+                scrollBehavior = topBarScroll,
+            )
+        },
+    ) { inner ->
         Column(
             Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
+                .padding(inner)
                 .verticalScroll(rememberScrollState())
                 .testTag("settings_scroll"),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack, modifier = Modifier.testTag("settings_back")) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(com.zcode.android.core.ui.R.string.action_back), tint = MaterialTheme.colorScheme.onSurface)
-                }
-                Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
-            }
 
-            SectionLabel(stringResource(R.string.settings_section_endpoints))
+            SectionHeader(stringResource(R.string.settings_section_endpoints))
             EndpointsSection(container = container, endpointName = endpointName, desktopVersion = desktopVersion)
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            SectionLabel(stringResource(R.string.settings_section_insights))
+            SectionHeader(stringResource(R.string.settings_section_insights))
             SettingsRow(
                 title = stringResource(R.string.settings_usage_row),
                 subtitle = stringResource(R.string.settings_usage_sub),
@@ -122,19 +155,19 @@ fun SettingsScreen(
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            SectionLabel(stringResource(R.string.settings_section_diagnostics))
+            SectionHeader(stringResource(R.string.settings_section_diagnostics))
             val diagBusy = remember { mutableStateOf(false) }
             SettingsRow(
                 title = stringResource(if (diagBusy.value) R.string.settings_diag_export_busy else R.string.settings_diag_export),
                 subtitle = stringResource(if (diagBusy.value) R.string.settings_diag_export_busy_sub else R.string.settings_diag_export_sub),
                 tag = "settings_export_diagnostics",
-                onClick = { if (!diagBusy.value) exportDiagnostics(container, context) { diagBusy.value = it } },
+                onClick = { if (!diagBusy.value) exportDiagnostics(container, context, notifier) { diagBusy.value = it } },
             )
             SettingsRow(
                 title = stringResource(if (diagBusy.value) R.string.settings_diag_export_busy else R.string.settings_diag_copy),
                 subtitle = stringResource(R.string.settings_diag_copy_sub),
                 tag = "settings_copy_diagnostics",
-                onClick = { if (!diagBusy.value) copyDiagnostics(container, context) { diagBusy.value = it } },
+                onClick = { if (!diagBusy.value) copyDiagnostics(container, context, notifier) { diagBusy.value = it } },
             )
             SettingsRow(
                 title = stringResource(R.string.settings_diag_marker),
@@ -142,16 +175,29 @@ fun SettingsScreen(
                 tag = "settings_add_marker",
                 onClick = {
                     container.log.info("diagnostics.mark", "user marker at ${java.time.Instant.now()} phase=${container.hub.phase.value}")
-                    android.widget.Toast.makeText(context, context.getString(R.string.settings_marker_toast), android.widget.Toast.LENGTH_SHORT).show()
+                    notifier.show(context.getString(R.string.settings_marker_toast))
                 },
+            )
+            // H1.6: the in-app feedback form — the host submits the ticket (device-mid
+            // + auth live desktop-side; the phone holds no credentials).
+            SettingsRow(
+                title = stringResource(R.string.settings_feedback_entry),
+                subtitle = stringResource(R.string.settings_feedback_entry_sub),
+                tag = "settings_send_feedback",
+                onClick = { feedbackOpen = true },
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            SectionLabel(stringResource(R.string.settings_section_notifications))
+            // Phase 4F (H1.4-phase1): the first phone appearance preference.
+            SectionHeader(stringResource(R.string.settings_section_appearance))
+            AppearanceSection(container = container)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+            SectionHeader(stringResource(R.string.settings_section_notifications))
             NotificationsSection(container = container)
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            SectionLabel(stringResource(R.string.settings_section_privacy))
+            SectionHeader(stringResource(R.string.settings_section_privacy))
             SettingsRow(
                 title = stringResource(R.string.settings_privacy_row),
                 subtitle = stringResource(R.string.settings_privacy_sub),
@@ -159,7 +205,7 @@ fun SettingsScreen(
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            SectionLabel(stringResource(R.string.settings_section_about))
+            SectionHeader(stringResource(R.string.settings_section_about))
             SettingsRow(
                 title = stringResource(R.string.settings_about_row),
                 subtitle = stringResource(R.string.settings_about_sub),
@@ -172,10 +218,45 @@ fun SettingsScreen(
                 onClick = { showLicenses(context) },
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            // FIELD (2026-10-12): ALWAYS-VISIBLE update check — the user asked for
+            // it "all the time", not buried in the connection center.
+            val updateState by container.appUpdate.check.collectAsState()
+            val updateDownloading by container.appUpdate.download.collectAsState()
+            SettingsRow(
+                title = stringResource(R.string.settings_check_updates),
+                subtitle = when {
+                    updateDownloading is com.zcode.android.app.update.DownloadState.Running ->
+                        stringResource(R.string.conn_update_progress,
+                            "${(updateDownloading.let { it as com.zcode.android.app.update.DownloadState.Running }.bytesRead * 100 / maxOf(1, updateDownloading.let { it as com.zcode.android.app.update.DownloadState.Running }.totalBytes))}%")
+                    updateDownloading is com.zcode.android.app.update.DownloadState.Ready ->
+                        stringResource(R.string.conn_update_ready)
+                    updateState is com.zcode.android.app.update.UpdateCheckState.Checking ->
+                        stringResource(R.string.conn_update_checking)
+                    updateState is com.zcode.android.app.update.UpdateCheckState.Available ->
+                        stringResource(R.string.settings_check_updates_found, updateState.let { it as com.zcode.android.app.update.UpdateCheckState.Available }.release.versionName)
+                    updateState is com.zcode.android.app.update.UpdateCheckState.UpToDate ->
+                        stringResource(R.string.settings_check_updates_latest)
+                    updateState is com.zcode.android.app.update.UpdateCheckState.Failed ->
+                        stringResource(R.string.conn_update_failed, updateState.let { it as com.zcode.android.app.update.UpdateCheckState.Failed }.detail)
+                    else -> stringResource(R.string.settings_check_updates_sub)
+                },
+                tag = "settings_check_updates",
+                onClick = { container.appUpdate.checkForUpdate(desktopVersion, force = true) },
+            )
+            if (updateState is com.zcode.android.app.update.UpdateCheckState.Available &&
+                updateDownloading is com.zcode.android.app.update.DownloadState.Ready
+            ) {
+                TextButton(
+                    onClick = { container.appUpdate.updateNow() },
+                    modifier = Modifier.padding(horizontal = 16.dp).testTag("settings_update_now"),
+                ) { Text(stringResource(R.string.conn_update_now)) }
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
             Spacer(Modifier.height(16.dp))
             if (endpointName != null) {
-                Button(
+                ZCodeButton(
                     onClick = { showUnpairConfirm = true },
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
@@ -230,6 +311,7 @@ fun SettingsScreen(
 @Composable
 private fun EndpointsSection(container: AppContainer, endpointName: String?, desktopVersion: String?) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val notifier = LocalNotifier.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val endpoints by container.hub.endpoints.collectAsState()
     val activeEndpoint by container.hub.endpoint.collectAsState()
@@ -249,7 +331,8 @@ private fun EndpointsSection(container: AppContainer, endpointName: String?, des
     for ((index, row) in rows.withIndex()) {
         val active = row != null && activeEndpoint?.endpointId == row.endpointId
         SettingsRow(
-            title = (row?.displayName ?: endpointName ?: stringResource(R.string.settings_not_paired_row)) + if (active) "  •" else "",
+            title = row?.displayName ?: endpointName ?: stringResource(R.string.settings_not_paired_row),
+            active = active,
             subtitle = buildString {
                 val localized = stringResource(
                     if (row?.kind == com.zcode.android.domain.model.EndpointKind.DIRECT_SERVER) R.string.settings_kind_direct
@@ -257,7 +340,7 @@ private fun EndpointsSection(container: AppContainer, endpointName: String?, des
                 )
                 append(localized)
                 row?.desktopAppVersion?.let { append(stringResource(R.string.settings_version_suffix, it)) }
-                if (active) append(stringResource(R.string.settings_connected_suffix, phase.name))
+                if (active) append(stringResource(R.string.settings_connected_suffix, connectionPhaseLabel(phase)))
             },
             tag = "settings_endpoint_$index",
             onClick = {
@@ -273,7 +356,7 @@ private fun EndpointsSection(container: AppContainer, endpointName: String?, des
             },
         )
         if (row?.kind == com.zcode.android.domain.model.EndpointKind.DIRECT_SERVER) {
-            androidx.compose.material3.OutlinedButton(
+            com.zcode.android.core.ui.components.ZCodeOutlinedButton(
                 onClick = { removeTarget = row.endpointId.raw },
                 modifier = Modifier
                     .padding(start = 16.dp, bottom = 8.dp)
@@ -287,11 +370,7 @@ private fun EndpointsSection(container: AppContainer, endpointName: String?, des
         tag = "settings_add_direct",
         onClick = { showAddDialog = true },
     )
-    switchMessage?.let {
-        androidx.compose.material3.ListItem(headlineContent = { Text(it) })
-        // auto-clear
-        scope.launch { kotlinx.coroutines.delay(2500); switchMessage = null }
-    }
+    AutoDismissMessage(message = switchMessage, onDismiss = { switchMessage = null })
 
     if (showAddDialog) {
         AddDirectEndpointDialog(
@@ -398,7 +477,7 @@ private fun AddDirectEndpointDialog(
     )
 }
 
-private fun copyDiagnostics(container: AppContainer, context: android.content.Context, onBusy: (Boolean) -> Unit) {
+private fun copyDiagnostics(container: AppContainer, context: android.content.Context, notifier: Notifier, onBusy: (Boolean) -> Unit) {
     val act = context as? androidx.fragment.app.FragmentActivity
     val scope = act?.lifecycleScope ?: return
     onBusy(true)
@@ -419,17 +498,13 @@ private fun copyDiagnostics(container: AppContainer, context: android.content.Co
                 val payload = if (clipped) text.take(clipLimit) + suffix else text
                 val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
                 cm?.setPrimaryClip(android.content.ClipData.newPlainText("ZCode diagnostics", payload))
-                android.widget.Toast.makeText(
-                    context,
-                    context.getString(if (clipped) R.string.settings_clip_copied_truncated else R.string.settings_clip_copied),
-                    android.widget.Toast.LENGTH_SHORT,
-                ).show()
+                notifier.show(context.getString(if (clipped) R.string.settings_clip_copied_truncated else R.string.settings_clip_copied))
             }
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
             withContext(kotlinx.coroutines.Dispatchers.Main) {
-                android.widget.Toast.makeText(context, context.getString(R.string.settings_clip_failed, e.message?.take(80) ?: ""), android.widget.Toast.LENGTH_LONG).show()
+                notifier.show(context.getString(R.string.settings_clip_failed, e.message?.take(80) ?: ""), long = true)
             }
         } finally {
             withContext(kotlinx.coroutines.Dispatchers.Main) { onBusy(false) }
@@ -437,7 +512,7 @@ private fun copyDiagnostics(container: AppContainer, context: android.content.Co
     }
 }
 
-private fun exportDiagnostics(container: AppContainer, context: android.content.Context, onBusy: (Boolean) -> Unit) {
+private fun exportDiagnostics(container: AppContainer, context: android.content.Context, notifier: Notifier, onBusy: (Boolean) -> Unit) {
     val act = context as? androidx.fragment.app.FragmentActivity
     val scope = act?.lifecycleScope ?: return
     onBusy(true)
@@ -474,7 +549,7 @@ private fun exportDiagnostics(container: AppContainer, context: android.content.
             throw e
         } catch (e: Exception) {
             withContext(kotlinx.coroutines.Dispatchers.Main) {
-                android.widget.Toast.makeText(context, context.getString(R.string.settings_export_failed, e.message?.take(80) ?: ""), android.widget.Toast.LENGTH_LONG).show()
+                notifier.show(context.getString(R.string.settings_export_failed, e.message?.take(80) ?: ""), long = true)
             }
         } finally {
             withContext(kotlinx.coroutines.Dispatchers.Main) { onBusy(false) }
@@ -644,16 +719,6 @@ private fun showLicenses(context: android.content.Context) {
     context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.settings_licenses_chooser)))
 }
 
-@Composable
-private fun SectionLabel(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 16.dp, top = 20.dp, bottom = 6.dp),
-    )
-}
-
 /**
  * Phase 8 notifications surface (§24.2/§24.4/§24.5/§25.3): the content-level privacy
  * toggle, the opt-in Live-connection FGS (started from the foreground ONLY — this
@@ -664,6 +729,7 @@ private fun SectionLabel(text: String) {
 @Composable
 private fun NotificationsSection(container: AppContainer) {
     val context = LocalContext.current
+    val notifier = LocalNotifier.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val prefs by container.stores.preferencesRepository.observe()
         .collectAsState(initial = com.zcode.android.domain.model.AppPreferences())
@@ -696,10 +762,39 @@ private fun NotificationsSection(container: AppContainer) {
         },
     )
 
+    // Phase 4F (H1.4-phase1): the PER-CATEGORY toggles (the desktop's notification
+    // prefs groups) — approvals / task outcomes / connection loss. Unset = ON.
+    CategoryToggle(
+        label = stringResource(R.string.settings_notif_cat_approvals),
+        checked = prefs.notifyApprovals,
+        tag = "settings_notif_cat_approvals",
+    ) { checked ->
+        scope.launch { container.stores.preferencesRepository.update { p -> p.copy(notifyApprovals = checked) } }
+    }
+    CategoryToggle(
+        label = stringResource(R.string.settings_notif_cat_tasks),
+        checked = prefs.notifyTaskOutcomes,
+        tag = "settings_notif_cat_tasks",
+    ) { checked ->
+        scope.launch { container.stores.preferencesRepository.update { p -> p.copy(notifyTaskOutcomes = checked) } }
+    }
+    CategoryToggle(
+        label = stringResource(R.string.settings_notif_cat_connection),
+        checked = prefs.notifyConnection,
+        tag = "settings_notif_cat_connection",
+    ) { checked ->
+        scope.launch { container.stores.preferencesRepository.update { p -> p.copy(notifyConnection = checked) } }
+    }
+
     // §24.5 (vc35 + FIELD 2026-10-12): the auto-timeout window is CUSTOMIZABLE via
     // a RADIO PICKER — the old tap-to-cycle row looked like static text and users
     // reported the options "don't exist". 0 = stay connected until toggled off.
     val windowOptions = listOf(15, 30, 60, 240, 0)
+    // H3.1: the switch COLLECTS the service's observable state — the FGS 30-min
+    // auto-timeout flips it OFF live (the old remember{} snapshot lied until the
+    // screen was recreated). The service lifecycle is the single writer; no manual
+    // mirroring on toggle.
+    val liveConnection by com.zcode.android.core.notifications.LiveConnectionService.isRunning.collectAsState()
     var windowPickerOpen by androidx.compose.runtime.remember {
         androidx.compose.runtime.mutableStateOf(false)
     }
@@ -712,6 +807,7 @@ private fun NotificationsSection(container: AppContainer) {
         ),
         tag = "settings_live_window",
         onClick = { windowPickerOpen = true },
+        enabled = liveConnection,
     )
     if (windowPickerOpen) {
         androidx.compose.material3.AlertDialog(
@@ -756,16 +852,12 @@ private fun NotificationsSection(container: AppContainer) {
     // §24.5/§25.2 Live connection (FGS candidate). Started HERE, from the
     // foreground; API 33+ first asks for POST_NOTIFICATIONS (the indicator IS the
     // required FGS notification).
-    var liveConnection by remember {
-        mutableStateOf(com.zcode.android.core.notifications.LiveConnectionService.isRunning)
-    }
     val notifPermissionLauncher = rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
     ) { granted ->
         container.log.info("settings.notifPermission", "granted=$granted")
         if (granted || android.os.Build.VERSION.SDK_INT < 33) {
             com.zcode.android.core.notifications.LiveConnectionService.start(context)
-            liveConnection = true
         }
     }
     SwitchRow(
@@ -782,11 +874,9 @@ private fun NotificationsSection(container: AppContainer) {
                     notifPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                 } else {
                     com.zcode.android.core.notifications.LiveConnectionService.start(context)
-                    liveConnection = true
                 }
             } else {
                 com.zcode.android.core.notifications.LiveConnectionService.stop(context)
-                liveConnection = false
             }
         },
     )
@@ -873,23 +963,39 @@ private fun SettingsRow(
     subtitle: String?,
     tag: String,
     onClick: (() -> Unit)? = null,
+    enabled: Boolean = true,
+    /** M5.3: the active-endpoint marker is a semantic badge (TalkBack reads it), not a symbol-only suffix. */
+    active: Boolean = false,
 ) {
+    val alpha = if (enabled) 1f else 0.38f
     Row(
         Modifier
             .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(if (onClick != null && enabled) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .testTag(tag),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onBackground)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onBackground.copy(alpha = alpha))
+                if (active) {
+                    Spacer(Modifier.width(8.dp))
+                    val activeA11y = stringResource(R.string.settings_active_endpoint_a11y)
+                    androidx.compose.foundation.layout.Box(
+                        Modifier
+                            .size(8.dp)
+                            .background(MaterialTheme.colorScheme.primary, androidx.compose.foundation.shape.CircleShape)
+                            .semantics { contentDescription = activeA11y },
+                    )
+                }
+            }
             if (subtitle != null) {
                 Spacer(Modifier.height(2.dp))
                 Text(
                     subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
                 )
             }
         }
@@ -901,5 +1007,118 @@ private fun SettingsRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
+}
+
+/**
+ * B2.6 seam: the endpoint-switch message banner with its auto-clear. [delay] is
+ * injectable so the pin can observe launches without real clocks. [churn] models
+ * ANY unrelated parent state change: the original inline code re-ran its launch
+ * on EVERY recomposition while visible (timer restarted, dismissals piled up,
+ * message vanished abruptly) — the red state replicates that by re-arming per
+ * recomposition; the fix keys ONE effect on the message.
+ */
+@Composable
+internal fun AutoDismissMessage(
+    message: String?,
+    autoDismissMs: Long = 2_500,
+    churn: Int = 0,
+    onDismiss: () -> Unit,
+    delay: suspend (Long) -> Unit = { kotlinx.coroutines.delay(it) },
+) {
+    if (message == null) return
+    androidx.compose.material3.ListItem(
+        headlineContent = { Text(message) },
+        modifier = Modifier.testTag("settings_switch_message"),
+    )
+    // B2.6 fix: ONE effect keyed on the message — parent recompositions never
+    // re-arm it; the dismissal is exactly once per message, after the full window.
+    androidx.compose.runtime.LaunchedEffect(message) {
+        delay(autoDismissMs)
+        onDismiss()
+    }
+}
+
+/** Phase 4F (H1.4-phase1): the theme override — light/dark/system radio row (the desktop's settings.appearance.themeMode); applies WITHOUT restart. */
+@Composable
+private fun AppearanceSection(container: AppContainer) {
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val prefs by container.stores.preferencesRepository.observe()
+        .collectAsState(com.zcode.android.domain.model.AppPreferences())
+    var pickerOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    @androidx.compose.runtime.Composable
+    fun modeLabel(mode: com.zcode.android.domain.model.AppPreferences.ThemeMode): String = stringResource(
+        when (mode) {
+            com.zcode.android.domain.model.AppPreferences.ThemeMode.LIGHT -> R.string.settings_theme_light
+            com.zcode.android.domain.model.AppPreferences.ThemeMode.DARK -> R.string.settings_theme_dark
+            com.zcode.android.domain.model.AppPreferences.ThemeMode.SYSTEM -> R.string.settings_theme_system
+        },
+    )
+    SettingsRow(
+        title = stringResource(R.string.settings_theme_row, modeLabel(prefs.themeMode)),
+        subtitle = stringResource(R.string.settings_theme_sub),
+        tag = "settings_theme",
+        onClick = { pickerOpen = true },
+    )
+    if (pickerOpen) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { pickerOpen = false },
+            title = { Text(stringResource(R.string.settings_theme_row_title)) },
+            text = {
+                Column {
+                    for (mode in com.zcode.android.domain.model.AppPreferences.ThemeMode.entries) {
+                        val selected = prefs.themeMode == mode
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    scope.launch {
+                                        container.stores.preferencesRepository.update { p -> p.copy(themeMode = mode) }
+                                    }
+                                    pickerOpen = false
+                                }
+                                .padding(vertical = 10.dp)
+                                .testTag("settings_theme_${mode.name}"),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                        ) {
+                            androidx.compose.material3.RadioButton(selected = selected, onClick = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(modeLabel(mode))
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { pickerOpen = false }) {
+                    Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
+                }
+            },
+        )
+    }
+}
+
+/** Phase 4F: one per-category notification switch (the desktop's per-category prefs). */
+@Composable
+private fun CategoryToggle(
+    label: String,
+    checked: Boolean,
+    tag: String,
+    onChange: (Boolean) -> Unit,
+) {
+    // U5 (verification pass 2, 2026-10-21): the list's 16dp horizontal inset — without it
+    // the three category rows rendered flush against both screen edges (label at x=0,
+    // the switch's track on the right edge) between properly inset neighbours.
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .testTag(tag),
+        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        Spacer(Modifier.width(8.dp))
+        androidx.compose.material3.Switch(checked = checked, onCheckedChange = onChange, modifier = Modifier.testTag("${tag}_switch"))
     }
 }

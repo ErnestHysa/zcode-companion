@@ -30,10 +30,16 @@ android {
 kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)
+        // B3-chrome (gaps-and-polish 2C): M3 TopAppBar scroll behaviors are still
+        // @ExperimentalMaterial3Api — opted in module-wide, as every M3 app does.
+        freeCompilerArgs.add("-opt-in=androidx.compose.material3.ExperimentalMaterial3Api")
+        freeCompilerArgs.add("-opt-in=androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi")
     }
 }
 
 dependencies {
+    // E6-lint (gaps-and-polish 2A): Compose lint discipline runs over this module.
+    lintChecks(libs.compose.lint.checks)
     implementation(project(":core:common"))
     // UI-facing domain vocabulary only (ConnectionPhase, TaskStatus — pure Kotlin
     // types created as the UI mirror of the §14 machines; ADR-016). No reducers,
@@ -42,6 +48,8 @@ dependencies {
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.foundation)
+    implementation(libs.compose.material3.wsc)
+    implementation(libs.compose.animation)
     implementation(libs.compose.material3)
     implementation(libs.compose.material.icons.core)
     implementation(libs.compose.material.icons)

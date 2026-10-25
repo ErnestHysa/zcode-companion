@@ -10,16 +10,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -50,6 +47,8 @@ import java.util.Locale
 import java.util.TimeZone
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.zcode.android.core.ui.components.ZCodeOutlinedButton
+import com.zcode.android.core.ui.components.ZCodeButton
 
 /**
  * GAP-3 (android-native-gaps.md; docs/protocol/v4-wire.md §13.1; ADR-020) — the
@@ -467,7 +466,7 @@ private fun QuotaMeterList(
                     Modifier
                         .fillMaxWidth()
                         .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp))
+                        .clip(MaterialTheme.shapes.extraSmall)
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                 ) {
                     if (remaining != null && remaining > 0.0) {
@@ -475,7 +474,7 @@ private fun QuotaMeterList(
                             Modifier
                                 .fillMaxWidth((remaining / 100.0).toFloat())
                                 .height(6.dp)
-                                .clip(RoundedCornerShape(3.dp))
+                                .clip(MaterialTheme.shapes.extraSmall)
                                 .background(MaterialTheme.colorScheme.primary),
                         )
                     }
@@ -559,7 +558,7 @@ private fun ResetConfirmDialog(
             }
         },
         confirmButton = {
-            Button(
+            ZCodeButton(
                 onClick = onConfirm,
                 // THE gate: exact word + a live AVAILABLE entry + not quota-full.
                 enabled = confirmText == "RESET" && entry?.status == ResetUiStatus.AVAILABLE && !meterFull,
@@ -569,7 +568,7 @@ private fun ResetConfirmDialog(
             }
         },
         dismissButton = {
-            OutlinedButton(onClick = onDismiss, modifier = Modifier.testTag("quota_reset_cancel")) {
+            ZCodeOutlinedButton(onClick = onDismiss, modifier = Modifier.testTag("quota_reset_cancel")) {
                 Text(stringResource(R.string.quota_reset_cancel))
             }
         },

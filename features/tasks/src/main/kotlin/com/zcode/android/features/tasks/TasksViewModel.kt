@@ -35,8 +35,27 @@ data class TasksUiState(
     /** Non-null while a create is in flight; result surfaces once via [createNotice]. */
     val creatingTask: Boolean = false,
     val createNotice: String? = null,
+    // ---- Phase 4D (L6.3+J4 / H1.1) ----
+    /** H1.1: live task-search results (empty = no query / no matches). */
+    val searchResults: List<com.zcode.android.features.tasks.port.TaskSearchHit> = emptyList(),
+    /** The active search query (drives the results surface). */
+    val searchQuery: String = "",
+    /** One-shot lifecycle-action notice (delete/archive/rename outcome). */
+    val actionNotice: String? = null,
+    // ---- Phase 5A (A3.8–A3.10) ----
+    /** Pinned tasks across workspaces (wire `pinned`), rendered as the top "Pinned" section. */
+    val pinned: List<Task> = emptyList(),
+    /** Custom groups (desktop task_groups) + membership taskId → groupId. */
+    val taskGroups: List<com.zcode.android.domain.model.TaskGroupInfo> = emptyList(),
+    val groupMembership: Map<String, String> = emptyMap(),
+    /** Archived viewer data: null = not loaded / unavailable. */
+    val archived: List<com.zcode.android.domain.model.TaskMeta>? = null,
+    val archivedLoading: Boolean = false,
 ) {
     enum class Load { LOADING, EMPTY, READY }
+
+    /** Unread rows (wire `unreadAt`) — the badge count the list header shows. */
+    val unreadCount: Int get() = groups.sumOf { g -> g.tasks.count { it.isUnread } } + pinned.count { it.isUnread }
 
     /** Count of rows the user can unblock by looking (Phase 6 observes only). */
     val needsAttention: Int
@@ -56,6 +75,16 @@ data class TaskGroup(
 )
 
 class TasksViewModel(private val port: TasksPort, private val scope: CoroutineScope) {
+
+    // ---- Phase 4D: task lifecycle + search ----
+    private val searchResults = kotlinx.coroutines.flow.MutableStateFlow<List<com.zcode.android.features.tasks.port.TaskSearchHit>>(emptyList())
+    private val searchQuery = kotlinx.coroutines.flow.MutableStateFlow("")
+    private val actionNotice = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+    // ---- Phase 5A: groups + archived viewer ----
+    private val groupedView = MutableStateFlow<List<com.zcode.android.domain.model.GroupedTaskNode>>(emptyList())
+    private val archived = MutableStateFlow<List<com.zcode.android.domain.model.TaskMeta>?>(null)
+    private val archivedLoading = MutableStateFlow(false)
+    private val management = combine(groupedView, archived, archivedLoading) { g, a, l -> Triple(g, a, l) }
 
 
     private val refreshing = MutableStateFlow(false)
@@ -79,12 +108,48 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
         val suggestRepair: Boolean,
     )
 
-    private val tertiary = combine(
-        port.observeWorkspaces(), creating, createNotice,
-    ) { w, c, n -> Triple(w, c, n) }
+    @Suppress("UNCHECKED_CAST")
+    private val quaternary = kotlinx.coroutines.flow.combine(
+        port.observeWorkspaces(),
+        creating,
+        createNotice,
+        searchResults,
+        searchQuery,
+        actionNotice,
+    ) { arr ->
+        @kotlin.Suppress("UNCHECKED_CAST")
+        Sextet(
+            arr[0] as List<com.zcode.android.domain.model.WorkspaceOption>,
+            arr[1] as Boolean,
+            arr[2] as String?,
+            arr[3] as List<com.zcode.android.features.tasks.port.TaskSearchHit>,
+            arr[4] as String,
+            arr[5] as String?,
+        )
+    }
 
-    val state: StateFlow<TasksUiState> = combine(primary, secondary, tertiary) { (tasks, phase, error), extra, (workspaces, creatingNow, notice) ->
+    private data class Sextet(
+        val workspaces: List<com.zcode.android.domain.model.WorkspaceOption>,
+        val creating: Boolean,
+        val notice: String?,
+        val searchResults: List<com.zcode.android.features.tasks.port.TaskSearchHit>,
+        val searchQuery: String,
+        val actionNotice: String?,
+    )
+
+    val state: StateFlow<TasksUiState> = combine(primary, secondary, quaternary, management) { (tasks, phase, error), extra, q, m ->
+        val (nodes, archivedList, archivedBusy) = m
+        val pinned = tasks.filter { it.pinned }.sortedByDescending { it.updatedAtMs }
         TasksUiState(
+            searchResults = q.searchResults,
+            searchQuery = q.searchQuery,
+            actionNotice = q.actionNotice,
+            pinned = pinned,
+            taskGroups = nodes.filterIsInstance<com.zcode.android.domain.model.GroupedTaskNode.Group>().map { it.group },
+            groupMembership = nodes.filterIsInstance<com.zcode.android.domain.model.GroupedTaskNode.Group>()
+                .flatMap { g -> g.taskIds.map { it to g.group.id } }.toMap(),
+            archived = archivedList,
+            archivedLoading = archivedBusy,
             phase = phase,
             loadState = when {
                 tasks.isNotEmpty() -> TasksUiState.Load.READY
@@ -92,12 +157,12 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
                 phase.inFlight() -> TasksUiState.Load.LOADING
                 else -> TasksUiState.Load.EMPTY
             },
-            groups = groupTasks(tasks),
+            groups = groupTasks(tasks.filterNot { it.pinned }),
             taskCount = tasks.size,
             error = error,
-            workspaces = workspaces,
-            creatingTask = creatingNow,
-            createNotice = notice,
+            workspaces = q.workspaces,
+            creatingTask = q.creating,
+            createNotice = q.notice,
             refreshing = extra.refreshing,
             lastRefreshAtMs = extra.lastRefresh,
             endpointName = extra.endpointName,
@@ -146,12 +211,196 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
         createNotice.value = null
     }
 
+    // ---------------------------------------------------------------- Phase 4D lifecycle + search
+
+    /** Delete ("records cannot be recovered" — the UI confirms BEFORE this). */
+    fun deleteTask(taskId: String) {
+        scope.launch {
+            val ok = port.deleteTask(taskId)
+            actionNotice.value = if (ok) {
+                refresh()
+                "Task deleted"
+            } else {
+                "Couldn't delete the task — try again"
+            }
+        }
+    }
+
+    fun renameTask(taskId: String, title: String) {
+        if (title.isBlank()) return
+        scope.launch {
+            val ok = port.renameTask(taskId, title)
+            actionNotice.value = if (ok) {
+                refresh()
+                "Task renamed"
+            } else {
+                "Couldn't rename the task — try again"
+            }
+        }
+    }
+
+    fun setTaskArchived(taskId: String, archived: Boolean) {
+        scope.launch {
+            val ok = port.setTaskArchived(taskId, archived)
+            actionNotice.value = if (ok) {
+                refresh()
+                if (archived) "Task archived — restore it on the desktop" else "Task unarchived"
+            } else {
+                "Couldn't update the task — try again"
+            }
+        }
+    }
+
+    fun consumeActionNotice() {
+        actionNotice.value = null
+    }
+
+    // ---------------------------------------------------------------- Phase 5A (A3.8–A3.10)
+
+    /** Pin/unpin: the pinned section follows the wire echo on the next refresh. */
+    fun setTaskPinned(taskId: String, pinned: Boolean) {
+        scope.launch {
+            val ok = port.setTaskPinned(taskId, pinned)
+            actionNotice.value = if (ok) {
+                refresh()
+                if (pinned) "Task pinned" else "Task unpinned"
+            } else {
+                "Couldn't update the pin — try again"
+            }
+        }
+    }
+
+    /** Mark unread/read; mark-read carries the row's current `unreadAt` (CAS-style). */
+    fun setTaskUnread(task: Task, unread: Boolean) {
+        scope.launch {
+            val ok = port.setTaskUnread(task.taskId, unread, if (unread) null else task.unreadAt)
+            actionNotice.value = if (ok) {
+                refresh()
+                if (unread) "Marked unread" else "Marked read"
+            } else {
+                "Couldn't update the task — try again"
+            }
+        }
+    }
+
+    /** Resume a finished task's session (the desktop's "continue"). */
+    fun resumeTask(taskId: String) {
+        scope.launch {
+            val ok = port.resumeTask(taskId)
+            actionNotice.value = if (ok) {
+                refresh()
+                "Task resumed"
+            } else {
+                "Couldn't resume the task — try again"
+            }
+        }
+    }
+
+    /** The archived viewer's load (null result = unavailable face). */
+    fun loadArchived() {
+        if (archivedLoading.value) return
+        scope.launch {
+            archivedLoading.value = true
+            try {
+                archived.value = port.listArchivedTasks()
+            } finally {
+                archivedLoading.value = false
+            }
+        }
+    }
+
+    fun deleteArchivedTask(taskId: String) {
+        scope.launch {
+            val ok = port.deleteArchivedTask(taskId)
+            actionNotice.value = if (ok) "Task deleted permanently" else "Couldn't delete the task — try again"
+            if (ok) archived.value = archived.value?.filterNot { it.taskId == taskId }
+        }
+    }
+
+    /** Unarchive from the viewer: the shared archive word with archived=false. */
+    fun unarchiveFromViewer(taskId: String) {
+        scope.launch {
+            val ok = port.setTaskArchived(taskId, false)
+            actionNotice.value = if (ok) {
+                archived.value = archived.value?.filterNot { it.taskId == taskId }
+                refresh()
+                "Task unarchived"
+            } else {
+                "Couldn't update the task — try again"
+            }
+        }
+    }
+
+    /** Refresh the custom-group structure (null = plain workspace sections). */
+    fun loadGroups() {
+        scope.launch { groupedView.value = port.listGroupedView() ?: emptyList() }
+    }
+
+    fun createGroup(title: String, color: com.zcode.android.domain.model.TaskGroupColor) {
+        scope.launch {
+            val created = port.createTaskGroup(title.ifBlank { "New Group" }, color)
+            actionNotice.value = if (created != null) {
+                loadGroups()
+                "Group created"
+            } else {
+                "Couldn't create the group — try again"
+            }
+        }
+    }
+
+    fun renameGroup(groupId: String, title: String) {
+        if (title.isBlank()) return
+        scope.launch { if (port.renameTaskGroup(groupId, title)) loadGroups() else actionNotice.value = "Couldn't rename the group — try again" }
+    }
+
+    fun recolorGroup(groupId: String, color: com.zcode.android.domain.model.TaskGroupColor) {
+        scope.launch { if (port.updateTaskGroupColor(groupId, color)) loadGroups() else actionNotice.value = "Couldn't update the group — try again" }
+    }
+
+    fun deleteGroup(groupId: String) {
+        scope.launch {
+            val ok = port.deleteTaskGroup(groupId)
+            actionNotice.value = if (ok) {
+                loadGroups()
+                "Group deleted — its tasks are back in the list"
+            } else {
+                "Couldn't delete the group — try again"
+            }
+        }
+    }
+
+    /** Move a task into a group (null = out of every group). Pinned tasks are refused host-side. */
+    fun moveTaskToGroup(taskId: String, groupId: String?) {
+        scope.launch {
+            val ok = port.moveTaskToGroup(taskId, groupId)
+            actionNotice.value = if (ok) {
+                loadGroups()
+                if (groupId == null) "Removed from group" else "Moved to group"
+            } else {
+                "Couldn't move the task — unpin it first if it is pinned"
+            }
+        }
+    }
+
+    /** H1.1: a blank query clears; anything else is a live port search. */
+    fun search(query: String) {
+        searchQuery.value = query
+        if (query.isBlank()) {
+            searchResults.value = emptyList()
+            return
+        }
+        scope.launch {
+            searchResults.value = port.searchTasks(query)
+        }
+    }
+
     fun refresh() {
         if (_refreshInProgress.value) return
         scope.launch {
             _refreshInProgress.value = true
             try {
                 port.refresh()
+                groupedView.value = port.listGroupedView() ?: emptyList()
             } finally {
                 _refreshInProgress.value = false
             }

@@ -30,6 +30,14 @@ data class SessionProjectionState(
     val usage: SessionUsageState? = null,
     /** CAS currency for baseRevision-carrying commands (§7.4.4 verified set). */
     val revision: Long? = null,
+    /** Phase 4C (D2): the /goal plane WITH its verification timeline (nullable key). */
+    val goal: GoalState? = null,
+    /** Phase 4C (D2): the todo projection (TodoWrite restore display). */
+    val plan: PlanState? = null,
+    /** D2: the `goal`/`plan` KEYS were carried (they are REQUIRED-nullable on the wire —
+     *  an explicit null is a decoded fact, not an absent key). */
+    val goalKeyPresent: Boolean = false,
+    val planKeyPresent: Boolean = false,
 ) {
     /**
      * True when the snapshot carried ANY decoded A-side state key — the gateway
@@ -39,7 +47,8 @@ data class SessionProjectionState(
     val hasDecodedStateKeys: Boolean
         get() = control != null || inputRouting != null || queue != null ||
             pendingInteractions != null || backgroundWorks != null || config != null ||
-            usage != null || revision != null
+            usage != null || revision != null || goal != null || plan != null ||
+            goalKeyPresent || planKeyPresent
 
     /** Key-level merge (the verified Object.assign semantics — no deep merge). */
     fun mergedWith(patch: JsonObject): SessionProjectionState {
@@ -60,11 +69,21 @@ data class SessionProjectionState(
                 "revision" -> (patch[key] as? JsonPrimitive)?.content?.toLongOrNull()?.let {
                     next = next.copy(revision = it)
                 }
-                // meta/pendingCommands/subagents/workflowRuns/goal/plan/
+                "goal" -> when (patch[key]) {
+                    is JsonNull -> next = next.copy(goal = null, goalKeyPresent = true) // explicit nullable key
+                    is JsonObject -> GoalState.decodeOrNull(patch[key] as JsonObject)?.let { next = next.copy(goal = it, goalKeyPresent = true) }
+                    else -> malformedKeyDrops++
+                }
+                "plan" -> when (patch[key]) {
+                    is JsonNull -> next = next.copy(plan = null, planKeyPresent = true)
+                    is JsonObject -> PlanState.decodeOrNull(patch[key] as JsonObject)?.let { next = next.copy(plan = it, planKeyPresent = true) }
+                    else -> malformedKeyDrops++
+                }
+                // meta/pendingCommands/subagents/workflowRuns/
                 // sharedContextImport/modelTransition/workspaceHookAdmission: not consumed
                 // by any surface — ignored keys, counted, never merged (INV-8).
-                // (`config` joined in Phase 9 — §10.3; `usage` in Phase 2 — §11.1 of
-                // docs/protocol/v4-wire.md.)
+                // (`config` joined in Phase 9 — §10.3; `usage` in Phase 2 — §11.1;
+                // `goal`/`plan` in Phase 4C — D2.)
                 else -> ignoredKeys++
             }
         }
@@ -96,6 +115,16 @@ data class SessionProjectionState(
                     "usage" -> asObject(snapshot[key])?.let { o -> SessionUsageState.decodeOrNull(o)?.let { state = state.copy(usage = it) } }
                     "revision" -> (snapshot[key] as? JsonPrimitive)?.content?.toLongOrNull()?.let {
                         state = state.copy(revision = it)
+                    }
+                    "goal" -> when (snapshot[key]) {
+                        is JsonNull -> state = state.copy(goal = null, goalKeyPresent = true)
+                        is JsonObject -> GoalState.decodeOrNull(snapshot[key] as JsonObject)?.let { state = state.copy(goal = it, goalKeyPresent = true) }
+                        else -> malformedKeyDrops++
+                    }
+                    "plan" -> when (snapshot[key]) {
+                        is JsonNull -> state = state.copy(plan = null, planKeyPresent = true)
+                        is JsonObject -> PlanState.decodeOrNull(snapshot[key] as JsonObject)?.let { state = state.copy(plan = it, planKeyPresent = true) }
+                        else -> malformedKeyDrops++
                     }
                     else -> ignoredKeys++
                 }
@@ -213,6 +242,8 @@ data class PendingInteraction(
     val createdAtMs: Long?,
     val permission: PermissionPayload?,
     val userInput: UserInputPayload?,
+    /** ADR-024 (Phase 5D): the workspaceHookReview payload (hooks trust = permission for shell code). */
+    val hookReview: WorkspaceHookReview? = null,
     val raw: JsonObject,
 ) {
     enum class Kind(val wire: String) {
@@ -310,6 +341,7 @@ data class PendingInteraction(
                         raw = p,
                     )
                 },
+                hookReview = payload?.takeIf { it.strOrNull("kind") == "workspaceHookReview" }?.let { WorkspaceHookReview.decode(it) },
                 raw = obj,
             )
         }
@@ -396,6 +428,112 @@ data class SessionConfigState(
          * frame; §9 decode policy in docs/protocol/v4-wire.md).
          */
         fun decodeOrNull(obj: JsonObject): SessionConfigState? = try {
+            decode(obj)
+        } catch (e: RowDecodeException) {
+            SessionProjectionState.malformedKeyDrops++
+            null
+        }
+    }
+}
+
+/**
+ * D2 (Phase 4C): snapshot.ts goalStateSchema — the /goal plane the phone SENDS and
+ * resumes but never RENDERED. The verification timeline is the flagship: on a goal
+ * session the desktop shows which criteria passed/failed per iteration; the phone
+ * showed nothing. Status is a closed enum kept RAW (INV-8): active|paused|verifying|
+ * verified|notSatisfied|failed. A malformed KNOWN field drops the key + counts.
+ */
+data class GoalState(
+    val targetId: String?,
+    val objective: String,
+    val summaryTitle: String?,
+    val timeUsedSeconds: Long?,
+    val activeRunStartedAtMs: Long?,
+    val status: String,
+    val iteration: Long,
+    val verifications: List<Verification>,
+) {
+    data class Verification(
+        val iteration: Long,
+        /** pass | notSatisfied | failed (closed enum, kept raw). */
+        val outcome: String,
+        val atMs: Long,
+        val anchorRowId: Long?,
+        val reason: String?,
+        val nextAction: String?,
+    )
+
+    companion object {
+        /**
+         * The turn-KIND-aware progress label (D2): folds control.activeWorks[].kind
+         * (activeWorkSummarySchema enum) into progress copy; an unknown kind → null
+         * (the generic label stays).
+         */
+        fun turnKindLabel(kind: String?): String? = when (kind) {
+            "primaryTurn" -> "generating"
+            "foregroundSubagent" -> "running subagents"
+            "compact" -> "compacting"
+            "goalVerifier" -> "verifying goal"
+            "goalContinuation" -> "continuing goal"
+            "turnSteer" -> "steering"
+            else -> null
+        }
+
+        fun decode(obj: JsonObject): GoalState = GoalState(
+            targetId = obj.strOrNull("targetId"),
+            objective = obj.string("objective"),
+            summaryTitle = obj.strOrNull("summaryTitle"),
+            timeUsedSeconds = obj.longOrNull("timeUsedSeconds"),
+            activeRunStartedAtMs = obj.longOrNull("activeRunStartedAtMs"),
+            status = obj.strOrNull("status") ?: "",
+            iteration = obj.longOrNull("iteration") ?: 0,
+            verifications = (obj["verifications"] as? JsonArray)
+                ?.mapNotNull { it as? JsonObject }
+                ?.map { v ->
+                    Verification(
+                        iteration = v.longOrNull("iteration") ?: 0,
+                        outcome = v.strOrNull("outcome") ?: "",
+                        atMs = v.doubleOrNull("at")?.toLong() ?: 0L,
+                        anchorRowId = v.longOrNull("anchorRowId"),
+                        reason = v.strOrNull("reason"),
+                        nextAction = v.strOrNull("nextAction"),
+                    )
+                }
+                ?: emptyList(),
+        )
+
+        fun decodeOrNull(obj: JsonObject): GoalState? = try {
+            decode(obj)
+        } catch (e: RowDecodeException) {
+            SessionProjectionState.malformedKeyDrops++
+            null
+        }
+    }
+}
+
+/** D2: snapshot.ts planStateSchema — the todo projection (TodoWrite restore display). */
+data class PlanState(
+    val items: List<Item>,
+    val updatedAtMs: Long,
+) {
+    data class Item(val id: String, val content: String, /** pending | inProgress | completed (kept raw). */ val status: String)
+
+    companion object {
+        fun decode(obj: JsonObject): PlanState = PlanState(
+            items = (obj["items"] as? JsonArray)
+                ?.mapNotNull { it as? JsonObject }
+                ?.map { i ->
+                    Item(
+                        id = i.strOrNull("id") ?: "",
+                        content = i.string("content"),
+                        status = i.strOrNull("status") ?: "pending",
+                    )
+                }
+                ?: emptyList(),
+            updatedAtMs = obj.doubleOrNull("updatedAt")?.toLong() ?: 0L,
+        )
+
+        fun decodeOrNull(obj: JsonObject): PlanState? = try {
             decode(obj)
         } catch (e: RowDecodeException) {
             SessionProjectionState.malformedKeyDrops++

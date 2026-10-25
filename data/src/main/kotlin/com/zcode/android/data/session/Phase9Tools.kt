@@ -136,6 +136,34 @@ class Phase9Tools(private val transport: AppTransport) {
      * null`, streaming decoded bytes into [sink]. The verified media gate (image/
      * video/pdf only) re-fails closed here on every chunk (INV-14).
      */
+    /**
+     * A3.1 (Phase 3D): the attachment's FIRST chunk only, capped for thumbnails —
+     * the conversation renders a preview, never the whole object on scroll.
+     */
+    suspend fun attachmentPreview(
+        sessionId: String,
+        ref: String,
+        maxBytes: Int = 512 * 1024,
+        targetRowId: Long? = null,
+        targetEntityId: String? = null,
+        attachmentIndex: Int? = null,
+        workspacePath: String? = null,
+        workspaceIdentity: String? = null,
+    ): ByteArray? {
+        val params = V4Attachment.ReadParams(
+            sessionId = sessionId, ref = ref, targetRowId = targetRowId,
+            targetEntityId = targetEntityId, attachmentIndex = attachmentIndex,
+            offset = 0, limit = minOf(maxBytes, AttachmentLimits.CHUNK_MAX_BYTES),
+        )
+        params.validate()
+        val raw = transport.attachmentRead(
+            sessionId, ref, 0, params.limit, targetRowId, targetEntityId, attachmentIndex,
+            workspacePath, workspaceIdentity,
+        )
+        val result = V4Attachment.ReadResult.decode(raw)
+        return runCatching { java.util.Base64.getDecoder().decode(result.dataBase64) }.getOrNull()
+    }
+
     suspend fun attachmentReadAll(
         sessionId: String,
         ref: String,
@@ -271,9 +299,18 @@ class Phase9Tools(private val transport: AppTransport) {
     suspend fun fileBytes(path: String, offset: Long, length: Long): ByteArray =
         transport.fileReadBytes(path, offset, length)
 
+    /** I3 (Phase 3E): a bounded binary preview (image thumbs render in the browser). */
+    suspend fun fileBinaryPreview(path: String, maxBytes: Long): JsonObject =
+        transport.fileBinaryPreview(path, maxBytes)
+
     // ---------------------------------------------------------------- model picker (9.5)
 
-    /** `model-selection.getView()` → provider/model options (graceful on refusal). */
+    /**
+     * `model-selection.getView()` → provider/model options (graceful on refusal).
+     * D4 (Phase 3A): the desktop picker's badge/display fields ride along when present —
+     * provider `labelBadge`, model `config.badgeLabel` / `config.label` — tolerant (INV-8):
+     * absent → null/modelId, never synthesized.
+     */
     suspend fun modelOptions(): List<ModelProviderOption> {
         val o = transport.modelSelectionView()
         val providers = o["providers"] as? JsonArray ?: return emptyList()
@@ -281,14 +318,41 @@ class Phase9Tools(private val transport: AppTransport) {
             val p = el as? JsonObject ?: return@mapNotNull null
             val providerId = p.strOrNull("providerId") ?: return@mapNotNull null
             val models = (p["models"] as? JsonArray)?.mapNotNull { m ->
-                (m as? JsonObject)?.strOrNull("modelId")
+                val mo = m as? JsonObject ?: return@mapNotNull null
+                val modelId = mo.strOrNull("modelId") ?: return@mapNotNull null
+                val config = mo["config"] as? JsonObject
+                ModelOption(
+                    id = modelId,
+                    label = config?.strOrNull("label") ?: config?.strOrNull("displayName") ?: mo.strOrNull("label") ?: modelId,
+                    badge = mo.strOrNull("badgeLabel") ?: config?.strOrNull("badgeLabel"),
+                )
             } ?: emptyList()
             ModelProviderOption(
                 providerId = providerId,
                 providerName = p.strOrNull("providerName"),
-                models = models.map { ModelOption(id = it, label = it) },
+                models = models,
+                badge = p.strOrNull("labelBadge") ?: p.strOrNull("badgeLabel"),
             )
         }
+    }
+
+    // ---------------------------------------------------------------- C7 (Phase 3C)
+
+    /**
+     * Lazy full tool output (C7): the desktop's slice when it has a body, null otherwise
+     * (3.14.5 ships a null stub — the caller falls back to the row's retained payload).
+     */
+    suspend fun toolCallOutput(taskId: String, toolCallId: String): String? {
+        // A refused/unscripted slice degrades the FEATURE (§13.3), never surfaces.
+        val o = runCatching { transport.taskSnapshotToolCallsSlice(taskId, listOf(toolCallId)) }.getOrNull() ?: return null
+        val calls = (o["toolCalls"] as? JsonArray) ?: return null
+        val call = calls
+            .mapNotNull { it as? JsonObject }
+            .firstOrNull { (it["toolCallId"] as? JsonPrimitive)?.content == toolCallId }
+            ?: return null
+        return call.strOrNull("output")
+            ?: call.strOrNull("result")
+            ?: (call["outputPreview"] as? JsonObject)?.toString()
     }
 
     // ---------------------------------------------------------------- json helpers

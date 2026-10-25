@@ -10,6 +10,6 @@ import androidx.compose.runtime.Composable
  * the app-level import path stable).
  */
 @Composable
-fun ZCodeTheme(content: @Composable () -> Unit) {
-    com.zcode.android.core.ui.theme.ZCodeTheme(content = content)
+fun ZCodeTheme(themeMode: com.zcode.android.core.ui.theme.ThemeMode = com.zcode.android.core.ui.theme.ThemeMode.SYSTEM, content: @Composable () -> Unit) {
+    com.zcode.android.core.ui.theme.ZCodeTheme(themeMode = themeMode, content = content)
 }

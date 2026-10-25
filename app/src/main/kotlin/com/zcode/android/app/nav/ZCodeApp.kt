@@ -1,17 +1,10 @@
 package com.zcode.android.app.nav
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
@@ -29,6 +22,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.zcode.android.app.AppContainer
+import com.zcode.android.app.updateRecentsTaskLabel
 import com.zcode.android.app.R
 import com.zcode.android.features.conversation.ui.ApprovalsScreen
 import com.zcode.android.app.connect.ConnectionCenterScreen
@@ -44,8 +38,12 @@ import com.zcode.android.features.pairing.flow.PairingFlow
 import com.zcode.android.features.tasks.TasksViewModel
 import com.zcode.android.features.tasks.ui.TaskListScreen
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import androidx.compose.material3.Scaffold
+import com.zcode.android.core.ui.components.rememberSnackbarNotifier
+import androidx.compose.runtime.setValue
 
 /**
  * Phase 6 navigation graph (§18.2; ui-ux navigation.md): pairing (unpaired gate) →
@@ -56,6 +54,7 @@ import kotlinx.coroutines.launch
 object Routes {
     const val PAIRING = "pairing"
     const val TASKS = "tasks"
+    const val ONBOARDING = "onboarding"
     const val CONVERSATION = "conversation/{taskId}"
     const val CONNECTION = "connection"
     const val SETTINGS = "settings"
@@ -80,11 +79,16 @@ fun ZCodeApp(
     scannerContent: @Composable () -> Unit,
 ) {
     val nav = rememberNavController()
+    // B3-states: in-app notices ride the root SnackbarHost (Toast → Snackbar).
+    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
+    val notifier = com.zcode.android.core.ui.components.rememberSnackbarNotifier(snackbarHostState)
     // §11.6 (Phase 10): "paired" = ANY activatable endpoint — the relay pairing
     // OR a registry endpoint with a usable credential (direct endpoints have no
     // vault relay-metadata; a device paired ONLY to a direct server must land on
     // the task list, not the QR gate). The surrogate carries the deep-link
     // environment's deviceSid slot (= the endpoint id; routing input only).
+    val prefs by container.stores.preferencesRepository.observe()
+        .collectAsState(com.zcode.android.domain.model.AppPreferences())
     val relayPaired by container.pairingPort.pairedEndpoint.collectAsState()
     val hubEndpoint by container.hub.endpoint.collectAsState()
     // The surrogate is for DIRECT-ONLY devices: once a relay pairing exists in this
@@ -124,7 +128,12 @@ fun ZCodeApp(
                 if (!onPairing) nav.navigate(Routes.PAIRING) { popUpTo(0) { inclusive = true } }
             onPairing -> {
                 container.hub.onPairingCompleted()
-                nav.navigate(Routes.TASKS) { popUpTo(Routes.PAIRING) { inclusive = true } }
+                // H1.5: the ONE-TIME post-pairing pass — skippable; never re-shown.
+                if (!prefs.onboardingDone) {
+                    nav.navigate(Routes.ONBOARDING) { popUpTo(Routes.PAIRING) { inclusive = true } }
+                } else {
+                    nav.navigate(Routes.TASKS) { popUpTo(Routes.PAIRING) { inclusive = true } }
+                }
             }
             else -> container.hub.onPairingCompleted()
         }
@@ -136,6 +145,23 @@ fun ZCodeApp(
     // route (never a crash, never an empty screen). An UNPAIRED device keeps the
     // link pending; it re-resolves after pairing completes (§24.7 re-validation).
     val pendingLink by container.notifications.pendingLink.collectAsState()
+    // H2.2: launcher shortcuts — routed after the paired gate like deep links.
+    val pendingShortcut by container.notifications.pendingShortcut.collectAsState()
+    var createRequested by remember { androidx.compose.runtime.mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(pendingShortcut, paired) {
+        val target = pendingShortcut ?: return@LaunchedEffect
+        if (paired == null) return@LaunchedEffect // UNPAIRED → hold; re-routed post-pairing
+        container.notifications.consumeShortcut()
+        when (target) {
+            com.zcode.android.app.notifications.AppShortcuts.Target.NEW_TASK -> {
+                createRequested = true
+                nav.navigate(Routes.TASKS) { popUpTo(Routes.TASKS) { inclusive = false }; launchSingleTop = true }
+            }
+            com.zcode.android.app.notifications.AppShortcuts.Target.APPROVALS -> nav.navigate(Routes.APPROVALS)
+            com.zcode.android.app.notifications.AppShortcuts.Target.CONNECTION -> nav.navigate(Routes.CONNECTION)
+        }
+        container.log.info("nav.shortcut", "target=${target.id}")
+    }
     val appContext = androidx.compose.ui.platform.LocalContext.current
     androidx.compose.runtime.LaunchedEffect(pendingLink, paired) {
         val link = pendingLink ?: return@LaunchedEffect
@@ -172,21 +198,11 @@ fun ZCodeApp(
             -> nav.navigate(Routes.conversation(link.taskId))
             com.zcode.android.domain.recovery.DeepLinkRoute.Outcome.TASK_GONE -> {
                 navigateToTasks()
-                // The resolve may resume off-main (test interpolators, lifecycle
-                // dispatch) — toasts require a Looper thread.
-                android.widget.Toast.makeText(
-                    appContext,
-                    appContext.getString(R.string.deeplink_task_gone),
-                    android.widget.Toast.LENGTH_LONG,
-                ).show()
+                notifier.show(appContext.getString(R.string.deeplink_task_gone), long = true)
             }
             com.zcode.android.domain.recovery.DeepLinkRoute.Outcome.WRONG_ENDPOINT -> {
                 navigateToTasks()
-                android.widget.Toast.makeText(
-                    appContext,
-                    appContext.getString(R.string.deeplink_wrong_endpoint),
-                    android.widget.Toast.LENGTH_LONG,
-                ).show()
+                notifier.show(appContext.getString(R.string.deeplink_wrong_endpoint), long = true)
             }
             // MALFORMED never reaches here (parse filtered at intake) — drop silently.
             com.zcode.android.domain.recovery.DeepLinkRoute.Outcome.MALFORMED -> Unit
@@ -197,13 +213,48 @@ fun ZCodeApp(
 
     // testTagsAsResourceId: exposes Compose testTags to UiAutomator/Macrobenchmark
     // (§43.2-11.1 waits); pure test plumbing, no behavioral surface.
+    // B3-motion + K2: shared-axis route transitions (≈300ms fade + directional slide),
+    // EnterTransition.None/ExitTransition.None under the system reduced-motion switch.
+    val navMotion = com.zcode.android.core.ui.components.rememberNavTransitions()
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
+        // Each route hosts its own Scaffold (ZCodeTopBar insets): the root must not
+        // add system-bar insets a second time. The snackbar still avoids the nav bar
+        // through its own host placement.
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
+    ) { inner ->
+        androidx.compose.foundation.layout.Box(Modifier.fillMaxSize().padding(inner)) {
+            androidx.compose.runtime.CompositionLocalProvider(
+                com.zcode.android.core.ui.components.LocalNotifier provides notifier,
+            ) {
+    // B2.15/J4: ONE ticking clock for every relative-time label in the app.
+    com.zcode.android.core.ui.components.ProvideRelativeNow {
     NavHost(
         navController = nav,
         startDestination = if (paired != null) Routes.TASKS else Routes.PAIRING,
         modifier = Modifier.semantics { testTagsAsResourceId = true },
+        enterTransition = { navMotion.enter },
+        exitTransition = { navMotion.exit },
+        popEnterTransition = { navMotion.popEnter },
+        popExitTransition = { navMotion.popExit },
     ) {
         composable(Routes.PAIRING) {
             PairingHostRoute(pairingVm = pairingVm, scannerContent = scannerContent)
+        }
+        composable(Routes.ONBOARDING) {
+            // H1.5: the one-time "what your phone can do" pass — Skip and Get-started
+            // both mark the pref done and land on the task list.
+            androidx.compose.runtime.LaunchedEffect(Unit) { container.hub.onPairingCompleted() }
+            com.zcode.android.features.pairing.ui.OnboardingPager(
+                onFinish = {
+                    scope.launch {
+                        container.stores.preferencesRepository.update { p -> p.copy(onboardingDone = true) }
+                        nav.navigate(Routes.TASKS) { popUpTo(0) { inclusive = true } }
+                    }
+                },
+            )
         }
         composable(Routes.TASKS) {
             // §18.3 "Needs you": the approvals inbox entry carries the open count.
@@ -230,11 +281,28 @@ fun ZCodeApp(
                 createNotice = taskState.createNotice,
                 onConsumeCreateNotice = tasksVm::consumeCreateNotice,
                 collapseStore = container.workspaceCollapseStore,
+                requestCreate = createRequested,
+                onCreateRequestConsumed = { createRequested = false },
+                // Phase 4B (A3.2): open-session-from-run lands on the run's session.
+                onOpenTaskId = { id -> container.log.info("tasks.openRun", "task=${id.take(24)}"); nav.navigate(Routes.conversation(id)) },
+                // Phase 4C (C7): scratch create — resolve `{name}` → `{path}` (createScratchWorkspace),
+                // then the SAME createTaskAndWait against the returned path.
+                onCreateScratchTask = { name, text, provider, model ->
+                    scope.launch {
+                        container.log.info("tasks.scratch", "name=${name.take(24)}")
+                        val path = container.tasksPort.createScratchWorkspace(name)
+                        if (path != null) {
+                            tasksVm.createTaskAndWait(path, text, provider, model)
+                        } else {
+                            container.log.warn("tasks.scratch", "createScratchWorkspace refused — nothing created")
+                        }
+                    }
+                },
             )
         }
         composable(Routes.CONVERSATION) { entry ->
             val taskId = entry.arguments?.getString("taskId").orEmpty()
-            val vm = rememberConversationViewModel(container, scope, taskId)
+            val vm = rememberConversationViewModel(container, taskId)
             ConversationRoute(
                 container = container,
                 vm = vm,
@@ -242,6 +310,8 @@ fun ZCodeApp(
                 onOpenFiles = { container.log.info("nav.files", "open"); nav.navigate(Routes.FILES) },
                 onOpenGit = { container.log.info("nav.git", "open"); nav.navigate(Routes.GIT) },
                 onOpenTerminal = { container.log.info("nav.terminal", "open"); nav.navigate(Routes.TERMINAL) },
+                // Phase 4A: an accepted fork opens the CHILD session in place (desktop onSessionCreated parity).
+                onOpenTask = { child -> container.log.info("nav.fork", "open ${child.take(12)}"); nav.navigate(Routes.conversation(child)) },
             )
         }
 
@@ -305,6 +375,10 @@ fun ZCodeApp(
         }
 
     }
+    }
+            }
+        }
+    }
 }
 
 @Composable
@@ -332,9 +406,18 @@ private fun TasksRoute(
     createNotice: String? = null,
     onConsumeCreateNotice: () -> Unit = {},
     collapseStore: com.zcode.android.features.tasks.ui.WorkspaceCollapseStore? = null,
+
+    requestCreate: Boolean = false,
+    onCreateRequestConsumed: () -> Unit = {},
+    onOpenTaskId: (String) -> Unit = {},
+    onCreateScratchTask: (name: String, firstText: String, provider: String?, model: String?) -> Unit = { _, _, _, _ -> },
 ) {
     val state by vm.state.collectAsState()
     val refreshing by vm.isRefreshing.collectAsState()
+    val startScope = androidx.compose.runtime.rememberCoroutineScope()
+    val notifier = com.zcode.android.core.ui.components.LocalNotifier.current
+    val startedCopy = stringResource(com.zcode.android.features.tasks.R.string.workflow_start_sent)
+    val refusedCopy = stringResource(com.zcode.android.features.tasks.R.string.workflow_start_refused)
     TaskListScreen(
         state = state.copy(refreshing = refreshing),
         onTaskClick = onTaskClick,
@@ -344,14 +427,22 @@ private fun TasksRoute(
         onOpenApprovals = onOpenApprovals,
         onCreateTask = onCreateTask,
         modelPicker = { current, onPick, onDismiss ->
-            com.zcode.android.features.conversation.ui.ComposerModelPickerDialog(
+            // B1 (Phase 3A): the create-task SHEET hosts the shared picker BODY inline —
+            // never a second sheet stacked on it (the live E2/F3 "grey skeleton").
+            com.zcode.android.features.conversation.ui.ModelPickerContent(
                 current = current,
+                currentThought = null,
+                thoughtLevels = emptyList(),
                 modelOptionsProvider = {
                     val tools = container.hub.phase9()
                     runCatching { tools.modelOptions() }.getOrDefault(emptyList())
                 },
-                onPick = onPick,
+                onPick = { provider, model, _ -> onPick(provider, model) },
                 onDismiss = onDismiss,
+                title = stringResource(com.zcode.android.features.conversation.R.string.composer_model_picker_title),
+                rowTagPrefix = "composer_model_row_",
+                titleTag = "composer_model_picker_title",
+                emptyTag = "composer_model_picker_empty",
             )
         },
         workspaces = workspaces,
@@ -362,19 +453,82 @@ private fun TasksRoute(
         onRefresh = vm::refresh,
         onRepairPairing = vm::repairPairing,
         automationsPort = container.automationsPort,
+        requestCreate = requestCreate,
+        onCreateRequestConsumed = onCreateRequestConsumed,
+        onOpenTaskId = onOpenTaskId,
+        onCreateScratchTask = onCreateScratchTask,
+        // F5-WIRE (Phase 5A discovery): the Phase-4D lifecycle + search callbacks were never
+        // passed here — the menu and confirms rendered, the confirmed actions were no-ops.
+        onDeleteTask = vm::deleteTask,
+        onRenameTask = vm::renameTask,
+        onSetTaskArchived = vm::setTaskArchived,
+        onSearch = vm::search,
+        onConsumeActionNotice = vm::consumeActionNotice,
+        collapseStore = collapseStore,
+        // Phase 5A (A3.8–A3.10): pin / unread / resume / groups / archived viewer.
+        onSetTaskPinned = vm::setTaskPinned,
+        onSetTaskUnread = vm::setTaskUnread,
+        onResumeTask = vm::resumeTask,
+        onMoveTaskToGroup = vm::moveTaskToGroup,
+        onCreateGroup = vm::createGroup,
+        onRenameGroup = vm::renameGroup,
+        onRecolorGroup = vm::recolorGroup,
+        onDeleteGroup = vm::deleteGroup,
+        onLoadArchived = vm::loadArchived,
+        onUnarchive = vm::unarchiveFromViewer,
+        onDeleteArchived = vm::deleteArchivedTask,
+        onLoadGroups = vm::loadGroups,
+        // L6.4 (Phase 5A): start a saved workflow in the chosen task, then open it (the runs
+        // panel shows the run); a refusal surfaces the typed reason through the notifier.
+        onStartWorkflow = { taskId, name, scope, args ->
+            startScope.launch {
+                val result = container.conversationPort.startSavedWorkflow(taskId, name, scope, args)
+                if (result.outcome == com.zcode.android.features.conversation.port.ConversationPort.SendOutcome.ACCEPTED && result.reasonCode == null) {
+                    notifier.show(startedCopy)
+                    onOpenTaskId(taskId)
+                } else {
+                    notifier.show(refusedCopy.format(result.reasonCode ?: result.outcome.name.lowercase()), long = true)
+                }
+            }
+        },
     )
+}
+
+/**
+ * B2.5: backstack-scoped conversation VM. The old `remember(taskId)` wiring died
+ * on ANY activity recreation (uiMode/density/fontScale flips — rotation is covered
+ * by the manifest's configChanges), discarding the conversation state. The holder
+ * lives on the NavBackStackEntry's ViewModelStore: it survives recreation, is
+ * per-entry (each conversation route push = a new entry), and clears on pop. The
+ * VM's scope is the holder's (entry-lived), not a composition scope.
+ */
+class ConversationVmHolder : androidx.lifecycle.ViewModel() {
+    var vm: ConversationViewModel? = null
+
+    /** Entry-lived scope: survives recreation, cancelled when the entry pops. */
+    private val holderScope = kotlinx.coroutines.CoroutineScope(
+        kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Main.immediate,
+    )
+
+    val scope: CoroutineScope get() = holderScope
+
+    override fun onCleared() {
+        holderScope.cancel()
+        super.onCleared()
+    }
 }
 
 @Composable
 private fun rememberConversationViewModel(
     container: AppContainer,
-    scope: CoroutineScope,
     taskId: String,
 ): ConversationViewModel {
-    val vm = androidx.compose.runtime.remember(taskId) {
-        ConversationViewModel(container.conversationPort, scope, taskId)
-    }
-    return vm
+    val holder: ConversationVmHolder = androidx.lifecycle.viewmodel.compose.viewModel()
+    return holder.vm ?: ConversationViewModel(
+        container.conversationPort,
+        holder.scope,
+        taskId,
+    ).also { holder.vm = it }
 }
 
 @Composable
@@ -385,8 +539,33 @@ private fun ConversationRoute(
     onOpenFiles: () -> Unit = {},
     onOpenGit: () -> Unit = {},
     onOpenTerminal: () -> Unit = {},
+    onOpenTask: (taskId: String) -> Unit = {},
 ) {
     val state by vm.state.collectAsState()
+    // C6-taskdesc: the recents card carries the open task's name.
+    val activity = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity
+    androidx.compose.runtime.LaunchedEffect(state.task?.title) {
+        activity?.updateRecentsTaskLabel(state.task?.title)
+    }
+    // Phase 4A: an accepted fork names the child session — navigate once, then consume.
+    val forked by vm.forkedSession.collectAsState()
+    // Phase 5A (A3.3): the workflow runs panel + run sheet follow the VM's flows.
+    val workflowRuns by vm.workflowRuns.collectAsState()
+    val openWorkflowRun by vm.openWorkflowRun.collectAsState()
+    val shareCopy = androidx.compose.ui.res.stringResource(com.zcode.android.features.conversation.R.string.conv_share_entry)
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    // Phase 5B (A3.12 + A3.13): plans + the trajectory/search sheet.
+    val plans by vm.plans.collectAsState()
+    val trajectory by vm.trajectory.collectAsState()
+    val trajectorySearch by vm.sessionSearch.collectAsState()
+    var showTrajectory by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var trajectoryQuery by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    androidx.compose.runtime.LaunchedEffect(forked) {
+        val child = forked ?: return@LaunchedEffect
+        vm.consumeForkedSession()
+        onOpenTask(child)
+    }
     ConversationScreen(
         state = state,
         phase = state.phase,
@@ -403,6 +582,20 @@ private fun ConversationRoute(
         onSendQueuedNow = vm::sendQueuedNow,
         onEditQueueItem = vm::editQueueItem,
         onAnswerQuestions = vm::answerUserInputQuestions,
+        onDeclineQuestions = vm::declineUserInput,
+        // Phase 3C (C7): lazy full tool output — slice when the desktop answers, else the row payload.
+        toolOutputProvider = { row ->
+            state.task?.taskId?.let { container.conversationPort.fetchToolCallOutput(it, row.toolCallId) }
+        },
+        // Phase 3C (I2.2): the status strip rides the git summary channel for this workspace.
+        sessionStatusProvider = label@{
+            val target = container.hub.activeWorkspaceTarget() ?: return@label null
+            target.first?.let { ws -> runCatching { container.hub.phase9().gitSummary(ws) }.getOrNull() }
+        },
+        // Phase 3D (A3.1): in-conversation attachment previews off the read channel.
+        loadAttachment = { att ->
+            state.task?.taskId?.let { container.conversationPort.fetchAttachmentPreview(it, att.ref) }
+        },
         // Phase 9 (§43.2-9)
         onOpenFiles = onOpenFiles,
         onOpenGit = onOpenGit,
@@ -419,54 +612,136 @@ private fun ConversationRoute(
         onRetryAttachment = vm::retryUpload,
         // Phase 2 (§11.4, GAP-10): message edit (long-press → sheet → confirm).
         onEditUserQuery = { rowId, entityId, newText -> vm.editUserQuery(rowId, entityId, newText) },
+        // Phase 4A (E3.2+I1+N5): the flag-gated row actions over the proven wire.
+        onRetryTurn = vm::retryTurn,
+        onForkAssistant = vm::forkAssistant,
+        onApplyFileRewind = vm::applyFileRewind,
+        onAssistantFeedback = vm::setAssistantFeedback,
+        onRetryCompaction = vm::retryCompaction,
+        // L7: a timeline-section crash lands in the diagnostics store (the boundary seam).
+        onSectionCrash = { t ->
+            runCatching { container.diagnosticsStore.writeCrash("conversation-timeline", t.stackTraceToString()) }
+        },
+        // I2.8: open a generated artifact externally — download via the file channel
+        // (app cache, never desktop paths) then the system viewer chooser.
+        onOpenArtifact = { ref, mime ->
+            scope.launch {
+                val result = runCatching { container.filesPort.download(ref) }.getOrNull()
+                val file = result?.file
+                if (file == null) {
+                    container.log.warn("preview.open", "download failed: ${result?.error?.take(80)}")
+                    return@launch
+                }
+                runCatching {
+                    val uri = androidx.core.content.FileProvider.getUriForFile(
+                        context, context.packageName + ".fileprovider", file,
+                    )
+                    context.startActivity(
+                        android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                            setDataAndType(uri, mime)
+                            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        },
+                    )
+                }.onFailure { container.log.warn("preview.open", "${it.javaClass.simpleName}: ${it.message?.take(80)}") }
+            }
+        },
+        onSlashMenuOpen = vm::onSlashMenuOpen,
+        onSetThoughtLevel = vm::setThoughtLevel,
+        fileSearchProvider = { query -> container.conversationPort.searchWorkspaceFiles(state.task?.taskId.orEmpty(), query) },
+        workflowRuns = workflowRuns,
+        openWorkflowRun = openWorkflowRun,
+        onOpenWorkflowRun = vm::openWorkflowRun,
+        onCloseWorkflowRun = vm::closeWorkflowRun,
+        onLoadMoreRunEvents = vm::loadMoreRunEvents,
+        onMoveQueueItem = vm::moveQueueItem,
+        onSetAutoDrain = vm::setAutoDrain,
+        onSetFollowupMode = vm::setFollowupMode,
+        plans = plans,
+        showTrajectory = showTrajectory,
+        trajectory = trajectory,
+        trajectoryLoading = trajectory == null && showTrajectory,
+        trajectorySearchResults = trajectorySearch,
+        trajectoryQuery = trajectoryQuery,
+        onTrajectoryQueryChange = { trajectoryQuery = it; vm.searchSession(it) },
+        onOpenTrajectory = { showTrajectory = true; vm.loadTrajectory() },
+        onCloseTrajectory = { showTrajectory = false; trajectoryQuery = ""; vm.searchSession("") },
+        rewindPreviewProvider = { rowId, entityId ->
+            val taskId = state.task?.taskId
+            if (taskId == null) null else container.conversationPort.fetchRewindPreview(taskId, rowId, entityId)
+        },
+        // A3.16 (Phase 5C): share-OUT via the Android system sheet — the transcript is
+        // built from the timeline rows (TranscriptBuilder); import/publish stay
+        // desktop-only per PROBE-L6 (the host's rejectMobileShare stub).
+        onShareTranscript = {
+            val transcript = com.zcode.android.features.conversation.TranscriptBuilder.build(
+                state.task?.title,
+                state.rows,
+            )
+            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(android.content.Intent.EXTRA_SUBJECT, state.task?.title ?: "Conversation")
+                putExtra(android.content.Intent.EXTRA_TEXT, transcript)
+                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(android.content.Intent.createChooser(intent, shareCopy))
+        },
     )
 }
 
 @Composable
 private fun FilesRoute(container: AppContainer, onBack: () -> Unit) {
-    Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, modifier = Modifier.padding(4.dp)) {
-            IconButton(onClick = onBack, modifier = Modifier.testTag("files_back")) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                )
-            }
-            Text(stringResource(R.string.nav_files_title), style = MaterialTheme.typography.titleMedium)
-        }
-        com.zcode.android.features.files.ui.FilesScreen(port = container.filesPort, modifier = Modifier.fillMaxSize())
+    val topBarScroll = com.zcode.android.core.ui.components.rememberZCodeTopBarScroll()
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            com.zcode.android.core.ui.components.ZCodeTopBar(
+                title = stringResource(R.string.nav_files_title),
+                onBack = onBack,
+                backTestTag = "files_back",
+                scrollBehavior = topBarScroll,
+            )
+        },
+    ) { inner ->
+        com.zcode.android.features.files.ui.FilesScreen(port = container.filesPort, modifier = Modifier.fillMaxSize().padding(inner))
     }
 }
 
 @Composable
 private fun GitRoute(container: AppContainer, onBack: () -> Unit) {
-    Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, modifier = Modifier.padding(4.dp)) {
-            IconButton(onClick = onBack, modifier = Modifier.testTag("git_back")) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                )
-            }
-            Text(stringResource(R.string.nav_git_title), style = MaterialTheme.typography.titleMedium)
-        }
-        com.zcode.android.features.git.ui.GitScreen(port = container.gitPort, modifier = Modifier.fillMaxSize())
+    val topBarScroll = com.zcode.android.core.ui.components.rememberZCodeTopBarScroll()
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            com.zcode.android.core.ui.components.ZCodeTopBar(
+                title = stringResource(R.string.nav_git_title),
+                onBack = onBack,
+                backTestTag = "git_back",
+                scrollBehavior = topBarScroll,
+            )
+        },
+    ) { inner ->
+        com.zcode.android.features.git.ui.GitScreen(port = container.gitPort, modifier = Modifier.fillMaxSize().padding(inner))
     }
 }
 
 @Composable
 private fun TerminalRoute(container: AppContainer, onBack: () -> Unit) {
-    Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
-        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, modifier = Modifier.padding(4.dp)) {
-            IconButton(onClick = onBack, modifier = Modifier.testTag("terminal_back")) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                )
-            }
-            Text(stringResource(R.string.nav_terminal_title), style = MaterialTheme.typography.titleMedium)
-        }
-        com.zcode.android.features.terminal.ui.TerminalScreen(port = container.terminalPort, modifier = Modifier.fillMaxSize())
+    val topBarScroll = com.zcode.android.core.ui.components.rememberZCodeTopBarScroll()
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            com.zcode.android.core.ui.components.ZCodeTopBar(
+                title = stringResource(R.string.nav_terminal_title),
+                onBack = onBack,
+                backTestTag = "terminal_back",
+                scrollBehavior = topBarScroll,
+            )
+        },
+    ) { inner ->
+        com.zcode.android.features.terminal.ui.TerminalScreen(port = container.terminalPort, modifier = Modifier.fillMaxSize().padding(inner))
     }
 }
 

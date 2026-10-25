@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -38,6 +37,8 @@ import androidx.compose.ui.unit.sp
 import com.zcode.android.core.common.diff.DiffFile
 import com.zcode.android.core.common.diff.DiffLine
 import com.zcode.android.core.common.diff.DiffLineType
+import androidx.compose.ui.res.stringResource
+import com.zcode.android.core.ui.R
 
 /**
  * §22 Diff renderer (ADR-010: custom Compose, no heavyweight dependency) — a
@@ -86,11 +87,11 @@ fun DiffFileCard(
     var expanded by rememberSaveable(file.path, file.oldPath) { mutableStateOf(false) }
     val isLarge = file.changedLines > DiffRendererDefaults.LARGE_FILE_LINES
     Surface(
-        shape = RoundedCornerShape(10.dp),
+        shape = MaterialTheme.shapes.large,
         tonalElevation = 1.dp,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Column {
+        Column(Modifier.animateCollapse()) {
             // Header — the toggle target (≥48dp combined affordance, §30); the
             // a11y description carries the counts so color is never the only signal.
             Row(
@@ -110,15 +111,15 @@ fun DiffFileCard(
                 )
                 if (file.isRenamed) {
                     Spacer(Modifier.width(6.dp))
-                    Text("(renamed)", style = MaterialTheme.typography.labelSmall)
+                    Text(stringResource(R.string.diff_renamed), style = MaterialTheme.typography.labelSmall)
                 }
                 if (file.isNew) {
                     Spacer(Modifier.width(6.dp))
-                    Text("new", style = MaterialTheme.typography.labelSmall)
+                    Text(stringResource(R.string.diff_new), style = MaterialTheme.typography.labelSmall)
                 }
                 if (file.isDeleted) {
                     Spacer(Modifier.width(6.dp))
-                    Text("deleted", style = MaterialTheme.typography.labelSmall)
+                    Text(stringResource(R.string.diff_deleted), style = MaterialTheme.typography.labelSmall)
                 }
                 Spacer(Modifier.width(8.dp))
                 if (!file.binary && !isLarge) {
@@ -140,7 +141,7 @@ fun DiffFileCard(
                 )
                 expanded -> DiffHunksList(file)
                 else -> Text(
-                    "Tap to expand",
+                    stringResource(R.string.diff_tap_to_expand),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
