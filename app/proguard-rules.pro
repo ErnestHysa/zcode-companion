@@ -27,6 +27,16 @@
 # ---- Glance widget composition
 -keep class androidx.glance.** { *; }
 
+# ---- protobuf-javalite (the §33/§12.4 stores: credential envelope, notification
+# records, endpoint store). The runtime's MessageSchema reflects message fields BY
+# NAME at schema-for time — renamed fields crash the parse of any stored file
+# (F-CRASH, field 2026-10-25: launch crash on upgrade from an older build, never
+# on fresh installs). Keep the runtime whole and every generated message's fields.
+-keep class com.google.protobuf.** { *; }
+-keepclassmembers class * extends com.google.protobuf.GeneratedMessageLite {
+    <fields>;
+}
+
 # ---- keep the crash handler's line numbers in field traces (INV-5 diagnostics)
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
