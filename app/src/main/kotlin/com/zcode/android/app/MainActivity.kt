@@ -49,13 +49,14 @@ internal fun android.app.Activity.updateRecentsTaskLabel(label: String?) {
 }
 
 /**
- * F-PERM (field 2026-10-25): the registry key for the camera-permission launcher.
- * The legacy requestPermissions path validates the key's HASH against the 16-bit
- * request-code contract; Compose-generated slot keys overflowed it, crashing every
- * fresh install at the camera prompt (release + debug, both devices). Any
- * two-character alphanumeric key hashes inside the contract — "zx" → 3902.
+ * F-PERM (field 2026-10-25): the camera permission is requested DIRECTLY through
+ * [androidx.core.app.ActivityCompat.requestPermissions] with this fixed, 16-bit-safe
+ * request code — never through the ActivityResult registry. That registry draws its
+ * request codes from Random.nextInt(2147418112) + 65536, i.e. ALWAYS above the 16-bit
+ * request-code contract that FragmentActivity validates, so every permission prompt
+ * it opens crashed the app (field report: fresh install, Scan QR, both devices).
  */
-internal const val CAMERA_PERMISSION_REGISTRY_KEY = "zx"
+internal const val CAMERA_PERMISSION_REQUEST_CODE = 3902
 
 class MainActivity : FragmentActivity() {
 
@@ -64,6 +65,20 @@ class MainActivity : FragmentActivity() {
     private lateinit var pairingVm: PairingViewModel
     private lateinit var tasksVm: TasksViewModel
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
+
+    /**
+     * F-PERM: the result of the direct [androidx.core.app.ActivityCompat.requestPermissions]
+     * camera ask (null = not answered yet). The pairing scanner observes this instead of the
+     * ActivityResult registry, whose random request codes overflow the 16-bit contract.
+     */
+    internal val cameraPermissionResult = kotlinx.coroutines.flow.MutableStateFlow<Boolean?>(null)
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == CAMERA_PERMISSION_REQUEST_CODE) {
+            cameraPermissionResult.value = grantResults.firstOrNull() == android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // B3-splash (N4.1): the branded launch window — must run BEFORE super.onCreate
@@ -258,23 +273,25 @@ class MainActivity : FragmentActivity() {
             )
         }
         val state by pairingVm.state.collectAsState()
-        // F-PERM: stable, 16-bit-safe registry key (see CAMERA_PERMISSION_REGISTRY_KEY).
-        val registry = androidx.activity.compose.LocalActivityResultRegistryOwner.current!!.activityResultRegistry
-        val launcher = remember(registry) {
-            registry.register(
-                CAMERA_PERMISSION_REGISTRY_KEY,
-                ActivityResultContracts.RequestPermission(),
-            ) { g ->
-                granted = g
-                pairingVm.dispatch(if (g) PairingFlow.Event.CameraPermissionGranted else PairingFlow.Event.CameraPermissionDenied)
+        // F-PERM: the grant lands in MainActivity.onRequestPermissionsResult, which
+        // writes cameraPermissionResult; this composable observes and dispatches.
+        val grantedResult by cameraPermissionResult.collectAsState()
+        LaunchedEffect(grantedResult) {
+            when (grantedResult) {
+                true -> pairingVm.dispatch(PairingFlow.Event.CameraPermissionGranted)
+                false -> pairingVm.dispatch(PairingFlow.Event.CameraPermissionDenied)
+                null -> {}
             }
         }
-        androidx.compose.runtime.DisposableEffect(launcher) { onDispose { launcher.unregister() } }
         LaunchedEffect(Unit) {
             if (granted) {
                 pairingVm.dispatch(PairingFlow.Event.CameraPermissionGranted)
             } else {
-                launcher.launch(Manifest.permission.CAMERA)
+                androidx.core.app.ActivityCompat.requestPermissions(
+                    this@MainActivity,
+                    arrayOf(Manifest.permission.CAMERA),
+                    CAMERA_PERMISSION_REQUEST_CODE,
+                )
             }
         }
         if (state is PairingFlow.State.Scanning && granted) {
