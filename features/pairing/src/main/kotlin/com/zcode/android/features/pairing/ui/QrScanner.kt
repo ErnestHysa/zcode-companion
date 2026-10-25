@@ -21,10 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
-import com.google.mlkit.vision.barcode.BarcodeScannerOptions
-import com.google.mlkit.vision.barcode.BarcodeScanning
-import com.google.mlkit.vision.barcode.common.Barcode
-import com.google.mlkit.vision.common.InputImage
+import com.zcode.android.features.pairing.qr.QrFrameDecoder
 import java.util.concurrent.Executors
 
 /**
@@ -45,14 +42,8 @@ fun QrScanner(lifecycleOwner: LifecycleOwner, onDecoded: (String) -> Unit) {
     }
     if (!hasPermission) return
     val analysisExecutor = remember { Executors.newSingleThreadExecutor() }
-    // The ML Kit scanner is created inside the view factory (native init — must not run
-    // in composition, which Robolectric tests exercise); released with the view.
-    val scannerHolder = remember { arrayOfNulls<com.google.mlkit.vision.barcode.BarcodeScanner>(1) }
     DisposableEffect(Unit) {
-        onDispose {
-            analysisExecutor.shutdown()
-            scannerHolder[0]?.close()
-        }
+        onDispose { analysisExecutor.shutdown() }
     }
     AndroidView(
         modifier = Modifier.fillMaxWidth().height(360.dp).testTag("qr-preview"),
@@ -60,46 +51,44 @@ fun QrScanner(lifecycleOwner: LifecycleOwner, onDecoded: (String) -> Unit) {
             val previewView = PreviewView(ctx)
             val providerFuture = ProcessCameraProvider.getInstance(ctx)
             providerFuture.addListener({
-                // ML Kit init rides the camera-bind callback (native-only path): never
-                // during composition, so headless/Robolectric environments that compose
-                // this view without a camera HAL cannot crash on MlKitContext init.
-                val scanner = BarcodeScanning.getClient(BarcodeScannerOptions.Builder().build())
-                scannerHolder[0] = scanner
-                val provider = providerFuture.get()
-                val preview = Preview.Builder().build().also {
-                    it.surfaceProvider = previewView.surfaceProvider
+                // A camera-less environment (Robolectric, a failed HAL) must degrade
+                // to a dead preview + the paste-link fallback — never a crash.
+                runCatching {
+                    val provider = providerFuture.get()
+                    val preview = Preview.Builder().build().also {
+                        it.surfaceProvider = previewView.surfaceProvider
+                    }
+                    val analysis = ImageAnalysis.Builder()
+                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                        .build()
+                    analysis.setAnalyzer(analysisExecutor) { proxy ->
+                        decodeQr(proxy) { raw -> onDecoded(raw) }
+                    }
+                    provider.unbindAll()
+                    provider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
                 }
-                val analysis = ImageAnalysis.Builder()
-                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                    .build()
-                analysis.setAnalyzer(analysisExecutor) { proxy ->
-                    decodeQr(scanner, proxy) { raw -> onDecoded(raw) }
-                }
-                provider.unbindAll()
-                provider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
             }, ContextCompat.getMainExecutor(ctx))
             previewView
         },
     )
 }
 
-private fun decodeQr(
-    scanner: com.google.mlkit.vision.barcode.BarcodeScanner,
-    proxy: ImageProxy,
-    onDecoded: (String) -> Unit,
-) {
-    val media = proxy.image
-    if (media == null) {
+private fun decodeQr(proxy: ImageProxy, onDecoded: (String) -> Unit) {
+    try {
+        val media = proxy.image ?: return
+        val plane = proxy.planes[0]
+        val y = ByteArray(plane.buffer.remaining()).also { plane.buffer.get(it) }
+        val text = QrFrameDecoder.decodeYPlane(
+            y = y,
+            rowStride = plane.rowStride,
+            width = proxy.width,
+            height = proxy.height,
+            rotationDegrees = proxy.imageInfo.rotationDegrees,
+        )
+        if (text != null) onDecoded(text)
+    } catch (_: Throwable) {
+        // a single undecodable frame never kills the scanner — the next frame retries
+    } finally {
         proxy.close()
-        return
     }
-    val input = InputImage.fromMediaImage(media, proxy.imageInfo.rotationDegrees)
-    scanner.process(input)
-        .addOnSuccessListener { barcodes ->
-            for (b in barcodes) {
-                b.rawBytes ?: continue
-                b.rawValue?.let(onDecoded)
-            }
-        }
-        .addOnCompleteListener { proxy.close() }
 }
