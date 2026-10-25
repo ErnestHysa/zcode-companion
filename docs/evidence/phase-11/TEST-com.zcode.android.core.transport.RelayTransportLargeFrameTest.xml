@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.zcode.android.core.transport.RelayTransportLargeFrameTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-06T14:28:32.027Z" hostname="Ernests-MacBook-Air.local" time="0.704">
-  <properties/>
-  <testcase name="a delta logical frame larger than 1 MiB reaches inbound as a topic frame" classname="com.zcode.android.core.transport.RelayTransportLargeFrameTest" time="0.704"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>

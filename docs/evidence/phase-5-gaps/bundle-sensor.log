@@ -1,5 +1,0 @@
-[2026-10-07T18:33:49+0100] tripwire: bundle hash changed (asar 232e913ea13d -> 232e913ea13d, cjs fad4c35c4c36 -> b58f9708ae3e) — extracting relay surface
-[2026-10-07T18:33:54+0100] drift checked: verdict=BREAKING exit=1 report=/tmp/phase5-rehearsal/bundle-state/drift-report.json
-[2026-10-07T18:34:06+0100] tripwire: bundle hash changed (asar 232e913ea13d -> 232e913ea13d, cjs fad4c35c4c36 -> b58f9708ae3e) — extracting relay surface
-[2026-10-07T18:34:12+0100] drift checked: verdict=BREAKING exit=1 report=/tmp/phase5-rehearsal/bundle-state/drift-report.json
-[2026-10-07T18:34:13+0100] heartbeat: bundle unchanged (asar=232e913ea13d cjs=fad4c35c4c36)

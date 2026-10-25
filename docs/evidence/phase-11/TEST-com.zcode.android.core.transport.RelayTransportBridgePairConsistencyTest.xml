@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="com.zcode.android.core.transport.RelayTransportBridgePairConsistencyTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-04T11:10:25.778Z" hostname="Ernests-MacBook-Air.local" time="0.774">
-  <properties/>
-  <testcase name="bridge-open resolves the workspace from the active task, never the mismatched view key" classname="com.zcode.android.core.transport.RelayTransportBridgePairConsistencyTest" time="0.72"/>
-  <testcase name="named active task missing from bootstrap list keeps the desktop-named pair (round-5 contract)" classname="com.zcode.android.core.transport.RelayTransportBridgePairConsistencyTest" time="0.047"/>
-  <system-out><![CDATA[]]></system-out>
-  <system-err><![CDATA[]]></system-err>
-</testsuite>
