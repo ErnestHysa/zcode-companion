@@ -267,15 +267,13 @@ class MainActivity : FragmentActivity() {
         // plain remember{} (frozen at composition) and the pairing state was read via
         // .value (unsubscribed) — after the user granted the permission NOTHING
         // recomposed, so the scanner never appeared until a full app restart.
-        var granted by androidx.compose.runtime.remember {
-            androidx.compose.runtime.mutableStateOf(
-                ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-            )
-        }
         val state by pairingVm.state.collectAsState()
         // F-PERM: the grant lands in MainActivity.onRequestPermissionsResult, which
-        // writes cameraPermissionResult; this composable observes and dispatches.
+        // writes cameraPermissionResult; this composable observes it (null = the
+        // user has not answered the prompt yet).
         val grantedResult by cameraPermissionResult.collectAsState()
+        val granted = grantedResult == true ||
+            ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
         LaunchedEffect(grantedResult) {
             when (grantedResult) {
                 true -> pairingVm.dispatch(PairingFlow.Event.CameraPermissionGranted)
@@ -284,14 +282,14 @@ class MainActivity : FragmentActivity() {
             }
         }
         LaunchedEffect(Unit) {
-            if (granted) {
-                pairingVm.dispatch(PairingFlow.Event.CameraPermissionGranted)
-            } else {
+            if (!granted) {
                 androidx.core.app.ActivityCompat.requestPermissions(
                     this@MainActivity,
                     arrayOf(Manifest.permission.CAMERA),
                     CAMERA_PERMISSION_REQUEST_CODE,
                 )
+            } else {
+                pairingVm.dispatch(PairingFlow.Event.CameraPermissionGranted)
             }
         }
         if (state is PairingFlow.State.Scanning && granted) {
