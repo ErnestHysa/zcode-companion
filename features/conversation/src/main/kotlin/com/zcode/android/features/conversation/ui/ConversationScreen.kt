@@ -562,10 +562,12 @@ private fun Header(
             if (!blocked) {
                 // D2: the goal + todo surfaces — keys the wire always carried; absent → nothing.
                 state.sessionState?.goal?.let { goal ->
-                    GoalPanel(goal, modifier = Modifier.padding(horizontal = 8.dp))
+                    // F-UX-PANELS: collapsed by default — the chat timeline is the
+                    // primary content; the header line expands the surface.
+                    GoalPanel(goal, modifier = Modifier.padding(horizontal = 8.dp), collapsedByDefault = true)
                 }
                 state.sessionState?.plan?.let { plan ->
-                    PlanPanel(plan, modifier = Modifier.padding(horizontal = 8.dp))
+                    PlanPanel(plan, modifier = Modifier.padding(horizontal = 8.dp), collapsedByDefault = true)
                 }
                 // A3.3: the session's workflow runs (conversationWorkflowRunsV4); null/empty → nothing.
                 workflowRuns?.takeIf { it.isNotEmpty() }?.let { runs ->

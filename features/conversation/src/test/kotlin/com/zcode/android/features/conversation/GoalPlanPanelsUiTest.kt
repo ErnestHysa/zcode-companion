@@ -15,6 +15,9 @@ import com.zcode.android.domain.model.SessionProjectionState
 import com.zcode.android.domain.state.ConnectionPhase
 import com.zcode.android.domain.state.TaskStateMachine
 import com.zcode.android.features.conversation.ui.ConversationScreen
+import com.zcode.android.features.conversation.ui.GoalPanel
+import com.zcode.android.features.conversation.ui.PlanPanel
+import androidx.compose.ui.Modifier
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
@@ -22,6 +25,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
+import androidx.compose.ui.test.performClick
+import org.junit.Assert.assertTrue
 
 /**
  * D2 (gaps-and-polish Phase 4C): the goal + todo surfaces RENDER from a scripted
@@ -91,9 +96,14 @@ class GoalPlanPanelsUiTest {
     @Test
     fun `a goal session renders the criteria timeline with pass notSatisfied and failed`() {
         setContent(SessionProjectionState(goal = goal(), goalKeyPresent = true))
+        // F-UX-PANELS: the panel renders COLLAPSED in the conversation — the header
+        // carries the objective + status; the timeline expands on tap.
         rule.onNodeWithTag("goal_panel").assertIsDisplayed()
         rule.onNodeWithText("Ship it").assertIsDisplayed()
         rule.onNodeWithText("verifying").assertIsDisplayed()
+        assertEquals(0, rule.onAllNodesWithTag("goal_verification_row").fetchSemanticsNodes().size)
+        rule.onNodeWithTag("goal_header").performClick()
+        rule.waitForIdle()
         assertEquals(3, rule.onAllNodesWithTag("goal_verification_row").fetchSemanticsNodes().size)
         // Existence (the panel scrolls in a small test viewport; display is not the pin).
         org.junit.Assert.assertEquals(1, rule.onAllNodesWithText("2 criteria unmet", substring = true).fetchSemanticsNodes().size)
@@ -104,6 +114,12 @@ class GoalPlanPanelsUiTest {
     fun `todos restore into the checklist with completed inProgress and pending`() {
         setContent(SessionProjectionState(plan = plan(), planKeyPresent = true))
         rule.onNodeWithTag("plan_panel").assertIsDisplayed()
+        // F-UX-PANELS: collapsed — the header shows the progress; expand for the rows.
+        // (the clickable header merges child semantics — read the progress unmerged)
+        assertTrue(rule.onAllNodesWithTag("plan_progress", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty())
+        assertEquals(0, rule.onAllNodesWithTag("plan_row").fetchSemanticsNodes().size)
+        rule.onNodeWithTag("plan_header").performClick()
+        rule.waitForIdle()
         assertEquals(3, rule.onAllNodesWithTag("plan_row").fetchSemanticsNodes().size)
         rule.onNodeWithText("Bump the version").assertIsDisplayed()
         rule.onNodeWithText("Write the changelog").assertIsDisplayed()
@@ -129,5 +145,32 @@ class GoalPlanPanelsUiTest {
         )
         rule.onNodeWithTag("conversation_status_line").assertIsDisplayed()
         rule.onNodeWithText("Running · compacting", substring = true).assertIsDisplayed()
+    }
+    @Test
+    fun `F-UX-PANELS - collapsed by default the header summarizes and tapping expands the todos`() {
+        rule.setContent {
+            ZCodeTheme { PlanPanel(plan(), modifier = Modifier, collapsedByDefault = true) }
+        }
+        rule.onNodeWithTag("plan_header").assertIsDisplayed()
+        assertTrue(rule.onAllNodesWithTag("plan_progress", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty())
+        // collapsed: the rows are hidden
+        assertEquals(0, rule.onAllNodesWithTag("plan_row").fetchSemanticsNodes().size)
+        // tap the header → expands
+        rule.onNodeWithTag("plan_header").performClick()
+        rule.waitForIdle()
+        assertEquals(3, rule.onAllNodesWithTag("plan_row").fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `F-UX-PANELS - the collapsed goal header carries the objective and expands`() {
+        rule.setContent { ZCodeTheme { GoalPanel(goal(), collapsedByDefault = true) } }
+        rule.onNodeWithTag("goal_header").assertIsDisplayed()
+        rule.onNodeWithText("Ship it").assertIsDisplayed()
+        rule.onNodeWithText("verifying").assertIsDisplayed()
+        // collapsed: the verification timeline is hidden
+        assertEquals(0, rule.onAllNodesWithTag("goal_verification_row").fetchSemanticsNodes().size)
+        rule.onNodeWithTag("goal_header").performClick()
+        rule.waitForIdle()
+        assertTrue(rule.onAllNodesWithTag("goal_verification_row").fetchSemanticsNodes().isNotEmpty())
     }
 }

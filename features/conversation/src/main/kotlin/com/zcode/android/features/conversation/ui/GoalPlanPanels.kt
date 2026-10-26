@@ -20,13 +20,21 @@ import com.zcode.android.features.conversation.R
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.foundation.clickable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.animation.core.animateFloatAsState
 import com.zcode.android.core.ui.theme.LocalZCodeColors
 import com.zcode.android.domain.model.GoalState
 import com.zcode.android.domain.model.PlanState
@@ -40,7 +48,19 @@ import com.zcode.android.domain.model.PlanState
  * Both are pinned headers under the status strip; absent keys render nothing.
  */
 @Composable
-fun GoalPanel(goal: GoalState, modifier: Modifier = Modifier) {
+fun GoalPanel(
+    goal: GoalState,
+    modifier: Modifier = Modifier,
+    /**
+     * F-UX-PANELS (field 2026-10-26): the conversation renders goal + todo panels
+     * COLLAPSED by default — one tappable summary line; expanded shows the full
+     * surface. The chat timeline is the primary content (the field report: the
+     * todos panel took half the screen and could not be minimized).
+     */
+    collapsedByDefault: Boolean = false,
+) {
+    var expanded by rememberSaveable { mutableStateOf(!collapsedByDefault) }
+    val chevronRotation by animateFloatAsState(if (expanded) 0f else -90f, label = "goal_chevron")
     Column(
         modifier
             .fillMaxWidth()
@@ -48,7 +68,13 @@ fun GoalPanel(goal: GoalState, modifier: Modifier = Modifier) {
             .padding(12.dp)
             .testTag("goal_panel"),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (!expanded) Modifier.clickable { expanded = true } else Modifier)
+                .testTag("goal_header"),
+        ) {
             Text(
                 goal.summaryTitle?.takeIf { it.isNotBlank() } ?: goal.objective,
                 style = MaterialTheme.typography.labelLarge,
@@ -72,8 +98,17 @@ fun GoalPanel(goal: GoalState, modifier: Modifier = Modifier) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            if (!expanded) {
+                Spacer(Modifier.width(6.dp))
+                Icon(
+                    Icons.Filled.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp).testTag("goal_expand").graphicsRotation(chevronRotation),
+                )
+            }
         }
-        if (goal.verifications.isNotEmpty()) {
+        if (expanded && goal.verifications.isNotEmpty()) {
             Spacer(Modifier.height(6.dp))
             goal.verifications.takeLast(5).forEach { v ->
                 Row(
@@ -107,7 +142,10 @@ fun GoalPanel(goal: GoalState, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun PlanPanel(plan: PlanState, modifier: Modifier = Modifier) {
+fun PlanPanel(plan: PlanState, modifier: Modifier = Modifier, collapsedByDefault: Boolean = false) {
+    var expanded by rememberSaveable { mutableStateOf(!collapsedByDefault) }
+    val chevronRotation by animateFloatAsState(if (expanded) 0f else -90f, label = "plan_chevron")
+    val doneCount = plan.items.count { it.status == "completed" }
     Column(
         modifier
             .fillMaxWidth()
@@ -115,11 +153,35 @@ fun PlanPanel(plan: PlanState, modifier: Modifier = Modifier) {
             .padding(12.dp)
             .testTag("plan_panel"),
     ) {
-        Text(
-            stringResource(com.zcode.android.features.conversation.R.string.plan_title),
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (!expanded) Modifier.clickable { expanded = true } else Modifier)
+                .testTag("plan_header"),
+        ) {
+            Text(
+                stringResource(com.zcode.android.features.conversation.R.string.plan_title),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                "$doneCount/${plan.items.size}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("plan_progress"),
+            )
+            Spacer(Modifier.width(6.dp))
+            Icon(
+                Icons.Filled.KeyboardArrowDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp).graphicsRotation(chevronRotation),
+            )
+        }
+        if (!expanded) return@Column
         Spacer(Modifier.height(4.dp))
         plan.items.forEach { item ->
             Row(
@@ -233,3 +295,7 @@ fun PlansViewer(
         }
     }
 }
+
+/** F-UX-PANELS: the collapsed-header chevron — rotates to point down when expanded. */
+private fun androidx.compose.ui.Modifier.graphicsRotation(degrees: Float): androidx.compose.ui.Modifier =
+    this.rotate(degrees)
