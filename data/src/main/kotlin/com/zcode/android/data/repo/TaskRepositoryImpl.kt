@@ -25,11 +25,19 @@ class TaskRepositoryImpl(
     private val clock: () -> Long = System::currentTimeMillis,
 ) : TaskRepository {
 
+    /**
+     * F-WORKSPACES (field 2026-10-26): the endpoint-wide mirror keeps EVERYTHING the
+     * desktop's bootstrap carries. The §17.3 bounds (≤ 500 tasks/workspace, stale
+     * > 7 d dropped) were designed for the old per-workspace cache; on the mirror
+     * they silently deleted the user's task history after every bootstrap — a
+     * 610-task/8-workspace projection collapsed to 11 tasks in the 2 recently-active
+     * workspaces (the field report). The desktop is the source of truth: its
+     * full-snapshot replace IS the eviction. The bounds remain injectable for tests
+     * that exercise the sweep mechanics.
+     */
     data class Bounds(
-        /** §17.3: ≤ 500 tasks/workspace. */
-        val maxTasksPerWorkspace: Int = 500,
-        /** §17.3: stale > 7 d dropped. */
-        val staleTtlMs: Long = 7L * 24 * 60 * 60 * 1000,
+        val maxTasksPerWorkspace: Int = Int.MAX_VALUE,
+        val staleTtlMs: Long = Long.MAX_VALUE,
     )
 
     private val dao = db.taskDao()

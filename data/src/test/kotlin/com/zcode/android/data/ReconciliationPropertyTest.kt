@@ -143,7 +143,7 @@ class ReconciliationPropertyTest {
     }
 
     @Test
-    fun `task cache reconciles under floods - cap 500 and ETag skip (17-3)`() = runTest {
+    fun `the endpoint mirror keeps every task - no cap, no sweep by default (F-WORKSPACES)`() = runTest {
         val ep = EndpointId("ep")
         val ws = WorkspaceIdentityKey("ws")
         fun task(i: Int) = Task(
@@ -151,29 +151,45 @@ class ReconciliationPropertyTest {
             createdAtMs = i.toLong(), updatedAtMs = i.toLong(),
         )
 
-        // flood 700 → cap keeps the newest 500
+        // flood 700 → the MIRROR keeps all 700 (the desktop is the source of truth;
+        // the old 500-cap/7-day bounds silently deleted the user's task history)
         assertTrue(tasks.replaceAll(ep, ws, (1..700).map { task(it) }, SnapshotEtag("\"v1\""), atMs = 1_000))
-        assertEquals(500, tasks.count(ep, ws))
-        val remaining = tasks.observeTasks(ep, ws).first().map { it.taskId.removePrefix("t").toLong() }
-        assertEquals((201L..700L).toList(), remaining.sorted(), "oldest evicted, newest kept")
+        assertEquals(700, tasks.count(ep, ws))
 
         // same etag → 304-class skip (no write)
         assertTrue(!tasks.replaceAll(ep, ws, (1..5).map { task(it) }, SnapshotEtag("\"v1\""), atMs = 2_000))
-        assertEquals(500, tasks.count(ep, ws))
+        assertEquals(700, tasks.count(ep, ws))
         assertEquals("\"v1\"", tasks.cachedEtag(ep, ws)?.raw)
 
-        // new etag → replace reflects desktop REMOVALS (15-S17)
+        // new etag → replace reflects desktop REMOVALS (15-S17) — the desktop's own
+        // full-snapshot replace is the eviction; the phone never sweeps on its own
         assertTrue(tasks.replaceAll(ep, ws, listOf(task(801)), SnapshotEtag("\"v2\""), atMs = 3_000))
         assertEquals(listOf("t801"), tasks.observeTasks(ep, ws).first().map { it.taskId })
+    }
+
+    @Test
+    fun `explicit bounds still sweep - the mechanics stay injectable (17-3 mechanics)`() = runTest {
+        val ep = EndpointId("ep")
+        val ws = WorkspaceIdentityKey("ws")
+        fun task(i: Int) = Task(
+            taskId = "t$i", title = "T$i", status = TaskStatus.fromWire("running"), workspace = ws,
+            createdAtMs = i.toLong(), updatedAtMs = i.toLong(),
+        )
+        val bounded = TaskRepositoryImpl(
+            db,
+            bounds = TaskRepositoryImpl.Bounds(maxTasksPerWorkspace = 500, staleTtlMs = 7L * 24 * 60 * 60 * 1000),
+        )
+        // cap keeps the newest 500 under explicit bounds
+        assertTrue(bounded.replaceAll(ep, ws, (1..700).map { task(it) }, SnapshotEtag("\"v1\""), atMs = 1_000))
+        assertEquals(500, bounded.count(ep, ws))
 
         // stale sweep: 7 d (now = a 30-day epoch; stale = 8 d old; fresh = now)
         val now = 30L * 24 * 60 * 60 * 1000
-        tasks.upsert(ep, ws, task(900).copy(updatedAtMs = now - 8L * 24 * 60 * 60 * 1000))
-        tasks.upsert(ep, ws, task(901).copy(updatedAtMs = now))
-        val dropped = tasks.evictAndSweep(ep, ws, nowMs = now)
+        bounded.upsert(ep, ws, task(900).copy(updatedAtMs = now - 8L * 24 * 60 * 60 * 1000))
+        bounded.upsert(ep, ws, task(901).copy(updatedAtMs = now))
+        val dropped = bounded.evictAndSweep(ep, ws, nowMs = now)
         assertTrue(dropped >= 1)
-        val ids = tasks.observeTasks(ep, ws).first().map { it.taskId }
+        val ids = bounded.observeTasks(ep, ws).first().map { it.taskId }
         assertTrue(!ids.contains("t900"), "stale > 7 d dropped")
-        assertTrue(ids.contains("t901"))
     }
 }
