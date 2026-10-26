@@ -23,9 +23,16 @@ interface PairingPort {
      */
     suspend fun validate(raw: String): Validation
 
-    /** Suspend until the pairing connect attempt reaches a terminal outcome. */
+    /** Suspend until the pairing connect attempt reaches a terminal outcome.
+     *
+     * F-PERM2 (field 2026-10-26): [e7Required] is the flag the SecuritySetup
+     * screen RENDERED (the E7 requirement the user actually answered) — the gate
+     * is stateful and re-deriving the policy here can disagree with the screen
+     * (the refusal loop on no-lock re-pairing). INV-14: refuse when the E7 setup
+     * was required and the reduced-security consent was not given. */
     suspend fun completePairing(
         link: PairingFlow.LinkView,
+        e7Required: Boolean,
         reducedSecurityConsent: Boolean,
     ): ConnectOutcome
 

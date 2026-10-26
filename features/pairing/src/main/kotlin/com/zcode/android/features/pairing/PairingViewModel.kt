@@ -34,7 +34,10 @@ class PairingViewModel(
                 _state.value = PairingFlow.reduce(_state.value, event)
                 pendingLink = setup.link
                 _state.value = PairingFlow.State.Connecting
-                launchConnect { port.completePairing(setup.link, event.reducedSecurityConsent) }
+                // F-PERM2: the E7 requirement the user ANSWERED rides with the consent.
+                launchConnect {
+                    port.completePairing(setup.link, setup.requireE7Consent, event.reducedSecurityConsent)
+                }
             }
             is PairingFlow.Event.RetryRequested -> {
                 _state.value = PairingFlow.reduce(_state.value, event)

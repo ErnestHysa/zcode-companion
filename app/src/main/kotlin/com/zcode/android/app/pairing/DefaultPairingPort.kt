@@ -86,13 +86,16 @@ class DefaultPairingPort(
 
     override suspend fun completePairing(
         link: PairingFlow.LinkView,
+        e7Required: Boolean,
         reducedSecurityConsent: Boolean,
     ): PairingPort.ConnectOutcome {
         val raw = lastValidated?.takeIf { it.deviceSid == link.deviceSid }
             ?: return failure("Pairing link expired in memory — re-enter it", rePair = true, retryable = false)
-        // E7 consent is REQUIRED before any seal on a no-lock-screen device (INV-14):
-        val (e7, _) = policyDecision()
-        if (e7 && !reducedSecurityConsent) {
+        // E7 consent is REQUIRED before any seal on a no-lock-screen device (INV-14).
+        // F-PERM2: the requirement comes from the SETUP SCREEN the user answered —
+        // re-deriving policyDecision() here re-reads the STATEFUL gate post-provision
+        // and could contradict the rendered screen (the refusal loop on re-pairing).
+        if (e7Required && !reducedSecurityConsent) {
             return failure("Reduced-security consent was not given", rePair = false, retryable = false)
         }
         // Seal (or rotate) the credential — §12.2 step 5: nothing written before all gates.
