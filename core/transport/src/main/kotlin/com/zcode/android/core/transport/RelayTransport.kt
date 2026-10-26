@@ -313,30 +313,26 @@ class RelayTransport(
     // ------------------------------------------------------------------ connect
 
     override suspend fun connect(endpoint: EndpointDescriptor, signer: CredentialSigner) {
-        val s = machine.state
-        check(
-            s == ConnectionStateMachine.ConnectionState.UNPAIRED ||
-                s == ConnectionStateMachine.ConnectionState.PAIRING ||
-                s == ConnectionStateMachine.ConnectionState.AUTHENTICATING ||
-                s == ConnectionStateMachine.ConnectionState.CLOSED
-        ) { "connect() is the first-connection path; use recover() (state=$s)" }
+        // F-PAIR2 (field 2026-10-26): a fresh pairing connect always carries the NEW
+        // sealed endpoint and TAKES THE TRANSPORT OVER from any state — including a
+        // recovery/reconnect loop in flight, which after a mid-pairing 1006 loss owns
+        // the transport and used to dead-end every re-pairing with
+        // "use recover() (state=RECONNECTING)" → "restart the app and try again"
+        // (field diagnostics: pairing.connect.retry attempt=1 → ISE at state=RECONNE).
+        // Let an in-flight recovery settle (its budget is bounded), then tear the
+        // live session down, re-seed to the first-connection path, and connect — the
+        // relay auth of the fresh identity is the real gate.
+        val settleDeadline = clock() + 20_000
+        while (recovering.get() && clock() < settleDeadline) delay(50)
+        heartbeatJob?.cancel()
+        ackWatcherJob?.cancel()
+        ws?.let { runCatching { it.close(1000, "fresh pairing takeover") } }
+        ws = null
+        machine.seed(ConnectionStateMachine.ConnectionState.AUTHENTICATING)
         this.endpoint = endpoint
         this.signer = signer
         closedByUs = false
         kicked = false
-        if (s == ConnectionStateMachine.ConnectionState.UNPAIRED ||
-            s == ConnectionStateMachine.ConnectionState.PAIRING ||
-            s == ConnectionStateMachine.ConnectionState.CLOSED
-        ) {
-            // Pairing events (QR validated / credential sealed) are Phase 3 flows; the
-            // transport requires a sealed credential and enters the machine at Auth.
-            // F-PAIR (field 2026-10-25): CLOSED (the post-unpair "identity destroyed"
-            // rest state) also re-seeds — a post-rescan connect() always carries a
-            // FRESH sealed endpoint, and the relay auth is the real gate. The old
-            // hard refusal here dead-ended every unpair → re-scan → connect flow
-            // ("Unexpected error (code)") until an app restart rebuilt the transport.
-            machine.seed(ConnectionStateMachine.ConnectionState.AUTHENTICATING)
-        }
         publishState()
         try {
             establish()

@@ -542,21 +542,43 @@ class ConnectionHub(
             log.info("hub.bootstrapSkipped", "already in flight")
             return true
         }
-        val ok = try {
-            if (activeKind() == EndpointKind.DIRECT_SERVER) {
-                refreshDirectTasks()
-            } else {
-                val payload = transport.bootstrap()
-                applyBootstrap(payload)
+        // F-BOOTSTRAP-RETRY (field 2026-10-26, S918B on the real relay): the bootstrap
+        // control request TIMED OUT client-side (10 s) while the 183 KB response was
+        // still in flight — it landed 3 s after the timeout fired and nobody applied
+        // it. The projection stayed EMPTY (tasksCached=0, "nothing is loaded") until a
+        // manual refresh. A slow relay window is a transport stall, not a missing
+        // desktop: retry twice with backoff before surfacing the error.
+        var lastError: com.zcode.android.core.common.error.AppError? = null
+        var ok = false
+        try {
+            for (attempt in 0..2) {
+                try {
+                    if (activeKind() == EndpointKind.DIRECT_SERVER) {
+                        refreshDirectTasks()
+                    } else {
+                        val payload = transport.bootstrap()
+                        applyBootstrap(payload)
+                    }
+                    ok = true
+                    lastError = null
+                    break
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: TransportFailure) {
+                    lastError = e.error
+                    log.warn("hub.bootstrapRetry", "attempt=$attempt diag=${e.error.developerDiagnostic.take(80)}")
+                }
+                if (attempt < 2) kotlinx.coroutines.delay(2_000L * (attempt + 1))
             }
-            true
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            val error = (e as? TransportFailure)?.error
-                ?: ErrorMapping.networkUnreachable("task refresh failed: ${e.javaClass.simpleName}")
+            lastError = ErrorMapping.networkUnreachable("task refresh failed: ${e.javaClass.simpleName}")
+        }
+        if (!ok) {
+            val error = lastError
+                ?: ErrorMapping.networkUnreachable("task refresh failed")
             _taskLoadError.value = error
             log.warn("hub.bootstrapFailed", "${error.category} ${error.developerDiagnostic.take(80)}")
-            false
         }
         bootstrapInFlight.set(false)
         return ok
