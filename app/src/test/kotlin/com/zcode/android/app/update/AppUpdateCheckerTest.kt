@@ -36,7 +36,7 @@ class AppUpdateCheckerTest {
     private fun checker(url: String, installedVc: Long) = AppUpdateChecker(
         releasesUrl = url,
         installedVersionCode = installedVc,
-        maxTestedDesktop = "3.14.4",
+        maxTestedDesktop = "3.14.6",
         http = OkHttpClient(),
     )
 
@@ -45,7 +45,7 @@ class AppUpdateCheckerTest {
         val server = serverWithRelease(vc = 37)
         try {
             val state = checker(server.url("/repos/x/y/releases/latest").toString(), installedVc = 36)
-                .check(desktopVersion = "3.14.5")
+                .check(desktopVersion = "3.14.6")
             val available = state as UpdateCheckState.Available
             assertEquals(37L, available.release.versionCode)
             assertEquals("app-release.apk", available.release.apkAssetName)
@@ -76,7 +76,7 @@ class AppUpdateCheckerTest {
         val server = serverWithRelease(vc = 37)
         try {
             val state = checker(server.url("/releases/latest").toString(), installedVc = 36)
-                .check(desktopVersion = "3.14.5")
+                .check(desktopVersion = "3.14.6")
             val available = state as UpdateCheckState.Available
             assertEquals(true, available.desktopNewer)
         } finally {
@@ -155,7 +155,7 @@ class AppUpdateCheckerTest {
     @Test
     fun `the app's own CompatibilityGate constant is the default maxTested`() {
         val checker = AppUpdateChecker(releasesUrl = "https://x", installedVersionCode = 36)
-        assertEquals("3.14.4", checker.maxTestedDesktop)
+        assertEquals("3.14.5", checker.maxTestedDesktop)
         assertEquals(
             com.zcode.android.core.security.pairing.CompatibilityGate.MAX_TESTED_DESKTOP,
             checker.maxTestedDesktop,
