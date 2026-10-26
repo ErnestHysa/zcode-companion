@@ -71,7 +71,7 @@ class ZMarkPinTest {
     private class FakePort : PairingPort {
         override val pairedEndpoint = kotlinx.coroutines.flow.MutableStateFlow<PairingFlow.LinkView?>(null)
         override suspend fun validate(raw: String): PairingPort.Validation = PairingPort.Validation.Invalid("NOT_A_URL", "not a URL")
-        override suspend fun completePairing(link: PairingFlow.LinkView, reducedSecurityConsent: Boolean): PairingPort.ConnectOutcome =
+        override suspend fun completePairing(link: PairingFlow.LinkView, e7Required: Boolean, reducedSecurityConsent: Boolean): PairingPort.ConnectOutcome =
             PairingPort.ConnectOutcome.Failure(PairingFlow.ErrorView("m", "d", rePair = true, retryable = false))
         override suspend fun retry(): PairingPort.ConnectOutcome =
             PairingPort.ConnectOutcome.Failure(PairingFlow.ErrorView("m", "d", rePair = true, retryable = false))

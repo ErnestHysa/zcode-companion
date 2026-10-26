@@ -51,6 +51,7 @@ class PairingScreensUiTest {
         override suspend fun validate(raw: String): PairingPort.Validation = validateResult
         override suspend fun completePairing(
             link: PairingFlow.LinkView,
+            e7Required: Boolean,
             reducedSecurityConsent: Boolean,
         ): PairingPort.ConnectOutcome {
             reducedConsentSeen = reducedSecurityConsent
