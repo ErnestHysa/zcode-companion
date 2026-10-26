@@ -91,6 +91,16 @@ class AppUpdateController(
     fun updateNow() {
         val release = (_check.value as? UpdateCheckState.Available)?.release ?: return
         if (_download.value is DownloadState.Running) return
+        // F-UPDATE2: a verified APK already on disk → straight to the install handoff
+        // (the button doubles as "Install update" once the download is Ready).
+        (_download.value as? DownloadState.Ready)?.let { ready ->
+            runCatching { installer(ready.apk) }
+                .onFailure {
+                    log.warn("update.install_failed", "${it.javaClass.simpleName}: ${it.message?.take(120)}")
+                    _download.value = DownloadState.Failed("installer handoff failed: ${it.message?.take(120)}")
+                }
+            return
+        }
         _download.value = DownloadState.Running(0, 0)
         scope.launch {
             val result = downloader.download(release)

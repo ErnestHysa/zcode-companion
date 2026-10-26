@@ -238,18 +238,36 @@ fun SettingsScreen(
                         stringResource(R.string.settings_check_updates_latest)
                     updateState is com.zcode.android.app.update.UpdateCheckState.Failed ->
                         stringResource(R.string.conn_update_failed, updateState.let { it as com.zcode.android.app.update.UpdateCheckState.Failed }.detail)
+                    updateDownloading is com.zcode.android.app.update.DownloadState.Failed ->
+                        stringResource(R.string.conn_update_failed, updateDownloading.let { it as com.zcode.android.app.update.DownloadState.Failed }.detail.take(80))
                     else -> stringResource(R.string.settings_check_updates_sub)
                 },
                 tag = "settings_check_updates",
                 onClick = { container.appUpdate.checkForUpdate(desktopVersion, force = true) },
             )
+            // F-UPDATE2 (field 2026-10-26): the update button renders whenever a
+            // release is Available — the old gate (download already Ready) made it
+            // circular: only the button could start the download that the button's
+            // own visibility required, so in-app updates never started. Available →
+            // tap downloads (progress in the row) → Ready → the button hands the
+            // verified APK to the system installer.
             if (updateState is com.zcode.android.app.update.UpdateCheckState.Available &&
-                updateDownloading is com.zcode.android.app.update.DownloadState.Ready
+                updateDownloading !is com.zcode.android.app.update.DownloadState.Running
             ) {
                 TextButton(
                     onClick = { container.appUpdate.updateNow() },
                     modifier = Modifier.padding(horizontal = 16.dp).testTag("settings_update_now"),
-                ) { Text(stringResource(R.string.conn_update_now)) }
+                ) {
+                    Text(
+                        stringResource(
+                            if (updateDownloading is com.zcode.android.app.update.DownloadState.Ready) {
+                                R.string.conn_update_now_install
+                            } else {
+                                R.string.conn_update_now
+                            },
+                        ),
+                    )
+                }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
