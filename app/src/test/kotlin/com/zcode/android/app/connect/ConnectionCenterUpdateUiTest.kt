@@ -71,7 +71,7 @@ class ConnectionCenterUpdateUiTest {
 
     @Test
     fun `desktop newer + release available - warning becomes the banner with Update now`() {
-        content("3.14.5", UpdateCheckState.Available(release(37), desktopNewer = true))
+        content("3.14.6", UpdateCheckState.Available(release(43), desktopNewer = true))
         rule.onNodeWithTag("update_banner").assertExists()
         rule.onNodeWithTag("update_now").assertExists()
         // The honest warning is REPLACED by the action when an update exists.
@@ -80,7 +80,7 @@ class ConnectionCenterUpdateUiTest {
 
     @Test
     fun `desktop newer + no update yet - the honest compat warning stays`() {
-        content("3.14.5", null)
+        content("3.14.6", null)
         rule.onNodeWithTag("connection_compat_warning").assertExists()
         assertEquals(false, exists("update_banner"))
         assertEquals(false, exists("update_now"))
@@ -88,7 +88,7 @@ class ConnectionCenterUpdateUiTest {
 
     @Test
     fun `desktop newer + release check failed - warning stays + honest failure line`() {
-        content("3.14.5", UpdateCheckState.Failed("releases metadata unavailable"))
+        content("3.14.6", UpdateCheckState.Failed("releases metadata unavailable"))
         rule.onNodeWithTag("connection_compat_warning").assertExists()
         rule.onNodeWithTag("update_error").assertExists()
         assertEquals(false, exists("update_now"))
@@ -96,7 +96,7 @@ class ConnectionCenterUpdateUiTest {
 
     @Test
     fun `desktop newer + up-to-date release - warning stays + no-update line`() {
-        content("3.14.5", UpdateCheckState.UpToDate)
+        content("3.14.6", UpdateCheckState.UpToDate)
         rule.onNodeWithTag("connection_compat_warning").assertExists()
         rule.onNodeWithTag("update_uptodate").assertExists()
         assertEquals(false, exists("update_now"))
@@ -106,7 +106,7 @@ class ConnectionCenterUpdateUiTest {
     fun `desktop within tested matrix - banner shows WITHOUT compat warning (field fix)`() {
         // FIELD FIX (2026-10-12): the update offer is no longer gated on the desktop
         // version — a newer release shows the plain banner, no compat warning.
-        content("3.14.4", UpdateCheckState.Available(release(37), desktopNewer = true))
+        content("3.14.6", UpdateCheckState.Available(release(43), desktopNewer = true))
         assertEquals(false, exists("connection_compat_warning"))
         rule.onNodeWithTag("update_banner").assertExists()
         rule.onNodeWithTag("update_now").assertExists()
@@ -120,7 +120,7 @@ class ConnectionCenterUpdateUiTest {
 
     @Test
     fun `checking state shows the checking line under the warning`() {
-        content("3.14.5", UpdateCheckState.Checking)
+        content("3.14.6", UpdateCheckState.Checking)
         rule.onNodeWithTag("connection_compat_warning").assertExists()
         rule.onNodeWithTag("update_checking").assertExists()
     }
