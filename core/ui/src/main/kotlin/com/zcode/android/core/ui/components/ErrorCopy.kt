@@ -35,6 +35,7 @@ fun userMessageRes(key: UserMessageKey): Int = when (key) {
     UserMessageKey.LOCAL_NETWORK_BLOCKED -> R.string.err_msg_local_network_blocked
     UserMessageKey.ENDPOINT_CERT_CHANGED -> R.string.err_msg_endpoint_cert_changed
     UserMessageKey.ENDPOINT_UNENCRYPTED -> R.string.err_msg_endpoint_unencrypted
+    UserMessageKey.DESKTOP_APPROVAL_TIMEOUT -> R.string.err_desktop_approval_timeout
     UserMessageKey.DESKTOP_RELAY_LOST -> R.string.err_msg_desktop_relay_lost
     UserMessageKey.RELAY_ERROR_RETRYING -> R.string.err_msg_relay_error_retrying
     UserMessageKey.UNEXPECTED_ERROR_CODE -> R.string.err_msg_unexpected_error_code

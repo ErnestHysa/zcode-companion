@@ -90,6 +90,7 @@
     <string name="err_msg_endpoint_cert_changed">Endpoint certificate changed — verify the server before reconnecting</string>
     <string name="err_msg_endpoint_unencrypted">Endpoint uses unencrypted transport (ws://) — anyone on the network can read this traffic</string>
     <string name="err_msg_desktop_relay_lost">The desktop lost its relay connection — restart ZCode on your Mac, then retry</string>
+    <string name="err_desktop_approval_timeout">The desktop hasn\'t approved this pairing yet - open the Remote Control window on your desktop, generate a fresh QR code and pair again</string>
     <string name="err_msg_relay_error_retrying">ZCode relay error — retrying</string>
     <string name="err_msg_unexpected_error_code">Unexpected error (code)</string>
     <string name="err_msg_something_went_wrong">Something went wrong</string>

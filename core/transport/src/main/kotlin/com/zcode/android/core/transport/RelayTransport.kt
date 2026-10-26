@@ -75,6 +75,8 @@ class RelayTransport(
     data class Config(
         val connectTimeoutMs: Long = 10_000,
         val authTimeoutMs: Long = 15_000,
+        /** F-PAIRSTATUS: the desktop-approval wait (queries every 1.5 s inside). */
+        val pairStatusWaitMs: Long = 60_000,
         val bridgeTimeoutMs: Long = 10_000,
         val channelInitTimeoutMs: Long = 10_000,
         val controlRequestTimeoutMs: Long = 10_000,
@@ -402,13 +404,43 @@ class RelayTransport(
             if ((ack["type"] as? JsonPrimitive)?.content == "error") throw authErrorFrom(ack)
             val pairStatus = (ack["pair_status"] as? JsonPrimitive)?.content
             if (pairStatus != null && pairStatus != "matched") {
-                val deadline = clock() + config.authTimeoutMs
+                // F-PAIRSTATUS (field 2026-10-26, S918B on the real relay): the relay
+                // holds the device in pair_status "pending" until the DESKTOP approves
+                // the (re-)pairing — approval can need a human on the other side. The
+                // old poll only READ lastPairStatus for authTimeoutMs while NOTHING
+                // updated it (the pair_status_query heartbeat loop starts after auth):
+                // a structural deadlock — every re-pairing died AUTH_FAILED after
+                // exactly 15.000 s (the diagnostics signature). The poll now ASKS
+                // (pair_status_query every 1.5 s, the same frame the heartbeat uses)
+                // for up to 60 s, then fails with honest retryable copy.
+                val deadline = clock() + config.pairStatusWaitMs
                 var matched = false
+                var lastAsk = 0L
                 while (clock() < deadline) {
                     if (lastPairStatus == "matched") { matched = true; break }
+                    if (clock() - lastAsk >= 1_500) {
+                        lastAsk = clock()
+                        sendNow(
+                            encodeJson.encodeToString(
+                                com.zcode.android.core.protocol.relay.PairStatusQuery(deviceSid = deviceSid, clientTs = clock())
+                            ),
+                        )
+                    }
                     delay(50)
                 }
-                if (!matched) throw Failure(ErrorMapping.relayError("AUTH_FAILED", "pair status stayed $pairStatus"))
+                if (!matched) {
+                    throw Failure(
+                        com.zcode.android.core.common.error.AppError(
+                            category = com.zcode.android.core.common.error.ErrorCategory.AUTH,
+                            userMessage = "Waiting for your desktop to approve the pairing timed out — open the Remote Control window on your desktop, generate a fresh QR code and pair again",
+                            messageKey = com.zcode.android.core.common.error.UserMessageKey.DESKTOP_APPROVAL_TIMEOUT,
+                            developerDiagnostic = "pair status stayed $pairStatus for ${config.pairStatusWaitMs / 1000} s (queries sent)",
+                            retryable = AppError.Retryable.USER,
+                            recoverable = true,
+                            autoRecovery = com.zcode.android.core.common.error.RecoveryAction.RE_PAIR,
+                        ),
+                    )
+                }
             }
             lastHeartbeatAckAt = clock()
             ctx.info("auth.matched")
