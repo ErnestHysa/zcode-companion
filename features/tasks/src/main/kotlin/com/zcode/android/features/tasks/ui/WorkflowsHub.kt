@@ -57,12 +57,15 @@ fun WorkflowsHub(
     onStartWorkflow: (taskId: String, name: String, scope: String?, args: Map<String, String>) -> Unit,
     modifier: Modifier = Modifier,
     reloadKey: Any? = null,
+    /** F-SPAM: the hub's CONNECTED truth — the load re-runs on the flip (V2 pattern). */
+    connected: Boolean = true,
 ) {
     var list by remember { mutableStateOf<SavedWorkflowList?>(null) }
     var runs by remember { mutableStateOf<List<SavedWorkflowRun>>(emptyList()) }
     var loaded by remember { mutableStateOf(false) }
     var runFor by remember { mutableStateOf<SavedWorkflow?>(null) }
-    LaunchedEffect(port, reloadKey) {
+    LaunchedEffect(port, reloadKey, connected) {
+        if (!connected) return@LaunchedEffect
         list = port.savedWorkflows()
         runs = port.savedWorkflowRuns() ?: emptyList()
         loaded = true

@@ -192,8 +192,17 @@ fun AutomationsSection(
         }
 
         // L6.4: the saved-workflow hub shares the automations page (desktop pageTab.workflow).
+        // F-SPAM (field 2026-10-26): the hub's load keys on `connected` like the lists
+        // load — the old port-only key fired listSavedWorkflows into the dead transport
+        // on every cold launch ("no outbound sink" ×4 per start).
         onStartWorkflow?.let { start ->
-            WorkflowsHub(port = port, tasks = workflowTasks, onStartWorkflow = start, reloadKey = lists)
+            WorkflowsHub(
+                port = port,
+                tasks = workflowTasks,
+                onStartWorkflow = start,
+                reloadKey = lists,
+                connected = connected,
+            )
         }
         lists?.offPeak?.takeIf { it.isNotEmpty() }?.let { peaks ->
             Spacer(Modifier.height(8.dp))
