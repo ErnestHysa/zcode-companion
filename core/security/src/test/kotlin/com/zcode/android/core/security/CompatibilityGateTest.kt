@@ -25,8 +25,10 @@ class CompatibilityGateTest {
         assertEquals(CompatibilityGate.Verdict.Supported, v("3.14.3"))
         // 3.14.4 live-verified 2026-09-30 (real device, round-10) → inside the tested range.
         assertEquals(CompatibilityGate.Verdict.Supported, v("3.14.4"))
+        // 3.14.5 live-verified 2026-10-13 → 2026-10-26 (S918B field round) → tested range.
+        assertEquals(CompatibilityGate.Verdict.Supported, v("3.14.5"))
         // Above maximum-tested → warn-continue
-        assertTrue(v("3.14.5") is CompatibilityGate.Verdict.AboveTested)
+        assertTrue(v("3.14.6") is CompatibilityGate.Verdict.AboveTested)
         assertTrue(v("3.15.0") is CompatibilityGate.Verdict.AboveTested)
         // Future major → warn-continue at the QR gate (the wire-version literal check at
         // hello remains the hard gate per §39.2/§39.3).
