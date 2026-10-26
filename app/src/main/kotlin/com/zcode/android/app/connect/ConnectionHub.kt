@@ -1051,8 +1051,11 @@ class ConnectionHub(
      * registry view and the persisted selection must go with it, or the nav gate
      * would still see a "paired" surrogate after the wipe.
      */
-    fun onUnpaired() {
-        scope.launch { runCatching { activeTransport().close("unpair") } }
+    suspend fun onUnpaired() {
+        // F-PAIR: wipe SYNCHRONOUSLY (close + machine → CLOSED) inside the caller's
+        // coroutine — the async close left the machine in its pre-unpair state, and
+        // the post-rescan connect() raced/refused against it.
+        runCatching { activeTransport().wipe() }
         resetEndpointScopedState()
         _endpoint.value = null
         _endpoints.value = emptyList()

@@ -64,6 +64,15 @@ interface Transport {
     /** Graceful close; releases the socket; idempotent (§11.2 close). */
     suspend fun close(reason: String)
 
+    /**
+     * F-PAIR (field 2026-10-25): unpair/wipe — close AND transition the state
+     * machine to the terminal CLOSED (identity destroyed, §14.4.1), so the next
+     * sealed-credential connect() takes the fresh-identity re-seed path. The
+     * plain [close] leaves the machine untouched (a post-unpair connect() would
+     * then be refused by its own state guard).
+     */
+    suspend fun wipe() = close("unpair")
+
     /** Immediate reconnect attempt (app foreground / manual retry, §11.5). */
     fun reconnectNow()
 

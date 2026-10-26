@@ -186,7 +186,7 @@ object ErrorMapping {
         )
         "WRONG_PARAM" -> AppError(
             category = ErrorCategory.INTERNAL,
-            userMessage = "Unexpected error (code)",
+            userMessage = "The desktop rejected the pairing — generate a fresh QR code on the desktop and scan it again",
             messageKey = UserMessageKey.UNEXPECTED_ERROR_CODE,
             developerDiagnostic = "relay WRONG_PARAM — client-constructed request rejected (client bug class)",
             retryable = AppError.Retryable.NO,
@@ -434,7 +434,7 @@ object ErrorMapping {
 
     fun internal(diagnostic: String, correlation: Correlation = Correlation()) = AppError(
         category = ErrorCategory.INTERNAL,
-        userMessage = "Unexpected error (code)",
+        userMessage = "Something went wrong on this device — restart the app and try again",
         messageKey = UserMessageKey.UNEXPECTED_ERROR_CODE,
         developerDiagnostic = diagnostic,
         retryable = AppError.Retryable.NO,

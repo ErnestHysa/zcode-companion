@@ -312,21 +312,27 @@ class RelayTransport(
 
     override suspend fun connect(endpoint: EndpointDescriptor, signer: CredentialSigner) {
         val s = machine.state
-        check(s != ConnectionStateMachine.ConnectionState.CLOSED) { "endpoint identity destroyed" }
         check(
             s == ConnectionStateMachine.ConnectionState.UNPAIRED ||
                 s == ConnectionStateMachine.ConnectionState.PAIRING ||
-                s == ConnectionStateMachine.ConnectionState.AUTHENTICATING
+                s == ConnectionStateMachine.ConnectionState.AUTHENTICATING ||
+                s == ConnectionStateMachine.ConnectionState.CLOSED
         ) { "connect() is the first-connection path; use recover() (state=$s)" }
         this.endpoint = endpoint
         this.signer = signer
         closedByUs = false
         kicked = false
         if (s == ConnectionStateMachine.ConnectionState.UNPAIRED ||
-            s == ConnectionStateMachine.ConnectionState.PAIRING
+            s == ConnectionStateMachine.ConnectionState.PAIRING ||
+            s == ConnectionStateMachine.ConnectionState.CLOSED
         ) {
             // Pairing events (QR validated / credential sealed) are Phase 3 flows; the
             // transport requires a sealed credential and enters the machine at Auth.
+            // F-PAIR (field 2026-10-25): CLOSED (the post-unpair "identity destroyed"
+            // rest state) also re-seeds — a post-rescan connect() always carries a
+            // FRESH sealed endpoint, and the relay auth is the real gate. The old
+            // hard refusal here dead-ended every unpair → re-scan → connect flow
+            // ("Unexpected error (code)") until an app restart rebuilt the transport.
             machine.seed(ConnectionStateMachine.ConnectionState.AUTHENTICATING)
         }
         publishState()
@@ -1491,7 +1497,7 @@ class RelayTransport(
     }
 
     /** Unpair/wipe: destroys the endpoint identity (§14.4.1 Closed — absorbing). */
-    suspend fun wipe() {
+    override suspend fun wipe() {
         close("unpair")
         runCatching { machine.on(ConnectionStateMachine.ConnectionEvent.UNPAIR_OR_WIPE) }
         publishState()

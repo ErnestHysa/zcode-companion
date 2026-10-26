@@ -9,6 +9,7 @@ import com.zcode.android.core.security.pairing.PairingLinkParser
 import com.zcode.android.core.security.vault.CredentialVault
 import com.zcode.android.core.security.vault.SealOutcome
 import com.zcode.android.core.transport.EndpointDescriptor
+import com.zcode.android.core.common.error.AppError
 import com.zcode.android.core.transport.ErrorMapping
 import com.zcode.android.core.transport.RelayTransport
 import com.zcode.android.features.pairing.flow.PairingFlow
@@ -123,7 +124,8 @@ class DefaultPairingPort(
                 is PairingPort.ConnectOutcome.Success -> "success"
                 is PairingPort.ConnectOutcome.TakenOver -> "takenOver"
                 is PairingPort.ConnectOutcome.Failure ->
-                    "failure rePair=${outcome.error.rePair} retryable=${outcome.error.retryable} msg=${outcome.error.userMessage.take(80)}"
+                    "failure rePair=${outcome.error.rePair} retryable=${outcome.error.retryable} " +
+                        "msg=${outcome.error.userMessage.take(80)} diag=${outcome.error.diagnostic.take(100)}"
             },
         )
         if (outcome is PairingPort.ConnectOutcome.Success) {
@@ -209,14 +211,28 @@ class DefaultPairingPort(
             deviceMid = raw.deviceMid,
             desktopAppVersion = raw.appVersion,
         )
-        return try {
-            transport.connect(endpoint) { nonce, role, sid -> signer.proof(nonce, role, sid) }
-            PairingPort.ConnectOutcome.Success(toView(raw))
-        } catch (e: com.zcode.android.core.transport.TransportFailure) {
-            mapError(e.error)
-        } catch (e: Exception) {
-            mapError(ErrorMapping.internal("connect: ${e.javaClass.simpleName}: ${e.message}"))
+        // F-PAIR (field 2026-10-26): one automatic retry for non-AUTH failures — the
+        // field report failed transiently post-unpair and only an app restart
+        // recovered it; a single backoff retry covers that class without
+        // re-prompting the user.
+        var lastError: com.zcode.android.core.common.error.AppError? = null
+        repeat(2) { attempt ->
+            if (lastError?.retryable != AppError.Retryable.NO || attempt == 0) {
+                try {
+                    transport.connect(endpoint) { nonce, role, sid -> signer.proof(nonce, role, sid) }
+                    return PairingPort.ConnectOutcome.Success(toView(raw))
+                } catch (e: com.zcode.android.core.transport.TransportFailure) {
+                    lastError = e.error
+                } catch (e: Exception) {
+                    lastError = ErrorMapping.internal("connect: ${e.javaClass.simpleName}: ${e.message}")
+                }
+                if (attempt == 0 && lastError != null) {
+                    log.warn("pairing.connect.retry", "attempt=1 diag=${lastError?.developerDiagnostic?.take(100)}")
+                    kotlinx.coroutines.delay(1_500)
+                }
+            }
         }
+        return mapError(lastError!!)
     }
 
 
