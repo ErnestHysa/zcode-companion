@@ -226,13 +226,22 @@ fun PlanPanel(plan: PlanState, modifier: Modifier = Modifier, collapsedByDefault
  * A3.12 (Phase 5B): the plans viewer — `conversationPlansV4`'s list rendered as titled
  * step checklists (the desktop's plan-step normalization; D2's todo projection stays the
  * [PlanPanel] above it — one panel surface, two sections). Absent/empty → nothing.
+ *
+ * F-CHAT-FOCUS (field 2026-10-27): collapsed by default like [GoalPanel]/[PlanPanel] —
+ * the plans viewer was the LAST always-expanded context panel; with goal + todos + plans
+ * armed the chat timeline got ~28 % of the screen (the field report: "can't see or use
+ * the chat in any meaningful way"). Collapsed it is one tappable summary line
+ * (Plans · title · 1/3 · chevron); expanding shows every plan's full checklist.
  */
 @Composable
 fun PlansViewer(
     plans: List<com.zcode.android.domain.model.ConversationPlan>,
     modifier: Modifier = Modifier,
+    collapsedByDefault: Boolean = false,
 ) {
     if (plans.isEmpty()) return
+    var expanded by rememberSaveable { mutableStateOf(!collapsedByDefault) }
+    val chevronRotation by animateFloatAsState(if (expanded) 0f else -90f, label = "plans_chevron")
     Column(
         modifier
             .fillMaxWidth()
@@ -240,11 +249,49 @@ fun PlansViewer(
             .padding(12.dp)
             .testTag("plans_viewer"),
     ) {
-        Text(
-            stringResource(R.string.plans_title),
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (!expanded) Modifier.clickable { expanded = true } else Modifier)
+                .testTag("plans_header"),
+        ) {
+            Text(
+                stringResource(R.string.plans_title),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            // Collapsed: the first plan's title + progress ride the header line
+            // (expanded, the per-plan rows below carry them — never duplicated).
+            if (!expanded) {
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    plans.first().title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .testTag("plan_title_0"),
+                )
+                Spacer(Modifier.weight(1f))
+                Text(
+                    "${plans.first().completedCount}/${plans.first().steps.size}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("plans_progress"),
+                )
+                Spacer(Modifier.width(6.dp))
+                Icon(
+                    Icons.Filled.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp).graphicsRotation(chevronRotation),
+                )
+            }
+        }
+        if (!expanded) return@Column
         Spacer(Modifier.height(6.dp))
         plans.forEachIndexed { index, plan ->
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -254,7 +301,7 @@ fun PlansViewer(
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f).testTag("plan_title_$index"),
+                    modifier = Modifier.weight(1f).testTag("plan_title_expanded_$index"),
                 )
                 Text(
                     "${plan.completedCount}/${plan.steps.size}",

@@ -633,7 +633,9 @@ fun ComposerBar(
     val enqueue = routing?.mode == com.zcode.android.domain.model.InputRouting.Mode.ENQUEUE
 
     Surface(modifier = modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface) {
-        Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+        // F-CHAT-FOCUS (2026-10-27): vertical 8→5 — the composer is pinned always-on;
+        // two padding steps at 440 dpi were ~21 px of chat viewport for nothing.
+        Column(Modifier.padding(horizontal = 12.dp, vertical = 5.dp)) {
             if (state.pendingSends.isNotEmpty()) {
                 PendingSendsStrip(pending = state.pendingSends, onRetry = onRetrySend, modifier = Modifier.fillMaxWidth())
             }

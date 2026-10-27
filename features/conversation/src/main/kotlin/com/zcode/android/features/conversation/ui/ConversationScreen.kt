@@ -42,8 +42,11 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -512,18 +515,54 @@ private fun Header(
         // on the device the crushed chip exploded vertically and blocked the chat).
         // Two compact rows: the echo chips own the full width; the read-only surface
         // entries right-align under them.
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            SessionModeChips(
-                config = state.sessionState?.config,
-                onSwitchMode = onSwitchMode,
-                onSwitchModel = onSwitchModel,
-                modelOptionsProvider = modelOptionsProvider,
-                onSetThoughtLevel = onSetThoughtLevel,
-                modifier = Modifier.weight(1f, fill = true),
-            )
+        // F-CHAT-FOCUS (field 2026-10-27): the config echo is glanceable, not primary —
+        // COLLAPSED by default to one tappable summary line (`build · glm-5.1 · high ⌄`);
+        // tapping expands the full interactive chip row. The chat timeline is the
+        // primary content (the field report: ~28 % of the screen left for the chat).
+        val config = state.sessionState?.config
+        var configExpanded by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
+        if (config != null && !configExpanded) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { configExpanded = true }
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .testTag("conv_config_summary_row"),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    listOfNotNull(
+                        config.mode,
+                        config.provider + "/" + config.model,
+                        config.thought.takeIf { config.thoughtLevels.isNotEmpty() },
+                    ).joinToString(" · "),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(
+                    Icons.Filled.KeyboardArrowDown,
+                    contentDescription = stringResource(com.zcode.android.features.conversation.R.string.mode_a11y, config.mode),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp).rotate(-90f).testTag("conv_config_expand"),
+                )
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SessionModeChips(
+                    config = state.sessionState?.config,
+                    onSwitchMode = onSwitchMode,
+                    onSwitchModel = onSwitchModel,
+                    modelOptionsProvider = modelOptionsProvider,
+                    onSetThoughtLevel = onSetThoughtLevel,
+                    modifier = Modifier.weight(1f, fill = true),
+                )
+            }
         }
         // I2.2: branch · clean/changes · agents — from the git summary channel + the
         // timeline's running subagents; refused/not-a-repository → honest absence.
@@ -575,7 +614,7 @@ private fun Header(
                 }
                 // A3.12: the plans viewer folds under the todo panel (one panel surface, two sections).
                 plans?.takeIf { it.isNotEmpty() }?.let { list ->
-                    PlansViewer(list, modifier = Modifier.padding(horizontal = 8.dp))
+                    PlansViewer(list, modifier = Modifier.padding(horizontal = 8.dp), collapsedByDefault = true)
                 }
             }
         }
@@ -1094,8 +1133,13 @@ internal fun formatBytes(bytes: Long): String = when {
 
 private const val PAGE_EDGE = 12
 
-/** U1: the context-panel stack (goal · todos · runs · plans) may take at most this share of the screen. */
-private const val CONTEXT_PANEL_BUDGET_FRACTION = 0.30f
+/**
+ * U1: the context-panel stack (goal · todos · runs · plans) may take at most this share
+ * of the screen. F-CHAT-FOCUS (2026-10-27): the panels are collapsed one-liners by
+ * default now, so the budget only binds when the user deliberately expands them —
+ * 0.25 keeps even the expanded stack from crossing a quarter of the window.
+ */
+private const val CONTEXT_PANEL_BUDGET_FRACTION = 0.25f
 
 /** U8: the pinned approval/question stack may take at most this share of the window. */
 private const val PINNED_BUDGET_FRACTION = 0.30f

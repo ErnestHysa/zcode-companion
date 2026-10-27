@@ -54,6 +54,7 @@ class PlansTrajectoryUiTest {
                             ),
                         ),
                     ),
+                    collapsedByDefault = false,
                 )
             }
         }
@@ -63,6 +64,47 @@ class PlansTrajectoryUiTest {
         rule.onNodeWithText("1/3").assertIsDisplayed()
         rule.onNodeWithTag("plan_step_0_0").assertIsDisplayed()
         rule.onNodeWithText("Bump the version").assertIsDisplayed()
+    }
+
+    /**
+     * F-CHAT-FOCUS (field 2026-10-27): the plans viewer is COLLAPSED by default — one
+     * tappable summary line (Plans · title · 1/3 · chevron), no step rows on screen;
+     * tapping the header expands the full checklist. The chat timeline is the primary
+     * content (the field report: ~28 % of the screen left for the chat with goal +
+     * todos + plans armed).
+     */
+    @Test
+    fun `plans viewer is collapsed by default and expands on tap`() {
+        rule.setContent {
+            ZCodeTheme {
+                PlansViewer(
+                    listOf(
+                        ConversationPlan(
+                            "Ship the release", status = null,
+                            steps = listOf(
+                                ConversationPlanStep("s1", "Write the changelog", PlanStepStatus.COMPLETED),
+                                ConversationPlanStep("s2", "Bump the version", PlanStepStatus.IN_PROGRESS),
+                                ConversationPlanStep("s3", "Tag and publish", PlanStepStatus.PENDING),
+                            ),
+                        ),
+                    ),
+                    collapsedByDefault = true,
+                )
+            }
+        }
+        rule.waitForIdle()
+        // Collapsed: the summary line renders; NO step rows, and the expanded-only
+        // per-plan title tag is absent.
+        rule.onNodeWithTag("plans_viewer").assertIsDisplayed()
+        rule.onNodeWithTag("plans_header").assertIsDisplayed()
+        rule.onNodeWithText("1/3").assertIsDisplayed()
+        rule.onAllNodesWithTag("plan_step_0_0").assertCountEquals(0)
+        rule.onAllNodesWithTag("plan_title_expanded_0").assertCountEquals(0)
+        // Tap the header → the full checklist appears.
+        rule.onNodeWithTag("plans_header").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("plan_step_0_0").assertIsDisplayed()
+        rule.onNodeWithTag("plan_title_expanded_0").assertIsDisplayed()
     }
 
     @Test

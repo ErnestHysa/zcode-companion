@@ -2,7 +2,10 @@ package com.zcode.android.features.conversation
 
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
@@ -91,6 +94,12 @@ class SessionChipsLayoutTest {
                 )
             }
         }
+        // F-CHAT-FOCUS (2026-10-27): the chip row is COLLAPSED by default behind the
+        // compact summary — expand it, then pin the ORIGINAL geometry contract.
+        rule.onNodeWithTag("conv_config_summary_row").assertIsDisplayed()
+        rule.onAllNodesWithTag("conv_mode_chip").assertCountEquals(0)
+        rule.onNodeWithTag("conv_config_summary_row").performClick()
+        rule.waitForIdle()
         val density = rule.density.density
         val modeChip = rule.onNodeWithTag("conv_mode_chip").fetchSemanticsNode().boundsInRoot
         val modelChip = rule.onNodeWithTag("conv_model_chip").fetchSemanticsNode().boundsInRoot
@@ -130,5 +139,50 @@ class SessionChipsLayoutTest {
         for (title in listOf("Ask before changes", "Edit automatically", "Plan mode", "Full access")) {
             rule.onAllNodesWithText(title).onFirst().assertExists()
         }
+    }
+
+    /**
+     * F-CHAT-FOCUS (field 2026-10-27): with a session config present, the header
+     * defaults to the ONE compact summary line (mode · provider/model · effort) and
+     * the interactive chip row is ABSENT until the summary is tapped — the collapsed
+     * header must never swallow the chat viewport (the ~28 %-timeline field report).
+     */
+    @Test
+    fun configSummary_collapsedByDefault_expandsToChipRow() {
+        rule.setContent {
+            ZCodeTheme {
+                ConversationScreen(
+                    state = stateWithConfig(),
+                    phase = ConnectionPhase.CONNECTED,
+                    onBack = {},
+                    onLoadOlder = { _, _ -> },
+                    onDismissHistoryNotice = {},
+                    onRetryOlder = {},
+                    onDraftChange = {},
+                    onSend = {},
+                    onStop = {},
+                    onRetrySend = {},
+                    onDismissSendNotice = {},
+                    onAnswer = { _, _, _, _ -> },
+                    onSendQueuedNow = {},
+                    onEditQueueItem = { _, _ -> },
+                )
+            }
+        }
+        // Collapsed: the summary line renders with the echo content; no chips.
+        rule.onNodeWithTag("conv_config_summary_row").assertIsDisplayed()
+        rule.onNodeWithText("yolo · zai/glm-5.3 · high").assertIsDisplayed()
+        rule.onAllNodesWithTag("conv_mode_chip").assertCountEquals(0)
+        rule.onAllNodesWithTag("conv_effort_chip").assertCountEquals(0)
+        rule.onAllNodesWithTag("conv_model_chip").assertCountEquals(0)
+        // The timeline keeps real height even with goal + todos + plans armed.
+        val list = rule.onNodeWithTag("conversation_list").fetchSemanticsNode().boundsInRoot
+        val density = rule.density.density
+        assertTrue("timeline collapsed under the header: $list", list.height / density >= 120f)
+        // Expand → the interactive chip row appears.
+        rule.onNodeWithTag("conv_config_summary_row").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("conv_mode_chip").assertIsDisplayed()
+        rule.onNodeWithTag("conv_model_chip").assertIsDisplayed()
     }
 }
