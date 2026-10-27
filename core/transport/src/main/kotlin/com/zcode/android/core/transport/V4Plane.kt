@@ -620,14 +620,24 @@ internal class ChannelV4Plane(
         // §7.11 identity key — the desktop's resolveWorkspaceKey (identity ?: path).
         val workspaceKey = identity?.trim()?.takeIf { it.isNotEmpty() } ?: path
             ?: throw TransportFailure(ErrorMapping.protocolFault("workspace-config subscribe without a workspace target"))
+        bound().debug("v4.call", "subscribeWorkspaceConfig key=$workspaceKey")
+        // The LOCAL record key (routing + recovery) — the adapter builds its own topic
+        // from the same key; the phone no longer sends it on the wire.
         val topic = V4Topics.workspaceConfig(workspaceKey)
-        bound().debug("v4.call", "subscribeWorkspaceConfig topic=$topic")
+        // F-CHAT-FOCUS4 (field 2026-10-27, vc50 S23 diagnostics): this MUST be the
+        // desktop adapter's subscribeWorkspaceConfigV4 method — its params are the
+        // workspace target ONLY ({workspacePath, workspaceIdentity}; the adapter
+        // builds the topic itself). Calling subscribeConversationV4 with our topic
+        // field never worked on production: the session adapter builds
+        // `conversationTopic(params.sessionId)` and never forwards a topic — the
+        // CLI received sessionId=undefined and refused EVERY catalog subscribe with
+        // "Session is not active and not persisted: undefined" (the field: the
+        // slash catalog silently absent on every conversation, vc46→vc50).
         val params = buildJsonObject {
             put("workspacePath", JsonPrimitive(path ?: ""))
             identity?.let { put("workspaceIdentity", JsonPrimitive(identity)) }
-            put("topic", JsonPrimitive(topic))
         }
-        val raw = v4Call("subscribeConversationV4", RpcValue.Obj(params))
+        val raw = v4Call("subscribeWorkspaceConfigV4", RpcValue.Obj(params))
         val obj = (raw as? RpcValue.Obj)?.json as? JsonObject
             ?: throw TransportFailure(ErrorMapping.protocolFault("subscribe result not an object"))
         val ackObj = obj["ack"] as? JsonObject

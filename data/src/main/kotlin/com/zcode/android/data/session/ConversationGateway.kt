@@ -181,6 +181,26 @@ class RelayConversationGateway(
     /** Subscription records: session → active epoch (ack-stamped; the frame carries none). */
     private val epochs = HashMap<String, String>()
 
+    /**
+     * F-CHAT-FOCUS4 (field 2026-10-27, vc50 S23 diagnostics): sessions with an
+     * IN-FLIGHT subscribe/resync. The desktop pushes the INITIAL snapshot BEFORE the
+     * subscribe's RPC response (fresh-session fast path — observed: the frame landed
+     * 1 ms before the ack), so the frame raced the epoch stamp and was dropped as
+     * "no subscription record" → stuck loading (0 cached rows, state UNKNOWN), a 90 s
+     * stream-watchdog escalation, a notOwned resync refusal, and a task that could not
+     * be deleted or archived on the desktop. Frames arriving for a pending subscribe
+     * are BUFFERED here (bounded) and replayed once the ack stamps the epoch.
+     */
+    private val pendingSubscribes = HashMap<String, MutableList<com.zcode.android.core.transport.InboundFrame.TopicFrameArrived>>()
+
+    private fun holdFrameForPending(sessionId: String, arrived: com.zcode.android.core.transport.InboundFrame.TopicFrameArrived): Boolean {
+        synchronized(pendingSubscribes) {
+            val buffer = pendingSubscribes[sessionId] ?: return false
+            if (buffer.size < 16) buffer.add(arrived)
+            return true
+        }
+    }
+
     /** Forward transport frames into domain events; call once after connect (single collector). */
     private var forwardingJob: kotlinx.coroutines.Job? = null
 
@@ -221,6 +241,14 @@ class RelayConversationGateway(
         val epoch = transport.subscriptionEpoch(sessionId)
             ?: synchronized(epochs) { epochs[sessionId] }
             ?: run {
+                // F-CHAT-FOCUS4: a subscribe/resync IN FLIGHT for this session buffers
+                // the racing frames (replayed when the ack stamps the epoch) — the
+                // fresh-session fast path DELIVERS the snapshot before the ack, and
+                // dropping it stranded the whole conversation (stuck loading).
+                if (holdFrameForPending(sessionId, arrived)) {
+                    traceLog?.debug("gateway.hold", "session=$sessionId kind=${arrived.deliveryKind} seq=${arrived.fromSeq}..${arrived.toSeq} (subscribe in flight — buffered)")
+                    return
+                }
                 // FIELD (2026-10-04, vc32 forensics): silent drops here made a stalled
                 // snapshot delivery UNDIAGNOSABLE (frames recv'd at the wire, nothing
                 // decoded downstream). Count + log at DEBUG — never silent (§34).
@@ -371,9 +399,22 @@ class RelayConversationGateway(
         // subscribed fine but its snapshot was routed to nobody. Attach the scoped
         // listener for THIS workspace before the subscribe so the INITIAL snapshot lands.
         transport.ensureConversationListen(workspacePath, workspaceIdentity)
-        val ack = transport.subscribeSession(sessionId, visibility, workspacePath, workspaceIdentity)
-        synchronized(epochs) { epochs[sessionId] = ack.logEpoch }
-        return GatewayAck(ack.subscriptionId, ack.mode, ack.logEpoch)
+        // F-CHAT-FOCUS4: register the pending buffer BEFORE the RPC — the desktop can
+        // deliver the INITIAL snapshot before the ack (the fresh-session race).
+        synchronized(pendingSubscribes) { pendingSubscribes.getOrPut(sessionId) { mutableListOf() } }
+        try {
+            val ack = transport.subscribeSession(sessionId, visibility, workspacePath, workspaceIdentity)
+            synchronized(epochs) { epochs[sessionId] = ack.logEpoch }
+            replayBuffered(sessionId)
+            return GatewayAck(ack.subscriptionId, ack.mode, ack.logEpoch)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Failed subscribe: the buffered frames have no epoch to replay against —
+            // discard (the recovery loop retries the subscribe with a fresh buffer).
+            synchronized(pendingSubscribes) { pendingSubscribes.remove(sessionId) }
+            throw e
+        }
     }
 
     override suspend fun resync(
@@ -385,15 +426,34 @@ class RelayConversationGateway(
         workspaceIdentity: String?,
     ): GatewayAck {
         transport.ensureConversationListen(workspacePath, workspaceIdentity)
-        val ack = transport.resyncSession(
-            sessionId,
-            base = if (baseEpoch == null || baseSeq == null) null else baseEpoch to baseSeq,
-            forceSnapshot = forceSnapshot,
-            workspacePath = workspacePath,
-            workspaceIdentity = workspaceIdentity,
-        )
-        synchronized(epochs) { epochs[sessionId] = ack.logEpoch }
-        return GatewayAck(ack.subscriptionId, ack.mode, ack.logEpoch)
+        // F-CHAT-FOCUS4: resync also delivers a fresh snapshot that can race its ack.
+        synchronized(pendingSubscribes) { pendingSubscribes.getOrPut(sessionId) { mutableListOf() } }
+        try {
+            val ack = transport.resyncSession(
+                sessionId,
+                base = if (baseEpoch == null || baseSeq == null) null else baseEpoch to baseSeq,
+                forceSnapshot = forceSnapshot,
+                workspacePath = workspacePath,
+                workspaceIdentity = workspaceIdentity,
+            )
+            synchronized(epochs) { epochs[sessionId] = ack.logEpoch }
+            replayBuffered(sessionId)
+            return GatewayAck(ack.subscriptionId, ack.mode, ack.logEpoch)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            synchronized(pendingSubscribes) { pendingSubscribes.remove(sessionId) }
+            throw e
+        }
+    }
+
+    /** F-CHAT-FOCUS4: replay frames buffered while the subscribe/resync ack was in flight. */
+    private suspend fun replayBuffered(sessionId: String) {
+        val buffered = synchronized(pendingSubscribes) { pendingSubscribes.remove(sessionId) }
+        if (buffered != null) {
+            traceLog?.debug("gateway.replay", "session=$sessionId frames=${buffered.size} (subscribe ack landed)")
+            for (frame in buffered) mapTopicFrame(frame)
+        }
     }
 
     override suspend fun subscribeWorkspaceConfig(

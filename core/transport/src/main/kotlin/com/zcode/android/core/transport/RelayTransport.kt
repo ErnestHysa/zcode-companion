@@ -672,10 +672,20 @@ class RelayTransport(
                 establish()
                 // Re-subscribe (the Phase-1 live-proven recovery path: bridge re-open with
                 // the same recoveryId replays missed frames; subscribe re-anchors topics).
+                // F-CHAT-FOCUS4: workspace-config records re-subscribe via the CONFIG
+                // method — re-subscribing them as conversation sessions sent
+                // sessionId="workspace-config/…" and the desktop refused (sessionNotFound).
                 var replaced = false
                 for ((topic, rec) in plane.subscriptions.toList()) {
-                    val session = topic.removePrefix(V4Topics.CONVERSATION_PREFIX)
-                    val ack = subscribeSession(session, visibility = null)
+                    val ack = if (topic.startsWith(V4Topics.WORKSPACE_CONFIG_PREFIX)) {
+                        plane.subscribeWorkspaceConfig(
+                            workspacePath = topic.removePrefix(V4Topics.WORKSPACE_CONFIG_PREFIX),
+                            workspaceIdentity = null,
+                        )
+                    } else {
+                        val session = topic.removePrefix(V4Topics.CONVERSATION_PREFIX)
+                        subscribeSession(session, visibility = null)
+                    }
                     // mode=snapshot (or a different epoch) means the projection must be
                     // atomically replaced (§15.5) — flagged for the recovery outcome.
                     if (ack.mode == "snapshot" || ack.logEpoch != rec.logEpoch) replaced = true

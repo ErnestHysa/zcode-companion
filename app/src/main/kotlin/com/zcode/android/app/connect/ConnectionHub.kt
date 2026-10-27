@@ -822,7 +822,12 @@ class ConnectionHub(
     ): Boolean {
         val wsPath = _workspaces.value.firstOrNull { it.key == workspaceKey }?.path ?: workspaceKey
         val coordinator = commandCoordinatorOrNull() ?: return false
-        val outcome = coordinator.createSession(wsPath, null, firstText, provider, model)
+        // F-CHAT-FOCUS4 (field 2026-10-27, vc50 S23): the workspace IDENTITY must ride
+        // the create wire. With identity=null the desktop stored the created task's
+        // address with workspaceIdentity=undefined, and every later list mutation
+        // (delete/archive — strict equality on taskId+workspacePath+workspaceIdentity)
+        // refused with "matches=0": the task could be created but never removed.
+        val outcome = coordinator.createSession(wsPath, workspaceKey, firstText, provider, model)
         val created = outcome is com.zcode.android.data.session.CommandCoordinator.Outcome.Accepted
         log.info(
             "hub.createTask",

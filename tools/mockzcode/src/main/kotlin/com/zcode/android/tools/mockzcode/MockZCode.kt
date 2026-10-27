@@ -1606,6 +1606,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
         // real-phone helloConversationV4 10 s timeout).
         val conversationPlane = name in setOf(
             "helloConversationV4", "initializeConversationV4", "subscribeConversationV4",
+            "subscribeWorkspaceConfigV4",
             "resyncConversationV4", "conversationRowsRangeV4", "sendConversationCommandV4",
         )
         if (script.requireScopedListen && conversationPlane && !conversationScopeRegistered) {
@@ -1673,6 +1674,28 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Undefined)
                 }
             }
+            "subscribeWorkspaceConfigV4" -> {
+                // F-CHAT-FOCUS4 (field 2026-10-27, vc50): the PRODUCTION adapter's
+                // subscribeWorkspaceConfigV4 — params are the workspace target ONLY;
+                // the adapter builds the topic (resolveWorkspaceKey: identity ?: path).
+                val params = argAsObject(arg) ?: return respondError(id, "fault.subscribe.params")
+                if (params.str("workspacePath").isBlank()) return respondError(id, "fault.subscribe.workspaceScope")
+                lastSubscribeWorkspacePath = params.str("workspacePath")
+                val resolvedKey = params.str("workspaceIdentity") ?: params.str("workspacePath")
+                val cfgTopic = "workspace-config/$resolvedKey"
+                val cfgSubscriptionId = "sub-mock-cfg-${cfgTopic.hashCode()}"
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("ack", buildJsonObject {
+                        put("subscriptionId", JsonPrimitive(cfgSubscriptionId))
+                        put("mode", JsonPrimitive("snapshot"))
+                        put("logEpoch", JsonPrimitive("cfg-epoch-mock-1"))
+                    })
+                }))
+                script.workspaceConfigState?.let { cfg ->
+                    pushWorkspaceConfigFrame(cfgTopic, cfgSubscriptionId, cfg)
+                }
+                return
+            }
             "subscribeConversationV4" -> {
                 val params = argAsObject(arg) ?: return respondError(id, "fault.subscribe.params")
                 // Round-3 field fidelity: production routes by the workspace scope —
@@ -1681,7 +1704,8 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 lastSubscribeWorkspacePath = params.str("workspacePath")
                 // Phase 2 (§11.2): a workspace-config topic subscribe carries an
                 // EXPLICIT topic (the desktop adapter's subscribeWorkspaceConfigV4
-                // shape) instead of a sessionId.
+                // shape) instead of a sessionId. KEPT for wire-shape corpus
+                // compatibility; production calls the dedicated method now.
                 val explicitTopic = params.str("topic")
                 if (explicitTopic.startsWith("workspace-config/")) {
                     val cfgSubscriptionId = "sub-mock-cfg-${explicitTopic.hashCode()}"
