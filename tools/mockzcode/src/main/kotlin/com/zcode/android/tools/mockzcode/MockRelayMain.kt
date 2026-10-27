@@ -34,6 +34,23 @@ fun main() {
     // the user row + a synthetic reply and pushes rowAppended. Without this the ack
     // arrives with no row and the sent message never renders (blocked the I1 leg).
     mock.script.commandEffects = true
+    // F-ROUND26 field-hostility legs (2026-10-26 vc46 S918B real-relay trace) — arm the
+    // pathological shapes the field captured, on demand:
+    //   MOCK_PAIR_STATUS_PENDING_MS=<ms>  auth_ack/pair_status_ack hold "pending" and
+    //                                     flip to "matched" after the delay (the desktop
+    //                                     approval latency: ~29 s observed on cold start).
+    //   MOCK_ERROR_FIRST_CONTROL=<code>   the first post-auth control request is answered
+    //                                     {"type":"error","code":<code>} (relay-4's
+    //                                     DEVICE_OFFLINE).
+    //   MOCK_DISCONNECT_AFTER_FRAMES=<n>  the FIRST connection's socket closes after n
+    //                                     outbound logical frames (the mid-pairing 1006
+    //                                     loss that dead-ended pairing pre-F-PAIR2).
+    System.getenv("MOCK_PAIR_STATUS_PENDING_MS")?.toLongOrNull()?.let { ms ->
+        mock.script.initialPairStatus = "pending"
+        mock.script.pairStatusMatchAfterMs = ms
+    }
+    System.getenv("MOCK_ERROR_FIRST_CONTROL")?.let { mock.script.errorFirstControlRequest = it }
+    System.getenv("MOCK_DISCONNECT_AFTER_FRAMES")?.toIntOrNull()?.let { mock.script.disconnectAfterFrames = it }
     // PART N bulk leg (MOCK_ROWS): a long conversation for the gfxinfo scroll-jank leg.
     System.getenv("MOCK_ROWS")?.toIntOrNull()?.let { n ->
         mock.script.snapshotRowCount = n
@@ -479,6 +496,11 @@ fun main() {
         "&t=${System.currentTimeMillis()}&mid=$mid&name=MockBook&app_version=3.14.3"
     println("MOCKZCODE_WS_URL=$url")
     println("MOCKZCODE_LINK=$link")
+    // Emulator leg: the same link against the host loopback (the parser's dev-origin
+    // allowlist admits 10.0.2.2) — paste THIS one into the phone's manual entry.
+    println(
+        "MOCKZCODE_LINK_EMULATOR=" + link.replace("http://127.0.0.1", "http://10.0.2.2"),
+    )
     println("MOCKZCODE_READY scenario=$scenario")
     Runtime.getRuntime().addShutdownHook(Thread { mock.stop() })
     Thread.currentThread().join()

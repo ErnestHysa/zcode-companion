@@ -217,9 +217,37 @@ class ConnectionHubIntegrationTest {
         assertEquals("Fix authentication token refresh", loaded[0].title)
         assertEquals(TaskStatus.RUNNING, loaded[0].status)
         assertEquals(TaskStatus.WAITING, loaded[1].status)
-        assertEquals(1_700_000_000_000L, loaded[0].createdAtMs)
+        // Recency-relative mock contract (report F5): the row's createdAt is served
+        // as now-minus-a-few-minutes so the store's 7-day stale sweep keeps it —
+        // the pin asserts the window, not a frozen 2023 timestamp.
+        assertTrue(
+            loaded[0].createdAtMs in (System.currentTimeMillis() - 15 * 60 * 1000)..System.currentTimeMillis(),
+            "createdAt must be recency-relative, got ${loaded[0].createdAtMs}",
+        )
         assertEquals("Phase6MockBook", hub.endpointName.value)
         assertEquals(ConnectionPhase.CONNECTED, hub.phase.value)
+    }
+
+    /**
+     * FIELD (2026-10-26, vc46 S918B — the "connected but empty" trace): the hub's
+     * first post-CONNECTED refresh must consume the IN-CONNECT bootstrap payload
+     * (establish()'s bridge discovery already fetched the full view) instead of
+     * re-paying the desktop's slowest round trip — the re-fetch is exactly the
+     * request that timed out in the field, discarded the late 183 KB answer, and
+     * left tasksCached=0 on a CONNECTED transport. Pin: the projection populates AND
+     * the stash is GONE (consumed by the hub, not left for a stale pull-to-refresh).
+     */
+    @Test
+    fun `cold start consumes the in-connect bootstrap instead of re-fetching (F-BOOTSTRAP-REPLAY)`() = runBlocking {
+        hub.start()
+        withTimeout(30_000) { hub.phase.first { it == ConnectionPhase.CONNECTED } }
+        val loaded = withTimeout(15_000) { tasks.snapshot.first { it.isNotEmpty() } }
+        assertTrue(loaded.isNotEmpty(), "projection populated from the replayed payload")
+        assertEquals(
+            null,
+            transport.takeInConnectBootstrap(),
+            "the hub's first refresh must have consumed the in-connect payload",
+        )
     }
 
     @Test

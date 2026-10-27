@@ -171,6 +171,27 @@ class MockZCode(
          */
         @Volatile var bootstrapEmptyView: Boolean = false
 
+        /**
+         * F-PAIRSTATUS field fidelity (2026-10-26, vc46 S918B on the real relay): the
+         * relay answers auth_ack with pair_status "pending" and holds it until the
+         * DESKTOP approves — the cold-start reconnect after a fresh pairing observed
+         * ~29 s of pair_status_query polling before "matched". When non-null,
+         * auth_ack and pair_status_ack carry THIS value; [pairStatusMatchAfterMs]
+         * (when >= 0) flips the state to "matched" after that delay, simulating the
+         * desktop's approval latency. Defaults keep every historical suite at the
+         * instant-"matched" shape.
+         */
+        @Volatile var initialPairStatus: String? = null
+        @Volatile var pairStatusMatchAfterMs: Long = -1L
+
+        /**
+         * FIELD (2026-10-26, vc46 S918B, relay-4): the real relay answered an
+         * in-flight control request with {"type":"error","code":"DEVICE_OFFLINE"} —
+         * when true, the FIRST post-auth control request (bootstrap or bridge-open)
+         * receives exactly that error frame instead of its normal answer.
+         */
+        @Volatile var errorFirstControlRequest: String? = null
+
         // ---------------------------------------------------------------- Phase 7
         /**
          * Emit the verified A-side state keys in snapshots (docs/protocol/v4-wire.md
@@ -412,6 +433,13 @@ class MockZCode(
         // keeps the exact live-corpus key set (INV-8).
         val pinned: Boolean = false,
         val unreadAtMs: Long? = null,
+        /**
+         * F-ROUND26 (field-fidelity): production task rows carry the §7.11 identity —
+         * the app's bridge resolution takes the ROW's workspace as authoritative
+         * (vc33 consistent-pair rule) — emitted only when non-null so every scripted
+         * row keeps its historical shape.
+         */
+        val workspaceIdentity: String? = null,
     ) {
         internal fun toJson(): JsonObject = if (productionShape) {
             buildJsonObject {
@@ -423,6 +451,7 @@ class MockZCode(
                 put("workspaceKind", JsonPrimitive("local"))
                 put("createdAt", JsonPrimitive(createdAtMs))
                 put("updatedAt", JsonPrimitive(updatedAtMs))
+                workspaceIdentity?.let { put("workspaceIdentity", JsonPrimitive(it)) }
                 if (pinned) put("pinned", JsonPrimitive(true))
                 unreadAtMs?.let { put("unreadAt", JsonPrimitive(it)) }
             }
@@ -743,17 +772,31 @@ class MockZCode(
             return
         }
         // Single-terminal rule: a second authenticated terminal kicks the first (Q10).
+        // RIG-FIDELITY (field rig, 2026-10-27): a PRIOR terminal whose client process
+        // died leaves a half-dead socket here — send()/close() on it used to throw
+        // BEFORE the new terminal's auth_ack was ever written, and every subsequent
+        // connection timed out at auth_ack for 15 s (the "restart the mock after an
+        // emulator kill" rig rule). The kick must never break the new terminal's auth.
         val prior = terminalSocket
         if (prior != null && prior !== ws && script.kickFirstTerminalOnSecond) {
-            prior.send("""{"type":"error","code":"KICKED","message":""}""")
-            prior.close(1000, "kicked by mock")
-            scope.launch { events.emit(ServerEvent.TerminalKicked("second terminal authenticated")) }
+            runCatching {
+                prior.send("""{"type":"error","code":"KICKED","message":""}""")
+                prior.close(1000, "kicked by mock")
+                scope.launch { events.emit(ServerEvent.TerminalKicked("second terminal authenticated")) }
+            }
         }
         terminalSocket = ws
         conversationScopeRegistered = false // fresh connection: scope must be re-registered
-        pairStatus = "matched"
-        sendTo(ws, mapOf("type" to JsonPrimitive("auth_ack"), "pair_status" to JsonPrimitive("matched")))
-        sendTo(ws, mapOf("type" to JsonPrimitive("pair_status_ack"), "pair_status" to JsonPrimitive("matched")))
+        val initialStatus = script.initialPairStatus
+        pairStatus = initialStatus ?: "matched"
+        if (initialStatus != null && script.pairStatusMatchAfterMs >= 0) {
+            scope.launch {
+                kotlinx.coroutines.delay(script.pairStatusMatchAfterMs)
+                pairStatus = "matched"
+            }
+        }
+        sendTo(ws, mapOf("type" to JsonPrimitive("auth_ack"), "pair_status" to JsonPrimitive(pairStatus)))
+        sendTo(ws, mapOf("type" to JsonPrimitive("pair_status_ack"), "pair_status" to JsonPrimitive(pairStatus)))
         scope.launch { events.emit(ServerEvent.AuthCompleted("terminal")) }
     }
 
@@ -778,11 +821,33 @@ class MockZCode(
         when ((payload["zcode_type"] as? JsonPrimitive)?.content) {
             "rpc-frame" -> handleRpcFrame(payload)
             "rpc-frame-ack" -> Unit // client acking our logical frames
-            "bootstrap-request" -> sendBootstrapResponse(ws, payload.str("requestId"))
-            "workspace-list-request" -> sendWorkspaceListResponse(ws, payload.str("requestId"))
-            "workspace-bridge-open" -> handleBridgeOpen(ws, payload)
+            "bootstrap-request" -> if (consumeScriptedControlError(ws, payload)) return else sendBootstrapResponse(ws, payload.str("requestId"))
+            "workspace-list-request" -> if (consumeScriptedControlError(ws, payload)) return else sendWorkspaceListResponse(ws, payload.str("requestId"))
+            "workspace-bridge-open" -> if (consumeScriptedControlError(ws, payload)) return else handleBridgeOpen(ws, payload)
             else -> Unit
         }
+    }
+
+    /**
+     * FIELD (2026-10-26, vc46 S918B, relay-4): when [Script.errorFirstControlRequest]
+     * names a code (e.g. "DEVICE_OFFLINE"), the FIRST post-auth control request gets
+     * exactly that error frame — with the request's requestId echoed, the shape the
+     * real relay answers with — and the script clears itself.
+     */
+    private fun consumeScriptedControlError(ws: okhttp3.WebSocket, payload: JsonObject): Boolean {
+        val code = script.errorFirstControlRequest ?: return false
+        script.errorFirstControlRequest = null
+        val requestId = payload.str("requestId")
+        sendTo(
+            ws,
+            buildMap {
+                put("type", JsonPrimitive("error"))
+                put("code", JsonPrimitive(code))
+                put("message", JsonPrimitive("mock: scripted $code"))
+                requestId?.let { put("requestId", JsonPrimitive(it)) }
+            },
+        )
+        return true
     }
 
     // ------------------------------------------------------------------ rpc-frame plane
@@ -3542,12 +3607,20 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
                         // row carries no workspacePath — the app's bootstrap parser keys
                         // tasks by workspaceIdentity ?: workspacePath, and a blank key is
                         // silently skipped (logged applied, zero rows persisted).
+                        // F-ROUND26 self-consistency: the row's §7.11 identity FOLLOWS
+                        // the same active-key override the view state advertises — a
+                        // served view whose task row disagreed with its own
+                        // activeWorkspaceKey made the app's vc33 task-row-authoritative
+                        // bridge resolution resolve a workspace the strict mock then
+                        // rejected as stale (its own view!) — the BridgeError/
+                        // FreshDiscovery/ScopedChannel strict-bridge suites' red.
                         MockTask(
                             taskId = workspace.sessionId,
                             title = "Synthetic task",
                             displayStatus = "idle",
                             workspacePath = workspace.workspacePath,
                             workspaceLabel = "Synthetic One",
+                            workspaceIdentity = script.bootstrapActiveWorkspaceKey ?: workspace.workspaceKey,
                         ).toJson(),
                     )))
                 })

@@ -77,9 +77,25 @@ class RelayTransport(
         val authTimeoutMs: Long = 15_000,
         /** F-PAIRSTATUS: the desktop-approval wait (queries every 1.5 s inside). */
         val pairStatusWaitMs: Long = 60_000,
-        val bridgeTimeoutMs: Long = 10_000,
+        /**
+         * FIELD (2026-10-26, vc46 S918B on the real relay): the bridge-OPEN control
+         * request timed out at 10 s while the desktop was mid-generation, tore down a
+         * HEALTHY socket, and burned three extra full reconnect cycles (~68 s) before
+         * a retry's bridge-open was answered in <1 s. Same class as the vc23 lesson
+         * that widened the hello/initialize handshake: the bridge open rides the same
+         * slow desktop window, so it gets the wider budget too.
+         */
+        val bridgeTimeoutMs: Long = 25_000,
         val channelInitTimeoutMs: Long = 10_000,
         val controlRequestTimeoutMs: Long = 10_000,
+        /**
+         * FIELD (2026-10-26, vc46 S918B): the bootstrap control request is the
+         * desktop's slowest answer (183 KB payload; observed 13 s against a busy
+         * desktop) — the hub's refreshTasks timed out, discarded the late response,
+         * and the task list stayed EMPTY on a CONNECTED transport. 25 s covers the
+         * observed worst case without turning a dead desktop into a long hang.
+         */
+        val bootstrapTimeoutMs: Long = 25_000,
         val heartbeatIntervalMs: Long = RelayLimits.HEARTBEAT_INTERVAL_MS,
         val heartbeatWatchdogMs: Long = RelayLimits.HEARTBEAT_ACK_WATCHDOG_MS,
         /** Client-side resend policy for unacked rpc-frames (desktop grace observed 45 s). */
@@ -87,7 +103,14 @@ class RelayTransport(
         val maxResendsPerMessage: Int = 3,
         val sendQueueCapacity: Int = 1_024,
         val parseBufferCapacity: Int = 1_024,
-        val v4CallTimeoutMs: Long = RelayLimits.CONVERSATION_QUERY_TIMEOUT_MS.toLong(),
+        /**
+         * FIELD (2026-10-26, vc46 S918B): the desktop answered listAutomations at
+         * ~11.8 s against a busy relay window — the 10 s budget fired first, the
+         * automations list rendered empty, and the retry re-paid the full round trip.
+         * Viewer/agent-class reads get the wider budget; the conversation-plane
+         * subscribe/resync cadence keeps its own (RelayLimits) shape.
+         */
+        val v4CallTimeoutMs: Long = 20_000,
         /**
          * FIELD (2026-10-01, vc23 device log): while the desktop is mid-generation its
          * bridge worker answers the handshake SLOWLY (initialize took >10 s twice —
@@ -217,6 +240,23 @@ class RelayTransport(
     /** Control-plane request matching: requestId → deferred. */
     private val pendingControl = HashMap<String, CompletableDeferred<JsonObject>>()
 
+    /**
+     * F-BOOTSTRAP-REPLAY (field 2026-10-26, vc46 S918B): the in-connect bootstrap
+     * (openBridgeInternal's discovery step) carries the FULL desktop view — the field
+     * captured BOTH the in-connect response and the hub's post-CONNECTED re-fetch at
+     * an identical 183,755 bytes. Re-paying that round trip doubles the slowest call
+     * on every connect and (when the desktop is busy) is exactly the fetch that times
+     * out and leaves the task list empty. The payload is stashed here and consumed
+     * once by the hub's first refreshTasks; cleared per connection in
+     * [resetWireStateForNewConnection].
+     */
+    @Volatile
+    var inConnectBootstrap: JsonObject? = null
+        private set
+
+    @Volatile
+    private var inConnectBootstrapAt: Long = 0
+
     private val controlRequestCounter = AtomicLong(0)
     /**
      * §28.5 "reconnect/recovery takes a per-endpoint mutex; no double resync" —
@@ -225,6 +265,16 @@ class RelayTransport(
      * recover loops race establish()/re-subscribe and corrupt the recovery.
      */
     private val recovering = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    /**
+     * The RUNNING recovery loop's job (when one exists). F-PAIR2's connect() takeover
+     * must OWN the transport: a fire-and-forget loop kept running THROUGH the fresh
+     * connect (its budget outlives the 20 s settle wait), re-entered establish() from
+     * the takeover's AUTHENTICATING seed, and raced the fresh handshake for the socket
+     * and the machine. connect() cancels this job first; the cancellation unwinds the
+     * loop at its next suspension and the finally clears [recovering].
+     */
+    private var recoveryJob: Job? = null
     /**
      * Consecutive `desktop-disconnected` bridge rejections (round-4 field finding).
      * Unlike transient session errors, the desktop does NOT come back on its own
@@ -319,13 +369,18 @@ class RelayTransport(
         // the transport and used to dead-end every re-pairing with
         // "use recover() (state=RECONNECTING)" → "restart the app and try again"
         // (field diagnostics: pairing.connect.retry attempt=1 → ISE at state=RECONNE).
-        // Let an in-flight recovery settle (its budget is bounded), then tear the
-        // live session down, re-seed to the first-connection path, and connect — the
-        // relay auth of the fresh identity is the real gate.
+        // The in-flight recovery loop is CANCELLED (not just waited on — its budget
+        // outlives any bounded wait and it would re-enter establish() racing this
+        // handshake), then the live session tears down, the machine re-seeds to the
+        // first-connection path, and connect proceeds — the relay auth of the fresh
+        // identity is the real gate.
+        recoveryJob?.cancel()
         val settleDeadline = clock() + 20_000
         while (recovering.get() && clock() < settleDeadline) delay(50)
         heartbeatJob?.cancel()
         ackWatcherJob?.cancel()
+        ioJobs.forEach { it.cancel() }
+        ioJobs = emptyList()
         ws?.let { runCatching { it.close(1000, "fresh pairing takeover") } }
         ws = null
         machine.seed(ConnectionStateMachine.ConnectionState.AUTHENTICATING)
@@ -522,7 +577,7 @@ class RelayTransport(
                 // "Reconnecting" must mean a loop IS running (§14.4.1): self-heal here
                 // so EVERY caller (hub cold start, pairing retry) gets bounded retry →
                 // budget → Degraded instead of a stranded mid-state.
-                scope.launch { runCatching { recover() } }
+                recoveryJob = scope.launch { runCatching { recover() } }
             }
             publishState()
             throw e
@@ -569,6 +624,13 @@ class RelayTransport(
         outSeq.set(0)
         outMessageSeq.set(0)
         synchronized(unacked) { unacked.clear() }
+        // Pair status is PER-CONNECTION desktop state: a stale "matched" from the
+        // previous connection would satisfy the F-PAIRSTATUS approval wait INSTANTLY
+        // on a re-pairing whose desktop approval hasn't happened yet (the poll would
+        // pass while the relay still holds pair_status=pending, and the bridge open
+        // would grind desktop-disconnected). Reset with the rest of the wire state.
+        lastPairStatus = null
+        inConnectBootstrap = null
         // Frames still queued for the DEAD socket must never reach the fresh one: they
         // carry the previous connection's seqs (the new bridge's assembler would fault
         // on the gap) — and in a storm they can land AFTER this reset via in-flight
@@ -738,7 +800,7 @@ class RelayTransport(
             recovering.set(false)
             return
         }
-        scope.launch {
+        recoveryJob = scope.launch {
             try {
                 recoverLocked()
             } catch (e: kotlinx.coroutines.CancellationException) {
@@ -780,7 +842,7 @@ class RelayTransport(
         }
         reconnect.requestImmediate()
         if (machine.state == ConnectionStateMachine.ConnectionState.RECONNECTING) {
-            scope.launch { runCatching { recover() } }
+            recoveryJob = scope.launch { runCatching { recover() } }
         }
     }
 
@@ -790,6 +852,10 @@ class RelayTransport(
     }
 
     override fun resetForEndpointSwitch() {
+        // Same ownership rule as connect()'s F-PAIR2 takeover: a recovery loop left
+        // running through the switch would re-enter establish() racing the next
+        // connect for the socket and the machine.
+        recoveryJob?.cancel()
         plane.channel.close("endpoint switch")
         ws?.let { runCatching { it.close(1000, "endpoint switch") } }
         ws = null
@@ -1013,6 +1079,31 @@ class RelayTransport(
             "error" -> {
                 val code = (obj["code"] as? JsonPrimitive)?.content ?: "UNKNOWN"
                 bound().warn("relay.error", "code=$code")
+                // FIELD (2026-10-26, vc46 S918B, relay-4): the relay answered the
+                // in-flight bootstrap with {"type":"error","code":"DEVICE_OFFLINE"} and
+                // the pending control request NEVER completed — the branch below only
+                // special-cased KICKED/AUTH_FAILED, so the caller hung for the full 10 s
+                // timeout before tearing down a socket the relay had already condemned.
+                // An error frame that names a requestId completes THAT request now; a
+                // request-less DEVICE_OFFLINE condemns every pending one (they are all
+                // bridge/bootstrap family — the desktop bridge is gone either way).
+                val errorFailure = Failure(ErrorMapping.relayError(code, null))
+                val requestId = (obj["requestId"] as? JsonPrimitive)?.content
+                val completed = if (requestId != null) {
+                    val deferred = synchronized(pendingControl) { pendingControl.remove(requestId) }
+                    deferred?.completeExceptionally(errorFailure) != null
+                } else {
+                    if (code == "DEVICE_OFFLINE") {
+                        val drained = synchronized(pendingControl) {
+                            val all = pendingControl.values.toList()
+                            pendingControl.clear()
+                            all
+                        }
+                        drained.forEach { it.completeExceptionally(errorFailure) }
+                        drained.isNotEmpty()
+                    } else false
+                }
+                if (completed) return
                 when (code) {
                     "KICKED" -> onKicked()
                     "AUTH_FAILED" -> {
@@ -1365,7 +1456,7 @@ class RelayTransport(
             encodeJson.encodeToString(
                 com.zcode.android.core.protocol.relay.BootstrapRequest(requestId = requestId)
             ),
-            config.controlRequestTimeoutMs,
+            config.bootstrapTimeoutMs,
         )
     }
 
@@ -1378,6 +1469,21 @@ class RelayTransport(
             ),
             config.controlRequestTimeoutMs,
         )
+    }
+
+    /**
+     * F-BOOTSTRAP-REPLAY: take-and-clear the in-connect bootstrap payload (present
+     * only when establish()'s bridge discovery already fetched the full view on THIS
+     * connection, and only while it is still CONNECT-FRESH — a stale payload must
+     * never serve a later pull-to-refresh as if it were new data). The hub's first
+     * post-CONNECTED refresh applies it instead of re-paying the desktop's slowest
+     * round trip.
+     */
+    fun takeInConnectBootstrap(): JsonObject? {
+        val payload = inConnectBootstrap ?: return null
+        if (clock() - inConnectBootstrapAt > 20_000) return null
+        inConnectBootstrap = null
+        return payload
     }
 
     companion object {
@@ -1404,20 +1510,22 @@ class RelayTransport(
         // bootstrap-response carries workspaces[] AND initialViewState.activeTaskId;
         // opening the bridge WITHOUT a resolvable task was rejected by production
         // (workspace-bridge-error session-not-found) while the lenient mock passed.
-        val cachedKey = endpoint.workspaceKey
-        var workspacePath = endpoint.workspacePath
-        val cachedTask = endpoint.taskId
-        var workspaceKey: String
-        var taskId: String?
-        run {
-            // Round-5 field fix: bootstrap on EVERY connection — the ACTIVE workspace/
-            // task is connection-scoped desktop state (SPA behavior: bootstrap → bridge
-            // per connect). Round 3's endpoint write-back accidentally made every
-            // RE-connect skip discovery and bridge with the PREVIOUS connection's
-            // cached (workspaceKey, taskId) — observed on a real phone as control
-            // plane answering (482 tasks) while every bridge-open was rejected
-            // desktop-disconnected. Cached/descriptor values remain FALLBACKS only.
-            val response = bootstrap()
+            val cachedKey = endpoint.workspaceKey
+            var workspacePath = endpoint.workspacePath
+            val cachedTask = endpoint.taskId
+            var workspaceKey: String
+            var taskId: String?
+            run {
+                // Round-5 field fix: bootstrap on EVERY connection — the ACTIVE workspace/
+                // task is connection-scoped desktop state (SPA behavior: bootstrap → bridge
+                // per connect). Round 3's endpoint write-back accidentally made every
+                // RE-connect skip discovery and bridge with the PREVIOUS connection's
+                // cached (workspaceKey, taskId) — observed on a real phone as control
+                // plane answering (482 tasks) while every bridge-open was rejected
+                // desktop-disconnected. Cached/descriptor values remain FALLBACKS only.
+                val response = bootstrap()
+                inConnectBootstrap = response
+                inConnectBootstrapAt = clock()
             val result = response["result"] as? JsonObject
                 ?: throw Failure(ErrorMapping.protocolFault("bootstrap-response without result"))
             val workspaces = result["workspaces"] as? JsonArray ?: JsonArray(emptyList())

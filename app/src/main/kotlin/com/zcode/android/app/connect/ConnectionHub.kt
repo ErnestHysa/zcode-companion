@@ -432,9 +432,16 @@ class ConnectionHub(
         // captured at the moment it happens, even if the app dies before the user exports.
         if (phase == ConnectionPhase.DEGRADED && lastReportedPhase != ConnectionPhase.DEGRADED) {
             val report = runCatching {
+                val desktopGone = stats["desktopDisconnectedConsecutive"] ?: 0L
                 "=== AUTO REPORT: DEGRADED (" + java.time.Instant.now() + ") ===\n" +
                     "transport: $sourceKind\n" +
-                    ("desktopDisconnectedConsecutive: " + (stats["desktopDisconnectedConsecutive"] ?: 0L)) + "\n" +
+                    ("desktopDisconnectedConsecutive: " + desktopGone) +
+                    // FIELD (2026-10-26): the lastError line is fed by an ASYNC
+                    // appErrors collector and can still be empty at report time —
+                    // when the desktop-gone counter already names the cause, the
+                    // report must carry it regardless of the race.
+                    (if (desktopGone >= com.zcode.android.core.transport.RelayTransport.DESKTOP_DISCONNECTED_DEGRADED_THRESHOLD)
+                        " (stale pairing / desktop off — consecutive desktop-disconnected)" else "") + "\n" +
                     "bridgeErrors: " + (stats["bridgeErrors"] ?: 0L) + "\n" +
                     "lastError: " + (_lastError.value?.let { it.category.toString() + " :: " + it.developerDiagnostic.take(160) } ?: "none") + "\n" +
                     diagnosticsSnapshot().let { d ->
@@ -555,9 +562,24 @@ class ConnectionHub(
                 try {
                     if (activeKind() == EndpointKind.DIRECT_SERVER) {
                         refreshDirectTasks()
+                    } else if (attempt == 0) {
+                        // F-BOOTSTRAP-REPLAY (field 2026-10-26, vc46 S918B): establish()'s
+                        // bridge discovery ALREADY fetched the full desktop view on this
+                        // connection (the field captured both responses at an identical
+                        // 183,755 bytes). Apply it instead of re-paying the desktop's
+                        // slowest round trip — the re-fetch is precisely the request that
+                        // timed out at 10 s, discarded the late 183 KB answer, and left
+                        // the task list EMPTY on a CONNECTED transport. Take-and-clear:
+                        // later refreshes (pull-to-refresh) always hit the wire.
+                        val replayed = (activeTransport() as? RelayTransport)?.takeInConnectBootstrap()
+                        if (replayed != null) {
+                            applyBootstrap(replayed)
+                            log.info("hub.bootstrapReplayed", "in-connect payload applied (no re-fetch)")
+                        } else {
+                            applyBootstrap(transport.bootstrap())
+                        }
                     } else {
-                        val payload = transport.bootstrap()
-                        applyBootstrap(payload)
+                        applyBootstrap(transport.bootstrap())
                     }
                     ok = true
                     lastError = null
