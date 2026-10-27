@@ -59,6 +59,9 @@ class ShareChipWiringTest {
                 )
             }
         }
+        // F-CHAT-FOCUS v2: the Share chip lives in the SESSION CONTEXT SHEET.
+        rule.onNodeWithTag("conv_session_context").performClick()
+        rule.waitForIdle()
         rule.onNodeWithTag("conv_share").performClick()
         rule.waitForIdle()
         assertTrue("the Share chip must invoke the screen's onShareTranscript (it was a dead default)", shared)

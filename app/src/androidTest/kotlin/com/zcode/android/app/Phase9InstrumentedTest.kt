@@ -173,13 +173,20 @@ class Phase9InstrumentedTest {
     fun phase9_chips_turnDiff_files_git_and_terminal_gate() {
         openConversation()
 
-        // ---- 1. header: Phase 9 affordances + the config echo (9.5)
+        // ---- 1. header: F-CHAT-FOCUS v2 — the Phase 9 surface entries (Files/Git/
+        // Terminal) live in the SESSION CONTEXT SHEET; open it via the bar's Context chip.
         rule.waitUntil(15_000) {
-            rule.onAllNodesWithText("mode: build", substring = true).fetchSemanticsNodes().isNotEmpty()
+            rule.onAllNodesWithTag("conv_session_context").fetchSemanticsNodes().isNotEmpty()
         }
-        assertTrue(rule.onAllNodesWithTag("conv_open_files").fetchSemanticsNodes().isNotEmpty())
+        rule.onNodeWithTag("conv_session_context").performClick()
+        rule.waitUntil(15_000) {
+            rule.onAllNodesWithTag("conv_open_files").fetchSemanticsNodes().isNotEmpty()
+        }
         assertTrue(rule.onAllNodesWithTag("conv_open_git").fetchSemanticsNodes().isNotEmpty())
         assertTrue(rule.onAllNodesWithTag("conv_open_terminal").fetchSemanticsNodes().isNotEmpty())
+        // Close the sheet before the route walk (each route click below re-opens it).
+        rule.onNodeWithTag("session_context_sheet").performClick()
+        rule.waitForIdle()
 
         // ---- 2. turn summary → §22 diff viewer (9.1 / U10)
         rule.waitUntil(10_000) {
@@ -198,12 +205,20 @@ class Phase9InstrumentedTest {
         }
 
         // ---- 3. Files route renders (9.2 / U11): empty tree → honest empty/error state.
+        rule.onNodeWithTag("conv_session_context").performClick()
+        rule.waitUntil(15_000) {
+            rule.onAllNodesWithTag("conv_open_files").fetchSemanticsNodes().isNotEmpty()
+        }
         rule.onNodeWithTag("conv_open_files").performClick()
         rule.waitUntil(15_000) {
             rule.onAllNodesWithTag("files_back").fetchSemanticsNodes().isNotEmpty()
         }
         rule.onNodeWithTag("files_back").performClick()
         rule.waitUntil(10_000) {
+            rule.onAllNodesWithTag("conv_session_context").fetchSemanticsNodes().isNotEmpty()
+        }
+        rule.onNodeWithTag("conv_session_context").performClick()
+        rule.waitUntil(15_000) {
             rule.onAllNodesWithTag("conv_open_git").fetchSemanticsNodes().isNotEmpty()
         }
 
@@ -214,6 +229,10 @@ class Phase9InstrumentedTest {
         }
         rule.onNodeWithTag("git_back").performClick()
         rule.waitUntil(10_000) {
+            rule.onAllNodesWithTag("conv_session_context").fetchSemanticsNodes().isNotEmpty()
+        }
+        rule.onNodeWithTag("conv_session_context").performClick()
+        rule.waitUntil(15_000) {
             rule.onAllNodesWithTag("conv_open_terminal").fetchSemanticsNodes().isNotEmpty()
         }
 

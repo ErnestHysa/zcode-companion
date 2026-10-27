@@ -1,6 +1,7 @@
 package com.zcode.android.features.conversation
 
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -18,6 +19,7 @@ import com.zcode.android.domain.model.WorkflowRunSummary
 import com.zcode.android.domain.state.ConnectionPhase
 import com.zcode.android.domain.state.TaskStateMachine
 import com.zcode.android.features.conversation.ui.ConversationScreen
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -109,8 +111,14 @@ class HeaderPanelBudgetTest {
         )
     }
 
+    /**
+     * F-CHAT-FOCUS v2 (field 2026-10-27, Ernest on vc48): with every context surface
+     * populated and the sheet CLOSED, NOTHING renders inline above the timeline but
+     * the one session bar — the chat keeps the overwhelming majority of the window.
+     * Opening the sheet (Context) surfaces goal/todos/runs/plans; closing restores.
+     */
     @Test
-    fun timelineKeepsRealHeight_whenEveryContextPanelIsPopulated() {
+    fun timelineOwnsTheWindow_everyContextSurfaceLivesInTheSheet() {
         rule.setContent {
             ZCodeTheme {
                 ConversationScreen(
@@ -138,17 +146,21 @@ class HeaderPanelBudgetTest {
         val root = rule.onRoot().fetchSemanticsNode().boundsInRoot
         val list = rule.onNodeWithTag("conversation_list").fetchSemanticsNode().boundsInRoot
 
-        // The vc32 floor, now under the WORST header: the chat stays readable.
+        // Sheet closed: NO context surface renders inline above the chat — the old
+        // goal/todos/runs/plans/budget stack is gone from the window entirely.
+        assertEquals(0, rule.onAllNodesWithTag("goal_panel").fetchSemanticsNodes().size)
+        assertEquals(0, rule.onAllNodesWithTag("plan_panel").fetchSemanticsNodes().size)
+        assertEquals(0, rule.onAllNodesWithTag("plans_viewer").fetchSemanticsNodes().size)
+        assertEquals(0, rule.onAllNodesWithTag("summary_panel").fetchSemanticsNodes().size)
+        assertEquals(0, rule.onAllNodesWithTag("conv_context_budget").fetchSemanticsNodes().size)
+        // The chat owns the window: with the bar the ONLY header, the timeline keeps
+        // at least half of it under the WORST data (the field report: ~28 %).
         assertTrue(
-            "timeline squeezed to ${list.height / density}dp by the context panels (root ${root.height / density}dp)",
-            list.height / density >= 120f,
+            "timeline squeezed to ${list.height / density}dp of ${root.height / density}dp by the session bar",
+            list.height / density >= (root.height / density) * 0.5f,
         )
-        // The panel stack is BOUNDED (a screen fraction) and scrolls inside its budget —
-        // the goal/todos/runs/plans remain reachable without stealing the timeline.
-        val budget = rule.onNodeWithTag("conv_context_budget").fetchSemanticsNode().boundsInRoot
-        assertTrue(
-            "context panel stack ${budget.height / density}dp exceeds its budget (root ${root.height / density}dp)",
-            budget.height <= root.height * 0.45f,
-        )
+        // The session bar is exactly the status line + the two chips — nothing more.
+        val bar = rule.onNodeWithTag("conv_session_bar").fetchSemanticsNode().boundsInRoot
+        assertTrue("session bar taller than a row: ${bar.height / density}dp", bar.height / density <= 64f)
     }
 }

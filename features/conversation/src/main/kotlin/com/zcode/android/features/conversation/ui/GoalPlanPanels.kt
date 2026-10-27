@@ -72,7 +72,10 @@ fun GoalPanel(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .then(if (!expanded) Modifier.clickable { expanded = true } else Modifier)
+                // F-CHAT-FOCUS (field 2026-10-27): the header is a TRUE toggle — expanded
+                // AND collapsed states both respond (the one-way expand stranded the user
+                // with a permanently open panel above the chat).
+                .clickable { expanded = !expanded }
                 .testTag("goal_header"),
         ) {
             Text(
@@ -98,15 +101,13 @@ fun GoalPanel(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            if (!expanded) {
-                Spacer(Modifier.width(6.dp))
-                Icon(
-                    Icons.Filled.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp).testTag("goal_expand").graphicsRotation(chevronRotation),
-                )
-            }
+            Spacer(Modifier.width(6.dp))
+            Icon(
+                Icons.Filled.KeyboardArrowDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp).testTag("goal_expand").graphicsRotation(chevronRotation),
+            )
         }
         if (expanded && goal.verifications.isNotEmpty()) {
             Spacer(Modifier.height(6.dp))
@@ -157,7 +158,7 @@ fun PlanPanel(plan: PlanState, modifier: Modifier = Modifier, collapsedByDefault
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .then(if (!expanded) Modifier.clickable { expanded = true } else Modifier)
+                .clickable { expanded = !expanded }
                 .testTag("plan_header"),
         ) {
             Text(
@@ -227,11 +228,10 @@ fun PlanPanel(plan: PlanState, modifier: Modifier = Modifier, collapsedByDefault
  * step checklists (the desktop's plan-step normalization; D2's todo projection stays the
  * [PlanPanel] above it — one panel surface, two sections). Absent/empty → nothing.
  *
- * F-CHAT-FOCUS (field 2026-10-27): collapsed by default like [GoalPanel]/[PlanPanel] —
- * the plans viewer was the LAST always-expanded context panel; with goal + todos + plans
- * armed the chat timeline got ~28 % of the screen (the field report: "can't see or use
- * the chat in any meaningful way"). Collapsed it is one tappable summary line
- * (Plans · title · 1/3 · chevron); expanding shows every plan's full checklist.
+ * F-CHAT-FOCUS (field 2026-10-27): collapsed by default like [GoalPanel]/[PlanPanel],
+ * and the header is a TRUE two-way toggle. The collapsed line carries the AGGREGATE
+ * progress across plans (`Plans  4/9 ⌄`) — expanded, each plan's own title + count +
+ * checklist render below (never duplicating the header's summary).
  */
 @Composable
 fun PlansViewer(
@@ -242,6 +242,8 @@ fun PlansViewer(
     if (plans.isEmpty()) return
     var expanded by rememberSaveable { mutableStateOf(!collapsedByDefault) }
     val chevronRotation by animateFloatAsState(if (expanded) 0f else -90f, label = "plans_chevron")
+    val totalDone = plans.sumOf { it.completedCount }
+    val totalSteps = plans.sumOf { it.steps.size }
     Column(
         modifier
             .fillMaxWidth()
@@ -253,17 +255,18 @@ fun PlansViewer(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .then(if (!expanded) Modifier.clickable { expanded = true } else Modifier)
+                .clickable { expanded = !expanded }
                 .testTag("plans_header"),
         ) {
             Text(
                 stringResource(R.string.plans_title),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f, fill = false),
             )
-            // Collapsed: the first plan's title + progress ride the header line
-            // (expanded, the per-plan rows below carry them — never duplicated).
-            if (!expanded) {
+            // Collapsed only: the single-plan title rides the header (expanded, the
+            // per-plan rows below carry their titles — never duplicated).
+            if (!expanded && plans.size == 1) {
                 Spacer(Modifier.width(8.dp))
                 Text(
                     plans.first().title,
@@ -271,25 +274,26 @@ fun PlansViewer(
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .weight(1f, fill = false)
-                        .testTag("plan_title_0"),
                 )
-                Spacer(Modifier.weight(1f))
+            }
+            Spacer(Modifier.weight(1f))
+            // The aggregate rides the COLLAPSED header only — expanded, each plan's own
+            // count renders in its row (never two nodes for the same "1/3").
+            if (!expanded) {
                 Text(
-                    "${plans.first().completedCount}/${plans.first().steps.size}",
+                    "$totalDone/$totalSteps",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.testTag("plans_progress"),
                 )
                 Spacer(Modifier.width(6.dp))
-                Icon(
-                    Icons.Filled.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp).graphicsRotation(chevronRotation),
-                )
             }
+            Icon(
+                Icons.Filled.KeyboardArrowDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(16.dp).graphicsRotation(chevronRotation),
+            )
         }
         if (!expanded) return@Column
         Spacer(Modifier.height(6.dp))

@@ -94,16 +94,16 @@ class SessionChipsLayoutTest {
                 )
             }
         }
-        // F-CHAT-FOCUS (2026-10-27): the chip row is COLLAPSED by default behind the
-        // compact summary — expand it, then pin the ORIGINAL geometry contract.
-        rule.onNodeWithTag("conv_config_summary_row").assertIsDisplayed()
+        // F-CHAT-FOCUS v2 (2026-10-27): the chips live BEHIND the bar's config chip —
+        // expand it, pin the ORIGINAL geometry contract, then collapse it back (a true
+        // two-way toggle).
+        rule.onNodeWithTag("conv_session_config").assertIsDisplayed()
         rule.onAllNodesWithTag("conv_mode_chip").assertCountEquals(0)
-        rule.onNodeWithTag("conv_config_summary_row").performClick()
+        rule.onNodeWithTag("conv_session_config").performClick()
         rule.waitForIdle()
         val density = rule.density.density
         val modeChip = rule.onNodeWithTag("conv_mode_chip").fetchSemanticsNode().boundsInRoot
         val modelChip = rule.onNodeWithTag("conv_model_chip").fetchSemanticsNode().boundsInRoot
-        val files = rule.onNodeWithTag("conv_open_files").fetchSemanticsNode().boundsInRoot
         val list = rule.onNodeWithTag("conversation_list").fetchSemanticsNode().boundsInRoot
 
         // §30.2-class geometry: chips stay single-line (never explode vertically).
@@ -112,18 +112,11 @@ class SessionChipsLayoutTest {
         // Material AssistChip floor (40dp): readable, never a one-character column.
         assertTrue("mode chip invisible-crushed: $modeChip", modeChip.width / density >= 40f)
 
-        // The header controls stack TIGHTLY (two compact rows: echo chips, then the
-        // read-only surface entries). The field bug put Files/Git/Terminal ~300dp
-        // lower, mid-screen — this catches exactly that class.
+        // Mode and model chips must share ONE row (the vc32 crushed-chip class).
         val modeCenter = modeChip.center.y / density
-        val filesCenter = files.center.y / density
-        assertTrue(
-            "Files/Git/Terminal left the header stack (Δ=${kotlin.math.abs(filesCenter - modeCenter)}dp)",
-            kotlin.math.abs(filesCenter - modeCenter) <= 72f,
-        )
         assertTrue(
             "mode and model chips must share the row (Δ=${kotlin.math.abs(modelChip.center.y / density - modeCenter)}dp)\n" +
-                "mode=$modeChip\nmodel=$modelChip\nfiles=$files\nlist=$list density=$density",
+                "mode=$modeChip\nmodel=$modelChip\nlist=$list density=$density",
             kotlin.math.abs(modelChip.center.y / density - modeCenter) <= 48f,
         )
 
@@ -169,8 +162,9 @@ class SessionChipsLayoutTest {
                 )
             }
         }
-        // Collapsed: the summary line renders with the echo content; no chips.
-        rule.onNodeWithTag("conv_config_summary_row").assertIsDisplayed()
+        // Collapsed: the bar's config chip carries the echo; no chips.
+        rule.onNodeWithTag("conv_session_bar").assertIsDisplayed()
+        rule.onNodeWithTag("conv_session_config").assertIsDisplayed()
         rule.onNodeWithText("yolo · zai/glm-5.3 · high").assertIsDisplayed()
         rule.onAllNodesWithTag("conv_mode_chip").assertCountEquals(0)
         rule.onAllNodesWithTag("conv_effort_chip").assertCountEquals(0)
@@ -179,10 +173,18 @@ class SessionChipsLayoutTest {
         val list = rule.onNodeWithTag("conversation_list").fetchSemanticsNode().boundsInRoot
         val density = rule.density.density
         assertTrue("timeline collapsed under the header: $list", list.height / density >= 120f)
-        // Expand → the interactive chip row appears.
-        rule.onNodeWithTag("conv_config_summary_row").performClick()
+        // Expand → the interactive chip row appears; collapse → gone again (two-way).
+        rule.onNodeWithTag("conv_session_config").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("conv_mode_chip").assertIsDisplayed()
         rule.onNodeWithTag("conv_model_chip").assertIsDisplayed()
+        rule.onNodeWithTag("conv_session_config").performClick()
+        rule.waitForIdle()
+        rule.onAllNodesWithTag("conv_mode_chip").assertCountEquals(0)
+        // The Context affordance opens the session context sheet (where Files/Git/
+        // Terminal/Model calls/Share now live).
+        rule.onNodeWithTag("conv_session_context").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("session_context_sheet").assertIsDisplayed()
     }
 }

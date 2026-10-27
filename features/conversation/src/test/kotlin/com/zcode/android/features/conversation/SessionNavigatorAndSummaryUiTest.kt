@@ -156,6 +156,9 @@ class SessionNavigatorAndSummaryUiTest {
             ),
             sessionState = sessionState,
         )
+        // F-CHAT-FOCUS v2: the summary capsule lives in the SESSION CONTEXT SHEET.
+        rule.onNodeWithTag("conv_session_context").performClick()
+        rule.waitForIdle()
         rule.onNodeWithTag("summary_capsule").assertIsDisplayed()
         rule.onNodeWithTag("summary_capsule").performClick()
         rule.waitForIdle()

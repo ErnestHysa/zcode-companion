@@ -321,6 +321,8 @@
     <string name="trajectory_call">model call</string>
     <string name="trajectory_tools">tools:</string>
     <string name="conv_trajectory_entry">Model calls</string>
+    <string name="context_sheet_open">Context</string>
+    <string name="context_sheet_tools">Open</string>
     <!-- Phase 5B (A3.11): the rewind preview -->
     <string name="rewind_preview_unavailable">The rewind preview is unavailable — the confirm falls back to the summary above</string>
     <string name="rewind_ignored_count">%1$d file(s) this turn touched outside the workspace are skipped</string>

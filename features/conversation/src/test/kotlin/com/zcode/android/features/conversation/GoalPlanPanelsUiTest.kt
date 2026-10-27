@@ -96,33 +96,47 @@ class GoalPlanPanelsUiTest {
     @Test
     fun `a goal session renders the criteria timeline with pass notSatisfied and failed`() {
         setContent(SessionProjectionState(goal = goal(), goalKeyPresent = true))
-        // F-UX-PANELS: the panel renders COLLAPSED in the conversation — the header
-        // carries the objective + status; the timeline expands on tap.
+        // F-CHAT-FOCUS v2: the context panels live in the SESSION CONTEXT SHEET —
+        // nothing renders inline above the chat anymore. Open the sheet, then pin.
+        rule.onNodeWithTag("conv_session_context").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("session_context_sheet").assertIsDisplayed()
         rule.onNodeWithTag("goal_panel").assertIsDisplayed()
         rule.onNodeWithText("Ship it").assertIsDisplayed()
         rule.onNodeWithText("verifying").assertIsDisplayed()
+        // Inside the sheet the panel renders EXPANDED — the user opened the sheet to
+        // read the context.
+        assertEquals(3, rule.onAllNodesWithTag("goal_verification_row").fetchSemanticsNodes().size)
+        org.junit.Assert.assertEquals(1, rule.onAllNodesWithText("2 criteria unmet", substring = true).fetchSemanticsNodes().size)
+        org.junit.Assert.assertEquals(1, rule.onAllNodesWithText("verifier crashed", substring = true).fetchSemanticsNodes().size)
+        // The header is a TRUE two-way toggle (field: "I click to collapse but it
+        // doesn't collapse") — tap collapses, tap again re-expands.
+        rule.onNodeWithTag("goal_header").performClick()
+        rule.waitForIdle()
         assertEquals(0, rule.onAllNodesWithTag("goal_verification_row").fetchSemanticsNodes().size)
         rule.onNodeWithTag("goal_header").performClick()
         rule.waitForIdle()
         assertEquals(3, rule.onAllNodesWithTag("goal_verification_row").fetchSemanticsNodes().size)
-        // Existence (the panel scrolls in a small test viewport; display is not the pin).
-        org.junit.Assert.assertEquals(1, rule.onAllNodesWithText("2 criteria unmet", substring = true).fetchSemanticsNodes().size)
-        org.junit.Assert.assertEquals(1, rule.onAllNodesWithText("verifier crashed", substring = true).fetchSemanticsNodes().size)
     }
 
     @Test
     fun `todos restore into the checklist with completed inProgress and pending`() {
         setContent(SessionProjectionState(plan = plan(), planKeyPresent = true))
+        rule.onNodeWithTag("conv_session_context").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("session_context_sheet").assertIsDisplayed()
         rule.onNodeWithTag("plan_panel").assertIsDisplayed()
-        // F-UX-PANELS: collapsed — the header shows the progress; expand for the rows.
-        // (the clickable header merges child semantics — read the progress unmerged)
-        assertTrue(rule.onAllNodesWithTag("plan_progress", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty())
+        // Inside the sheet the checklist renders EXPANDED; the header is a TRUE
+        // two-way toggle — collapse to one line, tap again to restore.
+        assertEquals(3, rule.onAllNodesWithTag("plan_row").fetchSemanticsNodes().size)
+        rule.onNodeWithText("Bump the version").assertIsDisplayed()
+        rule.onNodeWithText("Write the changelog").assertIsDisplayed()
+        rule.onNodeWithTag("plan_header").performClick()
+        rule.waitForIdle()
         assertEquals(0, rule.onAllNodesWithTag("plan_row").fetchSemanticsNodes().size)
         rule.onNodeWithTag("plan_header").performClick()
         rule.waitForIdle()
         assertEquals(3, rule.onAllNodesWithTag("plan_row").fetchSemanticsNodes().size)
-        rule.onNodeWithText("Bump the version").assertIsDisplayed()
-        rule.onNodeWithText("Write the changelog").assertIsDisplayed()
     }
 
     @Test

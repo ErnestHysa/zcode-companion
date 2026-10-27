@@ -472,9 +472,9 @@ private fun Header(
     state: ConversationUiState,
     phase: ConnectionPhase,
     /** U8: a blocking card is open — the context panels yield their room (approval first). */
-    blocked: Boolean = false,
+    @Suppress("UNUSED_PARAMETER") blocked: Boolean = false,
     /** U1: the content height the budgets derive from (BoxWithConstraints, inside the IME padding). */
-    available: androidx.compose.ui.unit.Dp = 0.dp,
+    @Suppress("UNUSED_PARAMETER") available: androidx.compose.ui.unit.Dp = 0.dp,
     onOpenFiles: () -> Unit = {},
     onOpenGit: () -> Unit = {},
     onOpenTerminal: () -> Unit = {},
@@ -494,145 +494,85 @@ private fun Header(
     /** Phase 5C (A3.16): share the transcript via the Android system sheet. */
     onShareTranscript: () -> Unit = {},
 ) {
-    Column {
+    // F-CHAT-FOCUS v2 (field 2026-10-27, Ernest on vc48): six stacked one-liner cards +
+    // a five-chip rail — even ALL collapsed they stood ~245dp between the user and the
+    // chat ("still only 50%, with full clutter"). The shippable shape is ONE bar:
+    //
+    //   ● Connected · Running        [build · glm-5.1 · high] [≡ Context]
+    //
+    // The config chip toggles the interactive mode/effort/model chips IN PLACE (a true
+    // two-way toggle); the Context chip opens [SessionContextSheet] — the context
+    // meter, session summary, goal, todos, workflow runs, plans, git status and the
+    // Files/Git/Terminal/Model calls/Share entries, all expanded and freely
+    // collapsible. NOTHING else lives above the timeline.
+    val config = state.sessionState?.config
+    var configExpanded by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
+    var contextSheet by remember { mutableStateOf(false) }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .testTag("conv_session_bar"),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
         ConnectionStatusLine(
             phase = phase,
             // D2: the progress label is TURN-KIND-AWARE — control.activeWorks[].kind
             // (compacting / verifying goal / running subagents…) refines "Running".
             trailing = listOfNotNull(taskStateLabel(state.taskState), GoalState.turnKindLabel(state.sessionState?.control?.activeWorks?.firstOrNull()?.kind))
                 .joinToString(" · ").ifEmpty { null },
-            modifier = Modifier.padding(horizontal = 16.dp).testTag("conversation_status_line"),
+            modifier = Modifier.weight(1f, fill = false).testTag("conversation_status_line"),
         )
-        // GAP-1/GAP-2: the context-window meter + per-source breakdown (§11.1).
-        // Renders nothing until a renderable `usage` key arrives (INV-8 absence).
-        ContextUsagePanel(
-            usage = state.sessionState?.usage,
-            modifier = Modifier.padding(top = 2.dp),
-        )
-        // Phase 9: model/mode chips (§10.3 echo) + Files/Git/Terminal entry points.
-        // FIELD (2026-10-04, vc32): FIVE chips cannot share one row on narrow screens —
-        // the weighted session chips starved (zero-width model chip on a 320dp layout;
-        // on the device the crushed chip exploded vertically and blocked the chat).
-        // Two compact rows: the echo chips own the full width; the read-only surface
-        // entries right-align under them.
-        // F-CHAT-FOCUS (field 2026-10-27): the config echo is glanceable, not primary —
-        // COLLAPSED by default to one tappable summary line (`build · glm-5.1 · high ⌄`);
-        // tapping expands the full interactive chip row. The chat timeline is the
-        // primary content (the field report: ~28 % of the screen left for the chat).
-        val config = state.sessionState?.config
-        var configExpanded by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
-        if (config != null && !configExpanded) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { configExpanded = true }
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .testTag("conv_config_summary_row"),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    listOfNotNull(
-                        config.mode,
-                        config.provider + "/" + config.model,
-                        config.thought.takeIf { config.thoughtLevels.isNotEmpty() },
-                    ).joinToString(" · "),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                Icon(
-                    Icons.Filled.KeyboardArrowDown,
-                    contentDescription = stringResource(com.zcode.android.features.conversation.R.string.mode_a11y, config.mode),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp).rotate(-90f).testTag("conv_config_expand"),
-                )
-            }
-        } else {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                SessionModeChips(
-                    config = state.sessionState?.config,
-                    onSwitchMode = onSwitchMode,
-                    onSwitchModel = onSwitchModel,
-                    modelOptionsProvider = modelOptionsProvider,
-                    onSetThoughtLevel = onSetThoughtLevel,
-                    modifier = Modifier.weight(1f, fill = true),
-                )
-            }
-        }
-        // I2.2: branch · clean/changes · agents — from the git summary channel + the
-        // timeline's running subagents; refused/not-a-repository → honest absence.
-        val sessionStatus by androidx.compose.runtime.produceState<com.zcode.android.domain.model.GitSummary?>(
-            initialValue = null,
-        ) {
-            value = runCatching { sessionStatusProvider() }.getOrNull()
-        }
-        SessionStatusStrip(
-            summary = sessionStatus,
-            runningAgents = countRunningAgents(state.rows),
-            modifier = Modifier.padding(horizontal = 8.dp),
-        )
-        // U1 (verification pass 2, 2026-10-21): the context panels below are BUDGETED to a
-        // screen fraction and scroll inside it. Unbounded, goal + todos + workflow runs +
-        // plans together left the timeline a 46dp viewport on a Pixel 5 (zero with the
-        // status capsule expanded) — the B2.12 squeeze class, which budgeted the strips
-        // but not these panels. The timeline keeps its weight; the panels stay reachable.
-        val panelBudget = available * CONTEXT_PANEL_BUDGET_FRACTION
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .heightIn(max = panelBudget)
-                .verticalScroll(rememberScrollState())
-                .testTag("conv_context_budget"),
-        ) {
-            // I2.3: the session summary panel (duration · goal iteration · background tasks
-            // · subagents) — capsule collapsed; nothing renders for an empty session.
-            SessionSummaryPanel(
-                sessionState = state.sessionState,
-                rows = state.rows,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+        if (config != null) {
+            ZCodeChip(
+                onClick = { configExpanded = !configExpanded },
+                label = listOfNotNull(
+                    config.mode,
+                    config.provider + "/" + config.model,
+                    config.thought.takeIf { config.thoughtLevels.isNotEmpty() },
+                ).joinToString(" · "),
+                testTag = "conv_session_config",
+                contentDescription = stringResource(com.zcode.android.features.conversation.R.string.mode_a11y, config.mode),
             )
-            // U8: while a blocking card is open the panels step aside — the question/approval
-            // carries its own context and must keep its answer controls on screen.
-            if (!blocked) {
-                // D2: the goal + todo surfaces — keys the wire always carried; absent → nothing.
-                state.sessionState?.goal?.let { goal ->
-                    // F-UX-PANELS: collapsed by default — the chat timeline is the
-                    // primary content; the header line expands the surface.
-                    GoalPanel(goal, modifier = Modifier.padding(horizontal = 8.dp), collapsedByDefault = true)
-                }
-                state.sessionState?.plan?.let { plan ->
-                    PlanPanel(plan, modifier = Modifier.padding(horizontal = 8.dp), collapsedByDefault = true)
-                }
-                // A3.3: the session's workflow runs (conversationWorkflowRunsV4); null/empty → nothing.
-                workflowRuns?.takeIf { it.isNotEmpty() }?.let { runs ->
-                    WorkflowRunsPanel(runs, onOpen = onOpenWorkflowRun, modifier = Modifier.padding(horizontal = 8.dp))
-                }
-                // A3.12: the plans viewer folds under the todo panel (one panel surface, two sections).
-                plans?.takeIf { it.isNotEmpty() }?.let { list ->
-                    PlansViewer(list, modifier = Modifier.padding(horizontal = 8.dp), collapsedByDefault = true)
-                }
-            }
         }
+        ZCodeChip(
+            onClick = { contextSheet = true },
+            label = stringResource(com.zcode.android.features.conversation.R.string.context_sheet_open),
+            testTag = "conv_session_context",
+        )
+    }
+    // The interactive config chips, expanded IN PLACE below the bar (two-way toggle).
+    if (configExpanded) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Spacer(Modifier.weight(1f))
-            // L5-chips (Phase 6C): the route chips are the SAME ZCodeChip language as
-            // the session chips above — one visual language for chip-shaped affordances.
-            ZCodeChip(onClick = onOpenFiles, label = stringResource(R.string.files_entry), testTag = "conv_open_files")
-            ZCodeChip(onClick = onOpenGit, label = stringResource(R.string.git_entry), testTag = "conv_open_git")
-            ZCodeChip(onClick = onOpenTerminal, label = stringResource(R.string.terminal_entry), testTag = "conv_open_terminal")
-            ZCodeChip(onClick = onOpenTrajectory, label = stringResource(R.string.conv_trajectory_entry), testTag = "conv_open_trajectory")
-            ZCodeChip(onClick = onShareTranscript, label = stringResource(R.string.conv_share_entry), testTag = "conv_share")
+            SessionModeChips(
+                config = state.sessionState?.config,
+                onSwitchMode = onSwitchMode,
+                onSwitchModel = onSwitchModel,
+                modelOptionsProvider = modelOptionsProvider,
+                onSetThoughtLevel = onSetThoughtLevel,
+                modifier = Modifier.weight(1f, fill = true),
+            )
         }
-        Spacer(Modifier.height(6.dp))
+    }
+    if (contextSheet) {
+        SessionContextSheet(
+            sessionState = state.sessionState,
+            rows = state.rows,
+            workflowRuns = workflowRuns,
+            plans = plans,
+            sessionStatusProvider = sessionStatusProvider,
+            onDismiss = { contextSheet = false },
+            onOpenWorkflowRun = onOpenWorkflowRun,
+            onOpenFiles = onOpenFiles,
+            onOpenGit = onOpenGit,
+            onOpenTerminal = onOpenTerminal,
+            onOpenTrajectory = onOpenTrajectory,
+            onShareTranscript = onShareTranscript,
+        )
     }
 }
 
