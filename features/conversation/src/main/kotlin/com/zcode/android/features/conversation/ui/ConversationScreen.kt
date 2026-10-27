@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -498,42 +499,59 @@ private fun Header(
     // a five-chip rail — even ALL collapsed they stood ~245dp between the user and the
     // chat ("still only 50%, with full clutter"). The shippable shape is ONE bar:
     //
-    //   ● Connected · Running        [build · glm-5.1 · high] [≡ Context]
+    //   ● Connected · Running     [build · glm-5.3-flash · max] [Context]
     //
     // The config chip toggles the interactive mode/effort/model chips IN PLACE (a true
     // two-way toggle); the Context chip opens [SessionContextSheet] — the context
     // meter, session summary, goal, todos, workflow runs, plans, git status and the
     // Files/Git/Terminal/Model calls/Share entries, all expanded and freely
     // collapsible. NOTHING else lives above the timeline.
+    //
+    // FIELD vc50 (2026-10-27, Ernest S23 on vc49): the bar EXPLODED vertically — the
+    // config chip had NO width bound, its one-line label measured at full intrinsic
+    // width, and the REAL desktop config (provider `account:zai-individual-coding-plan`,
+    // model `GLM-5.3-Flash`, thought `max`) is enormous — the chips consumed the whole
+    // row, the status line got ~0px and wrapped ONE CHARACTER PER LINE down the screen
+    // ("C-o-n-n-e-c-t-e-d"), the bar ate ~48% of it. Fixes, all three required:
+    //  (a) the echo DROPS the provider id (the model id is the glanceable part; the
+    //      full provider/model chip lives in the expanded row),
+    //  (b) the chip is width-BOUNDED (weight on the status line reserves the left
+    //      share and fill=true gives the status its whole remainder back),
+    //  (c) the bar is height-capped as a hard safety net — a layout fault can never
+    //      again turn a one-row bar into half the screen.
     val config = state.sessionState?.config
     var configExpanded by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
     var contextSheet by remember { mutableStateOf(false) }
     Row(
         Modifier
             .fillMaxWidth()
+            .heightIn(max = 56.dp)
             .padding(horizontal = 12.dp, vertical = 4.dp)
             .testTag("conv_session_bar"),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        ConnectionStatusLine(
-            phase = phase,
-            // D2: the progress label is TURN-KIND-AWARE — control.activeWorks[].kind
-            // (compacting / verifying goal / running subagents…) refines "Running".
-            trailing = listOfNotNull(taskStateLabel(state.taskState), GoalState.turnKindLabel(state.sessionState?.control?.activeWorks?.firstOrNull()?.kind))
-                .joinToString(" · ").ifEmpty { null },
-            modifier = Modifier.weight(1f, fill = false).testTag("conversation_status_line"),
-        )
+        Box(Modifier.weight(1f, fill = true)) {
+            ConnectionStatusLine(
+                phase = phase,
+                // D2: the progress label is TURN-KIND-AWARE — control.activeWorks[].kind
+                // (compacting / verifying goal / running subagents…) refines "Running".
+                trailing = listOfNotNull(taskStateLabel(state.taskState), GoalState.turnKindLabel(state.sessionState?.control?.activeWorks?.firstOrNull()?.kind))
+                    .joinToString(" · ").ifEmpty { null },
+                modifier = Modifier.fillMaxWidth().testTag("conversation_status_line"),
+            )
+        }
         if (config != null) {
             ZCodeChip(
                 onClick = { configExpanded = !configExpanded },
                 label = listOfNotNull(
                     config.mode,
-                    config.provider + "/" + config.model,
+                    config.model,
                     config.thought.takeIf { config.thoughtLevels.isNotEmpty() },
                 ).joinToString(" · "),
                 testTag = "conv_session_config",
                 contentDescription = stringResource(com.zcode.android.features.conversation.R.string.mode_a11y, config.mode),
+                modifier = Modifier.widthIn(max = 200.dp),
             )
         }
         ZCodeChip(

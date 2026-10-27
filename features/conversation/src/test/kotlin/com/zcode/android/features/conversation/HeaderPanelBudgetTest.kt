@@ -57,9 +57,9 @@ class HeaderPanelBudgetTest {
         draft = "",
         sessionState = SessionProjectionState(
             config = SessionConfigState(
-                provider = "zai",
-                model = "glm-5.3",
-                thought = "high",
+                provider = "account:zai-individual-coding-plan",
+                model = "GLM-5.3-Flash",
+                thought = "max",
                 thoughtLevels = listOf("high"),
                 followupMode = null,
                 mode = "build",

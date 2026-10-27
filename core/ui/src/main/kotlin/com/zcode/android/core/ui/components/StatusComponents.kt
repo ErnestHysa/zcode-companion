@@ -106,6 +106,11 @@ fun ConnectionStatusLine(
             text = full,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            // F-CHAT-FOCUS vc50 (field 2026-10-27): a squeezed status line used to wrap
+            // ONE CHARACTER PER LINE down the screen ("C-o-n-n-e-c-t-e-d"). One line,
+            // always — the bar's bounded width does the rest.
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
         )
     }
 }

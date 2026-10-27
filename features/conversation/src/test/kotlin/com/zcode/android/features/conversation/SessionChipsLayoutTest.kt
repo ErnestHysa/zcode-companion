@@ -59,10 +59,13 @@ class SessionChipsLayoutTest {
         draft = "",
         sessionState = SessionProjectionState(
             config = SessionConfigState(
-                provider = "zai",
-                model = "glm-5.3",
-                thought = "high",
-                thoughtLevels = listOf("high"),
+                // F-CHAT-FOCUS vc50: the REAL desktop echo (Ernest S23 field) — the
+                // long coding-plan provider id + real model/thought. The short mock
+                // strings hid the session-bar width explosion entirely.
+                provider = "account:zai-individual-coding-plan",
+                model = "GLM-5.3-Flash",
+                thought = "max",
+                thoughtLevels = listOf("medium", "high", "xhigh", "max"),
                 followupMode = null,
                 mode = "yolo",
                 planEnabled = null,
@@ -126,10 +129,12 @@ class SessionChipsLayoutTest {
         // §10.3: the mode picker renders ALL FOUR verified modes (build/edit/plan/
         // yolo — command.ts:216). FIELD (vc34): the user reported seeing three — the
         // clipped-DropdownMenu class; the dialog lists every option un-clipped.
-        // GAP-17: rows render the DESKTOP titles (mode.label.glm.*) — pinned here.
+        // The fixture's provider is a CODING-PLAN account (the field-true string) —
+        // isGlmRuntime is false there, so the dialog renders the NEUTRAL desktop
+        // titles (mode.label.* — not the glm.* variants).
         rule.onNodeWithTag("conv_mode_chip").performClick()
         rule.waitForIdle()
-        for (title in listOf("Ask before changes", "Edit automatically", "Plan mode", "Full access")) {
+        for (title in listOf("Build", "Edit", "Plan", "Full access")) {
             rule.onAllNodesWithText(title).onFirst().assertExists()
         }
     }
@@ -164,8 +169,14 @@ class SessionChipsLayoutTest {
         }
         // Collapsed: the bar's config chip carries the echo; no chips.
         rule.onNodeWithTag("conv_session_bar").assertIsDisplayed()
+        // F-CHAT-FOCUS vc50 (the field explosion): with the LONG real config echo,
+        // the bar is still ONE row (≤64dp) — the unbounded chip used to wrap the
+        // status line one character per line and eat half the screen.
+        val bar = rule.onNodeWithTag("conv_session_bar").fetchSemanticsNode().boundsInRoot
+        val barDp = bar.height / rule.density.density
+        assertTrue("session bar exploded vertically: ${barDp}dp", barDp <= 64f)
         rule.onNodeWithTag("conv_session_config").assertIsDisplayed()
-        rule.onNodeWithText("yolo · zai/glm-5.3 · high").assertIsDisplayed()
+        rule.onNodeWithText("yolo · GLM-5.3-Flash · max").assertIsDisplayed()
         rule.onAllNodesWithTag("conv_mode_chip").assertCountEquals(0)
         rule.onAllNodesWithTag("conv_effort_chip").assertCountEquals(0)
         rule.onAllNodesWithTag("conv_model_chip").assertCountEquals(0)

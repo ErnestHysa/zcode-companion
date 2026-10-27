@@ -470,19 +470,23 @@ fun main() {
     )
     // Session config echo (§10.3): provider/model/thought are REQUIRED keys — without
     // them the config state drops and the conversation chips never render.
+    // F-CHAT-FOCUS vc50 (field 2026-10-27, Ernest S23 on vc49): the REAL desktop echo
+    // carries the long coding-plan provider id and the real model/thought — the rig
+    // must reproduce the WORST strings (the short "zai/glm-5.1 · high" echo hid the
+    // session-bar width explosion entirely).
     mock.script.sessionConfig = JsonObject(
         mapOf(
-            "provider" to JsonPrimitive("zai"),
-            "model" to JsonPrimitive("glm-5.1"),
-            "thought" to JsonPrimitive("high"),
+            "provider" to JsonPrimitive("account:zai-individual-coding-plan"),
+            "model" to JsonPrimitive("GLM-5.3-Flash"),
+            "thought" to JsonPrimitive("max"),
             "thoughtLevels" to JsonArray(
-                listOf(JsonPrimitive("low"), JsonPrimitive("medium"), JsonPrimitive("high")),
+                listOf(JsonPrimitive("medium"), JsonPrimitive("high"), JsonPrimitive("xhigh"), JsonPrimitive("max")),
             ),
-            "mode" to JsonPrimitive("build"),
+            "mode" to JsonPrimitive("yolo"),
             "modelSelection" to JsonObject(
                 mapOf(
-                    "providerId" to JsonPrimitive("zai"),
-                    "modelId" to JsonPrimitive("glm-5.1"),
+                    "providerId" to JsonPrimitive("account:zai-individual-coding-plan"),
+                    "modelId" to JsonPrimitive("GLM-5.3-Flash"),
                 ),
             ),
         ),
