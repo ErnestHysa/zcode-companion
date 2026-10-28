@@ -202,3 +202,237 @@ class — a different test failed each sweep (`draft persists…` then `pending 
 both `TimeoutCancellationException` at the class's 20s/15s `withTimeout` waits), and the
 full class passed `--rerun-tasks` and in the final all-module pass; exonerated as machine
 timing, not an app defect. The final clean all-module run: BUILD SUCCESSFUL, 368 tasks.
+
+---
+
+# Second pass — 2026-10-28 afternoon (APPENDED — pass 2; not part of the original audit)
+
+Scope: re-run of the same mandate ("live emulation + verify everything + REA the macOS app +
+document every gap") on the SAME tree. Since the pass-1 code commit `fd7046a` only docs and a
+2-line mock debug print landed (`f4b7fb4`), every pass-1 defect and G-gap is expected to still
+exist; pass 2 re-confirms them on device and deep-walks what pass 1 left shallow. No code was
+changed by this pass — this is a verification + documentation round only.
+
+Tree under audit: `main` @ `f4b7fb4` (app code identical to `fd7046a`; versionCode 51,
+versionName 1.3.0 confirmed via `dumpsys package`), debug APK 30,286,232 bytes (same size as
+pass 1's build; this pass's measured sha256 `342164798266a24f…` — pass 1's cited `988d74f7…`
+was not reproducible with md5/sha256 on the same file; treat the byte size + code tree as the
+identity). Desktop target unchanged: `/Applications/ZCode.app` asar sha256 `99e280fb90b626cc…`
+(re-measured, identical to pass 1).
+
+Evidence: 62 screenshots `/tmp/walk2/*.png`; mock relay wire log `/tmp/mock-relay-pass2.log`;
+app logcat (ZCODE-PAIR tag) throughout; crash stacks in logcat (three FATAL EXCEPTIONs, all
+reproduced live); REA analysis re-run this session — Evidence
+`ev_973db796ad995e05273a6596bdad49a56d072aadb30678a750a8305efa63bb4e`
+(`analyze_javascript_application`, record-and-continue, retention complete-record, same asar
+digest); shipped-tree
+enumeration from the REA-extracted `/tmp/zcode-app-extracted` (382 MB, out/main+host+renderer);
+desktop source reference clone v3.14.3 `29628c9` at `~/Desktop/DEVPROJECTS/zcode/repo`.
+
+Rig: zcode-pixel AVD cold boot (`-no-snapshot-load -gpu swiftshader_indirect -no-audio`),
+MockZCode relay on `10.0.2.2:18100` with the same all-flags arming as pass 1
+(`MOCK_ROWS=40 MOCK_GOAL=1 MOCK_APPROVAL=1 MOCK_ROW_ACTIONS=1 MOCK_WORKFLOWS=1 MOCK_TASKMGMT=1
+MOCK_QUESTION=1 MOCK_HOOKS=1 MOCK_COMPACT=1 MOCK_ATTACHMENT=1 MOCK_SCENARIO=HAPPY`). Emulator
+alive ~75 min with zero emulator deaths this round. App state: upgrade-over-existing-data
+(install -r kept the stored pairing; auto-reconnected to the fresh mock on first launch).
+
+## Part D — pass-2 live emulation
+
+### D1. Newly found defects
+
+- **GAP-A8 (crash, P1): the ENTIRE outbound attachment surface crashes the app — three
+  deterministic FATALs, reproduced live on every arm.** Composer `+` → menu offers
+  Mention a file / Photo / Attach a file / Take photo. Tapping **Photo**:
+  `IllegalArgumentException: Can only use lower 16 bits for requestCode` at
+  `androidx.fragment.app.FragmentActivity.checkForValidRequestCode` launched from
+  `WriteComponents.kt:832` (`photoPicker.launch(PickVisualMediaRequest)`) — FATAL, process
+  dead. Tapping **Attach a file**: identical FATAL (16:14:38, pid 6454) from the same
+  registry path (`docPicker.launch`, `WriteComponents.kt:844`). Tapping **Take photo**:
+  identical FATAL (16:15:33, pid 6657, `cameraLauncher.launch`, `WriteComponents.kt:854`).
+  Only **Mention a file** works (pure text insertion, verified "@" inserted). The three
+  launchers are registered at `WriteComponents.kt:657-668` via
+  `rememberLauncherForActivityResult`; the request code derived for this registration exceeds
+  the 16-bit FragmentActivity limit, so launch() throws before the picker ever opens. Shipped
+  in `eb5ae90` (phase-9 attachments) and never exercised on-device (pass 1 verified only the
+  inbound attachment render). A primary feature kills the app 3/3 taps — top of the fix order.
+- **GAP-A6 (UI break, P2): the task-search overlay draws in the status-bar band and its
+  result rows are stacked, overlapped, and dead.** The search field renders at window level
+  with zero inset handling — `tasks_search_field` bounds `[44,11][1036,165]`, i.e. under the
+  system clock/battery, which render on top of the field. The single result row measured
+  `[0,0][1080,117]` (`tasks_search_hit_synth-task-3`, title at `[44,28]`) — behind the clock
+  AND under the field. Mechanism: the search field + result rows are emitted as bare siblings
+  AFTER the Scaffold at the screen-function top level (`TaskListScreen.kt:390-443`), so every
+  sibling lands top-start in the host Box with no `statusBars()` padding. Two taps at the hit
+  row produced no navigation and no logs — the only hit is effectively unusable on device.
+- **GAP-A7 (contract break, P2): search results do not replace the grouped list.** The code
+  comment promises "results REPLACE the grouped list" and `return`s at
+  `TaskListScreen.kt:450`, but the Scaffold body (Automations/Workflows/Pinned/Workspace
+  sections) is emitted BEFORE that point and always composes; on device the grouped list
+  stayed fully visible below the (misplaced) results. The H1.1 contract is broken on-device.
+- **WATCH (unconfirmed, needs a dedicated leg): sending slash text while queue mode is armed**
+  ("/deploy prod" with the composer in "Keep typing to queue follow-up changes" mode) rode
+  the wire (`sendConversationCommandV4` acked ok in 89 ms) but produced no timeline row and
+  left the draft in the composer; a second send after toggling queue mode off acked ok
+  (660 ms) and cleared the draft. Likely queue-item semantics rather than a defect, but the
+  first send's wire-acked/no-row/no-clear combination is worth a scripted rig leg before
+  calling it clean.
+
+### D2. Pass-1 defects re-confirmed (all unchanged — expected: app code identical to fd7046a)
+
+- **GAP-A1 (hook-trust card missing, P1) — RE-CONFIRMED LIVE in the exact scripted session.**
+  `MOCK_HOOKS=1` scripts the review on `synth-task-1`; the pass-2 walk opened Synthetic
+  task's conversation (that session) with the review pending — no card, banner, or
+  trust-UI anywhere on the screen (`/tmp/walk2/27/28`).
+- **GAP-A2 (approvals inbox never clears, P1) — RE-CONFIRMED FOR BOTH CLASSES.** The
+  question was answered from the conversation card (wire: `sendConversationCommandV4` ok,
+  mock id=39) and "Allow once" from the inbox (app log
+  `approvals.answer :: interaction=mock-approva option=allowOnce`, mock id=144): BOTH inbox
+  entries remained open through re-entry minutes later, and the bell badge stayed at 2
+  (landscape capture shows the badge). Mechanism note sharpened: the coordinator's
+  `submitElicitationAnswers`/`Decline` only call `interactions.markResolved` when the
+  permission machine reaches RESOLVED
+  (`InteractionCoordinator.kt:456-458`; the `runCatching` at 456 can swallow the transition
+  silently) — the observed outcome is the record never resolves.
+- **GAP-A3 (no unsubscribe, P3) — re-checked in code: still zero call sites** for
+  `unsubscribeConversationV4`/`unsubscribeWorkspaceConfigV4` across app/data/core-transport.
+- **GAP-A5 (diagnostics clipboard ANR, P2) — code still unfixed**:
+  `SettingsScreen.kt:518` still calls `setPrimaryClip` inside `withContext(Dispatchers.Main)`.
+  The pass-2 live copy ran clean (no ANR) because the preconditions differ from pass 1 — the
+  system clipboard service was healthy this time (the pass-1 repro stalled it; the pass-2 run
+  only logged the EMULATOR's host-clipboard bridge failing with EINVAL after the fact, a rig
+  artifact, not the app). The defect stands on the code path.
+- **G1–G19 (desktop gap matrix) — unchanged by definition** (no app code changed); pass 2
+  adds evidence and four NEW desktop gaps (G20–G23) in Part E below.
+
+### D3. Surfaces verified at pass 2 (new/deep-walked legs; wire receipt where relevant)
+
+| Surface | Result |
+| --- | --- |
+| Stored-pairing reconnect | Cold-booted emulator + fresh mock process: app reconnected automatically on first launch with full bootstrap render |
+| Rename verb | Dialog prefilled → confirm → `zcode-task.renameTask ok`; row title stayed stale until refresh because the mock's served bootstrap view is static (rig fidelity, NOT an app defect — the mock's `directTasks` DID update) |
+| Archive verb | Confirm dialog ("Archived tasks can be restored later") → `zcode-task.archiveTask ok`; row persists because the mock acks without mutating (rig fidelity) |
+| Task verbs menu | Full set re-verified incl. Pin + "Move to group…" for unpinned rows |
+| Send/receive | "ping-rig2" → user row + AGENT "synthetic reply to: ping-rig2" with copy/👍/👎/Fork/Retry rendered live; queue mode flipped in with Queued chip + stop button (mock set control running) |
+| Degraded → reconnect | `pkill MockRelayMainKt` → ~40 s to "Reconnecting… · Completed" + "Showing cached projection · recovering"; relay restart → auto-reconnect within seconds, "Connected · Completed" restored |
+| Slash menu | `/` surfaces the desktop's builtin catalog (help/login/logout/compact/init/expert/effort/dwf/fork/locale/mcp/plugins/mode/model/new/resume/rewind/skill/goal…); custom commands fetch fires on open (`commands.list ok` + `subagents.list ok` at menu-open, verified on the wire) |
+| Custom command | `/deploy [env]` reachable via prefix filter ("/de"), insert works with the [env] hint; sent as raw text (mock-acknowledged) — see the queue-mode WATCH above; NOTE the bare-"/" panel is a NON-SCROLLABLE column and the user section renders below the fold (~25 builtin entries) — a P3 UX note folded into G21's fix |
+| Mention a file | Inserts "@" (the only healthy arm of the attach menu) |
+| Voice input | Correctly absent on this AOSP emulator image (availability-gated, `PlatformVoiceInput` → `NoVoiceInput`); fail-quiet, not a defect |
+| Notifications | LIVE heads-up banner captured ("ZCode has a question for you") while foregrounded at font 1.3 — the question notification fires in-band, not only on background transitions |
+| App shortcuts | Published: Approvals + New task (`dumpsys shortcut`) |
+| Glance widget | `PendingApprovalsWidgetReceiver` registered as provider [12] (addable; not bound on this rig) |
+| Direct endpoint dialog | Full field set (Name/URL/Token/Fallbacks) + "sealed on-device" language; empty URL leaves Add DISABLED — validation via disabled state, clean |
+| Settings | Endpoints card (MockBook · Relay · v3.14.3 · Connected), Insights (Usage/Plugins/Skills/MCP), notification toggles, Live-connection window + auto-reconnect checks, Terminal view-only consent, Privacy (no analytics), About ("You are on the latest build" for 1.3.0 vs published 1.2.8 — correct), Licenses, Unpair guidance |
+| Diagnostics copy | Live tap: no ANR with a healthy clipboard (see GAP-A5 note; the code path is still Main-dispatcher) |
+| Font scale 1.3 | Tasks screen renders correctly at 1.3 (no crush; the ledger's "font-1.3 crush" did not reproduce on Tasks this round) |
+| Landscape | Tasks renders and scrolls in landscape (content column centered with wide side margins — ledger-small class; improved vs the recorded "no-scroll" note) |
+| Timeline extras re-verified en route | file-changes list (Parser.kt rewritten / ParserTest.kt +12 −3), kotlin code block with wrap/copy, strikethrough, compaction lifecycle rows (started/completed/failed + Retry), jump-to-bottom FAB, image attachment render |
+
+### D4. Rig learnings for the next pass
+
+1. **The mock's command effects are wired to ONE hardcoded session** (`MockWorkspace.sessionId
+   = "synth-task-1"`, `MockZCode.kt:473`): every `applyCommandEffect` patch/row (resolve
+   Interaction's `pendingInteractions:[]`, "(answered)" rows, sendText echo) is pushed to
+   synth-task-1's stream regardless of which conversation the command came from. Live proof:
+   the pass-2 answer was sent from Synthetic task 2's card, and the "(answered)" row appeared
+   in SYNTHETIC task 1's timeline (screenshot 27) while task 2's card never cleared. This is a
+   RIG routing artifact, not an app defect — and it re-frames pass 1's GAP-A2 evidence: the
+   "pinned card cleared via state patch" observation happened because pass 1 answered inside
+   the default session. The inbox-never-clears claim is INDEPENDENT of this (re-confirmed this
+   pass on both classes) but future rig legs must run interaction flows in synth-task-1.
+2. `adb shell input text` needs `%s` for spaces; batched `input keyevent 67…` deletions are
+   unreliable from the host — prefer `%s`-composed full strings.
+3. Tapping a notification shade / keyboard-dismiss changes the composer's rest position —
+   re-dump bounds after every chrome change (three tap misses this round came from stale
+   coordinates).
+4. The relay must be killed with `pkill -f MockRelayMainKt` (re-confirmed) and restarted
+   detached (`nohup … &`); the app reconnects within seconds of the socket returning.
+
+## Part E — macOS desktop pass 2 (REA anchor + shipped-tree enumeration)
+
+REA re-ran the full shipped-asar analysis this session (Evidence
+`ev_973db796ad995e05273a6596bdad49a56d072aadb30678a750a8305efa63bb4e`, asar sha
+`99e280fb90b626cc…` — byte-identical to pass 1, so the pass-1 B-section conclusions all
+stand). Pass 2 enumerated surfaces pass 1 did not, from the REA-extracted tree
+(`/tmp/zcode-app-extracted`) plus the v3.14.3 source reference, with shipped-string spot
+checks in the renderer bundles.
+
+### E1. Share family — G19 evidence strengthened (no severity change)
+
+The desktop share plane is 16 files in `packages/ui/src/v4/` (SelectionDock, SelectionPanel,
+ReadonlyTimeline, ImportNotice, SuccessDock, Scrim, ReopenTab, Markdown, ModePolicy, ModeMotion,
+PreflightCache, …). Shipped renderer strings confirm it reaches the bundle: "Copy link",
+"read-only review surface". Output modes: selection share, read-only timeline, markdown export,
+and a link mode. The phone's `conv_share` (transcript text export) remains the only arm → G19
+stands as documented.
+
+### E2. NEW GAP-G20 (P3): desktop Usage depth — four shipped chart views vs the phone's single plane
+
+The shipped renderer carries dedicated lazy chunks `AppUsageDailyModelTrendChart`,
+`AppUsageModelUsagePieChart`, `CodingPlanUsageBarChart`, `CodingPlanUsageLineChart` (+ 
+`usageStatsUiParts`, `appUsageChartPalette`): the desktop Usage page renders daily per-model
+trend, per-model pie, and two coding-plan usage charts. The phone's Usage screen (verified pass
+1 + 2) renders a single summary plane and honestly faults on the rig's unscripted channel — no
+trend/pie/chart views exist on the phone. On par would mean at least the daily model trend and
+plan-bucket charts (the data planes exist in the protocol the phone already speaks).
+
+### E3. NEW gaps from the desktop Settings inventory (123 files, `packages/ui/src/settings/`)
+
+The desktop Settings app is a full resource manager. Mapping it against the phone's
+deliberate boundaries (B3) leaves four boundary-adjacent planes the phone neither has nor
+claims:
+
+- **G21 (P4): custom slash-command authoring.** Desktop: `CommandsSection.tsx` +
+  `CommandForm.tsx` (create/edit custom commands). Phone: consumes custom commands (the /deploy
+  leg renders and inserts them) but has no authoring surface. Related P3 UX note from D3: the
+  phone's bare-"/" panel is a non-scrollable column — the user-commands section renders below
+  the fold and is only reachable by typing a prefix; fix the panel scroll in the same breath.
+- **G22 (P4): memory settings plane.** Desktop: `MemorySettingsSection.tsx`. Phone: absent.
+- **G23 (P4): coding-plan management.** Desktop: `CodingPlanEntryButton.tsx`,
+  `CodingPlanUpgradeDialog*.tsx` (upgrade/bucket management on top of the usage charts in G20).
+  Phone: the ADR-020 quota section exists but no plan management/upgrade flow.
+- **G24 (P4): settings-sync plane.** The desktop carries a settings-sync subsystem (118
+  `settingsSync` references in the shipped renderer, `settings/settings-sync/` in source,
+  step titles like "settingsChangedByYou"). Phone: single-device settings, no sync plane.
+
+(Desktop keyboard-shortcut recording (`useShortcutRecording`, "Keyboard Shortcuts" shipped
+string) and command palette are desktop form-factor — NOT gaps. Hooks/MCP/plugin/workflow/
+automation authoring remain deliberate B3 boundaries — automations CRUD is already at full
+phone parity per pass 1.)
+
+### E4. Parity cross-checks that found NO new gap
+
+- **Git**: desktop `GitPane.tsx` (546 lines) exposes refresh + change cards with
+  find-in-changes (`GitPane/fileChangeFindSearch.ts`); the only desktop git mutation surface
+  found is checkpoint restore (`checkpointRestored` in the main bundle) — matching the phone's
+  ADR-021 bounded set (rewind/undo verified live in pass 1). At parity/bounded-by-design.
+- **Terminal**: desktop `TerminalSession.tsx`/`TerminalTabTrigger.tsx` (interactive, tabbed) —
+  the phone's strictly view-only terminal is ADR-022, unchanged.
+- **Find-in-conversation** (G5), **CUA permission panel** (G18 — `cua-permission-panel.html`
+  ships as a separate renderer document), **quota banner** (G11) — all re-cited with exact
+  shipped artifacts; severities unchanged.
+
+## Part F — remediation order update (supersedes Part C ordering only where pass 2 applies)
+
+1. **GAP-A8 FIRST** — the attachment-send crash class is a P1 crash on a primary surface:
+   give the three composer launchers registry keys/registration that keep the derived request
+   code ≤16 bits (register via the activity-level registry with short explicit keys, or bump
+   androidx.activity; add a Robolectric/instrumented pin that launch() opens the picker without
+   throwing for all three arms).
+2. **GAP-A1/A2** (unchanged from Part C round A) — plus the sharpened A2 mechanism: assert
+   `interactions.markResolved` fires on the accepted-ack path (state-plane + row-anchored
+   classes) rather than only checking the wire.
+3. **GAP-A6/A7 together** — the search overlay needs an inset-padded container AND the
+   results-replacement contract restored; one pin can cover both (results visible below the
+   status bar, grouped list absent while a query is active).
+4. Part C round B/C/D unchanged; insert G20 (usage charts) into round D polish, G21–G24 as
+   boundary-decision tickets (decide: on-par means authoring/sync/plan-management on the
+   phone, or documented companion boundaries in B3).
+
+Verification record (pass 2): emulator+relay rig ran ~75 min with ZERO emulator deaths; the
+APP crashed 3× — all three crashes are GAP-A8's attach arms, each reproduced deliberately and
+each followed by a clean relaunch with stored-pairing reconnect. No other crash, ANR, or
+error-dialog was observed. Unit suites were NOT re-run this pass: the app code tree is
+byte-identical to `fd7046a`, whose 1487-test green record (Part A, pass 1) remains the valid
+baseline for this pass; the only deltas since are docs and a 2-line debug print in the
+test-only mock module.
