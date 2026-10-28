@@ -635,3 +635,155 @@ that restored the conversation stack; no other crash, ANR, or error-dialog was o
 suites were NOT re-run: the app code tree is byte-identical to `fd7046a` (all commits since
 are docs-only), whose 1487-test green record (Part A) remains the valid baseline — the same
 reasoning accepted in pass 2.
+
+---
+
+# Fourth pass — 2026-10-28 night (APPENDED — pass 4; not part of the original audit)
+
+Scope: same mandate, fourth run ("live emulation + verify everything + REA the macOS app +
+document every gap"). All commits after `fd7046a` are docs + a 2-line mock debug print, so
+every pass-1/2/3 defect and G-gap is expected to still exist; pass 4 re-confirms the
+load-bearing ones on device, deep-walks surfaces all three passes left untouched (app
+shortcut INVOCATION, the conversation query map, the collaboration-mode picker, Send
+feedback, Usage retry, dark-theme dialogs/search, the row message-actions sheet), and adds
+two NEW desktop gaps (G27, G28). No code was changed by this pass — verification +
+documentation round only.
+
+Tree under audit: `main` @ `045c1ea` (app code identical to `fd7046a` — `git diff
+fd7046a..045c1ea` is the report file + 2 mock lines; versionCode 51, versionName 1.3.0 via
+`dumpsys package`), debug APK 30,286,232 bytes, sha256 `342164798266a24f…` (the fd7046a
+build, installed over existing data, auto-reconnected to the fresh mock on first launch;
+update.check sees desktop 3.14.3). Desktop target unchanged: `/Applications/ZCode.app` asar
+sha256 `99e280fb90b626cc…` (re-measured this pass, byte-identical — the pass-1/2 REA
+Evidence remains valid; asar re-extracted to `/tmp/zcode-app-extracted-p4`).
+
+Evidence: 36 screenshots `/tmp/walk4/*.png` + uiautomator dumps `/tmp/walk4/d*.xml`; app
+logcat (ZCODE-PAIR tag: the allowOnce receipt, the usage fault, `feedback.create ok`, the
+A8 FATAL + process death); desktop source reference clone v3.14.3 `29628c9` at
+`~/Desktop/DEVPROJECTS/zcode/repo` (asar digest unchanged, so no new REA analysis run).
+
+Rig: zcode-pixel AVD cold boot (`-no-snapshot-load -gpu swiftshader_indirect -no-audio`),
+MockZCode relay on `10.0.2.2:18100` via `gradle --no-daemon :tools:mockzcode:mockRelayServer`
+with the same all-flags arming (`MOCK_ROWS=40 MOCK_GOAL=1 MOCK_APPROVAL=1 MOCK_ROW_ACTIONS=1
+MOCK_WORKFLOWS=1 MOCK_TASKMGMT=1 MOCK_QUESTION=1 MOCK_HOOKS=1 MOCK_COMPACT=1
+MOCK_ATTACHMENT=1 MOCK_SCENARIO=HAPPY`). Emulator alive ~45 min with zero emulator deaths.
+
+## Part J — pass-4 live emulation
+
+### J1. NEW verified surfaces (first walked this pass; wire receipt where relevant)
+
+| Surface | Result |
+| --- | --- |
+| Approvals app shortcut (INVOKED) | `am start -a …action.SHORTCUT --es zcode.shortcut approvals` deep-links straight into the Approvals screen ("Requests waiting across your tasks") with both cards rendered — pass 2 verified publication only; the launch path now verified live |
+| Conversation query map | The timeline's query-map affordance (next to the last agent row) opens a bottom sheet listing every user query ("Jump to query 1 → here is the screenshot", "Jump to query 2 → ping-rig4"); "Jump to query 1" scrolls the timeline so that row sits at the top — desktop has the same plane (`ConversationTurnNavigator.tsx`, `chat.turnNavigator.label` = "Conversation query map", `onJumpToQuery`) — PARITY, not phone-better |
+| Collaboration mode picker | Tapping the `mode: yolo` chip opens "Switch mode" with Build ("Confirm changes before running.") / Edit ("Edit files automatically.") / Plan ("Plan before editing.") / Full access ("Run with fewer confirmations."); switching to Plan echoed on the session bar (`plan · GLM-5.3-Flash · max`, chip content-desc flips), restored to Full access after — passes 1–3 walked model+effort but never the MODE switch |
+| Send feedback (Settings) | Full dialog: Bug / Suggestion / Slow performance chips + "What happened?" + Contact (optional) + Submit → `feedback.create ok` on the wire (21:41:11) → success state "Ticket mock-ticket-5072 created — thank you!"; the desktop counterpart plane exists (`feedback/feedbackSubmissionJob.ts`) — the phone is the companion client of the same plane |
+| Usage retry leg | Retry fires `getAppUsageStats` on the wire, receives the mock's honest `fault.mock.unscripted` and stays on "Usage is unavailable" — the retry path works, the fault state is honest (mock doesn't script the channel) |
+| Message actions sheet | LONG-PRESS (not tap) on a user row opens "Message actions" — for a SENT row only Copy renders; the Edit item is gated (`editable && onEdit != null`, sent rows fail the gate). Desktop has no message-edit affordance at all — PARITY |
+| Endpoint card | Tap and long-press are no-ops with a single endpoint (display-only); switching/removal surfaces appear only with multiple endpoints — no defect |
+| Dark theme across new surfaces | Settings (rows + toggles + live-connection controls), Tasks, and the search overlay all render correctly in dark; the A6 status-bar band is still visible in dark (below) |
+
+### J2. Pass-1/2/3 defects re-confirmed this pass (all at `045c1ea`, code unchanged as expected)
+
+- **GAP-A8 (attach-send crash, P1) — re-confirmed:** the attach menu renders all four arms;
+  tapping **Photo** FATALs with the identical stack (`IllegalArgumentException: Can only use
+  lower 16 bits for requestCode` at `FragmentActivity.checkForValidRequestCode`,
+  21:44:04) and the process dies (`Process com.zcode.android.app (pid 4038) has died`);
+  clean relaunch restored the app. Third consecutive pass with the same repro.
+- **GAP-A2 (approvals never clear, P1) — re-confirmed a THIRD time, now with a fresh answer
+  in the same session:** this pass dispatched a new "Allow once" (`approvals.answer ::
+  interaction=mock-approva option=allowOnce`, 21:33:11) — the Permission card stayed open in
+  the dump 3 s later, the Question card too, and the Tasks bell badge still reads 2.
+- **GAP-A6 (search overlay in status-bar band, P2) — fresh pixel evidence in dark:** the
+  search field renders at window level and the system clock paints INSIDE it ("Search
+  tasks" placeholder overlapped by "9:42", `/tmp/walk4/31`).
+- **GAP-A9 (queue-mode send dead-end, P2) — re-confirmed:** "ping-rig4" sent while idle →
+  mock flips running → composer flips to Queued chip + "Stop the agent"; a typed draft
+  ("xfollowup-draft") sits with ONLY Stop present, no send affordance; after Stop the same
+  draft gets its Send control back (the complementary leg from pass 3 G2 still holds).
+- **G21 UX note (slash panel non-scrollable) — re-confirmed by swipe:** a swipe-up on the
+  bare-"/" panel produced zero scroll (same rows at identical bounds, `/help`…`/expert`
+  fixed); user commands stay below the fold, reachable only by typing a prefix.
+- A1/A3/A5/A7/A10 not re-exercised this pass (app code unchanged; the pass-2/3 evidence
+  stands as the latest on-device record).
+
+### J3. Rig learnings for the next pass
+
+1. **Back-press overshoot exits the app when the conversation/tasks root is showing** — the
+   launcher appeared twice this pass from an extra `keyevent 4` (once mid-relaunch); the
+   app relaunches cleanly but the extra back costs a whole navigation cycle.
+2. The message-actions sheet opens on LONG-PRESS (`input swipe x y x y 700`), not tap —
+   taps on user rows are consumed by selection/no-op.
+3. The mode chip lives in the EXPANDED config row (tap the session-bar config chip first);
+   tapping the collapsed chip coordinates only expands the row.
+
+## Part K — macOS desktop pass 4 (targeted enumeration)
+
+Asar digest re-measured identical (`99e280fb90b626cc…`) so the pass-1/2 REA analysis and
+B/E/H conclusions stand; this pass enumerated settings/timeline planes the earlier passes
+did not cite, from the v3.14.3 source clone.
+
+### K1. NEW GAP-G27 (P4, boundary decision): model-provider management plane
+
+The desktop Settings carries a full provider-management section —
+`packages/ui/src/settings/ModelProviderSection.tsx` (1,161 lines): add/edit provider
+entries with API keys (`getProviderFormApiKey`, `addProviderAction`), re-authorization
+after connection ("provider apiKey 会先于权益接口结果落盘"), provider listing. The phone's
+model picker (verified pass 1) CONSUMES the provider list with groups/badges/search but has
+no add/edit/credential surface anywhere. Joins the G21–G26 boundary-decision tickets;
+minimum on-par = a read-only provider viewer following the INV-9 viewer pattern, with
+credential entry documented as desktop-side.
+
+### K2. NEW GAP-G28 (P4): inbound attachment preview affordance — desktop previews media/PDF, phone thumbnails are dead-ends
+
+Desktop: `ChatMediaAttachmentPreviewDialog.tsx` opens attachments as VIDEO (loading/
+ready/unsupported states) and PDF (`pdf-viewer.js` with zoomIn/zoomOut controls) plus
+generic media preview. Phone: `AttachmentView` (`RowRenderers.kt:1330-1350`) renders images
+as a STATIC thumbnail (bitmap via the attachment-read channel, cached) and every other type
+as a named chip — the composable has NO clickable modifier at all. Live proof: tapping the
+mock.png thumbnail in the timeline produced no viewer, no zoom, nothing (screenshots
+06→07). On-par minimum: tap-to-zoom full-screen image viewer; PDF passthrough via an
+external-viewer intent (no PdfRenderer bundling needed for the first cut).
+
+### K3. Evidence strengthening for existing gaps (no severity changes)
+
+- **G18 (CUA family)** — the desktop additionally carries `BrowserSettingsSection.tsx`
+  (browser-use plugin, Chrome data import/clear, embedded-browser certificate toggle) —
+  more desktop-side computer-use/browser tooling the phone deliberately doesn't mirror;
+  same desktop form-factor bucket as G18, not a separate gap.
+- **Settings inventory completion** — `MigrationSection.tsx` (data migration between
+  desktops, range/workspace filters), `ShortcutSettingsSection` (already B3 form-factor),
+  and the onboarding AGENTS.md migration (`OnboardingDialog.tsx:320` "Copy CLAUDE.md to
+  AGENTS.md") are all desktop-local device-management/config-authoring planes — B3
+  boundaries, not gaps.
+
+### K4. Cross-checks that found NO new gap
+
+- **Todos** — desktop todos are agent-driven too (`messageStreamShowTodos` is only a
+  DISPLAY setting in `SessionPane.tsx:1368`; the TodoWrite stream is tool output) — no
+  user-edit plane on either side; the phone's read-only todos panel in the context sheet is
+  at parity.
+- **Message edit/delete** — desktop has no edit/delete for sent messages (`editMessage`/
+  `deleteMessage`: zero matches); the phone's gated Edit item (J1) never fires for sent
+  rows — parity.
+- **Query map** — desktop `ConversationTurnNavigator.tsx` is the same plane (J1); parity.
+- **Feedback** — desktop owns the same plane (`feedback/feedbackSubmissionJob.ts`); the
+  phone's dialog is the companion client — parity.
+
+## Part L — remediation order update (supersedes only where pass 4 applies)
+
+1. **GAP-A8** stays FIRST (re-confirmed pass 4, identical FATAL + process death).
+2. GAP-A1/A2, A6/A7, A9, A10 unchanged (Part I ordering stands; A2 now has a third
+   same-session receipt, A6 a dark-mode pixel capture).
+3. **G28 (P4) into round D polish:** tap-to-zoom image viewer + PDF/video named-chip
+   passthrough (external intent) — the attachment bytes already flow through the
+   attachment-read channel the thumbnails consume.
+4. **G27 joins the G21–G26 boundary-decision tickets** (P4; minimum on-par = read-only
+   provider viewer per INV-9, credentials stay desktop-side).
+
+Verification record (pass 4): emulator+relay rig ran ~45 min with ZERO emulator deaths;
+the APP died exactly once — the deliberate GAP-A8 Photo-arm repro (third pass running the
+same repro) — followed by a clean relaunch. No other crash, ANR, or error-dialog was
+observed. Unit suites were NOT re-run: `git diff fd7046a..045c1ea` contains only the report
+file and 2 mock-module lines, so the app code tree is byte-identical to the 1487-test green
+baseline (Part A) — the same reasoning accepted in passes 2 and 3.
