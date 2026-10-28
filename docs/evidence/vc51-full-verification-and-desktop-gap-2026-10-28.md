@@ -53,6 +53,11 @@ App state: upgrade-over-existing-data path (install -r kept the stored pairing).
 | MCP viewer | Three scripted servers with transport · tool count · status · failure detail |
 | Dark theme | Whole app flips; all visited surfaces render correctly in dark |
 | Search FAB | Present on Tasks (not deep-walked this round) |
+| **Fresh-install pairing** (second rig leg, `pm clear` + full uninstall/reinstall) | Onboarding pager → paste-link dialog; stale-link consent gate fires correctly on a >10-min link (fail-closed E7); fresh link skips it; security gate with the "No screen lock detected" reduced-security consent variant; Keystore seal → relay auth → **Connected** with full bootstrap render. A corrupted link (harness typing artifact, missing `%3D` in the hash) was honestly rejected by the relay and classified `Pairing expired — scan the QR again` with `retryable=false` + re-pair guidance — the failure path verified too |
+| Usage screen | Honest capability fault + Retry (mock doesn't script the channel) |
+| Plugins viewer | Both scripted plugins with version/source/state toggles + diagnostics warning line |
+| Skills viewer | Search field + all three scripted skills with scope badges (workspace/plugin·prisma-toolkit/user) |
+| Diagnostics | Copy-to-clipboard fires the report build + clipboard write — **but see GAP-A5** |
 
 ### Defects found in the app (this walk)
 
@@ -84,6 +89,14 @@ App state: upgrade-over-existing-data path (install -r kept the stored pairing).
 - **GAP-A4 (UX, P3): the workflow Run… sheet's Run button is covered by the keyboard** while
   the arg field is focused (observed on device; the tap at the button's AX bounds lands on the
   keyboard). Dismissing the keyboard first works. `imePadding()`/pan behavior for that sheet.
+- **GAP-A5 (ANR, P2): "Copy diagnostics to clipboard" can ANR the app.** Reproduced live with
+  a full system ANR (`Input dispatching timed out … Waited 5006ms`), trace at
+  `/tmp/walk/anr-trace.txt`: `SettingsScreenKt$copyDiagnostics$1$1.invokeSuspend(SettingsScreen.kt:518)`
+  calls `ClipboardManager.setPrimaryClip` — a **synchronous binder IPC** — resumed on the Main
+  dispatcher; the system clipboard service stalled >5 s and input dispatch timed out. The vc18
+  fix moved the REPORT build off-main and the vc20 fix bounded the payload, but the clipboard
+  call itself still runs on Main. Fix: hop the `setPrimaryClip` (+ toast) to `Dispatchers.IO`/
+  `Default` — clipboard writes are legal from any thread.
 
 ## Part B — macOS desktop vs Android companion (REA + source cross-check)
 
@@ -152,7 +165,7 @@ Ordered by user impact. "Modeled" = in `V4Command.kt` but never sent by any coor
 
 ## Part C — remediation roadmap (recommended order)
 
-1. **Fix round A (P1 defects):**
+1. **Fix round A (P1/P2 defects):**
    - Build the hook-trust review card (ADR-024 contract: per-item opt-in default-off,
      Trust N disabled at 0, confirm sheet, stale_digest state, trust/revoke/toggle wiring
      already in the VM), with a coordinator branch that routes WORKSPACE_HOOK_REVIEW
@@ -160,6 +173,9 @@ Ordered by user impact. "Modeled" = in `V4Command.kt` but never sent by any coor
    - Fix approvals resolution: mark repository records resolved on the acknowledge path AND
      on the state-plane disappearance reconciliation for row-anchored machines; add pins for
      inbox-clears-on-answer (state-plane + row-anchored classes).
+   - GAP-A5: move the diagnostics clipboard write (and toast) off the Main dispatcher
+     (`SettingsScreen.kt:518`) — one-line coroutines fix, ANR eliminated by construction;
+     pin with a Robolectric test that the clipboard write happens off-main.
 2. **Fix round B (P2):** resumeWorkflowRun + amendWorkflowRunSettings actions on the run
    sheet; deleteQueueItem in the queue strip; find-in-conversation (search bar over rows).
 3. **Fix round C (P3):** unsubscribe-on-exit in the conversation teardown; selection

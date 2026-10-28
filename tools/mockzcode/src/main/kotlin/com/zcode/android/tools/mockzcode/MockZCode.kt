@@ -767,6 +767,8 @@ class MockZCode(
     private fun handleAuthResponse(ws: okhttp3.WebSocket, obj: JsonObject) {
         val proof = obj.str("proof")
         if (script.authScenario == AuthScenario.WRONG_PROOF || proof != expectedProof) {
+            // RIG DEBUG (2026-10-28 fresh-pairing walk): print both proofs — key/nonce inputs only, never a production secret path.
+            println("MOCK: auth proof mismatch received=${proof} expected=${expectedProof}")
             sendTo(ws, mapOf("type" to JsonPrimitive("error"), "code" to JsonPrimitive("AUTH_FAILED"), "message" to JsonPrimitive("mock: proof mismatch")))
             scope.launch { events.emit(ServerEvent.AuthRejected("proof_mismatch")) }
             return
