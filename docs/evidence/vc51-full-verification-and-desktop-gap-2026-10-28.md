@@ -787,3 +787,211 @@ same repro) — followed by a clean relaunch. No other crash, ANR, or error-dial
 observed. Unit suites were NOT re-run: `git diff fd7046a..045c1ea` contains only the report
 file and 2 mock-module lines, so the app code tree is byte-identical to the 1487-test green
 baseline (Part A) — the same reasoning accepted in passes 2 and 3.
+
+---
+
+# Fifth pass — 2026-10-29 small hours (APPENDED — pass 5; not part of the original audit)
+
+Scope: same mandate, fifth run ("live emulation + verify everything + REA the macOS app +
+document every gap"). All commits after `fd7046a` are docs + a 2-line mock debug print, so
+every pass-1..4 defect and G-gap is expected to still exist; pass 5 deep-walks surfaces all
+four passes left untouched (the off-peak plane, compaction Retry, the jump-to-latest unread
+badge COUNTING, Share→Copy end-to-end, terminal Copy visible output, diagnostics markers,
+skills search, the notification-detail cycler, conversation landscape) and adds one NEW app
+defect (A11) and one NEW desktop gap (G29, with a record correction). No code was changed by
+this pass — verification + documentation round only.
+
+Tree under audit: `main` @ `7f0b1f9` (app code identical to `fd7046a` — `git diff
+fd7046a..7f0b1f9` is the report file + 2 mock-module lines; versionCode 51, versionName 1.3.0
+via `dumpsys package`). The pass-4 install is still on the AVD (lastUpdateTime 2026-10-28
+21:30:55 — the fd7046a build, 30,286,232 bytes, sha256 `342164798266a24f…`); it
+auto-reconnected to the fresh mock on first launch and update.check sees desktop 3.14.3.
+Desktop target unchanged: `/Applications/ZCode.app` asar sha256 `99e280fb90b626cc…`
+(re-measured this pass, byte-identical — the pass-1/2 REA Evidence remains valid).
+
+Evidence: 45 screenshots `/tmp/walk5/*.png` + uiautomator dumps `/tmp/walk5/d*.xml`; mock
+relay wire log `/tmp/mock-relay-pass5.log` (compaction-Retry receipt id=19, ping send id=79,
+queued-draft send id=91); app logcat (`diagnostics.mark`, `approvals.answer … option=allowOnce`,
+the A8 FATAL + `Process com.zcode.android.app (pid 4483) has died`); desktop source reference
+clone v3.14.3 `29628c9` at `~/Desktop/DEVPROJECTS/zcode/repo`.
+
+Rig: zcode-pixel AVD cold boot (`-no-snapshot-load -gpu swiftshader_indirect -no-audio`),
+MockZCode relay on `10.0.2.2:18100` via `gradle --no-daemon :tools:mockzcode:mockRelayServer`
+with the same all-flags arming (`MOCK_ROWS=40 MOCK_GOAL=1 MOCK_APPROVAL=1 MOCK_ROW_ACTIONS=1
+MOCK_WORKFLOWS=1 MOCK_TASKMGMT=1 MOCK_QUESTION=1 MOCK_HOOKS=1 MOCK_COMPACT=1
+MOCK_ATTACHMENT=1 MOCK_SCENARIO=HAPPY`). Emulator alive ~40 min with zero emulator deaths.
+
+## Part M — pass-5 live emulation
+
+### M1. NEW verified surfaces (first walked this pass; wire receipt where relevant)
+
+| Surface | Result |
+| --- | --- |
+| **Off-peak plane — record correction** | The phone HAS a full off-peak monitor/control UI that passes 1–4 never reported: `OffPeakLine` rows inside the Automations section (`AutomationsSection.kt:207-246,575-664` — status label per the desktop `offPeak.status.*` vocabulary (INV-8), pause/continue/cancel with a cancel-confirm sheet, `queuePosition`/`failureReason` on the row model `ViewerModels.kt:424-434`), wired end-to-end (`ViewerPorts.kt:59,244-250` → `off-peak-task` channel; `ViewerTools.kt:110-114` workspace-filter/sort/cap 20; pins `OffPeakControlsUiTest`/`OffPeakLongTailUiTest`/`AutomationOffPeakDecodeTest`/`TaskManagementWireTest:168-194`). NOT exercised live: the rig CANNOT reach it — `DefaultAutomationsPort.lists()` evaluates `tools.automations(...)` FIRST (`ViewerPorts.kt:52-59`), the mock faults `fault.mock.unscripted:listAutomations` (no env flag arms that channel; `MockRelayMain.kt` scripts neither automations nor `offPeakTaskList`), the exception short-circuits BEFORE the off-peak read fires, and the section renders only when the list is non-empty. The on-screen Automations body therefore stays at pass-1's honest fault; the two cards beside it are the saved WORKFLOWS (MOCK_WORKFLOWS), not automations |
+| Compaction-failed Retry | Tapping Retry on "Context compression failed" fires `sendConversationCommandV4 ok in 41ms` (mock id=19); the failed row persists because the mock acks without mutating the lifecycle (rig fidelity, same class as rename/archive) |
+| Jump-to-latest unread badge COUNTING | Query map "Jump to query 1" scrolls the timeline away from the bottom → FAB appears; with the mock emitting 4 new rows while scrolled away, the FAB renders the red badge **"4"**; tapping it jumps to the newest row ("synthetic reply to: badge-leg") and the FAB + badge disappear. Pass 1 verified presence only (B2.9) — the counting/clear behavior is now verified live |
+| Conversation query map | Re-verified incidentally: the sheet now lists THREE queries ("Jump to query 1/2/3") — it grows with new sends; jump lands on the target row (query 1's "here is the screenshot") |
+| Share → preview sheet → Copy | Context-sheet Share chip opens the app's own share PREVIEW sheet (title "Share", task name + transcript preview lines, a Copy pill, and the SYSTEM chooser below with Bluetooth/Gmail/Messages/Drive); Copy dismisses both sheets with a toast (Toast lifecycle in logcat; clipboard content not host-readable on API 30). Pass 1 verified only that a share sheet with Copy EXISTS |
+| Terminal "Copy visible output" | Attached ("VIEW-ONLY live — /bin/zsh", Pause/Search header chips, bottom action row): tapping Copy flips the chip label in place to **"Copied"** (empty pane → empty copy; the confirm behavior is the verification) |
+| Diagnostics "Add a marker" | `diagnostics.mark :: user marker at 2026-10-29T00:24:43.562Z phase=CONNECTED` — timestamped marker written into the app log with the connection phase |
+| Skills search filter | Typing "sql" narrows the viewer to exactly `skill-sql-migrate` (release/commit skills removed from the tree); clearing restores all three |
+| Notification detail cycler | The row CYCLES on tap — `Notification detail: Minimal` ⇄ `Notification detail: Task titles` (two levels, live label swap, explainer text unchanged). Pass 1 saw only Minimal; the second level and the cycling behavior are new evidence. Left on Minimal |
+| mock.png red block — NOT a defect | The attachment thumbnail renders as a solid RED rectangle because the rig arms a 1×1 RED pixel PNG (`MockRelayMain.kt:99-104`, base64 `…GP4z8AA…`); the render is CORRECT at any size. Documented so future passes don't chase it |
+| Per-turn diff dialog (re-observed) | "Changes · turn 44 — Could not load changes: fault.fileChanges.none" — the honest degrade again (opened accidentally via a "view"-chip tap en route) |
+| MCP rows | github (stdio · 12 tools · Connected), docs-search (http · 0 tools · Disabled), playwright (sse · ECONNREFUSED detail inline) — row taps are display-only no-ops; failure detail is inline text, matching pass 1 |
+
+### M2. NEW defect
+
+- **GAP-A11 (UX break, P3): the conversation screen renders broken in landscape.** First
+  conversation-landscape walk (the ledger's recorded "no-card landscape squeeze" is the
+  TASKS screen; this is the conversation WITH scripted cards). Live evidence
+  (`/tmp/walk5/32-landscape.png`, `user_rotation=1`): (1) the pinned interaction card clips
+  to a ~58px sliver — only the bottom edge of the custom-answer field renders while the
+  "Agent needs your input" content is cut entirely; (2) the next agent row's text
+  ("synthetic reply to: queued-draft-p5") renders OVERLAPPING the clipped pink strip; (3)
+  the jump-to-latest FAB floats mid-content on top of the "YOU 12:12 AM" row; (4) the
+  3-button nav bar (right edge in landscape) paints OVER the app content — the conversation
+  column extends under the system buttons with no nav-bar inset, unlike Tasks landscape's
+  centered/margined column (pass 2). Portrait unaffected. Fix direction: give the
+  conversation scaffold the same landscape treatment as Tasks (inset/margined column,
+  height-capped pinned stack, FAB anchored to the composer edge).
+
+### M3. Pass-1..4 defects re-confirmed this pass
+
+- **GAP-A8 (attach-send crash, P1) — re-confirmed a FOURTH time with the same deliberate
+  repro:** composer + → Photo → identical FATAL (`IllegalArgumentException: Can only use
+  lower 16 bits for requestCode` at `FragmentActivity.checkForValidRequestCode:714`,
+  00:28:34) and `Process com.zcode.android.app (pid 4483) has died`; clean relaunch
+  restored the conversation stack. Fourth consecutive pass reproducing it.
+- **GAP-A2 (approvals never clear, P1) — re-confirmed a FOURTH time, fresh answer this
+  session:** inbox "Allow once" dispatched (`approvals.answer :: interaction=mock-approva
+  option=allowOnce`, 00:29:17) — the Permission card AND the Question card both remained in
+  the dump 4 s later. The crash-restart between legs also re-showed the inbox counting from
+  the stored records (badge/stale-records survive process death).
+- **GAP-A9 (queue-mode send dead-end, P2) — re-confirmed (third observing pass), now with
+  the full cycle in one session:** "ping-rig5" sent while idle (mock id=79) → composer flips
+  to "Keep typing to queue follow-up changes" + Queued chip; typed draft
+  "queued-draft-p5" held with ONLY "Stop the agent" present, no send affordance; after Stop
+  the Send control returns in the same slot with the draft intact; the draft then sends
+  cleanly (`sendConversationCommandV4 ok in 96ms`, mock id=91) and the mock replies.
+- A1/A3/A5/A6/A7/A10 not re-exercised this pass (app code unchanged; the pass-2/3/4
+  evidence stands as the latest on-device record for each).
+
+### M4. Rig learnings for the next pass
+
+1. **Host-injected drags cannot scroll the conversation timeline or the pinned question
+   card while a scripted interaction is pending** — `input swipe` (5 shapes incl. slow
+   drags and fast flings) AND an `input motionevent DOWN/MOVE/UP` sequence all produced
+   identical screens. The question-card Submit stays unreachable (the pass-2 "Submit pushed
+   off-screen" learning compounds with this). Programmatic navigation still works — the
+   query-map jump is the reliable way to move the timeline. Interaction legs that need
+   scrolling are rig-blocked until a working scroll driver is found.
+2. **uiautomator dumps go STALE (repeating pre-dialog content, byte-identical) after any
+   dialog/sheet session** — the post-dialog dumps kept showing the closed diff dialog.
+   Verify against screenshots; trust a dump only after a fresh screen transition.
+3. **The screenshot display scale VARIES between captures** — two Share-chip taps missed
+   because device coords were derived with the wrong scale. Calibrate per capture: measure
+   a node in the CURRENT dump whose on-screen position is visible, derive the scale from
+   it, then tap. (The Share chip finally landed at (326,2128) after calibrating off
+   "Ship the release".)
+4. **AX-vs-paint artifact, second sighting class:** bottom-anchored WRAPPED rows report
+   [0,0][0,0] while painted — the context sheet's second chip line (Model calls/Share) and
+   the terminal's bottom action row (Copy visible output/Detach). Tap by pixel; do not
+   treat the AX absence as "not on screen".
+5. **mock.png is a 1×1 RED PNG by rig design** — its thumbnail legitimately renders red
+   (M1 row above). One rig cycle was spent proving this; don't repeat it.
+6. Back-press overshoot re-confirmed (one extra back from Settings root exited to the
+   launcher); `input text` lands in whichever field holds focus — tap the exact field
+   (re-dump first) or the text silently goes elsewhere.
+
+## Part N — macOS desktop pass 5 (targeted enumeration)
+
+Asar digest re-measured identical (`99e280fb90b626cc…`) so the pass-1/2 REA analysis and
+B/E/H/K conclusions stand; this pass enumerated the settings planes the earlier passes did
+not cite, from the v3.14.3 source clone.
+
+### N1. NEW GAP-G29 (P4, boundary decision): off-peak authoring + run history — the phone monitors, only the desktop creates
+
+Desktop: a full off-peak (闲时任务) management plane in Settings — `OffPeakTaskList.tsx`
+(2-column card grid with the "#N in queue" position badge and continue/pause/delete hover
+menu), `OffPeakEditView.tsx` (create/edit form, `resolveLocalizedOffPeakCreateTitle`),
+`OffPeakHistoryTab.tsx` (run history), `OffPeakEditActionsMenu.tsx`, and
+`offPeakUiPresentation.ts` (status footers, model-selection issue warnings); the host-side
+service is `OffPeakTaskService` (`packages/desktop/src/host/index.ts`), and the protocol
+registers the plane via the `offPeakToolEnabled` capability flag on sessionStart
+(`command.ts:61-64` — "不透传则 OffPeakCreate/OffPeakList 永不注册") plus
+`offPeakTaskId`/`offPeakRunType(init|resume)` on session start (`command.ts:105-124`).
+Phone state (pass-5 M1 record correction): the monitor/control half EXISTS — rows with
+pause/continue/cancel riding the same channel — but there is NO create/edit surface and NO
+run-history view, and the phone's sessionStart never sends `offPeakToolEnabled` (zero
+matches in core/data), so the phone can only see tasks the DESKTOP created with the tool
+enabled. Joins the G21–G27 boundary-decision tickets; minimum on-par = a create/edit entry
+point on the existing Automations/off-peak section + a history list, reusing the wire the
+phone already speaks.
+
+### N2. Evidence strengthening for existing gaps (no severity changes)
+
+- **G24 (settings-sync)** — the desktop's sync plane reaches beyond desktops:
+  `ExternalAgentImportDialog.tsx` imports skills/commands/MCP/plugins from EXTERNAL AGENTS
+  (`SettingsSyncAgentSummary`, `SettingsSyncCategory`, "外部 Agent 导入弹窗复用
+  skills/commands 的交互状态机") — the sync/import subsystem is larger than "sync between
+  your desktops".
+- **G1 (hook-trust review card)** — the settings-side files of the same plane surfaced:
+  `workspaceHookReviewCommands.ts`, `workspaceHookTrustState.ts`,
+  `useWorkspaceHookInlineTrust.ts`, `HooksSection.tsx`/`HookForm.tsx`/`HooksList.tsx` —
+  more exact anchors for whoever implements the phone card.
+- **G18 (CUA family)** — `ComputerUseSection.tsx` confirmed in Settings (same
+  desktop-form-factor bucket as pass 4's `BrowserSettingsSection`).
+
+### N3. Boundary inventory completion (NOT gaps — B3 families, cited for completeness)
+
+- **Plugin store/install/manage** — `PluginStorePage/Card/DetailView/ListView`,
+  `PluginAddMenu`, `AddMarketplaceSourceDialog`, `PluginScopeMenu`,
+  `PluginUninstallConfirmDialog`, `InstalledPluginManagement`, `PluginConfigControls`: the
+  desktop browses marketplaces, installs and configures plugins. The phone's plugins viewer
+  stays INV-9 read-only by design (B3); this is the same boundary class as MCP management —
+  list it in the same boundary-decision ticket if on-par is ever redefined.
+- **ProactiveSuggestionsSetting.tsx** — an office-mode proactive task-suggestions toggle
+  (`chat.officeSuggestions.*`, `useIsOfficeMode`): desktop interface-mode plane, not a
+  phone gap.
+- `DataBaseDirControl.tsx` (data directory), `saved-workflows/` (authoring, B3),
+  `AutomationScheduled*`/`AutomationTemplate*` design primitives (the phone's automations
+  CRUD is already at parity) — desktop-local, unchanged.
+
+### N4. Cross-checks that found NO new gap
+
+- **Off-peak monitor parity** — the phone's row model carries `queuePosition` and
+  `failureReason`, matching the desktop card footer ("#N in queue") and status vocabulary;
+  the verbs match (pause/continue/cancel). Only authoring/history differ (G29).
+- **Skills/MCP viewers** — search filter works (M1), rows display-only with inline failure
+  detail; same INV-9 shape as pass 1.
+- **Notification detail** — the phone's two-level cycler (Minimal/Task titles) covers the
+  privacy-preserving detail contract; the desktop has no equivalent per-notification detail
+  plane to mirror (the phone side is the richer one here — see B4).
+
+## Part O — remediation order update (supersedes only where pass 5 applies)
+
+1. **GAP-A8** stays FIRST (re-confirmed pass 5, identical FATAL + process death; fourth
+   consecutive pass with the same repro).
+2. GAP-A1/A2, A6/A7, A9, A10 unchanged (Part L ordering stands; A2 now has a fourth
+   same-session receipt, A9 a full-cycle session receipt).
+3. **GAP-A11 joins round B (P3):** landscape conversation scaffold — nav-bar inset +
+   margined/centered column (Tasks-landscape precedent), height-capped pinned stack with
+   clean clipping, FAB anchored to the composer edge. Pin: a Robolectric landscape
+   composition test asserting the pinned card's visible height ≥ its title row and no
+   overlap between the stack and the first timeline row.
+4. **G29 joins the G21–G27 boundary-decision tickets** (P4; minimum on-par = off-peak
+   create/edit + run-history list on the existing Automations section; the monitor/control
+   half is already at parity and should be stated as such in B3).
+5. Rig remedy worth a small mock change in the NEXT code-touching pass: add
+   `MOCK_AUTOMATIONS` + `MOCK_OFFPEAK` env arms so `lists()` completes and the off-peak
+   section can finally be exercised live (the mock's handlers
+   `handleOffPeakTaskPromise`/`offPeakTaskList` are already scripted — only the env flags
+   are missing).
+
+Verification record (pass 5): emulator+relay rig ran ~40 min with ZERO emulator deaths;
+the APP died exactly once — the deliberate GAP-A8 Photo-arm repro (fourth pass running the
+same repro) — followed by a clean relaunch. Census: 1 FATAL total, 0 ANRs, 0 app-level
+ERROR log lines. Unit suites were NOT re-run: `git diff fd7046a..7f0b1f9` contains only the
+report file and 2 mock-module lines, so the app code tree is byte-identical to the
+1487-test green baseline (Part A) — the same reasoning accepted in passes 2, 3 and 4.
