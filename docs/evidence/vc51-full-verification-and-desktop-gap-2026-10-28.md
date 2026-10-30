@@ -1630,3 +1630,181 @@ back-press root trap, recovered by relaunch. Census: 1 FATAL total, 0 ANRs. Unit
 were NOT re-run: `git diff fd7046a..f582edf` contains only the report file and 2
 mock-module lines, so the app code tree is byte-identical to the 1487-test green baseline
 (Part A) — the same reasoning accepted in passes 2–7.
+
+# Ninth pass — 2026-10-30 (APPENDED — pass 9; not part of the original audit)
+
+Scope: same mandate, ninth run ("live emulation + verify everything + REA the macOS app +
+document every gap; append only what's new"). App code still unchanged since `fd7046a`, so
+every pass-1..8 defect and G-gap is expected to still exist; pass 9 executes the surfaces no
+earlier pass ran: the `zcode://task/{id}` VIEW deep link fired DIRECTLY (plain +
+`#interaction=` + two malformed shapes — the intake parser had only ever been exercised
+through notification taps), the system widget-picker presence of the Pending-approvals
+glance widget (pass 2 only proved provider registration), and the LiveConnectionService
+FOREGROUND-SERVICE lifecycle end-to-end (passes only proved the preference toggle
+persists). It also produces new A8 precision: all THREE outbound-attachment arms were
+reproduced in one pass with their DISTINCT crash frames, and the shade notification record
+was audited at wire level — which surfaced ONE NEW phone-side defect, GAP-A12 (the C3
+shade Approve-once/Deny buttons are dropped on the §15-S13 re-post path — see Y2).
+
+Tree under audit: `main` @ `70eb16e` (app code identical to `fd7046a` — `git diff
+fd7046a..HEAD` is the report file + 2 mock-module lines; versionName 1.3.0 via `dumpsys
+package`, lastUpdateTime 2026-10-30 13:16:43). Fresh `adb install -r` over the pass-8
+data on the cold-booted emulator; the stored pairing auto-reconnected on first launch
+(CONNECTED ~2 s, `update.check :: desktop=3.14.3 state=UpToDatenull`, same as passes 7–8).
+Desktop target unchanged: `/Applications/ZCode.app` asar sha256 `99e280fb90b626cc…`
+re-measured byte-identical (mtime Sep 30, Info.plist 3.14.5) — every pass-1..8 desktop
+conclusion stands; see Part Z for the new targeted enumeration.
+
+Evidence: 27 uiautomator dumps + 3 screenshots + `notif.txt` under `/tmp/walk9/`; mock
+relay wire log `/tmp/mock-relay-pass9.log` (all-flags arming identical to pass 8);
+app logcat receipts quoted inline.
+
+Rig: zcode-pixel AVD (Android 11 / API 30) cold boot (`-no-snapshot-load -gpu
+swiftshader_indirect -no-audio`), MockZCode relay on `10.0.2.2:18100`. Zero emulator
+deaths; THREE deliberate app deaths (the three GAP-A8 attach arms, each recovered by
+relaunch with the pairing auto-reconnecting in ~2 s); one system crash dialog rendered
+(Y1). No code was changed by this pass — verification + documentation round only.
+
+## Part Y — pass-9 live emulation
+
+### Y1. NEW verified surfaces (first executed this pass; wire receipt where relevant)
+
+| Surface | Result |
+| --- | --- |
+| **`zcode://task/{id}` VIEW deep link, fired DIRECTLY (FIRST execution)** | `am start -a android.intent.action.VIEW -d "zcode://task/synth-task-1"` from the Tasks root landed IN the task conversation via the singleTask `onNewIntent` path ("delivered to currently running top-most instance") — session bar (`yolo · GLM-5.3-Flash · max`), question card, pending Bash approval all rendered. The fragment variant `zcode://task/synth-task-1#interaction=mock-approval-1` navigates identically. BOTH malformed shapes (`zcode://task/` empty id, `zcode://task/a/b` multi-segment) were delivered to the running instance and logged ZERO FATALs — the fail-closed intake parser (`DeepLinks.kt:24-36`: blank/oversized id and multi-segment paths return null) holds live. The §24.7 intake had only ever been exercised through notification contentIntents (pass 8) |
+| **Pending-approvals widget: system widget-picker presence (FIRST live walk)** | Home long-press → menu (`Home settings / Widgets / Wallpapers`) → Widgets picker → scrolled app list renders **`ZCode Companion → Pending approvals (2 × 1)`** (dump `w9-13.xml` + screenshot `w9-widget.png`); `dumpsys appwidget` re-measures the provider as `[12] cmp=…PendingApprovalsWidgetReceiver, min=2x1`. This upgrades pass 2's registration-only receipt to a live picker walk. The BIND itself stayed rig-blocked: Pixel-Launcher widget placement needs a drag gesture and API 30 has neither `input motionevent` nor `input draganddrop` (`cmd appwidget` has no shell implementation) — recorded as rig debt, not app debt. The widget's tap path is the same `zcode://task` intake verified live above (`PendingApprovalsWidget.kt:115` builds `#interaction=` URIs through the SAME parser, fail-closed to a plain launch) |
+| **LiveConnectionService FGS lifecycle (FIRST execution)** | Settings → Live-connection → `Live connection` switch ON → `dumpsys activity services` shows `ServiceRecord …LiveConnectionService isForeground=true foregroundId=4201 foregroundNoti=Notification(channel=live-connection …)` — a REAL foreground service with its persistent notification. Switch OFF → zero service records (clean teardown). Passes 1–6 verified only that the preference persists; the actual FGS start/stop was never observed until now |
+| Attach-arm crash re-confirmation (3 deliberate deaths) | All THREE `+`-menu arms FATAL the app again, at the SAME frames pass 2 first mapped (D1): **Photo → `WriteComponents.kt:832`** (13:31:52, `IllegalArgumentException: Can only use lower 16 bits for requestCode`, process died `prcp TOP`), **Attach a file → `WriteComponents.kt:844`** (13:33:13), **Take photo → `WriteComponents.kt:854`** (13:33:56) — 8th consecutive pass with the Photo repro, and the first pass to re-run all three arms SINCE pass 2. NEW observation this pass: the Take-photo arm is slow enough to render the system **"ZCode Companion keeps stopping"** crash dialog (screenshot `w9-crashdlg.png` — `ActivityTaskManager: Force finishing activity`); Close app → relaunch → Connected with full bootstrap (fresh pid, `update.check` line). All three arms remain the same requestCode class — one shared helper fix covers all three sites (mechanism per D1: the `rememberLauncherForActivityResult` registrations at :657-668) |
+
+### Y2. NEW defect
+
+- **GAP-A12 (shade action buttons lost on re-post, P3).** The C3 shade-level
+  Approve-once/Deny actions (Phase 4E) are attached ONLY on the fresh-event path:
+  `NotificationBroker.onEvent` gates them on `permission && interactionId != null &&
+  taskId != null` (`NotificationBroker.kt:138-141`) and passes them into the Spec. But the
+  §15-S13 background re-post — `onBackgroundEntry` (`NotificationBroker.kt:179-188`) —
+  builds its Spec WITHOUT the `actions` parameter, so every unseen attention record that
+  surfaces on background entry loses its buttons. And the fresh path is foreclosed in the
+  PRIMARY companion flow: an approval arriving while the app is foregrounded is
+  §9.9-suppressed at post time (recorded unseen, nothing posted), and its ONLY subsequent
+  post is the actions-less re-post. Live receipts: after HOME, logcat shows `notify.repost
+  :: key=interaction:q-rig-1` and `…mock-approva… (background entry)` (13:19:27) — and the
+  re-posted approval record in `dumpsys notification --noredact` carries `contentIntent`
+  but NO action PendingIntents, with the per-package ranking counter reading
+  **`numWithActions=0`** (no notification from this app has EVER carried actions on this
+  rig). Net: `NotificationActionReceiver` + the post-decision haptic (C3) are fully wired
+  but starved — the buttons exist only in the rare race of a fresh approval arriving while
+  the app is ALREADY backgrounded. Remedy: replicate the permission-gated `actions` list in
+  `onBackgroundEntry`'s Spec (the record already holds kind/interactionId/taskId — the
+  same SpecAction builder applies).
+
+### Y3. Pass-1..8 defects re-confirmed this pass
+
+- **GAP-A2 (approvals never clear, P1) — re-confirmed an EIGHTH time, fresh receipt:**
+  inbox `Allow once` dispatched (`approvals.answer :: interaction=mock-approva
+  option=allowOnce`, 13:30:30) — the Permission card AND the Question card both remained
+  in the dump 4 s later, unchanged.
+- A1/A3–A11 not re-exercised this pass (app code unchanged; the pass-2..8 evidence stands
+  as the latest on-device record for each).
+
+### Y4. Rig learnings for the next pass
+
+1. **Widget picker IS reachable by adb** (home long-press → Widgets → swipe-scroll to the
+   app section); only the final DRAG-to-place is not automatable on API 30. An API 34 AVD
+   (`input motionevent`/`draganddrop`) or a debug bind hook would complete the binding leg
+   — record as rig debt alongside the pass-5 mock-arm debts (MOCK_AUTOMATIONS,
+   MOCK_OFFPEAK, and now MOCK_INTERACTION_PUSH for a fresh interaction delivered while
+   backgrounded).
+2. **The task-scoped notifications visible in the shade after ANY background entry are the
+   `onBackgroundEntry` re-posts**, not the fresh posts — a shade leg that wants the C3
+   action buttons must first make actions exist at all (A2 remedy / Y2). Wire-level
+   receipt for notification shape: `dumpsys notification --noredact`; API 30 does not
+   render per-record actions, so read the ranking `numWithActions` counter.
+3. **Broker records persist across app restarts** (`notify.brokerLoad :: records=3` at
+   process start): a cold boot shows the PREVIOUS session's pending interactions in the
+   shade, and the fresh-event diff produces no `notify.show` on reconnect — posts after
+   restart come exclusively from re-posts.
+4. The three attach arms cite DIFFERENT `WriteComponents.kt` lines (:832 Photo, :844
+   Attach-a-file, :854 Take-photo) — future receipts should name the arm + line, and the
+   eventual fix should assert all three in one test.
+5. The Take-photo arm is slow enough to render the system crash dialog; the other two die
+   before it appears. `Close app` → `am start` → CONNECTED ~2 s every time (three for
+   three this pass).
+6. Deep-link receipts: an `am start` against a RUNNING app logs "delivered to currently
+   running top-most instance" (the onNewIntent path); malformed URIs are silent no-ops
+   with zero FATALs — do not mistake the warning line for a failure.
+
+## Part Z — macOS desktop pass 9 (targeted enumeration)
+
+Asar digest re-measured byte-identical (`99e280fb90b626cc…`, mtime Sep 30, Info.plist
+3.14.5), so the pass-1..8 REA conclusions all stand. New targeted enumeration this pass,
+driven from the v3.14.3 source map (identifier greps against a minified asar are blind —
+UI component names don't survive bundling; distinctive STRING literals — i18n message
+ids, data-testids — do):
+
+### Z1. NEW boundary inventory completion (NOT a gap — B3 family): the multi-pane workbench
+
+The desktop opens MULTIPLE task conversations side-by-side: `WorkbenchPane.tsx` /
+`V4ChatPane.tsx` with per-pane shells (`TID_V4_PANE_SHELL = "v4-pane-shell"`), vertical
+split with drop-target panes (`onDropSession(paneId, side)`), focused-pane input
+semantics ("竖切多 pane 时由宿主传入 SessionPane.focused"), and the `/side` app-local slash
+command (ConversationComposer comment: "App 层本地斜杠命令（如 `/side`）"). Shipped-asar
+receipts: `side-pane` ×35, `splitPane` ×15, `TerminalTab` ×11. The phone is strictly
+single-conversation — desktop form factor, same class as keyboard shortcuts/command
+palette (E3), recorded here because no pass 1–8 ever enumerated the plane. The `side-pane`
+family also spans the in-conversation side pane (`workspaceSidePane.ts`: browser-use guest
+mounts — already the G18 boundary).
+
+### Z2. Evidence strengthening for existing defects/gaps (no severity changes)
+
+- **Composer attachment plane (A8 + G28).** The desktop's v4 composer carries a FULL
+  media+file attachment model (`ConversationComposer.tsx`: `isMediaChatComposerAttachment`
+  split, image/video preview via `ImagePreviewDialog`, keyboard `PasteCapturePlugin` +
+  `ChatComposerPasteEvent` in the Lexical input for paste-attach) — attach-and-send is a
+  working desktop surface that the phone reproduces with a FATAL on every arm (Y1:
+  :832/:844/:854). The desktop `uploadAttachment` services hits (×8) are the FEEDBACK
+  plane, not conversations — no desktop-side crash analogue exists.
+- **Hooks + MCP settings planes re-measured at the string level:** `settings.hooks.` ×174
+  + `hooks-settings-section` testid, `settings.mcp.` ×278 + `mcp-settings` testid —
+  SHIPPED and substantial (HookForm/HooksSection add-edit-delete + workspace hook trust;
+  McpSettingsSection + McpFailurePresentation), exactly as pass-2 E3 anticipated when it
+  classified hooks/MCP/plugin/workflow authoring as deliberate B3 boundaries. Re-cited
+  with receipts; no severity change.
+- **`promptHistory` ×4** (recent-prompts memory) and **`resumeSession` ×8** — small
+  desktop conveniences inside planes already covered (composer plane; task resume is at
+  phone parity per pass 6). No new gap.
+
+### Z3. Cross-checks that found NO new gap
+
+- **Voice input** — no voice/speech/microphone plane exists in the desktop UI (only i18n
+  strings and error-attribution files match): NEITHER platform has it. Parity.
+- **Terminal tabs** — desktop `TerminalSession`/tabbed interactive terminal re-confirmed
+  shipped (`settings.terminal` ×21); the phone's strictly view-only terminal remains
+  ADR-022 (E4), unchanged.
+
+## Part AA — remediation order update (supersedes only where pass 9 applies)
+
+1. **GAP-A8 stays FIRST, arm coverage re-confirmed against pass 2's map** (same frames
+   :832/:844/:854, same requestCode class — the fix is one shared PendingIntent-requestCode
+   helper asserted by a three-arm test). GAP-A2 second (EIGHTH same-session receipt, Y3).
+2. **NEW: GAP-A12 (P3)** joins the A-list behind A8/A2 — attach the permission-gated
+   `actions` list in `onBackgroundEntry`'s re-post Spec (`NotificationBroker.kt:179-188`);
+   the C3 receiver + haptic machinery already exist and are unit-covered, they are only
+   starved on this path. A pin: post an unseen approval record, enter background, assert
+   the posted notification carries two action intents (the `numWithActions` counter is the
+   wire-level oracle).
+3. **Rig debt (not app debt):** widget drag-placement needs an API 34 AVD or a debug bind
+   hook (Y4.1); MOCK_INTERACTION_PUSH arm for a backgrounded fresh-interaction leg.
+4. **Regression anchors to pin in the G-fix batches:** the `zcode://task` intake
+   (plain + `#interaction=` + the two malformed shapes — all four now live-verified), the
+   LiveConnectionService start/stop lifecycle, and the widget-picker presence.
+5. G-class and B3 inventory unchanged by this pass (Z1 multi-pane workbench recorded as a
+   boundary completion; Z2/Z3 re-cites only).
+
+Verification record (pass 9): emulator+relay rig ran ~30 min with ZERO emulator deaths and
+THREE deliberate app deaths (the three A8 attach arms, each with a clean relaunch +
+auto-reconnect), one system crash dialog rendered and dismissed (Y1). Census: 3 FATALs
+(all deliberate A8), 0 ANRs. Unit suites were NOT re-run: `git diff fd7046a..HEAD`
+contains only the report file and 2 mock-module lines, so the app code tree is
+byte-identical to the 1487-test green baseline (Part A) — the same reasoning accepted in
+passes 2–8.
