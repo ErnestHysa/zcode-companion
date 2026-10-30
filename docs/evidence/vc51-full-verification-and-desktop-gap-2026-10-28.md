@@ -2155,3 +2155,183 @@ arm, clean relaunch + auto-reconnect in ~2–3 s). Census: 1 FATAL (deliberate A
 0 unexpected app defects beyond AE2. Unit suites were NOT re-run: the app code tree is
 byte-identical to the fd7046a green baseline; the only code change this pass is in
 tools/mockzcode (rig-only), whose self-tests re-ran green.
+
+# Verification audit + re-adjudication legs — 2026-10-30 (APPENDED — pass 12; not part of the original audit)
+
+Scope: an INDEPENDENT verification of every claim in this report against the current
+tree (`main` @ `888d3aa` — app code still byte-identical to `fd7046a`, diff = this report
++ tools/mockzcode), the shipped desktop bundle (asar sha256 `99e280fb90b626cc…`
+re-measured byte-identical; Info.plist 3.14.5 re-read), the v3.14.3 source clone
+(`29628c9a`) + fetched v3.15.1/v3.17.1 tags, and the surviving /tmp rig artifacts
+(pass 1–3 walk dirs and relay logs are PURGED from /tmp; pass 4–11 artifacts survive).
+Verdict up front: the report is accurate where it is load-bearing — every A-defect
+mechanism confirmed at its cited code, 38 of 45 sampled desktop citation clusters exact
+(several to the line), and every meta claim reproduces exactly. THREE potential false
+positives were found (all in the desktop-gap matrix's phone-state columns, NONE in the
+A-defect list), plus minor drift — and two fresh rig legs re-adjudicated GAP-A4
+(REFUTED on the current build) and GAP-A11 (core CONFIRMED, two sub-claims corrected).
+No code was changed by this pass — verification + documentation round only.
+
+## AH1. Meta claims — ALL reproduce exactly
+
+asar digest `99e280fb90b626cc7bbaf33d9b5fcd652a8108ff5b3fbb0c770cd39c15d8d70f`
+(re-measured); Info.plist CFBundleShortVersionString 3.14.5; `git diff fd7046a..HEAD`
+= this report + `tools/mockzcode` only; the debug APK still in `app/build/outputs` is
+30,286,232 bytes with sha256 `342164798266a24f…` (the cited build, byte-exact); the
+1487-test record aggregates exactly from the persisted module XMLs (1,084
+`testDebugUnitTest` + 403 JVM `test` = 1,487 tests, 0 failures, 0 skipped, 17 modules);
+the REA evidence bundle `/tmp/rea-pass10-asar-bundle.json` carries artifact sha
+`99e280fb…` and manifest id `agm_27661707668b…` as cited; the W2 drift enumeration
+re-measures at exactly 1,462 files changed / 584 new (v3.14.3→v3.17.1, `packages/ui/src`)
+with TodoPanel/TaskSearchDialog/gen-ui/image-preview-editor/ToolCallBlocks all present in
+v3.17.1 and ×0 in the shipped asar.
+
+## AH2. POTENTIAL FALSE POSITIVES — verify before acting on these rows
+
+1. **G32 phone-state (pass-7 T2) — REFUTED.** T2 records `GitPort.switchBranch` as
+   "MODELED, never sent — no screen dispatches it." FALSE at the audited tree:
+   `features/git/.../ui/GitScreen.kt:411` dispatches it (`BranchSheet.onSwitch` →
+   `port.switchBranch(name)`, with a success snackbar on result) and the real wire op
+   exists at `app/.../connect/Phase9Ports.kt:218-219`
+   (`hub.activeTransport().gitSwitchBranch(...)`). The gap survives only NARROWER: the
+   phone can switch branches but has no branch-CREATE and none of the desktop's
+   switch-assist (commit-before-switch preview, `switchAssist.ts` blocked→commit machine).
+   Re-scope the row to "branch create + commit-assist missing; switch is shipped" — it
+   leaves the "Modeled, never sent" family (G3/G4/G6/G8 keep that classification).
+2. **G37 phone-state (pass-10 AC2) — REFUTED in part.** AC2 records the phone as
+   "English-only resources (single `values/`) with no locale surface." The first half is
+   false: `app/src/main/res/values-zh-rCN/` exists with a 259-line Chinese strings.xml.
+   What is genuinely absent is the IN-APP locale switcher/preference plane (no settings
+   surface; localization is system-locale-driven). Re-scope the row to "in-app locale
+   picker missing; zh-CN system-locale resources already ship."
+3. **Pass-2 E4 git cross-check — REFUTED as written.** E4 concluded "the only desktop
+   git mutation surface found is checkpoint restore," grading the phone at parity. The
+   desktop clone carries `GitActionMenu` commit dialogs
+   (`COMMIT_DIALOG_ACTION_IDS = ["commit","commitAndPush","push"]`, git-commit-dialog
+   testids, commit-message generate) and `GitBranchSwitcher` create/switch
+   (`createBranchAndSwitch`, `GitBranchDialogs.tsx`). Pass 7 later found the switcher
+   desktop-side but then mis-assessed the phone side (item 1). Net: E4's parity verdict
+   for the git mutation plane was wrong in both directions; G32-as-rescoped (item 1) is
+   the correct record.
+
+### AH3. Minor record drift (no severity changes, listed for accuracy)
+
+- **B1** "the phone sends 28 of the desktop's 34" — a recount of production send sites
+  through the `CommandSender` funnel gives **26** (eight types have zero send sites:
+  createSelectionSideSession, deleteQueueItem, snoozeInteractionAutoResolution,
+  cancelWorkflowRun, resumeWorkflowRun, amendWorkflowRunSettings, renameSession,
+  deleteSession). Parity conclusion unchanged.
+- **Pass-8 V1** checkpoint narrative says "TWO checkpoints in the list" — the surviving
+  walk8 dumps show a **ckpt-3** was also created (three creates, restore confirmed from
+  ckpt-3 against ckpt-2). Receipt unaffected.
+- **Asar string counts are subset-based UNDERCOUNTS** in several rows: zh-CN ×73 →
+  re-measures ×195; zai-light ×28 → ×57; zcodeInteractionBehavior ×18 → ×37; "Remote
+  connection" ×4 → ×5; workspaceSidebar.projectsSection ×3 → ×4; remote.trigger ×4 → ×5;
+  settings.locale.zh-CN ×4 → ×6; "Interface zoom" ×3 → ×1; ConversationShare family is
+  10 files (not 13–16); interfaceMode consumers measure 31 by strict grep (claimed 36).
+  Every string still SHIPS — substance unchanged; future passes should count over all of
+  `out/`, not a chunk subset.
+- **G35's "ZERO web-remote-control in the v3.14.3 clone"** — true for the hyphenated
+  string; camelCase `WebRemoteControl` has 12 line-hits in 3 clone files (a minimal
+  dialog/trigger stub). The substantive claim (the full mobile-shell/QR/pairing plane
+  ships only in the 3.14.5-content asar, ×267/×108 re-measured exact) stands.
+- **walk4/walk10 artifact counts** drift from the record (walk4: 32 xml + 33 png vs
+  claimed 36+36; walk10: 31 xml vs claimed 14 — the 2-screenshot count is right).
+  Pass 1–3 artifacts are purged from /tmp; those passes' quoted latencies and
+  `approvals.answer` wire lines were app-logcat receipts and are not re-verifiable from
+  artifacts (their UI-level corroboration survives in walk4–10 dumps).
+
+## AI. Pass-12 re-adjudication legs (fresh emulator + relay, ~40 min)
+
+Rig: zcode-pixel AVD cold boot (`-no-snapshot-load -gpu swiftshader_indirect -no-audio`,
+Android 11), relay on 10.0.2.2:18100 via `gradle --no-daemon
+:tools:mockzcode:mockRelayServer` (killed/restarted once by the safe `pkill -f
+MockRelayMainKt` to drop MOCK_QUEUE for the pass-5 geometry), stored pairing
+auto-reconnected on `install -r`. Evidence: `/tmp/walk-audit/` (9 png + 6 xml +
+`a11-landscape.xml` bounds analysis). Zero emulator deaths, zero app deaths, zero ANRs.
+
+### AI1. GAP-A4 (workflow Run… sheet keyboard, P3) — REFUTED on the current build
+
+The recorded defect ("the Run button is covered by the keyboard while the arg field is
+focused; the tap at the button's AX bounds lands on the keyboard") does NOT reproduce:
+
+- With the `version *` field focused and the IME confirmed up
+  (`dumpsys input_method mIsInputViewShown=true`), the Run sheet RISES above the
+  keyboard (manifest `adjustResize`): "Run release-notes" moved y1140→y455 and the Run
+  button reported full visible bounds `[904,1377][970,1427]` (vs its collapsed 10px band
+  at y2062 with the IME down — the known bottom-row AX artifact).
+- The button is not merely visible but FUNCTIONAL with the IME up: with "1.2.3" typed
+  into the field, a tap at the button's dump-bounds center (937,1402) FIRED the run —
+  wire receipt `MOCK: v4call sendConversationCommandV4 (id=74)` (the startSavedWorkflow
+  send), the "Workflow started" snackbar rendered, and the app navigated into the target
+  task — the full pass-1 behavior chain, executed with the keyboard still up.
+
+Disposition: A4 comes OFF the A-list as cannot-reproduce on the current build + rig
+(pass 1's observation is purged from /tmp, so no state comparison is possible; if it was
+real on that day's state, something since changed — the app code has not). Keep only the
+generic note that the sheet has no `imePadding` of its own (the manifest resize carries
+it). Portrait screenshot with the sheet + IME up: `/tmp/walk-audit/a4-ime-up.png`.
+
+### AI2. GAP-A11 (conversation landscape break, P3) — core CONFIRMED; sub-claims corrected
+
+Re-adjudicated in BOTH geometries (with the MOCK_QUEUE strip, and with the relay
+restarted WITHOUT it to reproduce pass 5's exact plane):
+
+- **CONFIRMED (the load-bearing half):** the pinned interaction card collapses to a
+  ~53px sliver in landscape — the "Agent needs your input" title renders with its glyphs
+  HALF-CUT and the AX text node is 16px tall (`[208,388][599,404]`, ~40px is normal);
+  no radio/answer/Submit content is reachable. Reproduced identically with and without
+  the queue strip. Portrait is functionally fine (the card is height-budget-capped there
+  too — by design, internally scrollable — with options visible and the FAB anchored at
+  the composer corner; "Portrait unaffected" holds).
+- **REFUTED (sub-claim 4):** "the 3-button nav bar paints OVER the app content — no
+  nav-bar inset." Pixel evidence: the app surface is RGB(247,248,252) and ends at
+  x≈2170–2180, while the nav band is a distinct RGB(254,254,255) from ~x2193 — the
+  conversation column RESPECTS the landscape nav inset (content right edge = nav-band
+  start minus the 16dp card margin). The nav buttons never overlap app content.
+- **NOT REPRODUCED (sub-claim 2):** no capture in either geometry shows timeline-row
+  text painting OVER the clipped strip — the first row renders below it (immediately
+  adjacent, zero gap, ugly but not overlapping).
+- **CONFIRMED-IN-SUBSTANCE (sub-claim 3):** with the queue strip absent and the timeline
+  scrolled, the jump-to-latest FAB floats MID-CONTENT at ~53% screen height over the
+  timeline rows (device ~(2086,577)) rather than anchoring at the composer edge as it
+  does in portrait — the recorded "floats mid-content" observation reproduces; note it
+  is partially inherent to the collapsed-timeline state.
+
+Fix scope narrows to what A11 always was at its core: give the landscape pinned stack a
+usable height budget (the portrait budget collapses to a sliver at 1080px height) — the
+nav-inset and row-overlap halves of the recorded fix direction are already correct in
+the app. Severity P3 stands (a pending interaction is unusable in landscape).
+
+### AI3. Rig learnings for the next pass
+
+1. **The pass-5 "host drags cannot scroll the timeline while an interaction is pending"
+   learning was a MISATTRIBUTION** — swipe-driven scrolling works; the pass-5/queue-geometry
+   swipes were being CONSUMED by the queue card / pinned surface they started on. With
+   the queue strip absent, the identical swipe scrolled the timeline immediately.
+   Target swipes at the ROW band, not the card band.
+2. The draft-leave confirm ("Leave this conversation?") fires on back-press with an
+   unsent draft — budget one extra tap for any conversation-exit leg (correct fail-safe
+   behavior, first observed live).
+3. Run-sheet legs: the sheet's Run button reports a 10px AX band at the screen bottom
+   with the IME down and full bounds once the IME is up — derive taps from the IME-up
+   dump, not the IME-down one (inverse of the composer learning).
+4. `input text` into a freshly-focused empty field works without the MOVE_END dance;
+   the caret-at-0 trap only bites non-empty fields.
+
+### AI4. Remediation-order deltas (supersedes only where this pass applies)
+
+1. **GAP-A4 is WITHDRAWN from the A-list** (cannot-reproduce, AI1) — round-A ordering
+   becomes A8 → A2 → A13 → A1 → A6/A7 → A9.
+2. **GAP-A11's fix narrows** to the landscape pinned-stack height budget (AI2); drop the
+   nav-inset and row-overlap items from its fix/pin description.
+3. **G32/G37/E4 rows re-scope per AH2** before any G-batch picks them up: G32 = branch
+   create + commit-assist (switch shipped); G37 = in-app locale picker (zh-CN resources
+   already ship); E4's git-parity paragraph is superseded by AH2 item 3.
+4. Everything else in Parts AG/AD/AA/X/U/R/O/L/I/F/C stands — the A-defect list, the
+   G-matrix, the B3 boundary inventory, and the drift WATCH all verified sound.
+
+Verification record (pass 12): rig ran ~40 min across two relay configurations with
+ZERO emulator deaths and ZERO app crashes; one deliberate relay kill/restart (flag
+re-arm); no new defects. Census: 0 FATALs, 0 ANRs. Unit suites were NOT re-run (app tree
+byte-identical to the fd7046a baseline; meta-verified at AH1 by XML aggregation).
