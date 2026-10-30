@@ -995,3 +995,201 @@ same repro) — followed by a clean relaunch. Census: 1 FATAL total, 0 ANRs, 0 a
 ERROR log lines. Unit suites were NOT re-run: `git diff fd7046a..7f0b1f9` contains only the
 report file and 2 mock-module lines, so the app code tree is byte-identical to the
 1487-test green baseline (Part A) — the same reasoning accepted in passes 2, 3 and 4.
+
+---
+
+# Sixth pass — 2026-10-30 (APPENDED — pass 6; not part of the original audit)
+
+Scope: same mandate, sixth run ("live emulation + verify everything + REA the macOS app +
+document every gap"). All commits after `fd7046a` remain docs + 2 mock-module lines, so
+every pass-1..5 defect and G-gap is expected to still exist; pass 6 deep-walks the task
+verb plane end-to-end for the first time (Rename / Archive / Resume / Move-to-group plus
+the group CREATE + ASSIGN loop — never executed in passes 1–5), the composer's @-mention
+entry, the model-calls search filter, the terminal Pause/Search chips, and the
+notification + live-connection toggle persistence. One NEW desktop gap (G30, bots) and a
+handful of boundary-plane completions; NO new app defect — the untouched surfaces all
+behaved. No code was changed by this pass — verification + documentation round only.
+
+Tree under audit: `main` @ `322b9a3` (app code identical to `fd7046a` — `git diff
+fd7046a..322b9a3` is the report file + 2 mock-module lines; versionName 1.3.0 via
+`dumpsys package`). The pass-4/5 install is still on the AVD (lastUpdateTime 2026-10-28
+21:30:55, the fd7046a build); it auto-reconnected to the fresh mock on first launch and
+update.check sees desktop 3.14.3. Desktop target unchanged: `/Applications/ZCode.app`
+asar sha256 `99e280fb90b626cc…` (re-measured this pass, byte-identical — the pass-1/2 REA
+Evidence remains valid).
+
+Evidence: 36 screenshots `/tmp/walk6/*.png` + uiautomator dumps `/tmp/walk6/d*.xml`; mock
+relay wire log `/tmp/mock-relay-pass6.log` (142 v4call lines; renameTask/archiveTask/
+resumeTask/createTaskGroup/listGroupedTaskViewStructure receipts); app logcat
+(`approvals.answer … option=allowOnce`, the A8 FATAL + `Process com.zcode.android.app
+(pid 4739) has died`); desktop source reference clone v3.14.3 `29628c9` at
+`~/Desktop/DEVPROJECTS/zcode/repo`.
+
+Rig: zcode-pixel AVD cold boot (`-no-snapshot-load -gpu swiftshader_indirect -no-audio`),
+MockZCode relay on `10.0.2.2:18100` via `gradle --no-daemon :tools:mockzcode:mockRelayServer`
+with the same all-flags arming (`MOCK_ROWS=40 MOCK_GOAL=1 MOCK_APPROVAL=1 MOCK_ROW_ACTIONS=1
+MOCK_WORKFLOWS=1 MOCK_TASKMGMT=1 MOCK_QUESTION=1 MOCK_HOOKS=1 MOCK_COMPACT=1
+MOCK_ATTACHMENT=1 MOCK_SCENARIO=HAPPY`). Zero emulator deaths; one deliberate app death.
+
+## Part P — pass-6 live emulation
+
+### P1. NEW verified surfaces (first executed this pass; wire receipt where relevant)
+
+| Surface | Result |
+| --- | --- |
+| **Task Rename (full loop)** | Task-2 ⋯ → Rename → dialog with pre-filled field → edit → confirm → `zcode-task.renameTask ok` (00:55:08). The row label stays "Synthetic task 2" because the mock acks without mutating its task store (the pass-5-documented rig-fidelity class for rename/archive); the app's dispatch path is what this pass verifies |
+| **Task Archive (typed confirm)** | Task-3 ⋯ → Archive → confirm sheet `Archive "Synthetic task 3"? Archived tasks can be restored later.` (Cancel/Archive) → `zcode-task.archiveTask ok` (00:58:48). First execution of the verb (passes 1–5 only listed the menu item) |
+| **Task Resume** | Task-3 ⋯ → Resume → `zcode-task.resumeTask ok` (01:03:21). First execution |
+| **Move to group… sheet** | Task ⋯ → Move to group… → bottom sheet "Move to group" listing `No group / ● Backend ✓ / New group…` — the current group carries a checkmark. First walk of the sheet (pass 1 listed the menu row only) |
+| **Task-group CREATE** | Sheet → "New group…" → dialog (name field + Create) → "Rig-p6" → `zcode-task.createTaskGroup ok` + immediate `zcode-task.listGroupedTaskViewStructure begin/ok` refresh → the Tasks list renders a new `● Rig-p6 [1] ✏️` group header. The phone can AUTHOR task groups — the desktop's `✏️` group-edit affordance counterpart verified live for the first time |
+| **Task-group ASSIGN** | Sheet → pick "Rig-p6" → "Moved to group" snackbar → Synthetic task 3 now renders UNDER the Rig-p6 header (count 1). The mock's group store DOES mutate for the group plane (unlike rename/archive) — the full create→assign→render loop is observable end-to-end |
+| **Workspace chips** | All ⇄ Synthetic One selection toggle verified (filled chip swaps; tapping "Synthetic One" fills it and "All" un-fills). The filter itself is non-discriminating on this rig — every mock task lives in Synthetic One, so the list content is identical either way (recorded so future passes don't chase a "broken" filter) |
+| **Composer @-mention entry** | + menu carries `Attach a file / Mention a file / Photo / Take photo`; "Mention a file" inserts `@` into the composer and focuses it. The live suggestion panel stays hidden by the empty-hits gate (`WriteComponents.kt:699` renders only `mentionHits.isNotEmpty()`): the port's `searchWorkspaceFiles` is the mock's unscripted channel (same class as the Files panel), `runCatching → getOrDefault(emptyList())` swallows the fault — rig-blocked, NOT an app break (the mechanism is unit-pinned in `MentionFilesUiTest`, which feeds the provider directly). Bare `@` with no query also shows nothing by design |
+| **Model-calls search filter** | Context sheet → Model calls → pane with search field + per-call cards (main `glm-5.3 · 4200ms · tool_calls / Checking the workspace state / tools: bash`, main `glm-5.3 · 950ms / RateLimitError: 429`). Typing "bash" narrows the pane to exactly the tool-call card — the 950ms error-only card is filtered out. Pass 1 verified the sheet exists; filtering behavior is new evidence |
+| **Terminal Pause ⇄ Resume** | Attached terminal (`live — /bin/zsh`): the header Pause chip flips in place to Resume and back. Pass 5 verified Copy; the pause cycle is new |
+| **Terminal Search** | The Search chip opens a `Search output` field spanning the pane top. (Empty pane → no matches to walk; the field's presence + focus is the evidence) |
+| **Notification toggles persist** | "Task finished / failed" switch flips OFF and back ON, state survives re-dumps (the three switches: Approval requests / Task finished-failed / Connection lost, all default ON) |
+| **Auto-reconnect checks toggle** | OFF by default; flips ON and persists; restored to OFF. ("Live connection" window switch also OFF by default — both are opt-in) |
+| Question card + compaction lifecycle (re-observed) | The full multi-option elicitation card (Channel radio: Tag the release / Cut a branch + "Or type your own answer") and the complete compaction row set (Compressing context → Context automatically compressed 180K → 42K tokens → Context compression failed + Retry) rendered again while walking |
+
+### P2. NEW defects
+
+None. Every surface touched this pass that hadn't been executed before behaved correctly;
+the two re-confirmed defects are the standing P1s below.
+
+### P3. Pass-1..5 defects re-confirmed this pass
+
+- **GAP-A8 (attach-send crash, P1) — re-confirmed a FIFTH time with the same deliberate
+  repro:** conversation composer + → Photo → identical FATAL
+  (`IllegalArgumentException: Can only use lower 16 bits for requestCode` at
+  `FragmentActivity.checkForValidRequestCode:714`, 01:20:20) and
+  `Process com.zcode.android.app (pid 4739) has died`; clean relaunch restored the
+  conversation stack and reconnected (`listSavedWorkflowRuns ok`, update.check 3.14.3).
+  Fifth consecutive pass reproducing it.
+- **GAP-A2 (approvals never clear, P1) — re-confirmed a FIFTH time, fresh answer this
+  session:** inbox "Allow once" dispatched (`approvals.answer :: interaction=mock-approva
+  option=allowOnce`, 01:19:29) — the Permission card AND the Question card both remained
+  in the dump 5 s later, and the inbox badge (2) still counts from the stored records
+  carried since pass 5 (stale records survive process death, re-observed).
+- A1/A3–A7/A9–A11 not re-exercised this pass (app code unchanged; the pass-2..5 evidence
+  stands as the latest on-device record for each).
+
+### P4. Rig learnings for the next pass
+
+1. **The rendered-screenshot scale is NON-UNIFORM vs device pixels in this environment**
+   (x-scale ≈1.19 and y-scale ≈1.17 observed on the SAME capture, and it drifts between
+   captures). Deriving tap coords from a global scale misses. Correct method: take the
+   dump, tap ONLY nodes the dump bounds directly, and for AX-merged/[0,0] rows derive x
+   from a same-row dump-anchored sibling and y from the adjacent-row pitch — never from
+   the displayed image.
+2. **The context-sheet "Model calls"/"Share" chip line sits directly under the sheet's
+   DRAG HANDLE touch target** — a tap landing a few px high long-presses the handle
+   (a "Drag handle" toast renders) and can close the just-opened pane. Approach the chip
+   row from its own dump-pitch coordinates, and prefer the Files/Git/Terminal row (fully
+   AX-exposed at y≈2041) as the anchor: the second chip line is one ~84px pitch below.
+3. **`input text` inserts at cursor position 0 when a field gains focus without a caret
+   position** ("@s" typed as "s@") — `keyevent KEYCODE_MOVE_END` first, or type the full
+   query in one `input text` after clearing.
+4. **The mock's group store MUTATES for `createTaskGroup` + group assignment** (the new
+   group renders and the assigned task moves under it), unlike rename/archive where the
+   ack doesn't mutate the task store. Group-plane legs are therefore fully observable
+   end-to-end; rename/archive assertions must target the wire receipt, not the label.
+5. Stale-dump + dialog learning reconfirmed twice more (post-Archive-sheet dump kept
+   pre-cancel content; post-Rename dump kept the dialog). Screenshot after every dialog
+   transition; fresh dump only after a route change.
+6. `input tap` on the confirm sheet while the keyboard is up hits DISPLACED buttons —
+   dismiss the keyboard (`keyevent 111`) before tapping dialog confirms (cost one
+   no-op Rename round).
+
+## Part Q — macOS desktop pass 6 (targeted enumeration)
+
+Asar digest re-measured identical (`99e280fb90b626cc…`) so the pass-1/2 REA analysis and
+B/E/H/K/N conclusions stand; this pass enumerated the ui/src planes the earlier passes did
+not cite, from the v3.14.3 source clone.
+
+### Q1. NEW GAP-G30 (P4, boundary decision): bots/integrations management plane
+
+Desktop: a full chat-bot integration subsystem — `BotsDialog.tsx` (data loading, saving and
+polling orchestration, explicitly noted in its header) + `BotsDialog/` cards
+(`BotSummaryCard`, `ProviderSettingsCard`, `WorkspaceAccessCard`, `shared.tsx`), the
+`BotConfig` shape in `packages/shared/src/bots.ts` (provider, enabled, `credentialRef`,
+`webhookUrl`/`webhookSecretRef`/`webhookAuthHeaderName`, `feishuAppId`,
+`providerUserId`, `displayName`, `allowedWorkspaces[]`, `BotWorkspaceRef`,
+`BotServiceStatus`), surfaced from `WebRemoteControlDialog.tsx`. The desktop can register
+webhook/Feishu bots that drive ZCode sessions remotely, scoped to workspaces. Phone state:
+zero bot surfaces anywhere (no matches in app/core/data/features). This is a genuinely
+missing plane (not a documented boundary): on-par minimum = a read-only bots viewer in the
+Insights/Endpoints family + the create/edit/credential entry if on-par is ever redefined.
+Joins the G21–G29 boundary-decision tickets as its own row because, unlike G21–G29, the
+phone has NO related surface to extend.
+
+### Q2. Evidence strengthening for existing gaps (no severity changes)
+
+- **G17/G28 (preview depth)** — the desktop's `presentation/` plane surfaced:
+  `pptxRendererPreviewEngine.ts` (a full pptx RENDER engine), `presentationPdfPrintExport`,
+  `presentationPreviewControls`, `presentationTextSelection`, `presentationElementModel` —
+  the desktop previews (and PRINTS/EXPORTS) presentations, deepening the attachment/
+  artifact preview gap the earlier passes documented at the preview-source level.
+- **G9 (shared-context handover)** — the desktop composer is a Lexical plugin suite
+  (`mentions/MentionPlugin.tsx`, `PromptClipboardPlugin`, `promptSerialization.ts`,
+  `mentionMarkdown.ts`, `mentionPanelRouting.ts`): the mention/context-ref family is
+  editor-grade on the desktop, while the phone has the data path (port + menu entry +
+  unit pins) but no live panel on this rig — one more anchor for whoever finishes the
+  phone mention panel.
+
+### Q3. Boundary inventory completion (NOT gaps — B3 families, cited for completeness)
+
+- **resource-manager/** (`ResourceManagerApp`, `resourceUsageView.ts`, storage bridge):
+  the desktop's own process telemetry (per-process CPU/memory grouped base / builtin-plugin
+  / community-plugin) — desktop-form-factor self-monitoring, not a companion feature.
+- **command-center/** (`CommandCenterDialog`, search history) + **quickpick/**: keyboard
+  global-action palette — desktop input-form-factor (the phone's app shortcuts +
+  navigation cover the intent).
+- **git-graph/** (`GitGraphDialog/Pane/Display`, `layoutAlgorithm.ts`): the desktop draws
+  the commit GRAPH; the phone's GitScreen cites git-graph parity for CONTENT (7-char-hash
+  commit rows, MM/dd HH:mm dates) and the ADR-021 write tier is already broader than the
+  read-only original — visualization-only delta, boundary class.
+- **SSH/remote-connection wizard** (`SSHDialog.tsx`, `RemoteConnection*`): SSH host
+  authoring is a desktop-form plane; the phone's endpoint model (relay QR + direct
+  endpoints, A10's form) is the companion shape.
+- **shortcuts/** plane: keyboard-shortcut management — desktop-form.
+- **DeveloperToolsPane / DesktopTopOverlay / window caption controls**: desktop chrome.
+
+### Q4. Cross-checks that found NO new gap
+
+- **Elicitation plane parity** — the desktop's 1,161-line `ElicitationDialog.tsx` speaks
+  the SAME resolveInteraction plane the phone has shipped since pass 1 (the coordinator's
+  `submitElicitationAnswers` even cites "desktop ElicitationDialog.buildElicitationResponseContent"
+  as its wire-shape reference, and `submitElicitationDecline` mirrors the desktop's
+  decline/cancel actions). The pass-1 multi-question card + decline variant is the phone
+  side of this exact dialog — parity, not a gap.
+- **Bots ABSENCE on the phone is total** (Q1) — checked bots/scratch/integration greps
+  across app/core/data/features to be sure it isn't an unexercised-but-present plane.
+- **Task verbs** — the phone's verb set now empirically covers rename/archive/resume/
+  pin/mark-read/move-to-group/group-create/delete-confirm, matching the desktop's task
+  context menu surface class (`useTaskListItemContextActions.ts`).
+
+## Part R — remediation order update (supersedes only where pass 6 applies)
+
+1. **GAP-A8** stays FIRST (re-confirmed pass 6, identical FATAL + process death; fifth
+   consecutive pass with the same repro).
+2. GAP-A1/A2, A6/A7, A9, A10, A11 unchanged (Part O ordering stands; A2 now has a fifth
+   same-session receipt).
+3. **G30 joins the G21–G29 boundary-decision tickets** (P4; note it is the only one with
+   NO existing phone surface to extend — a read-only bots viewer is the minimum-on-par
+   seed, mirroring the plugins/MCP viewer pattern).
+4. Mock remedies for the NEXT code-touching pass (cheap, unblocks two rig-blocked legs):
+   `MOCK_WORKSPACE_FILES` (serve `searchWorkspaceFiles` so the live mention panel can be
+   exercised) — joining pass 5's `MOCK_AUTOMATIONS`/`MOCK_OFFPEAK` request.
+5. Pass-6 P1 surfaces (group create/assign, model-calls search filter, terminal
+   Pause/Search, notification/connection toggles, rename/archive/resume wires) need NO
+   remediation — recorded as regression anchors: a pin per surface in the G-fix batches
+   would lock them in.
+
+Verification record (pass 6): emulator+relay rig ran ~45 min with ZERO emulator deaths;
+the APP died exactly once — the deliberate GAP-A8 Photo-arm repro (fifth pass running the
+same repro) — followed by a clean relaunch that reconnected on its own. Census: 1 FATAL
+total, 0 ANRs, 0 app-level ERROR log lines. Unit suites were NOT re-run: `git diff
+fd7046a..322b9a3` contains only the report file and 2 mock-module lines, so the app code
+tree is byte-identical to the 1487-test green baseline (Part A) — the same reasoning
+accepted in passes 2–5.
