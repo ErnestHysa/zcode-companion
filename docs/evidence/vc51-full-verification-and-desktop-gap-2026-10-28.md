@@ -1410,3 +1410,223 @@ relaunch that reconnected on its own. Census: 1 FATAL total, 0 ANRs. Unit suites
 re-run: `git diff fd7046a..b00a8db` contains only the report file and 2 mock-module lines,
 so the app code tree is byte-identical to the 1487-test green baseline (Part A) — the same
 reasoning accepted in passes 2–6.
+
+# Eighth pass — 2026-10-30 (APPENDED — pass 8; not part of the original audit)
+
+Scope: same mandate, eighth run ("live emulation + verify everything + REA the macOS app +
+document every gap; append only what's new"). App code unchanged since `fd7046a`, so every
+pass-1..7 defect and G-gap is expected to still exist; pass 8 executes the surfaces no
+earlier pass ran: BOTH never-invoked launcher shortcuts (Connection + New task), the task
+Pin/Unpin verbs, the task DELETE verb (first execution in any pass, on a fresh rig-created
+task), the approvals "Open task to answer" navigation, the needs-approval tool-row expand,
+the SHADE notification deep-link end-to-end (tap a task-scoped notification → task
+conversation), the checkpoint CREATE→RESTORE loop (three snapshots + the Restore dialog +
+wire), the terminal-consent DENY path, and the Diagnostics EXPORT verb. One new phone-side
+ledger item (checkpoint list is mount-local), the two standing P1s re-confirmed with fresh
+receipts (A8 7th repro at `WriteComponents.kt:832`, A2 7th receipt). On the desktop side the
+drift enumeration against newly fetched upstream tags surfaced a SHIPPED plane every prior
+pass missed (G35, the web-remote-control browser-companion surface) plus a protocol WATCH
+(Relay V2 upstream) — see Part W. No code was changed by this pass — verification +
+documentation round only.
+
+Tree under audit: `main` @ `f582edf` (app code identical to `fd7046a` — `git diff
+fd7046a..f582edf` is the report file + 2 mock-module lines; versionName 1.3.0 via `dumpsys
+package`, lastUpdateTime 2026-10-30 11:05:44). Fresh `adb install -r` over the pass-7 data;
+the stored pairing auto-reconnected on first launch (AUTHENTICATING → CONNECTED ~2 s) with
+the recorded first-launch `update.check :: desktop=null state=UpToDatenull` bootstrap race,
+self-healed to `desktop=3.14.3` (same as pass 7). Desktop target unchanged:
+`/Applications/ZCode.app` asar sha256 `99e280fb90b626cc…` (re-measured byte-identical AND
+freshly re-analyzed) — but see W3: the bundle's Info.plist reads **3.14.5**, and the
+"3.14.3" strings in app logs are the MOCK-served version, not the real desktop.
+
+Evidence: 16 screenshots `/tmp/walk8/*.png` + 52 uiautomator dumps `/tmp/walk8/d*.xml`;
+mock relay wire log `/tmp/mock-relay-pass8.log` (all-flags arming identical to pass 7:
+`MOCK_ROWS=40 MOCK_GOAL=1 MOCK_APPROVAL=1 MOCK_ROW_ACTIONS=1 MOCK_WORKFLOWS=1
+MOCK_TASKMGMT=1 MOCK_QUESTION=1 MOCK_HOOKS=1 MOCK_COMPACT=1 MOCK_ATTACHMENT=1
+MOCK_SCENARIO=HAPPY`); app logcat receipts quoted inline; REA Evidence
+`ev_efbace083192d31fcaae4b099b771acbd61331f343a667a161ebab8f2b32f0ac` (fresh shipped-asar
+analysis via the rea CLI — the MCP path times out at this harness's 30 s wall — 23,186
+relevant files / 22,125 parsed JS / 1,359 modules, byte-identical census to pass 7's
+`ev_43c0a566…`, same documented post-signing `pty.node`/`spawn-helper` record-and-continue
+note); desktop source reference clone `~/Desktop/DEVPROJECTS/zcode/repo` at v3.14.3
+`29628c9`, now also carrying fetched tags **v3.15.1** and **v3.17.1**.
+
+Rig: zcode-pixel AVD cold boot (`-no-snapshot-load -gpu swiftshader_indirect -no-audio`),
+MockZCode relay on `10.0.2.2:18100`. Zero emulator deaths; one deliberate app death (A8);
+one app exit via back-press overshoot at the Tasks root (known rig trap, recovered by
+relaunch).
+
+## Part V — pass-8 live emulation
+
+### V1. NEW verified surfaces (first executed this pass; wire receipt where relevant)
+
+| Surface | Result |
+| --- | --- |
+| **Connection app shortcut INVOKED** | The exact shortcut intent (`act=com.zcode.android.app.action.SHORTCUT --es zcode.shortcut connection`, explicit `-n …MainActivity`) opens the **Connection screen**: `MockBook · desktop 3.14.3 · Connected · Last refreshed 1 min ago` plus the full state-ladder legend (Not paired / Validating a pairing link / Proving identity to the relay / Connecting / Opening the workspace bridge / Synchronizing / Re-syncing after reconnect / Connected "Live. Tasks and conversations stream." / Reconnecting / Could not reconnect… / Disconnected / Connection failed / Pairing expired or invalid / Pairing removed from this device / Check for updates / Closed). Pass 7 verified shortcut publication only; this route has never been walked |
+| **New-task app shortcut INVOKED** | `zcode.shortcut=new_task` opens the **New task create sheet directly** (workspace prefilled `Synthetic One`, description field focused, Model line) — the third published shortcut is now launch-verified (approvals was pass 7) |
+| **Task Pin verb** | Task-3 ⋯ → Pin → `zcode-task.setTaskPinned ok` (11:10:49) + `Task pinned` toast + immediate `listGroupedTaskViewStructure` refresh. The row does NOT move under Pinned — the mock acks without mutating its pinned store (the pass-2 rename/archive rig-fidelity class); the dispatch path is what's verified |
+| **Task Unpin verb** | Pinned task-1 ⋯ → Unpin → `zcode-task.setTaskPinned ok` (11:11:27) + `Task unpinned` toast. First execution of the unpin arm |
+| **Task Delete verb (FIRST execution in any pass)** | Created a fresh task `Rig-p8` (`hub.createTask :: workspace=/synthetic/ws-one outcome=Accepted`, 11:13:57 — re-verifying the pass-7 create anchor en route) → its ⋯ menu → Delete → confirm sheet `Delete task?` → `zcode-task.deleteTask ok` (11:15:17) + `Task deleted` toast. The row persists because the mock acks without mutating (rig fidelity) |
+| **Approvals "Open task to answer"** | The inbox card affordance navigates INTO the task conversation (session bar `yolo · GLM-5.3-Flash · max`, the pending `Tool Bash — Needs approval` row, compaction lifecycle rows) — first navigation execution of that affordance (passes 1–7 rendered it only) |
+| **Needs-approval tool-row expand** | `Tool Bash, Needs approval. Tap to expand.` flips in place to `Tap to collapse` revealing the INPUT block (`echo synthetic`) + `Needs approval` chip. No inline Approve/Deny on the row — the cards/inbox remain the answer surfaces, consistent with the approval model |
+| **Shade notification deep-link END-TO-END (FIRST live execution)** | App backgrounded → the shade holds BOTH task-scoped interaction notifications (`ZCode needs your approval` + `ZCode has a question for you`, channel=permissions, importance HIGH, each with a real contentIntent) → tapping the approval notification opens the app DIRECTLY into the Synthetic task conversation with the pending Bash approval on screen. Pass 7 proved the connection-lost post has NO intent; this pass proves the task-scoped posts DO — the deep-link pair is now fully characterized |
+| **Checkpoint create + RESTORE loop (FIRST execution of restore)** | `Snapshot` → `git-checkpoint.createCheckpoint ok` (ckpt-2, 11:37:20; ckpt-1 re-created at 11:20:36 earlier) → with TWO checkpoints in the list the head row renders a **Restore** button → confirm sheet `Restore this checkpoint?` → `git-checkpoint.restoreBetweenCheckpoints ok` (11:39:13). The restore verb is wired end-to-end (pass 1 only listed the Checkpoints section) |
+| **Terminal consent DENY path** | Settings → `Terminal (view-only)` switch OFF (checked=false verified in the dump) → conversation Terminal pane now renders the fail-closed `Enable terminal (view-only)` gate instead of attach. The gate re-arms when consent is revoked (passes 1–6 only walked the enable direction); consent restored ON after the leg |
+| **Diagnostics Export verb** | Settings → Diagnostics → `Export diagnostics` → the SYSTEM share sheet opens with `zcode-diagnostics-1793359347557.txt` as the attachment (Bluetooth/Gmail/Messages/Drive targets). Pass 1 listed the row; the export verb is first executed here |
+| Plugins On/Off are display-only (re-confirmed deliberately) | Tapping a plugin's On/Off indicator produces no state change and no wire call (`listPlugins` read is the only channel traffic) — `Installed plugins and their state (read-only)` is honest, INV-9 class |
+
+### V2. NEW defect / ledger item
+
+- **Checkpoint list is mount-local (small, P4).** `GitScreen.kt:753` holds the checkpoint
+  list in `remember { mutableStateOf(emptyList()) }`, appended only on create
+  (`listOf(meta) + checkpoints`, `GitScreen.kt:780`); NO list call fires on entry (logcat
+  receipt — only `createCheckpoint` traffic). Live proof: ckpt-1 created at 11:20:36 was no
+  longer listed after the A8 restart (11:29) even though the host still holds it — the card
+  fell back to `No snapshots in this session`. Consequence: the Restore affordance (which
+  needs an EARLIER checkpoint in the list, `GitScreen.kt:817-823`) is unreachable after any
+  app restart, so the phone can only restore inside one uninterrupted screen mount while
+  the desktop's checkpoint plane persists. Remedy: hydrate the list from the host on entry
+  (the `restoreBetweenCheckpoints` channel already exists and works — V1).
+
+### V3. Pass-1..7 defects re-confirmed this pass
+
+- **GAP-A8 (attach-send crash, P1) — re-confirmed a SEVENTH time, identical repro:**
+  conversation + → Photo → FATAL `IllegalArgumentException: Can only use lower 16 bits for
+  requestCode` at `WriteComponents.kt:832` (11:28:47) and `Process com.zcode.android.app
+  (pid 4420) has died: prcp TOP`. Relaunch recovered cleanly: AUTHENTICATING → CONNECTED in
+  ~2 s with the conversation stack restored.
+- **GAP-A2 (approvals never clear, P1) — re-confirmed a SEVENTH time, fresh answer this
+  session:** inbox `Allow once` dispatched (`approvals.answer :: interaction=mock-approva
+  option=allowOnce`, 11:16:38) — the Permission card AND the Question card both remained in
+  the dump 3 s later (byte-identical dump size).
+- A1/A3–A7/A9–A11 not re-exercised this pass (app code unchanged; the pass-2..7 evidence
+  stands as the latest on-device record for each).
+
+### V4. Rig learnings for the next pass
+
+1. **Dynamic app shortcuts need the explicit component on `am start`** — action-only start
+   fails with `unable to resolve Intent` (the shortcut intents are launcher-delivered, not
+   manifest-filtered); add `-n com.zcode.android.app/.MainActivity` and the exact
+   `--es zcode.shortcut <id>` fires the launcher-identical path.
+2. **The two task-scoped notifications post at CONNECT time** (pendingInteractions
+   reconciliation on bootstrap) and STAY in the shade while the app is backgrounded — the
+   shade deep-link leg is cheap and repeatable with no new mock arm. The connection-lost
+   kill-leg from pass 7 remains the other standing notification leg.
+3. The create sheet's Cancel/Create STILL never materialize AX bounds ([0,0] in every dump
+   this pass, same as pass 7) — screenshot-derived taps remain the reliable path there.
+4. **Back-stack shape:** Approvals → `Open task to answer` pushes the conversation ON TOP
+   of the approvals screen — back from that conversation lands in the INBOX, not Tasks;
+   from there one more back reaches Tasks. Plan back-presses to the route stack, not to
+   assumed roots.
+5. Checkpoint-restore leg needs TWO creates within ONE screen mount (the list is
+   mount-local, V2); with the app freshly (re)mounted, create ×2 then the head row carries
+   Restore — a 3-tap leg once armed.
+
+## Part W — macOS desktop pass 8 (targeted enumeration + drift)
+
+Asar digest re-measured byte-identical (`99e280fb90b626cc…`) AND freshly re-analyzed
+(Evidence `ev_efbace08…`; 23,186 relevant files / 22,125 parsed JS / 1,359 modules — the
+identical census to pass 7), so the pass-1..7 REA/B/E/H/K/N/Q/T conclusions all stand. NEW
+this pass: the upstream reference tags v3.15.1 and v3.17.1 were fetched into the source
+clone, and the drift enumeration against them surfaced a SHIPPED plane every prior pass
+missed — because the v3.14.3 source map does not contain it.
+
+### W1. NEW GAP-G35 (P3, boundary decision): the shipped web-remote-control plane — the desktop hosts its own browser-based mobile companion
+
+Shipped receipts: **267 `WebRemoteControl` + 108 `web-remote-control` hits** in the audited
+asar, with a full early-surface identifier inventory — verbs `StartWebRemoteControl /
+StopWebRemoteControl / ResetWebRemoteControlPairing / GetWebRemoteControlStatus /
+SyncWebRemoteControlTasks / SyncWebRemoteControlWorkspaces /
+WebRemoteControlReconnectWorkspace`, transports `WebRemoteControlDeviceTransport +
+RpcTransportAssembler + RelayPayloadSerializer + RpcTransportEncodingError`, auth
+`createNodeWebRemoteControlRelayAuthProvider`, pairing `buildWebRemoteControlExternalQrUrl`
++ pairing-result/start-result telemetry, `createWebRemoteControlFeatureGate`, and the UI
+`WebRemoteControlMobileShell + WebRemoteControlMobileTaskHome + WebRemoteControlDeviceHeader
++ WebRemoteControlTaskViewReporter + WebRemoteControlDialog`. The v3.14.3 reference has ZERO
+web-remote-control files — the plane landed on main between that tag and the shipped 3.14.5
+content, which is why passes 1–7 never enumerated it. Meaning: the macOS app SHIPS a
+hosted browser UI that pairs via QR and drives tasks / chat / terminal / workspace sync
+from another device's BROWSER — the companion app's core mission now has an in-desktop
+alternative surface (runtime enablement is feature-gated). By v3.17.1 the plane grew a
+formal contract (`web-remote-control/CONTRACT.md` + `docs/web-remote-control/
+relay-v2-pairing.md`): mobile pages home/chat held by a stable shell, view-claims derived
+from Page Visibility, workspace switcher, theme menu, OAuth completion forwarding. Boundary
+decision for the roadmap: the phone remains the NATIVE client (push notifications with
+shade actions, glance widget, offline cache, launcher shortcuts are phone-only — none of
+that exists in a browser tab), but "on par" must now answer the browser-shell question:
+either document the plane under B3 or plan interop. Leaving it unowned leaves a whole
+product plane unrecorded.
+
+- **WATCH (P4): Relay V2.** The v3.17.1 contract defines the successor pairing/transport
+  protocol — JWT bearer auth, device/terminal roles, device-registration REST
+  (`/api/v1/remote/device*`), 60-second single-use WS tokens, strict V1/V2 field
+  separation. The formal V2 contract is NOT in the shipped asar (0 hits for `remote/v2`,
+  `relay-v2`, `RelayV2`, `relay_v2`; the 31 `device_mid` hits belong to the current pairing
+  plane's machine-id vocabulary). The phone speaks the current relay pairing (sid+hash
+  links, RELAY_ZAI) — any future desktop update that flips the relay to V2 would strand the
+  phone's pairing path. Carry this WATCH into any pairing/transport work.
+
+### W2. Upstream drift enumeration (NOT shipped — reference for future passes)
+
+`git diff v3.14.3..v3.17.1 -- packages/ui/src` = 1,462 files changed (+124,559 / −38,269),
+584 NEW files. New families with phone-relevant semantics (all verified ABSENT from the
+shipped asar by binary-grep — TodoPanel / TaskSearchDialog / MessageChangeSummaryPanel /
+image-preview-editor / gen-ui / ConversationShareLinkRow = 0 hits): **TodoPanel** (a
+dedicated todos panel — the phone's context-sheet todos are read-only, the G26 family),
+**TaskSearchDialog** (task search as a dialog — the phone's search overlay is GAP-A6/A7
+broken), **ToolCallBlocks** renderers + `ToolPresentation` + `presentationCapabilities`
+(richer per-tool rendering than the phone's generic tool rows — the G18 family),
+**image-preview-editor** (10 files), **gen-ui** (15 files + CONTRACT — a generative-UI
+plane), **conversation-share-interaction** (10), **workspace-config-catalog** (8),
+**conversation-workspace-target** (8), **file-menu** (14), **side-pane-full-view** (12),
+**settings-scope** (10), **data-sync** (19), **highspeed** (17 + share-card assets),
+**project-sidebar** (74) and **plugin-ui** (71, desktop chrome). Recorded as DRIFT WATCH,
+not gaps: the shipped macOS app the phone must match is the 3.14.5-content asar, and every
+future desktop update widens this list — re-run the shipped-asar greps after any desktop
+update before treating a family as a live gap.
+
+### W3. Record correction (version provenance)
+
+- The audited `/Applications/ZCode.app` Info.plist reads **CFBundleShortVersionString
+  3.14.5**; its asar is byte-identical across passes 1–8 (sha `99e280fb…`, mtime Sep 30) —
+  the earlier passes' "3.14.3 desktop" statements came from the MOCK relay's served
+  bootstrap version, not from the real desktop bundle. The v3.14.3 source-clone tag is the
+  nearest TAG but predates the shipped 3.14.5 content — W1 is the concrete case where that
+  mismatch hid a shipped plane. Going forward: treat asar binary-greps as the shipped
+  truth and the clone as the nearest map.
+
+### W4. Parity cross-checks that found NO new gap
+
+- **Notification deep-links** — the desktop's notification click focuses the task ↔ the
+  phone's shade tap deep-links into the task conversation (V1) — parity, now live-verified
+  on the phone side.
+- **Approvals navigation** — the desktop's approval click-through into the task ↔ the
+  phone's `Open task to answer` (V1) — parity.
+- **Terminal consent** — the phone's view-only consent gate re-arms on revoke (V1 deny
+  path) ↔ the desktop's terminal plane is opt-in — parity on the consent model.
+
+## Part X — remediation order update (supersedes only where pass 8 applies)
+
+1. **GAP-A8** stays FIRST (re-confirmed pass 8, identical FATAL at `WriteComponents.kt:832`
+   + process death; seventh consecutive pass with the same repro). GAP-A2 second (seventh
+   same-session receipt). All other A-ordering stands (Part U).
+2. **New small for the polish ledger:** checkpoint list mount-local (V2) — hydrate from the
+   host on entry; the restore affordance then survives restarts (the wire channel
+   `restoreBetweenCheckpoints` already works).
+3. **G35 joins the boundary-decision tickets (P3, now the highest of the G-class):**
+   web-remote-control — answer the browser-shell boundary (document under B3 or plan
+   interop); carry the **Relay V2 WATCH** into any pairing/transport work.
+4. **Drift WATCH:** upstream v3.15.1/v3.17.1 families (W2) — re-run the shipped-asar
+   binary-greps after any desktop update; the "on par" target moves with it.
+5. Pass-8 P1 surfaces (shortcuts, pin/unpin/delete verbs, approvals deep-links, the shade
+   notification deep-link, the checkpoint create→restore loop, export, consent deny) need
+   NO remediation — recorded as regression anchors: a pin per surface in the G-fix batches
+   would lock them in.
+
+Verification record (pass 8): emulator+relay rig ran ~35 min with ZERO emulator deaths and
+ONE deliberate app death (the GAP-A8 Photo-arm repro, seventh pass running the same repro),
+followed by a clean relaunch that reconnected on its own; one app exit via the known
+back-press root trap, recovered by relaunch. Census: 1 FATAL total, 0 ANRs. Unit suites
+were NOT re-run: `git diff fd7046a..f582edf` contains only the report file and 2
+mock-module lines, so the app code tree is byte-identical to the 1487-test green baseline
+(Part A) — the same reasoning accepted in passes 2–7.
