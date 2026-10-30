@@ -1808,3 +1808,199 @@ auto-reconnect), one system crash dialog rendered and dismissed (Y1). Census: 3 
 contains only the report file and 2 mock-module lines, so the app code tree is
 byte-identical to the 1487-test green baseline (Part A) — the same reasoning accepted in
 passes 2–8.
+
+# Tenth pass — 2026-10-30 (APPENDED — pass 10; not part of the original audit)
+
+Scope: same mandate, tenth run ("live emulation + verify everything + REA the macOS app +
+document every gap; append only what's new"). App code unchanged since `fd7046a` (`git diff
+fd7046a..HEAD` is the report file + 2 mock-module lines), so every pass-1..9 defect and
+G-gap is expected to still exist. Pass 10 executes six surfaces no earlier pass ran as
+first-class legs: the STOP interrupt loop (pass 3 pressed Stop only as the GAP-A9 escape,
+never recording the wire receipt), the goal slash verbs (G26's "modeled AND wired" upgraded
+to live-fired), the Add-direct-endpoint dialog FORM (A10 covered only the rejection path),
+shade-notification dismissal/resurrection semantics, the deep-link intake's MANIFEST-level
+host gate (pass 9 exercised only the parser layer), and the QueueStrip's reachability —
+which turns out to be rig-blocked, not verified-working. It produces ZERO new phone defects
+(first pass with no new A-gap) plus the 9th consecutive A8/A2 receipts, and the REA leg
+yields FIVE new desktop planes no pass 1–9 ever cited (G36–G40).
+
+Tree under audit: `main` @ `afa39e0` (app code identical to `fd7046a`; versionName 1.3.0
+via `dumpsys package`, lastUpdateTime 2026-10-30 13:16:43 — the pass-9 build, reused).
+Fresh cold boot; the stored pairing auto-reconnected on first launch (`auth.matched` +
+`hub.phase :: transport (RELAY_ZAI) → CONNECTING` within ~2 s). Desktop target unchanged:
+`/Applications/ZCode.app` asar sha256 `99e280fb90b626cc…` re-measured byte-identical,
+source reference clone `29628c9a` (v3.14.3) — every pass-1..9 REA conclusion stands; see
+Part AC for the new enumeration.
+
+Evidence: 14 uiautomator dumps + 2 screenshots under `/tmp/walk10/`; mock relay wire log
+`/tmp/mock-relay-pass10.log` (all-flags arming identical to pass 9); REA-MCP evidence
+bundle `/tmp/rea-pass10-asar-bundle.json` (identical artifact graph `agm_27661707668b…`,
+Part AC header); app logcat receipts quoted inline.
+
+Rig: zcode-pixel AVD (Android 11 / API 30) cold boot (`-no-snapshot-load -gpu
+swiftshader_indirect -no-audio`), MockZCode relay on `10.0.2.2:18100`. Zero emulator
+deaths; ONE deliberate app death (the GAP-A8 Photo arm, recovered by relaunch with the
+pairing auto-reconnecting in ~2 s). No code was changed by this pass — verification +
+documentation round only.
+
+## Part AB — pass-10 live emulation
+
+### AB1. NEW verified surfaces (first executed this pass; wire receipt where relevant)
+
+| Surface | Result |
+| --- | --- |
+| **STOP interrupt loop (FIRST-class wire receipt)** | "ping-rig10" sent → `sendConversationCommandV4` (mock id, ok 207 ms) → mock `sendText` effect flipped control to running/stoppable → composer flipped to "Keep typing to queue follow-up changes" + Queued chip + **"Stop the agent"**. Stop tapped → `sendConversationCommandV4` (ok 62 ms) → mock `stop` effect applied (`phase=idle, sessionEnded=true, canStop=false`, `inputRouting=startNow`) → composer returned to "Message the agent…" the same second. The interrupt path executes cleanly end-to-end; pass 3 had only pressed Stop as an A9-escape and never recorded the receipt |
+| **Goal slash verbs live-fired (FIRST execution)** | G26 documented `sendGoal`/`pauseGoal`/`resumeGoal` as "modeled AND wired" from static reading (`ConversationViewModel.kt:432-443`); this pass typed `/goal pause` and `/goal resume` in the rig task. BOTH dispatched their `pauseGoal`/`resumeGoal` commands over `sendConversationCommandV4` (relay receipts), the mock ACKed both `status:"accepted"`, and both cleared the draft silently — the `sendSlash` ACCEPTED semantics (draft cleared, no user row, no notice). The GOAL_*_REFUSED degrade branches (`SendNotice.Key.GOAL_PAUSE_REFUSED`) did NOT fire because the mock ACKs ANY command type accepted (`applyCommandEffect` returns null for unhandled types → plain accepted ack, `MockZCode.kt:1906-1919`) — the refusal UX stays unexercised (rig debt below) |
+| **Add-direct-endpoint dialog FORM (first enumeration)** | Settings → Endpoints → "Add direct endpoint" renders four fields: **Name (optional)** / **Server URL** (`ws://host:3030/ws` placeholder) / **Token** (`zcode --web --token …`) / **Fallback URLs (comma-separated, optional)**, plus Cancel/Add. Typed a name → **Cancel** → dialog closed, no endpoint card created, no probe on the wire (client-side cancel; A10 covers only the Add→Rejected path). The form inventory is now on record for the A10/G8 fix rounds |
+| **Shade notification semantics (precision upgrades)** | (a) Re-posts fire on the FIRST background entry after records become unseen — a SECOND background entry produced ZERO `notify.repost` lines (pass 9's "after any background entry" phrasing tightened: it is once-per-unseen-record, not every-entry). (b) Dismissal needs a FAST fling (`input swipe 700 Y 10 Y 200` works; the same gesture at 400–500 ms/shorter does nothing). (c) A dismissed notification does NOT resurrect on the next background entry (records stay dismissed; 0 records after re-cycle). (d) Foregrounding CANCELS the remaining attention post (2 records → 0 after app foreground — the §9.9 suppression cancels on foreground). (e) Long-press opens the API 30 alerting state inline: the notification's CHANNEL name renders ("**Approvals & questions**"), plus the other record's alerting summary ("Default — May ring or vibrate based on phone settings" / "Silent"), "Turn off notifications", "Done", "More settings", "Clear all" |
+| **Deep-link intake: manifest-level host gate (new layer)** | `am start -a android.intent.action.VIEW -d "zcode://settings/deep"` is rejected by the PACKAGE MANAGER ("unable to resolve Intent … dat=zcode://settings/deep") — the VIEW filter carries `android:scheme="zcode" android:host="task"` (`AndroidManifest.xml`), so unknown HOSTS never even reach the app. A 4-segment `zcode://task/synth-task-1/extra/deep` DID resolve (pathPattern permissive) and was delivered to the running instance, where the parser's multi-segment branch (`DeepLinks.kt:30`, `pathSegments.size > 1 → null`) made it a silent no-op — zero FATALs, app alive. Pass 9 tested only malformed paths under the task host; the intake is now proven fail-closed at BOTH layers (manifest host gate = outer, parser shape gate = inner) |
+
+### AB2. NEW defect
+
+- **None.** First pass with no new A-gap: all six legs landed on surfaces that behave
+  correctly (AB1) or on already-documented defects (AB3). The fast-fling dismissal
+  discoverability is recorded as a rig learning, not app debt.
+
+### AB3. Pass-1..9 defects re-confirmed this pass
+
+- **GAP-A8 (attach-send crash, P1) — re-confirmed a NINTH time, same frame:** composer +
+  → Photo → `FATAL EXCEPTION: main` 15:41:48, `IllegalArgumentException: Can only use
+  lower 16 bits for requestCode` at `FragmentActivity.checkForValidRequestCode:714` →
+  `WriteComponents.kt:832`, process died (`pidof` empty). Clean relaunch → Connected in
+  ~2 s. Ninth consecutive pass with the same repro; the three-arm map (:832/:844/:854)
+  stands from pass 9.
+- **GAP-A2 (approvals never clear, P1) — re-confirmed a NINTH time, fresh receipt:**
+  Approvals inbox → "Allow once" dispatched (`approvals.answer :: interaction=mock-approva
+  option=allowOnce`, 15:43:38.945) — the Permission card AND the Question card both
+  remained in the dump 4 s later, unchanged.
+- A1/A3–A12 not re-exercised this pass (app code unchanged; the pass-2..9 evidence stands
+  as the latest on-device record for each).
+
+### AB4. Rig learnings for the next pass
+
+1. **The QueueStrip verbs are RIG-BLOCKED, not verified-working.** Send now / Edit / Move
+   up-down / auto-drain (`sendQueuedNow`/`editQueueItem`/`reorderQueueItem`/`setAutoDrain`
+   — all four WIRED in `WriteComponents.kt:467+` and all four SCRIPTED in the mock's
+   command effects) are unreachable: nothing populates `script.queueItems` at bootstrap,
+   GAP-A9 forecloses the enqueue-send path, and the QueueStrip renders only when items
+   exist. G4's "phone queue has move/edit/send-now/auto-drain" is a STATIC statement —
+   none of the four verbs has ever been executed live. RIG DEBT: a `MOCK_QUEUE=1` arm that
+   seeds queue items completes the I1 reorder round-trip family (alongside MOCK_AUTOMATIONS,
+   MOCK_OFFPEAK, MOCK_INTERACTION_PUSH); a `MOCK_REFUSE_COMMANDS=1` arm (respondError for a
+   named command type) exercises the goal-refusal and generic-refusal degrade branches.
+2. **Notification dismissal by adb:** fast fling `input swipe 700 Y 10 Y 200`; slow or
+   short swipes are absorbed. Dump Y coordinates are accurate inside the shade.
+3. **Deep-link fail-closed receipts look like errors:** an unknown-host URI fails `am
+   start` with "unable to resolve Intent" — that IS the manifest host gate working, not a
+   harness failure. Malformed paths under `zcode://task/` resolve and are silently dropped
+   by the parser; neither shape produces a FATAL.
+4. **Relay-log command ids are per-connection JSONRPC ids**, not monotonic across app
+   restarts — identify sends by counting `sendConversationCommandV4` lines against the leg
+   sequence, never by comparing ids.
+
+## Part AC — macOS desktop pass 10 (targeted enumeration)
+
+Asar digest re-measured byte-identical (`99e280fb90b626cc…`; Info.plist 3.14.5; source
+clone `29628c9a` v3.14.3), so the pass-1..9 REA conclusions all stand. REA-MCP re-inspection
+this pass (`open_binary` + `inspect_artifact` record-and-continue, evidence bundle
+`/tmp/rea-pass10-asar-bundle.json`, 2 records): the inventory reproduced the IDENTICAL
+artifact graph — manifest id `agm_27661707668b…` (the same id pass 1 recorded), 30,154
+edges, 3 integrity contradictions (the known signed-after-packaging unpacked natives,
+observed-untrusted) — hard confirmation the new enumeration ran against the same shipped
+artifact. New enumeration driven by diffing the FULL `settings.*` i18n catalog
+(`en-US.ts`) against the report's citation history — every distinctive string ship-checked
+against the asar. Four planes never cited by any pass 1–9 turned out SHIPPED:
+
+### AC1. NEW GAP-G36 (P3): the Office/Coding interface-mode presentation plane
+
+`lib/interfaceMode.ts` defines `"office" | "coding"` persisted in localStorage
+(`zcode-interface-mode`) with legacy-value migration (old "general"/"concise" map to
+office). The mode is asked at ONBOARDING (`OccupationOnboarding` +
+`OnboardingModeSelector` with officeMode/codingDescription cards), switchable in
+`SettingsPage`, and consumed by **36 UI files** across the conversation timeline —
+`ToolCallBlocks.tsx`, `Terminal.tsx`, `v4/SessionPane.tsx`, `v4/ConversationRowView.tsx`,
+`v4/ConversationTurnGroup.tsx`, `v4/ConversationStatusPanel.tsx`,
+`v4/ConversationDraftEmptyState.tsx`, `quickpick/TaskFindDialog.tsx`,
+`app-shell/WorkspaceShellLayout.tsx`, … The catalog wording: "Office mode focuses on
+summaries and results. Coding mode shows commands, output, and code changes." Asar
+receipt: "Office mode focuses on summaries" ×1. The phone renders ONE fixed
+presentation (full tool detail) with no mode concept anywhere — a cross-cutting
+presentation gap spanning the whole timeline, hence P3 rather than P4.
+
+### AC2. NEW GAP-G37 (P4): UI localization
+
+The desktop ships a full i18n plane: `IntlProvider` with **en-US + zh-CN** catalogs,
+system-locale resolution (`readNavigatorLanguage`), a persisted preference
+(`zcode-locale-preference`, "system" supported), and a cross-window broadcast channel
+(`state:locale`) so all windows re-render on switch. Surfaces: a SettingsPage locale
+select (telemetry `featureId: "settings.locale", action: "change_locale"`) and sidebar
+locale entries; the exported `LocaleSwitcher` button is UNMOUNTED (its `locale-toggle`
+testid appears ×0 in the asar — dead export, recorded so future passes don't chase it).
+Asar receipts: `settings.locale.zh-CN` ×4, `zh-CN` ×73, `switchLanguage` ×2. The phone
+ships English-only resources (single `values/`) with no locale surface.
+
+### AC3. NEW GAP-G38 (P4): interface zoom
+
+`WorkspaceSidebarFooter.tsx:316` renders "Interface zoom" beside the theme group
+(`sidebar.settings.interfaceZoom`; asar ×3). The phone has no in-app zoom/font-scale —
+OS font scale only (the ledger's recorded font-1.3 crush small is the symptom this
+setting addresses on desktop).
+
+### AC4. NEW GAP-G39 (P4): task auto-archive policy
+
+`settings.taskAutoArchiveDays` ships "Archive after 3/7/14/30 days" options (asar
+"Archive after 14 days" ×1). The phone's Archive verb is manual-only (pass 6 executed
+rename/archive/resume; pass 8 Delete) — no aging policy anywhere in Settings.
+
+### AC5. NEW GAP-G40 (P3): workspace search scope — the .zcodeignore rules editor
+
+`settings/WorkspaceFileSearchSection.tsx` ships a 15-string plane: "Workspace Search
+Scope", an ignore-rules EDITOR, "Sync from .gitignore", "Restore default rules",
+"Saved; effective on the next search", "Reveal file location" ("​.zcodeignore lives at
+the workspace root"), "Unsaved changes", noWorkspace state. Asar receipts: "Workspace
+search ignore rules editor" ×1, "Sync from .gitignore" ×1. The phone has NO workspace
+file search at all (the Files panel is the honest-fault read-only view), so this config
+plane is doubly absent — recorded as its own gap because it implies an entire desktop
+capability (workspace-scoped file search honoring .zcodeignore) the phone has never
+approximated; sibling to the G17/G28 rich-preview family.
+
+### AC6. Evidence completions (no new gap ids)
+
+- **Theme variants:** the desktop carries FOUR theme states — light/dark PLUS
+  `zai-light`/`zai-dark` brand palettes (`styles.css` `.theme-zai-light` defines an
+  alternate palette incl. distinct trajectory colors; asar `zai-light` ×28). Phone:
+  light/dark/system only (pass 1). Fold into the appearance row of the G-batch.
+- **Interaction-behavior default:** `settings.zcodeInteractionBehavior` = Queue/Guide —
+  "While ZCode is running, add follow-up actions to the queue or guide them to run after
+  the next tool call" (shipped ×18; `v4/composer/followupModeSettings.ts`). The phone HAS
+  the in-session follow-up-mode picker (`setFollowupMode` wired) but no default-behavior
+  SETTING — completion for the G4/G9 queue family.
+
+## Part AD — remediation order update (supersedes only where pass 10 applies)
+
+1. **GAP-A8 stays FIRST, GAP-A2 second** — 9th consecutive receipts each (AB3), same
+   frames and semantics; nothing in pass 10 changes their remedies.
+2. **NEW: G36 (P3) joins the G-batch at the top of the P3s** — interface-mode is the
+   largest plane no pass had recorded (36 consumers spanning the timeline); the phone-side
+   remedy is a presentation-mode setting that gates tool-detail rendering, not a port of
+   the desktop store.
+3. **NEW: G40 (P3)** — the .zcodeignore editor implies the workspace-file-search
+   capability gap; batch with G17/G28.
+4. **NEW: G37/G38/G39 (P4)** — locale plane, interface zoom, auto-archive policy; tail of
+   the G-batch.
+5. **Rig debt additions:** `MOCK_QUEUE=1` (seed queue items → the four QueueStrip verbs
+   become executable; AB4.1) and `MOCK_REFUSE_COMMANDS=1` (exercise the goal-refusal
+   degrade branches). Existing debts (MOCK_AUTOMATIONS, MOCK_OFFPEAK,
+   MOCK_INTERACTION_PUSH, widget drag-placement) unchanged.
+6. **Regression anchors to pin:** the STOP loop (send → stoppable → stop → idle patch)
+   and the goal slash verbs (dispatch → wire → accepted → draft-clear) are now
+   live-verified behaviors with no unit pin; add Robolectric/integration pins alongside
+   pass 9's deep-link anchors, plus an intent-filter test asserting `android:host="task"`
+   (the newly proven OUTER gate).
+
+Verification record (pass 10): rig ran ~30 min with ZERO emulator deaths and ONE
+deliberate app death (the GAP-A8 Photo arm, clean relaunch + auto-reconnect in ~2 s).
+Census: 1 FATAL (deliberate A8), 0 ANRs. Unit suites were NOT re-run: `git diff
+fd7046a..HEAD` contains only the report file and 2 mock-module lines, so the app code
+tree is byte-identical to the 1487-test green baseline (Part A) — the same reasoning
+accepted in passes 2–9.
