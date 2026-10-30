@@ -2335,3 +2335,554 @@ Verification record (pass 12): rig ran ~40 min across two relay configurations w
 ZERO emulator deaths and ZERO app crashes; one deliberate relay kill/restart (flag
 re-arm); no new defects. Census: 0 FATALs, 0 ANRs. Unit suites were NOT re-run (app tree
 byte-identical to the fd7046a baseline; meta-verified at AH1 by XML aggregation).
+
+---
+
+# vc51 Remediation Roadmap (APPENDED — not part of the original audit)
+
+> **Appended 2026-10-30** after pass 12 (the independent verification audit). This roadmap
+> is built ONLY from the verified findings recorded above (passes 1–12) and supersedes the
+> interim Part C/F/I/O/U/X/AA/AD/AG remediation orderings as the single work plan.
+> Dispositions carried in: **GAP-A4 is WITHDRAWN** (cannot-reproduce, AI1) and appears in
+> no phase; **G32, G37 and the pass-2 E4 git-parity verdict are REFUTED AS WRITTEN**
+> (AH2) — only their pass-12 re-scoped descendants appear below, and the voided original
+> claims are listed under "Withdrawn findings" so no session implements them. The
+> remediation target is the SHIPPED desktop asar (`99e280fb…`, 3.14.5 content) — re-run
+> the W2 drift greps if the desktop app updates before a phase starts. Tick checkboxes
+> here as work completes; never edit the review above — append receipts under a ticked row
+> or in a new dated pass section.
+
+## Binding rules for every fix session
+
+1. **Repo + branch.** Work in this repo on `fix/vc51` cut from `main`; land per the
+   release policy (ADDITIVE = signed draft / BREAKING = draft PR; a human promotes; never
+   push unless Ernest says). Every hand-built APK carries the
+   `zcode-android-release-meta` block (ReleaseParser fails closed).
+2. **One finding ≥ one commit**, message form `fix(<ID>): <mechanism>`. One commit may
+   close several rows ONLY when they are one shared mechanism (rule 11) — say so in the
+   message and tick every covered row.
+3. **Re-read before fixing.** Re-read the finding's entry above (its Part citations) and
+   its roadmap row before writing code; honor the pass-12 re-scopes (G32/G37/E4) and the
+   AI2-narrowed A11 scope (the nav-inset and row-overlap halves are REFUTED — no work
+   there).
+4. **TEST-FIRST with shape fidelity.** The pin that reproduces the recorded defect shape
+   is written and RED at the pre-fix commit before the fix lands: A8 = a three-arm
+   `launch()`-without-throwing test; A2 = inbox-clears-on-answer for BOTH classes
+   (state-plane + row-anchored); A13 = uiState re-emits on a notice-only change; A12 = a
+   background-entry re-post carries two action PendingIntents; A11 = a landscape
+   composition pin on the pinned card's visible height.
+5. **Every fix ships its pin in the same commit.** No fix row is ticked on pins alone and
+   no pin lands without its fix. Mock/rig changes are separate `tools/mockzcode` commits
+   with self-tests green (`:tools:mockzcode:jar` + `:tools:mockzcode:test`).
+6. **COMMIT BEFORE ANY RIG LEG.** No uncommitted work may exist when an emulator, mock
+   relay, or gradle suite runs (recorded hazards: emulator beside gradle pools = timing
+   flakes; free snapshots/intermediates before cold boots; kill the mock ONLY via
+   `pkill -f MockRelayMainKt`, never by port).
+7. **Fresh full-suite baseline + zero-new-names gate.** At each phase start, record the
+   full-suite baseline at the pre-phase commit — 17 modules means `testDebugUnitTest` for
+   the Android modules AND `test` for the six JVM modules (the 2026-10-21 blind-spot
+   lesson). After each fix commit, re-run the touched modules and name-diff every new
+   failing test against the baseline; ALSO assert the gradle task-failure list holds only
+   test-failure tasks and no module stopped emitting test XML (test-compile failures are
+   invisible to a name-diff). Every new name is chased or exonerated in writing.
+8. **~150-line/stop rule.** Any single change beyond ~150 lines or spanning >3 modules
+   stops for a checkpoint commit + suite re-run. GAP-A1's card is the expected exception —
+   split it into wire→VM→UI sub-commits under one row.
+9. **Independent per-phase verification.** A phase is done only when its exit gate passes
+   on a FRESH emulator+relay rig leg (cold boot, the standing all-flags arming + the
+   phase's named mock arms), with receipts appended to this report and the rows ticked.
+10. **Record duty.** Tick rows here as their Accept criteria pass; add reusable learnings
+    to AGENTS.md; keep the one-report-file append-only discipline; record mock-side
+    behaviors that are rig fidelity (not app truth) so later passes don't chase them.
+11. **Shared-remedy preference.** Cluster findings that share a mechanism into one remedy
+    when it does not blur ownership: A6+A7 (one overlay rewrite), A8 (one registry helper,
+    three arms), A12 (one Spec-action builder shared with the fresh path), G7+G8
+    (selection family), G16+G17+G28+G40 (preview/search-scope family), G25/G27/G30
+    (INV-9 viewer pattern), G22/G23/G24 (settings-plane family), and the
+    modeled-never-sent sweep (G3/G4/G6/G8 — per AH3 the zero-send-site family is
+    createSelectionSideSession, deleteQueueItem, snoozeInteractionAutoResolution,
+    cancelWorkflowRun, resumeWorkflowRun, amendWorkflowRunSettings, renameSession,
+    deleteSession).
+
+## Withdrawn findings (do NOT implement)
+
+- **GAP-A4 (P3) — WITHDRAWN (AI1).** "The workflow Run… sheet's Run button is covered by
+  the keyboard" does not reproduce on the current build: the sheet RISES above the IME
+  via the manifest `adjustResize`, and Run is visible AND functional with the keyboard up
+  (wire receipt `sendConversationCommandV4 id=74`, "Workflow started" snackbar,
+  target-task navigation). Implement nothing; keep only the generic note that the sheet
+  declares no `imePadding` of its own (the manifest resize carries it).
+- **G32 as originally written (pass-7 T2) — REFUTED (AH2.1).** `GitPort.switchBranch` IS
+  dispatched live (`GitScreen.kt:411` → `Phase9Ports.kt:218` `gitSwitchBranch`); do NOT
+  "wire up branch switch." Only the re-scoped descendant (branch CREATE + commit-assist,
+  Phase 4C) is work.
+- **G37 as originally written (pass-10 AC2) — REFUTED IN PART (AH2.2).** zh-CN
+  system-locale resources already ship (`values-zh-rCN`, 259-line strings.xml); do NOT
+  "add Chinese resources." Only the re-scoped descendant (in-app locale picker, Phase 4D)
+  is work.
+- **Pass-2 E4 git-parity verdict — REFUTED AS WRITTEN (AH2.3).** "The only desktop git
+  mutation surface is checkpoint restore" was wrong in both directions (desktop ships
+  commit/commitAndPush/push dialogs + createBranchAndSwitch). No parity work item follows
+  from E4; the git mutation-plane record is superseded by the G32 re-scope above.
+
+## Phase overview
+
+| Phase | Theme | Findings | Session risk | Status |
+| --- | --- | --- | --- | --- |
+| 1 | P1/P2 phone defects — attach crash, approvals bookkeeping, invisible notices, hook-trust card, search overlay, queue composer | 8 | High | Open |
+| 2 | P2 feature completions + P3 phone defects — workflow/queue/find, landscape pinned stack, shade actions | 5 | Medium | Open |
+| 3 | P3 planes — protocol hygiene, conversation affordances, quota/usage, presentation & workspace management, web-remote boundary | 16 | Medium | Open |
+| 4 | P4 polish + boundary decisions — phone smalls, INV-9 viewers, authoring/management, preview/share/presentation family | 24 | Low | Open |
+| 5 | Rig debts + regression-pin backlog | 7 | Low | Open |
+| | **Total** | **60** | | |
+
+(Counts reconcile: 8 + 5 + 16 + 24 + 7 = 60 rows; GAP-A4 appears in no phase.)
+
+## Phase 1 — P1/P2 phone defects (crash + blockers)
+
+Round-A ordering per AI4: A8 → A2 → A13 → A1 → A6/A7 → A9, with A5 (the Part-C round-A
+ANR fix, never superseded) riding beside A13 as the other small P2.
+
+### Sub-phase 1A — the two P1s
+
+- [ ] **GAP-A8 (P1)** The ENTIRE outbound-attachment surface FATALs the app — Photo
+  (`WriteComponents.kt:832`), Attach a file (`:844`), Take photo (`:854`) all throw
+  `IllegalArgumentException: Can only use lower 16 bits for requestCode` at
+  `FragmentActivity.checkForValidRequestCode` because the `rememberLauncherForActivityResult`
+  registrations at `WriteComponents.kt:657-668` derive an over-16-bit request code; 11
+  consecutive live repros. Fix: one shared registration/registry-key helper keeping every
+  derived code ≤16 bits (short explicit keys, or bump androidx.activity). Accept: a
+  three-arm pin asserting `launch()` opens without throwing; rig walk: all three arms open
+  a picker (or honestly degrade) with ZERO FATALs, send completes end-to-end.
+- [ ] **GAP-A2 (P1)** The Approvals inbox never clears answered/resolved interactions —
+  11 live receipts. The coordinator marks repository records resolved only inside the
+  machine-RESOLVED gate (`InteractionCoordinator.kt:456-458`; the `runCatching` can
+  swallow the transition silently) while `observeOpen` filters `resolvedAtMs IS NULL`
+  (`Daos.kt:110`); the terminal-machine gate (`:148`) then correctly refuses re-answers
+  with zero wire, so the cards just sit forever. Fix: mark resolved on the accepted-ack
+  path AND on state-plane disappearance reconciliation for row-anchored machines — both
+  classes. Accept: pins for inbox-clears-on-answer (state-plane + row-anchored); rig:
+  answering from the card or the inbox empties both entries AND the bell badge without
+  leaving the screen.
+
+### Sub-phase 1B — the two small P2s
+
+- [ ] **GAP-A13 (P2)** Slash/goal refusal feedback is invisible at refusal time and STALE
+  when it finally paints: `_sendNotice` is a `.value` READ inside the five-source uiState
+  combine (`ConversationViewModel.kt:166` vs the read at `:212`), so a notice-only change
+  cannot re-emit state — the exact FIELD-class bug the vc21 draft fix repaired for the
+  draft (`:162-170`) that the notice never got. Fix: make `_sendNotice` a combine source
+  (fold into WriteState) or collect it into uiState directly. Accept: a uiState-emission
+  pin (set notice → uiState re-emits WITHOUT an unrelated source change); rig with
+  MOCK_REFUSE_COMMANDS: a refused `/goal pause` paints the GOAL_PAUSE_REFUSED banner while
+  the IME is up, with fresh (not stale) copy.
+- [ ] **GAP-A5 (P2)** "Copy diagnostics to clipboard" can ANR the app (full system ANR
+  reproduced pass 1): `ClipboardManager.setPrimaryClip` — a synchronous binder IPC —
+  resumes on the Main dispatcher (`SettingsScreen.kt:518`). Fix: hop the clipboard write
+  (+ toast) to `Dispatchers.IO`/`Default`. Accept: a Robolectric pin that the clipboard
+  write happens off-main.
+
+### Sub-phase 1C — the hook-trust review card (P1 feature build)
+
+- [ ] **GAP-A1 / G1 (P1)** The workspace hook-trust review card does not exist — ADR-024
+  landed only half: decode (`SessionState.kt:246,344`), four v4 commands
+  (`ConversationPort.kt:270-284`) and VM verbs (`ConversationViewModel.kt:684-708`) all
+  exist, but `InteractionCoordinator.kt:730-733` parks WORKSPACE_HOOK_REVIEW in the INV-14
+  "counted, no card" branch and zero composables render it; a session blocking on hook
+  trust has NO phone remedy. Fix per the ADR-024 UX contract: per-item opt-in checkboxes
+  default-off, "Trust N selected hooks" disabled at N=0, confirm sheet, stale_digest
+  state; route the interaction into the pinned-card plane and wire
+  trustHooks/revokeHooks/toggleHookItem/grantHookTrust (first UI callers). Desktop anchors:
+  `WorkspaceHookPendingBanner.tsx`, `ConversationHookDetailsAction.tsx`,
+  `useWorkspaceHookInlineTrust.ts`, `workspaceHookReviewCommands.ts`. Accept: rig with
+  MOCK_HOOKS=1 renders the review card on synth-task-1; a trust_selected round-trip flips
+  item states live; the confirm sheet + N=0 disable rule are pinned.
+
+### Sub-phase 1D — the task-search overlay (P2 ×2, one rewrite)
+
+- [ ] **GAP-A6 (P2)** The search overlay draws in the status-bar band and its result rows
+  are stacked, overlapped, and dead: field + results are bare siblings emitted AFTER the
+  Scaffold at screen top level (`TaskListScreen.kt:390-443`), so everything lands
+  top-start in the host Box with no `statusBars()` padding (field at y11 under the clock;
+  the hit row at `[0,0]`, taps dead). Fix: host the overlay in an inset-padded container.
+  Accept: pin — the search field sits below the status bar; rig: the hit row is tappable
+  and navigates.
+- [ ] **GAP-A7 (P2)** Search results do not REPLACE the grouped list (the H1.1 contract):
+  the body composes before the `return` at `TaskListScreen.kt:450`, so
+  Automations/Workflows/Pinned/Workspace sections stay fully visible under the results.
+  Fix: actually suppress the grouped body while a query is active. Accept: one shared pin
+  with A6 — grouped list absent while a query is active, restored on clear.
+
+### Sub-phase 1E — queue-mode composer (P2)
+
+- [ ] **GAP-A9 (P2)** The queue-mode composer has NO send affordance while the agent is
+  stoppable — the exact state queue mode exists for: the control morphs STOP↔SEND on
+  `canStop && stopState==STOPPABLE` alone (`WriteComponents.kt:910-912`) and no IME send
+  action exists (`:1155-1164`), so a typed draft dead-ends behind a self-defeating Stop.
+  Fix anchor is the desktop contract `showStopControl = canStop && !hasDraftToSubmit`
+  (`ConversationComposer.tsx:1136`): gate the morph on a blank draft; optionally add an
+  IME send action. Accept: a Robolectric pin — the send control exists with a non-blank
+  draft while `canStop`; rig: a draft typed mid-run dispatches (send or enqueue) without
+  killing the run.
+
+Phase 1 exit gate: ☐ fresh rig leg — all three attach arms open without a FATAL and send
+end-to-end (A8); answering empties the inbox + badge (A2); a MOCK_REFUSE_COMMANDS refusal
+paints its banner IME-up (A13); diagnostics copy is clean (A5); MOCK_HOOKS renders the
+review card with a live trust round-trip (A1); search overlay is inset-padded, replaces
+the grouped list, and its hits navigate (A6/A7); a mid-run draft dispatches (A9); full
+17-module suite green at the phase HEAD with the zero-new-names gate; rows ticked.
+
+## Phase 2 — P2 feature completions + P3 phone defects
+
+The Part-C round-B set (workflow/queue/find) plus the two P3 A-defects that carry UX
+breakage (A11 landscape, A12 shade actions). P2 rows first.
+
+- [ ] **G3 (P2)** Workflow run Resume + run-settings amend are modeled never sent
+  (`resumeWorkflowRun`, `amendWorkflowRunSettings`; desktop `workflowResumeGate.ts`): the
+  run sheet has no Resume/settings actions. Fix: surface both on the run sheet. Accept:
+  rig: a resumable scripted run shows Resume; dispatching it (and an amend) acks and the
+  sheet reflects the new state.
+- [ ] **G4 (P2)** Queue item delete is modeled never sent (`deleteQueueItem`; desktop
+  anchors `ConversationQueuePanel.tsx:16-18,33-38` — the phone's other three verbs went
+  live at pass 11): add delete to the QueueStrip row menu. Batch in the same commit the
+  AC6 completion: a default interaction-behavior SETTING (`settings.zcodeInteractionBehavior`
+  Queue/Guide — the phone has the in-session picker via `setFollowupMode` but no default).
+  Accept: MOCK_QUEUE rig: delete removes the item via a patch round-trip; the default
+  setting persists and seeds the composer's follow-up mode.
+- [ ] **G5 (P2)** Find-in-conversation is absent (desktop
+  `useConversationTimelineFind`, `conversationFindHighlightDom`, `conversationFindIndex`;
+  the phone's trajectory search covers model calls only): add a timeline search bar with
+  highlight + match count + jump. Accept: a find-index pin over timeline rows; rig:
+  searching highlights matches and jumps between them.
+- [ ] **GAP-A11 (P3, scope narrowed per AI2)** The conversation screen's pinned
+  interaction card collapses to a ~53px sliver in landscape (title glyphs half-cut, no
+  answer content reachable — core CONFIRMED pass 12, with and without the queue strip;
+  portrait fine). Fix scope is ONLY the landscape pinned-stack height budget (the
+  nav-inset and row-overlap halves are REFUTED — already correct in the app); anchor the
+  jump FAB to the composer edge where feasible. Accept: a Robolectric landscape
+  composition pin — the pinned card's visible height ≥ its title row; rig landscape:
+  options + Submit reachable in the card.
+- [ ] **GAP-A12 (P3)** The C3 shade Approve-once/Deny actions exist only on the
+  fresh-event path (`NotificationBroker.kt:138-141`); the §15-S13 background re-post
+  (`NotificationBroker.kt:179-188`) builds its Spec WITHOUT actions — and that re-post is
+  the ONLY post an approval gets when it arrives while the app is foregrounded
+  (wire oracle: `numWithActions=0` never incremented). Fix: replicate the
+  permission-gated actions list in `onBackgroundEntry`'s Spec (the record already holds
+  kind/interactionId/taskId — the same SpecAction builder applies). Accept: a pin — post
+  an unseen approval record, enter background, assert the posted notification carries two
+  action PendingIntents; rig: the shade buttons answer a real approval end-to-end.
+
+Phase 2 exit gate: ☐ rig — Resume + amend + queue-delete dispatch with receipts; find
+highlights and jumps; the landscape pinned card is usable; a re-posted approval
+notification carries two working shade actions; suite green with the gate; rows ticked.
+
+## Phase 3 — P3 planes
+
+Sixteen P3 rows in four clusters: protocol hygiene, conversation affordances,
+plan/quota/usage, and presentation/workspace management (with the two boundary decisions
+that must produce dated answers).
+
+### Sub-phase 3A — protocol hygiene + live planes
+
+- [ ] **GAP-A3 / G14 (P3)** Conversations are never unsubscribed — the host serves
+  `unsubscribeConversationV4`/`unsubscribeWorkspaceConfigV4` but the phone has zero call
+  sites across app/data/core-transport; switching tasks leaves stale subscriptions armed
+  (wasted frames, stale-stream risk after reconnects). Fix: send unsubscribe-on-exit in
+  the conversation teardown. Accept: a wire receipt on task switch/exit; no duplicate
+  stale rows after a reconnect.
+- [ ] **G12 (P3)** Pending-command recovery banner absent (desktop
+  `PendingCommandRecoveryBanner.tsx`, `pendingCommandReplay.ts`): the phone has the
+  outbox + journal machinery but no user-facing banner for replayable/failed pending
+  commands. Accept: rig: killing the relay mid-send surfaces the banner on recovery with
+  a working replay action and honest failure copy.
+- [ ] **G13 (P3)** Sessions-index live plane absent (desktop `subscribeSessionsIndexV4`
+  family, `sessionsIndexStore.ts`, `taskListRowActivity.ts`): the phone polls/refreshes
+  per-screen instead of subscribing. Fix: subscribe/resync the sessions index and drive
+  cross-session row activity live. Accept: rig: a second session's activity flips a task
+  row's activity state without manual refresh.
+- [ ] **G15 (P3)** Background-work awareness absent: desktop reads background shell
+  output (`backgroundBashOutputV4`) and shows a composer background-work indicator with
+  counts (`ConversationBackgroundWorkTrigger.tsx`). Fix: surface the indicator + an
+  output viewer for background bash. Accept: rig: a scripted background bash shows the
+  count badge and the output viewer opens read-only.
+
+### Sub-phase 3B — conversation affordances
+
+- [ ] **G26 (P3)** Goal affordances are UI-only missing: `sendGoal`/`pauseGoal`/
+  `resumeGoal` are wired AND live-fired (pass 10) but reachable only by typing slash text
+  (`ConversationViewModel.kt:432-443`); the context-sheet goal panel is strictly
+  read-only, while the desktop offers add-goal on the composer menu
+  (`ChatPromptActionMenu.tsx:30`) + pause/resume icons (`ConversationStatusPanel.tsx:490-520`).
+  Fix: a "Set goal" affordance + pause/resume icons on the sheet's goal panel — UI
+  surfacing over existing VM paths. Accept: rig: set/pause/resume from the sheet with
+  wire receipts; refusal banners (A13) still fire.
+- [ ] **G6 (P3)** Interaction snooze (auto-resolution) is modeled never sent
+  (`snoozeInteractionAutoResolution`; desktop `useTaskInteractionAutoResolutionSnooze.ts`):
+  add a snooze action to approval/question cards. Accept: rig: snooze acks and the card
+  defers per the desktop semantics (reappears after the snooze window in the mock).
+- [ ] **G7 (P3)** Text-selection actions absent (desktop `SelectionActionMenu.tsx`,
+  `MarkdownSelectionTooltip.tsx`): selection tooltip/menu in the timeline with copy /
+  selection side session / share selection. Accept: rig: selecting row text raises the
+  tooltip; copy lands on the clipboard.
+- [ ] **G8 (P3)** Selection side session is modeled never sent
+  (`createSelectionSideSession`): wire the tooltip's side-session action to the command
+  and navigate into the child run. Shares the G7 remedy surface. Accept: rig: a selection
+  side session dispatches, acks, and opens the child conversation.
+- [ ] **G9 (P3)** Shared-context handover is NOT modeled at all (`context_refs` on
+  sendText, `discardSharedContext`; the desktop composer is a Lexical mention suite):
+  model context-refs and finish the phone mention panel — the data path + menu entry
+  exist (`WriteComponents.kt:699` gates on empty hits) and are rig-blocked only by the
+  unscripted `searchWorkspaceFiles`. Accept: rig with MOCK_WORKSPACE_FILES (RIG-2): the
+  mention panel renders hits; a send carrying context_refs is acked.
+- [ ] **G10 (P3)** Suggested prompts on the draft screen absent (desktop
+  `featureSuggestedPrompts.ts`, `draftSuggestedPrompt*.ts`): empty-state prompt chips
+  with rotation + prefill. Accept: a rotation pin; rig: chips render on a fresh task and
+  prefill the composer.
+
+### Sub-phase 3C — plan/quota/usage
+
+- [ ] **G11 (P3)** In-conversation quota banner absent (desktop
+  `ConversationQuotaBanner.tsx`, `sessionQuotaBannerState.ts`,
+  `startPlanQuotaBuckets.ts`): the phone has the ADR-020 Settings quota section but no
+  live mid-session warning. Fix: reuse the ADR-020 quota plane for a conversation banner.
+  Accept: rig/scripted low bucket: the banner renders once per threshold and links to the
+  quota screen.
+- [ ] **G20 (P3)** Usage depth: the desktop ships four chart views
+  (`AppUsageDailyModelTrendChart`, `AppUsageModelUsagePieChart`, `CodingPlanUsageBarChart`,
+  `CodingPlanUsageLineChart`); the phone renders one summary plane. Fix: at least the
+  daily model trend + plan-bucket charts over the protocol the phone already speaks.
+  Accept: charts render on scripted data; the honest capability fault is preserved on
+  unscripted channels.
+
+### Sub-phase 3D — presentation & workspace management (+ 2 boundary decisions)
+
+- [ ] **G36 (P3)** Office/Coding interface-mode presentation absent (`lib/interfaceMode.ts`
+  — persisted mode, onboarding question, 31+ consumers across the timeline incl.
+  `ToolCallBlocks.tsx`, `v4/ConversationRowView.tsx`; asar receipt "Office mode focuses
+  on summaries"): the phone renders ONE fixed presentation. Fix: a presentation-mode
+  setting that gates tool-detail rendering (summaries/results vs commands/output/changes)
+  — NOT a port of the desktop store. Accept: a mode-gate pin on tool rows; rig: switching
+  modes changes timeline detail rendering app-wide.
+- [ ] **G41 (P3)** Multi-workspace management plane absent (desktop "Projects" section,
+  add menu, drag-reorder, 4-step remote wizard, WSL/SSH/Docker model — asar receipts
+  ×13+ re-measured; the phone's workspaces are a PASSIVE grouping only). Companion-shaped
+  remedy: a workspace switcher/manager over the workspaces the phone already RECEIVES
+  (switch/reorder/rename-class management; NOT a folder picker — the remote wizard stays
+  desktop-side unless re-scoped). Accept: rig: switching the active workspace re-groups
+  the task list live; ordering persists.
+- [ ] **G40 (P3)** Workspace search scope / .zcodeignore rules editor absent
+  (`WorkspaceFileSearchSection.tsx`, 15 shipped strings incl. "Sync from .gitignore") —
+  implies the entire workspace-file-search capability the phone has never approximated;
+  batch with the G16/G17/G28 preview family. Accept: EITHER the editor + a scoped file
+  search surface ship, OR a dated B3 boundary entry records the decision.
+- [ ] **G35 (P3, boundary decision)** The SHIPPED web-remote-control browser-companion
+  plane (×267/×108 asar receipts; mobile shell, QR pairing, task/workspace sync —
+  absent from the v3.14.3 source map, hence missed until pass 8): answer the
+  browser-shell boundary — document under B3 (the phone remains the NATIVE client: push,
+  widget, offline cache are phone-only) or plan interop. Carries the **Relay V2 WATCH**
+  (JWT bearer, device roles, 60s WS tokens — NOT in the shipped asar) into any
+  pairing/transport work. Accept: a dated B3/interop decision recorded in this report;
+  if interop: a contract-review note against `relay-v2-pairing.md` before any code.
+
+Phase 3 exit gate: ☐ rig — unsubscribe receipt (A3), recovery banner (G12), live row
+activity (G13), background-work indicator (G15), goal/snooze/selection/context-ref/
+prompt affordances live (G26/G6/G7/G8/G9/G10), quota banner + usage charts (G11/G20),
+interface-mode + workspace manager (G36/G41); G40 and G35 carry dated decisions in this
+report if deferred; suite green with the gate; rows ticked.
+
+## Phase 4 — P4 polish + boundary decisions
+
+Twenty-four rows in four clusters. Every "boundary decision" row ends in EITHER a shipped
+surface OR a dated B3 note — neither is left open.
+
+### Sub-phase 4A — phone-defect polish + recorded smalls
+
+- [ ] **GAP-A10 (P4)** A rejected direct-endpoint add closes the dialog and discards
+  every typed field; the only feedback is a transient toast (`SettingsScreen.kt:397`
+  closes before the 10s probe in `ConnectionHub.kt:1190` resolves), and fallback-URL
+  candidates bypass the scheme gate (`:439`) despite the "Validated before saving" note.
+  Fix: keep the dialog open on Rejected with an inline error; validate candidate schemes
+  with the primary's gate. Accept: a pin — a rejected probe leaves the dialog open with
+  the error; bad-scheme candidates disable Add.
+- [ ] **CKPT-HYDRATE (P4 small)** The checkpoint list is mount-local
+  (`GitScreen.kt:753` `remember { emptyList() }`, appended only on create at `:780`; no
+  list call on entry), so the Restore affordance (`:817-823`) is unreachable after any
+  app restart. Fix: hydrate the list from the host on entry (the
+  `restoreBetweenCheckpoints` channel is live-verified, pass 8). Accept: a pin — the list
+  loads on entry; rig: a checkpoint created before a restart still lists and restores.
+- [ ] **LEDGER-SMALLS (P4)** Three recorded cosmetics: (a) connection-scoped
+  notifications have no tap target — deep-link the Connection-lost post to the connection
+  screen (`AndroidNotificationSink.kt:56`; task-scoped deep links already verified);
+  (b) the AlreadyResolved "Already handled on the desktop." info-copy paints in the ERROR
+  palette (red) — pick a neutral style on the `answerError` channel; (c) the first-launch
+  `update.check desktop=null` bootstrap race (self-heals) — gate the check on bootstrap
+  completion. Accept: each observed fixed on the rig or explicitly waived here with a
+  one-line reason.
+
+### Sub-phase 4B — the INV-9 viewer family
+
+- [ ] **G25 (P4)** Subagent management → minimum on-par is a read-only subagent viewer in
+  Settings → Insights (the phone already consumes `subagents.list`, `Ports.kt:649`; the
+  desktop page is `SubagentsSection.tsx`). Accept: viewer lists scripted subagents with
+  scope/enable badges, matching the plugins/skills viewer pattern.
+- [ ] **G27 (P4)** Model-provider management → read-only provider viewer (the picker
+  already consumes the provider list with groups/badges; desktop
+  `ModelProviderSection.tsx` is 1,161 lines); credential entry documented desktop-side.
+  Accept: viewer renders providers WITHOUT secrets; boundary note for credentials.
+- [ ] **G30 (P4)** Bots/integrations → read-only bots viewer (the phone has NO related
+  surface — desktop `BotsDialog.tsx` + `BotConfig` in `packages/shared/src/bots.ts`):
+  the INV-9 seed. Accept: viewer renders scripted bot configs read-only; deeper
+  management is a dated boundary unless redefined.
+- [ ] **G22 (P4)** Memory settings plane (desktop `MemorySettingsSection.tsx`): ship a
+  viewer/read surface or a dated B3 boundary. Accept: shipped surface or dated note.
+
+### Sub-phase 4C — authoring/management boundaries
+
+- [ ] **G21 (P4 + P3 UX note)** Custom slash-command authoring absent (desktop
+  `CommandsSection.tsx` + `CommandForm.tsx`); AND fix the bare-"/" panel's non-scrollable
+  column (user commands below the fold — swipe proves zero scroll, pass 4) in the same
+  breath. Accept: the "/" panel scrolls with user commands reachable without a prefix;
+  authoring ships or a dated boundary note.
+- [ ] **G23 (P4)** Coding-plan management/upgrade flow (desktop `CodingPlanEntryButton.tsx`,
+  `CodingPlanUpgradeDialog*.tsx`); batches with G20's charts. Accept: the plan section
+  offers bucket management/upgrade entry or a dated boundary.
+- [ ] **G24 (P4)** Settings-sync plane (desktop `settings/settings-sync/`, 118
+  references, plus external-agent import `ExternalAgentImportDialog.tsx`): boundary
+  decision first (multi-device sync may be out of companion scope). Accept: dated
+  boundary or a scoped sync/import surface.
+- [ ] **G29 (P4)** Off-peak authoring + run history — the phone's monitor/control half is
+  at parity (pass-5 record correction) and should be so stated in B3; missing are
+  create/edit (`OffPeakEditView.tsx`) + history (`OffPeakHistoryTab.tsx`), and the phone
+  never sends `offPeakToolEnabled` on sessionStart (so it only sees desktop-created
+  tasks). Fix: create/edit entry + history list on the existing Automations/off-peak
+  section + send the capability flag. Accept: MOCK_AUTOMATIONS+MOCK_OFFPEAK rig: create
+  an off-peak task, see it in history, monitor rows still work.
+- [ ] **G32 (P4, re-scoped per AH2.1)** Branch CREATE + commit-assist missing — switch IS
+  shipped (`GitScreen.kt:411` → `Phase9Ports.kt:218`); desktop `GitBranchDialogs` +
+  `switchAssist.ts` (blocked→commit preview machine). ADR-021 write-tier candidate.
+  Accept: branch create from the Git pane with a wire receipt; switch-assist preview OR a
+  dated ADR-021 boundary note.
+- [ ] **G31 (P4)** Whiteboard plane (desktop `WhiteboardPane.tsx` + `lib/whiteboard.js`,
+  ×59 receipts; sketch → send-to-chat): mobile-shaped minimum is a sketch→send entry in
+  the composer + menu producing an image attachment (inbound sketch images already
+  render). Accept: rig: sketch → the image lands in the conversation as an attachment.
+
+### Sub-phase 4D — preview/share/presentation family
+
+- [ ] **G16 (P4)** Attachment preview source (`attachmentPreviewSourceV4`,
+  `conversationAttachmentRead/Stat`): fetch larger/preview renders for media instead of
+  `attachmentRead` thumbnails only. Accept: rig: image previews render at preview
+  quality over the new channel.
+- [ ] **G17 (P4)** Assistant/artifact preview cards (desktop
+  `useAssistantPreviewCardsForRow.ts`, workflow completion cards via
+  `useWorkflowRunArtifacts`, the `presentation/` plane incl. a pptx render engine):
+  widen `GeneratedArtifactPreview` + render workflow-completion cards with artifacts.
+  Accept: rig: a scripted workflow completion renders a card with artifact previews.
+- [ ] **G28 (P4)** Inbound attachment preview affordance (`AttachmentView`,
+  `RowRenderers.kt:1330-1350` — NO clickable modifier; thumbnails are dead-ends, pass 4
+  live proof): tap-to-zoom full-screen image viewer + PDF/video named-chip passthrough
+  via an external-viewer intent. Accept: rig: tapping an image opens the viewer; a PDF
+  chip offers an external viewer.
+- [ ] **G18 (P4)** CUA (computer-use) row groups + permission schema (desktop
+  `conversationCuaGroups.ts`, `cuaPermission.ts`, browser-use side pane): minimum —
+  group CUA tool calls with dedicated copy and surface browser-use screenshot frames
+  inside tool rows. Accept: rig: scripted CUA rows group distinctly; frames render when
+  the mock serves them.
+- [ ] **G19 (P4)** Conversation share modes (desktop `ConversationShare*` — 10 files:
+  selection share, read-only timeline, markdown export, link): extend `conv_share`
+  beyond transcript text. Accept: the share sheet offers ≥2 modes; the read-only/link
+  mode round-trips OR a dated boundary records phone-form-factor limits.
+- [ ] **G33 (P4)** Model-trajectory drill-in (desktop 16-file `ModelTrajectory*` family —
+  per-call timeline + tool PAYLOAD detail): expand `TrajectorySheet.kt` cards into
+  payload detail. Accept: rig: a call card expands showing the tool payload.
+- [ ] **G34 (P4, small)** Update release-notes display (desktop
+  `UpdateReleaseNotesTooltip.tsx`): add an optional notes field to `ReleaseMeta`
+  (`ReleaseInfo.kt:130` carries none) + a markdown notes line in the update sheet;
+  ReleaseParser must still fail closed without it. Accept: a pin — notes render when
+  present; a meta block without notes still validates.
+- [ ] **G37 (P4, re-scoped per AH2.2)** In-app locale picker (zh-CN system-locale
+  resources already ship — `values-zh-rCN` 259 lines; desktop ships en-US+zh-CN with a
+  persisted preference + cross-window broadcast): add an Appearance locale preference
+  (System / English / 中文). Accept: a pin — the preference flips the resource config;
+  rig: switching to zh-CN re-renders strings on recreate.
+- [ ] **G38 (P4)** Interface zoom (desktop `WorkspaceSidebarFooter.tsx:316`): an in-app
+  font-scale setting distinct from the OS scale (addresses the ledger's font-1.3 crush
+  class on-device). Accept: a pin — the scale applies to text styles; rig: 0.85/1.15
+  render legibly and persist.
+- [ ] **G39 (P4)** Task auto-archive policy (desktop `settings.taskAutoArchiveDays`
+  3/7/14/30; the phone's Archive is manual-only): an aging policy setting over the
+  archive verb. Accept: a pin — the policy archives eligible rows on refresh; off by
+  default.
+- [ ] **THEME-ZAI (P4 completion, AC6)** zai-light/zai-dark brand palettes (desktop
+  `.theme-zai-light` + dark, ×57 re-measured): add the two variants beside
+  Light/Dark/Follow-system with the existing instant-apply + system-bar contrast
+  re-scrim behavior. Accept: rig: both variants render everywhere; dark re-scrim fires
+  on the in-app flip.
+
+Phase 4 exit gate: ☐ every row ticked with EITHER an on-device receipt OR a dated
+boundary note recorded in this report; the smalls (4A) verified or explicitly waived;
+suite green with the gate.
+
+## Phase 5 — rig debts + regression-pin backlog
+
+Rig rows are `tools/mockzcode` work with self-tests; the pin backlog lands as integration/
+Robolectric pins alongside whichever phase touches each surface first (or here at the end
+if none does).
+
+- [ ] **RIG-1** `MOCK_AUTOMATIONS` + `MOCK_OFFPEAK` env arms (pass-5 debt): the handlers
+  `handleOffPeakTaskPromise`/`offPeakTaskList` are already scripted — only the env flags
+  are missing; `DefaultAutomationsPort.lists()` (`ViewerPorts.kt:52-59`) currently
+  short-circuits on the unscripted `listAutomations` fault before the off-peak read.
+  Accept: the Automations section renders scripted rows and the off-peak section is
+  exercisable live (unblocks G29's leg).
+- [ ] **RIG-2** `MOCK_WORKSPACE_FILES` arm serving `searchWorkspaceFiles` (pass-6 debt):
+  unblocks the live @-mention panel (G9) and the Files-panel honest-fault contrast.
+  Accept: the mention panel renders hits on the rig.
+- [ ] **RIG-3** `MOCK_INTERACTION_PUSH` arm (pass-9 debt): a fresh interaction delivered
+  WHILE the app is backgrounded — completes the A12 fresh-vs-repost matrix and the
+  notification action legs. Accept: a backgrounded fresh approval posts WITH actions
+  (fresh path) while the re-post path is pinned separately.
+- [ ] **RIG-4** Widget drag-placement: an API 34 AVD (`input motionevent`/`draganddrop`)
+  or a debug bind hook — completes the glance-widget BINDING leg (picker presence +
+  `zcode://task` intake are already live-verified, pass 9). Accept: the widget is bound
+  on the rig and its tap deep-links into the task.
+- [ ] **RIG-5** Mock fidelity: route command effects to the CALLING session (currently
+  hardcoded `MockWorkspace.sessionId = "synth-task-1"`, `MockZCode.kt:473` — the D4.1
+  routing artifact) and mutate the task store for rename/archive/pin/delete acks (the
+  recorded rig-fidelity class of passes 2/6/8) OR stamp the ack with an explicit
+  "ack-without-mutate" notice the report can cite. Accept: cross-session legs route
+  correctly; the fidelity class is gone or explicitly labeled on the wire.
+- [ ] **RIG-6** Asar counting method: re-measure shipped string counts over ALL of
+  `out/`, never a chunk subset (AH3 undercounts: zh-CN ×73→×195, zai-light ×28→×57,
+  zcodeInteractionBehavior ×18→×37). Accept: any future desktop-update enumeration cites
+  whole-`out/` counts.
+- [ ] **PINS-BACKLOG** The recorded regression anchors with no owning fix yet: the STOP
+  loop (send → stoppable → stop → idle patch); the goal slash verbs (dispatch → wire →
+  accepted → draft-clear); the four queue verbs (wire type + patch effect each) + the
+  AlreadyResolved no-wire degrade; the `zcode://task` intake (plain + `#interaction=` +
+  both malformed shapes) AND an intent-filter test asserting `android:host="task"` (the
+  proven OUTER gate); the LiveConnectionService FGS start/stop lifecycle; the
+  widget-picker presence; task verbs (pin/unpin/delete + group create→assign);
+  create-sheet model picker + the full create loop; the effort picker; snapshot
+  create→restore; the approvals launcher shortcut; the connection-lost notification
+  cycle; the shade task-scoped deep-link; skills accordion expand; diagnostics export.
+  Accept: each anchor has a named pin or an explicit waive line in this report.
+
+Phase 5 exit gate: ☐ named mock arms implemented + self-tests green; the widget leg
+completes; every backlog anchor has a pin or a written waive.
+
+## Definition of done (vc51 remediation)
+
+- [ ] Every phase exit gate checked, in order, each on a fresh emulator+relay rig leg
+- [ ] All 60 roadmap rows ticked — or explicitly waived with a dated one-line reason here
+- [ ] Full 17-module suite (`testDebugUnitTest` + the six JVM `test` tasks) green at the
+      final HEAD with the zero-new-names gate against the recorded per-phase baselines
+- [ ] Fresh debug APK rebuilt with the `zcode-android-release-meta` block; artifact path +
+      version marker stated to Ernest (deliverable completion rule)
+- [ ] Work committed locally as `ErnestHysa <takis312@hotmail.com>`; pushed/published only
+      on Ernest's explicit word (release policy: ADDITIVE = signed draft / BREAKING =
+      draft PR, human promotes)
+- [ ] The W2 drift WATCH re-run if `/Applications/ZCode.app` changed mid-campaign (asar
+      digest re-measured before the final phase), and the G-matrix re-triaged against any
+      new shipped planes
+- [ ] Reusable learnings appended to AGENTS.md; this roadmap file left append-only
