@@ -280,6 +280,9 @@ class MockZCode(
         @Volatile var queueItems: List<QueueItem>? = null
         /** I1: the queue's drain state the `setAutoDrain` word flips (echoed in queue patches). */
         @Volatile var autoDrain: Boolean = true
+        /** Pass-11 rig leg (MOCK_REFUSE_COMMANDS): command types answered respondError
+         * BEFORE any effect/ack — the goal verbs' SendNotice.GOAL_*_REFUSED degrade branches. */
+        @Volatile var refuseCommandTypes: Set<String>? = null
         /** Verified inputRoutingSchema.mode. */
         @Volatile var inputRoutingMode: String = "startNow"
         /** Pending open interaction stamped into snapshots + state (Q11 shape). */
@@ -1002,7 +1005,7 @@ class MockZCode(
                     put("dispatch", buildJsonObject { put("state", JsonPrimitive(qi.dispatchState)) })
                 }
             }))
-            put("autoDrain", JsonPrimitive(true))
+            put("autoDrain", JsonPrimitive(script.autoDrain))
         }
         val configBlock = script.sessionConfig
         val pending = JsonArray(listOfNotNull(
@@ -1899,6 +1902,14 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                         put("revisionAtDecision", JsonPrimitive(stateRevision.get()))
                         put("result", buildJsonObject { put("runId", JsonPrimitive(runId)) })
                     }))
+                    return
+                }
+                // Pass-11 (MOCK_REFUSE_COMMANDS): the named types answer fault.* — the
+                // client's server-spoke rejection class, so goal verbs degrade to their
+                // SendNotice.GOAL_*_REFUSED branches (Outcome.Failed, outbox terminal).
+                val refuseTypes = script.refuseCommandTypes
+                if (refuseTypes != null && type in refuseTypes) {
+                    respondError(id, "fault.command.rigRefused:$type")
                     return
                 }
                 var createResult: JsonObject? = null

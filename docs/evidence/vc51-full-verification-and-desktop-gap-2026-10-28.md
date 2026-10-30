@@ -2004,3 +2004,154 @@ Census: 1 FATAL (deliberate A8), 0 ANRs. Unit suites were NOT re-run: `git diff
 fd7046a..HEAD` contains only the report file and 2 mock-module lines, so the app code
 tree is byte-identical to the 1487-test green baseline (Part A) — the same reasoning
 accepted in passes 2–9.
+
+## Part AE — pass-11 live emulation
+
+Rig additions THIS pass (rig debt discharged before the walk): `MOCK_QUEUE=1` seeds two
+queued follow-ups (`q-rig-1/q-rig-2`) with `autoDrain=false`, and
+`MOCK_REFUSE_COMMANDS=1` makes the goal verbs answer `respondError` — both arms were
+AB4.1's named debts. Two mock fixes rode along: a `refuseCommandTypes` script plane +
+gate BEFORE any command effect/ack (server-spoke `fault.command.rigRefused:<type>`), and
+the snapshot's queue section now echoes `script.autoDrain` (was hardcoded `true` while
+only the patch builder used the script value — a mock self-inconsistency that would have
+lied on reconnect). Mock self-tests re-run green (`:tools:mockzcode:jar + test`, 26 s);
+app code tree untouched (byte-identical to the fd7046a baseline, same reasoning as
+passes 2–10 for not re-running unit suites).
+
+### AE1. NEW verified surfaces (first executed this pass; wire receipt where relevant)
+
+| Surface | Result |
+| --- | --- |
+| **QueueStrip verbs — ALL FOUR first-class executions (G4's static statement is now LIVE-verified)** | With MOCK_QUEUE armed the strip rendered for the first time ever ("Queued (2) · paused", Auto-send toggle, per-row Move up/down + Send now + Edit). (a) **reorderQueueItem**: Move up on item 2 → `sendConversationCommandV4` (id=21) → the mock's effect flipped script order → the queue PATCH redrew the strip with "two" above "one" (authoritative round-trip, not a local reorder). (b) **editQueueItem**: Edit → "Edit queued message" bottom sheet (prefilled field + Cancel/Save) → replaced text → Save → id=88 → patch replaced the row text on the strip. (c) **sendQueuedNow**: Send now on the edited item → id=93 → patch removed it (2→1). (d) **setAutoDrain**: Auto-send toggle → id=104 → patch cleared the "· paused" label (strip header "Queued (1)"). I1's reorder round-trip family is complete; AB4.1's rig debt is discharged |
+| **Approval answer + the ALREADY_RESOLVED honest copy (first execution)** | Approvals bell (TaskList top bar, 48 dp) → inbox → "Allow once" dispatched the answer (id=53). The SECOND tap on the now-terminal interaction degraded EXACTLY per the T2 contract: the client-side coordinator's terminal-machine gate (`InteractionCoordinator.kt:148`) returned `AlreadyResolved` with ZERO wire traffic, and ApprovalsScreen painted the typed copy "Already handled on the desktop." (the screen-level `answerError` channel, ApprovalsScreen.kt:209). The answered cards REMAINED in both the inbox and the conversation — A2's 11th receipt below |
+| **Goal slash verbs under REFUSAL (first execution of the degrade branch — and it is broken, see AE2)** | `/goal pause` dispatched `pauseGoal` three times; the mock's MOCK_REFUSE_COMMANDS arm answered `fault.command.rigRefused:pauseGoal` each time (server-spoke class) and the coordinator logged the authoritative `command.rejected :: type=pauseGoal` WARN three times (18:27:04.197 / 18:27:54.008 / 18:29:02.520). The draft was preserved (refusal semantics half-work), but the SendNotice GOAL_PAUSE_REFUSED banner did NOT render at refusal time — full analysis in AE2 |
+
+### AE2. NEW defect
+
+- **GAP-A13 (UX break, P2): the goal-verb refusal feedback is invisible at refusal time —
+  and when it finally paints, it is stale.** Three wire-confirmed `pauseGoal` rejections
+  produced NO SendNotice bar in five captures across six minutes (the IME-up posture a
+  real user sends from). The bar only painted after a keyboard-down layout pass minutes
+  later — showing the PAUSE copy ("Goal pause was refused (the goal may not be pausable
+  right now).") at [0,0] AX bounds while the most recent dispatch had been a (tap-missed)
+  resume attempt. Static mechanism: `_sendNotice` is a `MutableStateFlow` READ (`.value`)
+  inside the five-source combine that builds `ConversationUiState`
+  (`ConversationViewModel.kt:166` vs the read at `:212`) — a notice-only change cannot
+  re-emit the state, so the composer renders no banner until some UNRELATED source (draft,
+  session patches, pending-sends, rows) happens to emit. This is the exact FIELD-class bug
+  the vc21 draft fix documented and repaired for the draft (the WriteState
+  draft-as-combine-source comment at `:162-170`); the notice never got the same treatment.
+  Remedy: make `_sendNotice` a combine source (fold into WriteState) or collect it into
+  the uiState directly. The user-facing failure today: a refused slash verb looks like a
+  dead button — draft stays, no signal — for an unbounded time.
+
+### AE3. Pass-1..10 defects re-confirmed this pass
+
+- **GAP-A8 (attach-send crash, P1) — re-confirmed an ELEVENTH time, same frame:** composer
+  + → Photo → `FATAL EXCEPTION: main` 18:38:32.531, `IllegalArgumentException: Can only
+  use lower 16 bits for requestCode` at `FragmentActivity.checkForValidRequestCode:714`,
+  process dead (`pidof` empty). Clean relaunch → Connected in ~2–3 s. Eleventh
+  consecutive pass with the same repro; the three-arm map stands.
+- **GAP-A2 (approvals never clear, P1) — re-confirmed an ELEVENTH time, fresh receipt:**
+  the id=53 answer dispatched (`allowOnce`); the Permission card AND the Question card
+  remained in the Approvals inbox and the conversation afterwards, unchanged.
+- A1/A3–A12 not re-exercised this pass (app code unchanged; the pass-2..10 evidence
+  stands as the latest on-device record for each).
+
+### AE4. Rig learnings for the next pass
+
+1. **The IME eats coordinate taps at the composer row.** With the keyboard up, the send
+   button and sheet buttons sit ABOVE the IME; `input tap` coordinates taken from a
+   keyboard-down dump land INSIDE the IME (three phantom misses produced zero wire). The
+   keyboard-down dump → tap sequence is reliable; the reverse is not.
+2. **The goal-refusal arm's receipts live in the APP log, not the relay log.**
+   `respondError` does not log a "MOCK:" line for the refusal (the v4call line appears,
+   but the fault text only shows in the app's `v4.call channel error` +
+   `command.rejected` WARNs) — grep logcat for `command.rejected`, not the relay log.
+3. **Send-now is item-consumption only in the mock**: the `sendQueuedNow` effect removes
+   the queue item and pushes a patch but does NOT script a synthetic run (composer stays
+   idle). The verb's wire + patch receipt is real; run-start semantics are out of the
+   mock's scope. Record-correcting AB4.1's implication that send-now exercises the send
+   path end-to-end.
+4. **`input keyevent --longpress KEYCODE_DEL` chains and parallel `&`-backgrounded
+   keyevents race** — drafts end up partially deleted ("/goae"). Sequential per-call
+   `input keyevent 67` (caret-first MOVE_END) is the reliable clear.
+5. **The notification shade, approvals bell, and top-bar buttons**: TaskList top-bar
+   order left→right is [approvals bell, endpoints, archived]; the Approvals screen is
+   NOT reachable by any `am start` action tried this pass (no exported activity) — the
+   bell is the reliable entry.
+
+## Part AF — macOS desktop pass 11 (targeted enumeration)
+
+Asar digest re-measured byte-identical (`99e280fb90b626cc…`; Info.plist 3.14.5; source
+clone `29628c9a` v3.14.3), so the pass-1..10 REA conclusions all stand. New enumeration
+angle: the WORKSPACE MANAGEMENT plane — chosen because the phone gained a workspace
+concept in vc44 (task grouping) and no pass 1–10 had audited the desktop side of that
+capability.
+
+### AF1. NEW GAP-G41 (P3): multi-workspace management — add/open/switch/reorder/remote
+
+The desktop treats workspaces as FIRST-CLASS MANAGED OBJECTS: `WorkspaceSidebar.tsx`
+renders a "Projects" section (`workspaceSidebar.projectsSection`) with per-workspace
+tabs (task groups keyed by `buildTaskWorkspaceKey(path, identity)`, loading state per
+group, `workspace.context.lastActivity` "Last active {time}"), an add-project "+" menu
+(`workspaceSidebar.addProject` → "Open folder" (`workspace.openFolder`) + "Remote
+connection" (`remote.trigger`, Cloud icon)), and a full DRAG-REORDER plane
+(`DndContext` + `verticalListSortingStrategy`, `handleWorkspaceDragStart/End` —
+user-orderable, persisted). The remote path is a four-step wizard (`remote.wizard`:
+Choose method → Connection settings → Connecting → Choose remote directory) with
+saved-connection history (`remote.history.empty` "No matching saved connections"),
+WSL-UNC prompting (`workspace.wslUncPrompt`), and an SSH/WSL/Docker remote-environment
+model (the Computer-Use catalog copy names all three). Supporting strings:
+"Add new workspace", "Start from scratch", `workspace.backToWorkspace`,
+`workspaceSidebar.noProjects` "No open projects". Asar receipts (shipped): "Add
+project" ×1, "No open projects" ×1, "Remote connection" ×4, "Add new workspace" ×1,
+"Start from scratch" ×1, `workspaceSidebar.projectsSection` ×3,
+`workspaceSidebar.addProject` ×3, `remote.trigger` ×4, "Choose remote directory" ×1,
+`workspace.context.lastActivity` ×3, `remote.history.empty` ×3, "Open folder" ×2,
+`workspace.openFolder` ×4. THE PHONE: workspaces exist only as a PASSIVE grouping —
+tasks arrive grouped by `workspaceIdentityKey` and render under collapsible workspace
+headers (`TaskListScreen`/`WorkspaceCollapse.kt`); there is no add, no open-folder, no
+active-workspace switch, no reorder, and no remote-environment concept anywhere in the
+app (grep: zero consumers of any of the above strings' intents). Scope note: pass 6's
+Q3 recorded the SSH DIALOG as a desktop-form BOUNDARY — that disposition stands for the
+dialog itself; G41 is the broader capability gap (the workspace MODEL the dialog feeds:
+multi-workspace registration/switching/ordering), which no pass had enumerated. The
+companion-shaped remedy is a workspace switcher/manager over the workspaces the phone
+already RECEIVES, not a folder picker.
+
+### AF2. Evidence completions (no new gap ids)
+
+- **Snapshot-vs-patch autoDrain (mock-side, fixed this pass):** the desktop's
+  queueState contract expects snapshot and patches to agree; the mock now honors it.
+- **AlreadyResolved styling observation:** the Approvals screen renders the typed
+  resolved-elsewhere copy through its `answerError` channel, which paints in the ERROR
+  palette (red) — an INFO-class message in error clothing. Cosmetic; recorded so the
+  G-batch's approvals work picks a neutral style deliberately.
+
+## Part AG — remediation order update (supersedes only where pass 11 applies)
+
+1. **GAP-A8 stays FIRST, GAP-A2 second** — 11th consecutive receipts each (AE3); nothing
+   in pass 11 changes their remedies.
+2. **NEW: GAP-A13 (P2) joins the A-batch directly behind A2** — the goal-refusal notice
+   bug is small, precisely mechanism-mapped (make `_sendNotice` a combine source, mirror
+   the vc21 draft precedent), and it silently eats ALL slash-verb refusal feedback
+   (compact/goal set/resume/pause share the sendSlash path).
+3. **NEW: G41 (P3) joins the G-batch at the top of the P3s beside G36** — the workspace
+   management plane is the largest remaining phone-side capability gap with a true
+   companion shape (the phone already renders workspace groups; management is the missing
+   half).
+4. **Rig debt CLEARED:** MOCK_QUEUE and MOCK_REFUSE_COMMANDS are implemented and
+   exercised (AE1); MOCK_AUTOMATIONS / MOCK_OFFPEAK / MOCK_INTERACTION_PUSH and widget
+   drag-placement remain open (pass-5/9 debts).
+5. **Regression anchors to pin:** the four queue verbs (each: wire type + patch effect on
+   strip) and the AlreadyResolved no-wire degrade both deserve integration pins
+   alongside AE2's A13 fix pin (a uiState-emission test: set notice → assert uiState
+   re-emits WITHOUT an unrelated source change).
+
+Verification record (pass 11): rig ran ~55 min with ZERO emulator deaths, ONE mock
+restart (flag re-arm, documented reconnect), ONE deliberate app death (the GAP-A8 Photo
+arm, clean relaunch + auto-reconnect in ~2–3 s). Census: 1 FATAL (deliberate A8), 0 ANRs,
+0 unexpected app defects beyond AE2. Unit suites were NOT re-run: the app code tree is
+byte-identical to the fd7046a green baseline; the only code change this pass is in
+tools/mockzcode (rig-only), whose self-tests re-ran green.

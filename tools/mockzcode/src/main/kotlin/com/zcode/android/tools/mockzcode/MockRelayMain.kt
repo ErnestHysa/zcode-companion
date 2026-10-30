@@ -311,6 +311,21 @@ fun main() {
             )),
         ))
     }
+    // Pass-11 rig leg (AB4.1 rig debt): MOCK_QUEUE=1 seeds 2 queued follow-ups +
+    // autoDrain=false so the QueueStrip renders and the four verbs (send now / edit /
+    // move up-down / auto-drain) become FIRST-executable live.
+    if (System.getenv("MOCK_QUEUE") != null) {
+        mock.script.queueItems = listOf(
+            MockZCode.QueueItem("q-rig-1", "queued follow-up one"),
+            MockZCode.QueueItem("q-rig-2", "queued follow-up two"),
+        )
+        mock.script.autoDrain = false
+    }
+    // Pass-11 rig leg (AB4.1 rig debt): MOCK_REFUSE_COMMANDS=1 makes the goal verbs
+    // answer respondError — the SendNotice.GOAL_*_REFUSED degrade branches finally run.
+    if (System.getenv("MOCK_REFUSE_COMMANDS") != null) {
+        mock.script.refuseCommandTypes = setOf("sendGoal", "pauseGoal", "resumeGoal")
+    }
     // Phase 4C (C2) rig leg: the slash panel's extra sections — one custom command,
     // one skill, one agent (synthetic, INV-15/16).
     mock.script.commandsList = JsonObject(mapOf(
