@@ -1193,3 +1193,220 @@ total, 0 ANRs, 0 app-level ERROR log lines. Unit suites were NOT re-run: `git di
 fd7046a..322b9a3` contains only the report file and 2 mock-module lines, so the app code
 tree is byte-identical to the 1487-test green baseline (Part A) — the same reasoning
 accepted in passes 2–5.
+
+---
+
+# Seventh pass — 2026-10-30 (APPENDED — pass 7; not part of the original audit)
+
+Scope: same mandate, seventh run ("live emulation + verify everything + REA the macOS app +
+document every gap; append only what's new"). All commits after `fd7046a` remain docs + 2
+mock-module lines, so every pass-1..6 defect and G-gap is expected to still exist; pass 7
+executes the surfaces no earlier pass ran: the task-CREATE sheet's model picker (search +
+selection + propagation), the FULL create loop with a fresh task, the in-conversation
+Switch-model sheet, the Reasoning-effort picker (first execution of the effort plane in any
+pass), the message long-press actions sheet + Copy, the git-pane Snapshot CREATE verb, the
+approvals launcher-shortcut intent, the glance-widget receiver inventory, the connection-lost
+notification END-TO-END (relay kill → shade → recovery ladder), and the skills-row expand
+affordance. FOUR new desktop gaps (G31–G34) and three boundary-plane completions; the two
+standing P1s re-confirmed with fresh receipts (A8 6th repro, A2 6th receipt). No code was
+changed by this pass — verification + documentation round only.
+
+Tree under audit: `main` @ `b00a8db` (app code identical to `fd7046a` — `git diff
+fd7046a..b00a8db` is the report file + 2 mock-module lines; versionName 1.3.0 via `dumpsys
+package`). Fresh `adb install -r` of the current debug build over the pass-4/5 data
+(lastUpdateTime 2026-10-30 01:38:50); the stored pairing auto-reconnected on first launch.
+One first-launch observation: `update.check :: desktop=null state=UpToDatenull` — the check
+races the bootstrap; after the bootstrap completes it reports desktop 3.14.3 state=UpToDate
+(verified again post-A8-relaunch). Desktop target unchanged: `/Applications/ZCode.app` asar
+sha256 `99e280fb90b626cc…` (re-measured AND re-analyzed this pass, byte-identical).
+
+Evidence: 27 screenshots `/tmp/walk7/*.png` + 36 uiautomator dumps `/tmp/walk7/d*.xml`; mock
+relay wire log `/tmp/mock-relay-pass7.log` (`hub.createTask … outcome=Accepted`,
+`approvals.answer … option=allowOnce` receipts); app logcat (the A8 FATAL +
+`Process com.zcode.android.app (pid 4261) has died: prcp TOP`, the connection-loss ladder
+RECONNECTING→RECOVERING→CONNECTED, `Connection lost` posting in NotificationService); REA
+Evidence `ev_43c0a5668a598e3547afe154a4342bca26867d0d8f93d9a0ce66426c4d89f2b9` (fresh
+shipped-asar analysis, 23,186 relevant files / 22,125 parsed JS / 1,359 modules, same
+documented post-signing `pty.node` record-and-continue note); desktop source reference clone
+v3.14.3 `29628c9` at `~/Desktop/DEVPROJECTS/zcode/repo`; shipped-bundle binary-grep receipts
+in Part T.
+
+Rig: zcode-pixel AVD cold boot (`-no-snapshot-load -gpu swiftshader_indirect -no-audio`),
+MockZCode relay on `10.0.2.2:18100` relaunched via the gradle task with the same all-flags
+arming (`MOCK_ROWS=40 MOCK_GOAL=1 MOCK_APPROVAL=1 MOCK_ROW_ACTIONS=1 MOCK_WORKFLOWS=1
+MOCK_TASKMGMT=1 MOCK_QUESTION=1 MOCK_HOOKS=1 MOCK_COMPACT=1 MOCK_ATTACHMENT=1
+MOCK_SCENARIO=HAPPY`). The relay was deliberately killed ONCE mid-pass for the
+connection-loss leg (`pkill -f MockRelayMainKt` — the emulator-safe method) and restarted
+with identical arming. Zero emulator deaths; one deliberate app death (A8).
+
+## Part S — pass-7 live emulation
+
+### S1. NEW verified surfaces (first executed this pass; wire receipt where relevant)
+
+| Surface | Result |
+| --- | --- |
+| **New-task model picker: search + selection + propagation** | Create sheet chip `Model: workspace default` → full grouped picker (`Default / OPENAI-COMPATIBLE / Z.AI`: glm-4.6, glm-5.1, glm-5.1-air, glm-5.1-flash + `Search models`); typing "air" narrows the list to exactly glm-5.1-air; selecting it returns to the sheet with the chip reading `zai/glm-5.1-air`. The pass-4 model-picker evidence covered the in-conversation picker; the create-sheet picker and its search filter are new |
+| **Task CREATE full loop (fresh task)** | Description "Rig-p7" + model zai/glm-5.1-air → Create → `hub.createTask :: workspace=/synthetic/ws-one outcome=Accepted` (01:45:38) → the sheet closes and the task renders under `WORKSPACE Synthetic Workspace` (count 3) with ▶ Running and the row auto-selected. The F-CREATE-STUCK racing-snapshot fix re-verified with a genuinely NEW task on a fresh install |
+| **In-conversation Switch-model sheet** | Session-bar model chip (`model GLM-5.3-Flash, thought max, tap to change`) opens the same grouped `Switch model` sheet — the conversation-side picker rides the identical component as the create sheet |
+| **Reasoning-effort picker (FIRST execution of the effort plane)** | Session-bar config chip expands the interactive chip row (`Effort · max`, model chip, `account:zai-individual-coding-plan/GLM-5.3-Flash · max`); tapping `Effort · max` opens a `Reasoning effort` sheet (high / max / medium / xhigh + Close); selecting `high` flips the session bar to `yolo · GLM-5.3-Flash · high` and the chip to `Effort · high` in place. This is the UI over the VM's A3.4 `setThoughtLevel` wire path (session-scoped — no dedicated v4call; it rides the next command) — the desktop's `ThoughtLevelCycleControl` counterpart, verified live for the first time |
+| **Message long-press actions sheet** | Long-press on the user message → `Message actions / Copy` bottom sheet; Copy closes the sheet. (User messages carry Copy; the agent-turn actions — Fork/Retry/👍👎/Undo files — are the pass-1 row-actions plane, unchanged) |
+| **Git-pane Snapshot CREATE** | Git pane → Checkpoints section → `Snapshot` action → snackbar `Snapshot ckpt-1 created` + the `ckpt-1` checkpoint row renders + footnote `Snapshots created elsewhere aren't listed here`. Pass 1 listed the Checkpoints section; the create VERB is first executed here (and works even while the git log honestly reports no-git-channel — the checkpoint plane rides its own channel) |
+| **Approvals launcher shortcut** | Shortcut inventory verified via `dumpsys shortcut`: `Approvals` (shortcut_approvals) + `Connection` (shortcut_connection), intent extra `zcode.shortcut=approvals`; firing the exact shortcut intent navigates to the Approvals inbox (`Requests waiting across your tasks` with both pending cards + `Open task to answer`) |
+| **Glance-widget receiver** | `PendingApprovalsWidgetReceiver` registered in `dumpsys appwidget` (min 28161×10241, resizable, not bound on the rig launcher — placement is a host-side gesture the rig can't perform; registration + provider wiring is the on-rig evidence) |
+| **Connection-lost notification END-TO-END (first live execution)** | App backgrounded → relay killed (`pkill -f MockRelayMainKt`) → ladder enters RECONNECTING (02:04:03) → `ZCode Companion / Connection lost / now` posts to the shade (verified expanded, screenshot 25) → relay restarted → app foregrounded → RECONNECTING → RECOVERING → CONNECTED in ~6 s (02:09:04→02:09:10) and the Tasks screen shows `Connected`. The notification itself has NO content intent for connection-scoped posts (deep links are task-scoped only, `AndroidNotificationSink.kt:56`) — tapping is a no-op by design; recorded as a small UX observation, not a defect |
+| **Skills row tap = accordion expand** | Tapping a skill row expands it in place — the descriptions render under each entry (`Generate and apply safe SQL migrations from schema diffs.` etc.). Pass 1 verified the viewer list and pass 5 the search filter; the expand affordance is new evidence |
+| **Voice input availability gate (rig-gated)** | The composer's + menu carries NO `Dictate` item on this image: `PlatformVoiceInput.available` (`SpeechRecognizer.isRecognitionAvailable`) is false here even though the recognizer resolver exists (emulator quirk) — the gate working as designed (`VoiceInput.kt`: "the affordance never renders where recognition is missing"). The path is unit-pinned (`VoiceInputTest.kt`); on real hardware the item renders. Rig-gated class, NOT an app break |
+| Automations honest-unavailable state (re-observed) | The Tasks automations section renders `This feature isn't available on the connected desktop.` under `+ New automation` — the unscripted `listAutomations` fault surfaces as a clear notice (pass-5's rig-blocked class, visually re-confirmed) |
+
+### S2. NEW defects
+
+None. Every newly executed surface behaved; the two standing P1s were re-confirmed with
+fresh receipts (S3).
+
+### S3. Pass-1..6 defects re-confirmed this pass
+
+- **GAP-A8 (attach-send crash, P1) — re-confirmed a SIXTH time, identical repro:** conversation
+  composer + → Photo → FATAL `IllegalArgumentException: Can only use lower 16 bits for
+  requestCode` (02:02:26) and `Process com.zcode.android.app (pid 4261) has died: prcp TOP`.
+  Relaunch recovered cleanly: transient `hub.phase → UNPAIRED` line (the pre-connect phase,
+  NOT credential loss) → AUTHENTICATING → CONNECTED with the conversation stack restored and
+  `update.check :: desktop=3.14.3 state=UpToDate`.
+- **GAP-A2 (approvals never clear, P1) — re-confirmed a SIXTH time, fresh answer this
+  session:** inbox `Allow once` dispatched (`approvals.answer :: interaction=mock-approva
+  option=allowOnce`, 02:00:44) — the Permission card AND the Question card both remained in
+  the dump 3 s later, and the inbox badge still counts the stale stored records.
+- A1/A3–A7/A9–A11 not re-exercised this pass (app code unchanged; the pass-2..6 evidence
+  stands as the latest on-device record for each).
+
+### S4. Rig learnings for the next pass
+
+1. **tap-by-text can resolve a node reporting `[0,0]` bounds** (dialog buttons observed
+   during a keyboard-dismissal window) — the helper returns `0 0` instead of NOTFOUND;
+   treat any `0 0` as NOTFOUND and fall back to a screenshot-derived tap.
+2. **The connection-loss leg is cheap and safe with the emulator UP**: `pkill -f
+   MockRelayMainKt` (never lsof-by-port) → notification posts ≈2.5 min later; restart the
+   relay with the same arming and foreground the app — RECOVERING→CONNECTED in ~6 s. Good
+   standing leg for future passes.
+3. **Skills rows expand in place** (accordion) — not a route change; dumps before/after a
+   tap on the SAME screen are the evidence pattern (screenshot after every dialog
+   transition, fresh dump only after route change — reconfirmed).
+4. Back-press on the Tasks ROOT exits the app (reconfirmed again this pass) — navigate with
+   taps, not back-presses, when the root screen is showing.
+5. First-launch `update.check desktop=null` on a fresh `install -r` is a bootstrap race,
+   self-heals to `3.14.3` — don't chase it as a regression.
+
+## Part T — macOS desktop pass 7 (targeted enumeration)
+
+Asar digest re-measured identical AND freshly re-analyzed this pass (Evidence
+`ev_43c0a566…`, sha `99e280fb90b626cc…`), so the pass-1..6 REA and B/E/H/K/N/Q conclusions
+all stand; this pass enumerated the ui/src planes no earlier pass cited, each with a
+shipped-bundle binary-grep receipt in the asar.
+
+### T1. NEW GAP-G31 (P4, boundary decision): whiteboard plane — sketch → send-to-chat
+
+Desktop: `WhiteboardPane.tsx` (363 lines) + `lib/whiteboard.js` + `whiteboardStore` — a full
+drawing surface (pencil / eraser / image-insert / palette with 6 swatches, strokes with
+undo/redo, per-workspace key `buildWhiteboardWorkspaceKey`) whose `dispatchWhiteboardAddToChat`
+sends the finished sketch INTO the conversation as an image attachment. Shipped receipt: 59
+`whiteboard` hits in the asar. Phone state: zero whiteboard surfaces anywhere (grep across
+app/core/data/features). Unlike the pure-visualization planes, the whiteboard produces
+CONVERSATION INPUT — the natural on-par analog is a sketch→send entry in the composer's
++ menu (the produced images already reach the phone today as inbound attachments, i.e. the
+G28 preview class). Joins the G21–G30 boundary-decision tickets; mobile sketch→send is the
+minimum-on-par seed.
+
+### T2. NEW GAP-G32 (P4): git branch switch / create / commit-assist — phone models the verb, never sends it
+
+Desktop: `GitBranchSwitcher.tsx` (379 lines) + `git-branch-switcher/` (`GitBranchDialogs`
+create + switch-assist dialogs, `display.ts` branch search/labels, `switchAssist.ts` with a
+blocked→commit assist state machine: commit preview files, commit totals, affected-file
+selection before switching). Shipped receipts: `git-branch-switcher` ×3, `GitBranchSwitcher`
+×1 in the asar. Phone state: `GitPort.switchBranch(targetBranchName)` is MODELED
+(`features/git/.../GitPort.kt:77`, null-default never-wire class) but no screen dispatches it
+— this row joins the "Modeled, never sent" family (G3 workflow-resume, G4 queue-delete, G6
+snooze, G8 selection-side-session). ADR-021 note: branch switch/create is a NEW write-tier
+candidate (the current bounded set is rewind/undo/commit-class); switch-assist
+(commit-before-switch with preview) is the UX the port would need to honor.
+
+### T3. NEW GAP-G33 (P4): model-trajectory drill-in — desktop expands a call into a payload pane
+
+Desktop: the 16-file `ModelTrajectory*` family (`ModelTrajectoryPane/PaneDetails/Parts`,
+`ModelTrajectoryTimeline`, `SearchBar/Search/SearchHighlight`, `ModelTrajectoryToolPayload`,
+`ExpansionMenu`, `RoleStyles`, `Format`) — any model call in the timeline expands into a
+searchable trajectory pane with per-call TIMELINE and tool PAYLOAD detail. Shipped receipt:
+`ModelTrajectory` ×12. Phone state: `TrajectorySheet.kt` (155 lines) renders call cards
+(duration · head text · tool NAMES as one joined string · error) with a search field
+filtering timeline+records — no per-call expansion, no payload detail. Pass 6 verified the
+sheet's search filter; the depth delta (payload drill-in) is the gap.
+
+### T4. NEW GAP-G34 (P4, small): update release-notes display
+
+Desktop: `UpdateStatusDialog.tsx` + `UpdateStatusButton.tsx` + `UpdateReleaseNotesTooltip.tsx`
+(renders `releaseNotesMarkdown` per locale). Shipped receipt: `Release notes` ×2 in the asar.
+Phone state: the in-app update sheet shows version/compat from `ReleaseMeta` — which carries
+`versionName / versionCode / maxTestedDesktop / sha256 / apkName` only
+(`ReleaseInfo.kt:130`), no notes field. On-par minimum: a notes line (markdown) in the update
+sheet, sourced from the release meta block the ReleaseParser already fails-closed on.
+
+### T5. Boundary inventory completion (NOT gaps — B3 families, cited for completeness)
+
+- **TreemappingPane** (696 lines + `treemappingActivity` model): file-activity TREEMAP of the
+  conversation (rectangle layout + detail region, `useTreemappingConversationMessage`) —
+  git-graph-class visualization-only delta; shipped ×5. The phone's Files/Git surfaces cite
+  content parity, not activity visualization.
+- **browser-use/ side pane** (`UnifiedBrowserView`, `HumanBrowserView`,
+  `ResponsiveBrowserViewport`, `BrowserViewportToolbar`, zoom/resize): the CUA plane's LIVE
+  browser viewport — the desktop WATCHES the agent drive a browser. Strengthens G18: the
+  phone could at least surface browser-use screenshot frames inside its tool rows; today it
+  renders generic tool groups.
+- **PreviewPane.tsx** (1,806 lines): the workspace side preview surface — deepens the
+  G17/G28 preview-depth family (the desktop previews artifacts/files in-place; phone
+  thumbnails are dead-ends per G28).
+- **ExternalAgentImportDialog**: cross-agent import scanning — imports skills/commands/MCP
+  config FROM external agents (`claudeCode` ×21, `codexCli` shipped receipts). Rides the
+  existing skills/commands/MCP authoring boundary (B3, INV-9 read-only viewers on the
+  phone); cited so the boundary's full desktop extent is on record.
+- **DeveloperToolsPane / DesktopTopOverlay / window controls / WelcomeScreen /
+  SortableWorkspaceSidebar / DirectoryBrowser**: desktop chrome and form-factor planes,
+  unchanged.
+
+### T6. Parity cross-checks that found NO new gap
+
+- **Scratch workspaces** — the desktop's `ChatEmptyScratchWorkspaceDialog` (empty-chat →
+  scratch workspace) meets the phone's existing scratch-TASK creation (C7:
+  `onCreateScratchTask` resolves the scratch name→path then creates against it,
+  `TaskListScreen.kt:378`); both author work against scratch spaces. Parity.
+- **Thought-level control** — the desktop's `ThoughtLevelCycleControl` (chat-input toolbar)
+  meets the phone's effort picker (`setThoughtLevel` A3.4, live-verified in S1). Parity.
+- **Permission surfaces** — desktop `PermissionDialog.tsx` ↔ the phone's approval cards +
+  shade-level Approve-once/Deny actions (`AndroidNotificationSink` C3). Parity.
+
+## Part U — remediation order update (supersedes only where pass 7 applies)
+
+1. **GAP-A8** stays FIRST (re-confirmed pass 7, identical FATAL + process death; sixth
+   consecutive pass with the same repro).
+2. GAP-A1/A2, A6/A7, A9, A10, A11 unchanged (Part R ordering stands; A2 now has a sixth
+   same-session receipt).
+3. **G31–G34 join the boundary-decision tickets** (all P4): G31 whiteboard (with the
+   mobile sketch→send note), G32 branch switch (Modeled-never-sent family + ADR-021
+   write-tier note), G33 trajectory drill-in, G34 release notes (smallest; a meta-field +
+   one sheet line).
+4. **New small for the polish ledger:** connection-scoped notifications have no tap target
+   (by design today — deep links are task-scoped, `AndroidNotificationSink.kt:56`);
+   deep-linking the Connection-lost post to the connection screen is cheap on-par polish.
+   Also carry the S1 first-launch `update.check desktop=null` bootstrap race as a
+   cosmetic-if-ever note (self-heals; observed once on a fresh install).
+5. Mock remedies for the NEXT code-touching pass: unchanged from Part R (`MOCK_WORKSPACE_FILES`
+   + `MOCK_AUTOMATIONS`/`MOCK_OFFPEAK`) — pass 7 needed no new arms.
+6. Pass-7 P1 surfaces (create-sheet model picker + full create loop, effort picker,
+   snapshot create, approvals shortcut, connection-lost notification cycle, skills expand,
+   message-actions Copy) need NO remediation — recorded as regression anchors: a pin per
+   surface in the G-fix batches would lock them in.
+
+Verification record (pass 7): emulator+relay rig ran ~40 min with ZERO emulator deaths and
+ONE deliberate relay kill/restart (connection-loss leg); the APP died exactly once — the
+deliberate GAP-A8 Photo-arm repro (sixth pass running the same repro) — followed by a clean
+relaunch that reconnected on its own. Census: 1 FATAL total, 0 ANRs. Unit suites were NOT
+re-run: `git diff fd7046a..b00a8db` contains only the report file and 2 mock-module lines,
+so the app code tree is byte-identical to the 1487-test green baseline (Part A) — the same
+reasoning accepted in passes 2–6.
