@@ -15,6 +15,11 @@ import kotlin.test.assertTrue
  * prose. The composer's KeyboardOptions derive from the draft: slash mode kills
  * autocorrect + capitalization and forces ASCII (the catalog is ASCII); prose keeps
  * the untouched defaults (bilingual typing must not regress).
+ *
+ * A9 (vc51): BOTH modes now carry ImeAction.Send — the composer dispatches on the
+ * IME action (the desktop's Enter-to-send); the recorded rig artifact was Enter
+ * inserting a raw newline into the draft. Supersedes the old "verbatim platform
+ * defaults" pin (the batch that breaks a pin owns it).
  */
 class ComposerKeyboardOptionsTest {
 
@@ -24,21 +29,23 @@ class ComposerKeyboardOptionsTest {
         assertFalse(composerAutoCorrectEnabled(options), "prose word-suggestions must not fire in command context")
         assertEquals(KeyboardCapitalization.None, options.capitalization)
         assertEquals(KeyboardType.Ascii, options.keyboardType)
+        assertEquals(androidx.compose.ui.text.input.ImeAction.Send, options.imeAction, "A9: the IME action dispatches")
     }
 
     @Test
     fun `a draft that merely contains a slash is still prose - only the LEADING slash commands`() {
         val options = composerKeyboardOptions("fix the a/b split")
-        assertEquals(androidx.compose.foundation.text.KeyboardOptions.Default, options, "prose keeps the platform defaults verbatim")
-        assertTrue(composerAutoCorrectEnabled(options))
+        assertTrue(composerAutoCorrectEnabled(options), "prose keeps autocorrect")
+        assertEquals(KeyboardCapitalization.Unspecified, options.capitalization, "prose keeps the platform capitalization default")
+        assertEquals(androidx.compose.ui.text.input.ImeAction.Send, options.imeAction, "A9: the IME action dispatches")
     }
 
     @Test
-    fun `empty and plain drafts keep the prose defaults`() {
+    fun `empty and plain drafts keep the prose defaults plus the A9 send action`() {
         for (draft in listOf("", "fix the parser")) {
             val options = composerKeyboardOptions(draft)
-            assertEquals(androidx.compose.foundation.text.KeyboardOptions.Default, options)
             assertTrue(composerAutoCorrectEnabled(options))
+            assertEquals(androidx.compose.ui.text.input.ImeAction.Send, options.imeAction, "A9: the IME action dispatches")
         }
     }
 }
