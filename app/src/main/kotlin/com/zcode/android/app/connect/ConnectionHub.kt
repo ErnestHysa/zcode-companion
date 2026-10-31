@@ -809,6 +809,26 @@ class ConnectionHub(
     private fun taskWorkspacePath(task: Task): String? = task.workspace.raw
 
     /**
+     * GAP-A3/G14 (vc51): conversation teardown on task switch/exit — unsubscribe the
+     * session's topic, detach its manager, and clear the open-dedupe so a re-entry
+     * re-subscribes fresh. The unsubscribe rides the HUB scope (the caller's VM
+     * scope is cancelled by the time onCleared fires).
+     */
+    fun closeConversation(taskId: String) {
+        val had = openedSessions.remove(taskId)
+        if (!had) return
+        managersVersion.value++
+        scope.launch {
+            val coordinator = coordinator
+            if (coordinator != null) {
+                runCatching { coordinator.detach(taskId) }
+                    .onFailure { log.warn("hub.conversationClose", "${it.javaClass.simpleName}") }
+            }
+            log.info("hub.conversationClose", "session=$taskId")
+        }
+    }
+
+    /**
      * Create a task in an existing workspace (parity with the web remote, §6.1):
      * verified `createSession` command — first message starts the turn; the new
      * session surfaces via the desktop's `workspace-list-updated` push, with an
@@ -1121,6 +1141,9 @@ class ConnectionHub(
 
     /** Per-endpoint coordinator state does NOT survive a switch (§28.5 single-owner). */
     private fun resetEndpointScopedState() {
+        // GAP-A3/G14: the workspace-config catalog subscription is endpoint-scoped —
+        // release it on the OLD transport before the coordinators die (best-effort;
+        // a dead connection drops the record locally either way).
         coordinator = null
         interactionCoordinator = null
         commandCoordinator = null
@@ -1131,6 +1154,11 @@ class ConnectionHub(
         configCollectorJob?.cancel()
         configCollectorJob = null
         _workspaceCatalogs.value = emptyMap()
+        configSubscribedWorkspaceKeys.removeAll().forEach { key ->
+            scope.launch {
+                runCatching { gatewayFor().unsubscribeWorkspaceConfig(key.first, key.second) }
+            }
+        }
     }
 
     /**
@@ -1165,12 +1193,20 @@ class ConnectionHub(
             runCatching {
                 gatewayFor(activeTransport()).subscribeWorkspaceConfig(wsPath, workspaceIdentity)
             }.onSuccess { ack ->
+                // GAP-A3/G14: remember the subscribed target so the endpoint-scoped
+                // teardown can release the catalog topic by name.
+                val resolvedKey = (workspaceIdentity ?: wsPath)?.let { it to workspaceIdentity }
+                if (resolvedKey != null) configSubscribedWorkspaceKeys.add(resolvedKey)
                 log.info("hub.cfgSubscribe", "workspace=${(workspaceIdentity ?: wsPath)?.take(24)} epoch=${ack.logEpoch.take(12)}")
             }.onFailure { e ->
                 log.warn("hub.cfgSubscribe", "refused: ${e.message?.take(80)} (catalog stays absent)")
             }
         }
     }
+
+    /** GAP-A3/G14: live workspace-config subscriptions (path to identity) — released on endpoint reset. */
+    private val configSubscribedWorkspaceKeys =
+        java.util.Collections.newSetFromMap(java.util.concurrent.ConcurrentHashMap<Pair<String, String?>, Boolean>())
 
     /** Validate + add a DIRECT endpoint (§12.2 "write nothing until validation passes"). */
     sealed class AddDirectOutcome {

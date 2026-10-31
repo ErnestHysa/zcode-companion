@@ -95,6 +95,13 @@ interface ConversationPort {
     suspend fun open(task: Task): Boolean
 
     /**
+     * GAP-A3/G14 (vc51): conversation teardown (task switch/exit) — releases the
+     * session's subscription on the wire and detaches its projection. Fire-and-
+     * forget by contract; implementations must survive a cancelled caller scope.
+     */
+    fun close(taskId: String) = Unit
+
+    /**
      * §19.4 scroll-back: rowsRange → page cache. `epochRejected=true` = §15-S9
      * epoch move — the UI shows the "history changed" notice and re-anchors to tail.
      */

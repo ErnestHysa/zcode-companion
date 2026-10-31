@@ -1045,6 +1045,15 @@ class ConversationViewModel(
     private fun kotlinx.coroutines.flow.Flow<List<StreamingBuffer>>.mapToTextMap(): kotlinx.coroutines.flow.Flow<Map<Long, String>> =
         this.map { buffers -> buffers.associate { it.rowId to it.text } }
 
+    /**
+     * GAP-A3/G14 (vc51): conversation teardown (the holder's onCleared on entry
+     * pop) — the port releases the session's subscription on the wire. Must stay
+     * usable from a cancelling scope: the port implementation launches on its own.
+     */
+    fun onTeardown() {
+        runCatching { port.close(taskId) }
+    }
+
     companion object {
         /** ≈30 Hz coalescing budget (§19.2 frame-budget aligned). */
         const val STREAM_FRAME_MS = 33L

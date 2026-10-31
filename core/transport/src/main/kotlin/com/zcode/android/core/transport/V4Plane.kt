@@ -81,6 +81,31 @@ interface V4Plane {
         workspaceIdentity: String? = null,
     ): SubscribeAck
 
+    /**
+     * GAP-A3/G14 (vc51): unsubscribe the conversation topic on teardown — the host
+     * serves `unsubscribeConversationV4` ({workspacePath, workspaceIdentity?,
+     * subscriptionId}) and the desktop adapter always releases its pane's topic on
+     * exit. The LOCAL subscription record is dropped on send so the transport's
+     * recover() pass re-subscribes only still-owned topics. Best-effort by contract:
+     * no record (never subscribed / already dropped) sends NOTHING.
+     */
+    suspend fun unsubscribeConversation(
+        sessionId: String,
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    )
+
+    /**
+     * GAP-A3/G14: unsubscribe the workspace-config catalog topic — the same shape,
+     * the `workspace-config/<key>` record. Called on endpoint-scoped teardown (the
+     * catalog plane dies with the endpoint); the live catalog refresh path never
+     * calls this (other surfaces share the subscription).
+     */
+    suspend fun unsubscribeWorkspaceConfig(
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    )
+
     suspend fun sendConversationCommand(
         envelope: CommandEnvelope,
         workspacePath: String? = null,
@@ -706,6 +731,62 @@ internal class ChannelV4Plane(
         val obj = (raw as? RpcValue.Obj)?.json as? JsonObject
             ?: throw TransportFailure(ErrorMapping.protocolFault("command ack not an object"))
         return CommandAck.decode(obj)
+    }
+
+    suspend fun unsubscribeConversation(
+        sessionId: String,
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ) {
+        unsubscribeTopic(
+            topic = V4Topics.conversation(sessionId),
+            workspacePath = workspacePath,
+            workspaceIdentity = workspaceIdentity,
+            method = "unsubscribeConversationV4",
+        )
+        synchronized(subscriptionWorkspaces) { subscriptionWorkspaces.remove(sessionId) }
+    }
+
+    suspend fun unsubscribeWorkspaceConfig(
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ) {
+        val key = workspaceIdentity?.trim()?.takeIf { it.isNotEmpty() } ?: workspacePath ?: return
+        unsubscribeTopic(
+            topic = V4Topics.workspaceConfig(key),
+            workspacePath = workspacePath,
+            workspaceIdentity = workspaceIdentity,
+            method = "unsubscribeWorkspaceConfigV4",
+        )
+    }
+
+    /**
+     * Shared unsubscribe body (the desktop adapter's owned-subscription shape):
+     * params are the workspace target + the ACK's subscriptionId; the record drops
+     * BEFORE the call so a failed send can never leave a phantom recover() entry.
+     */
+    private suspend fun unsubscribeTopic(
+        topic: String,
+        workspacePath: String?,
+        workspaceIdentity: String?,
+        method: String,
+    ) {
+        val record = synchronized(subscriptions) { subscriptions.remove(topic) } ?: return
+        val target = host.workspaceTarget()
+        val params = buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+            (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("subscriptionId", JsonPrimitive(record.subscriptionId))
+        }
+        try {
+            v4Call(method, RpcValue.Obj(params))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // The subscription is dropped locally either way — a teardown send racing
+            // a dead connection must never tear the exit path down with it (§15.5).
+            bound().warn("v4.call", "$method failed: ${e.message?.take(80)}")
+        }
     }
 
     fun subscriptionWorkspace(sessionId: String): Pair<String?, String?>? =

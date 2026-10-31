@@ -513,6 +513,10 @@ class ConversationVmHolder : androidx.lifecycle.ViewModel() {
     val scope: CoroutineScope get() = holderScope
 
     override fun onCleared() {
+        // GAP-A3/G14 (vc51): entry pop = task switch/exit — release the session's
+        // wire subscription BEFORE the scope dies (the port relays to the hub's
+        // scope, so the cancel below cannot eat the unsubscribe).
+        vm?.onTeardown()
         holderScope.cancel()
         super.onCleared()
     }

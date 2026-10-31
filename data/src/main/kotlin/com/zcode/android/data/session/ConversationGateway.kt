@@ -163,6 +163,24 @@ interface ConversationGateway : CommandSender {
      * instead (the fresh subscribe is the only base the server honors).
      */
     fun currentSubscriptionEpoch(sessionId: String): String?
+
+    /**
+     * GAP-A3/G14 (vc51): release the conversation topic on teardown — the wire
+     * unsubscribe + the transport's local record drop, so the recovery pass
+     * re-subscribes only still-owned topics. Best-effort: no record = no-op.
+     * Default no-op keeps historical fakes compiling; production overrides.
+     */
+    suspend fun unsubscribe(
+        sessionId: String,
+        workspacePath: String? = null,
+        workspaceIdentity: String? = null,
+    ) = Unit
+
+    /** GAP-A3/G14: release the workspace-config catalog topic (endpoint-scoped teardown). */
+    suspend fun unsubscribeWorkspaceConfig(
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ) = Unit
 }
 
 /**
@@ -482,6 +500,26 @@ class RelayConversationGateway(
     }
 
     override fun currentSubscriptionEpoch(sessionId: String): String? = transport.subscriptionEpoch(sessionId)
+
+    override suspend fun unsubscribe(
+        sessionId: String,
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ) {
+        val ws = workspacePath
+            ?: transport.subscriptionWorkspace(sessionId)?.first
+        val identity = workspaceIdentity
+            ?: transport.subscriptionWorkspace(sessionId)?.second
+        synchronized(epochs) { epochs.remove(sessionId) }
+        transport.unsubscribeConversation(sessionId, ws, identity)
+    }
+
+    override suspend fun unsubscribeWorkspaceConfig(
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ) {
+        transport.unsubscribeWorkspaceConfig(workspacePath, workspaceIdentity)
+    }
 
     private fun rawOf(row: com.zcode.android.core.protocol.v4.ConversationRow): JsonObject = row.raw
 

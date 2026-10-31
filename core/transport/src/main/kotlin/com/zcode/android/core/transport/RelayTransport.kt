@@ -1261,6 +1261,17 @@ class RelayTransport(
         workspaceIdentity: String?,
     ): CommandAck = plane.sendConversationCommand(envelope, workspacePath, workspaceIdentity)
 
+    override suspend fun unsubscribeConversation(
+        sessionId: String,
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ) = plane.unsubscribeConversation(sessionId, workspacePath, workspaceIdentity)
+
+    override suspend fun unsubscribeWorkspaceConfig(
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ) = plane.unsubscribeWorkspaceConfig(workspacePath, workspaceIdentity)
+
     override fun subscriptionWorkspace(sessionId: String): Pair<String?, String?>? =
         plane.subscriptionWorkspace(sessionId)
 

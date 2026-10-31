@@ -323,6 +323,11 @@ class DefaultConversationPort(
         return true
     }
 
+    /** GAP-A3/G14: the hub releases the subscription on its own scope (the caller's VM scope may already be cancelling). */
+    override fun close(taskId: String) {
+        hub.closeConversation(taskId)
+    }
+
     // ---------------------------------------------------------------- Phase 7 write path
 
     /** §17.4 draft scope — (endpoint, workspace identity, task); endpoint from the vault. */

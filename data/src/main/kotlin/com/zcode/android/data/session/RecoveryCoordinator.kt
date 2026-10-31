@@ -105,6 +105,32 @@ class RecoveryCoordinator(
 
     fun manager(sessionId: String): ConversationSessionManager? = synchronized(managers) { managers[sessionId] }
 
+    /**
+     * GAP-A3/G14 (vc51): conversation teardown — unsubscribe the topic on the wire,
+     * drop the transport's subscription record, and DETACH the manager so its
+     * stream watchdog can never resubscribe (escalate() on a detached session
+     * returned silently before; with the manager gone the whole state plane is
+     * gone too). Re-opening the task re-attaches fresh through startTargets
+     * (openConversation clears its own dedupe set).
+     */
+    open suspend fun detach(sessionId: String) {
+        val ws = synchronized(sessionWorkspaces) { sessionWorkspaces.remove(sessionId) }
+        synchronized(managers) { managers.remove(sessionId) }
+        synchronized(sessionLastFrameAtMs) { sessionLastFrameAtMs.remove(sessionId) }
+        synchronized(sessionLastWatchdogResyncMs) { sessionLastWatchdogResyncMs.remove(sessionId) }
+        synchronized(sessionWatchdogStrikes) { sessionWatchdogStrikes.remove(sessionId) }
+        synchronized(escalationCounts) { escalationCounts.remove(sessionId) }
+        pendingAttach.remove(sessionId)
+        try {
+            gateway.unsubscribe(sessionId, ws?.first, ws?.second)
+            log.info("recovery.detached", "session=$sessionId (unsubscribed)")
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            log.warn("recovery.detachUnsubscribeFailed", "session=$sessionId ${e.javaClass.simpleName}")
+        }
+    }
+
     /** Phase 6: a conversation may live outside the endpoint-pinned (active) workspace. */
     data class SessionTarget(
         val sessionId: String,
