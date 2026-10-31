@@ -1279,6 +1279,9 @@ class RelayTransport(
         workspaceIdentity: String?,
     ): SubscribeAck = plane.subscribeSessionsIndex(workspacePath, workspaceIdentity)
 
+    override suspend fun backgroundBashOutput(sessionId: String, workId: String): JsonObject =
+        plane.backgroundBashOutput(sessionId, workId)
+
     override fun ensureSessionsIndexListen(workspacePath: String?, workspaceIdentity: String?) =
         plane.ensureSessionsIndexListen(workspacePath, workspaceIdentity)
 

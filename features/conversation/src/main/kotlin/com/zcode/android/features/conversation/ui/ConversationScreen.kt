@@ -190,6 +190,9 @@ fun ConversationScreen(
     // ---- G12 (vc51): the pending-command recovery banner ----
     pendingRecovery: List<ConversationPort.RecoverableCommand> = emptyList(),
     onReplayPendingCommands: () -> Unit = {},
+    // ---- G15 (vc51): the background-work indicator + read-only output viewer ----
+    backgroundOutputProvider: (suspend (workId: String) -> Any?)? = null,
+    onCancelBackgroundWork: (workId: String) -> Unit = {},
 ) {
     val rowActions = remember(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction, onOpenArtifact) {
         RowActionCallbacks(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction, onOpenArtifact)
@@ -518,6 +521,18 @@ fun ConversationScreen(
             }
             // §17.4/§17.6 composer (pinned bottom; drafting allowed offline, send
             // blocked with explicit copy — never a silent queue).
+            // G15 (vc51): the background-work indicator — the desktop composer's
+            // ConversationBackgroundWorkTrigger: count pill, tap → the viewer.
+            val runningBackground = state.sessionState?.backgroundWorks?.count { it.status == "running" } ?: 0
+            if (runningBackground > 0 && backgroundOutputProvider != null) {
+                BackgroundWorkIndicator(
+                    running = runningBackground,
+                    works = state.sessionState?.backgroundWorks.orEmpty(),
+                    outputProvider = backgroundOutputProvider,
+                    onCancel = onCancelBackgroundWork,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             // G12 (vc51): the pending-command recovery banner sits directly above the
             // composer — the persisted replayable set (outbox UNKNOWN input-class)
             // is the user-facing surface the in-memory overlay can never be.

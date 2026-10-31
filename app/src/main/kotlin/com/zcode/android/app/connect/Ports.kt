@@ -670,6 +670,15 @@ class DefaultConversationPort(
             null
         }
 
+    override suspend fun fetchBackgroundWorkOutput(taskId: String, workId: String): Any? =
+        try {
+            hub.phase9().backgroundBashOutput(taskId, workId)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            hub.log.warn("port.backgroundOutput", "task=${taskId.take(12)} ${e.javaClass.simpleName}")
+            null
+        }
+
     override suspend fun fetchAttachmentPreview(taskId: String, ref: String): ByteArray? =
         try {
             hub.phase9().attachmentPreview(taskId, ref)

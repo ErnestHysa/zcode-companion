@@ -206,6 +206,16 @@
     <string name="recovery_banner_one">A message from the offline window may not have been delivered.</string>
     <string name="recovery_banner_many">%1$d messages from the offline window may not have been delivered.</string>
     <string name="recovery_replay">Replay</string>
+    <string name="background_work_count">%1$d background task(s) running</string>
+    <string name="background_work_view">View</string>
+    <string name="background_work_title">Background work</string>
+    <string name="background_work_none">No background work on this session.</string>
+    <string name="background_work_cancel">Cancel</string>
+    <string name="background_work_view_output">View output</string>
+    <string name="background_work_output_empty">(no output yet)</string>
+    <string name="background_work_truncated">truncated</string>
+    <string name="background_work_unavailable">Output unavailable (%1$s)</string>
+    <string name="background_work_output_error">Output could not be read on this connection.</string>
     <string name="pending_not_sent">Not sent</string>
     <string name="row_turn_changes">%1$s +%2$d −%3$d · view</string>
     <string name="notice_switch_offline">Offline — the switch was not sent. Nothing changed.</string>

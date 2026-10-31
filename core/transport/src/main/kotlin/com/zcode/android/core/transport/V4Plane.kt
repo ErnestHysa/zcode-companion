@@ -122,6 +122,14 @@ interface V4Plane {
     /** G13: the scoped listen for sessions-index frames (idempotent per path). */
     fun ensureSessionsIndexListen(workspacePath: String?, workspaceIdentity: String?)
 
+    /**
+     * G15 (vc51): the background-bash output read — `backgroundBashOutputV4
+     * {sessionId, workId}` (v4/conversation/backgroundBashOutput; read-only,
+     * task-authorized bounded snapshot). The result is the typed union decoded
+     * domain-side ([com.zcode.android.domain.model.BackgroundBashOutput]).
+     */
+    suspend fun backgroundBashOutput(sessionId: String, workId: String): JsonObject
+
     suspend fun sendConversationCommand(
         envelope: CommandEnvelope,
         workspacePath: String? = null,
@@ -803,6 +811,17 @@ internal class ChannelV4Plane(
             // a dead connection must never tear the exit path down with it (§15.5).
             bound().warn("v4.call", "$method failed: ${e.message?.take(80)}")
         }
+    }
+
+    suspend fun backgroundBashOutput(sessionId: String, workId: String): JsonObject {
+        val target = host.workspaceTarget()
+        val params = buildJsonObject {
+            put("workspacePath", JsonPrimitive(target?.first ?: ""))
+            target?.second?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("sessionId", JsonPrimitive(sessionId))
+            put("workId", JsonPrimitive(workId))
+        }
+        return v4CallObject("backgroundBashOutputV4", params)
     }
 
     suspend fun subscribeSessionsIndex(

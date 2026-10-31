@@ -159,6 +159,13 @@ interface ConversationPort {
     /** §7.5 cancelBackgroundWork (SAFE_AGGRESSIVE). */
     suspend fun cancelBackgroundWork(taskId: String, workId: String): SendOutcome
 
+    /**
+     * G15 (vc51): the background-bash output read for the viewer — the typed
+     * [BackgroundBashOutput], the typed [BackgroundBashOutput.Unavailable], or
+     * null (the channel refused — honest fault copy).
+     */
+    suspend fun fetchBackgroundWorkOutput(taskId: String, workId: String): Any? = null
+
     /** §7.5 queue edits — CAS-guarded (verified set; baseRevision from the projection). */
     suspend fun sendQueuedNow(taskId: String, queueItemId: String): SendOutcome
     suspend fun editQueueItem(taskId: String, queueItemId: String, newText: String): SendOutcome

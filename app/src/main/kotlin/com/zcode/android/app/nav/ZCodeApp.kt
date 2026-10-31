@@ -592,6 +592,9 @@ private fun ConversationRoute(
         // G12 (vc51): the persisted replayable set above the composer.
         pendingRecovery = vm.pendingRecovery.collectAsState().value,
         onReplayPendingCommands = vm::replayPendingCommands,
+        // G15 (vc51): the background-work indicator + read-only output viewer.
+        backgroundOutputProvider = { workId -> vm.fetchBackgroundWorkOutput(workId) },
+        onCancelBackgroundWork = vm::cancelBackgroundWork,
         onAnswerQuestions = vm::answerUserInputQuestions,
         onDeclineQuestions = vm::declineUserInput,
         // GAP-A1 (vc51, ADR-024): the hook-trust review verbs — their FIRST UI callers.

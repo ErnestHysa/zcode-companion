@@ -30,6 +30,20 @@ import kotlinx.serialization.json.JsonPrimitive
  */
 class Phase9Tools(private val transport: AppTransport) {
 
+    /**
+     * G15 (vc51): the background-bash output read — the typed union or null when
+     * the wire shape matches neither member (the viewer renders the honest fault).
+     */
+    suspend fun backgroundBashOutput(sessionId: String, workId: String): Any? = try {
+        com.zcode.android.domain.model.BackgroundBashOutput.decodeResult(
+            transport.backgroundBashOutput(sessionId, workId),
+        )
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        null
+    }
+
     // ---------------------------------------------------------------- turn diffs (9.1)
 
     /** `conversationFileChangesV4` → pre-parsed hunks mapped onto the §22 model. */

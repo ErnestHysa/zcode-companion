@@ -919,6 +919,10 @@ class ConversationViewModel(
         scope.launch { port.cancelBackgroundWork(taskId, workId) }
     }
 
+    /** G15: the background-bash output read for the viewer sheet. */
+    suspend fun fetchBackgroundWorkOutput(workId: String): Any? =
+        port.fetchBackgroundWorkOutput(taskId, workId)
+
     fun sendQueuedNow(queueItemId: String) {
         scope.launch {
             if (port.sendQueuedNow(taskId, queueItemId) == ConversationPort.SendOutcome.STALE) {
