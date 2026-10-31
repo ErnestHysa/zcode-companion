@@ -64,6 +64,13 @@ class InteractionCoordinator(
          * plane owns their lifecycle — its own ResnapshotLacks / resolved-row rules).
          */
         val fromRowsSnapshot: Boolean = false,
+        /**
+         * GAP-A2: the resolution timestamp mirrored from markResolved. updateLifecycle
+         * re-upserts the full row after every transition; without this mirror it
+         * rewrites resolvedAtMs from the request (null) and the record REOPENS in the
+         * inbox (`observeOpen` filters resolvedAtMs IS NULL) — the 11-receipt defect.
+         */
+        var resolvedAtMs: Long? = null,
     )
 
     private val requests = HashMap<InteractionId, KnownRequest>()
@@ -98,9 +105,21 @@ class InteractionCoordinator(
         val machine = machineFor(interactionId) ?: return
         runCatching { machine.on(PermissionStateMachine.Event.ResolvedElsewhere) }
         if (machine.state == PermissionStateMachine.State.RESOLVED) {
-            interactions.markResolved(endpointId, interactionId, clock(), resolvedBySelf = false)
+            resolveRecord(interactionId, resolvedBySelf = false)
             updateLifecycle(interactionId, machine.state)
         }
+    }
+
+    /**
+     * GAP-A2: the ONE record-resolution funnel. Mirrors the timestamp onto the
+     * KnownRequest so the follow-up lifecycle upserts (updateLifecycle) preserve
+     * resolvedAtMs instead of re-nulling it — markResolved followed by a bare
+     * updateLifecycle used to REOPEN the inbox record immediately.
+     */
+    private suspend fun resolveRecord(interactionId: InteractionId, resolvedBySelf: Boolean) {
+        val at = clock()
+        requests[interactionId]?.resolvedAtMs = at
+        interactions.markResolved(endpointId, interactionId, at, resolvedBySelf = resolvedBySelf)
     }
 
     /** Desktop session closed / task deleted (§20.3 row 7). */
@@ -227,10 +246,14 @@ class InteractionCoordinator(
                 else -> PermissionStateMachine.Event.AckRejected
             }
             runCatching { machine.on(machineEvent) }
-            if (machine.state == PermissionStateMachine.State.RESOLVED) {
+            val ackAccepted = ack.status == "accepted" || ack.status == "duplicate" || ack.status == "noop"
+            if (machine.state == PermissionStateMachine.State.RESOLVED || ackAccepted) {
+                // GAP-A2: an accepted ack resolves the RECORD even if the machine
+                // bookkeeping transition was swallowed — the desktop confirmed the
+                // answer, so the inbox must clear regardless of machine state.
                 // Truthful attribution: a disappearance-reconciled card may already be
                 // RESOLVED-by-elsewhere before the late ack returns (§20.3 row 3).
-                interactions.markResolved(endpointId, interactionId, clock(), resolvedBySelf = !machine.resolvedByElsewhere)
+                resolveRecord(interactionId, resolvedBySelf = !machine.resolvedByElsewhere)
                 pendingCommands.remove(interactionId) // terminal: the entry's work is done
             } else if (machine.state in TERMINAL_MACHINE_STATES) {
                 pendingCommands.remove(interactionId)
@@ -454,8 +477,10 @@ class InteractionCoordinator(
                 else -> PermissionStateMachine.Event.AckRejected
             }
             runCatching { machine.on(machineEvent) }
-            if (machine.state == PermissionStateMachine.State.RESOLVED) {
-                interactions.markResolved(endpointId, interactionId, clock(), resolvedBySelf = !machine.resolvedByElsewhere)
+            val ackAccepted = ack.status == "accepted" || ack.status == "duplicate" || ack.status == "noop"
+            if (machine.state == PermissionStateMachine.State.RESOLVED || ackAccepted) {
+                // GAP-A2: record resolution rides the accepted ack, not the machine gate.
+                resolveRecord(interactionId, resolvedBySelf = !machine.resolvedByElsewhere)
                 pendingCommands.remove(interactionId)
             } else if (machine.state in TERMINAL_MACHINE_STATES) {
                 pendingCommands.remove(interactionId)
@@ -555,8 +580,10 @@ class InteractionCoordinator(
                 else -> PermissionStateMachine.Event.AckRejected
             }
             runCatching { machine.on(machineEvent) }
-            if (machine.state == PermissionStateMachine.State.RESOLVED) {
-                interactions.markResolved(endpointId, interactionId, clock(), resolvedBySelf = !machine.resolvedByElsewhere)
+            val ackAccepted = ack.status == "accepted" || ack.status == "duplicate" || ack.status == "noop"
+            if (machine.state == PermissionStateMachine.State.RESOLVED || ackAccepted) {
+                // GAP-A2: record resolution rides the accepted ack, not the machine gate.
+                resolveRecord(interactionId, resolvedBySelf = !machine.resolvedByElsewhere)
                 pendingCommands.remove(interactionId)
             } else if (machine.state in TERMINAL_MACHINE_STATES) {
                 pendingCommands.remove(interactionId)
@@ -629,7 +656,7 @@ class InteractionCoordinator(
             if (requests[iid]?.fromRowsSnapshot != true) continue
             runCatching { machine.on(PermissionStateMachine.Event.ResolvedElsewhere) }
             if (machine.state == PermissionStateMachine.State.RESOLVED) {
-                interactions.markResolved(endpointId, iid, clock(), resolvedBySelf = false)
+                resolveRecord(iid, resolvedBySelf = false)
                 updateLifecycle(iid, machine.state)
             }
         }
@@ -705,6 +732,7 @@ class InteractionCoordinator(
                         requests[iid] = KnownRequest(
                             request.sessionId, request.options, permission = request,
                             fromRowsSnapshot = requests[iid]?.fromRowsSnapshot == true,
+                            resolvedAtMs = requests[iid]?.resolvedAtMs,
                         )
                         interactions.upsertPermission(request, endpointId, lifecycleOf(machines[iid]!!.state))
                     }
@@ -723,7 +751,10 @@ class InteractionCoordinator(
                         onUserInputRequested(request)
                         render(iid)
                     } else {
-                        requests[iid] = KnownRequest(request.sessionId, request.options, userInput = request)
+                        requests[iid] = KnownRequest(
+                            request.sessionId, request.options, userInput = request,
+                            resolvedAtMs = requests[iid]?.resolvedAtMs,
+                        )
                         interactions.upsertUserInput(request, endpointId, lifecycleOf(machines[iid]!!.state))
                     }
                 }
@@ -744,7 +775,7 @@ class InteractionCoordinator(
             if (requests[iid]?.sessionId == sessionId && iid !in openIds) {
                 runCatching { machine.on(PermissionStateMachine.Event.ResolvedElsewhere) }
                 if (machine.state == PermissionStateMachine.State.RESOLVED) {
-                    interactions.markResolved(endpointId, iid, clock(), resolvedBySelf = false)
+                    resolveRecord(iid, resolvedBySelf = false)
                     pendingCommands.remove(iid)
                 }
                 updateLifecycle(iid, machine.state)
@@ -767,8 +798,15 @@ class InteractionCoordinator(
 
     private suspend fun updateLifecycle(interactionId: InteractionId, state: PermissionStateMachine.State) {
         val known = requests[interactionId] ?: return
-        known.permission?.let { interactions.upsertPermission(it, endpointId, lifecycleOf(state)) }
-        known.userInput?.let { interactions.upsertUserInput(it, endpointId, lifecycleOf(state)) }
+        // GAP-A2: mirror the resolution timestamp into the upsert — a bare request
+        // re-upsert writes resolvedAtMs null and REOPENS the record in the inbox
+        // (`observeOpen` filters resolvedAtMs IS NULL).
+        known.permission?.let {
+            interactions.upsertPermission(it.copy(resolvedAtMs = known.resolvedAtMs), endpointId, lifecycleOf(state))
+        }
+        known.userInput?.let {
+            interactions.upsertUserInput(it.copy(resolvedAtMs = known.resolvedAtMs), endpointId, lifecycleOf(state))
+        }
     }
 
     private fun lifecycleOf(state: PermissionStateMachine.State): InteractionLifecycle = when (state) {
