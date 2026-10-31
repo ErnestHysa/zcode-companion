@@ -162,6 +162,9 @@ fun ConversationScreen(
     onOpenWorkflowRun: (com.zcode.android.domain.model.WorkflowRunSummary) -> Unit = {},
     onCloseWorkflowRun: () -> Unit = {},
     onLoadMoreRunEvents: () -> Unit = {},
+    // ---- G3 (vc51): the run sheet's Resume + amend actions ----
+    onResumeWorkflowRun: (com.zcode.android.domain.model.WorkflowRunSummary) -> Unit = {},
+    onAmendWorkflowRun: (com.zcode.android.domain.model.WorkflowRunSummary, String?, Int?) -> Unit = { _, _, _ -> },
     // ---- I1 queue (Phase 5A): reorder · auto-drain · follow-up mode ----
     onMoveQueueItem: ((queueItemId: String, delta: Int) -> Unit)? = null,
     onSetAutoDrain: ((Boolean) -> Unit)? = null,
@@ -264,7 +267,13 @@ fun ConversationScreen(
             )
             // A3.3: the run detail sheet (an overlay — position in the tree is immaterial).
             openWorkflowRun?.let { open ->
-                WorkflowRunSheet(open, onDismiss = onCloseWorkflowRun, onLoadMore = onLoadMoreRunEvents)
+                WorkflowRunSheet(
+                    open,
+                    onDismiss = onCloseWorkflowRun,
+                    onLoadMore = onLoadMoreRunEvents,
+                    onResume = onResumeWorkflowRun,
+                    onAmendSettings = onAmendWorkflowRun,
+                )
             }
             // A3.13: the trajectory sheet (search field + the model-call timeline).
             if (showTrajectory) {

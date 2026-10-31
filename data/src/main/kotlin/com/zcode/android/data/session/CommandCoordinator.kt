@@ -351,6 +351,28 @@ class CommandCoordinator(
             args?.let { put("args", it) }
         })
 
+    // ---------------------------------------------------------------- G3 (vc51): run resume + settings amend
+
+    /**
+     * G3: `resumeWorkflowRun {workId, name?}` — NOT CAS-guarded (the workflowRuns plane is
+     * revision-free, per the desktop's workflow-run-settings-command.ts comment grouping it
+     * with cancelBackgroundWork). The `workId` ≡ runId identity (same equation as cancel).
+     */
+    suspend fun resumeWorkflowRun(sessionId: String, runId: String): Outcome =
+        simpleCommand("resumeWorkflowRun", sessionId, buildJsonObject { put("workId", runId) })
+
+    /**
+     * G3: `amendWorkflowRunSettings {workId, subagentModel?, maxConcurrency?}` — the GUI
+     * sends only the changed fields (omitted = keep current, null = reset to default);
+     * NOT CAS-guarded (same revision-free plane).
+     */
+    suspend fun amendWorkflowRunSettings(sessionId: String, runId: String, subagentModel: String?, maxConcurrency: Int?): Outcome =
+        simpleCommand("amendWorkflowRunSettings", sessionId, buildJsonObject {
+            put("workId", runId)
+            subagentModel?.let { put("subagentModel", it) }
+            maxConcurrency?.let { put("maxConcurrency", it) }
+        })
+
     // ---------------------------------------------------------------- model/mode switch (Phase 9.5)
 
     /**

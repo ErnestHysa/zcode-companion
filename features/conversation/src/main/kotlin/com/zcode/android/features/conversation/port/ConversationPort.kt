@@ -199,6 +199,19 @@ interface ConversationPort {
     suspend fun startSavedWorkflow(taskId: String, name: String, scope: String?, args: Map<String, String>): StartWorkflowOutcome =
         StartWorkflowOutcome(SendOutcome.FAILED, null)
 
+    /**
+     * G3 (vc51): `resumeWorkflowRun {workId, name?}` — the desktop's resume gate
+     * (`workflowResumeGate.ts`). NOT CAS-guarded (the workflowRuns plane is revision-free,
+     * workflow-run-settings-command.ts). Default FAILED = the modeled-never-sent shape.
+     */
+    suspend fun resumeWorkflowRun(taskId: String, runId: String): SendOutcome = SendOutcome.FAILED
+
+    /**
+     * G3: `amendWorkflowRunSettings {workId, subagentModel?, maxConcurrency?}` — omitted
+     * field (null here) = keep the current value. NOT CAS-guarded (same plane).
+     */
+    suspend fun amendWorkflowRunSettings(taskId: String, runId: String, subagentModel: String?, maxConcurrency: Int?): SendOutcome = SendOutcome.FAILED
+
     // ---- Phase 5B: plans (A3.12) + trajectory/session search (A3.13) ----
 
     /** `conversationPlansV4 {sessionId}` — the session's plans; null = unavailable. */

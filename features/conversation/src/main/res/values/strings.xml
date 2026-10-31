@@ -301,6 +301,17 @@
     <string name="workflow_failure">Failed: %1$s</string>
     <string name="notice_workflow_started">Workflow \"%1$s\" started.</string>
     <string name="notice_workflow_refused">The desktop refused the workflow (%1$s).</string>
+    <!-- G3 (vc51): the run sheet's Resume + amend actions -->
+    <string name="workflow_resume">Resume run</string>
+    <string name="workflow_settings">Run settings</string>
+    <string name="workflow_settings_title">Amend run settings</string>
+    <string name="workflow_settings_model">Subagent model</string>
+    <string name="workflow_settings_model_hint">providerId/modelId — blank keeps the current value</string>
+    <string name="workflow_settings_concurrency">Max concurrent subagents</string>
+    <string name="workflow_settings_blank_keeps">Blank keeps the current value</string>
+    <string name="workflow_settings_apply">Apply</string>
+    <!-- G4 (vc51): the queue row's Delete + the default follow-up mode -->
+    <string name="queue_delete">Delete</string>
     <!-- T2: the resolved-elsewhere answer -->
     <string name="notice_answer_already_resolved">Already handled on the desktop.</string>
     <string name="approvals_already_resolved">Already handled on the desktop.</string>

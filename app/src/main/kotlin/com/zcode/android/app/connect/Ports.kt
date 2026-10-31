@@ -582,6 +582,25 @@ class DefaultConversationPort(
         return ConversationPort.StartWorkflowOutcome(mapOutcome(outcome), reason)
     }
 
+    // G3 (vc51): the run sheet's Resume + amend actions — first send sites for the two
+    // modeled-never-sent workflow words (revision-free plane, no CAS currency needed).
+    override suspend fun resumeWorkflowRun(taskId: String, runId: String): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        val outcome = coordinator.resumeWorkflowRun(taskId, runId)
+        hub.log.info("port.workflowResume", "session=${taskId.take(12)} run=$runId outcome=${outcome.javaClass.simpleName}")
+        return mapOutcome(outcome)
+    }
+
+    override suspend fun amendWorkflowRunSettings(taskId: String, runId: String, subagentModel: String?, maxConcurrency: Int?): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        val outcome = coordinator.amendWorkflowRunSettings(taskId, runId, subagentModel, maxConcurrency)
+        hub.log.info(
+            "port.workflowAmend",
+            "session=${taskId.take(12)} run=$runId model=${subagentModel ?: "keep"} concurrency=${maxConcurrency ?: "keep"} outcome=${outcome.javaClass.simpleName}",
+        )
+        return mapOutcome(outcome)
+    }
+
     private fun mapOutcome(outcome: com.zcode.android.data.session.CommandCoordinator.Outcome): ConversationPort.SendOutcome =
         when (outcome) {
             is com.zcode.android.data.session.CommandCoordinator.Outcome.Accepted -> ConversationPort.SendOutcome.ACCEPTED

@@ -658,6 +658,8 @@ private fun ConversationRoute(
         onOpenWorkflowRun = vm::openWorkflowRun,
         onCloseWorkflowRun = vm::closeWorkflowRun,
         onLoadMoreRunEvents = vm::loadMoreRunEvents,
+        onResumeWorkflowRun = vm::resumeWorkflowRun,
+        onAmendWorkflowRun = vm::amendWorkflowRunSettings,
         onMoveQueueItem = vm::moveQueueItem,
         onSetAutoDrain = vm::setAutoDrain,
         onSetFollowupMode = vm::setFollowupMode,

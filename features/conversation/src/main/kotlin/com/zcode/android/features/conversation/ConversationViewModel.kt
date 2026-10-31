@@ -692,6 +692,44 @@ class ConversationViewModel(
         _openRun.value = null
     }
 
+    // ---------------------------------------------------------------- G3 (vc51): run resume + settings amend
+
+    /**
+     * G3: the run sheet's Resume — `resumeWorkflowRun {workId}`. Acceptance refreshes the
+     * runs list, which steps the open sheet's run in place (the sheet reflects the new
+     * state); a refusal notices (the run may be superseded/not resumable on the desktop).
+     */
+    fun resumeWorkflowRun(run: com.zcode.android.domain.model.WorkflowRunSummary) {
+        scope.launch {
+            when (port.resumeWorkflowRun(taskId, run.runId)) {
+                ConversationPort.SendOutcome.ACCEPTED -> {
+                    refreshWorkflowRuns()
+                    _sendNotice.value = SendNotice("Run resumed", SendNotice.Kind.INFO, SendNotice.Key.WORKFLOW_STARTED, listOf(run.label ?: run.runId))
+                }
+                ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
+                    _sendNotice.value = SendNotice("Not connected", SendNotice.Kind.WARNING, SendNotice.Key.ROW_ACTION_OFFLINE)
+                else ->
+                    _sendNotice.value = SendNotice("The desktop refused the resume.", SendNotice.Kind.ERROR, SendNotice.Key.WORKFLOW_REFUSED, listOf("resumeWorkflowRun"))
+            }
+        }
+    }
+
+    /** G3: the amend sheet — `amendWorkflowRunSettings {workId, subagentModel?, maxConcurrency?}`. */
+    fun amendWorkflowRunSettings(run: com.zcode.android.domain.model.WorkflowRunSummary, subagentModel: String?, maxConcurrency: Int?) {
+        scope.launch {
+            when (port.amendWorkflowRunSettings(taskId, run.runId, subagentModel, maxConcurrency)) {
+                ConversationPort.SendOutcome.ACCEPTED -> {
+                    refreshWorkflowRuns()
+                    _sendNotice.value = SendNotice("Run settings applied", SendNotice.Kind.INFO, SendNotice.Key.WORKFLOW_STARTED, listOf(run.label ?: run.runId))
+                }
+                ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
+                    _sendNotice.value = SendNotice("Not connected", SendNotice.Kind.WARNING, SendNotice.Key.ROW_ACTION_OFFLINE)
+                else ->
+                    _sendNotice.value = SendNotice("The desktop refused the settings change.", SendNotice.Kind.ERROR, SendNotice.Key.WORKFLOW_REFUSED, listOf("amendWorkflowRunSettings"))
+            }
+        }
+    }
+
     // ---------------------------------------------------------------- ADR-024 (Phase 5D): hooks trust
 
     /** Trust the CHECKED hooks — the confirm sheet fires this (never a trust-all). */
