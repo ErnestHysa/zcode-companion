@@ -187,6 +187,9 @@ fun ConversationScreen(
     onTrajectoryQueryChange: (String) -> Unit = {},
     onOpenTrajectory: () -> Unit = {},
     onCloseTrajectory: () -> Unit = {},
+    // ---- G12 (vc51): the pending-command recovery banner ----
+    pendingRecovery: List<ConversationPort.RecoverableCommand> = emptyList(),
+    onReplayPendingCommands: () -> Unit = {},
 ) {
     val rowActions = remember(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction, onOpenArtifact) {
         RowActionCallbacks(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction, onOpenArtifact)
@@ -515,6 +518,16 @@ fun ConversationScreen(
             }
             // §17.4/§17.6 composer (pinned bottom; drafting allowed offline, send
             // blocked with explicit copy — never a silent queue).
+            // G12 (vc51): the pending-command recovery banner sits directly above the
+            // composer — the persisted replayable set (outbox UNKNOWN input-class)
+            // is the user-facing surface the in-memory overlay can never be.
+            if (pendingRecovery.isNotEmpty()) {
+                PendingCommandRecoveryBanner(
+                    pending = pendingRecovery,
+                    onReplay = onReplayPendingCommands,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             ComposerBar(
                 state = state,
                 onDraftChange = onDraftChange,

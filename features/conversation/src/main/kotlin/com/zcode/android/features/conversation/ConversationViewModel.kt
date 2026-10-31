@@ -1054,6 +1054,48 @@ class ConversationViewModel(
         runCatching { port.close(taskId) }
     }
 
+    // ---------------------------------------------------------------- G12 (vc51): pending-command recovery
+
+    /**
+     * The session's persisted replayable commands (outbox UNKNOWN input-class
+     * entries). The recovery banner renders this; [replayPendingCommands] resends
+     * each with its SAME commandId (INV-4 — no duplicate). Failed replays surface
+     * the typed sendNotice (honest copy, the entry is kept).
+     */
+    private val _pendingRecovery = MutableStateFlow<List<ConversationPort.RecoverableCommand>>(emptyList())
+    val pendingRecovery: StateFlow<List<ConversationPort.RecoverableCommand>> = _pendingRecovery.asStateFlow()
+
+    init {
+        scope.launch {
+            port.observePendingCommandRecovery(taskId).collect { _pendingRecovery.value = it }
+        }
+    }
+
+    /** The banner's Replay: one user-gated retry per entry, then refresh the notice. */
+    fun replayPendingCommands() {
+        val commands = _pendingRecovery.value.toList()
+        if (commands.isEmpty()) return
+        scope.launch {
+            var lastOutcome: ConversationPort.SendOutcome? = null
+            for (command in commands) {
+                lastOutcome = port.retrySend(command.commandId)
+            }
+            when (lastOutcome) {
+                ConversationPort.SendOutcome.ACCEPTED -> _sendNotice.value = null
+                ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
+                    _sendNotice.value = SendNotice(
+                        "Still offline — nothing was duplicated. The messages are kept.",
+                        SendNotice.Kind.WARNING,
+                    )
+                else ->
+                    _sendNotice.value = SendNotice(
+                        "Replay failed — the message is kept (the desktop may have refused it).",
+                        SendNotice.Kind.ERROR,
+                    )
+            }
+        }
+    }
+
     companion object {
         /** ≈30 Hz coalescing budget (§19.2 frame-budget aligned). */
         const val STREAM_FRAME_MS = 33L

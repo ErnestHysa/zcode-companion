@@ -1036,6 +1036,61 @@ fun ComposerBar(
 }
 
 /** §14.2/§14.3 pending sends — truthful state; retry is user-gated (INV-4). */
+/**
+ * G12 (vc51): the pending-command recovery banner — the desktop's
+ * PendingCommandRecoveryBanner.tsx shape. The persisted outbox's replayable set
+ * (UNKNOWN input-class entries that survive process death and conversation
+ * exits) surfaces here with a working replay action and honest copy; the
+ * in-memory pending overlay can never be this surface. A dismissal is
+ * view-local and per-set: a NEW pending command re-raises the banner.
+ */
+@Composable
+fun PendingCommandRecoveryBanner(
+    pending: List<ConversationPort.RecoverableCommand>,
+    onReplay: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // Dismiss view-local: the set's commandIds at dismiss time; a changed set re-raises.
+    var dismissedSet by remember { mutableStateOf<Set<String>>(emptySet()) }
+    val visible = pending.filter { it.commandId !in dismissedSet }
+    if (visible.isEmpty()) return
+    Surface(
+        modifier = modifier.testTag("pending_recovery_banner"),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = MaterialTheme.shapes.small,
+    ) {
+        Row(
+            Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = if (visible.size == 1)
+                        stringResource(R.string.recovery_banner_one)
+                    else
+                        stringResource(R.string.recovery_banner_many, visible.size),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.testTag("pending_recovery_copy"),
+                )
+                Text(
+                    text = visible.first().text.take(80),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            TextButton(onClick = onReplay, modifier = Modifier.testTag("pending_recovery_replay")) {
+                Text(stringResource(R.string.recovery_replay))
+            }
+            TextButton(onClick = { dismissedSet = pending.map { it.commandId }.toSet() }) {
+                Text(stringResource(android.R.string.cancel))
+            }
+        }
+    }
+}
+
 @Composable
 fun PendingSendsStrip(
     pending: List<ConversationPort.PendingSendView>,
@@ -1069,8 +1124,7 @@ fun PendingSendsStrip(
 
 /** §33 user copy for send outcomes; dismissible. */
 @Composable
-fun SendNoticeBar(notice: SendNotice, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(
+fun SendNoticeBar(notice: SendNotice, onDismiss: () -> Unit, modifier: Modifier = Modifier) {    Surface(
         modifier = modifier.testTag("send_notice"),
         color = when (notice.kind) {
             SendNotice.Kind.WARNING -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)

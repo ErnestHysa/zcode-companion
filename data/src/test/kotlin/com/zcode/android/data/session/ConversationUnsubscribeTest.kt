@@ -142,6 +142,8 @@ class ConversationUnsubscribeTest {
 }
 
 /** The coordinator layer: detach removes the manager + watchdog state and unsubscribes. */
+@org.junit.runner.RunWith(org.robolectric.RobolectricTestRunner::class)
+@org.robolectric.annotation.Config(sdk = [30])
 class RecoveryCoordinatorDetachTest {
 
     private class RecordingGateway : ConversationGateway {

@@ -418,6 +418,9 @@ class DefaultConversationPort(
         return mapOutcome(coordinator.retry(com.zcode.android.domain.ids.CommandId(commandId)))
     }
 
+    override fun observePendingCommandRecovery(taskId: String): kotlinx.coroutines.flow.Flow<List<ConversationPort.RecoverableCommand>> =
+        hub.pendingCommandRecovery(taskId)
+
     override suspend fun stopGeneration(taskId: String): ConversationPort.SendOutcome {
         val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
         return mapOutcome(coordinator.stopGeneration(taskId))

@@ -134,6 +134,25 @@ interface ConversationPort {
     /** User-gated retry of an UNKNOWN/failed send — SAME commandId (INV-4). */
     suspend fun retrySend(commandId: String): SendOutcome
 
+    // ---- G12 (vc51): the pending-command recovery plane ----
+
+    /**
+     * The session's persisted replayable commands (outbox UNKNOWN input-class
+     * entries — sendText/sendGoalCommand/compact/createSession, the desktop's
+     * pendingCommandReplay.ts set). The in-memory pending overlay dies with the
+     * process; these survive and are user-gated, so the recovery banner is their
+     * only user-facing surface. Default empty = the modeled-not-wired shape.
+     */
+    fun observePendingCommandRecovery(taskId: String): Flow<List<RecoverableCommand>> =
+        kotlinx.coroutines.flow.flowOf(emptyList())
+
+    data class RecoverableCommand(
+        val commandId: String,
+        val type: String,
+        val text: String,
+        val atMs: Long,
+    )
+
     /** §7.5 stop control (SAFE_AGGRESSIVE retry class, §28.6). */
     suspend fun stopGeneration(taskId: String): SendOutcome
 

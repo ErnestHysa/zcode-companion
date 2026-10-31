@@ -203,6 +203,9 @@
     <string name="queue_paused_suffix">" · paused"</string>
     <string name="pending_sending">Sending…</string>
     <string name="pending_sent_unknown">Send uncertain — connection lost (will not duplicate)</string>
+    <string name="recovery_banner_one">A message from the offline window may not have been delivered.</string>
+    <string name="recovery_banner_many">%1$d messages from the offline window may not have been delivered.</string>
+    <string name="recovery_replay">Replay</string>
     <string name="pending_not_sent">Not sent</string>
     <string name="row_turn_changes">%1$s +%2$d −%3$d · view</string>
     <string name="notice_switch_offline">Offline — the switch was not sent. Nothing changed.</string>

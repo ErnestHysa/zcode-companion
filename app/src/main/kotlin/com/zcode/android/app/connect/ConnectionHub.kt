@@ -256,6 +256,9 @@ class ConnectionHub(
     companion object {
         /** §12.2 QR staleness window ("not older than 10 min by default"). */
         const val PAIRING_STALE_MS = 10L * 60 * 1000
+
+        /** G12: the replayable input class (pendingCommandReplay.ts's input kinds). */
+        val REPLAYABLE_COMMAND_TYPES = setOf("sendText", "sendGoalCommand", "compact", "createSession")
     }
 
     /** Port accessors (features never see the coordinator itself). */
@@ -1154,7 +1157,9 @@ class ConnectionHub(
         configCollectorJob?.cancel()
         configCollectorJob = null
         _workspaceCatalogs.value = emptyMap()
-        configSubscribedWorkspaceKeys.removeAll().forEach { key ->
+        val staleConfigKeys = configSubscribedWorkspaceKeys.toList()
+        configSubscribedWorkspaceKeys.clear()
+        staleConfigKeys.forEach { key ->
             scope.launch {
                 runCatching { gatewayFor().unsubscribeWorkspaceConfig(key.first, key.second) }
             }
@@ -1207,6 +1212,46 @@ class ConnectionHub(
     /** GAP-A3/G14: live workspace-config subscriptions (path to identity) — released on endpoint reset. */
     private val configSubscribedWorkspaceKeys =
         java.util.Collections.newSetFromMap(java.util.concurrent.ConcurrentHashMap<Pair<String, String?>, Boolean>())
+
+    /**
+     * G12 (vc51): the PENDING-COMMAND RECOVERY surface — the persisted outbox's
+     * replayable set for one session (UNKNOWN input-class entries: sendText /
+     * sendGoalCommand / compact / createSession — the desktop's replayable set,
+     * pendingCommandReplay.ts). The in-memory pending overlay dies with the process
+     * or the conversation; these entries survive and are user-gated (INV-4: sendText
+     * is never auto-retransmitted), so the banner is their only user-facing surface.
+     */
+    fun pendingCommandRecovery(taskId: String): kotlinx.coroutines.flow.Flow<List<com.zcode.android.features.conversation.port.ConversationPort.RecoverableCommand>> =
+        kotlinx.coroutines.flow.channelFlow {
+            val endpointId = activeEndpointIdRaw() ?: vault.loadMetadata()?.endpointId
+            if (endpointId == null) {
+                send(emptyList())
+                return@channelFlow
+            }
+            outbox.observePending(EndpointId(endpointId)).collect { entries ->
+                send(
+                    entries
+                        .filter { it.sessionId == taskId }
+                        .filter { it.state == com.zcode.android.domain.outbox.OutboxStateMachine.State.UNKNOWN }
+                        .filter { it.type in REPLAYABLE_COMMAND_TYPES }
+                        .map { entry ->
+                            val text = runCatching {
+                                val parsed = kotlinx.serialization.json.Json.parseToJsonElement(entry.payloadJson)
+                                (parsed as? kotlinx.serialization.json.JsonObject)?.get("text")?.let {
+                                    (it as? kotlinx.serialization.json.JsonPrimitive)?.content
+                                }
+                            }.getOrNull()
+                            com.zcode.android.features.conversation.port.ConversationPort.RecoverableCommand(
+                                commandId = entry.commandId.raw,
+                                type = entry.type,
+                                text = text?.takeIf { it.isNotBlank() } ?: entry.type,
+                                atMs = entry.issuedAtMs,
+                            )
+                        },
+                )
+            }
+        }
+
 
     /** Validate + add a DIRECT endpoint (§12.2 "write nothing until validation passes"). */
     sealed class AddDirectOutcome {
