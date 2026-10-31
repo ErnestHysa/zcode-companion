@@ -248,6 +248,23 @@ class MockZCode(
          *  reconciliation polls until usedAt appears — a queue scripts the
          *  pre-consume → confirmed progression; falls back to [codingPlanResetStatus]). */
         val resetStatusQueue: ArrayDeque<JsonObject> = ArrayDeque()
+        // ---- vc51 Phase-3 rig arms (G9/G13/G15 + RIG-2) ----
+        /** G13: scripted sessions-index snapshot (sessions-index.ts shape; null = typed fault). */
+        var sessionsIndexSnapshot: JsonObject? = null
+        /** G13: a scripted `session.upserted` delta pushed this many ms after the index subscribe. */
+        var sessionsIndexUpsertDelayMs: Long? = null
+        var sessionsIndexUpsertDelta: JsonObject? = null
+        /** G15: scripted backgroundBashOutputV4 results keyed by workId (null = typed unavailable). */
+        val backgroundBashOutputs = LinkedHashMap<String, JsonObject>()
+        /** G15: scripted backgroundWorks entries merged into the state block. */
+        var backgroundWorks: JsonArray? = null
+        /** G9: scripted sharedContextImport in the session state block. */
+        var sharedContextImport: JsonObject? = null
+        /** RIG-2: seeded file-tree entries the workspace-file search filters (see fileTree). */
+        fun seedWorkspaceFiles(paths: List<String>) {
+            for (p in paths) fileTree[p] = JsonArray(emptyList())
+        }
+
         /** Recorded usage-stats promise calls: (method, argKind "arr"|"obj"|"other", unwrapped params).
          *  The GAP-3 wire test pins the §7 ARRAY-wrap convention through this. */
         val usageStatsCalls = java.util.concurrent.CopyOnWriteArrayList<Triple<String, String, JsonObject>>()
@@ -950,6 +967,8 @@ class MockZCode(
     // ------------------------------------------------------------------ channel (v4)
 
     @Volatile private var conversationListenerId: Int? = null
+    /** G13: the onDynamicSessionsIndexFrame EventListen (per connection). */
+    @Volatile private var sessionsIndexListenerId: Int? = null
     @Volatile private var conversationScopeRegistered: Boolean = false
     /** Bridge identity of the most recent workspace-bridge-open (rotation tests). */
     @Volatile var lastBridgeSessionId: String? = null
@@ -1086,6 +1105,10 @@ class MockZCode(
             // Phase 4C (D2): the goal (with its verification timeline) + todo keys.
             script.goalState?.let { put("goal", it) }
             script.planState?.let { put("plan", it) }
+            // G15 (vc51): backgroundWorks when scripted (the composer indicator's feed).
+            script.backgroundWorks?.let { put("backgroundWorks", it) }
+            // G9 (vc51): the sharedContextImport handover state when scripted.
+            script.sharedContextImport?.let { put("sharedContextImport", it) }
         }
     }
 
@@ -1166,6 +1189,47 @@ class MockZCode(
         val wireFrames = TopicWireFrameCodec.encode(
             frame = frame, deliveryKind = DeliveryKind.INITIAL, topic = topic,
             subscriptionId = cfgSubscriptionId, logicalFrameId = "lf-${System.nanoTime()}",
+            logicalFrameOrdinal = 1,
+        )
+        for (wire in wireFrames) {
+            val bytes = RpcSerialization.encodeAll(
+                listOf(
+                    RpcValue.Arr(listOf(RpcValue.Int(ChannelWire.ResponseType.EventFire.id), RpcValue.Int(listener))),
+                    RpcValue.Obj(buildJsonObject {
+                        put("topic", JsonPrimitive(topic))
+                        put("frame", wireJson(wire))
+                    }),
+                )
+            )
+            sendLogicalFrame(bytes)
+        }
+    }
+
+    /**
+     * G13: sessions-index frame push (snapshot or one `session.upserted` delta) —
+     * rides the onDynamicSessionsIndexFrame listener with the desktop's frame shape.
+     */
+    private fun pushSessionsIndexFrame(topic: String, subscriptionId: String, snapshot: JsonObject?, delta: JsonObject?) {
+        val listener = sessionsIndexListenerId ?: return
+        val frame = buildJsonObject {
+            put("topic", JsonPrimitive(topic))
+            put("subscriptionId", JsonPrimitive(subscriptionId))
+            put("fromSeq", JsonPrimitive(0))
+            put("toSeq", JsonPrimitive(1))
+            put("sentAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
+            put("payload", buildJsonObject {
+                if (snapshot != null) {
+                    put("kind", JsonPrimitive("snapshot"))
+                    put("snapshot", snapshot)
+                } else if (delta != null) {
+                    put("kind", JsonPrimitive("deltas"))
+                    put("deltas", JsonArray(listOf(delta)))
+                }
+            })
+        }
+        val wireFrames = TopicWireFrameCodec.encode(
+            frame = frame, deliveryKind = DeliveryKind.INITIAL, topic = topic,
+            subscriptionId = subscriptionId, logicalFrameId = "lf-${System.nanoTime()}",
             logicalFrameOrdinal = 1,
         )
         for (wire in wireFrames) {
@@ -1509,6 +1573,9 @@ class MockZCode(
         val arg = values.getOrNull(1)
         when (typeV.value) {
             ChannelWire.RequestType.EventListen.id -> {
+                if (name == "onDynamicSessionsIndexFrame") {
+                    sessionsIndexListenerId = id
+                }
                 if (name == "onDynamicConversationFrame") {
                     conversationListenerId = id
                     // Scope registration (round-3 field fidelity): the listen arg must
@@ -2040,6 +2107,52 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 val name = argAsObject(arg)?.strOrNull("name")
                 val runs = script.savedWorkflowRuns.filter { name == null || it.strOrNull("name") == name }
                 respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject { put("runs", JsonArray(runs)) }))
+            }
+            // ---- vc51 Phase-3 rig arms ----
+            "subscribeSessionsIndexV4" -> {
+                val params = argAsObject(arg) ?: return respondError(id, "fault.subscribe.params")
+                if (params.str("workspacePath").isBlank()) return respondError(id, "fault.subscribe.workspaceScope")
+                val key = params.strOrNull("workspaceIdentity")
+                    ?: params.str("workspacePath")
+                val topic = "sessions-index/$key"
+                val subId = "sub-mock-idx-${topic.hashCode()}"
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("ack", buildJsonObject {
+                        put("subscriptionId", JsonPrimitive(subId))
+                        put("mode", JsonPrimitive("snapshot"))
+                        put("logEpoch", JsonPrimitive("idx-epoch-mock-1"))
+                    })
+                }))
+                val snapshot = script.sessionsIndexSnapshot
+                if (snapshot != null) pushSessionsIndexFrame(topic, subId, snapshot = snapshot, delta = null)
+                val delay = script.sessionsIndexUpsertDelayMs
+                val upsert = script.sessionsIndexUpsertDelta
+                if (delay != null && upsert != null) {
+                    scope.launch {
+                        kotlinx.coroutines.delay(delay)
+                        pushSessionsIndexFrame(topic, subId, snapshot = null, delta = upsert)
+                    }
+                }
+            }
+            "unsubscribeConversationV4", "unsubscribeWorkspaceConfigV4", "unsubscribeSessionsIndexV4" -> {
+                // GAP-A3/G14: the phone's teardown words — acknowledged (the desktop
+                // releases its owned subscription; the mock records the call).
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Undefined)
+            }
+            "backgroundBashOutputV4" -> {
+                // G15: {sessionId, workId} → the scripted snapshot or the typed
+                // unavailable union member (background-bash-output.ts).
+                val params = argAsObject(arg)
+                val workId = params?.strOrNull("workId")
+                val scripted = workId?.let { script.backgroundBashOutputs[it] }
+                if (scripted != null) {
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(scripted))
+                } else {
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("kind", JsonPrimitive("unavailable"))
+                        put("workId", JsonPrimitive(workId ?: ""))
+                    }))
+                }
             }
             // ---- Phase 3 viewer methods (v4-wire.md §12) ----
             "getAppUsageStats" -> {

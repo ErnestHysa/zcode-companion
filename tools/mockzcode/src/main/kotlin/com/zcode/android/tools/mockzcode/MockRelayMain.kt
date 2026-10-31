@@ -341,6 +341,73 @@ fun main() {
     if (System.getenv("MOCK_REFUSE_COMMANDS") != null) {
         mock.script.refuseCommandTypes = setOf("sendGoal", "pauseGoal", "resumeGoal")
     }
+    // vc51 Phase-3 (G13): MOCK_SESSIONS_INDEX=1 scripts the sessions-index snapshot
+    // (task-1 running) plus a DELAYED `session.upserted` that flips task-3 to running
+    // with a preview — the live cross-session row-activity flip leg (no refresh).
+    if (System.getenv("MOCK_SESSIONS_INDEX") != null) {
+        fun indexSession(id: String, title: String, phase: String, ended: Boolean, preview: String?): JsonObject =
+            JsonObject(mapOf(
+                "sessionId" to JsonPrimitive(id),
+                "workspaceId" to JsonPrimitive("synthetic-ws-one"),
+                "title" to JsonPrimitive(title),
+                "phase" to JsonPrimitive(phase),
+                "sessionEnded" to JsonPrimitive(ended),
+                "hasBackgroundWork" to JsonPrimitive(false),
+                "lastActivityAt" to JsonPrimitive(System.currentTimeMillis().toDouble()),
+                "createdAt" to JsonPrimitive(System.currentTimeMillis().toDouble()),
+            ) + (preview?.let { mapOf("lastAssistantPreview" to JsonPrimitive(it)) } ?: emptyMap()))
+        mock.script.sessionsIndexSnapshot = JsonObject(mapOf(
+            "protocolVersion" to JsonPrimitive(1),
+            "workspaceId" to JsonPrimitive("synthetic-ws-one"),
+            "logEpoch" to JsonPrimitive("idx-epoch-mock-1"),
+            "sessions" to JsonArray(listOf(
+                indexSession("synth-task-1", "Synthetic task", "running", ended = false, preview = "working on the bootstrap"),
+                indexSession("synth-task-2", "Synthetic task 2", "idle", ended = false, preview = null),
+                indexSession("synth-task-3", "Synthetic task 3", "idle", ended = false, preview = null),
+            )),
+        ))
+        mock.script.sessionsIndexUpsertDelayMs = 5_000L
+        mock.script.sessionsIndexUpsertDelta = JsonObject(mapOf(
+            "op" to JsonPrimitive("session.upserted"),
+            "session" to indexSession("synth-task-3", "Synthetic task 3", "running", ended = false, preview = "agent just started"),
+        ))
+    }
+    // vc51 Phase-3 (G15): MOCK_BACKGROUND_BASH=1 arms a running background bash in
+    // the state block + the typed output read (background-bash-output.ts shape).
+    if (System.getenv("MOCK_BACKGROUND_BASH") != null) {
+        mock.script.backgroundWorks = JsonArray(listOf(JsonObject(mapOf(
+            "workId" to JsonPrimitive("work-bash-1"),
+            "kind" to JsonPrimitive("bash"),
+            "title" to JsonPrimitive("synthetic background build"),
+            "status" to JsonPrimitive("running"),
+            "cancellable" to JsonPrimitive(true),
+        ))))
+        mock.script.backgroundBashOutputs["work-bash-1"] = JsonObject(mapOf(
+            "kind" to JsonPrimitive("output"),
+            "workId" to JsonPrimitive("work-bash-1"),
+            "status" to JsonPrimitive("running"),
+            "output" to JsonPrimitive("compiling module 1/3\ncompiling module 2/3\n"),
+            "truncated" to JsonPrimitive(false),
+            "outputPath" to JsonPrimitive("/synthetic/ws-one/.zcode/background/work-bash-1.log"),
+        ))
+    }
+    // RIG-2 (vc51 Phase-3, G9): MOCK_WORKSPACE_FILES=1 seeds file-tree entries so
+    // searchWorkspaceFiles returns hits and the composer mention panel renders them.
+    if (System.getenv("MOCK_WORKSPACE_FILES") != null) {
+        mock.script.seedWorkspaceFiles(listOf(
+            "src/main.rs", "src/lib.rs", "docs/plan.md", "README.md", "Cargo.toml",
+        ))
+    }
+    // vc51 Phase-3 (G9): MOCK_SHARED_CONTEXT=1 seeds the share-handover state so the
+    // composer surfaces the shared-context chip and the send carries context_refs.
+    if (System.getenv("MOCK_SHARED_CONTEXT") != null) {
+        mock.script.sharedContextImport = JsonObject(mapOf(
+            "contextId" to JsonPrimitive("ctx-share-rig-1"),
+            "title" to JsonPrimitive("Shared: release-notes rewrite"),
+            "shareUrl" to JsonPrimitive("https://zcode.example/cn/share/rigshare1"),
+            "status" to JsonPrimitive("pending"),
+        ))
+    }
     // Phase 4C (C2) rig leg: the slash panel's extra sections — one custom command,
     // one skill, one agent (synthetic, INV-15/16).
     mock.script.commandsList = JsonObject(mapOf(
