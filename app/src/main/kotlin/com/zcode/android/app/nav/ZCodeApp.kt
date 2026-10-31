@@ -542,6 +542,10 @@ private fun ConversationRoute(
     onOpenTask: (taskId: String) -> Unit = {},
 ) {
     val state by vm.state.collectAsState()
+    // G4/AC6 (vc51): the local default interaction behavior seeds the composer's
+    // follow-up steering while the session's wire followupMode is unset.
+    val prefs by container.stores.preferencesRepository.observe()
+        .collectAsState(com.zcode.android.domain.model.AppPreferences())
     // C6-taskdesc: the recents card carries the open task's name.
     val activity = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity
     androidx.compose.runtime.LaunchedEffect(state.task?.title) {
@@ -663,6 +667,8 @@ private fun ConversationRoute(
         onMoveQueueItem = vm::moveQueueItem,
         onSetAutoDrain = vm::setAutoDrain,
         onSetFollowupMode = vm::setFollowupMode,
+        onDeleteQueueItem = vm::deleteQueueItem,
+        defaultFollowupMode = prefs.interactionBehavior,
         plans = plans,
         showTrajectory = showTrajectory,
         trajectory = trajectory,

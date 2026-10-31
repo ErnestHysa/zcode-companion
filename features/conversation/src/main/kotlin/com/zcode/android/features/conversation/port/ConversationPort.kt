@@ -148,6 +148,9 @@ interface ConversationPort {
     /** `setFollowupMode {mode: queue|guide}` — turn steering for follow-ups. */
     suspend fun setFollowupMode(taskId: String, mode: String): SendOutcome = SendOutcome.FAILED
 
+    /** G4 (vc51): `deleteQueueItem {queueItemId}` — CAS-guarded (verified set). */
+    suspend fun deleteQueueItem(taskId: String, queueItemId: String): SendOutcome = SendOutcome.FAILED
+
     /** Phase 2 (§11.3): the slash command plane — /compact, /goal send + resume + pause. */
     suspend fun compact(taskId: String): SendOutcome
     suspend fun sendGoal(taskId: String, objective: String, displayText: String): SendOutcome

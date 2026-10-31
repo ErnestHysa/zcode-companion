@@ -1,6 +1,7 @@
 package com.zcode.android.features.conversation
 
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
@@ -48,6 +49,7 @@ class QueueControlsUiTest {
                     queue = queue(autoDrain), busy = false, onSendNow = {}, onEdit = { _, _ -> },
                     onMove = { id, d -> calls += "move:$id:$d" },
                     onSetAutoDrain = { calls += "drain:$it" },
+                    onDelete = { calls += "delete:$it" },
                     followupMode = followup,
                     onSetFollowupMode = { calls += "followup:$it" },
                 )
@@ -87,5 +89,13 @@ class QueueControlsUiTest {
         assertEquals(emptyList<String>(), calls)
         rule.onNodeWithTag("queue_followup_guide").performClick(); rule.waitForIdle()
         assertEquals(listOf("followup:guide"), calls)
+    }
+
+    @Test
+    fun `delete affordance exists per row and dispatches the item id`() {
+        setContent()
+        rule.onNodeWithTag("queue_delete_b").assertIsDisplayed().performClick()
+        rule.waitForIdle()
+        assertEquals(listOf("delete:b"), calls)
     }
 }

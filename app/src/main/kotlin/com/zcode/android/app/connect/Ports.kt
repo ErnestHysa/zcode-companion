@@ -443,6 +443,10 @@ class DefaultConversationPort(
     override suspend fun setFollowupMode(taskId: String, mode: String): ConversationPort.SendOutcome =
         queueOp(taskId) { revision, coordinator -> coordinator.setFollowupMode(taskId, mode, baseRevision = revision) }
 
+    // G4 (vc51): deleteQueueItem — the fifth queue verb leaves the modeled-never-sent family.
+    override suspend fun deleteQueueItem(taskId: String, queueItemId: String): ConversationPort.SendOutcome =
+        queueOp(taskId) { revision, coordinator -> coordinator.deleteQueueItem(taskId, queueItemId, baseRevision = revision) }
+
     /** CAS currency (baseRevision) comes from the session projection's latest revision. */
     private suspend fun queueOp(
         taskId: String,

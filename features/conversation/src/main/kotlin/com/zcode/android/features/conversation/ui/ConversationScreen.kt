@@ -169,6 +169,10 @@ fun ConversationScreen(
     onMoveQueueItem: ((queueItemId: String, delta: Int) -> Unit)? = null,
     onSetAutoDrain: ((Boolean) -> Unit)? = null,
     onSetFollowupMode: ((String) -> Unit)? = null,
+    // ---- G4 (vc51): queue delete + the default interaction-behavior seed ----
+    onDeleteQueueItem: ((queueItemId: String) -> Unit)? = null,
+    /** G4/AC6: the local default (settings.zcodeInteractionBehavior) — seeds the chips while the wire's followupMode is unset. */
+    defaultFollowupMode: String? = null,
     // ---- Phase 5B (A3.12 + A3.13): plans viewer + trajectory/search ----
     plans: List<com.zcode.android.domain.model.ConversationPlan>? = null,
     showTrajectory: Boolean = false,
@@ -422,8 +426,11 @@ fun ConversationScreen(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                                 onMove = onMoveQueueItem,
                                 onSetAutoDrain = onSetAutoDrain,
-                                followupMode = state.sessionState?.config?.followupMode,
+                                // G4/AC6: the wire's followupMode is the truth; the local default
+                                // seeds the chips while the desktop hasn't declared one.
+                                followupMode = state.sessionState?.config?.followupMode ?: defaultFollowupMode,
                                 onSetFollowupMode = onSetFollowupMode,
+                                onDelete = onDeleteQueueItem,
                             )
                         }
                     }

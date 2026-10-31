@@ -131,12 +131,15 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
         notifyTaskOutcomes = if (hasNotifyTaskOutcomes()) notifyTaskOutcomes else true,
         notifyConnection = if (hasNotifyConnection()) notifyConnection else true,
         onboardingDone = if (hasOnboardingDone()) onboardingDone else false,
+        // G4/AC6 (vc51): additive-first — unset → no local default (the pre-G4 behavior).
+        interactionBehavior = if (hasInteractionBehavior()) interactionBehavior.takeIf { it == "queue" || it == "guide" } else null,
     )
 
     private fun AppPreferences.toProto(): AppPreferencesProto {
         // Capture BEFORE the builder scope: the builder exposes its own
         // selectedEndpointId property, which would shadow the model's inside apply{}.
         val selected = selectedEndpointId
+        val behavior = interactionBehavior
         return AppPreferencesProto.newBuilder()
             .setLiveConnectionTimeoutMinutes(liveConnectionTimeoutMinutes)
             .setSchemaVersion(EndpointRepositoryImpl.SCHEMA_VERSION)
@@ -151,6 +154,7 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
             .setNotifyConnection(notifyConnection)
             .setOnboardingDone(onboardingDone)
             .apply { selected?.let { setSelectedEndpointId(it) } }
+            .apply { behavior?.let { setInteractionBehavior(it) } }
             .build()
     }
 }

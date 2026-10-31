@@ -266,6 +266,10 @@ class CommandCoordinator(
         return casCommand("setFollowupMode", sessionId, baseRevision, buildJsonObject { put("mode", mode) })
     }
 
+    /** G4 (vc51): `deleteQueueItem {queueItemId}` — CAS-guarded (verified set). */
+    suspend fun deleteQueueItem(sessionId: String, queueItemId: String, baseRevision: Long?): Outcome =
+        casCommand("deleteQueueItem", sessionId, baseRevision, buildJsonObject { put("queueItemId", queueItemId) })
+
     // ---------------------------------------------------------------- ADR-024 (Phase 5D): hooks trust
 
     /**

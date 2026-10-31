@@ -977,6 +977,11 @@ class ConversationViewModel(
         scope.launch { queueStaleNotice(port.setFollowupMode(taskId, mode)) }
     }
 
+    /** G4 (vc51): `deleteQueueItem` — remove a queued follow-up without dispatching it. */
+    fun deleteQueueItem(queueItemId: String) {
+        scope.launch { queueStaleNotice(port.deleteQueueItem(taskId, queueItemId)) }
+    }
+
     /** §20 answer through the ONE fail-closed gate (double-tap-safe via busy set). */
     fun answerInteraction(interactionId: String, optionId: String, freeText: String?, userInput: Boolean) {
         if (interactionId in _busyInteractions.value) return

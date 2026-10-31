@@ -70,6 +70,13 @@
 <string name="settings_section_diagnostics">Diagnostics</string>
 <string name="settings_section_notifications">Notifications</string>
 <string name="settings_section_appearance">Appearance</string>
+<string name="settings_section_conversation">Conversation</string>
+<string name="settings_interaction_row">While the agent runs: %1$s</string>
+<string name="settings_interaction_row_title">Interaction behavior</string>
+<string name="settings_interaction_sub">Default for new sessions while the desktop hasn\'t declared one.</string>
+<string name="settings_interaction_desktop">Follow the desktop</string>
+<string name="settings_interaction_queue">Queue follow-up changes</string>
+<string name="settings_interaction_guide">Guide the running turn</string>
 <string name="settings_theme_row">Theme: %1$s</string>
 <string name="settings_theme_row_title">Theme</string>
 <string name="settings_theme_light">Light</string>

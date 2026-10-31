@@ -475,6 +475,8 @@ fun QueueStrip(
     onSetAutoDrain: ((Boolean) -> Unit)? = null,
     followupMode: String? = null,
     onSetFollowupMode: ((String) -> Unit)? = null,
+    /** G4 (vc51): `deleteQueueItem` — the desktop ConversationQueuePanel's onDeleteItem. */
+    onDelete: ((queueItemId: String) -> Unit)? = null,
 ) {
     if (queue.items.isEmpty()) return
     var editing by remember { mutableStateOf<Pair<String, String>?>(null) }
@@ -560,6 +562,16 @@ fun QueueStrip(
                         enabled = !busy,
                         modifier = Modifier.testTag("queue_edit_${item.queueItemId}"),
                     ) { Text(stringResource(R.string.queue_edit)) }
+                    // G4 (vc51): the queue row's Delete — ConversationQueuePanel.tsx:33-38 wires
+                    // onDeleteItem to the deleteQueueItem command; the phone's other four verbs
+                    // went live at pass 11 and delete stayed modeled-never-sent.
+                    onDelete?.let { remove ->
+                        TextButton(
+                            onClick = { remove(item.queueItemId) },
+                            enabled = !busy,
+                            modifier = Modifier.testTag("queue_delete_${item.queueItemId}"),
+                        ) { Text(stringResource(R.string.queue_delete)) }
+                    }
                 }
             }
         }

@@ -216,6 +216,10 @@ data class AppPreferences(
     val notifyConnection: Boolean = true,
     /** H1.5 (Phase 6B): the skippable post-pairing pass ran once (never re-shown). */
     val onboardingDone: Boolean = false,
+    /** G4/AC6 (vc51): the default interaction behavior (settings.zcodeInteractionBehavior) —
+     *  "queue" | "guide"; null = follow the desktop (no local default). Seeds the composer's
+     *  follow-up steering while the session's wire followupMode is unset. */
+    val interactionBehavior: String? = null,
 ) {
     enum class NotificationContentLevel { MINIMAL, CONTENT }
 

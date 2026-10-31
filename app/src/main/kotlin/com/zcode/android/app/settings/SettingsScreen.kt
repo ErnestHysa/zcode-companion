@@ -193,6 +193,13 @@ fun SettingsScreen(
             AppearanceSection(container = container)
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
+            // G4/AC6 (vc51): the default interaction behavior (the desktop's
+            // settings.zcodeInteractionBehavior Queue/Guide) — seeds the composer's
+            // follow-up steering while the session's wire followupMode is unset.
+            SectionHeader(stringResource(R.string.settings_section_conversation))
+            InteractionBehaviorSection(container = container)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
             SectionHeader(stringResource(R.string.settings_section_notifications))
             NotificationsSection(container = container)
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
@@ -1120,6 +1127,70 @@ private fun AppearanceSection(container: AppContainer) {
                             androidx.compose.material3.RadioButton(selected = selected, onClick = null)
                             Spacer(Modifier.width(8.dp))
                             Text(modeLabel(mode))
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { pickerOpen = false }) {
+                    Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
+                }
+            },
+        )
+    }
+}
+
+/**
+ * G4/AC6 (vc51): the default interaction behavior — the desktop's
+ * `settings.zcodeInteractionBehavior` (Queue = hold follow-ups, Guide = steer the running
+ * turn). Null = follow the desktop (no local default; the pre-G4 behavior).
+ */
+@Composable
+private fun InteractionBehaviorSection(container: AppContainer) {
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val prefs by container.stores.preferencesRepository.observe()
+        .collectAsState(com.zcode.android.domain.model.AppPreferences())
+    var pickerOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    @androidx.compose.runtime.Composable
+    fun behaviorLabel(behavior: String?): String = stringResource(
+        when (behavior) {
+            "queue" -> R.string.settings_interaction_queue
+            "guide" -> R.string.settings_interaction_guide
+            else -> R.string.settings_interaction_desktop
+        },
+    )
+    SettingsRow(
+        title = stringResource(R.string.settings_interaction_row, behaviorLabel(prefs.interactionBehavior)),
+        subtitle = stringResource(R.string.settings_interaction_sub),
+        tag = "settings_interaction_behavior",
+        onClick = { pickerOpen = true },
+    )
+    if (pickerOpen) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { pickerOpen = false },
+            title = { Text(stringResource(R.string.settings_interaction_row_title)) },
+            text = {
+                Column {
+                    val options: List<String?> = listOf(null, "queue", "guide")
+                    for (behavior in options) {
+                        val selected = prefs.interactionBehavior == behavior
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    scope.launch {
+                                        container.stores.preferencesRepository.update { p -> p.copy(interactionBehavior = behavior) }
+                                    }
+                                    pickerOpen = false
+                                }
+                                .padding(vertical = 10.dp)
+                                .testTag("settings_interaction_${behavior ?: "desktop"}"),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                        ) {
+                            androidx.compose.material3.RadioButton(selected = selected, onClick = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(behaviorLabel(behavior))
                         }
                     }
                 }
