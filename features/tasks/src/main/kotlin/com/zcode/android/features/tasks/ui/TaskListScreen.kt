@@ -25,6 +25,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Notifications
@@ -234,7 +235,84 @@ fun TaskListScreen(
                 .padding(inner)
                 .semantics { traversalIndex = 1f },
         ) {
-            ConnectionStatusLine(
+            // ---- Phase 4D (H1.1) + GAP-A6/A7 (vc51): the search field lives INSIDE
+            // the inset-padded body (the old bare siblings drew at window level — under
+            // the system clock), and while a query is active the results REPLACE the
+            // grouped list (the body composes only the search pane; restored on clear).
+            if (searchOpen || state.searchQuery.isNotBlank()) {
+                androidx.compose.material3.OutlinedTextField(
+                    value = state.searchQuery,
+                    onValueChange = onSearch,
+                    placeholder = { Text(stringResource(R.string.tasks_search_hint)) },
+                    singleLine = true,
+                    trailingIcon = {
+                        androidx.compose.material3.IconButton(
+                            onClick = {
+                                searchOpen = false
+                                onSearch("")
+                            },
+                            modifier = Modifier.testTag("tasks_search_close"),
+                        ) {
+                            Icon(Icons.Filled.Close, contentDescription = stringResource(com.zcode.android.core.ui.R.string.action_cancel))
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .testTag("tasks_search_field"),
+                )
+            }
+            if (state.searchQuery.isNotBlank()) {
+                // H1.1: while a query is active the search results REPLACE the grouped
+                // list (the desktop's taskSearch.* behaviour; snippets render under the
+                // title). The pane scrolls and fills the body — hits are tappable.
+                if (state.searchResults.isEmpty()) {
+                    Text(
+                        stringResource(R.string.tasks_search_empty),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp).testTag("tasks_search_empty"),
+                    )
+                } else {
+                    Column(
+                        Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .testTag("tasks_search_results"),
+                    ) {
+                        state.searchResults.forEach { hit ->
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable(role = androidx.compose.ui.semantics.Role.Button) {
+                                        searchOpen = false
+                                        onSearch("")
+                                        // Open the hit (the run/session path — same as the automation run).
+                                        onOpenTaskId(hit.taskId)
+                                    }
+                                    .padding(horizontal = 16.dp, vertical = 10.dp)
+                                    .testTag("tasks_search_hit_${hit.taskId}"),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(hit.title, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    hit.snippet?.let { snippet ->
+                                        Text(
+                                            snippet,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                    }
+                                }
+                            }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                        }
+                    }
+                }
+            } else {
+                ConnectionStatusLine(
                 phase = state.phase,
                 modifier = Modifier
                     .padding(horizontal = 16.dp)
@@ -356,6 +434,15 @@ fun TaskListScreen(
                     Text(stringResource(if (creatingTask) R.string.tasks_creating else R.string.tasks_new_task))
                 }
             }
+            }
+            // The create notice rides BOTH modes; its auto-consume now too (the old
+            // consume effect only ran while searching — a grouped-mode notice never timed out).
+            LaunchedEffect(createNotice) {
+                if (createNotice != null) {
+                    kotlinx.coroutines.delay(4000)
+                    onConsumeCreateNotice()
+                }
+            }
             createNotice?.let { notice ->
                 AttentionStrip(
                     title = notice,
@@ -385,71 +472,6 @@ fun TaskListScreen(
             modelPicker = modelPicker,
         )
     }
-    // ---- Phase 4D (H1.1): the task-search field — a live port query over
-    // `zcode-task.listTaskList` (the desktop's own search surface). ----
-    if (searchOpen) {
-        androidx.compose.material3.OutlinedTextField(
-            value = state.searchQuery,
-            onValueChange = onSearch,
-            placeholder = { Text(stringResource(R.string.tasks_search_hint)) },
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp)
-                .testTag("tasks_search_field"),
-        )
-    }
-
-    // H1.1: while a query is active the search results REPLACE the grouped list
-    // (the desktop's taskSearch.* behaviour; snippets render under the title).
-    if (state.searchQuery.isNotBlank()) {
-        if (state.searchResults.isEmpty()) {
-            Text(
-                stringResource(R.string.tasks_search_empty),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp).testTag("tasks_search_empty"),
-            )
-        } else {
-            state.searchResults.forEach { hit ->
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable(role = androidx.compose.ui.semantics.Role.Button) {
-                            searchOpen = false
-                            onSearch("")
-                            // Open the hit (the run/session path — same as the automation run).
-                            onOpenTaskId(hit.taskId)
-                        }
-                        .padding(horizontal = 16.dp, vertical = 10.dp)
-                        .testTag("tasks_search_hit_${hit.taskId}"),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(hit.title, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        hit.snippet?.let { snippet ->
-                            Text(
-                                snippet,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-                }
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-            }
-        }
-        LaunchedEffect(createNotice) {
-            if (createNotice != null) {
-                kotlinx.coroutines.delay(4000)
-                onConsumeCreateNotice()
-            }
-        }
-        return
-    }
-
     // ---- Phase 4D (L6.3+J4): the lifecycle confirm dialogs ----
     confirmDelete?.let { doomed ->
         // Desktop confirmDialog.taskDelete*: "records cannot be recovered".
