@@ -124,6 +124,12 @@ interface ConversationPort {
     /** §17.5 send path (INV-4 idempotent, §17.6 offline-blocked). */
     suspend fun sendPrompt(taskId: String, text: String, heldQueueDisposition: String? = null): SendOutcome
 
+    /**
+     * G9 (vc51): discard the session's shared-context import
+     * (`discardSharedContext {contextId}`). Default FAILED = modeled-never-sent.
+     */
+    suspend fun discardSharedContext(taskId: String, contextId: String): SendOutcome = SendOutcome.FAILED
+
     enum class SendOutcome { ACCEPTED, BLOCKED_OFFLINE, STALE, FAILED, UNKNOWN_KEPT }
 
     /** Truthful pending state (§14.2 overlay; in-memory, reconciled by the ViewModel). */

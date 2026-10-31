@@ -603,6 +603,7 @@ private fun ConversationRoute(
         onSnoozeInteraction = vm::snoozeInteraction,
         // G7+G8 (vc51): the row-selection actions — share rides the system sheet
         // (the transcript share's shape), the side session dispatches the wire verb.
+        onDiscardSharedContext = vm::discardSharedContext,
         onSideSessionRow = { text -> vm.createSelectionSideSession(text) },
         onShareSelectionRow = { text ->
             val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {

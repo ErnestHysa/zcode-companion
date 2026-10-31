@@ -202,6 +202,8 @@ fun ConversationScreen(
     // ---- G7+G8 (vc51): the row-selection actions ----
     onSideSessionRow: ((text: String) -> Unit)? = null,
     onShareSelectionRow: ((text: String) -> Unit)? = null,
+    // ---- G9 (vc51): the shared-context chip's discard ----
+    onDiscardSharedContext: () -> Unit = {},
 ) {
     val rowActions = remember(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction, onOpenArtifact) {
         RowActionCallbacks(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction, onOpenArtifact)
@@ -571,6 +573,7 @@ fun ConversationScreen(
                 onRetryAttachment = onRetryAttachment,
                 onSlashMenuOpen = onSlashMenuOpen,
                 fileSearchProvider = fileSearchProvider,
+                onDiscardSharedContext = onDiscardSharedContext,
             )
         }
         }

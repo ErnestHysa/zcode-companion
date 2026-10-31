@@ -106,6 +106,12 @@ class CommandCoordinator(
         expectedHeldQueueItemIds: List<String>? = null,
         /** Phase 9 (§23.2): committed attachment refs — content bytes NEVER ride the envelope. */
         attachments: List<AttachmentRefPayload>? = null,
+        /**
+         * G9 (vc51): the share-handover refs (command.ts: `context_refs` max 1,
+         * `{kind:"shared_context_import", context_id}`) — the runtime resolves the
+         * body from persisted provenance; more than one is refused fail-closed.
+         */
+        contextRefs: List<Pair<String, String>>? = null,
     ): Outcome {
         if (connectionState() != ConnectionStateMachine.ConnectionState.CONNECTED) {
             log.warn("command.blockedOffline", "type=sendText session=$sessionId")
@@ -127,6 +133,18 @@ class CommandCoordinator(
                             put("fileName", a.fileName)
                             put("mime", a.mime)
                             put("bytes", a.bytes)
+                        })
+                    }
+                }
+            }
+            // G9: the shared-context handover (fail closed: the schema caps at 1).
+            contextRefs?.takeIf { it.isNotEmpty() }?.let { refs ->
+                if (refs.size > 1) return Outcome.Failed(null)
+                putJsonArray("context_refs") {
+                    refs.forEach { (_, contextId) ->
+                        add(buildJsonObject {
+                            put("kind", JsonPrimitive("shared_context_import"))
+                            put("context_id", JsonPrimitive(contextId))
                         })
                     }
                 }
@@ -162,6 +180,13 @@ class CommandCoordinator(
                 put("firstInput", buildJsonObject { put("text", firstText) })
             }
         })
+
+    /**
+     * G9 (vc51): `discardSharedContext {contextId}` — the chip's discard affordance
+     * (the desktop composer's shared-context discard).
+     */
+    suspend fun discardSharedContext(sessionId: String, contextId: String): Outcome =
+        simpleCommand("discardSharedContext", sessionId, buildJsonObject { put("contextId", contextId) })
 
     /**
      * G6 (vc51): `snoozeInteractionAutoResolution {interactionId}` — the desktop's

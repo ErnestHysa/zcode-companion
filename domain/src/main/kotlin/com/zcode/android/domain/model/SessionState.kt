@@ -38,6 +38,8 @@ data class SessionProjectionState(
      *  an explicit null is a decoded fact, not an absent key). */
     val goalKeyPresent: Boolean = false,
     val planKeyPresent: Boolean = false,
+    /** G9 (vc51): the share-handover import state (shared-context-import.ts). */
+    val sharedContextImport: SharedContextImportState? = null,
 ) {
     /**
      * True when the snapshot carried ANY decoded A-side state key — the gateway
@@ -47,6 +49,7 @@ data class SessionProjectionState(
     val hasDecodedStateKeys: Boolean
         get() = control != null || inputRouting != null || queue != null ||
             pendingInteractions != null || backgroundWorks != null || config != null ||
+            sharedContextImport != null ||
             usage != null || revision != null || goal != null || plan != null ||
             goalKeyPresent || planKeyPresent
 
@@ -79,11 +82,14 @@ data class SessionProjectionState(
                     is JsonObject -> PlanState.decodeOrNull(patch[key] as JsonObject)?.let { next = next.copy(plan = it, planKeyPresent = true) }
                     else -> malformedKeyDrops++
                 }
+                "sharedContextImport" -> (patch[key] as? JsonObject)?.let { o ->
+                    SharedContextImportState.decodeOrNull(o)?.let { next = next.copy(sharedContextImport = it) }
+                }
                 // meta/pendingCommands/subagents/workflowRuns/
-                // sharedContextImport/modelTransition/workspaceHookAdmission: not consumed
-                // by any surface — ignored keys, counted, never merged (INV-8).
+                // modelTransition/workspaceHookAdmission: not consumed by any surface —
+                // ignored keys, counted, never merged (INV-8).
                 // (`config` joined in Phase 9 — §10.3; `usage` in Phase 2 — §11.1;
-                // `goal`/`plan` in Phase 4C — D2.)
+                // `goal`/`plan` in Phase 4C — D2; `sharedContextImport` in vc51 — G9.)
                 else -> ignoredKeys++
             }
         }
@@ -125,6 +131,9 @@ data class SessionProjectionState(
                         is JsonNull -> state = state.copy(plan = null, planKeyPresent = true)
                         is JsonObject -> PlanState.decodeOrNull(snapshot[key] as JsonObject)?.let { state = state.copy(plan = it, planKeyPresent = true) }
                         else -> malformedKeyDrops++
+                    }
+                    "sharedContextImport" -> (snapshot[key] as? JsonObject)?.let { o ->
+                        SharedContextImportState.decodeOrNull(o)?.let { state = state.copy(sharedContextImport = it) }
                     }
                     else -> ignoredKeys++
                 }
@@ -686,6 +695,41 @@ data class SessionUsageState(
         /** Key-drop variant for the state merge (§9 policy — drop THAT key + count). */
         fun decodeOrNull(obj: JsonObject): SessionUsageState? = try {
             decode(obj)
+        } catch (e: RowDecodeException) {
+            SessionProjectionState.malformedKeyDrops++
+            null
+        }
+    }
+}
+
+/**
+ * G9 (vc51) — snapshot.ts sharedContextImportState (shared-context-import.ts):
+ * the share-handover import whose contextId the sendText `context_refs` carries
+ * (max 1; the runtime resolves the body from persisted provenance — the phone
+ * never ships the share body itself). The v2 shape is the typed contract; the
+ * legacy shape ({title} only) carries no contextId → decoded but NOT sendable.
+ */
+data class SharedContextImportState(
+    val contextId: String?,
+    val title: String,
+    /** pending | reserved | attached | discarded (kept raw). */
+    val status: String?,
+    val shareUrl: String?,
+) {
+    /** Only a v2-shape import with an id can ride the send. */
+    val sendable: Boolean get() = !contextId.isNullOrBlank() && status != "discarded"
+
+    companion object {
+        fun decodeOrNull(obj: JsonObject): SharedContextImportState? = try {
+            val contextId = obj.strOrNull("contextId")
+            val title = obj.strOrNull("title")
+                ?: throw RowDecodeException("sharedContextImport.title missing")
+            SharedContextImportState(
+                contextId = contextId,
+                title = title,
+                status = obj.strOrNull("status"),
+                shareUrl = obj.strOrNull("shareUrl"),
+            )
         } catch (e: RowDecodeException) {
             SessionProjectionState.malformedKeyDrops++
             null

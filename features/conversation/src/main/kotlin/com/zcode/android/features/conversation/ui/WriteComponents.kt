@@ -661,6 +661,8 @@ fun ComposerBar(
     onSlashMenuOpen: () -> Unit = {},
     /** Phase 4C (C7): the @-mention file search (the port's workspace file search). */
     fileSearchProvider: suspend (String) -> List<String> = { emptyList() },
+    /** G9 (vc51): the shared-context chip's discard (null = hidden). */
+    onDiscardSharedContext: (() -> Unit)? = null,
 ) {
     val haptics = rememberZCodeHaptics()
     val control = state.sessionState?.control
@@ -677,6 +679,34 @@ fun ComposerBar(
         Column(Modifier.padding(horizontal = 12.dp, vertical = 5.dp)) {
             if (state.pendingSends.isNotEmpty()) {
                 PendingSendsStrip(pending = state.pendingSends, onRetry = onRetrySend, modifier = Modifier.fillMaxWidth())
+            }
+            // G9: the shared-context handover chip — the session's import rides the
+            // next send as context_refs (max 1); ✕ dispatches discardSharedContext.
+            val sharedImport = state.sessionState?.sharedContextImport
+            if (sharedImport != null && sharedImport.sendable) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .testTag("shared_context_chip"),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.shared_context_chip, sharedImport.title.take(48)),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    onDiscardSharedContext?.let { cb ->
+                        TextButton(
+                            onClick = cb,
+                            modifier = Modifier.testTag("shared_context_discard"),
+                        ) {
+                            Text(stringResource(R.string.shared_context_discard))
+                        }
+                    }
+                }
             }
             // §23.2 composer attachments (Phase 9): picker → v4 transaction (begin/
             // chunks/commit with progress; abort on remove). Media picker + document

@@ -368,15 +368,34 @@ class DefaultConversationPort(
         scope?.let { hub.draftRepository().clear(it) }
     }
 
-    override suspend fun sendPrompt(taskId: String, text: String, heldQueueDisposition: String?): ConversationPort.SendOutcome {
+    override suspend fun sendPrompt(taskId: String, text: String, heldQueueDisposition: String?): ConversationPort.SendOutcome =
+        sendPromptWithContext(taskId, text, heldQueueDisposition, contextRefs = emptyList())
+
+    private suspend fun sendPromptWithContext(
+        taskId: String,
+        text: String,
+        heldQueueDisposition: String?,
+        contextRefs: List<Pair<String, String>>,
+    ): ConversationPort.SendOutcome {
         val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
         // §23.2: ready (committed) composer uploads ride the sendText payload as
         // attachment refs; they are consumed on ACCEPTED (§14.2 — the overlay drops).
         val ready = composerAttachments.value[taskId].orEmpty().filter { it.state == "ready" && it.ref != null }
+        // G9: a sendable shared-context import rides the send as context_refs (max 1,
+        // {kind:"shared_context_import", context_id}) — caller-supplied refs win.
+        val import: com.zcode.android.domain.model.SharedContextImportState? = runCatching {
+            val flow: Flow<com.zcode.android.domain.model.SessionProjectionState> =
+                kotlinx.coroutines.withTimeout(2_000) { hub.sessionProjectionState(taskId) }
+            flow.firstOrNull()?.sharedContextImport
+        }.getOrNull()
+        val effectiveRefs = contextRefs.takeIf { it.isNotEmpty() }
+            ?: import?.takeIf { it.sendable }?.let { listOf("shared_context_import" to it.contextId!!) }
+            ?: emptyList()
         val outcome = coordinator.sendPrompt(
             taskId,
             text,
             heldQueueDisposition = heldQueueDisposition,
+            contextRefs = effectiveRefs.takeIf { it.isNotEmpty() },
             attachments = ready.map {
                 com.zcode.android.data.session.CommandCoordinator.AttachmentRefPayload(
                     ref = it.ref!!, fileName = it.fileName, mime = it.mime, bytes = it.bytes,
@@ -684,6 +703,11 @@ class DefaultConversationPort(
             hub.log.warn("port.toolOutput", "task=${taskId.take(12)} ${e.javaClass.simpleName}: ${e.message?.take(120)}")
             null
         }
+
+    override suspend fun discardSharedContext(taskId: String, contextId: String): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        return mapOutcome(coordinator.discardSharedContext(taskId, contextId))
+    }
 
     override suspend fun fetchBackgroundWorkOutput(taskId: String, workId: String): Any? =
         try {

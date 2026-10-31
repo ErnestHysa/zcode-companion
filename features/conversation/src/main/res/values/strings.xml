@@ -422,4 +422,6 @@
     <string name="interaction_snooze">Keep waiting</string>
     <string name="row_side_session">Ask in a side session</string>
     <string name="row_share_selection">Share selection</string>
+    <string name="shared_context_chip">Shared context: %1$s (rides your next message)</string>
+    <string name="shared_context_discard">Remove</string>
 </resources>

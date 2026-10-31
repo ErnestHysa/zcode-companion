@@ -910,6 +910,21 @@ class ConversationViewModel(
         }
     }
 
+    /** G9: the shared-context chip's discard (discardSharedContext {contextId}). */
+    fun discardSharedContext() {
+        val import = state.value.sessionState?.sharedContextImport ?: return
+        val contextId = import.contextId ?: return
+        scope.launch {
+            when (port.discardSharedContext(taskId, contextId)) {
+                ConversationPort.SendOutcome.ACCEPTED -> Unit
+                ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
+                    _sendNotice.value = SendNotice("Offline — the context was not discarded.", SendNotice.Kind.WARNING)
+                else ->
+                    _sendNotice.value = SendNotice("The desktop refused the discard.", SendNotice.Kind.ERROR)
+            }
+        }
+    }
+
     /**
      * G7+G8: the selection side session (the row action sheet's "Ask in a side
      * session") — an accepted ack names the CHILD session; the screen navigates
