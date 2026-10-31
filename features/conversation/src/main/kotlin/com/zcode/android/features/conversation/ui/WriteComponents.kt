@@ -654,6 +654,15 @@ fun ComposerBar(
                     onUploadAttachment(name, mime, bytes)
                 }
             }
+            // GAP-A9: one dispatch path for the send BUTTON and the IME send action.
+            fun dispatchSend() {
+                if (routing?.mode == com.zcode.android.domain.model.InputRouting.Mode.CHOICE) {
+                    dispositionDialog = true
+                } else {
+                    haptics.confirm()
+                    onSend(null)
+                }
+            }
             val photoPicker = androidx.activity.compose.rememberLauncherForActivityResult(
                 androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia(),
             ) { uri -> onPicked(uri) }
@@ -786,6 +795,9 @@ fun ComposerBar(
                         value = state.draft,
                         onValueChange = onDraftChange,
                         keyboardOptions = composerKeyboardOptions(state.draft),
+                        keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                            onSend = { dispatchSend() },
+                        ),
                         placeholder = {
                             Text(
                                 stringResource(
@@ -907,8 +919,15 @@ fun ComposerBar(
                         // §7.5 K3: ONE primary control that MORPHS — the authoritative
                         // `control.canStop` gating is preserved verbatim: the slot shows
                         // STOP only while the wire says stoppable, else SEND.
+                        // GAP-A9 (desktop ConversationComposer.tsx:1136 contract):
+                        // showStopControl = canStop && !hasDraftToSubmit — a typed draft
+                        // ALWAYS keeps the send path, even mid-run (queue mode exists
+                        // precisely to dispatch one); the Stop control owns the slot
+                        // only for a blank draft.
+                        val hasDraftToSubmit = currentDraft.isNotBlank() || state.composerAttachments.isNotEmpty()
                         val stoppable = control?.canStop == true &&
-                            control.stopState == com.zcode.android.domain.model.SessionControl.StopState.STOPPABLE
+                            control.stopState == com.zcode.android.domain.model.SessionControl.StopState.STOPPABLE &&
+                            !hasDraftToSubmit
                         if (stoppable) {
                             val stopDesc = stringResource(R.string.composer_stop)
                             androidx.compose.material3.FilledIconButton(
@@ -927,14 +946,7 @@ fun ComposerBar(
                         } else {
                             val sendDesc = stringResource(R.string.composer_send)
                             androidx.compose.material3.FilledIconButton(
-                                onClick = {
-                                    if (routing?.mode == com.zcode.android.domain.model.InputRouting.Mode.CHOICE) {
-                                        dispositionDialog = true
-                                    } else {
-                                        haptics.confirm()
-                                        onSend(null)
-                                    }
-                                },
+                                onClick = { dispatchSend() },
                                 enabled = state.draft.isNotBlank(),
                                 modifier = Modifier
                                     .size(44.dp)
@@ -1158,9 +1170,14 @@ fun composerKeyboardOptions(draft: String): androidx.compose.foundation.text.Key
             capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.None,
             autoCorrectEnabled = false,
             keyboardType = androidx.compose.ui.text.input.KeyboardType.Ascii,
+            imeAction = androidx.compose.ui.text.input.ImeAction.Send,
         )
     } else {
-        androidx.compose.foundation.text.KeyboardOptions.Default
+        androidx.compose.foundation.text.KeyboardOptions(
+            // GAP-A9: the IME's send action dispatches (the desktop's Enter-to-send);
+            // the recorded rig artifact was Enter inserting a raw newline instead.
+            imeAction = androidx.compose.ui.text.input.ImeAction.Send,
+        )
     }
 
 /** The autocorrect flag across compose-ui's autoCorrect → autoCorrectEnabled rename. */
