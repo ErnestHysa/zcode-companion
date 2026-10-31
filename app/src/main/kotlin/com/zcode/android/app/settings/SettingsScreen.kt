@@ -506,16 +506,8 @@ private fun copyDiagnostics(container: AppContainer, context: android.content.Co
     scope.launch(kotlinx.coroutines.Dispatchers.Default) {
         try {
             val text = buildDiagnosticReport(container, context)
+            val clipped = writeDiagnosticsClipboard(context, text)
             withContext(kotlinx.coroutines.Dispatchers.Main) {
-                // FIELD (2026-10-01, vc20): OEM clipboard services choke on multi-MB
-                // strings (the full report exceeds Samsung's clipboard budget once the
-                // ring fills) — copy a bounded prefix and say so.
-                val clipLimit = 400_000
-                val clipped = text.length > clipLimit
-                val suffix = context.getString(R.string.settings_clip_truncated_suffix, clipLimit)
-                val payload = if (clipped) text.take(clipLimit) + suffix else text
-                val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-                cm?.setPrimaryClip(android.content.ClipData.newPlainText("ZCode diagnostics", payload))
                 notifier.show(context.getString(if (clipped) R.string.settings_clip_copied_truncated else R.string.settings_clip_copied))
             }
         } catch (e: kotlinx.coroutines.CancellationException) {
@@ -528,6 +520,32 @@ private fun copyDiagnostics(container: AppContainer, context: android.content.Co
             withContext(kotlinx.coroutines.Dispatchers.Main) { onBusy(false) }
         }
     }
+}
+
+/**
+ * FIELD (2026-10-01, vc20): OEM clipboard services choke on multi-MB strings (the full
+ * report exceeds Samsung's clipboard budget once the ring fills) — copy a bounded
+ * prefix and say so. Returns whether the payload was clipped.
+ *
+ * GAP-A5 (vc51 roadmap): [android.content.ClipboardManager.setPrimaryClip] is a
+ * SYNCHRONOUS binder IPC — the pass-1 field repro stalled the system clipboard service
+ * >5 s and ANRed the app ("Input dispatching timed out") because the write resumed on
+ * the Main dispatcher. Clipboard writes are legal from any thread: the write MUST run
+ * off-main here, independent of the caller's dispatcher.
+ */
+internal suspend fun writeDiagnosticsClipboard(context: android.content.Context, text: String): Boolean {
+    val clipLimit = 400_000
+    val clipped = text.length > clipLimit
+    val suffix = context.getString(R.string.settings_clip_truncated_suffix, clipLimit)
+    val payload = if (clipped) text.take(clipLimit) + suffix else text
+    // GAP-A5: hop the binder IPC to IO — the pass-1 ANR ("Input dispatching timed out
+    // … Waited 5006ms") was THIS write resuming on Main while the clipboard service
+    // stalled. Clipboard writes are legal from any thread; only the toast needs Main.
+    withContext(kotlinx.coroutines.Dispatchers.IO) {
+        val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+        cm?.setPrimaryClip(android.content.ClipData.newPlainText("ZCode diagnostics", payload))
+    }
+    return clipped
 }
 
 private fun exportDiagnostics(container: AppContainer, context: android.content.Context, notifier: Notifier, onBusy: (Boolean) -> Unit) {
