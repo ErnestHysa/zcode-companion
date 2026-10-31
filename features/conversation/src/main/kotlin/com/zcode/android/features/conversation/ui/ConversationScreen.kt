@@ -1259,12 +1259,17 @@ private val PINNED_RESERVE = 450.dp
 private val SHORT_HEIGHT_THRESHOLD = 480.dp
 
 /**
- * T3: short-height reserve — the measured fixed chrome (header intrinsics 135dp +
- * intrinsic composer 140dp = 275dp; the context panels already yield while a card
- * is open) + the short-height timeline floor (48dp — the portrait 120dp floor is
- * arithmetically impossible beside 275dp of chrome in a ~347dp landscape window).
+ * T3 short-height reserve — RECALIBRATED for A11 (vc51, pass-12 AI2): the pinned card
+ * collapsed to a ~53px sliver in landscape because the old 323dp reserve carried the
+ * PRE-vc49 chrome (a 135dp header) while the vc49 header is ONE ≤56dp session bar. On a
+ * device-shaped landscape window (~323dp of content under the top bar) the stale reserve
+ * ate the whole window and the card fell to its 24dp floor. The recalibrated reserve is
+ * the measured fixed chrome (~190dp: the one-row session bar + the intrinsic composer at
+ * their observed maximums) + the 48dp timeline floor — the card keeps a usable band
+ * (title + prompt + an option row, controls reachable in its own scroll; 3.5× the
+ * recorded sliver) while the composer and the 48dp floor hold at every short window.
  */
-private val SHORT_HEIGHT_RESERVE = 323.dp
+private val SHORT_HEIGHT_RESERVE = 238.dp
 
 /** T3: the card never disappears — a scrollable sliver keeps its answer controls reachable. */
 private val SHORT_HEIGHT_CARD_MIN = 24.dp
