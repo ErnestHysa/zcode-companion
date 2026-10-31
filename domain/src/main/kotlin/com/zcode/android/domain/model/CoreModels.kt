@@ -220,10 +220,26 @@ data class AppPreferences(
      *  "queue" | "guide"; null = follow the desktop (no local default). Seeds the composer's
      *  follow-up steering while the session's wire followupMode is unset. */
     val interactionBehavior: String? = null,
+    /** G36 (vc51): the presentation mode (lib/interfaceMode.ts "office" | "coding") —
+     *  office gates the timeline's tool-detail rendering to summaries/results;
+     *  coding (default) shows commands/output/changes. NOT a port of the desktop
+     *  store — a phone-side persisted setting with the same vocabulary. */
+    val interfaceMode: InterfaceMode = InterfaceMode.CODING,
 ) {
     enum class NotificationContentLevel { MINIMAL, CONTENT }
 
     enum class ThemeMode { LIGHT, DARK, SYSTEM }
+
+    /** interfaceMode.ts: office | coding; the legacy "general"/"concise" map to office. */
+    enum class InterfaceMode { OFFICE, CODING;
+
+        companion object {
+            fun fromWire(value: String?): InterfaceMode = when (value) {
+                "office", "general", "concise" -> OFFICE
+                else -> CODING
+            }
+        }
+    }
 }
 
 /** Workspace list entry as delivered by bootstrap / workspace-list-response (§9.5, Q9). */

@@ -133,6 +133,11 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
         onboardingDone = if (hasOnboardingDone()) onboardingDone else false,
         // G4/AC6 (vc51): additive-first — unset → no local default (the pre-G4 behavior).
         interactionBehavior = if (hasInteractionBehavior()) interactionBehavior.takeIf { it == "queue" || it == "guide" } else null,
+        // G36 (vc51): additive-first — unset/unknown → CODING (the phone's ONE fixed
+        // presentation before this setting; legacy "general"/"concise" map to OFFICE).
+        interfaceMode = com.zcode.android.domain.model.AppPreferences.InterfaceMode.fromWire(
+            if (hasInterfaceMode()) interfaceMode else null,
+        ),
     )
 
     private fun AppPreferences.toProto(): AppPreferencesProto {
@@ -140,6 +145,7 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
         // selectedEndpointId property, which would shadow the model's inside apply{}.
         val selected = selectedEndpointId
         val behavior = interactionBehavior
+        val mode = interfaceMode
         return AppPreferencesProto.newBuilder()
             .setLiveConnectionTimeoutMinutes(liveConnectionTimeoutMinutes)
             .setSchemaVersion(EndpointRepositoryImpl.SCHEMA_VERSION)
@@ -155,6 +161,7 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
             .setOnboardingDone(onboardingDone)
             .apply { selected?.let { setSelectedEndpointId(it) } }
             .apply { behavior?.let { setInteractionBehavior(it) } }
+            .setInterfaceMode(mode.name)
             .build()
     }
 }

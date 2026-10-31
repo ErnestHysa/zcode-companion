@@ -272,4 +272,8 @@
     <string name="settings_feedback_failed">The feedback could not be sent — check the connection and try again.</string>
     <string name="feedback_close">Close</string>
     <string name="usage_plan_section">Plan usage</string>
+    <string name="settings_interface_mode_row">Presentation mode</string>
+    <string name="settings_interface_mode_sub">Office mode focuses on summaries and results. Coding mode shows commands, output, and code changes.</string>
+    <string name="settings_interface_mode_office">Office</string>
+    <string name="settings_interface_mode_coding">Coding</string>
 </resources>

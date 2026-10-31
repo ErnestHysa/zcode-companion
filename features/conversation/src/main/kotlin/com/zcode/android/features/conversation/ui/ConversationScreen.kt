@@ -211,6 +211,8 @@ fun ConversationScreen(
     quotaBanner: com.zcode.android.domain.model.StartPlanQuotaBuckets.Verdict? = null,
     onOpenQuotaScreen: () -> Unit = {},
     onDismissQuotaBanner: () -> Unit = {},
+    // ---- G36 (vc51): the presentation mode (office gates tool-detail rendering) ----
+    officeMode: Boolean = false,
 ) {
     val rowActions = remember(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction, onOpenArtifact) {
         RowActionCallbacks(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction, onOpenArtifact)
@@ -537,6 +539,7 @@ fun ConversationScreen(
                     onEditRow = { row -> editingRow = row },
                     onSideSession = onSideSessionRow,
                     onShareSelection = onShareSelectionRow,
+                    officeMode = officeMode,
                     findQuery = findQuery.takeIf { findOpen && it.isNotBlank() },
                     findActiveRowId = findActiveRowId.takeIf { findOpen },
                     toolOutputProvider = toolOutputProvider,
@@ -832,6 +835,8 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     // G7+G8 (vc51): the selection actions.
     onSideSession: ((text: String) -> Unit)? = null,
     onShareSelection: ((text: String) -> Unit)? = null,
+    // G36 (vc51): the presentation mode.
+    officeMode: Boolean = false,
 ) {
     val listState = rememberLazyListState()
     // B3-motion + K2: rows that have already arrived (scroll-back never re-animates).
@@ -1037,6 +1042,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                         rowActions = rowActions,
                         onSideSession = onSideSession,
                         onShareSelection = onShareSelection,
+                        officeMode = officeMode,
                     )
                     is TimelineEntry.ToolGroup -> ToolGroupBlock(
                         group = entry,
@@ -1237,6 +1243,8 @@ private fun TimelineRow(
     /** G7+G8 (vc51): the selection actions (the row's own text is the selection). */
     onSideSession: ((text: String) -> Unit)? = null,
     onShareSelection: ((text: String) -> Unit)? = null,
+    /** G36 (vc51): the presentation mode. */
+    officeMode: Boolean = false,
 ) {
     Box(modifier = modifier) {
     when (row) {
@@ -1305,7 +1313,12 @@ private fun TimelineRow(
                 }
             }
         }
-        is ConversationRow.ToolCall -> ToolCard(row, fullOutputProvider = toolOutputProvider)
+        is ConversationRow.ToolCall -> ToolCard(
+            row,
+            fullOutputProvider = toolOutputProvider,
+            // G36: office mode gates tool-detail rendering to summaries.
+            showDetails = !officeMode,
+        )
         is ConversationRow.Reasoning -> ReasoningRow(row)
         is ConversationRow.TurnHeader -> TurnSeparator(
             row,

@@ -45,4 +45,5 @@ message AppPreferencesProto {
   optional bool notify_connection = 12; // Phase 4F: the connection-loss toggle (default ON)
   optional bool onboarding_done = 13; // H1.5: the post-pairing pass ran once (skippable)
   optional string interaction_behavior = 14; // G4/AC6 (vc51): "queue" | "guide" (absent = follow the desktop)
+  optional string interface_mode = 15; // G36 (vc51): "office" | "coding" (absent = coding, the phone default)
 }

@@ -1103,6 +1103,54 @@ private fun AppearanceSection(container: AppContainer) {
         tag = "settings_theme",
         onClick = { pickerOpen = true },
     )
+    // G36 (vc51): the presentation mode (the desktop's interfaceMode) — office
+    // focuses the timeline on summaries/results; coding shows commands/output.
+    var modePickerOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    SettingsRow(
+        title = stringResource(R.string.settings_interface_mode_row),
+        subtitle = stringResource(R.string.settings_interface_mode_sub),
+        tag = "settings_interface_mode",
+        onClick = { modePickerOpen = true },
+    )
+    if (modePickerOpen) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { modePickerOpen = false },
+            title = { Text(stringResource(R.string.settings_interface_mode_row)) },
+            text = {
+                Column {
+                    for (mode in com.zcode.android.domain.model.AppPreferences.InterfaceMode.entries) {
+                        val selected = prefs.interfaceMode == mode
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    scope.launch {
+                                        container.stores.preferencesRepository.update { p -> p.copy(interfaceMode = mode) }
+                                    }
+                                    modePickerOpen = false
+                                }
+                                .padding(vertical = 10.dp)
+                                .testTag("settings_interface_mode_${mode.name}"),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                        ) {
+                            androidx.compose.material3.RadioButton(selected = selected, onClick = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(when (mode) {
+                                com.zcode.android.domain.model.AppPreferences.InterfaceMode.OFFICE -> R.string.settings_interface_mode_office
+                                com.zcode.android.domain.model.AppPreferences.InterfaceMode.CODING -> R.string.settings_interface_mode_coding
+                            }))
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { modePickerOpen = false }) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            },
+        )
+    }
     if (pickerOpen) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { pickerOpen = false },

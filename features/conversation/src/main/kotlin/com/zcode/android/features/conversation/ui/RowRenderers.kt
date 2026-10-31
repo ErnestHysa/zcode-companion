@@ -408,6 +408,14 @@ fun ToolCard(
     row: ConversationRow.ToolCall,
     modifier: Modifier = Modifier,
     fullOutputProvider: (suspend (ConversationRow.ToolCall) -> String?)? = null,
+    /**
+     * G36 (vc51): the presentation-mode gate (lib/interfaceMode.ts — the desktop's
+     * 31+ consumers across the timeline; asar "Office mode focuses on summaries
+     * and results. Coding mode shows commands, output, and code changes."). OFFICE
+     * collapses the tool card to its summary (name/status/meta — no expand into
+     * INPUT/output); CODING (default) renders everything.
+     */
+    showDetails: Boolean = true,
 ) {
     val tokens = toolStatusPresentation(row.status)
     var expanded by rememberSaveable(row.rowId) { mutableStateOf(false) }
@@ -426,7 +434,7 @@ fun ToolCard(
             .background(LocalZCodeColors.current.toolSurface, RoundedCornerShape(ToolCardRadius))
             .drawBehind { drawRect(railColor, size = size.copy(width = 3.dp.toPx())) }
             .animateCollapse()
-            .clickable { expanded = !expanded }
+            .clickable { if (showDetails) expanded = !expanded }
             .padding(start = 15.dp, end = 12.dp, top = 12.dp, bottom = 12.dp)
             .testTag("row_tool_${row.toolName}")
             .semantics(mergeDescendants = true) {
@@ -443,11 +451,13 @@ fun ToolCard(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Icon(
-                imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            if (showDetails) {
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         Spacer(Modifier.height(2.dp))
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.testTag("tool_meta_${row.rowId}")) {
@@ -477,7 +487,11 @@ fun ToolCard(
         }
         if (expanded) {
             Spacer(Modifier.height(8.dp))
-            MonospaceDetail(label = stringResource(R.string.row_input), content = row.inputText.ifBlank { "—" })
+            MonospaceDetail(
+                label = stringResource(R.string.row_input),
+                content = row.inputText.ifBlank { "—" },
+                tag = "tool_input_${row.rowId}",
+            )
             val full = fullOutput
             if (full != null) {
                 Spacer(Modifier.height(6.dp))

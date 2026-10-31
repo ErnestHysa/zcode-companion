@@ -706,6 +706,8 @@ private fun ConversationRoute(
         onSetFollowupMode = vm::setFollowupMode,
         onDeleteQueueItem = vm::deleteQueueItem,
         defaultFollowupMode = prefs.interactionBehavior,
+        // G36 (vc51): the presentation mode gates the timeline's tool detail.
+        officeMode = prefs.interfaceMode == com.zcode.android.domain.model.AppPreferences.InterfaceMode.OFFICE,
         plans = plans,
         showTrajectory = showTrajectory,
         trajectory = trajectory,
