@@ -129,6 +129,10 @@ fun YouBlock(
      *  never see again; images render as thumbnails through [loadAttachment]. */
     attachments: List<ConversationRow.UserInput.AttachmentMeta> = emptyList(),
     loadAttachment: (suspend (ConversationRow.UserInput.AttachmentMeta) -> ByteArray?)? = null,
+    /** G5 (vc51): find-in-conversation — every query occurrence highlights; the ACTIVE
+     *  match's row gets the stronger fill. */
+    findQuery: String? = null,
+    findActive: Boolean = false,
 ) {
     val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
     var showActions by rememberSaveable { mutableStateOf(false) }
@@ -159,8 +163,22 @@ fun YouBlock(
             // the message text until only its last glyph escaped the image's right
             // edge. Chat-bubble order: the text first, the attachments BELOW it.
             Column {
+                // G5: find highlight — plain text renders occurrences; the active match's
+                // row carries the accent fill (assistant prose keeps its markdown pipeline).
+                val rowText = if (findQuery.isNullOrBlank()) {
+                    androidx.compose.ui.text.AnnotatedString(text)
+                } else {
+                    annotatedWithHighlights(
+                        text,
+                        findQuery,
+                        androidx.compose.ui.text.SpanStyle(
+                            background = if (findActive) LocalZCodeColors.current.accent.copy(alpha = 0.45f)
+                            else MaterialTheme.colorScheme.surfaceVariant,
+                        ),
+                    )
+                }
                 Text(
-                    text = text,
+                    text = rowText,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )

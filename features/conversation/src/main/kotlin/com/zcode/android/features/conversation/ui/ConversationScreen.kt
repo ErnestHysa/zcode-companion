@@ -25,6 +25,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FormatListNumbered
 import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -77,6 +80,7 @@ import com.zcode.android.core.ui.components.rememberArrivalTracker
 import com.zcode.android.core.ui.components.rememberMotionSpec
 import com.zcode.android.core.ui.components.streamIn
 import com.zcode.android.core.ui.components.ZCodeTopBar
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import com.zcode.android.core.ui.components.errorUserMessage
 import com.zcode.android.core.ui.components.readerWidth
@@ -250,10 +254,18 @@ fun ConversationScreen(
             // approval/question — the pinned plane must open for it (the card lives there).
             val blocked = state.pendingPermissions.isNotEmpty() || state.pendingUserInputs.isNotEmpty() ||
                 state.pendingHookReviews.isNotEmpty()
+            // G5 (vc51): find-in-conversation — the desktop's useConversationTimelineFind plane.
+            var findOpen by remember { mutableStateOf(false) }
+            var findQuery by remember { mutableStateOf("") }
+            var findActive by remember { mutableIntStateOf(0) }
+            val findMatches = remember(state.rows, findQuery) { buildConversationFindIndex(state.rows, findQuery) }
+            val findActiveRowId = findMatches.getOrNull(findActive.coerceIn(0, (findMatches.size - 1).coerceAtLeast(0)))?.rowId
             Header(
                 state = state,
                 phase = phase,
                 blocked = blocked,
+                findOpen = findOpen,
+                onToggleFind = { findOpen = !findOpen; if (!findOpen) { findQuery = ""; findActive = 0 } },
                 available = available,
                 onOpenFiles = onOpenFiles,
                 onOpenGit = onOpenGit,
@@ -269,6 +281,18 @@ fun ConversationScreen(
                 onOpenWorkflowRun = onOpenWorkflowRun,
                 onShareTranscript = onShareTranscript,
             )
+            // G5: the find bar — query + match count + prev/next jump + close.
+            if (findOpen) {
+                FindBar(
+                    query = findQuery,
+                    count = findMatches.size,
+                    active = if (findMatches.isEmpty()) 0 else findActive.coerceIn(0, findMatches.size - 1),
+                    onQueryChange = { findQuery = it; findActive = 0 },
+                    onPrevious = { if (findMatches.isNotEmpty()) findActive = (findActive - 1 + findMatches.size) % findMatches.size },
+                    onNext = { if (findMatches.isNotEmpty()) findActive = (findActive + 1) % findMatches.size },
+                    onClose = { findOpen = false; findQuery = ""; findActive = 0 },
+                )
+            }
             // A3.3: the run detail sheet (an overlay — position in the tree is immaterial).
             openWorkflowRun?.let { open ->
                 WorkflowRunSheet(
@@ -479,6 +503,8 @@ fun ConversationScreen(
                     onRetryOlder = onRetryOlder,
                     onOpenTurnChanges = { diffTurn = it },
                     onEditRow = { row -> editingRow = row },
+                    findQuery = findQuery.takeIf { findOpen && it.isNotBlank() },
+                    findActiveRowId = findActiveRowId.takeIf { findOpen },
                     toolOutputProvider = toolOutputProvider,
                     rowActions = rowActions,
                         rewindPreviewProvider = rewindPreviewProvider,
@@ -513,6 +539,9 @@ private fun Header(
     phase: ConnectionPhase,
     /** U8: a blocking card is open — the context panels yield their room (approval first). */
     @Suppress("UNUSED_PARAMETER") blocked: Boolean = false,
+    /** G5 (vc51): find-in-conversation — the open affordance + two-way toggle. */
+    findOpen: Boolean = false,
+    onToggleFind: () -> Unit = {},
     /** U1: the content height the budgets derive from (BoxWithConstraints, inside the IME padding). */
     @Suppress("UNUSED_PARAMETER") available: androidx.compose.ui.unit.Dp = 0.dp,
     onOpenFiles: () -> Unit = {},
@@ -598,6 +627,16 @@ private fun Header(
             label = stringResource(com.zcode.android.features.conversation.R.string.context_sheet_open),
             testTag = "conv_session_context",
         )
+        androidx.compose.material3.IconButton(
+            onClick = onToggleFind,
+            modifier = Modifier.testTag("conv_find_open"),
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Search,
+                contentDescription = stringResource(R.string.conv_find_open),
+                tint = if (findOpen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
     // The interactive config chips, expanded IN PLACE below the bar (two-way toggle).
     if (configExpanded) {
@@ -677,6 +716,9 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     rewindPreviewProvider: (suspend (rowId: Long, entityId: String) -> com.zcode.android.domain.model.RewindPreview?)? = null,
     /** L7 (Phase 6C): the section boundary's diagnostics seam. */
     onSectionCrash: (Throwable) -> Unit = {},
+    // G5 (vc51): the active find match — the jump scrolls to its entry; rows highlight it.
+    findQuery: String? = null,
+    findActiveRowId: Long? = null,
 ) {
     val listState = rememberLazyListState()
     // B3-motion + K2: rows that have already arrived (scroll-back never re-animates).
@@ -746,6 +788,19 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
         }
     }
     var navigatorOpen by remember { mutableStateOf(false) }
+
+    // G5: find-jump — the active match's row scrolls to the viewport top (the query-map
+    // jump contract), and releases tail-follow so the jump STICKS.
+    LaunchedEffect(findActiveRowId) {
+        val target = findActiveRowId ?: return@LaunchedEffect
+        val entryIndex = entries.indexOfFirst { (it as? TimelineEntry.Single)?.row?.rowId == target }
+        if (entryIndex >= 0) {
+            followBottom = false
+            val headerItems =
+                (if (state.loadingOlder) 1 else 0) + (if (state.loadOlderError != null) 1 else 0)
+            listState.scrollToItem(headerItems + entryIndex)
+        }
+    }
 
     // Stick-to-bottom (§19.2, macOS parity): while following, ANY content growth —
     // new rows OR streaming text into the last row — clamps the viewport to the true
@@ -852,6 +907,8 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                     is TimelineEntry.Single -> TimelineRow(
                         row = entry.row,
                         state = state,
+                        findQuery = findQuery,
+                        findActive = findActiveRowId != null && entry.row.rowId == findActiveRowId,
                         modifier = Modifier
                             .animateItem()
                             .streamIn(
@@ -986,6 +1043,56 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     }
 }
 
+/**
+ * G5 (vc51): the find bar — query field + "n/m" match count + previous/next jump + close
+ * (the desktop's conversationFind* plane; the trajectory search covers model calls only).
+ */
+@Composable
+private fun FindBar(
+    query: String,
+    count: Int,
+    active: Int,
+    onQueryChange: (String) -> Unit,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onClose: () -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .testTag("conv_find_bar"),
+        shape = MaterialTheme.shapes.small,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+            OutlinedTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                placeholder = { Text(stringResource(R.string.conv_find_hint), style = MaterialTheme.typography.bodySmall) },
+                singleLine = true,
+                modifier = Modifier.weight(1f).testTag("conv_find_query"),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                if (query.isBlank() || count == 0) stringResource(R.string.conv_find_none) else stringResource(R.string.conv_find_count, active + 1, count),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("conv_find_count"),
+            )
+            androidx.compose.material3.IconButton(onClick = onPrevious, enabled = count > 0, modifier = Modifier.testTag("conv_find_prev")) {
+                Icon(imageVector = Icons.Filled.KeyboardArrowUp, contentDescription = stringResource(R.string.conv_find_prev))
+            }
+            androidx.compose.material3.IconButton(onClick = onNext, enabled = count > 0, modifier = Modifier.testTag("conv_find_next")) {
+                Icon(imageVector = Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(R.string.conv_find_next))
+            }
+            androidx.compose.material3.IconButton(onClick = onClose, modifier = Modifier.testTag("conv_find_close")) {
+                Icon(imageVector = Icons.Filled.Close, contentDescription = stringResource(R.string.conv_find_close))
+            }
+        }
+    }
+}
+
 /** Phase 4A (E3.2+I1+N5): the four flag-gated row actions, bundled for the timeline pass-through. */
 data class RowActionCallbacks(
     val onRetryTurn: (rowId: Long, entityId: String) -> Unit = { _, _ -> },
@@ -1003,6 +1110,8 @@ private fun TimelineRow(
     row: ConversationRow,
     state: ConversationUiState,
     modifier: Modifier = Modifier,
+    findQuery: String? = null,
+    findActive: Boolean = false,
     onOpenTurnChanges: (ConversationRow.TurnHeader) -> Unit = {},
     onEditRow: ((ConversationRow.UserInput) -> Unit)? = null,
     toolOutputProvider: (suspend (ConversationRow.ToolCall) -> String?)? = null,
@@ -1017,6 +1126,8 @@ private fun TimelineRow(
             text = row.text,
             attachments = row.attachments,
             loadAttachment = loadAttachment,
+            findQuery = findQuery,
+            findActive = findActive,
             createdAtMs = row.base.createdAt,
             // E3.1: the sheet gates Edit on the WIRE'S OWN capability flag
             // (actions.canEdit — ConversationRowView.tsx:1295 class), not on

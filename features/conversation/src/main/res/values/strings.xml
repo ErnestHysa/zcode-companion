@@ -312,6 +312,14 @@
     <string name="workflow_settings_apply">Apply</string>
     <!-- G4 (vc51): the queue row's Delete + the default follow-up mode -->
     <string name="queue_delete">Delete</string>
+    <!-- G5 (vc51): find-in-conversation -->
+    <string name="conv_find_open">Find in conversation</string>
+    <string name="conv_find_hint">Find in conversation</string>
+    <string name="conv_find_count">%1$d of %2$d</string>
+    <string name="conv_find_none">No matches</string>
+    <string name="conv_find_prev">Previous match</string>
+    <string name="conv_find_next">Next match</string>
+    <string name="conv_find_close">Close find</string>
     <!-- T2: the resolved-elsewhere answer -->
     <string name="notice_answer_already_resolved">Already handled on the desktop.</string>
     <string name="approvals_already_resolved">Already handled on the desktop.</string>
