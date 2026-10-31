@@ -130,6 +130,14 @@ interface ConversationPort {
      */
     suspend fun discardSharedContext(taskId: String, contextId: String): SendOutcome = SendOutcome.FAILED
 
+    /**
+     * G11 (vc51): the ADR-020 entitlement read for the conversation quota banner
+     * (the desktop polls the same snapshot per sessionQuotaBannerState). Null =
+     * the channel refused — the banner renders NOTHING (the section's own
+     * channel-absence contract).
+     */
+    suspend fun fetchQuotaEntitlement(): com.zcode.android.domain.model.UsageEntitlement? = null
+
     enum class SendOutcome { ACCEPTED, BLOCKED_OFFLINE, STALE, FAILED, UNKNOWN_KEPT }
 
     /** Truthful pending state (§14.2 overlay; in-memory, reconciled by the ViewModel). */

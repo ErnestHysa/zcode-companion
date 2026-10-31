@@ -22,14 +22,22 @@ import kotlinx.serialization.json.JsonPrimitive
 data class UsageQuotaLimit(
     /** TOKENS_LIMIT|CREDIT_LIMIT|TIME_LIMIT|MCP_USAGE_LIMIT|… — kept raw. */
     val type: String,
-    val unit: Double?,
-    val number: Double?,
-    val usage: Double?,
-    val remaining: Double?,
+    /** G11 (vc51): the Start-Plan bucket + period identity (usage-quota.ts:16-24) —
+     *  the reminder-dedup key inputs; null on older hosts (INV-8 additive decode). */
+    val bucketId: String? = null,
+    val periodStart: Long? = null,
+    val periodEnd: Long? = null,
+    val period: String? = null,
+    /** model_usage | … — the banner reads only model_usage buckets (null = active). */
+    val meter: String? = null,
+    val unit: Double? = null,
+    val number: Double? = null,
+    val usage: Double? = null,
+    val remaining: Double? = null,
     /** The USED share (desktop presentation inverts it for display). */
-    val percentage: Double?,
-    val nextResetTime: Long?,
-    val usageDetails: List<UsageDetail>,
+    val percentage: Double? = null,
+    val nextResetTime: Long? = null,
+    val usageDetails: List<UsageDetail> = emptyList(),
 ) {
     data class UsageDetail(
         val modelCode: String,
@@ -40,6 +48,11 @@ data class UsageQuotaLimit(
     companion object {
         fun decode(obj: JsonObject): UsageQuotaLimit = UsageQuotaLimit(
             type = obj.strReq("type"),
+            bucketId = obj.strOrNullN("bucketId"),
+            periodStart = obj.longOrNullN("periodStart"),
+            periodEnd = obj.longOrNullN("periodEnd"),
+            period = obj.strOrNullN("period"),
+            meter = obj.strOrNullN("meter"),
             unit = obj.doubleOrNull("unit"),
             number = obj.doubleOrNull("number"),
             usage = obj.doubleOrNull("usage"),

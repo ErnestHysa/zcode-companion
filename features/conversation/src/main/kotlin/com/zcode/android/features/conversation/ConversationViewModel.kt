@@ -3,6 +3,7 @@ package com.zcode.android.features.conversation
 import androidx.annotation.VisibleForTesting
 import com.zcode.android.core.common.error.AppError
 import com.zcode.android.domain.model.ConversationRow
+import com.zcode.android.domain.model.StartPlanQuotaBuckets
 import com.zcode.android.domain.model.StreamingBuffer
 import com.zcode.android.domain.model.Task
 import com.zcode.android.domain.state.ConnectionPhase
@@ -908,6 +909,33 @@ class ConversationViewModel(
             }
             rowActionNotice(result.outcome, refusedText = "Could not fork the conversation — the desktop refused it.", refusedKey = SendNotice.Key.FORK_REFUSED)
         }
+    }
+
+    // ---------------------------------------------------------------- G11 (vc51): the quota banner
+
+    /**
+     * The in-conversation quota banner (the desktop's ConversationQuotaBanner):
+     * the ADR-020 entitlement read classifies the active model's buckets; the
+     * low verdict shows ONCE per reminder key (the desktop's reminder-dedup),
+     * the exhausted verdict always shows. Null = nothing to show.
+     */
+    private val _quotaBanner = MutableStateFlow<StartPlanQuotaBuckets.Verdict?>(null)
+    val quotaBanner: StateFlow<StartPlanQuotaBuckets.Verdict?> = _quotaBanner.asStateFlow()
+
+    private var quotaReminderDismissed: String? = null
+
+    init {
+        scope.launch {
+            val snapshot = port.fetchQuotaEntitlement() ?: return@launch
+            val modelId = state.value.sessionState?.config?.model
+            _quotaBanner.value = StartPlanQuotaBuckets.verdict(snapshot, modelId) { key -> key == quotaReminderDismissed }
+        }
+    }
+
+    /** The banner's dismiss: the reminder key is SEEN — the same period never re-raises. */
+    fun dismissQuotaBanner() {
+        quotaReminderDismissed = _quotaBanner.value?.reminderKey ?: return
+        _quotaBanner.value = null
     }
 
     // ---------------------------------------------------------------- G10 (vc51): suggested prompts

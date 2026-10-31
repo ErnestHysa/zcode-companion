@@ -207,6 +207,10 @@ fun ConversationScreen(
     // ---- G10 (vc51): the suggested-prompt rotation (advances per pane open) ----
     promptCursor: Int = 0,
     onPrefillDraft: (String) -> Unit = {},
+    // ---- G11 (vc51): the in-conversation quota banner ----
+    quotaBanner: com.zcode.android.domain.model.StartPlanQuotaBuckets.Verdict? = null,
+    onOpenQuotaScreen: () -> Unit = {},
+    onDismissQuotaBanner: () -> Unit = {},
 ) {
     val rowActions = remember(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction, onOpenArtifact) {
         RowActionCallbacks(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction, onOpenArtifact)
@@ -545,6 +549,17 @@ fun ConversationScreen(
             }
             // §17.4/§17.6 composer (pinned bottom; drafting allowed offline, send
             // blocked with explicit copy — never a silent queue).
+            // G11 (vc51): the in-conversation quota banner — the desktop's
+            // ConversationQuotaBanner: low bucket reminds ONCE per period, exhausted
+            // always shows; the chip links to the quota screen.
+            if (quotaBanner != null) {
+                QuotaBannerBar(
+                    banner = quotaBanner,
+                    onOpenQuotaScreen = onOpenQuotaScreen,
+                    onDismiss = onDismissQuotaBanner,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             // G15 (vc51): the background-work indicator — the desktop composer's
             // ConversationBackgroundWorkTrigger: count pill, tap → the viewer.
             val runningBackground = state.sessionState?.backgroundWorks?.count { it.status == "running" } ?: 0

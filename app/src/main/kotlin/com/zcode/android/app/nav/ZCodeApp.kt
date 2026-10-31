@@ -310,6 +310,8 @@ fun ZCodeApp(
                 onOpenFiles = { container.log.info("nav.files", "open"); nav.navigate(Routes.FILES) },
                 onOpenGit = { container.log.info("nav.git", "open"); nav.navigate(Routes.GIT) },
                 onOpenTerminal = { container.log.info("nav.terminal", "open"); nav.navigate(Routes.TERMINAL) },
+                // G11: the quota banner's chip lands on the Usage screen's quota section.
+                onOpenQuotaScreen = { nav.navigate(Routes.USAGE) },
                 // Phase 4A: an accepted fork opens the CHILD session in place (desktop onSessionCreated parity).
                 onOpenTask = { child -> container.log.info("nav.fork", "open ${child.take(12)}"); nav.navigate(Routes.conversation(child)) },
             )
@@ -544,6 +546,7 @@ private fun ConversationRoute(
     onOpenGit: () -> Unit = {},
     onOpenTerminal: () -> Unit = {},
     onOpenTask: (taskId: String) -> Unit = {},
+    onOpenQuotaScreen: () -> Unit = {},
 ) {
     val state by vm.state.collectAsState()
     // G4/AC6 (vc51): the local default interaction behavior seeds the composer's
@@ -607,6 +610,10 @@ private fun ConversationRoute(
         // G10 (vc51): the rotating suggested prompts + prefill.
         promptCursor = vm.suggestedPromptCursor(),
         onPrefillDraft = vm::prefillDraft,
+        // G11 (vc51): the in-conversation quota banner → the Usage screen's quota section.
+        quotaBanner = vm.quotaBanner.collectAsState().value,
+        onOpenQuotaScreen = onOpenQuotaScreen,
+        onDismissQuotaBanner = vm::dismissQuotaBanner,
         onSideSessionRow = { text -> vm.createSelectionSideSession(text) },
         onShareSelectionRow = { text ->
             val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {

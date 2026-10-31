@@ -704,6 +704,14 @@ class DefaultConversationPort(
             null
         }
 
+    override suspend fun fetchQuotaEntitlement(): com.zcode.android.domain.model.UsageEntitlement? =
+        try {
+            hub.viewerTools().entitlement()
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            null // channel absence renders NOTHING (never a guessed 0%)
+        }
+
     override suspend fun discardSharedContext(taskId: String, contextId: String): ConversationPort.SendOutcome {
         val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
         return mapOutcome(coordinator.discardSharedContext(taskId, contextId))

@@ -424,4 +424,8 @@
     <string name="row_share_selection">Share selection</string>
     <string name="shared_context_chip">Shared context: %1$s (rides your next message)</string>
     <string name="shared_context_discard">Remove</string>
+    <string name="quota_banner_low">Your plan quota is running low.</string>
+    <string name="quota_banner_exhausted">Your plan quota is exhausted — the agent may be throttled until the next reset.</string>
+    <string name="quota_banner_ratio">%1$d%% remaining</string>
+    <string name="quota_banner_open">View plan</string>
 </resources>
