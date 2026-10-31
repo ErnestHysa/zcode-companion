@@ -239,7 +239,10 @@ fun ConversationScreen(
         ) {
         val available = maxHeight
         Column(Modifier.fillMaxSize()) {
-            val blocked = state.pendingPermissions.isNotEmpty() || state.pendingUserInputs.isNotEmpty()
+            // GAP-A1: a pending hook-trust review blocks the session exactly like an
+            // approval/question — the pinned plane must open for it (the card lives there).
+            val blocked = state.pendingPermissions.isNotEmpty() || state.pendingUserInputs.isNotEmpty() ||
+                state.pendingHookReviews.isNotEmpty()
             Header(
                 state = state,
                 phase = phase,
