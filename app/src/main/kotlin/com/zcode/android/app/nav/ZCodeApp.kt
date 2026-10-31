@@ -595,6 +595,10 @@ private fun ConversationRoute(
         // G15 (vc51): the background-work indicator + read-only output viewer.
         backgroundOutputProvider = { workId -> vm.fetchBackgroundWorkOutput(workId) },
         onCancelBackgroundWork = vm::cancelBackgroundWork,
+        // G26 (vc51): the sheet's goal affordances.
+        onSetGoal = vm::setGoal,
+        onPauseGoal = vm::pauseGoalFromSheet,
+        onResumeGoal = vm::resumeGoalFromSheet,
         onAnswerQuestions = vm::answerUserInputQuestions,
         onDeclineQuestions = vm::declineUserInput,
         // GAP-A1 (vc51, ADR-024): the hook-trust review verbs — their FIRST UI callers.

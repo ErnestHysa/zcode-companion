@@ -1,5 +1,7 @@
 package com.zcode.android.features.conversation.ui
 
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -53,6 +56,10 @@ fun SessionContextSheet(
     onOpenTrajectory: () -> Unit = {},
     onShareTranscript: () -> Unit = {},
     modifier: Modifier = Modifier,
+    // ---- G26 (vc51): the goal affordances (the desktop's add-goal + pause/resume) ----
+    onSetGoal: (objective: String) -> Unit = {},
+    onPauseGoal: () -> Unit = {},
+    onResumeGoal: () -> Unit = {},
 ) {
     ZCodeModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier.testTag("session_context_sheet")) {
         Column(
@@ -77,7 +84,20 @@ fun SessionContextSheet(
             // D2: the goal + todo surfaces — EXPANDED inside the sheet (the user opened
             // it to read context); both headers remain true toggles.
             sessionState?.goal?.let { goal ->
-                GoalPanel(goal, modifier = Modifier.padding(horizontal = 16.dp, vertical = 3.dp))
+                GoalPanel(
+                    goal,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 3.dp),
+                    onPauseGoal = onPauseGoal,
+                    onResumeGoal = onResumeGoal,
+                )
+            }
+            // G26: the desktop offers add-goal on the composer menu for goal-less
+            // sessions (ChatPromptActionMenu.tsx:30) — the sheet's Set-goal row.
+            if (sessionState?.goal == null) {
+                SetGoalRow(
+                    onSet = onSetGoal,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 3.dp),
+                )
             }
             sessionState?.plan?.let { plan ->
                 PlanPanel(plan, modifier = Modifier.padding(horizontal = 16.dp, vertical = 3.dp))
@@ -133,3 +153,71 @@ fun SessionContextSheet(
 }
 
 private val SheetMaxHeight = 640.dp
+
+
+/**
+ * G26: the goal-less session's "Set goal" affordance — one row + a text dialog;
+ * the wire verb is the SAME sendGoalCommand the /goal slash rides, so refusal
+ * banners fire identically.
+ */
+@Composable
+private fun SetGoalRow(onSet: (String) -> Unit, modifier: Modifier = Modifier) {
+    var dialogOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("goal_set_row"),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shape = MaterialTheme.shapes.medium,
+    ) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable { dialogOpen = true }
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                stringResource(com.zcode.android.features.conversation.R.string.goal_set_affordance),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+    if (dialogOpen) {
+        var text by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { dialogOpen = false },
+            title = { Text(stringResource(com.zcode.android.features.conversation.R.string.goal_set_affordance)) },
+            text = {
+                androidx.compose.material3.OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("goal_set_field"),
+                    singleLine = false,
+                    maxLines = 4,
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        dialogOpen = false
+                        onSet(text)
+                    },
+                    enabled = text.isNotBlank(),
+                    modifier = Modifier.testTag("goal_set_confirm"),
+                ) {
+                    Text(stringResource(com.zcode.android.features.conversation.R.string.goal_set_confirm))
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { dialogOpen = false }) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            },
+        )
+    }
+}

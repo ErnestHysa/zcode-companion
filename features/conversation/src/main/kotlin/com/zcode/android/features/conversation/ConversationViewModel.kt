@@ -554,6 +554,51 @@ class ConversationViewModel(
         _sendNotice.value = SendNotice(notice, SendNotice.Kind.WARNING)
     }
 
+    // ---------------------------------------------------------------- G26 (vc51): goal affordances
+
+    /**
+     * The sheet's "Set goal" affordance — the SAME wire path the /goal slash rides
+     * (sendGoalCommand), so the refusal banners (A13's notices) fire identically.
+     */
+    fun setGoal(objective: String) {
+        if (objective.isBlank()) return
+        scope.launch {
+            when (port.sendGoal(taskId, objective, "/goal $objective")) {
+                ConversationPort.SendOutcome.ACCEPTED -> Unit
+                ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
+                    _sendNotice.value = SendNotice("Offline — the goal was not sent.", SendNotice.Kind.WARNING, SendNotice.Key.GOAL_REFUSED)
+                else ->
+                    _sendNotice.value = SendNotice("The goal update was refused by the desktop.", SendNotice.Kind.ERROR, SendNotice.Key.GOAL_REFUSED)
+            }
+        }
+    }
+
+    /** The sheet's pause icon — the /goal pause wire path (CAS-guarded in the port). */
+    fun pauseGoalFromSheet() {
+        scope.launch {
+            when (port.pauseGoal(taskId)) {
+                ConversationPort.SendOutcome.ACCEPTED -> Unit
+                ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
+                    _sendNotice.value = SendNotice("Offline — the goal was not paused.", SendNotice.Kind.WARNING, SendNotice.Key.GOAL_PAUSE_REFUSED)
+                else ->
+                    _sendNotice.value = SendNotice("Goal pause was refused (the goal may not be pausable right now).", SendNotice.Kind.ERROR, SendNotice.Key.GOAL_PAUSE_REFUSED)
+            }
+        }
+    }
+
+    /** The sheet's resume icon — the /goal resume wire path. */
+    fun resumeGoalFromSheet() {
+        scope.launch {
+            when (port.resumeGoal(taskId)) {
+                ConversationPort.SendOutcome.ACCEPTED -> Unit
+                ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
+                    _sendNotice.value = SendNotice("Offline — the goal was not resumed.", SendNotice.Kind.WARNING, SendNotice.Key.GOAL_RESUME_REFUSED)
+                else ->
+                    _sendNotice.value = SendNotice("Goal resume was refused (the conversation may have moved — try again).", SendNotice.Kind.ERROR, SendNotice.Key.GOAL_RESUME_REFUSED)
+            }
+        }
+    }
+
     /**
      * GAP-10 (§11.4): the confirmed edit — the desktop re-asks the turn; the
      * replacement arrives as authoritative churn (row.removed + row.appended or

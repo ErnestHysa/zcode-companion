@@ -417,4 +417,6 @@
     <string name="hook_review_enable">Enable</string>
     <string name="hook_review_disable">Disable</string>
     <string name="composer_camera_unavailable">The camera is not available on this device - the photo was not taken.</string>
+    <string name="goal_set_affordance">Set a goal for this session</string>
+    <string name="goal_set_confirm">Set goal</string>
 </resources>

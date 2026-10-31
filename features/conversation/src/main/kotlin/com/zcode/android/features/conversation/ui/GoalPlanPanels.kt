@@ -28,6 +28,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.foundation.clickable
 import androidx.compose.runtime.getValue
@@ -58,6 +60,13 @@ fun GoalPanel(
      * todos panel took half the screen and could not be minimized).
      */
     collapsedByDefault: Boolean = false,
+    /**
+     * G26 (vc51): the desktop's goal-banner icons (ConversationStatusPanel.tsx
+     * data-goal-action="pause"/"resume") — null = hidden (read-only callers keep
+     * compiling). The wire verbs are the VM's existing pause/resume paths.
+     */
+    onPauseGoal: (() -> Unit)? = null,
+    onResumeGoal: (() -> Unit)? = null,
 ) {
     var expanded by rememberSaveable { mutableStateOf(!collapsedByDefault) }
     val chevronRotation by animateFloatAsState(if (expanded) 0f else -90f, label = "goal_chevron")
@@ -93,6 +102,35 @@ fun GoalPanel(
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.testTag("goal_status"),
             )
+            // G26: the desktop's pause/resume icons beside the status
+            // (ConversationStatusPanel.tsx data-goal-action="pause"/"resume").
+            if (goal.status == "paused") {
+                onResumeGoal?.let { cb ->
+                    Icon(
+                        Icons.Filled.PlayArrow,
+                        contentDescription = "Resume goal",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .size(16.dp)
+                            .clickable { cb() }
+                            .testTag("goal_resume"),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                }
+            } else {
+                onPauseGoal?.let { cb ->
+                    Icon(
+                        Icons.Filled.Pause,
+                        contentDescription = "Pause goal",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .size(16.dp)
+                            .clickable { cb() }
+                            .testTag("goal_pause"),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                }
+            }
             if (goal.iteration > 0) {
                 Spacer(Modifier.width(6.dp))
                 Text(

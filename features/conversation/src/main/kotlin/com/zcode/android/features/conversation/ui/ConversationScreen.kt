@@ -193,6 +193,10 @@ fun ConversationScreen(
     // ---- G15 (vc51): the background-work indicator + read-only output viewer ----
     backgroundOutputProvider: (suspend (workId: String) -> Any?)? = null,
     onCancelBackgroundWork: (workId: String) -> Unit = {},
+    // ---- G26 (vc51): the goal affordances on the context sheet ----
+    onSetGoal: (objective: String) -> Unit = {},
+    onPauseGoal: () -> Unit = {},
+    onResumeGoal: () -> Unit = {},
 ) {
     val rowActions = remember(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction, onOpenArtifact) {
         RowActionCallbacks(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction, onOpenArtifact)
@@ -286,6 +290,9 @@ fun ConversationScreen(
                 onOpenTrajectory = onOpenTrajectory,
                 onOpenWorkflowRun = onOpenWorkflowRun,
                 onShareTranscript = onShareTranscript,
+                onSetGoal = onSetGoal,
+                onPauseGoal = onPauseGoal,
+                onResumeGoal = onResumeGoal,
             )
             // G5: the find bar — query + match count + prev/next jump + close.
             if (findOpen) {
@@ -590,6 +597,10 @@ private fun Header(
     onOpenTrajectory: () -> Unit = {},
     /** Phase 5C (A3.16): share the transcript via the Android system sheet. */
     onShareTranscript: () -> Unit = {},
+    // ---- G26 (vc51): the goal affordances on the context sheet ----
+    onSetGoal: (objective: String) -> Unit = {},
+    onPauseGoal: () -> Unit = {},
+    onResumeGoal: () -> Unit = {},
 ) {
     // F-CHAT-FOCUS v2 (field 2026-10-27, Ernest on vc48): six stacked one-liner cards +
     // a five-chip rail — even ALL collapsed they stood ~245dp between the user and the
@@ -696,6 +707,10 @@ private fun Header(
             onOpenTerminal = onOpenTerminal,
             onOpenTrajectory = onOpenTrajectory,
             onShareTranscript = onShareTranscript,
+            // G26 (vc51): the goal affordances ride the VM's existing wire verbs.
+            onSetGoal = onSetGoal,
+            onPauseGoal = onPauseGoal,
+            onResumeGoal = onResumeGoal,
         )
     }
 }
