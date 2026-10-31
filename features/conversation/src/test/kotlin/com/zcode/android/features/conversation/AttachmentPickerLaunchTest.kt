@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.FragmentActivity
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
@@ -82,5 +83,30 @@ class AttachmentPickerLaunchTest {
         arms.camera.launch(Uri.parse("content://test/shared/camera.jpg"))
         shadowOf(android.os.Looper.getMainLooper()).idle()
         assertNotNull("the camera arm must reach the system dispatch", startedIntent(activity))
+    }
+
+    // ------------------------------------------------------------------ honest degrade
+
+    /**
+     * A8 exit-gate follow-up (rig, 2026-10-31): the Take-photo arm on a strict camera
+     * image (com.android.camera2) throws a SYNCHRONOUS SecurityException from launch()
+     * (caller lacks android.permission.CAMERA) — the second crash class behind the
+     * fixed 16-bit one. All three arms must guard launch() and degrade to the inline
+     * error instead of killing the process.
+     */
+    @Test
+    fun `A8 - the three picker launches are guarded and degrade honestly`() {
+        val src = java.io.File(repoRoot(), "features/conversation/src/main/kotlin/com/zcode/android/features/conversation/ui/WriteComponents.kt").readText()
+        val composer = src.substringAfter("fun ComposerBar(").substringBefore("fun PendingSendsStrip(")
+        assertTrue("photo launch must be guarded", Regex("""launchPick \{[\s\S]{0,220}photoPicker\.launch""").containsMatchIn(composer))
+        assertTrue("doc launch must be guarded", "launchPick { docPicker.launch" in composer)
+        assertTrue("camera launch must be guarded", "launchPick { cameraLauncher.launch" in composer)
+        assertTrue("the inline degrade copy must exist", "composer_attach_error" in composer)
+    }
+
+    private fun repoRoot(): java.io.File {
+        var dir: java.io.File? = java.io.File("").absoluteFile
+        while (dir != null && !java.io.File(dir, "settings.gradle.kts").isFile) dir = dir.parentFile
+        return requireNotNull(dir)
     }
 }

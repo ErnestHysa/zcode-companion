@@ -663,6 +663,17 @@ fun ComposerBar(
                     onSend(null)
                 }
             }
+            // A8 (vc51 rig, exit gate): the registry fix un-blocked the launches, and the
+            // Take-photo arm then exposed the SECOND crash class — strict camera apps
+            // (com.android.camera2 on atd images) deny callers without android.permission
+            // .CAMERA, and launch() throws SYNCHRONOUSLY (SecurityException /
+            // ActivityNotFoundException). A picker arm must never kill the process:
+            // every launch is guarded and degrades to the inline camera-unavailable copy.
+            var attachError by remember { mutableStateOf(false) }
+            fun launchPick(launch: () -> Unit) {
+                attachError = false
+                runCatching { launch() }.onFailure { attachError = true }
+            }
             val photoPicker = androidx.activity.compose.rememberLauncherForActivityResult(
                 androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia(),
             ) { uri -> onPicked(uri) }
@@ -841,11 +852,13 @@ fun ComposerBar(
                                     text = { Text(stringResource(R.string.composer_menu_photo)) },
                                     onClick = {
                                         addMenu = false
-                                        photoPicker.launch(
-                                            androidx.activity.result.PickVisualMediaRequest(
-                                                androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly,
-                                            ),
-                                        )
+                                        launchPick {
+                                            photoPicker.launch(
+                                                androidx.activity.result.PickVisualMediaRequest(
+                                                    androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly,
+                                                ),
+                                            )
+                                        }
                                     },
                                     modifier = Modifier.testTag("composer_attach_photo"),
                                 )
@@ -853,7 +866,7 @@ fun ComposerBar(
                                     text = { Text(stringResource(R.string.composer_attach_file)) },
                                     onClick = {
                                         addMenu = false
-                                        docPicker.launch(arrayOf("*/*"))
+                                        launchPick { docPicker.launch(arrayOf("*/*")) }
                                     },
                                     modifier = Modifier.testTag("composer_attach_doc"),
                                 )
@@ -863,7 +876,7 @@ fun ComposerBar(
                                         onClick = {
                                             addMenu = false
                                             cameraUri.set(cameraItem)
-                                            cameraLauncher.launch(cameraItem)
+                                            launchPick { cameraLauncher.launch(cameraItem) }
                                         },
                                         modifier = Modifier.testTag("composer_attach_camera"),
                                     )
@@ -958,6 +971,14 @@ fun ComposerBar(
                         }
                     }
                 }
+            }
+            if (attachError) {
+                Text(
+                    text = stringResource(R.string.composer_camera_unavailable),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.testTag("composer_attach_error"),
+                )
             }
             if (voiceError) {
                 Text(
