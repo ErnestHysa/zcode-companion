@@ -176,6 +176,21 @@ class NotificationBroker(
                 NotificationPlan.Policy(appForeground = false, contentLevel = contentLevel()),
             )
             if (!decision.show) continue
+            // A12 (vc51, pass-9 Y2): the re-post replicates the fresh path's permission-gated
+            // actions — an approval arriving while foregrounded is §9.9-suppressed at post
+            // time, so this actions-less re-post was the ONLY post such an approval ever got
+            // (the shade buttons existed only in the rare already-backgrounded race). The
+            // record already holds kind/interactionId/taskId — the same SpecAction builder.
+            val actions = if (record.kind == NotificationRecord.Kind.APPROVAL_NEEDED &&
+                record.interactionId != null && record.taskId != null
+            ) {
+                listOf(
+                    SpecAction(NotificationActions.ID_APPROVE, copy.approveAction(), record.interactionId!!, record.taskId!!, "allowOnce"),
+                    SpecAction(NotificationActions.ID_DENY, copy.denyAction(), record.interactionId!!, record.taskId!!, "deny"),
+                )
+            } else {
+                emptyList()
+            }
             sink.show(
                 Spec(
                     key = record.notificationKey,
@@ -185,6 +200,7 @@ class NotificationBroker(
                     groupKey = groupKey,
                     deepLinkTaskId = record.taskId,
                     deepLinkInteractionId = record.interactionId,
+                    actions = actions,
                 ),
             )
             log.info("notify.repost", "key=${record.notificationKey.take(24)} (background entry)")

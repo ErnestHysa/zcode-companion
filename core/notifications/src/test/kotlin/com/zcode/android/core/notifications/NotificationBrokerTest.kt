@@ -89,6 +89,37 @@ class NotificationBrokerTest {
     }
 
     @Test
+    fun `A12 - the background re-post of an approval carries the two shade actions`() = runTest {
+        // The recorded defect (pass-9 Y2): the fresh-event path gates Approve-once/Deny on
+        // `permission` (NotificationBroker.kt:138-141) but the §15-S13 background re-post
+        // built its Spec WITHOUT actions — and the re-post is the ONLY post an approval
+        // gets when it arrives while the app is foregrounded (numWithActions never left 0).
+        val sink = RecordingSink()
+        val b = NotificationBroker(sink = sink) // starts FOREGROUND: the fresh post is suppressed
+        b.onEvent(NotificationRecord.Kind.APPROVAL_NEEDED, taskId = "t1", interactionId = "i-1", taskTitle = null, permission = true)
+        assertTrue(sink.shown.isEmpty())
+        b.onBackgroundEntry()
+        val repost = sink.shown.getValue("interaction:i-1")
+        assertEquals(2, repost.actions.size)
+        assertEquals(NotificationActions.ID_APPROVE, repost.actions[0].id)
+        assertEquals("allowOnce", repost.actions[0].optionId)
+        assertEquals("i-1", repost.actions[0].interactionId)
+        assertEquals("t1", repost.actions[0].taskId)
+        assertEquals(NotificationActions.ID_DENY, repost.actions[1].id)
+        assertEquals("deny", repost.actions[1].optionId)
+    }
+
+    @Test
+    fun `A12 - a re-posted question carries no actions (the permission gate holds)`() = runTest {
+        val sink = RecordingSink()
+        val b = NotificationBroker(sink = sink)
+        b.onEvent(NotificationRecord.Kind.USER_INPUT_NEEDED, taskId = "t1", interactionId = "i-2", taskTitle = null, permission = false)
+        b.onBackgroundEntry()
+        val repost = sink.shown.getValue("interaction:i-2")
+        assertEquals(emptyList<NotificationBroker.SpecAction>(), repost.actions)
+    }
+
+    @Test
     fun `S12 reconciliation dismisses consumed records and their notifications`() = runTest {
         val sink = RecordingSink()
         val store = MemoryStore()
