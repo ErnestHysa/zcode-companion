@@ -176,14 +176,22 @@ class ConversationViewModel(
         combine(port.observeStale(taskId), port.observeTaskState(taskId)) { s, t -> StaleState(s, t) },
         combine(streamingCoalesced, _task, port.phase) { streaming, task, phase -> StreamPhase(streaming, task, phase) },
         combine(_hasMore, _loadingOlder, _loadOlderError, _historyChanged) { h, lo, err, hc -> Flags(h, lo, err, hc) },
+        // GAP-A13: the notice is a COMBINE SOURCE (paired with WriteState) — a
+        // `.value` read could not re-emit the state, so a refused slash verb looked
+        // like a dead button until an unrelated source fired (the vc21 draft fix,
+        // which the notice never got).
         combine(
-            port.observeSessionState(taskId),
-            port.observePendingSends(taskId),
-            _busyInteractions,
-            _draft,
-            port.observeComposerAttachments(taskId),
-        ) { s, p, b, d, att -> WriteState(s, p, b, d, att) },
-    ) { rowsEpoch, staleState, streamPhase, flags, write ->
+            combine(
+                port.observeSessionState(taskId),
+                port.observePendingSends(taskId),
+                _busyInteractions,
+                _draft,
+                port.observeComposerAttachments(taskId),
+            ) { s, p, b, d, att -> WriteState(s, p, b, d, att) },
+            _sendNotice,
+        ) { write, notice -> write to notice },
+    ) { rowsEpoch, staleState, streamPhase, flags, writeNotice ->
+        val write = writeNotice.first
         // §14.2 overlay reconciliation: a pending send whose authoritative userInput
         // row has landed is DONE — drop it (max lifetime guard renders it degraded).
         val now = System.currentTimeMillis()
@@ -209,7 +217,7 @@ class ConversationViewModel(
             draft = write.draft,
             sessionState = write.sessionState,
             pendingSends = livePending,
-            sendNotice = _sendNotice.value,
+            sendNotice = writeNotice.second,
             busyInteractions = write.busy,
             composerAttachments = write.composerAttachments,
             slashCommands = _slashCommands.value,
