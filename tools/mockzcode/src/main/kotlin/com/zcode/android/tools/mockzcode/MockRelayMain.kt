@@ -231,6 +231,21 @@ fun main() {
             "runId" to JsonPrimitive("wf-run-old"), "name" to JsonPrimitive("release-notes"), "status" to JsonPrimitive("completed"),
             "createdAt" to JsonPrimitive(now - 86_400_000), "updatedAt" to JsonPrimitive(now - 86_000_000), "spentTokens" to JsonPrimitive(4321),
         )))
+        // G3 (vc51) rig leg: a RESUMABLE run — the run sheet's Resume action has a live
+        // target (resumeWorkflowRun flips it to running + resumable=false, honestly).
+        mock.script.workflowRuns.add(JsonObject(mapOf(
+            "runId" to JsonPrimitive("wf-run-s1"), "label" to JsonPrimitive("release-notes"), "status" to JsonPrimitive("stopped"),
+            "updatedAt" to JsonPrimitive(now - 60_000), "resumable" to JsonPrimitive(true),
+            "stopReason" to JsonPrimitive("interrupted"),
+        )))
+        mock.script.workflowRunEvents["wf-run-s1"] = mutableListOf(
+            JsonObject(mapOf("sequence" to JsonPrimitive(1), "type" to JsonPrimitive("run.started"), "payload" to JsonObject(mapOf("message" to JsonPrimitive("started release-notes"))))),
+            JsonObject(mapOf("sequence" to JsonPrimitive(2), "type" to JsonPrimitive("run.stopped"), "payload" to JsonObject(mapOf("message" to JsonPrimitive("interrupted"))))),
+        )
+        mock.script.savedWorkflowRuns.add(JsonObject(mapOf(
+            "runId" to JsonPrimitive("wf-run-s1"), "name" to JsonPrimitive("release-notes"), "status" to JsonPrimitive("stopped"),
+            "createdAt" to JsonPrimitive(now - 70_000), "updatedAt" to JsonPrimitive(now - 60_000), "spentTokens" to JsonPrimitive(221),
+        )))
     }
     // Phase 5A (A3.8–A3.10) rig leg: MOCK_TASKMGMT=1 pins the first synthetic task, marks the
     // second unread, and seeds one custom group — the pinned section, the unread dot and the

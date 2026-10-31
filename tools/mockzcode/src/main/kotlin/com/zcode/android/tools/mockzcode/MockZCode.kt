@@ -1904,6 +1904,28 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     }))
                     return
                 }
+                // ---- G3 (vc51): the run sheet's Resume + amend — REAL run-state mutations
+                // so the rig leg proves the round-trip (the sheet's refreshed run reflects
+                // the new state via the state patch the revision bump rides). Rejections are
+                // typed respondError faults (the desktop's own vocabulary), not acks.
+                if (type == "resumeWorkflowRun" || type == "amendWorkflowRunSettings") {
+                    val payload = env?.get("payload") as? JsonObject
+                    when (val outcome = workflowRunCommandResult(type, payload?.strOrNull("workId"))) {
+                        is WorkflowRunCommandOutcome.Fault -> {
+                            respondError(id, outcome.code)
+                            return
+                        }
+                        is WorkflowRunCommandOutcome.Accepted -> {
+                            respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                                put("commandId", JsonPrimitive(commandId))
+                                put("status", JsonPrimitive("accepted"))
+                                put("revisionAtDecision", JsonPrimitive(stateRevision.get()))
+                                put("result", outcome.result)
+                            }))
+                            return
+                        }
+                    }
+                }
                 // Pass-11 (MOCK_REFUSE_COMMANDS): the named types answer fault.* — the
                 // client's server-spoke rejection class, so goal verbs degrade to their
                 // SendNotice.GOAL_*_REFUSED branches (Outcome.Failed, outbox terminal).
@@ -2751,6 +2773,14 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 script.autoDrain = payload?.strOrNull("autoDrain")?.toBooleanStrictOrNull() ?: script.autoDrain
                 pushQueuePatch()
             }
+            // ---- G4 (vc51): deleteQueueItem — the fifth queue verb's real patch round-trip.
+            "deleteQueueItem" -> {
+                stateRevision.incrementAndGet()
+                val qid = payload?.strOrNull("queueItemId")
+                script.queueItems = script.queueItems.orEmpty().filter { it.queueItemId != qid }
+                pushQueuePatch()
+                null
+            }
             "setFollowupMode" -> {
                 stateRevision.incrementAndGet()
                 val mode = payload?.strOrNull("mode") ?: return null
@@ -2982,6 +3012,68 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
 
     /** Test seam for the command-effect machinery (the socket path calls the same function). */
     internal fun applyCommandEffectForTest(type: String, env: JsonObject?): JsonObject? = applyCommandEffect(type, env)
+
+    /** G3 (vc51): resume/amend verdicts — a typed fault or the accepted result body. */
+    internal sealed class WorkflowRunCommandOutcome {
+        data class Fault(val code: String) : WorkflowRunCommandOutcome()
+        data class Accepted(val result: JsonObject) : WorkflowRunCommandOutcome()
+    }
+
+    /**
+     * G3 (vc51): the resume/amend state machine over the mock's run store — mutations +
+     * the state patch inside, the verdict returned (the WS handler only translates to
+     * respondError / the accepted ack). Desktop vocabulary: not_found / not_resumable
+     * (command.ts:282's rejection family); amend STOPS the current run (supersededBy) and
+     * starts the settings round on a NEW run.
+     */
+    internal fun workflowRunCommandResult(type: String, workId: String?): WorkflowRunCommandOutcome {
+        val run = script.workflowRuns.firstOrNull { it.strOrNull("runId") == workId }
+            ?: return WorkflowRunCommandOutcome.Fault("fault.command.workflowRunRejected.not_found")
+        val now = System.currentTimeMillis()
+        if (type == "resumeWorkflowRun") {
+            if (run.strOrNull("resumable") != "true") {
+                return WorkflowRunCommandOutcome.Fault("fault.command.workflowRunResumeRejected.not_resumable")
+            }
+            script.workflowRuns[script.workflowRuns.indexOfFirst { it.strOrNull("runId") == workId }] =
+                JsonObject(run + mapOf(
+                    "status" to JsonPrimitive("running"),
+                    "resumable" to JsonPrimitive(false),
+                    "updatedAt" to JsonPrimitive(now),
+                ))
+            script.workflowRunEvents.getOrPut(workId!!) { mutableListOf() }.add(
+                buildJsonObject {
+                    put("sequence", JsonPrimitive((script.workflowRunEvents[workId]?.maxOfOrNull { it.strOrNull("sequence")?.toLongOrNull() ?: 0L } ?: 0L) + 1))
+                    put("type", JsonPrimitive("run.resumed"))
+                    put("payload", buildJsonObject { put("message", JsonPrimitive("resumed from the phone")) })
+                },
+            )
+            stateRevision.incrementAndGet()
+            pushStatePatch(buildJsonObject { put("revision", JsonPrimitive(stateRevision.get())) })
+            return WorkflowRunCommandOutcome.Accepted(buildJsonObject { put("runId", JsonPrimitive(workId)) })
+        }
+        // amendWorkflowRunSettings
+        val newRunId = "${workId}-amended"
+        script.workflowRuns[script.workflowRuns.indexOfFirst { it.strOrNull("runId") == workId }] =
+            JsonObject(run + mapOf(
+                "status" to JsonPrimitive("stopped"),
+                "resumable" to JsonPrimitive(false),
+                "supersededBy" to JsonPrimitive(newRunId),
+                "updatedAt" to JsonPrimitive(now),
+            ))
+        script.workflowRuns.add(buildJsonObject {
+            put("runId", JsonPrimitive(newRunId)); put("label", JsonPrimitive(run.strOrNull("label") ?: "workflow"))
+            put("status", JsonPrimitive("running")); put("updatedAt", JsonPrimitive(now)); put("resumable", JsonPrimitive(false))
+        })
+        script.workflowRunEvents[newRunId] = mutableListOf(
+            buildJsonObject {
+                put("sequence", JsonPrimitive(1)); put("type", JsonPrimitive("run.started"))
+                put("payload", buildJsonObject { put("message", JsonPrimitive("settings amended; run restarted")) })
+            },
+        )
+        stateRevision.incrementAndGet()
+        pushStatePatch(buildJsonObject { put("revision", JsonPrimitive(stateRevision.get())) })
+        return WorkflowRunCommandOutcome.Accepted(buildJsonObject { put("runId", JsonPrimitive(newRunId)); put("toolCallId", JsonPrimitive("settings-rig")) })
+    }
 
     /** Test seam for the resync replay journal (G3 pins): the per-session DeltaFrames. */
     internal fun opLogForTest(sessionId: String): List<DeltaFrame> = opLog[sessionId]?.toList() ?: emptyList()
