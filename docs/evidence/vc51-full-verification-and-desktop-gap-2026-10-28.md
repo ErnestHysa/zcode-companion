@@ -2429,7 +2429,7 @@ byte-identical to the fd7046a baseline; meta-verified at AH1 by XML aggregation)
 
 | Phase | Theme | Findings | Session risk | Status |
 | --- | --- | --- | --- | --- |
-| 1 | P1/P2 phone defects — attach crash, approvals bookkeeping, invisible notices, hook-trust card, search overlay, queue composer | 8 | High | Open |
+| 1 | P1/P2 phone defects — attach crash, approvals bookkeeping, invisible notices, hook-trust card, search overlay, queue composer | 8 | High | **Complete 2026-10-31** |
 | 2 | P2 feature completions + P3 phone defects — workflow/queue/find, landscape pinned stack, shade actions | 5 | Medium | Open |
 | 3 | P3 planes — protocol hygiene, conversation affordances, quota/usage, presentation & workspace management, web-remote boundary | 16 | Medium | Open |
 | 4 | P4 polish + boundary decisions — phone smalls, INV-9 viewers, authoring/management, preview/share/presentation family | 24 | Low | Open |
@@ -2445,7 +2445,7 @@ ANR fix, never superseded) riding beside A13 as the other small P2.
 
 ### Sub-phase 1A — the two P1s
 
-- [ ] **GAP-A8 (P1)** The ENTIRE outbound-attachment surface FATALs the app — Photo
+- [x] **GAP-A8 (P1)** The ENTIRE outbound-attachment surface FATALs the app — Photo
   (`WriteComponents.kt:832`), Attach a file (`:844`), Take photo (`:854`) all throw
   `IllegalArgumentException: Can only use lower 16 bits for requestCode` at
   `FragmentActivity.checkForValidRequestCode` because the `rememberLauncherForActivityResult`
@@ -2454,7 +2454,26 @@ ANR fix, never superseded) riding beside A13 as the other small P2.
   derived code ≤16 bits (short explicit keys, or bump androidx.activity). Accept: a
   three-arm pin asserting `launch()` opens without throwing; rig walk: all three arms open
   a picker (or honestly degrade) with ZERO FATALs, send completes end-to-end.
-- [ ] **GAP-A2 (P1)** The Approvals inbox never clears answered/resolved interactions —
+  - ✅ CLOSED 2026-10-31 (commit cf739af + 12a87ad, `fix/vc51`). ROOT CAUSE: transitive
+    `androidx.fragment:1.2.5` still enforced `checkForValidRequestCode` while activity
+    1.13's registry draws codes from `Random.nextInt(2147418112) + 65536` (always
+    >16-bit); MainActivity extends FragmentActivity (BiometricPrompt), so launch()
+    threw before any picker. Fix: fragment → 1.3.6 (validation removed) forced in
+    `:app` + `:features:conversation`. PINS (AttachmentPickerLaunchTest, Robolectric,
+    REAL FragmentActivity host, the same three contracts via the same compose wrapper):
+    RED 3/3 pre-fix with the EXACT recorded stack (`checkForValidRequestCode:714`),
+    GREEN post-fix. RIG EXIT GATE (fresh emulator + relay): **Photo** — picker opened
+    (documents-ui Recent), dpad-selected w9-crashdlg.png → `attachmentBeginV4 ok 378ms`
+    → `attachmentChunkV4 ok 1073ms` → `attachmentCommitV4 ok 103ms` → user row +
+    "synthetic reply to: attached-rig-p1"; **Attach a file** — picker opened, picked
+    a11d.xml (17.5 KB) → begin 551ms / chunk 287ms / commit 37ms; **Take photo** — the
+    registry fix held (stack launches through the registry) and exposed the SECOND
+    crash class: the AVD's strict camera app (com.android.camera2) denies callers
+    without android.permission.CAMERA → SYNCHRONOUS SecurityException from launch()
+    (one FATAL, 09:41:31 — then fixed) → all three launches now guarded (12a87ad) and
+    degrade to the inline `composer_attach_error` copy; re-tap verified live: the
+    error renders with the PROCESS ALIVE (pid 8268). Post-fix census: 0 new FATALs.
+- [x] **GAP-A2 (P1)** The Approvals inbox never clears answered/resolved interactions —
   11 live receipts. The coordinator marks repository records resolved only inside the
   machine-RESOLVED gate (`InteractionCoordinator.kt:456-458`; the `runCatching` can
   swallow the transition silently) while `observeOpen` filters `resolvedAtMs IS NULL`
@@ -2464,10 +2483,23 @@ ANR fix, never superseded) riding beside A13 as the other small P2.
   classes. Accept: pins for inbox-clears-on-answer (state-plane + row-anchored); rig:
   answering from the card or the inbox empties both entries AND the bell badge without
   leaving the screen.
+  - ✅ CLOSED 2026-10-31 (commit 737880a, `fix/vc51`). ROOT CAUSE: every terminal path
+    called markResolved (stamps resolvedAtMs) and THEN updateLifecycle, whose full-row
+    upsert re-wrote resolvedAtMs from the request object (null) — the record REOPENED
+    instantly; observeOpen (resolvedAtMs IS NULL) kept serving it. This explains all
+    11 receipts (wire ok, no warnings, cards persisted). Fix: KnownRequest mirrors the
+    resolution timestamp; a shared resolveRecord funnel; lifecycle upserts carry
+    `request.copy(resolvedAtMs)`; accepted acks resolve the record even when the
+    machine transition was swallowed. PINS (ApprovalsInboxResolutionTest on the REAL
+    Room repo — the clobber is invisible to a recording fake): state-plane answer,
+    state-plane disappearance, row-anchored inbox answer — RED 3/3 pre-fix, GREEN
+    post-fix. RIG EXIT GATE: "Allow once" → the Permission card cleared from the inbox
+    LIVE (`approvals.answer :: option=allowOnce`); "Send answers" from the conversation
+    card → the Question card gone; badge gone; the inbox renders "Nothing needs you".
 
 ### Sub-phase 1B — the two small P2s
 
-- [ ] **GAP-A13 (P2)** Slash/goal refusal feedback is invisible at refusal time and STALE
+- [x] **GAP-A13 (P2)** Slash/goal refusal feedback is invisible at refusal time and STALE
   when it finally paints: `_sendNotice` is a `.value` READ inside the five-source uiState
   combine (`ConversationViewModel.kt:166` vs the read at `:212`), so a notice-only change
   cannot re-emit state — the exact FIELD-class bug the vc21 draft fix repaired for the
@@ -2476,15 +2508,33 @@ ANR fix, never superseded) riding beside A13 as the other small P2.
   pin (set notice → uiState re-emits WITHOUT an unrelated source change); rig with
   MOCK_REFUSE_COMMANDS: a refused `/goal pause` paints the GOAL_PAUSE_REFUSED banner while
   the IME is up, with fresh (not stale) copy.
-- [ ] **GAP-A5 (P2)** "Copy diagnostics to clipboard" can ANR the app (full system ANR
+  - ✅ CLOSED 2026-10-31 (commit 90fdf8f, `fix/vc51`). Fix: `_sendNotice` pairs with
+    WriteState as a REAL combine source (the vc21 draft-fix treatment the notice never
+    got). PINS (RefusalNoticeEmissionTest, emission counter): a notice-ONLY change must
+    re-emit uiState — RED 2/2 pre-fix (zero re-emissions: the exact pass-11 shape),
+    GREEN post-fix, fresh GOAL_PAUSE_REFUSED/compact copy, draft preserved. RIG EXIT
+    GATE (MOCK_REFUSE_COMMANDS): two `resumeGoal` refusals (`fault.command.
+    rigRefused:resumeGoal` + `command.rejected` WARNs) — the refusal banner painted AT
+    REFUSAL TIME both times (~2 s dumps), including the IME-up variant at REAL AX
+    bounds [61,1270][887,1353] above the composer, with FRESH copy.
+- [x] **GAP-A5 (P2)** "Copy diagnostics to clipboard" can ANR the app (full system ANR
   reproduced pass 1): `ClipboardManager.setPrimaryClip` — a synchronous binder IPC —
   resumes on the Main dispatcher (`SettingsScreen.kt:518`). Fix: hop the clipboard write
   (+ toast) to `Dispatchers.IO`/`Default`. Accept: a Robolectric pin that the clipboard
   write happens off-main.
+  - ✅ CLOSED 2026-10-31 (commit fce5417, `fix/vc51`). Fix: the write (with the vc20
+    bounded-prefix behavior) moved into `writeDiagnosticsClipboard` on Dispatchers.IO;
+    Main keeps only the toast. PINS (DiagnosticsClipboardThreadTest, recording
+    ClipboardManager shadow): the write lands on a DefaultDispatcher worker for BOTH
+    the short and the over-budget payload — RED 2/2 pre-fix (wrote on "SDK 30 Main
+    Thread"), GREEN post-fix. RIG EXIT GATE: Copy diagnostics → the copied toast
+    rendered, ZERO ANR, process alive — the healthy-clipboard caveat from pass 2 is
+    moot: the write can no longer run on Main, so the ANR is eliminated by
+    construction.
 
 ### Sub-phase 1C — the hook-trust review card (P1 feature build)
 
-- [ ] **GAP-A1 / G1 (P1)** The workspace hook-trust review card does not exist — ADR-024
+- [x] **GAP-A1 / G1 (P1)** The workspace hook-trust review card does not exist — ADR-024
   landed only half: decode (`SessionState.kt:246,344`), four v4 commands
   (`ConversationPort.kt:270-284`) and VM verbs (`ConversationViewModel.kt:684-708`) all
   exist, but `InteractionCoordinator.kt:730-733` parks WORKSPACE_HOOK_REVIEW in the INV-14
@@ -2497,25 +2547,59 @@ ANR fix, never superseded) riding beside A13 as the other small P2.
   `useWorkspaceHookInlineTrust.ts`, `workspaceHookReviewCommands.ts`. Accept: rig with
   MOCK_HOOKS=1 renders the review card on synth-task-1; a trust_selected round-trip flips
   item states live; the confirm sheet + N=0 disable rule are pinned.
+  - ✅ CLOSED 2026-10-31 (commits 6ea37bd + ebf958a, `fix/vc51`). The card (ADR-024 UX
+    contract: default-off per-item opt-in, "Trust N selected hook(s)" disabled at N=0,
+    confirm sheet firing the exact checked ids + the persistent grant — its FIRST and
+    only caller, stale_digest markers, editable enable/disable, confirmed revoke)
+    renders in the pinned plane via the new `pendingHookReviews` selector;
+    trustHooks/revokeHooks/toggleHookItem/grantHookTrust have their first UI callers.
+    PINS (HookTrustReviewCardTest): default-off + N=0 disable, confirm-sheet trust
+    round (exact ids + grant + cancel-fires-nothing), stale marker, revoke confirm,
+    toggle, uiState selector. The RIG caught a second integration bug: the pinned
+    column gated on `blocked` (permission/userInput only), so a hook-only block still
+    rendered nothing → the gate now counts pendingHookReviews (ebf958a). RIG EXIT GATE
+    (MOCK_HOOKS, synth-task-1): the card rendered live (title, workspace label,
+    "2 pending · 3 hooks", three items with Disable/Revoke affordances); checked 2
+    items → "Trust 2 selected hook(s)" → confirm sheet → Confirm →
+    respondWorkspaceHookReview ok 131ms + grantWorkspaceHookTrust ok 115ms → item
+    states flipped LIVE (Revoke moved to the newly trusted items) — and the flip
+    SURVIVED an app restart (the post-restart render shows all three
+    trusted_persistent).
 
 ### Sub-phase 1D — the task-search overlay (P2 ×2, one rewrite)
 
-- [ ] **GAP-A6 (P2)** The search overlay draws in the status-bar band and its result rows
+- [x] **GAP-A6 (P2)** The search overlay draws in the status-bar band and its result rows
   are stacked, overlapped, and dead: field + results are bare siblings emitted AFTER the
   Scaffold at screen top level (`TaskListScreen.kt:390-443`), so everything lands
   top-start in the host Box with no `statusBars()` padding (field at y11 under the clock;
   the hit row at `[0,0]`, taps dead). Fix: host the overlay in an inset-padded container.
   Accept: pin — the search field sits below the status bar; rig: the hit row is tappable
   and navigates.
-- [ ] **GAP-A7 (P2)** Search results do not REPLACE the grouped list (the H1.1 contract):
+  - ✅ CLOSED 2026-10-31 (commit 4aa0f9c, `fix/vc51`, shared rewrite with A7). The field
+    lives at the top of the inset-padded Scaffold body (always present while a query is
+    active, with a close affordance since the FABs hide with the grouped body). PIN RED
+    pre-fix (the field rendered ABOVE the top-bar title — the window-level sibling),
+    GREEN post-fix. RIG EXIT GATE: the field renders at y=382, BELOW the top bar
+    (pass-2: [44,11] under the system clock); hits tappable — a tap navigated into
+    synth-task-2 (`recovery.attach sessions=synth-task-2` +
+    `subscribeConversationV4 ok 402ms`).
+- [x] **GAP-A7 (P2)** Search results do not REPLACE the grouped list (the H1.1 contract):
   the body composes before the `return` at `TaskListScreen.kt:450`, so
   Automations/Workflows/Pinned/Workspace sections stay fully visible under the results.
   Fix: actually suppress the grouped body while a query is active. Accept: one shared pin
   with A6 — grouped list absent while a query is active, restored on clear.
+  - ✅ CLOSED 2026-10-31 (commit 4aa0f9c, `fix/vc51`, shared rewrite with A6): an active
+    query composes ONLY the search pane (scrollable results or the honest empty state);
+    the create-notice strip + its auto-consume became shared across both modes (the old
+    consume effect only ran while searching). PIN RED pre-fix (the grouped list stayed
+    composed under the results), GREEN post-fix + restore-on-clear. RIG EXIT GATE:
+    query "syn" → the Automations/Workflows/Pinned markers ABSENT, three hits stacked
+    in order at [44,525/629/733] (pass-2: one dead hit at [0,0] behind the clock);
+    clearing restores the grouped list.
 
 ### Sub-phase 1E — queue-mode composer (P2)
 
-- [ ] **GAP-A9 (P2)** The queue-mode composer has NO send affordance while the agent is
+- [x] **GAP-A9 (P2)** The queue-mode composer has NO send affordance while the agent is
   stoppable — the exact state queue mode exists for: the control morphs STOP↔SEND on
   `canStop && stopState==STOPPABLE` alone (`WriteComponents.kt:910-912`) and no IME send
   action exists (`:1155-1164`), so a typed draft dead-ends behind a self-defeating Stop.
@@ -2524,13 +2608,42 @@ ANR fix, never superseded) riding beside A13 as the other small P2.
   IME send action. Accept: a Robolectric pin — the send control exists with a non-blank
   draft while `canStop`; rig: a draft typed mid-run dispatches (send or enqueue) without
   killing the run.
+  - ✅ CLOSED 2026-10-31 (commits e262249 + 16ee50e, `fix/vc51`). The morph gates on
+    `hasDraftToSubmit` (non-blank draft OR composer attachments) — the Stop control
+    owns the slot only for a blank draft; the button and the NEW ImeAction.Send share
+    one dispatchSend path. The superseded ComposerKeyboardOptionsTest pins were updated
+    in the owning batch (prose keeps autocorrect/capitalization defaults + the send
+    action). PINS (QueueComposerSendControlTest, stateful harness): mid-run typed draft
+    keeps SEND (RED pre-fix), blank draft keeps STOP (preserved), ImeAction.Send (RED
+    pre-fix). RIG EXIT GATE: "ping-phase1" sent → mock flips running/stoppable →
+    composer in queue mode; typed "queued-dispatch-p1" → the control is **SEND, not
+    Stop** (the exact 3-pass defect shape, inverted) → dispatched
+    (`sendConversationCommandV4 ok 245ms`) → "synthetic reply to: queued-dispatch-p1"
+    rendered, run alive.
 
-Phase 1 exit gate: ☐ fresh rig leg — all three attach arms open without a FATAL and send
-end-to-end (A8); answering empties the inbox + badge (A2); a MOCK_REFUSE_COMMANDS refusal
-paints its banner IME-up (A13); diagnostics copy is clean (A5); MOCK_HOOKS renders the
-review card with a live trust round-trip (A1); search overlay is inset-padded, replaces
-the grouped list, and its hits navigate (A6/A7); a mid-run draft dispatches (A9); full
-17-module suite green at the phase HEAD with the zero-new-names gate; rows ticked.
+Phase 1 exit gate: ☑ **PASSED on a fresh emulator+relay rig leg** — all three attach arms
+open without a FATAL and send end-to-end (A8: Photo + doc uploads rode
+begin/chunk/commit; Take photo degrades honestly); answering empties the inbox + badge
+(A2: "Nothing needs you"); a MOCK_REFUSE_COMMANDS refusal paints its banner at refusal
+time incl. IME-up (A13); diagnostics copy is clean (A5); MOCK_HOOKS renders the review
+card with a live trust round-trip that survives restart (A1); the search overlay is
+inset-padded, replaces the grouped list, and its hits navigate (A6/A7); a mid-run draft
+dispatches (A9); full 17-module suite green at the phase HEAD with the zero-new-names
+gate (1,511 tests / 0 failures / 0 skipped, all XMLs fresh — 1,487 baseline + 24 new
+phase pins); rows ticked.**
+
+> **Phase 1 verification stamp.** Verified 2026-10-31, completed at 2026-10-31 09:54:19.
+> Verified by: **GLM-5.3-Flash** (`account:zai-individual-coding-plan/GLM-5.3-Flash`)
+> running as the **ZCode CLI agent harness** (interactive coding-agent session on
+> branch `fix/vc51`). Phase commits (oldest → newest): cf739af (A8) → 737880a (A2) →
+> 90fdf8f (A13) → fce5417 (A5) → 6ea37bd + ebf958a (A1) → 4aa0f9c (A6+A7) → e262249 +
+> 16ee50e (A9) → 12a87ad (A8 honest-degrade follow-up). Fresh debug APK at phase HEAD:
+> `app/build/outputs/apk/debug/app-debug.apk`,
+> sha256 8e5921d03333e866f759d9eae5f412869e2ac29d505d0677eecc708f4a94b60b
+> (versionCode 51, versionName 1.3.0), installed + walked on the rig. Baseline note:
+> the pre-phase fresh sweep hit the documented S13 machine-timing flake once
+> (RecoveryScenarioMatrixTest, exonerated green in isolation — twice more mid-phase,
+> same disposition).
 
 ## Phase 2 — P2 feature completions + P3 phone defects
 
@@ -2886,3 +2999,82 @@ completes; every backlog anchor has a pin or a written waive.
       digest re-measured before the final phase), and the G-matrix re-triaged against any
       new shipped planes
 - [ ] Reusable learnings appended to AGENTS.md; this roadmap file left append-only
+
+---
+
+# Phase 1 (vc51 remediation) — exit-gate rig leg + record — 2026-10-31 (APPENDED; the roadmap above is the work plan, this is its first receipt pass)
+
+Scope: the Phase-1 fix session itself (branch `fix/vc51`, cut from `main` @ 799ebbb) —
+all eight rows implemented TEST-FIRST (RED pins demonstrated at each pre-fix state,
+fix + pin in the same commit), the full-suite zero-new-names gate, and the fresh
+emulator+relay exit-gate leg. Everything above in this section is receipt; the ticks
+in the roadmap carry the per-row detail.
+
+Fix commits (one row ≥ one commit, `fix(<ID>): <mechanism>`): `cf739af` A8 fragment
+bump; `737880a` A2 resolvedAtMs mirror; `90fdf8f` A13 notice-as-combine-source;
+`fce5417` A5 clipboard off-main; `6ea37bd` A1 hook-trust card; `4aa0f9c` A6+A7 search
+overlay rewrite; `e262249` A9 desktop morph contract + IME send; `16ee50e` A9
+superseded-pin update (the batch that breaks a pin owns it); `ebf958a` A1 blocked-gate
+rig follow-up; `12a87ad` A8 honest-degrade follow-up. Commits with rig receipts
+against them: all ten.
+
+## Phase-1 exit-gate walk (fresh zcode-pixel cold boot, relay on 10.0.2.2:18100, arming
+MOCK_ROWS/GOAL/APPROVAL/ROW_ACTIONS/WORKFLOWS/TASKMGMT/QUESTION/HOOKS/COMPACT/
+ATTACHMENT/QUEUE/REFUSE_COMMANDS + HAPPY; ~40 min across the legs, three app
+reinstalls as fixes landed — each relaunch auto-reconnected on the stored pairing in
+~2 s)
+
+- **A6/A7** — search field y=382 below the top bar (was [44,11] under the clock);
+  query "syn" → grouped markers ABSENT, three hits stacked [44,525/629/733]; hit tap
+  → synth-task-2 (`recovery.attach` + `subscribeConversationV4 ok 402ms`).
+- **A2** — Allow once cleared the Permission card LIVE; Send answers cleared the
+  Question; badge gone; inbox = "Nothing needs you".
+- **A1** — the review card rendered (the blocked-gate fix was required and landed
+  mid-walk); 2 items checked → "Trust 2 selected hook(s)" → confirm sheet →
+  respondWorkspaceHookReview ok 131ms + grantWorkspaceHookTrust ok 115ms → states
+  flipped live; all three items trusted_persistent AFTER an app restart.
+- **A13** — two resumeGoal refusals; banner at refusal time both times, IME-up at
+  [61,1270][887,1353], fresh copy.
+- **A9** — mid-run draft → SEND control present (not Stop) → dispatch ok 245ms →
+  synthetic reply, run alive.
+- **A8** — Photo: picker open → w9-crashdlg.png begin 378ms/chunk 1073ms/commit
+  103ms → sent ("synthetic reply to: attached-rig-p1"); Attach a file: a11d.xml
+  17.5 KB begin 551/chunk 287/commit 37; Take photo: the strict camera image
+  SecurityException (ONE FATAL at 09:41:31, pre-guard) → the guarded degrade
+  (12a87ad) re-verified live: inline copy, process alive. Census after the guard:
+  0 new FATALs.
+- **A5** — Copy diagnostics: toast rendered, zero ANR, process alive.
+
+## New WATCH items + rig learnings (record duty, rule 10)
+
+1. **WATCH (P4, new): resync/subscribe-ack projection rebuild transiently drops the
+   pinned plane.** After the trust patch (revision-only state patch → app resync →
+   `gateway.replay frames=0 (subscribe ack landed)`) the hook card vanished for one
+   screen-generation while the reconcile still logged the interaction present
+   (patch-apply is key-level merge, so the state plane HAD it); it self-healed on the
+   next state delivery and the trust states persisted across restart. Candidate
+   mechanism: the subscribe-ack path rebuilds the projection without state keys.
+   Follow-up candidate for a later phase; not a Phase-1 row.
+2. **OBSERVATION (unattributed):** an "Offline — the action was not sent. Nothing
+   changed." notice bar rendered once after the trust flow while the session bar read
+   Connected and every trust verb rode the wire ok. Recorded so a future pass doesn't
+   chase it as a regression of anything fixed here.
+3. **RIG: API 30 documents-ui ignores host-injected taps AND long-presses on its grid
+   items** (the item roots report clickable="false"); DPAD navigation works —
+   `keyevent 20 ×N` then `23` selects and returns. Expect this for every future
+   picker leg.
+4. **RIG: seeded media needs the media scanner to win a race** — a pushed +
+   MEDIA_SCANNER_SCAN_FILE PNG did not appear in the picker's Recent grid within the
+   leg; existing screenshots serve as pick candidates.
+5. The mock's hook summary block is STATIC (pendingCount stays 2 after the flip) —
+   the ITEMS' trust states are the live part; don't read the summary as an oracle.
+6. **S13 flake (RecoveryScenarioMatrixTest)** exonerated green-in-isolation THREE
+   times this session (pre-phase baseline + twice mid-phase) — the documented
+   machine-timing class, unchanged.
+
+Verification record (Phase 1): suite at phase HEAD `12a87ad` — 17 modules green
+(1,511 tests / 0 failures / 0 skipped; all test XMLs fresh: six JVM `test` tasks
+`--rerun-tasks` + eleven `testDebugUnitTest`), zero new failing names against the
+799ebbb baseline; gradle task-failure list empty (no test-compile blind spot — every
+module emitted XML). Deliverable: fresh debug APK built at HEAD, path + sha256 in the
+roadmap stamp above. Nothing pushed — all work is local on `fix/vc51`.
