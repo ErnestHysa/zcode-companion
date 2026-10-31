@@ -539,6 +539,16 @@ class DefaultConversationPort(
         return ConversationPort.ForkOutcome(mapOutcome(outcome), child)
     }
 
+    override suspend fun createSelectionSideSession(taskId: String, firstText: String?): ConversationPort.ForkOutcome {
+        val coordinator = hub.commandCoordinatorOrNull()
+            ?: return ConversationPort.ForkOutcome(ConversationPort.SendOutcome.FAILED, null)
+        val outcome = coordinator.createSelectionSideSession(taskId, firstText)
+        val child = (outcome as? com.zcode.android.data.session.CommandCoordinator.Outcome.Accepted)
+            ?.let { com.zcode.android.data.session.CommandCoordinator.createdSessionId(it.ack) }
+        hub.log.info("port.sideSession", "session=${taskId.take(12)} outcome=${outcome.javaClass.simpleName} child=${child?.take(12)}")
+        return ConversationPort.ForkOutcome(mapOutcome(outcome), child)
+    }
+
     override suspend fun applyFileRewind(taskId: String, rowId: Long, entityId: String): ConversationPort.SendOutcome {
         val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
         val (revision, epoch) = rowCurrencies(taskId)

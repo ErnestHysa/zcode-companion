@@ -222,6 +222,13 @@ interface ConversationPort {
     /** forkAssistant: an accepted ack names the CHILD session (the desktop navigates to it). */
     suspend fun forkAssistant(taskId: String, rowId: Long, entityId: String): ForkOutcome = ForkOutcome(SendOutcome.FAILED, null)
 
+    /**
+     * G7+G8 (vc51): `createSelectionSideSession` — the selection side session (the
+     * selection comes from the row's own text on the phone's action sheet). An
+     * accepted ack names the CHILD session; the screen navigates there.
+     */
+    suspend fun createSelectionSideSession(taskId: String, firstText: String?): ForkOutcome = ForkOutcome(SendOutcome.FAILED, null)
+
     data class ForkOutcome(val outcome: SendOutcome, val childSessionId: String?)
 
     /** applyFileRewind on a turnHeader target — workspace-only undo of that turn's files. */

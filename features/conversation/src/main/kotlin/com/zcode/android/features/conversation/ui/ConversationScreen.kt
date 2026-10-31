@@ -199,6 +199,9 @@ fun ConversationScreen(
     onResumeGoal: () -> Unit = {},
     // ---- G6 (vc51): the interaction snooze (null = the card hides the affordance) ----
     onSnoozeInteraction: ((interactionId: String) -> Unit)? = null,
+    // ---- G7+G8 (vc51): the row-selection actions ----
+    onSideSessionRow: ((text: String) -> Unit)? = null,
+    onShareSelectionRow: ((text: String) -> Unit)? = null,
 ) {
     val rowActions = remember(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction, onOpenArtifact) {
         RowActionCallbacks(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction, onOpenArtifact)
@@ -520,6 +523,8 @@ fun ConversationScreen(
                     onRetryOlder = onRetryOlder,
                     onOpenTurnChanges = { diffTurn = it },
                     onEditRow = { row -> editingRow = row },
+                    onSideSession = onSideSessionRow,
+                    onShareSelection = onShareSelectionRow,
                     findQuery = findQuery.takeIf { findOpen && it.isNotBlank() },
                     findActiveRowId = findActiveRowId.takeIf { findOpen },
                     toolOutputProvider = toolOutputProvider,
@@ -766,6 +771,9 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     // G5 (vc51): the active find match — the jump scrolls to its entry; rows highlight it.
     findQuery: String? = null,
     findActiveRowId: Long? = null,
+    // G7+G8 (vc51): the selection actions.
+    onSideSession: ((text: String) -> Unit)? = null,
+    onShareSelection: ((text: String) -> Unit)? = null,
 ) {
     val listState = rememberLazyListState()
     // B3-motion + K2: rows that have already arrived (scroll-back never re-animates).
@@ -969,6 +977,8 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                         toolOutputProvider = toolOutputProvider,
                         loadAttachment = loadAttachment,
                         rowActions = rowActions,
+                        onSideSession = onSideSession,
+                        onShareSelection = onShareSelection,
                     )
                     is TimelineEntry.ToolGroup -> ToolGroupBlock(
                         group = entry,
@@ -1166,6 +1176,9 @@ private fun TimelineRow(
     rowActions: RowActionCallbacks = RowActionCallbacks(),
     /** A3.11 (Phase 5B): the rewind preview loader threaded to the turn card. */
     rewindPreviewProvider: (suspend (rowId: Long, entityId: String) -> com.zcode.android.domain.model.RewindPreview?)? = null,
+    /** G7+G8 (vc51): the selection actions (the row's own text is the selection). */
+    onSideSession: ((text: String) -> Unit)? = null,
+    onShareSelection: ((text: String) -> Unit)? = null,
 ) {
     Box(modifier = modifier) {
     when (row) {
@@ -1176,6 +1189,8 @@ private fun TimelineRow(
             findQuery = findQuery,
             findActive = findActive,
             createdAtMs = row.base.createdAt,
+            onSideSession = onSideSession?.let { cb -> { cb(row.text) } },
+            onShareSelection = onShareSelection?.let { cb -> { cb(row.text) } },
             // E3.1: the sheet gates Edit on the WIRE'S OWN capability flag
             // (actions.canEdit — ConversationRowView.tsx:1295 class), not on
             // entityId presence: rows the desktop forbids lose Edit, allowed rows

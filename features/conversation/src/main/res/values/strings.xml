@@ -420,4 +420,6 @@
     <string name="goal_set_affordance">Set a goal for this session</string>
     <string name="goal_set_confirm">Set goal</string>
     <string name="interaction_snooze">Keep waiting</string>
+    <string name="row_side_session">Ask in a side session</string>
+    <string name="row_share_selection">Share selection</string>
 </resources>

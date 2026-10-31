@@ -150,6 +150,20 @@ class CommandCoordinator(
         simpleCommand("cancelBackgroundWork", sessionId, buildJsonObject { put("workId", workId) })
 
     /**
+     * G7+G8 (vc51): `createSelectionSideSession {firstInput?: {text}}` — the
+     * desktop's selection side session (command.ts:69): the parent comes from the
+     * envelope sessionId, the server derives the child's runtime config. An ack's
+     * result names the CHILD session (the commandResultSchema trio — the
+     * forkAssistant shape); the caller navigates there.
+     */
+    suspend fun createSelectionSideSession(sessionId: String, firstText: String?): Outcome =
+        simpleCommand("createSelectionSideSession", sessionId, buildJsonObject {
+            if (!firstText.isNullOrBlank()) {
+                put("firstInput", buildJsonObject { put("text", firstText) })
+            }
+        })
+
+    /**
      * G6 (vc51): `snoozeInteractionAutoResolution {interactionId}` — the desktop's
      * soft gate (command.ts:205: the FIRST valid action permanently pauses this
      * auto-end; repeat/late calls are idempotent noops). NOT CAS-guarded.
@@ -727,6 +741,20 @@ class CommandCoordinator(
         fun forkedSessionId(ack: CommandAck): String? {
             val result = ack.result ?: return null
             if ((result["type"] as? JsonPrimitive)?.content != "forkAssistant") return null
+            return (result["sessionId"] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() }
+        }
+
+        /**
+         * G8: the created-child parser for the commandResultSchema TRIO
+         * (createSession | createSelectionSideSession | forkAssistant all name
+         * their child session the same way).
+         */
+        fun createdSessionId(ack: CommandAck): String? {
+            val result = ack.result ?: return null
+            if ((result["type"] as? JsonPrimitive)?.content !in setOf(
+                    "createSession", "createSelectionSideSession", "forkAssistant",
+                )
+            ) return null
             return (result["sessionId"] as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() }
         }
     }

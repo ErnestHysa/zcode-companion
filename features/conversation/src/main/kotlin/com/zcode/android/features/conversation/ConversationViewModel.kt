@@ -910,6 +910,27 @@ class ConversationViewModel(
         }
     }
 
+    /**
+     * G7+G8: the selection side session (the row action sheet's "Ask in a side
+     * session") — an accepted ack names the CHILD session; the screen navigates
+     * there (the forkedSession channel, reused).
+     */
+    fun createSelectionSideSession(firstText: String?) {
+        scope.launch {
+            val result = port.createSelectionSideSession(taskId, firstText)
+            if (result.outcome == ConversationPort.SendOutcome.ACCEPTED) {
+                _sendNotice.value = null
+                _forkedSession.value = result.childSessionId
+                return@launch
+            }
+            rowActionNotice(
+                result.outcome,
+                refusedText = "Could not start the side session — the desktop refused it.",
+                refusedKey = SendNotice.Key.FORK_REFUSED,
+            )
+        }
+    }
+
     /** applyFileRewind on the turn — the confirm step lives in the UI (desktop rewindDialog parity). */
     fun applyFileRewind(rowId: Long, entityId: String) {
         scope.launch {

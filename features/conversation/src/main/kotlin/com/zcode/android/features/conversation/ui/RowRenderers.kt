@@ -88,12 +88,14 @@ import com.zcode.android.core.ui.components.rememberZCodeHaptics
 import com.zcode.android.core.ui.components.LocalNotifier
 import androidx.compose.material3.ListItem
 import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.filled.ThumbDown
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material.icons.outlined.ThumbDown
 import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.outlined.CallSplit
 import androidx.compose.ui.draw.clip
 import com.zcode.android.core.ui.components.ZCodeModalBottomSheet
@@ -133,6 +135,11 @@ fun YouBlock(
      *  match's row gets the stronger fill. */
     findQuery: String? = null,
     findActive: Boolean = false,
+    /** G7+G8 (vc51): the selection actions — the phone's selection tooltip IS this
+     *  long-press sheet; "Ask in a side session" dispatches createSelectionSideSession
+     *  and "Share selection" rides ACTION_SEND (null = hidden). */
+    onSideSession: (() -> Unit)? = null,
+    onShareSelection: (() -> Unit)? = null,
 ) {
     val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
     var showActions by rememberSaveable { mutableStateOf(false) }
@@ -216,6 +223,34 @@ fun YouBlock(
                     }
                     .testTag("row_copy_action"),
             )
+            // G8: the selection side session (createSelectionSideSession).
+            if (onSideSession != null) {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.row_side_session)) },
+                    leadingContent = { Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null) },
+                    modifier = Modifier
+                        .clip(MaterialTheme.shapes.medium)
+                        .clickable {
+                            showActions = false
+                            onSideSession()
+                        }
+                        .testTag("row_side_session_action"),
+                )
+            }
+            // G7: share the selection through the system sheet.
+            if (onShareSelection != null) {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.row_share_selection)) },
+                    leadingContent = { Icon(Icons.Outlined.Share, contentDescription = null) },
+                    modifier = Modifier
+                        .clip(MaterialTheme.shapes.medium)
+                        .clickable {
+                            showActions = false
+                            onShareSelection()
+                        }
+                        .testTag("row_share_selection_action"),
+                )
+            }
             if (editable && onEdit != null) {
                 ListItem(
                     headlineContent = { Text(stringResource(R.string.action_edit)) },

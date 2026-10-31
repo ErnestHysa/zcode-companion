@@ -601,6 +601,16 @@ private fun ConversationRoute(
         onResumeGoal = vm::resumeGoalFromSheet,
         // G6 (vc51): the cards' keep-waiting snooze.
         onSnoozeInteraction = vm::snoozeInteraction,
+        // G7+G8 (vc51): the row-selection actions — share rides the system sheet
+        // (the transcript share's shape), the side session dispatches the wire verb.
+        onSideSessionRow = { text -> vm.createSelectionSideSession(text) },
+        onShareSelectionRow = { text ->
+            val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(android.content.Intent.EXTRA_TEXT, text)
+            }
+            context.startActivity(android.content.Intent.createChooser(send, shareCopy))
+        },
         onAnswerQuestions = vm::answerUserInputQuestions,
         onDeclineQuestions = vm::declineUserInput,
         // GAP-A1 (vc51, ADR-024): the hook-trust review verbs — their FIRST UI callers.
