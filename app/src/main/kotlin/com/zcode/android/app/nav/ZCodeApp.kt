@@ -583,6 +583,11 @@ private fun ConversationRoute(
         onEditQueueItem = vm::editQueueItem,
         onAnswerQuestions = vm::answerUserInputQuestions,
         onDeclineQuestions = vm::declineUserInput,
+        // GAP-A1 (vc51, ADR-024): the hook-trust review verbs — their FIRST UI callers.
+        onHookTrust = vm::trustHooks,
+        onHookRevoke = vm::revokeHooks,
+        onHookToggle = vm::toggleHookItem,
+        onHookGrant = { hook -> vm.grantHookTrust(hook, hook.bundleDigest) },
         // Phase 3C (C7): lazy full tool output — slice when the desktop answers, else the row payload.
         toolOutputProvider = { row ->
             state.task?.taskId?.let { container.conversationPort.fetchToolCallOutput(it, row.toolCallId) }

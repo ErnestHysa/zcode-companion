@@ -78,6 +78,12 @@ data class ConversationUiState(
             ?.filter { it.kind == com.zcode.android.domain.model.PendingInteraction.Kind.USER_INPUT && it.userInput != null }
             ?: emptyList()
 
+    /** Open workspace hook-trust reviews (GAP-A1: ADR-024's card plane — the phone remedy). */
+    val pendingHookReviews: List<com.zcode.android.domain.model.PendingInteraction>
+        get() = sessionState?.pendingInteractions
+            ?.filter { it.kind == com.zcode.android.domain.model.PendingInteraction.Kind.WORKSPACE_HOOK_REVIEW && it.hookReview != null }
+            ?: emptyList()
+
     /** Send enabled: connected (or drafting allowed offline — send blocked at §17.6). */
     val connected: Boolean get() = phase == ConnectionPhase.CONNECTED
 }

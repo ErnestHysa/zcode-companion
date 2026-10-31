@@ -371,4 +371,17 @@
     <string name="preview_open">Open</string>
     <string name="preview_open_a11y">Open externally</string>
     <string name="preview_open_failed">Could not open this file externally</string>
+    <!-- GAP-A1 / G1 (vc51): the workspace hook-trust review card (ADR-024 UX contract). -->
+    <string name="hook_review_title">Workspace hook review</string>
+    <string name="hook_review_warning">These hooks run shell commands on this workspace. Trust only what you recognize — trust is permission for code execution.</string>
+    <string name="hook_review_counts">%1$d pending · %2$d hooks</string>
+    <string name="hook_review_stale">stale</string>
+    <string name="hook_review_trust_n">Trust %1$d selected hook(s)</string>
+    <string name="hook_review_confirm_title">Trust selected hooks?</string>
+    <string name="hook_review_confirm_body">The desktop will mark %1$d selected hook(s) in "%2$s" as trusted and the session continues. Unselected hooks stay untrusted.</string>
+    <string name="hook_review_revoke">Revoke</string>
+    <string name="hook_review_revoke_confirm_title">Revoke this hook?</string>
+    <string name="hook_review_revoke_confirm_body">The hook stops running until it is trusted again.</string>
+    <string name="hook_review_enable">Enable</string>
+    <string name="hook_review_disable">Disable</string>
 </resources>

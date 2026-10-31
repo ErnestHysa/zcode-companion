@@ -760,6 +760,11 @@ class InteractionCoordinator(
                 }
                 else -> {
                     unknownKinds++
+                    // WORKSPACE_HOOK_REVIEW (GAP-A1): the pinned-card plane renders it
+                    // straight from the authoritative pendingInteractions state
+                    // (ConversationScreen → HookTrustReviewCard); the coordinator
+                    // keeps no machine for it — trust flows are one-shot commands,
+                    // not the §14.4.3 machine. Counted here for observability only.
                     log.debug("reconcile.pendingKind", "kind=${pi.kind.wire} (counted, no card — INV-14)")
                 }
             }

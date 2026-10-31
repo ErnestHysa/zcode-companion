@@ -110,6 +110,12 @@ fun ConversationScreen(
     onAnswerQuestions: (String, Map<String, List<String>>) -> Unit = { _, _ -> },
     /** A3.14 (Phase 5B): decline the elicitation (resolveInteraction action=decline). */
     onDeclineQuestions: (String) -> Unit = {},
+    // ---- GAP-A1 (vc51, ADR-024): the hook-trust review card — first UI callers of
+    // trustHooks / revokeHooks / toggleHookItem / grantHookTrust.
+    onHookTrust: (com.zcode.android.domain.model.WorkspaceHookReview, List<String>) -> Unit = { _, _ -> },
+    onHookRevoke: (com.zcode.android.domain.model.WorkspaceHookReview, List<String>) -> Unit = { _, _ -> },
+    onHookToggle: (com.zcode.android.domain.model.WorkspaceHookReview, String, Boolean) -> Unit = { _, _, _ -> },
+    onHookGrant: (com.zcode.android.domain.model.WorkspaceHookReview) -> Unit = {},
     // ---- Phase 9 (§43.2-9): advanced read-only surfaces + model switch ----
     onOpenFiles: () -> Unit = {},
     onOpenGit: () -> Unit = {},
@@ -345,6 +351,20 @@ fun ConversationScreen(
                                 onAnswerQuestions(interaction.interactionId, answers)
                             },
                             onDecline = { onDeclineQuestions(interaction.interactionId) },
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        )
+                    }
+                    // GAP-A1 (vc51, ADR-024): hook-trust reviews render in the pinned
+                    // card plane — a session blocking on hook trust has a phone remedy.
+                    for (interaction in state.pendingHookReviews) {
+                        val hook = interaction.hookReview ?: continue
+                        HookTrustReviewCard(
+                            hook = hook,
+                            busy = interaction.interactionId in state.busyInteractions,
+                            onTrustSelected = { ids -> onHookTrust(hook, ids) },
+                            onRevoke = { ids -> onHookRevoke(hook, ids) },
+                            onToggleItem = { id, enabled -> onHookToggle(hook, id, enabled) },
+                            onGrantPersistent = { onHookGrant(hook) },
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                         )
                     }
