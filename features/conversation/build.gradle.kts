@@ -59,5 +59,7 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.compose.ui.test.junit4)
+    // GAP-A8 pin host: the test classpath must carry the SAME fragment the APK resolves.
+    testImplementation(libs.androidx.fragment)
     testDebugImplementation(libs.compose.ui.test.manifest)
 }

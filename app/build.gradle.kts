@@ -127,6 +127,9 @@ kotlin {
 dependencies {
     // E6-lint (gaps-and-polish 2A): Compose lint discipline runs over this module.
     lintChecks(libs.compose.lint.checks)
+    // GAP-A8: force fragment >= 1.3 (the transitive 1.2.5 validated request codes the
+    // activity 1.13 registry always overflows — every composer attachment arm FATALed).
+    implementation(libs.androidx.fragment)
     implementation(project(":core:common"))
     implementation(project(":core:notifications"))
     implementation(project(":core:security"))
