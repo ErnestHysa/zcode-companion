@@ -204,6 +204,9 @@ fun ConversationScreen(
     onShareSelectionRow: ((text: String) -> Unit)? = null,
     // ---- G9 (vc51): the shared-context chip's discard ----
     onDiscardSharedContext: () -> Unit = {},
+    // ---- G10 (vc51): the suggested-prompt rotation (advances per pane open) ----
+    promptCursor: Int = 0,
+    onPrefillDraft: (String) -> Unit = {},
 ) {
     val rowActions = remember(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction, onOpenArtifact) {
         RowActionCallbacks(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction, onOpenArtifact)
@@ -518,7 +521,10 @@ fun ConversationScreen(
             )
             when {
                 state.loading && state.rows.isEmpty() -> LoadingBody()
-                state.empty -> EmptyBody()
+                state.empty -> EmptyBody(
+                    onPrefill = onPrefillDraft,
+                    promptCursor = promptCursor,
+                )
                 else -> TimelineBody(
                     state = state,
                     onLoadOlder = onLoadOlder,
@@ -738,8 +744,17 @@ private fun androidx.compose.foundation.layout.ColumnScope.LoadingBody() {
     }
 }
 
+/**
+ * G10 (vc51): the empty draft screen carries the desktop's suggested-prompt
+ * chips (featureSuggestedPrompts.ts) — a ROTATING window over the pool
+ * ([promptCursor] advances per pane open); tapping a chip prefills the
+ * composer with the full prompt body.
+ */
 @Composable
-private fun androidx.compose.foundation.layout.ColumnScope.EmptyBody() {
+internal fun androidx.compose.foundation.layout.ColumnScope.EmptyBody(
+    onPrefill: (String) -> Unit = {},
+    promptCursor: Int = 0,
+) {
     Column(
         // weight(1f), not fillMaxSize — the composer (Phase 7) stays pinned below.
         Modifier.fillMaxWidth().weight(1f).padding(horizontal = 32.dp).testTag("conversation_empty"),
@@ -753,6 +768,31 @@ private fun androidx.compose.foundation.layout.ColumnScope.EmptyBody() {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        Spacer(Modifier.height(16.dp))
+        val prompts = remember(promptCursor) {
+            com.zcode.android.features.conversation.SuggestedPrompts.selectForPane(
+                com.zcode.android.features.conversation.SuggestedPrompts.POOL,
+                promptCursor,
+            )
+        }
+        prompts.forEachIndexed { index, suggestion ->
+            androidx.compose.material3.Surface(
+                onClick = { onPrefill(suggestion.prompt) },
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
+                    .testTag("suggested_prompt_$index"),
+            ) {
+                Text(
+                    suggestion.label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                )
+            }
+        }
     }
 }
 

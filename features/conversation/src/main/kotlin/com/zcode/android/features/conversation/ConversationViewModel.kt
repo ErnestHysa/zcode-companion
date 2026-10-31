@@ -910,7 +910,22 @@ class ConversationViewModel(
         }
     }
 
-    /** G9: the shared-context chip's discard (discardSharedContext {contextId}). */
+    // ---------------------------------------------------------------- G10 (vc51): suggested prompts
+
+    /**
+     * The rotation cursor: one pane per conversation open — the PROCESS-WIDE
+     * counter advances per open (the desktop's panes do the same across tabs).
+     */
+    private val promptCursor: Int = promptCursorCounter.incrementAndGet()
+
+    fun prefillDraft(text: String) {
+        onDraftChange(text)
+        draftSaveJob?.cancel()
+    }
+
+    /** Exposed for the screen (the rotation advances per pane open). */
+    fun suggestedPromptCursor(): Int = promptCursor
+
     fun discardSharedContext() {
         val import = state.value.sessionState?.sharedContextImport ?: return
         val contextId = import.contextId ?: return
@@ -1201,6 +1216,9 @@ class ConversationViewModel(
     companion object {
         /** ≈30 Hz coalescing budget (§19.2 frame-budget aligned). */
         const val STREAM_FRAME_MS = 33L
+
+        /** G10: the process-wide pane-open rotation counter. */
+        val promptCursorCounter = java.util.concurrent.atomic.AtomicInteger(0)
 
         /** §17.4 keystroke debounce. */
         const val DRAFT_DEBOUNCE_MS = 300L

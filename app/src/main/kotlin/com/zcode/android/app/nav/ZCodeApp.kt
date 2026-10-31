@@ -604,6 +604,9 @@ private fun ConversationRoute(
         // G7+G8 (vc51): the row-selection actions — share rides the system sheet
         // (the transcript share's shape), the side session dispatches the wire verb.
         onDiscardSharedContext = vm::discardSharedContext,
+        // G10 (vc51): the rotating suggested prompts + prefill.
+        promptCursor = vm.suggestedPromptCursor(),
+        onPrefillDraft = vm::prefillDraft,
         onSideSessionRow = { text -> vm.createSelectionSideSession(text) },
         onShareSelectionRow = { text ->
             val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
