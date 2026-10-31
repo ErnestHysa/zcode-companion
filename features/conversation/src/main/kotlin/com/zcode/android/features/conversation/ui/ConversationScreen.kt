@@ -197,6 +197,8 @@ fun ConversationScreen(
     onSetGoal: (objective: String) -> Unit = {},
     onPauseGoal: () -> Unit = {},
     onResumeGoal: () -> Unit = {},
+    // ---- G6 (vc51): the interaction snooze (null = the card hides the affordance) ----
+    onSnoozeInteraction: ((interactionId: String) -> Unit)? = null,
 ) {
     val rowActions = remember(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction, onOpenArtifact) {
         RowActionCallbacks(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction, onOpenArtifact)
@@ -391,6 +393,7 @@ fun ConversationScreen(
                                 onAnswer(interaction.interactionId, optionId, freeText, false)
                             },
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            onSnooze = onSnoozeInteraction?.let { cb -> { cb(interaction.interactionId) } },
                         )
                     }
                     for (interaction in state.pendingUserInputs) {
@@ -405,6 +408,7 @@ fun ConversationScreen(
                             },
                             onDecline = { onDeclineQuestions(interaction.interactionId) },
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            onSnooze = onSnoozeInteraction?.let { cb -> { cb(interaction.interactionId) } },
                         )
                     }
                     // GAP-A1 (vc51, ADR-024): hook-trust reviews render in the pinned

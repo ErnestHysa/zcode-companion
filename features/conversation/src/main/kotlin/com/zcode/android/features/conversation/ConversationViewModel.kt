@@ -964,6 +964,23 @@ class ConversationViewModel(
         scope.launch { port.cancelBackgroundWork(taskId, workId) }
     }
 
+    /**
+     * G6: snooze the interaction's auto-resolution (the card's "keep waiting"
+     * affordance). Non-accepted outcomes surface the honest copy; the desktop's
+     * idempotent noop lands as `noop` (accepted-class) on repeats.
+     */
+    fun snoozeInteraction(interactionId: String) {
+        scope.launch {
+            when (port.snoozeInteractionAutoResolution(taskId, interactionId)) {
+                ConversationPort.SendOutcome.ACCEPTED -> Unit
+                ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
+                    _sendNotice.value = SendNotice("Offline — the snooze was not sent.", SendNotice.Kind.WARNING)
+                else ->
+                    _sendNotice.value = SendNotice("The desktop refused the snooze.", SendNotice.Kind.ERROR)
+            }
+        }
+    }
+
     /** G15: the background-bash output read for the viewer sheet. */
     suspend fun fetchBackgroundWorkOutput(workId: String): Any? =
         port.fetchBackgroundWorkOutput(taskId, workId)

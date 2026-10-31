@@ -599,6 +599,8 @@ private fun ConversationRoute(
         onSetGoal = vm::setGoal,
         onPauseGoal = vm::pauseGoalFromSheet,
         onResumeGoal = vm::resumeGoalFromSheet,
+        // G6 (vc51): the cards' keep-waiting snooze.
+        onSnoozeInteraction = vm::snoozeInteraction,
         onAnswerQuestions = vm::answerUserInputQuestions,
         onDeclineQuestions = vm::declineUserInput,
         // GAP-A1 (vc51, ADR-024): the hook-trust review verbs — their FIRST UI callers.

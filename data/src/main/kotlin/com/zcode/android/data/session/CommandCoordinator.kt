@@ -149,6 +149,14 @@ class CommandCoordinator(
     suspend fun cancelBackgroundWork(sessionId: String, workId: String): Outcome =
         simpleCommand("cancelBackgroundWork", sessionId, buildJsonObject { put("workId", workId) })
 
+    /**
+     * G6 (vc51): `snoozeInteractionAutoResolution {interactionId}` — the desktop's
+     * soft gate (command.ts:205: the FIRST valid action permanently pauses this
+     * auto-end; repeat/late calls are idempotent noops). NOT CAS-guarded.
+     */
+    suspend fun snoozeInteractionAutoResolution(sessionId: String, interactionId: String): Outcome =
+        simpleCommand("snoozeInteractionAutoResolution", sessionId, buildJsonObject { put("interactionId", interactionId) })
+
     // ---------------------------------------------------------------- slash commands (Phase 2, §11.3)
 
     /**

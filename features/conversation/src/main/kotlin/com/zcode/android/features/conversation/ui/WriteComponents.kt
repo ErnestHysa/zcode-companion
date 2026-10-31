@@ -91,6 +91,8 @@ fun ApprovalCard(
     busy: Boolean,
     onAnswer: (optionId: String, freeText: String?) -> Unit,
     modifier: Modifier = Modifier,
+    /** G6 (vc51): keep-waiting — pauses the interaction's auto-resolution (null = hidden). */
+    onSnooze: (() -> Unit)? = null,
 ) {
     val payload = interaction.permission ?: return
     // B2.13: keyed on the interaction — a second request landing in the same card
@@ -119,6 +121,16 @@ fun ApprovalCard(
                     fontFamily = FontFamily.Monospace,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
+            }
+            // G6: the desktop's snooze affordance (useTaskInteractionAutoResolutionSnooze).
+            onSnooze?.let { cb ->
+                TextButton(
+                    onClick = cb,
+                    enabled = !busy,
+                    modifier = Modifier.testTag("interaction_snooze_${interaction.interactionId}"),
+                ) {
+                    Text(stringResource(R.string.interaction_snooze))
+                }
             }
             payload.summary?.takeIf { it.isNotBlank() }?.let {
                 Spacer(Modifier.height(6.dp))
@@ -269,6 +281,8 @@ fun UserInputCard(
     onAnswerQuestions: (Map<String, List<String>>) -> Unit = {},
     /** A3.14 (Phase 5B): decline — the resolveInteraction `action: "decline"` arm. */
     onDecline: (() -> Unit)? = null,
+    /** G6 (vc51): keep-waiting — pauses the interaction's auto-resolution (null = hidden). */
+    onSnooze: (() -> Unit)? = null,
 ) {
     val payload = interaction.userInput ?: return
     // B2.13: keyed on the interaction — selections never leak across requests.
@@ -286,11 +300,24 @@ fun UserInputCard(
         shape = MaterialTheme.shapes.medium,
     ) {
         Column(Modifier.padding(14.dp)) {
-            Text(
-                text = stringResource(R.string.userinput_title),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onTertiaryContainer,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(R.string.userinput_title),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.weight(1f),
+                )
+                // G6: the desktop's snooze affordance (useTaskInteractionAutoResolutionSnooze).
+                onSnooze?.let { cb ->
+                    TextButton(
+                        onClick = cb,
+                        enabled = !busy,
+                        modifier = Modifier.testTag("interaction_snooze_${interaction.interactionId}"),
+                    ) {
+                        Text(stringResource(R.string.interaction_snooze))
+                    }
+                }
+            }
             Spacer(Modifier.height(6.dp))
             payload.prompt?.let {
                 Text(

@@ -434,6 +434,11 @@ class DefaultConversationPort(
         return mapOutcome(coordinator.cancelBackgroundWork(taskId, workId))
     }
 
+    override suspend fun snoozeInteractionAutoResolution(taskId: String, interactionId: String): ConversationPort.SendOutcome {
+        val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
+        return mapOutcome(coordinator.snoozeInteractionAutoResolution(taskId, interactionId))
+    }
+
     override suspend fun sendQueuedNow(taskId: String, queueItemId: String): ConversationPort.SendOutcome =
         queueOp(taskId) { revision, coordinator ->
             coordinator.sendQueuedNow(taskId, queueItemId, baseRevision = revision)

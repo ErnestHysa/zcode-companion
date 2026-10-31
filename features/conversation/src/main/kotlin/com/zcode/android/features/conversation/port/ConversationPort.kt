@@ -160,6 +160,13 @@ interface ConversationPort {
     suspend fun cancelBackgroundWork(taskId: String, workId: String): SendOutcome
 
     /**
+     * G6 (vc51): `snoozeInteractionAutoResolution {interactionId}` — pauses the
+     * interaction's auto-resolution countdown (the desktop's soft gate; repeat
+     * calls are idempotent noops server-side). Default FAILED = modeled-never-sent.
+     */
+    suspend fun snoozeInteractionAutoResolution(taskId: String, interactionId: String): SendOutcome = SendOutcome.FAILED
+
+    /**
      * G15 (vc51): the background-bash output read for the viewer — the typed
      * [BackgroundBashOutput], the typed [BackgroundBashOutput.Unavailable], or
      * null (the channel refused — honest fault copy).
