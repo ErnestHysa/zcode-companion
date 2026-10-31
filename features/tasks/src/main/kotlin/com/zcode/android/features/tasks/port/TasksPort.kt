@@ -38,6 +38,14 @@ interface TasksPort {
     /** Workspaces offered by the desktop (the new-task picker). */
     fun observeWorkspaces(): Flow<List<com.zcode.android.domain.model.WorkspaceOption>>
 
+    /**
+     * G13 (vc51): the sessions-index live plane (sessionId → index entry) —
+     * cross-session row activity without manual refresh. Default empty = the
+     * modeled-not-wired shape (the row badge simply stays absent).
+     */
+    fun observeSessionsIndex(): Flow<Map<String, com.zcode.android.domain.model.SessionIndexEntry>> =
+        kotlinx.coroutines.flow.flowOf(emptyMap())
+
     /** Phase 7 field: create a task in an existing workspace; first message starts the turn. */
     suspend fun createTask(
         workspaceKey: String,

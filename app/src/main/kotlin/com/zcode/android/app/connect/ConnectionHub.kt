@@ -361,6 +361,8 @@ class ConnectionHub(
         scope.launch {
             directTransport.states.collect { state -> onDirectState(state) }
         }
+        // G13: the sessions-index frame collector (single, per process).
+        startSessionsIndexCollector()
         scope.launch {
             transport.appErrors.collect { if (activeKind() == EndpointKind.RELAY_ZAI) _lastError.value = it }
         }
@@ -697,6 +699,12 @@ class ConnectionHub(
             _workspaces.value = parsed.workspaces.map { ws ->
                 com.zcode.android.domain.model.WorkspaceOption(ws.identityKey, ws.label, ws.path)
             }
+        }
+        // G13 (vc51): the sessions-index live plane — subscribe each known workspace
+        // once per connection (existing-only: never spawns a runtime). Frames land
+        // through the scoped listen into the hub's inbound collector below.
+        for (ws in _workspaces.value) {
+            ensureSessionsIndexSubscribed(ws.path, ws.key)
         }
         for ((key, group) in byWorkspace) {
             if (key.isBlank()) continue
@@ -1143,6 +1151,76 @@ class ConnectionHub(
     }
 
     /** Per-endpoint coordinator state does NOT survive a switch (§28.5 single-owner). */
+    // ---------------------------------------------------------------- G13: sessions-index live plane
+
+    /** Cross-session liveness per workspace key (conflated latest-wins by sessionId). */
+    private val _sessionsIndexByWorkspace =
+        MutableStateFlow<Map<String, Map<String, com.zcode.android.domain.model.SessionIndexEntry>>>(emptyMap())
+
+    /** Flattened cross-workspace liveness for the task list (sessionId → entry). */
+    val sessionsIndex: kotlinx.coroutines.flow.StateFlow<Map<String, com.zcode.android.domain.model.SessionIndexEntry>> =
+        _sessionsIndexByWorkspace
+            .map { maps ->
+                maps.values.fold(emptyMap<String, com.zcode.android.domain.model.SessionIndexEntry>()) { acc, m -> acc + m }
+            }
+            .stateIn(scope, kotlinx.coroutines.flow.SharingStarted.Eagerly, emptyMap())
+
+    private val sessionsIndexSubscribedKeys = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+    private var sessionsIndexForwardJob: kotlinx.coroutines.Job? = null
+
+    /** Best-effort per-workspace subscribe (one per connection; failures leave the plane absent). */
+    private fun ensureSessionsIndexSubscribed(wsPath: String?, workspaceKey: String) {
+        if (wsPath.isNullOrBlank() || !sessionsIndexSubscribedKeys.add(workspaceKey)) return
+        scope.launch {
+            runCatching {
+                activeTransport().subscribeSessionsIndex(wsPath, workspaceKey)
+            }.onSuccess {
+                log.info("hub.sessionsIndexSubscribe", "workspace=${workspaceKey.take(24)}")
+            }.onFailure { e ->
+                sessionsIndexSubscribedKeys.remove(workspaceKey)
+                log.warn("hub.sessionsIndexSubscribe", "refused: ${e.message?.take(80)} (live row activity stays absent)")
+            }
+        }
+    }
+
+    /** Start the (single) inbound collector that decodes sessions-index frames. */
+    private fun startSessionsIndexCollector() {
+        if (sessionsIndexForwardJob?.isActive == true) return
+        sessionsIndexForwardJob = scope.launch {
+            activeTransport().inbound.collect { frame ->
+                if (frame is com.zcode.android.core.transport.InboundFrame.TopicFrameArrived &&
+                    frame.topic.startsWith(com.zcode.android.core.protocol.v4.V4Topics.SESSIONS_INDEX_PREFIX)
+                ) {
+                    applySessionsIndexFrame(frame)
+                }
+            }
+        }
+    }
+
+    private fun applySessionsIndexFrame(arrived: com.zcode.android.core.transport.InboundFrame.TopicFrameArrived) {
+        val key = arrived.topic.removePrefix(com.zcode.android.core.protocol.v4.V4Topics.SESSIONS_INDEX_PREFIX)
+        when (val payload = arrived.frame.payload) {
+            is com.zcode.android.core.protocol.v4.TopicFrame.TopicPayload.Snapshot -> {
+                val snap = com.zcode.android.domain.model.SessionIndexEntry.decodeSnapshot(payload.snapshot)
+                _sessionsIndexByWorkspace.value = _sessionsIndexByWorkspace.value + (key to snap.sessions)
+            }
+            is com.zcode.android.core.protocol.v4.TopicFrame.TopicPayload.Deltas -> {
+                val current = _sessionsIndexByWorkspace.value[key] ?: emptyMap()
+                var next = current
+                for (d in payload.deltas) {
+                    when (val delta = com.zcode.android.domain.model.SessionsIndexDelta.decode(d.raw)) {
+                        is com.zcode.android.domain.model.SessionsIndexDelta.Upserted ->
+                            next = next + (delta.session.sessionId to delta.session)
+                        is com.zcode.android.domain.model.SessionsIndexDelta.Removed ->
+                            next = next - delta.sessionId
+                        null -> Unit // INV-8: an unknown delta op is ignored (counted upstream)
+                    }
+                }
+                _sessionsIndexByWorkspace.value = _sessionsIndexByWorkspace.value + (key to next)
+            }
+        }
+    }
+
     private fun resetEndpointScopedState() {
         // GAP-A3/G14: the workspace-config catalog subscription is endpoint-scoped —
         // release it on the OLD transport before the coordinators die (best-effort;
@@ -1157,6 +1235,8 @@ class ConnectionHub(
         configCollectorJob?.cancel()
         configCollectorJob = null
         _workspaceCatalogs.value = emptyMap()
+        sessionsIndexSubscribedKeys.clear()
+        _sessionsIndexByWorkspace.value = emptyMap()
         val staleConfigKeys = configSubscribedWorkspaceKeys.toList()
         configSubscribedWorkspaceKeys.clear()
         staleConfigKeys.forEach { key ->

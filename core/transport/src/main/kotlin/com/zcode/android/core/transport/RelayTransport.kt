@@ -677,14 +677,21 @@ class RelayTransport(
                 // sessionId="workspace-config/…" and the desktop refused (sessionNotFound).
                 var replaced = false
                 for ((topic, rec) in plane.subscriptions.toList()) {
-                    val ack = if (topic.startsWith(V4Topics.WORKSPACE_CONFIG_PREFIX)) {
-                        plane.subscribeWorkspaceConfig(
+                    val ack = when {
+                        topic.startsWith(V4Topics.WORKSPACE_CONFIG_PREFIX) -> plane.subscribeWorkspaceConfig(
                             workspacePath = topic.removePrefix(V4Topics.WORKSPACE_CONFIG_PREFIX),
                             workspaceIdentity = null,
                         )
-                    } else {
-                        val session = topic.removePrefix(V4Topics.CONVERSATION_PREFIX)
-                        subscribeSession(session, visibility = null)
+                        // G13: the index re-subscribes with ITS method (the old code sent
+                        // the whole topic as a sessionId — sessionNotFound guaranteed).
+                        topic.startsWith(V4Topics.SESSIONS_INDEX_PREFIX) -> plane.subscribeSessionsIndex(
+                            workspacePath = topic.removePrefix(V4Topics.SESSIONS_INDEX_PREFIX),
+                            workspaceIdentity = null,
+                        )
+                        else -> {
+                            val session = topic.removePrefix(V4Topics.CONVERSATION_PREFIX)
+                            subscribeSession(session, visibility = null)
+                        }
                     }
                     // mode=snapshot (or a different epoch) means the projection must be
                     // atomically replaced (§15.5) — flagged for the recovery outcome.
@@ -1266,6 +1273,14 @@ class RelayTransport(
         workspacePath: String?,
         workspaceIdentity: String?,
     ) = plane.unsubscribeConversation(sessionId, workspacePath, workspaceIdentity)
+
+    override suspend fun subscribeSessionsIndex(
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ): SubscribeAck = plane.subscribeSessionsIndex(workspacePath, workspaceIdentity)
+
+    override fun ensureSessionsIndexListen(workspacePath: String?, workspaceIdentity: String?) =
+        plane.ensureSessionsIndexListen(workspacePath, workspaceIdentity)
 
     override suspend fun unsubscribeWorkspaceConfig(
         workspacePath: String?,

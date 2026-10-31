@@ -786,6 +786,14 @@ class DirectTransport(
         workspaceIdentity: String?,
     ) = plane.unsubscribeConversation(sessionId, workspacePath, workspaceIdentity)
 
+    override suspend fun subscribeSessionsIndex(
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ): SubscribeAck = plane.subscribeSessionsIndex(workspacePath, workspaceIdentity)
+
+    override fun ensureSessionsIndexListen(workspacePath: String?, workspaceIdentity: String?) =
+        plane.ensureSessionsIndexListen(workspacePath, workspaceIdentity)
+
     override suspend fun unsubscribeWorkspaceConfig(
         workspacePath: String?,
         workspaceIdentity: String?,

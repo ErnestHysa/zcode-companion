@@ -106,6 +106,22 @@ interface V4Plane {
         workspaceIdentity: String?,
     )
 
+    /**
+     * G13 (vc51): subscribe the workspace's sessions-index topic (the desktop
+     * sidebar's list-liveness feed). Params are the desktop adapter's shape
+     * ({workspacePath, workspaceIdentity?, runtimePolicy:"existing-only"});
+     * frames ride the `onDynamicSessionsIndexFrame` scoped listen onto the
+     * `sessions-index/<key>` topic. The record lands in the plane's subscription
+     * map so recover() re-subscribes it with the dedicated method.
+     */
+    suspend fun subscribeSessionsIndex(
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ): SubscribeAck
+
+    /** G13: the scoped listen for sessions-index frames (idempotent per path). */
+    fun ensureSessionsIndexListen(workspacePath: String?, workspaceIdentity: String?)
+
     suspend fun sendConversationCommand(
         envelope: CommandEnvelope,
         workspacePath: String? = null,
@@ -786,6 +802,53 @@ internal class ChannelV4Plane(
             // The subscription is dropped locally either way — a teardown send racing
             // a dead connection must never tear the exit path down with it (§15.5).
             bound().warn("v4.call", "$method failed: ${e.message?.take(80)}")
+        }
+    }
+
+    suspend fun subscribeSessionsIndex(
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ): SubscribeAck {
+        val target = host.workspaceTarget()
+        val path = workspacePath ?: target?.first
+        val identity = workspaceIdentity ?: target?.second
+        // §7.11 identity key — the desktop's resolveWorkspaceKey (identity ?: path).
+        val key = identity?.trim()?.takeIf { it.isNotEmpty() } ?: path
+            ?: throw TransportFailure(ErrorMapping.protocolFault("sessions-index subscribe without a workspace target"))
+        ensureSessionsIndexListen(path, identity)
+        val topic = V4Topics.sessionsIndex(key)
+        bound().debug("v4.call", "subscribeSessionsIndex key=$key")
+        val params = buildJsonObject {
+            put("workspacePath", JsonPrimitive(path ?: ""))
+            identity?.let { put("workspaceIdentity", JsonPrimitive(identity)) }
+            // The desktop sidebar's own value — a passive list feed must never SPAWN
+            // a runtime (agentSessionsIndexTransport.ts).
+            put("runtimePolicy", JsonPrimitive("existing-only"))
+        }
+        val raw = v4Call("subscribeSessionsIndexV4", RpcValue.Obj(params))
+        val obj = (raw as? RpcValue.Obj)?.json as? JsonObject
+            ?: throw TransportFailure(ErrorMapping.protocolFault("sessions-index subscribe result not an object"))
+        val ackObj = obj["ack"] as? JsonObject
+            ?: throw TransportFailure(ErrorMapping.protocolFault("sessions-index ack missing"))
+        val ack = SubscribeAck.decode(ackObj)
+        synchronized(subscriptions) {
+            subscriptions[topic] = SubscriptionRecord(ack.subscriptionId, ack.logEpoch, -1)
+        }
+        return ack
+    }
+
+    /** G13: the sessions-index scoped listen — same shape as the conversation listen. */
+    fun ensureSessionsIndexListen(workspacePath: String?, workspaceIdentity: String?) {
+        if (workspacePath.isNullOrBlank()) return
+        val key = workspacePath
+        if (!listenedScopes.add("sessions-index:$key")) return
+        val scopeJson = buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath))
+            workspaceIdentity?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+        }
+        channel.listen("zcode-agent", "onDynamicSessionsIndexFrame", RpcValue.Obj(scopeJson)) { args ->
+            val obj = (args as? RpcValue.Obj)?.json as? JsonObject ?: return@listen
+            handleTopicWireFrame(obj)
         }
     }
 

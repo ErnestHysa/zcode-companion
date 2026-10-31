@@ -1033,11 +1033,23 @@ private fun ReadyBody(
         // centers on wide windows (the two-pane split is Phase 4D's redesign cluster).
         val reader = Modifier.readerWidth()
         // Phase 5A: the row helper carries every lifecycle + management entry point.
+        // G13: the sessions-index entry feeds the row's live activity tag.
+        val liveLabel = stringResource(R.string.task_live_activity)
+        val liveWaiting = stringResource(R.string.task_live_waiting)
+        val liveEnded = stringResource(R.string.task_live_ended)
         val rowFor: @Composable (Task, Modifier) -> Unit = { task, rowModifier ->
             TaskRow(
                 task,
                 onClick = { onTaskClick(task) },
                 modifier = rowModifier,
+                liveActivity = state.sessionsIndex[task.taskId]?.let { entry ->
+                    when (entry.rowActivity) {
+                        com.zcode.android.domain.model.SessionIndexEntry.RowActivity.RUNNING -> liveLabel
+                        com.zcode.android.domain.model.SessionIndexEntry.RowActivity.WAITING -> liveWaiting
+                        com.zcode.android.domain.model.SessionIndexEntry.RowActivity.ENDED -> liveEnded
+                        com.zcode.android.domain.model.SessionIndexEntry.RowActivity.IDLE -> null
+                    }
+                },
                 onDelete = onRowDelete?.let { cb -> { cb(task) } },
                 onArchive = onRowArchive?.let { cb -> { cb(task) } },
                 onRename = onRowRename?.let { cb -> { cb(task) } },
@@ -1341,6 +1353,11 @@ fun TaskRow(
     task: Task,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * G13 (vc51): the sessions-index live activity ("Live" / "Needs you" / "Ended")
+     * — the cross-session fact the wire pushes; null = no index fact for this task.
+     */
+    liveActivity: String? = null,
     /** Phase 4D (L6.3+J4): the lifecycle entry points (null = read-only context). */
     onDelete: (() -> Unit)? = null,
     onArchive: (() -> Unit)? = null,
@@ -1468,6 +1485,16 @@ fun TaskRow(
                         modifier = Modifier.size(14.dp).testTag("task_pinned_${task.taskId}"),
                     )
                     Spacer(Modifier.width(4.dp))
+                }
+                if (liveActivity != null) {
+                    Text(
+                        text = liveActivity,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .testTag("task_live_${task.taskId}"),
+                    )
+                    Spacer(Modifier.width(6.dp))
                 }
                 Text(
                     text = task.title,

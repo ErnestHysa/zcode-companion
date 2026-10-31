@@ -78,6 +78,9 @@ class DefaultTasksPort(
     override fun observeWorkspaces(): Flow<List<com.zcode.android.domain.model.WorkspaceOption>> =
         hub.workspaces
 
+    override fun observeSessionsIndex(): Flow<Map<String, com.zcode.android.domain.model.SessionIndexEntry>> =
+        hub.sessionsIndex
+
     /** Phase 4C (C7): the scratch workspace — `{name}` → `{path}` (null = refused). */
     override suspend fun createScratchWorkspace(name: String): String? =
         try {

@@ -32,6 +32,8 @@ data class TasksUiState(
     val suggestRepair: Boolean = false,
     /** Phase 7 field: workspaces offered by the desktop (new-task picker). */
     val workspaces: List<com.zcode.android.domain.model.WorkspaceOption> = emptyList(),
+    /** G13 (vc51): sessionId → sessions-index entry (live cross-session row activity). */
+    val sessionsIndex: Map<String, com.zcode.android.domain.model.SessionIndexEntry> = emptyMap(),
     /** Non-null while a create is in flight; result surfaces once via [createNotice]. */
     val creatingTask: Boolean = false,
     val createNotice: String? = null,
@@ -116,25 +118,28 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
         searchResults,
         searchQuery,
         actionNotice,
+        port.observeSessionsIndex(),
     ) { arr ->
         @kotlin.Suppress("UNCHECKED_CAST")
-        Sextet(
+        Septet(
             arr[0] as List<com.zcode.android.domain.model.WorkspaceOption>,
             arr[1] as Boolean,
             arr[2] as String?,
             arr[3] as List<com.zcode.android.features.tasks.port.TaskSearchHit>,
             arr[4] as String,
             arr[5] as String?,
+            @kotlin.Suppress("UNCHECKED_CAST") (arr[6] as Map<String, com.zcode.android.domain.model.SessionIndexEntry>),
         )
     }
 
-    private data class Sextet(
+    private data class Septet(
         val workspaces: List<com.zcode.android.domain.model.WorkspaceOption>,
         val creating: Boolean,
         val notice: String?,
         val searchResults: List<com.zcode.android.features.tasks.port.TaskSearchHit>,
         val searchQuery: String,
         val actionNotice: String?,
+        val sessionsIndex: Map<String, com.zcode.android.domain.model.SessionIndexEntry>,
     )
 
     val state: StateFlow<TasksUiState> = combine(primary, secondary, quaternary, management) { (tasks, phase, error), extra, q, m ->
@@ -161,6 +166,7 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
             taskCount = tasks.size,
             error = error,
             workspaces = q.workspaces,
+            sessionsIndex = q.sessionsIndex,
             creatingTask = q.creating,
             createNotice = q.notice,
             refreshing = extra.refreshing,
