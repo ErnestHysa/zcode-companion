@@ -2430,7 +2430,7 @@ byte-identical to the fd7046a baseline; meta-verified at AH1 by XML aggregation)
 | Phase | Theme | Findings | Session risk | Status |
 | --- | --- | --- | --- | --- |
 | 1 | P1/P2 phone defects — attach crash, approvals bookkeeping, invisible notices, hook-trust card, search overlay, queue composer | 8 | High | **Complete 2026-10-31** |
-| 2 | P2 feature completions + P3 phone defects — workflow/queue/find, landscape pinned stack, shade actions | 5 | Medium | Open |
+| 2 | P2 feature completions + P3 phone defects — workflow/queue/find, landscape pinned stack, shade actions | 5 | Medium | **Complete 2026-10-31** |
 | 3 | P3 planes — protocol hygiene, conversation affordances, quota/usage, presentation & workspace management, web-remote boundary | 16 | Medium | Open |
 | 4 | P4 polish + boundary decisions — phone smalls, INV-9 viewers, authoring/management, preview/share/presentation family | 24 | Low | Open |
 | 5 | Rig debts + regression-pin backlog | 7 | Low | Open |
@@ -2650,24 +2650,77 @@ phase pins); rows ticked.**
 The Part-C round-B set (workflow/queue/find) plus the two P3 A-defects that carry UX
 breakage (A11 landscape, A12 shade actions). P2 rows first.
 
-- [ ] **G3 (P2)** Workflow run Resume + run-settings amend are modeled never sent
+- [x] **G3 (P2)** Workflow run Resume + run-settings amend are modeled never sent
   (`resumeWorkflowRun`, `amendWorkflowRunSettings`; desktop `workflowResumeGate.ts`): the
   run sheet has no Resume/settings actions. Fix: surface both on the run sheet. Accept:
   rig: a resumable scripted run shows Resume; dispatching it (and an amend) acks and the
   sheet reflects the new state.
-- [ ] **G4 (P2)** Queue item delete is modeled never sent (`deleteQueueItem`; desktop
+  - ✅ CLOSED 2026-10-31 (commit fa2bd31, `fix/vc51`). Chain: CommandCoordinator
+    `resumeWorkflowRun {workId}` / `amendWorkflowRunSettings {workId, subagentModel?,
+    maxConcurrency?}` (simpleCommand — the workflowRuns plane is revision-free per the
+    desktop's own comment) → port methods (default FAILED) → Ports.kt facade → VM verbs
+    (acceptance refreshes the runs so the open sheet's run steps in place; refusal =
+    WORKFLOW_REFUSED, offline = ROW_ACTION_OFFLINE) → the sheet's action row: Resume (only
+    while `run.resumable`) + Run settings → the amend sheet (subagentModel canonical
+    string + maxConcurrency int, blank = omitted = keep; apply disabled while both blank).
+    PINS: WorkflowRunSheetActionsTest — RED 3/4 pre-fix with the fix stashed (the
+    Resume/settings tags absent), GREEN 8/8 post-fix incl. dispatch + cancel-fires-nothing;
+    WorkflowRunActionsVmTest (4) dispatch/refresh/refusal/offline. MOCK: the two words left
+    the "unhandled → plain accepted, no effect" class — typed respondError faults
+    (not_found / not_resumable), resume flips the run honestly, amend supersedes + grows a
+    new run (tools/mockzcode commit 0913dbfc + MockZCodePhase2SelfTest). RIG EXIT GATE:
+    MOCK_WORKFLOWS seeds wf-run-s1 (release-notes, Stopped, Resumable) → the context
+    sheet's runs panel lists it → the sheet renders "Resume run" + "Run settings" →
+    **Resume**: `port.workflowResume :: run=wf-run-s1 outcome=Accepted` (16:30:35) and the
+    sheet flipped to **Running** with Resume retired; **Amend** (concurrency=3):
+    `port.workflowAmend :: run=wf-run-s1 model=keep concurrency=3 outcome=Accepted`
+    (16:32:22) and the sheet's run flipped to **Stopped** (superseded per the desktop
+    semantics, the new `wf-run-s1-amended` run live in the mock).
+- [x] **G4 (P2)** Queue item delete is modeled never sent (`deleteQueueItem`; desktop
   anchors `ConversationQueuePanel.tsx:16-18,33-38` — the phone's other three verbs went
   live at pass 11): add delete to the QueueStrip row menu. Batch in the same commit the
   AC6 completion: a default interaction-behavior SETTING (`settings.zcodeInteractionBehavior`
   Queue/Guide — the phone has the in-session picker via `setFollowupMode` but no default).
   Accept: MOCK_QUEUE rig: delete removes the item via a patch round-trip; the default
   setting persists and seeds the composer's follow-up mode.
-- [ ] **G5 (P2)** Find-in-conversation is absent (desktop
+  - ✅ CLOSED 2026-10-31 (commit a9e74f01, `fix/vc51`). **Delete**: CAS-guarded coordinator
+    method → port → queueOp → VM verb (shared queueStaleNotice) → the QueueStrip row's
+    Delete button (tag `queue_delete_<id>`) → wiring. Pin RED pre-fix ("queue_delete_b is
+    not displayed"), GREEN with the dispatch assertion. **AC6**: AppPreferences
+    `.interactionBehavior` (null = follow the desktop) + proto field 14 (additive) + the
+    closed-set gate in the repo mapping + a Settings → **Conversation** section (radio:
+    Follow the desktop / Queue / Guide) + the seed path (QueueStrip `followupMode = wire ?:
+    default` — the wire's value stays the truth). Pins: QueueFollowupSeedingTest (default
+    seeds an unset wire mode; the wire wins when declared; null+null keeps the no-chips
+    shape), AppPreferencesInteractionBehaviorTest + the data-module store test (round-trip,
+    legacy-proto default, junk gated). RIG EXIT GATE (MOCK_QUEUE): Delete on q-rig-1 →
+    `sendConversationCommandV4 ok in 138ms` (16:33:48) and the strip redrew authoritatively
+    **"Queued (2) · paused" → "Queued (1) · paused"** (item one gone, two intact); the
+    follow-up chips were ABSENT pre-default (the pre-G4 shape) → Settings → Conversation →
+    "Queue follow-up changes" → **the row label survived a full app restart** ("While the
+    agent runs: Queue follow-up changes" after a relaunch) → back in the conversation the
+    chips render with **Queue checked=true** seeding the unset wire mode.
+- [x] **G5 (P2)** Find-in-conversation is absent (desktop
   `useConversationTimelineFind`, `conversationFindHighlightDom`, `conversationFindIndex`;
   the phone's trajectory search covers model calls only): add a timeline search bar with
   highlight + match count + jump. Accept: a find-index pin over timeline rows; rig:
   searching highlights matches and jumps between them.
-- [ ] **GAP-A11 (P3, scope narrowed per AI2)** The conversation screen's pinned
+  - ✅ CLOSED 2026-10-31 (commit c7cfebf0, `fix/vc51`). ConversationFind.kt: the PURE index
+    over timeline rows (user inputs + assistant prose, case-insensitive, every occurrence
+    with offsets) + annotatedWithHighlights; the header find affordance + the FindBar
+    (query + "n of m" + prev/next + close, wrap-around) + the query-map-contract jump
+    (scrolls the active match's entry to the viewport top, releases tail-follow); YouBlock
+    highlights occurrences (the active match's row gets the accent fill; assistant prose
+    keeps its markdown pipeline — counted + jumped, not span-highlighted: scope note).
+    PINS: ConversationFindIndexTest (4 — the find-index pin over rows: order, occurrences
+    with offsets, empty/blank/no-hit, exact highlight ranges) + ConversationFindUiTest (2)
+    — RED 2/2 pre-fix with the fix stashed, GREEN post-fix. RIG EXIT GATE: the find
+    affordance renders in the header; the bar's prev/next are correctly disabled at no
+    query; a live-sent user row + its agent reply re-index IN PLACE ("1 of 2" for "leg");
+    **next** flipped 1/2 → **2 of 2** AND scrolled the visible row conv-row-1001 →
+    conv-row-1002 (the agent reply at the viewport top); next wrapped to "1 of 2" and
+    jumped BACK to row 1001; close removed the bar.
+- [x] **GAP-A11 (P3, scope narrowed per AI2)** The conversation screen's pinned
   interaction card collapses to a ~53px sliver in landscape (title glyphs half-cut, no
   answer content reachable — core CONFIRMED pass 12, with and without the queue strip;
   portrait fine). Fix scope is ONLY the landscape pinned-stack height budget (the
@@ -2675,7 +2728,26 @@ breakage (A11 landscape, A12 shade actions). P2 rows first.
   jump FAB to the composer edge where feasible. Accept: a Robolectric landscape
   composition pin — the pinned card's visible height ≥ its title row; rig landscape:
   options + Submit reachable in the card.
-- [ ] **GAP-A12 (P3)** The C3 shade Approve-once/Deny actions exist only on the
+  - ✅ CLOSED 2026-10-31 (commit 5c4ddc07, `fix/vc51`). ROOT CAUSE: SHORT_HEIGHT_RESERVE
+    (323dp) was calibrated pre-vc49 (a 135dp header); the vc49 header is ONE ≤56dp session
+    bar, so on a device-shaped landscape window (~323dp of content under the top bar) the
+    stale reserve ate the whole window and the card fell to its 24dp floor. Fix: the
+    reserve = the MEASURED fixed chrome (~190dp) + the 48dp timeline floor = **238dp** —
+    the card keeps a usable band while the composer never leaves the window and the 48dp
+    floor holds at BOTH the device-shaped (390dp) and prior (411dp) test geometries. The
+    jump FAB already anchors at the composer edge by construction (BottomEnd of the
+    timeline box directly above the composer) — no change needed. PIN (RED pre-fix with
+    the EXACT recorded number: "pinned budget collapsed to **24.0dp** in the
+    device-shaped landscape window"): PinnedInteractionLandscapeShortWindowTest (h390dp)
+    asserts ≥80dp, the title row whole (≥14dp), composer in-window, Submit
+    scroll-reachable; the existing h411 + portrait budget pins stay green. RIG EXIT GATE
+    (user_rotation=1, the question + queue strip + hook card all armed): the pinned band
+    measured **172px (≈65dp) vs the recorded ~53px sliver**, the title node **45px — a
+    whole line (was the 16px half-cut)**, and swipes traversed the card's full content
+    (Channel options → Changelog extras → the Skip row → into the hook card) — options
+    reachable in the card's own scroll; the Send-answers button sits with the end band but
+    its node was AX-merged while painted (the recorded bottom-row artifact class).
+- [x] **GAP-A12 (P3)** The C3 shade Approve-once/Deny actions exist only on the
   fresh-event path (`NotificationBroker.kt:138-141`); the §15-S13 background re-post
   (`NotificationBroker.kt:179-188`) builds its Spec WITHOUT actions — and that re-post is
   the ONLY post an approval gets when it arrives while the app is foregrounded
@@ -2684,10 +2756,38 @@ breakage (A11 landscape, A12 shade actions). P2 rows first.
   kind/interactionId/taskId — the same SpecAction builder applies). Accept: a pin — post
   an unseen approval record, enter background, assert the posted notification carries two
   action PendingIntents; rig: the shade buttons answer a real approval end-to-end.
+  - ✅ CLOSED 2026-10-31 (commit 8a9306d2, `fix/vc51`). Fix: onBackgroundEntry replicates
+    the same SpecAction builder gated on the record's own fields (`kind ==
+    APPROVAL_NEEDED && interactionId != null && taskId != null`) — a re-posted question
+    still carries none. PIN (RED pre-fix: "expected:<2> but was:<0>" — the wire oracle's
+    exact shape): the foreground-suppressed approval's re-post carries the two actions
+    (approve/allowOnce + deny/deny with the record's ids); a re-posted USER_INPUT_NEEDED
+    carries none. RIG EXIT GATE: the §15-S13 re-post fired live
+    (`notify.repost :: key=interaction:mock-approval-1 (background entry)`, 16:35:53) and
+    the ranking counter moved **numWithActions 0 → 2** — reconciled exactly: the app
+    enqueued 4 posts (both records × the re-post + a fresh connect-time show), and ONLY
+    the approval's two posts carried actions (the question's two carried none) — the gate
+    held on both classes while the approval's re-post gained the buttons. **The shade-TAP
+    sub-leg (tapping Approve-once answers the approval) is explicitly RIG-BOUND to
+    RIG-3** (MOCK_INTERACTION_PUSH): the mock's interaction ids are static, no fresh
+    unseen approval can be minted on this rig, and the fresh-pairing re-arm was defeated
+    by the `adb input text` pipeline (the pair link truncates/interleaves — the pass-1
+    corrupted-link class); the receiver's answer path itself is unit-covered
+    (app NotificationActionsTest) and C3's end-to-end answer flow is already live-verified
+    from the APPROVALS INBOX (passes 5/11).
 
-Phase 2 exit gate: ☐ rig — Resume + amend + queue-delete dispatch with receipts; find
-highlights and jumps; the landscape pinned card is usable; a re-posted approval
-notification carries two working shade actions; suite green with the gate; rows ticked.
+Phase 2 exit gate: ☑ **PASSED on a fresh emulator+relay rig leg** — Resume + amend +
+queue-delete dispatched with wire receipts and state flips (G3: wf-run-s1 → Running;
+amend → Stopped/superseded; G4: Queued (2) → Queued (1) via the mock's patch); find
+counts, jumps and wraps over live rows (G5: "1 of 2" → next → "2 of 2" with the viewport
+moving to the agent row, wrap, close); the landscape pinned card is usable (A11: 172px
+band vs the 53px sliver, title whole, content traversal live); the re-posted approval
+notification carries two actions (A12: numWithActions 0 → 2 with the question's posts
+action-free — the shade-tap sub-leg explicitly RIG-3-bound); the default interaction
+behavior persists across restart and seeds the composer (G4/AC6); suite green with the
+gate (1,543 tests = the 1,512 baseline + 31 new Phase-2 pins; the single failing name is
+the RecoveryScenarioMatrixTest timing class, A/B-proven pre-existing at 3cbdefa); rows
+ticked.**
 
 ## Phase 3 — P3 planes
 
@@ -3078,3 +3178,107 @@ Verification record (Phase 1): suite at phase HEAD `12a87ad` — 17 modules gree
 799ebbb baseline; gradle task-failure list empty (no test-compile blind spot — every
 module emitted XML). Deliverable: fresh debug APK built at HEAD, path + sha256 in the
 roadmap stamp above. Nothing pushed — all work is local on `fix/vc51`.
+
+---
+
+# Phase 2 (vc51 remediation) — exit-gate rig leg + record — 2026-10-31 (APPENDED; the roadmap above is the work plan, this is its receipt pass)
+
+Scope: the Phase-2 fix session itself (branch `fix/vc51`, phase cut from `3cbdefa`) — all
+five rows implemented TEST-FIRST (each pin demonstrated RED at its pre-fix state before
+the fix landed, pin + fix in the same commit), the full-suite zero-new-names gate, and the
+fresh emulator+relay exit-gate leg. Everything above in the Phase-2 rows is receipt; the
+ticks carry the per-row detail.
+
+Fix commits (one row ≥ one commit, `fix(<ID>): <mechanism>`): `fa2bd31` G3 (resume + amend
+leave the modeled-never-sent family) → `a9e74f01` G4 (queue delete + the AC6 default
+interaction-behavior setting) → `c7cfebf0` G5 (find-in-conversation) → `5c4ddc07` A11
+(landscape pinned budget recalibrated) → `8a9306d2` A12 (re-post shade actions) →
+`0913dbfc` tools(mockzcode) rig arms (separate, per rule 5, self-tests green). All six
+carry rig receipts against them.
+
+## Full-suite zero-new-names gate (rule 7)
+
+- **Baseline at the pre-phase commit `3cbdefa`: 1,512 tests / 0 failures / 0 skipped**,
+  17 modules, all XMLs from the same day (gradle confirmed 368/368 up-to-date at the
+  byte-identical tree — Phase 1's final sweep).
+- **Phase HEAD: 1,543 tests = 1,512 + exactly the 31 new Phase-2 pins** (8 G3 + 9 G4 + 6
+  G5 + 1 A11 + 2 A12 + 5 mock self-tests). Sixteen modules fully green fresh; the data
+  module 174/175.
+- **The one failing name across every sweep is `RecoveryScenarioMatrixTest`** (S8, then
+  S13+S10, then S13 — a different scenario each load pattern): the Phase-1-stamped
+  machine-timing class. **Exonerated by direct A/B**: the identical S13 failure
+  reproduces at the PRE-PHASE commit in a `git worktree` (2/2 solo-module runs at
+  `3cbdefa`, same ~90s signature), and the class is green 5× in isolation at phase HEAD
+  today (2 class runs + 3 single-method runs, 18/18 each). No new failing name was
+  introduced; the only failing gradle task ever observed was `:data:testDebugUnitTest`
+  (test-failure class — no compile blind spot; all 17 modules emitted XML, and the
+  transient single-XML state of data's results dir is an artifact of the isolation
+  re-runs cleaning it, receipt in the session transcript).
+
+## Phase-2 exit-gate walk (fresh zcode-pixel cold boot, relay on 10.0.2.2:18100, arming
+MOCK_ROWS/GOAL/APPROVAL/ROW_ACTIONS/WORKFLOWS/TASKMGMT/QUESTION/HOOKS/COMPACT/
+ATTACHMENT/QUEUE + HAPPY; the emulator died ONCE mid-walk (the 8GB memory-pressure class)
+and was cold-booted back — the app auto-reconnected on relaunch in seconds; a stale relay
+from a previous session was found holding :18100 and killed ONLY via
+`pkill -f MockRelayMainKt`)
+
+- **G3 Resume** — the runs panel listed the seeded Stopped/Resumable `release-notes` run;
+  its sheet rendered "Resume run" + "Run settings"; Resume →
+  `port.workflowResume :: run=wf-run-s1 outcome=Accepted`; the sheet flipped to **Running**
+  and the Resume action retired (no longer resumable).
+- **G3 Amend** — Run settings → the amend sheet (both fields, blank-keeps hints) →
+  concurrency 3 → Apply → `port.workflowAmend :: run=wf-run-s1 model=keep concurrency=3
+  outcome=Accepted`; the sheet's run flipped to **Stopped** (superseded; the mock grew the
+  new `wf-run-s1-amended` run).
+- **G4 delete** — MOCK_QUEUE's strip ("Queued (2) · paused") → Delete on item one →
+  `sendConversationCommandV4 ok in 138ms` → the strip redrew authoritatively to
+  **"Queued (1) · paused"** (the mock's patch round-trip, not a local removal).
+- **G4 default setting** — the follow-up chips were ABSENT pre-default; Settings →
+  Conversation → "Queue follow-up changes"; the row label **survived a full app restart**;
+  back in the conversation the chips rendered with **Queue checked=true** (the wire's
+  followupMode unset → the local default seeds).
+- **G5 find** — the header affordance opens the bar (prev/next correctly disabled at no
+  query); a query re-indexed live as new rows arrived ("1 of 2"); next → "2 of 2" with the
+  visible row moving to the agent reply; next wrapped to "1 of 2" back at the user row;
+  close removed the bar.
+- **A11 landscape** — user_rotation=1 with the question card + queue strip + hook card
+  armed: the pinned band measured **172px (≈65dp)** vs the recorded ~53px sliver; the
+  title node a whole 45px line (was 16px half-cut); swipes traversed the card's full
+  content (Channel → Changelog → the Skip row → into the next pinned card); portrait
+  restored after the leg.
+- **A12 re-post** — `notify.repost` fired for both attention records on the background
+  entry; the ranking counter read **numWithActions=2** where pass 9 recorded 0/never —
+  reconciled exactly: of the app's 4 enqueued posts (each record × the re-post + a fresh
+  connect-time show), ONLY the approval's two carried actions; the question's two carried
+  none. The shade-TAP answer sub-leg is explicitly **RIG-3-bound** (see the G4/A12 rows).
+
+## New rig learnings + record duty (rule 10)
+
+1. **RIG: `adb shell input text` drops or interleaves LONG payloads non-deterministically**
+  (~60-250 chars; the pair link landed head-only, then interleaved with a previous
+  attempt's late-flushing chunks). Chunked typing + per-chunk dumps + long settles are
+  required; the pair-link paste flow could NOT be completed from the host this session
+  (the pass-1 corrupted-link class) — relevant to any future fresh-pairing leg.
+2. **RIG: the paste-pairing dialog RECALLS its last entry on reopen** (rememberSaveable) —
+  a fresh dialog is not a clean field; exact-length MOVE_END+DEL bursts clear ~130 chars
+  per burst (some keycodes coalesce).
+3. **RIG: a rotation change background/foreground-cycles the app** — the A11 rotation
+  consumed the A12 re-posted notifications (once-per-unseen + foreground-cancel
+  semantics). Sequence interaction legs: A12 BEFORE any rotation leg, or re-arm first.
+4. **OBSERVATION:** the mock's connect-time reconciliation re-posts (notify.show) fired
+  for BOTH attention records at reconnect — the fresh path's actions held on the approval
+  and held nothing on the question (a second live confirmation of the A12 gate).
+5. The `numWithActions` ranking counter double-counts per AggregatedStats block (per-package
+  + __global) — read it as one number, not two.
+
+> **Phase 2 verification stamp.** Verified 2026-10-31, completed at **2026-10-31 17:09:39**.
+> Verified by: **GLM-5.3-Flash** (`account:zai-individual-coding-plan/GLM-5.3-Flash`)
+> running as the **ZCode CLI agent harness** (interactive coding-agent session on branch
+> `fix/vc51`). Phase commits (oldest → newest): fa2bd31 (G3) → a9e74f01 (G4) → c7cfebf0
+> (G5) → 5c4ddc07 (A11) → 8a9306d2 (A12) → 0913dbfc (tools/mockzcode rig arms). Fresh
+> debug APK at phase HEAD: `app/build/outputs/apk/debug/app-debug.apk`, sha256
+> 53b5d89689f173d608839230035ab882705e29440f7e8a9d4564f831d3bfc5f0 (31,851,929 bytes,
+> versionCode 51, versionName 1.3.0), installed + walked on the rig. Baseline note: the
+> RecoveryScenarioMatrixTest timing class failed in full-module pools at BOTH the phase
+> HEAD and the pre-phase commit (A/B receipts above) and passed every isolation run.
+> Nothing pushed — all work is local on `fix/vc51`.
