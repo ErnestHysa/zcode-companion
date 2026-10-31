@@ -79,6 +79,13 @@ interface UsagePort {
 
     /** One-shot R read; range = "all"|"7d"|"30d" (verified enum, v4UsageStatsParamsSchema). */
     suspend fun appUsage(range: String): Result
+
+    /**
+     * G20 (vc51): the coding-plan usage snapshot (the desktop's plan charts'
+     * data source). Null = the channel refused — the section hides (its own
+     * honest-fault contract).
+     */
+    suspend fun codingPlanUsage(range: String, timeZone: String?): com.zcode.android.domain.model.CodingPlanUsageSnapshot? = null
 }
 
 private val USAGE_RANGES = listOf("7d", "30d", "all")
@@ -192,6 +199,11 @@ fun UsageScreen(
                 if (current.models.isNotEmpty()) ModelPieSection(current.models)
                 ModelsSection(current.models)
                 ToolsSection(current.tools)
+                // G20 (vc51): the coding-plan usage charts (the desktop's
+                // CodingPlanUsageBarChart + CodingPlanUsageLineChart) — a stacked
+                // per-day band per model + the totals line. The channel's honest
+                // fault keeps the section hidden (its own contract).
+                PlanUsageSection(port, range)
                 Spacer(Modifier.height(24.dp))
             }
         }
@@ -483,7 +495,7 @@ private fun ToolsSection(tools: List<AppUsageSnapshot.ToolUsage>) {
 }
 
 @Composable
-private fun SectionTitle(text: String, tag: String) {
+internal fun SectionTitle(text: String, tag: String) {
     Text(
         text,
         style = MaterialTheme.typography.titleSmall,

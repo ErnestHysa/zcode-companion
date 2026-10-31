@@ -271,4 +271,5 @@
     <string name="settings_feedback_submitted">Ticket %1$s created — thank you!</string>
     <string name="settings_feedback_failed">The feedback could not be sent — check the connection and try again.</string>
     <string name="feedback_close">Close</string>
+    <string name="usage_plan_section">Plan usage</string>
 </resources>

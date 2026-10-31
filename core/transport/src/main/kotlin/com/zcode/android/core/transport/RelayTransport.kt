@@ -1282,6 +1282,9 @@ class RelayTransport(
     override suspend fun backgroundBashOutput(sessionId: String, workId: String): JsonObject =
         plane.backgroundBashOutput(sessionId, workId)
 
+    override suspend fun codingPlanUsageSnapshot(range: String, timeZone: String?): JsonObject =
+        plane.codingPlanUsageSnapshot(range, timeZone)
+
     override fun ensureSessionsIndexListen(workspacePath: String?, workspaceIdentity: String?) =
         plane.ensureSessionsIndexListen(workspacePath, workspaceIdentity)
 

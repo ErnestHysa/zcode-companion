@@ -6,6 +6,7 @@ import com.zcode.android.domain.model.AutomationRow
 import com.zcode.android.domain.model.McpStatuses
 import com.zcode.android.domain.model.OffPeakTaskRow
 import com.zcode.android.domain.model.CodingPlanResetStatus
+import com.zcode.android.domain.model.CodingPlanUsageSnapshot
 import com.zcode.android.domain.model.ResetOpportunityResult
 import com.zcode.android.domain.model.ResetUseResult
 import com.zcode.android.domain.model.UsageEntitlement
@@ -145,6 +146,19 @@ class ViewerTools(private val transport: AppTransport) {
      */
     suspend fun entitlement(request: kotlinx.serialization.json.JsonObject = kotlinx.serialization.json.JsonObject(emptyMap())): UsageEntitlement =
         UsageEntitlement.decode(transport.usageEntitlementSnapshot(request))
+
+    /**
+     * G20 (vc51): the coding-plan usage snapshot (the desktop's plan charts'
+     * data source). Null = the channel refused - the section hides (its own
+     * honest-fault contract).
+     */
+    suspend fun codingPlanUsage(range: String, timeZone: String?): CodingPlanUsageSnapshot? = try {
+        CodingPlanUsageSnapshot.decode(transport.codingPlanUsageSnapshot(range, timeZone))
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        null
+    }
 
     // ---------------------------------------------------------------- GAP-4: reset words (ADR-020)
 

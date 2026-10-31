@@ -28,6 +28,17 @@ import kotlinx.coroutines.CancellationException
 class DefaultUsagePort(
     private val hub: ConnectionHub,
 ) : UsagePort {
+    override suspend fun codingPlanUsage(range: String, timeZone: String?): com.zcode.android.domain.model.CodingPlanUsageSnapshot? =
+        try {
+            // App-level (the account lives on the desktop) — the same rule as appUsage.
+            hub.viewerTools().codingPlanUsage(range, timeZone)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("usageport.planUsage", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            null // the section hides (its honest-fault contract)
+        }
+
     override suspend fun appUsage(range: String): UsagePort.Result {
         // Usage is app-level, not workspace-scoped — it needs a connected transport,
         // not an active workspace (the CLI aggregates across the whole desktop).

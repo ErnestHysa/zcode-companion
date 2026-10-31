@@ -293,6 +293,13 @@ interface V4Plane {
     suspend fun usageEntitlementSnapshot(request: JsonObject = JsonObject(emptyMap())): JsonObject
 
     /**
+     * G20 (vc51): the coding-plan usage snapshot (usage-stats channel
+     * `getCodingPlanUsageSnapshot {range, timeZone}` - the desktop's
+     * CodingPlanUsageBar/LineChart data source). The domain decodes the faces.
+     */
+    suspend fun codingPlanUsageSnapshot(range: String, timeZone: String?): JsonObject
+
+    /**
      * GAP-4 reset words (ADR-020 — the roadmap's second ruling is recorded in
      * the ADR and the GAP-4 commit). Params are the coding-plan-reset.ts
      * request interfaces: scope = {preferredProviderId, accountAccess} where
@@ -1318,6 +1325,15 @@ internal class ChannelV4Plane(
     // entitlement read is the GAP-3 data source; the reset words land with
     // GAP-4 behind the typed-confirm gate (ADR-020: useCodingPlanReset is the
     // plane's ONE destructive-adjacent word).
+
+    suspend fun codingPlanUsageSnapshot(range: String, timeZone: String?): JsonObject =
+        usageStatsObject(
+            "getCodingPlanUsageSnapshot",
+            buildJsonObject {
+                put("range", JsonPrimitive(range))
+                timeZone?.let { put("timeZone", JsonPrimitive(it)) }
+            },
+        )
 
     suspend fun usageEntitlementSnapshot(request: JsonObject = JsonObject(emptyMap())): JsonObject =
         when (
