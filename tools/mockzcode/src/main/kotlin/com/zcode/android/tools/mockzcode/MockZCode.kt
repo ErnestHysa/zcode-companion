@@ -3493,12 +3493,15 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
                 return
             }
             val row = buildJsonObject {
-                put("id", JsonPrimitive("offpeak-${script.offPeakTaskList?.size?.plus(1) ?: 1}"))
+                val newId = "offpeak-${script.offPeakTaskList?.size?.plus(1) ?: 1}"
+                put("id", JsonPrimitive(newId))
+                put("offPeakTaskId", JsonPrimitive(newId))
                 put("title", JsonPrimitive(title))
                 put("status", JsonPrimitive("queued"))
                 put("queuePosition", JsonPrimitive((script.offPeakTaskList?.size ?: 0) + 1))
                 put("createdAt", JsonPrimitive(System.currentTimeMillis()))
-                params.strOrNull("workspacePath")?.let { put("workspacePath", JsonPrimitive(it)) }
+                // §7.11 identity key — the phone's list filter matches on workspaceKey
+                put("workspaceKey", JsonPrimitive(params.strOrNull("workspacePath") ?: params.strOrNull("workspaceKey") ?: ""))
             }
             script.offPeakTaskList = JsonArray((script.offPeakTaskList ?: JsonArray(emptyList())) + row)
             respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
@@ -3515,7 +3518,8 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
                 return
             }
             val existing = current.firstOrNull {
-                (it.jsonObject["id"] as? JsonPrimitive)?.content == target
+                val oid = (it.jsonObject["offPeakTaskId"] as? JsonPrimitive)?.content ?: (it.jsonObject["id"] as? JsonPrimitive)?.content
+                oid == target
             } as? JsonObject
             if (existing == null) {
                 respondError(id, "fault.mock.unscripted:updateTask:target")
@@ -3523,7 +3527,8 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
             }
             val updated = JsonObject(existing + params.filterKeys { it != "offPeakTaskId" }.mapValues { it.value as kotlinx.serialization.json.JsonElement })
             script.offPeakTaskList = JsonArray(current.map { el ->
-                if ((el.jsonObject["id"] as? JsonPrimitive)?.content == target) updated else el
+                val oid = (el.jsonObject["offPeakTaskId"] as? JsonPrimitive)?.content ?: (el.jsonObject["id"] as? JsonPrimitive)?.content
+                if (oid == target) updated else el
             })
             respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(updated))
             return
@@ -3536,7 +3541,8 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
                 return
             }
             script.offPeakTaskList = JsonArray(current.filter {
-                (it.jsonObject["id"] as? JsonPrimitive)?.content != target
+                val oid = (it.jsonObject["offPeakTaskId"] as? JsonPrimitive)?.content ?: (it.jsonObject["id"] as? JsonPrimitive)?.content
+                oid != target
             })
             respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
             return
@@ -3548,7 +3554,7 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
         val items = script.offPeakTaskList?.let { arr ->
             JsonArray(arr.map { el ->
                 val o = el as? JsonObject ?: return@map el
-                val oid = (o["id"] as? JsonPrimitive)?.content
+                val oid = (o["offPeakTaskId"] as? JsonPrimitive)?.content ?: (o["id"] as? JsonPrimitive)?.content
                 when {
                     oid != null && oid in script.offPeakCancelledIds -> JsonObject(o + ("status" to JsonPrimitive("cancelled")))
                     oid != null && oid in script.offPeakPausedIds -> JsonObject(o + ("status" to JsonPrimitive("paused")))

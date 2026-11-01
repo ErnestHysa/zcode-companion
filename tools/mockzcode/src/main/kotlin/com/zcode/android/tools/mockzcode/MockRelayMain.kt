@@ -431,25 +431,28 @@ fun main() {
         mock.script.offPeakTaskList = JsonArray(listOf(
             JsonObject(mapOf(
                 "id" to JsonPrimitive("offpeak-rig-1"),
+                "offPeakTaskId" to JsonPrimitive("offpeak-rig-1"),
                 "title" to JsonPrimitive("Nightly refactor sweep"),
                 "status" to JsonPrimitive("queued"),
                 "queuePosition" to JsonPrimitive(1),
                 "createdAt" to JsonPrimitive(now - 40_000),
-                "workspacePath" to JsonPrimitive("/synthetic/ws-one"),
+                "workspaceKey" to JsonPrimitive("/synthetic/ws-one"),
             )),
             JsonObject(mapOf(
                 "id" to JsonPrimitive("offpeak-rig-2"),
+                "offPeakTaskId" to JsonPrimitive("offpeak-rig-2"),
                 "title" to JsonPrimitive("Weekend doc migration"),
                 "status" to JsonPrimitive("paused"),
                 "createdAt" to JsonPrimitive(now - 80_000),
-                "workspacePath" to JsonPrimitive("/synthetic/ws-one"),
+                "workspaceKey" to JsonPrimitive("/synthetic/ws-one"),
             )),
             JsonObject(mapOf(
                 "id" to JsonPrimitive("offpeak-rig-3"),
+                "offPeakTaskId" to JsonPrimitive("offpeak-rig-3"),
                 "title" to JsonPrimitive("Old dependency bump"),
                 "status" to JsonPrimitive("completed"),
                 "createdAt" to JsonPrimitive(now - 3 * 24 * 3600_000),
-                "workspacePath" to JsonPrimitive("/synthetic/ws-one"),
+                "workspaceKey" to JsonPrimitive("/synthetic/ws-one"),
                 "sessionId" to JsonPrimitive("synth-op-session-1"),
             )),
         ))

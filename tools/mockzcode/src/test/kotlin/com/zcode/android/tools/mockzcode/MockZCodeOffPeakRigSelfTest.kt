@@ -25,8 +25,10 @@ class MockZCodeOffPeakRigSelfTest {
         val seed = offPeakRigSeedForTest()
         val statuses = seed.map { (it.jsonObject["status"] as JsonPrimitive).content }
         assertEquals(listOf("queued", "paused", "completed"), statuses)
-        val ws = seed.map { (it.jsonObject["workspacePath"] as JsonPrimitive).content }
+        val ws = seed.map { (it.jsonObject["workspaceKey"] as JsonPrimitive).content }
         assertTrue(ws.all { it == "/synthetic/ws-one" })
+        // the phone's decode key is present on every row
+        assertTrue(seed.all { it.jsonObject["offPeakTaskId"] != null })
     }
 
     @Test
@@ -50,8 +52,9 @@ private fun offPeakRigSeedForTest(): JsonArray {
     val now = System.currentTimeMillis()
     fun row(id: String, title: String, status: String, createdAt: Long, extra: Map<String, JsonPrimitive> = emptyMap()) =
         kotlinx.serialization.json.buildJsonObject {
-            put("id", JsonPrimitive(id)); put("title", JsonPrimitive(title)); put("status", JsonPrimitive(status))
-            put("createdAt", JsonPrimitive(createdAt)); put("workspacePath", JsonPrimitive("/synthetic/ws-one"))
+            put("id", JsonPrimitive(id)); put("offPeakTaskId", JsonPrimitive(id))
+            put("title", JsonPrimitive(title)); put("status", JsonPrimitive(status))
+            put("createdAt", JsonPrimitive(createdAt)); put("workspaceKey", JsonPrimitive("/synthetic/ws-one"))
             extra.forEach { (k, v) -> put(k, v) }
         }
     return JsonArray(listOf(
