@@ -16,6 +16,7 @@ import com.zcode.android.app.connect.DefaultFilesPort
 import com.zcode.android.app.connect.DefaultGitPort
 import com.zcode.android.app.connect.DefaultAutomationsPort
 import com.zcode.android.app.connect.DefaultPluginsPort
+import com.zcode.android.app.connect.DefaultProvidersPort
 import com.zcode.android.app.connect.DefaultSubagentsPort
 import com.zcode.android.app.connect.DefaultMcpPort
 import com.zcode.android.app.connect.DefaultSkillsPort
@@ -177,6 +178,7 @@ class AppContainer(activity: FragmentActivity) {
     val pluginsPort: DefaultPluginsPort = DefaultPluginsPort(hub)
     val skillsPort: DefaultSkillsPort = DefaultSkillsPort(hub)
     val subagentsPort: DefaultSubagentsPort = DefaultSubagentsPort(hub)
+    val providersPort: DefaultProvidersPort = DefaultProvidersPort(hub)
     val mcpPort: DefaultMcpPort = DefaultMcpPort(hub)
 
     /** Phase 4 (GAP-3/4; ADR-020, v4-wire.md §13): the coding-plan quota plane. */

@@ -212,12 +212,17 @@
 <string name="settings_mcp_sub">当前工作区的服务器状态（只读）</string>
 <string name="settings_subagents_row">子代理</string>
 <string name="settings_subagents_sub">只读列表 · 已配置的代理及状态</string>
+<string name="settings_providers_row">提供商</string>
+<string name="settings_providers_sub">只读列表 · 每个提供商的模型（不含凭据）</string>
 <string name="mcp_title">MCP 服务器</string>
 <string name="subagents_title">子代理</string>
 <string name="subagents_unavailable">子代理不可用</string>
 <string name="subagents_empty">未配置子代理</string>
 <string name="agent_on">启用</string>
 <string name="agent_off">停用</string>
+<string name="providers_title">提供商</string>
+<string name="providers_unavailable">提供商不可用</string>
+<string name="providers_empty">未配置提供商</string>
 <string name="mcp_loading">正在加载 MCP 服务器…</string>
 <string name="mcp_unavailable">MCP 服务器状态不可用</string>
 <string name="mcp_retry">重试</string>

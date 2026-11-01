@@ -213,6 +213,9 @@
 <string name="subagents_empty">No subagents configured</string>
 <string name="agent_on">On</string>
 <string name="agent_off">Off</string>
+<string name="providers_title">Providers</string>
+<string name="providers_unavailable">Providers are unavailable</string>
+<string name="providers_empty">No providers configured</string>
 <string name="plugins_loading">Loading plugins…</string>
 <string name="plugins_unavailable">Plugins are unavailable</string>
 <string name="plugins_retry">Retry</string>
@@ -232,6 +235,8 @@
 <string name="settings_mcp_sub">Server status for the active workspace (read-only)</string>
 <string name="settings_subagents_row">Subagents</string>
 <string name="settings_subagents_sub">Read-only list · configured agents and state</string>
+<string name="settings_providers_row">Providers</string>
+<string name="settings_providers_sub">Read-only list · models per provider (no credentials)</string>
 <string name="mcp_title">MCP servers</string>
 <string name="mcp_loading">Loading MCP servers…</string>
 <string name="mcp_unavailable">MCP server statuses are unavailable</string>

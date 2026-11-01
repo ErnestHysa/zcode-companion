@@ -61,6 +61,7 @@ object Routes {
     const val USAGE = "usage"
     const val PLUGINS = "plugins"
     const val SUBAGENTS = "subagents"
+    const val PROVIDERS = "providers"
     const val SKILLS = "skills"
     const val MCP = "mcp"
     const val APPROVALS = "approvals"
@@ -344,6 +345,7 @@ fun ZCodeApp(
                 onOpenSkills = { nav.navigate(Routes.SKILLS) },
                 onOpenMcp = { nav.navigate(Routes.MCP) },
                 onOpenSubagents = { nav.navigate(Routes.SUBAGENTS) },
+                onOpenProviders = { nav.navigate(Routes.PROVIDERS) },
             )
         }
         composable(Routes.USAGE) {
@@ -357,6 +359,10 @@ fun ZCodeApp(
         composable(Routes.SUBAGENTS) {
             // G25 (vc51 Phase 4B): read-only subagents viewer — scope/enable badges, no write affordance (INV-9).
             com.zcode.android.app.settings.SubagentsViewerScreen(port = container.subagentsPort, onBack = { nav.popBackStack() }, modifier = Modifier.fillMaxSize())
+        }
+        composable(Routes.PROVIDERS) {
+            // G27 (vc51 Phase 4B): read-only provider viewer — no credential plane (desktop-side boundary).
+            com.zcode.android.app.settings.ProvidersViewerScreen(port = container.providersPort, onBack = { nav.popBackStack() }, modifier = Modifier.fillMaxSize())
         }
         composable(Routes.SKILLS) {
             // GAP-8 (v4-wire.md §12.4): read-only skills reference catalog (no enable surface).
@@ -867,6 +873,7 @@ private fun SettingsRoute(
     onOpenSkills: () -> Unit = {},
     onOpenMcp: () -> Unit = {},
     onOpenSubagents: () -> Unit = {},
+    onOpenProviders: () -> Unit = {},
 ) {
     val endpoint by container.hub.endpoint.collectAsState()
     SettingsScreen(
@@ -879,5 +886,6 @@ private fun SettingsRoute(
         onOpenSkills = onOpenSkills,
         onOpenMcp = onOpenMcp,
         onOpenSubagents = onOpenSubagents,
+        onOpenProviders = onOpenProviders,
     )
 }

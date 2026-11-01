@@ -77,6 +77,8 @@ fun SettingsScreen(
     onOpenMcp: () -> Unit = {},
     /** G25 (vc51 Phase 4B): opens the read-only subagents viewer. */
     onOpenSubagents: () -> Unit = {},
+    /** G27 (vc51 Phase 4B): opens the read-only provider viewer. */
+    onOpenProviders: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -160,6 +162,12 @@ fun SettingsScreen(
                 subtitle = stringResource(R.string.settings_subagents_sub),
                 tag = "settings_subagents",
                 onClick = onOpenSubagents,
+            )
+            SettingsRow(
+                title = stringResource(R.string.settings_providers_row),
+                subtitle = stringResource(R.string.settings_providers_sub),
+                tag = "settings_providers",
+                onClick = onOpenProviders,
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 

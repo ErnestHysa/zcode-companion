@@ -351,6 +351,20 @@ class DefaultSubagentsPort(
     }
 }
 
+/** G27 (vc51 Phase 4B): the provider viewer's read leg — the picker's own view, no credential plane. */
+class DefaultProvidersPort(
+    private val hub: ConnectionHub,
+) : com.zcode.android.app.settings.ProvidersPort {
+    override suspend fun providers(): com.zcode.android.app.settings.ProvidersPort.Result = try {
+        com.zcode.android.app.settings.ProvidersPort.Result(hub.phase9().modelOptions(), null)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        hub.log.warn("providersport.providers", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+        com.zcode.android.app.settings.ProvidersPort.Result(null, e.message ?: "providers are unavailable on this connection")
+    }
+}
+
 class DefaultSkillsPort(
     private val hub: ConnectionHub,
 ) : SkillsPort {
