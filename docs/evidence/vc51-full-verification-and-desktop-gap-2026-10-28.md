@@ -2431,7 +2431,7 @@ byte-identical to the fd7046a baseline; meta-verified at AH1 by XML aggregation)
 | --- | --- | --- | --- | --- |
 | 1 | P1/P2 phone defects — attach crash, approvals bookkeeping, invisible notices, hook-trust card, search overlay, queue composer | 8 | High | **Complete 2026-10-31** |
 | 2 | P2 feature completions + P3 phone defects — workflow/queue/find, landscape pinned stack, shade actions | 5 | Medium | **Complete 2026-10-31** |
-| 3 | P3 planes — protocol hygiene, conversation affordances, quota/usage, presentation & workspace management, web-remote boundary | 16 | Medium | Open |
+| 3 | P3 planes — protocol hygiene, conversation affordances, quota/usage, presentation & workspace management, web-remote boundary | 16 | Medium | **Complete 2026-11-01** |
 | 4 | P4 polish + boundary decisions — phone smalls, INV-9 viewers, authoring/management, preview/share/presentation family | 24 | Low | Open |
 | 5 | Rig debts + regression-pin backlog | 7 | Low | Open |
 | | **Total** | **60** | | |
