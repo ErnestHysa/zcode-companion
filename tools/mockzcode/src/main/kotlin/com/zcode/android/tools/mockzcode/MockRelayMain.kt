@@ -427,6 +427,23 @@ fun main() {
     if (System.getenv("MOCK_CUA") != null) {
         armCuaRigForTest(mock)
     }
+    // G32 (vc51 Phase 4): MOCK_GIT=1 scripts the git-channel read legs so the Git pane
+    // reaches the branch sheet — the summary (main, clean, dirty) feeds the header row
+    // and the branch list (main + feature/rig) feeds the switch/create sheet.
+    if (System.getenv("MOCK_GIT") != null) {
+        mock.script.gitSummary = JsonObject(mapOf(
+            "repoRoot" to JsonPrimitive("/synthetic/repo"),
+            "branchName" to JsonPrimitive("main"),
+            "trackingBranchName" to JsonPrimitive("origin/main"),
+            "headRefType" to JsonPrimitive("branch"),
+            "ahead" to JsonPrimitive(0),
+            "behind" to JsonPrimitive(0),
+            "isDirty" to JsonPrimitive(false),
+            "isGitAvailable" to JsonPrimitive(true),
+            "isRepository" to JsonPrimitive(true),
+        ))
+        // getLocalBranches is served hardcoded (main + feature/a) — no script field.
+    }
     // RIG-1 (vc51 Phase 4C / G29): MOCK_AUTOMATIONS=1 seeds the automations list; the
     // handlers were always scripted (passes 5/9 debt) — only the env flags were missing.
     if (System.getenv("MOCK_AUTOMATIONS") != null) {
