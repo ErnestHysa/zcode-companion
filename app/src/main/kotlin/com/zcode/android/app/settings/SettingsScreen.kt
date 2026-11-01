@@ -399,21 +399,15 @@ private fun EndpointsSection(container: AppContainer, endpointName: String?, des
 
     if (showAddDialog) {
         AddDirectEndpointDialog(
-            onDismiss = { showAddDialog = false },
-            onAdd = { name, url, token, candidates ->
-                showAddDialog = false
-                scope.launch {
-                    when (val outcome = container.hub.addDirectEndpoint(name, url, token, candidates)) {
-                        is com.zcode.android.app.connect.ConnectionHub.AddDirectOutcome.Added -> {
-                            switchMessage = context.getString(R.string.settings_added_connecting)
-                            container.hub.switchTo(outcome.endpoint.endpointId.raw)
-                        }
-                        is com.zcode.android.app.connect.ConnectionHub.AddDirectOutcome.Rejected -> {
-                            switchMessage = com.zcode.android.core.ui.components.errorMessage(context, outcome.error)
-                        }
-                    }
-                }
+            adder = { name, url, token, candidates ->
+                container.hub.addDirectEndpoint(name, url, token, candidates)
             },
+            onAdded = { endpoint ->
+                showAddDialog = false
+                switchMessage = context.getString(R.string.settings_added_connecting)
+                scope.launch { container.hub.switchTo(endpoint.endpointId.raw) }
+            },
+            onDismiss = { showAddDialog = false },
         )
     }
     if (removeTarget != null) {
@@ -433,19 +427,35 @@ private fun EndpointsSection(container: AppContainer, endpointName: String?, des
     }
 }
 
-/** §12.2 discipline for the direct flow: nothing is written until validation passes. */
+/**
+ * §12.2 discipline for the direct flow: nothing is written until validation passes.
+ * GAP-A10 (vc51): the dialog OWNS the add attempt — a REJECTED probe keeps it open with
+ * the typed fields intact and an inline error (the probe takes ~10 s; the submit is
+ * disabled while it runs), and fallback-URL candidates pass the same scheme gate as the
+ * primary URL instead of bypassing it.
+ */
 @Composable
-private fun AddDirectEndpointDialog(
+internal fun AddDirectEndpointDialog(
+    adder: suspend (name: String, wsUrl: String, token: String, candidates: List<String>) ->
+        com.zcode.android.app.connect.ConnectionHub.AddDirectOutcome,
+    onAdded: (com.zcode.android.domain.model.Endpoint) -> Unit,
     onDismiss: () -> Unit,
-    onAdd: (name: String, wsUrl: String, token: String, candidates: List<String>) -> Unit,
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     var name by remember { mutableStateOf("") }
     var url by remember { mutableStateOf("") }
     var token by remember { mutableStateOf("") }
     var candidates by remember { mutableStateOf("") }
-    val valid = url.startsWith("ws://") || url.startsWith("wss://") || url.startsWith("http://") || url.startsWith("https://")
+    var busy by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    fun schemeOk(s: String): Boolean =
+        s.startsWith("ws://") || s.startsWith("wss://") || s.startsWith("http://") || s.startsWith("https://")
+    val candidateList = candidates.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+    val valid = schemeOk(url) && candidateList.all { schemeOk(it) }
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!busy) onDismiss() },
         title = { Text(stringResource(R.string.settings_add_direct_title)) },
         text = {
             Column {
@@ -477,6 +487,14 @@ private fun AddDirectEndpointDialog(
                     singleLine = true,
                     modifier = Modifier.testTag("add_direct_candidates"),
                 )
+                error?.let { message ->
+                    Text(
+                        message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.testTag("add_direct_error"),
+                    )
+                }
                 Text(
                     stringResource(R.string.settings_add_note),
                     style = MaterialTheme.typography.bodySmall,
@@ -486,19 +504,28 @@ private fun AddDirectEndpointDialog(
         },
         confirmButton = {
             TextButton(
-                enabled = valid && token.isNotBlank(),
+                enabled = valid && token.isNotBlank() && !busy,
                 onClick = {
-                    onAdd(
-                        name,
-                        url,
-                        token,
-                        candidates.split(",").map { it.trim() }.filter { it.isNotEmpty() },
-                    )
+                    busy = true
+                    error = null
+                    scope.launch {
+                        when (val outcome = adder(name, url, token, candidateList)) {
+                            is com.zcode.android.app.connect.ConnectionHub.AddDirectOutcome.Added ->
+                                onAdded(outcome.endpoint)
+                            is com.zcode.android.app.connect.ConnectionHub.AddDirectOutcome.Rejected ->
+                                error = com.zcode.android.core.ui.components.errorMessage(context, outcome.error)
+                        }
+                        busy = false
+                    }
                 },
                 modifier = Modifier.testTag("add_direct_submit"),
             ) { Text(stringResource(R.string.settings_add_action)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel)) } },
+        dismissButton = {
+            TextButton(enabled = !busy, onClick = onDismiss) {
+                Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
+            }
+        },
     )
 }
 
