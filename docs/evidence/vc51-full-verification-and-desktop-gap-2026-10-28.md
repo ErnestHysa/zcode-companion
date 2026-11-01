@@ -3400,3 +3400,46 @@ versionName 1.3.0 (the release-meta block attaches only at publish; nothing push
 Ernest's standing deliverable-completion rule on `fix/vc51`; commits
 `fa2bd31…b2f07339` (Phases 1–2) → `3bf40bb7…2c332ff3` (this phase), all local, nothing
 pushed.
+
+---
+
+# Phase 4 (vc51 remediation) — dated boundary decisions — 2026-11-01 (APPENDED; the roadmap is the work plan; receipt passes below)
+
+- **G21 (custom slash-command authoring half) — B3 boundary, dated 2026-11-01:** the
+  desktop's `CommandsSection.tsx` + `CommandForm.tsx` AUTHOR user slash commands (files
+  under the workspace's command directories, marketplace plugin commands, enable/disable
+  state) — desktop-side authoring under the hooks/workflow-authoring precedent. The
+  phone's half is SHIPPED this phase: the bare-"/" panel is bounded + scrollable
+  (88360dbc — the pass-4 zero-scroll defect) and the user/plugin commands arrive over
+  the live `commands.list` leg. The phone CONSUMES commands; it does not AUTHOR them.
+- **G22 (memory settings plane) — B3 boundary, dated 2026-11-01:** the desktop's
+  `MemorySettingsSection.tsx` manages the desktop's OWN memory feature (its
+  memory-service channel, file-backed memory in the desktop's home). The phone hosts no
+  memory infrastructure: a read-only viewer would render an inventory the phone can
+  neither verify nor exercise (the shipped host exposes no memory list RPC — same class
+  as bots, but unlike bots there is no INV-9 seed row and no scripted-shape contract to
+  model). Recording as out of companion scope; revisit only if a desktop update ships a
+  memory read RPC.
+- **G23 (coding-plan bucket management / upgrade flow) — B3 boundary, dated 2026-11-01:**
+  the desktop's `CodingPlanEntryButton.tsx` + `CodingPlanUpgradeDialog*.tsx` are a
+  COMMERCE surface (plan purchase/upgrade checkout, take-number queueing). The phone's
+  plan section is at its parity half: usage charts (G20, 5893b533) + the quota banner
+  (G11, a80b94cb) read the real remaining ratio. Purchasing/upgrading a paid plan from a
+  companion device is out of scope (payment credentials + checkout flow never ride the
+  phone); the boundary is stated in the Providers viewer (G27) and here.
+- **G24 (settings-sync plane) — B3 boundary, dated 2026-11-01:** the desktop's
+  `settings/settings-sync/` (118 refs) syncs SETTINGS BETWEEN THE USER'S OWN DESKTOP
+  INSTALLS (multi-device sync + the external-agent import dialog). The companion holds
+  its own sealed on-device preferences (DataStore proto) and has no second device to
+  sync with — multi-device settings sync is desktop-infrastructure, out of companion
+  scope. No phone surface follows.
+- **G32 (switch-assist half) — ADR-021 boundary, dated 2026-11-01:** branch switch AND
+  branch create are SHIPPED and live-verified this phase (BranchSheet's
+  `branch_new_field`/`branch_create` → `createBranchAndSwitch` — see the Phase-4
+  exit-gate walk receipt). The desktop's `switchAssist.ts` blocked→commit-preview machine
+  (switch refused with uncommitted changes → offer a commit first) stays DESKTOP-SIDE:
+  its write half is a COMMIT ASSIST (authoring a commit from staged changes), and
+  staged-commit authoring is above the ADR-021 Tier-A line the phone drew (stage/unstage
+  + branch verbs only). The phone's honest face for the typed
+  `uncommitted-changes-would-be-overwritten` issue is the existing issue row. Revisit
+  only if ADR-021 is re-scoped upward.
