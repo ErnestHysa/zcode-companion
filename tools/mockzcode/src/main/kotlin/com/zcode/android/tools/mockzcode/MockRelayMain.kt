@@ -425,6 +425,9 @@ fun main() {
     // G25 (vc51 Phase 4B): three agents across scopes — one DISABLED so the
     // subagents viewer's state badges render both faces on the rig.
     mock.script.subagentsList = subagentsViewerSeed()
+    // G30 (vc51 Phase 4B): the bots-viewer seed — two bots across providers/modes so the
+    // read-only viewer renders both mode faces on the rig.
+    mock.script.botsList = botsViewerSeed()
     // PART M live leg: populated MCP / plugins / skills viewers (shapes mirror the
     // domain decoders: ViewerModels.McpStatuses / PluginsView / SkillCatalog) so the
     // three Settings viewers render their real lists on device instead of the
@@ -610,6 +613,27 @@ fun main() {
  * in any pass. Task-1 mirrors the sessions bootstrap row's identity keys so the
  * listTasks upsert refreshes the projection row in place instead of duplicating it.
  */
+/** G30 (vc51 Phase 4B): the bots-viewer seed — shared by the relay arming and the self-test. */
+internal fun botsViewerSeed(): JsonObject = JsonObject(mapOf(
+    "bots" to JsonArray(listOf(
+        JsonObject(mapOf(
+            "botId" to JsonPrimitive("bot-telegram-1"),
+            "provider" to JsonPrimitive("telegram"),
+            "mode" to JsonPrimitive("task"),
+            "workspacePath" to JsonPrimitive("/synthetic/ws-one"),
+            "activeTaskId" to JsonPrimitive("synth-task-1"),
+            "enabled" to JsonPrimitive(true),
+        )),
+        JsonObject(mapOf(
+            "botId" to JsonPrimitive("bot-discord-1"),
+            "provider" to JsonPrimitive("discord"),
+            "mode" to JsonPrimitive("draft"),
+            "workspacePath" to JsonPrimitive("/synthetic/ws-two"),
+            "enabled" to JsonPrimitive(false),
+        )),
+    )),
+))
+
 /** G25 (vc51 Phase 4B): the subagents-viewer seed — shared by the relay arming and the self-test. */
 internal fun subagentsViewerSeed(): JsonObject = JsonObject(mapOf(
     "agents" to JsonArray(listOf(

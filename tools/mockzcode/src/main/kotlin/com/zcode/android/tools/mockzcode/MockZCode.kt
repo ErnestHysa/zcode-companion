@@ -226,6 +226,8 @@ class MockZCode(
         var commandsList: JsonObject? = null
         /** subagents.list result (null = typed fault). */
         var subagentsList: JsonObject? = null
+        /** G30 (vc51 Phase 4B): the read-only bots viewer's scripted inventory. */
+        var botsList: JsonObject? = null
         /** Scriptable off-peak tasks (off-peak-task channel list items; null = typed fault). */
         var offPeakTaskList: JsonArray? = null
         /** Scriptable plugins list (listPlugins result; null = typed fault). */
@@ -1668,6 +1670,10 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 // Phase 4C (C2): the slash panel's extra sections over their own channels.
                 "commands" -> handleCommandsPromise(id, name)
                 "subagents" -> handleSubagentsPromise(id, name)
+                // G30 (vc51 Phase 4B): the INV-9 seed — the shipped host has no bots list
+                // RPC (fs-backed provider runtimes), so the viewer degrades honestly there;
+                // the mock serves the scripted inventory for the rig.
+                "bots" -> handleBotsPromise(id, name)
                 else -> respondError(id, "fault.mock.unknownChannel:$channelName")
             }
             return
@@ -3076,6 +3082,21 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             respondError(id, "fault.mock.unscripted:subagents.list")
         } else {
             respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(result))
+        }
+    }
+
+    /** G30 (vc51 Phase 4B): the read-only bots viewer's scripted list leg. */
+    private fun handleBotsPromise(id: Int, name: String?) {
+        when (name) {
+            "list" -> {
+                val result = script.botsList
+                if (result == null) {
+                    respondError(id, "fault.mock.unscripted:bots.list")
+                } else {
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(result))
+                }
+            }
+            else -> respondError(id, "fault.mock.unknownMethod:bots-${name ?: "?"}")
         }
     }
 
