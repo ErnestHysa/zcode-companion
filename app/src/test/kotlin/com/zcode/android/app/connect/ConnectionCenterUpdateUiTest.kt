@@ -3,6 +3,7 @@ package com.zcode.android.app.connect
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.app.update.DownloadState
@@ -40,6 +41,8 @@ class ConnectionCenterUpdateUiTest {
         notes = null,
         maxTestedDesktop = null,
     )
+
+    private fun releaseWithNotes(vc: Long = 37, notes: String) = release(vc).copy(notes = notes)
 
     private fun content(
         desktopVersion: String?,
@@ -166,5 +169,20 @@ class ConnectionCenterUpdateUiTest {
         rule.onNodeWithTag("update_now").performClick()
         rule.waitForIdle()
         assertEquals(1, clicked)
+    }
+
+    // G34 (vc51 Phase 4D): the update banner renders the meta's notes when present.
+
+    @Test
+    fun `update banner renders the release notes when the meta carries them`() {
+        content("3.14.6", UpdateCheckState.Available(releaseWithNotes(43, notes = "New: share modes + sketch sheet"), desktopNewer = true))
+        rule.onNodeWithTag("update_notes").assertExists()
+        rule.onNodeWithText("New: share modes + sketch sheet").assertExists()
+    }
+
+    @Test
+    fun `update banner renders no notes line without them`() {
+        content("3.14.6", UpdateCheckState.Available(release(43), desktopNewer = true))
+        assertEquals(0, rule.onAllNodesWithTag("update_notes").fetchSemanticsNodes().size)
     }
 }

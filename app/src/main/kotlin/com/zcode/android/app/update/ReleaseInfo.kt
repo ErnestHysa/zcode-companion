@@ -117,6 +117,9 @@ object ReleaseParser {
             maxTestedDesktop = obj.string("maxTestedDesktop"),
             sha256 = obj.string("sha256"),
             apkName = obj.string("apk"),
+            // G34 (vc51 Phase 4D): the optional notes field — absent → null, the parser
+            // still validates (fail-closed only on the REQUIRED fields above).
+            notes = obj.string("notes"),
         )
     }
 
@@ -133,6 +136,8 @@ object ReleaseParser {
         val maxTestedDesktop: String?,
         val sha256: String?,
         val apkName: String?,
+        /** G34: optional markdown-ish notes shown in the update banner (absent → null). */
+        val notes: String? = null,
     )
 
     private fun JsonObject.string(key: String): String? =

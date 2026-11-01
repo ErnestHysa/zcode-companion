@@ -150,6 +150,16 @@ fun ConnectionCenterScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
+                        // G34 (vc51 Phase 4D): the release's notes (when the meta carries
+                        // them) render under the banner wording — absent → nothing.
+                        release.notes?.let { notes ->
+                            Text(
+                                text = notes,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 4.dp).testTag("update_notes"),
+                            )
+                        }
                         Spacer(Modifier.height(6.dp))
                         when (val dl = downloadState) {
                             is com.zcode.android.app.update.DownloadState.Running ->

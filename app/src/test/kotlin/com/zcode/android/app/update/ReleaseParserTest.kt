@@ -117,4 +117,22 @@ class ReleaseParserTest {
         )
         assertNull(meta)
     }
+
+    // G34 (vc51 Phase 4D): the optional meta notes.
+
+    @Test
+    fun `meta with notes parses and carries them (G34)`() {
+        val body = "<!-- zcode-android-release-meta {\"versionName\":\"1.3.0\",\"versionCode\":51,\"sha256\":\"abc\",\"apk\":\"app-debug.apk\",\"notes\":\"New: share modes, sketch sheet, subagent viewer\"} -->\nBody"
+        val meta = ReleaseParser.parseMeta(body)
+        org.junit.Assert.assertNotNull(meta)
+        org.junit.Assert.assertEquals("New: share modes, sketch sheet, subagent viewer", meta!!.notes)
+    }
+
+    @Test
+    fun `meta without notes still validates (fail-closed on required fields only)`() {
+        val body = "<!-- zcode-android-release-meta {\"versionName\":\"1.3.0\",\"versionCode\":51,\"sha256\":\"abc\",\"apk\":\"app-debug.apk\"} -->\nBody"
+        val meta = ReleaseParser.parseMeta(body)
+        org.junit.Assert.assertNotNull(meta)
+        org.junit.Assert.assertNull(meta!!.notes)
+    }
 }
