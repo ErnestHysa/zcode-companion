@@ -3,7 +3,6 @@ package com.zcode.android.app.widget
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
@@ -49,12 +48,14 @@ class PendingApprovalsWidget : GlanceAppWidget() {
         // render the persisted last count instead of resetting to zero.
         val records = if (NotificationBrokerSource.attached) NotificationBrokerSource.current(context) else emptyList()
         val state = WidgetState.resolve(context)
-        provideContent { Content(state, records) }
+        // RIG-4 (vc51 Phase 5): the composition receives the provideGlance context — the
+        // compose-UI LocalContext is ABSENT inside a Glance composition and reading it
+        // crashed the render ("Problem loading widget", rig-caught on the binding leg).
+        provideContent { Content(context, state, records) }
     }
 
     @Composable
-    private fun Content(state: WidgetState, records: List<NotificationRecord>) {
-        val context = LocalContext.current
+    private fun Content(context: Context, state: WidgetState, records: List<NotificationRecord>) {
         val openApp = actionStartActivity(launchIntent(context, records), actionParametersOf())
         GlanceTheme {
             Box(
