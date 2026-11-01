@@ -207,6 +207,12 @@
 <string name="settings_plugins_row">Plugins</string>
 <string name="settings_plugins_sub">Installed plugins and their state (read-only)</string>
 <string name="plugins_title">Plugins</string>
+<!-- G25 (vc51 Phase 4B): the read-only subagents viewer (Settings → Insights, INV-9). -->
+<string name="subagents_title">Subagents</string>
+<string name="subagents_unavailable">Subagents are unavailable</string>
+<string name="subagents_empty">No subagents configured</string>
+<string name="agent_on">On</string>
+<string name="agent_off">Off</string>
 <string name="plugins_loading">Loading plugins…</string>
 <string name="plugins_unavailable">Plugins are unavailable</string>
 <string name="plugins_retry">Retry</string>
@@ -224,6 +230,8 @@
 <string name="skills_search_empty">No skills match the search</string>
 <string name="settings_mcp_row">MCP servers</string>
 <string name="settings_mcp_sub">Server status for the active workspace (read-only)</string>
+<string name="settings_subagents_row">Subagents</string>
+<string name="settings_subagents_sub">Read-only list · configured agents and state</string>
 <string name="mcp_title">MCP servers</string>
 <string name="mcp_loading">Loading MCP servers…</string>
 <string name="mcp_unavailable">MCP server statuses are unavailable</string>

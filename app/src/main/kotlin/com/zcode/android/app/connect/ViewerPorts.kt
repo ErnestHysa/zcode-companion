@@ -330,6 +330,27 @@ class DefaultPluginsPort(
     }
 }
 
+/** G25 (vc51 Phase 4B): the subagents viewer's read leg (no provider filter — the Settings viewer is task-agnostic). */
+class DefaultSubagentsPort(
+    private val hub: ConnectionHub,
+) : com.zcode.android.app.settings.SubagentsPort {
+    override suspend fun subagents(): com.zcode.android.app.settings.SubagentsPort.Result {
+        val target = hub.activeWorkspaceTarget()
+            ?: return com.zcode.android.app.settings.SubagentsPort.Result(null, "subagents are unavailable on this connection")
+        return try {
+            com.zcode.android.app.settings.SubagentsPort.Result(
+                hub.viewerTools().subagentsDetailed(target.first, target.second, null),
+                null,
+            )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("subagentsport.subagents", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            com.zcode.android.app.settings.SubagentsPort.Result(null, e.message ?: "subagents are unavailable on this connection")
+        }
+    }
+}
+
 class DefaultSkillsPort(
     private val hub: ConnectionHub,
 ) : SkillsPort {

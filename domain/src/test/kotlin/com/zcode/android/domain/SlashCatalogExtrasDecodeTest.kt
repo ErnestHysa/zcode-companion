@@ -54,4 +54,26 @@ class SlashCatalogExtrasDecodeTest {
         assertEquals(0, SlashCatalogExtras.decodeCommands(Json.parseToJsonElement("""{"capability":{}}""").jsonObject).size)
         assertEquals(0, SlashCatalogExtras.decodeAgents(Json.parseToJsonElement("""{}""").jsonObject).size)
     }
+
+    // G25 (vc51 Phase 4B): the VIEWER decode keeps disabled agents (the slash-panel
+    // decode filters them); absent `enabled` means enabled (desktop contract).
+    @Test
+    fun `decodeAgentsFull keeps disabled agents and defaults absent enabled to true`() {
+        val obj = Json.parseToJsonElement("""
+            {"agents":[
+              {"name":"Explore","description":"search","scope":"built-in"},
+              {"name":"docs-writer","description":"docs","scope":"project","enabled":false},
+              {"description":"broken"}
+            ]}
+        """.trimIndent()).jsonObject
+        val agents = SlashCatalogExtras.decodeAgentsFull(obj)
+        assertEquals(2, agents.size)
+        assertEquals("Explore", agents[0].name)
+        assertEquals(true, agents[0].enabled)
+        assertEquals("docs-writer", agents[1].name)
+        assertEquals(false, agents[1].enabled)
+        assertEquals("project", agents[1].scope)
+        // and the slash-panel decode still filters the disabled one
+        assertEquals(1, SlashCatalogExtras.decodeAgents(obj).size)
+    }
 }

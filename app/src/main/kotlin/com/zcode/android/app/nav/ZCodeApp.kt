@@ -60,6 +60,7 @@ object Routes {
     const val SETTINGS = "settings"
     const val USAGE = "usage"
     const val PLUGINS = "plugins"
+    const val SUBAGENTS = "subagents"
     const val SKILLS = "skills"
     const val MCP = "mcp"
     const val APPROVALS = "approvals"
@@ -342,6 +343,7 @@ fun ZCodeApp(
                 onOpenPlugins = { nav.navigate(Routes.PLUGINS) },
                 onOpenSkills = { nav.navigate(Routes.SKILLS) },
                 onOpenMcp = { nav.navigate(Routes.MCP) },
+                onOpenSubagents = { nav.navigate(Routes.SUBAGENTS) },
             )
         }
         composable(Routes.USAGE) {
@@ -351,6 +353,10 @@ fun ZCodeApp(
         composable(Routes.PLUGINS) {
             // GAP-7 (v4-wire.md §12.3): read-only plugins viewer — no install surface (INV-9).
             PluginsViewerScreen(port = container.pluginsPort, onBack = { nav.popBackStack() }, modifier = Modifier.fillMaxSize())
+        }
+        composable(Routes.SUBAGENTS) {
+            // G25 (vc51 Phase 4B): read-only subagents viewer — scope/enable badges, no write affordance (INV-9).
+            com.zcode.android.app.settings.SubagentsViewerScreen(port = container.subagentsPort, onBack = { nav.popBackStack() }, modifier = Modifier.fillMaxSize())
         }
         composable(Routes.SKILLS) {
             // GAP-8 (v4-wire.md §12.4): read-only skills reference catalog (no enable surface).
@@ -860,6 +866,7 @@ private fun SettingsRoute(
     onOpenPlugins: () -> Unit = {},
     onOpenSkills: () -> Unit = {},
     onOpenMcp: () -> Unit = {},
+    onOpenSubagents: () -> Unit = {},
 ) {
     val endpoint by container.hub.endpoint.collectAsState()
     SettingsScreen(
@@ -871,5 +878,6 @@ private fun SettingsRoute(
         onOpenPlugins = onOpenPlugins,
         onOpenSkills = onOpenSkills,
         onOpenMcp = onOpenMcp,
+        onOpenSubagents = onOpenSubagents,
     )
 }

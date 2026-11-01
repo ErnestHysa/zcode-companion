@@ -638,4 +638,23 @@ object SlashCatalogExtras {
             if ((o["enabled"] as? JsonPrimitive)?.content == "false") return@mapNotNull null
             AgentEntry(name = name, description = o.strOrNullN("description") ?: "", scope = o.strOrNullN("scope"))
         } ?: emptyList()
+
+    /**
+     * G25 (vc51 Phase 4B): the VIEWER decode — unlike [decodeAgents] it KEEPS disabled
+     * agents (the row wants scope/enable badges over the full inventory, while the slash
+     * panel filters `enabled:false`). Absent `enabled` means enabled (desktop contract).
+     */
+    data class AgentEntryFull(val name: String, val description: String, val scope: String?, val enabled: Boolean)
+
+    fun decodeAgentsFull(obj: JsonObject): List<AgentEntryFull> =
+        (obj["agents"] as? JsonArray)?.mapNotNull { el ->
+            val o = el as? JsonObject ?: return@mapNotNull null
+            val name = o.strOrNullN("name")?.trim()?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+            AgentEntryFull(
+                name = name,
+                description = o.strOrNullN("description") ?: "",
+                scope = o.strOrNullN("scope"),
+                enabled = (o["enabled"] as? JsonPrimitive)?.content != "false",
+            )
+        } ?: emptyList()
 }

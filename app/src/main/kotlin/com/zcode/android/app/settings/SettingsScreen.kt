@@ -75,6 +75,8 @@ fun SettingsScreen(
     onOpenSkills: () -> Unit = {},
     /** GAP-9: opens the read-only MCP server viewer (v4-wire.md §12.5). */
     onOpenMcp: () -> Unit = {},
+    /** G25 (vc51 Phase 4B): opens the read-only subagents viewer. */
+    onOpenSubagents: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -152,6 +154,12 @@ fun SettingsScreen(
                 subtitle = stringResource(R.string.settings_mcp_sub),
                 tag = "settings_mcp",
                 onClick = onOpenMcp,
+            )
+            SettingsRow(
+                title = stringResource(R.string.settings_subagents_row),
+                subtitle = stringResource(R.string.settings_subagents_sub),
+                tag = "settings_subagents",
+                onClick = onOpenSubagents,
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
