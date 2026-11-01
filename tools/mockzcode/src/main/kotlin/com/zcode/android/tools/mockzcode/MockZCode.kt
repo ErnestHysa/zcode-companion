@@ -2387,6 +2387,53 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 synchronized(attachmentStore) { attachmentStore.remove(uploadId) }
                 respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject { }))
             }
+            // G16 (vc51 Phase 4D): the attachment PREVIEW-SOURCE + conversation-scoped
+            // read/stat words. The shipped host answers `{kind:"chunked"}` for a
+            // non-desktop-continuous client — the phone then pulls the preview bytes
+            // over conversationAttachmentRead (its larger preview budget).
+            "attachmentPreviewSourceV4" -> {
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("kind", JsonPrimitive("chunked"))
+                }))
+            }
+            "conversationAttachmentStatV4" -> {
+                val params = argAsObject(arg)
+                val ref = params?.str("ref")
+                val att = synchronized(committedAttachments) { committedAttachments[ref] }
+                if (ref == null || att == null) {
+                    respondError(id, "fault.attachment.unknownRef")
+                    return
+                }
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("mediaType", JsonPrimitive(att.mime))
+                    put("totalBytes", JsonPrimitive(att.data.toByteArray().size))
+                }))
+            }
+            "conversationAttachmentReadV4" -> {
+                val params = argAsObject(arg)
+                val ref = params?.str("ref")
+                val att = synchronized(committedAttachments) { committedAttachments[ref] }
+                if (ref == null || att == null) {
+                    respondError(id, "fault.attachment.unknownRef")
+                    return
+                }
+                val offset = params.str("offset")?.toLongOrNull() ?: 0L
+                val limit = params.str("limit")?.toIntOrNull() ?: 512 * 1024
+                val bytes = att.data.toByteArray()
+                if (offset >= bytes.size) {
+                    respondError(id, "fault.attachment.offsetEof")
+                    return
+                }
+                val end = minOf(offset + limit, bytes.size.toLong()).toInt()
+                val slice = bytes.copyOfRange(offset.toInt(), end)
+                val next = if (end < bytes.size) end.toLong() else null
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("dataBase64", JsonPrimitive(java.util.Base64.getEncoder().encodeToString(slice)))
+                    put("mediaType", JsonPrimitive(att.mime))
+                    put("totalBytes", JsonPrimitive(bytes.size))
+                    put("nextOffset", if (next == null) JsonNull else JsonPrimitive(next))
+                }))
+            }
             "attachmentReadV4" -> {
                 val params = argAsObject(arg)
                 val ref = params?.str("ref")
