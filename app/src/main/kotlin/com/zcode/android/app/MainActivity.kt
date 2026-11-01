@@ -83,13 +83,21 @@ class MainActivity : FragmentActivity() {
 
     companion object {
         /** G37: the process-wide locale cache — attachBaseContext reads it BEFORE
-         *  any repository exists; the composition effect keeps it in sync. */
+         *  any repository exists; the composition effect keeps it in sync. The
+         *  SharedPreferences mirror (written by the same collector) survives the
+         *  process, so a cold start reads the persisted pick synchronously. */
         val cachedLocale = java.util.concurrent.atomic.AtomicReference(
             com.zcode.android.domain.model.AppPreferences.AppLocale.SYSTEM,
         )
+        private const val LOCALE_STORE = "zcode_prefs"
+        private const val LOCALE_KEY = "app_locale_mirror"
     }
 
     override fun attachBaseContext(newBase: android.content.Context) {
+        val persisted = newBase.getSharedPreferences(LOCALE_STORE, android.content.Context.MODE_PRIVATE)
+            .getString(LOCALE_KEY, null)
+            ?.let { runCatching { com.zcode.android.domain.model.AppPreferences.AppLocale.valueOf(it) }.getOrNull() }
+        if (persisted != null) cachedLocale.set(persisted)
         super.attachBaseContext(applyLocale(newBase, cachedLocale.get()))
     }
 
@@ -152,12 +160,18 @@ class MainActivity : FragmentActivity() {
             // (the pref is a StateFlow read; recomposition follows the toggle).
             val prefs by container.stores.preferencesRepository.observe()
                 .collectAsState(com.zcode.android.domain.model.AppPreferences())
-            // G37 (vc51): a locale flip re-wraps the base context — recreate() re-runs
-            // attachBaseContext with the new cache (instant-apply, same seam as the theme).
+            // G37 (vc51): the locale flip applies on the NEXT activity launch —
+            // attachBaseContext wraps the base context from the process-wide cache.
+            // An in-place recreate() here raced the hub across AppContainer instances
+            // (the rig caught the UNPAIRED flap); the desktop's own language switch is
+            // restart-shaped, and the theme/scale instant-apply seam is NOT touched.
             val localePref = prefs.appLocale
             LaunchedEffect(localePref) {
-                val previous = cachedLocale.getAndSet(localePref)
-                if (previous != localePref) recreate()
+                cachedLocale.set(localePref)
+                getSharedPreferences("zcode_prefs", android.content.Context.MODE_PRIVATE)
+                    .edit()
+                    .putString("app_locale_mirror", localePref.name)
+                    .apply()
             }
             val themeMode = when (prefs.themeMode) {
                 com.zcode.android.domain.model.AppPreferences.ThemeMode.LIGHT -> com.zcode.android.core.ui.theme.ThemeMode.LIGHT
