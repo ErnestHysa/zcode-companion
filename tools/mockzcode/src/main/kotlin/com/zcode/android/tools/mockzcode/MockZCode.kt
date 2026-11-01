@@ -357,7 +357,16 @@ class MockZCode(
         /** `resumeTask` calls (taskId) — the "continue a finished task" word. */
         val resumedTaskIds: MutableList<String> = java.util.Collections.synchronizedList(ArrayList())
 
-        // ---------------- vc51 Phase 5 (RIG-3) — interaction-push knobs (landed with the RIG-3 commit) ----------------
+        // ---------------- vc51 Phase 5 (RIG-3) ----------------
+        /**
+         * RIG-3 (MOCK_INTERACTION_PUSH_MS): a FRESH approval pushed AFTER the first
+         * conversation subscribe — the rig app backgrounds within the window and
+         * receives the state patch off-foreground, exercising the FRESH notification
+         * path (shade actions included; the A12 re-post path is pinned on the app side).
+         */
+        @Volatile var interactionPushDelayMs: Long? = null
+        @Volatile var interactionPushId: String = "mock-approval-push-1"
+        @Volatile var interactionPushTool: String = "Bash"
 
         // ---------------- Phase 5A (A3.3 + L6.4) workflows ----------------
         /** `listSavedWorkflows` payload (BJ shape); null = unscripted → typed fault (hub hidden). */
@@ -1561,6 +1570,43 @@ class MockZCode(
         })
     }
 
+    /**
+     * RIG-3 (vc51 Phase 5): the once-per-connection guard for the fresh-interaction
+     * push — the FIRST conversation subscribe schedules [pushPendingPermission] after
+     * [MockZCode.Script.interactionPushDelayMs]; a resubscribe must not re-arm.
+     */
+    private val interactionPushArmed = java.util.concurrent.atomic.AtomicBoolean(false)
+    private val pendingPushScheduled = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    /** The subscribe handler's arming hook (guarded; a no-op when the arm is unset). */
+    private fun armInteractionPush() {
+        if (script.interactionPushDelayMs == null) return
+        if (!interactionPushArmed.compareAndSet(false, true)) return
+        val ms = script.interactionPushDelayMs ?: return
+        val id = script.interactionPushId
+        val tool = script.interactionPushTool
+        scope.launch {
+            pendingPushScheduled.set(true)
+            kotlinx.coroutines.delay(ms)
+            pendingPushScheduled.set(false)
+            pushPendingPermission(id, tool)
+        }
+    }
+
+    internal fun armInteractionPushForTest(delayMs: Long) {
+        script.interactionPushDelayMs = delayMs
+        interactionPushArmed.set(false)
+        armInteractionPush()
+    }
+
+    /** The production subscribe-side arming (guard honored; used by the once-per-connection pin). */
+    internal fun subscribeArmsInteractionPushForTest() = armInteractionPush()
+
+    internal fun interactionPushArmedForTest(): Boolean = interactionPushArmed.get()
+
+    /** True while a scheduled push is still pending (test seam for the guard's negative arm). */
+    internal fun pushRescheduledForTest(): Boolean = pendingPushScheduled.get()
+
     /** RIG-5 self-test seam: the zcode-task channel words (archive/resume mutations are state-side). */
     internal fun taskPromiseForTest(id: Int, name: String?, arg: JsonObject?) = handleTaskPromise(id, name, arg)
 
@@ -1854,6 +1900,9 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 }))
                 // Initial snapshot rides the post-response notification (schema-true timing)
                 pushTopicFrame(sessionId, DeliveryKind.INITIAL, snapshot = true, fromSeq = 0, toSeq = 1)
+                // RIG-3: the fresh-interaction push schedules on the FIRST subscribe —
+                // the rig app backgrounds within the window and takes the patch off-foreground.
+                armInteractionPush()
                 script.flowStateAfterSubscribe?.let { st ->
                     script.flowStateAfterSubscribe = null
                     // Field-fidelity (2026-09-29): flow frames go ONLY to a registered

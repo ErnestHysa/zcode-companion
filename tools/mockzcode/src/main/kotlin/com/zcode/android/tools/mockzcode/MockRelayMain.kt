@@ -354,6 +354,16 @@ fun main() {
     if (System.getenv("MOCK_REFUSE_COMMANDS") != null) {
         mock.script.refuseCommandTypes = setOf("sendGoal", "pauseGoal", "resumeGoal")
     }
+    // RIG-3 (vc51 Phase 5): MOCK_INTERACTION_PUSH_MS=<ms> schedules a FRESH approval
+    // pushed AFTER the FIRST conversation subscribe — pair, open a task, BACKGROUND the
+    // app within the window, and the shade posts the approval WITH its two actions (the
+    // fresh path; the A12 re-post path is pinned app-side by NotificationBrokerTest).
+    // Optional overrides: MOCK_INTERACTION_PUSH_TOOL=<toolName>, MOCK_INTERACTION_PUSH_ID=<id>.
+    System.getenv("MOCK_INTERACTION_PUSH_MS")?.toLongOrNull()?.let { ms ->
+        mock.script.interactionPushDelayMs = ms
+        System.getenv("MOCK_INTERACTION_PUSH_TOOL")?.let { mock.script.interactionPushTool = it }
+        System.getenv("MOCK_INTERACTION_PUSH_ID")?.let { mock.script.interactionPushId = it }
+    }
     // vc51 Phase-3 (G13): MOCK_SESSIONS_INDEX=1 scripts the sessions-index snapshot
     // (task-1 running) plus a DELAYED `session.upserted` that flips task-3 to running
     // with a preview — the live cross-session row-activity flip leg (no refresh).
