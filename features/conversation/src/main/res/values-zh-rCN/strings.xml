@@ -179,6 +179,7 @@
     <string name="composer_placeholder_queue">继续输入即可排队后续更改</string>
     <string name="composer_queue_pill">已排队</string>
     <string name="row_attachment_loading">加载中…</string>
+<string name="attachment_viewer_close">关闭</string>
     <string name="conv_leave_body">你有一条未发送的草稿。它会保存在此设备上，但任务会继续运行 — 确定要离开吗？</string>
     <string name="conv_leave_discard">离开</string>
     <string name="conv_leave_keep">继续编辑</string>

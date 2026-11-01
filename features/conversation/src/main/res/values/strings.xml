@@ -92,6 +92,7 @@
     <string name="composer_placeholder_queue">Keep typing to queue follow-up changes</string>
     <string name="composer_queue_pill">Queued</string>
     <string name="row_attachment_loading">Loading…</string>
+<string name="attachment_viewer_close">Close</string>
     <string name="conv_leave_title">Leave this conversation?</string>
     <string name="conv_leave_body">You have an unsent draft. It stays saved on this device, but the task keeps running — are you sure you want to leave?</string>
     <string name="conv_leave_keep">Keep editing</string>

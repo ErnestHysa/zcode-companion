@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -131,6 +132,10 @@ fun YouBlock(
      *  never see again; images render as thumbnails through [loadAttachment]. */
     attachments: List<ConversationRow.UserInput.AttachmentMeta> = emptyList(),
     loadAttachment: (suspend (ConversationRow.UserInput.AttachmentMeta) -> ByteArray?)? = null,
+    /** G28 (vc51 Phase 4D): tap-to-zoom on image thumbnails (null = dead-end preserved). */
+    onOpenAttachment: ((ConversationRow.UserInput.AttachmentMeta) -> Unit)? = null,
+    /** G28: PDF/video chips hand off to an external viewer (null = dead-end preserved). */
+    onOpenAttachmentExternally: ((ConversationRow.UserInput.AttachmentMeta) -> Unit)? = null,
     /** G5 (vc51): find-in-conversation — every query occurrence highlights; the ACTIVE
      *  match's row gets the stronger fill. */
     findQuery: String? = null,
@@ -195,7 +200,12 @@ fun YouBlock(
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
                         for (att in attachments) {
-                            AttachmentView(att = att, load = loadAttachment)
+                            AttachmentView(
+                                att = att,
+                                load = loadAttachment,
+                                onOpenFull = onOpenAttachment?.let { cb -> { cb(att) } },
+                                onOpenExternally = onOpenAttachmentExternally?.let { cb -> { cb(att) } },
+                            )
                         }
                     }
                 }
@@ -1398,6 +1408,8 @@ private fun AttachmentView(
     att: ConversationRow.UserInput.AttachmentMeta,
     load: (suspend (ConversationRow.UserInput.AttachmentMeta) -> ByteArray?)?,
     modifier: Modifier = Modifier,
+    onOpenFull: (() -> Unit)? = null,
+    onOpenExternally: (() -> Unit)? = null,
 ) {
     val isImage = att.mime.startsWith("image/")
     val bytes by androidx.compose.runtime.produceState<ByteArray?>(initialValue = null, key1 = att.ref) {
@@ -1420,7 +1432,15 @@ private fun AttachmentView(
             color = MaterialTheme.colorScheme.surfaceVariant,
             modifier = modifier
                 .testTag("row_attachment_${att.ref}")
-                .size(width = 132.dp, height = 96.dp),
+                .size(width = 132.dp, height = 96.dp)
+                // G28: the thumbnail is no longer a dead end — tap opens the zoom viewer.
+                .then(
+                    if (onOpenFull != null) {
+                        Modifier.clickable(onClick = onOpenFull)
+                    } else {
+                        Modifier
+                    },
+                ),
         ) {
             if (bitmap != null) {
                 androidx.compose.foundation.Image(
@@ -1445,7 +1465,15 @@ private fun AttachmentView(
             color = MaterialTheme.colorScheme.surfaceVariant,
             modifier = modifier
                 .heightIn(min = 32.dp)
-                .testTag("row_attachment_${att.ref}"),
+                .testTag("row_attachment_${att.ref}")
+                // G28: PDF/video chips offer the external viewer.
+                .then(
+                    if (onOpenExternally != null) {
+                        Modifier.clickable(onClick = onOpenExternally)
+                    } else {
+                        Modifier
+                    },
+                ),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
                 Icon(
@@ -1462,6 +1490,70 @@ private fun AttachmentView(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+            }
+        }
+    }
+}
+
+/**
+ * G28 (vc51 Phase 4D): the TAP-TO-ZOOM viewer — a fullscreen black surface showing the
+ * full image (loaded through [loader], the attachment-read channel's full chunked path),
+ * Fit-scaled. Close consumes the dialog.
+ */
+@Composable
+fun AttachmentViewerDialog(
+    att: ConversationRow.UserInput.AttachmentMeta,
+    loader: (suspend (ConversationRow.UserInput.AttachmentMeta) -> ByteArray?)?,
+    onDismiss: () -> Unit,
+) {
+    val bytesState = androidx.compose.runtime.produceState<ByteArray?>(initialValue = null, key1 = att.ref) {
+        value = if (loader != null) runCatching { loader(att) }.getOrNull() else null
+    }
+    val bytes = bytesState.value
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
+        androidx.compose.foundation.layout.Box(
+            Modifier
+                .fillMaxSize()
+                .background(androidx.compose.ui.graphics.Color.Black)
+                .testTag("attachment_viewer"),
+        ) {
+            val decoded = bytes?.let { b ->
+                runCatching {
+                    val opts = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    android.graphics.BitmapFactory.decodeByteArray(b, 0, b.size, opts)
+                    var sample = 1
+                    while (opts.outWidth / sample > 2048 || opts.outHeight / sample > 2048) sample *= 2
+                    val o2 = android.graphics.BitmapFactory.Options().apply { inSampleSize = sample }
+                    android.graphics.BitmapFactory.decodeByteArray(b, 0, b.size, o2)?.asImageBitmap()
+                }.getOrNull()
+            }
+            if (decoded != null) {
+                androidx.compose.foundation.Image(
+                    bitmap = decoded,
+                    contentDescription = att.fileName,
+                    contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize().testTag("attachment_viewer_image"),
+                )
+            } else {
+                androidx.compose.foundation.layout.Box(
+                    Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        stringResource(R.string.row_attachment_loading),
+                        color = androidx.compose.ui.graphics.Color.White,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+            androidx.compose.material3.TextButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 32.dp, end = 12.dp)
+                    .testTag("attachment_viewer_close"),
+            ) {
+                Text(stringResource(R.string.attachment_viewer_close), color = androidx.compose.ui.graphics.Color.White)
             }
         }
     }

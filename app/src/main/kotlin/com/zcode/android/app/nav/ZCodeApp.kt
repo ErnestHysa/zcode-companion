@@ -613,6 +613,35 @@ private fun ConversationRoute(
     val trajectory by vm.trajectory.collectAsState()
     val trajectorySearch by vm.sessionSearch.collectAsState()
     var showTrajectory by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    // G28 (vc51 Phase 4D): the attachment zoom-viewer target (null = closed) — full
+    // bytes load through the SAME fetchAttachment chunked path the artifact opener uses.
+    var attachmentViewerTarget by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf<com.zcode.android.domain.model.ConversationRow.UserInput.AttachmentMeta?>(null)
+    }
+    val attachmentLoader: suspend (com.zcode.android.domain.model.ConversationRow.UserInput.AttachmentMeta) -> ByteArray? = { att ->
+        val taskId = state.task?.taskId
+        if (taskId == null) {
+            null
+        } else {
+            val result = runCatching {
+                container.conversationPort.fetchAttachment(taskId, att.ref, null, null, null)
+            }.getOrNull()
+            val file = result?.file
+            // decode-in-memory cap: 12 MiB — larger media keeps the viewer honest-empty
+            if (file != null && file.length() <= 12L * 1024 * 1024) {
+                runCatching { file.readBytes() }.getOrNull()
+            } else {
+                null
+            }
+        }
+    }
+    if (attachmentViewerTarget != null) {
+        com.zcode.android.features.conversation.ui.AttachmentViewerDialog(
+            att = attachmentViewerTarget!!,
+            loader = attachmentLoader,
+            onDismiss = { attachmentViewerTarget = null },
+        )
+    }
     var trajectoryQuery by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
     androidx.compose.runtime.LaunchedEffect(forked) {
         val child = forked ?: return@LaunchedEffect
@@ -683,6 +712,35 @@ private fun ConversationRoute(
         // Phase 3D (A3.1): in-conversation attachment previews off the read channel.
         loadAttachment = { att ->
             state.task?.taskId?.let { container.conversationPort.fetchAttachmentPreview(it, att.ref) }
+        },
+        // G28 (vc51 Phase 4D): thumbnails open the zoom viewer; PDF/video chips hand
+        // off to the system viewer (the onOpenArtifact external-open pattern).
+        onOpenAttachment = { att -> attachmentViewerTarget = att },
+        onOpenAttachmentExternally = { att ->
+            val taskId = state.task?.taskId
+            if (taskId != null) {
+                scope.launch {
+                val result = runCatching {
+                    container.conversationPort.fetchAttachment(taskId, att.ref, null, null, null)
+                }.getOrNull()
+                val file = result?.file
+                if (file == null) {
+                    container.log.warn("attachment.open", "download failed: ${result?.error?.take(80)}")
+                    return@launch
+                }
+                runCatching {
+                    val uri = androidx.core.content.FileProvider.getUriForFile(
+                        context, context.packageName + ".fileprovider", file,
+                    )
+                    context.startActivity(
+                        android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                            setDataAndType(uri, att.mime)
+                            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        },
+                    )
+                }.onFailure { container.log.warn("attachment.open", "${it.javaClass.simpleName}: ${it.message?.take(80)}") }
+                }
+            }
         },
         // Phase 9 (§43.2-9)
         onOpenFiles = onOpenFiles,

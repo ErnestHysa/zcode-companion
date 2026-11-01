@@ -139,6 +139,10 @@ fun ConversationScreen(
     toolOutputProvider: (suspend (ConversationRow.ToolCall) -> String?)? = null,
     sessionStatusProvider: suspend () -> com.zcode.android.domain.model.GitSummary? = { null },
     loadAttachment: (suspend (ConversationRow.UserInput.AttachmentMeta) -> ByteArray?)? = null,
+    /** G28 (vc51 Phase 4D): tap-to-zoom on inbound image thumbnails. */
+    onOpenAttachment: ((ConversationRow.UserInput.AttachmentMeta) -> Unit)? = null,
+    /** G28: PDF/video chips hand off to an external viewer. */
+    onOpenAttachmentExternally: ((ConversationRow.UserInput.AttachmentMeta) -> Unit)? = null,
     // ---- Phase 4A (E3.2+I1+N5): flag-gated row actions over the proven wire ----
     onRetryTurn: (rowId: Long, entityId: String) -> Unit = { _, _ -> },
     onForkAssistant: (rowId: Long, entityId: String) -> Unit = { _, _ -> },
@@ -824,6 +828,10 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     onEditRow: ((ConversationRow.UserInput) -> Unit)? = null,
     toolOutputProvider: (suspend (ConversationRow.ToolCall) -> String?)? = null,
     loadAttachment: (suspend (ConversationRow.UserInput.AttachmentMeta) -> ByteArray?)? = null,
+    /** G28 (vc51 Phase 4D): tap-to-zoom on inbound image thumbnails. */
+    onOpenAttachment: ((ConversationRow.UserInput.AttachmentMeta) -> Unit)? = null,
+    /** G28: PDF/video chips hand off to an external viewer. */
+    onOpenAttachmentExternally: ((ConversationRow.UserInput.AttachmentMeta) -> Unit)? = null,
     rowActions: RowActionCallbacks = RowActionCallbacks(),
     /** A3.11 (Phase 5B): the rewind preview loader threaded to the turn card. */
     rewindPreviewProvider: (suspend (rowId: Long, entityId: String) -> com.zcode.android.domain.model.RewindPreview?)? = null,
@@ -1237,6 +1245,10 @@ private fun TimelineRow(
     onEditRow: ((ConversationRow.UserInput) -> Unit)? = null,
     toolOutputProvider: (suspend (ConversationRow.ToolCall) -> String?)? = null,
     loadAttachment: (suspend (ConversationRow.UserInput.AttachmentMeta) -> ByteArray?)? = null,
+    /** G28 (vc51 Phase 4D): tap-to-zoom on inbound image thumbnails. */
+    onOpenAttachment: ((ConversationRow.UserInput.AttachmentMeta) -> Unit)? = null,
+    /** G28: PDF/video chips hand off to an external viewer. */
+    onOpenAttachmentExternally: ((ConversationRow.UserInput.AttachmentMeta) -> Unit)? = null,
     rowActions: RowActionCallbacks = RowActionCallbacks(),
     /** A3.11 (Phase 5B): the rewind preview loader threaded to the turn card. */
     rewindPreviewProvider: (suspend (rowId: Long, entityId: String) -> com.zcode.android.domain.model.RewindPreview?)? = null,
@@ -1252,6 +1264,8 @@ private fun TimelineRow(
             text = row.text,
             attachments = row.attachments,
             loadAttachment = loadAttachment,
+            onOpenAttachment = onOpenAttachment,
+            onOpenAttachmentExternally = onOpenAttachmentExternally,
             findQuery = findQuery,
             findActive = findActive,
             createdAtMs = row.base.createdAt,
