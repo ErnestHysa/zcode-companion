@@ -3482,6 +3482,65 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
             }))
             return
         }
+        // G29 (vc51 Phase 4C): the authoring verbs — createTask appends a queued row,
+        // updateTask rewrites one, deleteTask/deleteHistory remove — all reflected in
+        // the next `list` (the monitor verbs' state contract, extended to authoring).
+        if (name == "createTask") {
+            val params = argAsObject(arg)
+            val title = params?.strOrNull("title")?.takeIf { it.isNotBlank() }
+            if (params == null || title == null || params.strOrNull("prompt").isNullOrBlank()) {
+                respondError(id, "fault.mock.badRequest:createTask needs title + prompt")
+                return
+            }
+            val row = buildJsonObject {
+                put("id", JsonPrimitive("offpeak-${script.offPeakTaskList?.size?.plus(1) ?: 1}"))
+                put("title", JsonPrimitive(title))
+                put("status", JsonPrimitive("queued"))
+                put("queuePosition", JsonPrimitive((script.offPeakTaskList?.size ?: 0) + 1))
+                put("createdAt", JsonPrimitive(System.currentTimeMillis()))
+                params.strOrNull("workspacePath")?.let { put("workspacePath", JsonPrimitive(it)) }
+            }
+            script.offPeakTaskList = JsonArray((script.offPeakTaskList ?: JsonArray(emptyList())) + row)
+            respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                put("ok", JsonPrimitive(true)); put("task", row)
+            }))
+            return
+        }
+        if (name == "updateTask") {
+            val params = argAsObject(arg)
+            val target = params?.strOrNull("offPeakTaskId")
+            val current = script.offPeakTaskList
+            if (params == null || target == null || current == null) {
+                respondError(id, "fault.mock.unscripted:updateTask")
+                return
+            }
+            val existing = current.firstOrNull {
+                (it.jsonObject["id"] as? JsonPrimitive)?.content == target
+            } as? JsonObject
+            if (existing == null) {
+                respondError(id, "fault.mock.unscripted:updateTask:target")
+                return
+            }
+            val updated = JsonObject(existing + params.filterKeys { it != "offPeakTaskId" }.mapValues { it.value as kotlinx.serialization.json.JsonElement })
+            script.offPeakTaskList = JsonArray(current.map { el ->
+                if ((el.jsonObject["id"] as? JsonPrimitive)?.content == target) updated else el
+            })
+            respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(updated))
+            return
+        }
+        if (name == "deleteTask" || name == "deleteHistory") {
+            val target = (arg as? RpcValue.Arr)?.items?.firstOrNull()?.let { (it as? RpcValue.Str)?.value }
+            val current = script.offPeakTaskList
+            if (target == null || current == null) {
+                respondError(id, "fault.mock.unscripted:$name")
+                return
+            }
+            script.offPeakTaskList = JsonArray(current.filter {
+                (it.jsonObject["id"] as? JsonPrimitive)?.content != target
+            })
+            respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
+            return
+        }
         if (name != "list") {
             respondError(id, "fault.mock.unknownMethod:off-peak-task-$name")
             return

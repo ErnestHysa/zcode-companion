@@ -408,6 +408,52 @@ fun main() {
             "status" to JsonPrimitive("pending"),
         ))
     }
+    // RIG-1 (vc51 Phase 4C / G29): MOCK_AUTOMATIONS=1 seeds the automations list; the
+    // handlers were always scripted (passes 5/9 debt) — only the env flags were missing.
+    if (System.getenv("MOCK_AUTOMATIONS") != null) {
+        mock.script.listAutomations = JsonArray(listOf(JsonObject(mapOf(
+            "automationId" to JsonPrimitive("auto-rig-1"),
+            "title" to JsonPrimitive("Nightly digest"),
+            "cronExpr" to JsonPrimitive("0 2 * * *"),
+            "prompt" to JsonPrimitive("Summarize yesterday's commits"),
+            "enabled" to JsonPrimitive(true),
+            "lifecycleStatus" to JsonPrimitive("active"),
+            "runCount" to JsonPrimitive(3),
+            "recurring" to JsonPrimitive(true),
+            "mode" to JsonPrimitive("task"),
+        ))))
+    }
+    // RIG-1 (vc51 Phase 4C / G29): MOCK_OFFPEAK=1 seeds the off-peak list — one queued,
+    // one paused (the pause arm exercises the monitor verbs), one COMPLETED (the history
+    // face the G29 leg verifies) — plus the workspace key the phone filters by.
+    if (System.getenv("MOCK_OFFPEAK") != null) {
+        val now = System.currentTimeMillis()
+        mock.script.offPeakTaskList = JsonArray(listOf(
+            JsonObject(mapOf(
+                "id" to JsonPrimitive("offpeak-rig-1"),
+                "title" to JsonPrimitive("Nightly refactor sweep"),
+                "status" to JsonPrimitive("queued"),
+                "queuePosition" to JsonPrimitive(1),
+                "createdAt" to JsonPrimitive(now - 40_000),
+                "workspacePath" to JsonPrimitive("/synthetic/ws-one"),
+            )),
+            JsonObject(mapOf(
+                "id" to JsonPrimitive("offpeak-rig-2"),
+                "title" to JsonPrimitive("Weekend doc migration"),
+                "status" to JsonPrimitive("paused"),
+                "createdAt" to JsonPrimitive(now - 80_000),
+                "workspacePath" to JsonPrimitive("/synthetic/ws-one"),
+            )),
+            JsonObject(mapOf(
+                "id" to JsonPrimitive("offpeak-rig-3"),
+                "title" to JsonPrimitive("Old dependency bump"),
+                "status" to JsonPrimitive("completed"),
+                "createdAt" to JsonPrimitive(now - 3 * 24 * 3600_000),
+                "workspacePath" to JsonPrimitive("/synthetic/ws-one"),
+                "sessionId" to JsonPrimitive("synth-op-session-1"),
+            )),
+        ))
+    }
     // Phase 4C (C2) rig leg: the slash panel's extra sections — one custom command,
     // one skill, one agent (synthetic, INV-15/16).
     mock.script.commandsList = JsonObject(mapOf(
