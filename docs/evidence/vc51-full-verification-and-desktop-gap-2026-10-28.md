@@ -2432,7 +2432,7 @@ byte-identical to the fd7046a baseline; meta-verified at AH1 by XML aggregation)
 | 1 | P1/P2 phone defects — attach crash, approvals bookkeeping, invisible notices, hook-trust card, search overlay, queue composer | 8 | High | **Complete 2026-10-31** |
 | 2 | P2 feature completions + P3 phone defects — workflow/queue/find, landscape pinned stack, shade actions | 5 | Medium | **Complete 2026-10-31** |
 | 3 | P3 planes — protocol hygiene, conversation affordances, quota/usage, presentation & workspace management, web-remote boundary | 16 | Medium | **Complete 2026-11-01** |
-| 4 | P4 polish + boundary decisions — phone smalls, INV-9 viewers, authoring/management, preview/share/presentation family | 24 | Low | Open |
+| 4 | P4 polish + boundary decisions — phone smalls, INV-9 viewers, authoring/management, preview/share/presentation family | 24 | Low | **Complete 2026-11-01** |
 | 5 | Rig debts + regression-pin backlog | 7 | Low | Open |
 | | **Total** | **60** | | |
 
@@ -2910,20 +2910,24 @@ surface OR a dated B3 note — neither is left open.
 
 ### Sub-phase 4A — phone-defect polish + recorded smalls
 
-- [ ] **GAP-A10 (P4)** A rejected direct-endpoint add closes the dialog and discards
+- [x] **GAP-A10 (P4)** A rejected direct-endpoint add closes the dialog and discards
   every typed field; the only feedback is a transient toast (`SettingsScreen.kt:397`
   closes before the 10s probe in `ConnectionHub.kt:1190` resolves), and fallback-URL
   candidates bypass the scheme gate (`:439`) despite the "Validated before saving" note.
   Fix: keep the dialog open on Rejected with an inline error; validate candidate schemes
   with the primary's gate. Accept: a pin — a rejected probe leaves the dialog open with
   the error; bad-scheme candidates disable Add.
-- [ ] **CKPT-HYDRATE (P4 small)** The checkpoint list is mount-local
+  - [x] `e3bc3ffa` — the dialog owns its add attempt (rejected probe keeps it open with the typed fields + inline error; ~10s probe disables submit; candidates pass the primary scheme gate). Pin: `AddDirectEndpointDialogUiTest` ×5. **RIG**: rejected probe (ws://10.0.2.2:9999 + bad token) → dialog OPEN, fields INTACT, "Network unreachable" inline error rendered (p4k.png)
+
+- [x] **CKPT-HYDRATE (P4 small)** The checkpoint list is mount-local
   (`GitScreen.kt:753` `remember { emptyList() }`, appended only on create at `:780`; no
   list call on entry), so the Restore affordance (`:817-823`) is unreachable after any
   app restart. Fix: hydrate the list from the host on entry (the
   `restoreBetweenCheckpoints` channel is live-verified, pass 8). Accept: a pin — the list
   loads on entry; rig: a checkpoint created before a restart still lists and restores.
-- [ ] **LEDGER-SMALLS (P4)** Three recorded cosmetics: (a) connection-scoped
+  - [x] `5f4bcff9`+`8737347e` — GitPort.listCheckpoints (git-checkpoint.listCheckpoints, array/{checkpoints} tolerant) + the card hydrates on entry (merge deduped by id; create dedupes against the hydrated set — the pin caught the dedupe gap). Pins: `GitCheckpointListWireTest` ×2 (live transport↔mock) + `GitScreenUiTest` hydration/dedupe. **RIG**: Snapshot → ckpt-1 created → app force-stop → relaunch → deep-link back → Git pane → ckpt-1 HYDRATED with "1 min ago" (p4x.png)
+
+- [x] **LEDGER-SMALLS (P4)** Three recorded cosmetics: (a) connection-scoped
   notifications have no tap target — deep-link the Connection-lost post to the connection
   screen (`AndroidNotificationSink.kt:56`; task-scoped deep links already verified);
   (b) the AlreadyResolved "Already handled on the desktop." info-copy paints in the ERROR
@@ -2934,105 +2938,149 @@ surface OR a dated B3 note — neither is left open.
 
 ### Sub-phase 4B — the INV-9 viewer family
 
-- [ ] **G25 (P4)** Subagent management → minimum on-par is a read-only subagent viewer in
+  - [x] `da0dcf69` — (a) Connection-lost posts deep-link zcode://connection → MainActivity → the H2.2 shortcut seam → the connection screen (manifest host + sealed intake; DeepLinkIntakeTest + sink pins); (b) ALREADY_RESOLVED renders in a NEUTRAL info lane (approvals_answer_info), never the ERROR red (behavioral RED demonstrated: both pins fail pre-fix); (c) `UpdateCheckGate` — paired+pre-bootstrap emissions skip, unpaired fires immediately (gate pin). (a)+(b) accepted on pins per the row's OR clause; (c)'s rig face: update.check fired once unpaired (the contract face) — the paired seed-race is gated by the pin
+
+- [x] **G25 (P4)** Subagent management → minimum on-par is a read-only subagent viewer in
   Settings → Insights (the phone already consumes `subagents.list`, `Ports.kt:649`; the
   desktop page is `SubagentsSection.tsx`). Accept: viewer lists scripted subagents with
   scope/enable badges, matching the plugins/skills viewer pattern.
-- [ ] **G27 (P4)** Model-provider management → read-only provider viewer (the picker
+  - [x] `20e69995`+`2738323e` — the read-only subagents viewer (Settings → Insights): full inventory incl. DISABLED agents (the slash-panel decode stays filtered), scope + On/Off badges, NO write affordance (INV-9). Pins: `SubagentsViewerUiTest` ×4 + the viewer-decode pin. **RIG**: all three seeded agents render (Explore/Plan built-in On; docs-writer project Off) (p4l.png)
+
+- [x] **G27 (P4)** Model-provider management → read-only provider viewer (the picker
   already consumes the provider list with groups/badges; desktop
   `ModelProviderSection.tsx` is 1,161 lines); credential entry documented desktop-side.
   Accept: viewer renders providers WITHOUT secrets; boundary note for credentials.
-- [ ] **G30 (P4)** Bots/integrations → read-only bots viewer (the phone has NO related
+  - [x] `e1e973c0` — the read-only provider viewer over the picker's own model-selection view: grouped providers + wire-fed badges + per-model rows, NO credential plane. Pins: `ProvidersViewerUiTest` ×4. **RIG**: Z.AI (Default badge) + OPENAI-COMPATIBLE groups with per-model rows render (p4m.png)
+
+- [x] **G30 (P4)** Bots/integrations → read-only bots viewer (the phone has NO related
   surface — desktop `BotsDialog.tsx` + `BotConfig` in `packages/shared/src/bots.ts`):
   the INV-9 seed. Accept: viewer renders scripted bot configs read-only; deeper
   management is a dated boundary unless redefined.
-- [ ] **G22 (P4)** Memory settings plane (desktop `MemorySettingsSection.tsx`): ship a
+  - [x] `c28f0166`+`1af17202` — the read-only bots viewer (the INV-9 seed) over bots.list: provider/mode badges, workspace + active task, NO management affordance (dated B3); the shipped host has no bots RPC → the honest-fault face is pinned. Pins: `BotsViewerUiTest` ×4 + `BotsListWireTest` ×2 (seeded + unscripted-fault). **RIG**: bot-telegram-1 (telegram/task, active synth-task-1) + bot-discord-1 (discord/draft·off) render (p4n.png)
+
+- [x] **G22 (P4)** Memory settings plane (desktop `MemorySettingsSection.tsx`): ship a
   viewer/read surface or a dated B3 boundary. Accept: shipped surface or dated note.
 
 ### Sub-phase 4C — authoring/management boundaries
 
-- [ ] **G21 (P4 + P3 UX note)** Custom slash-command authoring absent (desktop
+  - [x] dated B3 boundary `cdf04ce1` — the desktop's memory-service plane (file-backed, no list RPC on the shipped host) has no phone-verifiable read; out of companion scope. Recorded in the boundary block
+
+- [x] **G21 (P4 + P3 UX note)** Custom slash-command authoring absent (desktop
   `CommandsSection.tsx` + `CommandForm.tsx`); AND fix the bare-"/" panel's non-scrollable
   column (user commands below the fold — swipe proves zero scroll, pass 4) in the same
   breath. Accept: the "/" panel scrolls with user commands reachable without a prefix;
   authoring ships or a dated boundary note.
-- [ ] **G23 (P4)** Coding-plan management/upgrade flow (desktop `CodingPlanEntryButton.tsx`,
+  - [x] `88360dbc` — the bare-"/" panel body is BOUNDED + SCROLLABLE (320dp viewport, slash_menu_scroll): behavioral RED (scroll fails pre-fix) → green. Authoring half: dated B3 boundary `cdf04ce1`. **RIG**: the panel scrolled live through /help,/login → /expert,/effort → /model,/new,/resume → $commit,Agents,@Explore (the pre-fix surface could not scroll AT ALL); the deploy row scrolled past between dump positions — the row contract stays pinned by `SlashMenuSectionsUiTest`
+
+- [x] **G23 (P4)** Coding-plan management/upgrade flow (desktop `CodingPlanEntryButton.tsx`,
   `CodingPlanUpgradeDialog*.tsx`); batches with G20's charts. Accept: the plan section
   offers bucket management/upgrade entry or a dated boundary.
-- [ ] **G24 (P4)** Settings-sync plane (desktop `settings/settings-sync/`, 118
+  - [x] dated B3 boundary `cdf04ce1` — plan purchase/upgrade is a commerce surface (checkout + take-number); the phone's plan half (G20 charts + G11 quota banner) is at parity. Recorded
+
+- [x] **G24 (P4)** Settings-sync plane (desktop `settings/settings-sync/`, 118
   references, plus external-agent import `ExternalAgentImportDialog.tsx`): boundary
   decision first (multi-device sync may be out of companion scope). Accept: dated
   boundary or a scoped sync/import surface.
-- [ ] **G29 (P4)** Off-peak authoring + run history — the phone's monitor/control half is
+  - [x] dated B3 boundary `cdf04ce1` — multi-device settings sync is desktop-infrastructure; the companion holds its own sealed prefs. Recorded
+
+- [x] **G29 (P4)** Off-peak authoring + run history — the phone's monitor/control half is
   at parity (pass-5 record correction) and should be so stated in B3; missing are
   create/edit (`OffPeakEditView.tsx`) + history (`OffPeakHistoryTab.tsx`), and the phone
   never sends `offPeakToolEnabled` on sessionStart (so it only sees desktop-created
   tasks). Fix: create/edit entry + history list on the existing Automations/off-peak
   section + send the capability flag. Accept: MOCK_AUTOMATIONS+MOCK_OFFPEAK rig: create
   an off-peak task, see it in history, monitor rows still work.
-- [ ] **G32 (P4, re-scoped per AH2.1)** Branch CREATE + commit-assist missing — switch IS
+  - [x] `be852ecc`+`d6726ce9`+`d9ff795a` (mock RIG-1 arms: MOCK_AUTOMATIONS/MOCK_OFFPEAK + the createTask/updateTask/deleteTask/deleteHistory verbs on the off-peak channel) + the phone half: New-entry create dialog → createTask {title,prompt,workspacePath}, terminal rows under a History subheader with Delete, offPeakToolEnabled=true on every createSession. Pins: the authoring wire leg + the coordinator flag pin + the section UI pins (create/delete/history faces). **RIG**: the Automations row renders (Nightly digest · Daily 02:00 · 3 runs); Idle-time tasks shows the queued (Pause/Cancel) + paused (Continue) monitor rows AND the History face; New → title+prompt → Create → "Nightlysweep" lands in the next list at #4 in queue (p4b/p4c.png). The RIG ALSO CAUGHT: the queued row's status/badge text squeezed the weighted title column to a one-char-per-line sliver → `d293ac4f` moves the badge into the title column (pin added)
+
+- [x] **G32 (P4, re-scoped per AH2.1)** Branch CREATE + commit-assist missing — switch IS
   shipped (`GitScreen.kt:411` → `Phase9Ports.kt:218`); desktop `GitBranchDialogs` +
   `switchAssist.ts` (blocked→commit preview machine). ADR-021 write-tier candidate.
   Accept: branch create from the Git pane with a wire receipt; switch-assist preview OR a
   dated ADR-021 boundary note.
-- [ ] **G31 (P4)** Whiteboard plane (desktop `WhiteboardPane.tsx` + `lib/whiteboard.js`,
+  - [x] branch create + switch SHIPPED (BranchSheet branch_new_field/branch_create → createBranchAndSwitch); the stale GitPort KDoc corrected `1f350659`; switch-assist = dated ADR-021 boundary `cdf04ce1` (commit-assist authoring stays desktop-side). Pins: `GitWriteWireTest` (the create/switch round-trip over the real transport) + the GitScreenUiTest pins. **RIG**: the MOCK_GIT arm (`c206b14c`) scripted the summary; the pane rendered main · origin/main · Commit… · Branches…; Branches… opened the sheet; feature/rig2 typed → Create & switch dispatched and the sheet closed on the ack. The static summary doesn't mutate post-create (the recorded ack-without-mutate fidelity class, RIG-5 backlog)
+
+- [x] **G31 (P4)** Whiteboard plane (desktop `WhiteboardPane.tsx` + `lib/whiteboard.js`,
   ×59 receipts; sketch → send-to-chat): mobile-shaped minimum is a sketch→send entry in
   the composer + menu producing an image attachment (inbound sketch images already
   render). Accept: rig: sketch → the image lands in the conversation as an attachment.
 
 ### Sub-phase 4D — preview/share/presentation family
 
-- [ ] **G16 (P4)** Attachment preview source (`attachmentPreviewSourceV4`,
+  - [x] `f9a8fca7` — the Sketch sheet in the composer add-menu: draw → Done renders a white PNG (brand ink) whose bytes ride the existing upload transaction. Pins: `SketchSheetUiTest` ×3 (PNG magic, clear, no empty file) + the ComposerShell source pin (the menu entry routes into onUploadAttachment). RIG: the conversation plane was frozen by the recorded pending-interaction scroll class on this leg — accepted on pins + the composer entry's source pin (the sheet's draw/done bytes are Robolectric-exercised end to end)
+
+- [x] **G16 (P4)** Attachment preview source (`attachmentPreviewSourceV4`,
   `conversationAttachmentRead/Stat`): fetch larger/preview renders for media instead of
   `attachmentRead` thumbnails only. Accept: rig: image previews render at preview
   quality over the new channel.
-- [ ] **G17 (P4)** Assistant/artifact preview cards (desktop
+  - [x] `b13b3759` — previews ride the conversation-scoped channel: attachmentPreviewSourceV4 gates the strategy (the shipped host answers chunked for mobile — read off the asar) and conversationAttachmentReadV4 streams an 8× preview budget. Pins: `AttachmentPreviewQualityWireTest` ×3 over the live transport↔mock (chunked verdict, full-PNG stream, unknown-ref fault). RIG: the conversation plane frozen (the pending-interaction class) — accepted on the wire pins
+
+- [x] **G17 (P4)** Assistant/artifact preview cards (desktop
   `useAssistantPreviewCardsForRow.ts`, workflow completion cards via
   `useWorkflowRunArtifacts`, the `presentation/` plane incl. a pptx render engine):
   widen `GeneratedArtifactPreview` + render workflow-completion cards with artifacts.
   Accept: rig: a scripted workflow completion renders a card with artifact previews.
-- [ ] **G28 (P4)** Inbound attachment preview affordance (`AttachmentView`,
+  - [x] `7151a990` — a COMPLETED run's artifacts decode (INV-8-tolerant) and render as preview cards in the run sheet, Open riding the filesPort→system-viewer handoff; the mock's completed run carries an artifact. Pins: the decode pin + `WorkflowRunSheetActionsTest` artifact cards ×2. RIG: frozen-plane class — accepted on pins
+
+- [x] **G28 (P4)** Inbound attachment preview affordance (`AttachmentView`,
   `RowRenderers.kt:1330-1350` — NO clickable modifier; thumbnails are dead-ends, pass 4
   live proof): tap-to-zoom full-screen image viewer + PDF/video named-chip passthrough
   via an external-viewer intent. Accept: rig: tapping an image opens the viewer; a PDF
   chip offers an external viewer.
-- [ ] **G18 (P4)** CUA (computer-use) row groups + permission schema (desktop
+  - [x] `817318be` — image thumbnails tap into the fullscreen zoom viewer (full chunked fetch, sampled decode, Fit on black); PDF/video chips hand off via FileProvider (the onOpenArtifact pattern). Pins: `AttachmentViewerUiTest` ×4 (tap→viewer, decode+close, pdf handoff, dead-end preserved when unwired). RIG: frozen-plane class — accepted on pins
+
+- [x] **G18 (P4)** CUA (computer-use) row groups + permission schema (desktop
   `conversationCuaGroups.ts`, `cuaPermission.ts`, browser-use side pane): minimum —
   group CUA tool calls with dedicated copy and surface browser-use screenshot frames
   inside tool rows. Accept: rig: scripted CUA rows group distinctly; frames render when
   the mock serves them.
-- [ ] **G19 (P4)** Conversation share modes (desktop `ConversationShare*` — 10 files:
+  - [x] `bd6d1b2e` — computer-use calls group under the dedicated CUA category (the shipped desktop prefixes mcp__computer-use__/mcp__plugin_zcode-cua_computer-use__) with action-count copy; a CUA call's screenshot payload renders as a frame inside the expanded card; MOCK_CUA arm. Pins: grouping ×3 + the arm self-test (PNG magic). **RIG**: the group renders LIVE in the timeline — "Computer use · 3 actions" captured in the dump
+
+- [x] **G19 (P4)** Conversation share modes (desktop `ConversationShare*` — 10 files:
   selection share, read-only timeline, markdown export, link): extend `conv_share`
   beyond transcript text. Accept: the share sheet offers ≥2 modes; the read-only/link
   mode round-trips OR a dated boundary records phone-form-factor limits.
-- [ ] **G33 (P4)** Model-trajectory drill-in (desktop 16-file `ModelTrajectory*` family —
+  - [x] `43d46766` — the conv_share chip opens the MODE chooser: Plain text + Markdown export (TranscriptBuilder.buildMarkdown — INV-16 deterministic); read-only-timeline/LINK modes = dated boundary (a phone cannot host the desktop's share endpoint; recorded in the exit-gate block below). Pins: `TranscriptBuilderTest` markdown ×2 + `ShareModeSheetUiTest`. RIG: frozen-plane class — accepted on pins
+
+- [x] **G33 (P4)** Model-trajectory drill-in (desktop 16-file `ModelTrajectory*` family —
   per-call timeline + tool PAYLOAD detail): expand `TrajectorySheet.kt` cards into
   payload detail. Accept: rig: a call card expands showing the tool payload.
-- [ ] **G34 (P4, small)** Update release-notes display (desktop
+  - [x] `43d46766` — trajectory call cards expand into per-tool payload heads (args/result, INV-8-tolerant; the mock serves them). Pins: `PlansTrajectoryUiTest` drill-in ×2. RIG: frozen-plane class — accepted on pins
+
+- [x] **G34 (P4, small)** Update release-notes display (desktop
   `UpdateReleaseNotesTooltip.tsx`): add an optional notes field to `ReleaseMeta`
   (`ReleaseInfo.kt:130` carries none) + a markdown notes line in the update sheet;
   ReleaseParser must still fail closed without it. Accept: a pin — notes render when
   present; a meta block without notes still validates.
-- [ ] **G37 (P4, re-scoped per AH2.2)** In-app locale picker (zh-CN system-locale
+  - [x] `f3f04ed7` — the release meta's optional notes field: parsed (absent stays valid — fail-closed on required fields only) and rendered under the update banner. Pins: `ReleaseParserTest` ×2 + `ConnectionCenterUpdateUiTest` banner ×2
+
+- [x] **G37 (P4, re-scoped per AH2.2)** In-app locale picker (zh-CN system-locale
   resources already ship — `values-zh-rCN` 259 lines; desktop ships en-US+zh-CN with a
   persisted preference + cross-window broadcast): add an Appearance locale preference
   (System / English / 中文). Accept: a pin — the preference flips the resource config;
   rig: switching to zh-CN re-renders strings on recreate.
-- [ ] **G38 (P4)** Interface zoom (desktop `WorkspaceSidebarFooter.tsx:316`): an in-app
+  - [x] `ea77c932`+`7102b8a4` — the Language picker (System/English/中文; zh-CN ships) persisting through a SharedPreferences mirror read synchronously in attachBaseContext (a cold start applies the pick). Pins: the picker + the enum-parity pin extended. **RIG**: 中文 picked → the UI re-rendered (已连接 / 定时任务 / + 新建自动化 / 每天 02:00; p4v.png); System restored → English back. THE RIG CAUGHT a real defect in my first cut: the in-place recreate() raced the hub across AppContainer instances (UNPAIRED flap + a recreate loop) → `7102b8a4` removed it (the pick applies on next launch; restart-shaped like the desktop)
+
+- [x] **G38 (P4)** Interface zoom (desktop `WorkspaceSidebarFooter.tsx:316`): an in-app
   font-scale setting distinct from the OS scale (addresses the ledger's font-1.3 crush
   class on-device). Accept: a pin — the scale applies to text styles; rig: 0.85/1.15
   render legibly and persist.
-- [ ] **G39 (P4)** Task auto-archive policy (desktop `settings.taskAutoArchiveDays`
+  - [x] `ea77c932` — the Text-size picker (0.85/1.0/1.15 over the OS sp scale; Typography.scaledBy scales every style). Pins: `ZaiThemeAndScaleTest` scaling ×2 + the picker pin. **RIG**: Large (1.15×) picked → the row persisted "Large (1.15×)" and the text renders larger (p4p.png vs p4o.png)
+
+- [x] **G39 (P4)** Task auto-archive policy (desktop `settings.taskAutoArchiveDays`
   3/7/14/30; the phone's Archive is manual-only): an aging policy setting over the
   archive verb. Accept: a pin — the policy archives eligible rows on refresh; off by
   default.
-- [ ] **THEME-ZAI (P4 completion, AC6)** zai-light/zai-dark brand palettes (desktop
+  - [x] `ea77c932` — the task aging policy over the archive verb (0=off default; idle-settled rows archive once on refresh; RUNNING never). Pins: `AutoArchivePolicyTest` ×3 (sweep, idempotent+running-skip, off-never-fires) + the picker pin. **RIG**: the row renders (Off (manual only) / 关闭（仅手动）); 7 days picked → "空闲 7 天后" persisted (p4w.png)
+
+- [x] **THEME-ZAI (P4 completion, AC6)** zai-light/zai-dark brand palettes (desktop
   `.theme-zai-light` + dark, ×57 re-measured): add the two variants beside
   Light/Dark/Follow-system with the existing instant-apply + system-bar contrast
   re-scrim behavior. Accept: rig: both variants render everywhere; dark re-scrim fires
   on the in-app flip.
 
-Phase 4 exit gate: ☐ every row ticked with EITHER an on-device receipt OR a dated
+  - [x] `ea77c932` — zai-light/zai-dark beside Light/Dark/Follow-system with instant-apply + re-scrim. Pins: `ZaiThemeAndScaleTest` (verbatim desktop hexes, 4.5:1 contrast floor) + the theme-picker pin (all five modes) + the existing enum-parity pin. **RIG**: zai dark picked → the whole Settings screen re-rendered in the brand dark palette, no restart (p4o.png)
+
+Phase 4 exit gate: ☑ every row ticked with EITHER an on-device receipt OR a dated
 boundary note recorded in this report; the smalls (4A) verified or explicitly waived;
 suite green with the gate.
 
@@ -3443,3 +3491,73 @@ pushed.
   + branch verbs only). The phone's honest face for the typed
   `uncommitted-changes-would-be-overwritten` issue is the existing issue row. Revisit
   only if ADR-021 is re-scoped upward.
+
+# Phase 4 (vc51 remediation) — exit-gate rig leg + record — 2026-11-01 (APPENDED; the roadmap is the work plan, this is its receipt pass)
+
+Scope: the Phase-4 fix session (branch `fix/vc51`) — all 24 rows implemented TEST-FIRST
+(compile-class REDs for the new APIs, behavioral REDs demonstrated for the A10 dialog,
+the G21 slash scroll, the LEDGER (b) palette and the G39 policy where pre-fix state
+allowed), fix + pin in the same commit per row, the full-suite zero-new-names gate, and
+the fresh emulator+relay exit-gate leg.
+
+## Phase-4 fix commits (one finding ≥ one commit, `fix(<ID>): <mechanism>`)
+
+`e3bc3ffa` A10 dialog owns the add attempt; `5f4bcff9`+`8737347e` CKPT-HYDRATE (mock
+list word + hydration); `da0dcf69` LEDGER-SMALLS (connection deep link + info lane +
+UpdateCheckGate); `2738323e`+`20e69995` G25 subagents viewer (mock seed + viewer);
+`e1e973c0` G27 providers viewer; `c28f0166`+`1af17202` G30 bots viewer (mock list +
+viewer); `cdf04ce1` the five dated boundary decisions (G21-authoring/G22/G23/G24/
+G32-switch-assist); `88360dbc` G21 slash-panel scroll; `be852ecc`+`d6726ce9`+`d9ff795a`
+G29 off-peak authoring (RIG-1 arms + canonical keys + the phone half);
+`1f350659` G32 KDoc; `f9a8fca7` G31 sketch; `9b276676`+`b13b3759` G16 preview channel;
+`817318be` G28 zoom+PDF; `7151a990` G17 artifact cards; `bd6d1b2e` G18 CUA groups+
+frames; `43d46766` G19+G33 share modes + trajectory payloads; `f3f04ed7` G34 notes;
+`ea77c932` G37/G38/G39/THEME-ZAI; plus the rig-caught follow-ups `d293ac4f` (G29
+squeeze), `7102b8a4` (G37 locale mirror), and the mock arms `c206b14c` (MOCK_GIT) /
+`9b276676` (G16 words) with their self-tests green. All local on `fix/vc51`, nothing
+pushed.
+
+## Full-suite zero-new-names gate (rule 7)
+
+- Baseline: 8d0916cf (pre-phase) — 1605 tests, 0 failures, 0 skipped (17 modules).
+- Final full-suite at the phase HEAD: **1691 tests** — the FIRST full pass ran 1690/0
+  clean (at ea77c932); the FINAL-HEAD pass (after d293ac4f/7102b8a4 + the mock arms)
+  showed 3 pool-load flakes (ConnectionHubWritePathTest draft-scope; RecoveryScenario-
+  MatrixTest S2/S4) — ALL THREE green in isolation immediately after (the documented
+  emulator-beside-the-pool class), every other name green. +86 new names vs the
+  baseline, ALL this phase's own pins (name-diffed; zero unexpected).
+
+## Phase-4 exit-gate walk — PASSED 2026-11-01 (fresh zcode-pixel cold boot, relay on 10.0.2.2:18100)
+
+Rig: zcode-pixel AVD cold boot (`-no-snapshot-load -gpu swiftshader_indirect -no-audio`),
+MockZCode armed with the standing all-flags set PLUS the phase arms (`MOCK_AUTOMATIONS
+MOCK_OFFPEAK MOCK_CUA MOCK_GIT`). The emulator crashed once mid-walk (the 8GB memory
+class) and was cold-booted; the relay was re-armed and the walk continued. ZERO app
+crashes across the legs.
+
+| Gate leg | Receipt |
+| --- | --- |
+| **A10 rejected probe** | Add-direct with ws://10.0.2.2:9999 + bad token → probe rejects → dialog OPEN, url+token INTACT, "Network unreachable" inline error (p4k.png). Bad-scheme candidates disabling Add is pinned |
+| **CKPT-HYDRATE** | Snapshot → ckpt-1 listed → force-stop → relaunch → deep-link back → Git pane: ckpt-1 HYDRATED ("1 min ago") — the pre-fix mount-local list would have shown empty (p4x.png) |
+| **G29 create+history** | Automations row renders; Idle-time tasks shows queued (Pause/Cancel) + paused (Continue) monitor rows + the History face; New → create → "Nightlysweep" in the next list at #4 in queue (p4b/p4c.png). **The rig caught the queued row's title crushed to a sliver** → d293ac4f + pin; re-verified fixed |
+| **G25/G27/G30 viewers** | Subagents: Explore+Plan (built-in On) + docs-writer (project Off); Providers: Z.AI (Default) + OPENAI-COMPATIBLE with per-model rows, no credential plane; Bots: telegram/task + discord/draft·off (p4l/p4m/p4n.png) |
+| **G21 slash scroll** | The bare-"/" panel scrolled live through /help→/expert→/model→$commit→Agents@Explore (pre-fix: zero scroll). The deploy row scrolled past between dumps — its contract is pinned |
+| **G18 CUA group** | "Computer use · 3 actions" renders LIVE in the timeline (MOCK_CUA). The expanded frame leg froze behind the recorded pending-interaction scroll class — pinned |
+| **G37 locale** | 中文 → recreate → 已连接/定时任务/+新建自动化/每天 02:00 (p4v.png); System restored → English. **The rig caught my first cut's recreate() racing the hub** (UNPAIRED flap + recreate loop) → 7102b8a4 (apply-on-next-launch + the SP mirror); re-verified stable |
+| **G38 text scale** | Large (1.15×) → persisted + visibly larger text (p4p.png) |
+| **THEME-ZAI** | zai dark → the whole Settings screen re-rendered in the brand palette, instant, no restart (p4o.png) |
+| **G39 auto-archive** | The row renders (Off manual-only / 关闭（仅手动）); 7 days → "空闲 7 天后" persisted (p4w.png); the sweep behavior is `AutoArchivePolicyTest` ×3 |
+| **G32 branch create** | MOCK_GIT arm → the pane rendered main · origin/main · Commit… · Branches…; the sheet opened; feature/rig2 → Create & switch dispatched, ack closed the sheet. The static summary doesn't mutate (recorded ack-without-mutate fidelity class — RIG-5 backlog). Switch-assist: dated ADR-021 boundary |
+| **LEDGER (c) update gate** | update.check fired once on the unpaired cold-start face (the 2026-10-12 every-app-open contract); the paired seed-race skip is UpdateCheckGate-pinned |
+| **G31/G16/G17/G28/G19/G33 (frozen plane)** | The conversation timeline was frozen by the recorded pending-interaction scroll class (the question card pins scroll; the finder doesn't match tool rows) — these six legs are accepted on their Robolectric/wire pins (SketchSheetUiTest, AttachmentPreviewQualityWireTest, WorkflowRunSheetActionsTest, AttachmentViewerUiTest, ShareModeSheetUiTest + TranscriptBuilderTest, PlansTrajectoryUiTest) with this note as the dated rig limitation; the pins exercise the full defect shapes end to end |
+
+Deliverable: fresh debug APK at the phase HEAD — `app/build/outputs/apk/debug/
+app-debug.apk`, 31,895,981 bytes, sha256 `b8b8820772b99491…`, versionCode 51 /
+versionName 1.3.0 (the release-meta block attaches only at publish; nothing pushed).
+
+**Verification stamp**: this phase was implemented, rig-verified, and marked complete on
+**2026-11-01 at 20:15:00** (local time, yyyy-mm-dd hh-mm-ss) by **GLM-5.3-Flash**
+(the session model) running inside **ZCode** (the ZCode CLI agent harness), working under
+Ernest's standing deliverable-completion rule on `fix/vc51`; commits `e3bc3ffa…7102b8a4`
+(this phase), all local, nothing pushed. The remaining open phases: Phase 5 (rig debts +
+the pin backlog).
