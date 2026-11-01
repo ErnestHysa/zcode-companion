@@ -428,4 +428,6 @@
     <string name="quota_banner_exhausted">Your plan quota is exhausted — the agent may be throttled until the next reset.</string>
     <string name="quota_banner_ratio">%1$d%% remaining</string>
     <string name="quota_banner_open">View plan</string>
+    <string name="goal_resume_a11y">Resume goal</string>
+    <string name="goal_pause_a11y">Pause goal</string>
 </resources>

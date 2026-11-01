@@ -106,9 +106,10 @@ fun GoalPanel(
             // (ConversationStatusPanel.tsx data-goal-action="pause"/"resume").
             if (goal.status == "paused") {
                 onResumeGoal?.let { cb ->
+                    val resumeA11y = stringResource(com.zcode.android.features.conversation.R.string.goal_resume_a11y)
                     Icon(
                         Icons.Filled.PlayArrow,
-                        contentDescription = "Resume goal",
+                        contentDescription = resumeA11y,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier
                             .size(16.dp)
@@ -119,9 +120,10 @@ fun GoalPanel(
                 }
             } else {
                 onPauseGoal?.let { cb ->
+                    val pauseA11y = stringResource(com.zcode.android.features.conversation.R.string.goal_pause_a11y)
                     Icon(
                         Icons.Filled.Pause,
-                        contentDescription = "Pause goal",
+                        contentDescription = pauseA11y,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
                             .size(16.dp)
