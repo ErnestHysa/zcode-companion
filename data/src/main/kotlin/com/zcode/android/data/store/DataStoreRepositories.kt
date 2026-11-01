@@ -138,6 +138,10 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
         interfaceMode = com.zcode.android.domain.model.AppPreferences.InterfaceMode.fromWire(
             if (hasInterfaceMode()) interfaceMode else null,
         ),
+        // G41 (vc51): additive-first — empty map/list → the wire order, no aliases.
+        workspaceOrder = workspaceOrderList.toList(),
+        workspaceAliases = workspaceAliasesMap,
+        selectedWorkspaceKey = if (hasSelectedWorkspaceKey()) selectedWorkspaceKey else null,
     )
 
     private fun AppPreferences.toProto(): AppPreferencesProto {
@@ -146,6 +150,9 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
         val selected = selectedEndpointId
         val behavior = interactionBehavior
         val mode = interfaceMode
+        val wsOrder = workspaceOrder
+        val wsAliases = workspaceAliases
+        val wsSelected = selectedWorkspaceKey
         return AppPreferencesProto.newBuilder()
             .setLiveConnectionTimeoutMinutes(liveConnectionTimeoutMinutes)
             .setSchemaVersion(EndpointRepositoryImpl.SCHEMA_VERSION)
@@ -162,6 +169,11 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
             .apply { selected?.let { setSelectedEndpointId(it) } }
             .apply { behavior?.let { setInteractionBehavior(it) } }
             .setInterfaceMode(mode.name)
+            .apply {
+                wsOrder.forEach { addWorkspaceOrder(it) }
+                wsAliases.forEach { (k, v) -> putWorkspaceAliases(k, v) }
+                wsSelected?.let { setSelectedWorkspaceKey(it) }
+            }
             .build()
     }
 }

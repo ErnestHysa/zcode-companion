@@ -414,6 +414,8 @@ private fun TasksRoute(
     onOpenTaskId: (String) -> Unit = {},
     onCreateScratchTask: (name: String, firstText: String, provider: String?, model: String?) -> Unit = { _, _, _, _ -> },
 ) {
+    val prefs by container.stores.preferencesRepository.observe()
+        .collectAsState(com.zcode.android.domain.model.AppPreferences())
     val state by vm.state.collectAsState()
     val refreshing by vm.isRefreshing.collectAsState()
     val startScope = androidx.compose.runtime.rememberCoroutineScope()
@@ -467,6 +469,25 @@ private fun TasksRoute(
         onSearch = vm::search,
         onConsumeActionNotice = vm::consumeActionNotice,
         collapseStore = collapseStore,
+        // G41 (vc51): the workspace manager over RECEIVED workspaces (persisted).
+        selectedWorkspaceKeyExternal = prefs.selectedWorkspaceKey,
+        onWorkspaceSelected = { key ->
+            startScope.launch { container.stores.preferencesRepository.update { p -> p.copy(selectedWorkspaceKey = key) } }
+        },
+        onWorkspacesReordered = { keys ->
+            startScope.launch { container.stores.preferencesRepository.update { p -> p.copy(workspaceOrder = keys) } }
+        },
+        onWorkspaceRenamed = { key, alias ->
+            startScope.launch {
+                container.stores.preferencesRepository.update { p ->
+                    val next = p.workspaceAliases.toMutableMap()
+                    if (alias == null) next.remove(key) else next[key] = alias
+                    p.copy(workspaceAliases = next)
+                }
+            }
+        },
+        workspaceOrder = prefs.workspaceOrder,
+        workspaceAliases = prefs.workspaceAliases,
         // Phase 5A (A3.8–A3.10): pin / unread / resume / groups / archived viewer.
         onSetTaskPinned = vm::setTaskPinned,
         onSetTaskUnread = vm::setTaskUnread,

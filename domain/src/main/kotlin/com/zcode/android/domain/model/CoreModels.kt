@@ -225,6 +225,14 @@ data class AppPreferences(
      *  coding (default) shows commands/output/changes. NOT a port of the desktop
      *  store — a phone-side persisted setting with the same vocabulary. */
     val interfaceMode: InterfaceMode = InterfaceMode.CODING,
+    /** G41 (vc51): the workspace management plane over the RECEIVED workspaces —
+     *  display order (key list; unlisted keys keep wire order), local display
+     *  aliases (rename-class), and the selected workspace (null = All). The
+     *  desktop's Projects manager (add/open/remote) stays desktop-side (the
+     *  companion receives; it does not open folders). */
+    val workspaceOrder: List<String> = emptyList(),
+    val workspaceAliases: Map<String, String> = emptyMap(),
+    val selectedWorkspaceKey: String? = null,
 ) {
     enum class NotificationContentLevel { MINIMAL, CONTENT }
 

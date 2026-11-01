@@ -225,4 +225,12 @@
     <string name="task_live_activity">Live</string>
     <string name="task_live_waiting">Needs you</string>
     <string name="task_live_ended">Ended</string>
+    <string name="tasks_ws_manage">Manage</string>
+    <string name="workspace_manager_title">Workspaces</string>
+    <string name="workspace_manager_hint">Tap to switch. Reorder or rename locally — the desktop keeps the originals.</string>
+    <string name="workspace_manager_rename">Rename</string>
+    <string name="workspace_manager_rename_title">Rename workspace</string>
+    <string name="workspace_manager_rename_save">Save</string>
+    <string name="workspace_manager_up">Move up</string>
+    <string name="workspace_manager_down">Move down</string>
 </resources>

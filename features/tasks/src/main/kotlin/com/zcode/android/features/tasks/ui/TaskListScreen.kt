@@ -156,6 +156,14 @@ fun TaskListScreen(
     onLoadGroups: () -> Unit = {},
     /** L6.4 (Phase 5A): start a saved workflow in a task (null = hub hidden). */
     onStartWorkflow: ((taskId: String, name: String, scope: String?, args: Map<String, String>) -> Unit)? = null,
+    // ---- G41 (vc51): the workspace management plane over RECEIVED workspaces ----
+    /** The persisted selection (null = All); null callbacks hide the manager. */
+    selectedWorkspaceKeyExternal: String? = null,
+    onWorkspaceSelected: ((key: String?) -> Unit)? = null,
+    onWorkspacesReordered: ((keysInOrder: List<String>) -> Unit)? = null,
+    onWorkspaceRenamed: ((key: String, alias: String?) -> Unit)? = null,
+    workspaceOrder: List<String> = emptyList(),
+    workspaceAliases: Map<String, String> = emptyMap(),
 ) {
     val motion = rememberMotionSpec()
     var showCreate by remember { androidx.compose.runtime.mutableStateOf(false) }
@@ -179,8 +187,17 @@ fun TaskListScreen(
         }
     }
     val createdNotice = stringResource(R.string.tasks_created)
-    // §18.2 workspace switcher selection (endpoint-scoped; null = all workspaces).
-    var selectedWorkspaceKey by remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    // §18.2 workspace switcher selection — G41: PERSISTED through the preferences
+    // when the callbacks are wired (in-memory fallback keeps old callers honest).
+    var selectedWorkspaceKeyLocal by remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    // Local vals can't carry custom accessors — a local fun pair is the honest shape.
+    fun selectedWorkspaceKey(): String? =
+        if (onWorkspaceSelected != null) selectedWorkspaceKeyExternal else selectedWorkspaceKeyLocal
+    fun selectWorkspace(key: String?) {
+        if (onWorkspaceSelected != null) onWorkspaceSelected.invoke(key) else selectedWorkspaceKeyLocal = key
+    }
+    // G41: the manager sheet (switch/reorder/rename over the RECEIVED workspaces).
+    var managerOpen by remember { androidx.compose.runtime.mutableStateOf(false) }
     // GAP-14: per-workspace collapse state, persisted through the store when supplied.
     val collapse = remember(collapseStore) { WorkspaceCollapseState(collapseStore, collapseExecutor) }
     val topBarScroll = rememberZCodeTopBarScroll()
@@ -323,7 +340,17 @@ fun TaskListScreen(
             // §18.2 workspace switcher (endpoint-scoped): chips = All + one per
             // workspace; selecting one filters the grouped list (U22 switcher semantics).
             if (workspaces.isNotEmpty()) {
-                val selectedKey = selectedWorkspaceKey
+                val selectedKey = selectedWorkspaceKey()
+                // G41: the persisted display order (unlisted keys keep wire order)
+                // + the local aliases (rename-class) over the RECEIVED workspaces.
+                val orderedWorkspaces = remember(workspaces, workspaceOrder, workspaceAliases) {
+                    val aliasOf = { ws: com.zcode.android.domain.model.WorkspaceOption ->
+                        workspaceAliases[ws.key]?.takeIf { it.isNotBlank() } ?: ws.label
+                    }
+                    val listed = workspaceOrder.mapNotNull { key -> workspaces.firstOrNull { it.key == key } }
+                    val rest = workspaces.filter { ws -> workspaceOrder.none { it == ws.key } }
+                    (listed + rest).map { ws -> ws.copy(label = aliasOf(ws)) }
+                }
                 androidx.compose.foundation.lazy.LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -333,22 +360,43 @@ fun TaskListScreen(
                 ) {
                     item {
                         FilterChip(
-                            selected = selectedWorkspaceKey == null,
-                            onClick = { selectedWorkspaceKey = null },
+                            selected = selectedWorkspaceKey() == null,
+                            onClick = { selectWorkspace(null) },
                             label = { Text(stringResource(R.string.tasks_ws_all)) },
                             modifier = Modifier.testTag("tasks_ws_all"),
                         )
                     }
-                    for (ws in workspaces) {
+                    for (ws in orderedWorkspaces) {
                         item(key = ws.key) {
                             FilterChip(
-                                selected = selectedWorkspaceKey == ws.key,
-                                onClick = { selectedWorkspaceKey = if (selectedWorkspaceKey == ws.key) null else ws.key },
+                                selected = selectedWorkspaceKey() == ws.key,
+                                onClick = { selectWorkspace(if (selectedWorkspaceKey() == ws.key) null else ws.key) },
                                 label = { Text(ws.label, maxLines = 1) },
                                 modifier = Modifier.testTag("tasks_ws_${ws.key.hashCode()}"),
                             )
                         }
                     }
+                    if (onWorkspacesReordered != null) {
+                        item {
+                            FilterChip(
+                                selected = false,
+                                onClick = { managerOpen = true },
+                                label = { Text(stringResource(R.string.tasks_ws_manage)) },
+                                modifier = Modifier.testTag("tasks_ws_manage"),
+                            )
+                        }
+                    }
+                }
+                if (managerOpen && onWorkspacesReordered != null && onWorkspaceRenamed != null) {
+                    WorkspaceManagerSheet(
+                        workspaces = orderedWorkspaces,
+                        aliases = workspaceAliases,
+                        selectedKey = selectedWorkspaceKey(),
+                        onSelect = { key -> selectWorkspace(key) },
+                        onReorder = onWorkspacesReordered,
+                        onRename = onWorkspaceRenamed,
+                        onDismiss = { managerOpen = false },
+                    )
                 }
             }
             automationsPort?.let { port ->
@@ -386,7 +434,7 @@ fun TaskListScreen(
                                 onTaskClick,
                                 onRetry,
                                 onRepairPairing,
-                                selectedWorkspaceKeyParam = selectedWorkspaceKey,
+                                selectedWorkspaceKeyParam = selectedWorkspaceKey(),
                                 collapse = collapse,
                                 onRowDelete = { confirmDelete = it },
                                 onRowArchive = { confirmArchive = it },

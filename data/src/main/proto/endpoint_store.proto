@@ -46,4 +46,7 @@ message AppPreferencesProto {
   optional bool onboarding_done = 13; // H1.5: the post-pairing pass ran once (skippable)
   optional string interaction_behavior = 14; // G4/AC6 (vc51): "queue" | "guide" (absent = follow the desktop)
   optional string interface_mode = 15; // G36 (vc51): "office" | "coding" (absent = coding, the phone default)
+  repeated string workspace_order = 16; // G41 (vc51): display order over received workspaces
+  map<string, string> workspace_aliases = 17; // G41: local display aliases (rename-class)
+  optional string selected_workspace_key = 18; // G41: the selected workspace (null = All)
 }
