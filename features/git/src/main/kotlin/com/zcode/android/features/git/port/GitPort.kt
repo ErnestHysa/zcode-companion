@@ -41,6 +41,14 @@ interface GitPort {
      */
     suspend fun createCheckpoint(): com.zcode.android.domain.model.CheckpointMeta? = null
 
+    /**
+     * vc51 Phase 4A (CKPT-HYDRATE): `listCheckpoints {workspacePath}` — the host's
+     * checkpoint history, so the card hydrates on entry and snapshots created before an
+     * app restart stay listed/restorable. Empty = the channel has no list word (older
+     * hosts) or it refused — the session-known list still applies.
+     */
+    suspend fun listCheckpoints(): List<com.zcode.android.domain.model.CheckpointMeta> = emptyList()
+
     /** `diffCheckpoints` between two session-known checkpoint ids; null = unavailable. */
     suspend fun diffCheckpoints(fromCheckpointId: String, toCheckpointId: String): com.zcode.android.domain.model.CheckpointDiff? = null
 

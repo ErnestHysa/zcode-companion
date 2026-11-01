@@ -739,8 +739,9 @@ private data class GitUiState(
  * A3.11 (Phase 5B): the git-checkpoint card. Create snapshots a workspace (the meta's
  * short id + relative time render); Restore between two checkpoints is the ⚠ surface —
  * the confirm names BOTH ids and the diff's files; a conflict result offers the
- * force-overwrite behind a second confirm. The checkpoint list is SESSION-KNOWN only
- * (the channel has no list word — snapshots created elsewhere are invisible here, said so).
+ * force-overwrite behind a second confirm. vc51 Phase 4A (CKPT-HYDRATE): the list
+ * hydrates the host's checkpoint history on entry (`listCheckpoints`), so snapshots
+ * created before an app restart stay listed and restorable.
  */
 @Composable
 private fun CheckpointsCard(port: GitPort, modifier: Modifier = Modifier) {
@@ -755,6 +756,20 @@ private fun CheckpointsCard(port: GitPort, modifier: Modifier = Modifier) {
     var restoringFor by remember { mutableStateOf<com.zcode.android.domain.model.CheckpointMeta?>(null) }
     var forceConfirmFor by remember { mutableStateOf<Pair<com.zcode.android.domain.model.CheckpointMeta, List<String>>?>(null) }
     var diffText by remember { mutableStateOf<String?>(null) }
+    // vc51 Phase 4A (CKPT-HYDRATE): the card hydrates the host's checkpoint history on
+    // entry — the list is no longer session-local, so snapshots created before an app
+    // restart stay listed and restorable. Empty hydration (older hosts) keeps the
+    // session-only note honest.
+    var hostHistoryEmpty by remember { mutableStateOf(true) }
+    LaunchedEffect(port) {
+        val host = runCatching { port.listCheckpoints() }.getOrDefault(emptyList())
+        hostHistoryEmpty = host.isEmpty()
+        if (host.isNotEmpty()) {
+            checkpoints = (checkpoints + host)
+                .distinctBy { it.checkpointId }
+                .sortedByDescending { it.createdAtMs }
+        }
+    }
 
     Column(
         modifier
@@ -777,7 +792,9 @@ private fun CheckpointsCard(port: GitPort, modifier: Modifier = Modifier) {
                         try {
                             val meta = port.createCheckpoint()
                             if (meta != null) {
-                                checkpoints = listOf(meta) + checkpoints
+                                // dedupe against the hydrated history (a create can
+                                // re-report an id the host already listed)
+                                checkpoints = (listOf(meta) + checkpoints).distinctBy { it.checkpointId }
                                 notifier.show(createdFmt.replace("x", meta.checkpointId))
                             } else {
                                 notifier.show(failedCopy, long = true)
@@ -823,11 +840,15 @@ private fun CheckpointsCard(port: GitPort, modifier: Modifier = Modifier) {
                     }
                 }
             }
-            Text(
-                stringResource(R.string.checkpoints_session_only),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            // CKPT-HYDRATE: the note stays honest — only claim "created elsewhere aren't
+            // listed" when the host's history leg actually came back empty.
+            if (hostHistoryEmpty) {
+                Text(
+                    stringResource(R.string.checkpoints_session_only),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         diffText?.let {
             Text(it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp).testTag("checkpoint_diff"))

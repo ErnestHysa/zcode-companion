@@ -28,6 +28,22 @@ class GitCheckpointClient(private val transport: AppTransport) {
     suspend fun createCheckpoint(workspacePath: String): JsonObject =
         call("createCheckpoint", buildJsonObject { put("workspacePath", JsonPrimitive(workspacePath)) })
 
+    /**
+     * vc51 Phase 4A (CKPT-HYDRATE): the checkpoint-history word — the list the phone's
+     * Git pane hydrates from on entry so snapshots created before an app restart stay
+     * listed and restorable. Array-shaped or `{checkpoints:[…]}` tolerated (the
+     * list-word convention, cf. listTaskMetas).
+     */
+    suspend fun listCheckpoints(workspacePath: String): List<JsonObject> {
+        val raw = transport.channelCall("git-checkpoint", "listCheckpoints", RpcValue.Arr(listOf(RpcValue.Obj(buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath))
+        }))), 60_000)
+        val arr = (raw as? RpcValue.Arr)?.items
+            ?: ((raw as? RpcValue.Obj)?.json as? JsonObject)?.get("checkpoints") as? kotlinx.serialization.json.JsonArray
+            ?: throw TransportFailure(ErrorMapping.protocolFault("git-checkpoint.listCheckpoints result not an array"))
+        return arr.mapNotNull { (it as? RpcValue.Obj)?.json as? JsonObject ?: it as? JsonObject }
+    }
+
     suspend fun diffCheckpoints(workspacePath: String, fromCheckpointId: String, toCheckpointId: String): JsonObject =
         call("diffCheckpoints", buildJsonObject {
             put("workspacePath", JsonPrimitive(workspacePath))

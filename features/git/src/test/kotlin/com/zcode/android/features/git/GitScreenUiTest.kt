@@ -46,7 +46,7 @@ class GitScreenUiTest {
     @get:Rule
     val rule = createComposeRule()
 
-    private class FakeGitPort(private val withCommits: Boolean = true, private val compact: Boolean = false) : GitPort {
+    private open class FakeGitPort(private val withCommits: Boolean = true, private val compact: Boolean = false) : GitPort {
         var diffCalls = 0
 
         @Volatile
@@ -210,5 +210,53 @@ class GitScreenUiTest {
         rule.onNodeWithTag("git_list").performScrollToNode(hasText("fix: auth token refresh"))
         rule.onNodeWithText("0123456", substring = true).assertIsDisplayed()
         rule.onNodeWithText("fix: auth token refresh").assertIsDisplayed()
+    }
+
+    @Test
+    fun checkpoints_hydrateHostHistoryOnEntry_ckptHydrate() {
+        // vc51 Phase 4A (CKPT-HYDRATE): the card hydrates the HOST's checkpoint history
+        // on entry (previously mount-local — snapshots from before an app restart were
+        // unreachable), merged newest-first with session creates.
+        val hydrated = object : FakeGitPort(compact = true) {
+            override suspend fun listCheckpoints(): List<com.zcode.android.domain.model.CheckpointMeta> = listOf(
+                com.zcode.android.domain.model.CheckpointMeta("ckpt-host-2", null, null, 2_000L),
+                com.zcode.android.domain.model.CheckpointMeta("ckpt-host-1", null, null, 1_000L),
+            )
+        }
+        setContent(hydrated)
+        rule.onNodeWithTag("git_list").performScrollToNode(hasText("Checkpoints"))
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithTag("checkpoint_id_1", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+        }
+        rule.onNodeWithTag("checkpoint_id_0", useUnmergedTree = true).assertExists() // ckpt-host-2 (newest first)
+        rule.onNodeWithTag("checkpoint_id_1", useUnmergedTree = true).assertExists() // ckpt-host-1
+        rule.onNodeWithText("ckpt-host-2", substring = true).assertExists()
+        // two listed checkpoints → the newest carries the Restore affordance
+        rule.onNodeWithTag("checkpoint_restore_0", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun checkpoints_hostHydrationAndSessionCreate_dedupeById() {
+        val hydrated = object : FakeGitPort(compact = true) {
+            override suspend fun listCheckpoints(): List<com.zcode.android.domain.model.CheckpointMeta> = listOf(
+                com.zcode.android.domain.model.CheckpointMeta("ckpt-a", null, null, 3_000L),
+            )
+
+            override suspend fun createCheckpoint(): com.zcode.android.domain.model.CheckpointMeta =
+                com.zcode.android.domain.model.CheckpointMeta("ckpt-a", null, null, 4_000L)
+        }
+        setContent(hydrated)
+        rule.onNodeWithTag("git_list").performScrollToNode(hasText("Checkpoints"))
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithTag("checkpoint_id_0", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+        }
+        rule.onNodeWithTag("checkpoint_create", useUnmergedTree = true).performClick()
+        rule.waitForIdle()
+        // the create's id is ALREADY in the hydrated history — the merge dedupes by id,
+        // so the list stays at exactly ONE row (no checkpoint_id_1 materializes).
+        rule.waitForIdle()
+        rule.onAllNodesWithTag("checkpoint_id_1", useUnmergedTree = true)
+            .assertCountEquals(0)
+        rule.onNodeWithTag("checkpoint_id_0", useUnmergedTree = true).assertExists()
     }
 }

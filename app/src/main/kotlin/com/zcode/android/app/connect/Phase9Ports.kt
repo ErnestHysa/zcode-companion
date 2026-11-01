@@ -156,6 +156,19 @@ class DefaultGitPort(
         }
     }
 
+    /** vc51 Phase 4A (CKPT-HYDRATE): the host's checkpoint history (empty = honest refuse). */
+    override suspend fun listCheckpoints(): List<com.zcode.android.domain.model.CheckpointMeta> {
+        val wp = workspacePath() ?: return emptyList()
+        return try {
+            checkpoints().listCheckpoints(wp).mapNotNull { com.zcode.android.domain.model.CheckpointMeta.decode(it) }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("gitport.checkpointList", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            emptyList()
+        }
+    }
+
     override suspend fun diffCheckpoints(fromCheckpointId: String, toCheckpointId: String): com.zcode.android.domain.model.CheckpointDiff? {
         val wp = workspacePath() ?: return null
         return try {
