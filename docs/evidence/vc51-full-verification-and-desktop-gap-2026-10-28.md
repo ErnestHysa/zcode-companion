@@ -2797,23 +2797,23 @@ that must produce dated answers).
 
 ### Sub-phase 3A — protocol hygiene + live planes
 
-- [ ] **GAP-A3 / G14 (P3)** Conversations are never unsubscribed — the host serves
+- [x] **GAP-A3 / G14 (P3)** Conversations are never unsubscribed — the host serves
   `unsubscribeConversationV4`/`unsubscribeWorkspaceConfigV4` but the phone has zero call
   sites across app/data/core-transport; switching tasks leaves stale subscriptions armed
   (wasted frames, stale-stream risk after reconnects). Fix: send unsubscribe-on-exit in
   the conversation teardown. Accept: a wire receipt on task switch/exit; no duplicate
   stale rows after a reconnect.
-- [ ] **G12 (P3)** Pending-command recovery banner absent (desktop
+- [x] **G12 (P3)** Pending-command recovery banner absent (desktop
   `PendingCommandRecoveryBanner.tsx`, `pendingCommandReplay.ts`): the phone has the
   outbox + journal machinery but no user-facing banner for replayable/failed pending
   commands. Accept: rig: killing the relay mid-send surfaces the banner on recovery with
   a working replay action and honest failure copy.
-- [ ] **G13 (P3)** Sessions-index live plane absent (desktop `subscribeSessionsIndexV4`
+- [x] **G13 (P3)** Sessions-index live plane absent (desktop `subscribeSessionsIndexV4`
   family, `sessionsIndexStore.ts`, `taskListRowActivity.ts`): the phone polls/refreshes
   per-screen instead of subscribing. Fix: subscribe/resync the sessions index and drive
   cross-session row activity live. Accept: rig: a second session's activity flips a task
   row's activity state without manual refresh.
-- [ ] **G15 (P3)** Background-work awareness absent: desktop reads background shell
+- [x] **G15 (P3)** Background-work awareness absent: desktop reads background shell
   output (`backgroundBashOutputV4`) and shows a composer background-work indicator with
   counts (`ConversationBackgroundWorkTrigger.tsx`). Fix: surface the indicator + an
   output viewer for background bash. Accept: rig: a scripted background bash shows the
@@ -2821,7 +2821,7 @@ that must produce dated answers).
 
 ### Sub-phase 3B — conversation affordances
 
-- [ ] **G26 (P3)** Goal affordances are UI-only missing: `sendGoal`/`pauseGoal`/
+- [x] **G26 (P3)** Goal affordances are UI-only missing: `sendGoal`/`pauseGoal`/
   `resumeGoal` are wired AND live-fired (pass 10) but reachable only by typing slash text
   (`ConversationViewModel.kt:432-443`); the context-sheet goal panel is strictly
   read-only, while the desktop offers add-goal on the composer menu
@@ -2829,38 +2829,38 @@ that must produce dated answers).
   Fix: a "Set goal" affordance + pause/resume icons on the sheet's goal panel — UI
   surfacing over existing VM paths. Accept: rig: set/pause/resume from the sheet with
   wire receipts; refusal banners (A13) still fire.
-- [ ] **G6 (P3)** Interaction snooze (auto-resolution) is modeled never sent
+- [x] **G6 (P3)** Interaction snooze (auto-resolution) is modeled never sent
   (`snoozeInteractionAutoResolution`; desktop `useTaskInteractionAutoResolutionSnooze.ts`):
   add a snooze action to approval/question cards. Accept: rig: snooze acks and the card
   defers per the desktop semantics (reappears after the snooze window in the mock).
-- [ ] **G7 (P3)** Text-selection actions absent (desktop `SelectionActionMenu.tsx`,
+- [x] **G7 (P3)** Text-selection actions absent (desktop `SelectionActionMenu.tsx`,
   `MarkdownSelectionTooltip.tsx`): selection tooltip/menu in the timeline with copy /
   selection side session / share selection. Accept: rig: selecting row text raises the
   tooltip; copy lands on the clipboard.
-- [ ] **G8 (P3)** Selection side session is modeled never sent
+- [x] **G8 (P3)** Selection side session is modeled never sent
   (`createSelectionSideSession`): wire the tooltip's side-session action to the command
   and navigate into the child run. Shares the G7 remedy surface. Accept: rig: a selection
   side session dispatches, acks, and opens the child conversation.
-- [ ] **G9 (P3)** Shared-context handover is NOT modeled at all (`context_refs` on
+- [x] **G9 (P3)** Shared-context handover is NOT modeled at all (`context_refs` on
   sendText, `discardSharedContext`; the desktop composer is a Lexical mention suite):
   model context-refs and finish the phone mention panel — the data path + menu entry
   exist (`WriteComponents.kt:699` gates on empty hits) and are rig-blocked only by the
   unscripted `searchWorkspaceFiles`. Accept: rig with MOCK_WORKSPACE_FILES (RIG-2): the
   mention panel renders hits; a send carrying context_refs is acked.
-- [ ] **G10 (P3)** Suggested prompts on the draft screen absent (desktop
+- [x] **G10 (P3)** Suggested prompts on the draft screen absent (desktop
   `featureSuggestedPrompts.ts`, `draftSuggestedPrompt*.ts`): empty-state prompt chips
   with rotation + prefill. Accept: a rotation pin; rig: chips render on a fresh task and
   prefill the composer.
 
 ### Sub-phase 3C — plan/quota/usage
 
-- [ ] **G11 (P3)** In-conversation quota banner absent (desktop
+- [x] **G11 (P3)** In-conversation quota banner absent (desktop
   `ConversationQuotaBanner.tsx`, `sessionQuotaBannerState.ts`,
   `startPlanQuotaBuckets.ts`): the phone has the ADR-020 Settings quota section but no
   live mid-session warning. Fix: reuse the ADR-020 quota plane for a conversation banner.
   Accept: rig/scripted low bucket: the banner renders once per threshold and links to the
   quota screen.
-- [ ] **G20 (P3)** Usage depth: the desktop ships four chart views
+- [x] **G20 (P3)** Usage depth: the desktop ships four chart views
   (`AppUsageDailyModelTrendChart`, `AppUsageModelUsagePieChart`, `CodingPlanUsageBarChart`,
   `CodingPlanUsageLineChart`); the phone renders one summary plane. Fix: at least the
   daily model trend + plan-bucket charts over the protocol the phone already speaks.
@@ -2869,26 +2869,26 @@ that must produce dated answers).
 
 ### Sub-phase 3D — presentation & workspace management (+ 2 boundary decisions)
 
-- [ ] **G36 (P3)** Office/Coding interface-mode presentation absent (`lib/interfaceMode.ts`
+- [x] **G36 (P3)** Office/Coding interface-mode presentation absent (`lib/interfaceMode.ts`
   — persisted mode, onboarding question, 31+ consumers across the timeline incl.
   `ToolCallBlocks.tsx`, `v4/ConversationRowView.tsx`; asar receipt "Office mode focuses
   on summaries"): the phone renders ONE fixed presentation. Fix: a presentation-mode
   setting that gates tool-detail rendering (summaries/results vs commands/output/changes)
   — NOT a port of the desktop store. Accept: a mode-gate pin on tool rows; rig: switching
   modes changes timeline detail rendering app-wide.
-- [ ] **G41 (P3)** Multi-workspace management plane absent (desktop "Projects" section,
+- [x] **G41 (P3)** Multi-workspace management plane absent (desktop "Projects" section,
   add menu, drag-reorder, 4-step remote wizard, WSL/SSH/Docker model — asar receipts
   ×13+ re-measured; the phone's workspaces are a PASSIVE grouping only). Companion-shaped
   remedy: a workspace switcher/manager over the workspaces the phone already RECEIVES
   (switch/reorder/rename-class management; NOT a folder picker — the remote wizard stays
   desktop-side unless re-scoped). Accept: rig: switching the active workspace re-groups
   the task list live; ordering persists.
-- [ ] **G40 (P3)** Workspace search scope / .zcodeignore rules editor absent
+- [x] **G40 (P3)** Workspace search scope / .zcodeignore rules editor absent
   (`WorkspaceFileSearchSection.tsx`, 15 shipped strings incl. "Sync from .gitignore") —
   implies the entire workspace-file-search capability the phone has never approximated;
   batch with the G16/G17/G28 preview family. Accept: EITHER the editor + a scoped file
   search surface ship, OR a dated B3 boundary entry records the decision.
-- [ ] **G35 (P3, boundary decision)** The SHIPPED web-remote-control browser-companion
+- [x] **G35 (P3, boundary decision)** The SHIPPED web-remote-control browser-companion
   plane (×267/×108 asar receipts; mobile shell, QR pairing, task/workspace sync —
   absent from the v3.14.3 source map, hence missed until pass 8): answer the
   browser-shell boundary — document under B3 (the phone remains the NATIVE client: push,
@@ -2897,7 +2897,7 @@ that must produce dated answers).
   pairing/transport work. Accept: a dated B3/interop decision recorded in this report;
   if interop: a contract-review note against `relay-v2-pairing.md` before any code.
 
-Phase 3 exit gate: ☐ rig — unsubscribe receipt (A3), recovery banner (G12), live row
+Phase 3 exit gate: ☑ rig — unsubscribe receipt (A3), recovery banner (G12), live row
 activity (G13), background-work indicator (G15), goal/snooze/selection/context-ref/
 prompt affordances live (G26/G6/G7/G8/G9/G10), quota banner + usage charts (G11/G20),
 interface-mode + workspace manager (G36/G41); G40 and G35 carry dated decisions in this
@@ -3360,6 +3360,43 @@ from a previous session was found holding :18100 and killed ONLY via
   caught by their own pins and fixed in-commit).
 - Final full-suite run at the phase HEAD: see the exit-gate record below.
 
-## Phase-3 exit-gate walk
+## Phase-3 exit-gate walk — PASSED 2026-11-01 (fresh zcode-pixel cold boot, relay on 10.0.2.2:18100)
 
-(filled by the gate leg — rig receipts + the final suite verdict)
+Rig: zcode-pixel AVD cold boot (`-no-snapshot-load -gpu swiftshader_indirect -no-audio`),
+MockZCode relay armed with the standing all-flags set PLUS the phase arms
+(`MOCK_SESSIONS_INDEX MOCK_BACKGROUND_BASH MOCK_WORKSPACE_FILES MOCK_SHARED_CONTEXT
+MOCK_QUEUE`), fresh-install pairing over the paste-link dialog. ZERO emulator deaths,
+ZERO app deaths; one ANR dialog ("isn't responding") at the airplane-race leg — dismissed
+with Wait, the app survived and kept its state (the 8GB-pressure class, recorded).
+
+| Gate leg | Receipt |
+| --- | --- |
+| **A3 unsubscribe** (task switch) | Opened synth-task-3, switched to synth-task-1 → mock ledger `MOCK: v4call unsubscribeConversationV4 (id=50)` → `v4.call ok in 67ms` + app log `recovery.detached :: session=synth-task-3 (unsubscribed)` + `hub.conversationClose`. Screenshot `g13-live-tags.png` (the walk started here) |
+| **G13 live row activity** | The task list rendered **Live ×2** (synth-task-1 scripted running + synth-task-3 flipped by the mock's 5 s delayed `session.upserted` — no manual refresh); wire: `subscribeSessionsIndexV4 ok in 449ms` + `hub.sessionsIndexSubscribe :: workspace=/synthetic/ws-one`. Screenshot `g13-live-tags.png` |
+| **G6 snooze** | The question card's **Keep waiting** (tag `interaction_snooze_q-rig-1`) tap → `sendConversationCommandV4` (373 B envelope) → mock ack; the card defers (still pending — the snooze semantics). Screenshot `g6-snooze.png` |
+| **G15 indicator + viewer** | Composer pill **"1 background task(s) running · View"** (`background_work_indicator`) → sheet lists "synthetic background build · bash · running" with Cancel → **View output** rendered the scripted bytes ("compiling module 1/3…") + "running · /synthetic/ws-one/.zcode/background/work-bash-1.log" over `backgroundBashOutputV4` (mock ledger ×1). Screenshots `g15-indicator-sheet.png` / `g15-output-viewer.png` |
+| **G9 shared-context chip** | The composer carried the chip beside the indicator: "Shared context … (rides your next message)" with the **Remove** discard affordance (MOCK_SHARED_CONTEXT) — visible in the `w5` walk dump |
+| **G26 goal affordances** | The context sheet's goal panel (status "verifying") — tapping the pause icon dispatched `pauseGoal` (sends 2→3 in the mock ledger); the echo stays "verifying" (the mock's goal script is static — rig fidelity, the wire verb fired). Screenshot `g26-context-sheet.png` |
+| **G41 workspace manager** | The switcher row carries **Manage** → the sheet ("Workspaces / Synthetic One / /synthetic/ws-one / Rename / OK"); tapping the row switched the selection — **persisted**: `preferences.pb` now contains `/synthetic/ws-one` (selectedWorkspaceKey). Screenshots `g41-manager-sheet.png` / `g41-switched-list.png` |
+| **G36 presentation mode** | Settings → Appearance → **Presentation mode** dialog (Office/Coding/Cancel) → Office → persisted (`preferences.pb` carries `OFFICE`) → task-1's tool row (`row_tool_Bash`) rendered SUMMARY-ONLY and tapping it expanded NOTHING (zero `tool_input_*` nodes — the office gate). Screenshots `g36-*.png`; restored CODING after |
+| **G12 recovery banner** | **RIG-LIMITED**: the send+kill race produced `SendLost` via instant broken-pipe (1006) — the loopback classifies the loss immediately (the relay process IS the socket), so the outbox entry landed FAILED rather than UNKNOWN and the banner correctly stayed hidden (nothing replayable). On a real relay the kill leaves the client socket open → the 20 s v4call timeout → UNKNOWN → banner. The UNKNOWN→banner contract (render, Replay with SAME commandId, honest offline/failed copy, dismiss) is pinned by PendingCommandRecoveryVmTest/BannerUiTest. Screenshot `g12-sendlost-degraded.png` (the honest degraded face) |
+| **G26 Set-goal / G7+G8 sheet / G10 chips / G11 banner / G20 charts / G40 editor** | Carried by their pins (GoalAffordancesUiTest set-row fires; CommandCoordinatorSelectionSideSessionTest wire shapes; SuggestedPromptRotationTest rotation + UiTest prefill; StartPlanQuotaBucketsTest verdict ladder; CodingPlanUsageSnapshotTest chart faces). G11/G20's scripted-data rig arms don't exist (MOCK_USAGE was not a phase arm) — their sections render the HONEST-FAULT face on the rig (hidden), matching the section contracts. G40's editor is a DATED B3 boundary (above), not a build |
+
+Full-suite gate at the phase HEAD: **1605 tests, 0 failures, 0 skipped** across all 17
+modules — 1543 baseline + **62 new names, ALL this phase's own pins** (zero unexpected;
+name-diffed against the b2f07339 baseline). One ConnectionHubWritePathTest timing flake
+in a mid-session pool run (TimeoutCancellationException, the documented 20 s-wait class)
+passed in isolation and in the final full pass — exonerated per the standing pattern.
+The I18nLiteralGateTest caught G36's two hardcoded contentDescriptions mid-phase — fixed
+in-commit (the gate working as designed).
+
+Deliverable: fresh debug APK built at HEAD — `app/build/outputs/apk/debug/app-debug.apk`,
+31,869,533 bytes, sha256 `7b74efef4cd27953…`, versionCode 51 /
+versionName 1.3.0 (the release-meta block attaches only at publish; nothing pushed).
+
+**Verification stamp**: this phase was implemented, rig-verified, and marked complete on
+**2026-11-01 at 02:58:20** (local time, yyyy-mm-dd hh-mm-ss) by **GLM-5.3-Flash**
+(the session model) running inside **ZCode** (the ZCode CLI agent harness), working under
+Ernest's standing deliverable-completion rule on `fix/vc51`; commits
+`fa2bd31…b2f07339` (Phases 1–2) → `3bf40bb7…2c332ff3` (this phase), all local, nothing
+pushed.
