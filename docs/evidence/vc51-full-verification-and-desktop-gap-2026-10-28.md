@@ -3282,3 +3282,84 @@ from a previous session was found holding :18100 and killed ONLY via
 > RecoveryScenarioMatrixTest timing class failed in full-module pools at BOTH the phase
 > HEAD and the pre-phase commit (A/B receipts above) and passed every isolation run.
 > Nothing pushed — all work is local on `fix/vc51`.
+
+---
+
+# Phase 3 (vc51 remediation) — boundary decisions + exit-gate record — 2026-10-31 (APPENDED; the roadmap is the work plan, this is its receipt pass)
+
+## Dated boundary decisions (G40 + G35)
+
+- **G40 (workspace search scope / .zcodeignore rules editor) — B3 boundary, dated 2026-10-31:**
+  the .zcodeignore rules editor (WorkspaceFileSearchSection.tsx, "Sync from .gitignore",
+  "Restore default rules") is DESKTOP-SIDE authoring — it configures the desktop's own
+  workspace-file-search indexing, a capability whose infrastructure (the local index, the
+  sync pipeline) the phone does not host. The phone's bounded file plane stays as shipped:
+  the read-only Files browser, the git read channel, and (NEW this phase, G9/RIG-2) the
+  composer @-mention workspace-file search honoring the desktop's indexed results — the
+  search itself runs desktop-side where the rules live. Editor/UI for the RULES is a
+  desktop-authoring surface under the B3 precedent (hooks configuration, workflow
+  authoring). Revisit only if a pass shows the mention panel's results ignoring rules
+  users set (it cannot — the host filters).
+- **G35 (the shipped web-remote-control browser companion) — B3/interop decision, dated
+  2026-10-31:** the phone remains the NATIVE client and the browser shell is recorded as a
+  PARALLEL surface, not a parity target: push notifications with shade actions, the
+  glance widget, offline cache, launcher shortcuts, sealed multi-endpoint credentials, and
+  voice input are phone-only (B4) and cannot exist in a browser tab. No interop work is
+  planned: the surfaces share the host's v4 plane but nothing else, and bridging them
+  (e.g. handing a browser session to the phone) has no user story. **The Relay V2 WATCH
+  (JWT bearer, device roles, 60 s WS tokens — NOT in the shipped 3.14.5 asar) is carried
+  verbatim into any future pairing/transport work**: a desktop update that flips the relay
+  to V2 would strand the phone's pairing path, and any such change re-runs the W2 drift
+  greps BEFORE the phone ships a release against it.
+
+## Phase-3 implementation record (receipts; one finding ≥ one commit)
+
+- GAP-A3/G14 `3bf40bb7` — unsubscribe-on-exit (plane + gateway + coordinator detach +
+  hub close + VM onTeardown from the nav holder's onCleared; record drops BEFORE the send
+  so recover() re-subscribes only owned topics). Pins: wire-shape + record-drop +
+  never-subscribed no-op + the workspace-config word + coordinator detach/re-attach +
+  VM teardown (throw-safe).
+- G12 `e40d7eeb` — PendingCommandRecoveryBanner over the outbox's UNKNOWN replayable set
+  (sendText/sendGoalCommand/compact/createSession); Replay = user-gated SAME-commandId
+  retries; honest offline/failed copy; view-local dismiss re-raises on a NEW set.
+- G13 `cf0f2c82` (+ mock `b57b2114`) — sessions-index live plane: domain decode
+  (sessions-index.ts shapes, per-entry INV-8), plane subscribe/listen + the recovery
+  branch, hub conflated per-workspace map, TasksUiState.sessionsIndex → TaskRow live tag
+  (Live/Needs you/Ended).
+- G15 `592545a7` — background-work indicator + read-only bash output viewer
+  (backgroundBashOutputV4 typed union; cancelBackgroundWork finally reachable).
+- G26 `0e7afb99` — the sheet's goal affordances (Set-goal row + pause/resume icons) over
+  the VM's existing wire verbs (A13 refusal banners fire identically).
+- G6 `05b3f874` — the cards' Keep-waiting snooze (snoozeInteractionAutoResolution; noop
+  = accepted-class).
+- G7+G8 `33aa1389` — the row action sheet's Ask-in-a-side-session + Share-selection
+  (createSelectionSideSession {firstInput}; createdSessionId parses the result trio; the
+  child navigation reuses the forkedSession channel).
+- G9 `4c694c9b` — sharedContextImport decode (v2 sendable / legacy never) + sendText
+  context_refs (max 1 fail-closed) + discardSharedContext + the composer chip; the
+  mention panel's rig arm (MOCK_WORKSPACE_FILES) landed with the mock commit.
+- G10 `4a061481` — suggested-prompt chips (a curated subset of the desktop's pool,
+  verbatim copy) with cursor rotation + composer prefill.
+- G11 `a80b94cb` — the conversation quota banner (StartPlanQuotaBuckets verbatim: active
+  windows, the REAL remaining ratio, every-bucket exhaustion, the once-per-period
+  reminder key; low ≤10% reminds once, exhausted always, healthy nothing).
+- G20 `5893b533` — the coding-plan usage charts (getCodingPlanUsageSnapshot → stacked
+  per-model bands + the totals line; channel refusal hides the section).
+- G36 `0b594531` — the presentation-mode setting (office|coding with the legacy map)
+  gating ToolCard detail (office = summary-only, taps no-op) + the Appearance row.
+- G41 `cfec205a` — the workspace switcher/manager over RECEIVED workspaces (persisted
+  order/aliases/selection; tap-switch re-groups live; Manage sheet reorder/rename).
+
+## Full-suite zero-new-names gate (rule 7)
+
+- Baseline: b2f07339 (pre-phase), fresh XML aggregation across all 17 modules:
+  **1543 tests, 0 failures, 0 skipped** (`testDebugUnitTest` + the six JVM `test` tasks).
+- Per-fix-commit module runs: every touched module re-ran green after each commit;
+  REDs were demonstrated pre-fix per row (compile-class for new APIs; the behavioral
+  REDs: G13's RUNNING-beats-ENDED precedence and G11's reminder-key suppression were
+  caught by their own pins and fixed in-commit).
+- Final full-suite run at the phase HEAD: see the exit-gate record below.
+
+## Phase-3 exit-gate walk
+
+(filled by the gate leg — rig receipts + the final suite verdict)
