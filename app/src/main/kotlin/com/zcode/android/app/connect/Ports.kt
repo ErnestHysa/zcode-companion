@@ -728,7 +728,16 @@ class DefaultConversationPort(
 
     override suspend fun fetchAttachmentPreview(taskId: String, ref: String): ByteArray? =
         try {
-            hub.phase9().attachmentPreview(taskId, ref)
+            // G16 (vc51 Phase 4D): preview quality rides the conversation-scoped channel
+            // (an 8× budget; the previewSource verdict gates the strategy and the shipped
+            // host answers "chunked" for a mobile client). A refused leg degrades to the
+            // §23.2 first-chunk thumbnail path (INV-11).
+            val tools = hub.phase9()
+            if (tools.attachmentPreviewSourceKind(taskId, ref) == "chunked") {
+                tools.attachmentPreviewQuality(taskId, ref)
+            } else {
+                tools.attachmentPreview(taskId, ref)
+            }
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             null

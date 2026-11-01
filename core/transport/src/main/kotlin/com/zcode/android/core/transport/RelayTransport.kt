@@ -1412,6 +1412,31 @@ class RelayTransport(
     override suspend fun commandsList(workspacePath: String?, workspaceIdentity: String?): JsonObject = plane.commandsList(workspacePath, workspaceIdentity)
     override suspend fun subagentsList(workspacePath: String?, workspaceIdentity: String?, provider: String?): JsonObject = plane.subagentsList(workspacePath, workspaceIdentity, provider)
     override suspend fun botsList(): JsonObject = plane.botsList()
+    override suspend fun attachmentPreviewSource(
+        sessionId: String,
+        ref: String,
+        attachmentIndex: Int?,
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ): JsonObject = plane.attachmentPreviewSource(sessionId, ref, attachmentIndex, workspacePath, workspaceIdentity)
+
+    override suspend fun conversationAttachmentStat(
+        sessionId: String,
+        ref: String,
+        attachmentIndex: Int?,
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ): JsonObject = plane.conversationAttachmentStat(sessionId, ref, attachmentIndex, workspacePath, workspaceIdentity)
+
+    override suspend fun conversationAttachmentRead(
+        sessionId: String,
+        ref: String,
+        offset: Long,
+        limit: Int,
+        attachmentIndex: Int?,
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ): JsonObject = plane.conversationAttachmentRead(sessionId, ref, offset, limit, attachmentIndex, workspacePath, workspaceIdentity)
     override suspend fun setThoughtLevel(workspacePath: String?, workspaceIdentity: String?, sessionId: String, thoughtLevel: String, expectedRevision: Long?): JsonObject = plane.setThoughtLevel(workspacePath, workspaceIdentity, sessionId, thoughtLevel, expectedRevision)
     override suspend fun createScratchWorkspace(name: String): JsonObject = plane.createScratchWorkspace(name)
     override suspend fun channelCall(channelName: String, method: String, arg: RpcValue, timeoutMs: Long): RpcValue = plane.channelCall(channelName, method, arg, timeoutMs)

@@ -193,6 +193,37 @@ interface V4Plane {
         workspaceIdentity: String? = null,
     ): JsonObject
 
+    // ---- G16 (vc51 Phase 4D): the attachment PREVIEW-SOURCE + conversation-scoped words.
+
+    /** `attachmentPreviewSourceV4` → `{kind:"chunked"}` | `{kind:"local_path", path}`. */
+    suspend fun attachmentPreviewSource(
+        sessionId: String,
+        ref: String,
+        attachmentIndex: Int? = null,
+        workspacePath: String? = null,
+        workspaceIdentity: String? = null,
+    ): JsonObject
+
+    /** `conversationAttachmentStatV4` — the conversation-scoped stat (mediaType/totalBytes). */
+    suspend fun conversationAttachmentStat(
+        sessionId: String,
+        ref: String,
+        attachmentIndex: Int? = null,
+        workspacePath: String? = null,
+        workspaceIdentity: String? = null,
+    ): JsonObject
+
+    /** `conversationAttachmentReadV4` — the conversation-scoped chunk read (preview budget). */
+    suspend fun conversationAttachmentRead(
+        sessionId: String,
+        ref: String,
+        offset: Long,
+        limit: Int,
+        attachmentIndex: Int? = null,
+        workspacePath: String? = null,
+        workspaceIdentity: String? = null,
+    ): JsonObject
+
     // ---- Phase 3 read-only viewer surfaces (INV-9: read methods only — v4-wire.md §12)
 
     /**
@@ -1014,6 +1045,70 @@ internal class ChannelV4Plane(
         }
         return v4CallObject("attachmentReadV4", params)
     }
+
+    // ---- G16 (vc51 Phase 4D): the attachment PREVIEW-SOURCE + conversation-scoped words.
+
+    /** `attachmentPreviewSourceV4` -> `{kind:"chunked"}` | `{kind:"local_path", path}`. */
+    suspend fun attachmentPreviewSource(
+        sessionId: String,
+        ref: String,
+        attachmentIndex: Int?,
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ): JsonObject {
+        val target = host.workspaceTarget()
+        val params = buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+            (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("sessionId", JsonPrimitive(sessionId))
+            put("ref", JsonPrimitive(ref))
+            attachmentIndex?.let { put("attachmentIndex", JsonPrimitive(it)) }
+        }
+        return v4CallObject("attachmentPreviewSourceV4", params)
+    }
+
+    /** `conversationAttachmentStatV4` — the conversation-scoped stat (mediaType/totalBytes). */
+    suspend fun conversationAttachmentStat(
+        sessionId: String,
+        ref: String,
+        attachmentIndex: Int?,
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ): JsonObject {
+        val target = host.workspaceTarget()
+        val params = buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+            (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("sessionId", JsonPrimitive(sessionId))
+            put("ref", JsonPrimitive(ref))
+            attachmentIndex?.let { put("attachmentIndex", JsonPrimitive(it)) }
+        }
+        return v4CallObject("conversationAttachmentStatV4", params)
+    }
+
+    /** `conversationAttachmentReadV4` — the conversation-scoped chunk read (preview budget). */
+    suspend fun conversationAttachmentRead(
+        sessionId: String,
+        ref: String,
+        offset: Long,
+        limit: Int,
+        attachmentIndex: Int?,
+        workspacePath: String?,
+        workspaceIdentity: String?,
+    ): JsonObject {
+        val target = host.workspaceTarget()
+        val params = buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath ?: target?.first ?: ""))
+            (workspaceIdentity ?: target?.second)?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+            put("sessionId", JsonPrimitive(sessionId))
+            put("ref", JsonPrimitive(ref))
+            attachmentIndex?.let { put("attachmentIndex", JsonPrimitive(it)) }
+            put("offset", JsonPrimitive(offset))
+            put("limit", JsonPrimitive(limit))
+        }
+        return v4CallObject("conversationAttachmentReadV4", params)
+    }
+
 
     /** v4Call variant returning the decoded JsonObject (the Phase 9 calls all return objects). */
     private suspend fun v4CallObject(name: String, params: JsonObject): JsonObject {

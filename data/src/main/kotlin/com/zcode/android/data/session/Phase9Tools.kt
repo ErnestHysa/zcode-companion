@@ -313,6 +313,59 @@ class Phase9Tools(private val transport: AppTransport) {
     suspend fun fileBytes(path: String, offset: Long, length: Long): ByteArray =
         transport.fileReadBytes(path, offset, length)
 
+    // ---------------------------------------------------------------- G16 (vc51 Phase 4D)
+
+    /**
+     * The attachment's PREVIEW SOURCE (`attachmentPreviewSourceV4`): the shipped host
+     * answers `{kind:"chunked"}` for a mobile client (the desktop-continuous local-path
+     * render source never applies — the phone cannot read a desktop path). INV-8-tolerant:
+     * an unknown kind or a refused call degrades to "chunked".
+     */
+    suspend fun attachmentPreviewSourceKind(
+        sessionId: String,
+        ref: String,
+        attachmentIndex: Int? = null,
+        workspacePath: String? = null,
+        workspaceIdentity: String? = null,
+    ): String = try {
+        transport.attachmentPreviewSource(sessionId, ref, attachmentIndex, workspacePath, workspaceIdentity)
+            .strOrNull("kind") ?: "chunked"
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        "chunked"
+    }
+
+    /**
+     * PREVIEW-QUALITY media fetch: the conversation-scoped chunk channel
+     * (`conversationAttachmentReadV4`) streamed up to [maxBytes] — an 8× budget over the
+     * §23.2 first-chunk thumbnail cap, so previews render at preview quality over the
+     * new channel instead of the 512 KiB first chunk only.
+     */
+    suspend fun attachmentPreviewQuality(
+        sessionId: String,
+        ref: String,
+        maxBytes: Int = 4 * 1024 * 1024,
+        attachmentIndex: Int? = null,
+        workspacePath: String? = null,
+        workspaceIdentity: String? = null,
+    ): ByteArray? {
+        val out = java.io.ByteArrayOutputStream()
+        var offset = 0L
+        while (out.size() < maxBytes) {
+            val limit = minOf(AttachmentLimits.CHUNK_MAX_BYTES, maxBytes - out.size())
+            val raw = transport.conversationAttachmentRead(
+                sessionId, ref, offset, limit, attachmentIndex, workspacePath, workspaceIdentity,
+            )
+            val result = V4Attachment.ReadResult.decode(raw)
+            val chunk = runCatching { java.util.Base64.getDecoder().decode(result.dataBase64) }.getOrNull() ?: return null
+            out.write(chunk)
+            val next = result.nextOffset ?: break
+            offset = next
+        }
+        return out.toByteArray()
+    }
+
     /** I3 (Phase 3E): a bounded binary preview (image thumbs render in the browser). */
     suspend fun fileBinaryPreview(path: String, maxBytes: Long): JsonObject =
         transport.fileBinaryPreview(path, maxBytes)
