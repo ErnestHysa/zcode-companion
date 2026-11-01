@@ -194,6 +194,22 @@ class AutomationsSectionUiTest {
     }
 
     @Test
+    fun offPeakRow_statusRidesTheWeightedTitleColumn_rigSqueezeFix() {
+        // vc51 Phase-4 exit-gate rig catch: with Pause + Cancel (three controls) the
+        // sibling status/badge Text squeezed the weighted title column to a sliver —
+        // the badge now rides the title column and the title keeps its full width share.
+        setContent(
+            port(
+                offPeak = listOf(
+                    OffPeakTaskRow("op-q", "Nightly refactor sweep", "queued", 1, null, 1L, "/synthetic/ws", null),
+                ),
+            ),
+        )
+        rule.onNodeWithTag("offpeak_row_op-q").assertExists()
+        rule.onNodeWithText("Nightly refactor sweep", substring = true).assertExists()
+    }
+
+    @Test
     fun offPeakCreate_flow_reachesThePort() {
         val recorder = Recorder()
         setContent(portWithRecording(offPeak = listOf(OffPeakTaskRow("op-1", "Idle job", "queued", 1, null, 1L, "/synthetic/ws", null)), recorder = recorder))

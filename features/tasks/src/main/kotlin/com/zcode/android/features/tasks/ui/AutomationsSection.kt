@@ -696,26 +696,27 @@ private fun OffPeakLine(
                 )
             }
             Text(relativeTimeLabelLive(t.createdAt) ?: "", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            // L6.2 + rig fix (vc51 Phase 4 exit gate): the status/badge line lives INSIDE
+            // the weighted title column — as a sibling it squeezed the title to a
+            // one-char-per-line sliver when the row carried three buttons.
+            val position = t.queuePosition
+            Text(
+                buildString {
+                    append(offPeakStatusLabel(t.status))
+                    // The desktop's badges: "#N in queue" while queued, "#N Paused" while
+                    // paused; terminal states keep the plain status word.
+                    when {
+                        t.status == "queued" && position != null ->
+                            append(" · ").append(stringResource(R.string.offpeak_badge_queue, position))
+                        t.status == "paused" && position != null ->
+                            append(" · ").append(stringResource(R.string.offpeak_badge_paused, position))
+                        else -> Unit
+                    }
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
-        // L6.2: the localized status vocabulary + the desktop's queue badges — the raw
-        // wire word never renders. paused keeps its position badge; queued shows "in queue".
-        val position = t.queuePosition
-        Text(
-            buildString {
-                append(offPeakStatusLabel(t.status))
-                // The desktop's badges: "#N in queue" while queued, "#N Paused" while
-                // paused; terminal states keep the plain status word.
-                when {
-                    t.status == "queued" && position != null ->
-                        append(" · ").append(stringResource(R.string.offpeak_badge_queue, position))
-                    t.status == "paused" && position != null ->
-                        append(" · ").append(stringResource(R.string.offpeak_badge_paused, position))
-                    else -> Unit
-                }
-            },
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
         // A3.10: queued/running → Pause; paused → Continue (the status vocabulary is the wire's).
         when (t.status) {
             "queued", "running" -> onPause?.let { cb ->

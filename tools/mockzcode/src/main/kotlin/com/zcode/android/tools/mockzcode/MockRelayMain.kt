@@ -440,6 +440,9 @@ fun main() {
             "runCount" to JsonPrimitive(3),
             "recurring" to JsonPrimitive(true),
             "mode" to JsonPrimitive("task"),
+            // the decode's required keys (INV-8 strict rows): workspace + location
+            "workspaceKey" to JsonPrimitive("/synthetic/ws-one"),
+            "locationKind" to JsonPrimitive("local"),
         ))))
     }
     // RIG-1 (vc51 Phase 4C / G29): MOCK_OFFPEAK=1 seeds the off-peak list — one queued,
