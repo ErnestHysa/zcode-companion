@@ -8,6 +8,7 @@ import com.zcode.android.domain.model.ConversationRow
  * (INV-16: rows in order, timestamps UTC-agnostic relative-free), tool/reasoning rows
  * collapsed to one quiet line each (a transcript is a reading artifact, not a log).
  */
+
 object TranscriptBuilder {
 
     fun build(taskTitle: String?, rows: List<ConversationRow>): String {
@@ -35,6 +36,40 @@ object TranscriptBuilder {
                 }
                 is ConversationRow.TurnHeader -> {
                     sb.append('\n').append("—".repeat(12)).append('\n')
+                }
+                else -> Unit
+            }
+        }
+        return sb.toString().trim() + "\n"
+    }
+
+    /**
+     * G19 (vc51 Phase 4D): the share sheet's MARKDOWN mode — the same deterministic row
+     * order (INV-16) with the desktop's export vocabulary: `#` title, bold speaker
+     * labels (You / Assistant), tool calls as inline code, turn rules as `---`.
+     */
+    fun buildMarkdown(taskTitle: String?, rows: List<ConversationRow>): String {
+        val sb = StringBuilder()
+        sb.append("# ").append(taskTitle?.takeIf { it.isNotBlank() } ?: "Conversation").append("\n")
+        for (row in rows) {
+            when (row) {
+                is ConversationRow.UserInput -> {
+                    sb.append("\n**You:**\n\n").append(row.text.trim()).append('\n')
+                    val names = row.attachments?.mapNotNull { it.fileName }
+                    if (!names.isNullOrEmpty()) sb.append("\n_Attached: ").append(names.joinToString(", ")).append("_\n")
+                }
+                is ConversationRow.AssistantText -> {
+                    val text = row.text?.trim().orEmpty()
+                    if (text.isNotEmpty()) sb.append("\n**Assistant:**\n\n").append(text).append('\n')
+                }
+                is ConversationRow.ToolCall -> {
+                    sb.append("\n- tool: `").append(row.toolName).append("`\n")
+                }
+                is ConversationRow.Reasoning -> {
+                    // collapsed: reasoning stays private-to-the-run in a share artifact
+                }
+                is ConversationRow.TurnHeader -> {
+                    sb.append("\n---\n")
                 }
                 else -> Unit
             }

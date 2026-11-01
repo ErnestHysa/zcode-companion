@@ -615,6 +615,8 @@ private fun ConversationRoute(
     var showTrajectory by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     // G28 (vc51 Phase 4D): the attachment zoom-viewer target (null = closed) — full
     // bytes load through the SAME fetchAttachment chunked path the artifact opener uses.
+    // G19 (vc51 Phase 4D): the share-mode chooser over the conv_share chip.
+    var showShareModes by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     var attachmentViewerTarget by androidx.compose.runtime.remember {
         androidx.compose.runtime.mutableStateOf<com.zcode.android.domain.model.ConversationRow.UserInput.AttachmentMeta?>(null)
     }
@@ -824,20 +826,32 @@ private fun ConversationRoute(
         // A3.16 (Phase 5C): share-OUT via the Android system sheet — the transcript is
         // built from the timeline rows (TranscriptBuilder); import/publish stay
         // desktop-only per PROBE-L6 (the host's rejectMobileShare stub).
-        onShareTranscript = {
-            val transcript = com.zcode.android.features.conversation.TranscriptBuilder.build(
-                state.task?.title,
-                state.rows,
-            )
-            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(android.content.Intent.EXTRA_SUBJECT, state.task?.title ?: "Conversation")
-                putExtra(android.content.Intent.EXTRA_TEXT, transcript)
-                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            context.startActivity(android.content.Intent.createChooser(intent, shareCopy))
-        },
+        // G19 (vc51 Phase 4D): the chip opens the MODE chooser (plain text / markdown
+        // export); the dispatch builds the chosen transcript and rides ACTION_SEND.
+        onShareTranscript = { showShareModes = true },
     )
+
+    if (showShareModes) {
+        com.zcode.android.features.conversation.ui.ShareModeSheet(
+            onMode = { mode ->
+                showShareModes = false
+                val transcript = when (mode) {
+                    com.zcode.android.features.conversation.ui.ShareMode.PLAIN_TEXT ->
+                        com.zcode.android.features.conversation.TranscriptBuilder.build(state.task?.title, state.rows)
+                    com.zcode.android.features.conversation.ui.ShareMode.MARKDOWN ->
+                        com.zcode.android.features.conversation.TranscriptBuilder.buildMarkdown(state.task?.title, state.rows)
+                }
+                val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(android.content.Intent.EXTRA_SUBJECT, state.task?.title ?: "Conversation")
+                    putExtra(android.content.Intent.EXTRA_TEXT, transcript)
+                    addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(android.content.Intent.createChooser(intent, shareCopy))
+            },
+            onDismiss = { showShareModes = false },
+        )
+    }
 }
 
 @Composable

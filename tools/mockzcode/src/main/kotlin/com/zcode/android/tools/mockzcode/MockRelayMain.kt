@@ -174,7 +174,12 @@ fun main() {
                     "model" to JsonObject(mapOf("modelId" to JsonPrimitive("glm-5.3"), "providerId" to JsonPrimitive("zai"))),
                     "response" to JsonObject(mapOf(
                         "finishReason" to JsonPrimitive("tool_calls"), "text" to JsonPrimitive("Checking the workspace state"),
-                        "toolCalls" to JsonArray(listOf(JsonObject(mapOf("name" to JsonPrimitive("bash"))))),
+                        // G33 (vc51 Phase 4D): the drill-in payloads (args/result heads)
+                        "toolCalls" to JsonArray(listOf(JsonObject(mapOf(
+                            "name" to JsonPrimitive("bash"),
+                            "args" to JsonPrimitive("{\"command\":\"git status --short\",\"timeout\":30000}"),
+                            "result" to JsonPrimitive("M core/session.ts\n?? docs/evidence/notes.md"),
+                        )))),
                     )),
                 )),
                 JsonObject(mapOf(

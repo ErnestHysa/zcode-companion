@@ -310,6 +310,8 @@
     <string name="trajectory_truncated">仅显示最近的调用</string>
     <string name="trajectory_call">模型调用</string>
     <string name="trajectory_tools">工具：</string>
+<string name="trajectory_payload_args">参数:</string>
+<string name="trajectory_payload_result">结果:</string>
     <string name="conv_trajectory_entry">模型调用</string>
     <!-- Phase 5B (A3.11): 撤销预览 -->
     <string name="rewind_preview_unavailable">无法读取撤销预览 — 确认时仅显示上方摘要</string>
@@ -319,6 +321,11 @@
     <string name="userinput_decline">跳过 — 不回答并继续</string>
     <!-- Phase 5C (A3.16): 分享 -->
     <string name="conv_share_entry">分享</string>
+<string name="share_mode_title">分享对话</string>
+<string name="share_mode_text">纯文本</string>
+<string name="share_mode_text_detail">可读的对话记录</string>
+<string name="share_mode_markdown">Markdown</string>
+<string name="share_mode_markdown_detail">格式化导出（标题、代码）</string>
     <string name="share_shared">已通过系统分享面板分享</string>
     <!-- Phase 6A (I2.4): 上下文压缩生命周期提示（桌面端 chat.contextCompaction.*） -->
     <string name="compaction_started">正在压缩上下文</string>

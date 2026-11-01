@@ -163,6 +163,61 @@ class PlansTrajectoryUiTest {
         assertEquals("r2", q)
     }
 
+    // G33 (vc51 Phase 4D): the model-trajectory drill-in.
+
+    @Test
+    fun `trajectory call card expands into the tool payload detail`() {
+        val payload = TrajectoryRecord.TrajectoryToolPayload(
+            name = "bash",
+            argsHead = "{\"command\":\"git status --short\"}",
+            resultHead = "M core/session.ts",
+        )
+        rule.setContent {
+            ZCodeTheme {
+                TrajectorySheet(
+                    trajectory = TrajectoryResult(
+                        records = listOf(
+                            TrajectoryRecord(
+                                requestId = "r1", attempt = 1, startedAt = "2026-10-20T10:00:00Z", completedAt = null,
+                                durationMs = 1200, callKind = "main", modelId = "glm-5.3", providerId = "zai",
+                                finishReason = "tool_calls", textHead = null, toolNames = listOf("bash"),
+                                error = null, toolPayloads = listOf(payload),
+                            ),
+                        ),
+                        sourceFiles = emptyList(), truncated = false,
+                    ),
+                    loading = false, searchResults = null, query = "", onQueryChange = {}, onDismiss = {},
+                )
+            }
+        }
+        rule.waitForIdle()
+        // collapsed: no payload section; the card is tappable
+        rule.onAllNodesWithTag("trajectory_payload_r1", useUnmergedTree = true).assertCountEquals(0)
+        rule.onNodeWithTag("trajectory_r1").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("trajectory_payload_r1", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("bash", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("args: {\"command\":\"git status --short\"}", substring = true, useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("result: M core/session.ts", substring = true, useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun `a record without payloads renders no drill-in affordance`() {
+        rule.setContent {
+            ZCodeTheme {
+                TrajectorySheet(
+                    trajectory = TrajectoryResult(
+                        records = listOf(rec("r-plain")),
+                        sourceFiles = emptyList(), truncated = false,
+                    ),
+                    loading = false, searchResults = null, query = "", onQueryChange = {}, onDismiss = {},
+                )
+            }
+        }
+        rule.waitForIdle()
+        rule.onAllNodesWithTag("trajectory_payload_r-plain", useUnmergedTree = true).assertCountEquals(0)
+    }
+
     @Test
     fun `trajectory sheet renders the unavailable face and search hits`() {
         rule.setContent {

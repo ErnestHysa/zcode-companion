@@ -28,7 +28,37 @@ data class TrajectoryRecord(
     val textHead: String?,
     val toolNames: List<String>,
     val error: String?,
+    /** G33 (vc51 Phase 4D): per-tool payload heads for the drill-in (INV-8-tolerant). */
+    val toolPayloads: List<TrajectoryToolPayload> = emptyList(),
 ) {
+    /** G33: one tool call's payload heads — args + result, capped for display. */
+    data class TrajectoryToolPayload(
+        val name: String,
+        val argsHead: String?,
+        val resultHead: String?,
+    ) {
+        companion object {
+            private fun head(o: JsonObject?, vararg keys: String): String? {
+                for (k in keys) {
+                    val v = (o?.get(k) as? JsonPrimitive)?.takeIf { it !is JsonNull }?.content
+                    if (!v.isNullOrBlank()) return v.take(600)
+                    val raw = o?.get(k)
+                    if (raw is JsonObject || raw is JsonArray) return raw.toString().take(600)
+                }
+                return null
+            }
+
+            fun decode(tc: JsonObject): TrajectoryToolPayload? {
+                val name = (tc["name"] as? JsonPrimitive)?.takeIf { it !is JsonNull }?.content ?: return null
+                return TrajectoryToolPayload(
+                    name = name,
+                    argsHead = head(tc, "args", "input", "arguments"),
+                    resultHead = head(tc, "result", "output"),
+                )
+            }
+        }
+    }
+
     companion object {
         fun decode(o: JsonObject): TrajectoryRecord? {
             fun str(key: String): String? = (o[key] as? JsonPrimitive)?.takeIf { it !is JsonNull }?.content?.takeIf { it.isNotBlank() }
@@ -52,6 +82,9 @@ data class TrajectoryRecord(
                 textHead = inner(response, "text")?.take(160),
                 toolNames = (response?.get("toolCalls") as? JsonArray)?.mapNotNull { tc ->
                     ((tc as? JsonObject)?.get("name") as? JsonPrimitive)?.takeIf { it !is JsonNull }?.content
+                } ?: emptyList(),
+                toolPayloads = (response?.get("toolCalls") as? JsonArray)?.mapNotNull { tc ->
+                    (tc as? JsonObject)?.let(TrajectoryToolPayload.Companion::decode)
                 } ?: emptyList(),
                 error = listOfNotNull(inner(error, "name"), inner(error, "message")).joinToString(": ").takeIf { it.isNotBlank() },
             )

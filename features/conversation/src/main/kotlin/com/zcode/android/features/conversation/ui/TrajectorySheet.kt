@@ -1,6 +1,7 @@
 package com.zcode.android.features.conversation.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,6 +17,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -117,7 +120,23 @@ fun TrajectorySheet(
 
 @Composable
 private fun TrajectoryLine(rec: TrajectoryRecord) {
-    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp).testTag("trajectory_${rec.requestId}")) {
+    // G33 (vc51 Phase 4D): the card EXPANDS into the tool payload detail (the desktop's
+    // ModelTrajectory drill-in) — a call card with payloads is tappable; the payload
+    // section renders args/result heads monospace, capped (INV-8: absent → no affordance).
+    var expanded by androidx.compose.runtime.saveable.rememberSaveable(rec.requestId) { androidx.compose.runtime.mutableStateOf(false) }
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .then(
+                if (rec.toolPayloads.isNotEmpty()) {
+                    Modifier.clickable { expanded = !expanded }
+                } else {
+                    Modifier
+                },
+            )
+            .testTag("trajectory_${rec.requestId}"),
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 rec.callKind,
@@ -149,6 +168,41 @@ private fun TrajectoryLine(rec: TrajectoryRecord) {
                 overflow = TextOverflow.Ellipsis,
                 fontWeight = FontWeight.Medium,
             )
+        }
+        if (expanded && rec.toolPayloads.isNotEmpty()) {
+            rec.toolPayloads.forEach { payload ->
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp)
+                        .testTag("trajectory_payload_${rec.requestId}"),
+                ) {
+                    Text(
+                        payload.name,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    payload.argsHead?.let {
+                        Text(
+                            stringResource(R.string.trajectory_payload_args) + " " + it,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontFamily = FontFamily.Monospace,
+                            maxLines = 4,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    payload.resultHead?.let {
+                        Text(
+                            stringResource(R.string.trajectory_payload_result) + " " + it,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontFamily = FontFamily.Monospace,
+                            maxLines = 4,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
     }
