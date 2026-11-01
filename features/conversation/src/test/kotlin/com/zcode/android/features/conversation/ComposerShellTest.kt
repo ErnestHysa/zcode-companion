@@ -63,6 +63,18 @@ class ComposerShellTest {
         }
     }
 
+    @Test
+    fun `G31 - the sketch sheet rides the composer add menu and its bytes join the upload transaction`() {
+        val src = File(repoRoot(), "features/conversation/src/main/kotlin/com/zcode/android/features/conversation/ui/WriteComponents.kt").readText()
+        assertTrue("the add-menu sketch entry exists", "composer_menu_sketch" in src)
+        val composer = src.substringAfter("fun ComposerBar(").substringBefore("private fun dispatchSend")
+        // Done hands the PNG bytes to the SAME onUploadAttachment the pickers use
+        assertTrue(
+            "the sketch sheet routes into the attachment upload path",
+            Regex("""SketchSheet\([\s\S]{0,400}onUploadAttachment""").containsMatchIn(composer),
+        )
+    }
+
     // ------------------------------------------------------------------ N2.2 queue in two places
 
     @Test

@@ -82,6 +82,10 @@
     <!-- K3+N2.2 (Phase 3D): the designed composer shell + queue-in-two-places. -->
     <string name="composer_add_desc">Add attachment</string>
     <string name="composer_menu_photo">Photo</string>
+<string name="composer_menu_sketch">Sketch</string>
+<string name="sketch_title">Sketch to send</string>
+<string name="sketch_clear">Clear</string>
+<string name="sketch_done">Done</string>
     <string name="composer_menu_camera">Take photo</string>
     <string name="composer_menu_paste_image">Paste image</string>
     <string name="composer_menu_voice">Dictate</string>

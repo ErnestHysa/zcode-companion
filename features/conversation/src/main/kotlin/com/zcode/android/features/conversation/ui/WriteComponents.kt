@@ -723,6 +723,24 @@ fun ComposerBar(
                     onUploadAttachment(name, mime, bytes)
                 }
             }
+            // G31 (vc51 Phase 4C): the sketch sheet rides the SAME upload transaction
+            // as the pickers — Done hands PNG bytes to onUploadAttachment.
+            var showSketch by remember { mutableStateOf(false) }
+            if (showSketch) {
+                SketchSheet(
+                    onDismiss = { showSketch = false },
+                    onDone = { bytes ->
+                        showSketch = false
+                        scope.launch {
+                            onUploadAttachment(
+                                "sketch-${System.currentTimeMillis()}.png",
+                                "image/png",
+                                bytes,
+                            )
+                        }
+                    },
+                )
+            }
             // GAP-A9: one dispatch path for the send BUTTON and the IME send action.
             fun dispatchSend() {
                 if (routing?.mode == com.zcode.android.domain.model.InputRouting.Mode.CHOICE) {
@@ -916,6 +934,14 @@ fun ComposerBar(
                                         onDraftChange(currentDraft + if (currentDraft.endsWith(" ") || currentDraft.isEmpty()) "@" else " @")
                                     },
                                     modifier = Modifier.testTag("composer_menu_mention"),
+                                )
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.composer_menu_sketch)) },
+                                    onClick = {
+                                        addMenu = false
+                                        showSketch = true
+                                    },
+                                    modifier = Modifier.testTag("composer_menu_sketch"),
                                 )
                                 androidx.compose.material3.DropdownMenuItem(
                                     text = { Text(stringResource(R.string.composer_menu_photo)) },

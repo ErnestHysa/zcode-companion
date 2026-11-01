@@ -169,6 +169,10 @@
     <string name="composer_model_picker_title">选择模型</string>
     <string name="composer_add_desc">添加附件</string>
     <string name="composer_menu_photo">照片</string>
+<string name="composer_menu_sketch">草图</string>
+<string name="sketch_title">画个草图发送</string>
+<string name="sketch_clear">清除</string>
+<string name="sketch_done">完成</string>
     <string name="composer_menu_camera">拍照</string>
     <string name="composer_menu_paste_image">粘贴图片</string>
     <string name="composer_menu_voice">语音输入</string>
