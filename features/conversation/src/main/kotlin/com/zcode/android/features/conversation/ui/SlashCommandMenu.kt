@@ -1,9 +1,12 @@
 package com.zcode.android.features.conversation.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
@@ -64,7 +67,16 @@ fun SlashCommandMenu(
             .fillMaxWidth()
             .testTag("slash_menu"),
     ) {
-        Column {
+        // G21 (vc51 Phase 4A pass-4 defect): the panel body is BOUNDED + SCROLLABLE —
+        // it used to be a plain column, so user commands below the fold were
+        // unreachable with a zero-scroll surface.
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(max = SlashMenuMaxHeight)
+                .verticalScroll(rememberScrollState())
+                .testTag("slash_menu_scroll"),
+        ) {
             if (extras != null && (catalog.isNotEmpty() || userCommands.isNotEmpty())) {
                 SectionHeader(stringResourceSlashCommands(), tag = "commands")
             }
@@ -127,6 +139,9 @@ fun SlashCommandMenu(
         }
     }
 }
+
+/** G21: the panel's scroll viewport cap (below-fold user commands stay reachable). */
+private val SlashMenuMaxHeight = 320.dp
 
 // Direct stringResource calls (the feature's own R); wrapped for readability below.
 @Composable private fun stringResourceSlashCommands() = androidx.compose.ui.res.stringResource(com.zcode.android.features.conversation.R.string.slash_section_commands)

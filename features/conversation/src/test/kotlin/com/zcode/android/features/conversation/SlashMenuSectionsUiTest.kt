@@ -1,6 +1,11 @@
 package com.zcode.android.features.conversation
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -51,6 +56,42 @@ class SlashMenuSectionsUiTest {
     )
 
     private val picks = mutableListOf<String>()
+
+    // G21 (vc51 Phase 4A pass-4 defect): the bare "/" panel was a NON-SCROLLABLE column —
+    // user commands below the fold were unreachable (swipe proved zero scroll).
+    private val tallExtras = ConversationPort.SlashExtras(
+        userCommands = listOf(
+            ConversationPort.SlashCommandView("zzz-deep-user-command", "Below the fold", null, "user"),
+        ),
+        skills = (1..24).map { ConversationPort.SlashSkillView("skill-$it", "Filler skill", "plugin") },
+        skillsError = null,
+        agents = listOf(ConversationPort.SlashAgentView("Explore", "Read-only search agent", "built-in")),
+        agentsError = null,
+        loading = false,
+    )
+
+    @Test
+    fun bareSlashPanel_scrollsToBelowTheFoldUserCommands() {
+        val tallCatalog = (1..30).map {
+            ConversationPort.SlashCommandView("cmd$it", "Filler command", null, "builtin")
+        }
+        picks.clear()
+        rule.setContent {
+            ZCodeTheme {
+                SlashCommandMenu(
+                    commands = tallCatalog,
+                    query = "/",
+                    onPick = { picks += it },
+                    modifier = Modifier.height(240.dp),
+                    extras = tallExtras,
+                )
+            }
+        }
+        rule.waitForIdle()
+        // the below-the-fold user command is reachable BY SCROLL (zero-scroll was the defect)
+        rule.onNodeWithTag("slash_menu_scroll").performScrollToNode(hasText("/zzz-deep-user-command", substring = true))
+        rule.onNodeWithTag("slash_command_zzz-deep-user-command", useUnmergedTree = true).assertExists()
+    }
 
     private fun setContent(query: String, extras: ConversationPort.SlashExtras? = this.extras) {
         picks.clear()
