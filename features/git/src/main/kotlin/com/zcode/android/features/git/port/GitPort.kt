@@ -6,10 +6,13 @@ import com.zcode.android.domain.model.GitFileDiff
 import com.zcode.android.domain.model.GitSummary
 
 /**
- * Consumer-side port for the §9.4 read-only git panel (INV-2/INV-6). The surface
- * is a STRICT read-only subset of the verified `git` channel (phase9-channels.md
- * §2): summary/changes/diff/commit-graph. No stage/unstage/commit/push/branch
- * methods EXIST on this port — INV-9 is enforced by the typed surface.
+ * Consumer-side port for the §9.4 git panel (INV-2/INV-6). The READ surface is the
+ * verified `git` channel subset (phase9-channels.md §2): summary/changes/diff/
+ * commit-graph. The WRITE tier is ADR-021 as shipped: stage/unstage + the branch
+ * verbs (switch/create-and-switch) — G32 (vc51 Phase 4C) confirmed the stale
+ * "no stage/unstage/commit/push/branch methods EXIST" claim wrong in both
+ * directions; commit/push AUTHORING remains desktop-side (the dated ADR-021
+ * boundary recorded in the vc51 report).
  */
 interface GitPort {
 
