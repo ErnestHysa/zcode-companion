@@ -422,15 +422,9 @@ fun main() {
         )))),
         "pluginCommands" to JsonArray(emptyList()),
     ))
-    mock.script.subagentsList = JsonObject(mapOf(
-        "agents" to JsonArray(listOf(JsonObject(mapOf(
-            "id" to JsonPrimitive("a-explore"),
-            "name" to JsonPrimitive("Explore"),
-            "description" to JsonPrimitive("Read-only search agent"),
-            "scope" to JsonPrimitive("built-in"),
-            "enabled" to JsonPrimitive(true),
-        )))),
-    ))
+    // G25 (vc51 Phase 4B): three agents across scopes — one DISABLED so the
+    // subagents viewer's state badges render both faces on the rig.
+    mock.script.subagentsList = subagentsViewerSeed()
     // PART M live leg: populated MCP / plugins / skills viewers (shapes mirror the
     // domain decoders: ViewerModels.McpStatuses / PluginsView / SkillCatalog) so the
     // three Settings viewers render their real lists on device instead of the
@@ -616,6 +610,33 @@ fun main() {
  * in any pass. Task-1 mirrors the sessions bootstrap row's identity keys so the
  * listTasks upsert refreshes the projection row in place instead of duplicating it.
  */
+/** G25 (vc51 Phase 4B): the subagents-viewer seed — shared by the relay arming and the self-test. */
+internal fun subagentsViewerSeed(): JsonObject = JsonObject(mapOf(
+    "agents" to JsonArray(listOf(
+        JsonObject(mapOf(
+            "id" to JsonPrimitive("a-explore"),
+            "name" to JsonPrimitive("Explore"),
+            "description" to JsonPrimitive("Read-only search agent"),
+            "scope" to JsonPrimitive("built-in"),
+            "enabled" to JsonPrimitive(true),
+        )),
+        JsonObject(mapOf(
+            "id" to JsonPrimitive("a-plan"),
+            "name" to JsonPrimitive("Plan"),
+            "description" to JsonPrimitive("Implementation planning agent"),
+            "scope" to JsonPrimitive("built-in"),
+            "enabled" to JsonPrimitive(true),
+        )),
+        JsonObject(mapOf(
+            "id" to JsonPrimitive("a-docs"),
+            "name" to JsonPrimitive("docs-writer"),
+            "description" to JsonPrimitive("Project documentation agent"),
+            "scope" to JsonPrimitive("project"),
+            "enabled" to JsonPrimitive(false),
+        )),
+    )),
+))
+
 internal fun armTaskManagementRig(mock: MockZCode) {
     val now = System.currentTimeMillis()
     mock.script.bootstrapTasks = listOf(
