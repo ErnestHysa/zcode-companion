@@ -36,6 +36,8 @@ class ThemePrefsTest {
                 when (it) {
                     AppPreferences.ThemeMode.LIGHT -> ThemeMode.LIGHT
                     AppPreferences.ThemeMode.DARK -> ThemeMode.DARK
+                    AppPreferences.ThemeMode.ZAI_LIGHT -> ThemeMode.ZAI_LIGHT
+                    AppPreferences.ThemeMode.ZAI_DARK -> ThemeMode.ZAI_DARK
                     AppPreferences.ThemeMode.SYSTEM -> ThemeMode.SYSTEM
                 }
             },

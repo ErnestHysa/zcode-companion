@@ -1140,14 +1140,6 @@ private fun AppearanceSection(container: AppContainer) {
     val prefs by container.stores.preferencesRepository.observe()
         .collectAsState(com.zcode.android.domain.model.AppPreferences())
     var pickerOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-    @androidx.compose.runtime.Composable
-    fun modeLabel(mode: com.zcode.android.domain.model.AppPreferences.ThemeMode): String = stringResource(
-        when (mode) {
-            com.zcode.android.domain.model.AppPreferences.ThemeMode.LIGHT -> R.string.settings_theme_light
-            com.zcode.android.domain.model.AppPreferences.ThemeMode.DARK -> R.string.settings_theme_dark
-            com.zcode.android.domain.model.AppPreferences.ThemeMode.SYSTEM -> R.string.settings_theme_system
-        },
-    )
     SettingsRow(
         title = stringResource(R.string.settings_theme_row, modeLabel(prefs.themeMode)),
         subtitle = stringResource(R.string.settings_theme_sub),
@@ -1203,40 +1195,245 @@ private fun AppearanceSection(container: AppContainer) {
         )
     }
     if (pickerOpen) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { pickerOpen = false },
-            title = { Text(stringResource(R.string.settings_theme_row_title)) },
-            text = {
-                Column {
-                    for (mode in com.zcode.android.domain.model.AppPreferences.ThemeMode.entries) {
-                        val selected = prefs.themeMode == mode
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    scope.launch {
-                                        container.stores.preferencesRepository.update { p -> p.copy(themeMode = mode) }
-                                    }
-                                    pickerOpen = false
-                                }
-                                .padding(vertical = 10.dp)
-                                .testTag("settings_theme_${mode.name}"),
-                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                        ) {
-                            androidx.compose.material3.RadioButton(selected = selected, onClick = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text(modeLabel(mode))
-                        }
-                    }
+        ThemePickerDialog(
+            current = prefs.themeMode,
+            onDismiss = { pickerOpen = false },
+        ) { mode ->
+            scope.launch { container.stores.preferencesRepository.update { p -> p.copy(themeMode = mode) } }
+            pickerOpen = false
+        }
+    }
+
+    // G37 (vc51): the in-app locale (System / English / 中文) — the zh-CN resources ship;
+    // MainActivity re-wraps the base context on the flip (instant-apply via recreate).
+    var localePickerOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    SettingsRow(
+        title = stringResource(R.string.settings_locale_row),
+        subtitle = localeLabel(prefs.appLocale),
+        tag = "settings_locale",
+        onClick = { localePickerOpen = true },
+    )
+    if (localePickerOpen) {
+        LocalePickerDialog(
+            current = prefs.appLocale,
+            onDismiss = { localePickerOpen = false },
+        ) { locale ->
+            scope.launch { container.stores.preferencesRepository.update { p -> p.copy(appLocale = locale) } }
+            localePickerOpen = false
+        }
+    }
+
+    // G38 (vc51): the in-app TEXT SIZE (0.85× / default / 1.15×) on top of the OS scale —
+    // instant-apply like the theme (the ZCodeTheme typography is scaled per composition).
+    var scalePickerOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    SettingsRow(
+        title = stringResource(R.string.settings_fontscale_row),
+        subtitle = stringResource(
+            R.string.settings_fontscale_value,
+            scaleLabel(prefs.fontScale),
+        ),
+        tag = "settings_fontscale",
+        onClick = { scalePickerOpen = true },
+    )
+    if (scalePickerOpen) {
+        FontScalePickerDialog(
+            current = prefs.fontScale,
+            onDismiss = { scalePickerOpen = false },
+        ) { scale ->
+            scope.launch { container.stores.preferencesRepository.update { p -> p.copy(fontScale = scale) } }
+            scalePickerOpen = false
+        }
+    }
+
+    // G39 (vc51): the task AGING POLICY over the archive verb (0 = off, manual-only).
+    var archivePickerOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    SettingsRow(
+        title = stringResource(R.string.settings_autoarchive_row),
+        subtitle = autoArchiveLabel(prefs.taskAutoArchiveDays),
+        tag = "settings_autoarchive",
+        onClick = { archivePickerOpen = true },
+    )
+    if (archivePickerOpen) {
+        AutoArchivePickerDialog(
+            current = prefs.taskAutoArchiveDays,
+            onDismiss = { archivePickerOpen = false },
+        ) { days ->
+            scope.launch { container.stores.preferencesRepository.update { p -> p.copy(taskAutoArchiveDays = days) } }
+            archivePickerOpen = false
+        }
+    }
+}
+
+@Composable
+private fun modeLabel(mode: com.zcode.android.domain.model.AppPreferences.ThemeMode): String = stringResource(
+    when (mode) {
+        com.zcode.android.domain.model.AppPreferences.ThemeMode.LIGHT -> R.string.settings_theme_light
+        com.zcode.android.domain.model.AppPreferences.ThemeMode.DARK -> R.string.settings_theme_dark
+        com.zcode.android.domain.model.AppPreferences.ThemeMode.ZAI_LIGHT -> R.string.settings_theme_zai_light
+        com.zcode.android.domain.model.AppPreferences.ThemeMode.ZAI_DARK -> R.string.settings_theme_zai_dark
+        com.zcode.android.domain.model.AppPreferences.ThemeMode.SYSTEM -> R.string.settings_theme_system
+    },
+)
+
+@Composable
+private fun localeLabel(locale: com.zcode.android.domain.model.AppPreferences.AppLocale): String = stringResource(
+    when (locale) {
+        com.zcode.android.domain.model.AppPreferences.AppLocale.SYSTEM -> R.string.settings_locale_system
+        com.zcode.android.domain.model.AppPreferences.AppLocale.EN -> R.string.settings_locale_en
+        com.zcode.android.domain.model.AppPreferences.AppLocale.ZH_RCN -> R.string.settings_locale_zh
+    },
+)
+
+@Composable
+private fun scaleLabel(scale: Float): String = when {
+    scale < 1f -> stringResource(R.string.settings_fontscale_small)
+    scale > 1f -> stringResource(R.string.settings_fontscale_large)
+    else -> stringResource(R.string.settings_fontscale_default)
+}
+
+@Composable
+private fun autoArchiveLabel(days: Int): String = when (days) {
+    0 -> stringResource(R.string.settings_autoarchive_off)
+    else -> stringResource(R.string.settings_autoarchive_days, days)
+}
+
+/** G37 (vc51): the Language picker (System / English / 中文) — the testable surface. */
+@Composable
+internal fun LocalePickerDialog(
+    current: com.zcode.android.domain.model.AppPreferences.AppLocale,
+    onDismiss: () -> Unit,
+    onPick: (com.zcode.android.domain.model.AppPreferences.AppLocale) -> Unit,
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_locale_row)) },
+        text = {
+            Column {
+                for (locale in com.zcode.android.domain.model.AppPreferences.AppLocale.entries) {
+                    PickerRadioRow(
+                        selected = current == locale,
+                        label = localeLabel(locale),
+                        tag = "settings_locale_${locale.name}",
+                        onClick = { onPick(locale) },
+                    )
                 }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { pickerOpen = false }) {
-                    Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
+            }
+        },
+    )
+}
+
+/** G38 (vc51): the Text-size picker (0.85× / 1.0× / 1.15×). */
+@Composable
+internal fun FontScalePickerDialog(
+    current: Float,
+    onDismiss: () -> Unit,
+    onPick: (Float) -> Unit,
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_fontscale_row)) },
+        text = {
+            Column {
+                for (scale in listOf(0.85f, 1f, 1.15f)) {
+                    PickerRadioRow(
+                        selected = kotlin.math.abs(current - scale) < 0.001f,
+                        label = scaleLabel(scale),
+                        tag = "settings_fontscale_${(scale * 1000).toInt()}",
+                        onClick = { onPick(scale) },
+                    )
                 }
-            },
-        )
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
+            }
+        },
+    )
+}
+
+/** G39 (vc51): the task auto-archive policy picker (0 = off | 3 | 7 | 14 | 30). */
+@Composable
+internal fun AutoArchivePickerDialog(
+    current: Int,
+    onDismiss: () -> Unit,
+    onPick: (Int) -> Unit,
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_autoarchive_row)) },
+        text = {
+            Column {
+                for (days in listOf(0, 3, 7, 14, 30)) {
+                    PickerRadioRow(
+                        selected = current == days,
+                        label = autoArchiveLabel(days),
+                        tag = "settings_autoarchive_$days",
+                        onClick = { onPick(days) },
+                    )
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
+            }
+        },
+    )
+}
+
+/** THEME-ZAI: the theme picker (Light/Dark/System + the zai variants — ThemeMode.entries). */
+@Composable
+internal fun ThemePickerDialog(
+    current: com.zcode.android.domain.model.AppPreferences.ThemeMode,
+    onDismiss: () -> Unit,
+    onPick: (com.zcode.android.domain.model.AppPreferences.ThemeMode) -> Unit,
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_theme_row_title)) },
+        text = {
+            Column {
+                for (mode in com.zcode.android.domain.model.AppPreferences.ThemeMode.entries) {
+                    PickerRadioRow(
+                        selected = current == mode,
+                        label = modeLabel(mode),
+                        tag = "settings_theme_${mode.name}",
+                        onClick = { onPick(mode) },
+                    )
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
+            }
+        },
+    )
+}
+
+@Composable
+private fun PickerRadioRow(selected: Boolean, label: String, tag: String, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp)
+            .testTag(tag),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+    ) {
+        androidx.compose.material3.RadioButton(selected = selected, onClick = null)
+        Spacer(Modifier.width(8.dp))
+        Text(label)
     }
 }
 

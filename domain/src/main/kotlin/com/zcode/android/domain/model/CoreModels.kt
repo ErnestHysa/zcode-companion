@@ -233,10 +233,36 @@ data class AppPreferences(
     val workspaceOrder: List<String> = emptyList(),
     val workspaceAliases: Map<String, String> = emptyMap(),
     val selectedWorkspaceKey: String? = null,
+    /** G37 (vc51): the in-app locale (SYSTEM = follow the device; zh-CN resources ship). */
+    val appLocale: AppLocale = AppLocale.SYSTEM,
+    /** G38 (vc51): the in-app text-scale multiplier (0.85/1.0/1.15; sp already tracks the OS scale). */
+    val fontScale: Float = 1.0f,
+    /** G39 (vc51): the task aging policy over the archive verb (0 = off, the manual-only default). */
+    val taskAutoArchiveDays: Int = 0,
 ) {
     enum class NotificationContentLevel { MINIMAL, CONTENT }
 
-    enum class ThemeMode { LIGHT, DARK, SYSTEM }
+    enum class ThemeMode { LIGHT, DARK, SYSTEM, ZAI_LIGHT, ZAI_DARK }
+
+    /** G37: the in-app locale (SYSTEM = the device's; zh-CN ships in values-zh-rCN). */
+    enum class AppLocale {
+        SYSTEM, EN, ZH_RCN;
+
+        /** The java.util.Locale tag for the context wrap (null = system default). */
+        val javaTag: String? get() = when (this) {
+            EN -> "en"
+            ZH_RCN -> "zh-CN"
+            SYSTEM -> null
+        }
+
+        companion object {
+            fun fromWire(value: String?): AppLocale = when (value) {
+                "EN" -> EN
+                "ZH_RCN" -> ZH_RCN
+                else -> SYSTEM
+            }
+        }
+    }
 
     /** interfaceMode.ts: office | coding; the legacy "general"/"concise" map to office. */
     enum class InterfaceMode { OFFICE, CODING;

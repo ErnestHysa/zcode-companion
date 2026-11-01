@@ -7,6 +7,7 @@ import com.zcode.android.domain.state.ConnectionPhase
 import com.zcode.android.features.tasks.port.TasksPort
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -406,10 +407,40 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
             _refreshInProgress.value = true
             try {
                 port.refresh()
+                applyAutoArchivePolicy()
                 groupedView.value = port.listGroupedView() ?: emptyList()
             } finally {
                 _refreshInProgress.value = false
             }
+        }
+    }
+
+    /**
+     * G39 (vc51): the task AGING POLICY over the archive verb — idle (updatedAtMs) rows
+     * older than the policy archive ONCE on refresh (archived rows leave the list, so
+     * re-firing is naturally idempotent); 0 = off (the manual-only default, and the
+     * policy is fed from the persisted pref via [setAutoArchiveDays]).
+     */
+    @Volatile
+    var autoArchiveDays: Int = 0
+        set(days) {
+            field = days
+            if (days > 0) scope.launch { refresh() }
+        }
+
+    private suspend fun applyAutoArchivePolicy() {
+        if (autoArchiveDays <= 0) return
+        val cutoff = System.currentTimeMillis() - autoArchiveDays * 24L * 3600_000L
+        val current = port.tasks.first()
+        // archivedAtMs non-null = already archived (never re-archived); RUNNING rows are
+        // live work, not idle — the desktop's aging policy targets settled rows.
+        val stale = current.filter {
+            it.archivedAtMs == null && it.status != TaskStatus.RUNNING && it.updatedAtMs < cutoff
+        }
+        for (task in stale) {
+            // best-effort per row: one refusal doesn't stop the sweep (the UI toasts on
+            // the manual path only — the policy is silent)
+            runCatching { port.setTaskArchived(task.taskId, true) }
         }
     }
 

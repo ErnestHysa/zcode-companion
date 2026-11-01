@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import com.zcode.android.app.nav.ZCodeApp
 import com.zcode.android.app.theme.ZCodeTheme
 import com.zcode.android.features.pairing.PairingViewModel
@@ -80,6 +81,28 @@ class MainActivity : FragmentActivity() {
         }
     }
 
+    companion object {
+        /** G37: the process-wide locale cache — attachBaseContext reads it BEFORE
+         *  any repository exists; the composition effect keeps it in sync. */
+        val cachedLocale = java.util.concurrent.atomic.AtomicReference(
+            com.zcode.android.domain.model.AppPreferences.AppLocale.SYSTEM,
+        )
+    }
+
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(applyLocale(newBase, cachedLocale.get()))
+    }
+
+    /** G37: wrap the base context with the in-app locale (SYSTEM = untouched). */
+    private fun applyLocale(base: android.content.Context, locale: com.zcode.android.domain.model.AppPreferences.AppLocale): android.content.Context {
+        val tag = locale.javaTag ?: return base
+        val list = androidx.core.os.LocaleListCompat.forLanguageTags(tag)
+        val config = android.content.res.Configuration(base.resources.configuration)
+        config.setLocale(java.util.Locale.forLanguageTag(tag))
+        java.util.Locale.setDefault(java.util.Locale.forLanguageTag(tag))
+        return base.createConfigurationContext(config)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // B3-splash (N4.1): the branded launch window — must run BEFORE super.onCreate
         // so the first visible frame is the splash (never the blank white window).
@@ -108,6 +131,13 @@ class MainActivity : FragmentActivity() {
         enableEdgeToEdge()
         pairingVm = PairingViewModel(container.pairingPort, lifecycleScope)
         tasksVm = TasksViewModel(container.tasksPort, lifecycleScope)
+        // G39 (vc51): the persisted aging policy feeds the VM (0 = off, the default).
+        lifecycleScope.launch {
+            container.stores.preferencesRepository.observe().collect { prefs ->
+                tasksVm.autoArchiveDays = prefs.taskAutoArchiveDays
+            }
+        }
+
         container.hub.start()
         // C6 (gate-before-first-frame): hold the splash until §11.6's active-endpoint
         // selection has run — the first composed frame then reads a settled paired
@@ -122,9 +152,18 @@ class MainActivity : FragmentActivity() {
             // (the pref is a StateFlow read; recomposition follows the toggle).
             val prefs by container.stores.preferencesRepository.observe()
                 .collectAsState(com.zcode.android.domain.model.AppPreferences())
+            // G37 (vc51): a locale flip re-wraps the base context — recreate() re-runs
+            // attachBaseContext with the new cache (instant-apply, same seam as the theme).
+            val localePref = prefs.appLocale
+            LaunchedEffect(localePref) {
+                val previous = cachedLocale.getAndSet(localePref)
+                if (previous != localePref) recreate()
+            }
             val themeMode = when (prefs.themeMode) {
                 com.zcode.android.domain.model.AppPreferences.ThemeMode.LIGHT -> com.zcode.android.core.ui.theme.ThemeMode.LIGHT
                 com.zcode.android.domain.model.AppPreferences.ThemeMode.DARK -> com.zcode.android.core.ui.theme.ThemeMode.DARK
+                com.zcode.android.domain.model.AppPreferences.ThemeMode.ZAI_LIGHT -> com.zcode.android.core.ui.theme.ThemeMode.ZAI_LIGHT
+                com.zcode.android.domain.model.AppPreferences.ThemeMode.ZAI_DARK -> com.zcode.android.core.ui.theme.ThemeMode.ZAI_DARK
                 com.zcode.android.domain.model.AppPreferences.ThemeMode.SYSTEM -> com.zcode.android.core.ui.theme.ThemeMode.SYSTEM
             }
             // U7 (verification pass 2): the window's system bars follow the RESOLVED theme.
@@ -133,7 +172,8 @@ class MainActivity : FragmentActivity() {
             // and the light nav scrim under the dark app. Re-applied whenever it flips.
             val dark = themeMode.resolveDark()
             LaunchedEffect(dark) { applySystemBarsFor(dark) }
-            ZCodeTheme(themeMode = themeMode) {
+            // G38 (vc51): the in-app text scale rides the SAME instant-apply path.
+            ZCodeTheme(themeMode = themeMode, fontScale = prefs.fontScale) {
                 androidx.compose.runtime.CompositionLocalProvider(
                     com.zcode.android.core.ui.components.LocalWindowWidthClass provides windowSize.widthSizeClass,
                 ) {

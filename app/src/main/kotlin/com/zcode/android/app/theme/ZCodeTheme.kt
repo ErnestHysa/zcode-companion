@@ -10,6 +10,11 @@ import androidx.compose.runtime.Composable
  * the app-level import path stable).
  */
 @Composable
-fun ZCodeTheme(themeMode: com.zcode.android.core.ui.theme.ThemeMode = com.zcode.android.core.ui.theme.ThemeMode.SYSTEM, content: @Composable () -> Unit) {
-    com.zcode.android.core.ui.theme.ZCodeTheme(themeMode = themeMode, content = content)
+fun ZCodeTheme(
+    themeMode: com.zcode.android.core.ui.theme.ThemeMode = com.zcode.android.core.ui.theme.ThemeMode.SYSTEM,
+    /** G38 (vc51): the in-app text-scale multiplier (the shim forwards it). */
+    fontScale: Float = 1f,
+    content: @Composable () -> Unit,
+) {
+    com.zcode.android.core.ui.theme.ZCodeTheme(themeMode = themeMode, fontScale = fontScale, content = content)
 }

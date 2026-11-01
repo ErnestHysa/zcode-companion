@@ -49,4 +49,7 @@ message AppPreferencesProto {
   repeated string workspace_order = 16; // G41 (vc51): display order over received workspaces
   map<string, string> workspace_aliases = 17; // G41: local display aliases (rename-class)
   optional string selected_workspace_key = 18; // G41: the selected workspace (null = All)
+  optional string app_locale = 19; // G37 (vc51): SYSTEM | EN | ZH_RCN (absent = SYSTEM)
+  optional int32 font_scale_milli = 20; // G38 (vc51): 850 | 1000 | 1150 (absent = 1000)
+  optional int32 task_auto_archive_days = 21; // G39 (vc51): 0 = off | 3 | 7 | 14 | 30 (absent = 0)
 }

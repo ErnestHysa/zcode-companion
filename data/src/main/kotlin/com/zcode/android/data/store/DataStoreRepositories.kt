@@ -125,6 +125,8 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
         themeMode = when (themeMode) {
             "LIGHT" -> com.zcode.android.domain.model.AppPreferences.ThemeMode.LIGHT
             "DARK" -> com.zcode.android.domain.model.AppPreferences.ThemeMode.DARK
+            "ZAI_LIGHT" -> com.zcode.android.domain.model.AppPreferences.ThemeMode.ZAI_LIGHT
+            "ZAI_DARK" -> com.zcode.android.domain.model.AppPreferences.ThemeMode.ZAI_DARK
             else -> com.zcode.android.domain.model.AppPreferences.ThemeMode.SYSTEM
         },
         notifyApprovals = if (hasNotifyApprovals()) notifyApprovals else true,
@@ -142,6 +144,12 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
         workspaceOrder = workspaceOrderList.toList(),
         workspaceAliases = workspaceAliasesMap,
         selectedWorkspaceKey = if (hasSelectedWorkspaceKey()) selectedWorkspaceKey else null,
+        // G37/G38/G39 (vc51): additive-first — absent fields keep the historical defaults.
+        appLocale = com.zcode.android.domain.model.AppPreferences.AppLocale.fromWire(
+            if (hasAppLocale()) appLocale else null,
+        ),
+        fontScale = if (hasFontScaleMilli()) fontScaleMilli / 1000f else 1.0f,
+        taskAutoArchiveDays = if (hasTaskAutoArchiveDays()) taskAutoArchiveDays else 0,
     )
 
     private fun AppPreferences.toProto(): AppPreferencesProto {
@@ -153,6 +161,9 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
         val wsOrder = workspaceOrder
         val wsAliases = workspaceAliases
         val wsSelected = selectedWorkspaceKey
+        val locale = appLocale
+        val scale = fontScale
+        val archiveDays = taskAutoArchiveDays
         return AppPreferencesProto.newBuilder()
             .setLiveConnectionTimeoutMinutes(liveConnectionTimeoutMinutes)
             .setSchemaVersion(EndpointRepositoryImpl.SCHEMA_VERSION)
@@ -169,6 +180,9 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
             .apply { selected?.let { setSelectedEndpointId(it) } }
             .apply { behavior?.let { setInteractionBehavior(it) } }
             .setInterfaceMode(mode.name)
+            .setAppLocale(locale.name)
+            .setFontScaleMilli((scale * 1000).toInt())
+            .setTaskAutoArchiveDays(archiveDays)
             .apply {
                 wsOrder.forEach { addWorkspaceOrder(it) }
                 wsAliases.forEach { (k, v) -> putWorkspaceAliases(k, v) }
