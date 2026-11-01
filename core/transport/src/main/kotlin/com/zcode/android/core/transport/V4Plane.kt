@@ -234,6 +234,9 @@ interface V4Plane {
      */
     suspend fun commandsList(workspacePath: String?, workspaceIdentity: String?): JsonObject
     suspend fun subagentsList(workspacePath: String?, workspaceIdentity: String?, provider: String?): JsonObject
+
+    /** G30 (vc51 Phase 4B): the read-only bots viewer's scripted inventory leg (INV-9: read only). */
+    suspend fun botsList(): JsonObject
     /**
      * Phase 4C (A3.4): the reasoning-effort facade call (zcodeAgent.ts:705) —
      * `{sessionId, thoughtLevel, expectedRevision, persistAsWorkspaceLastUsed}`.
@@ -1217,6 +1220,13 @@ internal class ChannelV4Plane(
             else -> throw TransportFailure(ErrorMapping.protocolFault("commands.list result not an object"))
         }
     }
+
+    suspend fun botsList(): JsonObject =
+        when (val raw = channelCall("bots", "list", RpcValue.Arr(emptyList()), timeouts.v4CallTimeoutMs)) {
+            is RpcValue.Obj -> raw.json as JsonObject
+            is RpcValue.Arr -> buildJsonObject { put("bots", JsonArray(raw.items.map { (it as? RpcValue.Obj)?.json as? JsonObject ?: JsonObject(emptyMap()) })) }
+            else -> throw TransportFailure(ErrorMapping.protocolFault("bots.list result not an object"))
+        }
 
     suspend fun subagentsList(workspacePath: String?, workspaceIdentity: String?, provider: String?): JsonObject {
         val target = host.workspaceTarget()

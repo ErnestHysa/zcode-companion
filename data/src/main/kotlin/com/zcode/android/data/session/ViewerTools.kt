@@ -85,6 +85,10 @@ class ViewerTools(private val transport: AppTransport) {
     suspend fun subagentsDetailed(workspacePath: String?, workspaceIdentity: String?, provider: String?): List<com.zcode.android.domain.model.SlashCatalogExtras.AgentEntryFull> =
         com.zcode.android.domain.model.SlashCatalogExtras.decodeAgentsFull(transport.subagentsList(workspacePath, workspaceIdentity, provider))
 
+    /** G30 (vc51 Phase 4B): the read-only bots viewer's list leg (INV-9: read only). */
+    suspend fun bots(): List<com.zcode.android.domain.model.SlashCatalogExtras.BotEntry> =
+        com.zcode.android.domain.model.SlashCatalogExtras.decodeBots(transport.botsList())
+
     /** Phase 4C (A3.4): the reasoning-effort switch (zcodeAgent.ts:705; echo-reconciled). */
     suspend fun setThoughtLevel(workspacePath: String?, workspaceIdentity: String?, sessionId: String, thoughtLevel: String, expectedRevision: Long?): kotlinx.serialization.json.JsonObject =
         transport.setThoughtLevel(workspacePath, workspaceIdentity, sessionId, thoughtLevel, expectedRevision)

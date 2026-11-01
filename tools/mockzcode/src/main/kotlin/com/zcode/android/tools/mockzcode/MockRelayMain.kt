@@ -614,7 +614,7 @@ fun main() {
  * listTasks upsert refreshes the projection row in place instead of duplicating it.
  */
 /** G30 (vc51 Phase 4B): the bots-viewer seed — shared by the relay arming and the self-test. */
-internal fun botsViewerSeed(): JsonObject = JsonObject(mapOf(
+fun botsViewerSeed(): JsonObject = JsonObject(mapOf(
     "bots" to JsonArray(listOf(
         JsonObject(mapOf(
             "botId" to JsonPrimitive("bot-telegram-1"),
@@ -635,7 +635,7 @@ internal fun botsViewerSeed(): JsonObject = JsonObject(mapOf(
 ))
 
 /** G25 (vc51 Phase 4B): the subagents-viewer seed — shared by the relay arming and the self-test. */
-internal fun subagentsViewerSeed(): JsonObject = JsonObject(mapOf(
+fun subagentsViewerSeed(): JsonObject = JsonObject(mapOf(
     "agents" to JsonArray(listOf(
         JsonObject(mapOf(
             "id" to JsonPrimitive("a-explore"),

@@ -365,6 +365,20 @@ class DefaultProvidersPort(
     }
 }
 
+/** G30 (vc51 Phase 4B): the bots viewer's read leg (INV-9 seed; honest fault on hosts without the RPC). */
+class DefaultBotsPort(
+    private val hub: ConnectionHub,
+) : com.zcode.android.app.settings.BotsPort {
+    override suspend fun bots(): com.zcode.android.app.settings.BotsPort.Result = try {
+        com.zcode.android.app.settings.BotsPort.Result(hub.viewerTools().bots(), null)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        hub.log.warn("botsport.bots", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+        com.zcode.android.app.settings.BotsPort.Result(null, e.message ?: "bots are unavailable on this connection")
+    }
+}
+
 class DefaultSkillsPort(
     private val hub: ConnectionHub,
 ) : SkillsPort {

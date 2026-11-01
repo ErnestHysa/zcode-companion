@@ -214,6 +214,8 @@
 <string name="settings_subagents_sub">只读列表 · 已配置的代理及状态</string>
 <string name="settings_providers_row">提供商</string>
 <string name="settings_providers_sub">只读列表 · 每个提供商的模型（不含凭据）</string>
+<string name="settings_bots_row">机器人</string>
+<string name="settings_bots_sub">只读列表 · 每个工作区的消息机器人</string>
 <string name="mcp_title">MCP 服务器</string>
 <string name="subagents_title">子代理</string>
 <string name="subagents_unavailable">子代理不可用</string>
@@ -223,6 +225,9 @@
 <string name="providers_title">提供商</string>
 <string name="providers_unavailable">提供商不可用</string>
 <string name="providers_empty">未配置提供商</string>
+<string name="bots_title">机器人</string>
+<string name="bots_unavailable">此连接上机器人不可用</string>
+<string name="bots_empty">未配置机器人</string>
 <string name="mcp_loading">正在加载 MCP 服务器…</string>
 <string name="mcp_unavailable">MCP 服务器状态不可用</string>
 <string name="mcp_retry">重试</string>

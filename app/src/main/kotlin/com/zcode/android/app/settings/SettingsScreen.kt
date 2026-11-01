@@ -79,6 +79,8 @@ fun SettingsScreen(
     onOpenSubagents: () -> Unit = {},
     /** G27 (vc51 Phase 4B): opens the read-only provider viewer. */
     onOpenProviders: () -> Unit = {},
+    /** G30 (vc51 Phase 4B): opens the read-only bots viewer. */
+    onOpenBots: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -168,6 +170,12 @@ fun SettingsScreen(
                 subtitle = stringResource(R.string.settings_providers_sub),
                 tag = "settings_providers",
                 onClick = onOpenProviders,
+            )
+            SettingsRow(
+                title = stringResource(R.string.settings_bots_row),
+                subtitle = stringResource(R.string.settings_bots_sub),
+                tag = "settings_bots",
+                onClick = onOpenBots,
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 

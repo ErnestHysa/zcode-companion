@@ -646,6 +646,34 @@ object SlashCatalogExtras {
      */
     data class AgentEntryFull(val name: String, val description: String, val scope: String?, val enabled: Boolean)
 
+    /**
+     * G30 (vc51 Phase 4B): the read-only bots viewer's row (the desktop's shared
+     * BotConfig subset, INV-8-tolerant: botId/provider/mode/workspacePath/activeTaskId/
+     * enabled; mode draft|task, deeper bot management is desktop-side).
+     */
+    data class BotEntry(
+        val botId: String,
+        val provider: String,
+        val mode: String,
+        val workspacePath: String?,
+        val activeTaskId: String?,
+        val enabled: Boolean,
+    )
+
+    fun decodeBots(obj: JsonObject): List<BotEntry> =
+        (obj["bots"] as? JsonArray)?.mapNotNull { el ->
+            val o = el as? JsonObject ?: return@mapNotNull null
+            val botId = o.strOrNullN("botId")?.trim()?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+            BotEntry(
+                botId = botId,
+                provider = o.strOrNullN("provider") ?: "unknown",
+                mode = o.strOrNullN("mode") ?: "draft",
+                workspacePath = o.strOrNullN("workspacePath"),
+                activeTaskId = o.strOrNullN("activeTaskId"),
+                enabled = (o["enabled"] as? JsonPrimitive)?.content != "false",
+            )
+        } ?: emptyList()
+
     fun decodeAgentsFull(obj: JsonObject): List<AgentEntryFull> =
         (obj["agents"] as? JsonArray)?.mapNotNull { el ->
             val o = el as? JsonObject ?: return@mapNotNull null
