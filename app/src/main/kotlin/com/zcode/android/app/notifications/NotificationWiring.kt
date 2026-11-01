@@ -57,7 +57,7 @@ class NotificationWiring(
         // MALFORMED links are dropped here (never crash, §24.7); the domain
         // DeepLinkRoute.parse re-validates inside resolve.
         if (taskId.isNullOrBlank()) return
-        pending.offer(DeepLinks.Candidate(taskId, interactionId))
+        pending.offer(DeepLinks.Candidate.Task(taskId, interactionId))
     }
 
     fun consumeDeepLink() = pending.consume()

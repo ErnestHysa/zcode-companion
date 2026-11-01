@@ -65,6 +65,9 @@ fun ApprovalsScreen(
     // failures were silent; the user believed a request was handled while the
     // authoritative answer never landed. Every non-submit outcome surfaces now.
     var answerError by remember { mutableStateOf<String?>(null) }
+    // LEDGER-SMALLS (b): ALREADY_RESOLVED is informational — it renders in the NEUTRAL
+    // palette (it used to paint "Already handled on the desktop." in the ERROR red).
+    var answerInfo by remember { mutableStateOf<String?>(null) }
     // T2: the answer callbacks run OUTSIDE composition — resolve the typed outcome
     // copy here (per locale) and let the callbacks pick the resolved strings.
     val alreadyResolvedCopy = stringResource(R.string.approvals_already_resolved)
@@ -114,6 +117,16 @@ fun ApprovalsScreen(
                     modifier = Modifier
                         .padding(horizontal = 16.dp, vertical = 4.dp)
                         .testTag("approvals_answer_error"),
+                )
+            }
+            answerInfo?.let { info ->
+                Text(
+                    text = info,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .testTag("approvals_answer_info"),
                 )
             }
             if (interactions.isEmpty()) {
@@ -198,15 +211,20 @@ fun ApprovalsScreen(
                                             onClick = {
                                                 busyId = record.interactionId
                                                 answerError = null
+                                                answerInfo = null
                                                 scope.launch {
                                                     try {
                                                         onAnswer(record.interactionId, "allowOnce", null) { outcome ->
                                                             busyId = null
                                                             // T2: the resolved-elsewhere answer is SAYABLE — typed
                                                             // copy instead of a generic fault (or worse, silence).
+                                                            answerInfo = when (outcome) {
+                                                                ConversationPort.AnswerOutcome.ALREADY_RESOLVED -> alreadyResolvedCopy
+                                                                else -> null
+                                                            }
                                                             answerError = when (outcome) {
                                                                 ConversationPort.AnswerOutcome.SUBMITTED -> null
-                                                                ConversationPort.AnswerOutcome.ALREADY_RESOLVED -> alreadyResolvedCopy
+                                                                ConversationPort.AnswerOutcome.ALREADY_RESOLVED -> null
                                                                 else -> unconfirmedCopy
                                                             }
                                                         }
@@ -223,7 +241,7 @@ fun ApprovalsScreen(
                                                 .testTag("approvals_allow_once_${record.interactionId.take(12)}"),
                                         ) { Text(stringResource(com.zcode.android.core.ui.R.string.action_allow_once)) }
                                         ZCodeOutlinedButton(
-                                            onClick = { answerError = null; denyTarget = record },
+                                            onClick = { answerError = null; answerInfo = null; denyTarget = record },
                                             enabled = busyId == null,
                                             modifier = Modifier
                                                 .heightIn(min = 56.dp)
@@ -272,13 +290,18 @@ fun ApprovalsScreen(
                         denyTarget = null
                         busyId = target.interactionId
                         answerError = null
+                        answerInfo = null
                         scope.launch {
                             try {
                                 onAnswer(target.interactionId, "deny", null) { outcome ->
                                     busyId = null
+                                    answerInfo = when (outcome) {
+                                        ConversationPort.AnswerOutcome.ALREADY_RESOLVED -> alreadyResolvedCopy
+                                        else -> null
+                                    }
                                     answerError = when (outcome) {
                                         ConversationPort.AnswerOutcome.SUBMITTED -> null
-                                        ConversationPort.AnswerOutcome.ALREADY_RESOLVED -> alreadyResolvedCopy
+                                        ConversationPort.AnswerOutcome.ALREADY_RESOLVED -> null
                                         else -> unconfirmedCopy
                                     }
                                 }

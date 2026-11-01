@@ -57,6 +57,8 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="zcode" android:host="task" />
+                <!-- LEDGER-SMALLS (a): the Connection-lost shade entry's tap target. -->
+                <data android:scheme="zcode" android:host="connection" />
             </intent-filter>
             <!-- H2.2: launcher long-press shortcuts (static set; Approvals also dynamic with count). -->
             <meta-data

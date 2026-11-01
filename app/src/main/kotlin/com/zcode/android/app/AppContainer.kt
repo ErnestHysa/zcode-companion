@@ -267,9 +267,15 @@ class AppContainer(activity: FragmentActivity) {
         // FIELD (2026-10-12): the update check runs on EVERY app open + endpoint
         // change (throttled in the controller) and posts a system notification when
         // a newer release exists — no longer gated on the desktop version.
+        // LEDGER-SMALLS (c): gated through UpdateCheckGate so the paired app skips the
+        // vault-SEED emission that raced the bootstrap (update.check desktop=null).
         activity.lifecycleScope.launch {
-            hub.endpoint.collect { endpoint ->
-                appUpdate.checkForUpdate(endpoint?.desktopAppVersion)
+            kotlinx.coroutines.flow.combine(hub.endpoint, hub.phase) { endpoint, phase ->
+                endpoint to phase
+            }.collect { (endpoint, phase) ->
+                if (com.zcode.android.app.update.UpdateCheckGate.shouldFire(endpoint, phase)) {
+                    appUpdate.checkForUpdate(endpoint?.desktopAppVersion)
+                }
             }
         }
     }

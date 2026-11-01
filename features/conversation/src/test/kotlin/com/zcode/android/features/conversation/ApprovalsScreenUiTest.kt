@@ -1,5 +1,6 @@
 package com.zcode.android.features.conversation
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -61,6 +62,32 @@ class ApprovalsScreenUiTest {
             }
         }
         rule.waitForIdle()
+    }
+
+    // --------------------------------------------- LEDGER-SMALLS (b) pins
+
+    @Test
+    fun alreadyResolved_rendersInNeutralInfoLane_notErrorRed() {
+        setContent(listOf(record("i-1", tool = "Bash"))) { _, _, _, cb ->
+            cb(ConversationPort.AnswerOutcome.ALREADY_RESOLVED)
+        }
+        rule.onNodeWithTag("approvals_allow_once_i-1", useUnmergedTree = true).performClick()
+        rule.waitForIdle()
+        // the informational copy rides the NEUTRAL lane…
+        rule.onNodeWithTag("approvals_answer_info").assertIsDisplayed()
+        // …and NEVER paints in the ERROR palette lane (the recorded defect shape)
+        rule.onAllNodesWithTag("approvals_answer_error", useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    @Test
+    fun unconfirmedAnswer_staysInErrorLane() {
+        setContent(listOf(record("i-1", tool = "Bash"))) { _, _, _, cb ->
+            cb(ConversationPort.AnswerOutcome.UNKNOWN_INTERACTION)
+        }
+        rule.onNodeWithTag("approvals_allow_once_i-1", useUnmergedTree = true).performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("approvals_answer_error").assertIsDisplayed()
+        rule.onAllNodesWithTag("approvals_answer_info", useUnmergedTree = true).assertCountEquals(0)
     }
 
     @Test

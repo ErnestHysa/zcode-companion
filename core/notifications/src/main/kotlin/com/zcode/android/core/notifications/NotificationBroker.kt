@@ -52,6 +52,9 @@ class NotificationBroker(
         val groupKey: String?,
         val deepLinkTaskId: String?,
         val deepLinkInteractionId: String?,
+        /** LEDGER-SMALLS (a): connection-scoped posts tap through to the connection
+         *  screen (`zcode://connection`) — the shade entry used to be a dead end. */
+        val deepLinkConnection: Boolean = false,
         /** C3 (Phase 4E): shade-level actions (Approve-once / Deny on approvals). */
         val actions: List<SpecAction> = emptyList(),
     )
@@ -152,6 +155,7 @@ class NotificationBroker(
                 groupKey = groupKey,
                 deepLinkTaskId = taskId,
                 deepLinkInteractionId = interactionId,
+                deepLinkConnection = kind == NotificationRecord.Kind.CONNECTION_LOST,
                 actions = actions,
             ),
         )

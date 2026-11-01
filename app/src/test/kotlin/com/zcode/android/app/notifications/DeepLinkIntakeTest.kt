@@ -57,14 +57,14 @@ class DeepLinkIntakeTest {
 
     @Test
     fun `happy path parses task id and interaction fragment`() {
-        val c = DeepLinks.intake(viewIntent("zcode://task/task-9#interaction=i-42"))!!
+        val c = DeepLinks.intake(viewIntent("zcode://task/task-9#interaction=i-42"))!! as DeepLinks.Candidate.Task
         assertEquals("task-9", c.taskId)
         assertEquals("i-42", c.interactionId)
     }
 
     @Test
     fun `no fragment parses to a null interaction`() {
-        val c = DeepLinks.intake(viewIntent("zcode://task/task-9"))!!
+        val c = DeepLinks.intake(viewIntent("zcode://task/task-9"))!! as DeepLinks.Candidate.Task
         assertEquals("task-9", c.taskId)
         assertNull(c.interactionId)
     }
@@ -83,7 +83,7 @@ class DeepLinkIntakeTest {
         assertNull(DeepLinks.intake(Intent(Intent.ACTION_MAIN)))
         assertNull(DeepLinks.intake(null as Intent?))
         // Blank interaction fragment → dropped, task id kept.
-        val c = DeepLinks.intake(viewIntent("zcode://task/task-9#interaction="))!!
+        val c = DeepLinks.intake(viewIntent("zcode://task/task-9#interaction="))!! as DeepLinks.Candidate.Task
         assertNull(c.interactionId)
     }
 
@@ -92,11 +92,11 @@ class DeepLinkIntakeTest {
     @Test
     fun `pending link holds until consumed - unpaired revalidation shape`() {
         val pending = PendingDeepLink()
-        pending.offer(DeepLinks.Candidate("t-1", "i-1"))
-        assertEquals("t-1", pending.value.value?.taskId)
+        pending.offer(DeepLinks.Candidate.Task("t-1", "i-1"))
+        assertEquals("t-1", (pending.value.value as DeepLinks.Candidate.Task).taskId)
         // The slot HOLDS the offered link until an explicit consume (the nav
         // graph's post-pairing re-resolution is that consumer).
-        assertEquals("t-1", pending.value.value?.taskId)
+        assertEquals("t-1", (pending.value.value as DeepLinks.Candidate.Task).taskId)
         pending.consume()
         assertNull(pending.value.value)
     }
@@ -105,7 +105,47 @@ class DeepLinkIntakeTest {
     fun `intake candidate flows into the pending slot untouched`() {
         val pending = PendingDeepLink()
         DeepLinks.intake(viewIntent("zcode://task/task-9#interaction=i-42"))?.let { pending.offer(it) }
-        assertEquals("i-42", pending.value.value?.interactionId)
+        assertEquals("i-42", (pending.value.value as DeepLinks.Candidate.Task).interactionId)
+    }
+
+    // ---------------------------------------------------- LEDGER-SMALLS (a)
+
+    @Test
+    fun `connection deep link parses to the Connection candidate`() {
+        assertEquals(DeepLinks.Candidate.Connection, DeepLinks.intake(viewIntent("zcode://connection")))
+        assertEquals(DeepLinks.Candidate.Connection, DeepLinks.intake(Uri.parse("zcode://connection")))
+    }
+
+    @Test
+    fun `manifest exposes the zcode connection VIEW filter (LEDGER-SMALLS a)`() {
+        val pm = ApplicationProvider.getApplicationContext<android.content.Context>().packageManager
+        val intents = pm.queryIntentActivities(
+            Intent(Intent.ACTION_VIEW, Uri.parse("zcode://connection")),
+            android.content.pm.PackageManager.GET_RESOLVED_FILTER,
+        )
+        val filter = intents.map { it.filter }.firstOrNull { f ->
+            f != null && f.hasAction(Intent.ACTION_VIEW) && f.hasCategory(Intent.CATEGORY_BROWSABLE)
+        }
+        assertTrue("the merged manifest must route zcode://connection into MainActivity", filter != null)
+        val match = filter!!.match(
+            Intent.ACTION_VIEW,
+            null,
+            "zcode",
+            Uri.parse("zcode://connection"),
+            setOf(Intent.CATEGORY_DEFAULT),
+            "deeplink-test",
+        )
+        assertTrue("zcode://connection URIs must match the declared filter (match=$match)", match >= 0)
+    }
+
+    @Test
+    fun `task links still parse after the seal (no cross-kind regression)`() {
+        val c = DeepLinks.intake(viewIntent("zcode://task/task-9#interaction=i-1"))
+        assertTrue(c is DeepLinks.Candidate.Task)
+        assertEquals("task-9", (c as DeepLinks.Candidate.Task).taskId)
+        assertEquals("i-1", c.interactionId)
+        assertNull(DeepLinks.intake(viewIntent("zcode://other/nope")))
+        assertNull(DeepLinks.intake(viewIntent("zcode://connection/extra/path")))
     }
 
     @Test

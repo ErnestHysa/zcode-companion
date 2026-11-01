@@ -212,8 +212,17 @@ class MainActivity : FragmentActivity() {
     }
 
     internal fun handleDeepLink(intent: Intent?) {
-        val candidate = com.zcode.android.app.notifications.DeepLinks.intake(intent) ?: return
-        container.notifications.offerDeepLink(candidate.taskId, candidate.interactionId)
+        when (val candidate = com.zcode.android.app.notifications.DeepLinks.intake(intent)) {
+            is com.zcode.android.app.notifications.DeepLinks.Candidate.Task ->
+                container.notifications.offerDeepLink(candidate.taskId, candidate.interactionId)
+            // LEDGER-SMALLS (a): the Connection-lost shade entry rides the H2.2 shortcut
+            // seam — the nav graph routes it to the connection screen post-pairing.
+            is com.zcode.android.app.notifications.DeepLinks.Candidate.Connection ->
+                container.notifications.offerShortcut(
+                    com.zcode.android.app.notifications.AppShortcuts.Target.CONNECTION,
+                )
+            null -> return
+        }
     }
 
     override fun onStart() {

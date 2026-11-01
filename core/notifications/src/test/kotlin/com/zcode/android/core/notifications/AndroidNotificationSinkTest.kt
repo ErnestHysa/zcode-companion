@@ -77,6 +77,25 @@ class AndroidNotificationSinkTest {
     }
 
     @Test
+    fun `LEDGER-SMALLS a - connection-scoped posts tap through to the connection screen`() {
+        val sink = AndroidNotificationSink(context)
+        // the CONNECTION_LOST spec shape: no task, deepLinkConnection=true
+        sink.show(NotificationBroker.Spec("connection-lost", NotificationChannels.TASK_STATUS, "Connection lost", null, null, null, null, deepLinkConnection = true))
+        val n = shadowOf(manager).allNotifications.single()
+        val intent = shadowOf(n.contentIntent).savedIntent
+        assertEquals(Intent.ACTION_VIEW, intent.action)
+        assertEquals(Uri.parse("zcode://connection").toString(), intent.data!!.toString())
+    }
+
+    @Test
+    fun `LEDGER-SMALLS a - task posts keep the task deep link (no cross-kind regression)`() {
+        val sink = AndroidNotificationSink(context)
+        sink.show(NotificationBroker.Spec("task:t1", NotificationChannels.TASK_STATUS, "Task done", null, null, "t1", null, deepLinkConnection = false))
+        val intent = shadowOf(shadowOf(manager).allNotifications.single().contentIntent).savedIntent
+        assertEquals(Uri.parse("zcode://task/t1").toString(), intent.data!!.toString())
+    }
+
+    @Test
     fun `24-1 minimal keeps the detail text off the tray`() {
         val sink = AndroidNotificationSink(context)
         sink.show(NotificationBroker.Spec("task:t1:TASK_FINISHED", NotificationChannels.TASK_STATUS, "Task completed", null, null, "t1", null))

@@ -42,8 +42,9 @@ class WidgetLaunchIntentTest {
         assertNotNull("the launch intent must carry the deep link data", intent.data)
         val candidate = DeepLinks.intake(intent)
         assertNotNull("the carried link must pass the §24.7 intake parser", candidate)
-        assertEquals("task-9", candidate!!.taskId)
-        assertEquals("i-42", candidate.interactionId)
+        val task = candidate!! as DeepLinks.Candidate.Task
+        assertEquals("task-9", task.taskId)
+        assertEquals("i-42", task.interactionId)
     }
 
     @Test

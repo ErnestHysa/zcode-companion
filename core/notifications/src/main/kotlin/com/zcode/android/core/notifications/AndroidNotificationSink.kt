@@ -55,6 +55,11 @@ class AndroidNotificationSink(
         spec.deepLinkTaskId?.let { taskId ->
             builder.setContentIntent(deepLinkPendingIntent(taskId, spec.deepLinkInteractionId))
         }
+        // LEDGER-SMALLS (a): connection-scoped posts (CONNECTION_LOST carries no task)
+        // tap through to the connection screen instead of dead-ending.
+        if (spec.deepLinkTaskId == null && spec.deepLinkConnection) {
+            builder.setContentIntent(connectionPendingIntent())
+        }
         // C3: shade-level actions — Approve-once / Deny without opening the app.
         spec.actions.forEach { action ->
             builder.addAction(
@@ -132,6 +137,19 @@ class AndroidNotificationSink(
         return PendingIntent.getActivity(
             context,
             stableId("tap:$taskId:${interactionId.orEmpty()}"),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
+    /** LEDGER-SMALLS (a): the connection screen's routing hint (MainActivity intakes). */
+    private fun connectionPendingIntent(): PendingIntent {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("zcode://connection"))
+            .setPackage(context.packageName)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        return PendingIntent.getActivity(
+            context,
+            stableId("tap:connection"),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )

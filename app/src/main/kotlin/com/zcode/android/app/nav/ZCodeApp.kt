@@ -165,6 +165,9 @@ fun ZCodeApp(
     val appContext = androidx.compose.ui.platform.LocalContext.current
     androidx.compose.runtime.LaunchedEffect(pendingLink, paired) {
         val link = pendingLink ?: return@LaunchedEffect
+        // Connection-scoped links never land here (MainActivity routes them through the
+        // H2.2 shortcut seam) — the task resolver below only ever sees Task-shaped links.
+        if (link !is com.zcode.android.app.notifications.DeepLinks.Candidate.Task) return@LaunchedEffect
         if (paired == null) return@LaunchedEffect // UNPAIRED → hold; re-validated post-pairing
         // Consume BEFORE resolving: the effect re-runs whenever [paired] moves, and
         // a run cancelled mid-resolve (suspend points below) must never leave the

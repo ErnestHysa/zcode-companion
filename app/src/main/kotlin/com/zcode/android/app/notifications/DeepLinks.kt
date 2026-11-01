@@ -4,17 +4,24 @@ import android.content.Intent
 import android.net.Uri
 
 /**
- * §24.7 deep-link INTAKE: `zcode://task/{taskId}#interaction={interactionId}`.
- * Pure parser (MainActivity hands it the intent; the nav graph resolves against
- * the authoritative projection). Malformed shapes return null — never crash,
- * never partially offer a link.
+ * §24.7 deep-link INTAKE: `zcode://task/{taskId}#interaction={interactionId}` plus the
+ * connection-scoped `zcode://connection` (LEDGER-SMALLS a — the Connection-lost shade
+ * entry's tap target). Pure parser (MainActivity hands it the intent; the nav graph
+ * resolves against the authoritative projection). Malformed shapes return null — never
+ * crash, never partially offer a link.
  */
 object DeepLinks {
     const val SCHEME = "zcode"
     const val HOST = "task"
+    const val HOST_CONNECTION = "connection"
     const val FRAGMENT_PREFIX = "interaction="
 
-    data class Candidate(val taskId: String, val interactionId: String?)
+    sealed interface Candidate {
+        data class Task(val taskId: String, val interactionId: String?) : Candidate
+
+        /** LEDGER-SMALLS (a): routed to the connection screen (the shortcut seam). */
+        data object Connection : Candidate
+    }
 
     fun intake(intent: Intent?): Candidate? {
         if (intent == null || intent.action != Intent.ACTION_VIEW) return null
@@ -23,7 +30,13 @@ object DeepLinks {
 
     fun intake(data: Uri?): Candidate? {
         if (data == null) return null
-        if (data.scheme != SCHEME || data.host != HOST) return null
+        if (data.scheme != SCHEME) return null
+        if (data.host == HOST_CONNECTION) {
+            // strict like the task host: the sink sends the bare authority only
+            if (!data.pathSegments.isNullOrEmpty()) return null
+            return Candidate.Connection
+        }
+        if (data.host != HOST) return null
         val taskId = data.pathSegments?.firstOrNull() ?: return null
         // Same §24.7 sanity class as the domain parser (ids are opaque tokens).
         if (taskId.isBlank() || taskId.length > 512) return null
@@ -32,7 +45,7 @@ object DeepLinks {
             ?.takeIf { it.startsWith(FRAGMENT_PREFIX) }
             ?.removePrefix(FRAGMENT_PREFIX)
             ?.takeUnless { it.isBlank() || it.length > 512 }
-        return Candidate(taskId, interactionId)
+        return Candidate.Task(taskId, interactionId)
     }
 }
 
