@@ -280,6 +280,28 @@ class CommandCoordinatorTest {
     }
 
     @Test
+    fun `createSession carries the picked provider and model in the requested override config (PINS-BACKLOG create-sheet picker)`() = runTest {
+        val sender = RecordingSender()
+        val (coordinator, _) = coordinator(sender)
+        val outcome = coordinator.createSession("/synthetic/ws", "synthetic-ws", "hello", provider = "zai", model = "glm-5.1-air")
+        assertTrue(outcome is CommandCoordinator.Outcome.Accepted)
+        val config = (sender.payloads.single { it.first == "createSession" }.second)["config"] as JsonObject
+        assertEquals("zai", ((config["provider"] as kotlinx.serialization.json.JsonPrimitive).content))
+        assertEquals("glm-5.1-air", ((config["model"] as kotlinx.serialization.json.JsonPrimitive).content))
+    }
+
+    @Test
+    fun `createSession omits the override keys when the workspace default is kept (PINS-BACKLOG create-sheet picker)`() = runTest {
+        val sender = RecordingSender()
+        val (coordinator, _) = coordinator(sender)
+        val outcome = coordinator.createSession("/synthetic/ws", "synthetic-ws", "hello")
+        assertTrue(outcome is CommandCoordinator.Outcome.Accepted)
+        val config = (sender.payloads.single { it.first == "createSession" }.second)["config"] as JsonObject
+        assertTrue("provider" !in config.keys, "no picked provider must not invent one on the wire")
+        assertTrue("model" !in config.keys, "no picked model must not invent one on the wire")
+    }
+
+    @Test
     fun `cancelBackgroundWork sends the verified payload shape`() = runTest {
         val sender = RecordingSender()
         val (coordinator, _) = coordinator(sender)

@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -57,6 +58,23 @@ class SkillsViewerUiTest {
         rule.onNodeWithTag("skill_source_skill-3").assertExists()
         // NO enable/disable affordance (reference projection; enabled is literal true on the wire)
         rule.onAllNodesWithTag("skill_toggle").assertCountEquals(0)
+    }
+
+    /**
+     * PINS-BACKLOG anchor (vc51 Phase 5): the pass-7 "skills accordion" surface.
+     * Record drift note: the shipped surface renders every skill's description IN
+     * PLACE under its entry — same screen, no route change, no interaction needed —
+     * which is the recorded surface's observable essence ("descriptions render under
+     * each entry"); no tap-to-expand affordance exists in the code (the vc51 report's
+     * Phase-5 receipt documents the drift). This pin holds the essence.
+     */
+    @Test
+    fun skillDescriptions_renderInPlace_underEachEntry_noRouteChange() {
+        rule.setContent { ZCodeTheme { SkillsViewerScreen(port = fakePort(fixtureCatalog("skills-catalog-mixed"))) } }
+        rule.onNodeWithTag("skills_list").assertIsDisplayed()
+        rule.onNodeWithText("Drafts conventional commits.").assertExists()
+        rule.onNodeWithText("Release note scaffolding.").assertExists()
+        rule.onNodeWithText("Advanced git flows.").assertExists()
     }
 
     @Test

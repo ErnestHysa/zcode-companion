@@ -51,6 +51,21 @@ class DeepLinkIntakeTest {
             "deeplink-test",
         )
         assertTrue("zcode://task URIs must match the declared filter (match=$match)", match >= 0)
+        // PINS-BACKLOG (vc51 Phase 5): the LITERAL host assertion — the proven OUTER
+        // gate. The functional match above flips on a host regression, but the recorded
+        // anchor wants the manifest's host spelled out: both deep-link hosts, verbatim.
+        val root = generateSequence(java.io.File("").absoluteFile) { it.parentFile }
+            .firstOrNull { java.io.File(it, "settings.gradle.kts").isFile }
+            ?: error("repo root not found")
+        val manifest = java.io.File(root, "app/src/main/AndroidManifest.xml").readText()
+        assertTrue(
+            "the manifest must declare android:scheme=zcode + android:host=task verbatim",
+            Regex("""<data android:scheme="zcode" android:host="task"\s*/>""").containsMatchIn(manifest),
+        )
+        assertTrue(
+            "the manifest must declare android:scheme=zcode + android:host=connection verbatim (LEDGER-SMALLS)",
+            Regex("""<data android:scheme="zcode" android:host="connection"\s*/>""").containsMatchIn(manifest),
+        )
     }
 
     // ---------------------------------------------------------------- intake parse
