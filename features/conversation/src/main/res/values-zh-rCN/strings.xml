@@ -269,6 +269,9 @@
     <string name="workflow_status_pending">等待中</string>
     <string name="workflow_status_running">运行中</string>
     <string name="workflow_status_completed">已完成</string>
+<string name="workflow_sheet_artifacts">产物</string>
+<string name="workflow_artifact_kind">%1$s</string>
+<string name="workflow_artifact_open">打开</string>
     <string name="workflow_status_errored">出错</string>
     <string name="workflow_status_stopped">已停止</string>
     <string name="workflow_status_unknown">未知</string>

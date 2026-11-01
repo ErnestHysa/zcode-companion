@@ -130,6 +130,8 @@ fun WorkflowRunSheet(
     onResume: ((WorkflowRunSummary) -> Unit)? = null,
     /** G3: the desktop's `amendWorkflowRunSettings` (omitted field = keep current). */
     onAmendSettings: ((WorkflowRunSummary, subagentModel: String?, maxConcurrency: Int?) -> Unit)? = null,
+    /** G17 (vc51 Phase 4D): the artifact Open handoff (null = cards render read-only). */
+    onOpenArtifact: ((ref: String, mime: String) -> Unit)? = null,
 ) {
     ZCodeModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier.testTag("workflow_run_sheet")) {
         val run = open.run
@@ -164,6 +166,50 @@ fun WorkflowRunSheet(
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).testTag("workflow_sheet_failure"),
             )
+        }
+        // G17 (vc51 Phase 4D): a COMPLETED run's generated artifacts render as preview
+        // cards (GeneratedArtifactPreview kinds); Open hands the ref to the caller's
+        // artifact path (filesPort download → system viewer). Absent artifacts → no section.
+        if (run.status == WorkflowRunStatus.COMPLETED && run.artifacts.isNotEmpty()) {
+            Text(
+                stringResource(R.string.workflow_sheet_artifacts),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp).testTag("workflow_sheet_artifacts"),
+            )
+            run.artifacts.forEach { art ->
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .testTag("workflow_artifact_${art.ref}"),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        stringResource(
+                            R.string.workflow_artifact_kind,
+                            com.zcode.android.features.conversation.GeneratedArtifactPreview
+                                .forKind(art.mime).name.lowercase(),
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        art.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(2f),
+                    )
+                    onOpenArtifact?.let { open ->
+                        TextButton(onClick = { open(art.ref, art.mime ?: "application/octet-stream") }) {
+                            Text(stringResource(R.string.workflow_artifact_open))
+                        }
+                    }
+                }
+            }
         }
         // G3: the run sheet's actions — Resume (a resumable run) and Run settings (amend).
         if (run.resumable && onResume != null || onAmendSettings != null) {

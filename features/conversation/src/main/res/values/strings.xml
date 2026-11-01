@@ -321,6 +321,9 @@
     <string name="notice_workflow_refused">The desktop refused the workflow (%1$s).</string>
     <!-- G3 (vc51): the run sheet's Resume + amend actions -->
     <string name="workflow_resume">Resume run</string>
+<string name="workflow_sheet_artifacts">Artifacts</string>
+<string name="workflow_artifact_kind">%1$s</string>
+<string name="workflow_artifact_open">Open</string>
     <string name="workflow_settings">Run settings</string>
     <string name="workflow_settings_title">Amend run settings</string>
     <string name="workflow_settings_model">Subagent model</string>

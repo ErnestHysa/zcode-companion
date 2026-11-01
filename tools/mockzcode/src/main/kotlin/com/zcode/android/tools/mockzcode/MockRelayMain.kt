@@ -230,6 +230,12 @@ fun main() {
         mock.script.savedWorkflowRuns.add(JsonObject(mapOf(
             "runId" to JsonPrimitive("wf-run-old"), "name" to JsonPrimitive("release-notes"), "status" to JsonPrimitive("completed"),
             "createdAt" to JsonPrimitive(now - 86_400_000), "updatedAt" to JsonPrimitive(now - 86_000_000), "spentTokens" to JsonPrimitive(4321),
+            // G17 (vc51 Phase 4D): the completion's artifact previews on the rig.
+            "artifacts" to JsonArray(listOf(JsonObject(mapOf(
+                "ref" to JsonPrimitive("wf-art-release-1"),
+                "name" to JsonPrimitive("RELEASE-NOTES.md"),
+                "mime" to JsonPrimitive("text/markdown"),
+            )))),
         )))
         // G3 (vc51) rig leg: a RESUMABLE run — the run sheet's Resume action has a live
         // target (resumeWorkflowRun flips it to running + resumable=false, honestly).

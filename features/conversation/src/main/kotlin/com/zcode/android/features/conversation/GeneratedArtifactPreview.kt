@@ -101,6 +101,20 @@ object GeneratedArtifactPreview {
     fun forArtifactRow(row: ConversationRow.Artifact): Kind? = kindFor(row.displayName.ifBlank { row.logicalArtifactKey })
 
     /** Open-external MIME (the system chooser filters candidate apps by it). */
+    /** G17: a wire mime → the preview Kind (the artifact cards' icon/label). */
+    fun forKind(mime: String?): Kind = when {
+        mime == null -> Kind.TEXT
+        mime.contains("markdown") || mime.contains("md") -> Kind.MARKDOWN
+        mime.contains("html") -> Kind.HTML
+        mime.contains("officedocument.wordprocessing") || mime.contains("docx") -> Kind.DOCX
+        mime.contains("officedocument.spreadsheet") || mime.contains("xlsx") -> Kind.XLSX
+        mime.contains("presentationml") || mime.contains("pptx") -> Kind.PPTX
+        mime == "application/pdf" -> Kind.PDF
+        mime.startsWith("audio/") -> Kind.AUDIO
+        mime.startsWith("video/") -> Kind.VIDEO
+        else -> Kind.TEXT
+    }
+
     fun mimeFor(kind: Kind): String = when (kind) {
         Kind.MARKDOWN -> "text/markdown"
         Kind.HTML -> "text/html"

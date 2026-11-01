@@ -40,7 +40,23 @@ data class WorkflowRunSummary(
     val failureCode: String?,
     val failureMessage: String?,
     val resumable: Boolean,
+    /** G17 (vc51 Phase 4D): the run's generated artifacts (INV-8-tolerant; often absent). */
+    val artifacts: List<WorkflowArtifact> = emptyList(),
 ) {
+    /** G17: one generated artifact — the preview card + open handoff needs ref/name/mime. */
+    data class WorkflowArtifact(val ref: String, val name: String, val mime: String?) {
+        companion object {
+            fun decode(o: JsonObject): WorkflowArtifact? {
+                val ref = o.wfStr("ref") ?: return null
+                return WorkflowArtifact(
+                    ref = ref,
+                    name = o.wfStr("name") ?: ref,
+                    mime = o.wfStr("mime") ?: o.wfStr("mediaType"),
+                )
+            }
+        }
+    }
+
     companion object {
         fun decode(obj: JsonObject): WorkflowRunSummary? {
             val runId = obj.wfStr("runId") ?: return null
@@ -58,6 +74,9 @@ data class WorkflowRunSummary(
                 failureCode = obj.wfStr("failureCode"),
                 failureMessage = obj.wfStr("failureMessage"),
                 resumable = obj.wfBool("resumable") ?: false,
+                artifacts = (obj["artifacts"] as? JsonArray)?.mapNotNull { el ->
+                    (el as? JsonObject)?.let(WorkflowArtifact.Companion::decode)
+                } ?: emptyList(),
             )
         }
 

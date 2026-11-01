@@ -6,6 +6,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
@@ -38,6 +39,60 @@ class WorkflowRunSheetActionsTest {
         stopReason = if (resumable) "interrupted" else null, toolCallId = null, updatedAtMs = 1,
         resumedFrom = null, supersededBy = null, failureCode = null, failureMessage = null, resumable = resumable,
     )
+
+    // G17 (vc51 Phase 4D): a completed run carrying artifacts
+    private fun completedRunWithArtifacts(id: String) = WorkflowRunSummary(
+        runId = id, label = id, status = WorkflowRunStatus.COMPLETED, statusRaw = "completed",
+        stopReason = null, toolCallId = null, updatedAtMs = 1,
+        resumedFrom = null, supersededBy = null, failureCode = null, failureMessage = null, resumable = false,
+        artifacts = listOf(WorkflowRunSummary.WorkflowArtifact("wf-art-1", "RELEASE-NOTES.md", "text/markdown")),
+    )
+
+    @Test
+    fun `completed run renders artifact preview cards and Open hands off the ref`() {
+        val opened = mutableListOf<Pair<String, String>>()
+        rule.setContent {
+            ZCodeTheme {
+                WorkflowRunSheet(
+                    open = ConversationViewModel.OpenWorkflowRun(completedRunWithArtifacts("r-art"), emptyList(), hasMore = false, loading = false, unavailable = false),
+                    onDismiss = {},
+                    onLoadMore = {},
+                    onResume = null,
+                    onAmendSettings = null,
+                    onOpenArtifact = { ref, mime -> opened += ref to mime },
+                )
+            }
+        }
+        rule.waitForIdle()
+        rule.onNodeWithTag("workflow_sheet_artifacts", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("workflow_artifact_wf-art-1", useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("RELEASE-NOTES.md", useUnmergedTree = true).assertExists()
+        rule.onAllNodesWithTag("workflow_artifact_wf-art-1", useUnmergedTree = true)[0]
+            .performClick()
+        // the Open button (a descendant of the row) fires with the ref+mime
+        rule.onNodeWithText("Open", useUnmergedTree = true).performClick()
+        org.junit.Assert.assertEquals(listOf("wf-art-1" to "text/markdown"), opened)
+    }
+
+    @Test
+    fun `run without artifacts renders no artifacts section`() {
+        rule.setContent {
+            ZCodeTheme {
+                WorkflowRunSheet(
+                    open = ConversationViewModel.OpenWorkflowRun(run("r-plain", WorkflowRunStatus.COMPLETED, false), emptyList(), hasMore = false, loading = false, unavailable = false),
+                    onDismiss = {},
+                    onLoadMore = {},
+                    onResume = null,
+                    onAmendSettings = null,
+                )
+            }
+        }
+        rule.waitForIdle()
+        org.junit.Assert.assertEquals(
+            0,
+            rule.onAllNodesWithTag("workflow_sheet_artifacts", useUnmergedTree = true).fetchSemanticsNodes().size,
+        )
+    }
 
     private fun setContent(
         resumable: Boolean,

@@ -107,4 +107,37 @@ class WorkflowModelsDecodeTest {
     fun `start error vocabulary is the desktop's six codes`() {
         assertEquals(setOf("invalid_name", "not_found", "invalid_args", "compile_failed", "session_busy", "start_failed"), StartSavedWorkflowErrors.ALL)
     }
+
+    // G17 (vc51 Phase 4D): the run's artifacts decode (INV-8-tolerant — absent → empty).
+    @Test
+    fun `run artifacts decode with ref name mime and default to empty`() {
+        val withArtifacts = WorkflowRunSummary.decode(
+            kotlinx.serialization.json.buildJsonObject {
+                put("runId", kotlinx.serialization.json.JsonPrimitive("r1"))
+                put("status", kotlinx.serialization.json.JsonPrimitive("completed"))
+                put("artifacts", kotlinx.serialization.json.JsonArray(listOf(
+                    kotlinx.serialization.json.buildJsonObject {
+                        put("ref", kotlinx.serialization.json.JsonPrimitive("wf-art-1"))
+                        put("name", kotlinx.serialization.json.JsonPrimitive("NOTES.md"))
+                        put("mime", kotlinx.serialization.json.JsonPrimitive("text/markdown"))
+                    },
+                    kotlinx.serialization.json.buildJsonObject {
+                        // no ref → dropped (INV-8)
+                        put("name", kotlinx.serialization.json.JsonPrimitive("broken"))
+                    },
+                )))
+            },
+        )!!
+        org.junit.Assert.assertEquals(1, withArtifacts.artifacts.size)
+        org.junit.Assert.assertEquals("wf-art-1", withArtifacts.artifacts[0].ref)
+        org.junit.Assert.assertEquals("NOTES.md", withArtifacts.artifacts[0].name)
+        org.junit.Assert.assertEquals("text/markdown", withArtifacts.artifacts[0].mime)
+        val without = WorkflowRunSummary.decode(
+            kotlinx.serialization.json.buildJsonObject {
+                put("runId", kotlinx.serialization.json.JsonPrimitive("r2"))
+                put("status", kotlinx.serialization.json.JsonPrimitive("running"))
+            },
+        )!!
+        org.junit.Assert.assertEquals(0, without.artifacts.size)
+    }
 }

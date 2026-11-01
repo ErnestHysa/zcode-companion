@@ -334,6 +334,7 @@ fun ConversationScreen(
                     onLoadMore = onLoadMoreRunEvents,
                     onResume = onResumeWorkflowRun,
                     onAmendSettings = onAmendWorkflowRun,
+                    onOpenArtifact = onOpenArtifact,
                 )
             }
             // A3.13: the trajectory sheet (search field + the model-call timeline).
