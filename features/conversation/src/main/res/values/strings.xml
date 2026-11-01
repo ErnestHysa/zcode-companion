@@ -266,12 +266,18 @@
     </plurals>
     <!-- I2.7+N2.4+C7 (Phase 3C): tool grouping headers, metadata, lazy full output. -->
     <string name="tool_group_explore">Explore</string>
+<string name="tool_group_computer_use">Computer use</string>
+<string name="tool_screenshot_frame">Screenshot</string>
     <string name="tool_group_changes">Changes</string>
     <string name="tool_group_execute">Execute</string>
     <string name="tool_group_other">Tools</string>
     <plurals name="tool_group_searches">
         <item quantity="one">%d search</item>
         <item quantity="other">%d searches</item>
+    </plurals>
+    <plurals name="tool_group_actions">
+        <item quantity="one">%d action</item>
+        <item quantity="other">%d actions</item>
     </plurals>
     <plurals name="tool_group_files">
         <item quantity="one">%d file</item>

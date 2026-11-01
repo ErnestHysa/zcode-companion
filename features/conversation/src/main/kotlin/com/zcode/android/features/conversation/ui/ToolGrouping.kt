@@ -61,18 +61,27 @@ sealed interface TimelineEntry {
     }
 }
 
-/** Desktop grouping vocabulary (toolGroupingChanges/Explore/Terminal + a catch-all). */
+/**
+ * Desktop grouping vocabulary (toolGroupingChanges/Explore/Terminal + a catch-all).
+ * G18 (vc51 Phase 4D): COMPUTER_USE groups the desktop's CUA families — the shipped
+ * conversationCuaGroups matcher is PREFIX-based on `mcp__computer-use__` and
+ * `mcp__plugin_zcode-cua_computer-use__` (conversationCuaGroups.ts, QLt), which the
+ * substring matcher would otherwise scatter into OTHER.
+ */
 enum class ToolCategory {
-    CHANGES, EXECUTE, EXPLORE, OTHER;
+    CHANGES, EXECUTE, EXPLORE, COMPUTER_USE, OTHER;
 
     companion object {
         private val NON_FILE = listOf("todo", "plan", "task", "memory", "skill", "workflow", "mcp", "ask", "question")
         private val CHANGE_WORDS = listOf("write", "edit", "create", "delete", "move", "rename", "apply", "patch", "replace", "insert", "notebook", "save")
         private val EXECUTE_WORDS = listOf("bash", "shell", "exec", "run", "terminal", "command", "zsh", "powershell", "script")
         private val EXPLORE_WORDS = listOf("read", "search", "grep", "glob", "fetch", "find", "list", "ls", "web", "query", "lookup", "symbol", "ref", "cat", "view")
+        /** G18: the shipped desktop CUA group's tool-name prefixes (verbatim). */
+        private val CUA_PREFIXES = listOf("mcp__computer-use__", "mcp__plugin_zcode-cua_computer-use__")
 
         fun of(toolName: String): ToolCategory {
             val n = toolName.lowercase()
+            if (CUA_PREFIXES.any { n.startsWith(it) }) return COMPUTER_USE
             if (NON_FILE.any { it in n }) return OTHER
             if (CHANGE_WORDS.any { it in n }) return CHANGES
             if (EXECUTE_WORDS.any { it in n }) return EXECUTE
@@ -141,6 +150,7 @@ private fun groupTitle(category: ToolCategory): String = stringResource(
         ToolCategory.CHANGES -> R.string.tool_group_changes
         ToolCategory.EXECUTE -> R.string.tool_group_execute
         ToolCategory.EXPLORE -> R.string.tool_group_explore
+        ToolCategory.COMPUTER_USE -> R.string.tool_group_computer_use
         ToolCategory.OTHER -> R.string.tool_group_other
     },
 )
@@ -150,6 +160,7 @@ private fun groupCount(category: ToolCategory, ui: ToolGroupUi): String = when {
     category == ToolCategory.CHANGES && ui.fileCount != null -> pluralStringResource(R.plurals.tool_group_files, ui.fileCount, ui.fileCount)
     category == ToolCategory.EXECUTE -> pluralStringResource(R.plurals.tool_group_commands, ui.count, ui.count)
     category == ToolCategory.EXPLORE -> pluralStringResource(R.plurals.tool_group_searches, ui.count, ui.count)
+    category == ToolCategory.COMPUTER_USE -> pluralStringResource(R.plurals.tool_group_actions, ui.count, ui.count)
     else -> pluralStringResource(R.plurals.tool_group_calls, ui.count, ui.count)
 }
 

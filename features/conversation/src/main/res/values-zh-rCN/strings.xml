@@ -236,11 +236,17 @@
         <item quantity="other">%d 个文件</item>
     </plurals>
     <string name="tool_group_explore">探索</string>
+<string name="tool_group_computer_use">计算机操作</string>
+<string name="tool_screenshot_frame">截图</string>
     <string name="tool_group_changes">更改</string>
     <string name="tool_group_execute">执行</string>
     <string name="tool_group_other">工具</string>
     <plurals name="tool_group_searches">
         <item quantity="other">%d 次搜索</item>
+    </plurals>
+    <plurals name="tool_group_actions">
+        <item quantity="one">%d 个操作</item>
+        <item quantity="other">%d 个操作</item>
     </plurals>
     <plurals name="tool_group_files">
         <item quantity="other">%d 个文件</item>

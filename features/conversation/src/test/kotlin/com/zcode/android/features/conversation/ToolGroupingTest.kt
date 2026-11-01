@@ -109,6 +109,40 @@ class ToolGroupingTest {
         assertEquals(ToolCategory.OTHER, ToolCategory.of("Skill"))
     }
 
+    // G18 (vc51 Phase 4D): the CUA family groups under its own category.
+
+    @Test
+    fun `consecutive computer-use tool calls group as COMPUTER_USE`() {
+        val rows = listOf(
+            tool(1, "mcp__computer-use__screenshot"),
+            tool(2, "mcp__computer-use__left_click"),
+            tool(3, "mcp__plugin_zcode-cua_computer-use__type"),
+        )
+        val entries = groupTimeline(rows)
+        assertEquals(1, entries.size)
+        val group = entries.single() as TimelineEntry.ToolGroup
+        assertEquals(ToolCategory.COMPUTER_USE, group.category)
+        assertEquals(3, group.rows.size)
+    }
+
+    @Test
+    fun `computer-use prefixes are matched before the substring fallback`() {
+        // "type" would hit EXECUTE/CHANGE substrings; "screenshot" contains "screen"-ish
+        // words — the PREFIX match decides first (the shipped desktop matcher's shape).
+        assertEquals(ToolCategory.COMPUTER_USE, ToolCategory.of("mcp__computer-use__type"))
+        assertEquals(ToolCategory.COMPUTER_USE, ToolCategory.of("mcp__computer-use__screenshot"))
+        assertEquals(ToolCategory.COMPUTER_USE, ToolCategory.of("mcp__plugin_zcode-cua_computer-use__scroll"))
+        assertEquals(ToolCategory.OTHER, ToolCategory.of("take_screenshot")) // not a CUA prefix
+    }
+
+    @Test
+    fun `group ui model counts actions for computer use`() {
+        val rows = listOf(tool(1, "mcp__computer-use__screenshot"), tool(2, "mcp__computer-use__left_click"))
+        val ui = ToolGroupUi.of(rows)
+        assertEquals(2, ui.count)
+        assertNull(ui.fileCount)
+    }
+
     @Test
     fun `group ui model counts files for changes and durations for all`() {
         val changes = ToolGroupUi.of(listOf(tool(1, "Write", file = "/a.kt"), tool(2, "Edit", file = "/a.kt"), tool(3, "Edit", file = "/b.kt")))

@@ -1,6 +1,8 @@
 package com.zcode.android.tools.mockzcode
 
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlin.system.exitProcess
@@ -414,6 +416,12 @@ fun main() {
             "status" to JsonPrimitive("pending"),
         ))
     }
+    // G18 (vc51 Phase 4D): MOCK_CUA=1 scripts three consecutive computer-use tool rows
+    // (the shipped CUA prefixes) into the snapshot — one carries a real 1×1 PNG as the
+    // screenshot payload so the frame renders inside the expanded tool card.
+    if (System.getenv("MOCK_CUA") != null) {
+        armCuaRigForTest(mock)
+    }
     // RIG-1 (vc51 Phase 4C / G29): MOCK_AUTOMATIONS=1 seeds the automations list; the
     // handlers were always scripted (passes 5/9 debt) — only the env flags were missing.
     if (System.getenv("MOCK_AUTOMATIONS") != null) {
@@ -669,6 +677,30 @@ fun main() {
  * listTasks upsert refreshes the projection row in place instead of duplicating it.
  */
 /** G30 (vc51 Phase 4B): the bots-viewer seed — shared by the relay arming and the self-test. */
+fun armCuaRigForTest(mock: MockZCode) {
+    val png = java.util.Base64.getEncoder().encodeToString(
+        java.util.Base64.getDecoder().decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC",
+        ),
+    )
+
+    fun cuaRow(call: String, output: String) {
+        mock.appendRow(
+            MockZCode.RowKind.TOOL_CALL,
+            "success",
+            extra = buildJsonObject {
+                put("toolName", JsonPrimitive("mcp__computer-use__$call"))
+                put("toolCallId", JsonPrimitive("cua-call-$call"))
+                put("inputText", JsonPrimitive("{}"))
+                put("outputPreview", JsonPrimitive(output))
+            },
+        )
+    }
+    cuaRow("screenshot", "{\"screenshot\":\"$png\"}")
+    cuaRow("left_click", "{\"ok\":true,\"x\":420,\"y\":230}")
+    cuaRow("type", "{\"ok\":true,\"chars\":16}")
+}
+
 fun botsViewerSeed(): JsonObject = JsonObject(mapOf(
     "bots" to JsonArray(listOf(
         JsonObject(mapOf(

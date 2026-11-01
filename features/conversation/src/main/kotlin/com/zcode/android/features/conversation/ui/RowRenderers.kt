@@ -497,6 +497,30 @@ fun ToolCard(
         }
         if (expanded) {
             Spacer(Modifier.height(8.dp))
+            // G18 (vc51 Phase 4D): a CUA tool call's SCREENSHOT frame renders INSIDE the
+            // expanded card (the mock/desktop serves a base64 PNG in the output payload;
+            // INV-11: a missing or undecodable frame renders nothing, never a hole).
+            val screenshotBytes = remember(row.rowId, row.outputPreview) {
+                extractScreenshotPng(row.outputPreview?.toString())
+                    ?: extractScreenshotPng(row.inputText)
+            }
+            screenshotBytes?.let { png ->
+                val frame = remember(row.rowId, png.size) {
+                    runCatching { android.graphics.BitmapFactory.decodeByteArray(png, 0, png.size)?.asImageBitmap() }.getOrNull()
+                }
+                frame?.let { bmp ->
+                    androidx.compose.foundation.Image(
+                        bitmap = bmp,
+                        contentDescription = stringResource(R.string.tool_screenshot_frame),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 220.dp)
+                            .testTag("tool_screenshot_${row.rowId}"),
+                    )
+                    Spacer(Modifier.height(6.dp))
+                }
+            }
             MonospaceDetail(
                 label = stringResource(R.string.row_input),
                 content = row.inputText.ifBlank { "—" },
@@ -1493,6 +1517,22 @@ private fun AttachmentView(
             }
         }
     }
+}
+
+/**
+ * G18: a CUA tool call's screenshot payload — a base64 PNG embedded in the output/input
+ * JSON (`{"screenshot":"iVBORw…"}` or a data URI). Returns the DECODED PNG bytes or null.
+ */
+internal fun extractScreenshotPng(payload: String?): ByteArray? {
+    if (payload.isNullOrBlank()) return null
+    val marker = "\"screenshot\""
+    val i = payload.indexOf(marker)
+    if (i < 0) return null
+    val tail = payload.substring(i)
+    val b64 = Regex("[A-Za-z0-9+/=]{60,}").find(tail)?.value ?: return null
+    val cleaned = b64.removePrefix("data:image/png;base64,")
+    return runCatching { java.util.Base64.getMimeDecoder().decode(cleaned) }.getOrNull()
+        ?.takeIf { it.size > 8 && it[0] == 0x89.toByte() && it[1] == 'P'.code.toByte() }
 }
 
 /**
