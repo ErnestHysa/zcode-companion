@@ -257,12 +257,13 @@ class CommandCoordinator(
             // FIELD (2026-10-12): model picker on task creation — the desktop's
             // createSessionRequestedConfigSchema carries {provider, model} as the
             // "requested override" for the new session (command.ts:30-41).
-            if (provider != null || model != null) {
-                put("config", buildJsonObject {
-                    provider?.let { put("provider", JsonPrimitive(it)) }
-                    model?.let { put("model", JsonPrimitive(it)) }
-                })
-            }
+            // G29 (vc51 Phase 4C): `offPeakToolEnabled = true` — without it the session
+            // never sees desktop-created off-peak tasks (the recorded gap).
+            put("config", buildJsonObject {
+                put("offPeakToolEnabled", JsonPrimitive(true))
+                provider?.let { put("provider", JsonPrimitive(it)) }
+                model?.let { put("model", JsonPrimitive(it)) }
+            })
         }
         val commandId = accept("createSession", sessionId = null, payload = payload)
             ?: return Outcome.BlockedOffline

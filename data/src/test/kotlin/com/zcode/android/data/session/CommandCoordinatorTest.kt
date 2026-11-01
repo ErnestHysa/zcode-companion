@@ -33,6 +33,7 @@ class CommandCoordinatorTest {
     ) : CommandSender {
         val sends = mutableListOf<Pair<String, String>>() // type to commandId
         val revisions = mutableListOf<Long?>()
+        val payloads = mutableListOf<Pair<String, JsonObject>>() // type to payload
         override suspend fun send(
             type: String,
             sessionId: String?,
@@ -45,6 +46,7 @@ class CommandCoordinatorTest {
         ): CommandAck {
             sends.add(type to commandId)
             revisions.add(baseRevision)
+            payloads.add(type to payload)
             if (throwOnSend) throw IllegalStateException("socket died mid-call")
             return CommandAck(commandId, status, 1, null, null, null)
         }
@@ -264,6 +266,17 @@ class CommandCoordinatorTest {
         val outcome = coordinator.editQueueItem("s1", "q-1", "new text", baseRevision = 1042)
         assertTrue(outcome is CommandCoordinator.Outcome.Accepted)
         assertEquals(1042L, sender.revisions.single())
+    }
+
+    @Test
+    fun `createSession carries offPeakToolEnabled=true so the session sees off-peak tasks (G29)`() = runTest {
+        val sender = RecordingSender()
+        val (coordinator, _) = coordinator(sender)
+        val outcome = coordinator.createSession("/synthetic/ws", "synthetic-ws", "hello")
+        assertTrue(outcome is CommandCoordinator.Outcome.Accepted)
+        val payload = sender.payloads.single { it.first == "createSession" }.second
+        val config = payload["config"] as JsonObject
+        assertEquals("true", ((config["offPeakToolEnabled"] as kotlinx.serialization.json.JsonPrimitive).content))
     }
 
     @Test

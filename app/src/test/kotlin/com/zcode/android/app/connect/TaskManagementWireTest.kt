@@ -21,6 +21,7 @@ import kotlinx.serialization.json.put
 import org.junit.After
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -196,6 +197,41 @@ class TaskManagementWireTest {
         }
         // The word-level proof IS the round-trip: the mock only answers `cancelTask`
         // with `cancelled`, and the next `list` reports the terminal state.
+    }
+
+    @Test
+    fun `off-peak create lands queued in the next list and delete removes it (G29 authoring)`() {
+        connect {
+            it.offPeakTaskList = JsonArray(listOf(buildJsonObject {
+                put("id", JsonPrimitive("op-1")); put("offPeakTaskId", JsonPrimitive("op-1")); put("title", JsonPrimitive("Seeded"))
+                put("status", JsonPrimitive("queued")); put("createdAt", JsonPrimitive(1)); put("workspaceKey", JsonPrimitive("synthetic-ws"))
+            }))
+        }
+        runBlocking {
+            val created = tasks.offPeakCreate("Rig task", "Sweep the repo while away", "/synthetic/ws")
+            assertEquals("true", ((created!!["ok"] as JsonPrimitive).content))
+            val id = (((created["task"] as JsonObject).let { it["offPeakTaskId"] ?: it["id"] }) as JsonPrimitive).content
+            val afterCreate = transport.offPeakTaskList()
+            val ids = (afterCreate["tasks"] as JsonArray).map { row ->
+                val o = row as JsonObject
+                ((o["offPeakTaskId"] ?: o["id"]) as JsonPrimitive).content
+            }
+            assertTrue(id in ids, "the created row lands in the next list")
+            // the phone's decode contract holds for the created row (offPeakTaskId + workspaceKey)
+            val createdRow = (afterCreate["tasks"] as JsonArray).map { it as JsonObject }
+                .first { (((it["offPeakTaskId"] ?: it["id"]) as JsonPrimitive).content) == id }
+            assertEquals("queued", (createdRow["status"] as JsonPrimitive).content)
+            // the mock echoes the caller key (§7.11: identity ?: path — the phone passed its path)
+            assertEquals("/synthetic/ws", (createdRow["workspaceKey"] as JsonPrimitive).content)
+
+            tasks.offPeakDelete(id)
+            val afterDelete = transport.offPeakTaskList()
+            val idsAfter = (afterDelete["tasks"] as JsonArray).map { row ->
+                val o = row as JsonObject
+                ((o["offPeakTaskId"] ?: o["id"]) as JsonPrimitive).content
+            }
+            assertTrue(id !in idsAfter, "delete removes the row from the next list")
+        }
     }
 
     @Test

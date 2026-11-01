@@ -143,6 +143,15 @@ interface AutomationsPort {
      */
     suspend fun cancelOffPeak(offPeakTaskId: String): Boolean = false
 
+    // ---- G29 (vc51 Phase 4C): the off-peak AUTHORING half (create + delete; the
+    // desktop's OffPeakEditView surface, mobile-shaped). False = the wire refused.
+
+    /** `createTask {title, prompt, workspacePath}` — queues an off-peak task. */
+    suspend fun createOffPeakTask(title: String, prompt: String): Boolean = false
+
+    /** `deleteTask(t)` — history-row cleanup. */
+    suspend fun deleteOffPeakTask(offPeakTaskId: String): Boolean = false
+
     // ---------------------------------------------------------------- Phase 5A (L6.4): the saved-workflow hub
 
     /** `listSavedWorkflows` for the active workspace; null = unavailable (the hub hides). */

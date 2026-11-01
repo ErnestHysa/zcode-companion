@@ -216,6 +216,17 @@
     <string name="offpeak_badge_queue">排队第 %1$d 位</string>
     <string name="offpeak_badge_paused">#%1$d 已暂停</string>
     <string name="offpeak_cancel">取消任务</string>
+<string name="offpeak_new">新建</string>
+<string name="offpeak_history">历史</string>
+<string name="offpeak_create_title">新建闲时任务</string>
+<string name="offpeak_name_label">标题</string>
+<string name="offpeak_prompt_label">离开时运行的内容</string>
+<string name="offpeak_create_action">创建</string>
+<string name="offpeak_delete">删除</string>
+<string name="offpeak_create_failed">闲时任务创建失败——请重试</string>
+<string name="offpeak_delete_failed">闲时任务删除失败——请重试</string>
+<string name="offpeak_delete_confirm_title">删除这个闲时任务？</string>
+<string name="offpeak_delete_confirm_body">“%1$s”将从队列中移除。它已更改的文件会保留。</string>
     <string name="offpeak_cancel_confirm_title">取消闲时任务？</string>
     <string name="offpeak_cancel_confirm_body">「%1$s」将停止执行，已修改的文件会保留。</string>
     <string name="offpeak_cancel_confirm_yes">取消</string>

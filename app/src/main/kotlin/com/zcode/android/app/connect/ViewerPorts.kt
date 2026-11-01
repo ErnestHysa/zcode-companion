@@ -258,6 +258,18 @@ class DefaultAutomationsPort(
 
     override suspend fun cancelOffPeak(offPeakTaskId: String): Boolean = offPeak("cancel") { hub.taskService().offPeakCancel(offPeakTaskId) }
 
+    override suspend fun createOffPeakTask(title: String, prompt: String): Boolean =
+        offPeak("create") {
+            val result = hub.taskService().offPeakCreate(title, prompt, hub.activeWorkspaceTarget()?.first)
+            // the desktop's {ok:false} failure union degrades to the failed copy
+            if ((result?.get("ok") as? kotlinx.serialization.json.JsonPrimitive)?.content == "false") {
+                throw IllegalStateException("off-peak create refused: ${result["errorCategory"]}")
+            }
+        }
+
+    override suspend fun deleteOffPeakTask(offPeakTaskId: String): Boolean =
+        offPeak("delete") { hub.taskService().offPeakDelete(offPeakTaskId) }
+
     private suspend fun offPeak(tag: String, call: suspend () -> Any?): Boolean = try {
         call(); true
     } catch (e: CancellationException) {

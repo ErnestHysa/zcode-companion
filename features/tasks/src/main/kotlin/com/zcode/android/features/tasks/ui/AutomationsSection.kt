@@ -86,6 +86,9 @@ fun AutomationsSection(
     var creating by remember { mutableStateOf(false) }
     // L6.2: the off-peak row awaiting its cancel confirm.
     var pendingCancel by remember { mutableStateOf<OffPeakTaskRow?>(null) }
+    // G29 (vc51 Phase 4C): the create-sheet flag + the history row awaiting delete confirm.
+    var showOffPeakCreate by remember { mutableStateOf(false) }
+    var pendingOffPeakDelete by remember { mutableStateOf<OffPeakTaskRow?>(null) }
     var confirmDelete by remember { mutableStateOf<AutomationRow?>(null) }
     var historyFor by remember { mutableStateOf<AutomationRow?>(null) }
 
@@ -94,6 +97,8 @@ fun AutomationsSection(
     val queuedCopy = stringResource(R.string.automation_run_queued)
     val duplicateCopy = stringResource(R.string.automation_run_duplicate)
     val runFailedCopy = stringResource(R.string.automation_run_failed)
+    val offpeakCreateFailedCopy = stringResource(R.string.offpeak_create_failed)
+    val offpeakDeleteFailedCopy = stringResource(R.string.offpeak_delete_failed)
 
     suspend fun load() {
         lists = port.lists()
@@ -206,16 +211,26 @@ fun AutomationsSection(
         }
         lists?.offPeak?.takeIf { it.isNotEmpty() }?.let { peaks ->
             Spacer(Modifier.height(8.dp))
-            Text(
-                stringResource(R.string.automations_offpeak),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-            peaks.forEachIndexed { index, task ->
-                // Phase 5A (A3.10 as shipped): pause/continue ride the off-peak channel words.
-                // L6.2 (Phase 6B): localized status vocabulary, queue badges, failure
-                // reasons, re-queue hints, and Cancel behind the desktop confirm.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(R.string.automations_offpeak),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.weight(1f),
+                )
+                // G29 (vc51 Phase 4C): the authoring entry — create rides the channel's
+                // createTask word (the desktop's OffPeakEditView surface, mobile-shaped).
+                TextButton(
+                    onClick = { showOffPeakCreate = true },
+                    enabled = !busy,
+                    modifier = Modifier.testTag("offpeak_new"),
+                ) { Text(stringResource(R.string.offpeak_new)) }
+            }
+            // G29: ACTIVE (queued/running/paused) rows keep the monitor verbs; terminal
+            // rows move under a History subheader with Delete.
+            val (active, history) = peaks.partition { it.status !in OffPeakHistoryStatuses }
+            active.forEachIndexed { index, task ->
                 OffPeakLine(
                     task,
                     busy = task.offPeakTaskId in busyIds,
@@ -223,7 +238,28 @@ fun AutomationsSection(
                     onContinue = { guarded(task.offPeakTaskId) { port.continueOffPeak(task.offPeakTaskId); load() } },
                     onCancel = { pendingCancel = task },
                 )
-                if (index != peaks.lastIndex) {
+                if (index != active.lastIndex) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                }
+            }
+            if (history.isNotEmpty()) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    stringResource(R.string.offpeak_history),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("offpeak_history_header"),
+                )
+                history.forEach { task ->
+                    OffPeakLine(
+                        task,
+                        busy = task.offPeakTaskId in busyIds,
+                        onPause = null,
+                        onContinue = null,
+                        onCancel = null,
+                        onDelete = { pendingOffPeakDelete = task },
+                    )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                 }
             }
@@ -248,6 +284,60 @@ fun AutomationsSection(
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = { pendingCancel = null }) {
+                    Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
+                }
+            },
+        )
+    }
+
+    // G29: the off-peak create dialog (title + prompt → createTask {title, prompt}).
+    if (showOffPeakCreate) {
+        OffPeakCreateDialog(
+            busy = busy,
+            onDismiss = { showOffPeakCreate = false },
+            onCreate = { title, prompt ->
+                showOffPeakCreate = false
+                scope.launch {
+                    val ok = try {
+                        port.createOffPeakTask(title, prompt)
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        false
+                    }
+                    if (!ok) notifier.show(offpeakCreateFailedCopy, long = true)
+                    load()
+                }
+            },
+        )
+    }
+    pendingOffPeakDelete?.let { target ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { pendingOffPeakDelete = null },
+            title = { Text(stringResource(R.string.offpeak_delete_confirm_title)) },
+            text = { Text(stringResource(R.string.offpeak_delete_confirm_body, target.title)) },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        val id = target.offPeakTaskId
+                        pendingOffPeakDelete = null
+                        guarded(id) {
+                            val ok = try {
+                                port.deleteOffPeakTask(id)
+                            } catch (e: kotlinx.coroutines.CancellationException) {
+                                throw e
+                            } catch (e: Exception) {
+                                false
+                            }
+                            if (!ok) notifier.show(offpeakDeleteFailedCopy, long = true)
+                            load()
+                        }
+                    },
+                    modifier = Modifier.testTag("offpeak_delete_confirm"),
+                ) { Text(stringResource(R.string.offpeak_delete), color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { pendingOffPeakDelete = null }) {
                     Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
                 }
             },
@@ -579,6 +669,8 @@ private fun OffPeakLine(
     onContinue: (() -> Unit)? = null,
     // L6.2 (Phase 6B): cancel arms the section-level confirm.
     onCancel: (() -> Unit)? = null,
+    // G29 (vc51 Phase 4C): history rows offer Delete (arms the section-level confirm).
+    onDelete: (() -> Unit)? = null,
 ) {
     val pauseHint = stringResource(R.string.offpeak_hint_pause)
     val continueHint = stringResource(R.string.offpeak_hint_continue)
@@ -657,7 +749,61 @@ private fun OffPeakLine(
                 Text(stringResource(R.string.offpeak_cancel))
             }
         }
+        // G29: terminal (history) rows offer Delete behind the section-level confirm.
+        if (t.status in OffPeakHistoryStatuses && onDelete != null) {
+            TextButton(onClick = onDelete, enabled = !busy, modifier = Modifier.testTag("offpeak_delete_${t.offPeakTaskId}")) {
+                Text(stringResource(R.string.offpeak_delete))
+            }
+        }
     }
+}
+
+/** G29: the terminal statuses that render under the History subheader. */
+private val OffPeakHistoryStatuses = setOf("completed", "failed", "cancelled")
+
+/** G29: the mobile-shaped create dialog (title + prompt → createTask). */
+@Composable
+private fun OffPeakCreateDialog(
+    busy: Boolean,
+    onDismiss: () -> Unit,
+    onCreate: (title: String, prompt: String) -> Unit,
+) {
+    var title by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    var prompt by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = { if (!busy) onDismiss() },
+        title = { Text(stringResource(R.string.offpeak_create_title)) },
+        text = {
+            Column {
+                androidx.compose.material3.OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text(stringResource(R.string.offpeak_name_label)) },
+                    singleLine = true,
+                    modifier = Modifier.testTag("offpeak_title_field"),
+                )
+                androidx.compose.material3.OutlinedTextField(
+                    value = prompt,
+                    onValueChange = { prompt = it },
+                    label = { Text(stringResource(R.string.offpeak_prompt_label)) },
+                    minLines = 2,
+                    modifier = Modifier.testTag("offpeak_prompt_field"),
+                )
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(
+                enabled = !busy && title.isNotBlank() && prompt.isNotBlank(),
+                onClick = { onCreate(title.trim(), prompt.trim()) },
+                modifier = Modifier.testTag("offpeak_create_confirm"),
+            ) { Text(stringResource(R.string.offpeak_create_action)) }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(enabled = !busy, onClick = onDismiss) {
+                Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
+            }
+        },
+    )
 }
 
 /** L6.2: the desktop `offPeak.status.*` vocabulary (INV-8: unknown → the raw word). */

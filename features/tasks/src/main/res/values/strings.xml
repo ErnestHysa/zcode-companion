@@ -217,6 +217,18 @@
     <string name="offpeak_badge_queue">#%1$d in queue</string>
     <string name="offpeak_badge_paused">#%1$d Paused</string>
     <string name="offpeak_cancel">Cancel task</string>
+<!-- G29 (vc51 Phase 4C): the off-peak authoring half (create + history + delete). -->
+<string name="offpeak_new">New</string>
+<string name="offpeak_history">History</string>
+<string name="offpeak_create_title">New off-peak task</string>
+<string name="offpeak_name_label">Title</string>
+<string name="offpeak_prompt_label">What to run while you\'re away</string>
+<string name="offpeak_create_action">Create</string>
+<string name="offpeak_delete">Delete</string>
+<string name="offpeak_create_failed">The off-peak task could not be created — try again</string>
+<string name="offpeak_delete_failed">The off-peak task could not be deleted — try again</string>
+<string name="offpeak_delete_confirm_title">Delete this off-peak task?</string>
+<string name="offpeak_delete_confirm_body">\"%1$s\" is removed from the queue. Files it already changed are kept.</string>
     <string name="offpeak_cancel_confirm_title">Cancel idle-time task?</string>
     <string name="offpeak_cancel_confirm_body">\"%1$s\" will stop running. Files it already changed are kept.</string>
     <string name="offpeak_cancel_confirm_yes">Cancel</string>

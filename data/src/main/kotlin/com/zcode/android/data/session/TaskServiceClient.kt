@@ -243,6 +243,24 @@ class TaskServiceClient(private val transport: AppTransport) {
     /** L6.2 (Phase 6B): `cancelTask(t)` — terminal `cancelled`; a running task is stopped. */
     suspend fun offPeakCancel(offPeakTaskId: String): JsonObject? = offPeakCall("cancelTask", offPeakTaskId)
 
+    // ---- G29 (vc51 Phase 4C): the off-peak AUTHORING verbs (create/update/delete on
+    // the same channel; the desktop's OffPeakTaskService words).
+
+    /**
+     * `createTask {title, prompt, workspacePath?}` — the desktop's create result is the
+     * `{ok:true, task}` | `{ok:false, failureStage, errorCategory, errorCode}` union
+     * (asar $_/U9); null = the wire refused (the port degrades to the failed copy).
+     */
+    suspend fun offPeakCreate(title: String, prompt: String, workspacePath: String?): JsonObject? =
+        transport.channelCall("off-peak-task", "createTask", RpcValue.Arr(listOf(RpcValue.Obj(buildJsonObject {
+            put("title", JsonPrimitive(title))
+            put("prompt", JsonPrimitive(prompt))
+            workspacePath?.let { put("workspacePath", JsonPrimitive(it)) }
+        }))), 30_000).let { (it as? RpcValue.Obj)?.json as? JsonObject }
+
+    /** `deleteTask(t)` — removes the row (history rows offer it). */
+    suspend fun offPeakDelete(offPeakTaskId: String): JsonObject? = offPeakCall("deleteTask", offPeakTaskId)
+
     // ---- H1.6 (Phase 6B): the `feedback` channel — create + list (ticketed issue reporting)
 
     /**

@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
 import com.zcode.android.domain.ids.WorkspaceIdentityKey
@@ -65,6 +66,18 @@ class AutomationsSectionUiTest {
         automations: List<AutomationRow>? = null,
         offPeak: List<OffPeakTaskRow>? = null,
         error: String? = null,
+    ): AutomationsPort = portWithRecording(automations, offPeak, error)
+
+    private class Recorder {
+        var created: Pair<String, String>? = null
+        var deleted: String? = null
+    }
+
+    private fun portWithRecording(
+        automations: List<AutomationRow>? = null,
+        offPeak: List<OffPeakTaskRow>? = null,
+        error: String? = null,
+        recorder: Recorder = Recorder(),
     ): AutomationsPort {
         val autos = automations
         val peaks = offPeak
@@ -77,6 +90,17 @@ class AutomationsSectionUiTest {
             override suspend fun delete(automationId: String): Boolean = false
             override suspend fun setEnabled(automationId: String, enabled: Boolean): Boolean = false
             override suspend fun runNow(automationId: String): Boolean = false
+
+            // G29 (vc51 Phase 4C): the off-peak authoring verbs
+            override suspend fun createOffPeakTask(title: String, prompt: String): Boolean {
+                recorder.created = title to prompt
+                return true
+            }
+
+            override suspend fun deleteOffPeakTask(offPeakTaskId: String): Boolean {
+                recorder.deleted = offPeakTaskId
+                return true
+            }
         }
     }
 
@@ -130,20 +154,67 @@ class AutomationsSectionUiTest {
     }
 
     @Test
-    fun noWriteAffordance_existsAnywhereInTheSection() {
+    fun writeAffordances_areExactlyTheSanctionedSurface() {
+        // SUPERSEDED by G29 (vc51 Phase 4C) — the batch that breaks a pin owns it: the
+        // off-peak section now exposes its AUTHORING half (the create entry + per-row
+        // cancel/delete), so the old "no write affordance anywhere" gate narrows to the
+        // still-unsanctioned verbs.
         setContent(
-            port(
+            portWithRecording(
                 automations = fixtureAutomations("automation-list-mixed"),
                 offPeak = fixtureOffPeak("offpeak-list-mixed"),
             ),
         )
-        // Deferred scope (roadmap): NO create/edit/delete/enable/pause targets.
+        rule.onNodeWithTag("offpeak_new").assertExists()
         listOf(
-            "automation_create", "automation_edit", "automation_delete",
-            "automation_enable", "automation_run", "offpeak_create", "offpeak_cancel",
+            "automation_enable", "automation_run", "automation_delete", "offpeak_edit",
         ).forEach { tag ->
             rule.onAllNodesWithTag(tag).assertCountEquals(0)
         }
+    }
+
+    // --------------------------------------------- G29 (vc51 Phase 4C) pins
+
+    @Test
+    fun offPeakHistory_facesRenders_withDeleteAffordance() {
+        setContent(
+            port(
+                offPeak = listOf(
+                    OffPeakTaskRow("op-active", "Active sweep", "queued", 1, null, 1L, "/synthetic/ws", null),
+                    OffPeakTaskRow("op-done", "Old bump", "completed", null, "sess-1", 1L, "/synthetic/ws", null),
+                    OffPeakTaskRow("op-fail", "Dead job", "failed", null, null, 1L, "/synthetic/ws", "boom"),
+                ),
+            ),
+        )
+        rule.onNodeWithTag("offpeak_history_header").assertExists()
+        rule.onNodeWithTag("offpeak_row_op-done").assertExists()
+        // the terminal row offers Delete; the ACTIVE row keeps its monitor verb
+        rule.onNodeWithTag("offpeak_delete_op-done").assertExists()
+        rule.onNodeWithTag("offpeak_pause_op-active").assertExists()
+    }
+
+    @Test
+    fun offPeakCreate_flow_reachesThePort() {
+        val recorder = Recorder()
+        setContent(portWithRecording(offPeak = listOf(OffPeakTaskRow("op-1", "Idle job", "queued", 1, null, 1L, "/synthetic/ws", null)), recorder = recorder))
+        rule.onNodeWithTag("offpeak_new").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("offpeak_title_field").performTextInput("Rig sweep")
+        rule.onNodeWithTag("offpeak_prompt_field").performTextInput("Refactor the parsers")
+        rule.onNodeWithTag("offpeak_create_confirm").performClick()
+        rule.waitForIdle()
+        org.junit.Assert.assertEquals("Rig sweep" to "Refactor the parsers", recorder.created)
+    }
+
+    @Test
+    fun offPeakDelete_flow_reachesThePort() {
+        val recorder = Recorder()
+        setContent(portWithRecording(offPeak = listOf(OffPeakTaskRow("op-done", "Old bump", "completed", null, null, 1L, "/synthetic/ws", null)), recorder = recorder))
+        rule.onNodeWithTag("offpeak_delete_op-done").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("offpeak_delete_confirm").performClick()
+        rule.waitForIdle()
+        org.junit.Assert.assertEquals("op-done", recorder.deleted)
     }
 }
 
