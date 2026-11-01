@@ -2512,6 +2512,11 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     put("kind", JsonPrimitive("modified")); put("repoRelativePath", JsonPrimitive(it))
                 } }))
             }))
+            // vc51 Phase 4A (CKPT-HYDRATE): the list word the phone hydrates its
+            // checkpoint card from on entry — the full scripted snapshot history.
+            "listCheckpoints" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                put("checkpoints", JsonArray(script.checkpoints.toList()))
+            }))
             "restoreBetweenCheckpoints" -> {
                 val force = (arg?.get("force") as? JsonPrimitive)?.content?.toBooleanStrictOrNull() ?: false
                 if (script.checkpointConflicts && !force) {
