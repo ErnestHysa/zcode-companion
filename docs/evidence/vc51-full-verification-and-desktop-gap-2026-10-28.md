@@ -4145,3 +4145,244 @@ gate is green at 1718/0/0/0; the parity ledger stands as pass 13 recorded it (de
 methods, phone 29 + the 10 classified G42/G43/G44; the phone AHEAD on
 notifications/widget/updates/multi-endpoint/offline-queueing). The tree under audit is now
 `c2bcdc1b`; APK `9084b920…`. Nothing pushed.**
+
+# Fourteenth pass — 2026-11-02 (APPENDED — pass 14; not part of the original audit, the roadmap, the receipt passes, or earlier passes)
+
+Scope: the same standing mandate, fourteenth run — live emulation + verify every feature, REA the
+shipped macOS app, and update the parity ledger. This pass runs on the post-remediation HEAD
+(`761ae7fe`, the docs commit over `c2bcdc1b`), so all three pass-13 defects (GAP-A14/A15/A16) are
+REGRESSION legs here, and it adds a new desktop-enumeration angle (the host's dynamic-channel
+adapter surface) plus one NEW mock defect found live and fixed test-first.
+
+Tree under audit: `main` @ `761ae7fe` (versionCode 52 / versionName 1.3.1). Fresh `assembleDebug`
+at this HEAD is **byte-identical** to the pass-13 remediation artifact —
+`app/build/outputs/apk/debug/app-debug.apk`, 32,294,909 bytes, sha256 `9084b92060306d8b…` — because
+intermediate HEAD adds only documentation. Desktop target unchanged: `/Applications/ZCode.app`
+asar sha256 `99e280fb90b626cc…`, Info.plist 3.14.5 (re-measured this pass).
+
+Evidence: 10 screenshots `/tmp/walk14/*.png` + **86 uiautomator dumps** `/tmp/walk14/*.xml` (the
+primary rig evidence this pass — node bounds, `checked=` state and text are read from the dumps);
+app logcat
+`/tmp/pass14-rea/app.log` (ZCODE-PAIR wire receipts inline); relay logs `/tmp/pass14-rea/relay.log`
++ `relay2.log`; on-device SQLite `/tmp/walk14/zcode2.db` (outbox + interactions tables);
+fresh REA analysis `/tmp/pass14-rea/asar-bundle.json`, Evidence
+`ev_05d09d8f8cb66560efb17d449858e3b7ffb3b890360352be1e5de78f171f0aba`
+(analyze_javascript_application, shipped-artifact authority, 23,186 files / 22,125 parsed JS /
+1,359 modules / 89,718 nodes / 92,776 edges / 255 dynamic-channel operations / 47 renderer
+listeners).
+
+Rig: zcode-pixel cold boot (`-no-snapshot-load -gpu swiftshader_indirect -no-audio
+-no-boot-anim`), MockZCode relay on `10.0.2.2:18100` with the FULL 22-arm set
+(`MOCK_ROWS=40 MOCK_GOAL MOCK_APPROVAL MOCK_ROW_ACTIONS MOCK_WORKFLOWS MOCK_TASKMGMT MOCK_QUESTION
+MOCK_HOOKS MOCK_COMPACT MOCK_ATTACHMENT MOCK_QUEUE MOCK_AUTOMATIONS MOCK_OFFPEAK MOCK_CUA MOCK_GIT
+MOCK_BACKGROUND_BASH MOCK_SHARED_CONTEXT MOCK_SESSIONS_INDEX MOCK_WORKSPACE_FILES
+MOCK_REFUSE_COMMANDS` + HAPPY + `MOCK_INTERACTION_PUSH_MS=25000`), launched via the plain
+`java -cp` recipe (gradle stays free for builds). Install was upgrade-over-existing-data.
+
+## Part AM — pass-14 live emulation
+
+### AM1. NEW rig blocker found and solved (recorded because it will bite every future pass)
+
+**The cold boot left the emulator DUAL-HOMED on the same subnet** — `eth0 10.0.2.15/24` AND
+`wlan0 10.0.2.16/24`, both with a `10.0.2.0/24` route. The result was a route flap: TCP to
+`10.0.2.2:18100` alternated between working (`nc` exit 0) and `Network is unreachable`, the app's
+relay connect timed out at 10 s, the bootstrap retried 3× and degraded — **with ZERO frames ever
+reaching the relay** (`relay.log` held nothing but the READY banner). Two app restarts and a relay
+restart changed nothing. Fix: `adb shell svc wifi disable` (single-home eth0), after which the
+handshake and AUTH succeeded immediately and the whole walk proceeded with no further network
+faults. Diagnostic signature to recognize it: relay log EMPTY + `hub.connectFailed :: TIMEOUT
+connect timed out after 10000ms` + `adb shell nc` toggling between success and "Network is
+unreachable". (Not an app defect: the app retried and degraded exactly as designed.)
+
+Second rig trap, self-inflicted: a manual WebSocket probe from the HOST to the mock relay wedges
+the relay's single-listener session slot — after it, the app's `auth_ack` timed out for every
+connection until the relay was restarted (`pkill -f MockRelayMainKt`). Never hand-shake the mock
+outside the app; use `nc` (no upgrade) to prove reachability.
+
+### AM2. Regression legs on the pass-13 fixes — ALL HOLD (fresh receipts)
+
+| Fix under test | Pass-14 receipt |
+| --- | --- |
+| **GAP-A14 automations hub cap** | Tasks screen with the automations hub armed (Nightly digest + 6 verbs + Workflows release-notes + Run): the hub renders capped and **all three task rows compose below it** — "Pinned · Live · Synthetic task", "WORKSPACE · Synthetic One · Synthetic task 3 / Synthetic task 2", with the "+ New task" FAB on screen at y=2059/2340. The list is reachable and scrollable (dump shows the full row set + the group header), i.e. the pass-13 P2 is dead |
+| **GAP-A15 hook-trust notice** | Hook card (2 pending · 3 hooks) → both pending checkboxes tapped (`checked=false → true`, third stays false) → "Trust 2 selected hook(s)" → confirm sheet ("Trust selected hooks?" / Cancel / Confirm) → Confirm → wire `grantWorkspaceHookTrust ok in 58ms` (relay `id=49`) → the strip renders **"Trusted 2 hook(s) — the session continues."** — NO offline banner. Post-trust the card's per-item verbs are truthful: "Warm build cache" shows Disable + **Revoke** (trusted), untrusted items show no Revoke |
+| **GAP-A16 composer squeeze** | With the pinned approval card + "Queued (2) · paused" strip + background indicator + shared-context strip all pinned and the IME OPEN (`mInputShown=true`), the composer draft renders at **y=1244–1376** inside a 0..2072 content root — fully above the keyboard. Screenshot `03-ime-composer.png` |
+| **c2bcdc1b mock resolve-preserves-hook** | Answered the fresh pushed approval ("Allow once") with the scripted hook review beside it: the hook card **survived** and re-rendered as the pinned head immediately after the answer — the hook was NOT swept by the key-level replacement |
+| **GAP-A2 approvals never clear** | Approvals inbox → "Allow once" on the scripted card → `approvals.answer :: interaction=mock-approva option=allowOnce` + `sendConversationCommandV4 ok in 84ms` → the inbox flips to **"Nothing needs you"** (card cleared, database lifecycle flipped) |
+| **GAP-A13 goal-refusal notice** | `/goal pause` (draft fixed to exactly that) → send → `command.rejected :: type=pauseGoal fault.command.rigRefused:pauseGoal` WARN → banner **"Goal pause was refused (the goal may not be pausable right now)."** with the draft preserved |
+| **G4 queue verbs** | "Send now" on the first queued row → outbox `sendQueuedNow|ACKED|{"queueItemId":"q-rig-1"}` → strip **"Queued (2)" → "Queued (1)"** with only row two left (authoritative round-trip) |
+| **G15 background bash** | "1 background task(s) running · View" → sheet ("synthetic background build · bash · running · Cancel") → View output → `backgroundBashOutputV4 ok in 87ms` → live output block ("compiling module 1/3… 2/3…") + tail path `/synthetic/ws-one/.zcode/background/work-bash-1.log` |
+| **G9 shared context** | Strip + Remove → `sendConversationCommandV4 ok in 219ms`; the strip persists because the mock still has NO discard handler (recorded mock fidelity debt, not an app defect — the app trusts authoritative state) |
+| **G5 find in conversation** | Find → query `cadence` → **"1 of 40"** with the matched row surfaced. (Note: `echo`/`pause`/`synthetic` correctly returned "No matches" — those strings live on interaction-plane rows, which the finder does not index by design) |
+| **Workflow start** | release-notes → Run sheet ("Before tagging a release", required `version *` field, Run-in-task picker with ✓) → typed `v14.1` → Run → **`port.startWorkflow :: session=synth-task-1 name=release-notes outcome=Accepted`** → navigated into the target task |
+| **G32 git round-trip** | Context sheet → Git chip → panel (read-only · Checkpoints · "No snapshots in this session" · main / tracking: origin/main · Commit… / Branches… / Changes / History) → Branches… ("main ✓", feature/a, New branch name) → typed `rig14-branch` → "Create & switch" → **`git.createBranchAndSwitch ok`**. Header still shows the mock's STATIC summary (recorded debt; the wire round-trip is separately pinned by `GitWriteWireTest`) |
+| **Terminal consent gate** | Terminal → fail-closed gate ("VIEW-ONLY", full explainer, off switch) → enable → `terminal.optIn :: enabled=true` → the attach plane renders ("Not attached." + Attach) |
+| **Automation run history** | "History" on Nightly digest → sheet ("Run history", "Scheduled tasks only run while your computer is awake.", filter chips All/In progress/Succeeded/Failure) + the honest "This feature isn't available on the connected desktop." fault |
+| **Files panel** | Files chip → "ws-one" + read-only + **"workspace files unavailable on this connection"** (the mock seeds MENTION search, not the listing channel — correct degrade) |
+| **Widget** | Launcher home after the walk: Pending-approvals widget bound and rendering "Nothing needs you" |
+| **Update gate** | About → Check for updates → **"You are on the latest build"** for 1.3.1/vc52 vs published 1.2.8-vc49 |
+| **Leave-guard / draft persistence** | Exiting the conversation with a draft raised "Leave this conversation? Keep editing / Leave"; the draft (`/goal pause@`) survived the leave, an app restart, and a relay restart |
+| **Fresh-push notification + shade actions** | Relay instance 2 → deeplink subscribe → HOME → inside the 25 s window the shade posted **"ZCode needs your approval" with LIVE Approve / Deny actions** (`dumpsys notification`: `pkg=com.zcode.android.app … actions=2 vis=PRIVATE`), beside **"ZCode has a question for you"**. (The Approve tap itself landed on the shade's quick-settings panel after a re-layout — the action-button face is receipted by the dump and by pass-13's identical leg, where the deep link `zcode://task/synth-task-1#interaction=mock-approval-1` fired) |
+| **App lifecycle/state** | `app.start :: version=1.3.1 (vc52)`; `hub.bootstrapApplied :: tasks=3 workspaces=1 dropped=0`; `update.check :: desktop=3.14.3 state=UpToDate`; zero FATAL EXCEPTION lines across the entire pass |
+
+### AM3. Reconnect leg — the G43 re-adjudication receipt
+
+Relay killed mid-pass (`pkill -f MockRelayMainKt`, never lsof-by-port) and restarted:
+
+- App: `relay.lost` → RECONNECTING → (relay up) → `hub.phase → CONNECTED`
+- **`relay.recovered :: subscriptions=2 snapshotReplace=true`** — both hub-lifetime topics
+  re-anchored, and the ack reported a SNAPSHOT REPLACEMENT (atomic projection swap, §15.5)
+- Wire order on the new connection (`relay2.log` ids 5–6, app log 20:37:06.829–.849):
+  **`subscribeSessionsIndexV4 ok in 8ms`** then **`subscribeWorkspaceConfigV4 ok in 10ms`**
+- `hub.bootstrapReplayed :: in-connect payload applied (no re-fetch)`
+
+This matters for the ledger: Part AK1 listed `resyncSessionsIndexV4` / `resyncWorkspaceConfigV4`
+as desktop-only and attributed the phone's index freshness to "the next pushed patch". The phone
+actually re-SUBSCRIBES both topics on every reconnect and treats the ack as a snapshot
+replacement — which is the same freshness guarantee the desktop's resync route provides (the
+desktop's `resyncV4Route` helper carries `topic + subscriptionId + optional base` to delta-replay an
+owned subscription; the phone's re-subscribe carries `base` by absence and gets a full snapshot).
+Both are gap-free; the mechanisms differ. G43 therefore narrows from "the phone never resyncs" to
+"the phone uses re-subscribe+snapshot instead of an owned-subscription resync" — a hygiene
+difference with no observable staleness. Re-adjudication recorded in Part AO.
+
+### AM4. NEW defect found this pass (mock, not app)
+
+**The mock's `resolveInteraction` cleared BOTH pending slots regardless of which interaction was
+answered.** Live chain: DB ground truth (`interactions` table) shows `mock-approval-push-1`
+answered at 20:04:45 and `q-rig-1` (the scripted AskUserQuestion) flipping to RESOLVED **83 ms
+earlier in the same second with no wire command naming it** — because the handler did
+`script.pendingPermission = null; script.pendingUserInput = null` unconditionally. c2bcdc1b fixed
+the HOOK half of this class (the patch no longer emits an empty list); the sibling-interaction half
+was still live. The app behaved correctly throughout (the state list is the whole truth → an
+absent interaction resolves by-elsewhere, which is the documented §20.3 rule).
+
+Fixed this round test-first (see the round record below): one shared `pendingInteractionList()`
+builder feeds the snapshot AND every patch, the handler clears only the slot the answered id names,
+and the same class in `resolveInteractionElsewhere()` (both slots + `pendingInteractions: []`) was
+closed with it.
+
+### AM5. Rig debts re-confirmed / newly recorded
+
+1. `MOCK_HOOKS`'s header line "2 pending · 3 hooks" is a STATIC string copied from the scripted
+   payload — after a successful trust the app still renders "2 pending" while the per-item verbs
+   are truthful (Warm = Disable + Revoke). Mock fidelity debt: the count should be derived.
+2. `discardSharedContext` (no handler → strip persists), static `gitSummary` (does not follow the
+   create-branch ack), and unscripted `runAutomationNow` remain open from AJ4.3/Part AL item 6.
+3. The Approvals inbox is the reliable place to answer a SCRIPTED interaction; the conversation's
+   pinned plane is where the PUSHED one lands. After a push, the inbox may hold only the scripted
+   card — reading `interactions` from the DB is the fastest ground truth for "did it resolve".
+4. `uiautomator` node bounds are the truth for taps; the screenshot scale still lies (~17%). Two
+   mis-taps this pass came from the screenshot grid.
+5. Answering an interaction on the phone while a sibling question is armed WILL resolve the
+   sibling until the mock fix lands — do not read that as an app regression.
+
+## Part AN — pass-14 macOS enumeration (REA, new angle: the dynamic-channel adapter surface)
+
+Asar digest re-measured byte-identical (`99e280fb90b626cc…`); fresh full analysis retained as
+`ev_05d09d8f…` (supersedes the pass-13 cite). New enumeration angle this pass: instead of counting
+wire METHODS (pass 1/13), count the host adapter's DYNAMIC CHANNEL registrations and classify each
+against the phone's channel inventory.
+
+### AN1. Desktop dynamic channels: 28 registered, 4 phone counterparts, the rest classified
+
+The shipped host registers 28 `onDynamic*` channel handlers (`onDynamicControllerFrame`,
+`onDynamicConversationFrame`, `onDynamicConversationTelemetryFact`, `onDynamicCuaPermissionObservation`,
+`onDynamicData`, `onDynamicChange`, `onDynamicExit`, `onDynamicImportProgress`,
+`onDynamicLocalTtftFacts`, `onDynamicMcpResourceSamples`, `onDynamicMcpTelemetry`,
+`onDynamicPluginOperationProgress`, `onDynamicProcessResourceSample`,
+`onDynamicProviderRuntimeHeadersRequest`, `onDynamicPublishProgress`, `onDynamicSessionEvent`,
+`onDynamicSessionRuntimePreferencesRequest`, `onDynamicSessionsIndexFrame`,
+`onDynamicStorageStartupState`, `onDynamicStreamEvent`, `onDynamicTaskEvent`, `onDynamicTaskReady`,
+`onDynamicTaskTerminalOutcome`, `onDynamicToolExecResource`, `onDynamicWorkspaceConfigFrame`,
+`onDynamicWorkspaceEvent`, `onDynamicWorkspaceProviderRuntimeHeadersCancelled`,
+`onDynamicWorkspaceProviderRuntimeHeadersRequest`).
+
+The phone listens on four channel pairs: `zcode-agent.onDynamicConversationFrame` (which also
+topic-routes workspace-config frames — `ConversationGateway` branches on the
+`workspace-config/` prefix), `zcode-agent.onDynamicSessionsIndexFrame`, `terminal.onDynamicData`,
+`terminal.onDynamicExit`. The controller trio is confirmed by its own neighbourhood — the
+`onDynamicControllerFrame` handler sits beside `subscribeControllerV4` / `resyncControllerV4` /
+`unsubscribeControllerV4` (the shipped host's controller plane), which is exactly what makes G42 a
+plane-level (not frame-level) gap.
+
+| Desktop channel(s) | Classification |
+| --- | --- |
+| `onDynamicConversationFrame`, `onDynamicSessionsIndexFrame`, `onDynamicWorkspaceConfigFrame`, `onDynamicData`/`onDynamicExit` | **Implemented** (4 phone listens; the config plane rides the conversation channel by topic) |
+| `onDynamicControllerFrame` | **G42** (unchanged): the host WindowHostController task-list plane — richer successor to the phone's bootstrap + sessions-index + per-screen commands. No user-facing breakage |
+| `onDynamicProcessResourceSample`, `onDynamicMcpResourceSamples`, `onDynamicMcpTelemetry`, `onDynamicToolExecResource` | **Desktop-only observability**: renderer-side resource/telemetry acquisition for the desktop's own dashboards. The phone has its own usage surface (`usage-stats.getEntitlementSnapshot` + the Usage screen) and no continuous-sampling requirement |
+| `onDynamicLocalTtftFacts`, `onDynamicConversationTelemetryFact` | **Desktop-only telemetry**: first-token-latency facts for the desktop's perf overlays. Not a companion surface |
+| `onDynamicChange` | **Desktop-only**: the file-WATCHER change emitter (workspace file watching). The phone has no file watcher by design (Files panel is a read-only query plane) |
+| `onDynamicStorageStartupState` | **Desktop-only**: the host's storage boot gate. The phone's equivalent is connection/bootstrap state |
+| `onDynamicImportProgress`, `onDynamicPublishProgress`, `onDynamicPluginOperationProgress` | **Desktop-only**: conversation import + share publish + plugin operation progress — desktop-heavy workflows whose phone analogues are read-only viewers (Plugins/Skills) |
+| `onDynamicCuaPermissionObservation` | **G44** (unchanged, boundary): CUA permission observation belongs to the desktop's permission recorder; the phone renders CUA tool rows (verified G18) |
+| `onDynamicTaskEvent`, `onDynamicTaskReady`, `onDynamicTaskTerminalOutcome`, `onDynamicStreamEvent` | **Mapped, different mechanism**: the desktop's TASK-lifecycle surface (task events / ready / terminal outcome / stream). The phone covers the same states on two planes it already owns — `onDynamicConversationFrame` (run lifecycle rows + `control.phase`/`sessionEnded`) and `onDynamicSessionsIndexFrame` (per-task live activity: Live / Needs you / Ended, rendered by `TaskListScreen`'s sessions-index activity). Nothing the desktop reports here is invisible on the phone |
+| `onDynamicSessionEvent`, `onDynamicWorkspaceEvent` | **Transport-internal**: the host's session/workspace multiplexer buses (they feed the frames above). Not separately client-facing |
+| `onDynamicProviderRuntimeHeadersRequest` / `…Cancelled` / `onDynamicSessionRuntimePreferencesRequest` | **Desktop-only**: host↔provider runtime header injection and per-session runtime prefs — model-credential plumbing that lives on the desktop by design (the phone never holds provider credentials) |
+
+**Verdict:** zero new phone-side gaps from this angle. Every unpaired desktop channel is either
+desktop-only telemetry/ops plumbing, transport-internal, or an already-classified boundary
+(G42/G44). The phone's four listens are exactly the client-facing set the companion needs.
+
+### AN2. Two more desktop planes confirmed AT PARITY this pass
+
+1. **Slash commands.** The host's projection carries `slashCommands: w.slashCommands ?? PU` where
+   `PU = []` — i.e. the desktop has NO static builtin slash catalog; commands come from session
+   state. The phone already parses and renders the wire catalog (`V4WorkspaceConfig.slashCommands`
+   + `SlashCommandParser.kt` "parseV4VisibleSlashCommand" port + the three-section panel). Parity
+   confirmed structurally; the live refusal leg (`/goal pause`) re-verified the command plane.
+2. **Config options.** Desktop projection: `configOptions: fa(w.settings)`; the phone decodes
+   `configOptions[]` from the workspace-config snapshot, renders the mode/effort/model chips, and
+   drives `setThoughtLevel` with echo reconciliation. Parity confirmed on both planes.
+
+### AN3. Automation / off-peak tool-denylist constants (new, recorded for completeness)
+
+The host defines `JP = ["CronCreate","CronUpdate","CronDelete"]` (automation runs) and
+`YP = ["OffPeakCreate"]` (idle-time runs), merged into each run's `toolDenylist`. The phone does not
+run prompts for those planes (it starts/pauses/edits automations and idle-time tasks via commands),
+so no phone-side counterpart is required — recorded so a future pass does not re-derive it as a gap.
+
+## Part AO — remediation order update (supersedes only where pass 14 applies)
+
+1. **Mock: resolveInteraction sibling wipe** — **CLOSED this round** (test-first; see the record
+   below). Supersedes the AJ3-adjacent mock note: c2bcdc1b's hook fix was half the class.
+2. **G43 (P3, re-adjudicated — downgraded)** — the phone DOES re-subscribe both hub-lifetime
+   topics on reconnect with snapshot re-anchor (`relay.recovered :: subscriptions=2
+   snapshotReplace=true`, `subscribeSessionsIndexV4` + `subscribeWorkspaceConfigV4` both acked).
+   The remaining difference from the desktop's `resyncV4Route` is mechanism, not freshness. Keep
+   OPEN as documentation-only hygiene (optional: adopt owned-subscription resync if a
+   bandwidth-sensitive surface ever needs a delta); no user-facing item.
+3. **G42 / G44 (P3, boundary debt)** — unchanged, no user-facing breakage; the pass-14 channel
+   enumeration adds no new members to either class.
+4. **Mock fidelity debts (rig quality)** — `MOCK_HOOKS`'s static "N pending" header (new this
+   pass), no `discardSharedContext` handler, static `gitSummary`, unscripted `runAutomationNow`.
+   None are app defects.
+5. **Rig** — always `svc wifi disable` after a cold boot before pairing legs (dual-homed
+   wlan0/eth0 → route flap → a silent 10 s connect timeout), and never hand-shake the mock relay
+   from the host (it wedges the single-listener slot).
+
+**Pass-14 verdict: on the post-remediation HEAD the app re-verified clean across 18 distinct live
+surfaces (zero FATALs, zero app defects found), the full 17-module gate totals
+1721/1/0 with the single failure baseline-proven pre-existing, all three pass-13 fixes hold on the rig, the
+desktop's 28-channel dynamic adapter surface adds ZERO new phone gaps (4 implemented, the rest
+desktop-only telemetry/ops/transport-internal or already-classified G42/G44), G43 downgrades to
+documentation-only hygiene on a live re-subscribe receipt, and the ONE new defect found is in the
+test harness (mock), now fixed test-first. Tree under audit `761ae7fe`; APK
+`9084b92060306d8b…` (32,294,909 bytes, vc52 / 1.3.1). Nothing pushed.**
+
+# Pass-14 mock-fix round — 2026-11-02 (APPENDED; the mock defect AM4 found and closed test-first)
+
+| Item | Detail |
+| --- | --- |
+| Finding | `resolveInteraction` cleared BOTH `pendingPermission` and `pendingUserInput` regardless of the answered id, and emitted a patch carrying ONLY the hook — so answering an approval silently resolved the sibling AskUserQuestion (and vice versa) with no wire command. Same class in `resolveInteractionElsewhere()` (both slots + `pendingInteractions: []`). |
+| Live proof | `/tmp/walk14/zcode2.db` `interactions`: `q-rig-1` RESOLVED at 20:04:45.083 vs the answered `mock-approval-push-1` at .117 — the question flipped 34 ms BEFORE the approval record, with no `resolveInteraction` naming it in the outbox |
+| Commit | `2d7e61d5` — `fix(mockzcode): resolveInteraction cleared BOTH pending slots …` |
+| Fix | ONE shared `pendingInteractionList()` builder now feeds the snapshot (`stateBlock`) AND every state.updated patch (snapshot and patch can never disagree again); the resolve handler clears only the slot its id names; `resolveInteractionElsewhere()` clears only the slot it picked and patches the surviving list instead of `[]` |
+| Pins (RED first) | `MockZCodeHookMergeSelfTest` gains `a resolved approval KEEPS the sibling user-input interaction alive` (journaled state.updated patch ⇒ `[userInput]`, plus `pendingUserInputForTest`/`pendingPermissionForTest` slot truth) and the inverse `a resolved question KEEPS the sibling permission alive`. **RED on the unfixed tree: 2 of 4 failed**; GREEN after the fix: 4/4 |
+| Suite | `:tools:mockzcode:test` → **64 tests / 0 failures** (62 before + the 2 new pins). Full multi-module gate: the first pool run reported **1 failure in `:app` — `ConnectionHubWritePathTest > sendText lands as authoritative rows…` (TimeoutCancellationException at 20 s)**, which is the documented emulator-beside-gradle-pool hub flake class (memory: "hub ConnectionHub\* flakes a DIFFERENT test each sweep, same 20 s signature"); it **passes in isolation at this HEAD in 41 s**, and the module it lives in is untouched by this change (mock-only). A clean re-run with the emulator shut down reproduced it exactly, and the BASELINE NAME-DIFF settles it: a `git worktree` at the pre-change commit `761ae7fe` (no mock edit in the tree) run through the SAME `:app:testDebugUnitTest` pool fails **the identical test with the identical signature** — 268 tests / 1 failed / `ConnectionHubWritePathTest > sendText lands as authoritative rows…`. So this is a pre-existing pool-load/order flake on this machine (`:app` pool composition, green in isolation in 41 s), NOT a regression from this round's mock change; the `:tools:mockzcode` module — the only module touched — is 64/0 |
+| Rig re-verification | The c2bcdc1b hook-preservation leg re-ran green on the rig earlier in this pass (AM2): answering the pushed approval left the hook card standing as the pinned head |
+| Gate aggregate (measured, 17 modules) | **1721 tests / 1 failure / 0 errors** — the single failure is the baseline-proven `ConnectionHubWritePathTest` pool flake above; every other module is clean (`features/conversation` 377, `data` 200, `domain` 198, `features/tasks` 162, `core/ui` 108, `core/transport` 94, `tools/mockzcode` 64, …; 383 unique test classes, no double-counted result dirs) |
+| Artifact | No app-code change → the debug APK is unchanged and remains byte-identical to the pass-13 remediation build: `app-debug.apk`, 32,294,909 bytes, sha256 `9084b92060306d8b…` (vc52 / 1.3.1) |
+
+**Round verdict: the mock's interaction-pending plane now clears exactly one slot per resolve and
+patches the whole surviving truth, pinned in both directions (`2d7e61d5`); the app needed no change
+(its by-elsewhere rule is the documented behaviour). Nothing pushed.**
