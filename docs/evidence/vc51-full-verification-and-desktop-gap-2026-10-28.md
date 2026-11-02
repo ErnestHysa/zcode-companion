@@ -4276,6 +4276,50 @@ closed with it.
 5. Answering an interaction on the phone while a sibling question is armed WILL resolve the
    sibling until the mock fix lands — do not read that as an app regression.
 
+### AM6. Pass-14 surface coverage matrix (what "verified" means per surface)
+
+The app's code at this HEAD is byte-identical to the pass-13 build (same APK sha), so the
+authoritative statement is the UNION: pass 13 deep-walked 28 surfaces on these bytes; pass 14
+re-walked every surface whose behaviour could plausibly regress from the three fixes or the mock
+change, and re-confirmed the rest. The matrix below is the auditable split.
+
+| App surface | Pass-14 verification |
+| --- | --- |
+| Tasks: list, groups, pinned section, unread dot, task-action menu, New task FAB, search FAB | **Live** — A14 leg (all rows + FAB on screen with the hub armed) |
+| Tasks: automations hub (rows, Run now / Pause / History / Edit / Delete) | **Live** — hub cap + History sheet ("Run history", filters, honest desktop-unavailable fault) |
+| Workflows hub + Run sheet (required arg, run-in-task picker) | **Live** — `port.startWorkflow … outcome=Accepted` |
+| Idle-time / off-peak rows + verbs | **Live (render)** — present in the capped hub; verb execution receipt from pass 13 (unchanged code) |
+| Conversation: timeline rows, streaming/replies, fork/retry/copy | **Live** — MOCK_ROWS 40 rows, "1 of 40" find hit, reply row rendered |
+| Conversation: pinned approval card (allow once / always / deny) + already-handled degrade | **Live** — answered the pushed card; the scripted one answered from the inbox |
+| Conversation: AskUserQuestion card (multi-question plane) | **Live (render)** — "How should I ship this? / Which channel? / Tag the release / Cut a branch". Answered leg is blocked by the mock sibling bug FIXED this round |
+| Conversation: workspace hook review (checkboxes, trust, revoke, per-item state) | **Live** — 2 pending → check → confirm → `grantWorkspaceHookTrust ok in 58ms` → "Trusted 2 hook(s)" + per-item Disable/Revoke |
+| Conversation: queue strip (send now, edit, delete, auto-send, reorder) | **Live** — send-now round-trip "Queued (2)" → "Queued (1)" |
+| Conversation: background bash strip + output sheet | **Live** — `backgroundBashOutputV4 ok in 87ms` + tail path |
+| Conversation: shared-context strip + remove | **Live** — discard rides the wire (`sendConversationCommandV4 ok in 219ms`) |
+| Conversation: status strips (stale/attention/load-older/history) + strip budget | **Live (bound)** — the A16 leg exercises the budget arithmetic under a tall pinned stack |
+| Conversation: CUA tool group (expand → per-tool INPUT) | Pass 13 (identical bytes) — verified expanding to screenshot/left_click/type |
+| Conversation: compaction lifecycle rows + retry | Pass 13 (identical bytes) |
+| Conversation: turn header, diff chip, Undo files | Pass 13 (identical bytes) |
+| Conversation: attachment tile + honest unknownRef degrade; composer + menu (mention/sketch/photo/attach/take photo) | **Live (menu)** — all five entries render; Photo picker path verified pass 13 (fragment-bump crash class) |
+| Conversation: find in conversation | **Live** — "1 of 40" |
+| Conversation: slash commands (menu, three sections, refusal path) | **Live** — `/goal pause` → `command.rejected` → refusal banner with the draft preserved |
+| Conversation: config chips (mode/effort/model) + context sheet | **Live** — config chip expands mode/Effort/account; context sheet renders status, goal timeline, todos 1/2, workflow runs, plans 1/3, git strip |
+| Approvals inbox | **Live** — answer clears to "Nothing needs you" |
+| Git panel (checkpoints, branches, commit, changes, history) | **Live** — panel + `git.createBranchAndSwitch ok` |
+| Files panel | **Live** — honest "workspace files unavailable on this connection" |
+| Terminal (consent gate, view-only attach) | **Live** — `terminal.optIn enabled=true` → attach plane |
+| Model calls viewer / Share sheet | Pass 13 (identical bytes) — chip row clipping noted this pass, not a regression |
+| Settings: endpoints (relay + direct), usage, plugins, skills, MCP, subagents, providers, bots, diagnostics, feedback, appearance, presentation, language, text size, auto-archive, follow-mode, notifications, terminal consent, privacy, about, licenses, unpair | **Live (sweep)** — endpoints card "Relay (QR pairing) · v3.14.3 · Connected", the Insights/Plugins/Skills/MCP/Subagents viewers, Privacy, About, Licenses, update gate, Unpair all rendered this pass |
+| Pairing flow (QR / manual / consent / stale-link) | Pass 13 + earlier passes (unchanged code); stored pairing survived the upgrade install this pass |
+| Notifications: approval / question / connection lost / task finished, shade actions, deep links | **Live** — shade posted the approval WITH live Approve/Deny (`actions=2`) beside the question notification; the action tap landed on quick settings after a re-layout (pass 13 recorded the deep-link `zcode://task/…#interaction=…` fire on the identical build) |
+| Widget (pending approvals) | **Live** — bound on the launcher, "Nothing needs you" |
+| In-app signed updates | **Live** — "You are on the latest build" |
+| Reconnect ladder + offline queue + bootstrap replay | **Live** — `relay.recovered subscriptions=2 snapshotReplace=true`, `hub.bootstrapReplayed` |
+| Draft persistence / leave guard | **Live** — draft survived leave, restart and relay restart |
+| Theme override, locale, text size | Pass 13 (identical bytes) — Appearance/Language/Text size rows re-rendered this pass |
+| Voice input, app shortcuts | Pass 8-13 (identical bytes; not re-walked this pass) |
+| Landscape orientation, font 1.3× | **Recorded smalls** (no-card landscape squeeze, Tasks no-scroll landscape, font-1.3 crush) — NOT re-verified this pass; carried in the ledger |
+
 ## Part AN — pass-14 macOS enumeration (REA, new angle: the dynamic-channel adapter surface)
 
 Asar digest re-measured byte-identical (`99e280fb90b626cc…`); fresh full analysis retained as
