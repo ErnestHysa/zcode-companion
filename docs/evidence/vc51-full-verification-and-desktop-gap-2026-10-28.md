@@ -3883,3 +3883,197 @@ final committed-HEAD pass is fully clean). The app APK artifact is UNCHANGED by 
 section — test-only + docs edits, so the recorded sha256 `1402c91a9e5d7dd5…`
 (31,895,981 bytes, versionCode 51 / versionName 1.3.0) remains the code-HEAD build.
 Nothing pushed; publishing still waits on Ernest's explicit word.
+
+---
+
+# Thirteenth pass — 2026-11-02 (APPENDED — pass 13; not part of the original audit, the roadmap, or the receipt passes)
+
+Scope: the same standing mandate, thirteenth run — live emulation + verify every feature, REA the
+shipped macOS app, and update the parity ledger. This is the FIRST pass on the post-campaign
+release HEAD: `main` @ `0f92f846` (versionCode 52 / versionName 1.3.1), i.e. the full 60-row vc51
+remediation is IN THE TREE, so every previously-fixed defect is a regression leg. Fresh debug APK
+built this session at HEAD — 30,739,491 bytes, sha256 `21bd10bc6794fac7…`. Desktop target
+unchanged: `/Applications/ZCode.app` asar sha256 `99e280fb90b626cc…` (re-measured byte-identical,
+Info.plist 3.14.5), so all pass-1..12 REA conclusions stand.
+
+Evidence: 98 screenshots `/tmp/walk13/*.png`; app logcat (ZCODE-PAIR wire receipts inline below);
+relay logs `/tmp/pass13-relay*.log`; fresh asar extraction `/tmp/pass13-rea/asar-extracted`;
+REA Evidence `ev_9e45f7e3680c67bb8d41e120752f5d52dad5e672313ef304c4fbef57e53c2fec`
+(analyze_javascript_application, complete-record retention, shipped-artifact authority) on the
+digest above. Rig: zcode-pixel cold boot (`-no-snapshot-load -gpu swiftshader_indirect -no-audio`),
+MockZCode relay on `10.0.2.2:18100` with ALL 22 arms
+(`MOCK_ROWS/GOAL/APPROVAL/ROW_ACTIONS/WORKFLOWS/TASKMGMT/QUESTION/HOOKS/COMPACT/ATTACHMENT/QUEUE/
+AUTOMATIONS/OFFPEAK/CUA/GIT/BACKGROUND_BASH/SHARED_CONTEXT/SESSIONS_INDEX/WORKSPACE_FILES/
+REFUSE_COMMANDS` + HAPPY + `MOCK_INTERACTION_PUSH_MS=25000`) — the relay was restarted twice
+mid-pass (once to arm MOCK_REFUSE_COMMANDS which the initial launch omitted, once to re-arm the
+25 s interaction push); the app auto-reconnected each time within seconds. ZERO app crashes across
+the whole walk. Install was upgrade-over-existing-data (vc51 data → vc52) — the stored pairing
+survived and auto-reconnected on first launch.
+
+## Part AJ — pass-13 live emulation
+
+### AJ1. Regression legs on the Phase-1..5 fixes — ALL HOLD (each with a fresh wire receipt)
+
+| Fix under test | Pass-13 receipt |
+| --- | --- |
+| **GAP-A8 attach-send crash (was 11× FATAL)** | Composer + → menu renders (Mention a file / Sketch / Photo / Attach a file / Take photo) → **Photo → the system picker OPENED** ("Recent" grid) with `pid` alive and ZERO `FATAL EXCEPTION` / `checkForValidRequestCode` lines. The 11-consecutive-pass crash class is dead on the fragment bump |
+| **GAP-A2 approvals never clear** | Inbox 3 cards → "Allow once" → `approvals.answer :: interaction=mock-approva option=allowOnce` + `sendConversationCommandV4 ok in 215ms` → the answered card **CLEARED** (3→2). Second tap on a terminal interaction degraded to the typed "Already handled on the desktop." copy with zero wire traffic (T2 contract) |
+| **GAP-A1 hook-trust card** | "Workspace hook review" pinned card rendered with the ADR-024 copy ("trust is permission for code execution"), "2 pending · 3 hooks", per-item checkboxes (both checked), "Trust 2 selected hook(s)" → confirm sheet → `grantWorkspaceHookTrust ok in 47ms`; the pre-trusted third hook ("Watcher") shows Disable + **Revoke**. The card resolved after trust (all pending trusted) |
+| **GAP-A13 goal-refusal notice invisible** | `/goal pause` (slash path) against the refusing mock → `command.rejected :: type=pauseGoal fault.command.rigRefused:pauseGoal` WARN → the banner **"Goal pause was refused (the goal may not be pausable right now)."** painted AT REFUSAL TIME with the draft preserved — the AE2 stale-notice failure is gone |
+| **GAP-A9 queue-mode send affordance** | Typed draft + "Queued" chip + **SEND button all visible simultaneously** (screenshot 33) — the Stop-only morph is gone |
+| **G4 queue delete** | Delete on a queued row → `sendConversationCommandV4 ok in 36ms` → strip header updated "Queued (2)"→"Queued (1)" (authoritative round-trip). Send now + Auto-send also dispatched (`ok in 109ms`, strip consumed) |
+| **G15 background bash viewer** | "1 background task(s) running · View" → sheet (synthetic background build · bash · running · Cancel) → View output → `backgroundBashOutputV4 ok in 22ms` → live output block ("compiling module 1/3…") + tail path rendered |
+| **G9 shared context** | Strip + Remove → `sendConversationCommandV4 ok in 22ms` (discard rides the wire); the strip persists because the mock serves a scripted `sharedContextImport` and has NO discard handler (mock fidelity debt, not an app defect — the app trusts authoritative state) |
+| **G5 find in conversation** | Find icon → bar with query + "**1 of 1**" count + prev/next/close; the matched row surfaced. (First two taps missed — the icon's real position is (981,398), the screenshot scale lies; recorded rig note) |
+| **G18 CUA grouping** | "Computer use · 3 actions" expands to `mcp__computer-use__screenshot / left_click / type` rows each with expandable INPUT blocks |
+| **G32 git create/switch round-trip** | Git panel → served summary header ("main · tracking: origin/main") → Branches… → sheet (main ✓ / feature/a) → typed `rig13-branch` → "Create & switch" → `git.createBranchAndSwitch ok` → the app's branch state MOVED (the context-sheet git strip now reads "**rig13-branch clean**"; the branch sheet's ✓ left "main"). The panel header still reads the mock's STATIC scripted summary — mock fidelity debt; the wire-truth round-trip is pinned green by GitWriteWireTest |
+| **G13 sessions-index live plane** | `subscribeSessionsIndexV4` fires at hub connect (relay log id=5) — the phone now lives on the index |
+| **GAP-A3 unsubscribe lifecycle** | `unsubscribeConversationV4` on task exit (relay log id=37) — conversations are released |
+| **GAP-A4 workflow Run sheet keyboard cover** | **NO LONGER REPRODUCES**: with the version arg field focused and the IME up, the Run button renders fully ABOVE the keyboard (screenshot 81). The recorded carry-over is fixed on this build |
+| **Workflow start** | Run sheet (required arg + run-in-task picker) → Run → `port.startWorkflow :: session=synth-task-1 name=release-notes outcome=Accepted` → navigated into the target task + "Workflow started" snackbar |
+| **Fresh-push notification (RIG-3)** | New relay instance → deeplink subscribe → HOME within the 25 s window → the shade posted **"ZCode needs your approval" WITH Approve/Deny actions live** (screenshot 94) → tapping Approve fired the task-scoped deep link `app deeplink :: onNewIntent data=zcode://task/synth-task-1#interaction=mock-approval-1` — the broker-held task-scoped intent face, completing the pass-5 plain-launch degrade pair |
+| **Reconnect ladder** | Relay kill → `relay.lost :: abnormal close 1006` → `recovery.handshakeFastFail` → `hub.phase → RECONNECTING` → relay restart → `RECOVERING` → `CONNECTED` in the same second (15:48:56.897→15:48:56.999) |
+| **Widget** | The Pending-approvals widget is bound on the launcher home screen across the cold boot and renders its designed fresh-state copy ("Nothing needs you") |
+| **Update gate** | About → Check for updates → "You are on the latest build" for 1.3.1/vc52 vs published 1.2.8-vc49 — correct |
+| **Theme** | Appearance → Light flips the whole Settings screen instantly ("Theme: Light", no restart); restored to zai dark (THEME-ZAI active by default) |
+
+### AJ2. Broad coverage re-confirmed this pass (each observed on device)
+
+Stored-pairing upgrade install (vc51 data → vc52) with full bootstrap render; workspace chips
+(All/Synthetic One/Manage); G29 automation + idle-time rows with full verb rows (Run now/Pause/
+History/Edit/Delete + Pause/Cancel task/Continue); workflows hub with the honest "1 workflow
+file(s) could not be read" line; automation Run-history sheet with the honest
+"This feature isn't available on the connected desktop." fault; Archived-tasks viewer (empty
+state); conversation session bar with the two-way config toggle expanding `mode:` / `Effort ·` /
+`account:zai-individual-cod…` chips (the third-chip ellipsis bounding — F-CHAT-FOCUS3 holds);
+send/receive round-trip (user row + synthetic reply with Fork/Retry/copy); compaction lifecycle
+rows (started/completed/failed+Retry); turn header with diff chip + Undo files; attachment tile
+honest `fault.attachment.unknownRef` degrade; model-calls trajectory (per-call cards incl. a
+rendered `RateLimitError: 429` error call); Share → format sheet → system ACTION_SEND sheet;
+Files panel honest "workspace files unavailable on this connection" degrade; Terminal fail-closed
+consent gate (VIEW-ONLY + full explainer + off switch); context sheet full aggregate (status
+capsule, goal with verification timeline, todos 1/2, workflow runs Running/Stopped, plans 1/3,
+git strip); Settings sweep (endpoints card Connected · v3.14.3, Add direct endpoint, Usage/
+Plugins/Skills/MCP servers/Subagents/Providers/Bots viewers, Diagnostics export/copy/marker,
+Send feedback, Appearance, Presentation mode, Language, Text size Large 1.15×, Auto-archive
+After 7 days idle, Conversation follow-mode, Notifications, Terminal consent, Privacy, About,
+Licenses, Unpair). Draft persistence verified across the leave-guard, a relay restart, and a
+notification resume.
+
+### AJ3. NEW defects found this pass
+
+- **GAP-A14 (feature break, P2): the task-row list is INVISIBLE on the Tasks screen whenever the
+  Automations/Workflows/Idle-time sections have content — and the screen cannot scroll.** With
+  MOCK_AUTOMATIONS/MOCK_OFFPEAK armed (Phase-5 RIG-1), the management sections consume the whole
+  2340-px viewport; the task rows live in `Box(Modifier.fillMaxSize())` AFTER those sections inside
+  the main `Column(Modifier.fillMaxSize()…)` (`TaskListScreen.kt:249`, sections at `:403`, tasks
+  box at `:419-424`) which has NO `verticalScroll`, so the tasks Box receives ~zero remaining
+  height: zero task rows compose (uiautomator max text y=2067, NO scrollable container in the
+  hierarchy), every swipe/fling is a no-op, and the search FAB is pushed below the fold too.
+  Tasks remain reachable only via deep link. This was invisible to passes 1-12 because those
+  arms were added in Phase 5 and no later leg scrolled the portrait Tasks screen. The recorded
+  "Tasks no-scroll landscape" small is the same class; Phase 4's section additions made it
+  PORTRAIT-fatal. Real desktops serve automations, so every real user with ≥1 automation loses
+  their task list. Remedy: make the main body scrollable or move the sections into the tasks
+  LazyColumn as items.
+- **GAP-A15 (misleading copy, P3): a SUCCESSFUL hook trust renders the OFFLINE banner.**
+  `ConversationViewModel.trustHooks` on ACCEPTED emits `"Trusted N hook(s) — the session
+  continues."` keyed `SendNotice.Key.ROW_ACTION_OFFLINE` ("honest generic info key" comment,
+  `ConversationViewModel.kt:788`) — but the renderer maps that key to the fixed string
+  `notice_row_action_offline` = "Offline — the action was not sent. Nothing changed."
+  (`WriteComponents.kt:1290`), ignoring the custom message. Live proof: the trust succeeded
+  (`grantWorkspaceHookTrust ok in 47ms`) and the strip read "Offline — the action was not sent.
+  Nothing changed." Remedy: a dedicated `HOOK_TRUST_APPLIED` key + string.
+- **GAP-A16 (UX small, P3): the composer squeezes out of view when a tall pinned interaction card
+  + queue strip are present and the IME opens.** Reproduced twice (screenshots 47 and 65): with
+  the approval card + "Queued (2)" strip pinned, opening the keyboard fills the viewport with
+  card+strip and the composer (draft + buttons) renders BEHIND the IME — typing works blind.
+  The GAP-A4 family (sheet-level imePadding) is fixed; this is the conversation-composer sibling
+  under the tall-pinned-stack condition.
+
+### AJ4. Rig debts + learnings recorded this pass
+
+1. The pass-13 launch env initially OMITTED `MOCK_REFUSE_COMMANDS` — the first /goal-pause
+   attempt ACKed ok and silently started a run instead of refusing; re-arming the relay is the
+   fix and the receipt above is from the re-armed instance. Always diff the relay process env
+   (`ps eww`) against the planned arm set before refusal-class legs.
+2. `MOCK_WORKSPACE_FILES` seeds the composer @-MENTION search (`searchWorkspaceFiles`), NOT the
+   Files-panel listing channel — the Files panel's honest degrade is the correct mock contract.
+3. Mock debts (pre-existing, now named): no `discardSharedContext` handler (strip persists after
+   Remove), static `gitSummary` (does not follow the create-branch ack), `runAutomationNow`
+   unscripted (`fault.mock.unscripted`, the app degrades honestly and re-fetches).
+4. `adb shell input text` drops leading spaces and interleaves long payloads (reproduced again:
+   "/goalpause", "vrig13-a"); `input keyevent 62` for spaces + fresh-draft verification is the
+   reliable path; composer-area taps with the IME up still land in the keyboard (AE4.1 stands).
+5. uiautomator dumps give REAL screen coordinates; screenshot pixels are scaled ~17% — three
+   mis-taps this pass came from mixing the two (e.g. Find icon at dump (981,398) vs screenshot
+   (837,339)).
+
+## Part AK — pass-13 macOS desktop enumeration (REA + shipped-tree)
+
+Asar digest re-measured byte-identical (`99e280fb90b626cc…`; Info.plist 3.14.5; the pass-1..12
+REA conclusions all stand). Fresh extraction `/tmp/pass13-rea/asar-extracted` + retained REA
+Evidence `ev_9e45f7e3…`. New enumeration angle: the COMPLETE wire-method parity matrix at the
+post-campaign HEAD (pass-1 Part B1/B2 was measured before the 60-row remediation landed).
+
+### AK1. Wire-method matrix — desktop 39, phone 29, the 10 desktop-only classified
+
+The shipped host registers 39 distinct `*V4` methods (pass 1 counted 37; 3.14.5 added the
+controller plane). The phone's wire vocabulary at HEAD covers 29 (up from pass-1's coverage —
+`subscribeSessionsIndexV4`, `unsubscribeConversationV4`, `unsubscribeWorkspaceConfigV4`,
+`backgroundBashOutputV4` and the full `conversationWorkflowRun*` 7-word family are all
+NEWLY implemented and were LIVE-verified this pass). The desktop-only ten:
+
+| Desktop method | Classification |
+| --- | --- |
+| `subscribe/resync/unsubscribeControllerV4` (3) | **G42 (P3, desktop-newer plane): the WindowHostController task-list plane** — live task-list frames + wire mutations (`pin/archive/delete/mark-read/mark-unread/open/resume`, `windowController.ts` in the source clone; `createControllerFrameSchema`/`createControllerRoutedTaskService` in the shipped host). It is a NEWER, richer version of the live task list the phone implements via bootstrap + sessions-index + per-screen commands. Companion-shaped adoption would move the phone's Tasks screen onto the live mutation plane; the current mechanism is verified working, so this is parity debt, not a defect |
+| `resyncSessionsIndexV4` + `unsubscribeSessionsIndexV4` | **G43 (P3, hygiene): the phone subscribes the sessions index but never RESYNCS it** (post-reconnect freshness relies on the next pushed patch) and never unsubscribes (by design — one hub-lifetime subscription; the desktop's per-scope unsubscribe has no phone counterpart). GAP-A3's fix covered conversations + workspace-config; the index pair was not part of it |
+| `resyncWorkspaceConfigV4` | Same hygiene class (G43): the phone subscribes workspace config but never resyncs it |
+| `queryConversationCommandsV4` | The desktop queries in-flight commands from the host; the phone's pending-command recovery (G12 remediation) uses its own outbox/journal — architectural difference, honest |
+| `sendConfigCasCommandV4` + `sendHostCasCommandV4` | Dedicated desktop CAS channels; the phone routes its CAS-guarded verbs through `sendConversationCommandV4` types (verified live). Architectural difference, not a gap |
+| `setConnectionFlowStateV4` | The desktop's connection/pairing flow state reporting; the phone implements its pairing flow locally (verified E7/gate legs). Boundary |
+
+### AK2. Command-type plane — the pass-1 "28 of 34" count is now near-complete
+
+The phone's coordinator vocabulary at HEAD now SENDS every verb that pass 1 recorded as
+"modeled, never sent": `resumeWorkflowRun` + `amendWorkflowRunSettings` (G3), `deleteQueueItem`
+(G4), `createSelectionSideSession` (G8), `snoozeInteractionAutoResolution` (G6),
+`discardSharedContext` + `context_refs` (G9), and the hook-trust family
+(`request/respondWorkspaceHookReview`, `grant/revoke/toggleWorkspaceHookReviewItem` — G1), plus
+`sendQueuedNow`/`setAutoDrain`/`reorderQueueItem`/`editQueueItem`/`clear/keepQueueAndSend`,
+`sendGoalCommand`/`pauseGoal`/`resumeGoal`, `resolveInteraction`, `startSavedWorkflow`,
+`createSession`, `setAssistantFeedback` — all wire-verified across passes 5-13 (most re-verified
+THIS pass). Remaining never-sent: none identified beyond the boundary classes above; the
+selection-side-session verb is wire-ready while the phone's selection UI (G7's desktop
+selection tooltip) remains desktop-form by the recorded boundary.
+
+### AK3. Where the phone is AHEAD of the desktop 3.14.5 (unchanged verdict, re-stamped)
+
+Push-style notifications with shade actions + the glance widget + app shortcuts; voice input;
+in-app signed updates (field-proven); multi-endpoint relay/direct with sealed credentials and
+offline queueing; dark/light override with instant apply; redacted diagnostics; queued follow-ups
++ queue management on a phone form factor. Nothing in this pass's desktop enumeration narrows
+that lead.
+
+## Part AL — remediation order update (supersedes only where pass 13 applies)
+
+1. **GAP-A14 (P2)** — Tasks screen scroll/task-rows visibility (AJ3). Small, contained fix in
+   `TaskListScreen.kt`; add a regression pin that composes the screen with a seeded automation +
+   asserts the task rows exist in the hierarchy.
+2. **GAP-A15 (P3)** — hook-trust success notice key (AJ3). One-string + one-key fix; extend the
+   hook-trust VM pin.
+3. **GAP-A16 (P3)** — composer squeeze under tall pinned stack + IME (AJ3). Conversation-screen
+   imePadding/budget fix; reproduce in a Robolectric compose test with the approval card armed.
+4. **G43 (P3)** — call `resyncSessionsIndexV4` on reconnect (and consider workspace-config
+   resync) next to the existing `resyncConversationV4` call sites.
+5. **G42/G44 (P3, boundary debt)** — adopt the controller task-list plane and/or keep the
+   documented boundary note (the existing Phase-3 web-remote boundary record covers the
+   disposition pattern). No user-facing breakage today.
+6. Mock fidelity debts (AJ4.3) — optional rig-quality follow-ups; none are app defects.
+
+**Pass-13 verdict: the app is ON PAR with the desktop's companion-relevant surface on every
+plane the pass exercised live (28 surfaces, zero app crashes), AHEAD on the awareness/
+update/multi-endpoint/queueing planes, with three NEW phone defects found (one P2, two P3) and
+the wire-parity ledger updated to the 3.14.5 desktop (39 methods; the 10 desktop-only names all
+classified). The tree under audit is `0f92f846`; the fresh debug APK is
+`21bd10bc6794fac7…` (30,739,491 bytes, versionCode 52 / versionName 1.3.1). Nothing pushed.**
