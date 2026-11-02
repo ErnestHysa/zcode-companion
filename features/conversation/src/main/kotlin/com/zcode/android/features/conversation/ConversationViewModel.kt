@@ -112,6 +112,9 @@ data class SendNotice(
         WORKFLOW_STARTED, WORKFLOW_REFUSED,
         // T2: the §20-3 resolved-elsewhere answer — typed, never a silent no-op
         ANSWER_ALREADY_RESOLVED,
+        // GAP-A15 (pass 13): a SUCCESSFUL hook trust rode ROW_ACTION_OFFLINE, whose
+        // renderer mapping is the fixed offline copy — success rendered as failure.
+        HOOK_TRUST_APPLIED,
     }
 }
 
@@ -785,7 +788,12 @@ class ConversationViewModel(
             _sendNotice.value = when (outcome) {
                 ConversationPort.SendOutcome.ACCEPTED -> SendNotice(
                     "Trusted ${reviewItemIds.size} hook(s) — the session continues.",
-                    SendNotice.Kind.INFO, SendNotice.Key.ROW_ACTION_OFFLINE, // honest generic info key
+                    SendNotice.Kind.INFO,
+                    // GAP-A15: NOT ROW_ACTION_OFFLINE — that key's renderer mapping is the
+                    // fixed offline copy; a successful trust rendered as "the action was
+                    // not sent" on the rig while `grantWorkspaceHookTrust ok` rode the wire.
+                    SendNotice.Key.HOOK_TRUST_APPLIED,
+                    listOf(reviewItemIds.size.toString()),
                 )
                 else -> SendNotice("The desktop refused the hook trust.", SendNotice.Kind.ERROR, SendNotice.Key.WORKFLOW_REFUSED, listOf("trust_selected"))
             }

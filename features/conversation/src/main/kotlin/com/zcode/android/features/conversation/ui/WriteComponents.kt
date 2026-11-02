@@ -1299,6 +1299,9 @@ fun sendNoticeText(notice: SendNotice): String {
         SendNotice.Key.WORKFLOW_REFUSED -> R.string.notice_workflow_refused
         // T2: the resolved-elsewhere answer, per locale
         SendNotice.Key.ANSWER_ALREADY_RESOLVED -> R.string.notice_answer_already_resolved
+        // GAP-A15 (pass 13): the hook-trust SUCCESS copy (the old ROW_ACTION_OFFLINE key
+        // rendered the fixed offline banner for a successful trust).
+        SendNotice.Key.HOOK_TRUST_APPLIED -> R.string.notice_hook_trust_applied
     }
     val args = if (key == SendNotice.Key.ATTACHMENT_FAILED) {
         listOf(notice.args.firstOrNull()?.takeIf { it.isNotBlank() } ?: stringResource(R.string.notice_connection_lost))

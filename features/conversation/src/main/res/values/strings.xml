@@ -254,6 +254,7 @@
     <string name="plan_title">Todos</string>
     <string name="composer_menu_mention_file">Mention a file</string>
     <string name="notice_row_action_offline">Offline — the action was not sent. Nothing changed.</string>
+    <string name="notice_hook_trust_applied">Trusted %1$s hook(s) — the session continues.</string>
     <string name="notice_retry_refused">The desktop refused the retry — nothing changed.</string>
     <string name="notice_fork_refused">Could not fork the conversation — the desktop refused it.</string>
     <string name="notice_rewind_applied">File changes from that turn were undone.</string>
