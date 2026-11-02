@@ -4077,3 +4077,71 @@ update/multi-endpoint/queueing planes, with three NEW phone defects found (one P
 the wire-parity ledger updated to the 3.14.5 desktop (39 methods; the 10 desktop-only names all
 classified). The tree under audit is `0f92f846`; the fresh debug APK is
 `21bd10bc6794fac7…` (30,739,491 bytes, versionCode 52 / versionName 1.3.1). Nothing pushed.**
+
+# Pass-13 remediation round — 2026-11-02 (APPENDED; not part of the original audit, the roadmap, the receipt passes, or pass 13 itself)
+
+Part AL's remediation order items 1–3 (the three NEW phone defects pass 13 found) are CLOSED
+test-first this session. Every fix: pin RED on the unfixed tree → fix → pin GREEN → suite →
+rig leg with a wire receipt. Nothing pushed; main is now `1aaa3187` + the four commits below.
+
+## Fix commits (one finding ≥ one commit, `fix(<ID>): <mechanism>`)
+
+| Finding | Commit | Fix |
+| --- | --- | --- |
+| GAP-A14 (P2) | `c7e2ba87` | The automations/workflows/off-peak hub is capped at `AUTOMATIONS_SECTION_MAX_FRACTION` (0.45) of the body via `BoxWithConstraints` + `heightIn` and scrolls its overflow INSIDE (`verticalScroll`) — the tasks Box keeps its space beside the hub. `AutomationsSection` now applies its caller's modifier (the old root Column dropped it). |
+| GAP-A15 (P3) | `6523ddf1` | Dedicated `SendNotice.Key.HOOK_TRUST_APPLIED` + `notice_hook_trust_applied` ("Trusted %1$s hook(s) — the session continues.") + the renderer mapping; the ROW_ACTION_OFFLINE plane unchanged for its real offline warnings. |
+| GAP-A16 (P3) | `dbca4ad8` | `StripBudget` gains `maxHeight` (shown strips scroll inside the cap; "+N more" pinned below the scroll region); the call site caps it at `(available − pinnedBudget − SHORT_HEIGHT_RESERVE).coerceAtLeast(48dp)` — the T3 measured fixed-chrome reserve minus what the pinned plane takes (pinnedBudget hoisted above the `blocked` branch). Portrait without the IME never binds (cap ≈592dp vs the largest real stack) — the verified G4 queue behaviors unchanged. |
+| Mock resolve wipe (rig) | `c2bcdc1b` | NEW mock defect found on this round's A15 leg: `resolveInteraction` emitted `pendingInteractions: []`, silently resolving the SCRIPTED hook review beside the answered card (key-level replacement → the hook card vanished from the pinned plane mid-leg). Fixed via one shared `scriptedHookInteraction()` (projection + every patch) + the patch carries pending-minus-answered PLUS the hook; `MockZCodeHookMergeSelfTest` pins the journaled-patch face. |
+
+## Pins (test-first receipts)
+
+- `TaskListAutomationsVisibilityTest` (w411dp-h731dp, 6-automation + 2-off-peak hub): RED pre-fix
+  (`task_row_a` never composed); GREEN post-fix (row + `tasks_search_fab` displayed beside the
+  capped hub). The two TaskListScreen-hosted hub taps that moved below the cap fold scroll into
+  view first (`AutomationsSectionUiTest` offPeakDelete, `OffPeakControlsUiTest` — performScrollTo;
+  the pins ride the port, not the fold).
+- `HookTrustNoticeVmTest` (accepted trust → HOOK_TRUST_APPLIED/INFO/args=["2"]; compile-RED on
+  the unresolved new enum) + `HookTrustNoticeCopyTest` (the applied key renders the trusted copy
+  and never the offline/not-sent strings; the offline key still renders the offline banner).
+- `ComposerSqueezeBudgetTest` (w411dp-h520dp — the IME-open content shape; permission card + a
+  3-row queue): RED pre-fix (`composer_field` bottom past the root, send off-screen); GREEN
+  post-fix.
+- `MockZCodeHookMergeSelfTest` resolve-preserves-hook face (journaled `state.updated` patch keeps
+  `[workspaceHookReview]` after the answered permission is cleared, read via `opLogForTest`).
+
+## Suite gate + artifact
+
+- Full-suite gate after the fixes: **1718 / 0 / 0 / 0** across all modules (the pass-13 baseline
+  1713 + the 5 new pin tests; the mock fix adds a 6th self-test afterwards, also green).
+- Fresh debug APK at the fix HEAD: **`app/build/outputs/apk/debug/app-debug.apk`, 32,294,909
+  bytes, sha256 `9084b92060306d8b…`** (versionCode 52 / versionName 1.3.1 + this round's fixes;
+  installed upgrade-over-data on the rig).
+
+## Rig legs (zcode-pixel cold boot, relay re-armed with the full 22-arm set incl. MOCK_REFUSE_COMMANDS)
+
+| Leg | Receipt |
+| --- | --- |
+| **A14** | Tasks screen with the automations hub armed: hub rendered capped (Automations + Nightly digest verbs + Workflows rows) and the task rows ALL visible below it — Pinned 1 → Synthetic task, WORKSPACE Synthetic One 2 → Synthetic task 2/3, the "+ New task" FAB on screen (y=2059 of 2340). Pre-fix the hub consumed the viewport and zero rows composed |
+| **A15** | Hook card (2 pending · 3 hooks) → both checkboxes checked → "Trust 2 selected hook(s)" → confirm → `grantWorkspaceHookTrust ok in 67ms` on the wire and the strip reads **"Trusted 2 hook(s) — the session continues."** — NO offline banner (pre-fix this exact success rendered "Offline — the action was not sent. Nothing changed.") |
+| **A16** | With the hook card + "Queued (2) · paused" strip + background indicator + shared-context strip all pinned, IME open (`mInputShown=true`): the composer draft (`/goal pause@`) renders at y=1244–1376 — fully on screen ABOVE the keyboard; pre-fix this shape typed blind |
+| Reconnect | Relay restart mid-round → `relay.lost` → RECOVERING → CONNECTED in <1 s (19:29:03.999→19:29:04.753); stored pairing survived the upgrade install |
+
+## Remediation order status (supersedes Part AL where it applies)
+
+1. **GAP-A14 — CLOSED** (c7e2ba87). 2. **GAP-A15 — CLOSED** (6523ddf1). 3. **GAP-A16 — CLOSED**
+(dbca4ad8). 4. **G43** (resyncSessionsIndexV4 on reconnect) — OPEN, unchanged. 5. **G42/G44**
+(controller-plane adoption / boundary debt) — OPEN, unchanged (no user-facing breakage). 6. Mock
+fidelity debts — the resolveInteraction wipe is FIXED (c2bcdc1b); discardSharedContext handler,
+static gitSummary, runAutomationNow scripting remain OPEN (named in AJ4.3).
+
+Rig learnings this round: the pinned stack is one scroll plane — reaching a below-fold card
+(the hook card under the approval+question cards) needs repeated drags INSIDE the pinned budget
+(a swipe that starts outside it scrolls the timeline instead); `input swipe` on TextButton rows
+is safe (buttons do not consume drags); the hook card's checkboxes expose `checked=` to
+uiautomator (label taps at the row's left edge land them).
+
+**Round verdict: the three pass-13 phone defects are fixed, pinned, rig-verified, and the suite
+gate is green at 1718/0/0/0; the parity ledger stands as pass 13 recorded it (desktop 39 wire
+methods, phone 29 + the 10 classified G42/G43/G44; the phone AHEAD on
+notifications/widget/updates/multi-endpoint/offline-queueing). The tree under audit is now
+`c2bcdc1b`; APK `9084b920…`. Nothing pushed.**
