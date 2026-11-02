@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.MaterialTheme
@@ -19,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.zcode.android.features.conversation.R
 
@@ -47,17 +50,32 @@ fun UnreadBadge(unread: Int, modifier: Modifier = Modifier) {
  * together can squeeze the timeline to zero. Status strips collapse to [budget];
  * "+N more" expands. BLOCKING interaction cards (approvals / questions) are composed
  * OUTSIDE this budget — approval first (§18.2) — and the timeline keeps its weight.
+ *
+ * GAP-A16 (pass 13, 2026-11-02): the stack's strips are individually composed but the
+ * COLUMN is still unbounded — a multi-row queue strip alone consumed the window,
+ * starved the weighted timeline and pushed the composer behind the IME (typing
+ * blind). When [maxHeight] is supplied the shown strips scroll inside that cap
+ * (the "+N more" affordance stays pinned below the scroll region).
  */
 @Composable
 fun StripBudget(
     strips: List<@Composable () -> Unit>,
     modifier: Modifier = Modifier,
     budget: Int = 2,
+    /** A16: cap the stack's height and scroll its overflow (null = unbounded legacy shape). */
+    maxHeight: Dp? = null,
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     Column(modifier = modifier.fillMaxWidth()) {
         val shown = if (expanded || strips.size <= budget) strips else strips.take(budget)
-        for (strip in shown) strip()
+        val scroller = if (maxHeight != null) {
+            Modifier.heightIn(max = maxHeight).verticalScroll(rememberScrollState())
+        } else {
+            Modifier
+        }
+        Box(Modifier.fillMaxWidth().then(scroller)) {
+            for (strip in shown) strip()
+        }
         if (!expanded && strips.size > budget) {
             val hidden = strips.size - budget
             Box(Modifier.fillMaxWidth().heightIn(min = 48.dp), contentAlignment = Alignment.Center) {

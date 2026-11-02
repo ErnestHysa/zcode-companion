@@ -379,24 +379,26 @@ fun ConversationScreen(
             // Submit/Decline, the timeline and the composer off-screen (unanswerable). Up
             // to PINNED_BUDGET_FRACTION of the window, scrolling inside; the header's
             // context panels yield their room while a card is open (approval first).
+            // T3 (verification pass 4): SHORT-HEIGHT windows (landscape phones
+            // ≈ 250-350dp of content) invert the priority. There the FIXED chrome
+            // (header intrinsics + intrinsic composer) alone can consume the window:
+            // the budgeted card still starved the weighted timeline to ZERO and the
+            // composer clipped. Short-height mode yields the card's minimum FIRST —
+            // it keeps a scrollable sliver (answer controls stay reachable inside its
+            // own scroll) while the composer keeps its intrinsic size and the
+            // timeline keeps a real 48dp floor (the measured-geometry maximum).
+            // (A16: declared above the `blocked` branch — the strip stack's own cap
+            // subtracts what the pinned plane is already taking.)
+            val pinnedBudget =
+                if (available < SHORT_HEIGHT_THRESHOLD) {
+                    (available - SHORT_HEIGHT_RESERVE).coerceAtLeast(SHORT_HEIGHT_CARD_MIN)
+                } else {
+                    maxOf(available * PINNED_BUDGET_FRACTION, available - PINNED_RESERVE)
+                }
             if (blocked) {
                 // Everything the chrome, the composer and the timeline floor do not need,
                 // and never less than a screen share — Allow/Submit stay on screen on a
                 // phone; a taller card scrolls inside.
-                // T3 (verification pass 4): SHORT-HEIGHT windows (landscape phones
-                // ≈ 250-350dp of content) invert the priority. There the FIXED chrome
-                // (header intrinsics + intrinsic composer) alone can consume the window:
-                // the budgeted card still starved the weighted timeline to ZERO and the
-                // composer clipped. Short-height mode yields the card's minimum FIRST —
-                // it keeps a scrollable sliver (answer controls stay reachable inside its
-                // own scroll) while the composer keeps its intrinsic size and the
-                // timeline keeps a real 48dp floor (the measured-geometry maximum).
-                val pinnedBudget =
-                    if (available < SHORT_HEIGHT_THRESHOLD) {
-                        (available - SHORT_HEIGHT_RESERVE).coerceAtLeast(SHORT_HEIGHT_CARD_MIN)
-                    } else {
-                        maxOf(available * PINNED_BUDGET_FRACTION, available - PINNED_RESERVE)
-                    }
                 Column(
                     Modifier
                         .fillMaxWidth()
@@ -448,6 +450,16 @@ fun ConversationScreen(
             }
             // B2.12: the status-strip stack is BUDGETED (§15-S1/S9 mockups) — an
             // unbounded stack in this non-scrollable column squeezed the timeline.
+            // GAP-A16 (pass 13): the stack's HEIGHT is budgeted too — a multi-row
+            // queue strip alone consumed the window, starved the weighted timeline
+            // to zero and pushed the composer behind the IME (typing blind). The
+            // cap reserves the measured fixed chrome (the T3 SHORT_HEIGHT_RESERVE:
+            // one-row session bar + intrinsic composer + 48dp timeline floor)
+            // minus what the pinned plane is already taking; the overflow scrolls
+            // inside the stack instead of eating the composer.
+            val stripMaxHeight =
+                (available - (if (blocked) pinnedBudget else 0.dp) - SHORT_HEIGHT_RESERVE)
+                    .coerceAtLeast(CONVERSATION_STRIP_FLOOR)
             StripBudget(
                 strips = buildList {
                     if (state.stale) {
@@ -529,6 +541,7 @@ fun ConversationScreen(
                     }
                 },
                 modifier = Modifier.padding(horizontal = 0.dp),
+                maxHeight = stripMaxHeight,
             )
             when {
                 state.loading && state.rows.isEmpty() -> LoadingBody()
@@ -1421,3 +1434,10 @@ private val SHORT_HEIGHT_RESERVE = 238.dp
 
 /** T3: the card never disappears — a scrollable sliver keeps its answer controls reachable. */
 private val SHORT_HEIGHT_CARD_MIN = 24.dp
+
+/**
+ * GAP-A16 (pass 13): the strip stack never collapses below this — a taller cap than
+ * the arithmetic allows would hide the strips entirely; the floor costs at most a
+ * few dp of timeline when the window is at its shortest.
+ */
+private val CONVERSATION_STRIP_FLOOR = 48.dp
