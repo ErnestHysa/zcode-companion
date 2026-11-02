@@ -27,7 +27,9 @@ import kotlin.test.assertTrue
  * ADR-021 (Phase 5D) wire legs over the REAL transport ↔ mock: stage/unstage/discard
  * mutate the mock's state (staged set + the discarded ledger); commit echoes the
  * bundle-extracted `{commitHash, summary}`; the branch result decodes the TYPED issue
- * map (the kebab wire codes); the identity-missing state decodes nulls.
+ * map (the kebab wire codes); the identity-missing state decodes nulls; the
+ * create-and-switch SUCCESS round-trip (the G32 vc51 receipt's cited leg) moves the
+ * served branch-list head and switches back clean.
  */
 class GitWriteWireTest {
 
@@ -98,6 +100,31 @@ class GitWriteWireTest {
             assertEquals("untrackedChangesWouldBeOverwritten", refused.issues.single().camelKey, "J1.3's camelCase maps 1:1")
             val identity = GitIdentity.decode(transport.gitIdentity("/synthetic/ws"))
             assertTrue(identity.present)
+        }
+    }
+
+    @Test
+    fun `create and switch round-trip over the real transport - the served head follows the ack`() {
+        connect()
+        runBlocking {
+            val created = GitBranchResult.decode(transport.gitCreateBranchAndSwitch("/synthetic/ws", "feature/wire", null))
+            assertTrue(created.ok)
+            assertTrue(created.created, "createBranchAndSwitch reports created=true")
+            assertEquals("feature/wire", created.branchName)
+            assertEquals(
+                "feature/wire",
+                GitBranchList.decode(transport.gitLocalBranches("/synthetic/ws")).currentBranchName,
+                "the branch-list head follows the create-and-switch ack (the RIG-5 store mutation, seen over the wire)",
+            )
+            val switched = GitBranchResult.decode(transport.gitSwitchBranch("/synthetic/ws", "main"))
+            assertTrue(switched.ok)
+            assertFalse(switched.created, "a plain switch reports created=false")
+            assertEquals("main", switched.branchName)
+            assertEquals(
+                "main",
+                GitBranchList.decode(transport.gitLocalBranches("/synthetic/ws")).currentBranchName,
+                "switching back moves the served head again",
+            )
         }
     }
 

@@ -2727,7 +2727,12 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 }))
             }
             "switchBranch", "createBranchAndSwitch" -> {
-                val branch = argAsObject(arg)?.str("targetBranchName") ?: argAsObject(arg)?.str("branchName") ?: ""
+                // str() is NON-nullable (missing key → ""), so the elvis below must use
+                // strOrNull — with str(), createBranchAndSwitch's wire arg spelling
+                // (`branchName`, the transport's gitWrite) never won the elvis and the
+                // branch was silently lost on the wire (the recorded "summary doesn't
+                // mutate post-create" class).
+                val branch = argAsObject(arg)?.let { it.strOrNull("targetBranchName") ?: it.strOrNull("branchName") } ?: ""
                 if (script.gitBranchIssue != null) {
                     respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
                         put("action", JsonPrimitive(if (name == "switchBranch") "switch" else "create-and-switch"))

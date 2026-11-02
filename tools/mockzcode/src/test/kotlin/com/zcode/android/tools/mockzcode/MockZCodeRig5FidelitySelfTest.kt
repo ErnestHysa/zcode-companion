@@ -76,6 +76,25 @@ class MockZCodeRig5FidelitySelfTest {
         assertEquals("i-rig5", m.pendingPermissionForTest()?.interactionId)
     }
 
+    @Test
+    fun `the row-command effects (assistant feedback) route to the calling session too`() {
+        val m = mock { it.commandEffects = true }
+        m.activeSessionForTest("synth-task-4")
+        m.applyCommandEffectForTest(
+            "setAssistantFeedback",
+            envelope(
+                "setAssistantFeedback",
+                buildJsonObject {
+                    put("target", buildJsonObject { put("rowId", JsonPrimitive("4242")) })
+                    put("feedback", JsonPrimitive("thumbs_up"))
+                },
+            ),
+        )
+        assertTrue(m.opLogForTest("synth-task-4").isNotEmpty(), "the feedback row-upsert must journal on the calling session")
+        val row = m.appendedRowsForTest()["4242"] ?: error("the feedback row must exist in the mock's store")
+        assertEquals("thumbs_up", ((row["feedback"] as? JsonPrimitive)?.content), "the feedback lands on the echoed row")
+    }
+
     // ------------------------------------------------------------ task-store mutations
 
     @Test
