@@ -3795,3 +3795,91 @@ Ernest's standing deliverable-completion rule on `fix/vc51`; commits
 remediation roadmap is COMPLETE: all 60 rows closed (7+8+5+16+24), every phase exit gate
 passed on a fresh rig leg, and the Definition-of-done checklist above is ticked with its
 dated closure notes.** Nothing pushed; publishing waits on Ernest's explicit word.
+
+---
+
+# Post-completion verification audit — record corrections + one real defect fixed — 2026-11-02 (APPENDED; not part of the original audit, the roadmap, or the receipt passes)
+
+Scope: an independent re-verification of THIS report against the repo at f40d595e — all 68
+named commits checked in git, ~120 structural code claims verified file-by-file, every
+named pin class counted test-by-test, a fresh full-suite run, the RIG-6 script re-run live
+against the shipped asar (digest `99e280fb90b626cc…` and all nine string counts confirmed
+exactly), and the APK artifact hash confirmed to the byte. **Verdict: the campaign's
+substance holds** — all 60 rows across the five phases are materially closed and every
+exit gate's green face re-confirmed. Six record-level drifts were found: five are
+corrected below (append-only — the text above is untouched), and one drift turned out to
+be a REAL mock defect that the audit's new pin caught (A2).
+
+## A1 (record). The Phase-5 gate tally: 1709 → 1711; "+18 new names" → +20
+
+The Phase-5 gate's name-diff counted +18 new tests; the phase-5 range
+(f1ccdd56..eff41a77) actually adds 20 @Test with 0 removed — the two
+`WidgetGlanceCompositionContractTest` pins (landed in `eff41a77`, the phase's final
+commit, after the name-diff sweep was taken) were missed by the diff. The identical-code
+re-run measured **1711 tests / 0 failures / 0 skipped** across all 17 modules; 1691 (the
+f1ccdd56 baseline) + 20 = 1711 — now reconciled exactly. The gate's substance (zero
+failures, zero skipped, no dark modules) was never in question.
+
+## A2 (FIXED — a real defect). G32's "GitWriteWireTest create/switch round-trip" did not exist, and the mock was losing the branch on the wire
+
+The G32 receipt cited "`GitWriteWireTest` (the create/switch round-trip over the real
+transport)"; at completion the class held only stage/unstage/discard, commit/push/
+branches decode, and the switch **refusal** decode — no create/switch success round-trip
+existed over the wire (that path was covered only mock-internally + the live rig leg).
+Writing the cited pin **RED'd a real defect** (`484a64b6`): `MockZCode.str()` returns
+`""` (never null) for a missing key, so the `switchBranch`/`createBranchAndSwitch`
+handler's `str("targetBranchName") ?: str("branchName")` elvis never fell through — the
+transport's `gitCreateBranchAndSwitch` sends the wire key `branchName`, the mock read
+`""`, and **every create ack silently lost the branch**: the response carried
+`branchName:""` (decoding to null) and the served summary/branch-list head never moved —
+the exact "the static summary doesn't mutate post-create" class the Phase-4 exit-gate
+recorded and RIG-5 was believed to have retired for the create verb (RIG-5's mutation
+fix was real but its self-test fed the git-channel-promise spelling `targetBranchName`,
+which worked; only the transport-wire spelling was broken). Fix: the handler reads via
+`strOrNull` so BOTH spellings win; the new wire pin (create → the served head follows the
+ack → switch back to main → the head follows) is GREEN, and
+`MockZCodeRig5FidelitySelfTest` stays green (the promise path is unchanged).
+
+## A3 (record + one new pin). RIG-5's "10 pins" — corrected to the real list, plus the one genuinely-missing face
+
+The roadmap row's "10 pins (routing ×3, store mutations ×2, git mutation ×1, regression
+controls ×2, default-routing preservation ×2)" does not match the class's test list (7
+@Test at `6bd095ed` — routing ×2, default-preservation ×1, store ×2, git ×1, control ×1);
+it was a loose assertion-count, and the Phase-5 gate's own name-diff correctly used 7.
+One routing face the RIG-5 commit itself claims (the row-command effects:
+retry/fork/rewind/**feedback**) had no pin; it now does (assistant-feedback journals on
+the CALLING session and the feedback lands on the echoed row, `484a64b6`). The class is
+**8 @Test**: routing ×3 (sendText, interaction push, feedback) + default-preservation ×1
++ store mutations ×2 + git mutation ×1 + regression control ×1.
+
+## A4 (record). Phase-2's "GREEN 8/8" spanned TWO pin classes
+
+At `fa2bd31` `WorkflowRunSheetActionsTest` had 4 @Test and `WorkflowRunActionsVmTest` 4 —
+the "8/8" is the two classes combined where the sentence reads as one. (The sheet class
+is 6 today: Phase-4's G17 added the two artifact-card pins.)
+
+## A5 (record). G13's precedence wording — the pin asserts WAITING-beats-RUNNING
+
+The Phase-3 record says "G13's RUNNING-beats-ENDED precedence"; the actual pin
+(`SessionIndexDecodeTest` "rowActivity verdicts") asserts "**waiting beats running, ended
+ends, idle stays quiet**". Wording drift only; the pin exists and holds.
+
+## A6 (record). SuggestedPromptRotationTest → SuggestedPromptsTest
+
+The Phase-3 exit-gate table names `SuggestedPromptRotationTest`; the class is
+**`SuggestedPromptsTest`** (4 @Test: both rotation pins + the compose prefill UI test).
+Name drift only.
+
+## Re-verification stamp
+
+This audit round was implemented and verified on **2026-11-02** by the session agent
+(**GLM-5.3-Flash** running as the **ZCode CLI agent harness**) on `fix/vc51`, working
+under Ernest's instruction to fix the audit findings. Audit commits: `484a64b6` (the
+mock arg fix + the two cited pins). Fresh full-suite at the erratum HEAD: **BUILD
+SUCCESSFUL — 1713 tests / 0 failures / 0 errors / 0 skipped across all 17 modules**
+(1711 + the 2 audit pins; one mid-round pool run tripped the documented
+`ConnectionHubWritePathTest` 20 s timing class, exonerated green in isolation, and the
+final committed-HEAD pass is fully clean). The app APK artifact is UNCHANGED by this
+section — test-only + docs edits, so the recorded sha256 `1402c91a9e5d7dd5…`
+(31,895,981 bytes, versionCode 51 / versionName 1.3.0) remains the code-HEAD build.
+Nothing pushed; publishing still waits on Ernest's explicit word.
