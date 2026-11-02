@@ -1023,6 +1023,35 @@ class MockZCode(
     private val stateRevision = AtomicLong(100)
 
     /** Verified snapshot A-side state object (§9) per the script knobs. */
+    /**
+     * The scripted workspaceHookReview interaction with the live trust states — the
+     * ONE build shared by the projection and every state patch (FIX, 2026-11-02 fix
+     * round: resolveInteraction's patch used to emit `pendingInteractions: []`,
+     * wiping the scripted hook the moment an approval/question was answered — the
+     * app's key-level replacement trusts the list as the whole truth, so the hook
+     * card vanished on the rig mid-leg).
+     */
+    private fun scriptedHookInteraction(): JsonObject? {
+        val hr = script.hookReview ?: return null
+        val items = (hr["items"] as? JsonArray)?.map { el ->
+            val o = el as? JsonObject ?: return@map el
+            val id = (o["reviewItemId"] as? JsonPrimitive)?.content
+            val ts = script.hookTrustStates[id]
+            if (ts != null) JsonObject(o + ("trustState" to JsonPrimitive(ts))) else o
+        }
+        return buildJsonObject {
+            put("interactionId", hr["interactionId"] ?: JsonPrimitive("hook-rig"))
+            put("kind", JsonPrimitive("workspaceHookReview"))
+            put("anchorRowId", kotlinx.serialization.json.JsonNull)
+            put("createdAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
+            put("payload", buildJsonObject {
+                put("kind", JsonPrimitive("workspaceHookReview"))
+                (hr as? JsonObject)?.forEach { (k, v) -> if (k != "items") put(k, v) }
+                put("items", JsonArray(items ?: emptyList()))
+            })
+        }
+    }
+
     private fun stateBlock(): JsonObject? {
         if (!script.emitStateKeys) return null
         val control = buildJsonObject {
@@ -1094,29 +1123,11 @@ class MockZCode(
             put("control", control)
             put("inputRouting", routing)
             put("queue", queue)
-            // ADR-024 (Phase 5D): the hook review with the mutated trust states — MERGED
-            // beside the permission/userInput interactions (U4: it used to REPLACE the key,
-            // so MOCK_HOOKS silently dropped MOCK_APPROVAL/MOCK_QUESTION from the state).
-            val hookInteraction = script.hookReview?.let { hr ->
-                val items = (hr["items"] as? JsonArray)?.map { el ->
-                    val o = el as? JsonObject ?: return@map el
-                    val id = (o["reviewItemId"] as? JsonPrimitive)?.content
-                    val ts = script.hookTrustStates[id]
-                    if (ts != null) JsonObject(o + ("trustState" to JsonPrimitive(ts))) else o
-                }
-                buildJsonObject {
-                    put("interactionId", hr["interactionId"] ?: JsonPrimitive("hook-rig"))
-                    put("kind", JsonPrimitive("workspaceHookReview"))
-                    put("anchorRowId", kotlinx.serialization.json.JsonNull)
-                    put("createdAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
-                    put("payload", buildJsonObject {
-                        put("kind", JsonPrimitive("workspaceHookReview"))
-                        (hr as? JsonObject)?.forEach { (k, v) -> if (k != "items") put(k, v) }
-                        put("items", JsonArray(items ?: emptyList()))
-                    })
-                }
-            }
-            put("pendingInteractions", JsonArray(pending + listOfNotNull(hookInteraction)))
+        // ADR-024 (Phase 5D): the hook review with the mutated trust states — MERGED
+        // beside the permission/userInput interactions (U4: it used to REPLACE the key,
+        // so MOCK_HOOKS silently dropped MOCK_APPROVAL/MOCK_QUESTION from the state).
+        val hookInteraction = scriptedHookInteraction()
+        put("pendingInteractions", JsonArray(pending + listOfNotNull(hookInteraction)))
             // Phase 9 (§10.3): the session `config` echo when scripted (snapshot AND
             // state.updated patches carry it — the switch commands' reconciliation plane).
             script.sessionConfig?.let { put("config", it) }
@@ -2968,7 +2979,10 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 script.pendingUserInput = null
                 pushStatePatch(buildJsonObject {
                     put("revision", JsonPrimitive(stateRevision.get()))
-                    put("pendingInteractions", JsonArray(emptyList()))
+                    // Keep the scripted hook review alive beside the answered interaction —
+                    // key-level replacement means an empty list would resolve it too
+                    // (the rig FIX documented on scriptedHookInteraction).
+                    put("pendingInteractions", JsonArray(listOfNotNull(scriptedHookInteraction())))
                     put("control", buildJsonObject {
                         put("phase", JsonPrimitive("running"))
                         put("sessionEnded", JsonPrimitive(false))

@@ -6,6 +6,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 /**
  * U4 (verification pass 2, 2026-10-21, rig tooling): with MOCK_HOOKS armed next to
@@ -36,5 +37,40 @@ class MockZCodeHookMergeSelfTest {
         val pending = m.stateBlockForTest()!!["pendingInteractions"] as JsonArray
         val kinds = pending.map { (it.jsonObject["kind"] as JsonPrimitive).content }
         assertEquals(listOf("permission", "userInput", "workspaceHookReview"), kinds)
+    }
+
+    @Test
+    fun `a resolved approval KEEPS the scripted hook review alive (the patch is not an empty list)`() {
+        val m = mock { s ->
+            s.pendingPermission = MockZCode.PendingPermission("i-perm", toolName = "Bash")
+            s.hookReview = JsonObject(
+                mapOf(
+                    "interactionId" to JsonPrimitive("hook-1"),
+                    "reviewFlowId" to JsonPrimitive("flow-1"),
+                    "items" to JsonArray(emptyList()),
+                ),
+            )
+        }
+        val before = m.opLogForTest("synth-task-1").size
+        m.applyCommandEffectForTest(
+            "resolveInteraction",
+            JsonObject(mapOf("payload" to JsonObject(mapOf("interactionId" to JsonPrimitive("i-perm"))))),
+        )
+        // The effect journals on the routing session (RIG-5 rule) — read the journaled
+        // state.updated patch: the answered interaction resolves, the hook SURVIVES.
+        // (The resolve also journals row-appended frames after it — pick the last
+        // state.updated op, not just the last frame.)
+        val frames = m.opLogForTest("synth-task-1")
+        assertTrue(frames.size > before, "the resolve must journal an effect frame")
+        val statePatch = frames.asReversed()
+            .flatMap { it.ops }
+            .map { it.jsonObject }
+            .first { it["op"]?.toString()?.contains("state.updated") == true }["patch"]!!.jsonObject
+        val kinds = (statePatch["pendingInteractions"] as JsonArray)
+            .map { (it.jsonObject["kind"] as JsonPrimitive).content }
+        assertEquals(
+            listOf("workspaceHookReview"), kinds,
+            "the answered interaction resolves; the scripted hook must survive the replacement",
+        )
     }
 }
