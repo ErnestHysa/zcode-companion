@@ -6,6 +6,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -90,6 +91,13 @@ import androidx.compose.ui.semantics.traversalIndex
 import com.zcode.android.core.ui.components.EmptyState
 import androidx.compose.ui.semantics.Role
 import com.zcode.android.core.ui.components.readerWidth
+
+/**
+ * GAP-A14: the automations/workflows/off-peak hub is capped at this share of the
+ * body height and scrolls its overflow internally — unbounded, it consumed the
+ * whole viewport and starved the task list (and the search FAB) to zero.
+ */
+private const val AUTOMATIONS_SECTION_MAX_FRACTION = 0.45f
 
 /**
  * Task list (§43.2-6.2; ui-ux screen-spec 03/04/14). Dense rows, left status rail,
@@ -400,14 +408,27 @@ fun TaskListScreen(
                 }
             }
             automationsPort?.let { port ->
-                AutomationsSection(
-                    port = port,
-                    modelPicker = modelPicker,
-                    onOpenTask = onOpenTaskId,
-                    workflowTasks = state.pinned + state.groups.flatMap { it.tasks },
-                    onStartWorkflow = onStartWorkflow,
-                    connected = state.phase == ConnectionPhase.CONNECTED,
-                )
+                // GAP-A14 (pass 13): the management sections composed UNBOUNDED inside
+                // this non-scrollable body Column — with content they consumed the whole
+                // viewport and the tasks Box below received ~zero height (no task rows
+                // composed, no scroll, the search FAB below the fold). Cap the hub at a
+                // share of the body and scroll its overflow internally so the task list
+                // keeps its space beside it, like the desktop's single Tasks page.
+                BoxWithConstraints(Modifier.fillMaxWidth()) {
+                    val sectionCap = maxHeight * AUTOMATIONS_SECTION_MAX_FRACTION
+                    AutomationsSection(
+                        port = port,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = sectionCap)
+                            .verticalScroll(rememberScrollState()),
+                        modelPicker = modelPicker,
+                        onOpenTask = onOpenTaskId,
+                        workflowTasks = state.pinned + state.groups.flatMap { it.tasks },
+                        onStartWorkflow = onStartWorkflow,
+                        connected = state.phase == ConnectionPhase.CONNECTED,
+                    )
+                }
             }
             Spacer(Modifier.height(4.dp))
 

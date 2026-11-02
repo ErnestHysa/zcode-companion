@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
@@ -226,7 +227,9 @@ class AutomationsSectionUiTest {
     fun offPeakDelete_flow_reachesThePort() {
         val recorder = Recorder()
         setContent(portWithRecording(offPeak = listOf(OffPeakTaskRow("op-done", "Old bump", "completed", null, null, 1L, "/synthetic/ws", null)), recorder = recorder))
-        rule.onNodeWithTag("offpeak_delete_op-done").performClick()
+        // GAP-A14: the hub is height-capped with internal scroll — below-fold controls
+        // scroll into view before the tap (the pin rides the port, not the fold).
+        rule.onNodeWithTag("offpeak_delete_op-done").performScrollTo().performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("offpeak_delete_confirm").performClick()
         rule.waitForIdle()

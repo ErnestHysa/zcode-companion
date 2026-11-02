@@ -125,7 +125,9 @@ fun AutomationsSection(
     }
 
     Column(
-        Modifier
+        // GAP-A14: the caller's modifier (the height cap + internal scroll) must land
+        // on the root column — the old code dropped it and the cap never applied.
+        modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .testTag("automations_section"),
