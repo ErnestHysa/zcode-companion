@@ -73,4 +73,56 @@ class MockZCodeHookMergeSelfTest {
             "the answered interaction resolves; the scripted hook must survive the replacement",
         )
     }
+
+    /**
+     * Pass-14 rig find: resolving ONE interaction must clear only THAT slot. The old
+     * handler nulled pendingPermission AND pendingUserInput unconditionally, so answering
+     * an approval silently resolved the sibling AskUserQuestion beside it (live case:
+     * mock-approval-push-1 answered with "Allow once" → q-rig-1 resolved by-elsewhere and
+     * the card vanished with no wire command for the question).
+     */
+    @Test
+    fun `a resolved approval KEEPS the sibling user-input interaction alive`() {
+        val m = mock { s ->
+            s.emitStateKeys = true
+            s.pendingPermission = MockZCode.PendingPermission("i-perm", toolName = "Bash")
+            s.pendingUserInput = MockZCode.PendingUserInput("i-q", options = emptyList(), freeText = false)
+        }
+        val before = m.opLogForTest("synth-task-1").size
+        m.applyCommandEffectForTest(
+            "resolveInteraction",
+            JsonObject(mapOf("payload" to JsonObject(mapOf("interactionId" to JsonPrimitive("i-perm"))))),
+        )
+        val frames = m.opLogForTest("synth-task-1")
+        assertTrue(frames.size > before, "the resolve must journal an effect frame")
+        val statePatch = frames.asReversed()
+            .flatMap { it.ops }
+            .map { it.jsonObject }
+            .first { it["op"]?.toString()?.contains("state.updated") == true }["patch"]!!.jsonObject
+        val kinds = (statePatch["pendingInteractions"] as JsonArray)
+            .map { (it.jsonObject["kind"] as JsonPrimitive).content }
+        assertEquals(
+            listOf("userInput"), kinds,
+            "answering the permission must not resolve the sibling question",
+        )
+        // Ground truth on the script slots too: the un-answered one is still armed.
+        assertEquals("i-q", m.pendingUserInputForTest()?.interactionId)
+        assertEquals(null, m.pendingPermissionForTest())
+    }
+
+    /** And the inverse: answering the QUESTION must keep the permission alive. */
+    @Test
+    fun `a resolved question KEEPS the sibling permission alive`() {
+        val m = mock { s ->
+            s.emitStateKeys = true
+            s.pendingPermission = MockZCode.PendingPermission("i-perm", toolName = "Bash")
+            s.pendingUserInput = MockZCode.PendingUserInput("i-q", options = emptyList(), freeText = false)
+        }
+        m.applyCommandEffectForTest(
+            "resolveInteraction",
+            JsonObject(mapOf("payload" to JsonObject(mapOf("interactionId" to JsonPrimitive("i-q"))))),
+        )
+        assertEquals("i-perm", m.pendingPermissionForTest()?.interactionId)
+        assertEquals(null, m.pendingUserInputForTest())
+    }
 }

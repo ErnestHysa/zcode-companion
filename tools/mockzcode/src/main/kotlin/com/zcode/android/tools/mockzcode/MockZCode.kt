@@ -1052,31 +1052,14 @@ class MockZCode(
         }
     }
 
-    private fun stateBlock(): JsonObject? {
-        if (!script.emitStateKeys) return null
-        val control = buildJsonObject {
-            put("phase", JsonPrimitive(if (script.controlCanStop) "running" else "idle"))
-            put("sessionEnded", JsonPrimitive(false))
-            put("canStop", JsonPrimitive(script.controlCanStop))
-            put("stopState", JsonPrimitive(script.controlStopState))
-            put("activeWorks", JsonArray(emptyList()))
-        }
-        val routing = buildJsonObject {
-            put("mode", JsonPrimitive(script.inputRoutingMode))
-        }
-        val queue = buildJsonObject {
-            put("items", JsonArray(script.queueItems.orEmpty().map { qi ->
-                buildJsonObject {
-                    put("queueItemId", JsonPrimitive(qi.queueItemId))
-                    put("text", JsonPrimitive(qi.text))
-                    put("kind", JsonPrimitive(qi.kind))
-                    put("dispatch", buildJsonObject { put("state", JsonPrimitive(qi.dispatchState)) })
-                }
-            }))
-            put("autoDrain", JsonPrimitive(script.autoDrain))
-        }
-        val configBlock = script.sessionConfig
-        val pending = JsonArray(listOfNotNull(
+    /**
+     * The authoritative pending list for the CURRENT script slots — one builder for the
+     * snapshot (stateBlock) and every state.updated patch. Key-level replacement means
+     * a patch must carry every surviving interaction; a partial list resolves the rest
+     * (pass-13 c2bcdc1b for the hook, pass-14 for the sibling permission/question).
+     */
+    private fun pendingInteractionList(): JsonArray = JsonArray(listOfNotNull(
+
             script.pendingPermission?.let { pp ->
                 buildJsonObject {
                     put("interactionId", JsonPrimitive(pp.interactionId))
@@ -1117,17 +1100,43 @@ class MockZCode(
                     })
                 }
             },
+            scriptedHookInteraction(),
         ))
+
+    private fun stateBlock(): JsonObject? {
+        if (!script.emitStateKeys) return null
+        val control = buildJsonObject {
+            put("phase", JsonPrimitive(if (script.controlCanStop) "running" else "idle"))
+            put("sessionEnded", JsonPrimitive(false))
+            put("canStop", JsonPrimitive(script.controlCanStop))
+            put("stopState", JsonPrimitive(script.controlStopState))
+            put("activeWorks", JsonArray(emptyList()))
+        }
+        val routing = buildJsonObject {
+            put("mode", JsonPrimitive(script.inputRoutingMode))
+        }
+        val queue = buildJsonObject {
+            put("items", JsonArray(script.queueItems.orEmpty().map { qi ->
+                buildJsonObject {
+                    put("queueItemId", JsonPrimitive(qi.queueItemId))
+                    put("text", JsonPrimitive(qi.text))
+                    put("kind", JsonPrimitive(qi.kind))
+                    put("dispatch", buildJsonObject { put("state", JsonPrimitive(qi.dispatchState)) })
+                }
+            }))
+            put("autoDrain", JsonPrimitive(script.autoDrain))
+        }
+        val configBlock = script.sessionConfig
+        val pending = pendingInteractionList()
         return buildJsonObject {
             put("revision", JsonPrimitive(stateRevision.get()))
             put("control", control)
             put("inputRouting", routing)
             put("queue", queue)
         // ADR-024 (Phase 5D): the hook review with the mutated trust states — MERGED
-        // beside the permission/userInput interactions (U4: it used to REPLACE the key,
-        // so MOCK_HOOKS silently dropped MOCK_APPROVAL/MOCK_QUESTION from the state).
-        val hookInteraction = scriptedHookInteraction()
-        put("pendingInteractions", JsonArray(pending + listOfNotNull(hookInteraction)))
+        // beside the permission/userInput interactions by pendingInteractionList (U4: the
+        // key used to be REPLACED, so MOCK_HOOKS silently dropped MOCK_APPROVAL/MOCK_QUESTION).
+        put("pendingInteractions", pending)
             // Phase 9 (§10.3): the session `config` echo when scripted (snapshot AND
             // state.updated patches carry it — the switch commands' reconciliation plane).
             script.sessionConfig?.let { put("config", it) }
@@ -2975,14 +2984,19 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 stateRevision.incrementAndGet()
                 val hadPermission = script.pendingPermission?.interactionId == iid
                 val hadUserInput = script.pendingUserInput?.interactionId == iid
-                script.pendingPermission = null
-                script.pendingUserInput = null
+                // Clear ONLY the slot the answered id names (pass-14 rig find): the old
+                // unconditional null of BOTH slots silently resolved the sibling
+                // interaction beside the answered one (a permission answer killed the
+                // AskUserQuestion, and vice versa) with no wire command for it.
+                if (hadPermission) script.pendingPermission = null
+                if (hadUserInput) script.pendingUserInput = null
                 pushStatePatch(buildJsonObject {
                     put("revision", JsonPrimitive(stateRevision.get()))
-                    // Keep the scripted hook review alive beside the answered interaction —
-                    // key-level replacement means an empty list would resolve it too
-                    // (the rig FIX documented on scriptedHookInteraction).
-                    put("pendingInteractions", JsonArray(listOfNotNull(scriptedHookInteraction())))
+                    // The patch is the WHOLE pending list (key-level replacement): carry
+                    // every SURVIVING slot plus the scripted hook review — an empty list
+                    // would resolve them too (the rig FIX documented on
+                    // scriptedHookInteraction).
+                    put("pendingInteractions", pendingInteractionList())
                     put("control", buildJsonObject {
                         put("phase", JsonPrimitive("running"))
                         put("sessionEnded", JsonPrimitive(false))
@@ -3484,13 +3498,16 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
      * "Resolved on desktop" and never submit.
      */
     fun resolveInteractionElsewhere() {
-        val iid = script.pendingPermission?.interactionId ?: script.pendingUserInput?.interactionId ?: return
-        script.pendingPermission = null
-        script.pendingUserInput = null
+        // Clear ONLY the slot this driver picked (same rule as the resolve command): the
+        // old unconditional null of both slots + an EMPTY list silently resolved every
+        // sibling interaction beside the raced one (pass-14 rig find, c2bcdc1b's class).
+        val permId = script.pendingPermission?.interactionId
+        if (permId != null) script.pendingPermission = null
+        else script.pendingUserInput?.interactionId?.let { script.pendingUserInput = null }
         stateRevision.incrementAndGet()
         pushStatePatch(buildJsonObject {
             put("revision", JsonPrimitive(stateRevision.get()))
-            put("pendingInteractions", JsonArray(emptyList()))
+            put("pendingInteractions", pendingInteractionList())
         })
     }
 
