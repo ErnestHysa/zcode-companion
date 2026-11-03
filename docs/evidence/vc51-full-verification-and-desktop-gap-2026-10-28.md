@@ -4802,3 +4802,214 @@ first direct receipt. One new P4 app-side papercut (Edit-automation "Create" lab
 mock arming debts recorded. The REA pass-16 angle confirms full git parity live, classifies the
 desktop's entire 1920-key settings tree, and leaves exactly one open question (usage-dashboard
 depth, rig-blocked on the mock). Nothing pushed.**
+
+## Part AR1 — pass-17 live emulation walk (2026-11-03, HEAD `b60c0d10`)
+
+Rig: zcode-pixel cold boot (`-no-snapshot-load -gpu swiftshader_indirect -no-audio -no-boot-anim`,
+disk pre-freed to 6.3 Gi after the pass-16 lesson), MockZCode relay on `10.0.2.2:18100` via the
+plain `java -cp` recipe (mockzcode.jar + protocol/common + gradle-cache jars), FULL 22-arm flag set
++ `MOCK_INTERACTION_PUSH_MS=25000` + a FRESH per-generation push id (`mock-p17-gen1-a3f9c2`).
+APK byte-verified before install: debug `9084b920…` — identical to the pass-14/15/16 build (no
+code commits since; `git status` clean). Install upgrade-over-existing-data. Every receipt below
+was observed live this pass:
+
+- **Cold-boot auto-reconnect**: persisted pairing survived the `-no-snapshot-load` boot (third
+  consecutive confirmation); launch → auth matched, `hub.bootstrapApplied tasks=3` +
+  `hub.bootstrapReplayed (no re-fetch)`, `update.check desktop=3.14.3 UpToDate`, all channel calls
+  ok in <30 ms.
+- **Multi-group question card**: Channel radio (tap registers selection) + Extras group +
+  free-text field + "Send answers" → `sendConversationCommandV4 ok 56ms` (the card's radio taps are
+  selections only — the inert-feel before Submit is rendering, not the INV-4 duplicate guard; this
+  pass's card answered live on the wire, refining pass-15's "tap-inert" framing).
+- **Fresh 25 s approval push** (gen-1 id): arrived as a conversation card (Bash,
+  `{"command":"echo synthetic"}`) with "Allow once / Allow always / Keep waiting" — with the IME
+  open the action buttons are occluded by the keyboard overlay, closed they render fully.
+  "Allow once" → wire ok 68 ms; the mock flipped the toolCall row to success (`echo synthetic`
+  appears in the timeline).
+- **Hook review cards**: two pending workspace-hook reviews rendered ("Warm build cache /
+  echo warming", "Lint gate / npm run lint") with Disable actions; Disable → wire ok 49 ms +
+  `reconcile.pendingKind :: kind=workspaceHookReview (counted, no card — INV-14)`; the remaining
+  strip renders checkboxes + "Revoke" + "Trust N selected hook(s)".
+- **Hook-trust consent round-trip**: 2 hooks checked → (scroll card) → "Trust 2 selected hook(s)"
+  → confirm dialog ("…trust is permission for code execution… Unselected hooks stay untrusted")
+  → Confirm → `grantWorkspaceHookTrust ok 57ms` — and the workflow-start command the run sheet
+  had queued fired immediately after (`sendConversationCommandV4 ok 331ms`). The trust gate
+  genuinely blocks the workflow run; timeline renders "Trusted 2 hook(s) — the session continues."
+- **Approvals inbox**: bell badge "1" (the bootstrap-seeded constant-id approval, genuinely
+  pending) → inbox row ("Permission — Bash / task Synthetic task 3 / echo synthetic / Allow once /
+  Deny") → Allow once → wire ok 90ms + row resolves + empty state "Nothing needs you".
+- **Composer + slash + queue**: plain send (draft typed via `input text` with `%s` spaces; IME
+  Enter only newlines — the Send button must be tapped) → wire ok 121ms; `/` opens the slash
+  catalog (GAP-12) with `/help [command]`; the entry inserts "/help " into the draft; the
+  composer shows a "Queued" chip while an interaction pends (sends queue instead of sending);
+  queued strip reorder arrows + Send now (wire ok 39ms) + Edit/Delete all render; deleting the
+  last queued item collapses the strip to "Queued".
+- **Context sheet**: status/goal (iteration history ✓/—)/todos (1/2, strikethrough)/workflow runs
+  (Running + Stopped)/plans (1/3 with ✓▸○)/git strip (main clean)/Open chip row — all render.
+  Files viewer: full screen, read-only badge, honest "workspace files unavailable on this
+  connection" (the mock scripts `searchWorkspaceFiles` for the @-mention panel but NOT
+  `files.list` — mock arming debt, unchanged from prior passes).
+- **Git pane → full write tier**: `git.getRepositorySummary ok`; branch sheet
+  (`git.getLocalBranches ok`: main ✓, feature/a + Switch, "New branch name" + Create & switch);
+  commit dialog (message field, Generate, Include unstaged, Commit & push toggle, Commit) →
+  `git.commit ok` → push-consent gate ("Push branch main? The desktop runs git push — publishing
+  cannot be undone from the phone.") → Push → `git.push ok`. Changes/History tabs degrade honestly
+  (`fault.git.notAvailable` — the mock scripts only summary+write tier).
+- **Terminal**: VIEW-ONLY badge, "Not attached. / Attach" → `terminal.create ok` →
+  `terminal.attached id=term-1`, "live — /bin/zsh", Copy visible output / Detach / Pause / Search.
+- **Hub**: automations card (Run now/Pause/History/Edit/Delete), workflows (Run sheet with
+  version input + Run-in-task picker), notifications bell badge, pinned task group, + New task.
+- **Widget** (home screen, post-resolution): "Pending approvals — Nothing needs you" — matches
+  inbox truth after the 17:48 answer (counted state receipted in pass 16).
+- **Relay-restart reconnect ×2**: `pkill MockRelayMainKt` + fresh relay generation → app recovered
+  through auth → CONNECTED → bootstrapReplayed (receipt) — but see AR2-D1: the phase machine
+  wedged in DEGRADED on the recovery race, and manual Retry was required to reach CONNECTED.
+- **Fresh-install re-pair** (`pm clear`): onboarding privacy copy ("What leaves your phone… no
+  analytics, no tracking… Keep the pairing link private"), Paste pairing link dialog, stale-link
+  guard fired correctly (link >10 min old → "This QR code may be stale / Continue anyway / Scan
+  again"), Security-setup consent ("credential sealed with hardware-backed encryption", biometric
+  unavailable → device-credential fallback via BiometricService), pairing completed with a NEW
+  endpointId (`1aefb4ef-…`), channels flowing. Chunked `input text` typing required (single-shot
+  truncates ~130 chars; ~20-char chunks with 1.2 s gaps land 100% — the known rig flake).
+- **Task create**: New-task dialog (workspace, description, "Model: workspace default") → Create →
+  `tasks.create` + `sendConversationCommandV4 ok 36ms` + `hub.createTask outcome=Accepted` +
+  `bootstrapApplied tasks=4` — live on the fresh pairing.
+
+## Part AR2 — pass-17 defects (2 P3 + 3 P4, all receipted on device)
+
+**D1 (P3, new): relay-restart recovery race wedges the hub phase machine in DEGRADED with a
+healthy wire.** Sequence (fully logged): relay killed + restarted; app reconnected (relay-1
+auth matched 18:00:57 → CONNECTED 18:00:58 → bootstrapReplayed); ~3 s later the app's own
+recovery loop opened a SECOND connection (relay-2 auth challenge 18:01:01) and the phase machine
+flipped to DEGRADED — then never left it: relay-2's auth MATCHED at 18:01:01.524 but no CONNECTED
+transition, no bootstrap, and the UI stuck at "Disconnected / Connection lost — reconnecting…"
+for ~2.5 minutes while heartbeats + `pair_status_ack` flowed on relay-2 every 10 s (verified
+18:01:11→18:02:41). The designed escape hatch works: hub Retry → RECOVERING → CONNECTED →
+bootstrapApplied+Replayed (18:03:16). Field trigger: any desktop/relay restart while the phone
+holds a live connection (the recovery retry races the first reconnect). Mechanism neighborhood:
+the connect()-takeover path (vc47) cancels the predecessor's continuations — the relay-2 takeover
+appears to cancel its own phase-completion continuation, leaving the machine in DEGRADED; the
+DEGRADED entry itself is the takeover being classified as instability. Casualty: the gen-2 25 s
+interaction push fired during the wedge and was lost (no subscribed session). Fix direction: the
+takeover path must drive the phase to CONNECTED on auth-match of the SUCCESSOR connection (or the
+heartbeat-ack loop must re-armed the phase out of DEGRADED); pin with a two-connection fixture.
+
+**D2 (P3, new): the Context sheet's wrapped second chip row is inert.** At 395 dp with the sheet
+fully expanded the chip row wraps to two lines: Files/Git/Terminal (line 1) work; Model calls and
+Share (line 2) render visually but their text nodes report `bounds=[0,0][0,0]` in the a11y tree
+across three independent dumps and taps at the pixel-true positions produce no navigation and no
+`nav.*` log. Blocks the Model-calls viewer and Share on narrow screens. Files/Git/Terminal were
+each driven live this pass (receipts above), so the defect is specific to the wrapped row.
+Fix direction: the chip-row FlowRow's second-line measurables aren't attached to the semantics
+tree — pin with a compose-ui test at 395 dp asserting both rows' chips are clickable and
+`onOpenModelCalls`/`onShare` fire.
+
+**D3 (P4, new): `reconcileFromSessionState` re-stamps `resolvedAtMs` on already-resolved
+machines.** DB ground truth (run-as sqlite3, interactions table): the gen-1 approval answered
+from the conversation card at 17:23:58 (`ackAccepted` → `resolveRecord` → `markResolved`) shows
+`resolvedAtMs = 17:41:51` — the disappearance-sweep's unconditional
+`resolveRecord(iid, resolvedBySelf=false)` overwrites the truthful self-answer timestamp with the
+sweep clock every time a later session-state reconcile runs (the machine is already RESOLVED but
+`machine.on(ResolvedElsewhere)` + the `machine.state == RESOLVED` check still route into
+resolveRecord). Initial hypothesis "inbox keeps stale actionable rows" REFUTED by the same DB
+read (the inbox cleared at answer time; the pending row the inbox showed was the genuinely
+unanswered bootstrap approval, whose inbox answer DID stamp synchronously at tap time). Impact:
+audit-history only — no UX path reads the overwritten value. Fix direction: skip resolveRecord
+when `requests[iid]?.resolvedAtMs != null` (one-line guard + pin).
+
+**D4 (P4, new): the pinned hook-review card's Trust action needs a SHORT swipe to reach.** With
+3 hooks + all strips armed the card clips at mid-screen (Watcher row truncated, Trust below the
+fold); large vertical swipes scroll the frozen timeline behind the card and do nothing, while a
+short swipe INSIDE the card scrolls it and reveals "Trust 2 selected hook(s)". Discoverability
+only — the action IS reachable (this pass completed the full trust round-trip). Same composition
+family as the pass-2 question-card Submit fix (that fix made the card content scrollable; the
+big-swipe-vs-card-scroll feel is the residual).
+
+**D5 (P4, new): the Context sheet reopens scrolled below the chip row.** After a back/ESC
+dismissal, the next sheet render frequently shows the chip row at `bounds=[0,0][0,0]` while
+STALE pixels of the chips remain composited — taps at the pixel positions are dead (they are
+below the sheet's current scroll fold), and only an in-sheet swipe re-materializes the row.
+Cost two dead-end git-chip taps this pass before diagnosis. Fix direction: reset the sheet's
+scroll position on open, and suppress the stale-frame composite (or accept + document).
+
+Also recorded: automation "Run now" → `fault.mock.unscripted:runAutomationNow` (NEW mock arming
+debt; the app sent the wire call and refreshed `listAutomations ok 9ms`; whether a snackbar
+surfaced could not be confirmed before it expired — re-check when arming). Mock debts unchanged:
+`git.getChanges`, `git.getCommitGraph`, `files.list`, generateCommitMessage, usage-stats channel.
+
+## Part AR3 — rig notes for future passes
+
+1. **IME-overlays-dump trap**: with the soft keyboard open, app buttons under the IME keep their
+   PRE-IME bounds in the a11y dump while the IME window intercepts touches — taps at dump
+   coordinates silently no-op. Always `keyevent 4` (or tap at the shifted bounds of the re-dump)
+   before tapping buttons; dialogs shift up above the IME so their buttons stay visible.
+2. **ESC (`keyevent 111`) wanders** — it dismissed the commit dialog AND the git pane this pass
+   (known gotcha, now twice-confirmed on dialogs). `keyevent 4` dismisses the IME composing
+   suggestion first (needs a second press).
+3. **`pm clear` + paste-pairing needs ~20-char chunks**: single-shot `input text` truncated a
+   178-char pairing link at ~48 chars; ~20-char chunks with 1.2 s gaps landed 100% including the
+   `%3D` and `\&` escapes. Field clear via MOVE_END (123) + per-char DEL (67) is strictly 1:1 —
+   a device-side `for` loop (single adb round trip) is the fast way.
+4. **The stale-relay port trap** fired again (BindException on relay start) — `pkill -f
+   MockRelayMainKt` only, never by port (qemu NAT).
+5. **Disk discipline worked**: pre-freeing 2.1 GB of stale REA JSONs before cold boot avoided the
+   pass-16 disk-space FATAL; 7.1 Gi free at REA start.
+6. **DB ground truth via run-as**: `adb shell run-as com.zcode.android.app sqlite3
+   databases/zcode.db 'SELECT … FROM interactions'` resolves "was it really pending?" questions
+   in one query — the pass-17 D3 adjudication was decided by it, not by logcat (the ZCODE-PAIR
+   buffer rotates past the interesting window in ~10 min).
+
+## Part AR4 — pass-17 REA angle (desktop asar re-verified; new-angle sweeps)
+
+The desktop asar digest is unchanged from passes 15/16 —
+`sha256 99e280fb90b626cc…` over 326,913,358 bytes (re-hashed this pass) — so every REA count from
+the pass-15 full analysis (23,186 files / 22,125 parsed JS / 1,359 modules / 89,718 nodes /
+92,776 edges / 255 dynamic-channel operations / 47 renderer listeners) carries over unchanged and
+no re-analysis was spent. The pass-17 angle was targeted string-level sweeps for surfaces never
+before diffed, each cross-checked against the phone codebase:
+
+- **Keyboard-shortcuts surface**: all 39 `keyboardShortcuts` / 347 `accelerator` hits resolve to
+  the bundled media-chrome video player (`media-keyboard-shortcuts-dialog`) or the already-covered
+  menu accelerators (pass 15). NO app-shell shortcuts settings page exists. NOT a gap (mobile
+  hardware-keyboard N/A class).
+- **Plan-mode authoring**: `EnterPlanMode` appears only inside share-sanitization filters
+  (`sanitizeUnsupportedShareStructures` drops EnterPlanMode tool rows from shares); there is no
+  desktop UI toggle to author plan mode beyond the agent's own tool use. The phone renders tool
+  rows generically and is equally a viewer. NOT a gap.
+- **Checkpoint restore**: the desktop timeline carries `checkpointRestored` / `forkNotice` /
+  `forkCreated` markers (excluded from shares); the phone's markers enum has no cases for them
+  (unknown markers skip). BUT the phone's checkpoint CAPABILITY is full: GitScreen's checkpoints
+  card ships create (Snapshot) + diff/restore between session-known checkpoints with a warned
+  confirm (`checkpoint_restore_title/body` dialogs, `port.restoreCheckpoints`), receipted as a
+  surface pass-17 (empty state live: "No snapshots in this session — create one before risky
+  changes"). Residual P4-smallest: the three notice MARKER ROWS don't render in the phone
+  timeline (cosmetic; a restored checkpoint shows no "restored" row in the conversation).
+- **MCP management**: the 268 `mcpServer` / `addServer` hits are MCP-SDK server-side plumbing
+  (the desktop HOSTS an MCP server exposing its tools) plus OAuth-discovery doc comments; no
+  desktop "Add Server" settings UI string found beyond the settings-tree entries pass 16 already
+  classified. The phone deliberately mirrors session surfaces, not host configuration — consistent
+  with the pass-16 desktop-AUTHOR P4-smalls family (commands/hooks/mcp/skills/subagents/plugins).
+- **Skill install**: `installSkill` is a desktop CLI module (trace/installSkill.js); the phone
+  reads skills via the slash catalog (receipted) — same P4-smalls family.
+- **Drag-drop attachments**: `ondrop` (9) is desktop-window drag-drop; the phone's
+  AttachmentStrip + picker (MOCK_ATTACHMENT arm) is the mobile-native equivalent. NOT a gap.
+- **What's new / billing / usage**: carry over unchanged from pass 15/16 classifications (What's
+  new = P4 small; usage-dashboard depth = the one rig-blocked open question).
+
+## Part AR5 — pass-17 verdict
+
+On HEAD `b60c0d10` (debug APK `9084b920…`, unchanged since pass 14) the live matrix re-verified
+with NEW receipts in every previously-receipted family (cold-boot reconnect, multi-group question,
+fresh-gen approval push, hook trust + workflow-start gating, row-anchored inbox answer, composer/
+slash/queue, git commit→consent→push, branch sheet, terminal attach, widget resolved-state,
+fresh-install pairing with stale-link + security consents, task create Accepted) — and this pass
+is the first to find real app-side defects since pass 14: **D1 (P3) the DEGRADED wedge after a
+relay restart**, **D2 (P3) the inert wrapped chip row**, plus D3–D5 (P4: resolvedAtMs re-stamp
+clobber, hook-card scroll discoverability, sheet reopen scroll position). The REA angle
+re-verified the desktop digest byte-identical (all pass-15/16 counts carry over), classified the
+four never-diffed surfaces (shortcuts → media-chrome N/A, plan-mode → no author UI on either
+side, checkpoint restore → phone capability full with a cosmetic marker-row residual, MCP →
+host-author family), and leaves the campaign's standing residue unchanged: the usage-dashboard
+depth question (rig-blocked on the mock's usage-stats channel) and the desktop-AUTHOR P4-smalls
+family. Fix round for D1/D2 (P3s) is the next session's opening item, test-first per the
+campaign rules. Nothing pushed.
