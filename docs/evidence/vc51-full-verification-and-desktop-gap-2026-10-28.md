@@ -5013,3 +5013,233 @@ host-author family), and leaves the campaign's standing residue unchanged: the u
 depth question (rig-blocked on the mock's usage-stats channel) and the desktop-AUTHOR P4-smalls
 family. Fix round for D1/D2 (P3s) is the next session's opening item, test-first per the
 campaign rules. Nothing pushed.
+
+# Pass 18 — live emulation re-verification + REA desktop enumeration (2026-11-03, APPENDED; not part of the original audit)
+
+Scope: a fresh full live-emulation walk on HEAD `f31258a6` (app code unchanged since the pass-13
+remediation build — the debug APK re-built from clean gradle state and byte-verified as
+`9084b92060306d8b…`, 32,294,909 bytes, 237 tasks up-to-date), then a NEW REA enumeration angle
+against the macOS app (`/Applications/ZCode.app` asar re-hashed byte-identical
+`99e280fb90b626cc…` over 326,913,358 bytes — every pass-15/16/17 graph count carries over, no
+re-analysis spent; REA MCP `binary_session` confirmed `open:false`, so the angle ran as targeted
+string-level sweeps over the asar bytes cross-checked against the phone codebase, the established
+unchanged-digest method from passes 16/17).
+
+## Part AS1 — rig and the live walk (each receipt observed on device this pass)
+
+Rig: zcode-pixel cold boot (`-no-snapshot-load`, single-homed eth0 after `svc wifi disable` — no
+dual-home this boot), MockZCode relay on `10.0.2.2:18100` with the FULL 22-arm flag set +
+`MOCK_INTERACTION_PUSH_MS=25000` + per-generation push ids (`mock-p18-gen1-b7e4d1`, gen-2
+`mock-p18-gen2-9c4f7a`). Stored pairing survived the cold boot (4th consecutive confirmation) —
+launch → `auth.matched` (endpointId `1aefb4ef-…`), `update.check desktop=3.14.3 UpToDate`,
+`hub.bootstrapApplied tasks=3` + `hub.bootstrapReplayed (no re-fetch)`. Every receipt below was
+observed live this pass:
+
+- **Conversation + streaming round-trip**: opened the pinned task (subscribe started the push
+  clock); timeline shows the Bash tool group, YOU/AGENT rows; a composer send
+  (`run the release checklist`, wire ok 60 ms) drew the agent reply "synthetic reply to: …" with
+  👍/👎/copy/**Fork**/**Retry** actions. CUA group expanded to the three per-tool rows
+  (`mcp__computer-use__screenshot/left_click/type`, each Completed with `{}` input expander);
+  the **"Context compression failed — Retry"** lifecycle row renders at the timeline bottom
+  (MOCK_COMPACT).
+- **Fresh 25 s interaction push** (gen-1 id): arrived as the pinned approval card (Bash /
+  "Run a synthetic command?") while the question card was still pending below it; "Allow once" →
+  `sendConversationCommandV4 ok in 196 ms` → the mock flipped the toolCall row to success
+  (`echo synthetic` in the timeline) and the stack re-flowed.
+- **Multi-group question card ANSWERED**: Channel radio ("Tag the release") + Extras checkbox
+  ("Release notes") + free text ("ship it via tags", `%s` spaces) + "Send answers" → wire ok
+  268 ms; the card resolved and the pinned stack advanced to the hook card. In-card scrolling
+  needed ~3 short swipes under the A16 budget; the D4 mechanics (big swipes scroll the frozen
+  timeline behind the card, short in-card swipes scroll the card) re-confirmed.
+- **Hook-trust round-trip**: 2 hooks checked (exact CheckBox node bounds) → "Trust 2 selected
+  hook(s)" → confirm dialog → **`grantWorkspaceHookTrust ok in 122 ms`** → the dedicated notice
+  "Trusted 2 hook(s) — the session continues." rendered; two `reconcile.pendingKind ::
+  workspaceHookReview (counted, no card — INV-14)` receipts flowed. Watcher **Disable** → wire ok
+  90 ms (post-trust card state stays as-first-served per the pass-16-resolved mock semantics).
+- **Queue strip**: "Queued (2) · paused" + Auto-send toggle; **Send now** → wire ok 77 ms and the
+  strip counted down to (1); **Delete** of the last row collapsed the strip.
+- **Background strip**: View → "Background work" sheet ("synthetic background build · bash ·
+  running", Cancel) → **View output** → **`backgroundBashOutputV4 ok in 13 ms`** + tail
+  ("compiling module 1/3 / 2/3") + "running · /synthetic/ws-one/.zcode/background/work-bash-1.log".
+- **Shared-context strip**: **Remove** → wire ok 83 ms; the strip remains until the next server
+  patch (as-first-served family, matches pass-14 receipts — the mock does not echo a removal patch).
+- **Composer + slash + refusal**: direct send (ok 60 ms, above); typing "/" opened the slash
+  catalog (`/help`, `/login` rows above the IME); tapping /help inserted the draft; the refusal
+  leg sent `/goal pause` → **`command.rejected :: type=pauseGoal fault.command.rigRefused:pauseGoal`**
+  → the banner "Goal pause was refused (the goal may not be pausable right now)." rendered AND the
+  draft "/goal pause" was preserved in the composer (all three contract points receipted).
+- **Config chips are INTERACTIVE at parity (NEW receipts)**: the config chip expanded the
+  `mode: yolo / Effort · max / account:…` chip row; the mode chip opened **"Switch mode"**
+  (Build / Edit / Plan / **Full access** — radio, yolo selected) → selecting Edit rode
+  `sendConversationCommandV4 ok in 175 ms` and BOTH the session bar (`build · GLM-5.3-Flash · …`)
+  and the chip row updated live; the effort chip opened **"Reasoning effort"** (medium / high /
+  xhigh / max) → selecting high rode the DEDICATED verb **`setThoughtLevel ok in 259 ms`** with the
+  same live chip updates. The REA angle (AS3) confirms the desktop ships the same two pickers on
+  its chat toolbar riding the same `session/setMode` / `session/setThoughtLevel` verbs.
+- **Context sheet**: full render (Status · iteration 3 · 1 background; goal "Ship it" verifying with
+  ✓iter1 / —iter2 2 criteria unmet; Todos 1/2 with strikethrough; Workflow runs lint-all Running +
+  release-notes Stopped; Plans 1/3 ✓▸○; git strip `main clean`; Open chip row). **D2 re-confirmed
+  live**: the wrapped second chip row renders but `Model calls [0,0][0,0]` / `Share [0,0][0,0]` in
+  the a11y tree and a pixel-true Share tap produced no navigation and no `nav.*` log (nav count
+  unchanged). **D5 did NOT manifest** on the one dismiss/reopen cycle driven (row 1 bounds stayed
+  real; intermittent as recorded). Find-in-conversation: "release" → **"1 of 2"** with ▲▼ nav.
+- **Git pane (Context sheet → Git chip)**: read-only badge; Checkpoints card empty state →
+  **Snapshot → `git-checkpoint.createCheckpoint ok`** (NEW receipt — the create path, not just the
+  empty state) → `ckpt-1` row ("Snapshots created elsewhere aren't listed here") + snackbar
+  "Snapshot ckpt-1 created"; commit dialog typed → **`git.commit ok`** + "Committed abc1230"
+  (three separate commits receipted); **Commit & push** toggle ON → **the push-consent gate**
+  ("Push to the remote? / Push branch main? The desktop runs git push — publishing cannot be
+  undone from the phone.") → **`git.push ok`**; **Branches…** → `git.getLocalBranches ok`
+  (main ✓, feature/a + Switch) → "New branch name" + **Create & switch** (disabled → enabled once
+  named) → **`git.createBranchAndSwitch ok`** for `wire/p18` (the exact call whose ack the mock
+  used to silently drop pre-484a64b6); Changes/History degrade honestly (`fault.git.notAvailable`).
+- **Terminal**: fresh consent gate (the pm-clear-era opt-in was consumed by the fresh install
+  later in the pass) → explainer + "Enable terminal (view-only)" → `terminal.optIn enabled=true` →
+  Attach → **`terminal.create ok`** + **`terminal.attached id=term-1`**; `nav.terminal :: open`.
+- **Connection screen**: the full state ladder (Not paired → Connecting ×3 → Connected ✓ →
+  Reconnecting → Synchronizing → Disconnected → Connection failed → Closed) with honest copy +
+  "Check for updates / Last refreshed".
+- **Hub automations**: **Run now** → `automationsport.runNow :: fault.mock.unscripted` +
+  `listAutomations ok 110 ms` AND — closing the pass-17 open question — the error snackbar WAS
+  captured this time: **"The run could not be started — the desktop refused it."**; **Pause →
+  Continue** (`setAutomationEnabled ok` ×2, badge/verb flip); **History** sheet ("Run history",
+  All/In progress/Succeeded/Failure chips, honest "This feature isn't available on the connected
+  desktop." matching `listAutomationRuns` refusal); **Edit** → full editor (8 schedule chips,
+  HH:MM, Ends, Max runs, Model row, live preview "Daily at 02:00"); the **HH:MM validation gate**
+  receipted at the node level — "2599" → preview vanishes + red field border + **Create button
+  `enabled="false"`**; "03:30" → normal border + enabled → **`updateAutomation ok in 173 ms`** +
+  card subtitle live-updated to "Daily at 03:30 · Next".
+- **Task row menu**: context-aware verbs (Unpin / Mark unread / Resume / Rename / Archive / Delete)
+  → **Resume** → `zcode-task.resumeTask ok` + the "Task resumed" toast. Hub overflow menu
+  (Archived tasks / New group) renders. The G13 delayed `session.upserted` flip rendered live
+  ("Live" badge on task 3 with no refresh).
+- **Approvals inbox**: bell badge "1" (the genuinely-pending bootstrap approval) → inbox row
+  ("Permission — Bash · task Synthetic task · echo synthetic · Allow once / Deny") → **Allow once
+  → `sendConversationCommandV4 ok in 58 ms`** → **"Nothing needs you"** empty state ("Permission
+  requests and questions from your tasks appear here.").
+- **Settings sweep**: Endpoints (MockBook · Relay (QR pairing) · v3.14.3 · Connected + Add direct
+  endpoint); Insights viewers (Usage / Plugins / Skills / MCP servers / Subagents / Providers /
+  Bots, read-only subtitles); Diagnostics (Export / Copy to clipboard / Add a marker / Send
+  feedback); Appearance (**Theme picker: Light / Dark / Follow the system / zai light / zai dark**
+  — Dark applied immediately with no restart, restored to system); Presentation mode; Language
+  (System default); Text size (Default 1.0×); Auto-archive (Off, manual only); follow mode
+  ("While the agent runs: Follow the desktop"); Notifications (Live connection / Auto-reconnect
+  checks / Terminal view-only ON + the honest no-push-service note); Privacy ("No analytics. No
+  tracking."); About; **"Check for updates — You are on the latest build"**; Licenses; Unpair.
+- **Widget + shade**: the home-screen approvals widget rendered **"Nothing needs you"** matching
+  inbox truth after the answer (resolved-state receipt again); the shade was empty after all
+  interactions resolved (consistent once-per-unseen semantics; the fresh-push-with-actions shade
+  receipt stands from passes 13/16 on identical bytes).
+- **Relay-restart recovery (D1 re-adjudication)**: relay killed while the app held a live
+  connection → this sequence produced NO DEGRADED wedge: the first reconnect attempt hit the
+  still-binding relay (`relay.reconnectFailed :: connect timed out after 10000ms` — honest), the
+  retry matched auth while backgrounded, and foregrounding completed
+  `hub.phase → CONNECTED` + `bootstrapApplied tasks=3` + `bootstrapReplayed` instantly — **no
+  manual Retry needed**. Recorded nuance: while backgrounded with a matched wire, the phase
+  machine held its transition until foreground resume (~64 s); designed lazy-resume or a milder
+  D1-neighborhood variant — not adjudicated further this pass. **Pass-17's D1 trigger shape
+  (takeover of an ESTABLISHED connection) remains open/unfixed** — relay-2 here never
+  established, so the takeover race never fired.
+- **Fresh-install re-pair (`pm clear`)**: onboarding privacy copy → Paste dialog → chunked
+  typing (11 × ~17-char chunks; one device-side `for` round trip) with an exact-length
+  verification gate (178/178 chars, clean `&`, no stray backslashes — see AS2 lessons) →
+  **stale-link guard fired** ("This QR code may be stale / …more than 10 minutes ago…") →
+  Continue anyway → **Security setup consent** ("sealed with hardware-backed encryption… never
+  leaves the device except to answer the relay's authentication challenges") → pairing completed
+  with a **NEW endpointId `91a90344-…`** → CONNECTED with the full hub → **New task** sheet
+  (workspace picker, description, "Model: workspace default") → **`tasks.create ::
+  workspace=/synthetic/ws-one model=default/default` + `hub.createTask outcome=Accepted` +
+  `hub.bootstrapApplied tasks=4` ×2** — live on the fresh pairing.
+
+## Part AS2 — pass-18 defects & adjudications
+
+**Zero NEW app-side defects.** The carry-overs:
+- **D2 (P3) re-CONFIRMED live** (wrapped Context-sheet chip row inert: 0,0 bounds + tap-dead,
+  nav count unchanged). Unfixed; still the top app-side fix-round item alongside D1.
+- **D1 (P3) NOT reproduced this pass** under the relay-restart-while-backgrounded sequence
+  (see AS1); the pass-17 trigger shape remains the repro condition and remains open.
+- **D3 (P4) re-stamp** — not re-driven (audit-timestamp-only impact; one-line guard pending the
+  fix round).
+- **D4 (P4) hook-card Trust swipe discoverability** — re-confirmed by feel this pass (same
+  short-swipe requirement).
+- **D5 (P4) sheet-reopen scroll** — did not manifest on the one cycle driven (intermittent).
+- **Pass-16 papercut (P4) "Edit automation" confirm button still says "Create"** — visible in
+  this pass's editor screenshots; unchanged.
+- Mock arming debts unchanged: `runAutomationNow`, `listAutomationRuns`, `git.getChanges`,
+  `git.getCommitGraph`, `files.list`, generateCommitMessage, usage-stats channel.
+
+## Part AS3 — pass-18 REA angle (desktop asar unchanged `99e280fb…`; new surfaces)
+
+All counts carry over (23,186 files / 22,125 parsed JS / 1,359 modules / 89,718 nodes / 92,776
+edges / 255 dynamic-channel operations / 47 renderer listeners). New string-level sweeps, each
+cross-checked against the phone codebase:
+
+- **Mode/effort authoring (the pass's live UPGRADE)**: the desktop chat toolbar carries
+  `chat.toolbar.mode.label: "Switch mode"` and `chat.toolbar.thoughtLevel.label: "Reasoning
+  effort"` riding `session/setMode` / `session/setThoughtLevel` — the phone's Switch-mode and
+  Reasoning-effort dialogs receipted live this pass are **full parity** with the desktop toolbar,
+  not display-only. With the desktop's per-model `thoughtLevels: array(string)` availability data
+  as the only nuance (the phone's picker offers the fixed medium/high/xhigh/max set regardless of
+  model; the host echoes/normalizes the value), NOT a gap.
+- **Compaction authoring**: `autoCompactThresholdTokens` exists only inside the context-window
+  TELEMETRY schema; **`compactNow` has ZERO hits** — the desktop has no manual-compaction UI
+  either; both sides render compaction as status/lifecycle data. Parity (display-only both sides).
+- **Session export**: `exportSession` zero hits on the desktop; the phone has no session-export
+  surface either. N/A.
+- **Workspace switching**: `activeWorkspaceKey` / `activeTaskId` live in the desktop's
+  `mobileViewState` (the vc33 bridge the phone consumes and follows) — no authoring gap; the
+  phone's workspace chips/groups follow the desktop's active key (receipted via the bridge suites).
+- **Follow-up steering**: desktop `followupMode: enum ["queue","guide"]` with
+  `chat.followup.guideCurrent: "Steer current run"` / "Waiting to steer the current run…" — and
+  the phone **already implements both modes**: `setFollowupMode {queue|guide}` (I2.6) in
+  ConversationPort/ConversationViewModel + the Queue-vs-Guide toggle in WriteComponents. NOT a
+  gap; the Guide leg was not driven live this pass (the queue family was) — small live-receipt
+  residue, code-verified parity.
+- **Computer Use toolbar entry**: unchanged from pass 16 — desktop-host plugin with macOS
+  permission gating (desktop-AUTHOR family, P4 small); the phone renders CUA tool rows +
+  per-tool inputs (receipted again this pass).
+
+**No new parity gaps.** The standing ledger is unchanged: GAP-17/J3 (desktop can spawn tasks
+under claude/opencode/gemini/codex CLIs at task-spawn time, phone display-only — the one
+user-visible P3 feature gap), usage-dashboard depth (rig-blocked on the mock's unscripted
+usage-stats channel — the one open parity question), and the desktop-AUTHOR P4-smalls family
+(commands/hooks/mcp/skills/subagents/plugins authoring; memory viewer self-declared local-only).
+
+## Part AS4 — rig lessons for future passes
+
+1. **Disabled Compose buttons report `bounds=[0,0][0,0]`** — a zero-bounds node is a DISABLED
+   node until proven otherwise (the branch sheet's "Create & switch" flipped 0,0 → real bounds
+   the moment the field had content). Don't diagnose D2-class inertness on a disabled control.
+2. **Radio/switch rows have ~130px dead gaps between them** — tapping between two switches
+   silently toggles nothing; always tap the node bounds, not the visual row.
+3. **Rapid DEL bursts drop keys** (~150/195/48-burst attempts each left residue); the reliable
+   field-clear is the ITERATIVE loop: 80-DEL rounds with a dump-verified length check between
+   rounds until 0. Then a single verified chunk pass. Exact-length verification (178/178, no
+   `\&`, ends-with check) is what turned the flaky paste-pairing leg deterministic.
+4. **`%s` in `input text` is a SPACE, not a colon** — "03%s30" typed "03 30" (and the HH:MM
+   field's red-border invalid state rendered for it); the literal colon passes through unescaped.
+5. **`input keyevent 66` (IME action) commits and closes the keyboard WITHOUT dismissing the
+   dialog** — safer than `keyevent 4` around full-screen dialog editors (which closed the branch
+   sheet but spared the commit dialog — behavior differs per surface, so prefer 66).
+6. **Screenshot-coordinate taps misfire**: screenshots are 923×1983, the device is 1080×2340 —
+   ALWAYS tap from `uiautomator dump` bounds (two leg retries this pass were pure scale errors).
+7. The relay-restart D1 probe needs the app FOREGROUND with an established connection to
+   reproduce the pass-17 shape; a restart while backgrounded exercises the honest
+   reconnect-timeout + lazy-resume path instead.
+
+## Part AS5 — pass-18 verdict
+
+On HEAD `f31258a6` (debug APK `9084b920…` byte-identical to the pass-14 build) the full live
+matrix re-verified with NEW receipts in every family — including several FIRSTS: the fresh-push
+approval answered beside a pending question card, the hook-trust confirm round-trip with the
+INV-14 receipts, the interactive mode/effort chips riding `session/setMode` + the dedicated
+`setThoughtLevel` verb, `git-checkpoint.createCheckpoint` (create path), the Run-now refusal
+snackbar (closing pass-17's open question), the HH:MM gate at the node level
+(`enabled="false"`), the stale-link guard on a genuinely stale gen-2 link, and the complete
+fresh-install chain to `hub.createTask outcome=Accepted` (tasks=4) on a new endpointId. **Zero
+new app-side defects**; D2 re-confirmed live (top of the fix-round list with D1), D1 not
+reproduced under this pass's trigger shape, D3–D5 carry. The REA angle (digest unchanged
+`99e280fb…`, counts carried) found **no new parity gaps** and upgraded mode/effort authoring to
+full live-receipted parity with the desktop toolbar; the campaign ledger is unchanged
+(GAP-17/J3 P3, usage-dashboard depth rig-blocked, desktop-AUTHOR P4-smalls). The companion
+remains on-par on every companion-relevant surface enumerated to date. Nothing pushed.
