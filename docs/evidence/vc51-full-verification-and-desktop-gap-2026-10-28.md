@@ -4607,3 +4607,198 @@ duplicate-guard saga resolved as rig fidelity with a documented rig remedy (uniq
 per relay generation), and the REA pass-15 angle yields one new P3 parity gap (agent picker) + two
 P4 smalls. Tree under audit `0f88f64b` (the mock fix commit); APK unchanged `9084b92060306d8b…`
 (vc52 / 1.3.1). Nothing pushed.**
+
+# Pass 16 — live emulation re-verification + REA desktop enumeration (2026-11-03, APPENDED; not part of the original audit)
+
+Scope: a fresh live-emulation walk on HEAD `7ed6dd6d` (app bytes unchanged since `0f88f64b` — the
+debug APK is still `9084b92060306d8b…`, 32,294,909 bytes, vc52 / 1.3.1, re-verified by sha), then a
+NEW REA enumeration angle against the macOS app (`/Applications/ZCode.app` asar re-measured
+byte-identical `99e280fb90b626cc…`). A fresh full `rea analyze-javascript-application` completed
+16:13 ("Application graph and Electron boundaries reconstructed"); its 780 MB full-JSON output was
+removed right after to free disk for the emulator reboot below — the label enumeration itself (the
+evidence for Part AQ5) comes from the established byte-window recipe over the same digest-verified
+asar, the method of passes 13–15. Identity check before any commit: `ErnestHysa <takis312@hotmail.com>`.
+
+Rig: zcode-pixel cold boot (single-homed eth0 this time — no dual-home), fresh `pm clear` +
+re-pair through the onboarding paste-link flow (the 198-char link typed in four escaped chunks,
+field content verified exact), fresh relay generation with ALL content flags armed + a per-
+generation push id `mock-approval-push-16` (the pass-15 rig remedy applied).
+
+## Part AQ1 — the live walk (each receipt observed on device this pass)
+
+| Surface | Pass-16 verification |
+| --- | --- |
+| Fresh pairing flow | Live — paste-link chunks land exact (198 chars) → security consent → **Connected** (relay-1); onboarding builds state from zero |
+| Tasks hub (A14 cap) | Live — automations hub (6 verbs) + Workflows (release-notes + lint-all, "1 workflow file(s) could not be read" honest line) + Pinned + WORKSPACE/Backend groups + both FABs on one screen |
+| Task row menu | Live — grouped row shows all 7 verbs (Pin / Mark unread / Resume / Move to group… / Rename / Archive / Delete); pinned row shows **Unpin** (the duality); **Resume** rode `zcode-task.resumeTask ok` |
+| Move to group | Live — picker (No group / Backend / New group…) → "No group" → the row left Backend live and the empty subgroup collapsed (`listGroupedTaskViewStructure ok`) |
+| Approvals inbox | Live — answers a **ROW-ANCHORED** approval ("Permission — Bash · echo synthetic", DB row `mock-approval-1/synth-task-1` lifecycle DISPLAYED → answered → `sendConversationCommandV4 ok in 24ms` → "Nothing needs you"; DB lifecycle RESOLVED). New receipt: the inbox surfaces approvals anchored by conversation rows, not only state-block interactions |
+| Notifications shade | Live — background-entry re-posts: **two** "ZCode needs your approval" (actions=2; the pushed approval + the permission-class hook review) beside "ZCode has a question for you" (no actions) |
+| Widget | Live — **counted "Pending approvals · 2 requests need you"** (approval + hook review); tap-through navigated straight into the conversation with the approval card pinned at head |
+| Fresh interaction push | Live — `mock-approval-push-16` landed ~15 s after the first conversation subscribe |
+| Approval answered | Live — "Allow once" → `sendConversationCommandV4 ok in 35ms`; **sibling survival**: the AskUserQuestion card survived intact (2d7e61d5 holding) |
+| AskUserQuestion ANSWERED | Live — Channel radio ("Tag the release" selected) → card scrolls internally to Extras (both multi-select) → free-text row → **"Send answers"** → `sendConversationCommandV4 ok in 43ms` → stack advanced to the hook card. (Note: the multi-question card is taller than the pinned-strip budget — Extras/Send answers need an in-card scroll; render verified, filed as a note not a defect) |
+| Hook trust (A15) | Live — checkboxes → "Trust 2 selected hook(s)" → confirm dialog → `grantWorkspaceHookTrust ok in 191ms` → "Trusted 2 hook(s) — the session continues." strip; per-item verbs payload-truthful (Disable per `editable`, Revoke per `trusted_persistent`) |
+| **Post-trust semantics (0f88f64b under live fire)** | **Live — the hook card did NOT resurrect** across follow-up commands (queue Send now pushed patches) and the card RESOLVED on the next fresh snapshot — see AQ2 for the full resolution |
+| Queue verbs | Live — Edit dialog round-trip, Delete (strip cleared), Send now ("Queued (2)" → "(1)" → deleted), Auto-send toggle rendered |
+| Compaction lifecycle | Live — "Compressing context" → "Context automatically compressed 180K → 42K tokens" → "Context compression failed · Retry" rows all rendered |
+| Config chips | Live — "mode: yolo" / "Effort · max" / "account:zai-individual-coding-plan/GLM-5.3-Flash · max"; the chip's content-desc carries the full "collaboration mode yolo, tap to change" semantics |
+| Slash refusal | Live — `/goal pause` (typed via %s-space chunks) → `command.rejected :: type=pauseGoal fault.command.rigRefused:pauseGoal` → "Goal pause was refused (the goal may not be pausable right now)." with the draft preserved |
+| Find in conversation | Live — "cadence" → **"1 of 40"** with the matched CODE row surfaced; nav arrows + honest empty state render |
+| CUA + artifact tile | Live — the CUA screenshot result renders as a **"mock.png" attachment tile** in the timeline (its read rode `conversationAttachmentReadV4`); the "Computer use · 3 actions" group header renders (expand interaction = pass-13 on identical bytes) |
+| Background bash | Live — sheet ("synthetic background build · bash · running · Cancel") → View output → `backgroundBashOutputV4 ok in 11ms` → live "compiling module 1/3 · 2/3…" + tail path |
+| Git write tier — FULL | Live — Commit sheet ("Commit changes" / message / **Generate** / **Include unstaged** toggle / **Commit & push** toggle / Commit): plain Commit → `git.commit ok`; Commit&push → "Push to the remote?" confirm → `git.commit ok` + `git.push ok`; Generate → `git.generateCommitMessage` refused honestly (`fault.mock.unscripted` — arming debt, AQ4) |
+| Context sheet | Live — Status (4m59s · Iteration 3 · 1 background), goal timeline (verifying / iter 2 — 2 criteria unmet), todos 1/2, workflow runs (lint-all Running, release-notes Stopped), plans 1/3, git strip "main · clean", panel chip row |
+| Workflow start | Live — Run sheet (required `version *`, run-in-task picker with all four tasks **including the task created minutes earlier**) → `port.startWorkflow :: session=synth-task-1 name=release-notes outcome=Accepted` → navigated in |
+| New task end-to-end | Live — sheet (workspace picker, description, Model row — still NO agent picker, the pass-15 P3 gap re-confirmed live) → Create → `hub.createTask :: workspace=/synthetic/ws-one outcome=Accepted` → **row appears live** |
+| Automations | Live — Run now honest refuse ("The run could not be started — the desktop refused it." + `listAutomations` refresh); Pause/Continue ×2 (`setAutomationEnabled ok`, badge flip); History sheet (filters + honest fault); Edit sheet (prompt, 8 schedule chips, HH:MM validation gate — invalid "0330" DISABLES Create, valid "03:30" enables) → `updateAutomation ok in 138ms` → subtitle re-rendered ("Monthly on day 1 at 03:30") |
+| Search | Live — "task 3" → exactly one row; garbage → "No tasks match." |
+| Files panel | Live — honest "workspace files unavailable on this connection" |
+| Terminal gate | Live — full explainer + toggle → `terminal.optIn :: enabled=true` → attach plane |
+| Settings sweep | Live — Endpoints ("Relay (QR pairing) · v3.14.3 · Connected" + Add direct endpoint), Insights (Usage honest degrade; Plugins/Skills/MCP/Subagents with explicit **read-only** subtitles), Export/Copy diagnostics, Add a marker, Send feedback, Appearance ("Theme: Follow the system"), Presentation mode, Language, Text size, Notifications (+ detail level + per-event rows + Live-connection window), Auto-reconnect checks, Terminal consent, Privacy ("No analytics. No tracking."), About, Licenses, **"You are on the latest build"**, Unpair |
+| Leave guard + draft | Live — "Leave this conversation?" on a holding draft → Leave → re-enter → **draft preserved** |
+| Update check | Live — `update.check :: desktop=3.14.3 state=UpToDate` |
+| Reconnect ladder | Live — relay kill → `relay.lost (abnormal close 1006)` → RECONNECTING ("Reconnecting…" bar) → restart → RECOVERING → `relay.connected` → **`relay.recovered :: subscriptions=2 snapshotReplace=true`** → CONNECTED → `hub.bootstrapApplied tasks=3` + `hub.bootstrapReplayed` |
+| Emulator crash resilience (new) | The emulator DIED mid-walk (see AQ3) → cold reboot → **app data + pairing survived** → auto `app.start` → `relay.connected` → `hub.bootstrapApplied tasks=3 workspaces=1 dropped=0` → `hub.bootstrapReplayed` — the full cross-reboot recovery chain receipted |
+
+Verdict: **zero app defects found on the live walk.** One new app-side P4 papercut (AQ4.1), the rest
+of the findings are rig/mock fidelity debts (AQ4.2+).
+
+## Part AQ2 — the hook-trust post-fix semantics, RESOLVED (and a pass-14 receipt explained)
+
+Pass-14's A15 receipt said post-trust "Warm build cache shows Disable + **Revoke** (trusted)", but
+this pass post-trust Warm showed Disable WITHOUT Revoke — same APK bytes, so something differed.
+Resolution, verified live + in code + in mock history:
+
+1. The app's `HookTrustReviewCard` renders per-item verbs purely from the served payload: Disable
+   when `editable`, Revoke when `trustState == "trusted_persistent"`. The ViewModel does NOT apply
+   an optimistic local trust update after `respondWorkspaceHookReview` — by contract, the wire is
+   the whole truth.
+2. The mock's `respondWorkspaceHookReview` (unchanged since 2d7e61d5) updates its internal
+   `hookTrustStates` but pushes a **revision-only patch** — no hookReview payload, no
+   pendingInteractions re-assert. The app therefore never learns the new per-item states: Warm
+   stays as-first-served (Disable, no Revoke). **Mock fidelity debt**: the desktop would publish
+   the updated review state; the mock doesn't.
+3. So why did pass-14 see Revoke on Warm? Because pre-`0f88f64b` the hook interaction was
+   RESURRECTED into every later snapshot/patch — and `scriptedHookInteraction()` re-serves the
+   review with the UPDATED `hookTrustStates` applied. Pass-14's "correct per-item verbs" were
+   observed **through the resurrection bug's data path**. The post-fix correct path (this pass)
+   leaves per-item states as-first-served until a fresh authority re-serves the review.
+4. The card itself persisted post-trust (trust mode, checkboxes, Trust button) because the only
+   patches that followed were key-absent (revision-only / queue patches) — correct by key-level
+   replacement. The decisive NEW receipt: leaving and re-entering the conversation took a fresh
+   subscribe + snapshot whose `pendingInteractions` was `[]` (all three resolved/gated) — **the
+   app resolved the hook card from the snapshot** (gone from the pinned plane). Key-level
+   replacement verified on the SNAPSHOT path, not just patches. (An intermediate stale
+   accessibility-tree read during a long-press navigation briefly suggested otherwise — rig
+   artifact, superseded by the clean tap-entry receipt.)
+
+## Part AQ3 — rig notes for future passes
+
+1. **Emulator + REA full analysis co-run crashed the emulator** (~18 min in): hanging QEMU2
+   threads + `process_memory_mac.cc invalid address` — the known 8GB signature, now with a second
+   trigger (the REA analyzer's ~1GB heap peak on top of the emulator). Sequence the REA analysis
+   AWAY from the emulator window in future passes. The reboot also hit **disk-space FATAL**
+   (1.6 GB free — the 780 MB REA JSON did not help); free disk before cold boots.
+2. Cross-reboot state survival is now receipted (pairing, Room, drafts) — the AVD userdata
+   persists across `-no-snapshot-load` cold boots as expected.
+3. `adb shell input text` gotchas re-confirmed: `%s` for spaces (raw spaces silently truncate),
+   `&` escaped `\&`, and chunked typing with field-content verification is the only reliable path
+   for long payloads.
+4. Long-press on a task row opens the ROW MENU, not navigation; a stale uiautomator dump during
+   the menu/nav transition can serve the previous window's tree — re-dump after settling (the
+   16:10 anomaly was exactly this).
+5. The mock's queue strip is SCRIPT-GLOBAL: every conversation shows the same queued rows (the
+   queue is not per-session in the mock). Cosmetic rig fidelity debt.
+
+## Part AQ4 — findings ledger updates
+
+### AQ4.1 NEW app-side papercut (P4)
+
+- **Edit-automation confirm button says "Create"** — the sheet title correctly reads "Edit
+  automation" and the form is pre-filled, but the confirm button label is "Create" in edit mode.
+  Works correctly (fires `updateAutomation`); purely a label papercut. Ledger small.
+
+### AQ4.2 Mock arming debts (recorded, same class as the pass-14/15 ledger)
+
+1. `git.generateCommitMessage` is scripted behind `script.generatedCommitMessage` but
+   `MOCK_GIT` never arms it → the phone's Generate gets `fault.mock.unscripted` and degrades
+   honestly (the wire round-trip itself is proven; a `MOCK_GIT_COMMIT_MSG` arm would let a future
+   pass receipt the filled-message path).
+2. `git.getChanges` → `fault.git.notAvailable` by default; the phone's Commit & push flow
+   preflights it and the refusal is NON-BLOCKING (commit+push completed) — honest, but arming it
+   would exercise the changes-scoped commit path.
+3. `usage-stats.getEntitlementSnapshot` unscripted → the phone's Usage screen degrades honestly
+   ("This feature isn't available on the connected desktop."). The usage/entitlement channel is
+   entirely unscripted in the mock — the phone's Usage depth vs the desktop's dashboard therefore
+   remains RIG-BLOCKED for live comparison (scope parity noted in AQ5).
+4. `runAutomationNow` unscripted (carried from pass-14/15) — re-confirmed with the new honest
+   banner copy.
+
+## Part AQ5 — pass-16 REA enumeration (new angle: the desktop's SETTINGS tree + git dialog)
+
+Method: byte-window label extraction over the digest-verified asar (`99e280fb90b626cc…`),
+anchored on `settings.*` (1920 keys), `git.actionMenu.*`, `sidebar.usage.plan.*`, `v4Pane.*`,
+`terminal.*`, `titleBar.menu.*`.
+
+### AQ5.1 UPGRADE: the desktop's commit dialog is at FULL parity on the phone
+
+The desktop's `git.actionMenu.commitDialog.*` cluster (message + **generate/regenerate** AI commit
+message, **includeUnstaged**, **commitAndPush**, ahead/behind push dialog) maps 1:1 onto the
+phone's CommitSheet — and this pass exercised it LIVE: `git.commit ok`, "Push to the remote?"
+confirm → `git.push ok`, Generate (wire refused only because the mock doesn't arm it). The phone's
+wire tier (ADR-021) is complete: stage/unstage/discard/commit/generateCommitMessage/push/switch/
+create-branch/branches/identity. This UPGRADES the pass-14 "read-only git panel" framing: the
+panel's "read-only" badge gates the DIFF surface only — the write tier was already the full set.
+**Git is at full functional parity, now live-receipted end-to-end.**
+
+### AQ5.2 The desktop's settings tree (1920 keys), section-by-section classification
+
+| Desktop settings section | Classification vs the phone |
+| --- | --- |
+| `settings.appearance` / `themeMode` (incl. zai) | **Implemented** (Appearance + theme override incl. the zai themes, Phase 4) |
+| `settings.locale` | **Implemented** (Language, G37 SP-mirror) |
+| `settings.automations` | **Implemented** (the hub; beta badge cosmetic) |
+| `settings.taskAutoArchiveDays` | **Implemented** (G39) |
+| `settings.zcodeInteractionBehavior` | **Implemented** (the phone's interaction-behavior setting) |
+| `settings.usage` (114 keys: activity/streaks, lifetime tokens, cache hit rate, coding-plan quota + connection, billing banner) | **Surface implemented, depth rig-blocked** — the phone's Usage screen exists ("Token usage, activity and tools for the paired desktop") but the mock scripts no usage-stats channel (AQ4.2.3); the desktop's analytics depth (streaks, cache-hit, billing) vs the phone's rendering could not be compared live |
+| `sidebar.usage.plan.*` (30+: five-hour window, percent used, model usage, refresh, openStats) | Same rig-block note — the phone's plan-quota counterpart is the Usage surface |
+| `settings.memory` (+viewer) | **Desktop-local, NOT a phone gap** — the desktop's own label says memory details are LOCAL-DESKTOP-ONLY (`settings.memory.viewer.localOnly`: "view on the local desktop's Memory settings") |
+| `settings.commands` (authoring custom slash commands) | **Desktop-author surface; P4 small** — the phone USES slash commands (menu + refusal paths verified) but has no authoring UI |
+| `settings.hooks` (40 keys: add/args/async/customJson) | **Desktop-author surface; P4 small** — the phone owns the hook TRUST plane (ADR-024, verified live) but not hook authoring |
+| `settings.mcp` (create/import/form) | **Desktop-author surface; P4 small** — the phone's MCP viewer is explicitly read-only |
+| `settings.skills` (create/delete/copyToCommon/diagnostics) | **Desktop-author surface; P4 small** — phone viewer read-only |
+| `settings.subagents` (add/edit/color) | **Desktop-author surface; P4 small** — phone viewer read-only |
+| `settings.plugins` (marketplace/install/checkForUpdates) | **Desktop-author surface; P4 small** — phone viewer read-only |
+| `settings.modelProvider` (130 keys: catalog, custom providers, endpoints, keys) | **Desktop-author surface** — provider/credential authoring is host-local by nature (keys live on the desktop); the phone's Providers viewer is the companion-side counterpart |
+| `settings.browser` (control/clearCache/clearAll/import/security) | **Desktop-only** — host browser control + browser-data management (the phone's CUA support is display/consent of desktop-side actions) |
+| `settings.computerUse` (composerEntry, toggle) | **P4 small** — the desktop composer has a computer-use INVOCATION entry; the phone composer menu (Mention/Sketch/Photo/Attach/Take photo) has none (the agent can still be asked in text) |
+| `settings.shortcuts` (32 keys, bindings/conflicts/scopes) | **Desktop-only** (hardware keyboard surface) |
+| `settings.interfaceMode` (coding/office) | **Desktop-only** (windowing) |
+| `settings.migration` (40 keys) | **Desktop-only** (host data migration tooling) |
+| `settings.remoteSync` ("Sync" + remote-write preflight) | **Desktop-only** (settings sync to a remote; noted for a future angle — no phone counterpart observed) |
+| `settings.integratedTerminalShell` | **Desktop-only** (host terminal) |
+| `settings.askUserQuestionAutoResolution` | **Desktop-only host setting** (host-side auto-resolution; the phone mirrors the resulting state by-elsewhere — verified working) |
+| `settings.autoDownloadAndInstallUpdates` | **Desktop-only** (the phone has its own signed update gate, verified live) |
+| `settings.workspaceFileSearch` (config editor) | **P4 small** — the phone consumes mention-search (verified) but has no config editor |
+| scope/resource scaffolding, nav/search/group internal keys | Internal scaffolding, N/A |
+
+### AQ5.3 Verdict
+
+Zero regressions; the git surface upgraded to **full live-receipted parity**; the memory viewer is
+NOT a gap (desktop self-declares local-only); the residue is (a) the usage-dashboard depth
+question, rig-blocked on the mock's unscripted usage-stats channel — the one item that could still
+hide a real depth gap, and (b) a family of desktop-AUTHOR surfaces (commands/hooks/mcp/skills/
+subagents/plugins authoring) where the phone is deliberately the read-only companion — recorded as
+P4 parity smalls, consistent with every subtitle the phone's own settings render. The companion
+remains on-par on every companion-relevant surface enumerated to date; the pass-15 P3 (agent
+picker at task-spawn time) remains the one user-visible feature the desktop has that the phone
+lacks.
+
+**Pass-16 verdict: on HEAD `7ed6dd6d` (APK unchanged `9084b92060306d8b…`, vc52 / 1.3.1) the app
+re-verified clean across the live matrix above — zero app defects, zero FATALs, the 0f88f64b and
+2d7e61d5 mock fixes held under live fire, and the snapshot-scoped by-elsewhere resolution got its
+first direct receipt. One new P4 app-side papercut (Edit-automation "Create" label) and a set of
+mock arming debts recorded. The REA pass-16 angle confirms full git parity live, classifies the
+desktop's entire 1920-key settings tree, and leaves exactly one open question (usage-dashboard
+depth, rig-blocked on the mock). Nothing pushed.**
