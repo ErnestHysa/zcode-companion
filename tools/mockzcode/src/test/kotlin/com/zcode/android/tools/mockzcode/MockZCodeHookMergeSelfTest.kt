@@ -125,4 +125,58 @@ class MockZCodeHookMergeSelfTest {
         assertEquals("i-perm", m.pendingPermissionForTest()?.interactionId)
         assertEquals(null, m.pendingUserInputForTest())
     }
+
+    /**
+     * Pass-15 rig find: `respondWorkspaceHookReview` set `script.hookReviewsResolved`
+     * but NOTHING read the flag — `scriptedHookInteraction()` sat in
+     * `pendingInteractionList()` unconditionally, so the next full-state emission (any
+     * later command's patch, a reconnect snapshot) re-asserted the RESPONDED review as
+     * pending. Live case (vc51 pass 15): trust-confirm → grantWorkspaceHookTrust ok →
+     * "Trusted 2 hook(s)" → Send-now follow-up command → the trust card CAME BACK
+     * ("Trust 2 selected hook(s)") because the patch carried the hook interaction
+     * again. The app is contract-correct (key-level replacement trusts the list);
+     * the mock must stop re-asserting a review the session already responded to.
+     */
+    @Test
+    fun `a RESPONDED hook review stays resolved in every later snapshot and patch`() {
+        val m = mock { s ->
+            s.emitStateKeys = true
+            s.hookReview = JsonObject(
+                mapOf(
+                    "interactionId" to JsonPrimitive("hook-1"),
+                    "reviewFlowId" to JsonPrimitive("flow-1"),
+                    "items" to JsonArray(emptyList()),
+                ),
+            )
+        }
+        m.applyCommandEffectForTest(
+            "respondWorkspaceHookReview",
+            JsonObject(mapOf("payload" to JsonObject(mapOf(
+                "decision" to JsonObject(mapOf("reviewItemIds" to JsonArray(emptyList()))),
+            )))),
+        )
+        // 1. The snapshot must not offer the responded review as pending.
+        val blockKinds = (m.stateBlockForTest()!!["pendingInteractions"] as JsonArray)
+            .map { (it.jsonObject["kind"] as JsonPrimitive).content }
+        assertEquals(
+            emptyList<String>(), blockKinds,
+            "a responded hook review must not ride the connection snapshot as pending",
+        )
+        // 2. A LATER full patch (any following effect) must not resurrect it either.
+        m.applyCommandEffectForTest(
+            "resolveInteraction",
+            JsonObject(mapOf("payload" to JsonObject(mapOf("interactionId" to JsonPrimitive("i-other"))))),
+        )
+        val frames = m.opLogForTest("synth-task-1")
+        val statePatch = frames.asReversed()
+            .flatMap { it.ops }
+            .map { it.jsonObject }
+            .first { it["op"]?.toString()?.contains("state.updated") == true }["patch"]!!.jsonObject
+        val patchKinds = ((statePatch["pendingInteractions"] as? JsonArray) ?: JsonArray(emptyList()))
+            .map { (it.jsonObject["kind"] as JsonPrimitive).content }
+        assertEquals(
+            emptyList<String>(), patchKinds,
+            "a responded hook review must never re-appear as pending in a later patch",
+        )
+    }
 }

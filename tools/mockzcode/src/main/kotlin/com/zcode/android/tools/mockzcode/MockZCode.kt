@@ -1032,6 +1032,12 @@ class MockZCode(
      * card vanished on the rig mid-leg).
      */
     private fun scriptedHookInteraction(): JsonObject? {
+        // Pass-15 rig find: a RESPONDED review is resolved — hookReviewsResolved was
+        // written by respondWorkspaceHookReview and never read, so every later full
+        // snapshot/patch re-asserted the trust card as pending (the app's key-level
+        // replacement correctly trusted the wire). The review stays resolved; the
+        // per-item trust states remain for the revoke/disable planes.
+        if (script.hookReviewsResolved) return null
         val hr = script.hookReview ?: return null
         val items = (hr["items"] as? JsonArray)?.map { el ->
             val o = el as? JsonObject ?: return@map el
