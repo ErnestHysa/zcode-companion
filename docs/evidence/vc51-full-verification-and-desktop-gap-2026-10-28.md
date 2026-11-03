@@ -4430,3 +4430,180 @@ test harness (mock), now fixed test-first. Tree under audit `761ae7fe`; APK
 **Round verdict: the mock's interaction-pending plane now clears exactly one slot per resolve and
 patches the whole surviving truth, pinned in both directions (`2d7e61d5`); the app needed no change
 (its by-elsewhere rule is the documented behaviour). Nothing pushed.**
+
+# Pass 15 — live emulation re-verification + REA desktop enumeration (2026-11-03, APPENDED; not part of the original audit)
+
+Scope: a fresh live-emulation walk on HEAD `51571d70` (app bytes unchanged — the debug APK is still
+`9084b92060306d8b…`, 32,294,909 bytes, vc52 / 1.3.1, re-verified by sha before install), then a NEW
+REA enumeration angle against the macOS app (`/Applications/ZCode.app` asar `99e280fb90b626cc…`,
+re-measured byte-identical before analysis; fresh full REA analysis completed 2026-11-03 12:31,
+"Application graph and Electron boundaries reconstructed", exit 0). REA access note for future
+passes: the REA **MCP** answers fast status calls (`binary_session` OK) but the long
+`analyze_javascript_application` call hits the ~30 s MCP transport timeout — run the analysis via the
+**rea CLI** (`rea analyze-javascript-application <asar> --integrity-policy record-and-continue`); the
+known `node_modules/node-pty/prebuilds/darwin-arm64/pty.node` unpacked-binary packaging mismatch
+still requires record-and-continue.
+
+## Part AP1 — the live walk (each receipt observed on device this pass)
+
+Rig: zcode-pixel cold boot, `svc wifi disable`, vc52 APK reinstalled over stored pairing
+(`install -r`, pairing survived), MockZCode relay on `10.0.2.2:18100` with ALL content flags armed
+(`MOCK_ROWS=40 MOCK_GOAL MOCK_APPROVAL MOCK_ROW_ACTIONS MOCK_WORKFLOWS MOCK_TASKMGMT MOCK_QUESTION
+MOCK_HOOKS MOCK_COMPACT MOCK_ATTACHMENT MOCK_AUTOMATIONS MOCK_OFFPEAK MOCK_SHARED_CONTEXT
+MOCK_BACKGROUND_BASH MOCK_SESSIONS_INDEX MOCK_CUA MOCK_GIT MOCK_QUEUE MOCK_WORKSPACE_FILES
+MOCK_REFUSE_COMMANDS` + a `MOCK_INTERACTION_PUSH_MS` push).
+
+| Surface | Pass-15 verification |
+| --- | --- |
+| Tasks hub (capped A14 layout) | Live — Automations + Workflows + Pinned + WORKSPACE groups + both FABs on screen at connect |
+| Bootstrap ladder | `helloConversationV4 → initializeConversationV4 → listAutomations → listSavedWorkflows → listSavedWorkflowRuns → subscribeSessionsIndexV4`; `hub.bootstrapApplied tasks=3 workspaces=1` |
+| Task row menu | Live — all 7 verbs (Pin / Mark unread / Resume / Move to group… / Rename / Archive / Delete); **Resume** fired with the "Task resumed" toast |
+| Tasks search | Live — "task 3" → exactly one row; garbage query → honest "No tasks match." |
+| New task end-to-end | Live — sheet → workspace picker ("Choose a workspace" → Synthetic One + "New scratch workspace") → Create → `sendConversationCommandV4` → **row appears live** |
+| Automation Run now | Live — `runAutomationNow` + listAutomations refresh |
+| Automation Pause/Continue | Live — badge "On · active" → "Off · active" AND the verb row flips Pause→Continue (`setAutomationEnabled` ×2) |
+| Automation History | Live — "Run history" sheet, four filter chips, honest desktop-unavailable fault, `listAutomationRuns` |
+| Automation Edit | Live — full editor (7 schedule chips, HH:MM, Ends, Max runs); saved → **"Every weekday at 02:00"** subtitle change, `updateAutomation` |
+| Workflow Run sheet | Live — required arg ("version *"), run-in-task picker with all four tasks (current preselected ✓), start rides `sendConversationCommandV4`, in-task navigation with the full subscribe ladder |
+| Session context sheet | Live — Status (iteration/backgrounds), goal timeline, todos 1/2, workflow runs, plans 1/3, panel chip row |
+| Config chips | Live — chip expands "mode: yolo" / "Effort · max" / "account:zai-…" |
+| **AskUserQuestion ANSWERED (the leg pass 14 could not run)** | **Live — "Send answers" rode `sendConversationCommandV4`, the multi-question card (Channel + Extras) resolved, and the pinned stack advanced to the hook card** |
+| Approval card answered | Live — Allow once answered (relay-1 receipt); sibling cards untouched |
+| **Sibling survival (2d7e61d5)** | **Live both directions — answering the question left the approval standing; answering the approval left the hook card standing** |
+| Hook trust (A15) | Live — checkbox rows, "Trust 2 selected hook(s)", confirm dialog, `grantWorkspaceHookTrust` → "Trusted 2 hook(s) — the session continues." + per-item Disable/Revoke |
+| "Already handled on the desktop." degrade | Live — a duplicate answer against an already-submitted interaction degrades honestly with NO wire send (the INV-4 duplicate guard, see AP3) |
+| Queue strip | Live — "Send now" round-trip "Queued (2)" → "Queued (1)" (twice, incl. post-reconnect) |
+| Background bash strip + tail | Live — View sheet (bash · running), `backgroundBashOutputV4` + live output tail |
+| Shared context strip | Live — Remove rode `sendConversationCommandV4` (strip persistence is the recorded mock debt — the mock has no `discardSharedContext` effect) |
+| Slash refusal | Live — persisted `/goal pause` draft sent → `command.rejected` → "Goal pause was refused (the goal may not be pausable right now)." with the draft preserved |
+| Draft persistence | Live ×3 — across leave-guard Leave, process restart, and relay restart |
+| Leave guard | Live ×2 — "Leave this conversation?" on draft-holding back navigation |
+| Find in conversation | Live — find bar, up/down nav, honest "No matches" empty state (the "1 of 40" hit receipt is pass 14's on identical bytes) |
+| CUA tool group | Live (render) — "Computer use · 3 actions, expand" row in the timeline |
+| Composer menu | Live — all five entries (Mention a file / Sketch / Photo / Attach a file / Take photo) |
+| Files panel | Live — honest "workspace files unavailable on this connection" (correct: `MOCK_WORKSPACE_FILES` seeds the **composer mention plane** `searchWorkspaceFiles`, not the Files list plane — the mock does not serve that plane) |
+| Notifications shade | Live — background-entry re-post receipts (`notify.repost :: interaction:mock-approva` + `interaction:q-rig-1`), both notifications ("ZCode has a question for you" / "ZCode needs your approval") with inline **Approve / Deny** actions rendering |
+| Widget | Live — **counted state "Pending approvals · 1 request needs you"** (pass 14 held the empty state) |
+| Reconnect ladder | Live ×2 — relay kill → `RECOVERING`, restart → `relay.connected connectionId=relay-3` → `relay.recovered :: subscriptions=3 snapshotReplace=true` → CONNECTED → `hub.bootstrapApplied` + `hub.bootstrapReplayed :: in-connect payload applied (no re-fetch)` |
+| Fresh pairing flow | Live — `pm clear` → onboarding → Paste pairing link → stale-link consent ("This QR code may be stale · Continue anyway") → Security setup consent → Connected (also proves the app builds its state from zero on the same relay) |
+
+Verdict: **zero app defects found on the live walk.** The one defect found this pass is in the test
+harness (AP2), and one long rig saga resolved into rig fidelity, not app behavior (AP3).
+
+## Part AP2 — mock defect found live, fixed test-first (commit `0f88f64b`)
+
+`respondWorkspaceHookReview` wrote `script.hookReviewsResolved` but NOTHING read the flag:
+`scriptedHookInteraction()` sat in `pendingInteractionList()` unconditionally, so the next full
+state emission re-asserted the RESPONDED review as pending. Live case: trust-confirm →
+`grantWorkspaceHookTrust ok` → "Trusted 2 hook(s)" → the follow-up command's patch carried the hook
+interaction again → the trust card CAME BACK and re-froze the timeline. Third member of the
+resolve-class family (c2bcdc1b pass 13, 2d7e61d5 pass 14). The app is contract-correct (key-level
+replacement trusts `pendingInteractions` as the whole truth). Pass 14's A15 leg masked it because it
+ended at the applied notice without a follow-up command.
+
+Fix + pin: `scriptedHookInteraction()` gates on the flag; `MockZCodeHookMergeSelfTest` gains
+"a RESPONDED hook review stays resolved in every later snapshot and patch" — RED on the unfixed
+tree (1 of 5 failed, AssertionError at the snapshot assertion, the exact live resurrect), GREEN
+after the one-line gate; `:tools:mockzcode:test` BUILD SUCCESSFUL (65 tests). **Live re-verification
+on a clean rig (fresh `pm clear` + re-pair + fresh interaction ids): trust → confirm → follow-up
+Send-now commands → the hook card STAYS RESOLVED** (was the resurrect trigger pre-fix).
+
+## Part AP3 — the "inert interaction cards" rig saga, resolved: rig fidelity + correct app guard
+
+Across relay generations 2–3, taps on pinned interaction-card buttons appeared dead: the card
+persisted, answered cards re-answered to the honest "Already handled on the desktop." degrade, and
+no wire command left the app. Root cause (verified by the flushed relay ledger — **grep the relay
+log only after a flush; its stdout is block-buffered and stale greps mislead**):
+
+1. **The mock's scripted interaction ids are constants** (`mock-approval-1`, `q-rig-1`,
+   `hook-rig`) reused by EVERY relay generation, while the app's interaction lifecycle persists in
+   Room. After relay-1 answered those ids, every later generation's same-id cards were correctly
+   refused by the app's INV-4 duplicate guard (`DuplicateNoOp` — "a LIVE pending entry is never
+   duplicated") with the honest degrade banner and no wire send. Proof by differential: the pass-15
+   push used a UNIQUE id (`mock-approval-push-15`) and its inbox answer worked immediately
+   (card resolved, effect ran). The app never misbehaved; **rig remedy for future passes: derive
+   scripted interaction ids from a per-relay-generation nonce** (or `pm clear` between relay
+   generations, as this pass's closing leg did).
+2. A second attribution trap: the push REPLACES the mock's single `pendingPermission` slot, so an
+   answer naming the pre-push id matches nothing in `applyCommandEffect` (`hadPermission=false`) —
+   combined with (1) this made cards look permanently stuck. Mock fidelity debt, recorded.
+
+Net app-side verdict: the INV-4 guard, the by-elsewhere rule, and the degrade banners all behaved
+exactly per contract throughout. No app change.
+
+## Part AP4 — pass-15 REA enumeration (new angle: the desktop's MENU + task/message VERB surfaces)
+
+Method: python byte-window extraction over the same asar (the established recipe), anchored on the
+`titleBar.menu.*`, `taskList.*`, `chat.message.*`, `v4Pane.*`, and `chat.hooks.*` label clusters.
+
+### AP4.1 The desktop's complete title-bar menu tree (File / Edit / View / Window / Help + app)
+
+| Desktop menu item | Classification |
+| --- | --- |
+| File → New task | **Implemented** (phone New task FAB + create flow, verified this pass) |
+| File → Open Workspace / Close Window | **Desktop-only** (host windowing; the phone's workspace groups/Manage is the companion counterpart) |
+| Edit → undo/redo/cut/copy/paste/delete/selectAll | OS-level clipboard verbs (phone IME provides) |
+| View → full screen / actual size / zoom | **Desktop-only** windowing |
+| Window → minimize / zoom / bringAllToFront | **Desktop-only** |
+| Help → About ZCode | **Implemented** (Settings → About) |
+| Help → What's new | **GAP (P4, new)** — the phone has no What's-new / release-notes surface |
+| Help → Check for updates (+ checking/available/downloading states) | **Implemented** (in-app signed update gate, "You are on the latest build") |
+| Help → Toggle developer tools | Desktop-only (dev tool) |
+| Help → Resource manager | Desktop-only (matches pass-14's desktop-only resource-observability classification) |
+| Help → Capture agent stdio traffic | Desktop-only (host-side stdio tap, transport-internal) |
+| Help → ZCode Endpoint (Production / Test / Custom… / Reset) | **Mapped** — the phone's Settings → Endpoints manages the companion's endpoint set; the Production/Test switch is host-local |
+| Help → Feedback / Export logs / Clear all data | Feedback **implemented**; Export logs **implemented** (diagnostics export); Clear all data **desktop-only local-data nuke** (the phone's Unpair covers the companion side) |
+
+### AP4.2 The desktop's task-list verb surface (`taskList.*`) — AT PARITY
+
+Delete task / Pin task / Unpin task / Rename task / Archive task (+ `archiveLocal`/`archiveRemote`
+distinction) / Unarchive task / Mark as unread / Resume / New task / Pinned + Recent sections /
+Report issue — **all implemented on the phone** (row menu verified this pass; unarchive via
+`unarchiveFromViewer`; Report issue → Feedback). `taskList.showMore/showLess`, relative timestamps,
+and status labels (Running/Restoring/Ready/Done/Failed) likewise render.
+
+### AP4.3 The desktop's message context menu (`chat.message.*`) — AT PARITY
+
+Copy (+ copied / requiresFull), **Like / Dislike** (phone `row_like/liked/dislike/disliked`),
+**Fork** (phone `row_fork` + `fork_opened` + `notice_fork_refused`; the desktop's
+fork.derivedFrom lineage labeling corresponds to the phone's fork chip), restore → the phone's
+checkpoint/Undo-files plane. `chat.pendingCommand.resend/dismiss` → the phone's queue strip
+(Send now/Edit/Delete/Auto-send, verified twice this pass).
+
+### AP4.4 NEW GAP (P3): the desktop can SPAWN tasks under other agent CLIs; the phone cannot
+
+The desktop's new-task plane offers `taskList.selectProvider` ("选择 Agent" — Select Agent) with
+per-CLI variants `taskList.newTask.claude / .opencode / .gemini / .codex` — a new task can be
+spawned under Claude CLI / OpenCode CLI / Gemini CLI / Codex CLI instead of the built-in agent.
+The phone's per-runtime support is DISPLAY-only today: GAP-17 + J3 render per-runtime mode labels
+for claude/codex/gemini sessions (the shipped host normalizes their vocabularies onto the wire four,
+`toZCodeMode`), and any task's conversation/controls work regardless of runtime — but the New-task
+sheet (workspace + description + Model) has **no agent/runtime picker**, so a task can only be
+STARTED under the desktop's chosen agent. This is the first pass that enumerated the desktop's
+new-task UX (earlier angles counted wire methods and channels). Remedy shape: extend the New-task
+sheet with an agent row fed by the same source the desktop's picker uses and pass it through the
+create command payload. P3, feature-parity roadmap candidate (not a defect).
+
+### AP4.5 New smalls (P4, ledger)
+
+1. **Hooks monitor panel.** The desktop groups hook executions in a `chat.hooks.*` panel with
+   sources (user / workspace / plugin) and states (running / completed / blocked). The phone
+   renders hook executions as timeline rows (`row_hook`) and owns the trust plane, but has no
+   grouped hook monitor. Read-only parity small.
+2. **What's new** surface (AP4.1). Cosmetic.
+
+### AP4.6 Verdict
+
+One new P3 parity gap (agent picker at task-spawn time), two P4 smalls, zero regressions, and a
+large body of confirmations: the desktop menu/tree, task verbs, and message verbs are either
+implemented on the phone or desktop-only windowing/host tooling. The companion remains on-par on
+every companion-relevant surface enumerated to date; the P3 is the one user-visible feature the
+desktop has that the phone lacks.
+
+**Pass-15 verdict: on HEAD `51571d70` the app re-verified clean across the live matrix above (zero
+app defects, zero FATALs), the pass-14 mock fix (2d7e61d5) held live, ONE new mock defect was found
+live and closed test-first (`0f88f64b`, RED→GREEN + clean-rig live verification), the INV-4
+duplicate-guard saga resolved as rig fidelity with a documented rig remedy (unique interaction ids
+per relay generation), and the REA pass-15 angle yields one new P3 parity gap (agent picker) + two
+P4 smalls. Tree under audit `0f88f64b` (the mock fix commit); APK unchanged `9084b92060306d8b…`
+(vc52 / 1.3.1). Nothing pushed.**
