@@ -5915,3 +5915,264 @@ trigger). Zero crashes attributable to the app; all three emulator deaths were t
 rig's memory-pressure class. The REA angle adds six classified rows and withdraws
 one pass-20 candidate. Fix round for F-21-A + GAP-21-A is the next session's opener.
 Nothing pushed. vc51 pass-21 round.
+
+# Pass 22 — live emulation re-verification + REA command-inventory census (2026-11-04, APPENDED; not part of the original audit)
+
+Scope: the user asked for a full rig walk on a fresh emulation, a re-test of the two
+pass-21 P3 defects (F-21-A, GAP-21-A), and a REA angle that digs DEEPER than passes
+16–21. The dig produced the desktop's complete conversation-command schema inventory
+(34 types) cross-checked command-by-command against today's phone tree, plus a sweep
+of sixteen never-before-string-swept planes.
+
+## Part AW1 — rig and environment
+
+- Repo `main` at `1b670e2e` (pass-21 HEAD), tree clean before and after; nothing pushed.
+- Debug APK rebuilt first (no emulator contention), then re-verified:
+  `app/build/outputs/apk/debug/app-debug.apk` sha256 `9084b920…` — **byte-identical to
+  the pass-13 remediation build** (32,294,909 bytes); badging `versionCode='52'
+  versionName='1.3.1'` (aapt2; the vc52 release bump rides the debug build since
+  2c418804 — report line ~5250 already recorded this attribution).
+- Desktop asar re-hashed at pass start: `sha256 99e280fb90b626cc…` over 326,913,358
+  bytes — unchanged from passes 15–21, so every pass-15 whole-analysis count carries
+  and the REA work this pass was targeted byte-level sweeps + one schema extraction
+  (the established passes-16–21 method; `binary_session` left closed).
+- Emulator: zcode-pixel cold boot (`-no-snapshot-load -memory 2048 -no-audio`), zero
+  qemu deaths this pass (builds sequenced before boot; disk 5.7 Gi free).
+- Mock relay: fresh generation with the standing all-flags set **plus
+  `MOCK_SESSIONS_INDEX=1` armed for the first time in a live pass** (G13's flag) —
+  restarted once mid-pass (`pkill -f MockRelayMainKt` only), which re-arms its
+  one-shot delayed upsert (new rig fact, AW4).
+- Fresh-install chain LIVE again: `pm clear` → paste-pairing in 9×20-char chunks
+  (field length check 198 = 178 + 5 XML-escaped ampersands, exact) → security-setup
+  consent ("No screen lock detected" → Continue with reduced security) → **CONNECTED**
+  hub with all-flags data rendering. New endpointId `81ea0885-…`, connectionId
+  relay-1 (grew to relay-6 by pass end).
+
+## Part AW2 — live receipts
+
+FIRST receipt:
+
+- **Checkpoint RESTORE live** — ckpt-1 created, ckpt-2 created, Restore on the older
+  checkpoint → warned confirm dialog ("Restore the workspace to snapshot ckpt-1
+  (from ckpt-2)? File…") → **`git-checkpoint.restoreBetweenCheckpoints ok`**.
+  Passes 17–21 only ever receipted create; restore existed as a surface pass-17 note
+  and a Phase-3 pin. The card also shows the honest session-scoping note "Snapshots
+  created elsewhere aren't listed here".
+
+Re-receipts on the byte-identical APK (wire level, this pass):
+
+- Question card (radio + Extras multi-select + free text) →
+  `sendConversationCommandV4 ok 36ms`; card advanced, "(answered)" marker row.
+- Hook trust #6: 2-of-3 checkboxes → "Trust 2 selected hook(s)" → warned confirm →
+  `grantWorkspaceHookTrust ok 53ms` + INV-14 dedup receipts ×2. Disable leg:
+  `sendConversationCommandV4 ok 21ms` (+ a second at 9ms).
+- Queue plane: Send now → `ok 61ms`, strip 2→1; Auto-send flip (the row's toggle
+  point is x≈950, right of the label) → `resyncConversationV4 ok 9ms`.
+- Composer → queue-mode round trip: with Auto-send ON the typed draft queues
+  ("Keep typing to queue follow-up changes" hint); the mock's agent reply rendered
+  with Fork/Retry chips; **Retry → `sendConversationCommandV4 ok 45ms`**.
+- Background work sheet → View output → `backgroundBashOutputV4 ok 15ms` + tail
+  ("compiling module 1/3…") + log path row.
+- Git tier: Snapshot → ckpt rows (above); Branches sheet → "pass22b" → Create &
+  switch → **`git.createBranchAndSwitch ok`** (the 484a64b6 erratum fix holds on the
+  live path; the Context sheet's git strip updated to `pass22b · clean` within
+  seconds); Commit dialog → **`git.commit ok`**.
+- Terminal: consent gate → switch (the ~143px box LEFT of the label, x≈320) →
+  "Not attached." → Attach → **`terminal.create ok`** → `live — /bin/zsh`.
+- Slash catalog: "/" → `/help` row; `commands.list ok` +
+  `getSkillReferenceCatalog ok 9ms` (re-receipt; first seen pass-19).
+- Context sheet full plane: Status · 4m 59s · Iteration 3 · 1 background; goal
+  "Ship it · verifying · iteration 3"; Todos 1/2; Workflow runs (lint-all Running,
+  release-notes Stopped); Plans "Ship the release 1/3" with ✓/▸/○ steps; git strip;
+  chip row — riding `zcode-agent.conversationWorkflowRunsV4 ok`.
+- Recovery ladder (the D1 trigger shape, **6th consecutive non-reproduction**):
+  relay killed foreground+established → `relay.reconnectFailed :: connect timed out
+  after 10000ms` ×2 (relay-4, relay-5) → relay restarted → relay-6
+  `relay.connected` + `relay.recovered :: subscriptions=1 snapshotReplace=true` →
+  CONNECTED. No wedge, no Retry.
+- **G13 live flip re-receipted with the sessions-index one-shot**: the fresh relay
+  generation re-armed the delayed `session.upserted`; ~5s after the hub re-subscribed
+  the "Synthetic task 3" row gained its **Live** badge without any refresh. Row
+  semantics adjudicated on-screen: the Live badge is the cross-session LIVENESS
+  indicator (the status line text stays "Idle · …"), matching the mock's
+  phase=running/ended=false payload shape.
+- Cold boot: force-stop → relaunch → "Connected" header immediately (auto-reconnect
+  re-receipted, 5th/6th).
+- Notification shade honest: during the fast recovery window NO connection-lost
+  notification posted (the ≈2.5-min suppression window never elapsed — correct);
+  the shade showed only an injected probe notification.
+
+## Part AW3 — defect re-tests and adjudications
+
+- **F-21-A (P3, conversation touch-input dead zone after scroll-to-top): NOT
+  reproduced — 2nd pass since discovery.** Method: 4 aggressive flings to the
+  timeline top, then pixel-diff screenshots + the three pass-21 probes: composer tap
+  opened the IME (pixels changed, `mInputShown=true`), typed draft landed
+  ("probe"), and the header Context chip opened the SessionContextSheet. Touch input
+  fully alive at the exact trigger state. F-21-A stays OPEN (intermittent, single
+  sighting) and the fix round remains the ledger opener.
+- **GAP-21-A (P3, first-token @-mention dead): REPRODUCED cleanly — A/B upgraded.**
+  First-token draft `@re` → **0** `file.searchWorkspaceFiles` wire calls, no panel
+  (only the draft row renders). Mid-text `x @re` → **2** wire calls AND the mention
+  panel renders the seeded `README.md` hit. Extra fidelity note: a mid-text token
+  that matches NO seeded file (`@syn`) still fires the 2 wire calls but renders no
+  panel rows — expected empty-results behavior, recorded so future passes don't
+  miscount it as the bug. The fix remains `substringAfterLast(' ', missing = draft)`
+  + the re-trigger staleness look.
+- **D2 (P3) — 6th confirmation, PLUS a same-class sibling sighting.** The Context
+  sheet's wrapped "Model calls" / "Share" chips again render `[0,0][0,0]`. NEW: the
+  Terminal pane's "Copy visible output" / "Detach" actions render `[0,0][0,0]` in
+  the same walk (the second plane showing the wrapped/secondary-chip bounds bug —
+  pass-19 saw the same class on a scrolled sheet reopen).
+- **D5 (P4) re-manifested**: the Context sheet reopened scrolled BELOW the chip row
+  (chips unreachable until an in-sheet swipe) — twice this pass.
+- **Auto-send label-lag papercut (pass-21 P4): did NOT manifest** — both flip
+  directions updated the "· paused" suffix on the very next render.
+- Zero crashes, zero new P1/P2 defects this pass.
+
+## Part AW4 — REA pass-22 angle: command-inventory census + sixteen new sweep planes
+
+Method note: the asar digest is unchanged, so this pass dug deeper with (a) an
+extraction of the desktop's COMPLETE conversation-command zod schema inventory and a
+command-by-command census against today's phone tree, and (b) sixteen string planes
+never swept before (slash-command literals, diff actions, cost/usage, search,
+session ops, agents, updater, plan, permissions, voice, desktop notifications,
+workspace mgmt, terminal prefs, telemetry, misc UI). Sweeps ran as python
+`bytes.find` over the whole 327 MB asar (the ugrep-complexity lesson), receipts in
+`/tmp/rea22-sweeps.json`.
+
+**The desktop command inventory (schema-extracted, 30 command types + 2 fragment
+keys):** sendGoalCommand, stop, compact, forkAssistant, applyFileRewind,
+editUserQuery, retryTurn, setAssistantFeedback, sendQueuedNow, editQueueItem,
+reorderQueueItem, deleteQueueItem, setAutoDrain, resolveInteraction, answer,
+snoozeInteractionAutoResolution, switchModelConfig, switchCollaborationMode,
+setFollowupMode, pauseGoal, resumeGoal, cancelBackgroundWork, resumeWorkflowRun,
+startSavedWorkflow, renameSession, deleteSession, discardSharedContext (+ `input`,
+`resolvedBy` schema fragments).
+
+**Census against the phone (today's tree, code-cited):**
+
+- Consumed AND UI-surfaced (parity confirmed where the pass drove them live):
+  editUserQuery (long-press message-edit sheet, `ConversationScreen.kt:353-359`,
+  blank-refusal guard pinned by EditUserQueryRoutingTest), setAssistantFeedback
+  (row-action feedback callbacks, `ConversationScreen.kt:1323`),
+  reorderQueueItem (queue up/down, `WriteComponents.kt:559`), snoozeInteractionAutoResolution
+  (= the "Keep waiting" action receipted live this pass), applyFileRewind (the
+  "Undo files" rewind row, receipted pass-21), forkAssistant/retryTurn (Fork/Retry
+  chips receipted this pass), sendQueuedNow/editQueueItem/deleteQueueItem (queue
+  Send now/Edit/Delete), setAutoDrain (Auto-send toggle), resolveInteraction/answer
+  (approval + question cards), switchModelConfig/switchCollaborationMode (session
+  chips), setFollowupMode (Queue-vs-Guide), pauseGoal/resumeGoal (banner),
+  cancelBackgroundWork (background Cancel), resumeWorkflowRun/startSavedWorkflow
+  (workflow Run/Resume), deleteSession (task delete), discardSharedContext
+  (shared-context Remove), sendGoalCommand (goal), compact (phone ships `/compact`
+  + `/compress` in BuiltinSlashCatalog.kt:25 — the manual compact verb exists both
+  sides; pass-18's autoCompact display-only note is about AUTO-compact only), stop
+  (V4Command.STOP).
+- **`renameSession` — the ONE unclaimed command, re-confirmed with sharper
+  citations.** The desktop schema carries `renameSession:e.object({title})` with a
+  live caller (`ConversationCommandV4 … type:"renameSession"`); the phone declares
+  the constant (`V4Command.kt:55 RENAME_SESSION`) but has NO sender and no UI (no
+  rename entry on task rows: pin/unpin/delete/resume only). Audit AH3 already
+  counted it zero-send-site — pass-22 upgrades that to a schema-level + UI-level
+  confirmation and notes the cheap remedy: task-row/context-menu "Rename" sending
+  the existing constant. Stays in the desktop-AUTHOR P4-small family, now the
+  family's single cleanest wire row.
+- Audit AH3's other zero-send-site names (createSelectionSideSession,
+  amendWorkflowRunSettings, cancelWorkflowRun, deleteQueueItem) all have non-test
+  phone code today — the audit-era census has evolved; only renameSession (and
+  cancelWorkflowRun's single-file protocol-only footprint) remain thin.
+
+**False-positive adjudications (recorded so later passes don't re-chase):**
+`blame` ×114 = comedy-fixture vendor strings, NOT a git blame UI; `lineComment` ×77
+= babel/sucrase compiler options; `denyList`/`allowList` = http-exceptions vendor
+lib; `notificationsEnabled` ×20 = cytoscape vendor lib; `customAgent` ×60 = undici
+MockAgent; `onboarding` ×324 = Feishu/Lark API docs; `addWorkspace` = zod
+validation-helper naming. NOT gaps.
+
+**Real but classified rows (no severity change):**
+
+- **Agent-profile authoring schema** (strengthens the standing GAP-17/J3 +
+  desktop-AUTHOR family): the desktop agent-profile schema carries per-agent
+  `permissionMode`, `maxTurns`, `tools`, `disallowedTools`, `skills`,
+  `mcpServers`, `injectAgentsMd`, `color`, `systemPrompt`, `modelSelection`,
+  `background` — concrete schema evidence for what the phone's agent picker
+  (J3, P3) reads but cannot author.
+- **Desktop git staged/unstaged/untracked display split** (stagedStats/unstagedStats/
+  untrackedStats maps): desktop-side display aggregation. The phone's GitPort
+  already carries the underlying plane (`getChanges("unstaged"|"staged")`,
+  `diff(staged)`, `discardPaths(staged)` — GitPort.kt:25-76), so this is a depth
+  note inside the pass-16 git-pane parity, not a new gap.
+- **Plan-approval interaction card** (`planApprovalTitle/Header/Approve` i18n):
+  the desktop renders plan approvals as a typed card; the phone renders
+  interactions generically through the same pipeline — parity-with-note (a plan
+  approval arriving on the phone renders as a generic card; no special-casing
+  found on either side to diff).
+- **Desktop self-update plane** (checkForUpdate/autoUpdate/downloadUpdate): parity
+  with the phone's in-app updater (About → update, field-proven by Ernest) —
+  different mechanisms, both ship updates.
+- **Desktop titleBar menu plane** (help.about/whatsNew/checkForUpdates): form-factor
+  (menu bar), whatsNew already P4-small since pass 15.
+- **Voice plane: ZERO desktop hits** (dictation/speechRecognition/voiceInput/
+  SpeechRecognition all 0) — the pass-19 "find-in-conversation and voice input
+  exist ONLY on the phone = phone-better rows" classification is now sweep-backed.
+- **Terminal prefs plane: ZERO desktop hits** (terminalFontSize/shellOverride/
+  terminalBell/terminalTheme) — no desktop terminal-settings UI either; parity.
+
+## Part AW5 — rig notes for future passes
+
+1. **Non-interactive zsh parses bare env-flag names as commands** (`MOCK_GOAL` →
+   "command not found", exit 127) — arm the relay with `env VAR=1 …` explicit
+   values, not bash-style bare flags.
+2. **`MOCK_SESSIONS_INDEX`'s upsert is ONE-SHOT per relay generation** — it fires
+   ~5s after the FIRST sessions-index subscribe and never again; restarting the
+   relay (`pkill -f MockRelayMainKt` + fresh start) re-arms it. The restart ALSO
+   re-runs the D1 trigger shape for free.
+3. **Terminal consent switch geometry**: the "Enable terminal (view-only)" label
+   bounds start at x=396; the actual Switch sits LEFT of it (tap x≈320 worked,
+   x=160 and the label center x=622 both missed) — consistent with pass-20's
+   "~143px box LEFT of its label".
+4. **Git pane button order is [Commit… | Branches…] LEFT-to-RIGHT** at the same y
+   (Commit… center x≈136, Branches… x≈399) — the same-y assumption "Commit on the
+   right" cost one mis-tap that opened the Branches sheet.
+5. **Checkpoint Restore confirm dialog buttons** measured from the dump: Cancel
+   x≈536, Restore x≈782 (y≈1358) — tapping the dialog's right half at the earlier
+   text-row y missed.
+6. **The message-edit entry is a LONG-PRESS** on a user row (code-cited; not
+   re-driven live this pass — the composer queue-mode legs consumed the budget).
+7. **The Git pane covers the session bar** — the Context chip is unreachable while
+   a pane is open; keyevent 4 closes the pane first (it did NOT navigate back out
+   of the task — the pane consumes the first back).
+8. **Queue strip collapse**: after Delete/Send-now the strip collapses to a header
+   row; the Auto-send toggle point stays at the header's right edge (x≈950).
+
+## Part AW6 — pass-22 ledger and verdict
+
+Ledger after pass 22:
+
+- **UNCHANGED**: F-21-A (P3, NOT reproduced — 2nd consecutive clean pass at the
+  trigger state; fix round still the opener), GAP-21-A (P3, REPRODUCED with an
+  upgraded A/B), GAP-17/J3 (P3 agent picker — schema evidence strengthened),
+  usage-dashboard depth (rig-blocked), D1 (6th non-reproduction), D2 (P3, 6th
+  confirmation + a second sibling plane), D5 (re-manifested ×2).
+- **SHARPENED (no severity change)**: renameSession is now a schema-level +
+  UI-level confirmation inside the desktop-AUTHOR P4 family — the single command
+  the phone neither sends nor surfaces (with `V4Command.kt:55` + no-caller
+  citations); candidate one-row fix alongside the F-21-A/GAP-21-A round.
+- **NEW first receipt**: `git-checkpoint.restoreBetweenCheckpoints ok` (restore leg
+  live for the first time in 22 passes).
+- **NEW classifications**: voice + terminal-prefs planes are phone-better/parity
+  by sweep evidence; desktop git staged-split is a depth note (phone GitPort
+  already carries the plane); plan-approval = parity-by-generic-render; updater
+  plane = parity.
+- **Withdrawn candidates before they reached the ledger**: git blame UI, line
+  comments, desktop notification settings, custom-agent UI, global workspace
+  search, add/remove workspace UI — all vendor false-positives or already-carried
+  planes.
+
+Verdict: on the same byte-identical APK, the live matrix re-verified with one FIRST
+receipt (checkpoint restore), twelve wire-level re-receipts, the two pass-21 P3
+re-tests settled (one clean repro, one clean non-repro), and the REA dig went a
+level deeper than any prior pass — the complete command-schema census leaves
+exactly ONE unclaimed wire command on the phone side. Zero crashes, zero new
+P1/P2 defects. Nothing pushed. vc51 pass-22 round.
