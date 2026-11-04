@@ -5243,3 +5243,241 @@ reproduced under this pass's trigger shape, D3–D5 carry. The REA angle (digest
 full live-receipted parity with the desktop toolbar; the campaign ledger is unchanged
 (GAP-17/J3 P3, usage-dashboard depth rig-blocked, desktop-AUTHOR P4-smalls). The companion
 remains on-par on every companion-relevant surface enumerated to date. Nothing pushed.
+
+# Pass 19 — live emulation re-verification + REA conversation-input enumeration (2026-11-03, APPENDED; not part of the original audit)
+
+Scope: a fresh full live-emulation walk on HEAD `c00dfac0` (app code unchanged since the pass-13
+remediation build — the debug APK byte-verified as `9084b92060306d8b…`, 32,294,909 bytes, vc52 /
+1.3.1, md5 `6865701a…`; git tree clean), then a NEW REA enumeration angle against the macOS app
+(`/Applications/ZCode.app` asar re-hashed byte-identical `99e280fb90b626cc…` over 326,913,358
+bytes — every pass-15/16/17/18 graph count carries over, no re-analysis spent; the established
+unchanged-digest string-sweep method from passes 16–18).
+
+## Part AT1 — rig and the live walk (each receipt observed on device this pass)
+
+Rig: zcode-pixel cold boot (`-no-snapshot-load -gpu swiftshader_indirect -no-audio -no-boot-anim
+-no-window`), MockZCode relay on `10.0.2.2:18100` via gradle with the FULL 22-arm flag set +
+`MOCK_INTERACTION_PUSH_MS=25000` + gen-1 push id `mock-p19-gen1-a5d8e2f1` (gen-2 restart later in
+the pass: `mock-p19-gen2-8c1d4b7e`). Stored pairing survived the cold boot (5th consecutive
+confirmation) — launch → `hub.bootstrapApplied :: tasks=3 workspaces=1 dropped=0` +
+`hub.bootstrapReplayed (no re-fetch)` + `update.check desktop=3.14.3 UpToDate`. The home-screen
+widget rendered "Pending approvals — Nothing needs you" before the app was even foregrounded
+(Glance session worker ran at launch — binding receipt). Every receipt below was observed live:
+
+- **Approval + question composition (all-flags rig)**: the gen-1 fresh push arrived 25 s after
+  the conversation subscribe and rendered BESIDE the pending bootstrap question card (ADR-024
+  merge semantics); the timeline freeze class held (scroll locked while a card pends; the
+  question card virtualized until the approval resolved — the card advanced into view the moment
+  "Allow once" answered). **Allow once → `sendConversationCommandV4 ok 140ms`**, and the
+  **multi-group question answered in full** — Channel radio (selection registers), Extras
+  MULTI-SELECT (both options), the "Or type your own answer" free-text field, then Send answers
+  → **`sendConversationCommandV4 ok 66ms`** + "(answered)" marker row; the card body scrolls
+  INTERNALLY while the timeline freezes (Swipe inside the card bounds reveals Extras + Submit —
+  the pass-2 "Submit off-screen" composition artifact is reachable, not a blocker).
+- **Hook review trust round-trip**: two checkboxes checked (the CheckBox nodes are at the row's
+  far LEFT, x≈139 — label taps do NOT toggle) → "Trust 2 selected hook(s)" → confirm dialog
+  ("The desktop will mark 2 selected hook(s)… Unselected hooks stay untrusted") → Confirm →
+  **`grantWorkspaceHookTrust ok 39ms`**; then Disable on "Warm build cache" →
+  **`sendConversationCommandV4 ok 44ms` + `reconcile.pendingKind :: kind=workspaceHookReview
+  (counted, no card — INV-14)`**.
+- **Approvals inbox**: bell badge → row ("Permission — Bash / task Synthetic task / echo
+  synthetic") → **Allow once → `sendConversationCommandV4 ok 35ms`** → row resolves → empty
+  state "Nothing needs you / Permission requests and questions from your tasks appear here."
+- **Composer round-trip (timeline-level receipt)**: typed sends delivered EXACT payloads —
+  "pass19 composer probe" → AGENT "synthetic reply to: pass19 composer probe", "p19 probe" →
+  "synthetic reply to: p19 probe" — with Copy/Like/Dislike/Fork/Retry/Conversation-query-map row
+  actions rendering; file-change strip (Parser.kt rewritten · ParserTest.kt +12 −3), code block
+  (CODE · kotlin + Wrap long lines + Copy), bullet lists all rendered in the same walk.
+- **Slash catalog + queue strip**: "/" → catalog (fetched live: `commands.list ok` +
+  `getSkillReferenceCatalog ok 16ms`) → `/help` row inserts "/help " into the draft (exact) →
+  send → agent reply rendered; queue: Send now on item 1 → **`sendConversationCommandV4 ok
+  48ms`**, strip 2→1, Delete → collapsed "Queued" chip; "Keep typing to queue follow-up
+  changes" + Stop-the-agent state after the sends woke the session.
+- **Context sheet**: status strip (4m 59s · Iteration 3 · 1 background), goal "Ship it ·
+  verifying" with iteration history (✓ iter 1, — iter 2 — 2 criteria unmet), Pause goal →
+  **`fault.command.rigRefused:pauseGoal` → `command.rejected :: type=pauseGoal` + the honest
+  banner "Goal pause was refused (the goal may not be pausable right now)."** (MOCK_REFUSE_
+  COMMANDS refuses the GOAL verbs — the refusal family receipted again), todos 1/2
+  (strikethrough), workflow runs (lint-all Running / release-notes Stopped), plans 1/3
+  (✓▸○), git strip (main · clean), background task → **`backgroundBashOutputV4 ok 15ms`** +
+  tail ("compiling module 1/3…") + log path row, shared-context strip → Remove → **`ok 29ms`**
+  (the strip persists visually until the next snapshot — the recorded mock patch-fidelity class).
+- **Session-bar config chips (2nd live confirmation of the pass-18 parity upgrade)**: chip row
+  expands in place (mode / Effort / model) → Switch mode → Build → **`sendConversationCommandV4
+  ok 93ms` → chip live-updates "mode: build"** (the mock's config echo reconciles); Reasoning
+  effort → high → **DEDICATED `setThoughtLevel ok 28ms` → chip "Effort · high"**; the session
+  bar persists both across navigation ("build · GLM-5.3-Flash · high").
+- **Git write tier (full)**: pane (read-only badge, Checkpoints empty state) → **Snapshot →
+  `git-checkpoint.createCheckpoint ok` → "ckpt-1" row + the honest "Snapshots created elsewhere
+  aren't listed here" note** → Commit… dialog → Commit & push switch ON (the switch is the
+  clickable node at the row's RIGHT edge, x≈964 — label taps are dead gaps) → Commit → **`git.commit
+  ok`** → push-consent gate ("Push branch main? The desktop runs git push — publishing cannot be
+  undone from the phone.") → Push → **`git.push ok`** → Branches… sheet (`git.getLocalBranches
+  ok`: main ✓ / feature/a + Switch / new-branch field) → "feature/p19rig" → Create & switch →
+  **`git.createBranchAndSwitch ok`** (the 484a64b6 erratum-fixed ack path); History tab honestly
+  faults (`git.getCommitGraph refused: fault.git.notAvailable` — arming debt unchanged).
+- **Terminal (fresh consent → attach)**: consent gate copy ("Terminal output is a sensitive
+  surface… view-only… nothing you type can reach the shell…") → the ENABLE control is a SWITCH
+  left of the label → **`terminal.optIn :: enabled=true`** → "Not attached." → Attach →
+  **`terminal.create ok` + `terminal.attached :: id=term-1`** (Copy visible output / Detach
+  render attached).
+- **Hub families**: automations — Run now → **`runAutomationNow channel error:
+  fault.mock.unscripted` + the honest snackbar "The run could not be started — the desktop
+  refused it."** (arming debt, honest degrade); Pause → **`setAutomationEnabled ok 36ms`**
+  (badge "On · active"→"Off · active", verb→Continue) → Continue → **`ok 25ms`** (flip back);
+  History sheet (filters + the honest "This feature isn't available on the connected desktop."
+  fault); Edit sheet (title/prompt/8 schedule chips/HH:MM/Ends/Max runs) → invalid "2599" →
+  **Create container `enabled="false"` at the node level** → valid "03:30" → **`updateAutomation
+  ok 95ms` → hub subtitle live "Daily at 03:30"**. + New task sheet → description →
+  **`tasks.create :: workspace=/synthetic/ws-one model=default/default` + `hub.createTask
+  outcome=Accepted`** → row live ("p19 rig task, Running").
+- **Settings sweep**: Endpoints (MockBook · Relay v3.14.3 · Connected), Insights (Usage),
+  Plugins/Skills/MCP servers/Subagents (read-only), Diagnostics (Export/Copy/marker/Send
+  feedback), **Appearance: Theme picker (Light/Dark/Follow-the-system/zai light/zai dark) →
+  Dark → the WHOLE screen re-rendered dark immediately ("Applies immediately, no restart
+  needed." — pixel receipt)**, Presentation mode, Language, Text size, Notifications (with the
+  honest no-push-service note), Privacy ("No analytics. No tracking."), About ("Check for
+  updates — You are on the latest build", Licenses, Unpair + the stop-note).
+- **Relay-restart reconnect (D1 probe, foreground + ESTABLISHED shape)**: relay killed at
+  00:40:05 with the app foreground on the hub → `relay.reconnectFailed :: connect timed out
+  after 10000ms` on relay-3 and relay-4 (honest, while the gen-2 relay's gradle configured) →
+  relay-5 **`relay.connected` → `relay.recovered :: subscriptions=1 snapshotReplace=true` →
+  `hub.bootstrapApplied tasks=3` + `bootstrapReplayed`** — full auto-recovery in the ~66 s the
+  restart took, NO Retry, NO DEGRADED wedge.
+- **Fresh-install re-pair (`pm clear`)**: onboarding privacy copy → Paste pairing link dialog →
+  iterative verified clearing + **9 × ~20-char chunks, ZERO drifts, exact 178/178** (the
+  re-confirmed chunk-size rule: a 56-char first chunk truncated 34 chars mid-payload; 20-char
+  chunks are deterministic) → **stale-link guard fired** ("This QR code may be stale / The link
+  was generated more than 10 minutes ago…" on the genuinely stale gen-1 link) → Continue anyway
+  → **Security setup consent** ("sealed with hardware-backed encryption… never leaves the device
+  except to answer the relay's authentication challenges") → pairing completed with **NEW
+  endpointId `b18c5fec-c68e-4c52-806e-6ad06377a9d8`** → CONNECTED full hub →
+  **`hub.bootstrapApplied tasks=3` + `bootstrapReplayed`** → New task → **`tasks.create` +
+  `hub.createTask outcome=Accepted`** on the fresh pairing.
+
+## Part AT2 — pass-19 defects & adjudications
+
+**Zero NEW app-side defects.** The carry-overs:
+
+- **D2 (P3) re-CONFIRMED live (3rd consecutive pass)** — the wrapped second chip row
+  (Model calls / Share) rendered with `[0,0][0,0]` bounds and tap-dead, pixel-verified
+  (visually rendered, a11y-dead). NEW same-class sighting: on one Context-sheet reopen the
+  **Terminal chip** itself reported `[0,0][0,0]` (the sheet reopened scrolled, the row
+  virtualized to zero bounds) — same root class, reinforcing that the fix must handle ANY
+  chip row rendered at zero bounds, not just the wrapped second row.
+- **D1 (P3)** — NOT reproduced under a SECOND shape this pass: relay-restart while foreground
+  with an ESTABLISHED connection recovered automatically (`relay.recovered`, no Retry, no
+  wedge). Two trigger shapes have now failed to reproduce (pass-18 backgrounded, pass-19
+  foreground+established); the pass-17 wedge remains unexplained/unreproduced and stays the
+  fix-round's watch-item.
+- **D3 (P4) re-stamp** — not re-driven; **D4 (P4) hook-card swipe discoverability** —
+  re-confirmed (the checkboxes are reachable but Trust needs the in-card scroll);
+  **D5 (P4) sheet-reopen scroll** — MANIFESTED again (the Context sheet reopened scrolled with
+  the chip row virtualized — the same cycle that produced the Terminal 0,0 sighting).
+- **Pass-16 papercut (P4)** — the Edit-automation confirm button still says "Create" in edit
+  mode (visible again this pass).
+- **NEW adjudication (not a defect): the seeded approval row stays `pendingApproval` after its
+  inbox answer.** DB ground truth via run-as sqlite3: the gen-1 PUSH row (`tool-1004`) is
+  `status:"success"` in Room (the conversation-card answer applied the mock's authoritative
+  row append) while the SEEDED row (`tool-42`, mock-approval-1) remains `pendingApproval`.
+  MockZCode's resolveInteraction flips a toolCall row ONLY when its single
+  `script.pendingPermission` slot matches the answered id — the push consumed the slot, so the
+  later stale-id inbox answer legitimately clears nothing. **Mock fidelity, not an app bug**;
+  a `MOCK_INBOX_SEEDED_APPROVAL` arm that keeps the seeded id in a second slot would let a
+  future pass drive the row-flip for the inbox path too.
+
+## Part AT3 — pass-19 REA angle (desktop asar unchanged `99e280fb…`; conversation-input surfaces)
+
+The pass-19 angle enumerated the never-diffed CONVERSATION-INPUT families — what the desktop
+user can put INTO a session vs what the phone can. Each family swept by targeted string probes
+over the asar bytes and cross-checked against the phone codebase:
+
+- **Terminal authoring (NEW design-boundary row)**: the desktop ships a first-class
+  INTERACTIVE terminal pane — `terminal.toggle`/`terminal.new`/`terminal.close`/
+  `terminal.closeTab` i18n family, quickPick `addTerminalTab`, bundled `node-pty` (92 hits)
+  + xterm.js (`term.write` internals). The phone's terminal is DELIBERATELY VIEW-ONLY: its own
+  consent copy declares the stance ("nothing you type can reach the shell", once-per-endpoint
+  consent, VIEW-ONLY badge — receipted live this pass). **Recorded as a design boundary, not a
+  gap**: the phone exposes a safer read-only stream where the desktop authors; typing into a
+  desktop shell from a phone is exactly the surface the consent copy warns against. Joins the
+  desktop-AUTHOR family (P4 note).
+- **Todo/goal authoring: NO authoring on either side.** Zero write-verb hits (`todo/write`,
+  `goal/set`, `session/setGoal`, `setTodos`, `updateTodo`…); the only "todo write" occurrence is
+  the share-sanitizer regex (the pass-17 EnterPlanMode family). `session/goal` exists as the
+  agent's lifecycle verb namespace (beside `session/fork`, `session/compact`). Todos/goals/plans
+  are agent-authored on BOTH sides; the phone renders them (Context sheet) with the Pause/
+  refusal ladder — parity.
+- **Image/media authoring: parity, phone adds camera.** The desktop composer offers "Add file
+  attachments… You can also paste images directly." with a media budget
+  (`MEDIA_BUDGET_CURRENT_IMAGE_TOO_LARGE`); the phone's composer add-menu folds photo / file /
+  camera / paste / voice into ONE affordance (K3: photo picker `image/png` + TakePicture
+  camera contract + paste) riding the same v4 attachment transaction — the phone is a superset
+  (camera capture), NOT a gap.
+- **@-mentions: parity.** The desktop has a `chat.mention.*` i18n family (title/back) and the
+  `searchWorkspaceFiles` channel — the same channel the phone's @-panel consumes (receipted in
+  prior passes; the phone side renders it as a full-screen picker).
+- **Find-in-conversation: PHONE-BETTER.** The desktop has NO conversation-search surface (zero
+  hits for find/search-in-conversation UI keys); the phone's session-bar find icon searches the
+  timeline (receipted passes 13–14: "1 of 40" text hit). Recorded as a phone-side extra.
+- **Voice input: PHONE-BETTER.** No desktop voice surface (voice/dictation/speech hits are
+  vendor noise); the phone ships the §43.2-11.5 voice-input experiment (platform recognizer,
+  availability-gated) in the composer add-menu.
+- **Sketch: parity (deliberate minimum).** The desktop's whiteboard family
+  (`whiteboard.title/defaultName/canvasLabel/tool.pen/tool.eraser/exportFailed`) corresponds to
+  the phone's SketchSheet — the code documents it as "the mobile-shaped minimum of the
+  desktop's WhiteboardPane" (draw → PNG → composer attachment, G31). No eraser/tool palette on
+  the phone: P4-smallest nuance inside an already-ledgered family.
+- **Model trajectory viewer: capability parity, entry-point blocked by D2.** The desktop's
+  `modelTrajectory.*` side-pane (usage in/out counts) corresponds to the phone's Model-calls
+  viewer — whose Context-sheet chip is the D2-inert wrapped row. The capability exists on both
+  sides; the phone's discoverability is exactly the standing D2 fix.
+
+**No new parity gaps.** The standing ledger is unchanged: GAP-17/J3 (desktop can spawn tasks
+under claude/opencode/gemini/codex CLIs at task-spawn time — the one user-visible P3 gap),
+usage-dashboard depth (rig-blocked on the mock's unscripted usage-stats channel — the one open
+parity question), desktop-AUTHOR P4-smalls (now including the interactive-terminal boundary
+above), and the phone-better extras (find-in-conversation, voice experiment, camera capture).
+
+## Part AT4 — rig lessons for future passes
+
+1. **Button-label substring taps can hit TEXT FIELDS**: the helper's `--tap "Commit"` matched
+   the draft text "p19 rig commit" inside the message field and typed into it instead. Use
+   exact-match (or per-class Button nodes) for dialog buttons.
+2. **Dialog switches sit at the row's RIGHT EDGE** (~x=964 device px in the commit dialog) —
+   label taps are dead gaps (the switch-row lesson, now confirmed for M3 Switch rows in
+   dialogs, not just settings).
+3. **`keyevent 111` (ESC) CLOSES the whole commit dialog** — around multi-line dialog fields
+   prefer `keyevent 66` (IME action; inserts a newline in multiline fields — clean up with
+   DEL) or never dismiss the keyboard at all (tap the switch directly; it sits above the IME).
+4. **The screenshot scale trap fired AGAIN with `sips` reporting 1080 wide** — screencaps on
+   this AVD intermittently come out 923×1983 regardless; the a11y-dump bounds remain the ONLY
+   authoritative tap coordinates.
+5. **`input text` chunk size ≤ ~20 chars is the deterministic recipe** (9 chunks, zero drifts,
+   exact 178/178) — a 56-char first chunk truncated 34 chars mid-payload with a varying cut
+   point, re-confirming the pass-18 rule.
+6. **DB ground truth adjudicates mock-vs-app fast**: run-as sqlite3 on `conversation_rows`
+   settled the seeded-row question in minutes (see AT2) — prefer it over log-only reasoning
+   when a transcript row disagrees with an answered interaction.
+7. The gen-1 relay link doubles as a STALE-LINK fixture for the fresh-install chain (any
+   link >10 min old fires the guard deterministically) — no special arming needed.
+
+## Part AT5 — pass-19 verdict
+
+On HEAD `c00dfac0` (debug APK `9084b920…` byte-identical to the pass-13 remediation build) the
+full live matrix re-verified with NEW receipts in every family — including FIRSTS: the
+approval+question composition with the freeze/virtualize queue behavior (approval ok 140 ms
+beside a pending question card, then the card advancing into view), the multi-select Extras
+leg of the question card, `terminal.optIn` + fresh-consent attach (`terminal.attached id=
+term-1`), the checkpoint snapshot create path with its honest elsewhere-note, the full git
+write tier (commit → consent → push → createBranchAndSwitch on the erratum-fixed ack path),
+theme Dark applied immediately (pixel receipt), the foreground+established D1 probe recovering
+cleanly (`relay.recovered`, no Retry — second shape without reproduction), and the exact
+178/178 chunked fresh-install chain to `createTask Accepted` on a new endpointId. **Zero new
+app-side defects**; D2 re-confirmed (3rd pass) with a new same-class sighting, D1 not
+reproduced under either shape driven to date, D3–D5 carry, the seeded-row stale-id question
+adjudicated as mock fidelity by DB ground truth. The REA angle (digest unchanged
+`99e280fb…`, counts carried) enumerated the conversation-input families and found **no new
+parity gaps** — one new design-boundary row (desktop interactive terminal vs phone
+deliberately view-only) and two phone-better rows (find-in-conversation, voice experiment).
+The campaign ledger is unchanged: GAP-17/J3 (P3), usage-dashboard depth (rig-blocked),
+desktop-AUTHOR P4-smalls. Nothing pushed.
