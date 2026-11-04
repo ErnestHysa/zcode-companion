@@ -6373,3 +6373,231 @@ asar; the v3.14.3→v3.17.1 upstream drift set (TodoPanel/ToolCallBlocks/etc.) s
   pass-22 had not (workflow management, shortcuts page, MCP remoteSync, hooks authoring,
   computerUse settings) — yielding exactly one new gap row (G42) and closing the settings
   section-level parity question. Nothing pushed. vc51 pass-23 round.
+
+# Part AY — pass 24 (2026-11-04): live-matrix re-verification + REA deep-census dig on 8bc51437
+
+Scope: Ernest asked for a full emulation walk ("verify every single thing"), a deeper-than-pass-23
+REVERE dig on the macOS app, and a parity verdict. Rig: debug APK byte-identical 9084b920… at HEAD
+(8bc51437 is docs-only above 30494272), asar unchanged 99e280fb…, mock armed with the FULL benign
+flag set for the first time in one process (MOCK_ROWS/ROW_ACTIONS/GOAL/APPROVAL/HOOKS/TASKMGMT/
+QUEUE/WORKFLOWS/GIT/QUESTION/WORKSPACE_FILES/AUTOMATIONS/BACKGROUND_BASH/ATTACHMENT/COMPACT/
+SESSIONS_INDEX/SHARED_CONTEXT/OFFPEAK + INTERACTION_PUSH_MS=90000 — the fresh push never manifested;
+the single pending-interaction slot was consumed by the scripted approval→question→hooks chain,
+re-manifesting the known clobber debt), zcode-pixel cold-boot -memory 2048, ~50 min, 0 FATALs,
+0 ANRs, zero emulator deaths.
+
+## Part AY1 — receipts
+
+- **FIRST: workspace group-editor dialog** (entered via a mis-aimed tap during sheet dismissal —
+  a surface pass 1–23 never rendered): "Edit group / Group name / Color" with the full 7-swatch
+  palette (Gray Red Orange Yellow Green Blue Purple) + "Delete group" + "Save". The group-color
+  plane renders and cancels cleanly.
+- **FIRST: question submit WITH an Extras checkbox checked** — radio "Tag the release" selected,
+  "Release notes" checkbox toggled (paint-verified blue check), body scrolled to "Send answers" +
+  "Skip — continue without my answer", submit ok → sendConversationCommandV4 (id=72), card
+  resolved to an "(answered)" timeline marker. (Pass 23 drove radio+scroll+submit; the
+  checked-extra submit leg is new.)
+- **Widget counted-state LIVE transition**: launcher widget read "Pending approvals — 1 request
+  needs you" before the approval leg and "Nothing needs you" after Allow-once resolved it — the
+  count-down path observed live, complementing pass-21's counted tap-through and pass-20's pixel
+  receipt.
+- Re-receipts (fresh wires this pass): approval Allow-once ok (sendConversationCommandV4 id=51),
+  hook trust with 2 hooks selected → warned-confirm gate ("Trust selected hooks? The desktop will
+  mark 2 selected hook(s)…") → grantWorkspaceHookTrust ok (id=85; 8th consecutive trust round-trip),
+  queue Send-now ok (id=91; strip count 2→1), background-bash sheet → View output ok
+  (backgroundBashOutputV4 id=102; "compiling module 1/3…" rows rendered), composer send
+  ("pass24 send check") → production-fidelity echo row ("synthetic reply to: pass24 send check"),
+  Context sheet full render (Status · 4m59s · Iteration 3 · 1 background; goal "Ship it verifying"
+  with iter history; Todos 1/2 with strike-through; Workflow runs lint-all Running /
+  release-notes Stopped; Plans "Ship the release 1/3" with ✓/▸/○ criteria; git strip main·clean;
+  chip row Files/Git/Terminal/Model calls/Share), Files viewer (ws-one tree src/docs/README.md/
+  Cargo.toml + read-only badge) → README.md paged viewer with line numbers
+  (conversationAttachmentReadV4), Git pane → Checkpoints Snapshot ok → ckpt-1 · now with the
+  session-scoping note, Terminal pane VIEW-ONLY → Attach ok → "live — /bin/zsh", draft-discard
+  guard ("Leave this conversation? You have an unsent draft. It stays saved on this device" —
+  Keep editing/Leave), slash panel (/help /login /logout rows; getSkillReferenceCatalog ok),
+  and the GAP-A3 contract live again on task re-entry (unsubscribeConversationV4 id=113 on leave
+  → fresh helloConversationV4 on re-open).
+- Composer-send wire note: this pass logged ZERO sendTextV4 v4call lines while the send worked and
+  the echo row rendered — the composer message rides the conversation channel (the mock logs
+  request/response RPCs only), so the echo row, not a v4call line, is the receipt. Passes 21–23's
+  "sendText ok Nms" came from the app toast side; both observations coexist.
+
+## Part AY2 — defect re-tests
+
+- **F-21-A NOT reproduced — 4th consecutive clean pass**: after 4 flings to timeline top,
+  composer tap → IME up (mInputShown=true) and Context chip → sheet opens.
+- **GAP-21-A REPRODUCED — 3rd consecutive**: leg A first-token "@re" = ZERO searchWorkspaceFiles
+  calls and no panel; leg B mid-text "x @re" = the suggestion panel renders (README.md row above
+  the composer). **NEW pass-24 observation**: leg B fired ZERO fresh searchWorkspaceFiles calls
+  too (passes 22/23 logged 1–2) — the hello-carried workspace tree lets the panel render locally
+  once the tree cache is warm (this pass ran the Files viewer before the mention legs). The
+  fix-round pin must therefore assert PANEL PRESENCE on leg B, not wire-call count; leg A's
+  0-calls+no-panel shape remains the bug signature.
+- **D2 7th live confirmation**: Terminal pane "Copy visible output" and "Detach" rows at
+  [0,0][0,0] paint-only bounds immediately after attach, taps dead.
+- D1/D5 not probed this pass (no relay restart leg; the sheet reopened in the half-expanded
+  state with no D5 manifestation seen).
+
+## Part AY3 — new rig facts (pass 24)
+
+- **Pinned-card stack ordering**: with approval + question cards both pending, the question card's
+  body REFUSES internal scroll while the approval card sits above it (the squeezed body eats the
+  gestures into outer-stack scrolls). Resolve the top card first; the body then scrolls and
+  reveals Extras/Send answers exactly as pass 23 recorded.
+- **Approval card reachability**: its action rows only surface when the pinned stack is scrolled
+  so the card's top is visible; "Allow once — this request only" tap center worked first try
+  (a11y text bounds y≈475).
+- **Mention-panel cache path**: see GAP-21-A above — hello-carried tree, zero fresh calls,
+  panel-presence is the discriminator.
+- **a11y dump vs IME**: with the IME up, the composer text and send arrow vanish from the dump
+  (the tree truncates at the shared-context strip); screenshot is the only truth for
+  composer-with-IME legs.
+- Shell ergonomics: `grep -c` inside `$( )` against the mock log worked for wire deltas; the
+  mock's verb census for the whole session: conversationWorkflowRunsV4 ×92 (the ≈8 s poll cadence
+  re-measured at 92 calls/~50 min), conversationPlansV4 ×9, sendConversationCommandV4 ×6,
+  listSavedWorkflows/listSavedWorkflowRuns ×6 each, listAutomations ×3, subscribe*/initialize*/
+  hello ×2 each, plus singletons (resync, grantWorkspaceHookTrust, backgroundBashOutputV4,
+  conversationAttachmentReadV4, attachmentPreviewSourceV4, unsubscribeConversationV4).
+
+## Part AY4 — REA pass-24 dig: the native-IPC + full-settings census (deeper than pass 23)
+
+Method: whole-asar extraction (19,588 entries; out/main = Electron main, out/host = session host,
+out/preload ×7, out/renderer assets) + byte-literal sliding inventories — no bounded regexes
+(the Phase-4 gotcha). The 30 s REA MCP analysis timeout on the 327 MB asar recurred; python
+extraction remains the durable method.
+
+- **NEW PLANE — Electron IPC channel census (101 enum channels; never censused)**, grouped:
+  - *Remote-control counterpart* (ConnectRemote, DisposeRemoteSession, CancelPendingRemoteConnection,
+    BindRemoteWorkspaceSessionContext, Get/Start/StopWebRemoteControl, ResetWebRemoteControlPairing,
+    SyncWebRemoteControlTasks/Workspaces, WebRemoteControlReconnectWorkspace) = the desktop side of
+    the exact pairing protocol the phone speaks — parity by construction.
+  - *Update plane* (DownloadUpdate, CancelUpdateDownload, QuitAndInstallUpdate, GetUpdateState,
+    Get/SetAutoDownloadAndInstallUpdates, OpenUpdateStatusWindow, AcknowledgePostUpdateReleaseNotes,
+    **SkipUpdateVersion**): phone ships in-app update (F-UPDATE2 field-proven) but has NO
+    skip-this-version and NO post-update release-notes surface (grep = 0). **NEW GAP ROW G43
+    (P4-small)**: update-flow skip-version + release-notes ack.
+  - *Dev-env selection* (IsDockerAvailable, ListDockerContainers, ListSSHConfigAliases,
+    ListWSLDistros): desktop can point a session at Docker/SSH/WSL execution environments; phone
+    grep = 0. The session host is desktop-side so this is desktop-author, but a phone viewer of
+    the active environment is a plausible row — filed as a boundary note on G42's ticket class,
+    not a standalone gap (form-factor + desktop-author).
+  - *Storage scanner* (StorageStartScan/CancelScan/GetSnapshot/Clean/RevealPath +
+    storageScanWorker.js + zcodeDataSizeWorker.js): desktop-native data-size scanner with clean
+    actions; phone Data&Storage remains settings-level. Form-factor note.
+  - *MCP config IO* (LoadMcpFromUserDirectory, SaveMcpToUserDirectory, MigrateLegacyCommonMcp):
+    desktop edits the user-dir MCP config files natively — deepens G22/G24.
+  - *Native shell* (SelectFile/Files/Directory, OpenInEditor/GetInstalledEditors,
+    OpenInFileManager, OpenExternalFile, PrintToPdf, CaptureWindowScreenshot, SaveFile,
+    ExecuteDesktopCommand, GetDesktopWindowChromeState, SetTitleBarTheme, GetDesktopZoomLevel,
+    SyncWindowTabs, SyncWindowUnreadCount, WindowControlsOverlayReady, ActivateOrSetWorkspace,
+    GetDeviceId, GetApplicationIcon, DatabaseStartupControl, CreateTempTextAttachment, ExportLogs):
+    form-factor; ExportLogs = phone diagnostics-export parity; CreateTempTextAttachment =
+    desktop clipboard→attachment (phone: attachments+sketch cover the plane).
+  - *Embedded-browser/computer-use* (BrowserViewAttachGuest/DetachGuest/EnsureResident/
+    ReportResidency/RestoreTabs/UpdateViewport/CloseTabFromRenderer/SuspendReady/
+    BrowserViewScreenshotSurfaceReady, EmbeddedBrowserJavaScriptDialog, ClearEmbeddedBrowserData +
+    cuaPermissionPanel.cjs preload + OpenCuaPermissionOnboarding/CancelCuaPermissionOnboarding/
+    PrepareCuaHelperPermissionDrag/StartCuaHelperPermissionDrag/NotifyCuaHelperPermissionDragEnded):
+    the desktop embedded-browser tab plane behind computer-use, plus the macOS permission
+    onboarding — G18/G19 class deepened; browserWebmRecorder.cjs confirms session recording is
+    desktop-side.
+  - *OAuth* (OAuthRegisterState, OAuthCallbackHandled, zcode://oauth/callback via
+    setAsDefaultProtocolClient ×2, requestSingleInstanceLock + second-instance + open-url):
+    desktop deep-link OAuth callback — the phone's /login flow is command-mediated instead.
+  - *Telemetry/ARMs + resource manager* (ReportTelemetryEvent, ReportArmsCustomEvent,
+    ReportLocalTtftBatch, ReportRendererActionTraceBatch, ReportRendererHeapSample,
+    GetRendererActionTraceConfig, GetZCodeStdioTapDevState, GetResourceUsageSnapshot,
+    SetResourceUsageSamplingActive, OpenResourceManager, GetDesktopSessionActivity,
+    SyncTelemetryContext, SyncActiveTaskSession, ShowTaskNotification, RendererReady,
+    ScopedServicePortReady, SyncAppSettings, SyncWindowUnreadCount): internal diagnostics +
+    the pass-21 resource-manager window — internal/form-factor, no phone row.
+- **NEW PLANE — full settings.\* census: 1,876 unique keys across 60+ groups** (pass 23 counted
+  five groups; this is the whole map). Group table (unique keys): modelProvider 600, plugins 247,
+  **usage 143**, **skills 125**, mcp 102, **subagents 86**, **commands 66**, hooks 60,
+  shortcuts 55, **migration 46**, **browser 45**, plugin 39, **memory 38**, mcpServers 29,
+  workspaceFileSearch 15, computerUse 14, and ~45 single-digit groups.
+  - **PARITY WIN — usage**: the 143-key desktop usage section is MATCHED on the phone:
+    UsageScreen.kt (642 lines — range tabs, summary strip, heatmap, daily-model usage, models,
+    tools, cache-calls, model pie, daily trend) + CodingPlanQuotaSection.kt (576 lines) + the
+    entitlement fetch (CodingPlanEntitlementRequestTest). The pass-20 "usage-dashboard row"
+    UPGRADES from likely-gap to shipped; the residual shrinks to per-task token usage
+    (getTaskTokenUsage) only — parity note, no new row.
+  - **GAP-17/J3 DEEPENED — subagent authoring schema enumerated** (settings.subagents.* 86):
+    form fields = name, description, systemPrompt, tools (all|custom|inheritAll) +
+    disallowedTools, model (inherit|main|lite|defaultMain), maxTurns, background, permissionMode
+    (default|acceptEdits|plan|auto|dontAsk|bypassPermissions), color (7), injectAgentsMd,
+    skills, scope (builtIn|plugin|user), plus validation strings. Phone ships the VIEWER
+    (SubagentsViewerScreen); the authoring form is the gap — the carried ticket now has the
+    full field list to implement against.
+  - **NEW carried row G46 (P4-small) — custom slash-command authoring** (settings.commands.* 66):
+    desktop authors custom commands (name/description/prompt/argumentHint, validation, import
+    with copy|symlink modes, local|plugin groups); phone consumes the served catalog only.
+  - **Skill management DEEPENED** (settings.skills.* 125): desktop create (opens a task!),
+    delete, enable/disable per skill, import from a directory (copy|symlink), 12 diagnostics
+    codes (skill_invalid_frontmatter, skill_duplicate_name, skill_too_large, …), copy-to-common,
+    agent scope (glm|common), detail page (slug/version/publishedAt/scope/status/path). Phone =
+    catalog consumer; the pass-20 marketplace row now has a sibling skill-management row depth.
+  - **NEW carried row G44 (P4-small) — memory viewer** (settings.memory.* 38): desktop browses/
+    searches memory files across projects and workspaces (tree, per-file viewer, refresh,
+    fileChanged/fileDeleted staleness markers); phone grep = 0.
+  - **Session migration DEEPENED** (settings.migration.* 46): scan/import sessions between
+    workspaces with date ranges (7d/30d/90d/all), workspace filters, localOnly/manualOnly badges,
+    and an explicit "unsupported.desktopOnly" face — the feature self-declares desktop-only,
+    which settles pass-21's "session import/migration (P4-small desktop-AUTHOR)" as a
+    desktop-author row by design.
+  - **Embedded-browser settings DEEPENED** (settings.browser.* 45): clear cache/clear-all with
+    confirm gates + insecure-certificates toggle — desktop-side behind computer-use (G18 class).
+  - **MCP import DEEPENED** (settings.mcpServers.import.* 29): scan sources → select → import to
+    global|project targets with sameNameExists skips — deepens G22/G24 with the concrete flow.
+  - **Session-display toggles desktop-only**: messageStreamShowReasoning/ShowTodos,
+    toolGroupingExplore/Terminal/Changes (phone groups by fixed design — ToolGrouping.kt reads
+    no preference), askUserQuestionAutoResolution, modelIoFullRetention, performanceMode,
+    httpProxy, dataBaseDir relocation, closeToTrayOnWindows, nativeSearchEnhancements.
+  - **NEW carried row G45 (P4-smallest) — keep-awake while running** (settings.keepAwakeWhileRunning):
+    desktop keeps the machine awake while a task runs; phone grep for keepScreenOn/FLAG_KEEP_SCREEN_ON
+    = 0 — on a phone, a long run with the screen off is exactly when the user walks away, so a
+    keep-screen-on (or at least a foreground-service-promoted) option is a genuine phone-side row.
+  - **NEW carried row G47 (P4-smallest) — rewards surface**: full-screen `data-testid=rewards-surface`
+    webview host (back/forward chrome, open-website escape) + rewardsWebview.cjs preload; phone
+    grep = 0. Marketing-plane smallest.
+  - Parity re-confirmations: uiFontSize (phone G38 shipped), taskAutoArchive (phone G39 shipped),
+    locale (G37), notificationSound (pass-21 parity-smallest), automations/terminal/appearance
+    sections (shipped), onboarding.* ×3 (desktop-first-run; withdrawn-with-vendor-strings class).
+- **NEW PLANE — agent tool catalog confirmed in the host bundle**: 25+ tool names literal
+  (Bash, Read, Write, Edit, Glob, Grep, WebFetch, WebSearch, AskUserQuestion, EnterPlanMode,
+  ExitPlanMode, TodoWrite, Task, Agent, Skill, SendMessage, TaskOutput, TaskStop, CronCreate,
+  CronDelete, CronUpdate, CreateWorkflow, AmendWorkflow, OffPeakCreate, ReadSessionContext) +
+  the computer-use tool (`computer_use` with screenshot/type_text/scroll/key actions) + `mcp__`
+  prefix. The phone renders/approves every tool class generically (verified across passes 13–23
+  and again this pass) — parity; no unrendered tool class found.
+- Voice absence RE-CONFIRMED (0 dictation/voiceInput/whisper hits — pass-21's phone-better
+  voice sweep stands).
+
+## Part AY5 — pass-24 ledger and verdict
+
+- **UNCHANGED**: F-21-A (P3, NOT repro — 4th clean pass), GAP-21-A (P3, REPRODUCED — 3rd repro,
+  with the new cache-warm B-leg discriminator note for the fix-round pin), GAP-17/J3 (P3,
+  authoring schema now enumerated), renameSession (still unclaimed; canEdit rig debt stands),
+  G42 (workflow management verbs, desktop-only), D2 (7th confirmation).
+- **NEW**: G43 update skip-version + release-notes ack (P4-small); G44 memory viewer (P4-small);
+  G45 keep-awake while running (P4-smallest); G46 custom slash-command authoring (P4-small);
+  G47 rewards surface (P4-smallest). UPGRADED: usage-dashboard → phone parity shipped, residual
+  = per-task getTaskTokenUsage only. Deepened boundary tickets: subagents authoring (full form
+  schema), skill management, session migration (self-declared desktopOnly), MCP import +
+  user-dir config IO, embedded-browser/computer-use native plane, dev-env selection
+  (Docker/SSH/WSL).
+- **FIRST receipts**: group-editor dialog; checked-extra question submit; widget counted-state
+  live 1→0 transition. Wire re-receipts: allow-once, trust-2, send-now, bg-output, README
+  viewer, ckpt-1, live terminal, slash catalog, A3 unsubscribe/hello pair, draft guard.
+- **Verdict**: on the byte-identical APK the live matrix re-verified end-to-end with the
+  densest rig armament yet (17 flags), zero crashes, and the REA dig moved one level deeper
+  than pass 23 — from wire-verb/settings-section censuses down to the native IPC layer (101
+  channels) and the FULL settings key map (1,876 keys) — yielding five new P4/small rows,
+  one parity WIN (usage), and deepened schemas for every carried authoring gap. The phone is
+  at parity or better on: conversation/interaction planes, tasks, workflows, automations,
+  git, checkpoints, terminal, files, usage/quota, slash catalog, deep links, widgets,
+  notifications, voice (phone-only), and the update install path; the remaining distance to
+  the desktop is concentrated in AUTHORING planes (subagents/custom commands/skills/hooks
+  authoring, workflow management, renameSession) plus the five new smalls — exactly the
+  fix-round backlog. Nothing pushed. vc51 pass-24 round.
