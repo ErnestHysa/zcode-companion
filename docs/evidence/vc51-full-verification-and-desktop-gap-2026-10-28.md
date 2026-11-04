@@ -6601,3 +6601,176 @@ extraction remains the durable method.
   the desktop is concentrated in AUTHORING planes (subagents/custom commands/skills/hooks
   authoring, workflow management, renameSession) plus the five new smalls — exactly the
   fix-round backlog. Nothing pushed. vc51 pass-24 round.
+
+# Part AZ — pass 25 (2026-11-04): live-matrix walk with THREE interaction-plane FIRST receipts + the client-capability handshake dig on 8c1c267d
+
+Scope: full emulation walk + deeper-than-pass-24 REA dig + parity verdict. Rig: debug APK
+byte-identical 9084b920… (versionCode 52/1.3.1) at 8f920269 (docs-only above), asar unchanged
+99e280fb…, zcode-pixel cold boot `-memory 2048 -no-snapshot-load`, mock relay via the plain
+`java -cp` recipe EXTENDED with the mockwebserver3 5.1.0 + kotlinx-serialization-json 1.9.0
+jars (the old recipe NoClassDefFoundError'd on a cold cache), FULL 19-flag armament +
+`MOCK_INTERACTION_PUSH_MS=25000`, ~2.5 h across SIX relay generations (restarts are part of the
+walk), 0 FATALs, 0 ANRs, zero emulator deaths (emulator wall-clock drifted ~3 h — benign, noted).
+
+## Part AZ1 — rig discoveries (two, both resolved this pass)
+
+1. **NEW RIG RULE — the T2 terminal gate × fixed mock ids**: after the app process relaunched
+   from a background kill (pid change, `pre-top-activity`), EVERY interaction-card tap went
+   silently dead while header chips/composer/slash rows stayed alive. Root cause PROVEN, not a
+   defect: the app's terminal-machine gate (InteractionCoordinator.kt:148, the T2 contract)
+   silently no-ops submissions for interaction ids already answered — and the store SURVIVES
+   the process restart, while the mock re-asserts the SAME FIXED ids every generation
+   ("mock-approval-push-1", the question, "hook-rig"). Proof: restarting the relay with
+   `MOCK_INTERACTION_PUSH_ID=p25-gen4-fresh` made the SAME dead card tap through on the SAME
+   process (wire + patch resolution). RIG RULE: relay restarts that re-assert answered
+   interactions must use FRESH interaction ids (the push knob exists; the question/hook ids
+   are hardcoded = rig debt).
+2. **RIG BUG FIXED (commit 8c1c267d) — hook-trust never resolved live in passes 22–24**:
+   `respondWorkspaceHookReview`'s command effect pushed a bare `{revision}` patch; the
+   resolveInteraction contract is the WHOLE pendingInteractions list (key-level replacement —
+   the app correctly keeps its last-known state when a patch omits the key), so the hook card
+   stayed pending forever on the rig and passes 22–24 read "grant-only, card stuck" as normal.
+   With the whole-list patch: Trust 1 selected → warned confirm → `grantWorkspaceHookTrust`
+   (id=46) + `sendConversationCommandV4` (id=47) carrying respondWorkspaceHookReview
+   (decision=trust_selected, h1) → CARD RESOLVED live. Corollary receipt: the respond leg rides
+   sendConversationCommandV4 (the production command channel), NOT a dedicated word — the
+   pass-2-era "respondWorkspaceHookReview ok 131ms" line was the mock's effect-dispatch
+   vocabulary, not the wire. Also in 8c1c267d: MOCK_ROW_ACTIONS stamps `actions:{canEdit:true}`
+   on the latest user row (the pass-23 editUserQuery reachability debt).
+   `:tools:mockzcode:jar + test` green.
+
+## Part AZ2 — FIRST receipts (surfaces passes 1–24 never drove)
+
+- **Question DECLINE arm** ("Skip — continue without my answer" — rendered since pass 21,
+  never tapped): tapped twice → `sendConversationCommandV4` (id=62 gen-2), card resolved, no
+  error surface — A3.14's decline arm ("the agent continues on best judgment, never a silent
+  drop") is wire-proven. (The submissions passes 23/24 drove were always Send-answers; the
+  decline arm was the last unanswered control on the card.)
+- **editUserQuery FULL FLOW** (pass-23's rig debt closed app-side-zero-change): long-press the
+  canEdit-stamped user row → row sheet NOW offers **Edit** (beside Ask in a side session /
+  Copy / Share selection) → "Edit message" sheet (prefilled field) → **Review edit** →
+  **"Re-ask this turn?"** warn sheet ("This replaces the turn with your edited text and
+  regenerates the reply. Files and later turns may be affected.") → **Edit and re-ask** →
+  `sendConversationCommandV4` carrying editUserQuery (id=8 gen-5). The CAS/row-targeting word
+  is live end-to-end for the first time; the warn-sheet copy is the desktop's §11.4 semantic
+  mirrored faithfully.
+- **Task-search overlay** (never exercised in 24 passes — 0 prior mentions): "Search tasks" →
+  query "release" → results render ACROSS entity kinds live (the release-notes automation row,
+  the "Draft the release notes" task row, the Workflows section) → Cancel closes. The
+  search-results plane spans tasks + automations + workflows in one list.
+- **Enqueue-routing transition observed LIVE** (prior passes saw queue mode only as a scripted
+  static state): composer send → the mock's sendText effect appended the echo pair AND flipped
+  inputRouting to enqueue via the state patch → the composer re-rendered into the QUEUE state
+  in place ("Keep typing to queue follow-up changes" placeholder + Queued chip + red stop
+  square) — the full send→echo→routing-flip→composer-morph chain on one wire frame.
+
+## Part AZ3 — re-receipts (fresh wires this pass)
+
+Fresh-push approval Allow once ×2 pre-restart (id=34 gen-1; the gen-4 fresh-id tap → wire +
+card resolution — the pass-24 miss re-receipted including the fresh-id variant), hook trust
+with the warned gate (id=75 gen-3 + the gen-5 resolving pair), Auto-send flip (setAutoDrain,
+id=39), draft-discard guard ×2 with Leave-persists-draft re-verified, /login slash execution →
+"Already handled on the desktop." info copy rendered conversation-side (the ApprovalsScreen
+copy's sibling), find-in-conversation jump to a user TEXT row ("here is the screenshot", 1 of
+1) + the code-block context menu (Copy/Edit/Delete/Dismiss + "+12 −3" chip), widget
+counted-state LIVE at N=2 ("Pending approvals — 2 requests need you") + tap-through deep link
+into the task, cold auto-reconnect ×3 across relay restarts (relay.lost.suppressed dedup
+seen), GAP-A3 unsubscribe→hello pair on task re-entry (gen-6 log).
+
+## Part AZ4 — defect re-tests
+
+- **F-21-A NOT reproduced (5th clean pass)**: composer tap at its TRUE field bounds →
+  focused:true (IME opens); Context chip → sheet. One mid-pass "composer dead" reading was
+  COORDINATE DRIFT, not the defect: after the fling-top the composer sat at y≈1979 while the
+  tap aimed at a stale y≈1254 layout — screencap-vs-a11y proved the paint correct. Discipline
+  note added below.
+- **GAP-21-A: ANOMALOUS — recorded, NOT adjudicated (4th attempt)**: first-token "@re" fired
+  0 calls (the missing-default bug, reproduced as always), but the MID-TEXT leg ("x @re",
+  draft verified in the a11y tree) fired **ZERO searchWorkspaceFiles wires across 4 attempts
+  on 2 tasks, both composer modes (startNow + queue), 2 app processes (incl. a cold restart)
+  and 3 relay generations** — passes 22–24 receipted 1–2 calls + panel on the SAME APK
+  (9084b920…). The code chain was re-verified fully wired (ComposerBar ← ConversationScreen ←
+  ZCodeApp:798 → port → viewerTools → transport.fileSearch; no early-return warn logs;
+  activeWorkspaceTarget is endpoint-derived and non-null while connected). Honest disposition:
+  rig/hub-state anomaly of this session, unadjudicated; the fix-round pin must cover BOTH the
+  first-token leg (always 0) AND this pass's leg-B zero-call reading (panel presence as the
+  assertion). D2 not re-driven this pass (the terminal pane legs were deprioritized after the
+  editUserQuery/hook legs consumed the window).
+- **NEW rig-quality note**: the pinned-stack multi-card layout makes blind a11y-center taps
+  unreliable — cards animate in (tap lands mid-animation), the stack scrolls internally
+  (painted position ≠ a11y bounds while scrolling), and one stray tap opened the queue Edit
+  sheet. Discipline: screencap FIRST, tap painted coordinates for pinned-card controls; the
+  a11y dump remains authoritative for existence, not for tap aims while the stack moves.
+
+## Part AZ5 — REA pass-25 dig (deeper than pass 24: the client-capability handshake + the sendText envelope schema, from the shipped chunks)
+
+Extracted from the asar (asar-spec offsets, data base 7,087,308): `/out/host/index.js`
+(1,498,022 B), `/out/main/index.js` (735,396 B), and the two host chunks that carry the
+protocol: `/out/host/chunk-LNGNUNBX.js` (113,415 B — the V4 plane/schema chunk) and
+`/out/host/chunk-4RHDQOPX.js` (the pendingInteraction/tool-vocabulary chunk). The
+conversation-command vocabulary does NOT live in zcode.cjs (0 hits) — it lives in the host
+chunks; zcode.cjs is the CLI/agent kernel.
+
+- **G48 (NEW P3 — the pass headline): the phone never declares `capabilities` in its
+  clientHello → the desktop's workflow-run DELTA streaming is never enabled → the phone's
+  continuous ~8s `conversationWorkflowRunsV4` polling (pass-23's 291-calls/40min WATCH
+  observation) is the visible symptom.** Chain: desktop clientHelloSchema strict-parses
+  `capabilities:{workspaceHookReviewUi?,workflowRunDeltas?}`; `clientSupportsWorkflowRunDeltas
+  = capabilities?.workflowRunDeltas === true` gates the delta stream; the relay's
+  forwardedConnection forwards the bit ONLY when the client declared it
+  (`...c.workflowRunDeltas===true?{workflowRunDeltas:!0}:{}`); the HOST's createHello declares
+  `workflowRunDeltas:!0` toward clients. Phone side: `ClientHello.capabilities` EXISTS
+  (V4Wire.kt:110-117, "declared only per the one-way rules") but its ONLY construction site
+  (V4Plane.kt:637-643, initializeV4) omits it — the phone even DECODES the host's
+  `workflowRunDeltas` bit (HostCapabilities) and ignores it. Remedy: declare
+  `{workflowRunDeltas:true}` + consume the delta stream with the existing delta machinery.
+  The mock never enforces the gate — the rig cannot catch this; production-only behavioral
+  delta (wasteful polling + slower run updates vs the desktop's pushes).
+- **G49 (NEW P4-small): per-send `requestedDelivery` ("startNow"|"queue"|"guide")** — the
+  phone's CommandCoordinator supports the key (CommandCoordinator.kt:104/123) but ZERO
+  feature-layer/UI senders exist: the phone routes sends purely by the session's routing
+  mode; the desktop's sendText schema allows a per-message delivery request (the "send this
+  one NOW even though the session queues" override).
+- **G50 (NEW P4-small): `heldQueueDisposition` ("clearQueueAndSend"|"keepQueueAndSend") +
+  `expectedHeldQueueItemIds` CAS** — plumbed VM→port (ConversationViewModel.send
+  (heldQueueDisposition), default null) but NO UI caller ever sets it: the send-into-held-
+  queue CHOICE (clear vs keep) never surfaces on the phone. The desktop's sendGoalCommand
+  carries the same pair.
+- Parity confirmations: **ROW_TARGETING_COMMANDS byte-identical** to the desktop's CAS set
+  ({applyFileRewind, forkAssistant, editUserQuery, retryTurn, setAssistantFeedback} —
+  V4Command.kt:79-85 vs the chunk's `_u` Set); builtin slash 20=20 (the drift pin
+  surface-inventory.json); the pendingInteraction discriminated union
+  (permission|userInput|workspaceHookReview + autoResolution + anchorRowId + the
+  hookReview-interactionId immutability refine) fully decoded by the phone; the question
+  payload schema (questions[{question,header,options[{value,label,description}],multiSelect?}]
+  + plan_approval plan-text promotion) covered by the phone's renderer; `clientKind:
+  "mobileRemote"` is a first-class member of the desktop's clientKind enum;
+  `setFollowupMode {queue|guide}` — BOTH modes shipped on the phone (QueueStrip:546 +
+  Settings interaction mode); the desktop `compact` command is wired on the phone via the
+  /compact slash builtin; relay handshake drift-pinned (relay-baseline.json: closeCodes 6 /
+  envelopeFields 15 / errorCodes 4).
+- Boundary note: `browserAmbientContext` in the desktop's sendText schema has ZERO phone
+  presence — embedded-browser adjacency, by-design (G18/G19).
+- Note: `workspaceHookReviewUi` (the sibling capability bit) appears ONLY in the clientHello
+  schema — no server-side gate reader found in the shipped bundle — declared-but-unused
+  server-side; the hook-review interaction pushes regardless (matches every rig receipt; the
+  G48 remedy may declare it alongside for forward-compat).
+
+## Part AZ6 — pass-25 ledger and verdict
+
+- **NEW**: G48 (P3, workflow-run-delta capability declaration + stream consumption — the
+  polling-vs-push asymmetry), G49/G50 (P4-smalls, per-send delivery override + held-queue
+  disposition choice). CLOSED (rig debts, not app): editUserQuery reachability, hook-trust
+  card resolution — both via 8c1c267d with live receipts.
+- **UNCHANGED**: F-21-A (5th clean), GAP-17/J3, renameSession (unclaimed), G42, G43–G47,
+  D2 (not re-driven). GAP-21-A carries the new unadjudicated leg-B anomaly on top of the
+  4th first-token repro.
+- **Verdict**: on the byte-identical APK the interaction planes (approval/question decline/
+  hook-trust resolution/message-edit rewrite) are now receipted END-TO-END including their
+  resolution patches — the deepest interaction-plane coverage of the campaign. The REA dig
+  moved from censuses to the HANDSHAKE: the first production-only behavioral gap (G48) that
+  the rig structurally cannot see, plus two schema-level smalls. The phone is at parity or
+  better on everything the live matrix and the chunk-level schemas cover, with the remaining
+  distance concentrated in: the capability/delta streaming (G48), the authoring planes
+  (GAP-17/J3, G42, G46), and the P4 smalls. Fix round for F-21-A + GAP-21-A (+ G48 + the
+  carried smalls) remains the opener. Nothing pushed. vc51 pass-25 round.
