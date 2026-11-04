@@ -1497,6 +1497,12 @@ class MockZCode(
             // The latest assistant row of the snapshot is the retryable/forkable one.
             val lastAssistant = rows.indexOfLast { it["kind"]?.let { k -> (k as JsonPrimitive).content } == RowKind.ASSISTANT_TEXT.wire }
             if (lastAssistant >= 0) rows[lastAssistant] = JsonObject(rows[lastAssistant] + ("actions" to ROW_ACTIONS_ASSISTANT))
+            // pass-25 rig arming: stamp canEdit on the LATEST user row so the
+            // message-edit sheet (gated on actions.canEdit — ConversationScreen.kt)
+            // becomes live-reachable; desktop rows.ts stamps the same flag on
+            // editable user messages.
+            val lastUser = rows.indexOfLast { it["kind"]?.let { k -> (k as JsonPrimitive).content } == RowKind.USER_INPUT.wire }
+            if (lastUser >= 0) rows[lastUser] = JsonObject(rows[lastUser] + ("actions" to ROW_ACTIONS_USER_EDIT))
         }
         if (script.compactionDemo) {
             // I2.4: the lifecycle the desktop sends around an auto compaction —
@@ -1521,6 +1527,11 @@ class MockZCode(
     private val ROW_ACTIONS_ASSISTANT: JsonObject = buildJsonObject {
         put("canFork", JsonPrimitive(true))
         put("canRetry", JsonPrimitive(true))
+    }
+
+    /** pass-25: `actions:{canEdit:true}` on editable user messages. */
+    private val ROW_ACTIONS_USER_EDIT: JsonObject = buildJsonObject {
+        put("canEdit", JsonPrimitive(true))
     }
 
     private fun rowActionsTurnExtra(fileState: String): JsonObject = buildJsonObject {
@@ -3018,7 +3029,14 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 val ids = (decision?.get("reviewItemIds") as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.content } ?: emptyList()
                 ids.forEach { id2 -> script.hookTrustStates[id2] = "trusted_persistent" }
                 script.hookReviewsResolved = true
-                pushStatePatch(buildJsonObject { put("revision", JsonPrimitive(stateRevision.get())) })
+                // pass-25 rig-fidelity fix: the patch must carry the WHOLE pending list
+                // (key-level replacement — the resolveInteraction contract). The bare
+                // {revision} patch left the hook card pending forever on the rig: the
+                // app correctly keeps its last-known state when a patch omits the key.
+                pushStatePatch(buildJsonObject {
+                    put("revision", JsonPrimitive(stateRevision.get()))
+                    put("pendingInteractions", pendingInteractionList())
+                })
             }
             "toggleWorkspaceHookReviewItem" -> {
                 stateRevision.incrementAndGet()
