@@ -420,6 +420,11 @@ fun main() {
         mock.script.seedWorkspaceFiles(listOf(
             "src/main.rs", "src/lib.rs", "docs/plan.md", "README.md", "Cargo.toml",
         ))
+        // Pass-21 (Files viewer live leg): paged-read content for the §23.4 viewer —
+        // readTextFile serves slices of this, so the paged text viewer has real bytes.
+        mock.script.fileText["README.md"] = (1..40).joinToString("\n") { i ->
+            "# Rig workspace — line $i\nSome prose for the paged file viewer leg (pass 21)."
+        }
     }
     // vc51 Phase-3 (G9): MOCK_SHARED_CONTEXT=1 seeds the share-handover state so the
     // composer surfaces the shared-context chip and the send carries context_refs.

@@ -262,9 +262,39 @@ class MockZCode(
         var backgroundWorks: JsonArray? = null
         /** G9: scripted sharedContextImport in the session state block. */
         var sharedContextImport: JsonObject? = null
-        /** RIG-2: seeded file-tree entries the workspace-file search filters (see fileTree). */
+        /**
+         * RIG-2: seeded file-tree entries the workspace-file search filters (see fileTree).
+         * Pass-21 (F-21-B arming debt): also builds the DIRECTORY listings the files.list
+         * `readdir` reader needs — the raw path-keys-only seed made readdir(root) fault
+         * (fault.file.notFound), so the §23.4 Files viewer could only ever show its
+         * unavailable degrade on the rig. Each directory (root included) gets one entry
+         * per distinct direct child; files keep their (empty) self-listing for search.
+         */
         fun seedWorkspaceFiles(paths: List<String>) {
             for (p in paths) fileTree[p] = JsonArray(emptyList())
+            val dirs = linkedSetOf("")
+            for (p in paths) {
+                var d = p.substringBeforeLast('/', "")
+                while (d.isNotEmpty() && dirs.add(d)) d = d.substringBeforeLast('/', "")
+            }
+            for (d in dirs) {
+                val prefix = if (d.isEmpty()) "" else "$d/"
+                val entries = LinkedHashMap<String, JsonObject>()
+                for (p in paths) {
+                    val rest = p.removePrefix(prefix)
+                    if (rest.isEmpty() || !p.startsWith(prefix)) continue
+                    val name = rest.substringBefore('/')
+                    val isDir = rest.contains('/')
+                    val path = if (isDir) prefix + name else p
+                    entries.putIfAbsent("$name/$isDir", buildJsonObject {
+                        put("name", JsonPrimitive(name))
+                        put("path", JsonPrimitive(path))
+                        put("type", JsonPrimitive(if (isDir) "directory" else "file"))
+                        put("isSymbolicLink", JsonPrimitive(false))
+                    })
+                }
+                fileTree[d] = JsonArray(entries.values.toList())
+            }
         }
 
         /** Recorded usage-stats promise calls: (method, argKind "arr"|"obj"|"other", unwrapped params).
@@ -1761,6 +1791,19 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
         else -> null
     }
 
+    /**
+     * Pass-21: workspace-relative view of a requested file path — the phone requests
+     * ABSOLUTE workspace paths while the seeded trees are workspace-relative. The
+     * workspace root itself maps to ""; anything else strips the workspace prefix.
+     * Null = the path was absolute but outside this workspace (no relative form).
+     */
+    private fun fileRelPath(path: String): String? =
+        when {
+            path == workspace.workspacePath -> ""
+            path.startsWith(workspace.workspacePath + "/") -> path.removePrefix(workspace.workspacePath + "/")
+            else -> path
+        }
+
     private fun handlePromise(id: Int, channelName: String?, name: String?, arg: RpcValue?) {
         // Phase 9: the service channels ride the SAME Channel protocol (§7 convention:
         // promise args array-wrapped). Refusal scenario = §13.3 fallback fixtures.
@@ -2823,16 +2866,22 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
         when (name) {
             "readdir" -> {
                 val path = params?.str("path").orEmpty()
-                val entries = script.fileTree[path]
+                // Pass-21: the phone requests ABSOLUTE workspace paths (workspaceRoot =
+                // /synthetic/ws-one); the seeded tree is workspace-relative — resolve by
+                // stripping the workspace prefix before the key lookup.
+                val rel = fileRelPath(path)
+                val entries = script.fileTree[path] ?: rel?.takeIf { script.fileTree.containsKey(it) }?.let { script.fileTree[it] }
                 if (entries == null) respondError(id, "fault.file.notFound")
                 else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(entries.map { RpcValue.Obj(it) }))
             }
             "stat" -> {
                 val path = params?.str("path").orEmpty()
+                val rel = fileRelPath(path)
                 respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
                     put("path", JsonPrimitive(path))
-                    put("type", JsonPrimitive(if (script.fileTree.containsKey(path)) "directory" else "file"))
-                    put("size", JsonPrimitive(script.fileBytes[path]?.size?.toLong() ?: script.fileText[path]?.toByteArray()?.size?.toLong() ?: 0L))
+                    put("type", JsonPrimitive(if (script.fileTree.containsKey(path) || rel?.let { script.fileTree.containsKey(it) } == true) "directory" else "file"))
+                    put("size", JsonPrimitive(script.fileBytes[path]?.size?.toLong() ?: script.fileText[path]?.toByteArray()?.size?.toLong()
+                        ?: rel?.let { script.fileText[it]?.toByteArray()?.size?.toLong() } ?: 0L))
                 }))
             }
             // Phase 4C (C7): workspace file search for the composer @-mentions.
@@ -2849,7 +2898,8 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             }
             "readTextFile" -> {
                 val path = params?.str("path").orEmpty()
-                val content = script.fileText[path]
+                val rel = fileRelPath(path)
+                val content = script.fileText[path] ?: rel?.let { script.fileText[it] }
                 if (content == null) respondError(id, "fault.file.notFound")
                 else {
                     val offset = params?.str("offset")?.toLongOrNull() ?: 0L
@@ -2871,7 +2921,8 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             }
             "readFileRange" -> {
                 val path = params?.str("path").orEmpty()
-                val bytes = script.fileBytes[path]
+                val rel = fileRelPath(path)
+                val bytes = script.fileBytes[path] ?: rel?.let { script.fileBytes[it] }
                 if (bytes == null) respondError(id, "fault.file.notFound")
                 else {
                     val offset = params?.str("offset")?.toLongOrNull() ?: 0L
