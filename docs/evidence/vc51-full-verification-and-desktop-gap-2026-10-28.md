@@ -6774,3 +6774,180 @@ chunks; zcode.cjs is the CLI/agent kernel.
   distance concentrated in: the capability/delta streaming (G48), the authoring planes
   (GAP-17/J3, G42, G46), and the P4 smalls. Fix round for F-21-A + GAP-21-A (+ G48 + the
   carried smalls) remains the opener. Nothing pushed. vc51 pass-25 round.
+
+# Part BA — pass 26 (2026-11-04): live-matrix walk with the Changes-dialog + deny-arm FIRST receipts, the GAP-21-A leg-B adjudication, and the REA delta-union dig on ef8aefb0
+
+Scope: full emulation walk + deeper-than-pass-25 REA dig + parity verdict. Rig: debug APK
+byte-identical 9084b920… (versionCode 52/1.3.1) at ef8aefb0 (docs-only above), asar
+unchanged 99e280fb… (re-digested before extraction), zcode-pixel cold boot
+`-memory 2048 -no-snapshot-load`, mock relay via the plain `java -cp` recipe (classpath
+incl. mockwebserver3 5.1.0 + kotlinx-serialization-json 1.9.0), full 21-flag armament +
+`MOCK_INTERACTION_PUSH_MS=25000` + fresh per-generation push ids (`p26-gen1-4e7a91`,
+`p26-gen2-9f3c71`), TWO relay generations, ~95 min. Census: 0 FATALs, 0 ANRs, app pid
+unchanged (2163) the entire session, zero emulator deaths.
+
+## Part BA1 — rig discoveries
+
+1. **The composer draft PERSISTS across app-process death + COLD BOOT.** The conversation
+   opened holding pass-25's stale `@re\t` draft — the draft survived a process kill and a
+   `-no-snapshot-load` boot. Rig rule: mention-plane legs must CLEAR THE FIELD FIRST and
+   verify emptiness in the a11y tree before typing; the persisted draft silently converts a
+   "first-token" leg into a mid-text leg.
+2. **Shared-context Remove is wire-receipted but the chip persists — mock debt, not a
+   defect.** Remove → `discardSharedContext {contextId}` on sendConversationCommandV4
+   (id=80; chain ConversationViewModel.kt:965 → CommandCoordinator.kt:189 fully wired;
+   second tap id=76 also fired). The chip stays because the mock only SEEDS
+   `sharedContextImport` and scripts NO removal handler. File a rig debt: a removal effect
+   that patches the state block.
+3. **The Git commit-sheet leg did NOT re-receipt (3 attempts, wire never fired; pass-22's
+   `git.commit ok` stands).** Attempt 1: tap hit the "Commit message" LABEL (not the
+   EditText) so the IME never opened and the typed text went nowhere; BACK then closed the
+   sheet. Attempt 2: ESC (keyevent 111) closed the sheet outright — the ESC-wanders-routes
+   gotcha again. Attempt 3: field typed + Commit tapped at its IME-shifted bounds — sheet
+   closed (onCommit sets showCommit=false BEFORE the async port.commit) but no `git` wire
+   appeared. Open suspect for the fix round: GitWriteSheets.kt:109 gates the button on
+   `message.isNotBlank() && (identity == null || identity.present)` and the mock never
+   serves gitIdentity — if identity resolves present=false the button is dead while
+   rendered. Re-verify with one clean run after the mock serves identity.
+4. **The fileChanges row is near-unreachable by blind flings** (a short divider row between
+   tall rows; ~35 a11y dumps across two passes never caught it). The deterministic path:
+   find-in-conversation for a TEXT neighbor ("here is the screenshot" → 1 of 1) and step
+   from there.
+
+## Part BA2 — FIRST receipts (surfaces passes 1–25 never drove)
+
+- **The per-turn Changes dialog** ("Changes · turn 44"): the fileChanges row's "view" chip
+  opens a dialog that loads per-turn changes via `conversationFileChangesV4` (id=150). The
+  mock returned its typed `fault.fileChanges.none` (the FIFO is unscripted) and the dialog
+  surfaced it cleanly with Close. Passes 1–25 receipted the row, "Undo files", and the
+  rewind preview — the view chip's dialog itself was never driven. Rig debt: a
+  `MOCK_FILECHANGES` arm scripting the FIFO would receipt the per-file list render.
+- **The approval DENY arm end-to-end**: Deny → its OWN warned confirm ("Deny this request?
+  / The agent is told no for this request." Cancel | Confirm) → `sendConversationCommandV4`
+  (gen-2 id=27) → card resolved. The deny-confirmation surface + wire arm receipted for the
+  first time (prior passes only ever took Allow once / Allow always).
+- **Workflow start with a REQUIRED parameter filled**: "Run release-notes" start sheet →
+  the Run confirm is DEAD until the required `version *` param is filled → typed "2.0.0" →
+  Run → `sendConversationCommandV4` (id=276, startSavedWorkflow) + `subscribeConversationV4`
+  (id=278) auto-subscribing the started run's conversation + `subscribeWorkspaceConfigV4`
+  (id=279). The start→param-gate→navigate chain on one receipt.
+
+## Part BA3 — re-receipts (fresh wires this pass)
+
+Approval Allow once (id=28 gen-1; the `echo synthetic` tool row flipped live in the
+timeline), question submit with radio + checked-Extra + Send answers (id=48; the row now
+reads "(answered)"), hook Trust 2 selected with the warned gate → grantWorkspaceHookTrust
+(id=56) + sendConversationCommandV4 (id=57) + the "Trusted 2 hook(s) — the session
+continues." snackbar + CARD RESOLVED (the 8c1c267d whole-list patch re-proven on a second
+pass), queue Send-now 2→1 (id=66), backgroundBashOutputV4 (id=73) with output rows rendered
+in-sheet ("compiling module 1/3…"), runAutomationNow (id=273) + listAutomations refresh,
+slash panel + catalog rows (/help /login /logout) + /help execution (id=291), Git Snapshot
+→ "ckpt-1 · now" rendered, terminal consent→Attach→"live — /bin/zsh", Context sheet full
+render (Status · iterations · goal · Todos 1/2 · Workflow runs lint-all Running/release-notes
+Stopped · Plans 1/3 ✓), CUA card expand (3 `mcp__computer-use__*` rows with completed
+payloads), cold auto-reconnect across the relay restart (hello id=2 + subscribe id=7,
+Connected header, relay.lost suppressed), unsub/subscribe pairs on task exit/re-entry
+(unsubscribe id=272, subscribe id=278), attachmentPreviewSourceV4 (id=99) +
+conversationAttachmentReadV4 (id=100) on the attachment row, MOCK_COMPACT lifecycle rows
+visible ("Compressing context / Context automatically compressed" + "Context compression
+failed / Retry"). The G48 polling symptom re-observed live: `conversationWorkflowRunsV4`
+fires every ~8 s throughout (295+ calls across the session).
+
+## Part BA4 — defect re-tests
+
+- **F-21-A NOT reproduced (6th clean pass)**: after 4 timeline flings, composer tap →
+  `focused=true` + `mInputShown=true`; Context chip → sheet.
+- **GAP-21-A: leg A REPRODUCED (5th consecutive) — first-token "@re" = 0 wires, no panel.
+  Leg B PARTIALLY ADJUDICATED**: mid-text "x_ @re" (IME open, draft a11y-verified) rendered
+  the README.md mention PANEL with **ZERO fresh searchWorkspaceFiles wires** — the
+  hello-carried workspace tree serves the panel client-side and the wire only fires on a
+  cold tree. That explains pass-25's zero-call reading as the cache-warm path (NOT a
+  regression), but the PANEL-RENDER itself remains flaky across passes (pass 25: no panel
+  ×4; pass 26: panel ×1). Standing assertion for the fix-round pin: PANEL PRESENCE on the
+  mid-text leg; the call count is cache-dependent. The app-side bug is leg A only.
+- **D2 8th confirm + NEW tap-through proof**: "Copy visible output" / "Detach" report
+  [0,0][0,0] a11y bounds while PAINTED at ≈(241,2119) / (562,2119); tapping the painted
+  center fired the "Copied" toast — the defect is bounds-only (a11y/talkback and blind-tap
+  targeting), the buttons themselves work.
+
+## Part BA5 — REA pass-26 dig (deeper than pass 25: the DELTA UNION itself, from the shipped chunks)
+
+- **First REA graph-level receipt** (`analyze_javascript_application` on the extracted
+  `out/main`, evidence ev_688e4d0c… → view ev_18b80753…, root sha d81fa014…): 22 files /
+  1,974,261 B parsed / 457,886 AST nodes / 1,268 findings / 0 parse failures; Electron
+  surface: **7 BrowserWindows**, 29 explicit webPreferences, **102 IPC main handlers (all
+  dynamic-channel** — matches pass-24's 101-channel textual census within one
+  counting-method variant), 2 utility processes, `storageScanWorker.js` surfaced as a
+  worker file, and 5 main-bundle chunks no prior pass censused (BTD2TF4G / VP4LANBJ /
+  CXHP7IVG / I2LYT35J / TQ36IJU5). The `out/host` dir exceeds REA's MCP window (1.5 MB
+  index.js) — its protocol censuses ran text-side on the extracted chunks (the established
+  method). Boundary: the native application menu is role-built (no textually enumerable
+  labels), and the renderer is single-app (2,717 asset chunks are component/chart files, no
+  per-screen names — a route-table census needs the runtime).
+- **Census 1 — the session-state patch schema (chunk-LNGNUNBX `gr`)**: 17 keys {control,
+  sharedContextImport, availability, inputRouting, meta, config, modelTransition, usage,
+  queue, pendingInteractions, pendingCommands, backgroundWorks, subagents, workflowRuns,
+  goal, plan, workspaceHookAdmission}. Phone diff: 15/17 decoded;
+  **`modelTransition` and `workspaceHookAdmission` have ZERO phone reads** → G52.
+- **Census 2 — the delta-op union (the pass headline)**: the desktop's conversation delta
+  discriminated union = row.appended / row.upserted / row.removed / row.delta +
+  state.updated — ALL FIVE phone-decoded (V4Conversation.kt:211-219) — PLUS
+  **`workflowRun.updated`** carrying the run patch AND the run's ACTOR/NODE step-graph
+  (bounded `maxActors`/`maxNodes`, keyed {siteId, ordinal}; the actor schema decodes as
+  kind "world-read"|"world-run" + op/args + status running|completed|failed + per-step
+  result summary {resultBytes, resultCount, exitCode, stdoutBytes, stderrBytes} + error +
+  createdAt/updatedAt; plus `cleared[]` / `removedActors[]` / `removedNodes[]` incremental
+  ops) and **`workflowRun.removed`** {runId, revision}. The phone's dispatch Unknowns BOTH
+  (no cases; they land in `unknownOpCount`) → **G51**. This DEEPENS G48: the capability
+  gate (G48) currently spares the phone from these frames entirely — the moment G48 is
+  fixed, every run delta lands as an Unknown op unless the consumer-side handling ships
+  with it. G48's remedy therefore has a precise worklist: declare
+  `{workflowRunDeltas:true}` AND decode workflowRun.updated/.removed + the actor/node
+  step-graph.
+- **Census 3 — the git-plane method table (host/index.js ≈201k)**: getRepositorySummary,
+  getWorkspaceRepositoryInfo, getLocalBranches, getCommitGraph, switchBranch,
+  createBranchAndSwitch, getChanges, **getIgnoredPaths**, getDiff,
+  **getBranchComparison** (baseRef/headRef/comparisonLabel + per-file changes),
+  stage/unstage/discardPaths, generateCommitMessage, commit, push. Phone diff:
+  **getIgnoredPaths, getBranchComparison, getWorkspaceRepositoryInfo are absent** — and
+  none are in V4Plane.kt:388's deliberate NEVER-ported list (pull/fetch/force-push/
+  rebase/merge/reset/stash/identity-mutation) → G53 (the branch-comparison surface is the
+  user-visible one; ignoredPaths/repoInfo are plumbing).
+- **Census 4 — session summary carries `parentSessionId`** (child/parent linkage); phone:
+  one test-file mention, no decode (small note folded into the G51 ledger row — the phone
+  renders fork-child linkage via its own task models, the summary-level parent field is
+  unused).
+- **Census 5 — the preload surface**: 7 preload scripts, each exposing a contextBridge API
+  — index.cjs (the main renderer bridge) + five ~700 KB BrowserView preloads
+  (codingPlanWebview, cuaPermissionPanel, embeddedBrowserJavaScriptDialog,
+  resourceManager, rewardsWebview) + a 140 B browserVideoRecorder stub. Deepens
+  G18/G19/G24/G47 with exact view-preload identities.
+
+## Part BA6 — pass-26 ledger and verdict
+
+- **NEW**: G51 (P3, the workflow-run delta op family + the run-step actor/node graph —
+  pairs with G48; the G48 remedy MUST ship the consumer-side decode in the same round),
+  G52 (P4-small, the `modelTransition` + `workspaceHookAdmission` state keys silently
+  dropped), G53 (P4, git-plane depth: branch comparison + ignoredPaths + repoInfo, none in
+  the NEVER-ported list).
+- **ADJUDICATED**: GAP-21-A leg B zero-call reading = the cache-warm path (the anomaly
+  narrows to panel-render flakiness, 1 render in 5 recent attempts); D2 carries the
+  tap-through proof (bounds-only defect, buttons work).
+- **RIG DEBTS filed**: discardSharedContext removal handler unscripted; a
+  MOCK_FILECHANGES arm for the Changes dialog's per-file list; mock gitIdentity serving
+  for the commit-sheet gate (the leg is owed one clean re-verification); question/hook
+  fixed ids remain the fresh-id-rule debt.
+- **UNCHANGED**: F-21-A (6th clean), GAP-17/J3, renameSession/G42, G43–G50. The commit
+  leg: wire never fired this pass (3 rig-handling failures documented above); pass-22's
+  `git.commit ok` stands.
+- **Verdict**: on the byte-identical APK the live matrix re-verified end-to-end with two
+  wire-new surfaces (the Changes dialog, the deny arm + its warned confirm) and the
+  workflow-start param chain receipted; zero crashes across ~95 min and two relay
+  generations. The REA dig moved from the handshake (pass 25) INTO the delta union: the
+  phone decodes 15/17 state keys and 5/7 delta ops, and the two unhandled op families are
+  exactly the workflow-run stream that G48 unlocks — so G48 now carries a precise
+  consumer-side worklist (decode workflowRun.updated/.removed + render the run-step
+  actor/node graph) instead of a bare capability flip. Remaining distance: the
+  delta/step-graph plane (G48+G51), the authoring planes (GAP-17/J3, G42, G46),
+  state-marker surfacing (G52), git-plane depth (G53), and the P4 smalls. Nothing pushed.
+  vc51 pass-26 round.
