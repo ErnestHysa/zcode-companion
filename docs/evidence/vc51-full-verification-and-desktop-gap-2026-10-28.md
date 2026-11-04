@@ -5721,3 +5721,197 @@ class (P4/P4-smallest), none invalidating the phone's mobile-minimum framing. Le
 GAP-17/J3 (P3) unchanged; usage-dashboard depth gains its likely wire verb
 (`getTaskTokenUsage`); desktop-AUTHOR family upgraded from P4-smalls to a concrete P4 row.
 Nothing pushed. vc51 pass-20 round.
+
+# Pass 21 — live emulation re-verification + REA desktop surface sweeps (2026-11-04, APPENDED; not part of the original audit)
+
+## Part AV1 — rig and environment
+
+- HEAD `b1d0b1b9` (pass-20 docs commit, clean tree). APK
+  `app/build/outputs/apk/debug/app-debug.apk` sha256 `9084b920…` — **byte-identical to
+  the build every pass since the remediation round has tested** (18/19/20/21). Desktop
+  asar re-hashed **`99e280fb…` unchanged** — every pass-15/16/17/18/19/20 count and
+  classification carries; this pass spent string-level sweeps only (the pass-16/17
+  method), no re-analysis.
+- Relay armed with the full scenario set PLUS `MOCK_ATTACHMENT=1` (first pass to arm it:
+  gives the conversation a seeded sent-image attachment) and
+  `MOCK_INTERACTION_PUSH_ID=mock-p21-gen1-a41e77c3` + `MOCK_INTERACTION_PUSH_MS=25000`
+  (the fresh gen-1 push leg).
+- **Emulator stability was the rig story of this pass**: the zcode-pixel AVD hung/died
+  THREE times (the recorded 8GB class: `QEMU2 … hanging thread` +
+  `process_memory_mac.cc invalid address`), twice within a minute of UI work. Root
+  context: a transient `vm_stat` free-memory dip to **0.1 GB** mid-session (ZCode app +
+  Chrome + relay + emulator all resident); memory_pressure later reported 66% free.
+  Mitigation that held: relaunch with `-memory 2048`, prefer a11y dumps over screencap
+  pulls, and fold relay restarts into single recovery windows. Every crash recovered by
+  cold boot with `-no-snapshot-load` (AVD userdata persisted; the app auto-reconnected
+  on each relaunch — cold-boot auto-reconnect receipts #5, #6 and #7 of the campaign,
+  one of them **after an emulator crash**, each `bootstrapReplayed` in-connect, same
+  endpointId `dd6d55ae…`).
+
+## Part AV2 — FIRST receipts (none of these existed in any earlier pass)
+
+| # | Receipt | Evidence |
+| --- | --- | --- |
+| 1 | **Approval-notification TAP-THROUGH deep link** — the complement of pass 13's finding that connection-scoped notification posts carry no content intent: the TASK-scoped approval post DOES deep-link | shade expanded → tap notification body → `nav.deeplink :: resolved task=synth-task-1` → `nav.screen :: route=conversation/{taskId}` with the approval card rendered |
+| 2 | **Widget counted-state tap-through** — tapping the widget's "1 request needs you" body deep-links to the pending task | home screen widget counted pixel state → tap → same `nav.deeplink :: resolved task=synth-task-1` receipt |
+| 3 | **GAP-A3's fix verified LIVE** — pass 13 found conversations are never unsubscribed; the shipped fix now detaches | leaving a task logs `recovery.detached :: session=synth-task-1 (unsubscribed)`; re-entry `subscribeConversationV4 ok in 146ms` |
+| 4 | **Seeded attachment image renders PIXEL-level** — `MOCK_ATTACHMENT=1` was never armed before pass 21 | user row "here is the screenshot" renders a red PNG box; wire receipts at conversation render: `attachmentPreviewSourceV4 ok in 19ms` + `conversationAttachmentReadV4 ok in 22ms` |
+| 5 | **Rewind-plane row live** — `MOCK_ROW_ACTIONS` fileChanges turn renders its actions | "Turn · 4s" row with "2 files +5 −1 · view" chip + "Undo files" action |
+| 6 | **Hook trust round-trip #5 with the SELECTED-items flow** — Trust-2-selected checkbox flow after F-20-A adjudication | `grantWorkspaceHookTrust ok in 121ms` + confirm AlertDialog + "Trusted 2 hook(s) — the session continues." snackbar |
+| 7 | **DB ground truth for the gen-1 push answer** | `run-as sqlite3`: `mock-p21-gen1-a41e77c3 \| PERMISSION \| RESOLVED`; the seeded `mock-approval-1` stays OPEN (the established MOCK-fidelity adjudication, 3rd pass) |
+| 8 | **Recovery ladder ×2 from relay RESTARTS while the app runs** (the D1 trigger shape, 4th and 5th consecutive non-reproductions) | kill mid-session → honest `relay.lost :: abnormal close 1006` + **`relay.lost.suppressed :: recovery already in flight` (the dedup receipt is new)** + `relay.reconnectFailed :: connect timed out after 10000ms` → RECONNECTING header → restart → `relay.recovered :: subscriptions=3 snapshotReplace=true` on relay-9 AND relay-12 → CONNECTED. No wedge, no Retry needed |
+| 9 | **Mid-activity kill degradation details** — draft persistence + card resurrection | the composer draft survived the disconnect; the hook-review card resurrected on the recovery snapshot exactly per the pass-16 as-first-served semantics |
+| 10 | **FILES VIEWER: every leg LIVE with real data — the first Files receipts in 21 passes** | root listing renders `src / docs / README.md / Cargo.toml`; `src` navigation renders the "Up / / / src" breadcrumb + `main.rs / lib.rs`; README.md opens the paged viewer with line numbers + Download affordance + scrollable content (line 29–34 rendered after scroll) |
+| 11 | **Diagnostics EXPORT (share-sheet path)** | "Export diagnostics" builds and hands `zcode-diagnostics-1793793754669.txt` to the system share sheet (Gmail/Drive/Bluetooth targets rendered) |
+| 12 | **createCheckpoint live (2nd create receipt)** | `git-checkpoint.createCheckpoint ok` → the Checkpoints sheet shows `ckpt-1` |
+| 13 | **Composer draft-discard guard** | BACK with a typed draft → "Leave this conversation? / Keep editing / Leave" |
+
+Also re-receipted on the round trip: markdown rendering (heading, inline code, link,
+nested bullets, table, syntax-highlighted code block via the phone's H1.3 tokenizer),
+queue Send now/Edit/Delete rows, background-work sheet, shared-context chip, hub badge.
+
+## Part AV3 — NEW app-side findings
+
+- **F-21-A (P3) — the conversation screen's touch input goes fully DEAD after heavy
+  scrolling, cleared only by re-navigation.** Reproduction shape: after ~40 fling
+  gestures reaching the timeline top, the list stops scrolling; then EVERY touch on the
+  conversation screen is dead — list, the scroll-to-bottom FAB, even the header's
+  Context chip — while KEY events still work (BACK navigated out with
+  `nav.screen :: route=tasks`) and hub touches still work. Evidence: pixel-identical
+  screenshots across three distinct gestures (cmp-verified), FAB tap pixel-identical,
+  Context chip tap pixel-identical, then BACK navigating. Wire stayed healthy
+  (heartbeats every 8s) throughout. Re-entering the task restores normal input. Not the
+  recorded pending-card freeze class — no card was rendered at freeze time. Needs a code
+  look at the conversation screen's pointer-input/interaction plumbing (candidate
+  neighborhood: the freeze-gate's blocked-state propagation or an a11y/virtualization
+  interaction consuming the pointer stream).
+- **GAP-21-A (P3) — @-mentions are DEAD for a first-token mention, wire-proofed.**
+  `WriteComponents.kt:796` computes the trigger as
+  `state.draft.substringAfterLast(' ', "")` — Kotlin returns the **missing default**
+  when the draft contains NO space, so a draft that STARTS with the mention (`@read`)
+  computes `atToken = ""` and the mention menu can never appear. Live A/B on the rig:
+  draft `@read` → **zero** `searchWorkspaceFiles` wire calls, no panel; draft
+  `x @read` (space-delimited) → **7** `file.searchWorkspaceFiles` channel calls and the
+  panel renders the seeded `README.md` hit. The most natural mention shape — starting a
+  message with a file reference — is unreachable. Fix direction:
+  `substringAfterLast(' ', missing = draft)` (token = whole draft when no space).
+- **Papercut (P4): the queue strip's Auto-send label lags one toggle behind.** Tapping
+  Auto-send fires `sendConversationCommandV4 ok` (51ms) but "· paused" only drops on the
+  NEXT toggle; observed both directions (the switch state itself follows the wire).
+- **Papercut (P4): the mention panel does not re-trigger for the same token** after a
+  pick/miss cycle — `LaunchedEffect(atToken)` is keyed on the token VALUE, so re-typing
+  the identical token (state returned to a token it already searched) leaves stale
+  empty `mentionHits` until the token changes. Same neighborhood as GAP-21-A; fix both
+  in one look.
+- **Adjudications from earlier passes:**
+  - **F-20-A (pass 20's hook-card row-3 "tap-inert" checkbox) is REFUTED as a defect —
+    disabled by design.** The pass-21 code look pass 20 asked for: `HookTrustReviewCard.kt:118`
+    enables the checkbox as `!busy && item.actionable`, and
+    `WorkspaceHookReview.Item.actionable` (domain) is true ONLY for
+    `pending_trust | revoked | stale_digest` — an already-`trusted_persistent` hook
+    cannot be re-selected for trust (its row carries Disable/Revoke instead). Live
+    re-probe: boxes 1–2 toggle, row 3 shows `enabled=false` in the a11y dump across 4
+    additional probe points. Withdrawn from the ledger; the residual is a one-line UX
+    nicety (a disabled checkbox could read "already trusted"), P4-smallest at most.
+  - **D2 5th confirmation** (Context sheet's wrapped Model calls/Share chips render at
+    `[0,0][0,0]` and tap dead) — the chip-row wrap bug remains open at its pass-17
+    severity; D1 remains un-reproduced (4th+5th shapes this pass); D3/D4/D5 not
+    re-manifested this pass.
+
+## Part AV4 — mock arming debt CLOSED (F-21-B): the Files viewer could never have data
+
+The Files viewer (§23.4 phase-9 plane: `files.list` → `file.readdir`) degraded
+honestly on every prior pass because the MOCK never armed it:
+
+1. `seedWorkspaceFiles` (RIG-2, G9) only registered the file PATHS as bare keys for the
+   `searchWorkspaceFiles` @-mention filter — no directory listings existed, so
+   `readdir(<root>)` always faulted `fault.file.notFound`.
+2. Even with listings, the phone requests **absolute workspace paths**
+   (`workspaceRoot = /synthetic/ws-one`) while the seeded tree is workspace-relative.
+
+Fixed in `tools/mockzcode` (rig code, not app code): `seedWorkspaceFiles` now builds a
+real directory tree (root listing + nested dirs + typed entries), and the file-channel
+handlers (`readdir`/`stat`/`readTextFile`/`readFileRange`) resolve workspace-relative
+views of absolute paths via a shared `fileRelPath` helper; `MockRelayMain` also seeds
+paged README.md content for the viewer leg. Four new self-tests pin the tree shape
+(`MockZCodeFileTreeSeedingSelfTest`: root children, nested dirs, typed entries +
+search keys preserved, no duplicate children); `:tools:mockzcode:test` + `jar` BUILD
+SUCCESSFUL. The Part AV2 Files receipts are the payoff — the pass-20 REA classification
+of the FileTree browser as "desktop-only form-factor row" needs a correction: the PHONE
+SHIPS a read-only workspace file browser (it was simply never rig-armed), and with data
+armed it browses/navigates/reads exactly per §23.4/INV-9/INV-16.
+
+## Part AV5 — REA pass-21 angle: desktop surface sweeps over the unchanged asar
+
+String-level sweeps (windowed finds; the asar is byte-identical so all pass-15..20
+counts carry). New classifications:
+
+- **Rich-markdown stack**: the desktop renderer bundles **shiki-stream** (streaming
+  syntax highlighting), **mermaid** (diagrams), **katex** (math) and highlight.js. The
+  phone's highlighter is the documented parity-by-design answer
+  (`CodeHighlighter.kt`: "the phone's answer to the desktop's Shiki grammar set… No
+  grammar engine, no dependency" — INV-5-sized). **Two NEW P4-smallest gap rows**:
+  mermaid DIAGRAM rendering and katex MATH rendering have no phone equivalent — the
+  phone shows the raw fenced block. (Both are real agent-emittable content; neither is
+  interactive on the desktop beyond render.)
+- **Session migration/import flow** (desktop-only): `importSessions`,
+  `importSelectedSessions`, scan state (`isScanning`/`lastImportResult`), "Session
+  migration failed" — a desktop-AUTHOR surface for importing sessions from another
+  machine/workspace. NEW P4-small row in the desktop-AUTHOR family.
+- **Notification-sound setting** (desktop-only):
+  `settings.notificationSound` + `notificationSoundEnabled`/`setNotificationSoundEnabled`
+  with EN+ZH i18n ("you can mute the task notification sound separately"). The phone's
+  sound behavior is mediated by Android notification channels (no in-app mute). 
+  Parity-smallest row — platform-mediated, not a missing capability.
+- **Dock badge**: `syncApplicationUnreadBadge` → `setBadgeCount(totalUnreadCount)`.
+  Form-factor row: Android has no standard launcher-badge API; the phone's badge
+  equivalent rides notifications (A11/A12 plane).
+- **Desktop diff rendering is a virtualized hunks renderer**
+  (`renderDiffWithHighlighter.js`, `hunksRenderer.renderDiff(fileDiff, renderRange)`,
+  worker manager) — a DEPTH row beside pass-16's commit-dialog parity: capability
+  parity holds (the phone renders diffs in its commit/changes surfaces), rendering
+  depth differs by an order of magnitude (virtualized ranges + worker offload).
+- **resourceManager bridge** (desktop-only): a Help-menu window ("Resource manager")
+  sampling CPU (`os.cpus` busy/total) and scanning storage with progress + snapshots.
+  Desktop-internal diagnostics tool — form-factor row; the phone's analog is the
+  Diagnostics export (receipted live this pass). Explicitly NOT the usage-dashboard
+  plane (that stays as pass 20 recorded it: `getTaskTokenUsage` is the likely wire
+  verb; depth rig-blocked).
+- **Native file dialogs** (`showSaveDialog`/`showOpenDialog` with
+  SelectFile/SelectFiles/selectDirectory IPC) — desktop-author plumbing; phone uses
+  SAF/pickers. Form-factor.
+- `powerMonitor`/`before-quit` reporters = desktop lifecycle plumbing;
+  `tool-approval-request/response` part schemas = AI-SDK plumbing (consistent with
+  prior classifications). **No new phone-missing wire verbs** — the pass-20 closure
+  stands.
+
+## Part AV6 — pass-21 ledger and verdict
+
+Ledger after pass 21:
+
+- **NEW**: F-21-A (P3, conversation touch-input dead zone after scroll-to-top;
+  recoverable by re-navigation), GAP-21-A (P3, @-mention first-token trigger dead;
+  wire-proofed; fix = `missing = draft` + same-look for the re-trigger staleness).
+- **NEW rows (P4 class)**: mermaid + katex render rows (P4-smallest), session
+  import/migration (P4-small, desktop-AUTHOR), notification-sound parity-smallest,
+  Auto-send label-lag + mention re-trigger papercuts, "already trusted" checkbox
+  nicety (P4-smallest).
+- **WITHDRAWN**: F-20-A (refuted — disabled-by-design; see AV3).
+- **UNCHANGED**: GAP-17/J3 (P3 agent picker); usage-dashboard depth (rig-blocked;
+  `getTaskTokenUsage` still the likely verb); D2 (P3, 5th confirmation); D1
+  (non-reproduced 4th+5th shapes); GAP-A3 now CLOSED (fix verified live — receipt #3);
+  desktop-AUTHOR family unchanged in severity, one row added.
+- **Files viewer reclassification**: the pass-20 "FileTree browser = desktop-only
+  form-factor row" framing is corrected — the phone ships the read-only browser
+  (§23.4) and it works end-to-end with data; the gap was rig arming (F-21-B, closed
+  this pass in the mock).
+
+Verdict: on the same byte-identical APK, the live matrix re-verified with **thirteen
+FIRST receipts** — headlined by the notification and widget tap-through deep links,
+the live-data Files viewer (browse → navigate → paged read, after closing the F-21-B
+mock arming debt), GAP-A3's fix verified live, and the first pixel-level attachment
+render — and **two NEW P3 defects** (F-21-A touch dead zone, GAP-21-A mention
+trigger). Zero crashes attributable to the app; all three emulator deaths were the
+rig's memory-pressure class. The REA angle adds six classified rows and withdraws
+one pass-20 candidate. Fix round for F-21-A + GAP-21-A is the next session's opener.
+Nothing pushed. vc51 pass-21 round.
