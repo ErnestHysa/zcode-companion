@@ -5481,3 +5481,243 @@ parity gaps** — one new design-boundary row (desktop interactive terminal vs p
 deliberately view-only) and two phone-better rows (find-in-conversation, voice experiment).
 The campaign ledger is unchanged: GAP-17/J3 (P3), usage-dashboard depth (rig-blocked),
 desktop-AUTHOR P4-smalls. Nothing pushed.
+
+# Pass 20 — live emulation re-verification + REA wire-verb plane closure (2026-11-04, APPENDED; not part of the original audit)
+
+Scope: a fresh full live-emulation walk on HEAD `4afbac9c` (app code unchanged since the pass-13
+remediation build — the debug APK byte-verified as `9084b92060306d8b…` before install, git tree
+clean), then a NEW REA angle: the **complete wire-verb plane diff** — the desktop
+`zcodeAgentService` member surface (31 verbs, extracted from the asar by member-access sweep)
+diffed verb-by-verb against the phone's consumed transport inventory (V4Plane + RelayTransport +
+DirectTransport + TaskServiceClient/ViewerTools literal sweep, 143 entries). The macOS asar
+re-hashed byte-identical `99e280fb90b626cc…` over 326,913,358 bytes — all pass-13..19 graph
+counts carry, no re-analysis spent.
+
+## Part AU1 — rig and the live walk (each receipt observed on device this pass)
+
+Rig: zcode-pixel cold boot (`-no-snapshot-load -gpu swiftshader_indirect -no-audio -no-boot-anim
+-no-window`), MockZCode relay on `10.0.2.2:18100` via gradle with the FULL 22-arm flag set +
+`MOCK_INTERACTION_PUSH_MS=25000` + gen-1 push id `mock-p20-gen1-9f3c71b2` (gen-2 restart later:
+`mock-p20-gen2-4e7a91c3` with the push deferred to 600 s). Stored pairing survived the cold boot
+(**6th consecutive confirmation**) — launch → `auth.matched` → `relay.connected` (relay-1) →
+`hub.bootstrapApplied :: tasks=3 workspaces=1 dropped=0` + `hub.bootstrapReplayed (no re-fetch)`
++ `update.check desktop=3.14.3 UpToDate`. Every receipt below was observed live:
+
+- **Allow always (FIRST — the always-scope approval leg with its warned-confirm gate)**: the
+  gen-1 fresh push rendered the approval card (Bash · `{"command":"echo synthetic"}`) with
+  Allow once / Allow always / Keep waiting; **"Allow always" opened its own confirm dialog**
+  ("Allow always? — Future identical requests will run WITHOUT asking again.") → Confirm →
+  **`sendConversationCommandV4 ok 72ms`**. (The gen-1 card also composed with the pending
+  bootstrap question card per ADR-024; the question card advanced back into view once the
+  approval resolved — the recorded freeze/virtualize class held.)
+- **Question card answered in full (radio + Extras ×2 + free text)**: Channel radio
+  ("Tag the release" selection registers), Extras MULTI-SELECT (Release notes + Changelog both
+  checked — checkbox taps at the row's far-LEFT per the recorded rule), "Or type your own
+  answer" free-text (`p20shipviatag`, exact) → Send answers → **`sendConversationCommandV4 ok
+  64ms`**; the card body scrolls INTERNALLY while the timeline freezes (the recorded class).
+- **Hook trust round-trip (4th consecutive pass)**: two CheckBox nodes checked at x≈139 →
+  "Trust 2 selected hook(s)" → confirm dialog → **`grantWorkspaceHookTrust ok 264ms`** + the
+  auto-continuation firing right behind the trust gate (`sendConversationCommandV4 ok 125ms`) +
+  "Trusted 2 hook(s) — the session continues." snackbar.
+- **Hook Revoke (FIRST — the already-trusted-hook revocation leg with its own confirm gate)**:
+  the Watcher row's Revoke action → **warned-confirm dialog ("Revoke this hook? — The hook
+  stops running until it is trusted again.")** → Confirm → **`sendConversationCommandV4 ok
+  44ms`**.
+- **Find-in-conversation (FIRST live receipt of the phone-better family)**: the toolbar
+  magnifier ("Find in conversation" content-desc) opens the find bar with an honest **"No
+  matches" empty state**; searching `echo` and `ship` → No matches (the recorded text-rows-only
+  scope: tool payloads and slash text are not searchable), searching `row` → **"1 of 40"** match
+  counter with Previous/Next buttons; **Next ×2 → "3 of 40"** (navigation advances live).
+- **Sketch → attachment wire (FIRST live receipt of the sketch-to-attachment pipeline)**: the
+  composer "+" add-menu rendered the full phone-superset row (**Mention a file / Sketch / Photo
+  / Attach a file / Take photo**); Sketch opened the canvas ("Sketch to send" + Clear/Done), a
+  stroke drew live, Done → **`attachmentChunkV4 ok 175ms` + `attachmentCommitV4 ok 38ms`** →
+  the chip `sketch-1793756298302.png (9.2 KB)` rendered with a Remove action → typed message +
+  send → **`sendConversationCommandV4 ok 83ms`** (composer+attachment round-trip; the earlier
+  tap-hostile window is a rig artifact — see Part AU3).
+- **Approvals inbox Deny leg (FIRST — the negative answer with its own confirm gate)**: bell
+  badge "1" → Approvals sheet ("Requests waiting across your tasks") → row (Permission — Bash /
+  echo synthetic) shows **Allow once AND Deny**; **Deny opened its own confirm dialog ("Deny
+  this request? — The agent is told no for this request (Bash). Request: echo synthetic")** →
+  Confirm → **`sendConversationCommandV4 ok 409ms`** → the inbox cleared to "Nothing needs
+  you".
+- **Widget counted state (pixel receipt)**: after backing out to the launcher, the Glance
+  widget rendered **"Pending approvals — 1 request needs you"** (the pending Watcher hook
+  review counted — the widget plane sees pendingInteractions the inbox sheet doesn't list).
+- **Context sheet full plane + D2**: status strip (4m 59s · Iteration 3 · 1 background), goal
+  "Ship it · verifying ‖ iteration 3" with ✓ iter 1 / — iter 2 — 2 criteria unmet, Todos 1/2
+  (strikethrough + active dot), Workflow runs (lint-all Running / release-notes Stopped), Plans
+  ("Ship the release" 1/3 with ✓▸○), git strip (main · clean), and the Open chip rows
+  (Files / Git / Terminal real bounds; **"Model calls" and "Share" at `[0,0][0,0]` a11y bounds —
+  paint-only — D2's 4th live confirmation**, taps at their painted positions produce no
+  navigation).
+- **Git write tier FULL again + CKPT-HYDRATE list (FIRST live list receipt)**: Snapshot tab →
+  **`git-checkpoint.listCheckpoints ok`** (the hydrate family's list verb live for the first
+  time) + the "Snapshots created elsewhere aren't listed here" honest note; Snapshot action →
+  **`git-checkpoint.createCheckpoint ok`** (ckpt-1 row + "Snapshot ckpt-1 created" snackbar);
+  Commit… → dialog (message field, Generate knob — the recorded arming debt, **Include
+  unstaged toggle ON (first toggle receipt, right-edge x≈964)**) → **`git.commit ok`**
+  ("Committed abc1230" snackbar); **Commit & push toggle ON** → Commit → **`git.commit ok`**
+  → **push-consent gate ("Push to the remote? — Push branch main? The desktop runs git push —
+  publishing cannot be undone from the phone.")** → Push → **`git.push ok`**. The History
+  section degraded honestly (`fault.git.notAvailable` — the recorded arming debt).
+- **Terminal (2nd consecutive consent+attach)**: consent screen (VIEW-ONLY · idle · the
+  view-only copy) → **`terminal.optIn :: enabled=true`** (the ENABLE control is the narrow
+  ~143px clickable box LEFT of the label — see Part AU3) → "Not attached." → Attach →
+  **`terminal.create ok` + `terminal.attached :: id=term-1`**.
+- **Hub families**: automations — Run now → **`runAutomationNow channel error:
+  fault.mock.unscripted`** (arming debt, honest degrade, 5th receipt); Pause →
+  **`setAutomationEnabled ok 137ms`** → Continue → **`ok 55ms`**. New task sheet → description
+  → **`tasks.create :: workspace=/synthetic/ws-one model=default/default` + `hub.createTask
+  outcome=Accepted`**.
+- **Settings sweep + zai dark (NEW option receipt)**: the full sheet walked (Endpoints /
+  Insights / Plugins / Skills / MCP servers / Subagents / Providers / Bots / Diagnostics
+  family / Appearance / Presentation mode / Language / Text size / **Auto-archive tasks: Off
+  (manual only)**); **Theme: Follow the system → picker (Light/Dark/Follow-the-system/zai
+  light/zai dark) → zai dark → the WHOLE screen re-rendered dark instantly** ("Applies
+  immediately, no restart needed." — pixel receipt; the zai-dark option itself receipted for
+  the first time) → reverted to Follow the system.
+- **Relay-restart reconnect (D1 probe, 3rd shape without reproduction)**: relay killed at
+  02:16:57 with the app foreground on Settings → `relay.lost :: abnormal close 1006` (honest
+  20 s ping timeout) → relay-2..5 honest **`relay.reconnectFailed :: connect timed out after
+  10000ms`** while the gen-2 relay's gradle configured → relay-6 **`relay.recovered ::
+  subscriptions=1 snapshotReplace=true` → `hub.bootstrapApplied tasks=3` + `bootstrapReplayed`**
+  — full auto-recovery in ~72 s, NO Retry, NO DEGRADED wedge (third shape; pass-17's trigger
+  shape remains unreproduced).
+- **Fresh-install re-pair (`pm clear`)**: onboarding privacy copy → Paste pairing link dialog
+  → **exact 178/178** (9 × 20-char chunks, zero drifts once the two rig traps were fixed —
+  see Part AU3) → **stale-link guard fired** ("This QR code may be stale / MockBook · 3.14.3"
+  on the genuinely stale gen-1 link, 5th consecutive deterministic receipt) → Continue anyway
+  → **Security setup consent** (exact hardware-backed-sealed copy) → pairing completed with
+  **NEW endpointId `dd6d55ae-5438-40f6-8e5e-9c6aa1d7e414`** → `relay.connected` →
+  `hub.bootstrapApplied tasks=3` + `bootstrapReplayed` → New task → **`tasks.create` +
+  `hub.createTask outcome=Accepted`** on the fresh pairing.
+
+## Part AU2 — pass-20 defects & adjudications
+
+- **D2 (P3, carried) — 4th live confirmation.** The Context sheet's wrapped second chip row
+  ("Model calls" / "Share") again rendered paint-only: a11y bounds `[0,0][0,0]`, taps at the
+  painted positions dead, no navigation. Unchanged since pass 17.
+- **D1 (P3 observation, carried) — 3rd shape without reproduction.** The relay-restart race
+  was driven a third time (foreground, healthy ESTABLISHED wire, settings screen) and again
+  recovered cleanly through the honest reconnectFailed ladder into `relay.recovered` +
+  bootstrapReplayed. The pass-17 wedge has now failed to reproduce under three distinct
+  shapes; the observation stays open but the recovery ladder is proven honest in every drive.
+- **NEW P4 candidate (F-20-A) — hook-review card row-3 checkbox tap-inert at its a11y
+  bounds.** In the three-hook review card, checkboxes 1–2 toggle at x≈139 (dump bounds), but
+  checkbox 3 ("Watcher") did NOT toggle across five probed tap points (139,844 ± 14 px and
+  x=100) plus a drag gesture, while the dumped bounds were identical in shape to rows 1–2.
+  Workaround exists (Trust 2-of-3 partial trust wires `grantWorkspaceHookTrust ok`); the
+  card's Disable/Revoke on row 3 also work. Needs a code-level look (suspect: an interactive
+  overlay eating the pointer in the last row's leading column) before pinning as an app
+  defect vs. an a11y-dump artifact. Discoverability class of D4.
+- **D3/D4 carry** (audit-timestamp clobber; hook-card swipe discoverability — both re-sketched
+  by the pass-20 walk but not separately probed). **D5 not manifested this pass.** The
+  Edit-automation "Create" papercut carries (no Edit leg driven this pass).
+- Zero crashes across the whole walk (logcat clean of FATALs); ZERO new P1–P3 defects.
+
+## Part AU3 — rig lessons for future passes
+
+1. **`adb shell` inside a `while read` loop EATS the pipe**: `tail | while read c; do adb
+   shell input text "$c"; done` typed exactly ONE chunk because the first `adb shell` drains
+   the loop's stdin (adb forwards local stdin to the device shell). Fix: `adb shell input
+   text "$c" < /dev/null` per iteration. This, not chunk size, was this pass's fresh-install
+   "drift".
+2. **The a11y-dump text is XML-escaped**: `&` lands as `&amp;` (+3 chars per ampersand), so a
+   raw length check against a 7-ampersand pairing link reads 196–198 "typed" for a correct
+   178-char field. Unescape before comparing, or compare tails.
+3. **`&` in typed chunks must be escaped** (`\&`) device-side or `input text` backgrounds the
+   command at the first `&`.
+4. **Dialog switches toggle ONLY at the row's right edge (~x=964)** — re-confirmed twice this
+   pass (Include-unstaged and Commit-&-push toggles); label taps and track-center taps do
+   nothing.
+5. **The terminal-consent ENABLE switch is a ~143px clickable box LEFT of the label** (its
+   container at `[231,861][374,993]`) — the row label and the far-right edge are both dead.
+6. **The composer send is tap-hostile while a hook card pins + an attachment chip squeezes the
+   layout**: the send button's a11y bounds exist (and even report `0,0` in some dumps) but the
+   clickable area responds only after the snackbar dismisses and the composer re-docks; one
+   stray tap landed on the queue's "Send now" instead (which receipted that family). Budget a
+   snackbar-dismiss + fresh dump before composer sends.
+7. **Screenshot paint vs a11y dump can offset by ~200–300 px on sheet screens** even when the
+   PNG is 1080×2340 (header-verified). Dumps remain the only authoritative tap source; never
+   tap from screenshot pixels on bottom-sheet screens.
+
+## Part AU4 — pass-20 REA angle: the complete wire-verb plane diff
+
+Method: the desktop's phone-remote surface is the `zcodeAgentService` object — extracted by
+sweeping the asar for `zcodeAgentService.<member>` accesses (**31 verbs**), then each verb was
+checked against the phone's consumed transport inventory (V4Plane/RelayTransport/
+DirectTransport literals + TaskServiceClient/ViewerTools + Phase9Ports). The envelope-type
+plane (`type:"…",payload:` dispatches) and the two literal `*V4` strings were swept too. All
+counted against the unchanged asar digest `99e280fb90b626cc…`.
+
+**Desktop verbs with NO phone consumer (new parity rows):**
+
+- **P4 (desktop-AUTHOR family, now concrete): the plugin marketplace/management plane.**
+  Five verbs — `addPluginMarketplace`, `updatePluginMarketplace`, `installPlugin`,
+  `getPluginsOverview`, `getPluginReferenceCatalog` — plus a **247-key
+  `settings.plugins.*` i18n surface**: per-plugin detail with component inventory
+  (agent/command/hook/lsp/mcp/skill), **per-plugin config with SECRET management**
+  (config.save / clearSecret / showSecret / hideSecret / sensitiveUnavailable /
+  undoClearSecret / undoRestoreOption), **update checks** (checkForUpdates.found/.none),
+  and **marketplace authoring** (Choose directory, drag-and-drop hint, Validate marketplace,
+  `exportMarketplaceSourceArchive`). The phone consumes exactly `listPlugins` (read-only,
+  GAP-7) + `setPluginEnabled` (the enable toggle) + the skills catalog. Every installation/
+  update/configure/secret/marketplace-management flow is desktop-author only.
+- **P4: session close-without-delete.** The desktop session chips expose a **"Close session"
+  button** (`closeSession`); the phone's task menu has archive / delete / rename / continue
+  (`continueTask` is the Resume wire) but **no close** semantic.
+- **P4-smallest: on-demand compact.** `compactSession` exists with a desktop UI caller
+  (taskId/workspacePath + inputId bookkeeping); the phone has no compact surface (consistent
+  with pass-18's "autoCompact display-only both sides" — the desktop can compact a session on
+  demand, the phone cannot).
+- **Ledger sub-note (usage-dashboard depth, still rig-blocked):** the per-task token-usage
+  wire verb is `getTaskTokenUsage` (desktop-only; the phone's usage port is app-level
+  `getAppUsageStats` + the coding-plan snapshot family). When the mock arms the usage-stats
+  channel, this is the verb a per-task depth view would ride.
+- **P4-smallest (form-factor row, G31 class): the desktop file-tree browser.** A `FileTree`
+  component appears 111× with `openFile` call sites; the phone's Files surface is the
+  per-file viewer family (`files.list/readText/binaryPreview/share/download` + attachments +
+  mentions) — a mobile minimum, deliberately not a tree.
+
+**Explicit non-findings (so future passes don't miscount):** `sendConfigCasCommandV4` /
+`sendHostCasCommandV4` are internal FUNCTION names wrapping `sendConversationCommandV4`
+CAS-of-config envelopes (config snapshots / host control), not wire verbs or gaps;
+`syncAppRuntimePreferences` (runtime-preference propagation to workspace clients),
+`onDynamicCuaPermissionObservation` / `onDynamicSessionEvent` /
+`onDynamicSessionRuntimePreferencesRequest` / `respondSessionRuntimePreferences`, and
+`dispose*`/`initialize` are desktop-internal lifecycle plumbing. **No permission-policy gap
+exists in either direction**: the desktop has NO allow/deny rules editor either —
+`toolDenylist` (carried in session snapshots) is the only policy knob on both sides, and the
+phone consumes snapshots passively.
+
+**Phone verbs re-confirmed present desktop-side (the diff's positive half):** all 143
+phone-side entries resolve to desktop implementations — the conversation family
+(`subscribe/initialize/resyncConversationV4`, `helloConversationV4`, rows/attachments),
+the command envelope family (`sendConversationCommandV4` with 12 asar sites), the mode/
+thought/model trajectory (`setMode` + `switchCollaborationMode` + `setThoughtLevel`), the
+files family (`readTextFile/readFileRange/readBinaryPreview/searchWorkspaceFiles`), the git
+family incl. checkpoints and the write tier, the terminal family, the automations family,
+the tasks family, MCP/plugins/skills/subagents/providers/bots/codingplan status families,
+and `getView`. **The phone consumes every phone-relevant verb the desktop offers except the
+four families above — the plane is closed.**
+
+## Part AU5 — pass-20 verdict
+
+On HEAD `4afbac9c` (APK `9084b920…` byte-identical to the pass-13 remediation build; asar
+unchanged `99e280fb…`) the live matrix re-verified with **five FIRST receipts** — allow-always
+with its warned-confirm gate, hook revoke with its own gate, the inbox Deny leg with its gate,
+find-in-conversation (counter + navigation + honest empty state), and the sketch→attachment
+wire (`attachmentChunkV4` + `attachmentCommitV4`) closing into a composer send — plus the
+CKPT-HYDRATE list verb live for the first time, the zai-dark theme option, and the widget
+counted state. D2 hit its 4th confirmation; D1 its 3rd non-reproduction; one NEW P4 candidate
+(hook-card row-3 checkbox tap-inert) logged pending a code look; zero crashes; zero new
+P1–P3 defects. The REA angle CLOSED the wire-verb plane: the desktop's phone-remote surface is
+31 verbs, the phone consumes all phone-relevant ones, and the residual desktop-only families
+are exactly the plugin marketplace/management plane (now concrete: 5 verbs + 247 settings
+keys + secret management + marketplace authoring), session close-without-delete, on-demand
+compact, per-task token usage, and the file-tree browser — all desktop-AUTHOR/form-factor
+class (P4/P4-smallest), none invalidating the phone's mobile-minimum framing. Ledger:
+GAP-17/J3 (P3) unchanged; usage-dashboard depth gains its likely wire verb
+(`getTaskTokenUsage`); desktop-AUTHOR family upgraded from P4-smalls to a concrete P4 row.
+Nothing pushed. vc51 pass-20 round.
