@@ -6176,3 +6176,200 @@ re-tests settled (one clean repro, one clean non-repro), and the REA dig went a
 level deeper than any prior pass — the complete command-schema census leaves
 exactly ONE unclaimed wire command on the phone side. Zero crashes, zero new
 P1/P2 defects. Nothing pushed. vc51 pass-22 round.
+
+---
+
+# Part AX — pass 23 (2026-11-04): live-matrix re-verification + REA plane census dig on 30494272
+
+Identity: HEAD unchanged (30494272, pass-22 docs commit); APK rebuilt and **byte-identical
+9084b92060306d8b…** (32,294,909 B, aapt2 badging versionCode 52 / 1.3.1); desktop asar
+re-hashed **99e280fb90b626cc… unchanged** (326,913,358 B). Rig: reused the already-booted
+zcode-pixel emulator (pid 81786, -memory 2048) after my own cold-boot attempt failed on the
+AVD lock ("Running multiple emulators with the same AVD") — the leftover instance was healthy
+and reused instead; old relay killed via `pkill -f MockRelayMainKt` (port 18100 showed qemu's
+NATed socket 81786 — do NOT kill by port, rig rule held); fresh relay armed with the FULL
+flag set (ROWS GOAL APPROVAL HOOKS TASKMGMT QUEUE WORKSPACE_FILES SESSIONS_INDEX GIT
+WORKFLOWS AUTOMATIONS OFFPEAK BACKGROUND_BASH QUESTION SHARED_CONTEXT ATTACHMENT CUA COMPACT
++ MOCK_INTERACTION_PUSH_MS=25000) via the plain `java -cp` recipe; app force-stopped and
+relaunched → **instant reconnect** (bootstrapReplayed relay-1, workflows fetched, update.check
+desktop=3.14.3).
+
+## Part AX1 — FIRST receipts (never driven in passes 1–22)
+
+- **setAssistantFeedback (thumbs-up) wire** — the assistant reply row's Like/Dislike icons
+  (content-desc "Like") tapped at a11y center → `sendConversationCommandV4 ok in 38ms` — the
+  row-actions feedback surface existed in code since E3.2 but was never wire-receipted; the
+  icon state flips to "Liked" (content-desc verified).
+- **Approval → tool EXECUTION end-to-end**: Allow once (`ok 47ms`) → the mock executed the
+  Bash tool → the timeline gained a real tool-result row ("Bash / Completed / echo synthetic"
+  with the green completed spine + expand chevron). Previous passes receipted the ANSWER ack;
+  this pass receipted the run leg plus the render.
+- **The full typed question card driven to submit**: option radio SELECTED by tap (the
+  selection circle fills), the card body SCROLLS INTERNALLY (drag up inside the pinned card
+  reveals free-text "Or type your own answer" + Extras checkboxes Release notes/Changelog +
+  the Submit/Skip row) → "Send answers" → `ok 75ms`. Multi-field question composition was
+  census-claimed (pass-19 multi-select leg) but the internal-scroll-to-submit path is new.
+
+## Part AX2 — re-receipts (fresh wires this pass)
+
+Queue Send-now (`ok 102ms`, 2→1) and Delete (`ok`, strip collapsed to header — the
+deleteQueueItem receipt), composer sendText round-trip (`ok 32ms` + the production-fidelity
+echo "synthetic reply to: rig23 edit me" rendered with copy/feedback affordances),
+checkpoint create (`git-checkpoint.createCheckpoint ok` → ckpt-1 row in the Git pane),
+**hook trust #7** (checkbox → warned confirm → `grantWorkspaceHookTrust ok in 102ms` + the
+follow-up journal command `ok 21ms` + the "Trusted 1 hook(s) — the session continues."
+snackbar), slash catalog (`getSkillReferenceCatalog ok in 6ms`; panel renders `/help` +
+`/login` with descriptions), background-bash sheet (Background work · synthetic background
+build · bash · running · Cancel/View output — opened from the background-tasks line), the
+G12 recovery banner ("Context compression failed / Retry") visible on re-entry, context
+sheet full re-render (goal "Ship it verifying · iteration 3", Todos 1/2, Workflow runs
+lint-all Running / release-notes Stopped, Plans 1/3, git strip main clean, chip row),
+unsubscribeConversationV4 ×2 on navigation away (GAP-A3 fix holding), task-list full render
+(Automations On·active + Workflows + Pinned Live + workspace groups) and the **widget
+counted state on the launcher** ("Pending approvals — Nothing needs you" — 0 is correct:
+the pushed interaction was consumed in-app).
+
+## Part AX3 — defect re-tests
+
+- **F-21-A: NOT reproduced — 3rd consecutive clean pass** at the trigger state (4 fast
+  flings to timeline top → composer tap → `mInputShown=true`; Context chip tap → sheet
+  renders fully). Remains OPEN/intermittent (single pass-21 sighting); fix round unchanged.
+- **GAP-21-A: REPRODUCED — same A/B signature**: first-token `@re` = **0**
+  `file.searchWorkspaceFiles` calls + no panel; mid-text `x @re` = calls fire
+  (begin/ok receipted) + the README.md panel renders above the composer. This pass counted
+  1 mid-text call vs pass-22's 2 — debounce variance (the "@r" intermediate may coalesce),
+  not material; the 0-vs-N asymmetry is the bug's signature. Fix = `substringAfterLast(' ',
+  missing = draft)` (WriteComponents.kt:796) + the re-trigger staleness look.
+- **D5: NOT manifested this pass** (sheet reopen returned to the TOP — Status row + chip row
+  all correctly placed; pass-22's ×2 sightings remain intermittent). D2 not re-probed (the
+  sheet drove entirely by tree coords this pass).
+
+## Part AX4 — NEW rig facts (pass 23)
+
+1. **Tree-vs-paint offset inside the pinned interaction card is NON-UNIFORM** — measured
+   +30px to +170px varying per row and changing as the card body internally scrolls,
+   converging to 0 by y≈1300 (queue strip). Painted-coord taps on card controls MISS.
+   Reliable recipe: dump, find the control's CLICKABLE a11y bounds, tap the CENTER.
+2. **Compose checkbox hit area is smaller than its a11y bounds**: (120,520) inside the
+   bounds (73,490)-(205,622) did NOT toggle; the center (139,556) did. Pass-20's "x≈139"
+   is the center-x of a 132px box — the full recipe is center-tap, not x≈139 anywhere.
+3. **IME shifts the composer between dump and tap**: the send tap landed on the IME
+   suggestion strip (dump taken pre-shift). Recipe: keyevent 111 first, then dump+tap the
+   docked composer (re-confirming the pass-5 class with a new failure mode).
+4. **editUserQuery is wire-gated on `row.base.actions?.canEdit == true`**
+   (ConversationScreen.kt:1292 `editable = … && onEditRow != null`): the long-press Message
+   actions sheet on a sent row shows ONLY Copy / Ask in a side session / Share selection —
+   no Edit — because the mock never stamps canEdit on user rows (MOCK_ROW_ACTIONS stamps
+   canFork/canRetry on the last ASSISTANT row only, MockRelayMain.kt:107-112). Pass-22's
+   "consumed+surfaced" census line overstated live-reachability: the edit sheet is reachable
+   only when the DESKTOP declares canEdit (correct fail-closed design). Rig debt: extend
+   MOCK_ROW_ACTIONS to stamp canEdit on a user row for the editUserQuery wire receipt.
+5. **Git pane Commit on a non-git-scripted session = honest fault**: `git.getChanges` ×2
+   refused with `fault.git.notAvailable` (this session has no git script — RIG-5 scripts
+   the default workspace session only); dialog closes honestly. The commit leg completes
+   only on git-scripted sessions (task-1 default), as receipted in passes 19-22.
+6. **RIG-5 routing observed live from the other side**: after an accidental navigation into
+   Synthetic task 2, its timeline carried the sendText echo + reply + feedback rows of the
+   command effects routed to the calling session — the mock's row journal follows
+   routingSessionId() as built.
+7. **Workflow-runs poll cadence tallied for the first time**: 291
+   `conversationWorkflowRunsV4` calls in ~40 min ≈ one call every 8 s, CONTINUOUS while
+   conversations are subscribed (surviving task switches). Consistent with prior passes'
+   bursts but never counted; recorded as a WATCH note (background traffic/battery), not a
+   defect — the panel is live-status by design.
+8. The mock's single pendingPermission slot consumed the scripted question when the 25 s
+   interaction push landed (pass-19 class re-manifested): the question card vanished from
+   the pinned slot and RESURFACED after the pushed approval was answered.
+
+Census: **0 FATALs, 0 ANRs** for the whole walk; ~45 min zero emulator deaths.
+
+## Part AX5 — REA pass-23 dig: new planes beyond pass-22's command census
+
+Asar identity unchanged (99e280fb…), so counts carry; the dig went WIDER (planes pass-22
+did not open) using i18n-key + testid sweeps (identifier greps stay blind on the minified
+asar — the E3 lesson).
+
+**NEW GAP ROW — G42 (P4-small): workflow AUTHORING/management verbs are desktop-only.**
+The desktop service carries `startSavedWorkflow` ×10, `listSavedWorkflows`,
+`listSavedWorkflowRuns`, `getSavedWorkflow`, **`deleteSavedWorkflow` ×3,
+`updateSavedWorkflowMeta` ×2 (rename/description), `moveSavedWorkflow` ×2 (reorder)**.
+Phone census (non-test): startSavedWorkflow ×10, listSavedWorkflows ×3, getSavedWorkflow ×2,
+**delete 0, update-meta 0, move 0** — the phone's workflow plane is list/get/start/resume
+(G3/G17 receipted) with NO management surface. Remedy: viewer actions (Delete/Rename/Move)
+on the existing workflows list sending the existing service verbs; candidate one-commit fix
+beside the renameSession row.
+
+**Sharpened boundary rows (no new number, concrete depth recorded):**
+
+- **Hooks AUTHORING (B3-family depth)**: `settings.hooks.*` = 49 keys — add/edit/delete/
+  import hook configs, event/type(process|command)/matcher/command/timeout fields, groups
+  configured/compatibility/plugins/installed/legacy, sessionSnapshot, search. The phone
+  plane is REVIEW-ONLY by design (trust/disable/revoke cards, INV-14 receipted ×7).
+  Candidate INV-9-style remedy (P4-smallest, B3-gated): a read-only hooks-config viewer.
+- **Keyboard-shortcuts settings page = form-factor, now key-level confirmed**:
+  `settings.shortcuts.*` = 55 keys — searchable binding table (command/binding/actions/
+  scope columns), per-binding rebind ("recording"), reset-all, scopes composer|global,
+  conflict states reserved/occupied + steal-confirm; named commands newTask/composerSend/
+  composerInsertNewline/openWorkspace/closeActiveContext/toggleSidebar/switchTheme/
+  toggleSidePane/toggleTerminal; the page itself carries a "desktopOnly" marker. No phone
+  gesture analog is missing — every command is window-management or already-shipped
+  (theme/interface mode exist on the phone). Extends pass-6's ShortcutSettings boundary.
+- **MCP settings plane deepened (joins G22/G24)**: `settings.mcp.*` = 83 keys including a
+  full REMOTE-SYNC capability (`settings.mcp.remoteSync.*` ×21: target selection,
+  select-all, syncing/existing/synced/skipped/failed result states) + create + import +
+  plugin/host/local grouping + authorizationRequired states. Concrete new capability
+  inside the settings-sync boundary: pull MCP server definitions from another machine.
+- **Computer-use settings section (depth in G18)**: `settings.computerUse.*` = 12 keys —
+  master toggle, composer entry label/description/saveFailed, unsupported badges
+  (remote|linux), disabledToast. The phone's G18 CUA plane is display-only row-category
+  tagging (receipted pass 20); the capability toggle is desktop-side. Phone grep: 0 hits.
+- **Desktop notification taxonomy = parity-with-note**: typed bodies taskWithTitle/
+  taskWaiting/completed/completedBody/error/permissionRequired/inputRequired/
+  planApprovalRequired/planApprovalBody. The phone handles the same underlying
+  interactions through its own richer native plane (actions, deep links, channels —
+  receipted passes 13/21) and renders plan approvals generically (pass-22 note stands).
+- **Slash census (phone-superset note)**: the desktop chat's slash list is WORKSPACE-SERVED
+  (config-catalog hydration returns `slashCommands` + the mode select alongside); the phone
+  consumes the SAME plane (Ports.kt:303 + hub cfgCatalog log) AND ships a golden
+  20-command builtin catalog (BuiltinSlashCatalog, drift-gated via
+  tools/drift/surface-inventory.json). `/expert` and `/dwf` exist ONLY in the phone's
+  catalog (CLI-TUI mirror — 0 asar hits) — the phone knows two built-in slash planes the
+  desktop chat does not. Not a gap.
+- **Settings sections census (closes the section-level parity question)**: desktop =
+  appearance (theme cards/system), modelProvider (G27), MCP (G22), plugins+marketplace
+  (pass-20), hooks (above), shortcuts (above), usage (G20 shipped), locale (G37 shipped),
+  computerUse (above), subagents (G25), automations (G29), workspace file search (G40),
+  settings-sync (G24). Phone rows = endpoints/connection, theme, interface-mode, locale,
+  font-scale, auto-archive, terminal opt-in, honest-push, notifications detail, automations
+  (full monitor), plugins toggle, skills, feedback. Every desktop section now maps to a
+  shipped row, a carried boundary ticket, or a form-factor classification — no unmapped
+  section remains.
+
+**False-positives adjudicated before the ledger**: `settings.dropdown/checkbox/number/
+leqno/tight/is` = KaTeX CSS classes (not settings rows); `message-*` ×1537 = lucide icon
+names + http/`message-stream` plumbing; `chat.slashCommandForeground/Background` = VS Code
+theme COLORS (not i18n); `keymapp` = vendor name; `settings-sync` testid ×17 = the G24
+ticket's own surfaces. NOT gaps.
+
+**Standing WATCH re-confirmed**: Relay V2 (v3.17.1 contract) still 0 hits in the shipped
+asar; the v3.14.3→v3.17.1 upstream drift set (TodoPanel/ToolCallBlocks/etc.) still unshipped
+— re-grep after any desktop update.
+
+## Part AX6 — pass-23 ledger and verdict
+
+- **UNCHANGED**: F-21-A (P3, NOT repro — 3rd clean pass), GAP-21-A (P3, REPRODUCED,
+  same A/B), GAP-17/J3 (P3), usage-dashboard depth (rig-blocked), D1 (no probe this pass —
+  relay restart not needed; 6 prior non-repros stand), D2 (not re-probed), D5 (NOT
+  manifested this pass — intermittent), renameSession (still the one unclaimed command).
+- **NEW**: G42 (P4-small) workflow management verbs; editUserQuery live-reachability
+  corrected (wire-gated on canEdit; rig debt recorded — pass-22 census overstated);
+  workflow-runs 8 s poll WATCH; hooks-authoring/MCP-remote-sync/computerUse-settings/
+  shortcuts-page depth notes filed into their boundary tickets.
+- **FIRST receipts**: setAssistantFeedback wire; approval→tool-execution→result-row chain;
+  typed-question radio+Extras+internal-scroll→Send answers.
+- **Verdict**: on the byte-identical APK, the live matrix re-verified with three FIRST
+  receipts and nine wire-level re-receipts, both pass-21 P3 re-tests settled (one 3rd
+  clean non-repro, one 2nd repro), zero crashes/ANRs, and the REA dig opened five planes
+  pass-22 had not (workflow management, shortcuts page, MCP remoteSync, hooks authoring,
+  computerUse settings) — yielding exactly one new gap row (G42) and closing the settings
+  section-level parity question. Nothing pushed. vc51 pass-23 round.
