@@ -6951,3 +6951,26 @@ fires every ~8 s throughout (295+ calls across the session).
   delta/step-graph plane (G48+G51), the authoring planes (GAP-17/J3, G42, G46),
   state-marker surfacing (G52), git-plane depth (G53), and the P4 smalls. Nothing pushed.
   vc51 pass-26 round.
+
+## Part BA7 — pass-26 amendment (2026-11-05): the commit leg RECEIPTED on the clean 4th attempt
+
+The BA1.3 honest miss is closed. Attempt 4 (clean): field tap hit the EditText center, the
+typed message was a11y-verified IN the field (`v1.3.1-rig`), the IME was dropped by tapping
+the sheet title ("Commit changes" — a non-input spot INSIDE the sheet, avoiding both the
+BACK-closes-sheet and ESC-wanders traps), and Commit was tapped at its fresh IME-shifted
+bounds → **`git.commit begin → git.commit ok` (76 ms, connectionId relay-2)** — receipted in
+the app's own channel.call log (the authoritative wire record; the mock's v4call println
+does not carry the git-plane call name my greps assumed). The identity suspect from BA1.3
+is REFUTED: the mock serves `getIdentity` (Ernest/takis312 by default; MOCK_GIT_IDENTITY_
+MISSING arms the null case), identity.present=true, the button was enabled — the three
+earlier failures were pure rig handling (label-vs-field tap; BACK and ESC each closing the
+sheet).
+
+NEW rig-fidelity note (mock asymmetry, not an app defect): on the gen-2 session the mock's
+git plane refuses `git.getChanges` and `git.getCommitGraph` with `fault.git.notAvailable`
+(`mergedGitSummary()` is null on that session) while `getRepositorySummary`/`getIdentity`/
+`commit` succeed — the pane degraded honestly (empty Checkpoints/Changes/History, the
+gitport warn line, no crash). A future mock pass should make the git plane session-consistent
+so the Changes list and commit History render on the rig. Commit-sheet procedure locked for
+future passes: EditText-center tap → type → tap sheet title to drop IME → re-dump → tap.
+vc51 pass-26 amendment round.
