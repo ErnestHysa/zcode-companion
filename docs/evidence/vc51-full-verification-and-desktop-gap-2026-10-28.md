@@ -7122,3 +7122,229 @@ conversation.
   content FIRST). Remaining debts: `MOCK_INTERACTION_PUSH_MS` shade/deeplink legs were NOT
   re-armed this pass (receipted ×3 previously), and the F-27-B repro needs a port-side probe
   (rowCurrencies/facade null path), not a mock arm. Nothing pushed. vc51 pass-27 round.
+
+## Part BA9 — pass 28 (2026-11-05): the 23-arm live walk + the out-host/capabilities/renderer-preview dig (deeper than pass 27)
+
+Rig: zcode-pixel cold boot (`-no-snapshot-load -gpu swiftshader_indirect -no-audio -no-boot-anim`),
+MockZCode relay via the plain `java -cp` recipe (mockzcode.jar + protocol.jar + the nine
+gradle-cache jars), FULL 23-arm set (`MOCK_ROWS=40 MOCK_GOAL MOCK_APPROVAL MOCK_ROW_ACTIONS
+MOCK_WORKFLOWS MOCK_TASKMGMT MOCK_QUESTION MOCK_HOOKS MOCK_COMPACT MOCK_ATTACHMENT MOCK_QUEUE
+MOCK_AUTOMATIONS MOCK_OFFPEAK MOCK_CUA MOCK_GIT MOCK_BACKGROUND_BASH MOCK_SHARED_CONTEXT
+MOCK_SESSIONS_INDEX MOCK_WORKSPACE_FILES MOCK_REFUSE_COMMANDS MOCK_FILECHANGES=1
+MOCK_CHECKPOINT_CONFLICTS=1 MOCK_INTERACTION_PUSH_MS=25000 MOCK_SCENARIO=happy`), fresh
+per-generation push ids (`mock-p28-gen1-4f7a91` → `gen2-9c2e47` → `gen3-2ab815` → `gen4-77d302`).
+FOUR relay generations (three restarts) and ONE emulator kill/reboot mid-pass (the known 8GB
+instability class; cold boot + relay restart + stored pairing → auto-reconnect, fourth
+consecutive confirmation). APK byte-identical `9084b920…` (vc52 / 1.3.1 — no code commits since
+pass 22; build verified up-to-date at 237 tasks). Asar digest unchanged `99e280fb…`. ~90 min. Zero
+FATALs, zero ANRs.
+
+### BA9.1 — FIRST receipts
+
+- **forkAssistant END-TO-END (campaign first)**: the assistant row's inline action strip
+  (Like/Dislike/Fork/Retry — the pass-23 Like plane) → Fork → `port.fork :: row=1007
+  outcome=Accepted child=sess-forked-…` → **`hub.conversationOpen :: session=sess-forked-1` →
+  INITIAL frame → snapshot rows=54 → snapshotReconcile** — the child session opened, subscribed
+  and rendered; system-back returned to the home list. The fork wire + child-session navigation
+  + subscribe are now receipted as one flow (previously never driven).
+- **G19 ShareModeSheet + share-OUT, first live receipt**: context sheet → Share chip (see F-27-C
+  below for the reachability note) → mode chooser ("Share conversation / Plain text / Markdown /
+  Formatted export (headers, code)") → Plain text → **the SYSTEM share sheet carrying the full
+  built transcript** (TranscriptBuilder output: task title, assistant rows with ```kotlin fences,
+  the `## Rewrite plan` markdown, and the File/Status table). The share-OUT plane is receipted
+  end-to-end on the rig.
+- **Model calls sheet** (context-sheet chip): opens with "Search the conversation and model calls"
+  + the sampled call row (`glm-5.3 · 4200ms · tool_calls`).
+- **Selection side-session dispatch** (the message-actions sheet's "Ask in a side session",
+  G7+G8): long-press user row → sheet (Copy / Ask in a side session / Share selection) → dispatch
+  → `port.sideSession :: outcome=Accepted child=null` — the action is wired (sheet → dispatch →
+  generic command ack), but the mock has NO createSelectionSideSession handler (rig debt): no
+  childSessionId is ever returned, so the phone's `_forkedSession` navigation never fires and —
+  app-side observation — **accepted-with-null-child is a SILENT no-op** (no notice, no
+  navigation; if the desktop contract guarantees a child on accepted, the phone should surface a
+  protocol-fault notice instead of silence).
+- **Deny arm re-receipted with the confirm dialog** ("Deny this request? / The agent is told no
+  for this request.") → Confirm → `sendConversationCommandV4 ok 33ms`, re-receipted a second time
+  on a re-pended approval (below).
+
+### BA9.2 — Re-receipts (the walk matrix, all observed live this pass)
+
+Cold-boot auto-reconnect (×2 incl. post-kill) + bootstrap `tasks=3 workspaces=1` replayed; approval
+Allow-once (62ms, mock ran the Bash tool, `echo synthetic` result row); multi-group question
+(radio + scroll + Send answers 57ms); hook-review cards ×3 with checkbox multi-select → Trust
+confirm (GAP-A15 copy live: "Trusted 2 hook(s) — the session continues.") + `grantWorkspaceHookTrust
+ok 68ms`; queue Send-now (62ms, 2→1) + Delete (30ms, 1→0) + the strip re-seeding per generation;
+compaction failed:manual Retry (14ms) + **the in-flight "Compressing context" face** (first
+receipt of the retrying state); Computer-use group expand/collapse (screenshot/left_click/type
+rows) + tool-detail expand (`{}` INPUT payload face) + Bash row expand; background-bash View
+(`backgroundBashOutputV4 ok 14ms`, log path + tail) + Cancel (27ms); shared-context Remove (129ms);
+composer send with the persisted attachment riding along + mock echo; setAssistantFeedback Like
+→ **Liked** state flip (207ms); row Retry (12ms); find-in-conversation (open, `pass28` → "1 of 2",
+jump, Next match, Close — dismissal pixel-verified); Changes dialog WITH content ("Changes · turn
+44", 2 files +5 −1, real unified-diff hunks) — the one-shot queue arm served in gen-1; rewind
+confirm sheet → confirm (88ms) → "File changes from that turn were undone." toast → **the turn
+header's Undo-files button correctly disappears (state=reverted gating)**; checkpoints
+Snapshot ×2 (`createCheckpoint ok`) → Restore → warned confirm → **"Local changes conflict" →
+Overwrite → force=true → success** (2nd full conflict round-trip); git pane read-only banner +
+branch strip; **git.commit ok ×2** (both commits landed — see the sliver note below); **git
+createBranchAndSwitch ok** (the 484a64b6 erratum fix holds); Terminal chip → consent face → Attach
+→ `terminal.create ok` → "live — /bin/zsh"; Files chip → ws-one tree (src/docs/README.md/
+Cargo.toml) → paged file viewer with line numbers + Download; Workflows Run sheet with the
+REQUIRED param ("version *") → filled → **`port.startWorkflow :: name=release-notes
+outcome=Accepted`** routed to the chosen task (navigated); Automations Run-now → **typed fault
+`fault.mock.unscripted:runAutomationNow` surfaced honestly, row state uncorrupted** (mock arming
+debt), Pause → "Off · active" + listAutomations refresh, Continue → "On · active", History sheet
+(filters + the awake-computer copy); Settings sweep (Endpoints/Insights/Plugins/Skills +
+Conversation/Notifications/Live-connection/Terminal-consent/Privacy/"Check for updates — You are
+on the latest build"); Usage → **honest unavailable face** ("This feature isn't available on the
+connected desktop", Retry — this generation's mock doesn't serve the usage channel; arming debt);
+**launcher widget counted-state live** ("Pending approvals · 2 requests need you" while the
+question+approval were pending); composer draft persisted across the emulator kill AND the
+unsent-draft leave gate fired on every exit while it existed.
+
+### BA9.3 — Defect state after pass 28
+
+- **F-27-A (P3, re-pended interaction unanswerable) — REPRODUCED LIVE with the full procedure**:
+  leg 1 answered the question in-process (wire fired); relay restarted (gen-3→gen-4); leg 2 the
+  SAME seeded question id re-pended — the card rendered fully actionable and **Send answers
+  produced ZERO wires (delta=0)** — the coordinator's live outbox entry blocks the re-submit for
+  the process lifetime (InteractionCoordinator.kt:224, exactly as pass 27 bisected). Leg 3
+  (force-stop → fresh submit fires) stands on pass-27's receipt; this pass's re-drive was blocked
+  by card-scroll ergonomics (below). **NEW mock asymmetry discovered**: the mock re-pends the
+  APPROVAL with a FRESH id per generation (the re-pended deny FIRED) while the QUESTION's seeded
+  id is fixed — the dead-card repro depends on id reuse, and the mock's per-verb id policy
+  decides whether it manifests. UI gap unchanged: the conversation card never surfaces the typed
+  DuplicateNoOp.
+- **F-27-B (P3, rewind preview plane unreachable) — 3RD SIGHTING, now with decisive
+  instrumentation**: sheet opened on a fresh changes turn (gen-4) — screencaps at t0/t1/t3 are
+  BYTE-STABLE (full-resolution horizontal-run scan: no LinearProgressIndicator bar anywhere in
+  the sheet, no preview body, no unavailable text); **zero `conversationFileRewindPreviewV4`
+  wires in the entire logcat** (all passes); **zero facade logs** — and the port path is the ONLY
+  unlogged port path (`fetchRewindPreview`'s three silent nulls, Ports.kt:613-619, vs every other
+  port action's `port.* :: outcome=` line). Static-vs-paint divergence recorded: the installed
+  APK tree (2c418804) is byte-identical to HEAD for all four involved files (RowRenderers /
+  ConversationScreen / Ports / ZCodeApp — only an unrelated GAP-A16 layout diff exists elsewhere
+  in ConversationScreen); the Undo-files button renders ⇒ `onRewindFiles≠null` ⇒
+  `row.base.entityId≠null`; ZCodeApp.kt:822 wires the provider inside the MAIN ConversationScreen
+  call (call spans 653→832, verified); `rowScopePreviewJob` always lands `onResult` (runCatching) —
+  so every static path must paint a face, and none painted. **Flagged for the fix round's
+  TEST-FIRST entry: an instrumented debug build (one log line at openPreview + one per gate) or a
+  Robolectric sheet-face pin with a fake provider; black-box passes are exhausted.** The desktop
+  contract for the fix is decoded (BA9.4).
+- **F-27-C (P3, context-sheet second chip row) — 4th a11y sighting, but the DEAD-TAP LEG DID NOT
+  REPRODUCE**: Model calls/Share still report `[0,0][0,0]` while painting at y≈2110-2140, and
+  this pass **taps at the painted positions OPENED both sheets** (ShareModeSheet + Model calls).
+  Pass-27's dead-tap receipt stands as layout-dependent/intermittent. Sibling sightings this
+  pass: the commit-sheet primary Commit button clips to a 21px sliver after IME dismissal (sheet
+  grows downward; taps at the sliver DID work — the commit went through), and the question card's
+  Send answers can sit COVERED by the composer's attachment preview panel (mock.png block
+  overlapping the card tail). Family unchanged; the fix round should treat clipped-sliver +
+  stale-bounds as one class.
+- **GAP-21-A (P3, mention first-token) — leg A 7th repro** (first-token `@`: zero
+  `file.searchWorkspaceFiles` calls, no panel) **+ leg B clean** (mid-text `x @re`: fresh call(s)
+  + README.md panel rendered). Fix direction unchanged (`substringAfterLast(' ', missing=draft)`).
+- **F-21-A (P3, touch dead zone) — 6TH consecutive clean** (6 flings to top → composer + Context
+  chip alive, sheet opened immediately).
+
+### BA9.4 — REA pass-28 dig (deeper than pass 27)
+
+1. **out/host graphed for the FIRST time** (extracted 19 files, 2.6MB; index.js 1,498,022B +
+   17 chunks): out/host is the HOST SERVICE BUS — channel inventory: `zcode-agent`,
+   `zcode-agent-service`, `zcode-task-service`, `zcode-task-index-syncer`, `zcode-session-service`,
+   `zcode-git-index-<n>`, `zcode-cua`, `zcode-cua-helper`, `zcode-host`, `zcode-plugins-official`,
+   `zcode-owner`, `zcode-desktop-iab`, `zcode-api-key`, `zcode-team-api-key`, `zcode-jwt-logout`.
+   `chunk-LNGNUNBX` (the pass-26 schema chunk) lives HERE and is the shared conversation protocol
+   layer: the full v4 route table byte-extracted
+   (`conversationFileRewindPreview:"v4/conversation/fileRewindPreview"`,
+   `conversationWorkflowRunNodeResult:"v4/conversation/workflowRunNodeResult"`, `usageStats`,
+   `conversationUsage`, …). No clientKind/mobileRemote strings in out/host — the client gates
+   live only in the protocol schemas (host chunk + main chunk copies) and their consumers.
+2. **The rewind-preview contract decoded END-TO-END (the F-27-B fix spec)**: host handler
+   `conversationFileRewindPreviewV4(m)` → session service with
+   `{sessionId, target:{rowId,entityId}, baseRevision, baseLogEpoch}` (exactly the phone's
+   `AgentFacadeClient.fileRewindPreview` shape). Response schema `nt` (strict):
+   `{canApply:boolean, safeFiles:[…], unsafeFiles:[{reason: checkpoint_missing|
+   checkpoint_unreadable|external_modified|file_read_failed|unsupported_checkpoint, …}],
+   ignoredFiles:[{reason:"bash_ignored", …}]}`. **The desktop UI trigger (renderer
+   `CRt`/ConversationFileSummaryPanel, in the 6MB styles monolith)**: fetch fires when the dialog
+   OPENS (`D` callback → `context.previewFileRewind({rowId, entityId})` — currencies added by the
+   transport, same as the phone's rowCurrencies design), gated on
+   `applyFileRewind && previewFileRewind && actions.canRewindFiles===true && state!=="reverted"`;
+   loading renders a spinner + error copy lands in-dialog; **the Apply button is DISABLED unless
+   `preview.canApply`** — the phone's confirm sheet has NO canApply gating yet (fold this into the
+   F-27-B fix round: wire canApply → enable/disable the sheet's confirm).
+3. **Capabilities enum — COMPLETE and byte-confirmed** (deeper than pass 27's two named flags):
+   clientHello (`an`, strict) = `clientKind: enum[desktop|web|mobileRemote|mobileApp]?` +
+   `appVersion` + `capabilities: {workspaceHookReviewUi?: boolean, workflowRunDeltas?: boolean}
+   .strict()` — **exactly two client capability flags exist; there is no third**;
+   `clientSupportsWorkflowRunDeltas(t) = t.capabilities?.workflowRunDeltas === true` (the G48
+   gate, verbatim). The SERVER hello (`el`) advertises `kr` = `{nativeDialogs: boolean,
+   localTerminal: boolean, binaryFrames: boolean, compression: enum[none|permessage-deflate],
+   workspaceHookReview?: boolean, independentPlanState?: boolean, workflowRunDeltas?: boolean}` —
+   **five server-advertised capabilities are new this pass** (`nativeDialogs`, `localTerminal`,
+   `binaryFrames`, `compression`, `independentPlanState`): transport levers (`binaryFrames`,
+   `permessage-deflate`) the phone could negotiate, and the
+   `workspaceHookReview`(server)/`workspaceHookReviewUi`(client) NAME ASYMMETRY is now explicit.
+   G48's one-line fix spec is unchanged: declare
+   `capabilities:{workflowRunDeltas:true, workspaceHookReviewUi:true}` in the phone hello
+   (V4Wire.kt writes clientKind only) + ship the G51 decode in the same round.
+4. **renameSession live caller byte-extracted** (out/host/index.js): the desktop's
+   ZCodeTaskService.renameTask sends `{type:"renameSession", sessionId, payload:{title}}` through
+   sendConversationCommandV4 and on failure warns "保留 task-index 标题" (keeps the task-index
+   title) — confirming the pass-22 remedy: a task-row "Rename" action sending the existing
+   `V4Command.RENAME_SESSION` constant is the complete phone-side adoption.
+5. **NEW G57 (P4, depth note) — in-app artifact PREVIEW depth.** The desktop renderer embeds
+   first-party viewers: PDF (`pdfViewerSource` + pdf.worker + labels), Office documents
+   (`officePreview` + `officePreviewKind`, the xlsx/legacy-doc wasm renderers + 1.1MB docx wasm),
+   PPTX (`pptxPreviewData` + **`pptxReferenceNavigation`/`pptxReferenceNavigationReady` —
+   navigating to a slide referenced from the conversation**), media with
+   onMediaLoadedMetadata, and a code viewer (264 references). The phone ships the in-app paged
+   text viewer, image zoom (G28), and system-viewer handoff for PDF/video — the Android-native
+   equivalent; the wasm office engines are 3-6MB payloads, so full adoption is a form-factor
+   judgment, NOT a defect. The one distinctive desktop-only behavior worth a row: artifact
+   references that jump INTO a slide/page (pptx navigation) have no phone equivalent.
+6. Terminal plane re-confirmed (no new gap). The out/scheduler and preload censuses from pass 27
+   are unchanged (asar digest identical).
+
+### BA9.5 — New rig gotchas (recorded for the next pass)
+
+1. **Mock generational asymmetries**: approvals re-pend with FRESH ids per relay generation while
+   the question's seeded id is fixed — id policy per verb decides whether F-27-A manifests on a
+   restart; `MOCK_FILECHANGES` did NOT re-arm on the gen-2 restart but DID on gen-4's full
+   session re-seed (the arm is per-session-reseed, not per-connection).
+2. **The unsent-draft leave gate re-fires on EVERY exit** while a draft persists — clear the
+   draft (composer → MOVE_END → DEL burst) to escape the loop; the draft survives app kills.
+3. **uiautomator returns STALE trees after overlay dismissals** — a "Closed find"/dialog dump can
+   show the pre-dismissal content twice; pixel-verify (`screencap` + filter-band) before filing.
+4. **Dialog taps race the entrance animation** — tap via the clickable-WRAPPER center from a
+   FRESH dump, not a text node from a previous dump (cost three no-op Leave taps this pass).
+5. **IME shifts sheet layouts between dump and tap** — the pass-26 recipe stands (tap field →
+   type → tap sheet TITLE to drop IME → re-dump → tap); ESC/BACK close the sheet (never use 111
+   inside a sheet).
+6. Question-card reachability: the pinned card's internal scroll only responds to swipes STARTED
+   inside the card band (queue-strip starts are eaten); with a tall pinned stack (queue + bg +
+   shared + attachment) Send answers can be clipped/covered — free the rows (Delete queue items,
+   Remove shared, cancel bg, remove attachment) to give the card its full height.
+7. The relay launcher script now lives at `/tmp/pass28-relay.sh` (23 arms + per-gen push id);
+   classpath = mockzcode.jar + protocol.jar + nine ~/.gradle/caches jars (kotlin-stdlib 2.4.20,
+   coroutines 1.9.0, serialization 1.9.0, okhttp 5.1.0, mockwebserver3 5.1.0, okio 3.17.0).
+
+### BA9.6 — pass-28 verdict and ledger delta
+
+On HEAD `a6d009c3` (APK `9084b920…`, vc52/1.3.1, byte-identical to the pass-22 build; asar
+`99e280fb…` unchanged) the companion re-verified across the full live matrix above — every
+conversation, pane, git, terminal, files, workflow, automation, settings, widget and share plane
+receipted live, with three FIRSTs (fork end-to-end, ShareModeSheet + system share, Model calls)
+and the four open P3s re-adjudicated (F-27-A reproduced with the full procedure; F-27-B 3rd
+sighting with decisive instrumentation and its fix contract decoded; F-27-C a11y persists but
+dead-tap did not reproduce; GAP-21-A leg A 7th repro; F-21-A 6th clean). The REA dig went deeper
+than pass 27 on three axes: the first out/host graph (the host service bus + protocol route
+table), the complete byte-confirmed capability enums (two strict client flags + seven server
+capabilities), and the end-to-end rewind-preview contract including the desktop's canApply gating
+the phone lacks. **Fix-round openers (unchanged order, sharpened): F-27-A (surface typed outcome
++ reset live entries on re-assert) → F-27-B (instrument, then fix the null chain + add canApply
+gating) → GAP-21-A (mention tokenization) → F-27-C (the clipped-chip class) → G48+G51
+(capabilities + delta decode) → optional smalls (renameSession row, G54 BYOK, G57 pptx-nav,
+side-session null-child notice).** Mock arming debts: `runAutomationNow` + the usage channel
+unscripted (both surfaced honestly); `createSelectionSideSession` unscripted (accepted-no-child).
+Nothing pushed. Local docs commit only.
