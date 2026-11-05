@@ -969,7 +969,7 @@ internal fun automationRunRigSeed(): JsonObject {
         "trigger" to JsonPrimitive("schedule"),
         "dispatchStatus" to JsonPrimitive("dispatched"),
         "sessionId" to JsonPrimitive("synth-op-session-1"),
-        "outcome" to JsonPrimitive("success"),
+        "outcome" to JsonPrimitive("succeeded"),
         "attempts" to JsonPrimitive(1),
         "createdAt" to JsonPrimitive(now - 3600_000),
         "updatedAt" to JsonPrimitive(now - 3500_000),

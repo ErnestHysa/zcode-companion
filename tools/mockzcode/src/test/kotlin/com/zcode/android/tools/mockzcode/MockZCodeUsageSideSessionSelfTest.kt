@@ -67,9 +67,10 @@ class MockZCodeUsageSideSessionSelfTest {
                 it.jsonObject["totalTokens"] != null
         })
         // one completed historical run in the recordAutomationRun row shape
+        // (outcome uses the closed automation-types.ts enum: running|succeeded|failed|stopped)
         val run = automationRunRigSeed()
         assertEquals("auto-rig-1", (run["automationId"] as JsonPrimitive).content)
-        assertEquals("success", (run["outcome"] as JsonPrimitive).content)
+        assertEquals("succeeded", (run["outcome"] as JsonPrimitive).content)
         assertEquals("dispatched", (run["dispatchStatus"] as JsonPrimitive).content)
     }
 
