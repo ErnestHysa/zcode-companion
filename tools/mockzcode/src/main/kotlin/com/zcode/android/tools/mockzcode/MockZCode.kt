@@ -246,6 +246,9 @@ class MockZCode(
         var resetOpportunity: JsonObject? = null
         /** Scriptable reset use (useCodingPlanReset result; null = typed fault). */
         var resetUse: JsonObject? = null
+        /** Pass-29 rig arm (MOCK_USAGE): the G20 coding-plan usage charts
+         *  (getCodingPlanUsageSnapshot result; null = typed fault → charts hidden). */
+        var codingPlanUsageSnapshot: JsonObject? = null
         /** FIFO of reset statuses served to the phone (the desktop's post-use
          *  reconciliation polls until usedAt appears — a queue scripts the
          *  pre-consume → confirmed progression; falls back to [codingPlanResetStatus]). */
@@ -3209,6 +3212,27 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     put("sessionId", JsonPrimitive(child))
                 }
             }
+            "createSelectionSideSession" -> {
+                stateRevision.incrementAndGet()
+                val firstText = (payload?.get("firstInput") as? JsonObject)
+                    ?.strOrNull("text")
+                lastSideSessionFirstText = firstText
+                val child = "sess-side-${createdCount.incrementAndGet()}"
+                script.bootstrapTasks = script.bootstrapTasks.orEmpty() + MockTask(
+                    taskId = child,
+                    title = firstText?.take(40) ?: "Side session",
+                    displayStatus = "idle",
+                    workspacePath = lastCommandWorkspacePath ?: workspace.workspacePath,
+                    createdAtMs = System.currentTimeMillis(),
+                    updatedAtMs = System.currentTimeMillis(),
+                )
+                pushWorkspaceListUpdated(script.bootstrapTasks.orEmpty())
+                lastSideSessionId = child
+                return buildJsonObject {
+                    put("type", JsonPrimitive("createSelectionSideSession"))
+                    put("sessionId", JsonPrimitive(child))
+                }
+            }
             "applyFileRewind" -> {
                 stateRevision.incrementAndGet()
                 val target = payload?.get("target") as? JsonObject
@@ -3363,6 +3387,9 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
     /** Phase 4A observability (self-tests + rig): the last fork's child id / last feedback echo. */
     @Volatile var lastForkedSessionId: String? = null
     @Volatile var lastFeedback: String? = null
+    /** Pass-29 observability: the last side-session child id + the dispatched selection text. */
+    @Volatile var lastSideSessionId: String? = null
+    @Volatile var lastSideSessionFirstText: String? = null
     /** Phase 4C seam: the most recent zcode-agent call's params per method (wire-shape pins). */
     private val recentV4Calls = HashMap<String, JsonObject?>()
     /** Phase 4D seam: every `zcode-task` channel call (method, params) in send order. */
@@ -4026,6 +4053,8 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
             "requestCodingPlanResetOpportunity" ->
                 scriptableObject(id, script.resetOpportunity, "requestCodingPlanResetOpportunity")
             "useCodingPlanReset" -> scriptableObject(id, script.resetUse, "useCodingPlanReset")
+            "getCodingPlanUsageSnapshot" ->
+                scriptableObject(id, script.codingPlanUsageSnapshot, "getCodingPlanUsageSnapshot")
             "markCodingPlanResetHistoryRead" ->
                 respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Undefined)
             else -> respondError(id, "fault.mock.unknownMethod:usage-stats-${name ?: "?"}")

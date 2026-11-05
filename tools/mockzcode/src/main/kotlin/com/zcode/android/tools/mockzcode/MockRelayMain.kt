@@ -1,7 +1,12 @@
 package com.zcode.android.tools.mockzcode
 
+import java.io.File
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -550,6 +555,31 @@ fun main() {
             )),
         ))
     }
+    // Pass-29 rig arm: MOCK_USAGE=1 renders the Usage screen with REAL data — the
+    // app-usage stat cards, the quota panel (entitlement), the G20 coding-plan
+    // charts and the reset-status block — instead of the honest-unavailable fault
+    // face. Snapshot shapes come from the pinned wire fixtures
+    // (fixtures/protocol/phase{3,4}-wire-fixtures.json, resolved under
+    // MOCK_FIXTURES_DIR) so the rig serves exactly the decode-tested payloads.
+    if (System.getenv("MOCK_USAGE") != null) {
+        val dir = System.getenv("MOCK_FIXTURES_DIR") ?: "fixtures/protocol"
+        fun fixture(name: String, file: String): JsonObject {
+            val cases = Json.parseToJsonElement(File("$dir/$file").readText())
+                .jsonObject["cases"]!!.jsonArray
+            return cases.map { it.jsonObject }
+                .first { it["name"]!!.jsonPrimitive.content == name }["data"]!!.jsonObject
+        }
+        mock.script.appUsageStats = fixture("app-usage-full", "phase3-wire-fixtures.json")
+        mock.script.usageEntitlement = fixture("entitlement-full", "phase4-wire-fixtures.json")
+        mock.script.codingPlanResetStatus = fixture("reset-status-full", "phase4-wire-fixtures.json")
+        mock.script.codingPlanUsageSnapshot = codingPlanUsageRigSeed()
+    }
+    // Pass-29 rig arm: MOCK_AUTOMATION_RUNS=1 seeds one COMPLETED historical run for
+    // auto-rig-1 so runAutomationNow scripts `queued` (instead of fault.mock.unscripted)
+    // and the Automations History sheet lists the run rows.
+    if (System.getenv("MOCK_AUTOMATION_RUNS") != null) {
+        mock.script.automationRuns = JsonArray(listOf(automationRunRigSeed()))
+    }
     // Phase 4C (C2) rig leg: the slash panel's extra sections — one custom command,
     // one skill, one agent (synthetic, INV-15/16).
     mock.script.commandsList = JsonObject(mapOf(
@@ -896,3 +926,52 @@ private fun defaultModelSelection(): JsonObject = JsonObject(
         ),
     ),
 )
+
+/** Pass-29 rig seed (MOCK_USAGE): the G20 coding-plan usage charts' payload —
+ *  a two-model 7-day stacked-tokens series in the modelUsage.ts shape. */
+internal fun codingPlanUsageRigSeed(): JsonObject = JsonObject(mapOf(
+    "range" to JsonPrimitive("7d"),
+    "rangeStartDate" to JsonPrimitive("2026-10-29"),
+    "rangeEndDate" to JsonPrimitive("2026-11-04"),
+    "modelUsage" to JsonObject(mapOf(
+        "xTime" to JsonArray((29..31).map { JsonPrimitive("10-$it") } + (1..4).map { JsonPrimitive("11-0$it") }),
+        "modelDataList" to JsonArray(listOf(
+            JsonObject(mapOf(
+                "modelName" to JsonPrimitive("GLM-5.3"),
+                "tokensUsage" to JsonArray(listOf(
+                    JsonPrimitive(42000), JsonPrimitive(18000), JsonPrimitive(0),
+                    JsonPrimitive(56000), JsonPrimitive(31000), JsonPrimitive(9200),
+                    JsonPrimitive(22400),
+                )),
+                "totalTokens" to JsonPrimitive(178600L),
+            )),
+            JsonObject(mapOf(
+                "modelName" to JsonPrimitive("GLM-5.1"),
+                "tokensUsage" to JsonArray(listOf(
+                    JsonPrimitive(6000), JsonPrimitive(2400), JsonPrimitive(1200),
+                    JsonPrimitive(9000), JsonPrimitive(4800), JsonPrimitive(1600),
+                    JsonPrimitive(5200),
+                )),
+                "totalTokens" to JsonPrimitive(30000L),
+            )),
+        )),
+    )),
+))
+
+/** Pass-29 rig seed (MOCK_AUTOMATION_RUNS): one COMPLETED historical run for
+ *  auto-rig-1 in the recordAutomationRun row shape (outcome included). */
+internal fun automationRunRigSeed(): JsonObject {
+    val now = System.currentTimeMillis()
+    return JsonObject(mapOf(
+        "runId" to JsonPrimitive("auto-rig-1:manual:seed-1"),
+        "automationId" to JsonPrimitive("auto-rig-1"),
+        "workspaceKey" to JsonPrimitive("/synthetic/ws-one"),
+        "trigger" to JsonPrimitive("schedule"),
+        "dispatchStatus" to JsonPrimitive("dispatched"),
+        "sessionId" to JsonPrimitive("synth-op-session-1"),
+        "outcome" to JsonPrimitive("success"),
+        "attempts" to JsonPrimitive(1),
+        "createdAt" to JsonPrimitive(now - 3600_000),
+        "updatedAt" to JsonPrimitive(now - 3500_000),
+    ))
+}
