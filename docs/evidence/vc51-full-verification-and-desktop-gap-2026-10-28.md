@@ -6974,3 +6974,151 @@ gitport warn line, no crash). A future mock pass should make the git plane sessi
 so the Changes list and commit History render on the rig. Commit-sheet procedure locked for
 future passes: EditText-center tap → type → tap sheet title to drop IME → re-dump → tap.
 vc51 pass-26 amendment round.
+
+## Part BA8 — pass 27 (2026-11-05): deeper-than-pass-26 walk + the scheduler/preload/bridge REA dig
+
+Rig: zcode-pixel AVD (cold boot, `-memory 2048`), installed APK unchanged (vc52/1.3.1 debug,
+9084b920… — no app-code commit since the release bump beyond the audit fixes the build already
+contains), MockZCode relay via the plain `java -cp` recipe with a **23-flag armament** (the
+pass-24 set + `MOCK_CHECKPOINT_CONFLICTS=1` + `MOCK_FILECHANGES=1` — two NEW arms added to the
+mock this pass, self-tests green, committed with this report). ~70 min rig time, 0 FATALs,
+0 ANRs, zero emulator deaths across three relay restarts + two app force-stops.
+
+### FIRST receipts (surfaces passes 1–26 never drove)
+
+| Leg | Result |
+| --- | --- |
+| **Changes dialog WITH content** (pass-26 rig debt, closed by the new `MOCK_FILECHANGES` arm) | the view chip opened "Changes · turn 44" rendering **"2 file(s) +5 −1" + src/version.ts +3/−1 with a real unified-diff hunk** (`@@ -1,3 +1,3 @@`, context/+ lines, line numbers) + scratch/probe.txt +2 — decoded through the real wire (`conversationFileChangesV4 ok id=40`). The one-shot queue design of the arm also gave the honest post-rewind fault face free (`fault.fileChanges.none` after the rewind consumed the turn). Screenshot 11 |
+| **Checkpoint restore CONFLICT face** (never reachable — the mock's conflict branch had no arm until `MOCK_CHECKPOINT_CONFLICTS`) | Snapshot ×2 → ckpt-1 → ckpt-2 (createCheckpoint ok 93ms) → Restore → warned confirm → **"Local changes conflict" with Cancel/Overwrite** (wire: restoreBetweenCheckpoints ok, success=false + conflicts[]) → Overwrite → **force=true → success face**, dialog closed to the pane. The full conflict→force→success round-trip, first receipt. Screenshots 14–16 |
+| **Rewind confirm SHEET driven** (the pass-26 "view chip's dialog itself was never driven" debt, dialog half) | "Undo files" chip → bottom sheet "Undo file changes / Restore the workspace files this turn changed (2 files). The conversation itself is kept." → Confirm → **`sendConversationCommandV4 ok id=101`** + toast **"File changes from that turn were undone."** — the sheet's own drive + the honest mutated-server-state aftermath. Screenshot 04 |
+
+### NEW defects (F-27 family)
+
+- **F-27-A (P3) — a re-pended interaction is unanswerable for the process lifetime.** After a
+  relay restart the mock re-seeds the SAME static interaction id as pending; the phone had
+  already answered it, so the question card re-renders fully actionable (radio + Changelog +
+  Send answers enabled) but **every Send/Skip tap is a silent no-op** — 7+ honest taps across
+  two positions/procedures fired zero wires, while the radio/checkbox taps in the same card
+  worked. Mechanism confirmed by bisection: `InteractionCoordinator.submit` keeps the round-1
+  answer's outbox entry keyed by the interaction id; the live-entry branch
+  (`else -> DuplicateNoOp`, InteractionCoordinator.kt:224) eats every new submit, and the
+  conversation card never surfaces the typed outcome (unlike ApprovalsScreen, which renders
+  "already resolved" copy). **Force-stopping the app cleared the in-memory map and the
+  identical procedure fired immediately (id=28)** — the deadlock is process-lifetime only.
+  Real-world trigger: the phone's answer lost in transit (relay died pre-ack) + the desktop
+  re-pends the same id → the phone can never answer it again short of process death. Fix
+  shape: surface the typed DuplicateNoOp/AlreadyResolved on the conversation card, and/or
+  let a pending bootstrap frame with a live outbox entry RESET the entry (server truth wins).
+- **F-27-B (P3) — the rewind PREVIEW plane is unreachable from the live UI.**
+  `conversationFileRewindPreviewV4` has ZERO receipts across passes 21–27: the "Undo files"
+  sheet never rendered the loading bar, the safe/unsafe/ignored preview body, OR the
+  "preview unavailable" fallback text (all three state flags false → the provider call is
+  skipped because `rewindPreviewProvider` is null at the row, or returns null before the wire
+  — `Ports.fetchRewindPreview`'s silent-null chain: coordinator/rowCurrencies/facade gates;
+  the chain LOOKS fully threaded at HEAD (ZCodeApp.kt:822 → ConversationScreen:565/1355 →
+  TurnSeparator), so the null originates inside the port gates). The sheet works only in its
+  copy-only fallback (confirm receipted), meaning the desktop's canApply-gated preview
+  (safe/unsafe/ignored + reasons) is dead code on the rig. Needs a source-side repro + fix
+  round; the mock's `rewindPreview` seed (MOCK_ROW_ACTIONS) is armed and ready.
+- **F-27-C (P3) — the context sheet's second chip row height-clips to an 11px sliver.**
+  When the sheet content stack is tall (status + goal + todos + workflow runs + plans + git
+  strip), the sheet (SheetMaxHeight 640dp) gives the second chip row only the leftover ~11px:
+  a11y shows the Model calls/Share chips at **[33,2061][244,2072] and [261,2061][421,2072]**
+  (clickable, 11px tall) while they PAINT full-size lower (~y2190) — taps at painted
+  positions do nothing, taps at the sliver dismiss the sheet via the scrim (the tap falls
+  through to the screen below). **The Share chip (and Model calls) is unreachable in this
+  state**, which also blocks the G19 ShareModeSheet live receipt (still pin-only). Collapsing
+  Plans does not help — at max scroll the chips stay pinned at the sheet's bottom edge.
+  Regression-suspect vs pass-24's full chip-row receipt: the sheet's height budget vs grown
+  content. Fix shape: reserve the chip-row height in the sheet budget (the StripBudget
+  precedent) or make the rows scrollable. Rig note: **a11y `[0,0][0,0]` can now mean
+  height-clipped, not off-screen** — cross-check with a raw-pixel screencap before filing.
+
+### Defect re-tests
+
+- **GAP-21-A: leg A REPRODUCED (6th)** — first-token `@` fires **0 searchWorkspaceFiles** and
+  renders no panel; **leg B confirmed (7th)** — mid-text `x @re` renders the README.md panel
+  with **0 fresh calls** (cache-warm, hello-carried tree; the adjudicated pin shape holds:
+  assert PANEL PRESENCE, not call count). New rig wrinkle: `adb input text` swallows a
+  trailing `" @"` pair — type `x` / `%s` / `@` as separate chunks.
+- **F-21-A: NOT reproduced (5th consecutive clean)** — 6 flings to top, Context chip opens
+  the sheet normally.
+
+### Re-receipts on the current build
+
+Question submit with extras (radio + Changelog → `sendConversationCommandV4 ok id=37`; and
+post-process-death **id=28** — the F-27-A bisection receipt), hook trust ×3 with the warned
+gate (grantWorkspaceHookTrust ok id=61/40/33; the **GAP-A15 FIXED copy** "Trusted 2 hook(s) —
+the session continues." renders live), compaction `completed:auto` token face (180K → 42K) +
+failed:manual **Retry** (`sendConversationCommandV4 ok id=71`), rewind apply (id=101),
+git-checkpoint trio (create ok 93ms, listCheckpoints hydration, restoreBetween ×2), stored
+pairing auto-reconnect ×3 across relay restarts, force-stop relaunch restores into the
+conversation.
+
+### REA pass-27 dig — deeper than pass 26 (three NEW planes + the G48 gate named)
+
+1. **First REA graph on `out/scheduler`** (ev_3bd1fd68…, root 22332de4…, 3 files, index
+   1,002,197 B — the tree passes 24–26 never opened): the desktop's **automation/off-peak
+   engine as a utility process** (automation×238, cron×91, schedule×123, offpeak×80, queue×84;
+   shares the host's session/workspace/hook/checkpoint vocabulary). Main↔scheduler channels:
+   `offpeak-active-count`, `offpeak-dispatch-request/result`, `scheduler-wake/log/
+   resource-sample/dispose`. Adjudication: **execution engine = form-factor-by-design** (the
+   desktop runs the queued tasks; the phone's Automations surface is its monitor/authoring
+   view — parity holds), with a depth note: scheduler resource-samples are desktop-internal.
+2. **First complete preload census (×7)** + **the full renderer bridge: 122 methods**
+   (exposeInMainWorld("zcode", …) — every desktop renderer→main API, first full enumeration):
+   - **Updater plane confirmed in the bridge** (deepens G43): `skipUpdateVersion`,
+     `acknowledgePostUpdateReleaseNotes`, `onPostUpdateReleaseNotes`, `quitAndInstallUpdate`
+     — user actions the phone's About surface lacks (phone: Check-for-updates face only).
+   - **BrowserView lifecycle deepens G18**: attach/detach/suspend/restore/residency/viewport/
+     screenshot-surface + **`importChromeBrowserData`/`clearEmbeddedBrowserData`** (chrome
+     data import into the embedded browser) + `onBrowserViewScreenshotSurface*` plumbing.
+   - `printPageToPdf` — **NEW P4 candidate (G56)**: desktop exports pages to PDF; the phone's
+     share ships text + Markdown only (ShareModeSheet). Adoptable via the Android Printing
+     framework if wanted.
+   - browserVideoRecorder.cjs is a **140-byte stub** — the browser video-recording plane is
+     shipped-disabled on the desktop itself (G18 depth note; nothing to chase).
+   - Known-plane deepens: MCP user-dir IO (G22/G24), dev-env selection (Docker/WSL/SSH),
+     CUA onboarding panel, OAuth/payment callbacks, telemetry/ARMs, window-chrome/tabs
+     (form-factor), `onShareImport` (desktop accepts imports).
+3. **The share plane is a STUB on the shipped host**: `createUnsupportedConversationShareService`
+   — `getCapabilities/preflight/publish/importShare/getPreview/getContinuation` with
+   `getImportedConversation => null` and no-events. The G19 "dated boundary" is now
+   **stronger**: the desktop itself does not ship share-hosting in this build — the phone's
+   text/Markdown export is parity-neutral, and the share-import gap row is desktop-unshipped.
+4. **G48/G51 worklist is now one-line precise.** The host hello schema:
+   `clientKind ∈ ["desktop","web","mobileRemote","mobileApp"]` (phone sends "mobileRemote",
+   valid) and **strict client `capabilities: {workspaceHookReviewUi?, workflowRunDeltas?}`**.
+   Host function `clientSupportsWorkflowRunDeltas(t) = t.capabilities?.workflowRunDeltas===true`
+   **gates the workflowRun delta streams** the phone currently never receives (matches the
+   pass-26 delta-union observation exactly). The fix is: declare
+   `capabilities:{workflowRunDeltas:true, workspaceHookReviewUi:true}` in the phone hello
+   (V4Wire.kt writes clientKind only today) + decode `workflowRun.updated/.removed` (G51).
+   `workspaceHookReviewUi` has NO host consumer yet (schema-only future gate).
+5. **NEW GAP G54 (P3) — the personal provider/model authoring (BYOK) plane.** The host serves
+   a complete provider-authoring service: `createPersonalProvider`, `savePersonalProviderOverlay`,
+   `reorderPersonalProviders`, `addPersonalModel`, `renamePersonalModel`, `deletePersonalModel`,
+   `reorderPersonalModels`, `setPersonalModelEnabled`, `savePersonalModelDraft`,
+   `testModelConnectivity`, `resolveModelConfig`, `deletePersonalProvider`. The phone ships
+   READ-ONLY provider viewers (G25: "per-model rows, no credential plane") — no authoring,
+   no test-connection. Companion-shaped adoption = the authoring sheet + these verbs (the
+   same shape as G46's slash-command authoring row).
+6. Terminal plane re-swept: the phone's terminal verbs (create/dispose/write/resize/listen
+   data/exit) are the complete operational client; host-only internals (font-profile,
+   unread-signal, windows-pty) are form-factor polish. No new gap.
+
+### Ledger delta (pass 27)
+
+- **F-27-A / F-27-B / F-27-C (three NEW P3 app defects)** — above; the next fix round's openers
+  join F-21-A…(closed-clean streak) and GAP-21-A's standing fix.
+- **G48 SHARPENED → one-line fix spec** (declare `capabilities{workflowRunDeltas:true,…}` in
+  the hello; schema + host gate extracted verbatim from the shipped chunks); **G51 decode
+  rides the same round** (unchanged).
+- **G54 (NEW P3)** — personal provider/model authoring plane (BYOK) desktop-only; phone is
+  read-only. G56 (NEW P4) — PDF export (printPageToPdf) vs phone text/Markdown share.
+- **G19 boundary holds STRONGER** — the shipped desktop stubs the share-hosting plane itself
+  (share-import row is desktop-unshipped; no phone work needed).
+- **Mock arming debts**: `MOCK_FILECHANGES` CLOSED (added this pass, drove the Changes-dialog
+  content FIRST). Remaining debts: `MOCK_INTERACTION_PUSH_MS` shade/deeplink legs were NOT
+  re-armed this pass (receipted ×3 previously), and the F-27-B repro needs a port-side probe
+  (rowCurrencies/facade null path), not a mock arm. Nothing pushed. vc51 pass-27 round.

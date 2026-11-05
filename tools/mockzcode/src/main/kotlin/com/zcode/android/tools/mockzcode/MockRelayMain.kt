@@ -203,6 +203,45 @@ fun main() {
     if (System.getenv("MOCK_COMPACT") != null) {
         mock.script.compactionDemo = true
     }
+    // Pass-27 rig leg: MOCK_CHECKPOINT_CONFLICTS=1 arms restoreBetweenCheckpoints' conflict
+    // branch — the first restore answers success=false + conflicts[], and the phone's
+    // force path (restore anyway → force=true) flips it to the success face in the same leg.
+    if (System.getenv("MOCK_CHECKPOINT_CONFLICTS") != null) {
+        mock.script.checkpointConflicts = true
+    }
+    // Pass-27 rig leg: MOCK_FILECHANGES seeds the conversationFileChanges queue (pass-26
+    // rig debt: the view chip's TurnDiffDialog had only ever seen fault.fileChanges.none).
+    // Two entries so a second open in the same relay lifetime still serves content.
+    if (System.getenv("MOCK_FILECHANGES") != null) {
+        fun changeFile(path: String, added: Int, removed: Int, tool: String) = JsonObject(mapOf(
+            "path" to JsonPrimitive(path),
+            "additions" to JsonPrimitive(added),
+            "deletions" to JsonPrimitive(removed),
+            "writeCount" to JsonPrimitive(1),
+            "toolNames" to JsonArray(listOf(JsonPrimitive(tool))),
+            "patches" to JsonArray(listOf(JsonObject(mapOf(
+                "oldStart" to JsonPrimitive(1), "oldLines" to JsonPrimitive(3),
+                "newStart" to JsonPrimitive(1), "newLines" to JsonPrimitive(if (removed == 0) 3 + added else 3),
+                "lines" to JsonArray(listOf(
+                    JsonPrimitive(" const a = 1"),
+                    JsonPrimitive("+const b = importMetaHot.data.a + 1"),
+                    JsonPrimitive(" export { a }"),
+                )),
+            )))),
+        ))
+        repeat(2) {
+            mock.script.conversationFileChanges.addLast(JsonObject(mapOf(
+                "files" to JsonPrimitive(2),
+                "additions" to JsonPrimitive(5),
+                "deletions" to JsonPrimitive(1),
+                "state" to JsonPrimitive("active"),
+                "items" to JsonArray(listOf(
+                    changeFile("src/version.ts", 3, 1, "edit"),
+                    changeFile("scratch/probe.txt", 2, 0, "write"),
+                )),
+            )))
+        }
+    }
     // Phase 5A (A3.3 + L6.4) rig leg: MOCK_WORKFLOWS=1 scripts two saved workflows (one with a
     // required arg), one live session run with an event timeline, and one completed saved run —
     // the runs panel, the run sheet, and the hub's last-run states render live; Run… sends
