@@ -7537,3 +7537,193 @@ GAP-21-A now carrying a complete byte-exact reference implementation (BA10.5.2) 
 carrying the desktop canApply gating spec from pass 28. Mock debts remaining: none of the three;
 `renameTask`/`commands.list` channel verbs stay unscripted (typed faults, surfaced honestly).
 Commits: 217ae75e + a3fe7f2d (rig) + this docs commit. Nothing pushed.
+
+# Part BB — pass 30 (2026-11-06): the deeper-than-pass-29 walk (slash palette + attachment chain + renameTask wire FIRST receipts) and the channel-catalog/plugins REA dig
+
+Scope: full emulation walk + deeper-than-pass-29 REA dig + parity verdict. Rig: debug APK
+byte-identical `9084b920…` sha256 (assembleDebug verified up-to-date at HEAD c8f941f2; no app
+code commits since pass 22 — the first `shasum` call in this pass printed a SHA-1 prefix
+`59b3ec6f…` and was re-run with `-a 256`; the APK is UNCHANGED), asar unchanged `99e280fb…`
+(rea CLI 6.4.0 re-analysis confirmed 89,719 nodes / 92,785 edges / 1,359 modules / 23,316
+semantic nodes — same profile as the pass-2 census). zcode-pixel cold boot ×2 (ONE mid-pass
+emulator FATAL — the known 8GB class: hanging QEMU threads + `process_memory_mac.cc invalid
+address` — recovered with cold boot + stored pairing auto-reconnect, 7th/8th consecutive
+recoveries), relay gens 1–2 (gen-2 = the standard pkill-then-restart after the emulator kill),
+23-arm flag set + `MOCK_INTERACTION_PUSH_MS=25000` + fresh id `mock-p30-gen1-a7d42f` /
+`mock-p30-gen2-e418cd`. ~2 h. Zero ANRs; the app-side FATAL count stays zero.
+
+## Part BB.1 — FIRST receipts (surfaces passes 1–29 never drove)
+
+- **Slash-command palette END-TO-END, with THREE live catalog wires.** Typing `/comp` in the
+  composer opened the "Commands" palette (row: `/compact — Compact the current conversation
+  with optional instructions. [instructions]`) and fired **`commands.list begin/ok` AND
+  `subagents.list begin/ok`** — the subagents channel verb appears in NO earlier receipt or
+  parity matrix (pass 29 listed `commands.list` as unscripted; it resolved `ok` this pass) —
+  plus `getSkillReferenceCatalog` on the relay (the skills catalog rides the palette too).
+  Selecting `/compact` inserted it into the composer; **Send executed it**
+  (`sendConversationCommandV4 ok in 394ms`) and the mock's synthetic reply rendered in the
+  timeline. Pass-29's "commands.list stays unscripted" debt is closed from the phone side.
+- **Attachment upload chain END-TO-END (first live execution of the v4 attachment plane).**
+  Composer "Add attachment" → the attachment sheet renders FIVE entries (Mention a file /
+  Sketch / Photo / Attach a file / Take photo) → "Attach a file" opened the system document
+  picker → file picked → **`attachmentBeginV4` (id=136) → `attachmentChunkV4` (id=137) →
+  `attachmentCommitV4` (id=138)**, the chip rendered (`✓ p23h4.xml (32.0 KB)` with Remove), and
+  the message sent WITH the attachment (`sendConversationCommandV4 ok in 32ms`). Pass 29
+  enumerated these routes byte-exact from the asar; this pass is the first time the wires
+  fired end-to-end with a real picked file.
+- **renameTask WIRE leg (closes the pass-29 optional-small correction fully).** Task-row
+  "Task actions" sheet → Rename → dialog (prefilled field) → MOVE_END + DEL×20 + retype →
+  **`zcode-task.renameTask begin/ok`** + the `zcode-task.listGroupedTaskViewStructure`
+  refresh. The static chain (ZCodeApp.kt:488 → TasksViewModel.kt:236 → TaskServiceClient
+  taskCall) was receipted in pass 29; the wire is now live too. MOCK DEBT (new): the mock's
+  renameTask handler acks ok but does NOT mutate its seeded row — the refreshed view still
+  shows "Synthetic task" (the phone sent honestly; the seed is static). Script a mutating
+  handler in the next rig round.
+- **Cross-task Approvals screen walk.** The Approvals tab rendered the re-pended Bash
+  permission across tasks ("Permission — Bash / task Synthetic task · 26 min ago / echo
+  synthetic" with Allow once | Deny); **Allow once → `sendConversationCommandV4 ok in 29ms`**,
+  the card cleared, and the EMPTY STATE receipted ("Nothing needs you / Permission requests
+  and questions from your tasks appear here.").
+- **Context-meter honest gate, live.** The SessionContextSheet opened with goal (Ship it /
+  verifying · iteration 3 · iter 1 pass ✓ / iter 2 notSatisfied — 2 criteria unmet), Todos
+  1/2, Workflow runs (lint-all Running, release-notes Stopped), Plans 1/3 (✓/▸/○ states), the
+  git strip (`git.getRepositorySummary begin/ok`, rendered "main · clean") — and NO context
+  meter, because the mock serves no per-session usage frames for the synthetic session. The
+  ContextUsagePanel gate (`usage?.renderable != true → render NOTHING`, never a misleading
+  0%) held live; `autoCompactThresholdTokens` rides the same decode (domain
+  SessionState.kt:585) and renders nothing on both platforms (see BB.5.6).
+
+## Part BB.2 — Re-receipts (same byte-identical APK)
+
+Approval Allow-once in-conversation (40ms, the mock ran `echo synthetic`); question
+multi-group answer — Channel "Tag the release" + Extras "Release notes" + free-text skipped →
+Send answers via the WRAPPER tap ([72,906][1008,1038] — the pass-29 recipe) →
+`sendConversationCommandV4 ok in 168ms`; hook trust ×2 (center-of-checkbox taps at
+(139,556)/(139,700) after the leading-edge taps missed — "Trust 2 selected" → warned confirm
+→ `grantWorkspaceHookTrust ok in 57ms` + `sendConversationCommandV4 ok in 80ms` → "Trusted 2
+hook(s) — the session continues."; the pass-25 whole-list patch contract holds); automation
+Run-now (`runAutomationNow ok in 24ms`); queued rows (2, paused, Auto-send) rendered across
+every reconnect; the /compact reply row ("synthetic reply to: /comp act") rode the timeline
+normally.
+
+## Part BB.3 — Defect state after pass 30
+
+- **F-27-C (P3) — 6th sighting and an UPGRADE: the chips are functionally dead, not merely
+  misreported.** The context sheet's second chip row (Trajectory "Model calls" + Share,
+  SessionContextSheet.kt:147-148) still reports `[0,0][0,0]` in the a11y tree while
+  Files/Git/Terminal carry real bounds — AND this pass proved the VISUAL chips at their
+  rendered positions (screenshot-verified [224,1795][359,1845]) do NOT respond to taps: two
+  precise taps at (291,1820)/(291,1825) produced byte-identical screens (only the clock
+  changed), no share-modes dialog (the static chain is ZCodeApp.kt:831
+  `onShareTranscript = { showShareModes = true }`). An origin-anchored tap hypothesis
+  (displaced hit region) was disproven — the tap dismissed the sheet via the scrim. The
+  Compose semantics/hit-test split (drawn but zero-layout) is the fix-round target; the pin
+  belongs in a Compose test, and the user-facing fact is: **the context sheet's Trajectory
+  and Share entries are unreachable by touch on 9084b920…**.
+- **GAP-21-A** not re-driven this pass (leg-A 8th + leg-B clean + the complete byte-exact
+  reference implementation stand on pass 29). **F-27-A/F-27-B** stand on pass-29 procedures.
+- The fix-round opener order is unchanged (F-27-A → F-27-B → GAP-21-A → F-27-C → G48+G51),
+  with F-27-C now carrying the dead-tap receipt.
+
+## Part BB.4 — New rig recipes (recorded for the next pass)
+
+1. **DocumentsUI row taps are DEAD on this image** (zcode-pixel, API 30): filter chips and
+   the hamburger respond, but file rows ignore `input tap` AND hold-taps — zero
+   ActivityTaskManager activity, focus verified on PickActivity. **Recipe: `input keyevent 20`
+   (DPAD down) ×2 then `keyevent 23` (DPAD center)** returned the file to the app instantly.
+   Until needed otherwise, drive all document-picker legs with DPAD.
+2. **The docked Send button is IME-occluded**: with the keyboard open, Send's visible
+   tappable band is `[894,2052][1026,2072]` (≈20 px tall); dismiss the IME first
+   (`keyevent 111`) and tap (960, 2062). The same geometry hit the /compact send.
+3. **`input text` spaces re-confirmed fatal**: "Synthetic One R30" landed as "Synthetic"
+   (the pipeline stops at the first space) — use `%s` or single-token payloads; the Rename
+   dialog + MOVE_END(keyevent 123) + DEL×20 + one-token text is the reliable field-edit
+   recipe.
+4. **Relay gen-swap mid-backoff wedge**: after the emulator's connect ladder enters its deep
+   backoff (repeated `connectFailed :: TIMEOUT connect timed out after 10000ms` with the
+   relay already healthy), force-stop + relaunch is the fast-path cure — the ladder itself
+   took >2 min without producing a connect attempt.
+5. **Stale uiautomator dumps repeat byte-identical XML** even after `rm /sdcard/ui.xml`
+   (three consecutive 31,275-byte dumps while the screen had scrolled); `screencap` +
+   sha-compare is the ground truth when a dump doesn't change.
+
+## Part BB.5 — REA pass-30 dig (deeper than pass 29: the channel-catalog map + the plugins plane)
+
+Byte-extracted from the shipped asar `99e280fb…` (rea CLI 6.4.0, shipped-artifact authority,
+record-and-continue integrity policy; targeted `bytes.find` + windowed slices per the
+Phase-4 recipe):
+
+1. **The desktop's reference-catalog channel family, mapped**: `mcpList:"mcp/list"`,
+   `pluginsList:"plugins/list"`, `pluginsReferenceCatalog:"plugins/referenceCatalog"`,
+   `pluginsReferenceCatalogWithCategory`, `skillsReferenceCatalog:"skills/referenceCatalog"`,
+   `workflowsList/Get/UpdateMeta/Delete/Runs/Move:"workflows/*"`,
+   `pluginsResolveSuggestedReference`, `pluginsSetEnabled:"plugins/setEnabled"`,
+   `pluginsOverview:"plugins/overview"`, `pluginsMarketplaceAdd:"plugins/marketplace/add"`,
+   `pluginsMarketplaceRemove`. The phone's palette fired skillsReferenceCatalog + the
+   commands/subagents channels live this pass.
+2. **NEW G58 (P4) — the plugins plane is desktop-only.** The desktop carries a full
+   plugins/marketplace management surface (list + reference catalogs with categories +
+   enable/disable + overview + marketplace add/remove + suggested-reference resolution); the
+   phone has ZERO occurrences of any `plugins/*` spelling. Following the ADR-021 line
+   (management/authoring planes stay desktop-side), this lands as a P4 small: catalog
+   BROWSING (what plugins exist, enable state) is the phone-reachable slice; authoring
+   stays out.
+3. **NEW G59 (P4) — no session mode/followup switcher on the phone.** The desktop's session
+   config schema carries `mode:t.string().default("build")`, `planEnabled`, and
+   `followupMode:t.enum(["queue","guide"])`; the permission-mode vocabulary normalizes a
+   TEN-spelling alias set byte-extracted as
+   `["default","yolo","plan","edit","acceptEdits","auto","dontAsk","bypassPermissions","autoEdit","build"]`
+   plus the four-valued `t.enum(["build","edit","plan","yolo"])` on the workflow/offpeak
+   plane. The phone renders the resolved triple read-only in the config chip ("yolo ·
+   GLM-5.3-Flash · max") and has NO switcher (zero switch/select hits in settings/app).
+   P4 small: a mode selector on the chip row would close it.
+4. **Slash-command execution parity CONFIRMED (sharper than pass 29's "resolved
+   equivalent")**: the desktop palette queries `v4/commands/query` with
+   `{commands: m.commands, clock?}` (`commandsQuery`, 2 loci) and EXECUTES by sending the
+   slash-prefixed text as a user prompt — the input taxonomy enum carries
+   `kind:["user_prompt","slash_command","system_reminder","background_notification","subagent_notification","todo_reminder","rewind_notice","fork_notice","timeline_even…"]`
+   (9 loci, host-side classification). The dedicated `command:"v4/command"` route exists in
+   the route map but has no renderer call locus beyond it. The phone's insert-and-send path
+   (this pass's 394ms receipt) is the SAME execution semantics. No gap.
+5. **Hooks schema enumerated (hardens the authoring-family adjudication)**: the desktop
+   settings-review plane types hooks as
+   `event:t.enum(["SessionStart","UserPromptSubmit","PreToolUse","PermissionRequest","PostToolUse","PostToolUseFailure","Stop"])`
+   × `matcher:string?` × `type:["command","proc…"]` — SEVEN events with matchers. The phone's
+   review-only surface (trust/disable/revoke, receipted live again this pass) stays correct;
+   hook AUTHORING remains the desktop-side P4 family row.
+6. **autoCompactThresholdTokens is schema-only on BOTH sides**: 10 asar loci, all the same
+   usage schema (`{usedTokens, maxTokens, autoCompactThresholdTokens:nullable, cache?,
+   breakdown?}`) across bundle chunks — NO renderer context anywhere; the phone decodes it
+   (domain) and renders nothing. Parity; no row.
+7. **Timeline notice taxonomy sharpened**: the desktop's notice union includes
+   `checkpointRestored{checkpointId}` and `retryNotice{attempt,reasonCode}` typed notices;
+   the phone decodes `timelineMarker` rows typed-lite (ConversationRow.kt:447, markerType +
+   raw) with a dedicated compact renderer (CompactionNotice) — rewind/fork/checkpointRestored
+   markers render as raw markers. Watch, not a row: if field feedback shows an unreadable
+   notice, promote.
+8. **workflows.updateMeta/delete/move**: the desktop can rename/delete/move saved workflows
+   over the wire; the phone's workflow surface lists + runs only (updateMeta: zero phone
+   hits). Lands inside the existing authoring-family P4 adjudication (workflow MANAGEMENT
+   stays desktop-side) — enumerated, no new row.
+9. **The follow-up policy enum** on the run plane is
+   `[startNow, enqueue, guide, reject, choice]` — the phone's queue plane (queued rows +
+   auto-send + Send now/Edit/Delete + Move up/down, all receipted) covers the user-facing
+   enqueue/startNow slice; guide/reject/choice are host policies. No row.
+
+## Part BB.6 — pass-30 verdict and ledger delta
+
+On HEAD c8f941f2 (APK `9084b920…` byte-identical, vc52/1.3.1; asar `99e280fb…` unchanged) the
+companion produced THREE first-time END-TO-END receipts (slash palette with its three catalog
+wires + /compact execution; the attachment begin/chunk/commit upload chain + send-with-
+attachment; the renameTask wire leg), receipted the cross-task Approvals walk + empty state
+and the context-meter honest gate, upgraded F-27-C from an a11y misreport to a FUNCTIONALLY
+dead chip row (taps fail at the rendered positions, screenshot-proven), and produced the
+deeper-than-pass-29 REA dig: the desktop's channel-catalog map, TWO new P4 rows (**G58
+plugins plane, G59 session mode/followup switcher**), slash-execution parity CONFIRMED at
+the route+taxonomy level, the 7-event hooks schema and the 10-spelling permission-mode alias
+set byte-extracted, autoCompact settled schema-only on both sides, and the notice-taxonomy
+watch item. Mock debts: renameTask acks-but-doesn't-mutate (new); commands.list turned out
+scripted after all (pass-29 debt closed). Rig debts: the fixed interaction ids
+(question/hooks) still re-assert across generations (the T2 gate makes re-taps silent no-ops
+— known). Emulator FATAL ×1 (rig-side, recovered); app zero FATALs/ANRs across every leg.
+Commits: this docs commit only. Nothing pushed.
