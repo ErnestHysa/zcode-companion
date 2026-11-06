@@ -7727,3 +7727,419 @@ scripted after all (pass-29 debt closed). Rig debts: the fixed interaction ids
 (question/hooks) still re-assert across generations (the T2 gate makes re-taps silent no-ops
 — known). Emulator FATAL ×1 (rig-side, recovered); app zero FATALs/ANRs across every leg.
 Commits: this docs commit only. Nothing pushed.
+
+# Part BC — pass 31 (2026-11-06): the whole-feature robustness walk (startup/perf/config-change/doze/monkey/a11y/security axes — all first-time for this campaign) and the REA whole-bundle dig (host bus census + i18n namespace census + claim/purchase + vision-capability + plan-tool planes)
+
+Scope: full emulation walk with NEW verification axes no prior pass measured (cold/warm
+startup timing, gfxinfo jank vs a system-app baseline, meminfo footprint, process-death
+restore, night/font-1.3/display-size config-change recreations, landscape, forced doze,
+two monkey seeds, a11y tree audits, package security posture, secrets-in-logcat probe),
+all four open P3 re-tests, and a deeper-than-pass-30 REA dig that went OUTSIDE the asar
+for the first time (the whole bundle: Mach-O, signature/entitlements, Info.plist, helper
+apps, bundled glm plugins, shipped config) plus new renderer censuses (the complete i18n
+namespace map, the row/notice kind taxonomy, telemetry, deep links). Rig: debug APK
+byte-identical `9084b920…` sha256 (assembleDebug verified up-to-date at HEAD 62c109d2 —
+no app-code commits since 2c418804), asar `99e280fb…` unchanged (Info.plist still
+3.14.5/3.14.5.7961). ONE zcode-pixel cold boot for the whole pass (~3 h continuous —
+the longest single-boot session of the campaign; ZERO emulator kills), relay gens 1–3,
+all 23 mock arms + `MOCK_INTERACTION_PUSH_MS=25000` with fresh per-gen ids.
+
+## Part BC.1 — NEW verification axes (measured for the first time in 31 passes)
+
+1. **Startup timing (`am start -W`)**: COLD ×3 = 1,939 ms / 1,343 ms / 1,542 ms / 1,390 ms
+   (first-launch 1.94 s, steady cold ~1.4 s); HOT (HOME→relaunch) ×3 = 383/549/612 ms.
+   On the 8 GB emulator under swiftshader this is healthy; no `reportFullyDrawn` call
+   exists in the app (measurement = ActivityTaskManager "Displayed"; the baselineprofile
+   module exists but `StartupBenchmark` measures startup without an app-reported
+   fully-drawn signal — P4 polish: `activity.reportFullyDrawn()` after the first tasks
+   frame would sharpen both the macrobenchmark and Macrobenchmark-derived baseline
+   profiles).
+2. **Scroll jank (gfxinfo framestats)**: 6-fling sweep on the conversation timeline =
+   90 frames, 100% janky, p50 93 ms / p90 200 ms — BUT the same sweep on the system
+   Settings app on the SAME emulator measured p50 125 ms / p90 200-250 ms: the
+   swiftshader software-GL emulator is the bottleneck, not the app (the app is BETTER
+   than system Settings on p50). No on-device (real-GPU) verdict possible from this
+   rig; the campaign's first jank numbers are recorded as environment-relative only.
+   `Number Slow issue draw commands: 90/90` = the software renderer, not app draw cost.
+3. **Memory footprint**: after the full walk, TOTAL PSS 98 MB / RSS 214 MB / VmHWM
+   228 MB, 36 threads, 1 Activity, 5 AppContexts, 0 WebViews, 0 Death Recipients —
+   lean and clean (threads are DefaultDispatcher/TaskRunner classes, no leaks visible
+   in the thread table).
+4. **Process-death restore**: draft typed → `am kill` (process killed, pid gone) →
+   relaunch COLD 1,534 ms → auto-reconnect → the SAME conversation reopened via task
+   selection and the draft "draft31pd" RESTORED in the composer. The persisted-draft
+   contract survives process death (previously only kill-survival was claimed).
+5. **Config-change recreation matrix** (the campaign's first systematic sweep):
+   - **Night mode** (`cmd uimode night yes`): conversation, tasks, context sheet, all
+     dialogs re-rendered correctly (screenshots 14/16); nav-bar scrim painted by the
+     system (the pass-2 enableEdgeToEdge contract holds).
+   - **Font scale 1.3** (`settings put system font_scale 1.3`): conversation + tasks
+     legible, no crush (the recorded "font-1.3 crush" ledger small did NOT reproduce;
+     pass-15 line 327 stands). A11y findings at 1.3 (see BC.4).
+   - **Display size Largest** (`wm density 572`, ~1.3×): the queue strip's per-row
+     buttons wrapped to two lines ("Del/ete") but stayed tappable; session bar, pinned
+     card, composer all intact; the A11/GAP-A16 height budgets held at the extreme
+     scale (screenshot 17).
+   - **Landscape** (user_rotation 1): conversation renders session bar + queue strip +
+     composer without clipping (the A11 fixed budget visible live); NO landscape crash
+     anywhere in the walk.
+   - **Every uiMode flip recreates the Activity** (wm_relaunch_resume ×5 + 6
+     onDestroy/isFinishing=false + onCreate/savedInstanceState=true cycles): the app
+     survived each recreation with the hub process intact — BUT the recreation count
+     exposed the pass-5-recorded design fact that AppContainer is rebuilt per Activity
+     (6 recreations → 7 Activities / 19 AppContexts in dumpsys; Post-GC 18 AppContexts,
+     PSS back to 126 MB, no unbounded growth, but the context count is the price of
+     the no-Application-class design — WATCH, not a defect: numbers plateau, memory
+     does not).
+6. **Forced doze** (`dumpsys battery unplug` + `deviceidle force-idle`, 100 s
+   backgrounded): heartbeats STOP (0 in doze — WorkManager/alarms deferred as designed),
+   the reconnect ladder kept advancing (6 attempts, intervals growing ~12s→21s→20s→40s),
+   hub degraded honestly to DEGRADED; on wake + foreground, CONNECTED in ~2 s with
+   `relay.recovered :: subscriptions=1 snapshotReplace=true`. The doze contract holds.
+7. **Monkey stress** (first time in the campaign): seed 3131 injected 771/1500 events
+   then aborted on a **SystemUI** ANR (the 8 GB emulator class — com.android.systemui,
+   NOT the app; the app process survived and stayed interactive); seed 4242 injected
+   **1,200/1,200 events, Monkey finished, app process unchanged**. Total 1,971 random
+   events, **zero app FATALs, zero app ANRs** across the whole pass.
+8. **A11y tree audits** (`uiautomator` walk: unlabeled clickables / sub-48dp targets /
+   zero-bounds):
+   - Tasks home (1.0×): 0 unlabeled, 1 small ("+ New task" 108×23dp at the nav-bar
+     edge — its 132px-wide tappable band is horizontally compliant; the 20px-tall
+     band is the pre-existing nav-bar-class item, already ledgered).
+   - Conversation at font 1.3: 1 unlabeled (**queue_auto_drain — the Auto-send Switch
+     carries a testTag but no contentDescription/label association**; the visible
+     "Auto-send" Text is a sibling, not a label — P4 a11y small, new) + the pre-existing
+     20px composer-button band + queue Move-up buttons at exactly 32dp wide (88px,
+     under the 48dp width floor — pre-existing class).
+   - System comparison: the LAUNCHER's own hotseat icons report the same [y,2072]
+     clip under the nav bar — the "20px band" is this image's nav-bar geometry, not
+     an app defect (adds evidence to the D2 adjudication).
+9. **Security posture** (first systematic read): manifest `allowBackup=false` +
+   dataExtractionRules excluding EVERYTHING (cloud-backup + device-transfer) +
+   backup_rules_legacy — credentials can never ride Android backup; release manifest
+   exports ONLY MainActivity (deeplinks fail-closed, pass-10 receipt) +
+   GlanceRemoteViewsService (BIND_REMOTEVIEWS) + WorkManager's DUMP-permission
+   receivers — the debug build's extra exported ComponentActivity is the
+   ui-test-manifest artifact, absent from release; CAMERA requested but
+   granted=false until used (strict-camera A8 guard verified at the manifest level);
+   **logcat redaction re-verified**: zero occurrences of the pairing hash, sid,
+   passHash, proof, or Bearer material across 33k log lines (the auth_challenge
+   nonce prints as `[REDACTED]`); REQUEST_INSTALL_PACKAGES is declared for the
+   in-app update path (Play-external distribution by design).
+10. **Licenses + update rows re-receipted**: About → Licenses opens the system share
+    sheet with the full component list; Check for updates → `update.check ::
+    desktop=3.14.3 state=UpToDatenull` → "You are on the latest build".
+
+## Part BC.2 — live-matrix re-receipts (same byte-identical APK)
+
+Workspace alias round-trip (Manage → Rename → "RigAlias31" → switcher chip + task
+rows show the alias, group header keeps the wire name — the G41 RENAME-CLASS
+contract's first full live cycle); automation Run now (`runAutomationNow ok in
+32ms`) + History sheet (seeded run "Succeeded" + live manual run "In progress" with
+Go to session/Delete run); automation Edit dialog full form (title/prompt/schedule
+chips Once→Cron, HH:MM, Ends Never/On date, Max runs, Model — the confirm button
+label is `create_confirm` "Create" in BOTH create and edit modes — P4 copy papercut,
+new); off-peak Pause (`off-peak-task.pauseTask ok`) → Continue
+(`off-peak-task.continueTask ok`) — the monitor verbs' first live flip pair; workflow
+Run-in-task sheet → Run (`port.startWorkflow :: name=lint-all Accepted`); conversation
+mode switcher Build/Edit/Plan/Full access (Plan → `sendConversationCommandV4 ok in
+17ms` + session-bar echo "plan ·"; back to yolo); follow-up Queue/Guide chips (Guide
+→ wire ok 33ms → chip state K moves); the gen-1 pushed approval answered (Allow once
+ok 53ms); question card answered via internal scroll + wrapper taps (Send answers ok
+73ms); hook trust ×2 checkboxes → warned confirm → `grantWorkspaceHookTrust ok in
+69ms` + the "Trusted 2 hook(s)" notice rendered in the send-notice bar (INFO tone,
+surfaceVariant — the GAP-A15 fix visible); /compact slash palette (commands.list +
+getSkillReferenceCatalog + subagents.list ok) + send 394ms-class; Files viewer
+(readdir → README.md paged viewer, `file.readTextFile ok`); Git pane (summary,
+Branches sheet main/feature-a, Changes/History honestly faulted by the mock's
+notAvailable); Terminal Attach (`terminal.create ok` → "live — /bin/zsh", VIEW-ONLY,
+Pause/Search); share-OUT Markdown via the system sheet (full transcript preview in
+the Chooser, `Copy` button); sketch draw → `attachmentChunkV4 ok 218ms` +
+`attachmentCommitV4 ok 85ms` → chip "sketch-….png (15.3 KB)" → send-with-attachment
+ok 121ms + echo row; find "synthetic" → 1 of 5 → next → 2 of 5; approvals inbox
+cross-task walk + empty state; context sheet full render with the honest no-meter
+gate; model-calls sheet with the tool_payload drill-in (args + result heads).
+The desktop-side widgets: the shade approval carried its Approve/Deny
+PendingIntents (dumpsys `actions=2`, [0] "Approve" broadcastIntent) and the WIDGET
+rendered "Pending approvals / 1 request needs you" on the launcher (first visual
+receipt this pass on the current build).
+
+## Part BC.3 — the four open P3s on the current APK (every one re-manifested)
+
+- **F-27-A (P3) — reproduced ×2 with a NEW trigger class (relay gen-swap with the app
+  in-process).** Leg A/B: after the relay restarted under the app (gens 2→3), the
+  re-seeded FIXED-id question card (`q-rig-1`) was answered with the standard
+  scroll+wrapper-tap procedure — taps on the card toggled options live (checkbox
+  states flip in the dump) but **Send answers produced ZERO wires** in two attempts
+  (16:11 id=45 was the pre-swap answer; post-swap sends at 16:39 and 16:43 produced
+  no sendConversationCommandV4, screenshots byte-identical, and the notice showed
+  nothing). Leg C (the known-good trigger): force-stop → relaunch → the SAME
+  procedure FIRED (`sendConversationCommandV4 ok` 58ms-class — actually the fresh
+  gen-3 push answered). The in-process gen-swap trigger adds a THIRD repro surface
+  to the fix contract (the coordinator's live machine stays SUBMITTING/terminal from
+  the gen-2 answer while the mock re-asserts the id — the pass-29 surface-typed-outcome
+  + reset-on-re-assert remedy covers this shape too).
+- **F-27-B (P3) — 5TH sighting, now with a SECOND null-locus candidate found
+  statically.** Undo files → confirm sheet rendered title + body + Cancel/Undo files
+  with NO preview body, NO spinner, NO unavailable copy; three screencaps t0/t3/t6
+  byte-identical; `conversationFileRewindPreviewV4` ZERO in the relay log. The static
+  dig (BC.5.1) found the second null: **ConversationScreen.kt:1047 TimelineRow() drops
+  `rewindPreviewProvider` (and `onOpenAttachment`/`onOpenAttachmentExternally`) on the
+  floor — the TimelineBody→TimelineRow hop never forwards them**, so the provider is
+  structurally null for EVERY timeline row regardless of the ZCodeApp wiring that
+  passes it into ConversationScreen (and pass-24's Files-viewer preview legs worked
+  because they ride a different surface). This upgrades F-27-B from "needs an
+  instrumented build" to a KNOWN root cause with a one-line fix per dropped param —
+  the sheet can never leave the `else -> Unit` branch because `preview` can never be
+  set and `previewLoading` can never be true.
+- **F-27-C (P3) — 7th a11y sighting; the dead-tap did NOT reproduce this pass** (the
+  sheet's Share chip fired ShareModeSheet and the system chooser opened when tapped
+  at the sheet's TRUE pixel row above the nav bar; Model calls opened its sheet the
+  same way). New geometry receipt: the sheet's chip row renders UNDER the gesture nav
+  bar; taps only land in the ~62px band above y=2208. The launcher comparison (BC.1.8)
+  reframes this as device-chrome overlap: the chips are reachable, just barely, and
+  the a11y bounds still lie.
+- **GAP-21-A (P3) — leg A 9TH repro, leg B clean** (first-token `@re` typed = 0
+  `file.searchWorkspaceFiles` wires, no panel; mid-text " x @re" = begin/ok pair +
+  README.md panel). The complete byte-exact fix spec (BA10.5.2) stands.
+- The **queue stale-race papercut** re-manifested as designed (Delete on the second
+  row after the first consumed the script order → "Queue changed on the desktop —
+  please try again." honest INFO notice) — recorded class, not new.
+
+## Part BC.4 — NEW smalls recorded this pass
+
+- **N-BC-1 (P4, a11y)**: the queue strip's Auto-send `Switch` (`queue_auto_drain`)
+  has no contentDescription/label association — unlabeled clickable in the a11y tree
+  (found by the BC.1.8 audit; TalkBack reads nothing for it). Fix: semantics label
+  or `Modifier.toggleable(role = Switch)` merge with the "Auto-send" text.
+- **N-BC-2 (P4, copy)**: the automation Edit dialog's confirm button says "Create"
+  in edit mode too (AutomationEditor.kt:428 uses `create_confirm` for both — the
+  title switches, the button doesn't). One-line string split (`create`/`save`).
+- **N-BC-3 (P4, a11y/polish)**: queue Move-up/Move-down buttons are 32dp wide (88px)
+  — under the 48dp width floor at every scale (pre-existing class, now counted at
+  font 1.3 too).
+- **N-BC-4 (P4, perf polish)**: no `reportFullyDrawn()` in MainActivity — adding it
+  after first tasks composition sharpens startup measurement and baseline-profile
+  derivation (BC.1.1).
+- **WATCH (no row)**: the config-change recreation matrix leaves ~18 AppContexts
+  alive (7 Activities created over the pass, Post-GC) — the no-Application-class
+  design's cost; numbers plateau and PSS returns to baseline, so not a leak, but any
+  future leak-hunt starts here.
+
+## Part BC.5 — REA pass-31 dig: the WHOLE-bundle census (deeper than pass 30 — beyond the asar)
+
+REA MCP against /Applications/ZCode.app (ev_8c551322… signature, ev_e7f93c9c… plist,
+ev_6b0a5e9d… cua-helper plist) + filesystem inventory of every non-asar surface +
+the pass-24 flattened-asar extraction (/private/tmp/p24-asar, 2,769 files) for
+renderer byte-context work:
+
+1. **Signature & entitlements**: Developer ID Application "Beijing Knowledge Atlas
+   Technology Joint Stock Company Limited (8A5X4JJ39T)", hardened runtime, TeamID
+   valid, 4 entitlements (allow-jit, allow-unsigned-executable-memory,
+   disable-library-validation, allow-dyld-environment-variables) — the Electron
+   baseline; no TCC-adjacent entitlements (camera/mic prompts come from the
+   Info.plist usage strings + the CUA helper's AppleEvents string).
+2. **Info.plist**: `zcode://` URL scheme (oauth/callback + workspace/open?path= —
+   the ONLY two zcode:// literals in the whole bundle; the workspace one is opened
+   by a GENERATED Finder "Open in ZCode.workflow" (Automation drop-app with an
+   osascript JXA encoder) — a macOS-only integration, phone deep-link surface is
+   `zcode://task/{id}` only by design); NSAppTransportSecurity allows arbitrary
+   loads + local networking (localhost/127.0.0.1 exceptions) — mirrors the phone's
+   cleartext-debug-only posture but UNCONDITIONAL on desktop (form factor: desktop
+   talks to arbitrary self-hosted servers; the phone's release build forbids
+   cleartext — recorded as intentional asymmetry, NOT a gap).
+3. **Bundle inventory (non-asar surfaces, all NEW to the campaign)**:
+   - `Resources/config/` — **the shipped builtin provider catalog**: default.json
+     (feedback_url → zhipu-ai.feishu.cn form, community URLs zh/en) +
+     provider/zcode-builtin.json (schemaVersion 1, revision 30): 20 provider
+     TEMPLATES (zai-api, zai-standard-api, bigmodel-api/standard, moonshot-kimi,
+     minimax, deepseek, qwen-cn/intl, xiaomi-mimo, openai, anthropic, xai,
+     openrouter, 5 opencode variants), 8 builtin PROVIDERS (zai/bigmodel ×
+     individual/team/start/offpeak-idle plans, the two idle plans
+     `visibility:hidden`), 84 modelRules (default contextWindow 200000,
+     inputFormat {supportsText/Image/Video/Audio/Pdf}, outputFormat, tool-call
+     flags, optionSpecs reasoningLevel/maxOutputTokens), 72 modelApiRules,
+     52 providerSiteRules (baseUrl-specific overrides incl. opencode.ai/zen),
+     244 templateModelRules, 26 builtinProviderModelRules (GLM-5.3/5.3-Flash/5.2/
+     5.1-air per plan). **The phone consumes providers/models via
+     `model-selection.getView` (Phase9Tools.modelOptions decodes providerId/
+     providerName/modelId/label/badgeLabel ONLY)** — the desktop's per-model
+     capability + pricing + site-rule planes are desktop-registry data the phone
+     never sees or needs (the phone's picker is a VIEW over the desktop's resolved
+     registry — recorded parity, no row).
+   - `Resources/glm/` — **the entire bundled CLI + plugin runtime ships inside the
+     app**: `zcode.cjs` (14.8 MB, the full CLI server the desktop hosts for device
+     connections) + 15 plugins (android-emulator, ios-simulator, browser-use,
+     computer-use, documents/pdf/presentations/spreadsheets, image-search,
+     node-repl-host, plugin-creator, skill-creator, zcode-guide,
+     restore-legacy-sessions, bundled-skills/dynamic-workflows) + `tools/`
+     (ripgrep, ugrep, bfs) + `cua-helper/ZCode Computer Use.app` (125 MB, LSUIElement
+     helper, `dev.zcode.cua-helper`, AppleEvents automation usage string,
+     ax_native.node + its own node_modules). **Phone-side meaning**: the
+     android-emulator/ios-simulator MCP servers, the document plugins, and the CUA
+     helper are DESKTOP-side execution surfaces — the phone drives the DESKTOP's
+     agent which uses them; nothing here is a phone gap (the G18 CUA row already
+     covers the phone's rendering of those tool rows). The drift surface
+     (extract-relay-surface/builtin-slash-catalog) reads the OPEN REPO, and the
+     bundled zcode.cjs is a snapshot of it — verified this pass: the shipped
+     `BUILTIN_ZCODE_SLASH_COMMAND_HELP_ENTRIES` = exactly 20 entries
+     (help,login,logout,compact,init,expert,effort,dwf,fork,locale,mcp,plugins,
+     mode,model,new,resume,rewind,skill,goal,workflow) — **byte-for-byte the same
+     20 names as the phone's embedded BuiltinSlashCatalog** (zero drift at this
+     desktop build).
+   - `app-update.yml`: `provider: generic, url: http://localhost:8081` — the
+     SHIPPED desktop updater points at a LOCAL placeholder (the org's real feed is
+     env-substituted at deploy; the phone's F-UPDATE in-app update path is more
+     field-complete than the shipped desktop default — a phone WIN, already
+     ledgered under phone-only wins).
+4. **The renderer i18n namespace census (the pass artifact)**: 6,106 keys across
+   ~130 namespaces extracted byte-exact (full list at /tmp/p31/desktop-i18n-keys.txt,
+   method: `"ns.sub.key":\`` byte scan over all renderer chunks). 52 namespaces had
+   NEVER been named in this report; each adjudicated:
+   - **Parity/covered**: conversationShare (165 keys — G19's dated stub finding
+     stands STRONGER: the keys describe a full share-link/import/disclosure/error
+     machine, 20+ error classes, but the shipped host still stubs the hosting
+     plane), webRemoteControl (104 — G35/G43 covered), codeViewer (71 — G57's
+     pdf/pptx/xlsx in-app viewers; adds excel sheet-tabs + markdown dual-mode +
+     media zoom detail), sidePane (39 — the desktop multi-pane workbench,
+     form-factor), occupationOnboarding (43 — G36's interface-mode onboarding),
+     gitGraph (27 — pass-6 boundary), appHeader (22 — desktop debug-copy plane:
+     copy task/log/session paths, open in editor/Finder, reload session —
+     developer-tooling, desktop-form), commandCenter (20 — pass-6 boundary),
+     welcome/login (38 — the desktop's own first-run login screen; the phone's
+     pairing flow is its counterpart — parity), taskSearch (9 — the phone ALREADY
+     implements title+snippet search over listTaskList, TaskListScreen.kt:292;
+     the desktop's dialog wrapper + expandMoreSnippets is presentation), ssh/wsl/
+     docker (54 — B3 remote-connection authoring family), tokenDebug (17 — the
+     desktop's per-request TPS/cache-read debug TABLE; the phone's TrajectorySheet
+     carries durationMs/error/toolPayloads per call but no token columns — P4
+     smallest: add input/output/cache columns to the call cards when the trajectory
+     wire carries them), marketingTouch (7 — the in-app plan-purchase flow's
+     progress states), postUpdateReleaseNotes/updateDialog/updateReady/desktopMenu/
+     updateAvailable/forceUpdate (58 — the desktop updater UX family; phone has
+     its own, phone-only win), taskTimeline (12 — the DESKTOP task list's
+     time-grouping headers; the phone's task list has NO time sections — P4
+     smallest, a grouped list is arguably better on mobile too), taskNav (4 —
+     desktop back/forward task navigation; form factor), carousel/fileActions/
+     fileTree/projectSelector/blade/cargo/eslint/jest/vitest/vine (syntax-highlight
+     language names + small chips — noise).
+   - **NEW GAP G60 (P4) — the plan OFFER/claim plane is desktop-only.** The host
+     serves `getManualClaimPlanPreviews` + `claimManualPlan` (POST
+     /api/v1/zcode-plan/billing/claim) and the renderer ships the full
+     manualClaimPlan plane (53 keys: claimable-bonus banners with Daily/One-time
+     periods, dismiss-confirmation ("You'll miss a claim opportunity"), captcha/
+     login-required/invalid-request failure classes, Start-Plan switch dialog) +
+     the rewards menu item with a badge (rewards.menuTitle/menuBadge) + the
+     purchase.entry loading/retry states. The phone's Usage screen decodes the
+     entitlement (incl. StartPlanQuotaBuckets, G11) but has ZERO claim/rewards/
+     purchase surfaces. Mobile slice if wanted: a claim banner + Claim button on
+     the quota panel; authoring stays desktop.
+   - **NEW parity confirmations**: chat.contextUsage — the desktop panel carries
+     a cacheHitRate line + a `/compact` affordance keyed from the panel
+     (compressDescription); the phone's ContextUsagePanel renders the breakdown
+     rows (identical source vocabulary incl. INV-8 unknown-source passthrough)
+     but omits the cache line (the cache block is decoded-and-carried, SessionState
+     documents the Phase-2 scope) and relies on the slash palette for /compact —
+     P4 smallest alongside G60's usage screen, not a gap. subagentDirectory (13
+     keys) — the desktop's side-pane live subagent directory (running/ended child
+     sessions, click-to-open via childSessionId); the phone renders subagent rows
+     + counts (SessionStatusStrip/summary) but cannot OPEN a child session from a
+     subagent row (the childSessionId is decoded, ConversationRow.kt:432, and
+     unused). P4 smallest: long-press a subagent row → open child (rides the
+     existing conversationOpen). appError (11 keys) — the desktop's GLOBAL error
+     boundary (reload/retry/details); the phone's L7 SectionBoundary covers the
+     section-scoped half and diagnostics-capture half (the comment cites the same
+     appError.* philosophy) — the phone has no full-app error face (a FATAL kills
+     the process and relaunches; the crash is persisted to diagnostics) — recorded
+     as platform-appropriate, no row. bashOutput — the desktop adds a
+     `query_failed` error member (renderer-side fetch failure) the phone's typed
+     union (unavailable/unsupported/read_failed) lacks — the phone's sheet fetches
+     ONCE on open with no refresh; P4 smallest: add a Retry affordance (the
+     desktop's `bashOutput.retry`/`fullFile` pair).
+5. **Row/notice kind taxonomy (completes pass 30's watch item)**: the desktop's
+   schema-union kinds byte-extracted (chunked/compaction.terminal/complete/
+   deltas/fragment/hello/local_path/model.request.status/permission.lifecycle/
+   snapshot/stream.chunk/subagent.lifecycle/tool.lifecycle/turn.started/
+   turn.terminal/usage.delta/workflow.lifecycle) + the input-taxonomy enum
+   (user_prompt/slash_command/system_reminder/background_notification/
+   subagent_notification/todo_reminder/rewind_notice/fork_notice/tool_*/…). The
+   phone's TimelineMarker stays typed-lite with ONLY compaction promoted to a
+   dedicated renderer (ConversationScreen.kt:1381-1392; everything else =
+   QuietMetaRow(markerType)). **The pass-30 watch item is now quantified**: the
+   desktop renders rewind/fork/checkpointRestored/retry notices as TYPED rows;
+   the phone shows the raw markerType string. Keeping the watch (field feedback
+   would promote specific markers); no row yet.
+6. **Telemetry census (privacy-relevant, first time)**: the renderer bundles
+   @arms/rum-browser 0.1.8 (Alibaba ARMS RUM; endpoint
+   *.cn-beijing.log.aliyuncs.com, workspace default-cms-…) + a Sentry-adjacent
+   debug-id shim + Electron crashReporter (v8-oom/process_type minidumps) +
+   `telemetry/event` (the HOST-side protocol notification) + local-ttft batches —
+   ALL in the desktop renderer/host. The phone: zero analytics SDKs (no crash
+   reporter beyond the local diagnostics file, no network telemetry — the
+   Settings "No analytics. No tracking." copy is literal). **Phone is MORE
+   private than the desktop by default — a phone win recorded verbatim** (the
+   desktop's ARMS plane is org-telemetry; whether the phone should ever carry a
+   consent-gated subset is Ernest's call, noted as a decision not a defect).
+7. **Builtin-slash drift gate re-verified at the SHIPPED artifact**: the phone's
+   20-entry BuiltinSlashCatalog == the shipped zcode.cjs's 20 entries name-for-name
+   (BuiltinSlashCatalogDriftTest's inventory matches the BINARY, not just the open
+   repo — first time asserted against the shipped bundle).
+
+## Part BC.6 — the static find that upgrades F-27-B (recorded with its sweep method)
+
+A new repo-wide sweep (tools-quality one-off, /tmp/p31/dropped_args.py: for every
+fun whose defaulted params are null/empty-lambda, find call sites that omit an
+in-scope same-named param) over features/ + app/src/main + core/ui returned EXACTLY
+TWO hits, both in ConversationScreen.kt:
+- `ConversationScreen → TimelineBody(...) DROPS onOpenAttachment,
+  onOpenAttachmentExternally, onSectionCrash` (line 552) — the L7 diagnostics seam
+  is dropped at the SAME hop: a timeline grouping crash still renders the error
+  card + Retry (the boundary works) but the stack never reaches
+  `diagnosticsStore.writeCrash("conversation-timeline", …)` — the L7 contract is
+  half-wired (the boundary catches, the seam is null).
+- `TimelineBody → TimelineRow(...) DROPS onOpenAttachment,
+  onOpenAttachmentExternally, rewindPreviewProvider` (line 1047) — **F-27-B's root
+  cause** (preview structurally unreachable from timeline rows) AND the G28 fix
+  regression: the zoom viewer + external handoff callbacks (817318be) are dropped
+  at the same hop, so **the G28 live receipt's "AttachmentsViewerUiTest passes"
+  never applied to the real timeline** — tapping an inbound image thumbnail in the
+  shipped app does nothing (live-confirmed this pass: tap on the mock.png
+  thumbnail at its painted bounds → zero wires, byte-identical screen, no viewer
+  dialog). G28 was marked SHIPPED on the strength of row-level pins
+  (AttachmentViewerUiTest hosts YouBlock directly with the callbacks passed);
+  the screen-level wiring was never pinned. **F-27-B's fix is now a 3-line
+  forward + a screen-level pin**; the same commit should forward all five dropped
+  params (the 3 at :552 + 3 at :1047, two overlapping) and add
+  TimelineWiringContractTest asserting ConversationScreen forwards every
+  callback param to TimelineBody and TimelineBody forwards to TimelineRow (a
+  structural pin, or reflection-based param-name diff).
+
+## Part BC.7 — pass-31 verdict and ledger delta
+
+On HEAD 62c109d2 (APK `9084b920…` byte-identical, vc52/1.3.1; asar `99e280fb…`
+unchanged; whole-bundle censuses extended beyond the asar for the first time) the
+companion ran the campaign's FIRST whole-feature robustness sweep (startup 1.4 s
+cold/0.4-0.6 s hot, env-relative jank with a system-app baseline, 98 MB PSS,
+process-death draft restore, night/font/density/landscape recreations all clean,
+forced doze honest + 2 s wake reconnect, 1,971 monkey events zero app crashes,
+a11y audits, security posture, logcat redaction re-verified), re-manifested all
+four open P3s with new evidence (F-27-A gained a third trigger class; F-27-B gained
+a STATIC root cause — the TimelineRow dropped-param sweep — that also explains G28's
+unreachable zoom viewer and the L7 diagnostics seam half-wiring; F-27-C's dead-tap
+did not reproduce at true coordinates; GAP-21-A 9th repro), recorded four new P4
+smalls (N-BC-1 unlabeled Auto-send switch, N-BC-2 Create-should-be-Save, N-BC-3
+32dp queue arrows, N-BC-4 reportFullyDrawn), and produced the deepest REA dig of
+the campaign: whole-bundle inventory (signature/entitlements/plist/cua-helper/glm
+plugins/shipped provider catalog/app-update.yml), the 6,106-key i18n census with
+52 never-mentioned namespaces adjudicated, TWO new rows (**G60 plan-claim/rewards
+plane desktop-only, P4**; plus the subagentDirectory child-open P4 smallest,
+tokenDebug columns P4 smallest, bashOutput retry P4 smallest, contextUsage cache
+line P4 smallest — all folded into the existing P4-smalls family), the row-kind
+taxonomy that quantifies pass-30's notice watch, the telemetry census (phone
+strictly more private than desktop — recorded win), and the shipped-builtin-slash
+zero-drift verification. **The fix-round opener list is REORDERED by this pass:
+F-27-B is now the cheapest highest-value fix (3 dropped-param forwards + pins,
+mechanically known) → F-27-A → GAP-21-A → F-27-C → N-BC smalls → G48+G51 → G60 +
+P4-smalls.** Census: 0 app FATALs, 0 app ANRs (1 rig-side SystemUI ANR during
+monkey, app unaffected), ~3 h single emulator boot (campaign record), zero
+emulator kills. Commits: this docs commit only. Nothing pushed.
