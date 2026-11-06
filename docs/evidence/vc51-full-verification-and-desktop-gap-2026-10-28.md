@@ -7348,3 +7348,192 @@ gating) → GAP-21-A (mention tokenization) → F-27-C (the clipped-chip class) 
 side-session null-child notice).** Mock arming debts: `runAutomationNow` + the usage channel
 unscripted (both surfaced honestly); `createSelectionSideSession` unscripted (accepted-no-child).
 Nothing pushed. Local docs commit only.
+
+## Part BA10 — pass 29 (2026-11-05/06): the armed-debt closure walk + the protocol-parity/mention-contract dig (deeper than pass 28)
+
+Rig: APK `9084b920…` byte-identical (assembleDebug verified up-to-date at HEAD 3cbf760a; no
+code commits since pass 22), asar `99e280fb…` unchanged. zcode-pixel cold boot ×2 (ONE mid-pass
+emulator kill — the known 8GB class — recovered with cold boot + stored pairing auto-reconnect,
+FIFTH consecutive recovery), relay gens 1–3 (gen-2 = the seed-fix reseed, gen-3 = the F-27-A
+repro restart), all pass-28 arms + the three NEW arms. ~2.5 h across two days. Zero FATALs,
+zero ANRs.
+
+### BA10.1 — Rig arming this pass (committed code, two commits)
+
+- **217ae75e `fix(mockzcode)`** — the three pass-28 debts became scriptable arms:
+  `MOCK_USAGE=1` serves the Usage screen's real faces (getEntitlementSnapshot + getAppUsageStats
+  from the pinned phase3/phase4 wire fixtures + a new `getCodingPlanUsageSnapshot` dispatch case
+  for the G20 charts, which previously fell to `fault.mock.unknownMethod:usage-stats-…`);
+  `MOCK_AUTOMATION_RUNS=1` seeds one COMPLETED historical run so `runAutomationNow` scripts
+  `queued` and the History sheet lists rows; a `createSelectionSideSession` handler returns the
+  commandResultSchema trio ack (`{type:"createSelectionSideSession", sessionId: child}`), creates
+  the child task and records the firstInput text. Self-tests: MockZCodeUsageSideSessionSelfTest
+  (3 tests; full mock suite green).
+- **a3fe7f2d `fix(mockzcode)`** — the rig caught a REAL seed bug live: the seeded run said
+  `outcome:"success"` and the phone badged it "In progress" with the Succeeded filter seeing
+  NOTHING ("No runs yet."). The phone's `AutomationRunRow` keeps the wire enum raw (INV-8:
+  `running|succeeded|failed|stopped`, automation-types.ts) and the status fold + filter key on
+  `succeeded`; the seed was wrong, the phone was honest. Fixed to `succeeded`, self-test pin
+  updated, re-verified live (row badges "Succeeded", the filter lists it). The desktop contract
+  was byte-extracted this pass to settle it (BA10.5.3).
+
+### BA10.2 — FIRST receipts (all three pass-28 debts closed live)
+
+- **Usage plane END-TO-END, first live receipt with data**: `getEntitlementSnapshot`,
+  `getAppUsageStats`, `getCodingPlanUsageSnapshot`, `getCodingPlanResetStatus` — all four verbs
+  ok over the `usage-stats` channel (×2 each in logcat). Rendered: the quota panel (64% remaining
+  · "5 hours" window with 05:20 countdown · Weekly 49% · Tool calls 88% · ZCode MCP 78%), range
+  chips (7 days/30 days/All time), stat cards (184.6K total tokens · 51.2K peak day · 1h30m
+  longest session · 3d current / 9d longest streak), efficiency (42% cache hit · 210 tool calls ·
+  96 turns), activity heatmap, daily trend + daily activity, Share by model (glm-5.3 114.5K ·
+  62% / glm-5.3-flash 70.1K · 38%), Models, Tools (Bash 120 · 5% / Read 90 · 0%), and the G20
+  "Plan usage" charts (GLM-5.3 / GLM-5.1 series legends). The desktop's own renderer ships
+  `CodingPlanUsageBarChart`/`CodingPlanUsageLineChart`/`AppUsageDailyModelTrendChart`/
+  `AppUsageModelUsagePieChart` lazy chunks — the phone's chart taxonomy mirrors the desktop 1:1.
+- **Automations Run-now + History**: `runAutomationNow ok in 28ms` (pass 28's
+  `fault.mock.unscripted:runAutomationNow` closed); `listAutomationRuns ok` 65ms/34ms; the
+  History sheet lists the seeded run ("1 h ago · Scheduled · 100s" → "Succeeded" after the enum
+  fix) and the live manual run, with All/In progress/Succeeded/Failure/Manual filters + the
+  awake-computer copy.
+- **Side-session END-TO-END**: message-actions sheet → "Ask in a side session" →
+  `port.sideSession :: session=synth-task-1 outcome=Accepted child=sess-side-1` →
+  `hub.conversationOpen :: session=sess-side-1` → `subscribed :: session=sess-side-1` → the
+  child session rendered. Pass 28's accepted-with-null-child silent no-op is closed.
+
+### BA10.3 — Re-adjudications (sharper procedures)
+
+- **F-27-A (P3) — reproduced with the cleanest procedure yet**: gen-3 restart re-pends the
+  fixed-id question; TWO taps on the dumped Send-answers coordinates (540,631 ×2) with cleared
+  buffers → **ZERO submit wires** (0 sendConversationCommandV4/resolveInteraction) and the card
+  byte-frozen (dump 28284 across three checks). Leg C: force-stop → relaunch → the submit FIRES
+  (`sendConversationCommandV4 ok in 182ms`). NEW tap-ergonomics receipt: when the card's internal
+  scroll buries the button, the "Send answers" TEXT node's center lands INSIDE an option-row
+  wrapper ([72,856][1008,988]) — the real target is the clickable wrapper [549,1062][709,1194];
+  pass-28's wrapper-center gotcha now has concrete bounds. (Earlier "successful" sends this pass
+  that used text-node taps landed on option rows and silently selected options instead.)
+- **F-27-B (P3) — 4TH sighting**: cleared-buffer screencaps at t0/t2/t5 BYTE-IDENTICAL (single
+  sha), zero `conversationFileRewindPreviewV4` wires, the sheet renders only title + Cancel +
+  Undo (no spinner, no preview body, no unavailable copy); the confirm leg then re-receipted the
+  state=reverted gating (the Undo-files button leaves the turn header). The instrumented-build
+  TEST-FIRST entry stands unchanged.
+- **F-27-C (P3) — 5th a11y sighting**: the context sheet's second chip row (Model calls/Share)
+  reports [0,0][0,0] h=0 while Files/Git/Terminal carry real bounds (h=35) at y≈2024.
+- **GAP-21-A (P3) — leg A 8TH repro** (first-token `@`: 0 `file.searchWorkspaceFiles` wires, no
+  panel) + **leg B clean** (mid-text " x @re": `channel.call :: file.searchWorkspaceFiles
+  begin/ok` + README.md panel row). The fix spec is now COMPLETE (BA10.5.2).
+
+### BA10.4 — Walk matrix re-receipts (same byte-identical APK)
+
+Approval Allow-once (44ms; the mock ran the Bash tool — `echo synthetic` row); question
+multi-group answer (Channel + Extras selections → Send answers via the wrapper tap; rpc
+receipted, card cleared, the hook card rotated in); hook trust ×2 (checkbox leading-edge taps →
+"Trust 2 selected hook(s)" → Confirm → `grantWorkspaceHookTrust ok in 49ms`); queue Delete ×2;
+rewind confirm → state gating; checkpoints: Snapshot ×2 (`createCheckpoint ok` ×2) — and a NEW
+observation: the per-checkpoint **Restore affordance only appears once a SECOND checkpoint
+exists** (restoring to the latest is hidden) — Restore → warned confirm → "Local changes
+conflict" → Overwrite (3rd full conflict round-trip); `git.commit begin/ok` (commit sheet:
+Generate / Include unstaged / Commit & push all rendered); Branches sheet →
+`git.createBranchAndSwitch begin/ok` (the 484a64b6 erratum fix holds; the Create button needed
+the pass-26 drop-IME recipe — the sheet grows downward and moves the button from y≈2061 to
+y≈1424 under the IME); `terminal.create ok` → "live — /bin/zsh" (VIEW-ONLY banner, Pause,
+Search, Copy visible output, Detach); composer send `sendConversationCommandV4 ok in 138ms`; the
+task action sheet (Pin/Mark unread/Resume/Move to group…/Rename/Archive/Delete) with the Rename
+DIALOG opening live; the MCP servers screen renders LIVE statuses (docs-search http·0 Disabled /
+github stdio·12 Connected / playwright sse·0 ECONNREFUSED 127.0.0.1:9222 (connectionRefused)
+Failed); the launcher widget live again after the kill ("Pending approvals · 2 requests need
+you"); auto-reconnect ×2 across relay gens + the post-kill boot. New hygiene: the stale-dump
+gotcha bit twice — `adb shell rm /sdcard/ui.xml` before every re-dump is now mandatory
+procedure. The Files viewer / Workflows Run sheet / Changes-dialog legs stand on pass 28's
+receipts (byte-identical APK; not re-driven this pass).
+
+**The renameSession ledger correction**: pass 28's optional small said "a task-row Rename action
+… is the complete phone-side adoption" (implying the phone lacks it). This pass found the phone
+ALREADY HAS the full chain: the sheet's Rename → `TaskListScreen.onRenameTask` (ZCodeApp.kt:488
+wires `vm::renameTask`) → `TasksViewModel.renameTask` (TasksViewModel.kt:236) →
+`TaskServiceClient.taskCall("renameTask")` on the zcode-task channel (TaskServiceClient.kt:44,
+the shipped-3.14.5 facade offsets) — the same channel deleteTask/archiveTask ride. Only the WIRE
+leg wasn't driven live (IME ergonomics in the dialog; static chain receipted). The optional
+small is CLOSED as already-implemented.
+
+### BA10.5 — REA pass-29 dig (deeper than pass 28)
+
+1. **Protocol parity matrix — the pass artifact.** 35 distinct quoted `v4/` routes byte-extracted
+   from the asar (attachment abort/begin/chunk/commit/previewSource/read; command;
+   commands/query; connection/flow; controller resync/subscribe/unsubscribe; conversation
+   attachmentRead/attachmentStat/backgroundBashOutput/fileChanges/fileRewindPreview/frame/plans/
+   resync/rowsRange/subscribe/unsubscribe/usage/workflowRunArtifactData/workflowRunArtifactRead/
+   workflowRunArtifacts/workflowRunEvents/workflowRunNodeResult/workflowRunWorkspace/workflowRuns;
+   cua/permission-observation; telemetry event/local-ttft; usage/stats). The phone implements 23
+   of these path spellings; the rest are reached via the remote-control `*V4` v4call plane (26
+   phone v4call methods enumerated from V4Plane.kt). A 50-name presence sweep against the asar →
+   **42/50 byte-present verbatim**; the 8 remaining spellings each resolved to a located
+   desktop-side equivalent: `git.createBranchAndSwitch` → the git service method
+   `async createBranchAndSwitch(S,k,C)` returning `{action:"switch"|"create-and-switch",
+   branchName, didChange, created, summary}`; task `renameTask` → the zcode-task service channel;
+   `commands.list` → `v4/commands/query`; `terminal.*` → the host terminal channel (the xterm.js
+   plane). **No missing capability found — the phone's remote-control surface maps 1:1 onto the
+   shipped desktop.**
+2. **GAP-21-A desktop reference contract, COMPLETE (the fix spec)**: the renderer's mention
+   parser `nR(textBeforeCursor)` = `V7e.exec(e) ?? B7e.exec(e)` with
+   `B7e = /(^|\s)([/@$#¥￥])([^\s/@$#¥￥]*)$/` and the @-widening
+   `V7e = /(^|[\s\p{Script=Han}\u3000-\u303f\uff00-\uffef])(@)([^\s/@$#¥￥]*)$/u`; invalidation
+   when the preceding char is Han AND the query is dotted (`U7e=\p{Script=Han}`, `H7e=/\S\.\S/`);
+   `¥/￥` normalize to `$`. The file-search hook enables on parsed trigger `@` && !disabled; it
+   queries `{rootPath, workspaceIdentity, query, limit≤1000}` — **an EMPTY query is allowed**
+   (the host impl validates type only: default limit 1000, clamp [0,1000], 0 → []) with a
+   lastMissQuery REFRESH retry (empty result → one `refresh:true` re-query). The host search is
+   a dedicated lazy worker (`workspaceFileSearchFilter.worker-OQwPzeVM.js`, 2657B) with
+   gitignore-aware filtering (`workspace-file-ignore`,
+   `statWorkspaceFileSearchIgnoreFingerprint`). **The decisive fact: the desktop's `^`
+   alternative fires the search on a FIRST-TOKEN `@` with an empty query (listing up to 1000
+   candidates) — exactly the face the phone never renders.** Fix spec: port the regex pair
+   verbatim over textBeforeCursor, allow the empty query, add the refresh-on-miss.
+3. **Automation-run outcome enum SETTLED**: the desktop's run-terminal mapping byte-extracted —
+   `e.outcome==="succeeded"?"completed":e.outcome==="stopped"?"cancelled":"failed"` (and the
+   dynamic-task plane `outcome: …turn.failed?"failed":"succeeded"`) — `succeeded` verbatim. This
+   validates a3fe7f2d (the seed) and the phone's raw-enum decode
+   (`AutomationRunRow.displayStatus`). The phone was right; pass-28's fault was arming, not
+   decoding.
+4. **Git-plane depth CONFIRMED as adjudicated**: 156 `git.*` i18n keys byte-enumerated —
+   per-file stage/unstage/discard + sections (staged/unstaged/untracked/conflicted),
+   commitAndPush + the push dialog (aheadBehind, upstream, error copy, upToDate), the branch
+   switcher (blockedDialog → commit-first flow, createDialog, nine error classes incl.
+   branchInOtherWorktree / conflictsPresent / operationInProgress / trackedOverwrite), the
+   in-pane diff viewer (selectFile / truncated / binary), the last-turn section, tree + search,
+   revealInFileManager. This lands EXACTLY on the ADR-021 Tier-A adjudication already in the
+   ledger — staged-commit authoring stays desktop-side by the phone's own drawn line. **No new
+   row**; the enumeration hardens the existing decision with the full inventory.
+5. **MCP authoring verbs byte-extracted**: `addMcpServerToZcodeConfig` (writes
+   `{mcp:{servers:{…}}}` into the config), `updateMcpServer`, `deleteMcpServer`,
+   `addScopedMcpServer`, `loadMcpFromUserDirectory`, `saveConfig` — confirms the pass-16
+   desktop-AUTHOR P4-smalls family row (`settings.mcp` create/import/form, P4 small). The
+   phone's MCP servers screen receipts READ-ONLY status live. No new row.
+6. **Terminal plane**: xterm.js confirmed (878 string hits; `scrollback` clamped
+   ≤ 4294967295; `minimumContrastRatio` 1..21) — the depth note sharpened; form-factor, no new
+   row.
+7. **Cross-device receipt (new fact, no gap)**: `taskList.mobileActive` = "Phone is using this
+   task" — the desktop task row renders a LIVE badge keyed by `mobileActiveTaskKey` when a
+   mobileRemote client holds the task; the phone's activity is surfaced on the desktop. The
+   clientHello schema was also re-confirmed in a THIRD bundle copy (protocolVersion literal 3;
+   exactly two strict capability flags).
+8. **Stale-comment find (one-line fix-round cleanup)**: TaskListScreen.kt:1578's comment
+   "decoded since Phase 2, never rendered" is STALE — the J4 rendering (changeStats `+N −N` on
+   the row, testTag `task_changes_*`) sits directly below it; the rig never showed it because
+   the mock's task rows carry no `summary`. Update the comment in the next fix round.
+
+### BA10.6 — pass-29 verdict and ledger delta
+
+On HEAD 3cbf760a (APK `9084b920…` byte-identical, vc52/1.3.1; asar `99e280fb…` unchanged) the
+companion closed ALL THREE pass-28 rig debts with live receipts (Usage plane, automation
+Run-now + History, side-session navigation), caught + fixed + committed one real mock seed-enum
+bug the rig exposed (a3fe7f2d), CORRECTED one pass-28 optional small (the renameSession adoption
+chain already exists on the phone), reproduced all four open P3s with sharper procedures
+(F-27-A dead-tap ×2 zero-wire + leg C fires; F-27-B 4th sighting byte-instrumented; F-27-C 5th
+a11y sighting; GAP-21-A leg A 8th + leg B clean), and produced the protocol-parity matrix as a
+positive artifact (42/50 verbatim + 8 resolved equivalents — no missing capability). **No NEW G
+rows this pass** — a first since pass 26: the dig landed on confirmations and closures. The
+fix-round openers keep their order (F-27-A → F-27-B → GAP-21-A → F-27-C → G48+G51), with
+GAP-21-A now carrying a complete byte-exact reference implementation (BA10.5.2) and F-27-B
+carrying the desktop canApply gating spec from pass 28. Mock debts remaining: none of the three;
+`renameTask`/`commands.list` channel verbs stay unscripted (typed faults, surfaced honestly).
+Commits: 217ae75e + a3fe7f2d (rig) + this docs commit. Nothing pushed.
