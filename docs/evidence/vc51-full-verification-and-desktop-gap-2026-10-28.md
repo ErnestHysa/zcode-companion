@@ -9283,3 +9283,294 @@ modern phone is now concrete: make notifications and the Live connection part of
 (F-34-E), make the reconnect survive the freezer (F-34-B), fix the lifecycle class (F-33-A /
 F-34-A), turn voice on (F-34-D), and add the companion's remote-workspace reconnect (G67).
 Commits: this docs commit only. Nothing pushed.
+
+---
+
+# Part BG — pass 35 (2026-11-07): the armed-stack whole-app walk on Android 16 with every first-time receipt re-driven through the queue-mode composer, plus an i18n-namespace census of the desktop's settings pages — the pass that finally maps the desktop's AUTHORING planes against the phone's viewers
+
+Scope: pass 34 re-platformed the emulator and walked the modern-OS surfaces; this pass walked
+the app end-to-end on the same API 36 image with all 23 mock arms live, exercising every plane
+that earlier passes receipted only in isolation — three seeded interaction cards answered in one
+session, the git checkpoints/commit plane, the terminal consent gate driven live, the workflow
+launch sheet, the mode/model chips, the full 18-section Settings inventory, the notification
+permission ask through the Live connection, a shade approval under the foreground service, a
+relay generation swap under the FGS, and process death. On the desktop side, REA stopped
+enumerating single features and instead **censused the desktop's settings surface by i18n
+namespace** (12,212 keys / 1,018 namespaces in `IntlProvider-B-44tSXQ.js`), which turns "the
+desktop has more settings" into a page-by-page gap table — and it exposed planes no earlier
+pass named: the rewind change-summary dialog, the hooks management page, MCP server authoring
+with SSE + protocol-version pinning, a memory viewer, custom slash-command authoring, and a
+usage-statistics model with streaks and error rates.
+
+Rig: debug APK byte-identical `9084b920…` (versionCode 52 / 1.3.1, targetSdk 36), desktop
+unchanged (3.14.5, asar `99e280fb…` re-verified). AVD `zcode-a16` (Android 16 / API 36,
+1080×2340 @ 440 dpi). **Fresh install** (`pm clear` — the first clean-install walk since pass
+34) → onboarding → paste-link pairing (178/178 chars with one self-resync after a runaway
+first attempt) → Security setup → reduced security (no screen lock; the E7-skip papercut
+re-seen) → seal → AUTHENTICATING → CONNECTING → CONNECTED. Relay generations 1→2 (gen 2
+swapped while the app was backgrounded under the Live-connection FGS). Logcat was cleared
+per leg (this image's buffer survives cold boots — see rig notes), so wire counts below are
+per-leg receipts, not a session total. **0 app FATALs, 0 app ANRs** across the whole walk.
+
+## Part BG.1 — receipts (what holds, per leg)
+
+| Leg | Receipt |
+| --- | --- |
+| Cold start after `pm clear` | `am start -W` TotalTime 6,569 ms (first-run dexopt); onboarding renders edge-to-edge |
+| Pairing | stale-gate skipped (fresh link) → Security setup → seal → CONNECTED; `app.start version=1.3.1 (vc52)` |
+| Tasks screen | tabs All/Synthetic One, Manage sheet (workspace rename/reorder), Automations row with full actions, Workflows with the resumable stopped run, Pinned, per-workspace collapse ("Tap to collapse") — the collapse toggle works both ways |
+| Open conversation | `subscribeConversationV4 ok 59ms`, snapshot **18 rows**, `subscribeWorkspaceConfigV4 ok 233ms` |
+| Seeded interaction #1 (approval) | pinned card Allow once → `sendConversationCommandV4 ok 70ms`; Bash row turns Completed with a green accent |
+| Seeded interaction #2 (question, 3 groups) | option + free text + checkbox + **four inner scrolls** to "Send answers" → `ok 64ms`, card dismissed (see N-BG-1) |
+| Seeded interaction #3 (hook review) | 2 checkboxes → "Trust 2 selected hook(s)" → confirm dialog → `grantWorkspaceHookTrust ok 73ms` + resolve `ok 50ms`; success notice renders **red in dark theme** (N-BE-4 re-manifest) |
+| Composer send | "p35-walk-message" → `sendConversationCommandV4 ok 257ms` → 3 gateway frames (seq 9–11) → message + "synthetic reply to:" row render with Copy / Liked-Dislike / Fork / Retry; timeline auto-scrolled |
+| Row actions | Like → `ok 82ms`; state persists as "Liked" |
+| Mode chips | header chip expands in place to mode/Effort/model/account chips → mode switcher sheet (Build/Edit/Plan/Full access) → Edit `ok 182ms` → back to Full access |
+| Model sheet | "Switch model" + search + catalog rows (glm-5.1*, Preview / OPENAI-COMPATIBLE badges, Z.AI, Default) |
+| Context sheet | Status (iteration/criteria history), Goal with Pause, Todos 1/2, Workflow runs (lint-all Running / release-notes Stopped), Plans 1/3, git strip "main clean", Open chip row |
+| Files viewer | pushed screen, read-only badge, Folder/Document nodes fully labeled |
+| Git viewer | Checkpoints + Snapshot → `git-checkpoint.createCheckpoint ok`, "ckpt-1 · 1 min ago" with the honest "Snapshots created elsewhere aren't listed here"; Commit dialog (message field, Generate, Include unstaged, Commit & push toggle, disabled-until-message Commit) → commit fired, notice **"Committed abc1230"** |
+| Terminal | consent gate (Switch-only — see N-BG-3) → Attach → `terminal.create ok` + `terminal.attached id=term-1`, header "live — /bin/zsh" with Pause/Search/Copy visible output/Detach |
+| Model calls | nested sheet with a unified "Search the conversation and model calls" field + rows (glm-5.3 · 4200ms · tool_calls / tools: bash; red RateLimitError: 429) |
+| Share | Plain text (Readable transcript) / Markdown (Formatted export) → system chooser with transcript preview + Copy to clipboard |
+| Slash palette | opens on "/", all 20 builtins present (scroll-verified past the 2-row fold), filter works, pick fills "/compact " with hint space → `sendConversationCommandV4 ok 19ms` in queue mode (sent directly, not queued) |
+| Automations | "Run now" on Nightly digest → `runAutomationNow ok 64ms` + `listAutomations ok 14ms` |
+| Workflow launch | Run sheet with version parameter + Run-in-task picker → `port.startWorkflow … name=release-notes outcome=Accepted` → conversation opened with a fresh subscribe |
+| Usage viewer | 3 quota bars + Refresh quota → `getAppUsageStats ok 63ms`; still zero claim/purchase surfaces (G60 stands) |
+| Live connection | Settings toggle → **system POST_NOTIFICATIONS ask** → Allow → `settings.notifPermission granted=true`, FGS `isForeground=true foregroundId=4201 types=0x40000000` (specialUse, BFSL-allowed from TOP) |
+| Shade approval under FGS | backgrounded app → gen-2 push → heads-up "ZCode needs your approval" with Approve/Deny → shade Approve → implicit decision → `sendConversationCommandV4 ok 119ms` |
+| Relay swap under FGS | gen 1→2 while backgrounded: `relay.lost (1006)` → **`relay.recovered subscriptions=3 snapshotReplace=true` in 1.2 s** — the F-34-B failure mode does not apply when the Live connection keeps the process unfrozen |
+| Process death | `am kill` → relaunch → conversation restored in place with the pending approval card answerable; `subscribeConversationV4 ok 45ms` on relay-2 |
+| Leave guard | navigating away with a lingering draft raises "Leave this conversation? You have an unsent draft…" — draft survives |
+
+## Part BG.2 — defects and papercuts (new or re-manifested this pass)
+
+### N-BG-1 (P3, usability; N-BF-3 worsened) — the three-group question card buries Submit behind a gesture that usually scrolls the wrong surface
+
+With the mock's full seeded card (radio + radio + free text + checkbox group + second free
+text) the pinned budget clips the card after the first question group; **"Send answers" sits
+four inner scrolls deep**, and the first swipe attempts over the card scrolled the pinned
+STACK to the next card instead of the card's inner content — the gesture boundary between
+"scroll this card" and "cycle the pinned stack" is invisible and, in three of four attempts,
+wrong. With the keyboard up (the free-text field focused) the card + queued strip + background
+banner + shared-context chip consume the viewport and **not one pixel of the Submit is
+reachable or hinted**. Pass 34's two-group card needed three scrolls; a third group pushes it
+past the practical limit. Fix direction: cap the pinned card's inner scroll to the card
+(fixed-height viewport with its own scroll), keep the stack cycle on the drag handle only,
+and always render the submit row pinned at the card's bottom edge.
+
+### N-BG-2 (P3, honesty) — refused channel calls are silent in the Git plane
+
+Two live instances, both reproducible: the Commit dialog's **Generate** button
+(`git.generateCommitMessage refused: fault.mock.unscripted` — mock debt, but the app side)
+and the Changes/History tabs (`git.getChanges refused: fault.git.notAvailable`) produce **no
+user-visible feedback** — the button does nothing, the tabs render empty, no snackbar, no
+dialog, nothing in the log surface. On a real desktop a refused git call is a real failure the
+user must see. The conversation plane surfaces refusals honestly (error cards); the Git plane
+does not. Fix: route git-plane refusals through the same error-surface path (inline dialog
+error row for Generate, an empty-state-with-reason for Changes/History). Mock debts to
+unblock the rig: script `generateCommitMessage` and `getChanges` (or an arm to fault them
+deliberately with UI assertions).
+
+### N-BG-3 (P4, a11y/papercut) — the terminal consent gate's Switch is the only hit target, and Settings' custom switches are invisible to accessibility
+
+The OptInGate row renders `Switch + Text("Enable terminal (view-only)")`; the TEXT is not
+tappable — two taps on the label produced zero events and looked like a dead screen until the
+Switch itself (left of the label, outside the label's bounds) was hit. In the same Settings
+screen, the Live connection / Auto-reconnect / Terminal switches are custom `android.view.View`
+nodes with no `checkable`/`checked` a11y state (the uiautomator tree shows plain Views; the
+N-BC-1 unlabeled-switch family again). Fix: make the label toggle (onClick on the Row) and
+expose `semantics { toggleable/selected }` on the custom switches.
+
+### Re-manifests (open ledger, confirmed again on this build)
+
+- **N-BE-4** — the hook-trust success notice "Trusted 2 hook(s) — the session continues."
+  renders in the error-red family in dark theme (screenshot p35-trust-notice).
+- **N-BD-1 (worse face)** — under the armed stack the slash palette renders **2 visible rows of
+  20** (scrollable, no scroll affordance); the full catalog is verified present by scrolling.
+- **N-BF-2** — header "Connected · Completed" while the composer shows the running morph
+  ("Keep typing to queue follow-up changes" + red Stop + Queued chip).
+- **N-BC-1** — Auto-send switch still unlabeled.
+- **F-34-D** — Dictate present (recognition available on this image), tap hands off to the
+  system voice IME path with no app-visible result; manifest still has **0 RECORD_AUDIO**
+  (`dumpsys package` grep = 0). The P2 stands.
+- **F-34-E** — the fresh install sat at `importance=NONE` for ~45 minutes of pairing, tasks,
+  conversation, and git work with **no ask anywhere**; the only ask site remains the
+  Live-connection toggle (this pass drove it end-to-end: ask → Allow → granted=true → FGS).
+  The honest Settings copy ("…with both off you'll see updates the next time you open the
+  app") is the only tell. The P2 stands.
+- **F-34-A** — did NOT reproduce through the notification body tap this pass, but for a
+  mock-shaped reason: the tapped notification was the mock's `q-rig-1` push, whose intent
+  carried **`data=null`** (`app deeplink :: onNewIntent data=null` — no task anchor → no
+  navigation → plain resume, and the back stack was clean). The gen-id pushes carry the anchor
+  (pass 34 receipt). The static root cause at HEAD is unchanged (no `launchSingleTop`, no
+  reference-counted `openedSessions`), so the P2 stays open with the pass-34 live receipt;
+  the rig should give q-rig-1 the same anchor (mock debt).
+- **GAP-21-A** — not re-driven this pass (11 prior repros; byte-identical APK).
+- **E7-skip papercut** — the reduced-security consent was again skipped on this screen-lock-less
+  emulator via the stale-link path (`requireE7Consent = false`).
+
+### Rig debts recorded
+
+`input text` interleaves at ≥8-char chunks on Gboard API 36 (two `/compact` attempts mangled
+to `comptac`/`comact` — chunk to ≤5 chars or use the palette pick); uiautomator returned STALE
+trees three times mid-walk (identical dumps across real layout changes — screenshot ground
+truth required; the F-27-B live re-drive was skipped for this reason, its pass-33/34 static
+root cause stands); the q-rig-1 push lacks the interaction anchor (above); and this image's
+**logcat buffer survives cold boots** — `logcat -c` before every leg or old lines (including
+previous passes') pollute greps.
+
+## Part BG.3 — REA pass-35 dig: the desktop's settings surface, censused by i18n namespace
+
+Method: the unchanged asar (`99e280fb…`) against the pass-24 flattened extraction; key census
+from `out__renderer__assets__IntlProvider-B-44tSXQ.js` (**12,212 keys, 6,110 unique, 1,018
+namespaces** — 6,106 keys were counted in pass 31; the delta is the backtick-key regex catching
+more), plus byte-contexts in `out__renderer__assets__styles-C4MhEMbW.js` (the renderer body)
+and `out__renderer__assets__src-mX5iVQ7P.js` (the shared schemas).
+
+### 1. The desktop's settings pages vs the phone's 18 sections
+
+`settings.*` namespaces with ≥4 keys resolve to **~20 desktop settings pages**: appearance,
+automations, browser (44 keys — Chrome control: cookie/profile import with admin elevation,
+clear cache/data, enable/disable control), commands (132), computerUse (28), hooks (120),
+interfaceMode, mcp (204) + mcpServers (58), memory (73), migration (92), modelProvider (1198),
+plugins (494), remoteSync, shortcuts (110 — keybindings), skills (246), subagents (172),
+taskAutoArchiveDays, usage (286), workspaceFileSearch (30), zcodeInteractionBehavior. The phone
+mirrors the viewer-type pages as read-only viewers (plugins, skills, MCP servers, subagents,
+providers, bots) and its own mobile-native sections (notifications, live connection, privacy,
+about) — but six desktop pages have **no phone surface at all** and four authoring forms have
+no mobile slice.
+
+### 2. New G rows (desktop planes no pass had named)
+
+- **G70 (P3) — MCP server management** (`settings.mcp` 204 + `settings.mcpServers` 58 keys).
+  The desktop authors servers in a form (name/command/args/env/headers/timeoutMs), supports
+  **type stdio | sse**, pins **protocolVersion auto | legacy | modern**, accepts a full JSON
+  config with paste hints, imports configs, syncs servers to remote workspaces
+  (`settings.mcp.remoteSync` 38 keys), handles plugin-provided servers (28), OAuth (2) and a
+  40-key failure taxonomy. The phone has the read-only list + status viewer (G22/INV-9). Mobile
+  slice: the failure copy + status detail first; authoring is desktop-idiomatic and can stay
+  desktop-only with an honest pointer.
+- **G71 (P3) — hooks management page** (`settings.hooks` 120 keys). The desktop adds/edits/
+  deletes hooks (event/matcher/matchAll/args/command/async/custom JSON with parse errors),
+  groups them compatibility | configured | installed | legacy | plugins, and imports them.
+  The phone surfaces hooks ONLY as trust-review cards in the conversation; Settings has no
+  hooks row at all, so a phone user cannot even SEE what hooks a workspace runs after the
+  trust decision. Mobile slice: a read-only hooks viewer (name/event/command/status) under
+  Settings → workspace.
+- **G72 (P3) — the rewind change-summary dialog** (`chat.changeSummary.rewindDialog` 19 keys
+  + reason taxonomy 12; renderer mapper `bRt` at `styles-C4MhEMbW.js` @2905953 maps server
+  reasons `bash_ignored / checkpoint_missing / checkpoint_unreadable / external_modified /
+  file_read_failed / unsupported_checkpoint`). Before restoring, the desktop previews the
+  rewind as **safe vs unsafe file lists with per-file reason attribution and an operation
+  count**, and refuses cleanly (cannotApply / noSafeFiles / noUnsafeFiles). The phone's
+  /rewind sends blind — and the preview that would feed this plane is exactly the
+  `rewindPreviewProvider` param F-27-B drops at `ConversationScreen.kt:1047`. Fixing F-27-B
+  delivers the data; G72 is the dialog on top of it.
+- **G73 (P4) — automation editor depth** (`automations.*` 352 keys). The desktop editor has
+  custom repeat rules (units minute/hour/day/month, byWeekday/byDate, ends/neverEnds, a month
+  navigator), a maxRuns cap, **a per-automation model choice**, day-of-month + minute-level
+  schedules, a recurring toggle, and create-via-chat. The phone (G29) authors a single
+  time-of-day schedule + off-peak window, with History and row actions. Mobile slice: maxRuns
+  and model on the existing editor; custom-repeat rules may stay desktop-only.
+- **G74 (P4) — custom slash-command authoring** (`settings.commands` 132 keys: name/
+  description/argumentHint/prompt form, delete, user vs plugin sources). The phone lists
+  custom commands in the slash extras (the rig's cmd-deploy) but has no management surface.
+- **G75 (P4) — memory viewer** (`settings.memory` 73 keys: files/index/memoryCount/localOnly/
+  projectsDescription/refresh/fileChanged/fileDeleted/expand/collapse). The desktop has a
+  memory (AGENTS.md-family) viewer with per-file state. The phone has zero memory surfaces —
+  it cannot even view the AGENTS.md that /init creates.
+
+### 3. Existing rows deepened
+
+- **G60 (plan/usage plane)** deepens hard: `settings.usage` is 286 keys with a **daily chart**
+  (max/peak/description), a **billing banner** (12), coding-plan metric/range/subject pickers,
+  the **quota-reset countdown dialog with context reminder** (`codingPlan.quotaReset` 28), and
+  the manual-claim banner + dialog with `failure.quotaExhausted`. Under it, the usage-stat
+  schema in `src-mX5iVQ7P.js` @175598 carries **reasoningTokens / cacheCreationTokens /
+  cacheReadTokens / cacheHitRate / totalSessions / totalTurns / toolCallCount / toolErrorRate /
+  modelErrorRate / avgTimeToFirstTokenMs / avgTurnDurationMs / activeDays / currentStreakDays /
+  longestSessionMs / longestStreakDays / peakDayTokens** — the phone's Usage viewer decodes the
+  three quota bars and drops the rest.
+- **G69 (task home)** — re-confirmed: the browser companion still has organize/sort/collapse-all
+  and mark-read-on-open; the phone's per-workspace collapse receipt this pass narrows the gap to
+  organize-by, sort, collapse-ALL, and mark-read-on-open.
+- **Permission scoping (new small, folded into the approval-card ledger)**: the desktop's
+  Allow-always/Deny-always carry **per-kind descriptions (command/file/generic)** and scope
+  choices **allowForProject / allowForSession / cua.allowForProject** (`chat.permission.*` 64
+  keys). The phone offers Allow once / Allow always / Deny with no scope choice — an
+  always-allow on the phone has unclear breadth.
+- **Context meter (new small)**: the desktop's contextUsage has a **token breakdown by
+  category** (systemPrompt / systemTools / mcpTools / skills / messages / metaUserContext /
+  toolPrompt) plus `cacheHitRate` and an inline compress action. The phone shows the percent
+  bar only (the P4-smallest from pass 31 grows into this breakdown row).
+- **Update plane (new small)**: the desktop dialog ships release notes + release date +
+  skipVersion + autoDownloadAndInstall + cancelDownload + download progress + a ready-to-
+  restart confirm, plus a **forceUpdate** blocking flow and post-update release notes. The
+  phone's in-app update (F-UPDATE2, field-proven) shows none of that — a "what's new" row
+  would be the cheap slice.
+- **Queue parity confirmed, two niceties desktop-only**: the desktop has the same follow-up
+  queue (`chat.queue.enqueue/edit/remove/paused.*`, `chat.followup.addToQueue/sendNow`) — but
+  with drag-to-reorder (`chat.queue.drag`) and draft-conflict handling
+  (`chat.queue.editDraftConflict/editRestoreFailed`). The phone's Move up/Move down buttons are
+  the honest mobile equivalent.
+- **Skills import (folded into G74's authoring note)**: `settings.skills.import` 42 keys —
+  scan sources, copy | symlink modes, global | project scope, per-item importing/imported/
+  failed. Read-only catalog + this import flow would cover the phone's skill needs.
+- **Git branch switcher (small)**: the desktop's switcher carries a **blockedDialog** (branch
+  switch blocked by dirty tracked/untracked files, with the file list and a resolve action)
+  and a commit-identity-missing error. The phone creates/switches via the fork flow (pass 32
+  ack fix) and has no blocked-state dialog.
+- **Voice stays a phone-only plane**: zero dictation/speech surfaces in the desktop bundle
+  (three greps, 0 hits) — which makes fixing F-34-D the difference between "the phone's voice
+  is broken" and "the phone's voice is a genuine mobile-only win".
+
+## Part BG.4 — rig notes recorded for the next pass
+
+- Fresh-install walk recipe: `adb shell pm clear com.zcode.android.app` (POST_NOTIFICATIONS
+  resets to granted=false; the notification ask must be driven through Settings → Live
+  connection — the app's only ask site at HEAD).
+- `input text` on this Gboard build interleaves at ≥8-char chunks — chunk ≤5 chars, or reach
+  text through palette picks and IME suggestions.
+- uiautomator can return STALE trees mid-session (identical dumps across real layout changes);
+  treat a no-change dump as suspicious and take a screenshot before concluding "nothing
+  happened" (two false alarms this pass: the timeline scroll and the context-sheet scroll).
+- The mock's `q-rig-1` interaction push posts WITHOUT the task anchor — its notification
+  resolves `onNewIntent data=null` and cannot exercise deep-link legs; use the gen-id pushes
+  (`MOCK_INTERACTION_PUSH_ID`) for anchor-carrying notifications, or fix the q-rig seed.
+- This image's logcat ring buffer SURVIVES emulator cold boots (`-no-snapshot-load` does not
+  clear it) — always `logcat -c` before a leg; stale lines from pass 31 were still greppable.
+- The Git plane's mock debts: `generateCommitMessage` unscripted (`fault.mock.unscripted`),
+  `getChanges` refusing `fault.git.notAvailable` post-commit — script both to drive the
+  N-BG-2 UI assertions.
+- REA census recipe that worked: namespace counts from the IntlProvider bundle with the
+  backtick-key regex `"...":\``, then byte-contexts in `styles-*.js` (renderer body) and
+  `src-*.js` (shared schemas) for the planes worth code evidence.
+
+## Part BG.5 — pass-35 verdict and ledger delta
+
+Every plane earlier passes verified in isolation now holds in one continuous armed session:
+three interaction cards answered back-to-back, checkpoints + commit on the wire, the terminal
+consent gate driven to a live stream, the workflow launch sheet, mode switches, the full
+Settings inventory, the notification ask → grant → FGS → shade approval chain, a relay
+generation swap under the foreground service (1.2 s recovery), and process death — **0 FATALs,
+0 ANRs**. The new defects are two P3-class usability/honesty smalls (the buried question-card
+submit, the silent Git refusals) and one a11y papercut; the open P2s (F-34-D voice, F-34-E
+notification ask, F-34-B frozen budget, F-33-A zombie, F-34-A duplicate) all re-confirmed
+unfixed at HEAD with pass-34 receipts standing. The REA census finally maps the desktop's
+AUTHORING plane: six settings pages the phone cannot see at all (hooks management, memory
+viewer, custom commands, browser control, keybindings, migration) and the MCP/automation/
+usage/permission planes where the phone is read-only or shallow — filed as G70–G75 plus
+deepened G60/G69 and four new smalls. The on-par verdict is unchanged and now precise: the
+phone matches or beats the desktop on every RUNTIME plane (delivery, approvals, drafts, queue,
+telemetry-free privacy, mobile-native surfaces), and the gap is concentrated in MANAGEMENT
+surfaces — of which the honest mobile slices are G71 (a hooks viewer), G72 (the rewind preview
+through the F-27-B fix), and the G60 usage depth.
+
+**Fix-round opener order (supersedes BF.5; unchanged at the top, new items appended):**
+F-34-D → F-34-E → F-34-B → F-33-A → F-34-A → F-33-D → F-27-B (now also unlocks G72) → F-34-C
+→ F-34-F → F-33-E + F-27-A → F-33-H → F-33-F → GAP-21-A (+ G65) → **N-BG-2 (silent Git
+refusals)** → **N-BG-1 (question-card submit)** → G67 → G64 → **G71 → G70 → G72 → G73 → G74
+→ G75** → N-BC / N-BD / N-BE / N-BF / N-BG smalls → G68 + G69 → G48 + G51 → G60–G63, G66,
+G76.
+Commits: this docs commit only. Nothing pushed.
