@@ -8488,3 +8488,448 @@ F-27-B → F-27-A → GAP-21-A → F-27-C → N-BC smalls → G48+G51 → G60 + 
 now with N-BD-1/N-BD-3/N-BD-4 folded into the smalls family.** Census: 0 app
 FATALs, 0 app ANRs, ~2 h single emulator boot, zero emulator kills, one in-
 process relay gen-swap (32→33). Commits: this docs commit only. Nothing pushed.
+
+# Part BE — pass 33 (2026-11-07): the NEW-AXES walk (thirteen first-time axes) with a heap-proven root cause for the zombie-screen class, + reversing our OWN shipped APK and the desktop OS-integration / notification / CUA-permission / composer / error-card censuses
+
+Scope: passes 29 and 32 found zero new G rows — the walked surface had saturated, so this
+pass deliberately went where 32 passes never went: navigation-mode switching (gesture vs
+3-button), IME inset math, hardware-keyboard traversal, live timezone change, system-level
+notification blocking, the at-rest storage audit, a host-side network-impairment proxy
+(latency/bandwidth/dead zone), the OS power/background restrictions, configuration-change
+recreates under action, forced RTL + high-contrast text, split-screen, tablet geometry, a
+heap dump with a retention-path walk, and a reverse of our OWN shipped release APK (REA +
+apkanalyzer). REA on the desktop went to planes no pass enumerated: the main-process OS
+integrations, the full desktop notification taxonomy, the CUA permission-observation
+notification, the composer mention taxonomy and the chat error card.
+
+Rig: debug APK byte-identical `9084b920…` (pulled from the device and re-hashed); release
+APK `335e75e0…` (the v1.3.1-vc52 artifact, REA-confirmed sha); desktop unchanged (3.14.5 /
+3.14.5.7961, asar `99e280fb…`). ONE zcode-pixel cold boot (API 30 google_apis, ~2 h 55 m,
+zero emulator kills), relay gens 1→4 (gen 3 behind the impairment proxy), 27,898 log lines,
+**0 app FATALs, 0 app ANRs**, 774 ok wires, 14 Activity creations of which **11 were
+recreates**. Logcat note: `adb root` (RTL leg) restarted adbd and killed the host-side
+logcat capture at 12:20:36; post-12:20 events were recovered from the device ring buffer
+(`logcat -d -t`) and the two streams merged — one lifecycle attribution made against the
+dead stream was caught and corrected (BE.6).
+
+## Part BE.1 — smoke re-receipts (every core surface, same byte-identical APK)
+
+| Surface | Receipt |
+| --- | --- |
+| Stored pairing | cold `am start -W` TotalTime 2,270 ms → `auth.matched` → CONNECTED in ~2.4 s, `bootstrapApplied tasks=3` |
+| Conversation open | `subscribeConversationV4 ok in 38ms` + `subscribeWorkspaceConfigV4 ok in 26ms` |
+| Approval (pushed gen-1 id) | Allow once → `sendConversationCommandV4 ok in 131ms` |
+| Question card | option + Send answers → `ok in 57ms` |
+| Hook trust | 2 selected → confirm → `grantWorkspaceHookTrust ok in 62ms` + resolve `ok in 14ms` |
+| Composer send | `ok in 120ms` → "synthetic reply to: pass33 smoke two" rendered (round trip) |
+| Unsent-draft guard | "Leave this conversation?" fires on Back with a draft (both tasks) |
+| Files viewer | sheet chip → `file.readdir ok` → README `file.readTextFile ok`; a11y audit 0/0/0 |
+| Automation | Run now → `runAutomationNow ok in 25ms` + `listAutomations` + `off-peak-task.list` |
+| Workflow run-in-task | version arg → Run → `ok in 62ms` → navigated into the task + subscribed |
+| Approvals inbox / Settings / Usage | inbox lists; all Settings sections render; Usage = 4 wires (`getAppUsageStats ok 31ms` + 3 plan snapshots) |
+| Queue / snooze | queue Delete `ok in 32ms`, Keep waiting `ok in 42ms` (fresh screen) |
+| Running-state composer | Stop button + "Queued" chip + "Keep typing to queue follow-up changes" placeholder |
+
+## Part BE.2 — NEW defects (ordered by severity; every one reproduced, root-caused, cited)
+
+### F-33-A (P2) — the ZOMBIE CONVERSATION SCREEN after any Activity recreate
+
+**Symptom.** After a configuration-change recreate while a conversation is open, the screen
+still renders normally ("Connected · Completed", cards, queue), but **every action on it is
+dead**: queue Delete, Keep waiting and composer Send produced **ZERO log lines and ZERO
+wires** (controlled leg CFG3/CFG4, 12:14–12:15, stable relay, no gen swap: dark mode `yes`
+→ recreate → three actions → nothing; the draft stays in the composer). Control: Back →
+re-open the same task → the SAME actions fire at once (snooze `ok in 42ms`, delete `ok in
+32ms`). When the old container's transport was mid-recovery at recreate time, the dead
+screen does worse: the status chip froze at "Reconnecting…" while the NEW hub was
+CONNECTED, and Allow once FAILED on the destroyed connection —
+`sendConversationCommandV4 failed: channel closed: abnormal close 1006: Software caused
+connection abort` (connectionId=relay-21, the abort text of the OLD socket from 12:03:17,
+answered at 12:08:08 — leg SPLIT1). The retained screen's workflow-runs ticker likewise
+fails `server close 1000` at every recreate (6 occurrences, each at a recreate instant).
+
+**Root cause (exact).** `MainActivity.kt:128` builds the WHOLE graph per Activity
+(`container = AppContainer(this)` — hub, transport, ports); `ZCodeApp.kt:570-579`
+`rememberConversationViewModel` keeps the VM in a `ConversationVmHolder` ViewModel —
+retained across configuration changes by design — and returns `holder.vm ?:
+ConversationViewModel(container.conversationPort, …)`: after a recreate the holder already
+holds a VM bound to the DESTROYED container's port, so the new container is silently
+ignored by the screen that is on display.
+
+**Triggers observed this pass:** dark-mode flip (`cmd uimode night`), **Battery Saver's
+forced dark theme** (applied at the next foreground — the realistic field trigger, along
+with the automatic sunset dark-mode schedule), the navigation-mode overlay switch
+(gesture ↔ 3-button), and Display-size changes (`wm density`); pass 31 already showed font
+scale and locale recreate. `configChanges` covers only
+`keyboardHidden|orientation|screenLayout|screenSize` (REA manifest decode, BE.4) —
+rotation is safe. Split-screen entry from Recents did NOT recreate on API 30 (minimized
+dock) — corrected attribution, see BE.6.
+
+**F-27-A link (hypothesis, evidence recorded).** After the SPLIT1 failure, the re-entered
+screen showed the exact F-27-A face: the gen-4 approval card live, Allow once → "Already
+handled on the desktop." with zero wires, Room lifecycle `STALE` for
+`mock-p33-gen4-49ffc7`. This pass cannot separate the two contributing events (the failed
+stale-bound answer and pass 31's in-process relay gen swap both occurred), but F-33-A is a
+deterministic generator of the "card alive, answers dead" face that F-27-A has chased for
+six passes. **Recommendation: fix F-33-A first, then re-run the F-27-A trigger set.**
+
+**Fix direction.** Hoist `AppContainer` to process scope (an `Application` subclass or a
+process-level holder) — this single change also removes F-33-B, F-33-C and the per-recreate
+reconnect; at minimum, re-bind the holder when `container.conversationPort` identity changes.
+Pin: a Robolectric `ActivityScenario.recreate()` test asserting that a queue delete issued
+AFTER recreate reaches the live port.
+
+### F-33-B (P3, heap-proven leak) — every recreated Activity + its whole AppContainer is retained for the process lifetime
+
+`am dumpheap` (forces a full GC) → hprof-conv → a custom HPROF walker (BE.6): after four
+recreates there are **5 MainActivity, 5 AppContainer, 5 ConnectionHub, 5 RelayTransport,
+5 DiagnosticsFileStore, 16 OkHttpClient, 15 okhttp3.Dispatcher** live instances (one
+RealWebSocket — the old sockets are closed, the graphs are not). The retention path,
+byte-exact from the dump:
+
+`static java.lang.Thread.defaultUncaughtExceptionHandler` → `MainActivity$$ExternalSyntheticLambda0@0x13085a08{f$0 = MainActivity#5, f$1 →}` → `Lambda0@…9d0{f$0 = MainActivity#4, f$1 →}` → `…9e0{#3}` → `…9f0{#2}` → `…a00{f$0 = MainActivity#1, f$1 = RuntimeInit$KillApplicationHandler}`
+
+`MainActivity.kt:123-127` installs a NEW default handler in every `onCreate`, chaining the
+previous one (`platformHandler = Thread.getDefaultUncaughtExceptionHandler()`) and closing
+over `this` (for `container.diagnosticsStore`). This upgrades pass 31's "7 Activities /
+18-19 AppContexts post-GC = WATCH" to a proven leak with its exact path; PSS read
+98 MB at the pass-31 baseline and 176 MB after this session's four recreates (201 MB right
+after the heap dump itself); threads stayed flat (36 → 38). Fix: install the handler once per process (static guard or the
+`Application` hoist) and point it at a process-scoped diagnostics store.
+
+### F-33-C (P3) — a recreate is treated as a BACKGROUND ENTRY: approval notifications re-alert while the user is in the app
+
+`MainActivity.kt:291-295` calls `container.notifications.onBackground()` in every `onStop`,
+including the configuration-change stop. Receipt (NIGHT1, app in the FOREGROUND): dark
+`yes` → `notify.repost … (background entry)` → onDestroy → onCreate →
+`notify.show :: key=interaction:mock-approva channel=permissions` (the HIGH channel:
+sound + vibrate) → `NotificationService: Muting recently noisy 0|com.zcode.android.app…`;
+dark `no` → the same again. Session totals: 19 reposts, 12 shows, **17 system
+"recently noisy" mutes**; Android's own Settings now estimates the Approvals channel at
+"~102 notifications per day". Each recreate also runs a FULL reconnect (UNPAIRED →
+AUTHENTICATING → CONNECTED, 1.3–2.5 s). Fix: skip `onBackground/onForeground` when
+`isChangingConfigurations` (structurally: the F-33-A hoist).
+
+### F-33-D (P3) — the IME double inset + the GAP-A16 composer squeeze re-manifest
+
+`ConversationScreen.kt:274-279` applies `.padding(inner)` (the M3 Scaffold's default
+content insets, which include the navigation bar) and then `.imePadding()` without
+`consumeWindowInsets(inner)` — with the keyboard up, the navigation-bar inset is applied
+TWICE. Measured on the painted frame: the gap between the composer box and the keyboard
+top is **145 px under 3-button navigation (132 px bar + 13 px padding) and 60 px under
+gesture navigation (44 px bar + 16 px)**, versus 16 px with the keyboard down; the math
+reproduces exactly (gesture: 44 + 817 IME = 861 → box bottom 1479, composer bottom 1463).
+Under a tall pinned stack this dead band is what pushes the composer's action row out of
+paint: **two organic repros** this pass (hook-review card + queue strip + background
+banner + shared-context chip at 10:26; approval card + the same strips at 11:56, which also
+swallowed the first dead-zone send) — the field text clipped
+at its top, the attach and **Send buttons not painted**, a tap at Send's a11y centre sends
+nothing; closing the keyboard restores the row. GAP-A16's closure (`dbca4ad8`, pass-13
+receipt "composer draft at y=1244–1376") verified the FIELD's bounds only — the Send
+button was never checked in paint. One-line fix: `.padding(inner).consumeWindowInsets(inner)
+.imePadding()`; re-pin `ComposerSqueezeBudgetTest` on the Send button's painted bounds with
+synthetic nav + IME insets.
+
+### F-33-E (P3) — the pending count disagrees across four surfaces (STALE leaks into two of them)
+
+Simultaneous truth (12:33): Room `interactions` = 2 DISPLAYED (1 permission, 1 question) +
+2 STALE + 5 RESOLVED. The surfaces: **bell badge 4 and the Approvals inbox lists 4** —
+`observeOpen` is `resolvedAtMs IS NULL` (`Daos.kt:108`), which includes STALE, so a 19-hour-
+old pass-31 STALE approval is offered with Allow once / Deny; **the widget says "Nothing
+needs you"** — it counts UNSEEN broker records only (`PendingApprovalsWidget.kt:160`), so two
+genuinely open interactions the user has viewed vanish from it; **the shade re-posts a
+persisted record for a STALE interaction** — `notification_records.pb` still holds
+`interaction:mock-p31-gen3-c5bc6f` (STALE since 2026-11-06), re-posted as "ZCode needs your
+approval" on every background entry today, because `StoreDiffs.closedInteractions`
+(`StoreDiffs.kt:67`) is `previousIds − openNow` with `previousIds` empty at process start —
+a record whose interaction closed before the current process can never be dismissed.
+Fix: one shared "open" predicate (open lifecycle AND not STALE) for badge, inbox, widget
+and broker; seed `previousIds` from the broker's loaded attention keys on the first
+snapshot.
+
+### F-33-F (P3, privacy) — the clipboard is read on EVERY conversation open
+
+`WriteComponents.kt:868` runs `LaunchedEffect(Unit) { pasteImage = clipboardHasImage(context) }`
+and `clipboardImageUri` (`:1260-1262`) calls `cm.primaryClip` — the full clip DATA, not the
+description. Receipt: `appops READ_CLIPBOARD` access time reset to 3 s and then 2 s after two
+consecutive conversation opens (it read 7 min before). On Android 12+ (Ernest's S23) each
+read of another app's clip shows the system "pasted from your clipboard" toast; the app
+also pulls whatever was copied (passwords included) into its process to inspect a MIME type.
+Fix: probe `cm.primaryClipDescription` (no data, no toast); read the clip only on the Paste
+tap.
+
+### F-33-G (P3, honesty) — with notifications blocked by Android, the app still says they are on
+
+Settings → Apps → ZCode → notifications OFF (AppSettings `importance=NONE`, shade cleared).
+The app's Notifications section still shows **Approval requests ON, Task finished / failed
+ON, Connection lost ON**, with no warning anywhere (Tasks screen, conversation, Settings);
+the broker keeps "posting" into the void (`AndroidNotificationSink` documents "degrade
+silently at the SYSTEM level"). For a remote-approval companion, silently lost approval
+alerts are the worst failure mode. Fix: check `areNotificationsEnabled()` + the
+permissions channel's importance on resume; show a warning row with a deep link to
+`ACTION_APP_NOTIFICATION_SETTINGS` (and the API-33 runtime-denial state). Note: on API 30
+the `POST_NOTIFICATION` app-op is NOT enforced (posts went through with `ignore`) — the
+system toggle is the real block.
+
+### F-33-H (P3, safety) — blind approve from the shade
+
+`NotificationPlan.kt:14-20`: approval/question notifications are category-only at BOTH
+content levels ("ZCode needs your approval", `android.text=null`, `vis=PRIVATE`), yet the
+same notification carries **Approve / Deny** actions — so a shell command can be approved
+from the shade without ever seeing it. The desktop's own notification shows the subject
+(`notification.command` "Command: {command}" / `notification.file` "File: {paths}", BE.5.3)
+and has no action buttons. Fix: keep the lock-screen PUBLIC version category-only
+(`setPublicVersion`), and give the private (unlocked) version the tool + command line when
+the user picked "Task titles"; or require the app for Bash-class approvals.
+
+### F-27-C (P3) — re-manifested with a dead tap that performs BACK
+
+The Context sheet opened half-expanded with its "Open" footer below the fold: under
+3-button navigation the "Model calls / Share" chip row is painted UNDER the nav bar
+(y ≈ 2249 inside the bar's `[0,2208][1080,2340]` frame; the ◀ glyph overdraws "Share"), and a
+tap on "Share" hit the system **Back** key (the sheet dismissed; the next tap landed on the
+composer's +). Under gesture navigation the same footer is cut by the screen edge until the
+sheet is dragged up. Fix: inset the footer by `navigationBars` and include it in the
+partially-expanded height (or `skipPartiallyExpanded`).
+
+### P4 smalls (new)
+
+- **N-BE-1 (automation time semantics)**: the editor's time hint reads "HH:MM (24h, local)"
+  (`features/tasks/.../strings.xml:66`), but the cron runs on the DESKTOP clock and the
+  bootstrap carries no desktop timezone; a phone in another zone writes the wrong hour.
+  Live: phone switched to Asia/Tokyo — "Daily at 02:00" unchanged (desktop-local, unlabeled).
+  Relative labels and row clocks re-rendered correctly without a restart ("AGENT 8:08 PM").
+- **N-BE-2 (outbox retention)**: `OutboxDao` (`Daos.kt:128-147`) has no delete query —
+  terminal rows (ACKED / FAILED_STALE / EXPIRED) are kept forever with their full payloads
+  (167 rows in 3 days of rig use, every prompt's text at rest).
+- **N-BE-3 (hardware keyboard)**: the IME Send action works (GAP-A9), but a hardware
+  keyboard's Enter inserts a newline and there is no Ctrl/Cmd+Enter — no way to send from a
+  DeX / tablet / Chromebook keyboard (the desktop's `composerSend` binding).
+- **N-BE-4 (notice colour)**: `WriteComponents.kt:1223/1227` paint the send-notice text and
+  its ✕ in `onErrorContainer` for EVERY kind — the INFO success "Trusted 2 hook(s) — the
+  session continues." and "Already handled on the desktop." render in error red on the
+  neutral surface (GAP-A15 fixed the container only).
+- **N-BE-5 (APK size)**: see BE.4 — Tink 34 % of defined methods, three protobuf runtimes,
+  85 library locales, x86/x86_64 native libs, `descriptor.proto` packaged.
+- **N-BE-6 (mock debts)**: automation seeds carry no `nextRunAt` (the phone's timezone-safe
+  "Next …" label never shows on the rig); usage reset dates are static past dates;
+  `MOCK_INTERACTION_PUSH_MS=0` still serves the gen push id in the snapshot.
+
+## Part BE.3 — the new axes that HELD (clean receipts)
+
+1. **Gesture navigation**: the nav bar becomes 44 px; every non-sheet surface insets
+   correctly; the 3-button baseline restored afterwards (all 32 prior passes ran 3-button —
+   `navigation_mode=0` — recorded).
+2. **Hardware-keyboard traversal**: TAB walks header → workspace chips → automation verbs →
+   workflows → idle-time tasks → task rows + per-row actions → search + New-task FABs in
+   logical order with the list auto-scrolling to the focus; DPAD focus + ENTER activate
+   (session-config chip focused; DPAD_UP + ENTER = Back). Reachability passes.
+3. **Timezone change** (Europe/Dublin → Asia/Tokyo live): no crash, no recreate; relative
+   times stayed right; absolute row clocks re-rendered in JST.
+4. **At-rest audit** (run-as pull of all 13 private files): the pairing secret appears in
+   NONE of them (no base64, no raw 32-byte form) — `credential_envelope.pb` holds a Tink
+   keyset (`vault.keyset.v1`) + `credential.secret.v1` ciphertext, plus plaintext metadata
+   (deviceSid / mid / origin / desktop name — identifiers, not secrets); diagnostics logs
+   carry `"nonce":"[REDACTED]"`; datastores live in `no_backup/`. The Room DB is plaintext
+   (conversation rows, drafts, interaction payloads incl. tool commands) under the app
+   sandbox + FBE — posture note, not a defect.
+5. **Network impairment** (host proxy `netproxy.py`, BE.6): at 400 ms one-way + 8 KB/s the
+   reconnect ran RECONNECTING → CONNECTED in 10.5 s and a conversation subscribe took 3.2 s.
+   A 2.7-min dead zone (bytes held, sockets open): loss detected in 24 s (OkHttp ping/pong
+   20 s), reconnect attempts backed off (10–30 s), a send during it was refused honestly
+   ("You're offline — the draft is saved on this phone. Reconnect to send.",
+   `command.blockedOffline`, nothing journaled), recovery 16 s after release
+   (`relay.recovered subscriptions=3 snapshotReplace=true`), and the re-send landed
+   **exactly once** (one outbox row, ACKED, attempts=1). Design note: the phone never
+   auto-sends an offline draft — a deliberate no-surprise-send choice.
+6. **Power restrictions** (Battery Saver + RESTRICTED standby bucket + background
+   restriction + Data Saver): the background socket aborted at once and the reconnect
+   ladder went silent (OS-enforced); foreground recovery to CONNECTED in 2.5 s — then
+   F-33-A struck (above).
+7. **High-contrast text**: outlined coloured text, all screens legible. **Forced RTL**:
+   the UI stays LTR by recorded design (`supportsRtl` OFF + the `RtlLocaleGateTest`
+   tripwire; both shipped locales are LTR) — confirmed, no half-mirrored layouts.
+8. **Split-screen** via Recents works (top pane; heads-up Approve/Deny posted on the way).
+9. **Tablet geometry** (1600×2560 / 2560×1600 @ 320 dpi): everything renders and stays
+   usable — see G61 for what is missing.
+
+## Part BE.4 — reversing our OWN shipped release APK (REA + apkanalyzer)
+
+- **REA `decode_android_resources`** (`ev_a302ba08…`, apktool 3.0.3) on `app-release.apk`:
+  sha `335e75e0…` confirmed (the published v1.3.1-vc52 bytes), versionCode 52, min 26,
+  target 36, compileSdk 37; manifest verbatim: `allowBackup=false` + data-extraction rules,
+  `extractNativeLibs=false`, `enableOnBackInvokedCallback=true`, `localeConfig`,
+  **`configChanges="keyboardHidden|orientation|screenLayout|screenSize"`** (the F-33-A
+  trigger set is everything else), FGS `specialUse` with its subtype property; exported
+  surfaces = MainActivity (launcher + `zcode://task|connection`) and library services behind
+  system permissions (GlanceRemoteViewsService / RemoteViewsCompatService `BIND_REMOTEVIEWS`,
+  SystemJobService `BIND_JOB_SERVICE`, WorkManager DiagnosticsReceiver + ProfileInstallReceiver
+  `DUMP`); no `networkSecurityConfig` in release = the platform's no-cleartext default.
+  **85 resource locales** ship (af…zu incl. ar/fa/iw/ur) — all from AndroidX/Material; the
+  app's own strings are en + zh-CN, so library UI text (sheet handles, text toolbars) appears
+  in the user's language beside English app copy.
+- **apkanalyzer**: 6,521,462 B raw / 5,235,064 B download; 2 dex = **85,328 method refs**
+  (63,726 + 21,602); R8 obfuscation active (only 75 `com.zcode` classes keep names — the
+  kotlinx-serialization serializers); `assets/dexopt/baseline.prof` + per-API `.dm`
+  profiles present. Composition of the 77,098 defined methods: **Tink 26,182 (34 %)** incl.
+  JWT and signature packages and its shaded protobuf (11,387); Glance 13,657 incl. ITS
+  shaded protobuf (9,530); `com.google.protobuf` 9,192 — **three protobuf runtimes ≈ 30 K
+  methods**. Universal APK carries x86/x86_64 libs (CameraX `libimage_processing_util_jni`,
+  `libandroidx.graphics.path`) and a raw `google/protobuf/descriptor.proto` (61 KB).
+- **Release cleanliness**: no MockRelay / mockzcode / MOCKZCODE strings; the only loopback
+  strings (`http://10.0.2.2`, `127.0.0.1`, "cleartext origin outside dev loopback") belong
+  to the cleartext-origin validator, which the platform overrides in release; logging tags
+  and `[REDACTED]` redaction ship. Permissions (13): INTERNET, ACCESS_NETWORK_STATE, CAMERA,
+  POST_NOTIFICATIONS, VIBRATE, FOREGROUND_SERVICE(+SPECIAL_USE), REQUEST_INSTALL_PACKAGES,
+  WAKE_LOCK + RECEIVE_BOOT_COMPLETED (WorkManager), USE_BIOMETRIC + USE_FINGERPRINT
+  (androidx.biometric), the signature-level dynamic-receiver permission.
+
+## Part BE.5 — REA pass-33 dig (desktop; planes no pass enumerated)
+
+1. **Main-process OS integrations** (the 22 `out__main__*` bundles, 1.97 MB): Dock unread
+   badge (`syncApplicationUnreadBadge` → `setBadgeCount(totalUnreadCount)`, darwin/linux);
+   **keep-awake** (`keepAwakeWhileRunning`, default **false** → `powerSaveBlocker.start(
+   "prevent-app-suspension")`); a one-item Dock menu; the application menu template
+   (File: new task / open workspace / close window; View: zoom + full screen; Help: about,
+   check for updates, export logs, feedback, resource manager, **clear all data**, dev
+   tools) built with the live shortcut bindings and an endpoint selection; close-to-tray
+   (Windows); `powerMonitor` is used ONLY for idle-time telemetry — no suspend/resume
+   signal reaches the relay, and the 4 `bridge-degraded` reasons (rpc-transport-fault,
+   rpc-frame-gap, buffer-overflow, buffer-timeout) carry no "desktop asleep" — so a sleeping
+   Mac is indistinguishable from a network fault on the phone (G62).
+2. **Shortcut + Command Center action census**: 24 `settings.shortcuts.command.*` bindings
+   and 29 `quickPick.command.*` commands, mapped by ACTION (not keystroke): close context →
+   Back ✓; find in task → G5 find ✓; new task → FAB + app shortcut ✓; open model menu /
+   cycle session mode / cycle thought level → config chips ✓; open settings / switch theme
+   ✓; toggle terminal → Terminal chip ✓; MCP servers / skills → read-only viewers ✓;
+   feedback → the phone's feedback form ✓; sidebar / side pane / browser / diff / preview
+   panels, zoom, open workspace, onboarding, coding/office interface mode = desktop form
+   factor. Mobile-relevant gaps: **composerSend from a hardware keyboard** (N-BE-3),
+   **next / previous conversation** without leaving the screen (P4), and the Command
+   Center's **find scope "changes"** (search inside the diff; the phone's find covers
+   conversation text rows only) (P4).
+3. **Notification taxonomy (desktop, English copy byte-extracted)**: permission "Your
+   confirmation is needed" + detail lines "Command: {command}" / "File: {paths}"; input
+   "Your response is needed"; **plan approval "Plan awaiting approval / Review the plan to
+   continue."**; "Task waiting for your confirmation"; "Task completed"; "Task error
+   occurred"; "Task: {title}"; **idle-time "Idle-time task finished / "{title}" completed
+   successfully." and "Idle-time task failed / "{title}" stopped with an error."**; settings
+   "Task notifications" + a separate "Notification sound" mute. Phone: 5 kinds (approval,
+   question, task finished, task failed, connection lost) + shade Approve/Deny + per-endpoint
+   group summaries + Minimal / Task-titles privacy levels + the widget — **phone wins on
+   actions, grouping and privacy**; gaps: idle-time outcome notifications (G63), plan-approval
+   specific copy (P4), and the blind-approve shape (F-33-H).
+4. **CUA permission observation** — the 4th notify method, finally decoded:
+   `{schemaVersion:1, eventId, eventSeq, occurredAt, sessionId, turnId?, toolCallId,
+   permissionStatus:{platform:"darwin", grantOwner, accessibility: granted|stale|denied,
+   screenRecording: granted|denied|unknown}}`; the desktop turns it into a LIVE prompt
+   ("Computer Use needs macOS permissions — A running Computer Use task needs macOS
+   permissions. Open the authorization guide?" Not now / Authorize) plus a status modal
+   (Granted / Missing / Authorization needs verification / Granted, verifying; Restart
+   Helper; macOS floor). **The phone declares `V4Notifications.CUA_PERMISSION_OBSERVATION`
+   (`V4Wire.kt:155`) and handles it nowhere** — G64.
+5. **Composer mention taxonomy**: 6 categories — Files, Plugins, Sessions (`#`), Skills
+   (`$`, with `¥`/`￥` normalised), Agents, Whiteboards (with stroke counts) — under 4
+   triggers (`@ # $ /`) and an "Add context" menu. Phone: ONE category (workspace files via
+   `@`, 6 hits, the GAP-21-A first-token defect) — G65.
+6. **Chat error card**: typed recovery actions — Switch model, Model settings, Refresh
+   quota, Sign in again, Retry captcha, Try again later, Retry, Copy TraceID, Copy full
+   details, Report issue (opens feedback with the error attached), plus "No model
+   available. Upgrade or set a custom model." and "Agent process exited unexpectedly".
+   Phone: tool errors render as a raw `ERROR — code: message` block (`RowRenderers.kt:559`),
+   turn failures carry no typed recovery — G66.
+
+### New G rows
+
+- **G61 (P4)** — no adaptive large-screen layout: at 1280 dp the task list centres a column
+  while the automations hub runs edge-to-edge; the conversation chrome, approval button and
+  composer stretch to full width; no list-detail pane for tablets / foldables / DeX (the
+  desktop's sidebar + conversation workbench has no large-screen analog).
+- **G62 (P4)** — desktop keep-awake invisible: `keepAwakeWhileRunning` defaults OFF, the
+  Mac may sleep mid-task, and nothing tells the phone why the desktop vanished. Mobile
+  slice: an offline-state hint ("Is your desktop asleep? Turn on Keep awake while running
+  in ZCode → Settings") — no protocol change needed.
+- **G63 (P4)** — idle-time (off-peak) run outcomes never notify on the phone (the desktop
+  notifies both outcomes; the phone's task-terminal diff never sees off-peak runs). Mobile
+  slice: diff `off-peak-task.list` on reconnect and post on the task-status channel.
+- **G64 (P3)** — CUA permission observation dropped: a remote computer-use task blocked on
+  missing macOS Accessibility / Screen Recording shows the phone user nothing. Mobile
+  slice: a typed card "Computer Use on your desktop needs macOS permissions (Accessibility:
+  Missing …) — grant them on the Mac" from the decoded payload.
+- **G65 (P4)** — mention categories beyond files (skills `$`, sessions `#`, plugins,
+  agents; whiteboards ⇔ the phone's sketch) — folds the GAP-21-A fix spec and the G9 anchor.
+- **G66 (P4)** — typed error card with recovery actions (switch model, retry, copy trace id
+  / details, report issue are all mobile-reachable; provider sign-in stays desktop).
+
+## Part BE.6 — rig recipes recorded for the next pass
+
+- **`adb root` / `unroot` restarts adbd and kills a host-side `adb logcat` capture**;
+  restart it, and recover gaps with `adb logcat -d -t '<MM-DD HH:MM:SS.mmm>'`. rig.py's
+  `since` falls back to the START of the file when a marker is missing — that produced one
+  false "split-screen recreates" attribution this pass, corrected from the ring buffer.
+  Always confirm the marker line exists before trusting a `since` slice.
+- **The emulator console's `network delay/speed` does not shape traffic to 10.0.2.2**
+  (ping RTT stayed 0.3 ms under gprs/gsm). Use the host proxy: relay on 18102
+  (`MOCK_PORT=18102 /tmp/p33/relay2.sh <gen>`), `DELAY_MS=… RATE_BPS=… python3
+  /tmp/p33/netproxy.py` on 18100; `touch /tmp/p33/blackhole` holds bytes with sockets open
+  (dead zone), removing it flushes them.
+- **Heap retention paths**: `am dumpheap <pid>` (forces a GC) → `hprof-conv` →
+  `/tmp/p33/hprof_paths.py <hprof> <class-substring>` (referrers + GC roots),
+  `hprof_fields.py <hprof> <exact class>` (captured fields), `hprof_count.py` (exact-class
+  instance counts). `kill -10` is refused for app pids on this image.
+- **After ANY recreate, leave and re-open the conversation before driving actions**
+  (F-33-A) — otherwise taps are silent no-ops and look like rig flakiness.
+- uiautomator's app bounds stop at y=2072 (`DisplayInfo app=1080x2072`); with the field at
+  1902–2056 the painted Send centre is ≈ (960, 2117). Crop painted truth with
+  `sips -c <h> <w> --cropOffset <y> 0` (no Pillow on this machine).
+- Split-screen on API 30: Recents (`KEYCODE_APP_SWITCH`) → swipe the card to centre → tap its
+  icon → "Split screen"; `am start --windowingMode 3` does not split here.
+- Notification blocking on API 30 = Settings → app notifications toggle
+  (`am start -a android.settings.APP_NOTIFICATION_SETTINGS --es
+  android.provider.extra.APP_PACKAGE <pkg>`); the `POST_NOTIFICATION` app-op is not enforced.
+- Navigation mode: `cmd overlay enable|disable com.android.internal.systemui.navbar.gestural`
+  (recreates the app — remember F-33-A).
+
+## Part BE.7 — pass-33 verdict and ledger delta
+
+On the byte-identical APK (`9084b920…` debug, `335e75e0…` release, desktop `99e280fb…`) the
+companion passed its smoke matrix end-to-end and held on most new axes (keyboard traversal,
+live timezone change, at-rest secret sealing, latency/bandwidth/dead-zone resilience with
+exactly-once delivery, power restrictions, high contrast, RTL-by-design, split-screen,
+tablet rendering), and the release artifact reverses clean (R8, no mock code, platform
+no-cleartext). The new axes broke the two-pass "saturation" streak with **one P2, seven
+P3s, a P3 re-manifest and six new G rows**:
+
+- **F-33-A (P2)** zombie conversation screen after any recreate (retained VM bound to the
+  destroyed per-Activity container) — a deterministic generator of the F-27-A face;
+- **F-33-B (P3)** heap-proven Activity + AppContainer leak via the chained
+  uncaught-exception handler (retention path byte-exact);
+- **F-33-C (P3)** recreate = background entry → approval re-alerts in the foreground (17
+  system noisy-mutes) + a full reconnect per recreate;
+- **F-33-D (P3)** IME double inset (132 px / 44 px dead band) + the GAP-A16 Send-unpainted
+  re-manifest (closure was bounds-only);
+- **F-33-E (P3)** pending-count incoherence (badge/inbox count STALE; widget counts unseen;
+  a day-old STALE record re-posts forever);
+- **F-33-F (P3)** clipboard data read on every conversation open;
+- **F-33-G (P3)** system-blocked notifications invisible in-app;
+- **F-33-H (P3)** blind shade approve (category-only text + Approve/Deny actions);
+- **F-27-C (P3) re-manifest** — a footer tap that performs system Back;
+- **G61–G66** (adaptive large-screen layout; desktop keep-awake visibility; idle-time outcome
+  notifications; CUA permission observation [P3]; mention taxonomy; typed error card);
+- **N-BE-1…6** smalls (automation "local" time, outbox retention, hardware-keyboard send,
+  notice colour, APK size, mock debts).
+
+**Fix-round opener order (supersedes BD.6):** F-33-A (process-scoped AppContainer — also
+closes F-33-B, F-33-C and the per-recreate reconnect; then re-test F-27-A) → F-33-D (one
+line) → F-27-B (the 3-line forwards) → F-33-E + F-27-A → F-33-G + F-33-H → F-33-F → F-27-C →
+GAP-21-A (+ G65) → G64 → N-BC / N-BD / N-BE smalls → G48 + G51 → G60–G63, G66.
+
+**On par / better:** the phone already beats the desktop on notification actions,
+grouping and privacy levels, the glance widget, launcher shortcuts, hardware-keyboard
+reachability, exactly-once offline handling and having zero telemetry; parity holds for
+the row-action, slash, shortcut-action and settings planes. What stands between it and
+"better than desktop" is now concentrated in the recreate/notification architecture
+(F-33-A/B/C/E) plus G61–G66. Census: 0 app FATALs, 0 app ANRs, one ~2 h 55 m boot, 774 ok
+wires, 11 recreates. Artifacts: `/tmp/p33/` (rig.py, relay.sh/relay2.sh, netproxy.py,
+hprof_*.py, shots/, atrest/, logcat-combined.log). Commits: this docs commit only. Nothing
+pushed.
