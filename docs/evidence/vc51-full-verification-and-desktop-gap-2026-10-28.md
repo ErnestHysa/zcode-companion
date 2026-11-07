@@ -8933,3 +8933,353 @@ the row-action, slash, shortcut-action and settings planes. What stands between 
 wires, 11 recreates. Artifacts: `/tmp/p33/` (rig.py, relay.sh/relay2.sh, netproxy.py,
 hprof_*.py, shots/, atrest/, logcat-combined.log). Commits: this docs commit only. Nothing
 pushed.
+
+# Part BF — pass 34 (2026-11-07): the Android 16 (API 36) re-platform walk — every prior pass ran Android 11 — plus a census of the desktop's OWN browser mobile companion as the strictest on-par benchmark
+
+Scope: all 33 earlier passes ran on an Android 11 (API 30) image, while the app targets API 36
+and Ernest's phone runs a current Android. This pass replaced the emulator with **Android 16
+(API 36)** and re-walked the app from a fresh install — so every modern-OS behaviour was
+exercised for the first time: the notification runtime permission, the cached-app freezer and
+background network block, predictive back, per-app language, the system Photo Picker, the
+specialUse foreground service, the one-time camera grant, gesture navigation as the default,
+and a real (virtual-scene) camera preview. On the desktop side, REA went to the one plane that
+is literally the desktop team's own idea of a phone companion: the **browser-based mobile
+shell** the desktop hosts for web remote control (G35), enumerated message-by-message against
+what the native app sends and handles.
+
+Rig: debug APK byte-identical `9084b920…` (versionCode 52 / 1.3.1, targetSdk 36), desktop
+unchanged (3.14.5 / 3.14.5.7961, asar `99e280fb…`). **Emulator swap:** the Android 11 build was
+deleted (system images `android-30;google_apis` + `android-30;aosp_atd` = 6.2 GB, AVDs
+`zcode-pixel` 3.8 GB + `zcode-atd` 5.6 GB; free space 5.9 → 21 GB) and replaced by
+`system-images;android-36;google_apis;arm64-v8a` rev 7 (build BE2A.250530.026.F3, 4.3 GB) on a
+new AVD `zcode-a16` (1080×2340 @ 440 dpi, the S23 geometry of earlier passes, 2 GB guest RAM,
+swiftshader, virtual-scene back camera). Fresh install (no restored data), fresh pairing, relay
+generations 1→5. Census: 372,034 log lines, **0 app FATALs, 0 app ANRs**, 2,915 ok wires, 19
+failed wires (all inside the freeze / zombie legs below).
+
+## Part BF.1 — FIRST receipts on Android 16 (what holds)
+
+| Surface | Receipt |
+| --- | --- |
+| First launch | cold `am start -W` 8,951 ms on a fresh install (hot 1,114 ms); onboarding renders edge-to-edge under the 136 px status bar / 66 px gesture bar |
+| Camera runtime prompt | "Scan QR code" → system prompt with the API 30+ three choices (While using / Only this time / Don't allow) → granted |
+| Live camera preview | CameraX bound to the emulator's virtual-scene camera — the first REAL preview frames in 34 passes (every earlier pass had a black or absent preview) |
+| Paste-link pairing | 176-char link typed verified (12-char chunks, zero resyncs) → stale gate ("This QR code may be stale", 12-min-old link) → Security setup → seal 150 ms → AUTHENTICATING → CONNECTED 1.06 s after seal → `bootstrapApplied tasks=3` |
+| Notification permission prompt | Settings → Live connection → system "Allow ZCode Companion to send you notifications?" → Allow → `settings.notifPermission granted=true` |
+| specialUse foreground service | started from TOP (BFSL allowed), `isForeground=true foregroundId=4201 types=0x40000000` (specialUse), process `procState=FGS`, `isFrozen=false`, background network unblocked |
+| Fresh approval while backgrounded (FGS on) | relay push → `notify.show … channel=permissions` (importance 4, `actions=2`, `vis=PRIVATE`) → heads-up "ZCode needs your approval" with Approve / Deny |
+| Shade Approve | implicit `NOTIFICATION_DECISION` broadcast (setPackage) → `sendConversationCommandV4 ok in 26ms` |
+| Notification tap deep link | `onNewIntent data=zcode://task/synth-task-1#interaction=mock-p34-gen5-7ede5f` → `nav.deeplink resolved` → the pushed approval card on screen (see F-34-A for what this does to the back stack) |
+| Predictive back | slow edge gesture → system back-preview animation of the screen underneath (`BackNavigationInfo mType=TYPE_CALLBACK`), commit on release |
+| Relay restarts while backgrounded under the FGS | gen 2→3: CONNECTED again in 2.1 s; gen 4 with `MOCK_DISCONNECT_AFTER_FRAMES=3`: recovered in 23 s over two attempts |
+| Per-app language (Android 13+) | System App info → Language lists exactly System default / English / 简体中文 (the app's `localeConfig`) → region 中国 → `cmd locale get-app-locales` = `[zh-Hans-CN]` → cold start renders the full Chinese UI (已连接 / 全部 / 定时任务 / + 新建自动化 / 每天 02:00) |
+| System Photo Picker | composer + → Photo → `android.provider.action.PICK_IMAGES` → `com.google.android.photopicker` (no storage permission requested) — the A8 crash class stays closed on API 36 |
+| Share | Context sheet opened fully expanded on gesture nav, the Share chip sits above the nav bar (y 2175–2210 < 2274) → Share conversation (Plain text / Markdown) → system chooser with the full transcript preview + "Copy to clipboard" |
+| Approvals inbox | lists the question + permission (with the `echo synthetic` preview) → Allow once → `approvals.answer` → `sendConversationCommandV4 ok in 84ms`; a11y audit 0 unlabeled / 0 sub-48dp / 0 zero-bounds |
+| Question card (two questions) | option + submit → `ok in 122ms` (submit sits three inner scrolls deep — N-BF-3) |
+| Hook trust | checkbox → Trust 1 → confirm dialog → `grantWorkspaceHookTrust ok in 81ms` + resolve `ok in 428ms` |
+| Mentions | mid-text `x time @re` → mention menu with README.md (GAP-21-A leg B holds) |
+| Dark-mode recreate | rendered cleanly in dark theme (then see F-33-A) |
+| Launcher shortcuts / widget provider | `dumpsys shortcut`: connection + approvals; `dumpsys appwidget`: provider registered (2×1). Binding on the API 36 launcher could not be automated (the picker list scrolls instead of dragging) — rig debt; the API 30 RIG-4 bind receipt stands |
+
+## Part BF.2 — NEW defects (ordered by severity; every one reproduced and cited)
+
+### F-34-D (P2) — voice dictation is dead on every device, and its error blames the device
+
+The composer's + menu shows **Dictate** whenever `SpeechRecognizer.isRecognitionAvailable`
+is true (`VoiceInput.kt:47-48`) — true on Android 16 here and on any phone with Google or
+Samsung speech services. Tapping it calls `startListening` (`VoiceInput.kt:84`), and Android's
+recognition service rejects the caller:
+`RecognitionService: #startListening received from a caller without permission
+android.permission.RECORD_AUDIO.` The app **does not declare `RECORD_AUDIO` at all** (manifest
+grep: 0; `dumpsys package`: 0) and never asks for it, so `onError` fires and the composer shows
+"Voice input isn't available on this device" (`composer_voice_unavailable`) — false: voice is
+available, the app never asked for the microphone. Every earlier pass ran on an image without
+a recognizer, where the item was hidden (pass 7: "gate-as-designed"), so the feature had never
+run on a device. The parity ledger lists "voice input" as a phone-only WIN over the desktop;
+today it is non-functional. Fix: declare `RECORD_AUDIO`, request it at the first Dictate tap
+(the F-PERM direct-request pattern MainActivity already uses for the camera), and map
+`ERROR_INSUFFICIENT_PERMISSIONS` to "Microphone permission needed" with a settings link. Pin: a
+manifest-presence test + a Robolectric denied-permission path asserting the new copy.
+
+### F-34-E (P2) — on Android 13+ the app never asks for notification permission, so a fresh install gets no approval alerts at all
+
+On a fresh install `POST_NOTIFICATIONS` is `granted=false` and Android lists the app at
+`importance=NONE`. Onboarding, pairing, the Tasks screen and the conversation never request
+it; the only request site in the codebase is the Live-connection toggle
+(`SettingsScreen.kt:947-968`). On the first background entry the broker re-posted three
+attention items (`notify.repost` × 3) straight into a blocked sink
+(`AndroidNotificationSink.kt:160`: `if (!manager.areNotificationsEnabled()) return`) — zero
+notifications delivered, nothing told the user, and Settings → Notifications kept showing
+Approval requests / Task finished / Connection lost all ON. This is pass 33's F-33-G
+("blocked notifications look enabled"), but on Android 13+ it is not an edge case the user
+created — it is **the default state of every new install**, which is why it is filed
+separately at P2: a remote-approval companion that silently never alerts. Fix: request the
+permission at the end of pairing (or at the first approval card) with a one-line rationale;
+show a persistent "Notifications are off — Turn on" row on Tasks and in Settings while
+`areNotificationsEnabled()` is false (the F-33-G remedy).
+
+Context that makes this worse on Android 15+: without the Live-connection foreground service
+the app has **no background delivery path at all**. Measured here: HOME at 14:30:47 → the
+cached-app freezer froze the process (`isFrozen=true`) and the network policy blocked it
+(`blocked=APP_BACKGROUND`) → `relay.lost` 7 s later; the second background lost the socket in
+4 s; every reconnect attempt then timed out (10 s each) until the app returned to the
+foreground. The Settings copy is honest about it ("Notifications are delivered while the app is
+in use or when the Live connection is enabled. ZCode's relay offers no push service…"), but the
+Live connection defaults OFF and is the last toggle in Settings. Recommendation: offer the
+Live connection (with its battery note) in the same post-pairing step that asks for
+notifications — that single step is what makes "approve from the shade" real on a modern phone.
+
+### F-34-B (P2) — returning from the background can land in "Disconnected" for minutes: the reconnect budget is wall-clock and burns while the process is frozen
+
+Sequence (all receipts in the pass log): HOME 14:36:32 → `relay.lost` 14:36:36 → reconnect
+ladder relay-8…13, each attempt a 10 s connect timeout (network blocked) → the process freezes
+**mid-attempt** (relay-13 started 14:37:36.897) → the user returns 14:41:12.887 →
+`hub.foregroundTrigger` → `RelayTransport.reconnectNow()` (`RelayTransport.kt:846-863`): the
+machine is RECONNECTING (not DEGRADED), so it only calls `requestImmediate()` and `recover()`,
+and `recover()` is a single-flight no-op because the frozen loop still owns `recovering` →
+the thawed attempt fails 34 ms later → the loop asks `ReconnectPolicy.nextDelayMs()`
+(`ReconnectPolicy.kt:40-50`), which checks the 120 s budget **before** honouring
+`immediateNext` — and the budget, measured with `System.currentTimeMillis` from 14:36:36, has
+long expired → `RECONNECT_BUDGET_EXHAUSTED` → **DEGRADED at 14:41:13.872, in the foreground**,
+and the loop quiesces by design. The app stayed "Disconnected" until 14:54:44 (13.5 min), when
+a network flap re-triggered it; a user would have to find and tap Retry. The first background
+of the session recovered in 1.46 s because the loop happened to be parked in a delay, not
+mid-connect — so the outcome is timing-dependent, and on Android 15+ "mid-connect when frozen"
+is the likely case because each background attempt lasts 10 s. Fix: a foreground entry is an
+explicit user signal — `reconnectNow()` must open a fresh budget from RECONNECTING too (reset +
+cancel/restart the parked loop), and `nextDelayMs()` should honour `immediateNext` before the
+budget check. Pin: a ReconnectPolicy test with an injected clock jumping 5 min between attempts,
+plus a transport test that `reconnectNow()` from RECONNECTING after budget expiry yields an
+attempt, not DEGRADED.
+
+### F-34-A (P2) — a notification tap onto the conversation that is already open stacks a duplicate; backing out of it leaves the remaining screen silently dead
+
+With synth-task-1 open, the app backgrounded and a fresh approval arrived; tapping the
+notification body at 15:10:03 delivered `zcode://task/synth-task-1#interaction=…` to the live
+singleTask Activity, and `ZCodeApp.kt:204` ran `nav.navigate(Routes.conversation(link.taskId))`
+with no `launchSingleTop` and no same-task check → a **second conversation entry for the same
+task**. The predictive-back preview at 15:10:57 showed the identical conversation underneath.
+Popping the duplicate ran `ConversationVmHolder.onCleared()` → `vm.onTeardown()` →
+`hub.closeConversation(synth-task-1)` (`ConnectionHub.kt:828-840`) — and `openedSessions` is a
+set keyed by task id, not a reference count, so the entry that stayed on screen lost its
+subscription: `unsubscribeConversationV4 ok in 66ms`, `recovery.detached … (unsubscribed)`.
+From then on the visible conversation is dead in the worst way: a send at 15:17:12 was
+accepted on the wire (`sendConversationCommandV4 ok in 105ms`) but every update frame was
+discarded — `gateway.drop :: session=synth-task-1 kind=ONLINE seq=5..5 / 6..6 / 7..7 (no
+subscription record)` — so the composer cleared and the message and the agent's reply never
+appeared (find-in-conversation: "No matches"). Control: Leave and re-open → snapshot subscribe →
+find "p34dup1" = 1 of 2 (message and reply were there all along). Fix: navigate with
+`launchSingleTop` and pop to an existing entry for the same task id; reference-count
+`openedSessions` so only the last entry's teardown unsubscribes. Pin: a nav test (deep link to
+the open task leaves exactly one conversation entry) + a hub test (two opens, one close → still
+subscribed).
+
+### F-34-C (P3, privacy) — the pairing camera keeps running after you leave the scanner
+
+CameraX opened the camera at 14:19:42; the user left the scan screen for manual entry at
+~14:23, completed pairing and reached the Tasks screen at 14:29:52 — and the camera, with the
+QR-analysis use case, kept running until the app was backgrounded at 14:30:49
+(`Camera2CameraImpl … Closing camera`) — about 7.5 minutes of invisible camera use, including a
+minute on the paired Tasks screen. On a real phone the green camera privacy indicator stays lit
+throughout. Cause: `QrScanner.kt:48-72` binds the use cases to the **Activity** lifecycle
+(`bindToLifecycle(lifecycleOwner, …)` with the Activity) and never unbinds when the composable
+leaves composition. Fix: `DisposableEffect { onDispose { provider.unbindAll() } }` (or bind to
+the composable's own lifecycle owner). Pin: compose the scanner, remove it, assert the provider's
+bound use cases are empty.
+
+### F-34-F (P3, honesty) — the Live-connection notification says "Connected" while the app is disconnected
+
+The ongoing foreground notification reads "Connected to MockBook — Live connection active — tap
+to disconnect" (`LiveConnectionService.kt:86-87`, built once at service start). Through 14:44–
+14:54 the transport was DEGRADED (in-app "Disconnected"), yet the shade kept saying Connected.
+A user relying on the Live connection to receive approvals reads a false all-clear. Fix: have
+the service observe the hub phase and update the notification text (Connected / Reconnecting /
+Disconnected — tap to retry).
+
+### Re-manifests on Android 16 (open defects, now confirmed on a modern OS)
+
+- **F-33-A (P2)** zombie screen after recreate: dark-mode flip 15:29:54 → the retained screen's
+  send now fails with `command.blockedOffline` (the old container's CommandCoordinator reads the
+  destroyed transport) while its status line still says "Connected · Completed"; draft stuck.
+  Control (leave + re-open, fresh entry): `sendConversationCommandV4 ok in 84ms`, frames 8–10
+  delivered. Same root cause as BE.2 (`MainActivity.kt:128` per-Activity AppContainer;
+  `ZCodeApp.kt:570-579` retained VM).
+- **F-33-D (P3)** IME double inset: with the keyboard up and the pinned stack present the
+  composer field is clipped and the attach/Send row is not painted; the accessibility tree keeps
+  reporting the pre-keyboard positions (Send at y 1344–1476, behind the keyboard), so a tap there
+  hits Gboard. **New face:** with no pinned card but the queue strip + background banner +
+  shared-context chip showing, the keyboard leaves the **timeline zero pixels tall** — not one
+  conversation row is visible while composing (the 48 dp timeline floor is not honoured).
+- **F-33-F (P3)** clipboard read on every conversation open: `READ_CLIPBOARD` app-op times reset
+  to 4 s after each open (32 min → 4 s → 4.6 s).
+- **F-27-B (P3)** attachment thumbnail tap dead: mock.png tap = zero log lines, no viewer; at HEAD
+  the `TimelineRow(…)` call at `ConversationScreen.kt:1047` still omits `onOpenAttachment`,
+  `onOpenAttachmentExternally` and `rewindPreviewProvider`, which the signature at :1252 declares.
+- **GAP-21-A (P3)** first-token `@re` = 0 `searchWorkspaceFiles` wires (11th repro); mid-text
+  works.
+- **N-BE-4** the success notice "Trusted 1 hook(s) — the session continues." renders in error red
+  in the dark theme too.
+- **F-27-C** did NOT reproduce: on gesture navigation the Context sheet opened fully expanded and
+  its footer cleared the 66 px bar.
+- Recorded papercut re-seen: the stale-link path builds `SecuritySetup` with
+  `requireE7Consent = false` (`PairingFlow.kt:201-206`) — this emulator has **no screen lock**, so
+  the reduced-security consent (E7) that a fresh, non-stale link would demand was skipped.
+
+### P4 smalls (new)
+
+- **N-BF-1** the find bar opens without taking focus while the composer holds the keyboard — the
+  query is typed into the composer (it became a draft and triggered the leave-guard dialog).
+- **N-BF-2** after answering the question card the header said "Connected · Completed" while the
+  composer showed the running morph (Queued chip + Stop) — two surfaces disagree about whether
+  the session is running (a background task was running; recorded as an observation).
+- **N-BF-3** a two-question card puts its submit button three inner scrolls below the pinned
+  budget's fold — no visual hint that more of the card exists.
+- **N-BF-4** in the hook-review card a row tap does not toggle selection (only the checkbox
+  does) and Trust stays disabled at "Trust 0 selected hook(s)" — the desktop's row is the toggle.
+
+## Part BF.3 — REA pass-34 dig: the desktop's own browser mobile companion, message by message
+
+Method: the pass-24 flattened extraction of the unchanged asar (`/private/tmp/p24-asar`, digest
+`99e280fb…` re-verified), byte-context reads of `out__main__index.js` (the remote-control host),
+`out__renderer__assets__styles-C4MhEMbW.js` (the mobile shell and task home) and the IntlProvider
+bundle (104 `webRemoteControl.*` keys, both locales).
+
+### 1. Inbound message census — the phone sends 5 of the 10 messages the desktop handles
+
+The host's `routePayload` switch (`out__main__index.js` ≈401,197) accepts ten mobile→desktop
+`zcode_type`s:
+
+| Message | What the desktop does with it | Native app |
+| --- | --- | --- |
+| `bootstrap-request` | returns workspaces, tasks, `initialViewState` **and `mobileViewState`** | sends ✓ |
+| `workspace-list-request` | workspace list | sends ✓ |
+| `workspace-bridge-open` | opens the per-workspace RPC bridge | sends ✓ |
+| `rpc-frame` / `rpc-frame-ack` | the RPC transport | sends ✓ |
+| `mobile-view-state-update` | stores `{activeWorkspaceKey, activeTaskId, updatedAt}` + `deviceInfo {userAgent, viewport, updatedAt}` (`applyMobileViewStateUpdate`); surfaced in the desktop's remote-control status and replayed in the next bootstrap so the phone reopens where it was | **never sent** |
+| `workspace-reconnect-request` | `e.reconnectWorkspace(windowId, workspaceKey)` → `workspace-reconnect-response` | **never sent** (the phone even lists `workspace-reconnect-response` among its control replies, `RelayTransport.kt:1189`) |
+| `mobile-diagnostic` | writes the phone's connection diagnostics into the DESKTOP log: event, state/previousState, pairStatus, closeCode/closeReason/wasClean, failureReason/message, visibilityState, online, **hiddenDurationMs** | **never sent** |
+| `platform-request` | dispatches one of 8 desktop platform methods (below) | never sent |
+| `telemetry-report` | forwards a mobile telemetry event to the renderer telemetry | never sent — consistent with the phone's zero-analytics posture (a recorded phone win, not a gap) |
+
+### 2. The remote-workspace hole (→ G67)
+
+`workspace-bridge-open` for a remote (SSH/WSL/Docker) workspace whose connection is down throws
+a plain error — "目标远程工作区尚未连接，无法创建 bridge，请先重连。" ("the remote workspace
+is not connected; cannot create the bridge; reconnect first") — which the host's failure mapper
+`FW()` turns into `reason: "unexpected-error"`. The browser shell detects the text
+(`u8t`: "远程工作区尚未连接" / "请先重连") and offers Reconnect → `workspace-reconnect-request`.
+The native app maps every reason outside its known list to PROTOCOL "Connection problem —
+retrying" with `RECONCILE` (`ErrorMapping.kt:308-342`), so it retries a condition that only a
+reconnect request can fix, and it has no way to send one. The phone decodes the workspace kind
+(`BootstrapParser.kt:86`) but no UI uses `WorkspaceKind.REMOTE`.
+
+### 3. The bridge-failure taxonomy vs the phone's mapping
+
+The host emits `desktop-disconnected`, `workspace-closed`, **`unsupported-action`**
+(remote workspace identity missing or mismatched) and **`unexpected-error`**, plus
+`session-conflict` when the relay kicks the pairing; the companion's copy covers 12 failure
+kinds. The phone maps nine reasons precisely; `unsupported-action` and `unexpected-error` fall
+to the generic retrying copy. The desktop's own text for the first: "Web remote control mode can
+only open workspaces that are already open in the current desktop window." Mobile slice: map both
+reasons to honest copy, and route the "reconnect first" variant to G67's action.
+
+### 4. Transport limits — why F-34-B and the freezer matter
+
+- Disconnect grace: after the phone drops, the desktop keeps "phone connected" for **3 s**
+  (`NW = 3e3`, `scheduleMobileDisconnectGrace`).
+- Desktop→phone buffer while the phone is away: **50 payloads**, each batch **expires after 5 s**
+  (`schedulePendingOutboundPayloadTimeout`, "dropped buffered outbound payloads"); overflow drops
+  the whole buffer. So everything the agent emits while an Android 15+ phone is frozen is gone at
+  the desktop; the phone's snapshot-replace recovery (`relay.recovered … snapshotReplace=true`,
+  seen on every reconnect here) is the only reason nothing is lost — design validated.
+- The desktop's own relay client: heartbeat every **10 s** (`pair_status_query`) with jitter,
+  heartbeat-ack watchdog **30 s**, reconnect base **1 s**. Phone: same heartbeat verb, backoff 1 s →
+  60 s cap, 120 s **wall-clock** budget (F-34-B).
+
+### 5. The companion's task home vs the native Tasks screen (→ G69)
+
+The browser task home (`WebRemoteControlMobileTaskHome`) offers: **Organize tasks — by workspace
+/ Timeline**; **Sort by — Created / Updated**; **Collapse all workspaces**; Refresh; per-workspace
+kind badges (Local / Remote / Conversation); a theme menu in the header; "Updated {time}" per
+task; and it calls **`markTaskRead` when a task is opened** (`markTaskReadOnOpen`, only when the
+task has `unreadAt`). The native app has none of organize / sort / collapse-all, shows no
+workspace kind, and only offers a manual mark-read (`TasksViewModel.kt:281` setTaskUnread) —
+opening an unread task on the phone leaves it unread on the desktop.
+
+### 6. platform-request's 8 methods
+
+`isDockerAvailable`, `listWSLDistros`, `listDockerContainers`, `listSSHConfigAliases` (remote
+workspace authoring — the recorded B3 boundary of G41), `loadMcpFromUserDirectory`,
+`saveMcpToUserDirectory`, `migrateLegacyCommonMcp` (MCP authoring — the G22/INV-9 read-only
+viewer boundary) and **`createTempTextAttachment`** — the desktop's way to send a long paste as a
+text file. Mobile slice of the last one: paste a long log as an attachment instead of a giant
+message (P4, folded into G69's notes).
+
+### New G rows
+
+- **G67 (P3)** — remote-workspace reconnect: the phone cannot reconnect a disconnected remote
+  workspace and misreports the bridge failure as a retrying connection problem. Mobile slice:
+  detect the "reconnect first" bridge error, show "This remote workspace is disconnected —
+  Reconnect", send `workspace-reconnect-request`, then retry the bridge.
+- **G68 (P4)** — the phone reports nothing about itself to the desktop: no
+  `mobile-view-state-update` (the desktop's status can't show which device is connected or what it
+  is viewing, and the bootstrap can't restore the phone's last task) and no `mobile-diagnostic`
+  (a support log on the Mac shows nothing about why the phone dropped — F-34-B would have been
+  visible there as `hiddenDurationMs` + close code). Both are opt-in-able without analytics.
+- **G69 (P4)** — task-home organisation: organize by workspace / timeline, sort created /
+  updated, collapse all, workspace kind badges, and mark-read-on-open — the desktop's own mobile
+  companion has all five.
+
+## Part BF.4 — rig notes recorded for the next pass
+
+- **Emulator is now Android 16**: AVD `zcode-a16` (`system-images;android-36;google_apis;arm64-v8a`
+  rev 7). Boot: `emulator -avd zcode-a16 -memory 2048 -gpu swiftshader_indirect -no-audio
+  -no-snapshot-load -no-snapshot-save -no-boot-anim -no-window -camera-back virtualscene` (60 s
+  to `sys.boot_completed`). Gesture navigation is the image default (nav bar `[0,2274][1080,2340]`).
+- **Pairing**: `/tmp/p34/typelink.py <resource-id> <link>` types in 12-char chunks with dump
+  verification and self-resync (176/176, zero resyncs on API 36). Host-clipboard paste does not
+  reach the guest with `-no-window`. The virtual-scene camera works, but aiming at a QR poster
+  needs the emulator's gRPC pose control — the live QR-scan receipt stays rig debt.
+- **The freezer is the default on API 36**: a backgrounded app is frozen within seconds and
+  network-blocked (`dumpsys netpolicy … blocked=APP_BACKGROUND`); any background leg needs the
+  Live-connection FGS on, or nothing happens.
+- **IME**: `input keyevent 111` does not close Gboard here — use Back. With the keyboard up the
+  accessibility tree reports the composer row at its pre-keyboard position; send with the IME's
+  own action key (≈ 995, 2124) instead of tapping Send.
+- **Per-app language**: the language picker needs the region sub-pick (简体中文 → 中国);
+  `cmd locale get-app-locales / set-app-locales --locales ""` reads and resets it.
+- **Clipboard probe**: `cmd appops get <pkg> READ_CLIPBOARD`.
+- **Widget**: binding on the API 36 Pixel launcher was not automatable this pass (the picker list
+  scrolls under `input motionevent`) — rig debt.
+- Artifacts: `/tmp/p34/` (rig.py, relay.sh, typelink.py, send.sh, elfalign.py, findings.md, shots/,
+  logcat-full.log, relay-gen1…5.log).
+
+## Part BF.5 — pass-34 verdict and ledger delta
+
+On Android 16 the companion installs, pairs, connects, renders edge-to-edge, honours per-app
+language, uses the system Photo Picker, runs its specialUse foreground service correctly,
+delivers approvals with working shade actions while that service is on, and answers every
+interaction plane on the wire — 0 FATALs, 0 ANRs. The modern OS also exposed what Android 11
+could not: **four P2s** (dead dictation, no notification permission ask on a fresh install, the
+frozen-budget DEGRADED landing, the duplicate-entry dead screen), **two P3s** (camera left
+running, a Live-connection notification that claims Connected), five re-manifests, four
+smalls, and three new G rows (G67 remote-workspace reconnect, G68 mobile view-state/diagnostic
+reporting, G69 task-home organisation) from the desktop's own browser companion.
+
+**Fix-round opener order (supersedes BE.7):** F-34-D (manifest + runtime ask — the cheapest
+fix of a whole feature) → F-34-E (notification ask + the off-state row, closes F-33-G with it) →
+F-34-B (foreground opens a fresh reconnect budget) → F-33-A (process-scoped container; closes
+F-33-B/C) → F-34-A (singleTop + reference-counted sessions) → F-33-D (one-line inset fix; re-pin
+on painted Send + timeline floor) → F-27-B (the 3-line forwards) → F-34-C → F-34-F → F-33-E +
+F-27-A → F-33-H → F-33-F → GAP-21-A (+ G65) → G67 → G64 → N-BC / N-BD / N-BE / N-BF smalls →
+G68 + G69 → G48 + G51 → G60–G63, G66.
+
+**On par / better:** the phone still beats the desktop's own browser companion on everything a
+browser tab cannot do — shade notifications with Approve/Deny, the glance widget, launcher
+shortcuts, per-app language through the OS, offline drafts with exactly-once delivery, and zero
+telemetry — and matches it on bootstrap, bridge and RPC. What separates it from "better" on a
+modern phone is now concrete: make notifications and the Live connection part of setup
+(F-34-E), make the reconnect survive the freezer (F-34-B), fix the lifecycle class (F-33-A /
+F-34-A), turn voice on (F-34-D), and add the companion's remote-workspace reconnect (G67).
+Commits: this docs commit only. Nothing pushed.
