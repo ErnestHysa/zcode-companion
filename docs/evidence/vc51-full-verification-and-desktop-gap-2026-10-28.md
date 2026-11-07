@@ -8143,3 +8143,348 @@ mechanically known) → F-27-A → GAP-21-A → F-27-C → N-BC smalls → G48+G
 P4-smalls.** Census: 0 app FATALs, 0 app ANRs (1 rig-side SystemUI ANR during
 monkey, app unaffected), ~3 h single emulator boot (campaign record), zero
 emulator kills. Commits: this docs commit only. Nothing pushed.
+
+# Part BD — pass 32 (2026-11-06/07): the slash-20 LIVE matrix (catalog-vs-wired, all 20 receipted) + the desktop wire-taxonomy/row-action censuses (deeper than pass 31)
+
+Scope: the campaign's FIRST end-to-end drive of every builtin slash command, the
+FIRST install-`-r` upgrade-over-data leg, the FIRST process-death-with-pending-
+interaction leg, the FIRST fork/retry/like row-action wires, deep link + widget
+tap-through with the interaction anchor, new-task/archive wires, and a deeper
+REA dig: the COMPLETE relay-envelope verification (19 frames), the 97-kind host
+payload taxonomy with per-kind schemas, the topic/notification-method taxonomy
+(3 families / 4 methods), the proactive-push verdict, the pairing/device-
+management plane, the bootstrap schema, and the renderer row-action + route
+censuses. Rig: debug APK byte-identical `9084b920…` (assembleDebug up-to-date at
+HEAD 08ef04eb; the vc51-audit commit 484a64b6 touched only mock+tests), asar
+`99e280fb…` unchanged (fresh REA inspect_plist `ev_fed92045…`: 3.14.5 /
+3.14.5.7961). ONE zcode-pixel cold boot (~2 h), relay gen 32 (all 23 arms +
+MOCK_INTERACTION_PUSH_MS=25000) → gen 33 (push-less, for the matrix), zero
+emulator kills, **0 app FATALs, 0 app ANRs**, 66k log lines, 1,111 ok wires,
+46 `sendConversationCommandV4 ok`.
+
+## Part BD.1 — FIRST receipts (surfaces passes 1–31 never drove)
+
+1. **install -r upgrade-over-data (the memory-noted "distinct untested path")**:
+   `adb install -r` over the pass-31 install — `firstInstallTime 2026-10-28`
+   preserved, `lastUpdateTime` bumped 23:30; on first launch the STORED pairing
+   authenticated (`auth_ack pair_status:"matched"` → CONNECTED ~2 s, no re-pair),
+   and pass-31 persisted state survived (task alias "RigAlias31" rendered, the
+   pass-31 composer draft read back verbatim from the field). The
+   reinstall-with-preserved-data path is clean end-to-end.
+2. **The slash-20 LIVE matrix (the pass artifact — catalog vs wired)**: every
+   one of the 20 embedded BuiltinSlashCatalog commands SENT and ACKED over the
+   real transport, latencies 39–178 ms, zero faults: help 108, login 120,
+   logout 114, compact 66, init 178, expert 161, effort 116, dwf 87, fork 148,
+   locale 145, mcp 84, plugins 157, mode 129, model 90, new 59, resume 84,
+   rewind 77, skill 150, goal 39 (with args), workflow 67. The client-parsed
+   grammar matches the ported desktop contract exactly
+   (SlashCommandParser.kt, parseV4VisibleSlashCommand): `/compact`→ the v4
+   compact command; `/goal <objective>`→ sendGoalCommand (39 ms); `/goal
+   pause`→ pauseGoal (63 ms); bare `/goal` and `/goal clear` REFUSED
+   client-side with ZERO wires + a notice (draft retained; the refuseSlash
+   string at ConversationViewModel.kt:462); `/plan <task>`→ the designed
+   TWO-wire step (mode switch + the task text as ordinary sendText — 43 ms +
+   72 ms). **Catalog-vs-wired drift: zero. The 17 pass-through commands ride
+   raw sendText for the desktop to interpret ("同名 CLI 命令优先"), exactly the
+   desktop's own grammar.**
+3. **The assistant-row action plane, live (desktop parity CONFIRMED where pass
+   31 could only grep)**: the row bar renders copy/like/dislike/fork/retry +
+   the selection plane (row_copy_agent/row_like/row_dislike/row_fork/row_retry/
+   row_selection_agent — the phone adds a per-row RETRY the desktop's hover
+   bar lacks: a phone win). Wires: `setAssistantFeedback` ok 56 ms (like);
+   `retryTurn` ok 50 ms → a NEW assistant row rendered; **forkAssistant
+   END-TO-END** — `sendConversationCommandV4 ok 48 ms` →
+   `subscribeConversationV4 ok 84 ms` → `recovery.subscribed :: session=sess-
+   forked-1` → `hub.conversationOpen` → the screen switched IN PLACE to "Fork
+   of synth-task-1" (the desktop's SessionPane.tsx:3039 contract). All six
+   desktop per-message ops (forkAssistant/editUserQuery/retryTurn/
+   setAssistantFeedback/applyFileRewind/createSelectionSideSession) exist on
+   the phone (7 source files each) — **the desktop census's row-action plane is
+   parity, not a gap.** Fork on the retry-created row correctly refuses
+   LOCALLY (zero wire — that row carries no fork-able entity; the desktop's
+   fork.targetMessageMissing class) but see N-BD-3 for the notice copy.
+4. **Process death WITH a pending interaction (first time)**: HOME →
+   `am kill` (pid gone) → cold relaunch 3,426 ms → `onCreate
+   savedInstanceState=true` → `auth.matched` +1.6 s → the app restored
+   DIRECTLY into the Synthetic task conversation (not the task list) with the
+   pending question card re-rendered — and it was ANSWERABLE: option select +
+   "Send answers" → `sendConversationCommandV4 ok in 14 ms`. The interaction
+   coordinator rebuilds from the post-death snapshot fully; this is also the
+   known F-27-A recovery shape (a process restart clears any stuck machine)
+   now proven through the real savedInstanceState path.
+5. **Deep link**: from HOME, `am start -a VIEW -d zcode://task/synth-task-1` →
+   `onNewIntent` → `app deeplink :: onNewIntent data=…` → `nav.deeplink ::
+   resolved task=synth-task-1` → `hub.conversationOpen` → the conversation
+   (debug build exports the scheme; release stays fail-closed per pass 10).
+6. **Widget tap-through WITH the interaction anchor**: the launcher widget
+   rendered "Pending approvals / 2 requests need you" (the counted state,
+   live again) — tapping its body fired `onNewIntent data=
+   zcode://task/synth-task-1#interaction%3Dmock-approval-1` → resolved →
+   conversationOpen. The RIG-5 calling-session routing plus the pending-
+   interaction ANCHOR fragment, receipted on the current build.
+7. **New-task creation**: the sheet (prompt field + "Model: workspace
+   default" + Create) → `tasks.create :: workspace=/synthetic/ws-one
+   model=default/default` → `sendConversationCommandV4 ok 18 ms` →
+   `hub.createTask :: outcome=Accepted`. No optimistic row: the phone trusts
+   the served list, and the mock never emits the desktop's
+   `workspace-list-updated` push after create (mock debt M-32-2) — the desktop
+   contract (syncAvailableTasks → pushWorkspaceListUpdated, BD.4.4) is what
+   the phone waits for.
+8. **Task action-sheet wires**: Unpin/Mark unread/Rename/Resume/Archive/Delete
+   enumerate; Archive → CONFIRM dialog ("Archived tasks can be restored
+   later.") → `channel.call :: zcode-task.archiveTask begin → ok` +
+   `hub.bootstrapApplied :: tasks=5` (the row persists because the mock never
+   marks the task archived — M-32-2 family; the wire is the receipt). Delete
+   not driven (would consume the only listed rig task).
+9. **Locale flip (G37 re-verified, deeper than the phase-4 receipt)**: in-app
+   language → 中文 → cold restart → the ENTIRE UI renders Chinese, including
+   LOCALIZED RELATIVE TIMES ("1 小时前", "上次运行已停止 · 1 小时前") — one
+   transient `UNPAIRED` phase (01:35:07) then `auth.matched` +2.8 s →
+   CONNECTED: **no recreate loop, no unpaired flap** (the G37 SP-mirror fix
+   holds at the whole-UI + relative-time level). Reverted via the localized
+   dialog (跟随系统) → English after restart.
+
+## Part BD.2 — NEW findings this pass
+
+- **N-BD-1 (P4, layout)**: **the composer-squeeze under the slash palette.**
+  With the pinned stack present (interaction card + queue strip + background
+  banner + shared-context chip) and the palette open, the COMPOSER ROW IS NOT
+  LAID OUT AT ALL — absent from the a11y tree and the screen
+  (shots: composer-mystery.png, squeeze-state.png): typing into it still works
+  (focus persists) but the Send button is unreachable, so nothing can be sent
+  while the palette is open in this state. Even after deleting both queue
+  items the palette (bounded by the G21 heightIn) still displaces it. The
+  composer returns as soon as the draft stops matching (e.g. the newline
+  breaks the '/' prefix). Fix direction: reserve the composer's min height in
+  the palette-open layout (or anchor the menu ABOVE the composer instead of
+  displacing it).
+- **N-BD-2 (mock debts, not phone defects)**: (a) the mock scripts no
+  `discardSharedContext` handler — the phone's Remove fires
+  `sendConversationCommandV4 ok` each time (~8 wires this pass) and the chip
+  legitimately persists until the next served frame; (b) create/fork/archive
+  ack ok but the served task list never changes (no workspace-list-updated /
+  archived flag scripting). Phone contracts correct in all three.
+- **N-BD-3 (P4, copy)**: the fork refusal on a locally-gated row says "Could
+  not fork the conversation — the desktop refused it." although NO wire was
+  sent (the local canFork gate) — ConversationViewModel.kt:917-919 should
+  distinguish the local gate from a desktop refusal (the desktop's own copy
+  splits fork.noCheckpoint / fork.targetMessageMissing / fork.unavailable).
+- **N-BD-4 (P4, a11y/clip — extends the F-27-C family)**: two fresh
+  bottom-edge clip receipts beyond the context sheet: the conversation
+  `send_notice` bar renders at y=2062–2072 (a 10 px sliver under the gesture
+  nav bar) and the Settings screen's bottom rows sit in the same zone
+  (`settings_locale` at y=2065–2072 — its text invisible, tap target a 7 px
+  band; the Language dialog still opened from it, so the row is tappable but
+  blind). The class now covers: context-sheet chip row (pass 31), the
+  conversation notice bar, and Settings' last rows.
+- **P4-smallest (fold into the family)**: the bootstrap task entry carries an
+  optional `provider` field (BD.4.7) the phone does not decode — a task-row
+  provider/model badge would mirror the desktop's per-task model chip.
+- **METHOD erratum (recorded to prevent a repeat)**: mid-pass I suspected
+  "dead" Approve/Snooze/Remove taps; the wire timeline REFUTED it — the
+  Allow-once approval fired at 33 ms, every snooze fired (24–80 ms, and the
+  card persisting is CORRECT: keep-waiting pauses auto-resolution, it does
+  not dismiss), every Remove fired. Root cause of the false alarm: grepping
+  the log for `v4call` while the real logcat spelling is **`v4.call ::`**
+  (and `channel.call ::`). All wire greps in future passes must match both
+  spellings. F-27-A accordingly did NOT re-manifest this pass (see BD.3).
+
+## Part BD.3 — the open P3 ledger on the current APK
+
+- **F-27-A — no re-manifest this pass, with a NEGATIVE result**: the gen-32→33
+  in-process relay swap (the pass-31 third trigger class) did NOT produce dead
+  sends — the approval answered at 00:22 (33 ms) under gen 32 and all
+  post-swap interaction wires (snoozes, question submit post-process-death)
+  fired cleanly. The pass-31 repro likely depended on the mock's 25 s
+  RE-ASSERT cadence with a re-asserted id (gen 33 ran push-less). F-27-A stays
+  OPEN on its three recorded trigger classes; the fix contract (surface typed
+  outcomes + reset on re-assert) is unchanged.
+- **F-27-B / G28 — not re-driven this pass** (the APK is byte-identical and
+  the BC.6 static root cause stands; the fixture turn sat above the timeline
+  fold and the pass budget went to the new axes). Ledger unchanged.
+- **F-27-C — two fresh bottom-clip receipts** (BD.2 N-BD-4). Ledger extended.
+- **GAP-21-A — leg A 10TH repro**: first-token `@re` typed → ZERO
+  `file.searchWorkspaceFiles` wires, no panel (draft verified '@re' in the
+  field); leg B not re-driven. The BA10.5.2 fix spec stands.
+
+## Part BD.4 — REA pass-32 dig (deeper than pass 31: the wire-taxonomy censuses)
+
+Files: H = shipped `glm/zcode.cjs` (14,820,968 B), MAIN/CHUNKS = the pass-24
+flattened asar extraction (out__main__*, out__host__*, out__renderer__*), plus
+fresh REA MCP receipts (inspect_plist `ev_fed92045…`).
+
+1. **Relay-envelope plane verified COMPLETE**: the 19 `zcode_type` literals
+   (pass 31's set) are the FULL set — 23 sites in H (rpc-frame H@796898,
+   rpc-frame-ack H@797645, telemetry-report, bootstrap-request/-response,
+   workspace-list-request/-response/-updated, workspace-bridge-open/ready/
+   error, workspace-reconnect-request/-response, mobile-view-state-update,
+   platform-request/-response, bridge-degraded H@818121, app-error H@818521,
+   mobile-diagnostic H@818649), a subset re-declared in MAIN, plain-form
+   emissions in the chunks — no 20th value exists. rpc-frame carries
+   `seq/messageSeq/fragmentIndex/checksum/dataBase64`; rpc-frame-ack carries
+   `ackMessageSeq`; mobile-diagnostic's event enum =
+   [state-transition, socket-close, socket-error, recover-start,
+   recover-scheduled, pair-status, failure] with pairStatus waiting|matched
+   (the phone's log vocabulary maps 1:1).
+2. **The host conversation payload taxonomy: 97 `kind:` literals, each with a
+   schema** (H offsets cited in the pass artifact): the v4 projection events
+   (turn.started with executionKind agent|controlOnly + backgroundSource
+   bash|subagent|workflow + automationId/offPeakTaskId/offPeakRunType/
+   taskTrigger schedule|manual; stream.chunk channel thought|text; tool.lifecycle
+   5 phases; permission.lifecycle phase requested|resolved|denied + decision
+   allow|deny|escalate|modify + childSessionId + background; usage.delta with
+   full token fields incl. reasoningTokens; subagent.lifecycle spawned|stopped
+   + childSessionId; workflow.lifecycle actor-spawned|run-settled + stopReason
+   user|model|provider|interrupted|superseded; model.request.status 5 states;
+   turn.terminal success|interrupted|failed + durationMs/tokenCount/
+   toolCallCount; compaction.terminal with trigger manual|auto|partial|
+   reactive|session_memory + pre/postCompactTokenCount; timelineMarker with
+   3 lanes and 9 marker types — compact(tokensBefore/After/summaryRef),
+   forkNotice, forkCreated, modelChange ×2, goalSet, goalVerify(iteration,
+   outcome running|pass|notSatisfied|failed), retryNotice(attempt,reasonCode),
+   checkpointRestored). **The phone promotes ONLY compaction to a typed
+   renderer; this inventory is the complete menu for any future promotion of
+   rewind/fork/goal/retry markers** (the pass-30/31 watch, now fully armed).
+3. **Topic + notification-method taxonomy: exactly 3 topic families**
+   (`conversation/{id}` H@14288203, `sessions-index/{id}` H@1113591,
+   `workspace-config/{id}` H@1114879 — all three enforced by schema prefix
+   checks; workspace-config carries configOptions + slashCommands with
+   delta op `config.updated`) **and exactly 4 server→client notification
+   methods** (`v4/conversation/frame`, `v4/telemetry/event`,
+   `v4/telemetry/local-ttft`, `v4/cua/permission-observation` — H@1124881).
+   No push channel exists beyond these 4 methods + the 19 frames — an
+   exhaustive negative (both enumerated byte-exactly).
+4. **Proactive-push verdict (the mobile-notification architecture settled)**:
+   the ONLY proactive desktop→mobile push is `workspace-list-updated`
+   (signature-diffed, MAIN@395450 `pushWorkspaceListUpdated`, wired from
+   syncAvailableWorkspaces/syncAvailableTasks MAIN@406988) plus the
+   unsolicited `bridge-degraded` (4 reasons H@818168). **No usage/low-balance
+   push exists** (zero matches for usageAlert/lowBalance/planLimit/
+   remainingUsage/notifyMobile — usage is pull-only via v4/usage/stats +
+   in-conversation usage.delta); background automations/workflows reach the
+   phone ONLY as index-summary deltas (hasBackgroundWork/workflowActivity/
+   displayStatus) and in-conversation events. The desktop's own OS task
+   notifications are Electron-local (suppressed when any window is focused).
+   **The phone's local-notification model (once-per-unseen, foreground-cancel)
+   is therefore the only possible mobile notification surface — parity by
+   architecture, not an omission.**
+5. **The legacy session-event bus does NOT reach mobile**: the 25-type
+   discriminated union (session.created/resumed/updated/titleUpdated/closed,
+   turn.started/steerQueued/steerDrained/completed/failed, message.upserted/
+   removed, part.started/delta/upserted/removed, model.streaming, tool.updated,
+   permission.requested/resolved, userInput.requested/resolved,
+   checkpoint.created, rewind.triggered, streamRecovery.updated — H@755158,
+   exported zcodeSessionEventTypeSchema) is the desktop-internal mirror bus
+   (MAIN's notification dedupe + mirror classification consume it). Mobile
+   clients see only the v4 projection events. Recorded to prevent future
+   "missing event type" false positives.
+6. **Pairing/device-management plane**: exactly ONE device credential per
+   desktop (one deviceSid/passHash, MAIN@403140); the QR URL embeds
+   sid+hash+timestamp+mid in plaintext query params (H@980205 builder — the
+   phone's MOCKZCODE_LINK matches verbatim); N phones scanning the same QR
+   SHARE one identity, concurrent live sessions conflict (relay KICKED →
+   "Web remote control connection was kicked by relay" → session-conflict,
+   MAIN@402361); **there is NO per-device list or revoke** — zero matches for
+   revoke/unpair/trustDevice/pairedDevices in the management sense; the only
+   surface is GLOBAL `ResetWebRemoteControlPairing` (MAIN@659458 → resetPairing
+   → wipes auth storage "leaked-qr" and re-issues the QR, invalidating ALL
+   phones at once) + Stop/Status. Phone-side meaning: a paired phone cannot be
+   individually revoked and learns of a global reset only via AUTH_FAILED →
+   wipe → re-register as a NEW device (MAIN@404524). Recorded as designed
+   desktop architecture + a security note for the pairing docs.
+7. **Bootstrap-response schema verbatim** (H@815896 `Zar`):
+   windowControlSessionId, desktopAppVersion, workspaces (workspacePath/
+   Identity/remoteSessionId/label/purpose project|conversation/kind
+   local|remote/connectionState/lastConnectionError), tasks (taskId/title/
+   workspace*/createdAt/updatedAt/**provider optional — UNDECODED on the
+   phone**/unreadAt/displayStatus idle|running|completed|error/
+   hasBackgroundWork/workflowActivity/pinned/archived), initialViewState +
+   mobileViewState (activeWorkspaceKey/activeTaskId/updatedAt) + the
+   mobile-view-state-update carries deviceInfo (platform/version/viewport/
+   screen/timezone). The phone's bootstrap decode covers everything except
+   `provider` (BD.2 smallest).
+8. **Renderer row-action census → PARITY CONFIRMED, no row**: the desktop's
+   per-message op set (forkAssistant with fork.noCheckpoint/unavailable/
+   parentMissing/targetMessageMissing failure keys + forkNotice row,
+   applyFileRewind with the full rewindDialog conflict taxonomy,
+   editUserQuery with disposition rewind|fork|blocked + resetConversationAndFiles,
+   retryTurn, setAssistantFeedback like|dislike) — ALL present phone-side
+   (BD.1.3 receipts + 7-file greps). The telemetry allow-list
+   (conversation.history.branch[retry,edit,fork,rewind_files],
+   conversation.queue.policy[resume,toggle_auto_drain,toggle_followup,
+   clear_and_send,keep_and_send], conversation.blocking.*, workbench.*,
+   automation.lifecycle[create,open,archive,rename,delete]) maps onto the
+   phone's shipped affordances 1:1; quote-message and createCheckpoint-here
+   are ABSENT ON BOTH SIDES (negative confirmed both directions).
+9. **Renderer route census**: the desktop has NO URL router (zero
+   createBrowserRouter/HashRouter/path literals across 2,718 chunks — a
+   single-window pane/section-state app; the only windowKind is
+   `update-status`; Settings = a validated 18-section enum: general,
+   appearance, migration, browser, modelProvider, memory, plugin, mcp, skill,
+   plugins, usage, subagents, commands, hooks, workspaceFileSearch,
+   computerUse, automations, shortcuts). Phone-side mapping: appearance/locale
+   ✓, usage ✓, mcp ✓ (read-only), automations ✓, plugins/skills/subagents
+   read-only viewers ✓, modelProvider = the view-only picker (pass 31),
+   memory/commands/hooks-authoring/browser/computerUse/migration/shortcuts =
+   the already-ledgered desktop-only authoring planes (G44/G46/G18/B3/
+   desktop-form). **New namespace findings folded into existing rows: bots
+   254 keys = the Telegram binding/polling plane — the phone's G30 read-only
+   BotsViewer (Settings → 机器人, honest-fault face against the real desktop)
+   already covers the mobile slice; management stays desktop (the dated B3
+   boundary)**; resourceManager 65 keys + feedback tickets 288 keys = desktop
+   tooling planes (no mobile slice warranted); the updated i18n totals:
+   settings 1844 (modelProvider 575), chat 1348, feedback 288, bots 254,
+   automations 174, conversationShare 165, git 154, workflows 105.
+10. **The desktop's chat contextUsage/compression panel** (cacheHitRate +
+    panel-keyed /compact) re-confirmed with its i18n set — the pass-31 P4
+    smallest stands (the phone's ContextUsagePanel decodes the cache block
+    but omits the line; /compact lives in the palette, receipted live this
+    pass at 66 ms).
+
+## Part BD.5 — rig recipes recorded for the next pass
+
+- **The working slash-matrix recipe**: clear the draft (tapt composer_field →
+  MOVE_END → DEL×30) → `input text '/<cmd>'` → **keyevent 66** (hardware
+  ENTER inserts a `\n`, which breaks the '/' prefix match and CLOSES the
+  palette, restoring the composer layout — the IME Send action is NOT
+  keyevent 66) → tapt composer_send → grep wires. The parser trims the
+  newline. Typing `/cmd` alone opens the palette and (with the armed stack)
+  can squeeze the composer off-screen entirely (N-BD-1).
+- **Focused-field a11y artifact**: a focused Compose TextField reports a
+  TRAILING SPACE in uiautomator text (the cursor) — never treat it as draft
+  content; unfocused reads are exact.
+- **Wire greps must match `v4.call ::` AND `channel.call ::`** (and the
+  generic `sendConversationCommandV4 ok in Nms` line) — the single-letter
+  spellings differ per plane and one wrong spelling manufactured this pass's
+  only false defect suspicion.
+- The mock's 25 s interaction re-assert (MOCK_INTERACTION_PUSH_MS) makes
+  interaction cards a moving target; run interaction legs against a push-less
+  gen (MOCK_QUESTION still serves the snapshot card) for deterministic taps.
+- `am kill` does NOT kill a foreground process — HOME first, then `am kill`,
+  for the real savedInstanceState restore path.
+
+## Part BD.6 — pass-32 verdict and ledger delta
+
+On HEAD 08ef04eb (APK `9084b920…` byte-identical, vc52/1.3.1; asar `99e280fb…`
+unchanged, plist re-receipted via REA `ev_fed92045…`) the companion drove the
+campaign's first slash-20 live matrix (20/20 wired, zero faults, the
+client-parsed compact/goal/plan grammar exactly per the ported desktop
+contract), the first install-`-r` upgrade-over-data leg (clean: stored pairing
++ alias + draft all survived), the first process-death-with-pending-interaction
+leg (restored in-place AND answerable at 14 ms), fork/retry/like row-action
+wires with the fork's in-place child-session switch, deep-link and widget
+tap-through with the interaction anchor, new-task/archive wires, and a
+whole-UI localized locale flip (G37 holds). The REA dig settled the mobile
+push architecture (3 topics / 4 methods / 1 proactive push — the phone's local
+notification model is the only possible mobile surface), verified the 19-frame
+envelope complete, armed the row-kind watch with the full 97-kind schema
+inventory, confirmed the row-action plane as parity (no row), and produced
+FOUR new smalls (N-BD-1 composer squeeze, N-BD-2 mock debts, N-BD-3 fork
+notice copy, N-BD-4 bottom-clip family extension) + one P4-smallest (task
+`provider` field) — **zero new G rows for the second time** (pass 29 was the
+first): the gap surface is saturating and the remaining ledger is fixes, not
+discoveries. **The fix-round opener list stands as reordered in BC.7:
+F-27-B → F-27-A → GAP-21-A → F-27-C → N-BC smalls → G48+G51 → G60 + P4-smalls,
+now with N-BD-1/N-BD-3/N-BD-4 folded into the smalls family.** Census: 0 app
+FATALs, 0 app ANRs, ~2 h single emulator boot, zero emulator kills, one in-
+process relay gen-swap (32→33). Commits: this docs commit only. Nothing pushed.
