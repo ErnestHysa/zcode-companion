@@ -1253,10 +1253,22 @@ internal fun android.content.Context.readPickedFileSync(uri: android.net.Uri): T
     return Triple(name, mime, bytes)
 }
 
-/** I5: does the clipboard carry an image (content URI)? */
-internal fun clipboardHasImage(context: android.content.Context): Boolean =
-    clipboardImageUri(context) != null
+/**
+ * I5: does the clipboard carry an image? F-33-F: probes the clip DESCRIPTION only — never
+ * the data. Reading another app's clip pulls it (passwords included) into this process,
+ * notes READ_CLIPBOARD and, on Android 12+, raises the system "pasted from your clipboard"
+ * toast; this runs on every conversation open. The data is read only on the Paste tap
+ * ([clipboardImageUri]).
+ */
+internal fun clipboardHasImage(context: android.content.Context): Boolean = runCatching {
+    val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+        ?: return false
+    val description = cm.primaryClipDescription ?: return false
+    // Manual prefix match (hasMimeType's wildcard path varies by platform/shadow).
+    (0 until description.mimeTypeCount).any { description.getMimeType(it).startsWith("image/") }
+}.getOrDefault(false)
 
+/** The clipboard image's URI — reads the clip DATA, so only an explicit Paste tap calls it (F-33-F). */
 internal fun clipboardImageUri(context: android.content.Context): android.net.Uri? = runCatching {
     val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager ?: return null
     val clip = cm.primaryClip ?: return null
