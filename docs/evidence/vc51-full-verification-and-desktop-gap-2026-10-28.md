@@ -9952,3 +9952,485 @@ F-34-D → F-34-E → **F-36-B** → F-34-B → F-33-A → F-34-A → **F-36-C**
 G72 → G73 → G74 → G75 → N-BC / N-BD / N-BE / N-BF / N-BG / **N-BH** smalls → G68 + G69 → G48 +
 G51 → G60–G63, G66, G76.
 Commits: this docs commit only. Nothing pushed.
+# Part BI — pass 37 (2026-11-08): five first-time axes on the same build — the first live drive of the direct-endpoint plane (which found the probe running on the UI thread, so the feature is dead on device), the first lock-screen execution leg (which found shade Approve answering a real approval while the phone is locked), the first animations-off and low-storage walks (both hold), a 2,001-row scale + markdown-conformance leg (which found load-earlier is a self-evicting no-op against the cache bound), and an REA dig that leaves the desktop's fault-code vocabulary, tool-kind taxonomy, markdown stack, and OS-integration helpers on the record
+
+Scope: pass 36 re-walked the walked surface and went into storage forensics; this pass opens five
+axes no pass has driven — (1) the **direct-endpoint plane end-to-end** (every prior receipt is the
+dialog FORM only; GAP-A10 tested a dead port and never completed an add), (2) **execution from the
+locked keyguard** (33+ passes exercised shade actions only while unlocked), (3) the whole UI under
+**system animations disabled** (the accessibility "Remove animations" setting), (4) a
+**2,001-row conversation** (every prior pass ran ≤40-row snapshots; MOCK_ROWS=40 was the campaign
+maximum) walked against a 60-construct **markdown conformance document**, and (5) **zero-free
+storage**. On the REA side this pass censuses planes no pass enumerated: the desktop's `fault.*`
+vocabulary, the agent kernel's own tool-kind taxonomy (zcode.cjs), the exact markdown stack behind
+the desktop's rich rendering, and the app bundle's non-asar helpers (`tools/`, `macos-window-bounds`,
+`config/`) — closing the OS-integration census the earlier passes opened.
+
+Rig: debug APK byte-identical `9084b920…` (versionCode 52 / 1.3.1, targetSdk 36; `:app:assembleDebug`
+reproducible over the docs-only HEAD); desktop 3.14.5, asar `99e280fb…` re-verified on disk.
+AVD `zcode-a16` (Android 16 / API 36, 1080×2340 @ 440 dpi), cold boot; the boot System UI ANR
+dialog dismissed with Wait (standing rig noise). The pass-35 stored pairing reconnected to fresh
+relay generations with no re-pair; connection ids relay-1 → relay-6 include one deliberate
+mock-restart gap (~90 s of RECONNECTING with four 10 s connect timeouts) that recovered on its own,
+and one §15.3 takeover kick (`relay.kicked :: another terminal took over`) absorbed transparently.
+**0 app FATALs, 0 app ANRs** across ~2.5 h.
+
+## Part BI.1 — receipts (what holds, per leg)
+
+| Leg | Receipt |
+| --- | --- |
+| Relay re-receipt | Tasks root on a stored pairing (Connected, 3 tasks, automations/workflows/pinned/badges); conversation open → subscribe 21 ms → INITIAL frame 0.8 s after tap → `manager.snapshot rows=2001` |
+| §15.3 takeover | relaunching the app while relay-6 was live: `relay.kicked :: another terminal took over (§15.3)` → the new connection authenticated and the UI stayed Connected throughout |
+| Reconnect ladder | mock killed (18100 down ~90 s): phase → RECONNECTING, four `connect timed out after 10000ms` retries, then CONNECTED on the new generation; nothing user-visible beyond the header dot |
+| Approval from the PIN lock screen | FIRST time: `locksettings set-pin`, power off/on, keyguard up (`deviceLocked=1`) → expand the group → expand the approval → **Approve tap while still locked → `sendConversationCommandV4 ok 54ms`** (see F-37-B) |
+| Question card (this build, plain relay) | radio pick → inner scrolls (N-BG-1 stands) → Submit → `ok 118ms`, card cleared |
+| Queue | two deletes + allow-once answer: 91 / 55 / 65 ms, all ok; strip emptied, "· paused" cleared |
+| Slash palette (animations off) | "/" opens, /help visible, insert works |
+| Mode/model sheets (animations off) | Switch mode sheet (4 modes + copy), Switch model sheet (grouped list + search) render instantly, close cleanly |
+| Attachment menu (animations off) | six items render and dismiss; the N-BD-1 composer squeeze re-manifests with the palette open (armed-stack geometry unchanged) |
+| Keep-waiting snooze (animations off) | `sendConversationCommandV4 ok 11ms`; the card stays pinned by design (snooze pauses auto-resolution, it does not dismiss — pass-32 adjudication) |
+| Scale leg | 2,001-row snapshot accepted: subscribe → INITIAL → snapshot reconcile in ~1.5 s on first open; PSS 174 MB before → 202 MB after the walk; find over the cached window answers ("derived" → **1 of 320**) |
+| Markdown conformance | 60-construct doc rendered end-to-end — headings (one size, see N-BI-2), emphasis/strong/inline code/links/tables with alignment, GFM tables wrap long cells, syntax-highlighted json/python/kotlin fences with wrap + copy affordances, diff fence labeled, emoji incl. ZWJ family + flag + modifiers, CJK wraps correctly, Arabic + Hebrew bidi inline renders correctly, long unbroken token/URL/path all wrap without overflow — see N-BI-2 for what the phone does NOT render |
+| Low storage | `/data` filled to 12 MB → 2 MB → **0 bytes free**: message sends still succeed (`ok 222ms`, `ok 135ms`, `ok 82ms`), **zero SQLite/Room/DataStore error lines from the app process** (all 351 ENOSPC log lines belong to a system pid), no crash, no ANR; the diagnostics export fails with a typed toast (N-BI-3) |
+| Deep-link fuzz | 8 crafted `zcode://` intents (empty id, %20, traversal, HTML-injected query, unknown host, bogus fragment, extra params, plus the bare `zcode://connection` route): **0 crashes**, 0 FATALs; valid task ids still route (`nav.deeplink :: resolved task=synth-task-1` × 3, injected query ignored); `zcode://connection` correctly opens the Connection screen (re-verified with a screenshot); the four invalid ones are silent no-ops (N-BI-4) |
+| 16 KB page alignment (static, first receipt) | pass 34 wrote `/tmp/p34/elfalign.py` but never recorded a result — this pass ran it on BOTH APKs: **all four native libs × all four ABIs, LOAD p_align 0x4000, zip entries stored and 16 KB-aligned (`dataoff%16384=0`) — the shipped build is 16 KB-page-device ready** |
+| Manifest OS-integration census (static) | release manifest: 3 activities (Main + 2 Glance trampolines) / 8 services / 14 receivers / 2 providers; deep links exactly `zcode://task` + `zcode://connection`; 3 static shortcuts (new_task / approvals / connection, `com.zcode.android.app.action.SHORTCUT`); widget + Glance trampolines; dataExtractionRules exclude cloud-backup AND device-transfer at root; **NO ACTION_SEND share-into receiver, no TileService, no RemoteInput, no activity-alias** — every dynamic-API sweep this pass confirms (share-out exists; share-in does not) |
+
+## Part BI.2 — NEW defects (ordered by severity; every one reproduced, root-caused, and cited)
+
+### F-37-A (P1) — the direct-endpoint probe runs on the UI thread: NetworkOnMainThreadException on EVERY add, so the shipped `zcode --web` feature is unreachable on device
+
+**Receipt (first live drive of the plane):** Settings → Endpoints → Add direct endpoint, against a
+DIRECT-mode MockZCode stood up outside the repo (`/tmp/p37/direct/DirectMain.kt` — a copy of the
+repo's MockRelayMain patched to `MockZCode.Mode.DIRECT`, `RawWsServer` serving `/api/server-info` + `/ws` with the
+`zcode_lite_token` contract of docs/protocol/phase10-direct.md §1–§2; the host verified it with
+`curl http://127.0.0.1:18200/api/server-info?token=…` → 200 server-info JSON, wrong token → 401).
+The dialog validated and submitted; for the loopback and TLS shapes the guest reached the host
+listener at TCP level (a logging tap recorded each connect), and every attempt ended in the inline
+error — three shapes:
+
+1. `ws://10.0.2.2:18201/ws` (cleartext loopback, debug build so cleartext is permitted) → connect,
+   then **zero bytes flowed** — error "Network unavailable".
+2. `ws://192.0.2.1:3030/ws` (TEST-NET-1, a non-loopback host — the shape of every real LAN
+   address) → error in ~1 s, no packet sent — **"Local network blocked — allow local network access
+   or use the Tailscale/tunnel URL"** (a misdiagnosis; see below).
+3. `wss://10.0.2.2:18444/ws` (self-signed TLS front terminating to the same mock) → TCP + connect,
+   **no ClientHello ever written** — error "Network unavailable".
+
+**Mechanism (debugger-proven):** attaching `jdb` to the live process and catching
+`android.os.NetworkOnMainThreadException` put the app on break at the next probe attempt, with this
+stack (thread=main, dispatched from a Choreographer frame via `AndroidUiDispatcher`):
+
+```
+StrictMode$AndroidBlockGuardPolicy.onNetwork
+  → java.net.SocketOutputStream.socketWrite          (the ws case)
+  → okhttp3 … RealCall.execute
+  → com.zcode.android.core.transport.DirectServerProbe.probe (DirectTransport.kt:1131)
+  → com.zcode.android.app.connect.ConnectionHub.addDirectEndpoint (ConnectionHub.kt:1351)
+  → SettingsScreenKt$EndpointsSection$6$1.invokeSuspend (SettingsScreen.kt:427)
+  → AddDirectEndpointDialog$2$1$1$1.invokeSuspend   (SettingsScreen.kt:536)
+```
+
+and for `wss`, the identical frame chain breaking in
+`ConscryptEngineSocket$SSLOutputStream.writeInternal ← doHandshake ← okhttp3 ConnectPlan.connectTls
+← … ← DirectServerProbe.probe ← addDirectEndpoint` — **`DirectServerProbe.probe` performs a
+blocking OkHttp `execute()` on the composition dispatcher (Main)**. `NetworkOnMainThreadException`
+carries no message, so `classifyProbeFailure` (DirectTransport.kt, the `lnpMarkers` /
+name-resolution classifier) can only fall to `Unreachable` → the dialog renders the NETWORK
+category copy "Network unavailable" (the outcome's own more specific userMessage, "Server
+unreachable — check the URL and network", is not what the user sees).
+The 192.0.2.1 leg shows the classifier's second failure, also debugger-proven (a third `jdb`
+session catching `java.io.IOException`): OkHttp threw `java.net.UnknownServiceException` from
+`RealRoutePlanner.planConnectToRoute` on thread=main — its cleartext refusal ("CLEARTEXT
+communication to … not permitted by network security policy"), because only
+127.0.0.1/localhost/10.0.2.2 are in the debug network-security-config's cleartext list. The words
+"not permitted" match the probe's `lnpMarkers`, so the refusal is **misdiagnosed as a
+Local-Network-Permission problem and tells the user to fix an OS setting that does not exist**.
+On a release build (platform cleartext defaults — no cleartext anywhere) this is the outcome for
+EVERY `ws://` endpoint, including the dialog's own placeholder form `ws://host:3030/ws`; the
+phase-10 gate's promise that plain `ws://` "surfaced via an honest `insecureDirectTransport`
+error" holds only inside `DirectTransport.connect`, which the failing probe never reaches. The UI
+thread also stalled ~1 s on that leg (`Choreographer: Skipped 63 frames` at the tap); a slow-to-answer
+LAN host would hold the UI thread for up to the probe's 10 s budget — an ANR window, not reproduced
+this pass. Because NOMT is thrown by the platform on every device, **every direct-endpoint add fails
+everywhere**: `wss://` dies at the handshake write, LAN `ws://` dies at the cleartext gate, loopback
+`ws://` dies at the request write — GAP-A10's live leg only ever hit a dead port and never surfaced
+any of this.
+
+**Fix:** `withContext(Dispatchers.IO)` around the probe (or make `DirectServerProbe.probe` a
+suspend fun taking an injected dispatcher); classify `UnknownServiceException` (cleartext refused)
+as its own outcome with honest copy ("Plain ws:// isn't allowed — use a wss:// or tunnel URL"),
+and keep the LNP class for real connect errnos only; reject `ws://`/`http://` for non-loopback
+hosts at the dialog's `schemeOk` gate on release builds so the user learns before the probe. Pins:
+a dispatcher-seam test asserting the probe runs off Main, plus classify-fixture tests for a
+null-message NOMT, the OkHttp cleartext message, and an EPERM-shaped message. **Fidelity debts that must
+ship with the fix:** the token field masking (F-37-C) sits in the same dialog; and the pass's
+DIRECT-mode mock (already validated against curl) is the rig for the end-to-end re-test.
+
+### F-37-B (P1) — shade-level Approve/Deny executes with ZERO authentication while the device is locked: a locked phone answered a real approval and fired the wire
+
+**Receipt:** PIN set (`locksettings set-pin 1234`), screen off/on, keyguard showing
+(`dumpsys trust … deviceLocked=1`, `isKeyguardShowing=true`), ZCode's notification group expanded on
+the lock screen, the approval notification expanded (actions render on keyguard — `Approve` /
+`Deny` at `action0`), **Approve tapped while still locked** → the notification cancelled, the
+post-decision haptic fired, and the log shows `v4.call :: sendConversationCommandV4 ok in 54ms` on
+the live connection — `deviceLocked=1` still true immediately after. The command told the desktop to
+run the approved Bash command. No unlock, no biometric, no re-auth of any kind.
+
+**Mechanism:** `NotificationActionReceiver.onReceive`
+(app/src/main/kotlin/com/zcode/android/app/notifications/NotificationActionReceiver.kt) validates the
+intent and routes straight into the fail-closed inbox answer — no keyguard or biometric check
+anywhere in the path — and the actions are attached with the bare
+`builder.addAction(0, action.title, actionPendingIntent(…))` overload
+(core/notifications AndroidNotificationSink.kt:65), which builds no `Action` object, so
+`setAuthenticationRequired(true)` is never set. The in-app approval card is only reachable on an
+unlocked phone by construction; the notification-action path removes that implicit gate. The app's own threat model walks T3
+(overlay/screen-scrape of approvals) and T14 (social-engineered approval) — this pass adds the
+concrete face those rows assumed would be gated: **answer-as-anyone-who-holds-the-phone**. On a
+device lost in an office or grabbed for ten seconds, live approvals — permission to run shell
+commands on the desktop — are one tap away, and the haptic even confirms the answer.
+
+**Fix:** `setAuthenticationRequired(true)` on permission-channel notification actions (the platform
+then demands the credential before dispatching when keyguard is up — the legitimate locked-phone
+user unlocks and the action still fires; the thief does not), and/or a `KeyguardManager.isKeyguard`
+check in the receiver that defers the answer into a post-unlock surface. Pin: a Robolectric pin on
+the action builder asserting `authenticationRequired` for PERMISSIONS-channel actions; a receiver
+test for the locked path. This pairs with G77: once the countdown plane ships, a locked-phone fuse
+makes unauthenticated answering even more consequential.
+
+### F-37-C (P2) — both secret-entry fields are plain-text with a learning keyboard: the direct token and the pairing link render unmasked and are offered to Gboard's suggestion bar
+
+**Receipt (screenshots p37-04/-05):** the Add-direct-endpoint dialog's Token field renders `p37tok`
+in plain sight — uiautomator reports `password=false` on all four dialog fields — and the Gboard
+suggestion bar above the keyboard showed `p37tok  Peyton  Pluto`: **the token was learned as a
+personal-dictionary word**. The field is a bare
+`OutlinedTextField(value, onValueChange, label)` (SettingsScreen.kt ~500–507): no
+`visualTransformation`, no `KeyboardType.Password`/`Uri`, no `autoCorrectEnabled=false`, no
+`NoPersonalizedLearning` ime flag. The same shape ships in the pairing flow's manual-entry field
+(`ManualEntryScreen`, features/pairing PairingScreens.kt:174) — **the QR-equivalent link carries the
+sid + passHash**, the credential §7.6 exists to protect, typed through a keyboard that learns it.
+The app's own copy on the same dialog promises "The token is sealed on-device and never leaves
+except to this server" — it leaks to the IME the moment it is typed.
+
+**Fix:** on both fields set `keyboardOptions = KeyboardOptions(keyboardType =
+KeyboardType.Password, autoCorrectEnabled = false, capitalization = KeyboardCapitalization.None)`
+(a password input type is what tells the IME not to learn or suggest) +
+`PasswordVisualTransformation()` with a show/hide toggle for the direct token; the pairing link can
+stay masked. Pin: a compose-test asserting `KeyboardType.Password` and the transformation on both
+fields; extend the a11y sweep to assert `password=true` in the tree.
+
+### F-37-F (P2) — the default-ON "screenshot protection" preference is stored, round-tripped and pinned — and enforced nowhere: Recents shows an approval's command text with Screenshot/Select enabled
+
+**Receipt:** with the conversation open (pinned approval: "Run a synthetic command?
+`{"command":"echo synthetic"}`" + Allow once / Allow always), `dumpsys window` reports the
+MainActivity window flags as `fl=LAYOUT_IN_SCREEN LAYOUT_INSET_DECOR SPLIT_TOUCH
+HARDWARE_ACCELERATED DRAWS_SYSTEM_BAR_BACKGROUNDS` — **no `SECURE`** — `screencap` captures the
+full screen, and the Recents overview (KEYCODE_APP_SWITCH, screenshot p37-03-recents) renders the
+live approval card, the queued follow-ups, the composer draft and the shared-context chip in the
+task thumbnail, with the system's **Screenshot** and **Select** (text extraction) actions offered
+under it.
+
+**Mechanism:** `AppPreferences.screenshotProtection: Boolean = true` — documented in the model as
+"§27 recents screenshot protection (FLAG_SECURE toggle)" (CoreModels.kt:195-196) — is persisted and
+read back (DataStoreRepositories.kt:118 / :171) and pinned by `DataStoreStoresTest` ("§27 default:
+screenshots of sensitive surfaces protected"), but a repo-wide search finds **no
+`FLAG_SECURE`, no `setRecentsScreenshotEnabled`, and no reader of the preference** outside the store
+and its tests; Settings exposes no toggle for it either. The threat-model trail shows how it fell
+through: the phase-3 gate deferred **T3 (overlay/screen-scrape of the approval UI)** with "FLAG_SECURE
+toggle remains §27 Phase-6+ setting | deferred, tracked", and the phase-8 gate re-walked T3 as
+"Unchanged — notifications only OPEN the app; approvals are answered solely on the fail-closed in-app
+card" — a rationale C3's shade-level Approve/Deny later retired, while the §27 enforcement itself
+never landed. The second half of that same seam is F-37-B (shade actions without authentication).
+
+**Fix:** apply `WindowManager.LayoutParams.FLAG_SECURE` (or, on API 33+,
+`setRecentsScreenshotEnabled(false)` for Recents-only protection) from the preference in
+`MainActivity`, and surface the toggle in Settings → Privacy where the default-ON promise already
+lives; scope it at least to the approval card / terminal / pairing screens if a global flag is too
+blunt. Pin: an instrumented or Robolectric test that the window carries `FLAG_SECURE` while the
+preference is on, and a Settings test for the toggle.
+
+### F-37-D (P2) — load-earlier is a self-evicting no-op: the cache bound deletes the history page in the same transaction that fetches it (static, but deterministic)
+
+**Receipt (scale leg):** a 2,001-row snapshot loaded; Room holds exactly **320 rows
+(1682..2001)** — `ConversationCacheBounds.MAX_CACHED_ROWS_PER_SESSION = 2 × RENDER_WINDOW_ROWS(60)
++ PAGE_MAX_ROWS(200)` (ConversationRepository.kt:77–93) — and the header showed no
+Load-earlier strip, because `hasMoreHistory` derives from the snapshot's `rowsWindowSchema`
+(firstRowId ≠ first cached rowId) which the mock never sends (mock debt, recorded in BH.4's
+ledger). But the deeper half is static and total:
+
+`Ports.loadOlder` (app/src/main/kotlin/com/zcode/android/app/connect/Ports.kt:872) fetches a page
+`beforeRowId` → `conversationRepo.apply(PageFetched)` → `applyPage` inserts the rows and calls
+`enforceBound` (ConversationRepositoryImpl.kt:139) — and `enforceBound` keeps the **newest** 320,
+deleting `rowIdsBeyondCap` (the oldest). The page just fetched is the oldest thing in the store:
+**insert 50 rows (1632..1681) into a full 320-row store → 370 rows → evict the 50 oldest — exactly
+the fetched page.** Net zero, in one transaction; "Load earlier" can never surface history against
+the current bound. The store's own pin (`per-session bound holds`, ConversationRepositoryTest.kt:146)
+only covers `RowUpserted` eviction, never a `PageFetched` landing after a full snapshot — that
+combination is untested, and this pass's 320-row receipt is its live shape. The §17.3 bound is
+designed for snapshot churn; backward paging needs either a grown bound while at the top (fetch →
+insert → THEN bound against the NEW bottom, i.e. keep `[page ∪ newest 320]`), or hasMore-driven
+replacement of the oldest page instead of newest-wins eviction.
+
+**Fix:** in `applyPage`, compute the bound AFTER insert but exclude the fetched range from eviction
+(or keep `max(bound, cached + page)` while `hasMore` was true for that page). Pins: a real-repo test
+`PageFetched` over a full store asserts the fetched page survives AND the count honors the bound
+contract; a pin that `loadOlder` twice yields ≥2 distinct older pages.
+
+### F-37-E (P3) — the stream watchdog re-kicks an idle session every ~90 s forever (its 4-strike cap never engages), re-pulling the full history snapshot every other round: a per-session payload tax the phone imposes on the desktop
+
+**Receipt (scale leg, gen3):** with the 2,001-row task idle at the bottom of a 30-minute walk, the
+log shows `recovery.streamWatchdog :: no frames for ~90s — re-kick session=synth-task-1` **14 times
+at a metronomic ~90 s cadence**, each one escalating to a `kind=RECOVERY` frame — alternately a full snapshot
+(`recovery.snapshotReconcile rows=2001`) and a single-seq delta — i.e. a full-conversation recovery
+payload every ~3 minutes for a task nothing is happening on. `streamWatchdogCapped` fired **zero**
+times: the 4-strike cap (RecoveryCoordinator.kt, `watchdogMaxStrikes = 4`) can only engage when the
+server STOPS answering, but every re-kick's own recovery snapshot delivers frames that reset the
+strike counter — so a compliant-but-passive desktop is re-pulled forever. The gating reads the task
+machine (`state in {RUNNING, LOADING, UNKNOWN}` skips terminal), and the header showed
+"Completed" — yet the re-kicks ran, so the machine's observable state was not terminal at check
+time (honest uncertainty: whether the scripted pending-approval row or the 320-row store view keeps
+it in a non-terminal state is not settled by this pass's evidence). The cost claim is independent of
+that question: every other re-kick re-pulled the full 2,001-row snapshot (the alternate ones came
+back as single-seq deltas); on a real desktop with long sessions that is a periodic full-history
+re-serialization for every open session the machine reads as non-terminal.
+
+**Fix:** the loop is: 90 s of honest silence → re-kick → the recovery answer marks a frame (which
+also clears the strikes) → 90 s of silence → re-kick … — the recovery response proves the session
+is healthy-and-idle, yet it re-arms the same timer. (1) When a recovery comes back with no change
+(same epoch, same seq head), mark the session healthy-idle and stand the watchdog down until the
+next genuine delta; (2) give the per-session escalation an exponential backoff that only a NEW
+delta resets — not the watchdog's own recovery frame — so the 4-strike cap can actually engage;
+(3) re-check why the machine read non-terminal while the header showed "Completed" (the gating
+should already have skipped this session). Pin: a coordinator test with a scripted
+snapshot-only responder asserting the re-kick count stays bounded over N intervals.
+
+### N-BI-1 (P4) — ordered-list markers use a fixed 18 dp column: "10." wraps its period onto its own line
+
+The renderer gives the marker `Modifier.width(18.dp)` (RowRenderers.kt, ListItem branch) — two-digit
+markers overflow it, and the screenshot shows `10` on one line with the period orphaned on the next
+against "Ordered ten (start number check)". Agent outputs routinely number past ten. Fix: size the
+marker column by digits (`3.dp * digits + base`) or right-align in an unbounded column. Same leg:
+heading levels — the parser clamps `level.coerceAtMost(3)` and the renderer maps only level 1 vs
+everything else to `titleMedium`/`titleSmall`, so H2–H6 all render at one size (screenshots
+p37-md-top2). Fix with the same pin if touched.
+
+### N-BI-2 (P4) — markdown conformance gap list (the phone's parser vs the desktop's streamdown + remark-gfm 4.0.1 stack)
+
+Rendered correctly (receipts above): `*emphasis*`, `**strong**`, `` `code` ``, links, tables with
+`:---` alignment, GFM table wrap, fenced code with language label + highlight + wrap/copy, `---`
+rule, nested list indent levels, `-`/`*`/`+` bullets, emoji (incl. ZWJ 👨‍👩‍👧‍👦 and 🇮🇪),
+CJK wrap, Arabic/Hebrew bidi, unbroken-token wrap. NOT handled, each verified on the screenshot
+walk: `_underscore emphasis_` (literal), `***both***` (literal), autolink `<https://…>` (literal
+brackets), bare URL not linked, `[^1]` footnotes (literal ref + body as paragraph), hard line
+breaks (two-space and backslash both collapsed; the backslash renders literally), nested
+blockquotes (flattened, `>` literal), task lists `[ ]`/`[x]` (literal — no checkboxes), indented
+code blocks (rendered as prose), `$…$`/`$$…$$` math (literal), inline HTML (`<kbd>` etc., literal),
+`![alt](url)` images (parsed as a LINK — "!" leaks and the alt text underlines as a link), escape
+sequences `\*` / `` \` `` (backslash literal AND the escaped character styled anyway). The desktop
+side this pass pinned its stack: **streamdown 2.5.0** (streaming renderer) over **remark-gfm 4.0.1**
+(tables + task lists + autolink literals + footnotes + strikethrough), KaTeX via @streamdown/math,
+mermaid diagram chunks, shiki-stream, rehype-sanitize — so every item above is a named desktop
+behavior, not a guess. Slice order by user value: task lists → underscore emphasis → escapes →
+images-as-thumbnail → footnotes → autolinks; the math/mermaid rows stay the ledgered P4 desktop-gap
+rows (pass 29).
+
+### N-BI-3 (P4) — the diagnostics-export failure toast shows a raw cache path
+
+At 0 bytes free, Export diagnostics failed with a toast reading `Export failed:
+/data/user/0/com.zcode.android.app/cache/shared/zcode-diagnostics-1794143803559.` — honest (the
+failure IS surfaced, GAP-class behavior respected) but leaking an internal path and truncating
+mid-extension. Fix: a typed user copy ("Not enough free storage to export diagnostics") + the path
+kept for the diagnostics ring only.
+
+### N-BI-4 (P4) — malformed deep links are silent no-ops
+
+`zcode://task/`, `zcode://task/%20`, `zcode://task/../../etc`, and `zcode://unknownhost/x` all
+reached MainActivity, logged `app deeplink :: onNewIntent`, and then did nothing — no navigation,
+no toast, no diagnostics line (`nav.deeplink :: resolved` appeared only for the three links with
+valid task ids; `zcode://connection` is a real route and works). The fail-closed routing is correct; the
+absence of any feedback or ring entry means a user tapping a broken link (widget, share, browser)
+gets nothing to explain it. Fix: one `nav.deeplink.rejected` ring line + an honest toast; keep
+routing unchanged. No crash across the whole fuzz set, HTML-injected query strings included.
+
+### N-BI-5 (P4) — the notification-detail subtitle is static while the value cycles
+
+Settings → Notifications → "Notification detail" toggles Minimal ⇄ Task titles per tap, but the
+subtitle beneath it always reads "Minimal keeps the lock screen to 'ZCode needs your approval' …"
+(SettingsScreen.kt ~841, `subtitle = stringResource(R.string.settings_notif_detail_sub)`) — it
+contradicts the row's own current value when Task titles is selected. Fix: pick the subtitle by
+level. Found during the animations-off walk (the value flipped twice under the static copy).
+
+## Part BI.3 — REA pass-37 dig: the desktop's fault vocabulary, the kernel's tool-kind taxonomy, the markdown stack, and the OS-integration census closed out
+
+Method: the unchanged asar (`99e280fb…`) through the pass-24 flattened extraction
+(`/private/tmp/p24-asar`, 19,589 files), plus files OUTSIDE the asar no pass had read
+(`Resources/tools/`, `Resources/macos-window-bounds/`, `Resources/config/`), plus the agent kernel
+at `Resources/glm/zcode.cjs` (14,820,968 bytes). REA's GUI
+providers were unavailable for the new native helper (Hopper not installed, Ghidra refuses universal
+Mach-O) — `lipo -thin arm64` + `strings` + running the binary answered it.
+
+### 1. G79 (P4) — the desktop's `fault.*` vocabulary is larger than anything the phone can phrase
+
+99 `fault.`-prefixed literals in the desktop JS, of which **54 are real wire codes** (the other 45
+are shiki-grammar and library false positives like `fault.js.jsx`). They cluster in the planes the
+phone consumes: `subscription.*` ×8 (`contentRejected`, `initialFrameStagingOverflow`, `notOwned`,
+`recoveryFailed`, `recoveryFrameTimedOut`, `resyncGenerationMismatch`, `runtimeRestarted`,
+`transportReplaced`) + `subscribe.unknown`; `attachment.*` ×23 (incl. `previewNotMedia`,
+`previewTooLarge`, `shareReadNotAuthorized`, `shareStatNotFound`, `checksumUnavailable`…);
+`connection.*` ×8 (`clientChanged`, `closed`, `flowControlForbidden`, `handshakeRequired`,
+`helloRequired`, `invalidConnectionId`…); `command.*` ×10 (`capabilityUnsupported`,
+`inputDiscardedOnRestart`, `queryForeignWorkspace`, `queryUnavailable`, `clientMismatch`, and three
+`*Rejected.` families for background-work cancel, saved-workflow start, workflow-run
+resume/settings); plus `runtime.hookBlocked`, `bashOutput.connectionUntrusted`,
+`conversation.rowsRangeConnectionUntrusted` and `terminal`. The phone's `ErrorMapping.relayError` maps only the relay-CONTROL codes
+(AUTH_FAILED / DEVICE_OFFLINE / KICKED); every v4 `fault.*` reaches the phone as a raw `refused:
+fault.<…>` string (this pass's logs show the path with the mock's own code,
+`refused: fault.mock.unscripted:getEntitlementSnapshot`) and the user sees either nothing (N-BG-2's
+silent Git refusals are this path) or generic copy — no per-family wording, no recovery hint. The
+desktop's i18n census has no `fault.*` keys, so whether the desktop phrases these per code is NOT
+settled by this pass; the row is therefore a **phone-better opportunity** rather than a parity gap:
+a small fault→copy map keyed exactly on the five families above turns today's silent refusals into
+explained ones (the mock's vocabulary is the ready-made fixture).
+
+### 2. G80 (P4) — the kernel's own tool-kind taxonomy: the phone's 5 substring buckets vs the desktop's name-keyed 14-kind map
+
+The bundled `zcode.cjs` ships the provider-visible tool set verbatim: **31 names**
+(`Agent, AskUserQuestion, Bash, CronCreate, CronDelete, CronList, CronUpdate, Edit, EnterPlanMode,
+EnterWorktree, ExitPlanMode, ExitWorktree, Glob, Grep, LSP, NotebookEdit, Read, ScheduleWakeup,
+Skill, TaskCreate, TaskGet, TaskList, TaskOutput, TaskStop, TaskUpdate, TodoRead, TodoWrite,
+WebFetch, WebSearch, Workflow, Write`) plus `KillShell`/`KillBash` as TaskStop's aliases,
+`ApplyPatch`, the `js`/`js_reset`/`js_add_node_module_dir` node-repl family, and `web_search` as
+WebSearch's provider-native alias. The desktop's compact-tool-call layer keys tools BY NAME into a
+**14-kind map** (`file-read, file-write, shell, search, todo, goal, session-context,
+ask-user-question, message, task-control, node-repl, agent, skill, workflow`), renders them through
+14 `chat.toolCall.kind.*` labels (delete, edit, message, nodeRepl, read, response, search,
+sessionContext, skill, taskOutput, taskStop, terminal, todo, write), extracts per-tool summary
+inputs (`command / path / file_path / filePath / prompt`) plus a change stat, and carries six
+status copies incl. a distinct **denied** state. The phone renders the raw
+`toolName` as the title and buckets settled calls into 5 grouping categories
+(ToolGrouping.kt: CHANGES/EXECUTE/EXPLORE/COMPUTER_USE/OTHER), with a generic first-line
+`inputText` summary and a status set with no denied state (refusals surface as generic
+error rows). Mobile slice (ranked): (a) map the desktop's 14 kinds onto the phone's tool-card
+subtitle so `TaskUpdate` reads "task control" instead of a bare name — the mapping table is
+portable as-is; (b) adopt the desktop's distinct denied status (`output-denied` → "denied") — the phone's
+`ToolCallStatus` (domain ConversationRow.kt) has INPUT_STREAMING / PENDING_APPROVAL / RUNNING /
+SUCCESS / ERROR / CANCELLED / UNKNOWN, so a user-denied call reads as an error or a cancel;
+(c) key the buckets by name, not substring: the phone's `ToolCategory.of` (ToolGrouping.kt) is a
+substring heuristic, and the kernel's scheduling family scatters across three buckets —
+`CronCreate`/`CronDelete` match `create`/`delete` and are grouped as file **CHANGES**, `CronList`
+matches `list` and lands in EXPLORE, `CronUpdate` falls to OTHER (simulated against the shipped
+word lists) — so a CronCreate next to an Edit can fold into one "Changes" group.
+
+### 3. The markdown stack, grounded (no new row; N-BI-2's gap list is now desktop-anchored)
+
+Desktop renderer = **streamdown 2.5.0** + **remark-gfm 4.0.1** + micromark GFM extensions (table
+2.1.1, task-list-item 2.1.0, autolink-literal 2.1.0, footnote 2.1.0, strikethrough) + KaTeX
+(@streamdown/math) + mermaid diagram chunks + shiki-stream highlight + rehype-sanitize. Every N-BI-2
+miss is a named GFM/math/HTML feature of this stack. The phone's ~340-line hand-rolled parser
+(MarkdownParser.kt) implements headings/fences/tables/quotes/lists/rule + a five-token inline
+scanner (code, strong, strike, link, emphasis) —
+the cheapest high-value adopts (task lists, underscore emphasis, escapes, image-as-thumbnail) are
+one parser pass each, and the 18.dp marker bug (N-BI-1) is the one true defect.
+
+### 4. The OS-integration census closes: window-bounds helper, tools/, config/, and NO remote-config system
+
+- **`macos-window-bounds/zcode-window-bounds`** (Mach-O universal, `eb38a314…`): a Swift CGWindowList
+  poller that prints window JSON `{x,y,w,h,layer}` on an interval — REA's providers were unavailable
+  (Hopper absent; Ghidra refuses universal Mach-O), so `lipo -thin arm64` + live execution settled
+  it: it emits one JSON line per frame of the tracked window's bounds. Consumer:
+  `resolveWindowBoundsBinaryPath` → `HR()` spawns it and feeds the CUA **permission-onboarding drag
+  panel's anchor position** (the panel must hug the Settings window while the user grants
+  Screen-Recording/Accessibility). macOS-AX-only by architecture; no phone slice.
+- **`Resources/tools/`**: bfs, ripgrep (`rg`), ugrep — the desktop's bundled search binaries, and
+  `glm/packages/` ships 15 packages (13 plugins + bundled-skills + node-repl-host; pass-31's
+  receipt re-verified on disk). Desktop-local by
+  architecture; the phone's Files viewer already consumes the workspace through the wire.
+- **`Resources/config/`**: `default.json` (feedback form URL — zhipu feishu — and community links
+  Discord/feishu-applink) + `provider/zcode-builtin.json` (provider catalog **rev 30**, the same
+  revision pass 31 censused — unchanged, and the phone's modelOptions view stays a view over it).
+  The phone's Settings → Diagnostics feedback row is the parity slice for the feedback URL;
+  community links are desktop-only surface, no row.
+- **Feature flags**: no Statsig/GrowthBook/LaunchDarkly/PostHog/Firebase-remote anywhere in
+  `out__*.js`; the only `featureGate` is a **local** assert around web-remote-control
+  start/resetPairing (`e.featureGate.assertEnabled()` before relay lifecycle calls). The desktop has
+  NO remote experiments plane — the phone having zero remote flags is **parity by architecture**, and
+  this closes the "is there a flag system the phone is missing?" question that passes 29–36 left
+  implicit (the §43.2-11.5 voice-input experiment the phone ships is a phone-local flag, correctly
+  mirrored).
+
+## Part BI.4 — rig notes recorded for the next pass
+
+- **DIRECT-mode mock (reusable, outside the repo)**: `/tmp/p37/direct/DirectMain.kt` is the repo's
+  MockRelayMain patched to `MockZCode.Mode.DIRECT` (+ a `MOCK_MODE=relay` escape and
+  `MOCK_MD_FILE` for injecting any markdown file as the demo row). Compile once with
+  `kotlinc -cp $(cat /tmp/p37/direct/cp.txt) -Xfriend-paths=<mockzcode.jar>` → `direct.jar`; launch
+  via `/tmp/p37/direct.sh` (18200) or `/tmp/p37/relaymin.sh` / `/tmp/p37/relaymd.sh` (relay-mode
+  variants). Verified against curl before any phone leg; wrong token → 401.
+- **jdb-over-FIFO for main-thread exceptions**: `adb forward tcp:8700 jdwp:<pid>`; `mkfifo jdb.in`;
+  `jdb -attach localhost:8700 < jdb.in > out` with `tail -f /dev/null > jdb.in` parked; then
+  `catch all android.os.NetworkOnMainThreadException` → drive the UI → `where` prints the app
+  frames. Clear catches and `exit` before detaching (and `adb forward --remove-all`).
+- **Logging TCP taps**: `tap.py <listen> <upstream>` logs every connect + first request line;
+  `tlstap.py` fronts a plain upstream with a self-signed cert (`openssl req -addext
+  subjectAltName=IP:10.0.2.2`) — the zero-byte-connect receipt (connect but no request bytes) is
+  the fastest "did the write happen" probe without a debugger.
+- **Lock-screen leg**: `locksettings set-pin 1234` → keyevent 26 (off) → 224 (wake) →
+  `dumpsys trust | grep deviceLocked` to PROVE locked before and after the tap; expand via the
+  group's `expand_button`, then the row's `expand_button`, then `action0`; unlock by swipe + PIN +
+  keyevent 66; `locksettings clear` afterwards. Actions render on keyguard; screencap sees the
+  redacted-by-visibility titles as the app wrote them.
+- **Low-storage leg**: `fallocate -l <N>m /data/local/tmp/fill` in steps (12 MB → 2 MB → 0);
+  at 0 bytes avoid `uiautomator dump` (it writes `/sdcard/ui.xml` onto the full partition) and drive
+  by coordinates; `adb exec-out screencap -p > host.png` streams to the host and kept working at
+  0 bytes free; the system's own trimmer frees ~110 MB once, so re-fill before each assertion, and
+  `rm` the fill files the moment the leg ends.
+- **Markdown conformance leg**: keep `/tmp/p37/direct/conformance.md` (60 constructs) and inject it
+  as the demo row via the patched launcher — one generation swap, no app reinstall; walk it bottom
+  rows first (the pinned stack eats the first screens otherwise).
+- **`df /data` on this AVD reports `/data/user/0`** — read the 1K-blocks free column, not the IUsed
+  one, when budgeting fills.
+
+## Part BI.5 — pass-37 verdict and ledger delta
+
+Every plane this pass re-drove holds, with 0 FATALs / 0 ANRs: the relay reconnect ladder and the
+§15.3 takeover kick, approvals and question cards, the queue, the slash palette, mode/model sheets,
+and the attachment menu — and the two environments no pass had varied both came back healthy: with
+**all system animations off** every sheet, dialog, menu and palette still works (the static subtitle
+and the re-manifested composer squeeze are the only residue), and at **0 bytes of free storage** the
+app keeps sending messages, writing its stores, and failing its one genuinely-failing operation with
+a typed error. The 2,001-row leg proves the snapshot plane and find at scale. The pass's most
+consequential findings came from the two legs no pass had driven: **the direct-endpoint plane is
+dead on device** (F-37-A — the probe runs on the UI thread; debugger-proven on three endpoint
+shapes, so the feature nobody had ever driven live never once succeeded), and **the lock screen
+executes approvals without authentication** (F-37-B — a locked PIN'd phone approved a real command,
+wire receipt 54 ms).
+F-37-C closes the same security seam on the input side (unmasked secrets learned by the IME),
+F-37-F shows the default-ON screenshot protection was never wired (Recents exposes the approval
+card), F-37-D makes load-earlier provably a no-op against the cache bound, and F-37-E documents the
+per-session desktop payload tax the stream watchdog imposes. REA closed the last unenumerated
+desktop surfaces: the fault vocabulary (G79), the kernel's own name-keyed 14-kind tool map (G80), the
+markdown stack grounding every N-BI-2 gap, and the OS-integration helpers — window-bounds is CUA
+drag-panel anchoring, tools/ are desktop-local binaries, and there is NO remote-config system
+anywhere in the desktop, which settles the flags question as parity.
+
+On-par verdict after 37 passes: the phone matches or beats the desktop on every runtime plane it
+renders over the relay — the direct (`zcode --web`) plane is the exception, non-functional until
+F-37-A lands — and this pass's two P1s are both fixable without design changes: one dispatcher hop
+(F-37-A) and one builder flag (F-37-B). The remaining blind spots are unchanged — G77's fuse and
+G60's plan plane — and G79/G80 add two vocabularies the phone renders raw (fault codes, tool
+names) where a small table would make it better than the desktop's own surfaces.
+
+Ledger delta: +2 app P1s (F-37-A, F-37-B), +3 P2s (F-37-C, F-37-F, F-37-D), +1 P3 (F-37-E), +5 smalls
+(N-BI-1..5), +2 G rows (G79, G80 P4), 1 static first-time receipt (16 KB alignment: CLEAN), 1 census
+closed (OS integration: no new rows), mock debts (rowsWindowSchema env knob for the Load-earlier
+strip still missing; DIRECT-mode mock now exists).
+
+**Fix-round opener order (supersedes BH.5; new items in bold):**
+F-34-D → F-34-E → **F-37-B** → **F-37-A** → F-36-B → F-34-B → F-33-A → F-34-A → F-36-C →
+**F-37-C** → **F-37-F** → F-33-D → F-27-B → G77 (seed the mock's autoResolution first) → **F-37-D** → F-34-C →
+F-34-F → F-33-E + F-27-A → F-33-H → F-33-F → **F-37-E** → F-36-A → GAP-21-A (+ G65) → N-BG-2 →
+N-BG-1 → N-BH-1 → **N-BI-1** → G67 → G64 → G78 → **G79** → **G80** → **N-BI-2..5** → G71 → G70 →
+G72 → G73 → G74 → G75 → N-BC / N-BD / N-BE / N-BF / N-BG / N-BH smalls → G68 + G69 → G48 + G51 →
+G60–G63, G66, G76.
+
+Commits: this docs commit only. Nothing pushed.
