@@ -40,6 +40,8 @@ enum class UserMessageKey {
     LOCAL_NETWORK_BLOCKED,
     ENDPOINT_CERT_CHANGED,
     ENDPOINT_UNENCRYPTED,
+    /** F-37-A: the platform's network-security policy refuses plain ws:// / http:// to this host. */
+    CLEARTEXT_NOT_ALLOWED,
     DESKTOP_RELAY_LOST,
     DESKTOP_APPROVAL_TIMEOUT,
     RELAY_ERROR_RETRYING,

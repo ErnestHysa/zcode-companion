@@ -73,6 +73,11 @@ class ConnectionHub(
     private val drafts: com.zcode.android.domain.repo.DraftRepository,
     private val scope: CoroutineScope,
     internal val log: ZLog,
+    /**
+     * F-37-A: where the add-endpoint probe's blocking HTTP call runs — never the caller's
+     * dispatcher (the Settings dialog calls [addDirectEndpoint] from Main).
+     */
+    private val probeDispatcher: kotlinx.coroutines.CoroutineDispatcher = kotlinx.coroutines.Dispatchers.IO,
 ) {
 
     /**
@@ -259,6 +264,32 @@ class ConnectionHub(
 
         /** G12: the replayable input class (pendingCommandReplay.ts's input kinds). */
         val REPLAYABLE_COMMAND_TYPES = setOf("sendText", "sendGoalCommand", "compact", "createSession")
+
+        /**
+         * The add-endpoint dialog's copy per failed probe (§33). F-37-A: a cleartext refusal
+         * carries its own key ("Plain ws:// isn't allowed — use wss:// or a tunnel URL") —
+         * it used to fall into the LNP class and blame an OS setting that does not exist.
+         */
+        internal fun addDirectRejection(probe: com.zcode.android.core.transport.ProbeResult, url: String): AppError =
+            when (probe) {
+                is com.zcode.android.core.transport.ProbeResult.TokenRejected ->
+                    com.zcode.android.core.transport.ErrorMapping.directTokenRejected(probe.status)
+                is com.zcode.android.core.transport.ProbeResult.LocalNetworkBlocked ->
+                    com.zcode.android.core.transport.ErrorMapping.localNetworkBlocked(probe.reason)
+                is com.zcode.android.core.transport.ProbeResult.CleartextRefused ->
+                    com.zcode.android.core.transport.ErrorMapping.cleartextRefused(url)
+                is com.zcode.android.core.transport.ProbeResult.Unreachable ->
+                    AppError(
+                        category = com.zcode.android.core.common.error.ErrorCategory.NETWORK,
+                        userMessage = "Server unreachable — check the URL and network",
+                        developerDiagnostic = "direct add probe unreachable: ${probe.reason.take(120)}",
+                        retryable = AppError.Retryable.USER,
+                        recoverable = true,
+                        autoRecovery = com.zcode.android.core.common.error.RecoveryAction.NONE,
+                    )
+                is com.zcode.android.core.transport.ProbeResult.Ok ->
+                    error("an accepted probe is not a rejection")
+            }
     }
 
     /** Port accessors (features never see the coordinator itself). */
@@ -1348,7 +1379,8 @@ class ConnectionHub(
         // Normalized ws URL + http origin for the probe (phase10-direct.md §2).
         val normalized = wsUrl.trim()
         val origin = com.zcode.android.core.transport.DirectTransport.httpOriginOf(normalized)
-        return when (val probe = com.zcode.android.core.transport.DirectServerProbe.probe(origin, token, 10_000)) {
+        val probe = com.zcode.android.core.transport.DirectServerProbe.probe(origin, token, 10_000, probeDispatcher)
+        return when (probe) {
             is com.zcode.android.core.transport.ProbeResult.Ok -> {
                 val info = probe.info
                 val endpointId = EndpointId(java.util.UUID.randomUUID().toString())
@@ -1377,21 +1409,7 @@ class ConnectionHub(
                 log.info("hub.directAdded", "endpoint=${endpointId.raw.take(8)}… workspaces=${info.workspaces.size}")
                 AddDirectOutcome.Added(endpoint)
             }
-            is com.zcode.android.core.transport.ProbeResult.TokenRejected ->
-                AddDirectOutcome.Rejected(com.zcode.android.core.transport.ErrorMapping.directTokenRejected(401))
-            is com.zcode.android.core.transport.ProbeResult.LocalNetworkBlocked ->
-                AddDirectOutcome.Rejected(com.zcode.android.core.transport.ErrorMapping.localNetworkBlocked(probe.reason))
-            is com.zcode.android.core.transport.ProbeResult.Unreachable ->
-                AddDirectOutcome.Rejected(
-                    AppError(
-                        category = com.zcode.android.core.common.error.ErrorCategory.NETWORK,
-                        userMessage = "Server unreachable — check the URL and network",
-                        developerDiagnostic = "direct add probe unreachable: ${probe.reason.take(120)}",
-                        retryable = AppError.Retryable.USER,
-                        recoverable = true,
-                        autoRecovery = com.zcode.android.core.common.error.RecoveryAction.NONE,
-                    ),
-                )
+            else -> AddDirectOutcome.Rejected(addDirectRejection(probe, normalized))
         }
     }
 

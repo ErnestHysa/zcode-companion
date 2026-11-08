@@ -40,6 +40,18 @@ Order candidates from most-trusted/lowest-latency to least:
 The phone tries them in this stored order; it NEVER auto-switches to the
 relay (different trust domain, §11.3).
 
+**Cleartext reality (F-37-A, vc52).** Plain `ws://` / `http://` is decided by
+Android's network-security policy, which OkHttp consults before connecting:
+**release builds permit cleartext to no host**, and debug builds only to
+`127.0.0.1` / `localhost` / `10.0.2.2` (the emulator rig). On a release build
+the LAN and `ws://` Tailscale tiers above are therefore unreachable — use the
+tunnel (`wss://`) or tailnet HTTPS (`tailscale serve` → `https://<host>.ts.net`).
+The Add-direct-endpoint dialog checks the same policy and refuses a cleartext
+URL (primary or fallback) **before any probe**, with "Plain ws:// isn't
+allowed — use wss:// or a tunnel URL"; the probe itself runs off the UI
+thread and keeps the Local-Network-Protection copy for real connect errnos
+(EPERM/EACCES/ECONNABORTED) only.
+
 ## 3. Pair the phone (app side)
 
 Settings → Endpoints → "Add direct endpoint":
@@ -56,10 +68,10 @@ Settings → Endpoints → "Add direct endpoint":
 
 - The token grants the full window surface for that server — treat like the
   relay QR (bearer-equivalent).
-- TLS: `wss://` (tunnel) or tailnet HTTPS recommended for anything leaving the
-  LAN; plain `ws://` LAN is plaintext-on-trusted-LAN — the app warns when the
-  URL is not `wss`/`https` and offers optional TOFU pinning for self-hosted
-  TLS (§11.5, fail-closed on fingerprint mismatch).
+- TLS: `wss://` (tunnel) or tailnet HTTPS for anything leaving the device —
+  plain `ws://` is refused by the platform on release builds (§2 "Cleartext
+  reality"); the app offers optional TOFU pinning for self-hosted TLS (§11.5,
+  fail-closed on fingerprint mismatch) on top of normal certificate validation.
 - Desktop offline / server stopped → the endpoint goes Degraded with cached
   projections labeled stale (§15-S5 semantics; the recovery loop probes the
   saved candidates within its normal budget).

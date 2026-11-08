@@ -15,6 +15,7 @@ import com.zcode.android.core.protocol.v4.SubscribeAck
 import com.zcode.android.core.protocol.v4.CommandAck
 import com.zcode.android.core.protocol.v4.CommandEnvelope
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -356,17 +357,15 @@ class DirectTransport(
             scope.launch { _appErrors.emit(ErrorMapping.insecureDirectTransport(wsUrl)) }
         }
         // ---- preflight: GET /api/server-info?token= (validates the token; captures
-        // cookie). BLOCKING OkHttp call — always off the caller's dispatcher (the app
-        // hub connects from the MAIN scope; a NetworkOnMainThreadException here killed
-        // the first on-device run, fixed 2026-10-03).
+        // cookie). The probe owns its dispatcher hop (F-37-A): the app hub connects from
+        // the MAIN scope, and a blocking call there is NetworkOnMainThreadException.
         val origin = httpOriginOf(wsUrl)
-        val probe = withContext(kotlinx.coroutines.Dispatchers.IO) {
-            DirectServerProbe.probe(origin, token, config.authTimeoutMs)
-        }
+        val probe = DirectServerProbe.probe(origin, token, config.authTimeoutMs)
         val info = when (probe) {
             is ProbeResult.Ok -> probe.info
             is ProbeResult.TokenRejected -> throw TransportFailure(ErrorMapping.directTokenRejected(probe.status))
             is ProbeResult.LocalNetworkBlocked -> throw TransportFailure(ErrorMapping.localNetworkBlocked(probe.reason))
+            is ProbeResult.CleartextRefused -> throw TransportFailure(ErrorMapping.cleartextRefused(wsUrl))
             is ProbeResult.Unreachable -> throw TransportFailure(transportLoss("server-info unreachable: ${probe.reason.take(100)}"))
         }
         serverInfo = info
@@ -1015,9 +1014,7 @@ class DirectTransport(
         val endpoint = endpoint ?: return null
         val token = runCatching { currentToken() }.getOrNull() ?: return null
         return when (
-            val probe = withContext(kotlinx.coroutines.Dispatchers.IO) {
-                DirectServerProbe.probe(httpOriginOf(endpoint.wsUrl), token, config.authTimeoutMs)
-            }
+            val probe = DirectServerProbe.probe(httpOriginOf(endpoint.wsUrl), token, config.authTimeoutMs)
         ) {
             is ProbeResult.Ok -> probe.info.also { serverInfo = it }
             else -> null
@@ -1107,6 +1104,8 @@ sealed class ProbeResult {
     data class Ok(val info: ServerInfo, val status: Int) : ProbeResult()
     data class TokenRejected(val status: Int) : ProbeResult()
     data class LocalNetworkBlocked(val reason: String) : ProbeResult()
+    /** F-37-A: the platform's network-security policy refused cleartext to this host. */
+    data class CleartextRefused(val reason: String) : ProbeResult()
     data class Unreachable(val reason: String) : ProbeResult()
 }
 
@@ -1115,13 +1114,32 @@ sealed class ProbeResult {
  * (connect preflight), the add-endpoint validation flow and candidate health
  * probes. Standard OkHttp client; the token rides the query on this FIRST
  * request (the server answers with the HttpOnly cookie), and is never logged.
+ *
+ * F-37-A: [probe] SUSPENDS and runs the blocking OkHttp call on [Dispatchers.IO] (or an
+ * injected dispatcher) — never on its caller's dispatcher. The add-endpoint dialog calls
+ * it from the composition (Main) dispatcher; the blocking version threw
+ * NetworkOnMainThreadException on every device.
  */
 object DirectServerProbe {
 
-    /** LNP failure markers (§25.3.7) — practical Android signals on IOExceptions. */
-    private val lnpMarkers = listOf("EPERM", "ECONNABORTED", "permission", "not permitted")
+    /**
+     * LNP failure markers (§25.3.7) — the connect ERRNO shapes only (EPERM / EACCES /
+     * ECONNABORTED and their strerror texts). A policy refusal ("… not permitted by network
+     * security policy") is classified before these and never reaches them.
+     */
+    private val lnpMarkers = listOf(
+        "EPERM", "EACCES", "ECONNABORTED",
+        "Operation not permitted", "Permission denied", "connection abort",
+    )
 
-    fun probe(origin: String, token: String, timeoutMs: Long): ProbeResult {
+    suspend fun probe(
+        origin: String,
+        token: String,
+        timeoutMs: Long,
+        dispatcher: CoroutineDispatcher = Dispatchers.IO,
+    ): ProbeResult = withContext(dispatcher) { probeBlocking(origin, token, timeoutMs) }
+
+    private fun probeBlocking(origin: String, token: String, timeoutMs: Long): ProbeResult {
         val client = OkHttpClient.Builder()
             .connectTimeout(timeoutMs, TimeUnit.MILLISECONDS)
             .readTimeout(timeoutMs, TimeUnit.MILLISECONDS)
@@ -1150,6 +1168,14 @@ object DirectServerProbe {
     /** Failure classification (§25.3.7 LNP / DNS / other) — extracted for direct testing. */
     internal fun classifyProbeFailure(e: Exception): ProbeResult {
         val message = (e.message ?: "") + (e.cause?.message ?: "")
+        // F-37-A: OkHttp raises UnknownServiceException("CLEARTEXT communication to … not
+        // permitted by network security policy") — a policy refusal, not a blocked network.
+        // It used to match the LNP markers and sent the user to an OS setting that does
+        // not exist; only a TLS URL reaches the server. (Matched on the CLEARTEXT text, not
+        // the exception class: OkHttp reuses UnknownServiceException for TLS mismatches.)
+        if (message.contains("CLEARTEXT")) {
+            return ProbeResult.CleartextRefused(message.take(120))
+        }
         val lnp = lnpMarkers.any { message.contains(it, ignoreCase = true) }
         return when {
             lnp -> ProbeResult.LocalNetworkBlocked(message.take(120))

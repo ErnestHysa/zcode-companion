@@ -138,6 +138,22 @@ object ErrorMapping {
         autoRecovery = RecoveryAction.NONE,
     )
 
+    /**
+     * F-37-A: the platform's network-security policy refuses cleartext to this host (every
+     * host on a release build; all but the loopback/emulator hosts on debug). Not a
+     * Local-Network-Protection case and never retryable as-is — only a wss:// / tunnel URL
+     * reaches the server. TRANSPORT so the candidate loop still advances to a TLS fallback.
+     */
+    fun cleartextRefused(url: String): AppError = AppError(
+        category = ErrorCategory.TRANSPORT,
+        userMessage = "Plain ws:// isn't allowed — use wss:// or a tunnel URL",
+        messageKey = UserMessageKey.CLEARTEXT_NOT_ALLOWED,
+        developerDiagnostic = "cleartext refused by network security policy: ${url.substringBefore("?").take(60)}",
+        retryable = AppError.Retryable.NO,
+        recoverable = true,
+        autoRecovery = RecoveryAction.NONE,
+    )
+
     // ---------------------------------------------------- relay error frames (§6.2)
 
     fun relayError(code: String, message: String?, correlation: Correlation = Correlation()): AppError = when (code) {

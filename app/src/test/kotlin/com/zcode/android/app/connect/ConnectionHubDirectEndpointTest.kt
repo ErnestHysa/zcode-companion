@@ -14,10 +14,14 @@ import com.zcode.android.tools.mockzcode.MockZCode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
@@ -71,6 +75,8 @@ class ConnectionHubDirectEndpointTest {
 
     @AfterTest
     fun tearDown() {
+        // Pure mapping pins never call setup(): nothing was started.
+        if (!::scope.isInitialized) return
         runBlocking {
             runCatching { relayTransport.close("test end") }
             runCatching { directTransport.close("test end") }
@@ -165,6 +171,101 @@ class ConnectionHubDirectEndpointTest {
     }
 
     // ---------------------------------------------------------------- U22 switch matrix
+
+    /**
+     * F-37-A (vc52 Phase 6, P1): the Settings dialog calls addDirectEndpoint from the
+     * composition (Main) dispatcher, and the hub ran the BLOCKING probe on its caller —
+     * NetworkOnMainThreadException on every device. The probe must leave the caller's
+     * dispatcher free while a slow server holds the response.
+     */
+    @Test
+    fun `F-37-A - addDirectEndpoint never blocks its caller's dispatcher`() = runBlocking {
+        setup(pairedRelay = false)
+        val fakeMainExecutor = java.util.concurrent.Executors.newSingleThreadExecutor { r -> Thread(r, "fake-main") }
+        val fakeMain = fakeMainExecutor.asCoroutineDispatcher()
+        val slow = GatedUnauthorizedServer()
+        try {
+            val add = async(fakeMain) {
+                hub.addDirectEndpoint("Slow", "ws://127.0.0.1:${slow.port}/ws", "tok")
+            }
+            assertTrue(slow.requestArrived.await(5, java.util.concurrent.TimeUnit.SECONDS), "probe never reached the server")
+            val frame = withTimeoutOrNull(2_000) {
+                withContext(fakeMain) { Thread.currentThread().name }
+            }
+            slow.release()
+            assertTrue(frame?.startsWith("fake-main") == true, "the caller's dispatcher stayed blocked by the add probe (frame=$frame)")
+            assertIs<ConnectionHub.AddDirectOutcome.Rejected>(withTimeout(10_000) { add.await() })
+            assertTrue(endpoints.saved.value.isEmpty(), "a rejected probe persists nothing (§12.2)")
+        } finally {
+            slow.close()
+            fakeMain.close()
+        }
+    }
+
+    @Test
+    fun `F-37-A - each failed probe maps to its own dialog copy key`() {
+        val url = "ws://192.0.2.1:3030/ws"
+        assertEquals(
+            com.zcode.android.core.common.error.UserMessageKey.CLEARTEXT_NOT_ALLOWED,
+            ConnectionHub.addDirectRejection(
+                com.zcode.android.core.transport.ProbeResult.CleartextRefused("CLEARTEXT communication to 192.0.2.1 not permitted"),
+                url,
+            ).messageKey,
+            "the cleartext refusal must not borrow the LNP copy",
+        )
+        assertEquals(
+            com.zcode.android.core.common.error.UserMessageKey.LOCAL_NETWORK_BLOCKED,
+            ConnectionHub.addDirectRejection(com.zcode.android.core.transport.ProbeResult.LocalNetworkBlocked("EPERM"), url).messageKey,
+        )
+        assertEquals(
+            com.zcode.android.core.common.error.UserMessageKey.DIRECT_TOKEN_REJECTED,
+            ConnectionHub.addDirectRejection(com.zcode.android.core.transport.ProbeResult.TokenRejected(403), url).messageKey,
+        )
+        assertEquals(
+            com.zcode.android.core.common.error.ErrorCategory.NETWORK,
+            ConnectionHub.addDirectRejection(com.zcode.android.core.transport.ProbeResult.Unreachable("timeout"), url).category,
+        )
+    }
+
+    /** One-shot server that parks the probe's request until [release], then answers 401. */
+    private class GatedUnauthorizedServer : AutoCloseable {
+        private val socket = java.net.ServerSocket(0)
+        val port: Int = socket.localPort
+        val requestArrived = java.util.concurrent.CountDownLatch(1)
+        private val gate = java.util.concurrent.CountDownLatch(1)
+        private val worker = kotlin.concurrent.thread(name = "gated-401", isDaemon = true) {
+            runCatching {
+                socket.accept().use { client ->
+                    val reader = client.getInputStream().bufferedReader()
+                    while (true) {
+                        val line = reader.readLine() ?: break
+                        if (line.isEmpty()) break
+                    }
+                    requestArrived.countDown()
+                    gate.await(15, java.util.concurrent.TimeUnit.SECONDS)
+                    val body = """{"error":"Unauthorized"}""".toByteArray()
+                    client.getOutputStream().apply {
+                        write(
+                            ("HTTP/1.1 401 Unauthorized\r\nContent-Type: application/json\r\n" +
+                                "Content-Length: ${body.size}\r\nConnection: close\r\n\r\n").toByteArray(),
+                        )
+                        write(body)
+                        flush()
+                    }
+                }
+            }
+        }
+
+        fun release() = gate.countDown()
+
+        override fun close() {
+            gate.countDown()
+            runCatching { socket.close() }
+            worker.join(2_000)
+        }
+    }
+
+    // ---------------------------------------------------------------- U22 switch matrix (relay ↔ direct)
 
     @Test
     fun `switch matrix - relay to direct and back, identity-keyed task plane`() = runBlocking {

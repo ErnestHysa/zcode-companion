@@ -23,6 +23,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.Implementation
+import org.robolectric.annotation.Implements
 
 /**
  * GAP-A10 (vc51 Phase 4A) pins: a REJECTED probe keeps the dialog open with the typed
@@ -165,5 +167,116 @@ class AddDirectEndpointDialogUiTest {
         rule.waitUntil(timeoutMillis = 5_000) {
             rule.onAllNodesWithTag("add_direct_name").fetchSemanticsNodes().isEmpty()
         }
+    }
+
+    // ------------------------------------------------------------------ F-37-A cleartext gate
+
+    /**
+     * F-37-A (vc52 Phase 6): the platform's network-security policy is the ONE authority on
+     * cleartext. A release build permits it nowhere; the debug config allows only the
+     * loopback/emulator hosts. This shadow mirrors the debug allowlist, so a LAN `ws://`
+     * is exactly the release-shaped refusal OkHttp would raise mid-probe.
+     */
+    @Implements(android.security.NetworkSecurityPolicy::class)
+    class DebugCleartextPolicyShadow {
+        @Implementation
+        fun isCleartextTrafficPermitted(hostname: String): Boolean =
+            hostname in setOf("127.0.0.1", "localhost", "10.0.2.2")
+
+        companion object {
+            /**
+             * The platform singleton may predate this shadow in a shared sandbox (it then
+             * carries no shadow instance); hand out a policy object constructed while the
+             * shadow is active so the instance method above is the one consulted.
+             */
+            @JvmStatic
+            @Implementation
+            fun getInstance(): android.security.NetworkSecurityPolicy =
+                org.robolectric.util.ReflectionHelpers.callConstructor(android.security.NetworkSecurityPolicy::class.java)
+        }
+    }
+
+    private fun contentCountingProbes(probes: java.util.concurrent.atomic.AtomicInteger) {
+        rule.setContent {
+            ZCodeTheme {
+                AddDirectEndpointDialog(
+                    adder = { _, _, _, _ ->
+                        probes.incrementAndGet()
+                        rejectedOutcome()
+                    },
+                    onAdded = {},
+                    onDismiss = {},
+                )
+            }
+        }
+    }
+
+    @Test
+    @Config(shadows = [DebugCleartextPolicyShadow::class])
+    fun cleartext_lan_url_shows_honest_copy_before_any_probe() {
+        val probes = java.util.concurrent.atomic.AtomicInteger()
+        contentCountingProbes(probes)
+        rule.onNodeWithTag("add_direct_name").performTextInput("NAS")
+        rule.onNodeWithTag("add_direct_url").performTextInput("ws://192.0.2.1:3030/ws")
+        rule.onNodeWithTag("add_direct_token").performTextInput("tok")
+        rule.onNodeWithTag("add_direct_submit").performClick()
+        rule.waitForIdle()
+        org.junit.Assert.assertEquals("no probe may run for a URL the platform refuses", 0, probes.get())
+        rule.onNodeWithTag("add_direct_error").assertExists()
+        rule.onNodeWithText("Plain ws:// isn't allowed — use wss:// or a tunnel URL").assertExists()
+        // GAP-A10's contract holds on this rejection too: the dialog keeps the typed URL.
+        rule.onNodeWithText("ws://192.0.2.1:3030/ws").assertExists()
+    }
+
+    @Test
+    @Config(shadows = [DebugCleartextPolicyShadow::class])
+    fun cleartext_candidate_the_platform_refuses_is_rejected_before_any_probe() {
+        val probes = java.util.concurrent.atomic.AtomicInteger()
+        contentCountingProbes(probes)
+        rule.onNodeWithTag("add_direct_name").performTextInput("NAS")
+        rule.onNodeWithTag("add_direct_url").performTextInput("wss://nas.example.test/ws")
+        rule.onNodeWithTag("add_direct_token").performTextInput("tok")
+        rule.onNodeWithTag("add_direct_candidates").performTextInput("ws://192.168.1.5:3030/ws")
+        rule.onNodeWithTag("add_direct_submit").performClick()
+        rule.waitForIdle()
+        org.junit.Assert.assertEquals(0, probes.get())
+        rule.onNodeWithText("Plain ws:// isn't allowed — use wss:// or a tunnel URL").assertExists()
+    }
+
+    @Test
+    @Config(shadows = [DebugCleartextPolicyShadow::class])
+    fun cleartext_loopback_the_platform_permits_still_probes() {
+        val probes = java.util.concurrent.atomic.AtomicInteger()
+        contentCountingProbes(probes)
+        rule.onNodeWithTag("add_direct_name").performTextInput("Rig")
+        rule.onNodeWithTag("add_direct_url").performTextInput("ws://10.0.2.2:18200/ws")
+        rule.onNodeWithTag("add_direct_token").performTextInput("tok")
+        rule.onNodeWithTag("add_direct_submit").performClick()
+        rule.waitUntil(timeoutMillis = 5_000) { probes.get() == 1 }
+    }
+
+    @Test
+    fun cleartext_gate_refuses_exactly_the_hosts_the_policy_refuses() {
+        val debugPolicy: (String) -> Boolean = { it in setOf("127.0.0.1", "localhost", "10.0.2.2", "::1") }
+        org.junit.Assert.assertEquals(
+            listOf("ws://192.168.1.5:3030/ws", "http://nas.lan:3030"),
+            cleartextRefusals(
+                listOf(
+                    "ws://192.168.1.5:3030/ws", // LAN — the release-shaped refusal
+                    " ws://10.0.2.2:18200/ws ", // emulator host — debug-permitted (trimmed)
+                    "http://nas.lan:3030", // plain http to a LAN name
+                    "wss://nas.example.test/ws", // TLS — never a cleartext question
+                    "https://tunnel.example.test",
+                    "ws://[::1]:3030/ws", // IPv6 loopback — brackets stripped before the lookup
+                    "ws://bad host/ws", // unparsable — left to the probe's honest classifier
+                ),
+                debugPolicy,
+            ),
+        )
+        // A release build permits cleartext nowhere: even loopback is refused up front.
+        org.junit.Assert.assertEquals(
+            listOf("ws://127.0.0.1:3030/ws"),
+            cleartextRefusals(listOf("ws://127.0.0.1:3030/ws", "wss://ok.example.test/ws")) { false },
+        )
     }
 }

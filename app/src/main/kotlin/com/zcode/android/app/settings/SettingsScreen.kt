@@ -457,6 +457,10 @@ private fun EndpointsSection(container: AppContainer, endpointName: String?, des
  * the typed fields intact and an inline error (the probe takes ~10 s; the submit is
  * disabled while it runs), and fallback-URL candidates pass the same scheme gate as the
  * primary URL instead of bypassing it.
+ *
+ * F-37-A (vc52): a plain ws:// / http:// URL the platform will refuse is rejected HERE,
+ * before any probe, with honest copy — [cleartextPermitted] is the same network-security
+ * policy OkHttp consults mid-probe (release: no cleartext anywhere; debug: loopback only).
  */
 @Composable
 internal fun AddDirectEndpointDialog(
@@ -464,6 +468,7 @@ internal fun AddDirectEndpointDialog(
         com.zcode.android.app.connect.ConnectionHub.AddDirectOutcome,
     onAdded: (com.zcode.android.domain.model.Endpoint) -> Unit,
     onDismiss: () -> Unit,
+    cleartextPermitted: (host: String) -> Boolean = ::platformCleartextPermitted,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
@@ -530,16 +535,24 @@ internal fun AddDirectEndpointDialog(
             TextButton(
                 enabled = valid && token.isNotBlank() && !busy,
                 onClick = {
-                    busy = true
-                    error = null
-                    scope.launch {
-                        when (val outcome = adder(name, url, token, candidateList)) {
-                            is com.zcode.android.app.connect.ConnectionHub.AddDirectOutcome.Added ->
-                                onAdded(outcome.endpoint)
-                            is com.zcode.android.app.connect.ConnectionHub.AddDirectOutcome.Rejected ->
-                                error = com.zcode.android.core.ui.components.errorMessage(context, outcome.error)
+                    val refused = cleartextRefusals(listOf(url) + candidateList, cleartextPermitted)
+                    if (refused.isNotEmpty()) {
+                        error = com.zcode.android.core.ui.components.errorMessage(
+                            context,
+                            com.zcode.android.core.transport.ErrorMapping.cleartextRefused(refused.first()),
+                        )
+                    } else {
+                        busy = true
+                        error = null
+                        scope.launch {
+                            when (val outcome = adder(name, url, token, candidateList)) {
+                                is com.zcode.android.app.connect.ConnectionHub.AddDirectOutcome.Added ->
+                                    onAdded(outcome.endpoint)
+                                is com.zcode.android.app.connect.ConnectionHub.AddDirectOutcome.Rejected ->
+                                    error = com.zcode.android.core.ui.components.errorMessage(context, outcome.error)
+                            }
+                            busy = false
                         }
-                        busy = false
                     }
                 },
                 modifier = Modifier.testTag("add_direct_submit"),
@@ -552,6 +565,22 @@ internal fun AddDirectEndpointDialog(
         },
     )
 }
+
+/**
+ * F-37-A: the platform's network-security policy — the ONE authority OkHttp consults before
+ * any cleartext connect (release: nowhere; debug: 127.0.0.1 / localhost / 10.0.2.2).
+ */
+internal fun platformCleartextPermitted(host: String): Boolean =
+    android.security.NetworkSecurityPolicy.getInstance().isCleartextTrafficPermitted(host)
+
+/** F-37-A: the plain ws:// / http:// URLs among [urls] whose host the policy refuses. */
+internal fun cleartextRefusals(urls: List<String>, permitted: (host: String) -> Boolean): List<String> =
+    urls.map { it.trim() }.filter { url ->
+        val cleartext = url.startsWith("ws://") || url.startsWith("http://")
+        // Unparsable hosts are left to the probe (it classifies them honestly).
+        val host = if (cleartext) runCatching { java.net.URI(url).host }.getOrNull() else null
+        host != null && !permitted(host.removePrefix("[").removeSuffix("]"))
+    }
 
 private fun copyDiagnostics(container: AppContainer, context: android.content.Context, notifier: Notifier, onBusy: (Boolean) -> Unit) {
     val act = context as? androidx.fragment.app.FragmentActivity
