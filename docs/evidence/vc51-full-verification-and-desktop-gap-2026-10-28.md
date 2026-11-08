@@ -10776,7 +10776,7 @@ These are **new defects in the same plane**, not failed fixes. Treat them as suc
 
 | Phase | Theme | Rows | P1 | P2 | P3 | P4/rig | Session risk | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 6 | Security & untrusted execution | 6 | 2 | 2 | 2 | 0 | High | ☐ Open |
+| 6 | Security & untrusted execution | 6 | 2 | 2 | 2 | 0 | High | ☑ **Done 2026-11-08** — all 6 rows + RIG-P4 (pulled forward); commits `da9a32ab`→`397b5de7`; exit gate PASSED; receipt "Phase 6 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-08" appended at file end |
 | 7 | Interaction & settings truth | 6 | 0 | 3 | 2 | 1 | High | ☐ Open |
 | 8 | Lifecycle, reconnect & availability | 7 | 0 | 5 | 2 | 0 | High | ☐ Open |
 | 9 | Timeline & composer geometry | 10 | 0 | 0 | 6 | 4 | Medium | ☐ Open |
@@ -10805,7 +10805,7 @@ F-37-C → F-37-F → F-33-F → F-33-H.**
 
 ### Sub-phase 6A — execution authorisation (direct endpoint + lock screen + secrets)
 
-- [ ] **F-37-A (P1) — the direct-endpoint probe runs on the UI thread, so every add fails.**
+- [x] **F-37-A (P1) — the direct-endpoint probe runs on the UI thread, so every add fails.**
   `DirectServerProbe.probe` performs a blocking OkHttp `execute()` on the composition dispatcher
   (`DirectTransport.kt:1131`, reached from `ConnectionHub.addDirectEndpoint` `:1351` and the
   dialog at `SettingsScreen.kt:427/536`); `jdb` caught `NetworkOnMainThreadException` on all three
@@ -10823,7 +10823,7 @@ F-37-C → F-37-F → F-33-F → F-33-H.**
   dialog keeps url+token on failure (GAP-A10's contract). **Rig prerequisite:** commit the
   DIRECT-mode mock from `/tmp/p37/direct` (**RIG-P4**) before the exit gate.
 
-- [ ] **F-37-B (P1) — shade-level Approve/Deny executes with zero authentication while locked.**
+- [x] **F-37-B (P1) — shade-level Approve/Deny executes with zero authentication while locked.**
   `NotificationActionReceiver` routes the intent straight into the inbox answer with no keyguard
   or biometric check, and the actions are attached with the bare
   `builder.addAction(0, title, intent)` overload (`core/notifications/AndroidNotificationSink.kt:65`),
@@ -10837,7 +10837,7 @@ F-37-C → F-37-F → F-33-F → F-33-H.**
   PIN leg shows no wire while locked and exactly one after unlock; `dumpsys trust deviceLocked=1`
   captured before and after the tap.
 
-- [ ] **F-37-C (P2) — both secret-entry fields are plain text with a learning keyboard.**
+- [x] **F-37-C (P2) — both secret-entry fields are plain text with a learning keyboard.**
   The Add-direct-endpoint Token field (`SettingsScreen.kt ~500–507`) and the pairing manual-entry
   field (`features/pairing/PairingScreens.kt:174`) are bare `OutlinedTextField`s: no
   `PasswordVisualTransformation`, no `KeyboardType.Password`/`Uri`, no autocorrect off, no
@@ -10851,7 +10851,7 @@ F-37-C → F-37-F → F-33-F → F-33-H.**
 
 ### Sub-phase 6B — privacy enforcement (screenshots, clipboard, notification content)
 
-- [ ] **F-37-F (P2) — the default-ON "screenshot protection" preference is enforced nowhere.**
+- [x] **F-37-F (P2) — the default-ON "screenshot protection" preference is enforced nowhere.**
   `AppPreferences.screenshotProtection = true` is persisted and round-tripped
   (`CoreModels.kt:195-196`, `DataStoreRepositories.kt:118/:171`) and pinned, but no `FLAG_SECURE`,
   `setRecentsScreenshotEnabled`, or reader exists outside the store and its tests; Settings has no
@@ -10864,7 +10864,7 @@ F-37-C → F-37-F → F-33-F → F-33-H.**
   the approval; the toggle round-trips and takes effect without a restart; turning it off restores
   normal behaviour; a Robolectric/instrumented pin asserts the window flag.
 
-- [ ] **F-33-F (P3, privacy) — the clipboard is read on every conversation open.**
+- [x] **F-33-F (P3, privacy) — the clipboard is read on every conversation open.**
   `WriteComponents.kt:868` runs `clipboardHasImage(context)` in a `LaunchedEffect(Unit)` and
   `clipboardImageUri` (`:1260-1262`) reads `cm.primaryClip` (the data, not the description). Live:
   `READ_CLIPBOARD` app-op time reset to 3 s then 2 s after two opens (it read 7 min before); on
@@ -10874,7 +10874,7 @@ F-37-C → F-37-F → F-33-F → F-33-H.**
   access time is unchanged across ten conversation opens; no paste toast appears; Paste still
   attaches an image; a pin asserts the description-only path and the tap-path read.
 
-- [ ] **F-33-H (P3, safety) — blind approve from the shade.**
+- [x] **F-33-H (P3, safety) — blind approve from the shade.**
   `NotificationPlan.kt:14-20` makes approval/question notifications category-only at both content
   levels ("ZCode needs your approval", `android.text=null`, `vis=PRIVATE`) while attaching
   **Approve/Deny** actions — so a shell command can be approved without ever being seen. The
@@ -10886,7 +10886,7 @@ F-37-C → F-37-F → F-33-F → F-33-H.**
   private version does; the shade actions still require auth per F-37-B; a `NotificationPlan`
   pin covers both content levels and both detail levels.
 
-**Phase 6 exit gate: ☐** fresh `zcode-a16` cold boot, full standing arming + the DIRECT-mode mock;
+**Phase 6 exit gate: [x]** PASSED 2026-11-08 (see "Phase 6 (vc52 remediation) — fix commits + exit-gate rig leg" appended at the file end) fresh `zcode-a16` cold boot, full standing arming + the DIRECT-mode mock;
 legs: add a direct endpoint on `wss://` (success), plain `ws://` LAN (honest cleartext copy), PIN
 lock screen (no wire while locked, one after unlock), Recents/screencap with protection ON and
 OFF, clipboard app-op across 10 opens, notification public/private content; 0 FATALs/0 ANRs;
@@ -11671,7 +11671,7 @@ behaviour changes. **Rig pulls forward:** rows 1–4 must land before the phase 
   timezone-safe "Next …" label); non-static usage reset dates; `MOCK_FILECHANGES` per-file lists;
   `gitIdentity` serving for the commit sheet; the `q-rig-1` push anchor (data=null today);
   the bootstrap `provider` field (N-BD-5). **Accept:** each leg has data; self-tests.
-- [ ] **RIG-P4 (P4) — commit the DIRECT-mode mock.**
+- [x] **RIG-P4 (P4) — commit the DIRECT-mode mock.** (DONE 2026-11-08, PULLED FORWARD into Phase 6 per the "rig pulls forward" rule — `df6b5f50`: `MOCK_MODE=direct` + `:tools:mockzcode:mockDirectServer` + runbook §6; self-test ×3, 75/75)
   `/tmp/p37/direct/DirectMain.kt` (a `MockZCode.Mode.DIRECT` launcher serving `/api/server-info` +
   `/ws` with the `zcode_lite_token` contract, verified against curl) is outside the repo. **Fix:**
   move it into `tools/mockzcode` as a documented run target with the token contract and the
@@ -11722,3 +11722,93 @@ empty (or each residual explicitly waived with a reason).
 - [ ] Reusable learnings appended to AGENTS.md; this roadmap file left append-only
 - [ ] The 2026-10-30 roadmap's closure record (Part 0) verified untouched — no Phase 1–5 row is
       re-opened without a dated re-manifestation entry
+## Phase 6 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-08 (APPENDED; not part of the audit, the vc51 roadmap, Part 0, or the vc52 roadmap body)
+
+Scope: vc52 Phase 6 — Security & untrusted execution — ALL six rows (F-37-A, F-37-B, F-37-C,
+F-37-F, F-33-F, F-33-H) plus the phase's rig prerequisite **RIG-P4** (pulled forward from
+Phase 14 per the roadmap's "rig pulls forward" rule). Branch `fix/vc52` cut from `main`
+(dec72cd7); one finding ≥ one commit; every pin RED at the pre-fix commit; mock changes in
+their own `rig(…)` commit; nothing pushed.
+
+### Fix commits (one finding ≥ one commit, `fix(<ID>): <mechanism>`)
+
+| Row | Commit | Mechanism closed | Pins (RED evidence) |
+| --- | --- | --- | --- |
+| F-37-A (P1) | `da9a32ab` | `DirectServerProbe.probe` is now `suspend` on an injected dispatcher (IO default) — no caller can run it on Main again; `ConnectionHub.probeDispatcher` seam; the dialog refuses a plain ws:// / http:// whose host the platform `NetworkSecurityPolicy` refuses BEFORE any probe; `ProbeResult.CleartextRefused` + `ErrorMapping.cleartextRefused` (`CLEARTEXT_NOT_ALLOWED`, en + zh-CN) ends the LNP misdiagnosis; LNP markers narrowed to connect-errno shapes; runbook §2/§4 updated | transport ×6 (caller dispatcher stays free under a gated slow server — RED "stayed blocked for 2 s"; injected-dispatcher hop; cleartext ≠ LNP — RED with the pass-37 misdiagnosis verbatim; null-message NOMT fixture; EPERM/ECONNABORTED stay LNP; keyed mapping without the token in diagnostics); app ×6 (hub add never blocks its caller — RED; per-outcome copy keys; LAN ws:// and a LAN fallback rejected pre-probe with the honest copy — RED probes=1; debug-permitted loopback still probes; the pure policy gate incl. release-shaped "nowhere"); core/ui ×2 (every `UserMessageKey` resolves in en + zh-CN; the cleartext copy) |
+| F-37-B (P1) | `6b436872` | Every PERMISSIONS-channel action built via `NotificationCompat.Action.Builder.setAuthenticationRequired(true)` (platform demands the credential before dispatch, API 31+); `NotificationActionReceiver.deviceLocked` guard discards locked decisions (no send, no replay, notification kept, diagnostics log); haptic only after the answer fired | sink ×1 @sdk35 (permission actions `isAuthenticationRequired`, passive not — RED); receiver ×2 (locked: no answer, notification kept, no haptic — RED "expected 0 but was 1"; unlocked: exactly one answer, cancelled, haptic after) |
+| F-37-C (P2) | `fb85cf40` | core/ui `SecretTextField` + `SecretKeyboardOptions` (KeyboardType.Password, autocorrect off, capitalization None, `PasswordVisualTransformation`); eye toggle reveals, takes focus, re-masks on blur; applied to the direct token field AND the pairing manual-entry field; reveal/hide a11y copy en + zh-CN | dialog ×3 (masked EditableText + `Password` semantics node + the dialog window's real EditorInfo = `TYPE_CLASS_TEXT|TYPE_TEXT_VARIATION_PASSWORD` with autocorrect/cap flags clear — RED "the token renders in plain sight. Actual: p37tok"; reveal shows it and blur re-masks; pasted token submits verbatim); pairing ×1 (manual link masked, password node, password EditorInfo, reveal exact — RED "the pairing secret renders in plain sight") |
+| F-37-F (P2) | `a60880cc` | `MainActivity.applyScreenshotProtection` sets/clears FLAG_SECURE fail-closed at onCreate (before the first frame) and follows the preference live (distinctUntilChanged collector — no restart); Settings → Privacy "Screenshot protection" switch (default ON; en + zh-CN) | real-MainActivity ×3 (FLAG_SECURE from creation — RED "lacks FLAG_SECURE with screenshot protection ON"; the stored preference clears AND restores it live; the Settings toggle round-trips — RED no node) |
+| F-33-F (P3) | `79c0b4fd` | `clipboardHasImage` probes `primaryClipDescription` ONLY (no data read, no app-op note, no paste toast); `clipboardImageUri` (the DATA read) reached only from the paste chip's tap | counting-ClipboardManager shadow ×3 (open-path probe 0 data reads — RED 1; ten conversation opens 0 data reads + the chip still offers — RED 10, the pass-33 shape; the Paste tap is the ONE data read and attaches the bytes — RED composing alone read the data) |
+| F-33-H (P3) | `1d89e586` + `d73fef82` + `397b5de7` | One shared rule for the fresh post and the A12 re-post: `NotificationPlan` gains `subject` + `Decision.shadeActions` — under "Task titles" (CONTENT) the PRIVATE text is the bounded, scrubbed subject ("Bash: echo synthetic") and only then may Approve/Deny ride the shade; under "Minimal" nothing names the subject so the approval is answered IN-APP (deep-link tap unchanged); an unknown subject never offers actions. Sink: explicit `VISIBILITY_PRIVATE` + `setPublicVersion` (category line, no text, no actions). Broker `subjectProvider` for the re-post (records persist no command text; the wiring serves the live open set via `interactionSubject`). The "Notification detail" subtitle now states both levels (en + zh-CN). `397b5de7` (rig-caught, below): `InteractionPreview` unwraps the STORED `pendingInteractions[]` envelope — every state-plane interaction had previewed null | sink ×1 (public version category-only, no text/actions; private carries the subject — RED "no public version"); broker ×5 (Minimal: no blind actions fresh + re-post — RED 2 actions each; Task titles: subject + Approve/Deny, subject-less stays action-less, unknown-subject re-post stays action-less); plan ×2 (the 2×2 Minimal|Task-titles × public|private for approvals AND questions); app ×3 + copy ×1; envelope ×4 (domain ×3 — RED "expected echo synthetic but was null"; real Room ×1 — the observeOpen path the wiring reads) |
+| RIG-P4 (P4, pulled forward) | `df6b5f50` | `MOCK_MODE=direct` on the launcher (was a 985-line copy outside the repo): DIRECT surface per phase10-direct.md §1–§2 (server-info 200 + HttpOnly `zcode_lite_token` cookie; wrong/missing token 401), `MOCK_DIRECT_TOKEN` (default rig-direct-token) on MOCK_PORT (default 18200); `gradle :tools:mockzcode:mockDirectServer`; runbook §6 (the three shapes); every other MOCK_* arm unchanged | mock self-test ×3 (mode/port/token selection; the relay default byte-identical; the live token contract over RawWsServer); `:tools:mockzcode:jar` + `:tools:mockzcode:test` 75/75 |
+
+Suite reconciliation: pre-phase baseline at dec72cd7 — **1729 tests / 0 failures / 0 skipped**
+across all 17 modules (11 `testDebugUnitTest` + six JVM `test`), every module emitting XML.
+Checkpoint at F-37-A (`da9a32ab`): 1743/0/0/0. Post-phase at `df6b5f50`: 1769/0/0/0, +40 names (17 modules, XML-emission + task-failure
+checks clean). The two later commits were module-verified on the full affected modules
+(`d73fef82`: app notifications 6/6; `397b5de7`: domain + data 402/402), and the FINAL
+full-suite gate ran at the phase HEAD `397b5de7`: **1773 tests / 0 failures / 0 skipped,
+17 modules, 0 task failures — +44 new names vs the baseline, every one this phase's own pins,
+0 names lost** (1729 + 44 = 1773, reconciled exactly; no module went dark).
+
+### Rig-caught during the exit gate (fixed in the phase, test-first)
+
+`397b5de7` — with "Task titles" ON, the fresh gen2/gen3 state-plane approval re-posted with
+`android.text=null` and NO shade actions. A run-as pull of `zcode.db` showed the stored
+payload is the whole `pendingInteractions[]` ENTRY (`{interactionId, kind, anchorRowId,
+createdAt, payload:{toolName, summary, detail:{command}, options}}`) — `InteractionPreview`
+read top-level keys only, so EVERY state-plane interaction (the authoritative plane since Q11)
+previewed null, blinding the notification subject and the L3 approvals inbox for them. Fixed
+by unwrapping the envelope; the existing L3 pin had fed the inner payload (shape-fidelity gap).
+
+### Exit-gate rig leg — PASSED 2026-11-08 (fresh zcode-a16 cold boot, Android 16 / API 36)
+
+Rig: `zcode-a16` cold boot (`-no-snapshot-load -gpu swiftshader_indirect -no-audio`),
+MockZCode relay armed with the standing all-flags set (`MOCK_APPROVAL/ROW_ACTIONS/GOAL/
+COMPACT/CHECKPOINT_CONFLICTS/FILECHANGES/WORKFLOWS/TASKMGMT/QUESTION/HOOKS/QUEUE/
+SESSIONS_INDEX/BACKGROUND_BASH/WORKSPACE_FILES/SHARED_CONTEXT/CUA/GIT/AUTOMATIONS/OFFPEAK/
+USAGE/AUTOMATION_RUNS` + per-generation `MOCK_INTERACTION_PUSH_MS`) **PLUS the committed
+DIRECT-mode mock** (`MOCK_MODE=direct`, token `p6tok`, port 18200) and a cloudflared quick
+tunnel fronting it. Fresh clean install (`adb uninstall` first) of the phase debug APK
+(versionCode 52 / 1.3.1; `51e889f9…` at df6b5f50, then `dcf5f26b…` rebuilt at 397b5de7 and
+reinstalled `install -r` mid-walk for the envelope fix). PIN set/cleared around the lock leg.
+
+| Gate leg | Receipt |
+| --- | --- |
+| **Pairing (on the fixed field)** | Manual entry link typed into the MASKED field (reveal toggle used for the chunked typer; `password="true"` in the a11y tree; hide → text renders as •••• bullets), E7 consent → Connected; the Gboard check below |
+| **F-37-C Gboard** | Typing `p6t` into a PLAIN field: suggestion bar shows `p6t put pet` (Gboard learning, the control); typing the same token into the TOKEN field: NO suggestion bar at all, keys 1–10 visible (password IME) — the pass-37 "Gboard offered p37tok" shape is gone |
+| **F-37-A LAN ws://** | `ws://192.0.2.1:3030/ws` + token → inline error **"Plain ws:// isn't allowed — use wss:// or a tunnel URL"** BEFORE any probe (0 log lines touching TEST-NET, no NOMT), dialog kept name+URL+token (token still ••••• masked), GAP-A10's contract holds on this rejection |
+| **F-37-A loopback ws://** | `ws://10.0.2.2:18200/ws` + `p6tok` → `hub.directAdded` → AUTHENTICATING → `direct.serverInfo` → **CONNECTED** (`direct.connected via=10.0.2.2:18200 candidatesTried=1`) — the probe ran off Main and the add succeeded (pass 37: NOMT on every add) |
+| **F-37-A wss:// tunnel** | `wss://<quick-tunnel>.trycloudflare.com/ws` → added + CONNECTED; a logging TCP tap in front of the mock recorded the full wire (server-info 200 + cookie → `GET /ws` → `101 Switching Protocols` → 21 B Initialize → 108/61/219 B masked frames, acks back) — the direct plane works end-to-end over the public tunnel. Tunnel #1's first add died in a transient Cloudflare edge reset (500 mid-handshake, tap captured the plain text) and CONNECTED on a later switch — honest transient, recorded; `curl --http1.1` is the right WS probe (curl's default HTTP/2 cannot 101) |
+| **F-37-F ON** | `dumpsys window`: MainActivity `fl=… SECURE …`; raw `screencap` = 0.3% non-black; Recents card = solid black placeholder with the app icon (screenshot `f37f-on-recents.png`) |
+| **F-37-F OFF (live)** | Settings → Privacy → "Screenshot protection" switch → `app.privacy :: screenshotProtection=false`, `fl=` loses SECURE in the SAME dump, screencap 100% non-black, Recents renders the real Settings screen — **no restart** |
+| **F-37-F ON (live)** | Toggle back → `screenshotProtection=true`, `fl=… SECURE …` restored live |
+| **F-33-F clipboard** | Freshly typed clipboard text (`p6-clip-secret` via Settings search) present; **10 conversation opens** (deep link → back ×10): `READ_CLIPBOARD` app-op **unchanged**, 0 paste toasts in logcat; positive control: an explicit paste (Ctrl+V into the composer field) inserted the text and noted `READ_CLIPBOARD … time=+4s458ms ago` — description-only probe, data only on Paste |
+| **F-33-H Minimal** | Background entry re-posts: 3 permission records all `vis=PRIVATE` **each with a publicVersion** (pass 33/37: none), titles "ZCode needs your approval"/"ZCode has a question for you", `android.text=null`, **0 Approve/Deny anywhere in the dump** — no blind approve, category-only lock screen |
+| **F-33-H Task titles** | Setting flipped live; gen4/gen5 fresh pushes re-posted with `android.text="Bash: echo synthetic"` + publicVersion present; `Which channel?` question carries its subject with no actions; the shade's uiautomator dump shows the subject text; the tap lands on the in-app approval card |
+| **F-37-B lock leg** | `locksettings set-pin 1234` → power off/on → `dumpsys trust deviceLocked=1`, `isKeyguardShowing=true` (captured before and after the taps). On the keyguard the approval group renders — **ZERO Approve/Deny action nodes** (pass 37: `Approve/Deny at action0` rendered and tappable) even with a notification expanded; **0 `sendConversationCommandV4` lines while locked**. After PIN unlock (`deviceLocked=0`): the answer fired **exactly once** — `v4.call :: sendConversationCommandV4 begin` + `ok in 158ms` (the in-app card; Android 16 withholds auth-required actions from the keyguard entirely, so the post-unlock answer takes the in-app path — recorded honestly). A stale card's answer refused in-app with the honest "Already handled on the desktop." notice, no wire (the fail-closed inbox path, live) |
+| **Robolectric/mock fidelity notes** | The `ScreenProtectionTest` harness drives the REAL MainActivity to CREATED only: a full `visible()` boot trips a Robolectric frame-ordering artifact in `ZCodeApp`'s first-pairing navigation (`LaunchedEffect` before the Scaffold-subcomposed NavHost sets its graph) that production never hits — the preference wiring lives in onCreate, so CREATED is the honest scope |
+
+**0 FATALs / 0 ANRs / 0 NetworkOnMainThreadException** across the entire session logcat
+(fresh install → pairing → all legs → lock/unlock → direct-plane drives; two restarts of the
+mocks mid-walk). One recorded observation: the app skipped 137 frames once during the unlock
+transition (22:51:14, no ANR followed). A late-session swiftshader compositor wedge made
+`adb exec-out screencap` return all-black frames for every window (launcher included) while
+`dumpsys display` stayed ON — ground truth via the emulator console
+(`adb emu screenrecord screenshot`), the app exonerated.
+
+### Verification stamp
+
+This phase was implemented (test-first, RED receipts kept in /tmp/p6/*.keep.log), rig-verified
+on the exit-gate leg above, and marked complete on **2026-11-08 at 23:14:07** (local time,
+yyyy-mm-dd hh-mm-ss) by **GLM-5.3-Flash** (the session model) running inside **ZCode** (the
+ZCode CLI agent harness), working under Ernest's standing deliverable-completion rule on
+`fix/vc52`; commits `da9a32ab`, `6b436872`, `fb85cf40`, `a60880cc`, `79c0b4fd`, `1d89e586`,
+`d73fef82`, `df6b5f50`, `397b5de7` (this phase, plus the rig/receipt commits), all local,
+nothing pushed.
+
+**Phase 6 is COMPLETE: all 6 rows closed (F-37-A, F-37-B, F-37-C, F-37-F, F-33-F, F-33-H) +
+RIG-P4 pulled forward, every pin RED at its pre-fix commit and GREEN after, the exit gate
+passed on a fresh Android 16 emulator leg with the committed DIRECT-mode mock, and the
+full-suite zero-new-names gate reconciled.** Nothing pushed; publishing waits on Ernest's
+explicit word.
