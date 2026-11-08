@@ -167,4 +167,34 @@ class AndroidNotificationSinkTest {
         assertEquals(1, passive.actions.size)
         assertTrue("passive actions stay one-tap", passive.actions.none { it.isAuthenticationRequired })
     }
+
+    /**
+     * F-33-H (vc52 Phase 6, P3, safety): approvals were category-only at BOTH content levels
+     * (`android.text=null`, no public version) yet carried Approve/Deny — a shell command
+     * could be approved from the shade unseen. The subject now rides the PRIVATE version;
+     * the lock screen's PUBLIC version stays category-only, with no actions.
+     */
+    @Test
+    fun `F-33-H - the lock screen gets a category-only public version, the private version carries the subject`() {
+        val sink = AndroidNotificationSink(context)
+        sink.show(
+            NotificationBroker.Spec(
+                "interaction:i-7", NotificationChannels.PERMISSIONS, "ZCode needs your approval",
+                "Bash: echo synthetic", null, "t-7", "i-7",
+                actions = listOf(
+                    NotificationBroker.SpecAction(NotificationActions.ID_APPROVE, "Approve", "i-7", "t-7", "allowOnce"),
+                    NotificationBroker.SpecAction(NotificationActions.ID_DENY, "Deny", "i-7", "t-7", "deny"),
+                ),
+            ),
+        )
+        val n = shadowOf(manager).allNotifications.single()
+        assertEquals(android.app.Notification.VISIBILITY_PRIVATE, n.visibility)
+        assertEquals("Bash: echo synthetic", n.extras.getCharSequence(android.app.Notification.EXTRA_TEXT)?.toString())
+        val public = n.publicVersion
+        assertNotNull("no public version: a redacting lock screen has nothing category-only to show", public)
+        assertEquals("ZCode needs your approval", public!!.extras.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString())
+        assertEquals(null, public.extras.getCharSequence(android.app.Notification.EXTRA_TEXT))
+        assertEquals(null, public.extras.getCharSequence(android.app.Notification.EXTRA_BIG_TEXT))
+        assertTrue("the public version must carry no actions", public.actions.isNullOrEmpty())
+    }
 }

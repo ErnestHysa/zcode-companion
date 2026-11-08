@@ -25,7 +25,9 @@ class NotificationPlanTest {
         assertTrue(d.show)
         assertEquals(NotificationChannels.PERMISSIONS, d.channelId)
         assertEquals("ZCode needs your approval", d.publicText)
-        // §24.1 "no tool/paths": NO detail text at either content level.
+        // §24.1 "no tool/paths" on the lock screen; with no known subject there is no
+        // detail at either level (F-33-H: a subject rides the private version only under
+        // Task titles — pinned below).
         assertNull(d.detailText)
     }
 
@@ -35,6 +37,51 @@ class NotificationPlanTest {
         assertTrue(d.show)
         assertEquals(NotificationChannels.PERMISSIONS, d.channelId)
         assertNull(d.detailText)
+    }
+
+    /**
+     * F-33-H (vc52 Phase 6, P3, safety): the 2×2 — content level (Minimal | Task titles) ×
+     * detail level (public = lock screen | private = unlocked) — for approvals and questions,
+     * with and without a known subject. The PUBLIC line is category-only in every cell; the
+     * PRIVATE line names the subject only under Task titles; shade actions exist only where
+     * the private line shows the subject (never a blind approve).
+     */
+    @Test
+    fun `F-33-H - approvals - public is category-only at both levels, private names the subject only under Task titles`() {
+        val subject = "Bash: echo synthetic"
+        val content = background.copy(contentLevel = AppPreferences.NotificationContentLevel.CONTENT)
+        val approval = NotificationPlan.Event(NotificationRecord.Kind.APPROVAL_NEEDED, subject = subject)
+
+        val minimal = NotificationPlan.decide(approval, background)
+        assertEquals("ZCode needs your approval", minimal.publicText) // public, Minimal
+        assertNull("Minimal never names the subject, even unlocked", minimal.detailText) // private, Minimal
+        assertFalse("no subject shown → no shade actions (in-app answering)", minimal.shadeActions)
+
+        val rich = NotificationPlan.decide(approval, content)
+        assertEquals("ZCode needs your approval", rich.publicText) // public, Task titles: still category-only
+        assertEquals(subject, rich.detailText) // private, Task titles: the subject
+        assertTrue("the subject is visible → Approve/Deny may ride the shade", rich.shadeActions)
+
+        val unknown = NotificationPlan.decide(NotificationPlan.Event(NotificationRecord.Kind.APPROVAL_NEEDED), content)
+        assertNull(unknown.detailText)
+        assertFalse("Task titles without a known subject is still blind → no actions", unknown.shadeActions)
+        assertFalse(
+            "a blank subject is no subject",
+            NotificationPlan.decide(NotificationPlan.Event(NotificationRecord.Kind.APPROVAL_NEEDED, subject = "  "), content).shadeActions,
+        )
+    }
+
+    @Test
+    fun `F-33-H - questions - public is category-only at both levels, private names the question only under Task titles`() {
+        val question = NotificationPlan.Event(NotificationRecord.Kind.USER_INPUT_NEEDED, subject = "Which environment?")
+        val content = background.copy(contentLevel = AppPreferences.NotificationContentLevel.CONTENT)
+        val minimal = NotificationPlan.decide(question, background)
+        assertEquals("ZCode has a question for you", minimal.publicText)
+        assertNull(minimal.detailText)
+        val rich = NotificationPlan.decide(question, content)
+        assertEquals("ZCode has a question for you", rich.publicText)
+        assertEquals("Which environment?", rich.detailText)
+        assertFalse("questions are never answerable from the shade", rich.shadeActions || minimal.shadeActions)
     }
 
     @Test

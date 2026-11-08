@@ -79,6 +79,9 @@ class NotificationWiring(
     @Volatile private var seenInteractionIds: Set<String> = emptySet()
     @Volatile private var taskStatuses: Map<String, TaskStatus> = emptyMap()
 
+    /** F-33-H: the subject of every currently-open interaction (re-post input; in memory only). */
+    @Volatile private var openSubjects: Map<String, String> = emptyMap()
+
     /**
      * §24.7 routing inputs — the SAME projection snapshots the collectors maintain
      * for the broker diffs (what the task list actually renders), NOT a second
@@ -103,6 +106,8 @@ class NotificationWiring(
             runCatching { stores.preferencesRepository.current().notificationContentLevel }
                 .getOrDefault(com.zcode.android.domain.model.AppPreferences.NotificationContentLevel.MINIMAL)
         }
+        // F-33-H: the background re-post names the same subject as the fresh post.
+        broker.subjectProvider = { interactionId -> openSubjects[interactionId] }
         // §24.5 (vc35 user feedback): the Live-connection window is user-customizable
         // (0 = no auto-timeout). Live-updates the FGS while running; start() re-reads
         // it on every toggle-on.
@@ -125,6 +130,7 @@ class NotificationWiring(
                 val fresh = StoreDiffs.newOpenInteractions(previousIds, records)
                 seenInteractionIds = StoreDiffs.interactionIds(records)
                 knownInteractionIds.set(seenInteractionIds)
+                openSubjects = records.mapNotNull { r -> interactionSubject(r)?.let { r.interactionId.raw to it } }.toMap()
                 for ((record, kind) in fresh) {
                     // Phase 4F: the PER-CATEGORY toggle gates the emission (the prefs
                     // are read per event — a toggle applies to the NEXT request).
@@ -143,8 +149,10 @@ class NotificationWiring(
                             taskId = record.sessionId?.raw,
                             interactionId = record.interactionId.raw,
                             taskTitle = null,
-                            // C3: approvals carry the shade Approve-once/Deny actions.
+                            // C3: approvals carry the shade Approve-once/Deny actions —
+                            // F-33-H: only beside their subject (the plan decides).
                             permission = kind == com.zcode.android.domain.model.NotificationRecord.Kind.APPROVAL_NEEDED,
+                            subject = interactionSubject(record),
                         )
                     }.onFailure { log.warn("notify.attentionFault", it.javaClass.simpleName) }
                 }
@@ -219,5 +227,21 @@ class NotificationWiring(
     fun recordsPort(): RecoveryCoordinator.NotificationRecordPort = object : RecoveryCoordinator.NotificationRecordPort {
         override suspend fun visible(): List<NotificationRecord> = broker.visible()
         override suspend fun dismiss(keys: List<String>) = broker.dismiss(keys)
+    }
+}
+
+/**
+ * F-33-H: what an open interaction is ABOUT, for the private notification text — the
+ * desktop's own "Command: {command}" / "File: {paths}" shape. A permission needs its
+ * preview (the command/path line; a bare tool name is still a blind approve); a question
+ * is its first question. The preview is already bounded and secret-scrubbed
+ * ([com.zcode.android.domain.model.InteractionPreview]). Null = no shade actions.
+ */
+internal fun interactionSubject(record: InteractionRepository.InteractionRecord): String? {
+    val preview = record.preview?.takeIf { it.isNotBlank() } ?: return null
+    return when (record.kind) {
+        InteractionRepository.InteractionRecord.Kind.PERMISSION ->
+            record.toolName?.takeIf { it.isNotBlank() }?.let { "$it: $preview" } ?: preview
+        InteractionRepository.InteractionRecord.Kind.USER_INPUT -> preview
     }
 }

@@ -52,6 +52,10 @@ class AndroidNotificationSink(
                     NotificationCompat.PRIORITY_DEFAULT
                 },
             )
+            // F-33-H (T8): a redacting lock screen shows ONLY the category line — the
+            // subject (a command, a path, a title) and the actions live in the private version.
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(publicVersion(spec))
         spec.deepLinkTaskId?.let { taskId ->
             builder.setContentIntent(deepLinkPendingIntent(taskId, spec.deepLinkInteractionId))
         }
@@ -99,6 +103,16 @@ class AndroidNotificationSink(
             }
         }
     }
+
+    /**
+     * F-33-H: the lock-screen-safe PUBLIC version — the category line alone (§24.1 T8): no
+     * content text, no expanded text, no actions.
+     */
+    private fun publicVersion(spec: NotificationBroker.Spec): android.app.Notification =
+        NotificationCompat.Builder(context, spec.channelId)
+            .setSmallIcon(com.zcode.android.core.notifications.R.drawable.ic_notif_shield)
+            .setContentTitle(spec.publicText)
+            .build()
 
     private fun postGroupSummary(group: String, count: Int) {
         val summary = NotificationCompat.Builder(context, NotificationChannels.TASK_STATUS)

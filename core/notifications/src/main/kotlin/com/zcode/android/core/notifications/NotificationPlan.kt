@@ -13,7 +13,14 @@ import com.zcode.android.domain.model.NotificationRecord
  *
  * Privacy posture (T8, §24.1 table — normative defaults):
  *  - APPROVAL/USER-INPUT: lock-screen text is CATEGORY ONLY ("ZCode needs your
- *    approval") — never tool names, never paths — at BOTH content levels.
+ *    approval") — never tool names, never paths — at BOTH content levels (the sink posts
+ *    it as the notification's PUBLIC version).
+ *  - F-33-H: under CONTENT ("Task titles") the PRIVATE (unlocked) version carries the
+ *    subject — the tool + command/path, or the question — and only then may Approve/Deny
+ *    ride the shade ([Decision.shadeActions]). Under MINIMAL nothing may name the subject
+ *    (Android shows the private version on the lock screen unless the user hides
+ *    sensitive content), so the approval is answered IN-APP: an action the user cannot
+ *    read is never offered.
  *  - TASK_FINISHED/TASK_FAILED: MINIMAL = category only; CONTENT = "…: <title>"
  *    (title only; toggleable — the §24.1 "toggleable" cell is the content level).
  *  - CONNECTION_LOST: category only (no content exists to show).
@@ -34,6 +41,11 @@ object NotificationPlan {
     data class Event(
         val kind: NotificationRecord.Kind,
         val taskTitle: String? = null,
+        /**
+         * F-33-H: what an approval/question is ABOUT — "Bash: <command>", "Edit: <path>", or
+         * the question — already bounded and secret-scrubbed upstream (InteractionPreview).
+         */
+        val subject: String? = null,
     )
 
     data class Policy(
@@ -50,6 +62,8 @@ object NotificationPlan {
         val publicText: String,
         /** Content text shown when unlocked; null = same as public (§24.1 "no content"). */
         val detailText: String?,
+        /** F-33-H: Approve/Deny may ride the shade — only when [detailText] shows the subject. */
+        val shadeActions: Boolean = false,
     )
 
     /**
@@ -87,11 +101,13 @@ object NotificationPlan {
         // broker never posts (eligibility step of §24.1).
         if (policy.appForeground) return Decision(false, channel, "", null)
         val full = policy.contentLevel == AppPreferences.NotificationContentLevel.CONTENT
+        // F-33-H: the subject rides the PRIVATE version only under CONTENT.
+        val subject = event.subject?.takeIf { full && it.isNotBlank() }
         return when (event.kind) {
             NotificationRecord.Kind.APPROVAL_NEEDED ->
-                Decision(true, channel, copy.approvalPublic(), null)
+                Decision(true, channel, copy.approvalPublic(), subject, shadeActions = subject != null)
             NotificationRecord.Kind.USER_INPUT_NEEDED ->
-                Decision(true, channel, copy.questionPublic(), null)
+                Decision(true, channel, copy.questionPublic(), subject)
             NotificationRecord.Kind.TASK_FINISHED ->
                 if (full && !event.taskTitle.isNullOrBlank()) {
                     Decision(true, channel, copy.taskFinishedPublic(), copy.taskFinishedDetail(event.taskTitle))

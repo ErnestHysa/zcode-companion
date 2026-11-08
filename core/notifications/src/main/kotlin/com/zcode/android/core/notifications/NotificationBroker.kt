@@ -116,6 +116,8 @@ class NotificationBroker(
         taskTitle: String?,
         /** C3: a PERMISSION notification carries the shade Approve-once/Deny actions. */
         permission: Boolean = false,
+        /** F-33-H: what the approval/question is about (shown privately under CONTENT). */
+        subject: String? = null,
     ) {
         val key = NotificationPlan.notificationKey(kind, taskId, interactionId)
             ?: run {
@@ -123,7 +125,7 @@ class NotificationBroker(
                 return
             }
         val decision = NotificationPlan.decide(
-            NotificationPlan.Event(kind, taskTitle),
+            NotificationPlan.Event(kind, taskTitle, subject),
             NotificationPlan.Policy(appForeground = foreground, contentLevel = contentLevel()),
             copy,
         )
@@ -138,7 +140,8 @@ class NotificationBroker(
             log.debug("notify.suppressed", "key=${key.take(24)} foreground=$foreground")
             return
         }
-        val actions = if (permission && interactionId != null && taskId != null) {
+        // F-33-H: Approve/Deny ride the shade only beside the subject they answer.
+        val actions = if (permission && decision.shadeActions && interactionId != null && taskId != null) {
             listOf(
                 SpecAction(NotificationActions.ID_APPROVE, copy.approveAction(), interactionId, taskId, "allowOnce"),
                 SpecAction(NotificationActions.ID_DENY, copy.denyAction(), interactionId, taskId, "deny"),
@@ -175,17 +178,23 @@ class NotificationBroker(
                 .toList()
         }
         for (record in open) {
+            // F-33-H: the record carries no subject — the wiring resolves it from the live
+            // interaction store; when it cannot, the re-post stays subject-less AND
+            // action-less (never a blind approve).
+            val subject = record.interactionId?.let { id -> runCatching { subjectProvider(id) }.getOrNull() }
             val decision = NotificationPlan.decide(
-                NotificationPlan.Event(record.kind),
+                NotificationPlan.Event(record.kind, subject = subject),
                 NotificationPlan.Policy(appForeground = false, contentLevel = contentLevel()),
+                copy,
             )
             if (!decision.show) continue
             // A12 (vc51, pass-9 Y2): the re-post replicates the fresh path's permission-gated
             // actions — an approval arriving while foregrounded is §9.9-suppressed at post
             // time, so this actions-less re-post was the ONLY post such an approval ever got
             // (the shade buttons existed only in the rare already-backgrounded race). The
-            // record already holds kind/interactionId/taskId — the same SpecAction builder.
-            val actions = if (record.kind == NotificationRecord.Kind.APPROVAL_NEEDED &&
+            // record already holds kind/interactionId/taskId — the same SpecAction builder,
+            // gated by the same F-33-H shadeActions rule as the fresh path.
+            val actions = if (record.kind == NotificationRecord.Kind.APPROVAL_NEEDED && decision.shadeActions &&
                 record.interactionId != null && record.taskId != null
             ) {
                 listOf(
@@ -286,6 +295,13 @@ class NotificationBroker(
     @Volatile
     var contentLevelProvider: suspend () -> com.zcode.android.domain.model.AppPreferences.NotificationContentLevel =
         { com.zcode.android.domain.model.AppPreferences.NotificationContentLevel.MINIMAL }
+
+    /**
+     * F-33-H: an open interaction's subject for the background re-post (records persist no
+     * subject — the command text never sits in notification_records.pb). Null = unknown.
+     */
+    @Volatile
+    var subjectProvider: suspend (interactionId: String) -> String? = { null }
 
     private suspend fun contentLevel() = contentLevelProvider()
 

@@ -94,12 +94,21 @@ class NotificationBrokerTest {
         // `permission` (NotificationBroker.kt:138-141) but the §15-S13 background re-post
         // built its Spec WITHOUT actions — and the re-post is the ONLY post an approval
         // gets when it arrives while the app is foregrounded (numWithActions never left 0).
+        // F-33-H (vc52): shade actions now exist only beside a visible subject, i.e. under
+        // the "Task titles" detail level — A12's invariant (re-post == fresh path) is pinned
+        // there; the Minimal shape is pinned below (no blind actions on either path).
         val sink = RecordingSink()
         val b = NotificationBroker(sink = sink) // starts FOREGROUND: the fresh post is suppressed
-        b.onEvent(NotificationRecord.Kind.APPROVAL_NEEDED, taskId = "t1", interactionId = "i-1", taskTitle = null, permission = true)
+        b.contentLevelProvider = { com.zcode.android.domain.model.AppPreferences.NotificationContentLevel.CONTENT }
+        b.subjectProvider = { id -> if (id == "i-1") "Bash: ./gradlew build" else null }
+        b.onEvent(
+            NotificationRecord.Kind.APPROVAL_NEEDED, taskId = "t1", interactionId = "i-1", taskTitle = null,
+            permission = true, subject = "Bash: ./gradlew build",
+        )
         assertTrue(sink.shown.isEmpty())
         b.onBackgroundEntry()
         val repost = sink.shown.getValue("interaction:i-1")
+        assertEquals("Bash: ./gradlew build", repost.detailText)
         assertEquals(2, repost.actions.size)
         assertEquals(NotificationActions.ID_APPROVE, repost.actions[0].id)
         assertEquals("allowOnce", repost.actions[0].optionId)
@@ -116,6 +125,71 @@ class NotificationBrokerTest {
         b.onEvent(NotificationRecord.Kind.USER_INPUT_NEEDED, taskId = "t1", interactionId = "i-2", taskTitle = null, permission = false)
         b.onBackgroundEntry()
         val repost = sink.shown.getValue("interaction:i-2")
+        assertEquals(emptyList<NotificationBroker.SpecAction>(), repost.actions)
+    }
+
+    /**
+     * F-33-H (vc52 Phase 6, P3, safety) — threat: a prompt-injected or simply surprising
+     * command is approved from the shade by a user who only ever saw "ZCode needs your
+     * approval". Under the default "Minimal" detail level the subject may not be shown
+     * (that setting promises a category-only lock screen, and Android shows a private
+     * version on the lock screen unless the user hides sensitive content), so the approval
+     * is answered IN-APP: no shade actions on the fresh post…
+     */
+    @Test
+    fun `F-33-H - under Minimal an approval carries no blind shade actions`() = runTest {
+        val sink = RecordingSink()
+        val b = broker(sink = sink)
+        b.onEvent(NotificationRecord.Kind.APPROVAL_NEEDED, taskId = "t1", interactionId = "i-1", taskTitle = null, permission = true)
+        val spec = sink.shown.getValue("interaction:i-1")
+        assertEquals(null, spec.detailText)
+        assertEquals("a subject-less approval must not be answerable from the shade", emptyList<NotificationBroker.SpecAction>(), spec.actions)
+        assertEquals("i-1", spec.deepLinkInteractionId) // the tap still lands on the in-app card
+    }
+
+    /** …nor on the A12 background re-post (one shared rule for both paths). */
+    @Test
+    fun `F-33-H - under Minimal the background re-post carries no blind shade actions either`() = runTest {
+        val sink = RecordingSink()
+        val b = NotificationBroker(sink = sink) // foreground: the fresh post is suppressed
+        b.onEvent(NotificationRecord.Kind.APPROVAL_NEEDED, taskId = "t1", interactionId = "i-1", taskTitle = null, permission = true)
+        b.onBackgroundEntry()
+        assertEquals(emptyList<NotificationBroker.SpecAction>(), sink.shown.getValue("interaction:i-1").actions)
+    }
+
+    @Test
+    fun `F-33-H - under Task titles the fresh post names the subject, and only then offers Approve and Deny`() = runTest {
+        val sink = RecordingSink()
+        val b = broker(sink = sink)
+        b.contentLevelProvider = { com.zcode.android.domain.model.AppPreferences.NotificationContentLevel.CONTENT }
+        b.onEvent(
+            NotificationRecord.Kind.APPROVAL_NEEDED, taskId = "t1", interactionId = "i-1", taskTitle = null,
+            permission = true, subject = "Bash: rm -rf build",
+        )
+        val spec = sink.shown.getValue("interaction:i-1")
+        assertEquals("ZCode needs your approval", spec.publicText) // the lock-screen line never changes
+        assertEquals("Bash: rm -rf build", spec.detailText)
+        assertEquals(listOf(NotificationActions.ID_APPROVE, NotificationActions.ID_DENY), spec.actions.map { it.id })
+        // …and a subject-less approval under the same level stays action-less.
+        b.onEvent(NotificationRecord.Kind.APPROVAL_NEEDED, taskId = "t1", interactionId = "i-2", taskTitle = null, permission = true)
+        val blind = sink.shown.getValue("interaction:i-2")
+        assertEquals(null, blind.detailText)
+        assertEquals(emptyList<NotificationBroker.SpecAction>(), blind.actions)
+    }
+
+    @Test
+    fun `F-33-H - a re-post whose subject is no longer known stays action-less under Task titles`() = runTest {
+        val sink = RecordingSink()
+        val b = NotificationBroker(sink = sink) // foreground: the fresh post is suppressed
+        b.contentLevelProvider = { com.zcode.android.domain.model.AppPreferences.NotificationContentLevel.CONTENT }
+        b.subjectProvider = { null } // e.g. a cold process before the interaction store emitted
+        b.onEvent(
+            NotificationRecord.Kind.APPROVAL_NEEDED, taskId = "t1", interactionId = "i-9", taskTitle = null,
+            permission = true, subject = "Bash: echo hi",
+        )
+        b.onBackgroundEntry()
+        val repost = sink.shown.getValue("interaction:i-9")
+        assertEquals(null, repost.detailText)
         assertEquals(emptyList<NotificationBroker.SpecAction>(), repost.actions)
     }
 
