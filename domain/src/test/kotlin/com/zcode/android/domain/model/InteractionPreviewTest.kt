@@ -106,4 +106,43 @@ class InteractionPreviewTest {
         val payload = buildJsonObject { put("input", "not-an-object") }
         assertNull(InteractionPreview.of("Bash", payload))
     }
+
+    /**
+     * F-33-H (vc52 Phase 6, rig-caught on the exit-gate leg): the STORED payload of a
+     * state-plane interaction is the whole `pendingInteractions[]` ENTRY —
+     * `{interactionId, kind, anchorRowId, createdAt, payload:{…}}` (docs/protocol/v4-wire.md;
+     * InteractionCoordinator persists `raw = pi.raw`) — not the inner payload the pin above
+     * feeds. The live DB row on zcode-a16 previewed NULL, so the notification had no subject
+     * and the inbox was approve-blind for every state-plane interaction. Shapes verbatim from
+     * the run-as pull of `interactions.payloadJson`.
+     */
+    @Test
+    fun `stored state-plane permission envelope - the nested payload's command is the preview`() {
+        val stored = kotlinx.serialization.json.Json.parseToJsonElement(
+            """{"interactionId":"mock-p6-gen2-40b44c","kind":"permission","anchorRowId":null,"createdAt":1.794174005391E12,""" +
+                """"payload":{"kind":"permission","toolCallId":"tool-approval-mock-p6-gen2-40b44c","toolName":"Bash",""" +
+                """"summary":"Run a synthetic command?","detail":{"command":"echo synthetic"},""" +
+                """"options":[{"optionId":"allowOnce","label":"allowOnce","kind":"allowOnce"}]}}""",
+        ) as kotlinx.serialization.json.JsonObject
+        assertEquals("echo synthetic", InteractionPreview.of("Bash", stored))
+    }
+
+    @Test
+    fun `stored state-plane user-input envelope - the nested first question is the preview`() {
+        val stored = kotlinx.serialization.json.Json.parseToJsonElement(
+            """{"interactionId":"q-rig-1","kind":"userInput","anchorRowId":null,"createdAt":1.794174005391E12,""" +
+                """"payload":{"kind":"userInput","prompt":"How should I ship this?","freeText":false,""" +
+                """"questions":[{"question":"Which channel?","header":"Channel","multiSelect":false,"options":[]}]}}""",
+        ) as kotlinx.serialization.json.JsonObject
+        assertEquals("Which channel?", InteractionPreview.of(null, stored))
+    }
+
+    @Test
+    fun `an envelope whose payload names no subject falls back to its own summary - never the envelope ids`() {
+        val stored = kotlinx.serialization.json.Json.parseToJsonElement(
+            """{"interactionId":"i-9","kind":"permission","anchorRowId":null,"createdAt":1.0,""" +
+                """"payload":{"kind":"permission","toolName":"Bash","summary":"Run a synthetic command?","detail":{"count":1}}}""",
+        ) as kotlinx.serialization.json.JsonObject
+        assertEquals("Run a synthetic command?", InteractionPreview.of("Bash", stored))
+    }
 }

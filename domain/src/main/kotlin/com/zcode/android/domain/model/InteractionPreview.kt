@@ -9,8 +9,9 @@ import kotlinx.serialization.json.JsonPrimitive
  * L3 (gaps-and-polish Phase 3B): ONE bounded preview line for an open interaction, so
  * the approvals inbox is never approve-blind. Derived from the retained payload — the
  * verified wire's `detail` object (snapshot pendingInteraction / permission event; the
- * §20.1 vocabulary name `input` is accepted too), then the `summary`/`reason` line, or
- * the first question (user-input):
+ * §20.1 vocabulary name `input` is accepted too; a STORED `pendingInteractions[]` entry
+ * is unwrapped to its nested `payload` first, F-33-H), then the `summary`/`reason` line,
+ * or the first question (user-input):
  *
  *  - well-known keys first (`command` for Bash, `file_path`/`path` for file tools,
  *    `pattern`/`query`/`url`/`description` for search/fetch classes);
@@ -42,6 +43,12 @@ object InteractionPreview {
     }
 
     private fun derive(payload: JsonObject): String? {
+        // F-33-H (rig-caught on the vc52 exit-gate leg): the STORED payload of a state-plane
+        // interaction is the whole `pendingInteractions[]` ENTRY (docs/protocol/v4-wire.md:
+        // `{interactionId, kind, anchorRowId, createdAt, payload:{…}}` — InteractionCoordinator
+        // persists `raw = pi.raw`), not the inner payload the earlier shapes assumed. Unwrap
+        // the envelope first; the envelope's own fields are ids, never a preview.
+        (payload["payload"] as? JsonObject)?.let { inner -> derive(inner)?.let { return it } }
         // Permission: the verified wire carries the tool input as `detail` (snapshot
         // pendingInteraction + permission event — InteractionCoordinator maps it to
         // PermissionRequest.input); `input` is accepted as the §20.1 vocabulary name.

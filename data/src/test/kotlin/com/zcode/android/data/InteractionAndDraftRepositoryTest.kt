@@ -120,4 +120,27 @@ class InteractionAndDraftRepositoryTest {
         drafts.clear(scope)
         assertTrue(drafts.observe(scope).first() == null)
     }
+
+    /**
+     * F-33-H (vc52 Phase 6, rig-caught): the REAL store path the notification wiring reads.
+     * A state-plane permission persists its whole `pendingInteractions[]` entry as the payload
+     * (`raw = pi.raw`); observeOpen must surface the command it asks to run as the preview —
+     * the live zcode-a16 row (`mock-p6-gen2-40b44c`) previewed null, so the "Task titles"
+     * notification had no subject and no shade actions.
+     */
+    @Test
+    fun `F-33-H - a state-plane permission's stored envelope previews the command it asks to run`() = runTest {
+        val envelope = kotlinx.serialization.json.Json.parseToJsonElement(
+            """{"interactionId":"p-env-1","kind":"permission","anchorRowId":null,"createdAt":1.794174005391E12,""" +
+                """"payload":{"kind":"permission","toolCallId":"tool-approval-p-env-1","toolName":"Bash",""" +
+                """"summary":"Run a synthetic command?","detail":{"command":"echo synthetic"},"options":[]}}""",
+        ) as kotlinx.serialization.json.JsonObject
+        interactions.upsertPermission(
+            permission("p-env-1", createdAt = 5).copy(raw = envelope),
+            ep,
+            InteractionLifecycle.DISPLAYED,
+        )
+        val open = interactions.observeOpen(ep).first().single { it.interactionId.raw == "p-env-1" }
+        assertEquals("echo synthetic", open.preview)
+    }
 }
