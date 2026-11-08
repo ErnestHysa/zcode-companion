@@ -234,6 +234,7 @@ fun SettingsScreen(
                 subtitle = stringResource(R.string.settings_privacy_sub),
                 tag = "settings_privacy",
             )
+            ScreenshotProtectionToggle(container = container)
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
             SectionHeader(stringResource(R.string.settings_section_about))
@@ -1527,6 +1528,49 @@ private fun InteractionBehaviorSection(container: AppContainer) {
                     Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel))
                 }
             },
+        )
+    }
+}
+
+/**
+ * F-37-F (§27): the screenshot-protection switch — default ON. MainActivity observes the
+ * preference and applies FLAG_SECURE live (no restart): Recents shows a blank card and
+ * screenshots / screen recording capture nothing while it is on.
+ */
+@Composable
+private fun ScreenshotProtectionToggle(container: AppContainer) {
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val prefs by container.stores.preferencesRepository.observe()
+        .collectAsState(initial = com.zcode.android.domain.model.AppPreferences())
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .testTag("settings_privacy_screenshot"),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                stringResource(R.string.settings_privacy_screenshot),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                stringResource(R.string.settings_privacy_screenshot_sub),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(Modifier.width(8.dp))
+        androidx.compose.material3.Switch(
+            checked = prefs.screenshotProtection,
+            onCheckedChange = { checked ->
+                scope.launch {
+                    container.stores.preferencesRepository.update { p -> p.copy(screenshotProtection = checked) }
+                }
+            },
+            modifier = Modifier.testTag("settings_privacy_screenshot_switch"),
         )
     }
 }

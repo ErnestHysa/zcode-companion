@@ -24,6 +24,8 @@ import androidx.compose.runtime.remember
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import com.zcode.android.app.nav.ZCodeApp
 import com.zcode.android.app.theme.ZCodeTheme
@@ -47,6 +49,19 @@ internal fun android.app.Activity.updateRecentsTaskLabel(label: String?) {
     if (label.isNullOrBlank()) return
     @Suppress("DEPRECATION")
     setTaskDescription(android.app.ActivityManager.TaskDescription(label))
+}
+
+/**
+ * F-37-F (§27): screenshot protection on this window — FLAG_SECURE blanks the Recents
+ * thumbnail and blocks screenshots, screen recording and Select-text capture. Compose
+ * dialogs, sheets and popups inherit it (their default SecureFlagPolicy is Inherit).
+ */
+internal fun android.app.Activity.applyScreenshotProtection(enabled: Boolean) {
+    if (enabled) {
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+    } else {
+        window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+    }
 }
 
 /**
@@ -127,6 +142,19 @@ class MainActivity : FragmentActivity() {
         }
         container = AppContainer(this)
         container.log.info("app.lifecycle", "onCreate savedInstanceState=${savedInstanceState != null}")
+        // F-37-F (§27): screenshot protection follows the preference LIVE (no restart).
+        // FAIL-CLOSED: the window is secure before its first frame (the default is ON); a
+        // user who turned protection off has it cleared as soon as the stored value loads.
+        applyScreenshotProtection(true)
+        lifecycleScope.launch {
+            container.stores.preferencesRepository.observe()
+                .map { it.screenshotProtection }
+                .distinctUntilChanged()
+                .collect { protect ->
+                    applyScreenshotProtection(protect)
+                    container.log.info("app.privacy", "screenshotProtection=$protect")
+                }
+        }
         // §43.2-11.1: benchmark-only seeding (BuildConfig.BENCHMARK_SEEDING is true
         // ONLY in the benchmark build type) — seals a direct-endpoint credential for
         // the loopback MockZCode the benchmark process runs, so the measured launch

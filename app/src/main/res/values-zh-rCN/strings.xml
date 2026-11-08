@@ -99,6 +99,8 @@
 <string name="settings_marker_toast">标记已添加到诊断信息</string>
 <string name="settings_privacy_row">无分析。无追踪。</string>
 <string name="settings_privacy_sub">数据只会通过您已配对的 ZCode 连接离开此设备。</string>
+<string name="settings_privacy_screenshot">截屏保护</string>
+<string name="settings_privacy_screenshot_sub">在最近任务中隐藏 ZCode，并阻止对审批、对话和草稿进行截屏或录屏。</string>
 <string name="settings_about_row">ZCode Companion</string>
 <string name="settings_about_sub">ZCode 的非官方原生客户端。包含 Apache-2.0 组件 — 请参阅许可信息。</string>
 <string name="settings_licenses_row">许可证</string>

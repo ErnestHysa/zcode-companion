@@ -113,6 +113,8 @@
 <string name="settings_marker_toast">Marker added to diagnostics</string>
 <string name="settings_privacy_row">No analytics. No tracking.</string>
 <string name="settings_privacy_sub">Data leaves this device only through your paired ZCode connection.</string>
+<string name="settings_privacy_screenshot">Screenshot protection</string>
+<string name="settings_privacy_screenshot_sub">Hides ZCode in Recents and blocks screenshots and screen recording of approvals, chats and drafts.</string>
 <string name="settings_about_row">ZCode Companion</string>
 <string name="settings_about_sub">Unofficial native client for ZCode. Apache-2.0 components — see licenses.</string>
 <string name="settings_licenses_row">Licenses</string>
