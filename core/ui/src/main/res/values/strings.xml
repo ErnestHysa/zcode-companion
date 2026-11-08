@@ -37,6 +37,8 @@
     <string name="action_allow_once">Allow once</string>
     <string name="action_allow_always">Allow always</string>
     <string name="action_open">Open</string>
+    <string name="secret_reveal">Show secret</string>
+    <string name="secret_hide">Hide secret</string>
     <string name="a11y_status_icon">Status: %1$s</string>
 
     <!-- §33 category-level error copy rendered at the UI boundary when an AppError

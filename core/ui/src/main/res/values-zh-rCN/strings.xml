@@ -27,6 +27,8 @@
     <string name="action_allow_once">仅允许一次</string>
     <string name="action_allow_always">始终允许</string>
     <string name="action_open">打开</string>
+    <string name="secret_reveal">显示密钥</string>
+    <string name="secret_hide">隐藏密钥</string>
     <string name="a11y_status_icon">状态：%1$s</string>
 
     <string name="error_auth">配对已过期 — 请重新扫描二维码</string>

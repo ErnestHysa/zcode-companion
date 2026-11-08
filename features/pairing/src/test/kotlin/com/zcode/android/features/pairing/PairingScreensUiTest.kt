@@ -1,6 +1,7 @@
 package com.zcode.android.features.pairing
 
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -274,6 +275,53 @@ class PairingScreensUiTest {
         ).assertIsDisplayed()
         compose.onNodeWithTag("start-scan").assertIsDisplayed()
         compose.onNodeWithTag("open-manual").assertIsDisplayed()
+    }
+
+    // ---------------------------------------------------------------- F-37-C secret entry
+
+    /**
+     * F-37-C (vc52 Phase 6, P2) — threat: the manual-entry field carries the QR-equivalent
+     * pairing link (sid + passHash, the credential §7.6 protects); typed unmasked through a
+     * keyboard that LEARNS it, it is shoulder-surfable and lands in the IME's personal
+     * dictionary. Masked, password input type, autocorrect off; reveal for a visual check.
+     */
+    @Test
+    fun `F-37-C - the manual pairing-link field is masked and password-typed`() = runWith { _, vm ->
+        var view: android.view.View? = null
+        compose.setContent {
+            view = androidx.compose.ui.platform.LocalView.current
+            androidx.compose.material3.MaterialTheme {
+                com.zcode.android.features.pairing.ui.PairingHost(vm, scannerContent = null)
+            }
+        }
+        compose.onNodeWithTag("open-manual").performClick()
+        val secretLink = "https://zcode.z.ai/remote/v4?sid=d_Sid0000000001&hash=c2VjcmV0LXBhc3NoYXNo"
+        compose.onNodeWithTag("manual-field").performTextInput(secretLink)
+        compose.waitForIdle()
+        val config = compose.onNodeWithTag("manual-field").fetchSemanticsNode().config
+        val editable = config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.EditableText)?.text.orEmpty()
+        org.junit.Assert.assertFalse("the pairing secret renders in plain sight: $editable", editable.contains("hash="))
+        org.junit.Assert.assertTrue(
+            "the node must be a password node",
+            config.contains(androidx.compose.ui.semantics.SemanticsProperties.Password),
+        )
+        compose.onNodeWithTag("manual-field").performClick()
+        compose.waitForIdle()
+        val info = android.view.inputmethod.EditorInfo()
+        compose.runOnIdle { view!!.onCreateInputConnection(info) }
+        assertEquals(
+            android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD,
+            info.inputType and (android.text.InputType.TYPE_MASK_CLASS or android.text.InputType.TYPE_MASK_VARIATION),
+        )
+        assertEquals(0, info.inputType and android.text.InputType.TYPE_TEXT_FLAG_AUTO_CORRECT)
+        // Reveal for a visual check; the secret itself is untouched by the masking.
+        compose.onNodeWithTag("manual-field-reveal").performClick()
+        compose.waitForIdle()
+        assertEquals(
+            secretLink,
+            compose.onNodeWithTag("manual-field").fetchSemanticsNode().config
+                .getOrNull(androidx.compose.ui.semantics.SemanticsProperties.EditableText)?.text,
+        )
     }
 
     private fun androidx.compose.ui.test.SemanticsNodeInteraction.assertExists2() = this.assertExists()

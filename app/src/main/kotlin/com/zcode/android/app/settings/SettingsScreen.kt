@@ -502,12 +502,13 @@ internal fun AddDirectEndpointDialog(
                     singleLine = true,
                     modifier = Modifier.testTag("add_direct_url"),
                 )
-                androidx.compose.material3.OutlinedTextField(
+                // F-37-C: the token is bearer-equivalent — masked, password IME (never learned).
+                com.zcode.android.core.ui.components.SecretTextField(
                     value = token,
                     onValueChange = { token = it },
                     label = { Text(stringResource(R.string.settings_add_token_label)) },
-                    singleLine = true,
                     modifier = Modifier.testTag("add_direct_token"),
+                    revealTag = "add_direct_token_reveal",
                 )
                 androidx.compose.material3.OutlinedTextField(
                     value = candidates,

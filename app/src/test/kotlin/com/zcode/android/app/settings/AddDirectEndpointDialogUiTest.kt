@@ -2,6 +2,7 @@ package com.zcode.android.app.settings
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -167,6 +168,89 @@ class AddDirectEndpointDialogUiTest {
         rule.waitUntil(timeoutMillis = 5_000) {
             rule.onAllNodesWithTag("add_direct_name").fetchSemanticsNodes().isEmpty()
         }
+    }
+
+    // ------------------------------------------------------------------ F-37-C secret entry
+
+    /**
+     * F-37-C (vc52 Phase 6, P2) — threat: the bearer-equivalent server token is shoulder-
+     * surfable and LEARNED by the keyboard (pass 37: uiautomator `password=false`, Gboard's
+     * suggestion bar offered "p37tok" as a personal-dictionary word). The field must be
+     * masked, carry the password input type (IMEs never learn or suggest from it) with
+     * autocorrect off, and a reveal must re-mask once focus leaves the field.
+     */
+    @Test
+    fun token_field_is_masked_password_typed_and_remasks_on_blur() {
+        rule.setContent {
+            ZCodeTheme {
+                AddDirectEndpointDialog(adder = { _, _, _, _ -> rejectedOutcome() }, onAdded = {}, onDismiss = {})
+            }
+        }
+        rule.onNodeWithTag("add_direct_token").performTextInput("p37tok")
+        rule.waitForIdle()
+        val shown = rule.onNodeWithTag("add_direct_token").fetchSemanticsNode().config
+        val editable = shown.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.EditableText)?.text
+        org.junit.Assert.assertNotEquals("the token renders in plain sight", "p37tok", editable)
+        org.junit.Assert.assertFalse("the a11y tree carries the cleartext token", editable.orEmpty().contains("p37tok"))
+        org.junit.Assert.assertTrue(
+            "the node must be a password node (uiautomator password=true)",
+            shown.contains(androidx.compose.ui.semantics.SemanticsProperties.Password),
+        )
+        // The IME's view of the field: password variation (never learned), no autocorrect.
+        // The dialog is its own window — ask THAT window for the focused (compose) view.
+        rule.onNodeWithTag("add_direct_token").performClick()
+        rule.waitForIdle()
+        val info = android.view.inputmethod.EditorInfo()
+        rule.runOnIdle {
+            val focused = org.robolectric.shadows.ShadowDialog.getLatestDialog().window!!.decorView.findFocus()
+            org.junit.Assert.assertNotNull("the token field holds input focus", focused)
+            focused!!.onCreateInputConnection(info)
+        }
+        val type = info.inputType
+        org.junit.Assert.assertEquals(
+            "TYPE_CLASS_TEXT | TYPE_TEXT_VARIATION_PASSWORD",
+            android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD,
+            type and (android.text.InputType.TYPE_MASK_CLASS or android.text.InputType.TYPE_MASK_VARIATION),
+        )
+        org.junit.Assert.assertEquals(0, type and android.text.InputType.TYPE_TEXT_FLAG_AUTO_CORRECT)
+        org.junit.Assert.assertEquals(0, type and android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES)
+        // Reveal shows it; moving focus away re-masks it.
+        rule.onNodeWithTag("add_direct_token_reveal").performClick()
+        rule.waitForIdle()
+        org.junit.Assert.assertEquals(
+            "p37tok",
+            rule.onNodeWithTag("add_direct_token").fetchSemanticsNode().config
+                .getOrNull(androidx.compose.ui.semantics.SemanticsProperties.EditableText)?.text,
+        )
+        rule.onNodeWithTag("add_direct_name").performClick()
+        rule.waitForIdle()
+        org.junit.Assert.assertNotEquals(
+            "a revealed secret must re-mask when focus leaves the field",
+            "p37tok",
+            rule.onNodeWithTag("add_direct_token").fetchSemanticsNode().config
+                .getOrNull(androidx.compose.ui.semantics.SemanticsProperties.EditableText)?.text,
+        )
+    }
+
+    @Test
+    fun token_field_still_accepts_a_pasted_token_and_submits_it_verbatim() {
+        var submitted: String? = null
+        rule.setContent {
+            ZCodeTheme {
+                AddDirectEndpointDialog(
+                    adder = { _, _, token, _ -> submitted = token; rejectedOutcome() },
+                    onAdded = {},
+                    onDismiss = {},
+                )
+            }
+        }
+        rule.onNodeWithTag("add_direct_name").performTextInput("Rig")
+        rule.onNodeWithTag("add_direct_url").performTextInput("wss://rig.example.test/ws")
+        // A paste lands through the same text-input path the IME paste uses.
+        rule.onNodeWithTag("add_direct_token").performTextInput("pasted-token-123")
+        rule.onNodeWithTag("add_direct_submit").performClick()
+        rule.waitUntil(timeoutMillis = 5_000) { submitted != null }
+        org.junit.Assert.assertEquals("masking never alters the secret itself", "pasted-token-123", submitted)
     }
 
     // ------------------------------------------------------------------ F-37-A cleartext gate

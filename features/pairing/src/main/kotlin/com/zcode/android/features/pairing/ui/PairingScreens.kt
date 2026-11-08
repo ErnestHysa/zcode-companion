@@ -12,7 +12,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -171,14 +170,18 @@ private fun ManualEntryScreen(s: PairingFlow.State.ManualEntry, vm: PairingViewM
         ) {
             Text(stringResource(R.string.manual_title), style = MaterialTheme.typography.headlineSmall)
             Text(stringResource(R.string.manual_hint), style = MaterialTheme.typography.bodyMedium)
-            OutlinedTextField(
+            // F-37-C: the link carries the sid + passHash (the QR-equivalent credential) —
+            // masked, password IME (never learned or suggested), reveal re-masks on blur.
+            com.zcode.android.core.ui.components.SecretTextField(
                 value = s.draft,
                 onValueChange = { vm.dispatch(PairingFlow.Event.DraftChanged(it)) },
                 label = { Text(stringResource(R.string.manual_field_label)) },
                 isError = s.error != null,
                 supportingText = s.error?.let { msg -> { Text(msg) } },
+                singleLine = false,
                 minLines = 3,
                 modifier = Modifier.fillMaxWidth().testTag("manual-field"),
+                revealTag = "manual-field-reveal",
             )
             ZCodeButton(
                 onClick = { vm.dispatch(PairingFlow.Event.QrDecoded(s.draft)) },
