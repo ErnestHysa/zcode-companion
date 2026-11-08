@@ -20,20 +20,29 @@ import kotlin.system.exitProcess
  * Environment overrides: MOCK_PORT (default 18100), MOCK_SCENARIO
  * (HAPPY | WRONG_PROOF | UNKNOWN_SID).
  *
+ * RIG-P4 (vc52): MOCK_MODE=direct serves the `zcode --web` DIRECT surface instead
+ * (docs/protocol/phase10-direct.md §1–§2): `GET /api/server-info?token=` (200 + the
+ * HttpOnly `zcode_lite_token` cookie; 401 on a wrong/missing token) and `/ws` (binary
+ * SocketProtocol frames, cookie- or query-token gated). MOCK_DIRECT_TOKEN sets the token
+ * (default `rig-direct-token`); the default port becomes 18200. Every other MOCK_* arm
+ * applies unchanged. `gradle :tools:mockzcode:mockDirectServer` is the run target.
+ *
  * `model-selection.getView` is answered with a two-provider default view
  * (phase9-channels.md §4 shape; only providerId/providerName/models[].modelId are
  * consumed by Phase9Tools.modelOptions) so the pickers render their real grouped
  * list on device E2E instead of the refused-fault empty branch.
  */
 fun main() {
-    val port = System.getenv("MOCK_PORT")?.toIntOrNull() ?: 18_100
-    val scenario = runCatching {
-        MockZCode.AuthScenario.valueOf(System.getenv("MOCK_SCENARIO") ?: "HAPPY")
-    }.getOrDefault(MockZCode.AuthScenario.HAPPY)
+    val env: (String) -> String? = System::getenv
     val passHash = java.util.Base64.getEncoder().encodeToString(ByteArray(32) { it.toByte() })
     val sid = "d_SyntheticSid000001"
     val mid = "mock-desktop-mid"
-    val mock = MockZCode(passHash = passHash, expectedSid = sid)
+    val target = launcherTarget(env, passHash, sid)
+    val port = target.port
+    val scenario = runCatching {
+        MockZCode.AuthScenario.valueOf(env("MOCK_SCENARIO") ?: "HAPPY")
+    }.getOrDefault(MockZCode.AuthScenario.HAPPY)
+    val mock = target.mock
     mock.script.authScenario = scenario
     mock.script.modelSelection = defaultModelSelection()
     mock.script.emitStateKeys = true
@@ -96,6 +105,8 @@ fun main() {
         "",
         "Done ~~temporarily~~ permanently.",
     ).joinToString("\n")
+    // Pass-37 markdown conformance leg: MOCK_MD_FILE=<path> replaces the demo row's markdown.
+    System.getenv("MOCK_MD_FILE")?.let { f -> mock.script.demoAssistantMarkdown = File(f).readText() }
     // MOCK_APPROVAL=1 arms one pending-approval tool row so the Approvals screen
     // renders live (B2.3/B2.4 geometry checks need a real interaction on-device).
     if (System.getenv("MOCK_APPROVAL") != null) {
@@ -761,6 +772,17 @@ fun main() {
     // (RFC 6455 §5.1 violation, probe-confirmed — report PART E9), which OkHttp
     // clients refuse with close 1006; the raw server keeps live device E2E possible.
     val url = mock.startRaw(port)
+    if (target.direct) {
+        // RIG-P4: the phone's Add-direct-endpoint dialog takes the ws URL + the token.
+        println("MOCKZCODE_DIRECT_URL=$url")
+        println("MOCKZCODE_DIRECT_URL_EMULATOR=" + url.replace("ws://127.0.0.1", "ws://10.0.2.2"))
+        println("MOCKZCODE_DIRECT_TOKEN=${mock.serverToken}")
+        println("MOCKZCODE_SERVER_INFO=http://127.0.0.1:$port/api/server-info?token=<MOCKZCODE_DIRECT_TOKEN>")
+        println("MOCKZCODE_READY mode=direct")
+        Runtime.getRuntime().addShutdownHook(Thread { mock.stop() })
+        Thread.currentThread().join()
+        exitProcess(0)
+    }
     val link = "http://127.0.0.1:$port/remote/v4" +
         "?sid=$sid&hash=${java.net.URLEncoder.encode(passHash, "UTF-8")}" +
         "&t=${System.currentTimeMillis()}&mid=$mid&name=MockBook&app_version=3.14.3"
@@ -775,6 +797,26 @@ fun main() {
     Runtime.getRuntime().addShutdownHook(Thread { mock.stop() })
     Thread.currentThread().join()
     exitProcess(0)
+}
+
+/** RIG-P4: the launcher's mode, port and mock (relay unless MOCK_MODE=direct). */
+internal data class LauncherTarget(val mock: MockZCode, val port: Int, val direct: Boolean)
+
+internal fun launcherTarget(env: (String) -> String?, passHash: String, sid: String): LauncherTarget {
+    val direct = env("MOCK_MODE")?.trim()?.equals("direct", ignoreCase = true) == true
+    val port = env("MOCK_PORT")?.toIntOrNull() ?: if (direct) 18_200 else 18_100
+    val mock = if (direct) {
+        MockZCode(
+            passHash = passHash,
+            expectedSid = sid,
+            mode = MockZCode.Mode.DIRECT,
+            serverToken = env("MOCK_DIRECT_TOKEN")?.takeIf { it.isNotBlank() } ?: "rig-direct-token",
+            workspace = MockZCode.MockWorkspace(workspacePath = "/synthetic/direct-ws", workspaceKey = "direct-ws"),
+        )
+    } else {
+        MockZCode(passHash = passHash, expectedSid = sid)
+    }
+    return LauncherTarget(mock, port, direct)
 }
 
 /**

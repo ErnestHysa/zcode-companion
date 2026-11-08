@@ -27,3 +27,16 @@ tasks.register("mockRelayServer", JavaExec::class) {
     mainClass = "com.zcode.android.tools.mockzcode.MockRelayMainKt"
     classpath = sourceSets["main"].runtimeClasspath
 }
+
+/**
+ * RIG-P4: the `zcode --web` DIRECT surface (server-info + /ws, zcode_lite_token contract)
+ * on MOCK_PORT (default 18200) with MOCK_DIRECT_TOKEN (default `rig-direct-token`);
+ * every other MOCK_* arm applies. docs/runbooks/direct-server.md §6 has the three shapes.
+ */
+tasks.register("mockDirectServer", JavaExec::class) {
+    group = "verification"
+    description = "Runs MockZCode's DIRECT (zcode --web) surface for on-device direct-endpoint E2E (INV-15)."
+    mainClass = "com.zcode.android.tools.mockzcode.MockRelayMainKt"
+    classpath = sourceSets["main"].runtimeClasspath
+    environment("MOCK_MODE", "direct")
+}

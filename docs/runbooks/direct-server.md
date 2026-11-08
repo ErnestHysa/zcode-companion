@@ -91,3 +91,33 @@ Expected: preflight 200 + `zcode_lite_token` cookie, WS upgrade with cookie,
 Initialize, `helloConversationV4` OK, `zcode-task.listTasks` returns `[]` (or
 the smoke workspace's tasks). Record the transcript in the phase evidence —
 never commit tokens or personal paths.
+
+## 6. Rig: the DIRECT-mode mock (RIG-P4, vc52)
+
+The on-device direct-endpoint legs run against MockZCode's DIRECT surface —
+the same `zcode --web` contract as §1 (`/api/server-info?token=` → 200 + the
+HttpOnly `zcode_lite_token` cookie; wrong/missing token → 401; `/ws` binary
+SocketProtocol frames, cookie- or query-token gated). Synthetic data only
+(INV-15/16); every other `MOCK_*` arm of the relay launcher applies.
+
+```bash
+# from the repo root — prints MOCKZCODE_DIRECT_URL[_EMULATOR] + MOCKZCODE_DIRECT_TOKEN
+MOCK_DIRECT_TOKEN=rig-direct-token gradle --no-daemon :tools:mockzcode:mockDirectServer
+# equivalent: MOCK_MODE=direct on the plain launcher (MockRelayMainKt) — default port 18200
+curl "http://127.0.0.1:18200/api/server-info?token=rig-direct-token"   # 200 + server-info JSON
+curl -o /dev/null -w '%{http_code}\n' "http://127.0.0.1:18200/api/server-info?token=wrong"  # 401
+```
+
+The three shapes F-37-A's live leg covers (Settings → Endpoints → Add direct endpoint):
+
+1. **Loopback, debug build** — `ws://10.0.2.2:18200/ws` + the token: the debug
+   network-security config permits cleartext to the emulator host, the probe
+   runs off the UI thread, and the endpoint is added.
+2. **LAN cleartext (release-shaped)** — e.g. `ws://192.0.2.1:3030/ws` (TEST-NET-1)
+   or any `ws://192.168.x.x/ws`: refused at the dialog **before any probe** with
+   "Plain ws:// isn't allowed — use wss:// or a tunnel URL" (§2 "Cleartext reality").
+3. **TLS** — a publicly trusted certificate in front of the mock:
+   `cloudflared tunnel --url http://127.0.0.1:18200` prints
+   `https://<random>.trycloudflare.com`; add `wss://<random>.trycloudflare.com/ws`.
+   (A self-signed front fails certificate validation by design — TOFU pinning is a
+   second check on top of normal TLS validation, never a substitute for it.)
