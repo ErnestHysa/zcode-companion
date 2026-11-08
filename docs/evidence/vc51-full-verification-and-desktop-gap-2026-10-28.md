@@ -10434,3 +10434,1291 @@ G72 → G73 → G74 → G75 → N-BC / N-BD / N-BE / N-BF / N-BG / N-BH smalls �
 G60–G63, G66, G76.
 
 Commits: this docs commit only. Nothing pushed.
+
+---
+
+# vc52 Remediation Roadmap (APPENDED — supersedes the 2026-10-30 vc51 roadmap; not part of the original audit)
+
+> **Appended 2026-11-08** at report HEAD `088fc9af` (docs tip; app code unchanged since the
+> pass-13 remediation build). This is the **SECOND** roadmap in this file. It exists because the
+> first one is finished: the **vc51 Remediation Roadmap (2026-10-30, Phases 1–5, 60 rows) is
+> CLOSED** — every row fixed, pinned, rig-verified and committed; the complete closure record is
+> Part 0 below. Everything after that closure (passes 13–37, plus the post-roadmap fix rounds)
+> produced NEW findings, and those are the only work items here. **Do not re-implement a Phase 1–5
+> row.** The audit text above is append-only and untouched; tick boxes here as work completes and
+> append receipts in a new dated pass section.
+>
+> **Disposition carried in.** Desktop target = the shipped `/Applications/ZCode.app` asar
+> `99e280fb90b626cc…` (Info.plist 3.14.5). Phone target = the vc52 / 1.3.1 tree at `088fc9af`
+> (debug APK `9084b92060306d8b…`, 32,294,909 bytes; release APK `335e75e0…`, the v1.3.1-vc52
+> draft). Withdrawn/refuted rows appear in no phase: **GAP-A4** (withdrawn), the original
+> **G32/G37/E4** claims (refuted as written), **F-20-A** (refuted — disabled by design), and the
+> two never-reproduced watch items **F-21-A** and **D1** are WATCH-only in Phase 14, never fix
+> rows. Re-manifestations are re-scoped, not re-opened: **G36** returns only as **F-36-C** (the
+> setting cannot be read back), **G28** only as **F-27-B** (the timeline drops the callbacks),
+> **GAP-A16** only as **F-33-D** (the Send button's painted bounds were never checked), and
+> **A12**'s shade actions only as **F-33-H** (the action fires blind).
+>
+> **Verified-holding baseline (do not re-litigate).** The late-pass runtime matrix holds on this
+> build — the last three armed walks each recorded 0 app FATALs / 0 ANRs: pairing/reconnect (including relay gen swaps under the FGS),
+> approvals/questions/hook trust, the queue, the slash palette and all 20 slash commands,
+> modes/models, attachments, checkpoints/commit, terminal, workflows/automations/off-peak,
+> the Settings inventory, files/git/usage viewers, notification ask → FGS → shade approval,
+> process death, animations-off, zero-free-storage, and the 2,001-row scale leg. The parity
+> verdict stands: the phone matches or beats the desktop on every runtime plane it renders; the
+> open distance is the direct (`zcode --web`) plane (**F-37-A**), the management/authoring planes
+> (**G70–G76**), and the ledgered protocol depth (**G48/G51/G53/G54**).
+
+**File map (read in this order):** (1) the audit Parts A–BI above — 37 passes, append-only;
+(2) the 2026-10-30 **vc51 roadmap** and its Phase-1..5 receipts — **CLOSED**, summarized in
+Part 0 below; (3) **this vc52 roadmap** — the only live work plan; (4) new dated receipt
+sections appended after each fix round, never edits to the text above.
+
+---
+
+## Part 0 — The 2026-10-30 vc51 roadmap: CLOSED (read this before touching anything)
+
+### 0.1 Verdict and what "closed" means
+
+All **60 rows** across Phases 1–5 were implemented test-first, each fix shipped with its pin in
+the same commit, each phase exited on a fresh emulator+relay leg, and the Definition-of-done
+checklist at the end of that roadmap is ticked with dated closure notes. The phase receipts are
+the sections immediately above this roadmap:
+
+- Phase 1 — receipt at **"Phase 1 (vc51 remediation) — exit-gate rig leg + record — 2026-10-31"**.
+- Phase 2 — receipt at **"Phase 2 (vc51 remediation) — exit-gate rig leg + record — 2026-10-31"**.
+- Phase 3 — receipt at **"Phase 3 (vc51 remediation) — boundary decisions + exit-gate record"**.
+- Phase 4 — receipts at **"Phase 4 (vc51 remediation) — dated boundary decisions"** and the
+  exit-gate record.
+- Phase 5 — receipt at **"Phase 5 (vc51 remediation) — exit-gate rig leg + record — 2026-11-02"**,
+  which states verbatim: *"With this phase the vc51 remediation roadmap is COMPLETE: all 60 rows
+  closed (7+8+5+16+24), every phase exit gate passed on a fresh rig leg."*
+
+The closure was independently re-verified by the **"Post-completion verification audit — record
+corrections + one real defect fixed — 2026-11-02"** section: all 68 named commits were checked in
+git, ~120 structural claims were verified file-by-file, the RIG-6 asar counts were re-run live,
+and the artifact hash was confirmed to the byte. That audit found five record drifts (corrected
+in A1/A3/A4/A5/A6 — no code impact) and **one real mock defect**, fixed in `484a64b6`.
+
+### 0.2 Phase-level receipt (commits, gates, artifacts)
+
+| Phase | Rows | Commit window (oldest → newest) | Exit gate | Artifact at gate |
+| --- | --- | --- | --- | --- |
+| 1 — P1/P2 phone defects | 8 | `cf739af` → `12a87ad` (10 commits) | PASSED 2026-10-31 | debug APK at `12a87ad` |
+| 2 — P2 completions + P3 defects | 5 | `fa2bd31` → `0913dbfc` (6 commits) | PASSED 2026-10-31 | `53b5d896…` (31,851,929 B) |
+| 3 — P3 planes | 16 | `3bf40bb7` → `2c332ff3` | PASSED 2026-11-01 | `7b74efef…` (31,869,533 B) |
+| 4 — P4 polish + boundaries | 24 | `e3bc3ffa` → `7102b8a4` | PASSED 2026-11-01 | `b8b88207…` (31,895,981 B) |
+| 5 — rig debts + pin backlog | 7 | `6bd095ed` → `eff41a77` | PASSED 2026-11-01/02 | `1402c91a…` (31,895,981 B) |
+| Post-completion audit | — | `484a64b6` (+ record A1/A3–A6) | suite 1713/0/0/0 | unchanged (tests+docs only) |
+
+Suite reconciliation across the campaign: 1,511 tests at Phase 1 → 1,543 (Phase 2) → 1,605
+(Phase 3) → 1,691 (Phase 4) → 1,711 measured at the Phase-5 HEAD (the receipt's "+18" is
+corrected to +20 by audit A1) → **1,713/0/0/0** after the audit's two pins. No module ever went
+dark (the 2026-10-21 test-compile blind-spot check).
+
+### 0.3 Row-by-row closure record (60 rows)
+
+Every row below is DONE. The commit is the fix commit; the last column says what mechanism closed
+the finding. Boundary rows have no code commit by design (dated decision recorded in the phase
+receipt).
+
+**Phase 1 — the two P1s, two small P2s, hook-trust card, search overlay, queue composer**
+
+| Row | Commit(s) | Mechanism closed |
+| --- | --- | --- |
+| GAP-A8 (P1) | `cf739af`, `12a87ad` | Fragment bump (androidx.fragment ≥1.3) removes the 16-bit requestCode FATAL on every outbound attachment surface; camera SecurityException degrades inline |
+| GAP-A2 (P1) | `737880a` | `resolvedAtMs` mirrored into every lifecycle upsert → the Approvals inbox clears answered/resolved interactions |
+| GAP-A13 (P2) | `90fdf8f` | Notice-as-combine-source: slash/goal refusal feedback renders at refusal time, STALE only |
+| GAP-A5 (P2) | `fce5417` | Clipboard/diagnostics copy moved off the main thread (no ANR) |
+| GAP-A1 / G1 (P1) | `6ea37bd`, `ebf958a` | The workspace hook-trust review card exists (ADR-024): review → trust-selected → confirm → grant, with the blocked-gate follow-up |
+| GAP-A6 (P2) | `4aa0f9c` | Search overlay rewritten out of the status-bar band; rows stack below the top bar |
+| GAP-A7 (P2) | `4aa0f9c` | Search results REPLACE the grouped list (H1.1 contract) |
+| GAP-A9 (P2) | `e262249`, `16ee50e` | Queue-mode composer keeps a SEND affordance while the agent runs (desktop morph contract + IME send); superseded pin updated |
+
+**Phase 2 — P2 feature completions + P3 phone defects**
+
+| Row | Commit(s) | Mechanism closed |
+| --- | --- | --- |
+| G3 (P2) | `fa2bd31` | Workflow run Resume + amend leave the modeled-never-sent family (wire verbs fire) |
+| G4 (P2) | `a9e74f01` | Queue item delete wired + the AC6 default interaction-behavior setting |
+| G5 (P2) | `c7cfebf0` | Find-in-conversation (bar, live re-index, prev/next wrap) |
+| GAP-A11 (P3) | `5c4ddc07` | Landscape pinned band recalibrated (172 px ≈65 dp, was ~53 px sliver) |
+| GAP-A12 (P3) | `8a9306d2` | Background-entry re-post carries two action PendingIntents on the approval |
+| — (rig) | `0913dbfc` | Mock rig arms for the phase, self-tests green (separate per rule 5) |
+
+**Phase 3 — P3 planes**
+
+| Row | Commit(s) | Mechanism closed |
+| --- | --- | --- |
+| GAP-A3 / G14 (P3) | `3bf40bb7` | Unsubscribe-on-exit across plane/gateway/coordinator/hub/VM teardown |
+| G12 (P3) | `e40d7eeb` | Pending-command recovery banner over the outbox's replayable set (same commandId retry) |
+| G13 (P3) | `cf0f2c82` (+ mock `b57b2114`) | Sessions-index live plane → Tasks rows show Live / Needs you / Ended |
+| G15 (P3) | `592545a7` | Background-work indicator + read-only bash output viewer + cancel |
+| G26 (P3) | `0e7afb99` | Goal affordances in the context sheet (Set goal, pause/resume) |
+| G6 (P3) | `05b3f874` | Interaction snooze / Keep waiting (auto-resolution) |
+| G7 (P3) | `33aa1389` | Text-selection actions: Ask in a side session |
+| G8 (P3) | `33aa1389` | Share selection (same sheet rewrite) |
+| G9 (P3) | `4c694c9b` | Shared-context handover decode + composer chip + discard (MOCK_WORKSPACE_FILES rig) |
+| G10 (P3) | `4a061481` | Suggested-prompt chips with cursor rotation + prefill |
+| G11 (P3) | `a80b94cb` | In-conversation quota banner (StartPlanQuotaBuckets verdict ladder) |
+| G20 (P3) | `5893b533` | Coding-plan usage charts (stacked per-model bands + totals) |
+| G36 (P3) | `0b594531` | Office/Coding presentation setting gates ToolCard detail |
+| G41 (P3) | `cfec205a` | Multi-workspace switcher/manager over RECEIVED workspaces (order/alias/selection) |
+| G40 (P3) | — (boundary, dated 2026-10-31) | `.zcodeignore` rules editor is desktop-side authoring (phone consumes the indexed results); B3 |
+| G35 (P3) | — (boundary, dated 2026-10-31) | Shipped web-remote browser companion is a parallel surface, not a parity target; Relay V2 WATCH carried |
+
+**Phase 4 — P4 polish + boundary decisions (24 rows)**
+
+| Row | Commit(s) | Mechanism closed |
+| --- | --- | --- |
+| GAP-A10 (P4) | `e3bc3ffa` | Rejected direct-endpoint add keeps the dialog open with url+token intact |
+| CKPT-HYDRATE (P4) | `5f4bcff9`, `8737347e` | Checkpoint list hydrates from the host (not mount-local) |
+| LEDGER-SMALLS (P4) | `da0dcf69` | Connection deep link + info lane + UpdateCheckGate |
+| G25 (P4) | `2738323e`, `20e69995` | Read-only subagent viewer (+ mock seed) |
+| G27 (P4) | `e1e973c0` | Read-only model-provider viewer |
+| G30 (P4) | `c28f0166`, `1af17202` | Read-only bots viewer (+ mock list) |
+| G22 (P4) | — (boundary, dated 2026-11-01) | Memory settings plane is desktop infrastructure; no phone surface |
+| G23 (P4) | — (boundary, dated 2026-11-01) | Coding-plan purchase/upgrade is commerce; usage+quota are the phone half |
+| G24 (P4) | — (boundary, dated 2026-11-01) | Settings-sync between desktop installs is desktop infrastructure |
+| G21 (P4) | `88360dbc` (+ boundary, dated 2026-11-01) | Slash panel scrolls; command AUTHORING is desktop-side |
+| G29 (P4) | `be852ecc`, `d6726ce9`, `d9ff795a`, `d293ac4f` | Off-peak authoring + run history (RIG-1 arms; the rig caught and fixed the queued-row squeeze) |
+| G32 (P4) | `1f350659` (+ boundary, dated 2026-11-01) | Branch CREATE shipped; switch was already live; commit-assist stays desktop |
+| G31 (P4) | `f9a8fca7` | Whiteboard/sketch → upload → send-to-chat |
+| G16 (P4) | `9b276676`, `b13b3759` | Attachment preview source channel |
+| G28 (P4) | `817318be` | Inbound attachment zoom + PDF viewer (row-level acceptance — see the F-27-B note) |
+| G17 (P4) | `7151a990` | Assistant/artifact preview cards |
+| G18 (P4) | `bd6d1b2e` | CUA row groups + frames |
+| G19 (P4) | `43d46766` | Conversation share modes |
+| G33 (P4) | `43d46766` | Model-trajectory payload drill-in |
+| G34 (P4) | `f3f04ed7` | Update release-notes display |
+| G37 (P4) | `ea77c932`, `7102b8a4` | In-app locale picker (the rig caught the first cut's recreate() hub race; apply-on-next-launch + SP mirror) |
+| G38 (P4) | `ea77c932` | Interface zoom |
+| G39 (P4) | `ea77c932` | Task auto-archive policy |
+| THEME-ZAI (P4) | `ea77c932` | zai-light/zai-dark brand palettes |
+
+**Phase 5 — rig debts + regression-pin backlog (7 rows)**
+
+| Row | Commit(s) | Mechanism closed |
+| --- | --- | --- |
+| RIG-1 | `be852ecc` | MOCK_AUTOMATIONS + MOCK_OFFPEAK arms |
+| RIG-2 | `4c694c9b` | MOCK_WORKSPACE_FILES arm (mention search) |
+| RIG-3 | `155a3c02` | MOCK_INTERACTION_PUSH arm (fresh interaction, scheduled) |
+| RIG-4 | `de273062`, `eff41a77` | Widget picker/binding pins + the rig-caught Glance `LocalContext` crash fix |
+| RIG-5 | `6bd095ed` | Calling-session routing + archive/resume/git-store mutations (8 self-tests) |
+| RIG-6 | `48d01bc0` | `tools/drift/asar-out-count.py` whole-asar counting |
+| PINS-BACKLOG | `de273062` | The recorded regression anchors (create-sheet picker, widget presence, skills essence, FGS toggle, deep-link host gate) |
+
+### 0.4 Post-roadmap fix rounds (not part of the 60 rows — also CLOSED)
+
+These landed after the roadmap's DoD was ticked, because pass 13 kept walking the build:
+
+| Finding | Commit(s) | Mechanism closed |
+| --- | --- | --- |
+| GAP-A14 (P2) | `c7e2ba87` | Automations hub capped (0.45 of body) and scrolls inside; the task list keeps its space on portrait |
+| GAP-A15 (P3) | `6523ddf1` | Dedicated `HOOK_TRUST_APPLIED` notice key/copy (a successful trust no longer renders "Offline — the action was not sent") |
+| GAP-A16 (P3) | `dbca4ad8` | Strip budget caps the pinned stack; the composer stays above the IME (field bounds only — see F-33-D) |
+| Mock resolve wipe | `c2bcdc1b` | `resolveInteraction` no longer emits `pendingInteractions: []` beside the scripted hook card |
+| Mock resolve slots | `2d7e61d5` | One shared `pendingInteractionList()`; a resolve clears only the slot its id names (pass-14 AM4) |
+| Mock hook responded | `0f88f64b` | A responded hook review stays resolved in every later snapshot/patch (pass-15 AP2) |
+| F-21-B (mock) | pass-21 (hash not recorded in the receipt) | `seedWorkspaceFiles` builds a real directory tree; file-channel handlers resolve workspace-relative views |
+| Mock audit fix | `484a64b6` | `strOrNull` when an elvis must fall back between key spellings (the create-branch ack); +2 cited pins; A1–A6 record corrections |
+| Mock rig arms | `217ae75e`, `a3fe7f2d` | MOCK_USAGE / MOCK_AUTOMATION_RUNS / createSelectionSideSession arms; the seeded run's enum corrected to `succeeded` |
+
+### 0.5 Re-manifestations vs re-openings (why some fixed IDs appear again)
+
+These are **new defects in the same plane**, not failed fixes. Treat them as such:
+
+- **G36 → F-36-C.** G36 shipped the presentation gate and its row-level pins. Pass 36 proved the
+  DataStore proto writes `"OFFICE"` while the reader matches `"office"`, so the shipped setting
+  can never be read back. F-36-C is the proto round-trip defect; G36's gate stays.
+- **G28 → F-27-B.** G28's viewer was closed on row-level pins; pass 31's dropped-default-arg
+  sweep found the timeline call sites drop `onOpenAttachment`/`onOpenAttachmentExternally`/
+  `rewindPreviewProvider`, so the live thumbnail tap was dead. F-27-B re-opens only the LIVE
+  acceptance of G28/G72.
+- **GAP-A16 → F-33-D.** A16 verified the composer FIELD's bounds; the Send button was never
+  checked in paint, and the Scaffold inset is double-applied with the IME up. F-33-D is the
+  inset/paint defect; A16's strip budget stays.
+- **A12 → F-33-H.** A12 shipped two action PendingIntents on the re-post. F-33-H is the
+  content-visibility side of the same notification (actions without the command text). Both are
+  needed; neither supersedes the other.
+- **F-33-B / F-33-C / F-33-G** are folded into their shared remedies (F-33-A, F-34-E) and are not
+  separate rows; the fold is stated in the row detail.
+
+### 0.6 Record corrections this roadmap depends on
+
+- **G42–G44 are DOUBLE-ASSIGNED in the audit text.** Pass 13 used G42/G43/G44 for the controller
+  task-list plane / sessions-index resync hygiene / controller boundary debt (P3). Passes 23–24
+  reused G42 for workflow authoring verbs, G43 for update skip-version + notes ack, G44 for the
+  memory viewer, then G45–G47 for keep-awake/commands/rewards. This roadmap disambiguates with
+  **`-P13` / `-P23` / `-P24`** suffixes; no audit text is edited. G44-P24 (memory viewer) is
+  superseded by G75 (the deeper pass-35 census) and carries no separate work.
+- **G45/G46/G47 (pass 24) are absorbed** by G62 (keep-awake hint), G74 (command authoring) and
+  G60 (plan plane) respectively; no duplicate rows.
+- **"What's new"** (pass 15 AP4.1 small) and **G43-P24** (skip-version + release-notes ack) are
+  the same update-plane slice and share one row in Phase 13.
+- **Pass-21's "session import/migration" small is settled as desktop-author by design** — the
+  desktop's own migration page carries an `unsupported.desktopOnly` face (pass 24). No phone row.
+- **The remaining pass-21 smalls are folded, not lost:** mermaid/KaTeX → N-BI-2; notification
+  sound → G63; Auto-send label-lag → N-BC-1; mention re-trigger → GAP-21-A; "already trusted"
+  checkbox → N-BH-3; the hooks monitor panel → G71.
+
+---
+
+## Binding rules for every fix session
+
+1. **Repo + branch.** Work in this repo on `fix/vc52` cut from `main`. Land per the release
+   policy: ADDITIVE = signed draft, BREAKING = draft PR; a human promotes; **never push unless
+   Ernest says.** Every hand-built APK carries the `zcode-android-release-meta` block
+   (ReleaseParser fails closed). Keystore stays off-repo at
+   `~/.zcode-android-release-keys/` (single copy).
+2. **One finding ≥ one commit**, message `fix(<ID>): <mechanism>`. One commit may close several
+   rows ONLY when they are one shared mechanism (rule 11) — name every covered ID in the message
+   and tick them all. Never bundle unrelated rows to "save a suite run".
+3. **Re-read before fixing.** Re-read the finding's entry above (its Part citations) and this
+   roadmap row before writing code. Honor the re-scopes: F-33-B/C/G are folded; F-27-C carries
+   D2/D5/N-BD-4; N-BG-1 carries N-BF-3/D4; F-36-B carries D3; G42/G44-P13 is a
+   boundary-decision-first row.
+4. **TEST-FIRST with shape fidelity.** The pin that reproduces the recorded shape is written and
+   RED at the pre-fix commit. Named minimums: F-37-A = a dispatcher-seam pin proving the probe is
+   off Main; F-37-B = a builder pin asserting `authenticationRequired` + a locked-path receiver
+   test; F-36-B = four real-Room pins (STALE excluded, TTL sweep, cold-start reconcile, repost
+   skip); F-36-C = a real-serializer round-trip over every enum field of `AppPreferencesProto`;
+   F-33-A = an hprof instance-count pin after 4 recreates (1 Activity / 1 container); F-34-A =
+   a nav pin (one entry) + a hub pin (two opens, one close, still subscribed); F-34-B = an
+   injected-clock policy pin; F-27-B = a dropped-arg wiring pin over the whole file.
+5. **Every fix ships its pin in the same commit.** No row is ticked on pins alone and no pin lands
+   without its fix. Mock/rig changes are separate `tools/mockzcode` commits with
+   `:tools:mockzcode:jar` + `:tools:mockzcode:test` green (rule 16 makes explicit that a mock change
+   never stands in for an app fix).
+6. **COMMIT BEFORE ANY RIG LEG.** No uncommitted work while an emulator, relay, or gradle pool
+   runs (the cross-package reversion hazard). Rig hygiene: kill the mock ONLY via
+   `pkill -f MockRelayMainKt` (never by port — qemu holds NATed connections); `pm clear` before a
+   leg that needs fresh interaction ids; `adb root` restarts adbd and kills host logcat captures;
+   `adb shell input text` interleaves long payloads (chunk + verify).
+7. **Fresh full-suite baseline + zero-new-names gate.** 17 modules means
+   `testDebugUnitTest` for the Android modules AND `test` for the six JVM modules. After each fix,
+   re-run the touched modules and name-diff every new failing name against the pre-phase baseline.
+   ALSO assert the gradle task-failure list holds only test-failure tasks and that every module
+   emitted test XML (a test-compile failure is invisible to a name-diff). Every new name is
+   chased or exonerated in writing (worktree A/B for flakes).
+8. **~150-line / stop rule.** Any single change beyond ~150 lines or spanning >3 modules stops for
+   a checkpoint commit + suite re-run. F-33-A (process-scoped container) and G48+G51
+   (capability + delta consumer) are the expected exceptions — split them into
+   wire→state→UI sub-commits under one row.
+9. **Independent per-phase verification.** A phase is done only when its exit gate passes on a
+   FRESH emulator+relay leg: Android 16 AVD `zcode-a16` cold boot
+   (`-no-snapshot-load -gpu swiftshader_indirect -no-audio`), the standing all-flags arming plus
+   the phase's named arms, with wire receipts appended to this report and the rows ticked. The
+   API 30 AVDs are deleted; do not plan around them.
+10. **Record duty.** Tick rows here as their Accept criteria pass; add reusable learnings to
+    AGENTS.md; keep the one-report-file append-only discipline; record mock-side behaviors that
+    are rig fidelity (not app truth) so later passes do not chase them.
+11. **Shared-remedy preference.** Cluster findings that share a mechanism when ownership stays
+    clean: F-37-A+F-37-C (same dialog), F-37-B+F-33-H (same notification builder), F-33-A closes
+    F-33-B/C, F-34-E closes F-33-G, F-36-B carries D3, F-27-C carries D2/D5/N-BD-4, N-BG-1
+    carries N-BF-3/D4, N-BH-3 carries the pass-21 "already trusted" nicety, GAP-21-A carries the
+    mention re-trigger, G48+G51 (capability + consumer must ship together), G42+G44-P13
+    (controller adoption + boundary), G71 absorbs the pass-15 hooks-monitor small, G74 absorbs
+    G46-P24, G75 absorbs G44-P24, G60 absorbs G47-P24, G62 absorbs G45-P24.
+12. **Security rows need a threat-model note + a negative test.** F-37-A/B/C/F, F-33-F/H and
+    G76 must state the threat (who wins what) and prove the negative path (locked device, blocked
+    notifications, denied permission, cleartext refused). A fix that "solves" a security row by
+    disabling the feature is not a fix.
+13. **Proto and enum changes require a real-serializer round-trip pin.** The proto seam is the
+    campaign's recurring blind spot (`interactionBehavior` in Phase 2, `interfaceMode` in F-36-C).
+    Never pin an enum only through the in-memory model.
+14. **Interaction-state changes require real-Room pins.** Recording fakes cannot see column
+    clobbering or sweep order (the GAP-A2 lesson). Use the real DAO/repository and `run-as`
+    forensics for the live leg.
+15. **Dropped-default-arg sweep on every timeline/row signature touched.** Add or change a
+    callback parameter on `TimelineRow`/`TimelineBody` → run the sweep (the F-27-B lesson) and add
+    a wiring pin that asserts every defaulted param is forwarded.
+16. **Mock changes never close an app row.** If a row's acceptance depends on a fixture (G77,
+    F-37-D, F-27-A), the fixture lands first as its own commit, but the row stays open until the
+    app behaviour is receipted on the rig.
+
+## Withdrawn, refuted and watch-only findings (do NOT implement)
+
+- **GAP-A4 (P3) — WITHDRAWN (AI1).** The workflow Run… sheet's Run button is not covered by the
+  keyboard; the manifest `adjustResize` carries it. Implement nothing.
+- **G32 as originally written — REFUTED (AH2.1).** `GitPort.switchBranch` is dispatched live. Do
+  not "wire up branch switch"; only the already-shipped create half and the dated commit-assist
+  boundary exist.
+- **G37 as originally written — REFUTED IN PART (AH2.2).** zh-CN system resources already ship.
+  Do not "add Chinese resources"; the in-app picker shipped in Phase 4.
+- **Pass-2 E4 git-parity verdict — REFUTED AS WRITTEN (AH2.3).** No parity work follows.
+- **F-20-A (P4 candidate) — REFUTED (pass 21).** The row-3 checkbox is disabled by design (a
+  trusted item); the honest residue is N-BH-3's state clarity.
+- **F-21-A — WATCH ONLY.** Six consecutive clean passes at the exact trigger state; no fix row.
+  Close permanently on one more clean stress leg, or re-open with a fresh receipt (Phase 14).
+- **D1 — WATCH ONLY.** The pass-17 relay-restart DEGRADED wedge has five consecutive
+  non-reproductions and the honest recovery ladder in every drive. No fix row; add a
+  two-connection takeover pin only if it ever re-manifests (Phase 14).
+- **D2 as a separate row — FOLDED into F-27-C.** The wrapped-chip zero-bounds class is the same
+  composition family as the context-sheet footer clip.
+- **D3 as a separate row — FOLDED into F-36-B.** The `resolvedAtMs` re-stamp is the same
+  timestamp-truth work as the terminal-state fix.
+- **D4 as a separate row — FOLDED into N-BG-1.** The hook card's short-swipe requirement is the
+  pinned-card gesture-boundary defect.
+- **D5 as a separate row — FOLDED into F-27-C.** The sheet-reopen scroll state is the same sheet
+  geometry family.
+- **F-33-B / F-33-C / F-33-G — FOLDED** into F-33-A (container/heap + background-entry) and
+  F-34-E (blocked-notification honesty). Do not write separate fixes.
+- **G45/G46/G47 (pass 24) — ABSORBED** by G62/G74/G60.
+- **G44-P24 (memory viewer) — SUPERSEDED** by G75.
+- **Session import/migration — DESKTOP-AUTHOR BY DESIGN.** The desktop page self-declares
+  `unsupported.desktopOnly`. No phone row.
+- **`browserAmbientContext`, embedded browser settings, native file dialogs, keep-awake binary,
+  `tools/` binaries, `config/` catalog, window-bounds helper** — form-factor/desktop plumbing,
+  classified in the audit; no phone work.
+
+## Phase overview
+
+| Phase | Theme | Rows | P1 | P2 | P3 | P4/rig | Session risk | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 6 | Security & untrusted execution | 6 | 2 | 2 | 2 | 0 | High | ☐ Open |
+| 7 | Interaction & settings truth | 6 | 0 | 3 | 2 | 1 | High | ☐ Open |
+| 8 | Lifecycle, reconnect & availability | 7 | 0 | 5 | 2 | 0 | High | ☐ Open |
+| 9 | Timeline & composer geometry | 10 | 0 | 0 | 6 | 4 | Medium | ☐ Open |
+| 10 | Conversation data, rendering & feedback | 10 | 0 | 1 | 2 | 7 | Medium | ☐ Open |
+| 11 | Parity: protocol & execution planes | 11 | 0 | 0 | 9 | 2 | High | ☐ Open |
+| 12 | Parity: authoring & management planes | 14 | 0 | 0 | 3 | 11 | Medium | ☐ Open |
+| 13 | Parity: form factor, updates & polish | 13 | 0 | 0 | 0 | 13 | Low | ☐ Open |
+| 14 | Rig fidelity, WATCH items & pin backlog | 8 | 0 | 0 | 0 | 8 | Low | ☐ Open |
+| | **Total** | **85** | **2** | **11** | **26** | **46** | | |
+
+Counts reconcile: 6+6+7+10+10+11+14+13+8 = 85 rows; 2+11+26+46 = 85. Rows that bundle
+several IDs (shared remedy) count once and name every ID in the row.
+
+**Execution order.** 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14, with **rig pulls forward**: the
+fixtures a phase's exit gate needs land before that gate (G77's `autoResolution` seeds, F-37-D's
+`rowsWindowSchema` knob, F-27-A's per-generation ids). Phase 14 closes the residual ledger and
+the WATCH decisions.
+
+---
+
+## Phase 6 — Security & untrusted execution
+
+Theme: the two P1s and the privacy promises the app makes but does not enforce. Every row here
+has a threat model and a negative test (rule 12). Order inside the phase: **F-37-A → F-37-B →
+F-37-C → F-37-F → F-33-F → F-33-H.**
+
+### Sub-phase 6A — execution authorisation (direct endpoint + lock screen + secrets)
+
+- [ ] **F-37-A (P1) — the direct-endpoint probe runs on the UI thread, so every add fails.**
+  `DirectServerProbe.probe` performs a blocking OkHttp `execute()` on the composition dispatcher
+  (`DirectTransport.kt:1131`, reached from `ConnectionHub.addDirectEndpoint` `:1351` and the
+  dialog at `SettingsScreen.kt:427/536`); `jdb` caught `NetworkOnMainThreadException` on all three
+  shapes (`ws://` loopback, `ws://` TEST-NET, `wss://` self-signed), and the classifier falls to
+  the generic "Network unavailable" copy. The non-loopback `ws://` leg is additionally
+  **misdiagnosed** as a local-network-permission problem because OkHttp's cleartext refusal
+  (`UnknownServiceException`) matches the `lnpMarkers`; on release builds every plain `ws://`
+  endpoint dies that way. **Fix:** make the probe a `suspend` fun on `Dispatchers.IO` (injected
+  dispatcher seam); add a typed outcome for cleartext-refused with honest copy ("Plain ws:// isn't
+  allowed — use wss:// or a tunnel URL"); reject non-loopback `ws://`/`http://` at the dialog's
+  `schemeOk` gate on release builds; keep the LNP class for real connect errnos only.
+  **Accept:** the dispatcher-seam pin proves every probe call is off Main; a live DIRECT-mode leg
+  succeeds on `wss://` and on debug loopback `ws://`; a release-shaped plain `ws://` LAN endpoint
+  shows the cleartext copy before any probe; zero `NetworkOnMainThreadException` in logcat; the
+  dialog keeps url+token on failure (GAP-A10's contract). **Rig prerequisite:** commit the
+  DIRECT-mode mock from `/tmp/p37/direct` (**RIG-P4**) before the exit gate.
+
+- [ ] **F-37-B (P1) — shade-level Approve/Deny executes with zero authentication while locked.**
+  `NotificationActionReceiver` routes the intent straight into the inbox answer with no keyguard
+  or biometric check, and the actions are attached with the bare
+  `builder.addAction(0, title, intent)` overload (`core/notifications/AndroidNotificationSink.kt:65`),
+  which never sets `setAuthenticationRequired(true)`. Receipt: a PIN-locked device approved a real
+  Bash command and fired `sendConversationCommandV4 ok in 54ms`. **Fix:**
+  `setAuthenticationRequired(true)` on permission-channel actions (the platform then demands the
+  credential before dispatch), plus a `KeyguardManager.isKeyguardLocked` guard in the receiver
+  that defers into a post-unlock surface; keep the haptic only after the answer actually fires.
+  **Accept:** a Robolectric builder pin asserts `authenticationRequired` for PERMISSIONS-channel
+  actions and not for passive ones; a receiver pin proves the locked path does not send; the live
+  PIN leg shows no wire while locked and exactly one after unlock; `dumpsys trust deviceLocked=1`
+  captured before and after the tap.
+
+- [ ] **F-37-C (P2) — both secret-entry fields are plain text with a learning keyboard.**
+  The Add-direct-endpoint Token field (`SettingsScreen.kt ~500–507`) and the pairing manual-entry
+  field (`features/pairing/PairingScreens.kt:174`) are bare `OutlinedTextField`s: no
+  `PasswordVisualTransformation`, no `KeyboardType.Password`/`Uri`, no autocorrect off, no
+  `NoPersonalizedLearning`. Live: the token rendered in plain sight (`password=false` on all four
+  fields) and Gboard learned it as a personal-dictionary word (the suggestion bar showed it).
+  **Fix:** mask both fields, set the password keyboard, disable autocorrect/personalized learning,
+  and keep a reveal affordance that re-masks on blur. **Accept:** uiautomator reports
+  `password=true`; the suggestion bar never offers the token after two entries; the a11y dump
+  carries no cleartext secret; copy/paste still works; a compose UI pin asserts the
+  transformation + IME options on both screens.
+
+### Sub-phase 6B — privacy enforcement (screenshots, clipboard, notification content)
+
+- [ ] **F-37-F (P2) — the default-ON "screenshot protection" preference is enforced nowhere.**
+  `AppPreferences.screenshotProtection = true` is persisted and round-tripped
+  (`CoreModels.kt:195-196`, `DataStoreRepositories.kt:118/:171`) and pinned, but no `FLAG_SECURE`,
+  `setRecentsScreenshotEnabled`, or reader exists outside the store and its tests; Settings has no
+  toggle. Live: Recents rendered the live approval card (command text, queued items, draft,
+  shared-context chip) with Screenshot and Select offered. **Fix:** apply `FLAG_SECURE` (or, on
+  API 33+, `setRecentsScreenshotEnabled(false)` for a Recents-only scope) from the preference in
+  `MainActivity`, and surface the toggle in Settings → Privacy; if a global flag is too blunt,
+  scope it at least to approval/terminal/pairing surfaces. **Accept:** with the preference on,
+  `dumpsys window` shows the `SECURE` flag, `screencap` is black, and the Recents thumbnail omits
+  the approval; the toggle round-trips and takes effect without a restart; turning it off restores
+  normal behaviour; a Robolectric/instrumented pin asserts the window flag.
+
+- [ ] **F-33-F (P3, privacy) — the clipboard is read on every conversation open.**
+  `WriteComponents.kt:868` runs `clipboardHasImage(context)` in a `LaunchedEffect(Unit)` and
+  `clipboardImageUri` (`:1260-1262`) reads `cm.primaryClip` (the data, not the description). Live:
+  `READ_CLIPBOARD` app-op time reset to 3 s then 2 s after two opens (it read 7 min before); on
+  Android 12+ every read raises the system "pasted from your clipboard" toast and pulls whatever
+  was copied (passwords included) into the process. **Fix:** probe `primaryClipDescription` only
+  (no data, no toast), and read the clip only on an explicit Paste tap. **Accept:** the app-op
+  access time is unchanged across ten conversation opens; no paste toast appears; Paste still
+  attaches an image; a pin asserts the description-only path and the tap-path read.
+
+- [ ] **F-33-H (P3, safety) — blind approve from the shade.**
+  `NotificationPlan.kt:14-20` makes approval/question notifications category-only at both content
+  levels ("ZCode needs your approval", `android.text=null`, `vis=PRIVATE`) while attaching
+  **Approve/Deny** actions — so a shell command can be approved without ever being seen. The
+  desktop's own notification shows the subject ("Command: {command}" / "File: {paths}") and has no
+  action buttons. **Fix:** keep the lock-screen PUBLIC version category-only via
+  `setPublicVersion`, and give the private (unlocked) version the tool + command line when the
+  user chose "Task titles"; alternatively require in-app answering for Bash-class approvals.
+  **Accept:** the PUBLIC version exposes no command/file text on the lock screen; the unlocked
+  private version does; the shade actions still require auth per F-37-B; a `NotificationPlan`
+  pin covers both content levels and both detail levels.
+
+**Phase 6 exit gate: ☐** fresh `zcode-a16` cold boot, full standing arming + the DIRECT-mode mock;
+legs: add a direct endpoint on `wss://` (success), plain `ws://` LAN (honest cleartext copy), PIN
+lock screen (no wire while locked, one after unlock), Recents/screencap with protection ON and
+OFF, clipboard app-op across 10 opens, notification public/private content; 0 FATALs/0 ANRs;
+suite green with zero new names; pins landed in the fix commits.
+
+---
+
+## Phase 7 — Interaction & settings truth
+
+Theme: the app's answer surfaces must agree with what is actually pending, what the desktop expects,
+and what it persisted. Order: **F-36-B → F-33-E → F-27-A → G77 → F-36-C → N-BF-2.**
+
+### Sub-phase 7A — the interaction lifecycle (open / terminal / re-pended)
+
+- [ ] **F-36-B (P2) — terminal-but-not-RESOLVED interactions never close.**
+  Three sites compound: `InteractionCoordinator.updateLifecycle` (`:804`) mirrors
+  `known.resolvedAtMs` only for RESOLVED (`TERMINAL_MACHINE_STATES` at `:795` includes
+  STALE/EXPIRED/FAILED/CANCELLED but they persist NULL); `InteractionDao.observeOpen`
+  (`Daos.kt:108-109`) is `resolvedAtMs IS NULL`, so every non-RESOLVED terminal row is "open";
+  `InteractionRepositoryImpl.sweep` (`:79`) TTL-drops only non-null rows, and after a process
+  restart no machine exists to reconcile it. Live: a two-day-old STALE approval stayed in the
+  inbox (badge 2), was re-posted on background entry, and **answered onto the live wire**
+  (`sendConversationCommandV4 ok 33ms`) for an id the desktop never issued. **Fix:** stamp a
+  terminal timestamp for every `TERMINAL_MACHINE_STATES` write; make `observeOpen` select
+  `lifecycle IN (REQUESTED, DISPLAYED, SUBMITTING)`; TTL-sweep all terminal lifecycles; on a
+  session bootstrap close stored open rows absent from the authoritative `pendingInteractions` even
+  with no machine; skip terminal ids in the notification repost. **Carries D3:** do not overwrite
+  a self-resolved `resolvedAtMs` on a later reconcile (guard on non-null). **Accept:** four
+  real-Room pins (STALE excluded from `observeOpen`; sweep drops a terminal row after TTL;
+  cold-start reconcile closes absent ids; repost skips terminal ids) + the D3 stamp-preservation
+  pin; live: a seeded STALE row is invisible to badge/inbox/widget/repost and unanswerable.
+
+- [ ] **F-33-E (P3) — the pending count disagrees across four surfaces.**
+  With Room holding 2 DISPLAYED + 2 STALE + 5 RESOLVED at once: the bell badge and inbox listed 4
+  (`observeOpen` includes STALE), the widget said "Nothing needs you" (counts UNSEEN broker
+  records only, `PendingApprovalsWidget.kt:160`), and the shade re-posted a persisted STALE record
+  because `StoreDiffs.closedInteractions` (`StoreDiffs.kt:67`) uses `previousIds` that is empty at
+  process start. **Fix:** one shared "open" predicate (open lifecycle AND not STALE) for badge,
+  inbox, widget and broker; seed `previousIds` from the broker's loaded attention keys on the
+  first snapshot. **Accept:** the pass-33 DB fixture yields badge=2, inbox=2, widget=2, and the
+  shade posts only the two live ones; a STALE row never re-posts after a cold start; the
+  four-surface pin shares one predicate constant (no copy-paste logic).
+
+- [ ] **F-27-A (P3) — a re-pended interaction is unanswerable for the process lifetime.**
+  After a relay restart the mock re-seeds the SAME static id as pending; the phone already
+  answered it, so the card renders fully actionable but every Send/Skip is a silent no-op
+  (7+ honest taps). Mechanism: the coordinator's live outbox entry blocks the re-submit
+  (`InteractionCoordinator.kt:224`) and the conversation card never surfaces the typed
+  `DuplicateNoOp`. **Fix:** surface the typed duplicate state on the card (an honest
+  "already handled on the desktop" notice or a re-answer affordance that resets the guard when the
+  server re-lists the id), and keep INV-4 (a LIVE pending entry is never duplicated) intact.
+  **Accept:** the relay-restart leg either fires one wire or shows the typed notice — never a
+  silent no-op; a coordinator pin covers the re-pended id path; the mock's per-generation id arm
+  (Phase 14) proves the fresh-id path still answers.
+
+### Sub-phase 7B — the fuse and the settings truth
+
+- [ ] **G77 (P2) — the desktop's 5-minute auto-resolution fuse is invisible on the phone.**
+  The desktop gives every approval/question a default auto-continue deadline with a visible
+  countdown; the phone decodes `pendingInteractions` but shows none of it, so the device built for
+  "answer later" silently loses the window. **Fix:** decode the `autoResolution` payload
+  (deadline/remaining/reason), render a countdown on the card and the notification, respect an
+  already-expired deadline (no actionable card), and clear the inbox on expiry.
+  **Rig prerequisite:** mock `autoResolution` fixtures (**RIG-P1**) — the rig cannot test this
+  today. **Accept:** the countdown ticks and the card shows the auto-continued state at expiry;
+  the notification text carries the deadline; a wire-decode pin + a compose pin; the desktop's
+  contract is cited in the fix message.
+
+- [ ] **F-36-C (P2) — the presentation mode can never be set to Office.**
+  The writer stores the enum NAME (`.setInterfaceMode(mode.name)`,
+  `DataStoreRepositories.kt:182`) while the reader runs the desktop wire mapper
+  (`:140-141 → CoreModels.kt:271`, matches only `office|general|concise`), so `"OFFICE"` falls
+  through to CODING forever; the shipped G36 feature is unreachable on device. **Fix:** write the
+  wire spelling (or read case-insensitively) and add a real-serializer round-trip pin for **every
+  enum field** of `AppPreferencesProto` (rule 13). **Accept:** OFFICE → dialog shows Office after
+  a reopen and the conversation renders office presentation; CODING, legacy `general`, and
+  garbage (`→CODING`) all round-trip; the enum-audit pin enumerates the fields so the next proto
+  seam is caught.
+
+- [ ] **N-BF-2 (P4) — the header and the composer disagree about running state.**
+  Re-adjudicated in pass 36 as mock-shaped on the rig: a scripted transition sets
+  `control {phase: running, canStop: true}` + `inputRouting enqueue` without touching the task's
+  static "Completed" status, and the app renders each plane faithfully. The open question is a
+  real-desktop one: should the header derive "Running" from `control.phase`? **Fix:** decide the
+  contract from the desktop (one question, recorded), then make the header derive from
+  `control.phase` when it disagrees with the task status (with Stop → idle restoring Send).
+  **Accept:** a dated contract note + a rig leg where the header reads Running while
+  `control.phase=running`; no regression in the completed-task header.
+
+**Phase 7 exit gate: ☐** fresh `zcode-a16`; real-Room seeding via `run-as` (STALE + displayed +
+resolved rows), relay restart with a re-pended question, `autoResolution` fixtures, the
+presentation-mode dialog twice; forensics pulls `zcode.db` + `preferences.pb`; 0 FATALs/0 ANRs;
+suite green.
+
+---
+
+## Phase 8 — Lifecycle, reconnect & availability
+
+Theme: Android lifecycle and the modern-OS background model. These are the defects that look like
+"the app is broken" in the field but are one event shortcut each. Order: **F-33-A → F-34-A →
+F-34-B → F-34-F → F-34-D → F-34-E → F-34-C.**
+
+### Sub-phase 8A — the process-scoped container and the navigation stack
+
+- [ ] **F-33-A (P2) — the zombie conversation screen after any Activity recreate.**
+  `MainActivity.kt:128` builds a per-Activity `AppContainer` while `ZCodeApp.kt:570-579` retains
+  the conversation VM, so after a recreate the retained screen's CommandCoordinator reads the
+  destroyed transport: sends fail with `command.blockedOffline` while the status line still says
+  "Connected · Completed". Re-manifested on Android 16 (dark-mode flip and every recreate axis).
+  **Fix:** hoist the container to process (`Application`) scope, install the uncaught-exception
+  handler ONCE per process pointing at the process-scoped diagnostics store (the
+  `MainActivity.kt:123-127` chain closes over `this` and retains every Activity), and make the
+  retained VM hold process-scoped dependencies — **closes F-33-B** (5 Activities / 5 containers /
+  5 hubs / 16 OkHttpClients retained after four recreates, heap-path proven) and **F-33-C**
+  (every `onStop` calls `notifications.onBackground()`, re-alerting approvals during a config
+  change — 19 reposts / 12 shows / 17 "recently noisy" mutes in one session). **Accept:** after
+  four recreates the hprof shows exactly 1 MainActivity / 1 AppContainer / 1 ConnectionHub / 1
+  RelayTransport; a send after a recreate rides the live transport and the reply renders; no
+  approval re-post during a config change; `isChangingConfigurations` skips the background entry;
+  the three pins (zombie, heap, background-entry) land together.
+
+- [ ] **F-34-A (P2) — a notification tap onto the open conversation stacks a duplicate and the
+  surviving screen goes dead.**
+  `ZCodeApp.kt:204` calls `nav.navigate(Routes.conversation(link.taskId))` with no
+  `launchSingleTop` and no same-task check → a second entry for the same task; popping it runs
+  `ConversationVmHolder.onCleared()` → `hub.closeConversation` (`ConnectionHub.kt:828-840`), and
+  `openedSessions` is a set keyed by task id, not a refcount, so the visible entry loses its
+  subscription (`unsubscribeConversationV4 ok 66ms`); sends then succeed on the wire while every
+  update frame is dropped (`gateway.drop … no subscription record`). **Fix:** navigate with
+  `launchSingleTop` + pop-to-existing for the same task id; reference-count `openedSessions` so
+  only the last teardown unsubscribes. **Accept:** the deep-link-to-open-task pin leaves exactly
+  one conversation entry; the hub pin (two opens, one close) stays subscribed; the live leg sends
+  and sees the reply after a notification tap; back leaves the remaining screen alive.
+
+### Sub-phase 8B — the reconnect budget and the foreground-service truth
+
+- [ ] **F-34-B (P2) — returning from the background can land in "Disconnected" for minutes.**
+  The reconnect budget is wall-clock from the first loss (`ReconnectPolicy.kt:40-50`) and burns
+  while the process is frozen; `RelayTransport.reconnectNow()` (`:846-863`) from RECONNECTING only
+  calls `requestImmediate()` + a single-flight `recover()`, and `nextDelayMs()` checks the expired
+  budget BEFORE honouring `immediateNext`, so the thawed attempt fails and the machine enters
+  DEGRADED in the foreground (13.5 min in the receipt). **Fix:** treat a foreground entry as an
+  explicit signal — open a fresh budget from RECONNECTING too (reset + cancel/restart the parked
+  loop), and honour `immediateNext` before the budget check. **Accept:** an injected-clock policy
+  pin (5-minute jump between attempts) shows a reconnect attempt, not DEGRADED; a transport pin
+  from RECONNECTING after expiry yields an attempt; the live freezer leg recovers in seconds after
+  returning to the foreground.
+
+- [ ] **F-34-F (P3) — the Live-connection notification says "Connected" while the app is
+  disconnected.**
+  `LiveConnectionService.kt:86-87` builds the text once at service start; through 10 minutes of
+  DEGRADED transport the shade still read "Connected — Live connection active". **Fix:** have the
+  service observe the hub phase and update the notification text (Connected / Reconnecting /
+  Disconnected — tap to retry). **Accept:** killing the relay flips the shade text within 2 s;
+  reconnect restores Connected; the notification id is stable (no post spam); a service pin covers
+  the three phases.
+
+### Sub-phase 8C — permissions and availability (Android 13+ defaults)
+
+- [ ] **F-34-D (P2) — voice dictation is dead on every device and its error blames the device.**
+  The app does not declare `RECORD_AUDIO` at all (manifest grep 0; `dumpsys package` 0) and never
+  asks; `VoiceInput.kt:47-48` shows Dictate whenever a recognizer exists and `:84` calls
+  `startListening`, which the service rejects (`received from a caller without permission
+  android.permission.RECORD_AUDIO`), so `onError` renders "Voice input isn't available on this
+  device" — false. **Fix:** declare `RECORD_AUDIO`, request it at the first Dictate tap (the
+  camera's direct-request pattern), and map `ERROR_INSUFFICIENT_PERMISSIONS` to "Microphone
+  permission needed" with a settings link. **Accept:** a manifest-presence pin; a Robolectric
+  denied-permission pin asserts the new copy; live grant → transcript; live deny → the permission
+  copy, never "not available on this device".
+
+- [ ] **F-34-E (P2) — on Android 13+ the app never asks for notification permission.**
+  Fresh install: `POST_NOTIFICATIONS` `granted=false`, app `importance=NONE`; onboarding, pairing,
+  Tasks and the conversation never request it (the only site is the Live-connection toggle,
+  `SettingsScreen.kt:947-968`), so the broker re-posts approvals into a blocked sink
+  (`AndroidNotificationSink.kt:160`). **Closes F-33-G** (the app still renders "Approval requests
+  ON" while blocked). **Fix:** request the permission at the end of pairing (or the first approval
+  card) with a one-line rationale; show a persistent "Notifications are off — Turn on" row on Tasks
+  and in Settings while `areNotificationsEnabled()` is false, deep-linking to
+  `ACTION_APP_NOTIFICATION_SETTINGS`; offer the Live connection (with its battery note) in the
+  same post-pairing step. **Accept:** a fresh install (`pm clear`) shows the ask before the first
+  approval; deny → the off-state row on both surfaces; the deep link opens the system page; grant
+  → `importance != NONE` and a delivered notification; no "ON" copy while blocked (F-33-G pin).
+
+- [ ] **F-34-C (P3, privacy) — the pairing camera keeps running after you leave the scanner.**
+  `QrScanner.kt:48-72` binds the use cases to the **Activity** lifecycle and never unbinds when
+  the composable leaves composition; the camera ran ~7.5 minutes after the user moved to manual
+  entry (including a minute on the paired Tasks screen). **Fix:** `DisposableEffect { onDispose {
+  provider.unbindAll() } }` or bind to the composable's own lifecycle owner. **Accept:** compose
+  the scanner then remove it → the provider's bound use cases are empty; the live camera indicator
+  goes off on leaving the scan screen; a compose pin covers the disposal.
+
+**Phase 8 exit gate: ☐** fresh install (`pm clear`) on `zcode-a16`; legs: ask → deny → off-state
+row → grant; PIN/freezer background return; notification deep link onto an open conversation;
+four-recreate hprof; camera indicator after leaving the scanner; Live-connection text across a
+relay kill; 0 FATALs/0 ANRs; suite green.
+
+---
+
+## Phase 9 — Timeline & composer geometry
+
+Theme: the surfaces that decide whether the user can see and reach the answer controls. This is
+the highest-yield UX phase and the one the rig catches best (painted bounds, not a11y dumps).
+Order: **F-27-B → F-33-D → F-27-C → N-BD-1 → N-BG-1 → N-BH-1 → N-BF-4/N-BH-3/N-BH-4 →
+F-36-A → N-BC-1/N-BG-3/N-BC-3 → N-BF-1.**
+
+### Sub-phase 9A — the dropped callbacks (rewind, attachments, zoom)
+
+- [ ] **F-27-B (P3) — the rewind preview plane and the timeline attachment taps are unreachable
+  because the call sites drop the callbacks.**
+  Pass 31's dropped-default-arg sweep found `ConversationScreen.kt:552` (`TimelineBody`) drops
+  `onOpenAttachment`, `onOpenAttachmentExternally`, `onSectionCrash`, and `:1047` (`TimelineRow`)
+  drops the same two plus `rewindPreviewProvider`, while the signature at `:1252` declares them.
+  Consequences: the Undo-files sheet never paints any face and zero
+  `conversationFileRewindPreviewV4` wires exist in any pass; the G28 zoom viewer is dead at the
+  timeline (it was closed on row-level pins only); the L7 diagnostics seam is structurally null.
+  **Fix:** forward all five params at both call sites; add a wiring pin that asserts every
+  defaulted callback parameter of the timeline composables is forwarded (a sweep, not a spot
+  check); add a Robolectric sheet-face pin with a fake provider (loading / safe / unsafe /
+  unavailable). **Accept:** a live thumbnail tap opens the viewer; the rewind sheet paints each
+  face and the preview wire fires; G28's zoom and G72's dialog have data; the sweep pin fails on
+  any new dropped param.
+
+### Sub-phase 9B — insets, clipping and the slash palette
+
+- [ ] **F-33-D (P3) — the IME double inset and the composer squeeze (re-manifest of GAP-A16).**
+  `ConversationScreen.kt:274-279` applies `.padding(inner)` (the M3 Scaffold's default content
+  insets include the nav bar) then `.imePadding()` without `consumeWindowInsets(inner)`, so the
+  nav-bar inset is applied twice: the gap between composer and keyboard is 145 px (3-button) /
+  60 px (gesture) vs 16 px with the keyboard down. Under the armed pinned stack the action row is
+  pushed out of paint — two organic repros, the Send button not painted, taps at its a11y centre
+  send nothing. **Fix:** `.padding(inner).consumeWindowInsets(inner).imePadding()`; re-pin
+  `ComposerSqueezeBudgetTest` on the **Send button's painted bounds** with synthetic nav + IME
+  insets (not just the field). **Accept:** with the keyboard up, the composer bottom sits 16 dp
+  above the keyboard under both nav modes; Send is painted and tappable under the armed stack;
+  the timeline keeps its 48 dp floor; the painted-bounds pin is RED pre-fix.
+
+- [ ] **F-27-C (P3) — the context sheet's chip row/footer clip, plus the bottom-edge clip family.**
+  The second chip row is height-clipped to an ~11 px sliver when the sheet content stack is tall;
+  under 3-button navigation the footer paints inside the nav bar and a tap on "Share" hits system
+  Back; under gesture nav it is cut until the sheet is dragged. **Carries D2** (wrapped chips
+  report `[0,0][0,0]` and are tap-dead — 4 confirmations), **D5** (the sheet reopens scrolled below
+  the chip row) and **N-BD-4** (the conversation `send_notice` bar renders a 10 px sliver; Settings'
+  `settings_locale` sits at y=2065–2072 with invisible text). **Fix:** inset the footer by
+  `navigationBars` and include it in the partially-expanded height (or `skipPartiallyExpanded`);
+  reset the sheet's scroll position on open; apply the same nav-bar inset to the notice bar and
+  Settings' last rows. **Accept:** no chip reports zero bounds; the footer is fully visible and
+  tappable under both nav modes; the sheet reopens at the top; the notice bar and locale row are
+  fully above the bar; a 395 dp + both-nav-modes pin covers the family.
+
+- [ ] **N-BD-1 (P4) — the slash palette displaces the composer entirely.**
+  With the armed stack + palette open, the composer row is not laid out at all (absent from the
+  a11y tree; focus persists but Send is unreachable), and it returns only when the draft stops
+  matching `/`. **Fix:** reserve the composer's min height in the palette-open layout, or anchor
+  the palette ABOVE the composer instead of displacing it. **Accept:** palette open with the full
+  armed stack → composer + Send visible and sending works; the palette still scrolls all 20
+  commands; a compose pin at the armed shape.
+
+### Sub-phase 9C — pinned cards and attachment send
+
+- [ ] **N-BG-1 (P3) — the question card buries Submit behind the wrong scroll surface.**
+  The three-group card clips after the first group; "Send answers" sits four inner scrolls deep,
+  and the first swipes over the card scroll the pinned STACK instead of the card (3 of 4 attempts
+  wrong). With the keyboard up, Submit is unreachable and unhinted. **Carries N-BF-3** (two-group
+  card: three scrolls; submit clipped to a 6 px strip) and **D4** (hook card Trust needs a short
+  swipe; big swipes scroll the timeline behind). **Fix:** cap the pinned card's inner scroll to the
+  card (a fixed-height viewport with its own scroll), keep the stack cycle on the drag handle only,
+  and render the submit row pinned at the card's bottom edge. **Accept:** the three-group card
+  shows Submit without scrolling (or with one obvious inner scroll); a swipe starting on the card
+  scrolls the card; keyboard up → Submit reachable; the hook card's Trust is reachable without a
+  magic swipe; a compose pin at 395 dp with the full stack.
+
+- [ ] **N-BH-1 (P3) — a message with only an attachment cannot be sent.**
+  Sketch → Done uploads and shows the chip, but Send stays disabled (`enabled =
+  state.draft.isNotBlank()` at `WriteComponents.kt:1058`) while the Stop/Send morph already uses
+  `hasDraftToSubmit` (`:1035`, which counts attachments per the GAP-A9 contract). **Fix:** gate
+  Send on `hasDraftToSubmit` after confirming the `sendText` wire accepts an empty text with
+  attachments. **Accept:** sketch → Done → Send enabled → wire fires → the row renders the image;
+  a compose pin covers the empty-text-with-attachment shape; a text-only send is unchanged.
+
+- [ ] **N-BF-4 / N-BH-3 / N-BH-4 (P4) — the card/dialog a11y cluster.**
+  N-BF-4: a hook-review row tap does not toggle (only the checkbox does; the desktop's row is the
+  toggle). N-BH-3: a `trusted_persistent` item's disabled checkbox looks identical to an actionable
+  one and carries no content description (**carries pass-21's "already trusted" nicety**). N-BH-4:
+  the presentation-mode options are clickable Rows wrapping `RadioButton(onClick=null)` without
+  `selectable(role=RadioButton)`, so neither row exposes a selected state. **Fix:** row-tap
+  toggles selection; replace the trusted checkbox with a "Trusted" state chip or add
+  `stateDescription` + a visible label; add `Modifier.selectable(selected, role = RadioButton)` to
+  the rows (and audit the theme dialog). **Accept:** row tap toggles; TalkBack announces
+  "Trusted"; the mode dialog announces the selected option; a11y pins for all three.
+
+### Sub-phase 9D — floating navigation
+
+- [ ] **F-36-A (P3) — the turn navigator is buried under jump-to-latest.**
+  Both buttons sit at `Alignment.BottomEnd` in the same Box (`ConversationScreen.kt:1087-1104` and
+  `:1105-1126`); jump-to-latest composes later and covers the navigator, leaving a 13 px sliver
+  whenever the timeline is scrolled up (four taps went to jump-to-latest). **Fix:** stack the two
+  buttons (navigator offset above jump-to-latest by one button height + 8 dp) or put both in one
+  column. **Accept:** when both are visible their bounds do not overlap; the navigator opens at any
+  scroll position; a compose pin asserts non-overlapping bounds.
+
+### Sub-phase 9E — hit targets and switch semantics
+
+- [ ] **N-BC-1 / N-BG-3 / N-BC-3 (P4) — switches and small hit targets.**
+  N-BC-1: the queue strip's Auto-send switch has no content description/label association
+  (TalkBack reads nothing); the pass-22 "Auto-send label-lag" sibling is folded here. N-BG-3: the
+  terminal consent row's Switch is the only hit target (the label is not tappable) and the
+  Settings' custom switches (Live connection / Auto-reconnect / Terminal) expose no
+  `checkable`/`checked` state. N-BC-3: queue Move-up/Move-down buttons are 32 dp wide, under the
+  48 dp floor at every scale. **Fix:** semantics labels + `Modifier.toggleable(role = Switch)` (or
+  merged semantics) on the switches; make the consent label toggle; widen the queue buttons to
+  48 dp. **Accept:** the a11y tree shows checkable + label for all four switches; label taps
+  toggle; the buttons measure ≥48 dp at font 1.3; a11y pins.
+
+### Sub-phase 9F — focus
+
+- [ ] **N-BF-1 (P4) — the find bar opens without focus.**
+  With the composer holding the keyboard, opening find types the query into the composer (it
+  becomes a draft and triggers the leave-guard dialog). **Fix:** request focus on the find field
+  when the bar opens, keeping the composer draft intact. **Accept:** the query lands in the find
+  bar; the composer draft is unchanged; a compose pin.
+
+**Phase 9 exit gate: ☐** fresh `zcode-a16` with all content flags armed, plus font 1.3, 395 dp,
+3-button and gesture nav, IME up; legs: thumbnail tap → viewer, rewind sheet faces, palette with
+composer visible, three-group card submit, attachment-only send, floating-button overlap, switch
+a11y; screenshots + painted-bounds measurements; 0 FATALs/0 ANRs.
+
+---
+
+## Phase 10 — Conversation data, rendering & feedback
+
+Theme: what the conversation keeps, pages, renders and tells the user. Order: **GAP-21-A →
+N-BE-3 → F-37-D → F-37-E → N-BE-2/N-BH-2 → N-BC-4 → N-BI-1/N-BI-2 → N-BE-5 →
+N-BI-3/N-BI-4/N-BI-5 → N-BD-3/N-BC-2/N-BE-4/N-BE-1.**
+
+### Sub-phase 10A — input parity
+
+- [ ] **GAP-21-A (P3) — the first-token @-mention is dead.**
+  Typing `@re` as the first token fires zero `file.searchWorkspaceFiles` wires and renders no
+  panel (11 repros); mid-text `x @re` works (2 calls, panel renders). The tokenizer uses
+  `substringAfterLast(' ', missing = ???)` wrongly at `WriteComponents.kt:796`. **Fix:**
+  `substringAfterLast(' ', missing = draft)` + the re-trigger staleness look (the pass-21
+  papercut); pin PANEL PRESENCE, not call count (the cache-warm leg can legitimately return zero
+  fresh calls). **Carries G65's trigger wiring** (the category expansion itself stays Phase 12).
+  **Accept:** first-token `@re` fires the wire and renders the README hit; mid-text still works;
+  the 12th repro is gone; a compose pin at both positions.
+
+- [ ] **N-BE-3 (P4) — no hardware-keyboard send.**
+  The IME Send action works, but a hardware keyboard's Enter inserts a newline and there is no
+  Ctrl/Cmd+Enter, so a DeX/tablet/Chromebook user cannot send. **Fix:** add the desktop's
+  `composerSend` binding (Ctrl/Cmd+Enter) while keeping Enter as newline. **Accept:** a hardware
+  Enter+modifier sends; plain Enter still newlines; a key-event pin.
+
+### Sub-phase 10B — paging and the watchdog
+
+- [ ] **F-37-D (P2) — load-earlier is a self-evicting no-op.**
+  `Ports.loadOlder` (`:872`) fetches a page before `beforeRowId`, `applyPage` inserts it, and
+  `enforceBound` (`ConversationRepositoryImpl.kt:139`) keeps the NEWEST 320
+  (`2 × RENDER_WINDOW_ROWS(60) + PAGE_MAX_ROWS(200)`, `ConversationRepository.kt:77-93`) — so the
+  page just fetched is the oldest thing in the store and is evicted in the same transaction.
+  Receipt: 2,001-row snapshot → Room holds exactly 320 (1682..2001), no Load-earlier strip because
+  the mock never sends `rowsWindowSchema`. **Fix:** in `applyPage`, bound AFTER insert but exclude
+  the fetched range from eviction (keep `[page ∪ newest 320]` while `hasMore` was true for that
+  page), or replace the oldest page on hasMore. **Rig prerequisite:** the mock's `rowsWindowSchema`
+  knob (**RIG-P3**). **Accept:** the real-repo `PageFetched`-over-a-full-store pin shows the
+  fetched page survives and the count honours the bound; two `loadOlder` calls yield two distinct
+  older pages; the 2,001-row live leg pages backwards.
+
+- [ ] **F-37-E (P3) — the stream watchdog re-kicks an idle session forever.**
+  `recovery.streamWatchdog` fires every ~90 s (14 times in one 30-minute idle window), each
+  escalating to a RECOVERY frame that alternately re-pulls the full 2,001-row snapshot; the
+  4-strike cap (`watchdogMaxStrikes = 4`, RecoveryCoordinator) never engages because each
+  re-kick's own recovery answer resets the strike counter. **Fix:** when a recovery returns no
+  change (same epoch/seq head), mark the session healthy-idle and stand the watchdog down until a
+  genuine delta; give the per-session escalation exponential backoff that only a NEW delta resets;
+  re-check why the machine read non-terminal while the header showed Completed. **Accept:** a
+  scripted snapshot-only responder pin bounds the re-kick count over N intervals; a live idle
+  30-minute leg shows ≤1 re-kick and no repeated full snapshots; the strike cap can engage.
+
+### Sub-phase 10C — persistence and measurement
+
+- [ ] **N-BE-2 / N-BH-2 (P4) — outbox retention and staged attachments across process death.**
+  N-BE-2: `OutboxDao` (`Daos.kt:128-147`) has no delete query — terminal rows (ACKED /
+  FAILED_STALE / EXPIRED) are kept forever with full payloads (167 rows in 3 days, every prompt's
+  text at rest). N-BH-2: after `kill -9` the text draft restores but the staged sketch chip is
+  gone, leaving an orphaned eager upload on the desktop. **Fix:** delete/compact terminal outbox
+  rows after a TTL/ACK; persist staged attachment references with the draft (they are already
+  server-side) or release the upload when the chip cannot be restored. **Accept:** terminal rows
+  are purged; the DB carries no prompt text beyond the retention window; a kill -9 → relaunch
+  either restores the chip or releases the upload (no silent orphan); real-DB pins for both.
+- [ ] **N-BC-4 (P4) — no `reportFullyDrawn()`.** Add the call after the first task composition
+  (and note the baseline-profile derivation). **Accept:** logcat shows the fully-drawn line once
+  per cold start; no startup regression.
+
+### Sub-phase 10D — markdown and package size
+
+- [ ] **N-BI-1 / N-BI-2 (P4) — markdown conformance.**
+  N-BI-1: ordered-list markers use a fixed 18 dp column, so "10." wraps its period onto its own
+  line; heading levels are clamped to 3 and H2–H6 all render at one size. N-BI-2: the phone's
+  ~340-line parser vs the desktop's **streamdown 2.5.0 + remark-gfm 4.0.1** stack. Verified
+  missing: `_underscore emphasis_`, `***both***`, autolinks, bare-URL linking, footnotes, hard
+  line breaks (two-space and backslash), nested blockquotes, task lists, indented code, `$…$` /
+  `$$…$$` math, inline HTML, images (parsed as a link — "!" leaks), escapes. **Fix:** size the
+  marker by digits; map H1–H6; adopt in user-value order — task lists → underscore emphasis →
+  escapes → image-as-thumbnail → footnotes → autolinks; math/mermaid stay the ledgered desktop-gap
+  rows. **Accept:** the 60-construct conformance deck renders every adopted construct; a pin per
+  construct; the remaining list is explicitly recorded as desktop-only.
+- [ ] **N-BE-5 (P4) — APK size.** Tink is 34 % of defined methods, three protobuf runtimes ship,
+  85 library locales, x86/x86_64 native libs and `descriptor.proto` are packaged. **Fix:** audit
+  and trim (dependency exclusions / ABI splits / locale filtering), documenting any deliberate
+  keep. **Accept:** a measured size delta; no functional regression; the release APK still
+  installs and passes the smoke matrix.
+
+### Sub-phase 10E — copy and feedback truth
+
+- [ ] **N-BI-3 / N-BI-4 / N-BI-5 (P4) — diagnostics, deep links, notification copy.**
+  N-BI-3: at 0 bytes free the export failure toast shows a raw cache path and truncates mid-
+  extension → typed copy ("Not enough free storage to export diagnostics"), path kept in the
+  diagnostics ring. N-BI-4: malformed `zcode://` links (`task/`, `task/%20`,
+  `task/../../etc`, `unknownhost`) reach MainActivity and do nothing — no navigation, toast, or
+  diagnostics line → one `nav.deeplink.rejected` ring line + an honest toast, routing unchanged.
+  N-BI-5: the notification-detail subtitle is static while the value cycles Minimal ⇄ Task titles →
+  pick the subtitle by level. **Accept:** each shape observed (toast copy; ring line + toast;
+  subtitle flips); pins.
+- [ ] **N-BD-3 / N-BC-2 / N-BE-4 / N-BE-1 (P4) — copy, colour and timezone truth.**
+  N-BD-3: a locally-gated fork refusal says "the desktop refused it" although no wire was sent
+  (`ConversationViewModel.kt:917-919`) → distinguish the local gate from a desktop refusal.
+  N-BC-2: the automation edit dialog's confirm says "Create" in edit mode
+  (`AutomationEditor.kt:428`) → "Save". N-BE-4: every send-notice paints in `onErrorContainer`
+  (`WriteComponents.kt:1223/1227`), so the INFO success "Trusted N hook(s)" renders in error red →
+  colour by kind. N-BE-1: the automation time hint says local time but the cron runs on the
+  DESKTOP clock (`features/tasks/.../strings.xml:66`) → label the desktop timezone (and carry it
+  when the bootstrap can). **Accept:** each live shape matches the intended copy/colour/label;
+  pins for the copy and the notice kind.
+
+**Phase 10 exit gate: ☐** 2,001-row scale leg (load-earlier twice), idle 30-minute watchdog
+window, 0-byte storage export, markdown conformance deck, notification-detail toggle, malformed
+deep-link fuzz; 0 FATALs/0 ANRs; suite green.
+
+---
+
+## Phase 11 — Parity: protocol & execution planes
+
+Theme: the wire-level distance between the phone and the shipped desktop. These rows are
+protocol-shaped; two are boundary-decision-first. Order: **G48+G51 → G42+G44-P13 → G43-P13 →
+G52 → G53 → N-BG-2 → G64 → G67 → G78 → GAP-17/J3 → G54.**
+
+### Sub-phase 11A — the capability and delta plane
+
+- [ ] **G48 + G51 (P3) — the phone never declares `workflowRunDeltas`, so the desktop's delta
+  stream is never enabled; and the delta ops are unhandled.**
+  `ClientHello.capabilities` exists (`V4Wire.kt:110-117`) but its only construction site
+  (`V4Plane.kt:637-643`) omits it; the desktop gates `clientSupportsWorkflowRunDeltas` on
+  `capabilities?.workflowRunDeltas === true`, so the phone polls
+  `conversationWorkflowRunsV4` every ~8 s (pass-23: 291 calls/40 min). G51 is the consumer half:
+  the delta union includes `workflowRun.updated` (run patch + actor/node step graph, with
+  `cleared[]`/`removedActors[]`/`removedNodes[]`) and `workflowRun.removed`, both of which the
+  phone currently counts as Unknown ops. **Fix (one round, two commits if needed):** declare
+  `{workflowRunDeltas:true, workspaceHookReviewUi:true}`; decode `workflowRun.updated`/`removed`
+  + the actor/node graph; render it; stop the polling when deltas flow. **Rig prerequisite:** the
+  mock must ENFORCE the capability gate (a new arm) — today it cannot catch this. **Accept:** the
+  enforcing-mock pin shows the handshake bit and the delta consumption; polling drops; run updates
+  arrive as pushes; op-decode pins cover every new op and the step graph; no Unknown ops.
+### Sub-phase 11B — the controller and git planes
+
+- [ ] **G42-P13 + G44-P13 (P3) — the controller task-list plane (adoption or dated boundary).**
+  The desktop ships `subscribe/resync/unsubscribeControllerV4` plus a live task-list frame plane
+  with wire mutations (`pin/archive/delete/mark-read/mark-unread/open/resume`) — a newer, richer
+  version of the phone's bootstrap + sessions-index + per-screen commands. The phone's mechanism
+  is verified working, so this is parity debt, not a defect. **Fix:** a dated boundary decision
+  (the existing Phase-3 web-remote boundary record is the precedent) OR adopt the plane and move
+  the Tasks screen onto the live mutation plane. **Accept:** a dated decision in the report; if
+  adopted, live frames + each mutation receipted and pinned; if not, the boundary names the user
+  story the phone plane already serves.
+- [ ] **G43-P13 (P3) — the sessions index and workspace config are never RESYNCED.**
+  The phone subscribes `sessionsIndexV4` and `workspaceConfigV4` but never calls
+  `resyncSessionsIndexV4` / `resyncWorkspaceConfigV4` (post-reconnect freshness relies on the next
+  pushed patch; the unsubscribe half is by design, one hub-lifetime subscription). GAP-A3 covered
+  conversations + workspace config but not the index pair. **Fix:** resync both on the reconnect
+  ladder's recovery path (or document why a pushed patch is sufficient). **Accept:** a relay
+  restart fires both resyncs; freshness is receipted; a reconnect pin.
+- [ ] **G52 (P4) — `modelTransition` and `workspaceHookAdmission` state keys are silently dropped.**
+  The session-state patch has 17 keys; the phone decodes 15 and reads neither of these two.
+  **Fix:** read them (a badge/label for the transition; admission state on the hook plane).
+  **Accept:** a seeded patch renders the transition and the admission state; a decode pin.
+- [ ] **G53 (P4) — git-plane depth: branch comparison, ignored paths, repo info.**
+  The desktop serves `getBranchComparison` (base/head + per-file changes), `getIgnoredPaths`, and
+  `getWorkspaceRepositoryInfo`; none are in the phone's deliberate NEVER-ported list. **Fix:** add
+  the read-only surface that pays for itself (branch comparison first; ignoredPaths/repoInfo as
+  plumbing). **Accept:** the Git screen renders a branch comparison with per-file changes; a pin;
+  the never-ported list is updated if a verb stays out.
+- [ ] **N-BG-2 (P3) — refused channel calls are silent in the Git plane.**
+  Two live instances: the Commit dialog's **Generate** (`git.generateCommitMessage refused:
+  fault.mock.unscripted`) and the Changes/History tabs (`git.getChanges refused:
+  fault.git.notAvailable`) produce no user-visible feedback — the button does nothing, the tabs
+  render empty. **Fix:** route git-plane refusals through the same error-surface path the
+  conversation uses (inline error row for Generate; an empty-state-with-reason for
+  Changes/History). **Rig prerequisite:** script `generateCommitMessage` and `getChanges` (or an
+  arm that faults them deliberately with UI assertions). **Accept:** each refusal renders a visible
+  reason; no silent no-op; pins.
+### Sub-phase 11C — remote, execution and authoring planes
+
+- [ ] **G64 (P3) — the CUA permission observation is dropped.**
+  A remote computer-use task blocked on missing macOS Accessibility / Screen Recording shows the
+  phone user nothing, although the 4th notify method (`cua-permission`) is decoded. **Fix:** a
+  typed card ("Computer Use on your desktop needs macOS permissions (Accessibility: Missing …) —
+  grant them on the Mac"). **Accept:** a seeded permission payload renders the card; no card when
+  granted; a decode + compose pin.
+- [ ] **G67 (P3) — remote-workspace reconnect.**
+  `workspace-bridge-open` for a disconnected remote (SSH/WSL/Docker) workspace throws a plain
+  error ("the remote workspace is not connected…"), and the phone misreports it as a retrying
+  connection problem. **Fix:** detect the typed "reconnect first" error → "This remote workspace
+  is disconnected — Reconnect" → `workspace-reconnect-request` → retry the bridge. **Accept:** the
+  mock's remote-down fixture shows the button, the request fires, and the bridge succeeds after
+  reconnect; a pin.
+- [ ] **G78 (P3) — code-viewer line comments.**
+  The desktop's review flow sends a line comment from the code viewer into the chat; the phone
+  has no long-press-on-line affordance (recorded in the pass-36 files leg). **Fix:** long-press a
+  line → comment → send to the conversation (the desktop's own flow is the contract). **Accept:**
+  the comment lands as a chat message with the file/line context; a mock arm + pin.
+- [ ] **GAP-17/J3 (P3) — the phone cannot spawn a task under another agent CLI.**
+  The desktop's new-task plane offers "Select Agent" with Claude / OpenCode / Gemini / Codex
+  variants; the phone's per-runtime support is DISPLAY-only and the New-task sheet (workspace +
+  description + model) has no agent picker. **Fix:** add an agent row fed by the same source the
+  desktop uses and carry it through the create payload. **Accept:** a task created under each
+  runtime shows the runtime label and its conversation works; a create-payload pin.
+- [ ] **G54 (P3) — the personal provider/model (BYOK) authoring plane.**
+  The host serves a complete provider-authoring service (`createPersonalProvider`,
+  `savePersonalProviderOverlay`, `reorderPersonalProviders`, `addPersonalModel`,
+  `renamePersonalModel`, `deletePersonalModel`, `reorderPersonalModels`, `setPersonalModelEnabled`,
+  `savePersonalModelDraft`, …); the phone has the read-only viewer (G27). **Fix:** a dated
+  boundary decision + the honest mobile slice (at minimum a read-only personal-provider detail
+  with the model list and enable state), or defer with the decision recorded. **Accept:** the
+  decision is in the report; the slice (if any) is pinned.
+
+**Phase 11 exit gate: ☐** the capability-enforcing mock, a git-refusal fixture, a CUA-permission
+payload, a remote-down workspace, a line-comment arm; live legs for the delta stream (run
+updates without polling), git refusals, CUA card, remote reconnect, agent-picked task; 0
+FATALs/0 ANRs; suite green.
+
+---
+
+## Phase 12 — Parity: authoring & management planes
+
+Theme: the desktop's management surfaces. The rule for every row: **an honest mobile slice or a
+dated boundary decision** — never a fake viewer with no data and never an authoring form copied
+onto a phone without a user story. Order: **G71 → G72 → G70 → G73 → G74 → G75 → G59 → G60 → G65
+→ G68 → G58 → G76 → G42-P23 → N-BK-1.**
+
+### Sub-phase 12A — interaction-plane management
+
+- [ ] **G71 (P3) — hooks management viewer (absorbs the pass-15 hooks-monitor small).**
+  The desktop adds/edits/deletes hooks (event/matcher/matchAll/args/command/async/custom JSON with
+  parse errors), groups them compatibility | configured | installed | legacy | plugins, and shows
+  a `chat.hooks.*` execution monitor with sources and running/completed/blocked states. The phone
+  surfaces hooks ONLY as trust-review cards; Settings has no hooks row, so a user cannot even see
+  what a workspace runs after the trust decision. **Fix:** a read-only Settings → workspace hooks
+  viewer (name / event / command / status / source) plus the grouped monitor; authoring stays
+  desktop-side with an honest pointer. **Accept:** the viewer renders the scripted hooks and each
+  trust state; the monitor groups executions; a mock arm + pins.
+- [ ] **G72 (P3) — the rewind change-summary dialog (depends on F-27-B).**
+  Before restoring, the desktop previews the rewind as **safe vs unsafe file lists with per-file
+  reason attribution** (`bash_ignored / checkpoint_missing / checkpoint_unreadable /
+  external_modified / file_read_failed / unsupported_checkpoint`) and an operation count, and
+  refuses cleanly (cannotApply / noSafeFiles / noUnsafeFiles). The phone's `/rewind` sends blind;
+  the data plane is exactly the `rewindPreviewProvider` F-27-B restores. **Fix:** render the
+  dialog from the preview data (safe/unsafe lists, reasons, counts, refusal faces) before the
+  restore command. **Accept:** the sheet shows the two lists and the reason per file; each refusal
+  face renders; the restore only sends after the dialog's confirm; a pin per face.
+- [ ] **G70 (P3) — MCP server management (read-only slice first).**
+  The desktop authors servers (name/command/args/env/headers/timeoutMs), supports `stdio | sse`,
+  pins `protocolVersion auto | legacy | modern`, imports JSON, syncs to remote workspaces, and
+  carries a 40-key failure taxonomy. The phone has the read-only list + status viewer (G22/INV-9).
+  **Fix:** surface the failure copy + status detail first (the honest mobile slice); authoring
+  stays desktop-only with a pointer. **Accept:** the viewer renders type/status/protocol and the
+  failure copy for a scripted bad server; a dated boundary note for authoring; pins.
+- [ ] **G73 (P4) — automation editor depth.**
+  The desktop supports custom repeat rules (minute/hour/day/month, byWeekday/byDate, ends/
+  neverEnds, month navigator), a maxRuns cap, a per-automation model choice, day-of-month and
+  minute-level schedules, a recurring toggle, and create-via-chat; the phone (G29) authors a single
+  time-of-day schedule + off-peak window. **Fix:** add maxRuns and the per-automation model to the
+  existing editor; custom-repeat rules may stay desktop-only. **Accept:** both fields persist and
+  ride the create/update wire; pins; the desktop-only remainder is recorded.
+- [ ] **G74 (P4) — custom slash-command authoring (absorbs G46-P24).**
+  The desktop authors custom commands (name/description/argumentHint/prompt, delete, user vs
+  plugin sources, import copy|symlink); the phone lists custom commands in the slash extras but has
+  no management surface. **Fix:** a read-only command list/detail (name, source, description) with
+  a dated boundary for authoring, or the full form if a mobile story exists. **Accept:** the list
+  renders user/plugin commands; a dated decision; pins.
+- [ ] **G75 (P4) — memory viewer (absorbs G44-P24).**
+  The desktop browses/searches memory (AGENTS.md family) with per-file state (changed/deleted/
+  expand/collapse) and a count; the phone has zero memory surfaces — it cannot even view the
+  AGENTS.md that `/init` creates. **Fix:** a read-only memory viewer (file tree + text + refresh +
+  per-file state) under Settings → workspace. **Accept:** the viewer renders the seeded memory
+  files and their state; a pin; no write affordance.
+### Sub-phase 12B — session, usage and settings planes
+
+- [ ] **G59 (P4) — the session mode/followup switcher.**
+  The desktop's session config carries `mode` (default build), `planEnabled`, and
+  `followupMode: queue|guide`; the phone ships the followup modes but has no compact session
+  mode/followup switcher on the chip row. **Fix:** a mode selector on the session chip row
+  (read + switch where the wire allows). **Accept:** the row shows the live mode and followup;
+  a switch fires the appropriate verb; a pin.
+- [ ] **G60 (P4) — plan/usage depth (absorbs G47-P24 + the pass-31 token/cache smalls).**
+  `settings.usage` is 286 keys with a daily chart, a billing banner, coding-plan metric/range/
+  subject pickers, the quota-reset countdown dialog, and the manual-claim banner; the usage-stat
+  schema carries reasoning/cache-creation/cache-read tokens, cacheHitRate, totalSessions,
+  totalTurns, toolCallCount, toolErrorRate, modelErrorRate, avgTTFT, avgTurnDuration, activeDays,
+  current/longest streaks, longestSession, peakDayTokens. The phone decodes the three quota bars
+  and drops the rest; the per-task token residual (`getTaskTokenUsage`) is the only usage piece
+  the pass-24 upgrade left open. **Fix:** decode and surface the streaks, error rates, TTFT,
+  cache-hit rate, daily chart, per-task token usage and the quota-reset/billing faces; the
+  manual-claim/purchase plane stays the dated G23 boundary. **Accept:** the Usage screen renders each decoded metric and the daily chart; the
+  quota-reset dialog states; pins; no purchase surface.
+- [ ] **G65 (P4) — mention categories beyond files.**
+  The desktop's composer has 6 categories under 4 triggers (`@` files, `#` sessions, `$` skills,
+  plugins, agents, whiteboards); the phone has ONE category (workspace files via `@`). **Fix:**
+  add the categories that have a phone story (skills, sessions, plugins, agents; whiteboards map
+  to the phone's sketch) in value order, on top of GAP-21-A's tokenizer fix. **Accept:** each
+  trigger opens its category and inserts the right reference; pins per category.
+- [ ] **G68 (P4) — the phone reports nothing about itself to the desktop.**
+  No `mobile-view-state-update` (the desktop cannot show which device is connected or what it is
+  viewing, and the bootstrap cannot restore the phone's last task) and no `mobile-diagnostic` (a
+  support log on the Mac shows nothing about why the phone dropped — F-34-B would have been
+  visible as `hiddenDurationMs` + close code). Both are opt-in-able without analytics. **Fix:** an
+  opt-in view-state update + a diagnostic event on transport failure. **Accept:** the desktop
+  shows the connected device/viewing task; the diagnostic carries the hide duration + close code;
+  opt-in default off; pins.
+- [ ] **G58 (P4) — the plugins plane.**
+  The desktop carries a full plugins/marketplace management surface (list + reference catalogs +
+  enable/disable + overview + marketplace add/remove + suggested-reference resolution); the phone
+  has zero `plugins/*` spellings. **Fix:** a dated boundary decision (management is desktop
+  authoring) or a read-only installed-plugins list; follow the ADR-021 line. **Accept:** the
+  decision is recorded; any slice is pinned.
+- [ ] **G76 (P4) — permission scoping.**
+  The desktop's Allow-always/Deny-always carries per-kind descriptions (command/file/generic) and
+  scope choices `allowForProject / allowForSession / cua.allowForProject` (`chat.permission.*`,
+  64 keys); the phone offers Allow once / Allow always / Deny with no scope choice, so an
+  always-allow has unclear breadth. **Fix:** add the scope choice (project/session, and the CUA
+  variant) to the always path, with the per-kind description on the card. **Accept:** the card
+  shows the scope choice and the description; the wire carries the scope; a pin per kind.
+### Sub-phase 12C — workflow and viewer depth
+
+- [ ] **G42-P23 (P4) — workflow management verbs are desktop-only.**
+  The desktop carries `deleteSavedWorkflow`, `updateSavedWorkflowMeta` (rename/description) and
+  `moveSavedWorkflow` (reorder); the phone's workflow plane is list/get/start/resume with no
+  management surface. **Fix:** viewer actions (Delete / Rename / Move) on the existing workflows
+  list sending the existing service verbs. **Accept:** each action fires its verb and the list
+  reflects it; pins.
+- [ ] **N-BK-1 (P4) — viewer-depth residuals (pass-31).**
+  Four smalls recorded together: (a) `subagentDirectory.childSessionId` is decoded but unused →
+  long-press a subagent row to open the child session; (b) the model-calls rows drop the
+  tokenDebug columns → add them where the payload carries them; (c) `bashOutput` has
+  `query_failed`/retry states → add a Retry affordance; (d) the task timeline has no time
+  grouping → add day/session grouping. **Accept:** each shape renders; pins; any item that the
+  payload cannot support is waived in writing.
+
+**Phase 12 exit gate: ☐** the Settings inventory walk with every new viewer seeded (hooks, MCP,
+memory, commands, workflows, usage depth); each boundary decision dated; 0 FATALs/0 ANRs; suite
+green.
+
+---
+
+## Phase 13 — Parity: form factor, updates & polish
+
+Theme: the remaining P4 gap ledger — device form factor, update-plane niceties, notification
+polish and two vocabularies the phone currently renders raw. Order: **G62 → G61 → G63 → G66 →
+G69 → G49 → G50 → G43-P24 → N-BD-5 → G56 → G57 → G79 → G80.**
+
+### Sub-phase 13A — form factor and availability
+
+- [ ] **G62 (P4) — the desktop's keep-awake is invisible (absorbs G45-P24).**
+  `keepAwakeWhileRunning` defaults OFF and the Mac may sleep mid-task; the phone's own automation
+  History warns "Scheduled tasks only run while your computer is awake" while the phone cannot
+  observe the setting. **Fix:** an offline-state hint ("Is your desktop asleep? Turn on Keep awake
+  while running in ZCode → Settings") — no protocol change. **Accept:** the hint appears in the
+  offline/degraded state; a copy pin.
+- [ ] **G61 (P4) — no adaptive large-screen layout.**
+  At 1280 dp the task list centres a column while the automations hub runs edge-to-edge; the
+  conversation chrome, approval button and composer stretch full width; no list-detail pane for
+  tablets/foldables/DeX. **Fix:** a list-detail workbench at ≥600 dp (task list + conversation),
+  with the phone layout unchanged below the breakpoint. **Accept:** a 1280 dp leg renders the two
+  panes; the 411 dp layout is unchanged; pins.
+- [ ] **G63 (P4) — off-peak run outcomes never notify (plus the notification-sound parity small).**
+  The desktop notifies both off-peak outcomes; the phone's task-terminal diff never sees off-peak
+  runs, and the desktop's per-notification sound parity is unported. **Fix:** diff
+  `off-peak-task.list` on reconnect and post on the task-status channel; add the sound setting if
+  the desktop's model is a simple toggle. **Accept:** a seeded completed off-peak run posts once
+  on reconnect; no duplicates; the sound setting round-trips; pins.
+### Sub-phase 13B — recovery and organisation
+
+- [ ] **G66 (P4) — the typed error card with recovery actions.**
+  The desktop's chat error card carries Switch model, Model settings, Refresh quota, Sign in
+  again, Retry captcha, Try again later, Retry, Copy TraceID, Copy full details, Report issue (and
+  "No model available" variants); the phone's turn failures carry no typed recovery. **Fix:** the
+  mobile-reachable subset (Switch model, Retry, Copy TraceID, Copy details, Report issue) on a
+  typed card; provider sign-in stays desktop. **Accept:** a scripted error renders the actions;
+  each fires; pins.
+- [ ] **G69 (P4) — task-home organisation.**
+  The desktop's own mobile companion offers organize by workspace/timeline, sort created/updated,
+  collapse all, workspace kind badges, and mark-read-on-open; the phone has per-workspace collapse
+  only. **Fix:** add organize-by, sort, collapse-all and mark-read-on-open. **Accept:** all four
+  behaviours receipted; pins.
+- [ ] **G49 (P4) — per-send `requestedDelivery`.**
+  The phone's CommandCoordinator supports `startNow|queue|guide` but no feature/UI sender exists;
+  the desktop's sendText allows a per-message delivery request. **Fix:** a send-now/queue/guide
+  choice on the composer (the mobile story is the queue override). **Accept:** the choice rides the
+  wire key; the resulting delivery matches; a pin.
+- [ ] **G50 (P4) — the held-queue disposition choice.**
+  `heldQueueDisposition` (`clearQueueAndSend|keepQueueAndSend`) + `expectedHeldQueueItemIds` are
+  plumbed to the port but no UI caller sets them, so the send-into-held-queue choice never
+  surfaces. **Fix:** a dialog on send-into-held-queue (clear vs keep) with the CAS ids.
+  **Accept:** both choices fire the right keys + ids; a pin.
+### Sub-phase 13C — updates, rendering and vocabularies
+
+- [ ] **G43-P24 (P4) — update-plane niceties (absorbs the "What's new" small).**
+  The desktop dialog ships release notes + date + skipVersion + autoDownloadAndInstall +
+  cancelDownload + download progress + a restart confirm + a forceUpdate blocking flow and
+  post-update release notes; the phone's in-app update (F-UPDATE2) shows the mechanics only.
+  **Fix:** a "What's new" row + skip-version, on top of the shipped G34 notes display.
+  **Accept:** after an update the notes sheet renders; skip-version persists and suppresses the
+  prompt for that version; pins.
+- [ ] **N-BD-5 (P4) — the task-row provider badge.**
+  The bootstrap task entry carries an optional `provider` field the phone does not decode; the
+  desktop shows a per-task model/provider chip. **Fix:** decode and render a provider/model badge
+  on the task row. **Accept:** a seeded task with a provider renders the badge; a decode pin.
+- [ ] **G56 (P4) — print to PDF.**
+  The desktop exports pages to PDF (`printPageToPdf`); the phone's share ships text + Markdown
+  only. **Fix:** the Android Printing framework for the transcript (share-sheet "Print").
+  **Accept:** the print sheet opens and produces a PDF with the transcript; a pin.
+- [ ] **G57 (P4) — artifact preview depth (PDF/Office/PPTX).**
+  The desktop embeds first-party viewers: PDF (`pdfViewerSource` + worker), Office
+  (`officePreview`, xlsx/legacy-doc wasm, 1.1 MB docx wasm), PPTX (`pptxPreviewData` +
+  `pptxReferenceNavigation`). The phone's G28 zoom/PDF is the first slice. **Fix:** a dated
+  boundary or the next slice (the honest mobile order is PDF → PPTX images → Office read-only);
+  each wasm viewer is a size decision. **Accept:** the decision + any slice pinned; no dead
+  preview cards.
+- [ ] **G79 (P4) — the desktop's fault vocabulary.**
+  99 `fault.`-prefixed literals (54 real wire codes) cluster in the planes the phone renders raw;
+  the phone can phrase none of them. **Fix:** a typed fault-code → human-copy table (with the raw
+  code kept for support), at least for the codes the phone can receive. **Accept:** an unknown
+  fault renders mapped copy + the code; a table pin covers every code in the phone's receive
+  paths.
+- [ ] **G80 (P4) — the kernel's tool-kind taxonomy.**
+  The desktop's kernel ships a name-keyed 14-kind tool map over 31 tool names; the phone buckets
+  tool rows with 5 substring checks. **Fix:** a name-keyed map with the same 14 kinds and a safe
+  unknown fallback (it improves row grouping and the tool cards). **Accept:** every one of the 31
+  names maps to the right kind; unknown names fall back gracefully; a pin with the full name list.
+
+**Phase 13 exit gate: ☐** a tablet/DeX leg (1280 dp), an update leg (notes + skip-version), an
+off-peak completion leg, a typed-error leg, task-home organisation, print, and a fault/tool-name
+render leg; 0 FATALs/0 ANRs; suite green.
+
+---
+
+## Phase 14 — Rig fidelity, WATCH items & pin backlog
+
+Theme: the rig debts that block other phases and the WATCH items that must be closed by decision,
+not by code. These are mock/rig commits (`tools/mockzcode`) or report decisions only; no app
+behaviour changes. **Rig pulls forward:** rows 1–4 must land before the phase that needs them
+(G77 → Phase 7, F-37-D → Phase 10, F-27-A → Phase 7, F-37-A → Phase 6).
+
+### Sub-phase 14A — mock and rig fidelity
+
+- [ ] **RIG-P1 (P4) — interaction-plane mock fidelity.**
+  Per-generation nonce for scripted interaction ids (the reuse caused the pass-15 "inert cards"
+  saga and the INV-4 refusals); required `createdAt` on pending interactions (the desktop schema
+  makes it REQUIRED; the phone's `?: clock()` fallback re-stamps ages on reconnect); the
+  `autoResolution` fixtures G77 needs; derive `MOCK_HOOKS`'s "N pending · M hooks" header from the
+  script instead of the static payload; make `MOCK_INTERACTION_PUSH_MS=0` stop serving the gen
+  push id in the snapshot (N-BE-6). **Accept:** two relay generations with no id collision;
+  `createdAt` stable across a SIGKILL; the autoResolution fixture renders a countdown; the hook
+  header follows the trust state; `:tools:mockzcode:test` green with new self-tests.
+- [ ] **RIG-P2 (P4) — git/workflow mock fidelity.**
+  A `discardSharedContext` handler (the chip currently persists after Remove); served-list
+  mutation after create/fork/archive ack (N-BD-2: the ack is ok but the list never changes);
+  `gitSummary` that follows the create-branch ack; `runAutomationNow` scripted; `generateCommitMessage` and
+  `getChanges`/`getCommitGraph` either scripted or deliberately faulted with UI assertions (N-BG-2);
+  `editUserQuery`'s `canEdit` gate served so the live edit leg is reachable. **Accept:** each leg
+  receipted; self-tests.
+- [ ] **RIG-P3 (P4) — data-shape arms.**
+  `rowsWindowSchema` (F-37-D's Load-earlier strip); `nextRunAt` on automation seeds (the phone's
+  timezone-safe "Next …" label); non-static usage reset dates; `MOCK_FILECHANGES` per-file lists;
+  `gitIdentity` serving for the commit sheet; the `q-rig-1` push anchor (data=null today);
+  the bootstrap `provider` field (N-BD-5). **Accept:** each leg has data; self-tests.
+- [ ] **RIG-P4 (P4) — commit the DIRECT-mode mock.**
+  `/tmp/p37/direct/DirectMain.kt` (a `MockZCode.Mode.DIRECT` launcher serving `/api/server-info` +
+  `/ws` with the `zcode_lite_token` contract, verified against curl) is outside the repo. **Fix:**
+  move it into `tools/mockzcode` as a documented run target with the token contract and the
+  three shapes (loopback, TEST-NET, TLS). **Accept:** a clean checkout can launch the direct mock
+  and F-37-A's live leg reproduces from the repo alone.
+### Sub-phase 14B — WATCH decisions
+
+- [ ] **WATCH-1 (P4) — F-21-A (touch dead zone after scroll-to-top).** Six consecutive clean
+  passes at the trigger state. **Fix:** one more clean stress leg (40 flings + composer/header/
+  sheet probes) closes it permanently with a dated note; if it ever re-manifests, re-open with a
+  fresh receipt and a `pointerInput` stress pin. **Accept:** the dated decision is in the report.
+- [ ] **WATCH-2 (P4) — D1 (relay-restart DEGRADED wedge).** Five consecutive non-reproductions
+  with the honest recovery ladder. **Fix:** add a two-connection takeover pin only if a pass
+  reproduces it; otherwise close with the non-reproduction record. **Accept:** the dated decision.
+- [ ] **WATCH-3 (P4) — the subscribe-ack projection rebuild transiently drops the pinned plane.**
+  After a trust patch → app resync → `gateway.replay frames=0`, the hook card vanished for one
+  screen generation while the reconcile still logged the interaction present. **Fix:** pin the
+  subscribe-ack path's projection rebuild (one Robolectric/hub pin) or close as unobserved since
+  Phase 1. **Accept:** a pin or a dated close.
+- [ ] **WATCH-4 (P4) — the E7 stale-link papercut + the Relay V2 drift watch.**
+  The stale-link path builds `SecuritySetup` with `requireE7Consent = false`
+  (`PairingFlow.kt:201-206`), so the reduced-security consent is skipped when the link is stale;
+  and the desktop's Relay V2 contract (JWT bearer, device roles, 60 s WS tokens) is not in the
+  shipped 3.14.5 asar. **Fix:** decide the E7 behaviour (fail-closed consent or documented
+  exception) and re-grep the Relay V2 drift after any desktop update. **Accept:** the decision is
+  recorded; the drift watch is re-run if `/Applications/ZCode.app` changes.
+
+**Phase 14 exit gate: ☐** `:tools:mockzcode:jar` + `:tools:mockzcode:test` green; the DIRECT-mode
+mock reproducible from the repo; the four WATCH decisions dated; the report's mock-debt list
+empty (or each residual explicitly waived with a reason).
+
+---
+
+## Definition of done (vc52 remediation)
+
+- [ ] Every phase exit gate checked in order (6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14), each on a
+      fresh emulator+relay leg with receipts appended to this report
+- [ ] All 85 roadmap rows ticked — or explicitly waived with a dated one-line reason here
+- [ ] Full 17-module suite (`testDebugUnitTest` + the six JVM `test` tasks) green at the final HEAD
+      with the zero-new-names gate against the recorded per-phase baselines, and every module
+      emitted test XML (no test-compile blind spot)
+- [ ] Fresh debug APK rebuilt with the `zcode-android-release-meta` block; artifact path + version
+      marker stated to Ernest (deliverable completion rule)
+- [ ] Work committed locally as `ErnestHysa <takis312@hotmail.com>`; pushed/published only on
+      Ernest's explicit word (ADDITIVE = signed draft / BREAKING = draft PR; a human promotes)
+- [ ] The W2 drift WATCH re-run if `/Applications/ZCode.app` changed mid-campaign (asar digest
+      re-measured before the final phase); the Relay V2 watch re-grepped
+- [ ] Reusable learnings appended to AGENTS.md; this roadmap file left append-only
+- [ ] The 2026-10-30 roadmap's closure record (Part 0) verified untouched — no Phase 1–5 row is
+      re-opened without a dated re-manifestation entry
