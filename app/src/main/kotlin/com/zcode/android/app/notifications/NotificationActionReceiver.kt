@@ -10,10 +10,19 @@ import com.zcode.android.core.notifications.NotificationActions
  * (`answerFromInbox` → the ONE interaction gate — never a bespoke wire call); the
  * answered interaction's notification is cancelled and a post-decision haptic fires
  * (C3's "post-tap haptic"). Invalid/unknown interactions are dropped (INV-14).
+ *
+ * F-37-B (vc52): a decision that reaches this receiver while the device is LOCKED behind
+ * a credential is discarded — never sent, never replayed after unlock — and the
+ * notification stays so the owner can act once unlocked. On API 31+ the sink's actions
+ * are authenticationRequired, so the platform demands the credential before dispatching;
+ * this guard is the API 26–30 path and the defense in depth for any locked delivery.
  */
 class NotificationActionReceiver(
     private val onAnswer: (interactionId: String, optionId: String, taskId: String?) -> Unit =
         { interactionId, optionId, taskId -> answerDelegate?.invoke(interactionId, optionId, taskId) },
+    private val deviceLocked: (Context) -> Boolean = { context ->
+        context.getSystemService(android.app.KeyguardManager::class.java)?.isDeviceLocked == true
+    },
 ) : android.content.BroadcastReceiver() {
 
     companion object {
@@ -24,6 +33,9 @@ class NotificationActionReceiver(
          * call from a receiver).
          */
         @Volatile var answerDelegate: ((interactionId: String, optionId: String, taskId: String?) -> Unit)? = null
+
+        /** F-37-B: told when a decision was discarded because the device was locked (diagnostics). */
+        @Volatile var lockedRefusalDelegate: ((interactionId: String) -> Unit)? = null
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -33,19 +45,24 @@ class NotificationActionReceiver(
         val taskId = intent.getStringExtra(NotificationActions.EXTRA_TASK_ID)
         val notificationKey = intent.getStringExtra(NotificationActions.EXTRA_NOTIFICATION_KEY)
 
-        // Post-decision haptic (C3): a confirmation tick the user feels without looking.
-        val vibrator = context.getSystemService(android.os.Vibrator::class.java)
-        @Suppress("DEPRECATION")
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            vibrator?.vibrate(android.os.VibrationEffect.createOneShot(40, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator?.vibrate(40)
+        if (deviceLocked(context)) {
+            lockedRefusalDelegate?.invoke(interactionId)
+            return
         }
 
         if (notificationKey != null) {
             androidx.core.app.NotificationManagerCompat.from(context).cancel(notificationKey.hashCode())
         }
         onAnswer(interactionId, optionId, taskId)
+
+        // Post-decision haptic (C3): a confirmation tick the user feels without looking —
+        // only for an answer that was actually dispatched.
+        val vibrator = context.getSystemService(android.os.Vibrator::class.java)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            vibrator?.vibrate(android.os.VibrationEffect.createOneShot(40, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator?.vibrate(40)
+        }
     }
 }

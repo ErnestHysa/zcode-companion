@@ -56,6 +56,10 @@ class AppContainer(activity: FragmentActivity) {
                     .onFailure { log.warn("notif.action", "${it.javaClass.simpleName}: ${it.message?.take(120)}") }
             }
         }
+        // F-37-B: a shade decision that arrived while the device was locked was discarded.
+        com.zcode.android.app.notifications.NotificationActionReceiver.lockedRefusalDelegate = { interactionId ->
+            log.info("notif.action", "discarded: device locked interaction=${interactionId.take(12)}…")
+        }
     }
 
     /**

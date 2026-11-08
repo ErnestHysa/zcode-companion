@@ -61,11 +61,16 @@ class AndroidNotificationSink(
             builder.setContentIntent(connectionPendingIntent())
         }
         // C3: shade-level actions — Approve-once / Deny without opening the app.
+        // F-37-B: a permission-channel action answers a live approval (it can run a shell
+        // command on the desktop), so the platform must demand the device credential before
+        // it dispatches the intent (API 31+; NotificationActionReceiver re-checks the lock
+        // state below that). Passive actions stay one-tap.
+        val requiresAuth = spec.channelId == NotificationChannels.PERMISSIONS
         spec.actions.forEach { action ->
             builder.addAction(
-                0,
-                action.title,
-                actionPendingIntent(action, spec.key),
+                NotificationCompat.Action.Builder(0, action.title, actionPendingIntent(action, spec.key))
+                    .setAuthenticationRequired(requiresAuth)
+                    .build(),
             )
         }
         spec.groupKey?.let { group ->

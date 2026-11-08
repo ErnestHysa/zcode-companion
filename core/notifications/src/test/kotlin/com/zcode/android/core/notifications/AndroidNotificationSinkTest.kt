@@ -127,4 +127,44 @@ class AndroidNotificationSinkTest {
         sink.cancel("interaction:i-1")
         assertEquals(0, shadowOf(manager).allNotifications.size)
     }
+
+    /**
+     * F-37-B (vc52 Phase 6, P1): a PIN-locked phone approved a real Bash command from the
+     * lock screen (pass 37: `deviceLocked=1`, Approve → `sendConversationCommandV4 ok 54ms`)
+     * because the actions were attached with the bare addAction(icon, title, intent)
+     * overload — no Action object, so authenticationRequired was never set. On API 31+
+     * the platform must demand the credential before it dispatches a decision intent.
+     * Threat: anyone holding the locked phone answers live approvals (shell commands on
+     * the desktop). Passive (task-status) actions stay one-tap.
+     */
+    @Test
+    @Config(sdk = [35])
+    fun `F-37-B - permission-channel shade actions demand device authentication, passive ones do not`() {
+        val sink = AndroidNotificationSink(context)
+        sink.show(
+            NotificationBroker.Spec(
+                "interaction:i-9", NotificationChannels.PERMISSIONS, "ZCode needs your approval", null, null, "t-9", "i-9",
+                actions = listOf(
+                    NotificationBroker.SpecAction(NotificationActions.ID_APPROVE, "Approve", "i-9", "t-9", "allowOnce"),
+                    NotificationBroker.SpecAction(NotificationActions.ID_DENY, "Deny", "i-9", "t-9", "deny"),
+                ),
+            ),
+        )
+        sink.show(
+            NotificationBroker.Spec(
+                "task:t-9:TASK_FINISHED", NotificationChannels.TASK_STATUS, "Task completed", null, null, "t-9", null,
+                actions = listOf(NotificationBroker.SpecAction("open", "Open", "i-0", "t-9", "open")),
+            ),
+        )
+        val posted = shadowOf(manager).allNotifications
+        val approval = posted.single { it.channelId == NotificationChannels.PERMISSIONS }
+        assertEquals(2, approval.actions.size)
+        assertTrue(
+            "every permission-channel action must require device authentication",
+            approval.actions.all { it.isAuthenticationRequired },
+        )
+        val passive = posted.single { it.channelId == NotificationChannels.TASK_STATUS }
+        assertEquals(1, passive.actions.size)
+        assertTrue("passive actions stay one-tap", passive.actions.none { it.isAuthenticationRequired })
+    }
 }
