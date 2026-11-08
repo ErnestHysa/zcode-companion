@@ -9574,3 +9574,381 @@ refusals)** → **N-BG-1 (question-card submit)** → G67 → G64 → **G71 → 
 → G75** → N-BC / N-BD / N-BE / N-BF / N-BG smalls → G68 + G69 → G48 + G51 → G60–G63, G66,
 G76.
 Commits: this docs commit only. Nothing pushed.
+
+# Part BH — pass 36 (2026-11-08): the armed-stack re-walk with eleven first-time legs, a Room/DataStore forensic layer pulled out from under the UI, and an REA dig into the interaction plane's own state object — the pass that finds the phone's quietest bugs (a setting it saves but can never read back, a two-day-old approval it keeps alive and re-notifies) and the desktop's five-minute answer deadline the phone has never been told about
+
+Scope: pass 35 walked every plane in one armed session; this pass re-drove those legs on the same
+build and image, then went where no pass had gone — **eleven first-time legs** (the Approvals
+inbox as a destination, task search, automation History, the Usage viewer depth, the Skills and
+Subagents viewers, the presentation-mode switch end-to-end, the attachment menu and the Sketch →
+upload pipeline, the turn navigator from a scrolled-up position, the composer Stop morph's
+recovery, a hook-review item in the `trusted_persistent` state, and an honest LMK-style process
+death under the Live-connection FGS) — and, for the first time in the campaign, **pulled the app's
+own storage off the device** (Room `zcode.db` + WAL, the DataStore protos) to check what the UI
+claims against what the app actually persisted. Two of this pass's three new defects were found
+that way and are invisible to any UI-only walk. On the desktop side, REA left the settings census
+behind and decoded the **pending-interaction schema itself**, which surfaces the desktop's
+question/approval auto-continue machine (a 5-minute default fuse with a visible countdown) that
+the phone has never decoded; the three pages pass 35 named but did not adjudicate (browser
+control, keybindings, migration) are closed out.
+
+Rig: debug APK byte-identical `9084b920…` (versionCode 52 / 1.3.1, targetSdk 36 — an incremental
+`:app:assembleDebug` over the docs-only HEAD reproduced it exactly); desktop 3.14.5, asar
+`99e280fb…` re-verified. AVD `zcode-a16` (Android 16 / API 36, 1080×2340 @ 440 dpi), cold boot
+(`-no-snapshot-load`; one System UI ANR dialog right after boot — rig noise, dismissed with
+Wait). **No `pm clear`**: the stored pairing from pass 35 reconnected to a fresh relay generation
+(gen 36, all 23 arms + `MOCK_INTERACTION_PUSH_MS=25000`) with no re-pair — and that surviving local
+state is exactly what exposed F-36-B. Connection ids relay-1 → relay-6: five transparent reconnects
+across emulator network flaps (`network.lost` / `network.available`) and the SIGKILL relaunch, none
+user-visible. **0 app FATALs, 0 app ANRs.**
+
+## Part BH.1 — receipts (what holds, per leg)
+
+| Leg | Receipt |
+| --- | --- |
+| Cold relaunch onto a stored pairing | app `Connected` on gen 36 immediately; Tasks: All/Synthetic One/Manage, Automations (Nightly digest + Run now/Pause/History/Edit/Delete), Workflows hub, Pinned, approvals bell with badge, search + create FABs, More overflow |
+| Approval — Allow always | the pinned approval's always path raises "Allow always? — Future identical requests will run WITHOUT asking again." → Confirm → `sendConversationCommandV4 ok 73ms` → Bash row flips to **Completed** |
+| Question card (two groups) | custom answer typed into the free-text field ("custom36") → Submit three inner scrolls deep (see N-BG-1) → `ok 367ms`, card cleared, timeline "(answered)" row |
+| Queue strip | Send now `ok 170ms` (Queued 2 → 1); Auto-send toggle + Delete → `ok 104ms` / `125ms` (the "· paused" suffix clears, the strip empties) |
+| Hook trust review | 3 items; h2 checked → "Trust 1 selected hook(s)" → confirm dialog with the ADR-024 copy verbatim ("…Unselected hooks stay untrusted.") → `grantWorkspaceHookTrust ok 74ms` + resume `sendConversationCommandV4 ok 47ms` → notice "Trusted 1 hook(s) — the session continues." The `trusted_persistent` item h3's checkbox is **disabled by design** (`enabled = !busy && item.actionable`, HookTrustReviewCard.kt:118) — see N-BH-3 for how it presents |
+| Slash palette | "/" opens it; picking /help fills "/help "; opening the palette fires **`getSkillReferenceCatalog ok 43ms`** — the phone pulls the desktop's skills catalog into the composer |
+| Composer send | "rig36" → `ok 127ms` → user row + "synthetic reply to: rig36" |
+| Context sheet | Status · 4m 59s · Iteration 3 · 1 background; Goal "Ship it · verifying · iteration 3" + Pause + verdict history (iter 1 pass, iter 2 notSatisfied — 2 criteria unmet); Todos 1/2; Workflow runs lint-all Running / release-notes Stopped; Plans "Ship the release" 1/3 (✓ ▸ ○); git "main, clean"; chip row Files / Git / Terminal / Model calls / Share |
+| Model calls | rows "main · glm-5.3 · 4200ms · tool_calls"; expanding shows `args: {"command":"git status --short","timeout":30000}` + `result: M core/session.ts / ?? docs/evidence/notes.md`; RateLimitError: 429 row; unified search field |
+| Git screen | read-only badge; Snapshot → `git-checkpoint.createCheckpoint ok` → "ckpt-1 · 1 min ago"; branch "main · tracking: origin/main"; Commit… / Branches…; Changes + History empty (N-BG-2) |
+| Files | ws-one root (src, docs, README.md, Cargo.toml) → README viewer with line numbers + Download; long-press on a line selects nothing (feeds G78) |
+| Mode switch | Switch mode sheet (Build / Edit / Plan / Full access) → Plan → `ok 186ms` → chip reads **"plan · GLM-5.3-Flash · max"** once the mock's `switchCollaborationMode` config patch lands (the first dump raced it) |
+| Find in conversation | "synthetic" → "1 of 5" → next → "2 of 5"; prev/next disabled for an empty query |
+| Turn navigator (from the bottom) | "Conversation query map" sheet with Jump to query 1 / 2 / 3; Jump 1 lands on that row (but see F-36-A for every other scroll position) |
+| Composer Stop morph | Stop → `ok 114ms` → the mock's `stop` patch (control idle) → the Send button returns (disabled on an empty draft) — the stop path recovers cleanly |
+| Approvals inbox | opens from the bell; two cards — one live, one a ghost (F-36-B) |
+| Task search | query "task" → 3 hits (synth-task-1/2/3) |
+| Automations | Run now → `runAutomationNow ok 62ms` + `listAutomations ok 89ms`; **History sheet**: All / In progress / Succeeded / Failure filters, "now · Manual · In progress" (the run just started) + "2 h ago · Scheduled · 100s · Succeeded", Go to session / Delete run, and the copy "Scheduled tasks only run while your computer is awake." |
+| Settings inventory | Endpoints (relay "MockBook · v3.14.3 · Connected" + Add direct endpoint for `zcode --web` URL + token) · Insights (Usage, Plugins, Skills, MCP servers, Subagents, Providers, Bots — all read-only) · Diagnostics (export / copy / marker / feedback) · Appearance (theme, presentation mode, language, text size, auto-archive) · Conversation (while the agent runs: Follow the desktop) · Notifications (Minimal + three category toggles) · Live-connection window (30 min) · Live connection · Auto-reconnect (15 min) · Terminal (view-only) · Privacy ("No analytics. No tracking.") · About (licenses, "You are on the latest build", Unpair) |
+| Skills viewer | release (workspace), sql-migrate (plugin · prisma-toolkit), commit (user) + search; a row tap opens nothing |
+| Subagents viewer | Explore (built-in, On), Plan (built-in, On), docs-writer (project, Off) |
+| Usage viewer | 4 quota bars (5 hours 64% · reset 05:20, Weekly 49%, Tool calls 88%, ZCode MCP 78%); 7 days / 30 days / All time; 184.6K tokens, peak day 51.2K, longest session 1h 30m, streak 3d / longest 9d; cache hit rate 42%, 210 tool calls, 96 turns |
+| Attachment menu → Sketch | menu: Mention a file / Sketch / Photo / Attach a file / Take photo / Dictate → Sketch canvas ("Sketch to send", Clear, Done) → two strokes → Done → **eager upload** `attachmentBeginV4 ok 601ms` → `attachmentChunkV4 ok 206ms` → `attachmentCommitV4 ok 239ms` → chip "sketch-1794104863138.png (8.4 KB)" + Remove (see N-BH-1 / N-BH-2) |
+| Process death | `am kill` is **refused** on API 36 while the app holds the Live-connection FGS (pid unchanged); `run-as … kill -9` → relaunch → Connected on relay-6, the text draft survives, the staged sketch does not (N-BH-2) |
+
+## Part BH.2 — NEW defects (ordered by severity; every one reproduced, root-caused, and cited)
+
+### F-36-B (P2) — terminal-but-not-RESOLVED interactions never close: a stale approval from two days ago stayed in the Approvals inbox, was re-notified on background entry, and was answerable onto the live wire
+
+**Receipt (Room forensics, `run-as … cat databases/zcode.db` + `-wal`):**
+
+```
+interactionId          kind        lifecycle  created (UTC)        resolvedAtMs
+mock-p35-gen1-012a8f   PERMISSION  RESOLVED   2026-11-07 22:38:42  2026-11-07 23:27:05
+mock-p35-gen2-90d324   PERMISSION  STALE      2026-11-07 23:27:04  NULL
+mock-approval-1        PERMISSION  DISPLAYED  2026-11-08 00:53:23  NULL
+mock-p31-gen36-eefe75  PERMISSION  RESOLVED   2026-11-08 00:53:47  2026-11-08 01:44:46
+q-rig-1                USER_INPUT  RESOLVED   2026-11-08 00:58:31  2026-11-08 01:44:46
+```
+
+`mock-p35-gen2-90d324` is the push interaction from pass 35's relay-swap leg, staled by that
+generation swap. It survived two days, an emulator cold boot, an `install -r`, and a new relay
+generation, and at gen 36 it was still: (1) an **actionable Approvals-inbox card** — "Permission —
+Bash · task Synthetic task · 2 h ago · Allow once / Deny" — counted in the bell badge (2);
+(2) **re-posted as a permissions-channel notification** on background entry
+(`notify.repost :: key=interaction:mock-p35-gen (background entry)` at 01:57:07 — under the
+Minimal detail level that is a lock-screen "ZCode needs your approval" for nothing); and
+(3) **answerable**: Allow once → `approvals.answer :: interaction=mock-p35-gen option=allowOnce`
+→ **`sendConversationCommandV4 ok 33ms`** — a real command to the connected desktop for an
+interaction id it never issued. Only that answer closed the row (badge 2 → 1).
+
+**Mechanism — three sites compound:**
+1. `InteractionCoordinator.updateLifecycle` (InteractionCoordinator.kt:804) mirrors
+   `known.resolvedAtMs` into every upsert. The GAP-A2 fix made that non-null for RESOLVED only;
+   STALE / EXPIRED / FAILED / CANCELLED persist with NULL even though `TERMINAL_MACHINE_STATES`
+   (:795) already classes all four as terminal.
+2. `InteractionDao.observeOpen` (Daos.kt:108-109) is `resolvedAtMs IS NULL` — so every
+   non-RESOLVED terminal row is "open" to the inbox and to the notification repost.
+3. `InteractionRepositoryImpl.sweep` (:79) TTL-drops only `resolvedAtMs != null` — a terminal-but-
+   NULL row never ages out (only the 64-row cap could evict it). And after a process restart no
+   in-memory machine exists for it, so the bootstrap's authoritative `pendingInteractions` (which
+   did not list it) never reconciles it either — nothing in the app can ever close it.
+
+**Fix shape:** stamp `resolvedAtMs` (or a terminal timestamp) for every `TERMINAL_MACHINE_STATES`
+write; make `observeOpen` select `lifecycle IN (REQUESTED, DISPLAYED, SUBMITTING)`; TTL-sweep all
+terminal lifecycles; on a session bootstrap, close stored open rows that the snapshot's
+authoritative list no longer contains even when no machine exists; skip terminal ids in the
+notification repost. **Pins against the real Room repo** (the GAP-A2 lesson — recording fakes
+cannot see this): STALE write → `observeOpen` excludes; sweep drops a terminal row after TTL;
+cold-start reconcile closes absent ids; repost skips terminal ids. GAP-A2 (P1, fixed) was the
+RESOLVED half of this; this is the other four terminal states.
+
+### F-36-C (P2) — G36's presentation mode can never be set to Office: the app saves "OFFICE" and reads it back as Coding
+
+**Receipt:** Settings → Appearance → Presentation mode → Office → the dialog closes → reopen →
+**Coding still selected** (twice; screenshots p36-presentation-dialog / -2), and the conversation
+keeps the coding presentation (the Bash row still shows "echo synthetic"). The value WAS written:
+`no_backup/datastore/preferences.pb` (pulled via run-as) holds field 15 =
+`7a 06 4f 46 46 49 43 45` → **"OFFICE"**.
+
+**Mechanism:** the writer stores the enum NAME — `.setInterfaceMode(mode.name)`
+(DataStoreRepositories.kt:182) — while the reader runs the DESKTOP wire mapper —
+`InterfaceMode.fromWire(if (hasInterfaceMode()) interfaceMode else null)` (:140-141 →
+CoreModels.kt:271), which matches only `"office" | "general" | "concise"`. "OFFICE" falls through
+to `else -> CODING`, so the setting round-trips to Coding forever: **the shipped G36 feature (vc51
+Phase 4) is unreachable on device.** The only interfaceMode test is `InterfaceModeGateTest`
+(features/conversation — gating on a supplied mode); no DataStore round-trip pin exists. This is
+the second proto-mapping defect in this file after vc51 Phase 2's `interactionBehavior` builder
+shadowing — the proto seam is the recurring blind spot.
+
+**Fix:** write the wire spelling (`mode.name.lowercase()`) or read case-insensitively. Pin a
+real-serializer round-trip: OFFICE → OFFICE, CODING → CODING, legacy "general" → OFFICE, garbage
+→ CODING — and extend the same round-trip pin to every enum field in `AppPreferencesProto`.
+
+### F-36-A (P3) — the turn navigator is buried under the jump-to-latest button whenever the timeline is scrolled up
+
+Both floating buttons sit in the same corner of the same Box: the navigator's
+`AnimatedVisibility(visible = navigatorQueries.size >= 2, Modifier.align(Alignment.BottomEnd))`
+(ConversationScreen.kt:1087-1104) and jump-to-latest's `visible = !followBottom || !atBottom`, also
+`Alignment.BottomEnd` (:1105-1126), composed later and so drawn on top. Scrolled up, the tree shows
+`conversation_jump_latest (882,1538)-(1036,1692)` over `turnnav_open (904,1692)-(1036,1705)` — a
+**13 px sliver**; screenshot p36-turnnav-after-taps shows only the ↓ button; four taps there all
+went to jump-to-latest (the list snapped to the bottom) and no navigator sheet opened. At the
+bottom (jump hidden) the navigator is 129 px and works — and the moment you use it (Jump to query 1
+scrolls up) it is buried again for the next jump. The I2.5 comment's own promise — "ALWAYS
+visible… discoverability is the finding's whole point" — fails exactly when navigating history.
+Earlier receipts (lines 678, 833) exercised the sheet only from the bottom. **Fix:** stack the two
+buttons (navigator offset above jump-to-latest by one button height + 8 dp) or put both in one
+column; pin non-overlapping bounds when both are visible.
+
+### N-BH-1 (P3, usability) — a message with only an attachment cannot be sent
+
+Sketch → Done uploads the image (begin/chunk/commit all ok) and shows the chip, but with no typed
+text the Send button stays **disabled** (`C---x-`) and a tap does nothing — the natural flow
+(sketch → Done → Send) dead-ends until the user invents some text. The composer is internally
+inconsistent: WriteComponents.kt:1035 computes
+`hasDraftToSubmit = currentDraft.isNotBlank() || state.composerAttachments.isNotEmpty()` (the
+GAP-A9 desktop contract counts attachments as submittable — it decides the Stop/Send morph), while
+the Send button at :1058 is `enabled = state.draft.isNotBlank()`. Fix: gate Send on
+`hasDraftToSubmit` (after confirming the `sendText` wire accepts an empty text with attachments).
+
+### N-BH-2 (P4) — staged attachments do not survive process death; the text draft does
+
+After `kill -9` + relaunch the composer restored the text draft from Room but the staged sketch
+chip was gone. Because the upload is eager (committed at Done), the desktop is left holding an
+orphaned upload and the user loses the chip silently. Persist the staged attachment references
+with the draft (they are already server-side), or release the upload when the chip cannot be
+restored.
+
+### N-BH-3 (P4, a11y / clarity) — a trusted hook's disabled checkbox looks identical to an actionable one
+
+In the hook-review card, a `trusted_persistent` item's checkbox is disabled by design, but it
+renders exactly like the actionable ones, carries no content description, and has no "Trusted"
+label beside it (only its Revoke button hints at the state). Two taps on the checkbox, one on the
+row and one on the text produced no effect and no feedback; the uiautomator tree shows the boxes
+as unlabeled CheckBoxes. Fix: replace the checkbox with a "Trusted" state chip (or add
+`stateDescription` and a visible label) for non-actionable items.
+
+### N-BH-4 (P4, a11y) — the presentation-mode dialog does not expose which option is selected
+
+The options are clickable Rows wrapping `RadioButton(selected = …, onClick = null)` without
+`Modifier.selectable(role = Role.RadioButton)` (SettingsScreen.kt ~1165-1180), so neither row
+exposes a checked/selected state (uiautomator shows plain Views) — TalkBack cannot announce the
+current mode. Fix: `selectable(selected, role = RadioButton)` on the Row; audit the theme dialog
+for the same pattern.
+
+### Re-manifests and re-adjudications (this build)
+
+- **N-BG-2** — opening the Git screen fires `git.getChanges refused: fault.git.notAvailable` twice
+  and `git.getCommitGraph refused: fault.git.notAvailable` once; Changes and History render as bare
+  headers with empty bodies and no feedback. Unchanged.
+- **N-BG-1** — the two-group card (Channel + Extras) put Submit three inner scrolls deep; midway the
+  button was clipped to a **6 px strip** at the pinned-budget edge (a tap there is a guess).
+- **N-BF-2 — re-adjudicated as mock-shaped on this rig.** The header read "Connected · Completed"
+  while the composer showed the running morph (Stop + "Keep typing to queue follow-up changes" +
+  Queued). Traced: a scripted mock transition sets `control {phase: running, canStop: true,
+  stopState: stoppable}` + `inputRouting enqueue` (MockZCode.kt ~3015-3027) without touching the
+  task's static "Completed" status, so the two planes disagree by construction; the app renders
+  each faithfully, and Stop → `stop` → idle patch restores Send. Kept open at P4 for one question a
+  real desktop must answer: should the header derive "Running" from `control.phase`?
+- **F-27-B, F-34-A/B/D/E, F-33-A, GAP-21-A** — not re-driven (byte-identical APK; pass-34/35
+  receipts and static root causes stand).
+
+### Mock debts recorded
+
+- Pending interactions omit **`createdAt`** (the desktop schema makes it REQUIRED — see BH.3 §5),
+  so the phone's `pi.createdAtMs ?: clock()` fallback re-stamps the age on every reconnect
+  (mock-approval-1: created 00:53:23 → 02:44:12 after the SIGKILL relaunch; the inbox shows "now").
+- No **`autoResolution`** fixtures — G77 cannot be rig-tested until the mock seeds the PP variants.
+- Git: `getChanges` / `getCommitGraph` refusal fixtures (N-BG-2, standing).
+
+## Part BH.3 — REA pass-36 dig: the interaction plane's state object, plus the pass-35 pending trio closed out
+
+Method: the unchanged asar (`99e280fb…`) through the pass-24 flattened extraction; the pass-31
+key census (`/tmp/p31/desktop-i18n-keys.txt`, 6,105 keys) re-sliced by namespace, then byte
+contexts (`/tmp/p31/ctx.py`) and direct schema extraction from
+`out__host__chunk-4RHDQOPX.js` (the host's shared zod schemas); the English copy is quoted
+verbatim from the bundled en locale.
+
+### 1. NEW G77 (P2) — question/approval auto-resolution: the desktop runs a 5-minute fuse the phone cannot see
+
+- **Wire (host chunk-4RHDQOPX.js @524024):** every pending interaction is
+  `EP = {interactionId, kind: permission | userInput | workspaceHookReview, anchorRowId, createdAt
+  (REQUIRED), autoResolution: PP.optional(), payload}`, where
+  `PP = discriminatedUnion("state", [{state: "hiddenGrace" | "visibleCountdown", startedAt,
+  visibleAt, deadlineAt}, {state: "snoozed", startedAt, snoozedAt}])` — and a `superRefine` forbids
+  `autoResolution` only on `workspaceHookReview`, so **approvals AND questions** both carry it.
+- **Policy:** `settings.askUserQuestionAutoResolution` — "Automatically continue questions — When
+  enabled, Agent questions automatically continue after 5 minutes without an answer. When disabled,
+  current and future questions wait for your response." — **default true**
+  (`askUserQuestionAutoResolutionEnabled: t.boolean().default(!0)`); the per-workspace preference
+  response carries `{workspace, askUserQuestionAutoResolutionEnabled, snoozedInteractionCount}`.
+- **Renderer:** `chat.elicitation.countdownSeconds` "{seconds}s" (the visible countdown),
+  `taskList.stopCountdown` "Stop timer" (snooze from the task list),
+  `chat.askQuestion.autoContinued` "No answer; continued automatically" (the timeline marker
+  when the fuse fires), and the snooze sender → `snoozeInteractionAutoResolution {interactionId}`
+  (accepted / duplicate / noop all count as success).
+- **Phone:** G6 shipped the snooze sender ("Keep waiting", ConversationViewModel.kt:1061) but
+  **decodes none of the state** — zero hits for `autoResolution` / `deadlineAt` /
+  `visibleCountdown` / `hiddenGrace` across core/protocol, domain, data and features/conversation
+  (the only `deadlineAt` is WorkspaceHookReview's own); our wire doc names the key without its shape
+  (`docs/protocol/v4-wire.md:155`, "autoResolution?"); the mock never seeds it.
+- **Why P2:** the phone's PRIMARY job is answering asynchronously from a notification. With the
+  default ON, every approval/question a user receives on the lock screen has an invisible
+  5-minute fuse: no countdown on the card or in the notification, "Keep waiting" offered blindly
+  (even when already snoozed, or while still in hidden grace), no way to see or change the
+  workspace policy, and when the fuse fires the card just vanishes — the phone has no copy for "No
+  answer; continued automatically". Highest-impact new row since G60.
+- **Mobile slice:** decode PP tolerantly (INV-8); render the countdown on the pinned card and in the
+  notification (a native chronometer counting down to `deadlineAt` — `setUsesChronometer(true)` +
+  `setChronometerCountDown(true)`); make "Keep waiting" state-aware (absent in hiddenGrace, live in
+  visibleCountdown, "Snoozed" in snoozed); add the autoContinued timeline copy; add the
+  per-workspace toggle under Settings → Conversation. Seed the mock first.
+
+### 2. NEW G78 (P3) — code-viewer line comments sent to the chat
+
+`codeViewer.comment.*` — add, addTooltip, commentLabel, contextLabel, delete, line, placeholder,
+range, submit: on the desktop you select a line or range in a viewed file, attach review
+comments, and submit them into the conversation as context. Pass 31 adjudicated `codeViewer`
+(71 keys) as G57's format viewers and never named this comment plane. Phone (live): the file viewer
+(line numbers + Download) has no selection at all — a long-press on a line does nothing. Mobile
+slice: long-press a line → range handles → an "Ask about these lines" chip in the composer (the
+shared-context chip plane — "rides your next message" — already exists).
+
+### 3. The pass-35 pending trio, adjudicated (no new rows)
+
+- **Keybindings** (`settings.shortcuts` 110 keys, 24 bindable commands with conflict detection and
+  scopes: composerSend / composerInsertNewline, cycleSessionMode, cycleThoughtLevel, findInTask,
+  navigateBack / Forward, newTask, next / previousConversation, openCommandCenter, openModelMenu,
+  openOnboarding, openSettings, openWorkspace, closeActiveContext, …): **parity by architecture** —
+  every command with a touch meaning has a phone tap target (mode chip, effort chip, find, + New
+  task, model chip, Settings, back). The one command with no phone equivalent is **next/previous
+  conversation** → a P4 slice (swipe between tasks inside the conversation screen).
+- **Migration** (`settings.migration` 92 + `settingsSync` 59 + `onboarding.migration` /
+  `onboarding.agentsFile`): the desktop imports settings, providers and skills from **20 named agent
+  tools** — claudeCode, codexCli, augment, codeBuddy, continue, goose, kiroCli, openClaw, openCode,
+  qode / qodeCn, qwenCode, roo, trae / traeCn, windsurf, the shared "agents" dir, zcode — with a
+  7 / 30 / 90-day session-history candidate scan, local-only / manual-only badges, and an AGENTS.md
+  copy step in onboarding. Every source is on the desktop's filesystem → **desktop-local by
+  architecture**; no phone slice.
+- **Browser control** (`settings.browser` 44 + `browser` 41): the desktop's embedded Chromium pane
+  with devtools, an **element picker** (background / color / font popover — the picked element rides
+  to the agent), cookie/profile import, clear-cache / clear-all with confirms, and an
+  insecure-certificates toggle. A desktop window surface → **by architecture**; the phone sees the
+  agent's browser work as CUA/tool rows (live: the "Computer use · 3 actions" group).
+
+### 4. Existing rows deepened
+
+- **Skills (G74's import note):** the desktop's skill detail carries path / slug / ownerId /
+  version / publishedAt / status / scope + enabled-disabled with a filter, a **13-code diagnostics
+  taxonomy** (invalid / missing / unknown frontmatter, duplicate / invalid name, missing
+  description, description too long, too large, read failed, scan failed, root not found, not
+  found) and remoteSync to remote workspaces. Phone (live): a name / description / scope list with
+  search; a row tap opens nothing — not even enabled state or diagnostics. Cheapest slice: a
+  read-only detail sheet with status + diagnostics.
+- **Subagents (pass-35 authoring note):** desktop form = name, description, model (inherit | lite |
+  main), permissionMode (acceptEdits | auto | bypassPermissions | default | dontAsk | plan), tools
+  (inherit | all | custom), disallowedTools, maxTurns, systemPrompt, skills, background, color
+  (9), injectAgentsMd + a per-agent enable toggle. Phone (live): state visible (On / Off), not
+  changeable. Cheapest slice: the enable toggle.
+- **Model calls vs modelTrajectory (folds into the tokenDebug P4-smallest):** phone rows carry
+  source / model / duration / finish reason / tools + expandable args / result + unified search
+  (live); the desktop adds per-call usage in/out tokens, a reasoning section, role-tagged
+  input/output sections, copy, expand/collapse-all, a truncated notice, and source kinds beyond
+  main (sidecar, subagent, promptEnhance, sessionTitle, targetCompletion, compact).
+- **gitGraph (pass-6 boundary):** the phone ALREADY calls `git.getCommitGraph` when the Git screen
+  opens (live, refused by the mock) — the wire is in place; the DAG (graph / parents columns) is
+  pure presentation once N-BG-2's plumbing renders anything.
+- **G62 (keep-awake invisible):** new live evidence — the phone's own automation History says
+  "Scheduled tasks only run while your computer is awake." while the desktop toggle
+  (`keepAwakeWhileRunning`: "Keep computer running — Prevent the system from sleeping due to
+  idle… Desktop only.", default off) stays invisible to the phone: the phone warns about a
+  condition it cannot observe.
+- **G19 (conversationShare):** verdict unchanged; this pass counted the publish preflight taxonomy
+  (35 issue kinds — activeSubagent, runningTurn, streamingRow, unsafeUrl, payloadSizeLimit, the
+  artifact limits…) and the import plane (downloading / installing / integrity-failed /
+  login-required / expired). The phone's Share remains a local transcript export (pass-35 receipt).
+
+### 5. Phone-side wire receipts that settle REA questions
+
+- `getSkillReferenceCatalog` fires when the slash palette opens — skills are a phone blind spot only
+  in MANAGEMENT, not at runtime.
+- `git.getCommitGraph` is already wired (above).
+- The hook-trust confirm is the only persistent-grant caller (`grantWorkspaceHookTrust` + resume) —
+  the ADR-024 contract holds live.
+- The desktop's pending-interaction `createdAt` is REQUIRED → the inbox-age reset on the rig is mock
+  debt, not app debt.
+
+## Part BH.4 — rig notes recorded for the next pass
+
+- **Storage forensics (new, and the most productive tool of this pass):** debug build →
+  `adb shell "run-as com.zcode.android.app sh -c 'cat databases/zcode.db'" > x.db` AND the same for
+  `zcode.db-wal` into the same host dir — `sqlite3 x.db` then reads the merged view (tables:
+  interactions, outbox, drafts, conversation_rows, …). DataStore protos live under
+  `no_backup/datastore/` (preferences.pb, endpoint_store.pb, credential_envelope.pb,
+  notification_records.pb); `strings` / `xxd` are enough for enum fields. Compare what the UI shows
+  with what was persisted — both P2s of this pass were found this way.
+- **Process death under the FGS:** `am kill` is refused on API 36 while the app holds the specialUse
+  Live-connection service (pid unchanged); use `adb shell run-as com.zcode.android.app kill -9 <pid>`
+  for an honest low-memory-style death.
+- **Local state persists across relay generations and `install -r`** — earlier passes' interaction
+  rows (`mock-p35-*`) were still in Room; a leg that needs a clean inbox must `pm clear`.
+- **Composer field editing:** Enter inserts a newline (no IME send action — use the Send button);
+  MOVE_END moves only within the current line, so press DOWN before MOVE_END; space DELs ≥ 0.2 s
+  apart or the burst drops strokes.
+- **rig.py flag alphabet:** C L S F x K = clickable, long-clickable, scrollable, focused,
+  **disabled (x)**, checked (K). Position five means disabled, not selected — misreading it cost one
+  false "dead checkbox" lead this pass (N-BH-3 is the honest residue).
+- After a v4 command, wait ≥ 1 s for the state patch before asserting chips (the mode-chip "no echo"
+  was a race, not a defect).
+
+## Part BH.5 — pass-36 verdict and ledger delta
+
+Every runtime plane re-walked holds on this build — approvals (incl. the always path), the
+two-group question card, the queue, hook trust, the slash palette, send/reply, the context sheet,
+model calls, checkpoints, files, mode switching, find, the Stop morph, automations with History,
+search, the Settings and Insights viewers, Usage, the Sketch upload pipeline, and an honest process
+death — with **0 FATALs, 0 ANRs** and five invisible reconnects. The new defects are not in the
+UI the user drives but in the plumbing under it, which is why thirty-five UI-led passes missed
+them: **F-36-B** (P2) lets a stale approval live forever — inbox card, lock-screen re-notification,
+and a mis-addressed live answer — and **F-36-C** (P2) makes the shipped presentation mode
+unreachable because one side writes "OFFICE" and the other reads "office". Both are small fixes
+with real-storage pins. **F-36-A** (P3) buries the turn navigator exactly when it is needed, and
+**N-BH-1** (P3) dead-ends the sketch-and-send flow. On the desktop side, **G77** is the most
+important row the census has produced since G60: the desktop gives every approval and question a
+default 5-minute auto-continue fuse with a visible countdown, and the phone — the device built
+for answering later — shows none of it. G78 adds the one desktop review flow (line comments into
+the chat) that maps naturally onto a phone, and the pass-35 pending trio closes out as
+by-architecture.
+
+The on-par verdict stands but sharpens: the phone matches or beats the desktop on every runtime
+plane it renders, but it has **two runtime blind spots** where the desktop sends state the phone
+ignores (G77's fuse, and the already-ledgered G60 plan plane) — G77 belongs in the next fix round,
+not the management backlog.
+
+Ledger delta: +3 app defects (F-36-B P2, F-36-C P2, F-36-A P3), +4 smalls (N-BH-1 P3, N-BH-2 / 3 / 4
+P4), +2 G rows (G77 P2, G78 P3), 3 pending pages adjudicated with no rows, 6 rows deepened, 3 mock
+debts, 1 re-adjudication (N-BF-2 is mock-shaped on the rig).
+
+**Fix-round opener order (supersedes BG.5; new items in bold):**
+F-34-D → F-34-E → **F-36-B** → F-34-B → F-33-A → F-34-A → **F-36-C** → F-33-D → F-27-B → **G77
+(seed the mock's autoResolution first)** → F-34-C → F-34-F → F-33-E + F-27-A → F-33-H → F-33-F →
+**F-36-A** → GAP-21-A (+ G65) → N-BG-2 → N-BG-1 → **N-BH-1** → G67 → G64 → **G78** → G71 → G70 →
+G72 → G73 → G74 → G75 → N-BC / N-BD / N-BE / N-BF / N-BG / **N-BH** smalls → G68 + G69 → G48 +
+G51 → G60–G63, G66, G76.
+Commits: this docs commit only. Nothing pushed.
