@@ -154,7 +154,7 @@
 <string name="settings_notif_detail">Notification detail: %1$s</string>
 <string name="settings_notif_detail_rich">Task titles</string>
 <string name="settings_notif_detail_min">Minimal</string>
-<string name="settings_notif_detail_sub">Minimal keeps the lock screen to “ZCode needs your approval” — never tools, paths, or titles.</string>
+<string name="settings_notif_detail_sub">Minimal shows only “ZCode needs your approval” — never tools, paths, or titles — and approvals are answered in the app. Task titles adds task names and the command or file an approval is for, with Approve/Deny in the notification (unlock required).</string>
 <string name="settings_live_connection">Live connection</string>
 <string name="settings_live_connection_sub">Keep the connection alive with the screen off (30-minute window). Uses more battery; the system may still pause it. Turn off when done.</string>
 <string name="settings_auto_reconnect">Auto-reconnect checks</string>

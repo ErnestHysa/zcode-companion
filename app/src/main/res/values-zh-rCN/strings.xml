@@ -140,7 +140,7 @@
 <string name="settings_notif_detail">通知详情：%1$s</string>
 <string name="settings_notif_detail_rich">任务标题</string>
 <string name="settings_notif_detail_min">最简</string>
-<string name="settings_notif_detail_sub">“最简”将锁屏内容保持为“ZCode 需要您的批准” — 绝不显示工具、路径或标题。</string>
+<string name="settings_notif_detail_sub">“最简”仅显示“ZCode 需要您的批准” — 绝不显示工具、路径或标题 — 审批需在应用内处理。“任务标题”会额外显示任务名称以及审批对应的命令或文件，并在通知中提供批准/拒绝（需解锁）。</string>
 <string name="settings_live_connection">实时连接</string>
 <string name="settings_live_connection_sub">息屏时保持连接（30 分钟窗口）。耗电更多；系统仍可能暂停它。用完请关闭。</string>
 <string name="settings_auto_reconnect">自动重连检查</string>
