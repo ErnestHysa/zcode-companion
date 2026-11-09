@@ -1,6 +1,13 @@
 package com.zcode.android.features.conversation.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isMetaPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.Role
 import androidx.compose.material3.Checkbox
@@ -1136,6 +1143,14 @@ fun ComposerBar(
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
+                            // N-BE-3 (vc52 Phase 10): the desktop's composerSend binding
+                            // ported to hardware keyboards — Ctrl/Cmd+Enter dispatches;
+                            // plain Enter keeps its newline. onPreviewKeyEvent sees the
+                            // key BEFORE the field's default Enter-newline handling; the
+                            // IME Send action (GAP-A9) is untouched.
+                            .onPreviewKeyEvent { event ->
+                                handleComposerSendKey(event) { dispatchSend() }
+                            }
                             .testTag("composer_field"),
                         maxLines = 5,
                     )
@@ -1609,6 +1624,21 @@ fun ComposerPasteChip(visible: Boolean, onPaste: () -> Unit, modifier: Modifier 
  * capitalization, ASCII (the slash catalog is ASCII). Everything else keeps the
  * platform defaults (bilingual prose typing must not regress).
  */
+/** N-BE-3 (vc52 Phase 10): Ctrl/Cmd+Enter dispatches (the desktop composerSend binding);
+ *  plain Enter is NOT consumed — the newline is kept. See the composer field's wiring. */
+internal fun handleComposerSendKey(
+    event: androidx.compose.ui.input.key.KeyEvent,
+    dispatchSend: () -> Unit,
+): Boolean {
+    if (event.type != androidx.compose.ui.input.key.KeyEventType.KeyDown) return false
+    if (event.key != androidx.compose.ui.input.key.Key.Enter &&
+        event.key != androidx.compose.ui.input.key.Key.NumPadEnter
+    ) return false
+    if (!event.isCtrlPressed && !event.isMetaPressed) return false
+    dispatchSend()
+    return true
+}
+
 fun composerKeyboardOptions(draft: String): androidx.compose.foundation.text.KeyboardOptions =
     if (draft.startsWith("/")) {
         androidx.compose.foundation.text.KeyboardOptions(
