@@ -277,9 +277,22 @@ data class AppPreferences(
     /** interfaceMode.ts: office | coding; the legacy "general"/"concise" map to office. */
     enum class InterfaceMode { OFFICE, CODING;
 
+        /** The desktop wire spelling (interfaceMode.ts) — what the phone STORES (F-36-C). */
+        val wire: String get() = name.lowercase()
+
         companion object {
-            fun fromWire(value: String?): InterfaceMode = when (value) {
+            /**
+             * F-36-C (vc52 Phase 7): CASE-INSENSITIVE + legacy-tolerant. The pre-fix
+             * writer stored the enum NAME ("OFFICE") and this mapper matched only the
+             * lowercase wire spellings, so "OFFICE" fell through to CODING forever —
+             * the shipped G36 feature was unreachable on device. Reading
+             * case-insensitively rescues every existing install's stored value; the
+             * writer now stores [wire] (the desktop spelling) so new values are
+             * byte-identical to the wire.
+             */
+            fun fromWire(value: String?): InterfaceMode = when (value?.lowercase()) {
                 "office", "general", "concise" -> OFFICE
+                "coding" -> CODING
                 else -> CODING
             }
         }

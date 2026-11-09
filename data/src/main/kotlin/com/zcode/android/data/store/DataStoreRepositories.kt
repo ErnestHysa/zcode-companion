@@ -179,7 +179,12 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
             .setOnboardingDone(onboardingDone)
             .apply { selected?.let { setSelectedEndpointId(it) } }
             .apply { behavior?.let { setInteractionBehavior(it) } }
-            .setInterfaceMode(mode.name)
+            // F-36-C (vc52 Phase 7): the DESKTOP wire spelling ("office"/"coding") —
+            // the writer used to store the enum NAME ("OFFICE"), which the wire
+            // mapper fell through to CODING on every read (the G36 feature was
+            // unreachable on device; the reader is case-insensitive for the
+            // already-poisoned installs).
+            .setInterfaceMode(mode.wire)
             .setAppLocale(locale.name)
             .setFontScaleMilli((scale * 1000).toInt())
             .setTaskAutoArchiveDays(archiveDays)
