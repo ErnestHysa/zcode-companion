@@ -697,7 +697,16 @@ private fun Header(
                 phase = phase,
                 // D2: the progress label is TURN-KIND-AWARE — control.activeWorks[].kind
                 // (compacting / verifying goal / running subagents…) refines "Running".
-                trailing = listOfNotNull(taskStateLabel(state.taskState), GoalState.turnKindLabel(state.sessionState?.control?.activeWorks?.firstOrNull()?.kind))
+                // N-BF-2 (vc52 Phase 7): the RUNNING state derives from control.phase
+                // when the live control plane disagrees with the task projection
+                // (Stop → the idle patch restores the task label — see the VM contract).
+                trailing = listOfNotNull(
+                    com.zcode.android.features.conversation.sessionBarStatusLabel(
+                        state.taskState,
+                        state.sessionState?.control?.phase,
+                    ),
+                    GoalState.turnKindLabel(state.sessionState?.control?.activeWorks?.firstOrNull()?.kind),
+                )
                     .joinToString(" · ").ifEmpty { null },
                 modifier = Modifier.fillMaxWidth().testTag("conversation_status_line"),
             )

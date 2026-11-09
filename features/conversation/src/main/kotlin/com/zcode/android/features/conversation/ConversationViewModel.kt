@@ -1284,3 +1284,26 @@ fun taskStateLabel(state: TaskStateMachine.State): String? = when (state) {
     TaskStateMachine.State.CANCELLED -> "Stopped"
     TaskStateMachine.State.UNKNOWN -> null
 }
+
+/**
+ * N-BF-2 (vc52 Phase 7) — CONTRACT, decided 2026-11-09 from the desktop: the
+ * session bar's running label derives from `control.phase` when the LIVE control
+ * plane disagrees with the TASK projection. Grounding: the composer already
+ * morphs on `control.canStop`/`stopState` (WriteComponents) and Stop → the idle
+ * control patch restores Send — the header now follows the SAME plane, so the
+ * pass-36 face ("Connected · Completed" above a running Stop morph) is gone.
+ * When `control.phase` is null/idle/anything-but-running, the task label stands
+ * unchanged (the completed-task header never regresses). The task projection is
+ * a static index echo; control is the session's live truth.
+ */
+fun sessionBarStatusLabel(taskState: TaskStateMachine.State, controlPhase: String?): String? {
+    if (controlPhase == "running") {
+        return when (taskState) {
+            TaskStateMachine.State.RUNNING, TaskStateMachine.State.LOADING,
+            TaskStateMachine.State.WAITING_FOR_PERMISSION, TaskStateMachine.State.WAITING_FOR_USER,
+            -> taskStateLabel(taskState) // already running/waiting: the finer label stands
+            else -> "Running" // COMPLETED/FAILED/CANCELLED/IDLE/UNKNOWN + a live running turn → Running
+        }
+    }
+    return taskStateLabel(taskState)
+}
