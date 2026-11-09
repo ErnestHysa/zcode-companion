@@ -787,8 +787,15 @@ class ConnectionHub(
 
     // ------------------------------------------------------------------ conversation plane
 
-    /** Per-session open dedupe: a session is attached EXACTLY once (see below). */
-    private val openedSessions = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+    /**
+     * Per-session open dedupe with a REFERENCE COUNT (F-34-A, vc52 Phase 8): a session
+     * is attached EXACTLY once, and only the LAST holder's close unsubscribes. The old
+     * set-based dedupe meant a notification tap onto the ALREADY-OPEN conversation (a
+     * second nav entry for the same task) stacked a duplicate; popping the duplicate ran
+     * its VM's teardown → closeConversation — and the entry still on screen lost its
+     * subscription (frames dropped, "no subscription record", a silently dead screen).
+     */
+    private val openedSessions = java.util.concurrent.ConcurrentHashMap<String, Int>()
     private val openMutex = kotlinx.coroutines.sync.Mutex()
 
     /**
@@ -806,7 +813,8 @@ class ConnectionHub(
         val endpointKnown = activeEndpointIdRaw() ?: vault.loadMetadata()?.endpointId ?: return null
         return openMutex.withLock {
             val coordinator = ensureCoordinator()
-            if (openedSessions.add(task.taskId)) {
+            val firstOpen = openedSessions.merge(task.taskId, 1) { old, one -> old + one } == 1
+            if (firstOpen) {
                 // FIELD (2026-10-06, vc34 device — TASK DUPLICATION round 2): the
                 // subscribe carries `workspacePath` and the desktop COLD-RESUMES the
                 // session into the given workspace when the pair doesn't match its own
@@ -852,13 +860,21 @@ class ConnectionHub(
 
     /**
      * GAP-A3/G14 (vc51): conversation teardown on task switch/exit — unsubscribe the
-     * session's topic, detach its manager, and clear the open-dedupe so a re-entry
-     * re-subscribes fresh. The unsubscribe rides the HUB scope (the caller's VM
-     * scope is cancelled by the time onCleared fires).
+     * session's topic, detach its manager, and release the open-count so a re-entry
+     * re-subscribes fresh. F-34-A: only the LAST holder's close detaches — an earlier
+     * holder's teardown (a stacked duplicate entry popping) must leave the subscription
+     * of the entry still on screen untouched. The unsubscribe rides the HUB scope (the
+     * caller's VM scope is cancelled by the time onCleared fires).
      */
     fun closeConversation(taskId: String) {
-        val had = openedSessions.remove(taskId)
-        if (!had) return
+        val had = openedSessions[taskId]
+        if (had == null) return
+        if (had > 1) {
+            openedSessions[taskId] = had - 1
+            log.info("hub.conversationClose", "session=$taskId (holder released, ${had - 1} remain)")
+            return
+        }
+        openedSessions.remove(taskId)
         managersVersion.value++
         scope.launch {
             val coordinator = coordinator

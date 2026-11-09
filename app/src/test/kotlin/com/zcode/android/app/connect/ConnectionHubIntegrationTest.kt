@@ -297,6 +297,47 @@ class ConnectionHubIntegrationTest {
     }
 
     /**
+     * F-34-A (vc52 Phase 8, P2): a notification tap onto the OPEN conversation stacked a
+     * second entry for the same task; popping it ran the duplicate VM's teardown →
+     * `closeConversation`, and `openedSessions` was a SET keyed by task id — the entry
+     * still on screen lost its subscription (`unsubscribeConversationV4 ok`) and every
+     * later update frame was dropped (`gateway.drop … no subscription record`): sends
+     * succeeded on the wire, the message and the reply never rendered. The hub must
+     * REFERENCE-COUNT opens: only the LAST holder's close unsubscribes.
+     */
+    @Test
+    fun `F-34-A - two opens and one close keep the session subscribed - only the last close detaches`() = runBlocking {
+        hub.start()
+        withTimeout(30_000) { hub.phase.first { it == ConnectionPhase.CONNECTED } }
+        val task = withTimeout(15_000) { tasks.snapshot.first { it.isNotEmpty() } }.first()
+        val coordinator = hub.openConversation(task) as RecoveryCoordinator // the visible entry
+        hub.openConversation(task) // the duplicate entry the notification tap stacked
+        withTimeout(20_000) { conversations.rowsFor(task.taskId).first { it.isNotEmpty() } }
+        assertTrue(coordinator.managedSessions().contains(task.taskId))
+
+        hub.closeConversation(task.taskId) // the duplicate pops (its VM's onTeardown)
+        delay(1_500) // the detach runs on the hub scope
+        assertTrue(
+            coordinator.managedSessions().contains(task.taskId),
+            "the surviving conversation entry lost its subscription when the duplicate popped " +
+                "(the pass-34 dead screen: frames dropped with 'no subscription record')",
+        )
+
+        hub.closeConversation(task.taskId) // the last entry leaves the task
+        withTimeout(10_000) {
+            while (coordinator.managedSessions().contains(task.taskId)) delay(50)
+        }
+        // An unbalanced extra close (a VM whose open never ran) is a harmless no-op.
+        hub.closeConversation(task.taskId)
+        // Re-entry after the last close re-attaches fresh (GAP-A3/G14 contract intact).
+        val again = hub.openConversation(task) as RecoveryCoordinator
+        withTimeout(10_000) {
+            while (!again.managedSessions().contains(task.taskId)) delay(50)
+        }
+        Unit
+    }
+
+    /**
      * FIELD-KILLER #4 regression (2026-09-30, vc9 real device — the LAST blocker):
      * production snapshot `rows` is a TAIL-WINDOW OBJECT {window, totalCount, firstRowId}
      * (rowsWindowSchema, snapshot.ts) — the gateway read a bare array and every REAL

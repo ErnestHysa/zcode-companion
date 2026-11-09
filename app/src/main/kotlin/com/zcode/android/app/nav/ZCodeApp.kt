@@ -18,6 +18,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -71,6 +72,32 @@ object Routes {
     const val TERMINAL = "terminal"
 
     fun conversation(taskId: String) = "conversation/$taskId"
+}
+
+/**
+ * F-34-A (vc52 Phase 8): the ONE conversation navigation seam. `launchSingleTop` is
+ * WRONG twice over: Navigation matches the destination PATTERN (`conversation/{taskId}`),
+ * not the arguments, so (a) a tap for task B while A is on top would REUSE (replace!)
+ * A's entry — A's screen and its retained VM vanish; (b) the duplicate a notification
+ * tap stacked for the SAME task was exactly what F-34-A filed. The contract is the TASK:
+ * already on top → keep it (the retained VM survives, no duplicate); same task deeper
+ * in the stack → pop back to that entry; a different task → push a new entry.
+ */
+fun NavHostController.openConversation(taskId: String) {
+    val top = currentBackStackEntry
+    if (top != null && top.destination.route == Routes.CONVERSATION && top.arguments?.getString("taskId") == taskId) return
+    val existing = currentBackStack.value.lastOrNull {
+        it.destination.route == Routes.CONVERSATION && it.arguments?.getString("taskId") == taskId
+    }
+    if (existing != null) {
+        // No public pop-to-ENTRY API (popBackStack(String, …) takes a ROUTE, and the
+        // destination-id overload stops at the TOPMOST conversation — maybe another task's).
+        while (currentBackStackEntry !== existing) {
+            if (!popBackStack()) break
+        }
+        return
+    }
+    navigate(Routes.conversation(taskId))
 }
 
 @Composable
@@ -201,7 +228,7 @@ fun ZCodeApp(
         when (com.zcode.android.domain.recovery.DeepLinkRoute.resolve(linkToResolve, environment)) {
             com.zcode.android.domain.recovery.DeepLinkRoute.Outcome.OPEN_TASK,
             com.zcode.android.domain.recovery.DeepLinkRoute.Outcome.OPEN_TASK_INTERACTION_STALE,
-            -> nav.navigate(Routes.conversation(link.taskId))
+            -> nav.openConversation(link.taskId)
             com.zcode.android.domain.recovery.DeepLinkRoute.Outcome.TASK_GONE -> {
                 navigateToTasks()
                 notifier.show(appContext.getString(R.string.deeplink_task_gone), long = true)
@@ -272,7 +299,7 @@ fun ZCodeApp(
                 vm = tasksVm,
                 onTaskClick = { task ->
                     container.log.info("tasks.open", "task=${task.taskId.take(24)} title=${task.title.take(40)}")
-                    nav.navigate(Routes.conversation(task.taskId))
+                    nav.openConversation(task.taskId)
                 },
                 onOpenSettings = { container.log.info("nav.settings", "open"); nav.navigate(Routes.SETTINGS) },
                 onOpenConnection = { container.log.info("nav.connection", "open"); nav.navigate(Routes.CONNECTION) },
@@ -290,7 +317,7 @@ fun ZCodeApp(
                 requestCreate = createRequested,
                 onCreateRequestConsumed = { createRequested = false },
                 // Phase 4B (A3.2): open-session-from-run lands on the run's session.
-                onOpenTaskId = { id -> container.log.info("tasks.openRun", "task=${id.take(24)}"); nav.navigate(Routes.conversation(id)) },
+                onOpenTaskId = { id -> container.log.info("tasks.openRun", "task=${id.take(24)}"); nav.openConversation(id) },
                 // Phase 4C (C7): scratch create — resolve `{name}` → `{path}` (createScratchWorkspace),
                 // then the SAME createTaskAndWait against the returned path.
                 onCreateScratchTask = { name, text, provider, model ->
@@ -319,7 +346,7 @@ fun ZCodeApp(
                 // G11: the quota banner's chip lands on the Usage screen's quota section.
                 onOpenQuotaScreen = { nav.navigate(Routes.USAGE) },
                 // Phase 4A: an accepted fork opens the CHILD session in place (desktop onSessionCreated parity).
-                onOpenTask = { child -> container.log.info("nav.fork", "open ${child.take(12)}"); nav.navigate(Routes.conversation(child)) },
+                onOpenTask = { child -> container.log.info("nav.fork", "open ${child.take(12)}"); nav.openConversation(child) },
             )
         }
 
@@ -385,7 +412,7 @@ fun ZCodeApp(
                 interactions = open,
                 phase = phase,
                 onBack = { nav.popBackStack() },
-                onOpenTask = { taskId -> nav.navigate(Routes.conversation(taskId)) },
+                onOpenTask = { taskId -> nav.openConversation(taskId) },
                 onAnswer = { interactionId, optionId, freeText, onOutcome ->
                     container.log.info("approvals.answer", "interaction=${interactionId.take(12)} option=$optionId")
                     scope.launch {
