@@ -93,7 +93,17 @@ class ConversationRepositoryImpl(
                 dao.putMeta(ConversationSessionMetaEntity(op.sessionId.raw, op.logEpoch, clock()))
             }
             dao.insertRows(op.rows.map { it.toEntity(op) })
-            enforceBound(op.sessionId.raw)
+            // F-37-D (vc52 Phase 10): NO enforceBound here — the page just fetched is
+            // the OLDEST thing in the store, so "keep the newest cap" deleted it in the
+            // same transaction (insert 50 into a full 320-row store → evict the 50
+            // oldest = exactly the fetched page; load-earlier was a self-evicting
+            // no-op). The bound contract for a user-driven backward page is
+            // [page ∪ newest cap]: the fetched range survives contiguously (two pages
+            // of paging stay gap-free), the §17.3 cap keeps governing the LIVE tail —
+            // every other op path (snapshot/delta) still evicts to cap, so a paging
+            // session is re-bounded by the next snapshot and stream churn keeps the
+            // tail honest. The store between pages is therefore cap + fetched pages,
+            // contiguous by construction (pages land strictly-older adjacent).
         }
         return StoreApplyResult.Applied
     }
