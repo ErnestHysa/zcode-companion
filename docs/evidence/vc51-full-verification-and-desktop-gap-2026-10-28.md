@@ -10777,7 +10777,7 @@ These are **new defects in the same plane**, not failed fixes. Treat them as suc
 | Phase | Theme | Rows | P1 | P2 | P3 | P4/rig | Session risk | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 6 | Security & untrusted execution | 6 | 2 | 2 | 2 | 0 | High | ☑ **Done 2026-11-08** — all 6 rows + RIG-P4 (pulled forward); commits `da9a32ab`→`397b5de7`; exit gate PASSED; receipt "Phase 6 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-08" appended at file end |
-| 7 | Interaction & settings truth | 6 | 0 | 3 | 2 | 1 | High | ☐ Open |
+| 7 | Interaction & settings truth | 6 | 0 | 3 | 2 | 1 | High | ☑ **Done 2026-11-09** — all 6 rows + RIG-P1 (pulled forward); commits `ff914e46`→`9a1f23dd`; exit gate PASSED; receipt "Phase 7 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-09" appended at file end |
 | 8 | Lifecycle, reconnect & availability | 7 | 0 | 5 | 2 | 0 | High | ☐ Open |
 | 9 | Timeline & composer geometry | 10 | 0 | 0 | 6 | 4 | Medium | ☐ Open |
 | 10 | Conversation data, rendering & feedback | 10 | 0 | 1 | 2 | 7 | Medium | ☐ Open |
@@ -10901,7 +10901,7 @@ and what it persisted. Order: **F-36-B → F-33-E → F-27-A → G77 → F-36-C 
 
 ### Sub-phase 7A — the interaction lifecycle (open / terminal / re-pended)
 
-- [ ] **F-36-B (P2) — terminal-but-not-RESOLVED interactions never close.**
+- [x] **F-36-B (P2) — terminal-but-not-RESOLVED interactions never close.**
   Three sites compound: `InteractionCoordinator.updateLifecycle` (`:804`) mirrors
   `known.resolvedAtMs` only for RESOLVED (`TERMINAL_MACHINE_STATES` at `:795` includes
   STALE/EXPIRED/FAILED/CANCELLED but they persist NULL); `InteractionDao.observeOpen`
@@ -10919,7 +10919,7 @@ and what it persisted. Order: **F-36-B → F-33-E → F-27-A → G77 → F-36-C 
   cold-start reconcile closes absent ids; repost skips terminal ids) + the D3 stamp-preservation
   pin; live: a seeded STALE row is invisible to badge/inbox/widget/repost and unanswerable.
 
-- [ ] **F-33-E (P3) — the pending count disagrees across four surfaces.**
+- [x] **F-33-E (P3) — the pending count disagrees across four surfaces.**
   With Room holding 2 DISPLAYED + 2 STALE + 5 RESOLVED at once: the bell badge and inbox listed 4
   (`observeOpen` includes STALE), the widget said "Nothing needs you" (counts UNSEEN broker
   records only, `PendingApprovalsWidget.kt:160`), and the shade re-posted a persisted STALE record
@@ -10930,7 +10930,7 @@ and what it persisted. Order: **F-36-B → F-33-E → F-27-A → G77 → F-36-C 
   shade posts only the two live ones; a STALE row never re-posts after a cold start; the
   four-surface pin shares one predicate constant (no copy-paste logic).
 
-- [ ] **F-27-A (P3) — a re-pended interaction is unanswerable for the process lifetime.**
+- [x] **F-27-A (P3) — a re-pended interaction is unanswerable for the process lifetime.**
   After a relay restart the mock re-seeds the SAME static id as pending; the phone already
   answered it, so the card renders fully actionable but every Send/Skip is a silent no-op
   (7+ honest taps). Mechanism: the coordinator's live outbox entry blocks the re-submit
@@ -10944,7 +10944,7 @@ and what it persisted. Order: **F-36-B → F-33-E → F-27-A → G77 → F-36-C 
 
 ### Sub-phase 7B — the fuse and the settings truth
 
-- [ ] **G77 (P2) — the desktop's 5-minute auto-resolution fuse is invisible on the phone.**
+- [x] **G77 (P2) — the desktop's 5-minute auto-resolution fuse is invisible on the phone.**
   The desktop gives every approval/question a default auto-continue deadline with a visible
   countdown; the phone decodes `pendingInteractions` but shows none of it, so the device built for
   "answer later" silently loses the window. **Fix:** decode the `autoResolution` payload
@@ -10955,7 +10955,7 @@ and what it persisted. Order: **F-36-B → F-33-E → F-27-A → G77 → F-36-C 
   the notification text carries the deadline; a wire-decode pin + a compose pin; the desktop's
   contract is cited in the fix message.
 
-- [ ] **F-36-C (P2) — the presentation mode can never be set to Office.**
+- [x] **F-36-C (P2) — the presentation mode can never be set to Office.**
   The writer stores the enum NAME (`.setInterfaceMode(mode.name)`,
   `DataStoreRepositories.kt:182`) while the reader runs the desktop wire mapper
   (`:140-141 → CoreModels.kt:271`, matches only `office|general|concise`), so `"OFFICE"` falls
@@ -10966,7 +10966,7 @@ and what it persisted. Order: **F-36-B → F-33-E → F-27-A → G77 → F-36-C 
   garbage (`→CODING`) all round-trip; the enum-audit pin enumerates the fields so the next proto
   seam is caught.
 
-- [ ] **N-BF-2 (P4) — the header and the composer disagree about running state.**
+- [x] **N-BF-2 (P4) — the header and the composer disagree about running state.**
   Re-adjudicated in pass 36 as mock-shaped on the rig: a scripted transition sets
   `control {phase: running, canStop: true}` + `inputRouting enqueue` without touching the task's
   static "Completed" status, and the app renders each plane faithfully. The open question is a
@@ -10976,10 +10976,14 @@ and what it persisted. Order: **F-36-B → F-33-E → F-27-A → G77 → F-36-C 
   **Accept:** a dated contract note + a rig leg where the header reads Running while
   `control.phase=running`; no regression in the completed-task header.
 
-**Phase 7 exit gate: ☐** fresh `zcode-a16`; real-Room seeding via `run-as` (STALE + displayed +
-resolved rows), relay restart with a re-pended question, `autoResolution` fixtures, the
-presentation-mode dialog twice; forensics pulls `zcode.db` + `preferences.pb`; 0 FATALs/0 ANRs;
-suite green.
+**Phase 7 exit gate: [x]** PASSED 2026-11-09 (see "Phase 7 (vc52 remediation) — fix commits +
+exit-gate rig leg" appended at the file end) fresh `zcode-a16` cold boot; legs: run-as real-Room
+seeding (STALE ghost invisible to badge/inbox/repost and unanswerable), relay restart with a
+re-pended same-id approval/question (the answer FIRED — wire 3, ok 224ms), autoResolution
+fixtures (countdown ticked 562→550→547s; expired face with zero actionable nodes; shade
+chronometerCountDown=true live), the presentation-mode dialog twice (preferences.pb field 15 =
+"office"), the N-BF-2 header leg (Connected · Running while control.phase=running); forensics
+pulled zcode.db + preferences.pb; 0 app FATALs/0 ANRs; suite green (1824/0/0/0, zero new names).
 
 ---
 
@@ -11812,3 +11816,90 @@ RIG-P4 pulled forward, every pin RED at its pre-fix commit and GREEN after, the 
 passed on a fresh Android 16 emulator leg with the committed DIRECT-mode mock, and the
 full-suite zero-new-names gate reconciled.** Nothing pushed; publishing waits on Ernest's
 explicit word.
+
+## Phase 7 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-09 (APPENDED; not part of the audit, the vc51 roadmap, Part 0, or the vc52 roadmap body)
+
+Scope: vc52 Phase 7 — Interaction & settings truth — ALL six rows (F-36-B, F-33-E, F-27-A, G77,
+F-36-C, N-BF-2) plus the phase's rig prerequisite **RIG-P1** (pulled forward per the roadmap's
+"rig pulls forward" rule; G77's exit gate could not run without it). Branch `fix/vc52` (continuing
+Phase 6's branch); one finding ≥ one commit; every pin RED at its pre-fix commit (G77's new-API
+pins RED as 37 compile errors against the stashed tree, the vc51 Phase-2 precedent); the mock
+change in its own `rig(…)` commit; nothing pushed.
+
+### Fix commits (one finding ≥ one commit, `fix(<ID>): <mechanism>`)
+
+| Row | Commit(s) | Mechanism closed | Pins (RED evidence) |
+| --- | --- | --- | --- |
+| F-36-B (P2) | `ff914e46` | `observeOpen` selects `lifecycle IN OPEN_ATTENTION` (the ONE domain predicate, the repo passes it verbatim into the SQL); EVERY `TERMINAL_MACHINE_STATES` write stamps the record (STALE/EXPIRED/FAILED/CANCELLED used to persist NULL); the sweep TTL-drops every terminal lifecycle; cold-start reconcile closes stored open rows the authoritative list dropped even with no machine (other sessions' rows survive; row-anchored records stay W4-protected); `submitFromStore` answers a stored terminal row as the TYPED AlreadyResolved — never re-hydrated onto the wire; D3: `resolveRecord`'s first timestamp wins; `NotificationBroker.repostGate` — a record whose interaction the open projection reports CLOSED never re-posts (null = unknown → never skips, §15-S13 intact) | real-Room ×7 in `InteractionTerminalLifecycleTest` — STALE-without-stamp excluded from observeOpen (RED included it); the coordinator-staled row stamps + TTL-sweeps (RED stamp null); cold-start closes absent ids, other sessions survive (RED left ghosts); a listed id never closes; D3 stamp preservation (RED recorded 2 stamps); the pass-33 fixture badge/inbox = 2 (RED 4); a stored terminal row is AlreadyResolved (RED reached the wire — AssertionError in the sender); broker pin: the re-post skips a known-closed id + re-posts an unknown one |
+| F-33-E (P3) | `76b3e9ae` | `NotificationRecord.Kind.isAttention` — the ONE attention-kind predicate for every broker-plane surface (the broker's copy-pasted checks gone); `WidgetState.from` counts OPEN attention records (seen irrelevant — the viewed-in-app case), `launchIntent` deep-links seen-but-open; `StoreDiffs.brokerAttentionInteractionIds` + the wiring seeds the diff baseline from the broker's LOADED attention keys on the FIRST observeOpen emission — the persisted ghost falls out of the first closed-diff and is dismissed instead of re-posting forever | WidgetStateTest rewritten to the open-set contract + the pass-33 fixture (widget = 2, RED 1); WidgetLaunchIntentTest seen-but-open deep-links (RED null); StoreDiffsTest seeded-baseline dismisses the ghost, spares the live one; the Room leg rode F-36-B's fixture pin |
+| F-27-A (P3) | `72110f75` | `reconcileFromSessionState`: an authoritative RE-LIST of a terminal machine (permission AND user-input planes) resets to a fresh DISPLAYED card and clears the INV-4 guard — the desktop re-asserting "pending" is positive evidence it wants an answer, so the next submit mints a FRESH commandId; a LIVE pending entry is never duplicated (only an authoritative re-assertion resets); `answerInteraction` surfaces the typed DUPLICATE_NO_OP ("Answer already in flight — waiting for the desktop.") — never a silent no-op | coordinator ×2 in `InteractionCoordinatorPhase7Test` — the re-list reset fires one fresh wire with a fresh commandId (RED machine stayed RESOLVED, both planes); ScriptedSender records commandIds |
+| RIG-P1 (P4, pulled forward) | `26736a43` | The byte-verified desktop `autoResolution` discriminatedUnion served on every pending entry: `MOCK_AUTO_RESOLUTION=grace\|countdown\|snoozed\|expired` + `MOCK_AUTO_RESOLUTION_MS` (default 300000 = the policy default); the live countdown arm DROPS the entry at fire time (the auto-continue); the expired arm serves a past deadline ON PURPOSE (the face, never a silent drop); `snoozeInteractionAutoResolution` accepted (flips to snoozed + whole-list patch) | `MockZCodeAutoResolutionSelfTest` ×7 (unset = no key; the three shapes; fired→drops; expired→does NOT drop; the userInput plane carries it); `:tools:mockzcode:jar` + `:tools:mockzcode:test` 82/0 |
+| G77 (P2) | `c5e9051d` (wire→state) + `68100511` (UI) | Desktop contract byte-verified from the shipped asar (b$ schema @310656848; policy default TRUE; copy `chat.askQuestion.autoContinued` = "No answer; continued automatically"). State: `AutoResolution` tolerant decode (INV-8; unknown states retained); the deadline flows request→Room **v4** (`interactions.autoResolutionDeadlineMs`, additive MIGRATION_3_4, ALL_MIGRATIONS extended)→record→`NotificationBroker.Spec.deadlineAtMs`→the wiring (`openDeadlines` + `deadlineProvider` for the re-post)→the sink's NATIVE countdown chronometer (`setUsesChronometer` + `setChronometerCountDown` + `setWhen=deadline`; the public lock-screen version deliberately omits it); `Event.AutoResolveExpired` (REQUESTED/DISPLAYED → EXPIRED) respects an already-expired fuse: terminal-stamped, inbox-cleared, answer-throws-before-the-wire. UI: `AutoResolutionFuseFace` on both cards — the live fuse ticks "Auto-continues in {n}s" (the desktop's countdownSeconds contract), the expired fuse renders the auto-continue marker VERBATIM and strips EVERY action, snoozed says so, hiddenGrace shows nothing; "Keep waiting" is state-aware (offered only while live/unset); strings en + zh-CN; `countdownSecondsRemaining` pure helper | decode ×7 (`AutoResolutionDecodeTest` — three states, UNKNOWN retention, absent key, expiredAt math, the hook tolerance); real-Room ×3 (deadline round-trip; expired→EXPIRED+stamp+cleared inbox (RED wire-throw); live fuse stays answerable); migration ×2 (v3→v4 drill + the full v1→v4 chain; version assert 4); sink ×2 (down-counting extras + when=deadline — RED extras missing pre-fix; no fuse → no chronometer); broker ×1 (fresh + re-post carry the deadline); compose ×6 (`AutoResolutionCardUiTest` — live countdown + Keep waiting; expired face + zero action nodes; hiddenGrace nothing-yet-actionable; snoozed face; the question card; helper math) |
+| F-36-C (P2) | `5a3fed82` | `InterfaceMode.wire` (= name.lowercase(), the desktop spelling) written by the DataStore store (was the enum NAME "OFFICE"); `fromWire` reads CASE-INSENSITIVELY (+ legacy general/concise) — every existing install's stored "OFFICE" is rescued on first read; rule 13's real-serializer round-trip + the ENUM-AUDIT pin enumerating every `optional string` field of AppPreferencesProto from the SCHEMA SOURCE (protobuf-lite has no descriptor reflection) — the next unmapped enum seam fails the audit, not a device | `AppPreferencesInterfaceModeRoundTripTest` ×7 — OFFICE→OFFICE (RED CODING, the recorded defect); the on-device poison "OFFICE" reads back OFFICE (RED CODING); legacy general→OFFICE; garbage→CODING; CODING round-trip + absent default; the sibling enum fields both directions; the audit coverage matrix |
+| N-BF-2 (P4) | `9a1f23dd` | CONTRACT decided 2026-11-09 (dated in the code): the session bar's running label derives from `control.phase` when the LIVE control plane disagrees with the task projection (the composer already morphs on control.canStop/stopState — the header now follows the same plane); null/idle/anything-but-running leaves the task label untouched — the completed-task header never regresses; finer labels (Running/Waiting) stand | `SessionBarStatusLabelTest` ×4 (the pass-36 face COMPLETED+running→"Running"; FAILED/CANCELLED/IDLE/UNKNOWN+running→"Running"; finer labels preserved; the null/idle no-regression matrix) |
+
+### Suite reconciliation
+
+Pre-phase baseline (Phase 6 exit): **1773 tests / 0 failures / 0 skipped, 17 modules.** The full
+17-module gate at the phase HEAD `9a1f23dd` (11 `testDebugUnitTest` + six JVM `test`): **1824
+tests / 0 failures / 0 skipped, every module emitting XML, 0 gradle task failures** — +51 new
+names vs the baseline, reconciled EXACTLY as this phase's own pins (10 F-36-B room + 2 broker +
+3 widget/StoreDiffs + 2 coordinator + 7 mock + 7 decode + 3 G77 room + 1 migration + 2 sink +
+1 broker deadline + 6 compose + 7 F-36-C + 4 N-BF-2 = 51); 0 names lost; APK
+`8fd447eb99fb01a2…` (32,299,189 B, versionCode 52 / 1.3.1).
+
+### Exit-gate rig leg — PASSED 2026-11-09 (fresh zcode-a16 cold boot, Android 16 / API 36)
+
+Rig: `zcode-a16` cold boot (`-no-snapshot-load -gpu swiftshader_indirect -no-audio`), MockZCode
+relay armed with the standing all-flags set **PLUS** `MOCK_AUTO_RESOLUTION` (the RIG-P1 arm;
+`MOCK_FIXTURES_DIR` absolute — the JavaExec cwd is the module dir, the runbook launcher recipe
+gained the export). Fresh clean install (`adb uninstall` first) of the phase debug APK. Relay
+generations 1–6 drove the legs (each restart = a new gen for the re-pend/expire shapes).
+
+| Gate leg | Receipt |
+| --- | --- |
+| **Pairing (fresh install)** | Manual entry link typed into the MASKED field (F-37-C's masking receipted again live — 178 bullets), chunked typer with per-chunk length checks (the `&`-escaping + stdin-redirect array recipe), stale-link "Continue anyway" → Security setup → Connected |
+| **F-36-B + F-33-E run-as seeding** | Room seeded via run-as pull/modify/push (2 STALE — one two-days-old NULL-stamp, the recorded ghost shape — + 1 DISPLAYED + 5 RESOLVED beside the 3 live rows): the inbox listed EXACTLY the live rows (zero stale-seed entries; pre-fix the ghost rendered with Allow once/Deny), the badge agreed, the background-entry re-post carried ONLY the live ids, and **`stale-seed` appears ZERO times in the entire session logcat** (pre-fix: re-posted every background entry and answerable onto the wire) |
+| **G77 countdown (gen 3)** | The pinned cards rendered "Auto-continues in 585s" → ticked **562s → 550s → 547s** across dumps; "Keep waiting" present while live; the question card ticked independently (444s→427s→409s); the live countdown arm FIRED at the fuse end and dropped the entry (the gen-1 window auto-continued before the walk reached it — the mock's designed auto-continue, observed honestly) |
+| **F-27-A re-pend (gen 4)** | The relay restart re-pended the SAME ids the phone had answered in-process (wires 1+2 at 10:12/10:14); the cards RESET to live (the coordinator's authoritative re-list reset) and answering again **FIRED wire 3** — `sendConversationCommandV4 ok in 224ms` on relay-10 (pre-fix: a silent no-op for the process lifetime); 3 total wire calls, each a fresh mint |
+| **G77 expired face (gen 5)** | `MOCK_AUTO_RESOLUTION=expired`: both cards rendered **"No answer; continued automatically"** (the desktop copy verbatim) with **ZERO actionable nodes** (0 Allow once, 0 Keep waiting, 0 countdown lines) and the coordinator logged `interaction.autoExpired` for BOTH ids (terminal-stamped, inbox-cleared). Honest note: the expired arm PERSISTS the entry (the real desktop removes it at auto-continue), so each later snapshot's F-27-A re-list reset re-opens the store row while the face stays expired — the desktop-faithful countdown arm drops the entry and the row stays closed (the gen-1/3 receipts); the mock's expired arm exists to render the face |
+| **G77 shade chronometer (gen 6)** | After `pm grant POST_NOTIFICATIONS` (the fresh install was system-blocked — the F-33-G degrade posture held until granted), the background-entry re-post of the fuse-carrying interactions shows **`android.chronometerCountDown=Boolean (true)`** on TWO shade notifications with `when=` = the decoded deadlines (the countdown arm's fresh fuse) |
+| **N-BF-2 header leg** | The header read **"Connected · Completed"** while idle (no-regression half), flipped to **"Connected · Running"** when `control.phase=running` (the resolve handler's patch) while the task projection still said Completed — the exact pass-36 face, now derived from the live plane; with `canStop=false` the composer honestly stayed Send (the desktop's own canStop drives the morph) |
+| **F-36-C dialog twice** | Settings → Appearance → Presentation mode → Office (open #1) → reopen (open #2) → Office again; forensics: the pulled `preferences.pb` field 15 = **`7a 06 6f 66 66 69 63 65` = "office"** (the wire spelling; the "OFFICE" poison byte-string is GONE from the file); the conversation renders OFFICE (the approval card summary-only — the `echo synthetic` detail line the coding view showed is hidden) |
+| **Forensics** | `zcode.db` + `preferences.pb` pulled via run-as. The interactions table: `mock-approval-push-1` = **EXPIRED with a terminal stamp + the persisted `autoResolutionDeadlineMs` column** (the G77 expiry + F-36-B stamping, on-device); the seeded rows byte-intact; `q-rig-1` REQUESTED with the deadline column (the expired arm's re-list reset — see the honest note above) |
+| **Logcat audit** | **0 app FATALs / 0 ANRs / 0 NetworkOnMainThreadException** across the whole session (fresh install → pairing → 6 relay gens → all legs). One system crash recorded: the emulator's own `droid.bluetooth` SIGABRT at 08:40 during the idle window (rig artifact, not the app). The boot-time SystemUI ANR (one, dismissed) is the recorded swiftshader cold-boot artifact |
+
+### Rig learnings (reusable, also appended to AGENTS.md)
+
+- The mock relay needs `MOCK_FIXTURES_DIR` ABSOLUTE when launched outside the repo root (the
+  JavaExec cwd is `tools/mockzcode`, not the invocation dir); the Phase-6 relay.sh recipe gained
+  the export.
+- Robolectric/compose vs JUnit assert orders: kotlin.test takes (expected, actual, message?)
+  / (condition, message?) — org.junit.Assert takes (message, expected, actual) / (message,
+  condition). Files mix both; check the imports before writing pins (this batch burned ~4
+  compile cycles on it).
+- Emulator text entry: `input keycombination 113 29` (Ctrl+A) + keyevent 67 clears a field in
+  ONE shot (the DEL-burst purge dropped keys); chunked typing must loop over an ARRAY with
+  `< /dev/null` on each `adb shell input text` (a `while read` loop feeds its STDIN to adb and
+  every chunk after the first is lost); `\&` escaping resolves correctly and the field ends at
+  the RAW link length (don't count the escape backslashes as expected length).
+- Protobuf-LITE generated classes have no descriptor reflection — the schema-source audit pin
+  (regex over `src/main/proto/*.proto`) is the working enumeration pattern for rule 13.
+- POST_NOTIFICATIONS is never granted on a fresh API-36 emulator install: every notification leg
+  needs an explicit `pm grant` first (the F-33-G degrade posture holds until then — records stay
+  truthful, the tray stays empty).
+
+### Verification stamp
+
+This phase was implemented (test-first; RED receipts in /tmp/p7/*.log), rig-verified on the
+exit-gate leg above, and marked complete on **2026-11-09 at 10:37:23** (local time,
+yyyy-mm-dd hh-mm-ss) by **GLM-5.3-Flash** (the session model) running inside **ZCode** (the
+ZCode CLI agent harness), working under Ernest's standing deliverable-completion rule on
+`fix/vc52`; commits `ff914e46`, `76b3e9ae`, `72110f75`, `26736a43`, `c5e9051d`, `68100511`,
+`5a3fed82`, `9a1f23dd` (this phase), all local, nothing pushed.
+
+**Phase 7 is COMPLETE: all 6 rows closed (F-36-B, F-33-E, F-27-A, G77, F-36-C, N-BF-2) + RIG-P1
+pulled forward, every pin RED at its pre-fix commit and GREEN after, the exit gate passed on a
+fresh Android 16 emulator leg across six relay generations, and the full-suite zero-new-names
+gate reconciled (+51 = exactly this phase's pins).** Nothing pushed; publishing waits on
+Ernest's explicit word.
