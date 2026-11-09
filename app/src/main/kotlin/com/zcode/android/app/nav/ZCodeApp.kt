@@ -70,6 +70,8 @@ object Routes {
     const val FILES = "files"
     const val GIT = "git"
     const val TERMINAL = "terminal"
+    /** F-34-E: the post-pairing notification step (the ask + the Live-connection offer). */
+    const val NOTIFY_SETUP = "notify-setup"
 
     fun conversation(taskId: String) = "conversation/$taskId"
 }
@@ -151,6 +153,7 @@ fun ZCodeApp(
     // unpair, AND the cold-restore edge (a recreated activity restores its previous
     // back stack — restored state beats startDestination — so a paired device that
     // was pre-seeded mid-restore must be MOVED from the pairing destination to tasks).
+    val appContext = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(paired) {
         val onPairing = nav.currentDestination?.route == Routes.PAIRING
         when {
@@ -158,8 +161,13 @@ fun ZCodeApp(
                 if (!onPairing) nav.navigate(Routes.PAIRING) { popUpTo(0) { inclusive = true } }
             onPairing -> {
                 container.hub.onPairingCompleted()
-                // H1.5: the ONE-TIME post-pairing pass — skippable; never re-shown.
-                if (!prefs.onboardingDone) {
+                // F-34-E: the END of pairing is where the notification ask lands — on API 33+
+                // every fresh install has POST_NOTIFICATIONS denied, and nothing else ever
+                // asked: approvals were "posted" into a blocked sink, zero delivered.
+                if (!com.zcode.android.app.notifications.NotificationsGate.enabled(appContext)) {
+                    nav.navigate(Routes.NOTIFY_SETUP) { popUpTo(Routes.PAIRING) { inclusive = true } }
+                } else if (!prefs.onboardingDone) {
+                    // H1.5: the ONE-TIME post-pairing pass — skippable; never re-shown.
                     nav.navigate(Routes.ONBOARDING) { popUpTo(Routes.PAIRING) { inclusive = true } }
                 } else {
                     nav.navigate(Routes.TASKS) { popUpTo(Routes.PAIRING) { inclusive = true } }
@@ -192,7 +200,6 @@ fun ZCodeApp(
         }
         container.log.info("nav.shortcut", "target=${target.id}")
     }
-    val appContext = androidx.compose.ui.platform.LocalContext.current
     androidx.compose.runtime.LaunchedEffect(pendingLink, paired) {
         val link = pendingLink ?: return@LaunchedEffect
         // Connection-scoped links never land here (MainActivity routes them through the
@@ -287,6 +294,22 @@ fun ZCodeApp(
                         nav.navigate(Routes.TASKS) { popUpTo(0) { inclusive = true } }
                     }
                 },
+            )
+        }
+        composable(Routes.NOTIFY_SETUP) {
+            val liveRunning by com.zcode.android.core.notifications.LiveConnectionService.isRunning.collectAsState()
+            com.zcode.android.app.notifications.NotificationSetupScreen(
+                onContinue = {
+                    container.log.info("notify.setup", "continue enabled=${com.zcode.android.app.notifications.NotificationsGate.enabled(appContext)}")
+                    nav.navigate(if (!prefs.onboardingDone) Routes.ONBOARDING else Routes.TASKS) {
+                        popUpTo(Routes.NOTIFY_SETUP) { inclusive = true }
+                    }
+                },
+                onStartLiveConnection = {
+                    container.log.info("notify.setup", "live connection on")
+                    com.zcode.android.core.notifications.LiveConnectionService.start(appContext)
+                },
+                liveConnectionRunning = liveRunning,
             )
         }
         composable(Routes.TASKS) {
