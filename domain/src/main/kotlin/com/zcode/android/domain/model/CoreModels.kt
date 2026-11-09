@@ -132,7 +132,17 @@ data class NotificationRecord(
     val seenAtMs: Long? = null,
     val interactionId: String? = null,
 ) {
-    enum class Kind { APPROVAL_NEEDED, USER_INPUT_NEEDED, TASK_FINISHED, TASK_FAILED, CONNECTION_LOST }
+    enum class Kind {
+        APPROVAL_NEEDED, USER_INPUT_NEEDED, TASK_FINISHED, TASK_FAILED, CONNECTION_LOST;
+
+        /**
+         * F-33-E (vc52 Phase 7): the ONE attention-kind predicate — badge/inbox live
+         * on the Room open-lifecycle set; every BROKER-plane surface (widget count,
+         * deep-link target, re-post, seeding diff) shares THIS constant instead of
+         * copy-pasted `kind == APPROVAL || kind == USER_INPUT` logic.
+         */
+        val isAttention: Boolean get() = this == APPROVAL_NEEDED || this == USER_INPUT_NEEDED
+    }
 }
 
 /**

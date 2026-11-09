@@ -140,7 +140,18 @@ class NotificationWiring(
                 if (e == null) flowOf(emptyList<InteractionRepository.InteractionRecord>())
                 else stores.interactionRepository.observeOpen(e.endpointId)
             }.collect { records ->
-                val previousIds = seenInteractionIds
+                var previousIds = seenInteractionIds
+                if (!interactionBaselineSeeded) {
+                    // F-33-E: seed the diff baseline from the broker's LOADED attention
+                    // keys on the FIRST emission — a persisted record whose interaction
+                    // closed before this process (the STALE ghost) then falls out of
+                    // `closedInteractions` and is dismissed instead of re-posting on
+                    // every background entry forever.
+                    runCatching {
+                        broker.load()
+                        previousIds = previousIds + StoreDiffs.brokerAttentionInteractionIds(broker.visible())
+                    }.onFailure { log.warn("notify.seedBaseline", it.javaClass.simpleName) }
+                }
                 val fresh = StoreDiffs.newOpenInteractions(previousIds, records)
                 seenInteractionIds = StoreDiffs.interactionIds(records)
                 knownInteractionIds.set(seenInteractionIds)

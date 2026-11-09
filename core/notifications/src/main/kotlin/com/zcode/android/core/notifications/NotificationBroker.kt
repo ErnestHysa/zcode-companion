@@ -133,7 +133,7 @@ class NotificationBroker(
         // ATTENTION records stay unseen on arrival (a foreground-suppressed approval
         // must re-post on the next background entry, §15-S13); informational records
         // are seen on delivery (no in-app counterpart is required).
-        val attention = kind == NotificationRecord.Kind.APPROVAL_NEEDED || kind == NotificationRecord.Kind.USER_INPUT_NEEDED
+        val attention = kind.isAttention
         upsertRecord(key, kind, taskId, interactionId, seen = !attention)
         publishRecords()
         if (!decision.show) {
@@ -174,7 +174,7 @@ class NotificationBroker(
         val open = synchronized(this) {
             visibleRecords.values
                 .filter { it.seenAtMs == null }
-                .filter { it.kind == NotificationRecord.Kind.APPROVAL_NEEDED || it.kind == NotificationRecord.Kind.USER_INPUT_NEEDED }
+                .filter { it.kind.isAttention }
                 .toList()
         }
         for (record in open) {
@@ -233,7 +233,7 @@ class NotificationBroker(
         foreground = true
         val attention = synchronized(this) {
             visibleRecords.values
-                .filter { it.kind == NotificationRecord.Kind.APPROVAL_NEEDED || it.kind == NotificationRecord.Kind.USER_INPUT_NEEDED }
+                .filter { it.kind.isAttention }
                 .map { it.notificationKey }
         }
         for (key in attention) {

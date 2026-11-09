@@ -58,6 +58,17 @@ object StoreDiffs {
         records.map { it.interactionId.raw }.toSet()
 
     /**
+     * F-33-E (vc52 Phase 7): interaction ids of the broker's LOADED attention records —
+     * the cold-start diff baseline. `closedInteractions` was `previousIds − openNow`
+     * with `previousIds` EMPTY at process start, so a persisted record whose
+     * interaction closed before this process could never be dismissed and re-posted
+     * on every background entry. Seeding this set as the first-emission baseline
+     * dismisses the ghost on the first emission.
+     */
+    fun brokerAttentionInteractionIds(records: List<NotificationRecord>): Set<String> =
+        records.filter { it.kind.isAttention }.mapNotNull { it.interactionId }.toSet()
+
+    /**
      * FIELD (2026-10-06, vc35 user report — "answered approvals re-post on every
      * background; the badge stays 4"): CLOSED interactions (present before, absent
      * or resolved now) must DISMISS their broker records. The old wiring only ever

@@ -49,8 +49,21 @@ class WidgetLaunchIntentTest {
 
     @Test
     fun `no pending approvals - plain launch without data`() {
-        val intent = launchIntent(context, listOf(record("task-9", seen = true)))
+        // F-33-E: the deep-link target is an OPEN attention record; informational
+        // outcomes are not (seen-attention IS still open — the next pin).
+        val intent = launchIntent(context, listOf(record("task-9").copy(kind = NotificationRecord.Kind.TASK_FINISHED)))
         assertNull("nothing pending → plain launch (no stale link)", intent.data)
+    }
+
+    @Test
+    fun `F-33-E - a seen-but-open attention record still deep-links`() {
+        // The pass-33 face: the user VIEWED the approval in-app (seen), the widget
+        // showed "Nothing needs you", and the tap was a plain launch — while the
+        // interaction still waited. Seen-but-open attention keeps the link.
+        val intent = launchIntent(context, listOf(record("task-9", "i-42", seen = true)))
+        assertEquals(android.content.Intent.ACTION_VIEW, intent.action)
+        val candidate = DeepLinks.intake(intent)
+        assertNotNull("viewed-but-open attention still carries the deep link", candidate)
     }
 
     @Test

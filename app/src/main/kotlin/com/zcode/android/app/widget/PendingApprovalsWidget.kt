@@ -107,9 +107,9 @@ internal fun launchIntent(context: Context, records: List<NotificationRecord>): 
         .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
     val target = records
         .filter {
-            it.seenAtMs == null && it.taskId != null &&
-                (it.kind == NotificationRecord.Kind.APPROVAL_NEEDED ||
-                    it.kind == NotificationRecord.Kind.USER_INPUT_NEEDED)
+            // F-33-E: the target is an OPEN attention record — seen-but-open still
+            // deep-links (the viewed-in-app case used to dead-end to a plain launch).
+            it.kind.isAttention && it.taskId != null
         }
         .maxByOrNull { it.createdAtMs } ?: return base
     val uri = android.net.Uri.parse("zcode://task/${target.taskId}").buildUpon()
@@ -153,16 +153,15 @@ data class WidgetState(val count: Int) {
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(KEY_LAST_COUNT, 0)
 
         /**
-         * The widget counts OPEN attention items: unseen APPROVAL/USER-INPUT
-         * records (the §24.3 "one per open interaction" set). Seen/informational
-         * records and the connection-lost slot are not approvals.
+         * The widget counts OPEN attention items — the broker's record set (the
+         * §24.3 "one per open interaction" set), whose ghosts the wiring's seeded
+         * closed-diff dismisses. F-33-E: `seen` is NOT part of the predicate — a
+         * viewed-but-open interaction still needs the user (the pass-33 receipt:
+         * badge 4, widget "Nothing needs you"); informational records and the
+         * connection-lost slot are not approvals ([NotificationRecord.Kind.isAttention]).
          */
         fun from(records: List<NotificationRecord>): WidgetState = WidgetState(
-            count = records.count {
-                it.seenAtMs == null &&
-                    (it.kind == NotificationRecord.Kind.APPROVAL_NEEDED ||
-                        it.kind == NotificationRecord.Kind.USER_INPUT_NEEDED)
-            },
+            count = records.count { it.kind.isAttention },
         )
     }
 }

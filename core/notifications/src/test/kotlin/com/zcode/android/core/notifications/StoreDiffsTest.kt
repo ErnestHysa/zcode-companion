@@ -89,4 +89,56 @@ class StoreDiffsTest {
         val fresh = StoreDiffs.taskTerminalTransitions(previous, listOf(task("t1", TaskStatus.ERROR)))
         assertEquals(NotificationRecord.Kind.TASK_FAILED, fresh.single().second)
     }
+
+
+    @Test
+    fun `F-33-E - the seeded baseline dismisses a persisted ghost on the first emission`() {
+        // The pass-36/33 receipt: notification_records.pb still held an interaction
+        // record for a STALE id; `closedInteractions(previousIds=EMPTY, current)` at
+        // process start dismissed nothing and the ghost re-posted forever. The
+        // wiring seeds the baseline from the broker's loaded attention keys.
+        val brokerLoaded = listOf(
+            NotificationRecord(
+                notificationKey = "interaction:ghost-1",
+                taskId = "t1",
+                kind = NotificationRecord.Kind.APPROVAL_NEEDED,
+                createdAtMs = 1_000L,
+                interactionId = "ghost-1",
+            ),
+            NotificationRecord(
+                notificationKey = "interaction:live-1",
+                taskId = "t1",
+                kind = NotificationRecord.Kind.APPROVAL_NEEDED,
+                createdAtMs = 2_000L,
+                interactionId = "live-1",
+            ),
+            // informational records never seed the interaction baseline
+            NotificationRecord(
+                notificationKey = "task:t1",
+                taskId = "t1",
+                kind = NotificationRecord.Kind.TASK_FINISHED,
+                createdAtMs = 3_000L,
+                interactionId = null,
+            ),
+        )
+        val seeded = StoreDiffs.brokerAttentionInteractionIds(brokerLoaded)
+        assertEquals(setOf("ghost-1", "live-1"), seeded)
+        val openNow = listOf(
+            com.zcode.android.domain.repo.InteractionRepository.InteractionRecord(
+                interactionId = com.zcode.android.domain.ids.InteractionId("live-1"),
+                sessionId = null,
+                kind = InteractionRepository.InteractionRecord.Kind.PERMISSION,
+                lifecycle = com.zcode.android.domain.model.InteractionLifecycle.DISPLAYED,
+                toolName = "Bash",
+                createdAtMs = 2_000L,
+                resolvedAtMs = null,
+            ),
+        )
+        val closed = StoreDiffs.closedInteractions(seeded, openNow)
+        assertEquals(
+            "the ghost falls out of the seeded diff and is dismissed; the live one survives",
+            setOf("ghost-1"),
+            closed,
+        )
+    }
 }

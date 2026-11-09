@@ -36,19 +36,34 @@ class WidgetStateTest {
     // -------------------------------------------------- pure derivation
 
     @Test
-    fun countsUnseenApprovalAndUserInputRecords_only() {
+    fun countsOpenAttentionRecords_seenIrrelevant() {
+        // F-33-E (vc52 Phase 7): the widget counts the broker's OPEN attention set —
+        // seen-but-open records still need the user (the pass-33 receipt: badge 4,
+        // widget "Nothing needs you" because the two live ones had been viewed).
+        // Seen is irrelevant; informational outcomes and the connection slot are not.
         val state = WidgetState.from(
             listOf(
                 record("i:1", NotificationRecord.Kind.APPROVAL_NEEDED, seen = false),
-                record("i:2", NotificationRecord.Kind.USER_INPUT_NEEDED, seen = false),
-                // seen attention → consumed in-app, not pending
-                record("i:3", NotificationRecord.Kind.APPROVAL_NEEDED, seen = true),
-                // informational outcomes + connection slot are not approvals
+                record("i:2", NotificationRecord.Kind.USER_INPUT_NEEDED, seen = true),
                 record("t:1", NotificationRecord.Kind.TASK_FINISHED, seen = true),
                 record("connection-lost", NotificationRecord.Kind.CONNECTION_LOST, seen = false),
             ),
         )
         assertEquals(2, state.count)
+    }
+
+    @Test
+    fun pass33Fixture_widgetAgreesWithBadgeTwo() {
+        // The pass-33 DB truth: 2 DISPLAYED (1 viewed) + a persisted STALE ghost
+        // (never dismissed pre-fix). Post-fix the ghost is dismissed by the wiring's
+        // seeded closed-diff, so the broker mirror holds exactly the two live ones.
+        val state = WidgetState.from(
+            listOf(
+                record("i:live-1", NotificationRecord.Kind.APPROVAL_NEEDED, seen = false),
+                record("i:live-2", NotificationRecord.Kind.USER_INPUT_NEEDED, seen = true),
+            ),
+        )
+        assertEquals("widget = 2, the same number the badge and inbox render", 2, state.count)
     }
 
     @Test
