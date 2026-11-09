@@ -72,7 +72,9 @@ class QueueControlsUiTest {
     @Test
     fun `auto-send switch reflects the wire and fires the toggle`() {
         setContent(autoDrain = false)
-        rule.onNodeWithTag("queue_auto_drain").assertIsOff().performClick(); rule.waitForIdle()
+        // N-BC-1: the switch is display-only inside the toggleable row — the ROW
+        // carries the state and the toggle now.
+        rule.onNodeWithTag("queue_auto_drain_row").assertIsOff().performClick(); rule.waitForIdle()
         assertEquals(listOf("drain:true"), calls)
     }
 

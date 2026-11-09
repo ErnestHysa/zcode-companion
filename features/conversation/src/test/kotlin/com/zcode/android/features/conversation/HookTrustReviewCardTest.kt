@@ -104,7 +104,7 @@ class HookTrustReviewCardTest {
         rule.onNodeWithTag("hook_review_card_hook-int-1").assertIsDisplayed()
         rule.onNodeWithTag("hook_review_trust_selected").assertIsNotEnabled()
         // ADR-024: opting IN is explicit — checking one item enables trust for exactly N=1.
-        rule.onNodeWithTag("hook_review_check_a").performClick()
+        rule.onNodeWithTag("hook_review_item_a").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("hook_review_trust_selected").assertIsEnabled()
         rule.onNodeWithText("Trust 1 selected hook(s)").assertIsDisplayed()
@@ -113,8 +113,8 @@ class HookTrustReviewCardTest {
     @Test
     fun `A1 - the confirm sheet fires the exact checked ids plus the persistent grant`() {
         setContent(hook(item("a"), item("b")))
-        rule.onNodeWithTag("hook_review_check_a").performClick()
-        rule.onNodeWithTag("hook_review_check_b").performClick()
+        rule.onNodeWithTag("hook_review_item_a").performClick()
+        rule.onNodeWithTag("hook_review_item_b").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("hook_review_trust_selected").performClick()
         rule.waitForIdle()
@@ -131,7 +131,7 @@ class HookTrustReviewCardTest {
     @Test
     fun `A1 - dismissing the confirm sheet fires nothing`() {
         setContent(hook(item("a")))
-        rule.onNodeWithTag("hook_review_check_a").performClick()
+        rule.onNodeWithTag("hook_review_item_a").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("hook_review_trust_selected").performClick()
         rule.waitForIdle()
@@ -143,7 +143,7 @@ class HookTrustReviewCardTest {
     @Test
     fun `A1 - stale_digest items carry the stale marker`() {
         setContent(hook(item("s", trustState = "stale_digest"), item("t")))
-        rule.onNodeWithTag("hook_review_stale_s").assertIsDisplayed()
+        rule.onAllNodesWithTag("hook_review_stale_s", useUnmergedTree = true).assertCountEquals(1)
         rule.onAllNodesWithTag("hook_review_stale_t").assertCountEquals(0)
     }
 
