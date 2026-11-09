@@ -43,6 +43,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -93,12 +94,29 @@ fun ApprovalCard(
     modifier: Modifier = Modifier,
     /** G6 (vc51): keep-waiting — pauses the interaction's auto-resolution (null = hidden). */
     onSnooze: (() -> Unit)? = null,
+    /** G77 pin seam — injected clock for deterministic countdown assertions. */
+    clockNow: () -> Long = System::currentTimeMillis,
 ) {
     val payload = interaction.permission ?: return
     // B2.13: keyed on the interaction — a second request landing in the same card
     // slot must not inherit the first one's armed confirm or typed refine text.
     var confirmOption by remember(interaction.interactionId) { mutableStateOf<PermissionOption?>(null) }
     var refineText by remember(interaction.interactionId) { mutableStateOf("") }
+    // G77 (vc52 Phase 7): the desktop's auto-resolution fuse. A live visibleCountdown
+    // ticks on the card; an expired fuse renders the auto-continued face and strips
+    // the actions (no actionable card); a snoozed fuse says so; hiddenGrace shows
+    // nothing (the desktop hides its countdown there too).
+    val auto = interaction.autoResolution
+    var fuseNowMs by remember(interaction.interactionId) { mutableLongStateOf(clockNow()) }
+    androidx.compose.runtime.LaunchedEffect(interaction.interactionId, auto) {
+        if (auto?.state == com.zcode.android.domain.model.AutoResolution.State.VISIBLE_COUNTDOWN) {
+            while (true) {
+                kotlinx.coroutines.delay(1_000)
+                fuseNowMs = clockNow()
+            }
+        }
+    }
+    val fuseExpired = auto?.expiredAt(fuseNowMs) == true
 
     Surface(
         modifier = modifier
@@ -122,10 +140,20 @@ fun ApprovalCard(
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
             }
-            // G6: the desktop's snooze affordance (useTaskInteractionAutoResolutionSnooze).
-            onSnooze?.let { cb ->
+            // G77: the fuse face — countdown while live, the auto-continued marker once
+            // expired, the snoozed confirmation when "Keep waiting" was used.
+            AutoResolutionFuseFace(
+                interactionId = interaction.interactionId,
+                auto = auto,
+                fuseNowMs = fuseNowMs,
+                fuseExpired = fuseExpired,
+            )
+            // G6 + G77: "Keep waiting" is state-aware — offered only while the fuse is
+            // LIVE (the desktop offers nothing in hiddenGrace and "Snoozed" once snoozed).
+            val snoozeLive = auto == null || auto.state == com.zcode.android.domain.model.AutoResolution.State.VISIBLE_COUNTDOWN
+            if (onSnooze != null && snoozeLive && !fuseExpired) {
                 TextButton(
-                    onClick = cb,
+                    onClick = onSnooze,
                     enabled = !busy,
                     modifier = Modifier.testTag("interaction_snooze_${interaction.interactionId}"),
                 ) {
@@ -153,10 +181,14 @@ fun ApprovalCard(
                 )
             }
             Spacer(Modifier.height(10.dp))
-            // §20.4: EXACTLY the protocol's options — recognized ids actionable with
-            // their consequence spelled out; unknown ids INERT ("unsupported option").
-            for (option in payload.options) {
-                val label = consequenceLabel(option, payload)
+            // G77: an expired fuse renders NO action buttons — the desktop already
+            // auto-continued; answering is meaningless (and the coordinator typed the
+            // interaction EXPIRED, so a tap could only ever be AlreadyResolved).
+            if (!fuseExpired) {
+                // §20.4: EXACTLY the protocol's options — recognized ids actionable with
+                // their consequence spelled out; unknown ids INERT ("unsupported option").
+                for (option in payload.options) {
+                    val label = consequenceLabel(option, payload)
                 when (option.semantics) {
                     PermissionOption.Semantics.ALLOW_ONCE, PermissionOption.Semantics.ALLOW_PROJECT -> {
                         ZCodeButton(
@@ -216,8 +248,9 @@ fun ApprovalCard(
                         ) { Text(stringResource(R.string.approval_unsupported)) }
                     }
                 }
-                Spacer(Modifier.height(6.dp))
-            }
+                    Spacer(Modifier.height(6.dp))
+                }
+            } // G77: end of the not-expired action plane
         }
     }
 
@@ -252,6 +285,65 @@ fun ApprovalCard(
     }
 }
 
+/**
+ * G77 (vc52 Phase 7): the fuse face under the card header — the desktop's
+ * AskUserQuestion auto-resolution made visible on the phone:
+ *  - live `visibleCountdown` → the ticking "Auto-continues in {n}s" line
+ *    (the desktop's `chat.elicitation.countdownSeconds` "{seconds}s");
+ *  - expired → the desktop's auto-continue marker verbatim
+ *    (`chat.askQuestion.autoContinued`: "No answer; continued automatically") —
+ *    the card is non-actionable from here on;
+ *  - `snoozed` → the snoozed confirmation ("Keep waiting" was used);
+ *  - `hiddenGrace`/absent → nothing (the desktop hides the countdown there too).
+ */
+@Composable
+private fun AutoResolutionFuseFace(
+    interactionId: String,
+    auto: com.zcode.android.domain.model.AutoResolution?,
+    fuseNowMs: Long,
+    fuseExpired: Boolean,
+) {
+    when {
+        auto == null -> Unit
+        fuseExpired -> Text(
+            text = stringResource(R.string.interaction_auto_continued),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier
+                .padding(top = 6.dp)
+                .testTag("interaction_expired_$interactionId"),
+        )
+        auto.state == com.zcode.android.domain.model.AutoResolution.State.VISIBLE_COUNTDOWN &&
+            auto.deadlineAtMs != null -> {
+            val seconds = countdownSecondsRemaining(auto.deadlineAtMs!!, fuseNowMs)
+            if (seconds > 0) {
+                Text(
+                    text = stringResource(R.string.interaction_auto_continue_in, seconds),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f),
+                    modifier = Modifier
+                        .padding(top = 6.dp)
+                        .testTag("interaction_countdown_$interactionId"),
+                )
+            }
+        }
+        auto.state == com.zcode.android.domain.model.AutoResolution.State.SNOOZED -> Text(
+            text = stringResource(R.string.interaction_snoozed),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f),
+            modifier = Modifier
+                .padding(top = 6.dp)
+                .testTag("interaction_snoozed_$interactionId"),
+        )
+        // hiddenGrace / UNKNOWN: the fuse exists but shows nothing yet — never guessed.
+        else -> Unit
+    }
+}
+
+/** G77: the fuse's remaining whole seconds at [nowMs] (never negative — 0 = fired). */
+internal fun countdownSecondsRemaining(deadlineAtMs: Long, nowMs: Long): Long =
+    ((deadlineAtMs - nowMs) / 1000L).coerceAtLeast(0)
+
 /** §20.2: every option renders its consequence, not just its protocol label. */
 @Composable
 private fun consequenceLabel(option: PermissionOption, payload: PendingInteraction.PermissionPayload): String =
@@ -283,11 +375,25 @@ fun UserInputCard(
     onDecline: (() -> Unit)? = null,
     /** G6 (vc51): keep-waiting — pauses the interaction's auto-resolution (null = hidden). */
     onSnooze: (() -> Unit)? = null,
+    /** G77 pin seam — injected clock for deterministic countdown assertions. */
+    clockNow: () -> Long = System::currentTimeMillis,
 ) {
     val payload = interaction.userInput ?: return
     // B2.13: keyed on the interaction — selections never leak across requests.
     var selected by remember(interaction.interactionId) { mutableStateOf<String?>(null) }
     var freeText by remember(interaction.interactionId) { mutableStateOf("") }
+    // G77: the same fuse face the approval card renders (see ApprovalCard).
+    val auto = interaction.autoResolution
+    var fuseNowMs by remember(interaction.interactionId) { mutableLongStateOf(clockNow()) }
+    androidx.compose.runtime.LaunchedEffect(interaction.interactionId, auto) {
+        if (auto?.state == com.zcode.android.domain.model.AutoResolution.State.VISIBLE_COUNTDOWN) {
+            while (true) {
+                kotlinx.coroutines.delay(1_000)
+                fuseNowMs = clockNow()
+            }
+        }
+    }
+    val fuseExpired = auto?.expiredAt(fuseNowMs) == true
     // AskUserQuestion plane: per-question selected option values + custom answers.
     val qSelections = remember(interaction.interactionId) { androidx.compose.runtime.mutableStateMapOf<String, List<String>>() }
     val qCustom = remember(interaction.interactionId) { androidx.compose.runtime.mutableStateMapOf<String, String>() }
@@ -307,10 +413,11 @@ fun UserInputCard(
                     color = MaterialTheme.colorScheme.onTertiaryContainer,
                     modifier = Modifier.weight(1f),
                 )
-                // G6: the desktop's snooze affordance (useTaskInteractionAutoResolutionSnooze).
-                onSnooze?.let { cb ->
+                // G6 + G77: "Keep waiting" only while the fuse is LIVE (or unset).
+                val snoozeLive = auto == null || auto.state == com.zcode.android.domain.model.AutoResolution.State.VISIBLE_COUNTDOWN
+                if (onSnooze != null && snoozeLive && !fuseExpired) {
                     TextButton(
-                        onClick = cb,
+                        onClick = onSnooze,
                         enabled = !busy,
                         modifier = Modifier.testTag("interaction_snooze_${interaction.interactionId}"),
                     ) {
@@ -318,7 +425,16 @@ fun UserInputCard(
                     }
                 }
             }
+            // G77: the fuse face — countdown / auto-continued / snoozed / nothing.
+            AutoResolutionFuseFace(
+                interactionId = interaction.interactionId,
+                auto = auto,
+                fuseNowMs = fuseNowMs,
+                fuseExpired = fuseExpired,
+            )
             Spacer(Modifier.height(6.dp))
+            // G77: an expired fuse renders NO answer plane (the desktop auto-continued).
+            if (!fuseExpired) {
             payload.prompt?.let {
                 Text(
                     text = it,
@@ -483,6 +599,7 @@ fun UserInputCard(
                     color = MaterialTheme.colorScheme.onTertiaryContainer,
                 )
             }
+            } // G77: end of the not-expired answer plane
         }
     }
 }

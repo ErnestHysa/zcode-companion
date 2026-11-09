@@ -366,4 +366,7 @@
     <string name="preview_open">打开</string>
     <string name="preview_open_a11y">用外部应用打开</string>
     <string name="preview_open_failed">无法用外部应用打开此文件</string>
+    <string name="interaction_auto_continue_in">%1$d 秒后自动继续</string>
+    <string name="interaction_auto_continued">未回答，已自动继续</string>
+    <string name="interaction_snoozed">已延后 — ZCode 会等你回答</string>
 </resources>
