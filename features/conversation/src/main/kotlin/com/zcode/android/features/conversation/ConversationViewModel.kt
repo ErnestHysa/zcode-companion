@@ -426,7 +426,12 @@ class ConversationViewModel(
      */
     fun send(heldQueueDisposition: String? = null) {
         val text = _draft.value
-        if (text.isBlank()) return
+        // N-BH-1 (vc52 Phase 9): a READY staged attachment is submittable on its own
+        // (the GAP-A9 desktop contract — hasDraftToSubmit counts attachments; the wire
+        // accepts an empty text with attachments). The blank gate refused the natural
+        // sketch flow (sketch → Done → Send dead-ended until the user invented text).
+        val readyAttachments = state.value.composerAttachments.any { it.state == "ready" && it.ref != null }
+        if (text.isBlank() && !readyAttachments) return
         scope.launch {
             // Phase 2 (§11.3, GAP-12): the desktop's slash grammar gates the send —
             // ready composer attachments block the whole plane (desktop parity).

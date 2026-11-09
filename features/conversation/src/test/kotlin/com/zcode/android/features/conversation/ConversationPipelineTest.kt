@@ -168,8 +168,14 @@ class ConversationViewModelTest {
             override suspend fun fetchAttachment(
                 taskId: String, ref: String, targetRowId: Long?, targetEntityId: String?, attachmentIndex: Int?,
             ): ConversationPort.AttachmentFetchResult = ConversationPort.AttachmentFetchResult(null, null, 0, "not faked")
-            override fun observeComposerAttachments(taskId: String): Flow<List<ConversationPort.ComposerAttachment>> =
-                kotlinx.coroutines.flow.MutableStateFlow(emptyList())
+            val composerAttachmentsFlow = MutableStateFlow<List<ConversationPort.ComposerAttachment>>(emptyList())
+        val sendPromptCalls = mutableListOf<Pair<String, String>>() // text to heldQueueDisposition
+        override fun observeComposerAttachments(taskId: String): Flow<List<ConversationPort.ComposerAttachment>> =
+                composerAttachmentsFlow
+            override suspend fun sendPrompt(taskId: String, text: String, heldQueueDisposition: String?): ConversationPort.SendOutcome {
+                sendPromptCalls.add(text to (heldQueueDisposition ?: ""))
+                return sendResult
+            }
             // ---- Phase 2 (GAP-10/GAP-12) port additions (test fakes: inert defaults) ----
             override fun observeSlashCommands(taskId: String): Flow<List<ConversationPort.SlashCommandView>> =
                 MutableStateFlow(emptyList())
@@ -230,7 +236,7 @@ class ConversationViewModelTest {
         override fun observeDraft(taskId: String): Flow<String?> = draftFlow
         override suspend fun saveDraft(taskId: String, text: String) { savedDrafts.add(text) }
         override suspend fun clearDraft(taskId: String) { draftFlow.value = null }
-        override suspend fun sendPrompt(taskId: String, text: String, heldQueueDisposition: String?) = sendResult
+        // sendPrompt recording lives with the composer-attachments seam (N-BH-1 pin).
         override fun observePendingSends(taskId: String) = pendingSendsFlow
         override suspend fun retrySend(commandId: String) = sendResult
         override suspend fun stopGeneration(taskId: String) = sendResult
@@ -302,6 +308,36 @@ class ConversationViewModelTest {
         assertEquals(10L, port.loadOlderCalls.single())
         vm.dismissHistoryNotice()
         assertTrue(eventually { !vm.state.value.historyChanged })
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `N-BH-1 - a send with a READY attachment and blank text rides the wire`() = runTest {
+        val port = FakePort()
+        port.composerAttachmentsFlow.value = listOf(
+            ConversationPort.ComposerAttachment(
+                uploadId = "u1", fileName = "sketch.png", mime = "image/png", bytes = 10,
+                state = "ready", progress = 1f, ref = "ref-1", payload = null,
+            ),
+        )
+        val vm = ConversationViewModel(port, backgroundScope, "s1")
+        runCurrent()
+        vm.send()
+        assertTrue(eventually { port.sendPromptCalls.isNotEmpty() })
+        assertEquals("", port.sendPromptCalls.single().first)
+        // The draft is cleared and stays empty (there never was one).
+        assertTrue(eventually { vm.state.value.draft.isEmpty() })
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `N-BH-1 - a blank draft with NO attachments still refuses to send (unchanged)`() = runTest {
+        val port = FakePort()
+        val vm = ConversationViewModel(port, backgroundScope, "s1")
+        runCurrent()
+        vm.send()
+        runCurrent()
+        assertEquals(0, port.sendPromptCalls.size)
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)

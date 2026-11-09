@@ -117,7 +117,12 @@ class CommandCoordinator(
             log.warn("command.blockedOffline", "type=sendText session=$sessionId")
             return Outcome.BlockedOffline
         }
-        if (text.isBlank()) return Outcome.Failed(null)
+        // N-BH-1 (vc52 Phase 9): a blank text is wire-legal when READY attachments ride
+        // the payload (the shipped desktop schema: sendText.text is g.string() — NO
+        // .min(1); only createSelectionSideSession.firstInput.text has .trim().min(1)).
+        // The sketch flow dead-ended here: the blank gate refused an attachment-only
+        // send before the coordinator ever minted it.
+        if (text.isBlank() && attachments.isNullOrEmpty()) return Outcome.Failed(null)
         val payload = buildJsonObject {
             put("text", text)
             requestedDelivery?.let { put("requestedDelivery", it) }

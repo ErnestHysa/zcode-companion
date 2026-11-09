@@ -1236,9 +1236,15 @@ fun ComposerBar(
                             }
                         } else {
                             val sendDesc = stringResource(R.string.composer_send)
+                            // N-BH-1: the Send gate matches the morph's hasDraftToSubmit
+                            // contract — a READY staged attachment is submittable with a
+                            // blank draft (the sketch flow); the morph itself keeps the
+                            // broader isNotEmpty rule (GAP-A9 pin unchanged).
+                            val sendable = state.draft.isNotBlank() ||
+                                state.composerAttachments.any { it.state == "ready" && it.ref != null }
                             androidx.compose.material3.FilledIconButton(
                                 onClick = { dispatchSend() },
-                                enabled = state.draft.isNotBlank(),
+                                enabled = sendable,
                                 modifier = Modifier
                                     .size(44.dp)
                                     .testTag("composer_send")

@@ -9,6 +9,7 @@ import com.zcode.android.domain.outbox.OutboxStateMachine
 import com.zcode.android.domain.repo.OutboxRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -137,6 +138,33 @@ class CommandCoordinatorTest {
             connectionState = { connected },
         )
         return c to outbox
+    }
+
+    // ---------------------------------------------------------------- N-BH-1 (vc52 Phase 9)
+
+    @Test
+    fun `N-BH-1 - a READY attachment with blank text rides the wire (the desktop schema allows empty text)`() = runTest {
+        val sender = RecordingSender()
+        val (coordinator, outbox) = coordinator(sender)
+        val outcome = coordinator.sendPrompt(
+            "s1", "",
+            attachments = listOf(CommandCoordinator.AttachmentRefPayload("ref-1", "sketch.png", "image/png", 10)),
+        )
+        assertTrue(outcome is CommandCoordinator.Outcome.Accepted)
+        assertEquals(1, outbox.minted)
+        val payload = sender.payloads.single().second
+        assertEquals("", (payload["text"] as JsonPrimitive).content)
+        val atts = payload["attachments"] as JsonArray
+        assertEquals("ref-1", ((atts[0] as JsonObject)["ref"] as JsonPrimitive).content)
+    }
+
+    @Test
+    fun `N-BH-1 - blank text with NO attachments still refuses (unchanged gate)`() = runTest {
+        val sender = RecordingSender()
+        val (coordinator, outbox) = coordinator(sender)
+        val outcome = coordinator.sendPrompt("s1", "")
+        assertTrue(outcome is CommandCoordinator.Outcome.Failed)
+        assertEquals(0, outbox.minted)
     }
 
     // ---------------------------------------------------------------- offline (§17.6)
