@@ -1133,9 +1133,18 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
         // the session's user inputs; two or more queries earn the affordance. It is
         // ALWAYS visible (not gated on being scrolled up): discoverability is the
         // finding's whole point.
+        // F-36-A (vc52 Phase 9): the two floating buttons STACK in one column — both
+        // used to anchor BottomEnd in the same Box, jump-to-latest composed LATER and
+        // covered the navigator whenever the timeline was scrolled up (a 13px sliver;
+        // four taps all went to jump-to-latest). AnimatedVisibility keeps each entry
+        // out of the column's layout when hidden, so a hidden jump returns the
+        // navigator to the bottom.
+        Column(
+            Modifier.align(Alignment.BottomEnd),
+            horizontalAlignment = Alignment.End,
+        ) {
         androidx.compose.animation.AnimatedVisibility(
             visible = navigatorQueries.size >= 2,
-            modifier = Modifier.align(Alignment.BottomEnd),
             enter = fadeIn(tween(motion.ms(ZCodeMotion.WaterfallMs))),
             exit = fadeOut(tween(motion.ms(ZCodeMotion.WaterfallMs))),
         ) {
@@ -1153,7 +1162,6 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
         }
         androidx.compose.animation.AnimatedVisibility(
             visible = !followBottom || !atBottom,
-            modifier = Modifier.align(Alignment.BottomEnd),
             enter = fadeIn(tween(motion.ms(ZCodeMotion.WaterfallMs))),
             exit = fadeOut(tween(motion.ms(ZCodeMotion.WaterfallMs))),
         ) {
@@ -1183,6 +1191,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                     }
                 }
             }
+        }
         }
     }
     if (navigatorOpen) {
