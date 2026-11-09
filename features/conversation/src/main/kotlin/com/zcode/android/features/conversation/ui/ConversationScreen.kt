@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -1257,6 +1258,13 @@ private fun FindBar(
     onNext: () -> Unit,
     onClose: () -> Unit,
 ) {
+    // N-BF-1 (vc52 Phase 9): the bar TAKES FOCUS when it opens — with the composer
+    // holding the keyboard, the query was typed into the composer (it became a draft
+    // and triggered the leave-guard dialog).
+    val focusRequester = androidx.compose.runtime.remember { androidx.compose.ui.focus.FocusRequester() }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        runCatching { focusRequester.requestFocus() }
+    }
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = Modifier
@@ -1271,7 +1279,10 @@ private fun FindBar(
                 onValueChange = onQueryChange,
                 placeholder = { Text(stringResource(R.string.conv_find_hint), style = MaterialTheme.typography.bodySmall) },
                 singleLine = true,
-                modifier = Modifier.weight(1f).testTag("conv_find_query"),
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(focusRequester)
+                    .testTag("conv_find_query"),
             )
             Spacer(Modifier.width(8.dp))
             Text(
