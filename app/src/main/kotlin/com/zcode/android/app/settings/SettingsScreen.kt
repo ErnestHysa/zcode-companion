@@ -51,6 +51,7 @@ import com.zcode.android.core.ui.components.LocalNotifier
 import com.zcode.android.core.ui.components.SectionHeader
 import com.zcode.android.core.ui.components.Notifier
 import com.zcode.android.core.ui.components.connectionPhaseLabel
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.foundation.background
@@ -1209,7 +1210,11 @@ private fun AppearanceSection(container: AppContainer) {
                         Row(
                             Modifier
                                 .fillMaxWidth()
-                                .clickable {
+                                // N-BH-4: same a11y contract as PickerRadioRow.
+                                .selectable(
+                                    selected = selected,
+                                    role = androidx.compose.ui.semantics.Role.RadioButton,
+                                ) {
                                     scope.launch {
                                         container.stores.preferencesRepository.update { p -> p.copy(interfaceMode = mode) }
                                     }
@@ -1469,7 +1474,10 @@ private fun PickerRadioRow(selected: Boolean, label: String, tag: String, onClic
     Row(
         Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            // N-BH-4 (vc52 Phase 9): the ROW exposes the selected state with the
+            // RadioButton role — clickable-only rows exposed no checked state to
+            // TalkBack (the presentation-mode dialog announced nothing).
+            .selectable(selected = selected, role = androidx.compose.ui.semantics.Role.RadioButton, onClick = onClick)
             .padding(vertical = 10.dp)
             .testTag(tag),
         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,

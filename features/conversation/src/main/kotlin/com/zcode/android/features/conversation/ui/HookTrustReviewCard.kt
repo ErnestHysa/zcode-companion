@@ -7,8 +7,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
@@ -24,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
@@ -118,17 +122,46 @@ fun HookTrustReviewCard(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .heightIn(min = 44.dp)
+                        // N-BF-4 (vc52 Phase 9): the ROW is the toggle (the desktop's
+                        // row-is-the-toggle contract) — a tap on the row/label toggled
+                        // nothing before (only the checkbox did; Trust stayed disabled
+                        // at "Trust 0 selected"). The inner Checkbox is display-only.
+                        .toggleable(
+                            value = item.reviewItemId in checked,
+                            enabled = !busy && item.actionable,
+                            role = Role.Checkbox,
+                            onValueChange = { on ->
+                                checked = if (on) checked + item.reviewItemId else checked - item.reviewItemId
+                            },
+                        )
                         .padding(vertical = 2.dp)
                         .testTag("hook_review_item_${item.reviewItemId}"),
                 ) {
-                    Checkbox(
-                        checked = item.reviewItemId in checked,
-                        onCheckedChange = { on ->
-                            checked = if (on) checked + item.reviewItemId else checked - item.reviewItemId
-                        },
-                        enabled = !busy && item.actionable,
-                        modifier = Modifier.testTag("hook_review_check_${item.reviewItemId}"),
-                    )
+                    if (item.actionable) {
+                        Checkbox(
+                            checked = item.reviewItemId in checked,
+                            onCheckedChange = null,
+                            enabled = !busy && item.actionable,
+                            modifier = Modifier.testTag("hook_review_check_${item.reviewItemId}"),
+                        )
+                    } else {
+                        // N-BH-3: a non-actionable item's state is VISIBLE — the disabled
+                        // checkbox looked identical to an actionable one and carried no
+                        // description. The merged row text now announces the state.
+                        Text(
+                            text = stringResource(R.string.hook_review_trusted),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier
+                                .background(
+                                    MaterialTheme.colorScheme.surfaceContainerHighest,
+                                    MaterialTheme.shapes.small,
+                                )
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                .testTag("hook_review_state_${item.reviewItemId}"),
+                        )
+                    }
                     Column(Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(

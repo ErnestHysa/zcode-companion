@@ -433,6 +433,7 @@
     <string name="hook_review_warning">These hooks run shell commands on this workspace. Trust only what you recognize — trust is permission for code execution.</string>
     <string name="hook_review_counts">%1$d pending · %2$d hooks</string>
     <string name="hook_review_stale">stale</string>
+    <string name="hook_review_trusted">Trusted</string>
     <string name="hook_review_trust_n">Trust %1$d selected hook(s)</string>
     <string name="hook_review_confirm_title">Trust selected hooks?</string>
     <string name="hook_review_confirm_body">The desktop will mark %1$d selected hook(s) in "%2$s" as trusted and the session continues. Unselected hooks stay untrusted.</string>
