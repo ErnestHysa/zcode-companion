@@ -253,7 +253,7 @@ class Phase8InstrumentedTest {
         rule.waitUntil(15_000) {
             var taskId: String? = null
             rule.activityRule.scenario.onActivity { a ->
-                taskId = a.container.notifications.pendingLink.value?.taskId
+                taskId = (a.container.notifications.pendingLink.value as? com.zcode.android.app.notifications.DeepLinks.Candidate.Task)?.taskId
             }
             taskId == "long-gone-task"
         }
