@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.clickable
@@ -272,6 +273,12 @@ fun ConversationScreen(
             Modifier
                 .fillMaxSize()
                 .padding(inner)
+                // F-33-D (pass 33): CONSUME the insets `.padding(inner)` just applied —
+                // without this the nav-bar inset is applied TWICE once the IME is up
+                // (imePadding re-applies the un-consumed nav bottom on top of the IME:
+                // the measured 145px/60px dead band that pushed the Send button out of
+                // paint under the armed pinned stack).
+                .consumeWindowInsets(inner)
                 // FIELD (2026-10-01, vc21 device): edge-to-edge draws the IME as an
                 // overlay — without imePadding the keyboard covered the pinned
                 // composer entirely ("typing but nothing shows up": the field was
