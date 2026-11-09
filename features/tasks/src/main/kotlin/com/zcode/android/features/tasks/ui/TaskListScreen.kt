@@ -172,6 +172,12 @@ fun TaskListScreen(
     onWorkspaceRenamed: ((key: String, alias: String?) -> Unit)? = null,
     workspaceOrder: List<String> = emptyList(),
     workspaceAliases: Map<String, String> = emptyMap(),
+    /**
+     * F-34-E (vc52 Phase 8): an app-supplied banner pinned at the top of the list — the
+     * "Notifications are off — Turn on" row while Android blocks the app's notifications
+     * (on API 33+ every fresh install until the user grants it).
+     */
+    notificationsBanner: (@Composable () -> Unit)? = null,
 ) {
     val motion = rememberMotionSpec()
     var showCreate by remember { androidx.compose.runtime.mutableStateOf(false) }
@@ -260,6 +266,9 @@ fun TaskListScreen(
                 .padding(inner)
                 .semantics { traversalIndex = 1f },
         ) {
+            notificationsBanner?.let { banner ->
+                androidx.compose.foundation.layout.Box(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) { banner() }
+            }
             // ---- Phase 4D (H1.1) + GAP-A6/A7 (vc51): the search field lives INSIDE
             // the inset-padded body (the old bare siblings drew at window level — under
             // the system clock), and while a query is active the results REPLACE the

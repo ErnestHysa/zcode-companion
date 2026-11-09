@@ -468,6 +468,7 @@ private fun TasksRoute(
     val refreshing by vm.isRefreshing.collectAsState()
     val startScope = androidx.compose.runtime.rememberCoroutineScope()
     val notifier = com.zcode.android.core.ui.components.LocalNotifier.current
+    val notificationsEnabled = com.zcode.android.app.notifications.rememberNotificationsEnabled()
     val startedCopy = stringResource(com.zcode.android.features.tasks.R.string.workflow_start_sent)
     val refusedCopy = stringResource(com.zcode.android.features.tasks.R.string.workflow_start_refused)
     TaskListScreen(
@@ -536,6 +537,10 @@ private fun TasksRoute(
         },
         workspaceOrder = prefs.workspaceOrder,
         workspaceAliases = prefs.workspaceAliases,
+        // F-34-E: the persistent off-state row while Android blocks the app's notifications.
+        notificationsBanner = if (notificationsEnabled) null else {
+            { com.zcode.android.app.notifications.NotificationsOffRow() }
+        },
         // Phase 5A (A3.8–A3.10): pin / unread / resume / groups / archived viewer.
         onSetTaskPinned = vm::setTaskPinned,
         onSetTaskUnread = vm::setTaskUnread,

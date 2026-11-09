@@ -858,6 +858,15 @@ private fun NotificationsSection(container: AppContainer) {
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val prefs by container.stores.preferencesRepository.observe()
         .collectAsState(initial = com.zcode.android.domain.model.AppPreferences())
+    // F-34-E / F-33-G: Android's own verdict, re-read on every resume. While it is off,
+    // the section LEADS with the off-state row (deep link to the system page) and the
+    // category switches read their effective state — never "Approval requests ON".
+    val notificationsEnabled = com.zcode.android.app.notifications.rememberNotificationsEnabled()
+    if (!notificationsEnabled) {
+        com.zcode.android.app.notifications.NotificationsOffRow(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+        )
+    }
 
     // §24.2 lock-screen visibility: MINIMAL = category-only (default), CONTENT adds
     // the task title. The pending row shows the CURRENT value; tap toggles.
@@ -893,6 +902,7 @@ private fun NotificationsSection(container: AppContainer) {
         label = stringResource(R.string.settings_notif_cat_approvals),
         checked = prefs.notifyApprovals,
         tag = "settings_notif_cat_approvals",
+        blocked = !notificationsEnabled,
     ) { checked ->
         scope.launch { container.stores.preferencesRepository.update { p -> p.copy(notifyApprovals = checked) } }
     }
@@ -900,6 +910,7 @@ private fun NotificationsSection(container: AppContainer) {
         label = stringResource(R.string.settings_notif_cat_tasks),
         checked = prefs.notifyTaskOutcomes,
         tag = "settings_notif_cat_tasks",
+        blocked = !notificationsEnabled,
     ) { checked ->
         scope.launch { container.stores.preferencesRepository.update { p -> p.copy(notifyTaskOutcomes = checked) } }
     }
@@ -907,6 +918,7 @@ private fun NotificationsSection(container: AppContainer) {
         label = stringResource(R.string.settings_notif_cat_connection),
         checked = prefs.notifyConnection,
         tag = "settings_notif_cat_connection",
+        blocked = !notificationsEnabled,
     ) { checked ->
         scope.launch { container.stores.preferencesRepository.update { p -> p.copy(notifyConnection = checked) } }
     }
@@ -1581,6 +1593,7 @@ private fun CategoryToggle(
     label: String,
     checked: Boolean,
     tag: String,
+    blocked: Boolean = false,
     onChange: (Boolean) -> Unit,
 ) {
     // U5 (verification pass 2, 2026-10-21): the list's 16dp horizontal inset — without it
@@ -1594,8 +1607,25 @@ private fun CategoryToggle(
         horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
     ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        Column(Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.bodyMedium)
+            // F-33-G: the EFFECTIVE state — Android blocks every category; say so.
+            if (blocked) {
+                Text(
+                    stringResource(R.string.settings_notif_blocked_sub),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
         Spacer(Modifier.width(8.dp))
-        androidx.compose.material3.Switch(checked = checked, onCheckedChange = onChange, modifier = Modifier.testTag("${tag}_switch"))
+        // F-33-G: never render ON while Android blocks the app's notifications — the
+        // stored preference is kept and shows again the moment notifications are on.
+        androidx.compose.material3.Switch(
+            checked = checked && !blocked,
+            onCheckedChange = onChange,
+            enabled = !blocked,
+            modifier = Modifier.testTag("${tag}_switch"),
+        )
     }
 }

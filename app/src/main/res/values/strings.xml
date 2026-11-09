@@ -310,4 +310,17 @@
     <string name="settings_interface_mode_sub">Office mode focuses on summaries and results. Coding mode shows commands, output, and code changes.</string>
     <string name="settings_interface_mode_office">Office</string>
     <string name="settings_interface_mode_coding">Coding</string>
+    <!-- F-34-E / F-33-G: notification access as a first-class state. -->
+    <string name="notifications_off_title">Notifications are off</string>
+    <string name="notifications_off_body">Approval requests from your desktop can\'t reach you.</string>
+    <string name="notifications_off_action">Turn on</string>
+    <string name="notif_setup_title">Turn on approval alerts</string>
+    <string name="notif_setup_rationale">Your desktop\'s approval requests reach you as notifications — without them ZCode can\'t alert you.</string>
+    <string name="notif_setup_allow">Turn on notifications</string>
+    <string name="notif_setup_enabled">Notifications are on</string>
+    <string name="notif_setup_live_title">Live connection</string>
+    <string name="notif_setup_live_body">Approvals reach you while ZCode is closed. Uses more battery.</string>
+    <string name="notif_setup_continue">Continue</string>
+    <string name="notif_setup_not_now">Not now</string>
+    <string name="settings_notif_blocked_sub">Blocked by Android — turn notifications on first</string>
 </resources>
