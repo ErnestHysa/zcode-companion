@@ -129,6 +129,8 @@ class SlashPaletteComposerReserveTest {
         rule.waitForIdle()
         // The palette is open (the draft is a bare slash token).
         rule.onNodeWithTag("slash_menu").assertExists()
+        val nodes = rule.onAllNodesWithTag("composer_send").fetchSemanticsNodes()
+        for (n in nodes) println("PROBE send bounds=" + n.boundsInRoot)
         // THE BUG: pre-fix the in-flow palette consumed the shell's remaining height —
         // Send unreachable/unpainted (the rig's "composer row not laid out at all").
         rule.onNodeWithTag("composer_send").assertIsDisplayed()

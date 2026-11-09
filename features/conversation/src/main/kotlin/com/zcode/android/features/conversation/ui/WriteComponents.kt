@@ -1,6 +1,7 @@
 package com.zcode.android.features.conversation.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.Role
 import androidx.compose.material3.Checkbox
 import androidx.compose.foundation.rememberScrollState
@@ -990,17 +991,21 @@ fun ComposerBar(
             if (slashMenuVisible) {
                 // C2: the extras (skills / agents / custom commands) load on FIRST open.
                 LaunchedEffect(Unit) { onSlashMenuOpen() }
-                // N-BD-1 (vc52 Phase 9): the palette is an ANCHORED POPUP above the
-                // composer, never an in-flow child — in-flow it consumed the composer's
-                // remaining height (under the armed pinned stack the shell measured to
-                // zero and the whole action row vanished from the tree: Send unreachable
-                // while the draft matched "/"). BottomStart on a zero-size anchor at the
-                // shell's top edge floats the panel ABOVE the composer (the desktop's
-                // overlay panel shape); the draft losing the "/" prefix dismisses it —
-                // no scrim, outside taps pass through.
+                // N-BD-1 (vc52 Phase 9): the palette is an ANCHORED OVERLAY — in-flow
+                // it consumed the composer's remaining height (under the armed pinned
+                // stack the shell measured to zero: Send unreachable while the draft
+                // matched "/"). The anchor is a zero-size Box at the shell's top; the
+                // popup is TopStart-aligned with an offset of its own MEASURED height,
+                // so its bottom lands EXACTLY on the anchor = the composer's top — the
+                // palette floats ABOVE the composer at any stack weight (deterministic:
+                // BottomStart alignment mis-anchored on device). The draft losing the
+                // "/" prefix dismisses it; outside taps pass through.
+                val density = androidx.compose.ui.platform.LocalDensity.current
+                var paletteHeightPx by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
                 Box(Modifier.testTag("slash_menu_anchor")) {
                     androidx.compose.ui.window.Popup(
-                        alignment = Alignment.BottomStart,
+                        alignment = Alignment.TopStart,
+                        offset = androidx.compose.ui.unit.IntOffset(0, -paletteHeightPx),
                         properties = androidx.compose.ui.window.PopupProperties(
                             focusable = false,
                             dismissOnClickOutside = false,
@@ -1012,6 +1017,7 @@ fun ComposerBar(
                             query = state.draft,
                             onPick = onDraftChange,
                             extras = state.slashExtras,
+                            modifier = Modifier.onSizeChanged { paletteHeightPx = it.height },
                         )
                     }
                 }
