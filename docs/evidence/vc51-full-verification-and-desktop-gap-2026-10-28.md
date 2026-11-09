@@ -10779,7 +10779,7 @@ These are **new defects in the same plane**, not failed fixes. Treat them as suc
 | 6 | Security & untrusted execution | 6 | 2 | 2 | 2 | 0 | High | ☑ **Done 2026-11-08** — all 6 rows + RIG-P4 (pulled forward); commits `da9a32ab`→`397b5de7`; exit gate PASSED; receipt "Phase 6 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-08" appended at file end |
 | 7 | Interaction & settings truth | 6 | 0 | 3 | 2 | 1 | High | ☑ **Done 2026-11-09** — all 6 rows + RIG-P1 (pulled forward); commits `ff914e46`→`9a1f23dd`; exit gate PASSED; receipt "Phase 7 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-09" appended at file end |
 | 8 | Lifecycle, reconnect & availability | 7 | 0 | 5 | 2 | 0 | High | ☑ **Done 2026-11-09** — all 7 rows (F-33-A+F-33-B/C folded, F-34-A/B/C/D/E/F + F-33-G folded into F-34-E); commits `580b3911`→`a7fe2bff` (11, incl. 2 rig-caught fixes); exit gate PASSED; receipt "Phase 8 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-09" appended at file end |
-| 9 | Timeline & composer geometry | 10 | 0 | 0 | 6 | 4 | Medium | ☐ Open |
+| 9 | Timeline & composer geometry | 10 | 0 | 0 | 6 | 4 | Medium | ☑ **Done 2026-11-09** — all 10 rows; commits `ca392ca4`→`6f0c9bce` (13, incl. the on-device popup-anchor fix + the batch-coupled pin update); exit gate PASSED; receipt "Phase 9 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-09" appended at file end |
 | 10 | Conversation data, rendering & feedback | 10 | 0 | 1 | 2 | 7 | Medium | ☐ Open |
 | 11 | Parity: protocol & execution planes | 11 | 0 | 0 | 9 | 2 | High | ☐ Open |
 | 12 | Parity: authoring & management planes | 14 | 0 | 0 | 3 | 11 | Medium | ☐ Open |
@@ -11098,7 +11098,7 @@ F-36-A → N-BC-1/N-BG-3/N-BC-3 → N-BF-1.**
 
 ### Sub-phase 9A — the dropped callbacks (rewind, attachments, zoom)
 
-- [ ] **F-27-B (P3) — the rewind preview plane and the timeline attachment taps are unreachable
+- [x] **F-27-B (P3) — the rewind preview plane and the timeline attachment taps are unreachable
   because the call sites drop the callbacks.**
   Pass 31's dropped-default-arg sweep found `ConversationScreen.kt:552` (`TimelineBody`) drops
   `onOpenAttachment`, `onOpenAttachmentExternally`, `onSectionCrash`, and `:1047` (`TimelineRow`)
@@ -11115,7 +11115,7 @@ F-36-A → N-BC-1/N-BG-3/N-BC-3 → N-BF-1.**
 
 ### Sub-phase 9B — insets, clipping and the slash palette
 
-- [ ] **F-33-D (P3) — the IME double inset and the composer squeeze (re-manifest of GAP-A16).**
+- [x] **F-33-D (P3) — the IME double inset and the composer squeeze (re-manifest of GAP-A16).**
   `ConversationScreen.kt:274-279` applies `.padding(inner)` (the M3 Scaffold's default content
   insets include the nav bar) then `.imePadding()` without `consumeWindowInsets(inner)`, so the
   nav-bar inset is applied twice: the gap between composer and keyboard is 145 px (3-button) /
@@ -11127,7 +11127,7 @@ F-36-A → N-BC-1/N-BG-3/N-BC-3 → N-BF-1.**
   above the keyboard under both nav modes; Send is painted and tappable under the armed stack;
   the timeline keeps its 48 dp floor; the painted-bounds pin is RED pre-fix.
 
-- [ ] **F-27-C (P3) — the context sheet's chip row/footer clip, plus the bottom-edge clip family.**
+- [x] **F-27-C (P3) — the context sheet's chip row/footer clip, plus the bottom-edge clip family.**
   The second chip row is height-clipped to an ~11 px sliver when the sheet content stack is tall;
   under 3-button navigation the footer paints inside the nav bar and a tap on "Share" hits system
   Back; under gesture nav it is cut until the sheet is dragged. **Carries D2** (wrapped chips
@@ -11140,7 +11140,7 @@ F-36-A → N-BC-1/N-BG-3/N-BC-3 → N-BF-1.**
   tappable under both nav modes; the sheet reopens at the top; the notice bar and locale row are
   fully above the bar; a 395 dp + both-nav-modes pin covers the family.
 
-- [ ] **N-BD-1 (P4) — the slash palette displaces the composer entirely.**
+- [x] **N-BD-1 (P4) — the slash palette displaces the composer entirely.**
   With the armed stack + palette open, the composer row is not laid out at all (absent from the
   a11y tree; focus persists but Send is unreachable), and it returns only when the draft stops
   matching `/`. **Fix:** reserve the composer's min height in the palette-open layout, or anchor
@@ -11150,7 +11150,7 @@ F-36-A → N-BC-1/N-BG-3/N-BC-3 → N-BF-1.**
 
 ### Sub-phase 9C — pinned cards and attachment send
 
-- [ ] **N-BG-1 (P3) — the question card buries Submit behind the wrong scroll surface.**
+- [x] **N-BG-1 (P3) — the question card buries Submit behind the wrong scroll surface.**
   The three-group card clips after the first group; "Send answers" sits four inner scrolls deep,
   and the first swipes over the card scroll the pinned STACK instead of the card (3 of 4 attempts
   wrong). With the keyboard up, Submit is unreachable and unhinted. **Carries N-BF-3** (two-group
@@ -11162,7 +11162,7 @@ F-36-A → N-BC-1/N-BG-3/N-BC-3 → N-BF-1.**
   scrolls the card; keyboard up → Submit reachable; the hook card's Trust is reachable without a
   magic swipe; a compose pin at 395 dp with the full stack.
 
-- [ ] **N-BH-1 (P3) — a message with only an attachment cannot be sent.**
+- [x] **N-BH-1 (P3) — a message with only an attachment cannot be sent.**
   Sketch → Done uploads and shows the chip, but Send stays disabled (`enabled =
   state.draft.isNotBlank()` at `WriteComponents.kt:1058`) while the Stop/Send morph already uses
   `hasDraftToSubmit` (`:1035`, which counts attachments per the GAP-A9 contract). **Fix:** gate
@@ -11170,7 +11170,7 @@ F-36-A → N-BC-1/N-BG-3/N-BC-3 → N-BF-1.**
   attachments. **Accept:** sketch → Done → Send enabled → wire fires → the row renders the image;
   a compose pin covers the empty-text-with-attachment shape; a text-only send is unchanged.
 
-- [ ] **N-BF-4 / N-BH-3 / N-BH-4 (P4) — the card/dialog a11y cluster.**
+- [x] **N-BF-4 / N-BH-3 / N-BH-4 (P4) — the card/dialog a11y cluster.**
   N-BF-4: a hook-review row tap does not toggle (only the checkbox does; the desktop's row is the
   toggle). N-BH-3: a `trusted_persistent` item's disabled checkbox looks identical to an actionable
   one and carries no content description (**carries pass-21's "already trusted" nicety**). N-BH-4:
@@ -11183,7 +11183,7 @@ F-36-A → N-BC-1/N-BG-3/N-BC-3 → N-BF-1.**
 
 ### Sub-phase 9D — floating navigation
 
-- [ ] **F-36-A (P3) — the turn navigator is buried under jump-to-latest.**
+- [x] **F-36-A (P3) — the turn navigator is buried under jump-to-latest.**
   Both buttons sit at `Alignment.BottomEnd` in the same Box (`ConversationScreen.kt:1087-1104` and
   `:1105-1126`); jump-to-latest composes later and covers the navigator, leaving a 13 px sliver
   whenever the timeline is scrolled up (four taps went to jump-to-latest). **Fix:** stack the two
@@ -11193,7 +11193,7 @@ F-36-A → N-BC-1/N-BG-3/N-BC-3 → N-BF-1.**
 
 ### Sub-phase 9E — hit targets and switch semantics
 
-- [ ] **N-BC-1 / N-BG-3 / N-BC-3 (P4) — switches and small hit targets.**
+- [x] **N-BC-1 / N-BG-3 / N-BC-3 (P4) — switches and small hit targets.**
   N-BC-1: the queue strip's Auto-send switch has no content description/label association
   (TalkBack reads nothing); the pass-22 "Auto-send label-lag" sibling is folded here. N-BG-3: the
   terminal consent row's Switch is the only hit target (the label is not tappable) and the
@@ -11206,13 +11206,13 @@ F-36-A → N-BC-1/N-BG-3/N-BC-3 → N-BF-1.**
 
 ### Sub-phase 9F — focus
 
-- [ ] **N-BF-1 (P4) — the find bar opens without focus.**
+- [x] **N-BF-1 (P4) — the find bar opens without focus.**
   With the composer holding the keyboard, opening find types the query into the composer (it
   becomes a draft and triggers the leave-guard dialog). **Fix:** request focus on the find field
   when the bar opens, keeping the composer draft intact. **Accept:** the query lands in the find
   bar; the composer draft is unchanged; a compose pin.
 
-**Phase 9 exit gate: ☐** fresh `zcode-a16` with all content flags armed, plus font 1.3, 395 dp,
+**Phase 9 exit gate: ☑ PASSED 2026-11-09** (fresh `zcode-a16`, all content flags armed + MOCK_ROWS across three relay generations; receipt "Phase 9 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-09" appended at file end) — fresh `zcode-a16` with all content flags armed, plus font 1.3, 395 dp,
 3-button and gesture nav, IME up; legs: thumbnail tap → viewer, rewind sheet faces, palette with
 composer visible, three-group card submit, attachment-only send, floating-button overlap, switch
 a11y; screenshots + painted-bounds measurements; 0 FATALs/0 ANRs.
@@ -12018,3 +12018,111 @@ GREEN after, the exit gate passed on a fresh Android 16 emulator leg across thre
 generations, and the full-suite zero-new-names gate reconciled (+43 = exactly this phase's
 pins, incl. the +5 from the rig-caught fixes).** Nothing pushed; publishing waits on
 Ernest's explicit word.
+
+## Phase 9 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-09 (APPENDED; not part of the audit, the vc51 roadmap, Part 0, or the vc52 roadmap body)
+
+Scope: vc52 Phase 9 — Timeline & composer geometry — ALL ten rows (F-27-B; F-33-D; F-27-C
+carrying D2/D5/N-BD-4; N-BD-1; N-BG-1 carrying N-BF-3/D4; N-BH-1; N-BF-4/N-BH-3/N-BH-4;
+F-36-A; N-BC-1/N-BG-3/N-BC-3; N-BF-1) in roadmap order. Branch `fix/vc52` (continuing
+Phases 6–8); one finding ≥ one commit; every pin RED at its pre-fix commit (logs:
+/tmp/p9/f27b-red.log, f33d-red.log, f27c-red.log, nbd1-red.log, nbg1-red.log, nbh1-red*.log,
+nbf4-red*.log, nbh4-red.log, f36a-red.log, nbc-red.log, nbg3-red.log, nbg3b-red.log,
+nbf1-red.log); nothing pushed. N-BD-1 landed twice: the first cut used Compose
+`Popup(alignment = BottomStart)` which passed every Robolectric pin but MIS-ANCHORED on
+device (~200px low — it covered the composer); re-fixed on the rig with a deterministic
+anchor (TopStart + an offset of the panel's own MEASURED height) in `6f0c9bce` — the
+rig-caught fix of this phase.
+
+### Fix commits (one finding ≥ one commit, `fix(<ID>): <mechanism>`)
+
+| Row | Commit(s) | Mechanism closed | Pins (RED evidence) |
+| --- | --- | --- | --- |
+| F-27-B (P3) | `ca392ca4` | Forward the five dropped defaulted callbacks at BOTH call sites (TimelineBody dropped onOpenAttachment/onOpenAttachmentExternally/onSectionCrash; TimelineRow dropped those two + rewindPreviewProvider) — the A3.11 rewind preview plane, the G28 zoom/external handoff and the L7 diagnostics seam stop being structurally null | 4 pins: the roadmap's named-minimum SWEEP pin (derives every defaulted fn-typed param of TimelineBody/TimelineRow from the signatures and fails on ANY dropped call-site arg — RED named exactly the five recorded params); thumbnail tap → onOpenAttachment (RED: dead unmerged node); the rewind sheet end-to-end with a fake provider — faces paint + the provider provably reaches the row + the canApply gate asserted BOTH directions (disabled at false — the pin's first assertion had the polarity inverted, caught and fixed in-phase) |
+| F-33-D (P3) | `a009d36d` | `.padding(inner).consumeWindowInsets(inner).imePadding()` — the nav-bar inset no longer rides on top of the IME padding (the pass-33 measured 145px/60px dead band that pushed the Send button out of paint under the armed stack) | ComposerImeInsetTest: synthetic nav+IME insets (the HeaderInsetTest recipe), SEND painted bounds — RED "double nav inset: Send bottom=524px, IME top=591px (gap 67px > the 40px ceiling)" (the recorded dead-band math), GREEN post-fix; Send asserted DISPLAYED under the armed stack and never inside the keyboard |
+| F-27-C (P3; carries D2/D5/N-BD-4) | `dc770fc8` | SessionContextSheet wraps its scroll viewport in a navigationBarsPadding OUTER column (the sheet's measured height INCLUDES the inset — chips clear the bar in both nav modes); the sheet scroll state HOISTED to the host keyed on visibility (fresh ScrollState(0) per open — D5 structurally impossible) | compile-RED pre-fix (the scrollState param did not exist); the seam pin drives a stale ScrollState(300) into a 40-step-plan sheet and asserts the INJECTED state is consumed; the wiring pin (host keys the fresh state + the inset wraps the viewport); the chip-bounds pin at max scroll (full, never zero/11px); send_notice + Settings locale guard pins (hold at HEAD post-F-33-D; the popup-window insets Robolectric cannot dispatch are receipted on the rig) |
+| N-BD-1 (P4) | `32719809` + `6f0c9bce` | The slash palette is an ANCHORED OVERLAY (a non-focusable Popup; outside taps pass through; dismissal stays draft-driven) — it can never displace the composer at any stack weight. `32719809` shipped BottomStart (GREEN in Robolectric, MIS-ANCHORED on device); `6f0c9bce` re-anchors TopStart + offset(−measured height) so the panel's bottom lands exactly on the composer top | SlashPaletteComposerReserveTest (the armed shape, h700dp, 2-item queue per the recorded repro): RED "composer_send is not displayed" (the shell measured to zero); GREEN — field + Send displayed with the palette open, all 20 rows composed, the last reachable by scroll (merged-row finders); the in-flow adaptive-cap alternative was tried and REJECTED (the armed stack leaves ~180dp — no cap arithmetic fits shell + usable palette) |
+| N-BG-1 (P3; carries N-BF-3/D4) | `946e46ce` | The pinned plane is a bounded LAZY column (each card measured with the full budget as its own cap — no zero-share starvation; multi-card overflow scrolls BETWEEN items); UserInputCard + HookTrustReviewCard cap at the budget and scroll THEIR OWN answer body (weight viewport) with the submit/decline row (one compact footer) and Trust PINNED at the card's bottom edge; ApprovalCard keeps its intrinsic | PinnedCardSubmitPinTest (395dp, full armed stack): RED "Submit not displayed" / "no scrollable body" / "hook_review_trust_selected not displayed"; GREEN — Submit+Decline visible WITHOUT scrolling, the body exposes its own scroll axis, a swipe over the card NEVER moves the card, Trust visible; all pinned-plane/approval/hook/elicitation/question-shape pins re-run green |
+| N-BH-1 (P3) | `81021795` | A READY staged attachment is submittable with a blank draft at ALL THREE gates: the composer's Send button (draft OR a ready attachment; the Stop/Send morph keeps the broader GAP-A9 rule), ConversationViewModel.send(), CommandCoordinator.sendPrompt() (blank text mints when attachments ride the payload — the shipped desktop schema: sendText.text is g.string(), NO .min(1); only createSelectionSideSession.firstInput.text has .trim().min(1)) | UI ×3 (attachment+blank enables + dispatches; blank+none stays disabled; text-only unchanged), VM ×2 (blank+ready rides the wire as sendPrompt("") and clears the draft; blank+none never calls the port), coordinator ×2 (blank+attachments Accepted with text:"" + the refs; blank alone still Failed) — all RED at the pre-fix commit |
+| N-BF-4/N-BH-3/N-BH-4 (P4) | `89f8d27c` | The hook-review ROW is the toggle (toggleable(role=Checkbox), the inner Checkbox display-only); non-actionable items render a visible "Trusted" state chip INSTEAD of the lookalike disabled checkbox (the merged row text announces it; the zh file never translated the hook_review family — en serves both); Modifier.selectable(selected, role=RadioButton) on the inline presentation-mode rows AND the shared PickerRadioRow (theme/locale/fontscale/autoarchive) | HookTrustRowA11yTest — RED "row tap did not enable Trust (the row is not the toggle)" + the chip absent; GREEN — row tap enables Trust and fires through the confirm, the chip with NO checkbox node while the actionable keeps its (unmerged-tree finders); PickerDialogSelectableTest — RED "Key not present: Selected"; GREEN — exactly the current mode row carries Selected and the shared picker rows all expose it |
+| F-36-A (P3) | `5bdd1c16` | The two floating buttons STACK in one BottomEnd column (the navigator first); AnimatedVisibility keeps a hidden entry out of the column's layout (a hidden jump returns the navigator to the bottom) | TurnNavOverlapTest: RED "buttons overlap: nav=(351,703)-(391,743) jump=(339,685)-(395,741)" — the recorded 13px-sliver geometry; GREEN — the navigator fully above the jump button and the sheet opens at the scrolled-up position |
+| N-BC-1/N-BG-3/N-BC-3 (P4) | `5e46f573` | The queue Auto-send label + switch share ONE toggleable(role=Switch) row (the switch display-only, the wire echo the truth); the terminal consent row toggles as a whole; Settings' SwitchRow carries toggleable(role=Switch) with the inner switch display-only; the queue reorder buttons 32→48dp | QueueSwitchA11yTest — RED (a stateful fixture: the label tap must toggle) + the buttons measure ≥48dp; OptInGateLabelToggleTest — RED "terminal_optin_row not found"; SwitchRowA11yTest — RED "Key not present: ToggleableState", GREEN Off→On via the label tap |
+| N-BF-1 (P4) | `951d70c9` | A FocusRequester on the find field, requested on the bar's first composition (runCatching) — the bar TAKES input focus when it opens; the composer's draft stays intact | FindBarFocusTest: the composer focused first (the recorded precondition), the bar opens — RED "Focused = 'false'" on conv_find_query (the exact hand-off failure; performTextInput uses the SetText semantics action and cannot model IME routing — the honest pin is the focus itself), GREEN post-focus |
+| — (batch-owned pin update) | `88583b80` | HookTrustReviewCardTest + QueueControlsUiTest re-anchored to the new semantics (the checkbox tags moved into the unmerged tree; the auto-send state onto the toggleable row) — the full-suite gate caught them, updated in the same batch |
+
+### Suite reconciliation
+
+Pre-phase baseline at `fe061cd4` (the Phase 8 record): **1867 tests / 0 failures / 0 skipped,
+17 modules** (11 `testDebugUnitTest` + six JVM `test`), every module emitting XML. Final
+full-suite gate at `6f0c9bce`: **1900 tests / 0 failures / 0 skipped, 17 modules, every
+module emitting XML, 0 gradle task failures** — +33 names vs the baseline, exactly this
+phase's 33 new pins (TimelineCallbackWiringTest ×4, ComposerImeInsetTest ×1,
+ContextSheetFooterInsetTest ×4, SettingsBottomInsetTest ×1, SlashPaletteComposerReserveTest
+×2, PinnedCardSubmitPinTest ×3, AttachmentOnlySendTest ×3, ConversationViewModelTest +2,
+CommandCoordinatorTest +2, HookTrustRowA11yTest ×2, PickerDialogSelectableTest ×2,
+QueueSwitchA11yTest ×2, OptInGateLabelToggleTest ×1, SwitchRowA11yTest ×1, TurnNavOverlapTest
+×2, FindBarFocusTest ×1), 0 lost. One mid-phase coupling (the two batch-coupled pins above)
+was caught by the gate and updated as its own commit; a flaky-first-full-run conversation
+failure cluster (HookTrustReviewCardTest/QueueControlsUiTest) was that coupling, not load.
+
+### Rig learnings recorded for later phases
+
+1. **Compose `Popup(alignment = BottomStart)` mis-anchors on device** (pass-verified in
+   Robolectric, ~200px low on the rig, covering the composer): anchor overlays
+   deterministically with TopStart + an offset of the content's own measured height
+   (onSizeChanged → IntOffset(0, −height)). Robolectric cannot catch popup placement.
+2. **uiautomator does not see Compose DropdownMenu content** even with `--windows` —
+   drive menus by screenshot + pixel taps.
+3. **`adb shell input text` splits on spaces** (only the first token lands — the send
+   receipt showed "rig", not "rig p9 send"); use %s or single tokens.
+4. **The app's screenshot-protection switch (FLAG_SECURE) blanks screencap** — toggle it
+   OFF in Settings before any pixel leg (default ON since F-37-F).
+5. **The pre-fix RED for a focus pin must assert the FOCUS, not text injection** —
+   performTextInput uses SetText semantics (no IME routing) and cannot reproduce the
+   recorded hand-off.
+
+### Exit-gate rig leg — PASSED 2026-11-09 (fresh zcode-a16 cold boot, Android 16 / API 36)
+
+Rig: `zcode-a16` cold boot (`-no-snapshot-load -gpu swiftshader_indirect -no-audio`),
+the boot-time SystemUI ANR dialog dismissed with "Wait" (the recorded swiftshader
+artifact); the all-flags MockZCode relay across THREE generations (gen1: the standing
+arming; gen2: + MOCK_ROWS=80 for the scroll legs; gen3: + MOCK_FILECHANGES for the
+rewind plane; restarts by `pkill -f MockRelayMainKt` only); fresh `adb install -r` of
+the phase debug APK `ca8a7f52…` (versionCode 52 / 1.3.1) — the build at `6f0c9bce`.
+Animations off; POST_NOTIFICATIONS granted; the app's screenshot-protection switch
+toggled OFF for the pixel legs (recorded above).
+
+| Gate leg | Receipt |
+| --- | --- |
+| **N-BG-1 / D4 / N-BF-3 (the armed stack)** | The FULL armed stack live (question card + hook card + queue strip + approval strip + background banner + shared chip): "Send answers" + "Skip" VISIBLE at [138,709][256,859] with the composer field at [105,2018] AND the Send button at [894,2118] — everything on one screen (the recorded face: Submit four inner scrolls deep, the composer gone). One swipe on the pinned plane brought the hook card's Trust to [334,1049][747,1099] — reachable WITHOUT a magic swipe (D4), the composer unmoved |
+| **N-BD-1 (palette)** | With the armed stack + IME up + draft "/": the palette floats ABOVE the composer (screenshot /tmp/p9/nbd1-v4.png), Send message at [894,1410][1026,1542]; the palette scrolls to later commands (/effort /dwf /fork after a swipe); a real send fired after the palette closed |
+| **F-33-D (IME math)** | `dumpsys window`: mImeHeight=767 → the IME top 1573; the Send bottom 1542 → a **31px gap (≈12dp)** — the recorded defect was 145px (3-button) / 60px (gesture). The composer hugs the keyboard under the armed stack, Send painted and dispatched |
+| **N-BH-1 (attachment-only send)** | + → Sketch → drawn → Done → the chip "sketch-1794262137431.png (5.7 KB)" staged → the draft cleared → **Send ENABLED with an empty draft** (no `enabled="false"`) → tap → `v4.call :: sendConversationCommandV4 ok in 490ms` → the chip CONSUMED (the ACCEPTED contract) → the new row's action bar rendered |
+| **F-36-A (floating buttons)** | Timeline scrolled into history: turnnav [937,917][1003,983] and jump [940,1088][978,1126] BOTH visible — **NO OVERLAP, the navigator fully above jump-to-latest** (the recorded defect: a 13px sliver under the jump, four taps all lost); the navigator sheet opened FROM the scrolled-up position with all three queries |
+| **N-BF-1 (find focus)** | The composer focused → find opened → the typed query landed IN THE FIND FIELD ("synthetic", "1 of 2" matches) — the composer area carries no query text (the recorded face: the query became a draft and raised the leave-guard) |
+| **F-27-C (context sheet)** | The sheet's chip rows FULL height: Files/Git/Terminal at [61,2090] h=35, **Model calls [61,2175][215,2210] + Share [288,2175][392,2210] h=35** vs the nav-bar line 2208 (the recorded face: the second row an 11px sliver, taps dead; screenshot /tmp/p9/f27c-sheet.png) |
+| **N-BC-1 (auto-send label)** | Tapping the "Auto-send" LABEL (not the switch) fired `v4.call :: sendConversationCommandV4 ok in 452ms` (the recorded face: zero events on the label) |
+| **N-BG-3 (Settings switches)** | The Live connection / Auto-reconnect / Terminal / Screenshot-protection rows all expose `checkable checked` with FULL-WIDTH toggle targets ([0,556][1080,797] etc. — the recorded face: plain Views, the switch the only hit target) |
+| **F-27-B (zoom + rewind)** | The timeline thumbnail tap OPENED THE ZOOM VIEWER (the mock's red image + Close — the recorded face: dead on device); "Undo files" → the sheet paints the COMPLETE preview plane from the wire: safe files (↩ src/version.ts, − scratch/probe.txt), the unsafe reason in error red ("! src/config.ts — Modified after the checkpoint"), the ignored count ("1 file(s) … skipped") — the recorded defect: ZERO faces across passes 21–31; the mock seeds canApply=true so the Confirm is enabled (the gate's both directions pinned in Robolectric) |
+| **Logcat audit** | **0 app FATALs / 0 ANRs / 0 app-process deaths** across the whole session (6,123 lines: connect → the armed stack → palette opens/scroll/sends → sketch upload+send → zoom → rewind sheet → context sheet → Settings → find) |
+
+### Verification stamp
+
+This phase was implemented (test-first; RED receipts in /tmp/p9/*.log), suite-gated
+(1900/0/0/0 across 17 modules at `6f0c9bce`, +33 = exactly this phase's pins, 0 lost),
+and rig-verified on the exit-gate leg above (including one rig-caught fix re-landed
+in-phase: the N-BD-1 popup re-anchor `6f0c9bce`), and marked complete on
+**2026-11-09 at 22:29:41** (local time, yyyy-mm-dd hh-mm-ss — the moment the exit-gate
+logcat audit reconciled 0 FATALs / 0 ANRs / 0 deaths across the whole session) by
+**GLM-5.3-Flash** (the session model) running inside **ZCode** (the ZCode CLI agent
+harness), working under Ernest's standing deliverable-completion rule on `fix/vc52`;
+commits `ca392ca4`, `a009d36d`, `dc770fc8`, `32719809`, `946e46ce`, `81021795`,
+`89f8d27c`, `5bdd1c16`, `5e46f573`, `951d70c9`, `88583b80`, `6f0c9bce` (this phase,
+including the rig-caught re-anchor and the batch-coupled pin update), all local,
+nothing pushed.
+
+**Phase 9 is COMPLETE: all 10 rows closed (F-27-B; F-33-D; F-27-C carrying D2/D5/N-BD-4;
+N-BD-1; N-BG-1 carrying N-BF-3/D4; N-BH-1; N-BF-4/N-BH-3/N-BH-4; F-36-A;
+N-BC-1/N-BG-3/N-BC-3; N-BF-1), every pin RED at its pre-fix commit and GREEN after, the
+full-suite zero-new-names gate reconciled (+33 = exactly this phase's pins, 0 lost), and
+the exit gate passed on a fresh Android 16 emulator leg across three relay generations
+with 0 FATALs / 0 ANRs.** Nothing pushed; publishing waits on Ernest's explicit word.
