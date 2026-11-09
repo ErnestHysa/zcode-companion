@@ -956,13 +956,31 @@ fun ComposerBar(
             if (slashMenuVisible) {
                 // C2: the extras (skills / agents / custom commands) load on FIRST open.
                 LaunchedEffect(Unit) { onSlashMenuOpen() }
-                SlashCommandMenu(
-                    commands = state.slashCommands,
-                    query = state.draft,
-                    onPick = onDraftChange,
-                    modifier = Modifier.padding(bottom = 4.dp),
-                    extras = state.slashExtras,
-                )
+                // N-BD-1 (vc52 Phase 9): the palette is an ANCHORED POPUP above the
+                // composer, never an in-flow child — in-flow it consumed the composer's
+                // remaining height (under the armed pinned stack the shell measured to
+                // zero and the whole action row vanished from the tree: Send unreachable
+                // while the draft matched "/"). BottomStart on a zero-size anchor at the
+                // shell's top edge floats the panel ABOVE the composer (the desktop's
+                // overlay panel shape); the draft losing the "/" prefix dismisses it —
+                // no scrim, outside taps pass through.
+                Box(Modifier.testTag("slash_menu_anchor")) {
+                    androidx.compose.ui.window.Popup(
+                        alignment = Alignment.BottomStart,
+                        properties = androidx.compose.ui.window.PopupProperties(
+                            focusable = false,
+                            dismissOnClickOutside = false,
+                            dismissOnBackPress = false,
+                        ),
+                    ) {
+                        SlashCommandMenu(
+                            commands = state.slashCommands,
+                            query = state.draft,
+                            onPick = onDraftChange,
+                            extras = state.slashExtras,
+                        )
+                    }
+                }
             }
             // §43.2-11.5 voice input EXPERIMENT (#305): platform recognizer, availability-
             // gated, dictates into the draft (final results only — never partial noise).
