@@ -19,6 +19,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
@@ -214,6 +215,9 @@ class DirectTransport(
     private val sendBuffer = Channel<ByteArray>(config.sendQueueCapacity)
 
     private val recovering = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    /** F-34-B: the running recovery loop — reconnectNow() restarts it (fresh budget). */
+    private var recoveryJob: Job? = null
     private val connectionCounter = java.util.concurrent.atomic.AtomicLong(0)
 
     /** Server-info from the winning preflight (§11.6 workspace-list source). */
@@ -660,7 +664,7 @@ class DirectTransport(
             recovering.set(false)
             return
         }
-        scope.launch {
+        recoveryJob = scope.launch {
             try {
                 recoverLocked()
             } catch (e: CancellationException) {
@@ -674,6 +678,11 @@ class DirectTransport(
     }
 
     override fun reconnectNow() {
+        // F-34-B: the same frozen-budget shape as the relay transport — the fresh budget
+        // is opened BEFORE the state branches, and the parked RECONNECTING loop is
+        // RESTARTED (join the parked one so its finally releases `recovering`; a bare
+        // single-flight recover() would no-op against it — the F-34-B dead poke).
+        reconnect.freshBudget()
         if (machine.state == ConnectionStateMachine.ConnectionState.DEGRADED ||
             machine.state == ConnectionStateMachine.ConnectionState.FAILED
         ) {
@@ -685,7 +694,11 @@ class DirectTransport(
         }
         reconnect.requestImmediate()
         if (machine.state == ConnectionStateMachine.ConnectionState.RECONNECTING) {
-            scope.launch { runCatching { recover() } }
+            val parked = recoveryJob
+            recoveryJob = scope.launch {
+                parked?.cancelAndJoin()
+                runCatching { recover() }
+            }
         }
     }
 

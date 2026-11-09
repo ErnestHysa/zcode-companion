@@ -25,6 +25,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
@@ -845,6 +846,12 @@ class RelayTransport(
 
     override fun reconnectNow() {
         kicked = false
+        // F-34-B: a foreground entry / explicit signal is a BUDGET event first — the
+        // frozen-process wall-clock budget must never decide what happens in the
+        // foreground. From RECONNECTING this re-arms the parked loop (fresh budget +
+        // immediate attempt) instead of only poking single-flight recover() (whose
+        // latch the frozen loop still owns — the poke was a no-op).
+        reconnect.freshBudget()
         if (machine.state == ConnectionStateMachine.ConnectionState.DEGRADED ||
             machine.state == ConnectionStateMachine.ConnectionState.FAILED
         ) {
@@ -859,7 +866,17 @@ class RelayTransport(
         }
         reconnect.requestImmediate()
         if (machine.state == ConnectionStateMachine.ConnectionState.RECONNECTING) {
-            recoveryJob = scope.launch { runCatching { recover() } }
+            // F-34-B: the parked loop may be mid-delay (up to the 60 s backoff cap) or
+            // own `recovering` through a single-flight recover(); a bare scope.launch
+            // single-flighted off it (the F-34-B receipt's dead poke). RESTART the loop
+            // so the fresh budget + immediate latch are consumed NOW, in the foreground —
+            // JOIN the parked one first: its finally releases `recovering`, and a
+            // recover() racing that release would no-op and leave NO loop running.
+            val parked = recoveryJob
+            recoveryJob = scope.launch {
+                parked?.cancelAndJoin()
+                runCatching { recover() }
+            }
         }
     }
 
