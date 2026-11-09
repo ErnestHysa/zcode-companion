@@ -132,6 +132,7 @@ class HistoryPaginationE2eInstrumentedTest {
         rule.waitUntil(30_000) { rule.onAllNodesWithTag("consent-reduced").fetchSemanticsNodes().isNotEmpty() }
         android.util.Log.d("HISTDBG", "stage=consent")
         rule.onNodeWithTag("consent-reduced").performClick()
+        rule.finishPostPairingSteps() // F-34-E: the notification ask + onboarding are reachable now
 
         // ---- task list: open the session
         android.util.Log.d("HISTDBG", "stage=waiting-tasks-list")

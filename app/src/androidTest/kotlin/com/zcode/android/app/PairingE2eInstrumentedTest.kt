@@ -120,7 +120,7 @@ class PairingE2eInstrumentedTest {
         submitLink(link(mockPort(), happyHash()))
         waitForTag("consent-reduced")
         rule.onNodeWithTag("consent-reduced").performClick()
-        waitForTag("tasks-title")
+        rule.finishPostPairingSteps() // F-34-E: the notification ask + onboarding are reachable now
         val elapsedMs = System.currentTimeMillis() - t0
         assertTrue("first-pair took $elapsedMs ms — budget is 60 s (§48)", elapsedMs < 60_000)
         println("E2E-PAIR-ELAPSED_MS=$elapsedMs")
@@ -163,7 +163,7 @@ class PairingE2eInstrumentedTest {
         submitLink(link(mockPort(), happyHash()))
         waitForTag("consent-reduced")
         rule.onNodeWithTag("consent-reduced").performClick()
-        waitForTag("tasks-title") // Phase 6 shell: success lands on the task list
+        rule.finishPostPairingSteps() // Phase 6 shell → F-34-E: the ask + onboarding, then the task list
 
         // §12.2 step-4 classification on-device: sealing the same sid again = ROTATION
         // (rotation continuity/vectors are JVM-proven in CredentialVaultTest).

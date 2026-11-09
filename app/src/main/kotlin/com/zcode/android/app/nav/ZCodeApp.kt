@@ -77,6 +77,20 @@ object Routes {
 }
 
 /**
+ * F-34-E (vc52 Phase 8, rig-caught): the NavHost start destination is decided ONCE, at the
+ * first composition (the splash holds until the paired gate is settled — C6 — so that
+ * composition already knows). It used to be `if (paired != null) TASKS else PAIRING`,
+ * re-evaluated on every composition: when pairing completed the start destination flipped,
+ * Navigation rebuilt the graph and RESET the back stack to TASKS during composition — before
+ * `LaunchedEffect(paired)` ran — so the effect saw TASKS and its `onPairing` branch (the
+ * notification ask, the first-run onboarding) never executed on a real pairing. Every later
+ * paired-driven transition belongs to that effect (its contract says so).
+ */
+@androidx.compose.runtime.Composable
+internal fun rememberStartDestination(paired: Boolean): String =
+    remember { if (paired) Routes.TASKS else Routes.PAIRING }
+
+/**
  * F-34-A (vc52 Phase 8): the ONE conversation navigation seam. `launchSingleTop` is
  * WRONG twice over: Navigation matches the destination PATTERN (`conversation/{taskId}`),
  * not the arguments, so (a) a tap for task B while A is on top would REUSE (replace!)
@@ -273,7 +287,7 @@ fun ZCodeApp(
     com.zcode.android.core.ui.components.ProvideRelativeNow {
     NavHost(
         navController = nav,
-        startDestination = if (paired != null) Routes.TASKS else Routes.PAIRING,
+        startDestination = rememberStartDestination(paired != null),
         modifier = Modifier.semantics { testTagsAsResourceId = true },
         enterTransition = { navMotion.enter },
         exitTransition = { navMotion.exit },
