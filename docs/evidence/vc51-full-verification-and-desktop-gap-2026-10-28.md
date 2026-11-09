@@ -10778,7 +10778,7 @@ These are **new defects in the same plane**, not failed fixes. Treat them as suc
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 6 | Security & untrusted execution | 6 | 2 | 2 | 2 | 0 | High | ☑ **Done 2026-11-08** — all 6 rows + RIG-P4 (pulled forward); commits `da9a32ab`→`397b5de7`; exit gate PASSED; receipt "Phase 6 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-08" appended at file end |
 | 7 | Interaction & settings truth | 6 | 0 | 3 | 2 | 1 | High | ☑ **Done 2026-11-09** — all 6 rows + RIG-P1 (pulled forward); commits `ff914e46`→`9a1f23dd`; exit gate PASSED; receipt "Phase 7 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-09" appended at file end |
-| 8 | Lifecycle, reconnect & availability | 7 | 0 | 5 | 2 | 0 | High | ☐ Open |
+| 8 | Lifecycle, reconnect & availability | 7 | 0 | 5 | 2 | 0 | High | ☑ **Done 2026-11-09** — all 7 rows (F-33-A+F-33-B/C folded, F-34-A/B/C/D/E/F + F-33-G folded into F-34-E); commits `580b3911`→`a7fe2bff` (11, incl. 2 rig-caught fixes); exit gate PASSED; receipt "Phase 8 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-09" appended at file end |
 | 9 | Timeline & composer geometry | 10 | 0 | 0 | 6 | 4 | Medium | ☐ Open |
 | 10 | Conversation data, rendering & feedback | 10 | 0 | 1 | 2 | 7 | Medium | ☐ Open |
 | 11 | Parity: protocol & execution planes | 11 | 0 | 0 | 9 | 2 | High | ☐ Open |
@@ -10995,7 +10995,7 @@ F-34-B → F-34-F → F-34-D → F-34-E → F-34-C.**
 
 ### Sub-phase 8A — the process-scoped container and the navigation stack
 
-- [ ] **F-33-A (P2) — the zombie conversation screen after any Activity recreate.**
+- [x] **F-33-A (P2) — the zombie conversation screen after any Activity recreate.**
   `MainActivity.kt:128` builds a per-Activity `AppContainer` while `ZCodeApp.kt:570-579` retains
   the conversation VM, so after a recreate the retained screen's CommandCoordinator reads the
   destroyed transport: sends fail with `command.blockedOffline` while the status line still says
@@ -11012,7 +11012,7 @@ F-34-B → F-34-F → F-34-D → F-34-E → F-34-C.**
   approval re-post during a config change; `isChangingConfigurations` skips the background entry;
   the three pins (zombie, heap, background-entry) land together.
 
-- [ ] **F-34-A (P2) — a notification tap onto the open conversation stacks a duplicate and the
+- [x] **F-34-A (P2) — a notification tap onto the open conversation stacks a duplicate and the
   surviving screen goes dead.**
   `ZCodeApp.kt:204` calls `nav.navigate(Routes.conversation(link.taskId))` with no
   `launchSingleTop` and no same-task check → a second entry for the same task; popping it runs
@@ -11027,7 +11027,7 @@ F-34-B → F-34-F → F-34-D → F-34-E → F-34-C.**
 
 ### Sub-phase 8B — the reconnect budget and the foreground-service truth
 
-- [ ] **F-34-B (P2) — returning from the background can land in "Disconnected" for minutes.**
+- [x] **F-34-B (P2) — returning from the background can land in "Disconnected" for minutes.**
   The reconnect budget is wall-clock from the first loss (`ReconnectPolicy.kt:40-50`) and burns
   while the process is frozen; `RelayTransport.reconnectNow()` (`:846-863`) from RECONNECTING only
   calls `requestImmediate()` + a single-flight `recover()`, and `nextDelayMs()` checks the expired
@@ -11039,7 +11039,7 @@ F-34-B → F-34-F → F-34-D → F-34-E → F-34-C.**
   from RECONNECTING after expiry yields an attempt; the live freezer leg recovers in seconds after
   returning to the foreground.
 
-- [ ] **F-34-F (P3) — the Live-connection notification says "Connected" while the app is
+- [x] **F-34-F (P3) — the Live-connection notification says "Connected" while the app is
   disconnected.**
   `LiveConnectionService.kt:86-87` builds the text once at service start; through 10 minutes of
   DEGRADED transport the shade still read "Connected — Live connection active". **Fix:** have the
@@ -11050,7 +11050,7 @@ F-34-B → F-34-F → F-34-D → F-34-E → F-34-C.**
 
 ### Sub-phase 8C — permissions and availability (Android 13+ defaults)
 
-- [ ] **F-34-D (P2) — voice dictation is dead on every device and its error blames the device.**
+- [x] **F-34-D (P2) — voice dictation is dead on every device and its error blames the device.**
   The app does not declare `RECORD_AUDIO` at all (manifest grep 0; `dumpsys package` 0) and never
   asks; `VoiceInput.kt:47-48` shows Dictate whenever a recognizer exists and `:84` calls
   `startListening`, which the service rejects (`received from a caller without permission
@@ -11061,7 +11061,7 @@ F-34-B → F-34-F → F-34-D → F-34-E → F-34-C.**
   denied-permission pin asserts the new copy; live grant → transcript; live deny → the permission
   copy, never "not available on this device".
 
-- [ ] **F-34-E (P2) — on Android 13+ the app never asks for notification permission.**
+- [x] **F-34-E (P2) — on Android 13+ the app never asks for notification permission.**
   Fresh install: `POST_NOTIFICATIONS` `granted=false`, app `importance=NONE`; onboarding, pairing,
   Tasks and the conversation never request it (the only site is the Live-connection toggle,
   `SettingsScreen.kt:947-968`), so the broker re-posts approvals into a blocked sink
@@ -11074,7 +11074,7 @@ F-34-B → F-34-F → F-34-D → F-34-E → F-34-C.**
   approval; deny → the off-state row on both surfaces; the deep link opens the system page; grant
   → `importance != NONE` and a delivered notification; no "ON" copy while blocked (F-33-G pin).
 
-- [ ] **F-34-C (P3, privacy) — the pairing camera keeps running after you leave the scanner.**
+- [x] **F-34-C (P3, privacy) — the pairing camera keeps running after you leave the scanner.**
   `QrScanner.kt:48-72` binds the use cases to the **Activity** lifecycle and never unbinds when
   the composable leaves composition; the camera ran ~7.5 minutes after the user moved to manual
   entry (including a minute on the paired Tasks screen). **Fix:** `DisposableEffect { onDispose {
@@ -11082,7 +11082,7 @@ F-34-B → F-34-F → F-34-D → F-34-E → F-34-C.**
   the scanner then remove it → the provider's bound use cases are empty; the live camera indicator
   goes off on leaving the scan screen; a compose pin covers the disposal.
 
-**Phase 8 exit gate: ☐** fresh install (`pm clear`) on `zcode-a16`; legs: ask → deny → off-state
+**Phase 8 exit gate: ☑ PASSED 2026-11-09** (fresh install on a cold-booted `zcode-a16`, Android 16; full receipt appended at file end). Original plan: fresh install (`pm clear`) on `zcode-a16`; legs: ask → deny → off-state
 row → grant; PIN/freezer background return; notification deep link onto an open conversation;
 four-recreate hprof; camera indicator after leaving the scanner; Live-connection text across a
 relay kill; 0 FATALs/0 ANRs; suite green.
@@ -11902,4 +11902,119 @@ ZCode CLI agent harness), working under Ernest's standing deliverable-completion
 pulled forward, every pin RED at its pre-fix commit and GREEN after, the exit gate passed on a
 fresh Android 16 emulator leg across six relay generations, and the full-suite zero-new-names
 gate reconciled (+51 = exactly this phase's pins).** Nothing pushed; publishing waits on
+Ernest's explicit word.
+
+## Phase 8 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-09 (APPENDED; not part of the audit, the vc51 roadmap, Part 0, or the vc52 roadmap body)
+
+Scope: vc52 Phase 8 — Lifecycle, reconnect & availability — ALL seven rows (F-33-A with the
+folded F-33-B/F-33-C; F-34-A, F-34-B, F-34-F, F-34-D, F-34-E with the folded F-33-G, F-34-C)
+in roadmap order. Branch `fix/vc52` (continuing Phases 6–7); one finding ≥ one commit; every
+pin RED at its pre-fix commit (logs: /tmp/p8/f33a-red.keep.log, f34a-red.keep.log +
+f34a-nav-red.keep.log, f34b-red*.keep.log, red-core-notifications/features-conversation/
+features-pairing/red-app-behavior/red-app-compile/red-f34e-nav*.keep, red-onb-inset.keep.log);
+nothing pushed. F-34-E landed as two commits per the ~150-line stop rule.
+
+### Fix commits (one finding ≥ one commit, `fix(<ID>): <mechanism>`)
+
+| Row | Commit(s) | Mechanism closed | Pins (RED evidence) |
+| --- | --- | --- | --- |
+| F-33-A (P2; closes F-33-B heap-proven leak + F-33-C background-entry re-alert) | `580b3911` | `AppContainer.forProcess(applicationContext)`: ONE container per process — hub scope, transports, ports, crash store outlive Activities; MainActivity attach/detachHost()s (weak-ref) for the prompt/chooser surfaces; `AndroidBiometricGate` application-context-scoped, prompt-time host lookup; `ProcessCrashCapture` installs the default handler ONCE (the per-onCreate chained closure WAS the hprof retention path); the network-restored probe moved into the container (the anonymous callback's `this$0` pinned every recreated Activity; FGS-only processes had NO probe); onStop skips `notifications.onBackground()` while `isChangingConfigurations` | `ProcessScopedContainerTest` ×4 — same container/port/hub/transport across a recreate + live hub scope (RED "a recreate built a SECOND container"); four recreates → ONE container, unchanged default handler, zero destroyed MainActivities reachable after full GC (RED at the handler assertion); config-change stop never flips the broker background (RED flipped) + the control (real stop still does — green at both commits) |
+| F-34-A (P2) | `26ab80a8` | `NavHostController.openConversation(taskId)` — the ONE conversation nav seam: on-top-same-task keeps the entry (retained VM survives), same task deeper pops back to THAT entry, different task pushes; `launchSingleTop` deliberately rejected (Navigation matches the destination PATTERN — a tap for task B while A is on top would REPLACE A's entry; found when the first implementation failed the pin); `ConnectionHub.openedSessions` set → refcount map: only the LAST close detaches/unsubscribes; all 5 raw call sites routed through the seam | hub ×1 (MockZCode wire harness: two opens + one close stays subscribed, last close detaches, unbalanced close no-op, re-entry re-attaches — RED "the surviving conversation entry lost its subscription"); nav ×3 (real NavHostController: one entry, deeper pop returns to the ORIGINAL entry, different task pushes its own — compile-RED, 4 unresolved `openConversation`); wiring ×1 (zero raw `navigate(Routes.conversation(…))` remain — RED "expected 0 but was 5") |
+| F-34-B (P2) | `89fe8c38` | `ReconnectPolicy.nextDelayMs()` honours the immediate latch BEFORE the budget check (the frozen wall-clock budget no longer refuses the foreground attempt); new `freshBudget()` re-opens the full attempt budget on explicit signals; `RelayTransport.reconnectNow()` fresh budget FIRST, and from RECONNECTING cancels-and-JOINS the parked loop then restarts it (joining matters: the parked finally releases `recovering`; a racing recover() would no-op and leave NO loop); `DirectTransport` symmetric (+ `recoveryJob` tracking) | policy ×4 injected-clock (fg after a 5-min frozen gap → attempt (compile-RED pre-fix); freshBudget grants the full window and still bounds it; guards: no signal still degrades, latch alone buys exactly one attempt); transport ×2 real RelayTransport-vs-MockZCode (frozen mid-attempt + 5-min clock jump + foreground → CONNECTED with no DEGRADED (RED "did not reconnect; states=[CONNECTED, RECONNECTING, RECOVERING]"); a loop parked in a 20 s backoff restarts on the signal (RED "waited out the parked 20 s backoff")) |
+| F-34-F (P3) | `2dc0647a` | `LiveConnectionService.phaseSource` (the process container wires `hub.phase`) + pure `statusFor()`: nine transport phases → three honest states (Connected / Reconnecting / Disconnected — Tap to retry), exhaustive; a service-scoped collector re-posts on the SAME id via startForeground only when the visible status changes (setOnlyAlertOnce; cancelled with the service); copy en + zh-CN; "Tap to retry" is literal (the foreground entry IS the retry, F-34-B) | `LiveConnectionStatusTest` ×4 Robolectric service (three phases end-to-end (compile-RED: unresolved phaseSource/statusFor/LinkStatus — LinkStatus initially landed in the companion, moved to class level); one stable id + NO re-post across RECONNECTING/RECOVERING/CONNECTING churn; the exhaustive mapping; no-source service-first start keeps the start status) |
+| F-34-D (P2) | `18c9d2ef` | Manifest declares RECORD_AUDIO; `VoiceInputPort.requiresMicPermission` (platform adapter true); the Dictate tap requests AT the tap (registry launcher safe since GAP-A8's fragment bump), grant→listen; a denial or the recognizer's ERROR_INSUFFICIENT_PERMISSIONS (9) renders "Microphone permission needed for dictation" + a Settings link (the details page — the way back after don't-ask-again); other errors keep the generic copy; en + zh-CN; VoiceInputTest's code-6 comment corrected (6 = ERROR_SPEECH_TIMEOUT; 9 = the refusal) | manifest ×1 (merged manifest — RED "RECORD_AUDIO is not declared"); behavior ×6 real ComponentActivity launcher (tap asks, never starts blind (RED compile); deny → the microphone copy + Settings link, never "not available on this device" (RED compile); grant → listening; already-granted → no prompt; recognizer error 9 → the permission copy; the adapter declares the dependency) |
+| F-34-C (P3, privacy) | `1e167150` | `QrScanner`: DisposableEffect onDispose → unbindAll() (the Activity-lifecycle-bound use cases used to run ~7.5 min past the scanner); a provider future resolving AFTER the scanner left never binds; `QrCameraBinding`/`QrCameraBindingSource` seam (default = CameraX ProcessCameraProvider unchanged, incl. the camera-less degrade) | `QrScannerDisposalTest` ×2 compose + fake binding (bind preview+analysis → remove → bound set EMPTY (compile-RED); a late provider binds nothing) |
+| F-34-E (P2; closes F-33-G) | `f7f356ea` (1/2) + `64f13d6c` (2/2) | `NotificationsGate` (areNotificationsEnabled + needsRuntimeGrant + the ACTION_APP_NOTIFICATION_SETTINGS intent) + `rememberNotificationsEnabled()` (re-read on ON_RESUME); `NotificationsOffRow` on Tasks (new app-filled banner slot) and Settings; the Notifications section LEADS with the row while blocked and the three category switches read their EFFECTIVE state (off + disabled + "Blocked by Android — turn notifications on first") — never "Approval requests ON" while Android blocks everything; `Routes.NOTIFY_SETUP`: the pairing transition routes through the ask while notifications are off (rationale → runtime ask → deny shows the off-row; grant enables the Live-connection offer in the SAME step with its battery note); en + zh-CN | F-33-G ×2 (pre-existing API only — RED BEHAVIORALLY: the Approval-requests switch read ON while blocked; control green); access ×4 @sdk35 (the row deep-links to the app's system page; the gate follows Android's verdict; Tasks carries the row; wiring — compile-RED); step ×3 + wiring ×1 (the ask with rationale (compile-RED); deny → off-row + link, Live not started; grant → enabled + Live offerable + Continue routes on; the pairing branch consults the gate) |
+
+### Suite reconciliation
+
+Pre-phase baseline at d9eeb54b (Phase 7 exit, docs-only delta): **1824 tests / 0 failures /
+0 skipped, 17 modules** (11 `testDebugUnitTest` + six JVM `test`), every module emitting XML.
+Mid-phase gate at 64f13d6c: **1862/0/0/0, 17 modules, 0 task failures, 0 test-compile
+failures — +38 names vs the baseline, every one this phase's own pins, 0 lost**
+(1824+38=1862, exact). Final full-suite gate at the phase HEAD `a7fe2bff` (the two
+rig-caught commits add +5): **1867 tests / 0 failures / 0 skipped, 17 modules, every module
+emitting XML, 0 gradle task failures** (+43 vs the baseline, all this phase's pins; 0 lost).
+
+One pre-existing flake adjudicated in writing: `ConnectionHubIntegrationTest › retries after
+a connect failure respect backoff — no hot loop` failed TWICE in-pool during the phase.
+A/B exonerated: baseline worktree d9eeb54b solo ×8 = 8/8 pass, but the same baseline in the
+in-class grouping (ConnectionHubDirectEndpointTest + ConnectionHubIntegrationTest together)
+failed 1/5 with the IDENTICAL signature (retry gaps [5018, 74, 267]), while the phase HEAD
+passed 5/5 in the same grouping — a load-timing flake at both commits (the assertion counts
+wall-clock gaps < 300 ms), NOT introduced by this phase.
+
+### Rig-caught during the exit gate (fixed in the phase, test-first)
+
+- `e58692e4` — the post-pairing transition was DEAD on a real pairing: ZCodeApp's
+  `NavHost(startDestination = if (paired != null) TASKS else PAIRING)` re-evaluated on every
+  composition; when pairing completed the start destination flipped, Navigation rebuilt the
+  graph and RESET the back stack to TASKS during composition — before LaunchedEffect(paired)
+  ran — so the effect saw TASKS and skipped its onPairing branch: no notification ask (2/2
+  dead on device) and, it turned out, H1.5's onboarding had NEVER shown on a real pairing
+  since it shipped (device log: `nav.screen route=pairing` → `route=tasks`, nothing between).
+  Fix: `rememberStartDestination` decides ONCE (the C6 splash already holds until the paired
+  gate is settled); the unit wiring pin had checked the branch's SOURCE, not that it runs.
+  Pins: PairingTransitionNavTest (the flip leaves the stack on PAIRING — compile-RED) +
+  PairingTransitionWiringTest (the NavHost uses the helper — RED behaviorally; plus the
+  CONTROL proving the hazard on the real library: an inline re-evaluated start destination →
+  the effect only ever sees TASKS). The instrumented pairing flows (PairingE2e ×2,
+  HistoryPaginationE2e) gained a shared `finishPostPairingSteps()` walk.
+- `a7fe2bff` — with onboarding NOW reachable, its first real drive found Skip/Get started
+  untappable: OnboardingPager laid its header out with only `.padding(24.dp)` in the
+  edge-to-edge app (Skip spanned y=66–198 under a 136 px status bar; every tap hit the
+  status bar; `onFinish` never ran — instrumented receipts — and onboardingDone never
+  persisted; no preferences.pb existed until the fix). Fix: safeDrawingPadding before the
+  content padding. Pin: OnboardingInsetTest (synthetic statusBars insets, the
+  HeaderInsetTest recipe) — RED "drawn under the status bar: top=24.0px inset=136px".
+- `7bcdb358` (not a row) — `:app:compileDebugAndroidTestKotlin` has been failing since
+  da0dcf69 (vc51 Phase 4A sealed DeepLinks.Candidate; the androidTest source set sits
+  outside the 17-module unit gate). Phase8InstrumentedTest now narrows to Candidate.Task
+  before reading taskId (verified identical at the phase baseline).
+
+### Exit-gate rig leg — PASSED 2026-11-09 (fresh zcode-a16 cold boot, Android 16 / API 36)
+
+Rig: `zcode-a16` cold boot (`-no-snapshot-load -gpu swiftshader_indirect -no-audio`), the
+standing all-flags MockZCode relay (MOCK_APPROVAL/ROW_ACTIONS/GOAL/COMPACT/
+CHECKPOINT_CONFLICTS/FILECHANGES/WORKFLOWS/TASKMGMT/QUESTION/HOOKS/QUEUE/SESSIONS_INDEX/
+BACKGROUND_BASH/WORKSPACE_FILES/SHARED_CONTEXT/CUA/GIT/AUTOMATIONS/OFFPEAK/USAGE/
+AUTOMATION_RUNS; per-generation restarts gen1–3), clean `adb install` (no -r) of the phase
+debug APK `73e45f58…` (versionCode 52 / 1.3.1) — the final build at a7fe2bff. The
+boot-time SystemUI ANR dialog (the recorded swiftshader cold-boot artifact) dismissed with
+"Wait"; PIN 1234 set/cleared around the lock leg.
+
+| Gate leg | Receipt |
+| --- | --- |
+| **F-34-D manifest truth** | Fresh install: `RECORD_AUDIO`/`POST_NOTIFICATIONS` both declared, both `granted=false` (the pass-34 `dumpsys package` grep=0 face gone) |
+| **F-34-C camera** | Scanner composed → Camera2 `CONNECT device 10 … com.zcode.android.app` (16:21:23); the manual-entry tap at 16:22:04 → `DISCONNECT device 10` + CameraStateRegistry `CLOSED` (Open count 0) at 16:22:04.596 — the same instant — and `Active Camera Clients: []` (pre-fix: ~7.5 min of invisible camera). The shade's "Camera in use" tile label was STALE — dumpsys truth: zero active clients (system artifact, recorded) |
+| **Pairing (on the fixed transition)** | Masked manual-entry field typed (chunked typer, `\&`-escaped, length-verified); stale-link "Continue anyway" → E7 reduced-security consent → `vault.sealed` → CONNECTED → `nav.screen route=notify-setup` (the dead start-destination receipt: the pre-fix leg-1 install went `route=pairing` → `route=tasks` with NOTHING between) |
+| **F-34-E ask → deny** | The step renders "Turn on approval alerts" + rationale + Live-connection offer (battery note); "Turn on notifications" → the SYSTEM prompt "Allow ZCode Companion to send you notifications?" BEFORE any approval; "Don't allow" → `granted=false, USER_SET` + the off-state row inside the step; "Not now" → onboarding → Skip (fixed inset) → Tasks |
+| **F-34-E off-state surfaces** | Tasks shows "Notifications are off · Approval requests from your desktop can't reach you · Turn on"; Settings → Notifications: the row leads the section and all three category switches read OFF + disabled with "Blocked by Android — turn notifications on first" (the F-33-G face gone) |
+| **F-34-E system page → grant** | "Turn on" opens `AppNotificationSettingsActivity` for THIS package (EXTRA_APP_PACKAGE verified); the master switch grant → `granted=true`; back → the row is GONE from both surfaces on resume, switches restored their stored ON |
+| **onboardingDone persistence** | `run-as` pull: preferences.pb exists (61 B) with field 13 (`onboarding_done`) = 1 — never written before this phase (the file was absent through the whole stuck loop) |
+| **F-34-D dictation** | Composer → + → Dictate → the SYSTEM prompt "Allow ZCode Companion to record audio?" at the tap; deny → "Microphone permission needed for dictation" + Settings link, never "Voice input isn't available on this device"; grant (pm) → + → Dictate → "Listening…" with the recognizer live (Soda logs); rig note: with the error row up the composer moves — re-locate by dump before tapping (the bounds shift) |
+| **Delivered notifications** | Relay gen2 with `MOCK_INTERACTION_PUSH_MS=20000`; background entry → `notify.show`/re-post ×3 → `importance=4` records, titles "ZCode needs your approval"/"ZCode has a question for you" (Minimal: `android.text=null`, no shade actions — F-33-H contract intact) |
+| **F-34-A deep link onto the open conversation** | synth-task-1 open → fresh approval → shade tap → `onNewIntent zcode://task/synth-task-1#interaction=mock-approval-push-1` → `nav.deeplink resolved` with NO second `conversationOpen` (pre-fix: a second entry); send `p8f34aping` → `sendConversationCommandV4 ok 62ms`, `gateway.drop` count **0**, reply rendered, find-in-conversation "**1 of 2**" (pass 34: "No matches"); BACK → Tasks alive (exactly one unsubscribe at the last teardown) |
+| **F-33-A four recreates** | 4 × `cmd uimode night` flips → 4 onCreate (all `changingConfigurations=true` stops): **0 notify.repost/notify.show, 0 reconnects, 0 "Muting recently noisy"** (pre-fix: 19/12/17); the retained screen sent `p8zombieprobe` AFTER the flips → `sendConversationCommandV4 ok 144ms`, 0 drops, find = "1 of 2" (message + reply rendered on the retained screen — the zombie is gone) |
+| **F-33-A hprof** | `am dumpheap -g` (forced GC) after the four recreates: **1 MainActivity / 1 AppContainer / 1 ConnectionHub / 1 RelayTransport** (OkHttpClients 4 = the one graph's own; pre-fix receipt: 5/5/5/5 + 16 clients). The un-forced dump's second MainActivity instance has NO GC-root path (unreachable garbage — noted honestly) |
+| **F-34-F FGS text across a relay kill** | Live connection ON → shade `Connected to MockBook` (id 4201); `pkill` relay → `relay.lost` (abnormal close 1006, broken pipe after the 10 s heartbeats) → the shade flips to **"Reconnecting to MockBook… — Live connection active — it resumes automatically"**; budget exhausted → DEGRADED → **"Disconnected from MockBook — Tap to retry"**; relay gen3 up (no user action) → stays Disconnected (quiesced, honest); foreground → **"Connected to MockBook"**; exactly ONE id-4201 record through every transition (no post spam) |
+| **F-34-B background returns** | (a) DEGRADED (budget burned while the relay was down) + relay restored → foreground `onStart` 18:04:07.316 → **RECONNECTING at .331 (24 ms — the fresh budget)** → CONNECTED 18:04:10 (**2.7 s**; pass 34: 13.5 min). (b) long background (relay up, socket killed by the background network policy at 18:09:03; the ladder ran while cached, quiesced honestly — NO DEGRADED this time) → foreground 18:13:48 → CONNECTED 18:14:02 (**13.7 s**, first-try RECONNECTING, never DEGRADED). (c) PIN lock: screen off 18:18 → socket lost → automatic ladder exhausted → DEGRADED 18:20:34 (screen-off, correct) → unlock 18:20:53 → RECONNECTING +24 ms → **CONNECTED 7.5 s after unlock**. PIN cleared after the leg |
+| **Logcat audit** | **0 app FATALs / 0 ANRs / 0 NetworkOnMainThreadException / 0 app-process deaths** across the whole session (fresh install → pairing → ask/deny/grant → dictation → deep-link legs → 4 recreates → hprof → FGS/relay kills → background/PIN returns) |
+
+### Verification stamp
+
+This phase was implemented (test-first; RED receipts in /tmp/p8/*.keep.log), rig-verified on
+the exit-gate leg above (including two rig-caught defects fixed test-first in-phase), and
+marked complete on **2026-11-09 at 18:31:48** (local time, yyyy-mm-dd hh-mm-ss — the moment the final full-suite gate at `a7fe2bff` was reconciled: 1867/0/0, 17 modules, +43 = the phase pins, 0 lost) by
+**GLM-5.3-Flash** (the session model) running inside **ZCode** (the ZCode CLI agent
+harness), working under Ernest's standing deliverable-completion rule on `fix/vc52`;
+commits `580b3911`, `26ab80a8`, `89fe8c38`, `2dc0647a`, `18c9d2ef`, `1e167150`, `f7f356ea`,
+`64f13d6c`, `7bcdb358`, `e58692e4`, `a7fe2bff` (this phase, plus the androidTest repair and
+the two rig-caught fixes), all local, nothing pushed.
+
+**Phase 8 is COMPLETE: all 7 rows closed (F-33-A closing F-33-B/F-33-C; F-34-A; F-34-B;
+F-34-F; F-34-D; F-34-E closing F-33-G; F-34-C), every pin RED at its pre-fix commit and
+GREEN after, the exit gate passed on a fresh Android 16 emulator leg across three relay
+generations, and the full-suite zero-new-names gate reconciled (+43 = exactly this phase's
+pins, incl. the +5 from the rig-caught fixes).** Nothing pushed; publishing waits on
 Ernest's explicit word.
