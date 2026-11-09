@@ -34,16 +34,25 @@ import kotlin.coroutines.resume
  * androidx.biometric 1.1.0 — the challenge prompts for BIOMETRIC_STRONG only; the
  * capability() report distinguishes SECURE_LOCK_ONLY (device-credential custody is
  * still available for optional enrollment) from full biometric availability.
+ *
+ * F-33-A (vc52 Phase 8): the gate is PROCESS-scoped (it lives in the process container).
+ * Capability, the key store and the token prefs read the APPLICATION context; only the
+ * prompt needs an Activity, and it asks [hostActivity] for the CURRENT one at prompt time
+ * — the gate never retains a destroyed Activity (the per-Activity gate pinned every
+ * recreated MainActivity for the process lifetime, F-33-B). No host = Unavailable.
  */
 class AndroidBiometricGate(
-    private val activity: FragmentActivity,
+    context: Context,
+    private val hostActivity: () -> FragmentActivity?,
     private val gateKeyAlias: String = GATE_KEY_ALIAS,
 ) : BiometricGate {
 
+    private val appContext: Context = context.applicationContext
+
     override fun capability(): BiometricGatePolicy.Capability {
-        val can = BiometricManager.from(activity)
+        val can = BiometricManager.from(appContext)
             .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
-        val secureLock = activity.getSystemService(KeyguardManager::class.java)?.isDeviceSecure == true
+        val secureLock = appContext.getSystemService(KeyguardManager::class.java)?.isDeviceSecure == true
         return when {
             can == BiometricManager.BIOMETRIC_SUCCESS -> BiometricGatePolicy.Capability.AVAILABLE
             secureLock -> BiometricGatePolicy.Capability.SECURE_LOCK_ONLY
@@ -135,8 +144,9 @@ class AndroidBiometricGate(
         data object None : PromptOutcome()
     }
 
-    private suspend fun prompt(reason: String, cryptoObject: BiometricPrompt.CryptoObject): PromptOutcome =
-        suspendCancellableCoroutine { cont ->
+    private suspend fun prompt(reason: String, cryptoObject: BiometricPrompt.CryptoObject): PromptOutcome {
+        val host = hostActivity() ?: return PromptOutcome.None
+        return suspendCancellableCoroutine { cont ->
             val callback = object : BiometricPrompt.AuthenticationCallback() {
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                     if (cont.isActive) cont.resume(PromptOutcome.Success)
@@ -151,11 +161,12 @@ class AndroidBiometricGate(
             }
             val info = BiometricPrompt.PromptInfo.Builder()
                 .setTitle(reason)
-                .setNegativeButtonText(activity.getString(android.R.string.cancel))
+                .setNegativeButtonText(host.getString(android.R.string.cancel))
                 .build()
-            BiometricPrompt(activity, ContextCompat.getMainExecutor(activity), callback)
+            BiometricPrompt(host, ContextCompat.getMainExecutor(host), callback)
                 .authenticate(info, cryptoObject)
         }
+    }
 
     private data class StoredToken(val iv: ByteArray, val ct: ByteArray)
 
@@ -165,7 +176,7 @@ class AndroidBiometricGate(
         return StoredToken(iv, ct)
     }
 
-    private fun prefs() = activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    private fun prefs() = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     private fun key(): SecretKey {
         val ks = keyStore()

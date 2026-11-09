@@ -3,10 +3,6 @@ package com.zcode.android.app
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.ConnectivityManager
-import android.net.Network
-import android.net.NetworkCapabilities
-import android.net.NetworkRequest
 import android.os.Bundle
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -80,7 +76,6 @@ class MainActivity : FragmentActivity() {
     internal lateinit var container: AppContainer
     private lateinit var pairingVm: PairingViewModel
     private lateinit var tasksVm: TasksViewModel
-    private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
     /**
      * F-PERM: the result of the direct [androidx.core.app.ActivityCompat.requestPermissions]
@@ -132,15 +127,12 @@ class MainActivity : FragmentActivity() {
         val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
 
-        // FIELD (2026-09-30, vc12): the ring is persisted line-by-line; capture the
-        // CRASH ITSELF (thread + stack) so the export after a relaunch carries the
-        // evidence, then delegate to the platform handler. Never throws.
-        val platformHandler = Thread.getDefaultUncaughtExceptionHandler()
-        Thread.setDefaultUncaughtExceptionHandler { t, e ->
-            runCatching { container.diagnosticsStore.writeCrash(t.name, e.stackTraceToString()) }
-            platformHandler?.uncaughtException(t, e)
-        }
-        container = AppContainer(this)
+        // F-33-A (vc52 Phase 8): bind to THE process container — never build a second
+        // graph per Activity (the retained conversation VM drove the destroyed one: the
+        // zombie screen). The crash capture is installed with it, ONCE per process
+        // (ProcessCrashCapture — the per-onCreate handler chain retained every Activity).
+        container = AppContainer.forProcess(this)
+        container.attachHost(this)
         container.log.info("app.lifecycle", "onCreate savedInstanceState=${savedInstanceState != null}")
         // F-37-F (§27): screenshot protection follows the preference LIVE (no restart).
         // FAIL-CLOSED: the window is secure before its first frame (the default is ON); a
@@ -179,7 +171,7 @@ class MainActivity : FragmentActivity() {
         // selection has run — the first composed frame then reads a settled paired
         // gate, so a cold start with an existing pairing never flashes Pairing.
         splash.setKeepOnScreenCondition { !container.hub.gateResolved.value }
-        registerNetworkProbe()
+        // F-33-B: the network-restored probe is process-scoped (AppContainer) now.
         handleDeepLink(intent)
         handleShortcut(intent)
         setContent {
@@ -317,39 +309,20 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onStop() {
-        container.log.info("app.lifecycle", "onStop")
-        container.notifications.onBackground()
+        container.log.info("app.lifecycle", "onStop changingConfigurations=$isChangingConfigurations")
+        // F-33-C: a configuration-change stop (dark-mode flip, font/display size, locale)
+        // is NOT a background entry — the user never left the app. Treating it as one
+        // re-posted every open approval on the HIGH channel mid-use (19 reposts / 12 shows
+        // / 17 "recently noisy" system mutes in one session).
+        if (!isChangingConfigurations) container.notifications.onBackground()
         super.onStop()
     }
 
     override fun onDestroy() {
         container.log.info("app.lifecycle", "onDestroy isFinishing=$isFinishing")
-        networkCallback?.let { cb ->
-            getSystemService(ConnectivityManager::class.java)?.unregisterNetworkCallback(cb)
-        }
+        // F-33-B: the process container never retains a destroyed host.
+        container.detachHost(this)
         super.onDestroy()
-    }
-
-    /** §15-S3/S4: foreground wake + network-restored probes skip the backoff. */
-    private fun registerNetworkProbe() {
-        val cm = getSystemService(ConnectivityManager::class.java) ?: return
-        val callback = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) {
-                container.log.info("network.available", "network=$network")
-                container.hub.networkAvailable()
-            }
-
-            override fun onLost(network: Network) {
-                container.log.info("network.lost", "network=$network")
-            }
-        }
-        runCatching {
-            cm.registerNetworkCallback(
-                NetworkRequest.Builder().addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build(),
-                callback,
-            )
-            networkCallback = callback
-        }
     }
 
     @Composable

@@ -5,7 +5,6 @@ import android.content.Context
 import androidx.core.app.NotificationCompat
 import androidx.fragment.app.FragmentActivity
 import kotlinx.coroutines.flow.collect
-import androidx.lifecycle.lifecycleScope
 import java.io.File
 import kotlinx.coroutines.launch
 import com.zcode.android.app.connect.ConnectionHub
@@ -38,13 +37,64 @@ import com.zcode.android.core.notifications.NotificationChannels
 /**
  * AppContainer — manual DI root (§10.1: no framework). Everything credential-adjacent
  * is constructed HERE; the UI never sees any of it except through the port (§26.3).
- * Created once per activity lifetime; the pairing flow survives process death through
- * the sealed credential (§15-S2 full journal is Phase 4/5).
+ *
+ * F-33-A (vc52 Phase 8): ONE container per PROCESS ([forProcess]) — it used to be built
+ * per Activity, so after any configuration-change recreate the retained conversation VM
+ * kept driving the DESTROYED container's port while the hub's scope (the old Activity's
+ * lifecycleScope) was cancelled: the zombie screen (sends dead, status still "Connected").
+ * Everything here now hangs off the APPLICATION context and the process [processScope];
+ * the few surfaces that genuinely need an Activity (BiometricPrompt, the share/install
+ * chooser) read the CURRENT host through a weak reference ([attachHost]/[detachHost]) —
+ * the container never retains a destroyed Activity (F-33-B).
  *
  * Phase 4 (§43.2): the §12.4 credential-envelope binding is the DataStore-proto store
  * (ADR-008); Room/DataStore singletons live in the process-scoped [AppStores] holder.
  */
-class AppContainer(activity: FragmentActivity) {
+class AppContainer(context: Context) {
+
+    /** F-33-A: the APPLICATION context — the container outlives every Activity. */
+    internal val appContext: Context = context.applicationContext
+
+    /**
+     * F-33-A: the container's own process-lifetime scope. Main.immediate is the SAME
+     * dispatcher the hub ran on when it borrowed an Activity's lifecycleScope — only the
+     * lifetime changed: a recreate no longer cancels the hub's collectors.
+     */
+    val processScope: kotlinx.coroutines.CoroutineScope = kotlinx.coroutines.CoroutineScope(
+        kotlinx.coroutines.SupervisorJob() +
+            kotlinx.coroutines.Dispatchers.Main.immediate +
+            kotlinx.coroutines.CoroutineName("zcode-app-container"),
+    )
+
+    @Volatile private var hostRef: java.lang.ref.WeakReference<FragmentActivity>? = null
+
+    /** The Activity currently hosting the UI (onCreate binds it, onDestroy releases it). */
+    fun attachHost(activity: FragmentActivity) {
+        hostRef = java.lang.ref.WeakReference(activity)
+    }
+
+    fun detachHost(activity: FragmentActivity) {
+        if (hostRef?.get() === activity) hostRef = null
+    }
+
+    /** The live host, or null between Activities (never a destroyed/finishing one). */
+    internal fun host(): FragmentActivity? =
+        hostRef?.get()?.takeUnless { it.isDestroyed || it.isFinishing }
+
+    /** Starts [intent] from the live host, else from the application (as a new task). */
+    private fun startFromHost(intent: android.content.Intent) {
+        val host = host()
+        if (host != null) {
+            host.startActivity(intent)
+        } else {
+            appContext.startActivity(intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
+    }
+
+    /** Test-only: a replaced process container (a fresh Application) stops its own work. */
+    private fun retire() {
+        processScope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+    }
 
     init {
         // Phase 4E (C3): the shade Approve/Deny actions answer through the SAME
@@ -68,7 +118,7 @@ class AppContainer(activity: FragmentActivity) {
      * the failing session's diagnostics entirely.
      */
     val diagnosticsStore: DiagnosticsFileStore = DiagnosticsFileStore.inDir(
-        File(activity.cacheDir, "diagnostics"),
+        File(appContext.cacheDir, "diagnostics"),
     ).also { it.rotateOnStartup() }
 
     val log: ZLog = ZLog(
@@ -101,7 +151,7 @@ class AppContainer(activity: FragmentActivity) {
     )
 
     init {
-        val pm = activity.packageManager.getPackageInfo(activity.packageName, 0)
+        val pm = appContext.packageManager.getPackageInfo(appContext.packageName, 0)
         log.info(
             "app.start",
             "version=${pm.versionName} (vc${pm.longVersionCode}) " +
@@ -110,10 +160,10 @@ class AppContainer(activity: FragmentActivity) {
         )
     }
 
-    val credentialStore = AppStores.get(activity).credentialStore
+    val credentialStore = AppStores.get(appContext).credentialStore
     val keyWrap = AndroidKeystoreKeyWrap(biometricBound = false)
     val vault = CredentialVault(credentialStore, keyWrap, log)
-    val gate = AndroidBiometricGate(activity)
+    val gate = AndroidBiometricGate(appContext, hostActivity = ::host)
     val transport = RelayTransport(wsFactory = OkHttpWsFactory(), log = log)
 
     /** Phase 10 (§11.4): the DIRECT transport — token capability bound per active endpoint. */
@@ -132,7 +182,7 @@ class AppContainer(activity: FragmentActivity) {
     )
 
     /** Phase 4 persistence (§43.2): process-scoped Room + DataStore stores/repositories. */
-    val stores: AppStores = AppStores.get(activity)
+    val stores: AppStores = AppStores.get(appContext)
 
     /**
      * Phase 6 (§43.2-6.1): app-level connection lifecycle — post-pairing connect,
@@ -151,7 +201,7 @@ class AppContainer(activity: FragmentActivity) {
         preferences = stores.preferencesRepository,
         outbox = stores.outboxRepository,
         drafts = stores.draftRepository,
-        scope = activity.lifecycleScope,
+        scope = processScope,
         log = log,
     )
 
@@ -161,8 +211,8 @@ class AppContainer(activity: FragmentActivity) {
     }
 
     val tasksPort: DefaultTasksPort = DefaultTasksPort(hub, vault, stores.taskRepository, rePair = {
-        // Unpair is suspend (vault wipe + transport close) — launch on the activity scope.
-        activity.lifecycleScope.launch {
+        // Unpair is suspend (vault wipe + transport close) — launch on the process scope.
+        processScope.launch {
             pairingPort.unpair()
             hub.onUnpaired()
         }
@@ -171,7 +221,7 @@ class AppContainer(activity: FragmentActivity) {
         hub,
         stores.conversationRepository,
         vault,
-        attachmentCacheDir = java.io.File(activity.cacheDir, "attachments").also { it.mkdirs() },
+        attachmentCacheDir = java.io.File(appContext.cacheDir, "attachments").also { it.mkdirs() },
     )
 
     /** Phase 9 (§43.2-9): the advanced read-only surfaces + view-only terminal. */
@@ -196,17 +246,17 @@ class AppContainer(activity: FragmentActivity) {
      */
     val workspaceCollapseStore: com.zcode.android.features.tasks.ui.WorkspaceCollapseFileStore =
         com.zcode.android.features.tasks.ui.WorkspaceCollapseFileStore(
-            java.io.File(activity.filesDir, "ui/workspace-collapse.txt"),
+            java.io.File(appContext.filesDir, "ui/workspace-collapse.txt"),
         )
     val filesPort: DefaultFilesPort = DefaultFilesPort(
         hub,
-        cacheDir = java.io.File(activity.cacheDir, "downloads").also { it.mkdirs() },
+        cacheDir = java.io.File(appContext.cacheDir, "downloads").also { it.mkdirs() },
         onShare = { file, mime ->
             // §23.4 share-out via FileProvider (app-private storage only, INV-16).
             runCatching {
                 val shareUri = androidx.core.content.FileProvider.getUriForFile(
-                    activity,
-                    activity.packageName + ".fileprovider",
+                    appContext,
+                    appContext.packageName + ".fileprovider",
                     file,
                 )
                 val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
@@ -214,7 +264,7 @@ class AppContainer(activity: FragmentActivity) {
                     putExtra(android.content.Intent.EXTRA_STREAM, shareUri)
                     addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
-                activity.startActivity(android.content.Intent.createChooser(intent, "Share file"))
+                startFromHost(android.content.Intent.createChooser(intent, "Share file"))
             }.onFailure { log.warn("files.share", "${it.javaClass.simpleName}: ${it.message?.take(100)}") }
         },
     )
@@ -236,33 +286,35 @@ class AppContainer(activity: FragmentActivity) {
             checker = com.zcode.android.app.update.AppUpdateChecker(
                 releasesUrl = "https://api.github.com/repos/$UPDATE_RELEASE_REPO/releases/latest",
                 installedVersionCode = run {
-                    val pm = activity.packageManager.getPackageInfo(activity.packageName, 0)
+                    val pm = appContext.packageManager.getPackageInfo(appContext.packageName, 0)
                     pm.longVersionCode
                 },
             ),
             downloader = com.zcode.android.app.update.ApkDownloader(
                 http = okhttp3.OkHttpClient(),
-                updatesDir = File(activity.cacheDir, "updates").also { it.mkdirs() },
+                updatesDir = File(appContext.cacheDir, "updates").also { it.mkdirs() },
                 log = log,
             ),
-            scope = activity.lifecycleScope,
+            scope = processScope,
             log = log,
             installer = { apk ->
-                com.zcode.android.app.update.AppUpdateController.ensureUpdatesChannel(activity)
-                com.zcode.android.app.update.ApkInstaller.install(activity, apk)
+                com.zcode.android.app.update.AppUpdateController.ensureUpdatesChannel(appContext)
+                // The installer intent carries FLAG_ACTIVITY_NEW_TASK — the host (when
+                // present) keeps the system installer in the app's own task.
+                com.zcode.android.app.update.ApkInstaller.install(host() ?: appContext, apk)
             },
             notify = { title, body ->
-                com.zcode.android.app.update.AppUpdateController.ensureUpdatesChannel(activity)
-                val manager = activity.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
-                val n = NotificationCompat.Builder(activity, com.zcode.android.app.update.AppUpdateController.UPDATES_CHANNEL)
+                com.zcode.android.app.update.AppUpdateController.ensureUpdatesChannel(appContext)
+                val manager = appContext.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+                val n = NotificationCompat.Builder(appContext, com.zcode.android.app.update.AppUpdateController.UPDATES_CHANNEL)
                     .setSmallIcon(android.R.drawable.stat_sys_download_done)
                     .setContentTitle(title)
                     .setContentText(body)
                     .setContentIntent(
                         android.app.PendingIntent.getActivity(
-                            activity,
+                            appContext,
                             0,
-                            android.content.Intent(activity, MainActivity::class.java)
+                            android.content.Intent(appContext, MainActivity::class.java)
                                 .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP),
                             android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE,
                         ),
@@ -279,7 +331,7 @@ class AppContainer(activity: FragmentActivity) {
         // a newer release exists — no longer gated on the desktop version.
         // LEDGER-SMALLS (c): gated through UpdateCheckGate so the paired app skips the
         // vault-SEED emission that raced the bootstrap (update.check desktop=null).
-        activity.lifecycleScope.launch {
+        processScope.launch {
             kotlinx.coroutines.flow.combine(hub.endpoint, hub.phase) { endpoint, phase ->
                 endpoint to phase
             }.collect { (endpoint, phase) ->
@@ -306,11 +358,11 @@ class AppContainer(activity: FragmentActivity) {
     )
 
     init {
-        NotificationChannels.ensure(activity)
+        NotificationChannels.ensure(appContext)
         notifications.start()
         // §43.2-11.4: the widget is a broker-state consumer (event-driven updates).
         com.zcode.android.app.widget.PendingApprovalsWidgetUpdater(
-            context = activity.applicationContext,
+            context = appContext,
             broker = stores.notificationBroker,
             scope = stores.appScope,
         ).start()
@@ -318,9 +370,11 @@ class AppContainer(activity: FragmentActivity) {
         hub.notificationRecords = notifications.recordsPort()
         // §24.5/§25.2: the FGS notification names the paired desktop; the tap target
         // is the launcher activity. The worker hook is the §25.3 process bridge.
-        com.zcode.android.core.notifications.LiveConnectionService.endpointLabelProvider = {
+        // F-33-B: the provider reads the SERVICE context it is handed — it used to close
+        // over the creating Activity (one more retention path per recreate).
+        com.zcode.android.core.notifications.LiveConnectionService.endpointLabelProvider = { ctx ->
             vault.loadMetadata()?.desktopName
-                ?: activity.getString(com.zcode.android.core.notifications.R.string.fgs_default_desktop)
+                ?: ctx.getString(com.zcode.android.core.notifications.R.string.fgs_default_desktop)
         }
         com.zcode.android.core.notifications.LiveConnectionService.LAUNCHER_ACTIVITY = MainActivity::class.java
         com.zcode.android.core.notifications.ReconnectProbeWorker.ProbeHook.probe = {
@@ -334,6 +388,38 @@ class AppContainer(activity: FragmentActivity) {
         hub.onConnected = { pairingPort.onTransportConnected() }
     }
 
+    init {
+        registerNetworkProbe()
+    }
+
+    /**
+     * §15-S3/S4: network-restored probe → skip the backoff. F-33-B: a PROCESS concern,
+     * registered ONCE on the application context — it was registered per Activity as an
+     * anonymous object closing over the Activity (`this$0`), one more path that pinned
+     * recreated Activities; and between Activities (the FGS-only process) there was none.
+     */
+    private fun registerNetworkProbe() {
+        val cm = appContext.getSystemService(android.net.ConnectivityManager::class.java) ?: return
+        val callback = object : android.net.ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: android.net.Network) {
+                log.info("network.available", "network=$network")
+                hub.networkAvailable()
+            }
+
+            override fun onLost(network: android.net.Network) {
+                log.info("network.lost", "network=$network")
+            }
+        }
+        runCatching {
+            cm.registerNetworkCallback(
+                android.net.NetworkRequest.Builder()
+                    .addCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                    .build(),
+                callback,
+            )
+        }.onFailure { log.warn("network.probe", "register failed: ${it.javaClass.simpleName}") }
+    }
+
 
     companion object {
         const val LOG_TAG = "ZCODE-PAIR"
@@ -342,5 +428,48 @@ class AppContainer(activity: FragmentActivity) {
         const val UPDATE_RELEASE_REPO = "ErnestHysa/zcode-companion"
 
         private const val NOTIF_ID_UPDATE = 4102
+
+        @Volatile
+        private var process: AppContainer? = null
+
+        /**
+         * F-33-A: THE process container. Built once per Application instance — once per
+         * process in production; a Robolectric test's fresh Application gets a fresh one
+         * (the replaced container stops its own work). Every Activity binds to it.
+         */
+        fun forProcess(context: Context): AppContainer {
+            val app = context.applicationContext
+            process?.let { if (it.appContext === app) return it }
+            return synchronized(this) {
+                process?.takeIf { it.appContext === app } ?: AppContainer(app).also { fresh ->
+                    process?.retire()
+                    process = fresh
+                    ProcessCrashCapture.install { process?.diagnosticsStore }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * F-33-B (FIELD 2026-09-30, vc12 — the crash capture itself): the ring is persisted
+ * line-by-line; capture the CRASH (thread + stack) so the export after a relaunch carries
+ * the evidence, then delegate to the platform handler. Never throws.
+ *
+ * Installed ONCE per process: it used to be installed in EVERY MainActivity.onCreate,
+ * chaining the previous handler and closing over `this` — the heap-proven path that kept
+ * every recreated Activity and its whole container alive. The handler reads the PROCESS
+ * container's diagnostics store through [store]; it never references an Activity.
+ */
+internal object ProcessCrashCapture {
+    private val installed = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    fun install(store: () -> DiagnosticsFileStore?) {
+        if (!installed.compareAndSet(false, true)) return
+        val platformHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { t, e ->
+            runCatching { store()?.writeCrash(t.name, e.stackTraceToString()) }
+            platformHandler?.uncaughtException(t, e)
+        }
     }
 }
