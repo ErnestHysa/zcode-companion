@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -406,25 +407,34 @@ fun ConversationScreen(
                 // Everything the chrome, the composer and the timeline floor do not need,
                 // and never less than a screen share — Allow/Submit stay on screen on a
                 // phone; a taller card scrolls inside.
-                Column(
+                // N-BG-1/D4 (vc52 Phase 9): the pinned plane is a BOUNDED LAZY column —
+                // each card is measured with the full budget as its own cap, so the
+                // question/hook cards scroll THEIR OWN answer body with the submit row
+                // pinned at the card's bottom edge (the first swipes over the card used
+                // to scroll the whole pinned STACK instead — the gesture boundary was
+                // invisible and usually wrong; N-BF-3's submit sat three inner scrolls
+                // deep). Multiple cards overflow between items (a Lazy item is always
+                // measured with the viewport cap — no zero-share starvation).
+                androidx.compose.foundation.lazy.LazyColumn(
                     Modifier
                         .fillMaxWidth()
                         .heightIn(max = pinnedBudget)
-                        .verticalScroll(rememberScrollState())
                         .testTag("conv_pinned_budget"),
                 ) {
-                    for (interaction in state.pendingPermissions) {
+                    items(state.pendingPermissions, key = { "perm-" + it.interactionId }) { interaction ->
                         ApprovalCard(
                             interaction = interaction,
                             busy = interaction.interactionId in state.busyInteractions,
                             onAnswer = { optionId, freeText ->
                                 onAnswer(interaction.interactionId, optionId, freeText, false)
                             },
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 4.dp),
                             onSnooze = onSnoozeInteraction?.let { cb -> { cb(interaction.interactionId) } },
                         )
                     }
-                    for (interaction in state.pendingUserInputs) {
+                    items(state.pendingUserInputs, key = { "ui-" + it.interactionId }) { interaction ->
                         UserInputCard(
                             interaction = interaction,
                             busy = interaction.interactionId in state.busyInteractions,
@@ -435,14 +445,16 @@ fun ConversationScreen(
                                 onAnswerQuestions(interaction.interactionId, answers)
                             },
                             onDecline = { onDeclineQuestions(interaction.interactionId) },
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 4.dp),
                             onSnooze = onSnoozeInteraction?.let { cb -> { cb(interaction.interactionId) } },
                         )
                     }
                     // GAP-A1 (vc51, ADR-024): hook-trust reviews render in the pinned
                     // card plane — a session blocking on hook trust has a phone remedy.
-                    for (interaction in state.pendingHookReviews) {
-                        val hook = interaction.hookReview ?: continue
+                    items(state.pendingHookReviews, key = { "hook-" + it.interactionId }) { interaction ->
+                        val hook = interaction.hookReview ?: return@items
                         HookTrustReviewCard(
                             hook = hook,
                             busy = interaction.interactionId in state.busyInteractions,
@@ -450,7 +462,9 @@ fun ConversationScreen(
                             onRevoke = { ids -> onHookRevoke(hook, ids) },
                             onToggleItem = { id, enabled -> onHookToggle(hook, id, enabled) },
                             onGrantPersistent = { onHookGrant(hook) },
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 4.dp),
                         )
                     }
                 }

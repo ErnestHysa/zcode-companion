@@ -3,7 +3,9 @@ package com.zcode.android.features.conversation.ui
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.semantics.Role
 import androidx.compose.material3.Checkbox
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.verticalScroll
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -363,6 +365,13 @@ private fun consequenceLabel(option: PermissionOption, payload: PendingInteracti
  * `answer {optionId}` — the CLI-verified compat path) or free text when the
  * payload allows. Question-array payloads render read-only with guidance
  * (multi-question content shape is CLI-side — not guessed here).
+ *
+ * N-BG-1 (vc52 Phase 9; carries N-BF-3): the answer BODY scrolls in its own
+ * viewport (the caller caps the card's height inside the pinned budget) and the
+ * submit/decline row is PINNED at the card's bottom edge — the three-group card
+ * used to bury Submit four inner scrolls deep behind the pinned stack's own
+ * scroll surface (the gesture boundary between "scroll the card" and "cycle the
+ * stack" was invisible and usually wrong).
  */
 @Composable
 fun UserInputCard(
@@ -435,170 +444,179 @@ fun UserInputCard(
             Spacer(Modifier.height(6.dp))
             // G77: an expired fuse renders NO answer plane (the desktop auto-continued).
             if (!fuseExpired) {
-            payload.prompt?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
-                )
-                Spacer(Modifier.height(8.dp))
-            }
-            if (payload.questions.isNotEmpty()) {
-                // AskUserQuestion plane (verified ElicitationDialog shape): selectable
-                // options per question + optional custom answer; multiSelect honored.
-                for ((qIndex, q) in payload.questions.withIndex()) {
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = q.header,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                        modifier = Modifier.testTag("userinput_q_header_$qIndex"),
-                    )
-                    Text(
-                        text = q.question,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    )
-                    for (option in q.options) {
-                        val checked = qSelections[q.question].orEmpty().contains(option.value)
-                        val multi = q.multiSelect == true
-                        // B2.4: the ROW is the touch target (≥48dp) with the RIGHT
-                        // affordance — checkbox for multi-select, a radio that SELECTS
-                        // (never toggles off) for single-select. The inner control is
-                        // display-only; the row owns the toggle.
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 48.dp)
-                                .testTag("userinput_q${qIndex}_opt_${option.value.take(24)}")
-                                .selectable(
-                                    selected = checked,
-                                    enabled = !busy,
-                                    role = if (multi) Role.Checkbox else Role.RadioButton,
-                                ) {
-                                    val current = qSelections[q.question].orEmpty()
-                                    qSelections[q.question] = if (multi) {
-                                        if (checked) current.filter { it != option.value } else current + option.value
-                                    } else {
-                                        listOf(option.value)
-                                    }
-                                },
-                        ) {
-                            if (multi) {
-                                Checkbox(checked = checked, onCheckedChange = null, enabled = !busy)
-                            } else {
-                                RadioButton(selected = checked, onClick = null, enabled = !busy)
-                            }
+                // N-BG-1: the scrollable answer body — capped by the card's own height
+                // (the pinned budget share); short content lays out at its intrinsic.
+                Column(
+                    Modifier
+                        .weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState())
+                        .testTag("userinput_body"),
+                ) {
+                    payload.prompt?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
+                    if (payload.questions.isNotEmpty()) {
+                        // AskUserQuestion plane (verified ElicitationDialog shape): selectable
+                        // options per question + optional custom answer; multiSelect honored.
+                        for ((qIndex, q) in payload.questions.withIndex()) {
+                            Spacer(Modifier.height(4.dp))
                             Text(
-                                text = option.label.ifBlank { option.value },
+                                text = q.header,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.testTag("userinput_q_header_$qIndex"),
+                            )
+                            Text(
+                                text = q.question,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer,
                             )
-                        }
-                    }
-                    Spacer(Modifier.height(4.dp))
-                    OutlinedTextField(
-                        value = qCustom[q.question] ?: "",
-                        onValueChange = { qCustom[q.question] = it },
-                        placeholder = { Text(stringResource(R.string.userinput_own_answer)) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("userinput_q${qIndex}_custom"),
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-                ZCodeButton(
-                    onClick = {
-                        val answers = buildMap {
-                            for (q in payload.questions) {
-                                val values = buildList {
-                                    addAll(qSelections[q.question].orEmpty())
-                                    qCustom[q.question]?.trim()?.takeIf { it.isNotBlank() }?.let { add(it) }
+                            for (option in q.options) {
+                                val checked = qSelections[q.question].orEmpty().contains(option.value)
+                                val multi = q.multiSelect == true
+                                // B2.4: the ROW is the touch target (≥48dp) with the RIGHT
+                                // affordance — checkbox for multi-select, a radio that SELECTS
+                                // (never toggles off) for single-select. The inner control is
+                                // display-only; the row owns the toggle.
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(min = 48.dp)
+                                        .testTag("userinput_q${qIndex}_opt_${option.value.take(24)}")
+                                        .selectable(
+                                            selected = checked,
+                                            enabled = !busy,
+                                            role = if (multi) Role.Checkbox else Role.RadioButton,
+                                        ) {
+                                            val current = qSelections[q.question].orEmpty()
+                                            qSelections[q.question] = if (multi) {
+                                                if (checked) current.filter { it != option.value } else current + option.value
+                                            } else {
+                                                listOf(option.value)
+                                            }
+                                        },
+                                ) {
+                                    if (multi) {
+                                        Checkbox(checked = checked, onCheckedChange = null, enabled = !busy)
+                                    } else {
+                                        RadioButton(selected = checked, onClick = null, enabled = !busy)
+                                    }
+                                    Text(
+                                        text = option.label.ifBlank { option.value },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    )
                                 }
-                                if (values.isNotEmpty()) put(q.question, values)
+                            }
+                            Spacer(Modifier.height(4.dp))
+                            OutlinedTextField(
+                                value = qCustom[q.question] ?: "",
+                                onValueChange = { qCustom[q.question] = it },
+                                placeholder = { Text(stringResource(R.string.userinput_own_answer)) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("userinput_q${qIndex}_custom"),
+                            )
+                        }
+                    } else if (payload.options.isNotEmpty()) {
+                        for (option in payload.options) {
+                            // B2.4: the whole row is the touch target — the label was dead
+                            // (~20dp radio-only) before.
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 48.dp)
+                                    .testTag("userinput_option_${option.optionId}")
+                                    .selectable(
+                                        selected = selected == option.optionId,
+                                        enabled = !busy,
+                                        role = Role.RadioButton,
+                                    ) { selected = option.optionId },
+                            ) {
+                                RadioButton(
+                                    selected = selected == option.optionId,
+                                    onClick = null,
+                                    enabled = !busy,
+                                )
+                                Text(
+                                    text = option.optionId,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                )
                             }
                         }
-                        if (answers.isNotEmpty()) onAnswerQuestions(answers)
-                    },
-                    enabled = !busy && payload.questions.any { q ->
-                        qSelections[q.question].orEmpty().isNotEmpty() || !qCustom[q.question].isNullOrBlank()
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("userinput_questions_submit"),
-                ) { Text(stringResource(R.string.userinput_send_answers)) }
-                // A3.14: the decline arm — the agent continues on best judgment (never a
-                // silent drop: the card stays until the desktop resolves it).
-                if (onDecline != null) {
-                    TextButton(
-                        onClick = onDecline,
-                        enabled = !busy,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("userinput_decline"),
-                    ) { Text(stringResource(R.string.userinput_decline)) }
-                }
-            } else if (payload.options.isNotEmpty()) {
-                for (option in payload.options) {
-                    // B2.4: the whole row is the touch target — the label was dead
-                    // (~20dp radio-only) before.
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 48.dp)
-                            .testTag("userinput_option_${option.optionId}")
-                            .selectable(
-                                selected = selected == option.optionId,
-                                enabled = !busy,
-                                role = Role.RadioButton,
-                            ) { selected = option.optionId },
-                    ) {
-                        RadioButton(
-                            selected = selected == option.optionId,
-                            onClick = null,
-                            enabled = !busy,
+                    } else if (payload.freeText == true) {
+                        OutlinedTextField(
+                            value = freeText,
+                            onValueChange = { freeText = it },
+                            placeholder = { Text(stringResource(if (payload.sensitive == true) R.string.userinput_sensitive_placeholder else R.string.userinput_own_placeholder)) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("userinput_free_text"),
                         )
+                    } else {
                         Text(
-                            text = option.optionId,
-                            style = MaterialTheme.typography.bodyMedium,
+                            text = stringResource(R.string.userinput_desktop_note),
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onTertiaryContainer,
                         )
                     }
                 }
                 Spacer(Modifier.height(8.dp))
-                ZCodeButton(
-                    onClick = { selected?.let { onAnswer(it, null) } },
-                    enabled = !busy && selected != null,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("userinput_submit"),
-                ) { Text(stringResource(R.string.userinput_send_answer)) }
-            } else if (payload.freeText == true) {
-                OutlinedTextField(
-                    value = freeText,
-                    onValueChange = { freeText = it },
-                    placeholder = { Text(stringResource(if (payload.sensitive == true) R.string.userinput_sensitive_placeholder else R.string.userinput_own_placeholder)) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("userinput_free_text"),
-                )
-                Spacer(Modifier.height(8.dp))
-                ZCodeButton(
-                    onClick = { onAnswer("", freeText) },
-                    enabled = !busy && freeText.isNotBlank(),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("userinput_submit"),
-                ) { Text(stringResource(R.string.userinput_send_answer)) }
-            } else {
-                Text(
-                    text = stringResource(R.string.userinput_desktop_note),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
-                )
-            }
+                // N-BG-1: the PINNED action row — never scrolls away with the body.
+                // The decline arm (A3.14) shares the row (one compact footer — the
+                // pinned budget must fit header + footer + a real body viewport).
+                if (payload.questions.isNotEmpty()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        ZCodeButton(
+                            onClick = {
+                                val answers = buildMap {
+                                    for (q in payload.questions) {
+                                        val values = buildList {
+                                            addAll(qSelections[q.question].orEmpty())
+                                            qCustom[q.question]?.trim()?.takeIf { it.isNotBlank() }?.let { add(it) }
+                                        }
+                                        if (values.isNotEmpty()) put(q.question, values)
+                                    }
+                                }
+                                if (answers.isNotEmpty()) onAnswerQuestions(answers)
+                            },
+                            enabled = !busy && payload.questions.any { q ->
+                                qSelections[q.question].orEmpty().isNotEmpty() || !qCustom[q.question].isNullOrBlank()
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("userinput_questions_submit"),
+                        ) { Text(stringResource(R.string.userinput_send_answers)) }
+                        if (onDecline != null) {
+                            Spacer(Modifier.width(8.dp))
+                            TextButton(
+                                onClick = onDecline,
+                                enabled = !busy,
+                                modifier = Modifier
+                                    .testTag("userinput_decline"),
+                            ) { Text(stringResource(R.string.userinput_decline)) }
+                        }
+                    }
+                } else if (payload.options.isNotEmpty() || payload.freeText == true) {
+                    ZCodeButton(
+                        onClick = {
+                            if (payload.freeText == true) onAnswer("", freeText)
+                            else selected?.let { onAnswer(it, null) }
+                        },
+                        enabled = !busy && if (payload.freeText == true) freeText.isNotBlank() else selected != null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("userinput_submit"),
+                    ) { Text(stringResource(R.string.userinput_send_answer)) }
+                }
             } // G77: end of the not-expired answer plane
         }
     }

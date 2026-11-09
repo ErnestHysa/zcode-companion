@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
@@ -102,7 +104,16 @@ fun HookTrustReviewCard(
                 )
             }
             Spacer(Modifier.height(8.dp))
-            for (item in hook.items) {
+            // N-BG-1/D4 (vc52 Phase 9): the item list scrolls in ITS OWN viewport (the
+            // caller caps the card inside the pinned budget) and "Trust N selected" is
+            // PINNED at the card's bottom edge — Trust used to need a magic swipe (the
+            // first swipes over the card scrolled the pinned STACK instead of the card).
+            Column(
+                Modifier
+                    .weight(1f, fill = false)
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                for (item in hook.items) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
@@ -170,6 +181,7 @@ fun HookTrustReviewCard(
                         ) { Text(stringResource(R.string.hook_review_revoke), color = MaterialTheme.colorScheme.error) }
                     }
                 }
+            }
             }
             Spacer(Modifier.height(10.dp))
             ZCodeButton(
