@@ -1155,7 +1155,17 @@ class ConversationViewModel(
                             SendNotice.Kind.INFO,
                             SendNotice.Key.ANSWER_ALREADY_RESOLVED,
                         )
-                    else -> Unit // SUBMITTED / INERT (button disabled) / DUPLICATE (no-op) are silent
+                    // F-27-A (vc52 Phase 7): the typed duplicate is SAYABLE too — the
+                    // answer is already in flight (a live outbox entry holds it), so a
+                    // tap is not lost silently. The coordinator's authoritative
+                    // re-list reset handles the re-pended card; this is the residual
+                    // honest notice, never a silent no-op.
+                    ConversationPort.AnswerOutcome.DUPLICATE_NO_OP ->
+                        _sendNotice.value = SendNotice(
+                            "Answer already in flight — waiting for the desktop.",
+                            SendNotice.Kind.INFO,
+                        )
+                    else -> Unit // SUBMITTED / INERT (button disabled) are silent
                 }
             } finally {
                 _busyInteractions.value = _busyInteractions.value - interactionId

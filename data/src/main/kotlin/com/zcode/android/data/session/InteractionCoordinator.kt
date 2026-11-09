@@ -740,7 +740,17 @@ class InteractionCoordinator(
                         createdAtMs = pi.createdAtMs ?: clock(),
                         raw = pi.raw,
                     )
-                    if (machines[iid] == null) {
+                    val machine = machines[iid]
+                    if (machine == null || machine.state in TERMINAL_MACHINE_STATES) {
+                        // F-27-A (vc52 Phase 7): an authoritative RE-LIST of a terminal
+                        // machine means the desktop still wants an answer — the relay
+                        // restart re-pended the SAME id after our answer (the card was
+                        // fully actionable but every Send was a silent DuplicateNoOp for
+                        // the process lifetime). Reset to a fresh card and clear the
+                        // INV-4 guard: the next submit mints a FRESH commandId. A LIVE
+                        // pending entry is never duplicated — only an authoritative
+                        // re-assertion of pending resets the guard.
+                        pendingCommands.remove(iid)
                         onPermissionRequested(request)
                         render(iid)
                     } else {
@@ -753,7 +763,7 @@ class InteractionCoordinator(
                             fromRowsSnapshot = requests[iid]?.fromRowsSnapshot == true,
                             resolvedAtMs = requests[iid]?.resolvedAtMs,
                         )
-                        interactions.upsertPermission(request, endpointId, lifecycleOf(machines[iid]!!.state))
+                        interactions.upsertPermission(request, endpointId, lifecycleOf(machine.state))
                     }
                 }
                 pi.kind == com.zcode.android.domain.model.PendingInteraction.Kind.USER_INPUT && userInput != null -> {
@@ -766,7 +776,11 @@ class InteractionCoordinator(
                         createdAtMs = pi.createdAtMs ?: clock(),
                         raw = pi.raw,
                     )
-                    if (machines[iid] == null) {
+                    val machine = machines[iid]
+                    if (machine == null || machine.state in TERMINAL_MACHINE_STATES) {
+                        // F-27-A: the same re-list reset on the question plane (the
+                        // pass-28 receipt's dead card was a USER-INPUT question).
+                        pendingCommands.remove(iid)
                         onUserInputRequested(request)
                         render(iid)
                     } else {
@@ -774,7 +788,7 @@ class InteractionCoordinator(
                             request.sessionId, request.options, userInput = request,
                             resolvedAtMs = requests[iid]?.resolvedAtMs,
                         )
-                        interactions.upsertUserInput(request, endpointId, lifecycleOf(machines[iid]!!.state))
+                        interactions.upsertUserInput(request, endpointId, lifecycleOf(machine.state))
                     }
                 }
                 else -> {

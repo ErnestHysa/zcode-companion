@@ -81,6 +81,7 @@ class InteractionCoordinatorPhase7Test {
     private class ScriptedSender : CommandSender {
         val acks = ArrayDeque<CommandAck>()
         val sent = mutableListOf<Pair<String, JsonObject>>()
+        val commandIds = mutableListOf<String>()
         var throwOnSend = false
         override suspend fun send(
             type: String,
@@ -93,6 +94,7 @@ class InteractionCoordinatorPhase7Test {
             workspaceIdentity: String?,
         ): CommandAck {
             sent.add(type to payload)
+            commandIds.add(commandId)
             if (throwOnSend) throw IllegalStateException("down")
             return acks.removeFirstOrNull() ?: CommandAck(commandId, "accepted", 1, null, null, null)
         }
@@ -190,6 +192,51 @@ class InteractionCoordinatorPhase7Test {
         assertEquals(1, interactions.resolved.size)
         assertEquals(false, interactions.resolved.single().second)
         assertEquals(PermissionStateMachine.State.RESOLVED, coordinator.machineStateForTest(InteractionId("i-1")))
+    }
+
+    @Test
+    fun `F-27-A - the authoritative plane RE-LISTING an answered id resets the machine - one fresh wire`() = runTest {
+        val (coordinator, _, sender, _) = coordinator()
+        coordinator.reconcileFromSessionState("sess-1", permissionState("i-1"))
+        // The in-process answer fires (wire 1; the pass-28 procedure).
+        val first = coordinator.submit(InteractionId("i-1"), "allowOnce")
+        assertTrue(first is InteractionCoordinator.SubmitOutcome.Submitted)
+        assertEquals(1, sender.commandIds.size)
+        val firstCommandId = sender.commandIds.single()
+        // Relay restart (gen-3→gen-4): the mock re-seeds the SAME id as pending.
+        coordinator.reconcileFromSessionState("sess-1", permissionState("i-1"))
+        assertEquals(
+            PermissionStateMachine.State.DISPLAYED,
+            coordinator.machineStateForTest(InteractionId("i-1")),
+            "the card is live again — the desktop still wants an answer",
+        )
+        // Answering again FIRES — a fresh commandId, never the silent DuplicateNoOp
+        // (7+ honest taps produced ZERO wires at pass 28).
+        val second = coordinator.submit(InteractionId("i-1"), "allowOnce")
+        assertTrue(second is InteractionCoordinator.SubmitOutcome.Submitted, "the re-pended id answers")
+        assertEquals(2, sender.commandIds.size)
+        assertTrue(
+            sender.commandIds.last() != firstCommandId,
+            "INV-4 preserved: the fresh answer mints a fresh commandId; a LIVE entry is never duplicated",
+        )
+    }
+
+    @Test
+    fun `F-27-A - the re-list reset covers the user-input plane too`() = runTest {
+        val (coordinator, _, sender, _) = coordinator()
+        coordinator.reconcileFromSessionState("sess-1", userInputState("q-1", options = listOf("yes", "no"), freeText = false))
+        val first = coordinator.submit(InteractionId("q-1"), "yes", kind = InteractionCoordinator.AnswerKind.USER_INPUT)
+        assertTrue(first is InteractionCoordinator.SubmitOutcome.Submitted)
+        // Re-listed after a relay restart:
+        coordinator.reconcileFromSessionState("sess-1", userInputState("q-1", options = listOf("yes", "no"), freeText = false))
+        assertEquals(
+            PermissionStateMachine.State.DISPLAYED,
+            coordinator.machineStateForTest(InteractionId("q-1")),
+            "the re-pended question's card is live again",
+        )
+        val second = coordinator.submit(InteractionId("q-1"), "no", kind = InteractionCoordinator.AnswerKind.USER_INPUT)
+        assertTrue(second is InteractionCoordinator.SubmitOutcome.Submitted, "the re-pended question answers")
+        assertEquals(2, sender.commandIds.size)
     }
 
     @Test
