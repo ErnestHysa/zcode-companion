@@ -72,6 +72,9 @@
     <string name="composer_voice">语音输入</string>
     <string name="composer_voice_listening">正在聆听…</string>
     <string name="composer_voice_unavailable">此设备不支持语音输入</string>
+    <!-- F-34-D: the honest copy for a missing microphone grant + its way out. -->
+    <string name="composer_voice_mic_permission">听写需要麦克风权限</string>
+    <string name="composer_voice_open_settings">设置</string>
 
     <string name="row_you">你</string>
     <string name="row_agent">智能体</string>

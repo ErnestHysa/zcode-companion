@@ -973,11 +973,41 @@ fun ComposerBar(
                     )
                     .takeIf { it.available }
             }
-            var voiceError by remember { mutableStateOf(false) }
+            // F-34-D: WHICH voice failure — a missing microphone grant is not "unavailable
+            // on this device" (the false blame the recognizer's permission refusal produced).
+            var voiceError by remember { mutableStateOf<VoiceError?>(null) }
             // B2.2: dictation merges into the CURRENT field value — the callback must
             // not append to the draft captured when the mic was tapped (text typed
             // while listening was discarded).
             val currentDraft by androidx.compose.runtime.rememberUpdatedState(state.draft)
+            fun startDictation(v: com.zcode.android.features.conversation.voice.VoiceInputPort) {
+                voiceError = null
+                v.start(
+                    onPartial = {},
+                    onFinal = { spoken ->
+                        if (spoken.isNotBlank()) {
+                            val base = currentDraft
+                            onDraftChange(base + (if (base.isBlank()) "" else " ") + spoken)
+                        }
+                    },
+                    onError = { code ->
+                        voiceError = if (code == com.zcode.android.features.conversation.voice.VoiceInputPort.ERROR_INSUFFICIENT_PERMISSIONS) {
+                            VoiceError.MIC_PERMISSION
+                        } else {
+                            VoiceError.UNAVAILABLE
+                        }
+                    },
+                )
+            }
+            // F-34-D: the microphone grant is requested AT the Dictate tap (the direct-request
+            // pattern the camera uses — ask at the moment of use, never upfront). The
+            // registry launcher is safe since GAP-A8's fragment bump (16-bit request codes).
+            val micPermission = androidx.activity.compose.rememberLauncherForActivityResult(
+                androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+            ) { granted ->
+                val v = voice
+                if (granted && v != null) startDictation(v) else voiceError = VoiceError.MIC_PERMISSION
+            }
             val conductor = stringResource(R.string.composer_add_desc)
             var addMenu by remember { mutableStateOf(false) }
             // I5: paste-image chip — an image-typed clipboard offers the last capture.
@@ -1098,17 +1128,17 @@ fun ComposerBar(
                                         text = { Text(stringResource(R.string.composer_menu_voice)) },
                                         onClick = {
                                             addMenu = false
-                                            voiceError = false
-                                            if (voice.listening) voice.stop() else voice.start(
-                                                onPartial = {},
-                                                onFinal = { spoken ->
-                                                    if (spoken.isNotBlank()) {
-                                                        val base = currentDraft
-                                                        onDraftChange(base + (if (base.isBlank()) "" else " ") + spoken)
-                                                    }
-                                                },
-                                                onError = { voiceError = true },
-                                            )
+                                            voiceError = null
+                                            when {
+                                                voice.listening -> voice.stop()
+                                                voice.requiresMicPermission &&
+                                                    androidx.core.content.ContextCompat.checkSelfPermission(
+                                                        context,
+                                                        android.Manifest.permission.RECORD_AUDIO,
+                                                    ) != android.content.pm.PackageManager.PERMISSION_GRANTED ->
+                                                    micPermission.launch(android.Manifest.permission.RECORD_AUDIO)
+                                                else -> startDictation(voice)
+                                            }
                                         },
                                         modifier = Modifier.testTag("composer_voice_menu"),
                                     )
@@ -1192,13 +1222,42 @@ fun ComposerBar(
                     modifier = Modifier.testTag("composer_attach_error"),
                 )
             }
-            if (voiceError) {
-                Text(
+            when (voiceError) {
+                VoiceError.MIC_PERMISSION -> Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.testTag("composer_voice_error"),
+                ) {
+                    Text(
+                        text = stringResource(R.string.composer_voice_mic_permission),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.weight(1f, fill = false).testTag("composer_voice_permission"),
+                    )
+                    // A "don't ask again" denial never re-prompts — the app's own system
+                    // page is the way back to a working microphone.
+                    androidx.compose.material3.TextButton(
+                        onClick = {
+                            runCatching {
+                                context.startActivity(
+                                    android.content.Intent(
+                                        android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                        android.net.Uri.fromParts("package", context.packageName, null),
+                                    ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+                                )
+                            }
+                        },
+                        modifier = Modifier.testTag("composer_voice_settings"),
+                    ) {
+                        Text(stringResource(R.string.composer_voice_open_settings))
+                    }
+                }
+                VoiceError.UNAVAILABLE -> Text(
                     text = stringResource(R.string.composer_voice_unavailable),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.testTag("composer_voice_error"),
                 )
+                null -> Unit
             }
             state.sendNotice?.let { SendNoticeBar(it, onDismiss = onDismissNotice, modifier = Modifier.fillMaxWidth()) }
         }
@@ -1485,3 +1544,6 @@ fun composerKeyboardOptions(draft: String): androidx.compose.foundation.text.Key
 /** The autocorrect flag across compose-ui's autoCorrect → autoCorrectEnabled rename. */
 fun composerAutoCorrectEnabled(options: androidx.compose.foundation.text.KeyboardOptions): Boolean =
     options.autoCorrectEnabled ?: options.autoCorrect
+
+/** F-34-D: why dictation did not start/finish — the copy must name the real cause. */
+internal enum class VoiceError { MIC_PERMISSION, UNAVAILABLE }

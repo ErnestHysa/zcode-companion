@@ -125,7 +125,7 @@ class VoiceInputTest {
         rule.onNodeWithTag("composer_attach").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("composer_voice_menu").performClick()
-        rule.runOnIdle { fake.onError?.invoke(6 /* ERROR_INSUFFICIENT_PERMISSIONS */) }
+        rule.runOnIdle { fake.onError?.invoke(6 /* ERROR_SPEECH_TIMEOUT — a generic failure; the permission refusal (9) is F-34-D, VoicePermissionTest */) }
         rule.onNodeWithTag("composer_voice_error").assertExists()
     }
 

@@ -99,6 +99,9 @@
     <string name="conv_leave_discard">Leave</string>
     <string name="composer_model_picker_empty">No models available on this connection.</string>
     <string name="composer_voice_unavailable">Voice input isn\'t available on this device</string>
+    <!-- F-34-D: the honest copy for a missing microphone grant + its way out. -->
+    <string name="composer_voice_mic_permission">Microphone permission needed for dictation</string>
+    <string name="composer_voice_open_settings">Settings</string>
 
     <!-- Row renderers (§19.3/§19.5). -->
     <string name="row_you">YOU</string>

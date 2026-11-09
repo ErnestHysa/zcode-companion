@@ -25,6 +25,15 @@ interface VoiceInputPort {
     /** Platform availability (device + recognition service). */
     val available: Boolean
 
+    /**
+     * F-34-D (vc52 Phase 8): does starting need the RECORD_AUDIO runtime grant? The
+     * platform recognition service REJECTS a caller without it ("received from a caller
+     * without permission android.permission.RECORD_AUDIO") — the app never declared nor
+     * asked for it, so Dictate was dead on every device and its error blamed the device.
+     * The composer requests the grant at the Dictate tap when this is true.
+     */
+    val requiresMicPermission: Boolean get() = false
+
     /** True between start() and a terminal callback. MUST be observable state
      *  (Compose state) — the composer's tint and "Listening…" label read it in
      *  composition (B2.2: a plain getter recomposed nothing). */
@@ -32,6 +41,11 @@ interface VoiceInputPort {
 
     fun start(onPartial: (String) -> Unit, onFinal: (String) -> Unit, onError: (Int) -> Unit)
     fun stop()
+
+    companion object {
+        /** SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS — the recognizer's own refusal. */
+        const val ERROR_INSUFFICIENT_PERMISSIONS = SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS
+    }
 }
 
 class NoVoiceInput : VoiceInputPort {
@@ -46,6 +60,9 @@ class PlatformVoiceInput(private val context: android.content.Context) : VoiceIn
 
     override val available: Boolean =
         runCatching { SpeechRecognizer.isRecognitionAvailable(context) }.getOrDefault(false)
+
+    /** F-34-D: the platform recognition service enforces RECORD_AUDIO on its caller. */
+    override val requiresMicPermission: Boolean = true
 
     private var recognizer: SpeechRecognizer? = null
 
