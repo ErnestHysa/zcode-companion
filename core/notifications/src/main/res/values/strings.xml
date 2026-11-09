@@ -23,6 +23,11 @@
     <string name="fgs_connected_title">Connected to %1$s</string>
     <string name="fgs_connected_text">Live connection active — tap to disconnect</string>
     <string name="fgs_default_desktop">ZCode desktop</string>
+    <!-- F-34-F: the Live-connection notification follows the live phase. -->
+    <string name="fgs_reconnecting_title">Reconnecting to %1$s…</string>
+    <string name="fgs_reconnecting_text">Live connection active — it resumes automatically</string>
+    <string name="fgs_disconnected_title">Disconnected from %1$s</string>
+    <string name="fgs_disconnected_text">Tap to retry</string>
     <string name="notif_group_summary_title">ZCode</string>
     <plurals name="notif_group_summary_text">
         <item quantity="one">%1$d active notification</item>

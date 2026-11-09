@@ -377,6 +377,9 @@ class AppContainer(context: Context) {
                 ?: ctx.getString(com.zcode.android.core.notifications.R.string.fgs_default_desktop)
         }
         com.zcode.android.core.notifications.LiveConnectionService.LAUNCHER_ACTIVITY = MainActivity::class.java
+        // F-34-F: the Live-connection notification tracks the LIVE phase (it was built
+        // once at service start and read "Connected" through ten minutes of DEGRADED).
+        com.zcode.android.core.notifications.LiveConnectionService.phaseSource = hub.phase
         com.zcode.android.core.notifications.ReconnectProbeWorker.ProbeHook.probe = {
             hub.networkAvailable()
         }

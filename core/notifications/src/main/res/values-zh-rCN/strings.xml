@@ -22,6 +22,11 @@
     <string name="fgs_connected_title">已连接到 %1$s</string>
     <string name="fgs_connected_text">实时连接已启用 — 点按可断开</string>
     <string name="fgs_default_desktop">ZCode 桌面端</string>
+    <!-- F-34-F: the Live-connection notification follows the live phase. -->
+    <string name="fgs_reconnecting_title">正在重新连接到 %1$s…</string>
+    <string name="fgs_reconnecting_text">实时连接已启用 — 将自动恢复</string>
+    <string name="fgs_disconnected_title">已与 %1$s 断开连接</string>
+    <string name="fgs_disconnected_text">点按重试</string>
     <string name="notif_group_summary_title">ZCode</string>
     <plurals name="notif_group_summary_text">
         <item quantity="other">%1$d 条活动通知</item>

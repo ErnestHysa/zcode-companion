@@ -14,6 +14,10 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 /**
  * LiveConnectionService — the §24.5 "Live connection" foreground service and the
@@ -37,11 +41,25 @@ import androidx.core.content.ContextCompat
  */
 class LiveConnectionService : Service() {
 
+    /** F-34-F: what the user is told — three honest states, not the transport's nine. */
+    enum class LinkStatus { CONNECTED, RECONNECTING, DISCONNECTED }
+
     private val handler = Handler(Looper.getMainLooper())
     private val timeoutRunnable = Runnable {
         android.util.Log.i(TAG, "auto-timeout reached — stopping")
         stopForegroundAndSelf()
     }
+
+    /**
+     * F-34-F (vc52 Phase 8): the notification follows the LIVE connection. It used to be
+     * built once at service start — through ten minutes of a DEGRADED transport the shade
+     * kept saying "Connected — Live connection active": a false all-clear for the user
+     * relying on it to receive approvals.
+     */
+    private val serviceScope = kotlinx.coroutines.CoroutineScope(
+        kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Main.immediate,
+    )
+    private var statusJob: kotlinx.coroutines.Job? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -50,7 +68,8 @@ class LiveConnectionService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         NotificationChannels.ensure(this)
-        startForegroundCompat()
+        startForegroundCompat(currentStatus())
+        observeStatus()
         handler.removeCallbacks(timeoutRunnable)
         // §24.5 (vc35 user feedback): the window is user-customizable; 0 = stay
         // connected until the user turns the toggle off (no auto-timeout).
@@ -60,13 +79,30 @@ class LiveConnectionService : Service() {
 
     override fun onDestroy() {
         handler.removeCallbacks(timeoutRunnable)
+        statusJob?.cancel()
+        serviceScope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
         _isRunning.value = false
         super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun startForegroundCompat() {
+    private fun currentStatus(): LinkStatus =
+        phaseSource?.value?.let(::statusFor) ?: LinkStatus.CONNECTED
+
+    /** Re-post on the SAME id, and only when the user-visible status actually changes. */
+    private fun observeStatus() {
+        val source = phaseSource ?: return
+        statusJob?.cancel()
+        statusJob = serviceScope.launch {
+            source.map(::statusFor)
+                .distinctUntilChanged()
+                .drop(1) // the start-command post already shows the current status
+                .collect { status -> startForegroundCompat(status) }
+        }
+    }
+
+    private fun startForegroundCompat(status: LinkStatus) {
         val endpointLabel = endpointLabelProvider(this)
         // The tap target is a convenience — the REQUIRED FGS notification posts
         // even when no launcher activity class is registered (service-first start).
@@ -81,12 +117,23 @@ class LiveConnectionService : Service() {
                 android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE,
             )
         }
+        val (title, text) = when (status) {
+            LinkStatus.CONNECTED ->
+                getString(R.string.fgs_connected_title, endpointLabel) to getString(R.string.fgs_connected_text)
+            LinkStatus.RECONNECTING ->
+                getString(R.string.fgs_reconnecting_title, endpointLabel) to getString(R.string.fgs_reconnecting_text)
+            // "Tap to retry" is literal: the tap opens the app, and the foreground entry
+            // IS the retry (hub.foregroundTrigger → a fresh reconnect budget, F-34-B).
+            LinkStatus.DISCONNECTED ->
+                getString(R.string.fgs_disconnected_title, endpointLabel) to getString(R.string.fgs_disconnected_text)
+        }
         val notification = NotificationCompat.Builder(this, NotificationChannels.LIVE_CONNECTION)
             .setSmallIcon(com.zcode.android.core.notifications.R.drawable.ic_notif_shield)
-            .setContentTitle(getString(R.string.fgs_connected_title, endpointLabel))
-            .setContentText(getString(R.string.fgs_connected_text))
+            .setContentTitle(title)
+            .setContentText(text)
             .also { b -> pending?.let { b.setContentIntent(it) } }
             .setOngoing(true)
+            .setOnlyAlertOnce(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .build()
@@ -123,6 +170,29 @@ class LiveConnectionService : Service() {
         /** MainActivity class — set by the app (core:notifications has no app types). */
         @Volatile
         var LAUNCHER_ACTIVITY: Class<*>? = null
+
+        /**
+         * F-34-F: the live connection phase (the app wires the hub's phase). Null = no
+         * source (a service-first start) → the notification stays at its start status.
+         */
+        @Volatile
+        var phaseSource: kotlinx.coroutines.flow.StateFlow<com.zcode.android.domain.state.ConnectionPhase>? = null
+
+        fun statusFor(phase: com.zcode.android.domain.state.ConnectionPhase): LinkStatus = when (phase) {
+            com.zcode.android.domain.state.ConnectionPhase.CONNECTED -> LinkStatus.CONNECTED
+            com.zcode.android.domain.state.ConnectionPhase.PAIRING,
+            com.zcode.android.domain.state.ConnectionPhase.AUTHENTICATING,
+            com.zcode.android.domain.state.ConnectionPhase.CONNECTING,
+            com.zcode.android.domain.state.ConnectionPhase.RECONNECTING,
+            com.zcode.android.domain.state.ConnectionPhase.RECOVERING,
+            -> LinkStatus.RECONNECTING
+            // DEGRADED/FAILED need the user (Retry / re-pair); UNPAIRED/CLOSED have no link.
+            com.zcode.android.domain.state.ConnectionPhase.DEGRADED,
+            com.zcode.android.domain.state.ConnectionPhase.FAILED,
+            com.zcode.android.domain.state.ConnectionPhase.CLOSED,
+            com.zcode.android.domain.state.ConnectionPhase.UNPAIRED,
+            -> LinkStatus.DISCONNECTED
+        }
 
         /** Process-truth for Settings/worker/spike probes. OBSERVABLE (H3.1): the
          *  Settings switch collects this flow, so the 30-min auto-timeout stop flips
