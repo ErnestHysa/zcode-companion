@@ -12111,7 +12111,7 @@ This phase was implemented (test-first; RED receipts in /tmp/p9/*.log), suite-ga
 (1900/0/0/0 across 17 modules at `6f0c9bce`, +33 = exactly this phase's pins, 0 lost),
 and rig-verified on the exit-gate leg above (including one rig-caught fix re-landed
 in-phase: the N-BD-1 popup re-anchor `6f0c9bce`), and marked complete on
-**2026-11-09 at 22:29:41** (local time, yyyy-mm-dd hh-mm-ss — the moment the exit-gate
+**2026-11-09 at 22:27:13** (local time, yyyy-mm-dd hh-mm-ss — the moment the exit-gate
 logcat audit reconciled 0 FATALs / 0 ANRs / 0 deaths across the whole session) by
 **GLM-5.3-Flash** (the session model) running inside **ZCode** (the ZCode CLI agent
 harness), working under Ernest's standing deliverable-completion rule on `fix/vc52`;
