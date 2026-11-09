@@ -401,6 +401,24 @@ class MockZCode(
         @Volatile var interactionPushId: String = "mock-approval-push-1"
         @Volatile var interactionPushTool: String = "Bash"
 
+        // ---------------- G77 (vc52 Phase 7, RIG-P1): AskUserQuestion auto-resolution ----------------
+        /**
+         * The `autoResolution` arm served on every pending permission/userInput entry:
+         * null = none (pre-RIG-P1 shape) | "countdown" (visibleCountdown, the desktop's
+         * 5-minute fuse — the entry is DROPPED once the fuse fires, the auto-continue)
+         * | "grace" (hiddenGrace; the phone shows no countdown and no Keep-waiting yet)
+         * | "snoozed" (the snoozed state; "Keep waiting" is already done)
+         * | "expired" (visibleCountdown with a deadline in the past — the
+         * already-expired face: the phone must render non-actionable).
+         */
+        @Volatile var autoResolutionArm: String? = null
+        /** Fuse length in ms — the desktop policy default is 300_000 (5 minutes). */
+        @Volatile var autoResolutionMs: Long = 300_000L
+        /** The fuse's start (visibleCountdown/hiddenGrace/snoozed all carry startedAt). */
+        @Volatile var autoResolutionStartedAtMs: Long = System.currentTimeMillis()
+        /** snoozeInteractionAutoResolution arrived — the live arm flips to snoozed. */
+        @Volatile var autoResolutionSnoozed: Boolean = false
+
         // ---------------- Phase 5A (A3.3 + L6.4) workflows ----------------
         /** `listSavedWorkflows` payload (BJ shape); null = unscripted → typed fault (hub hidden). */
         var savedWorkflows: JsonObject? = null
@@ -1092,55 +1110,126 @@ class MockZCode(
     }
 
     /**
+     * RIG-P1 (vc52 Phase 7, G77): the `autoResolution` payload for the armed shape —
+     * the byte-verified desktop discriminatedUnion("state") from the shipped asar
+     * (b$ schema): `{state: hiddenGrace|visibleCountdown, startedAt, visibleAt,
+     * deadlineAt}` | `{state: snoozed, startedAt, snoozedAt}`. Timestamps are
+     * epoch-ms numbers. Returns null when the arm is unset (the pre-RIG-P1 shape).
+     */
+    private fun autoResolutionForEntry(now: Long): JsonObject? {
+        val arm = script.autoResolutionArm ?: return null
+        val started = script.autoResolutionStartedAtMs
+        val fuseEnd = started + script.autoResolutionMs
+        return when (arm) {
+            "countdown" ->
+                if (script.autoResolutionSnoozed) {
+                    buildJsonObject {
+                        put("state", JsonPrimitive("snoozed"))
+                        put("startedAt", JsonPrimitive(started.toDouble()))
+                        put("snoozedAt", JsonPrimitive(now.toDouble()))
+                    }
+                } else {
+                    buildJsonObject {
+                        put("state", JsonPrimitive("visibleCountdown"))
+                        put("startedAt", JsonPrimitive(started.toDouble()))
+                        put("visibleAt", JsonPrimitive(started.toDouble()))
+                        put("deadlineAt", JsonPrimitive(fuseEnd.toDouble()))
+                    }
+                }
+            "grace" -> buildJsonObject {
+                put("state", JsonPrimitive("hiddenGrace"))
+                put("startedAt", JsonPrimitive(started.toDouble()))
+                put("visibleAt", JsonPrimitive((now + 30_000L).toDouble()))
+                put("deadlineAt", JsonPrimitive(fuseEnd.toDouble()))
+            }
+            "snoozed" -> buildJsonObject {
+                put("state", JsonPrimitive("snoozed"))
+                put("startedAt", JsonPrimitive(started.toDouble()))
+                put("snoozedAt", JsonPrimitive(now.toDouble()))
+            }
+            "expired" -> buildJsonObject {
+                put("state", JsonPrimitive("visibleCountdown"))
+                put("startedAt", JsonPrimitive((now - script.autoResolutionMs).toDouble()))
+                put("visibleAt", JsonPrimitive((now - script.autoResolutionMs).toDouble()))
+                put("deadlineAt", JsonPrimitive((now - 60_000L).toDouble()))
+            }
+            else -> null
+        }
+    }
+
+    /**
+     * RIG-P1: the desktop's auto-continue — once the countdown fuse has fired the
+     * interaction LEAVES the authoritative list (the phone's disappearance rule
+     * resolves it by-elsewhere). Only the live "countdown" arm fires; "expired"
+     * serves the already-expired face on purpose (the phone must render it
+     * non-actionable, not drop it silently).
+     */
+    private fun autoResolutionFired(now: Long): Boolean =
+        script.autoResolutionArm == "countdown" && !script.autoResolutionSnoozed &&
+            now >= script.autoResolutionStartedAtMs + script.autoResolutionMs
+
+    /**
      * The authoritative pending list for the CURRENT script slots — one builder for the
      * snapshot (stateBlock) and every state.updated patch. Key-level replacement means
      * a patch must carry every surviving interaction; a partial list resolves the rest
      * (pass-13 c2bcdc1b for the hook, pass-14 for the sibling permission/question).
      */
-    private fun pendingInteractionList(): JsonArray = JsonArray(listOfNotNull(
-
+    private fun pendingInteractionList(): JsonArray {
+        val now = System.currentTimeMillis()
+        return JsonArray(listOfNotNull(
             script.pendingPermission?.let { pp ->
-                buildJsonObject {
-                    put("interactionId", JsonPrimitive(pp.interactionId))
-                    put("kind", JsonPrimitive("permission"))
-                    put("anchorRowId", JsonNull)
-                    put("createdAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
-                    put("payload", buildJsonObject {
+                if (autoResolutionFired(now)) {
+                    null // G77: the fuse fired — the desktop auto-continued it out of the list
+                } else {
+                    buildJsonObject {
+                        put("interactionId", JsonPrimitive(pp.interactionId))
                         put("kind", JsonPrimitive("permission"))
-                        put("toolCallId", JsonPrimitive("tool-approval-${pp.interactionId}"))
-                        put("toolName", JsonPrimitive(pp.toolName))
-                        put("summary", JsonPrimitive(pp.summary))
-                        put("detail", buildJsonObject { put("command", JsonPrimitive("echo synthetic")) })
-                        put("options", JsonArray(pp.options.map { id ->
-                            buildJsonObject {
-                                put("optionId", JsonPrimitive(id))
-                                put("label", JsonPrimitive(id))
-                                put("kind", JsonPrimitive(id))
-                            }
-                        }))
-                    })
+                        put("anchorRowId", JsonNull)
+                        put("createdAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
+                        autoResolutionForEntry(now)?.let { put("autoResolution", it) }
+                        put("payload", buildJsonObject {
+                            put("kind", JsonPrimitive("permission"))
+                            put("toolCallId", JsonPrimitive("tool-approval-${pp.interactionId}"))
+                            put("toolName", JsonPrimitive(pp.toolName))
+                            put("summary", JsonPrimitive(pp.summary))
+                            put("detail", buildJsonObject { put("command", JsonPrimitive("echo synthetic")) })
+                            put("options", JsonArray(pp.options.map { id ->
+                                buildJsonObject {
+                                    put("optionId", JsonPrimitive(id))
+                                    put("label", JsonPrimitive(id))
+                                    put("kind", JsonPrimitive(id))
+                                }
+                            }))
+                        })
+                    }
                 }
             },
             script.pendingUserInput?.let { pu ->
-                buildJsonObject {
-                    put("interactionId", JsonPrimitive(pu.interactionId))
-                    put("kind", JsonPrimitive("userInput"))
-                    put("anchorRowId", JsonNull)
-                    put("createdAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
-                    put("payload", buildJsonObject {
+                if (autoResolutionFired(now)) {
+                    null // G77: the fuse fired — auto-continued out of the list
+                } else {
+                    buildJsonObject {
+                        put("interactionId", JsonPrimitive(pu.interactionId))
                         put("kind", JsonPrimitive("userInput"))
-                        put("prompt", JsonPrimitive(pu.prompt))
-                        put("freeText", JsonPrimitive(pu.freeText))
-                        // A3.14: the AskUserQuestion multi-question plane (MOCK_QUESTION).
-                        script.pendingQuestion?.get("questions")?.let { put("questions", it) }
-                        put("options", JsonArray(pu.options.map { id ->
-                            buildJsonObject { put("optionId", JsonPrimitive(id)); put("label", JsonPrimitive(id)) }
-                        }))
-                    })
+                        put("anchorRowId", JsonNull)
+                        put("createdAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
+                        autoResolutionForEntry(now)?.let { put("autoResolution", it) }
+                        put("payload", buildJsonObject {
+                            put("kind", JsonPrimitive("userInput"))
+                            put("prompt", JsonPrimitive(pu.prompt))
+                            put("freeText", JsonPrimitive(pu.freeText))
+                            // A3.14: the AskUserQuestion multi-question plane (MOCK_QUESTION).
+                            script.pendingQuestion?.get("questions")?.let { put("questions", it) }
+                            put("options", JsonArray(pu.options.map { id ->
+                                buildJsonObject { put("optionId", JsonPrimitive(id)); put("label", JsonPrimitive(id)) }
+                            }))
+                        })
+                    }
                 }
             },
             scriptedHookInteraction(),
         ))
+    }
 
     private fun stateBlock(): JsonObject? {
         if (!script.emitStateKeys) return null
@@ -1620,6 +1709,14 @@ class MockZCode(
     internal fun revisionForTest(): Long = stateRevision.get()
     internal fun pendingPermissionForTest(): PendingPermission? = script.pendingPermission
     internal fun pendingUserInputForTest(): PendingUserInput? = script.pendingUserInput
+    internal fun pendingListForTest(): JsonArray = pendingInteractionList()
+    internal fun armAutoResolutionForTest(arm: String, fuseMs: Long, startedAtMs: Long) {
+        script.autoResolutionArm = arm
+        script.autoResolutionMs = fuseMs
+        script.autoResolutionStartedAtMs = startedAtMs
+        script.autoResolutionSnoozed = false
+    }
+    internal fun autoResolutionSnoozedForTest(): Boolean = script.autoResolutionSnoozed
     // Phase 4A self-test seams: the snapshot row builder + the appended/upserted row ledger.
     internal fun snapshotRowsForTestSeam(sessionId: String, count: Int): JsonArray = snapshotRows(sessionId, count)
     internal fun appendedRowForTest(rowId: Long): JsonObject? = synchronized(appendedRows) { appendedRows[rowId.toString()] }
@@ -3094,6 +3191,18 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     appendedRows[answered["rowId"].toString()] = answered
                     pushRowAppended(routingSessionId(), answered)
                 }
+            }
+            "snoozeInteractionAutoResolution" -> {
+                // RIG-P1 (G77): the phone's "Keep waiting" — the desktop accepts the
+                // snooze (accepted/duplicate/noop all count as success) and the live
+                // fuse flips to the snoozed state; the patch carries the WHOLE list
+                // (key-level replacement) so the card re-renders without a countdown.
+                stateRevision.incrementAndGet()
+                script.autoResolutionSnoozed = true
+                pushStatePatch(buildJsonObject {
+                    put("revision", JsonPrimitive(stateRevision.get()))
+                    put("pendingInteractions", pendingInteractionList())
+                })
             }
             "stop" -> {
                 stateRevision.incrementAndGet()

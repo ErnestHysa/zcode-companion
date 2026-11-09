@@ -321,6 +321,21 @@ fun main() {
     if (System.getenv("MOCK_TASKMGMT") != null) {
         armTaskManagementRig(mock)
     }
+    // RIG-P1 (vc52 Phase 7, G77): MOCK_AUTO_RESOLUTION=grace|countdown|snoozed|expired
+    // serves the byte-verified desktop autoResolution discriminatedUnion on EVERY
+    // pending permission/userInput entry (the 5-minute fuse the phone must decode and
+    // render). MOCK_AUTO_RESOLUTION_MS sizes the fuse (default 300000 = the desktop
+    // policy default; the rig usually arms something short). The "countdown" arm
+    // DROPS the entry once the fuse fires (the auto-continue), "expired" serves a
+    // deadline in the past (the already-expired, non-actionable face).
+    if (System.getenv("MOCK_AUTO_RESOLUTION") != null) {
+        val arm = System.getenv("MOCK_AUTO_RESOLUTION")!!
+        require(arm in setOf("grace", "countdown", "snoozed", "expired")) {
+            "MOCK_AUTO_RESOLUTION must be one of grace|countdown|snoozed|expired, got: $arm"
+        }
+        mock.script.autoResolutionArm = arm
+        System.getenv("MOCK_AUTO_RESOLUTION_MS")?.toLongOrNull()?.let { mock.script.autoResolutionMs = it }
+    }
     // Phase 5B (A3.14) rig leg: MOCK_QUESTION=1 scripts a blocking AskUserQuestion
     // elicitation (two questions, one multi-select) into the snapshot's pending
     // interactions — the card renders and the answer/decline ride resolveInteraction.
