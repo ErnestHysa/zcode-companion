@@ -562,10 +562,17 @@ fun ConversationScreen(
                     findActiveRowId = findActiveRowId.takeIf { findOpen },
                     toolOutputProvider = toolOutputProvider,
                     rowActions = rowActions,
-                        rewindPreviewProvider = rewindPreviewProvider,
+                    rewindPreviewProvider = rewindPreviewProvider,
                     // F3-LOAD root cause (Phase 4A discovery): the loader was accepted by the
                     // screen but never reached the timeline — previews could never load.
                     loadAttachment = loadAttachment,
+                    // F-27-B (pass 31): the defaulted callbacks were DROPPED here — the
+                    // G28 zoom/external handoff stayed dead at the timeline and the L7
+                    // diagnostics seam was structurally null. Forward everything (the
+                    // TimelineCallbackWiringTest sweep fails on any new dropped param).
+                    onOpenAttachment = onOpenAttachment,
+                    onOpenAttachmentExternally = onOpenAttachmentExternally,
+                    onSectionCrash = onSectionCrash,
                 )
             }
             // §17.4/§17.6 composer (pinned bottom; drafting allowed offline, send
@@ -1074,6 +1081,12 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                         onSideSession = onSideSession,
                         onShareSelection = onShareSelection,
                         officeMode = officeMode,
+                        // F-27-B (pass 31): these were dropped — the rewind preview plane
+                        // (A3.11) never reached TurnSeparator (zero wire receipts through
+                        // pass 31) and the G28 attachment taps stayed dead at the row.
+                        onOpenAttachment = onOpenAttachment,
+                        onOpenAttachmentExternally = onOpenAttachmentExternally,
+                        rewindPreviewProvider = rewindPreviewProvider,
                     )
                     is TimelineEntry.ToolGroup -> ToolGroupBlock(
                         group = entry,
