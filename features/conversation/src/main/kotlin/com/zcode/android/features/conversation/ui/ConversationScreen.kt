@@ -697,6 +697,10 @@ private fun Header(
     val config = state.sessionState?.config
     var configExpanded by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
     var contextSheet by remember { mutableStateOf(false) }
+    // F-27-C/D5: the sheet's scroll state is HOISTED and keyed to the sheet's
+    // visibility — every open starts a FRESH ScrollState(0), so the sheet can never
+    // reopen scrolled below the chip row.
+    val contextSheetScroll = remember(contextSheet) { androidx.compose.foundation.ScrollState(0) }
     Row(
         Modifier
             .fillMaxWidth()
@@ -788,6 +792,7 @@ private fun Header(
             onSetGoal = onSetGoal,
             onPauseGoal = onPauseGoal,
             onResumeGoal = onResumeGoal,
+            scrollState = contextSheetScroll,
         )
     }
 }

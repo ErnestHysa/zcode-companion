@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -60,13 +61,32 @@ fun SessionContextSheet(
     onSetGoal: (objective: String) -> Unit = {},
     onPauseGoal: () -> Unit = {},
     onResumeGoal: () -> Unit = {},
+    /**
+     * F-27-C/D5: the sheet's scroll state, HOISTED — the host keys it to the sheet's
+     * visibility so every open starts at the top (the recorded reopen-below-the-chip-row
+     * face is structurally impossible).
+     */
+    scrollState: androidx.compose.foundation.ScrollState = rememberScrollState(),
 ) {
     ZCodeModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier.testTag("session_context_sheet")) {
+        // F-27-C (pass 31/33, the bottom-edge clip family): the sheet is edge-to-edge —
+        // without a nav-bar inset the footer chip row painted UNDER the 3-button bar
+        // (a tap on Share hit system Back) and was cut by the screen edge under gesture
+        // nav; the wrapped chips reported zero/11px bounds. The inset is applied on the
+        // OUTER column so the sheet's measured height INCLUDES it (skipPartiallyExpanded:
+        // height = content height) — the chips clear the bar WITHOUT scrolling, under
+        // both nav modes.
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .testTag("session_context_inset"),
+        ) {
         Column(
             Modifier
                 .fillMaxWidth()
                 .heightIn(max = SheetMaxHeight)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .testTag("session_context_content"),
         ) {
             // §11.1: the context-window meter rides first — it is context about context.
@@ -148,6 +168,7 @@ fun SessionContextSheet(
                 ZCodeChip(onClick = onShareTranscript, label = stringResource(com.zcode.android.features.conversation.R.string.conv_share_entry), testTag = "conv_share")
             }
             Spacer(Modifier.height(14.dp))
+        }
         }
     }
 }
