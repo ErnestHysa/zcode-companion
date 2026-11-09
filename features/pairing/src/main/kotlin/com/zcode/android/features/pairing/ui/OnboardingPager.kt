@@ -2,6 +2,7 @@ package com.zcode.android.features.pairing.ui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -46,7 +47,10 @@ fun OnboardingPager(
     val pager = rememberPagerState(pageCount = { pages.size })
     val scope = rememberCoroutineScope()
     val last = pager.currentPage == pages.lastIndex
-    Column(modifier.fillMaxSize().padding(24.dp)) {
+    // The header row used to draw under the status bar (the app is edge-to-edge): Skip
+    // was untappable at its reported bounds on device (the vc52 Phase 8 exit gate — the
+    // surface was unreachable until the start-destination fix made onboarding show).
+    Column(modifier.fillMaxSize().safeDrawingPadding().padding(24.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Spacer(Modifier.weight(1f))
             TextButton(onClick = onFinish, modifier = Modifier.testTag("onboarding_skip")) {
