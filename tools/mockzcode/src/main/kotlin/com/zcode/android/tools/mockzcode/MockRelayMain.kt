@@ -81,6 +81,23 @@ fun main() {
             "- derived state stays derived — no mutableStateOf in the render path",
         ).joinToString("\n")
     }
+    // RIG-P3 (vc52 Phase 10 / F-37-D): MOCK_ROWS_TOTAL=<n> models a conversation
+    // whose STORE has n rows while the SNAPSHOT carries only the production
+    // rowsWindowSchema TAIL window ({window, totalCount, firstRowId=1}) of
+    // MOCK_ROWS_WINDOW rows (default 320 = the phone's cache bound) — the window's
+    // first row id is then above the store floor, so the phone's hasMoreHistory
+    // derives true and the Load-earlier strip shows; the rowsRange handler pages
+    // backward through the virtual store (row ids 1..n). Without the arm the mock
+    // keeps the bare-array snapshot and the strip can never appear (the recorded
+    // F-37-D receipt shape).
+    System.getenv("MOCK_ROWS_TOTAL")?.toLongOrNull()?.let { total ->
+        val tail = System.getenv("MOCK_ROWS_WINDOW")?.toIntOrNull() ?: 320
+        val base = (total - tail + 1).coerceAtLeast(1L)
+        mock.script.snapshotRowIdBase = base
+        mock.script.snapshotRowCount = tail
+        mock.script.snapshotRowsWindowShape = true
+        mock.script.snapshotWindowTruncated = true
+    }
     // PART K live leg: one rich-markdown assistant row so the phone's parser renders
     // against real wire content (nested list, table, fenced code, inline code, link).
     mock.script.demoAssistantMarkdown = listOf(

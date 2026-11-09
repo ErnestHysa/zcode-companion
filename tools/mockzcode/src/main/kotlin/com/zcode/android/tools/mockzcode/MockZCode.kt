@@ -2134,11 +2134,21 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 val params = argAsObject(arg) ?: return respondError(id, "fault.rowsRange.params")
                 val sessionId = params.str("sessionId")
                 val limit = params.strOrNull("limit")?.toIntOrNull() ?: 10
-                val rows = (0 until limit.coerceAtMost(workspace.rowCount)).map { i ->
+                val beforeRowId = params.strOrNull("beforeRowId")?.toLongOrNull()
+                // RIG-P3 (vc52 Phase 10 / F-37-D): the page must be the rows STRICTLY
+                // OLDER than beforeRowId, keyed consistently with the snapshot's
+                // rowsWindowSchema (row ids rowIdBase..top) — the old handler ignored
+                // beforeRowId and served rows 1..limit with hasMore=false, so the
+                // phone's Load-earlier leg could never page backwards (every call
+                // returned the SAME newest page). hasMore stays true while rows remain
+                // above the page (the snapshot's firstRowId bounds the store top).
+                val storeTop = snapshotRowIdTop(script.snapshotRowCount ?: workspace.rowCount)
+                val page = rowsRangePage(storeTop, beforeRowId, limit)
+                val rows = page.map { rid ->
                     schemaRow(
-                        sessionId, i.toLong() + 1,
-                        if (i % 2 == 0) RowKind.ASSISTANT_TEXT else RowKind.REASONING,
-                        "synthetic row ${i + 1}",
+                        sessionId, rid,
+                        if (rid % 2L == 0L) RowKind.ASSISTANT_TEXT else RowKind.REASONING,
+                        "synthetic row $rid",
                     )
                 }
                 respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
@@ -2146,7 +2156,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     put("atSeq", JsonPrimitive(maxOf(1L, seqHeads[sessionId] ?: 1L)))
                     put("atRevision", JsonPrimitive(script.currentRevision))
                     put("atLogEpoch", JsonPrimitive(logEpoch))
-                    put("hasMore", JsonPrimitive(false))
+                    put("hasMore", JsonPrimitive(page.first > MockZCode.ROW_ID_FLOOR))
                 }))
             }
             "sendConversationCommandV4" -> {
@@ -4422,5 +4432,28 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
             return Base64.getUrlEncoder().withoutPadding()
                 .encodeToString(mac.doFinal("${nonce}|${role}|${sid}".encodeToByteArray()))
         }
+
+        /**
+         * RIG-P3: the snapshot's row-id scheme is rowIdBase..rowIdBase+count-1 (plus
+         * appended turn/markdown rows); the conversation STORE's top row id:
+         */
+        fun snapshotRowIdTop(rowCount: Int, rowIdBase: Long = 1L): Long = rowIdBase + rowCount - 1
+
+        /**
+         * RIG-P3 (vc52 Phase 10 / F-37-D): the tail-window PAGE the rowsRange handler
+         * serves — the rows STRICTLY OLDER than [beforeRowId] (or the OLDEST page when
+         * null), never crossing the store floor (row id 1). hasMore = rows remain above
+         * the page. Deterministic + id-keyed, so two paging calls return two DISTINCT
+         * older pages.
+         */
+        fun rowsRangePage(storeTop: Long, beforeRowId: Long?, limit: Int): LongRange {
+            val upper = ((beforeRowId ?: (storeTop + 1)) - 1).coerceAtMost(storeTop)
+            val lower = (upper - (limit.coerceAtLeast(1) - 1)).coerceAtLeast(ROW_ID_FLOOR)
+            if (upper < lower) return LongRange.EMPTY
+            return lower..upper
+        }
+
+        /** The mock's conversation store is row ids 1..top (snapshotRowIdBase counts the SNAPSHOT window, not the store). */
+        const val ROW_ID_FLOOR = 1L
     }
 }
