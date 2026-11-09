@@ -89,7 +89,9 @@ interface ConversationPort {
      * mention panel uses the same service; the port has owned the file channel since
      * Phase 3C). Empty = no matches (or the channel refused — the menu just hides).
      */
-    suspend fun searchWorkspaceFiles(taskId: String, query: String): List<String> = emptyList()
+    /** GAP-21-A: [refresh] mirrors the desktop's lastMissQuery REFRESH re-query (an
+     *  empty result is re-queried ONCE before the miss is accepted). */
+    suspend fun searchWorkspaceFiles(taskId: String, query: String, refresh: Boolean = false): List<String> = emptyList()
 
     /** Subscribe (Phase 5 coordinator path; journal restore included). */
     suspend fun open(task: Task): Boolean

@@ -811,8 +811,9 @@ fun ComposerBar(
     voiceInputOverride: com.zcode.android.features.conversation.voice.VoiceInputPort? = null,
     /** Phase 4C (C2): fired when the "/" menu becomes visible — the extras load lazily then. */
     onSlashMenuOpen: () -> Unit = {},
-    /** Phase 4C (C7): the @-mention file search (the port's workspace file search). */
-    fileSearchProvider: suspend (String) -> List<String> = { emptyList() },
+    /** Phase 4C (C7): the @-mention file search (the port's workspace file search).
+     *  GAP-21-A: [refresh] mirrors the desktop's lastMissQuery REFRESH re-query. */
+    fileSearchProvider: suspend (query: String, refresh: Boolean) -> List<String> = { _, _ -> emptyList() },
     /** G9 (vc51): the shared-context chip's discard (null = hidden). */
     onDiscardSharedContext: (() -> Unit)? = null,
 ) {
@@ -945,17 +946,31 @@ fun ComposerBar(
             // draft via onDraftChange (the field stays the single state source).
             // Phase 4C (C7): @-mentions — a trailing "@token" (no space yet) queries the
             // workspace file search; picking inserts the path in place of the token.
-            val atToken = state.draft.substringAfterLast(' ', "").takeIf { it.startsWith("@") && it.length >= 2 }?.removePrefix("@")
+            // GAP-21-A (vc52 Phase 10): the trigger is the DESKTOP's parsed regex pair
+            // (MentionTrigger — first-token/@-after-Han widened, empty query allowed)
+            // over the whole draft; the old `substringAfterLast(' ', "")` returned the
+            // EMPTY missing-default for any draft without a space, so a first-token
+            // mention (`@re`) computed no token and the panel could never appear.
+            val mention = MentionTrigger.parse(state.draft)?.takeIf { it.trigger == '@' }
             var mentionHits by remember { mutableStateOf<List<String>>(emptyList()) }
-            LaunchedEffect(atToken) {
-                if (atToken.isNullOrEmpty()) {
+            // Keyed on the DRAFT (not the token value): re-entering the identical token
+            // re-queries (the pass-21 staleness papercut). An EMPTY result retries ONCE
+            // with refresh=true before the miss is accepted (the desktop's
+            // lastMissQuery REFRESH retry, BA10.5.2) — bounded, never a re-trigger loop.
+            LaunchedEffect(state.draft) {
+                if (mention == null) {
                     mentionHits = emptyList()
                 } else {
                     kotlinx.coroutines.delay(150)
-                    mentionHits = runCatching { fileSearchProvider(atToken) }.getOrDefault(emptyList())
+                    var hits = runCatching { fileSearchProvider(mention.query, false) }.getOrDefault(emptyList())
+                    if (hits.isEmpty()) {
+                        kotlinx.coroutines.delay(250)
+                        hits = runCatching { fileSearchProvider(mention.query, true) }.getOrDefault(emptyList())
+                    }
+                    mentionHits = hits
                 }
             }
-            if (!atToken.isNullOrEmpty() && mentionHits.isNotEmpty()) {
+            if (mention != null && mentionHits.isNotEmpty()) {
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant,
                     tonalElevation = 2.dp,
@@ -969,8 +984,13 @@ fun ComposerBar(
                                     .fillMaxWidth()
                                     .minRowTouchTarget()
                                     .clickable(role = androidx.compose.ui.semantics.Role.Button) {
-                                        val head = state.draft.substringBeforeLast("@")
-                                        onDraftChange("$head$path ")
+                                        // GAP-21-A: replace from the parsed trigger index —
+                                        // exact for the first-token and Han-prefixed shapes
+                                        // (substringBeforeLast("@") also worked, but only
+                                        // by accident of the single-char trigger).
+                                        onDraftChange(
+                                            state.draft.removeRange(mention.start, state.draft.length) + "$path ",
+                                        )
                                     }
                                     .padding(horizontal = 12.dp, vertical = 8.dp)
                                     .testTag("mention_file_$path"),

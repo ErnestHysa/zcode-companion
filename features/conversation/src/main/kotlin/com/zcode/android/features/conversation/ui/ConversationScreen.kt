@@ -166,7 +166,7 @@ fun ConversationScreen(
     /** Phase 4C (A3.4): the effort switch (setThoughtLevel). */
     onSetThoughtLevel: (String) -> Unit = {},
     /** Phase 4C (C7): the @-mention workspace file search. */
-    fileSearchProvider: suspend (String) -> List<String> = { emptyList() },
+    fileSearchProvider: suspend (query: String, refresh: Boolean) -> List<String> = { _, _ -> emptyList() },
     // ---- Phase 5A (A3.3): workflow runs panel + run sheet ----
     workflowRuns: List<com.zcode.android.domain.model.WorkflowRunSummary>? = null,
     openWorkflowRun: com.zcode.android.features.conversation.ConversationViewModel.OpenWorkflowRun? = null,

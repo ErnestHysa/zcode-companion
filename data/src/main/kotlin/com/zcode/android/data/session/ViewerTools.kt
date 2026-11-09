@@ -94,8 +94,8 @@ class ViewerTools(private val transport: AppTransport) {
         transport.setThoughtLevel(workspacePath, workspaceIdentity, sessionId, thoughtLevel, expectedRevision)
 
     /** Phase 4C (C7): workspace file search for the composer @-mentions (paths, tolerant). */
-    suspend fun searchWorkspaceFiles(workspacePath: String?, workspaceIdentity: String?, query: String, limit: Int = 20): List<String> {
-        val raw = transport.fileSearch(workspacePath.orEmpty(), workspaceIdentity, query, limit)
+    suspend fun searchWorkspaceFiles(workspacePath: String?, workspaceIdentity: String?, query: String, limit: Int = 20, refresh: Boolean = false): List<String> {
+        val raw = transport.fileSearch(workspacePath.orEmpty(), workspaceIdentity, query, limit, refresh)
         val arr = (raw as? com.zcode.android.core.protocol.bytes.RpcSerialization.RpcValue.Arr)?.items
             ?: return emptyList()
         return arr.mapNotNull { el ->

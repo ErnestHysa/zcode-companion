@@ -69,7 +69,7 @@ class MentionFilesUiTest {
                     onAnswer = { _, _, _, _ -> },
                     onSendQueuedNow = {},
                     onEditQueueItem = { _, _ -> },
-                    fileSearchProvider = { query ->
+                    fileSearchProvider = { query, _ ->
                         queries += query
                         files.filter { it.lowercase().contains(query.lowercase()) }
                     },

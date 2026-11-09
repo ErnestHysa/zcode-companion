@@ -864,7 +864,7 @@ private fun ConversationRoute(
         },
         onSlashMenuOpen = vm::onSlashMenuOpen,
         onSetThoughtLevel = vm::setThoughtLevel,
-        fileSearchProvider = { query -> container.conversationPort.searchWorkspaceFiles(state.task?.taskId.orEmpty(), query) },
+        fileSearchProvider = { query, refresh -> container.conversationPort.searchWorkspaceFiles(state.task?.taskId.orEmpty(), query, refresh) },
         workflowRuns = workflowRuns,
         openWorkflowRun = openWorkflowRun,
         onOpenWorkflowRun = vm::openWorkflowRun,

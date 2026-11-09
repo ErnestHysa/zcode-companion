@@ -916,8 +916,8 @@ class DirectTransport(
     override suspend fun fileBinaryPreview(path: String, maxBytes: Long?): JsonObject =
         plane.fileBinaryPreview(path, maxBytes)
 
-    override suspend fun fileSearch(rootPath: String, workspaceIdentity: String?, query: String, limit: Int): RpcValue =
-        plane.fileSearch(rootPath, workspaceIdentity, query, limit)
+    override suspend fun fileSearch(rootPath: String, workspaceIdentity: String?, query: String, limit: Int, refresh: Boolean): RpcValue =
+        plane.fileSearch(rootPath, workspaceIdentity, query, limit, refresh)
 
     override suspend fun appUsageStats(range: String, timeZone: String?): JsonObject =
         plane.appUsageStats(range, timeZone)

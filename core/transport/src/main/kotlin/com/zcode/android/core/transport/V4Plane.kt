@@ -404,7 +404,7 @@ interface V4Plane {
     suspend fun fileReadText(path: String, offset: Long?, length: Long?): JsonObject
     suspend fun fileReadBytes(path: String, offset: Long, length: Long): ByteArray
     suspend fun fileBinaryPreview(path: String, maxBytes: Long?): JsonObject
-    suspend fun fileSearch(rootPath: String, workspaceIdentity: String?, query: String, limit: Int): RpcValue
+    suspend fun fileSearch(rootPath: String, workspaceIdentity: String?, query: String, limit: Int, refresh: Boolean = false): RpcValue
 
     // model-selection (read-only view)
     suspend fun modelSelectionView(): JsonObject
@@ -1712,12 +1712,14 @@ internal class ChannelV4Plane(
             ?: throw TransportFailure(ErrorMapping.protocolFault("file.readBinaryPreview result not an object"))
     }
 
-    suspend fun fileSearch(rootPath: String, workspaceIdentity: String?, query: String, limit: Int): RpcValue =
+    suspend fun fileSearch(rootPath: String, workspaceIdentity: String?, query: String, limit: Int, refresh: Boolean = false): RpcValue =
         fileCall("searchWorkspaceFiles", buildJsonObject {
             put("rootPath", JsonPrimitive(rootPath))
             workspaceIdentity?.let { put("workspaceIdentity", JsonPrimitive(it)) }
             put("query", JsonPrimitive(query))
             put("limit", JsonPrimitive(limit))
+            // GAP-21-A: the desktop's refresh:true miss-retry (host cache invalidation).
+            if (refresh) put("refresh", JsonPrimitive(true))
         }, timeouts.controlRequestTimeoutMs)
 
     // ---- model-selection (read-only view for the §19.5 picker — phase9-channels.md §4)

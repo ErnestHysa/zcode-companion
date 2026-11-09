@@ -750,10 +750,10 @@ class DefaultConversationPort(
      * its own error; the others still render.
      */
     /** Phase 4C (C7): the @-mention file search over the file channel. */
-    override suspend fun searchWorkspaceFiles(taskId: String, query: String): List<String> {
+    override suspend fun searchWorkspaceFiles(taskId: String, query: String, refresh: Boolean): List<String> {
         val target = hub.activeWorkspaceTarget() ?: return emptyList()
         return try {
-            hub.viewerTools().searchWorkspaceFiles(target.first, target.second, query)
+            hub.viewerTools().searchWorkspaceFiles(target.first, target.second, query, refresh = refresh)
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
