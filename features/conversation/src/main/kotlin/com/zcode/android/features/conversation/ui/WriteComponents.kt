@@ -5,6 +5,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.material3.Checkbox
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -663,16 +664,30 @@ fun QueueStrip(
                     modifier = Modifier.weight(1f),
                 )
                 // I1: the desktop's auto-drain toggle (setAutoDrain) — the wire echo (`autoDrain`) is the truth.
+                // N-BC-1 (vc52 Phase 9): the label + switch share ONE toggleable row —
+                // the switch had no label association (TalkBack read nothing).
                 val autoDrain = queue.autoDrain
                 if (onSetAutoDrain != null && autoDrain != null) {
-                    Text(stringResource(R.string.queue_auto_send), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.width(4.dp))
-                    androidx.compose.material3.Switch(
-                        checked = autoDrain,
-                        onCheckedChange = { onSetAutoDrain(it) },
-                        enabled = !busy,
-                        modifier = Modifier.testTag("queue_auto_drain"),
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .toggleable(
+                                value = autoDrain,
+                                enabled = !busy,
+                                role = Role.Switch,
+                                onValueChange = { onSetAutoDrain(it) },
+                            )
+                            .testTag("queue_auto_drain_row"),
+                    ) {
+                        Text(stringResource(R.string.queue_auto_send), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.width(4.dp))
+                        androidx.compose.material3.Switch(
+                            checked = autoDrain,
+                            onCheckedChange = null,
+                            enabled = !busy,
+                            modifier = Modifier.testTag("queue_auto_drain"),
+                        )
+                    }
                 }
             }
             // I2.6: follow-up steering — Queue (hold follow-ups) vs Guide (steer the running turn).
@@ -696,12 +711,13 @@ fun QueueStrip(
                         androidx.compose.material3.IconButton(
                             onClick = { move(item.queueItemId, -1) },
                             enabled = !busy && index > 0,
-                            modifier = Modifier.size(32.dp).testTag("queue_move_up_${item.queueItemId}"),
+                            // N-BC-3: the reorder buttons were 32dp — under the 48dp width floor.
+                            modifier = Modifier.size(48.dp).testTag("queue_move_up_${item.queueItemId}"),
                         ) { Icon(Icons.Filled.KeyboardArrowUp, contentDescription = stringResource(R.string.queue_move_up), modifier = Modifier.size(18.dp)) }
                         androidx.compose.material3.IconButton(
                             onClick = { move(item.queueItemId, +1) },
                             enabled = !busy && index < queue.items.lastIndex,
-                            modifier = Modifier.size(32.dp).testTag("queue_move_down_${item.queueItemId}"),
+                            modifier = Modifier.size(48.dp).testTag("queue_move_down_${item.queueItemId}"),
                         ) { Icon(Icons.Filled.KeyboardArrowDown, contentDescription = stringResource(R.string.queue_move_down), modifier = Modifier.size(18.dp)) }
                     }
                     Text(

@@ -52,6 +52,7 @@ import com.zcode.android.core.ui.components.SectionHeader
 import com.zcode.android.core.ui.components.Notifier
 import com.zcode.android.core.ui.components.connectionPhaseLabel
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.foundation.background
@@ -1070,9 +1071,17 @@ private fun SwitchRow(
     checked: Boolean,
     onToggle: (Boolean) -> Unit,
 ) {
+    // N-BG-3 (vc52 Phase 9): the whole row toggles and exposes the checked state —
+    // the custom switches were plain views with no checkable/checked a11y state and
+    // the label was not tappable.
     Row(
         Modifier
             .fillMaxWidth()
+            .toggleable(
+                value = checked,
+                role = androidx.compose.ui.semantics.Role.Switch,
+                onValueChange = onToggle,
+            )
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .testTag(tag),
         verticalAlignment = Alignment.CenterVertically,
@@ -1089,7 +1098,7 @@ private fun SwitchRow(
         Spacer(Modifier.width(8.dp))
         androidx.compose.material3.Switch(
             checked = checked,
-            onCheckedChange = onToggle,
+            onCheckedChange = null,
             modifier = Modifier.testTag("${tag}_switch"),
         )
     }

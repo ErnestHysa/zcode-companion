@@ -48,7 +48,9 @@ import android.content.Context
 import android.content.ClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.runtime.saveable.rememberSaveable
 
 /**
@@ -199,8 +201,21 @@ private fun OptInGate(enabled: Boolean, onToggle: (Boolean) -> Unit, onContinue:
     StateCard(
         text = stringResource(R.string.terminal_consent_body),
         extra = {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Switch(checked = enabled, onCheckedChange = onToggle)
+            // N-BG-3 (vc52 Phase 9): the label toggles too — the Switch was the only
+            // hit target (two label taps produced zero events and looked like a dead
+            // screen), and the row now exposes the checked state to accessibility.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .toggleable(
+                        value = enabled,
+                        role = Role.Switch,
+                        onValueChange = onToggle,
+                    )
+                    .testTag("terminal_optin_row"),
+            ) {
+                Switch(checked = enabled, onCheckedChange = null)
                 Text(stringResource(R.string.terminal_enable), style = MaterialTheme.typography.bodyMedium)
             }
             if (enabled) {
