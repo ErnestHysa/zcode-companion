@@ -56,6 +56,8 @@ class InteractionCoordinatorPhase7Test {
             resolved.add(interactionId to resolvedBySelf)
         }
 
+        override suspend fun listOpen(endpointId: EndpointId): List<InteractionRepository.InteractionRecord> = emptyList()
+
         override suspend fun sweep(endpointId: EndpointId, nowMs: Long): Int = 0
         override suspend fun count(endpointId: EndpointId): Int = payloads.size
 

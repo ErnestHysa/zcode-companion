@@ -79,6 +79,14 @@ class NotificationWiring(
     @Volatile private var seenInteractionIds: Set<String> = emptySet()
     @Volatile private var taskStatuses: Map<String, TaskStatus> = emptyMap()
 
+    /**
+     * F-36-B: false until the FIRST `observeOpen` emission has set the baseline —
+     * before it, the re-post gate must not skip (the open set is simply unknown);
+     * after it, `seenInteractionIds` IS the open set (lifecycle-based) and a
+     * terminal id never re-posts.
+     */
+    @Volatile private var interactionBaselineSeeded = false
+
     /** F-33-H: the subject of every currently-open interaction (re-post input; in memory only). */
     @Volatile private var openSubjects: Map<String, String> = emptyMap()
 
@@ -108,6 +116,12 @@ class NotificationWiring(
         }
         // F-33-H: the background re-post names the same subject as the fresh post.
         broker.subjectProvider = { interactionId -> openSubjects[interactionId] }
+        // F-36-B: the re-post gate reads the SAME projection the badge/inbox render —
+        // a STALE/EXPIRED/FAILED/CANCELLED id (openSubjects no longer carries it)
+        // is skipped, never re-notified, never answerable from the shade.
+        broker.repostGate = { interactionId ->
+            !interactionBaselineSeeded || interactionId in seenInteractionIds
+        }
         // §24.5 (vc35 user feedback): the Live-connection window is user-customizable
         // (0 = no auto-timeout). Live-updates the FGS while running; start() re-reads
         // it on every toggle-on.
@@ -130,6 +144,7 @@ class NotificationWiring(
                 val fresh = StoreDiffs.newOpenInteractions(previousIds, records)
                 seenInteractionIds = StoreDiffs.interactionIds(records)
                 knownInteractionIds.set(seenInteractionIds)
+                interactionBaselineSeeded = true
                 openSubjects = records.mapNotNull { r -> interactionSubject(r)?.let { r.interactionId.raw to it } }.toMap()
                 for ((record, kind) in fresh) {
                     // Phase 4F: the PER-CATEGORY toggle gates the emission (the prefs

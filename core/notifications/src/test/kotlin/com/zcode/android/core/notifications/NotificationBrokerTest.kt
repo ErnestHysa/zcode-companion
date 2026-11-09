@@ -254,4 +254,23 @@ class NotificationBrokerTest {
             assertTrue(b.visible().size <= NotificationBroker.MAX_RECORDS)
         }
     }
+
+    @Test
+    fun `F-36-B - the background re-post skips an interaction the open set reports closed`() = runTest {
+        val sink = RecordingSink()
+        val b = broker(sink = sink)
+        // The wiring's open-set projection: "closed-1" is terminal, "maybe-open" unknown.
+        b.repostGate = { id -> if (id == "closed-1") false else null }
+        b.onEvent(NotificationRecord.Kind.APPROVAL_NEEDED, "task-1", "closed-1", null, permission = true, subject = "Bash: echo synthetic")
+        sink.shown.clear()
+        b.onBackgroundEntry()
+        assertTrue(
+            "a known-closed interaction never re-posts (the pass-36 two-day-old STALE approval)",
+            sink.shown.isEmpty(),
+        )
+        // An UNKNOWN id (gate null) keeps the S15-S13 contract: it re-posts.
+        b.onEvent(NotificationRecord.Kind.APPROVAL_NEEDED, "task-1", "maybe-open", null, permission = true, subject = "Bash: echo synthetic")
+        b.onBackgroundEntry()
+        assertTrue("unknown openness never skips", sink.shown.containsKey("interaction:maybe-open"))
+    }
 }

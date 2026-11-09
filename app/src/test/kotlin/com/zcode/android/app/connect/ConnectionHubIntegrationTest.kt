@@ -809,6 +809,7 @@ internal class FakeInteractionRepository : InteractionRepository {
     override suspend fun upsertPermission(request: PermissionRequest, endpointId: EndpointId, lifecycle: InteractionLifecycle) = Unit
     override suspend fun upsertUserInput(request: UserInputRequest, endpointId: EndpointId, lifecycle: InteractionLifecycle) = Unit
     override suspend fun markResolved(endpointId: EndpointId, interactionId: InteractionId, atMs: Long, resolvedBySelf: Boolean) = Unit
+    override suspend fun listOpen(endpointId: EndpointId): List<InteractionRepository.InteractionRecord> = emptyList()
     override suspend fun sweep(endpointId: EndpointId, nowMs: Long): Int = 0
     override suspend fun count(endpointId: EndpointId): Int = 0
 

@@ -178,6 +178,14 @@ class NotificationBroker(
                 .toList()
         }
         for (record in open) {
+            // F-36-B: a record whose interaction the authoritative open set reports
+            // CLOSED never re-posts — the ghost approval was re-notified on every
+            // background entry and (worse) stayed answerable onto the live wire.
+            val gateOpen = record.interactionId?.let { id -> runCatching { repostGate(id) }.getOrNull() } ?: true
+            if (!gateOpen) {
+                log.info("notify.repostSkip", "key=${record.notificationKey.take(24)} (interaction closed)")
+                continue
+            }
             // F-33-H: the record carries no subject — the wiring resolves it from the live
             // interaction store; when it cannot, the re-post stays subject-less AND
             // action-less (never a blind approve).
@@ -302,6 +310,16 @@ class NotificationBroker(
      */
     @Volatile
     var subjectProvider: suspend (interactionId: String) -> String? = { null }
+
+    /**
+     * F-36-B (vc52 Phase 7): is this interaction still OPEN attention? The wiring binds
+     * its authoritative open-set projection. `true` = open (re-post as before); `false` =
+     * known-closed (the re-post is SKIPPED — a terminal row must never resurface, the
+     * pass-36 two-day-old STALE approval); `null` = unknown (before the wiring's first
+     * projection emission) — never skips, the §15-S13 contract stands.
+     */
+    @Volatile
+    var repostGate: suspend (interactionId: String) -> Boolean? = { null }
 
     private suspend fun contentLevel() = contentLevelProvider()
 

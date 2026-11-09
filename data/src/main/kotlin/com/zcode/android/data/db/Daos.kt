@@ -105,8 +105,18 @@ interface InteractionDao {
     @Upsert
     suspend fun upsert(entity: InteractionEntity)
 
-    @Query("SELECT * FROM interactions WHERE endpointId = :endpointId AND resolvedAtMs IS NULL ORDER BY createdAtMs DESC")
-    fun observeOpen(endpointId: String): Flow<List<InteractionEntity>>
+    /**
+     * F-36-B/F-33-E (vc52 Phase 7): open selection is LIFECYCLE-based — the caller
+     * passes [InteractionLifecycle.OPEN_ATTENTION] verbatim, so the badge/inbox/
+     * repost mirror share the domain's one predicate (a STALE/EXPIRED/FAILED/
+     * CANCELLED row with no stamp is closed, the pass-36 ghost's shape).
+     */
+    @Query("SELECT * FROM interactions WHERE endpointId = :endpointId AND lifecycle IN (:lifecycles) ORDER BY createdAtMs DESC")
+    fun observeOpen(endpointId: String, lifecycles: Set<String>): Flow<List<InteractionEntity>>
+
+    /** One-shot read of the same open set (the coordinator's cold-start reconcile). */
+    @Query("SELECT * FROM interactions WHERE endpointId = :endpointId AND lifecycle IN (:lifecycles) ORDER BY createdAtMs DESC")
+    suspend fun listOpen(endpointId: String, lifecycles: Set<String>): List<InteractionEntity>
 
     @Query("SELECT * FROM interactions WHERE endpointId = :endpointId AND interactionId = :interactionId")
     suspend fun get(endpointId: String, interactionId: String): InteractionEntity?

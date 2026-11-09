@@ -35,6 +35,8 @@ class WritePathRaceHardeningTest {
         }
         override suspend fun upsertUserInput(request: com.zcode.android.domain.model.UserInputRequest, endpointId: EndpointId, lifecycle: com.zcode.android.domain.model.InteractionLifecycle) = Unit
         override suspend fun markResolved(endpointId: EndpointId, interactionId: InteractionId, atMs: Long, resolvedBySelf: Boolean) = Unit
+        override suspend fun listOpen(endpointId: EndpointId): List<InteractionRepository.InteractionRecord> = emptyList()
+
         override suspend fun sweep(endpointId: EndpointId, nowMs: Long): Int = 0
         override suspend fun count(endpointId: EndpointId): Int = payloads.size
         override suspend fun loadStored(endpointId: EndpointId, interactionId: InteractionId): InteractionRepository.StoredInteraction? =

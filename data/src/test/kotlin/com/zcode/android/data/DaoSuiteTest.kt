@@ -117,10 +117,12 @@ class DaoSuiteTest {
         val dao = db.interactionDao()
         dao.upsert(interaction("i1", resolvedAt = null, createdAt = 10))
         dao.upsert(interaction("i2", resolvedAt = 20, createdAt = 5))
-        assertEquals(listOf("i1"), dao.observeOpen("ep").first().map { it.interactionId })
+        // F-36-B/F-33-E: the open selection is the domain OPEN_ATTENTION lifecycle set.
+        val openSet = com.zcode.android.domain.model.InteractionLifecycle.OPEN_ATTENTION.map { it.name }.toSet()
+        assertEquals(listOf("i1"), dao.observeOpen("ep", openSet).first().map { it.interactionId })
 
         assertEquals(1, dao.resolve("ep", "i1", lifecycle = "RESOLVED", resolvedAtMs = 30))
-        assertEquals(0, dao.observeOpen("ep").first().size)
+        assertEquals(0, dao.observeOpen("ep", openSet).first().size)
         assertNotNull(dao.get("ep", "i2")?.resolvedAtMs)
 
         dao.deleteByIds("ep", listOf("i2"))

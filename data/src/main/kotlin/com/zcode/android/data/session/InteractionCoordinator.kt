@@ -115,10 +115,22 @@ class InteractionCoordinator(
      * KnownRequest so the follow-up lifecycle upserts (updateLifecycle) preserve
      * resolvedAtMs instead of re-nulling it — markResolved followed by a bare
      * updateLifecycle used to REOPEN the inbox record immediately.
+     *
+     * D3 (vc52 Phase 7): the FIRST timestamp wins — a later reconcile (a re-listed
+     * id dropped again, a resolved-elsewhere echo) never re-stamps an already
+     * terminal record; the store already carries the truthful resolution time.
      */
     private suspend fun resolveRecord(interactionId: InteractionId, resolvedBySelf: Boolean) {
+        val known = requests[interactionId]
+        if (known?.resolvedAtMs != null) {
+            // Already terminal-stamped: the FIRST timestamp wins and the store row
+            // already carries it (every call site follows with updateLifecycle, which
+            // upserts the lifecycle + the preserved stamp). A redundant re-write would
+            // only churn the row.
+            return
+        }
         val at = clock()
-        requests[interactionId]?.resolvedAtMs = at
+        known?.resolvedAtMs = at
         interactions.markResolved(endpointId, interactionId, at, resolvedBySelf = resolvedBySelf)
     }
 
@@ -313,7 +325,14 @@ class InteractionCoordinator(
         }
         val stored = interactions.loadStored(endpointId, interactionId)
             ?: return SubmitOutcome.UnknownInteraction
-        if (stored.record.resolvedAtMs != null) return SubmitOutcome.AlreadyResolved
+        // F-36-B: a stored TERMINAL row (STALE/EXPIRED/FAILED/CANCELLED included —
+        // the pre-fix poisoned rows carry a NULL stamp) answers as the TYPED
+        // AlreadyResolved. It is never re-hydrated onto the wire: the pass-36
+        // receipt answered a two-day-old STALE approval to a desktop that never
+        // issued it.
+        if (stored.record.resolvedAtMs != null || stored.record.lifecycle.isTerminal) {
+            return SubmitOutcome.AlreadyResolved
+        }
         val payload = stored.payload
         // W4b (verification pass 3): a ROW-anchored stored payload is the ROW schema —
         // it carries NO options array (the rows sweep synthesizes the §7.4.4
@@ -786,6 +805,23 @@ class InteractionCoordinator(
                 updateLifecycle(iid, machine.state)
             }
         }
+        // F-36-B (vc52 Phase 7): the machine loop cannot reach rows persisted by a
+        // PREVIOUS process (no machine exists for them), so the pass-36 ghost class
+        // — a DISPLAYED/REQUESTED store row the authoritative list no longer
+        // carries — stayed open forever after a restart. Close stored open rows of
+        // THIS session that no machine owns and the snapshot dropped. Row-anchored
+        // records are protected twice: a machine recovered from the rows plane is
+        // skipped here, and a not-yet-anchored one is re-created by the rows
+        // reconcile when its row still shows PENDING_APPROVAL.
+        if (pending != null) {
+            for (record in interactions.listOpen(endpointId)) {
+                val iid = record.interactionId
+                if (iid in openIds || iid in machines) continue
+                if (record.sessionId?.raw != sessionId) continue
+                interactions.markResolved(endpointId, iid, clock(), resolvedBySelf = false)
+                log.info("reconcile.closeStored", "session=${sessionId.take(12)} interaction=${iid.raw.take(24)} (absent from the authoritative list)")
+            }
+        }
         interactions.sweep(endpointId, clock())
     }
 
@@ -803,9 +839,15 @@ class InteractionCoordinator(
 
     private suspend fun updateLifecycle(interactionId: InteractionId, state: PermissionStateMachine.State) {
         val known = requests[interactionId] ?: return
-        // GAP-A2: mirror the resolution timestamp into the upsert — a bare request
-        // re-upsert writes resolvedAtMs null and REOPENS the record in the inbox
-        // (`observeOpen` filters resolvedAtMs IS NULL).
+        // F-36-B (vc52 Phase 7): EVERY terminal machine write STAMPS the record —
+        // STALE/EXPIRED/FAILED/CANCELLED used to persist with a NULL stamp (only
+        // RESOLVED was mirrored), so the row stayed "open" to the inbox, the repost
+        // and the wire forever. The first terminal transition stamps; later calls
+        // keep it (D3). GAP-A2: the mirror also keeps a bare re-upsert from
+        // REOPENING a resolved record.
+        if (state in TERMINAL_MACHINE_STATES && known.resolvedAtMs == null) {
+            known.resolvedAtMs = clock()
+        }
         known.permission?.let {
             interactions.upsertPermission(it.copy(resolvedAtMs = known.resolvedAtMs), endpointId, lifecycleOf(state))
         }

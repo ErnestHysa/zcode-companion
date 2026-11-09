@@ -38,7 +38,12 @@ class InteractionRepositoryImpl(
     private val json = Json
 
     override fun observeOpen(endpointId: EndpointId): Flow<List<InteractionRepository.InteractionRecord>> =
-        dao.observeOpen(endpointId.raw).map { list -> list.map { it.toRecord() } }
+        dao.observeOpen(endpointId.raw, InteractionLifecycle.OPEN_ATTENTION.map { it.name }.toSet())
+            .map { list -> list.map { it.toRecord() } }
+
+    override suspend fun listOpen(endpointId: EndpointId): List<InteractionRepository.InteractionRecord> =
+        dao.listOpen(endpointId.raw, InteractionLifecycle.OPEN_ATTENTION.map { it.name }.toSet())
+            .map { it.toRecord() }
 
     override suspend fun upsertPermission(request: PermissionRequest, endpointId: EndpointId, lifecycle: InteractionLifecycle) {
         dao.upsert(
@@ -79,8 +84,17 @@ class InteractionRepositoryImpl(
     override suspend fun sweep(endpointId: EndpointId, nowMs: Long): Int {
         var dropped = 0
         val all = dao.listAll(endpointId.raw)
-        // 1) resolved > TTL dropped (§17.3)
-        val staleResolved = all.filter { it.resolvedAtMs != null && nowMs - it.resolvedAtMs > bounds.resolvedTtlMs }
+        // 1) terminal > TTL dropped (§17.3) — F-36-B: EVERY terminal lifecycle ages
+        // out, not just RESOLVED. The coordinator stamps every terminal write, so a
+        // terminal row with a stamp sweeps exactly like a resolved one; the
+        // lifecycle guard keeps the sweep honest even if a stamp were absent.
+        val staleResolved = all.filter {
+            it.resolvedAtMs != null &&
+                InteractionLifecycle.TERMINAL.contains(
+                    runCatching { InteractionLifecycle.valueOf(it.lifecycle) }.getOrDefault(InteractionLifecycle.FAILED),
+                ) &&
+                nowMs - it.resolvedAtMs > bounds.resolvedTtlMs
+        }
         if (staleResolved.isNotEmpty()) {
             dao.deleteByIds(endpointId.raw, staleResolved.map { it.interactionId })
             dropped += staleResolved.size

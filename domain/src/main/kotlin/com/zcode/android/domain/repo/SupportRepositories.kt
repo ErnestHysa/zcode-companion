@@ -19,6 +19,13 @@ import kotlinx.coroutines.flow.Flow
 interface InteractionRepository {
     fun observeOpen(endpointId: EndpointId): Flow<List<InteractionRecord>>
 
+    /**
+     * F-36-B (vc52 Phase 7): one-shot read of the SAME open set `observeOpen`
+     * projects — the coordinator's cold-start reconcile closes stored open rows
+     * the authoritative `pendingInteractions` list no longer contains.
+     */
+    suspend fun listOpen(endpointId: EndpointId): List<InteractionRecord>
+
     /** Persist a request (permission or user-input) — idempotent by interactionId. */
     suspend fun upsertPermission(request: PermissionRequest, endpointId: EndpointId, lifecycle: InteractionLifecycle)
     suspend fun upsertUserInput(request: UserInputRequest, endpointId: EndpointId, lifecycle: InteractionLifecycle)

@@ -73,4 +73,25 @@ data class UserInputRequest(
  */
 enum class InteractionLifecycle {
     REQUESTED, DISPLAYED, SUBMITTING, RESOLVED, EXPIRED, CANCELLED, STALE, FAILED;
+
+    /** F-36-B/F-33-E: this lifecycle is "open attention" (the inbox/badge set). */
+    val isOpenAttention: Boolean get() = this in OPEN_ATTENTION
+
+    /** F-36-B: this lifecycle is terminal (the card can never submit again). */
+    val isTerminal: Boolean get() = this in TERMINAL
+
+    companion object {
+        /**
+         * F-36-B/F-33-E (vc52 Phase 7): the ONE open-attention predicate — badge,
+         * inbox, the Room `observeOpen` selection, the widget's broker mirror and
+         * the notification repost share THIS set (never copy-pasted logic).
+         * STALE/EXPIRED/FAILED/CANCELLED are terminal and excluded even when their
+         * resolution stamp is absent (the pass-36 ghost's exact shape).
+         */
+        val OPEN_ATTENTION: Set<InteractionLifecycle> = setOf(REQUESTED, DISPLAYED, SUBMITTING)
+
+        /** The terminal complement (§14.4.3): no submit is legal from any of these. */
+        val TERMINAL: Set<InteractionLifecycle> =
+            entries.toSet() - OPEN_ATTENTION
+    }
 }
