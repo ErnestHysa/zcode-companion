@@ -56,6 +56,8 @@ interface InteractionRepository {
         val toolName: String?,
         val createdAtMs: Long,
         val resolvedAtMs: Long?,
+        /** G77 (vc52 Phase 7): the persisted autoResolution deadline — the notification's countdown. */
+        val autoResolutionDeadlineMs: Long? = null,
         /** L3: one bounded, redacted line from the retained payload ([com.zcode.android.domain.model.InteractionPreview]). */
         val preview: String? = null,
     ) {

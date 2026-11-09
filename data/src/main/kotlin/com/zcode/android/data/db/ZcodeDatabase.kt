@@ -13,9 +13,13 @@ import androidx.room.RoomDatabase
  *
  * v2 → v3 (gaps-and-polish Phase 5A, A3.8): tasks.unreadAtMs — the desktop's unread
  * marker; additive + null-safe (NULL = read, which is what every pre-v3 row was).
+ *
+ * v3 → v4 (vc52 Phase 7, G77): interactions.autoResolutionDeadlineMs — the decoded
+ * desktop auto-resolution fuse deadline; additive + null-safe (NULL = no fuse,
+ * which is what every pre-v4 row was).
  */
 @Database(
-    version = 3,
+    version = 4,
     exportSchema = true,
     entities = [
         TaskEntity::class,
@@ -55,7 +59,14 @@ abstract class ZcodeDatabase : RoomDatabase() {
             }
         }
 
+        /** v3 → v4 (G77, vc52 Phase 7): interactions.autoResolutionDeadlineMs — additive, null-safe. */
+        val MIGRATION_3_4 = object : androidx.room.migration.Migration(3, 4) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE interactions ADD COLUMN autoResolutionDeadlineMs INTEGER")
+            }
+        }
+
         /** Every forward migration, in order — the one list the app builder registers. */
-        val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+        val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
     }
 }

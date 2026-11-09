@@ -197,4 +197,37 @@ class AndroidNotificationSinkTest {
         assertEquals(null, public.extras.getCharSequence(android.app.Notification.EXTRA_BIG_TEXT))
         assertTrue("the public version must carry no actions", public.actions.isNullOrEmpty())
     }
+
+
+    @Test
+    fun `G77 - a fuse deadline renders as a native countdown chronometer`() {
+        val sink = AndroidNotificationSink(context)
+        val deadline = 1_794_100_000_000L
+        sink.show(
+            NotificationBroker.Spec(
+                "interaction:i-fuse", NotificationChannels.PERMISSIONS,
+                "ZCode has a question for you", "Which channel?", null, "t1", "i-fuse",
+                deadlineAtMs = deadline,
+            ),
+        )
+        val n = shadowOf(manager).allNotifications.single()
+        assertTrue(
+            "the chronometer counts DOWN toward the deadline",
+            n.extras.getBoolean(android.app.Notification.EXTRA_CHRONOMETER_COUNT_DOWN),
+        )
+        assertEquals("the chronometer's base is the fuse deadline", deadline, n.`when`)
+    }
+
+    @Test
+    fun `G77 - no fuse - no chronometer (the pre-G77 face)`() {
+        val sink = AndroidNotificationSink(context)
+        sink.show(
+            NotificationBroker.Spec(
+                "interaction:i-plain", NotificationChannels.PERMISSIONS,
+                "ZCode needs your approval", null, null, "t1", "i-plain",
+            ),
+        )
+        val n = shadowOf(manager).allNotifications.single()
+        assertTrue("no fuse → no countdown chronometer", !n.extras.getBoolean(android.app.Notification.EXTRA_CHRONOMETER_COUNT_DOWN))
+    }
 }

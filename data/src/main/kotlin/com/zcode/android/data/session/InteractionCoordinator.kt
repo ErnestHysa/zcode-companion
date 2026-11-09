@@ -738,6 +738,7 @@ class InteractionCoordinator(
                         input = permission.detail,
                         options = permission.options,
                         createdAtMs = pi.createdAtMs ?: clock(),
+                        autoResolutionDeadlineMs = pi.autoResolution?.deadlineMs,
                         raw = pi.raw,
                     )
                     val machine = machines[iid]
@@ -765,6 +766,7 @@ class InteractionCoordinator(
                         )
                         interactions.upsertPermission(request, endpointId, lifecycleOf(machine.state))
                     }
+                    expireIfFusePassed(iid, pi.autoResolution)
                 }
                 pi.kind == com.zcode.android.domain.model.PendingInteraction.Kind.USER_INPUT && userInput != null -> {
                     openIds.add(iid)
@@ -774,6 +776,7 @@ class InteractionCoordinator(
                         prompt = userInput.prompt,
                         options = userInput.options,
                         createdAtMs = pi.createdAtMs ?: clock(),
+                        autoResolutionDeadlineMs = pi.autoResolution?.deadlineMs,
                         raw = pi.raw,
                     )
                     val machine = machines[iid]
@@ -790,6 +793,7 @@ class InteractionCoordinator(
                         )
                         interactions.upsertUserInput(request, endpointId, lifecycleOf(machine.state))
                     }
+                    expireIfFusePassed(iid, pi.autoResolution)
                 }
                 else -> {
                     unknownKinds++
@@ -837,6 +841,24 @@ class InteractionCoordinator(
             }
         }
         interactions.sweep(endpointId, clock())
+    }
+
+    /**
+     * G77 (vc52 Phase 7): respect an already-expired fuse — an un-answered card
+     * whose decoded `autoResolution` deadline has passed goes EXPIRED here (terminal,
+     * stamped): the inbox clears and the card can never answer again. The desktop's
+     * own auto-continue removes the interaction from the list moments later; until
+     * that authoritative disappearance lands, the phone honestly renders the
+     * expired face instead of a live actionable card.
+     */
+    private suspend fun expireIfFusePassed(interactionId: InteractionId, auto: com.zcode.android.domain.model.AutoResolution?) {
+        val deadline = auto?.deadlineMs ?: return
+        if (deadline > clock()) return
+        val machine = machines[interactionId] ?: return
+        if (machine.state in TERMINAL_MACHINE_STATES) return
+        runCatching { machine.on(PermissionStateMachine.Event.AutoResolveExpired) }
+        updateLifecycle(interactionId, machine.state)
+        log.info("interaction.autoExpired", "interaction=${interactionId.raw.take(24)} deadline=$deadline")
     }
 
     fun machineStateForTest(interactionId: InteractionId): PermissionStateMachine.State? = machines[interactionId]?.state

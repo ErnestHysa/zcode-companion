@@ -253,6 +253,8 @@ data class PendingInteraction(
     val userInput: UserInputPayload?,
     /** ADR-024 (Phase 5D): the workspaceHookReview payload (hooks trust = permission for shell code). */
     val hookReview: WorkspaceHookReview? = null,
+    /** G77 (vc52 Phase 7): the desktop's AskUserQuestion auto-resolution fuse; null = absent/undecodable. */
+    val autoResolution: AutoResolution? = null,
     val raw: JsonObject,
 ) {
     enum class Kind(val wire: String) {
@@ -312,6 +314,12 @@ data class PendingInteraction(
                 kind = kind,
                 anchorRowId = obj.longOrNull("anchorRowId"),
                 createdAtMs = obj.doubleOrNull("createdAt")?.toLong(),
+                // G77 (vc52 Phase 7): the byte-verified desktop autoResolution fuse —
+                // decoded tolerantly (INV-8); absent/malformed → null, unknown state
+                // retained as UNKNOWN with its raw. The desktop's own superRefine
+                // forbids the fuse on workspaceHookReview; we decode it anywhere and
+                // let the renderer decide.
+                autoResolution = (obj["autoResolution"] as? JsonObject)?.let { AutoResolution.decode(it) },
                 permission = payload?.takeIf { it.strOrNull("kind") == "permission" }?.let { p ->
                     PermissionPayload(
                         toolCallId = p.strOrNull("toolCallId"),
@@ -360,6 +368,60 @@ data class PendingInteraction(
             (payload["options"] as? JsonArray)?.mapNotNull { o ->
                 (o as? JsonObject)?.strOrNull("optionId")
             }?.map { PermissionOption(it) } ?: emptyList()
+    }
+}
+
+/**
+ * G77 (vc52 Phase 7): the desktop's AskUserQuestion auto-resolution fuse — the
+ * byte-verified `b$` discriminatedUnion("state") from the SHIPPED asar
+ * (`99e280fb…`, chunk @310656848):
+ *
+ *   ih = discriminatedUnion("state", [
+ *     {state: enum["hiddenGrace","visibleCountdown"], startedAt: N, visibleAt: N, deadlineAt: N},
+ *     {state: literal("snoozed"), startedAt: N, snoozedAt: N}])
+ *
+ * `settings.askUserQuestionAutoResolutionEnabled` defaults TRUE on the desktop —
+ * every approval/question carries an (invisible on the phone) 5-minute fuse; when
+ * it fires the desktop auto-continues ("No answer; continued automatically") and
+ * the interaction leaves `pendingInteractions`. Tolerant decode (INV-8): unknown
+ * states → UNKNOWN (retained with raw); absent/unparseable numbers → null fields.
+ */
+data class AutoResolution(
+    val state: State,
+    val startedAtMs: Long?,
+    val visibleAtMs: Long?,
+    val deadlineAtMs: Long?,
+    val snoozedAtMs: Long?,
+    val raw: JsonObject? = null,
+) {
+    enum class State(val wire: String) {
+        HIDDEN_GRACE("hiddenGrace"),
+        VISIBLE_COUNTDOWN("visibleCountdown"),
+        SNOOZED("snoozed"),
+        UNKNOWN("");
+
+        companion object {
+            fun fromWire(v: String?): State = entries.firstOrNull { it.wire == v } ?: UNKNOWN
+        }
+    }
+
+    /** The fire time — only a live visibleCountdown carries a meaningful deadline. */
+    val deadlineMs: Long?
+        get() = if (state == State.VISIBLE_COUNTDOWN) deadlineAtMs else null
+
+    /** True when a live fuse's deadline has already passed at [nowMs]. */
+    fun expiredAt(nowMs: Long): Boolean =
+        state == State.VISIBLE_COUNTDOWN && (deadlineAtMs ?: Long.MAX_VALUE) <= nowMs
+
+    companion object {
+        fun decode(obj: JsonObject): AutoResolution = AutoResolution(
+            state = State.fromWire(obj.strOrNull("state")),
+            startedAtMs = obj.doubleOrNull("startedAt")?.toLong(),
+            visibleAtMs = obj.doubleOrNull("visibleAt")?.toLong(),
+            deadlineAtMs = obj.doubleOrNull("deadlineAt")?.toLong(),
+            snoozedAtMs = obj.doubleOrNull("snoozedAt")?.toLong(),
+            raw = obj,
+        )
     }
 }
 

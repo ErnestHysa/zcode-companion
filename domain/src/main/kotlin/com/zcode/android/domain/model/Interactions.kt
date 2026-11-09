@@ -52,6 +52,8 @@ data class PermissionRequest(
     val fullAccessSupported: Boolean? = null,
     val createdAtMs: Long,
     val resolvedAtMs: Long? = null,
+    /** G77 (vc52 Phase 7): the decoded autoResolution deadline (visibleCountdown only). */
+    val autoResolutionDeadlineMs: Long? = null,
     val raw: JsonObject? = null,
 )
 
@@ -64,6 +66,8 @@ data class UserInputRequest(
     val options: List<PermissionOption> = emptyList(),
     val createdAtMs: Long,
     val resolvedAtMs: Long? = null,
+    /** G77 (vc52 Phase 7): the decoded autoResolution deadline (visibleCountdown only). */
+    val autoResolutionDeadlineMs: Long? = null,
     val raw: JsonObject? = null,
 )
 

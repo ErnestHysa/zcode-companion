@@ -18,7 +18,10 @@ import com.zcode.android.core.protocol.v4.CommandAck
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.add
 import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.putJsonObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -306,6 +309,120 @@ class InteractionTerminalLifecycleTest {
         assertTrue(
             "the pass-36 ghost answers as AlreadyResolved (typed), never as a live wire send",
             outcome is InteractionCoordinator.SubmitOutcome.AlreadyResolved,
+        )
+    }
+
+
+    // ---- G77 (vc52 Phase 7): the autoResolution deadline persists and expires ----
+
+    private fun fuseState(id: String, deadlineAtMs: Long?): SessionProjectionState =
+        SessionProjectionState.fromSnapshot(
+            kotlinx.serialization.json.buildJsonObject {
+                putJsonArray("pendingInteractions") {
+                    add(
+                        kotlinx.serialization.json.buildJsonObject {
+                            put("interactionId", id)
+                            put("kind", "permission")
+                            put("anchorRowId", kotlinx.serialization.json.JsonNull)
+                            put("createdAt", 1_000.0)
+                            deadlineAtMs?.let {
+                                put("autoResolution", kotlinx.serialization.json.buildJsonObject {
+                                    put("state", "visibleCountdown")
+                                    put("startedAt", 1_000.0)
+                                    put("visibleAt", 1_000.0)
+                                    put("deadlineAt", it.toDouble())
+                                })
+                            }
+                            putJsonObject("payload") {
+                                put("kind", "permission")
+                                put("toolName", "Bash")
+                                putJsonArray("options") {
+                                    add(kotlinx.serialization.json.buildJsonObject {
+                                        put("optionId", "allowOnce"); put("label", "Allow once"); put("kind", "allowOnce")
+                                    })
+                                    add(kotlinx.serialization.json.buildJsonObject {
+                                        put("optionId", "deny"); put("label", "Deny"); put("kind", "deny")
+                                    })
+                                }
+                            }
+                        },
+                    )
+                }
+            },
+        )
+
+    @Test
+    fun `G77 - the decoded fuse deadline persists into the real Room store`() = runTest {
+        val coordinator = InteractionCoordinator(
+            endpointId = ep,
+            interactions = interactions,
+            outbox = OutboxRepositoryImpl(db),
+            commands = object : com.zcode.android.data.session.CommandSender {
+                override suspend fun send(
+                    type: String, sessionId: String?, payload: kotlinx.serialization.json.JsonObject,
+                    baseRevision: Long?, baseLogEpoch: String?, commandId: String,
+                    workspacePath: String?, workspaceIdentity: String?,
+                ): CommandAck = CommandAck(commandId = commandId, status = "accepted", revisionAtDecision = 0, reasonCode = null, message = null, result = null)
+            },
+            clock = { 1_000_000L },
+        )
+        coordinator.reconcileFromSessionState("sess-1", fuseState("fused-1", deadlineAtMs = 1_900_000L))
+        val stored = interactions.loadStored(ep, InteractionId("fused-1"))
+        assertEquals(
+            "the fuse deadline round-trips through the REAL serializer (the notification's countdown)",
+            1_900_000L, stored?.record?.autoResolutionDeadlineMs,
+        )
+    }
+
+    @Test
+    fun `G77 - an already-expired fuse is respected (EXPIRED card, cleared inbox)`() = runTest {
+        val coordinator = InteractionCoordinator(
+            endpointId = ep,
+            interactions = interactions,
+            outbox = OutboxRepositoryImpl(db),
+            commands = object : com.zcode.android.data.session.CommandSender {
+                override suspend fun send(
+                    type: String, sessionId: String?, payload: kotlinx.serialization.json.JsonObject,
+                    baseRevision: Long?, baseLogEpoch: String?, commandId: String,
+                    workspacePath: String?, workspaceIdentity: String?,
+                ): CommandAck {
+                    throw AssertionError("an expired fuse must never answer onto the wire")
+                }
+            },
+            clock = { 2_000_000L }, // deadline 1.9M is in the past
+        )
+        coordinator.reconcileFromSessionState("sess-1", fuseState("fused-expired", deadlineAtMs = 1_900_000L))
+        assertEquals(
+            "respect an already-expired deadline — the machine is EXPIRED",
+            com.zcode.android.domain.state.PermissionStateMachine.State.EXPIRED,
+            coordinator.machineStateForTest(InteractionId("fused-expired")),
+        )
+        val stored = interactions.loadStored(ep, InteractionId("fused-expired"))
+        assertEquals(InteractionLifecycle.EXPIRED, stored?.record?.lifecycle)
+        assertNotNull("the terminal write STAMPS (F-36-B)", stored?.record?.resolvedAtMs)
+        assertEquals("the inbox cleared on expiry", 0, interactions.observeOpen(ep).first().size)
+    }
+
+    @Test
+    fun `G77 - a live fuse does not expire an answerable card`() = runTest {
+        val coordinator = InteractionCoordinator(
+            endpointId = ep,
+            interactions = interactions,
+            outbox = OutboxRepositoryImpl(db),
+            commands = object : com.zcode.android.data.session.CommandSender {
+                override suspend fun send(
+                    type: String, sessionId: String?, payload: kotlinx.serialization.json.JsonObject,
+                    baseRevision: Long?, baseLogEpoch: String?, commandId: String,
+                    workspacePath: String?, workspaceIdentity: String?,
+                ): CommandAck = CommandAck(commandId = commandId, status = "accepted", revisionAtDecision = 0, reasonCode = null, message = null, result = null)
+            },
+            clock = { 1_000_000L }, // deadline 1.9M still in the future
+        )
+        coordinator.reconcileFromSessionState("sess-1", fuseState("fused-live", deadlineAtMs = 1_900_000L))
+        assertEquals(
+            "a live fuse keeps the card answerable",
+            com.zcode.android.domain.state.PermissionStateMachine.State.DISPLAYED,
+            coordinator.machineStateForTest(InteractionId("fused-live")),
         )
     }
 }

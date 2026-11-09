@@ -56,6 +56,15 @@ class AndroidNotificationSink(
             // subject (a command, a path, a title) and the actions live in the private version.
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPublicVersion(publicVersion(spec))
+        // G77 (vc52 Phase 7): the desktop's auto-resolution fuse renders as a NATIVE
+        // countdown chronometer ticking toward the deadline (minSdk 26 ≥ the API 24
+        // setChronometerCountDown floor). The PUBLIC version deliberately omits it
+        // (a lock-screen observer learns nothing from a bare ticking clock).
+        spec.deadlineAtMs?.let { deadline ->
+            builder.setUsesChronometer(true)
+                .setChronometerCountDown(true)
+                .setWhen(deadline)
+        }
         spec.deepLinkTaskId?.let { taskId ->
             builder.setContentIntent(deepLinkPendingIntent(taskId, spec.deepLinkInteractionId))
         }

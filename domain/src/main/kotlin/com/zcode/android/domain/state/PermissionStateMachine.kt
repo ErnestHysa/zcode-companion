@@ -54,6 +54,14 @@ class PermissionStateMachine(
 
         /** TTL passed without resolution (reconnect reconciliation classifies; §14.4.3 row 8). */
         data object TtlExpired : Event()
+
+        /**
+         * G77 (vc52 Phase 7): the desktop's AskUserQuestion auto-resolution fuse
+         * expired (a decoded `autoResolution` deadline at or before now). Like the
+         * TTL class it only expires UN-ANSWERED cards; the desktop will remove the
+         * interaction on its own auto-continue ("No answer; continued automatically").
+         */
+        data object AutoResolveExpired : Event()
     }
 
     class IllegalPermissionTransition(val from: State, val event: Event) :
@@ -115,6 +123,16 @@ class PermissionStateMachine(
                     return Transition(from, event, State.EXPIRED)
                 }
                 // TTL only expires un-answered REQUESTED cards (§14.4.3 row 8).
+                return Transition(from, event, from)
+            }
+            is Event.AutoResolveExpired -> {
+                // G77: the fuse expires un-answered REQUESTED and DISPLAYED cards —
+                // a displayed approval/question with a passed deadline is exactly the
+                // "respect an already-expired deadline" face (no actionable card).
+                if (from == State.REQUESTED || from == State.DISPLAYED) {
+                    state = State.EXPIRED
+                    return Transition(from, event, State.EXPIRED)
+                }
                 return Transition(from, event, from)
             }
             else -> Unit

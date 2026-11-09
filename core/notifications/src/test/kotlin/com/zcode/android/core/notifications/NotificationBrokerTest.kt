@@ -273,4 +273,26 @@ class NotificationBrokerTest {
         b.onBackgroundEntry()
         assertTrue("unknown openness never skips", sink.shown.containsKey("interaction:maybe-open"))
     }
+
+
+    @Test
+    fun `G77 - the fuse deadline rides the fresh post and the background re-post`() = runTest {
+        val sink = RecordingSink()
+        val b = broker(sink = sink)
+        val deadline = 1_794_100_000_000L
+        b.onEvent(
+            NotificationRecord.Kind.APPROVAL_NEEDED, "task-1", "i-fuse", null,
+            permission = true, subject = "Bash: echo synthetic", deadlineAtMs = deadline,
+        )
+        assertEquals(deadline, sink.shown.getValue("interaction:i-fuse").deadlineAtMs)
+        // The re-post resolves the deadline from the wiring's live projection.
+        b.deadlineProvider = { id -> if (id == "i-fuse") deadline else null }
+        sink.shown.clear()
+        b.onBackgroundEntry()
+        assertEquals(
+            "the re-post counts down to the same deadline",
+            deadline,
+            sink.shown.getValue("interaction:i-fuse").deadlineAtMs,
+        )
+    }
 }

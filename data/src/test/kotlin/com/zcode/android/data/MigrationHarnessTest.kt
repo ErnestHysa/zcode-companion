@@ -61,7 +61,7 @@ class MigrationHarnessTest {
             "direct-open-test.db",
         ).allowMainThreadQueries().build()
         db.openHelper.writableDatabase
-        assertEquals(3, db.openHelper.writableDatabase.version)
+        assertEquals(4, db.openHelper.writableDatabase.version)
         db.close()
     }
 
@@ -148,10 +148,61 @@ class MigrationHarnessTest {
         }
     }
 
+    /**
+     * G77 (vc52 Phase 7) schema v3 → v4 drill: interactions.autoResolutionDeadlineMs
+     * is additive and null-safe — pre-v4 rows survive with NULL (no fuse), v4 writes
+     * carry the decoded deadline; the whole forward chain v1 → v4 runs through
+     * ALL_MIGRATIONS without loss.
+     */
+    @Test
+    fun `migration 3 to 4 adds autoResolutionDeadlineMs without data loss and the full chain from v1 runs`() {
+        helper.createDatabase(DB_V34, 3).use { db ->
+            db.execSQL(
+                "INSERT INTO interactions (endpointId, interactionId, sessionId, kind, lifecycle, toolName," +
+                    "payloadJson, createdAtMs, resolvedAtMs) VALUES " +
+                    "('ep','i-1','s1','PERMISSION','DISPLAYED','Bash','{}',1,NULL)",
+            )
+        }
+        helper.runMigrationsAndValidate(DB_V34, 4, true, ZcodeDatabase.MIGRATION_3_4).use { db ->
+            db.query("SELECT interactionId, lifecycle, autoResolutionDeadlineMs FROM interactions").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("i-1", cursor.getString(0))
+                assertEquals("DISPLAYED", cursor.getString(1))
+                assertTrue(cursor.isNull(2), "pre-v4 rows carry no fuse (NULL deadline)")
+            }
+            db.execSQL(
+                "INSERT INTO interactions (endpointId, interactionId, sessionId, kind, lifecycle, toolName," +
+                    "payloadJson, createdAtMs, resolvedAtMs, autoResolutionDeadlineMs) VALUES " +
+                    "('ep','i-2','s1','USER_INPUT','DISPLAYED',NULL,'{}',2,NULL,1790000000000)",
+            )
+            db.query("SELECT autoResolutionDeadlineMs FROM interactions WHERE interactionId = 'i-2'").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals(1790000000000L, cursor.getLong(0))
+            }
+        }
+        // The full chain from the frozen v1 export.
+        helper.createDatabase(DB_V14, 1).use { db ->
+            db.execSQL(
+                "INSERT INTO interactions (endpointId, interactionId, sessionId, kind, lifecycle, toolName," +
+                    "payloadJson, createdAtMs, resolvedAtMs) VALUES " +
+                    "('ep','i-0','s0','PERMISSION','REQUESTED','Bash','{}',0,NULL)",
+            )
+        }
+        helper.runMigrationsAndValidate(DB_V14, 4, true, *ZcodeDatabase.ALL_MIGRATIONS).use { db ->
+            db.query("SELECT interactionId, autoResolutionDeadlineMs FROM interactions").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("i-0", cursor.getString(0))
+                assertTrue(cursor.isNull(1))
+            }
+        }
+    }
+
     companion object {
         private const val DB = "migration-test.db"
         private const val DB_V12 = "migration-v1-2.db"
         private const val DB_V23 = "migration-v2-3.db"
         private const val DB_V13 = "migration-v1-3.db"
+        private const val DB_V34 = "migration-v3-4.db"
+        private const val DB_V14 = "migration-v1-4.db"
     }
 }

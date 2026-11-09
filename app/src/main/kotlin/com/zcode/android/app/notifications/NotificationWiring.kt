@@ -90,6 +90,9 @@ class NotificationWiring(
     /** F-33-H: the subject of every currently-open interaction (re-post input; in memory only). */
     @Volatile private var openSubjects: Map<String, String> = emptyMap()
 
+    /** G77: every currently-open interaction's auto-resolution deadline (re-post input). */
+    @Volatile private var openDeadlines: Map<String, Long> = emptyMap()
+
     /**
      * §24.7 routing inputs — the SAME projection snapshots the collectors maintain
      * for the broker diffs (what the task list actually renders), NOT a second
@@ -122,6 +125,8 @@ class NotificationWiring(
         broker.repostGate = { interactionId ->
             !interactionBaselineSeeded || interactionId in seenInteractionIds
         }
+        // G77: the re-post carries the same deadline the fresh post did.
+        broker.deadlineProvider = { interactionId -> openDeadlines[interactionId] }
         // §24.5 (vc35 user feedback): the Live-connection window is user-customizable
         // (0 = no auto-timeout). Live-updates the FGS while running; start() re-reads
         // it on every toggle-on.
@@ -157,6 +162,7 @@ class NotificationWiring(
                 knownInteractionIds.set(seenInteractionIds)
                 interactionBaselineSeeded = true
                 openSubjects = records.mapNotNull { r -> interactionSubject(r)?.let { r.interactionId.raw to it } }.toMap()
+                openDeadlines = records.mapNotNull { r -> r.autoResolutionDeadlineMs?.let { r.interactionId.raw to it } }.toMap()
                 for ((record, kind) in fresh) {
                     // Phase 4F: the PER-CATEGORY toggle gates the emission (the prefs
                     // are read per event — a toggle applies to the NEXT request).
@@ -179,6 +185,7 @@ class NotificationWiring(
                             // F-33-H: only beside their subject (the plan decides).
                             permission = kind == com.zcode.android.domain.model.NotificationRecord.Kind.APPROVAL_NEEDED,
                             subject = interactionSubject(record),
+                            deadlineAtMs = record.autoResolutionDeadlineMs,
                         )
                     }.onFailure { log.warn("notify.attentionFault", it.javaClass.simpleName) }
                 }

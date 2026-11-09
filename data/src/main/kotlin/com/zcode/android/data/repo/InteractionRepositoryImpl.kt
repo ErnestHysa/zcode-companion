@@ -57,6 +57,7 @@ class InteractionRepositoryImpl(
                 payloadJson = request.raw?.toString() ?: "{}",
                 createdAtMs = request.createdAtMs,
                 resolvedAtMs = request.resolvedAtMs,
+                autoResolutionDeadlineMs = request.autoResolutionDeadlineMs,
             ),
         )
     }
@@ -73,6 +74,7 @@ class InteractionRepositoryImpl(
                 payloadJson = request.raw?.toString() ?: "{}",
                 createdAtMs = request.createdAtMs,
                 resolvedAtMs = request.resolvedAtMs,
+                autoResolutionDeadlineMs = request.autoResolutionDeadlineMs,
             ),
         )
     }
@@ -136,6 +138,7 @@ class InteractionRepositoryImpl(
         toolName = toolName,
         createdAtMs = createdAtMs,
         resolvedAtMs = resolvedAtMs,
+        autoResolutionDeadlineMs = autoResolutionDeadlineMs,
         // L3: the retained payload reaches the inbox as ONE bounded, redacted line.
         preview = com.zcode.android.domain.model.InteractionPreview.of(
             toolName,

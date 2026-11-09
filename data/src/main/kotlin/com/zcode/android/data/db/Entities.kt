@@ -90,6 +90,8 @@ data class InteractionEntity(
     val payloadJson: String,
     val createdAtMs: Long,
     val resolvedAtMs: Long?,
+    /** G77 (vc52 Phase 7): the decoded autoResolution deadline (visibleCountdown only; null = no fuse). */
+    val autoResolutionDeadlineMs: Long? = null,
 )
 
 @Entity(

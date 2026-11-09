@@ -57,6 +57,9 @@ class NotificationBroker(
         val deepLinkConnection: Boolean = false,
         /** C3 (Phase 4E): shade-level actions (Approve-once / Deny on approvals). */
         val actions: List<SpecAction> = emptyList(),
+        /** G77 (vc52 Phase 7): the auto-resolution deadline — the sink renders a native
+         *  countdown chronometer to it; null = no fuse. */
+        val deadlineAtMs: Long? = null,
     )
 
     /**
@@ -118,6 +121,8 @@ class NotificationBroker(
         permission: Boolean = false,
         /** F-33-H: what the approval/question is about (shown privately under CONTENT). */
         subject: String? = null,
+        /** G77: the auto-resolution deadline (epoch ms) — the shade counts down to it. */
+        deadlineAtMs: Long? = null,
     ) {
         val key = NotificationPlan.notificationKey(kind, taskId, interactionId)
             ?: run {
@@ -160,6 +165,7 @@ class NotificationBroker(
                 deepLinkInteractionId = interactionId,
                 deepLinkConnection = kind == NotificationRecord.Kind.CONNECTION_LOST,
                 actions = actions,
+                deadlineAtMs = deadlineAtMs,
             ),
         )
         log.info("notify.show", "key=${key.take(24)} channel=${decision.channelId}")
@@ -212,6 +218,7 @@ class NotificationBroker(
             } else {
                 emptyList()
             }
+            val deadline = record.interactionId?.let { id -> runCatching { deadlineProvider(id) }.getOrNull() }
             sink.show(
                 Spec(
                     key = record.notificationKey,
@@ -222,6 +229,7 @@ class NotificationBroker(
                     deepLinkTaskId = record.taskId,
                     deepLinkInteractionId = record.interactionId,
                     actions = actions,
+                    deadlineAtMs = deadline,
                 ),
             )
             log.info("notify.repost", "key=${record.notificationKey.take(24)} (background entry)")
@@ -320,6 +328,14 @@ class NotificationBroker(
      */
     @Volatile
     var repostGate: suspend (interactionId: String) -> Boolean? = { null }
+
+    /**
+     * G77: an open interaction's auto-resolution deadline for the background re-post
+     * (records persist no deadline — the wiring resolves it from its live projection).
+     * Null = no fuse known.
+     */
+    @Volatile
+    var deadlineProvider: suspend (interactionId: String) -> Long? = { null }
 
     private suspend fun contentLevel() = contentLevelProvider()
 
