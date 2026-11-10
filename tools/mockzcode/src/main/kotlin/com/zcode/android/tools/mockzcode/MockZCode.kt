@@ -424,6 +424,24 @@ class MockZCode(
         @Volatile var enforceWorkflowRunDeltas: Boolean = false
         /** G43-P13: a scripted resync fault (e.g. fault.subscription.notOwned) for the ladder's fallback face. */
         @Volatile var resyncIndexFault: String? = null
+        // ---------------- G53 + N-BG-2 (vc52 Phase 11) the git depth + the refusal surface ----------------
+        /**
+         * G53: the scripted `getBranchComparison` result ({baseRef, headRef,
+         * comparisonLabel, changes: [...]}) — null = the verb faults
+         * fault.git.notAvailable (the unscripted face the rig used to serve).
+         */
+        @Volatile var gitBranchComparison: JsonObject? = null
+        /** G53 plumbing: the scripted getIgnoredPaths STRING ARRAY (null = the typed fault). */
+        @Volatile var gitIgnoredPaths: JsonArray? = null
+        /** G53 plumbing: the scripted getWorkspaceRepositoryInfo result (null = the typed fault). */
+        @Volatile var gitWorkspaceRepositoryInfo: JsonObject? = null
+        /**
+         * N-BG-2 (vc52 Phase 11): the deliberate git-refusal arms — a method-name →
+         * fault map the mock answers with respondError so the phone's SURFACING is
+         * drivable on the rig (the recorded live face: the Generate button did
+         * nothing, the Changes/History tabs rendered empty).
+         */
+        @Volatile var gitRefusals: MutableMap<String, String> = java.util.concurrent.ConcurrentHashMap()
         /** Scheduled workflowRun.updated/removed push delays (ms) — the rig's scripted stream. */
         @Volatile var runDeltaUpdateMs: Long = 4_000L
         @Volatile var runDeltaRemoveMs: Long = 14_000L
@@ -3102,6 +3120,29 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     put("commits", commits)
                     put("hasMore", JsonPrimitive(script.gitHasMore))
                 }))
+            }
+            // G53 (vc52 Phase 11): the depth trio. A N-BG-2 refusal arm answers FIRST
+            // (the deliberate fault beats the fixture), then the scripted fixture, then
+            // the unscripted typed fault.
+            "getBranchComparison", "getIgnoredPaths", "getWorkspaceRepositoryInfo" -> {
+                script.gitRefusals[name ?: ""]?.let { return respondError(id, it) }
+                when (name) {
+                    "getBranchComparison" -> {
+                        val comparison = script.gitBranchComparison
+                        if (comparison == null) respondError(id, "fault.git.notAvailable")
+                        else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(comparison))
+                    }
+                    "getIgnoredPaths" -> {
+                        val ignored = script.gitIgnoredPaths
+                        if (ignored == null) respondError(id, "fault.git.notAvailable")
+                        else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(ignored.map { RpcValue.Str((it as JsonPrimitive).content) }))
+                    }
+                    else -> {
+                        val info = script.gitWorkspaceRepositoryInfo
+                        if (info == null) respondError(id, "fault.git.notAvailable")
+                        else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(info))
+                    }
+                }
             }
             else -> respondError(id, "fault.git.unknownMethod")
         }

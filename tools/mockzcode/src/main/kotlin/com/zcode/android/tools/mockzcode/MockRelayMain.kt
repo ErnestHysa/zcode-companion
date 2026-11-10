@@ -8,6 +8,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlin.system.exitProcess
@@ -562,6 +563,77 @@ fun main() {
             "isRepository" to JsonPrimitive(true),
         ))
         // getLocalBranches is served hardcoded (main + feature/a) — no script field.
+        // G53 (vc52 Phase 11): the depth trio rides the same arm — the comparison
+        // (main to HEAD with two per-file changes), the ignored paths, the repo info.
+        mock.script.gitBranchComparison = JsonObject(mapOf(
+            "baseRef" to JsonPrimitive("origin/main"),
+            "headRef" to JsonPrimitive("main"),
+            "comparisonLabel" to JsonPrimitive("main -> origin/main"),
+            "changes" to JsonArray(listOf(
+                JsonObject(mapOf(
+                    "path" to JsonPrimitive("src/feature.ts"),
+                    "originalPath" to JsonNull,
+                    "kind" to JsonPrimitive("added"),
+                    "added" to JsonPrimitive(42),
+                    "removed" to JsonPrimitive(0),
+                )),
+                JsonObject(mapOf(
+                    "path" to JsonPrimitive("src/readme.md"),
+                    "originalPath" to JsonNull,
+                    "kind" to JsonPrimitive("modified"),
+                    "added" to JsonPrimitive(3),
+                    "removed" to JsonPrimitive(7),
+                )),
+            )),
+        ))
+        mock.script.gitIgnoredPaths = JsonArray(listOf(JsonPrimitive("build/"), JsonPrimitive(".env")))
+        mock.script.gitWorkspaceRepositoryInfo = JsonObject(mapOf(
+            "workspacePath" to JsonPrimitive("/synthetic/ws-one"),
+            "kind" to JsonPrimitive("main-tree"),
+            "isGitAvailable" to JsonPrimitive(true),
+        ))
+    }
+    // N-BG-2 (vc52 Phase 11): MOCK_GIT_REFUSALS=generateCommitMessage,getChanges arms the
+    // deliberate git-refusal map (method → fault.git.notAvailable) so the phone's
+    // SURFACING of refused git calls is drivable on the rig (the recorded live face:
+    // the Generate button did nothing, Changes/History rendered empty).
+    System.getenv("MOCK_GIT_REFUSALS")?.takeIf { it.isNotBlank() }?.let { spec ->
+        spec.split(',').map { it.trim() }.filter { it.isNotEmpty() }.forEach { method ->
+            mock.script.gitRefusals[method] = "fault.git.notAvailable"
+        }
+    }
+    // G52 (vc52 Phase 11): MOCK_G52_KEYS=transition|admission|both pushes a state patch
+    // seeding the two silently-dropped session-state keys (a conversation-level arm; the
+    // patch rides 1.5 s after the first conversation subscribe so the screens are up).
+    if (System.getenv("MOCK_G52_KEYS") != null) {
+        val what = System.getenv("MOCK_G52_KEYS")!!
+        val patch = kotlinx.serialization.json.buildJsonObject {
+            if (what == "transition" || what == "both") put("modelTransition", kotlinx.serialization.json.buildJsonObject {
+                put("eventId", JsonPrimitive("g52-rig-1"))
+                put("origin", JsonPrimitive("registryFallback"))
+                put("from", kotlinx.serialization.json.buildJsonObject {
+                    put("provider", JsonPrimitive("zai")); put("model", JsonPrimitive("glm-5.1"))
+                })
+                put("to", kotlinx.serialization.json.buildJsonObject {
+                    put("provider", JsonPrimitive("zai")); put("model", JsonPrimitive("glm-4.7-air"))
+                })
+            })
+            if (what == "admission" || what == "both") put("workspaceHookAdmission", kotlinx.serialization.json.buildJsonObject {
+                put("pendingCount", JsonPrimitive(2))
+                put("bundleDigest", JsonPrimitive("rig-digest-1"))
+                put("workspaceIdentity", JsonPrimitive("/synthetic/ws-one"))
+            })
+        }
+        val delayMs = System.getenv("MOCK_G52_KEYS_MS")?.toLongOrNull() ?: 1_500L
+        val t = Thread {
+            try {
+                Thread.sleep(delayMs)
+                mock.pushStatePatch(patch)
+            } catch (_: InterruptedException) { }
+        }
+        t.isDaemon = true
+        t.name = "mock-g52-keys"
+        t.start()
     }
     // RIG-1 (vc51 Phase 4C / G29): MOCK_AUTOMATIONS=1 seeds the automations list; the
     // handlers were always scripted (passes 5/9 debt) — only the env flags were missing.
