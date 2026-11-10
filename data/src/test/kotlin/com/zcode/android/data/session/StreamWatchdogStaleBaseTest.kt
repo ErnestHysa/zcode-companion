@@ -131,6 +131,9 @@ class StreamWatchdogStaleBaseTest {
         override val flowPressure = MutableStateFlow(ConnectionFlowState.DRAINED)
         override val inbound = MutableSharedFlow<InboundFrame>(extraBufferCapacity = 16)
         override val appErrors = MutableSharedFlow<com.zcode.android.core.common.error.AppError>(extraBufferCapacity = 16)
+        // G64 (vc52 Phase 11): the CUA permission observations (inert in these fakes).
+        override val cuaPermissionObservations =
+            MutableSharedFlow<com.zcode.android.core.protocol.v4.CuaPermissionObservation>(extraBufferCapacity = 8)
         override suspend fun connect(endpoint: EndpointDescriptor, signer: CredentialSigner) = Unit
         override suspend fun send(frame: OutboundFrame) = Unit
         override suspend fun recover() = Unit

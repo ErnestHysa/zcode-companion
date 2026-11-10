@@ -5,6 +5,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
 import com.zcode.android.domain.model.GitChangeEntry
@@ -46,11 +48,21 @@ class StateRestorationTest {
     fun `the expanded inline diff survives process death`() {
         restorer.setContent { ZCodeTheme { GitScreen(port = port) } }
         rule.waitForIdle()
+        // G53 (vc52 Phase 11): the branch-comparison card occupies the panel's top —
+        // scroll the change row into view before the tap (the expansion's InlineDiff
+        // must be COMPOSED for git_diff_loading to exist; below-the-fold nodes are
+        // disposed by the LazyColumn).
+        rule.onNodeWithTag("git_list").performScrollToNode(hasTestTag("git_change_src/main.rs"))
+        rule.waitForIdle()
         rule.onNodeWithTag("git_change_src/main.rs").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("git_list").performScrollToNode(hasTestTag("git_change_src/main.rs"))
         rule.waitForIdle()
         assertTrue(rule.onAllNodesWithTag("git_diff_loading").fetchSemanticsNodes().isNotEmpty())
 
         restorer.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+        rule.onNodeWithTag("git_list").performScrollToNode(hasTestTag("git_change_src/main.rs"))
         rule.waitForIdle()
         assertTrue(
             "the expanded diff must survive the restore",
