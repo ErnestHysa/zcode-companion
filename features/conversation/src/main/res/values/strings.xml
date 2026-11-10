@@ -324,6 +324,9 @@
     <string name="workflow_status_unknown">Unknown</string>
     <string name="workflow_resumable">Resumable</string>
     <!-- G51 (vc52 Phase 11): the delta-assembled step graph section -->
+    <!-- G52 (vc52 Phase 11): the workspace hook-admission plane -->
+    <string name="hooks_admission_pending">Hooks pending trust: %1$d — review them on the desktop (Settings, Hooks)</string>
+    <string name="notice_model_transition">The desktop switched the model from %1$s to %2$s (registry fallback) — the session continues on the new model.</string>
     <string name="workflow_sheet_steps">Steps (%1$d)</string>
     <string name="workflow_events_title">Events</string>
     <string name="workflow_events_empty">No events yet</string>

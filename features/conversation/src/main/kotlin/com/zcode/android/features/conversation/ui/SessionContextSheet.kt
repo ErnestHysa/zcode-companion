@@ -101,6 +101,25 @@ fun SessionContextSheet(
                 rows = rows,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
             )
+            // G52 (vc52 Phase 11): the workspace hook-trust admission plane — hooks are
+            // pending trust for this workspace; the count renders ONLY when pending > 0
+            // (never a silently-dropped state key).
+            sessionState?.workspaceHookAdmission?.takeIf { it.pendingCount > 0 }?.let { admission ->
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .testTag("hooks_admission_row"),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        stringResource(com.zcode.android.features.conversation.R.string.hooks_admission_pending, admission.pendingCount),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
             // D2: the goal + todo surfaces — EXPANDED inside the sheet (the user opened
             // it to read context); both headers remain true toggles.
             sessionState?.goal?.let { goal ->

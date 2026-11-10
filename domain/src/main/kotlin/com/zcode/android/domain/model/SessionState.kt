@@ -40,6 +40,12 @@ data class SessionProjectionState(
     val planKeyPresent: Boolean = false,
     /** G9 (vc51): the share-handover import state (shared-context-import.ts). */
     val sharedContextImport: SharedContextImportState? = null,
+    /** G52 (vc52 Phase 11): the registry-fallback model-transition marker (nullable key). */
+    val modelTransition: ModelTransitionState? = null,
+    val modelTransitionKeyPresent: Boolean = false,
+    /** G52: the workspace hook-trust admission plane (nullable key). */
+    val workspaceHookAdmission: WorkspaceHookAdmissionState? = null,
+    val workspaceHookAdmissionKeyPresent: Boolean = false,
 ) {
     /**
      * True when the snapshot carried ANY decoded A-side state key — the gateway
@@ -51,7 +57,8 @@ data class SessionProjectionState(
             pendingInteractions != null || backgroundWorks != null || config != null ||
             sharedContextImport != null ||
             usage != null || revision != null || goal != null || plan != null ||
-            goalKeyPresent || planKeyPresent
+            goalKeyPresent || planKeyPresent ||
+            modelTransitionKeyPresent || workspaceHookAdmissionKeyPresent
 
     /** Key-level merge (the verified Object.assign semantics — no deep merge). */
     fun mergedWith(patch: JsonObject): SessionProjectionState {
@@ -85,11 +92,29 @@ data class SessionProjectionState(
                 "sharedContextImport" -> (patch[key] as? JsonObject)?.let { o ->
                     SharedContextImportState.decodeOrNull(o)?.let { next = next.copy(sharedContextImport = it) }
                 }
+                // G52 (vc52 Phase 11): the two silently-dropped state keys — decoded
+                // with the goal/plan nullable-key discipline (an explicit null is a
+                // DECODED fact: the desktop CLEARED the marker after rendering it).
+                "modelTransition" -> when (patch[key]) {
+                    is JsonNull -> next = next.copy(modelTransition = null, modelTransitionKeyPresent = true)
+                    is JsonObject -> ModelTransitionState.decodeOrNull(patch[key] as JsonObject)?.let {
+                        next = next.copy(modelTransition = it, modelTransitionKeyPresent = true)
+                    } ?: run { next = next.copy(modelTransitionKeyPresent = true) }
+                    else -> malformedKeyDrops++
+                }
+                "workspaceHookAdmission" -> when (patch[key]) {
+                    is JsonNull -> next = next.copy(workspaceHookAdmission = null, workspaceHookAdmissionKeyPresent = true)
+                    is JsonObject -> WorkspaceHookAdmissionState.decodeOrNull(patch[key] as JsonObject)?.let {
+                        next = next.copy(workspaceHookAdmission = it, workspaceHookAdmissionKeyPresent = true)
+                    } ?: run { next = next.copy(workspaceHookAdmissionKeyPresent = true) }
+                    else -> malformedKeyDrops++
+                }
                 // meta/pendingCommands/subagents/workflowRuns/
-                // modelTransition/workspaceHookAdmission: not consumed by any surface —
+                // workspaceMcpAdmission: not consumed by any surface —
                 // ignored keys, counted, never merged (INV-8).
                 // (`config` joined in Phase 9 — §10.3; `usage` in Phase 2 — §11.1;
-                // `goal`/`plan` in Phase 4C — D2; `sharedContextImport` in vc51 — G9.)
+                // `goal`/`plan` in Phase 4C — D2; `sharedContextImport` in vc51 — G9;
+                // `modelTransition`/`workspaceHookAdmission` in vc52 Phase 11 — G52.)
                 else -> ignoredKeys++
             }
         }
@@ -134,6 +159,22 @@ data class SessionProjectionState(
                     }
                     "sharedContextImport" -> (snapshot[key] as? JsonObject)?.let { o ->
                         SharedContextImportState.decodeOrNull(o)?.let { state = state.copy(sharedContextImport = it) }
+                    }
+                    // G52 (vc52 Phase 11): the snapshot's two keys — same nullable-key
+                    // discipline as the merge path.
+                    "modelTransition" -> when (snapshot[key]) {
+                        is JsonNull -> state = state.copy(modelTransition = null, modelTransitionKeyPresent = true)
+                        is JsonObject -> ModelTransitionState.decodeOrNull(snapshot[key] as JsonObject)?.let {
+                            state = state.copy(modelTransition = it, modelTransitionKeyPresent = true)
+                        } ?: run { state = state.copy(modelTransitionKeyPresent = true) }
+                        else -> malformedKeyDrops++
+                    }
+                    "workspaceHookAdmission" -> when (snapshot[key]) {
+                        is JsonNull -> state = state.copy(workspaceHookAdmission = null, workspaceHookAdmissionKeyPresent = true)
+                        is JsonObject -> WorkspaceHookAdmissionState.decodeOrNull(snapshot[key] as JsonObject)?.let {
+                            state = state.copy(workspaceHookAdmission = it, workspaceHookAdmissionKeyPresent = true)
+                        } ?: run { state = state.copy(workspaceHookAdmissionKeyPresent = true) }
+                        else -> malformedKeyDrops++
                     }
                     else -> ignoredKeys++
                 }
@@ -606,6 +647,67 @@ data class PlanState(
 
         fun decodeOrNull(obj: JsonObject): PlanState? = try {
             decode(obj)
+        } catch (e: RowDecodeException) {
+            SessionProjectionState.malformedKeyDrops++
+            null
+        }
+    }
+}
+
+/**
+ * G52 (vc52 Phase 11) — snapshot.ts `modelTransition` (chunk-D5C6W4UB `oh`,
+ * byte-verified on the shipped asar `12a2fc93…`):
+ * `{eventId ≥1, origin: literal("registryFallback"), from: {provider, model},
+ *   to: {provider, model}}` — nullable, default null. The desktop auto-switched
+ * the session's model because the requested one was unavailable (the registry
+ * fallback); the phone renders a typed notice (the desktop shows a toast) and
+ * CLEARS the marker on the next null.
+ */
+data class ModelTransitionState(
+    val eventId: String,
+    val origin: String,
+    val fromProvider: String,
+    val fromModel: String,
+    val toProvider: String,
+    val toModel: String,
+) {
+    companion object {
+        fun decodeOrNull(obj: JsonObject): ModelTransitionState? = try {
+            val from = obj["from"] as? JsonObject ?: throw RowDecodeException("modelTransition.from missing")
+            val to = obj["to"] as? JsonObject ?: throw RowDecodeException("modelTransition.to missing")
+            ModelTransitionState(
+                eventId = obj.string("eventId"),
+                origin = obj.strOrNull("origin") ?: "registryFallback",
+                fromProvider = from.string("provider"),
+                fromModel = from.string("model"),
+                toProvider = to.string("provider"),
+                toModel = to.string("model"),
+            )
+        } catch (e: RowDecodeException) {
+            SessionProjectionState.malformedKeyDrops++
+            null
+        }
+    }
+}
+
+/**
+ * G52 — snapshot.ts `workspaceHookAdmission` (chunk-D5C6W4UB `R$`, byte-verified
+ * asar `12a2fc93…`): `{pendingCount ≥0, bundleDigest, workspaceIdentity?}` —
+ * nullable, default null. Hooks are pending trust admission for this workspace;
+ * the phone renders the pending count on the hook plane (the context sheet).
+ */
+data class WorkspaceHookAdmissionState(
+    val pendingCount: Long,
+    val bundleDigest: String,
+    val workspaceIdentity: String?,
+) {
+    companion object {
+        fun decodeOrNull(obj: JsonObject): WorkspaceHookAdmissionState? = try {
+            WorkspaceHookAdmissionState(
+                pendingCount = obj.longOrNull("pendingCount") ?: throw RowDecodeException("workspaceHookAdmission.pendingCount missing"),
+                bundleDigest = obj.strOrNull("bundleDigest") ?: throw RowDecodeException("workspaceHookAdmission.bundleDigest missing"),
+                workspaceIdentity = obj.strOrNull("workspaceIdentity"),
+            )
         } catch (e: RowDecodeException) {
             SessionProjectionState.malformedKeyDrops++
             null

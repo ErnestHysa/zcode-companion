@@ -1604,6 +1604,8 @@ fun sendNoticeText(notice: SendNotice): String {
         // GAP-A15 (pass 13): the hook-trust SUCCESS copy (the old ROW_ACTION_OFFLINE key
         // rendered the fixed offline banner for a successful trust).
         SendNotice.Key.HOOK_TRUST_APPLIED -> R.string.notice_hook_trust_applied
+        // G52 (vc52 Phase 11): the registry-fallback model transition (typed INFO).
+        SendNotice.Key.MODEL_TRANSITION -> R.string.notice_model_transition
     }
     val args = if (key == SendNotice.Key.ATTACHMENT_FAILED) {
         listOf(notice.args.firstOrNull()?.takeIf { it.isNotBlank() } ?: stringResource(R.string.notice_connection_lost))

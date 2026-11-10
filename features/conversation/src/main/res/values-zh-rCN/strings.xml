@@ -288,6 +288,9 @@
     <string name="workflow_status_stopped">已停止</string>
     <string name="workflow_status_unknown">未知</string>
     <string name="workflow_resumable">可恢复</string>
+    <string name="workflow_sheet_steps">步骤（%1$d）</string>
+    <string name="hooks_admission_pending">等待信任的钩子：%1$d — 请在桌面端（Settings → Hooks）审核</string>
+    <string name="notice_model_transition">桌面端已从 %1$s 切换到 %2$s（注册表回退）——会话将在新模型上继续。</string>
     <string name="workflow_events_title">事件</string>
     <string name="workflow_events_empty">暂无事件</string>
     <string name="workflow_events_unavailable">当前连接无法读取运行事件</string>

@@ -117,6 +117,8 @@ data class SendNotice(
         // GAP-A15 (pass 13): a SUCCESSFUL hook trust rode ROW_ACTION_OFFLINE, whose
         // renderer mapping is the fixed offline copy — success rendered as failure.
         HOOK_TRUST_APPLIED,
+        // G52 (vc52 Phase 11): the desktop's registry-fallback model transition.
+        MODEL_TRANSITION,
     }
 }
 
@@ -745,7 +747,26 @@ class ConversationViewModel(
                 if (plane.deltasSeen) workflowTicker?.cancel()
             }
         }
+        // G52: the registry-fallback model transition — a typed INFO notice once per
+        // transition eventId (the desktop shows a toast; the phone never showed
+        // anything for this silently-dropped state key).
+        scope.launch {
+            state.map { it.sessionState?.modelTransition }.distinctUntilChanged().collect { transition ->
+                if (transition == null) return@collect
+                if (transition.eventId == lastAnnouncedTransitionId) return@collect
+                lastAnnouncedTransitionId = transition.eventId
+                _sendNotice.value = SendNotice(
+                    "The desktop switched the model from ${transition.fromModel} to ${transition.toModel} (registry fallback) — the session continues on the new model.",
+                    SendNotice.Kind.INFO,
+                    SendNotice.Key.MODEL_TRANSITION,
+                    listOf(transition.fromModel, transition.toModel),
+                )
+            }
+        }
     }
+
+    /** G52: the last announced registry-fallback transition (one notice per eventId). */
+    private var lastAnnouncedTransitionId: String? = null
 
     fun refreshWorkflowRuns() {
         scope.launch {

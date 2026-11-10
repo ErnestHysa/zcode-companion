@@ -30,7 +30,7 @@ class WorkflowRunsVmTest {
         updatedAtMs = 1, resumedFrom = null, supersededBy = null, failureCode = null, failureMessage = null, resumable = false,
     )
 
-    private class WorkflowPort : Phase7FakePort() {
+    private open class WorkflowPort : Phase7FakePort() {
         val calls = mutableListOf<String>()
         var runs: List<WorkflowRunSummary>? = emptyList()
         var pages: MutableMap<Long?, WorkflowRunEventsPage?> = mutableMapOf()
@@ -175,22 +175,28 @@ class WorkflowRunsVmTest {
         val vm = ConversationViewModel(port, backgroundScope, "s")
         vm.refreshWorkflowRuns()
         runCurrent()
-        // Deltas arrive while the ticker could be live: the ticker never starts.
+        // Deltas arrive while the ticker could be live: the ticker is cancelled at once.
         port.plane.value = com.zcode.android.domain.model.WorkflowRunPlane.apply(
             port.plane.value, port.updatedDelta("r1", "running"),
         )
         runCurrent()
+        kotlin.test.assertTrue(vm.runDeltasFlowing.value, "the plane collector processed the delta before the window")
+        // Let the debounced revision-follower's initial pass fire (a distinct source
+        // of runs reads — the WINDOW being pinned is the poll ticker's 8 s cadence).
+        advanceTimeBy(1_000)
+        runCurrent()
         val before = port.calls.count { it == "runs" }
         advanceTimeBy(25_000)
         runCurrent()
-        assertEquals(before, port.calls.count { it == "runs" }, "no poll ticks once deltas flow (the G48 defect's symptom)")
+        assertEquals(before, port.calls.count { it == "runs" }, "no poll ticks once deltas flow (the G48 defect's symptom); calls=${port.calls}")
         // A second refresh with a live run STILL does not start a ticker.
         port.runs = listOf(run("r1", WorkflowRunStatus.RUNNING))
         vm.refreshWorkflowRuns()
         runCurrent()
+        val afterExplicit = port.calls.count { it == "runs" }
         advanceTimeBy(25_000)
         runCurrent()
-        assertEquals(before, port.calls.count { it == "runs" }, "the ticker never starts while deltas flow")
+        assertEquals(afterExplicit, port.calls.count { it == "runs" }, "the ticker never starts while deltas flow")
     }
 
     @Test
