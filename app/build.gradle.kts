@@ -88,6 +88,26 @@ android {
 
     packaging {
         resources.excludes += "META-INF/{AL2.0,LGPL2.1}"
+        // N-BE-5 (vc52 Phase 10): the raw protobuf schema ships but nothing reads it
+        // (no runtime descriptor reflection in any bundled path — Tink's shaded
+        // runtime carries its compiled literals). Deliberate excludes; a future
+        // consumer must re-include deliberately.
+        resources.excludes += "google/protobuf/descriptor.proto"
+        resources.excludes += "google/protobuf/*.proto"
+    }
+
+    androidResources {
+        // N-BE-5 (vc52 Phase 10, BE.4 census): 85 library locales shipped (af..zu)
+        // while the app's own copy is en + zh-rCN — every OTHER locale was AndroidX/
+        // Material library UI text rendered beside English app copy. Filter to the
+        // app's shipped locales. DELIBERATE KEEPS (documented per the finding):
+        // - The three protobuf runtimes (~30k methods: Tink's shaded + Glance's
+        //   shaded + the plain runtime) are INTERNAL to their libraries — excluding
+        //   them means replacing Tink/Glance (out of scope, security-relevant for
+        //   Tink). Not trimmed this round.
+        // - x86/x86_64 native libs (CameraX image processing + androidx.graphics
+        //   path): kept — universal-APK device support.
+        localeFilters += listOf("en", "zh-rCN")
     }
 
     testOptions {

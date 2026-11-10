@@ -2,6 +2,7 @@ package com.zcode.android.app.settings
 
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -52,7 +53,13 @@ class SwitchRowA11yTest {
         assertEquals("precondition: the terminal opt-in defaults OFF", ToggleableState.Off, before)
         // THE BUG: the label was not tappable — only the switch on the right was.
         rule.onNodeWithTag("settings_terminal_opt_in").performClick()
-        rule.waitForIdle()
+        // The write→collect→recompose round-trip (DataStore) may not have published
+        // the flip by the time waitForIdle returns under suite load — poll for the
+        // flip (the recorded pool flake: a single readback saw the stale Off 4×).
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithTag("settings_terminal_opt_in").fetchSemanticsNodes()
+                .firstOrNull()?.config?.get(SemanticsProperties.ToggleableState) == ToggleableState.On
+        }
         val after = rule.onNodeWithTag("settings_terminal_opt_in").fetchSemanticsNode()
             .config[SemanticsProperties.ToggleableState]
         assertEquals("the label tap must toggle the preference", ToggleableState.On, after)
