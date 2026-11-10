@@ -29,6 +29,14 @@ sealed class ProjectionOp {
      * inputRouting/revision); keys outside the Phase 7 set are ignored + counted.
      */
     data class StateUpdated(val patch: JsonObject) : ProjectionOp()
+    /**
+     * G51 (vc52 Phase 11): the workflow-run delta family the phone now DECLARES —
+     * `workflowRun.updated` (run patch + actor/node step graph) and
+     * `workflowRun.removed`. The wire decode stays raw (protocol); the domain
+     * delta model carries the typed merge faces (WorkflowModels.kt).
+     */
+    data class WorkflowRunUpdated(val delta: com.zcode.android.domain.model.WorkflowRunDelta.Updated) : ProjectionOp()
+    data class WorkflowRunRemoved(val runId: String, val revision: Long?) : ProjectionOp()
     data class Unknown(val op: String?, val raw: JsonObject) : ProjectionOp()
 }
 

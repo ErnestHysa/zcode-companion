@@ -307,6 +307,31 @@ class RelayConversationGateway(
                                 ops.add(ProjectionOp.RowTextAppended(d.rowId, d.path, d.append))
                             is com.zcode.android.core.protocol.v4.ConversationDelta.StateUpdated ->
                                 ops.add(ProjectionOp.StateUpdated(d.patch))
+                            // G51 (vc52 Phase 11): the declared workflow-run delta family —
+                            // the step decode is tolerant (a malformed step drops THAT
+                            // step, never the op).
+                            is com.zcode.android.core.protocol.v4.ConversationDelta.WorkflowRunUpdated ->
+                                ops.add(
+                                    ProjectionOp.WorkflowRunUpdated(
+                                        com.zcode.android.domain.model.WorkflowRunDelta.Updated(
+                                            runId = d.runId,
+                                            revision = d.revision,
+                                            run = d.run,
+                                            cleared = d.cleared,
+                                            removedActors = d.removedActors.map {
+                                                com.zcode.android.domain.model.WorkflowRunDelta.RunSite(it.siteId, it.ordinal)
+                                            },
+                                            removedNodes = d.removedNodes.map {
+                                                com.zcode.android.domain.model.WorkflowRunDelta.RunSite(it.siteId, it.ordinal)
+                                            },
+                                            actors = d.actors?.let { com.zcode.android.domain.model.WorkflowRunStep.decodeList(it) } ?: emptyList(),
+                                            nodes = d.nodes?.let { com.zcode.android.domain.model.WorkflowRunStep.decodeList(it) } ?: emptyList(),
+                                            raw = d.raw,
+                                        ),
+                                    ),
+                                )
+                            is com.zcode.android.core.protocol.v4.ConversationDelta.WorkflowRunRemoved ->
+                                ops.add(ProjectionOp.WorkflowRunRemoved(d.runId, d.revision))
                             is com.zcode.android.core.protocol.v4.ConversationDelta.Unknown ->
                                 ops.add(ProjectionOp.Unknown(d.op, d.raw))
                         }

@@ -2,6 +2,7 @@ package com.zcode.android.core.protocol.v4
 
 import com.zcode.android.core.protocol.bytes.ProtocolException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -201,7 +202,35 @@ sealed class ConversationDelta {
     data class RowRemoved(val fromRowId: Long, override val raw: JsonObject) : ConversationDelta()
     data class RowDelta(val rowId: Long, val path: String, val append: String, override val raw: JsonObject) : ConversationDelta()
     data class StateUpdated(val patch: JsonObject, override val raw: JsonObject) : ConversationDelta()
+    /**
+     * G48+G51 (vc52 Phase 11): the workflow-run delta family the phone now
+     * DECLARES (`capabilities.workflowRunDeltas`) — byte-verified against the
+     * shipped asar `12a2fc93…` discriminatedUnion: `workflowRun.updated
+     * {op, runId, revision, run?, cleared?, removedActors?, removedNodes?,
+     * actors?, nodes?}` and `workflowRun.removed {op, runId, revision}`.
+     * runId REQUIRED; revision decoded tolerantly; the step graph kept RAW here
+     * (the domain types the faces — INV-8, the desktop vocabulary evolves).
+     */
+    data class WorkflowRunUpdated(
+        val runId: String,
+        val revision: Long?,
+        val run: JsonObject?,
+        val cleared: List<String>,
+        val removedActors: List<RunSiteRef>,
+        val removedNodes: List<RunSiteRef>,
+        val actors: JsonArray?,
+        val nodes: JsonArray?,
+        override val raw: JsonObject,
+    ) : ConversationDelta()
+    data class WorkflowRunRemoved(
+        val runId: String,
+        val revision: Long?,
+        override val raw: JsonObject,
+    ) : ConversationDelta()
     data class Unknown(val op: String?, override val raw: JsonObject) : ConversationDelta()
+
+    /** `{siteId, ordinal}` — the keyed step identity (transport-level raw pair). */
+    data class RunSiteRef(val siteId: String, val ordinal: Long)
 
     companion object {
         var unknownOpCount: Long = 0
@@ -215,6 +244,31 @@ sealed class ConversationDelta {
                 "row.removed" -> RowRemoved(obj.long("fromRowId"), obj)
                 "row.delta" -> RowDelta(obj.long("rowId"), obj.string("path"), obj.string("append"), obj)
                 "state.updated" -> StateUpdated(obj["patch"] as? JsonObject ?: throw ProtocolException("state.updated patch missing"), obj)
+                "workflowRun.updated" -> {
+                    fun sites(key: String): List<RunSiteRef> = (obj[key] as? JsonArray)?.mapNotNull { el ->
+                        (el as? JsonObject)?.let { o ->
+                            val siteId = (o["siteId"] as? JsonPrimitive)?.content ?: return@let null
+                            val ordinal = (o["ordinal"] as? JsonPrimitive)?.content?.toLongOrNull() ?: return@let null
+                            RunSiteRef(siteId, ordinal)
+                        }
+                    } ?: emptyList()
+                    WorkflowRunUpdated(
+                        runId = obj.string("runId"),
+                        revision = (obj["revision"] as? JsonPrimitive)?.content?.toLongOrNull(),
+                        run = obj["run"] as? JsonObject,
+                        cleared = (obj["cleared"] as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.content } ?: emptyList(),
+                        removedActors = sites("removedActors"),
+                        removedNodes = sites("removedNodes"),
+                        actors = obj["actors"] as? JsonArray,
+                        nodes = obj["nodes"] as? JsonArray,
+                        raw = obj,
+                    )
+                }
+                "workflowRun.removed" -> WorkflowRunRemoved(
+                    runId = obj.string("runId"),
+                    revision = (obj["revision"] as? JsonPrimitive)?.content?.toLongOrNull(),
+                    raw = obj,
+                )
                 else -> { unknownOpCount++; Unknown(op, obj) }
             }
         }

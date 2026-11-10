@@ -236,6 +236,11 @@ class ConversationTopicReducer(
                     statePatchCount++
                     metadataOps++
                 }
+                // G51 (vc52 Phase 11): the workflow-run delta family rides THROUGH the
+                // reducer untouched (row state is untouched; the manager fans the ops
+                // out to the run plane) — they advance the cursor like every other op.
+                is ProjectionOp.WorkflowRunUpdated -> metadataOps++
+                is ProjectionOp.WorkflowRunRemoved -> metadataOps++
                 is ProjectionOp.Unknown -> unknownOps++
             }
         }
