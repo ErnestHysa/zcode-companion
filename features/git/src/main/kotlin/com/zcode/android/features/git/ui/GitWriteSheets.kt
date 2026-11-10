@@ -50,8 +50,15 @@ fun CommitSheet(
     onGenerate: () -> Unit,
     onCommit: (message: String, includeUnstaged: Boolean, andPush: Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    /** N-BG-2 (vc52 Phase 11): the generated message lands IN the field (the old flow dropped it). */
+    generatedMessage: String? = null,
+    /** N-BG-2: the desktop's refusal reason — an inline error row (never a silent no-op). */
+    generateRefusal: String? = null,
 ) {
     var message by remember { mutableStateOf("") }
+    androidx.compose.runtime.LaunchedEffect(generatedMessage) {
+        generatedMessage?.takeIf { it.isNotBlank() }?.let { message = it }
+    }
     var includeUnstaged by remember { mutableStateOf(false) }
     var andPush by remember { mutableStateOf(false) }
     ZCodeModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier.testTag("commit_sheet")) {
@@ -88,6 +95,16 @@ fun CommitSheet(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp).testTag("commit_generate_unavailable"),
+            )
+        }
+        // N-BG-2 (vc52 Phase 11): a REFUSED generate renders the typed reason inline —
+        // the button does nothing is the recorded defect face.
+        generateRefusal?.let { refusal ->
+            Text(
+                refusal,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(horizontal = 16.dp).testTag("commit_generate_refusal"),
             )
         }
         androidx.compose.material3.ListItem(
