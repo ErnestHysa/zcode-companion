@@ -128,15 +128,18 @@ class AutomationsRedesignUiTest {
      * switched per mode — a one-line string split; the button now follows the title.
      */
     @Test
-    fun `N-BC-2 - the edit dialog confirm reads Save; the create dialog reads Create`() {
+    fun `N-BC-2 - the edit dialog confirm reads Save, the create dialog reads Create`() {
         val port = RecordingPort(listOf(row("c3", "0 9 * * *")))
         setContent(port)
         openEditor("c3")
-        rule.onNodeWithTag("automation_form_save").performScrollTo()
+        // The dialog body is not itself a scrollable — the confirm is reachable as-is.
+        rule.onNodeWithTag("automation_form_save")
             .assertTextContains(context.getString(com.zcode.android.features.tasks.R.string.automation_form_save))
-        // A NEW automation (no existing row) keeps "Create".
+        // A NEW automation (no existing row) keeps "Create" — the EDIT dialog must
+        // dismiss first (both dialogs would otherwise mount a form_save node).
+        rule.onNodeWithTag("automation_form_cancel").performClick(); rule.waitForIdle()
         rule.onNodeWithTag("automations_new").performClick(); rule.waitForIdle()
-        rule.onNodeWithTag("automation_form_save").performScrollTo()
+        rule.onNodeWithTag("automation_form_save")
             .assertTextContains(context.getString(com.zcode.android.features.tasks.R.string.create_confirm))
     }
 
@@ -150,11 +153,18 @@ class AutomationsRedesignUiTest {
         val port = RecordingPort(listOf(row("c4", "0 9 * * *")))
         setContent(port)
         openEditor("c4")
-        rule.onNodeWithTag("automation_form_save").performScrollTo() // open the form fully
-        rule.onNodeWithText(context.getString(com.zcode.android.features.tasks.R.string.automations_sched_daily_time))
-            .performScrollTo()
-            .assertTextContains("desktop clock")
-        rule.onNodeWithText("(24h, local)").assertDoesNotExist()
+        // Select Daily explicitly — the hint label belongs to the daily time field.
+        // (assertTextContains asserts the EDITABLE text of a TextField, not its label —
+        // the honest pin is exact-presence of the new hint + absence of the old one.)
+        rule.onNodeWithTag("automation_freq_daily").performClick(); rule.waitForIdle()
+        // Presence, not viewport display — the dialog grows past the fold and has no
+        // scrollable semantics (the recorded pass-26 geometry); the pinned fact is the
+        // copy swap: the desktop-clock hint exists, the "local" hint is gone.
+        assertEquals(
+            1,
+            rule.onAllNodesWithText(context.getString(com.zcode.android.features.tasks.R.string.automations_sched_daily_time)).fetchSemanticsNodes().size,
+        )
+        assertEquals(0, rule.onAllNodesWithText("(24h, local)").fetchSemanticsNodes().size)
     }
 
     private fun save() { rule.onNodeWithTag("automation_form_save").performClick(); rule.waitForIdle() }
