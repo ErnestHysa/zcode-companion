@@ -1357,6 +1357,16 @@ class MockZCode(
             return
         }
         workflowRunDeltasSent++
+        // Rig fidelity (the G48 exit-gate leg's live receipt): the poll plane and the
+        // delta plane must AGREE — a re-fetch after the delta serves the SAME truth
+        // (the static script list used to clobber the merged status on the phone).
+        synchronized(script.workflowRuns) {
+            val i = script.workflowRuns.indexOfFirst { it.strOrNull("runId") == "wf-run-0" }
+            if (i >= 0) script.workflowRuns[i] = JsonObject(script.workflowRuns[i] + mapOf(
+                "status" to JsonPrimitive("completed"),
+                "updatedAt" to JsonPrimitive(System.currentTimeMillis()),
+            ))
+        }
         val op = buildJsonObject {
             put("op", JsonPrimitive("workflowRun.updated"))
             put("runId", JsonPrimitive("wf-run-0"))
