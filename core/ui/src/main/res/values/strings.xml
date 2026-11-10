@@ -84,6 +84,7 @@
     <!-- C5-i18n: the §33 user-message vocabulary (AppError.messageKey → copy). userMessage in code is the English fallback only. -->
     <string name="err_msg_connection_lost_reconnecting">Connection lost — reconnecting…</string>
     <string name="err_msg_session_taken_over">Another ZCode Remote page took over this connection</string>
+    <string name="err_msg_remote_workspace_disconnected">This remote workspace is disconnected — reconnect it, then retry</string>
     <string name="err_msg_desktop_unreachable">Desktop unreachable — wake the Mac, relaunch ZCode</string>
     <string name="err_msg_pairing_expired">Pairing expired — scan the QR again</string>
     <string name="err_msg_workspace_closed">This workspace was closed on the desktop</string>

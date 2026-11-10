@@ -28,6 +28,7 @@ fun errorUserMessage(error: AppError): String {
 fun userMessageRes(key: UserMessageKey): Int = when (key) {
     UserMessageKey.CONNECTION_LOST_RECONNECTING -> R.string.err_msg_connection_lost_reconnecting
     UserMessageKey.SESSION_TAKEN_OVER -> R.string.err_msg_session_taken_over
+    UserMessageKey.REMOTE_WORKSPACE_DISCONNECTED -> R.string.err_msg_remote_workspace_disconnected
     UserMessageKey.DESKTOP_UNREACHABLE -> R.string.err_msg_desktop_unreachable
     UserMessageKey.PAIRING_EXPIRED -> R.string.err_msg_pairing_expired
     UserMessageKey.WORKSPACE_CLOSED -> R.string.err_msg_workspace_closed

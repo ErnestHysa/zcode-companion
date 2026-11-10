@@ -340,6 +340,23 @@ class ConnectionHub(
     fun sessionProjectionState(taskId: String): kotlinx.coroutines.flow.Flow<com.zcode.android.domain.model.SessionProjectionState> =
         sessionFlow(taskId, { m -> m.sessionState }, com.zcode.android.domain.model.SessionProjectionState())
 
+    /** G67 (vc52 Phase 11): the Reconnect card's wire face — request + result (logged for the rig receipt). */
+    suspend fun reconnectWorkspace(workspaceKey: String): Boolean {
+        val t = runCatching { activeTransport() }.getOrNull() as? RelayTransport ?: run {
+            log.warn("hub.reconnectWorkspace", "the active transport is not the relay — remote reconnect is a relay-plane verb")
+            return false
+        }
+        return try {
+            val result = t.requestWorkspaceReconnect(workspaceKey)
+            log.info("hub.reconnectWorkspace", "key=${workspaceKey.take(24)} success=${result.success} error=${result.error?.take(60)}")
+            result.success
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            log.warn("hub.reconnectWorkspace", "${e.javaClass.simpleName}: ${e.message?.take(80)}")
+            false
+        }
+    }
+
     /** G51 (vc52 Phase 11): the session's workflow-run delta plane (step graphs + deltas-flowing). */
     fun sessionWorkflowRunPlane(taskId: String): kotlinx.coroutines.flow.Flow<com.zcode.android.domain.model.WorkflowRunPlane> =
         sessionFlow(taskId, { m -> m.workflowRunPlane }, com.zcode.android.domain.model.WorkflowRunPlane.EMPTY)

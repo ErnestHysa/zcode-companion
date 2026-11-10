@@ -996,6 +996,7 @@ private fun TerminalRoute(container: AppContainer, onBack: () -> Unit) {
 @Composable
 private fun ConnectionCenterRoute(container: AppContainer, onBack: () -> Unit) {
     val phase by container.hub.phase.collectAsState()
+    val ccScope = androidx.compose.runtime.rememberCoroutineScope()
     val endpoint by container.hub.endpoint.collectAsState()
     val lastError by container.hub.lastError.collectAsState()
     val lastRefresh by container.hub.lastRefreshAtMs.collectAsState()
@@ -1015,6 +1016,18 @@ private fun ConnectionCenterRoute(container: AppContainer, onBack: () -> Unit) {
         lastRefreshAtMs = lastRefresh,
         onRetry = container.hub::retry,
         onDismissError = container.hub::dismissError,
+        // G67 (vc52 Phase 11): the Reconnect card fires the workspace-reconnect-request
+        // then retries the connection (the bridge succeeds against the reconnected workspace).
+        onReconnectWorkspace = {
+            val key = endpoint?.workspaceIdentity ?: endpoint?.workspacePath
+            if (!key.isNullOrBlank()) {
+                ccScope.launch {
+                    val ok = runCatching { container.hub.reconnectWorkspace(key) }.getOrDefault(false)
+                    container.log.info("nav.reconnectWorkspace", "success=$ok")
+                    if (ok) container.hub.retry()
+                }
+            }
+        },
         onBack = onBack,
         updateState = updateState,
         downloadState = downloadState,

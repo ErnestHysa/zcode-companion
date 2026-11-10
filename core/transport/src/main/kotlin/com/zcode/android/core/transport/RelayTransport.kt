@@ -1605,6 +1605,33 @@ class RelayTransport(
         )
     }
 
+    /** G67 reconnect-response envelope fields. */
+    data class WorkspaceReconnectResult(val success: Boolean, val error: String?)
+
+    /**
+     * G67 (vc52 Phase 11): `workspace-reconnect-request {requestId, workspaceKey}` →
+     * `workspace-reconnect-response {requestId, workspaceKey, success, error?}` (the
+     * desktop's respondToWorkspaceReconnectRequest, byte-verified asar `12a2fc93…`).
+     * The Reconnect card's wire half; the caller retries the bridge on success.
+     */
+    suspend fun requestWorkspaceReconnect(workspaceKey: String): WorkspaceReconnectResult {
+        val requestId = nextRequestId()
+        val response = controlRequest(
+            requestId,
+            encodeJson.encodeToString(buildJsonObject {
+                put("zcode_type", JsonPrimitive("workspace-reconnect-request"))
+                put("requestId", JsonPrimitive(requestId))
+                put("workspaceKey", JsonPrimitive(workspaceKey))
+            }),
+            config.controlRequestTimeoutMs,
+        )
+        val success = (response["success"] as? JsonPrimitive)?.content?.toBooleanStrictOrNull() ?: false
+        return WorkspaceReconnectResult(
+            success = success,
+            error = (response["error"] as? JsonPrimitive)?.content,
+        )
+    }
+
     /**
      * F-BOOTSTRAP-REPLAY: take-and-clear the in-connect bootstrap payload (present
      * only when establish()'s bridge discovery already fetched the full view on THIS
@@ -1738,6 +1765,15 @@ class RelayTransport(
             // verbatim in the error (and the log); never discard it again.
             val reason = (response["reason"] as? JsonPrimitive)?.content ?: "unspecified"
             cBridgeErrors.incrementAndGet()
+            // G67 (vc52 Phase 11): the disconnected-REMOTE face — the desktop's own
+            // error text names it ("The remote workspace … is not connected. Send
+            // /reconnect first"). The phone misreported it as a retrying connection
+            // problem; the typed SESSION error carries the Reconnect remedy instead.
+            val errorText = (response["error"] as? JsonPrimitive)?.content
+            if (ErrorMapping.isRemoteWorkspaceDisconnectedText(errorText)) {
+                bound().warn("bridge.error", "reason=$reason remote-disconnected")
+                throw Failure(ErrorMapping.remoteWorkspaceDisconnected(errorText))
+            }
             bound().warn("bridge.error", "reason=$reason")
             throw Failure(ErrorMapping.bridgeError(reason))
         }

@@ -944,6 +944,8 @@ class MockZCode(
             "bootstrap-request" -> if (consumeScriptedControlError(ws, payload)) return else sendBootstrapResponse(ws, payload.str("requestId"))
             "workspace-list-request" -> if (consumeScriptedControlError(ws, payload)) return else sendWorkspaceListResponse(ws, payload.str("requestId"))
             "workspace-bridge-open" -> if (consumeScriptedControlError(ws, payload)) return else handleBridgeOpen(ws, payload)
+            // G67 (vc52 Phase 11): the reconnect request — the fixture flips the remote-down arm off.
+            "workspace-reconnect-request" -> handleWorkspaceReconnectRequest(payload)
             else -> Unit
         }
     }
@@ -3939,10 +3941,59 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
         })
     }
 
+    /** G67 (vc52 Phase 11): the remote-down fixture — the NEXT bridge-open fails with the typed disconnected error. */
+    @Volatile var remoteDownArmed: Boolean = false
+        private set
+    /** G67: the arm flips OFF after the reconnect request (the reconnect FIXED the workspace). */
+    fun armRemoteDown() {
+        remoteDownArmed = true
+        synchronized(script.bridgeErrorReasons) { script.bridgeErrorReasons.clear() }
+    }
+
+    /** G67 self-test seam: the reconnect-request ledger (requestId → workspaceKey). */
+    val reconnectRequestsLedger = java.util.Collections.synchronizedList(ArrayList<Pair<String, String>>())
+
+    private fun handleWorkspaceReconnectRequest(payload: JsonObject) {
+        val requestId = payload.str("requestId")
+        val workspaceKey = payload.str("workspaceKey")
+        synchronized(reconnectRequestsLedger) { reconnectRequestsLedger.add(requestId to workspaceKey) }
+        // The reconnect FIXES the remote workspace (the fixture's honest face).
+        remoteDownArmed = false
+        sendRaw(
+            RelayFrameCodec.encodeEnvelope(
+                json.encodeToString(JsonObject.serializer(), buildJsonObject {
+                    put("zcode_type", JsonPrimitive("workspace-reconnect-response"))
+                    put("requestId", JsonPrimitive(requestId))
+                    put("workspaceKey", JsonPrimitive(workspaceKey))
+                    put("success", JsonPrimitive(true))
+                })
+            )
+        )
+    }
+
     private fun handleBridgeOpen(ws: okhttp3.WebSocket, payload: JsonObject) {
         val requestId = payload.str("requestId")
         lastBridgeSessionId = payload.str("bridgeSessionId")
         // One-shot error queue (recovery-test driver): pop → verified error shape.
+        // G67 (vc52 Phase 11): the remote-down fixture — the arm makes THIS bridge-open
+        // fail with the desktop's typed disconnected-remote error (the bridge NEVER
+        // succeeds while the arm is up; the reconnect-request flips it off).
+        if (remoteDownArmed) {
+            lastBridgeSessionId = payload.str("bridgeSessionId")
+            lastBridgeWorkspaceKey = payload.str("workspaceKey")
+            scope.launch { events.emit(ServerEvent.BridgeError("workspace-closed")) }
+            sendRaw(
+                RelayFrameCodec.encodeEnvelope(
+                    json.encodeToString(JsonObject.serializer(), buildJsonObject {
+                        put("zcode_type", JsonPrimitive("workspace-bridge-error"))
+                        put("requestId", JsonPrimitive(requestId))
+                        put("reason", JsonPrimitive("workspace-closed"))
+                        put("error", JsonPrimitive("The remote workspace is not connected. Send /reconnect first, then try again."))
+                    })
+                )
+            )
+            return
+        }
         val forcedReason = synchronized(script.bridgeErrorReasons) { script.bridgeErrorReasons.removeFirstOrNull() }
         lastBridgeSessionId = payload.str("bridgeSessionId")
         lastBridgeWorkspaceKey = payload.str("workspaceKey")

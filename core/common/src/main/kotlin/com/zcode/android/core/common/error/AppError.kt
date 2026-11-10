@@ -33,6 +33,8 @@ data class AppError(
 enum class UserMessageKey {
     CONNECTION_LOST_RECONNECTING,
     SESSION_TAKEN_OVER,
+    /** G67 (vc52 Phase 11): the bridged REMOTE workspace is disconnected — Reconnect is the remedy. */
+    REMOTE_WORKSPACE_DISCONNECTED,
     DESKTOP_UNREACHABLE,
     PAIRING_EXPIRED,
     WORKSPACE_CLOSED,

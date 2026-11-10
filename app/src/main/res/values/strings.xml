@@ -28,6 +28,9 @@
     <string name="conn_last_refreshed">Last refreshed %1$s</string>
     <string name="conn_takeover_title">Another ZCode Remote page took over this connection</string>
     <string name="conn_takeover_body">Only one phone can be connected at a time. Reconnect to take over.</string>
+    <string name="conn_remote_disconnected_title">This remote workspace is disconnected</string>
+    <string name="conn_remote_disconnected_body">The workspace runs over SSH/WSL/Docker and is not connected right now. Reconnect it, then retry.</string>
+    <string name="conn_remote_reconnect_action">Reconnect</string>
     <string name="conn_takeover_reconnect">Reconnect</string>
     <string name="conn_takeover_dismiss">Dismiss</string>
     <string name="conn_states_title">Connection states</string>

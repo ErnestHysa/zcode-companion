@@ -54,6 +54,8 @@ fun ConnectionCenterScreen(
     lastRefreshAtMs: Long?,
     onRetry: () -> Unit,
     onDismissError: () -> Unit,
+    /** G67 (vc52 Phase 11): the Reconnect card's wire face (fires workspace-reconnect-request + retries). */
+    onReconnectWorkspace: () -> Unit = {},
     onBack: () -> Unit,
     updateState: com.zcode.android.app.update.UpdateCheckState? = null,
     downloadState: com.zcode.android.app.update.DownloadState? = null,
@@ -289,6 +291,39 @@ fun ConnectionCenterScreen(
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         TextButton(onClick = { onRetry(); onDismissError() }) { Text(stringResource(R.string.conn_takeover_reconnect)) }
+                        TextButton(onClick = onDismissError) { Text(stringResource(R.string.conn_takeover_dismiss)) }
+                    }
+                }
+            } else if (lastError != null &&
+                lastError.messageKey == com.zcode.android.core.common.error.UserMessageKey.REMOTE_WORKSPACE_DISCONNECTED
+            ) {
+                // G67 (vc52 Phase 11): the disconnected-REMOTE card — the recorded defect
+                // face misreported this as a retrying connection problem; the typed card
+                // carries the Reconnect remedy (workspace-reconnect-request → retry).
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.medium)
+                        .padding(14.dp)
+                        .testTag("connection_remote_reconnect"),
+                ) {
+                    Text(
+                        stringResource(R.string.conn_remote_disconnected_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        stringResource(R.string.conn_remote_disconnected_body),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(
+                            onClick = { onReconnectWorkspace(); onDismissError() },
+                            modifier = Modifier.testTag("connection_reconnect_workspace"),
+                        ) { Text(stringResource(R.string.conn_remote_reconnect_action)) }
                         TextButton(onClick = onDismissError) { Text(stringResource(R.string.conn_takeover_dismiss)) }
                     }
                 }

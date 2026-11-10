@@ -67,6 +67,7 @@
     <!-- C5-i18n: §33 用户消息词汇表 -->
     <string name="err_msg_connection_lost_reconnecting">连接已断开 — 正在重新连接…</string>
     <string name="err_msg_session_taken_over">另一个 ZCode Remote 页面接管了此连接</string>
+    <string name="err_msg_remote_workspace_disconnected">此远程工作区已断开连接——请先重连，然后重试</string>
     <string name="err_msg_desktop_unreachable">无法连接桌面端 — 请唤醒 Mac 并重新启动 ZCode</string>
     <string name="err_msg_pairing_expired">配对已过期 — 请重新扫描二维码</string>
     <string name="err_msg_workspace_closed">此工作区已在桌面端关闭</string>

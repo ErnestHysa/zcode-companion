@@ -321,6 +321,31 @@ object ErrorMapping {
      *    relay-unavailable           → TRANSPORT (retryable).
      *  - anything else               → PROTOCOL (surface, never guess).
      */
+    /**
+     * G67 (vc52 Phase 11): the disconnected-REMOTE-workspace face of a bridge error.
+     * The desktop's own copy names it ("The remote workspace {path} is not connected.
+     * Send /reconnect first…") — the phone previously misreported it as a retrying
+     * connection problem. SESSION-class: the auto-recovery loop must NOT mask it; the
+     * remedy is the typed Reconnect (workspace-reconnect-request → retry the bridge).
+     */
+    fun remoteWorkspaceDisconnected(errorText: String?, correlation: Correlation = Correlation()) = AppError(
+        category = ErrorCategory.SESSION,
+        userMessage = "This remote workspace is disconnected — reconnect it, then retry",
+        messageKey = UserMessageKey.REMOTE_WORKSPACE_DISCONNECTED,
+        developerDiagnostic = "workspace-bridge-error: remote-disconnected (errorText=" + (errorText?.take(120) ?: "") + ")",
+        retryable = AppError.Retryable.USER,
+        recoverable = true,
+        autoRecovery = RecoveryAction.RECONCILE,
+        correlation = correlation,
+    )
+
+    /** G67: the desktop's disconnected-remote vocabulary, matched on the bridge error TEXT. */
+    fun isRemoteWorkspaceDisconnectedText(errorText: String?): Boolean {
+        if (errorText == null) return false
+        val lower = errorText.lowercase()
+        return "not connected" in lower && ("reconnect" in lower || "send /reconnect" in lower)
+    }
+
     fun bridgeError(reason: String, correlation: Correlation = Correlation()) = AppError(
         category = when (reason) {
             "session-conflict" -> ErrorCategory.SESSION
