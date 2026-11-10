@@ -535,6 +535,17 @@ fun main() {
     if (System.getenv("MOCK_CUA") != null) {
         armCuaRigForTest(mock)
     }
+    // G48+G51 (vc52 Phase 11): MOCK_ENFORCE_RUN_DELTAS=1 arms the capability-enforcing
+    // workflowRun delta stream — a scripted workflowRun.updated (run patch + actor/node
+    // step graph) at MOCK_RUN_DELTA_MS (default 4000) and a workflowRun.removed at
+    // MOCK_RUN_REMOVE_MS (default 14000), streamed ONLY when the client's clientHello
+    // declared capabilities.workflowRunDeltas === true (the shipped desktop's gate).
+    if (System.getenv("MOCK_ENFORCE_RUN_DELTAS") != null) {
+        mock.script.enforceWorkflowRunDeltas = true
+        System.getenv("MOCK_RUN_DELTA_MS")?.toLongOrNull()?.let { mock.script.runDeltaUpdateMs = it }
+        System.getenv("MOCK_RUN_REMOVE_MS")?.toLongOrNull()?.let { mock.script.runDeltaRemoveMs = it }
+        armWorkflowRunDeltasForTest(mock)
+    }
     // G32 (vc51 Phase 4): MOCK_GIT=1 scripts the git-channel read legs so the Git pane
     // reaches the branch sheet — the summary (main, clean, dirty) feeds the header row
     // and the branch list (main + feature/rig) feeds the switch/create sheet.
@@ -866,6 +877,31 @@ internal fun launcherTarget(env: (String) -> String?, passHash: String, sid: Str
  * listTasks upsert refreshes the projection row in place instead of duplicating it.
  */
 /** G30 (vc51 Phase 4B): the bots-viewer seed — shared by the relay arming and the self-test. */
+/**
+ * G48+G51 (vc52 Phase 11): the enforcing-mock schedule — one daemon thread pushes the
+ * scripted workflowRun.updated then workflowRun.removed at the armed delays. The GATE
+ * itself is evaluated at PUSH time (workflowRunDeltasDeclared) so a client that never
+ * declared the capability is counted suppressed, never streamed.
+ */
+fun armWorkflowRunDeltasForTest(mock: MockZCode) {
+    val updateMs = mock.script.runDeltaUpdateMs
+    val removeMs = mock.script.runDeltaRemoveMs
+    val thread = Thread {
+        try {
+            Thread.sleep(updateMs)
+            mock.pushWorkflowRunUpdatedForTest()
+            val gap = (removeMs - updateMs).coerceAtLeast(500L)
+            Thread.sleep(gap)
+            mock.pushWorkflowRunRemovedForTest()
+        } catch (_: InterruptedException) {
+            // relay shutdown — the schedule dies with the process
+        }
+    }
+    thread.isDaemon = true
+    thread.name = "mock-workflow-run-deltas"
+    thread.start()
+}
+
 fun armCuaRigForTest(mock: MockZCode) {
     val png = java.util.Base64.getEncoder().encodeToString(
         java.util.Base64.getDecoder().decode(

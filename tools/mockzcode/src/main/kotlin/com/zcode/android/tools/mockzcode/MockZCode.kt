@@ -419,6 +419,13 @@ class MockZCode(
         /** snoozeInteractionAutoResolution arrived — the live arm flips to snoozed. */
         @Volatile var autoResolutionSnoozed: Boolean = false
 
+        // ---------------- G48+G51 (vc52 Phase 11) the enforcing capability gate ----------------
+        /** MOCK_ENFORCE_RUN_DELTAS: stream workflowRun deltas ONLY to clients that declared the bit. */
+        @Volatile var enforceWorkflowRunDeltas: Boolean = false
+        /** Scheduled workflowRun.updated/removed push delays (ms) — the rig's scripted stream. */
+        @Volatile var runDeltaUpdateMs: Long = 4_000L
+        @Volatile var runDeltaRemoveMs: Long = 14_000L
+
         // ---------------- Phase 5A (A3.3 + L6.4) workflows ----------------
         /** `listSavedWorkflows` payload (BJ shape); null = unscripted → typed fault (hub hidden). */
         var savedWorkflows: JsonObject? = null
@@ -1297,6 +1304,81 @@ class MockZCode(
         journalAndEmit(sessionId, ops)
     }
 
+    // ------------------------------------------------------------ G48+G51 (vc52 Phase 11): the enforcing delta gate
+
+    /**
+     * G48+G51: the gate-enforcing workflowRun delta stream. When the
+     * MOCK_ENFORCE_RUN_DELTAS arm is up, the mock streams a scripted
+     * `workflowRun.updated` (run patch + actor/node step graph) and later a
+     * `workflowRun.removed` — but ONLY to a client that DECLARED
+     * `capabilities.workflowRunDeltas === true` in its clientHello (the shipped
+     * desktop's `clientSupportsWorkflowRunDeltas` gate, byte-verified asar
+     * `12a2fc93…`). An undeclaring client is counted as suppressed — the
+     * production-only behavioral delta the old rig could never catch.
+     */
+    private fun workflowRunDeltasDeclared(): Boolean =
+        lastClientHelloCapabilities?.get("workflowRunDeltas")?.let {
+            (it as? JsonPrimitive)?.content?.toBooleanStrictOrNull()
+        } == true
+
+    private fun pushWorkflowRunDelta(sessionId: String, op: JsonObject) {
+        journalAndEmit(sessionId, JsonArray(listOf(op)))
+    }
+
+    /** Scripted `workflowRun.updated` for wf-run-0 (patch + actors + nodes). */
+    fun pushWorkflowRunUpdatedForTest() {
+        if (!script.enforceWorkflowRunDeltas) return
+        if (!workflowRunDeltasDeclared()) {
+            workflowRunDeltasSuppressed++
+            return
+        }
+        workflowRunDeltasSent++
+        val op = buildJsonObject {
+            put("op", JsonPrimitive("workflowRun.updated"))
+            put("runId", JsonPrimitive("wf-run-0"))
+            put("revision", JsonPrimitive(1))
+            put("run", buildJsonObject {
+                put("runId", JsonPrimitive("wf-run-0"))
+                put("status", JsonPrimitive("completed"))
+                put("usage", buildJsonObject {
+                    put("spentTokens", JsonPrimitive(123))
+                    put("nodesUsed", JsonPrimitive(2))
+                })
+                put("lastEventSequence", JsonPrimitive(4))
+            })
+            put("actors", JsonArray(listOf(buildJsonObject {
+                put("siteId", JsonPrimitive("actor-a1"))
+                put("ordinal", JsonPrimitive(0))
+                put("name", JsonPrimitive("lint"))
+                put("status", JsonPrimitive("completed"))
+            })))
+            put("nodes", JsonArray(listOf(buildJsonObject {
+                put("siteId", JsonPrimitive("node-n1"))
+                put("ordinal", JsonPrimitive(0))
+                put("phase", JsonPrimitive("settled"))
+                put("outcome", JsonPrimitive("ok"))
+                put("toolCalls", JsonPrimitive(3))
+            })))
+        }
+        pushWorkflowRunDelta(routingSessionId(), op)
+    }
+
+    /** Scripted `workflowRun.removed` for wf-run-s1. */
+    fun pushWorkflowRunRemovedForTest() {
+        if (!script.enforceWorkflowRunDeltas) return
+        if (!workflowRunDeltasDeclared()) {
+            workflowRunDeltasSuppressed++
+            return
+        }
+        workflowRunDeltasSent++
+        val op = buildJsonObject {
+            put("op", JsonPrimitive("workflowRun.removed"))
+            put("runId", JsonPrimitive("wf-run-s1"))
+            put("revision", JsonPrimitive(2))
+        }
+        pushWorkflowRunDelta(routingSessionId(), op)
+    }
+
     /** Replay-journal bound — the app's own subscriber-buffer order (INV-5, holdBufferMaxOps=500). */
     private val opLogMaxFrames = 512
 
@@ -2016,6 +2098,10 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     // clientHello's clientId; commands with a different clientId are
                     // rejected fault.command.clientMismatch (vc22 field bug).
                     boundClientId = hello.strOrNull("clientId")
+                    // G48 (vc52 Phase 11): record the declared capabilities — the
+                    // workflowRun delta gate reads this (production:
+                    // clientSupportsWorkflowRunDeltas === true only when declared).
+                    lastClientHelloCapabilities = hello["capabilities"] as? JsonObject
                     respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Undefined)
                 }
             }
@@ -4206,6 +4292,23 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
     @Volatile var lastCommandWorkspaceIdentity: String? = null
         private set
     @Volatile var boundClientId: String? = null
+        private set
+    /**
+     * G48 (vc52 Phase 11): the clientHello's `capabilities` object as the mock last
+     * saw it (null = never declared) — the enforcing-mock seam the rig gate reads.
+     */
+    @Volatile var lastClientHelloCapabilities: JsonObject? = null
+        private set
+
+    /** Self-test seam: simulate a clientHello's declared capabilities (returns the set value). */
+    internal fun lastClientHelloCapabilitiesForTest(caps: JsonObject?): JsonObject? {
+        lastClientHelloCapabilities = caps
+        return lastClientHelloCapabilities
+    }
+    /** G48 gate counters: deltas streamed to declared clients / suppressed at the gate. */
+    @Volatile var workflowRunDeltasSent: Long = 0
+        private set
+    @Volatile var workflowRunDeltasSuppressed: Long = 0
         private set
     @Volatile var lastCommandClientId: String? = null
         private set
