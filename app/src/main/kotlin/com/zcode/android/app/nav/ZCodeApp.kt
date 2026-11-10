@@ -199,6 +199,16 @@ fun ZCodeApp(
     val pendingLink by container.notifications.pendingLink.collectAsState()
     // H2.2: launcher shortcuts — routed after the paired gate like deep links.
     val pendingShortcut by container.notifications.pendingShortcut.collectAsState()
+    // N-BI-4 (vc52 Phase 10): a rejected deep link renders the honest copy through
+    // the Snackbar notifier (the StatesDiscipline contract) — never a silent no-op.
+    val rejectedLinks by container.notifications.rejectedLinks.collectAsState()
+    val linkRejectedText = stringResource(com.zcode.android.app.R.string.deeplink_rejected)
+    androidx.compose.runtime.LaunchedEffect(rejectedLinks) {
+        if (rejectedLinks > 0) {
+            notifier.show(linkRejectedText, long = true)
+            container.notifications.consumeRejectedLink()
+        }
+    }
     var createRequested by remember { androidx.compose.runtime.mutableStateOf(false) }
     androidx.compose.runtime.LaunchedEffect(pendingShortcut, paired) {
         val target = pendingShortcut ?: return@LaunchedEffect

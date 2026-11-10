@@ -69,6 +69,15 @@ class NotificationWiring(
     fun offerShortcut(target: AppShortcuts.Target) { pendingShortcutState.value = target }
     fun consumeShortcut() { pendingShortcutState.value = null }
 
+    /** N-BI-4 (vc52 Phase 10): a REJECTED deep link's honest-feedback signal —
+     *  MainActivity offers it at intake; ZCodeApp renders it through the Snackbar
+     *  notifier (the StatesDiscipline contract: no raw Toasts on any screen).
+     *  Data is the count of queued rejections (consecutive bad links stack). */
+    private val rejectedLinksState = kotlinx.coroutines.flow.MutableStateFlow(0)
+    val rejectedLinks: StateFlow<Int> get() = rejectedLinksState
+    fun offerRejectedLink() { rejectedLinksState.value += 1 }
+    fun consumeRejectedLink() { rejectedLinksState.value = 0 }
+
     // ------------------------------------------------------------- collectors
 
     private var started = false

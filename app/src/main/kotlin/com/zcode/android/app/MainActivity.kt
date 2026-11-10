@@ -317,9 +317,9 @@ class MainActivity : FragmentActivity() {
                 "nav.deeplink.rejected",
                 "reason=${verdict.reason} uri=${intent?.data?.toString()?.take(120)}",
             )
-            runCatching {
-                android.widget.Toast.makeText(this, R.string.deeplink_rejected, android.widget.Toast.LENGTH_LONG).show()
-            }
+            // Honest feedback rides the app's notification seam; ZCodeApp renders it
+            // through the Snackbar notifier (the StatesDiscipline contract: no Toasts).
+            container.notifications.offerRejectedLink()
             return
         }
         when (val candidate = com.zcode.android.app.notifications.DeepLinks.intake(intent)) {
