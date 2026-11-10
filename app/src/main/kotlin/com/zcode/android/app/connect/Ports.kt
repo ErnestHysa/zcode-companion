@@ -415,7 +415,8 @@ class DefaultConversationPort(
             is com.zcode.android.data.session.CommandCoordinator.Outcome.Stale -> ConversationPort.SendOutcome.STALE
             is com.zcode.android.data.session.CommandCoordinator.Outcome.Failed -> ConversationPort.SendOutcome.FAILED
             is com.zcode.android.data.session.CommandCoordinator.Outcome.UnknownKept -> ConversationPort.SendOutcome.UNKNOWN_KEPT
-            is com.zcode.android.data.session.CommandCoordinator.Outcome.MissingBaseRevision -> ConversationPort.SendOutcome.FAILED
+            // N-BD-3: MissingBaseRevision = the LOCAL projection gate (no wire sent).
+            is com.zcode.android.data.session.CommandCoordinator.Outcome.MissingBaseRevision -> ConversationPort.SendOutcome.NOT_READY
         }
     }
 
@@ -658,7 +659,8 @@ class DefaultConversationPort(
             is com.zcode.android.data.session.CommandCoordinator.Outcome.Stale -> ConversationPort.SendOutcome.STALE
             is com.zcode.android.data.session.CommandCoordinator.Outcome.Failed -> ConversationPort.SendOutcome.FAILED
             is com.zcode.android.data.session.CommandCoordinator.Outcome.UnknownKept -> ConversationPort.SendOutcome.UNKNOWN_KEPT
-            is com.zcode.android.data.session.CommandCoordinator.Outcome.MissingBaseRevision -> ConversationPort.SendOutcome.FAILED
+            // N-BD-3: MissingBaseRevision = the LOCAL projection gate (no wire sent).
+            is com.zcode.android.data.session.CommandCoordinator.Outcome.MissingBaseRevision -> ConversationPort.SendOutcome.NOT_READY
         }
 
     override suspend fun answerInteraction(

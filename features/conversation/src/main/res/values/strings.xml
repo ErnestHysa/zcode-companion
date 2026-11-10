@@ -261,6 +261,8 @@
     <string name="notice_hook_trust_applied">Trusted %1$s hook(s) — the session continues.</string>
     <string name="notice_retry_refused">The desktop refused the retry — nothing changed.</string>
     <string name="notice_fork_refused">Could not fork the conversation — the desktop refused it.</string>
+<string name="notice_row_action_local_gate">Still syncing — the action wasn\'t sent. Try again in a moment.</string>
+<string name="notice_fork_local_gate">The conversation state isn\'t ready to fork yet — try again in a moment.</string>
     <string name="notice_rewind_applied">File changes from that turn were undone.</string>
     <string name="notice_rewind_refused">The file undo request failed — nothing was changed.</string>
     <string name="notice_feedback_refused">The desktop refused the feedback — nothing changed.</string>

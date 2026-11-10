@@ -108,6 +108,8 @@ data class SendNotice(
         COMPACT_REFUSED, GOAL_REFUSED, GOAL_RESUME_REFUSED, GOAL_PAUSE_REFUSED,
         // Phase 4A row actions
         ROW_ACTION_OFFLINE, RETRY_REFUSED, FORK_REFUSED, REWIND_APPLIED, REWIND_REFUSED, FEEDBACK_REFUSED,
+        // N-BD-3 (vc52 Phase 10): the LOCAL-gate verdicts (no wire was sent).
+        ROW_ACTION_LOCAL_GATE, FORK_LOCAL_GATE,
         // Phase 5A (L6.4 + I1): saved workflows
         WORKFLOW_STARTED, WORKFLOW_REFUSED,
         // T2: the §20-3 resolved-elsewhere answer — typed, never a silent no-op
@@ -529,6 +531,14 @@ class ConversationViewModel(
                     "Send outcome unknown (connection lost). Retry from the pending list — it will not be duplicated.",
                     SendNotice.Kind.WARNING,
                 )
+            // N-BD-3: the enum-wide exhaustiveness arm — sendText's coordinator path
+            // never produces a local gate, but if one ever did, the honest copy is
+            // "try again", never a desktop refusal.
+            ConversationPort.SendOutcome.NOT_READY ->
+                _sendNotice.value = SendNotice(
+                    "Still syncing — the message wasn't sent. Try again in a moment.",
+                    SendNotice.Kind.WARNING,
+                )
         }
     }
 
@@ -920,7 +930,15 @@ class ConversationViewModel(
                 _forkedSession.value = result.childSessionId
                 return@launch
             }
-            rowActionNotice(result.outcome, refusedText = "Could not fork the conversation — the desktop refused it.", refusedKey = SendNotice.Key.FORK_REFUSED)
+            rowActionNotice(
+                result.outcome,
+                refusedText = "Could not fork the conversation — the desktop refused it.",
+                refusedKey = SendNotice.Key.FORK_REFUSED,
+                // N-BD-3: the recorded face — a locally-gated fork said "the desktop
+                // refused it" although NO wire was sent (ConversationViewModel.kt:917).
+                localGateText = "The conversation state isn't ready to fork yet — try again in a moment.",
+                localGateKey = SendNotice.Key.FORK_LOCAL_GATE,
+            )
         }
     }
 
@@ -1020,11 +1038,21 @@ class ConversationViewModel(
         }
     }
 
-    private fun rowActionNotice(outcome: ConversationPort.SendOutcome, refusedText: String, refusedKey: SendNotice.Key) {
+    private fun rowActionNotice(
+        outcome: ConversationPort.SendOutcome,
+        refusedText: String,
+        refusedKey: SendNotice.Key,
+        localGateText: String = "Still syncing — the action wasn't sent. Try again in a moment.",
+        localGateKey: SendNotice.Key = SendNotice.Key.ROW_ACTION_LOCAL_GATE,
+    ) {
         when (outcome) {
             ConversationPort.SendOutcome.ACCEPTED -> Unit
             ConversationPort.SendOutcome.BLOCKED_OFFLINE ->
                 _sendNotice.value = SendNotice("Offline — the action was not sent. Nothing changed.", SendNotice.Kind.WARNING, SendNotice.Key.ROW_ACTION_OFFLINE)
+            // N-BD-3: a LOCAL gate (projection not ready) — no wire ever left, so the
+            // honest copy is "try again", never "the desktop refused".
+            ConversationPort.SendOutcome.NOT_READY ->
+                _sendNotice.value = SendNotice(localGateText, SendNotice.Kind.WARNING, localGateKey)
             ConversationPort.SendOutcome.STALE ->
                 _sendNotice.value = SendNotice("The session changed on the desktop — try again.", SendNotice.Kind.WARNING, SendNotice.Key.SESSION_CHANGED)
             else -> _sendNotice.value = SendNotice(refusedText, SendNotice.Kind.ERROR, refusedKey)

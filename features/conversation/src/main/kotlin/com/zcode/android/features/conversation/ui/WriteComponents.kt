@@ -1577,6 +1577,9 @@ fun sendNoticeText(notice: SendNotice): String {
         SendNotice.Key.ROW_ACTION_OFFLINE -> R.string.notice_row_action_offline
         SendNotice.Key.RETRY_REFUSED -> R.string.notice_retry_refused
         SendNotice.Key.FORK_REFUSED -> R.string.notice_fork_refused
+        // N-BD-3: the LOCAL-gate verdicts (no wire was sent — never "refused").
+        SendNotice.Key.ROW_ACTION_LOCAL_GATE -> R.string.notice_row_action_local_gate
+        SendNotice.Key.FORK_LOCAL_GATE -> R.string.notice_fork_local_gate
         SendNotice.Key.REWIND_APPLIED -> R.string.notice_rewind_applied
         SendNotice.Key.REWIND_REFUSED -> R.string.notice_rewind_refused
         SendNotice.Key.FEEDBACK_REFUSED -> R.string.notice_feedback_refused

@@ -112,4 +112,47 @@ class RowActionsRoutingTest {
         assertNotNull(vm.state.value.sendNotice)
         assertTrue(vm.state.value.sendNotice!!.kind == SendNotice.Kind.WARNING)
     }
+
+    // ---------------------------------------------------------------- N-BD-3
+
+    /**
+     * N-BD-3 (vc52 Phase 10): a locally-gated fork (the projection not ready —
+     * MissingBaseRevision, NO wire sent) said "the desktop refused it". The local
+     * gate is now its OWN outcome + typed notice; the desktop refusal keeps the
+     * refusal copy.
+     */
+    @Test
+    fun `N-BD-3 - a locally-gated fork renders the LOCAL-GATE notice, never the refusal`() = runTest {
+        val port = RowPort().apply { outcome = ConversationPort.SendOutcome.NOT_READY }
+        val vm = ConversationViewModel(port, backgroundScope, "s")
+        vm.forkAssistant(rowId = 2, entityId = "ent-2")
+        runCurrent()
+        val notice = assertNotNull(vm.state.value.sendNotice)
+        assertEquals(SendNotice.Key.FORK_LOCAL_GATE, notice.key)
+        assertEquals(SendNotice.Kind.WARNING, notice.kind, "a local gate is a warning, not a desktop refusal")
+        assertTrue(!notice.text.contains("refused"), "the local-gate copy must never blame the desktop: ${notice.text}")
+        assertTrue(notice.text.contains("try again"), notice.text)
+    }
+
+    @Test
+    fun `N-BD-3 - a genuine desktop fork refusal KEEPS the refusal copy`() = runTest {
+        val port = RowPort().apply { outcome = ConversationPort.SendOutcome.FAILED }
+        val vm = ConversationViewModel(port, backgroundScope, "s")
+        vm.forkAssistant(rowId = 2, entityId = "ent-2")
+        runCurrent()
+        val notice = assertNotNull(vm.state.value.sendNotice)
+        assertEquals(SendNotice.Key.FORK_REFUSED, notice.key)
+        assertEquals(SendNotice.Kind.ERROR, notice.kind)
+    }
+
+    @Test
+    fun `N-BD-3 - other row actions carry the shared local-gate notice`() = runTest {
+        val port = RowPort().apply { outcome = ConversationPort.SendOutcome.NOT_READY }
+        val vm = ConversationViewModel(port, backgroundScope, "s")
+        vm.retryTurn(1, "e")
+        vm.setAssistantFeedback(3, "ent-3", "like")
+        runCurrent()
+        assertEquals(SendNotice.Key.ROW_ACTION_LOCAL_GATE, vm.state.value.sendNotice?.key)
+        assertTrue(vm.state.value.sendNotice!!.kind == SendNotice.Kind.WARNING)
+    }
 }

@@ -140,7 +140,16 @@ interface ConversationPort {
      */
     suspend fun fetchQuotaEntitlement(): com.zcode.android.domain.model.UsageEntitlement? = null
 
-    enum class SendOutcome { ACCEPTED, BLOCKED_OFFLINE, STALE, FAILED, UNKNOWN_KEPT }
+    enum class SendOutcome {
+        ACCEPTED, BLOCKED_OFFLINE, STALE, FAILED, UNKNOWN_KEPT,
+        /**
+         * N-BD-3 (vc52 Phase 10): a LOCAL gate stopped the action BEFORE any wire —
+         * the projection state (revision/epoch) was not ready yet. Honest copy
+         * contract: this must NEVER render as "the desktop refused" (no desktop
+         * ever saw it). Maps CommandCoordinator.Outcome.MissingBaseRevision.
+         */
+        NOT_READY,
+    }
 
     /** Truthful pending state (§14.2 overlay; in-memory, reconciled by the ViewModel). */
     fun observePendingSends(taskId: String): Flow<List<PendingSendView>>

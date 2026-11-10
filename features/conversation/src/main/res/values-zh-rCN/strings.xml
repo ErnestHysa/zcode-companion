@@ -232,6 +232,8 @@
     <string name="notice_row_action_offline">离线 — 操作未发送，没有任何更改。</string>
     <string name="notice_retry_refused">桌面端拒绝了重试 — 没有任何更改。</string>
     <string name="notice_fork_refused">无法分叉对话 — 桌面端拒绝了该操作。</string>
+<string name="notice_row_action_local_gate">仍在同步 — 操作未发送，请稍后重试。</string>
+<string name="notice_fork_local_gate">对话状态尚未就绪，暂时无法分叉 — 请稍后重试。</string>
     <string name="notice_rewind_applied">已撤销该轮的文件更改。</string>
     <string name="notice_rewind_refused">撤销文件请求失败 — 没有任何更改。</string>
     <string name="notice_feedback_refused">桌面端拒绝了反馈 — 没有任何更改。</string>
