@@ -398,7 +398,17 @@ fun ZCodeApp(
         }
 
         composable(Routes.FILES) {
-            FilesRoute(container = container, onBack = { nav.popBackStack() })
+            FilesRoute(
+                container = container,
+                onBack = { nav.popBackStack() },
+                // G78: the comment's task = the conversation entry BENEATH the Files
+                // entry — the caller owns the back-stack, so it provides the id.
+                commentTaskId = {
+                    nav.currentBackStack.value.lastOrNull { entry ->
+                        entry.destination.route == Routes.CONVERSATION
+                    }?.arguments?.getString("taskId")
+                },
+            )
         }
         composable(Routes.GIT) {
             GitRoute(container = container, onBack = { nav.popBackStack() })
@@ -670,6 +680,20 @@ private fun ConversationRoute(
     onOpenQuotaScreen: () -> Unit = {},
 ) {
     val state by vm.state.collectAsState()
+    // G78 (vc52 Phase 11): the pending Files line comment lands in the composer
+    // exactly once (the desktop's codeViewer.comment contract — the quoted file/line
+    // context rides the next message; never an auto-send).
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        val pending = container.pendingLineComment.value ?: return@LaunchedEffect
+        container.pendingLineComment.value = null
+        val sessionId = state.task?.taskId
+        if (sessionId == null || pending.taskId == sessionId) {
+            vm.prefillDraft(pending.quoted)
+            container.log.info("nav.lineComment", "prefilled task=${pending.taskId.take(12)}")
+        } else {
+            container.log.warn("nav.lineComment", "stale comment for task=${pending.taskId.take(12)} — dropped")
+        }
+    }
     // G4/AC6 (vc51): the local default interaction behavior seeds the composer's
     // follow-up steering while the session's wire followupMode is unset.
     val prefs by container.stores.preferencesRepository.observe()
@@ -937,8 +961,14 @@ private fun ConversationRoute(
 }
 
 @Composable
-private fun FilesRoute(container: AppContainer, onBack: () -> Unit) {
+private fun FilesRoute(
+    container: AppContainer,
+    onBack: () -> Unit,
+    /** G78: the conversation task the comment lands in (null = the comment drops). */
+    commentTaskId: () -> String? = { null },
+) {
     val topBarScroll = com.zcode.android.core.ui.components.rememberZCodeTopBarScroll()
+    val filesScope = androidx.compose.runtime.rememberCoroutineScope()
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
@@ -951,7 +981,26 @@ private fun FilesRoute(container: AppContainer, onBack: () -> Unit) {
             )
         },
     ) { inner ->
-        com.zcode.android.features.files.ui.FilesScreen(port = container.filesPort, modifier = Modifier.fillMaxSize().padding(inner))
+        // G78 (vc52 Phase 11): the line comment lands as the QUOTED file/line context
+        // in the ACTIVE conversation's composer (the prefill plane); the user's Send
+        // makes it the chat message (never an auto-send — the draft contract).
+        com.zcode.android.features.files.ui.FilesScreen(
+            port = container.filesPort,
+            modifier = Modifier.fillMaxSize().padding(inner),
+            onLineComment = { path, line, comment ->
+                val taskId = commentTaskId().orEmpty()
+                if (taskId.isNotBlank()) {
+                    container.pendingLineComment.value = AppContainer.LineComment(
+                        taskId = taskId,
+                        quoted = "Comment on `$path:$line`:\n\n> $comment\n\n",
+                    )
+                    container.log.info("nav.lineComment", "task=${taskId.take(12)} path=$path line=$line")
+                    onBack()
+                } else {
+                    container.log.warn("nav.lineComment", "no conversation beneath Files — the comment was dropped")
+                }
+            },
+        )
     }
 }
 

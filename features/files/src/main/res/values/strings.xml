@@ -8,6 +8,10 @@
     <string name="files_load_more">Load more (%1$d/%2$d)</string>
     <string name="files_dialog_title">File</string>
     <string name="files_ok">OK</string>
+    <string name="files_line_comment_title">Comment on line %1$d</string>
+    <string name="files_line_comment_placeholder">Ask about these lines…</string>
+    <string name="files_line_comment_send">Send to conversation</string>
+    <string name="files_line_comment_cancel">Cancel</string>
     <!-- GAP-15: file-kind a11y labels. -->
     <string name="file_kind_folder">Folder</string>
     <string name="file_kind_image">Image</string>

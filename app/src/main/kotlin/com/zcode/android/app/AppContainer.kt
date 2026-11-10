@@ -348,6 +348,15 @@ class AppContainer(context: Context) {
      * connection phase) plus the §24.7 deep-link intake. Channels are created at
      * first run here (§24.2); the FGS/worker hooks bind the app identity.
      */
+    /**
+     * G78 (vc52 Phase 11): the pending code-viewer line comment — the Files screen
+     * offers it, the conversation route consumes it (prefillDraft on entry) and
+     * clears it exactly once. One-slot hand-off (the PendingDeepLink pattern).
+     */
+    val pendingLineComment = kotlinx.coroutines.flow.MutableStateFlow<LineComment?>(null)
+
+    data class LineComment(val taskId: String, val quoted: String)
+
     val notifications: NotificationWiring = NotificationWiring(
         stores = stores,
         broker = stores.notificationBroker,

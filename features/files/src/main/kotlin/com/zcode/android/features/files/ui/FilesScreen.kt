@@ -1,12 +1,15 @@
 package com.zcode.android.features.files.ui
 
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import com.zcode.android.features.files.R
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -57,6 +61,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 fun FilesScreen(
     port: FilesPort,
     modifier: Modifier = Modifier,
+    /**
+     * G78 (vc52 Phase 11): the code-viewer line comment — the desktop's review flow
+     * (codeViewer.comment.*): long-press a line → comment → submit INTO the
+     * conversation with the file/line context. The phone slice lands the quoted
+     * context in the composer (the prefill plane); the USER's Send makes it a
+     * chat message (never an auto-send).
+     */
+    onLineComment: (path: String, line: Int, comment: String) -> Unit = { _, _, _ -> },
 ) {
     val scope = rememberCoroutineScope()
     val binaryNotice = stringResource(R.string.files_binary_use_download)
@@ -76,6 +88,8 @@ fun FilesScreen(
     var downloadState by remember { mutableStateOf<DownloadUi?>(null) }
     // I3: image preview bytes for the open entry (null = not an image / loading).
     var imageBytes by remember { mutableStateOf<ByteArray?>(null) }
+    // G78: the long-press line-comment dialog (path + the 1-based line + the text).
+    var commentTarget by remember { mutableStateOf<Pair<String, Int>?>(null) }
 
     fun currentPath(): String = stack.lastOrNull() ?: root.orEmpty()
 
@@ -339,7 +353,18 @@ fun FilesScreen(
                         val firstLine = runningLine
                         runningLine += lines.size
                         for ((i, line) in lines.withIndex()) {
-                            Row(Modifier.fillMaxWidth()) {
+                            // G78: long-press a line → the comment dialog (the desktop's
+                            // codeViewer.comment entry point). The clickable semantics
+                            // merge the row; the tag names the ABSOLUTE line.
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .combinedClickable(
+                                        onClick = {},
+                                        onLongClick = { commentTarget = (viewer ?: currentPath()) to (firstLine + i + 1) },
+                                    )
+                                    .testTag("files_line_row_${firstLine + i}"),
+                            ) {
                                 Text(
                                     text = (firstLine + i + 1).toString(),
                                     fontFamily = FontFamily.Monospace,
@@ -368,6 +393,52 @@ fun FilesScreen(
                 }
             }
         }
+    }
+
+    // G78: the line-comment dialog (outside the viewer surface — one dialog).
+    commentTarget?.let { (path, line) ->
+        var commentText by remember(commentTarget) { mutableStateOf("") }
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { commentTarget = null },
+            title = { Text(stringResource(R.string.files_line_comment_title, line)) },
+            text = {
+                Column {
+                    Text(
+                        path,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = commentText,
+                        onValueChange = { commentText = it },
+                        placeholder = { Text(stringResource(R.string.files_line_comment_placeholder)) },
+                        modifier = Modifier.fillMaxWidth().testTag("files_comment_field"),
+                    )
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        val text = commentText.trim()
+                        if (text.isNotEmpty()) {
+                            onLineComment(path, line, text)
+                            commentTarget = null
+                        }
+                    },
+                    enabled = commentText.isNotBlank(),
+                    modifier = Modifier.testTag("files_comment_send"),
+                ) { Text(stringResource(R.string.files_line_comment_send)) }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { commentTarget = null }) {
+                    Text(stringResource(R.string.files_line_comment_cancel))
+                }
+            },
+            modifier = Modifier.testTag("files_comment_dialog"),
+        )
     }
     }
 
