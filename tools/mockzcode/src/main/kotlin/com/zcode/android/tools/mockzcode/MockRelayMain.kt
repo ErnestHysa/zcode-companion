@@ -593,6 +593,20 @@ fun main() {
             "isGitAvailable" to JsonPrimitive(true),
         ))
     }
+    // G67 (vc52 Phase 11): MOCK_REMOTE_DOWN_MS=N arms the remote-down fixture N ms
+    // after startup — the NEXT bridge-open fails with the typed disconnected-remote
+    // error (the Reconnect card's live face); workspace-reconnect-request flips it.
+    System.getenv("MOCK_REMOTE_DOWN_MS")?.toLongOrNull()?.let { delayMs ->
+        val t = Thread {
+            try {
+                Thread.sleep(delayMs)
+                mock.armRemoteDown()
+            } catch (_: InterruptedException) { }
+        }
+        t.isDaemon = true
+        t.name = "mock-remote-down"
+        t.start()
+    }
     // G64 (vc52 Phase 11): MOCK_CUA_PERMISSION=denied|stale|granted pushes the CUA
     // permission observation through the scoped listen at MOCK_CUA_PERMISSION_MS
     // (default 3000) — the typed card renders unless the payload is granted.
