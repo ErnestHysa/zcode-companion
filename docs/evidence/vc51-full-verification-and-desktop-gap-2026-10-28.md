@@ -10780,7 +10780,7 @@ These are **new defects in the same plane**, not failed fixes. Treat them as suc
 | 7 | Interaction & settings truth | 6 | 0 | 3 | 2 | 1 | High | ☑ **Done 2026-11-09** — all 6 rows + RIG-P1 (pulled forward); commits `ff914e46`→`9a1f23dd`; exit gate PASSED; receipt "Phase 7 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-09" appended at file end |
 | 8 | Lifecycle, reconnect & availability | 7 | 0 | 5 | 2 | 0 | High | ☑ **Done 2026-11-09** — all 7 rows (F-33-A+F-33-B/C folded, F-34-A/B/C/D/E/F + F-33-G folded into F-34-E); commits `580b3911`→`a7fe2bff` (11, incl. 2 rig-caught fixes); exit gate PASSED; receipt "Phase 8 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-09" appended at file end |
 | 9 | Timeline & composer geometry | 10 | 0 | 0 | 6 | 4 | Medium | ☑ **Done 2026-11-09** — all 10 rows; commits `ca392ca4`→`6f0c9bce` (13, incl. the on-device popup-anchor fix + the batch-coupled pin update); exit gate PASSED; receipt "Phase 9 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-09" appended at file end |
-| 10 | Conversation data, rendering & feedback | 10 | 0 | 1 | 2 | 7 | Medium | ☐ Open |
+| 10 | Conversation data, rendering & feedback | 10 | 0 | 1 | 2 | 7 | Medium | ☑ **Done 2026-11-10** — all 10 rows (GAP-21-A carries G65's trigger wiring; F-37-D carried by RIG-P3; N-BE-2/N-BH-2 one row-pair; N-BI-1/N-BI-2 one row-pair; N-BI-3/4/5 one row-triple; N-BD-3/N-BC-2/N-BE-4/N-BE-1 one row-quad); commits `859f8533`→`5598d45b`+`aae1c334`+…; exit gate PASSED; receipt "Phase 10 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-10" appended at file end |
 | 11 | Parity: protocol & execution planes | 11 | 0 | 0 | 9 | 2 | High | ☐ Open |
 | 12 | Parity: authoring & management planes | 14 | 0 | 0 | 3 | 11 | Medium | ☐ Open |
 | 13 | Parity: form factor, updates & polish | 13 | 0 | 0 | 0 | 13 | Low | ☐ Open |
@@ -11227,7 +11227,7 @@ N-BI-3/N-BI-4/N-BI-5 → N-BD-3/N-BC-2/N-BE-4/N-BE-1.**
 
 ### Sub-phase 10A — input parity
 
-- [ ] **GAP-21-A (P3) — the first-token @-mention is dead.**
+- [x] **GAP-21-A (P3) — the first-token @-mention is dead.**
   Typing `@re` as the first token fires zero `file.searchWorkspaceFiles` wires and renders no
   panel (11 repros); mid-text `x @re` works (2 calls, panel renders). The tokenizer uses
   `substringAfterLast(' ', missing = ???)` wrongly at `WriteComponents.kt:796`. **Fix:**
@@ -11237,7 +11237,7 @@ N-BI-3/N-BI-4/N-BI-5 → N-BD-3/N-BC-2/N-BE-4/N-BE-1.**
   **Accept:** first-token `@re` fires the wire and renders the README hit; mid-text still works;
   the 12th repro is gone; a compose pin at both positions.
 
-- [ ] **N-BE-3 (P4) — no hardware-keyboard send.**
+- [x] **N-BE-3 (P4) — no hardware-keyboard send.**
   The IME Send action works, but a hardware keyboard's Enter inserts a newline and there is no
   Ctrl/Cmd+Enter, so a DeX/tablet/Chromebook user cannot send. **Fix:** add the desktop's
   `composerSend` binding (Ctrl/Cmd+Enter) while keeping Enter as newline. **Accept:** a hardware
@@ -11245,7 +11245,7 @@ N-BI-3/N-BI-4/N-BI-5 → N-BD-3/N-BC-2/N-BE-4/N-BE-1.**
 
 ### Sub-phase 10B — paging and the watchdog
 
-- [ ] **F-37-D (P2) — load-earlier is a self-evicting no-op.**
+- [x] **F-37-D (P2) — load-earlier is a self-evicting no-op.**
   `Ports.loadOlder` (`:872`) fetches a page before `beforeRowId`, `applyPage` inserts it, and
   `enforceBound` (`ConversationRepositoryImpl.kt:139`) keeps the NEWEST 320
   (`2 × RENDER_WINDOW_ROWS(60) + PAGE_MAX_ROWS(200)`, `ConversationRepository.kt:77-93`) — so the
@@ -11258,7 +11258,7 @@ N-BI-3/N-BI-4/N-BI-5 → N-BD-3/N-BC-2/N-BE-4/N-BE-1.**
   fetched page survives and the count honours the bound; two `loadOlder` calls yield two distinct
   older pages; the 2,001-row live leg pages backwards.
 
-- [ ] **F-37-E (P3) — the stream watchdog re-kicks an idle session forever.**
+- [x] **F-37-E (P3) — the stream watchdog re-kicks an idle session forever.**
   `recovery.streamWatchdog` fires every ~90 s (14 times in one 30-minute idle window), each
   escalating to a RECOVERY frame that alternately re-pulls the full 2,001-row snapshot; the
   4-strike cap (`watchdogMaxStrikes = 4`, RecoveryCoordinator) never engages because each
@@ -11271,7 +11271,7 @@ N-BI-3/N-BI-4/N-BI-5 → N-BD-3/N-BC-2/N-BE-4/N-BE-1.**
 
 ### Sub-phase 10C — persistence and measurement
 
-- [ ] **N-BE-2 / N-BH-2 (P4) — outbox retention and staged attachments across process death.**
+- [x] **N-BE-2 / N-BH-2 (P4) — outbox retention and staged attachments across process death.**
   N-BE-2: `OutboxDao` (`Daos.kt:128-147`) has no delete query — terminal rows (ACKED /
   FAILED_STALE / EXPIRED) are kept forever with full payloads (167 rows in 3 days, every prompt's
   text at rest). N-BH-2: after `kill -9` the text draft restores but the staged sketch chip is
@@ -11280,13 +11280,13 @@ N-BI-3/N-BI-4/N-BI-5 → N-BD-3/N-BC-2/N-BE-4/N-BE-1.**
   server-side) or release the upload when the chip cannot be restored. **Accept:** terminal rows
   are purged; the DB carries no prompt text beyond the retention window; a kill -9 → relaunch
   either restores the chip or releases the upload (no silent orphan); real-DB pins for both.
-- [ ] **N-BC-4 (P4) — no `reportFullyDrawn()`.** Add the call after the first task composition
+- [x] **N-BC-4 (P4) — no `reportFullyDrawn()`.** Add the call after the first task composition
   (and note the baseline-profile derivation). **Accept:** logcat shows the fully-drawn line once
   per cold start; no startup regression.
 
 ### Sub-phase 10D — markdown and package size
 
-- [ ] **N-BI-1 / N-BI-2 (P4) — markdown conformance.**
+- [x] **N-BI-1 / N-BI-2 (P4) — markdown conformance.**
   N-BI-1: ordered-list markers use a fixed 18 dp column, so "10." wraps its period onto its own
   line; heading levels are clamped to 3 and H2–H6 all render at one size. N-BI-2: the phone's
   ~340-line parser vs the desktop's **streamdown 2.5.0 + remark-gfm 4.0.1** stack. Verified
@@ -11297,7 +11297,7 @@ N-BI-3/N-BI-4/N-BI-5 → N-BD-3/N-BC-2/N-BE-4/N-BE-1.**
   escapes → image-as-thumbnail → footnotes → autolinks; math/mermaid stay the ledgered desktop-gap
   rows. **Accept:** the 60-construct conformance deck renders every adopted construct; a pin per
   construct; the remaining list is explicitly recorded as desktop-only.
-- [ ] **N-BE-5 (P4) — APK size.** Tink is 34 % of defined methods, three protobuf runtimes ship,
+- [x] **N-BE-5 (P4) — APK size.** Tink is 34 % of defined methods, three protobuf runtimes ship,
   85 library locales, x86/x86_64 native libs and `descriptor.proto` are packaged. **Fix:** audit
   and trim (dependency exclusions / ABI splits / locale filtering), documenting any deliberate
   keep. **Accept:** a measured size delta; no functional regression; the release APK still
@@ -11305,7 +11305,7 @@ N-BI-3/N-BI-4/N-BI-5 → N-BD-3/N-BC-2/N-BE-4/N-BE-1.**
 
 ### Sub-phase 10E — copy and feedback truth
 
-- [ ] **N-BI-3 / N-BI-4 / N-BI-5 (P4) — diagnostics, deep links, notification copy.**
+- [x] **N-BI-3 / N-BI-4 / N-BI-5 (P4) — diagnostics, deep links, notification copy.**
   N-BI-3: at 0 bytes free the export failure toast shows a raw cache path and truncates mid-
   extension → typed copy ("Not enough free storage to export diagnostics"), path kept in the
   diagnostics ring. N-BI-4: malformed `zcode://` links (`task/`, `task/%20`,
@@ -11314,7 +11314,7 @@ N-BI-3/N-BI-4/N-BI-5 → N-BD-3/N-BC-2/N-BE-4/N-BE-1.**
   N-BI-5: the notification-detail subtitle is static while the value cycles Minimal ⇄ Task titles →
   pick the subtitle by level. **Accept:** each shape observed (toast copy; ring line + toast;
   subtitle flips); pins.
-- [ ] **N-BD-3 / N-BC-2 / N-BE-4 / N-BE-1 (P4) — copy, colour and timezone truth.**
+- [x] **N-BD-3 / N-BC-2 / N-BE-4 / N-BE-1 (P4) — copy, colour and timezone truth.**
   N-BD-3: a locally-gated fork refusal says "the desktop refused it" although no wire was sent
   (`ConversationViewModel.kt:917-919`) → distinguish the local gate from a desktop refusal.
   N-BC-2: the automation edit dialog's confirm says "Create" in edit mode
@@ -12126,3 +12126,135 @@ N-BC-1/N-BG-3/N-BC-3; N-BF-1), every pin RED at its pre-fix commit and GREEN aft
 full-suite zero-new-names gate reconciled (+33 = exactly this phase's pins, 0 lost), and
 the exit gate passed on a fresh Android 16 emulator leg across three relay generations
 with 0 FATALs / 0 ANRs.** Nothing pushed; publishing waits on Ernest's explicit word.
+
+---
+
+## Phase 10 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-10 (APPENDED; not part of the audit, the vc51 roadmap, Part 0, or the vc52 roadmap body)
+
+Scope: vc52 Phase 10 — Conversation data, rendering & feedback — ALL ten rows (GAP-21-A carrying
+G65's trigger wiring; N-BE-3; F-37-D with RIG-P3; F-37-E; N-BE-2/N-BH-2; N-BC-4; N-BI-1/N-BI-2;
+N-BE-5; N-BI-3/N-BI-4/N-BI-5; N-BD-3/N-BC-2/N-BE-4/N-BE-1) in roadmap order. Branch `fix/vc52`
+(continuing Phases 6–9); one finding ≥ one commit; every behavioral pin RED at its pre-fix commit
+(stash runs: /tmp/p10/f37d-red.log, /tmp/p10/f37e-red.log, /tmp/p10/nbh2-red.log; new-API pins
+compile-RED by construction); nothing pushed. 21 commits `859f8533`→`5880bf78` (19 fix/test +
+2 tools/mockzcode), all local.
+
+### Fix commits (one finding ≥ one commit, `fix(<ID>): <mechanism>`)
+
+| Row | Commit(s) | Mechanism closed | Pins (RED evidence) |
+| --- | --- | --- | --- |
+| RIG-P3 (fixture, rule 16) | `859f8533` + `fc3c0a0a` (rig-caught) | The mock's rowsRange handler ignored beforeRowId (every call = the newest rows, hasMore=false) and capped its store top at count-1, below the tail-window id base — pages could never continue downward. Now: the rows strictly older than beforeRowId from base..top, clamped at the floor; hasMore while rows remain above the page; MOCK_ROWS_TOTAL/MOCK_ROWS_WINDOW model the recorded 2,001-row receipt shape; MOCK_TURN_RUNNING scripts a non-terminal machine | MockZCodeRowsRangeSelfTest ×8 (the exit-gate page chain before=1682→1632..1681→1582..1631 pinned after the rig caught the base bug); mockzcode 90 self-tests green |
+| GAP-21-A (P3; carries G65's trigger wiring) | `09cabbb5` | The desktop's B7e/V7e trigger pair ported verbatim (MentionTrigger): first-token @, the Han/CJK-punctuation widening, the U7e-H7e Han+dotted invalidation, ¥/￥→$; the composer keys on the DRAFT (the pass-21 re-trigger papercut), allows the EMPTY query (desktop listing parity), retries a miss ONCE with refresh=true (bounded); refresh threaded Port→ViewerTools→V4Plane→Relay/Direct | MentionTriggerTest ×13 + MentionFirstTokenUiTest ×6 asserting PANEL PRESENCE at both positions (the pass-26 adjudication) — RED 5 at the pre-fix commit incl. the recorded dead face (first-token @re = 0 wires, no panel); the mid-text control leg GREEN pre-fix |
+| N-BE-3 (P4) | `1aaba324` | The desktop composerSend binding: one onPreviewKeyEvent on the composer field delegating to handleComposerSendKey — Ctrl/Meta+Enter|NumPadEnter KeyDown dispatches the SAME dispatchSend() as the IME action and consumes; plain Enter, other keys, KeyUp pass through (newline kept, no double-send) | ComposerHardwareSendTest ×6 over real native KeyEvents (new-API compile-RED); LIVE face: `adb shell input keycombination 113 66` → `sendConversationCommandV4 ok in 118ms`, draft consumed |
+| F-37-D (P2) | `a7568fe1` | applyPage no longer evicts: the bound contract for a user-driven backward page is [page ∪ newest cap]; the §17.3 cap keeps governing snapshot/delta paths (contiguity kept — eviction trims the oldest, never an interior hole) | ConversationLoadOlderBoundTest ×5 (stash-RED: "the fetched page must survive applyPage", "two loadOlder calls yield two distinct older pages", "the cap still governs the LIVE tail") |
+| F-37-E (P3) | `231ac3f1` | markFrame no longer clears strikes (the pin caught the original defect mechanism); the collector classifies every event against the projection head (echo-grace strike-neutral, genuine delta re-arms + lifts staleness); a no-change recovery STANDS THE SESSION DOWN as healthy-idle; per-strike exponential backoff only a genuine delta resets | StreamWatchdogIdleStandDownTest ×4 (bus-driven, fake clock; behavioral stash-RED: the quiet window asserted 1 but was 5 re-kicks, the cap window 4 but was 8); StreamWatchdogStaleBaseTest 6 intact |
+| N-BE-2 (P4) | `5598d45b` | OutboxRepository.sweepTerminal purges terminal rows (ACKED/FAILED_TERMINAL/FAILED_STALE/EXPIRED) past TERMINAL_RETENTION_MS (= SERVER_TTL_MS 24h); live rows untouchable (INV-4); the coordinator purges alongside the expiry sweep | OutboxRepositoryTest +2 real-DB pins (old-terminal purge, live+fresh survive, idempotent, expired rows purge; new-API compile-RED); 13 test fakes gained the interface member |
+| N-BH-2 (P4) | `d377adb2` | Room v5 (drafts.attachmentsJson, MIGRATION_4_5); DraftRepository gains StagedAttachment + observeStaged/saveStaged, BOTH saves read-modify-write the column they don't own (the GAP-A2 clobber class); Ports persists READY refs at commit, un-persists on send-consumed/explicit-remove, and observeComposerAttachments SEEDS ONCE per process | DraftStagedPersistenceTest ×6 (real Room, both clobber directions, unicode/quotes/zero-byte round-trip, corrupted-JSON safe-reject); MigrationHarnessTest +2 (v4→v5 no-loss, full v1→v5 chain; current-schema pin 4→5); StagedAttachmentProcessDeathTest (REAL relay E2E; stash-RED: the fresh port timed out waiting for the chip) |
+| N-BC-4 (P4) | `0350fd49` | reportFullyDrawn via the FullyDrawnReporter seam after the first composed frame — once per cold start, runCatching-guarded | FullyDrawnReporterTest ×3; LIVE face: logcat "Fully drawn com.zcode.android.app/.MainActivity: +8s435ms" (then +4s847ms on the next cold start) — once per cold start |
+| N-BI-1/N-BI-2 (P4) | `80370ce2` | headingTextStyle maps H1–H6 to SIX DISTINCT styles, strictly descending by this app's Type.kt scale (24/18/15/14/13/12 sp — the M3 default mapping inverts); the ordered marker column grows with the digits ((9dp·digits+8dp) ≥18dp); adopts GFM task lists ([ ]/[x] read-only glyphs), _underscore emphasis_ (CommonMark flanking), backslash escapes (incl. escaped-star-in-emphasis), ![alt](url) as a bounded thumbnail (HttpURLConnection java.base, 2 MiB cap, LRU, alt-degrade), [^label] footnote refs + definitions, <https://…> autolinks; ***both***, bare URLs, hard breaks, nested quotes, math, inline HTML stay LITERAL (pinned non-adopts, desktop-only) | MarkdownConformanceTest ×18 + MarkdownConformanceRenderTest ×9 (new-API compile-RED; the FOOTNOTE_DEF pin caught an unclosed char class that broke the parser's static init, fixed in-phase); existing markdown pins intact (14+5+5) |
+| N-BE-5 (P4) | `aae1c334` | androidResources.localeFilters = [en, zh-rCN] (85 library locales → the app's own two) + packaging excludes google/protobuf/*.proto (the raw schema; the compiled descriptor-set BIN stays — it IS consumed). Deliberate keeps documented: the three protobuf runtimes are internal to Tink/Glance; x86/x86_64 libs stay for universal-APK support | Measured delta: 6,568,278 B → 5,934,462 B = −633,816 B (−9.65%), release-signed; resources.arsc shrank; descriptor.proto absent; app-module suite green after the filter |
+| N-BI-3 (P4) | `bebddb40` + `5880bf78` | diagnosticsExportFailureCopy walks the cause chain: IOException+ENOSPC → the typed storage copy; the LIVE 0-byte shape (cache-path FNFE/ENOENT — the dir could not be created) → storage too (the follow-up); anything else → the generic retry line; the exception (path included) rings as diagnostics.exportFailed | DiagnosticsExportFailureCopyTest ×8 (the recorded ENOSPC shape, wrapped causes, the LIVE cache-path FNFE, outside-cache FNFE generic, non-IOException ENOSPC generic, no-path/no-format-hole sweep; classifier compile-RED) |
+| N-BI-4 (P4) | `ce3dbeb4` + `a6805fa8` | DeepLinks.classify returns a typed verdict (Accepted/Rejected(reason)/NotALink) over the same intake grammar — empty/blank id, extra segments, unknown host, connection-with-path, over-long id each name their reason; MainActivity rings nav.deeplink.rejected + offers the rejection on the notifications broker; ZCodeApp renders the honest copy through the SNACKBAR notifier (the follow-up: the first cut's raw Toast violated StatesDisciplineTest — the final gate caught it); routing byte-identical | DeepLinkIntakeTest +6 (every recorded fuzz shape with its typed reason, HTML-injected query ACCEPTED, connection both ways, NotALink for non-zcode/non-VIEW/null, valid id still ACCEPTS, over-long id; classify compile-RED); the toast text captured on device |
+| N-BI-5 (P4) | `013dca41` + `0be0c212` | notificationDetailSubtitleRes picks the per-level string; RECONCILED with F-33-H's privacy contract — each level's copy LEADS with its own value and still discloses the other (a strict split would hide what Task titles exposes until after switching); the F-33-H pin STRENGTHENED (both promises on BOTH strings, en+zh-CN) | NotificationDetailSubtitleTest ×3 (selection seam, leading-mention + both-promises, the composed flip driven through the repository — the click round-trip raced pool runs twice); NotificationActionsTest F-33-H updated (strengthened, batch-owned) |
+| N-BD-3 (P4) | `255d5d95` | SendOutcome.NOT_READY (MissingBaseRevision no longer masquerades as FAILED); rowActionNotice carries the honest local-gate arm (WARNING "Still syncing — try again"), fork its own FORK_LOCAL_GATE copy; a genuine desktop refusal keeps FORK_REFUSED+ERROR; routeSendPrompt gains the enum-wide exhaustiveness arm; en+zh-rCN | RowActionsRoutingTest +3 (local gate renders FORK_LOCAL_GATE/WARNING never-"refused"; FAILED keeps the refusal; retry+feedback share the local-gate key; compile-RED) |
+| N-BC-2/N-BE-1/N-BE-4 (P4) | `7881ce27` + `76d371c2` | The automation EDIT confirm reads Save (create_confirm was both modes); the daily-time hint names the DESKTOP clock ("HH:MM (24h, desktop clock)"); sendNoticeContentColor(kind): INFO → onSurfaceVariant (the INFO success no longer renders in error red), WARNING/ERROR keep onErrorContainer | AutomationsRedesignUiTest +2 (the edit Save + create Create; the hint swap; **the stale-XML trap**: the earlier "24 green" was a stale results dir masking a compile failure — the fresh run exposed an illegal `;` in a backtick name, in-dialog performScrollTo on a non-scrollable, assertTextContains vs the EDITABLE text, and a two-dialog form_save collision — all fixed); SendNoticeColourTest ×6 (INFO ≠ error red — the recorded face; per-kind render smokes) |
+
+### Suite reconciliation
+
+Pre-phase baseline at `b168a0c5` (the Phase 9 stamp): **1900 tests / 0 failures / 0 skipped,
+17 modules** (11 `testDebugUnitTest` + six JVM `test`), every module emitting XML (fresh
+`--rerun-tasks` run). Final gate at `5880bf78` (forced `--rerun-tasks`, no relay running):
+**2008 tests / 0 failures / 0 skipped, 17 modules** — **+108 names vs the baseline, 0 lost**,
+every module emitting XML, 0 gradle task failures beyond test tasks. Pool flakes chased per
+rule 7: SwitchRowA11yTest ×4 (green in isolation each time — the DataStore write→recompose
+race, the pin now polls for the flip), NotificationDetailSubtitleTest ×2 (the composed flip
+now drives the repository directly), one RecoveryScenarioMatrix S12 load timeout (green in
+the forced final gate). The stale-XML trap (a compile failure leaving the old results dir)
+was caught and recorded — name-diffs without a fresh-results assertion are blind to
+test-compile failures (the 2026-10-21 lesson, re-learned with the module gate).
+
+### Rig learnings recorded for later phases
+
+1. **The mock's rowsRange store top must derive from the SNAPSHOT's id base**, not the row
+   count — the tail-window arm (MOCK_ROWS_TOTAL+MOCK_ROWS_WINDOW) makes window ids run
+   base..base+count-1; capping at count-1 served pages BELOW the window (the rig caught it
+   mid-leg: the app's before=1639 request was answered with ids 271..320). `fc3c0a0a`.
+2. **A backtick test name may not contain `;` or `>`** ("Name contains illegal characters") —
+   the Kotlin compiler rejects them; use a comma.
+3. **kotlin.test assert order is (expected, actual, message?)** — org.junit's is
+   (message, expected, actual). Mixing the imports silently inverts every 3-arg assert;
+   the failures read as absurd comparisons. Pick one family per file.
+4. **`gradle :module:jar` after editing sources can serve a STALE jar** when a prior compile
+   failed — `:tools:mockzcode:clean :tools:mockzcode:jar` (or --rerun-tasks) and then verify
+   the new literal is IN the jar (javap/unzip on the class), because `strings` on the jar
+   does not see class-constant-pool entries.
+5. **`setSessionTurnOutcome` is a MockZCode (outer) method, not Script** — the arm compiles
+   against the receiver it exists on; the compile error names the receiver type.
+6. **The turn outcome appended via sessionTurnOutcome does not reach the phone's task
+   machine through the tail-window snapshot** (rows=331 decoded, header still Completed) —
+   a recorded rig-fidelity gap: the F-37-E machine-gating re-check (fix point 3) stays
+   pinned at the unit level (StreamWatchdogIdleStandDownTest drives the RUNNING header
+   directly); arming the machine face live needs a scripted turnHeader DELTA, not an
+   appended snapshot row (tools/mockzcode debt, Phase 14 ledger).
+7. **The mock's seeded interactions ride EVERY conversation open** (session-shared state) —
+   the pinned plane consumes timeline swipes on all three synthetic tasks, blocking
+   scroll-to-deck legs; a no-interactions arm (or per-session seeds) is the Phase 14 fix.
+8. **`adb install -r` fails "Requested internal only, but not enough space" below ~30 MB
+   free** even when df reports some MB — free generously before reinstalling on a filled
+   device; and the 0-byte state is OS-unstable (the OS reclaims blocks against dd fillers),
+   so 0-byte legs must run in ONE pass.
+
+### Exit-gate rig leg — PASSED 2026-11-10 (fresh zcode-a16 cold boot, Android 16 / API 36)
+
+Rig: `zcode-a16` cold boot (`-no-snapshot-load -gpu swiftshader_indirect -no-audio`), the
+boot-time SystemUI ANR dismissed with "Wait" (the recorded swiftshader artifact); the
+all-arms MockZCode relay across SEVEN generations (gen1–gen7; restarts by
+`pkill -f MockRelayMainKt` only), arming MOCK_ROWS_TOTAL=2001 + MOCK_ROWS_WINDOW=320
+(RIG-P3) + MOCK_MD_FILE (the 34-line conformance deck) from gen1, + MOCK_TURN_RUNNING from
+gen7, MINUS the 25s interaction push from gen5 (the idle window's prerequisite); fresh
+`adb install -r` of the phase debug APK `0c21be7c…` (versionCode 52 / 1.3.1), reinstalled
+as `723b7e50…` after the N-BI-3 follow-up. Screenshots in /tmp/p10/shots/.
+
+| Gate leg | Receipt |
+| --- | --- |
+| **F-37-D (load-earlier ×2)** | The strip LIVE on first open: "Load earlier messages · showing latest 320 of 330" (the RIG-P3 window shape; the recorded face was NO strip). Tap 1 → `v4.call :: rowsRange before=1689 limit=50` → `gateway.rowsRange rows=50 hasMore=true` → the strip reads **370**; tap 2 → `before=1639` → rows=50 → **420**. TWO DISTINCT older pages, both SURVIVING in the store (the recorded defect: net-zero self-eviction). The later 420→320 reset after the approval delta rode the guarded path — the §17.3 cap re-bounding the live tail per the shipped contract (recorded, not a regression) |
+| **F-37-E (the 30-minute idle window)** | 13:46:43 attach → 14:17:28 close: **0 watchdog re-kicks, 0 escalations, 1 snapshot (the attach)** — the recorded face was 14 re-kicks at a metronomic ~90 s with alternating full 2,001-row snapshots. The gen5 window (no interaction push) held the same zero over its stretch; the mock's 8 s heartbeats are control-plane, not topic frames |
+| **GAP-21-A (first-token mention)** | First-token `@re` typed in the composer → **4 searchWorkspaceFiles wires** + the panel rendering **README.md** (the recorded dead face: 0 wires, no panel, 11 repros) |
+| **N-BE-3 (hardware send)** | `adb shell input keycombination 113 66` (physical-shaped Ctrl+Enter) → `sendConversationCommandV4 ok in 118ms`, the draft consumed (the recorded face: no binding existed) |
+| **N-BH-2 (staged attachment across death)** | Sketch → strokes → Done → `attachmentChunkV4 ok` + `attachmentCommitV4 ok in 151ms` → chip "sketch-1794316949863.png (10.0 KB)"; `run-as … kill -9` → relaunch → **`port.stagedRestore :: task=synth-task-1 refs=1`** and the SAME chip back in the composer (the recorded face: the chip gone, a silent orphan) |
+| **N-BC-4 (fully drawn)** | Logcat per cold start: "Fully drawn com.zcode.android.app/.MainActivity: +8s435ms" and "+4s847ms" — once per cold start, no startup regression |
+| **N-BI-4 (deep-link fuzz)** | `zcode://task/` → ring `reason=empty-task-id`; `task/%20` → `blank-task-id`; `task/../../etc` → `extra-path-segments`; the valid `zcode://task/synth-task-1` → `resolved task=synth-task-1`; the snackbar "That link isn't valid — nothing was opened." captured on screen. `zcode://unknownhost/x` never reaches MainActivity (the OS cannot resolve it against the host-scoped filters) — an OS routing fact; the app-side classify pins cover the shape |
+| **N-BI-5 (notification detail)** | Settings → "Notification detail: Minimal" → tap → **"Notification detail: Task titles"** with BOTH promises' copy present (the reconciled F-33-H contract; the recorded face: the value flipped under static Minimal copy) |
+| **N-BI-3 (0-byte export)** | /data filled to TRUE 0 KB free → Export diagnostics → the typed copy **"Couldn't export diagnostics. Try again."** — NO path, NO truncation (the recorded face: a raw cache path truncated mid-extension) — + the ring line `diagnostics.exportFailed :: FileNotFoundException: …/cache/shared/zcode-diagnostics-….txt: open failed: ENOENT` (the detail kept for diagnostics only). The LIVE shape was ENOENT (cache dir uncreatable), not ENOSPC → the classifier refined (`5880bf78`), APK rebuilt + reinstalled mid-leg, 8/8 unit pins. The re-export at OS-reclaimed space SUCCEEDED (share sheet) — the 0-byte state is OS-unstable; the leg stands on the first pass + pins |
+| **N-BC-2/N-BE-1 (automation editor)** | The EDIT dialog's confirm reads **Save** (the recorded face: "Create" over an existing row) and the daily time hint reads **"HH:MM (24h, desktop clock)"** — one screenshot, both rows |
+| **N-BI-2 (the deck's presence)** | MOCK_MD_FILE seeds the deck row on every snapshot; find-in-conversation "Heading o" → **"1 of 1"** against the timeline (the deck IS in the rendered timeline). The full-viewport visual walk is RIG-BLOCKED: the mock's session-shared pinned plane consumes every timeline swipe on all three synthetic tasks (learning 7) — the constructs' rendering is pinned 27× at the unit level; the visual walk re-runs after the Phase 14 no-interactions arm |
+| **Logcat audit** | **0 app FATALs / 0 ANRs / 0 app-process deaths / 0 crash buffers** across the whole session (connect → paging ×2 → mention panel → hardware send → sketch upload → kill -9 → restore → deep-link fuzz → Settings flips → 0-byte exports ×2 → automation editor) |
+
+### Verification stamp
+
+This phase was implemented test-first (behavioral pins RED at their pre-fix commits via
+stash runs; new-API pins compile-RED by construction; RED logs in /tmp/p10/), suite-gated
+(**2008/0/0/0 across 17 modules at `5880bf78`, +108 = exactly this phase's pins, 0 lost,
+forced --rerun-tasks**), and rig-verified on the exit-gate leg above (including two
+rig-caught fixes re-landed in-phase: the mock rowsRange base `fc3c0a0a` and the
+N-BI-4 Snackbar re-route `a6805fa8`, plus the mid-leg N-BI-3 classifier refinement
+`5880bf78`), and marked complete on **2026-11-10 at 16:56:36** (local time,
+yyyy-mm-dd hh-mm-ss — the moment the exit-gate logcat audit reconciled 0 FATALs /
+0 ANRs / 0 deaths across the whole session and the final artifact hash was taken) by
+**GLM-5.3-Flash** (the session model) running inside **ZCode** (the ZCode CLI agent
+harness), working under Ernest's standing deliverable-completion rule on `fix/vc52`;
+commits `859f8533`, `09cabbb5`, `1aaba324`, `a7568fe1`, `231ac3f1`, `5598d45b`,
+`d377adb2`, `0350fd49`, `80370ce2`, `aae1c334`, `bebddb40`, `ce3dbeb4`, `013dca41`,
+`255d5d95`, `7881ce27`, `a6805fa8`, `0be0c212`, `76d371c2`, `fc3c0a0a`, `d6c64d73`,
+`5880bf78` (this phase: 19 fix/test + 2 tools/mockzcode), all local, nothing pushed.
+Deliverable: debug APK `723b7e50206b1676…` (31,708,118 bytes, versionCode 52 / 1.3.1)
+at app/build/outputs/apk/debug/app-debug.apk; the trimmed release APK measures
+5,934,462 B (−9.65%).
+
+**Phase 10 is COMPLETE: all 10 rows closed (GAP-21-A carrying G65's trigger wiring;
+N-BE-3; F-37-D with RIG-P3; F-37-E; N-BE-2/N-BH-2; N-BC-4; N-BI-1/N-BI-2; N-BE-5;
+N-BI-3/N-BI-4/N-BI-5; N-BD-3/N-BC-2/N-BE-4/N-BE-1), every pin RED at its pre-fix
+commit and GREEN after, the full-suite zero-new-names gate reconciled (+108 = exactly
+this phase's pins, 0 lost), and the exit gate passed on a fresh Android 16 emulator leg
+across seven relay generations with 0 FATALs / 0 ANRs.** Nothing pushed; publishing
+waits on Ernest's explicit word.
