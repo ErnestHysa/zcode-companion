@@ -170,6 +170,8 @@ fun ConversationScreen(
     // ---- Phase 5A (A3.3): workflow runs panel + run sheet ----
     workflowRuns: List<com.zcode.android.domain.model.WorkflowRunSummary>? = null,
     openWorkflowRun: com.zcode.android.features.conversation.ConversationViewModel.OpenWorkflowRun? = null,
+    /** G51 (vc52 Phase 11): the open run's delta-assembled step graph (null = no deltas). */
+    openRunGraph: com.zcode.android.domain.model.WorkflowRunGraph? = null,
     onOpenWorkflowRun: (com.zcode.android.domain.model.WorkflowRunSummary) -> Unit = {},
     onCloseWorkflowRun: () -> Unit = {},
     onLoadMoreRunEvents: () -> Unit = {},
@@ -344,6 +346,7 @@ fun ConversationScreen(
                     onResume = onResumeWorkflowRun,
                     onAmendSettings = onAmendWorkflowRun,
                     onOpenArtifact = onOpenArtifact,
+                    graph = openRunGraph,
                 )
             }
             // A3.13: the trajectory sheet (search field + the model-call timeline).

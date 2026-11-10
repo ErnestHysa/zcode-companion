@@ -132,6 +132,8 @@ fun WorkflowRunSheet(
     onAmendSettings: ((WorkflowRunSummary, subagentModel: String?, maxConcurrency: Int?) -> Unit)? = null,
     /** G17 (vc51 Phase 4D): the artifact Open handoff (null = cards render read-only). */
     onOpenArtifact: ((ref: String, mime: String) -> Unit)? = null,
+    /** G51 (vc52 Phase 11): the delta-assembled step graph (null = no deltas seen for this run). */
+    graph: com.zcode.android.domain.model.WorkflowRunGraph? = null,
 ) {
     ZCodeModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier.testTag("workflow_run_sheet")) {
         val run = open.run
@@ -243,6 +245,53 @@ fun WorkflowRunSheet(
             }
         }
         Spacer(Modifier.height(8.dp))
+        // G51 (vc52 Phase 11): the run's LIVE step graph from the declared delta stream —
+        // actors (waiting/running/completed) then nodes, each with its keyed site and the
+        // state face. Renders ONLY when deltas have carried a graph for this run.
+        graph?.let { g ->
+            val steps = g.steps
+            if (steps.isNotEmpty()) {
+                Text(
+                    stringResource(R.string.workflow_sheet_steps, steps.size),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp).testTag("workflow_sheet_steps"),
+                )
+                steps.forEach { step ->
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 2.dp)
+                            .testTag("workflow_step_${step.siteId}_${step.ordinal}"),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            step.headline,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                        step.stateLabel?.let { label ->
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                label,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = when (label) {
+                                    "completed", "ok", "settled" -> toneColor(StatusTone.SUCCESS)
+                                    "failed", "cancelled" -> toneColor(StatusTone.ERROR)
+                                    "running", "executing", "dispatched" -> toneColor(StatusTone.ACCENT)
+                                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+        }
         Text(
             stringResource(R.string.workflow_events_title),
             style = MaterialTheme.typography.labelLarge,

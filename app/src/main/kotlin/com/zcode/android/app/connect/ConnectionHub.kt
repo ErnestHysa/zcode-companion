@@ -340,6 +340,10 @@ class ConnectionHub(
     fun sessionProjectionState(taskId: String): kotlinx.coroutines.flow.Flow<com.zcode.android.domain.model.SessionProjectionState> =
         sessionFlow(taskId, { m -> m.sessionState }, com.zcode.android.domain.model.SessionProjectionState())
 
+    /** G51 (vc52 Phase 11): the session's workflow-run delta plane (step graphs + deltas-flowing). */
+    fun sessionWorkflowRunPlane(taskId: String): kotlinx.coroutines.flow.Flow<com.zcode.android.domain.model.WorkflowRunPlane> =
+        sessionFlow(taskId, { m -> m.workflowRunPlane }, com.zcode.android.domain.model.WorkflowRunPlane.EMPTY)
+
     private var connectJob: Job? = null
     private var coordinator: RecoveryCoordinator? = null
     private var controlPlaneJob: Job? = null

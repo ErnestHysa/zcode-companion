@@ -684,6 +684,8 @@ private fun ConversationRoute(
     // Phase 5A (A3.3): the workflow runs panel + run sheet follow the VM's flows.
     val workflowRuns by vm.workflowRuns.collectAsState()
     val openWorkflowRun by vm.openWorkflowRun.collectAsState()
+    // G51 (vc52 Phase 11): the open run's delta-assembled step graph.
+    val openRunGraph by vm.openRunGraph.collectAsState()
     val shareCopy = androidx.compose.ui.res.stringResource(com.zcode.android.features.conversation.R.string.conv_share_entry)
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
@@ -877,6 +879,7 @@ private fun ConversationRoute(
         fileSearchProvider = { query, refresh -> container.conversationPort.searchWorkspaceFiles(state.task?.taskId.orEmpty(), query, refresh) },
         workflowRuns = workflowRuns,
         openWorkflowRun = openWorkflowRun,
+        openRunGraph = openRunGraph,
         onOpenWorkflowRun = vm::openWorkflowRun,
         onCloseWorkflowRun = vm::closeWorkflowRun,
         onLoadMoreRunEvents = vm::loadMoreRunEvents,

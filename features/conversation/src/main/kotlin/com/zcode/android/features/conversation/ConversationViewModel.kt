@@ -688,7 +688,24 @@ class ConversationViewModel(
     private val _openRun = MutableStateFlow<OpenWorkflowRun?>(null)
     val openWorkflowRun: StateFlow<OpenWorkflowRun?> = _openRun.asStateFlow()
 
+    /** G51: the open run's delta-assembled step graph (null = no deltas seen for it). */
+    private val _openRunGraph = MutableStateFlow<com.zcode.android.domain.model.WorkflowRunGraph?>(null)
+    val openRunGraph: StateFlow<com.zcode.android.domain.model.WorkflowRunGraph?> = _openRunGraph.asStateFlow()
+
     private var workflowTicker: kotlinx.coroutines.Job? = null
+
+    /**
+     * G51 (vc52 Phase 11): true once the declared `workflowRunDeltas` stream has
+     * delivered a run delta — the ~8s `conversationWorkflowRunsV4` poll ticker
+     * STOPS (and never starts) while deltas flow (the desktop's push stream is
+     * the fresher source; the pass-23 291-calls/40min polling observation is the
+     * defect this closes).
+     */
+    private val _runDeltasFlowing = MutableStateFlow(false)
+    val runDeltasFlowing: StateFlow<Boolean> = _runDeltasFlowing.asStateFlow()
+
+    /** The last plane deltaCount folded into the run summaries (the fold cursor). */
+    private var appliedRunDeltaCount = 0L
 
     init {
         // A3.3: the run list follows the projection — every revision change re-reads it
@@ -697,6 +714,35 @@ class ConversationViewModel(
             state.map { it.sessionState?.revision }.distinctUntilChanged().debounce(400).collect {
                 refreshWorkflowRuns()
                 refreshPlans()
+            }
+        }
+        // G51: the delta consumer — fold the plane's unseen deltas into the run
+        // summaries, expose the graphs to the sheet, and stop the poll ticker.
+        scope.launch {
+            port.observeWorkflowRunPlane(taskId).collect { plane ->
+                _runDeltasFlowing.value = plane.deltasSeen
+                _openRun.value?.let { open ->
+                    plane.graphs[open.run.runId]?.let { graph -> _openRunGraph.value = graph }
+                }
+                if (plane.deltaCount > appliedRunDeltaCount) {
+                    if (plane.deltaCount - appliedRunDeltaCount > com.zcode.android.domain.model.WorkflowRunPlane.RECENT_TAIL) {
+                        // Attached late (or the tail overran the window): resync once
+                        // from the poll plane, then fold forward from here.
+                        appliedRunDeltaCount = plane.deltaCount
+                        refreshWorkflowRuns()
+                    } else {
+                        for (delta in plane.recentDeltas.takeLast((plane.deltaCount - appliedRunDeltaCount).toInt())) {
+                            val next = com.zcode.android.domain.model.applyWorkflowRunDeltaToSummaries(_workflowRuns.value, delta)
+                            if (next != null) _workflowRuns.value = next
+                        }
+                        appliedRunDeltaCount = plane.deltaCount
+                        _workflowRuns.value?.let { runs ->
+                            _openRun.value?.let { open -> runs.firstOrNull { it.runId == open.run.runId }?.let { _openRun.value = open.copy(run = it) } }
+                        }
+                    }
+                }
+                // Deltas flowing: the poll ticker is no longer the freshness source.
+                if (plane.deltasSeen) workflowTicker?.cancel()
             }
         }
     }
@@ -708,10 +754,14 @@ class ConversationViewModel(
             // Keep the open sheet's run status in step with the list.
             _openRun.value?.let { open -> runs?.firstOrNull { it.runId == open.run.runId }?.let { _openRun.value = open.copy(run = it) } }
             val live = runs?.any { it.status.isLive } == true
-            if (live && workflowTicker?.isActive != true) {
+            // G51: the poll ticker NEVER starts while the delta stream is flowing —
+            // the desktop's pushes are the fresher source and the poll is the waste.
+            if (live && !_runDeltasFlowing.value && workflowTicker?.isActive != true) {
                 workflowTicker = scope.launch {
                     while (true) {
                         kotlinx.coroutines.delay(8_000)
+                        // G51: a delta arriving mid-window ends the ticker immediately.
+                        if (_runDeltasFlowing.value) break
                         val latest = port.fetchWorkflowRuns(taskId) ?: break
                         _workflowRuns.value = latest
                         _openRun.value?.let { open -> latest.firstOrNull { it.runId == open.run.runId }?.let { _openRun.value = open.copy(run = it) } }
@@ -754,6 +804,7 @@ class ConversationViewModel(
 
     fun closeWorkflowRun() {
         _openRun.value = null
+        _openRunGraph.value = null
     }
 
     // ---------------------------------------------------------------- G3 (vc51): run resume + settings amend

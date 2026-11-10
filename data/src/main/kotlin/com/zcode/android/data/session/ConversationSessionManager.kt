@@ -39,6 +39,8 @@ class ConversationSessionManager(
     private val onSnapshotApplied: suspend (rows: List<ConversationRow>) -> Unit = {},
     /** Phase 7: authoritative A-side state (pendingInteractions/queue/control) consumer. */
     private val onSessionState: suspend (state: com.zcode.android.domain.model.SessionProjectionState) -> Unit = {},
+    /** G51 (vc52 Phase 11): the declared workflow-run delta consumer (the run plane). */
+    private val onWorkflowRunDelta: suspend (delta: com.zcode.android.domain.model.WorkflowRunDelta) -> Unit = {},
     private val clock: () -> Long = System::currentTimeMillis,
     private val log: ZLog = ZLog(),
     config: ConversationTopicReducer.Config = ConversationTopicReducer.Config(),
@@ -110,6 +112,20 @@ class ConversationSessionManager(
     val sessionState: StateFlow<com.zcode.android.domain.model.SessionProjectionState> =
         _sessionState.asStateFlow()
 
+    /**
+     * G51 (vc52 Phase 11): the session's workflow-run DELTA plane — the step graphs
+     * assembled from `workflowRun.updated`/`workflowRun.removed` ops plus the
+     * deltas-flowing face (the consumer stops the run poll ticker once this is up).
+     */
+    private val _workflowRunPlane =
+        MutableStateFlow(com.zcode.android.domain.model.WorkflowRunPlane.EMPTY)
+    val workflowRunPlane: StateFlow<com.zcode.android.domain.model.WorkflowRunPlane> =
+        _workflowRunPlane.asStateFlow()
+
+    /** The epoch the run plane is anchored on (snapshot re-anchor resets it). */
+    @Volatile
+    private var planeEpoch: String? = null
+
     // ---------------------------------------------------------------- entry points
 
     suspend fun handle(event: GatewayTopicEvent) = mutex.withLock {
@@ -176,6 +192,16 @@ class ConversationSessionManager(
     private var lastAppliedSnapshotKey: String? = null
 
     private suspend fun handleSnapshot(e: GatewayTopicEvent.Snapshot) {
+        // G51: the run-delta plane anchors on the CURRENT epoch — a new epoch
+        // (recovery/resync re-subscribe) re-serves the runs; stale graphs from the
+        // dead epoch are reset (the deltas-flowing face resets with them, so the
+        // poll ticker resumes until deltas flow again — honest reconnect freshness).
+        if (_workflowRunPlane.value.deltasSeen || _workflowRunPlane.value.graphs.isNotEmpty()) {
+            if (planeEpoch != e.logEpoch) {
+                _workflowRunPlane.value = com.zcode.android.domain.model.WorkflowRunPlane.EMPTY
+            }
+        }
+        planeEpoch = e.logEpoch
         val dedupeKey = "${e.logEpoch}/${e.toSeq}/${e.firstRowId}/${e.rows.size}/${e.rows.hashCode()}"
         if (dedupeKey == lastAppliedSnapshotKey) {
             log.debug("manager.snapshotDup", "session=${sessionId.raw} identical snapshot skipped (epoch=${e.logEpoch.take(16)} seq=${e.toSeq})")
@@ -226,6 +252,22 @@ class ConversationSessionManager(
         if (e.ops.any { it is com.zcode.android.domain.reducer.ProjectionOp.StateUpdated }) {
             _sessionState.value = reducer.sessionProjection
             onSessionState(reducer.sessionProjection)
+        }
+        // G51 (vc52 Phase 11): the declared workflow-run delta plane — fold the ops
+        // into the per-session plane and publish (the consumer merges the run
+        // summaries + stops the poll ticker once deltas flow).
+        val runDeltas = e.ops.mapNotNull { op ->
+            when (op) {
+                is com.zcode.android.domain.reducer.ProjectionOp.WorkflowRunUpdated -> op.delta
+                is com.zcode.android.domain.reducer.ProjectionOp.WorkflowRunRemoved ->
+                    com.zcode.android.domain.model.WorkflowRunDelta.Removed(op.runId, op.revision, kotlinx.serialization.json.JsonObject(emptyMap()))
+                else -> null
+            }
+        }
+        for (delta in runDeltas) {
+            _workflowRunPlane.value = com.zcode.android.domain.model.WorkflowRunPlane.apply(_workflowRunPlane.value, delta)
+            planeEpoch = e.logEpoch
+            onWorkflowRunDelta(delta)
         }
     }
 

@@ -598,6 +598,10 @@ class DefaultConversationPort(
     override suspend fun fetchWorkflowRuns(taskId: String): List<com.zcode.android.domain.model.WorkflowRunSummary>? =
         facadeRead("workflowRuns") { com.zcode.android.domain.model.WorkflowRunSummary.decodeList(it.workflowRuns(taskId)) }
 
+    /** G51 (vc52 Phase 11): the declared workflow-run delta plane (hub → manager). */
+    override fun observeWorkflowRunPlane(taskId: String): kotlinx.coroutines.flow.Flow<com.zcode.android.domain.model.WorkflowRunPlane> =
+        hub.sessionWorkflowRunPlane(taskId)
+
     override suspend fun fetchWorkflowRunEvents(taskId: String, runId: String, afterSequence: Long?): com.zcode.android.domain.model.WorkflowRunEventsPage? =
         facadeRead("workflowRunEvents") { com.zcode.android.domain.model.WorkflowRunEventsPage.decode(it.workflowRunEvents(taskId, runId, afterSequence, limit = 200)) }
 

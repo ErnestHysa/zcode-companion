@@ -323,6 +323,8 @@
     <string name="workflow_status_stopped">Stopped</string>
     <string name="workflow_status_unknown">Unknown</string>
     <string name="workflow_resumable">Resumable</string>
+    <!-- G51 (vc52 Phase 11): the delta-assembled step graph section -->
+    <string name="workflow_sheet_steps">Steps (%1$d)</string>
     <string name="workflow_events_title">Events</string>
     <string name="workflow_events_empty">No events yet</string>
     <string name="workflow_events_unavailable">Run events are unavailable on this connection</string>

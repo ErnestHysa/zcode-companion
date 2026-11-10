@@ -267,6 +267,14 @@ interface ConversationPort {
     /** `conversationWorkflowRunsV4` — the session's runs; null = unavailable (the panel hides). */
     suspend fun fetchWorkflowRuns(taskId: String): List<com.zcode.android.domain.model.WorkflowRunSummary>? = null
 
+    /**
+     * G51 (vc52 Phase 11): the session's workflow-run DELTA plane — the step graphs
+     * assembled from the declared `workflowRunDeltas` stream plus the deltas-flowing
+     * face (the run list stops polling once deltas flow). Empty plane = no deltas.
+     */
+    fun observeWorkflowRunPlane(taskId: String): kotlinx.coroutines.flow.Flow<com.zcode.android.domain.model.WorkflowRunPlane> =
+        kotlinx.coroutines.flow.flowOf(com.zcode.android.domain.model.WorkflowRunPlane.EMPTY)
+
     /** `conversationWorkflowRunEventsV4` page (afterSequence paging); null = unavailable. */
     suspend fun fetchWorkflowRunEvents(taskId: String, runId: String, afterSequence: Long?): com.zcode.android.domain.model.WorkflowRunEventsPage? = null
 

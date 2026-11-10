@@ -135,4 +135,123 @@ class WorkflowRunsVmTest {
         runCurrent()
         assertEquals(settled, port.calls.count { it == "runs" }, "no further ticks once nothing is live")
     }
+
+    // ---------------------------------------------------------------- G51 (vc52 Phase 11): the delta plane
+
+    private class DeltaPort(runs0: List<WorkflowRunSummary>) : WorkflowPort() {
+        val plane = kotlinx.coroutines.flow.MutableStateFlow(com.zcode.android.domain.model.WorkflowRunPlane.EMPTY)
+        override fun observeWorkflowRunPlane(taskId: String) = plane
+        init { runs = runs0 }
+        fun updatedDelta(runId: String, status: String, error: String? = null): com.zcode.android.domain.model.WorkflowRunDelta {
+            val patch = JsonObject(mutableMapOf<String, kotlinx.serialization.json.JsonElement>(
+                "status" to kotlinx.serialization.json.JsonPrimitive(status),
+            ).apply { error?.let { put("error", kotlinx.serialization.json.JsonPrimitive(it)) } })
+            return com.zcode.android.domain.model.WorkflowRunDelta.Updated(
+                runId, 1, patch, emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), JsonObject(emptyMap()),
+            )
+        }
+    }
+
+    @Test
+    fun `a run delta folds into the summaries and marks deltas flowing`() = runTest {
+        val port = DeltaPort(listOf(run("r1", WorkflowRunStatus.RUNNING)))
+        val vm = ConversationViewModel(port, backgroundScope, "s")
+        vm.refreshWorkflowRuns()
+        runCurrent()
+        assertFalse(vm.runDeltasFlowing.value, "no deltas yet — the poll plane is the source")
+        port.plane.value = com.zcode.android.domain.model.WorkflowRunPlane.apply(
+            port.plane.value, port.updatedDelta("r1", "errored", "boom"),
+        )
+        runCurrent()
+        assertTrue(vm.runDeltasFlowing.value, "the deltas-flowing face is up")
+        val r1 = vm.workflowRuns.value?.first { it.runId == "r1" }
+        assertEquals(WorkflowRunStatus.ERRORED, r1?.status, "the delta patch merged into the run list")
+        assertEquals("boom", r1?.failureMessage)
+    }
+
+    @Test
+    fun `deltas flowing stop the poll ticker and a new live run never starts one`() = runTest {
+        val port = DeltaPort(listOf(run("r1", WorkflowRunStatus.RUNNING)))
+        val vm = ConversationViewModel(port, backgroundScope, "s")
+        vm.refreshWorkflowRuns()
+        runCurrent()
+        // Deltas arrive while the ticker could be live: the ticker never starts.
+        port.plane.value = com.zcode.android.domain.model.WorkflowRunPlane.apply(
+            port.plane.value, port.updatedDelta("r1", "running"),
+        )
+        runCurrent()
+        val before = port.calls.count { it == "runs" }
+        advanceTimeBy(25_000)
+        runCurrent()
+        assertEquals(before, port.calls.count { it == "runs" }, "no poll ticks once deltas flow (the G48 defect's symptom)")
+        // A second refresh with a live run STILL does not start a ticker.
+        port.runs = listOf(run("r1", WorkflowRunStatus.RUNNING))
+        vm.refreshWorkflowRuns()
+        runCurrent()
+        advanceTimeBy(25_000)
+        runCurrent()
+        assertEquals(before, port.calls.count { it == "runs" }, "the ticker never starts while deltas flow")
+    }
+
+    @Test
+    fun `a removed delta drops the run from the list`() = runTest {
+        val port = DeltaPort(listOf(run("r1", WorkflowRunStatus.RUNNING), run("r2", WorkflowRunStatus.PENDING)))
+        val vm = ConversationViewModel(port, backgroundScope, "s")
+        vm.refreshWorkflowRuns()
+        runCurrent()
+        port.plane.value = com.zcode.android.domain.model.WorkflowRunPlane.apply(
+            port.plane.value,
+            com.zcode.android.domain.model.WorkflowRunDelta.Removed("r1", 1, JsonObject(emptyMap())),
+        )
+        runCurrent()
+        assertEquals(listOf("r2"), vm.workflowRuns.value?.map { it.runId })
+    }
+
+    @Test
+    fun `the open run's step graph rides the plane and follows the sheet`() = runTest {
+        val port = DeltaPort(listOf(run("r1", WorkflowRunStatus.RUNNING)))
+        val vm = ConversationViewModel(port, backgroundScope, "s")
+        vm.openWorkflowRun(run("r1", WorkflowRunStatus.RUNNING))
+        runCurrent()
+        assertNull(vm.openRunGraph.value, "no graph before any delta")
+        val step = com.zcode.android.domain.model.WorkflowRunStep.decode(
+            JsonObject(mapOf(
+                "siteId" to kotlinx.serialization.json.JsonPrimitive("n1"),
+                "ordinal" to kotlinx.serialization.json.JsonPrimitive(0),
+                "phase" to kotlinx.serialization.json.JsonPrimitive("settled"),
+                "outcome" to kotlinx.serialization.json.JsonPrimitive("ok"),
+            )),
+        )!!
+        port.plane.value = com.zcode.android.domain.model.WorkflowRunPlane.apply(
+            port.plane.value,
+            com.zcode.android.domain.model.WorkflowRunDelta.Updated(
+                "r1", 1, null, emptyList(), emptyList(), emptyList(), emptyList(), listOf(step), JsonObject(emptyMap()),
+            ),
+        )
+        runCurrent()
+        val graph = vm.openRunGraph.value
+        assertEquals("r1", graph?.runId)
+        assertEquals(1, graph?.nodes?.size)
+        assertEquals("n1", graph?.nodes?.values?.first()?.siteId)
+        vm.closeWorkflowRun()
+        assertNull(vm.openRunGraph.value, "closing the sheet clears the graph")
+    }
+
+    @Test
+    fun `a tail overrun resyncs from the poll plane once instead of silently skipping`() = runTest {
+        val port = DeltaPort(listOf(run("r1", WorkflowRunStatus.RUNNING)))
+        val vm = ConversationViewModel(port, backgroundScope, "s")
+        vm.refreshWorkflowRuns()
+        runCurrent()
+        val before = port.calls.count { it == "runs" }
+        // Drive the plane past the fold window: the consumer resyncs ONCE.
+        var plane = port.plane.value
+        for (i in 0 until (com.zcode.android.domain.model.WorkflowRunPlane.RECENT_TAIL + 5)) {
+            plane = com.zcode.android.domain.model.WorkflowRunPlane.apply(plane, port.updatedDelta("r$i", "running"))
+        }
+        port.plane.value = plane
+        runCurrent()
+        assertTrue(port.calls.count { it == "runs" } > before, "the overrun resync re-read the runs")
+        assertTrue(vm.runDeltasFlowing.value)
+    }
 }
