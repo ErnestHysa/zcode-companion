@@ -2142,7 +2142,11 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 // phone's Load-earlier leg could never page backwards (every call
                 // returned the SAME newest page). hasMore stays true while rows remain
                 // above the page (the snapshot's firstRowId bounds the store top).
-                val storeTop = snapshotRowIdTop(script.snapshotRowCount ?: workspace.rowCount)
+                // The store's top must match the SNAPSHOT WINDOW's id base — with the
+                // RIG-P3 tail-window arm (MOCK_ROWS_TOTAL) the window ids run
+                // base..base+count-1 (e.g. 1682..2001), NOT 1..count; capping at
+                // count-1 served pages BELOW the window (an unfetchable id gap).
+                val storeTop = snapshotRowIdTop(script.snapshotRowCount ?: workspace.rowCount, script.snapshotRowIdBase)
                 val page = rowsRangePage(storeTop, beforeRowId, limit)
                 val rows = page.map { rid ->
                     schemaRow(

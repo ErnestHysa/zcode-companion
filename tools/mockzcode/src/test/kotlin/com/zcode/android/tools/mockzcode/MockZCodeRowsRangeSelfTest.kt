@@ -57,6 +57,15 @@ class MockZCodeRowsRangeSelfTest {
     }
 
     @Test
+    fun `the tail-window arm pages THROUGH the window base (the exit-gate shape)`() {
+        // MOCK_ROWS_TOTAL=2001 + MOCK_ROWS_WINDOW=320: window ids 1682..2001.
+        val first = MockZCode.rowsRangePage(storeTop = MockZCode.snapshotRowIdTop(320, 1682L), beforeRowId = 1682, limit = 50)
+        assertEquals(1632L..1681L, first, "the page immediately older than the window base")
+        val second = MockZCode.rowsRangePage(storeTop = MockZCode.snapshotRowIdTop(320, 1682L), beforeRowId = 1632, limit = 50)
+        assertEquals(1582L..1631L, second, "the next page must continue downward, NOT jump below the store")
+    }
+
+    @Test
     fun `limit is floored at one (never a negative or zero-width page)`() {
         assertEquals(1681L..1681L, MockZCode.rowsRangePage(TOP, beforeRowId = 1682, limit = 0))
     }
