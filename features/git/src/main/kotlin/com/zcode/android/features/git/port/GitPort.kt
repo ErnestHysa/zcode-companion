@@ -81,8 +81,35 @@ interface GitPort {
     /** Tier B: AI generate/regenerate; null = unavailable (the sheet keeps the manual field). */
     suspend fun generateCommitMessage(includeUnstaged: Boolean): String? = null
 
+    /**
+     * N-BG-2 (vc52 Phase 11): the typed generate outcome — the refusal reason rides
+     * the result so the Commit sheet renders it (the recorded live face: the Generate
+     * button did NOTHING on `git.generateCommitMessage refused`). [message] non-null
+     * = generated; [refusal] non-null = the desktop refused with that reason; both
+     * null = no channel (the honest unavailable face).
+     */
+    data class GenerateOutcome(val message: String?, val refusal: String?)
+
+    suspend fun generateCommitMessageOutcome(includeUnstaged: Boolean): GenerateOutcome {
+        val message = generateCommitMessage(includeUnstaged)
+        return GenerateOutcome(message = message, refusal = null)
+    }
+
     /** Tier B: push (the confirm names the branch + ahead/behind first); null = refused. */
     suspend fun push(): com.zcode.android.domain.model.GitPushResult? = null
+
+    /**
+     * G53 (vc52 Phase 11): `getBranchComparison` — the base/head + per-file changes
+     * between the tracking branch and HEAD. null = the channel refused (the §13.3
+     * disabled state; N-BG-2 surfaces the reason on the UI).
+     */
+    suspend fun branchComparison(): com.zcode.android.domain.model.GitBranchComparison? = null
+
+    /** G53 plumbing: `getIgnoredPaths` — the subset of [paths] git ignores. */
+    suspend fun ignoredPaths(paths: List<String>): List<String>? = null
+
+    /** G53 plumbing: `getWorkspaceRepositoryInfo` — the repo layout kind. */
+    suspend fun repositoryInfo(): com.zcode.android.domain.model.GitRepositoryInfo? = null
 
     /** Tier B: the branch switcher; the result carries the TYPED issue map on refusal. */
     suspend fun switchBranch(targetBranchName: String): com.zcode.android.domain.model.GitBranchResult? = null

@@ -126,6 +126,16 @@ class DefaultGitPort(
     override suspend fun changes(sourceId: String): List<GitChangeEntry> =
         run("git.changes") { tools, wp, _ -> tools.gitChanges(wp, sourceId) } ?: emptyList()
 
+    /** G53 (vc52 Phase 11): the branch comparison — null on refusal (the typed reason rides the caller's surface). */
+    override suspend fun branchComparison(): com.zcode.android.domain.model.GitBranchComparison? =
+        run("git.branchComparison") { tools, wp, _ -> tools.gitBranchComparison(wp) }
+
+    override suspend fun ignoredPaths(paths: List<String>): List<String>? =
+        run("git.ignoredPaths") { tools, wp, _ -> tools.gitIgnoredPaths(wp, paths) }
+
+    override suspend fun repositoryInfo(): com.zcode.android.domain.model.GitRepositoryInfo? =
+        run("git.repositoryInfo") { tools, wp, _ -> tools.gitWorkspaceRepositoryInfo(wp) }
+
     override suspend fun diff(path: String, staged: Boolean?): GitFileDiff? = run("git.diff") { tools, wp, _ ->
         tools.gitDiff(wp, path, staged)
     }
@@ -220,10 +230,25 @@ class DefaultGitPort(
         writeOp("commit") { com.zcode.android.domain.model.GitCommitResult.decode(hub.activeTransport().gitCommit(it, message, null, stagedOnly)) }
 
     override suspend fun generateCommitMessage(includeUnstaged: Boolean): String? =
-        writeOp("genCommit") { o ->
-            val obj = hub.activeTransport().gitGenerateCommitMessage(o, includeUnstaged)
-            obj.rpStr("message") ?: obj.rpStr("commitMessage")
+        generateCommitMessageOutcome(includeUnstaged).message
+
+    /** N-BG-2 (vc52 Phase 11): the typed outcome — the channel refusal carries its reason. */
+    override suspend fun generateCommitMessageOutcome(includeUnstaged: Boolean): com.zcode.android.features.git.port.GitPort.GenerateOutcome {
+        val target = hub.activeWorkspaceTarget() ?: return com.zcode.android.features.git.port.GitPort.GenerateOutcome(null, null)
+        val workspacePath = target.first ?: return com.zcode.android.features.git.port.GitPort.GenerateOutcome(null, null)
+        return try {
+            val obj = hub.activeTransport().gitGenerateCommitMessage(workspacePath, includeUnstaged)
+            com.zcode.android.features.git.port.GitPort.GenerateOutcome(
+                message = obj.rpStr("message") ?: obj.rpStr("commitMessage"),
+                refusal = null,
+            )
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("git.genCommit", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            com.zcode.android.features.git.port.GitPort.GenerateOutcome(message = null, refusal = e.message ?: e.javaClass.simpleName)
         }
+    }
 
     override suspend fun push(): com.zcode.android.domain.model.GitPushResult? =
         writeOp("push") { com.zcode.android.domain.model.GitPushResult.decode(hub.activeTransport().gitPush(it)) }

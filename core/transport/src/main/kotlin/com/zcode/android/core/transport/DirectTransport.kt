@@ -902,6 +902,15 @@ class DirectTransport(
     override suspend fun gitCommitGraph(workspacePath: String, maxCount: Int, skip: Int): JsonObject =
         plane.gitCommitGraph(workspacePath, maxCount, skip)
 
+    override suspend fun gitBranchComparison(workspacePath: String): JsonObject =
+        plane.gitBranchComparison(workspacePath)
+
+    override suspend fun gitIgnoredPaths(workspacePath: String, paths: List<String>): JsonObject =
+        plane.gitIgnoredPaths(workspacePath, paths)
+
+    override suspend fun gitWorkspaceRepositoryInfo(workspacePath: String): JsonObject =
+        plane.gitWorkspaceRepositoryInfo(workspacePath)
+
     override suspend fun fileReaddir(path: String, includeHidden: Boolean): RpcValue =
         plane.fileReaddir(path, includeHidden)
 

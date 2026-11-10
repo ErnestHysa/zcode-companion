@@ -42,6 +42,36 @@ data class GitSummary(
     val isRepository: Boolean,
 )
 
+/**
+ * G53 (vc52 Phase 11) — the desktop's branch comparison (host/index.js
+ * `getBranchComparison`, byte-verified asar `12a2fc93…`): the tracking-branch
+ * base/head pair + the per-file numstat changes between base...HEAD.
+ * `comparisonLabel` renders verbatim ("branch -> tracking" / "HEAD -> tracking")
+ * and is null when the repo has no tracking branch (no comparison to show).
+ */
+data class GitBranchComparison(
+    val baseRef: String,
+    val headRef: String,
+    val comparisonLabel: String?,
+    val changes: List<GitBranchFileChange>,
+)
+
+data class GitBranchFileChange(
+    val path: String,
+    val originalPath: String?,
+    /** added | deleted | renamed | modified (the git numstat letter, kept raw). */
+    val kind: String,
+    val added: Long,
+    val removed: Long,
+)
+
+/** G53 plumbing: `getWorkspaceRepositoryInfo` → {kind: main-tree|linked-worktree|not-repository, isGitAvailable}. */
+data class GitRepositoryInfo(
+    val workspacePath: String?,
+    val kind: String,
+    val isGitAvailable: Boolean,
+)
+
 data class GitChangeEntry(
     val path: String,
     val repoRelativePath: String,

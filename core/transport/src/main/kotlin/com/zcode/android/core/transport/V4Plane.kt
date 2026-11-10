@@ -378,6 +378,10 @@ interface V4Plane {
     suspend fun gitChanges(workspacePath: String, sourceId: String): JsonObject
     suspend fun gitDiff(workspacePath: String, path: String, staged: Boolean?): JsonObject
     suspend fun gitCommitGraph(workspacePath: String, maxCount: Int, skip: Int): JsonObject
+    // G53 (vc52 Phase 11): the git-plane depth trio (read-only).
+    suspend fun gitBranchComparison(workspacePath: String): JsonObject
+    suspend fun gitIgnoredPaths(workspacePath: String, paths: List<String>): JsonObject
+    suspend fun gitWorkspaceRepositoryInfo(workspacePath: String): JsonObject
 
     /**
      * ADR-021 (gaps-and-polish Phase 5D, A3.17+J1.3): the git write tier — stage/unstage
@@ -1695,6 +1699,39 @@ internal class ChannelV4Plane(
 
     suspend fun gitRepositorySummary(workspacePath: String): JsonObject =
         gitCall("getRepositorySummary", buildJsonObject { put("workspacePath", JsonPrimitive(workspacePath)) })
+
+    /**
+     * G53 (vc52 Phase 11): `getBranchComparison {workspacePath}` — the desktop's
+     * base/head + per-file change comparison (byte-verified asar `12a2fc93…`:
+     * `{baseRef, headRef, comparisonLabel, changes: [{path, originalPath?, kind,
+     * added, removed}]}`). Read-only.
+     */
+    suspend fun gitBranchComparison(workspacePath: String): JsonObject =
+        gitCall("getBranchComparison", buildJsonObject { put("workspacePath", JsonPrimitive(workspacePath)) })
+
+    /**
+     * G53 plumbing: `getIgnoredPaths {workspacePath, paths[]}` → the ignored subset.
+     * The desktop returns a top-level STRING ARRAY (check-ignore's stdout) —
+     * normalized to {items:[…]} for the shared decoder (the getChanges pattern).
+     */
+    suspend fun gitIgnoredPaths(workspacePath: String, paths: List<String>): JsonObject {
+        val raw = channelCall("git", "getIgnoredPaths", RpcValue.Arr(listOf(RpcValue.Obj(buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspacePath))
+            put("paths", JsonArray(paths.map { JsonPrimitive(it) }))
+        }))), timeouts.controlRequestTimeoutMs)
+        return when (raw) {
+            is RpcValue.Obj -> raw.json as? JsonObject
+                ?: throw TransportFailure(ErrorMapping.protocolFault("git.getIgnoredPaths result not an object"))
+            is RpcValue.Arr -> buildJsonObject {
+                put("items", JsonArray(raw.items.mapNotNull { el -> (el as? RpcValue.Str)?.let { JsonPrimitive(it.value) } }))
+            }
+            else -> throw TransportFailure(ErrorMapping.protocolFault("git.getIgnoredPaths result not an object"))
+        }
+    }
+
+    /** G53 plumbing: `getWorkspaceRepositoryInfo {workspacePath}` → {kind, isGitAvailable}. */
+    suspend fun gitWorkspaceRepositoryInfo(workspacePath: String): JsonObject =
+        gitCall("getWorkspaceRepositoryInfo", buildJsonObject { put("workspacePath", JsonPrimitive(workspacePath)) })
 
     suspend fun gitChanges(workspacePath: String, sourceId: String): JsonObject {
         val raw = channelCall("git", "getChanges", RpcValue.Arr(listOf(RpcValue.Obj(buildJsonObject {

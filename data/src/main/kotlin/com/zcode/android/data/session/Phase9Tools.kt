@@ -7,7 +7,10 @@ import com.zcode.android.core.protocol.v4.AttachmentLimits
 import com.zcode.android.core.protocol.v4.FileChangesResult
 import com.zcode.android.core.protocol.v4.V4Attachment
 import com.zcode.android.core.transport.AppTransport
+import com.zcode.android.domain.model.GitBranchComparison
+import com.zcode.android.domain.model.GitBranchFileChange
 import com.zcode.android.domain.model.GitChangeEntry
+import com.zcode.android.domain.model.GitRepositoryInfo
 import com.zcode.android.domain.model.GitCommit
 import com.zcode.android.domain.model.GitFileDiff
 import com.zcode.android.domain.model.GitSummary
@@ -231,6 +234,44 @@ class Phase9Tools(private val transport: AppTransport) {
             isDirty = o.boolOr("isDirty"),
             isGitAvailable = o.boolOr("isGitAvailable"),
             isRepository = o.boolOr("isRepository"),
+        )
+    }
+
+    /** G53 (vc52 Phase 11): the branch-comparison decode (tolerant — a bad change row drops THAT row). */
+    suspend fun gitBranchComparison(workspacePath: String): GitBranchComparison {
+        val o = transport.gitBranchComparison(workspacePath)
+        val changes = (o["changes"] as? JsonArray)?.mapNotNull { el ->
+            val c = el as? JsonObject ?: return@mapNotNull null
+            GitBranchFileChange(
+                path = c.strOrNull("path") ?: return@mapNotNull null,
+                originalPath = c.strOrNull("originalPath"),
+                kind = c.strOrNull("kind") ?: "modified",
+                added = c.longOr("added"),
+                removed = c.longOr("removed"),
+            )
+        } ?: emptyList()
+        return GitBranchComparison(
+            baseRef = o.strOrNull("baseRef") ?: "",
+            headRef = o.strOrNull("headRef") ?: "HEAD",
+            comparisonLabel = o.strOrNull("comparisonLabel"),
+            changes = changes,
+        )
+    }
+
+    /** G53 plumbing: `getIgnoredPaths` → the subset of [paths] that is git-ignored. */
+    suspend fun gitIgnoredPaths(workspacePath: String, paths: List<String>): List<String> {
+        val o = transport.gitIgnoredPaths(workspacePath, paths)
+        return ((o["items"] as? JsonArray) ?: JsonArray(emptyList()))
+            .mapNotNull { (it as? JsonPrimitive)?.content }
+    }
+
+    /** G53 plumbing: `getWorkspaceRepositoryInfo` → {kind, isGitAvailable}. */
+    suspend fun gitWorkspaceRepositoryInfo(workspacePath: String): GitRepositoryInfo {
+        val o = transport.gitWorkspaceRepositoryInfo(workspacePath)
+        return GitRepositoryInfo(
+            workspacePath = o.strOrNull("workspacePath"),
+            kind = o.strOrNull("kind") ?: "not-repository",
+            isGitAvailable = o.boolOr("isGitAvailable"),
         )
     }
 

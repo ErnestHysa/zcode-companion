@@ -103,6 +103,10 @@ fun GitScreen(
     var gitBranches by remember { mutableStateOf<com.zcode.android.domain.model.GitBranchList?>(null) }
     var gitBranchIssue by remember { mutableStateOf<com.zcode.android.domain.model.GitBranchIssue?>(null) }
     var generating by remember { mutableStateOf(false) }
+    // N-BG-2 (vc52 Phase 11): the generate flow's typed outcome — the generated
+    // message lands in the sheet's field; a refusal renders inline.
+    var generatedMessage by remember { mutableStateOf<String?>(null) }
+    var generateRefusal by remember { mutableStateOf<String?>(null) }
     var pushFor by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
     var discardFor by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
     val notifierGit = com.zcode.android.core.ui.components.LocalNotifier.current
@@ -111,6 +115,17 @@ fun GitScreen(
     val discardOneCopy = stringResource(R.string.discard_done, 1)
     val switchedFmt = stringResource(R.string.branches_switched, "x")
     val generateUnavailableCopy = stringResource(R.string.commit_generate_unavailable)
+
+    // G53 (vc52 Phase 11): the comparison read — a refusal carries the typed reason
+    // (N-BG-2: the empty state NAMES it; never a silent no-op).
+    suspend fun fetchComparison() {
+        val comparison = runCatching { port.branchComparison() }
+        val error = comparison.exceptionOrNull()
+        ui = ui.copy(
+            comparison = comparison.getOrNull()?.takeIf { it.comparisonLabel != null },
+            comparisonError = error?.message ?: error?.javaClass?.simpleName,
+        )
+    }
 
     // B2.7: both datasets fetched through ONE path so the error state and the
     // Retry share it. A failure renders an error state — never a lying empty list.
@@ -134,10 +149,15 @@ fun GitScreen(
         }
         ui = ui.copy(summary = summary)
         fetchChanges()
+        val history = runCatching { port.commits(0, COMMIT_PAGE) }
+        val historyError = history.exceptionOrNull()
         ui = ui.copy(
-            commits = port.commits(0, COMMIT_PAGE)?.let { it.commits to it.hasMore }
+            commits = history.getOrNull()?.let { it.commits to it.hasMore }
                 ?: (emptyList<GitCommit>() to false),
+            historyError = historyError?.message ?: historyError?.javaClass?.simpleName,
         )
+        // G53 (vc52 Phase 11): the branch comparison hydrates with the rest of the panel.
+        fetchComparison()
     }
 
     // ONE scroll container: long change lists + an expanded inline diff must both
@@ -153,6 +173,7 @@ fun GitScreen(
                 if (summary != null && summary.isRepository) {
                     ui = ui.copy(summary = summary, unavailable = false)
                     fetchChanges()
+                    fetchComparison()
                 }
                 refreshing = false
             }
@@ -238,6 +259,68 @@ fun GitScreen(
                 }
             }
 
+            // G53 (vc52 Phase 11): the branch comparison — base/head + per-file changes
+            // (the desktop's getBranchComparison). A refusal renders the typed reason
+            // (N-BG-2); no tracking branch renders nothing (no comparison exists).
+            item(key = "git-branch-comparison") {
+                val comparison = ui.comparison
+                when {
+                    comparison != null -> Surface(tonalElevation = 1.dp) {
+                        Column(
+                            Modifier.fillMaxWidth().padding(10.dp).testTag("git_branch_comparison"),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            Text(
+                                comparison.comparisonLabel ?: "",
+                                style = MaterialTheme.typography.titleSmall,
+                                modifier = Modifier.testTag("git_comparison_label"),
+                            )
+                            Text(
+                                stringResource(R.string.git_comparison_files, comparison.changes.size),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            comparison.changes.forEach { change ->
+                                Row(
+                                    Modifier.fillMaxWidth().padding(vertical = 1.dp).testTag("git_comparison_file_${change.path}"),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Text(
+                                        change.path,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f, fill = false),
+                                    )
+                                    Text(
+                                        "+${change.added} −${change.removed}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    ui.comparisonError != null -> Surface(tonalElevation = 1.dp) {
+                        Column(
+                            Modifier.fillMaxWidth().padding(10.dp).testTag("git_comparison_error"),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
+                            Text(
+                                stringResource(R.string.git_comparison_unavailable),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            Text(
+                                ui.comparisonError.orEmpty(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    else -> Unit
+                }
+            }
+
             // ADR-021 Tier B: the write actions row (commit / branches) — dialog-gated.
             item(key = "git-write-actions") {
                 Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
@@ -299,6 +382,26 @@ fun GitScreen(
             item(key = "history-title") {
                 Text(stringResource(R.string.git_history_header), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             }
+            // N-BG-2 (vc52 Phase 11): a refused history read renders the reason — the
+            // tabs rendering EMPTY was the recorded silent-no-op face.
+            if (ui.commits.first.isEmpty() && ui.historyError != null) {
+                item(key = "history-error") {
+                    Column(
+                        Modifier.fillMaxWidth().padding(8.dp).testTag("git_history_error"),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text(
+                            stringResource(R.string.git_history_unavailable),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        Text(
+                            ui.historyError.orEmpty(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
                 items(ui.commits.first, key = { it.hash }) { commit ->
                     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                         Text(commit.subject, style = MaterialTheme.typography.bodyMedium, maxLines = 2)
@@ -346,13 +449,18 @@ fun GitScreen(
             onGenerate = {
                 scope.launch {
                     generating = true
+                    generateRefusal = null
                     try {
-                        port.generateCommitMessage(includeUnstaged = true)
+                        val outcome = port.generateCommitMessageOutcome(includeUnstaged = true)
+                        generatedMessage = outcome.message
+                        generateRefusal = outcome.refusal
                     } finally {
                         generating = false
                     }
                 }
             },
+            generatedMessage = generatedMessage,
+            generateRefusal = generateRefusal,
             onCommit = { message, includeUnstaged, andPush ->
                 showCommit = false
                 scope.launch {
@@ -733,6 +841,12 @@ private data class GitUiState(
     val unavailable: Boolean = false,
     /** B2.7: a changes() failure — rendered with a Retry; empty is never a lie. */
     val changesError: String? = null,
+    /** G53 (vc52 Phase 11): the branch comparison (null = refused/unavailable — the reason rides [comparisonError]). */
+    val comparison: com.zcode.android.domain.model.GitBranchComparison? = null,
+    /** N-BG-2: the comparison read's refusal reason (the honest empty-state face). */
+    val comparisonError: String? = null,
+    /** N-BG-2: the history read's refusal reason (the empty state NAMES it). */
+    val historyError: String? = null,
 )
 
 /**
