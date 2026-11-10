@@ -926,6 +926,60 @@ internal class ChannelV4Plane(
     fun subscriptionWorkspace(sessionId: String): Pair<String?, String?>? =
         synchronized(subscriptionWorkspaces) { subscriptionWorkspaces[sessionId] }
 
+    /**
+     * G43-P13 (vc52 Phase 11): the sessions-index RESYNC verb — the desktop serves
+     * `resyncSessionsIndexV4 {subscriptionId, base?, forceSnapshot?}` →
+     * `{ack: {subscriptionId, mode: snapshot|resume, logEpoch}}` (byte-verified asar
+     * `12a2fc93…`, request schema `A7e`). Reads the phone's record for the topic;
+     * null when never subscribed (nothing to resync — the caller re-subscribes).
+     */
+    suspend fun resyncSessionsIndex(workspacePath: String?, forceSnapshot: Boolean): SubscribeAck? {
+        val key = workspacePath
+            ?: throw TransportFailure(ErrorMapping.protocolFault("sessions-index resync without a workspace target"))
+        val topic = V4Topics.sessionsIndex(key)
+        val rec = synchronized(subscriptions) { subscriptions[topic] } ?: return null
+        val params = buildJsonObject {
+            put("subscriptionId", JsonPrimitive(rec.subscriptionId))
+            put("base", buildJsonObject {
+                put("logEpoch", JsonPrimitive(rec.logEpoch))
+                put("seq", JsonPrimitive(maxOf(rec.lastSeq, 0L)))
+            })
+            if (forceSnapshot) put("forceSnapshot", JsonPrimitive(true))
+        }
+        val raw = v4Call("resyncSessionsIndexV4", RpcValue.Obj(params))
+        val ackObj = ((raw as? RpcValue.Obj)?.json as? JsonObject)?.get("ack") as? JsonObject
+            ?: throw TransportFailure(ErrorMapping.protocolFault("sessions-index resync ack missing"))
+        val ack = SubscribeAck.decode(ackObj)
+        synchronized(subscriptions) {
+            subscriptions[topic] = SubscriptionRecord(ack.subscriptionId, ack.logEpoch, rec.lastSeq)
+        }
+        return ack
+    }
+
+    /** G43-P13: the workspace-config RESYNC verb — same shape as the index resync. */
+    suspend fun resyncWorkspaceConfig(workspacePath: String?, forceSnapshot: Boolean): SubscribeAck? {
+        val key = workspacePath
+            ?: throw TransportFailure(ErrorMapping.protocolFault("workspace-config resync without a workspace target"))
+        val topic = V4Topics.workspaceConfig(key)
+        val rec = synchronized(subscriptions) { subscriptions[topic] } ?: return null
+        val params = buildJsonObject {
+            put("subscriptionId", JsonPrimitive(rec.subscriptionId))
+            put("base", buildJsonObject {
+                put("logEpoch", JsonPrimitive(rec.logEpoch))
+                put("seq", JsonPrimitive(maxOf(rec.lastSeq, 0L)))
+            })
+            if (forceSnapshot) put("forceSnapshot", JsonPrimitive(true))
+        }
+        val raw = v4Call("resyncWorkspaceConfigV4", RpcValue.Obj(params))
+        val ackObj = ((raw as? RpcValue.Obj)?.json as? JsonObject)?.get("ack") as? JsonObject
+            ?: throw TransportFailure(ErrorMapping.protocolFault("workspace-config resync ack missing"))
+        val ack = SubscribeAck.decode(ackObj)
+        synchronized(subscriptions) {
+            subscriptions[topic] = SubscriptionRecord(ack.subscriptionId, ack.logEpoch, rec.lastSeq)
+        }
+        return ack
+    }
+
     fun subscriptionEpoch(sessionId: String): String? =
         synchronized(subscriptions) { subscriptions[V4Topics.conversation(sessionId)]?.logEpoch }
 

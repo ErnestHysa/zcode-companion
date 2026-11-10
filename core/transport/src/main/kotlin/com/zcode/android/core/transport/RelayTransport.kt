@@ -678,25 +678,51 @@ class RelayTransport(
                 // sessionId="workspace-config/…" and the desktop refused (sessionNotFound).
                 var replaced = false
                 for ((topic, rec) in plane.subscriptions.toList()) {
-                    val ack = when {
-                        topic.startsWith(V4Topics.WORKSPACE_CONFIG_PREFIX) -> plane.subscribeWorkspaceConfig(
-                            workspacePath = topic.removePrefix(V4Topics.WORKSPACE_CONFIG_PREFIX),
-                            workspaceIdentity = null,
+                    // G43-P13 (vc52 Phase 11): the index/config families RESYNC FIRST —
+                    // the desktop serves resyncSessionsIndexV4/resyncWorkspaceConfigV4 and
+                    // a bridge replay that kept the subscription owned preserves it
+                    // (no re-ownership churn); an unowned record falls back to the
+                    // re-subscribe (the live-proven path below).
+                    var ack: SubscribeAck? = null
+                    var resynced = false
+                    if (topic.startsWith(V4Topics.WORKSPACE_CONFIG_PREFIX) || topic.startsWith(V4Topics.SESSIONS_INDEX_PREFIX)) {
+                        val key = topic.removePrefix(
+                            if (topic.startsWith(V4Topics.WORKSPACE_CONFIG_PREFIX)) V4Topics.WORKSPACE_CONFIG_PREFIX
+                            else V4Topics.SESSIONS_INDEX_PREFIX,
                         )
-                        // G13: the index re-subscribes with ITS method (the old code sent
-                        // the whole topic as a sessionId — sessionNotFound guaranteed).
-                        topic.startsWith(V4Topics.SESSIONS_INDEX_PREFIX) -> plane.subscribeSessionsIndex(
-                            workspacePath = topic.removePrefix(V4Topics.SESSIONS_INDEX_PREFIX),
-                            workspaceIdentity = null,
-                        )
-                        else -> {
-                            val session = topic.removePrefix(V4Topics.CONVERSATION_PREFIX)
-                            subscribeSession(session, visibility = null)
+                        try {
+                            ack = if (topic.startsWith(V4Topics.WORKSPACE_CONFIG_PREFIX)) {
+                                plane.resyncWorkspaceConfig(key, forceSnapshot = false)
+                            } else {
+                                plane.resyncSessionsIndex(key, forceSnapshot = false)
+                            }
+                            resynced = ack != null
+                        } catch (e: TransportFailure) {
+                            bound().warn("relay.recovery.resyncFallback", "topic=${topic.take(48)}: ${e.message?.take(80)}")
                         }
                     }
+                    if (!resynced) {
+                        ack = when {
+                            topic.startsWith(V4Topics.WORKSPACE_CONFIG_PREFIX) -> plane.subscribeWorkspaceConfig(
+                                workspacePath = topic.removePrefix(V4Topics.WORKSPACE_CONFIG_PREFIX),
+                                workspaceIdentity = null,
+                            )
+                            // G13: the index re-subscribes with ITS method (the old code sent
+                            // the whole topic as a sessionId — sessionNotFound guaranteed).
+                            topic.startsWith(V4Topics.SESSIONS_INDEX_PREFIX) -> plane.subscribeSessionsIndex(
+                                workspacePath = topic.removePrefix(V4Topics.SESSIONS_INDEX_PREFIX),
+                                workspaceIdentity = null,
+                            )
+                            else -> {
+                                val session = topic.removePrefix(V4Topics.CONVERSATION_PREFIX)
+                                subscribeSession(session, visibility = null)
+                            }
+                        }
+                    }
+                    val resolved = ack ?: continue
                     // mode=snapshot (or a different epoch) means the projection must be
                     // atomically replaced (§15.5) — flagged for the recovery outcome.
-                    if (ack.mode == "snapshot" || ack.logEpoch != rec.logEpoch) replaced = true
+                    if (resolved.mode == "snapshot" || resolved.logEpoch != rec.logEpoch) replaced = true
                 }
                 if (machine.state == ConnectionStateMachine.ConnectionState.RECOVERING) {
                     machine.on(

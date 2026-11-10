@@ -422,6 +422,8 @@ class MockZCode(
         // ---------------- G48+G51 (vc52 Phase 11) the enforcing capability gate ----------------
         /** MOCK_ENFORCE_RUN_DELTAS: stream workflowRun deltas ONLY to clients that declared the bit. */
         @Volatile var enforceWorkflowRunDeltas: Boolean = false
+        /** G43-P13: a scripted resync fault (e.g. fault.subscription.notOwned) for the ladder's fallback face. */
+        @Volatile var resyncIndexFault: String? = null
         /** Scheduled workflowRun.updated/removed push delays (ms) — the rig's scripted stream. */
         @Volatile var runDeltaUpdateMs: Long = 4_000L
         @Volatile var runDeltaRemoveMs: Long = 14_000L
@@ -2515,6 +2517,38 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     }
                 }
             }
+            "resyncSessionsIndexV4", "resyncWorkspaceConfigV4" -> {
+                // G43-P13 (vc52 Phase 11): the index/config RESYNC verbs —
+                // {subscriptionId, base?, forceSnapshot?} → {ack: {subscriptionId, mode, logEpoch}}
+                // (byte-verified request schema A7e/ack fl on asar 12a2fc93…). The mock
+                // re-serves the CURRENT snapshot frame (the freshness receipt). A scripted
+                // fault (script.resyncIndexFault) serves the not-owned face so the ladder's
+                // re-subscribe fallback is drivable on the rig.
+                val params = argAsObject(arg) ?: return respondError(id, "fault.resync.params")
+                script.resyncIndexFault?.let { fault ->
+                    return respondError(id, fault)
+                }
+                val topic = if (name == "resyncSessionsIndexV4") {
+                    "sessions-index/${lastSubscribeWorkspacePath ?: workspace.workspacePath}"
+                } else {
+                    "workspace-config/${lastSubscribeWorkspacePath ?: workspace.workspacePath}"
+                }
+                val subId = if (topic.startsWith("sessions-index/")) "sub-mock-idx-${topic.hashCode()}" else "sub-mock-cfg-${topic.hashCode()}"
+                respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                    put("ack", buildJsonObject {
+                        put("subscriptionId", JsonPrimitive(subId))
+                        put("mode", JsonPrimitive("snapshot"))
+                        put("logEpoch", JsonPrimitive(if (topic.startsWith("sessions-index/")) "idx-epoch-mock-1" else "cfg-epoch-mock-1"))
+                    })
+                }))
+                if (topic.startsWith("sessions-index/")) {
+                    script.sessionsIndexSnapshot?.let { pushSessionsIndexFrame(topic, subId, snapshot = it, delta = null) }
+                } else {
+                    // G43: the config resync re-serves the workspace-config snapshot frame.
+                    val cfgTopic = topic
+                    pushWorkspaceConfigFrame(cfgTopic, subId, stateBlockForTest() ?: JsonObject(emptyMap()), delta = false)
+                }
+            }
             "unsubscribeConversationV4", "unsubscribeWorkspaceConfigV4", "unsubscribeSessionsIndexV4" -> {
                 // GAP-A3/G14: the phone's teardown words — acknowledged (the desktop
                 // releases its owned subscription; the mock records the call).
@@ -3608,6 +3642,9 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
     /** Phase 5: the ORDERED zcode-agent v4call ledger (method, params) — the rule-9 wire proof for every facade read. */
     private val v4CallLedger = ArrayList<Pair<String, JsonObject>>()
     fun v4CallsForTest(): List<Pair<String, JsonObject>> = synchronized(v4CallLedger) { ArrayList(v4CallLedger) }
+
+    /** Self-test/rig seam: clear the ordered v4call ledger (per-leg receipts). */
+    fun resetCallLedgerForTest() = synchronized(v4CallLedger) { v4CallLedger.clear() }
 
     private fun taskIdOf(task: JsonObject): String? = (task["taskId"] as? JsonPrimitive)?.content
 
