@@ -425,7 +425,9 @@ internal fun AutomationEditorDialog(
                 },
                 enabled = valid && !busy,
                 modifier = Modifier.testTag("automation_form_save"),
-            ) { Text(stringResource(R.string.create_confirm)) }
+            // N-BC-2 (vc52 Phase 10): the title switches Create/Save per mode — the
+            // button now does too (an EDIT said "Create" over an existing row).
+            ) { Text(stringResource(if (existing == null) R.string.create_confirm else R.string.automation_form_save)) }
         },
         dismissButton = {
             TextButton(onClick = { requestDismiss() }, modifier = Modifier.testTag("automation_form_cancel")) {

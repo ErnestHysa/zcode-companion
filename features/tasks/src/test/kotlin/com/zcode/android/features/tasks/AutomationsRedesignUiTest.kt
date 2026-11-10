@@ -34,6 +34,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
@@ -105,6 +106,8 @@ class AutomationsRedesignUiTest {
     private val notices = mutableListOf<String>()
     private val opened = mutableListOf<String>()
 
+    private val context get() = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+
     private fun setContent(port: AutomationsPort) {
         notices.clear(); opened.clear()
         rule.setContent {
@@ -117,6 +120,42 @@ class AutomationsRedesignUiTest {
 
     private fun openEditor(id: String) {
         rule.onNodeWithTag("automation_edit_$id").performClick(); rule.waitForIdle()
+    }
+
+    // ------------------------------------------------------------ N-BC-2 / N-BE-1
+
+    /**
+     * N-BC-2 (vc52 Phase 10): the EDIT dialog's confirm said "Create" while its TITLE
+     * switched per mode — a one-line string split; the button now follows the title.
+     */
+    @Test
+    fun `N-BC-2 - the edit dialog confirm reads Save; the create dialog reads Create`() {
+        val port = RecordingPort(listOf(row("c3", "0 9 * * *")))
+        setContent(port)
+        openEditor("c3")
+        rule.onNodeWithTag("automation_form_save").performScrollTo()
+            .assertTextContains(context.getString(com.zcode.android.features.tasks.R.string.automation_form_save))
+        // A NEW automation (no existing row) keeps "Create".
+        rule.onNodeWithTag("automations_new").performClick(); rule.waitForIdle()
+        rule.onNodeWithTag("automation_form_save").performScrollTo()
+            .assertTextContains(context.getString(com.zcode.android.features.tasks.R.string.create_confirm))
+    }
+
+    /**
+     * N-BE-1 (vc52 Phase 10): the daily-time hint said "local" while the cron runs on
+     * the DESKTOP clock — the phone in another zone wrote the wrong hour (the
+     * Europe/Dublin → Asia/Tokyo live receipt).
+     */
+    @Test
+    fun `N-BE-1 - the daily time hint names the DESKTOP clock, never local`() {
+        val port = RecordingPort(listOf(row("c4", "0 9 * * *")))
+        setContent(port)
+        openEditor("c4")
+        rule.onNodeWithTag("automation_form_save").performScrollTo() // open the form fully
+        rule.onNodeWithText(context.getString(com.zcode.android.features.tasks.R.string.automations_sched_daily_time))
+            .performScrollTo()
+            .assertTextContains("desktop clock")
+        rule.onNodeWithText("(24h, local)").assertDoesNotExist()
     }
 
     private fun save() { rule.onNodeWithTag("automation_form_save").performClick(); rule.waitForIdle() }

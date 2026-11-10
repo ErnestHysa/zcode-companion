@@ -1480,9 +1480,21 @@ fun PendingSendsStrip(
     }
 }
 
+/** N-BE-4: the notice CONTENT colour by kind — INFO is NOT an error. Pure + pinnable. */
+internal fun sendNoticeContentColor(kind: SendNotice.Kind, scheme: androidx.compose.material3.ColorScheme): androidx.compose.ui.graphics.Color =
+    when (kind) {
+        SendNotice.Kind.WARNING, SendNotice.Kind.ERROR -> scheme.onErrorContainer
+        SendNotice.Kind.INFO -> scheme.onSurfaceVariant
+    }
+
 /** §33 user copy for send outcomes; dismissible. */
 @Composable
-fun SendNoticeBar(notice: SendNotice, onDismiss: () -> Unit, modifier: Modifier = Modifier) {    Surface(
+fun SendNoticeBar(notice: SendNotice, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+    // N-BE-4 (vc52 Phase 10): the text + dismiss used onErrorContainer for EVERY
+    // kind — the INFO success "Trusted N hook(s)" rendered in error red on the
+    // neutral surface (GAP-A15 fixed the container only). Colour by KIND.
+    val contentColor = sendNoticeContentColor(notice.kind, MaterialTheme.colorScheme)
+    Surface(
         modifier = modifier.testTag("send_notice"),
         color = when (notice.kind) {
             SendNotice.Kind.WARNING -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
@@ -1495,11 +1507,11 @@ fun SendNoticeBar(notice: SendNotice, onDismiss: () -> Unit, modifier: Modifier 
             Text(
                 text = sendNoticeText(notice),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onErrorContainer,
+                color = contentColor,
                 modifier = Modifier.weight(1f),
             )
             IconButton(onClick = onDismiss, modifier = Modifier.testTag("send_notice_dismiss")) {
-                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.action_dismiss), tint = MaterialTheme.colorScheme.onErrorContainer)
+                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.action_dismiss), tint = contentColor)
             }
         }
     }

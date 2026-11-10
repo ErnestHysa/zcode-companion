@@ -39,6 +39,7 @@
     <string name="create_pick_workspace">Choose a workspace</string>
     <string name="create_hint">Describe the task — this starts the agent</string>
     <string name="create_confirm">Create</string>
+<string name="automation_form_save">Save</string>
     <string name="create_model_default">Model: workspace default</string>
     <!-- GAP-14: collapsible workspace groups. -->
     <string name="tasks_a11y_expand">expand</string>
@@ -63,7 +64,7 @@
     <string name="automations_sched_minutes">Every N minutes</string>
     <string name="automations_sched_daily">Daily</string>
     <string name="automations_sched_cron">Cron</string>
-    <string name="automations_sched_daily_time">HH:MM (24h, local)</string>
+    <string name="automations_sched_daily_time">HH:MM (24h, desktop clock)</string>
     <string name="automations_field_model">Model</string>
     <string name="automations_field_mode">Permission mode: %1$s</string>
     <string name="automation_run_now">Run now</string>
