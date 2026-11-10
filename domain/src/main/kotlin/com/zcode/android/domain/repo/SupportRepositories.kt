@@ -113,5 +113,21 @@ interface DraftRepository {
     suspend fun save(scope: DraftScope, text: String, atMs: Long)
     suspend fun clear(scope: DraftScope)
 
+    /**
+     * N-BH-2 (vc52 Phase 10): STAGED composer attachment refs ride the SAME draft
+     * row (the eager upload is server-side at Done). A text save must NEVER clobber
+     * the staged refs and vice versa (the GAP-A2 full-row-upsert clobber class).
+     */
+    data class StagedAttachment(
+        val uploadId: String,
+        val fileName: String,
+        val mime: String,
+        val bytes: Long,
+        val ref: String,
+    )
+
+    fun observeStaged(scope: DraftScope): Flow<List<StagedAttachment>>
+    suspend fun saveStaged(scope: DraftScope, list: List<StagedAttachment>, atMs: Long)
+
     data class DraftScope(val endpointId: EndpointId, val workspace: WorkspaceIdentityKey, val taskId: String)
 }

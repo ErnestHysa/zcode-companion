@@ -61,7 +61,7 @@ class MigrationHarnessTest {
             "direct-open-test.db",
         ).allowMainThreadQueries().build()
         db.openHelper.writableDatabase
-        assertEquals(4, db.openHelper.writableDatabase.version)
+        assertEquals(5, db.openHelper.writableDatabase.version)
         db.close()
     }
 
@@ -197,6 +197,55 @@ class MigrationHarnessTest {
         }
     }
 
+    /**
+     * N-BH-2 (vc52 Phase 10): migration 4 → 5 adds drafts.attachmentsJson without
+     * data loss — a pre-v5 draft row (text only) survives with a NULL column and a
+     * v5 row carries the staged refs verbatim; the full chain from v1 runs.
+     */
+    @Test
+    fun `migration 4 to 5 adds drafts attachmentsJson without data loss`() {
+        helper.createDatabase(DB_V45, 4).use { db ->
+            db.execSQL(
+                "INSERT INTO drafts (endpointId, workspaceKey, taskId, text, updatedAtMs) VALUES " +
+                    "('ep','ws','t1','draft survives',1)",
+            )
+        }
+        helper.runMigrationsAndValidate(DB_V45, 5, true, ZcodeDatabase.MIGRATION_4_5).use { db ->
+            db.query("SELECT taskId, text, attachmentsJson FROM drafts").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("t1", cursor.getString(0))
+                assertEquals("draft survives", cursor.getString(1))
+                assertTrue(cursor.isNull(2), "pre-v5 rows carry no staged refs (NULL column)")
+            }
+            db.execSQL(
+                "INSERT INTO drafts (endpointId, workspaceKey, taskId, text, updatedAtMs, attachmentsJson) VALUES " +
+                    "('ep','ws','t2','with refs',2,'[{\"uploadId\":\"u1\",\"fileName\":\"sketch-1.png\",\"mime\":\"image/png\",\"bytes\":8400,\"ref\":\"att-ref-1\"}]')",
+            )
+            db.query("SELECT attachmentsJson FROM drafts WHERE taskId = 't2'").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertTrue(cursor.getString(0).contains("\"att-ref-1\""))
+            }
+        }
+    }
+
+    @Test
+    fun `the full chain from a frozen v1 export runs to v5 with drafts intact`() {
+        helper.createDatabase(DB_V15, 1).use { db ->
+            db.execSQL(
+                "INSERT INTO drafts (endpointId, workspaceKey, taskId, text, updatedAtMs) VALUES " +
+                    "('ep','ws','t1','draft survives',1)",
+            )
+        }
+        helper.runMigrationsAndValidate(DB_V15, 5, true, *ZcodeDatabase.ALL_MIGRATIONS).use { db ->
+            db.query("SELECT taskId, text, attachmentsJson FROM drafts").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("t1", cursor.getString(0))
+                assertEquals("draft survives", cursor.getString(1))
+                assertTrue(cursor.isNull(2))
+            }
+        }
+    }
+
     companion object {
         private const val DB = "migration-test.db"
         private const val DB_V12 = "migration-v1-2.db"
@@ -204,5 +253,7 @@ class MigrationHarnessTest {
         private const val DB_V13 = "migration-v1-3.db"
         private const val DB_V34 = "migration-v3-4.db"
         private const val DB_V14 = "migration-v1-4.db"
+        private const val DB_V45 = "migration-v4-5.db"
+        private const val DB_V15 = "migration-v1-5.db"
     }
 }

@@ -407,6 +407,7 @@ class DefaultConversationPort(
                 if (ready.isNotEmpty()) {
                     composerAttachments.value = composerAttachments.value +
                         (taskId to composerAttachments.value[taskId].orEmpty().filterNot { a -> ready.any { r -> r.uploadId == a.uploadId } })
+                    persistStagedRefs(taskId) // N-BH-2: the send consumed them — the draft row must not re-serve them
                 }
                 ConversationPort.SendOutcome.ACCEPTED
             }
@@ -1005,7 +1006,37 @@ class DefaultConversationPort(
     private val composerAttachments = MutableStateFlow<Map<String, List<ConversationPort.ComposerAttachment>>>(emptyMap())
 
     override fun observeComposerAttachments(taskId: String): Flow<List<ConversationPort.ComposerAttachment>> =
-        composerAttachments.map { it[taskId] ?: emptyList() }
+        kotlinx.coroutines.flow.flow {
+            // N-BH-2: process death lost the in-memory chips but the READY refs ride
+            // the draft row — restore them ONCE per process (a later explicit removal
+            // writes a non-null entry, which never re-seeds).
+            seedStagedFromDraft(taskId)
+            composerAttachments.map { m -> m[taskId] ?: emptyList() }.collect { emit(it) }
+        }
+
+    /** N-BH-2: restore READY staged refs from the draft row (once per process). */
+    private suspend fun seedStagedFromDraft(taskId: String) {
+        if (composerAttachments.value[taskId] != null) return
+        val scope = draftScope(taskId) ?: return
+        val refs = runCatching { hub.draftRepository().observeStaged(scope).firstOrNull() }.getOrNull() ?: return
+        for (r in refs) {
+            upsertAttachment(
+                taskId,
+                ConversationPort.ComposerAttachment(r.uploadId, r.fileName, r.mime, r.bytes, "ready", 1f, r.ref),
+            )
+        }
+        if (refs.isNotEmpty()) hub.log.info("port.stagedRestore", "task=$taskId refs=${refs.size}")
+    }
+
+    /** N-BH-2: mirror the READY staged refs into the draft row (the chips survive process death). */
+    private suspend fun persistStagedRefs(taskId: String) {
+        val scope = draftScope(taskId) ?: return
+        val refs = composerAttachments.value[taskId].orEmpty()
+            .filter { it.state == "ready" && it.ref != null }
+            .map { com.zcode.android.domain.repo.DraftRepository.StagedAttachment(it.uploadId, it.fileName, it.mime, it.bytes, it.ref!!) }
+        runCatching { hub.draftRepository().saveStaged(scope, refs, System.currentTimeMillis()) }
+            .onFailure { hub.log.warn("port.stagedPersist", "task=$taskId ${it.javaClass.simpleName}") }
+    }
 
     private fun upsertAttachment(taskId: String, att: ConversationPort.ComposerAttachment) {
         val current = composerAttachments.value[taskId] ?: emptyList()
@@ -1050,6 +1081,7 @@ class DefaultConversationPort(
             when (val begin = tools.attachmentBegin(uploadId, taskId, fileName, mime, bytes.size.toLong(), checksum, workspacePath, workspaceIdentity)) {
                 is com.zcode.android.core.protocol.v4.V4Attachment.BeginResult.Committed -> {
                     upsertAttachment(taskId, ConversationPort.ComposerAttachment(uploadId, fileName, mime, bytes.size.toLong(), "ready", 1f, begin.ref))
+                    persistStagedRefs(taskId)
                     ConversationPort.UploadResult.Committed(begin.ref, bytes.size.toLong())
                 }
                 is com.zcode.android.core.protocol.v4.V4Attachment.BeginResult.Staging -> {
@@ -1068,6 +1100,7 @@ class DefaultConversationPort(
                     }
                     val ref = tools.attachmentCommit(uploadId, taskId)
                     upsertAttachment(taskId, ConversationPort.ComposerAttachment(uploadId, fileName, mime, bytes.size.toLong(), "ready", 1f, ref))
+                    persistStagedRefs(taskId)
                     ConversationPort.UploadResult.Committed(ref, bytes.size.toLong())
                 }
             }
@@ -1112,6 +1145,8 @@ class DefaultConversationPort(
         if (entry != null) {
             composerAttachments.value = composerAttachments.value +
                 (entry.key to entry.value.filterNot { it.uploadId == uploadId })
+            // N-BH-2: an explicit chip removal must not come back from the draft row.
+            persistStagedRefs(entry.key)
         }
     }
 

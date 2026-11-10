@@ -152,4 +152,13 @@ data class DraftEntity(
     val taskId: String,
     val text: String,
     val updatedAtMs: Long,
+    /**
+     * N-BH-2 (vc52 Phase 10): STAGED composer attachment refs ride the draft row —
+     * the eager upload is already server-side at Done, so after process death the
+     * chip restores from these refs instead of orphaning the upload (the recorded
+     * kill -9 receipt: the text draft survived, the staged sketch chip did not).
+     * JSON array of {uploadId, fileName, mime, bytes, ref}; READY refs only —
+     * in-flight uploads are reaped by the desktop's staging TTL.
+     */
+    val attachmentsJson: String? = null,
 )

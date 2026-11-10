@@ -80,8 +80,12 @@ internal class InMemoryOutboxRepository(
 
 internal class InMemoryDraftRepository : DraftRepository {
     private val flows = HashMap<Triple<String, String, String>, MutableStateFlow<String?>>()
+    private val staged = HashMap<Triple<String, String, String>, MutableStateFlow<List<DraftRepository.StagedAttachment>>>()
     private fun flowOf(scope: DraftRepository.DraftScope) =
         flows.getOrPut(scope.key()) { MutableStateFlow(null) }
+
+    private fun stagedFlowOf(scope: DraftRepository.DraftScope) =
+        staged.getOrPut(scope.key()) { MutableStateFlow(emptyList()) }
 
     override fun observe(scope: DraftRepository.DraftScope): Flow<String?> = flowOf(scope)
 
@@ -91,6 +95,17 @@ internal class InMemoryDraftRepository : DraftRepository {
 
     override suspend fun clear(scope: DraftRepository.DraftScope) {
         flowOf(scope).value = null
+        stagedFlowOf(scope).value = emptyList()
+    }
+
+    // N-BH-2 (vc52 Phase 10): staged refs share the fake's store (the clobber
+    // contract: a text save never touches them and vice versa — mirrors the real
+    // read-modify-write rows).
+    override fun observeStaged(scope: DraftRepository.DraftScope): Flow<List<DraftRepository.StagedAttachment>> =
+        stagedFlowOf(scope)
+
+    override suspend fun saveStaged(scope: DraftRepository.DraftScope, list: List<DraftRepository.StagedAttachment>, atMs: Long) {
+        stagedFlowOf(scope).value = list
     }
 
     private fun DraftRepository.DraftScope.key() = Triple(endpointId.raw, workspace.raw, taskId)

@@ -19,7 +19,7 @@ import androidx.room.RoomDatabase
  * which is what every pre-v4 row was).
  */
 @Database(
-    version = 4,
+    version = 5,
     exportSchema = true,
     entities = [
         TaskEntity::class,
@@ -66,7 +66,14 @@ abstract class ZcodeDatabase : RoomDatabase() {
             }
         }
 
+        /** v4 → v5 (N-BH-2, vc52 Phase 10): drafts.attachmentsJson — additive, null-safe. */
+        val MIGRATION_4_5 = object : androidx.room.migration.Migration(4, 5) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE drafts ADD COLUMN attachmentsJson TEXT")
+            }
+        }
+
         /** Every forward migration, in order — the one list the app builder registers. */
-        val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+        val ALL_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
     }
 }
