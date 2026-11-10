@@ -153,6 +153,13 @@ interface OutboxDao {
 
     @Query("SELECT COUNT(*) FROM outbox WHERE endpointId = :endpointId AND state = :state")
     suspend fun countByState(endpointId: String, state: String): Int
+
+    /** N-BE-2: purge terminal rows (full payloads at rest) past the retention window. */
+    @Query(
+        "DELETE FROM outbox WHERE endpointId = :endpointId AND state IN " +
+            "('ACKED','FAILED_TERMINAL','FAILED_STALE','EXPIRED') AND lastTransitionAtMs < :cutoffMs",
+    )
+    suspend fun deleteTerminalBefore(endpointId: String, cutoffMs: Long): Int
 }
 
 @Dao

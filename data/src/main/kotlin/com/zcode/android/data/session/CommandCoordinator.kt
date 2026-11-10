@@ -503,8 +503,12 @@ class CommandCoordinator(
             transmitPending(entry.commandId, entry.type, entry.sessionId, payload)
         }
         val expired = outbox.sweepExpired(endpointId, clock())
-        if (live.isNotEmpty() || expired > 0) {
-            log.info("command.recoveryPass", "retransmitted=${live.count { CommandRetryClassifier.canAutoRetry(it.type, it.state) }} expired=$expired")
+        // N-BE-2 (vc52 Phase 10): terminal rows (ACKED/FAILED_TERMINAL/FAILED_STALE/
+        // EXPIRED) carried the FULL payload (every prompt's text) forever — purge them
+        // past the retention window on the same pass that expires live rows.
+        val purged = outbox.sweepTerminal(endpointId, clock())
+        if (live.isNotEmpty() || expired > 0 || purged > 0) {
+            log.info("command.recoveryPass", "retransmitted=${live.count { CommandRetryClassifier.canAutoRetry(it.type, it.state) }} expired=$expired purgedTerminal=$purged")
         }
     }
 

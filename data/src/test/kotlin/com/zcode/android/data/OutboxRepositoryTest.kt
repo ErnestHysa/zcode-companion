@@ -114,6 +114,55 @@ class OutboxRepositoryTest {
         assertEquals(OutboxStateMachine.State.ACKED, repo.get(acked)?.state)
     }
 
+    // ---------------------------------------------------------------- N-BE-2
+
+    /**
+     * N-BE-2 (vc52 Phase 10): terminal rows (ACKED / FAILED_TERMINAL / FAILED_STALE /
+     * EXPIRED) carried the FULL payload (every prompt's text) at rest forever — the
+     * recorded receipt was 167 rows in 3 days of rig use with NO delete query
+     * anywhere. After the retention window they are purged; live rows of ANY age and
+     * fresh terminal rows survive (INV-4: live rows are untouchable; the journal's
+     * pendingOutbox projection reads only live states).
+     */
+    @Test
+    fun `terminal sweep purges old terminal rows and keeps live ones (N-BE-2)`() = runTest {
+        val liveOld = repo.accept(ep, null, "sendText", """{"text":"still pending"}""", null, null, issuedAtMs = 0)
+        val ackedOld = repo.accept(ep, null, "sendText", """{"text":"prompt body at rest"}""", null, null, issuedAtMs = 1_000)
+        repo.apply(ackedOld, OutboxStateMachine.Event.Transmit, 1_100)
+        repo.apply(ackedOld, OutboxStateMachine.Event.Ack("accepted"), 1_200)
+        val failedOld = repo.accept(ep, null, "stop", """{"text":"lost"}""", null, null, issuedAtMs = 2_000)
+        repo.apply(failedOld, OutboxStateMachine.Event.Transmit, 2_100)
+        repo.apply(failedOld, OutboxStateMachine.Event.Ack("failed"), 2_200) // FAILED_TERMINAL
+        // "Fresh" = terminal AFTER the sweep's cutoff (nowMs - ttl = 5_000 here).
+        val ackedFresh = repo.accept(ep, null, "stop", "{}", null, null, issuedAtMs = 5_000)
+        repo.apply(ackedFresh, OutboxStateMachine.Event.Transmit, 5_100)
+        repo.apply(ackedFresh, OutboxStateMachine.Event.Ack("accepted"), 5_200)
+
+        val now = OutboxStateMachine.TERMINAL_RETENTION_MS + 5_000
+        val purged = repo.sweepTerminal(ep, nowMs = now)
+        assertEquals(2, purged, "the two OLD terminal rows are purged")
+        assertNull(repo.get(ackedOld), "the old ACKED row (full prompt text) is gone")
+        assertNull(repo.get(failedOld), "the old FAILED_TERMINAL row is gone")
+        assertNotNull(repo.get(liveOld), "an OLD LIVE row survives — INV-4 untouchable")
+        assertNotNull(repo.get(ackedFresh), "a fresh terminal row survives the window")
+        assertEquals(
+            0,
+            repo.sweepTerminal(ep, nowMs = now),
+            "the sweep is idempotent — a second pass purges nothing",
+        )
+    }
+
+    @Test
+    fun `expired rows purge after retention too (N-BE2 - no prompt text lingers)`() = runTest {
+        val live = repo.accept(ep, null, "sendText", """{"text":"never acked"}""", null, null, issuedAtMs = 1_000)
+        repo.sweepExpired(ep, nowMs = 25 * 60 * 60 * 1000 + 2_000) // EXPIRED at t≈+1d
+        assertEquals(OutboxStateMachine.State.EXPIRED, repo.get(live)?.state)
+        // One second past the exact boundary — the expiry stamp was 25h+2s.
+        val purged = repo.sweepTerminal(ep, nowMs = 25 * 60 * 60 * 1000 + 3_000 + OutboxStateMachine.TERMINAL_RETENTION_MS)
+        assertEquals(1, purged, "the expired row's payload does not linger past retention")
+        assertNull(repo.get(live))
+    }
+
     @Test
     fun `pendingRefs project the journal pendingOutbox (15-4)`() = runTest {
         val a = repo.accept(ep, null, "sendText", "{}", null, null, 1)

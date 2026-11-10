@@ -612,6 +612,7 @@ private class InMemoryTestOutbox : com.zcode.android.domain.repo.OutboxRepositor
     var minted = 0
         private set
 
+    override suspend fun sweepTerminal(endpointId: com.zcode.android.domain.ids.EndpointId, nowMs: Long, ttlMs: Long): Int = 0
     override fun observePending(endpointId: EndpointId) = kotlinx.coroutines.flow.flowOf(
         rows.map { (id, r) ->
             com.zcode.android.domain.outbox.OutboxEntry(

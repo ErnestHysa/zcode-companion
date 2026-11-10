@@ -39,6 +39,7 @@ class CommandCoordinatorQueueTest {
 
     private class FakeOutbox : OutboxRepository {
         val entries = LinkedHashMap<String, com.zcode.android.domain.outbox.OutboxEntry>()
+        override suspend fun sweepTerminal(endpointId: com.zcode.android.domain.ids.EndpointId, nowMs: Long, ttlMs: Long): Int = 0
         override suspend fun accept(endpointId: EndpointId, sessionId: String?, type: String, payloadJson: String, baseRevision: Long?, baseLogEpoch: String?, issuedAtMs: Long): CommandId {
             val id = CommandId("cmd-q-${entries.size + 1}")
             entries[id.raw] = com.zcode.android.domain.outbox.OutboxEntry(

@@ -55,6 +55,7 @@ class CommandCoordinatorEditTest {
     private class FakeOutbox : OutboxRepository {
         val entries = LinkedHashMap<String, com.zcode.android.domain.outbox.OutboxEntry>()
 
+        override suspend fun sweepTerminal(endpointId: com.zcode.android.domain.ids.EndpointId, nowMs: Long, ttlMs: Long): Int = 0
         override suspend fun accept(
             endpointId: EndpointId,
             sessionId: String?,

@@ -139,6 +139,16 @@ class OutboxStateMachine private constructor(private var state: State) {
         /** §7.4.5 commandAck statuses — dedupe table reference for repositories. */
         val ACKED_STATUSES = setOf("accepted", "duplicate", "noop")
         const val SERVER_TTL_MS: Long = 24 * 60 * 60 * 1000L // verified commandPendingTtlMs
+        /**
+         * N-BE-2 (vc52 Phase 10): terminal rows (ACKED / FAILED_TERMINAL /
+         * FAILED_STALE / EXPIRED) carry the FULL payload (every prompt's text) at
+         * rest — the recorded receipt was 167 rows in 3 days of rig use with no
+         * delete query anywhere. After this retention window they are PURGED: the
+         * machine re-enters nothing from a terminal row (INV-4 keeps live rows
+         * untouchable; the journal's pendingOutbox projection reads only live
+         * states). Matches the expired-row semantics window.
+         */
+        const val TERMINAL_RETENTION_MS: Long = SERVER_TTL_MS
     }
 }
 

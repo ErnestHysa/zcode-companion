@@ -84,6 +84,10 @@ interface OutboxRepository {
     /** TTL sweep (§17.5: 24 h verified server TTL). Returns expired count. */
     suspend fun sweepExpired(endpointId: EndpointId, nowMs: Long, ttlMs: Long = OutboxStateMachine.SERVER_TTL_MS): Int
 
+    /** N-BE-2: purge TERMINAL rows (ACKED/FAILED_TERMINAL/FAILED_STALE/EXPIRED) past
+     *  the retention window — full payloads never linger at rest. Returns purged count. */
+    suspend fun sweepTerminal(endpointId: EndpointId, nowMs: Long, ttlMs: Long = OutboxStateMachine.TERMINAL_RETENTION_MS): Int
+
     /** Entries awaiting authoritative outcome (journal pendingOutbox projection). */
     suspend fun pendingRefs(endpointId: EndpointId): List<com.zcode.android.domain.journal.RecoveryJournal.PendingCommandRef>
 

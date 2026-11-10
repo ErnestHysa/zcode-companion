@@ -88,6 +88,9 @@ class OutboxRepositoryImpl(
     override suspend fun sweepExpired(endpointId: EndpointId, nowMs: Long, ttlMs: Long): Int =
         dao.expireOlderThan(endpointId.raw, nowMs - ttlMs, nowMs)
 
+    override suspend fun sweepTerminal(endpointId: EndpointId, nowMs: Long, ttlMs: Long): Int =
+        dao.deleteTerminalBefore(endpointId.raw, nowMs - ttlMs)
+
     override suspend fun pendingRefs(endpointId: EndpointId): List<RecoveryJournal.PendingCommandRef> =
         dao.liveList(endpointId.raw).map {
             RecoveryJournal.PendingCommandRef(

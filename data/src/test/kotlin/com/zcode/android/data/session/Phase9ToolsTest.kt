@@ -559,6 +559,7 @@ class Phase9ToolsTest {
         val types = mutableListOf<String>()
         var nextId = 1
         val entries = LinkedHashMap<String, com.zcode.android.domain.outbox.OutboxEntry>()
+        override suspend fun sweepTerminal(endpointId: com.zcode.android.domain.ids.EndpointId, nowMs: Long, ttlMs: Long): Int = 0
         override fun observePending(endpointId: EndpointId) =
             kotlinx.coroutines.flow.flowOf(entries.values.toList())
         override suspend fun accept(

@@ -53,6 +53,7 @@ class CommandCoordinatorContextRefsTest {
         override suspend fun apply(commandId: CommandId, event: OutboxStateMachine.Event, atMs: Long): OutboxEntry? = null
         override suspend fun get(commandId: CommandId): OutboxEntry? = null
         override suspend fun sweepExpired(endpointId: EndpointId, nowMs: Long, ttlMs: Long): Int = 0
+        override suspend fun sweepTerminal(endpointId: com.zcode.android.domain.ids.EndpointId, nowMs: Long, ttlMs: Long): Int = 0
         override suspend fun pendingRefs(endpointId: EndpointId): List<RecoveryJournal.PendingCommandRef> = emptyList()
         override suspend fun countByState(endpointId: EndpointId, state: OutboxStateMachine.State): Int = 0
     }
