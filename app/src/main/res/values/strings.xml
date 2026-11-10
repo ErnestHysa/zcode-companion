@@ -50,6 +50,7 @@
 
     <!-- Deep-link toasts (§24.7 stale-safe legs). -->
     <string name="deeplink_task_gone">That task is no longer available on the desktop</string>
+<string name="deeplink_rejected">That link isn’t valid — nothing was opened.</string>
     <string name="deeplink_wrong_endpoint">That task belongs to a different paired desktop</string>
 
     <!-- Pending-approvals Glance widget (§43.2-11.4; reads broker state only). -->

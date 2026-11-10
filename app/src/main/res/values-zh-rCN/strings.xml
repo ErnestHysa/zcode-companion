@@ -47,6 +47,7 @@
     <string name="nav_terminal_title">终端</string>
 
     <string name="deeplink_task_gone">该任务在桌面端已不存在</string>
+<string name="deeplink_rejected">该链接无效，未打开任何内容。</string>
     <string name="deeplink_wrong_endpoint">该任务属于另一个已配对的桌面端</string>
 
     <string name="widget_approvals_title">待审批</string>

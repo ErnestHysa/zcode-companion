@@ -104,6 +104,67 @@ class DeepLinkIntakeTest {
 
     // ---------------------------------------------------------------- lifecycle
 
+    // ---------------------------------------------------------------- N-BI-4
+
+    /** The EXACT pass-37 fuzz set — each shape was a silent no-op before N-BI-4. */
+    private val fuzz = mapOf(
+        "zcode://task/" to "empty-task-id",
+        "zcode://task/%20" to "blank-task-id",
+        "zcode://task/../../etc" to "extra-path-segments",
+        "zcode://unknownhost/x" to "unknown-host",
+    )
+
+    private fun view(uri: String): Intent = Intent(Intent.ACTION_VIEW, Uri.parse(uri))
+
+    @Test
+    fun `N-BI-4 - every recorded fuzz shape REJECTS with a typed reason`() {
+        for ((uri, reason) in fuzz) {
+            val verdict = DeepLinks.classify(view(uri))
+            assertTrue("the shape must be REJECTED: $uri", verdict is DeepLinks.Verdict.Rejected)
+            assertEquals(reason, (verdict as DeepLinks.Verdict.Rejected).reason)
+        }
+    }
+
+    @Test
+    fun `N-BI-4 - a html-injected query and a bogus fragment still route, never crash`() {
+        // Valid task ids with junk queries: ACCEPTED (query ignored by intake).
+        val injected = DeepLinks.classify(view("zcode://task/synth-task-1?x=<b>bold</b>"))
+        assertTrue(injected is DeepLinks.Verdict.Accepted)
+        val bogusFragment = DeepLinks.classify(view("zcode://task/synth-task-1#bogus"))
+        assertTrue(bogusFragment is DeepLinks.Verdict.Accepted)
+    }
+
+    @Test
+    fun `N-BI-4 - a connection link with extra path rejects, bare connection accepts`() {
+        assertEquals(
+            "connection-with-path",
+            (DeepLinks.classify(view("zcode://connection/extra")) as DeepLinks.Verdict.Rejected).reason,
+        )
+        assertTrue(DeepLinks.classify(view("zcode://connection")) is DeepLinks.Verdict.Accepted)
+    }
+
+    @Test
+    fun `N-BI-4 - non-zcode and non-VIEW intents are NOT links (a launcher start never toasts)`() {
+        assertEquals(DeepLinks.Verdict.NotALink, DeepLinks.classify(view("https://example.com/task/x")))
+        assertEquals(DeepLinks.Verdict.NotALink, DeepLinks.classify(null as Intent?))
+        assertEquals(DeepLinks.Verdict.NotALink, DeepLinks.classify(Intent(Intent.ACTION_MAIN)))
+    }
+
+    @Test
+    fun `N-BI-4 - a valid task id still ACCEPTS (routing unchanged)`() {
+        val verdict = DeepLinks.classify(view("zcode://task/synth-task-1#interaction=i-9"))
+        val candidate = (verdict as DeepLinks.Verdict.Accepted).candidate
+        assertTrue(candidate is DeepLinks.Candidate.Task)
+        assertEquals("synth-task-1", (candidate as DeepLinks.Candidate.Task).taskId)
+        assertEquals("i-9", candidate.interactionId)
+    }
+
+    @Test
+    fun `N-BI-4 - an over-long task id rejects with the typed reason`() {
+        val verdict = DeepLinks.classify(view("zcode://task/" + "x".repeat(600)))
+        assertEquals("task-id-too-long", (verdict as DeepLinks.Verdict.Rejected).reason)
+    }
+
     @Test
     fun `pending link holds until consumed - unpaired revalidation shape`() {
         val pending = PendingDeepLink()

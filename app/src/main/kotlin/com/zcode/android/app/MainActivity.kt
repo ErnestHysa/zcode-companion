@@ -308,6 +308,20 @@ class MainActivity : FragmentActivity() {
     }
 
     internal fun handleDeepLink(intent: Intent?) {
+        // N-BI-4 (vc52 Phase 10): a malformed zcode:// link was a SILENT no-op — no
+        // navigation, no toast, no ring line. Routing stays fail-closed; the user
+        // gets one honest toast and the ring gets one line.
+        val verdict = com.zcode.android.app.notifications.DeepLinks.classify(intent)
+        if (verdict is com.zcode.android.app.notifications.DeepLinks.Verdict.Rejected) {
+            container.log.warn(
+                "nav.deeplink.rejected",
+                "reason=${verdict.reason} uri=${intent?.data?.toString()?.take(120)}",
+            )
+            runCatching {
+                android.widget.Toast.makeText(this, R.string.deeplink_rejected, android.widget.Toast.LENGTH_LONG).show()
+            }
+            return
+        }
         when (val candidate = com.zcode.android.app.notifications.DeepLinks.intake(intent)) {
             is com.zcode.android.app.notifications.DeepLinks.Candidate.Task ->
                 container.notifications.offerDeepLink(candidate.taskId, candidate.interactionId)

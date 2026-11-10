@@ -28,6 +28,39 @@ object DeepLinks {
         return intake(intent.data)
     }
 
+    /**
+     * N-BI-4 (vc52 Phase 10): the intake VERDICT — a `zcode://` VIEW intent that
+     * fails the parse is a REJECTED link (the user tapped something broken: a
+     * widget, a share, a browser link) and deserves feedback; a non-zcode / non-VIEW
+     * intent is simply not a link (a launcher start must never toast). Routing is
+     * unchanged — [intake] still decides what is offered.
+     */
+    sealed interface Verdict {
+        data class Accepted(val candidate: Candidate) : Verdict
+        data class Rejected(val reason: String) : Verdict
+        data object NotALink : Verdict
+    }
+
+    fun classify(intent: Intent?): Verdict {
+        if (intent == null || intent.action != Intent.ACTION_VIEW) return Verdict.NotALink
+        return classify(intent.data)
+    }
+
+    fun classify(data: Uri?): Verdict {
+        if (data == null || data.scheme != SCHEME) return Verdict.NotALink
+        intake(data)?.let { return Verdict.Accepted(it) }
+        val reason = when {
+            data.host == HOST_CONNECTION -> "connection-with-path"
+            data.host != HOST -> "unknown-host"
+            data.pathSegments.isNullOrEmpty() -> "empty-task-id"
+            data.pathSegments!!.size > 1 -> "extra-path-segments"
+            data.pathSegments!!.first().isBlank() -> "blank-task-id"
+            data.pathSegments!!.first().length > 512 -> "task-id-too-long"
+            else -> "malformed"
+        }
+        return Verdict.Rejected(reason)
+    }
+
     fun intake(data: Uri?): Candidate? {
         if (data == null) return null
         if (data.scheme != SCHEME) return null
