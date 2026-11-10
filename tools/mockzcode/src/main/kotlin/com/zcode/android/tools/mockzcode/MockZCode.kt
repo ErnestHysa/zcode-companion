@@ -1065,6 +1065,8 @@ class MockZCode(
     // ------------------------------------------------------------------ channel (v4)
 
     @Volatile private var conversationListenerId: Int? = null
+    /** G64 (vc52 Phase 11): the scoped CUA permission-observation listen (the 4th notify). */
+    @Volatile private var cuaPermissionListenerId: Int? = null
     /** G13: the onDynamicSessionsIndexFrame EventListen (per connection). */
     @Volatile private var sessionsIndexListenerId: Int? = null
     @Volatile private var conversationScopeRegistered: Boolean = false
@@ -1382,6 +1384,40 @@ class MockZCode(
         }
         pushWorkflowRunDelta(routingSessionId(), op)
     }
+
+    /**
+     * G64 (vc52 Phase 11): push the CUA permission observation to the scoped listener
+     * (the desktop fires `v4/cua/permission-observation` through
+     * onDynamicCuaPermissionObservation). No listener attached → counted dropped.
+     */
+    fun pushCuaPermissionObservation(payload: JsonObject) {
+        val listener = cuaPermissionListenerId ?: return
+        val bytes = RpcSerialization.encodeAll(
+            listOf(
+                RpcValue.Arr(listOf(RpcValue.Int(ChannelWire.ResponseType.EventFire.id), RpcValue.Int(listener))),
+                RpcValue.Obj(payload),
+            ),
+        )
+        sendLogicalFrame(bytes)
+    }
+
+    /** The byte-verified blocked observation (Accessibility denied). */
+    fun blockedCuaPayload(sessionId: String, accessibility: String = "denied", screenRecording: String = "granted"): JsonObject =
+        buildJsonObject {
+            put("schemaVersion", JsonPrimitive(1))
+            put("eventId", JsonPrimitive("cua-rig-1"))
+            put("eventSeq", JsonPrimitive(1))
+            put("occurredAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
+            put("sessionId", JsonPrimitive(sessionId))
+            put("toolCallId", JsonPrimitive("call-rig-1"))
+            put("permissionStatus", buildJsonObject {
+                put("schemaVersion", JsonPrimitive(1))
+                put("platform", JsonPrimitive("darwin"))
+                put("grantOwner", JsonPrimitive("com.zcode.cua-helper"))
+                put("accessibility", JsonPrimitive(accessibility))
+                put("screenRecording", JsonPrimitive(screenRecording))
+            })
+        }
 
     /** Scripted `workflowRun.removed` for wf-run-s1. */
     fun pushWorkflowRunRemovedForTest() {
@@ -1933,6 +1969,9 @@ class MockZCode(
             ChannelWire.RequestType.EventListen.id -> {
                 if (name == "onDynamicSessionsIndexFrame") {
                     sessionsIndexListenerId = id
+                }
+                if (name == "onDynamicCuaPermissionObservation") {
+                    cuaPermissionListenerId = id
                 }
                 if (name == "onDynamicConversationFrame") {
                     conversationListenerId = id

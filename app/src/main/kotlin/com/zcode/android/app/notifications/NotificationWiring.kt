@@ -84,6 +84,7 @@ class NotificationWiring(
     private var interactionsJob: Job? = null
     private var tasksJob: Job? = null
     private var phaseJob: Job? = null
+    private var cuaJob: Job? = null
 
     @Volatile private var seenInteractionIds: Set<String> = emptySet()
     @Volatile private var taskStatuses: Map<String, TaskStatus> = emptyMap()

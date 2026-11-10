@@ -35,6 +35,7 @@ object NotificationPlan {
         NotificationRecord.Kind.TASK_FINISHED,
         NotificationRecord.Kind.TASK_FAILED,
         NotificationRecord.Kind.CONNECTION_LOST,
+        NotificationRecord.Kind.CUA_PERMISSION,
         -> NotificationChannels.TASK_STATUS
     }
 
@@ -46,6 +47,8 @@ object NotificationPlan {
          * the question — already bounded and secret-scrubbed upstream (InteractionPreview).
          */
         val subject: String? = null,
+        /** G64: the CUA observation's missing-permission face ("Accessibility: Missing", …). */
+        val cuaMissing: String? = null,
     )
 
     data class Policy(
@@ -79,6 +82,8 @@ object NotificationPlan {
         fun taskFailedPublic(): String
         fun taskFailedDetail(taskTitle: String): String
         fun connectionLostPublic(): String
+        /** G64: the CUA permission card — the missing permission named. */
+        fun cuaPermissionPublic(missing: String): String
         /** C3: the shade action labels (defaults for the pure tests). */
         fun approveAction(): String = "Approve"
         fun denyAction(): String = "Deny"
@@ -93,6 +98,8 @@ object NotificationPlan {
         override fun taskFailedPublic() = "Task failed"
         override fun taskFailedDetail(taskTitle: String) = "Task failed: $taskTitle"
         override fun connectionLostPublic() = "Connection lost"
+        override fun cuaPermissionPublic(missing: String) =
+            "Computer Use on your desktop needs macOS permissions ($missing) — grant them on the Mac"
     }
 
     fun decide(event: Event, policy: Policy, copy: NotificationCopy = DefaultNotificationCopy): Decision {
@@ -122,6 +129,8 @@ object NotificationPlan {
                 }
             NotificationRecord.Kind.CONNECTION_LOST ->
                 Decision(true, channel, copy.connectionLostPublic(), null)
+            NotificationRecord.Kind.CUA_PERMISSION ->
+                Decision(true, channel, copy.cuaPermissionPublic(event.cuaMissing ?: "macOS permissions"), event.cuaMissing)
         }
     }
 
@@ -139,5 +148,7 @@ object NotificationPlan {
             NotificationRecord.Kind.TASK_FAILED,
             -> taskId?.takeIf { it.isNotBlank() }?.let { "task:$it:$kind" }
             NotificationRecord.Kind.CONNECTION_LOST -> "connection-lost"
+            NotificationRecord.Kind.CUA_PERMISSION ->
+                "cua-permission:" + (taskId?.takeIf { it.isNotBlank() } ?: "unknown")
         }
 }

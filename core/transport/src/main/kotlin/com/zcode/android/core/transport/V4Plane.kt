@@ -466,6 +466,8 @@ internal class ChannelV4Plane(
         fun onCountedFault(reason: String)
         /** Serialization-fault emit only (wire sound, payload unknown — INV-8 degrade). */
         fun onSerializationFault(reason: String)
+        /** G64 (vc52 Phase 11): the CUA permission observation (the 4th notify method). */
+        fun onCuaPermissionObservation(o: com.zcode.android.core.protocol.v4.CuaPermissionObservation)
         fun onV4Call()
         fun connectionId(): String?
         fun boundLog(): ZLog.Bound
@@ -576,6 +578,20 @@ internal class ChannelV4Plane(
         channel.listen("zcode-agent", "onDynamicConversationFrame", RpcValue.Obj(scopeJson)) { args ->
             val obj = (args as? RpcValue.Obj)?.json as? JsonObject ?: return@listen
             handleTopicWireFrame(obj)
+        }
+        // G64 (vc52 Phase 11): the CUA permission observation rides its OWN scoped
+        // listen (`onDynamicCuaPermissionObservation` — the desktop's adapter method,
+        // byte-verified asar `12a2fc93…`) on the SAME workspace scope; the phone
+        // declared the constant since Phase 3 and handled it nowhere.
+        if (listenedScopes.add("cua-permission:$key")) {
+            channel.listen("zcode-agent", "onDynamicCuaPermissionObservation", RpcValue.Obj(scopeJson)) { args ->
+                val obj = (args as? RpcValue.Obj)?.json as? JsonObject ?: return@listen
+                try {
+                    host.onCuaPermissionObservation(com.zcode.android.core.protocol.v4.CuaPermissionObservation.decode(obj))
+                } catch (e: com.zcode.android.core.protocol.bytes.ProtocolException) {
+                    host.onCountedFault("cua-permission decode: ${e.message?.take(80)}")
+                }
+            }
         }
     }
 

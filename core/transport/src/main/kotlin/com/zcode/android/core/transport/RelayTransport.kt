@@ -187,6 +187,12 @@ class RelayTransport(
                 malformedChannelFrames.incrementAndGet()
                 scope.launch { _appErrors.emit(ErrorMapping.serializationFault(reason)) }
             }
+            override fun onCuaPermissionObservation(o: com.zcode.android.core.protocol.v4.CuaPermissionObservation) {
+                scope.launch {
+                    _cuaPermissionObservations.emit(o)
+                    boundLog().info("cua.permission", "sessionId=${o.sessionId.take(16)} a11y=${o.accessibility} screen=${o.screenRecording}")
+                }
+            }
             override fun onSerializationFault(reason: String) {
                 scope.launch { _appErrors.emit(ErrorMapping.serializationFault(reason)) }
             }
@@ -905,6 +911,14 @@ class RelayTransport(
             }
         }
     }
+
+    /** G64 (vc52 Phase 11): the CUA permission observations (extraBufferCapacity = replay-free, conflate not needed). */
+    private val _cuaPermissionObservations =
+        kotlinx.coroutines.flow.MutableSharedFlow<com.zcode.android.core.protocol.v4.CuaPermissionObservation>(
+            replay = 0, extraBufferCapacity = 16,
+        )
+    override val cuaPermissionObservations: kotlinx.coroutines.flow.Flow<com.zcode.android.core.protocol.v4.CuaPermissionObservation> =
+        _cuaPermissionObservations
 
     override fun notifyNetworkAvailable() {
         reconnect.requestImmediate()

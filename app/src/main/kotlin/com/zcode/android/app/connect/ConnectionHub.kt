@@ -344,6 +344,19 @@ class ConnectionHub(
     fun sessionWorkflowRunPlane(taskId: String): kotlinx.coroutines.flow.Flow<com.zcode.android.domain.model.WorkflowRunPlane> =
         sessionFlow(taskId, { m -> m.workflowRunPlane }, com.zcode.android.domain.model.WorkflowRunPlane.EMPTY)
 
+    /** G64 (vc52 Phase 11): the CUA permission-observation alerts (one-shot per event). */
+    private val _cuaAlerts =
+        kotlinx.coroutines.flow.MutableSharedFlow<com.zcode.android.core.protocol.v4.CuaPermissionObservation>(
+            replay = 0, extraBufferCapacity = 16,
+        )
+    val cuaAlerts: kotlinx.coroutines.flow.Flow<com.zcode.android.core.protocol.v4.CuaPermissionObservation> = _cuaAlerts
+
+    /** G64: the latest observation (the foreground face reads it on screen-entry). */
+    private val _latestCuaObservation =
+        kotlinx.coroutines.flow.MutableStateFlow<com.zcode.android.core.protocol.v4.CuaPermissionObservation?>(null)
+    val latestCuaObservation: kotlinx.coroutines.flow.StateFlow<com.zcode.android.core.protocol.v4.CuaPermissionObservation?> =
+        _latestCuaObservation.asStateFlow()
+
     private var connectJob: Job? = null
     private var coordinator: RecoveryCoordinator? = null
     private var controlPlaneJob: Job? = null
@@ -404,7 +417,26 @@ class ConnectionHub(
         scope.launch {
             directTransport.appErrors.collect { if (activeKind() == EndpointKind.DIRECT_SERVER) _lastError.value = it }
         }
+        // G64 (vc52 Phase 11): the CUA permission observations — BOTH transports feed
+        // one shared flow; the notification wiring posts the typed card (background)
+        // and the latest-observation state backs the foreground face.
+        scope.launch {
+            transport.cuaPermissionObservations.collect {
+                _latestCuaObservation.value = it
+                _cuaAlerts.emit(it)
+            }
+        }
+        scope.launch {
+            directTransport.cuaPermissionObservations.collect {
+                _latestCuaObservation.value = it
+                _cuaAlerts.emit(it)
+            }
+        }
         observeControlPlanePushes()
+
+        // The per-observation foreground face lives on the flows below; the wiring owns
+        // the notification card. The scoped LISTEN itself is attached at connect time
+        // (helloAndInitialize — ensureCuaListen rides the conversation listen's scope).
     }
 
     /** §11.6 active-endpoint selection (the async half of [start]'s seed). */

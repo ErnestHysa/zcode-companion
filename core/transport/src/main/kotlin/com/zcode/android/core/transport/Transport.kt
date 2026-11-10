@@ -79,6 +79,9 @@ interface Transport {
     /** Network-change trigger (ConnectivityManager callback wired by the app layer). */
     fun notifyNetworkAvailable()
 
+    /** G64 (vc52 Phase 11): the CUA permission observations (the 4th notify method). */
+    val cuaPermissionObservations: kotlinx.coroutines.flow.Flow<com.zcode.android.core.protocol.v4.CuaPermissionObservation>
+
     /**
      * §11.6 endpoint switch: the OLD endpoint's connection was closed — the §14.4.1
      * machine is reset so the next [connect] is the first-connection path again.

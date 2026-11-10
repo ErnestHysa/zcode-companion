@@ -36,6 +36,9 @@ object NotificationReconciler {
             NotificationRecord.Kind.USER_INPUT_NEEDED,
             -> record.interactionId != null && record.interactionId in resolvedInteractionIds
             NotificationRecord.Kind.CONNECTION_LOST -> false // cleared by the connection machine, not here
+            // G64: the CUA permission card clears when the observation's task resolves —
+            // there is no interaction id, so the task-consumed set drives it (like terminal).
+            NotificationRecord.Kind.CUA_PERMISSION -> record.taskId != null && record.taskId in consumedTaskIds
         }
         if (consumed) record.notificationKey else null
     }

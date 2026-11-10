@@ -133,7 +133,9 @@ data class NotificationRecord(
     val interactionId: String? = null,
 ) {
     enum class Kind {
-        APPROVAL_NEEDED, USER_INPUT_NEEDED, TASK_FINISHED, TASK_FAILED, CONNECTION_LOST;
+        APPROVAL_NEEDED, USER_INPUT_NEEDED, TASK_FINISHED, TASK_FAILED, CONNECTION_LOST,
+        /** G64 (vc52 Phase 11): a remote computer-use task blocked on macOS permissions. */
+        CUA_PERMISSION;
 
         /**
          * F-33-E (vc52 Phase 7): the ONE attention-kind predicate — badge/inbox live

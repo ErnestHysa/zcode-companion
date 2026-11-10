@@ -155,6 +155,49 @@ object V4Notifications {
     const val CUA_PERMISSION_OBSERVATION = "v4/cua/permission-observation"
 }
 
+/**
+ * G64 (vc52 Phase 11) — the CUA permission observation (the 4th notify method,
+ * `v4/cua/permission-observation`; byte-verified asar `12a2fc93…`, chunk-D5C6W4UB
+ * `dY`/`Kf`): a remote computer-use task blocked on missing macOS permissions.
+ * The phone declares the listen (`onDynamicCuaPermissionObservation`) and renders
+ * the typed card — the recorded defect face: the phone user saw NOTHING.
+ */
+data class CuaPermissionObservation(
+    val eventId: String,
+    val eventSeq: Long,
+    val occurredAtMs: Long,
+    val sessionId: String,
+    val turnId: String?,
+    val toolCallId: String,
+    val accessibility: String,
+    val screenRecording: String,
+    val grantOwner: String,
+    val raw: JsonObject,
+) {
+    /** True when EITHER macOS permission is missing/stale — the card renders then. */
+    val blocked: Boolean
+        get() = accessibility != "granted" || screenRecording != "granted"
+
+    companion object {
+        fun decode(obj: JsonObject): CuaPermissionObservation {
+            val status = obj["permissionStatus"] as? JsonObject
+                ?: throw ProtocolException("cua.permissionStatus missing")
+            return CuaPermissionObservation(
+                eventId = obj.string("eventId"),
+                eventSeq = obj.long("eventSeq"),
+                occurredAtMs = obj.double("occurredAt").toLong(),
+                sessionId = obj.string("sessionId"),
+                turnId = (obj["turnId"] as? JsonPrimitive)?.content,
+                toolCallId = obj.string("toolCallId"),
+                accessibility = status.string("accessibility"),
+                screenRecording = status.string("screenRecording"),
+                grantOwner = status.string("grantOwner"),
+                raw = obj,
+            )
+        }
+    }
+}
+
 /** v4ConnectionFlowStateSchema — saturated/drained/closed (§28.4 backpressure input). */
 enum class ConnectionFlowState { SATURATED, DRAINED, CLOSED }
 

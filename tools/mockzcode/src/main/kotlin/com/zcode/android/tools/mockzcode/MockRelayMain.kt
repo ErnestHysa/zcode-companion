@@ -593,6 +593,25 @@ fun main() {
             "isGitAvailable" to JsonPrimitive(true),
         ))
     }
+    // G64 (vc52 Phase 11): MOCK_CUA_PERMISSION=denied|stale|granted pushes the CUA
+    // permission observation through the scoped listen at MOCK_CUA_PERMISSION_MS
+    // (default 3000) — the typed card renders unless the payload is granted.
+    if (System.getenv("MOCK_CUA_PERMISSION") != null) {
+        val status = System.getenv("MOCK_CUA_PERMISSION")!!
+        require(status in setOf("denied", "stale", "granted")) { "MOCK_CUA_PERMISSION must be denied|stale|granted, got: $status" }
+        val delayMs = System.getenv("MOCK_CUA_PERMISSION_MS")?.toLongOrNull() ?: 3_000L
+        val t = Thread {
+            try {
+                Thread.sleep(delayMs)
+                mock.pushCuaPermissionObservation(
+                    mock.blockedCuaPayload(mock.workspace.sessionId, accessibility = status, screenRecording = "granted"),
+                )
+            } catch (_: InterruptedException) { }
+        }
+        t.isDaemon = true
+        t.name = "mock-cua-permission"
+        t.start()
+    }
     // N-BG-2 (vc52 Phase 11): MOCK_GIT_REFUSALS=generateCommitMessage,getChanges arms the
     // deliberate git-refusal map (method → fault.git.notAvailable) so the phone's
     // SURFACING of refused git calls is drivable on the rig (the recorded live face:
