@@ -180,18 +180,31 @@ class NotificationActionsTest {
     /**
      * F-33-H (vc52): the "Notification detail" setting decides whether approvals carry
      * their subject + shade actions (Task titles) or are answered in-app (Minimal). A
-     * privacy setting must say both, in every shipped locale.
+     * privacy setting must say BOTH, in every shipped locale.
+     * N-BI-5 (vc52 Phase 10) reconciled this with the per-level subtitle: each level's
+     * string LEADS with its own value's copy but STILL discloses what the other level
+     * does — an informed choice is possible from either state.
      */
     @Test
     fun `F-33-H - the notification-detail setting describes what each level shows`() {
-        val en = context.getString(com.zcode.android.app.R.string.settings_notif_detail_sub)
-        assertTrue("Minimal must say approvals are answered in the app: $en", en.contains("answered in the app"))
-        assertTrue("Task titles must say it shows the command or file: $en", en.contains("command or file"))
-        assertTrue("…and that the actions need an unlock: $en", en.contains("unlock"))
+        for (res in listOf(
+            com.zcode.android.app.R.string.settings_notif_detail_sub_min,
+            com.zcode.android.app.R.string.settings_notif_detail_sub_rich,
+        )) {
+            val en = context.getString(res)
+            assertTrue("Minimal must say approvals are answered in the app: $en", en.contains("answered in the app"))
+            assertTrue("Task titles must say it shows the command or file: $en", en.contains("command or file"))
+            assertTrue("…and that the actions need an unlock: $en", en.contains("unlock"))
+        }
         val zhConfig = android.content.res.Configuration(context.resources.configuration).apply {
             setLocale(java.util.Locale.forLanguageTag("zh-CN"))
         }
-        val zh = context.createConfigurationContext(zhConfig).getString(com.zcode.android.app.R.string.settings_notif_detail_sub)
-        assertTrue("zh-CN must carry the same two promises: $zh", zh.contains("应用内") && zh.contains("命令或文件"))
+        for (res in listOf(
+            com.zcode.android.app.R.string.settings_notif_detail_sub_min,
+            com.zcode.android.app.R.string.settings_notif_detail_sub_rich,
+        )) {
+            val zh = context.createConfigurationContext(zhConfig).getString(res)
+            assertTrue("zh-CN must carry the same two promises: $zh", zh.contains("应用内") && zh.contains("命令或文件"))
+        }
     }
 }

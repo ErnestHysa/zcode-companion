@@ -880,6 +880,15 @@ private fun showLicenses(context: android.content.Context) {
  * honest copy is mandatory: no push exists via the relay — notifications arrive
  * while the app is in use or while the Live connection is enabled.
  */
+/** N-BI-5 (vc52 Phase 10): the notification-detail subtitle describes the CURRENT level. */
+internal fun notificationDetailSubtitleRes(
+    level: com.zcode.android.domain.model.AppPreferences.NotificationContentLevel,
+): Int =
+    when (level) {
+        com.zcode.android.domain.model.AppPreferences.NotificationContentLevel.CONTENT -> R.string.settings_notif_detail_sub_rich
+        else -> R.string.settings_notif_detail_sub_min
+    }
+
 @Composable
 private fun NotificationsSection(container: AppContainer) {
     val context = LocalContext.current
@@ -907,7 +916,9 @@ private fun NotificationsSection(container: AppContainer) {
                 else R.string.settings_notif_detail_min,
             ),
         ),
-        subtitle = stringResource(R.string.settings_notif_detail_sub),
+        // N-BI-5 (vc52 Phase 10): the subtitle describes the CURRENT level — the
+        // static Minimal copy contradicted the row's own Task-titles value.
+        subtitle = stringResource(notificationDetailSubtitleRes(prefs.notificationContentLevel)),
         tag = "settings_notification_content",
         onClick = {
             scope.launch {
