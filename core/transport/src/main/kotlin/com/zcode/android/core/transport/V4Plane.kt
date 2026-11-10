@@ -634,10 +634,21 @@ internal class ChannelV4Plane(
     }
 
     suspend fun initializeV4(endpointId: String, appVersion: String) {
+        // G48 (vc52 Phase 11): the phone DECLARES its capabilities — the desktop's
+        // strict clientHelloSchema accepts exactly {workspaceHookReviewUi,
+        // workflowRunDeltas, historyFirst} and `clientSupportsWorkflowRunDeltas =
+        // capabilities?.workflowRunDeltas === true` gates the workflowRun delta
+        // stream. Declaring the bit enables the push stream (the ~8s
+        // conversationWorkflowRunsV4 poll is the defect this closes); the
+        // consumer-side decode (G51) ships in the same round.
         val clientHello = ClientHello(
             clientId = endpointId,
             clientKind = clientKind,
             appVersion = appVersion,
+            capabilities = buildJsonObject {
+                put("workflowRunDeltas", JsonPrimitive(true))
+                put("workspaceHookReviewUi", JsonPrimitive(true))
+            },
         )
         v4Call("initializeConversationV4", RpcValue.Obj(clientHello.encode()))
     }
