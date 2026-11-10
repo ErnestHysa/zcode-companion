@@ -87,10 +87,27 @@ class NotificationDetailSubtitleTest {
         // the row renders, not full-viewport visibility.)
         assertTrue("the Minimal copy renders at default", rendered(R.string.settings_notif_detail_sub_min))
         assertEquals(emptyList(), rule.onAllNodesWithText(activity.getString(R.string.settings_notif_detail_sub_rich), substring = true).fetchSemanticsNodes(), "the rich copy must be absent at default")
-        // Tap → CONTENT: the Task-titles copy replaces it.
-        rule.onNodeWithTag("settings_notification_content").performClick()
+        // Tap → CONTENT: the Task-titles copy replaces it. The pref write→collect→
+        // recompose round-trip may not have published by the time waitForIdle returns
+        // under pool load (the SwitchRowA11yTest race class) — poll for the flip.
+        // THE N-BI-5 FACT: the subtitle follows the LEVEL. The flip is driven through
+        // the preferences repository directly — a compose click here races the scroll
+        // settle (two pool runs recorded flip-back double-clicks; row-tap→pref-write→
+        // recompose is separately pinned by SwitchRowA11yTest with its own poll).
+        rule.runOnUiThread {
+            kotlinx.coroutines.runBlocking {
+                container.stores.preferencesRepository.update { p ->
+                    p.copy(notificationContentLevel =
+                        com.zcode.android.domain.model.AppPreferences.NotificationContentLevel.CONTENT)
+                }
+            }
+        }
         rule.waitForIdle()
-        assertTrue("the Task-titles copy renders after the tap", rendered(R.string.settings_notif_detail_sub_rich))
-        assertEquals(emptyList(), rule.onAllNodesWithText(activity.getString(R.string.settings_notif_detail_sub_min), substring = true).fetchSemanticsNodes(), "the Minimal copy must be gone")
+        rule.waitUntil(5_000) { rendered(R.string.settings_notif_detail_sub_rich) }
+        assertEquals(
+            emptyList(),
+            rule.onAllNodesWithText(activity.getString(R.string.settings_notif_detail_sub_min), substring = true).fetchSemanticsNodes(),
+            "the Minimal copy must be gone once the level is Task titles",
+        )
     }
 }
