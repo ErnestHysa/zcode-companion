@@ -122,7 +122,13 @@ fun main() {
         "",
         "Done ~~temporarily~~ permanently.",
     ).joinToString("\n")
-    // Pass-37 markdown conformance leg: MOCK_MD_FILE=<path> replaces the demo row's markdown.
+    // F-37-E (vc52 Phase 10) idle-watchdog leg: MOCK_TURN_RUNNING=1 scripts the
+    // snapshot's appended turn header as RUNNING — the phone's task machine reads
+    // non-terminal (the pass-37 shape) and the stream watchdog engages on idle.
+    if (System.getenv("MOCK_TURN_RUNNING") != null) {
+        mock.script.setSessionTurnOutcome("running")
+    }
+        // Pass-37 markdown conformance leg: MOCK_MD_FILE=<path> replaces the demo row's markdown.
     System.getenv("MOCK_MD_FILE")?.let { f -> mock.script.demoAssistantMarkdown = File(f).readText() }
     // MOCK_APPROVAL=1 arms one pending-approval tool row so the Approvals screen
     // renders live (B2.3/B2.4 geometry checks need a real interaction on-device).
