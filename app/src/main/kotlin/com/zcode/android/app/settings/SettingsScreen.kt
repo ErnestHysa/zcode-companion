@@ -639,6 +639,25 @@ internal suspend fun writeDiagnosticsClipboard(context: android.content.Context,
     return clipped
 }
 
+/**
+ * N-BI-3 (vc52 Phase 10): the user copy for a failed diagnostics export — a
+ * storage-full failure reads as exactly that; everything else is the generic
+ * line. NEVER the raw exception message (it leaked the internal cache path).
+ */
+internal fun diagnosticsExportFailureCopy(e: Throwable): Int {
+    var cause: Throwable? = e
+    while (cause != null) {
+        val msg = cause.message.orEmpty()
+        if (cause is java.io.IOException &&
+            (msg.contains("ENOSPC", ignoreCase = true) || msg.contains("No space left", ignoreCase = true))
+        ) {
+            return R.string.settings_export_failed_storage
+        }
+        cause = cause.cause.takeIf { it !== cause }
+    }
+    return R.string.settings_export_failed_generic
+}
+
 private fun exportDiagnostics(container: AppContainer, context: android.content.Context, notifier: Notifier, onBusy: (Boolean) -> Unit) {
     val act = context as? androidx.fragment.app.FragmentActivity
     val scope = act?.lifecycleScope ?: return
@@ -675,8 +694,16 @@ private fun exportDiagnostics(container: AppContainer, context: android.content.
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
+            // N-BI-3 (vc52 Phase 10): the raw failure message leaked an internal cache
+            // path and truncated mid-extension (the 0-bytes-free receipt). The user
+            // gets TYPED copy; the exception (path included) goes to the diagnostics
+            // ring only.
+            container.log.warn(
+                "diagnostics.exportFailed",
+                "${e.javaClass.simpleName}: ${e.message?.take(200)}",
+            )
             withContext(kotlinx.coroutines.Dispatchers.Main) {
-                notifier.show(context.getString(R.string.settings_export_failed, e.message?.take(80) ?: ""), long = true)
+                notifier.show(context.getString(diagnosticsExportFailureCopy(e)), long = true)
             }
         } finally {
             withContext(kotlinx.coroutines.Dispatchers.Main) { onBusy(false) }

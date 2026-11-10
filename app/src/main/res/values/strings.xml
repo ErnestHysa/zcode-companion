@@ -149,6 +149,8 @@
 <string name="settings_clip_truncated_suffix">\n\n…(truncated at %1$d chars — use Export diagnostics for the full report)</string>
 <string name="settings_clip_failed">Diagnostics failed: %1$s</string>
 <string name="settings_export_failed">Export failed: %1$s</string>
+<string name="settings_export_failed_storage">Not enough free storage to export diagnostics.</string>
+<string name="settings_export_failed_generic">Couldn’t export diagnostics. Try again.</string>
 <string name="settings_export_chooser">Export diagnostics</string>
 <string name="settings_licenses_chooser">Licenses</string>
 <string name="settings_notif_detail">Notification detail: %1$s</string>

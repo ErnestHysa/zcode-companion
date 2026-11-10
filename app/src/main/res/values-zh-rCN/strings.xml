@@ -135,6 +135,8 @@
 <string name="settings_clip_truncated_suffix">\n\n…（已在 %1$d 字符处截断 — 完整报告请使用“导出诊断信息”）</string>
 <string name="settings_clip_failed">诊断失败：%1$s</string>
 <string name="settings_export_failed">导出失败：%1$s</string>
+<string name="settings_export_failed_storage">存储空间不足，无法导出诊断信息。</string>
+<string name="settings_export_failed_generic">无法导出诊断信息，请重试。</string>
 <string name="settings_export_chooser">导出诊断信息</string>
 <string name="settings_licenses_chooser">许可证</string>
 <string name="settings_notif_detail">通知详情：%1$s</string>
