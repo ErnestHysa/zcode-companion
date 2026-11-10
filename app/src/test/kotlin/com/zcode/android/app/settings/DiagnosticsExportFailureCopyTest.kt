@@ -55,6 +55,24 @@ class DiagnosticsExportFailureCopyTest {
     }
 
     @Test
+    fun `the LIVE 0-byte shape - a cache-path FileNotFound maps to the storage copy`() {
+        // The recorded 0-byte receipt: the open() fails ENOENT because the cache DIR
+        // could not be created — the message carries the cache path, not ENOSPC.
+        val live = java.io.FileNotFoundException(
+            "/data/user/0/com.zcode.android.app/cache/shared/zcode-diagnostics-1794320947531.txt: open failed: ENOENT (No such file or directory)",
+        )
+        assertEquals(R.string.settings_export_failed_storage, diagnosticsExportFailureCopy(live))
+    }
+
+    @Test
+    fun `a FileNotFound OUTSIDE the app cache stays generic`() {
+        assertEquals(
+            R.string.settings_export_failed_generic,
+            diagnosticsExportFailureCopy(java.io.FileNotFoundException("/sdcard/missing.txt: open failed: ENOENT")),
+        )
+    }
+
+    @Test
     fun `a non-IOException that merely mentions ENOSPC is NOT the storage class`() {
         assertEquals(
             R.string.settings_export_failed_generic,

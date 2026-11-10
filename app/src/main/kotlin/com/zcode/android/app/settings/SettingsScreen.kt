@@ -653,6 +653,12 @@ internal fun diagnosticsExportFailureCopy(e: Throwable): Int {
         ) {
             return R.string.settings_export_failed_storage
         }
+        // The write path's FileNotFound IS storage: at 0 bytes the cache dir cannot
+        // be created and the open() reports ENOENT on the (missing) target file —
+        // the LIVE 0-byte receipt's shape. Any other cause keeps walking.
+        if (cause is java.io.FileNotFoundException && msg.contains("/cache/")) {
+            return R.string.settings_export_failed_storage
+        }
         cause = cause.cause.takeIf { it !== cause }
     }
     return R.string.settings_export_failed_generic

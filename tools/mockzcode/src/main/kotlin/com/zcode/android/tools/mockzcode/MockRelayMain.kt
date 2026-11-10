@@ -126,7 +126,7 @@ fun main() {
     // snapshot's appended turn header as RUNNING — the phone's task machine reads
     // non-terminal (the pass-37 shape) and the stream watchdog engages on idle.
     if (System.getenv("MOCK_TURN_RUNNING") != null) {
-        mock.script.setSessionTurnOutcome("running")
+        mock.setSessionTurnOutcome("running")
     }
         // Pass-37 markdown conformance leg: MOCK_MD_FILE=<path> replaces the demo row's markdown.
     System.getenv("MOCK_MD_FILE")?.let { f -> mock.script.demoAssistantMarkdown = File(f).readText() }
