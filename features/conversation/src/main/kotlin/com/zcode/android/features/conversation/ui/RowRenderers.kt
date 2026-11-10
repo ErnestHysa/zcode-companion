@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -1119,13 +1121,18 @@ fun MarkdownText(
         var listIndex = 0
         blocks.forEach { block ->
             when (block) {
-                is MarkdownParser.Block.Paragraph -> SpannedText(block.spans, MaterialTheme.typography.bodyMedium)
+                is MarkdownParser.Block.Paragraph -> {
+                    val images = remember(block.spans) { block.spans.filter { it.imageUrl != null } }
+                    Column {
+                        SpannedText(block.spans, MaterialTheme.typography.bodyMedium)
+                        images.forEach { img -> MarkdownImage(img.imageUrl!!, img.text) }
+                    }
+                }
                 is MarkdownParser.Block.Heading -> SpannedText(
                     block.spans,
-                    when (block.level) {
-                        1 -> MaterialTheme.typography.titleMedium
-                        else -> MaterialTheme.typography.titleSmall
-                    },
+                    // N-BI-1: H1–H6 map to DISTINCT type — the old 2-level map
+                    // flattened H2–H6 into one size (agent output numbers past H3).
+                    headingTextStyle(MaterialTheme.typography, block.level),
                 )
                 is MarkdownParser.Block.CodeFence -> CodeBlock(code = block.code, lang = block.lang, complete = block.complete)
                 // H3.3/K5: nesting level → indent + a per-level marker; each item is its own row.
@@ -1136,13 +1143,51 @@ fun MarkdownText(
                             .padding(start = (block.level * 16).dp)
                             .testTag("md_list_item_$index"),
                     ) {
+                        if (block.task != null) {
+                            // N-BI-2: GFM task list — a read-only glyph (the desktop's
+                            // task lists are read-only in chat renderers too).
+                            Text(
+                                text = if (block.task) "☑" else "☐",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.width(22.dp).testTag(
+                                    if (block.task) "md_task_checked" else "md_task_unchecked",
+                                ),
+                            )
+                        } else {
+                            // N-BI-1: the marker column grows with the digits — the
+                            // fixed 18.dp column wrapped "10."'s period onto its own
+                            // line (agent output routinely numbers past ten).
+                            val digits = block.number.toString().length
+                            Text(
+                                text = if (block.ordered) "${block.number}." else listMarker(block.level),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.width((9.dp * digits + 8.dp).coerceAtLeast(18.dp)),
+                            )
+                        }
+                        Column(Modifier.weight(1f)) {
+                            SpannedText(block.spans, MaterialTheme.typography.bodyMedium)
+                            block.spans.filter { it.imageUrl != null }.forEach { img ->
+                                MarkdownImage(img.imageUrl!!, img.text)
+                            }
+                        }
+                    }
+                }
+                is MarkdownParser.Block.FootnoteDefinition -> {
+                    // N-BI-2: the `[^label]: body` definition — small, labeled.
+                    Row(modifier = Modifier.testTag("md_footnote_def")) {
                         Text(
-                            text = if (block.ordered) "${block.number}." else listMarker(block.level),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.width(18.dp),
+                            text = "[${block.label}]",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.width(48.dp),
                         )
-                        SpannedText(block.spans, MaterialTheme.typography.bodyMedium, Modifier.weight(1f))
+                        SpannedText(
+                            block.spans,
+                            MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
+                            Modifier.weight(1f),
+                        )
                     }
                 }
                 is MarkdownParser.Block.Quote -> Row {
@@ -1159,6 +1204,122 @@ fun MarkdownText(
         }
     }
 }
+
+/**
+ * N-BI-2 (vc52 Phase 10): a `![alt](url)` markdown image as a bounded THUMBNAIL
+ * (max 160dp tall) — the old path parsed it as a LINK and leaked the "!" literally.
+ * The fetch is bounded (HttpURLConnection — java.base, no jlink-runtime gap; 8s
+ * timeouts; a 2 MiB payload cap) and memory-cached per URL. A failed load degrades
+ * to the alt text styled as a link (the deterministic Robolectric face — no network).
+ */
+@Composable
+private fun MarkdownImage(url: String, alt: String) {
+    var bitmap by remember(url) { mutableStateOf<android.graphics.Bitmap?>(MarkdownImageCache.get(url)) }
+    LaunchedEffect(url) {
+        if (bitmap == null) {
+            val fetched = withContext(Dispatchers.IO) { fetchMarkdownImage(url) }
+            if (fetched != null) {
+                MarkdownImageCache.put(url, fetched)
+                bitmap = fetched
+            }
+        }
+    }
+    val loaded = bitmap
+    if (loaded != null) {
+        androidx.compose.foundation.Image(
+            bitmap = loaded.asImageBitmap(),
+            contentDescription = alt,
+            contentScale = androidx.compose.ui.layout.ContentScale.FillWidth,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 160.dp)
+                .testTag("md_image"),
+        )
+    } else {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("md_image_unavailable"),
+        ) {
+            Text(
+                text = stringResource(R.string.row_md_image_alt, alt.take(64)),
+                style = MaterialTheme.typography.labelSmall,
+                color = LocalZCodeColors.current.accent,
+                textDecoration = TextDecoration.Underline,
+            )
+        }
+    }
+}
+
+private suspend fun fetchMarkdownImage(url: String): android.graphics.Bitmap? = runCatching {
+    if (!url.startsWith("http://") && !url.startsWith("https://")) return null
+    withContext(kotlinx.coroutines.Dispatchers.IO) {
+        val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+        try {
+            conn.connectTimeout = 8_000
+            conn.readTimeout = 8_000
+            conn.instanceFollowRedirects = true
+            if (conn.responseCode !in 200..299) return@withContext null
+            val length = conn.contentLengthLong
+            if (length > IMAGE_MAX_BYTES) return@withContext null
+            val bytes = conn.inputStream.use { input ->
+                val buffer = java.io.ByteArrayOutputStream()
+                val chunk = ByteArray(16 * 1024)
+                var total = 0L
+                while (true) {
+                    val n = input.read(chunk)
+                    if (n < 0) break
+                    total += n
+                    if (total > IMAGE_MAX_BYTES) return@withContext null
+                    buffer.write(chunk, 0, n)
+                }
+                buffer.toByteArray()
+            }
+            // Downscale: decode bounds first, then sample to the thumbnail budget.
+            val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+            var sample = 1
+            while (bounds.outWidth / (sample * 2) >= 480) sample *= 2
+            android.graphics.BitmapFactory.decodeByteArray(
+                bytes, 0, bytes.size,
+                android.graphics.BitmapFactory.Options().apply { inSampleSize = sample },
+            )
+        } finally {
+            conn.disconnect()
+        }
+    }
+}.getOrNull()
+
+private const val IMAGE_MAX_BYTES = 2L * 1024 * 1024
+
+/** Bounded per-process cache for markdown thumbnails (8 entries, INV-5). */
+private object MarkdownImageCache {
+    private val lru = java.util.LinkedHashMap<String, android.graphics.Bitmap>(8, 0.75f, true)
+    fun get(url: String): android.graphics.Bitmap? = synchronized(lru) { lru[url] }
+    fun put(url: String, bitmap: android.graphics.Bitmap) = synchronized(lru) {
+        lru[url] = bitmap
+        while (lru.size > 8) lru.remove(lru.keys.first())
+    }
+}
+
+/**
+ * N-BI-1 (vc52 Phase 10): H1–H6 map to DISTINCT styles — the old renderer mapped
+ * level 1 vs everything-else, so H2–H6 all rendered at one size. Pure + pinnable
+ * (Robolectric's fallback font metrics clamp rendered heights to near-equal boxes,
+ * so the pin asserts the STYLE ASSIGNMENT, not painted pixels).
+ */
+internal fun headingTextStyle(typography: androidx.compose.material3.Typography, level: Int): androidx.compose.ui.text.TextStyle =
+    // Descending by THIS app's Type.kt sizes (24/18/15/14/13/12 sp) — the M3 default
+    // mapping (H4=titleSmall 13 < H5=bodyLarge 14) would invert the scale here.
+    when (level.coerceIn(1, 6)) {
+        1 -> typography.headlineSmall
+        2 -> typography.titleLarge
+        3 -> typography.titleMedium
+        4 -> typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+        5 -> typography.titleSmall
+        else -> typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
+    }
 
 private fun listMarker(level: Int): String = when (level % 3) {
     0 -> "•"
@@ -1272,6 +1433,26 @@ private fun SpannedText(
                 span.italic -> addStyle(SpanStyle(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic), start, length)
                 // K5: ~~strikethrough~~ (rendered with literal tildes before).
                 span.strikethrough -> addStyle(SpanStyle(textDecoration = TextDecoration.LineThrough), start, length)
+                // N-BI-2: a footnote reference — superscript, accent.
+                span.footnoteRef != null -> addStyle(
+                    SpanStyle(
+                        color = LocalZCodeColors.current.accent,
+                        fontSize = style.fontSize * 0.75f,
+                        baselineShift = androidx.compose.ui.text.style.BaselineShift.Superscript,
+                    ),
+                    start,
+                    length,
+                )
+                // N-BI-2: `![alt](url)` — the alt reads as a link to the image; the
+                // thumbnail itself renders below (MarkdownImage).
+                span.imageUrl != null -> {
+                    addStyle(
+                        SpanStyle(color = LocalZCodeColors.current.accent, textDecoration = TextDecoration.Underline),
+                        start,
+                        length,
+                    )
+                    linkRanges.add(Triple(start, length, span.imageUrl))
+                }
                 span.linkUrl != null -> {
                     addStyle(
                         SpanStyle(color = LocalZCodeColors.current.accent, textDecoration = TextDecoration.Underline),

@@ -7,13 +7,23 @@ package com.zcode.android.features.conversation.markdown
  * dependency for a surface whose blocks are mostly FIRST-CLASS timeline components).
  *
  * Scope (bounded by INV-5 proportionality — the Phase 6 subset plus the Phase 3C
- * "minimum set" revisit, H1.3/H3.3/K5):
- *   blocks:  paragraphs, ATX headings (1–3), fenced code (``` with optional lang),
- *            bullets (-, *) and ordered lists (1.) WITH nesting levels (indent-driven,
- *            ≤ [MAX_LIST_DEPTH]), pipe tables (header + delimiter row required),
- *            blockquotes (consecutive `> ` lines merge), horizontal rules.
- *   inline:  `code`, **bold**, *italic*, ~~strikethrough~~, [text](url) — links render
- *            styled, never auto-opened (§26.2-T15).
+ * "minimum set" revisit, H1.3/H3.3/K5, plus the N-BI-2 vc52 adopts):
+ *   blocks:  paragraphs, ATX headings (1–6 — N-BI-1: the old clamp rendered H2–H6 at
+ *            one size), fenced code (``` with optional lang), bullets (-, *) and
+ *            ordered lists (1.) WITH nesting levels (indent-driven, ≤
+ *            [MAX_LIST_DEPTH]), GFM task lists ([ ] / [x] — read-only glyphs),
+ *            footnote definitions ([^label]: text), pipe tables (header + delimiter
+ *            row required), blockquotes (consecutive `> ` lines merge), horizontal
+ *            rules.
+ *   inline:  `code`, **bold**, *italic*, _underscore italic_ (CommonMark flanking —
+ *            intraword snake_case never emphasizes), ~~strikethrough~~,
+ *            [text](url), ![alt](url) (thumbnail), autolinks <https://…>,
+ *            footnote refs [^label], backslash escapes of ASCII punctuation —
+ *            links render styled, never auto-opened (§26.2-T15).
+ *   Explicitly NOT adopted (recorded desktop-only, streamdown 2.5.0 + remark-gfm
+ *   4.0.1): `***both***`, bare-URL linking, hard line breaks (two-space and
+ *   backslash-newline), nested blockquotes, indented code blocks, `$…$`/`$$…$$`
+ *   math, inline HTML, mermaid.
  * Partial streams: an UNCLOSED fence renders as a literal pending-code block
  * (complete=false) — incomplete constructs never flicker as prose (§19.2).
  *
@@ -31,8 +41,17 @@ object MarkdownParser {
         data class Paragraph(val spans: List<Span>) : Block()
         data class Heading(val level: Int, val spans: List<Span>) : Block()
         data class CodeFence(val lang: String?, val code: String, val complete: Boolean) : Block()
-        data class ListItem(val ordered: Boolean, val number: Int, val spans: List<Span>, val level: Int = 0) : Block()
+        data class ListItem(
+            val ordered: Boolean,
+            val number: Int,
+            val spans: List<Span>,
+            val level: Int = 0,
+            /** N-BI-2: GFM task list — null = not a task, false = [ ], true = [x]. */
+            val task: Boolean? = null,
+        ) : Block()
         data class Quote(val spans: List<Span>) : Block()
+        /** N-BI-2: a `[^label]: body` footnote definition (rendered small, labeled). */
+        data class FootnoteDefinition(val label: String, val spans: List<Span>) : Block()
         /** H1.3/K5: a pipe table — header cells, per-column alignment, body rows (padded to the header width). */
         data class Table(val header: List<List<Span>>, val align: List<Align>, val rows: List<List<List<Span>>>) : Block()
         /** `---` / `***` / `___` thematic break. */
@@ -46,6 +65,10 @@ object MarkdownParser {
         val italic: Boolean = false,
         val linkUrl: String? = null,
         val strikethrough: Boolean = false,
+        /** N-BI-2: `![alt](url)` — [text] is the alt; the renderer paints a thumbnail. */
+        val imageUrl: String? = null,
+        /** N-BI-2: a `[^label]` footnote reference (superscript style). */
+        val footnoteRef: String? = null,
     )
 
     fun parse(src: String): List<Block> {
@@ -91,9 +114,11 @@ object MarkdownParser {
                     blocks.add(Block.Rule)
                     i++
                 }
-                line.startsWith("####") || line.startsWith("###") || line.startsWith("##") || line.startsWith("#") -> {
+                line.startsWith("#") -> {
                     flushParagraph()
-                    val level = line.takeWhile { it == '#' }.length.coerceAtMost(3)
+                    // N-BI-1: H1–H6 all map to distinct type — the old coerceAtMost(3)
+                    // flattened H2–H6 into one size.
+                    val level = line.takeWhile { it == '#' }.length.coerceIn(1, 6)
                     blocks.add(Block.Heading(level, parseInline(line.dropWhile { it == '#' }.trim())))
                     i++
                 }
@@ -114,7 +139,22 @@ object MarkdownParser {
                 // to the paragraph branch and rendered as prose with literal markers.
                 trimmed.startsWith("- ") || trimmed.startsWith("* ") -> {
                     flushParagraph()
-                    blocks.add(Block.ListItem(ordered = false, number = 0, spans = parseInline(trimmed.substring(2).trim()), level = indent))
+                    val body = trimmed.substring(2).trim()
+                    // GFM: the checkbox needs its trailing space (or the bare "[ ]"
+                    // body) — "[ ]nospace" is plain text, not a task.
+                    val task = when {
+                        body == "[ ]" || body.startsWith("[ ] ") -> false
+                        body == "[x]" || body.startsWith("[x] ") || body == "[X]" || body.startsWith("[X] ") -> true
+                        else -> null
+                    }
+                    val spans = parseInline(if (task != null) body.substring(3).trim() else body)
+                    blocks.add(Block.ListItem(ordered = false, number = 0, spans = spans, level = indent, task = task))
+                    i++
+                }
+                FOOTNOTE_DEF.matches(trimmed) -> {
+                    flushParagraph()
+                    val m = FOOTNOTE_DEF.find(trimmed)!!
+                    blocks.add(Block.FootnoteDefinition(m.groupValues[1], parseInline(m.groupValues[2].trim())))
                     i++
                 }
                 ORDERED.matches(trimmed) -> {
@@ -157,6 +197,8 @@ object MarkdownParser {
 
     private val ORDERED = Regex("^(\\d{1,3})\\. (.*)$")
     private val RULE = Regex("^(?:-{3,}|\\*{3,}|_{3,})\\s*$")
+    /** N-BI-2: `[^label]: body` (GFM footnote definition). */
+    private val FOOTNOTE_DEF = Regex("^\\[\\^([^\\]]{1,64})\\]: (.*)$")
     private val ALIGN_CELL = Regex("^:?-+:?$")
 
     /**
@@ -288,6 +330,19 @@ object MarkdownParser {
                         i++
                     }
                 }
+                // N-BI-2: backslash escape — a backslash before ASCII punctuation
+                // yields the literal character (never styled). Not adopted as a hard
+                // line break (backslash-newline stays literal, recorded desktop-only).
+                src.startsWith("\\", i) && i + 1 < src.length && src[i + 1] in ESCAPABLE -> {
+                    plain.append(src[i + 1])
+                    i += 2
+                }
+                // N-BI-2 (NOT adopted): `***both***` stays literal — a bold close
+                // that would swallow a third asterisk renders the run verbatim.
+                src.startsWith("***", i) -> {
+                    plain.append("***")
+                    i += 3
+                }
                 src.startsWith("**", i) -> {
                     val end = src.indexOf("**", i + 2)
                     if (end > i + 1) {
@@ -311,17 +366,62 @@ object MarkdownParser {
                         i += 2
                     }
                 }
+                // N-BI-2: `![alt](url)` BEFORE the link matcher (the old path matched
+                // the inner [alt](url) and leaked the "!" literally).
+                src.startsWith("![", i) && IMAGE.matchesAt(src, i) -> {
+                    val match = IMAGE.find(src, i)!!
+                    flush()
+                    spans.add(Span(text = match.groupValues[1], imageUrl = match.groupValues[2]))
+                    i = match.range.last + 1
+                }
+                // N-BI-2: GFM autolink literal `<https://…>` (brackets stripped).
+                src.startsWith("<", i) && AUTOLINK.matchesAt(src, i) -> {
+                    val match = AUTOLINK.find(src, i)!!
+                    flush()
+                    spans.add(Span(text = match.groupValues[1], linkUrl = match.groupValues[1]))
+                    i = match.range.last + 1
+                }
+                // N-BI-2: `[^label]` footnote reference (superscript), matched before
+                // the generic link matcher (which would read it as a link with an
+                // invalid url).
+                src.startsWith("[^", i) && FOOTNOTE_REF.matchesAt(src, i) -> {
+                    val match = FOOTNOTE_REF.find(src, i)!!
+                    flush()
+                    spans.add(Span(text = match.groupValues[1], footnoteRef = match.groupValues[1]))
+                    i = match.range.last + 1
+                }
                 src.startsWith("[", i) && LINK.matchesAt(src, i) -> {
                     val match = LINK.find(src, i)!!
                     flush()
                     spans.add(Span(text = match.groupValues[1], linkUrl = match.groupValues[2]))
                     i = match.range.last + 1
                 }
-                src.startsWith("*", i) -> {
-                    val end = src.indexOf('*', i + 1)
-                    if (end > i) {
+                // N-BI-2: `_underscore emphasis_` — CommonMark flanking: the opening
+                // `_` must not follow an alphanumeric (intraword snake_case never
+                // emphasizes) and the closing `_` must not precede one.
+                src.startsWith("_", i) && (i == 0 || !src[i - 1].isLetterOrDigit()) -> {
+                    val end = findUnderscoreClose(src, i + 1)
+                    if (end != null) {
                         flush()
                         spans.add(Span(text = src.substring(i + 1, end), italic = true))
+                        i = end + 1
+                    } else {
+                        plain.append('_')
+                        i++
+                    }
+                }
+                src.startsWith("*", i) -> {
+                    // N-BI-2: the close scan skips backslash-escaped stars — `*a \* b*`
+                    // emphasizes the WHOLE body with the escaped star literal inside.
+                    var end = src.indexOf('*', i + 1)
+                    while (end > 0 && end > i && src[end - 1] == '\\' &&
+                        !(end - 2 >= i && src[end - 2] == '\\')
+                    ) {
+                        end = src.indexOf('*', end + 1)
+                    }
+                    if (end > i) {
+                        flush()
+                        spans.add(Span(text = src.substring(i + 1, end).replace("\\*", "*"), italic = true))
                         i = end + 1
                     } else {
                         plain.append('*')
@@ -338,5 +438,20 @@ object MarkdownParser {
         return spans
     }
 
+    /** CommonMark's escapable ASCII punctuation set. */
+    private const val ESCAPABLE = "!\"\\#$%&'()*+,-./:;<=>?@[]^_`{|}~"
+
+    /** The closing `_` of an emphasis run: an underscore whose NEXT char is not
+     *  alphanumeric (CommonMark right-flanking). */
+    private fun findUnderscoreClose(src: String, from: Int): Int? {
+        for (j in from until src.length) {
+            if (src[j] == '_' && (j + 1 >= src.length || !src[j + 1].isLetterOrDigit())) return j
+        }
+        return null
+    }
+
     private val LINK = Regex("\\[([^\\]]{1,256})]\\((https?://[^)\\s]{1,512})\\)")
+    private val IMAGE = Regex("!\\[([^\\]]{1,256})]\\((https?://[^)\\s]{1,512})\\)")
+    private val AUTOLINK = Regex("<((?:https?://|mailto:)[^>\\s]{1,512})>")
+    private val FOOTNOTE_REF = Regex("\\[\\^([^\\]]{1,64})\\]")
 }
