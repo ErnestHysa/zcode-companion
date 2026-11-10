@@ -63,6 +63,15 @@ class RecoveryCoordinator(
         // 90 s still catches vc24-class stalls quickly; the gap throttles repeats.
         val streamWatchdogIdleMs: Long = 90_000,
         val streamWatchdogResyncGapMs: Long = 45_000,
+        /**
+         * F-37-E (vc52 Phase 10, pass-37 scale leg): the recovery answer to OUR kick
+         * lands as topic frames within this grace window; head-advancing frames inside
+         * it are the kick's own echo and must NOT reset the strike ladder (the echo
+         * resetting strikes is why a compliant-but-passive desktop was re-pulled
+         * forever — 14 re-kicks in one idle 30-minute window). Generous: a real
+         * recovery answer is a same-socket push, well under a second.
+         */
+        val watchdogEchoGraceMs: Long = 10_000,
         val helloServerTimeMs: Double? = null,
         val capabilitiesJson: kotlinx.serialization.json.JsonObject? = null,
     )
@@ -119,6 +128,9 @@ class RecoveryCoordinator(
         synchronized(sessionLastFrameAtMs) { sessionLastFrameAtMs.remove(sessionId) }
         synchronized(sessionLastWatchdogResyncMs) { sessionLastWatchdogResyncMs.remove(sessionId) }
         synchronized(sessionWatchdogStrikes) { sessionWatchdogStrikes.remove(sessionId) }
+        synchronized(sessionKickHeads) { sessionKickHeads.remove(sessionId) }
+        synchronized(sessionKickEchoUntilMs) { sessionKickEchoUntilMs.remove(sessionId) }
+        synchronized(sessionIdleStoodDown) { sessionIdleStoodDown.remove(sessionId) }
         synchronized(escalationCounts) { escalationCounts.remove(sessionId) }
         pendingAttach.remove(sessionId)
         try {
@@ -231,7 +243,13 @@ class RecoveryCoordinator(
                 kotlinx.coroutines.withContext(projectionDispatcher) {
                     markFrame(event.sessionId)
                     try {
-                        managerFor(event)?.handle(event)
+                        val m = managerFor(event)
+                        // F-37-E: classify the event against the projection head — a
+                        // genuine head-advance (outside our own kick's echo window)
+                        // re-arms the watchdog; the kick's own recovery echo does not.
+                        val headBefore = m?.let { it.reducerForTest().watermark }
+                        m?.handle(event)
+                        classifyWatchdogDelta(event.sessionId, headBefore, m?.let { it.reducerForTest().watermark })
                     } catch (e: kotlinx.coroutines.CancellationException) {
                         throw e
                     } catch (e: Exception) {
@@ -256,7 +274,15 @@ class RecoveryCoordinator(
     }
     transport?.let { t ->
             stateJob = scope.launch {
-                t.states.collect { state -> onTransportState(state) }
+                if (System.getenv("ZCODE_SD_DEBUG") != null) println("[sd-x] stateJob launched")
+                try {
+                    t.states.collect { state -> onTransportState(state) }
+                } catch (t: Throwable) {
+                    println("[sd-x] stateJob collect THREW $t")
+                    throw t
+                }
+            }.also { job ->
+                job.invokeOnCompletion { cause -> if (System.getenv("ZCODE_SD_DEBUG") != null) println("[sd-x] stateJob completed cause=$cause") }
             }
     }
     }
@@ -388,12 +414,21 @@ class RecoveryCoordinator(
 
     /** §14.4.2 overlay + §15.1 recovery completion. */
     private suspend fun onTransportState(state: ConnectionStateMachine.ConnectionState) {
+    if (System.getenv("ZCODE_SD_DEBUG") != null) println("[sd-x] onTransportState $state stoodDown=${synchronized(sessionIdleStoodDown) { sessionIdleStoodDown.toList() }}")
     val all = synchronized(managers) { managers.values.toList() }
     when (state) {
             ConnectionStateMachine.ConnectionState.CONNECTED -> {
+                if (System.getenv("ZCODE_SD_DEBUG") != null) println("[sd-x] CONNECTED branch: clearing")
                 for (m in all) m.setStale(false)
                 synchronized(sessionWatchdogStrikes) { sessionWatchdogStrikes.clear() }
+                // F-37-E: a fresh connection re-anchors every session — the watchdog
+                // re-arms from scratch (no stand-down, no stale kick heads).
+                synchronized(sessionIdleStoodDown) { sessionIdleStoodDown.clear() }
+                synchronized(sessionKickHeads) { sessionKickHeads.clear() }
+                synchronized(sessionKickEchoUntilMs) { sessionKickEchoUntilMs.clear() }
+                if (System.getenv("ZCODE_SD_DEBUG") != null) println("[sd-x] CONNECTED branch: reconcile next")
                 reconcileAfterRecovery()
+                if (System.getenv("ZCODE_SD_DEBUG") != null) println("[sd-x] CONNECTED branch: drained, done")
                 // Round-8: re-anchor sessions whose original subscribe failed while
                 // the transport was down (field: "task can't load even after retry").
                 drainPendingAttach()
@@ -519,6 +554,14 @@ class RecoveryCoordinator(
     private val sessionLastWatchdogResyncMs = HashMap<String, Long>()
     private val sessionWatchdogStrikes = HashMap<String, Int>()
 
+    /** F-37-E: the projection head at kick time — an unchanged head at the next
+     *  evaluation means the kick's recovery returned no change → healthy-idle. */
+    private val sessionKickHeads = HashMap<String, com.zcode.android.domain.reducer.ProjectionWatermark?>()
+    /** F-37-E: until when a head-advancing event counts as OUR kick's echo. */
+    private val sessionKickEchoUntilMs = HashMap<String, Long>()
+    /** F-37-E: sessions whose recovery proved healthy-idle — skipped until a genuine delta. */
+    private val sessionIdleStoodDown = HashSet<String>()
+
     /** FIELD (vc34): cap consecutive watchdog escalations per session — each round
      *  re-subscribes, and a desktop cold-resume on a wrong workspace pair can FORK
      *  the task server-side; hammering every 30 s multiplies the damage. After the
@@ -528,7 +571,11 @@ class RecoveryCoordinator(
 
     private fun markFrame(sessionId: String) {
         synchronized(sessionLastFrameAtMs) { sessionLastFrameAtMs[sessionId] = clock() }
-        synchronized(sessionWatchdogStrikes) { sessionWatchdogStrikes.remove(sessionId) }
+        // F-37-E: the strike ladder is NO LONGER reset here — a frame that merely
+        // refreshes the activity stamp (OUR kick's own recovery echo) used to clear
+        // the strikes, which is exactly why the 4-strike cap never engaged against a
+        // compliant-but-passive desktop. Only classifyWatchdogDelta's GENUINE delta
+        // (outside the kick's echo grace) resets the ladder now.
     }
 
     private fun armWatchdog(sessionId: String) {
@@ -540,6 +587,11 @@ class RecoveryCoordinator(
         if (all.isEmpty()) return
         val now = clock()
         val stalled = all.firstOrNull { m ->
+            // F-37-E: a stood-down (healthy-idle) session is skipped until a genuine
+            // delta lifts it (classifyWatchdogDelta / a reconnect / detach).
+            if (synchronized(sessionIdleStoodDown) { m.sessionId.raw in sessionIdleStoodDown }) {
+                return@firstOrNull false
+            }
             val state = m.taskState.value
             if (state !in setOf(
                     com.zcode.android.domain.state.TaskStateMachine.State.RUNNING,
@@ -551,8 +603,27 @@ class RecoveryCoordinator(
             }
             val lastFrame = synchronized(sessionLastFrameAtMs) { sessionLastFrameAtMs[m.sessionId.raw] } ?: return@firstOrNull false
             val lastResync = synchronized(sessionLastWatchdogResyncMs) { sessionLastWatchdogResyncMs[m.sessionId.raw] } ?: 0L
-            now - lastFrame >= config.streamWatchdogIdleMs && now - lastResync >= config.streamWatchdogResyncGapMs
+            // F-37-E: exponential backoff per strike — only a genuine delta resets it
+            // (the kick's own recovery echo never does), so the 4-strike cap can
+            // actually engage against a compliant-but-passive desktop.
+            val strikes = synchronized(sessionWatchdogStrikes) { sessionWatchdogStrikes[m.sessionId.raw] } ?: 0
+            val backoffGap = config.streamWatchdogResyncGapMs shl minOf(strikes, 6)
+            now - lastFrame >= config.streamWatchdogIdleMs && now - lastResync >= backoffGap
         } ?: return
+        // F-37-E: the previous kick's answer arrived with NO change (same epoch, same
+        // seq head) — the recovery response itself proved the session healthy-idle.
+        // Stand the watchdog down until a genuine delta; re-kicking would re-pull the
+        // full snapshot forever (the recorded 14-re-kick loop over one idle window).
+        val head = stalled.reducerForTest().watermark
+        val lastKickHead = synchronized(sessionKickHeads) { sessionKickHeads[stalled.sessionId.raw] }
+        if (lastKickHead != null && head != null && head.logEpoch == lastKickHead.logEpoch && head.seq == lastKickHead.seq) {
+            synchronized(sessionIdleStoodDown) { sessionIdleStoodDown.add(stalled.sessionId.raw) }
+            log.warn(
+                "recovery.streamWatchdogIdle",
+                "session=${stalled.sessionId.raw} recovery returned no change (head=${head.logEpoch.take(12)}/${head.seq}) — healthy-idle, watchdog stood down until a genuine delta",
+            )
+            return
+        }
         val strikes = synchronized(sessionWatchdogStrikes) { (sessionWatchdogStrikes[stalled.sessionId.raw] ?: 0) + 1 }
         if (strikes > watchdogMaxStrikes) {
             // Cap reached: stop re-subscribing (each round can cold-resume server-side).
@@ -565,8 +636,36 @@ class RecoveryCoordinator(
         }
         synchronized(sessionWatchdogStrikes) { sessionWatchdogStrikes[stalled.sessionId.raw] = strikes }
         synchronized(sessionLastWatchdogResyncMs) { sessionLastWatchdogResyncMs[stalled.sessionId.raw] = now }
+        synchronized(sessionKickHeads) { sessionKickHeads[stalled.sessionId.raw] = head }
+        synchronized(sessionKickEchoUntilMs) { sessionKickEchoUntilMs[stalled.sessionId.raw] = now + config.watchdogEchoGraceMs }
         val idleMs = now - (synchronized(sessionLastFrameAtMs) { sessionLastFrameAtMs[stalled.sessionId.raw] } ?: now)
-        log.warn("recovery.streamWatchdog", "no frames for ${idleMs}ms — re-kick session=${stalled.sessionId.raw}")
+        log.warn("recovery.streamWatchdog", "no frames for ${idleMs}ms — re-kick session=${stalled.sessionId.raw} strikes=$strikes")
         escalate(stalled.sessionId.raw, reason = "stream watchdog (delivery stalled)", baseEpoch = null, baseSeq = null)
+    }
+
+    /**
+     * F-37-E: a topic event whose head ADVANCED (epoch moved or seq grew) is stream
+     * traffic. Inside our own kick's echo grace it is the recovery answer itself —
+     * strike-neutral. Outside it, a genuine delta clears the strike ladder, lifts any
+     * stand-down, and re-arms the watchdog (also lifting a capped session's honest
+     * staleness — real traffic is the cure the cap names).
+     */
+    private fun classifyWatchdogDelta(
+        sessionId: String,
+        before: com.zcode.android.domain.reducer.ProjectionWatermark?,
+        after: com.zcode.android.domain.reducer.ProjectionWatermark?,
+    ) {
+        val advanced = after != null && (before == null || before.logEpoch != after.logEpoch || after.seq > before.seq)
+        if (!advanced) return // the echo class (head unchanged) — strike-neutral by design
+        val echoUntil = synchronized(sessionKickEchoUntilMs) { sessionKickEchoUntilMs[sessionId] }
+        if (echoUntil != null && clock() <= echoUntil) return // our kick's own recovery answer
+        synchronized(sessionWatchdogStrikes) { sessionWatchdogStrikes.remove(sessionId) }
+        synchronized(sessionKickHeads) { sessionKickHeads.remove(sessionId) }
+        synchronized(sessionKickEchoUntilMs) { sessionKickEchoUntilMs.remove(sessionId) }
+        val stoodDown = synchronized(sessionIdleStoodDown) { sessionIdleStoodDown.remove(sessionId) }
+        if (stoodDown) {
+            manager(sessionId)?.setStale(false)
+            log.info("recovery.streamWatchdogReArm", "session=$sessionId genuine delta — watchdog re-armed, staleness lifted")
+        }
     }
 }
