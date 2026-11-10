@@ -206,6 +206,10 @@ class MainActivity : FragmentActivity() {
             // and the light nav scrim under the dark app. Re-applied whenever it flips.
             val dark = themeMode.resolveDark()
             LaunchedEffect(dark) { applySystemBarsFor(dark) }
+            // N-BC-4 (vc52 Phase 10): report fully drawn after the FIRST composed
+            // frame — sharpens Android's startup measurement (logcat "fully drawn"
+            // once per cold start) and the baseline-profile derivation.
+            LaunchedEffect(Unit) { FullyDrawnReporter.report(this@MainActivity) }
             // G38 (vc51): the in-app text scale rides the SAME instant-apply path.
             ZCodeTheme(themeMode = themeMode, fontScale = prefs.fontScale) {
                 androidx.compose.runtime.CompositionLocalProvider(
@@ -267,6 +271,24 @@ class MainActivity : FragmentActivity() {
             }
             container.log.info("benchmark.seed", "seeded endpoint url=${url.take(40)}")
         }.onFailure { container.log.warn("benchmark.seedFailed", it.javaClass.simpleName) }
+    }
+
+    /**
+     * N-BC-4: the reportFullyDrawn seam — once per cold start (a recreation never
+     * re-reports), never throws (some OEM/system launch states reject the call).
+     */
+    internal object FullyDrawnReporter {
+        @Volatile internal var reportedForTest = false
+
+        fun report(activity: android.app.Activity) {
+            if (reportedForTest) return
+            reportedForTest = true
+            runCatching { activity.reportFullyDrawn() }
+        }
+
+        fun resetForTest() {
+            reportedForTest = false
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
