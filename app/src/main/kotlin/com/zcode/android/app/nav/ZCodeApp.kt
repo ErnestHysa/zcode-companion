@@ -1068,9 +1068,12 @@ private fun ConnectionCenterRoute(container: AppContainer, onBack: () -> Unit) {
         // G67 (vc52 Phase 11): the Reconnect card fires the workspace-reconnect-request
         // then retries the connection (the bridge succeeds against the reconnected workspace).
         onReconnectWorkspace = {
-            val key = endpoint?.workspaceIdentity ?: endpoint?.workspacePath
-            if (!key.isNullOrBlank()) {
-                ccScope.launch {
+            // G67 (vc52 Phase 11): the key resolves on the HUB (transport-discovered
+            // target → the cached task's workspace identity on a cold process).
+            ccScope.launch {
+                val key = runCatching { container.hub.reconnectKey() }.getOrNull()
+                container.log.info("nav.reconnectWorkspace", "key=${key?.take(24) ?: "null"}")
+                if (!key.isNullOrBlank()) {
                     val ok = runCatching { container.hub.reconnectWorkspace(key) }.getOrDefault(false)
                     container.log.info("nav.reconnectWorkspace", "success=$ok")
                     if (ok) container.hub.retry()

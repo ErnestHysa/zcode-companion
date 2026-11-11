@@ -563,6 +563,14 @@ class RelayTransport(
             // CONNECTING: auth-class → FAILED (re-scan); retryable classes →
             // RECONNECTING (the recovery loop may retry; budget → Degraded).
             bound().warn("relay.connectFailed", "${e.error.category} ${e.error.developerDiagnostic.take(140)}")
+            // G67 (vc52 Phase 11): the typed disconnected-REMOTE error must SURFACE —
+            // the ladder swallows connect failures (the live exit-gate leg: the typed
+            // error carried in the wire log but hub.lastError stayed null, so the
+            // Connection Center rendered no Reconnect card). Emit it once per attempt;
+            // the ladder keeps retrying underneath the card.
+            if (e.error.messageKey == com.zcode.android.core.common.error.UserMessageKey.REMOTE_WORKSPACE_DISCONNECTED) {
+                _appErrors.emit(e.error)
+            }
             if (e.error.developerDiagnostic.contains("workspace-bridge-error")) {
                 // The desktop refused THIS bridge (dead/wedged) — rotate the identity
                 // so the retry opens a FRESH bridge instead of replaying into the
@@ -783,6 +791,11 @@ class RelayTransport(
                         return
                     }
                     bound().warn("relay.reconnectFailed", e.error.developerDiagnostic)
+                    // G67: surface the typed disconnected-REMOTE error here too (the
+                    // recovery ladder's own catch — the card rides hub.lastError).
+                    if (e.error.messageKey == com.zcode.android.core.common.error.UserMessageKey.REMOTE_WORKSPACE_DISCONNECTED) {
+                        _appErrors.emit(e.error)
+                    }
                     continue
                 }
                 bound().warn("relay.reconnectFailed", e.error.developerDiagnostic)

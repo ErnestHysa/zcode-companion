@@ -340,6 +340,32 @@ class ConnectionHub(
     fun sessionProjectionState(taskId: String): kotlinx.coroutines.flow.Flow<com.zcode.android.domain.model.SessionProjectionState> =
         sessionFlow(taskId, { m -> m.sessionState }, com.zcode.android.domain.model.SessionProjectionState())
 
+    /**
+     * G67 (vc52 Phase 11): the reconnect request key — transport-discovered target
+     * first; on a cold process (no bridge yet) the cached task's workspace identity
+     * (the bootstrap's key — persisted in the Room task cache).
+     */
+    suspend fun reconnectKey(): String? {
+        activeTransport().activeWorkspaceTarget?.let { (path, identity) ->
+            // A cold process serves Pair(null, null) (the pairing descriptor carries no
+            // workspace; the bridge discovery writes it back in-memory per session) —
+            // fall through to the persisted task cache instead of returning null.
+            val discovered = identity?.trim()?.takeIf { it.isNotEmpty() } ?: path
+            if (!discovered.isNullOrBlank()) return discovered
+        }
+        val endpointId = activeEndpointIdRaw()
+        if (endpointId == null) {
+            log.warn("hub.reconnectKey", "endpointId null (endpoint flow not resolved)")
+            return null
+        }
+        val task = runCatching { taskRepo.observeAllTasks(EndpointId(endpointId)).first() }
+            .onFailure { log.warn("hub.reconnectKey", "${it.javaClass.simpleName}: ${it.message?.take(100)}") }
+            .getOrNull()
+        val key = task?.firstOrNull()?.workspace?.raw
+        log.info("hub.reconnectKey", "endpoint=${endpointId.take(8)} tasks=${task?.size} key=${key?.take(24)}")
+        return key
+    }
+
     /** G67 (vc52 Phase 11): the Reconnect card's wire face — request + result (logged for the rig receipt). */
     suspend fun reconnectWorkspace(workspaceKey: String): Boolean {
         val t = runCatching { activeTransport() }.getOrNull() as? RelayTransport ?: run {

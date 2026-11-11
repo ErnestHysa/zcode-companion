@@ -268,38 +268,15 @@ fun ConnectionCenterScreen(
                 }
             }
 
-            // Takeover UX (§15.3): expected platform behavior, not an error wall.
-            if (lastError != null && lastError.category == com.zcode.android.core.common.error.ErrorCategory.SESSION) {
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.medium)
-                        .padding(14.dp)
-                        .testTag("connection_takeover"),
-                ) {
-                    Text(
-                        stringResource(R.string.conn_takeover_title),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        stringResource(R.string.conn_takeover_body),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TextButton(onClick = { onRetry(); onDismissError() }) { Text(stringResource(R.string.conn_takeover_reconnect)) }
-                        TextButton(onClick = onDismissError) { Text(stringResource(R.string.conn_takeover_dismiss)) }
-                    }
-                }
-            } else if (lastError != null &&
+            // G67 (vc52 Phase 11): the disconnected-REMOTE card — CHECKED BEFORE the
+            // generic SESSION takeover branch (the live exit-gate leg caught the
+            // takeover card shadowing it: the typed error carried, the card didn't).
+            if (lastError != null &&
                 lastError.messageKey == com.zcode.android.core.common.error.UserMessageKey.REMOTE_WORKSPACE_DISCONNECTED
             ) {
-                // G67 (vc52 Phase 11): the disconnected-REMOTE card — the recorded defect
-                // face misreported this as a retrying connection problem; the typed card
-                // carries the Reconnect remedy (workspace-reconnect-request → retry).
+                // The recorded defect face misreported this as a retrying connection
+                // problem; the typed card carries the Reconnect remedy
+                // (workspace-reconnect-request → retry).
                 Column(
                     Modifier
                         .fillMaxWidth()
@@ -324,6 +301,32 @@ fun ConnectionCenterScreen(
                             onClick = { onReconnectWorkspace(); onDismissError() },
                             modifier = Modifier.testTag("connection_reconnect_workspace"),
                         ) { Text(stringResource(R.string.conn_remote_reconnect_action)) }
+                        TextButton(onClick = onDismissError) { Text(stringResource(R.string.conn_takeover_dismiss)) }
+                    }
+                }
+            } else if (lastError != null && lastError.category == com.zcode.android.core.common.error.ErrorCategory.SESSION) {
+                // Takeover UX (§15.3): expected platform behavior, not an error wall.
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.medium)
+                        .padding(14.dp)
+                        .testTag("connection_takeover"),
+                ) {
+                    Text(
+                        stringResource(R.string.conn_takeover_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        stringResource(R.string.conn_takeover_body),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = { onRetry(); onDismissError() }) { Text(stringResource(R.string.conn_takeover_reconnect)) }
                         TextButton(onClick = onDismissError) { Text(stringResource(R.string.conn_takeover_dismiss)) }
                     }
                 }
