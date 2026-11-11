@@ -181,7 +181,17 @@ fun PluginsViewerScreen(
                                 }
                             }
                         }
-                        item { Spacer(Modifier.height(24.dp)) }
+                        item {
+                            // G58 (vc52 Phase 12): the DATED boundary note — the shipped
+                            // slice is the installed list + the ADR-023 enable toggle;
+                            // marketplace/install/overview stay desktop-side.
+                            Text(
+                                stringResource(R.string.plugins_boundary_note),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(vertical = 12.dp).testTag("plugins_boundary_note"),
+                            )
+                        }
                     }
                 }
             }

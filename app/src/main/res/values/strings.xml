@@ -415,4 +415,5 @@
 <string name="settings_memory_sub">Read-only view · saved workspace memories on this desktop</string>
 <string name="settings_self_report_row">Report device state to your desktop</string>
 <string name="settings_self_report_sub">Optional. Shares which task you are viewing and connection diagnostics with YOUR paired desktop only. Off by default; no analytics.</string>
+<string name="plugins_boundary_note">Installed-plugin list with the enable toggle (ADR-023). Marketplace add/remove, install/uninstall and overview stay on the desktop.</string>
 </resources>

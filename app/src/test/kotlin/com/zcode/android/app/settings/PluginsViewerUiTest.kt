@@ -75,4 +75,18 @@ class PluginsViewerUiTest {
         rule.setContent { ZCodeTheme { PluginsViewerScreen(port = fakePort(null, error = "refused")) } }
         rule.onNodeWithTag("plugins_error").assertExists()
     }
+
+    @Test
+    fun `G58 - the dated boundary note renders and no marketplace affordance exists`() {
+        rule.setContent { ZCodeTheme { PluginsViewerScreen(port = fakePort(fixtureView("plugins-list-mixed"))) } }
+        rule.waitUntil(5_000) { rule.onAllNodesWithTag("plugins_list").fetchSemanticsNodes().isNotEmpty() }
+        // The dated boundary note (G58, 2026-11-11): the shipped slice is the
+        // installed list + the ADR-023 enable toggle.
+        rule.onNodeWithTag("plugins_boundary_note").assertIsDisplayed()
+        rule.onNodeWithText("Marketplace add/remove, install/uninstall and overview stay on the desktop.", substring = true).assertExists()
+        // NO management affordance beyond the shipped enable toggle.
+        rule.onAllNodesWithTag("plugin_install", useUnmergedTree = true).assertCountEquals(0)
+        rule.onAllNodesWithTag("plugin_uninstall", useUnmergedTree = true).assertCountEquals(0)
+        rule.onAllNodesWithTag("plugin_marketplace", useUnmergedTree = true).assertCountEquals(0)
+    }
 }
