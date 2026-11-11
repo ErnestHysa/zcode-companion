@@ -14,6 +14,8 @@ import kotlinx.serialization.json.put
 import com.zcode.android.app.settings.McpPort
 import com.zcode.android.app.settings.HooksPort
 import com.zcode.android.app.settings.CommandsPort
+import com.zcode.android.app.settings.MemoryPort
+import com.zcode.android.features.files.port.FilesPort
 import com.zcode.android.app.settings.SkillsPort
 import com.zcode.android.features.tasks.port.AutomationsPort
 import java.util.TimeZone
@@ -573,5 +575,61 @@ class DefaultCommandsPort(
             hub.log.warn("commandsport.commands", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
             CommandsPort.Result(null, e.message ?: "custom commands are unavailable on this connection")
         }
+    }
+}
+
+/**
+ * G75 (vc52 Phase 12): the workspace-memory reader over the `file` channel (readdir
+ * + readTextFile, raw paths — the only transport the desktop offers for the memory
+ * tree; fresh asar 4a6080ed… has NO memory wire verbs, its own viewer reads local
+ * node:fs). The root is derived from the ACTIVE workspace path's first segment
+ * (the desktop home) + `.zcode/cli/memories/projects` — the desktop's own
+ * getProjectMemoriesRoot layout; per-workspace memories live in `<dir>/memory/`.
+ */
+class DefaultMemoryPort(
+    private val hub: ConnectionHub,
+    private val filesPort: FilesPort,
+) : MemoryPort {
+
+    private suspend fun projectsRoot(): String? {
+        val ws = hub.activeWorkspaceTarget()?.first?.takeIf { it.isNotEmpty() } ?: return null
+        // /Users/ernest/Desktop/x -> /Users/ernest (the desktop home; the root the
+        // desktop's homedir()-based memory tree lives under).
+        val home = ws.trimEnd('/').substringBefore("/", missingDelimiterValue = "")
+        if (home.isEmpty()) return null
+        return "$home/.zcode/cli/memories/projects"
+    }
+
+    override suspend fun snapshot(): MemoryPort.Snapshot {
+        val root = projectsRoot()
+            ?: return MemoryPort.Snapshot(null, "memory is unavailable without an active workspace")
+        val dirs = filesPort.list(root)
+        dirs.error?.let { return MemoryPort.Snapshot(null, it) }
+        val out = ArrayList<MemoryPort.WorkspaceMemories>()
+        for (dir in dirs.entries.orEmpty().filter { it.isDirectory }.take(MAX_WORKSPACES)) {
+            val listing = filesPort.list(dir.path + "/memory")
+            val entries = listing.entries.orEmpty().filter { !it.isDirectory }
+            out += MemoryPort.WorkspaceMemories(
+                dir = dir.path,
+                label = dir.path.substringAfterLast('/'),
+                files = entries.take(MAX_FILES_PER_WORKSPACE).map { e ->
+                    MemoryPort.MemoryFile(e.path, e.path.substringAfterLast('/'), null)
+                },
+                indexMissing = entries.none { it.path.substringAfterLast('/') == "MEMORY.md" },
+            )
+        }
+        return MemoryPort.Snapshot(out.sortedBy { it.label }, null)
+    }
+
+    override suspend fun readText(path: String): MemoryPort.TextPage {
+        val page = filesPort.readText(path, 0L, MemoryPort.MAX_PREVIEW_BYTES)
+        val slice = page.slice
+        return MemoryPort.TextPage(slice?.content, slice?.totalBytes, slice?.truncated ?: false, page.error)
+    }
+
+    private companion object {
+        /** Bounded fetches (INV-5): the viewer never walks unbounded trees. */
+        const val MAX_WORKSPACES = 20
+        const val MAX_FILES_PER_WORKSPACE = 50
     }
 }

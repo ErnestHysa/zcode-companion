@@ -70,6 +70,7 @@ object Routes {
     const val MCP = "mcp"
     const val HOOKS = "hooks"
     const val COMMANDS = "commands"
+    const val MEMORY = "memory"
     const val APPROVALS = "approvals"
     const val FILES = "files"
     const val GIT = "git"
@@ -438,6 +439,7 @@ fun ZCodeApp(
                 onOpenBots = { nav.navigate(Routes.BOTS) },
                 onOpenHooks = { nav.navigate(Routes.HOOKS) },
                 onOpenCommands = { nav.navigate(Routes.COMMANDS) },
+                onOpenMemory = { nav.navigate(Routes.MEMORY) },
             )
         }
         composable(Routes.USAGE) {
@@ -467,6 +469,12 @@ fun ZCodeApp(
         composable(Routes.MCP) {
             // GAP-9 (v4-wire.md §12.5): read-only mcp/list status viewer (mode:"status", INV-9).
             McpViewerScreen(port = container.mcpPort, onBack = { nav.popBackStack() }, modifier = Modifier.fillMaxSize())
+        }
+        composable(Routes.MEMORY) {
+            // G75 (vc52 Phase 12): read-only workspace-memory viewer over the `file`
+            // channel (the desktop memory tree is desktop-local node:fs — the phone
+            // reads it through readdir/readTextFile; INV-9, no write affordance).
+            com.zcode.android.app.settings.MemoryViewerScreen(port = container.memoryPort, onBack = { nav.popBackStack() }, modifier = Modifier.fillMaxSize())
         }
         composable(Routes.COMMANDS) {
             // G74 (vc52 Phase 12): read-only custom-command viewer (commands.list decode;
@@ -1158,6 +1166,7 @@ private fun SettingsRoute(
     onOpenBots: () -> Unit = {},
     onOpenHooks: () -> Unit = {},
     onOpenCommands: () -> Unit = {},
+    onOpenMemory: () -> Unit = {},
 ) {
     val endpoint by container.hub.endpoint.collectAsState()
     SettingsScreen(
@@ -1174,5 +1183,6 @@ private fun SettingsRoute(
         onOpenBots = onOpenBots,
         onOpenHooks = onOpenHooks,
         onOpenCommands = onOpenCommands,
+        onOpenMemory = onOpenMemory,
     )
 }

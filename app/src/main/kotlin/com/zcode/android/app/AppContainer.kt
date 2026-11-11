@@ -21,6 +21,7 @@ import com.zcode.android.app.connect.DefaultSubagentsPort
 import com.zcode.android.app.connect.DefaultMcpPort
 import com.zcode.android.app.connect.DefaultHooksPort
 import com.zcode.android.app.connect.DefaultCommandsPort
+import com.zcode.android.app.connect.DefaultMemoryPort
 import com.zcode.android.app.connect.DefaultSkillsPort
 import com.zcode.android.app.connect.DefaultUsagePort
 import com.zcode.android.app.connect.DefaultTerminalPort
@@ -272,6 +273,7 @@ class AppContainer(context: Context) {
             }.onFailure { log.warn("files.share", "${it.javaClass.simpleName}: ${it.message?.take(100)}") }
         },
     )
+    val memoryPort: DefaultMemoryPort = DefaultMemoryPort(hub, filesPort)
     val terminalPort: DefaultTerminalPort = DefaultTerminalPort(
         controller = com.zcode.android.data.session.TerminalController(hub.activeTransport(), log),
         preferences = stores.preferencesRepository,

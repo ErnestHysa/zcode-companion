@@ -402,4 +402,15 @@
 <string name="commands_boundary_note">Read-only list. Command authoring (create / edit / import) lives on the desktop.</string>
 <string name="settings_commands_row">Commands</string>
 <string name="settings_commands_sub">Read-only list · custom and plugin slash commands</string>
+<string name="memory_viewer_title">Workspace memory</string>
+<string name="memory_search_hint">Search memory files…</string>
+<string name="memory_viewer_empty">No saved workspace memory on this desktop yet.</string>
+<string name="memory_viewer_unavailable">Workspace memory is unavailable on this connection</string>
+<string name="memory_search_empty">No matching memory files.</string>
+<string name="memory_index_missing">MEMORY.md not generated yet</string>
+<string name="memory_file_too_large">This memory file exceeds the 5 MiB preview cap — showing the first chunk.</string>
+<string name="memory_file_unreadable">This memory file could not be read.</string>
+<string name="memory_file_changed_hint">It may have changed or been deleted since the listing — pull to refresh.</string>
+<string name="settings_memory_row">Memory</string>
+<string name="settings_memory_sub">Read-only view · saved workspace memories on this desktop</string>
 </resources>

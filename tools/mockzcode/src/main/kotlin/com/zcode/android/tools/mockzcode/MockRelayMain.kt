@@ -747,6 +747,39 @@ fun main() {
     if (System.getenv("MOCK_AUTOMATION_RUNS") != null) {
         mock.script.automationRuns = JsonArray(listOf(automationRunRigSeed()))
     }
+    // G75 (vc52 Phase 12): MOCK_MEMORY seeds the desktop's workspace-memory tree as
+    // absolute file-channel paths under the SAME home the synthetic workspace lives
+    // in (/synthetic/ws-one -> home /synthetic). The phone's derivation reads
+    // <home>/.zcode/cli/memories/projects/<key>/memory/*.
+    if (System.getenv("MOCK_MEMORY") != null) {
+        // G75 (vc52 Phase 12): the desktop's workspace-memory tree as absolute
+        // file-channel paths under the SAME home the synthetic workspace lives in
+        // (/synthetic/ws-one -> home /synthetic). The phone's derivation reads
+        // <home>/.zcode/cli/memories/projects/<key>/memory/*.
+        fun memDir(path: String, name: String) = JsonObject(mapOf(
+            "name" to JsonPrimitive(name),
+            "path" to JsonPrimitive(path),
+            "type" to JsonPrimitive("directory"),
+            "isSymbolicLink" to JsonPrimitive(false),
+        ))
+        fun memFile(path: String, name: String) = JsonObject(mapOf(
+            "name" to JsonPrimitive(name),
+            "path" to JsonPrimitive(path),
+            "type" to JsonPrimitive("file"),
+            "isSymbolicLink" to JsonPrimitive(false),
+        ))
+        mock.script.fileTree["/synthetic/.zcode/cli/memories/projects"] = JsonArray(listOf(
+            memDir("/synthetic/.zcode/cli/memories/projects/synthetic-ws", "synthetic-ws"),
+        ))
+        mock.script.fileTree["/synthetic/.zcode/cli/memories/projects/synthetic-ws/memory"] = JsonArray(listOf(
+            memFile("/synthetic/.zcode/cli/memories/projects/synthetic-ws/memory/MEMORY.md", "MEMORY.md"),
+            memFile("/synthetic/.zcode/cli/memories/projects/synthetic-ws/memory/release-prefs.md", "release-prefs.md"),
+        ))
+        mock.script.fileText["/synthetic/.zcode/cli/memories/projects/synthetic-ws/memory/MEMORY.md"] =
+            "# Workspace memory\n\n- prefers conventional commits\n- releases every Thursday"
+        mock.script.fileText["/synthetic/.zcode/cli/memories/projects/synthetic-ws/memory/release-prefs.md"] =
+            "Release preferences: changelog first, then tag; never push without Ernest."
+    }
     // Phase 4C (C2) rig leg: the slash panel's extra sections — one custom command,
     // one skill, one agent (synthetic, INV-15/16).
     mock.script.commandsList = JsonObject(mapOf(

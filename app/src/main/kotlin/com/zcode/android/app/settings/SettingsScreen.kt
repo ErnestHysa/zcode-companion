@@ -87,6 +87,8 @@ fun SettingsScreen(
     onOpenHooks: () -> Unit = {},
     /** G74 (vc52 Phase 12): opens the read-only custom-commands viewer. */
     onOpenCommands: () -> Unit = {},
+    /** G75 (vc52 Phase 12): opens the read-only workspace-memory viewer. */
+    onOpenMemory: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -194,6 +196,12 @@ fun SettingsScreen(
                 subtitle = stringResource(R.string.settings_commands_sub),
                 tag = "settings_commands",
                 onClick = onOpenCommands,
+            )
+            SettingsRow(
+                title = stringResource(R.string.settings_memory_row),
+                subtitle = stringResource(R.string.settings_memory_sub),
+                tag = "settings_memory",
+                onClick = onOpenMemory,
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
