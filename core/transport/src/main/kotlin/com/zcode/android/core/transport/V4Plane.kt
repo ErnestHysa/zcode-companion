@@ -432,6 +432,9 @@ interface V4Plane {
     // `return null` stub — a null result is DISTINCT here (the caller falls back to the
     // row's retained payload), so this returns JsonObject?, never throws on null.
     suspend fun taskSnapshotToolCallsSlice(taskId: String, toolCallIds: List<String>): JsonObject?
+
+    /** G60 (vc52 Phase 12): the per-task token usage (v4/conversation/usage). Null = refused/unavailable. */
+    suspend fun getTaskTokenUsage(sessionId: String): JsonObject?
 }
 
 /** Transport + v4 plane — what the data/app layers consume (INV-2/INV-6). */

@@ -821,6 +821,9 @@ fun ComposerBar(
     /** Phase 4C (C7): the @-mention file search (the port's workspace file search).
      *  GAP-21-A: [refresh] mirrors the desktop's lastMissQuery REFRESH re-query. */
     fileSearchProvider: suspend (query: String, refresh: Boolean) -> List<String> = { _, _ -> emptyList() },
+    /** G65 (vc52 Phase 12): the non-file mention categories (sessions/skills/plugins/
+     * agents) — (category, query) -> options; null = the files-only face (unchanged). */
+    mentionCategoriesProvider: (suspend (category: String, query: String) -> List<MentionOption>)? = null,
     /** G9 (vc51): the shared-context chip's discard (null = hidden). */
     onDiscardSharedContext: (() -> Unit)? = null,
 ) {
@@ -977,7 +980,74 @@ fun ComposerBar(
                     mentionHits = hits
                 }
             }
-            if (mention != null && mentionHits.isNotEmpty()) {
+            // G65 (vc52 Phase 12): the desktop's category-FIRST mention menu — Files
+            // keeps the existing provider verbatim (GAP-21-A behavior + pins); the
+            // other four ride the category provider with the desktop's insert shapes.
+            var mentionCategory by remember { mutableStateOf("files") }
+            var categoryHits by remember { mutableStateOf<List<MentionOption>>(emptyList()) }
+            LaunchedEffect(state.draft, mentionCategory) {
+                val provider = mentionCategoriesProvider
+                if (mention == null || provider == null || mentionCategory == "files") {
+                    categoryHits = emptyList()
+                } else {
+                    kotlinx.coroutines.delay(120)
+                    categoryHits = runCatching { provider(mentionCategory, mention.query) }.getOrDefault(emptyList())
+                }
+            }
+            if (mention != null && mentionCategoriesProvider != null) {
+                MentionCategoryBar(
+                    active = mentionCategory,
+                    onSelect = { mentionCategory = it },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            if (mention != null && mentionCategory != "files" && categoryHits.isNotEmpty()) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    tonalElevation = 2.dp,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp).testTag("mention_menu"),
+                ) {
+                    Column {
+                        categoryHits.take(6).forEach { opt ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .minRowTouchTarget()
+                                    .clickable(role = androidx.compose.ui.semantics.Role.Button) {
+                                        onDraftChange(
+                                            state.draft.removeRange(mention.start, state.draft.length) + "${opt.insert} ",
+                                        )
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                                    .testTag("mention_item_${mentionCategory}_${opt.label}"),
+                            ) {
+                                Column {
+                                    Text(
+                                        opt.label,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                    )
+                                    opt.detail?.let {
+                                        Text(
+                                            it,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else if (mention != null && mentionCategory != "files" && categoryHits.isEmpty()) {
+                Unit // the category miss: no rows (the desktop's empty face is per-category copy)
+            }
+            if (mention != null && mentionCategory == "files" && mentionHits.isNotEmpty()) {
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant,
                     tonalElevation = 2.dp,
@@ -1678,3 +1748,38 @@ fun composerAutoCorrectEnabled(options: androidx.compose.foundation.text.Keyboar
 
 /** F-34-D: why dictation did not start/finish — the copy must name the real cause. */
 internal enum class VoiceError { MIC_PERMISSION, UNAVAILABLE }
+
+/** G65 (vc52 Phase 12): one non-file mention hit — the insert text is the desktop's
+ * serialization (session `#id`, skill `$name`, agent `@name`, plugin markdown link). */
+data class MentionOption(val label: String, val detail: String?, val insert: String)
+
+/** The desktop's mention categories in value order (chat.mention.*); Files first. */
+private val MENTION_CATEGORIES = listOf("files", "sessions", "skills", "plugins", "agents")
+
+@Composable
+private fun MentionCategoryBar(active: String, onSelect: (String) -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .padding(bottom = 4.dp)
+            .testTag("mention_categories"),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        MENTION_CATEGORIES.forEach { category ->
+            Surface(
+                color = if (category == active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier
+                    .minRowTouchTarget()
+                    .clickable(role = androidx.compose.ui.semantics.Role.Button) { onSelect(category) }
+                    .testTag("mention_category_$category"),
+            ) {
+                Text(
+                    category.replaceFirstChar { it.uppercase() },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (category == active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                )
+            }
+        }
+    }
+}

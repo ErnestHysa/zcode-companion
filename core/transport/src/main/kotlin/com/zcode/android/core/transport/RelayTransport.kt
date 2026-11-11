@@ -1572,6 +1572,8 @@ class RelayTransport(
     override suspend fun modelSelectionView(): JsonObject = plane.modelSelectionView()
     override suspend fun taskSnapshotToolCallsSlice(taskId: String, toolCallIds: List<String>): JsonObject? =
         plane.taskSnapshotToolCallsSlice(taskId, toolCallIds)
+    override suspend fun getTaskTokenUsage(sessionId: String): JsonObject? =
+        plane.getTaskTokenUsage(sessionId)
 
 
     // ------------------------------------------------------------------ control plane

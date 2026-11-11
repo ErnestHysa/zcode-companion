@@ -965,6 +965,41 @@ private fun ConversationRoute(
         onSlashMenuOpen = vm::onSlashMenuOpen,
         onSetThoughtLevel = vm::setThoughtLevel,
         fileSearchProvider = { query, refresh -> container.conversationPort.searchWorkspaceFiles(state.task?.taskId.orEmpty(), query, refresh) },
+        // G65 (vc52 Phase 12): the desktop's mention categories over the phone's
+        // existing read surfaces — sessions = the task list (#id), skills = the
+        // reference catalog ($name), plugins = the enabled plugins (the desktop's
+        // markdown link), agents = the subagents catalog (@name).
+        mentionCategoriesProvider = { category, query ->
+            val target = container.hub.activeWorkspaceTarget()
+            val q = query.trim()
+            fun matches(label: String, id: String): Boolean =
+                q.isBlank() || label.contains(q, ignoreCase = true) || id.contains(q, ignoreCase = true)
+            when (category) {
+                "sessions" -> container.hub.currentTasks()
+                    .filter { matches(it.title, it.taskId) }
+                    .take(8)
+                    .map { com.zcode.android.features.conversation.ui.MentionOption(it.title.ifBlank { it.taskId }, it.taskId, "#${it.taskId}") }
+                "skills" -> target?.let { (wp, wi) ->
+                    container.hub.viewerTools().skillCatalog(wp, wi).skills
+                        .filter { matches(it.name, it.id) }
+                        .take(8)
+                        .map { com.zcode.android.features.conversation.ui.MentionOption(it.name, it.description, "\$${it.name}") }
+                } ?: emptyList()
+                "plugins" -> target?.let { (wp, wi) ->
+                    container.hub.viewerTools().plugins(wp, wi).plugins
+                        .filter { it.enabled && matches(it.name, it.id) }
+                        .take(8)
+                        .map { com.zcode.android.features.conversation.ui.MentionOption(it.name, it.description, "[@${it.name}](plugin://${it.id})") }
+                } ?: emptyList()
+                "agents" -> target?.let { (wp, wi) ->
+                    container.hub.viewerTools().subagentsDetailed(wp, wi, null)
+                        .filter { matches(it.name, it.name) }
+                        .take(8)
+                        .map { com.zcode.android.features.conversation.ui.MentionOption(it.name, it.description, "@${it.name}") }
+                } ?: emptyList()
+                else -> emptyList()
+            }
+        },
         workflowRuns = workflowRuns,
         openWorkflowRun = openWorkflowRun,
         openRunGraph = openRunGraph,

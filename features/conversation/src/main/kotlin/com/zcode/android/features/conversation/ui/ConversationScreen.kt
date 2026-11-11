@@ -167,6 +167,8 @@ fun ConversationScreen(
     onSetThoughtLevel: (String) -> Unit = {},
     /** Phase 4C (C7): the @-mention workspace file search. */
     fileSearchProvider: suspend (query: String, refresh: Boolean) -> List<String> = { _, _ -> emptyList() },
+    /** G65 (vc52 Phase 12): the non-file mention categories (sessions/skills/plugins/agents). */
+    mentionCategoriesProvider: (suspend (category: String, query: String) -> List<com.zcode.android.features.conversation.ui.MentionOption>)? = null,
     // ---- Phase 5A (A3.3): workflow runs panel + run sheet ----
     workflowRuns: List<com.zcode.android.domain.model.WorkflowRunSummary>? = null,
     openWorkflowRun: com.zcode.android.features.conversation.ConversationViewModel.OpenWorkflowRun? = null,
@@ -652,6 +654,7 @@ fun ConversationScreen(
                 onRetryAttachment = onRetryAttachment,
                 onSlashMenuOpen = onSlashMenuOpen,
                 fileSearchProvider = fileSearchProvider,
+                mentionCategoriesProvider = mentionCategoriesProvider,
                 onDiscardSharedContext = onDiscardSharedContext,
             )
         }
