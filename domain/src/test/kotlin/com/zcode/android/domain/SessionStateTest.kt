@@ -77,12 +77,21 @@ class SessionStateTest {
         assertEquals("Bash", permPayload.toolName)
         assertEquals("Run the build?", permPayload.summary)
         assertEquals(3, permPayload.options.size)
-        // §20.4: options classify by optionId — the custom "fullAccess" is INERT.
+        // §20.4: options classify by optionId. G76 (vc52 Phase 12) SUPERSEDED the
+        // old inert contract for `fullAccess` specifically — kind=custom + the
+        // literal fullAccess id is now the actionable allow arm (the desktop's own
+        // fullAccessOption; the batch that changed the contract owns this pin).
+        // Fail-closed stays: a custom option WITHOUT the fullAccess id/scope is inert
+        // (pinned in PermissionScopeSemanticsTest).
         assertTrue(permPayload.options[0].allowCapable)
-        assertTrue(!permPayload.options[2].allowCapable)
+        assertTrue(permPayload.options[2].allowCapable, "fullAccess is the actionable allow arm (G76)")
         assertEquals(
-            com.zcode.android.domain.model.PermissionOption.Semantics.OTHER,
+            com.zcode.android.domain.model.PermissionOption.Semantics.ALLOW_ALWAYS,
             permPayload.options[2].semantics,
+        )
+        assertEquals(
+            com.zcode.android.domain.model.PermissionScope.FULL_ACCESS,
+            permPayload.options[2].scope,
         )
 
         val user = pending[1]

@@ -81,7 +81,9 @@ class SessionConfigStateTest {
 
     @Test
     fun `switchable modes are exactly the verified set (auto excluded)`() {
-        assertEquals(listOf("build", "edit", "plan", "yolo"), SessionConfigState.SWITCHABLE_MODES)
+        // G59 (vc52 Phase 12): the fresh-asar enum grew the FIFTH mode (guarded) —
+        // the batch that changed the contract owns this pin.
+        assertEquals(listOf("build", "edit", "plan", "yolo", "guarded"), SessionConfigState.SWITCHABLE_MODES)
         if ("auto" in SessionConfigState.SWITCHABLE_MODES) fail("auto must NOT be user-switchable (§10.3)")
     }
 }
