@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -717,6 +718,14 @@ fun TurnSeparator(
         // A3.11: the PREVIEW upgrades the sheet — safe/unsafe/ignored files with the
         // desktop's canApply gating the Confirm; unavailable falls back to the copy-only form.
         ZCodeModalBottomSheet(onDismissRequest = { confirmRewind = false }) {
+            // G72: the sheet content SCROLLS (desktop `max-h-[50vh] overflow-y-auto`) —
+            // a many-file summary can no longer push the Confirm below the fold.
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .testTag("rewind_sheet_scroll"),
+            ) {
             Text(
                 stringResource(R.string.rewind_dialog_title),
                 style = MaterialTheme.typography.titleMedium,
@@ -759,6 +768,7 @@ fun TurnSeparator(
                 ) { Text(stringResource(R.string.rewind_dialog_confirm)) }
             }
             Spacer(Modifier.height(12.dp))
+            }
         }
     }
     if (hasChanges) {
@@ -1945,54 +1955,143 @@ private fun rowScopePreviewJob(
     }
 }
 
+/**
+ * G72 (vc52 Phase 12): the desktop's rewindDialog change summary (chat.changeSummary
+ * .rewindDialog.*) — THREE titled sections with counts: safe (path + "{n} edits" per
+ * file), unsafe (path + the LOCALIZED reason per file + edits), ignored (bash_ignored,
+ * per-file). Each empty list renders its desktop refusal face (noSafeFiles /
+ * noUnsafeFiles); !canApply keeps the cannotApply face and the Confirm disabled
+ * (the restore only ever sends from the sheet's Confirm button).
+ */
 @Composable
 private fun RewindPreviewBody(preview: com.zcode.android.domain.model.RewindPreview) {
     Column(Modifier.padding(horizontal = 16.dp).testTag("rewind_preview")) {
-        preview.safeFiles.take(6).forEach { f ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        // Safe section (desktop safeTitle + per-file rows).
+        Text(
+            stringResource(R.string.rewind_safe_count, preview.safeFiles.size),
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(top = 8.dp).testTag("rewind_safe_title"),
+        )
+        if (preview.safeFiles.isEmpty()) {
+            Text(
+                stringResource(R.string.rewind_no_safe_files),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("rewind_no_safe_files"),
+            )
+        } else {
+            preview.safeFiles.take(8).forEach { f ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        if (f.action == "delete") "−" else "↩",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.testTag("rewind_safe_${f.path.hashCode()}"),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        f.path,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        stringResource(R.string.rewind_ops_count, f.operationCount),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            if (preview.safeFiles.size > 8) {
                 Text(
-                    if (f.action == "delete") "−" else "↩",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.testTag("rewind_safe_${f.path.hashCode()}"),
+                    "… +${preview.safeFiles.size - 8}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Spacer(Modifier.width(6.dp))
-                Text(f.path, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             }
         }
-        if (preview.safeFiles.size > 6) {
-            Text("… +${preview.safeFiles.size - 6}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        preview.unsafeFiles.forEach { f ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("!", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-                Spacer(Modifier.width(6.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(f.path, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        // Unsafe section (desktop unsafeTitle + per-file reason attribution).
+        Text(
+            stringResource(R.string.rewind_unsafe_count, preview.unsafeFiles.size),
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(top = 10.dp).testTag("rewind_unsafe_title"),
+        )
+        if (preview.unsafeFiles.isEmpty()) {
+            Text(
+                stringResource(R.string.rewind_no_unsafe_files),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("rewind_no_unsafe_files"),
+            )
+        } else {
+            preview.unsafeFiles.forEach { f ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("!", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                    Spacer(Modifier.width(6.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(f.path, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            f.message ?: rewindReasonLabel(f.reason),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.testTag("rewind_unsafe_${f.reason}"),
+                        )
+                    }
                     Text(
-                        f.message ?: f.reason,
+                        stringResource(R.string.rewind_ops_count, f.operationCount),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.testTag("rewind_unsafe_${f.reason}"),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
         }
+        // Ignored section (desktop ignoredTitle — only when non-empty).
         if (preview.ignoredFiles.isNotEmpty()) {
             Text(
-                stringResource(R.string.rewind_ignored_count, preview.ignoredFiles.size),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.testTag("rewind_ignored"),
+                stringResource(R.string.rewind_ignored_title, preview.ignoredFiles.size),
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.padding(top = 10.dp).testTag("rewind_ignored_title"),
             )
+            preview.ignoredFiles.forEach { f ->
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.testTag("rewind_ignored_file")) {
+                    Text("~", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        f.path,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        rewindReasonLabel(f.reason),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.testTag("rewind_ignored_reason"),
+                    )
+                }
+            }
         }
         if (!preview.canApply) {
             Text(
                 stringResource(R.string.rewind_cannot_apply),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 4.dp).testTag("rewind_cannot_apply"),
+                modifier = Modifier.padding(top = 6.dp).testTag("rewind_cannot_apply"),
             )
         }
     }
+}
+
+/** G72: the six recorded unsafe/ignored reasons localized (desktop jnn map); unknown renders raw. */
+@Composable
+private fun rewindReasonLabel(reason: String): String = when (reason) {
+    "bash_ignored" -> stringResource(R.string.rewind_reason_bash_ignored)
+    "checkpoint_missing" -> stringResource(R.string.rewind_reason_checkpoint_missing)
+    "checkpoint_unreadable" -> stringResource(R.string.rewind_reason_checkpoint_unreadable)
+    "external_modified" -> stringResource(R.string.rewind_reason_external_modified)
+    "file_read_failed" -> stringResource(R.string.rewind_reason_file_read_failed)
+    "unsupported_checkpoint" -> stringResource(R.string.rewind_reason_unsupported_checkpoint)
+    else -> reason
 }

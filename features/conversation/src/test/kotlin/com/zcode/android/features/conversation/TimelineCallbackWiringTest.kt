@@ -195,8 +195,8 @@ class TimelineCallbackWiringTest {
     private fun preview(canApply: Boolean) = RewindPreview(
         canApply = canApply,
         safeFiles = listOf(RewindPreview.FileAction(action = "restore", path = "src/a.kt", operationCount = 2, toolNames = listOf("Edit"))),
-        unsafeFiles = listOf(RewindPreview.UnsafeFile(path = "gen/out.txt", reason = "external_modified", message = "modified outside", toolNames = listOf("Bash"))),
-        ignoredFiles = listOf(RewindPreview.IgnoredFile(path = "log.txt", reason = "bash_ignored")),
+        unsafeFiles = listOf(RewindPreview.UnsafeFile(path = "gen/out.txt", reason = "external_modified", message = "modified outside", operationCount = 1, toolNames = listOf("Bash"))),
+        ignoredFiles = listOf(RewindPreview.IgnoredFile(path = "log.txt", reason = "bash_ignored", operationCount = 1)),
     )
 
     private fun rewindScreenState() = ConversationUiState(
@@ -242,7 +242,9 @@ class TimelineCallbackWiringTest {
         // The faces paint: the preview body + the unsafe reason + the ignored count + the canApply refusal.
         rule.onNodeWithTag("rewind_preview").assertExists()
         rule.onNodeWithTag("rewind_unsafe_external_modified").assertExists()
-        rule.onNodeWithTag("rewind_ignored").assertExists()
+        // (G72 vc52 Phase 12 upgraded the ignored face from a bare count line to the
+        // titled per-file section — the batch that changed the face owns the pin.)
+        rule.onNodeWithTag("rewind_ignored_title").assertExists()
         rule.onNodeWithTag("rewind_cannot_apply").assertExists()
         // The desktop's gate: canApply=false disables the destructive Confirm.
         rule.onNodeWithTag("rewind_confirm").assertExists()

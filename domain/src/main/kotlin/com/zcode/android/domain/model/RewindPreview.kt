@@ -22,8 +22,8 @@ data class RewindPreview(
     val ignoredFiles: List<IgnoredFile>,
 ) {
     data class FileAction(val action: String, val path: String, val operationCount: Int, val toolNames: List<String>)
-    data class UnsafeFile(val path: String, val reason: String, val message: String?, val toolNames: List<String>)
-    data class IgnoredFile(val path: String, val reason: String)
+    data class UnsafeFile(val path: String, val reason: String, val message: String?, val operationCount: Int, val toolNames: List<String>)
+    data class IgnoredFile(val path: String, val reason: String, val operationCount: Int)
 
     companion object {
         fun decode(o: JsonObject): RewindPreview = RewindPreview(
@@ -37,13 +37,15 @@ data class RewindPreview(
             unsafeFiles = (o["unsafeFiles"] as? JsonArray)?.mapNotNull { f ->
                 (f as? JsonObject)?.let { f2 ->
                     val path = f2.rpStr("path") ?: return@mapNotNull null
-                    UnsafeFile(path, f2.rpStr("reason") ?: "unknown", f2.rpStr("message"), f2.rpStrList("toolNames"))
+                    // G72: the CURRENT ship (Nh, asar 4a6080ed…) carries operationCount
+                    // on unsafe AND ignored entries — decoded, rendered per file.
+                    UnsafeFile(path, f2.rpStr("reason") ?: "unknown", f2.rpStr("message"), f2.rpLong("operationCount")?.toInt() ?: 0, f2.rpStrList("toolNames"))
                 }
             } ?: emptyList(),
             ignoredFiles = (o["ignoredFiles"] as? JsonArray)?.mapNotNull { f ->
                 (f as? JsonObject)?.let { f2 ->
                     val path = f2.rpStr("path") ?: return@mapNotNull null
-                    IgnoredFile(path, f2.rpStr("reason") ?: "unknown")
+                    IgnoredFile(path, f2.rpStr("reason") ?: "unknown", f2.rpLong("operationCount")?.toInt() ?: 0)
                 }
             } ?: emptyList(),
         )
