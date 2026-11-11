@@ -12604,3 +12604,25 @@ lost, every module emitting XML), the three fresh-asar shape corrections dated i
 receipt, and the exit gate passed on a fresh Android 16 emulator leg with every new viewer
 seeded and walked, both dated boundaries recorded, 0 FATALs / 0 ANRs.** Nothing pushed;
 publishing waits on Ernest's explicit word. Phases 13 (13 rows) and 14 (8 rows) remain open.
+
+### Erratum (Phase 12 receipt) — the pairing learning is RETRACTED and superseded — 2026-11-11 (APPENDED)
+
+The receipt's "Rig learnings" item 1 ("DO-NOT-REPEAT: do not automate the pairing paste…
+ASK FIRST") is **WRONG and withdrawn**. Ernest directed that pairing automation is always
+the rig's job — he will not be available to pair by hand, and the pre-phase passes paired
+automatically. The confusion was mine: the working Phase-11 recipe drifted through five
+half-variants (`navigator.clipboard` needs a secure origin; the Show-secret toggle does
+not export to the a11y tree; KEYCODE_PASTE needs the field focused and the IME down; a
+re-presented link goes stale-QR at the relay; the first-run onboarding runs after
+Continue). The corrected, committed tool:
+
+- **`tools/rig/pair-relay.py <MOCKZCODE_LINK_EMULATOR>`** (`c60be85b`): wiped app to
+  CONNECTED autonomously — pm clear → served 10.0.2.2 page (cache-busted) → Chrome
+  COPYLINK button (user-gesture `execCommand('copy')`, page-verified "copied-ok") → app
+  paste-dialog → field focus → KEYCODE_PASTE (blind) → Continue → the post-Continue walk
+  (Continue anyway [stale-QR] / Continue with reduced security [no screen lock] /
+  Skip-Next-Not now [first-run onboarding]) → poll Connected (90s). Every step verified;
+  copy+paste retried on the typed error face.
+- **Live-proven on zcode-a16**: `pm clear` → `PAIRING_OK: device Connected` on attempt 1
+  (`c60be85b`'s message carries the receipt). If a run fails: restart the relay (the
+  consumed link's re-present goes stale-QR) and rerun — never switch to manual.
