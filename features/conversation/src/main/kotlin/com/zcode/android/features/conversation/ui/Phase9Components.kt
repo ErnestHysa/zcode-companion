@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.res.stringResource
@@ -12,6 +14,7 @@ import com.zcode.android.features.conversation.R
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.PanTool
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
@@ -90,10 +93,14 @@ fun SessionModeChips(
     modifier: Modifier = Modifier,
     /** Phase 4C (A3.4): the wire-driven effort switch (setThoughtLevel). */
     onSetThoughtLevel: (String) -> Unit = {},
+    /** G59 (vc52 Phase 12): the compact followup switcher (queue | guide) — null hides. */
+    followupMode: String? = null,
+    onSetFollowupMode: ((String) -> Unit)? = null,
 ) {
     var modeSheet by remember { mutableStateOf(false) }
     var modelSheet by remember { mutableStateOf(false) }
     var effortSheet by remember { mutableStateOf(false) }
+    var followupSheet by remember { mutableStateOf(false) }
     val modeA11y = config?.let { stringResource(R.string.mode_a11y, it.mode) }
     val modelA11y = config?.let { stringResource(R.string.model_a11y, it.model, it.thought) }
     // FIELD (2026-10-04, vc32 device — Samsung S24): this Row used to chain
@@ -119,6 +126,16 @@ fun SessionModeChips(
             testTag = "conv_mode_chip",
             contentDescription = modeA11y,
         )
+        // G59: the compact FOLLOWUP chip (queue | guide) — the switcher used to live
+        // ONLY inside the QueueStrip, i.e. invisible while the queue was empty (the
+        // common case). Wire-driven: config.followupMode is the truth; null = unset.
+        if (followupMode != null && onSetFollowupMode != null) {
+            ZCodeChip(
+                onClick = { followupSheet = true },
+                label = "${stringResource(R.string.followup_chip_prefix)}$followupMode",
+                testTag = "conv_followup_chip",
+            )
+        }
         // Effort chip (A3.4) — WIRE-DRIVEN: the offered levels are the CURRENT model's
         // config.thoughtLevels (runtime-projected); no levels → nothing to offer.
         if (config.thoughtLevels.isNotEmpty()) {
@@ -151,7 +168,9 @@ fun SessionModeChips(
             confirmButton = { TextButton(onClick = { modeSheet = false }) { Text(stringResource(R.string.action_close)) } },
             title = { Text(stringResource(R.string.switch_mode_title), style = MaterialTheme.typography.titleSmall) },
             text = {
-                Column {
+                // G59: five modes now — the list SCROLLS (a 5-item dialog can exceed the
+                // fold; a clipped item can never be selected).
+                Column(Modifier.verticalScroll(rememberScrollState()).testTag("mode_options_list")) {
                     for (mode in SessionConfigState.SWITCHABLE_MODES) {
                         val selected = mode == config.mode
                         androidx.compose.material3.ListItem(
@@ -181,6 +200,44 @@ fun SessionModeChips(
                                     if (!selected) onSwitchMode(mode)
                                 }
                                 .testTag("mode_option_$mode"),
+                        )
+                    }
+                }
+            },
+        )
+    }
+    // G59: the followup switch dialog — the desktop's followupMode enum is exactly
+    // queue | guide; switching fires setFollowupMode (CAS) and the next echo wins.
+    if (followupSheet && followupMode != null && onSetFollowupMode != null) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { followupSheet = false },
+            confirmButton = { TextButton(onClick = { followupSheet = false }) { Text(stringResource(R.string.action_close)) } },
+            title = { Text(stringResource(R.string.followup_title), style = MaterialTheme.typography.titleSmall) },
+            text = {
+                Column {
+                    for (mode in listOf("queue", "guide")) {
+                        val selected = mode == followupMode
+                        androidx.compose.material3.ListItem(
+                            headlineContent = { Text(mode) },
+                            supportingContent = {
+                                Text(
+                                    if (mode == "queue") stringResource(R.string.followup_queue_desc)
+                                    else stringResource(R.string.followup_guide_desc),
+                                )
+                            },
+                            trailingContent = {
+                                androidx.compose.material3.RadioButton(selected = selected, onClick = null)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .selectable(
+                                    selected = selected,
+                                    role = androidx.compose.ui.semantics.Role.RadioButton,
+                                ) {
+                                    followupSheet = false
+                                    if (!selected) onSetFollowupMode(mode)
+                                }
+                                .testTag("followup_option_$mode"),
                         )
                     }
                 }
@@ -236,6 +293,7 @@ private fun modeIcon(mode: String) = when (mode) {
     "edit" -> Icons.Filled.VerifiedUser
     "plan" -> Icons.Filled.Lightbulb
     "yolo" -> Icons.Filled.Warning
+    "guarded" -> Icons.Filled.Shield
     else -> Icons.Filled.PanTool
 }
 
@@ -255,6 +313,7 @@ private fun modeTitle(mode: String, provider: String? = null): String = stringRe
         "edit" -> if (isGlmRuntime(provider)) R.string.mode_title_edit else R.string.mode_title_neutral_edit
         "plan" -> if (isGlmRuntime(provider)) R.string.mode_title_plan else R.string.mode_title_neutral_plan
         "yolo" -> if (isGlmRuntime(provider)) R.string.mode_title_yolo else R.string.mode_title_neutral_yolo
+        "guarded" -> R.string.mode_title_guarded
         else -> if (isGlmRuntime(provider)) R.string.mode_title_build else R.string.mode_title_neutral_build
     },
 )
@@ -266,6 +325,7 @@ private fun modeDescription(mode: String, provider: String? = null): String = st
         "edit" -> if (isGlmRuntime(provider)) R.string.mode_description_edit else R.string.mode_description_neutral_edit
         "plan" -> if (isGlmRuntime(provider)) R.string.mode_description_plan else R.string.mode_description_neutral_plan
         "yolo" -> if (isGlmRuntime(provider)) R.string.mode_description_yolo else R.string.mode_description_neutral_yolo
+        "guarded" -> R.string.mode_description_guarded
         else -> if (isGlmRuntime(provider)) R.string.mode_description_build else R.string.mode_description_neutral_build
     },
 )

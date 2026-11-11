@@ -516,7 +516,9 @@ data class SessionConfigState(
 
     companion object {
         /** command.ts switchCollaborationMode enum — `auto` deliberately excluded (schema comment). */
-        val SWITCHABLE_MODES = listOf("build", "edit", "plan", "yolo")
+        // G59 (vc52 Phase 12): the fresh asar's enum grew a FIFTH mode —
+        // `switchCollaborationMode {mode: enum(["build","edit","plan","yolo","guarded"])}`.
+        val SWITCHABLE_MODES = listOf("build", "edit", "plan", "yolo", "guarded")
 
         fun decode(obj: JsonObject): SessionConfigState =
             SessionConfigState(

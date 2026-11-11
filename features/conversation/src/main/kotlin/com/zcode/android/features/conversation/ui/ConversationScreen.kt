@@ -324,6 +324,8 @@ fun ConversationScreen(
                 onSetGoal = onSetGoal,
                 onPauseGoal = onPauseGoal,
                 onResumeGoal = onResumeGoal,
+                defaultFollowupMode = defaultFollowupMode,
+                onSetFollowupMode = onSetFollowupMode,
             )
             // G5: the find bar — query + match count + prev/next jump + close.
             if (findOpen) {
@@ -687,6 +689,9 @@ private fun Header(
     onSetGoal: (objective: String) -> Unit = {},
     onPauseGoal: () -> Unit = {},
     onResumeGoal: () -> Unit = {},
+    // ---- G59 (vc52 Phase 12): the compact followup switcher ----
+    defaultFollowupMode: String? = null,
+    onSetFollowupMode: ((String) -> Unit)? = null,
 ) {
     // F-CHAT-FOCUS v2 (field 2026-10-27, Ernest on vc48): six stacked one-liner cards +
     // a five-chip rail — even ALL collapsed they stood ~245dp between the user and the
@@ -750,10 +755,12 @@ private fun Header(
         if (config != null) {
             ZCodeChip(
                 onClick = { configExpanded = !configExpanded },
+                // G59: the live MODE and FOLLOWUP show on the chip row (the accept).
                 label = listOfNotNull(
                     config.mode,
                     config.model,
                     config.thought.takeIf { config.thoughtLevels.isNotEmpty() },
+                    (state.sessionState?.config?.followupMode ?: defaultFollowupMode)?.let { f -> "followup · $f" },
                 ).joinToString(" · "),
                 testTag = "conv_session_config",
                 contentDescription = stringResource(com.zcode.android.features.conversation.R.string.mode_a11y, config.mode),
@@ -789,6 +796,10 @@ private fun Header(
                 modelOptionsProvider = modelOptionsProvider,
                 onSetThoughtLevel = onSetThoughtLevel,
                 modifier = Modifier.weight(1f, fill = true),
+                // G59: the compact followup switcher rides the chip row — the wire's
+                // followupMode is the truth; the local default seeds while unset.
+                followupMode = state.sessionState?.config?.followupMode ?: defaultFollowupMode,
+                onSetFollowupMode = onSetFollowupMode,
             )
         }
     }

@@ -491,4 +491,12 @@
     <string name="quota_banner_open">View plan</string>
     <string name="goal_resume_a11y">Resume goal</string>
     <string name="goal_pause_a11y">Pause goal</string>
+    <!-- G59 (vc52 Phase 12): the fifth mode + the compact followup chip -->
+    <string name="mode_title_guarded">Autonomous mode</string>
+    <string name="mode_description_guarded">Ask when there\u2019s risk</string>
+    <string name="followup_chip_prefix">"followup · "</string>
+    <string name="followup_title">Answer follow-up delivery</string>
+    <string name="followup_queue_desc">Answers join the queue; you send them when ready.</string>
+    <string name="followup_guide_desc">Answers arrive as guided prompts while you type.</string>
+    <string name="config_followup_a11y">Session mode %1$s, model %2$s, follow-up %3$s</string>
 </resources>
