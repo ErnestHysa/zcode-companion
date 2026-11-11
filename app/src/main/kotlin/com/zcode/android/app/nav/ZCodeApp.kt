@@ -1,9 +1,11 @@
 package com.zcode.android.app.nav
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -483,6 +485,46 @@ fun ZCodeApp(
 
     }
     }
+            // G64 (vc52 Phase 11): the CUA permission card — the IN-APP face (the
+            // desktop blocks a computer-use task on missing macOS permissions). The
+            // notification plane owns the background face; this card renders whenever
+            // a blocked observation is the latest (dismiss clears the state).
+            val cuaObservation by container.hub.latestCuaObservation.collectAsState()
+            var cuaCardDismissed by androidx.compose.runtime.saveable.rememberSaveable {
+                androidx.compose.runtime.mutableStateOf(false)
+            }
+            cuaObservation?.takeIf { it.blocked && !cuaCardDismissed }?.let { o ->
+                val missing = buildList {
+                    if (o.accessibility != "granted") add("Accessibility: " + o.accessibility.replaceFirstChar { it.uppercase() })
+                    if (o.screenRecording != "granted") add("Screen Recording: " + o.screenRecording.replaceFirstChar { it.uppercase() })
+                }.joinToString(", ").ifBlank { "macOS permissions" }
+                androidx.compose.foundation.layout.Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(
+                            MaterialTheme.colorScheme.errorContainer,
+                            MaterialTheme.shapes.medium,
+                        )
+                        .padding(12.dp)
+                        .testTag("cua_permission_card"),
+                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(4.dp),
+                ) {
+                    androidx.compose.material3.Text(
+                        stringResource(com.zcode.android.core.ui.R.string.cua_card_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                    )
+                    androidx.compose.material3.Text(
+                        stringResource(com.zcode.android.core.ui.R.string.cua_permission_text, missing),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                    )
+                    androidx.compose.material3.TextButton(onClick = { cuaCardDismissed = true }, modifier = Modifier.testTag("cua_card_dismiss")) {
+                        androidx.compose.material3.Text(stringResource(com.zcode.android.core.ui.R.string.cua_card_dismiss))
+                    }
+                }
+            }
+
             }
         }
     }
