@@ -30,7 +30,37 @@ data class TrajectoryRecord(
     val error: String?,
     /** G33 (vc51 Phase 4D): per-tool payload heads for the drill-in (INV-8-tolerant). */
     val toolPayloads: List<TrajectoryToolPayload> = emptyList(),
+    /**
+     * N-BK-1(b) (vc52 Phase 12): the per-record TOKEN columns (`response.usage`,
+     * the desktop's `bce` response schema, asar 4a6080ed… — inputTokens/outputTokens/
+     * totalTokens/cacheReadTokens/cacheWriteTokens/reasoningTokens, all optional).
+     * The model-calls rows rendered none of them; null = the payload didn't carry it.
+     */
+    val usage: Usage? = null,
 ) {
+    /** The `response.usage` object — every field optional (INV-8). */
+    data class Usage(
+        val inputTokens: Long?,
+        val outputTokens: Long?,
+        val totalTokens: Long?,
+        val cacheReadTokens: Long?,
+        val cacheWriteTokens: Long?,
+        val reasoningTokens: Long?,
+    ) {
+        companion object {
+            fun decode(o: JsonObject): Usage = Usage(
+                inputTokens = o.longOr("inputTokens"),
+                outputTokens = o.longOr("outputTokens"),
+                totalTokens = o.longOr("totalTokens"),
+                cacheReadTokens = o.longOr("cacheReadTokens"),
+                cacheWriteTokens = o.longOr("cacheWriteTokens"),
+                reasoningTokens = o.longOr("reasoningTokens"),
+            )
+
+            private fun JsonObject.longOr(key: String): Long? =
+                (this[key] as? JsonPrimitive)?.takeIf { it !is JsonNull }?.content?.toDoubleOrNull()?.toLong()
+        }
+    }
     /** G33: one tool call's payload heads — args + result, capped for display. */
     data class TrajectoryToolPayload(
         val name: String,
@@ -87,6 +117,7 @@ data class TrajectoryRecord(
                     (tc as? JsonObject)?.let(TrajectoryToolPayload.Companion::decode)
                 } ?: emptyList(),
                 error = listOfNotNull(inner(error, "name"), inner(error, "message")).joinToString(": ").takeIf { it.isNotBlank() },
+                usage = (response?.get("usage") as? JsonObject)?.let(Usage::decode),
             )
         }
 

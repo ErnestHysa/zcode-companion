@@ -1956,6 +1956,53 @@ private fun rowScopePreviewJob(
 }
 
 /**
+ * N-BK-1(a) (vc52 Phase 12): a subagent row carrying a childSessionId — the
+ * WHOLE row opens the child session (the desktop's session drill-in); the
+ * open affordance is labeled. Without a child id the caller renders the
+ * quiet fallback instead of this composable.
+ */
+@Composable
+fun SubagentRow(
+    row: ConversationRow.Subagent,
+    onOpenChild: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val child = row.childSessionId ?: return
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onOpenChild(child) }
+            .padding(vertical = 4.dp)
+            .testTag("subagent_row_${row.rowId}")
+            .semantics(mergeDescendants = true) {},
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.width(20.dp).height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = stringResource(R.string.row_subagent, row.subagentType),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Spacer(Modifier.width(4.dp))
+        Text(
+            text = "· ${row.summaryText.take(80)}",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text = stringResource(R.string.subagent_open_child),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.testTag("subagent_open_${row.rowId}"),
+        )
+    }
+}
+
+/**
  * G72 (vc52 Phase 12): the desktop's rewindDialog change summary (chat.changeSummary
  * .rewindDialog.*) — THREE titled sections with counts: safe (path + "{n} edits" per
  * file), unsafe (path + the LOCALIZED reason per file + edits), ignored (bash_ignored,

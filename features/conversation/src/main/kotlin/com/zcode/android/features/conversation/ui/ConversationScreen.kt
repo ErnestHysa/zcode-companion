@@ -57,6 +57,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
 import com.zcode.android.core.ui.components.rememberReducedMotion
 import com.zcode.android.features.conversation.GeneratedArtifactPreview
 import com.zcode.android.features.conversation.R
@@ -167,6 +168,8 @@ fun ConversationScreen(
     onSetThoughtLevel: (String) -> Unit = {},
     /** Phase 4C (C7): the @-mention workspace file search. */
     fileSearchProvider: suspend (query: String, refresh: Boolean) -> List<String> = { _, _ -> emptyList() },
+    /** N-BK-1(a) (vc52 Phase 12): open the subagent's CHILD session (long-press a row). */
+    onOpenSubagentChildSession: (String) -> Unit = {},
     /** G65 (vc52 Phase 12): the non-file mention categories (sessions/skills/plugins/agents). */
     mentionCategoriesProvider: (suspend (category: String, query: String) -> List<com.zcode.android.features.conversation.ui.MentionOption>)? = null,
     // ---- Phase 5A (A3.3): workflow runs panel + run sheet ----
@@ -331,6 +334,7 @@ fun ConversationScreen(
                 defaultFollowupMode = defaultFollowupMode,
                 onSetFollowupMode = onSetFollowupMode,
                 taskUsageProvider = taskUsageProvider,
+                onOpenSubagentChildSession = onOpenSubagentChildSession,
             )
             // G5: the find bar — query + match count + prev/next jump + close.
             if (findOpen) {
@@ -605,6 +609,7 @@ fun ConversationScreen(
                     onOpenAttachment = onOpenAttachment,
                     onOpenAttachmentExternally = onOpenAttachmentExternally,
                     onSectionCrash = onSectionCrash,
+                    onOpenSubagentChildSession = onOpenSubagentChildSession,
                 )
             }
             // §17.4/§17.6 composer (pinned bottom; drafting allowed offline, send
@@ -700,6 +705,8 @@ private fun Header(
     onSetFollowupMode: ((String) -> Unit)? = null,
     /** G60 (vc52 Phase 12): the per-task token usage read for the context sheet. */
     taskUsageProvider: (suspend () -> com.zcode.android.domain.model.TaskTokenUsage?)? = null,
+    /** N-BK-1(a) (vc52 Phase 12): open the subagent's CHILD session. */
+    onOpenSubagentChildSession: (String) -> Unit = {},
 ) {
     // F-CHAT-FOCUS v2 (field 2026-10-27, Ernest on vc48): six stacked one-liner cards +
     // a five-chip rail — even ALL collapsed they stood ~245dp between the user and the
@@ -925,6 +932,8 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     onShareSelection: ((text: String) -> Unit)? = null,
     // G36 (vc51): the presentation mode.
     officeMode: Boolean = false,
+    /** N-BK-1(a) (vc52 Phase 12): open a subagent's CHILD session. */
+    onOpenSubagentChildSession: (String) -> Unit = {},
 ) {
     val listState = rememberLazyListState()
     // B3-motion + K2: rows that have already arrived (scroll-back never re-animates).
@@ -1104,12 +1113,30 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                     when (val e = entries[it]) {
                         is TimelineEntry.Single -> e.row.kind
                         is TimelineEntry.ToolGroup -> "toolGroup"
+                        is TimelineEntry.DayHeader -> "dayHeader"
                     }
                 },
             ) { index ->
                 // B3-motion + K2: rows ARRIVE (900ms stream-in, staggered from the
                 // viewport top) and reflow with animateItem; each row arrives once.
                 when (val entry = entries[index]) {
+                    // N-BK-1(d) (vc52 Phase 12): the day grouping header.
+                    is TimelineEntry.DayHeader -> Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp)
+                            .testTag("timeline_day_${entry.epochDay}"),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(Modifier.width(20.dp).height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            entry.label,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     is TimelineEntry.Single -> TimelineRow(
                         row = entry.row,
                         state = state,
@@ -1137,6 +1164,7 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                         onOpenAttachment = onOpenAttachment,
                         onOpenAttachmentExternally = onOpenAttachmentExternally,
                         rewindPreviewProvider = rewindPreviewProvider,
+                        onOpenSubagentChildSession = onOpenSubagentChildSession,
                     )
                     is TimelineEntry.ToolGroup -> ToolGroupBlock(
                         group = entry,
@@ -1362,6 +1390,8 @@ private fun TimelineRow(
     onShareSelection: ((text: String) -> Unit)? = null,
     /** G36 (vc51): the presentation mode. */
     officeMode: Boolean = false,
+    /** N-BK-1(a) (vc52 Phase 12): open a subagent's CHILD session (the decoded id). */
+    onOpenSubagentChildSession: (String) -> Unit = {},
 ) {
     Box(modifier = modifier) {
     when (row) {
@@ -1467,7 +1497,16 @@ private fun TimelineRow(
                 )
             }
         }
-        is ConversationRow.Subagent -> QuietMetaRow(label = stringResource(R.string.row_subagent, row.subagentType), detail = row.summaryText.take(80))
+        is ConversationRow.Subagent -> {
+            // N-BK-1(a) (vc52 Phase 12): the decoded-but-unused childSessionId is now
+            // the LIVE affordance — a row with a child session OPENS it; without one
+            // the quiet fallback stays.
+            if (row.childSessionId.isNullOrBlank()) {
+                QuietMetaRow(label = stringResource(R.string.row_subagent, row.subagentType), detail = row.summaryText.take(80))
+            } else {
+                SubagentRow(row = row, onOpenChild = onOpenSubagentChildSession)
+            }
+        }
         is ConversationRow.HookInvocation -> HookInvocationRow(row)
         is ConversationRow.TimelineMarker -> {
             // I2.4 (Phase 6A): a `compact` marker renders the context-compaction

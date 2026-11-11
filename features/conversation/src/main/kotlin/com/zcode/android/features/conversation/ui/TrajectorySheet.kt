@@ -156,6 +156,30 @@ private fun TrajectoryLine(rec: TrajectoryRecord) {
         rec.error?.let { err ->
             Text(err, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
+        // N-BK-1(b) (vc52 Phase 12): the per-record TOKEN columns — the desktop's
+        // tokenDebug table where the payload carries it (in/out/cache/reasoning),
+        // monospace, capped at one line. Absent usage → nothing (never a 0).
+        rec.usage?.let { u ->
+            val parts = listOfNotNull(
+                u.inputTokens?.let { "in $it" },
+                u.outputTokens?.let { "out $it" },
+                u.totalTokens?.let { "total $it" },
+                u.cacheReadTokens?.let { "cache-read $it" },
+                u.cacheWriteTokens?.let { "cache-write $it" },
+                u.reasoningTokens?.let { "reasoning $it" },
+            )
+            if (parts.isNotEmpty()) {
+                Text(
+                    parts.joinToString(" · "),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.testTag("trajectory_tokens_${rec.requestId}"),
+                )
+            }
+        }
         rec.textHead?.let { head ->
             Text(head, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }

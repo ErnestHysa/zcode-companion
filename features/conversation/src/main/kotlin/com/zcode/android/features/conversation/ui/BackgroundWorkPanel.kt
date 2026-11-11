@@ -178,7 +178,11 @@ private fun BackgroundWorkRow(
                 Text(stringResource(R.string.background_work_view_output))
             }
             viewer?.takeIf { it.workId == work.workId }?.let { state ->
-                OutputViewer(state.result)
+                // N-BK-1(c): Retry re-fires the SAME provider (the failed result stays
+                // visible until the retry lands).
+                OutputViewer(state.result, onRetry = {
+                    scope.launch { onViewer(OutputRequest(work.workId, outputProvider(work.workId))) }
+                })
             }
         }
     }
@@ -186,7 +190,7 @@ private fun BackgroundWorkRow(
 
 
 @Composable
-private fun OutputViewer(result: Any?) {
+internal fun OutputViewer(result: Any?, onRetry: (() -> Unit)? = null) {
     when (result) {
         is BackgroundBashOutput -> {
             Column(
@@ -218,19 +222,33 @@ private fun OutputViewer(result: Any?) {
                 )
             }
         }
-        is BackgroundBashOutputUnavailable ->
+        is BackgroundBashOutputUnavailable -> Column(Modifier.testTag("background_work_viewer")) {
             Text(
                 stringResource(R.string.background_work_unavailable, result.kind),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.testTag("background_work_viewer"),
             )
-        else ->
+            // N-BK-1(c) (vc52 Phase 12): the desktop's bashOutput.retry — a failed
+            // query (query_failed/read_failed/unavailable) is RETRYABLE, not a dead end.
+            onRetry?.let {
+                TextButton(onClick = it, modifier = Modifier.testTag("background_work_retry")) {
+                    Text(stringResource(R.string.background_work_retry))
+                }
+            }
+        }
+        else -> Column(Modifier.testTag("background_work_viewer")) {
             Text(
                 stringResource(R.string.background_work_output_error),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.testTag("background_work_viewer"),
             )
+            // The query-FAILED face (a thrown fetch) — the desktop's error.query_failed
+            // + retry; the error text keeps its raw cause for support.
+            onRetry?.let {
+                TextButton(onClick = it, modifier = Modifier.testTag("background_work_retry")) {
+                    Text(stringResource(R.string.background_work_retry))
+                }
+            }
+        }
     }
 }

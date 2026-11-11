@@ -36,6 +36,7 @@ import com.zcode.android.core.ui.theme.LocalZCodeColors
 import com.zcode.android.core.ui.theme.ZCodeRadius
 import com.zcode.android.domain.model.ConversationRow
 import com.zcode.android.features.conversation.R
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 
 /**
@@ -58,6 +59,15 @@ sealed interface TimelineEntry {
 
     data class ToolGroup(val category: ToolCategory, val rows: List<ConversationRow.ToolCall>) : TimelineEntry {
         override val key: Any get() = "g-${rows.first().rowId}"
+    }
+
+    /**
+     * N-BK-1(d) (vc52 Phase 12): the DAY grouping header — emitted between calendar
+     * days (the row's own createdAt, local time; `key` encodes the day so LazyColumn
+     * identity stays stable across re-groups).
+     */
+    data class DayHeader(val epochDay: Long, val label: String) : TimelineEntry {
+        override val key: Any get() = "day-$epochDay"
     }
 }
 
@@ -100,11 +110,37 @@ private fun ConversationRow.ToolCall.isSettled(): Boolean = when (status) {
     else -> false
 }
 
-fun groupTimeline(rows: List<ConversationRow>): List<TimelineEntry> {
-    val out = ArrayList<TimelineEntry>(rows.size)
+/**
+ * N-BK-1(d): the local DAY label for a row timestamp (Today / Yesterday / the
+ * date) — java.time, locale-aware, computed ONCE per day boundary.
+ */
+internal fun dayLabel(epochDay: Long, todayEpochDay: Long): String = when (epochDay) {
+    todayEpochDay -> "Today"
+    todayEpochDay - 1 -> "Yesterday"
+    else -> java.time.LocalDate.ofEpochDay(epochDay)
+        .format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy"))
+}
+
+fun groupTimeline(rows: List<ConversationRow>): List<TimelineEntry> = groupTimeline(rows, System.currentTimeMillis())
+
+fun groupTimeline(rows: List<ConversationRow>, nowMs: Long): List<TimelineEntry> {
+    val out = ArrayList<TimelineEntry>(rows.size + 4)
+    val today = nowMs / java.util.concurrent.TimeUnit.DAYS.toMillis(1)
+    var lastDay: Long? = null
     var i = 0
     while (i < rows.size) {
         val row = rows[i]
+        // N-BK-1(d): a day boundary between rows emits the header (rows without a
+        // createdAt never break the chain — the timezone-less window faces stay put).
+        // `createdAt` rides the row's RAW wire object (rowBaseFields, all kinds).
+        (row.raw["createdAt"] as? JsonPrimitive)?.takeIf { it !is JsonNull }?.content?.toDoubleOrNull()?.let { created ->
+            val day = created.toLong() / java.util.concurrent.TimeUnit.DAYS.toMillis(1)
+            if (day != lastDay) {
+                out.add(TimelineEntry.DayHeader(day, dayLabel(day, today)))
+                lastDay = day
+            }
+        }
+
         if (row is ConversationRow.ToolCall && row.isSettled()) {
             val category = ToolCategory.of(row.toolName)
             var j = i + 1

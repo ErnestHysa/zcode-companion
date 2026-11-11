@@ -512,4 +512,8 @@
     <string name="perm_desc_command">Do not ask again for the same command.</string>
     <string name="perm_desc_file">Do not ask again for the same file operation.</string>
     <string name="perm_desc_generic">Do not ask again for the same permission request.</string>
+    <!-- N-BK-1(a) (vc52 Phase 12): the subagent child-session affordance -->
+    <string name="subagent_open_child">Open session ›</string>
+    <!-- N-BK-1(c) (vc52 Phase 12): the bashOutput retry affordance (desktop bashOutput.retry) -->
+    <string name="background_work_retry">Retry</string>
 </resources>

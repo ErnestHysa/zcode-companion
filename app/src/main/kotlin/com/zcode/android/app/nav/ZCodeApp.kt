@@ -411,6 +411,10 @@ fun ZCodeApp(
                 onOpenQuotaScreen = { nav.navigate(Routes.USAGE) },
                 // Phase 4A: an accepted fork opens the CHILD session in place (desktop onSessionCreated parity).
                 onOpenTask = { child -> container.log.info("nav.fork", "open ${child.take(12)}"); nav.openConversation(child) },
+                // N-BK-1(a) (vc52 Phase 12): a subagent row's child session opens in place.
+                onOpenSubagentChildSession = { child ->
+                    container.log.info("nav.subagent", "open ${child.take(12)}"); nav.openConversation(child)
+                },
             )
         }
 
@@ -753,6 +757,8 @@ private fun ConversationRoute(
     onOpenGit: () -> Unit = {},
     onOpenTerminal: () -> Unit = {},
     onOpenTask: (taskId: String) -> Unit = {},
+    /** N-BK-1(a) (vc52 Phase 12): a subagent row's child session opens in place. */
+    onOpenSubagentChildSession: (String) -> Unit = {},
     onOpenQuotaScreen: () -> Unit = {},
 ) {
     val state by vm.state.collectAsState()
@@ -832,6 +838,7 @@ private fun ConversationRoute(
         onOpenTask(child)
     }
     ConversationScreen(
+        onOpenSubagentChildSession = onOpenSubagentChildSession,
         state = state,
         phase = state.phase,
         onBack = onBack,
