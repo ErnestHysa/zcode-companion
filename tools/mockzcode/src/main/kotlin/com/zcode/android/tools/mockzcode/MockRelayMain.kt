@@ -759,7 +759,16 @@ fun main() {
             "enabled" to JsonPrimitive(true),
             "source" to JsonPrimitive("user"),
         )))),
-        "pluginCommands" to JsonArray(emptyList()),
+        // G74 (vc52 Phase 12): a plugin command so the viewer's BOTH-source faces
+        // render on the rig (user cmd-deploy + plugin acme:review).
+        "pluginCommands" to JsonArray(listOf(JsonObject(mapOf(
+            "id" to JsonPrimitive("cmd-acme-review"),
+            "name" to JsonPrimitive("acme:review"),
+            "description" to JsonPrimitive("Acme code review pass"),
+            "argumentHint" to JsonPrimitive("[path]"),
+            "enabled" to JsonPrimitive(true),
+            "source" to JsonPrimitive("plugin"),
+        )))),
     ))
     // G25 (vc51 Phase 4B): three agents across scopes — one DISABLED so the
     // subagents viewer's state badges render both faces on the rig.

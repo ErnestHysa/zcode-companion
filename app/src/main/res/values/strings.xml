@@ -394,4 +394,12 @@
 <string name="mcp_failure_unexpected_disconnect">The MCP connection was closed unexpectedly.</string>
 <string name="mcp_advice_unexpected_disconnect">Review the error below and server logs. Check whether the process exited, a dependency is missing, or the connection was interrupted, then refresh the status.</string>
 <string name="mcp_boundary_note">Read-only status view. MCP server authoring (add / edit / connect) lives on the desktop.</string>
+<string name="commands_viewer_title">Custom commands</string>
+<string name="commands_viewer_empty">No custom commands in this workspace — create them on the desktop (/ commands).</string>
+<string name="commands_viewer_unavailable">Custom commands are unavailable on this connection</string>
+<string name="commands_source_user">user</string>
+<string name="commands_source_plugin">plugin</string>
+<string name="commands_boundary_note">Read-only list. Command authoring (create / edit / import) lives on the desktop.</string>
+<string name="settings_commands_row">Commands</string>
+<string name="settings_commands_sub">Read-only list · custom and plugin slash commands</string>
 </resources>

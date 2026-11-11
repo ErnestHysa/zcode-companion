@@ -69,6 +69,7 @@ object Routes {
     const val SKILLS = "skills"
     const val MCP = "mcp"
     const val HOOKS = "hooks"
+    const val COMMANDS = "commands"
     const val APPROVALS = "approvals"
     const val FILES = "files"
     const val GIT = "git"
@@ -436,6 +437,7 @@ fun ZCodeApp(
                 onOpenProviders = { nav.navigate(Routes.PROVIDERS) },
                 onOpenBots = { nav.navigate(Routes.BOTS) },
                 onOpenHooks = { nav.navigate(Routes.HOOKS) },
+                onOpenCommands = { nav.navigate(Routes.COMMANDS) },
             )
         }
         composable(Routes.USAGE) {
@@ -465,6 +467,11 @@ fun ZCodeApp(
         composable(Routes.MCP) {
             // GAP-9 (v4-wire.md §12.5): read-only mcp/list status viewer (mode:"status", INV-9).
             McpViewerScreen(port = container.mcpPort, onBack = { nav.popBackStack() }, modifier = Modifier.fillMaxSize())
+        }
+        composable(Routes.COMMANDS) {
+            // G74 (vc52 Phase 12): read-only custom-command viewer (commands.list decode;
+            // authoring stays desktop-side — the dated boundary note renders in the screen).
+            com.zcode.android.app.settings.CommandsViewerScreen(port = container.commandsPort, onBack = { nav.popBackStack() }, modifier = Modifier.fillMaxSize())
         }
         composable(Routes.HOOKS) {
             // G71 (vc52 Phase 12): read-only workspace hooks viewer over the RETAINED
@@ -1150,6 +1157,7 @@ private fun SettingsRoute(
     onOpenProviders: () -> Unit = {},
     onOpenBots: () -> Unit = {},
     onOpenHooks: () -> Unit = {},
+    onOpenCommands: () -> Unit = {},
 ) {
     val endpoint by container.hub.endpoint.collectAsState()
     SettingsScreen(
@@ -1165,5 +1173,6 @@ private fun SettingsRoute(
         onOpenProviders = onOpenProviders,
         onOpenBots = onOpenBots,
         onOpenHooks = onOpenHooks,
+        onOpenCommands = onOpenCommands,
     )
 }

@@ -13,6 +13,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import com.zcode.android.app.settings.McpPort
 import com.zcode.android.app.settings.HooksPort
+import com.zcode.android.app.settings.CommandsPort
 import com.zcode.android.app.settings.SkillsPort
 import com.zcode.android.features.tasks.port.AutomationsPort
 import java.util.TimeZone
@@ -555,4 +556,22 @@ class DefaultHooksPort(
         .map { (taskId, review) -> HooksPort.Entry(taskId, review) }
 
     override suspend fun refresh(taskId: String): Boolean? = hub.requestHookReview(taskId)
+}
+
+/** G74 (vc52 Phase 12): the read-only custom-command list (commands.list). */
+class DefaultCommandsPort(
+    private val hub: ConnectionHub,
+) : CommandsPort {
+    override suspend fun commands(): CommandsPort.Result {
+        val target = hub.activeWorkspaceTarget()
+            ?: return CommandsPort.Result(null, "custom commands are unavailable on this connection")
+        return try {
+            CommandsPort.Result(hub.viewerTools().slashUserCommands(target.first, target.second), null)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("commandsport.commands", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            CommandsPort.Result(null, e.message ?: "custom commands are unavailable on this connection")
+        }
+    }
 }

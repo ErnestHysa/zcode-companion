@@ -85,6 +85,8 @@ fun SettingsScreen(
     onOpenBots: () -> Unit = {},
     /** G71 (vc52 Phase 12): opens the read-only workspace hooks viewer. */
     onOpenHooks: () -> Unit = {},
+    /** G74 (vc52 Phase 12): opens the read-only custom-commands viewer. */
+    onOpenCommands: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -186,6 +188,12 @@ fun SettingsScreen(
                 subtitle = stringResource(R.string.settings_hooks_sub),
                 tag = "settings_hooks",
                 onClick = onOpenHooks,
+            )
+            SettingsRow(
+                title = stringResource(R.string.settings_commands_row),
+                subtitle = stringResource(R.string.settings_commands_sub),
+                tag = "settings_commands",
+                onClick = onOpenCommands,
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 

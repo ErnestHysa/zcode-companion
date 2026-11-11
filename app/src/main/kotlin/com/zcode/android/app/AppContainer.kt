@@ -20,6 +20,7 @@ import com.zcode.android.app.connect.DefaultProvidersPort
 import com.zcode.android.app.connect.DefaultSubagentsPort
 import com.zcode.android.app.connect.DefaultMcpPort
 import com.zcode.android.app.connect.DefaultHooksPort
+import com.zcode.android.app.connect.DefaultCommandsPort
 import com.zcode.android.app.connect.DefaultSkillsPort
 import com.zcode.android.app.connect.DefaultUsagePort
 import com.zcode.android.app.connect.DefaultTerminalPort
@@ -238,6 +239,7 @@ class AppContainer(context: Context) {
     val botsPort: DefaultBotsPort = DefaultBotsPort(hub)
     val mcpPort: DefaultMcpPort = DefaultMcpPort(hub)
     val hooksPort: DefaultHooksPort = DefaultHooksPort(hub)
+    val commandsPort: DefaultCommandsPort = DefaultCommandsPort(hub)
 
     /** Phase 4 (GAP-3/4; ADR-020, v4-wire.md §13): the coding-plan quota plane. */
     val quotaPort: DefaultCodingPlanPort = DefaultCodingPlanPort(hub)
