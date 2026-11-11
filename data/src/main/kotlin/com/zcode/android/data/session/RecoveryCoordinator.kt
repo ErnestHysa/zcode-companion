@@ -45,6 +45,8 @@ class RecoveryCoordinator(
     private val clock: () -> Long = System::currentTimeMillis,
     private val log: ZLog = ZLog(),
     private val config: Config = Config(),
+    /** G71: the captured hook reviews reach the caller's PROCESS ledger (survives detach). */
+    private val hookReviewSink: (sessionId: String, review: com.zcode.android.domain.model.WorkspaceHookReview) -> Unit = { _, _ -> },
 ) {
 
     data class Config(
@@ -183,6 +185,7 @@ class RecoveryCoordinator(
                     onSessionState = { state ->
                         interactions.reconcileFromSessionState(t.sessionId, state)
                     },
+                    onHookReviewCaptured = { review -> hookReviewSink(t.sessionId, review) },
                     clock = clock,
                     log = log,
                 )

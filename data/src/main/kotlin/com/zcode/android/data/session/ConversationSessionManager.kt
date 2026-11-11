@@ -41,6 +41,13 @@ class ConversationSessionManager(
     private val onSessionState: suspend (state: com.zcode.android.domain.model.SessionProjectionState) -> Unit = {},
     /** G51 (vc52 Phase 11): the declared workflow-run delta consumer (the run plane). */
     private val onWorkflowRunDelta: suspend (delta: com.zcode.android.domain.model.WorkflowRunDelta) -> Unit = {},
+    /**
+     * G71 (vc52 Phase 12): the captured hook review ALSO reaches the process ledger —
+     * the manager dies on conversation exit (GAP-A3) and the Settings → Hooks viewer
+     * must still serve what the workspace runs AFTER you leave (the exit-gate rig leg
+     * caught the empty-after-close face).
+     */
+    val onHookReviewCaptured: (review: com.zcode.android.domain.model.WorkspaceHookReview) -> Unit = {},
     private val clock: () -> Long = System::currentTimeMillis,
     private val log: ZLog = ZLog(),
     config: ConversationTopicReducer.Config = ConversationTopicReducer.Config(),
@@ -137,7 +144,10 @@ class ConversationSessionManager(
         val review = state.pendingInteractions
             ?.lastOrNull { it.kind == com.zcode.android.domain.model.PendingInteraction.Kind.WORKSPACE_HOOK_REVIEW }
             ?.hookReview ?: return
-        if (_lastHookReview.value != review) _lastHookReview.value = review
+        if (_lastHookReview.value != review) {
+            _lastHookReview.value = review
+            runCatching { onHookReviewCaptured(review) }
+        }
     }
 
     /** The epoch the run plane is anchored on (snapshot re-anchor resets it). */

@@ -5,6 +5,7 @@ import com.zcode.android.domain.ids.EndpointId
 import com.zcode.android.domain.ids.SessionId
 import com.zcode.android.domain.model.ConversationRow
 import com.zcode.android.domain.model.SessionProjectionState
+import com.zcode.android.domain.model.WorkspaceHookReview
 import com.zcode.android.domain.reducer.ProjectionOp
 import com.zcode.android.domain.repo.ConversationRepository
 import com.zcode.android.domain.repo.ConversationStoreOp
@@ -41,12 +42,15 @@ class ManagerHookReviewLedgerTest {
         override suspend fun cachedRowCount(sessionId: SessionId): Int = 0
     }
 
-    private fun manager() = ConversationSessionManager(
+    private fun manager(
+        onCaptured: (WorkspaceHookReview) -> Unit = {},
+    ) = ConversationSessionManager(
         sessionId = SessionId("sess-hooks"),
         endpointId = EndpointId("ep"),
         store = NoStore(),
         journalSink = { _, _, _, _ -> },
         escalate = { _, _, _ -> },
+        onHookReviewCaptured = onCaptured,
         log = ZLog(sink = {}),
     )
 
@@ -135,6 +139,18 @@ class ManagerHookReviewLedgerTest {
         val m = manager()
         m.handle(patchWith(reviewInteractionJson(2, pending = 1)))
         assertEquals("flow-2", m.lastHookReview.value?.reviewFlowId)
+    }
+
+    @Test
+    fun `the capture ALSO fires the process-ledger callback (the exit-gate fix — survives detach)`() = runTest {
+        val ledger = ArrayList<WorkspaceHookReview>()
+        val m = manager(onCaptured = { ledger.add(it) })
+        m.handle(snapshotWith(reviewInteractionJson(1, pending = 2), toSeq = 3))
+        assertEquals(1, ledger.size, "the callback fired with the review")
+        assertEquals("flow-1", ledger.single().reviewFlowId)
+        // A fresh review updates the ledger too (deduped by equality — no refires).
+        m.handle(snapshotWith(reviewInteractionJson(1, pending = 2), toSeq = 4))
+        assertEquals(1, ledger.size, "the identical review does not refire")
     }
 
     @Test

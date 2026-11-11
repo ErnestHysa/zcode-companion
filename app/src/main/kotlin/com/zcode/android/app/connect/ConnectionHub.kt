@@ -336,13 +336,24 @@ class ConnectionHub(
     fun sessionHookReview(taskId: String): kotlinx.coroutines.flow.Flow<com.zcode.android.domain.model.WorkspaceHookReview?> =
         sessionFlow(taskId, { m -> m.lastHookReview }, null)
 
-    /** G71: the retained hook review right now, for the tasks that have managers. */
-    fun hookReviewsSnapshot(): List<Pair<String, com.zcode.android.domain.model.WorkspaceHookReview>> =
-        coordinatorOrNull()?.let { c ->
-            c.managers().mapNotNull { (taskId, m) ->
-                m.lastHookReview.value?.let { taskId to it }
-            }
-        } ?: emptyList()
+    /**
+     * G71: the PROCESS hook-review ledger — captured by the live managers, KEPT after
+     * conversation close (the exit-gate rig leg caught the empty-after-close face:
+     * the Settings viewer is exactly where you check hooks WITHOUT the conversation
+     * open). Memory-only; Refresh re-requests from the desktop.
+     */
+    private val hookReviewLedger =
+        java.util.concurrent.ConcurrentHashMap<String, com.zcode.android.domain.model.WorkspaceHookReview>()
+
+    /** G71: every retained review (live managers + the detached-session ledger). */
+    fun hookReviewsSnapshot(): List<Pair<String, com.zcode.android.domain.model.WorkspaceHookReview>> {
+        val out = LinkedHashMap<String, com.zcode.android.domain.model.WorkspaceHookReview>()
+        coordinatorOrNull()?.managers()?.forEach { (taskId, m) ->
+            m.lastHookReview.value?.let { out[taskId] = it }
+        }
+        hookReviewLedger.forEach { (taskId, review) -> out.putIfAbsent(taskId, review) }
+        return out.toList()
+    }
 
     /**
      * G71: ask the desktop to re-issue the workspace hook review for [taskId]
@@ -1080,6 +1091,7 @@ class ConnectionHub(
                 helloServerTimeMs = caps?.serverTimeMs,
                 capabilitiesJson = null,
             ),
+            hookReviewSink = { sessionId, review -> hookReviewLedger[sessionId] = review },
         )
         coordinator = created
         managersVersion.value++
