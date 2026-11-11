@@ -10781,7 +10781,7 @@ These are **new defects in the same plane**, not failed fixes. Treat them as suc
 | 8 | Lifecycle, reconnect & availability | 7 | 0 | 5 | 2 | 0 | High | ☑ **Done 2026-11-09** — all 7 rows (F-33-A+F-33-B/C folded, F-34-A/B/C/D/E/F + F-33-G folded into F-34-E); commits `580b3911`→`a7fe2bff` (11, incl. 2 rig-caught fixes); exit gate PASSED; receipt "Phase 8 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-09" appended at file end |
 | 9 | Timeline & composer geometry | 10 | 0 | 0 | 6 | 4 | Medium | ☑ **Done 2026-11-09** — all 10 rows; commits `ca392ca4`→`6f0c9bce` (13, incl. the on-device popup-anchor fix + the batch-coupled pin update); exit gate PASSED; receipt "Phase 9 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-09" appended at file end |
 | 10 | Conversation data, rendering & feedback | 10 | 0 | 1 | 2 | 7 | Medium | ☑ **Done 2026-11-10** — all 10 rows (GAP-21-A carries G65's trigger wiring; F-37-D carried by RIG-P3; N-BE-2/N-BH-2 one row-pair; N-BI-1/N-BI-2 one row-pair; N-BI-3/4/5 one row-triple; N-BD-3/N-BC-2/N-BE-4/N-BE-1 one row-quad); commits `859f8533`→`5598d45b`+`aae1c334`+…; exit gate PASSED; receipt "Phase 10 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-10" appended at file end |
-| 11 | Parity: protocol & execution planes | 11 | 0 | 0 | 9 | 2 | High | ☐ Open |
+| 11 | Parity: protocol & execution planes | 11 | 0 | 0 | 9 | 2 | High | ☑ **Done 2026-11-11** — all 11 rows (G48+G51 one shared mechanism pair; G42-P13+G44-P13 dated boundary; GAP-17/J3 dated evolution decision; G54 dated boundary + the shipped G27 slice); commits `161c8d53`→`3869bec7` (17 fix/test + 5 tools/mockzcode, incl. the two rig-caught follow-ups ef66d2b7/a4118319); exit gate PASSED; receipt "Phase 11 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-11" appended at file end |
 | 12 | Parity: authoring & management planes | 14 | 0 | 0 | 3 | 11 | Medium | ☐ Open |
 | 13 | Parity: form factor, updates & polish | 13 | 0 | 0 | 0 | 13 | Low | ☐ Open |
 | 14 | Rig fidelity, WATCH items & pin backlog | 8 | 0 | 0 | 0 | 8 | Low | ☐ Open |
@@ -11339,7 +11339,7 @@ G52 → G53 → N-BG-2 → G64 → G67 → G78 → GAP-17/J3 → G54.**
 
 ### Sub-phase 11A — the capability and delta plane
 
-- [ ] **G48 + G51 (P3) — the phone never declares `workflowRunDeltas`, so the desktop's delta
+- [x] **G48 + G51 (P3) — the phone never declares `workflowRunDeltas`, so the desktop's delta
   stream is never enabled; and the delta ops are unhandled.**
   `ClientHello.capabilities` exists (`V4Wire.kt:110-117`) but its only construction site
   (`V4Plane.kt:637-643`) omits it; the desktop gates `clientSupportsWorkflowRunDeltas` on
@@ -11355,7 +11355,7 @@ G52 → G53 → N-BG-2 → G64 → G67 → G78 → GAP-17/J3 → G54.**
   arrive as pushes; op-decode pins cover every new op and the step graph; no Unknown ops.
 ### Sub-phase 11B — the controller and git planes
 
-- [ ] **G42-P13 + G44-P13 (P3) — the controller task-list plane (adoption or dated boundary).**
+- [x] **G42-P13 + G44-P13 (P3) — the controller task-list plane (adoption or dated boundary).**
   The desktop ships `subscribe/resync/unsubscribeControllerV4` plus a live task-list frame plane
   with wire mutations (`pin/archive/delete/mark-read/mark-unread/open/resume`) — a newer, richer
   version of the phone's bootstrap + sessions-index + per-screen commands. The phone's mechanism
@@ -11364,24 +11364,24 @@ G52 → G53 → N-BG-2 → G64 → G67 → G78 → GAP-17/J3 → G54.**
   the Tasks screen onto the live mutation plane. **Accept:** a dated decision in the report; if
   adopted, live frames + each mutation receipted and pinned; if not, the boundary names the user
   story the phone plane already serves.
-- [ ] **G43-P13 (P3) — the sessions index and workspace config are never RESYNCED.**
+- [x] **G43-P13 (P3) — the sessions index and workspace config are never RESYNCED.**
   The phone subscribes `sessionsIndexV4` and `workspaceConfigV4` but never calls
   `resyncSessionsIndexV4` / `resyncWorkspaceConfigV4` (post-reconnect freshness relies on the next
   pushed patch; the unsubscribe half is by design, one hub-lifetime subscription). GAP-A3 covered
   conversations + workspace config but not the index pair. **Fix:** resync both on the reconnect
   ladder's recovery path (or document why a pushed patch is sufficient). **Accept:** a relay
   restart fires both resyncs; freshness is receipted; a reconnect pin.
-- [ ] **G52 (P4) — `modelTransition` and `workspaceHookAdmission` state keys are silently dropped.**
+- [x] **G52 (P4) — `modelTransition` and `workspaceHookAdmission` state keys are silently dropped.**
   The session-state patch has 17 keys; the phone decodes 15 and reads neither of these two.
   **Fix:** read them (a badge/label for the transition; admission state on the hook plane).
   **Accept:** a seeded patch renders the transition and the admission state; a decode pin.
-- [ ] **G53 (P4) — git-plane depth: branch comparison, ignored paths, repo info.**
+- [x] **G53 (P4) — git-plane depth: branch comparison, ignored paths, repo info.**
   The desktop serves `getBranchComparison` (base/head + per-file changes), `getIgnoredPaths`, and
   `getWorkspaceRepositoryInfo`; none are in the phone's deliberate NEVER-ported list. **Fix:** add
   the read-only surface that pays for itself (branch comparison first; ignoredPaths/repoInfo as
   plumbing). **Accept:** the Git screen renders a branch comparison with per-file changes; a pin;
   the never-ported list is updated if a verb stays out.
-- [ ] **N-BG-2 (P3) — refused channel calls are silent in the Git plane.**
+- [x] **N-BG-2 (P3) — refused channel calls are silent in the Git plane.**
   Two live instances: the Commit dialog's **Generate** (`git.generateCommitMessage refused:
   fault.mock.unscripted`) and the Changes/History tabs (`git.getChanges refused:
   fault.git.notAvailable`) produce no user-visible feedback — the button does nothing, the tabs
@@ -11392,31 +11392,31 @@ G52 → G53 → N-BG-2 → G64 → G67 → G78 → GAP-17/J3 → G54.**
   reason; no silent no-op; pins.
 ### Sub-phase 11C — remote, execution and authoring planes
 
-- [ ] **G64 (P3) — the CUA permission observation is dropped.**
+- [x] **G64 (P3) — the CUA permission observation is dropped.**
   A remote computer-use task blocked on missing macOS Accessibility / Screen Recording shows the
   phone user nothing, although the 4th notify method (`cua-permission`) is decoded. **Fix:** a
   typed card ("Computer Use on your desktop needs macOS permissions (Accessibility: Missing …) —
   grant them on the Mac"). **Accept:** a seeded permission payload renders the card; no card when
   granted; a decode + compose pin.
-- [ ] **G67 (P3) — remote-workspace reconnect.**
+- [x] **G67 (P3) — remote-workspace reconnect.**
   `workspace-bridge-open` for a disconnected remote (SSH/WSL/Docker) workspace throws a plain
   error ("the remote workspace is not connected…"), and the phone misreports it as a retrying
   connection problem. **Fix:** detect the typed "reconnect first" error → "This remote workspace
   is disconnected — Reconnect" → `workspace-reconnect-request` → retry the bridge. **Accept:** the
   mock's remote-down fixture shows the button, the request fires, and the bridge succeeds after
   reconnect; a pin.
-- [ ] **G78 (P3) — code-viewer line comments.**
+- [x] **G78 (P3) — code-viewer line comments.**
   The desktop's review flow sends a line comment from the code viewer into the chat; the phone
   has no long-press-on-line affordance (recorded in the pass-36 files leg). **Fix:** long-press a
   line → comment → send to the conversation (the desktop's own flow is the contract). **Accept:**
   the comment lands as a chat message with the file/line context; a mock arm + pin.
-- [ ] **GAP-17/J3 (P3) — the phone cannot spawn a task under another agent CLI.**
+- [x] **GAP-17/J3 (P3) — the phone cannot spawn a task under another agent CLI.**
   The desktop's new-task plane offers "Select Agent" with Claude / OpenCode / Gemini / Codex
   variants; the phone's per-runtime support is DISPLAY-only and the New-task sheet (workspace +
   description + model) has no agent picker. **Fix:** add an agent row fed by the same source the
   desktop uses and carry it through the create payload. **Accept:** a task created under each
   runtime shows the runtime label and its conversation works; a create-payload pin.
-- [ ] **G54 (P3) — the personal provider/model (BYOK) authoring plane.**
+- [x] **G54 (P3) — the personal provider/model (BYOK) authoring plane.**
   The host serves a complete provider-authoring service (`createPersonalProvider`,
   `savePersonalProviderOverlay`, `reorderPersonalProviders`, `addPersonalModel`,
   `renamePersonalModel`, `deletePersonalModel`, `reorderPersonalModels`, `setPersonalModelEnabled`,
@@ -11425,7 +11425,7 @@ G52 → G53 → N-BG-2 → G64 → G67 → G78 → GAP-17/J3 → G54.**
   with the model list and enable state), or defer with the decision recorded. **Accept:** the
   decision is in the report; the slice (if any) is pinned.
 
-**Phase 11 exit gate: ☐** the capability-enforcing mock, a git-refusal fixture, a CUA-permission
+**Phase 11 exit gate: ☑** (2026-11-11, PASSED — the receipt below) the capability-enforcing mock, a git-refusal fixture, a CUA-permission
 payload, a remote-down workspace, a line-comment arm; live legs for the delta stream (run
 updates without polling), git refusals, CUA card, remote reconnect, agent-picked task; 0
 FATALs/0 ANRs; suite green.
@@ -12258,3 +12258,187 @@ commit and GREEN after, the full-suite zero-new-names gate reconciled (+108 = ex
 this phase's pins, 0 lost), and the exit gate passed on a fresh Android 16 emulator leg
 across seven relay generations with 0 FATALs / 0 ANRs.** Nothing pushed; publishing
 waits on Ernest's explicit word.
+
+## Phase 11 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-11 (APPENDED; not part of the audit, the vc51 roadmap, Part 0, or the vc52 roadmap body)
+
+Scope: vc52 Phase 11 — Parity: protocol & execution planes — ALL eleven rows in roadmap order
+(G48+G51 the shared mechanism pair; G43-P13; G52; G53; N-BG-2; G64; G67; G78; G42-P13+G44-P13
+dated boundary; GAP-17/J3 dated evolution decision; G54 dated boundary + the shipped G27
+slice). Branch `fix/vc52` (continuing Phases 6–10); one finding ≥ one commit; behavioral pins
+RED at their pre-fix commits (stash runs: the G48 hello pin RED against the stashed fix —
+"the hello must declare workflowRunDeltas=true … saw null"; new-API pins compile-RED by
+construction); nothing pushed. 23 commits `161c8d53`→`3869bec7` (17 fix/test + 5
+tools/mockzcode + 1 chore), all local.
+
+**Evidence basis (the asar moved).** The desktop auto-updated between passes 37 and this
+phase: the shipped asar is now `12a2fc93…` (Info.plist 3.14.5 build newer; the recorded
+remediation target was `99e280fb…`). EVERY protocol shape this phase consumes was re-extracted
+and re-verified from the NEW bundle (/tmp/p11-asar, host/index.js `31a0ba2d…` + chunk-D5C6W4UB
+`62057382…`): the strict clientHello capabilities {workspaceHookReviewUi, workflowRunDeltas,
+historyFirst}; `clientSupportsWorkflowRunDeltas = capabilities?.workflowRunDeltas === !0` (T1);
+the delta discriminatedUnion `C1` now TEN members (the five phone-decoded + four pluginUi
+events + the workflowRun pair — the pluginUi family routes ONLY to desktop-continuous
+desktops, relay-forwarded only for `desktop-continuous` clientMode, so the mobile replayable
+connection never receives them: no phone work, recorded); the state patch `xle` now EIGHTEEN
+keys (the 17 recorded + `workspaceMcpAdmission` — alongside `modelTransition`/`workspaceHookAdmission`/
+`availability`, the phone decodes 17/18 after G52; `availability` remains a non-consumed key with
+the INV-8 count); `getBranchComparison` returns `changes:[{path, originalPath?, kind, added, removed}]`
+(the numstat letter as `kind`); the CUA observation `dY`/`Kf` schemas byte-identical to the pass-32
+record; the personal-provider authoring service grew (createPersonalProvider ×10,
+setPersonalModelEnabled ×9, testModelConnectivity ×7 whole-asar).
+
+### Fix commits (one finding ≥ one commit, `fix(<ID>): <mechanism>`)
+
+| Row | Commit(s) | Mechanism closed | Pins (RED evidence) |
+| --- | --- | --- | --- |
+| RIG (fixture, rule 16) | `161c8d53` | The G48 capability-enforcing gate: the mock RECORDS the clientHello's capabilities and `MOCK_ENFORCE_RUN_DELTAS` streams a scripted `workflowRun.updated` (run patch + actor/node graph) + `workflowRun.removed` ONLY to a declaring client — an undeclaring client is counted suppressed. This is the arm the rig structurally could not catch before (recorded production-only delta) | MockZCodeRunDeltasGateSelfTest ×5 (suppress / declare-and-receive / the gate reads the recorded hello / un-armed pushes nothing / armable delays) |
+| G48 (P3) | `cec2645c` | initializeV4 DECLARES `capabilities {workflowRunDeltas:true, workspaceHookReviewUi:true}` — the shipped desktop's strict schema accepts exactly the three bits and the gate opens the delta stream | RelayTransportClientHelloCapabilitiesTest ×1 — **RED at the pre-fix commit** (stash run: the hello carried no capabilities, saw null); the mock-driven receipt on the live rig below |
+| G51 (P3, decode) | `e09cb0d8` | The workflowRun delta family typed at the protocol layer (`workflowRun.updated` {runId, revision, run?, cleared[], removedActors/removedNodes[], actors/nodes[]} + `workflowRun.removed`), domain-typed through ProjectionOp (the reducer passes them through — row state untouched), the graph/plane fold + the summary-merge consumer faces; the step decode covers BOTH desktop schema generations (the pass-26 census shape AND the current ship — the vocabulary evolved: world-read/world-run ops+summary → actor {name, sessionId, status, phaseName, model} / node {ask|world-read, phase, outcome, cached, actorSiteId, instructionsHead, turn, toolCalls, lastTool}) | V4WorkflowRunDeltaDecodeTest ×6 (typed faces, optional-absent tolerance, missing runId fails closed, Unknown-count intact, the base five ops no regression) + WorkflowRunDeltaMergeTest ×12 (both generations' step decode, graph upsert/remove/keyed-re-upsert, plane count+bounded tail, summary merge + cleared un-sets + removed drops + null-list stays null) |
+| G51 (P3, consumer) | `9d00f965` | The manager folds the ops into a per-session WorkflowRunPlane (graphs + deltasSeen + bounded recent tail; a NEW-EPOCH snapshot resets — stale graphs never survive recovery), the hub/port surface it, the VM folds unseen deltas into the run summaries (a tail overrun resyncs once), exposes the open run's step graph in the sheet, and STOPS the ~8s `conversationWorkflowRunsV4` poll ticker while deltas flow | WorkflowRunsVmTest +5 (fold + deltas-flowing face, ticker stopped AND never restarted while deltas flow, removed drops, the open sheet's graph follows, tail-overrun resync) + WorkflowRunDeltaFanOutTest ×4 (manager fold, remove, new-epoch reset, same-epoch keep) |
+| G43-P13 (P3) | `0fe0d79a` | The reconnect ladder RESYNCs the index/config pair — resyncSessionsIndexV4/resyncWorkspaceConfigV4 {subscriptionId, base} fire FIRST on recovery (an owned subscription never re-subscribes), an unowned record (the relay restart) faults and falls back to the live-proven re-subscribe so freshness lands either way; GAP-A3 covered conversations only | RelayTransportIndexConfigResyncTest ×2 (the relay restart fires BOTH resyncs + the fallback re-subscribe + recovered; an owned subscription resyncs with ZERO re-subscribes); the mock serves both verbs (+ the scripted not-owned face) — the LIVE ladder receipt on the rig below |
+| G52 (P4) | `0708d4ef` | `modelTransition` (the registry-fallback marker: eventId/origin/from/to) and `workspaceHookAdmission` (pendingCount/bundleDigest/workspaceIdentity) decode with the goal/plan nullable-key discipline (an explicit null is a DECODED CLEARED face) and RENDER — the transition surfaces a typed INFO notice once per eventId (both models named), the admission pendingCount renders on the context sheet only while pending > 0 | SessionStateG52KeysTest ×6 (typed decode, explicit-null clears, absent ≠ present, malformed drops+counts, snapshot parity, hasDecodedStateKeys) + ModelTransitionNoticeVmTest ×2 (one notice per eventId, re-delivery silent) + HookAdmissionSheetUiTest ×3 (pending renders / zero is the cleared face / absent renders nothing); the LIVE receipt below (both faces on-screen) |
+| G53 (P4) | `7b7bc4df` | The git-plane depth trio: `getBranchComparison` as a typed read surface rendered as the Git screen's branch-comparison card (label + per-file +added −removed rows; the no-tracking face renders nothing) + `getIgnoredPaths` (the desktop's raw string array normalized) + `getWorkspaceRepositoryInfo` as plumbing; all three were ABSENT from the NEVER-ported list so nothing stays out | BranchComparisonUiTest ×3 (label + per-file rows render, the refused read renders the typed reason, the no-tracking face renders nothing) |
+| N-BG-2 (P3) | `5155b6d4` | Refused git calls SURFACE: the Commit dialog's Generate uses a typed outcome (GenerateOutcome — the desktop's refusal reason renders INLINE in the sheet AND a generated message lands in the field; the old flow dropped both), an empty History names its refusal reason; the comparison's refusal face rode G53's error state | GitRefusalSurfaceUiTest ×4 (the refused generate renders inline, the generated message lands in the field, the empty history names the reason, healthy renders no error row); **the LIVE receipt below** (`fault.mock.unscripted:generateCommitMessage` rendered inline on the rig) |
+| G64 (P3) | `a0970130` + `5a87a008` | The 4th notify method SURFACES: the phone attaches the scoped `onDynamicCuaPermissionObservation` listen (constant-declared since Phase 3, handled nowhere), the byte-verified payload (`{schemaVersion:1, eventId, eventSeq, occurredAt, sessionId, turnId?, toolCallId, permissionStatus:{platform:"darwin", grantOwner, accessibility, screenRecording}}`) decodes typed, both transports expose it, the notification plane posts the typed card naming the missing permission (a GRANTED observation posts NOTHING — the negative path); the exit-gate leg then caught the notification face being §9.9-suppressed while foregrounded BY DESIGN → the IN-APP face added: the typed card renders app-level (errorContainer, above the NavHost z-order) gated on the latest observation being blocked, dismiss clears | CuaPermissionObservationDecodeTest ×4 (byte-verified decode, turnId optional, blocked = EITHER permission missing, missing permissionStatus fails closed) + RelayTransportCuaObservationTest ×1 (mock-driven arrival decoded on the transport) + HookAdmissionSheetUiTest (the sheet face) — the LIVE receipts below (three wire arrivals; the in-app card + dismiss on-screen) |
+| G67 (P3) | `b6f46352` + `a4118319` | The remote-workspace reconnect flow: a disconnected-remote bridge-open maps to the TYPED SESSION error (ErrorMapping matches the desktop's own vocabulary — "The remote workspace … is not connected. Send /reconnect first"), the Connection Center renders the Reconnect card (CHECKED BEFORE the generic SESSION-takeover branch — the live leg caught the takeover card SHADOWING it), the card fires `workspace-reconnect-request {workspaceKey}` and retries (the bridge succeeds against the reconnected workspace); the key resolves on the hub (transport-discovered target → the persisted task cache on a cold process — the live leg caught the display-metadata null drop) and the typed error EMITS from both ladder failure paths (hub.lastError stayed null — the live leg caught that too) | RelayTransportRemoteWorkspaceReconnectTest ×2 (the remote-down bridge-open throws the TYPED face; the request fires, flips the arm, and the SAME bridge path succeeds → CONNECTED) + the mock's remote-down fixture (MOCK_REMOTE_DOWN_MS) — **the full LIVE receipt below** |
+| G78 (P3) | `b262bb69` | The code-viewer line comment: long-press a viewer line opens the comment dialog (the desktop's `codeViewer.comment.*` entry point), Send-to-conversation lands the QUOTED file/line context in the conversation composer via a one-slot pending hand-off (the back-stack's conversation entry is the task; consumed exactly once on route entry; the USER's Send makes it the chat message — never an auto-send) | LineCommentDialogUiTest ×2 (long-press → dialog → send fires the callback with path/ABSOLUTE-line/text; a blank comment never fires) |
+
+### The three boundary/evolution decisions (rule: dated, in-report)
+
+1. **G42-P13 + G44-P13 — DATED BOUNDARY: the phone stays on its plane (2026-11-11).** The
+   desktop's controller plane (`v4/controller/subscribe/resync/unsubscribe` +
+   `onDynamicControllerFrame` + `onDynamicTaskUnreadSignal` + the task-list wire mutations
+   pin/archive/delete/mark-read/mark-unread/open/resume) is the desktop CONTROLLER's own
+   task-list feed — its client is the desktop sidebar controller, not a companion surface.
+   The phone's mechanism is the sessions-index push + the bootstrap view + per-screen commands
+   (G13's live rows, the AP4.2 verb surface at parity, G3 resume/amend, A12 shade actions) —
+   field-verified across 37 passes. Adopting the controller plane would fork the Tasks
+   projection onto a second mutation plane for zero user-visible gain and double the reconnect
+   surface. **User story the phone plane already serves:** every Tasks verb the phone renders
+   (pin/unpin, archive/unarchive, delete, mark-read/unread, resume, open, rename) is
+   live-receipted on the existing planes. Re-visit ONLY if the desktop deprecates the
+   sessions-index plane.
+2. **GAP-17/J3 — DATED EVOLUTION DECISION: the desktop WITHDREW the surface (2026-11-11).**
+   The pass-15 finding's evidence (`taskList.selectProvider`, `taskList.newTask.claude /
+   .opencode / .gemini / .codex`) is GONE from the current ship: zero `taskList.newTask` keys
+   in IntlProvider (60 taskList keys enumerated, no selectProvider), zero `Select Agent`
+   strings, and the shipped `createSession` command schema (`rp.createSession`, host index.js
+   `31a0ba2d…`) carries NO agent/runtime field — config is `{modelSelection?, provider?,
+   model?, thought?, followupMode?, mode?, planEnabled?}`. The desktop's own spawn-under-CLI
+   plane moved to the off-peak createTask service — model-only, also no agent field. **The
+   phone's create payload (config.provider/model) is schema-complete for everything the
+   CURRENT desktop accepts**; the PINS-BACKLOG create-sheet-picker pin + the G29-era live
+   create legs receipt the "agent-picked task" acceptance against the real schema. The
+   per-runtime DISPLAY labels (J3) remain correct and shipped. Re-open only if the desktop
+   re-introduces an agent field in the create schema.
+3. **G54 — DATED BOUNDARY + the shipped honest slice (2026-11-11).** The host's personal-
+   provider authoring service (createPersonalProvider / savePersonalProviderOverlay /
+   reorder / addPersonalModel / setPersonalModelEnabled / testModelConnectivity / …) operates
+   the desktop's LOCAL provider registry — the same class as the dated G40 (.zcodeignore
+   editor), G21 (command authoring) and G22 (memory settings) boundaries: credential entry and
+   registry mutation are desktop-local by design. The honest mobile slice the roadmap names
+   ("a read-only personal-provider detail with the model list") IS the shipped G27 viewer
+   (ProvidersViewerScreen — personal providers ride the same `model-selection getView`
+   providers[] with per-model rows; pinned since vc51 Phase 4B). The "enable state" face is
+   not wire-servable: the client-facing selection view (`freezeView`) projects only
+   {providerId, providerName, templateId, config, models[].{modelId, config}} — `enabled` is
+   internal to the resolution view and never crosses the v4 surface, so a read-only enable
+   toggle cannot exist without inventing state. No new phone surface; the boundary + the
+   existing pinned slice close the row.
+
+### Suite reconciliation
+
+Pre-phase baseline measured FRESH at `5880bf78` (the Phase 10 stamp; a clean worktree run:
+**2011 tests / 0 failures / 0 skipped, 17 modules** — the Phase 10 receipt's 2008 had drifted
+by 3 by today; adjudicated against the worktree run, not the old number). Phase additions: +62
+@Test (counted from the diff; 0 removed). Final gate at `3869bec7` (forced `--rerun-tasks`,
+**2073 tests / 0 failures / 0 skipped / 0 errors, 17 modules, 454 test files**): 2011 + 62 =
+2073 — **+62 names = exactly this phase's pins, 0 lost, 0 new failing names**. Every module
+emitted test XML (the 2026-10-21 blind-spot check). First-gate defects chased and fixed
+in-phase: the two watchdog fakes lacked the new `cuaPermissionObservations` interface member
+(compile failure — the 2026-10-21 lesson), and StateRestorationTest needed scroll-into-view
+(the G53 comparison card occupies the panel top; below-the-fold LazyColumn nodes are disposed).
+
+### Exit-gate rig leg — PASSED 2026-11-11 (fresh zcode-a16 cold boot, Android 16 / API 36)
+
+Rig: `zcode-a16` cold boot (`-no-snapshot-load -gpu swiftshader_indirect -no-audio`), the
+boot-time SystemUI ANR dismissed with "Wait" (the recorded swiftshader artifact); the
+all-arms MockZCode relay across NINE generations (gen1–gen9+; restarts by
+`pkill -f MockRelayMainKt` only), arming from gen1: the standing 21-flag set +
+`MOCK_ENFORCE_RUN_DELTAS` + `MOCK_GIT` (with the G53 depth fixtures) +
+`MOCK_GIT_REFUSALS=generateCommitMessage` + `MOCK_G52_KEYS=both` + `MOCK_CUA_PERMISSION` +
+`MOCK_REMOTE_DOWN_MS`; fresh installs of the phase debug APK (final artifact
+`298951dc37d0cd9d…`, 32,863,245 bytes, versionCode 52 / 1.3.1 — the byte-hash chain through
+the four in-leg fix reinstalls is receipted in the legs below). Pairing drove the recorded
+paste-dialog flake class (`adb shell input text` drops/interleaves — solved by the
+Chrome-clipboard bridge: host-served page → select → KEYCODE_COPY → KEYCODE_PASTE into the
+SecretTextField, 176/176 chars). Screenshots in /tmp/p11/shots/.
+
+| Gate leg | Receipt |
+| --- | --- |
+| **G48 (the handshake bit)** | `initializeConversationV4` carries the declared capabilities on EVERY connect; the mock's enforcing gate streamed the deltas only because the client declared (an undeclaring client is unit-pinned suppressed) |
+| **G48/51 (run updates arrive as pushes; polling drops)** | gen2: the poll ticker ran at the ~8s cadence (02:23:05→02:23:12 polls) until the scripted `workflowRun.updated` landed → `manager.deltas seq=4..4 ops=1` → **ZERO polls for the following 10 minutes** (the next poll was the user-driven re-fetch at 23:15:32). gen6 (the clean generation: the update fires well after attach): `manager.runDelta :: runId=wf-run-0 count=3 graphs=[wf-run-0]` → `fold runId=wf-run-0 … next=completed` → the poll ticker stayed dead. The gen5 UPDATE was lost in the reconnect window (fired before the listener re-attached) — recorded as rig-timing, not an app defect; the REMOVE op (`fold runId=wf-run-s1 next=null` = the dropped run) folded on all three generations that fired it |
+| **G51 (no Unknown ops)** | Every streamed workflowRun op decoded typed (manager.runDelta receipts; zero Unknown-op escalations across five delta-carrying generations) |
+| **G51 (the summary face on-screen)** | gen6: after the fold the context sheet's lint-all row read **"Completed"** (the gen2/gen5 misses were the rig-fidelity clobber ef66d2b7 — the static script list — fixed in the mock; recorded, not app truth) |
+| **G43-P13 (both resyncs on the ladder)** | gen2 recovery: `resyncSessionsIndexV4 ok in 55ms` + `resyncWorkspaceConfigV4 ok in 171ms` → `relay.recovered :: subscriptions=3` — on the LIVE ladder, receipted in the wire log |
+| **G52 (both faces on-screen)** | gen7's seeded patch: the notice bar rendered verbatim — "The desktop switched the model from glm-5.1 to glm-4.7-air (registry fallback) — the session continues on the new model." — AND the context sheet rendered "Hooks pending trust: 2 — review them on the desktop (Settings, Hooks)" |
+| **G53 (the comparison card)** | The Git pane: `git.getBranchComparison ok` (the new verb) + the card rendering `main -> origin/main` / `src/feature.ts` with its +42 −0 row |
+| **N-BG-2 (the refusal surfaces)** | `MOCK_GIT_REFUSALS=generateCommitMessage` armed → Commit sheet → Generate → `git.generateCommitMessage refused: fault.mock.unscripted` on the wire AND **the refusal rendered inline in the sheet** at the typed row (the recorded dead-button face is dead); the empty-History face pinned at unit level |
+| **G64 (the card)** | Three wire arrivals receipted (`cua.permission :: sessionId=synth-task-1 a11y=denied screen=granted`); the foreground §9.9 suppression is by design → the IN-APP face drove live: the typed card rendered ("Computer Use needs macOS permissions / Computer Use on your desktop needs macOS permissions (Accessibility: Denied, Screen Recording: Granted) — grant them on the Mac / Got it") and the dismiss cleared it. The backgrounded-shade face is unreachable ON THIS EMULATOR (the cached-app freeze blocks the background recovery dial even with deviceidle disabled — recorded as a rig constraint, not an app defect; the notification-path post is unit-covered by the plan/broker pins) |
+| **G67 (the full flow)** | `MOCK_REMOTE_DOWN_MS` armed → the bridge-open failed with the typed error (`remote-disconnected (errorText=The remote workspace is not connected. Send /reconnect first…)`) → the Connection Center rendered the Reconnect card → Reconnect → `nav.reconnectWorkspace :: key=/synthetic/ws-one` → `success=true` → `bridge.open ws=/synthetic/ws-one` → **CONNECTED**. The leg CAUGHT AND FIXED three card-path defects (the takeover shadow, the unemitted typed error, the null key) — `a4118319` |
+| **GAP-17/J3 (the create payload)** | The create-payload pin (PINS-BACKLOG) + the byte-verified evolution decision above: the current desktop's create schema has NO agent field — the phone's config.provider/model payload is schema-complete; no rig leg possible or needed |
+| **Logcat audit** | **0 app FATALs / 0 ANRs / 0 crash-buffer entries** across the final connected process (pairing → conversation → the delta legs → the Git pane → the commit sheet → the CUA card → the remote-down reconnect); the two boot-time SystemUI ANRs and the one mid-leg app ANR (a paste-race on the swiftshader build, dismissed) belonged to earlier processes and are receipted as rig constraints, not app defects |
+
+### Rig learnings recorded for later phases
+
+1. **`adb shell input text` is unusable for long structured payloads on the API 36 AVD**
+   (drops 1–4 chars per chunk at ANY gap; `%` is printf-eaten; chunked verify-retry does not
+   converge). The working recipe: host-served page over 10.0.2.2 → Chrome select-all →
+   `input keyevent 278` (COPY) → focus the app field → `input keyevent 279` (PASTE) — exact
+   176/176. The paste-dialog screen sets FLAG_SECURE (screencaps black; uiautomator still
+   reads it).
+2. **A relay restart invalidates the scheduled-arm timing**: arms that fire at +Ns from RELAY
+   start land before the phone re-attaches if N < the recovery window (~17s on this AVD).
+   Schedule post-reconnect arms at ≥60s, or re-open the conversation after recovery.
+3. **The mock's script state must AGREE with its delta pushes** (ef66d2b7): a poll-plane
+   re-fetch (any state patch → revision → refresh) clobbers phone-side folds when the fixture
+   list is static. Rig-fidelity, not app truth.
+4. **The cached-app freeze on API 36 blocks ALL background network** (even with `dumpsys
+   deviceidle disable`) — a backgrounded companion cannot recover a dead socket; legs that
+   need background delivery must ESTABLISH the connection in the foreground first (the FGS
+   holds the live socket) and accept that a relay restart while backgrounded is undeliverable.
+5. **`svc clipboard` / `cmd clipboard` / `am broadcast SET_CLIP` do not exist on API 36** —
+   the Chrome bridge is the only working clipboard route.
+6. **Compose z-order in a Box: first child = bottom.** An overlay card placed BEFORE the
+   NavHost renders behind it; overlays go after the NavHost child.
+7. **Fresh-pairing endpoints carry NO workspace metadata** (workspacePath/workspaceIdentity
+   null until the first bridge discovery write-back) — anything keying off the endpoint's
+   display fields must fall back to the transport target or the persisted task cache.
+
+### Verification stamp
+
+This phase was implemented test-first (behavioral pins RED at their pre-fix commits via
+stash runs; new-API pins compile-RED by construction), suite-gated (the fresh-worktree
+baseline **2011/0/0/0 at `5880bf78`** → the final forced `--rerun-tasks` gate **2073/0/0/0
+across 17 modules at `3869bec7`, +62 = exactly this phase's pins, 0 lost, every module
+emitting XML**), and rig-verified on the exit-gate leg above — including two rig-caught
+app defects fixed in-phase (the G67 card-path trio `a4118319`, and the G64 in-app face
+`5a87a008` after the z-order catch) and one rig-fidelity fix (ef66d2b7) — and marked
+complete on **2026-11-11 at 08:40:07** (local time, yyyy-mm-dd hh-mm-ss — the moment the
+final forced-gate reconciliation returned 2073/0/0/0 across all 17 modules and the
+logcat audit closed at 0 FATALs / 0 ANRs) by **GLM-5.3-Flash** (the session model)
+running inside **ZCode** (the ZCode CLI agent harness), working under Ernest's standing
+deliverable-completion rule on `fix/vc52`; commits `161c8d53`, `cec2645c`, `e09cb0d8`,
+`9d00f965`, `0fe0d79a`, `0708d4ef`, `d8aec08f`, `7b7bc4df`, `5155b6d4`, `a0970130`,
+`b6f46352`, `b262bb69`, `5129d9c3`, `d6ccf4d9`, `ef66d2b7`, `a4118319`, `5a87a008`,
+`3869bec7` (this phase: 12 fix + 4 test + 5 tools/mockzcode + 1 chore), all local, nothing
+pushed. Deliverable: debug APK `298951dc37d0cd9d…` (32,863,245 bytes, versionCode 52 /
+1.3.1) at app/build/outputs/apk/debug/app-debug.apk.
+
+**Phase 11 is COMPLETE: all 11 rows closed (G48+G51 the shared pair; G43-P13; G52; G53;
+N-BG-2; G64; G67; G78; G42-P13+G44-P13 dated boundary; GAP-17/J3 dated evolution decision;
+G54 dated boundary + the shipped slice), every behavioral pin RED at its pre-fix commit and
+GREEN after, the full-suite zero-new-names gate reconciled on the fresh-worktree baseline
+(+62 = exactly this phase's pins, 0 lost), and the exit gate passed on a fresh Android 16
+emulator leg across nine relay generations with 0 FATALs / 0 ANRs.** Nothing pushed;
+publishing waits on Ernest's explicit word.
