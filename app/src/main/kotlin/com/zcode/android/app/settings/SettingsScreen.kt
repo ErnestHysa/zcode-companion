@@ -255,6 +255,7 @@ fun SettingsScreen(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
             SectionHeader(stringResource(R.string.settings_section_privacy))
+            SelfReportSection(container = container)
             SettingsRow(
                 title = stringResource(R.string.settings_privacy_row),
                 subtitle = stringResource(R.string.settings_privacy_sub),
@@ -1713,4 +1714,24 @@ private fun CategoryToggle(
             modifier = Modifier.testTag("${tag}_switch"),
         )
     }
+}
+
+/**
+ * G68 (vc52 Phase 12): the OPT-IN self-report toggle (privacy section) — default
+ * OFF, the analytics-free disclosure copy in the subtitle. The pref gates both
+ * senders (the conversation-open view-state update + the socket-close diagnostic).
+ */
+@Composable
+private fun SelfReportSection(container: AppContainer) {
+    val prefs by container.stores.preferencesRepository.observe().collectAsState(initial = com.zcode.android.domain.model.AppPreferences())
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    SwitchRow(
+        title = stringResource(R.string.settings_self_report_row),
+        subtitle = stringResource(R.string.settings_self_report_sub),
+        tag = "settings_self_report",
+        checked = prefs.mobileSelfReport,
+        onToggle = { on ->
+            scope.launch { container.stores.preferencesRepository.update { p -> p.copy(mobileSelfReport = on) } }
+        },
+    )
 }

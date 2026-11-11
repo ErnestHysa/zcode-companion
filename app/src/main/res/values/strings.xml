@@ -413,4 +413,6 @@
 <string name="memory_file_changed_hint">It may have changed or been deleted since the listing — pull to refresh.</string>
 <string name="settings_memory_row">Memory</string>
 <string name="settings_memory_sub">Read-only view · saved workspace memories on this desktop</string>
+<string name="settings_self_report_row">Report device state to your desktop</string>
+<string name="settings_self_report_sub">Optional. Shares which task you are viewing and connection diagnostics with YOUR paired desktop only. Off by default; no analytics.</string>
 </resources>

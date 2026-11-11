@@ -388,6 +388,18 @@ fun ZCodeApp(
         composable(Routes.CONVERSATION) { entry ->
             val taskId = entry.arguments?.getString("taskId").orEmpty()
             val vm = rememberConversationViewModel(container, taskId)
+            // G68 (vc52 Phase 12): the opt-in view-state self-report on open — the
+            // desktop persists it (bootstrap mobileViewState) so it can restore the
+            // phone's last task. The pref gate lives in the hub (default OFF).
+            val reportScope = androidx.compose.runtime.rememberCoroutineScope()
+            androidx.compose.runtime.LaunchedEffect(taskId) {
+                val version = runCatching {
+                    container.appContext.packageManager.getPackageInfo(container.appContext.packageName, 0).versionName
+                }.getOrNull() ?: "unknown"
+                val wsKey = container.hub.activeWorkspaceTarget()?.second
+                    ?: container.hub.activeWorkspaceTarget()?.first
+                runCatching { container.hub.reportMobileViewState(wsKey, taskId, version) }
+            }
             ConversationRoute(
                 container = container,
                 vm = vm,

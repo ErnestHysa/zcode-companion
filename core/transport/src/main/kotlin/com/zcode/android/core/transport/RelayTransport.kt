@@ -1620,6 +1620,17 @@ class RelayTransport(
         )
     }
 
+    /**
+     * G68 (vc52 Phase 12): the OPT-IN self-report frames — fire-and-forget control
+     * envelopes (NO requestId, NO response); silently dropped when not connected
+     * (a self-report must never disturb the connection machine). The payload is
+     * built by `MobileSelfReport` (the byte-verified desktop union shapes).
+     */
+    override fun sendMobileSelfReport(payload: JsonObject) {
+        if (states.value != ConnectionStateMachine.ConnectionState.CONNECTED) return
+        runCatching { sendNow(RelayFrameCodec.encodeEnvelope(encodeJson.encodeToString(payload))) }
+    }
+
     /** G67 reconnect-response envelope fields. */
     data class WorkspaceReconnectResult(val success: Boolean, val error: String?)
 

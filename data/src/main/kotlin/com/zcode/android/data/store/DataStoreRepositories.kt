@@ -150,6 +150,7 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
         ),
         fontScale = if (hasFontScaleMilli()) fontScaleMilli / 1000f else 1.0f,
         taskAutoArchiveDays = if (hasTaskAutoArchiveDays()) taskAutoArchiveDays else 0,
+        mobileSelfReport = hasMobileSelfReport() && mobileSelfReport,
     )
 
     private fun AppPreferences.toProto(): AppPreferencesProto {
@@ -164,6 +165,7 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
         val locale = appLocale
         val scale = fontScale
         val archiveDays = taskAutoArchiveDays
+        val selfReport = mobileSelfReport
         return AppPreferencesProto.newBuilder()
             .setLiveConnectionTimeoutMinutes(liveConnectionTimeoutMinutes)
             .setSchemaVersion(EndpointRepositoryImpl.SCHEMA_VERSION)
@@ -188,6 +190,7 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
             .setAppLocale(locale.name)
             .setFontScaleMilli((scale * 1000).toInt())
             .setTaskAutoArchiveDays(archiveDays)
+            .setMobileSelfReport(selfReport)
             .apply {
                 wsOrder.forEach { addWorkspaceOrder(it) }
                 wsAliases.forEach { (k, v) -> putWorkspaceAliases(k, v) }

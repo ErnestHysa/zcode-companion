@@ -251,6 +251,8 @@ data class AppPreferences(
     val fontScale: Float = 1.0f,
     /** G39 (vc51): the task aging policy over the archive verb (0 = off, the manual-only default). */
     val taskAutoArchiveDays: Int = 0,
+    /** G68 (vc52 Phase 12): opt-in view-state/diagnostic self-reporting — default OFF. */
+    val mobileSelfReport: Boolean = false,
 ) {
     enum class NotificationContentLevel { MINIMAL, CONTENT }
 

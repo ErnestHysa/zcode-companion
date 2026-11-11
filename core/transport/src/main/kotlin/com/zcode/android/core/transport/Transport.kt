@@ -20,6 +20,14 @@ import kotlinx.coroutines.flow.StateFlow
  * above core:transport touches sockets.
  */
 interface Transport {
+    /**
+     * G68 (vc52 Phase 12): the OPT-IN self-report control frame (mobile-view-state-
+     * update / mobile-diagnostic) — fire-and-forget, silently dropped when not
+     * connected. Default NO-OP (the frames are a relay-plane message; the direct
+     * transport has no such receiver yet).
+     */
+    fun sendMobileSelfReport(payload: kotlinx.serialization.json.JsonObject) {}
+
 
     /** Connection state machine (§14.4.1) — in-memory truth for the current endpoint. */
     val states: StateFlow<ConnectionStateMachine.ConnectionState>

@@ -238,6 +238,9 @@ class MockZCode(
         var mcpServerStatuses: JsonObject? = null
         /** G60 (vc52 Phase 12): the per-task token usage fixture (null = typed fault). */
         var taskTokenUsage: JsonObject? = null
+        /** G68: the recorded opt-in self-report frames (test seam). */
+        val recordedMobileViewState = ArrayList<JsonObject>()
+        val recordedMobileDiagnostics = ArrayList<JsonObject>()
 
         // ---------------- Phase 4 coding-plan quota plane (GAP-3/4; ADR-020, v4-wire.md §13) ----------------
         /** Scriptable entitlement snapshot (usage-stats getEntitlementSnapshot result; null = typed fault). */
@@ -950,6 +953,10 @@ class MockZCode(
             "workspace-bridge-open" -> if (consumeScriptedControlError(ws, payload)) return else handleBridgeOpen(ws, payload)
             // G67 (vc52 Phase 11): the reconnect request — the fixture flips the remote-down arm off.
             "workspace-reconnect-request" -> handleWorkspaceReconnectRequest(payload)
+            // G68 (vc52 Phase 12): the opt-in self-reporting frames — RECORDED (no
+            // response exists; the desktop persists + logs them silently).
+            "mobile-view-state-update" -> synchronized(script.recordedMobileViewState) { script.recordedMobileViewState.add(payload) }
+            "mobile-diagnostic" -> synchronized(script.recordedMobileDiagnostics) { script.recordedMobileDiagnostics.add(payload) }
             else -> Unit
         }
     }
@@ -1945,6 +1952,10 @@ class MockZCode(
     }
     internal fun autoResolutionSnoozedForTest(): Boolean = script.autoResolutionSnoozed
     // Phase 4A self-test seams: the snapshot row builder + the appended/upserted row ledger.
+    /** G68: the recorded opt-in self-report frame counts (test seam; public — cross-module). */
+    fun selfReportViewStateCount(): Int = synchronized(script.recordedMobileViewState) { script.recordedMobileViewState.size }
+    fun selfReportDiagnosticsCount(): Int = synchronized(script.recordedMobileDiagnostics) { script.recordedMobileDiagnostics.size }
+
     internal fun snapshotRowsForTestSeam(sessionId: String, count: Int): JsonArray = snapshotRows(sessionId, count)
     internal fun appendedRowForTest(rowId: Long): JsonObject? = synchronized(appendedRows) { appendedRows[rowId.toString()] }
     internal fun appendedRowsForTest(): Map<String, JsonObject> = synchronized(appendedRows) { LinkedHashMap(appendedRows) }

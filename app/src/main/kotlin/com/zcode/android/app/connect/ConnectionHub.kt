@@ -302,6 +302,12 @@ class ConnectionHub(
      */
     private val managersVersion = kotlinx.coroutines.flow.MutableStateFlow(0)
 
+    /**
+     * G68 (vc52 Phase 12): the OPT-IN self-report — the DataStore pref is the single
+     * gate (default OFF); every sender re-reads it at send time. Fire-and-forget; a
+     * self-report must never disturb the connection machine.
+     */
+
     fun coordinatorOrNull(): RecoveryCoordinator? = coordinator
 
     suspend fun currentTasks(): List<Task> {
@@ -572,6 +578,26 @@ class ConnectionHub(
     ) {
         if (sourceKind != activeKind()) return // inactive transport: quiet (closed on switch)
         log.info("hub.phase", "transport ($sourceKind) → $state")
+        // G68 (vc52 Phase 12): the opt-in socket-close diagnostic — every DISCONNECTED
+        // entry carries the desktop's closed vocabulary event + the state transition.
+        // The socket-death family: RECONNECTING is the first post-drop state; DEGRADED
+        // and FAILED are the ladder's terminal faces. One diagnostic per entry.
+        val socketDead = state == ConnectionStateMachine.ConnectionState.RECONNECTING ||
+            state == ConnectionStateMachine.ConnectionState.DEGRADED ||
+            state == ConnectionStateMachine.ConnectionState.FAILED
+        if (socketDead && preferences.current().mobileSelfReport) {
+            runCatching {
+                activeTransport().sendMobileSelfReport(
+                    com.zcode.android.core.protocol.relay.MobileSelfReport.diagnostic(
+                        event = "socket-close",
+                        timestampMs = System.currentTimeMillis(),
+                        state = state.name,
+                        previousState = _phase.value.name,
+                        online = true,
+                    ),
+                )
+            }
+        }
         val paired = _endpoint.value != null || vault.loadMetadata() != null
         val phase = if (!paired) ConnectionPhase.UNPAIRED else phaseOf(state)
         _phase.value = phase
@@ -1105,6 +1131,29 @@ class ConnectionHub(
     }
 
     fun draftRepository(): com.zcode.android.domain.repo.DraftRepository = drafts
+
+    /**
+     * G68: the opt-in VIEW-STATE update — fired when the user opens a conversation
+     * (the desktop persists it in the bootstrap's mobileViewState, restoring the
+     * phone's last task). Fire-and-forget; the OFF gate is the caller's.
+     */
+    suspend fun reportMobileViewState(activeWorkspaceKey: String?, activeTaskId: String?, appVersion: String) {
+        if (!preferences.current().mobileSelfReport) return
+        runCatching {
+            activeTransport().sendMobileSelfReport(
+                com.zcode.android.core.protocol.relay.MobileSelfReport.viewStateUpdate(
+                    activeWorkspaceKey = activeWorkspaceKey,
+                    activeTaskId = activeTaskId,
+                    updatedAtMs = System.currentTimeMillis(),
+                    deviceInfo = com.zcode.android.core.protocol.relay.MobileSelfReport.deviceInfo(
+                        platform = "android",
+                        version = appVersion,
+                        name = android.os.Build.MODEL ?: "android-device",
+                    ),
+                ),
+            )
+        }
+    }
 
     /**
      * Phase 9 tool plane (§21–§23 + model switch): diff fetch, attachments, git,
