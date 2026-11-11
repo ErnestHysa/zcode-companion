@@ -348,4 +348,50 @@
     <string name="notif_setup_continue">Continue</string>
     <string name="notif_setup_not_now">Not now</string>
     <string name="settings_notif_blocked_sub">Blocked by Android — turn notifications on first</string>
+
+<!-- G70 (vc52 Phase 12): the desktop's MCP failure vocabulary (settings.mcp.failure.* +
+     failureAdvice.*, shipped EN locale of asar 4a6080ed...) — the phone phrases the
+     failureKind codes instead of rendering them raw; the raw code + error stay on the
+     card for support. Unknown future codes render raw (INV-8). -->
+<string name="mcp_failure_title">What happened</string>
+<string name="mcp_advice_title">Suggested steps</string>
+<string name="mcp_failure_coding_plan_required">This account has no Coding Plan. Purchase or configure a Coding Plan to use this MCP server.</string>
+<string name="mcp_advice_coding_plan_required">In model settings, check the account\u2019s Coding Plan and selected team or project. Refresh after confirming access is active.</string>
+<string name="mcp_failure_config_invalid">The MCP configuration is invalid. Check the server settings.</string>
+<string name="mcp_advice_config_invalid">Check the MCP command, arguments, server address, and environment variables. Correct the configuration, then refresh the status.</string>
+<string name="mcp_failure_connection_failed">Failed to connect to the MCP server. Try again later.</string>
+<string name="mcp_advice_connection_failed">Use the error below to check that the server is running and the configuration and network are correct. Correct the issue, then refresh the status.</string>
+<string name="mcp_failure_connection_timeout">The MCP server connection timed out. Try again later.</string>
+<string name="mcp_advice_connection_timeout">Confirm the server is running, check the network and proxy, and review server logs. If startup is slow, check the configured connection timeout.</string>
+<string name="mcp_failure_network_unreachable">Unable to connect to the MCP server. Check the network, proxy, and server URL.</string>
+<string name="mcp_advice_network_unreachable">Check that the device running MCP can reach the server address. Review proxy, VPN, firewall, and port settings.</string>
+<string name="mcp_failure_not_authenticated">You are not signed in. Sign in to ZCode to use this MCP server.</string>
+<string name="mcp_advice_not_authenticated">Sign in to ZCode, then refresh the MCP status. If the account still appears signed in, sign in again and retry.</string>
+<string name="mcp_failure_oauth_authorization_failed">MCP authorization was not completed or timed out. Authorize again.</string>
+<string name="mcp_advice_oauth_authorization_failed">Open this MCP server\u2019s authorization link again. Complete browser authorization, then return to ZCode and refresh the status.</string>
+<string name="mcp_failure_official_origin_untrusted">The MCP server URL failed the security check. The connection was blocked.</string>
+<string name="mcp_advice_official_origin_untrusted">Check that the plugin and server address come from trusted configuration. Do not disable security checks or enter login credentials for an unknown address.</string>
+<string name="mcp_failure_process_start_failed">The MCP process failed to start.</string>
+<string name="mcp_advice_process_start_failed">On the device running this MCP, check the startup command, working directory, script paths, and execute permissions. Install Python dependencies from the plugin\u2019s requirements file (such as requirements.txt), using the interpreter or virtual environment of that command. For Node MCPs, check Node.js and package dependencies. Refresh after fixing the environment.</string>
+<string name="mcp_failure_protocol_error">The MCP protocol request failed. The client and server may be incompatible.</string>
+<string name="mcp_advice_protocol_error">Check the client and server MCP versions and review protocol errors in server logs. Update the plugin or server if needed.</string>
+<string name="mcp_failure_protocol_negotiation_failed">MCP protocol negotiation failed. The server version may be incompatible. Try editing this server and switching Protocol version to Legacy compatibility.</string>
+<string name="mcp_advice_protocol_negotiation_failed">Check the MCP versions supported by the server. For an older server, try Legacy mode in its configuration. Make sure ordinary logs are not written to protocol output.</string>
+<string name="mcp_failure_rate_limited">Too many MCP requests. Try again later.</string>
+<string name="mcp_advice_rate_limited">Pause repeated retries. Refresh after the rate limit clears and check the account\u2019s request limits.</string>
+<string name="mcp_failure_runtime_unavailable">The MCP runtime is unavailable. Check the plugin and local dependencies.</string>
+<string name="mcp_advice_runtime_unavailable">On the device running this MCP, install or configure its required runtime and make sure ZCode can find the startup command.</string>
+<string name="mcp_failure_server_internal_error">The MCP service encountered an internal error. Try again later.</string>
+<string name="mcp_advice_server_internal_error">Try again later. If the problem continues, share the error below and its request ID, if present, with the service provider.</string>
+<string name="mcp_failure_server_not_found">The MCP server was not found. Check the plugin or server configuration.</string>
+<string name="mcp_advice_server_not_found">Check the server address, path, and plugin version. If the address comes from a plugin, check for updates or contact the plugin provider.</string>
+<string name="mcp_failure_server_unavailable">The MCP service is temporarily unavailable. Try again later.</string>
+<string name="mcp_advice_server_unavailable">Refresh the status later. If the problem continues, share the error below and its request ID, if present, with the service provider.</string>
+<string name="mcp_failure_status_unavailable">Unable to retrieve MCP status. Refresh or restart the Agent.</string>
+<string name="mcp_advice_status_unavailable">Refresh the status. If it remains unavailable, restart the Agent and check logs on the corresponding device.</string>
+<string name="mcp_failure_tool_list_failed">Connected to the MCP server, but failed to retrieve its tool list.</string>
+<string name="mcp_advice_tool_list_failed">Review server logs and confirm tools/list returns a valid MCP tool list, then refresh the status.</string>
+<string name="mcp_failure_unexpected_disconnect">The MCP connection was closed unexpectedly.</string>
+<string name="mcp_advice_unexpected_disconnect">Review the error below and server logs. Check whether the process exited, a dependency is missing, or the connection was interrupted, then refresh the status.</string>
+<string name="mcp_boundary_note">Read-only status view. MCP server authoring (add / edit / connect) lives on the desktop.</string>
 </resources>

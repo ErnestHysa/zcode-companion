@@ -121,7 +121,15 @@ fun McpViewerScreen(
                             McpLine(name, statuses[name]!!)
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                         }
-                        item { Spacer(Modifier.height(24.dp)) }
+                        item {
+                            // G70: the dated authoring boundary — management is desktop-side.
+                            Text(
+                                stringResource(R.string.mcp_boundary_note),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(vertical = 12.dp).testTag("mcp_boundary_note"),
+                            )
+                        }
                     }
                 }
             }
@@ -165,45 +173,145 @@ private fun mcpStatusLabel(status: String): String = stringResource(
 
 @Composable
 private fun McpLine(name: String, s: McpStatuses.McpServerStatus) {
-    Row(
+    Column(
         Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
             .testTag("mcp_row_$name"),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                name,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            // Verbatim payload fields: transport + toolCount + failureKind/error when present.
-            val detail = buildString {
-                append(s.transport)
-                append(" · ")
-                append(stringResource(R.string.mcp_tool_count, s.toolCount))
-                s.error?.let { append(" — ").append(it) }
-                s.failureKind?.let { append(" (").append(it).append(")") }
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                // G70 status detail: type (transport) · protocol era · toolCount —
+                // the roadmap accept's "type/status/protocol" line.
+                val detail = buildString {
+                    append(s.transport)
+                    s.protocolEra?.let { append(" · ").append(it) }
+                    append(" · ")
+                    append(stringResource(R.string.mcp_tool_count, s.toolCount))
+                }
+                Text(
+                    detail,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
+            val color = statusColor(s.status)
             Text(
-                detail,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
+                mcpStatusLabel(s.status),
+                style = MaterialTheme.typography.labelMedium,
+                color = color ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .testTag("mcp_state_$name")
+                    .padding(start = 8.dp),
             )
         }
-        val color = statusColor(s.status)
-        Text(
-            mcpStatusLabel(s.status),
-            style = MaterialTheme.typography.labelMedium,
-            color = color ?: MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier
-                .testTag("mcp_state_$name")
-                .padding(start = 8.dp),
-        )
+        // G70: the failure VOCABULARY — the desktop phrases its 19 failureKind codes
+        // (settings.mcp.failure.*) + suggested steps (failureAdvice.*); the phone
+        // renders the mapped copy with the RAW code + error kept below for support
+        // (the G79 principle: unknown future codes render raw, never guessed).
+        val kind = s.failureKind
+        if (kind != null) {
+            val copy = mcpFailureCopy(kind)
+            val advice = mcpAdviceCopy(kind)
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = 6.dp)
+                    .testTag("mcp_failure_$name"),
+            ) {
+                copy?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.testTag("mcp_failure_copy_$name"),
+                    )
+                }
+                advice?.let {
+                    Text(
+                        stringResource(R.string.mcp_advice_title) + " — " + it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp).testTag("mcp_advice_$name"),
+                    )
+                }
+                s.error?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                }
+                Text(
+                    kind,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp).testTag("mcp_failure_kind_$name"),
+                )
+            }
+        }
     }
+}
+
+/** The 19 recorded failureKind codes → the shipped copy; unknown renders RAW (INV-8). */
+@Composable
+private fun mcpFailureCopy(kind: String): String? = when (kind) {
+    "coding_plan_required" -> stringResource(R.string.mcp_failure_coding_plan_required)
+    "config_invalid" -> stringResource(R.string.mcp_failure_config_invalid)
+    "connection_failed" -> stringResource(R.string.mcp_failure_connection_failed)
+    "connection_timeout" -> stringResource(R.string.mcp_failure_connection_timeout)
+    "network_unreachable" -> stringResource(R.string.mcp_failure_network_unreachable)
+    "not_authenticated" -> stringResource(R.string.mcp_failure_not_authenticated)
+    "oauth_authorization_failed" -> stringResource(R.string.mcp_failure_oauth_authorization_failed)
+    "official_origin_untrusted" -> stringResource(R.string.mcp_failure_official_origin_untrusted)
+    "process_start_failed" -> stringResource(R.string.mcp_failure_process_start_failed)
+    "protocol_error" -> stringResource(R.string.mcp_failure_protocol_error)
+    "protocol_negotiation_failed" -> stringResource(R.string.mcp_failure_protocol_negotiation_failed)
+    "rate_limited" -> stringResource(R.string.mcp_failure_rate_limited)
+    "runtime_unavailable" -> stringResource(R.string.mcp_failure_runtime_unavailable)
+    "server_internal_error" -> stringResource(R.string.mcp_failure_server_internal_error)
+    "server_not_found" -> stringResource(R.string.mcp_failure_server_not_found)
+    "server_unavailable" -> stringResource(R.string.mcp_failure_server_unavailable)
+    "status_unavailable" -> stringResource(R.string.mcp_failure_status_unavailable)
+    "tool_list_failed" -> stringResource(R.string.mcp_failure_tool_list_failed)
+    "unexpected_disconnect" -> stringResource(R.string.mcp_failure_unexpected_disconnect)
+    else -> null
+}
+
+@Composable
+private fun mcpAdviceCopy(kind: String): String? = when (kind) {
+    "coding_plan_required" -> stringResource(R.string.mcp_advice_coding_plan_required)
+    "config_invalid" -> stringResource(R.string.mcp_advice_config_invalid)
+    "connection_failed" -> stringResource(R.string.mcp_advice_connection_failed)
+    "connection_timeout" -> stringResource(R.string.mcp_advice_connection_timeout)
+    "network_unreachable" -> stringResource(R.string.mcp_advice_network_unreachable)
+    "not_authenticated" -> stringResource(R.string.mcp_advice_not_authenticated)
+    "oauth_authorization_failed" -> stringResource(R.string.mcp_advice_oauth_authorization_failed)
+    "official_origin_untrusted" -> stringResource(R.string.mcp_advice_official_origin_untrusted)
+    "process_start_failed" -> stringResource(R.string.mcp_advice_process_start_failed)
+    "protocol_error" -> stringResource(R.string.mcp_advice_protocol_error)
+    "protocol_negotiation_failed" -> stringResource(R.string.mcp_advice_protocol_negotiation_failed)
+    "rate_limited" -> stringResource(R.string.mcp_advice_rate_limited)
+    "runtime_unavailable" -> stringResource(R.string.mcp_advice_runtime_unavailable)
+    "server_internal_error" -> stringResource(R.string.mcp_advice_server_internal_error)
+    "server_not_found" -> stringResource(R.string.mcp_advice_server_not_found)
+    "server_unavailable" -> stringResource(R.string.mcp_advice_server_unavailable)
+    "status_unavailable" -> stringResource(R.string.mcp_advice_status_unavailable)
+    "tool_list_failed" -> stringResource(R.string.mcp_advice_tool_list_failed)
+    "unexpected_disconnect" -> stringResource(R.string.mcp_advice_unexpected_disconnect)
+    else -> null
 }

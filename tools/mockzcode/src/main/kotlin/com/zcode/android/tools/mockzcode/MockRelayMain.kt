@@ -793,7 +793,10 @@ fun main() {
                             "toolCount" to JsonPrimitive(0),
                             "updatedAt" to JsonPrimitive("2026-10-14T09:31:00Z"),
                             "error" to JsonPrimitive("ECONNREFUSED 127.0.0.1:9222"),
-                            "failureKind" to JsonPrimitive("connectionRefused"),
+                            // G70 rig-fidelity: a REAL failureKind from the desktop's closed
+                            // 19-code vocabulary (connectionRefused was invented pre-G70 and
+                            // renders raw; connection_failed drives the mapped copy live).
+                            "failureKind" to JsonPrimitive("connection_failed"),
                             "protocolEra" to JsonPrimitive("modern"),
                         ),
                     ),
