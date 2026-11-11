@@ -503,4 +503,13 @@
     <string name="task_usage_total">Task tokens · %1$d</string>
     <string name="task_usage_loading">loading…</string>
     <string name="task_usage_requests">model requests %1$d · errors %2$d</string>
+    <!-- G76 (vc52 Phase 12): the scope/per-kind descriptions (desktop chat.permission.*,
+         shipped EN locale of asar 4a6080ed...) -->
+    <string name="perm_desc_project">Do not ask again for matching requests in this project.</string>
+    <string name="perm_desc_cua">Do not ask again for official Computer Use actions in this project.</string>
+    <string name="perm_desc_session">Do not ask again for the rest of this session.</string>
+    <string name="perm_desc_full_access">Grant the agent full access without further confirmation.</string>
+    <string name="perm_desc_command">Do not ask again for the same command.</string>
+    <string name="perm_desc_file">Do not ask again for the same file operation.</string>
+    <string name="perm_desc_generic">Do not ask again for the same permission request.</string>
 </resources>

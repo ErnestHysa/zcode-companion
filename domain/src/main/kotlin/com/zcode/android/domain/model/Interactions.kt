@@ -11,13 +11,20 @@ import kotlinx.serialization.json.JsonObject
  * option"), NEVER actionable, and never maps to an allow decision. There is no code
  * path that reaches an allow decision without a protocol-valid option id.
  */
-data class PermissionOption(val optionId: String, val label: String? = null) {
+data class PermissionOption(val optionId: String, val label: String? = null, val kind: String? = null) {
     /** §20.4 semantics classification; [Semantics.OTHER] = inert by construction. */
-    val semantics: Semantics by lazy { Semantics.of(optionId) }
+    val semantics: Semantics by lazy { Semantics.of(optionId, kind, label) }
 
     /** True only for RECOGNIZED allow-capable options (INV-14 tripwire). */
     val allowCapable: Boolean
         get() = semantics == Semantics.ALLOW_ONCE || semantics == Semantics.ALLOW_ALWAYS || semantics == Semantics.ALLOW_PROJECT
+
+    /**
+     * G76 (vc52 Phase 12): the SCOPE the runtime named (the desktop's KAn name
+     * table, lowercased) — the wire has NO scope field; scope rides the option
+     * the runtime sends. Null = the unscoped face (per-kind description).
+     */
+    val scope: PermissionScope? by lazy { PermissionScope.of(label) }
 
     enum class Semantics(val optionIds: Set<String>) {
         ALLOW_ONCE(setOf("allowOnce")),
@@ -30,8 +37,42 @@ data class PermissionOption(val optionId: String, val label: String? = null) {
         OTHER(emptySet());
 
         companion object {
-            fun of(optionId: String): Semantics =
-                entries.firstOrNull { optionId in it.optionIds } ?: OTHER
+            /**
+             * G76: the legacy id table first; then the CURRENT ship's `kind` field
+             * (Nk: allowOnce|allowAlways|deny|custom) — the scoped always-options
+             * carry opaque optionIds, and `kind` is the desktop's OWN classification.
+             * `custom` maps to allow ONLY for a runtime-named scoped label (the
+             * fullAccess arm); everything else stays OTHER (fail closed, INV-14).
+             */
+            fun of(optionId: String, kind: String? = null, label: String? = null): Semantics =
+                entries.firstOrNull { optionId in it.optionIds } ?: when (kind) {
+                    "allowOnce" -> ALLOW_ONCE
+                    "allowAlways" -> ALLOW_ALWAYS
+                    "deny" -> DENY
+                    "custom" -> if (optionId == "fullAccess" || PermissionScope.of(label) != null) ALLOW_ALWAYS else OTHER
+                    else -> OTHER
+                }
+        }
+    }
+}
+
+/**
+ * G76: the desktop's scoped-option NAME table (renderer KAn, lowercased keys) —
+ * the wire carries no scope field; the scope is WHICH option the runtime names.
+ */
+enum class PermissionScope {
+    PROJECT, SESSION, CUA_PROJECT, FULL_ACCESS;
+
+    companion object {
+        fun of(label: String?): PermissionScope? {
+            val n = label?.trim()?.replace(Regex("\\s+"), " ")?.lowercase() ?: return null
+            return when {
+                n == "full access" -> FULL_ACCESS
+                n.contains("computer use") && n.contains("project") -> CUA_PROJECT
+                n.contains("this project") -> PROJECT
+                n.contains("this session") -> SESSION
+                else -> null
+            }
         }
     }
 }

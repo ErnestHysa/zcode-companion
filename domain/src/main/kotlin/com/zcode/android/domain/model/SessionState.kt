@@ -404,11 +404,22 @@ data class PendingInteraction(
             )
         }
 
-        /** `{optionId, label, kind}` → the domain fail-closed option model (optionId semantics). */
+        /**
+         * `{optionId, label, kind}` → the domain fail-closed option model. G76
+         * (vc52 Phase 12): the CURRENT ship's options carry `label` (the runtime's
+         * scope-named variant) + `kind` (allowOnce|allowAlways|deny|custom) — both
+         * decoded; the semantics classifier consumes them (unknown id + known kind
+         * = the kind's semantics; custom + a scoped label = allow, else OTHER).
+         */
         private fun decodeOptions(payload: JsonObject): List<PermissionOption> =
             (payload["options"] as? JsonArray)?.mapNotNull { o ->
-                (o as? JsonObject)?.strOrNull("optionId")
-            }?.map { PermissionOption(it) } ?: emptyList()
+                (o as? JsonObject)?.let { oo ->
+                    val id = oo.strOrNull("optionId") ?: return@mapNotNull null
+                    val label = oo.strOrNull("label")?.takeIf { it.isNotBlank() }
+                    val kind = oo.strOrNull("kind")?.takeIf { it.isNotBlank() }
+                    PermissionOption(id, label, kind)
+                }
+            } ?: emptyList()
     }
 }
 

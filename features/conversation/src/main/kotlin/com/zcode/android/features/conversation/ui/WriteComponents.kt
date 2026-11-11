@@ -199,7 +199,11 @@ fun ApprovalCard(
                 // §20.4: EXACTLY the protocol's options — recognized ids actionable with
                 // their consequence spelled out; unknown ids INERT ("unsupported option").
                 for (option in payload.options) {
-                    val label = consequenceLabel(option, payload)
+                    // G76: the runtime-named option renders ITS OWN label (the scope
+                    // rides the option); legacy ids keep the consequence copy.
+                    val label = option.label?.takeIf { it.isNotBlank() && option.semantics != PermissionOption.Semantics.OTHER }
+                        ?: consequenceLabel(option, payload)
+                    val description = permissionDescription(option, payload)
                 when (option.semantics) {
                     PermissionOption.Semantics.ALLOW_ONCE, PermissionOption.Semantics.ALLOW_PROJECT -> {
                         ZCodeButton(
@@ -259,6 +263,16 @@ fun ApprovalCard(
                         ) { Text(stringResource(R.string.approval_unsupported)) }
                     }
                 }
+                    description?.let {
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("approval_desc_${option.optionId}"),
+                        )
+                    }
                     Spacer(Modifier.height(6.dp))
                 }
             } // G77: end of the not-expired action plane
@@ -354,6 +368,29 @@ private fun AutoResolutionFuseFace(
 /** G77: the fuse's remaining whole seconds at [nowMs] (never negative — 0 = fired). */
 internal fun countdownSecondsRemaining(deadlineAtMs: Long, nowMs: Long): Long =
     ((deadlineAtMs - nowMs) / 1000L).coerceAtLeast(0)
+
+/**
+ * G76 (vc52 Phase 12): the SCOPE / per-kind description under an allow option —
+ * the desktop's chat.permission.*.description tables. The scope copy wins (the
+ * runtime NAMED the scope); the unscoped always falls to the tool family
+ * (command | file | generic — the desktop's A.scope derivation).
+ */
+@Composable
+private fun permissionDescription(option: PermissionOption, payload: PendingInteraction.PermissionPayload): String? = when {
+    option.scope == com.zcode.android.domain.model.PermissionScope.PROJECT -> stringResource(R.string.perm_desc_project)
+    option.scope == com.zcode.android.domain.model.PermissionScope.CUA_PROJECT -> stringResource(R.string.perm_desc_cua)
+    option.scope == com.zcode.android.domain.model.PermissionScope.SESSION -> stringResource(R.string.perm_desc_session)
+    option.scope == com.zcode.android.domain.model.PermissionScope.FULL_ACCESS -> stringResource(R.string.perm_desc_full_access)
+    option.semantics == PermissionOption.Semantics.ALLOW_ALWAYS -> {
+        val tool = payload.toolName.lowercase()
+        when {
+            tool.contains("bash") || tool.contains("terminal") || tool.contains("exec") -> stringResource(R.string.perm_desc_command)
+            tool.contains("edit") || tool.contains("write") || tool.contains("file") -> stringResource(R.string.perm_desc_file)
+            else -> stringResource(R.string.perm_desc_generic)
+        }
+    }
+    else -> null
+}
 
 /** §20.2: every option renders its consequence, not just its protocol label. */
 @Composable
