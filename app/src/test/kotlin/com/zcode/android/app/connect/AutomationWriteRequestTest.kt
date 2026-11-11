@@ -4,6 +4,7 @@ import com.zcode.android.domain.model.AutomationRow
 import com.zcode.android.features.tasks.port.AutomationsPort
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
@@ -27,9 +28,12 @@ class AutomationWriteRequestTest {
         maxRuns: Int? = null,
         endAt: Long? = null,
         clearRule: Boolean = false,
+        modelProvider: String? = null,
+        modelId: String? = null,
     ) = AutomationsPort.AutomationWrite(
         title = "T", prompt = "P", schedule = schedule,
         scheduleRule = rule, recurring = recurring, maxRuns = maxRuns, endAt = endAt, clearScheduleRule = clearRule,
+        modelProvider = modelProvider, modelId = modelId,
     )
 
     @Test
@@ -75,5 +79,31 @@ class AutomationWriteRequestTest {
     fun `clearScheduleRule sends an explicit null (update - rule replaced by a plain cron)`() {
         val req = automationWriteRequest(write(clearRule = true))
         assertTrue(req["scheduleRule"] is JsonNull)
+    }
+
+    // ---- G73 (vc52 Phase 12): the per-automation model rides the wire (roadmap
+    // accept: "both fields persist and ride the create/update wire"). ----
+
+    @Test
+    fun `modelSelection rides the wire when provider+model are set`() {
+        val req = automationWriteRequest(write(modelProvider = "zai", modelId = "glm-5.1"))
+        val sel = req["modelSelection"] as JsonObject
+        assertEquals("zai", (sel["providerId"] as JsonPrimitive).content)
+        assertEquals("glm-5.1", (sel["modelId"] as JsonPrimitive).content)
+    }
+
+    @Test
+    fun `a half-set model (provider only or model only) does NOT ride the wire`() {
+        assertNull(automationWriteRequest(write(modelProvider = "zai", modelId = null))["modelSelection"])
+        assertNull(automationWriteRequest(write(modelProvider = null, modelId = "glm-5.1"))["modelSelection"])
+    }
+
+    @Test
+    fun `maxRuns with the per-automation model ride the SAME create payload (the editor round-trip)`() {
+        val req = automationWriteRequest(
+            write(maxRuns = 12, modelProvider = "custom", modelId = "qwen-max"),
+        )
+        assertEquals("12", (req["maxRuns"] as JsonPrimitive).content)
+        assertEquals("qwen-max", ((req["modelSelection"] as JsonObject)["modelId"] as JsonPrimitive).content)
     }
 }
