@@ -197,12 +197,65 @@ sealed class ConversationRow {
         val hookCount: Long,
         val state: HookState,
         val lane: String,
-        val executions: JsonArray,
+        val executions: List<HookExecution>,
         override val raw: JsonObject,
     ) : ConversationRow() {
         override val kind: String get() = KIND
     override val createdAtSeq: Long get() = base.createdAtSeq
         companion object { const val KIND = "hookInvocation" }
+    }
+
+    /**
+     * G71 (vc52 Phase 12): one `executions[]` entry of a `hookInvocation` row — the
+     * chunk-RB4EITEQ `Dk` schema (.strict(), asar 4a6080ed…): `{hookRunId, hookIndex,
+     * didExecute, state: running|completed|failed, outcome?: success|blocked|failed|
+     * cancelled|timed_out, blockReason?, startedAt, endedAt?, durationMs?, displayName,
+     * sourceKind: user|plugin|project, pluginName?, toolName?}`. [monitorState] is the
+     * desktop chat's `lTn` mapping (running/timedOut/cancelled/blocked/failed; null =
+     * the completed face).
+     */
+    data class HookExecution(
+        val hookRunId: String,
+        val hookIndex: Int,
+        val didExecute: Boolean,
+        val state: String,
+        val outcome: String?,
+        val blockReason: String?,
+        val durationMs: Long?,
+        val displayName: String,
+        val sourceKind: String,
+        val pluginName: String?,
+        val toolName: String?,
+    ) {
+        /** null = the desktop's completed face (a check icon, no failure color). */
+        val monitorState: String?
+            get() = when {
+                state == "running" -> "running"
+                outcome == "timed_out" -> "timedOut"
+                outcome == "cancelled" -> "cancelled"
+                outcome == "blocked" -> "blocked"
+                state == "failed" || outcome == "failed" -> "failed"
+                else -> null
+            }
+
+        companion object {
+            fun decode(o: JsonObject): HookExecution? {
+                val runId = o.strOrNull("hookRunId") ?: return null
+                return HookExecution(
+                    hookRunId = runId,
+                    hookIndex = o.longOrNull("hookIndex")?.toInt() ?: 0,
+                    didExecute = (o["didExecute"] as? JsonPrimitive)?.content?.toBooleanStrictOrNull() ?: false,
+                    state = o.strOrNull("state") ?: "completed",
+                    outcome = o.strOrNull("outcome"),
+                    blockReason = o.strOrNull("blockReason"),
+                    durationMs = o.longOrNull("durationMs"),
+                    displayName = o.strOrNull("displayName") ?: runId,
+                    sourceKind = o.strOrNull("sourceKind") ?: "project",
+                    pluginName = o.strOrNull("pluginName"),
+                    toolName = o.strOrNull("toolName"),
+                )
+            }
+        }
     }
 
     /** Timeline marker — payload kept typed-lite (type + raw) per rows.ts union. */
@@ -441,7 +494,9 @@ sealed class ConversationRow {
                     hookCount = obj.long("hookCount"),
                     state = HookState.fromWire(obj.strOrNull("state")),
                     lane = obj.string("lane"),
-                    executions = obj["executions"] as? JsonArray ?: JsonArray(emptyList()),
+                    executions = (obj["executions"] as? JsonArray)
+                        ?.mapNotNull { (it as? JsonObject)?.let(HookExecution::decode) }
+                        ?: emptyList(),
                     raw = obj,
                 )
                 TimelineMarker.KIND -> TimelineMarker(

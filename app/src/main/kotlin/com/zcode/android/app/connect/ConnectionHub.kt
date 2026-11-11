@@ -322,6 +322,38 @@ class ConnectionHub(
     fun sessionStale(taskId: String): kotlinx.coroutines.flow.Flow<Boolean> =
         sessionFlow(taskId, { m -> m.stale }, false)
 
+    /**
+     * G71 (vc52 Phase 12): the task's LAST workspace hook review (retained by the
+     * manager after the trust card resolves — Settings → Hooks reads it; null = no
+     * review seen for this session yet).
+     */
+    fun sessionHookReview(taskId: String): kotlinx.coroutines.flow.Flow<com.zcode.android.domain.model.WorkspaceHookReview?> =
+        sessionFlow(taskId, { m -> m.lastHookReview }, null)
+
+    /** G71: the retained hook review right now, for the tasks that have managers. */
+    fun hookReviewsSnapshot(): List<Pair<String, com.zcode.android.domain.model.WorkspaceHookReview>> =
+        coordinatorOrNull()?.let { c ->
+            c.managers().mapNotNull { (taskId, m) ->
+                m.lastHookReview.value?.let { taskId to it }
+            }
+        } ?: emptyList()
+
+    /**
+     * G71: ask the desktop to re-issue the workspace hook review for [taskId]
+     * (the conversation's trust card re-surfaces; the ledger updates when the fresh
+     * interaction arrives). False when there is no live session to ask.
+     */
+    suspend fun requestHookReview(taskId: String): Boolean {
+        val m = coordinatorOrNull()?.manager(taskId) ?: return false
+        val review = m.lastHookReview.value ?: return false
+        val outcome = commandCoordinatorOrNull()?.requestWorkspaceHookReview(
+            taskId,
+            review.workspaceIdentity,
+            review.bundleDigest,
+        )
+        return outcome is com.zcode.android.data.session.CommandCoordinator.Outcome.Accepted
+    }
+
     /** §19.4 backward pagination: more history above the current tail window (vc11). */
     fun sessionHasMoreHistory(taskId: String): kotlinx.coroutines.flow.Flow<Boolean> =
         sessionFlow(taskId, { m -> m.hasMoreHistory }, false)

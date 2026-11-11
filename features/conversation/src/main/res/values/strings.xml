@@ -326,6 +326,17 @@
     <!-- G51 (vc52 Phase 11): the delta-assembled step graph section -->
     <!-- G52 (vc52 Phase 11): the workspace hook-admission plane -->
     <string name="hooks_admission_pending">Hooks pending trust: %1$d — review them on the desktop (Settings, Hooks)</string>
+    <!-- G71 (vc52 Phase 12): the per-turn hooks monitor (desktop chat.hooks.*) -->
+    <string name="hooks_monitor_label">Hooks · %1$s · %2$d</string>
+    <string name="hook_state_running">running</string>
+    <string name="hook_state_completed">completed</string>
+    <string name="hook_state_failed">failed</string>
+    <string name="hook_state_blocked">blocked</string>
+    <string name="hook_state_timed_out">timed out</string>
+    <string name="hook_state_cancelled">cancelled</string>
+    <string name="hook_source_user">user</string>
+    <string name="hook_source_project">project</string>
+    <string name="hook_source_plugin">plugin</string>
     <string name="notice_model_transition">The desktop switched the model from %1$s to %2$s (registry fallback) — the session continues on the new model.</string>
     <string name="workflow_sheet_steps">Steps (%1$d)</string>
     <string name="workflow_events_title">Events</string>

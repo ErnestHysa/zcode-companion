@@ -974,6 +974,139 @@ fun QuietMetaRow(
     }
 }
 
+/**
+ * G71 (vc52 Phase 12): the per-turn hooks monitor (desktop `chat.hooks.*`) — the
+ * `hookInvocation` row's executions grouped under the event name, each execution
+ * showing its displayName, source (user/project/plugin), monitor state
+ * (running/completed/failed/blocked/timed-out/cancelled), duration and blockReason.
+ * `didExecute=false` entries stay hidden (the desktop's sTn filter); the group is
+ * collapsed by default and expands in place.
+ */
+@Composable
+fun HookInvocationRow(
+    row: ConversationRow.HookInvocation,
+    modifier: Modifier = Modifier,
+) {
+    val visible = remember(row.raw) { row.executions.filter { it.didExecute }.sortedBy { it.hookIndex } }
+    if (visible.isEmpty()) {
+        QuietMetaRow(label = stringResource(R.string.row_hook, row.hookEventName), detail = null)
+        return
+    }
+    var expanded by rememberSaveable(row.rowId) { mutableStateOf(false) }
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp)
+            .testTag("row_hooks"),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .minRowTouchTarget()
+                .clickable(role = Role.Button) { expanded = !expanded }
+                .testTag("row_hooks_toggle"),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.width(20.dp).height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = stringResource(R.string.hooks_monitor_label, row.hookEventName, visible.size),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.width(4.dp))
+            val failed = visible.any { it.monitorState == "failed" || it.monitorState == "blocked" || it.monitorState == "timedOut" }
+            val running = visible.any { it.monitorState == "running" }
+            val stateColor = when {
+                running -> MaterialTheme.colorScheme.onSurfaceVariant
+                failed -> MaterialTheme.colorScheme.error
+                else -> MaterialTheme.colorScheme.primary
+            }
+            Text(
+                text = if (expanded) "▾" else "▸",
+                style = MaterialTheme.typography.labelSmall,
+                color = stateColor,
+            )
+        }
+        if (expanded) {
+            visible.forEach { exec ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 28.dp, top = 2.dp)
+                        .testTag("hook_exec_${exec.hookRunId}"),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = exec.displayName,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(hookSourceLabel(exec.sourceKind)),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    exec.monitorState?.let { st ->
+                        Text(
+                            text = stringResource(hookStateLabel(st)),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = when (st) {
+                                "failed", "blocked", "timedOut" -> MaterialTheme.colorScheme.error
+                                "running" -> MaterialTheme.colorScheme.onSurfaceVariant
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            modifier = Modifier.testTag("hook_state_${exec.hookRunId}"),
+                        )
+                        Spacer(Modifier.width(6.dp))
+                    }
+                    exec.durationMs?.let { ms ->
+                        Text(
+                            text = if (ms < 1000) "${ms}ms" else "%.1fs".format(ms / 1000.0),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                exec.blockReason?.let { reason ->
+                    Text(
+                        text = reason,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .padding(start = 28.dp)
+                            .testTag("hook_block_${exec.hookRunId}"),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun hookStateLabel(state: String): Int = when (state) {
+    "running" -> R.string.hook_state_running
+    "failed" -> R.string.hook_state_failed
+    "blocked" -> R.string.hook_state_blocked
+    "timedOut" -> R.string.hook_state_timed_out
+    "cancelled" -> R.string.hook_state_cancelled
+    else -> R.string.hook_state_completed
+}
+
+@Composable
+private fun hookSourceLabel(source: String): Int = when (source) {
+    "user" -> R.string.hook_source_user
+    "plugin" -> R.string.hook_source_plugin
+    else -> R.string.hook_source_project
+}
+
 /** Never-crash fallback for unknown row kinds (§19.1). */
 @Composable
 fun UnknownKindRow(row: ConversationRow.Unknown, modifier: Modifier = Modifier) {

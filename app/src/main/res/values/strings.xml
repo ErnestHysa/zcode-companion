@@ -265,6 +265,24 @@
 <string name="settings_providers_sub">Read-only list · models per provider (no credentials)</string>
 <string name="settings_bots_row">Bots</string>
 <string name="settings_bots_sub">Read-only list · messaging bots per workspace</string>
+<!-- G71 (vc52 Phase 12): the read-only workspace hooks viewer -->
+<string name="hooks_viewer_title">Workspace hooks</string>
+<string name="hooks_viewer_empty">No hooks seen yet — hooks appear after a workspace posts its trust review. Open a conversation, then come back.</string>
+<string name="hooks_viewer_unavailable">Hooks are unavailable on this connection</string>
+<string name="hooks_viewer_summary">%1$d hook(s) · %2$d pending trust</string>
+<string name="hooks_viewer_refresh">Refresh</string>
+<string name="hooks_viewer_refresh_requested">Review re-requested — the trust card re-opens in the conversation.</string>
+<string name="hooks_viewer_refresh_refused">The desktop refused the review request.</string>
+<string name="hooks_viewer_refresh_offline">No live session for this workspace.</string>
+<string name="hooks_viewer_note">Read-only view of the hooks your workspace runs and their trust state. Hook authoring lives on the desktop (Settings → Hooks).</string>
+<string name="hook_trust_not_applicable">trusted</string>
+<string name="hook_trust_pending">pending trust</string>
+<string name="hook_trust_trusted">trusted</string>
+<string name="hook_trust_blocked_untrusted">blocked (untrusted)</string>
+<string name="hook_trust_blocked_policy">blocked (policy)</string>
+<string name="hook_trust_revoked">revoked</string>
+<string name="hook_trust_stale">stale — re-review</string>
+<string name="settings_hooks_sub">Read-only view · what your workspace runs and its trust state</string>
 <string name="mcp_title">MCP servers</string>
 <string name="mcp_loading">Loading MCP servers…</string>
 <string name="mcp_unavailable">MCP server statuses are unavailable</string>

@@ -114,6 +114,9 @@ class RecoveryCoordinator(
 
     fun manager(sessionId: String): ConversationSessionManager? = synchronized(managers) { managers[sessionId] }
 
+    /** G71 (vc52 Phase 12): a stable snapshot of the live managers (id → manager). */
+    fun managers(): Map<String, ConversationSessionManager> = synchronized(managers) { managers.toMap() }
+
     /**
      * GAP-A3/G14 (vc51): conversation teardown — unsubscribe the topic on the wire,
      * drop the transport's subscription record, and DETACH the manager so its

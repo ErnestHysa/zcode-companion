@@ -12,6 +12,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import com.zcode.android.app.settings.McpPort
+import com.zcode.android.app.settings.HooksPort
 import com.zcode.android.app.settings.SkillsPort
 import com.zcode.android.features.tasks.port.AutomationsPort
 import java.util.TimeZone
@@ -544,4 +545,14 @@ class DefaultMcpPort(
             McpPort.Result(null, e.message ?: "MCP server statuses are unavailable on this connection")
         }
     }
+}
+
+/** G71 (vc52 Phase 12): the retained hook reviews + the re-request verb. */
+class DefaultHooksPort(
+    private val hub: ConnectionHub,
+) : HooksPort {
+    override suspend fun reviews(): List<HooksPort.Entry> = hub.hookReviewsSnapshot()
+        .map { (taskId, review) -> HooksPort.Entry(taskId, review) }
+
+    override suspend fun refresh(taskId: String): Boolean? = hub.requestHookReview(taskId)
 }

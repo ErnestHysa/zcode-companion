@@ -122,6 +122,24 @@ class ConversationSessionManager(
     val workflowRunPlane: StateFlow<com.zcode.android.domain.model.WorkflowRunPlane> =
         _workflowRunPlane.asStateFlow()
 
+    /**
+     * G71 (vc52 Phase 12): the LAST workspace hook review this session has seen,
+     * retained after the trust card resolves (the review interaction leaves
+     * `pendingInteractions`, but Settings → Hooks must still show what the workspace
+     * runs and each item's trust state). Replaced — never nulled — by later reviews.
+     */
+    private val _lastHookReview =
+        MutableStateFlow<com.zcode.android.domain.model.WorkspaceHookReview?>(null)
+    val lastHookReview: StateFlow<com.zcode.android.domain.model.WorkspaceHookReview?> =
+        _lastHookReview.asStateFlow()
+
+    private fun captureHookReview(state: com.zcode.android.domain.model.SessionProjectionState) {
+        val review = state.pendingInteractions
+            ?.lastOrNull { it.kind == com.zcode.android.domain.model.PendingInteraction.Kind.WORKSPACE_HOOK_REVIEW }
+            ?.hookReview ?: return
+        if (_lastHookReview.value != review) _lastHookReview.value = review
+    }
+
     /** The epoch the run plane is anchored on (snapshot re-anchor resets it). */
     @Volatile
     private var planeEpoch: String? = null
@@ -213,6 +231,7 @@ class ConversationSessionManager(
         _totalRows.value = e.totalCount
         e.sessionState?.let {
             _sessionState.value = it
+            captureHookReview(it)
             onSessionState(it)
         }
         // rowsWindowSchema: window's first row == firstRowId ⇔ at top (null = no window info).
@@ -251,6 +270,7 @@ class ConversationSessionManager(
         // Phase 7: publish the A-side projection after any state.updated op.
         if (e.ops.any { it is com.zcode.android.domain.reducer.ProjectionOp.StateUpdated }) {
             _sessionState.value = reducer.sessionProjection
+            captureHookReview(reducer.sessionProjection)
             onSessionState(reducer.sessionProjection)
         }
         // G51 (vc52 Phase 11): the declared workflow-run delta plane — fold the ops

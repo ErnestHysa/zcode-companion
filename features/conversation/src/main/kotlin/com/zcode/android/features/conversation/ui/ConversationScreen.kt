@@ -1448,7 +1448,7 @@ private fun TimelineRow(
             }
         }
         is ConversationRow.Subagent -> QuietMetaRow(label = stringResource(R.string.row_subagent, row.subagentType), detail = row.summaryText.take(80))
-        is ConversationRow.HookInvocation -> QuietMetaRow(label = stringResource(R.string.row_hook, row.hookEventName), detail = null)
+        is ConversationRow.HookInvocation -> HookInvocationRow(row)
         is ConversationRow.TimelineMarker -> {
             // I2.4 (Phase 6A): a `compact` marker renders the context-compaction
             // lifecycle notice; every other marker keeps the generic quiet row.
