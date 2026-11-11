@@ -634,12 +634,23 @@ class DefaultMemoryPort(
     private val filesPort: FilesPort,
 ) : MemoryPort {
 
-    private suspend fun projectsRoot(): String? {
-        val ws = hub.activeWorkspaceTarget()?.first?.takeIf { it.isNotEmpty() } ?: return null
+    private fun workspacePath(): String? {
+        // The conversation-discovered target first; the BOOTSTRAP's received
+        // workspaces on a fresh process (the exit-gate leg caught: after a relaunch
+        // the target is null until a conversation runs bridge discovery, while the
+        // bootstrap view already carries the workspace path).
+        hub.activeWorkspaceTarget()?.first?.takeIf { it.isNotEmpty() }?.let { return it }
+        return hub.workspaces.value.firstOrNull()?.path?.takeIf { it.isNotEmpty() }
+    }
+
+    private fun projectsRoot(): String? {
+        val ws = workspacePath() ?: return null
         // /Users/ernest/Desktop/x -> /Users/ernest (the desktop home; the root the
-        // desktop's homedir()-based memory tree lives under).
-        val home = ws.trimEnd('/').substringBefore("/", missingDelimiterValue = "")
-        if (home.isEmpty()) return null
+        // desktop's homedir()-based memory tree lives under). BEFORE-LAST: the first
+        // slash of an ABSOLUTE path yields an empty prefix (the exit-gate leg caught
+        // the memory tree faulting on every fresh process).
+        val home = ws.trimEnd('/').substringBeforeLast('/', missingDelimiterValue = ws)
+        if (home.isEmpty() || home == ws) return null
         return "$home/.zcode/cli/memories/projects"
     }
 

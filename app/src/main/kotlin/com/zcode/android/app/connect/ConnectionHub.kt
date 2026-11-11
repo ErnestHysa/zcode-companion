@@ -360,15 +360,23 @@ class ConnectionHub(
      * (the conversation's trust card re-surfaces; the ledger updates when the fresh
      * interaction arrives). False when there is no live session to ask.
      */
-    suspend fun requestHookReview(taskId: String): Boolean {
-        val m = coordinatorOrNull()?.manager(taskId) ?: return false
-        val review = m.lastHookReview.value ?: return false
+    suspend fun requestHookReview(taskId: String): Boolean? {
+        // The LEDGER first: after conversation close the manager is detached, but the
+        // retained review carries everything the verb needs (the exit-gate leg caught
+        // the false-"refused" note on a detached session). Null = genuinely offline.
+        val review = coordinatorOrNull()?.manager(taskId)?.lastHookReview?.value
+            ?: hookReviewLedger[taskId]
+            ?: return null
         val outcome = commandCoordinatorOrNull()?.requestWorkspaceHookReview(
             taskId,
             review.workspaceIdentity,
             review.bundleDigest,
         )
-        return outcome is com.zcode.android.data.session.CommandCoordinator.Outcome.Accepted
+        return when (outcome) {
+            is com.zcode.android.data.session.CommandCoordinator.Outcome.Accepted -> true
+            null -> null
+            else -> false
+        }
     }
 
     /** §19.4 backward pagination: more history above the current tail window (vc11). */
