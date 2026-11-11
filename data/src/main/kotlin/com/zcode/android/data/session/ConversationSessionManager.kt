@@ -267,6 +267,7 @@ class ConversationSessionManager(
         for (delta in runDeltas) {
             _workflowRunPlane.value = com.zcode.android.domain.model.WorkflowRunPlane.apply(_workflowRunPlane.value, delta)
             planeEpoch = e.logEpoch
+            log.debug("manager.runDelta", "runId=" + delta.runId + " count=" + _workflowRunPlane.value.deltaCount + " graphs=" + _workflowRunPlane.value.graphs.keys)
             onWorkflowRunDelta(delta)
         }
     }
