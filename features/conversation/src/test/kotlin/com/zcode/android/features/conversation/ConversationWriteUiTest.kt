@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -59,7 +60,8 @@ class ConversationWriteUiTest {
                  "detail":{"command":"./gradlew build"},
                  "options":[{"optionId":"allowOnce","label":"Allow once","kind":"allowOnce"},
                             {"optionId":"deny","label":"Deny","kind":"deny"},
-                            {"optionId":"fullAccess","label":"Full access","kind":"custom"}]}}
+                            {"optionId":"fullAccess","label":"Full access","kind":"custom"},
+                            {"optionId":"mysteryCustom","label":"Something else","kind":"custom"}]}}
                 """.trimIndent(),
             ) as JsonObject,
         )!!
@@ -100,8 +102,12 @@ class ConversationWriteUiTest {
         setContent(state(sessionState = SessionProjectionState(pendingInteractions = listOf(interaction))))
         rule.onNodeWithTag("approval_card_i-ui-1").assertIsDisplayed()
         rule.onNodeWithText("Run the build?").assertIsDisplayed()
-        rule.onNodeWithText("Allow once — this request only").assertIsDisplayed()
-        rule.onNodeWithText("Deny — the agent is told no").assertIsDisplayed()
+        // G76 (vc52 Phase 12): the runtime-named label renders VERBATIM (the scope
+        // rides the option) — the consequence copy stays for the legacy no-label face.
+        rule.onNodeWithText("Allow once").assertExists()
+        rule.onNodeWithText("Deny").assertExists()
+        rule.onNodeWithText("Full access").assertExists()
+        rule.onNodeWithText("Grant the agent full access without further confirmation.").assertExists()
     }
 
     @Test
@@ -141,10 +147,22 @@ class ConversationWriteUiTest {
             state(sessionState = SessionProjectionState(pendingInteractions = listOf(interaction))),
             onAnswer = { _, _, _, _ -> answered = true },
         )
-        // §20.4 row 2: unsupported ids render INERT — disabled, no answer path.
-        rule.onNodeWithTag("approval_unsupported_fullAccess").assertIsNotEnabled()
-        rule.onNodeWithTag("approval_unsupported_fullAccess").performClick()
+        // §20.4 row 2: unsupported ids render INERT. G76 (vc52 Phase 12) SUPERSEDED
+        // the old contract for `fullAccess` specifically — kind=custom + the literal
+        // fullAccess id is now an ACTIONABLE allow arm (the desktop's own
+        // fullAccessOption; the batch that changed the contract owns this pin) —
+        // so the inert face needs a GENUINELY unknown custom option: the fixture
+        // grew one, and fullAccess now answers.
+        rule.onNodeWithTag("approval_unsupported_mysteryCustom").assertIsNotEnabled()
+        rule.onNodeWithTag("approval_unsupported_mysteryCustom").performClick()
         rule.waitForIdle()
+        org.junit.Assert.assertFalse(answered)
+        // fullAccess (kind=custom + the literal id) is the ACTIONABLE allow arm
+        // (G76) — composed in the card below the small test fold; the ANSWER flow
+        // (confirm → the literal id) is pinned card-level in PermissionScopeCardUiTest,
+        // so here the honest bar is composition + the inert contrast.
+        rule.onNodeWithTag("approval_fullAccess").assertExists()
+        rule.onAllNodesWithTag("approval_unsupported_mysteryCustom").assertCountEquals(1)
         org.junit.Assert.assertFalse(answered)
     }
 

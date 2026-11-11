@@ -126,18 +126,18 @@ fun groupTimeline(rows: List<ConversationRow>): List<TimelineEntry> = groupTimel
 fun groupTimeline(rows: List<ConversationRow>, nowMs: Long): List<TimelineEntry> {
     val out = ArrayList<TimelineEntry>(rows.size + 4)
     val today = nowMs / java.util.concurrent.TimeUnit.DAYS.toMillis(1)
-    var lastDay: Long? = null
+    // N-BK-1(d): ONE header per calendar day — the emitted SET (not a last-day
+    // watermark): unordered createdAt (a retry back-filling an older day) must never
+    // re-emit a day (the LazyColumn duplicate-key crash the pool caught).
+    val emittedDays = HashSet<Long>()
     var i = 0
     while (i < rows.size) {
         val row = rows[i]
-        // N-BK-1(d): a day boundary between rows emits the header (rows without a
-        // createdAt never break the chain — the timezone-less window faces stay put).
         // `createdAt` rides the row's RAW wire object (rowBaseFields, all kinds).
         (row.raw["createdAt"] as? JsonPrimitive)?.takeIf { it !is JsonNull }?.content?.toDoubleOrNull()?.let { created ->
             val day = created.toLong() / java.util.concurrent.TimeUnit.DAYS.toMillis(1)
-            if (day != lastDay) {
+            if (emittedDays.add(day)) {
                 out.add(TimelineEntry.DayHeader(day, dayLabel(day, today)))
-                lastDay = day
             }
         }
 
