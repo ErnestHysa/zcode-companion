@@ -358,6 +358,8 @@ class MockZCode(
          * actions render and their commands reach [applyCommandEffect].
          */
         var rowActionsDemo: Boolean = false
+        /** G71 (vc52 Phase 12): the hooks-monitor + subagent snapshot rows arm. */
+        var hooksRowsDemo: Boolean = false
 
         /**
          * I2.4 (Phase 6A): stamp the context-compaction lifecycle into the NEXT
@@ -1664,6 +1666,23 @@ class MockZCode(
                 put("guided", JsonPrimitive(false))
                 put("attachments", JsonArray(emptyList()))
             }
+            // G71 (vc52 Phase 12): the per-turn hooks monitor + the subagent row
+            // (chunk-RB4EITEQ jk/Dk + U$ schemas; `text` carries "event:displayName"
+            // for hook rows and the subagentType for subagent rows — the rich fields
+            // ride `extra` from the seeding arm).
+            RowKind.HOOK_INVOCATION -> buildJsonObject {
+                put("hookInvocationId", JsonPrimitive("hi-$rowId"))
+                put("hookEventName", JsonPrimitive(text.substringBefore(":")))
+                put("hookCount", JsonPrimitive(1))
+                put("state", JsonPrimitive("completed"))
+                put("lane", JsonPrimitive("toolAfter"))
+                put("executions", JsonArray(emptyList()))
+            }
+            RowKind.SUBAGENT -> buildJsonObject {
+                put("subagentType", JsonPrimitive(text))
+                put("status", JsonPrimitive("success"))
+                put("summaryText", JsonPrimitive("synthetic subagent"))
+            }
         }
         return JsonObject(base + kindFields + (extra ?: JsonObject(emptyMap())).toMap())
     }
@@ -1672,6 +1691,7 @@ class MockZCode(
     enum class RowKind(val wire: String) {
         TURN_HEADER("turnHeader"), USER_INPUT("userInput"), ASSISTANT_TEXT("assistantText"),
         REASONING("reasoning"), TOOL_CALL("toolCall"), TIMELINE_MARKER("timelineMarker"),
+        HOOK_INVOCATION("hookInvocation"), SUBAGENT("subagent"),
     }
 
     /** S12 driver: authoritative terminal turn state stamped into the NEXT snapshot. */
@@ -1762,7 +1782,62 @@ class MockZCode(
             }))
             rows.add(schemaRow(sessionId, nextId++, RowKind.TIMELINE_MARKER, "failed:manual"))
         }
+        if (script.hooksRowsDemo) {
+            // G71 (vc52 Phase 12): one completed PreToolUse group (completed + blocked +
+            // failed executions, blockReason carried) and one running SessionStart group —
+            // the phone's monitor renders grouped per-execution rows with states.
+            rows.add(schemaRow(sessionId, nextId++, RowKind.HOOK_INVOCATION, "PreToolUse", extra = buildJsonObject {
+                put("state", JsonPrimitive("completed"))
+                put("durationMs", JsonPrimitive(420))
+                put("executions", JsonArray(listOf(
+                    hookExecutionRow("hr-1", 0, didExecute = true, state = "completed", outcome = "success", displayName = "Lint gate", sourceKind = "project", durationMs = 210),
+                    hookExecutionRow("hr-2", 1, didExecute = true, state = "completed", outcome = "blocked", displayName = "Secrets guard", sourceKind = "user", durationMs = 95, blockReason = "matched deny rule: secrets.*"),
+                    hookExecutionRow("hr-3", 2, didExecute = true, state = "failed", outcome = "failed", displayName = "Telemetry", sourceKind = "plugin", pluginName = "acme-tools", durationMs = 115),
+                    hookExecutionRow("hr-4", 3, didExecute = false, state = "completed", outcome = "success", displayName = "Skipped watcher", sourceKind = "project", durationMs = null),
+                )))
+            }))
+            rows.add(schemaRow(sessionId, nextId++, RowKind.HOOK_INVOCATION, "SessionStart", extra = buildJsonObject {
+                put("state", JsonPrimitive("running"))
+                put("executions", JsonArray(listOf(
+                    hookExecutionRow("hr-5", 0, didExecute = true, state = "running", outcome = null, displayName = "Warm build cache", sourceKind = "project", durationMs = null),
+                )))
+            }))
+            // N-BK-1(a) feeds from the same rig: a subagent row carrying childSessionId.
+            rows.add(schemaRow(sessionId, nextId++, RowKind.SUBAGENT, "explore", extra = buildJsonObject {
+                put("parentToolCallId", JsonPrimitive("tool-parent-1"))
+                put("status", JsonPrimitive("success"))
+                put("summaryText", JsonPrimitive("Explored the auth module"))
+                put("childSessionId", JsonPrimitive("sess-child-9"))
+                put("backgrounded", JsonPrimitive(true))
+                put("workId", JsonPrimitive("work-sub-1"))
+            }))
+        }
         return JsonArray(rows)
+    }
+
+    /** G71: one `executions[]` entry (chunk-RB4EITEQ `Dk`, .strict()). */
+    private fun hookExecutionRow(
+        runId: String,
+        index: Int,
+        didExecute: Boolean,
+        state: String,
+        outcome: String?,
+        displayName: String,
+        sourceKind: String,
+        durationMs: Long?,
+        blockReason: String? = null,
+        pluginName: String? = null,
+    ): JsonObject = buildJsonObject {
+        put("hookRunId", JsonPrimitive(runId))
+        put("hookIndex", JsonPrimitive(index))
+        put("didExecute", JsonPrimitive(didExecute))
+        put("state", JsonPrimitive(state))
+        outcome?.let { put("outcome", JsonPrimitive(it)) }
+        blockReason?.let { put("blockReason", JsonPrimitive(it)) }
+        durationMs?.let { put("durationMs", JsonPrimitive(durationMs)) }
+        put("displayName", JsonPrimitive(displayName))
+        put("sourceKind", JsonPrimitive(sourceKind))
+        pluginName?.let { put("pluginName", JsonPrimitive(it)) }
     }
 
     /** Phase 4A: `actions:{canFork:true,canRetry:true}` — rows.ts only ever sends TRUE keys. */
@@ -3378,7 +3453,16 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             }
             "requestWorkspaceHookReview" -> {
                 stateRevision.incrementAndGet()
-                pushStatePatch(buildJsonObject { put("revision", JsonPrimitive(stateRevision.get())) })
+                // G71 (vc52 Phase 12): the desktop RE-ISSUES the review — the resolved
+                // flag flips back so scriptedHookInteraction() re-posts the review card,
+                // and the patch carries the WHOLE pending list (the resolveInteraction
+                // key-level-replacement contract; the bare revision patch left the
+                // refresh a silent no-op on the rig).
+                script.hookReviewsResolved = false
+                pushStatePatch(buildJsonObject {
+                    put("revision", JsonPrimitive(stateRevision.get()))
+                    put("pendingInteractions", pendingInteractionList())
+                })
             }
             "resolveInteraction" -> {
                 val iid = payload?.strOrNull("interactionId") ?: return null

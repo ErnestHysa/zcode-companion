@@ -398,6 +398,8 @@ fun main() {
     // Phase 5D (ADR-024) rig leg: MOCK_HOOKS=1 scripts a workspaceHookReview (2 pending +
     // 1 trusted item) — the blocking card renders; trust_selected flips the states live.
     if (System.getenv("MOCK_HOOKS") != null) {
+        // G71 (vc52 Phase 12): the hooks-monitor snapshot rows ride the same arm.
+        mock.script.hooksRowsDemo = true
         mock.script.hookReview = JsonObject(mapOf(
             "kind" to JsonPrimitive("workspaceHookReview"),
             "reviewFlowId" to JsonPrimitive("flow-rig"), "generation" to JsonPrimitive(1),
