@@ -119,6 +119,37 @@ class AgentFacadeClient(private val transport: AppTransport) {
             scope?.let { put("scope", JsonPrimitive(it)) }
         })
 
+    // ---------------------------------------------------------------- G42-P23 (vc52 Phase 12): management verbs
+    // Fresh-asar shapes (4a6080ed…): updateSavedWorkflow {workspace,name,meta:{description,
+    // whenToUse?,args?}} / deleteSavedWorkflow {workspace,name} / moveSavedWorkflow
+    // {workspace(name),name} — the SDK service's workflows/updateMeta|delete|move; the
+    // responses are {ok:bool, reason?}.
+
+    /** `updateSavedWorkflowMeta {…, name, meta:{description, whenToUse?, args?}}` → `{ok, reason?}`. */
+    suspend fun updateSavedWorkflowMeta(
+        name: String,
+        description: String,
+        whenToUse: String? = null,
+        args: JsonObject? = null,
+        workspacePath: String? = null,
+        workspaceIdentity: String? = null,
+    ): JsonObject = call("updateSavedWorkflowMeta", base(null, workspacePath, workspaceIdentity).plus {
+        put("name", JsonPrimitive(name))
+        put("meta", buildJsonObject {
+            put("description", JsonPrimitive(description))
+            whenToUse?.let { put("whenToUse", JsonPrimitive(it)) }
+            args?.let { put("args", it) }
+        })
+    })
+
+    /** `deleteSavedWorkflow {…, name}` → `{ok, reason?}`. */
+    suspend fun deleteSavedWorkflow(name: String, workspacePath: String? = null, workspaceIdentity: String? = null): JsonObject =
+        call("deleteSavedWorkflow", base(null, workspacePath, workspaceIdentity).plus { put("name", JsonPrimitive(name)) })
+
+    /** `moveSavedWorkflow {…, name}` — MOVES the workflow to ANOTHER workspace (the CURRENT ship's semantics; the target rides the workspace base). */
+    suspend fun moveSavedWorkflow(name: String, targetWorkspacePath: String, targetWorkspaceIdentity: String? = null): JsonObject =
+        call("moveSavedWorkflow", base(null, targetWorkspacePath, targetWorkspaceIdentity).plus { put("name", JsonPrimitive(name)) })
+
     // ---------------------------------------------------------------- A3.12 plans · A3.11 rewind preview
 
     /** `conversationPlansV4 {sessionId}` → the session's plans projection. */

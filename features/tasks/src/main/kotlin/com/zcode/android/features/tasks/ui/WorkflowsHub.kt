@@ -40,6 +40,11 @@ import com.zcode.android.domain.model.Task
 import com.zcode.android.domain.model.WorkflowRunStatus
 import com.zcode.android.features.tasks.R
 import com.zcode.android.features.tasks.port.AutomationsPort
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.IconButton
+import kotlinx.coroutines.launch
 
 /**
  * L6.4 (gaps-and-polish Phase 5A): the saved-workflow hub the phone lacked — the desktop's
@@ -59,16 +64,32 @@ fun WorkflowsHub(
     reloadKey: Any? = null,
     /** F-SPAM: the hub's CONNECTED truth — the load re-runs on the flip (V2 pattern). */
     connected: Boolean = true,
+    /** G42-P23: the received workspaces for MOVE-to-project (null = the action hides). */
+    workspaces: List<com.zcode.android.domain.model.WorkspaceOption> = emptyList(),
 ) {
     var list by remember { mutableStateOf<SavedWorkflowList?>(null) }
     var runs by remember { mutableStateOf<List<SavedWorkflowRun>>(emptyList()) }
     var loaded by remember { mutableStateOf(false) }
     var runFor by remember { mutableStateOf<SavedWorkflow?>(null) }
+    // G42-P23 (vc52 Phase 12): the management verbs (the desktop's
+    // workflows/updateMeta | delete | move — Rename / Delete / Move-to-project).
+    var deleteFor by remember { mutableStateOf<SavedWorkflow?>(null) }
+    var renameFor by remember { mutableStateOf<SavedWorkflow?>(null) }
+    var moveFor by remember { mutableStateOf<SavedWorkflow?>(null) }
+    var managementError by remember { mutableStateOf<String?>(null) }
+    // G42-P23: the management copies are captured in composition (stringResource is
+    // @Composable — the coroutines use the captured values).
+    val managementUnavailableCopy = stringResource(R.string.workflow_management_unavailable)
+    val managementRefusedFmt = stringResource(R.string.workflow_management_refused, "%1\$s")
     LaunchedEffect(port, reloadKey, connected) {
         if (!connected) return@LaunchedEffect
         list = port.savedWorkflows()
         runs = port.savedWorkflowRuns() ?: emptyList()
         loaded = true
+    }
+    suspend fun reload() {
+        list = port.savedWorkflows()
+        runs = port.savedWorkflowRuns() ?: emptyList()
     }
     val hub = list ?: return // unavailable → hidden (§13.3 hidden fallback)
     if (!loaded) return
@@ -90,7 +111,14 @@ fun WorkflowsHub(
         }
         hub.workflows.forEachIndexed { index, wf ->
             val last = runs.filter { it.name == wf.name }.maxByOrNull { it.updatedAtMs }
-            WorkflowRow(wf, last, onRun = { runFor = wf })
+            WorkflowRow(
+                wf, last,
+                onRun = { runFor = wf },
+                onDelete = { deleteFor = wf },
+                onRename = { renameFor = wf },
+                onMove = { moveFor = wf },
+                moveAvailable = workspaces.isNotEmpty(),
+            )
             if (index != hub.workflows.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
         }
         if (hub.invalid.isNotEmpty()) {
@@ -110,10 +138,133 @@ fun WorkflowsHub(
             onStart = { taskId, args -> runFor = null; onStartWorkflow(taskId, wf.name, wf.scope, args) },
         )
     }
+    // ---- G42-P23: the management sheets (Delete confirm / Rename dialog / Move sheet) ----
+    managementError?.let {
+        Text(
+            it,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(horizontal = 4.dp).testTag("workflow_management_error"),
+        )
+    }
+    deleteFor?.let { wf ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { deleteFor = null },
+            title = { Text(stringResource(R.string.workflow_delete_title, wf.name)) },
+            text = { Text(stringResource(R.string.workflow_delete_body, wf.path)) },
+            confirmButton = {
+                val unavailable = stringResource(R.string.workflow_management_unavailable)
+                val refusedFmt = stringResource(R.string.workflow_management_refused, "%1\$s")
+                TextButton(onClick = {
+                    val target = wf
+                    deleteFor = null
+                    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main.immediate).launch {
+                        val result = port.deleteSavedWorkflow(target.name)
+                        managementError = when {
+                            result == null -> unavailable
+                            !result.ok -> refusedFmt.replace("%1\$s", result.reason ?: "unknown")
+                            else -> null
+                        }
+                        reload()
+                    }
+                }, modifier = Modifier.testTag("workflow_delete_confirm")) {
+                    Text(stringResource(R.string.workflow_delete_action), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { TextButton(onClick = { deleteFor = null }) { Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel)) } },
+        )
+    }
+    renameFor?.let { wf ->
+        var name by remember(wf.name) { mutableStateOf(wf.description) }
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { renameFor = null },
+            title = { Text(stringResource(R.string.workflow_rename_title, wf.name)) },
+            text = {
+                Column {
+                    androidx.compose.material3.OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().testTag("workflow_rename_field"),
+                    )
+                }
+            },
+            confirmButton = {
+                val unavailable = stringResource(R.string.workflow_management_unavailable)
+                val refusedFmt = stringResource(R.string.workflow_management_refused, "%1\$s")
+                TextButton(enabled = name.isNotBlank(), onClick = {
+                    val target = wf
+                    val newDescription = name
+                    renameFor = null
+                    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main.immediate).launch {
+                        val result = port.renameSavedWorkflow(target.name, newDescription)
+                        managementError = when {
+                            result == null -> unavailable
+                            !result.ok -> refusedFmt.replace("%1\$s", result.reason ?: "unknown")
+                            else -> null
+                        }
+                        reload()
+                    }
+                }, modifier = Modifier.testTag("workflow_rename_save")) {
+                    Text(stringResource(R.string.workflow_rename_action))
+                }
+            },
+            dismissButton = { TextButton(onClick = { renameFor = null }) { Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel)) } },
+        )
+    }
+    moveFor?.let { wf ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { moveFor = null },
+            title = { Text(stringResource(R.string.workflow_move_title, wf.name)) },
+            text = {
+                Column {
+                    if (workspaces.isEmpty()) {
+                        Text(stringResource(R.string.workflow_move_none))
+                    } else {
+                        workspaces.take(8).forEach { ws ->
+                            androidx.compose.material3.ListItem(
+                                headlineContent = { Text(ws.label) },
+                                supportingContent = { Text(ws.key) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        val unavailable = managementUnavailableCopy
+                                        val refusedFmt = managementRefusedFmt
+                                        val target = wf
+                                        val wsKey = ws.key
+                                        moveFor = null
+                                        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main.immediate).launch {
+                                            val result = port.moveSavedWorkflow(target.name, wsKey)
+                                            managementError = when {
+                                                result == null -> unavailable
+                                                !result.ok -> refusedFmt.replace("%1\$s", result.reason ?: "unknown")
+                                                else -> null
+                                            }
+                                            reload()
+                                        }
+                                    }
+                                    .testTag("workflow_move_target_${ws.key}"),
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = { moveFor = null }) { Text(stringResource(com.zcode.android.core.ui.R.string.action_cancel)) } },
+        )
+    }
 }
 
 @Composable
-private fun WorkflowRow(wf: SavedWorkflow, last: SavedWorkflowRun?, onRun: () -> Unit) {
+private fun WorkflowRow(
+    wf: SavedWorkflow,
+    last: SavedWorkflowRun?,
+    onRun: () -> Unit,
+    onDelete: () -> Unit = {},
+    onRename: () -> Unit = {},
+    onMove: () -> Unit = {},
+    moveAvailable: Boolean = false,
+) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -143,6 +294,34 @@ private fun WorkflowRow(wf: SavedWorkflow, last: SavedWorkflowRun?, onRun: () ->
         }
         TextButton(onClick = onRun, modifier = Modifier.testTag("workflow_run_${wf.name}")) {
             Text(stringResource(R.string.workflow_run_action))
+        }
+        // G42-P23: the management overflow (Delete / Rename / Move-to-project).
+        var menuOpen by remember { mutableStateOf(false) }
+        androidx.compose.material3.IconButton(
+            onClick = { menuOpen = true },
+            modifier = Modifier.testTag("workflow_manage_${wf.name}"),
+        ) {
+            androidx.compose.material.icons.Icons.Filled.MoreVert.let {
+                androidx.compose.material3.Icon(imageVector = it, contentDescription = stringResource(R.string.workflow_manage_a11y))
+            }
+        }
+        androidx.compose.material3.DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            androidx.compose.material3.DropdownMenuItem(
+                text = { Text(stringResource(R.string.workflow_rename_action)) },
+                onClick = { menuOpen = false; onRename() },
+                modifier = Modifier.testTag("workflow_menu_rename"),
+            )
+            androidx.compose.material3.DropdownMenuItem(
+                text = { Text(stringResource(R.string.workflow_move_action)) },
+                onClick = { menuOpen = false; onMove() },
+                enabled = moveAvailable,
+                modifier = Modifier.testTag("workflow_menu_move"),
+            )
+            androidx.compose.material3.DropdownMenuItem(
+                text = { Text(stringResource(R.string.workflow_delete_action), color = MaterialTheme.colorScheme.error) },
+                onClick = { menuOpen = false; onDelete() },
+                modifier = Modifier.testTag("workflow_menu_delete"),
+            )
         }
     }
 }

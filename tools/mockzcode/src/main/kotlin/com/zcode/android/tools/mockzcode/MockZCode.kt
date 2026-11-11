@@ -2015,6 +2015,15 @@ class MockZCode(
     /** RIG-5 self-test seam: the zcode-task channel words (archive/resume mutations are state-side). */
     internal fun taskPromiseForTest(id: Int, name: String?, arg: JsonObject?) = handleTaskPromise(id, name, arg)
 
+    /** G42-P23: the management-verb seam — returns the wire error string on refusal. */
+    internal fun workflowManagementPromiseForTest(name: String, params: JsonObject?): String? =
+        when (name) {
+            "deleteSavedWorkflow" -> computeWorkflowDelete(params).second
+            "updateSavedWorkflowMeta" -> computeWorkflowUpdateMeta(params).second
+            "moveSavedWorkflow" -> computeWorkflowMove(params).second
+            else -> "fault.mock.unknownMethod"
+        }
+
     /** RIG-5 self-test seam: the git-channel words (branch acks mutate the served state). */
     internal fun gitPromiseForTest(id: Int, name: String?, arg: JsonObject?) =
         handleGitPromise(id, name, RpcValue.Obj(arg ?: JsonObject(emptyMap())))
@@ -2631,6 +2640,12 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 }
             }
                             "getTaskTokenUsage" -> scriptableObject(id, script.taskTokenUsage, "getTaskTokenUsage")
+                // G42-P23 (vc52 Phase 12): the management verbs — MUTATING fixtures
+                // (the scripted list mutates so the hub reflects the change on reload;
+                // ok:false fixtures drive the refused faces).
+                "deleteSavedWorkflow" -> respondWorkflowManagement(id, computeWorkflowDelete(argAsObject(arg)))
+                "updateSavedWorkflowMeta" -> respondWorkflowManagement(id, computeWorkflowUpdateMeta(argAsObject(arg)))
+                "moveSavedWorkflow" -> respondWorkflowManagement(id, computeWorkflowMove(argAsObject(arg)))
                 "listSavedWorkflows" -> scriptableObject(id, script.savedWorkflows, "listSavedWorkflows")
             "getSavedWorkflow" -> {
                 val name = argAsObject(arg)?.strOrNull("name")
@@ -3391,6 +3406,50 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
      * stop flips the control block, queue ops patch the queue. Every effect bumps
      * the CAS revision.
      */
+    // ---- G42-P23 (vc52 Phase 12): the workflow management verbs ----
+    // PURE computes (fixture mutation + the {ok} response or the typed fault) — the
+    // dispatch responds, the self-test seam calls them directly.
+
+    /** Delete: removes the row from the scripted fixture. */
+    internal fun computeWorkflowDelete(params: JsonObject?): Pair<JsonObject?, String?> {
+        val name = params?.str("name")
+        val list = script.savedWorkflows
+        if (name == null || list == null) return null to "fault.mock.unscripted:deleteSavedWorkflow"
+        val workflows = (list["workflows"] as? JsonArray)?.filterIsInstance<JsonObject>() ?: emptyList()
+        val remaining = workflows.filter { (it["name"] as? JsonPrimitive)?.content != name }
+        script.savedWorkflows = JsonObject(list.toMap() + ("workflows" to JsonArray(remaining)))
+        return buildJsonObject { put("ok", JsonPrimitive(true)) } to null
+    }
+
+    /** UpdateMeta: rewrites meta.description in the fixture. */
+    internal fun computeWorkflowUpdateMeta(params: JsonObject?): Pair<JsonObject?, String?> {
+        val name = params?.str("name")
+        val meta = params?.get("meta") as? JsonObject
+        val list = script.savedWorkflows
+        if (name == null || meta == null || list == null) return null to "fault.mock.unscripted:updateSavedWorkflowMeta"
+        val workflows = (list["workflows"] as? JsonArray)?.filterIsInstance<JsonObject>()
+        val updated = workflows?.map { wf ->
+            if ((wf["name"] as? JsonPrimitive)?.content == name) {
+                JsonObject(wf.toMap() + ("description" to (meta["description"] ?: JsonPrimitive(""))))
+            } else wf
+        }
+        if (updated != null) {
+            script.savedWorkflows = JsonObject(list.toMap() + ("workflows" to JsonArray(updated)))
+        }
+        return buildJsonObject { put("ok", JsonPrimitive(true)) } to null
+    }
+
+    /** Move: acks {ok:true} (the fixture is workspace-agnostic). */
+    internal fun computeWorkflowMove(params: JsonObject?): Pair<JsonObject?, String?> {
+        if (params?.str("name") == null || script.savedWorkflows == null) return null to "fault.mock.unscripted:moveSavedWorkflow"
+        return buildJsonObject { put("ok", JsonPrimitive(true)) } to null
+    }
+
+    private fun respondWorkflowManagement(id: Int, result: Pair<JsonObject?, String?>) {
+        val (obj, error) = result
+        if (error != null) respondError(id, error) else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(obj!!))
+    }
+
     private fun applyCommandEffect(type: String, env: JsonObject?): JsonObject? {
         val payload = env?.get("payload") as? JsonObject
         when (type) {

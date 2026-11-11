@@ -283,7 +283,50 @@ class DefaultAutomationsPort(
         false
     }
 
+    // ---- G42-P23 (vc52 Phase 12): the management verbs over the facade ----
+
+    private fun managementResult(raw: kotlinx.serialization.json.JsonObject?): AutomationsPort.ManagementResult? =
+        raw?.let {
+            AutomationsPort.ManagementResult(
+                ok = (it["ok"] as? kotlinx.serialization.json.JsonPrimitive)?.content?.toBooleanStrictOrNull() ?: false,
+                reason = (it["reason"] as? kotlinx.serialization.json.JsonPrimitive)?.content,
+            )
+        }
+
+    override suspend fun deleteSavedWorkflow(name: String): AutomationsPort.ManagementResult? = try {
+        val target = workspaceTarget()
+        managementResult(hub.agentFacade().deleteSavedWorkflow(name, target?.first, target?.second))
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        hub.log.warn("automationsport.wfDelete", e.message?.take(120))
+        null
+    }
+
+    override suspend fun renameSavedWorkflow(name: String, newDescription: String, whenToUse: String?): AutomationsPort.ManagementResult? = try {
+        val target = workspaceTarget()
+        managementResult(hub.agentFacade().updateSavedWorkflowMeta(name, newDescription, whenToUse, null, target?.first, target?.second))
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        hub.log.warn("automationsport.wfRename", e.message?.take(120))
+        null
+    }
+
+    override suspend fun moveSavedWorkflow(
+        name: String,
+        targetWorkspacePath: String,
+        targetWorkspaceIdentity: String?,
+    ): AutomationsPort.ManagementResult? = try {
+        managementResult(hub.agentFacade().moveSavedWorkflow(name, targetWorkspacePath, targetWorkspaceIdentity))
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        hub.log.warn("automationsport.wfMove", e.message?.take(120))
+        null
+    }
 }
+
 
 /**
  * J2-target: the automation write request — ZCodeAutomationCreateParams / UpdateParams

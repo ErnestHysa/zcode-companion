@@ -436,6 +436,7 @@ fun TaskListScreen(
                         workflowTasks = state.pinned + state.groups.flatMap { it.tasks },
                         onStartWorkflow = onStartWorkflow,
                         connected = state.phase == ConnectionPhase.CONNECTED,
+                        workspaces = workspaces,
                     )
                 }
             }

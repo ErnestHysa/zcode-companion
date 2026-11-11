@@ -246,4 +246,16 @@
     <string name="workspace_manager_rename_save">Save</string>
     <string name="workspace_manager_up">Move up</string>
     <string name="workspace_manager_down">Move down</string>
+    <!-- G42-P23 (vc52 Phase 12): the workflow management verbs (Delete / Rename / Move-to-project) -->
+    <string name="workflow_manage_a11y">Manage workflow</string>
+    <string name="workflow_rename_action">Rename</string>
+    <string name="workflow_move_action">Move to project…</string>
+    <string name="workflow_delete_action">Delete</string>
+    <string name="workflow_delete_title">Delete %1$s?</string>
+    <string name="workflow_delete_body">The workflow file %1$s is removed from disk. This cannot be undone.</string>
+    <string name="workflow_rename_title">Edit %1$s</string>
+    <string name="workflow_move_title">Move %1$s to…</string>
+    <string name="workflow_move_none">No other workspace is available to receive this workflow.</string>
+    <string name="workflow_management_unavailable">The management request could not be sent.</string>
+    <string name="workflow_management_refused">The desktop refused: %1$s</string>
 </resources>

@@ -162,4 +162,18 @@ interface AutomationsPort {
 
     /** `getSavedWorkflow` — the script + meta for the detail sheet; null = unavailable / not found. */
     suspend fun savedWorkflow(name: String, scope: String?): com.zcode.android.domain.model.SavedWorkflow? = null
+
+    // ---------------------------------------------------------------- G42-P23 (vc52 Phase 12): management verbs
+    // The desktop's workflows/updateMeta|delete|move — Delete / Rename / Move-to-project
+    // on the hub's rows. Result carries the wire's {ok, reason?} verbatim; null = the
+    // transport refused (typed fault surfaced by the caller's error face).
+
+    data class ManagementResult(val ok: Boolean, val reason: String?)
+
+    suspend fun deleteSavedWorkflow(name: String): ManagementResult? = null
+
+    suspend fun renameSavedWorkflow(name: String, newDescription: String, whenToUse: String? = null): ManagementResult? = null
+
+    /** Move-to-project: the target workspace rides the wire's workspace base. */
+    suspend fun moveSavedWorkflow(name: String, targetWorkspacePath: String, targetWorkspaceIdentity: String? = null): ManagementResult? = null
 }

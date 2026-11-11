@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
 import com.zcode.android.domain.ids.WorkspaceIdentityKey
@@ -54,7 +55,13 @@ class WorkflowsHubUiTest {
         createdAtMs = updated, updatedAtMs = updated, spentTokens = 1, parentSessionId = null, cwd = null,
     )
 
-    private fun port(list: SavedWorkflowList?, runs: List<SavedWorkflowRun>?) = object : AutomationsPort {
+    private val management = mutableListOf<String>()
+
+    private fun port(
+        list: SavedWorkflowList?,
+        runs: List<SavedWorkflowRun>?,
+        managementOutcome: AutomationsPort.ManagementResult? = AutomationsPort.ManagementResult(true, null),
+    ) = object : AutomationsPort {
         override suspend fun lists() = AutomationsPort.Lists(emptyList(), emptyList(), null)
         override suspend fun create(workspaceKey: String, write: AutomationsPort.AutomationWrite) = false
         override suspend fun update(automationId: String, write: AutomationsPort.AutomationWrite) = false
@@ -63,13 +70,37 @@ class WorkflowsHubUiTest {
         override suspend fun runNow(automationId: String) = false
         override suspend fun savedWorkflows() = list
         override suspend fun savedWorkflowRuns(name: String?, limit: Int) = runs
+        // ---- G42-P23 ----
+        override suspend fun deleteSavedWorkflow(name: String): AutomationsPort.ManagementResult? {
+            management += "delete:$name"
+            return managementOutcome
+        }
+        override suspend fun renameSavedWorkflow(name: String, newDescription: String, whenToUse: String?): AutomationsPort.ManagementResult? {
+            management += "rename:$name:$newDescription"
+            return managementOutcome
+        }
+        override suspend fun moveSavedWorkflow(name: String, targetWorkspacePath: String, targetWorkspaceIdentity: String?): AutomationsPort.ManagementResult? {
+            management += "move:$name:${targetWorkspacePath}"
+            return managementOutcome
+        }
     }
 
-    private fun setContent(list: SavedWorkflowList?, runs: List<SavedWorkflowRun>? = emptyList(), tasks: List<Task> = listOf(task("t1", "Fix auth"))) {
-        started.clear()
+    private fun setContent(
+        list: SavedWorkflowList?,
+        runs: List<SavedWorkflowRun>? = emptyList(),
+        tasks: List<Task> = listOf(task("t1", "Fix auth")),
+        managementOutcome: AutomationsPort.ManagementResult? = AutomationsPort.ManagementResult(true, null),
+        workspaces: List<com.zcode.android.domain.model.WorkspaceOption> = emptyList(),
+    ) {
+        started.clear(); management.clear()
         rule.setContent {
             ZCodeTheme {
-                WorkflowsHub(port = port(list, runs), tasks = tasks, onStartWorkflow = { tid, name, scope, args -> started += "$tid:$name:$scope:$args" })
+                WorkflowsHub(
+                    port = port(list, runs, managementOutcome),
+                    tasks = tasks,
+                    onStartWorkflow = { tid, name, scope, args -> started += "$tid:$name:$scope:$args" },
+                    workspaces = workspaces,
+                )
             }
         }
         rule.waitForIdle()
@@ -122,5 +153,85 @@ class WorkflowsHubUiTest {
         rule.onNodeWithTag("workflow_run_lint-all").performClick(); rule.waitForIdle()
         rule.onNodeWithTag("workflow_no_tasks").assertIsDisplayed()
         rule.onNodeWithTag("workflow_start_confirm").assertIsNotEnabled()
+    }
+
+    // ---- G42-P23 (vc52 Phase 12): the management verbs ----
+
+    private fun openManageMenu(name: String) {
+        rule.onNodeWithTag("workflow_manage_$name").performClick()
+        rule.waitForIdle()
+    }
+
+    @Test
+    fun `delete confirms then fires the verb and the refused reason surfaces`() {
+        val list = SavedWorkflowList(listOf(wf("release-notes")), emptyList(), "/ws")
+        setContent(list, workspaces = listOf(com.zcode.android.domain.model.WorkspaceOption("/ws-two", "Second WS", null)))
+        openManageMenu("release-notes")
+        rule.onNodeWithTag("workflow_menu_delete").performClick()
+        rule.waitForIdle()
+        // §20.2: Delete CONFIRMS first.
+        org.junit.Assert.assertTrue("Delete CONFIRMS first", management.isEmpty())
+        rule.onNodeWithTag("workflow_delete_confirm").performClick()
+        rule.waitForIdle()
+        assertEquals(listOf("delete:release-notes"), management)
+    }
+
+    @Test
+    fun `rename saves the new description through updateMeta`() {
+        val list = SavedWorkflowList(listOf(wf("lint-all")), emptyList(), "/ws")
+        setContent(list)
+        openManageMenu("lint-all")
+        rule.onNodeWithTag("workflow_menu_rename").performClick()
+        rule.waitForIdle()
+        // The field seeds with the workflow's CURRENT description — clear it first
+        // (backspaces; the recorded IME pattern), then type the new one.
+        // The field seeds with the workflow's CURRENT description — REPLACE it via
+        // the semantics' SetText action (performTextReplacement replaces the whole
+        // editable text where supported; fall back to selecting-all via key events
+        // is not available in this API).
+        rule.onNodeWithTag("workflow_rename_field").performTextReplacement("Lint every module")
+        rule.onNodeWithTag("workflow_rename_save").performClick()
+        rule.waitForIdle()
+        assertEquals(listOf("rename:lint-all:Lint every module"), management)
+    }
+
+    @Test
+    fun `move lists the received workspaces and fires with the target key`() {
+        val list = SavedWorkflowList(listOf(wf("deploy")), emptyList(), "/ws")
+        setContent(
+            list,
+            workspaces = listOf(
+                com.zcode.android.domain.model.WorkspaceOption("/ws-two", "Second WS", null),
+                com.zcode.android.domain.model.WorkspaceOption("/ws-three", "Third WS", null),
+            ),
+        )
+        openManageMenu("deploy")
+        rule.onNodeWithTag("workflow_menu_move").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("workflow_move_target_/ws-two").performClick()
+        rule.waitForIdle()
+        assertEquals(listOf("move:deploy:/ws-two"), management)
+    }
+
+    @Test
+    fun `a refused management outcome renders the typed reason inline`() {
+        val list = SavedWorkflowList(listOf(wf("release-notes")), emptyList(), "/ws")
+        setContent(list, managementOutcome = AutomationsPort.ManagementResult(false, "not_found"))
+        openManageMenu("release-notes")
+        rule.onNodeWithTag("workflow_menu_delete").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("workflow_delete_confirm").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("workflow_management_error").assertIsDisplayed()
+        rule.onNodeWithText("The desktop refused: not_found").assertExists()
+    }
+
+    @Test
+    fun `move hides without workspaces (the action disables in the menu)`() {
+        val list = SavedWorkflowList(listOf(wf("deploy")), emptyList(), "/ws")
+        setContent(list, workspaces = emptyList())
+        openManageMenu("deploy")
+        rule.onNodeWithTag("workflow_menu_move").assertIsNotEnabled()
+        rule.onNodeWithTag("workflow_menu_delete").assertIsEnabled()
     }
 }

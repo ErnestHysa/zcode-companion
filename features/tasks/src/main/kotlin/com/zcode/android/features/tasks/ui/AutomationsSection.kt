@@ -74,6 +74,8 @@ fun AutomationsSection(
     onStartWorkflow: ((taskId: String, name: String, scope: String?, args: Map<String, String>) -> Unit)? = null,
     /** Connect-race: the hub's CONNECTED truth — a flip to true re-runs the load. */
     connected: Boolean = true,
+    /** G42-P23 (vc52 Phase 12): the received workspaces for the hub's Move-to-project. */
+    workspaces: List<com.zcode.android.domain.model.WorkspaceOption> = emptyList(),
 ) {
     var loading by remember { mutableStateOf(true) }
     var lists by remember { mutableStateOf<AutomationsPort.Lists?>(null) }
@@ -209,6 +211,7 @@ fun AutomationsSection(
                 onStartWorkflow = start,
                 reloadKey = lists,
                 connected = connected,
+                workspaces = workspaces,
             )
         }
         lists?.offPeak?.takeIf { it.isNotEmpty() }?.let { peaks ->
