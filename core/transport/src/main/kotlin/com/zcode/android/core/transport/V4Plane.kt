@@ -1865,6 +1865,25 @@ internal class ChannelV4Plane(
         }
     }
 
+    /**
+     * G60 (vc52 Phase 12): the per-task token usage (`getTaskTokenUsage`, the
+     * `v4/conversation/usage` read — the per-session usage the pass-24 upgrade
+     * left open). Null = the host refused/unavailable (typed fault surfaced by the
+     * caller's error face, never a silent 0).
+     */
+    suspend fun getTaskTokenUsage(sessionId: String): JsonObject? {
+        val target = host.workspaceTarget()
+        val params = buildJsonObject {
+            put("sessionId", JsonPrimitive(sessionId))
+            target?.first?.let { put("workspacePath", JsonPrimitive(it)) }
+            target?.second?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+        }
+        return when (val raw = v4Call("getTaskTokenUsage", RpcValue.Obj(params))) {
+            is RpcValue.Obj -> raw.json as? JsonObject
+            else -> null
+        }
+    }
+
     /** The hello's connectionId, stamped by [helloAndInitialize]. */
     @Volatile var connectionId: String? = null
         private set

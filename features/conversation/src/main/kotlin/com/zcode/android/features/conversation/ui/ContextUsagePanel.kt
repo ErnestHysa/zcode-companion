@@ -15,9 +15,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -134,4 +136,94 @@ private fun breakdownSourceLabel(source: String): String = when (source) {
     "mcp_tool_schemas" -> stringResource(R.string.usage_breakdown_mcp_tool_schemas)
     // Unknown source (INV-8): the raw wire string IS the honest label.
     else -> source
+}
+
+/**
+ * G60 (vc52 Phase 12): the per-task TOKEN usage section (the desktop tokenDebug
+ * plane's totals) — the provider is fetched ONCE per sheet open; null provider /
+ * null result renders NOTHING (honest absent face). The rows show the token
+ * split (input/output/reasoning/cache read/creation) + the model request/error
+ * counts — the usage picture the pass-24 upgrade left open.
+ */
+@Composable
+fun TaskTokenUsageSection(
+    provider: (suspend () -> com.zcode.android.domain.model.TaskTokenUsage?)?,
+    modifier: Modifier = Modifier,
+) {
+    if (provider == null) return
+    var usage by remember { mutableStateOf<com.zcode.android.domain.model.TaskTokenUsage?>(null) }
+    var loading by remember { mutableStateOf(true) }
+    LaunchedEffect(provider) {
+        usage = runCatching { provider() }.getOrNull()
+        loading = false
+    }
+    val u = usage ?: return
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 2.dp)
+            .testTag("task_usage_panel"),
+    ) {
+        Column(Modifier.animateCollapse().padding(horizontal = 10.dp, vertical = 6.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .minRowTouchTarget()
+                    .clickable(role = Role.Button) { expanded = !expanded }
+                    .testTag("task_usage_toggle"),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.task_usage_total, u.totalTokens),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f).testTag("task_usage_label"),
+                )
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (loading) {
+                Text(
+                    stringResource(R.string.task_usage_loading),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("task_usage_loading"),
+                )
+            }
+            if (expanded) {
+                TaskUsageRow("in", u.inputTokens)
+                TaskUsageRow("out", u.outputTokens)
+                TaskUsageRow("reasoning", u.reasoningTokens)
+                TaskUsageRow("cache read", u.cacheReadTokens)
+                TaskUsageRow("cache write", u.cacheCreationTokens)
+                Text(
+                    stringResource(R.string.task_usage_requests, u.modelRequestCount, u.modelErrorCount),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (u.modelErrorCount > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 2.dp)
+                        .testTag("task_usage_requests"),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TaskUsageRow(label: String, tokens: Long) {
+    Text(
+        text = "$label · $tokens",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 1.dp)
+            .testTag("task_usage_row_$label"),
+    )
 }

@@ -67,6 +67,12 @@ fun SessionContextSheet(
      * face is structurally impossible).
      */
     scrollState: androidx.compose.foundation.ScrollState = rememberScrollState(),
+    /**
+     * G60 (vc52 Phase 12): the per-task token usage read (getTaskTokenUsage) —
+     * fetched when the sheet opens; null provider or null result renders NOTHING
+     * (the honest absent face; never a silent 0).
+     */
+    taskUsageProvider: (suspend () -> com.zcode.android.domain.model.TaskTokenUsage?)? = null,
 ) {
     ZCodeModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier.testTag("session_context_sheet")) {
         // F-27-C (pass 31/33, the bottom-edge clip family): the sheet is edge-to-edge —
@@ -94,6 +100,9 @@ fun SessionContextSheet(
                 usage = sessionState?.usage,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
             )
+            // G60: the per-task TOKEN usage (the desktop tokenDebug plane's totals —
+            // input/output/reasoning/cache + model request/error counts).
+            TaskTokenUsageSection(taskUsageProvider)
             // I2.3: the session summary capsule (duration · goal iteration · background
             // tasks · subagents) — nothing renders for an empty session.
             SessionSummaryPanel(

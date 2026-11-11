@@ -236,6 +236,8 @@ class MockZCode(
         var skillReferenceCatalog: JsonObject? = null
         /** Scriptable MCP server statuses (listMcpServerStatuses result; null = typed fault). */
         var mcpServerStatuses: JsonObject? = null
+        /** G60 (vc52 Phase 12): the per-task token usage fixture (null = typed fault). */
+        var taskTokenUsage: JsonObject? = null
 
         // ---------------- Phase 4 coding-plan quota plane (GAP-3/4; ADR-020, v4-wire.md §13) ----------------
         /** Scriptable entitlement snapshot (usage-stats getEntitlementSnapshot result; null = typed fault). */
@@ -2617,7 +2619,8 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     }))
                 }
             }
-            "listSavedWorkflows" -> scriptableObject(id, script.savedWorkflows, "listSavedWorkflows")
+                            "getTaskTokenUsage" -> scriptableObject(id, script.taskTokenUsage, "getTaskTokenUsage")
+                "listSavedWorkflows" -> scriptableObject(id, script.savedWorkflows, "listSavedWorkflows")
             "getSavedWorkflow" -> {
                 val name = argAsObject(arg)?.strOrNull("name")
                 val wf = (script.savedWorkflows?.get("workflows") as? JsonArray)?.firstOrNull { (it as? JsonObject)?.strOrNull("name") == name } as? JsonObject

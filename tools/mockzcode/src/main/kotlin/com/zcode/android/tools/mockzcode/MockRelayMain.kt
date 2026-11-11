@@ -780,6 +780,20 @@ fun main() {
         mock.script.fileText["/synthetic/.zcode/cli/memories/projects/synthetic-ws/memory/release-prefs.md"] =
             "Release preferences: changelog first, then tag; never push without Ernest."
     }
+    // G60 (vc52 Phase 12): the per-task token usage (MOCK_USAGE rides the same arm).
+    if (System.getenv("MOCK_USAGE") != null) {
+        mock.script.taskTokenUsage = JsonObject(mapOf(
+            "sessionId" to JsonPrimitive("synth-task-1"),
+            "totalTokens" to JsonPrimitive(184_320),
+            "inputTokens" to JsonPrimitive(151_000),
+            "outputTokens" to JsonPrimitive(21_000),
+            "reasoningTokens" to JsonPrimitive(6_400),
+            "cacheCreationTokens" to JsonPrimitive(2_800),
+            "cacheReadTokens" to JsonPrimitive(48_600),
+            "modelRequestCount" to JsonPrimitive(37),
+            "modelErrorCount" to JsonPrimitive(1),
+        ))
+    }
     // Phase 4C (C2) rig leg: the slash panel's extra sections — one custom command,
     // one skill, one agent (synthetic, INV-15/16).
     mock.script.commandsList = JsonObject(mapOf(

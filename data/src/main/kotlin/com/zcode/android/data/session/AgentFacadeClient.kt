@@ -148,6 +148,13 @@ class AgentFacadeClient(private val transport: AppTransport) {
             ?: throw TransportFailure(ErrorMapping.protocolFault("zcode-task.getModelTrajectory result not an object"))
     }
 
+    /**
+     * G60 (vc52 Phase 12): the per-task token usage — the `getTaskTokenUsage`
+     * V4 read decoded typed; null = the host refused/unavailable.
+     */
+    suspend fun taskTokenUsage(taskId: String): com.zcode.android.domain.model.TaskTokenUsage? =
+        transport.getTaskTokenUsage(taskId)?.let { com.zcode.android.domain.model.TaskTokenUsage.decode(it) }
+
     /** `readSessionMessages {sessionId, afterMessageId?, limit}` → messages[] (the host unwraps `.messages`). */
     suspend fun sessionMessages(sessionId: String, afterMessageId: String? = null, limit: Int = 200, workspacePath: String? = null, workspaceIdentity: String? = null): List<JsonObject> =
         callArray("readSessionMessages", base(sessionId, workspacePath, workspaceIdentity).plus {

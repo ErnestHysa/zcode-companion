@@ -186,6 +186,8 @@ fun ConversationScreen(
     onDeleteQueueItem: ((queueItemId: String) -> Unit)? = null,
     /** G4/AC6: the local default (settings.zcodeInteractionBehavior) — seeds the chips while the wire's followupMode is unset. */
     defaultFollowupMode: String? = null,
+    /** G60 (vc52 Phase 12): the per-task token usage read for the context sheet. */
+    taskUsageProvider: (suspend () -> com.zcode.android.domain.model.TaskTokenUsage?)? = null,
     // ---- Phase 5B (A3.12 + A3.13): plans viewer + trajectory/search ----
     plans: List<com.zcode.android.domain.model.ConversationPlan>? = null,
     showTrajectory: Boolean = false,
@@ -326,6 +328,7 @@ fun ConversationScreen(
                 onResumeGoal = onResumeGoal,
                 defaultFollowupMode = defaultFollowupMode,
                 onSetFollowupMode = onSetFollowupMode,
+                taskUsageProvider = taskUsageProvider,
             )
             // G5: the find bar — query + match count + prev/next jump + close.
             if (findOpen) {
@@ -692,6 +695,8 @@ private fun Header(
     // ---- G59 (vc52 Phase 12): the compact followup switcher ----
     defaultFollowupMode: String? = null,
     onSetFollowupMode: ((String) -> Unit)? = null,
+    /** G60 (vc52 Phase 12): the per-task token usage read for the context sheet. */
+    taskUsageProvider: (suspend () -> com.zcode.android.domain.model.TaskTokenUsage?)? = null,
 ) {
     // F-CHAT-FOCUS v2 (field 2026-10-27, Ernest on vc48): six stacked one-liner cards +
     // a five-chip rail — even ALL collapsed they stood ~245dp between the user and the
@@ -806,6 +811,7 @@ private fun Header(
     if (contextSheet) {
         SessionContextSheet(
             sessionState = state.sessionState,
+            taskUsageProvider = taskUsageProvider,
             rows = state.rows,
             workflowRuns = workflowRuns,
             plans = plans,

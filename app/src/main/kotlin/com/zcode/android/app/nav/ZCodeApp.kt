@@ -978,6 +978,10 @@ private fun ConversationRoute(
         onSetFollowupMode = vm::setFollowupMode,
         onDeleteQueueItem = vm::deleteQueueItem,
         defaultFollowupMode = prefs.interactionBehavior,
+        // G60 (vc52 Phase 12): the per-task token usage read for the context sheet.
+        taskUsageProvider = {
+            runCatching { container.hub.agentFacade().taskTokenUsage(state.task?.taskId.orEmpty()) }.getOrNull()
+        },
         // G36 (vc51): the presentation mode gates the timeline's tool detail.
         officeMode = prefs.interfaceMode == com.zcode.android.domain.model.AppPreferences.InterfaceMode.OFFICE,
         plans = plans,
