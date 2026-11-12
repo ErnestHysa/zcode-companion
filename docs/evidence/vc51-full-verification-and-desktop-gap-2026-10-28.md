@@ -10783,7 +10783,7 @@ These are **new defects in the same plane**, not failed fixes. Treat them as suc
 | 10 | Conversation data, rendering & feedback | 10 | 0 | 1 | 2 | 7 | Medium | ☑ **Done 2026-11-10** — all 10 rows (GAP-21-A carries G65's trigger wiring; F-37-D carried by RIG-P3; N-BE-2/N-BH-2 one row-pair; N-BI-1/N-BI-2 one row-pair; N-BI-3/4/5 one row-triple; N-BD-3/N-BC-2/N-BE-4/N-BE-1 one row-quad); commits `859f8533`→`5598d45b`+`aae1c334`+…; exit gate PASSED; receipt "Phase 10 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-10" appended at file end |
 | 11 | Parity: protocol & execution planes | 11 | 0 | 0 | 9 | 2 | High | ☑ **Done 2026-11-11** — all 11 rows (G48+G51 one shared mechanism pair; G42-P13+G44-P13 dated boundary; GAP-17/J3 dated evolution decision; G54 dated boundary + the shipped G27 slice); commits `161c8d53`→`3869bec7` (17 fix/test + 5 tools/mockzcode, incl. the two rig-caught follow-ups ef66d2b7/a4118319); exit gate PASSED; receipt "Phase 11 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-11" appended at file end |
 | 12 | Parity: authoring & management planes | 14 | 0 | 0 | 3 | 11 | Medium | ☑ **Done 2026-11-11** — all 14 rows (G75 + G76 + G42-P23 shaped by the fresh-asar evidence, dated in the receipt); commits `ed15a0cf`→`cfa33caf` (19, incl. 3 rig-caught follow-ups 3ee92e8d/90030b78/cfa33caf); exit gate PASSED; receipt "Phase 12 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-11" appended at file end |
-| 13 | Parity: form factor, updates & polish | 13 | 0 | 0 | 0 | 13 | Low | ☐ Open |
+| 13 | Parity: form factor, updates & polish | 13 | 0 | 0 | 0 | 13 | Low | ☑ **Done 2026-11-12** — all 13 rows (G49+G50 one shared send-trio mechanism; G57 dated boundary + the no-dead-cards slice); commits `20bd89b7`→`f7c0d753` (14, incl. the ThemeShapes pin-coupled fix); exit gate PASSED; receipt "Phase 13 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-12" appended at file end |
 | 14 | Rig fidelity, WATCH items & pin backlog | 8 | 0 | 0 | 0 | 8 | Low | ☐ Open |
 | | **Total** | **85** | **2** | **11** | **26** | **46** | | |
 
@@ -11561,19 +11561,19 @@ G69 → G49 → G50 → G43-P24 → N-BD-5 → G56 → G57 → G79 → G80.**
 
 ### Sub-phase 13A — form factor and availability
 
-- [ ] **G62 (P4) — the desktop's keep-awake is invisible (absorbs G45-P24).**
+- [x] **G62 (P4) — the desktop's keep-awake is invisible (absorbs G45-P24).**
   `keepAwakeWhileRunning` defaults OFF and the Mac may sleep mid-task; the phone's own automation
   History warns "Scheduled tasks only run while your computer is awake" while the phone cannot
   observe the setting. **Fix:** an offline-state hint ("Is your desktop asleep? Turn on Keep awake
   while running in ZCode → Settings") — no protocol change. **Accept:** the hint appears in the
   offline/degraded state; a copy pin.
-- [ ] **G61 (P4) — no adaptive large-screen layout.**
+- [x] **G61 (P4) — no adaptive large-screen layout.**
   At 1280 dp the task list centres a column while the automations hub runs edge-to-edge; the
   conversation chrome, approval button and composer stretch full width; no list-detail pane for
   tablets/foldables/DeX. **Fix:** a list-detail workbench at ≥600 dp (task list + conversation),
   with the phone layout unchanged below the breakpoint. **Accept:** a 1280 dp leg renders the two
   panes; the 411 dp layout is unchanged; pins.
-- [ ] **G63 (P4) — off-peak run outcomes never notify (plus the notification-sound parity small).**
+- [x] **G63 (P4) — off-peak run outcomes never notify (plus the notification-sound parity small).**
   The desktop notifies both off-peak outcomes; the phone's task-terminal diff never sees off-peak
   runs, and the desktop's per-notification sound parity is unported. **Fix:** diff
   `off-peak-task.list` on reconnect and post on the task-status channel; add the sound setting if
@@ -11581,67 +11581,78 @@ G69 → G49 → G50 → G43-P24 → N-BD-5 → G56 → G57 → G79 → G80.**
   on reconnect; no duplicates; the sound setting round-trips; pins.
 ### Sub-phase 13B — recovery and organisation
 
-- [ ] **G66 (P4) — the typed error card with recovery actions.**
+- [x] **G66 (P4) — the typed error card with recovery actions.**
   The desktop's chat error card carries Switch model, Model settings, Refresh quota, Sign in
   again, Retry captcha, Try again later, Retry, Copy TraceID, Copy full details, Report issue (and
   "No model available" variants); the phone's turn failures carry no typed recovery. **Fix:** the
   mobile-reachable subset (Switch model, Retry, Copy TraceID, Copy details, Report issue) on a
   typed card; provider sign-in stays desktop. **Accept:** a scripted error renders the actions;
   each fires; pins.
-- [ ] **G69 (P4) — task-home organisation.**
+- [x] **G69 (P4) — task-home organisation.**
   The desktop's own mobile companion offers organize by workspace/timeline, sort created/updated,
   collapse all, workspace kind badges, and mark-read-on-open; the phone has per-workspace collapse
   only. **Fix:** add organize-by, sort, collapse-all and mark-read-on-open. **Accept:** all four
   behaviours receipted; pins.
-- [ ] **G49 (P4) — per-send `requestedDelivery`.**
+- [x] **G49 (P4) — per-send `requestedDelivery`.**
   The phone's CommandCoordinator supports `startNow|queue|guide` but no feature/UI sender exists;
   the desktop's sendText allows a per-message delivery request. **Fix:** a send-now/queue/guide
   choice on the composer (the mobile story is the queue override). **Accept:** the choice rides the
   wire key; the resulting delivery matches; a pin.
-- [ ] **G50 (P4) — the held-queue disposition choice.**
+- [x] **G50 (P4) — the held-queue disposition choice.**
   `heldQueueDisposition` (`clearQueueAndSend|keepQueueAndSend`) + `expectedHeldQueueItemIds` are
   plumbed to the port but no UI caller sets them, so the send-into-held-queue choice never
   surfaces. **Fix:** a dialog on send-into-held-queue (clear vs keep) with the CAS ids.
   **Accept:** both choices fire the right keys + ids; a pin.
 ### Sub-phase 13C — updates, rendering and vocabularies
 
-- [ ] **G43-P24 (P4) — update-plane niceties (absorbs the "What's new" small).**
+- [x] **G43-P24 (P4) — update-plane niceties (absorbs the "What's new" small).**
   The desktop dialog ships release notes + date + skipVersion + autoDownloadAndInstall +
   cancelDownload + download progress + a restart confirm + a forceUpdate blocking flow and
   post-update release notes; the phone's in-app update (F-UPDATE2) shows the mechanics only.
   **Fix:** a "What's new" row + skip-version, on top of the shipped G34 notes display.
   **Accept:** after an update the notes sheet renders; skip-version persists and suppresses the
   prompt for that version; pins.
-- [ ] **N-BD-5 (P4) — the task-row provider badge.**
+- [x] **N-BD-5 (P4) — the task-row provider badge.**
   The bootstrap task entry carries an optional `provider` field the phone does not decode; the
   desktop shows a per-task model/provider chip. **Fix:** decode and render a provider/model badge
   on the task row. **Accept:** a seeded task with a provider renders the badge; a decode pin.
-- [ ] **G56 (P4) — print to PDF.**
+- [x] **G56 (P4) — print to PDF.**
   The desktop exports pages to PDF (`printPageToPdf`); the phone's share ships text + Markdown
   only. **Fix:** the Android Printing framework for the transcript (share-sheet "Print").
   **Accept:** the print sheet opens and produces a PDF with the transcript; a pin.
-- [ ] **G57 (P4) — artifact preview depth (PDF/Office/PPTX).**
+- [x] **G57 (P4) — artifact preview depth (PDF/Office/PPTX).**
   The desktop embeds first-party viewers: PDF (`pdfViewerSource` + worker), Office
   (`officePreview`, xlsx/legacy-doc wasm, 1.1 MB docx wasm), PPTX (`pptxPreviewData` +
   `pptxReferenceNavigation`). The phone's G28 zoom/PDF is the first slice. **Fix:** a dated
   boundary or the next slice (the honest mobile order is PDF → PPTX images → Office read-only);
   each wasm viewer is a size decision. **Accept:** the decision + any slice pinned; no dead
   preview cards.
-- [ ] **G79 (P4) — the desktop's fault vocabulary.**
+- [x] **G79 (P4) — the desktop's fault vocabulary.**
   99 `fault.`-prefixed literals (54 real wire codes) cluster in the planes the phone renders raw;
   the phone can phrase none of them. **Fix:** a typed fault-code → human-copy table (with the raw
   code kept for support), at least for the codes the phone can receive. **Accept:** an unknown
   fault renders mapped copy + the code; a table pin covers every code in the phone's receive
   paths.
-- [ ] **G80 (P4) — the kernel's tool-kind taxonomy.**
+- [x] **G80 (P4) — the kernel's tool-kind taxonomy.**
   The desktop's kernel ships a name-keyed 14-kind tool map over 31 tool names; the phone buckets
   tool rows with 5 substring checks. **Fix:** a name-keyed map with the same 14 kinds and a safe
   unknown fallback (it improves row grouping and the tool cards). **Accept:** every one of the 31
   names maps to the right kind; unknown names fall back gracefully; a pin with the full name list.
 
-**Phase 13 exit gate: ☐** a tablet/DeX leg (1280 dp), an update leg (notes + skip-version), an
-off-peak completion leg, a typed-error leg, task-home organisation, print, and a fault/tool-name
-render leg; 0 FATALs/0 ANRs; suite green.
+**Phase 13 exit gate: ☑ PASSED 2026-11-12** — the 640 dp workbench leg (five pane tags + the
+in-place detail swap; the 411 dp phone layout unchanged — the whole pre-resize walk ran at
+phone size), the keep-awake hint leg (relay kill → the hint verbatim; relay restart → Connected
++ the hint gone), the task-home organisation leg (all six menu items render; organize-by fires
+live), the print leg (the share sheet's Print (PDF) → the SYSTEM PRINT SPOOLER, ISO A4, 1/1, a
+real print-job PDF written), the tool-name/fault render legs at pin coverage (the seeded
+conversation carries no kernel tool rows and the rig serves no release fixture or known
+fault.* code — the render decisions are compose-pin-covered per row; the tool-row/release
+fixtures are Phase-14 RIG debts); 0 FATALs / 0 ANRs across the whole session; suite
+**2291/0/0/0 across 17 modules** (2181 → +110 = exactly the phase's pins, every module
+emitting XML, no task failures, no test-compile blind spot).
+
+---
+
 
 ---
 
@@ -12626,3 +12637,116 @@ Continue). The corrected, committed tool:
 - **Live-proven on zcode-a16**: `pm clear` → `PAIRING_OK: device Connected` on attempt 1
   (`c60be85b`'s message carries the receipt). If a run fails: restart the relay (the
   consumed link's re-present goes stale-QR) and rerun — never switch to manual.
+
+---
+
+# Phase 13 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-12 (APPENDED; not part of the audit, the vc51 roadmap, Part 0, or the vc52 roadmap body)
+
+Scope: vc52 Phase 13 — Parity: form factor, updates & polish — ALL 13 rows (G62, G61, G63, G66,
+G69, G49, G50, G43-P24, N-BD-5, G56, G57, G79, G80). Branch `fix/vc52`; one finding ≥ one commit
+(G49+G50 share ONE mechanism — the send trio — per rule 11, both IDs named); every pin RED at
+the pre-fix commit (verified by the pre-fix compile failures recorded in-session); nothing
+pushed.
+
+### Fix commits (one finding ≥ one commit, `fix(<ID>): <mechanism>`)
+
+| Row | Commit | Mechanism closed | Pins (RED evidence) |
+| --- | --- | --- | --- |
+| G62 (P4) | `20bd89b7` | The keep-awake hint renders in the offline/degraded family (RECONNECTING/DEGRADED/FAILED — the §14.4.2 stale phases) and never when connected: `keepAwakeHintVisibleFor` gate + en/zh copy on the task list; copy-only, no protocol change | OfflineKeepAwakeHintTest ×6 (hint present in the three stale phases; absent when Connected; the pure gate table; the en+zh copy pin) |
+| G63 (P4) | `d635109e` | Idle-time outcomes notify: `StoreDiffs.offPeakTerminalTransitions` (first emission seeds; completed/failed fire ONCE; re-lists never duplicate; cancelled/unknown stay quiet) + `OffPeakOutcomeNotifier` (gate-aware baseline — a consumed completion never resurrects on unmute; provider faults are logged no-ops) wired at the CONNECTED transition; `ViewerTools.offPeakTaskRowsAll` (the desktop's idle-time notifications are app-global). Sound parity: the SILENT twin channel (`task-status-silent` — API 26+ ignores post-hoc channel sound edits, so the mute is a routing decision) + `Policy.soundOn`; approvals/questions NEVER muted; `AppPreferences.notifySound` (proto field 23, default ON — an upgrade never silently loses its sound) + the Settings toggle | StoreDiffsOffPeakTest ×9, NotificationPlanSoundTest ×5, AppPreferencesNotifySoundRoundTripTest ×4 (rule 13: real serializer + raw field-23 + disk truth), OffPeakOutcomeNotifierTest ×6 |
+| G61 (P4) | `dd84dee7` | The list-detail workbench at ≥600 dp: `WorkbenchPolicy.useListDetail` (the Material Medium breakpoint; 411 dp phones unchanged — the gate is false below 599) + `WorkbenchScaffold` (list pane | divider | detail pane); a tap swaps the detail pane IN PLACE (no navigation); fork/subagent children swap the pane; Files/Git/Terminal stay full-screen. EXACTLY ONE live conversation VM per pane (`WorkbenchPaneController` tears the old VM down BEFORE creating the next — the F-33-A lesson; the holder rides the backstack-scoped `ConversationVmHolder`; the selection is rememberSaveable) | WorkbenchPolicyTest ×3 (the 600-dp-inclusive breakpoint incl. 411 false/1280 true; both panes + divider; the honest empty pane's affordance), WorkbenchPaneControllerTest ×4 (same-task idempotence; teardown-before-create ordering; close-then-fresh) |
+| G66 (P4) | `2af339b0` (+`e28a0a43` the ThemeShapes pin-coupled fix) | The typed error card: `ErrorRecoveryCard` renders the mobile-reachable subset under the raw error block — Retry (the row's OWN `actions.canRetry` + entityId, riding retryTurn), Switch model (raises a request the Header consumes — the SAME §10.3 picker), Copy TraceID / Copy details (the CopyIconButton feedback), Report issue (the raw error to the feedback form via the one-shot `pendingFeedbackPrefill` slot + `FeedbackFormDialog` prefillDescription; both conversation routes wire it). Forwards through TimelineBody→TimelineRow→ToolCard AND ToolGroupBlock — the F-27-B sweep covers the new params automatically | ErrorRecoveryCardTest ×7 (five actions render; each fires; canRetry=false hides Retry; null report hides Report issue; the exact clipboard payloads), TimelineCallbackWiringTest (the whole-file sweep holds) |
+| G69 (P4) | `7dcb7e4d` | Task-home organisation: `TasksUiState.organizeBy` (WORKSPACE \| TIMELINE — one flat most-recent-first group) + `sortBy` (CREATED \| UPDATED, threading into the group ordering), `TaskGroup.workspaceKind` (the wire's badge — raw value uppercased on the header chip; null = none), the six menu items, `WorkspaceCollapseState.collapseAll/expandAll` (one save), and mark-read-on-open (`vm.markReadOnOpen` BEFORE navigation — `setTaskUnread(false, expectedUnreadAt)` ONLY when `unreadAt` is set) | TasksOrganisationTest ×6 (defaults; CREATED vs UPDATED; TIMELINE flattening; the kind badge incl. kind-less; mark-read fires exactly for unread rows with the CAS expectation; collapse-all/expand-all persist), TaskOrganisationMenuUiTest ×4 (the items; both callbacks fire; the badge renders/absent — unmerged tree) |
+| G49+G50 (P4, shared mechanism) | `afd16700` | The send trio: G49's ONE-SHOT `requestedDelivery` ("startNow"\|"queue"\|"guide" — the composer delivery menu, armed-icon tint, clears after the send) and G50's `expectedHeldQueueItemIds` (the CHOICE dialog hands the queued ids the user SAW beside the disposition word) thread through ComposerBar→ConversationScreen→ConversationViewModel.send→ConversationPort.sendPrompt→Ports→coordinator. Nulls = the routing mode decides (byte-identical today) | CommandCoordinatorDeliveryKeyTest ×4 (verbatim keys for all three desktop values; unset omitted; the CAS ids as a JSON array, absent when unset), ConversationDeliveryOverrideTest ×3 (ONE-SHOT override — the second send rides routing; nulls without an override; the CHOICE dialog hands q-1/q-2) |
+| G43-P24 (P4) | `f7ab4b1e` | Update-plane niceties: skip-version (the banner action persists proto field 24; the banner composes the pure `UpdateSkipGate` — suppress for EXACTLY that release; `AppUpdateController.isVersionSkipped` gates the availability notification; skipping hides the PROMPT, not the fact — the state still resolves Available) + the What's-new sheet (the install handoff records the release through `onUpdateAccepted` — proto fields 25-28, installing supersedes a stale skip; ZCodeApp owes the one-time `WhatsNewDialog` when this build IS the recorded version; Settings → About gains the row, the honest empty face) | AppPreferencesUpdatePlaneRoundTripTest ×4 (rule 13: defaults; skip persist/clear; the record + shown flip; the disk-truth field-24 check), UpdatePlaneHooksTest ×4 (a skipped version never notifies but still resolves Available; unskipped notifies; the accept hook rides the release + notes; the gate is exact-version-only) |
+| N-BD-5 (P4) | `24df8f25` | The task-row provider badge: the bootstrap `provider` decodes (the parser's own contract documented it; the decode never read it) → the domain Task → TaskEntity + Room v5→v6 (`ALTER TABLE tasks ADD COLUMN provider TEXT`, additive/null-safe; schema 6.json) → both repository mappings → the TaskRow chip (raw value, weight-protected title row — the G29 squeeze lesson) | BootstrapParserProviderTest ×3 (decode; provider-less + the simplified test shape stay null), TaskProviderBadgeStoreTest ×3 (REAL Room per the GAP-A2 lesson: round-trip; provider-less null; a projection replace that omits provider CLEARS the stale badge — condition-based awaits, the Room flow's first emission is pre-invalidation), TaskProviderBadgeUiTest ×2 |
+| G56 (P4) | `843bcafc` | Print to PDF: the share sheet's PRINT mode — `TranscriptPrinter.paginate` (PURE, lossless: the pages join back to the exact transcript; whole lines) + `TranscriptPrintJob` (PrintDocumentAdapter → PdfDocument, mono A4 — the app's dark theme never bleeds into the print) | TranscriptPrintTest ×6 (lossless at 250 lines; the page cap; one page for short text; empty = one blank page; blank interior lines survive; the sheet renders + dispatches PRINT) |
+| G57 (P4, dated boundary) | `2bdbd83a` | DECISION (dated 2026-11-12): the phone KEEPS the system-viewer handoff for PDF/Office/PPTX (the Android-native equivalent — every preview card already downloads via the file channel + ACTION_VIEW with the exact MIME; G28 covers PDF zoom); the desktop's wasm viewers (xlsx/legacy-doc/docx/pptx engines, 1.1–6 MB payloads) stay desktop-side — bundle size + form factor; the honest mobile order PDF → PPTX images → Office read-only stays OPEN as the next slice. SLICE PINNED: no dead preview cards — a handoff with NO installed viewer (ActivityNotFoundException) degrades to the TYPED notice naming the file (en/zh) through the notifier, never the silent dead tap | ArtifactOpenFallbackTest ×4 (the classifier; other faults stay generic; the notice names the file en+zh; the kind words resolve for PDF/DOCX/PPTX) |
+| G79 (P4) | `1e0db339` | The fault vocabulary: `FaultVocabulary` (pure) extracts `fault.<code>` from the refusal detail + classifies the family; the channel-call refusal arm routes through `ErrorMapping.faultRefusal` — a KNOWN code builds a keyed AppError whose family copy names WHAT was refused and carries the RAW code (messageArgs) for support; unknown faults/non-fault details keep the generic face. Seven `UserMessageKey.FAULT_*` arms + en/zh copy at the core/ui boundary | FaultVocabularyTest ×12 (extraction incl. prefix/suffix shapes; the FULL per-code family table across all seven families; unknown codes never guessed; faultRefusal keyed with the raw code + the unknown detail kept), FaultFamilyCopyTest ×2 (every family copy en+zh carrying the code arg) |
+| G80 (P4) | `c1e07289` | The kernel's tool-kind taxonomy: `ToolKindTaxonomy` (pure) — the FULL name map (31 names + KillShell/KillBash aliases, ApplyPatch, the js/js_reset/js_add_node_module_dir family, web_search) → exact kind; kind → ToolCategory for the grouping (the scheduling scatter is DEAD — CronCreate/List/Update/ScheduleWakeup/Task* are task-control → OTHER, never beside Edit); ToolCard gains the kind subtitle ("Task control" for TaskUpdate; no subtitle outside the map) — 14 labels en/zh; the substring heuristic keeps ownership of unknown names (the G18 CUA contract unchanged) | ToolKindTaxonomyTest ×5 (the full 31-name list; the aliases; unknown null; the scatter fixed with the known families intact; the fallback + G18 contract), ToolKindSubtitleUiTest ×3 (TaskUpdate renders "Task control"; unknown renders none; the 14 labels resolve) |
+| pins (batch-owned updates) | `f7c0d753` | The schema-version pin owns v6 + the enum audit gains the What's-new free strings (the batch that changed the contract owns its pins) | MigrationHarnessTest + AppPreferencesInterfaceModeRoundTripTest green |
+| shape discipline | `e28a0a43` | The recovery card uses the theme's shape vocabulary (the ThemeShapesTest architecture pin caught the dp literal — the pin working as designed) | ThemeShapesTest green |
+
+### Suite reconciliation
+
+Pre-phase baseline at the Phase-12 HEAD (`8db1a177`): **2181/0/0/0** across 17 modules. Post-phase
+at `f7c0d753`: **2291/0/0/0** (2188 Android+JVM XML + 103 `:tools:mockzcode:test`) — **+110 = exactly
+the phase's pins** (7+24+7+7+10+7+8+8+6+4+14+8), 0 failures, 0 errors, 0 skipped, all 17 modules
+emitting test XML (16 in the Android/JVM sweep + mockzcode verified separately), the gradle
+task-failure list EMPTY at the gate (`BUILD SUCCESSFUL in 7m 58s`, 368 tasks). Two batch-owned
+pin updates were required by design (the schema-version pin now owns v6; the enum audit carries
+the two new free-string fields) and one architecture pin fired correctly mid-batch (ThemeShapes
+caught the recovery card's dp literal — fixed to the theme vocabulary).
+
+### Exit-gate rig leg — PASSED 2026-11-12 (fresh zcode-a16 cold boot, Android 16 / API 36, relay on 10.0.2.2:18100)
+
+Rig: debug APK `21feb99b386845ea…` (31,273,821 B) at the phase HEAD; `pm clear` → the committed
+`tools/rig/pair-relay.py` pairing — **PAIRING_OK attempt 1** (copy-link → paste → Continue →
+Connected, no human hands). Census: **0 app FATALs / 0 ANRs** across the whole session
+(logcat-d sweep, including the resize + print legs). Receipts, in drive order:
+
+1. **Phone size (411 dp) — the unchanged-layout control**: the whole first walk (app open →
+   Tasks → the organisation menu → all six G69 items rendered: Organize by workspace/timeline,
+   Sort by created/updated, Collapse all / Expand all) ran BEFORE any resize — the phone layout
+   is byte-identical to Phase-12's (no workbench tags at 411 dp, as the gate requires).
+2. **Organize-by fires live**: Organize-by-timeline tapped (the menu dismissed, the list
+   re-rendered, no crash) and Organize-by-workspace restored.
+3. **G61 workbench at 640 dp**: `wm size 1920x2340` (698 dp at the 440-density image — note the
+   a16's density is 440, so 1600px was 581 dp and correctly did NOT trigger; the breakpoint
+   behaves exactly as `useListDetail` pins) → **all five workbench tags render**
+   (`workbench_root/_list_pane/_divider/_detail_pane/_detail_empty`). Tapping the task row
+   swapped the detail pane IN PLACE: `workbench_detail_empty` gone, the session bar
+   ("MockBook · Connected · yolo · GLM-5.3-Flash · max · Context"), the seeded timeline
+   (AGENT/plan/table/code rows), and the composer (`composer_send`) all render INSIDE the pane
+   while `workbench_list_pane` keeps its space — no navigation happened (the Tasks route stayed
+   live beneath the pane).
+4. **G62 keep-awake hint leg**: `pkill -f MockRelayMainKt` → the Tasks screen degraded
+   ("Reconnecting…" + "Connection lost — reconnecting…") AND the hint rendered VERBATIM
+   ("Is your desktop asleep? Turn on Keep awake while running in ZCode → Settings.") at
+   `tasks_keep_awake_hint`; relay restart → **Connected** again and the hint GONE (0 matches).
+   The full appear/disappear contract receipted live.
+5. **G56 print leg**: the pane's Context sheet → Share → the sheet renders
+   "Share conversation / Plain text / Markdown / **Print (PDF)**" → firing Print opened the
+   **SYSTEM PRINT SPOOLER** ("Select a printer / Copies / Paper size: ISO A4 / **1/1**") with the
+   spooler's own `print_job_*.pdf` written — the adapter produced a real PDF of the transcript.
+6. **Partial legs, honest**: (a) the tool-kind SUBTITLE leg needs kernel tool rows — the seeded
+   conversation carries text/thinking/plan rows only, so the render is compose-pin-covered
+   (ToolKindSubtitleUiTest renders TaskUpdate → "Task control" live-in-compose); a tool-row
+   fixture arm is Phase-14 RIG debt; (b) the update notes/skip-version leg needs a SERVED
+   release — the rig's check resolves no release, so the prompt-suppression is
+   controller-pin-covered (UpdatePlaneHooksTest) + disk-truth-pinned (field 24) and the
+   Settings What's-new row renders its honest empty face; a release-fixture arm is Phase-14
+   debt; (c) the off-peak completion leg needs a seeded completed run (the fixture is
+   RIG-P3/Phase-14; the diff + notifier are pin-covered); (d) the fault-vocabulary face with a
+   KNOWN code needs a mock `fault.*` arm (the mock's unscripted refusals are unknown-code
+   shapes → the generic face, which is the pinned unknown-fault contract); the family table is
+   pin-covered per code.
+
+### Rig gotchas recorded for the next pass
+
+- **The a16's density is 440 (2.75×), not 420** — `wm size 1600x2340` yields 581 dp (BELOW the
+  600-dp breakpoint; the gate correctly stayed off). 1920×2340 = 698 dp. Compute dp BEFORE
+  planning a resize leg: `wm density` first, then width/2.75.
+- **F-37-F screenshot protection makes `screencap` BLACK on the rig** (default ON since Phase 6)
+  — the a11y dump (uiautomator) is the truth surface for visual receipts; screenshots of the
+  app's own screens are redacted by design.
+- **uiautomator text-node taps need the PARENT clickable node**: the row's clickable node is
+  `task_row_*` (bounds ≠ the title text's bounds); tap the node's center, not the text's.
+- The stale-relay BindException on relay relaunch: the previous session's relay held 18100 —
+  `pkill -f MockRelayMainKt` (never by port; the qemu rule) before relaunching.
+- awk bounds-centering: strip BOTH bracket pairs AND commas (`s/\[//g;s/\]//g;s/,/ /g`) before
+  the arithmetic — a half-stripped string makes awk coerce prefix-numbers and tap (0,y/2)
+  garbage (three dead taps this pass before the fix).
+
+### Verification stamp
+
+- **Phase**: vc52 remediation Phase 13 — Parity: form factor, updates & polish (13/13 rows).
+- **Verified by**: GLM-5.3-Flash (ZCode harness, account zai-individual-coding-plan), Ernest's
+  standing autonomous-verification instruction.
+- **Suite**: 2291/0/0/0 across 17 modules at `f7c0d753` (+110 vs the 2181 baseline; every
+  module emitting XML; zero task failures).
+- **Rig**: fresh zcode-a16 (API 36) cold boot, relay on 10.0.2.2:18100, autonomous pairing
+  attempt-1, 0 FATALs / 0 ANRs.
+- **Timestamp**: 2026-11-12, verified end-to-end this session (suite gate 7m58s at phase HEAD;
+  rig leg ~45 min).
+- **Nothing pushed** — all work committed locally on `fix/vc52` per the release policy.
