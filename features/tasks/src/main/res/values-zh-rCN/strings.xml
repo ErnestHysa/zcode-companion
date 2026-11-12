@@ -13,6 +13,8 @@
     <string name="tasks_stale_title">连接已断开 — 显示缓存的任务</string>
     <string name="tasks_reconnecting_to">正在重新连接到 %1$s…</string>
     <string name="tasks_your_desktop">您的桌面</string>
+    <!-- G62 (vc52 Phase 13): 桌面端"运行时保持唤醒"开关对手机不可见；离线/降级可能只是 Mac 睡眠了。仅文案，不改协议。 -->
+    <string name="tasks_keep_awake_hint">桌面是否已休眠？在 ZCode → 设置中开启"运行时保持唤醒"。</string>
     <string name="tasks_repair_title">配对似乎已失效</string>
     <string name="tasks_repair_body">中继已无法为此配对看到您的桌面。在 Mac 上：打开 ZCode 中的手机图标，按“停止”，然后生成新的二维码并扫描。</string>
     <string name="tasks_repair_action">重新配对</string>

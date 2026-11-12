@@ -13,6 +13,10 @@
     <string name="tasks_stale_title">Connection lost — showing cached tasks</string>
     <string name="tasks_reconnecting_to">Reconnecting to %1$s…</string>
     <string name="tasks_your_desktop">your desktop</string>
+    <!-- G62 (vc52 Phase 13): the desktop's keep-awake toggle is invisible to the phone;
+         an offline/degraded session may just be a sleeping Mac (keepAwakeWhileRunning,
+         default OFF, powerSaveBlocker). Copy-only slice — no protocol change. -->
+    <string name="tasks_keep_awake_hint">Is your desktop asleep? Turn on Keep awake while running in ZCode → Settings.</string>
     <string name="tasks_repair_title">Pairing looks stale</string>
     <string name="tasks_repair_body">The relay no longer sees your desktop for this pairing. On the Mac: open the phone icon in ZCode, press Stop, then show a fresh QR and scan it.</string>
     <string name="tasks_repair_action">Re-pair</string>

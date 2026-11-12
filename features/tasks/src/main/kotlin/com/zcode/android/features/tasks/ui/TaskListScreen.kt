@@ -1062,6 +1062,22 @@ private fun ReadyBody(
     onEditGroup: ((com.zcode.android.domain.model.TaskGroupInfo) -> Unit)? = null,
 ) {
     Column(Modifier.fillMaxSize()) {
+        // G62 (vc52 Phase 13): the desktop's keep-awake toggle is invisible to the
+        // phone (keepAwakeWhileRunning defaults OFF; a sleeping Mac is
+        // indistinguishable from a network fault — the desktop's powerMonitor never
+        // reaches the relay). In the offline/degraded state the hint names the OTHER
+        // possibility; a connected session never shows it.
+        if (keepAwakeHintVisibleFor(state.phase)) {
+            Text(
+                text = stringResource(R.string.tasks_keep_awake_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .testTag("tasks_keep_awake_hint"),
+            )
+        }
         // §14.4.2 stale overlay — cached rows visible + LABELED (never silent stale).
         if (state.stale) {
             AttentionStrip(
@@ -1627,6 +1643,17 @@ fun TaskRow(
 }
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.railWidthPx(): Float = 3.dp.toPx()
+
+/**
+ * G62 (vc52 Phase 13): the keep-awake hint shows in the offline/degraded family
+ * (RECONNECTING / DEGRADED / FAILED — the §14.4.2 stale phases) and NOWHERE else:
+ * a connected session has a live desktop (not asleep); UNPAIRED/PAIRING have no
+ * desktop relationship yet; CONNECTING/AUTHENTICATING are in flight, not lost.
+ */
+fun keepAwakeHintVisibleFor(phase: com.zcode.android.domain.state.ConnectionPhase): Boolean =
+    phase == com.zcode.android.domain.state.ConnectionPhase.RECONNECTING ||
+        phase == com.zcode.android.domain.state.ConnectionPhase.DEGRADED ||
+        phase == com.zcode.android.domain.state.ConnectionPhase.FAILED
 
 @Composable
 private fun HorizontalHairline() {
