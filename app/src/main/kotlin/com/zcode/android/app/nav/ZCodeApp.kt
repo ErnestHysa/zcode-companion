@@ -1198,19 +1198,33 @@ private fun ConversationRoute(
         com.zcode.android.features.conversation.ui.ShareModeSheet(
             onMode = { mode ->
                 showShareModes = false
-                val transcript = when (mode) {
-                    com.zcode.android.features.conversation.ui.ShareMode.PLAIN_TEXT ->
-                        com.zcode.android.features.conversation.TranscriptBuilder.build(state.task?.title, state.rows)
-                    com.zcode.android.features.conversation.ui.ShareMode.MARKDOWN ->
-                        com.zcode.android.features.conversation.TranscriptBuilder.buildMarkdown(state.task?.title, state.rows)
+                when (mode) {
+                    com.zcode.android.features.conversation.ui.ShareMode.PRINT -> {
+                        // G56 (vc52 Phase 13): print to PDF — the Android Printing
+                        // framework handoff (the system sheet; the adapter writes pages).
+                        com.zcode.android.app.connect.TranscriptPrintJob.print(
+                            context,
+                            state.task?.title ?: "Conversation",
+                            com.zcode.android.features.conversation.TranscriptBuilder.build(state.task?.title, state.rows),
+                            container.log,
+                        )
+                    }
+                    else -> {
+                        val transcript = when (mode) {
+                            com.zcode.android.features.conversation.ui.ShareMode.PLAIN_TEXT ->
+                                com.zcode.android.features.conversation.TranscriptBuilder.build(state.task?.title, state.rows)
+                            else ->
+                                com.zcode.android.features.conversation.TranscriptBuilder.buildMarkdown(state.task?.title, state.rows)
+                        }
+                        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(android.content.Intent.EXTRA_SUBJECT, state.task?.title ?: "Conversation")
+                            putExtra(android.content.Intent.EXTRA_TEXT, transcript)
+                            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        context.startActivity(android.content.Intent.createChooser(intent, shareCopy))
+                    }
                 }
-                val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(android.content.Intent.EXTRA_SUBJECT, state.task?.title ?: "Conversation")
-                    putExtra(android.content.Intent.EXTRA_TEXT, transcript)
-                    addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                context.startActivity(android.content.Intent.createChooser(intent, shareCopy))
             },
             onDismiss = { showShareModes = false },
         )

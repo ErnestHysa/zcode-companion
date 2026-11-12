@@ -529,4 +529,7 @@
     <string name="composer_delivery_startnow">Send now (override queueing)</string>
     <string name="composer_delivery_queue">Queue this send</string>
     <string name="composer_delivery_guide">Guide (wait for me)</string>
+    <!-- G56 (vc52 Phase 13): print to PDF (the Android Printing framework handoff). -->
+    <string name="share_mode_print">Print (PDF)</string>
+    <string name="share_mode_print_detail">Hand the transcript to the system print service.</string>
 </resources>

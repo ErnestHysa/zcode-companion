@@ -389,4 +389,7 @@
     <string name="composer_delivery_startnow">立即发送（覆盖排队）</string>
     <string name="composer_delivery_queue">此消息加入队列</string>
     <string name="composer_delivery_guide">引导模式（等待我）</string>
+    <!-- G56 (vc52 Phase 13): 打印为 PDF（系统打印服务）。 -->
+    <string name="share_mode_print">打印 (PDF)</string>
+    <string name="share_mode_print_detail">将对话记录交给系统打印服务。</string>
 </resources>

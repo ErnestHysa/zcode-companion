@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 import com.zcode.android.features.conversation.R
 
 /** G19 (vc51 Phase 4D): the conversation share modes beyond the transcript text. */
-enum class ShareMode { PLAIN_TEXT, MARKDOWN }
+enum class ShareMode { PLAIN_TEXT, MARKDOWN, PRINT }
 
 /**
  * G19 (vc51 Phase 4D): the share MODE chooser — the conv_share chip used to fire the
@@ -45,6 +45,12 @@ fun ShareModeSheet(
                     detail = stringResource(R.string.share_mode_markdown_detail),
                     tag = "share_mode_markdown",
                     onClick = { onMode(ShareMode.MARKDOWN) },
+                )
+                ShareModeRow(
+                    label = stringResource(R.string.share_mode_print),
+                    detail = stringResource(R.string.share_mode_print_detail),
+                    tag = "share_mode_print",
+                    onClick = { onMode(ShareMode.PRINT) },
                 )
             }
         },
