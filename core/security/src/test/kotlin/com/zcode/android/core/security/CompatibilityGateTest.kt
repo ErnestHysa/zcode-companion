@@ -27,9 +27,13 @@ class CompatibilityGateTest {
         assertEquals(CompatibilityGate.Verdict.Supported, v("3.14.4"))
         // 3.14.5 live-verified 2026-10-13 → 2026-10-26 (S918B field round) → tested range.
         assertEquals(CompatibilityGate.Verdict.Supported, v("3.14.5"))
+        // 3.18.0 verified across the vc52 campaign's Phase-12 gate; 3.18.1 re-verified
+        // 2026-11-12 at the vc52 close (asar ec475e6e) — the release-bump's own pins.
+        assertEquals(CompatibilityGate.Verdict.Supported, v("3.18.0"))
+        assertEquals(CompatibilityGate.Verdict.Supported, v("3.18.1"))
         // Above maximum-tested → warn-continue
-        assertTrue(v("3.14.6") is CompatibilityGate.Verdict.AboveTested)
-        assertTrue(v("3.15.0") is CompatibilityGate.Verdict.AboveTested)
+        assertTrue(v("3.18.2") is CompatibilityGate.Verdict.AboveTested)
+        assertTrue(v("3.19.0") is CompatibilityGate.Verdict.AboveTested)
         // Future major → warn-continue at the QR gate (the wire-version literal check at
         // hello remains the hard gate per §39.2/§39.3).
         assertTrue(v("4.0.0") is CompatibilityGate.Verdict.AboveTested)

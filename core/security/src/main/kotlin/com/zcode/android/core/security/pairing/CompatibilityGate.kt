@@ -13,11 +13,13 @@ object CompatibilityGate {
     /** §39.2: < 3.14.0 unsupported (v3→v4 remote app routes differ; relay shifted in 3.14). */
     const val MIN_SUPPORTED_DESKTOP = "3.14.0"
 
-    /** §39.2: 3.14.0–3.14.5 supported. 3.14.5 live-verified 2026-10-13 → 2026-10-26
-     * (real device: pairing, auth, bridge-open, bootstrap 610 tasks/8 workspaces,
-     * stable connection, v4 conversation plane — the F-WORKSPACES/F-QR/F-PERM field
-     * round ran against it; diagnostics export desktopAppVersion=3.14.5). */
-    const val MAX_TESTED_DESKTOP = "3.14.5"
+    /** §39.2: 3.14.0–3.18.1 supported. 3.14.5 live-verified 2026-10-13 → 2026-10-26
+     * (real device: pairing, auth, bridge-open, bootstrap, stable connection, v4
+     * conversation plane); 3.18.0 verified across the vc52 remediation campaign's
+     * Phase-12 exit gate (fresh-asar shape corrections, asar 4a6080ed); 3.18.1
+     * re-verified 2026-11-12 at the vc52 close (asar ec475e6e — the Relay V2
+     * device-registration plane re-grepped: the phone's V1 pairing path unchanged). */
+    const val MAX_TESTED_DESKTOP = "3.18.1"
 
     sealed class Verdict {
         /** Inside the tested range. */
