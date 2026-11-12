@@ -17,6 +17,13 @@ import androidx.core.app.NotificationManagerCompat
 object NotificationChannels {
     const val PERMISSIONS = "permissions"
     const val TASK_STATUS = "task-status"
+    /**
+     * G63 (vc52 Phase 13): the desktop's per-notification "Notification sound"
+     * mute, phone-shaped. API 26+ ignores post-creation channel sound edits, so
+     * the mute is a SILENT twin channel the plan routes to (NotificationPlan's
+     * soundOn policy) — approvals are NEVER muted by it.
+     */
+    const val TASK_STATUS_SILENT = "task-status-silent"
     const val PROGRESS = "progress"
     const val LIVE_CONNECTION = "live-connection"
 
@@ -35,6 +42,16 @@ object NotificationChannels {
                 context.getString(R.string.channel_task_status_name),
                 NotificationManagerCompat.IMPORTANCE_DEFAULT,
             ).apply { description = context.getString(R.string.channel_task_status_desc) },
+        )
+        manager.createNotificationChannel(
+            NotificationChannel(
+                TASK_STATUS_SILENT,
+                context.getString(R.string.channel_task_status_name),
+                NotificationManagerCompat.IMPORTANCE_DEFAULT,
+            ).apply {
+                description = context.getString(R.string.channel_task_status_desc)
+                setSound(null, null)
+            },
         )
         manager.createNotificationChannel(
             NotificationChannel(

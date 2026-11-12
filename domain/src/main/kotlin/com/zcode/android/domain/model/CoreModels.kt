@@ -226,6 +226,14 @@ data class AppPreferences(
     val notifyApprovals: Boolean = true,
     val notifyTaskOutcomes: Boolean = true,
     val notifyConnection: Boolean = true,
+    /**
+     * G63 (vc52 Phase 13): the notification-sound mute (the desktop's per-notification
+     * "Notification sound" toggle). Default ON — an upgrade must never silently lose
+     * its sound. OFF routes the task-status family to the silent twin channel
+     * ([com.zcode.android.core.notifications.NotificationChannels.TASK_STATUS_SILENT]);
+     * approvals/questions are never muted by it.
+     */
+    val notifySound: Boolean = true,
     /** H1.5 (Phase 6B): the skippable post-pairing pass ran once (never re-shown). */
     val onboardingDone: Boolean = false,
     /** G4/AC6 (vc51): the default interaction behavior (settings.zcodeInteractionBehavior) —

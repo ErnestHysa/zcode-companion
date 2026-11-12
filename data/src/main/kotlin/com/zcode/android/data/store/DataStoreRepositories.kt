@@ -151,6 +151,9 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
         fontScale = if (hasFontScaleMilli()) fontScaleMilli / 1000f else 1.0f,
         taskAutoArchiveDays = if (hasTaskAutoArchiveDays()) taskAutoArchiveDays else 0,
         mobileSelfReport = hasMobileSelfReport() && mobileSelfReport,
+        // G63 (vc52 Phase 13): additive-first — absent → audible (an upgrade never
+        // silently loses its sound; only an explicit false mutes).
+        notifySound = if (hasNotifySound()) notifySound else true,
     )
 
     private fun AppPreferences.toProto(): AppPreferencesProto {
@@ -166,6 +169,7 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
         val scale = fontScale
         val archiveDays = taskAutoArchiveDays
         val selfReport = mobileSelfReport
+        val sound = notifySound
         return AppPreferencesProto.newBuilder()
             .setLiveConnectionTimeoutMinutes(liveConnectionTimeoutMinutes)
             .setSchemaVersion(EndpointRepositoryImpl.SCHEMA_VERSION)
@@ -191,6 +195,7 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
             .setFontScaleMilli((scale * 1000).toInt())
             .setTaskAutoArchiveDays(archiveDays)
             .setMobileSelfReport(selfReport)
+            .setNotifySound(sound)
             .apply {
                 wsOrder.forEach { addWorkspaceOrder(it) }
                 wsAliases.forEach { (k, v) -> putWorkspaceAliases(k, v) }

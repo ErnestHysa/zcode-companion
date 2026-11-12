@@ -363,6 +363,15 @@ class AppContainer(context: Context) {
 
     data class LineComment(val taskId: String, val quoted: String)
 
+    // G63 (vc52 Phase 13): idle-time outcome notifications — the unfiltered
+    // off-peak list diffed on every CONNECTED transition, gated by notifyTaskOutcomes.
+    val offPeakOutcomeNotifier = com.zcode.android.app.notifications.OffPeakOutcomeNotifier(
+        broker = stores.notificationBroker,
+        provider = { hub.viewerTools().offPeakTaskRowsAll() },
+        outcomesEnabled = { stores.preferencesRepository.current().notifyTaskOutcomes },
+        log = log,
+    )
+
     val notifications: NotificationWiring = NotificationWiring(
         stores = stores,
         broker = stores.notificationBroker,
@@ -370,6 +379,7 @@ class AppContainer(context: Context) {
         endpointFlow = hub.endpoint,
         scope = stores.appScope,
         log = log,
+        offPeakNotifier = offPeakOutcomeNotifier,
     )
 
     init {

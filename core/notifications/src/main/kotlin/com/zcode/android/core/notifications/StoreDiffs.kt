@@ -49,6 +49,32 @@ object StoreDiffs {
         kind?.let { task to it }
     }
 
+    /**
+     * G63 (vc52 Phase 13): the `off-peak-task.list` diff — idle-time run outcomes
+     * the MAIN task projection never carries (the desktop notifies both outcomes;
+     * the phone's task-terminal diff never saw this channel). Same first-emission
+     * seeding rule as [taskTerminalTransitions]: a cold process's first list seeds
+     * the baseline (never notifies yesterday's terminal states); afterwards a
+     * transition INTO `completed`/`failed` fires once — a re-listed terminal run
+     * never duplicates, `cancelled`/`paused`/`queued`/`running`/unknown stay quiet
+     * (INV-8: the status is a raw closed string).
+     */
+    fun offPeakTerminalTransitions(
+        previous: Map<String, String>,
+        current: List<com.zcode.android.domain.model.OffPeakTaskRow>,
+    ): List<Pair<com.zcode.android.domain.model.OffPeakTaskRow, NotificationRecord.Kind>> =
+        current.mapNotNull { row ->
+            val before = previous[row.offPeakTaskId]
+            val kind = when (row.status) {
+                "completed" ->
+                    if (before != null && before != "completed") NotificationRecord.Kind.TASK_FINISHED else null
+                "failed" ->
+                    if (before != null && before != "failed") NotificationRecord.Kind.TASK_FAILED else null
+                else -> null
+            }
+            kind?.let { row to it }
+        }
+
     /** Status index of a task list (the wiring's previous-snapshot shape). */
     fun statusIndex(tasks: List<Task>): Map<String, TaskStatus> =
         tasks.associate { it.taskId to it.status }

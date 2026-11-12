@@ -47,6 +47,12 @@ class NotificationWiring(
     private val endpointFlow: kotlinx.coroutines.flow.StateFlow<com.zcode.android.domain.model.Endpoint?>,
     private val scope: CoroutineScope,
     private val log: ZLog,
+    /**
+     * G63 (vc52 Phase 13): the off-peak outcome notifier — its `onConnected` rides
+     * the SAME CONNECTED transition the phase collector already observes. Null =
+     * the plane is off (tests / not yet bound) — never a crash.
+     */
+    private val offPeakNotifier: OffPeakOutcomeNotifier? = null,
 ) {
 
     /** §24.7 deep links land here (MainActivity) and are consumed by the nav graph. */
@@ -250,6 +256,12 @@ class NotificationWiring(
                 }
                 if (current == ConnectionPhase.CONNECTED && previous != null && previous != ConnectionPhase.CONNECTED) {
                     broker.onConnectionRestored()
+                    // G63: the off-peak outcome diff — a run that reached completed/
+                    // failed while the phone was away posts exactly once here (the
+                    // desktop's idle-time outcomes, on the task-status channel).
+                    offPeakNotifier?.let { notifier ->
+                        scope.launch { runCatching { notifier.onConnected() } }
+                    }
                 }
             }
         }

@@ -103,6 +103,7 @@
 <string name="settings_theme_sub">Applies immediately, no restart needed.</string>
 <string name="settings_notif_cat_approvals">Approval requests</string>
 <string name="settings_notif_cat_tasks">Task finished / failed</string>
+    <string name="settings_notif_sound">Notification sound</string>
 <string name="settings_notif_cat_connection">Connection lost</string>
 <string name="settings_section_privacy">Privacy</string>
 <string name="settings_section_about">About</string>

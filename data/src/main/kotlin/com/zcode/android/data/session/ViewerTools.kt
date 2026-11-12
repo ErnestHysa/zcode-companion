@@ -122,6 +122,15 @@ class ViewerTools(private val transport: AppTransport) {
             .sortedByDescending { it.createdAt }
             .take(20)
 
+    /**
+     * G63 (vc52 Phase 13): the UNFILTERED off-peak list for the outcome notifier —
+     * the desktop's own idle-time notifications are app-global (they fire for any
+     * workspace's run); the phone's diff mirrors that, not the Automations
+     * section's workspace-scoped view.
+     */
+    suspend fun offPeakTaskRowsAll(): List<OffPeakTaskRow> =
+        OffPeakTaskRow.decodeList(transport.offPeakTaskList())
+
     // ---------------------------------------------------------------- GAP-7: plugins
 
     /** `listPlugins` → CLI `plugins/list` (v4-wire.md §12.3). Viewer-only — INV-9. */

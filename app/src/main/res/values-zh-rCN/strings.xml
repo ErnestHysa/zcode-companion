@@ -86,6 +86,7 @@
 <string name="settings_theme_sub">立即生效，无需重启。</string>
 <string name="settings_notif_cat_approvals">审批请求</string>
 <string name="settings_notif_cat_tasks">任务完成 / 失败</string>
+    <string name="settings_notif_sound">通知声音</string>
 <string name="settings_notif_cat_connection">连接断开</string>
 <string name="settings_section_privacy">隐私</string>
 <string name="settings_section_about">关于</string>

@@ -56,6 +56,14 @@ object NotificationPlan {
         val appForeground: Boolean,
         /** §24.2 lock-screen visibility user setting (default MINIMAL). */
         val contentLevel: AppPreferences.NotificationContentLevel,
+        /**
+         * G63 (vc52 Phase 13): the notification-sound mute (the desktop's
+         * per-notification sound toggle). OFF routes the task-status family to the
+         * SILENT twin channel — approvals/questions keep their sound regardless
+         * (a muted approval is a missed command; the desktop's mute is the task
+         * notification sound, not the permission one).
+         */
+        val soundOn: Boolean = true,
     )
 
     data class Decision(
@@ -103,7 +111,12 @@ object NotificationPlan {
     }
 
     fun decide(event: Event, policy: Policy, copy: NotificationCopy = DefaultNotificationCopy): Decision {
-        val channel = channelIdFor(event.kind)
+        var channel = channelIdFor(event.kind)
+        // G63: the sound mute routes the task-status family to its silent twin;
+        // PERMISSIONS is never muted by it.
+        if (!policy.soundOn && channel == NotificationChannels.TASK_STATUS) {
+            channel = NotificationChannels.TASK_STATUS_SILENT
+        }
         // §9.9 + §24.4: while foregrounded the in-app surfaces own attention; the
         // broker never posts (eligibility step of §24.1).
         if (policy.appForeground) return Decision(false, channel, "", null)

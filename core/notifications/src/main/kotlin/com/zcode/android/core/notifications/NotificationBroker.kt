@@ -131,7 +131,7 @@ class NotificationBroker(
             }
         val decision = NotificationPlan.decide(
             NotificationPlan.Event(kind, taskTitle, subject),
-            NotificationPlan.Policy(appForeground = foreground, contentLevel = contentLevel()),
+            NotificationPlan.Policy(appForeground = foreground, contentLevel = contentLevel(), soundOn = soundEnabledProvider()),
             copy,
         )
         // §16 seen semantics: "seen" = the user has plausibly consumed it in-app.
@@ -198,7 +198,7 @@ class NotificationBroker(
             val subject = record.interactionId?.let { id -> runCatching { subjectProvider(id) }.getOrNull() }
             val decision = NotificationPlan.decide(
                 NotificationPlan.Event(record.kind, subject = subject),
-                NotificationPlan.Policy(appForeground = false, contentLevel = contentLevel()),
+                NotificationPlan.Policy(appForeground = false, contentLevel = contentLevel(), soundOn = soundEnabledProvider()),
                 copy,
             )
             if (!decision.show) continue
@@ -311,6 +311,13 @@ class NotificationBroker(
     @Volatile
     var contentLevelProvider: suspend () -> com.zcode.android.domain.model.AppPreferences.NotificationContentLevel =
         { com.zcode.android.domain.model.AppPreferences.NotificationContentLevel.MINIMAL }
+
+    /**
+     * G63 (vc52 Phase 13): the notification-sound mute (the wiring refreshes it from
+     * preferences). Default ON — the historical audible behavior.
+     */
+    @Volatile
+    var soundEnabledProvider: suspend () -> Boolean = { true }
 
     /**
      * F-33-H: an open interaction's subject for the background re-post (records persist no

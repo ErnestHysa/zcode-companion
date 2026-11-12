@@ -994,6 +994,19 @@ private fun NotificationsSection(container: AppContainer) {
         scope.launch { container.stores.preferencesRepository.update { p -> p.copy(notifyConnection = checked) } }
     }
 
+    // G63 (vc52 Phase 13): the notification-sound mute (the desktop's per-notification
+    // "Notification sound" toggle). OFF routes the task-status family to the silent
+    // twin channel (API 26+ ignores post-hoc channel sound edits); approvals and
+    // questions are never muted by it.
+    CategoryToggle(
+        label = stringResource(R.string.settings_notif_sound),
+        checked = prefs.notifySound,
+        tag = "settings_notif_sound",
+        blocked = !notificationsEnabled,
+    ) { checked ->
+        scope.launch { container.stores.preferencesRepository.update { p -> p.copy(notifySound = checked) } }
+    }
+
     // §24.5 (vc35 + FIELD 2026-10-12): the auto-timeout window is CUSTOMIZABLE via
     // a RADIO PICKER — the old tap-to-cycle row looked like static text and users
     // reported the options "don't exist". 0 = stay connected until toggled off.
