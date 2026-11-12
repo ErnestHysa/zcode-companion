@@ -51,7 +51,7 @@ class SlashSendRoutingTest {
             return outcome
         }
 
-        override suspend fun sendPrompt(taskId: String, text: String, heldQueueDisposition: String?): ConversationPort.SendOutcome {
+        override suspend fun sendPrompt(taskId: String, text: String, heldQueueDisposition: String?, requestedDelivery: String?, expectedHeldQueueItemIds: List<String>?): ConversationPort.SendOutcome {
             promptTexts += text
             calls += "sendPrompt"
             return outcome

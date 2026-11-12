@@ -69,7 +69,7 @@ class ConversationWriteUiTest {
     private fun setContent(
         uiState: ConversationUiState,
         onAnswer: (String, String, String?, Boolean) -> Unit = { _, _, _, _ -> },
-        onSend: (String?) -> Unit = {},
+        onSend: (String?, String?, List<String>?) -> Unit = { _, _, _ -> },
     ) {
         rule.setContent {
             ZCodeTheme {
@@ -171,7 +171,7 @@ class ConversationWriteUiTest {
     @Test
     fun composer_sendEnabledWithDraft_andFires() {
         var sent: String? = null
-        setContent(state(draft = "hello agent"), onSend = { sent = "fired" })
+        setContent(state(draft = "hello agent"), onSend = { _, _, _ -> sent = "fired" })
         rule.onNodeWithTag("composer_send").assertIsEnabled()
         rule.onNodeWithTag("composer_send").performClick()
         rule.waitForIdle()
@@ -216,7 +216,7 @@ class ConversationWriteUiTest {
                     onDismissHistoryNotice = {},
                     onRetryOlder = {},
                     onDraftChange = {},
-                    onSend = {},
+                    onSend = { _, _, _ -> },
                     onStop = {},
                     onRetrySend = {},
                     onDismissSendNotice = {},

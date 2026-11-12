@@ -107,7 +107,8 @@ fun ConversationScreen(
     onDismissHistoryNotice: () -> Unit,
     onRetryOlder: (Long) -> Unit,
     onDraftChange: (String) -> Unit,
-    onSend: (heldQueueDisposition: String?) -> Unit,
+    /** G49+G50: the send trio — disposition, one-shot delivery override, CAS queue ids. */
+    onSend: (heldQueueDisposition: String?, requestedDelivery: String?, expectedHeldQueueItemIds: List<String>?) -> Unit,
     onStop: () -> Unit,
     onRetrySend: (commandId: String) -> Unit,
     onDismissSendNotice: () -> Unit,

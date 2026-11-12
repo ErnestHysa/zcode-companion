@@ -45,7 +45,7 @@ class AttachmentOnlySendTest {
         state = "ready", progress = 1f, ref = "ref-1", payload = null,
     )
 
-    private fun setContent(attachments: List<ConversationPort.ComposerAttachment>, draft: String = "", onSend: (String?) -> Unit = {}) {
+    private fun setContent(attachments: List<ConversationPort.ComposerAttachment>, draft: String = "", onSend: (String?, String?, List<String>?) -> Unit = { _, _, _ -> }) {
         rule.setContent {
             ZCodeTheme {
                 ConversationScreen(
@@ -82,7 +82,7 @@ class AttachmentOnlySendTest {
     @Test
     fun `N-BH-1 - a READY attachment with a blank draft enables Send and dispatches`() {
         var sent: String? = "unset"
-        setContent(listOf(readyAttachment()), onSend = { sent = null })
+        setContent(listOf(readyAttachment()), onSend = { _, _, _ -> sent = null })
         rule.onNodeWithTag("composer_send").assertIsDisplayed()
         org.junit.Assert.assertFalse(
             "Send must be enabled",
@@ -102,7 +102,7 @@ class AttachmentOnlySendTest {
     @Test
     fun `N-BH-1 - a text-only draft still sends (unchanged)`() {
         var sent: String? = null
-        setContent(emptyList(), draft = "hello", onSend = { sent = it })
+        setContent(emptyList(), draft = "hello", onSend = { _, _, _ -> sent = "sent" })
         rule.onNodeWithTag("composer_send").assertIsDisplayed()
         org.junit.Assert.assertFalse(
             "Send must be enabled",

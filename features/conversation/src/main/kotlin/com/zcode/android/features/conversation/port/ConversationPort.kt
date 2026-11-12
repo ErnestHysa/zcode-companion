@@ -124,7 +124,19 @@ interface ConversationPort {
     suspend fun clearDraft(taskId: String)
 
     /** §17.5 send path (INV-4 idempotent, §17.6 offline-blocked). */
-    suspend fun sendPrompt(taskId: String, text: String, heldQueueDisposition: String? = null): SendOutcome
+    /**
+     * G49+G50 (vc52 Phase 13): the send trio — [heldQueueDisposition] (the CHOICE
+     * routing's clear/keep), [requestedDelivery] (the ONE-SHOT desktop override
+     * "startNow"|"queue"|"guide") and [expectedHeldQueueItemIds] (the CAS queue
+     * ids beside the disposition choice). Nulls = the routing mode decides.
+     */
+    suspend fun sendPrompt(
+        taskId: String,
+        text: String,
+        heldQueueDisposition: String? = null,
+        requestedDelivery: String? = null,
+        expectedHeldQueueItemIds: List<String>? = null,
+    ): SendOutcome
 
     /**
      * G9 (vc51): discard the session's shared-context import

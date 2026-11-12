@@ -61,6 +61,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import com.zcode.android.features.conversation.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -842,7 +843,9 @@ fun QueueStrip(
 fun ComposerBar(
     state: ConversationUiState,
     onDraftChange: (String) -> Unit,
-    onSend: (heldQueueDisposition: String?) -> Unit,
+    /** G49+G50: the send trio — the held-queue disposition (CHOICE routing), the
+     *  ONE-SHOT requestedDelivery override, and the CAS queue ids the user saw. */
+    onSend: (heldQueueDisposition: String?, requestedDelivery: String?, expectedHeldQueueItemIds: List<String>?) -> Unit,
     onStop: () -> Unit,
     onRetrySend: (commandId: String) -> Unit,
     onDismissNotice: () -> Unit,
@@ -872,6 +875,17 @@ fun ComposerBar(
     // to the follow-up-queue text AND an inline pill marks the queued send. The old
     // standalone busy strip is gone (replaced by this pair).
     val enqueue = routing?.mode == com.zcode.android.domain.model.InputRouting.Mode.ENQUEUE
+
+    // G49 (vc52 Phase 13): the per-send delivery override — the desktop's
+    // sendText.requestedDelivery ("startNow"|"queue"|"guide"). ONE-SHOT: it rides
+    // the NEXT send (button or IME) and clears — the session's own routing mode
+    // decides every other send.
+    var deliveryOverride by remember { mutableStateOf<String?>(null) }
+    var deliveryMenuOpen by remember { mutableStateOf(false) }
+
+    /** G50: the queued ids beside the disposition choice (the CAS set). */
+    fun heldQueueIds(): List<String>? =
+        state.sessionState?.queue?.items?.map { it.queueItemId }?.takeIf { it.isNotEmpty() }
 
     Surface(modifier = modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface) {
         // F-CHAT-FOCUS (2026-10-27): vertical 8→5 — the composer is pinned always-on;
@@ -944,12 +958,17 @@ fun ComposerBar(
             // GAP-A9: one dispatch path for the send BUTTON and the IME send action.
             fun dispatchSend() {
                 if (routing?.mode == com.zcode.android.domain.model.InputRouting.Mode.CHOICE) {
+                    // G50: the disposition dialog; the queued ids the user sees ride
+                    // the choice as the desktop's expectedHeldQueueItemIds CAS set,
+                    // alongside any G49 one-shot override.
                     dispositionDialog = true
                 } else {
                     haptics.confirm()
-                    onSend(null)
+                    onSend(null, deliveryOverride, null)
+                    deliveryOverride = null // one-shot
                 }
             }
+
             // A8 (vc51 rig, exit gate): the registry fix un-blocked the launches, and the
             // Take-photo arm then exposed the SECOND crash class — strict camera apps
             // (com.android.camera2 on atd images) deny callers without android.permission
@@ -1406,6 +1425,52 @@ fun ComposerBar(
                             // broader isNotEmpty rule (GAP-A9 pin unchanged).
                             val sendable = state.draft.isNotBlank() ||
                                 state.composerAttachments.any { it.state == "ready" && it.ref != null }
+                            // G49: the per-send delivery menu — a one-shot override
+                            // ("send this one NOW even though the session queues", and
+                            // the reverse). The icon tint marks an armed override.
+                            androidx.compose.foundation.layout.Box {
+                                androidx.compose.material3.IconButton(
+                                    onClick = { deliveryMenuOpen = true },
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .testTag("composer_delivery_menu"),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Send,
+                                        contentDescription = stringResource(R.string.composer_delivery_desc),
+                                        tint = if (deliveryOverride != null) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                }
+                                androidx.compose.material3.DropdownMenu(
+                                    expanded = deliveryMenuOpen,
+                                    onDismissRequest = { deliveryMenuOpen = false },
+                                ) {
+                                    for ((value, tag, labelRes) in listOf(
+                                        Triple("startNow", "composer_delivery_startnow", R.string.composer_delivery_startnow),
+                                        Triple("queue", "composer_delivery_queue", R.string.composer_delivery_queue),
+                                        Triple("guide", "composer_delivery_guide", R.string.composer_delivery_guide),
+                                    )) {
+                                        androidx.compose.material3.DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    stringResource(labelRes),
+                                                    fontWeight = if (deliveryOverride == value) FontWeight.Bold else FontWeight.Normal,
+                                                )
+                                            },
+                                            onClick = {
+                                                deliveryMenuOpen = false
+                                                deliveryOverride = if (deliveryOverride == value) null else value
+                                            },
+                                            modifier = Modifier.testTag(tag),
+                                        )
+                                    }
+                                }
+                            }
                             androidx.compose.material3.FilledIconButton(
                                 onClick = { dispatchSend() },
                                 enabled = sendable,
@@ -1481,7 +1546,8 @@ fun ComposerBar(
                     onClick = {
                         dispositionDialog = false
                         haptics.confirm()
-                        onSend("clearQueueAndSend")
+                        onSend("clearQueueAndSend", deliveryOverride, heldQueueIds())
+                        deliveryOverride = null
                     },
                     modifier = Modifier.testTag("composer_disposition_clear"),
                 ) { Text(stringResource(R.string.queue_clear_send)) }
@@ -1491,7 +1557,8 @@ fun ComposerBar(
                     onClick = {
                         dispositionDialog = false
                         haptics.confirm()
-                        onSend("keepQueueAndSend")
+                        onSend("keepQueueAndSend", deliveryOverride, heldQueueIds())
+                        deliveryOverride = null
                     },
                     modifier = Modifier.testTag("composer_disposition_keep"),
                 ) { Text(stringResource(R.string.queue_keep_send)) }

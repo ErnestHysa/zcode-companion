@@ -124,7 +124,7 @@ class PinnedCardSubmitPinTest {
                     onDismissHistoryNotice = {},
                     onRetryOlder = {},
                     onDraftChange = {},
-                    onSend = {},
+                    onSend = { _, _, _ -> },
                     onStop = {},
                     onRetrySend = {},
                     onDismissSendNotice = {},

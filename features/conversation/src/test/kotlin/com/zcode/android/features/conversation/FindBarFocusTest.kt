@@ -66,7 +66,7 @@ class FindBarFocusTest {
                     onDismissHistoryNotice = {},
                     onRetryOlder = {},
                     onDraftChange = { draftChanges.add(it); draft = it },
-                    onSend = {},
+                    onSend = { _, _, _ -> },
                     onStop = {},
                     onRetrySend = {},
                     onDismissSendNotice = {},

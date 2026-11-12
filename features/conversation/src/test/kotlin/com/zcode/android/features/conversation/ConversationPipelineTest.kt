@@ -172,7 +172,7 @@ class ConversationViewModelTest {
         val sendPromptCalls = mutableListOf<Pair<String, String>>() // text to heldQueueDisposition
         override fun observeComposerAttachments(taskId: String): Flow<List<ConversationPort.ComposerAttachment>> =
                 composerAttachmentsFlow
-            override suspend fun sendPrompt(taskId: String, text: String, heldQueueDisposition: String?): ConversationPort.SendOutcome {
+            override suspend fun sendPrompt(taskId: String, text: String, heldQueueDisposition: String?, requestedDelivery: String?, expectedHeldQueueItemIds: List<String>?): ConversationPort.SendOutcome {
                 sendPromptCalls.add(text to (heldQueueDisposition ?: ""))
                 return sendResult
             }
@@ -418,7 +418,7 @@ open class Phase7FakePort : ConversationPort {
     override fun observeDraft(taskId: String) = draftFlow
     override suspend fun saveDraft(taskId: String, text: String) { draftFlow.value = text }
     override suspend fun clearDraft(taskId: String) { draftFlow.value = null }
-    override suspend fun sendPrompt(taskId: String, text: String, heldQueueDisposition: String?) =
+    override suspend fun sendPrompt(taskId: String, text: String, heldQueueDisposition: String?, requestedDelivery: String?, expectedHeldQueueItemIds: List<String>?) =
         ConversationPort.SendOutcome.ACCEPTED
     override fun observePendingSends(taskId: String) = pendingFlow
     override suspend fun retrySend(commandId: String) = ConversationPort.SendOutcome.ACCEPTED
@@ -445,7 +445,7 @@ class ConversationDraftLifecycleTest {
     private class DraftFakePort : Phase7FakePort() {
         var sendResult = ConversationPort.SendOutcome.ACCEPTED
         val sends = mutableListOf<String>()
-        override suspend fun sendPrompt(taskId: String, text: String, heldQueueDisposition: String?): ConversationPort.SendOutcome {
+        override suspend fun sendPrompt(taskId: String, text: String, heldQueueDisposition: String?, requestedDelivery: String?, expectedHeldQueueItemIds: List<String>?): ConversationPort.SendOutcome {
             sends.add(text)
             return sendResult
         }

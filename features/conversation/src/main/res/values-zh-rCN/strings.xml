@@ -384,4 +384,9 @@
     <string name="error_action_switch_model">切换模型</string>
     <string name="error_action_report">报告问题</string>
     <string name="error_copy_trace_label">追踪:</string>
+    <!-- G49 (vc52 Phase 13): 单次发送的投递覆盖（桌面 sendText.requestedDelivery 取值）。 -->
+    <string name="composer_delivery_desc">下一条消息的投递方式</string>
+    <string name="composer_delivery_startnow">立即发送（覆盖排队）</string>
+    <string name="composer_delivery_queue">此消息加入队列</string>
+    <string name="composer_delivery_guide">引导模式（等待我）</string>
 </resources>

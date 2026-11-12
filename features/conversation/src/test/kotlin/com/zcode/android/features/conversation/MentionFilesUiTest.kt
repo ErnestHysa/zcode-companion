@@ -62,7 +62,7 @@ class MentionFilesUiTest {
                     onDismissHistoryNotice = {},
                     onRetryOlder = {},
                     onDraftChange = { inserted += it },
-                    onSend = {},
+                    onSend = { _, _, _ -> },
                     onStop = {},
                     onRetrySend = {},
                     onDismissSendNotice = {},

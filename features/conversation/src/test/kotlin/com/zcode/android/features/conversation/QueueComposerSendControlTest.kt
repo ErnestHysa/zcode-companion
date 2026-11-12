@@ -70,7 +70,7 @@ class QueueComposerSendControlTest {
                 ComposerBar(
                     state = stateWith(draft.value),
                     onDraftChange = { draft.value = it },
-                    onSend = { sent = "sent" },
+                    onSend = { _, _, _ -> sent = "sent" },
                     onStop = { stopped = true },
                     onRetrySend = {},
                     onDismissNotice = {},

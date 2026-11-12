@@ -81,7 +81,7 @@ class ComposerClipboardPrivacyTest {
         ComposerBar(
             state = ConversationUiState(),
             onDraftChange = {},
-            onSend = {},
+            onSend = { _, _, _ -> },
             onStop = {},
             onRetrySend = {},
             onDismissNotice = {},

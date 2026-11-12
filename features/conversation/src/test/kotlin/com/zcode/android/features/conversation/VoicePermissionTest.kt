@@ -75,7 +75,7 @@ class VoicePermissionTest {
                         draft = "",
                         sessionState = null,
                     ),
-                    onDraftChange = {}, onSend = {}, onStop = {}, onRetrySend = {},
+                    onDraftChange = {}, onSend = { _, _, _ -> }, onStop = {}, onRetrySend = {},
                     onDismissNotice = {},
                     voiceInputOverride = voice,
                 )

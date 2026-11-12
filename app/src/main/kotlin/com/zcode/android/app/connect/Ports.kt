@@ -368,13 +368,21 @@ class DefaultConversationPort(
         scope?.let { hub.draftRepository().clear(it) }
     }
 
-    override suspend fun sendPrompt(taskId: String, text: String, heldQueueDisposition: String?): ConversationPort.SendOutcome =
-        sendPromptWithContext(taskId, text, heldQueueDisposition, contextRefs = emptyList())
+    override suspend fun sendPrompt(
+        taskId: String,
+        text: String,
+        heldQueueDisposition: String?,
+        requestedDelivery: String?,
+        expectedHeldQueueItemIds: List<String>?,
+    ): ConversationPort.SendOutcome =
+        sendPromptWithContext(taskId, text, heldQueueDisposition, requestedDelivery, expectedHeldQueueItemIds, contextRefs = emptyList())
 
     private suspend fun sendPromptWithContext(
         taskId: String,
         text: String,
         heldQueueDisposition: String?,
+        requestedDelivery: String?,
+        expectedHeldQueueItemIds: List<String>?,
         contextRefs: List<Pair<String, String>>,
     ): ConversationPort.SendOutcome {
         val coordinator = hub.commandCoordinatorOrNull() ?: return ConversationPort.SendOutcome.FAILED
@@ -394,7 +402,9 @@ class DefaultConversationPort(
         val outcome = coordinator.sendPrompt(
             taskId,
             text,
+            requestedDelivery = requestedDelivery,
             heldQueueDisposition = heldQueueDisposition,
+            expectedHeldQueueItemIds = expectedHeldQueueItemIds,
             contextRefs = effectiveRefs.takeIf { it.isNotEmpty() },
             attachments = ready.map {
                 com.zcode.android.data.session.CommandCoordinator.AttachmentRefPayload(

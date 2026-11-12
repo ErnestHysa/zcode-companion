@@ -91,7 +91,7 @@ class SessionNavigatorAndSummaryUiTest {
                     onDismissHistoryNotice = {},
                     onRetryOlder = {},
                     onDraftChange = {},
-                    onSend = {},
+                    onSend = { _, _, _ -> },
                     onStop = {},
                     onRetrySend = {},
                     onDismissSendNotice = {},

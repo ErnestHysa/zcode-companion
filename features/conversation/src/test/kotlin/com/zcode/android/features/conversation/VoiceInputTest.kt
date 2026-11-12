@@ -74,7 +74,7 @@ class VoiceInputTest {
             ZCodeTheme {
                 ComposerBar(
                     state = state(),
-                    onDraftChange = {}, onSend = {}, onStop = {}, onRetrySend = {},
+                    onDraftChange = {}, onSend = { _, _, _ -> }, onStop = {}, onRetrySend = {},
                     onDismissNotice = {},
                     voiceInputOverride = com.zcode.android.features.conversation.voice.NoVoiceInput(),
                 )
@@ -92,7 +92,7 @@ class VoiceInputTest {
             ZCodeTheme {
                 ComposerBar(
                     state = state(),
-                    onDraftChange = { draft = it }, onSend = {}, onStop = {}, onRetrySend = {},
+                    onDraftChange = { draft = it }, onSend = { _, _, _ -> }, onStop = {}, onRetrySend = {},
                     onDismissNotice = {},
                     voiceInputOverride = fake,
                 )
@@ -115,7 +115,7 @@ class VoiceInputTest {
             ZCodeTheme {
                 ComposerBar(
                     state = state(),
-                    onDraftChange = {}, onSend = {}, onStop = {}, onRetrySend = {},
+                    onDraftChange = {}, onSend = { _, _, _ -> }, onStop = {}, onRetrySend = {},
                     onDismissNotice = {},
                     voiceInputOverride = fake,
                 )
@@ -136,7 +136,7 @@ class VoiceInputTest {
             ZCodeTheme {
                 ComposerBar(
                     state = state(),
-                    onDraftChange = {}, onSend = {}, onStop = {}, onRetrySend = {},
+                    onDraftChange = {}, onSend = { _, _, _ -> }, onStop = {}, onRetrySend = {},
                     onDismissNotice = {},
                     voiceInputOverride = fake,
                 )
@@ -167,7 +167,7 @@ class VoiceInputTest {
             ZCodeTheme {
                 ComposerBar(
                     state = state(draft = draft.value),
-                    onDraftChange = { draft.value = it }, onSend = {}, onStop = {}, onRetrySend = {},
+                    onDraftChange = { draft.value = it }, onSend = { _, _, _ -> }, onStop = {}, onRetrySend = {},
                     onDismissNotice = {},
                     voiceInputOverride = fake,
                 )
@@ -200,7 +200,7 @@ class VoiceInputTest {
             ZCodeTheme {
                 ComposerBar(
                     state = state(),
-                    onDraftChange = {}, onSend = {}, onStop = {}, onRetrySend = {},
+                    onDraftChange = {}, onSend = { _, _, _ -> }, onStop = {}, onRetrySend = {},
                     onDismissNotice = {},
                     voiceInputOverride = fake,
                 )

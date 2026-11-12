@@ -432,7 +432,13 @@ class ConversationViewModel(
      * E8); ACCEPTED clears the draft (the message is now the authoritative plane's
      * concern); STALE/FAILED/UNKNOWN surface truthful copy (§33) with the draft kept.
      */
-    fun send(heldQueueDisposition: String? = null) {
+    fun send(
+        heldQueueDisposition: String? = null,
+        /** G49 (vc52 Phase 13): the ONE-SHOT requestedDelivery override ("startNow"|"queue"|"guide"). */
+        requestedDelivery: String? = null,
+        /** G50 (vc52 Phase 13): the CAS queue ids beside the disposition choice. */
+        expectedHeldQueueItemIds: List<String>? = null,
+    ) {
         val text = _draft.value
         // N-BH-1 (vc52 Phase 9): a READY staged attachment is submittable on its own
         // (the GAP-A9 desktop contract — hasDraftToSubmit counts attachments; the wire
@@ -445,7 +451,7 @@ class ConversationViewModel(
             // ready composer attachments block the whole plane (desktop parity).
             val readyAttachments = state.value.composerAttachments.count { it.state == "ready" && it.ref != null }
             when (val dispatch = parseVisibleSlashCommand(text, readyAttachments)) {
-                null -> routeSendPrompt(text, heldQueueDisposition)
+                null -> routeSendPrompt(text, heldQueueDisposition, requestedDelivery, expectedHeldQueueItemIds)
                 is SlashDispatch.Compact -> sendSlash(
                     { port.compact(taskId) },
                     text,
@@ -486,6 +492,8 @@ class ConversationViewModel(
                         ConversationPort.SendOutcome.ACCEPTED -> routeSendPrompt(
                             dispatch.task.ifBlank { "" },
                             heldQueueDisposition,
+                            requestedDelivery,
+                            expectedHeldQueueItemIds,
                             skipEmpty = true,
                         )
                         else -> _sendNotice.value = SendNotice(
@@ -499,7 +507,13 @@ class ConversationViewModel(
     }
 
     /** Plain sendText (null dispatch = ordinary prompt; custom slash text rides raw). */
-    private suspend fun routeSendPrompt(text: String, heldQueueDisposition: String?, skipEmpty: Boolean = false) {
+    private suspend fun routeSendPrompt(
+        text: String,
+        heldQueueDisposition: String?,
+        requestedDelivery: String? = null,
+        expectedHeldQueueItemIds: List<String>? = null,
+        skipEmpty: Boolean = false,
+    ) {
         if (skipEmpty && text.isBlank()) {
             // Empty /plan only edits the mode (the desktop returns "sent" without a send).
             _sendNotice.value = null
@@ -508,7 +522,7 @@ class ConversationViewModel(
             port.clearDraft(taskId)
             return
         }
-        when (port.sendPrompt(taskId, text, heldQueueDisposition)) {
+        when (port.sendPrompt(taskId, text, heldQueueDisposition, requestedDelivery, expectedHeldQueueItemIds)) {
             ConversationPort.SendOutcome.ACCEPTED -> {
                 _sendNotice.value = null
                 draftSaveJob?.cancel()

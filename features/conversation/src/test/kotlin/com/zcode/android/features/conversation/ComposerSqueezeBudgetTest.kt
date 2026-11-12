@@ -99,7 +99,7 @@ class ComposerSqueezeBudgetTest {
                     onDismissHistoryNotice = {},
                     onRetryOlder = {},
                     onDraftChange = {},
-                    onSend = {},
+                    onSend = { _, _, _ -> },
                     onStop = {},
                     onRetrySend = {},
                     onDismissSendNotice = {},
