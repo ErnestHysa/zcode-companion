@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -52,7 +51,8 @@ fun ErrorRecoveryCard(
             .padding(top = 6.dp)
             .testTag("error_recovery_card"),
         color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(8.dp),
+        // The theme's shape vocabulary (the ThemeShapesTest discipline — no dp literals).
+        shape = MaterialTheme.shapes.medium,
     ) {
         Column(Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
             Text(
