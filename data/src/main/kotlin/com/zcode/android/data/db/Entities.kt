@@ -39,6 +39,8 @@ data class TaskEntity(
     val workspaceLabel: String? = null,
     /** A3.8 (schema v3): the desktop's unread marker (`unreadAt`); null = read. */
     val unreadAtMs: Long? = null,
+    /** N-BD-5 (schema v6): the bootstrap row's optional `provider` (the badge); null = none. */
+    val provider: String? = null,
 )
 
 /** Per-workspace snapshot validator (§7.8 getTaskSnapshotWithEtag; §17.3 cache row 1). */

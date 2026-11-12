@@ -116,6 +116,7 @@ class TaskRepositoryImpl(
         rawStatus = if (TaskStatus.fromWire(statusWire) == TaskStatus.UNKNOWN) statusWire else null,
         workspaceLabel = workspaceLabel,
         unreadAt = unreadAtMs,
+        provider = provider,
     )
 
     private fun Task.toEntity(endpointId: EndpointId, workspace: WorkspaceIdentityKey): TaskEntity = TaskEntity(
@@ -135,5 +136,6 @@ class TaskRepositoryImpl(
         updatedAtMs = updatedAtMs,
         workspaceLabel = workspaceLabel,
         unreadAtMs = unreadAt,
+        provider = provider,
     )
 }

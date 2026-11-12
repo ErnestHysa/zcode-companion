@@ -1578,6 +1578,9 @@ fun TaskRow(
     val time = relativeTimeLabelLive(task.updatedAtMs)
     val meta = listOfNotNull(task.workspaceLabel ?: task.workspace.raw.substringAfterLast('/').ifBlank { null }, time)
         .joinToString(" · ")
+    // N-BD-5 (vc52 Phase 13): the bootstrap row's provider — the desktop's per-task
+    // model chip. The RAW wire value (INV-1: display-only); null = no chip.
+    val providerBadge = task.provider?.takeIf { it.isNotBlank() }
     val unreadA11y = stringResource(R.string.task_unread_a11y)
     val pinnedA11y = stringResource(R.string.task_pinned_a11y)
     Row(
@@ -1707,6 +1710,25 @@ fun TaskRow(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+                // N-BD-5: the provider chip rides the title row (the desktop's per-task
+                // model chip); the raw value, weight-decorated so it never squeezes the
+                // title (the G29 lesson).
+                if (providerBadge != null) {
+                    Spacer(Modifier.width(8.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = MaterialTheme.shapes.large,
+                        modifier = Modifier.testTag("task_provider_${task.taskId}"),
+                    ) {
+                        Text(
+                            text = providerBadge,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            maxLines = 1,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
+                        )
+                    }
+                }
             }
             // J4: the per-task change stats the wire always carried (+N −N on the row,
             // desktop taskList.changeStats) — decoded since Phase 2, never rendered.

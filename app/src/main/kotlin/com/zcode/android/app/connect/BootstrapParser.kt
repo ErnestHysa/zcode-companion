@@ -38,6 +38,12 @@ object BootstrapParser {
         /** A3.8: the row's `pinned` / `unreadAt` (windowHostController task row schema). */
         val pinned: Boolean = false,
         val unreadAtMs: Long? = null,
+        /**
+         * N-BD-5 (vc52 Phase 13): the row's optional `provider` (the production
+         * task-row shape documents it) — the task list's model/provider badge.
+         * Null = the desktop declared none (no badge — INV-1, never a guess).
+         */
+        val provider: String? = null,
     )
 
     data class Result(
@@ -115,6 +121,7 @@ object BootstrapParser {
                     workspaceIdentityRaw = identity ?: "",
                     pinned = (obj["pinned"] as? kotlinx.serialization.json.JsonPrimitive)?.content?.toBooleanStrictOrNull() ?: false,
                     unreadAtMs = obj.longOrNull("unreadAt"),
+                    provider = obj.strOrNull("provider"),
                 ),
             )
         }

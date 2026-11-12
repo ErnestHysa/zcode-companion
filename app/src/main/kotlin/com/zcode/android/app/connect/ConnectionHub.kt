@@ -907,6 +907,7 @@ class ConnectionHub(
                     workspaceLabel = t.workspaceLabel,
                     pinned = t.pinned,
                     unreadAt = t.unreadAtMs,
+                    provider = t.provider,
                 )
             }
             taskRepo.replaceAll(endpointId, WorkspaceIdentityKey(key), tasks, etag = null, atMs = now)

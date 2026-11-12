@@ -83,6 +83,12 @@ data class Task(
      * echo. Null = read. The phone never derives unread locally (INV-1).
      */
     val unreadAt: Long? = null,
+    /**
+     * N-BD-5 (vc52 Phase 13): the bootstrap row's optional `provider` — the
+     * task list's per-task model/provider badge (the desktop's per-task chip).
+     * Null = the desktop declared none (no badge — INV-1).
+     */
+    val provider: String? = null,
 ) {
     /** Per-turn/summary file change rollup (TurnFileChangeSummary semantics, §22). */
     data class TaskSummary(val additions: Long, val deletions: Long, val files: Long)
