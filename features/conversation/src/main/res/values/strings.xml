@@ -534,4 +534,19 @@
     <string name="share_mode_print_detail">Hand the transcript to the system print service.</string>
     <!-- G57 (vc52 Phase 13): the no-viewer fallback (no dead preview cards). -->
     <string name="artifact_no_viewer">No installed app can open %1$s — install a viewer and try again.</string>
+    <!-- G80 (vc52 Phase 13): the kernel's 14-kind tool taxonomy labels. -->
+    <string name="tool_kind_file_read">File read</string>
+    <string name="tool_kind_file_write">File write</string>
+    <string name="tool_kind_shell">Shell</string>
+    <string name="tool_kind_search">Search</string>
+    <string name="tool_kind_todo">Todo</string>
+    <string name="tool_kind_goal">Goal</string>
+    <string name="tool_kind_session_context">Session context</string>
+    <string name="tool_kind_ask_user_question">Ask user</string>
+    <string name="tool_kind_message">Message</string>
+    <string name="tool_kind_task_control">Task control</string>
+    <string name="tool_kind_node_repl">Node REPL</string>
+    <string name="tool_kind_agent">Agent</string>
+    <string name="tool_kind_skill">Skill</string>
+    <string name="tool_kind_workflow">Workflow</string>
 </resources>

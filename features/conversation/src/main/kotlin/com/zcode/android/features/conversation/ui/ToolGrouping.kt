@@ -90,6 +90,12 @@ enum class ToolCategory {
         private val CUA_PREFIXES = listOf("mcp__computer-use__", "mcp__plugin_zcode-cua_computer-use__")
 
         fun of(toolName: String): ToolCategory {
+            // G80 (vc52 Phase 13): the kernel's name-keyed taxonomy decides FIRST —
+            // the scheduling family (CronCreate/List/Update, ScheduleWakeup,
+            // Task*) is task-control/OTHER, never the substring scatter. The CUA
+            // prefixes stay ahead (plugin-spelled, not kernel names); UNKNOWN
+            // names keep the substring heuristic (graceful fallback).
+            ToolKindTaxonomy.categoryOf(toolName)?.let { return it }
             val n = toolName.lowercase()
             if (CUA_PREFIXES.any { n.startsWith(it) }) return COMPUTER_USE
             if (NON_FILE.any { it in n }) return OTHER

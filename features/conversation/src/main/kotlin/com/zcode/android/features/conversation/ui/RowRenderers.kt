@@ -479,6 +479,17 @@ fun ToolCard(
                 )
             }
         }
+        // G80 (vc52 Phase 13): the kernel's kind subtitle — TaskUpdate reads
+        // "Task control" instead of a bare name; unknown names keep no subtitle.
+        ToolKindTaxonomy.kindOf(row.toolName)?.let { kind ->
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = toolKindLabel(kind),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("tool_kind_${row.rowId}"),
+            )
+        }
         Spacer(Modifier.height(2.dp))
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.testTag("tool_meta_${row.rowId}")) {
             Text(
@@ -1732,6 +1743,27 @@ private fun MonospaceDetail(label: String, content: String, tag: String? = null)
         }
     }
 }
+
+@Composable
+fun toolKindLabel(kind: com.zcode.android.features.conversation.ui.ToolKindTaxonomy.ToolKind): String =
+    stringResource(
+        when (kind) {
+            com.zcode.android.features.conversation.ui.ToolKindTaxonomy.ToolKind.FILE_READ -> R.string.tool_kind_file_read
+            com.zcode.android.features.conversation.ui.ToolKindTaxonomy.ToolKind.FILE_WRITE -> R.string.tool_kind_file_write
+            com.zcode.android.features.conversation.ui.ToolKindTaxonomy.ToolKind.SHELL -> R.string.tool_kind_shell
+            com.zcode.android.features.conversation.ui.ToolKindTaxonomy.ToolKind.SEARCH -> R.string.tool_kind_search
+            com.zcode.android.features.conversation.ui.ToolKindTaxonomy.ToolKind.TODO -> R.string.tool_kind_todo
+            com.zcode.android.features.conversation.ui.ToolKindTaxonomy.ToolKind.GOAL -> R.string.tool_kind_goal
+            com.zcode.android.features.conversation.ui.ToolKindTaxonomy.ToolKind.SESSION_CONTEXT -> R.string.tool_kind_session_context
+            com.zcode.android.features.conversation.ui.ToolKindTaxonomy.ToolKind.ASK_USER_QUESTION -> R.string.tool_kind_ask_user_question
+            com.zcode.android.features.conversation.ui.ToolKindTaxonomy.ToolKind.MESSAGE -> R.string.tool_kind_message
+            com.zcode.android.features.conversation.ui.ToolKindTaxonomy.ToolKind.TASK_CONTROL -> R.string.tool_kind_task_control
+            com.zcode.android.features.conversation.ui.ToolKindTaxonomy.ToolKind.NODE_REPL -> R.string.tool_kind_node_repl
+            com.zcode.android.features.conversation.ui.ToolKindTaxonomy.ToolKind.AGENT -> R.string.tool_kind_agent
+            com.zcode.android.features.conversation.ui.ToolKindTaxonomy.ToolKind.SKILL -> R.string.tool_kind_skill
+            com.zcode.android.features.conversation.ui.ToolKindTaxonomy.ToolKind.WORKFLOW -> R.string.tool_kind_workflow
+        },
+    )
 
 /** (label, rail color) for a tool-call status — §19.5 + state-specifications.md. */
 @Composable

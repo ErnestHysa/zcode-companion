@@ -394,4 +394,19 @@
     <string name="share_mode_print_detail">将对话记录交给系统打印服务。</string>
     <!-- G57 (vc52 Phase 13): 无查看器的回退（不留死卡片）。 -->
     <string name="artifact_no_viewer">没有已安装的应用可以打开 %1$s — 请安装查看器后重试。</string>
+    <!-- G80 (vc52 Phase 13): 内核 14 类工具分类标签。 -->
+    <string name="tool_kind_file_read">文件读取</string>
+    <string name="tool_kind_file_write">文件写入</string>
+    <string name="tool_kind_shell">Shell</string>
+    <string name="tool_kind_search">搜索</string>
+    <string name="tool_kind_todo">待办</string>
+    <string name="tool_kind_goal">目标</string>
+    <string name="tool_kind_session_context">会话上下文</string>
+    <string name="tool_kind_ask_user_question">询问用户</string>
+    <string name="tool_kind_message">消息</string>
+    <string name="tool_kind_task_control">任务控制</string>
+    <string name="tool_kind_node_repl">Node REPL</string>
+    <string name="tool_kind_agent">代理</string>
+    <string name="tool_kind_skill">技能</string>
+    <string name="tool_kind_workflow">工作流</string>
 </resources>
