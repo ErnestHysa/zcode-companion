@@ -181,6 +181,10 @@ class AppPreferencesInterfaceModeRoundTripTest {
             "app_locale" to "SYSTEM|EN|ZH_RCN",
             "selected_endpoint_id" to "free string (round-tripped byte-exact, no enum mapping)",
             "selected_workspace_key" to "free string (round-tripped byte-exact, no enum mapping)",
+            // G43-P24 (vc52 Phase 13): the What's-new record's free strings —
+            // round-tripped byte-exact in AppPreferencesUpdatePlaneRoundTripTest.
+            "whats_new_version_name" to "free string (round-tripped byte-exact, no enum mapping)",
+            "whats_new_notes" to "free string (round-tripped byte-exact, no enum mapping)",
         )
         assertTrue(
             "unaudited schema string field(s): ${stringFields.filterNot { it in audited }} — " +

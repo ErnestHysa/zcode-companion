@@ -61,7 +61,7 @@ class MigrationHarnessTest {
             "direct-open-test.db",
         ).allowMainThreadQueries().build()
         db.openHelper.writableDatabase
-        assertEquals(5, db.openHelper.writableDatabase.version)
+        assertEquals(6, db.openHelper.writableDatabase.version)
         db.close()
     }
 
