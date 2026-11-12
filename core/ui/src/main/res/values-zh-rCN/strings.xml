@@ -107,4 +107,6 @@
     <!-- Phase 6C (L7): the section-scoped error boundary -->
     <string name="section_broken_title">此区域出现问题</string>
     <string name="section_broken_body">其他区域不受影响 — 可重试此区域。</string>
+    <!-- G61 (vc52 Phase 13): 工作台空详情面板（≥600 dp）。 -->
+    <string name="workbench_empty_detail">在左侧选择一个任务以打开其会话。</string>
 </resources>

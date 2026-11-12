@@ -346,12 +346,34 @@ fun ZCodeApp(
             val openApprovals by container.conversationPort.observeOpenInteractions()
                 .collectAsState(initial = emptyList())
             val taskState by tasksVm.state.collectAsState()
+            // G61 (vc52 Phase 13): the list-detail workbench selection. ≥600 dp the
+            // tap swaps the detail pane IN PLACE; below the breakpoint it navigates
+            // exactly as before. rememberSaveable: the pane survives rotation.
+            var workbenchTaskId by androidx.compose.runtime.saveable.rememberSaveable {
+                androidx.compose.runtime.mutableStateOf<String?>(null)
+            }
+            val screenWidthDp = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp
+            val workbenchOn = com.zcode.android.core.ui.components.WorkbenchPolicy.useListDetail(screenWidthDp)
             TasksRoute(
                 container = container,
                 vm = tasksVm,
                 onTaskClick = { task ->
                     container.log.info("tasks.open", "task=${task.taskId.take(24)} title=${task.title.take(40)}")
-                    nav.openConversation(task.taskId)
+                    if (workbenchOn) {
+                        workbenchTaskId = task.taskId
+                    } else {
+                        nav.openConversation(task.taskId)
+                    }
+                },
+                workbenchTaskId = workbenchTaskId,
+                onCloseWorkbench = { workbenchTaskId = null },
+                onOpenTaskFromWorkbench = { child ->
+                    container.log.info("tasks.workbenchSwap", "task=${child.take(24)}")
+                    workbenchTaskId = child
+                },
+                onPaneNavigate = { route ->
+                    container.log.info("tasks.workbenchPaneNav", "route=$route")
+                    nav.navigate(route)
                 },
                 onOpenSettings = { container.log.info("nav.settings", "open"); nav.navigate(Routes.SETTINGS) },
                 onOpenConnection = { container.log.info("nav.connection", "open"); nav.navigate(Routes.CONNECTION) },
@@ -598,6 +620,18 @@ private fun TasksRoute(
     onCreateRequestConsumed: () -> Unit = {},
     onOpenTaskId: (String) -> Unit = {},
     onCreateScratchTask: (name: String, firstText: String, provider: String?, model: String?) -> Unit = { _, _, _, _ -> },
+    /**
+     * G61 (vc52 Phase 13): the list-detail workbench (≥600 dp). Non-null = the
+     * detail pane hosts that task's conversation IN PLACE (no navigation); the
+     * phone layout below the breakpoint never receives it.
+     */
+    workbenchTaskId: String? = null,
+    onCloseWorkbench: () -> Unit = {},
+    /** A fork/subagent child opened from the pane swaps the pane (desktop onSessionCreated parity). */
+    onOpenTaskFromWorkbench: (String) -> Unit = {},
+
+    /** G61: the workbench pane's full-screen pane exits (Files/Git/Terminal routes). */
+    onPaneNavigate: (String) -> Unit = {},
 ) {
     val prefs by container.stores.preferencesRepository.observe()
         .collectAsState(com.zcode.android.domain.model.AppPreferences())
@@ -608,7 +642,8 @@ private fun TasksRoute(
     val notificationsEnabled = com.zcode.android.app.notifications.rememberNotificationsEnabled()
     val startedCopy = stringResource(com.zcode.android.features.tasks.R.string.workflow_start_sent)
     val refusedCopy = stringResource(com.zcode.android.features.tasks.R.string.workflow_start_refused)
-    TaskListScreen(
+    val taskList: @Composable () -> Unit = {
+        TaskListScreen(
         state = state.copy(refreshing = refreshing),
         onTaskClick = onTaskClick,
         onOpenSettings = onOpenSettings,
@@ -704,7 +739,55 @@ private fun TasksRoute(
                 }
             }
         },
-    )
+        )
+    }
+    // G61 (vc52 Phase 13): the list-detail workbench at >=600 dp — the task list on
+    // the left, the selected task's conversation IN PLACE on the right (no
+    // navigation); below the breakpoint the phone layout is unchanged. The pane
+    // holds EXACTLY ONE live conversation VM (the F-33-A lesson):
+    // WorkbenchPaneController tears the previous VM down before creating the next.
+    val widthDp = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp
+    if (com.zcode.android.core.ui.components.WorkbenchPolicy.useListDetail(widthDp)) {
+        val holder: ConversationVmHolder = androidx.lifecycle.viewmodel.compose.viewModel(
+            key = "workbench-conversation-holder",
+        )
+        val workbench = androidx.compose.runtime.remember {
+            WorkbenchPaneController<ConversationViewModel>(teardown = { it.onTeardown() })
+        }
+        val paneVm = workbenchTaskId?.let { id ->
+            workbench.acquire(id) { t ->
+                ConversationViewModel(container.conversationPort, holder.scope, t).also { holder.vm = it }
+            }
+        }
+        androidx.compose.runtime.DisposableEffect(Unit) {
+            onDispose {
+                workbench.close()
+                holder.vm = null
+            }
+        }
+        com.zcode.android.core.ui.components.WorkbenchPolicy.WorkbenchScaffold(
+            list = taskList,
+            detail = paneVm?.let { paneV ->
+                {
+                    ConversationRoute(
+                        container = container,
+                        vm = paneV,
+                        onBack = onCloseWorkbench,
+                        onOpenFiles = { onPaneNavigate(Routes.FILES) },
+                        onOpenGit = { onPaneNavigate(Routes.GIT) },
+                        onOpenTerminal = { onPaneNavigate(Routes.TERMINAL) },
+                        onOpenQuotaScreen = { onPaneNavigate(Routes.USAGE) },
+                        // A fork / subagent child swaps the pane (desktop onSessionCreated parity).
+                        onOpenTask = onOpenTaskFromWorkbench,
+                        onOpenSubagentChildSession = onOpenTaskFromWorkbench,
+                    )
+                }
+            },
+            onOpenFromEmpty = {},
+        )
+    } else {
+        taskList()
+    }
 }
 
 /**

@@ -128,4 +128,6 @@
     <!-- Phase 6C (L7): the section-scoped error boundary -->
     <string name="section_broken_title">This area broke</string>
     <string name="section_broken_body">Other areas keep working — retry this section.</string>
+    <!-- G61 (vc52 Phase 13): the workbench empty detail pane (>=600 dp). -->
+    <string name="workbench_empty_detail">Select a task on the left to open its conversation.</string>
 </resources>

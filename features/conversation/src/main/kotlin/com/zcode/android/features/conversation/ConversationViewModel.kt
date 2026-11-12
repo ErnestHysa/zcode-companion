@@ -126,7 +126,11 @@ data class SendNotice(
 class ConversationViewModel(
     private val port: ConversationPort,
     private val scope: CoroutineScope,
-    private val taskId: String,
+    /**
+     * G61 (vc52 Phase 13): public for the workbench pane controller's swap check
+     * (the pane holds exactly ONE live VM per task — same task = same VM).
+     */
+    val taskId: String,
 ) {
 
     private val _historyChanged = MutableStateFlow(false)
