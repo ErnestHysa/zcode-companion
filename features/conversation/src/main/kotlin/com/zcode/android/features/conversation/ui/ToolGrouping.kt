@@ -209,6 +209,8 @@ fun ToolGroupBlock(
     group: TimelineEntry.ToolGroup,
     modifier: Modifier = Modifier,
     fullOutputProvider: (suspend (ConversationRow.ToolCall) -> String?)? = null,
+    /** G66: the member cards' typed error actions (forwarded). */
+    errorActions: ToolErrorActions? = null,
 ) {
     var expanded by rememberSaveable(group.key) { mutableStateOf(false) }
     val ui = ToolGroupUi.of(group.rows)
@@ -250,7 +252,7 @@ fun ToolGroupBlock(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 for (row in group.rows) {
-                    ToolCard(row = row, fullOutputProvider = fullOutputProvider)
+                    ToolCard(row = row, fullOutputProvider = fullOutputProvider, errorActions = errorActions)
                 }
             }
         }

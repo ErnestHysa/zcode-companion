@@ -375,6 +375,11 @@ fun ZCodeApp(
                     container.log.info("tasks.workbenchPaneNav", "route=$route")
                     nav.navigate(route)
                 },
+                // G66: the pane's error card → the feedback form with the error attached.
+                onReportIssue = { details ->
+                    container.pendingFeedbackPrefill.value = details
+                    nav.navigate(Routes.SETTINGS)
+                },
                 onOpenSettings = { container.log.info("nav.settings", "open"); nav.navigate(Routes.SETTINGS) },
                 onOpenConnection = { container.log.info("nav.connection", "open"); nav.navigate(Routes.CONNECTION) },
                 openApprovals = openApprovals.size,
@@ -426,6 +431,12 @@ fun ZCodeApp(
                 container = container,
                 vm = vm,
                 onBack = { nav.popBackStack() },
+                // G66: Report issue → the feedback form with the error attached.
+                onReportIssue = { details ->
+                    container.log.info("nav.reportIssue", "details=${details.take(60)}")
+                    container.pendingFeedbackPrefill.value = details
+                    nav.navigate(Routes.SETTINGS)
+                },
                 onOpenFiles = { container.log.info("nav.files", "open"); nav.navigate(Routes.FILES) },
                 onOpenGit = { container.log.info("nav.git", "open"); nav.navigate(Routes.GIT) },
                 onOpenTerminal = { container.log.info("nav.terminal", "open"); nav.navigate(Routes.TERMINAL) },
@@ -632,6 +643,8 @@ private fun TasksRoute(
 
     /** G61: the workbench pane's full-screen pane exits (Files/Git/Terminal routes). */
     onPaneNavigate: (String) -> Unit = {},
+    /** G66: the pane's error card Report issue (the feedback form, error attached). */
+    onReportIssue: ((String) -> Unit)? = null,
 ) {
     val prefs by container.stores.preferencesRepository.observe()
         .collectAsState(com.zcode.android.domain.model.AppPreferences())
@@ -780,6 +793,8 @@ private fun TasksRoute(
                         // A fork / subagent child swaps the pane (desktop onSessionCreated parity).
                         onOpenTask = onOpenTaskFromWorkbench,
                         onOpenSubagentChildSession = onOpenTaskFromWorkbench,
+                        // G66: forwarded — the pane's error card reports with the error attached.
+                        onReportIssue = onReportIssue,
                     )
                 }
             },
@@ -843,6 +858,8 @@ private fun ConversationRoute(
     /** N-BK-1(a) (vc52 Phase 12): a subagent row's child session opens in place. */
     onOpenSubagentChildSession: (String) -> Unit = {},
     onOpenQuotaScreen: () -> Unit = {},
+    /** G66: the error card's Report issue → the feedback form with the error attached. */
+    onReportIssue: ((String) -> Unit)? = null,
 ) {
     val state by vm.state.collectAsState()
     // G78 (vc52 Phase 11): the pending Files line comment lands in the composer
@@ -967,6 +984,8 @@ private fun ConversationRoute(
             context.startActivity(android.content.Intent.createChooser(send, shareCopy))
         },
         onAnswerQuestions = vm::answerUserInputQuestions,
+        // G66: forwarded to the screen (the error card's Report issue affordance).
+        onReportIssue = onReportIssue,
         onDeclineQuestions = vm::declineUserInput,
         // GAP-A1 (vc51, ADR-024): the hook-trust review verbs — their FIRST UI callers.
         onHookTrust = vm::trustHooks,

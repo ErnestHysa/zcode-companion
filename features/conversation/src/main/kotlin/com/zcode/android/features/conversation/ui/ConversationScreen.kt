@@ -130,6 +130,12 @@ fun ConversationScreen(
     onOpenTerminal: () -> Unit = {},
     onSwitchMode: (String) -> Unit = {},
     onSwitchModel: (provider: String, model: String, thought: String) -> Unit = { _, _, _ -> },
+    /**
+     * G66 (vc52 Phase 13): "Report issue" on the typed error card — the app layer
+     * navigates to the feedback form and prefills it with the error. Null = the
+     * affordance hides (never a dead button).
+     */
+    onReportIssue: ((String) -> Unit)? = null,
     modelOptionsProvider: suspend () -> List<com.zcode.android.domain.model.ModelProviderOption> = { emptyList() },
     turnChangesProvider: suspend (rowId: Long, entityId: String) -> ConversationPort.TurnChangesResult =
         { _, _ -> ConversationPort.TurnChangesResult(null, "unavailable") },
@@ -233,6 +239,12 @@ fun ConversationScreen(
     val rowActions = remember(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction, onOpenArtifact) {
         RowActionCallbacks(onRetryTurn, onForkAssistant, onApplyFileRewind, onAssistantFeedback, onRetryCompaction, onOpenArtifact)
     }
+    // G66 (vc52 Phase 13): the error card's Switch-model raises a request the
+    // Header consumes (expanding the config chips — the picker lives behind the
+    // model chip). A counter (not a boolean): a second request re-expands.
+    var switchModelRequests by androidx.compose.runtime.saveable.rememberSaveable {
+        androidx.compose.runtime.mutableStateOf(0)
+    }
     // C6-BackHandler: back with an unsent draft raises a confirm (the promised
     // Phase-7 draft guard). The draft is Room-backed — the guard is the CONFIRMATION
     // UX only; "Leave" just proceeds. Empty draft passes straight through.
@@ -320,6 +332,8 @@ fun ConversationScreen(
                 onOpenTerminal = onOpenTerminal,
                 onSwitchMode = onSwitchMode,
                 onSwitchModel = onSwitchModel,
+                // G66: the error card's switch-model request count (a rise expands the chips).
+                switchModelRequests = switchModelRequests,
                 modelOptionsProvider = modelOptionsProvider,
                 sessionStatusProvider = sessionStatusProvider,
                 onSetThoughtLevel = onSetThoughtLevel,
@@ -610,6 +624,13 @@ fun ConversationScreen(
                     onOpenAttachmentExternally = onOpenAttachmentExternally,
                     onSectionCrash = onSectionCrash,
                     onOpenSubagentChildSession = onOpenSubagentChildSession,
+                    // G66: the error card's switch-model expands the config chips
+                    // (the SAME §10.3 picker the header chips host); report-issue
+                    // rides the app-layer callback (feedback form, error attached).
+                    errorActions = ToolErrorActions(
+                        onSwitchModel = { switchModelRequests++ },
+                        onReportIssue = onReportIssue,
+                    ),
                 )
             }
             // §17.4/§17.6 composer (pinned bottom; drafting allowed offline, send
@@ -700,6 +721,8 @@ private fun Header(
     onSetGoal: (objective: String) -> Unit = {},
     onPauseGoal: () -> Unit = {},
     onResumeGoal: () -> Unit = {},
+    // ---- G66 (vc52 Phase 13): the error card's switch-model request (a rise expands the chips) ----
+    switchModelRequests: Int = 0,
     // ---- G59 (vc52 Phase 12): the compact followup switcher ----
     defaultFollowupMode: String? = null,
     onSetFollowupMode: ((String) -> Unit)? = null,
@@ -734,6 +757,10 @@ private fun Header(
     //      again turn a one-row bar into half the screen.
     val config = state.sessionState?.config
     var configExpanded by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
+    // G66: the error card's Switch-model request expands the chip row in place.
+    androidx.compose.runtime.LaunchedEffect(switchModelRequests) {
+        if (switchModelRequests > 0) configExpanded = true
+    }
     var contextSheet by remember { mutableStateOf(false) }
     // F-27-C/D5: the sheet's scroll state is HOISTED and keyed to the sheet's
     // visibility — every open starts a FRESH ScrollState(0), so the sheet can never
@@ -934,6 +961,8 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
     officeMode: Boolean = false,
     /** N-BK-1(a) (vc52 Phase 12): open a subagent's CHILD session. */
     onOpenSubagentChildSession: (String) -> Unit = {},
+    // G66 (vc52 Phase 13): the typed error card's actions (forwarded to every tool card).
+    errorActions: ToolErrorActions? = null,
 ) {
     val listState = rememberLazyListState()
     // B3-motion + K2: rows that have already arrived (scroll-back never re-animates).
@@ -1165,6 +1194,8 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                         onOpenAttachmentExternally = onOpenAttachmentExternally,
                         rewindPreviewProvider = rewindPreviewProvider,
                         onOpenSubagentChildSession = onOpenSubagentChildSession,
+                        // G66: forwarded — the sweep pin fails if this line is dropped.
+                        errorActions = errorActions,
                     )
                     is TimelineEntry.ToolGroup -> ToolGroupBlock(
                         group = entry,
@@ -1177,6 +1208,8 @@ private fun androidx.compose.foundation.layout.ColumnScope.TimelineBody(
                             )
                             .testTag("conv-row-${entry.rows.first().rowId}"),
                         fullOutputProvider = toolOutputProvider,
+                        // G66: forwarded — the member cards carry the typed error actions.
+                        errorActions = errorActions,
                     )
                 }
             }
@@ -1392,6 +1425,8 @@ private fun TimelineRow(
     officeMode: Boolean = false,
     /** N-BK-1(a) (vc52 Phase 12): open a subagent's CHILD session (the decoded id). */
     onOpenSubagentChildSession: (String) -> Unit = {},
+    // G66 (vc52 Phase 13): the typed error card's actions (forwarded to ToolCard).
+    errorActions: ToolErrorActions? = null,
 ) {
     Box(modifier = modifier) {
     when (row) {
@@ -1462,12 +1497,29 @@ private fun TimelineRow(
                 }
             }
         }
-        is ConversationRow.ToolCall -> ToolCard(
-            row,
-            fullOutputProvider = toolOutputProvider,
-            // G36: office mode gates tool-detail rendering to summaries.
-            showDetails = !officeMode,
-        )
+        is ConversationRow.ToolCall -> {
+            // G66: the recovery actions target the row through its wire entityId —
+            // canRetry is the row's OWN capability flag (the AgentProse gate), and
+            // Report issue carries the raw error (the feedback form's prefill).
+            val entityId = row.base.entityId
+            val canRetry = row.base.actions?.canRetry == true && entityId != null
+            ToolCard(
+                row,
+                fullOutputProvider = toolOutputProvider,
+                // G36: office mode gates tool-detail rendering to summaries.
+                showDetails = !officeMode,
+                errorActions = row.error?.let {
+                    val wired = errorActions ?: ToolErrorActions()
+                    ToolErrorActions(
+                        canRetry = canRetry,
+                        onRetry = entityId?.let { e -> { rowActions.onRetryTurn(row.rowId, e) } } ?: {},
+                        onSwitchModel = wired.onSwitchModel,
+                        // The card itself carries code+message — Report issue passes the raw error.
+                        onReportIssue = wired.onReportIssue,
+                    )
+                },
+            )
+        }
         is ConversationRow.Reasoning -> ReasoningRow(row)
         is ConversationRow.TurnHeader -> TurnSeparator(
             row,

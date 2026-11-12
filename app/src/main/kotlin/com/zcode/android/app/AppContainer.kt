@@ -361,6 +361,13 @@ class AppContainer(context: Context) {
      */
     val pendingLineComment = kotlinx.coroutines.flow.MutableStateFlow<LineComment?>(null)
 
+    /**
+     * G66 (vc52 Phase 13): the error card's "Report issue" one-shot prefill — the
+     * raw error rides to the Settings feedback form (the pendingLineComment
+     * pattern: the route layer sets it, Settings consumes it exactly once).
+     */
+    val pendingFeedbackPrefill = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+
     data class LineComment(val taskId: String, val quoted: String)
 
     // G63 (vc52 Phase 13): idle-time outcome notifications — the unfiltered

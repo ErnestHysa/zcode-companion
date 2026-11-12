@@ -516,4 +516,11 @@
     <string name="subagent_open_child">Open session ›</string>
     <!-- N-BK-1(c) (vc52 Phase 12): the bashOutput retry affordance (desktop bashOutput.retry) -->
     <string name="background_work_retry">Retry</string>
+    <!-- G66 (vc52 Phase 13): the typed error card's recovery actions (mobile-reachable
+         subset of the desktop's chat error card; provider sign-in / captcha / quota stay desktop). -->
+    <string name="error_recovery_title">Something went wrong — try a recovery action</string>
+    <string name="error_action_retry">Retry</string>
+    <string name="error_action_switch_model">Switch model</string>
+    <string name="error_action_report">Report issue</string>
+    <string name="error_copy_trace_label">Trace:</string>
 </resources>

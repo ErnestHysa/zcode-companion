@@ -96,6 +96,16 @@ fun SettingsScreen(
     var showUnpairConfirm by remember { mutableStateOf(false) }
     // H1.6: the feedback form + its channel-backed sender.
     var feedbackOpen by remember { mutableStateOf(false) }
+    // G66 (vc52 Phase 13): the error card's "Report issue" navigates here with the
+    // error attached — consume the one-shot slot (the pendingLineComment pattern).
+    var feedbackPrefill by remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        container.pendingFeedbackPrefill.value?.let { details ->
+            container.pendingFeedbackPrefill.value = null
+            feedbackPrefill = details
+            feedbackOpen = true
+        }
+    }
     val feedbackSender = remember {
         FeedbackSender { type, description, contact ->
             val service = runCatching { container.hub.taskService() }.getOrNull()
@@ -114,7 +124,11 @@ fun SettingsScreen(
         }
     }
     if (feedbackOpen) {
-        FeedbackFormDialog(onDismiss = { feedbackOpen = false }, sender = feedbackSender)
+        FeedbackFormDialog(
+            onDismiss = { feedbackOpen = false },
+            sender = feedbackSender,
+            prefillDescription = feedbackPrefill,
+        )
     }
 
     val topBarScroll = rememberZCodeTopBarScroll()

@@ -46,6 +46,12 @@ fun FeedbackFormDialog(
     onDismiss: () -> Unit,
     sender: FeedbackSender,
     modifier: Modifier = Modifier,
+    /**
+     * G66 (vc52 Phase 13): the error card's "Report issue" prefill — the raw
+     * error rides the description (the desktop attaches it the same way);
+     * null = the plain empty form.
+     */
+    prefillDescription: String? = null,
 ) {
     // Wire values (feedback.type.* enum): bug | feature | performance | usage.
     val types = listOf(
@@ -55,7 +61,7 @@ fun FeedbackFormDialog(
         "usage" to R.string.settings_feedback_type_usage,
     )
     var type by remember { mutableStateOf("bug") }
-    var description by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf(prefillDescription ?: "") }
     var contact by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf<FeedbackResult?>(null) }

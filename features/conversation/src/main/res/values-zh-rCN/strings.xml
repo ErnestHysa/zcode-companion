@@ -378,4 +378,10 @@
     <string name="interaction_auto_continue_in">%1$d 秒后自动继续</string>
     <string name="interaction_auto_continued">未回答，已自动继续</string>
     <string name="interaction_snoozed">已延后 — ZCode 会等你回答</string>
+    <!-- G66 (vc52 Phase 13): 类型化错误卡片的恢复操作（桌面聊天错误卡的移动可达子集）。 -->
+    <string name="error_recovery_title">出了点问题 — 试试恢复操作</string>
+    <string name="error_action_retry">重试</string>
+    <string name="error_action_switch_model">切换模型</string>
+    <string name="error_action_report">报告问题</string>
+    <string name="error_copy_trace_label">追踪:</string>
 </resources>

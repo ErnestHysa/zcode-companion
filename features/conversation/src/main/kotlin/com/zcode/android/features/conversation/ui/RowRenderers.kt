@@ -429,6 +429,13 @@ fun ToolCard(
      * INPUT/output); CODING (default) renders everything.
      */
     showDetails: Boolean = true,
+    /**
+     * G66 (vc52 Phase 13): the typed error card's recovery actions — rendered
+     * under the raw error block when the row carries an error and the caller
+     * wired the mobile-reachable actions (retry/switch-model/report + the two
+     * copies). Null (unwired) keeps the historical raw-block face.
+     */
+    errorActions: ToolErrorActions? = null,
 ) {
     val tokens = toolStatusPresentation(row.status)
     var expanded by rememberSaveable(row.rowId) { mutableStateOf(false) }
@@ -560,6 +567,11 @@ fun ToolCard(
             row.error?.let { err ->
                 Spacer(Modifier.height(6.dp))
                 MonospaceDetail(label = stringResource(R.string.row_error), content = "${err.code}: ${err.message}".take(2_000))
+                // G66: the typed recovery actions ride the raw block (mobile-reachable
+                // subset — retry/switch-model/report + the two copies).
+                errorActions?.let { ea ->
+                    ErrorRecoveryCard(code = err.code, message = err.message, actions = ea)
+                }
             }
         }
     }
@@ -1660,7 +1672,7 @@ private fun Overline(text: String, color: androidx.compose.ui.graphics.Color) {
  * feedback). User-initiated only (§27).
  */
 @Composable
-private fun CopyIconButton(text: String, tag: String) {
+internal fun CopyIconButton(text: String, tag: String) {
     val clipboard = LocalClipboardManager.current
     var copied by remember { mutableStateOf(false) }
     LaunchedEffect(copied) {
