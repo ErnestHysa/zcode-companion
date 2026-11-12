@@ -47,6 +47,16 @@ fun main() {
     mock.script.authScenario = scenario
     mock.script.modelSelection = defaultModelSelection()
     mock.script.emitStateKeys = true
+    // RIG-P1 (vc52 Phase 14): the per-relay-GENERATION nonce — every SCRIPTED
+    // interaction id (approval, question, hook, gen push) carries it, so two relay
+    // generations never collide. The pass-15 "inert cards" saga: constant ids were
+    // re-asserted across relay restarts while the app's interaction lifecycle
+    // persisted in Room — the INV-4 duplicate guard correctly refused every later
+    // generation's same-id cards (and the id collision is also the q-rig-1 push
+    // anchor confusion of pass 35: a pushed permission re-claimed the SEEDED
+    // question's id). MOCK_GEN_NONCE overrides (repro drives that pin an id).
+    val genNonce = relayGenerationNonce(env)
+    mock.script.interactionPushId = nonceId(mock.script.interactionPushId, genNonce)
     // PART N rig-fidelity fix: echo sends like production — a sendText command appends
     // the user row + a synthetic reply and pushes rowAppended. Without this the ack
     // arrives with no row and the sent message never renders (blocked the I1 leg).
@@ -133,8 +143,9 @@ fun main() {
     System.getenv("MOCK_MD_FILE")?.let { f -> mock.script.demoAssistantMarkdown = File(f).readText() }
     // MOCK_APPROVAL=1 arms one pending-approval tool row so the Approvals screen
     // renders live (B2.3/B2.4 geometry checks need a real interaction on-device).
+    // RIG-P1: the id carries the generation nonce (two relay generations never collide).
     if (System.getenv("MOCK_APPROVAL") != null) {
-        mock.setPendingApproval("Bash", "mock-approval-1")
+        mock.setPendingApproval("Bash", nonceId("mock-approval-1", genNonce))
     }
     // A3.1 (Phase 3D): one pre-committed 1x1 PNG as a sent user attachment — the
     // conversation renders the image it "sent" (read channel serves the bytes).
@@ -363,15 +374,18 @@ fun main() {
     // Phase 5B (A3.14) rig leg: MOCK_QUESTION=1 scripts a blocking AskUserQuestion
     // elicitation (two questions, one multi-select) into the snapshot's pending
     // interactions — the card renders and the answer/decline ride resolveInteraction.
+    // RIG-P1: the interaction id carries the generation nonce (a gen push with the
+    // base name can never re-claim it — the pass-35 anchor confusion).
     if (System.getenv("MOCK_QUESTION") != null) {
+        val questionId = nonceId("q-rig-1", genNonce)
         mock.script.pendingUserInput = MockZCode.PendingUserInput(
-            interactionId = "q-rig-1",
+            interactionId = questionId,
             prompt = "How should I ship this?",
             freeText = false,
             options = emptyList(),
         )
         mock.script.pendingQuestion = JsonObject(mapOf(
-            "interactionId" to JsonPrimitive("q-rig-1"),
+            "interactionId" to JsonPrimitive(questionId),
             "prompt" to JsonPrimitive("How should I ship this?"),
             "questions" to JsonArray(listOf(
                 JsonObject(mapOf(
@@ -397,13 +411,16 @@ fun main() {
     }
     // Phase 5D (ADR-024) rig leg: MOCK_HOOKS=1 scripts a workspaceHookReview (2 pending +
     // 1 trusted item) — the blocking card renders; trust_selected flips the states live.
+    // RIG-P1: the interaction id carries the generation nonce; the served summary
+    // block is DERIVED from the live items (scriptedHookInteraction), never the
+    // static arm-time face.
     if (System.getenv("MOCK_HOOKS") != null) {
         // G71 (vc52 Phase 12): the hooks-monitor snapshot rows ride the same arm.
         mock.script.hooksRowsDemo = true
         mock.script.hookReview = JsonObject(mapOf(
             "kind" to JsonPrimitive("workspaceHookReview"),
             "reviewFlowId" to JsonPrimitive("flow-rig"), "generation" to JsonPrimitive(1),
-            "interactionId" to JsonPrimitive("hook-rig"), "sessionId" to JsonPrimitive("synth-task-1"),
+            "interactionId" to JsonPrimitive(nonceId("hook-rig", genNonce)), "sessionId" to JsonPrimitive("synth-task-1"),
             "taskId" to JsonPrimitive("synth-task-1"), "runId" to JsonPrimitive("run-rig"),
             "workspaceIdentity" to JsonPrimitive("synthetic-ws"), "workspaceLabel" to JsonPrimitive("Synthetic Workspace"),
             "bundleDigest" to JsonPrimitive("a".repeat(64)),
@@ -538,6 +555,30 @@ fun main() {
     if (System.getenv("MOCK_CUA") != null) {
         armCuaRigForTest(mock)
     }
+    // RIG-P3 (vc52 Phase 14, the Phase-13 fixture debt): MOCK_TOOLS=1 seeds KERNEL
+    // tool rows (the G80 name-keyed taxonomy: TaskUpdate/Bash/Edit/Glob/WebSearch)
+    // into the snapshot conversation — the tool-card kind subtitles and the row
+    // grouping render live (the seeded conversation used to carry text/thinking/plan
+    // rows only, so the leg was compose-pin-covered).
+    if (System.getenv("MOCK_TOOLS") != null) {
+        fun toolRow(tool: String, input: String, output: String) {
+            mock.appendRow(
+                MockZCode.RowKind.TOOL_CALL,
+                "success",
+                extra = buildJsonObject {
+                    put("toolName", JsonPrimitive(tool))
+                    put("toolCallId", JsonPrimitive("tool-rig-${tool.lowercase()}"))
+                    put("inputText", JsonPrimitive(input))
+                    put("outputPreview", JsonPrimitive(output))
+                },
+            )
+        }
+        toolRow("TaskUpdate", "{\"taskId\":\"synth-task-1\",\"status\":\"in_progress\"}", "{\"ok\":true}")
+        toolRow("Bash", "{\"command\":\"git status --short\"}", "M src/version.ts\n?? scratch/probe.txt")
+        toolRow("Edit", "{\"path\":\"src/version.ts\"}", "{\"ok\":true,\"replacements\":1}")
+        toolRow("Glob", "{\"pattern\":\"src/**/*.ts\"}", "src/version.ts\nsrc/main.ts")
+        toolRow("WebSearch", "{\"query\":\"kotlin compose desktop\"}", "3 results")
+    }
     // G48+G51 (vc52 Phase 11): MOCK_ENFORCE_RUN_DELTAS=1 arms the capability-enforcing
     // workflowRun delta stream — a scripted workflowRun.updated (run patch + actor/node
     // step graph) at MOCK_RUN_DELTA_MS (default 4000) and a workflowRun.removed at
@@ -594,6 +635,52 @@ fun main() {
             "kind" to JsonPrimitive("main-tree"),
             "isGitAvailable" to JsonPrimitive(true),
         ))
+        // RIG-P2 (vc52 Phase 14): the READ fixtures the N-BG-2 legs never had — the
+        // Commit dialog's Generate button, the Changes tab and the History tab serve
+        // real data (the recorded face was silent refusals on all three). The
+        // deliberate-fault arm (MOCK_GIT_REFUSALS) still answers FIRST per method.
+        mock.script.generatedCommitMessage = JsonObject(mapOf(
+            "message" to JsonPrimitive("chore(rig): bump the synthetic parser version\n\nReviewed the staged diff and drafted a conventional message."),
+        ))
+        mock.script.gitChanges = JsonArray(listOf(
+            JsonObject(mapOf(
+                "path" to JsonPrimitive("src/version.ts"),
+                "status" to JsonPrimitive("modified"),
+                "staged" to JsonPrimitive(true),
+                "additions" to JsonPrimitive(3),
+                "deletions" to JsonPrimitive(1),
+            )),
+            JsonObject(mapOf(
+                "path" to JsonPrimitive("scratch/probe.txt"),
+                "status" to JsonPrimitive("added"),
+                "staged" to JsonPrimitive(false),
+                "additions" to JsonPrimitive(2),
+                "deletions" to JsonPrimitive(0),
+            )),
+        ))
+        mock.script.gitDiff = JsonObject(mapOf(
+            "diff" to JsonPrimitive(
+                "diff --git a/src/version.ts b/src/version.ts\n" +
+                    "--- a/src/version.ts\n+++ b/src/version.ts\n@@ -1,3 +1,5 @@\n" +
+                    " const a = 1\n+const b = a + 1\n-const c = 2\n+const c = 3\n export { a, b, c }\n",
+            ),
+        ))
+        mock.script.gitCommits = JsonArray(listOf(
+            JsonObject(mapOf(
+                "oid" to JsonPrimitive("abc1234"),
+                "message" to JsonPrimitive("fix(rig): keep the summary merged with the tracked branch"),
+                "authorName" to JsonPrimitive("Ernest"),
+                "authorEmail" to JsonPrimitive("takis312@hotmail.com"),
+                "timestamp" to JsonPrimitive(System.currentTimeMillis() - 3_600_000),
+            )),
+            JsonObject(mapOf(
+                "oid" to JsonPrimitive("def5678"),
+                "message" to JsonPrimitive("chore(rig): seed the git read fixtures"),
+                "authorName" to JsonPrimitive("Ernest"),
+                "authorEmail" to JsonPrimitive("takis312@hotmail.com"),
+                "timestamp" to JsonPrimitive(System.currentTimeMillis() - 7_200_000),
+            )),
+        ))
     }
     // G67 (vc52 Phase 11): MOCK_REMOTE_DOWN_MS=N arms the remote-down fixture N ms
     // after startup — the NEXT bridge-open fails with the typed disconnected-remote
@@ -628,13 +715,18 @@ fun main() {
         t.name = "mock-cua-permission"
         t.start()
     }
-    // N-BG-2 (vc52 Phase 11): MOCK_GIT_REFUSALS=generateCommitMessage,getChanges arms the
-    // deliberate git-refusal map (method → fault.git.notAvailable) so the phone's
-    // SURFACING of refused git calls is drivable on the rig (the recorded live face:
-    // the Generate button did nothing, Changes/History rendered empty).
+    // N-BG-2 (vc52 Phase 11) / RIG-P2 (vc52 Phase 14): MOCK_GIT_REFUSALS arms the
+    // deliberate git-refusal map so the phone's SURFACING of refused git calls is
+    // drivable on the rig. Spec = comma-separated methods, optionally `method=code`
+    // to serve a SPECIFIC fault code (the G79 vocabulary leg needs a KNOWN code —
+    // e.g. `getChanges=fault.git.notAvailable`); a bare method serves
+    // fault.git.notAvailable (the recorded live face).
     System.getenv("MOCK_GIT_REFUSALS")?.takeIf { it.isNotBlank() }?.let { spec ->
-        spec.split(',').map { it.trim() }.filter { it.isNotEmpty() }.forEach { method ->
-            mock.script.gitRefusals[method] = "fault.git.notAvailable"
+        spec.split(',').map { it.trim() }.filter { it.isNotEmpty() }.forEach { entry ->
+            val parts = entry.split('=', limit = 2).map { it.trim() }
+            val method = parts[0]
+            val code = parts.getOrElse(1) { "" }.ifBlank { "fault.git.notAvailable" }
+            mock.script.gitRefusals[method] = code
         }
     }
     // G52 (vc52 Phase 11): MOCK_G52_KEYS=transition|admission|both pushes a state patch
@@ -672,21 +764,10 @@ fun main() {
     }
     // RIG-1 (vc51 Phase 4C / G29): MOCK_AUTOMATIONS=1 seeds the automations list; the
     // handlers were always scripted (passes 5/9 debt) — only the env flags were missing.
+    // RIG-P3 (vc52 Phase 14, N-BE-6): the seed carries `nextRunAt` (epoch ms, one
+    // hour out) — the phone's timezone-safe "Next …" label never showed on the rig.
     if (System.getenv("MOCK_AUTOMATIONS") != null) {
-        mock.script.listAutomations = JsonArray(listOf(JsonObject(mapOf(
-            "automationId" to JsonPrimitive("auto-rig-1"),
-            "title" to JsonPrimitive("Nightly digest"),
-            "cronExpr" to JsonPrimitive("0 2 * * *"),
-            "prompt" to JsonPrimitive("Summarize yesterday's commits"),
-            "enabled" to JsonPrimitive(true),
-            "lifecycleStatus" to JsonPrimitive("active"),
-            "runCount" to JsonPrimitive(3),
-            "recurring" to JsonPrimitive(true),
-            "mode" to JsonPrimitive("task"),
-            // the decode's required keys (INV-8 strict rows): workspace + location
-            "workspaceKey" to JsonPrimitive("/synthetic/ws-one"),
-            "locationKind" to JsonPrimitive("local"),
-        ))))
+        mock.script.listAutomations = JsonArray(listOf(automationRigSeed()))
     }
     // RIG-1 (vc51 Phase 4C / G29): MOCK_OFFPEAK=1 seeds the off-peak list — one queued,
     // one paused (the pause arm exercises the monitor verbs), one COMPLETED (the history
@@ -722,6 +803,22 @@ fun main() {
             )),
         ))
     }
+    // RIG-P3 (vc52 Phase 14, the Phase-13 fixture debt): MOCK_OFFPEAK_COMPLETE_MS=<n>
+    // flips the QUEUED rig row (offpeak-rig-1) to `completed` n ms after startup —
+    // the G63 notifier diffs the list on every CONNECTED transition, so the rig
+    // restarts the relay after the flip and the fresh CONNECTED delivers the
+    // queued→completed transition (first emission seeds, the SECOND notifies).
+    System.getenv("MOCK_OFFPEAK_COMPLETE_MS")?.toLongOrNull()?.let { delayMs ->
+        val t = Thread {
+            try {
+                Thread.sleep(delayMs)
+                completeOffPeakRow(mock, "offpeak-rig-1")
+            } catch (_: InterruptedException) { }
+        }
+        t.isDaemon = true
+        t.name = "mock-offpeak-complete"
+        t.start()
+    }
     // Pass-29 rig arm: MOCK_USAGE=1 renders the Usage screen with REAL data — the
     // app-usage stat cards, the quota panel (entitlement), the G20 coding-plan
     // charts and the reset-status block — instead of the honest-unavailable fault
@@ -738,7 +835,13 @@ fun main() {
         }
         mock.script.appUsageStats = fixture("app-usage-full", "phase3-wire-fixtures.json")
         mock.script.usageEntitlement = fixture("entitlement-full", "phase4-wire-fixtures.json")
-        mock.script.codingPlanResetStatus = fixture("reset-status-full", "phase4-wire-fixtures.json")
+        // RIG-P3 (vc52 Phase 14, N-BE-6): the reset window is FRESH every relay
+        // generation — the pinned fixture's dates are static past epochs, so the
+        // reset panel's countdowns were always expired on the rig.
+        mock.script.codingPlanResetStatus = redateResetStatus(
+            fixture("reset-status-full", "phase4-wire-fixtures.json"),
+            System.currentTimeMillis(),
+        )
         mock.script.codingPlanUsageSnapshot = codingPlanUsageRigSeed()
     }
     // Pass-29 rig arm: MOCK_AUTOMATION_RUNS=1 seeds one COMPLETED historical run for
@@ -1146,6 +1249,8 @@ internal fun armTaskManagementRig(mock: MockZCode) {
             taskId = "synth-task-1", title = "Synthetic task", displayStatus = "idle",
             workspacePath = "/synthetic/ws-one", workspaceLabel = "Synthetic One",
             pinned = true,
+            // RIG-P3 (N-BD-5): the per-task provider chip's fixture — the badge renders.
+            provider = "GLM-5.3-Flash",
         ),
         MockZCode.MockTask(
             taskId = "synth-task-2", title = "Synthetic task 2", displayStatus = "idle",
@@ -1256,4 +1361,87 @@ internal fun automationRunRigSeed(): JsonObject {
         "createdAt" to JsonPrimitive(now - 3600_000),
         "updatedAt" to JsonPrimitive(now - 3500_000),
     ))
+}
+
+/**
+ * RIG-P1 (vc52 Phase 14): the per-relay-GENERATION nonce. Every relay process
+ * lifetime derives a distinct nonce (env override MOCK_GEN_NONCE for repro drives
+ * that pin an id); two relay generations can never collide on a scripted
+ * interaction id — the recorded root of the pass-15 "inert cards" saga (INV-4
+ * duplicate guards correctly refusing a re-asserted RESOLVED id) and the pass-35
+ * q-rig-1 push-anchor confusion (a pushed permission re-claiming the seeded
+ * question's id).
+ */
+internal fun relayGenerationNonce(env: (String) -> String?): String {
+    env("MOCK_GEN_NONCE")?.takeIf { it.isNotBlank() }?.let { return it }
+    val millis = java.lang.Long.toString(System.currentTimeMillis(), 36)
+    val rand = (0 until 4096).random().toString(36)
+    return "g$millis-$rand"
+}
+
+/** RIG-P1: a scripted id with the generation nonce appended (empty nonce = bare base, the self-test shape). */
+internal fun nonceId(base: String, nonce: String): String =
+    if (nonce.isBlank()) base else "$base-$nonce"
+
+/**
+ * RIG-P3 (vc52 Phase 14, N-BE-6): the automation rig seed — the INV-8 strict row
+ * (workspace + location required) now carrying `nextRunAt` (epoch ms one hour out)
+ * so the phone's timezone-safe "Next …" label renders on the rig.
+ */
+internal fun automationRigSeed(): JsonObject = JsonObject(mapOf(
+    "automationId" to JsonPrimitive("auto-rig-1"),
+    "title" to JsonPrimitive("Nightly digest"),
+    "cronExpr" to JsonPrimitive("0 2 * * *"),
+    "prompt" to JsonPrimitive("Summarize yesterday's commits"),
+    "enabled" to JsonPrimitive(true),
+    "lifecycleStatus" to JsonPrimitive("active"),
+    "runCount" to JsonPrimitive(3),
+    "recurring" to JsonPrimitive(true),
+    "mode" to JsonPrimitive("task"),
+    "nextRunAt" to JsonPrimitive(System.currentTimeMillis() + 3_600_000),
+    "workspaceKey" to JsonPrimitive("/synthetic/ws-one"),
+    "locationKind" to JsonPrimitive("local"),
+))
+
+/**
+ * RIG-P3 (vc52 Phase 14, N-BE-6): re-date the pinned reset-status fixture to THIS
+ * relay generation — `expireAt` moves to now +5h / +7d, the used stamp to now -1h
+ * (the fixture's static past epochs made every rig countdown already-expired).
+ */
+internal fun redateResetStatus(fixture: JsonObject, now: Long): JsonObject {
+    fun redate(o: JsonObject, key: String, at: Long): JsonObject {
+        val arr = (o[key] as? JsonArray)?.map { el ->
+            (el as? JsonObject)?.let { JsonObject(it + ("expireAt" to JsonPrimitive(at))) } ?: el
+        }
+        return if (arr != null) JsonObject(o + (key to JsonArray(arr))) else o
+    }
+    val fiveH = redate(fixture, "availableFiveHourResets", now + 5 * 3_600_000)
+    val week = redate(fiveH, "availableWeekResets", now + 7 * 24 * 3_600_000)
+    val hist = week["latestFiveHourResetHistory"] as? JsonObject
+    return JsonObject(week + ("latestFiveHourResetHistory" to
+        (hist?.let { JsonObject(it + ("usedAt" to JsonPrimitive(now - 3_600_000))) } ?: JsonNull)))
+}
+
+/**
+ * RIG-P3 (vc52 Phase 14, the Phase-13 fixture debt): flip one off-peak row to
+ * `completed` IN the scripted fixture — the G63 notifier's queued→completed
+ * transition material (delivered on the next CONNECTED re-list after a relay
+ * restart). Unknown id = a logged no-op (the arm is a rig convenience, INV-15).
+ */
+internal fun completeOffPeakRow(mock: MockZCode, offPeakTaskId: String) {
+    val list = mock.script.offPeakTaskList ?: return
+    val idx = list.indexOfFirst { (it.jsonObject["offPeakTaskId"] as? JsonPrimitive)?.content == offPeakTaskId }
+    if (idx < 0) {
+        println("MOCK: completeOffPeakRow $offPeakTaskId not in the seeded list (no-op)")
+        return
+    }
+    val row = list[idx].jsonObject
+    val now = System.currentTimeMillis()
+    val completed = JsonObject(row + mapOf(
+        "status" to JsonPrimitive("completed"),
+        "sessionId" to JsonPrimitive("synth-op-session-1"),
+        "updatedAt" to JsonPrimitive(now),
+    ))
+    mock.script.offPeakTaskList = JsonArray(list.toMutableList().also { it[idx] = completed })
+    println("MOCK: offpeak $offPeakTaskId → completed (the G63 transition material)")
 }

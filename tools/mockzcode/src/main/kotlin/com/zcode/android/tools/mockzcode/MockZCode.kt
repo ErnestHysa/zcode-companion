@@ -407,6 +407,15 @@ class MockZCode(
         @Volatile var interactionPushDelayMs: Long? = null
         @Volatile var interactionPushId: String = "mock-approval-push-1"
         @Volatile var interactionPushTool: String = "Bash"
+        /**
+         * RIG-P1 (vc52 Phase 14, N-BE-6): the scheduled fresh-push interaction is
+         * EXCLUDED from every served snapshot until the scheduled patch has actually
+         * fired — `MOCK_INTERACTION_PUSH_MS=0` used to race the patch ahead of the
+         * initial snapshot, so the "fresh push" leg silently degraded to
+         * "was in the snapshot". After delivery the id serves in snapshots again
+         * (a reconnecting client must still see the pending interaction).
+         */
+        @Volatile var interactionPushDelivered: Boolean = false
 
         // ---------------- G77 (vc52 Phase 7, RIG-P1): AskUserQuestion auto-resolution ----------------
         /**
@@ -515,21 +524,29 @@ class MockZCode(
         var directDisconnectAfterFrames: Int? = null
     }
 
-    /** Verified pendingInteraction permission payload (snapshot.ts §9). */
+    /**
+     * Verified pendingInteraction permission payload (snapshot.ts §9). RIG-P1
+     * (vc52 Phase 14): `createdAt` is REQUIRED on the desktop schema — the phone's
+     * `?: clock()` fallback re-stamps the age on every reconnect when the wire
+     * omits it — so the slot captures its timestamp ONCE and every snapshot/patch
+     * serves that same value (stable across app SIGKILL + reconnect).
+     */
     data class PendingPermission(
         val interactionId: String,
         val toolName: String = "Bash",
         val summary: String = "Run a synthetic command?",
         val options: List<String> = listOf("allowOnce", "allowAlways", "deny"),
+        val createdAtMs: Long = System.currentTimeMillis(),
     )
 
-    /** Verified pendingInteraction userInput payload (snapshot.ts §9). */
+    /** Verified pendingInteraction userInput payload (snapshot.ts §9). RIG-P1: same stable-createdAt rule. */
     data class PendingUserInput(
         val interactionId: String,
         val prompt: String = "Synthetic question?",
         /** optionId list; empty + freeText=true = free-form ask. */
         val options: List<String> = listOf(),
         val freeText: Boolean = true,
+        val createdAtMs: Long = System.currentTimeMillis(),
     )
 
     /** Verified queueItemSchema display subset (queueItemId/text/kind/dispatch.state). */
@@ -565,6 +582,13 @@ class MockZCode(
          * row keeps its historical shape.
          */
         val workspaceIdentity: String? = null,
+        /**
+         * RIG-P3 (vc52 Phase 14, N-BD-5): the bootstrap task entry's optional
+         * `provider` (the desktop's per-task model/provider chip) — the phone decodes
+         * it since Phase 13 (24df8f25) and renders the badge; emitted only when
+         * non-null so the default row keeps the live-corpus key set (INV-8).
+         */
+        val provider: String? = null,
     ) {
         internal fun toJson(): JsonObject = if (productionShape) {
             buildJsonObject {
@@ -577,6 +601,7 @@ class MockZCode(
                 put("createdAt", JsonPrimitive(createdAtMs))
                 put("updatedAt", JsonPrimitive(updatedAtMs))
                 workspaceIdentity?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+                provider?.let { put("provider", JsonPrimitive(it)) }
                 if (pinned) put("pinned", JsonPrimitive(true))
                 unreadAtMs?.let { put("unreadAt", JsonPrimitive(it)) }
             }
@@ -1138,15 +1163,30 @@ class MockZCode(
             val ts = script.hookTrustStates[id]
             if (ts != null) JsonObject(o + ("trustState" to JsonPrimitive(ts))) else o
         }
+        // RIG-P1 (vc52 Phase 14): the "N pending · M hooks" header follows the LIVE
+        // trust states — the summary block is DERIVED from the merged items on every
+        // serve (the static armed payload froze it at the arm-time face, so a live
+        // trust flip never moved the header). pendingCount = the items still in
+        // pending_trust; hookCount = the item count; eventCount = distinct events.
+        val merged = items ?: emptyList()
+        val derivedSummary = buildJsonObject {
+            put("eventCount", JsonPrimitive(merged.mapNotNull { (it as? JsonObject)?.strOrNull("event") }.distinct().size))
+            put("hookCount", JsonPrimitive(merged.size))
+            put("pendingCount", JsonPrimitive(merged.count { (it as? JsonObject)?.strOrNull("trustState") == "pending_trust" }))
+        }
         return buildJsonObject {
             put("interactionId", hr["interactionId"] ?: JsonPrimitive("hook-rig"))
             put("kind", JsonPrimitive("workspaceHookReview"))
             put("anchorRowId", kotlinx.serialization.json.JsonNull)
-            put("createdAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
+            // RIG-P1: createdAt is REQUIRED (desktop schema) — serve the ARMED value,
+            // never a per-serve re-stamp (the phone's age badge re-stamped on every
+            // reconnect when the value moved).
+            put("createdAt", hr["createdAt"] ?: JsonPrimitive(System.currentTimeMillis().toDouble()))
             put("payload", buildJsonObject {
                 put("kind", JsonPrimitive("workspaceHookReview"))
-                (hr as? JsonObject)?.forEach { (k, v) -> if (k != "items") put(k, v) }
-                put("items", JsonArray(items ?: emptyList()))
+                (hr as? JsonObject)?.forEach { (k, v) -> if (k != "items" && k != "summary") put(k, v) }
+                put("summary", derivedSummary)
+                put("items", JsonArray(merged))
             })
         }
     }
@@ -1216,6 +1256,12 @@ class MockZCode(
      * a patch must carry every surviving interaction; a partial list resolves the rest
      * (pass-13 c2bcdc1b for the hook, pass-14 for the sibling permission/question).
      */
+    /**
+     * The authoritative pending list for the CURRENT script slots — one builder for
+     * every state patch (key-level replacement means a patch must carry every
+     * surviving interaction; a partial list resolves the rest — pass-13 c2bcdc1b for
+     * the hook, pass-14 for the sibling permission/question).
+     */
     private fun pendingInteractionList(): JsonArray {
         val now = System.currentTimeMillis()
         return JsonArray(listOfNotNull(
@@ -1227,7 +1273,9 @@ class MockZCode(
                         put("interactionId", JsonPrimitive(pp.interactionId))
                         put("kind", JsonPrimitive("permission"))
                         put("anchorRowId", JsonNull)
-                        put("createdAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
+                        // RIG-P1: createdAt is REQUIRED — serve the slot's CAPTURED
+                        // value (stable across reconnect/SIGKILL), never a re-stamp.
+                        put("createdAt", JsonPrimitive(pp.createdAtMs.toDouble()))
                         autoResolutionForEntry(now)?.let { put("autoResolution", it) }
                         put("payload", buildJsonObject {
                             put("kind", JsonPrimitive("permission"))
@@ -1254,7 +1302,7 @@ class MockZCode(
                         put("interactionId", JsonPrimitive(pu.interactionId))
                         put("kind", JsonPrimitive("userInput"))
                         put("anchorRowId", JsonNull)
-                        put("createdAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
+                        put("createdAt", JsonPrimitive(pu.createdAtMs.toDouble()))
                         autoResolutionForEntry(now)?.let { put("autoResolution", it) }
                         put("payload", buildJsonObject {
                             put("kind", JsonPrimitive("userInput"))
@@ -1271,6 +1319,23 @@ class MockZCode(
             },
             scriptedHookInteraction(),
         ))
+    }
+
+    /**
+     * RIG-P1 (N-BE-6): the SNAPSHOT-scoped pending list — the scheduled fresh-push
+     * interaction stays OUT until its own patch delivered it (`MOCK_INTERACTION_PUSH_MS=0`
+     * used to race the patch ahead of the initial snapshot, so the "fresh push" leg
+     * silently degraded to "was in the snapshot"). The pushed PATCH always carries it
+     * ([pushPendingPermission] builds the full list); snapshots may serve the id
+     * again once [Script.interactionPushDelivered] flipped.
+     */
+    private fun snapshotPendingInteractions(): JsonArray {
+        val full = pendingInteractionList()
+        if (script.interactionPushDelayMs == null || script.interactionPushDelivered) return full
+        return JsonArray(full.filter { el ->
+            val o = el as? JsonObject ?: return@filter true
+            o.strOrNull("interactionId") != script.interactionPushId
+        })
     }
 
     private fun stateBlock(): JsonObject? {
@@ -1297,7 +1362,7 @@ class MockZCode(
             put("autoDrain", JsonPrimitive(script.autoDrain))
         }
         val configBlock = script.sessionConfig
-        val pending = pendingInteractionList()
+        val pending = snapshotPendingInteractions()
         return buildJsonObject {
             put("revision", JsonPrimitive(stateRevision.get()))
             put("control", control)
@@ -1995,11 +2060,15 @@ class MockZCode(
             kotlinx.coroutines.delay(ms)
             pendingPushScheduled.set(false)
             pushPendingPermission(id, tool)
+            // RIG-P1 (N-BE-6): delivery done — snapshots may serve the push id again
+            // (a reconnecting client must still see the pending interaction).
+            script.interactionPushDelivered = true
         }
     }
 
     internal fun armInteractionPushForTest(delayMs: Long) {
         script.interactionPushDelayMs = delayMs
+        script.interactionPushDelivered = false
         interactionPushArmed.set(false)
         armInteractionPush()
     }
@@ -2008,6 +2077,16 @@ class MockZCode(
     internal fun subscribeArmsInteractionPushForTest() = armInteractionPush()
 
     internal fun interactionPushArmedForTest(): Boolean = interactionPushArmed.get()
+
+    /** RIG-P2 (N-BD-2b) seams — the handler and the self-test share ONE computation. */
+    internal fun listTasksServedForTest(): List<JsonObject> =
+        script.directTasks.filter { taskIdOf(it) !in script.archivedTaskIds }
+
+    internal fun listArchivedServedForTest(): List<JsonObject> =
+        script.directTasks.filter { taskIdOf(it) in script.archivedTaskIds }
+
+    /** RIG-P1 seam: the N-BE-6 delivery flag (snapshots exclude the push id while false). */
+    internal fun interactionPushDeliveredForTest(): Boolean = script.interactionPushDelivered
 
     /** True while a scheduled push is still pending (test seam for the guard's negative arm). */
     internal fun pushRescheduledForTest(): Boolean = pendingPushScheduled.get()
@@ -3206,7 +3285,14 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     put("summary", buildJsonObject { put("additions", JsonPrimitive(1)); put("deletions", JsonPrimitive(0)); put("files", JsonPrimitive(1)) })
                 }))
             }
-            "generateCommitMessage" -> scriptableObject(id, script.generatedCommitMessage, "generateCommitMessage")
+            // RIG-P2 (vc52 Phase 14): the N-BG-2 refusal arm answers FIRST for every
+            // git read the phone can surface (the deliberate fault beats the fixture —
+            // the same rule the G53 depth trio applies), so the known-code face is
+            // drivable per method on the rig.
+            "generateCommitMessage" -> {
+                script.gitRefusals["generateCommitMessage"]?.let { return respondError(id, it) }
+                scriptableObject(id, script.generatedCommitMessage, "generateCommitMessage")
+            }
             "push" -> {
                 if (script.gitPushFails) respondError(id, "Cannot push while HEAD is detached.")
                 else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
@@ -3259,6 +3345,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(merged))
             }
             "getChanges" -> {
+                script.gitRefusals["getChanges"]?.let { return respondError(id, it) }
                 val changes = script.gitChanges
                 if (changes == null) respondError(id, "fault.git.notAvailable")
                 else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(changes.map { RpcValue.Obj(it) }))
@@ -3269,6 +3356,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(diff))
             }
             "getCommitGraph" -> {
+                script.gitRefusals["getCommitGraph"]?.let { return respondError(id, it) }
                 val commits = script.gitCommits
                 if (commits == null) respondError(id, "fault.git.notAvailable")
                 else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
@@ -3806,6 +3894,24 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     put("revision", JsonPrimitive(stateRevision.get()))
                     put("config", script.sessionConfig!!)
                 })
+            }
+            // RIG-P2 (vc52 Phase 14, N-BD-2a): the Remove chip's word — the desktop
+            // flips the import's status to `discarded` (shared-context-import.ts) and
+            // patches it; the phone decodes the status and `sendable` goes false, so
+            // the chip leaves the composer. Without this effect the mock acked and the
+            // chip legitimately persisted until the next served frame (~8 dead wires
+            // in the N-BD-2 pass).
+            "discardSharedContext" -> {
+                stateRevision.incrementAndGet()
+                val contextId = payload?.strOrNull("contextId")
+                val current = script.sharedContextImport
+                if (current != null && (contextId.isNullOrBlank() || current.strOrNull("contextId") == contextId)) {
+                    script.sharedContextImport = JsonObject(current + ("status" to JsonPrimitive("discarded")))
+                    pushStatePatch(buildJsonObject {
+                        put("revision", JsonPrimitive(stateRevision.get()))
+                        put("sharedContextImport", script.sharedContextImport!!)
+                    })
+                }
             }        }
         return null
     }
@@ -4403,7 +4509,9 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
         when (name) {
             "listTasks" -> respond(
                 id, ChannelWire.ResponseType.PromiseSuccess,
-                RpcValue.Arr(script.directTasks.map { RpcValue.Obj(it) }),
+                // RIG-P2 (N-BD-2b): archived tasks leave the SERVED main list (they stay
+                // reachable through listArchivedTasks) — the ack's served-list mutation.
+                RpcValue.Arr(listTasksServedForTest().map { RpcValue.Obj(it) }),
             )
             "listDeletedTaskIds" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(emptyList()))
             "listPinnedTaskIds" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(script.pinnedTaskIds.map { RpcValue.Str(it) }))
@@ -4412,7 +4520,7 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
                 script.directTasks.filter { taskIdOf(it) in script.pinnedTaskIds }.map { RpcValue.Obj(decorateMeta(it)) },
             ))
             "listArchivedTasks" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(
-                script.directTasks.filter { taskIdOf(it) in script.archivedTaskIds }.map { RpcValue.Obj(decorateMeta(it)) },
+                listArchivedServedForTest().map { RpcValue.Obj(decorateMeta(it)) },
             ))
             "setTaskPinned" -> {
                 val taskId = arg?.str("taskId")
@@ -4434,6 +4542,27 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
                     respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
                         put("taskId", JsonPrimitive(taskId))
                         if (stamp != null) put("unreadAt", JsonPrimitive(stamp)) else put("unreadAt", kotlinx.serialization.json.JsonNull)
+                    }))
+                }
+            }
+            // RIG-P2 (vc52 Phase 14, N-BD-2b): the archive verbs MUTATE the served
+            // state — the id joins/leaves `archivedTaskIds`, the main `listTasks`
+            // stops serving the archived row, and the mutation rides
+            // `workspace-list-updated` so the hub's projection follows the ack (the
+            // recorded face: create/fork/archive acked ok but the served task list
+            // never changed).
+            "archiveTask", "unarchiveTask" -> {
+                val taskId = arg?.str("taskId")
+                if (taskId == null) respondError(id, "fault.mock.unscripted:$name")
+                else {
+                    if (name == "archiveTask") script.archivedTaskIds.add(taskId) else script.archivedTaskIds.remove(taskId)
+                    // §48-U2 path: the desktop pushes the updated task list immediately.
+                    script.bootstrapTasks?.let { tasks ->
+                        pushWorkspaceListUpdated(tasks.filter { it.taskId !in script.archivedTaskIds })
+                    }
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("taskId", JsonPrimitive(taskId))
+                        put("archived", JsonPrimitive(name == "archiveTask"))
                     }))
                 }
             }
@@ -4605,7 +4734,13 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
         }
     }
 
+    /** Self-test observability: every promise reply (id, responseTypeId, payload) in send order. */
+    private val promiseResponses = ArrayList<Triple<Int, Int, RpcValue>>()
+    internal fun promiseResponsesForTest(): List<Triple<Int, Int, RpcValue>> =
+        synchronized(promiseResponses) { ArrayList(promiseResponses) }
+
     private fun respond(id: Int, type: ChannelWire.ResponseType, data: RpcValue) {
+        synchronized(promiseResponses) { promiseResponses.add(Triple(id, type.id, data)) }
         sendLogicalFrame(
             RpcSerialization.encodeAll(
                 listOf(RpcValue.Arr(listOf(RpcValue.Int(type.id), RpcValue.Int(id))), data)
