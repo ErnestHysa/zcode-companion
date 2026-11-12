@@ -10784,7 +10784,7 @@ These are **new defects in the same plane**, not failed fixes. Treat them as suc
 | 11 | Parity: protocol & execution planes | 11 | 0 | 0 | 9 | 2 | High | ☑ **Done 2026-11-11** — all 11 rows (G48+G51 one shared mechanism pair; G42-P13+G44-P13 dated boundary; GAP-17/J3 dated evolution decision; G54 dated boundary + the shipped G27 slice); commits `161c8d53`→`3869bec7` (17 fix/test + 5 tools/mockzcode, incl. the two rig-caught follow-ups ef66d2b7/a4118319); exit gate PASSED; receipt "Phase 11 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-11" appended at file end |
 | 12 | Parity: authoring & management planes | 14 | 0 | 0 | 3 | 11 | Medium | ☑ **Done 2026-11-11** — all 14 rows (G75 + G76 + G42-P23 shaped by the fresh-asar evidence, dated in the receipt); commits `ed15a0cf`→`cfa33caf` (19, incl. 3 rig-caught follow-ups 3ee92e8d/90030b78/cfa33caf); exit gate PASSED; receipt "Phase 12 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-11" appended at file end |
 | 13 | Parity: form factor, updates & polish | 13 | 0 | 0 | 0 | 13 | Low | ☑ **Done 2026-11-12** — all 13 rows (G49+G50 one shared send-trio mechanism; G57 dated boundary + the no-dead-cards slice); commits `20bd89b7`→`f7c0d753` (14, incl. the ThemeShapes pin-coupled fix); exit gate PASSED; receipt "Phase 13 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-12" appended at file end |
-| 14 | Rig fidelity, WATCH items & pin backlog | 8 | 0 | 0 | 0 | 8 | Low | ☐ Open |
+| 14 | Rig fidelity, WATCH items & pin backlog | 8 | 0 | 0 | 0 | 8 | Low | ☑ **Done 2026-11-12** — all 8 rows (RIG-P4 was pulled forward into Phase 6; RIG-P1's autoResolution half pulled forward into Phase 7; RIG-P3's rowsRange half pulled forward into Phase 10 — each receipted at its row); commit `49e3315e` (+ the report/docs commits); exit gate PASSED; receipt "Phase 14 (vc52 remediation) — rig commits + WATCH decisions + exit gate — 2026-11-12" appended at file end |
 | | **Total** | **85** | **2** | **11** | **26** | **46** | | |
 
 Counts reconcile: 6+6+7+10+10+11+14+13+8 = 85 rows; 2+11+26+46 = 85. Rows that bundle
@@ -11665,7 +11665,8 @@ behaviour changes. **Rig pulls forward:** rows 1–4 must land before the phase 
 
 ### Sub-phase 14A — mock and rig fidelity
 
-- [ ] **RIG-P1 (P4) — interaction-plane mock fidelity.**
+- [x] **RIG-P1 (P4) — interaction-plane mock fidelity.** (DONE 2026-11-12 — `49e3315e`; autoResolution was ALREADY
+  pulled forward into Phase 7 per the "rig pulls forward" rule, `26736a43`)
   Per-generation nonce for scripted interaction ids (the reuse caused the pass-15 "inert cards"
   saga and the INV-4 refusals); required `createdAt` on pending interactions (the desktop schema
   makes it REQUIRED; the phone's `?: clock()` fallback re-stamps ages on reconnect); the
@@ -11674,18 +11675,61 @@ behaviour changes. **Rig pulls forward:** rows 1–4 must land before the phase 
   push id in the snapshot (N-BE-6). **Accept:** two relay generations with no id collision;
   `createdAt` stable across a SIGKILL; the autoResolution fixture renders a countdown; the hook
   header follows the trust state; `:tools:mockzcode:test` green with new self-tests.
-- [ ] **RIG-P2 (P4) — git/workflow mock fidelity.**
+  **Closed:** `MOCK_GEN_NONCE`/`relayGenerationNonce` — every scripted id (approval/question/
+  hook/gen-push) carries the per-process nonce (two relay generations provably distinct);
+  LIVE RECEIPT: gen-1 `mock-approval-1-gmwdu3rpy-1w` vs gen-2 `mock-approval-1-gmwdulzh6-va`
+  + `mock-approval-push-1-gmwdulzh6-va` in the same Room `interactions` table across a relay
+  SIGKILL+restart — ZERO collision, both generations' cards alive side-by-side (the INV-4
+  inert-card refusal is structurally unreachable). `PendingPermission`/`PendingUserInput` carry
+  `createdAtMs` (captured once, served verbatim every snapshot/patch — stable across app SIGKILL);
+  the hook interaction serves the ARMED payload's createdAt. The hook summary is DERIVED from the
+  merged items per serve (a live trust flip moves pendingCount). `snapshotPendingInteractions()`
+  keeps the push id out of snapshots until its own patch delivered it (the patch always carries
+  it; post-delivery snapshots serve it again). Pins: `MockZCodePhase14RigSelfTest` ×22 (incl.
+  the two-generation no-collision pin, the stable-createdAt pins, the trust-flip header pin, the
+  N-BE-6 exclusion pin); `:tools:mockzcode:test` 125/0/0.
+- [x] **RIG-P2 (P4) — git/workflow mock fidelity.** (DONE 2026-11-12 — `49e3315e`.)
   A `discardSharedContext` handler (the chip currently persists after Remove); served-list
   mutation after create/fork/archive ack (N-BD-2: the ack is ok but the list never changes);
   `gitSummary` that follows the create-branch ack; `runAutomationNow` scripted; `generateCommitMessage` and
   `getChanges`/`getCommitGraph` either scripted or deliberately faulted with UI assertions (N-BG-2);
   `editUserQuery`'s `canEdit` gate served so the live edit leg is reachable. **Accept:** each leg
   receipted; self-tests.
-- [ ] **RIG-P3 (P4) — data-shape arms.**
+  **Closed:** `discardSharedContext` effect flips the served import's status to `discarded`
+  (the wire vocabulary — the phone's `sendable` goes false and the chip leaves the composer;
+  N-BD-2a); `archiveTask`/`unarchiveTask` verbs MUTATE the served lists (listTasks drops the
+  archived row, listArchivedTasks gains it, workspace-list-updated pushed — N-BD-2b; create/fork
+  already pushed workspace-list-updated, receipted in Phase 4A); `gitSummary`-follows-create-branch
+  was ALREADY the RIG-5 mechanism (`mergedGitSummary`) — re-pinned; `runAutomationNow` was ALREADY
+  scripted (queued/duplicate, Phase 4B) — receipted; the N-BG-2 git READ fixtures now serve the
+  positive path (generatedCommitMessage + gitChanges + gitDiff + gitCommits under MOCK_GIT) AND
+  the refusal arm answers FIRST per method with `MOCK_GIT_REFUSALS=method=code` specs (the
+  G79 known-code face) — the app-side UI assertions are Phase 11's N-BG-2 row (done);
+  `canEdit` was ALREADY served (pass-25 stamping on the latest user row; the live edit leg was
+  receipted pass-23/24) — receipted. Pins: the refusal-beats-fixture trio, the positive-path
+  trio, the discard effect ×2, the archive round-trip ×2, the create-branch summary pin.
+- [x] **RIG-P3 (P4) — data-shape arms.** (DONE 2026-11-12 — `49e3315e`; rowsWindowSchema was ALREADY
+  pulled forward into Phase 10, `859f8533`+`fc3c0a0a`.)
   `rowsWindowSchema` (F-37-D's Load-earlier strip); `nextRunAt` on automation seeds (the phone's
   timezone-safe "Next …" label); non-static usage reset dates; `MOCK_FILECHANGES` per-file lists;
   `gitIdentity` serving for the commit sheet; the `q-rig-1` push anchor (data=null today);
   the bootstrap `provider` field (N-BD-5). **Accept:** each leg has data; self-tests.
+  **Closed:** the automation seed carries `nextRunAt` (epoch-ms one hour out; the CRUD path
+  already served it — `schemaAutomationRow`); the reset-status fixture is re-dated to THIS
+  relay generation (`redateResetStatus`: expireAt → now+5h/+7d, usedAt → now−1h — the pinned
+  static-past epochs made every rig countdown already-expired); MOCK_FILECHANGES per-file lists
+  were ALREADY served (the pass-26/27 arm, per-file items + patches — receipted); `gitIdentity`
+  was ALREADY served (`getIdentity` → Ernest/takis312 + the `gitIdentityMissing` arm — receipted);
+  the q-rig-1 anchor is CLOSED VIA the RIG-P1 nonce (the pass-35 data=null was the mock-shaped
+  id collision — a pushed permission re-claiming the seeded question's id; fresh per-generation
+  ids make every interaction a fresh Room record whose sessionId is captured at reconcile time —
+  the app-side anchor ride is pinned app-side); the bootstrap task row serves the optional
+  `provider` (N-BD-5; emitted only when set so the default row keeps the live-corpus key set,
+  INV-8). Phase-13 fixture debts in the same batch: `MOCK_TOOLS` seeds the kernel tool rows
+  (G80's subtitle/grouping legs live); the fault.* known-code arm = the `method=code` refusal
+  spec; the off-peak queued→completed transition = `MOCK_OFFPEAK_COMPLETE_MS` +
+  `completeOffPeakRow` (the G63 notifier's transition material on the next CONNECTED re-list);
+  the release fixture is WAIVED (dated reason in the Phase-14 record below).
 - [x] **RIG-P4 (P4) — commit the DIRECT-mode mock.** (DONE 2026-11-08, PULLED FORWARD into Phase 6 per the "rig pulls forward" rule — `df6b5f50`: `MOCK_MODE=direct` + `:tools:mockzcode:mockDirectServer` + runbook §6; self-test ×3, 75/75)
   `/tmp/p37/direct/DirectMain.kt` (a `MockZCode.Mode.DIRECT` launcher serving `/api/server-info` +
   `/ws` with the `zcode_lite_token` contract, verified against curl) is outside the repo. **Fix:**
@@ -11694,49 +11738,128 @@ behaviour changes. **Rig pulls forward:** rows 1–4 must land before the phase 
   and F-37-A's live leg reproduces from the repo alone.
 ### Sub-phase 14B — WATCH decisions
 
-- [ ] **WATCH-1 (P4) — F-21-A (touch dead zone after scroll-to-top).** Six consecutive clean
+- [x] **WATCH-1 (P4) — F-21-A (touch dead zone after scroll-to-top).** Six consecutive clean
   passes at the trigger state. **Fix:** one more clean stress leg (40 flings + composer/header/
   sheet probes) closes it permanently with a dated note; if it ever re-manifests, re-open with a
   fresh receipt and a `pointerInput` stress pin. **Accept:** the dated decision is in the report.
-- [ ] **WATCH-2 (P4) — D1 (relay-restart DEGRADED wedge).** Five consecutive non-reproductions
+  **DECISION (2026-11-12): CLOSED PERMANENTLY.** The closing stress leg ran on a fresh zcode-a16
+  cold boot at the Phase-14 HEAD (debug `21feb99b386845ea…`, byte-identical to the Phase-13 gate
+  build): the seeded 300-row conversation (MOCK_ROWS) driven with **40 fast flings** to the
+  timeline top, then ALL THREE probes answered — (1) the composer accepted the tap + typed text
+  (`w1probe` in the field), (2) the session-bar config chip toggled the interactive chips IN and
+  BACK (true two-way), (3) the Context chip opened the context sheet (the Git chip + goal row
+  rendered) and BACK-dismissed it with the composer STILL accepting text afterwards. Zero dead
+  taps, 0 FATALs/0 ANRs across the leg. That is the SEVENTH consecutive clean pass at the exact
+  trigger state and the first at 40-fling stress — the row's own closing criterion. Re-open only
+  on a fresh dated receipt (with a `pointerInput` stress pin), never on suspicion.
+- [x] **WATCH-2 (P4) — D1 (relay-restart DEGRADED wedge).** Five consecutive non-reproductions
   with the honest recovery ladder. **Fix:** add a two-connection takeover pin only if a pass
   reproduces it; otherwise close with the non-reproduction record. **Accept:** the dated decision.
-- [ ] **WATCH-3 (P4) — the subscribe-ack projection rebuild transiently drops the pinned plane.**
+  **DECISION (2026-11-12): CLOSED with the non-reproduction record (no pin).** The relay was
+  SIGKILLed while the app held the live conversation subscription: the honest degradation face
+  rendered ("Reconnecting…" after the ~20 s ping/pong loss detection), the relay restarted under
+  the SAME arms, and the app went **CONNECTED at the first poll (t=5 s)** — `hub.phase ::
+  transport (RELAY_ZAI) → CONNECTED` → `bootstrapApplied` + `bootstrapReplayed` with heartbeats
+  flowing on the successor connection (relay-6). NO DEGRADED wedge, no Retry, no stuck
+  "Connection lost" face — the SEVENTH consecutive non-reproduction (the vc52 roadmap cut
+  recorded five; passes since added a sixth; this leg is the seventh) and the first under the
+  Phase-14 HEAD. The two-connection takeover pin stays UNWRITTEN per the row's own rule; D1
+  re-opens only on a fresh dated reproduction.
+- [x] **WATCH-3 (P4) — the subscribe-ack projection rebuild transiently drops the pinned plane.**
   After a trust patch → app resync → `gateway.replay frames=0`, the hook card vanished for one
   screen generation while the reconcile still logged the interaction present. **Fix:** pin the
   subscribe-ack path's projection rebuild (one Robolectric/hub pin) or close as unobserved since
   Phase 1. **Accept:** a pin or a dated close.
-- [ ] **WATCH-4 (P4) — the E7 stale-link papercut + the Relay V2 drift watch.**
+  **CLOSED BY PIN (2026-11-12, `49e3315e`):** `WatchThreeProjectionRetentionTest` ×5 at the
+  manager level (the projection's single writer) — a snapshot WITH state keys lands the hook
+  interaction; a later snapshot WITHOUT state keys (the legacy shape a resync can re-serve)
+  RETAINS it (the projection is never rebuilt-empty — the candidate mechanism is refuted at the
+  writer); a row-op replay (resync deltas, no state ops) RETAINS it; the retained interaction
+  still feeds the hook-review ledger; and a snapshot WITH state keys that drops the interaction
+  replaces the plane atomically (the one legitimate §15.5a clear path). Wire-shape fixtures
+  throughout. Unobserved live since the Phase-1 recording (11 days); the pin now guards the
+  contract regardless.
+- [x] **WATCH-4 (P4) — the E7 stale-link papercut + the Relay V2 drift watch.**
   The stale-link path builds `SecuritySetup` with `requireE7Consent = false`
   (`PairingFlow.kt:201-206`), so the reduced-security consent is skipped when the link is stale;
   and the desktop's Relay V2 contract (JWT bearer, device roles, 60 s WS tokens) is not in the
   shipped 3.14.5 asar. **Fix:** decide the E7 behaviour (fail-closed consent or documented
   exception) and re-grep the Relay V2 drift after any desktop update. **Accept:** the decision is
   recorded; the drift watch is re-run if `/Applications/ZCode.app` changes.
+  **DECISIONS (2026-11-12):** (1) **E7 = FAIL-CLOSED consent is the accepted direction, scheduled
+  as a fix row for the next app-behaviour batch** (Phase 14's charter forbids app changes).
+  Grounding: E7 is the NO-SECURE-LOCK-SCREEN consent ("the sealed credential is only as safe as
+  this device" — `setup_no_lock_detail`); `requireE7Consent` is derived from the DEVICE's lock
+  state at validation, so a stale link or a compat-above-tested link (both device-independent
+  facts) must NOT drop it — the shape is one line per path: thread `event.requireE7Consent`
+  through `State.StaleWarning.toSetup()` and `State.CompatAboveTested.toSetup()`
+  (`PairingFlow.kt:201-206`). Interim risk is bounded and documented: the consent is INFORMING
+  (the credential seals no-lock either way) and both skip paths already present their own
+  explicit security decision point (the stale-provenance / compat honesty warnings). (2) **The
+  Relay V2 drift watch re-ran against the CHANGED desktop** — `/Applications/ZCode.app` updated
+  mid-campaign to 3.18.1 (asar `ec475e6e302595fe…`, 383,832,025 B, mtime 2026-11-11 20:59; was
+  3.18.0 / `4a6080ed` at the Phase-12 stamp). Re-grep verdict: the V2 TRANSPORT contract is still
+  absent (`remote/v2`/`relay-v2`/`relay_v2`/`wsToken` = 0), BUT the V2 DEVICE-REGISTRATION plane
+  is NOW SHIPPED — `/api/v1/remote/device` register/list/delete/token REST map, the device record
+  zod (`device_sid`/`device_mid`/`online`/`created_at`/`meta`), an EXPIRING token shape
+  (`{token: [A-Za-z0-9_-]{21}[AQgw], expires_in}`), `webRemoteControlRelayV2Device` /
+  `webRemoteControlExternalRelayDevice` settings fields, and
+  `parseWebRemoteControlRelayV2IncomingMessage` — the browser-companion device plane, not (yet)
+  the phone's relay pairing. The watch STAYS OPEN with a sharpened trigger: re-grep on EVERY
+  desktop update (the markers now include `/api/v1/remote/device` and
+  `RelayV2IncomingMessage`), and any flip of the phone's pairing path onto the V2 device plane
+  is a BREAKING-compat event (the AAP chain: BREAKING = draft PR, a human promotes).
+  W2 families re-grepped in the same pass: `gen-ui` is NOW SHIPPED (103 hits; was 0 in 3.14.5)
+  — a drift datum for the next gap audit; TodoPanel / TaskSearchDialog /
+  MessageChangeSummaryPanel / image-preview-editor / ConversationShareLinkRow remain absent.
 
-**Phase 14 exit gate: ☐** `:tools:mockzcode:jar` + `:tools:mockzcode:test` green; the DIRECT-mode
-mock reproducible from the repo; the four WATCH decisions dated; the report's mock-debt list
-empty (or each residual explicitly waived with a reason).
+**Phase 14 exit gate: ☑ PASSED 2026-11-12** — `:tools:mockzcode:jar` + `:tools:mockzcode:test`
+green (125/0/0, +22 this phase); the DIRECT-mode mock reproducible from the repo (clean
+`MOCK_MODE=direct` launch on :18299, the token contract verified live: no-token 401 / wrong-token
+401 / right-token 200); the four WATCH decisions dated (above); the mock-debt ledger closed —
+every recorded mock/rig debt is either receipted as pre-closed (autoResolution RIG-P1-pull,
+rowsRange RIG-P3-pull, canEdit, gitIdentity, MOCK_FILECHANGES, runAutomationNow, gitSummary)
+or closed by this phase's commits (N-BD-2a/2b, N-BE-6 ×3, N-BG-2 fixtures+refusal arm, the
+per-generation nonce, the q-rig-1 anchor, the tool-row/off-peak-transition fixture debts), with
+exactly ONE dated waiver (the release fixture — no app-side seam exists without a behaviour
+change; the plane is pinned 8× and the honest empty face receipted live in Phase 13).
 
 ---
 
 ## Definition of done (vc52 remediation)
 
-- [ ] Every phase exit gate checked in order (6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14), each on a
-      fresh emulator+relay leg with receipts appended to this report
-- [ ] All 85 roadmap rows ticked — or explicitly waived with a dated one-line reason here
-- [ ] Full 17-module suite (`testDebugUnitTest` + the six JVM `test` tasks) green at the final HEAD
+- [x] Every phase exit gate checked in order (6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14), each on a
+      fresh emulator+relay leg with receipts appended to this report (Phase 14's gate PASSED
+      2026-11-12 — the fresh zcode-a16 cold boot, pairing attempt-1, the WATCH-1/2 stress legs;
+      0 FATALs / 0 ANRs)
+- [x] All 85 roadmap rows ticked — or explicitly waived with a dated one-line reason here
+      (**152 rows ticked, ZERO unticked**; the one waiver lives inside RIG-P3: the release
+      fixture, dated 2026-11-12, "no app-side seam without a behaviour change; pinned 8×")
+- [x] Full 17-module suite (`testDebugUnitTest` + the six JVM `test` tasks) green at the final HEAD
       with the zero-new-names gate against the recorded per-phase baselines, and every module
-      emitted test XML (no test-compile blind spot)
+      emitted test XML (no test-compile blind spot) — **2318/0/0/0 at the Phase-14 HEAD
+      (2291 + 27 = exactly the phase's pins: 22 mock self-tests + 5 WATCH-3 data pins), all 17
+      modules emitting XML, zero task failures, zero names lost**
 - [ ] Fresh debug APK rebuilt with the `zcode-android-release-meta` block; artifact path + version
-      marker stated to Ernest (deliverable completion rule)
-- [ ] Work committed locally as `ErnestHysa <takis312@hotmail.com>`; pushed/published only on
+      marker stated to Ernest (deliverable completion rule) — **STATE 2026-11-12: the debug APK at
+      the Phase-14 HEAD is byte-identical to the Phase-13 gate build (`21feb99b386845ea…`,
+      31,273,821 B — Phase 14 changed NO app code, verified by sha) at
+      `app/build/outputs/apk/debug/app-debug.apk`; the `zcode-android-release-meta` block
+      attaches only at publish (the release policy) — the signed release rebuild + notes-meta
+      happens on Ernest's explicit publish word**
+- [x] Work committed locally as `ErnestHysa <takis312@hotmail.com>`; pushed/published only on
       Ernest's explicit word (ADDITIVE = signed draft / BREAKING = draft PR; a human promotes)
-- [ ] The W2 drift WATCH re-run if `/Applications/ZCode.app` changed mid-campaign (asar digest
-      re-measured before the final phase); the Relay V2 watch re-grepped
-- [ ] Reusable learnings appended to AGENTS.md; this roadmap file left append-only
-- [ ] The 2026-10-30 roadmap's closure record (Part 0) verified untouched — no Phase 1–5 row is
-      re-opened without a dated re-manifestation entry
+      — **nothing pushed through the Phase-14 close (2026-11-12)**
+- [x] The W2 drift WATCH re-run if `/Applications/ZCode.app` changed mid-campaign (asar digest
+      re-measured before the final phase); the Relay V2 watch re-grepped — **the desktop DID
+      change mid-campaign (3.18.0/`4a6080ed` → 3.18.1/`ec475e6e`, 2026-11-11 20:59): both
+      watches re-ran 2026-11-12 — the V2 device-registration plane is NOW SHIPPED (see
+      WATCH-4), `gen-ui` is NOW SHIPPED (103 hits), the other five W2 families remain absent**
+- [x] Reusable learnings appended to AGENTS.md; this roadmap file left append-only
+- [x] The 2026-10-30 roadmap's closure record (Part 0) verified untouched — no Phase 1–5 row is
+      re-opened without a dated re-manifestation entry (verified 2026-11-12: the Phase-14 tick
+      diff touches ONLY the Phase-14 rows + the overview row + the exit gate — 12 deleted lines,
+      every one a tick target)
 ## Phase 6 (vc52 remediation) — fix commits + exit-gate rig leg — 2026-11-08 (APPENDED; not part of the audit, the vc51 roadmap, Part 0, or the vc52 roadmap body)
 
 Scope: vc52 Phase 6 — Security & untrusted execution — ALL six rows (F-37-A, F-37-B, F-37-C,
@@ -12749,4 +12872,89 @@ Connected, no human hands). Census: **0 app FATALs / 0 ANRs** across the whole s
   attempt-1, 0 FATALs / 0 ANRs.
 - **Timestamp**: 2026-11-12, verified end-to-end this session (suite gate 7m58s at phase HEAD;
   rig leg ~45 min).
+- **Nothing pushed** — all work committed locally on `fix/vc52` per the release policy.
+
+## Phase 14 (vc52 remediation) — rig commits + WATCH decisions + exit gate — 2026-11-12 (APPENDED; not part of the audit, the vc51 roadmap, Part 0, or the vc52 roadmap body)
+
+Scope: vc52 Phase 14 — Rig fidelity, WATCH items & pin backlog — ALL eight rows (RIG-P4 was
+already pulled forward into Phase 6 at `df6b5f50`; RIG-P1's autoResolution half was pulled
+forward into Phase 7 at `26736a43`; RIG-P3's rowsRange half was pulled forward into Phase 10 at
+`859f8533`+`fc3c0a0a` — each receipted at its roadmap row). Charter: mock/rig commits
+(`tools/mockzcode`) + report decisions ONLY, no app behaviour changes — the phase's app diff is
+EMPTY (the debug APK at the phase HEAD is byte-identical to the Phase-13 gate build, sha
+`21feb99b386845ea…`). One finding ≥ one commit; nothing pushed.
+
+### Rig commit (the whole batch is one cohesive mock commit + the WATCH-3 app-test pin)
+
+| Row | Commit | Mechanism closed | Pins (all green at `49e3315e`) |
+| --- | --- | --- | --- |
+| RIG-P1 (P4) | `49e3315e` | The per-relay-GENERATION nonce (`relayGenerationNonce`/`nonceId`, `MOCK_GEN_NONCE` override): every scripted interaction id — approval row, question, hook review, gen push — carries the process-lifetime nonce, so two relay generations can NEVER collide (the pass-15 "inert cards" saga root: constant ids re-asserted across relay restarts met the app's correct INV-4 duplicate guards; also the pass-35 q-rig-1 anchor confusion root — a pushed permission re-claiming the seeded question's id). REQUIRED `createdAt` served STABLE: `PendingPermission`/`PendingUserInput` carry `createdAtMs` captured at slot-set time and every snapshot/patch serves it verbatim (the phone's `?: clock()` fallback can no longer re-stamp); the hook interaction serves the ARMED payload's createdAt. The hook review's "N pending · M hooks" summary is DERIVED from the merged items on every serve (a live trust flip moves `pendingCount`; the static arm-time face froze it). `snapshotPendingInteractions()` keeps the gen push id OUT of served snapshots until its own patch delivered it (N-BE-6: the MS=0 race silently degraded the fresh-push leg to "was in the snapshot"); the pushed patch ALWAYS carries it; post-delivery snapshots serve it again | MockZCodePhase14RigSelfTest ×22: two-generation no-collision; MOCK_GEN_NONCE verbatim; the bare-base shape; permission + userInput createdAt REQUIRED and stable; the hook summary derived (3 hooks/2 pending/2 events); the trust-flip moves the header; the hook createdAt armed-value stability; the push-id snapshot exclusion (pre/post-delivery + the non-armed control); discard ×2 (below); archive ×2 (below); git refusal-vs-fixture ×2; the create-branch summary pin; nextRunAt; redateResetStatus; completeOffPeakRow ×2; the provider badge ×2 |
+| RIG-P2 (P4) | `49e3315e` | The `discardSharedContext` command effect: the served `sharedContextImport` flips to `status:"discarded"` (the wire vocabulary — the phone's `sendable` goes false and the chip leaves the composer; the recorded face was ~8 dead wires with the chip persisting). The `archiveTask`/`unarchiveTask` verbs MUTATE the served state: the id joins/leaves `archivedTaskIds`, `listTasks` DROPS the archived row (single-source `listTasksServedForTest`), `listArchivedTasks` gains it, and the mutation rides `workspace-list-updated` (N-BD-2b). The N-BG-2 git READ fixtures now serve the positive path (generatedCommitMessage + gitChanges + gitDiff + gitCommits under MOCK_GIT — the Generate button and Changes/History tabs had only ever seen silent refusals) AND the refusal arm answers FIRST per method — `MOCK_GIT_REFUSALS` accepts `method=code` specs (the G79 known-code face; a bare method keeps `fault.git.notAvailable`) | The refusal-beats-fixture trio (getChanges/generateCommitMessage/getCommitGraph); the positive-path trio; the discard effect + the foreign-contextId guard; the archive/unarchive round-trips; the create-branch summary pin (the RIG-5 class, re-owned). Pre-closed receipts (already scripted, no change): `runAutomationNow` (queued/duplicate, Phase 4B), `gitSummary`-follows-create-branch (RIG-5), `canEdit` (pass-25 stamping; the live edit leg receipted pass-23/24) |
+| RIG-P3 (P4) | `49e3315e` | The data-shape arms: the automation seed carries `nextRunAt` (epoch-ms one hour out — the timezone-safe "Next …" label never had data on the rig; the CRUD path already served it); `redateResetStatus` re-dates the pinned reset-status fixture to THIS relay generation (expireAt → now+5h/+7d, usedAt → now−1h — the static past epochs made every rig countdown already-expired); `MOCK_OFFPEAK_COMPLETE_MS` + `completeOffPeakRow` flip the QUEUED rig row to `completed` in-fixture (the G63 notifier's queued→completed transition material, delivered on the next CONNECTED re-list after a relay restart — the Phase-13 fixture debt); the bootstrap task row serves the optional `provider` (N-BD-5, emitted only when set — INV-8's live-corpus key set preserved on the default row); `MOCK_TOOLS` seeds the KERNEL tool rows (TaskUpdate/Bash/Edit/Glob/WebSearch — the G80 subtitle/grouping legs render live; the seeded conversation carried text/thinking/plan rows only) — the Phase-13 tool-row fixture debt. Pre-closed receipts: rowsWindowSchema (Phase-10 pull), `gitIdentity` (`getIdentity` + the missing arm), MOCK_FILECHANGES per-file lists (pass-26/27 arm). WAIVED: the release fixture — no app-side seam exists without a behaviour change (the phone's releases URL is a compile-time constant to api.github.com by design, §37), and the plane is pinned 8× (UpdatePlaneHooksTest ×4 + AppPreferencesUpdatePlaneRoundTripTest ×4) with the honest empty face receipted live in Phase 13 | nextRunAt future-stamp; redateResetStatus (all three windows + the untouched key); completeOffPeakRow flip + the unknown-id no-op; the provider badge present/absent ×2 |
+| WATCH-3 (P4) | `49e3315e` | The subscribe-ack projection RETENTION pin: `WatchThreeProjectionRetentionTest` ×5 at the manager level (the projection's single writer) — a snapshot WITH state keys lands the hook interaction; a later snapshot WITHOUT state keys RETAINS it (never rebuilt-empty — the candidate mechanism refuted at the writer); a row-op replay (resync deltas, no state ops) RETAINS it; the retained interaction still feeds the hook-review ledger; a snapshot WITH state keys that drops the interaction replaces the plane atomically (the one legitimate §15.5a clear path). Wire-shape fixtures throughout | data module 274/0/0 (269 + 5) |
+| WATCH-1/2/4 | report decisions (no code) | F-21-A CLOSED PERMANENTLY on the 40-fling stress leg (the 7th consecutive clean pass, the first at stress); D1 CLOSED on the 7th consecutive non-reproduction (no takeover pin, per the row's own rule); the E7 FAIL-CLOSED decision recorded with the one-line fix shape for the next app-behaviour batch; the Relay V2 + W2 drift watches re-run against the CHANGED desktop (3.18.1/`ec475e6e`) | the dated decisions live at the roadmap rows |
+
+### Suite reconciliation
+
+Pre-phase baseline at the Phase-13 HEAD (`7c54f2c2`): **2291/0/0/0** across 17 modules. The phase's
+commits touch `tools/mockzcode` + `data`'s test tree ONLY. Post-phase gate at the phase HEAD:
+**2318 tests / 0 failures / 0 skipped across all 17 modules** (11 `testDebugUnitTest` + five JVM
+`test` + `:tools:mockzcode:test`), **+27 = exactly the phase's pins** (22 `MockZCodePhase14RigSelfTest`
++ 5 `WatchThreeProjectionRetentionTest`), every module emitting test XML (no test-compile blind
+spot), the gradle task list green (BUILD SUCCESSFUL; the untouched modules up-to-date — gradle's
+own input-hash proof that no app code changed). `:tools:mockzcode:jar` green.
+
+### Exit-gate rig leg — PASSED 2026-11-12 (fresh zcode-a16 cold boot, Android 16 / API 36)
+
+Rig: debug APK `21feb99b386845ea…` (31,273,821 B, byte-identical to the Phase-13 gate build) at
+the phase HEAD; `pm clear` → the committed `tools/rig/pair-relay.py` — **PAIRING_OK attempt 1**;
+relay arms `MOCK_ROWS=300 MOCK_HOOKS=1 MOCK_APPROVAL=1 MOCK_INTERACTION_PUSH_MS=0`. Census:
+**0 FATALs / 0 ANRs** across the whole session. Receipts, in drive order:
+
+1. **WATCH-1 (F-21-A) closing stress leg**: the 300-row conversation opened; **40 fast flings**
+   to the timeline top; then (a) the composer accepted the tap + typed text (`w1probe` in the
+   field), (b) the session-bar config chip toggled the interactive chips IN (conv_mode_chip +
+   conv_model_chip, clickable) and BACK (true two-way), (c) the Context chip opened the context
+   sheet (the Git chip + "Set a goal for this session" row rendered), BACK dismissed it, and the
+   composer STILL accepted text afterwards. ZERO dead taps — the row's closing criterion, dated
+   CLOSED at the WATCH-1 row.
+2. **WATCH-2 (D1) non-reproduction leg**: the relay SIGKILLed while the app held the live
+   subscription — the honest "Reconnecting…" face (~20 s ping/pong detection); the relay
+   restarted under the same arms; **CONNECTED at the first poll (t=5 s)** with
+   `hub.phase → CONNECTED` → `bootstrapApplied` + `bootstrapReplayed` and heartbeats flowing on
+   relay-6. NO DEGRADED wedge, no Retry — the 7th consecutive non-reproduction, dated CLOSED.
+3. **RIG-P1 live no-collision receipt**: the relay restart IS a second generation — the Room
+   `interactions` table holds gen-1 `mock-approval-1-gmwdu3rpy-1w` AND gen-2
+   `mock-approval-1-gmwdulzh6-va` + `mock-approval-push-1-gmwdulzh6-va`, all DISPLAYED
+   side-by-side, zero collision (the INV-4 inert-card refusal is structurally unreachable), and
+   the gen-2 push interaction proves the MS=0 arm live.
+4. **The DIRECT-mode mock reproducible from the repo** (clean checkout): `MOCK_MODE=direct
+   MOCK_PORT=18299 gradle :tools:mockzcode:mockDirectServer` launched, the token contract
+   verified live — no-token **401** / wrong-token **401** / right-token **200** (runbook §6).
+
+Rig gotchas recorded for the next pass:
+
+- The mock relay's `nohup` log is SHARED across restarts when the same file is reused: the dead
+  run's tail (SIGTERM 143) lands AFTER the new run's READY lines with NUL padding — `grep`
+  silently treats the file as binary. Restart receipts must use a FRESH log path per relay
+  generation (or `grep -a`).
+- A relay restart does NOT re-arm the interaction push until the next conversation SUBSCRIBE —
+  re-open the task to trigger the gen-2 push (the push is once-per-connection by design).
+- BACK on a conversation with an unsent draft opens the "Leave this conversation?" dialog —
+  rig walks must dismiss it (Leave) before navigating.
+
+### Verification stamp
+
+- **Phase**: vc52 remediation Phase 14 — Rig fidelity, WATCH items & pin backlog (8/8 rows; the
+  FINAL phase — the vc52 campaign's roadmap is now fully ticked).
+- **Verified by**: GLM-5.3-Flash (ZCode harness, account zai-individual-coding-plan), under
+  Ernest's standing autonomous-verification instruction (implement → test → verify → tick →
+  commit locally, never push).
+- **Suite**: 2318/0/0/0 across 17 modules at `49e3315e` (+27 vs the 2291 baseline; every module
+  emitting XML; zero task failures; zero names lost).
+- **Rig**: fresh zcode-a16 (API 36) cold boot, autonomous pairing attempt-1, 0 FATALs / 0 ANRs;
+  the WATCH-1 40-fling stress leg + the WATCH-2 relay-restart leg + the live no-collision
+  receipt + the DIRECT-mode token contract.
+- **Timestamp**: **2026-11-12, verified 18:13:56 local time** (suite gate 4m47s; rig legs
+  ~35 min; report/stamp 18:13–18:2x).
 - **Nothing pushed** — all work committed locally on `fix/vc52` per the release policy.
