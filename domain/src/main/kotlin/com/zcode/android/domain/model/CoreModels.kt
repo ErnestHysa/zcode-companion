@@ -234,6 +234,19 @@ data class AppPreferences(
      * approvals/questions are never muted by it.
      */
     val notifySound: Boolean = true,
+    // ---- G43-P24 (vc52 Phase 13): the update plane ----
+    /**
+     * The user-skipped release ("Skip this version"): the banner/notification
+     * prompt suppresses for EXACTLY this versionCode; a newer release (or a
+     * cleared marker) prompts again. Null = nothing skipped.
+     */
+    val skippedUpdateVersionCode: Long? = null,
+    /** The What's-new record (written at the install handoff; shown once). */
+    val whatsNewVersionCode: Long? = null,
+    val whatsNewVersionName: String? = null,
+    val whatsNewNotes: String? = null,
+    /** true = the sheet was consumed (or never owed); false = show it once. */
+    val whatsNewShown: Boolean = true,
     /** H1.5 (Phase 6B): the skippable post-pairing pass ran once (never re-shown). */
     val onboardingDone: Boolean = false,
     /** G4/AC6 (vc51): the default interaction behavior (settings.zcodeInteractionBehavior) —

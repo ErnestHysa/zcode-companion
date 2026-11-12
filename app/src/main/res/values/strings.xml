@@ -417,4 +417,9 @@
 <string name="settings_self_report_row">Report device state to your desktop</string>
 <string name="settings_self_report_sub">Optional. Shares which task you are viewing and connection diagnostics with YOUR paired desktop only. Off by default; no analytics.</string>
 <string name="plugins_boundary_note">Installed-plugin list with the enable toggle (ADR-023). Marketplace add/remove, install/uninstall and overview stay on the desktop.</string>
+    <!-- G43-P24 (vc52 Phase 13): the desktop's SkipUpdateVersion + the What's-new sheet. -->
+    <string name="conn_update_skip_version">Skip this version</string>
+    <string name="settings_whats_new">What\'s new</string>
+    <string name="whats_new_dismiss">Continue</string>
+    <string name="whats_new_empty">No release notes recorded yet — they appear after you update.</string>
 </resources>

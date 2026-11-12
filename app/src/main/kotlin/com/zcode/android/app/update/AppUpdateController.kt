@@ -28,6 +28,20 @@ class AppUpdateController(
     private val installer: (File) -> Unit,
     private val notify: ((title: String, body: String) -> Unit)? = null,
     private val nowMs: () -> Long = System::currentTimeMillis,
+    /**
+     * G43-P24 (vc52 Phase 13): the skip-version gate (the desktop's
+     * SkipUpdateVersion) — the availability notification suppresses for the
+     * EXACT skipped versionCode; the state still resolves (skip hides the
+     * prompt, not the fact). Suspend: the wiring reads the persisted marker.
+     * Default: nothing skipped.
+     */
+    private val isVersionSkipped: suspend (Long) -> Boolean = { false },
+    /**
+     * G43-P24: the What's-new record hook — invoked at the INSTALL HANDOFF (the
+     * user accepted the update) with the release; the app then owes a one-time
+     * notes sheet for that version.
+     */
+    private val onUpdateAccepted: ((ReleaseInfo) -> Unit)? = null,
 ) {
 
     private val _check = MutableStateFlow<UpdateCheckState>(UpdateCheckState.Idle)
@@ -75,6 +89,11 @@ class AppUpdateController(
             )
             if (next is UpdateCheckState.Available && next.release.versionCode != lastNotifiedVersionCode) {
                 lastNotifiedVersionCode = next.release.versionCode
+                // G43-P24: a skipped version never re-prompts (the marker, not a mute).
+                if (isVersionSkipped(next.release.versionCode)) {
+                    log.info("update.skippedPrompt", "vc=${next.release.versionCode}")
+                    return@launch
+                }
                 notify?.invoke(
                     "ZCode Companion ${next.release.versionName} available",
                     if (next.desktopNewer) {
@@ -107,6 +126,9 @@ class AppUpdateController(
             _download.value = result
             if (result is DownloadState.Ready) {
                 log.info("update.install_intent", "apk=${result.apk.name} vc=${release.versionCode}")
+                // G43-P24: the accept moment — the release record rides to the
+                // prefs (the What's-new sheet owes for THIS version).
+                onUpdateAccepted?.invoke(release)
                 runCatching { installer(result.apk) }
                     .onFailure {
                         log.warn("update.install_failed", "${it.javaClass.simpleName}: ${it.message?.take(120)}")

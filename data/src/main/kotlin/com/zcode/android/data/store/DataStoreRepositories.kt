@@ -154,6 +154,12 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
         // G63 (vc52 Phase 13): additive-first — absent → audible (an upgrade never
         // silently loses its sound; only an explicit false mutes).
         notifySound = if (hasNotifySound()) notifySound else true,
+        // G43-P24 (vc52 Phase 13): additive-first — absent → nothing skipped, nothing recorded.
+        skippedUpdateVersionCode = if (hasSkippedUpdateVersionCode()) skippedUpdateVersionCode else null,
+        whatsNewVersionCode = if (hasWhatsNewVersionCode()) whatsNewVersionCode else null,
+        whatsNewVersionName = if (hasWhatsNewVersionName()) whatsNewVersionName else null,
+        whatsNewNotes = if (hasWhatsNewNotes()) whatsNewNotes else null,
+        whatsNewShown = if (hasWhatsNewShown()) whatsNewShown else true,
     )
 
     private fun AppPreferences.toProto(): AppPreferencesProto {
@@ -170,6 +176,11 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
         val archiveDays = taskAutoArchiveDays
         val selfReport = mobileSelfReport
         val sound = notifySound
+        val skippedVc = skippedUpdateVersionCode
+        val wnVc = whatsNewVersionCode
+        val wnName = whatsNewVersionName
+        val wnNotes = whatsNewNotes
+        val wnShown = whatsNewShown
         return AppPreferencesProto.newBuilder()
             .setLiveConnectionTimeoutMinutes(liveConnectionTimeoutMinutes)
             .setSchemaVersion(EndpointRepositoryImpl.SCHEMA_VERSION)
@@ -196,6 +207,11 @@ class PreferencesRepositoryImpl(private val dataStore: DataStore<AppPreferencesP
             .setTaskAutoArchiveDays(archiveDays)
             .setMobileSelfReport(selfReport)
             .setNotifySound(sound)
+            .apply { skippedVc?.let { setSkippedUpdateVersionCode(it) } }
+            .apply { wnVc?.let { setWhatsNewVersionCode(it) } }
+            .apply { wnName?.let { setWhatsNewVersionName(it) } }
+            .apply { wnNotes?.let { setWhatsNewNotes(it) } }
+            .setWhatsNewShown(wnShown)
             .apply {
                 wsOrder.forEach { addWorkspaceOrder(it) }
                 wsAliases.forEach { (k, v) -> putWorkspaceAliases(k, v) }

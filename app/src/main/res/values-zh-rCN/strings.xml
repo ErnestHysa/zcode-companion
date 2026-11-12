@@ -307,4 +307,9 @@
     <string name="notif_setup_continue">继续</string>
     <string name="notif_setup_not_now">以后再说</string>
     <string name="settings_notif_blocked_sub">已被 Android 阻止 — 请先开启通知</string>
+    <!-- G43-P24 (vc52 Phase 13): 桌面端的 SkipUpdateVersion 与更新说明页。 -->
+    <string name="conn_update_skip_version">跳过此版本</string>
+    <string name="settings_whats_new">更新内容</string>
+    <string name="whats_new_dismiss">继续</string>
+    <string name="whats_new_empty">暂无更新说明 — 更新后会显示在此处。</string>
 </resources>

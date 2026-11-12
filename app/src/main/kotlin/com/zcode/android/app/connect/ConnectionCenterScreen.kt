@@ -61,6 +61,10 @@ fun ConnectionCenterScreen(
     downloadState: com.zcode.android.app.update.DownloadState? = null,
     onUpdateNow: () -> Unit = {},
     onCheckForUpdate: () -> Unit = {},
+    /** G43-P24: the user-skipped release (null = nothing skipped). */
+    skippedUpdateVersionCode: Long? = null,
+    /** G43-P24: "Skip this version" — persists the marker (suppresses the prompt). */
+    onSkipVersion: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val topBarScroll = rememberZCodeTopBarScroll()
@@ -128,7 +132,13 @@ fun ConnectionCenterScreen(
                 // FIELD FIX (2026-10-12): the update offer is NO LONGER gated on the
                 // desktop version — any newer release shows the banner; the desktop
                 // gate only keeps the compat-honest wording.
-                if (updateState is com.zcode.android.app.update.UpdateCheckState.Available) {
+                if (updateState is com.zcode.android.app.update.UpdateCheckState.Available &&
+                    // G43-P24: a skipped release never re-prompts (a newer one does).
+                    !com.zcode.android.app.update.UpdateSkipGate.bannerSuppressed(
+                        releaseVersionCode = updateState.release.versionCode,
+                        skippedVersionCode = skippedUpdateVersionCode,
+                    )
+                ) {
                     val release = updateState.release
                     Spacer(Modifier.height(6.dp))
                     Column(
@@ -190,8 +200,15 @@ fun ConnectionCenterScreen(
                         if (downloadState !is com.zcode.android.app.update.DownloadState.Ready &&
                             downloadState !is com.zcode.android.app.update.DownloadState.Running
                         ) {
-                            TextButton(onClick = onUpdateNow, modifier = Modifier.testTag("update_now")) {
-                                Text(stringResource(R.string.conn_update_now))
+                            Row {
+                                TextButton(onClick = onUpdateNow, modifier = Modifier.testTag("update_now")) {
+                                    Text(stringResource(R.string.conn_update_now))
+                                }
+                                // G43-P24: the desktop's SkipUpdateVersion — the prompt
+                                // suppresses for EXACTLY this release (a newer prompts again).
+                                TextButton(onClick = onSkipVersion, modifier = Modifier.testTag("update_skip_version")) {
+                                    Text(stringResource(R.string.conn_update_skip_version))
+                                }
                             }
                         }
                     }

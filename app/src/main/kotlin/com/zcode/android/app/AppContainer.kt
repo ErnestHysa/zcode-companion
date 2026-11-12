@@ -309,6 +309,32 @@ class AppContainer(context: Context) {
                 // present) keeps the system installer in the app's own task.
                 com.zcode.android.app.update.ApkInstaller.install(host() ?: appContext, apk)
             },
+            // G43-P24: the skip marker gates the availability notification (the
+            // banner gate composes UpdateSkipGate at the Connection screen).
+            isVersionSkipped = { vc ->
+                // The gate is called from the controller's own scope (suspend-safe).
+                runCatching { stores.preferencesRepository.current().skippedUpdateVersionCode == vc }
+                    .getOrDefault(false)
+            },
+            // G43-P24: the accept moment — record the release for the What's-new
+            // sheet (shown once when this build IS that version). The record write
+            // rides the process scope (the hook itself is called from updateNow's IO).
+            onUpdateAccepted = { release ->
+                processScope.launch {
+                    runCatching {
+                        stores.preferencesRepository.update { p ->
+                            p.copy(
+                                whatsNewVersionCode = release.versionCode,
+                                whatsNewVersionName = release.versionName,
+                                whatsNewNotes = release.notes,
+                                whatsNewShown = false,
+                                // Installing supersedes a stale skip.
+                                skippedUpdateVersionCode = null,
+                            )
+                        }
+                    }
+                }
+            },
             notify = { title, body ->
                 com.zcode.android.app.update.AppUpdateController.ensureUpdatesChannel(appContext)
                 val manager = appContext.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager

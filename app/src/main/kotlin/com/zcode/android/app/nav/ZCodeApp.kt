@@ -298,6 +298,30 @@ fun ZCodeApp(
             androidx.compose.runtime.CompositionLocalProvider(
                 com.zcode.android.core.ui.components.LocalNotifier provides notifier,
             ) {
+    // G43-P24 (vc52 Phase 13): the What's-new sheet owed ONCE after updating into
+    // a recorded version (the record rides the install handoff; dismiss persists).
+    val whatsNewPrefs by container.stores.preferencesRepository.observe()
+        .collectAsState(com.zcode.android.domain.model.AppPreferences())
+    val installedVersionCode = remember {
+        runCatching {
+            container.appContext.packageManager.getPackageInfo(container.appContext.packageName, 0).longVersionCode
+        }.getOrNull()
+    }
+    val owesWhatsNew = !whatsNewPrefs.whatsNewShown &&
+        whatsNewPrefs.whatsNewNotes != null &&
+        whatsNewPrefs.whatsNewVersionCode != null &&
+        whatsNewPrefs.whatsNewVersionCode == installedVersionCode
+    if (owesWhatsNew) {
+        com.zcode.android.app.settings.WhatsNewDialog(
+            versionName = whatsNewPrefs.whatsNewVersionName,
+            notes = whatsNewPrefs.whatsNewNotes,
+            onDismiss = {
+                scope.launch {
+                    container.stores.preferencesRepository.update { p -> p.copy(whatsNewShown = true) }
+                }
+            },
+        )
+    }
     // B2.15/J4: ONE ticking clock for every relative-time label in the app.
     com.zcode.android.core.ui.components.ProvideRelativeNow {
     NavHost(
@@ -1279,6 +1303,9 @@ private fun TerminalRoute(container: AppContainer, onBack: () -> Unit) {
 private fun ConnectionCenterRoute(container: AppContainer, onBack: () -> Unit) {
     val phase by container.hub.phase.collectAsState()
     val ccScope = androidx.compose.runtime.rememberCoroutineScope()
+    // G43-P24: the skip-version marker read (the route's own prefs view).
+    val prefs by container.stores.preferencesRepository.observe()
+        .collectAsState(com.zcode.android.domain.model.AppPreferences())
     val endpoint by container.hub.endpoint.collectAsState()
     val lastError by container.hub.lastError.collectAsState()
     val lastRefresh by container.hub.lastRefreshAtMs.collectAsState()
@@ -1318,6 +1345,18 @@ private fun ConnectionCenterRoute(container: AppContainer, onBack: () -> Unit) {
         downloadState = downloadState,
         onUpdateNow = container.appUpdate::updateNow,
         onCheckForUpdate = { container.appUpdate.checkForUpdate(endpoint?.desktopAppVersion, force = true) },
+        // G43-P24: the skip-version marker (persisted; suppresses THIS release's prompt).
+        skippedUpdateVersionCode = prefs.skippedUpdateVersionCode,
+        onSkipVersion = {
+            val vc = (updateState as? com.zcode.android.app.update.UpdateCheckState.Available)?.release?.versionCode
+            if (vc != null) {
+                ccScope.launch {
+                    container.stores.preferencesRepository.update { p ->
+                        p.copy(skippedUpdateVersionCode = vc, whatsNewShown = p.whatsNewShown)
+                    }
+                }
+            }
+        },
     )
 }
 

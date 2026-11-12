@@ -93,9 +93,21 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val notifier = LocalNotifier.current
+    // G43-P24: the What's-new record (the About-area row + sheet).
+    val prefs by container.stores.preferencesRepository.observe()
+        .collectAsState(com.zcode.android.domain.model.AppPreferences())
     var showUnpairConfirm by remember { mutableStateOf(false) }
     // H1.6: the feedback form + its channel-backed sender.
     var feedbackOpen by remember { mutableStateOf(false) }
+    // G43-P24: the What's-new sheet (Settings entry; the startup owe renders in ZCodeApp).
+    var showWhatsNew by remember { mutableStateOf(false) }
+    if (showWhatsNew) {
+        com.zcode.android.app.settings.WhatsNewDialog(
+            versionName = prefs.whatsNewVersionName,
+            notes = prefs.whatsNewNotes,
+            onDismiss = { showWhatsNew = false },
+        )
+    }
     // G66 (vc52 Phase 13): the error card's "Report issue" navigates here with the
     // error attached — consume the one-shot slot (the pendingLineComment pattern).
     var feedbackPrefill by remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
@@ -317,6 +329,14 @@ fun SettingsScreen(
                 },
                 tag = "settings_check_updates",
                 onClick = { container.appUpdate.checkForUpdate(desktopVersion, force = true) },
+            )
+            // G43-P24 (vc52 Phase 13): the What's-new sheet — the recorded release's
+            // notes (written at the install handoff); the empty face is honest.
+            SettingsRow(
+                title = stringResource(R.string.settings_whats_new),
+                subtitle = prefs.whatsNewVersionName ?: stringResource(R.string.whats_new_empty),
+                tag = "settings_whats_new",
+                onClick = { showWhatsNew = true },
             )
             // F-UPDATE2 (field 2026-10-26): the update button renders whenever a
             // release is Available — the old gate (download already Ready) made it
