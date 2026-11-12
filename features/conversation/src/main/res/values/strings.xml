@@ -532,4 +532,6 @@
     <!-- G56 (vc52 Phase 13): print to PDF (the Android Printing framework handoff). -->
     <string name="share_mode_print">Print (PDF)</string>
     <string name="share_mode_print_detail">Hand the transcript to the system print service.</string>
+    <!-- G57 (vc52 Phase 13): the no-viewer fallback (no dead preview cards). -->
+    <string name="artifact_no_viewer">No installed app can open %1$s — install a viewer and try again.</string>
 </resources>

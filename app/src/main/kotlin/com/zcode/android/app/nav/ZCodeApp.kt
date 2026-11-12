@@ -926,8 +926,16 @@ private fun ConversationRoute(
     // G51 (vc52 Phase 11): the open run's delta-assembled step graph.
     val openRunGraph by vm.openRunGraph.collectAsState()
     val shareCopy = androidx.compose.ui.res.stringResource(com.zcode.android.features.conversation.R.string.conv_share_entry)
+    // G57: the no-viewer fallback copy (the typed notice names the file).
+    val noViewerTemplate = androidx.compose.ui.res.stringResource(
+        com.zcode.android.features.conversation.R.string.artifact_no_viewer,
+        "…",
+    )
+    val noViewerCopy = { name: String -> noViewerTemplate.replace("…", name) }
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
+    // G57: the notifier for the no-viewer fallback notice (the StatesDiscipline surface).
+    val notifier = com.zcode.android.core.ui.components.LocalNotifier.current
     // Phase 5B (A3.12 + A3.13): plans + the trajectory/search sheet.
     val plans by vm.plans.collectAsState()
     val trajectory by vm.trajectory.collectAsState()
@@ -1113,7 +1121,16 @@ private fun ConversationRoute(
                             addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                         },
                     )
-                }.onFailure { container.log.warn("preview.open", "${it.javaClass.simpleName}: ${it.message?.take(80)}") }
+                }.onFailure { e ->
+                    // G57 (vc52 Phase 13): no dead preview cards — a handoff with NO
+                    // installed viewer degrades to the TYPED notice (names the file);
+                    // other faults keep the honest log face.
+                    if (com.zcode.android.features.conversation.ArtifactOpenFallback.isNoViewerActivityLaunch(e)) {
+                        notifier.show(noViewerCopy(file.name))
+                    } else {
+                        container.log.warn("preview.open", "${e.javaClass.simpleName}: ${e.message?.take(80)}")
+                    }
+                }
             }
         },
         onSlashMenuOpen = vm::onSlashMenuOpen,
