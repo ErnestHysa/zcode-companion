@@ -235,4 +235,11 @@
     <string name="offpeak_cancel_confirm_yes">取消</string>
     <string name="offpeak_hint_pause">暂停时长超过队列等待时限的任务，将会被重新放回队列。</string>
     <string name="offpeak_hint_continue">票已失效时，「继续」会把任务重新排到队尾。</string>
+    <!-- G69 (vc52 Phase 13): 任务主页整理（桌面伴侣的 organize/sort/collapse-all）。 -->
+    <string name="tasks_organize_workspace">按工作区整理</string>
+    <string name="tasks_organize_timeline">按时间线整理</string>
+    <string name="tasks_sort_created">按创建时间排序</string>
+    <string name="tasks_sort_updated">按更新时间排序</string>
+    <string name="tasks_collapse_all">折叠全部工作区</string>
+    <string name="tasks_expand_all">展开全部工作区</string>
 </resources>

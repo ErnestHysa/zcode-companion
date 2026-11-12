@@ -325,4 +325,14 @@ data class WorkspaceListEntry(
  * metadata only — identity is `key` (§7.11: workspaceIdentity?.trim() ||
  * workspacePath; INV-12: never a bare path where an identity exists).
  */
-data class WorkspaceOption(val key: String, val label: String, val path: String?)
+data class WorkspaceOption(
+    val key: String,
+    val label: String,
+    val path: String?,
+    /**
+     * G69 (vc52 Phase 13): the bootstrap workspace row's `kind` (Local / Remote /
+     * Conversation — the desktop's task-home badge); null = the desktop declared
+     * none (no badge — INV-1, never a guess).
+     */
+    val kind: String? = null,
+)

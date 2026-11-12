@@ -54,8 +54,21 @@ data class TasksUiState(
     /** Archived viewer data: null = not loaded / unavailable. */
     val archived: List<com.zcode.android.domain.model.TaskMeta>? = null,
     val archivedLoading: Boolean = false,
+    // ---- G69 (vc52 Phase 13): task-home organisation ----
+    /** Organize by workspace (§7.11 groups) or a flat TIMELINE (most recent first). */
+    val organizeBy: OrganizeBy = OrganizeBy.WORKSPACE,
+    /** Within-group ordering: updated (historical) or created. */
+    val sortBy: SortBy = SortBy.UPDATED,
 ) {
     enum class Load { LOADING, EMPTY, READY }
+
+    enum class OrganizeBy { WORKSPACE, TIMELINE }
+    enum class SortBy { CREATED, UPDATED }
+
+    companion object {
+        /** The TIMELINE organize's single flat group key (never a workspace path). */
+        const val TIMELINE_GROUP_KEY = "timeline"
+    }
 
     /** Unread rows (wire `unreadAt`) — the badge count the list header shows. */
     val unreadCount: Int get() = groups.sumOf { g -> g.tasks.count { it.isUnread } } + pinned.count { it.isUnread }
@@ -75,9 +88,42 @@ data class TaskGroup(
     val workspaceKey: String,
     val label: String,
     val tasks: List<Task>,
+    /**
+     * G69 (vc52 Phase 13): the desktop's per-workspace KIND badge (Local /
+     * Remote / Conversation — the bootstrap workspace row's `kind`); null = the
+     * desktop declared none (no badge, never a guess — INV-1).
+     */
+    val workspaceKind: String? = null,
 )
 
 class TasksViewModel(private val port: TasksPort, private val scope: CoroutineScope) {
+
+    // ---- G69: task-home organisation (view-local state, like the desktop companion) ----
+    private val organizeBy = MutableStateFlow(TasksUiState.OrganizeBy.WORKSPACE)
+    private val sortBy = MutableStateFlow(TasksUiState.SortBy.UPDATED)
+    private val workspacesKind = MutableStateFlow<Map<String, String>>(emptyMap())
+
+    /** Organize by workspace (§7.11) or a flat timeline (most recent first). */
+    fun organizeBy(mode: TasksUiState.OrganizeBy) {
+        organizeBy.value = mode
+    }
+
+    /** Within-group ordering: created or updated (the desktop companion's Sort by). */
+    fun sortBy(sort: TasksUiState.SortBy) {
+        sortBy.value = sort
+    }
+
+    /**
+     * G69 mark-read-on-open: opening an unread task clears the desktop's unread
+     * marker (markTaskReadOnOpen — only when `unreadAt` is set; the CAS-style
+     * expectedUnreadAt rides as in the manual path). Read tasks: no wire, ever.
+     */
+    fun markReadOnOpen(task: Task) {
+        if (!task.isUnread) return
+        scope.launch {
+            runCatching { port.setTaskUnread(task.taskId, false, task.unreadAt) }
+        }
+    }
 
     // ---- Phase 4D: task lifecycle + search ----
     private val searchResults = kotlinx.coroutines.flow.MutableStateFlow<List<com.zcode.android.features.tasks.port.TaskSearchHit>>(emptyList())
@@ -87,7 +133,31 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
     private val groupedView = MutableStateFlow<List<com.zcode.android.domain.model.GroupedTaskNode>>(emptyList())
     private val archived = MutableStateFlow<List<com.zcode.android.domain.model.TaskMeta>?>(null)
     private val archivedLoading = MutableStateFlow(false)
-    private val management = combine(groupedView, archived, archivedLoading) { g, a, l -> Triple(g, a, l) }
+    private val organization = combine(workspacesKind, organizeBy, sortBy) { kinds, org, sort ->
+        Triple(kinds, org, sort)
+    }
+    private val management = combine(
+        groupedView, archived, archivedLoading, organization,
+    ) { g, a, l, (kinds, org, sort) -> Sextuple(g, a, l, kinds, org, sort) }
+
+    init {
+        // G69: the workspace kind map (the desktop's per-workspace Local/Remote/
+        // Conversation badges) — from the SAME observeWorkspaces flow the picker reads.
+        scope.launch {
+            port.observeWorkspaces().collect { ws ->
+                workspacesKind.value = ws.mapNotNull { o -> o.kind?.let { o.key to it } }.toMap()
+            }
+        }
+    }
+
+    private data class Sextuple(
+        val nodes: List<com.zcode.android.domain.model.GroupedTaskNode>,
+        val archived: List<com.zcode.android.domain.model.TaskMeta>?,
+        val archivedLoading: Boolean,
+        val workspaceKinds: Map<String, String>,
+        val organizeBy: TasksUiState.OrganizeBy,
+        val sortBy: TasksUiState.SortBy,
+    )
 
 
     private val refreshing = MutableStateFlow(false)
@@ -144,7 +214,7 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
     )
 
     val state: StateFlow<TasksUiState> = combine(primary, secondary, quaternary, management) { (tasks, phase, error), extra, q, m ->
-        val (nodes, archivedList, archivedBusy) = m
+        val (nodes, archivedList, archivedBusy, kinds, organize, sort) = m
         val pinned = tasks.filter { it.pinned }.sortedByDescending { it.updatedAtMs }
         TasksUiState(
             searchResults = q.searchResults,
@@ -163,7 +233,12 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
                 phase.inFlight() -> TasksUiState.Load.LOADING
                 else -> TasksUiState.Load.EMPTY
             },
-            groups = groupTasks(tasks.filterNot { it.pinned }),
+            groups = groupTasks(
+                tasks.filterNot { it.pinned },
+                organizeBy = organize,
+                sortBy = sort,
+                workspaceKinds = kinds,
+            ),
             taskCount = tasks.size,
             error = error,
             workspaces = q.workspaces,
@@ -174,6 +249,10 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
             lastRefreshAtMs = extra.lastRefresh,
             endpointName = extra.endpointName,
             suggestRepair = extra.suggestRepair,
+            // G69: the organisation view state rides the SAME state (the menu's
+            // checkmarks and the groups derive from one emission).
+            organizeBy = organize,
+            sortBy = sort,
         )
     }.stateIn(
         // Eagerly: the VM is screen-scoped (activity-lifecycle scope in this app's
@@ -456,20 +535,48 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
     /**
      * §7.11/INV-12: group by the workspace IDENTITY key; the display label is derived
      * conservatively from the key's last segment (paths are display-only metadata).
-     * Within a group: waiting tasks first, then live ordering by updatedAt (§18.3).
+     * Within a group: waiting tasks first, then live ordering (G69: updated or
+     * created — the desktop companion's Sort by). G69 organize TIMELINE: ONE flat
+     * group, most recent first. The workspace kind badge rides the desktop's own
+     * workspace row (`kind`) — never a guess.
      */
-    private fun groupTasks(tasks: List<Task>): List<TaskGroup> =
-        tasks.groupBy { it.workspace }
-            .map { (workspace, groupTasks) ->
-                TaskGroup(
-                    workspaceKey = workspace.raw,
-                    label = groupTasks.firstNotNullOfOrNull { it.workspaceLabel }
-                        ?: workspace.raw.substringAfterLast('/').ifBlank { workspace.raw },
-                    tasks = groupTasks.sortedWith(
-                        compareByDescending<Task> { it.status == TaskStatus.WAITING }
-                            .thenByDescending { it.updatedAtMs },
+    private fun groupTasks(
+        tasks: List<Task>,
+        organizeBy: TasksUiState.OrganizeBy,
+        sortBy: TasksUiState.SortBy,
+        workspaceKinds: Map<String, String>,
+    ): List<TaskGroup> {
+        val order: (Task) -> Long = when (sortBy) {
+            TasksUiState.SortBy.CREATED -> { t -> t.createdAtMs }
+            TasksUiState.SortBy.UPDATED -> { t -> t.updatedAtMs }
+        }
+        return when (organizeBy) {
+            TasksUiState.OrganizeBy.WORKSPACE ->
+                tasks.groupBy { it.workspace }
+                    .map { (workspace, groupTasks) ->
+                        TaskGroup(
+                            workspaceKey = workspace.raw,
+                            label = groupTasks.firstNotNullOfOrNull { it.workspaceLabel }
+                                ?: workspace.raw.substringAfterLast('/').ifBlank { workspace.raw },
+                            tasks = groupTasks.sortedWith(
+                                compareByDescending<Task> { it.status == TaskStatus.WAITING }
+                                    .thenByDescending(order),
+                            ),
+                            workspaceKind = workspaceKinds[workspace.raw],
+                        )
+                    }
+                    // Group order follows the SAME sort key as the rows (the historical
+                    // updatedAt-newest-first, or created under Sort by Created).
+                    .sortedByDescending { g -> g.tasks.maxOfOrNull(order) ?: 0L }
+            TasksUiState.OrganizeBy.TIMELINE ->
+                listOf(
+                    TaskGroup(
+                        workspaceKey = TasksUiState.TIMELINE_GROUP_KEY,
+                        label = "Timeline",
+                        tasks = tasks.sortedByDescending(order),
+                        workspaceKind = null,
                     ),
                 )
-            }
-            .sortedByDescending { g -> g.tasks.maxOfOrNull { it.updatedAtMs } ?: 0L }
+        }
+    }
 }

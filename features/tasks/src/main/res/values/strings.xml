@@ -262,4 +262,12 @@
     <string name="workflow_move_none">No other workspace is available to receive this workflow.</string>
     <string name="workflow_management_unavailable">The management request could not be sent.</string>
     <string name="workflow_management_refused">The desktop refused: %1$s</string>
+    <!-- G69 (vc52 Phase 13): task-home organisation (the desktop companion's
+         organize/sort/collapse-all; mark-read-on-open needs no copy). -->
+    <string name="tasks_organize_workspace">Organize by workspace</string>
+    <string name="tasks_organize_timeline">Organize by timeline</string>
+    <string name="tasks_sort_created">Sort by created</string>
+    <string name="tasks_sort_updated">Sort by updated</string>
+    <string name="tasks_collapse_all">Collapse all workspaces</string>
+    <string name="tasks_expand_all">Expand all workspaces</string>
 </resources>

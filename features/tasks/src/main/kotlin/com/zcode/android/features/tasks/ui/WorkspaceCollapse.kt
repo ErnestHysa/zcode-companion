@@ -53,6 +53,27 @@ class WorkspaceCollapseState(
         store?.let { s -> persistExecutor.execute { s.save(next) } }
     }
 
+    /**
+     * G69 (vc52 Phase 13): the desktop companion's "Collapse all" — every known
+     * group key joins the set (one save). [expandAll] is the inverse (the keys
+     * leave; a key from another source stays untouched).
+     */
+    fun collapseAll(workspaceKeys: List<String>) {
+        if (workspaceKeys.isEmpty()) return
+        val next = collapsedKeys + workspaceKeys
+        if (next == collapsedKeys) return
+        collapsedKeys = next
+        store?.let { s -> persistExecutor.execute { s.save(next) } }
+    }
+
+    fun expandAll(workspaceKeys: List<String>) {
+        if (workspaceKeys.isEmpty()) return
+        val next = collapsedKeys - workspaceKeys.toSet()
+        if (next == collapsedKeys) return
+        collapsedKeys = next
+        store?.let { s -> persistExecutor.execute { s.save(next) } }
+    }
+
     private companion object {
         fun applyOnMain(apply: () -> Unit) {
             if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) apply()

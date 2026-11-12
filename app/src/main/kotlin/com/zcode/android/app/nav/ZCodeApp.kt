@@ -655,10 +655,19 @@ private fun TasksRoute(
     val notificationsEnabled = com.zcode.android.app.notifications.rememberNotificationsEnabled()
     val startedCopy = stringResource(com.zcode.android.features.tasks.R.string.workflow_start_sent)
     val refusedCopy = stringResource(com.zcode.android.features.tasks.R.string.workflow_start_refused)
+    // G69 (vc52 Phase 13): mark-read-on-open — opening an unread task clears the
+    // desktop's unread marker (markTaskReadOnOpen parity) BEFORE the open navigates.
+    val taskClickWithRead: (com.zcode.android.domain.model.Task) -> Unit = { task ->
+        startScope.launch { vm.markReadOnOpen(task) }
+        onTaskClick(task)
+    }
     val taskList: @Composable () -> Unit = {
         TaskListScreen(
         state = state.copy(refreshing = refreshing),
-        onTaskClick = onTaskClick,
+        onTaskClick = taskClickWithRead,
+        // G69: the organise/sort view state (the VM owns it).
+        onOrganizeBy = vm::organizeBy,
+        onSortBy = vm::sortBy,
         onOpenSettings = onOpenSettings,
         onOpenConnection = onOpenConnection,
         openApprovals = openApprovals,

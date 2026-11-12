@@ -178,6 +178,10 @@ fun TaskListScreen(
      * (on API 33+ every fresh install until the user grants it).
      */
     notificationsBanner: (@Composable () -> Unit)? = null,
+    // ---- G69 (vc52 Phase 13): task-home organisation ----
+    /** The desktop companion's organize-by / sort-by (view state; the VM owns it). */
+    onOrganizeBy: (TasksUiState.OrganizeBy) -> Unit = {},
+    onSortBy: (TasksUiState.SortBy) -> Unit = {},
 ) {
     val motion = rememberMotionSpec()
     var showCreate by remember { androidx.compose.runtime.mutableStateOf(false) }
@@ -253,6 +257,88 @@ fun TaskListScreen(
                                 text = { Text(stringResource(R.string.tasks_new_group_action)) },
                                 onClick = { moreOpen = false; groupEditor = GroupEditorTarget.Create },
                                 modifier = Modifier.testTag("tasks_menu_new_group"),
+                            )
+                            // G69 (vc52 Phase 13): the desktop companion's organisation —
+                            // organize by workspace/timeline, sort created/updated, collapse all.
+                            androidx.compose.material3.HorizontalDivider()
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        stringResource(R.string.tasks_organize_workspace),
+                                        fontWeight = if (state.organizeBy == TasksUiState.OrganizeBy.WORKSPACE) FontWeight.Bold else FontWeight.Normal,
+                                    )
+                                },
+                                leadingIcon = {
+                                    if (state.organizeBy == TasksUiState.OrganizeBy.WORKSPACE) {
+                                        Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    }
+                                },
+                                onClick = {
+                                    moreOpen = false
+                                    onOrganizeBy(TasksUiState.OrganizeBy.WORKSPACE)
+                                },
+                                modifier = Modifier.testTag("tasks_menu_organize_workspace"),
+                            )
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        stringResource(R.string.tasks_organize_timeline),
+                                        fontWeight = if (state.organizeBy == TasksUiState.OrganizeBy.TIMELINE) FontWeight.Bold else FontWeight.Normal,
+                                    )
+                                },
+                                leadingIcon = {
+                                    if (state.organizeBy == TasksUiState.OrganizeBy.TIMELINE) {
+                                        Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    }
+                                },
+                                onClick = {
+                                    moreOpen = false
+                                    onOrganizeBy(TasksUiState.OrganizeBy.TIMELINE)
+                                },
+                                modifier = Modifier.testTag("tasks_menu_organize_timeline"),
+                            )
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        stringResource(R.string.tasks_sort_created),
+                                        fontWeight = if (state.sortBy == TasksUiState.SortBy.CREATED) FontWeight.Bold else FontWeight.Normal,
+                                    )
+                                },
+                                onClick = {
+                                    moreOpen = false
+                                    onSortBy(TasksUiState.SortBy.CREATED)
+                                },
+                                modifier = Modifier.testTag("tasks_menu_sort_created"),
+                            )
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        stringResource(R.string.tasks_sort_updated),
+                                        fontWeight = if (state.sortBy == TasksUiState.SortBy.UPDATED) FontWeight.Bold else FontWeight.Normal,
+                                    )
+                                },
+                                onClick = {
+                                    moreOpen = false
+                                    onSortBy(TasksUiState.SortBy.UPDATED)
+                                },
+                                modifier = Modifier.testTag("tasks_menu_sort_updated"),
+                            )
+                            androidx.compose.material3.HorizontalDivider()
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text(stringResource(R.string.tasks_collapse_all)) },
+                                onClick = {
+                                    moreOpen = false
+                                    collapse.collapseAll(state.groups.map { it.workspaceKey })
+                                },
+                                modifier = Modifier.testTag("tasks_menu_collapse_all"),
+                            )
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text(stringResource(R.string.tasks_expand_all)) },
+                                onClick = {
+                                    moreOpen = false
+                                    collapse.expandAll(state.groups.map { it.workspaceKey })
+                                },
+                                modifier = Modifier.testTag("tasks_menu_expand_all"),
                             )
                         }
                     }
@@ -1186,6 +1272,8 @@ private fun ReadyBody(
                         taskCount = group.tasks.size,
                         collapsed = collapsed,
                         onToggle = { collapse.toggle(group.workspaceKey) },
+                        // G69: the desktop's per-workspace kind badge (Local/Remote/Conversation).
+                        workspaceKind = group.workspaceKind,
                     )
                 }
                 if (!collapsed) {
@@ -1396,6 +1484,8 @@ private fun WorkspaceHeader(
     collapsed: Boolean,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
+    /** G69: the desktop's workspace kind (Local / Remote / Conversation); null = none. */
+    workspaceKind: String? = null,
 ) {
     val actionWord = stringResource(if (collapsed) R.string.tasks_a11y_expand else R.string.tasks_a11y_collapse)
     val a11y = stringResource(R.string.tasks_group_a11y, label, taskCount, actionWord)
@@ -1421,6 +1511,24 @@ private fun WorkspaceHeader(
             color = MaterialTheme.colorScheme.onBackground,
         )
         Spacer(Modifier.width(8.dp))
+        // G69: the desktop's per-workspace kind badge — the RAW wire value, uppercased
+        // for the chip face (INV-1: display-only, never an identity; unknown kinds
+        // render as-is rather than being guessed into a closed set).
+        workspaceKind?.takeIf { it.isNotBlank() }?.let { kind ->
+            Surface(
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                shape = MaterialTheme.shapes.large,
+                modifier = Modifier.testTag("tasks_group_kind_${workspaceKey.hashCode()}"),
+            ) {
+                Text(
+                    text = kind.uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
+                )
+            }
+            Spacer(Modifier.width(8.dp))
+        }
         // GAP-14: the count badge survives collapsing — totals stay visible.
         Surface(
             color = MaterialTheme.colorScheme.surfaceVariant,
