@@ -220,3 +220,281 @@ reconnects), 39 screenshots in `/tmp/p0/shots/`, receipts in `/tmp/p0/logcat-*.l
 `/tmp/p0/relay-gen*.log`, and the pulled Room DBs in `/tmp/p0/db/`. APK at HEAD byte-fresh
 (`ad449d7d…`); desktop asar digest unchanged from WATCH-4 (`ec475e6e…`). Nothing pushed; the
 rig was left running (emulator + gen4 relay + direct :18200) for Ernest's own poke.
+
+---
+
+# Part D — pass 1 (APPENDED 2026-11-12, later the same day): deeper emulation walk + the REA 3.18.1 reverse dig
+
+> **Pass 1 scope per Ernest's follow-up: "dig deeper than pass 0."** Same report file, APPEND-ONLY;
+> Parts A–C above are pass 0 and were NOT edited. This pass re-armed the rig (4 fresh relay
+> generations), drove the surfaces pass 0 skipped or only rendered, re-drove both pass-0 P2s with
+> store/wire-level evidence, and mined the desktop 3.18.1 asar (digest UNCHANGED `ec475e6e…`, so
+> every pass-0 census number still stands) with REA receipts + a deeper extraction census for the
+> implementable side of G81 and the WATCH-4 V2 plane.
+>
+> **Environment of record.** HEAD `62602b9a` (main, clean — the pass-0 docs commit), debug APK
+> byte-identical `ad449d7d…` (rebuilt up-to-date in 11 s, 239 tasks), versionCode 53 / 1.3.2.
+> Emulator `zcode-a16` COLD-booted this pass (44 s, the SystemUI ANR-on-cold-boot recurred and was
+> dismissed — same benign class as pass-31's monkey leg). Relay generations: gen1
+> `mock-p1-gen1-e2f3a4` (full 23-arm) → gen2 `mock-p1-gen2-b7c9d0` (full) → gen3
+> `mock-p1-gen3-c4d5e6` (full, `MOCK_INTERACTION_PUSH_MS=3000` probe) → gen4 `mock-p1-gen4-d8e9f0`
+> (LIGHT rig: 12 rows, attachment + row-actions arms only — the timeline-deocclusion recipe, see
+> D.A0.4). Desktop under audit: the same `/Applications/ZCode.app` 3.18.1.10376 asar
+> (`ec475e6e302595fe…2b10`, 383,832,025 B — byte-verified at pass-1 start), extraction reused from
+> pass-0 at `/tmp/p0/asar-out` (31,587 files). REA receipts this pass: `open_binary` on the asar
+> (digest-bound session), `analyze_javascript_application` on `out/plugin-sandbox`
+> (evidence `ev_6dc928c859ccb6e9…`, 2 parsed JS files / 135,175 AST nodes / record-and-continue,
+> interrupted-but-retained — the analyzer's timeout is itself recorded), bundle exported to
+> `/tmp/p1/rea-plugin-sandbox.json` (1.39 MB).
+>
+> **Verification stamp:** 2026-11-12, verified ~20:35–21:50, GLM-5.3-Flash in ZCode (ZCode
+> Companion pass-1 rig), everything local, nothing pushed. 24 screenshots in `/tmp/p1/shots/`,
+> relay/logcat receipts in `/tmp/p1/*.log`, Room DB pulls in `/tmp/p1/db/`.
+
+## D.A0 — rig learnings (each will bite the next pass)
+
+1. **The slash palette renders in a Compose `Popup` window and is INVISIBLE to uiautomator
+   dumps** — `WriteComponents.kt:1152-1173` (N-BD-1's anchored overlay). A dump with the palette
+   open shows the composer alone; the palette's rows carry no AX nodes in the app package. Two
+   consequences: (a) palette verification needs SCREENSHOTS, never dumps; (b) a tap aimed at dump
+   coordinates can land on the OPEN-AND-INVISIBLE palette and silently pick a command — this pass
+   a card tap turned into a `/compact ` composer autocomplete (the accidental receipt that the
+   catalog pick→autocomplete contract works).
+2. **Dialog AX bounds go stale after an IME close and the dump LIES by ~200 px.** The automation
+   editor re-lays out when the keyboard closes, but `uiautomator dump` kept reporting the
+   pre-IME-close bounds (`Create` at y≈1712) while the screenshot showed it at y≈1932 — every
+   dump-derived tap hit the empty scrim and looked like a "dead button". Pass-1 chased this as a
+   candidate defect (F-P1-B below was drafted, then RETRACTED in-pass): the screenshot-derived tap
+   fired `createAutomation` on the first try. Recipe: for any Compose dialog, take a screenshot at
+   decision time and tap SCREENSHOT-derived coordinates (×1080/920 for the scaled view); treat
+   dump bounds for dialogs as advisory only.
+3. **The logcat pipe goes half-deaf mid-session** (re-confirmed, new face): frames kept arriving
+   (DB grew, patches round-tripped) while `rpc.recv` DEBUG lines stopped for whole minutes —
+   pass-0's "restart logcat after restarts" recipe needs "…and treat ABSENT log lines as
+   inconclusive, never as absence; the Room DB is the arbiter."
+4. **The light-rig variant is the recipe for the occluded-timeline legs**: launch the mock with
+   ONLY `MOCK_ROWS=12 MOCK_ATTACHMENT=1 MOCK_ROW_ACTIONS=1` (no approval/question/hooks/queue
+   arms). The pinned stack empties, the timeline becomes fully scrollable, and the rewind /
+   zoom / row-action surfaces are all reachable — gen4 drove every leg that pass 0 skipped.
+5. The `1×1` mock attachment is a RED pixel — its thumbnail renders as a solid red block and was
+   briefly suspected as an empty-error banner; recorded so nobody chases it again.
+
+## D.A1 — verified working this pass (receipts pass 0 did not have)
+
+| Surface | Pass-1 receipt |
+| --- | --- |
+| Cold-boot + auto-reconnect (4 generations) | gen1 `hub.phase → CONNECTED` + `bootstrapApplied tasks=3 workspaces=1 dropped=0` at 20:41:08; gen2/gen3 identical; gen4 after `am kill` → relaunch → **CONNECTED in ~6 s** (21:34:14→21:34:20) with a fresh mock handshake (`helloConversationV4` id=3) |
+| pauseGoal refusal (MOCK_REFUSE_COMMANDS) | Context sheet → Pause goal → outbox `pauseGoal` = **FAILED_TERMINAL / rejected**, relay `sendConversationCommandV4` — the honest typed-refusal branch (GOAL_PAUSE_REFUSED) runs live |
+| Plain-text export | Share → Plain text → the SYSTEM share sheet opened with the real transcript ("Synthetic task ——— Assistant: The coordinator batches deltas per frame and memoizes parsed blocks per row id…") + copy + targets |
+| Markdown export | Share → Markdown → `# Synthetic task` / `**Assistant:**` formatted preview in the same sheet |
+| Find-in-conversation | "coordinator" → **"1 of 20"** + prev/next; "rig0" on the fresh generation → honest "No matches" (pass-0's 1-of-2 was over its own sent rows) |
+| Rewind (dialog + wire) | gen4 light rig → "Undo files" → **full preview dialog**: "Safe to rewind 2" (src/version.ts ↩ 1 edit, scratch/probe.txt − 1 edit), "Cannot safely rewind 1" (src/config.ts ! "Modified after the checkpoint"), "Ignored 1" (tmp/build.log ~ "bash/shell changes ignored") → Apply → outbox **`applyFileRewind {"target":{"rowId":15,"entityId":"ent-15"}}` = ACKED/accepted** |
+| Row actions (assistant row) | Like → **`setAssistantFeedback {"target":{"rowId":13},"feedback":"like"}` ACKED**; Retry → **`retryTurn` ACKED** (a "retried reply" row rendered live); Fork → **`forkAssistant` ACKED** AND the app NAVIGATES to the new child session — header **"Fork of synth-task-1"**, a real task row (Idle · Synthetic Workspace · 14 min ago) in the home list, carrying its own approval card projection |
+| G28 attachment zoom viewer (F-27-B fix LIVE) | Tap the mock.png thumbnail → **full-screen viewer opens (ImageView + Close)** — the vc52 forwards fix (ConversationScreen.kt:154-169/616-625) verified on-device; pass-31's "dead tap" receipt is closed |
+| User-row long-press sheet | Copy / **Ask in a side session** / Share selection / Edit — the user-row action plane renders |
+| Slash palette | "/" opens the anchored palette (popup), a pick autocompletes the composer to "/compact " — see D.A0.1 for the visibility gotcha |
+| Effort chip (G52 family) | Config chip expands inline (`mode: yolo` / `Effort · max` / model) → Effort → "high" → relay **`setThoughtLevel` (id=33)** + the registry-fallback **`resyncConversationV4`** pair — the wire contract works; the chip re-renders "max" because the mock's static session-config echo re-asserts it (mock fidelity debt, not app) |
+| Automation authoring (G29) | "+ New automation" → full editor (Title/Prompt, 8 schedule chips, time "09:00 (24h, desktop clock)", live summary "Daily at 09:00"→"Every N minutes", Ends Never/On date, Max runs, Model, Permission mode) → filled + Create → **relay `createAutomation` (id=47) + `listAutomations` (id=48)** |
+| MCP servers plane content | docs-search (http·legacy·0 tools·Disabled), github (stdio·modern·**12 tools**·Connected), playwright (sse·modern·0 tools·Failed) + the error face "Failed to connect to the MCP server. Try again later." |
+| Plugins plane content | prisma-toolkit 2.4.0 (official · On) + code-review (none · Off) with descriptions |
+| Honest degradation on a light rig | Automations section → **"This feature isn't available on the connected desktop."**; the Plugins plane after process death → "Plugins are unavailable · Connection lost — reconnecting… · Retry" (route restored, honest face, Retry affordance) |
+| Process death (am kill) | 0 procs after kill → relaunch → CONNECTED in ~6 s; a brief **UNPAIRED transient face** (21:34:14) before AUTHENTICATING — worth one glance in the next fix round but the ladder converged without user action |
+| Widget picker | The launcher's Widgets picker lists **"ZCode Companion · 1 widget"** (the live add-to-home drag is launcher-fiddly via adb; the binding itself is RIG-4-receipted in the vc51 series) |
+| Polling cadence (observation) | With the conversation open, `conversationWorkflowRunsV4`/`conversationPlansV4` fire every ~8 s (48+23 calls across gen1's ~6.5 min) — see F-P1-D |
+
+## D.A2 — defects found this pass (NEW ledger rows; order = fix order)
+
+- [ ] **F-P1-A (P2, app) — the pinned AskUserQuestion and hook-trust cards render with ZERO-height
+  answer bodies in the live conversation; both are unusable, and hook trust has NO other phone
+  surface.** Live evidence (gen1/gen2/gen3, 1080×2340): the question card renders title + "Keep
+  waiting" + the questions-variant footer (`userinput_questions_submit` "Send answers" +
+  `userinput_decline`) with the body column ABSENT from the AX tree — no prompt, no per-question
+  option rows (`userinput_q0_opt_*`), no custom field; "Send answers" is permanently disabled
+  (`enabled=false`), the hook-review card likewise renders only title + warning + "2 pending · 3
+  hooks" with NO hook items and NO trust buttons, and the Approvals inbox carries NO hook-review
+  rows at all. Mechanism: both cards put their scrollable body in
+  `Modifier.weight(1f, fill = false).verticalScroll(...)` (`WriteComponents.kt` UserInputCard body;
+  `HookTrustReviewCard.kt:117-118`), and the pinned host is a **LazyColumn**
+  (`ConversationScreen.kt:440-452`, `heightIn(max = pinnedBudget)`) whose items measure with an
+  UNBOUNDED main axis — in unbounded columns Compose distributes ZERO remaining space to weighted
+  children, so the body measures 0. The vc52 Phase-9 comment's premise ("each card is measured with
+  the full budget as its own cap — no zero-share starvation") is exactly the wrong assumption for
+  lazy items. The PinnedCardSubmitPinTest passes because the test hosts cards in a BOUNDED root —
+  the live LazyColumn host is the untested part. ApprovalCard is unaffected (its buttons are plain
+  non-weighted children). User impact: an AskUserQuestion can only be answered via "Open task to
+  answer"→inbox redirect, and a session blocking on WORKSPACE HOOK TRUST (a code-execution
+  permission decision — ADR-024's whole reason for the card) has NO working phone remedy. Fix
+  shape: replace `weight(1f, fill=false)` with an explicit bounded body (`heightIn(max = …)` on the
+  scrollable Column, or size the card to content and let the pinned budget scroll), keep the
+  pinned footer, and add a pin that hosts the card in a `LazyColumn { item { … } }` harness (the
+  live shape) asserting the option rows are visible.
+- [ ] **F-P1-B (P2, app + mock) — stale-generation interactions stay answerable for 50+ minutes and
+  ACK "successfully" against a desktop that no longer knows them.** The Approvals inbox renders
+  rows from pass-0 generations ("Permission — Bash · task Synthetic task 2 · 50 min ago") with
+  live Allow once/Deny buttons; answering one sent `resolveInteraction
+  {"interactionId":"mock-approval-push-1-mock-p0-gen4-7f8a9b","answer":{"optionId":"allowOnce"}}`
+  (a DEAD generation's push row) → **outbox ACKED/accepted** and the row cleared. The mock accepts
+  any interactionId (fidelity debt — a real desktop returns already-resolved/unknown, and the
+  phone's failure face for that error is thereby untestable on the rig), but the APP-side half is
+  real: the store rows from dead generations never close (`mock-approval-1-mock-p0-gen4-…`
+  DISPLAYED and `q-rig-1-mock-p0-gen4-…` REQUESTED 50+ min later, surviving three fresh
+  generations; the 20:42:02 `reconcile.closeStored` pass closed only TWO of the five stale ids).
+  This is the F-36-B family re-manifested with a sharper user face: actionable buttons on
+  interactions from a desktop that has moved on. Fix direction: expire stored interactions whose
+  generation/workspace identity no longer matches the connected relay's authoritative snapshot
+  (the closeStored sweep exists — it is missing rows), and add the mock's unknown-id error arm so
+  the honest-failure face is drivable.
+- [ ] **F-P1-C (P3, mock/rig) — the interaction-push arm (`MOCK_INTERACTION_PUSH_MS`) delivered
+  NOTHING across three full generations this pass**, while the identical jar + flags delivered
+  probe3 in pass 0. Evidence: gen1/gen2/gen3 produced NO `mock-approval-push-1-*` store row, no
+  app-side receipt, no wire line — with the env verified present in the relay process
+  (`MOCK_INTERACTION_PUSH_MS=25000`/`3000`), the armed-on-first-subscribe code path confirmed
+  (`MockZCode.kt armInteractionPush` → `pushPendingPermission`), and the DELTAS path otherwise
+  healthy (queue "Send now" → patch → authoritative round-trip "Queued (2)→(1)" receipted). The
+  mechanism is unresolved (the push coroutine's `journalAndEmit → emitDeltasFrame` chain has no
+  visible gate that could silently drop, so the arm may be racing its own arming flag across
+  reconnects — flagged, not concluded). Consequence: the RIG-3 fresh-push shade leg and the
+  F-P0-B reproduction are currently UNDRIVABLE; re-arm investigation belongs in the next fix
+  round before any push-plane work.
+- [ ] **F-P1-D (P3, app, observation) — the open conversation polls `conversationWorkflowRunsV4` +
+  `conversationPlansV4` on an ~8 s cadence** (48 + 23 calls in gen1's ~6.5 minutes, continuous
+  while the screen is open, even fully idle). On a real desktop this is a persistent request drum
+  for every open conversation. Consider: subscribe-on-open with deltas (the
+  `workflowRunDeltas` capability the phone ALREADY declares — G48), or a ≥30 s cadence.
+- [ ] **F-P0-A sharpened (no code change — pass-0 row stands with new mechanism detail).** The
+  conversation approval card exists ONLY when the relay serves a PERMISSION entry in
+  `pendingInteractions` — `MOCK_APPROVAL` seeds only the tool-row plane (`setPendingApproval` →
+  conversation tool row + Approvals inbox), the `pendingPermission` slot is filled exclusively by
+  the (currently dead, F-P1-C) push arm, so with a standard rig the conversation shows NO approval
+  card while the inbox badge still counts the tool-row-derived store row. Where the card DID
+  render this pass (the gen3 push eventually landed late, after an auto-resubscribe at connect),
+  two allowOnce taps were **full silent no-ops** — no wire, no notice captured, card still
+  actionable, store row STALE (`mock-approval-push-1-mock-p1-gen3-c4d5e6` created 20:54:38,
+  STALEd 20:57:17 while the mock still held it pending = **F-P0-B reproduced live**). The
+  machine/store/render three-way divergence from pass 0 stands, now with the card-plane
+  precondition documented: fix the served-list/source-of-truth divergence FIRST (pass-0 B3.1
+  shape), and the card-tap silent no-op will resolve with it.
+
+## D.B — REA 3.18.1 reverse dig (deeper than pass-0's census; digest unchanged `ec475e6e…`)
+
+### B1. gen-ui plane — G81 is now an IMPLEMENTABLE SPEC, not just a hit-count
+
+The desktop's gen-ui is a first-class remote-client plane: `genUiService` sits in the connection
+services registry beside `fileService/gitService/terminalService/settingService` and is exposed
+through the **remote workspace proxy** (`createHostRemoteWorkspaceProxyState`) — i.e. the phone's
+transport COULD consume it today, exactly like it consumes file/git services.
+
+- **Transport surface**: service methods `readDocument(document)` / `getState(target)` /
+  `setState({target, state})` / `onStateChanged` (host; per-workspace state files under
+  `gen-ui-state/<id>.json`, size-capped; document ids `gen-ui:<uuid>`).
+- **Capability gate**: `sendFollowUp` with `genUiContext` throws **`proto.genUiContextUnsupported`**
+  unless `capabilities.genUiContext === true` — the phone already declares a clientHello
+  capabilities block (`workflowRunDeltas`, G48 pin at
+  `RelayTransportClientHelloCapabilitiesTest`), so the G81 fix is: declare `genUiContext: true`
+  once the consume plane ships; until then the desktop itself rejects gen-ui-context sends from
+  the phone.
+- **Message shape**: `sendFollowUp { prompt, source: { kind: 'genUi', path, title } }` with
+  `genUiContext` riding the send; content payload carries
+  `contentKind: 'gen-ui' | 'extension'` (+ `pluginId`/`serverName` for extension content),
+  `scopeId`, and **`html: string`** — the interactive view is HTML rendered in the
+  `plugin-sandbox` (its own bundle: `out/plugin-sandbox/gen-ui.js`, 640 KB, zod-validated;
+  `visualize.html/css` shell; CSS tweaks arrive as `--gen-ui-[a-z-]+` custom properties).
+- **Desktop UI faces** (the complete i18n vocabulary, EN): `genUi.title` "Interactive view";
+  `genUi.waiting` "Generation completes…"; `loading`/`failed` "Unable to load interactive view" +
+  `retry`; `offline` "Workspace is offline. Reconnect and retry"; `incomplete` "This response
+  didn't finish, the interactive view wasn't loaded"; `invalid` "Interactive view reference is
+  invalid"; `expand`/`expanded` (zoom viewer); `tweak` "Adjust design" → `submit` "Submit design
+  changes" + `reset`/`original` (the design-tweak loop); `confirm` "Interactive view requests to
+  send a message" (the send-consent gate); `from` "From interactive view {name}"; `copyImage`;
+  and **`genUi.desktopOnly` "Open this interactive view in the desktop app"** — the desktop
+  ALREADY renders a non-desktop fallback face, so the phone's honest "the desktop is showing a
+  generated interactive view" surface (G81's suggested shape) is the product-sanctioned minimum;
+  a real consume plane is the upgrade.
+- Phone side re-measured: **0 files** match genUi/genUiContext — G81 stands.
+
+### B2. V2 device-registration plane (WATCH-4) — the concrete migration inventory
+
+`RelayV2Device` ×12 files, `RelayV2IncomingMessage`, plus a REST+WS surface:
+
+| Endpoint | Method | Role |
+| --- | --- | --- |
+| `/api/v1/remote/device` | POST | register (device-picker flows) |
+| `/api/v1/remote/device` | GET | list (the desktop's "device-picker"/"device-sync-state" UI) |
+| `/api/v1/remote/device/delete` | POST | unregister |
+| `/api/v1/remote/token` | POST | token exchange |
+| `/api/v1/remote/ws` | (upgrade) | the V2 relay websocket |
+| `/api/v1/remote/notification/status` + `/events` | GET/POST | **NEW in this census** — a remote-notification status + Bearer-authenticated event-reporting plane (`reportNotification`) |
+
+Phone side: still `device_sid` decode only (1 file); V1 pairing unchanged; per WATCH-4 the flip
+is BREAKING (draft PR, human promotes). The notification/events plane deserves a second look in
+the next sweep — it may be the desktop-side counterpart of the phone's shade-notification feed.
+
+### B3. Settings census (same method as pass 0)
+
+**2,099 distinct `settings.*` keys** (pass-0: 2,029 — +70). Namespace histogram (top): plugins
+1,193 label strings / source 850 / usage 715 / **mcp 555** / **skills 505** / **subagents 430** /
+**commands 330** / **hooks 300** / **shortcuts 285** / browser 241 / migration 230 / **memory
+195** / mcpServers 145 / computerUse 70 / personalization 55 / dynamicWorkflow 45 /
+taskAutoArchiveDays 25 / appearance 21. The phone's ~20 rows / 8 sections map to appearance,
+taskAutoArchiveDays and slivers of the rest — the G-family settings-depth gap stands and widened
+again; the newly VISIBLE namespaces for the roadmap are **shortcuts** (a full keyboard-shortcuts
+plane the phone has no counterpart for — 4 incidental files), **memory** (a memory-plane the
+phone lacks; the read-only Settings has no Memory entry), and **migration**.
+
+### B4. Small plane drift
+
+- **Voice-input taxonomy**: the desktop's voice plane carries per-OS permission guides, `silent`,
+  `noDevice`, `deviceBusy`, `unauthorized` error faces + a permission-granted toast; the phone
+  (`features/conversation/voice/`) has two faces (MIC_PERMISSION / UNAVAILABLE, F-34-D). Small
+  gap row: port the `deviceBusy`/`silent`/`noDevice` faces onto the phone's VoiceError.
+- Absent on BOTH sides (no drift, nothing to port): agentTeams, workflowsv2, dictation,
+  checkpointTimeline, sessionNotes. `canvas` hits are HTML-canvas usage, not a plane.
+
+### B5. REA receipts
+
+`open_binary` bound the asar (sha256 `ec475e6e…2b10`, archive provider); the JavaScript
+application analysis ran on `out/plugin-sandbox` (evidence `ev_6dc928c8…`, 2 parsed JS files,
+135,175 visited AST nodes, integrity record-and-continue, analysis interrupted at the client
+window and retained as complete-record evidence — exported to `/tmp/p1/rea-plugin-sandbox.json`).
+`trace_feature`/binary-census tools are correctly unsupported for an asar target (typed
+capability errors received — recorded so future passes skip straight to the directory analyzer +
+extraction census).
+
+## D.C — where the phone is BETTER than the desktop (new receipts this pass)
+
+- The honest-degradation faces on a capability-light desktop ("This feature isn't available on
+  the connected desktop", "Plugins are unavailable · Retry") — the desktop shows no such
+  counterpart for phone-only planes.
+- The fork child-session is OPENED live in the same flow (forkAssistant → "Fork of synth-task-1"
+  screen + home row) — the desktop's childSessionId remains a decoded-but-unused field on the
+  phone's P4-smallests list; the FORK path (user-invoked) is the live one.
+- Process-death recovery with route restore + per-plane honest faces, and the ~6 s reconnect
+  ladder, again.
+
+## D.D — fix-order recommendation (replaces pass-0 B3.1's order)
+
+1. **F-P1-A** — the hook-trust unreachability is a safety-surface blocker; smallest fix (bounded
+   body) + a live-shape pin.
+2. **F-P0-A + F-P0-B** — unchanged openers, now with the card-plane precondition (the card needs
+   a served PERMISSION entry; the push arm must work to reproduce) documented.
+3. **F-P1-B** — stale-generation closure + the mock's unknown-id error arm.
+4. **F-P1-C** — mock push-arm re-arm (blocks the push-plane legs).
+5. **G81** per D.B1: minimum = the honest "Interactive view is open on your desktop" face wired
+   to the served gen-ui blocks + the `genUiContext` capability left false; full = the
+   genUiService consume (readDocument/getState/setState) + a sandboxed HTML surface.
+6. **F-P1-D** polling cadence + the voice-taxonomy smalls (D.B4).
+
+### Coverage honesty (what pass 1 did NOT drive)
+
+Unpair/re-pair (full pairing loop — prior receipts from the vc47 field round + vc51 fresh-pairing
+stand; not re-driven to protect the rig mid-pass), Workflows Run (the light rig doesn't serve
+workflows; pass-0's hub receipt stands), theme/font/locale live toggles (vc51 pins + pass-31
+receipts stand), and the shade-notification fresh-push leg (blocked by F-P1-C).
+
+## Pass-1 verification stamp
+
+Pass 1 completed 2026-11-12 ~21:50; 4 relay generations (3 full + 1 light) + 1 process-death
+cycle; 24 screenshots in `/tmp/p1/shots/`; receipts in `/tmp/p1/logcat-gen*.log`,
+`/tmp/p1/relay-gen*.log`, Room DB pulls in `/tmp/p1/db/`. APK byte-identical (`ad449d7d…`);
+desktop digest unchanged (`ec475e6e…`). Nothing pushed. Rig left: emulator + gen4 light relay on
+:18100.
