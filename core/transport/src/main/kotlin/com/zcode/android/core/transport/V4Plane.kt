@@ -1227,7 +1227,9 @@ internal class ChannelV4Plane(
             throw TransportFailure(ErrorMapping.timeout("$channelName.$method", timeoutMs))
         } catch (e: ChannelSession.Failure.ChannelError) {
             bound().warn("channel.call", "$channelName.$method refused: ${e.detail.take(100)}")
-            throw TransportFailure(ErrorMapping.taskRejected(e.detail))
+            // G79: a typed fault.<code> maps to its family copy (the raw code kept);
+            // unknown/non-fault details keep the generic refusal face.
+            throw TransportFailure(ErrorMapping.faultRefusal(e.detail))
         } catch (e: ChannelSession.Failure) {
             bound().warn("channel.call", "$channelName.$method failed: ${e.message?.take(100)}")
             throw TransportFailure(ErrorMapping.protocolFault(e.message ?: "channel call failed"))

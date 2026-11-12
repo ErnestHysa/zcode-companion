@@ -130,4 +130,13 @@
     <string name="section_broken_body">Other areas keep working — retry this section.</string>
     <!-- G61 (vc52 Phase 13): the workbench empty detail pane (>=600 dp). -->
     <string name="workbench_empty_detail">Select a task on the left to open its conversation.</string>
+    <!-- G79 (vc52 Phase 13): the fault-family copy — each names WHAT was refused
+         (class-wise) and carries the RAW fault code (%1$s) for support. -->
+    <string name="err_msg_fault_subscription">The desktop refused a subscription change (%1$s). Reconnect and retry.</string>
+    <string name="err_msg_fault_attachment">The desktop refused an attachment operation (%1$s).</string>
+    <string name="err_msg_fault_connection">The desktop refused the connection step (%1$s). Reconnect to recover.</string>
+    <string name="err_msg_fault_command">The desktop refused this command (%1$s) — it may not be available here.</string>
+    <string name="err_msg_fault_runtime">A hook blocked this action on the desktop (%1$s).</string>
+    <string name="err_msg_fault_untrusted">The desktop declined over an untrusted connection (%1$s) — reconnect to continue.</string>
+    <string name="err_msg_fault_terminal">The terminal connection was refused (%1$s) — reopen the terminal.</string>
 </resources>

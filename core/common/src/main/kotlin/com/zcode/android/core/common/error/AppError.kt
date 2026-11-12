@@ -63,6 +63,14 @@ enum class UserMessageKey {
     PERMISSION_NEEDED,
     NOTIFICATIONS_BLOCKED,
     NOT_ALLOWED,
+    // ---- G79 (vc52 Phase 13): the fault-family copy (the raw code rides messageArgs) ----
+    FAULT_SUBSCRIPTION,
+    FAULT_ATTACHMENT,
+    FAULT_CONNECTION,
+    FAULT_COMMAND,
+    FAULT_RUNTIME,
+    FAULT_UNTRUSTED,
+    FAULT_TERMINAL,
     NONE,
 }
 

@@ -385,6 +385,48 @@ object ErrorMapping {
         correlation = correlation,
     )
 
+    /**
+     * G79 (vc52 Phase 13): a channel/v4 REFUSAL with a typed `fault.<code>` —
+     * a KNOWN code maps to its family copy (the RAW code rides messageArgs for
+     * support); an unknown fault or a non-fault detail keeps the generic
+     * not-allowed face with the raw detail preserved for diagnostics.
+     */
+    fun faultRefusal(detail: String, correlation: Correlation = Correlation()): AppError {
+        val code = FaultVocabulary.codeFromRefusal(detail)
+        val family = code?.let { FaultVocabulary.familyOf(it) }
+        return if (code != null && family != null) {
+            val key = when (family) {
+                com.zcode.android.core.transport.FaultVocabulary.Family.SUBSCRIPTION -> UserMessageKey.FAULT_SUBSCRIPTION
+                com.zcode.android.core.transport.FaultVocabulary.Family.ATTACHMENT -> UserMessageKey.FAULT_ATTACHMENT
+                com.zcode.android.core.transport.FaultVocabulary.Family.CONNECTION -> UserMessageKey.FAULT_CONNECTION
+                com.zcode.android.core.transport.FaultVocabulary.Family.COMMAND -> UserMessageKey.FAULT_COMMAND
+                com.zcode.android.core.transport.FaultVocabulary.Family.RUNTIME -> UserMessageKey.FAULT_RUNTIME
+                com.zcode.android.core.transport.FaultVocabulary.Family.UNTRUSTED -> UserMessageKey.FAULT_UNTRUSTED
+                com.zcode.android.core.transport.FaultVocabulary.Family.TERMINAL -> UserMessageKey.FAULT_TERMINAL
+            }
+            AppError(
+                category = ErrorCategory.AUTHZ,
+                userMessage = "The desktop refused this request ($code)",
+                messageKey = key,
+                messageArgs = listOf(code),
+                developerDiagnostic = detail,
+                retryable = AppError.Retryable.USER,
+                recoverable = true,
+                correlation = correlation,
+            )
+        } else {
+            AppError(
+                category = ErrorCategory.AUTHZ,
+                userMessage = "The desktop refused this request",
+                messageKey = UserMessageKey.NOT_ALLOWED,
+                developerDiagnostic = detail,
+                retryable = AppError.Retryable.USER,
+                recoverable = true,
+                correlation = correlation,
+            )
+        }
+    }
+
     fun taskRejected(message: String, correlation: Correlation = Correlation()) = AppError(
         category = ErrorCategory.TASK,
         userMessage = "Conversation changed — please try again",

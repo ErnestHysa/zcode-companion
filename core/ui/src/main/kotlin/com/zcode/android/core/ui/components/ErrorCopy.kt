@@ -56,6 +56,13 @@ fun userMessageRes(key: UserMessageKey): Int = when (key) {
     UserMessageKey.PERMISSION_NEEDED -> R.string.err_msg_permission_needed
     UserMessageKey.NOTIFICATIONS_BLOCKED -> R.string.err_msg_notifications_blocked
     UserMessageKey.NOT_ALLOWED -> R.string.err_msg_not_allowed
+    UserMessageKey.FAULT_SUBSCRIPTION -> R.string.err_msg_fault_subscription
+    UserMessageKey.FAULT_ATTACHMENT -> R.string.err_msg_fault_attachment
+    UserMessageKey.FAULT_CONNECTION -> R.string.err_msg_fault_connection
+    UserMessageKey.FAULT_COMMAND -> R.string.err_msg_fault_command
+    UserMessageKey.FAULT_RUNTIME -> R.string.err_msg_fault_runtime
+    UserMessageKey.FAULT_UNTRUSTED -> R.string.err_msg_fault_untrusted
+    UserMessageKey.FAULT_TERMINAL -> R.string.err_msg_fault_terminal
     UserMessageKey.NONE -> R.string.err_msg_none
 }
 
