@@ -11840,13 +11840,17 @@ change; the plane is pinned 8× and the honest empty face receipted live in Phas
       emitted test XML (no test-compile blind spot) — **2318/0/0/0 at the Phase-14 HEAD
       (2291 + 27 = exactly the phase's pins: 22 mock self-tests + 5 WATCH-3 data pins), all 17
       modules emitting XML, zero task failures, zero names lost**
-- [ ] Fresh debug APK rebuilt with the `zcode-android-release-meta` block; artifact path + version
-      marker stated to Ernest (deliverable completion rule) — **STATE 2026-11-12: the debug APK at
-      the Phase-14 HEAD is byte-identical to the Phase-13 gate build (`21feb99b386845ea…`,
-      31,273,821 B — Phase 14 changed NO app code, verified by sha) at
-      `app/build/outputs/apk/debug/app-debug.apk`; the `zcode-android-release-meta` block
-      attaches only at publish (the release policy) — the signed release rebuild + notes-meta
-      happens on Ernest's explicit publish word**
+- [x] Fresh debug APK rebuilt with the `zcode-android-release-meta` block; artifact path + version
+      marker stated to Ernest (deliverable completion rule) — **CLOSED 2026-11-12 on Ernest's
+      publish call: the signed RELEASE APK `app-release.apk` (versionCode 53 / versionName 1.3.2,
+      sha256 `e4183c78b7add8244f9840a1d263836d1d826de8bd97675fe459d4e3b29d2db4`, 6,058,254 B,
+      cert `731eec01…`, aapt-verified + apksigner-verified) attached to the DRAFT GitHub release
+      `v1.3.2-vc53` targeted at the release bump `8e399c67a2…` (asset bytes re-downloaded and
+      digest-verified identical); the notes carry the `zcode-android-release-meta` block
+      (versionName/versionCode/maxTestedDesktop 3.18.1/apkName/sha256) for ReleaseParser; the
+      release bump's affected suites green (:core:security + :app 379/0/0). The promote click
+      (draft → public) stays with Ernest per the AAP chain. The stale v1.3.1-vc52 draft
+      (versionCode 52, the pre-campaign APK) is superseded — awaiting Ernest's delete-or-keep word**
 - [x] Work committed locally as `ErnestHysa <takis312@hotmail.com>`; pushed/published only on
       Ernest's explicit word (ADDITIVE = signed draft / BREAKING = draft PR; a human promotes)
       — **nothing pushed through the Phase-14 close (2026-11-12)**
@@ -12958,3 +12962,34 @@ Rig gotchas recorded for the next pass:
 - **Timestamp**: **2026-11-12, verified 18:13:56 local time** (suite gate 4m47s; rig legs
   ~35 min; report/stamp 18:13–18:2x).
 - **Nothing pushed** — all work committed locally on `fix/vc52` per the release policy.
+
+## Publish record — v1.3.2-vc53 (the vc52-remediation release) — 2026-11-12 (APPENDED; not part of the audit, the vc51 roadmap, Part 0, or the vc52 roadmap body)
+
+Ernest's publish call executed 2026-11-12 (~19:0x local): `fix/vc52` fast-forward-merged into
+`main` (dec72cd7 → b0b771e1, zero conflicts — main was the merge-base); `fix/vc52` safe-deleted
+(`branch -d`, merged-only; only `main` remains locally, only `origin/main` remotely; the stale
+/private/tmp/p11 baseline worktree pruned — detached at a contained commit, 0 dirty files); the
+release bump `8e399c67a2…` (versionCode 53 / 1.3.2, MAX_TESTED_DESKTOP → 3.18.1, the
+batch-owned pins updated — CompatibilityGateTest/AppUpdateCheckerTest/
+ConnectionCenterUpdateUiTest; :core:security + :app 379/0/0); the signed release APK built
+(aapt: versionCode 53 / versionName 1.3.2; apksigner: cert SHA-256 `731eec01…` = the stable
+off-repo identity); **main pushed** (2c418804..8e399c67); the DRAFT release `v1.3.2-vc53`
+created at the bump sha with the meta-block notes; `app-release.apk` attached (6,058,254 B)
+and the asset re-downloaded — digest `e4183c78b7add8244f9840a1d263836d1d826de8bd97675fe459d4e3b29d2db4`
+identical local↔remote. The AAP chain's human-promote gate stands: the draft goes public on
+Ernest's click. The stale `v1.3.1-vc52` draft (versionCode 52, the PRE-campaign APK) is
+superseded by this release — flagged for Ernest's delete-or-keep word, not touched.
+
+### Verification stamp (the publish round)
+
+- **Verified by**: GLM-5.3-Flash (ZCode harness, account zai-individual-coding-plan).
+- **Merge**: fast-forward, `--ff-only`, zero conflicts; HEAD verified `b0b771e1` pre-bump.
+- **Branches**: local = `main` only; remote = `origin/main` only; nothing force-deleted
+  (`branch -d` only).
+- **Suite at the release commit**: :core:security:test + :app:testDebugUnitTest 379/0/0 (the
+  campaign-wide 2318/0/0/0 gate ran at `b0b771e1`; the bump touches the gate constant + its
+  pins only).
+- **Timestamp**: 2026-11-12, ~18:40–19:05 local (merge → bump → build → push → draft →
+  byte-verify).
+- **Artifact**: `app/build/outputs/apk/release/app-release.apk` = the release asset (versionCode
+  **53**, versionName **1.3.2**, tag `v1.3.2-vc53`).
