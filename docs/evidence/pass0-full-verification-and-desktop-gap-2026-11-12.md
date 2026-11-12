@@ -498,3 +498,318 @@ cycle; 24 screenshots in `/tmp/p1/shots/`; receipts in `/tmp/p1/logcat-gen*.log`
 `/tmp/p1/relay-gen*.log`, Room DB pulls in `/tmp/p1/db/`. APK byte-identical (`ad449d7d…`);
 desktop digest unchanged (`ec475e6e…`). Nothing pushed. Rig left: emulator + gen4 light relay on
 :18100.
+
+---
+
+# Part E — pass 2 (APPENDED 2026-11-12, same day, later still): the whole-app re-walk + the 38-service remote-surface reverse
+
+> **Pass 2 scope per Ernest's re-ask ("verify every single thing… dig deeper than previous passes").**
+> Same report file, APPEND-ONLY; Parts A–D above are passes 0–1 and were NOT edited. This pass
+> re-armed the rig (3 fresh relay generations + a DIRECT generation), drove the surfaces passes
+> 0–1 skipped (workflow Run acceptance, automations Run now, attachment upload, voice, the git
+> sheet's full depth, the endpoint detail plane, unpair→re-pair with BOTH consent gates), pinned
+> the pass-0/1 defect cluster to CODE with the root causes below, and mined the desktop 3.18.1
+> asar (digest RE-VERIFIED byte-identical `ec475e6e…2b10` at pass-2 start) down to the REMOTE
+> SERVICE REGISTRY — the definitive 38-service contract the phone could consume.
+>
+> **Environment of record.** HEAD `e4948499` (main, clean), debug APK byte-identical `ad449d7d…`
+> (rebuilt up-to-date in 10 s, 239 tasks), versionCode 53 / 1.3.2. Emulator `zcode-a16` warm from
+> the pass-1 rig (same process). Relay generations: gen1 `mock-p2-gen1-a2b4c6` (full 23-arm,
+> `MOCK_INTERACTION_PUSH_MS=5000`) → gen2 `mock-p2-gen2-b4d6f8` (full + `MOCK_AUTOMATION_RUNS=1`,
+> 3 s push) → gen3 `mock-p2-gen3-c6d8e0` (full, 3 s push) + DIRECT `mock-p2-direct` on :18200
+> (`MOCK_MODE=direct`, `MOCK_PORT_OVERRIDE=18200` — the port override is REQUIRED; relay.sh
+> hardcodes MOCK_PORT=18100 which collides with a live relay gen). Desktop under audit: the same
+> `/Applications/ZCode.app` 3.18.1.10376 asar, `ec475e6e302595fe…2b10`, 383,832,025 B — opened in
+> REA (`open_binary`, archive provider) and analyzed (`analyze_javascript_application` on
+> `out/host`, evidence `ev_6899615b6bfa8c43acb202ab34a9e3eb5143e700d1b16a0c7f5167cd62062fc8`,
+> complete-record retention, dir digest `3d4aa76f…`, exported to `/tmp/p2/rea-host-bundle.json`,
+> 471,621 B). The pass-0 extraction at `/tmp/p0/asar-out` (31,587 files) served the census greps.
+>
+> **Verification stamp:** 2026-11-12, verified ~21:45–22:45, GLM-5.3-Flash in ZCode (ZCode
+> Companion pass-2 rig), everything local, nothing pushed.
+
+## E.A0 — rig learnings (each will bite the next pass)
+
+1. **The DB-pull race produces FALSE ABSENCE.** Pass-2's mid-walk pull showed NO push row six
+   seconds after the patch was proven delivered (gateway.frame receipt) — the row appeared in the
+   next pull with its ORIGINAL createdAt. The `run-as cat db + cat db-wal` two-step is not a
+   consistent snapshot; a checkpoint between the two cats loses the row from BOTH files. Recipe:
+   treat a missing row as inconclusive while the app is live; re-pull after quiescence, or prefer
+   the app's logcat lifecycle lines as the arbiter of "did it arrive".
+2. **`input text` loses TAIL characters on long payloads, and the loss point VARIES with chunk
+   size**: 178-char one-shot → 39 survived; 7×~25-char chunks → 149 (29 tail chars lost); 13×
+   ~14-char chunks → 174 (2 lost); 11×~16-char chunks with per-chunk dot-count verification →
+   176/176. The ONLY reliable recipe is the verified-chunk loop: after every chunk, read the
+   field's own length hint (the pairing field masks content as • dots — count THEM), and on a
+   short count `MOVE_END` + retype exactly the missing tail. Continue must be tapped at
+   SCREENSHOT-derived coordinates (the 22:34 Continue tap at dump coordinates silently no-op'd —
+   the D.A0.2 dialog-bounds trap again).
+3. **The pairing field is a •-mask** — its dot count is the length oracle. Any future link-typing
+   leg should script the count-verify-repair loop (E.A0.2) instead of trusting `input text`.
+4. **The emulator's NAT dropped the ws socket TWICE this pass** (22:04:25 and 22:12:32, both
+   `abnormal close 1006 Software caused connection abort`) with NO mock-side disconnect arm set;
+   both recovered autonomously (17 s and <1 s ladders). A THIRD failure face: the BACKGROUND
+   reconnect ladder timed out twice (10 s connect timeouts at relay-8/relay-9) until the app
+   foregrounded — background reconnect cadence is throttled by design; foreground resumes
+   instantly. Also: the DIRECT reconnect while backgrounded hit a typed
+   `ANDROID local-network-blocked` candidate face (Android 16's local-network gate) — the honest
+   typed-face machinery handles it; foreground unblocks.
+5. **`MOCK_AUTOMATION_RUNS` was never armed in passes 0–1** — the automation Run-history sheet's
+   "This feature isn't available on the connected desktop" face was a RIG gap, not app behavior
+   (the mock serves the plane when armed; the flag existed all along).
+6. REA MCP object-params arrive at the tool as JSON STRINGS through this harness (`expected
+   object, received string` on `inspect_analysis_view`'s source/view and `export_evidence_bundle`'s
+   overwrite) — boolean/object params fail validation, string/path params work. Recipe: use the
+   bundle-summary + export paths for receipts; don't burn time on the view calls.
+
+## E.A1 — verified working this pass (new receipts, wire-level where relevant)
+
+| Surface | Pass-2 receipt |
+| --- | --- |
+| Push plane end-to-end (gen1) | subscribe 21:50:12.7 → **patch arrived 21:50:17.8** (`gateway.frame seq=2..2` + `manager.deltas ops=1`) → row `mock-approval-push-1-mock-p2-gen1-a2b4c6` created by the patch — the RIG-3 arm works at HEAD (see E.A2.3 for what pass-1 actually saw) |
+| Background push + shade (gen3) | app backgrounded → push patch `seq=2..2` at +3 s → **shade group posted**: "ZCode needs your approval" + "ZCode has a question for you" (dumpsys: channel=permissions, AUTO_CANCEL, contentIntent=startActivity) — the F-34-E notification ask + the RIG-3 off-foreground delivery leg both live |
+| Automations Run now | home → Run now → **`runAutomationNow` (id=113)** + `listAutomations` (id=114) re-list — the wire verb receipts |
+| Run-history sheet | renders Run history + "Nightly digest" + filter chips (All/In progress/Succeeded/Failure) + the honest "Scheduled tasks only run while your computer is awake" caption — content needs the `MOCK_AUTOMATION_RUNS` arm (E.A0.5) |
+| Workflow Run ACCEPTED end-to-end | Run sheet renders params ("Run release-notes / Before tagging a release / version * (required)") + Run disabled until filled → version typed → **`port.startWorkflow :: name=release-notes outcome=Accepted`** → `tasks.openRun` → navigated into the run-in-task conversation → the run appears **Running** in the Context sheet's Workflow runs (release-notes Running, lint-all Running) — the full run-in-task plane receipts |
+| Composer slash send | `/compact` typed → palette → send → `sendConversationCommandV4 (id=146)` ok 81 ms (slash text rides the normal message plane; interpretation is the desktop's) |
+| Attachment upload protocol | + → Attach a file → system picker → `p0dump.xml (9.1 KB)` chip → **`attachmentBeginV4 (id=9)` → `attachmentChunkV4 (id=10)` → `attachmentCommitV4 (id=11)`** — the begin/chunk/commit contract receipts LIVE for the first time (a mid-pick socket drop surfaced the chip's **Retry** affordance; Retry completed the upload) |
+| Voice plane | + → Dictate → system mic-permission dialog → grant → **"Voice input isn't available on this device"** (the honest F-34-D UNAVAILABLE face on the mic-less emulator) |
+| Running-state faces | the sent message started the mock run: composer → "Keep typing to queue follow-up changes" + Queued chip; session bar **Connected · Completed → Connected · Running** live; row actions Fork/Retry/Delete render |
+| Context sheet live values | Status "4m 59s · Iteration 3 · 1 background"; Goal "Ship it · verifying · iteration 3" + iteration timeline; Todos 1/2; **Workflow runs (release-notes Running — MY submitted run, live)**; Plans 1/3; git strip main/clean |
+| Git sheet full depth | read-only badge; branch block "main / tracking: origin/main / main → origin/main / **2 changed file(s) vs the tracking branch**" with per-file **+42 −0 / +3 −7**; Commit…/Branches…; Changes → Unstaged (2); Checkpoints/Snapshot tabs render (both tabs served the same content on this rig — snapshot arm only) |
+| Files browser + viewer | ws-one root → src → main.rs/lib.rs list; lib.rs tap → `file.readTextFile refused: fault.file.notFound` (mock listing-only debt) — viewer face below in E.A2.6 |
+| Terminal attach (F-P0-D re-verify) | opt-in persisted → Attach → **`terminal.create begin → ok` + `terminal.attached :: id=term-1`** — screen: **VIEW-ONLY · "live — /bin/zsh"** + Pause/Search + Copy visible output/Detach. The pass-0 silent no-op did NOT reproduce on the same APK (`ad449d7d…`) — pass-0's receipt was transient |
+| Endpoint detail plane | Settings → MockBook row → "MockBook · desktop 3.14.3 · Check for updates · Last refreshed… · Connection states" ladder faces (Not paired/Connecting: Validating a pairing link/Proving identity) — the connection-ladder diagnostics plane renders |
+| DIRECT connect (full) | form (Name/URL ws://10.0.2.2:18200/ws/Token masked + Show secret/Fallback URLs) → Add → **`direct.connected :: via=10.0.2.2:18200 candidatesTried=1`** → `off-peak-task.list ok` + `zcode-task.listTasks ok` on direct-1 → **`hub.directTasksApplied :: tasks=3 workspaces=1`**; home shows BOTH endpoints (MockBook relay Connected + "P2Direct · Direct server · v3.14.3 · Connected"); Skills plane renders over the DIRECT endpoint |
+| Unpair → re-pair (full loop, both gates) | Settings bottom → Unpair this device → confirm "Unpair from MockBook?" → **`relay.closed :: unpair` + `hub.unpaired :: active endpoint + registry + selection cleared`** → pairing route → Paste pairing link → validator gauntlet (see E.A2.2) → **stale-link gate** ("This QR code may be stale · MockBook · 3.14.3 · Continue anyway") → **E7 security-setup consent** ("Security setup · Continue anyway") → **AUTHENTICATING → CONNECTING → CONNECTED 22:43:04** + `hub.bootstrapApplied tasks=3 workspaces=1 dropped=0` — the whole ladder with both fail-closed consent gates receipts live |
+| Reconnect resilience | two spontaneous 1006 drops recovered autonomously (17 s / <1 s); the reconnect handshake (hello→initialize→resyncSessionsIndex→resyncWorkspaceConfig→subscribe) re-served cleanly with per-connection rpc-id reset |
+
+## E.A2 — defects, refutations, and root causes found this pass (order = fix order)
+
+1. **F-P2-A (P2, app, NEW) — the activity recreate silently CLOBBERS the user's DIRECT-endpoint
+   selection back to the relay.** Live chain: P2Direct added 22:21:24 → `hub.directTasksApplied`,
+   home shows "P2Direct · Connected" → the app's activity recreated fresh at 22:23:14 (launcher
+   relaunch after BACK-exit; `onCreate savedInstanceState=false`) → 22:23:15.967
+   `direct.candidateFailed :: PROTOCOL channel closed: endpoint switch advance=true` (the DIRECT
+   transport killed by a switch IT did not choose) → 22:23:17.371 `hub.connect :: cold-start
+   connect begin (kind=RELAY_ZAI)` → 22:23:17.620 `hub.switched :: endpoint=c23888ef… kind=
+   RELAY_ZAI`. **No user action in between.** Root cause, code-pinned: `ZCodeApp.kt:182-196`'s
+   `LaunchedEffect(paired)` else-branch (the "cold-restore edge") calls
+   `container.hub.onPairingCompleted()` on EVERY recreation where a relay pairing exists, and
+   `ConnectionHub.kt:661-667 onPairingCompleted` sees `active ≠ relay-meta` →
+   `scope.launch { switchTo(meta.endpointId) }` — force-adopting the relay over the persisted
+   `selectedEndpointId` (which `resolveActiveEndpoint` at :543-571 otherwise honors, DIRECT
+   included, with the §12.6 dead-token fail-closed). The §11.6 multi-endpoint feature therefore
+   survives a recreate ONLY while the user never recreates — i.e. never, on Android. Fix shape:
+   the cold-restore else-branch must not adopt the relay when `preferences.selectedEndpointId`
+   names a live non-relay endpoint — pass an "adoptOnlyIfNone" flag into `onPairingCompleted`
+   (or check `_endpoint.value != null` before the :665 switch). Pin: add a direct endpoint in a
+   Robolectric recreate harness, recreate the activity, assert the active endpoint is still the
+   DIRECT one and `hub.switched kind=RELAY_ZAI` never logs.
+2. **F-P2-B (P3, app, NEW) — after unpair, the pairing welcome still claims "Paired with
+   MockBook · Connect".** `hub.unpaired` cleared vault/registry/selection (receipted), but the
+   pairing screen's resume card renders from the VM's retained `link` (`PairingScreens.kt:100`,
+   `welcome_resumed_with`) — the wording says PAIRED for a device whose credentials are wiped,
+   above a Connect button that can only fail/re-pair. Same family as the vc51 "stale-link
+   Continue anyway" papercut; fix = clear the pairing VM's link on unpair (or gate the resume
+   card on a live vault credential).
+3. **F-P1-C REFUTED at HEAD — the mock push arm is healthy; pass-1's "delivered nothing" was the
+   DB-pull race (E.A0.1) + the immediate STALE confound (below).** This pass the arm fired on
+   schedule in gen1 (5 s), gen2 (3 s, backgrounded), gen3 (3 s, backgrounded — the shade leg);
+   every patch arrived (`gateway.frame seq=2..2`) and every row was created by the patch. No
+   mock change between passes — the jar is the same build. The F-P1-C ledger row should be
+   re-labeled "measurement artifact, refuted pass 2" and the push-arm re-arm TODO dropped.
+4. **F-P0-A + F-P0-B ROOT CAUSE PINNED (code-level) — the rows-plane reconcile sweep kills
+   state-plane-delivered interactions, and the two reconcilers FIGHT.** Chain, all receipted on
+   gen1: (a) push patch creates the interaction live (21:50:17.8); (b) the next
+   `recovery.snapshotReconcile` (rows=53) runs `InteractionCoordinator.reconcileFromSnapshot`
+   whose sweep (`data/src/main/kotlin/com/zcode/android/data/session/InteractionCoordinator.kt:694-700`)
+   exempts user-input (U9) and rows-anchored (T2) machines but NOT state-plane-delivered
+   PERMISSION interactions (`fromRowsSnapshot=false, userInput=null`) → `ResnapshotLacks` →
+   **STALE** while the desktop's authoritative pendingInteractions still lists it (mock holds
+   `pendingPermission`); (c) the F-27-A state-plane re-list RESETS the machine live
+   (`reconcileFromSessionState` :744-756), but the rows sweep runs 36 ms later (21:51:28.779
+   state reconcile vs .815 rows reconcile) and re-STALES it — the card renders actionable with a
+   terminal machine; (d) the tap lands in `ConversationViewModel.answerInteraction` →
+   `submit`'s terminal guard (:179) → **"Already handled on the desktop."** with zero wire calls
+   (receipted live twice this pass). Meanwhile the SAME generation's inbox ACKed a stale row
+   (`mock-approval-1-mock-p0-gen4-7f8a9b` RESOLVED 21:58:47 via
+   `sendConversationCommandV4 id=105`) — the divergence face, again. **Fix shape (one line
+   class): extend the :697 exemption to `known.permission != null` (a permission machine the
+   rows plane never anchored is the STATE plane's to own — its own disappearance leg at :815-825
+   already resolves it truthfully), or track `lastStatePlaneOpenIds` and skip those ids in the
+   sweep.** This closes the card-plane precondition pass-1 documented: with the exemption, the
+   conversation card stays answerable and F-P0-A's refusal disappears.
+5. **F-P1-B re-manifested live at HEAD** — the inbox rendered two "1 h ago" rows from the DEAD
+   pass-0 gen4 (task Synthetic task 3 / Synthetic task 2) with live Allow once/Deny; the tap
+   ACKed against the current relay (`sendConversationCommandV4 id=105`, store RESOLVED
+   21:58:47) while the mock's pendingPermission belonged to a different generation. Mock
+   fidelity debt (accepts any interactionId — a real desktop returns unknown/already-resolved)
+   stands; the app-side expiry sweep still misses dead-generation rows (pass-1's closeStored
+   covered 2 of 5).
+6. **F-P0-C re-verified byte-identical at HEAD** — `file.readTextFile refused:
+   fault.file.notFound` → `files.readText :: TransportFailure` → the viewer renders a SILENT
+   BLANK panel (screenshot `24-file-viewer.png`: title/read-only/breadcrumb/Back/Download and an
+   empty content box — no error text, no retry). The FilesScreen typed-error-face gap stands.
+7. **F-P1-A re-reproduced on a fresh generation with one sharpening** — the AskUserQuestion card
+   renders title + "Keep waiting" + footer ("Send answers" enabled=true this pass — pass-1's
+   "permanently disabled" was render-state-specific) with the body/options ABSENT from the AX
+   tree, and the hook-review card renders "2 pending · 3 hooks" with NO hook items/buttons; the
+   tool-row approval card (plain-children) renders its FULL option body on the same screen
+   (`allowOnce/allowAlways/Do not ask again` visible in shot `04-approval-card.png`) — the
+   LazyColumn zero-share weighting diagnosis stands, now with the healthy-vs-broken contrast on
+   ONE screen.
+8. **F-P0-D RETRACTED to "unreproduced"** — terminal attach works at HEAD (`terminal.attached
+   :: id=term-1`); pass-0's silent no-op did not reproduce on the same APK. Keep the typed-error
+   face work as a hardening row only.
+9. **Deep-link child-tap nuance (observation, not a defect)** — tapping the approval child
+   notification resumed the app into the task conversation, but that conversation was already
+   the top route, so the deep-link extras were not distinguishable from a plain resume
+   (`app deeplink :: onNewIntent data=null` — the intent carries no data URI; navigation rides
+   extras). A clean leg (navigate HOME first, then tap) belongs in the next verification pass;
+   the notification→app resume path itself is receipted.
+
+## E.B — the REA 3.18.1 reverse dig, part 3: the remote-service contract (digest unchanged `ec475e6e…`)
+
+### B1. The clientHello capability vocabulary — zod-verified, complete
+
+The desktop's `clientHello` schema (out/host/index.js, `.strict()`) accepts EXACTLY:
+
+```
+clientKind: "desktop" | "web" | "mobileRemote" | "mobileApp"   (optional)
+capabilities: {
+  workspaceHookReviewUi: boolean  (optional)
+  workflowRunDeltas:     boolean  (optional)
+  pluginDiscoveryUi:     boolean  (optional)   ← NEW to the census (16 hits)
+  historyFirst:          boolean  (optional)   ← NEW (15 hits)
+}
+```
+
+- The phone (V4Plane.initializeV4, `core/transport/V4Plane.kt:659-677`) declares
+  `workflowRunDeltas: true` + `workspaceHookReviewUi: true` and sends a clientKind
+  (`CLIENT_KIND_DEFAULT`). **The phone does NOT declare `pluginDiscoveryUi` or `historyFirst`**
+  — two dormant, schema-legal capability bits.
+- A second hello schema (the desktop↔agent plane) carries MORE flags: `pluginDiscovery`,
+  `inputPrediction`, `residentRowsRange` — desktop-internal vocabulary; not remote-client
+  surface, recorded to stop future passes re-deriving it.
+- `sendFollowUp`'s request schema carries **`inputOrigin: enum(["desktop","mobile"])`** — the
+  send plane is origin-tagged end-to-end. Worth one grep in a later pass: does the phone's
+  sendConversationCommandV4 declare inputOrigin=mobile? (The phone's messages were accepted all
+  passes, so it is optional — but declaring it would let desktop-side analytics/attribution see
+  mobile sends.)
+- The G81 bit stands unchanged: `clientSupportsWorkflowRunDeltas` is the only gate function in
+  host (`M2`), and the genUiContext gate (`proto.genUiContextUnsupported`) remains the phone's
+  missing capability.
+
+### B2. THE 38-SERVICE REMOTE REGISTRY — the definitive "what the phone could consume" list
+
+`createHostRemoteWorkspaceProxyState`'s registry array (out/host/index.js, `var gz=[…]`) — the
+authoritative remote-client surface, byte-extracted this pass:
+
+```
+fileService, genUiService, gitService, gitCheckpointService, systemService, terminalService,
+settingService, onboardingRecordService, credentialService, broadcastService, zcodeTaskService,
+zcodeAgentService, zcodeSessionService, conversationShareService, botsService, fileWatcherService,
+oauthService, providerSettingsService, modelSelectionService, mediaPreviewService,
+sourceServerWorkspaceService, usageStatsService, codingPlanSubscriptionService,
+clientScenesService, skillsService, skillSyncService, mcpSyncService, pluginSyncService,
+userConfigSyncService, pluginsService, pluginManagementService, subagentsService, commandsService,
+hooksService, memoryService, outputStyleService, settingsSyncService, promptAttachmentTransferService
+```
+
+(the window-internal service list adds `feedbackService` — 39 total; `automationService` and
+`usageService` are NOT service names — automations ride `zcodeAgentService`/`zcodeTaskService`
+methods, usage rides `usageStatsService`).
+
+Phone-coverage matrix (the pass-2 gap ledger, order = recommended fix order):
+
+| # | Desktop service | Phone today | Verdict |
+| --- | --- | --- | --- |
+| 1 | `memoryService` (renderer: 5 hits — a **Memory viewer UI with `memoryEnabled` toggle + `projectMemoryViewerAvailable` + a `remoteDevice:` flag in the component props**) | **zero surfaces** (pass-1 flagged the settings namespace; now pinned to a SERVICE) | **NEW GAP G82 (P3)** — a memory viewer plane the phone could mirror read-only, like Plugins/Skills |
+| 2 | `clientScenesService` (renderer: 6 hits) | the phone has Presentation/Coding faces (F-36-C family) but no scenes CONSUME plane | **NEW GAP G83 (P4)** — inventory the scenes vocabulary before deciding |
+| 3 | `outputStyleService` (renderer: 2) | none | **NEW GAP G84 (P4)** — desktop personalization plane, read-only candidate |
+| 4 | `broadcastService.onMessage` (renderer: **36 hits** — a real broadcast UI plane) | none | **NEW GAP G85 (P3)** — the largest un-inventoried remote plane; census its message vocabulary next pass |
+| 5 | `codingPlanSubscriptionService` (renderer: **2,463 `codingPlan` hits**) | none (G60 stands) | G60 DEEPENED — the plan/subscription plane is one of the desktop's biggest UI investments |
+| 6 | `zcodeTaskService.setTaskUnread` (renderer: 8) | the phone tracks its own read state; no desktop unread badge sync | **NEW SMALL** — unread-badge sync over the remote plane |
+| 7 | `systemService.info` | the phone gets desktop version via pairing metadata only | **NEW SMALL** — a system-info face for the endpoint detail plane |
+| 8 | `conversationShareService` | the phone shares text/markdown/print LOCALLY (pass-0 receipts) | verify next pass whether the desktop's share SERVICE offers link-sharing the phone lacks (G-family candidate) |
+| 9 | `zcodeSessionService.createSession` | the phone has + New task (task mgmt plane) but no bare session create | verify: is the phone's New task routed through this? |
+| 10 | `onboardingRecordService` / `credentialService` / `oauthService` / `fileWatcherService` / `userConfigSyncService` / `settingsSyncService` / `skillSyncService` / `mcpSyncService` / `pluginSyncService` | n/a — desktop-credential or desktop-sync machinery the phone must NOT consume (security boundary ADR-024 family) | NO-ACTION (recorded so the roadmap never "ports" them) |
+| 11 | everything else (file/git/terminal/setting/task/agent/session/skills/mcp/plugins/subagents/commands/hooks/usage/model/media/sourceServer/promptAttachment) | the phone consumes these today (the read-only planes + conversation/files/terminal/attachment planes) | PARITY, receipts in E.A1 |
+
+### B3. Method-inventory cross-check (consumer-grounded)
+
+The phone calls 34 distinct methods (extracted from the app source into
+`/tmp/p2/phone-methods.txt`); every non-template name greps GREEN in the asar
+(`conversationWorkflowRunsV4` → host+main+renderer+scheduler, `listAutomationRuns` →
+host+renderer, `getTaskTokenUsage` → host, `setThoughtLevel` → 5 dirs, …). The MISSING-from-asar
+names (`zcode-task.listTasks`, `file.readTextFile`, `git.status`, `terminal.create`,
+`usage-stats.getEntitlementSnapshot`, …) are TEMPLATE-BUILT channels on the desktop
+(`zcode-task.${op}`, `file.${op}`) — the literal-grep diff cannot see them; the SERVICE registry
+above is the authoritative surface, and every phone channel's prefix rides a registry service.
+`startWorkflow` is a sendConversationCommandV4 COMMAND TYPE (the phone's wire receipt in E.A1),
+not a channel — recorded so nobody hunts for a `startWorkflowV4`.
+
+### B4. V2 device plane — re-measured, unchanged
+
+`reportNotification` lives in out/main only (2 hits) — the Bearer-authenticated notification
+event-reporting plane is DESKTOP-side; no new phone-side obligation surfaced this pass. WATCH-4
+markers re-verified unchanged (`/api/v1/remote/device`, `RelayV2IncomingMessage`).
+
+### B5. REA receipts (pass 2)
+
+`open_binary` re-bound the asar (sha256 `ec475e6e302595fe…2b10` — byte-identical to pass-0/1, so
+every census number stands); `analyze_javascript_application` on `out/host` (dir digest
+`3d4aa76f…`) retained complete-record evidence `ev_6899615b6bfa8c43acb202ab34a9e3eb5143e700d1b16a0c7f5167cd62062fc8`
+(8 limitations, `authority: shipped-artifact`), exported to `/tmp/p2/rea-host-bundle.json`
+(471,621 B). The harness quirk (E.A0.6) blocked the view/export-boolean calls; the bundle
+summary + file export carry the receipts.
+
+## E.C — where the phone is BETTER than the desktop (new receipts this pass)
+
+- The attachment upload plane's **typed Retry affordance** on a mid-flight socket loss (the
+  chip degrades honestly and completes on retry — the desktop's transfer plane shows no such
+  per-attachment recovery face in the census).
+- The pairing gauntlet's **two fail-closed consent gates** (stale-link + security-setup) before
+  any credential lands — both rendered and both enforced live this pass.
+- The reconnect ladder's honest typed faces even for ANDROID-OS-level blocks
+  (`local-network-blocked` candidate face while backgrounded) — recovered instantly on
+  foreground.
+- The endpoint multi-plane (relay + DIRECT simultaneously listed with independent Connected
+  states) — modulo F-P2-A's recreate clobber, which is the fix that would make the feature
+  actually stick.
+
+## E.D — fix-order recommendation (supersedes D.D)
+
+1. **F-P0-A/F-P0-B one-line-class fix** (E.A2.4: the `:697` exemption) + the live-shape pin
+   (answers from BOTH planes assert one ACK) — this is the app's core safety surface and the
+   smallest diff on the board.
+2. **F-P2-A** (E.A2.1: the recreate clobber) + pin — the multi-endpoint feature is dead weight
+   until the selection survives a recreate.
+3. **F-P1-B** expiry sweep + the mock's unknown-id error arm (unchanged from pass-1).
+4. **F-P1-A** the LazyCard weighted-body fix (unchanged, re-receipted this pass with the
+   healthy/broken contrast).
+5. **F-P2-B** the unpair-resume wording (tiny).
+6. **F-P0-C** the file-viewer typed error face (unchanged; F-P0-D's face work folds in here as
+   hardening).
+7. **G82 memory viewer (read-only)** — new, small, high-visibility parity win.
+8. **G85 broadcastService census → consume/no-action decision**; **G60/G81** unchanged; the
+   capability bits (`pluginDiscoveryUi`, `historyFirst`, `inputOrigin=mobile`) as opportunistic
+   adds alongside their consumer work.
+
+### Coverage honesty (what pass 2 did NOT drive)
+
+The G28 zoom viewer / rewind / fork legs (light-rig recipe from pass-1 stands; this pass stayed
+on the full rig), theme/font/locale toggles (vc51 pins + pass-31 receipts stand), the widget
+add-to-home drag (launcher-fiddly; RIG-4 binding receipt stands), and the automation Run-history
+CONTENT with `MOCK_AUTOMATION_RUNS` armed (the arm was set on gen2/gen3 but the History sheet
+was not re-opened after the re-arm — one leg for the next pass).
+
+## Pass-2 verification stamp
+
+Pass 2 completed 2026-11-12 ~22:45; 3 relay generations + 1 DIRECT generation + 1 full
+unpair→re-pair cycle; 35 screenshots in `/tmp/p2/shots/`; receipts in `/tmp/p2/logcat-gen*.log`,
+`/tmp/p2/relay-*.log`, Room DB pulls in `/tmp/p2/db/`, the phone-method inventory at
+`/tmp/p2/phone-methods.txt`, REA bundle at `/tmp/p2/rea-host-bundle.json`. APK byte-identical
+(`ad449d7d…`); desktop digest unchanged (`ec475e6e…`). Nothing pushed. Rig left: emulator +
+gen3 relay (the re-paired MockBook) on :18100 + the DIRECT mock on :18200.
