@@ -1705,3 +1705,229 @@ to the series (sha256 `ad449d7d…`, md5 `530ba4ff…`, versionCode 53 / 1.3.2);
 commit (`2b12fc46` fix(mock): F-P4-A + N-BK-1, 37 mock tests green); desktop digest unchanged
 (`ec475e6e…`). Rig left: emulator + gen3 relay on :18100 (the DIRECT mock died at the gen3
 restart). Nothing pushed.
+
+---
+
+# Part I — pass 6 (APPENDED 2026-11-13, evening): the contested-rig pass — the fuse-vs-push race completed, the permission ghost-split, and the parity dig
+
+**Concurrency note (first pass run alongside a second agent on the SAME task)**: both
+agents drove the shared emulator + relay. Coordination lived in
+`/tmp/pass-coord-2026-11-13.md` (claims + live events, append-only). The relay changed
+hands FIVE times during this pass (agent A's gen4 → the other agent's gen → agent A's
+gen5/gen7 → the other agent's third gen, nonce `gmwfj72ny-14q`), which the legs below
+account for explicitly by nonce. Everything here is reproducible from the pulled DBs and
+named logs regardless.
+
+## I.1 — live legs (new receipts at HEAD)
+
+### The deliberate fuse-vs-push race — pass-5's "belongs to a future pass" leg, CLOSED
+
+gen5 timeline (t0 = 21:59:08, push armed at t0+15s, countdown fuse at t0+240s, app
+BACKGROUNDED before the push — the foreground-cancel face would have withheld it):
+
+1. **21:59:23** — the fresh-interaction patch delivered to the backgrounded app. Shade
+   posts 4 records: system autogroup summary (`g:Aggregate_AlertingSection`,
+   GROUP_SUMMARY|AUTOGROUP_SUMMARY) + 2× "ZCode needs your approval" + 1× "ZCode has a
+   question for you" — each child `channel=permissions`, `AUTO_CANCEL|SILENT`,
+   `category=alarm`, and each carrying its **publicVersion** (the F-33-H split verified
+   in dumpsys, not just code).
+2. The group summary's own title row rendered "**ZCode Companion · in 2m**" — the G77
+   fuse chronometer visible AT THE SHADE LEVEL (the countdown ticking toward the fuse
+   deadline, from the lock-screen-safe public face's parent group).
+3. **22:03:08** — the fuse fired (the mock's `autoResolutionFired` dropped the pending
+   permission/userInput entries out of the served list). At **22:03:59**: `dumpsys
+   notification` shows **0** active zcode records — ALL FOUR retracted, including the
+   two that had been delivered ~4.5 minutes earlier. The retraction path
+   (`AndroidNotificationSink.cancel` + the group-count bookkeeping
+   `postGroupSummary(remaining)`) works end-to-end on a real group.
+4. The app's cards closed with the typed face — "Agent needs your input / No answer;
+   continued automatically" (screenshot `s5-postfuse.png`, machine RESOLVED, buttons
+   gone) — re-verified on a second generation the same way.
+
+The face itself was already a pass-5 receipt; the NEW half is the **notification
+retraction of an already-delivered push when the remote fuse fires** — the shade never
+holds a stale ghost after the desktop auto-continued.
+
+### F-P6-A (NEW, P2): the permission ghost-split — store DISPLAYED vs card plane EMPTY
+
+The headline finding of this pass. Evidence chain (all pulled at HEAD, APK `ad449d7d…`):
+
+- gen7 (nonce `mock-p6-gen7-d0e1f2`, push@15s, fuse@900s): the base approval
+  `mock-approval-1-mock-p6-gen7-d0e1f2` is **DISPLAYED** in the Room `interactions`
+  table (DB pull 22:11, `sessionId=synth-task-1` — the OPEN task), yet the pinned
+  plane's FIRST rendered item was the question card. The pinned plane is a LazyColumn
+  whose `items(state.pendingPermissions)` render BEFORE the user-input items
+  (ConversationScreen.kt:454) — permissions first by construction. First item = the
+  question ⇒ **`pendingPermissions` was empty in the live projection** while the store
+  said DISPLAYED.
+- Mechanism (pinned, not guessed): `ConversationViewModel.pendingPermissions` filters
+  `it.kind == PERMISSION && it.permission != null` (ConversationViewModel.kt:71-74).
+  Pass-5 isolated the blocker — the reconcile stale sweep needs the
+  `known.permission != null` exemption at InteractionCoordinator.kt:697 — and that fix
+  is **still not applied at HEAD**, so the sweep nulls the permission payload, the
+  projection drops the interaction, and the store keeps it unresolved.
+- **Ghost accumulation (the sharper half)**: the store carries unresolved interactions
+  from DEAD generations, nothing ever closes them:
+  - `mock-approval-1-mock-p2-gen3-c6d8e0` — **pass 2, 2026-11-12** — PERMISSION,
+    DISPLAYED, still unresolved ~26 hours later;
+  - `q-rig-1-mock-p0-gen4-7f8a9b` — pass 0 — USER_INPUT, REQUESTED (synth-task-2);
+  - conversation ROW 42 (`turn-synth-task-3-11` AND `turn-sess-forked-1-11`) — a
+    pass-3-era `pendingApproval` toolCall row still in the row store;
+  - gen7's own base approval DISPLAYED forever, while gen7's PUSHED approval resolved
+    normally — the reconcile resolves the pushed class but not the snapshot-served one
+    when the generation dies.
+- **Consequence (why P2)**: the notification broker posts from the STORE (2 approval
+  notifications were up while ZERO approval cards rendered) — a shade notification for
+  an approval with NO in-app answer surface; its deep-link lands on the same
+  starved screen (F-P6-B below). The phone's only answer path for such an approval is
+  the shade ACTION button — which this pass still could not drive (I.3). Re-manifested
+  across THREE generations with different arm sets (gen7 + the other agent's gen, whose
+  base approval was still DISPLAYED after its fuse had closed the question and resolved
+  the pushed approval).
+
+### F-P6-B (NEW, P2): the timeline body is fully starved with the armed stack
+
+With the question card + hook-review card + queue panel + background-bash strip +
+shared-context chip all armed (the standard mock stack), the conversation screen
+renders **ZERO timeline rows**: the "Load earlier messages · showing latest 320 of
+333" strip sits directly on the queue panel (screenshot `s29-layout.png`). The pending
+approval's conversation row (rowId 2003, `createdAtSeq` 2003 < maxSeq 2011) IS inside
+the loaded 320-row window and IS in the DB — but is unreachable in the UI; the
+timeline strip does not scroll in either direction and the "Jump to latest" affordance
+is absent in this state. Also visible: **"Send answe/rs"** crushed to three lines —
+F-P3-A's FIFTH re-manifestation. The blocked=True pinned budget (30% +
+`PINNED_RESERVE`, ConversationScreen.kt:430-452) plus the expanded queue panel eat the
+window. The two-way collapse contract exists for the queue panel but its header toggle
+was not hit in this pass (the panel header row sits between the pinned plane and the
+timeline; left as an open probe — collapsing it is the expected remedy and MUST be
+verified next pass).
+
+### The shade-action tap leg (pass-5 gap) — attempted, blocked at SystemUI
+
+Four records posted (I.1). The action buttons are verified IN CODE (C3
+approve-once/deny actions; `setAuthenticationRequired(true)` on the permissions
+channel per F-37-B; the chronometer per G77) and the actions exist in the dumpsys
+records — but the GROUP never expanded: tapping the badge, the header, and the child
+rows all dispatched a contentIntent (deep-link into the app) instead of expanding, and
+the swipe gestures went to quick settings. Recipe recorded for pass 7: answer 2 of the
+3 pending interactions in-app FIRST so the remaining notification renders UNGROUPED
+(single notifications expand in place with visible buttons), or drive the action
+PendingIntents directly. The lock-screen leg was set up (PIN 1379 armed) but there was
+no live notification at lock time (0 active records); PIN cleared, rig restored.
+
+### The raw `allowOnce`/`allowAlways` button labels = MOCK FIDELITY, not a phone bug
+
+The gen5 deep-link receipt showed approval-card buttons labelled `allowOnce` /
+`allowAlways`. Provenance chased to the end: the mock builds
+`{optionId, label, kind}` ALL set to the raw id (MockZCode.kt:1286-1291); the card
+prefers the runtime's OWN label when semantics are recognized (G76 contract,
+WriteComponents.kt:209-210), and the DESKTOP's runtime option builder sets
+`label: c.name` (zcode.cjs, the allow_once→allowOnce mapping site) with the wire
+schema REQUIRING `label: string` (host zod `o_`). With real desktop payloads the phone
+renders human labels and falls back to `consequenceLabel` only for blank ones. Verdict:
+phone correct-by-contract; P4 rig-fidelity note — the mock should send realistic
+labels (and a defensive "label == optionId ⇒ use the consequence copy" fallback is a
+reasonable hardening idea, not a defect).
+
+## I.2 — REA dig (desktop 3.18.1, asar digest `ec475e6e…` unchanged, build-meta
+`9f7ab4c3` / 2026-11-11 / electron-builder 26.17.0)
+
+1. **Tool taxonomy drift — one name (P4)**: the phone's `ToolKindTaxonomy` (the G80
+   port: 14 kinds × 31 names) covers every tool name found in the shipped
+   `zcode.cjs` EXCEPT **`BashOutput`** (present ×1 in the CLI, absent from the phone's
+   name map — `KillShell`/`KillBash` are mapped, their output twin is not; it falls to
+   the substring heuristic). Fix is one `put("BashOutput", TASK_CONTROL)` line.
+2. **Notice/marker plane (P4)**: desktop `timelineMarker` carries `marker.type` ∈
+   {`compact`, `goalVerify`, `worktreeCreated`} and `lane` ∈ {`none`, `present`,
+   `lightBoundary`, `turnTailBoundary`}. The phone renders `compact` as the typed
+   CompactionNotice; `goalVerify`/`worktreeCreated` render as RAW `QuietMetaRow(label
+   = markerType)` (ConversationScreen.kt:1571) and `lane` is not decoded at all.
+   Honest raw faces — cosmetic gap only.
+3. **Slash parity EXACT**: the desktop's workspace-config wire schema
+   `Qye = {name, description, inputHint?, source?}` matches the phone's
+   `SlashCommandView` field-for-field, including the `inputHint`-driven
+   "/cmd " autocomplete behavior (SlashCommandMenu.kt:87-89); the settings
+   CommandsViewer additionally maps the desktop's `argumentHint` → inputHint
+   (ViewerModels.kt:627). Zero drift at HEAD.
+4. **G91 (NEW, P3): the plugin plane is decode-only — no UI consumes it**. The phone
+   decodes `PluginsView` (the `listPlugins` STRICT schema: id/name/description/
+   version/enabled/source/marketplace/skillRootCount/commandRootCount/mcpServerNames/
+   rootPath + diagnostics — ViewerModels.kt:456+) but NO production screen references
+   it (grep: one test file only). The desktop ships **18 bundled plugin packages**
+   (android-emulator, browser-use, bundled-skills, design, documents, image-search,
+   ios-simulator, node-repl-host, pdf, plugin-creator, presentations,
+   restore-legacy-sessions, skill-creator, spreadsheets, visualize, zcode-cua,
+   zcode-guide, zcode-site) + the pluginManagement 17-method service from pass-5. The
+   phone can never SEE its own plugin inventory. The scoped fix: a read-only Plugins
+   viewer in the settings viewer family (Usage/Memory/Commands pattern), list +
+   enable-state only (the write half is already Deferred scope in the decode comment).
+5. **G92 (NEW, P4): `configOptions` is also decode-only**. The desktop's
+   `readPresentation` serves `configOptions: {id, name, description?, category?,
+   type: select|boolean, currentValue, options[]}`; the phone decodes it into
+   `V4WorkspaceConfig.configOptions` (V4WorkspaceConfig.kt:119) — and no settings UI
+   consumes it (grep: zero feature consumers). The desktop's settings-OPTIONS plane
+   (select/boolean + current values) is one adapter away from a phone render.
+6. **Terminal streaming pair — root confirmed (sharpens pass-5's row)**:
+   `V4Plane.terminalListenData/terminalListenExit` (V4Plane.kt:1699-1709, with the
+   `proxy-channel.ts:127` provenance comment) exist in the transport with **ZERO
+   production callers** — the onDynamicData/onDynamicExit streaming pair is
+   transport-ready and feature-unwired; the phone terminal cannot stream live output
+   until one subscription + render wiring lands in the terminal feature. The G-row's
+   fix is smaller than pass-5 implied.
+7. **Provider catalog**: host schema confirms `inputFormat.pick({supportsImage,
+   supportsVideo, supportsPdf})` + `supportsText` with overlay semantics
+   (`ModelInputFormatConfig.overlay`); the phone's modelOptions decode remains
+   id/label/badge only (pass-31's note stands — the inputFormat bits are still the
+   opportunistic add). Catalog revision marker not locatable in the host chunk (the
+   rev lives CLI-side); schema shape is the parity-relevant half and it is confirmed.
+
+## I.3 — where the phone is BETTER (new receipts this pass)
+
+- The **fuse-retraction completeness**: a remotely-expired approval does not leave a
+  stale shade ghost — notification, chronometer, machine face and store row all close
+  coherently (the store row resolved; only generation-orphaned rows ghost, which is a
+  different failure class — F-P6-A).
+- The **reconnect endurance**: five relay generations in ~30 minutes, two of them
+  hostile (relay killed mid-session), the app re-attached ≤15 s each time with zero
+  user action — the pass-3 "11h/15 reconnects" receipt now covers generation churn
+  too.
+
+## I.4 — fix-order recommendation (supersedes I.D/§H.D for the new rows; F-P0-B still first)
+
+1. **F-P0-B** (unchanged — and now provably the cause of TWO new rows): the
+   `known.permission != null` exemption kills F-P6-A's card half.
+2. **F-P6-A store half**: resolve generation-orphaned interactions (a reconcile sweep
+   that closes DISPLAYED rows whose nonce/session no longer exists), plus a pin
+   against the pulled-DB ghost shape (three generations of ghosts are in
+   `/tmp/pass6/db*.db` as fixtures).
+3. **F-P6-B**: the queue-panel collapse probe + the pinned/timeline budget re-balance
+   (the timeline rendering ZERO rows defeats the whole screen).
+4. **F-P3-A** (5th re-manifestation, same fix family).
+5. **G91** (Plugins viewer) → **G92** (configOptions adapter) → the BashOutput
+   taxonomy line → the terminal streaming wiring → the marker raw-face localization,
+   as one parity queue.
+
+## Coverage honesty (what pass 6 did NOT drive)
+
+The shade-action TAP (SystemUI group expansion — recipe recorded), the lock-screen
+face (no live notification at lock time; PIN armed then cleared), the DIRECT-mode
+generation at HEAD (receipts stand from passes 2–4; the :18200 direct mock was armed
+by this agent and left running), F-P2-A's endpoint-persistence assert (same relay-churn
+window made the SELECTED-endpoint assertion meaningless), terminal keystroke typing,
+row actions, and the cold deep-link leg. The rig was contested the whole pass (five
+relay generations across two agents) — every receipt above is anchored to a named
+nonce and a pulled DB so the churn cannot have polluted the evidence.
+
+## Pass-6 verification stamp
+
+Pass 6 completed 2026-11-13 ~22:30; FIVE relay generations observed (gen4/gen5/gen7 +
+two concurrent-agent gens, nonces in the DB receipts); 32 screenshots
+`/tmp/pass6/shots/`; DB pulls `/tmp/pass6/db{1,2,3,4}*.db` (+WALs) — the ghost
+fixtures live there; relay logs `/tmp/pass6/relay-gen{4,5,6,7,direct}.log`; logcat
+`/tmp/pass6/logcat-p6.log`; coordination file `/tmp/pass-coord-2026-11-13.md`. APK at
+HEAD byte-identical to the series (`ad449d7d…`, md5 `530ba4ff`, vc53/1.3.2) — no code
+changed this pass. Desktop asar digest unchanged (`ec475e6e…`, build `9f7ab4c3`,
+2026-11-11). Rig left: emulator up, the concurrent agent's third gen on :18100 (12
+relay java processes counted at 22:24 — likely zombies worth sweeping by a future
+pass), this agent's DIRECT mock on :18200 (pid 30908, free to kill), PIN cleared.
+Nothing pushed.
