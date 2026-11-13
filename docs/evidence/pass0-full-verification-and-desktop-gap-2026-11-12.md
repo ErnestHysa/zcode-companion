@@ -813,3 +813,350 @@ unpair→re-pair cycle; 35 screenshots in `/tmp/p2/shots/`; receipts in `/tmp/p2
 `/tmp/p2/phone-methods.txt`, REA bundle at `/tmp/p2/rea-host-bundle.json`. APK byte-identical
 (`ad449d7d…`); desktop digest unchanged (`ec475e6e…`). Nothing pushed. Rig left: emulator +
 gen3 relay (the re-paired MockBook) on :18100 + the DIRECT mock on :18200.
+
+# Part F — pass 3 (APPENDED 2026-11-13, the day after): the full feature walk + the gen-ui protocol reverse
+
+> Pass 3 of the pass-0 series. Rig: zcode-a16 emulator (Android 16), debug APK at HEAD
+> (md5 `530ba4ff…`, versionCode 53 / 1.3.2, byte-fresh build), TWO relay generations
+> (`mock-p3-gen1` then `mock-p3-gen2`, both fully armed as pass-2's gen3) + the DIRECT
+> mock on :18200. Desktop digest UNCHANGED (`ec475e6e…`, 3.18.1) — every pass-0/1/2
+> census number stands; this pass goes DEEPER on gen-ui (G81), the broadcast plane
+> (G85), the clientHello capability schema, and the share/session verify items pass 2
+> left open. Screenshots in `/tmp/p3/shots/` (59), logs in `/tmp/p3/`, DB pulls in
+> `/tmp/p3/db/`, asar extraction at `/tmp/p3-asar/` (dir digests match pass-2).
+
+## F.A0 — rig learnings (each will bite the next pass)
+
+1. **Stale relays from a prior session survive REBOOTS of the work day**: pass 2 left TWO
+   relays running (18100 relay-mode + 18200 DIRECT) holding a dead gen3 session. `pkill -f
+   MockRelayMainKt` both, relaunch ONE fresh per generation — never by port (qemu NAT rule).
+2. **The hand-rolled relay classpath is a booby trap**: my first gen1 launch crashed at
+   startup with `NoClassDefFoundError: kotlinx/serialization/StringFormat` because the
+   script mapped serialization-CORE to serialization-JSON's hash dir (copy-paste). The app
+   then timed out auth honestly (10s) against a relay that didn't exist. Fix + relaunch;
+   the app's reconnect ladder converged without intervention.
+3. **`adb shell input text` now drops DOTS too**: `input text "ws://10.0.2.2"` → field got
+   `ws://1` (everything after the first `.` eaten). Escape hatch that WORKED: type the
+   digits with `input text` and emit `.` as keyevent 56 (PERIOD). Spaces via `%s`; `&` via
+   `\&` (both recorded earlier). Long payloads still interleave ACROSS FIELDS (the Add-
+   endpoint dialog got `ws://1rig-direct-` in the FALLBACK field while Name got `P3D`) —
+   type one field at a time, verify the dump between chunks, and expect 2-3 fixups per
+   form. `rig-direct-token` needed two chunks (`rig-direct` + `-token`).
+4. **The home-header buttons have the AX-vs-paint offset** (the gaps-and-polish recipe):
+   painted bell at x≈632 but the Approvals BUTTON's touch target is `[673,158][805,290]`
+   (center 739,224) — taps on the painted icon do nothing. Settings = `[838,191][904,257]`.
+   Tap the AX bounds, always.
+5. **`uiautomator` XML is ONE LINE** — `grep -c node` counts LINES (always 1), so a healthy
+   dump looks dead. Count `grep -o '<node' | wc -l`. My first reads said "1 node / empty AX"
+   on the fork screen; the real count was 125 — I almost recorded a FALSE a11y-collapse
+   finding. Same family: python `re.finditer(r'<node[^>]*/>')` only matches SELF-CLOSING
+   nodes; uiautomator nests, so clickable scans must parse differently (or use the
+   one-line grep forms).
+6. **The IME covers the send FAB**; `keyevent 111` (ESC) does NOT dismiss it (and wanders
+   routes). `keyevent 4` (BACK) closes the IME first — then `Send message` resolves in the
+   AX at `[894,2118][1026,2250]`. The keyboard's own ➤ action key does NOT trigger the
+   app's send.
+7. **The dialog retains values across activity recreation** (rememberSaveable): the app
+   sat on the Add-direct dialog overnight; after the app was backgrounded/foregrounded the
+   fields still held P3Direct / the URL / the token. Dialog "recall" is a feature — budget
+   rig legs for it (clear before retype).
+8. **`am start` on a live app says "intent delivered to top-most instance" and does
+   nothing**; BACK-exit to launcher first (process stays alive — pid survived), then
+   `am start` reproduces the F-P2-A cold-restore path deterministically.
+9. **monkey exits -5 on this image** ("injection permission") — `am start -n` is the
+   reliable launcher.
+10. **The app survived the whole pass unplanned-over-night**: relay reconnects relay-1 →
+    relay-15 across the emulator's clock rolling past midnight, zero crashes, GC healthy
+    (`Background concurrent mark compact GC … 49% free`) — the reconnect ladder is now
+    receipts across ~11 hours of wall clock, not minutes.
+
+## F.A1 — verified working this pass (receipts; pass-2 gaps in bold)
+
+1. **AUTOMATION RUN HISTORY CONTENT** (the pass-2 "not driven" leg): History chip → the
+   Run-history sheet renders real rows ("1 h ago · Scheduled · 100s"), status filter chips
+   (All/Succeeded/Failure/In progress) that FILTER (Failure → honest "No runs yet."),
+   per-run Go-to-session + Delete-run actions, and the honest footnote "Scheduled tasks
+   only run while your computer is awake." `listAutomationRuns ok in 276ms` on the wire.
+2. **Go to session navigates** (`tasks.openRun :: task=synth-op-session-1`) — into the
+   automation session conversation (see F.A2.2 for what's broken there).
+3. **The send plane end-to-end**: composer → `Send message` →
+   `sendConversationCommandV4 ok in 1516ms` + three ONLINE deltas (`gateway.frame seq=5..7`
+   → `manager.deltas ops=1` each). The queued-follow-up face renders ("Keep typing to
+   queue follow-up changes" + Queued chip + stop button) while the turn is live.
+4. **Queue dispatch**: full-text queue rows ("queued follow-up one/two") with
+   ↑/↓/Send now/Edit/Delete; Send now → `sendConversationCommandV4` 373 B `ok in 135ms`.
+5. **Retry** (pass-2 gap): row action bar → Retry → 421 B command `ok in 224ms` + two new
+   deltas (`seq=8..9`), the mock echoed a "retried reply" row. **Fork** (pass-2 gap):
+   Fork → 50 B command → navigated to "**Fork of synth-task-1**" — a real forked child
+   session rendering the FULL transcript: AGENT 9:05 PM "synthetic" + row actions, YOU
+   9:08 PM "here is the screenshot" with the attachment image, the file-changes row
+   ("2 files +5 −1 · view"), the "Turn · 4s" header, and fresh Fork/Retry actions on the
+   forked rows. Row-level 👍/👎 actions render on both sessions.
+6. **CUA row**: "Computer use · 3 actions" renders with expand chevron (MOCK_CUA arm).
+7. **Files plane**: read-only badge, ws-one tree (src/docs/README.md/Cargo.toml); the
+   viewer happy path renders line-numbered content with Back/Download
+   (`file.readTextFile ok`). The typed-error leg is F.A2.5.
+8. **Git plane**: `git.getChanges` + `git.getCommitGraph` + `git.getBranchComparison` all
+   ok; Checkpoints honest empty state ("No snapshots in this session — create one before
+   risky changes"), branch strip (main, tracking origin/main, "2 changed file(s) vs the
+   tracking branch", per-file +42−0/+3−7), Commit…/Branches… actions.
+9. **Terminal plane**: VIEW-ONLY badge, idle, Pause/Search; **Attach wires at HEAD**
+   (`terminal.create ok` → `terminal.attached :: id=term-1`) — F-P0-D stays retracted
+   (3rd pass).
+10. **Model calls plane**: the call list renders latencies + kinds
+    ("glm-5.3 · 4200ms · tool_calls", "tools: bash") and typed errors ("RateLimitError:
+    429").
+11. **Share plane**: four export modes (Plain text / Readable transcript / Markdown /
+    Print (PDF) with descriptions); Markdown fired the REAL system share sheet
+    ("Sharing text" + Copy text + Quick Share/Drive/Messages targets).
+12. **Context sheet**: Status (4m 59s · Iteration 3 · 1 background), goal ("Ship it ·
+    verifying · iteration 3") with iteration verdicts (pass / notSatisfied "iter 2 — 2
+    criteria unmet"), Todos 1/2, Workflow runs (lint-all Running / release-notes Stopped),
+    Plans 1/3 ("Tag and publish"), git strip (main · clean · Open), and the Files/Git/
+    Terminal/Model calls/Share chip row.
+13. **The Approvals inbox WORKS end-to-end**: badge "2" → Approvals screen → live rows
+    ("Permission — Bash · echo synthetic" with Allow once/Deny; "Question · Which
+    channel?" with Open task to answer). Allow once → `approvals.answer option=allowOnce`
+    → `sendConversationCommandV4` 375 B `ok in 90ms` → row removed from the list. The
+    inbox is the interaction plane that actually answers (the conversation card plane is
+    F.A2.1).
+14. **DIRECT endpoint lifecycle, fully green**: Add dialog validates BEFORE saving with a
+    typed inline error ("Direct endpoint rejected the token — check it in Settings →
+    Endpoints") + the sealed-token wording; with the right token → `hub.directAdded
+    endpoint=d8daaa46… workspaces=1` → endpoint switch → `direct.connected via=10.0.2.2:18200
+    candidatesTried=1` → `hub.directTasksApplied tasks=3 workspaces=1`; the endpoint list
+    shows both (MockBook relay + P3Direct Direct server · Connected) with Remove on the
+    DIRECT row.
+15. **Deep-link clean leg CLOSED** (pass-2's nuance): gen2 push notification ("ZCode has a
+    question for you", once per connection) → app backgrounded to launcher → shade tap →
+    landed DIRECTLY in the target task conversation. The notification → conversation
+    routing is verified from a true background start.
+16. **The question-card refusal face is TYPED where it fires**: a "Keep waiting" tap on a
+    dead machine produced the "Already handled on the desktop." notice (the vc52 Phase-7
+    SAYABLE contract) — see F.A2.1 for where it doesn't fire.
+
+## F.A2 — defects, root causes, and re-verifications found this pass (order = fix order)
+
+1. **F-P3-A (P2, app, SHARPENS F-P0-A + F-P1-A into one statement) — the pinned
+   interaction-card plane is UNANSWERABLE at HEAD, while the inbox answers the same
+   interactions fine.** Machine-level receipts (Room DB pull): the seed question machine
+   `q-rig-1-mock-p3-gen1` sits in **DISPLAYED forever** (resolvedAt null, ~3 h); the
+   push permission `mock-approval-push-1-mock-p3-gen1` went **STALE** (rows sweep) and
+   was **re-pended to DISPLAYED** by the state-plane re-list (the vc52 Phase-7 churn),
+   i.e. the two reconcilers still FIGHT, now observed in both directions. UI receipts:
+   the question card renders header + footer ONLY — no question text, no options (the
+   seeded payload HAS them: "Which channel? Tag the release / Cut a branch" + multi-select
+   "Which extras?" — verified in the DB payloadJson) — `Send answers` is grey AND a
+   silent no-op in every machine state (3 taps, zero wire), `Skip — continue without my
+   answer` is equally dead; the inner-card swipe that should reveal the body (the
+   N-BG-1/D4 vc52-Phase-9 contract) does not. The fully-rendered permission card's
+   `allowOnce` tap is also a silent no-op on both machine states, while the SAME card's
+   `Keep waiting` wired once (400 B `ok in 281ms` + a re-pend delta) and refused once
+   (typed ALREADY_RESOLVED toast) — the option paths return **INERT, which the ViewModel
+   swallows by design** (`else -> Unit // SUBMITTED / INERT (button disabled) are silent`,
+   ConversationViewModel.kt:1291) so dead buttons LOOK enabled and give NOTHING back.
+   The vc52 Phase-7 "never a silent no-op" promise only covers ALREADY_RESOLVED and
+   DUPLICATE_NO_OP. Fix shape: (a) render the question body / stop the height starvation,
+   (b) make INERT a typed notice like its two siblings, (c) keep the options-plane
+   (inbox) as the canonical answer surface for permissions.
+2. **F-P3-B (P2, app, NEW) — the automation "Go to session" conversation NEVER LOADS its
+   timeline: four permanent skeleton rows, zero transcript wire calls.** Receipts:
+   `tasks.openRun :: task=synth-op-session-1` fired; afterwards the app polls
+   `zcode-agent.conversationWorkflowRunsV4` every ~8 s (workflow plane, fine) but NEVER
+   issues any session-transcript fetch/subscribe (`zcode-agent.*` history/rows channels
+   absent from the log after openRun); the timeline renders 4 grey placeholder bars
+   indefinitely (screenshots 06/06b, 60 s apart, identical). The same openRun from the
+   inbox row would strand the user the same way. Fix shape: openRun must trigger the same
+   transcript subscribe/hydrate the task-row tap path does (and render an honest empty
+   state if the run's session truly has no rows — today it shows skeletons, which reads
+   as "loading forever").
+3. **F-P3-C (P3, app, NEW) — an inbox ACK's resolution echo is DROPPED when the
+   conversation isn't subscribed**: ACKing the permission from the Approvals screen
+   produced `gateway.drop :: session=synth-task-3 kind=ONLINE seq=3..3 (no subscription
+   record)` — the desktop's confirmation delta for the session the app just answered in
+   is thrown away because no conversation subscription exists outside the conversation
+   screen. The card plane consequently kept showing "Approval needed" until a later
+   reconcile. The same ACK inside the conversation arrives fine (`gateway.frame …
+   manager.deltas`). Fix shape: retain last-N deltas per session for replay on next
+   subscribe (or subscribe-on-ACK), and/or let the ACK resolution update the local
+   machine optimistically.
+4. **F-P2-A RE-REPRODUCED LIVE (2nd pass, the exact recorded chain)**: add P3Direct →
+   `DIRECT_SERVER → CONNECTED`, home green → BACK-exit to launcher (process alive) →
+   relaunch → 08:59:19 `direct.connected … connectionId=direct-3` → 08:59:22
+   `hub.phase (DIRECT_SERVER) → CONNECTED` → 08:59:22.757 `→ UNPAIRED` → 08:59:24
+   `hub.connect :: cold-start connect begin (kind=RELAY_ZAI)` → 08:59:24.652
+   `hub.switched :: endpoint=5ec4eb22… kind=RELAY_ZAI`. **No user action in between.**
+   The pass-2 root-cause pin stands (ZCodeApp.kt:182-196 cold-restore else-branch →
+   `onPairingCompleted()` → ConnectionHub.kt:661-667 force-adopts the relay over the
+   persisted `selectedEndpointId`). The multi-endpoint feature is dead weight until this
+   one guard lands.
+5. **F-P0-C re-verified BYTE-IDENTICAL (3rd pass)**: `file.readTextFile refused:
+   fault.file.notFound` → the viewer renders full chrome (read-only badge, ws-one,
+   Back, Download) and a SILENT BLANK content area — no error text, no retry
+   (screenshot 38).
+6. **N-BJ-1 (P4, app, NEW — solves pass-3's "red block mystery") — attachment image
+   previews have NO intrinsic-size/aspect cap.** The seeded transcript's user row
+   "here is the screenshot" carries the mock's 1×1 PNG (`MOCKZCODE` A3.1 arm: base64
+   `…AQEB…`, pixel `00 ff 00 00` = pure red, verified by decoding); the app renders it
+   as a ~300×220dp SOLID RED rectangle (screenshots 09/17/31; pixel-sampled #FF0000).
+   It reads as a broken render but is the honest image — just unbounded. Desktop
+   attachment previews are size-capped. Fix shape: max-width/height + aspect-fit in the
+   attachment renderer. (Bonus: this block's appearances/disappearances across pass-3
+   screenshots were pure scroll geometry — no rendering bug at all.)
+7. **N-BJ-2 (P4, app, NEW) + F-P2-B code-pin — unpair is UNREACHABLE from the paired UI,
+   and its post-state manufactures the stale wording.** No entry point exists: the
+   Settings endpoint row for the relay is a dead tap (rendered clickable
+   [0,426][1080,579], taps absorbed, no nav.screen), the Manage chip opens the
+   Workspaces dialog, and the PAIRING route is only auto-navigated when unpaired
+   (ZCodeApp.kt:96/180). The unpair buttons live ON the pairing screen
+   (PairingScreens.kt:106 `resume-unpair`, :433 `connected-unpair`) — reachable only via
+   a pasted link, and after `UnpairConfirmed` the ViewModel reduces to
+   `State.Connected(pendingLink ?: fakeLink())` (PairingViewModel.kt:50-56) — a FAKE
+   link whose resume card claims "Paired · Connect" (F-P2-B's defect wording,
+   structurally guaranteed at HEAD). Fix shape: surface unpair on the relay endpoint
+   row/detail, and reduce to a genuine unpaired state (no fakeLink).
+8. **F-P1-B class (mock fidelity debt) re-noted**: the mock still accepts any
+   interactionId and its snapshot doesn't list the once-per-connection PUSH interaction,
+   so the app's rows sweep legitimately STALEs it — a real desktop would list what it
+   pushed. The F-P3-A receipts above are the app-side truth; the mock arm deserves the
+   snapshot-lists-what-it-pushes fix so the next pass's card-plane legs are clean.
+9. **Small (observation)**: the automation run-history row tap does not expand further
+   (summary + actions only) — fine as designed, recorded so a future pass doesn't chase
+   it; the elided queue text in synth-task-3 ("queue…") vs full text in synth-task-1 is
+   width/starvation-dependent, same family as F-P3-A's card squeeze.
+
+## F.B — the REA 3.18.1 reverse dig, part 4: gen-ui protocol + capability schema + broadcast plane (digest unchanged `ec475e6e…`)
+
+Method receipts: asar sha256 re-verified byte-identical; `open_binary` + `inspect_artifact`
+hit the KNOWN unpacked-native integrity mismatch (`sharp-darwin-arm64.node`, packager-signed
+after archive write) — record-and-continue is the standing policy; `inspect_artifact`'s
+complete response exceeds the 10 MiB stdio budget (evidence retained
+`ev_cb332768d0fcdb23…`); REA cannot address asar-internal paths, and `extract_artifact`
+timed out/cleaned up — so the sources were extracted with `@electron/asar` to
+`/tmp/p3-asar` (464 MB) and the host bundle analyzed by
+`analyze_javascript_application` (retained `ev_23c63be939795256…`, host dir digest
+`3d4aa76f…` — IDENTICAL to pass-2's, so the graph evidence stands).
+`trace_feature` binds the binary provider, not JS evidence — literal censuses are
+shell-side greps on the extraction (same reproducible method as passes 24-31).
+
+### B1. G81 DEEPENED: the gen-ui protocol is now a complete implementable spec
+
+- **Capability bit**: the remote clientHello schema carries `genUiContext: boolean
+  optional`; the desktop's own hello declares `genUiContext: true`.
+- **Gate**: `ensureGenUiContextSupport` requests `runtimeCapabilities` and throws
+  `proto.genUiContextUnsupported` unless `genUiContext === true` (cached per-connection in
+  a WeakMap, re-thrown on change). The send path calls it BEFORE any sendText that
+  carries gen-ui state.
+- **Payload**: `genUiContext` rides BOTH the desktop-agent `sendText` schema and the
+  REMOTE V4 send command — an array (max **100**) of `{path, state}` items
+  (`.strict()`, state `unknown`), transformed further; scope key =
+  `buildGenUiScopeKey` = `[workspaceIdentity?.trim() || workspacePath, sessionId]`.
+- **Renderer vocabulary** (21 strings): cancel, collapse, confirm, copyImage,
+  desktopOnly, expand, expanded, failed, incomplete, invalid, loading, offline,
+  original, reset, retry, send, submit, title, tweak, waiting + genUiTweaks/Styles/State.
+  `genUi.desktopOnly` implies per-component desktop-only gating.
+- **What the phone needs for G81** (all four): declare `genUiContext: true` in hello;
+  answer `runtimeCapabilities`; accept/forward the `genUiContext` array on its send
+  command; render the components (expand/collapse/tweak/submit/copyImage/retry + the
+  desktopOnly refusal face). Everything else is already schema-legal.
+
+### B2. The FULL remote clientHello capability schema — 13 bits, all dormant opt-ins
+
+`highspeedCardOwner, pluginDiscoveryUi, sessionLifecycleWorkspace, sessionDirectorySource,
+sessionWorkspaceRouting, genUiContext, historyFirst, independentPlanState,
+residentRowsRange, worktreeCwd, extensionInputSource, conversationQuoteComment,
+pluginExtensionSummary` (+ `hostCapabilities` in the ACK: sessionDirectorySource,
+sessionWorkspaceRouting). The phone declares TWO bits on a DIFFERENT hello
+(`workflowRunDeltas`, `workspaceHookReviewUi`) — pass-2's 4-bit census was the
+desktop↔agent hello; THIS is the remote-client vocabulary, complete. Each bit is a
+schema-legal phone opt-in awaiting consumer work.
+
+### B3. G85 ANSWERED: the broadcastService channel vocabulary (complete)
+
+- HOST sends: `bots:group-state` (×7, payloads `{botId, chatId?}` — the bots plane),
+  `state:projects` and `state:task-groups` (empty-payload "state changed, re-read"
+  signals — and `state:task-groups` rides a CLAIM protocol: acquireClaim/commitClaim/
+  releaseClaim/tryClaim with a channel-router muxing it to a second source),
+  **`mobile-push:run`** (onRunStarted) and **`mobile-push:event`** (onNotification) —
+  the V2 notification plane's realtime arm, relayed to the device-registration webview
+  via `postMessage({type: Broadcast, message:{channel, payload}})`.
+- RENDERER subscribes: the dynamic `state:<key>` prefix family (`state:codereset-
+  autoplayed`, `state:projects`, `state:task-groups`, …) + `bots:task`/`bots:task-stream`.
+- Phone relevance: `mobile-push:*` is how the desktop would push run/notification events
+  to the companion in realtime (today the phone polls); `state:*` is a generic
+  state-slice sync plane the phone could mirror read-only. Consume/no-action decision
+  belongs to the roadmap, but the vocabulary census pass-2 asked for is DONE.
+
+### B4. The pass-2 verify items, closed
+
+- **#8 conversationShareService**: NOT local share — a **share-code IMPORT plane**:
+  `importShare({shareCode, clientRequestId, targetWorkspacePath?, targetWorkspaceIdentity?})`
+  with `onDynamicImportProgress` phase events (login_required → loading → complete),
+  consumed next to `windowControllerService`. **NEW GAP G86 (P4)**: conversation/task
+  import-by-code exists on desktop only; the phone shares text/markdown/PDF locally.
+- **#9 zcodeSessionService.createSession**: the desktop uses the service for WORKSPACE
+  SESSION LIFECYCLE (`readWorkspacePresentation({workspacePath, workspaceIdentity})`,
+  side-pane/terminal/remote session plumbing, provider+configOptions restore) — the
+  phone's New-task path maps to `zcodeTaskService`, which is the correct plane. PARITY,
+  no action.
+- **inputOrigin** (pass-2's open question): the V4 send schema accepts
+  `inputOrigin: enum(["desktop","mobile"]).optional()`; the PHONE NEVER SENDS IT (zero
+  hits in the app source). One-line opportunistic add for desktop-side attribution.
+  The same schema also shows dormant `genUiContext`, `highspeed`, `sharedContextRefs`
+  fields on the send command.
+- **Window-internal services beyond the remote-38** (beyond pass-2's feedbackService):
+  `clientConfigService, cloudContentService, marketingTouchService, offPeakTaskService,
+  highspeedCardService, pluginUiBridgeService, pluginUiSamplingService,
+  pluginUiAppToolsService, remoteWorkspaceService`. All desktop-internal (NO-ACTION),
+  with one nuance worth recording: `offPeakTaskService` is NOT in the remote-38
+  registry even though the phone ships an off-peak authoring plane (G29/vc51) — the
+  phone's off-peak rows ride the automation/task planes, not a remote off-peak service.
+
+## F.C — where the phone is BETTER than the desktop (new receipts this pass)
+
+- The DIRECT endpoint dialog's **validated-before-save** token flow (server round-trip
+  before save, typed inline rejection, "sealed on-device and never leaves except to this
+  server") — the desktop census has no equivalent pre-save credential validation face.
+- The Approvals inbox answers interactions from OUTSIDE the conversation (the desktop
+  census's remote plane answers in-place); the conversation card plane's failure makes
+  this the load-bearing path — and it holds (F.A1.13).
+- Run-history honest empty states per status filter ("No runs yet." under Failure) and
+  the awake-only scheduling footnote surfaced in-sheet.
+
+## F.D — fix-order recommendation (supersedes E.D)
+
+1. **F-P3-A** — the card plane: render the question body, gate INERT behind a typed
+   notice, keep the inbox canonical for permissions; pins for the re-pend churn both
+   directions. (Absorbs F-P0-A/B + F-P1-A.)
+2. **F-P3-B** — openRun transcript hydrate (or honest empty state).
+3. **F-P3-C** — per-session delta retention (or subscribe-on-ACK) + optimistic local
+   resolve.
+4. **F-P2-A** — the cold-restore relay adoption guard (2nd live repro; smallest diff on
+   the board, per pass-2's pin).
+5. **F-P0-C** — the file-viewer typed error face (3rd pass; fold F-P0-D hardening here).
+6. **N-BJ-1** — attachment preview size cap.
+7. **N-BJ-2 + F-P2-B** — unpair entry point + genuine unpaired state.
+8. **Parity queue**: G86 share-code import (inventory first), G82 memory viewer
+   (read-only), G85 consume/no-action decision, G81 gen-ui (now a full spec — the four
+   parts in B1), opportunistic capability bits (`inputOrigin: "mobile"` first — one
+   line).
+
+### Coverage honesty (what pass 3 did NOT drive)
+
+Theme/font/locale toggles (vc51 pins + pass-31 receipts stand), the widget add-to-home
+drag (RIG-4 binding receipt stands), rewind/fork on the SEED sessions other than the
+fork flow's own target (the fork leg exercised fork-of-synth-task-1 end-to-end), MOCK_
+AUTOMATION_RUNS authoring beyond run-now/history (Edit/Delete actions unexercised), the
+lock-screen / DIRECT-mode notification arms (pass-37 recipes), and the question card's
+options once the F-P3-A body fix lands (the retest belongs to the fix round).
+
+## Pass-3 verification stamp
+
+Pass 3 completed 2026-11-13 ~09:20; 2 relay generations + 1 DIRECT generation + 1 add/
+switch/recreate cycle; 59 screenshots in `/tmp/p3/shots/`; receipts in `/tmp/p3/relay-*.log`,
+`/tmp/p3/*.xml`, Room DB pulls in `/tmp/p3/db/` (interaction machines queried for the
+F-P3-A machine-level proof); asar extraction at `/tmp/p3-asar/` with the host-bundle REA
+evidence `ev_23c63be939795256…` retained in-session. APK at HEAD (md5 `530ba4ff…`,
+versionCode 53 / 1.3.2); desktop digest unchanged (`ec475e6e…`, host dir `3d4aa76f…`).
+Nothing pushed. Rig left: emulator + gen2 relay on :18100 + the DIRECT mock on :18200,
+app paired to both endpoints.
