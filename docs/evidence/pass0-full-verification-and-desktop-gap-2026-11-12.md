@@ -1931,3 +1931,254 @@ changed this pass. Desktop asar digest unchanged (`ec475e6e…`, build `9f7ab4c3
 relay java processes counted at 22:24 — likely zombies worth sweeping by a future
 pass), this agent's DIRECT mock on :18200 (pid 30908, free to kill), PIN cleared.
 Nothing pushed.
+
+# Part J — pass 7 (APPENDED 2026-11-13, night): the lockscreen shade-action route closes the tap leg — plus the DIRECT approvals leg, two stranded-answer rows, and the V2 mobile-push reverse
+
+**Concurrency forensics (completes Part I's note from the other side)**: the "keeper"
+loop that killed relays every ~2–3 min was agent A's rig supervision. Detection recipe
+pinned for future contested rigs: `ps -E <relay-pid>` dumps the orphan's MOCK_* env (a
+foreign arm set — `MOCK_ROWS=40`, no `MOCK_INTERACTION_PUSH` — fingerprints the other
+agent immediately); interaction nonce prefixes in the pulled DB (`mock-p6-genN` vs the
+default `g<millis36>`) identify which process served each row; stale siblings worth
+sweeping: a deleted-file `tap.py` proxy (pid held a Nov-8 process listening :18300),
+an orphan `http.server :18101`, and 12 relay java processes. My pass began inside the
+contested window and its receipts are likewise nonce-anchored (`gmwfj72ny-14q` mine,
+`mock-p6-gen5/gen6` agent A's).
+
+## J.1 — live legs (all at HEAD, APK `ad449d7d…` unchanged, vc53/1.3.2)
+
+### The shade-action TAP leg — CLOSED (Part I's blocked leg; its recorded recipe superseded)
+
+The route that works is the one Part I never tried: **expand the shade from the
+LOCKSCREEN** (`keyevent 26` power → `keyevent 224` wake → `cmd statusbar
+expand-notifications` while the keyguard holds). On the swipe-keyguard lockscreen the
+group children render **with their action buttons exposed as clickable nodes** —
+`Button 'Approve' [154,881][364,1013]` + `Button 'Deny' [375,881][528,1013]` in the
+uiautomator dump (shot `10-lockshade.png`). Tapping Approve (259,947) dispatched: a
+FRESH app process started (uid 2000 launch from the action PendingIntent), and the
+app logged the attempt. The foreground-swipe path stays broken (tapping the badge or
+rows deep-links instead of expanding — Part I's observation stands for the in-app
+shade), but the lockscreen face is the real user path for "phone in another room" and
+it works. The F-37-B "lock-screen Approve without auth" leg is now DRIVEN at HEAD:
+`setAuthenticationRequired(true)` dispatches on a credential-less swipe keyguard.
+
+### The prerequisite Part I inherited: NotificationContentLevel must be CONTENT
+
+The buttons exist only when the subject survives, and the subject survives only under
+**Settings → Notification detail: Task titles** (= `NotificationContentLevel.CONTENT`;
+the two-value cycle is Minimal ⇄ Task titles, persisted to
+`no_backup/datastore/preferences.pb`). Code pin: `NotificationPlan.decide` drops the
+subject under MINIMAL (`event.subject?.takeIf { full && it.isNotBlank() }`) and
+`shadeActions = subject != null` — so on DEFAULT prefs a first-run device NEVER gets
+shade actions (title-only, by §24 design). The reposted approval after the flip
+carried `android.text="Bash: echo synthetic"` + both action PendingIntents
+(`[0] "Approve" → PendingIntentRecord … broadcastIntent`). Part I's "actions exist in
+the dumpsys records" receipt ran on this flip (set 22:21 by this agent while both
+agents shared the app data). A two-line consequence worth a UX look: the DEFAULT
+device's shade is answer-less, and nothing in the approval card or settings points at
+the toggle.
+
+### F-P7-B (NEW, P2): a shade action answered while the connection is down marks the interaction FAILED — no retry, no queue
+
+The Approve tap at 22:34:57 landed during a reconnect flap (relay-2/relay-3 failed
+binds, relay-4 connected 1.5 s later). The app dispatched the answer onto the dead
+channel and logged `interaction.rejected :: channel closed: abnormal close 1006`; the
+store row went **PERMISSION/FAILED** (DB pull: `resolvedAtMs` set, lifecycle FAILED).
+The user believes they approved; the desktop never receives anything; the mock's own
+auto-resolution is what eventually closed the sibling interactions. There is no outbox,
+no reconnect-flush, no user face beyond the log. With Live-connection OFF (the
+default), screen-off kills the socket within seconds — this is the COMMON path for a
+lock-screen approve. Fix direction: queue the shade answer behind the reconnect (the
+inbox path already has RETRYABLE_KEPT semantics to reuse), or fail the notification
+visibly (re-post with a "not delivered — retry" face).
+
+### F-P7-A (NEW, P2): the Approvals screen's inbox answer strands — and its banner remedy can be impossible
+
+First-ever drive of the Approvals screen (on the DIRECT endpoint): the answer flow logs
+`approvals.answer :: option=allowOnce` and then shows the honest typed banner **"The
+answer was not confirmed — open the task and answer there."** — but the v4 resolve
+NEVER leaves the app (zero answer-shaped v4call in the direct mock's log) and the
+interaction stays DISPLAYED minutes later (DB: `mock-approval-1-gmwfk0g9x-172` still
+DISPLAYED). Mechanism: `ZCodeApp.kt:571` → `ConversationPort.answerFromInbox` →
+`coordinator.submitFromStore` → **RETRYABLE_KEPT** (the inbox answer needs a session
+machine to carry it; on the Approvals screen none is attached). The RETRY row then
+never flushes, and on the DIRECT endpoint the banner's remedy cannot even be executed:
+the approval's task (`Synthetic task`/`synth-task-1`) has no row in the direct-ws task
+list (foreign workspace), so there is nothing to open. The store inconsistency that
+exposes it is mock-fidelity (the direct mock seeds approvals for a session it does not
+list), but the app-side truth stands: **the inbox answer path is interaction-scoped in
+name only — it silently requires a machine, strands otherwise, and its recovery
+instruction can be unactionable.** Fix direction: submit interaction-scoped (the same
+shape the shade actions and `NotificationActionReceiver` use), keeping RETRYABLE_KEPT
+only for genuine wire failures, and validate the task row before advising "open the
+task".
+
+### F-P2-A REFUTED at HEAD (two strengths, both asserted)
+
+The selected endpoint survived (1) a force-stop + relaunch cycle and (2) a FULL
+EMULATOR REBOOT (the Dictate crash below killed the emulator mid-pass; cold boot
+`-no-snapshot-load`, app relaunch): Settings shows `MockBook — Active endpoint · Relay
+(QR pairing) · Connected` with P3Direct still secondary (shot `28-endpoint-after-reboot`).
+The cold-restore also reconnected automatically and re-rendered the whole home stack —
+the strongest persistence receipt of the series. The pass-3 row can move to
+refuted-at-HEAD (the recreate-clobber class predates the current store).
+
+### The viewers leg (pass-5's undriven rows) — all render real decoded content
+
+Providers: Z.AI default + glm-5.1/air/flash (Preview badge) + an OPENAI-COMPATIBLE
+provider with glm-4.6 — grouped list, no credentials. Bots: bot-telegram-1
+(/synthetic/ws-one, bound to synth-task-1, kind=task) + bot-discord-1 (/synthetic/ws-two).
+Subagents: Explore + Plan, built-in, On. Insights (Usage/Plugins/Skills/MCP servers)
+render their section rows. All read-only viewer-family screens behave (back stack
+correct, no crash, empty/loaded states clean).
+
+### SessionContextSheet — full render, Terminal route, one dead face
+
+The sheet renders everything the arms seed: Task tokens · 184320 (meter), Status ·
+4m57s · Iteration 3 · 1 background, goal "Ship it verifying⏸" with the iteration
+timeline (✓ iter1 / — iter2 2 criteria unmet), Todos 1/2, Workflow runs (lint-all
+Running, release-notes Stopped), Plans (Ship the release 1/3 with the per-step
+checkboxes), the git strip (main · clean · Open), and the Files/Git/Terminal/Model
+calls/Share chip row (shot `24-sheet.png`). **Terminal** routes
+(`nav.terminal :: open`, `nav.screen :: route=terminal`) and renders the VIEW-ONLY
+face with Pause/Search — but **Attach is a no-op**: the tap produces no nav log, no
+v4call, no error face; the screen stays "Not attached." forever (**N-BM-3**). The
+mock DOES implement the terminal channel (54 terminal references incl.
+`pushTerminalData`); the app-side attach never fires a request. Small, but the only
+silent dead button found this pass.
+
+### Child sessions — the pass-31 P4 small is consumed at HEAD
+
+The subagent timeline row renders **"Subagent · explore · Explored the auth module ·
+Open session ›"** and Open session navigates to the child conversation (shot
+`31-child-session.png`). Two polish notes (**N-BM-2**): the child view is the generic
+"Conversation" title (no task identity), and on an unscripted child the skeleton bars
+persist forever with no empty-state face.
+
+### N-BM-1 (NEW, P3): the load-earlier strip's total is a stale subscribe-time snapshot
+
+Two taps on "Load earlier messages · showing latest 320 of 333" produced "370 of
+333" then **"420 of 333"** — the DB truth is 420 rows (`conversation_rows` count),
+so the loaded side is honest and the "of N" never updates past its subscribe-time
+value. At the true end the strip displays an impossible claim instead of an
+all-loaded/hidden state.
+
+### The DIRECT generation at HEAD — connected end-to-end, one more stranded-answer receipt
+
+`MOCK_MODE=direct` on :18200 (`MOCKZCODE_READY mode=direct`): the P3Direct endpoint
+switched Active and Connected (server-info token + cookie auth), served its own
+workspace view (`direct-ws` — automations, workflows, approvals badge), full v4
+traffic on the log (initializeConversationV4, listAutomations, listSavedWorkflows/
+Runs…). The foreign-workspace Tasks list is correctly EMPTY (the mock's task corpus
+belongs to synthetic-ws-one). The Approvals screen rendered the live DIRECT approval
+("Permission — Bash · task Synthetic task · echo synthetic · Allow once / Deny") —
+whose answer produced F-P7-A above.
+
+### The Dictate leg killed the emulator (N-BM-4, rig receipt; leg UNDRIVEN)
+
+Tapping the composer's **Dictate** entry (the attachment sheet: Mention a file /
+Sketch / Photo / Attach a file / Take photo / Dictate) was followed within seconds by
+the emulator process DYING (`adb: no devices/emulators found`; qemu gone; boot log
+clean). Cause unproven — speech-recognizer crash on the API 36 image vs 8 GB-host OOM
+— and NOT re-armed (the leg stayed undriven; the app's Dictate face remains unknown).
+The forced cold-boot cycle it caused produced the F-P2-A refutation above, so the
+crash had forensic value.
+
+### F-P0-B 5th re-manifestation (receipt, no change to the row)
+
+The fuse card again rendered with "Send answers" greyed while the machine was
+answerable (shot `13-failed-face.png`, gen7 stack) — the one-line
+`known.permission != null` exemption remains the highest-leverage fix on the board
+(Part I's F-P6-A depends on it too).
+
+## J.2 — the REA dig, part 7 (asar digest `ec475e6e…` unchanged, fresh extraction `/tmp/p6-asar`)
+
+1. **G93 (NEW, P3): the desktop's V2 mobile-push plane has NO phone receiver.**
+   `createWebRemoteControlV2Http` (out/main/index.js): per-(origin,userId) **device
+   registration** — `register {device_mid} → {device_sid}` persisted to deviceStorage
+   with old-device cleanup on origin/user change — plus `token {role:"device"}`,
+   `delete {device_sid}`, and `POST /api/v1/remote/notification/events
+   {device_sid, event}` validated against a receipt
+   (`data.event_id` match, `status ∈ accepted|ignored|rejected`). Eligibility is
+   probed via `GET /api/v1/remote/notification/status` requiring
+   `protocol_version===1 && event_transport==="http"` (+status
+   available/unavailable/unknown). The dispatcher (`MobilePushConnection`) observes
+   workflow runs (registry cap 4096), stamps `desktop_platform`, respects a
+   per-dispatch `{enabled, locale}` user pref (`user_disabled` skip), and skips with
+   typed reasons `eligibility_unavailable / run_owner_mismatch / duplicate /
+   transport_unavailable`. **The phone has zero Firebase/FCM references** — its
+   attention arrives ONLY over the live relay socket (its `device_sid` vocabulary is
+   the V1 relay auth plane, unrelated). Consequence: whenever the relay socket is
+   down — exactly the shade-action/dead-connection scenario of F-P7-B — the
+   desktop's new push arm cannot reach the phone at all. The phone-side fix is
+   architectural (a push receiver + the registration face), not a decode; recorded
+   as the top item of the push queue.
+2. **Plugin inventory re-verified**: 18 bundled packages (matches Part I's G91 list;
+   the pass-35 count stands). Nothing new phone-consumable.
+3. **The settings-domain census (51 domains)**: modelProvider(3217 keys), plugins,
+   source, usage, mcp, skills, subagents, hooks, commands, **shortcuts(318)**,
+   browser(299), migration(269), memory, mcpServers, **computerUse(94)**,
+   **workspaceFileSearch(90)**, personalization, dynamicWorkflow(45), locale,
+   themeMode, appearance, interfaceMode… The phone's settings family covers the
+   conversation/notification/privacy/appearance slice; the desktop-only domains are
+   legitimately so (shortcuts, browser, migration), but `workspaceFileSearch` and
+   `dynamicWorkflow` are decode-vs-UI candidates in the G92 class (the phone already
+   renders workspace config rows).
+4. **Residual (recorded, not chased)**: the mobile-push event kind/state enum lives
+   in a host chunk (the receipt keys `{event_id, session_id, run_id, kind,
+   event_state}` are pinned from the dispatcher); the workflow/automation method
+   names are RPC-table-encoded in chunks — pass-5's H.B matrix (via the mock's RIG-5
+   seams) remains the phone-side contract source.
+
+## J.3 — where the phone is BETTER (new receipts this pass)
+
+- **Full-emulator-reboot cold restore**: paired identity, endpoint selection,
+  connection phase and the entire home stack (automations with history counts,
+  workflows, task groups with unread/pinned states) restored automatically with zero
+  user action — the harshest persistence test of the series, passed.
+- **Typed honesty faces everywhere in the failure paths**: "The answer was not
+  confirmed — open the task and answer there." (Approvals), "The desktop couldn't
+  complete this request." (home, after a relay kill), the "Is your desktop asleep?
+  Turn on Keep awake…" hint banner (new face this pass), RECONNECTING → CONNECTED
+  phase chips. The failure UX degrades honestly even where the wires behind it
+  strand (F-P7-A/B are wire findings, not face findings).
+
+## J.4 — fix-order recommendation (appends to I.4; family grouping)
+
+1. **F-P0-B** (unchanged first — unblocks F-P6-A's card half AND the 5th F-P3-A face).
+2. **F-P7-A** — the inbox answer's interaction-scoped submit (one wire-shape change;
+   kills the stranded-answer class on the Approvals screen; the shade path already
+   proves the interaction-scoped submit works).
+3. **F-P7-B** — dead-connection shade answers: reuse the inbox RETRYABLE_KEPT
+   semantics behind the reconnect, or surface "not delivered".
+4. Part I's order (F-P6-A store half, F-P6-B budget, G91 Plugins viewer, G92
+   configOptions, BashOutput taxonomy, terminal streaming wiring) — unchanged.
+5. **G93** joins the queue as its architectural item (push receiver + registration
+   face; needs a cloud-transport decision before any code).
+6. Smalls: N-BM-1 (stale strip total) → N-BM-3 (Attach feedback) → N-BM-2 (child
+   view identity/empty state).
+
+## Coverage honesty (what pass 7 did NOT drive)
+
+Terminal keystroke typing (the attach request itself never fires — N-BM-3), row
+actions (fork/retry/rewind — the row-affordance hunt scrolled into the queue panel
+and was time-boxed out), the fuse-vs-push re-run on my own generations (Part I's
+receipt stands; my gens re-manifested the post-fuse card face instead), the
+Keep-awake hint banner's navigation target, and the Dictate face (emulator-killing,
+N-BM-4). The shade-action tap receipt is ONE dispatch (the success/failure halves
+both observed once); a second lockscreen approve over a LIVE connection is still
+owed to the series.
+
+## Pass-7 verification stamp
+
+Pass 7 completed 2026-11-13 ~23:05; relay generations under my control: gen1 (broad
+arms 21:47), gen2/gen3/gen4/gen5/gen6/gen7 (:18100, INTERACTION_PUSH@12s) + the
+direct mock (:18200, `MOCK_MODE=direct`) — interleaved with agent A's gens in the
+contested window (21:52–22:10) and clean after it. 30 screenshots `/tmp/p6/shots/`;
+DB pulls `/tmp/p6/db/` (interactions ghosts + 420-row truth); relay logs
+`/tmp/p6/relay-gen{1..7,direct}.log`; logcat `/tmp/p6/logcat-gen1.log`; the REA
+extraction `/tmp/p6-asar/` (464 MB). APK at HEAD byte-identical to the series
+(`ad449d7d…`, vc53/1.3.2) — no code changed this pass. Desktop asar digest unchanged
+(`ec475e6e…`, build `9f7ab4c3`, 2026-11-11). Rig left: my gen7 relay (pid 32806) on
+:18100, the direct mock (pid 36166) on :18200, emulator up (cold-booted 22:31 after
+the Dictate death). Nothing pushed.
