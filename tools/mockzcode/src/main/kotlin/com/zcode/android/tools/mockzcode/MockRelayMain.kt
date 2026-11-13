@@ -33,6 +33,61 @@ import kotlin.system.exitProcess
  * consumed by Phase9Tools.modelOptions) so the pickers render their real grouped
  * list on device E2E instead of the refused-fault empty branch.
  */
+/**
+ * N-BK-1 (pass-5 rig fix): the MOCK_GIT read fixtures in the CONTRACT vocabulary the
+ * app decodes (data/Phase9Tools.kt). Extracted from `main` so the self-test pins the
+ * app-decodable contract against the LIVE fixture build, not a copy. `section` uses
+ * the app's verified set ("unstaged" | "untracked" | "staged" — features/git
+ * GitScreen.kt section orders); getChanges filters rows by the requested sourceId.
+ */
+internal object RigGitFixtures {
+    fun changes(): JsonArray = JsonArray(listOf(
+        JsonObject(mapOf(
+            "path" to JsonPrimitive("/synthetic/repo/src/version.ts"),
+            "workspaceRelativePath" to JsonPrimitive("src/version.ts"),
+            "kind" to JsonPrimitive("modified"),
+            "section" to JsonPrimitive("unstaged"),
+            "added" to JsonPrimitive(3L),
+            "removed" to JsonPrimitive(1L),
+        )),
+        JsonObject(mapOf(
+            "path" to JsonPrimitive("/synthetic/repo/scratch/probe.txt"),
+            "workspaceRelativePath" to JsonPrimitive("scratch/probe.txt"),
+            "kind" to JsonPrimitive("added"),
+            "section" to JsonPrimitive("untracked"),
+            "added" to JsonPrimitive(2L),
+            "removed" to JsonPrimitive(0L),
+        )),
+        JsonObject(mapOf(
+            "path" to JsonPrimitive("/synthetic/repo/src/index.ts"),
+            "workspaceRelativePath" to JsonPrimitive("src/index.ts"),
+            "kind" to JsonPrimitive("modified"),
+            "section" to JsonPrimitive("staged"),
+            "added" to JsonPrimitive(12L),
+            "removed" to JsonPrimitive(4L),
+        )),
+    ))
+
+    fun commits(): JsonArray = JsonArray(listOf(
+        JsonObject(mapOf(
+            "hash" to JsonPrimitive("abc1234def5678901a2b3c4d5e6f708192a3b4c5d"),
+            "parents" to JsonArray(listOf(JsonPrimitive("def5678091a2b3c4d5e6f708192a3b4c5d6e7f80"))),
+            "refs" to JsonArray(listOf(JsonObject(mapOf("name" to JsonPrimitive("origin/main"))))),
+            "subject" to JsonPrimitive("fix(rig): keep the summary merged with the tracked branch"),
+            "authorName" to JsonPrimitive("Ernest"),
+            "authoredAtMs" to JsonPrimitive(System.currentTimeMillis() - 3_600_000),
+        )),
+        JsonObject(mapOf(
+            "hash" to JsonPrimitive("def5678091a2b3c4d5e6f708192a3b4c5d6e7f80"),
+            "parents" to JsonArray(emptyList()),
+            "refs" to JsonArray(emptyList()),
+            "subject" to JsonPrimitive("chore(rig): seed the git read fixtures"),
+            "authorName" to JsonPrimitive("Ernest"),
+            "authoredAtMs" to JsonPrimitive(System.currentTimeMillis() - 7_200_000),
+        )),
+    ))
+}
+
 fun main() {
     val env: (String) -> String? = System::getenv
     val passHash = java.util.Base64.getEncoder().encodeToString(ByteArray(32) { it.toByte() })
@@ -642,22 +697,14 @@ fun main() {
         mock.script.generatedCommitMessage = JsonObject(mapOf(
             "message" to JsonPrimitive("chore(rig): bump the synthetic parser version\n\nReviewed the staged diff and drafted a conventional message."),
         ))
-        mock.script.gitChanges = JsonArray(listOf(
-            JsonObject(mapOf(
-                "path" to JsonPrimitive("src/version.ts"),
-                "status" to JsonPrimitive("modified"),
-                "staged" to JsonPrimitive(true),
-                "additions" to JsonPrimitive(3),
-                "deletions" to JsonPrimitive(1),
-            )),
-            JsonObject(mapOf(
-                "path" to JsonPrimitive("scratch/probe.txt"),
-                "status" to JsonPrimitive("added"),
-                "staged" to JsonPrimitive(false),
-                "additions" to JsonPrimitive(2),
-                "deletions" to JsonPrimitive(0),
-            )),
-        ))
+        // N-BK-1 (pass-5 rig fix): the fixtures serve the CONTRACT vocabulary the app
+        // decodes (data/Phase9Tools.kt) — workspaceRelativePath (the row label), kind,
+        // section ("unstaged"/"untracked"/"staged"), added/removed — and getChanges
+        // filters rows by the requested sourceId. The old status/staged/additions/
+        // deletions shape decoded to blank labels, +0 −0, and every row duplicated
+        // into BOTH tabs. Literals live in [RigGitFixtures] so the self-test pins the
+        // contract against the LIVE fixture build (not a copy).
+        mock.script.gitChanges = RigGitFixtures.changes()
         mock.script.gitDiff = JsonObject(mapOf(
             "diff" to JsonPrimitive(
                 "diff --git a/src/version.ts b/src/version.ts\n" +
@@ -665,22 +712,10 @@ fun main() {
                     " const a = 1\n+const b = a + 1\n-const c = 2\n+const c = 3\n export { a, b, c }\n",
             ),
         ))
-        mock.script.gitCommits = JsonArray(listOf(
-            JsonObject(mapOf(
-                "oid" to JsonPrimitive("abc1234"),
-                "message" to JsonPrimitive("fix(rig): keep the summary merged with the tracked branch"),
-                "authorName" to JsonPrimitive("Ernest"),
-                "authorEmail" to JsonPrimitive("takis312@hotmail.com"),
-                "timestamp" to JsonPrimitive(System.currentTimeMillis() - 3_600_000),
-            )),
-            JsonObject(mapOf(
-                "oid" to JsonPrimitive("def5678"),
-                "message" to JsonPrimitive("chore(rig): seed the git read fixtures"),
-                "authorName" to JsonPrimitive("Ernest"),
-                "authorEmail" to JsonPrimitive("takis312@hotmail.com"),
-                "timestamp" to JsonPrimitive(System.currentTimeMillis() - 7_200_000),
-            )),
-        ))
+        // N-BK-1: the commit graph decodes hash/parents/refs/subject/authorName/
+        // authoredAtMs (data/Phase9Tools.kt) — the old `oid`/`message`/`timestamp`
+        // keys dropped EVERY row (hash was required) so History rendered silent-empty.
+        mock.script.gitCommits = RigGitFixtures.commits()
     }
     // G67 (vc52 Phase 11): MOCK_REMOTE_DOWN_MS=N arms the remote-down fixture N ms
     // after startup — the NEXT bridge-open fails with the typed disconnected-remote

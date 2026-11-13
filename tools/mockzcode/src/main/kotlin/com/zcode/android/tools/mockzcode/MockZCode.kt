@@ -2033,10 +2033,18 @@ class MockZCode(
     fun pushPendingPermission(interactionId: String, toolName: String) {
         script.pendingPermission = PendingPermission(interactionId, toolName)
         stateRevision.incrementAndGet()
+        // F-P4-A (pass-4 rig receipt): the patch must carry the FULL pending list.
+        // stateBlock() routes through snapshotPendingInteractions(), which EXCLUDES the
+        // push id while interactionPushDelivered is still false (it flips only AFTER
+        // this call returns) — so the pushed patch structurally could not carry the
+        // interaction it exists to deliver, and delivery degraded to the next snapshot
+        // (which landed STALE in the app). Build from the unfiltered list instead.
+        val pending = pendingInteractionList()
+        lastPushedPendingInteractionsForTest = pending
         val block = stateBlock() ?: return
         pushStatePatch(buildJsonObject {
             put("revision", JsonPrimitive(stateRevision.get()))
-            put("pendingInteractions", block["pendingInteractions"] ?: JsonArray(emptyList()))
+            put("pendingInteractions", pending)
         })
     }
 
@@ -2090,6 +2098,9 @@ class MockZCode(
 
     /** True while a scheduled push is still pending (test seam for the guard's negative arm). */
     internal fun pushRescheduledForTest(): Boolean = pendingPushScheduled.get()
+
+    /** F-P4-A seam: the pendingInteractions array the LAST push patch actually carried. */
+    @Volatile internal var lastPushedPendingInteractionsForTest: JsonArray? = null
 
     /** RIG-5 self-test seam: the zcode-task channel words (archive/resume mutations are state-side). */
     internal fun taskPromiseForTest(id: Int, name: String?, arg: JsonObject?) = handleTaskPromise(id, name, arg)
@@ -3348,7 +3359,22 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 script.gitRefusals["getChanges"]?.let { return respondError(id, it) }
                 val changes = script.gitChanges
                 if (changes == null) respondError(id, "fault.git.notAvailable")
-                else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(changes.map { RpcValue.Obj(it) }))
+                else {
+                    // N-BK-1 (pass-4 rig receipt): the app requests ONE tab per call
+                    // (sourceId = "unstaged" | "staged" — GitPort.kt's verified set) and
+                    // decodes each row's `section` to place it; serving every row for
+                    // both calls duplicated each change into BOTH tabs. The unstaged tab
+                    // renders section ∈ {unstaged, untracked, conflicted} (GitScreen.kt's
+                    // section orders), so the "unstaged" request serves all three.
+                    // Rows without a `section` keep the legacy serve-everything behavior.
+                    val requested = argAsObject(arg)?.strOrNull("sourceId")
+                    val served = if (requested == null) changes else changes.filter {
+                        val section = (it as? JsonObject)?.strOrNull("section") ?: return@filter true
+                        if (requested == "unstaged") section in listOf("unstaged", "untracked", "conflicted")
+                        else section == requested
+                    }
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(served.map { RpcValue.Obj(it) }))
+                }
             }
             "getDiff" -> {
                 val diff = script.gitDiff

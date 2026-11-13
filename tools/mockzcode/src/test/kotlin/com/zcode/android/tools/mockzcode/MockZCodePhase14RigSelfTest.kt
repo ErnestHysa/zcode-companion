@@ -323,6 +323,64 @@ class MockZCodePhase14RigSelfTest {
         assertNull(gitFault(m, "getCommitGraph"))
     }
 
+    // -------------------------------------------------------------- N-BK-1 (pass 5)
+
+    /** The SUCCESS rows getChanges served for a sourceId (the response seam, success side). */
+    private fun gitChangesPayload(m: MockZCode, sourceId: String?): List<JsonObject> {
+        val repliesBefore = m.promiseResponsesForTest().size
+        val arg = if (sourceId == null) JsonObject(emptyMap())
+        else JsonObject(mapOf("sourceId" to JsonPrimitive(sourceId)))
+        m.gitPromiseForTest(9, "getChanges", arg)
+        val last = m.promiseResponsesForTest().drop(repliesBefore).lastOrNull() ?: return emptyList()
+        val arr = (last.third as? com.zcode.android.core.protocol.bytes.RpcSerialization.RpcValue.Arr)?.items
+            ?: return emptyList()
+        return arr.mapNotNull { (it as? com.zcode.android.core.protocol.bytes.RpcSerialization.RpcValue.Obj)?.json as? JsonObject }
+    }
+
+    private fun str(o: JsonObject, key: String): String = (o[key] as? JsonPrimitive)?.content ?: ""
+
+    @Test
+    fun `getChanges serves only the requested section — a row lands in ONE tab (N-BK-1)`() {
+        val m = mock { s -> s.gitChanges = RigGitFixtures.changes() }
+        val unstaged = gitChangesPayload(m, "unstaged").map { str(it, "workspaceRelativePath") }
+        val staged = gitChangesPayload(m, "staged").map { str(it, "workspaceRelativePath") }
+        assertEquals(listOf("src/version.ts", "scratch/probe.txt"), unstaged, "unstaged call serves unstaged+untracked rows")
+        assertEquals(listOf("src/index.ts"), staged, "staged call serves ONLY the staged row")
+        // No-section rows keep the legacy serve-everything behavior (older fixtures).
+        val legacy = mock { s ->
+            s.gitChanges = JsonArray(listOf(JsonObject(mapOf("path" to JsonPrimitive("a.ts")))))
+        }
+        assertEquals(1, gitChangesPayload(legacy, "unstaged").size, "section-less rows serve unchanged")
+    }
+
+    @Test
+    fun `the rig git fixtures satisfy the app decode contract (N-BK-1)`() {
+        // data/Phase9Tools.kt decode requirements — every change needs
+        // path/workspaceRelativePath/kind/section/added/removed (the old status/staged/
+        // additions/deletions shape decoded to blank labels, +0 −0, dual-tab rows) and
+        // every commit needs hash (REQUIRED — oid dropped every row)/parents/subject.
+        val sections = setOf("unstaged", "untracked", "staged", "conflicted")
+        val changes = RigGitFixtures.changes()
+        assertTrue(changes.isNotEmpty())
+        for (el in changes) {
+            val o = el.jsonObject
+            assertTrue(str(o, "path").isNotBlank(), "change row needs path")
+            assertTrue(str(o, "workspaceRelativePath").isNotBlank(), "change row needs workspaceRelativePath (the row label)")
+            assertTrue(str(o, "kind").isNotBlank(), "change row needs kind")
+            assertTrue(str(o, "section") in sections, "change row section must be in the app's verified set")
+            assertTrue((o["added"] as? JsonPrimitive) != null && (o["removed"] as? JsonPrimitive) != null, "change row needs added/removed")
+        }
+        val commits = RigGitFixtures.commits()
+        assertTrue(commits.isNotEmpty())
+        for (el in commits) {
+            val o = el.jsonObject
+            assertTrue(str(o, "hash").length >= 40, "commit row needs hash (the required key)")
+            assertNotNull(o["parents"], "commit row needs parents")
+            assertTrue(str(o, "subject").isNotBlank(), "commit row needs subject")
+            assertNotNull(o["authoredAtMs"], "commit row needs authoredAtMs")
+        }
+    }
+
     @Test
     fun `the create-branch ack moves the served summary branch (the RIG-5 fidelity class)`() {
         val m = mock { s ->

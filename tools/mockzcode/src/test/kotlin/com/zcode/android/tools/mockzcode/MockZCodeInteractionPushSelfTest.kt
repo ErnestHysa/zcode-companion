@@ -66,4 +66,36 @@ class MockZCodeInteractionPushSelfTest {
         assertFalse(m.pushRescheduledForTest())
         assertEquals(null, m.pendingPermissionForTest())
     }
+
+    @Test
+    fun `the pushed PATCH carries the pushed interaction BEFORE the delivered flag flips (F-P4-A)`() {
+        val m = mock()
+        m.armInteractionPushForTest(50)
+        assertTrue(awaitPush(m, "mock-approval-push-1"), "the scheduled push must flip pendingPermission")
+        // The PATCH content pin — what the wire actually received at fire time, not the
+        // post-delivery state block. Before the fix the patch was built from
+        // snapshotPendingInteractions() (which excludes the undelivered push id), so
+        // delivery degraded to the NEXT snapshot and landed STALE in the app.
+        val carried = m.lastPushedPendingInteractionsForTest
+        assertTrue(carried != null, "the push must have produced a patch")
+        assertTrue(
+            carried!!.any { (it.jsonObject["interactionId"] as? JsonPrimitive)?.content == "mock-approval-push-1" },
+            "the pushed patch itself must carry the pushed interaction (F-P4-A)",
+        )
+    }
+
+    @Test
+    fun `the pushed patch keeps sibling pending interactions (no slot drop)`() {
+        val m = mock()
+        m.script.pendingUserInput = MockZCode.PendingUserInput(
+            interactionId = "q-sibling", prompt = "Pick one", freeText = false,
+            options = listOf("a", "b"), createdAtMs = System.currentTimeMillis(),
+        )
+        m.armInteractionPushForTest(40)
+        assertTrue(awaitPush(m, "mock-approval-push-1"))
+        val carried = m.lastPushedPendingInteractionsForTest
+        assertTrue(carried != null && carried.any {
+            (it.jsonObject["interactionId"] as? JsonPrimitive)?.content == "q-sibling"
+        }, "the push patch must carry the sibling userInput beside the fresh permission")
+    }
 }
