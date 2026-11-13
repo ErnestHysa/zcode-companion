@@ -1479,3 +1479,229 @@ the DIRECT mock; 28 screenshots in `/tmp/p4/shots/`; DB pulls in `/tmp/p4/db/`
 (md5 `530ba4ff…`, versionCode 53 / 1.3.2, byte-current for HEAD — docs-only commits
 since the build). Rig left: emulator + gen2 relay on :18100 + DIRECT mock on :18200;
 app paired to both, theme/font restored to defaults. Nothing pushed.
+
+---
+
+# Part H — pass 5 (APPENDED 2026-11-13, later the same day): the rig-fixed arms + the method-level parity matrix
+
+> Pass 5 of the pass-0 series — Ernest's third "verify everything, dig deeper" ask. Two halves:
+> (1) the live rig, this time with the TWO pass-4 rig-side blockers FIXED first (F-P4-A the
+> fresh-push patch that structurally excluded its own interaction; N-BK-1 the git fixtures in
+> the wrong vocabulary) so the never-drivable arms could actually run — committed as `2b12fc46`
+> (rig-only; zero app code touched; pins green with a compile-block RED demonstration), then
+> THREE relay generations driving the unblocked legs; (2) the REA dig part 6 — the desktop
+> digest re-verified byte-identical (`ec475e6e…`, 3.18.1.10376, host index.js sha256 prefix
+> `e31718b8…`, extraction `/tmp/p3-asar`, host dir digest `3d4aa76f…` unchanged), so every
+> pass-0..5 census number stands and the deepening came from NEW questions: the per-service
+> METHOD tables beyond pass-4's two, the OffPeakTask/automation authoring parity (G.D.6's
+> queued item), the hooks authoring + review-reason vocabulary, and the phone-side parity
+> matrix at HEAD.
+>
+> **Environment of record.** HEAD `2b12fc46` (main, clean — docs-only before the pass-5 stamp;
+> the one code commit this pass is the rig-side mock fix), debug APK byte-identical to the
+> whole series (sha256 prefix `ad449d7d…`, md5 `530ba4ff…`, versionCode 53 / 1.3.2 — rebuilt
+> up-to-date in 22 s). Emulator `zcode-a16` warm from pass 4. Relay generations: gen1
+> `mock-p5-gen1-e5f6a7` (full 23-arm + AUTOMATION_RUNS/USAGE/MEMORY/TOOLS/TURN_RUNNING/
+> ENFORCE_RUN_DELTAS + AUTO_RESOLUTION=countdown 150 s + PUSH 15 s + G52/CUA at 100/105 s) →
+> gen2 `mock-p5-gen2-f8e9d0` (push 12 s, NO fuse — the clean shade + contract leg) → gen3
+> `mock-p5-gen3-a1c2e3` (GIT_REFUSALS + AUTO_RESOLUTION=expired + push 12 s). Two force-stop
+> cycles (the locale legs). Desktop under audit unchanged.
+>
+> **Verification stamp:** 2026-11-13, verified ~11:40–12:56, GLM-5.3-Flash in ZCode (ZCode
+> Companion pass-5 rig), everything local, nothing pushed.
+
+## H.A0 — rig learnings (each will bite the next pass)
+
+1. **THE FUSE MUST OUTLAST THE PUSH WINDOW — the gen1 lesson**: the app sat on Settings until
+   +2 m15 s after relay start, so the 150 s countdown fuse FIRED ~2 s after the +15 s-from-
+   subscribe push landed — the patch carried a fuse-dead entry and ZERO push rows were created
+   (DB-proven). The expiry leg is real and valuable, but schedule it deliberately: fuse > push
+   + observe window, or split generations (this pass's gen1/gen2 split is the template).
+2. **Empty-string arm passthrough crashes the relay at boot**: `MOCK_AUTO_RESOLUTION="${VAR:-}"`
+   hands the mock `MOCK_AUTO_RESOLUTION=""` (set-but-empty), and the enum validator rejects it
+   (`must be one of grace|countdown|snoozed|expired`). Pass arms by ENV INHERITANCE (don't
+   emit unset arms), never by empty-string defaults.
+3. The composer's **Add-attachment row hides behind the IME AND the expanded queue strip** —
+   collapse the IME (BACK) and scroll the timeline up; re-dump for bounds every time.
+4. The **slash palette's row geometry moves with the IME**: tapping a row from a stale
+   screenshot accepted `/logout` while aiming for `/compact` (the acceptance receipt itself
+   is the accidental-by-product that PROVES the row→autocomplete contract).
+5. The **Language dialog fully localizes** (跟随系统/取消) — reverting needs the localized
+   label; searching for "System default" in the zh UI fails silently.
+6. **Widget add-to-home is DEFINITIVELY not adb-drivable on this image** (6th attempt):
+   `cmd appwidget` has no shell implementation (API 36) and an `input swipe` long-press drag
+   from the picker returns to the launcher with NO instance bound (`dumpsys appwidget` under
+   the launcher host: `Widgets:` EMPTY). The RIG-4 binding pin stays the binding receipt;
+   stop re-attempting in future passes.
+7. The system photo picker serves a freshly `adb push`ed file from **Recent on first open** —
+   no navigation needed (faster than pass-2's picker walk).
+
+## H.A1 — verified working this pass (receipts; never-driven-in-series in bold)
+
+| Surface | Pass-5 receipt |
+| --- | --- |
+| F-P4-A rig fix, live on the wire | gen2: subscribe at 11:45:42 → **`manager.deltas :: session=synth-task-1 seq=2..2 ops=1` at 11:45:54** — the pushed patch CARRIED the interaction (the pass-4 structural exclusion is gone); gen1 showed the same deltas shape |
+| **Fresh-push shade leg (pass-4-blocked, now UNBLOCKED)** | app backgrounded → shade posted: "ZCode needs your approval" ×2 (grouped, channel=permissions, AUTO_CANCEL, group summary + child id) + "ZCode has a question for you"; tapping the approval notification deep-linked into the target conversation |
+| **The expired-fuse FACE (never driven in series)** | gen1 machine-level proof: `q-rig-1-mock-p5-gen1` RESOLVED at deadline+2.8 s (1794570178698 vs deadline …175909) via the state-plane sweep, card left the stack; gen3's `expired` arm rendered the honest face on BOTH cards: **"Approval needed — No answer; continued automatically — Run a synthetic command? `{"command":"echo synthetic"}`"** and **"Agent needs your input — No answer; continued automatically"** — the G77 fuse family is honest end-to-end (countdown ticks (pass-4) → fires → the phone closes the machine with a typed face) |
+| **The Git contract-true leg (N-BK-1 rig fix verified live)** | gen2: **Unstaged (2) / Staged (1)** — no duplication; real paths with real counts (src/version.ts +3 −1, scratch/probe.txt +2 −0, src/index.ts +12 −4); **History renders the commit graph** ("abc1234 Ernest 11/13 10:45" + both subjects) — the pass-4 silent-empty History receipt is closed on the rig |
+| **Terminal Search + Copy visible output + Detach (never driven)** | Attach (4th series verification: `terminal.create ok` + `terminal.attached :: id=term-1` — F-P0-D stays retracted) → "Search output" field accepts text ("zsh" landed; the mock's stream is empty so the filter is a no-op — mock fidelity note) → "Copy visible output" → **"Copied" toast** → Detach → **`terminal.dispose begin/ok`** → "Not attached." idle |
+| **Slash-palette row ACCEPTANCE (pass-4's leftover, CLOSED)** | "/" → palette (screenshot-visible, dump-invisible) → row tap → **composer autocompleted "/logout"** → Send → **`sendConversationCommandV4 (id=23)`** — the full palette→row→send chain |
+| **Image attachment upload** | picker → p5blue.png chip → **`attachmentBeginV4 (id=9) → attachmentChunkV4 (id=10, 96 ms) → attachmentCommitV4 (id=11, 36 ms)`** on a real 48×48 PNG; sent with a message (`sendConversationCommandV4 id=12`) |
+| **Locale switch live (G37, FIRST live drive in the series)** | Settings → Language → 中文 → UI stays English until relaunch (the no-recreate SP-mirror design holds) → force-stop + relaunch renders the WHOLE UI in Chinese ("+ 新建自动化", "19 分钟前", "3 次"; settings + dialogs fully localized: 跟随系统/取消) → reverted the same way; both directions clean, reconnected after both restarts |
+| A11y sweep at HEAD (subtree-aware — the pass-3 merged-nodes recipe) | conversation + settings: **0 subtree-unlabeled clickables** (the N-BC-1 fix holds); home: **2 unlabeled icon-only buttons** (workflow-run Run/Manage chips, `resource-id=workflow_run_*`) — NEW small (N-BL-1) |
+| CUA permission observation | the typed banner ("Computer Use needs macOS permissions … Accessibility: Denied") rendered again at HEAD |
+| Multi-endpoint persistence | MockBook (relay · Connected) + P3Direct (Direct server · v3.14.3) rows BOTH persisted across launcher-exit, force-stop, and relaunch cycles |
+| Robustness | **0 FATAL / 0 ANR** across the whole pass (3 relay generations + 2 force-stops + picker/drag/locale legs); the reconnect ladder converged after every relay restart without user action |
+
+## H.A2 — defects, ledger changes, and root causes (order = fix order)
+
+1. **F-P0-B ISOLATED — the ledger's most important update this pass.** With the rig's
+   push-delivery bug fixed (`2b12fc46`), the pushed permission now DELIVERS (row created by
+   the patch, receipted above) and is then **STALEd by the rows reconcile sweep exactly as
+   pass-2 pinned** (DB: `mock-approval-push-1-mock-p5-gen2-f8e9d0 | PERMISSION | STALE`,
+   created 11:45:54.065 by the patch; the seeded approval + question stayed DISPLAYED). The
+   mock-side confound is GONE: the one-line `known.permission != null` exemption at
+   `InteractionCoordinator.kt:697` is now **provably the only remaining blocker** for the
+   card plane. F-P4-A itself CLOSES as rig-fixed this pass (the self-test's patch-content pin
+   holds; RED demonstrated compile-block against the pre-fix code per the stash recipe).
+2. **F-P5-A (P3, app, NEW) — refused git reads render SILENT-EMPTY sections on the live Git
+   screen.** gen3 armed `MOCK_GIT_REFUSALS=getChanges=<custom code>,getCommitGraph` (default
+   notAvailable): the Changes and History section HEADERS render with ZERO rows, ZERO error
+   text, ZERO retry (screenshots 22/23, also after explicitly tapping both tabs). The pinned
+   refusal faces (GitRefusalSurfaceUiTest: generate-commit inline reason + history names the
+   reason) do NOT manifest on this path — the live screen loads its sections at open and a
+   refusal yields an empty section, not the pinned error row. Same family as F-P0-C (the
+   file-viewer silent blank); fix = the typed-refusal face on the section-empty path + a
+   pin hosting the LIVE load shape (not a pre-loaded sheet).
+3. **F-P3-A re-manifested (4th pass) with the sharpest visual yet**: the question card's
+   "Send answers" crushed to a three-line vertical ("Send answe rs") inside the zero-height
+   body, and the hook card renders header + body text + "2 pending · 3 hooks" with NO item
+   rows. The fix shape is unchanged (card-agnostic pinned-stack budget).
+4. **N-BL-1 (P4, app, NEW, a11y)** — the Workflows hub card's per-run Run/Manage icon-only
+   buttons are subtree-unlabeled (resource-id only, no text/content-desc): TalkBack silence.
+   The ONLY unlabeled clickables found at HEAD (conversation and settings are clean).
+5. Small observation: the FIRST attachment pick did not auto-start the upload (the chip
+   rendered with Retry; Retry completed the begin/chunk/commit) — the 2nd instance of this
+   pattern (pass-2's was a socket-drop retry). The pick→begin handoff while a turn is
+   RUNNING deserves one glance in the fix round.
+6. Observation: the queue strip re-EXPANDED (both rows + action bars) after the generation
+   switch — retained UI state across reconnects; harmless on this rig, recorded.
+
+## H.B — the REA dig, part 6: the METHOD-LEVEL PARITY MATRIX (digest unchanged `ec475e6e…`)
+
+Method receipts: asar sha256 re-verified byte-identical at pass start; all greps shell-side on
+`/tmp/p3-asar` (the pass-24/31/4 method); NEW scripts `/tmp/p5/methods3.py` + `methods4.py`
+(brace-matching table extractor anchored on `i(x,"createXService")` — the tables sit BEFORE
+the marker as `return i(last),{…}}i(x,"createXService")`); phone inventory extracted at HEAD
+into `/tmp/p5/pm.txt` (`channelCall` sites + the template-built names).
+
+### B1. Per-service method inventories — exact (new beyond pass-4's two)
+
+| Service (exact table) | Methods | Phone today | Gap row |
+| --- | --- | --- | --- |
+| memoryService (6) | loadMemory, saveMemory, clearMemory, getUserMemoryDirectory, listProjectMemories, readProjectMemoryFile | 0 | **G82 exact** (read-only mirror = the 2 read verbs) |
+| terminalService (8) | create, write, resize, dispose, listTerminalIdsUnderPath, onDynamicData, onDynamicExit, disposeAll | create/dispose/resize/write (the transport HAS write — VIEW-ONLY is app-posture) | **NEW notable: onDynamicData/onDynamicExit streaming events unsubscribed** — a live-stream upgrade path for the attach plane |
+| commandsService (6) | list, writeCommandFile, updateCommandFile, deleteCommandFile, setCommandEnabled, getPrimaryUserCommandsDirectory | list | authoring verbs = the protocol-exact spec behind the read-only footnote |
+| usageStatsService (9) | getAppUsageSnapshot, getCodingPlanUsageSnapshot, getCodingPlanRegularTps, getCodingPlanResetStatus, **requestCodingPlanResetOpportunity, useCodingPlanReset**, markCodingPlanResetHistoryRead, getSnapshot, getEntitlementSnapshot | snapshot/entitlement reads | **NEW G90: the coding-plan RESET trio** — the phone's Usage screen renders "Quota reset 05:20" read-only; the desktop can request/use a reset remotely |
+| gitCheckpointService (4) | createCheckpoint, diffCheckpoints, restoreBetweenCheckpoints, deleteCheckpoint | create + the rewind command plane | checkpoint diff/restore verbs unconsumed (the phone's rewind rides applyFileRewind) |
+| outputStyleService (7) | listStyles, addStyle, updateStyle, deleteStyle, getUserStylesDirectory, setActiveStyle, getActiveStyle | 0 | **G84 exact** (read-only mirror = listStyles + getActiveStyle) |
+| clientScenesService (1) | getSnapshot | 0 | **G83 exact — ONE verb** (the smallest consume on the board) |
+| hooksService (3) | loadHooks, **saveHooks**, grantWorkspaceHookTrust | loadHooks + grantWorkspaceHookTrust | **saveHooks is NEW to the census**: hooks authoring is REMOTE-SERVABLE (saveHooksImpl filters editable≠false, scope user\|project, source zcode) → folds into G89 |
+| broadcastService (6) | send, acquireClaim, commitClaim, releaseClaim, tryClaim, onMessage | 0 | **G85 exact** (pass-3's claim protocol, now method-level) |
+| subagentsService (3) | createAgent, updateAgent, deleteAgent (+list) | list | authoring verbs exist remotely; phone read-only |
+| pluginManagementService (17) | listPlugins, getPluginReferenceCatalog, resolveSuggestedPluginReference, onDynamicPluginOperationProgress, getPluginsOverview, add/remove/update Marketplace, install/cancel/uninstall/update/restoreBuiltin/configure/resetConfig/validate/describe/setEnabled | listPlugins | desktop-side by design (no-action family) |
+| OffPeakTask channel (4 verbs + typed failures) | **offPeakList** (phone consumes, V4Plane.kt:1452), **offPeakCreate, offPeakControl, offPeakLifecycle** + failureStage/errorCategory/offpeak_disabled/client_validation | list | **G29 authoring parity SETTLED** (G.D.6's queued item): a dedicated create/control/lifecycle trio exists, unconsumed phone-side; the typed failure vocabulary is undecoded |
+
+### B2. New protocol vocabulary (schema-level)
+
+- The provider model-properties schema carries **`inputFormat:{supportsImage, supportsVideo,
+  supportsPdf}`** — TWO bits beyond pass-31's supportsImage record; the phone's modelOptions
+  decode ignores all three (view-over-the-registry posture; recorded for the next "image
+  attachments to the agent" ask).
+- The clientHello plumbing re-verified: the REMOTE schema gates exactly 4 bits
+  (workspaceHookReviewUi, workflowRunDeltas, pluginDiscoveryUi, historyFirst), read off the
+  hello and stamped onto the trusted connection (`readTrustedZCodeAgentV4Connection`); the
+  other 9 of the 13-bit set remain desktop↔agent vocabulary (pass-3 B2 stands, re-derived).
+
+### B3. The hooks i18n census — G71's build spec is now exact
+
+**300 `settings.hooks.*` keys** (zh-locale values in the bundled IntlProvider chunk — the
+keys are the spec). Two families matter for the phone:
+
+- **The review-reason enum (11 typed reasons)**: review_superseded, snapshot_mismatch,
+  bundle_changed, config_unreadable, config_write_failed, config_rebuild_failed,
+  trust_store_corrupt, blocked_by_policy, policy_requires_pretrust, interaction_timeout,
+  host_unavailable, rejected — the desktop can say WHY a re-review is required.
+- **The authoring faces**: add/edit/delete, matchAll, the session-snapshot semantics ("Hook
+  config changes take effect in a NEW session"), configured vs compatibility/importable
+  groups.
+
+Phone side: the hook-review decode (`domain/src/main/kotlin/com/zcode/android/domain/model/
+WorkspaceHookReview.kt`) carries **NO reason vocabulary** — the phone's card says only
+"N pending · M hooks". **NEW GAP G89**: the review-reason enum (decode + typed faces) + the
+saveHooks authoring spec (consume/no-action decision belongs to the roadmap; the decode half
+is the safe minimum).
+
+### B4. Census-completeness footnotes
+
+- The Resources-tree surfaces (outside the asar, first census'd this pass):
+  `cua-helper/ZCode Computer Use.app` (the CUA helper bundle),
+  `macos-window-bounds/zcode-window-bounds` (206 KB native helper, mtime matches the 3.18.1
+  install), `tools/{bfs, ripgrep, ugrep}` (three search binaries — pass-31 recorded ripgrep
+  inside glm/; the Resources-level trio is the fuller record). None are phone-consumable.
+- The slash-20 drift check re-delegates to pass-31 (digest unchanged). One trap recorded for
+  the next pass: **"Show this slash command help." is the PHONE's OWN builtin-catalog
+  fallback** (`features/conversation/port/BuiltinSlashCatalog.kt:22`), not desktop-served
+  copy — don't chase it as catalog drift.
+
+## H.C — where the phone is BETTER than the desktop (new receipts this pass)
+
+- **The expired-fuse honesty**: when the desktop's fuse fires, the phone CLOSES the machine
+  and renders "No answer; continued automatically" with the full payload — a typed terminal
+  face for a remote interaction lifecycle the desktop renders only locally.
+- **The locale round-trip** (EN→中文→EN, zero recreates, fully localized dialogs) — the
+  G37 SP-mirror pattern verified live in both directions; the desktop's locale plane was
+  never census'd to this depth.
+- **The attachment Retry affordance** as the recovery path (2nd live instance).
+- **0 FATAL / 0 ANR** across 3 generations, 2 force-stops, the picker, the drag attempt, and
+  two locale restarts.
+
+## H.D — fix-order recommendation (supersedes G.D)
+
+1. **F-P0-B** — the one-line `known.permission != null` exemption; now provably the only
+   remaining blocker (delivery proven by the rig fix; pins from pass-2 stand).
+2. **F-P3-A** — the card-agnostic pinned-stack budget (4th re-manifestation).
+3. **F-P5-A** — the git-refusal typed faces on the live section-empty path + a live-shape pin.
+4. **F-P3-B / F-P3-C / F-P2-A / F-P0-C** — unchanged (openRun hydrate; per-session delta
+   retention; the cold-restore adoption guard — rows persisted this pass but the clobber was
+   not re-driven; the file-viewer typed error face).
+5. **N-BK-1 app-side** — the "No commits yet" History empty state (the rig half is DONE).
+6. **N-BL-1** — workflow-run button labels; the attachment pick→begin handoff glance.
+7. **Parity queue**: G89 (review-reason decode + saveHooks decision) → G90 (reset trio) →
+   G82/G83/G84/G85 (specs now exact) → G86/G87/G88 (unchanged) → the OffPeakTask typed
+   failure decode + `inputFormat` bits as opportunistic adds.
+
+### Coverage honesty (what pass 5 did NOT drive)
+
+The notification ACTION buttons (the shade group rendered collapsed on this launcher image;
+answering happened via the deep-link + conversation planes — the lock-screen Approve-without-
+auth leg from pass-37 remains unexercised at HEAD), the DIRECT-mode generation (the :18200
+mock died at the gen3 restart and was not re-armed; the DIRECT receipts stand from passes
+2–4), the F-P2-A recreate clobber (rows persisted; the SELECTED endpoint was not asserted —
+the relay was the expected active anyway), Providers/Bots settings rows (the same viewer
+family verified four times in the series), and the fuse-vs-push race as a deliberate leg
+(gen1's version was accidental; a clean "push survives a later fuse" leg belongs to a
+future pass).
+
+## Pass-5 verification stamp
+
+Pass 5 completed 2026-11-13 ~12:56; THREE relay generations (gen1 fuse+push — the accidental
+expiry receipt; gen2 push+shade+git contract; gen3 git refusals + expired fuse) + 2 force-stop
+cycles + the locale round-trip; 26 screenshots in `/tmp/p5/shots/`; relay logs
+`/tmp/p5/relay-gen{1,2,3}.log`; logcat `/tmp/p5/logcat-gen1.log` (0 FATAL / 0 ANR); DB pulls
+`/tmp/p5/db/`; a11y dumps `/tmp/p5/ax-*.xml` + the reusable audit script `/tmp/p5/ax.py`; REA
+table extractor `/tmp/p5/methods{3,4}.py`; phone inventory `/tmp/p5/pm.txt`. APK byte-identical
+to the series (sha256 `ad449d7d…`, md5 `530ba4ff…`, versionCode 53 / 1.3.2); ONE rig-side
+commit (`2b12fc46` fix(mock): F-P4-A + N-BK-1, 37 mock tests green); desktop digest unchanged
+(`ec475e6e…`). Rig left: emulator + gen3 relay on :18100 (the DIRECT mock died at the gen3
+restart). Nothing pushed.
