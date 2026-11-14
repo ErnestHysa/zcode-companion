@@ -3352,3 +3352,297 @@ Rig left: emulator zcode-a16 UP (PIN-less, stay-on 7 + screen_off_timeout 600000
 nonce `mock-p12-gen2-b2c3d4`), app paired + CONNECTED on the Synthetic task
 conversation (interactionBehavior="queue", autoDrain ON in-session), logcat running
 to /tmp/p12/logcat.log. Nothing pushed.
+
+---
+
+# Part P — pass 13 (APPENDED 2026-11-14, ~17:00): the never-driven arm matrix — the delta plane's post-recovery death, the Usage screen's dead touch zone, and the answer-with-error chain's first working receipt
+
+> **Pass 13 of the pass-0 series** (solo, the canonical discovery prompt re-invoked
+> by Ernest after pass 12's saturation adjudication). The named backlog is 8/8, so
+> this pass worked a NEW axis outside it: **the mock's full env-arm vocabulary
+> diffed against everything the series has ever driven.** Eleven arms are
+> enumerated in the mock source; five had NEVER been driven in-series
+> (MOCK_USAGE, MOCK_TURN_RUNNING, MOCK_ENFORCE_RUN_DELTAS, MOCK_OFFPEAK_COMPLETE_MS,
+> MOCK_TOOLS) — they were built for the vc52 campaign's rig legs and inherited
+> un-driven. That axis was NOT exhausted in one pass: **3 new rows (F-P13-A P2,
+> N-BP-1 P3, N-BP-2 P4), 3 stamps, 5 new mock/rig debts**, and the in-life
+> off-peak notification leg + the delta happy path remain drivable. The banner in
+> the ledger is amended accordingly: the campaign is saturated on the NAMED axes;
+> the arm matrix is a live extension with legs left.
+>
+> **Rig fix (allowed, committed): mock-fidelity debt #1 CLOSED** — `91ec7ade`
+> adds the `MOCK_UNKNOWN_INTERACTION_IDS=1` arm (the typed unknown-id rejection on
+> resolveInteraction; self-tests 6/6 green). The app code was touched by nothing:
+> the APK rebuilt byte-identical (sha256 `ad449d7d…`, md5 `530ba4ff…`, vc53/1.3.2).
+>
+> **Verification stamp (pass header):** 2026-11-14 15:45 → ~17:00, GLM-5.3-Flash
+> in ZCode, everything local, nothing pushed. STEP 0: desktop 3.18.1 / asar
+> `ec475e6e…` UNCHANGED — no DELTA. Generations: gen1 `mock-p13-gen1-c1d2e3`
+> (15:46, MOCK_USAGE+MOCK_TOOLS), gen2 `mock-p13-gen2-f4g5h6` (15:59,
+> MOCK_TURN_RUNNING), gen3 `…-i7j8k9` + `…-x1y2z3` (30s) + `…-d4e5f6` (60s/90s)
+> (16:05–16:13, ENFORCE_RUN_DELTAS), gen4 `…-l0m1n2` (+`-h7i8j9`, `-k1l2m3`,
+> `-n4o5p6`) (16:17–16:35, OFFPEAK_COMPLETE + DISCONNECT_AFTER_FRAMES),
+> gen5a `…-r4s5t6` / gen5b `…-u7v8w9` (16:38–16:42, armed stack / the unknown-id
+> arm). Emulator cold-booted once mid-pass (16:37, the NAT flake — P.A0.4).
+
+## P.A0 — rig learnings (each bites the next pass)
+
+1. **The never-driven-arm audit is the discovery method the named backlog could
+   not enumerate**: `grep -oE 'System.getenv\("MOCK[A-Z_0-9]*"\)'` over the mock
+   source, diffed against every launcher the series has recorded, yields the
+   undriven set in minutes. Pass 13's three rows all came from arms, not from
+   UI walking.
+2. **`MOCK_OFFPEAK_COMPLETE_MS` and `MOCK_ENFORCE_RUN_DELTAS` count from RELAY
+   START, not from the app's first CONNECTED** — the +12s flip landed 5 s BEFORE
+   the app connected (gen4), and the one-shot delta pair (update +4 s, remove
+   +14 s) raced every reconnect. Debts #11/#13; the legs need
+   subscribe-anchored timing.
+3. **`MOCK_DISCONNECT_AFTER_FRAMES=2` dies mid-auth** (the first connect never
+   completes, so no baseline seeds); `=30` survives the handshake but dies at
+   ~2.5 min (every poll frame counts — debt #12). The mid-life-disconnect recipe
+   that WOULD work once #12 is fixed: baseline connect → flip → server-side
+   drop → reconnect → diff → notify.
+4. **The API-36 NAT grew a new tooth**: after the scripted server-side abrupt
+   close (the disconnect arm), the emulator's IPv4-mapped-IPv6 path blackholes
+   NEW app flows — SYN-SENT hangs with the ladder retrying honestly 6× — while
+   pure-IPv4 device flows (`nc -z 10.0.2.2 18100`) still succeed, and a fresh
+   PROCESS still hangs. Recovery = full emulator restart (cold-boot <1 min).
+   Recorded as mock debt #14 (rig); the app was exonerated by the nc probe +
+   the 10+ successful connects earlier in the same session on the same stack.
+5. The SystemUI ANR dialog is a COLD-BOOT constant on this AVD (fourth sighting):
+   dismiss with "Wait" (M.A0.2 recipe) and move on — it is the system's ANR, not
+   the app's.
+
+## P.A1 — gen1 (MOCK_USAGE + MOCK_TOOLS): the Usage plane's first data-bearing receipt, and two new smalls
+
+**WORKING (first in-series — the Usage screen had only ever been receipted on its
+honest-unavailable fault face):** with the arm serving the pinned wire fixtures
+(`fixtures/protocol/phase{3,4}-wire-fixtures.json` via MOCK_FIXTURES_DIR — the
+repo-root path, NOT tools/mockzcode-relative):
+
+- The wire plane: `getAppUsageStats ok in 369ms`, `usage-stats.getCodingPlanUsageSnapshot ok`,
+  `usage-stats.getCodingPlanResetStatus ok` — all three calls receipted on one screen open.
+- The quota meters render real data: "Usage remaining — 5 hours · 64% · 05:20 +
+  Quota reset link + progress bar"; "Weekly 49% Oct 21" with a **Reset** action;
+  "Tool calls 88% Nov 12"; "ZCode MCP 78% Oct 15" (s02).
+- The dashboard renders: range chips (7 days/30 days/All time), summary cards
+  (184.6K total tokens · 51.2K peak day · 1h 30m longest session · 3d/9d streaks),
+  Efficiency (42% cache-hit · 210 tool calls · 96 turns), the Activity heatmap
+  (2026-09-28 – 2026-10-11), Daily trend + Daily activity bars, the Share-by-model
+  PIE (glm-5.3 / glm-5.3-flash + legend), Models rows (114.5K·62% / 70.1K·38%),
+  Tools rows (Bash 120·5%, Read 90·0%) — s02/s03/s04.
+- **The G20 Plan usage charts RENDER** — the stacked per-day bars + totals line +
+  GLM-5.3/GLM-5.1 legend (s04), fed by the concrete port
+  (`ViewerPorts.kt:35 → hub.viewerTools().codingPlanUsage`; the interface default
+  null at UsageScreen.kt:84-88 is overridden — checked, not assumed).
+
+**The G90 reset verb chain — first live drive, WORKING end-to-end:** "Reset" on
+the Weekly row → the typed confirm dialog ("Reset Weekly quota? / This consumes
+one reset opportunity… / Resets available: 1 / Type RESET to confirm" with the
+Reset button DISABLED until typed, s10) → typed RESET → the button enables (s11)
+→ `usage-stats.useCodingPlanReset begin` → the mock answers
+`fault.mock.unscripted:useCodingPlanReset` (debt #10) → **the panel renders the
+honest typed failure inline: "Reset failed · fault.mock.unscripted:useCodingPlanReset"**
+(s12, `CodingPlanQuotaSection.kt:456`). The consume loop works; the mock just
+doesn't script the success half.
+
+**NEW N-BP-1 (P3) — the double-inset dead band is ALSO a dead touch zone.** The
+screen renders a ~400px empty band under the top bar (s02, persistent across
+scroll — s03/s05/s06). Mechanism: `UsageScreen.kt` applies the Scaffold `inner`
+padding TWICE — on the PullToRefreshBox (line 141) AND the inner Column (line
+146); every one of the 11 sibling viewer screens applies it exactly once. The
+band is not just visual: **scroll and pull-to-refresh gestures STARTING inside it
+are swallowed** — 8 upward-scroll attempts from y≈500 did nothing (no scroll, no
+refresh spinner, zero `getAppUsageStats` re-queries) while the identical drag
+from y=1400 scrolled instantly (s09). The vc51 double-inset class, now with an
+interaction half.
+
+**NEW N-BP-2 (P4) — every Daily-trend label reads "2026-":** `day.date.take(5)`
+(UsageScreen.kt:613) slices the first five chars of the ISO date the decoder
+feeds (`2026-10-05` → `2026-`); the slice assumes an MM-DD shape the wire never
+serves. Both fixture rows render the truncated label (s03).
+
+**N-BO-1 stamp (2nd surface):** the reset failure face interpolates the raw fault
+code — `stringResource(R.string.quota_reset_error) + " · " + err`
+(CodingPlanQuotaSection.kt:456) — the same class as the changes viewer's
+`changes_error` face. The G66 fault→human mapping misses a second production
+surface.
+
+**MOCK_TOOLS receipt (first in-series):** the kernel tool rows render live —
+TaskUpdate ("Task control" · Completed · `{"taskId":"synth-task-1",…}`), Bash
+("Shell"), Edit ("File write") with kind subtitles and chevrons, and Glob+WebSearch
+GROUPED as "Explore · 2 searches" (s14). The seeded markdown row
+`Done ~~temporarily~~ permanently.` renders with REAL strikethrough — the
+markdown-conformance shape receipted in-series (it is mock copy, not an overlap
+defect; checked before rowing).
+
+## P.A2 — gen2 (MOCK_TURN_RUNNING): the stream-watchdog ladder's first in-series receipt
+
+The arm seeds a `TURN_HEADER("running")` row into the snapshot. Live findings:
+
+- **The stream watchdog ENGAGES and self-heals — receipted end-to-end**: after
+  90 s of zero frames on the non-terminal turn, `recovery.streamWatchdog :: no
+  frames for 90045ms — re-kick session=synth-task-1 strikes=1` →
+  `recovery.escalate :: reason=stream watchdog (delivery stalled) attempt=1` →
+  `resyncConversationV4 ok in 26ms` → `gateway.replay :: frames=0 (subscribe ack
+  landed)` → quiet, heartbeats continue (logcat 16:02:35). The F-37-E-era
+  question ("does the watchdog engage") is answered YES at HEAD.
+- **The heal is SILENT**: no banner, no notice, no state change — the UI is
+  pixel-identical before/after (s15 vs s17). Watch-note, not a row: when nothing
+  was lost (frames=0) silence is defensible; the watch is whether a REAL
+  frames>0 stall should surface something.
+- **The turnHeader row kind is decode-only** — the "running" row renders as the
+  bare "── Turn" separator; no running badge, no Stop affordance. NOT a defect:
+  the task machine keys on the `control` block (SessionState.kt:199-222,
+  phase/canStop/stopState — decoded and consumed), which this arm does not set.
+  Recorded in the ledger's parity queue so nobody re-hunts it.
+
+## P.A3 — gen3 (MOCK_ENFORCE_RUN_DELTAS): NEW F-P13-A (P2) — the delta plane is dead on every post-recovery connection
+
+The phone DECLARES the capability at HEAD (`V4Plane.kt:667-675`:
+`capabilities = {workflowRunDeltas: true, workspaceHookReviewUi: true}` — the
+G48 vc52 round). The gate opens; the mock streams. Then the drop:
+
+- 16:14:21.293 `rpc.recv :: bytes=1262 {"type":"data","payload":{…` — the
+  `workflowRun.updated` delta (run patch + actors + nodes, the byte-verified
+  shape) ARRIVES at the wire.
+- 16:14:21.304 `gateway.drop :: session=synth-task-1 kind=ONLINE seq=1..1 (no
+  subscription record)` — **dropped**.
+- 16:14:51.307/322 — the `workflowRun.removed` delta (886 B): arrives → **dropped**
+  the same way.
+- Both while the app was subscribed (`relay.recovered :: subscriptions=2
+  snapshotReplace=true` at 16:13:38.107, relay-6) and on the conversation screen.
+
+**Mechanism (pinned, three links):** (1) the detach path drops the local
+subscription record when the relay dies (`recovery.detached :: session=…
+(unsubscribed)` — the unsubscribe send drops it even though the send itself
+fails on the dead socket; V4Plane.kt:88's contract); (2) the recovery path
+re-materializes the conversation via `relay.recovered … snapshotReplace=true`
+and issues NO `subscribeConversationV4` — the g3d relay log contains zero
+subscribe lines and the app log shows only `helloConversationV4` — so the
+subscribe-ACK epoch stamp never re-lands (`RelayTransport.rotatePlane` copies
+the records, but they were already dropped in (1)); (3) every later
+server-initiated delta frame hits `ConversationGateway.kt:261-274`'s null-epoch
+branch → `gateway.drop … (no subscription record)`. The `gateway.hold` buffering
+for in-flight subscribes never applies (no subscribe is ever in flight). The
+UI stays correct ONLY via the ~8s poll drum (F-P1-D's mechanism — this row
+sharpens WHY the poll matters); on the real desktop, which pushes deltas
+instead of serving polls, updates would silently never arrive.
+
+**Self-heal boundary: process restart only** — a fresh process issues a real
+first subscribe (the vc52-era tested path). Receipted: every generation after
+the first kill-and-swap dropped its deltas; the fresh-process connects did not
+get the chance to prove the happy path because the NAT flake (P.A0.4) ended the
+gen4d relay leg — the delta happy path on a fresh process remains drivable and
+is the first leg for a fix round's pin.
+
+## P.A4 — gen4 (MOCK_OFFPEAK_COMPLETE_MS): partial — the flip, the completed face, the notifier's wire shape, and the process-scoped baseline
+
+- **The flip WORKS and the completed face renders**: the +12s flip applied
+  (no `completeOffPeakRow … not in the seeded list` no-op print), and the
+  Idle-time-tasks card shows the flipped row — "Weekend doc migration ·
+  <flip-time> ago · Continue" (the Continue verb opens the completed row's
+  session; the queued face shows Pause/Cancel as seen on the RUNNING sibling
+  row "Nightly refactor sweep · Pause · Cancel task" — s24/s26).
+- **The notifier's wire shape receipted**: the app calls `off-peak-task.list`
+  per CONNECTED transition (the G63 diff plane) and logs
+  `offpeak.notifyFault :: TransportFailure: fault.mock.unscripted:offPeakTaskList`
+  (WARN, log-only, no user face) on generations where the arm is absent —
+  15:49:04 and 15:59:18 (gen1/gen2).
+- **The notifier baseline is PROCESS-SCOPED — receipted**: with a queued
+  baseline seeded at 16:24:01, the flip firing, then force-stop + relaunch: the
+  fresh process connected, served the completed list, and posted NO
+  notification (dumpsys clean). A completion that lands while the app process
+  is dead NEVER notifies — the user who missed the moment is never told. Watch-note
+  (P4-class); the in-life notification (queued baseline → in-life flip →
+  CONNECTED#2 → diff → notify) was NOT driven: gen4c's 2-frame disconnect died
+  mid-auth (no baseline) and gen4d's 30-frame disconnect fired at 2.5 min and
+  triggered the NAT blackhole (P.A0.4) before the reconnect could land. The
+  recipe is ready for the next pass once debt #12 lands.
+- The automations hub + idle-tasks rows render green under
+  MOCK_AUTOMATIONS+MOCK_OFFPEAK (s24) — re-receipt, unchanged.
+- Incidental re-receipt: the draft-guard dialog ("Discard scheduled task
+  draft?") fired on a STALE draft left by an earlier pass's session — the guard
+  survives process-restarts-through-restore and the Discard path works (s20–s24).
+
+## P.A5 — gen5 (the debt-#1 arm): the answer-with-error chain's first working receipt — store-honest, user-silent
+
+The rig fix (`91ec7ade`) finally makes this leg drivable. Sequence: gen5a armed
+stack seeds the interaction cards (store rows receipted via DB pull:
+`mock-approval-1-mock-p13-gen5a-r4s5t6`, `q-rig-1-mock-p13-gen5a-r4s5t6`); swap
+to gen5b (different nonce, empty slots, the unknown-id arm ON); the approval
+card survives the generation swap and stays answerable in the Approvals inbox
+("Permission — Bash · task Synthetic task · now · echo synthetic · Allow once /
+Deny", s32) — **F-P1-B's stale-answerable shape, live again**; tap Allow once:
+
+- The wire: `sendConversationCommandV4 begin → ok in 37ms` (relay-2, id=16) —
+  the RPC succeeds; the REJECTION rides the envelope
+  (`status:"rejected"`, `reasonCode:"fault.interaction.unknownId"` — the new
+  gate's shape).
+- **The store is HONEST (DB arbiter)**: the interaction row → lifecycle
+  **FAILED**, resolvedAtMs set; the outbox row →
+  `resolveInteraction | FAILED_TERMINAL | ackStatus=rejected | attempts=1`.
+  The typed-refusal branch (the pass-1 GOAL_*_REFUSED plumbing) consumed the
+  rejection correctly — no fake RESOLVED, no silent no-op.
+- **The user face is SILENT**: the card simply clears; the inbox renders the
+  empty face ("Nothing needs you", s33); no "answer not delivered" notice, no
+  retry. The desktop never received the answer and the user is never told.
+  **F-P7-B stamp 2** — the same no-face outcome, now for the typed-rejection
+  trigger (the row's remedy — a visible not-delivered/retry face — covers both
+  triggers; one row stands).
+- **The generation sweep is PARTIAL in both directions — F-P1-B stamp 5**: the
+  approval row survived the swap answerable (the sweep missed it), while its
+  sibling question row got RESOLVED by the same swap (`q-rig-1…gen5a… |
+  RESOLVED | 1` in the same pull). The sweep neither preserves nor expires
+  reliably; the row stands with a sharpened mechanism note.
+
+## P.D — STEP 2 coverage adjudication
+
+- The five undriven arms: driven this pass (gen1–gen5); two legs remain — the
+  in-life off-peak notification (needs mock debt #12's frame-class filter +
+  a stable NAT) and the delta happy path on a fresh process (blocked only by
+  the gen4d NAT flake; one clean relay + fresh process answers it).
+- The pass-12 coverage list: question-card options still F-P3-A-blocked;
+  Take-photo/widget/shade-ACTION/TalkBack standing stops unchanged; the hook
+  card's View + CUA chevron still starved-plane (untouched this pass; the
+  armed stack was consumed by the gen5 legs).
+- The automations editor + context-sheet deep planes: code unchanged since
+  their receipts — skipped per the re-receipt rule (the draft-guard dialog
+  incidentally re-receipted at gen4, P.A4).
+
+## P.E — ledger arithmetic
+
+Open F: **25** (was 24; +F-P13-A) · Open G: **21 + 3 standing** (unchanged; the
+turnHeader note joined the parity queue, not the G table) · Open smalls: **13**
+(was 11; +N-BP-1, N-BP-2) · FIXED: 2 (both rig, unchanged) · Mock debts: 14
+(was 9; #10–#14 new, #1 CLOSED by `91ec7ade`).
+
+### Coverage honesty (what pass 13 did NOT drive)
+
+The delta happy path on a fresh process (NAT flake; one clean relay answers
+it), the in-life off-peak notification (needs debt #12 + stable NAT), the
+reset SUCCESS face (mock debt #10 — the mock never scripts the accept), the
+30-days/All-time range chips (static fixture; chip-select state only), the
+hook card's View/trust + CUA chevron (starved plane, untouched), all standing
+stops (Take-photo happy path, widget add-to-home, shade-ACTION approve, TalkBack
+runtime, Dictate), and re-driving FIXED/REFUTED rows (none changed).
+
+## Pass-13 verification stamp
+
+Pass 13 completed 2026-11-14 ~17:00; 11 relay generations across 6 arm
+configurations (nonces `mock-p13-gen1-c1d2e3` → `mock-p13-gen5b-u7v8w9`,
+launchers `/tmp/p13/relay-g*.sh`); ONE emulator cold-boot mid-pass (16:37,
+the NAT blackhole recovery — P.A0.4) plus the pass-start reuse of the pass-12
+emulator (fresh `adb logcat -T 1` at 15:47 → /tmp/p13/logcat.log and again
+post-boot → /tmp/p13/logcat2.log). Receipts: 33 screenshots
+(`/tmp/p13/shots/s00–s33`), AX dumps `/tmp/p13/w/w0*.xml`, DB pulls
+`/tmp/p13/db/` (p13-g5a.db, g5b-main.db+wal, the sqlite queries receipted in
+P.A5), relay logs `/tmp/p13/relay-g*.log`, build log `/tmp/p13/build.log`
+(mock self-tests 6/6 in TEST-com.zcode.android.tools.mockzcode.MockZCodeUnknownInteractionIdSelfTest).
+APK byte-identical to the series (sha256 `ad449d7d…`, md5 `530ba4ff…`,
+vc53/1.3.2; rebuilt at HEAD with zero app changes). Desktop 3.18.1 / `ec475e6e…`
+unchanged (STEP 0). Rig left: emulator zcode-a16 UP (cold-booted 16:37,
+PIN-less, stay-on, wifi ENABLED, screenshot protection OFF), relay gen5b ALIVE
+(`mock-p13-gen5b-u7v8w9`, UNKNOWN_INTERACTION_IDS + TASKMGMT), app paired +
+CONNECTED on home, logcat → /tmp/p13/logcat2.log. Commits: `91ec7ade`
+fix(mock) + the docs commit. Nothing pushed.
