@@ -3208,3 +3208,147 @@ emulator zcode-a16 UP (PIN-less, stay-on 7 + screen_off_timeout 600000, wifi
 disabled, screenshot protection OFF), relay gen3 ALIVE (light rig + MD_FILE +
 FILECHANGES), app paired + CONNECTED, Live connection ON with the 60-minute window,
 logcat running to /tmp/p11/logcat.log. Nothing pushed.
+
+# Part O — pass 12 (APPENDED 2026-11-14, afternoon): the last backlog leg (the notification LEVEL toggle), the never-driven interaction-behavior chain, the background-work plane, the card-plane approval answer's first working receipt — and the saturation adjudication
+
+> **Pass 12 of the pass-0 series** (solo, canonical discovery prompt). Scope: backlog
+> item 6's last driveable piece (the Notification detail LEVEL selector, named
+> "reached, not driven" at pass 11) + pass 11's skipped push/interaction arms + the
+> F-P6-A ghost census. **ZERO new rows opened** — and every remaining backlog
+> leftover is now either closed, a standing stop, or blocked-by-open-row, so the
+> ledger's stop condition FIRES: the discovery campaign is saturated (see O.E).
+>
+> **Verification stamp:** 2026-11-14 11:18 → ~11:50, GLM-5.3-Flash in ZCode,
+> everything local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…`
+> UNCHANGED — no DELTA. APK byte-identical to the whole series (sha256 `ad449d7d…`,
+> md5 `530ba4ff…`, vc53/1.3.2 — code unchanged since pass 11's `1e649eab`).
+
+## O.A0 — rig learnings (each bites the next pass)
+
+1. **`svc wifi disable` — the canonical boot recipe's step — BREAKS the emulator's
+   NAT on the API 36 image.** With wifi off, `nc 10.0.2.2 18100` = "Network is
+   unreachable": every app connect dies at the socket (`hub.connect :: cold-start
+   connect begin` → `relay.connect ws://10.0.2.2:18100/ws` → honest 10 s TIMEOUT +
+   `hub.connectFailed` WARN). The pass-12 "wedge" (zero relay inbound, force-stop
+   escape "failing") was ENTIRELY this rig fault — the app was exonerated by the
+   reachability probe + the app-side ladder logs BEFORE any stamp was written. The
+   step is API-30-ATD-era; on zcode-a16 do NOT disable wifi (the recipe line is now
+   "skip svc wifi disable on the API 36 AVD").
+2. **`preferences.pb` stores `notificationContentLevel` AND `interactionBehavior`
+   as protobuf STRINGS** (`"CONTENT"`/`"MINIMAL"`, `"queue"`/`"guide"` — see
+   `DataStoreRepositories.kt` toProto/toDomain), NOT enum varints. A varint field
+   scan cannot see them: this pass's first arbiter read ("field 10 = 1 persists")
+   was a wrong-schema guess — the raw-byte string scan settled every question.
+   `liveConnectionTimeoutMinutes` (field 8 varint, pass 11) remains the only
+   varint-valued pref checked so far.
+3. `run-as` must go through `adb shell run-as …` — a bare `adb run-as` is an unknown
+   adb subcommand (the canonical prompt's DB-pull shorthand omits the shell).
+4. **The armed stack's pinned-card composition is NOT stable across conversation
+   re-entries.** First open (s05): question card + hook review card visible with
+   ALL bodies starved, both permission cards invisible. Re-open (s09): the approval
+   card renders its FULL body ("Run a synthetic command? { "command" : "echo
+   synthetic" }") + allowOnce/allowAlways options while the question/hook cards
+   vanish. The F-P3-A starvation is composition-count dependent (the pinned budget
+   is consumed by the number of competing pinned children, not an unconditional
+   clamp) — this narrows the eventual fix shape and any pin harness (host the SAME
+   card under varying pinned-child counts).
+5. The mock's static session-config echo now fights the optimistic follow-up state
+   in TWO places at once: after the Guide tap the queue-strip chips show Guide
+   selected while the config chip reads "… · followup · queue" (debt #4's class,
+   new visibility — on a real desktop the echo would confirm).
+
+## O.A1 — verified working this pass (receipts; bold = never-driven-in-series)
+
+| Surface | Pass-12 receipt |
+| --- | --- |
+| **The Notification detail LEVEL toggle (item 6's last driveable piece)** | The row reads "Notification detail: Minimal" + the honest sub_min copy → tap → INSTANT flip to "Notification detail: Task titles" + the sub_rich copy (the live prefs flow re-composes — the exact contrast with F-P11-B's snapshot row one section over) → tap again → back to Minimal. Disk arbiter (preferences.pb raw bytes): `"CONTENT"` after flip 1, `"MINIMAL"` after flip 2 (2 s and 20 s pulls agree). **NO dialog exists** — pass 11's "Minimal/Standard dialog" naming was imprecise; it is a two-value direct toggle row (SettingsScreen.kt:979-1001) |
+| **The interaction-behavior chain (never driven in-series — G4/AC6 + I2.6's consume face)** | Settings → Conversation section row "While the agent runs: Follow the desktop" → dialog with the full vocabulary ("Follow the desktop" / "Queue follow-up changes" / "Guide the running turn" + Cancel) → pick Queue → the row flips to "While the agent runs: Queue follow-up changes" AND disk persists `"queue"` → on the armed conversation the **Queue/Guide chips APPEAR on the queue strip** (absent in s05 pre-pref, present in s09 post-pref — the `defaultFollowupMode = prefs.interactionBehavior` seed works live) → tap Guide → `sendConversationCommandV4 ok in 37ms` + the `resyncConversationV4` pair (the effort-chip wire shape) |
+| **The Auto-send (auto-drain) toggle — first live drive** (pass 0 only receipted the rendering) | tap → `sendConversationCommandV4` (id=102) → the strip label flips "Queued (2) · paused" → **"Queued (2)"** (the paused suffix drops; the switch renders ON) — the I1 `setAutoDrain` consume path works end-to-end |
+| **The card-plane approval ANSWER — first WORKING receipt** (pass 0's allowOnce taps were silent no-ops, absorbed into the F-P0-B/F-P3-A family; never since) | s09's full-bodied approval card → tap allowOnce → `sendConversationCommandV4` (id=113) → **the store lifecycle completes: `mock-approval-push-1-mock-p12-gen2-b2c3d4` DISPLAYED → RESOLVED (resolvedAt 11:44:27, p12-2.db)** → the card clears from the stack. The pushed approval answered from the CARD (the inbox path was pass 0's working receipt) |
+| **The background-work plane (never driven in-series)** | the conversation strip "1 background task(s) running · View" → View → the "Background work" bottom sheet ("synthetic background build · bash · running" + Cancel + View output) → View output → **`backgroundBashOutputV4` (id=128)** → the live log panel renders "compiling module 1/3 / compiling module 2/3" + "running · /synthetic/ws-one/.zcode/background/work-bash-1.log" — the whole strip → sheet → output chain works |
+| Push arm (45 s post-first-subscribe) | `mock-approval-push-1` created 11:34:57 = 44 s after the conversation's first subscribe (11:34:13 seed), DISPLAYED in the store, visible in the s09 render family while the conversation was open — the arm is healthy at HEAD (mock debt #6's recipe still valid) |
+
+## O.A2 — re-manifestations at HEAD (stamps/status only)
+
+- **F-P3-A (stamp 9 + a shape-narrowing receipt)**: s05 — the question card body
+  zero-height (the crushed "Send answe/rs" button), zero hook rows under "2 pending ·
+  3 hooks", BOTH permission cards invisible under the armed stack; and O.A0.4's
+  variance: the same stack on re-entry renders the approval card's FULL body. The
+  starvation tracks the pinned-child count — a pin harness must vary composition.
+- **F-P8-D (stamp 3)**: the queue panel again always-expanded with no collapse
+  affordance (s05/s09/s12).
+- **F-P6-B (stamp 3)**: zero timeline rows under the armed stack (s05/s09).
+- **F-P6-A (census stamp 4)**: interactions table at HEAD = 4 rows, ZERO
+  generation-orphaned ghosts — the pass-8/9 ghost fixtures died with pass 10's
+  wipe-data, and every DISPLAYED row belongs to the live gen2. The orphan-sweep
+  code is still absent; a fresh install simply has nothing to orphan yet.
+- **F-P1-D (stamp 4)**: the workflowRuns/plans drum ran the whole session — 52
+  `conversationWorkflowRunsV4` polls in the gen2 relay log.
+- F-P0-B: no re-manifestation EVENT this pass — the pushed row stayed DISPLAYED
+  because no post-push snapshot arrived to sweep it (timing, not exoneration).
+- Mock debt #4 note (O.A0.5): the config echo now fights the follow-up chips too.
+
+## O.D — STEP 2 coverage adjudication (latest-first)
+
+- The Notification detail LEVEL selector: **CLOSED — driven working** (O.A1; the
+  pass-11 "dialog" naming corrected: it is a direct two-value toggle row).
+- Pass 11's skipped push/interaction arms: **receipted this pass** (fresh push +
+  the armed-stack stamps).
+- The ghost census: **receipted** (0 orphans at HEAD).
+- Auto-send toggle, interaction-behavior chain, background-work plane,
+  card-plane approval answer: **all first-series receipts, WORKING** (O.A1).
+- Question-card options: still F-P3-A-blocked (standing until that fix).
+- Take-photo happy path / widget add-to-home / shade-ACTION approve / TalkBack
+  runtime: standing stops (unchanged). The automation editor + context-sheet deep
+  planes: code unchanged since their receipts — skipped per the re-receipt rule.
+- The hook card's View + the CUA expand chevron: reachable this pass but left
+  undriven (F-P3-A-starved plane; the hook trust surfaces were receipted pass 2/9).
+
+## O.E — ledger arithmetic + the saturation adjudication
+
+Open F: **24** · Open G: **21 + 3 standing** · Open smalls: **11 (+1 watch +1 rig)**
+— ALL UNCHANGED (zero new rows, zero status changes beyond stamps).
+
+**Backlog: 8/8.** Item 6's last driveable piece (the LEVEL selector) closed this
+pass; every other remaining entry is a standing stop, an F-P3-A-blocked leg, or a
+re-drive-after-fix-rounds item. Pass 12 therefore satisfies the ledger's stop
+condition verbatim — *a full pass that opens ZERO new rows AND a fully ticked
+backlog*: **the discovery campaign is SATURATED.** Every named discovery axis is
+worked to rows or classified: the channel method tables (~41 exact), the i18n
+namespace diff (exhausted at pass 10), the clientHello/runtimeCapabilities bits,
+the renderer route inventory (dead angle), the desktop Mobile-Remote audit (G97),
+the phone self-audit expansion (17 screens + diagnostics), the shipped-content
+catalogs, and eight passes of coverage leftovers. The next step belongs to Ernest:
+build the remediation roadmap from the ledger (24 F + 21 G + 3 standing + 11
+smalls) when he chooses — the fix-round prompt is ready in the ledger's template
+section.
+
+### Coverage honesty (what pass 12 did NOT drive)
+
+The question card's options (F-P3-A-blocked), the hook card's View/trust actions
+and the CUA expand chevron (starved plane; hook trust receipted pass 2/9), "Keep
+waiting" on the approval card (receipted pass 3, code unchanged), a fresh
+agent-message send (receipted passes 1/5/6 — this pass's wires were all
+command-channel verbs), the automation editor, the shade/lockscreen legs and all
+other standing stops, and re-driving FIXED rows (none exist).
+
+## Pass-12 verification stamp
+
+Pass 12 completed 2026-11-14 ~11:50; relay generations gen1 `mock-p12-gen1-a1b2c3`
+(11:22, light rig + MOCK_AUTOMATIONS/MOCK_OFFPEAK — the automations hub green) and
+gen2 `mock-p12-gen2-b2c3d4` (11:32, full armed stack + MOCK_INTERACTION_PUSH_MS=
+45000) — one launcher each (/tmp/p12/relay-g1.sh, relay-g2.sh), ONE emulator cold
+boot (zcode-a16 11:18, boot <1 min; the SystemUI ANR dialog dismissed per the
+M.A0.2 recipe). **Wifi-disable gotcha:** the canonical `svc wifi disable` step was
+reverted ~11:26 (NAT-dead on API 36 — O.A0.1); all legs ran with wifi ENABLED.
+15 screenshots `/tmp/p12/shots/s00–s14`; DB pulls `/tmp/p12/db/p12-1.db(+wal)`,
+`p12-2.db(+wal)`; prefs pulls ×5 (`prefs-after-content.pb`, `prefs-after-minimal.pb`,
+`prefs-queue2.pb` are the receipted ones); full logcat `/tmp/p12/logcat.log`; relay
+logs `/tmp/p12/relay-g1.log`, `relay-g2.log`; AX dumps `/tmp/p12/w0–w24.xml`.
+APK byte-identical to the series (sha256 `ad449d7d…`, md5 `530ba4ff…`, vc53/1.3.2;
+rebuilt at HEAD, zero app changes). Desktop 3.18.1 / `ec475e6e…` unchanged (STEP 0).
+Rig left: emulator zcode-a16 UP (PIN-less, stay-on 7 + screen_off_timeout 600000,
+**wifi ENABLED**, screenshot protection OFF), relay gen2 ALIVE (armed stack,
+nonce `mock-p12-gen2-b2c3d4`), app paired + CONNECTED on the Synthetic task
+conversation (interactionBehavior="queue", autoDrain ON in-session), logcat running
+to /tmp/p12/logcat.log. Nothing pushed.
