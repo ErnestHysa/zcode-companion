@@ -44,14 +44,19 @@ P2-first, exit gates, per-row Accept criteria).
 - Report: `docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md` —
   Parts A–K = passes 0–8. **Latest: pass 8 (Part K, 2026-11-14 ~01:20).**
 - Repo HEAD at last pass: `8f7e93c8` (main, clean). APK of record: sha256 `ad449d7d…` /
-  md5 `530ba4ff…`, versionCode 53 / 1.3.2 (byte-identical across the whole series).
+  md5 `530ba4ff…`, versionCode 53 / 1.3.2 (byte-identical across the whole series;
+  re-verified 2026-11-14 at `app/build/outputs/apk/debug/app-debug.apk` — docs-only
+  commits since the build).
 - Desktop of record: **/Applications/ZCode.app 3.18.1.10376, asar sha256 `ec475e6e…`,
   383,832,025 B** (3.14.3 → 3.18.1 is the audited delta; extraction recipe: re-verify
   digest → `@electron/asar` extract → host index.js sha256 prefix `e31718b8…`).
-- Open rows: **22 F/G + 9 smalls + 2 standing** (counts below per table).
-- Backlog: 2 of 8 items done/partially done (see Backlog).
-- Rig left by pass 8: emulator `zcode-a16` up, gen6 relay :18100, DIRECT mock :18200,
-  app paired to both, Live connection OFF.
+- Open rows: **35 F/G (20 F + 15 G) + 9 smalls + 3 standing** (counts below per table).
+- Backlog: 3 of 8 items touched (1 done, 2 partial — see Backlog).
+- Rig left by pass 8: emulator `zcode-a16` + gen6 relay :18100 + DIRECT mock :18200,
+  app paired to both, Live connection OFF. **AUDITED 2026-11-14 (later): the emulator
+  is DOWN; the two relay java listeners (:18100/:18200) are still alive serving dead
+  sessions — `pkill -f MockRelayMainKt` both before the next gen or gen1 hits
+  BindException.**
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -70,11 +75,11 @@ bodies after 3.14.3 — the census IS the changelog.
 | ID | P | Status | Mechanism (one line) | Fix shape | Depends on | Evidence | Stamps |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | F-P8-A | 2 | OPEN | cold start w/ DIRECT selected: deferred relay `persistEndpoint` rewrites `_endpoint` after resolve — silent abandonment, recovery dropped by `sourceKind` filter, "First sync failed" vs healthy direct, Retry completes it | guard `persistEndpoint` against overwriting a resolved non-relay selection; retry must reconnect the transport the UI shows; pins: Robolectric race harness + "no `hub.switched` without user tap" | — | Part K.A2 | 1 |
-| F-P0-B | 2 | OPEN | rows reconcile sweep STALEs state-plane-delivered PERMISSION interactions (the two reconcilers fight); card renders terminal-but-actionable | ONE LINE: `known.permission != null` exemption at `InteractionCoordinator.kt:697` + pin answering from BOTH planes | — | Part E.A2.4 (root cause) | 6 (passes 2,3,4,5,6,8) |
-| F-P3-A | 2 | OPEN | pinned pending-stack budget starves EVERY interaction card body to zero height (question body, hook items; LazyColumn unbounded main axis kills `weight(1f,fill=false)`) | card-agnostic: raise/scroll the pinned budget or render bodies outside it; pin hosts cards in a live `LazyColumn{item{}}` harness | — | Part D.A2 (first), G.A2.1 (card-agnostic) | 6 (1,2,3,4,5,8) |
+| F-P0-B | 2 | OPEN | rows reconcile sweep STALEs state-plane-delivered PERMISSION interactions (the two reconcilers fight); card renders terminal-but-actionable | ONE LINE: `known.permission != null` exemption at `InteractionCoordinator.kt:697` + pin answering from BOTH planes | — | Part E.A2.4 (root cause) | 6 stamps (passes 3,4,5,6,7,8 — pass 7 was the report's "5th re-manifestation"; pass 2 was the root-cause pin, not a stamp) |
+| F-P3-A | 2 | OPEN | pinned pending-stack budget starves EVERY interaction card body to zero height (question body, hook items; LazyColumn unbounded main axis kills `weight(1f,fill=false)`) | card-agnostic: raise/scroll the pinned budget or render bodies outside it; pin hosts cards in a live `LazyColumn{item{}}` harness | — | Part D.A2 (first), G.A2.1 (card-agnostic) | 7 (passes 1,2,3,4,5,6,8 — pass 6 was the report's "5th re-manifestation") |
 | F-P8-C | 2 | OPEN | conversation timeline cannot be DRAG-scrolled at HEAD (any conversation; only taps work; AX scrollable=true; strip tap + find-jump still work) — mechanism open (unbounded LazyColumn measurement or gesture claim) | live-shape Compose harness to hunt the mechanism; restore drag-scroll | — | Part K.A2 | 1 |
 | F-P8-E | 2 | OPEN | stick-to-bottom follow has NO user-scroll release — every row/streaming change re-clamps to bottom ≤7 s (`followBottom` cleared only by find-jump) | `followBottom=false` on user drag leaving `atBottom` + latched jump-to-latest FAB; fix WITH F-P8-C | F-P8-C | Part K.A2 | 1 |
-| F-P6-A | 2 | OPEN | permission ghost-split: store keeps DISPLAYED rows the card plane dropped (F-P0-B) AND generation-orphaned ghosts accumulate monotonically (4 ghosts / 26 h; broker posts shade notifications with NO answer surface) | card half = F-P0-B fix; store half = resolve generation-orphaned interactions in a reconcile sweep; ghost fixtures `/tmp/pass8/db/p8-2.db` | F-P0-B (card half) | Part I (headline), K.A3 | 3 (6,7,8) |
+| F-P6-A | 2 | OPEN | permission ghost-split: store keeps DISPLAYED rows the card plane dropped (F-P0-B) AND generation-orphaned ghosts accumulate monotonically (4 ghosts / 26 h; broker posts shade notifications with NO answer surface) | card half = F-P0-B fix; store half = resolve generation-orphaned interactions in a reconcile sweep; ghost fixtures `/tmp/pass8/db/p8-2.db` | F-P0-B (card half) | Part I (headline), K.A3 | 2 (passes 6,8 — pass 7 never re-stamped it) |
 | F-P6-B | 2 | OPEN | with armed stack, timeline renders ZERO rows (pinned budget + expanded queue panel eat the window) | re-balance pinned/timeline budget; queue collapse = F-P8-D | F-P8-D | Part I | 1 (+F-P8-C context) |
 | F-P7-A | 2 | OPEN | Approvals-screen inbox answer strands: `submitFromStore` → RETRYABLE_KEPT (needs a session machine); banner remedy "open the task" unactionable on DIRECT (foreign workspace). Inbox answers FINE over relay (pass 8) — endpoint/machine-context-specific | interaction-scoped submit (shade path proves the shape); validate task row before advising | — | Part J | 2 (7,8) |
 | F-P7-B | 2 | OPEN | shade action answered while connection down → interaction FAILED, no retry/queue/no user face; the COMMON path with Live-connection OFF | queue behind reconnect (inbox RETRYABLE_KEPT semantics) or visible "not delivered" re-post | — | Part J | 1 |
@@ -97,7 +102,19 @@ bodies after 3.14.3 — the census IS the changelog.
 | F-P4-A | 2 | FIXED (rig) | mock push patch structurally excluded its own interaction | `pushPendingPermission` builds from unfiltered list + patch-content pin — commit `2b12fc46`, 37 mock tests green | — | Part G.A2.2, H.A1 | — |
 | N-BK-1 (rig half) | 2 | FIXED (rig) | git fixtures in wrong field vocabulary (blank paths, +0−0, duplicated tabs, oid-vs-hash) | contract vocabulary rewrite — same commit `2b12fc46` | — | Part G.A2.3, H.A1 | — |
 
-**Open F count: 19** (incl. 2 observations) · FIXED: 2 (both rig) · RETRACTED/REFUTED/ABSORBED: 6.
+**Open F count: 20** (18 defects + 2 observations) · FIXED: 2 (both rig) · RETRACTED/REFUTED/ABSORBED: 6.
+
+## Current fix-order (consolidates K.D + the carried rows; supersedes every report fix-order)
+
+1. **F-P8-A** → 2. **F-P0-B** (unblocks F-P6-A's card half) → 3. **F-P8-C + F-P8-E
+   together** (frozen timeline: drag-scroll mechanism hunt first, then the follow
+   release; unblocks the user-row actions leg) → 4. **F-P6-A store half** (ghost sweep;
+   fixtures `/tmp/pass8/db/p8-2.db`) → 5. **F-P8-D** (queue collapse; re-test F-P6-B
+   after) → 6. **F-P3-A** (card-agnostic pinned budget) → 7. **F-P3-B** (wiring-only
+   hydrate) → 8. **F-P3-C** → 9. **F-P7-A / F-P7-B** → 10. **F-P5-A → F-P2-B → F-P0-C
+   → F-P8-B → F-P8-F** → 11. **F-P1-B → F-P1-D** → 12. smalls (N-BM-1 → N-BM-3 →
+   N-BK-1 app half → N-BJ-1 → N-BK-2 → N-BL-1 → N-BM-2 → K-small-1/2) → 13. parity
+   queue per the G table + the opportunistic list.
 
 ## G-rows — desktop-vs-phone gaps (parity queue)
 
@@ -144,7 +161,7 @@ bodies after 3.14.3 — the census IS the changelog.
   authoring depth (read-only by ADR), git WRITE half (stage/commit/push — read-only
   posture), pluginManagement 17 methods, voice-input service.
 
-**Open G count: 15 + 2 standing.**
+**Open G count: 15 + 3 standing** (G60, WATCH-4, settings depth).
 
 ## N-rows — smalls
 
@@ -186,7 +203,8 @@ bodies after 3.14.3 — the census IS the changelog.
   CuaPermission, WindowController, MediaPreview (attribution ⚠), WindowProjectChanges (⚠).
   Method: the pass-5/8 walk-back extractor (`return i(…),{…}` before `create*Service`,
   80 KB look-back); ⚠-marked tables need a different anchor. Everything else is DONE
-  (39+ tables exact across Parts G–K).
+  (~33 tables exact across Parts G–K — 13 from pass 5 + ~20 from pass 8 — plus 2 ⚠ and
+  7 no-table services).
 - [~] **3. Renderer route/screen inventory — CLOSED as a dead angle** (no URL-route
   vocabulary exists: 2,862 lazy chunks, scene/state-driven nav — Part K.B3; do not
   re-hunt). REMAINING: the **i18n namespace diff** (desktop namespaces vs phone
@@ -260,6 +278,14 @@ row. Append a DELTA part to the report + update the ledger. Nothing pushed.
 
 ## History
 
-- 2026-11-14 — ledger created (from Parts A–K, passes 0–8) by the pass-8 review session.
-  19 F open / 2 rig-fixed / 6 closed-by-refutation-or-absorption; 15 G open + 2 standing;
-  9 smalls open; backlog 8 items (2 done/partial).
+- 2026-11-14 — ledger created (from Parts A–K, passes 0–8) by the pass-8 review session,
+  then audited against the repo + machine the same day: all spot-checked code pins
+  verified TRUE (InteractionCoordinator :694-700, ConversationViewModel :71-74/:1291,
+  ZCodeApp :182-196, ConnectionHub :672-685/:1650, MockZCode :1332-1340, PairingViewModel
+  :50-56, V4Plane :1451/:1699-1709, ConversationScreen :453/:1043-1072, WriteComponents
+  :676, FilesScreen :225-237, ConversationPort :318, APK hash ad449d7d/530ba4ff).
+  Corrections this audit: open-F count 19→20 (18+2 obs), open-G standing 2→3 (G60),
+  F-P0-B stamps corrected to passes 3-8 (pass 7 restored, pass 2 reclassified as the
+  root-cause pin), F-P3-A stamps 6→7 (pass 6 restored), F-P6-A stamps 3→2 (pass 7
+  withdrawn), consolidated fix-order section added, emulator-found-down noted in the
+  rig line, backlog 2→3 items touched, "39+ tables" → ~33 exact + 2 ⚠ + 7 no-table.
