@@ -2182,3 +2182,325 @@ extraction `/tmp/p6-asar/` (464 MB). APK at HEAD byte-identical to the series
 (`ec475e6e…`, build `9f7ab4c3`, 2026-11-11). Rig left: my gen7 relay (pid 32806) on
 :18100, the direct mock (pid 36166) on :18200, emulator up (cold-booted 22:31 after
 the Dictate death). Nothing pushed.
+
+# Part K — pass 8 (APPENDED 2026-11-14, past midnight): the endpoint-abandonment root cause, the frozen timeline, the never-driven feature legs — and the channel-table dig
+
+> **Pass 8 of the pass-0 series** (Ernest's recurring "verify everything, dig deeper" ask; ran
+> solo — the coordination file `/tmp/pass-coord-2026-11-13.md` carries the claim row). Two halves:
+> (1) the live rig — six relay generations on :18100 plus the inherited DIRECT mock on :18200,
+> driving the legs every earlier pass left open (the Part-I queue-collapse probe, the pass-7
+> owed LIVE lockscreen approve, terminal keystrokes, + New task, task Archive, automation
+> Pause/Resume, home Search, print completion to an actual PDF file, the mention panel's five
+> tabs, the Sketch canvas, Take photo) — which produced TWO new P2-class app defects with
+> code-level mechanisms (F-P8-A the silent endpoint abandonment; F-P8-C/F-P8-E the frozen
+> timeline + the tail-clamp gate); (2) the REA dig part 8 — desktop digest re-verified
+> byte-identical (`ec475e6e…`) so every pass-0..7 census stands, and the deepening came from
+> extracting the CHANNEL METHOD TABLES no earlier pass had (Bots 34, Feedback 15, ManagedWorktree
+> 14, AppControl 5, the real remote task service 14, ZCodeSession 16, Git 17, the sync ×4,
+> DeviceSyncState/ClientConfig/Skills getSnapshot twins) plus the G93 narrowed residual and two
+> new gap candidates (G94 worktree plane, G95 feedback plane).
+>
+> **Environment of record.** HEAD `8f7e93c8` (main, clean — docs-only since), debug APK
+> byte-identical to the whole series (md5 `530ba4ff…`, sha256 prefix `ad449d7d…`, versionCode
+> 53 / 1.3.2 — installed APK re-pulled and re-hashed at pass start). Emulator `zcode-a16`
+> (Android 16, API 36) warm from pass 7 (booted 22:44 the previous evening; never restarted this
+> pass). Relay generations: gen1 `…-k1a2b3` (full 23-arm, push 15 s, fuse 900 s) → gen2 `…-k2c3d4`
+> (same + off-peak@240 s; its REMOTE_DOWN/MD_FILE arms were LOST to a script bug — appended after
+> the `exec` line — recorded in §K.A0) → gen3 `…-k3e4f5` (arms correctly ordered; the
+> 3-notification shade leg) → gen4 `…-k4g5h6` (approval-only) → gen5 `…-k5i6j7` (push 12 s) →
+> gen6 `…-k6l7m8` (push 25 s) — every receipt nonce-anchored in the pulled DBs. Desktop under
+> audit: `/Applications/ZCode.app` 3.18.1.10376, asar sha256 prefix re-verified `ec475e6e302595fe…`
+> at pass start; extraction reused from pass 7 at `/tmp/p6-asar/x` (host index.js sha256 prefix
+> `e31718b8fa8a7d3f` — identical to pass-4/5's). Screenshots `/tmp/pass8/shots/` (15), DB pulls
+> `/tmp/pass8/db/p8-{1,2}.db(+wal)`, relay logs `/tmp/pass8/relay-gen{1..6}.log`, full logcat
+> `/tmp/pass8/logcat-gen1.log` (~continuous across all six generations; the midnight-rollover
+> awk lesson is in §K.A0).
+>
+> **Verification stamp:** 2026-11-13 23:35 → 2026-11-14 01:20, GLM-5.3-Flash in ZCode (ZCode
+> Companion pass-8 rig), everything local, nothing pushed.
+
+## K.A0 — rig learnings (each will bite the next pass)
+
+1. **Appending env exports AFTER the `exec java` line arms NOTHING** — gen2's
+   `MOCK_REMOTE_DOWN_MS`/`MOCK_MD_FILE` were added with `cat >>` and never reached the process
+   (verified via `ps -E`). Build generation scripts by EDITING before the exec line.
+2. **The midnight rollover breaks string-compared time filters** — `awk '$2>="23:50:21"'`
+   silently excludes every post-midnight line (`"00:03:44" < "23:50:21"` lexicographically). A
+   13-minute window of log lines "disappeared" this way mid-investigation. Filter by grep on
+   connection ids or re-derive windows from the epoch-ms field (field 3 of ZCODE-PAIR lines).
+3. **The app's socket dies ~30 s after screen-off with Live-connection OFF (the default)** —
+   then the background ladder cycles `connect timed out after 10000ms` against a LIVE relay with
+   growing backoff (observed 3+ min without success). Foregrounding via `am start` reconnects in
+   ~2 s. Any leg that needs "the app receives something while locked" must either enable
+   Settings → **Live connection** (the FGS `Live connection active — tap to disconnect`
+   notification receipts, toggle verified live both ways) or foreground-poke first.
+4. **The interaction-push arm is CONVERSATION-SUBSCRIBE-anchored** — gen5/gen6 (armed, app
+   locked, socket alive) delivered NO push because the conversation screen was not resumed
+   (no subscribe → the arm never armed). The arm only fires when the conversation screen's
+   subscribe happens N s before the fire time. Recipe for future push legs: reconnect WITH the
+   conversation open (foreground), lock INSIDE the arming window (fire−lock ≥ ~10 s).
+5. **`rig.py dump` prints only the FIRST 40 labeled nodes** — rows "disappeared" from dumps all
+   pass until this was noticed (the "missing" Live connection rows were at dump-index 60+).
+   For anything past the first screenful, grep the RAW `uiautomator dump /dev/tty` XML.
+6. **`tapc` substring matches bite**: `tapc "Attach"` matched "Not **attach**ed." (tapped the
+   wrong node); `tapc "Retry"` matched the banner TEXT (whose full string contains "Retry").
+   Anchor taps on exact bounds from the raw XML when labels share substrings.
+7. **The persisted ACTIVE endpoint survived a force-stop AND an app-kill across the whole
+   pass** (P3Direct selected at cold start twice — F-P2-A stays refuted for the *selection
+   persistence* claim), but see F-P8-A: what does NOT survive is the *hub's* notion of the
+   active endpoint when a relay pairing also exists.
+
+## K.A1 — verified working this pass (receipts; never-driven-in-series in bold)
+
+| Surface | Pass-8 receipt |
+| --- | --- |
+| Cold start honors the persisted DIRECT selection | force-stop + relaunch with P3Direct selected: `hub.connect :: cold-start connect begin (kind=DIRECT_SERVER)` → `direct.connected` (twice this pass) — selection persistence holds |
+| **The DIRECT degraded face + recovery** | stale long-running direct mock → bootstrap control-request timeouts ×3 (25 s apart) → honest "**First sync failed** / Just paired? …" strip + Retry; after restarting the mock, one Retry → `direct.connected` + `hub.bootstrapApplied tasks=3` — the full degraded→recovery ladder |
+| **New task, end-to-end (first series drive)** | + New task sheet (workspace selector/prompt/model) → typed prompt → Create → `tasks.create :: workspace=/synthetic/ws-one model=default/default` → `hub.createTask :: outcome=Accepted` → the row renders **Running** on home — creation→projection round-trip; then **Archive** from the task-row long-press menu → confirm dialog → `zcode-task.archiveTask ok` + re-list → row gone |
+| **Task-row long-press menu** | Pin / Mark unread / Move to group… / Rename / Archive / Delete — renders and its Archive leg wires (above); surfaced accidentally, driven deliberately |
+| **Automation Pause/Resume verbs (first series drive)** | home row → Pause → `setAutomationEnabled ok in 43ms`, row flips "On · active"→"**Off · active**" and the action becomes **Continue** → Continue → second `setAutomationEnabled` pair — both directions wire-true |
+| **Home search (first series drive)** | Search FAB → query field → "task 3" → the list filters to exactly the matching row live |
+| **Print → PDF completed (pass-0 only opened the spooler)** | Share → Print (PDF) → spooler renders a real 28-page preview ("Page 1 of 28") → Save as PDF → system saver → **`/sdcard/Download/Synthetic task.pdf` (86,860 bytes)** written and pulled to `/tmp/pass8/receipts-synthetic-task.pdf` — the print plane is end-to-end |
+| **The mention panel (first series drive)** | + → Mention a file → composer gets `@` and a **five-tab panel opens (Files / Sessions / Skills / Plugins / Agents)** → typing filters (src/main.rs) → pick → the token lands in the composer → Send → `sendConversationCommandV4 ok in 131ms` |
+| **The Sketch canvas (first series drive)** | + → Sketch → "Sketch to send" canvas → two strokes → Done → chip `sketch-1794616828032.png (6.3 KB)` → **`attachmentBeginV4` → `attachmentCommitV4 ok in 331ms`** — and the pick→begin handoff AUTO-STARTED this time (pass-5's no-op pattern did not recur; the staged chip rendered ✓) |
+| Terminal attach (5th series verification) + the keystroke posture | Attach → `terminal.create ok` + `terminal.attached :: id=term-1`; keystroke attempts in VIEW-ONLY produce **zero `terminal.write` calls** and no input surface in AX — the write-verb-never-sent posture holds; Copy visible output / Detach → `terminal.dispose begin/ok` |
+| **The Approvals inbox ACK over a LIVE relay (2 answers)** | Allow once ×2 → `approvals.answer :: … option=allowOnce` → `sendConversationCommandV4 ok` (747 ms / then instant) → both store rows RESOLVED in the pulled DB — the inbox answers cleanly on the relay (F-P7-A's strand is therefore endpoint/machine-context-specific, not the inbox path per se) |
+| The 3-notification shade leg + AUTO_CANCEL | gen3 push while backgrounded → shade group "ZCode needs your approval" ×2 + "ZCode has a question for you" → tapping a child deep-linked into the app over the swipe keyguard (F-37-B posture re-verified) and AUTO_CANCELLED that record |
+| **The Live-connection FGS face** | Settings → Live connection ON → **`Live connection active — tap to disconnect`** persistent notification + `Background started FGS: Allowed … com.zcode.android.app` in the system log; toggle verified OFF again at pass end (the setting's own "turn off when done" advice respected) |
+| Context sheet full render (re-verified at HEAD) | Task tokens · 184320; Status · 4m58s · Iteration 3 · 1 background; goal + iteration verdicts; Todos 1/2; Workflow runs; Plans 1/3; git strip |
+| Git sheet (re-verified at HEAD) | read-only badge; branch block with per-file +42−0/+3−7; Changes Unstaged (2) with real paths; **Checkpoints honest empty state + the Snapshot tab serving `ckpt-1`** with "Snapshots created elsewhere aren't listed here" |
+| Queue deltas live-drain | the two seeded queue rows vanished live under `MOCK_RUN_REMOVE_MS=30000` (delta-driven removal round-trip) |
+| Robustness | 0 FATAL / 0 ANR across six relay generations, ~15 reconnects (relay kills, foreground/background churn, the wifi toggle), the print/camera/mention/sketch flows; the ladder converged every time a server came back |
+
+## K.A2 — defects found this pass (NEW ledger rows; order = recommended fix order)
+
+- [ ] **F-P8-A (P2, app) — on a cold start with a DIRECT endpoint selected, the pairing edge
+  SILENTLY abandons the selection to the relay; "First sync failed" then shows against a
+  healthy direct server, and the recovery Retry completes the abandonment.** The full chain,
+  receipted line-by-line and pinned in code: (a) cold start seeds the relay (`start()` :494),
+  `resolveActiveEndpoint()` (:543-571) flips to the persisted P3Direct and connects —
+  `cold-start connect begin (kind=DIRECT_SERVER)`, `direct.connected` ✔; (b) the
+  `LaunchedEffect(paired)` pairing edge (ZCodeApp.kt:182-196) runs `onPairingCompleted()` on
+  the pairing waypoint; with `current == relay-seed` (the resolve race) it takes the same-id
+  branch and launches `refreshRegistry(); persistEndpoint(relayDescriptor)` ASYNC
+  (ConnectionHub.kt:672-685) — **that deferred `persistEndpoint` lands AFTER the resolve and
+  rewrites `_endpoint.value` back to the RELAY (:1650) with no log at all**; (c) every hub
+  decision now uses the wrong active kind: the direct transport's own recovery (a fresh
+  `direct-2` `direct.recovered` after I restarted the stale mock) is INVISIBLY DROPPED by the
+  `sourceKind != activeKind()` filter in `onActiveState` (:598) — no `hub.phase DIRECT →
+  CONNECTED` line exists; the first-sync refresh bootstraps the never-connected RELAY transport
+  (`takeInConnectBootstrap` cast fails → `transport.bootstrap()`) whose control requests time
+  out 3×25 s → `hub.bootstrapFailed` → the "First sync failed" strip — against a direct server
+  that is CONNECTED; (d) the user taps the strip's Retry → `hub.retry()` (:690) sees
+  `activeKind()==RELAY_ZAI` and runs `connect()` → `cold-start connect begin (kind=RELAY_ZAI)`
+  → MockBook becomes the Active endpoint. Net: the §11.6 multi-endpoint feature silently
+  discards the user's selection on every cold start where a relay pairing coexists with a
+  DIRECT selection — F-P2-A's pass-2/3 pin named the *switchTo* leg (which logs
+  `hub.switched`); **this leg logs NOTHING** (no `hub.switched`, no `hub.unpaired` between
+  23:44:13 and 23:46:26 in the pulled log — the silent-flip window is empty by grep). Fix
+  shape: `persistEndpoint` must not assign `_endpoint.value` when the resolved selection
+  differs (guard `descriptor.id == _endpoint.value?.endpointId?.raw || resolve not yet run`),
+  and/or the retry path must reconnect the transport the UI shows. Pins: recreate the race in a
+  Robolectric harness (seed relay → persist DIRECT → assert `_endpoint` stays DIRECT after the
+  pairing edge settles); assert `hub.switched kind=RELAY_ZAI` never logs without a user
+  endpoint tap. (The zombie direct socket is the user-visible battery/resource half: a second
+  live ws to a desktop the hub believes inactive.)
+- [ ] **F-P8-B (P3, app) — switching to an endpoint whose transport is already CONNECTED
+  throws `IllegalStateException: connect() is the first-connection path; use recover()
+  (state=CONNECTED)`** (`hub.directConnectFailed` WARN, receipted live when I tapped P3Direct
+  while its transport held the recovery connection). The switch converges (the transport stays,
+  `hub.switched` logs) but the state machine treats an adopted-connection switch as a
+  cold-start; fix = `connectDirect()` should call `recover()` (or no-op) when
+  `state==CONNECTED` on the same endpoint.
+- [ ] **F-P8-C (P2, app) — the conversation timeline cannot be DRAG-SCROLLED at HEAD, on any
+  conversation, portrait included; only taps work.** Receipts: five swipe attempts across two
+  conversations (armed stack AND strip-free task 3), byte-identical screencaps at +0.2 s/+1 s/
+  +6 s (all three 182,225 B), row bounds `[121,1357]` unchanged across every swipe, AX reports
+  `conversation_list` scrollable=true bounds `[0,1357][1080,1705]`; meanwhile the load-earlier
+  STRIP tap pages fine (320→370), the find-jump repositions, and the CONTEXT SHEET scrolls
+  freely — the list plane is alive, drags never reach it. This retro-explains the series'
+  history: every successful older-row leg since pass 3 used the strip or the light rig; pass-7
+  "scrolled into the queue panel" was this same death. Mechanism open (fix-round item):
+  candidates are an unbounded-height measurement of the LazyColumn in the current
+  pinned-budget/StripBudget layout chain (which would disable virtualized scrolling while
+  AX keeps the semantic) or an upstream gesture claim; needs a Compose test harness hosting
+  the live ConversationScreen shape. Blocks the user-row long-press actions leg (Edit /
+  Ask in a side session / Share selection — still undriven in the series).
+- [ ] **F-P8-D (P3, app) — the queue panel has NO collapse affordance, and its header is
+  half-occluded by the sticky load-earlier strip.** Part I's expected remedy for F-P6-B
+  ("collapsing the queue panel MUST be verified next pass") does not exist:
+  `QueueStrip` (WriteComponents.kt:676+) renders the header row (`Queued (N) · paused` +
+  the Auto-send toggleable) then ALL items always-expanded — there is no collapsed state in
+  the composable (the vc49 "all panel headers are two-way toggles" contract covered the
+  session-bar sheets, not this strip; the desktop's ConversationQueuePanel HAS a collapse).
+  Screenshot receipt: the `Queued (2) · paused` text renders top-clipped under the strip
+  band. Fix: add the two-way header toggle (desktop parity) + fix the strip/header overlap.
+- [ ] **F-P8-E (P2, app) — the stick-to-bottom follow has NO user-scroll release; every row or
+  streaming change re-clamps the viewport to the true bottom.** `followBottom` is cleared only
+  by the find-jump (ConversationScreen.kt:1045); `LaunchedEffect(followKey)` (:1061-1072)
+  re-runs `scrollToItem(bottom)` whenever `rows.size`/last rowId/last-row streaming length
+  changes — with `MOCK_RUN_DELTA_MS=7000` (or any real streaming turn) a reader who swipes up
+  is yanked back within ≤7 s, and the jump-to-latest FAB (`visible = !followBottom ||
+  !atBottom`) can never latch. The unread counter + `atBottom` pieces exist (:1073-1087); the
+  missing piece is `followBottom = false` on a user drag leaving `atBottom`. Fix together with
+  F-P8-C (the gestures must first reach the list).
+- [ ] **F-P8-F (P3, app+rig) — Take photo fires the correct `ACTION_IMAGE_CAPTURE` (with the
+  clip URI; `result code=0`) but the API-36 image's camera2 activity denies/never renders
+  (`Permission Denial: starting Intent … CaptureActivity` + `mCurrentFocus` stays
+  MainActivity) and the app surfaces NOTHING.** Partially rig (the emulator camera is broken),
+  but the app-side half is real: an intent-launch failure has no typed honest face anywhere in
+  the attachment flow. Sibling of F-P0-C's silent-blank family; hardening row.
+- [ ] **Small (P4, app) — the checkpoint empty state says "create one before risky changes"
+  with NO create affordance anywhere.** Git sheet → Checkpoints tab renders the honest empty
+  text and the Snapshot tab serves `ckpt-1`; the `gitCheckpointService.createCheckpoint` verb
+  is unconsumed (pass-5's B1 wording implied a phone create path — there is none). Either wire
+  the create verb behind a button or reword the empty state.
+- [ ] **Small (P4, app) — "First sync failed" renders alongside CACHED task rows** (the home
+  showed the three seeded tasks while the strip claimed the first fetch never completed —
+  `lastRefreshAtMs==null` is true whenever THIS process hasn't refreshed, cached projection
+  or not). Wording/state nit in the same strip family.
+- [ ] **Small (P4, observation) — a one-off terminal-screen route pop**: one tap in the
+  terminal content area popped navigation to the conversation (`nav.screen
+  route=conversation/{taskId}` at 00:15:52 with no back log); NOT reproduced on the retry
+  (the same tap two minutes later stayed on the terminal). Recorded so the next pass watches
+  for it rather than chases it.
+
+## K.A3 — re-manifestations and refutations at HEAD (stamps, no row changes)
+
+- **F-P0-B / F-P3-A family**: the hook-review card again renders "2 pending · 3 hooks" +
+  "Trust 0 selected hook(s)" with ZERO item rows (shots 02/03/14); the one-line
+  `known.permission != null` exemption remains the card-plane blocker.
+- **F-P6-A store half — now 4 ghosts across ~26 h**: the pulled DB (`db/p8-2.db`) holds
+  unresolved `q-rig-1-mock-p0-gen4-7f8a9b` (pass 0), `q-rig-1-mock-p2-gen3-c6d8e0` AND
+  `mock-approval-1-mock-p2-gen3-c6d8e0` (pass 2 — the same 26-hour ghost Part I recorded),
+  and this pass's own `mock-approval-1-mock-p8-gen1-k1a2b3` (its remote fuse fired ~50 min
+  before the pull) — all DISPLAYED/REQUESTED with live answer buttons in the inbox. Ghost
+  accumulation is monotonic across generations; nothing closes them. 65 total interaction rows.
+- **N-BM-1**: the strip's total stayed stale across a page load ("showing latest 370 of 339",
+  then the prefetch auto-load produced "**420 of 339**" — the §19.2 prefetch itself WORKS,
+  receipted en passant).
+- **N-BJ-1**: the seeded 1×1 red attachment renders as an unbounded ~300×220dp red block
+  (shot 13).
+- **F-P1-D**: the open conversation's ~8 s `conversationWorkflowRunsV4`/`conversationPlansV4`
+  polling drum re-measured on gen6 (ids 12→21 continuous while backgrounded-idle).
+- **F-P2-A selection persistence**: re-stamped (twice this pass) — but see F-P8-A: persistence
+  is real; what breaks is the hub's in-memory adoption, which is worse and was invisible to
+  the pass-7 test because that test rebooted into a RELAY selection.
+- **The lockscreen-approve-over-LIVE-connection leg (pass-7's owed item) — UNDRIVEN, with the
+  blockers now fully diagnosed** (all three recorded in §K.A0.3/4): foreground-withhold,
+  subscribe-anchored push arming, and the default-off live window. Not an app defect; the leg
+  needs the gen-recipe (Live connection ON + conversation open at reconnect + lock inside the
+  arming window) written in §K.A0.
+
+## K.B — the REA dig, part 8: the channel method tables (digest unchanged `ec475e6e…`)
+
+Method receipts: asar sha256 re-verified byte-identical at pass start; all extraction shell-side
+on the pass-7 extraction (`/tmp/p6-asar/x`, host index.js sha256 prefix `e31718b8fa8a7d3f` —
+identical to pass-4/5's); extractor = the pass-5 walk-back (`return i(...),{…}` before each
+`create*Service` marker) hardened with a 80 KB look-back window (`/tmp/pass8` inline scripts).
+**Attribution caveat**: the walk-back can grab a NEIGHBOR's table when a service's real table
+is built dynamically — below, tables whose method names self-identify are marked ✓; misattributed
+grabs are marked ⚠ and the service stays open.
+
+### B1. Tables extracted this pass (new beyond pass-5's twelve)
+
+| Service / factory | Table (exact) | Phone today | Verdict |
+| --- | --- | --- | --- |
+| **ManagedWorktree** ✓ (14) | startNewTask, forkToWorktree, retryCreation, continueWithoutWorktree, dismissCreation, listCreations, onDidChangeCreations, onDidSettleCreation, listWorktrees, removeWorktree, pruneWorktrees, listStartRefs, isWorktreeAvailable, supportsWorktreeCwd | read-only G53 twin only (`getWorkspaceRepositoryInfo → main-tree\|linked-worktree`) + the raw `worktreeCreated` marker face; zero consume of the creation/fork flow | **NEW GAP G94 (P3)** — the desktop's whole worktree-creation/fork plane (start-a-task-in-a-worktree) has no phone counterpart, not even read-only state (listCreations/onDidSettleCreation would be the minimum face) |
+| **Feedback** ✓ (15) | create, cancelCreate, list, get, comment, uploadAttachment, uploadAttachmentWithProgress, cancelUpload, onDynamicUploadProgress, uploadAttachmentData, attachLogsFromExport, getDeviceSnapshot, prepareCompactLogArchive, cleanupPreparedLogArchive, revealLogArchive | no feedback surface found in the settings/About walk (Licenses / updates / What's new only) | **NEW GAP G95 (P4)** — closes pass-4's "desktop-side service never matched" flag: the desktop runs a full support-intake plane INCLUDING device-snapshot + log-archive attach; the phone's diagnostics export could feed it |
+| **ZCodeSession** ✓ (16) | initializeWorkspace, getWorkspaceRuntimeIdentity, readWorkspacePresentation, createSession, resumeSession, listSessions, readSession, readSessionMessages, readSessionEvents, promoteDeferredDraftSession, closeSession, closeDeferredDraftSession, setModel, setThoughtLevel, setMode, respondProviderRuntimeHeaders | consumes setModel/setThoughtLevel/setMode + presentation; **`readSessionMessages` is ALREADY consumed** (ConversationPort.kt:318 — find-in-conversation + TrajectorySheet ride it) | two notes: **(a) F-P3-B's fix surface EXISTS** — the openRun transcript hydrate can call the already-wired `readSessionMessages`; (b) `promoteDeferredDraftSession`/`closeDeferredDraftSession` are the desktop-side twin of the phone's local draft plane — consume/no-action decision queued |
+| **the real remote task service** ✓ (14, extracted at the `createAttachmentService` marker — the bundler inlined the task controller beneath it) | listTaskList, previewArchivedTaskDeletion, permanentlyDeleteArchivedTask, getTaskMeta, deleteArchivedTasks, deleteArchivedTask, mutateTask, subscribeControllerV4, resyncControllerV4, unsubscribeControllerV4, onDynamicControllerFrame, onDynamicTaskUnreadSignal, onDynamicTasksRemovedSignal, dispose | the phone's task plane rides listGroupedTaskViewStructure + archiveTask; unread tracking is phone-local (pass-2's #6) | the **archived-task DELETE verbs** (preview + permanent) and the **controller V4 subscribe family** are the protocol-exact spec behind the phone's auto-archive plane (G39) and the unread-badge small — inventory row |
+| **Bots** ✓ (34) | syncAppRuntimePreferences, getStatus, getConfig, listWorkspaceRefs, getUserConfigOptions, beginFeishuRegistration, pollFeishuRegistration, beginWeixinRegistration, pollWeixinRegistration, saveConfig, listBots, saveBot, removeBotSecret, deleteBot, testBot, createBindCode, getGroupMemberNames, validateTopicResource, readTopicResource, getTopicDetails, retryTopicPreparation, replyToChannel, getBotStates, reconcileGroupResult, resendGroupResult, setGroupEnabled, retryPrivateDelivery, resetBotState, watchAutomationRun, handleInboundMessage, handleProviderCallback, handleProviderCallbackResponse, disposeAll, disposeAllAndWait | read-only listBots viewer (2 rows) | depth note only — the bots plane is one of the desktop's largest (feishu/weixin registration flows, topic resources, delivery retry machinery); phone stays read-only by the ADR boundary |
+| **Git** ✓ (17) | invalidate, resolveRepository, getWorkspaceRepositoryInfo, getStatus, getIgnoredPaths, listLocalBranches, getCommitGraph, getDiff, getBranchComparison, switchBranch, createBranchAndSwitch, stage, unstage, discard, commit, push, getIdentity | ~9 read verbs + the vc33 bridge pair | the WRITE half (stage/unstage/discard/commit/push) is remote-servable and phone-absent BY DESIGN (read-only git posture); recorded so a future "commit from the phone" ask starts from this exact surface |
+| sync family ✓ ×4 (SettingsSync / McpSync / PluginSync / SkillSync / UserConfigSync — 5 each) | listSyncItems, getSyncContentHashes, checkSyncWriteAccess, exportSyncItems, importSyncItems | 0 | NO-ACTION (desktop-credential/sync machinery; the pass-2 no-port list holds) — now with exact tables |
+| **AppControl** (5) | createSession, sendToSession, interruptSession, renameSession, forkSession | 0 | desktop-internal session-control plane (the CUA helper's driver) — NO-ACTION family, recorded so it is never "ported" |
+| **CuaPipSession** ✓ (4) | resolveMcpServers, restart, restartAfterPermissionGrant, reconcileRecoveredHelper | 0 (the phone has the typed CUA permission card, G64) | the PiP helper lifecycle — NO-ACTION |
+| getSnapshot twins | DeviceSyncState.getSnapshot (1 — the V2 device-sync snapshot getter), ClientConfig.getSnapshot (1), Skills.getSnapshot (1) | 0 / 0 / skills listBots-style viewer | G83's one-verb pattern is a FAMILY; DeviceSyncState.getSnapshot is the read twin of the G93 V2 plane |
+| WindowProjectChanges (2): draw, healthy | ⚠ possible neighbor grab | 0 | unresolved — tiny either way |
+| FileWatcher / OAuth (4 each): watch, unwatch, disposeAll, onDynamicChange | ✓ shape | 0 | NO-ACTION (file watcher is desktop-internal; OAuth is credential machinery) |
+| MediaPreview (5): allow, allows, allowsUrl, accept, readMedia | ⚠ | partial (readMediaPreview per pass-5) | unresolved attribution |
+| ModelSelection / ProviderSettings / SourceServerWorkspace / ZCodeTask / ConversationShare / CuaPermission / WindowController | NO TABLE via this anchor | — | remain open (tables built dynamically / channel-name-registered); pass-5's mock-seam matrix stays the contract source for those |
+
+### B2. G93 residual — narrowed
+
+The mobile-push dispatcher keys are re-verified and NARROWED: payload = `{event_id, session_id,
+run_id, kind, state}` (+ `workspace_id:session_id` runs-registry key, cap 4096;
+`desktop_platform` stamped from `process.platform`; eligibility gates in order
+`eligibility_unavailable → run_owner_mismatch → duplicate → transport_unavailable`; the report
+endpoint POSTs `/api/v1/remote/notification/events` with a Bearer JWT from the device-token
+exchange). The `kind`/`state` ENUM VALUES are produced in the agent process (zcode.cjs), not in
+any app bundle — the residual stands but is now scoped to one producer file family.
+
+### B3. Renderer route inventory — closed as a dead angle
+
+The desktop renderer has NO URL-route vocabulary to census: 2,862 lazy chunks, scene/state-driven
+navigation (no `path:"/…"` table, no sceneId strings). The phone-vs-desktop surface parity stays
+anchored on the service/channel tables (B1) — recorded so no future pass burns time hunting for
+a route manifest that does not exist.
+
+### B4. Census corrections this pass makes to earlier rows
+
+- Pass-4's G.B1 "Feedback — desktop-side service never matched" → **matched** (G95 above).
+- Pass-5's B1 "gitCheckpointService: create + the rewind command plane" → the phone has **NO
+  create surface** (K.A2 small); the verb is unconsumed.
+- Pass-2's #9 (zcodeSessionService.createSession "workspace lifecycle") → the full 16-method
+  table confirms it and adds the draft-promotion pair.
+
+## K.C — where the phone is BETTER than the desktop (new receipts this pass)
+
+- **The print plane completes** — 28 rendered pages → a real PDF on disk in three taps; the
+  desktop census has no print-to-file face to compare (its share plane is link/import-centric,
+  G86).
+- **The Sketch canvas → uploaded PNG in one flow** (draw → Done → begin/chunk/commit, 6.3 KB
+  chip) — the desktop's sketch entry was never census'd as an end-to-end wire flow.
+- **The Live-connection FGS** gives the user a visible, tappable socket-lifetime control
+  ("Live connection active — tap to disconnect") — the desktop has no equivalent
+  connection-lifetime indicator in the census.
+- The task-row long-press menu (Pin/unread/Move/Rename/Archive/Delete with a confirm gate) —
+  desktop task rows carry no such local management menu in the census.
+- 0 FATAL / 0 ANR across six hostile relay generations and ~15 reconnects.
+
+## K.D — fix-order recommendation (supersedes J.4)
+
+1. **F-P8-A** — the silent endpoint abandonment (the deferred relay `persistEndpoint` race);
+   this is the true root of the F-P2 class and it poisons every cold start for multi-endpoint
+   users. Pins: the Robolectric race harness + the "no hub.switched without a user tap" assert.
+2. **F-P0-B** (unchanged — the `known.permission != null` exemption; 6th stamp this pass; also
+   F-P6-A's card half).
+3. **F-P8-C + F-P8-E together** — the frozen timeline: first restore drag-scroll (mechanism
+   hunt in a live-shape Compose harness), then wire the scroll→`followBottom=false` release +
+   a latched jump-to-latest. Blocks the user-row actions leg.
+4. **F-P6-A store half** — the ghost sweep (4 ghosts, 26 h, monotonic; fixtures in
+   `/tmp/pass8/db/p8-2.db`).
+5. **F-P8-D** — the queue-panel collapse affordance + the strip/header overlap.
+6. **F-P3-B** — the openRun hydrate; the verb (`readSessionMessages`) is already consumed
+   elsewhere in the same app (K.B1) — the diff is wiring only.
+7. **F-P7-A/B** (unchanged) → **F-P8-B** (the switch-on-connected recover) → **F-P8-F** (the
+   intent-launch face) → the three K.A2 smalls.
+8. **Parity queue additions**: **G94** (worktree plane — inventory the listCreations/
+   onDidSettleCreation shapes first) and **G95** (feedback plane — the phone's diagnostics
+   export could ride attachLogsFromExport) join G89/G90/G91/G92; the archived-task delete
+   verbs + controller-V4 signals inventory row; the draft-promotion consume/no-action
+   decision.
+
+### Coverage honesty (what pass 8 did NOT drive)
+
+The lockscreen-approve-over-LIVE-connection leg (blockers diagnosed, recipe in §K.A0 — third
+pass owing it), the user-row long-press ACTIONS (blocked by F-P8-C's frozen timeline), the
+question card's options once the F-P3-A body fix lands, MOCK_REMOTE_DOWN_MS and MOCK_MD_FILE
+(scripted but never armed — gen2's append-after-exec bug; both arms remain undriven in the
+series), the Sessions/Skills/Plugins/Agents tabs of the mention panel (Files only), the Take
+photo happy path (impossible on this image), the widget add-to-home (standing stop), and
+Themes/locale (receipts stand from passes 4-5).
+
+## Pass-8 verification stamp
+
+Pass 8 completed 2026-11-14 ~01:20; SIX relay generations (gen1-gen6, nonces k1a2b3 → k6l7m8)
++ the inherited DIRECT mock (:18200, restarted once after the stale-server bootstrap timeouts);
+15 screenshots `/tmp/pass8/shots/`; DB pulls `/tmp/pass8/db/p8-{1,2}.db(+wal)` (the ghost
+fixtures); relay logs `/tmp/pass8/relay-gen{1..6}.log`; full-session logcat
+`/tmp/pass8/logcat-gen1.log`; the print PDF receipt `/tmp/pass8/receipts-synthetic-task.pdf`;
+REA extraction `/tmp/p6-asar/x` (host `e31718b8…`, desktop asar `ec475e6e…` re-verified).
+APK unchanged and re-verified byte-identical at pass start (md5 `530ba4ff…`, vc53/1.3.2). Rig
+left: emulator up, gen6 relay on :18100, the DIRECT mock on :18200, Live connection restored
+OFF, the app paired with both endpoints and connected to the relay. Nothing pushed.
