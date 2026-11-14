@@ -127,12 +127,19 @@ fun main() {
     //   MOCK_DISCONNECT_AFTER_FRAMES=<n>  the FIRST connection's socket closes after n
     //                                     outbound logical frames (the mid-pairing 1006
     //                                     loss that dead-ended pairing pre-F-PAIR2).
+    //   MOCK_DISCONNECT_AFTER_DATA_FRAMES=<n>  (debt #12, pass 14) the same storm
+    //                                     counted in DATA frames only (topic/delta/
+    //                                     observation pushes) — poll/RPC frames never
+    //                                     count, so the disconnect lands mid-LIFE
+    //                                     instead of mid-handshake (=2) or at ~2.5
+    //                                     min of polls (=30).
     System.getenv("MOCK_PAIR_STATUS_PENDING_MS")?.toLongOrNull()?.let { ms ->
         mock.script.initialPairStatus = "pending"
         mock.script.pairStatusMatchAfterMs = ms
     }
     System.getenv("MOCK_ERROR_FIRST_CONTROL")?.let { mock.script.errorFirstControlRequest = it }
     System.getenv("MOCK_DISCONNECT_AFTER_FRAMES")?.toIntOrNull()?.let { mock.script.disconnectAfterFrames = it }
+    System.getenv("MOCK_DISCONNECT_AFTER_DATA_FRAMES")?.toIntOrNull()?.let { mock.script.disconnectAfterDataFrames = it }
     // PART N bulk leg (MOCK_ROWS): a long conversation for the gfxinfo scroll-jank leg.
     System.getenv("MOCK_ROWS")?.toIntOrNull()?.let { n ->
         mock.script.snapshotRowCount = n
@@ -650,7 +657,15 @@ fun main() {
         mock.script.enforceWorkflowRunDeltas = true
         System.getenv("MOCK_RUN_DELTA_MS")?.toLongOrNull()?.let { mock.script.runDeltaUpdateMs = it }
         System.getenv("MOCK_RUN_REMOVE_MS")?.toLongOrNull()?.let { mock.script.runDeltaRemoveMs = it }
-        armWorkflowRunDeltasForTest(mock)
+        // Debt #13 (pass 14): MOCK_RUN_DELTA_ANCHOR=subscribe anchors the schedule at
+        // the FIRST conversation subscribe (the relay-start anchor raced every
+        // reconnect — the deltas fired before the app ever subscribed). Default:
+        // the legacy relay-start anchor.
+        if (System.getenv("MOCK_RUN_DELTA_ANCHOR")?.trim() == "subscribe") {
+            mock.script.runDeltasAnchorSubscribe = true
+        } else {
+            armWorkflowRunDeltasForTest(mock)
+        }
     }
     // G32 (vc51 Phase 4): MOCK_GIT=1 scripts the git-channel read legs so the Git pane
     // reaches the branch sheet — the summary (main, clean, dirty) feeds the header row
@@ -851,15 +866,24 @@ fun main() {
     // restarts the relay after the flip and the fresh CONNECTED delivers the
     // queued→completed transition (first emission seeds, the SECOND notifies).
     System.getenv("MOCK_OFFPEAK_COMPLETE_MS")?.toLongOrNull()?.let { delayMs ->
-        val t = Thread {
-            try {
-                Thread.sleep(delayMs)
-                completeOffPeakRow(mock, "offpeak-rig-1")
-            } catch (_: InterruptedException) { }
+        // Debt #11 (pass 14): MOCK_OFFPEAK_COMPLETE_ANCHOR=first-list arms the flip at
+        // the FIRST `off-peak-task.list` (the G63 notifier's baseline seed) so the
+        // queued→completed transition materializes INSIDE one process life (the
+        // relay-start anchor fired the flip before the app's first CONNECTED).
+        // Default: the legacy relay-start anchor.
+        if (System.getenv("MOCK_OFFPEAK_COMPLETE_ANCHOR")?.trim() == "first-list") {
+            mock.script.offPeakCompleteOnFirstListMs = delayMs
+        } else {
+            val t = Thread {
+                try {
+                    Thread.sleep(delayMs)
+                    completeOffPeakRow(mock, "offpeak-rig-1")
+                } catch (_: InterruptedException) { }
+            }
+            t.isDaemon = true
+            t.name = "mock-offpeak-complete"
+            t.start()
         }
-        t.isDaemon = true
-        t.name = "mock-offpeak-complete"
-        t.start()
     }
     // Pass-29 rig arm: MOCK_USAGE=1 renders the Usage screen with REAL data — the
     // app-usage stat cards, the quota panel (entitlement), the G20 coding-plan
@@ -885,6 +909,15 @@ fun main() {
             System.currentTimeMillis(),
         )
         mock.script.codingPlanUsageSnapshot = codingPlanUsageRigSeed()
+    }
+    // Mock-fidelity debt #10 (pass 14): MOCK_RESET_SUCCESS=1 scripts the G90 reset
+    // happy path — {used:true} on useCodingPlanReset, and every later
+    // getCodingPlanResetStatus serves the CONFIRMED progression (the consumed
+    // opportunity + the usedAt history + the unread cursor), so the phone's post-use
+    // reconciliation lands COMPLETED and the success face renders (pass 13 could
+    // only receipt the typed failure — fault.mock.unscripted:useCodingPlanReset).
+    if (System.getenv("MOCK_RESET_SUCCESS") != null) {
+        mock.script.resetUse = JsonObject(mapOf("used" to JsonPrimitive(true)))
     }
     // Pass-29 rig arm: MOCK_AUTOMATION_RUNS=1 seeds one COMPLETED historical run for
     // auto-rig-1 so runAutomationNow scripts `queued` (instead of fault.mock.unscripted)

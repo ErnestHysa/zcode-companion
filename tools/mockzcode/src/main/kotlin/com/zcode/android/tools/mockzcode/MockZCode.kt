@@ -117,6 +117,13 @@ class MockZCode(
         var corruptFragmentCrc: Boolean = false
         /** Close the socket after N outbound logical frames (disconnect storm driver). */
         var disconnectAfterFrames: Int? = null
+        /**
+         * Mock-fidelity debt #12 (pass 14): the frame-CLASS filter — close the socket
+         * after N outbound DATA frames (topic/delta pushes), ignoring the poll/RPC
+         * traffic that made the unfiltered counter fire mid-handshake (=2) or at
+         * ~2.5 min of life (=30, every poll frame counted).
+         */
+        var disconnectAfterDataFrames: Int? = null
         /** Server-side delay before each outbound frame (latency storm). */
         var perFrameLatencyMs: Long = 0
         /** Emit v4/connection/flow with this state right after subscribe. */
@@ -230,6 +237,15 @@ class MockZCode(
         var botsList: JsonObject? = null
         /** Scriptable off-peak tasks (off-peak-task channel list items; null = typed fault). */
         var offPeakTaskList: JsonArray? = null
+        /**
+         * Mock-fidelity debt #11 (pass 14): arm [MOCK_OFFPEAK_COMPLETE_MS] at the FIRST
+         * `off-peak-task.list` (the G63 notifier's baseline seed) instead of relay
+         * start — the relay-start anchor fired the flip BEFORE the app's first
+         * CONNECTED (+12s default landed 5s early), so the queued→completed
+         * transition never materialized across a single process life. Null = the
+         * legacy relay-start anchor.
+         */
+        @Volatile var offPeakCompleteOnFirstListMs: Long? = null
         /** Scriptable plugins list (listPlugins result; null = typed fault). */
         var listPlugins: JsonObject? = null
         /** Scriptable skills reference catalog (getSkillReferenceCatalog result; null = typed fault). */
@@ -251,6 +267,13 @@ class MockZCode(
         var resetOpportunity: JsonObject? = null
         /** Scriptable reset use (useCodingPlanReset result; null = typed fault). */
         var resetUse: JsonObject? = null
+        /** Mock-fidelity debt #10 (pass 14): set when a scripted use succeeds — every
+         *  later getCodingPlanResetStatus then serves the CONFIRMED progression (the
+         *  consumed opportunity + the usedAt history), the phone's reconciliation
+         *  lands COMPLETED, and the success face renders. Null = pre-use status. */
+        @Volatile var codingPlanResetUsedAtMs: Long? = null
+        /** Which window the scripted use consumed (the desktop's FIVE_HOUR | WEEK pair). */
+        @Volatile var codingPlanResetUsedType: String = "FIVE_HOUR"
         /** Pass-29 rig arm (MOCK_USAGE): the G20 coding-plan usage charts
          *  (getCodingPlanUsageSnapshot result; null = typed fault → charts hidden). */
         var codingPlanUsageSnapshot: JsonObject? = null
@@ -465,6 +488,13 @@ class MockZCode(
         /** Scheduled workflowRun.updated/removed push delays (ms) — the rig's scripted stream. */
         @Volatile var runDeltaUpdateMs: Long = 4_000L
         @Volatile var runDeltaRemoveMs: Long = 14_000L
+        /**
+         * Mock-fidelity debt #13 (pass 14): anchor the delta schedule at the FIRST
+         * conversation subscribe instead of relay start — the relay-start anchor raced
+         * every reconnect (the deltas fired before the app ever subscribed). False =
+         * the legacy relay-start anchor.
+         */
+        @Volatile var runDeltasAnchorSubscribe: Boolean = false
 
         // ---------------- Phase 5A (A3.3 + L6.4) workflows ----------------
         /** `listSavedWorkflows` payload (BJ shape); null = unscripted → typed fault (hub hidden). */
@@ -1053,7 +1083,7 @@ class MockZCode(
     @Volatile var logicalFramesSent: Int = 0
         private set
 
-    private fun sendLogicalFrame(bytes: ByteArray) {
+    private fun sendLogicalFrame(bytes: ByteArray, isData: Boolean = false) {
         val ws = terminalSocket ?: return
         logicalFramesSent++
         if (mode == Mode.DIRECT) {
@@ -1061,6 +1091,7 @@ class MockZCode(
             // envelopes, no fragments, no acks (phase10-direct.md §3).
             if (script.perFrameLatencyMs > 0) Thread.sleep(script.perFrameLatencyMs)
             sendBinaryFrame(ws, bytes)
+            if (isData) noteDataFrameSent()?.let { reason -> ws.close(1011, reason) }
             return
         }
         val seq = outSeq.addAndGet(1)
@@ -1094,6 +1125,10 @@ class MockZCode(
             script.disconnectAfterFrames = null
             ws.close(1011, "mock disconnect storm")
         }
+        // Debt #12 (pass 14): the DATA-frame-class arm — close only after N data
+        // pushes; poll/RPC frames never count (the unfiltered counter fired mid-auth
+        // at =2 and at ~2.5 min at =30).
+        if (isData) noteDataFrameSent()?.let { reason -> ws.close(1011, reason) }
     }
 
     /** #228-class fixture: a physical envelope exceeding the 1 MiB budget. */
@@ -1490,7 +1525,7 @@ class MockZCode(
                 RpcValue.Obj(payload),
             ),
         )
-        sendLogicalFrame(bytes)
+        sendLogicalFrame(bytes, isData = true)
     }
 
     /** The byte-verified blocked observation (Accessibility denied). */
@@ -1602,7 +1637,7 @@ class MockZCode(
                     }),
                 )
             )
-            sendLogicalFrame(bytes)
+            sendLogicalFrame(bytes, isData = true)
         }
     }
 
@@ -1643,7 +1678,7 @@ class MockZCode(
                     }),
                 )
             )
-            sendLogicalFrame(bytes)
+            sendLogicalFrame(bytes, isData = true)
         }
     }
 
@@ -1997,7 +2032,7 @@ class MockZCode(
                         }),
                     )
                 )
-                sendLogicalFrame(bytes)
+                sendLogicalFrame(bytes, isData = true)
             }
         }
     }
@@ -2097,6 +2132,81 @@ class MockZCode(
     internal fun subscribeArmsInteractionPushForTest() = armInteractionPush()
 
     internal fun interactionPushArmedForTest(): Boolean = interactionPushArmed.get()
+
+    // ---------------- Mock-fidelity debts #11/#13 (pass 14): the anchored schedules ----------------
+
+    /** Debt #13: once-per-process guard for the subscribe-anchored delta schedule. */
+    private val runDeltasArmed = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    /**
+     * Debt #13 (pass 14): the subscribe-anchored variant of [armWorkflowRunDeltasForTest]'s
+     * schedule — armed from the FIRST conversation subscribe (the gate's
+     * workflowRunDeltasDeclared already reads the clientHello, which precedes every
+     * subscribe) instead of relay start. A no-op unless the anchor is on.
+     */
+    internal fun armWorkflowRunDeltasOnSubscribe() {
+        if (!script.runDeltasAnchorSubscribe || !script.enforceWorkflowRunDeltas) return
+        if (!runDeltasArmed.compareAndSet(false, true)) return
+        val updateMs = script.runDeltaUpdateMs
+        val removeMs = script.runDeltaRemoveMs
+        scope.launch {
+            kotlinx.coroutines.delay(updateMs)
+            pushWorkflowRunUpdatedForTest()
+            kotlinx.coroutines.delay((removeMs - updateMs).coerceAtLeast(500L))
+            pushWorkflowRunRemovedForTest()
+        }
+    }
+
+    /** Debt #13 seam: armed once (the schedule lives in the mock's scope). */
+    internal fun runDeltasArmedForTest(): Boolean = runDeltasArmed.get()
+
+    /** Debt #11: once-per-process guard for the first-list off-peak flip. */
+    private val offPeakCompleteScheduled = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    /**
+     * Debt #11 (pass 14): arm [Script.offPeakCompleteOnFirstListMs] from the FIRST
+     * `off-peak-task.list` — the G63 notifier's baseline seed IS that call, so the
+     * flip can never outrun the baseline inside one process life. A no-op unless
+     * the anchor is set.
+     */
+    private fun scheduleOffPeakCompleteOnFirstList() {
+        val ms = script.offPeakCompleteOnFirstListMs ?: return
+        if (!offPeakCompleteScheduled.compareAndSet(false, true)) return
+        scope.launch {
+            kotlinx.coroutines.delay(ms)
+            completeOffPeakRow(this@MockZCode, "offpeak-rig-1")
+        }
+    }
+
+    /** Debt #11 seam: armed once (the flip lives in the mock's scope). */
+    internal fun offPeakCompleteScheduledForTest(): Boolean = offPeakCompleteScheduled.get()
+
+    /** Off-peak list seam: drive the channel handler directly (the anchored-flip leg). */
+    internal fun offPeakTaskPromiseForTest(id: Int, name: String?, arg: RpcValue?) =
+        handleOffPeakTaskPromise(id, name, arg)
+
+    // ---------------- Mock-fidelity debt #12 (pass 14): the data-frame-class counter ----------------
+
+    /** DATA frames (topic/delta pushes) sent this connection — the class the #12 arm counts. */
+    private val outDataFrames = java.util.concurrent.atomic.AtomicLong(0)
+
+    /**
+     * Debt #12 (pass 14): count one sent DATA frame; consume-and-fire the
+     * [Script.disconnectAfterDataFrames] arm. Returns the close reason when the
+     * limit is reached (null = keep the socket).
+     */
+    internal fun noteDataFrameSent(): String? {
+        val sent = outDataFrames.addAndGet(1)
+        val limit = script.disconnectAfterDataFrames
+        if (limit != null && sent >= limit) {
+            script.disconnectAfterDataFrames = null
+            return "mock disconnect storm (data)"
+        }
+        return null
+    }
+
+    /** Debt #12 seam: the running data-frame count. */
+    internal fun dataFramesSentForTest(): Long = outDataFrames.get()
 
     /** RIG-P2 (N-BD-2b) seams — the handler and the self-test share ONE computation. */
     internal fun listTasksServedForTest(): List<JsonObject> =
@@ -2439,6 +2549,9 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 // RIG-3: the fresh-interaction push schedules on the FIRST subscribe —
                 // the rig app backgrounds within the window and takes the patch off-foreground.
                 armInteractionPush()
+                // Debt #13 (pass 14): the subscribe-anchored delta schedule (a no-op
+                // unless MOCK_RUN_DELTA_ANCHOR=subscribe armed it).
+                armWorkflowRunDeltasOnSubscribe()
                 script.flowStateAfterSubscribe?.let { st ->
                     script.flowStateAfterSubscribe = null
                     // Field-fidelity (2026-09-29): flow frames go ONLY to a registered
@@ -3226,7 +3339,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     RpcValue.Str(text),
                 ),
             )
-            sendLogicalFrame(bytes)
+            sendLogicalFrame(bytes, isData = true)
         }
     }
 
@@ -3239,7 +3352,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     RpcValue.Int(code),
                 ),
             )
-            sendLogicalFrame(bytes)
+            sendLogicalFrame(bytes, isData = true)
         }
     }
 
@@ -4556,6 +4669,10 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
             respondError(id, "fault.mock.unknownMethod:off-peak-task-$name")
             return
         }
+        // Debt #11 (pass 14): the first-list anchor — the G63 notifier's baseline
+        // seed IS this call, so arming here guarantees baseline-before-flip ordering
+        // inside one process life (the relay-start anchor fired 5s before CONNECTED).
+        scheduleOffPeakCompleteOnFirstList()
         val items = script.offPeakTaskList?.let { arr ->
             JsonArray(arr.map { el ->
                 val o = el as? JsonObject ?: return@map el
@@ -4791,11 +4908,24 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
             "getEntitlementSnapshot" -> scriptableObject(id, script.usageEntitlement, "getEntitlementSnapshot")
             "getCodingPlanResetStatus" -> {
                 val queued = synchronized(script.resetStatusQueue) { script.resetStatusQueue.removeFirstOrNull() }
-                scriptableObject(id, queued ?: script.codingPlanResetStatus, "getCodingPlanResetStatus")
+                val base = queued ?: script.codingPlanResetStatus
+                // Debt #10 (pass 14): after a scripted use, every status read serves
+                // the CONFIRMED progression — the phone's post-use reconciliation
+                // polls until usedAt lands, then breaks COMPLETED.
+                scriptableObject(id, base?.let { confirmedResetStatus(it) }, "getCodingPlanResetStatus")
             }
             "requestCodingPlanResetOpportunity" ->
                 scriptableObject(id, script.resetOpportunity, "requestCodingPlanResetOpportunity")
-            "useCodingPlanReset" -> scriptableObject(id, script.resetUse, "useCodingPlanReset")
+            "useCodingPlanReset" -> {
+                if (script.resetUse == null) return scriptableObject(id, null, "useCodingPlanReset")
+                // Debt #10 (pass 14): the scripted SUCCESS stamps the use (which window,
+                // when) so the status reads confirm it — the success half the G90 chain
+                // never had (fault.mock.unscripted receipted pass 13).
+                val params = argAsObject(arg)
+                script.codingPlanResetUsedType = params?.strOrNull("resetType") ?: "FIVE_HOUR"
+                script.codingPlanResetUsedAtMs = System.currentTimeMillis()
+                scriptableObject(id, script.resetUse, "useCodingPlanReset")
+            }
             "getCodingPlanUsageSnapshot" ->
                 scriptableObject(id, script.codingPlanUsageSnapshot, "getCodingPlanUsageSnapshot")
             "markCodingPlanResetHistoryRead" ->
@@ -4803,6 +4933,29 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
             else -> respondError(id, "fault.mock.unknownMethod:usage-stats-${name ?: "?"}")
         }
     }
+
+    /**
+     * Debt #10 (pass 14): the post-use confirmation fold. After a scripted
+     * useCodingPlanReset success, the served status carries the used-type's consumed
+     * opportunity (the array emptied — "no NEW opportunity" keeps the completion
+     * sticky), the usedAt history, and the shared unread cursor — the exact shape
+     * applyResetStatus's completion rule needs (core/ui CodingPlanQuotaResetState).
+     */
+    private fun confirmedResetStatus(base: JsonObject): JsonObject {
+        val usedAt = script.codingPlanResetUsedAtMs ?: return base
+        val week = script.codingPlanResetUsedType == "WEEK"
+        val dropKey = if (week) "availableWeekResets" else "availableFiveHourResets"
+        val histKey = if (week) "latestWeekResetHistory" else "latestFiveHourResetHistory"
+        return JsonObject(base + mapOf(
+            dropKey to JsonArray(emptyList()),
+            histKey to buildJsonObject { put("usedAt", JsonPrimitive(usedAt)) },
+            "hasUnreadHistory" to JsonPrimitive(true),
+        ))
+    }
+
+    /** Debt #10 seam: drive the usage-stats handler directly (the reset legs). */
+    internal fun usageStatsPromiseForTest(id: Int, name: String?, arg: RpcValue?) =
+        handleUsageStatsPromise(id, name, arg)
 
     /** Self-test observability: every promise reply (id, responseTypeId, payload) in send order. */
     private val promiseResponses = ArrayList<Triple<Int, Int, RpcValue>>()
@@ -4941,7 +5094,7 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
                     arg,
                 )
             )
-            sendLogicalFrame(bytes)
+            sendLogicalFrame(bytes, isData = true)
         }
     }
 
