@@ -42,22 +42,24 @@ P2-first, exit gates, per-row Accept criteria).
 ## Campaign state (update every pass)
 
 - Report: `docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md` —
-  Parts A–L = passes 0–9. **Latest: pass 9 (Part L, 2026-11-14 ~03:00).**
-- Repo HEAD at last pass: `8f7e93c8` (main, clean). APK of record: sha256 `ad449d7d…` /
+  Parts A–M = passes 0–10. **Latest: pass 10 (Part M, 2026-11-14 ~05:30).**
+- Repo HEAD at last pass: `e9a8d206` (main, clean). APK of record: sha256 `ad449d7d…` /
   md5 `530ba4ff…`, versionCode 53 / 1.3.2 (byte-identical across the whole series;
-  re-verified at the pass-9 build).
+  re-verified at the pass-10 build).
 - Desktop of record: **/Applications/ZCode.app 3.18.1.10376, asar sha256 `ec475e6e…`,
-  383,832,025 B** (re-verified at pass-9 STEP 0; extraction `/tmp/p6-asar/x` reused,
+  383,832,025 B** (re-verified at pass-10 STEP 0; extraction `/tmp/p6-asar/x` reused,
   host index.js sha256 prefix `e31718b8…`).
-- Open rows: **37 F/G (22 F + 15 G standing/queue incl. new G96/G97) + 9 smalls + 3
-  standing** (counts below per table; the G93 narrowed residual is CLOSED by pass 9).
-- Backlog: 6 of 8 items touched (4 done: 1/4/5/8; 2 partial: 2/6; 1 open: 7 — see Backlog).
-- Rig left by pass 9: emulator `zcode-a16` UP (PIN **1234** set + keyguard ON,
-  `stay_on_while_plugged_in=7` + `screen_off_timeout=600000` set, **Live connection left
-  ON** — one tap in Settings→Notifications to undo), ALL relays KILLED (zero zombies),
-  app paired + connection stale (it will ladder healthy or wedge per F-P9-A).
-  Launchers `/tmp/p9/relay-g*.sh` pass `MOCK_GEN_NONCE` DIRECTLY (the /tmp/p0 relay.sh
-  reads the WRONG name MOCK_GEN_ID and would inject a stale default nonce).
+- Open rows: **23 F (21 defects + 2 obs incl. new F-P10-A) + 21 G (17→21 incl. new
+  G98–G101) + 3 standing + 10 smalls (+1 watch +1 rig)** — counts below per table.
+- Backlog: **7 of 8 items DONE** (1/2/3/4/5/7/8; item 6 rolling with standing stops).
+- Rig left by pass 10: emulator `zcode-a16` UP (PIN-less after wipe-data,
+  `stay_on_while_plugged_in=7` + `screen_off_timeout=600000` set, wifi disabled,
+  **screenshot protection OFF**), relay gen1d ALIVE (light 23-arm + MOCK_OFFPEAK=1),
+  app paired + CONNECTED on the conversation screen, logcat running to
+  /tmp/p10/logcat.log. The AVD's userdata is FRESH (wipe-data this pass) — the PIN and
+  the pass-9-era DB ghosts are gone; pairing data survives restarts but NOT wipes.
+  Launchers `/tmp/p10/relay-g1.sh` (pass MOCK_GEN_NONCE directly); the pairing typing
+  driver is /tmp/p10/type4.py (see M.A0.5).
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -76,11 +78,12 @@ bodies after 3.14.3 — the census IS the changelog.
 | ID | P | Status | Mechanism (one line) | Fix shape | Depends on | Evidence | Stamps |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | F-P8-A | 2 | OPEN | cold start w/ DIRECT selected: deferred relay `persistEndpoint` rewrites `_endpoint` after resolve — silent abandonment, recovery dropped by `sourceKind` filter, "First sync failed" vs healthy direct, Retry completes it | guard `persistEndpoint` against overwriting a resolved non-relay selection; retry must reconnect the transport the UI shows; pins: Robolectric race harness + "no `hub.switched` without user tap" | — | Part K.A2 | 1 (+F-P9-A sibling mechanism) |
-| F-P9-A | 2 | OPEN (NEW pass 9) | relay killed MID-AUTHENTICATION → transport wedges in AUTHENTICATING permanently: zero sockets, zero ladder, zero logs, 8 min receipted; survives foreground/unlock; NO retry face (cached rows suppress the strip); active-endpoint tap = silent no-op; ONLY escape = cross-endpoint switch (away+back) | AUTHENTICATING watchdog (timeout → RECOVERING) + a stuck-face; pins: Robolectric kill-mid-handshake harness + netstat-zero + "no silent state" assert | — | Part L.A2 | 1 |
+| F-P9-A | 2 | OPEN | relay killed MID-AUTHENTICATION → transport wedges in AUTHENTICATING permanently: zero sockets, zero ladder, zero logs, 8 min receipted; survives foreground/unlock; NO retry face (cached rows suppress the strip); active-endpoint tap = silent no-op; ONLY escape = cross-endpoint switch (away+back) | AUTHENTICATING watchdog (timeout → RECOVERING) + a stuck-face; pins: Robolectric kill-mid-handshake harness + netstat-zero + "no silent state" assert | — | Part L.A2 | 2 (pass 10: recurred vs a stale relay — log-silent "Connecting…", foreground poke dead, force-stop escape; M.A3) |
 | F-P9-B | 2 | OPEN (NEW pass 9) | typed disconnected-remote face never renders live: hub logs the error (workspace-bridge-error: remote-disconnected, verbatim errorText) but ConnectionCenter shows the generic offline face — the G67 card (`connection_remote_reconnect`, render condition lastError.messageKey==REMOTE_WORKSPACE_DISCONNECTED, ConnectionCenterScreen.kt:296) NEVER renders → the recovery verb workspace-reconnect-request is UI-unreachable; row snapshot stays stale under the arm | trace hub.connectFailed→lastError dropping the messageKey (SESSION-scope bridge error); pin: live-shape harness asserting the card renders with the arm armed | — | Part L.A2 | 1 |
 | F-P0-B | 2 | OPEN | rows reconcile sweep STALEs state-plane-delivered PERMISSION interactions (the two reconcilers fight); card renders terminal-but-actionable | ONE LINE: `known.permission != null` exemption at `InteractionCoordinator.kt:697` + pin answering from BOTH planes | — | Part E.A2.4 (root cause) | 8 stamps (passes 3–9; pass 9's hook-review zero-rows receipt) |
 | F-P3-A | 2 | OPEN | pinned pending-stack budget starves EVERY interaction card body to zero height (question body, hook items; LazyColumn unbounded main axis kills `weight(1f,fill=false)`) | card-agnostic: raise/scroll the pinned budget or render bodies outside it; pin hosts cards in a live `LazyColumn{item{}}` harness | — | Part D.A2 (first), G.A2.1 (card-agnostic) | 8 (passes 1–9; pass 9's "Send answe/rs" wrap + zero hook rows) |
-| F-P8-C | 2 | OPEN | conversation timeline cannot be DRAG-scrolled at HEAD (any conversation; only taps work; AX scrollable=true; strip tap + find-jump still work) — mechanism open (unbounded LazyColumn measurement or gesture claim) | live-shape Compose harness to hunt the mechanism; restore drag-scroll | — | Part K.A2 | 1 |
+| F-P8-C | 2 | RE-VERIFIED-WORKING (pass 10) | conversation-timeline drag-scroll, reported dead at pass 8 HEAD, NO LONGER REPRODUCES at e9a8d206 — drag receipted 3 directions incl. reverse (Part M.A1); mechanism was open, no fix commit identified; F-P8-E still undriven (needs a streaming arm) | keep the row until F-P8-E is driven; if a fix-round pin is wanted, pin the drag first | — | Part K.A2 (dead), M.A1 (working) | 1 + pass-10 re-verification |
+| F-P10-A | 3 | OPEN (NEW pass 10) | the Commit sheet's Commit action SILENTLY no-ops when hub.activeWorkspaceTarget() resolves null: dialog closes, zero wire verbs (`git.commit` never sent), zero log lines (`gitport.commit` warn never fires), zero user face — the reads in the SAME sheet resolve elsewhere (git.getChanges ok) | resolve the write target the way the reads do (session-scoped) + a typed refusal face on the null-target path (`writeOp` :209 `?: return null` is the silent exit; the onCommit `if (hash != null) … else nothing` at GitScreen.kt:467-478 has no else) | — | Part M.A2 | 1 |
 | F-P8-E | 2 | OPEN | stick-to-bottom follow has NO user-scroll release — every row/streaming change re-clamps to bottom ≤7 s (`followBottom` cleared only by find-jump) | `followBottom=false` on user drag leaving `atBottom` + latched jump-to-latest FAB; fix WITH F-P8-C | F-P8-C | Part K.A2 | 1 |
 | F-P6-A | 2 | OPEN | permission ghost-split: store keeps DISPLAYED rows the card plane dropped (F-P0-B) AND generation-orphaned ghosts accumulate monotonically (4 ghosts / 26 h; broker posts shade notifications with NO answer surface) | card half = F-P0-B fix; store half = resolve generation-orphaned interactions in a reconcile sweep; ghost fixtures `/tmp/pass8/db/p8-2.db` + `/tmp/p9/db/p9-4.db` (5 unresolved / 83 rows, oldest 2026-11-12 19:59) | F-P0-B (card half) | Part I (headline), K.A3, L.A3 | 3 (pass 9: the pass-2 question ghost joined its approval) |
 | F-P6-B | 2 | OPEN | with armed stack, timeline renders ZERO rows (pinned budget + expanded queue panel eat the window) | re-balance pinned/timeline budget; queue collapse = F-P8-D | F-P8-D | Part I | 2 (pass 9: again; blocked the MD render) |
@@ -95,7 +98,7 @@ bodies after 3.14.3 — the census IS the changelog.
 | F-P8-D | 3 | OPEN | queue panel has NO collapse affordance (always-expanded; desktop's has one) + header clipped under the sticky strip | two-way header toggle (desktop parity) + strip/header overlap fix | — | Part K.A2 (supersedes Part I's probe) | 2 (pass 9: always-expanded again) |
 | F-P8-B | 3 | OPEN | switching to an already-CONNECTED endpoint throws ISE `connect() is the first-connection path` | `connectDirect()` → `recover()`/no-op when state==CONNECTED | — | Part K.A2 | 1 |
 | F-P8-F | 3 | OPEN | Take-photo intent failure (API-36 camera denial) surfaces NOTHING in the attachment flow | typed honest face for intent-launch failure (silent-blank family) | — | Part K.A2 | 1 |
-| F-P0-E | 3 | OPEN (unresolved) | ANR during rapid rig input into direct-endpoint form; causality unproven (app trace rotated away) | observation; rig recipe recorded (chunk DELs ≤8, pull `/data/anr/trace_*` immediately) | — | Part A.A2 | 1 |
+| F-P0-E | 3 | OPEN (unresolved) | ANR during rapid rig input into direct-endpoint form; causality unproven (app trace rotated away) | observation; rig recipe recorded (chunk DELs ≤8, pull `/data/anr/trace_*` immediately) | — | Part A.A2 | 2 (pass 10: the wipe-data first-boot ANR storm — app input-dispatch ANR in the same record as GMS/phone startup ANRs + a 15s watchdog block; M.A3) |
 | F-P1-D | 3 | OPEN (observation) | open conversation polls workflowRuns+plans every ~8 s even idle/backgrounded | subscribe-on-open + deltas (capability already declared) or ≥30 s cadence | — | Part D.A2, K.A3 | 3 (pass 9: the drum ran WHILE ASLEEP) |
 | F-P0-D | 3 | RETRACTED | pass-0 terminal-attach silent no-op — unreproduced 5× (passes 2,3,4,5,8); Context-sheet route variant = N-BM-3 | keep typed-face work as hardening only | — | Part E.A2.8 | — |
 | F-P2-A | 2 | REFUTED→SUPERSEDED | selection persistence REFUTED as a defect (survives force-stop, app-kill, full emulator reboot — passes 7, 8); the REAL root is F-P8-A's silent in-memory abandonment | closed in favor of F-P8-A | — | Part J, K.A0.7/K.A3 | — |
@@ -105,21 +108,26 @@ bodies after 3.14.3 — the census IS the changelog.
 | F-P4-A | 2 | FIXED (rig) | mock push patch structurally excluded its own interaction | `pushPendingPermission` builds from unfiltered list + patch-content pin — commit `2b12fc46`, 37 mock tests green | — | Part G.A2.2, H.A1 | — |
 | N-BK-1 (rig half) | 2 | FIXED (rig) | git fixtures in wrong field vocabulary (blank paths, +0−0, duplicated tabs, oid-vs-hash) | contract vocabulary rewrite — same commit `2b12fc46` | — | Part G.A2.3, H.A1 | — |
 
-**Open F count: 22** (20 defects + 2 observations; pass 9 added F-P9-A/F-P9-B) · FIXED: 2 (both rig) · RETRACTED/REFUTED/ABSORBED: 6.
+**Open F count: 23** (21 defects + 2 observations; pass 10 added F-P10-A; F-P8-C
+re-verified working — no longer counts as reproducible but stays rowed) · FIXED: 2
+(both rig) · RETRACTED/REFUTED/ABSORBED: 6.
 
 ## Current fix-order (consolidates K.D + the carried rows; supersedes every report fix-order)
 
 1. **F-P8-A** → 2. **F-P0-B** (unblocks F-P6-A's card half) → 3. **F-P9-A** (pass 9:
    the AUTHENTICATING wedge strands every multi-endpoint reconnect; unblocks the
-   endpoint-switch legs) → 4. **F-P8-C + F-P8-E together** (frozen timeline) → 5.
-   **F-P9-B** (pass 9: the un-rendering typed face; unblocks the remote-down recovery
-   leg) → 6. **F-P6-A store half** (ghost sweep; fixtures `/tmp/pass8/db/p8-2.db` +
-   `/tmp/p9/db/p9-4.db`) → 7. **F-P8-D** (queue collapse; re-test F-P6-B after) → 8.
-   **F-P3-A** (card-agnostic pinned budget) → 9. **F-P3-B** (wiring-only hydrate) → 10.
-   **F-P3-C** → 11. **F-P7-A / F-P7-B** → 12. **F-P5-A → F-P2-B → F-P0-C → F-P8-B →
-   F-P8-F** → 13. **F-P1-B → F-P1-D** → 14. smalls (N-BM-1 → N-BM-3 → N-BK-1 app half
-   → N-BJ-1 → N-BK-2 → N-BL-1 → N-BM-2 → K-small-1/2) → 15. parity queue per the G
-   table + the opportunistic list. (Part L.D amends this; earlier orders superseded.)
+   endpoint-switch legs) → 4. **F-P8-C + F-P8-E together** (frozen timeline; pass 10:
+   the drag half re-verified working — the residual is F-P8-E's follow-release + a
+   drag pin) → 5. **F-P9-B** (pass 9: the un-rendering typed face; unblocks the
+   remote-down recovery leg) → 6. **F-P6-A store half** (ghost sweep; fixtures
+   `/tmp/pass8/db/p8-2.db` + `/tmp/p9/db/p9-4.db`) → 7. **F-P8-D** (queue collapse;
+   re-test F-P6-B after) → 8. **F-P3-A** (card-agnostic pinned budget) → 9. **F-P10-A**
+   (pass 10: the silent commit no-op; small, self-contained) → 10. **F-P3-B**
+   (wiring-only hydrate) → 11. **F-P3-C** → 12. **F-P7-A / F-P7-B** → 13. **F-P5-A →
+   F-P2-B → F-P0-C → F-P8-B → F-P8-F** → 14. **F-P1-B → F-P1-D** → 15. smalls
+   (N-BM-1 → N-BM-3 → N-BN-1 → N-BK-1 app half → N-BJ-1 → N-BK-2 → N-BL-1 → N-BM-2 →
+   K-small-1/2) → 16. parity queue per the G table + the opportunistic list.
+   (Part L.D amends this; earlier orders superseded.)
 
 ## G-rows — desktop-vs-phone gaps (parity queue)
 
@@ -137,7 +145,11 @@ bodies after 3.14.3 — the census IS the changelog.
 | G84 | 4 | OPEN | outputStyle mirror — `listStyles` + `getActiveStyle` (of 7) | read-only mirror | Part H.B1 |
 | G95 | 4 | OPEN (NEW pass 8) | feedback/support-intake plane (Feedback, 15 methods incl. device-snapshot + log-archive attach) — phone diagnostics export could feed `attachLogsFromExport` | inventory row → consume decision | Part K.B1 |
 | G96 | 4 | OPEN (NEW pass 9) | conversation selection-comment/annotate plane (批注) — desktop gates the selection→comment entry on the conversationQuoteComment agent capability; phone conversations have no annotation entry | inventory row (renderer feature, self-hiding); consume = the phone quote plane has no comment concept | Part L.B1 |
-| G97 | 3 | OPEN (NEW pass 9) | the desktop's web-remote-control companion plane (90 i18n keys: QR→browser connectUrl, session lifecycle, 12-way typed failure taxonomy, workspace/task switching, bot channels feishu/lark/weixin/telegram, singlePageNote one-page guard, pullMobileLogs, settings.mobilePush desktop toggle) — the phone is BLIND to it: no face for a browser session controlling its workspace, no kicked/conflict notice, bot-channel access undocumented phone-side | honest surfaces minimum (a companion-state mirror + a kicked/conflict face); the plane itself stays desktop-served | Part L.B3 |
+| G98 | 3 | OPEN (NEW pass 10) | the desktop's SOURCE-SERVER/compute planes — it connects DIRECTLY to SSH servers (180 i18n keys: full host/port/auth password·privateKey/asset-install-mode form), WSL (45), Docker (35), sourceServer (60) as workspace hosts; the phone's "remote" is only the desktop's relay — zero counterpart, not even read-only | read-only mirror of source servers (the phone already decodes sourceServerId in task rows — pass-8's bridge resolution); authoring stays desktop-only | Part M.B3 |
+| G99 | 4 | OPEN (NEW pass 10) | the desktop's WHITEBOARD plane (65 keys: named persisted boards, pen/eraser/color/strokeWidth/undo/redo/addToChat, typed missing-board face) vs the phone's send-only Sketch canvas | inventory row; consume minimum = honest "open on desktop" face for whiteboard artifacts if they surface in conversations | Part M.B3 |
+| G100 | 4 | OPEN (NEW pass 10) | the desktop's model-TRAJECTORY viewer (165 keys, 模型调用轨迹: per-model-call usage input/output) — the phone's Usage screens are aggregate | P4-smallest: decode the trajectory payload for the Usage viewer if the channel serves it; else inventory-only | Part M.B3 |
+| G101 | 4 | OPEN (NEW pass 10) | the CUA permission-status plane: `CuaPermissionService` getStatus (typed status incl. grantOwner/accessibilityProbeOk/screenRecording/screenCaptureProbeOk/idle + typed reasons) + restartHelper (macOS-only), 25-key desktop panel — the phone decodes PUSHED observations only and can never show the desktop's CUA health proactively | read-only status mirror minimum (one card fed by getStatus); restartHelper = consume/no-action decision | Part M.B1, M.B3 |
+| G97 | 3 | OPEN (NEW pass 9) | the desktop's web-remote-control companion plane (90 i18n keys: QR→browser connectUrl, session lifecycle, 12-way typed failure taxonomy, workspace/task switching, bot channels feishu/lark/weixin/telegram, singlePageNote one-page guard, pullMobileLogs, settings.mobilePush desktop toggle) — the phone is BLIND to it: no face for a browser session controlling its workspace, no kicked/conflict notice, bot-channel access undocumented phone-side | honest surfaces minimum (a companion-state mirror + a kicked/conflict face); the plane itself stays desktop-served. **Pass-10 census additions:** the companion's client mode (`web-remote-replayable`) is restricted to a 49-channel allowedChannels Set (exact list in M.B2) with McpSync scoped to 4 verbs; the desktop's `remote.*` namespace (460 keys) is the desktop-side device-away faces | Part L.B3, M.B2 |
 | G86 | 4 | OPEN | share-code IMPORT plane (`importShare` + progress phases) — desktop-only | inventory first | Part F.B4 |
 | G90 | 4 | OPEN | coding-plan RESET trio (`requestCodingPlanResetOpportunity`, `useCodingPlanReset`, `markCodingPlanResetHistoryRead`) — phone renders quota reset read-only | decode + typed faces | Part H.B1 |
 | G87 | 4 | OPEN | real-time voice-input ASR plane (ticketed sessions, chunk upload) — phone relies on OS IME dictation (dead on API 36, F-34 class) | inventory row (build unlikely) | Part G.B4 |
@@ -168,7 +180,7 @@ bodies after 3.14.3 — the census IS the changelog.
   authoring depth (read-only by ADR), git WRITE half (stage/commit/push — read-only
   posture), pluginManagement 17 methods, voice-input service.
 
-**Open G count: 17 + 3 standing** (G60, WATCH-4, settings depth; G93's enum residual closed).
+**Open G count: 21 + 3 standing** (G60, WATCH-4, settings depth; G93's enum residual closed).
 
 ## N-rows — smalls
 
@@ -183,11 +195,12 @@ bodies after 3.14.3 — the census IS the changelog.
 | N-BM-2 | 4 | OPEN | child-session view: generic title, skeleton-forever on unscripted children | Part J |
 | K-small-1 | 4 | OPEN | checkpoint empty state says "create one" with NO create affordance (verb unconsumed) | Part K.A2 |
 | K-small-2 | 4 | OPEN | "First sync failed" renders alongside CACHED rows (wording/state nit) — pass 9: the strip can be entirely ABSENT when the F-P9-A wedge suppresses the refresh | Part K.A2, L.A3 |
+| N-BN-1 | 4 | OPEN (NEW pass 10) | Plugins screen: the per-plugin enable switches are UNLABELED (plugin_switch_plugin-prisma / -review carry no content-desc, no text children — TalkBack silence on the row's only interactive element) | Part M.A1, M.A2 |
 | K-small-3 | 4 | WATCH | one-off terminal route pop (unreproduced — watch, don't chase) | Part K.A2 |
 | N-BJ-2 | 4 | REFUTED→FOLDED | unpair IS reachable (Settings bottom, pass 4); fakeLink half folded into F-P2-B | Part G.A2.4 |
 | N-BM-4 | — | RIG | Dictate leg kills the emulator (cause unproven); leg undriven | Part J |
 
-**Open smalls: 9 (+1 watch +1 rig).**
+**Open smalls: 10 (+1 watch +1 rig).**
 
 ## Mock-fidelity debts (rig, not app)
 
@@ -197,7 +210,8 @@ bodies after 3.14.3 — the census IS the changelog.
 4. Static session-config echo re-asserts the effort chip ("max" after `setThoughtLevel`).
 5. Raw optionId labels (`allowOnce`) instead of human labels (desktop sends `label: c.name`).
 6. Push arm is CONVERSATION-SUBSCRIBE-anchored (recipe: reconnect with conversation open, lock inside the arming window).
-7. `MOCK_REMOTE_DOWN_MS` / `MOCK_MD_FILE` arms exist but were never driven (gen2 append-after-exec bug).
+7. `MOCK_REMOTE_DOWN_MS` / `MOCK_MD_FILE` arms exist but were never driven (gen2 append-after-exec bug). (Driven pass 9.)
+8. **The automations plane needs `MOCK_OFFPEAK=1` ALONGSIDE `MOCK_AUTOMATIONS=1`** — without it the app's `off-peak-task.list` faults (`fault.mock.unscripted:offPeakTaskList`) and home renders the "This feature isn't available" face (pass-10 receipt; the launcher /tmp/p10/relay-g1.sh carries the fix).
 
 ## DISCOVERY BACKLOG (tick when the findings are appended as rows)
 
@@ -205,38 +219,49 @@ bodies after 3.14.3 — the census IS the changelog.
   webRemoteControl.* (90 keys) — QR→browser connectUrl companion, session lifecycle,
   12-way typed failure taxonomy, workspace/task switching, bot channels, singlePageNote,
   pullMobileLogs, settings.mobilePush desktop toggle → **G97 (P3)** phone-side blindness.
-- [~] **2. Channel method tables — REMAINING OPEN:** ModelSelection, ProviderSettings,
-  SourceServerWorkspace, ZCodeTask (controller family partially done), ConversationShare,
-  CuaPermission, WindowController, MediaPreview (attribution ⚠), WindowProjectChanges (⚠).
-  Method: the pass-5/8 walk-back extractor (`return i(…),{…}` before `create*Service`,
-  80 KB look-back); ⚠-marked tables need a different anchor. Everything else is DONE
-  (~33 tables exact across Parts G–K — 13 from pass 5 + ~20 from pass 8 — plus 2 ⚠ and
-  7 no-table services).
-- [~] **3. Renderer route/screen inventory — CLOSED as a dead angle** (no URL-route
+- [x] **2. Channel method tables — DONE pass 10 (Part M.B1):** the last 8 tables
+  extracted exact (ProviderSettings 15, ModelSelection 3, SourceServerWorkspace 6,
+  ZCodeTask controller family = Xz's 7 routed + 4 bot passthroughs + the WindowController
+  channel's 14 members, ConversationShare 13 + typed stubs, CuaPermission 2, MediaPreview
+  1 ⚠ CLOSED, WindowProjectChanges 2 ⚠ CLOSED — both ⚠ attributions resolved as
+  host-served). ~41 tables now exact across Parts G–K+M + the 49-channel exposure policy
+  (M.B2). No ⚠ remain.
+- [x] **3. Renderer route/screen inventory — CLOSED as a dead angle** (no URL-route
   vocabulary exists: 2,862 lazy chunks, scene/state-driven nav — Part K.B3; do not
-  re-hunt). REMAINING: the **i18n namespace diff** (desktop namespaces vs phone
-  strings.xml — the method that found G60/G91/G92) and the **settings-domain diff** for
-  the decode-vs-UI candidates.
+  re-hunt). **The i18n namespace diff DONE pass 10 (Part M.B3):** 84 desktop namespaces /
+  6,515 keys adjudicated → G98/G99/G100/G101 + the settings-domain census stands from
+  pass 7 (51 domains). The namespace diff is EXHAUSTED — every no-counterpart namespace
+  is now either rowed, folded into a row, or classified desktop-legit.
 - [x] **4. The unassessed clientHello/runtimeCapabilities bits** — DONE pass 9 (Part L.B1):
   all 10 traced + the full 13-name schema; NEW rows G96 (selection-comment 批注) and
   G94/G91 adjacency notes; phone answers NOTHING (zero runtimeCapabilities handling).
   sessionLifecycleWorkspace + extensionInputSource are desktop-reserved (zero consumers).
-- [x] **5. Named residuals — G93 enum half DONE pass 9** (Part L.B2): kind ∈ {question,
-  approval, plan, task_completed, task_failed}, state ∈ {open, resolved}; producer = host
-  chunk-7SAPNXNZ.js collectMobilePushEvents (pass-8's zcode.cjs attribution corrected;
-  the CLI has 0 hits). REMAINING: MediaPreview/WindowProjectChanges ⚠ attribution.
+- [x] **5. Named residuals — DONE (G93 enum half pass 9, ⚠ attributions pass 10)** (Part
+  L.B2, M.B1): kind ∈ {question, approval, plan, task_completed, task_failed}, state ∈
+  {open, resolved}; producer = host chunk-7SAPNXNZ.js collectMobilePushEvents. **The
+  MediaPreview/WindowProjectChanges ⚠ attributions CLOSED pass 10** — both are
+  host/index.js-served (createMediaPreviewService's prepare; createWindowProjectChangesService's
+  getCapabilities+onDidChange).
 - [~] **6. Coverage leftovers (rolling)** — pass 9 closed: the lockscreen leg CORE
-  (push-while-locked over LIVE receipted 2×; the shade-ACTION tap = STANDING RIG STOP:
-  keyguard suppresses action buttons + lockscreen taps never deep-link + resume cleans
-  the shade — needs a real device), MOCK_REMOTE_DOWN_MS ✓ (fired; typed error logged;
-  the card never rendered → F-P9-B), MOCK_MD_FILE ✓ (served verbatim; render blocked by
-  F-P6-B), mention-panel tabs ✓ (Sessions/Skills/Plugins/Agents all render). STILL OPEN:
-  user-row long-press ACTIONS (blocked by F-P8-C); question card options post-F-P3-A-fix;
-  Take-photo happy path (impossible — stop); widget add-to-home (standing stop); re-drive
-  FIXED rows once fix rounds start.
-- [ ] **7. Phone self-audit expansion** — a11y/TalkBack beyond conversation+settings+home
-  (every screen), font 1.3×/density/locale × newer screens matrix, diagnostics-export
-  content, settings-search edges, dark/theme × all screens.
+  (push-while-locked over LIVE receipted 2×; the shade-ACTION tap = STANDING RIG STOP),
+  MOCK_REMOTE_DOWN_MS ✓, MOCK_MD_FILE ✓, mention-panel tabs ✓. **Pass 10 closed:** the
+  diagnostics plane (marker/copy/export/redaction — the never-driven leg), the a11y
+  audit of 17 never-swept screens (1 new small N-BN-1), the automations plane's
+  unavailable-face (rig gap — mock debt #8), the font-scale matrix (1.15× max, no 1.3×
+  tier), the zai-dark theme matrix, the fresh-install pairing chain, and **F-P8-C's
+  drag-scroll re-verification (working at HEAD — the user-row long-press ACTIONS leg is
+  now UNBLOCKED for the next pass)**. STILL OPEN: F-P8-E's follow-release (needs a
+  streaming arm), question card options post-F-P3-A-fix (F-P3-A open), Take-photo happy
+  path (impossible — stop), widget add-to-home (standing stop), re-drive FIXED rows
+  once fix rounds start, the shade-ACTION approve (standing stop).
+- [x] **7. Phone self-audit expansion — DONE pass 10 (Part M.A1/M.A2/M.D):** the a11y
+  sweep now covers 17 screens beyond the pass-3/5 conversation+settings+home set (one
+  new small: N-BN-1); the diagnostics-export content receipted (1,174 lines,
+  redaction-verified); settings-search edges N/A (this build's Settings has no search
+  field); font matrix driven at the phone's real max (1.15×) + reverted; zai-dark
+  driven + reverted. REMAINING within this item: TalkBack runtime behavior (the census
+  is static AX; no TalkBack session was driven — a real-device leg if ever wanted) and
+  the locale matrix (zh round-trip was receipted pass 5).
 - [x] **8. Shipped-content catalogs** — plugin inventory 18 (matches pass-35), slash-20
   parity EXACT (pass 6), settings-domain census done (51 domains, pass 7). DONE unless a
   desktop delta changes the catalogs.
@@ -338,6 +363,14 @@ delta …`). Nothing pushed.
 
 ## History
 
+- 2026-11-14 (pass 10) — Part M executed: backlog items 2/3/7 DONE (the last 8 channel
+  tables exact + the ⚠ attributions closed + the 49-channel exposure policy; the i18n
+  namespace diff exhausted → G98/G99/G100/G101; the a11y audit of 17 never-swept screens
+  → N-BN-1; the diagnostics plane receipted). NEW rows: F-P10-A (P3, the silent commit
+  no-op), N-BN-1. F-P9-A 2nd stamp, F-P0-E 2nd stamp. F-P8-C re-verified WORKING (3
+  directions). Rig: the PM wedge (launch -92 with a healthy resolver table → wipe-data
+  recovery), the fresh-install pairing chain receipted end-to-end, mock debt #8
+  (automations needs MOCK_OFFPEAK=1). Rig left UP + connected (gen1d).
 - 2026-11-14 (pass 9) — Part L executed: backlog items 1/4/5 done (webRemoteControl
   plane → G97; runtimeCapabilities 13-name schema → G96 + G93 enum residual CLOSED;
   zcode.cjs attribution corrected), 2 new P2 defects F-P9-A/F-P9-B, the 3-pass-owed

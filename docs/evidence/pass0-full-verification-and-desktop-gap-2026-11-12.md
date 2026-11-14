@@ -2772,3 +2772,272 @@ keyguard ON, stay-on 7 + screen_off_timeout 600000 set, **Live connection left O
 the one untoggled cleanup, one tap in Settings→Notifications), ALL relays killed (zero
 zombies for the first time in the campaign), the app's connection stale (relay dead — it
 will ladder per the healthy path or wedge per F-P9-A). Nothing pushed.
+
+---
+
+# Part M — pass 10 (APPENDED 2026-11-14, morning): the fresh-install pairing chain, the diagnostics plane, the never-swept-screen a11y audit, and the channel-table dig completing backlog items 2/3/7
+
+> **Pass 10 of the pass-0 series** (solo, canonical discovery prompt). Scope: the three
+> open backlog items — item 2's remaining channel method tables (REA), item 3's i18n
+> namespace diff (REA), item 7's phone self-audit expansion (LIVE) — plus STEP 2
+> coverage adjudication. The rig fought back: an uncleanly-shutdown AVD wedged the
+> package manager (every launch returned CLASS_NOT_FOUND despite a healthy resolver
+> table — recovered only by wipe-data), the fresh install re-paired through the FULL
+> onboarding chain (a first-in-series receipt), and the first-boot ANR storm re-manifested
+> F-P0-E. Two new rows (F-P10-A the silent commit no-op; N-BN-1 the unlabeled Plugins
+> switches), four new G census rows (G98 ssh/wsl/docker source servers, G99 whiteboard,
+> G100 model-trajectory, G101 CUA permission status), F-P8-C drag-scroll RE-VERIFIED
+> working at HEAD, F-P9-A wedge re-manifested, and the REA dig completed the last two
+> open backlog items.
+>
+> **Verification stamp:** 2026-11-14 03:30 → 05:30, GLM-5.3-Flash in ZCode, everything
+> local, nothing pushed.
+
+## M.A0 — rig learnings (each bites the next pass)
+
+1. **An uncleanly-shutdown AVD can wedge the PACKAGE MANAGER: every launch of the
+   reinstalled APK returned `result code=-92` (CLASS_NOT_FOUND) while `pm dump` still
+   printed a healthy resolver table with both launcher filters.** `adb reboot` did NOT
+   clear it; `pm clear` did NOT; uninstall+reinstall did NOT. `dumpsys package` showed
+   installed=true/enabled=0/suspended=false and the APK file present at codePath — the
+   wedge was invisible to every dump. Recovery = **wipe-data boot** (`-wipe-data`), which
+   destroys pairing/settings (all rig-rebuildable). Diagnosis order for "activity does not
+   exist" that shouldn't be: compare `dumpsys package`'s resolver table vs
+   `cmd package query-activities` — if the table HAS the entries but queries find nothing,
+   it is this wedge; go straight to wipe-data, do not chase visibility/appops.
+2. **The wipe-data FIRST BOOT is an ANR storm**: the ANR record captured
+   `com.google.android.gms` + `com.android.phone` "failed to complete startup" ANRs, a
+   `half_watchdog "Blocked in handler on main thread (main) for 15s"`, AND the app's own
+   input-dispatch ANR (F-P0-E stamp 2). The app's main thread recovered (debuggerd showed
+   Looper idle); the system dialog lagged minutes behind. Budget: dismiss Wait, then
+   force-stop + relaunch before any leg.
+3. **Wipe-data resets the power settings AND the network posture**: `stay_on_while_plugged_in`
+   and `screen_off_timeout` reverted (screen sleeps mid-leg → 15 KB black frames that look
+   exactly like FLAG_SECURE black — check `dumpsys SurfaceFlinger` for the `(Secure)` marker
+   to tell them apart: display-off black has NO marker), wifi re-enabled (dual-home),
+   and later **BOTH eth0 and wlan0 went link-DOWN** (`Network is unreachable` to 10.0.2.2;
+   auth ack timeouts that look like the stale-mock trap) — recovery = FULL emulator
+   restart (no wipe needed; pairing data survives). Always re-apply
+   `stay_on_while_plugged_in 7` + `screen_off_timeout 600000` + `svc wifi disable` after
+   any wipe/reboot.
+4. **The compositor itself wedged once**: mWakefulness=Awake, no Secure layers, yet every
+   screencap was 15 KB black — `HWC missed frame count: 7759`. `input keyevent 26` toggle
+   did NOT fix it; an emulator restart did. If screencap is black while SurfaceFlinger
+   shows no Secure layers and the display is ON, suspect the compositor, not the app.
+5. **Pairing-link typing, definitive recipe**: the field is password-masked — the
+   •-bullet count is the length oracle; `.` must go through keyevent 56; `&` MUST be
+   escaped (`\&`) in EVERY `input text` chunk — an unescaped `&` terminates the device
+   shell command and the rest becomes background junk (one overrun inflated the field to
+   534 bullets; ~560 DELs cleared it). Verify the count after EVERY 14-char chunk against
+   `expected = pos + len(chunk)`; abort on mismatch (the working driver is
+   /tmp/p10/type4.py — unbuffered, no auto-repair). There is NO adb clipboard path for
+   the "Paste pairing link" field on this image.
+6. **The fresh-install pairing chain (first full receipt)**: onboarding ("Control ZCode
+   from your phone") → Paste pairing link → (typed link) → Continue → the E7 stale-link
+   consent gate ("This QR code may be be stale" — links older than 10 min) →
+   "Continue anyway" → the security-setup gate ("sealed with hardware-backed encryption")
+   → Continue anyway → the notifications ask (Turn on notifications → SYSTEM permission
+   dialog → Allow) → "Notifications are on" + the Live-connection toggle → Continue → a
+   4-page onboarding carousel (Skip) → HOME CONNECTED. FLAG_SECURE is ON from the
+   wipe (default `screenshotProtection=true`, CoreModels.kt:214) and CANNOT be turned off
+   before pairing (Settings is unreachable on the onboarding screens) — the pairing legs
+   run against black screenshots; the AX tree is the oracle until paired.
+7. **MOCK_AUTOMATIONS alone is NOT sufficient for the automations plane**: the app calls
+   `off-peak-task.list` as part of the plane and the mock faults it
+   (`fault.mock.unscripted:offPeakTaskList` → `automationsport.lists TransportFailure`),
+   rendering the honest "This feature isn't available on the connected desktop." face.
+   With `MOCK_OFFPEAK=1` added the plane renders fully (Nightly digest · Daily at 02:00 ·
+   3 runs · Run now/Pause/History/Edit/Delete). This is mock-fidelity debt #8 (below).
+8. Navigation hazard: BACK chains from nested sheets (context → git) exit the app
+   (G.A0.6), and one stray launcher tap opened the Google sign-in flow mid-leg — anchor
+   every navigation on a fresh dump, never chain BACKs blind.
+
+## M.A1 — verified working this pass (receipts; bold = never-driven-in-series)
+
+| Surface | Pass-10 receipt |
+| --- | --- |
+| **The full fresh-install pairing chain** | M.A0.6 — onboarding → typed link (178/178 count-verified) → E7 stale gate → security-setup gate → notification ask (POST_NOTIFICATIONS granted) → carousel skip → home CONNECTED in ~6 s of the relay being reachable; the persisted endpoint survived two emulator restarts and one app force-stop without re-pairing |
+| **Diagnostics plane, end-to-end (first series drive)** | "Add a marker" → `diagnostics.mark :: user marker at 2026-11-14T05:03:09… phase=CONNECTED` in the log; "Copy diagnostics to clipboard" → the floating preview bubble ("=== ZCode Companion diagnostics === / generated: …") with share/copy actions; **"Export diagnostics" → the SYSTEM share sheet with a real file `zcode-diagnostics-1794632646997.txt`** (pulled via run-as from cache/shared/, 1,174 lines) — header/env/connection-snapshot/workspace-resolution/pairing-identity (INV-3, deviceSid truncated)/wire counters/event counters/warnings+errors chronological/connection timeline/per-connection FULL redacted ring. Redaction verified: `auth_challenge` nonce shows `[REDACTED]`, zero passHash/token/hash= matches; `desktopAboveTested (vs MAX_TESTED 3.18.1): false` rides the header |
+| **A11y audit of the never-swept screens (item 7)** | subtree-aware unlabeled-clickable census: settings ROOT 0; Usage 0 (honest unavailable face); Skills 0; MCP servers 0; Subagents 0; Providers 0 (Z.AI Default glm-5.1 + glm-5.1-air/flash render); Bots 0 (bot-telegram-1 telegram); Workspace hooks 0 (honest "no hooks seen yet" face); Commands 0 (/deploy); Memory 0 (honest unavailable face); Endpoints 0; Approvals inbox 0 (honest "Nothing needs you" empty state); conversation 0; Context sheet 0 (full render: Status/goal/iter verdicts/Todos/Workflow runs/Plans/git strip + chip row); git sheet 0 (branch main/clean, 2 changed files, Checkpoints/Snapshot tabs). **Plugins: 2 unlabeled** → N-BN-1 |
+| **The automations plane fully rendered under the off-peak arm** | Nightly digest · "Daily at 02:00" · Next … · "3 runs" · On · active · Run now/Pause/History/Edit/Delete — the unavailable face was the M.A0.7 rig gap; a11y clean |
+| **zai dark theme matrix** | Theme dialog: Light/Dark/Follow the system/**zai light**/**zai dark** (5 options); zai dark applied live (no restart) on settings + home — dark surfaces, blue accents, readable badges/rows; G88's shipped-parity claim re-verified on the newest pair |
+| **Font-scale matrix** | Text-size dialog: Small (0.85×)/Default (1.0×)/**Large (1.15×)** — the phone has NO 1.3× tier (the backlog's "font 1.3×" maps to the 1.15× max); Large applied live on settings + home with zero crush/clipping (screenshots s25/s27); reverted to Default (verified in the raw dump: `Text size → Default (1.0×)`) |
+| **F-P8-C drag-scroll RE-VERIFIED working at HEAD** | the pass-8 "cannot be DRAG-scrolled" defect NO LONGER REPRODUCES: three drags scrolled the timeline 3 directions (parse row → approval row → YOU row; reverse drag reached the "Applied Parser.kt fixes" list rows) — the frozen-timeline mechanism (whatever it was) is gone at e9a8d206; F-P8-E (follow release) remains undriven (no streaming arm) |
+| Home unread badge | the bell renders a red "1" badge after the reconnect (unread plane live) |
+| Git sheet Snapshot tab | "No snapshots in this session — create one before risky changes" (K-small-1's empty state, unchanged) + read-only badge + Commit…/Branches… affordances |
+
+## M.A2 — defects found this pass (NEW ledger rows)
+
+- [ ] **F-P10-A (P3, app) — the Commit sheet's Commit action SILENTLY no-ops when the
+  hub's active-workspace resolution is null: dialog closes, zero wire verbs, zero log
+  lines, zero user face.** Receipt: opened the commit sheet from the conversation's
+  context sheet → Git route, typed a non-blank message ("rig commi"), tapped Commit →
+  the dialog closed, `git.getChanges` re-fetched twice, but the full logcat has NO
+  `git.commit` channel.call, NO `gitport.commit` warn, and the diagnostics export's
+  warnings ring shows nothing. Mechanism pinned in code: `GitScreen.kt:464` onCommit →
+  `port.commit` → `Phase9Ports.kt:229` → `writeOp("commit")` (:208) whose FIRST line is
+  `val wp = workspacePath() ?: return null` — `workspacePath()` is
+  `hub.activeWorkspaceTarget()?.first` (:150), and a null target returns null SILENTLY
+  (the read path used by the SAME sheet resolves elsewhere — `git.getChanges` worked in
+  the same session). The button's enabled gate (`message.isNotBlank() && (identity ==
+  null || identity.present)`, GitWriteSheets.kt:125) passed, so the silent return is the
+  live path, not a disabled button. The N-BG-2 refusal-face pattern exists for the
+  GENERATE verb but the commit path has no failure face at all (`if (hash != null)` …
+  else nothing, GitScreen.kt:467-478). Fix shape: resolve the write target the same way
+  the reads do (session-scoped), and render a typed refusal face when the target is
+  null; pin: a Robolectric commit-sheet harness with a hub whose activeWorkspaceTarget
+  is null asserting the face. This is the F-P5-A silent family's write-half twin.
+- [ ] **N-BN-1 (P4, a11y) — the Plugins screen's per-plugin enable switches are
+  UNLABELED**: `plugin_switch_plugin-prisma` and `plugin_switch_plugin-review`
+  (checkable Views at the row trailing edge) carry no content-desc and no text children
+  — TalkBack announces nothing for the ONLY interactive element of each plugin row.
+  Everything else in the settings-viewer family is clean (M.A1). Fix shape: a
+  `Modifier.semantics { contentDescription = "Enable <plugin name>" }` on the switch +
+  the a11y pin.
+
+## M.A3 — re-manifestations at HEAD (stamps only)
+
+- **F-P9-A (2nd)**: after the stale gen1 relay dropped the app mid-AUTHENTICATION
+  (`relay.connected` never reached; `hub.connectFailed TIMEOUT connect timed out after
+  10000ms` at 04:43:13), the transport wedged log-silent with the header stuck
+  "Connecting…" — the foreground `am start` poke did NOTHING and `logcat -d` showed zero
+  ZCODE-PAIR lines for minutes; the force-stop + relaunch escape connected in ~2 s
+  (after the relay was restarted AND wifi was re-disabled — the same-recipe recurrence
+  of the pass-9 wedge, not a new mechanism).
+- **F-P0-E (2nd)**: the app ANR'd ("Input dispatching timed out … Waited 5006ms for
+  MotionEvent") during the wipe-data first-boot storm (the ANR record also contains GMS/
+  phone startup ANRs + a half_watchdog 15s block) while the blind pairing-typing burst
+  ran. Causality still unproven (first-boot churn + rapid input both present); the rig
+  recipe gains "never run the typing burst during a first-boot window" (M.A0.2).
+- **K-small-1** (visible): the git Snapshot tab's "create one before risky changes"
+  empty state with no create affordance rendered again (unchanged code; no new stamp).
+- F-P6-A's store half: the wipe-data RESET the ghost accumulation (the pulled DB holds
+  exactly 1 interaction — the current generation's seeded approval, legitimately
+  pending). The pass-2/8 ghost fixtures in /tmp/pass8 + /tmp/p9 remain the evidence;
+  no stamp change.
+
+## M.B — the REA dig, part 10 (digest unchanged `ec475e6e…`; extraction /tmp/p6-asar/x reused)
+
+### B1. Backlog item 2 — the remaining channel method tables: DONE (all 8)
+
+Walk-back method: channel descriptor `X=Be(be.Y)` → serving site `.register(Y, impl)` →
+implementation object. All in host/index.js (attribution: HOST-served, not renderer/CLI).
+
+| Service (channel) | Methods (exact) | Phone verdict |
+| --- | --- | --- |
+| **ProviderSettings** (`createProviderSettingsService` = oF, channel `id`) | 15: onDidChange, getView, refresh, createPersonalProvider, resolveModelConfig, savePersonalProviderOverlay, deletePersonalProvider, reorderPersonalProviders, reorderPersonalModels, addPersonalModel, renamePersonalModel, deletePersonalModel, savePersonalModelDraft, setPersonalModelEnabled, testModelConnectivity (typed {success:false,error:{code:provider-unavailable\|model-unavailable}}) | personal provider/model AUTHORING is desktop-only; the phone is a read-only catalog consumer (G92-class, no new row) |
+| **ModelSelection** (`createModelSelectionService` = iF, channel `Ui`) | 3: onDidChange, getView (REVISION-BASED: getView(config, minRevision, signal) + revision bump on change), dispose | the phone's model options decode id/label/badge only (pass-31 note stands); the revision plane is desktop-internal |
+| **SourceServerWorkspace** (`createSourceServerWorkspaceService` = AF, channel `ca`) | 6: resolveWorkspace (canonical workspace-key + migration), getFailedPathCount, getAbandonedPathCount, listMigrationReports, abandonFailedWorkspace, retryWorkspaceMigration | the workspace-identity/migration plane — phone zero surfaces (F-P8-A/G94 adjacency: workspaceIdentity) |
+| **ZCodeTask controller family** (`createControllerRoutedTaskService` = Xz + the WindowController channel) | Xz ROUTES {setTaskPinned, archiveTask, unarchiveTask, deleteTask, deleteArchivedTasks, deleteArchivedTask, setTaskUnread} through controller mutateTask + 4 bot-group passthroughs (getBotGroupTaskBlockReason, cancelBotGroupInput, submitBotGroupInput, readBotTopicSummaries) with attachment-scope injection; **WindowController channel (`Pg` → createWindowHostControllerRuntime's per-runtime service) = 14 members EXACT**: listTaskList, previewArchivedTaskDeletion, permanentlyDeleteArchivedTask, getTaskMeta, deleteArchivedTasks, deleteArchivedTask, mutateTask, subscribeControllerV4, resyncControllerV4, unsubscribeControllerV4, onDynamicControllerFrame, onDynamicTaskUnreadSignal, onDynamicTasksRemovedSignal, (dispose) | the pass-8 "controller family partially done" is now protocol-exact — the opportunistic queue's archived-delete verbs + controller-V4 family + setTaskUnread have their full wire contract |
+| **ConversationShare** (`EA` class, channel `na`; stubs Dv/Y8e) | 13-verb surface: getCapabilities, preflight, publish, onDynamicPublishProgress, importShare, onDynamicImportProgress, getImportedConversation, getPreview, getContinuation, listManagedShares, revokeManagedShare, restoreManagedShare, deleteManagedShare; remote workspaces + unsupported clients get the typed `feature_disabled` stubs ("Conversation publishing is not available for remote workspaces" / "…not available for this client or remote target"); publish → phase map + shareWebUrl `${origin}/cn/share`; import → `.zcode-share-imports.json` index | G86's "inventory first" is satisfied — the exact wire contract + the typed-refusal shapes |
+| **CuaPermission** (`fo`, channel `gm`) | 2: getStatus (typed status: available/reason/grantOwner/grantOwnerDisplayName/accessibility/accessibilityProbeOk/screenRecording/screenCaptureProbeOk/idle — macOS+Windows only, typed reasons "CUA permissions are only available on macOS and Windows." / "not enabled (plugin off or not product mode)") + restartHelper (macOS-only; reason:"permission_granted" variant) | the phone decodes PUSHED observations (the G64-class banner) but has no getStatus/restartHelper surface — G101 |
+| **MediaPreview ⚠ CLOSED** (`createMediaPreviewService` = yO, channel `ja`) | 1: prepare({path, expectedKind}) → {kind:"local-url", url} \| {kind:"inline", dataBase64, mediaType, path, size} — inlineMaxBytes default 8,388,608 (8 MiB), typed "Media file is too large for inline preview"; per-remote sessions wire a remoteMediaPreviewFactory | attribution RESOLVED: host-served (host/index.js); the phone's attachment thumbnails decode locally — no consume need |
+| **WindowProjectChanges ⚠ CLOSED** (`createWindowProjectChangesService` = tz, channel `rS`) | 2: getCapabilities() → {version:1}, onDidChange(cb) → fires on host-bus `state:projects` messages | attribution RESOLVED: host-served, registered into web-remote-replayable channel servers only when windowServices exist |
+
+### B2. The window-host exposure policy (G97 census addition)
+
+`resolveWindowHostServiceExposurePolicy` (`nme`): the **`web-remote-replayable` client
+mode (the browser companion) is restricted to a 49-channel `allowedChannels` Set** —
+File, MediaPreview, System, Terminal, Git, GitCheckpoint, Setting, OnboardingRecord,
+Credential, CuaPermission, CuaPipSession, Broadcast, ZCodeTask, WindowController,
+ZCodeAgent, ZCodeSession, Project, TaskGroups, RemoteProjects, WindowProject,
+WindowRemoteProjects, WindowProjectChanges, ConversationShare, FileWatcher, OAuth,
+ProviderSettings, ModelSelection, SourceServerWorkspace, UsageStats,
+CodingPlanSubscription, ClientScenes, Skills, McpSync, Plugins, PluginManagement,
+Subagents, Commands, Hooks, Memory, OutputStyle, SettingsSync, Bots, Feedback,
+PromptAttachmentTransfer, OffPeakTask (49 exact). In that mode **McpSync is scoped by
+`scopeMcpSyncServiceForMobile` to exactly {loadMcpFromUserDirectory,
+saveMcpToUserDirectory, listWorkspaceMcpServerStatuses, setWorkspaceMcpTrust}** — every
+other verb rejects typed `feature_disabled` "Remote sync is only available from
+Desktop". The NATIVE app's client mode is NOT web-remote-replayable → unrestricted
+channels (consistent with the phone's 38-service registry). The companion plane now has
+its exact channel allowlist; the desktop's `remote.*` i18n namespace (460 keys) is the
+desktop-side device-companion faces ("设备未连接，连接后继续此会话") — G97 deepened.
+
+### B3. Backlog item 3 — the i18n namespace diff: DONE
+
+Census: the desktop renderer carries **84 dotted namespaces / 6,515 keys**
+(IntlProvider-C435ESD3.js; zh-CN + en-US) vs the phone's 391 strings.xml keys in ~25
+prefixes (most phone UI text is in-code Compose strings, so the diff is a COVERAGE
+screen, not a count). Adjudication of the namespaces with NO phone counterpart:
+
+| Desktop namespace | Keys | Verdict |
+| --- | --- | --- |
+| **ssh** (SSH 远程连接: host/port/username/auth password·privateKey/assetInstallMode local-download-upload…/advancedOptions) | 180 | **NEW G98** — the desktop connects DIRECTLY to SSH servers as workspace hosts; the phone has zero ssh/wsl/docker/source-server surfaces |
+| wsl (45) + docker (35) + server (50) + sourceServer (60) | — | fold into G98 |
+| **whiteboard** (画板: named boards, pen/eraser/color/strokeWidth/undo/redo/addToChat/missing) | 65 | **NEW G99** — a persisted named-canvas plane vs the phone's send-only Sketch |
+| **modelTrajectory** (模型调用轨迹: per-model-call usage input/output) | 165 | **NEW G100** — the desktop's per-call usage trajectory viewer; the phone's Usage screens are aggregate |
+| **cuaPermission** (the permission panel copy) | 25 | **NEW G101** — with the getStatus/restartHelper verbs (B1) |
+| remote (460) | — | the desktop's device-companion faces — folds into G97 |
+| project (432) + projectManagement (205) | — | desktop multi-project CRUD; the phone's workspace switching covers the day-to-day — census note, no row |
+| taskList/taskGroup/archives/taskSearch/taskTimeline/taskNav | 287/170/173/45/40/20 | phone parity exists in-app (rows/groups/archive/search); archives delete verbs in the opportunistic queue |
+| codeViewer (145) | — | the phone's file viewer covers read-only; parity partial — census note |
+| bots (485) | — | Bots authoring = NO-ACTION forever (ADR) |
+| imageEditor (90) | — | desktop editor; phone attaches images only — census note |
+| browser (90) | — | desktop CUA-browser control UI — AppControl = NO-ACTION forever |
+| occupationOnboarding/welcome/login/updateDialog/updateReady/forceUpdate/updateAvailable/postUpdateReleaseNotes/marketingTouch/debugInfo/developerTools/commandCenter/quickPick/v4Pane/sidePane/workspaceSidebar/workspaceFileTree/fileTree/fileManager/directoryBrowser/resourceManager/titleBar/sidebar/treemapping | — | desktop shell — legit |
+| genUi (105) / webRemoteControl (130) / conversationShare (77) / rewards (25) / offPeak (20) / plugins+pluginUi+pluginCreator / tokenDebug (20) / bashOutput (20) / terminal (40) / subagentDirectory (30) | — | already rowed (G81/G97/G86/G60/queue items) |
+
+## M.C — where the phone is BETTER (new receipts this pass)
+
+- The diagnostics export is a genuinely complete redacted report (env → connection →
+  identity → counters → typed warnings → timeline → full ring) with the desktop's
+  MAX_TESTED stamp inline — nothing on the desktop side exposes a comparable one-tap
+  artifact for the mobile connection.
+- The fresh-install pairing chain is self-guided end-to-end (E7 stale gate, security
+  gate, permission ask, carousel) — the desktop's QR flow has no equivalent onboarding
+  grammar to compare.
+
+## M.D — STEP 2 coverage adjudication (latest-first)
+
+- Shade-ACTION approve: STANDING RIG STOP (unchanged).
+- G67 card live render: F-P9-B's negative receipt stands (code unchanged).
+- MD_FILE render: still blocked by F-P6-B (unchanged).
+- User-row long-press ACTIONS: UNBLOCKED by the F-P8-C re-verification — the drag
+  works, so the next pass can drive the user-row action plane (Copy/Ask in a side
+  session/Share/Edit) without an app fix.
+- Question-card options: still blocked by F-P3-A (unchanged).
+- Take-photo happy path / widget add-to-home: standing stops.
+- Re-drive FIXED rows: no fix rounds have run yet.
+- Settings-search edges: N/A — this build's Settings screen has NO search field (only
+  home has Search tasks, receipted pass 8); the vc51-era "Settings search" gotcha does
+  not apply to the pass-0 series' build.
+
+## M.E — ledger arithmetic
+
+Open F: 22 + 1 (F-P10-A) = **23** (21 defects + 2 observations). Open G: 17 + 4 (G98–
+G101) = **21 + 3 standing**. Open smalls: 9 + 1 (N-BN-1) = **10** (+1 watch +1 rig).
+Backlog: items 1/2/3/4/5/7/8 DONE, item 6 rolling — **7 of 8 fully ticked**.
+
+### Coverage honesty (what pass 10 did NOT drive)
+
+The push/interaction arms (no push generations this pass — the rig went to the pairing/
+audit legs after the wedge; the push arm recipe is unchanged), F-P8-E's follow-release
+(needs a streaming arm), the terminal view (5× receipted, code unchanged), the
+Notifications detail sub-screen and About screen (navigated past, not dumped — low
+yield), the automation EDITOR screen (the automations plane now renders — the editor
+was swept in vc52-era passes; not re-dumped this pass), the endpoint DETAIL/editor form
+(the row tap didn't navigate — the form was last swept in the vc51 series), and
+backlog item 6's remaining arms now all stand at their standing stops.
+
+## Pass-10 verification stamp
+
+Pass 10 completed 2026-11-14 ~05:30; relay generations gen1 `mock-p10-gen1-g1a2b3`
+(04:20 pairing + first connect), relaunches gen1b/gen1c (stale-session + wifi-out
+windows, both receipted), gen1d (05:25, +MOCK_OFFPEAK=1, current) — one launcher
+(/tmp/p10/relay-g1.sh), three emulator restarts (wipe-data boot 03:50, warm reboot
+03:52×2, full restart 04:52), receipts nonce-anchored. 31 screenshots
+`/tmp/p10/shots/s01–s31`; DB pulls `/tmp/p10/db/p10-1.db(+wal)` (ghost census: 1
+interaction, clean post-wipe); diagnostics export artifact
+`/tmp/p10/diagnostics-export.txt` (1,174 lines, redaction-verified); full logcat
+`/tmp/p10/logcat.log` (+ the on-device `-d` windows quoted inline); ANR record
+`/tmp/p10/anr2.txt` + `trace01.txt`; launcher + typing drivers `/tmp/p10/relay-g1.sh`,
+`/tmp/p10/type4.py` (+ the two failed variants kept as counter-examples); a11y dumps
+`/tmp/p10/a-*.xml` (17 screens); i18n census `/tmp/p10/i18n-ns-census.txt` (superseded
+by the clean 84-NS count in §B3); REA extraction reused `/tmp/p6-asar/x` (desktop asar
+`ec475e6e…` re-verified at STEP 0). APK byte-identical to the whole series (sha256
+`ad449d7d…`, md5 `530ba4ff…`, vc53/1.3.2; re-verified at the pass-10 build). Rig left:
+emulator zcode-a16 UP (PIN-less, stay-on 7 + screen_off_timeout 600000 set, wifi
+disabled, screenshot protection OFF), relay gen1d ALIVE (23-arm light + off-peak), app
+paired + CONNECTED on the conversation screen, logcat running to /tmp/p10/logcat.log.
+Nothing pushed.
