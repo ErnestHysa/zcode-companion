@@ -417,6 +417,13 @@ delta …`). Nothing pushed.
 
 ## History
 
+- 2026-11-14 (pass-13 supersession note) — the `c2bd7bcb` rig-left correction (a
+  concurrent session documenting the post-pass-12 soft-reboot and "repair") was
+  written into the campaign-state block that pass 13's record replaced; the same
+  reboot event is pass 13's P.A0.4/P.A4 lifecycle (that session's "app relaunched
+  (pid 2616), reconnected to gen2" was actually pass 13's post-cold-boot gen5a
+  launch — the nonce-bearing relays tell them apart). The correction's facts live
+  on here; nothing else from it was lost.
 - 2026-11-14 (pass 13) — Part P executed on the never-driven-arm matrix axis:
   NEW F-P13-A (P2, the delta plane drops on every post-recovery connection —
   wire-arrival + gateway.drop receipted 2×, mechanism pinned to the recovery's
