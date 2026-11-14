@@ -1784,6 +1784,14 @@ class MockZCode(
     @Volatile private var scriptedAttachment: Triple<String, String, ByteArray>? = null
     fun setScriptedAttachment(ref: String, mime: String, bytes: ByteArray) {
         scriptedAttachment = Triple(ref, mime, bytes)
+        // pass-11 (F-P11-A's mock half): the app loads the attachment from its CACHED
+        // rows BEFORE the conversation subscribe's snapshot (the cold-start read raced
+        // snapshotRows' registration — one-shot fault.attachment.unknownRef, and the
+        // chip rendered "Loading…" until a recomposition retried). Register at arm
+        // time; snapshotRows' put is idempotent.
+        val att = MockAttachment(sessionId = "scripted-attachment", fileName = "mock.png", mime = mime, totalBytes = bytes.size.toLong())
+        att.data.write(bytes)
+        synchronized(committedAttachments) { committedAttachments[ref] = att }
     }
 
     private fun snapshotRows(sessionId: String, count: Int): JsonArray =
