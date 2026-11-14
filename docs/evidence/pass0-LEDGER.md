@@ -234,25 +234,70 @@ bodies after 3.14.3 — the census IS the changelog.
 
 ## Prompt templates (paste-ready; the ledger + report tail make them self-adjusting)
 
-**Discovery pass (the default):**
+**Discovery pass (the default — canonical, audit-verified 2026-11-14):**
 ```
-Continue the pass0 verification campaign (ZCode Companion Android vs macOS desktop).
-Read docs/evidence/pass0-LEDGER.md FIRST, then the LAST part of
-docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md, then the rig
-recipes (Part C + every pass's rig-learnings). STEP 0: verify /Applications/ZCode.app
-version + asar sha256 against the ledger; if changed, run the DELTA procedure first.
-STEP RIG (mandatory for every live leg): spin the live emulation — check what the last
-pass left running (ledger campaign-state block, `adb devices`, the relay/DIRECT ports),
-cold-boot zcode-a16 or reuse what's up, build+install the debug APK at HEAD, launch
-MockZCode with the ARMS the backlog item names, pair/connect, and drive the app
-ON-DEVICE (uiautomator + screenshots + logcat + DB pulls as arbiter). REA/docs-only
-work NEVER satisfies a live leg. STEP 1: work the ledger's DISCOVERY BACKLOG (next
-unchecked items; method named there). STEP 2: drive the latest coverage-honesty
-leftovers. Never re-narrate OPEN rows (one line + stamp bump); never re-receipt
-VERIFIED surfaces unless their code changed. App code: record, don't fix (mock/rig
-fixes allowed, committed with finding IDs). Append the new pass part to the report;
-update the ledger (statuses, backlog, campaign state). Nonce-anchored generations,
-DB pulls as arbiter, nothing pushed.
+Continue the pass0 verification campaign: live-verify the ZCode Companion Android app
+against its macOS desktop, find everything missing or broken, and record it.
+
+READ FIRST (in this order):
+1. docs/evidence/pass0-LEDGER.md — the whole file (rows, fix-order, DELTA procedure,
+   discovery backlog, campaign state incl. the audited rig note).
+2. The LAST "# Part" section of
+   docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md (latest pass
+   record + its fix-order + coverage-honesty).
+3. The rig recipes: report Part C + sections D.A0, E.A0, F.A0, G.A0, H.A0, K.A0 + the
+   Part I/J concurrency forensics. Non-negotiables they encode: `pkill -f
+   MockRelayMainKt` NEVER by port (qemu NAT); taps at SCREENSHOT-derived bounds for
+   dialogs (dump bounds lie ~200 px); restart `adb logcat -T 1` after EVERY emulator
+   restart; absent log lines are inconclusive — the Room DB pull is the arbiter.
+
+STEP 0 — DESKTOP OF RECORD (your first tool action):
+  defaults read /Applications/ZCode.app/Contents/Info.plist CFBundleShortVersionString
+  shasum -a 256 /Applications/ZCode.app/Contents/Resources/app.asar
+Compare against the ledger. UNCHANGED → proceed. CHANGED → run the ledger's DELTA
+procedure BEFORE any app leg (re-extract, re-census every standing grep, diff all
+numbers, open new G-rows), and stamp the new digest into the ledger.
+
+STEP RIG — LIVE EMULATION (mandatory for every live leg; REA/docs-only work never
+satisfies one):
+- Reuse or boot: `adb devices`; kill zombie relays with `pkill -f MockRelayMainKt`;
+  cold-boot = AVD zcode-a16, NO `-no-window`, flags `-no-snapshot-load -gpu
+  swiftshader_indirect -no-audio -no-boot-anim`, then `svc wifi disable`.
+- FIRST in-app action after boot: Settings → Privacy → "Screenshot protection" OFF
+  (FLAG_SECURE blacks every capture otherwise); verify a ~1.4 MB-class PNG.
+- Build + install at HEAD: `./gradlew :app:assembleDebug :tools:mockzcode:jar` then
+  `adb install -r app/build/outputs/apk/debug/app-debug.apk`; restart
+  `adb logcat -T 1`; receipts go in a fresh /tmp/p<N>/ per pass.
+- Relay: per generation set a FRESH `MOCK_GEN_NONCE` (format mock-p<N>-gen<M>-<id>;
+  the var is MOCK_GEN_NONCE — report Part C's "MOCK_GEN_ID" is a wrong name, do not
+  copy it), launch via the plain `java -cp` recipe (/tmp/p0/relay.sh pattern) with
+  ONLY the arms the backlog item names — env-inherited, set BEFORE the exec line
+  (appending after it arms nothing); MOCK_PORT_OVERRIDE/MOCK_PUSH_MS_OVERRIDE honored.
+  Stored endpoints survive relay restarts (constant mock passHash) — no re-pairing.
+- Drive ON-DEVICE: uiautomator dumps (count nodes with `grep -o '<node' | wc -l` — the
+  XML is one line), screenshots, logcat, and DB pulls
+  (`run-as com.zcode.android.app cat databases/zcode.db{,-wal}`) as the arbiter.
+
+STEP 1 — DISCOVERY BACKLOG: work the ledger's next unchecked item(s) with the method
+named there. An item is done when its findings are appended as new F/G/N rows
+(mechanism + code pin + receipt) and the checkbox is ticked.
+
+STEP 2 — COVERAGE LEFTOVERS: drive the latest pass's "Coverage honesty" list (latest
+first). Skip anything already receipted unless its code changed.
+
+RULES:
+- Never re-narrate an OPEN row — ONE line + a Stamps bump in the ledger. Never
+  re-receipt FIXED/REFUTED/ABSORBED/STANDS surfaces unless their code changed.
+- App code: RECORD, don't fix. Mock/rig fixes ARE allowed (they unblock arms) —
+  commit them as `fix(mock): <ID> …`.
+- If another session may share the rig, claim generations in /tmp/pass-coord-*.md and
+  nonce-anchor every receipt.
+- Append the new pass part to the report (append-only; earlier parts untouched),
+  ending with the verification-stamp block: time, generations, artifact paths, APK +
+  desktop digests, and the what-was-NOT-driven list. Update the ledger (statuses,
+  stamps, backlog, campaign state incl. the rig-left note).
+- Commit everything locally as ErnestHysa <takis312@hotmail.com> (`docs(pass0):
+  pass-<N> record …` for docs, `fix(mock): …` for rig fixes). NEVER push.
 ```
 
 **Fix round (after roadmap phases exist):**
@@ -263,8 +308,12 @@ and implement PHASE <N> ONLY — nothing else. Each row: re-read the finding + i
 ledger entry, TEST-FIRST (failing pin per fix, live-shape harnesses where the report
 names them), fix, run the module suites (testDebugUnitTest + pure-JVM `test` tasks),
 rebuild the debug APK, commit `fix(<ID>): …` per finding, tick the row FIXED in the
-ledger with the commit sha. Follow the deliverable-completion rule. Append a short
-fix-round record to the report; nothing pushed.
+ledger with the commit sha. Follow the deliverable-completion rule (regression pins,
+module suites — `testDebugUnitTest` for Android modules + `test` for the pure-JVM
+modules, APK rebuilt so a fresh artifact exists, commit, state the artifact path +
+version marker). Re-verify each FIXED row live on the rig under the discovery
+template's STEP RIG rules. Commit the report/ledger update locally too
+(`docs(pass0): fix-round <N> record …`); nothing pushed.
 ```
 
 **Desktop delta pass (run whenever the desktop updates):**
@@ -273,7 +322,9 @@ fix-round record to the report; nothing pushed.
 in docs/evidence/pass0-LEDGER.md: re-run every standing census grep, diff each number
 against the ledger, open NEW G-rows (especially mobile-remote/UI/UX planes), re-check
 the backlog items the delta invalidates, then diff the phone at HEAD against each new
-row. Append a DELTA part to the report + update the ledger. Nothing pushed.
+row. Stamp the new digest into the ledger's desktop-of-record, append a DELTA part to
+the report, update the ledger, and commit everything locally (`docs(pass0): desktop
+delta …`). Nothing pushed.
 ```
 
 ## History
