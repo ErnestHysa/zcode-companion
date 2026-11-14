@@ -2504,3 +2504,271 @@ REA extraction `/tmp/p6-asar/x` (host `e31718b8…`, desktop asar `ec475e6e…` 
 APK unchanged and re-verified byte-identical at pass start (md5 `530ba4ff…`, vc53/1.3.2). Rig
 left: emulator up, gen6 relay on :18100, the DIRECT mock on :18200, Live connection restored
 OFF, the app paired with both endpoints and connected to the relay. Nothing pushed.
+
+# Part L — pass 9 (APPENDED 2026-11-14, ~03:00): the silent AUTHENTICATING wedge, the un-rendering typed face, and the runtimeCapabilities/web-remote censuses
+
+> **Pass 9 of the pass-0 series** (solo; ran on the canonical discovery prompt after the
+> ledger audit). Two halves again: (1) the live rig — NINE relay generations (gen1 push-45s
+> aborted, gen2 push-150s missed, gen3–gen4 lockscreen legs, gen5–gen7 shade-approve
+> attempts, gen8 remote-down+md-file, gen9 md-file isolated) plus the PIN'd keyguard —
+> which produced TWO new P2 app defects (F-P9-A the permanent silent AUTHENTICATING stall;
+> F-P9-B the typed disconnected-remote face that never renders live) and CLOSED the
+> 3-pass-owed lockscreen leg at its core; (2) the REA dig part 9 — desktop digest re-verified
+> byte-identical at STEP 0 (`ec475e6e…`, extraction `/tmp/p6-asar/x` reused, host
+> `e31718b8…`), backlog items 1/4/5 executed: the 13-name runtimeCapabilities vocabulary
+> traced bit-by-bit, the G93 mobile-push enum residual CLOSED (producer found, values exact),
+> and the desktop's whole web-remote-control companion plane extracted (90 i18n keys).
+>
+> **Verification stamp:** 2026-11-14 01:45 → 03:00, GLM-5.3-Flash in ZCode, everything
+> local, nothing pushed.
+
+## L.A0 — rig learnings (each bites the next pass)
+
+1. **The interaction-push arm is SUBSCRIBE-anchored, not relay-start-anchored** —
+   `armInteractionPush` (MockZCode.kt:2061-2080) starts its `delay(ms)` at the FIRST
+   conversation subscribe after relay start. Pass-8's §K.A0.4 recipe ("fire−lock ≥ ~10 s",
+   computed from relay start) is WRONG on the anchor; compute the fire from the subscribe
+   line (`recovery.subscribed` in logcat). Also: a RESUME that re-attaches without a fresh
+   `recovery.subscribed` still arms (gen4 fired at resume+60 s with no subscribed line).
+2. **The app cancels its own shade notifications on resume** — `app.lifecycle onStart`
+   triggers the foreground cleanup; 5 removals receipted at 02:22:21 right after the
+   screen wake resumed the activity (gen5's fresh 02:30:31 post was cleaned the same way).
+   Any shade-approve leg must NOT let the app resume before the tap.
+3. **Notification action buttons are suppressed under the keyguard** (Android 16) and
+   **injected taps on lockscreen notification rows never deep-link** (pass-6's
+   shade-group-undrivable family, extended). The lockscreen shade-approve route is a
+   STANDING RIG STOP — it needs a real device (or UiAutomator-level gestures).
+4. **`wm dismiss-keyguard` is the reliable dismiss**; with a PIN set it bounces the PIN
+   pad, and the PIN entry must run as ONE atomic adb burst (wake → dismiss → 4 digit
+   taps → Enter): the display sleeps between separate tool calls despite
+   `screen_off_timeout=600000`. AVD now has PIN **1234** (set this pass — the F-37-B
+   no-auth posture is henceforth testable against a real gate).
+5. **`svc power stayon true` is ineffective on this API-36 image; use**
+   `settings put global stay_on_while_plugged_in 7` **(verified: 1.09 MB captures
+   afterwards vs 15 KB black frames before).**
+6. **The screen-state ARB list**: `dumpsys power mWakefulness` (Asleep/Dozing/Awake),
+   `dumpsys trust deviceLocked`, `dumpsys window mCurrentFocus` — screenshot size is the
+   fastest proxy (~15 KB = FLAG_SECURE-black or display-off; ~1 MB = real render).
+7. **A home list re-layout shifts task rows between navigations** (the row moved from
+   [234,752] to [306,1511] to [234,1127] across three dumps) — re-dump bounds before
+   every row tap; the stale tap opened synth-task-2 once (receipted, harmless).
+8. **The BACK key from a conversation sometimes lands on the conversation again** (the
+   mention panel consumed two backs); verify the screen after each back — the "Settings"
+   dumps taken at 02:14 were actually HOME dumps from a missed gear tap.
+
+## L.A1 — verified working this pass (receipts; bold = never-driven-in-series)
+
+| Surface | Pass-9 receipt |
+| --- | --- |
+| **Push lands WHILE LOCKED over the LIVE connection (the 3-pass-owed leg, CORE)** | gen3: device Asleep 02:18:25→02:22+, heartbeats every 10 s through the lock (FGS `isForeground=true`), patch `rpc.recv bytes=4167` at **02:21:14.459** → `gateway.frame ONLINE` → `manager.deltas ops=1` → **`notify.show :: key=interaction:mock-approva channel=permissions` at 02:21:14.602** — the notification posted to the shade while the device was locked. Repeated gen6: `notify.show` at **02:33:47** while Asleep, 5 active notifications. The lockscreen itself rendered the approval group + question (shot 09) |
+| **The Live-connection FGS holds the socket through screen-off** | K.A0.3's dead-socket posture did NOT recur with Live ON: pair_status_query/ack every 10 s across the whole locked window; the FGS receipt "Connected to MockBook · Live connection active — tap to disconnect" visible in the shade (shot 06) |
+| **The background recovery ladder works from RECOVERING** | relay restarts at 02:29:16, 02:32:17, 02:41:37 (behind the keyguard, app stopped): `RECONNECTING → RECOVERING → CONNECTED` in ≤0.4 s each, bootstrapApplied after — the ladder is healthy for a transport that reached CONNECTED before the kill |
+| **PIN unlock flow (new rig capability)** | `locksettings set-pin 1234` → `wm dismiss-keyguard` bounces the PIN pad → atomic digit burst unlocks (deviceLocked=0, MainActivity focused) — the F-37-B auth-gate posture is now drivable against a REAL keyguard |
+| **MOCK_MD_FILE arm (first series drive, isolated gen9)** | env verified on the process (`ps -E`), the demo assistant row served the file VERBATIM: DB row `### Rig markdown probe (pass 9)…` with the full bold/list/table/blockquote payload (1 row in the pulled DB); stored after `recovery.subscribed` → `snapshotReconcile rows=53`. The RENDER half is blocked by F-P6-B (below) |
+| **MOCK_REMOTE_DOWN_MS arm fired (see F-P9-B for the defect half)** | `relay.reconnectFailed :: workspace-bridge-error: remote-disconnected (errorText=The remote workspace is not connected. Send /reconnect first, then try again.)` across relay-23/24/25 ladders at 02:45:14–21 and again at 02:49:07 on relay-30 — the typed error travels end-to-end |
+| **Mention-panel tabs Sessions/Skills/Plugins/Agents (first series drive — coverage item CLOSED)** | All four render real rows: Sessions → `Synthetic task / synth-task-1`; Skills → `release / Cut a release: bump version, changelog, tag, build artifact.`; Plugins → `prisma-toolkit / Schema-first database workflows and migrations.`; Agents → `Explore / Read-only search agent` (shots 16/17×3). Files was receipted pass 8 — all five tabs now live-verified |
+| ConnectionCenter phase legend (first full read) | Not paired / Connecting (validating, proving identity, opening bridge) / Connected / Reconnecting (retrying with backoff, cached labeled) / Synchronizing / Connection failed / Closed — the complete phase vocabulary on one screen (dump d40) |
+| Robustness | 0 FATAL / 0 ANR app-side across 9 relay generations, 2 System-UI ANR dialogs (rig-side, dismissed), ~20 reconnects, the PIN/lockscreen/shade churn, and the F-P9-A stall window |
+
+## L.A2 — defects found this pass (NEW ledger rows)
+
+- [ ] **F-P9-A (P2, app) — after the paired relay dies MID-AUTHENTICATION, the transport
+  wedges in AUTHENTICATING permanently: zero sockets, zero reconnect attempts, zero logs,
+  and no user-visible recovery except switching endpoints.** Receipt: the transport logged
+  `recovery.deferredAttach :: transport=AUTHENTICATING` at 02:07:47 against a relay that
+  had just been killed; for **8 minutes 6 seconds** (02:07:47→02:15:53) with the app
+  FOREGROUND, unlocked, on the conversation screen: no `hub.connect`, no ladder lines, no
+  timeouts — `netstat` on the device showed ZERO sockets to :18100, the relay saw ZERO
+  connections, the header read "Connecting…" forever, and home rendered NO retry face
+  (the cached rows suppress the "First sync failed" strip — K-small-2's wording nit has
+  this as its real teeth). The user-visible escapes all failed: resume/unlock (nothing),
+  session-bar tap (chip toggle only), active-endpoint row tap (silent no-op). The ONE
+  working escape: select the OTHER endpoint (P3Direct → `hub.phase RELAY_ZAI → UNPAIRED`
+  + honest `direct.candidateFailed :18200` since the direct mock was down) then switch
+  back → fresh `hub.connect` → connected in 2 s. Contrast receipted 4×: a transport that
+  was in RECOVERING at kill time ladders back in ≤0.4 s on resume (02:24:50, 02:29:16,
+  02:32:17, 02:41:37) — **the wedge is specific to dying while AUTHENTICATING (the
+  handshake state has no watchdog and the ladder never arms from it)**. Fix shape: an
+  AUTHENTICATING watchdog (timeout → RECOVERING) + a visible face when the ladder is
+  stuck; pins: Robolectric harness (kill the server mid-handshake → assert a reconnect
+  attempt within N seconds) + "no silent state without a log line" assert. This is the
+  F-P8-A family's second mechanism (that row's silent flip; this one's silent stall).
+- [ ] **F-P9-B (P2, app) — the typed disconnected-remote face does NOT manifest on the
+  live load path: the G67 Reconnect card never renders, so the recovery verb is
+  UI-unreachable and the user has no remedy while the remote is down.** Receipt: with
+  `MOCK_REMOTE_DOWN_MS=20000` armed (gen8), every bridge-open failed with the typed error
+  (verbatim in L.A1) and the HUB logged it (`hub.connectFailed :: SESSION
+  workspace-bridge-error: remote-disconnected`, 02:49:07 on relay-30); yet the
+  ConnectionCenter opened 40 s later shows the GENERIC "Still offline — showing cached
+  state" face — the `connection_remote_reconnect` card (render condition
+  `lastError.messageKey == REMOTE_WORKSPACE_DISCONNECTED`, ConnectionCenterScreen.kt:296)
+  is ABSENT from a fresh dump. Downstream: the arm only flips on
+  `workspace-reconnect-request`, which only the (unrendered) card sends → the phone
+  ladders into the same typed error forever; the conversation row snapshot was never
+  re-fetched under the arm (the MD_FILE row only landed on gen9, arm absent). The vc52
+  receipt + the transport pin (`RelayTransportRemoteWorkspaceReconnectTest`) pass —
+  **the mapped messageKey is lost between the transport error object and
+  `hub.lastError` on the live path** (the mapping exists: ErrorMapping.kt:334). F-P5-A
+  family (pinned faces don't manifest live). Fix shape: trace the hub's
+  connectFailed→lastError assignment for the SESSION-scope bridge error; pin: live-shape
+  harness asserting the card's testTag renders with the arm armed end-to-end.
+
+## L.A3 — re-manifestations at HEAD (stamps only)
+
+- **F-P0-B (8th) / F-P3-A (8th)**: the hook-review card again "2 pending · 3 hooks" with
+  ZERO item rows, and the question card's body crushed to a "Send answe/rs" wrap inside
+  its clipped button box (shots 14/15 — both cards in one frame with the armed stack).
+- **F-P6-B (2nd)**: with the armed stack the timeline renders ZERO rows (the whole
+  viewport is cards+queue+strips); this blocked the MD_FILE render half.
+- **F-P8-D (2nd)**: the queue panel again always-expanded (2 rows + Auto-send), no
+  collapse affordance; the header clip half was NOT re-receipted (it rendered fully at
+  this scroll).
+- **F-P1-D (3rd)**: the ~8 s `conversationWorkflowRunsV4` drum continued WHILE ASLEEP
+  (02:21:11→02:21:51, ids continuous during the lock) — the poll runs behind the
+  lockscreen.
+- **F-P6-A (3rd)**: ghost census after gen9: **5 unresolved of 83 rows** — the pass-0
+  `q-rig-1-mock-p0-gen4` (REQUESTED, 2026-11-12 19:59), BOTH pass-2 ghosts now present
+  (`mock-approval-1-mock-p2-gen3` 22:23 AND `q-rig-1-mock-p2-gen3` 22:14 — the question
+  was never counted before), plus gen9's fresh seeded pair (DISPLAYED). Oldest is 2+ days.
+  One EXPIRED row proves the auto-resolution machinery exists but rarely fires.
+- **F-P1-B (4th)**: gen4's pushed interaction (`mock-approval-push-1-mock-p9-gen4`,
+  created 02:25:50) was STALEd by the 02:26:02 snapshot sweep 12 s after arrival — the
+  next snapshot legitimately swept it; the push id stayed pending-forever for gen3's
+  (RESOLVED only by the resume sweep).
+- **K-small-2 (2nd)**: "Connection lost — showing cached tasks / Reconnecting to
+  MockBook… / Retry" rendered alongside cached rows during the gen8 arm — and the
+  wording nit now has F-P9-A as its structural teeth (no strip at all when the wedge
+  suppresses the refresh).
+
+## L.B — the REA dig, part 9 (digest unchanged `ec475e6e…`)
+
+### B1. Backlog item 4 — the runtimeCapabilities/clientHello bits: DONE (all 10 traced)
+
+The vocabulary is a 13-name schema (renderer `validation-BcSOL2CC.js`; host probe helpers
+with WeakMap caches; the phone source contains ZERO `runtimeCapabilities` handling and
+ZERO `genUiContext` — **the phone never answers the host's probes, so every check falls
+to its `.catch(()=>false)` degradation**):
+
+| Bit | Desktop gate (exact) | Phone verdict |
+| --- | --- | --- |
+| highspeedCardOwner | strips `highspeedMeta.ownerKey` from envelopes relayed to clients that don't declare it (host index.js:692994); renderer builds `kind:"accelerated"` cards → `highspeedMeta{schemaVersion:1,card}` + modelExecution (styles chunk:3030094) | NO-ACTION — accelerated-card plane absent; graceful strip |
+| sessionLifecycleWorkspace | **schema-only desktop-wide** (validation copies; zero feature consumers in any bundle) | nothing to consume — DECLARED-RESERVED |
+| sessionDirectorySource | host sends `hostCapabilities:{sessionDirectorySource: !!resolveSessionDirectories}` to the agent at read-only-client startup; agent-side session-directory resolution | desktop-agent plane; phone-irrelevant |
+| sessionWorkspaceRouting | host→agent probe; unsupported + shared runtime → hard error "This Agent version does not support shared task workspace routing" (host:646076) | phone-irrelevant |
+| independentPlanState | host hello declares true; agent check gates planEnabled envelopes → `proto.independentPlanUnsupported` (host:692459) | phone DECODES the bit (V4Wire.kt:36/60) but never gates on it — decode-only note |
+| residentRowsRange | host hello declares true; agent must support for `getResidentRowsClient` else `sessionNotResidentError` — "session is not resident: <id> (proto.sessionNotResident)" (host:601104) | ranged-row fetch plane; phone consumes nothing; N-BM-1 adjacency (a ranged fetch would replace the stale-total prefetch) |
+| worktreeCwd | agent capability set → `agent.supportsWorktreeCwd` → **ManagedWorktreeService.supports** (host:160374, localhost + no workspaceIdentity only) | G94 adjacency — the worktree plane is additionally agent-gated |
+| extensionInputSource | agent set → `supportsExtensionInputSource` — **zero consumers desktop-wide** | reserved |
+| conversationQuoteComment | agent set → renderer `[selection-comment] 读取批注能力失败，隐藏批注入口` — the conversation selection→annotation entry, self-hiding when absent (styles chunk:3422272) | **NEW G96 (P4)** — the annotate/批注 plane is desktop-only |
+| pluginExtensionSummary | `getPluginsOverview` adds `includeExtensionSummary:true` when the agent declares (host:671837) | depth note under G91 |
+
+### B2. Backlog item 5 — G93's enum residual CLOSED (and pass-8's producer attribution corrected)
+
+The `kind`/`state` values are NOT in zcode.cjs (0 hits in the bundled CLI — pass-8's
+"producer: agent process" line was wrong). They live in the HOST bundle:
+`chunk-7SAPNXNZ.js` → `collectMobilePushEvents` + the strict event schema:
+
+- **kind ∈ {question, approval, plan, task_completed, task_failed}** — pendingInteraction
+  mapping: `kind==="permission" ? "approval" : toolName==="ExitPlanMode" ? "plan" :
+  "question"`; phase transitions while running/prewarming: completedSuccess→task_completed,
+  error→task_failed.
+- **state ∈ {open, resolved}** — emitted only when the pending interaction CHANGED between
+  snapshots (previous → resolved, new → open).
+- Payload: `{version:1, locale:"zh-CN"|"en-US"?, session_title≤512?, desktop_platform:
+  "windows"|"macos"|"linux"?, event_id, kind, workspace_id, session_id, run_id,
+  interaction_id?, state, occurred_at}`; event_id formats
+  `${interactionId}:${counter}` (interactions) and `${sessionId}:${lastActivityAt}:${kind}`
+  (phase transitions); session_title sliced to 256 code points; events skipped with
+  reason `run_not_observed` when no run was observed. G93's consume decision now has the
+  complete wire contract.
+
+### B3. Backlog item 1 — the desktop Mobile-Remote UI/UX audit: DONE (first full pass)
+
+The plane is **`webRemoteControl.*`** — 90 unique i18n keys (zh-CN+en-US in
+IntlProvider-C435ESD3.js) + the `WebRemoteControlDialog` in the styles chunk
+(`data-testid: web-remote-control-connection-card` / `-pull-mobile-logs`). Key
+structural facts:
+
+- **The companion is a desktop-served BROWSER page, not a deep link**: the QR encodes
+  `connectUrl` (a relay URL); "扫码或在手机上打开链接，即可远程控制当前工作区" — a phone
+  browser opens the desktop's UI. This is a THIRD mobile-access plane beside the native
+  Companion app (V1 relay) and the Bot channels.
+- Session lifecycle faces: idle/starting/connecting/running/active/error +
+  statusDetail copy per phase; stop (with failed/success toasts); refresh-Qr with a
+  CONFIRM dialog (invalidates old links); copyLink fallback ("无法扫码？").
+- Failure taxonomy (typed, user-facing): kicked ("relay 已踢出这次配对"), sessionConflict
+  (one page per pairing — `singlePageNote`), sessionExpired, sessionNotFound,
+  relayUnavailable, desktopDisconnected, invalidMobileConnection, connectionRecoveryTimeout,
+  desktopBootstrapTimeout, unsupportedAction, workspaceClosed, unexpectedError.
+- Workspace/task switching in the companion (switchWorkspace / noSwitchableWorkspaces /
+  noTasks / openTask / taskStatus ×4) + a mobileShell (backHome/chatTitle/reconnecting)
+  + a theme menu.
+- **Bot channels as long-duration access**: feishu/lark/weixin/telegram entries
+  ("适合更长时间的移动端访问") — desktop-side only.
+- **Auth gate**: "登录后即可使用手机远程控制。手机和电脑需登录同一账号。"
+- `pullMobileLogs` (`web-remote-control-pull-mobile-logs` testid, gated on
+  `mobileConnected`) — the desktop pulls the connected mobile PAGE's logs: web-companion
+  diagnostics, no phone reach-in.
+- `settings.mobilePush` (+Description): the desktop toggle that pushes task
+  completion/failure/approvals to the logged-in ZCode App when away — the G93 push
+  plane's desktop-side control face.
+
+**NEW G97 (P3) — the phone is blind to this whole plane**: no face for "a browser
+session is controlling this workspace" (no single-page conflict guard, no kicked-session
+notice, no companion-state mirror), and the bot-channel access alternative is
+undocumented phone-side. Consume minimum = honest surfaces, not the plane itself.
+
+### B4. Census corrections this pass makes to earlier rows
+
+- Pass-8 §K.B2's "kind/state enums are produced in the agent process (zcode.cjs)" →
+  WRONG; they are in the host bundle (B2 above). The G93 narrowed residual is now CLOSED
+  (the ledger row's residual sentence should be read as resolved).
+- Pass-8 §K.A0.4's push-arm anchor recipe → corrected in §L.A0.1 (subscribe-anchored).
+- The relay.sh launcher in /tmp/p0 reads `MOCK_GEN_ID` (the wrong name) and would pass a
+  STALE default nonce — this pass used direct `MOCK_GEN_NONCE` launchers (/tmp/p9/relay-g*.sh);
+  any future pass must do the same.
+
+## L.C — where the phone is BETTER (new receipts this pass)
+
+- The push-while-locked pipeline over the user's own FGS toggle (socket held, patch
+  applied, shade post — all while Asleep) has no desktop-side equivalent to compare; the
+  desktop's companion relies on the browser page being open.
+- The typed ladder diversity: the phone's recovery ladder distinguisher (RECOVERING vs
+  AUTHENTICATING) recovered 4/4 times when given a recoverable state — the failure is
+  only the unreachable wedge (F-P9-A), not the ladder design.
+
+## L.D — fix-order update (amends the consolidated order)
+
+1. F-P8-A → 2. F-P0-B → 3. **F-P9-A** (the wedge strands every multi-endpoint reconnect;
+   unblocks the endpoint-switch test legs) → 4. F-P8-C + F-P8-E → 5. **F-P9-B** (the
+   un-rendering typed face; unblocks the remote-down recovery leg) → 6. F-P6-A store half
+   → 7. F-P8-D → 8. F-P3-A → 9. F-P3-B → … (rest unchanged; smalls and parity queue as
+   listed in the ledger).
+
+### Coverage honesty (what pass 9 did NOT drive)
+
+The shade-ACTION approve (standing rig stop — three diagnosed blockers in §L.A0.3/2),
+the G67 card's live render (driven — negative; that IS F-P9-B), the MD_FILE render on
+screen (blocked by F-P6-B), the user-row long-press ACTIONS (still blocked by F-P8-C),
+the question card's options (blocked by F-P3-A), Take-photo happy path and widget
+add-to-home (standing stops), backlog item 2's remaining channel tables, backlog item 7
+(phone self-audit expansion), and the vc52-era arms (MOCK_PAIR_STATUS_PENDING_MS /
+MOCK_CUA_PERMISSION / MOCK_GIT_REFUSALS) which sit outside the pass-0 backlog.
+
+## Pass-9 verification stamp
+
+Pass 9 completed 2026-11-14 ~03:00; NINE relay generations (gen1 `mock-p9-gen1-g1h2i3`
+aborted pre-subscribe, gen2 `…g2j3k4` missed window, gen3 `…g3k4l5` lockscreen CORE,
+gen4 `…g4l5m6` arm-timing probe, gen5 `…g5m6n7` shade attempt, gen6 `…g6n7o8` locked
+fire, gen7 `…g7o8p9` PIN setup, gen8 `…g8p9q0` remote-down+md-file, gen9 `…g9q0r1`
+md-file isolated) — every receipt nonce-anchored in the pulled DBs. 21 screenshots
+`/tmp/p9/shots/`; DB pulls `/tmp/p9/db/p9-{1..4}.db(+wal)` (ghost fixtures); relay logs
+`/tmp/p9/relay-gen{1..9}.log`; full logcat `/tmp/p9/logcat.log`; launchers
+`/tmp/p9/relay-g{1..9}.sh` + the md probe `/tmp/p9/md-test.md`; REA extraction reused
+`/tmp/p6-asar/x` (desktop asar `ec475e6e…` re-verified at STEP 0, host `e31718b8…`).
+APK byte-identical to the whole series (sha256 `ad449d7d…`, md5 `530ba4ff…`, vc53/1.3.2;
+re-verified at the pass-9 build). Rig left: emulator zcode-a16 UP (PIN **1234** set,
+keyguard ON, stay-on 7 + screen_off_timeout 600000 set, **Live connection left ON** —
+the one untoggled cleanup, one tap in Settings→Notifications), ALL relays killed (zero
+zombies for the first time in the campaign), the app's connection stale (relay dead — it
+will ladder per the healthy path or wedge per F-P9-A). Nothing pushed.
