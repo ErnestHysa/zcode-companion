@@ -42,24 +42,24 @@ P2-first, exit gates, per-row Accept criteria).
 ## Campaign state (update every pass)
 
 - Report: `docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md` —
-  Parts A–M = passes 0–10. **Latest: pass 10 (Part M, 2026-11-14 ~05:30).**
-- Repo HEAD at last pass: `e9a8d206` (main, clean). APK of record: sha256 `ad449d7d…` /
-  md5 `530ba4ff…`, versionCode 53 / 1.3.2 (byte-identical across the whole series;
-  re-verified at the pass-10 build).
+  Parts A–N = passes 0–11. **Latest: pass 11 (Part N, 2026-11-14 ~11:06).**
+- Repo HEAD at last pass: `1e649eab` (main, clean; the pass-11 mock fix). APK of
+  record: sha256 `ad449d7d…` / md5 `530ba4ff…`, versionCode 53 / 1.3.2 (byte-identical
+  across the whole series; re-verified at the pass-11 build).
 - Desktop of record: **/Applications/ZCode.app 3.18.1.10376, asar sha256 `ec475e6e…`,
-  383,832,025 B** (re-verified at pass-10 STEP 0; extraction `/tmp/p6-asar/x` reused,
-  host index.js sha256 prefix `e31718b8…`).
-- Open rows: **23 F (21 defects + 2 obs incl. new F-P10-A) + 21 G (17→21 incl. new
-  G98–G101) + 3 standing + 10 smalls (+1 watch +1 rig)** — counts below per table.
-- Backlog: **7 of 8 items DONE** (1/2/3/4/5/7/8; item 6 rolling with standing stops).
-- Rig left by pass 10: emulator `zcode-a16` UP (PIN-less after wipe-data,
-  `stay_on_while_plugged_in=7` + `screen_off_timeout=600000` set, wifi disabled,
-  **screenshot protection OFF**), relay gen1d ALIVE (light 23-arm + MOCK_OFFPEAK=1),
-  app paired + CONNECTED on the conversation screen, logcat running to
-  /tmp/p10/logcat.log. The AVD's userdata is FRESH (wipe-data this pass) — the PIN and
-  the pass-9-era DB ghosts are gone; pairing data survives restarts but NOT wipes.
-  Launchers `/tmp/p10/relay-g1.sh` (pass MOCK_GEN_NONCE directly); the pairing typing
-  driver is /tmp/p10/type4.py (see M.A0.5).
+  383,832,025 B** (re-verified at pass-11 STEP 0 — UNCHANGED, no DELTA; extraction
+  `/tmp/p6-asar/x` reused, host index.js sha256 prefix `e31718b8…`).
+- Open rows: **24 F (22 defects + 2 obs incl. new F-P11-A/B; F-P8-E refuted-working)
+  + 21 G + 3 standing + 11 smalls (+1 watch +1 rig)** — counts below per table.
+- Backlog: **7 of 8 items DONE** (1/2/3/4/5/7/8; item 6 rolling — its unblocked
+  legs (user-row ACTIONS, F-P8-E, MD render, changes viewer) all CLOSED at pass 11).
+- Rig left by pass 11: emulator `zcode-a16` UP (PIN-less, stay-on 7 +
+  screen_off_timeout 600000, wifi disabled, **screenshot protection OFF**), relay
+  gen3 ALIVE (light rig + MOCK_MD_FILE=/tmp/p9/md-test.md + MOCK_FILECHANGES, nonce
+  `mock-p11-gen3-3c5d7e`), app paired + CONNECTED, **Live connection ON with the
+  60-minute window**, logcat running to /tmp/p11/logcat.log. Launcher
+  `/tmp/p11/relay-g3.sh`; note `MOCK_MD_FILE` takes a FILE PATH (pass-11's first
+  relay crash was `MOCK_MD_FILE=1`).
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -82,9 +82,11 @@ bodies after 3.14.3 — the census IS the changelog.
 | F-P9-B | 2 | OPEN (NEW pass 9) | typed disconnected-remote face never renders live: hub logs the error (workspace-bridge-error: remote-disconnected, verbatim errorText) but ConnectionCenter shows the generic offline face — the G67 card (`connection_remote_reconnect`, render condition lastError.messageKey==REMOTE_WORKSPACE_DISCONNECTED, ConnectionCenterScreen.kt:296) NEVER renders → the recovery verb workspace-reconnect-request is UI-unreachable; row snapshot stays stale under the arm | trace hub.connectFailed→lastError dropping the messageKey (SESSION-scope bridge error); pin: live-shape harness asserting the card renders with the arm armed | — | Part L.A2 | 1 |
 | F-P0-B | 2 | OPEN | rows reconcile sweep STALEs state-plane-delivered PERMISSION interactions (the two reconcilers fight); card renders terminal-but-actionable | ONE LINE: `known.permission != null` exemption at `InteractionCoordinator.kt:697` + pin answering from BOTH planes | — | Part E.A2.4 (root cause) | 8 stamps (passes 3–9; pass 9's hook-review zero-rows receipt) |
 | F-P3-A | 2 | OPEN | pinned pending-stack budget starves EVERY interaction card body to zero height (question body, hook items; LazyColumn unbounded main axis kills `weight(1f,fill=false)`) | card-agnostic: raise/scroll the pinned budget or render bodies outside it; pin hosts cards in a live `LazyColumn{item{}}` harness | — | Part D.A2 (first), G.A2.1 (card-agnostic) | 8 (passes 1–9; pass 9's "Send answe/rs" wrap + zero hook rows) |
-| F-P8-C | 2 | RE-VERIFIED-WORKING (pass 10) | conversation-timeline drag-scroll, reported dead at pass 8 HEAD, NO LONGER REPRODUCES at e9a8d206 — drag receipted 3 directions incl. reverse (Part M.A1); mechanism was open, no fix commit identified; F-P8-E still undriven (needs a streaming arm) | keep the row until F-P8-E is driven; if a fix-round pin is wanted, pin the drag first | — | Part K.A2 (dead), M.A1 (working) | 1 + pass-10 re-verification |
+| F-P11-A | 3 | OPEN (NEW pass 11) | conversation attachment chip has NO error face — a failed read leaves "Loading…" forever (produceState swallows failures; no unavailable state, no retry; recovered here only because the mock self-healed) | error/unavailable state on the chip (F-P0-C family) + Robolectric failing-loader harness; MOCK half FIXED `1e649eab` (eager registration, verified gen3) | — | Part N.A1/N.A2 | 1 |
+| F-P11-B | 3 | OPEN (NEW pass 11) | Live-connection window picker's selection never reflects in the row subtitle in-session — Settings prefs projection doesn't re-collect after `preferencesRepository.update` (3 cycles; disk HAS 60 — `preferences.pb` field 8; re-entry renders 60); lesser: force-stop ~90 s after a write lost it (flush killed) | collect prefs via the live dataStore.data flow on the screen (or key the row on the pref) + subtitle-after-update pin | — | Part N.A2 (s36/s37/s40/s41/s44 + the pb pull) | 1 |
+| F-P8-C | 2 | RE-VERIFIED-WORKING (pass 10) | conversation-timeline drag-scroll, reported dead at pass 8 HEAD, NO LONGER REPRODUCES at e9a8d206 — drag receipted 3 directions incl. reverse (Part M.A1); mechanism was open, no fix commit identified; the F-P8-E companion is REFUTED (pass 11) | optional drag regression pin for fix rounds | — | Part K.A2 (dead), M.A1 (working) | 1 + pass-10 re-verification |
+| F-P8-E | 2 | REFUTED-WORKING (pass 11) | the pass-8 "followBottom cleared only by find-jump" pin was a MIS-READ — the gesture-direction release (scroll to head → release) AND the latched numbered jump FAB (`conversation_jump_latest` + UnreadBadge) both live-receipted at pass 11; remedy commit `4bb678e7` predates pass 8's claim | row stays: keep the release+FAB pins for fix rounds | — | Part N.A1/N.A3 (release, no-re-clamp, badge "4", jump+reset) | 1 |
 | F-P10-A | 3 | OPEN (NEW pass 10) | the Commit sheet's Commit action SILENTLY no-ops when hub.activeWorkspaceTarget() resolves null: dialog closes, zero wire verbs (`git.commit` never sent), zero log lines (`gitport.commit` warn never fires), zero user face — the reads in the SAME sheet resolve elsewhere (git.getChanges ok) | resolve the write target the way the reads do (session-scoped) + a typed refusal face on the null-target path (`writeOp` :209 `?: return null` is the silent exit; the onCommit `if (hash != null) … else nothing` at GitScreen.kt:467-478 has no else) | — | Part M.A2 | 1 |
-| F-P8-E | 2 | OPEN | stick-to-bottom follow has NO user-scroll release — every row/streaming change re-clamps to bottom ≤7 s (`followBottom` cleared only by find-jump) | `followBottom=false` on user drag leaving `atBottom` + latched jump-to-latest FAB; fix WITH F-P8-C | F-P8-C | Part K.A2 | 1 |
 | F-P6-A | 2 | OPEN | permission ghost-split: store keeps DISPLAYED rows the card plane dropped (F-P0-B) AND generation-orphaned ghosts accumulate monotonically (4 ghosts / 26 h; broker posts shade notifications with NO answer surface) | card half = F-P0-B fix; store half = resolve generation-orphaned interactions in a reconcile sweep; ghost fixtures `/tmp/pass8/db/p8-2.db` + `/tmp/p9/db/p9-4.db` (5 unresolved / 83 rows, oldest 2026-11-12 19:59) | F-P0-B (card half) | Part I (headline), K.A3, L.A3 | 3 (pass 9: the pass-2 question ghost joined its approval) |
 | F-P6-B | 2 | OPEN | with armed stack, timeline renders ZERO rows (pinned budget + expanded queue panel eat the window) | re-balance pinned/timeline budget; queue collapse = F-P8-D | F-P8-D | Part I | 2 (pass 9: again; blocked the MD render) |
 | F-P7-A | 2 | OPEN | Approvals-screen inbox answer strands: `submitFromStore` → RETRYABLE_KEPT (needs a session machine); banner remedy "open the task" unactionable on DIRECT (foreign workspace). Inbox answers FINE over relay (pass 8) — endpoint/machine-context-specific | interaction-scoped submit (shade path proves the shape); validate task row before advising | — | Part J | 2 (7,8) |
@@ -108,26 +110,28 @@ bodies after 3.14.3 — the census IS the changelog.
 | F-P4-A | 2 | FIXED (rig) | mock push patch structurally excluded its own interaction | `pushPendingPermission` builds from unfiltered list + patch-content pin — commit `2b12fc46`, 37 mock tests green | — | Part G.A2.2, H.A1 | — |
 | N-BK-1 (rig half) | 2 | FIXED (rig) | git fixtures in wrong field vocabulary (blank paths, +0−0, duplicated tabs, oid-vs-hash) | contract vocabulary rewrite — same commit `2b12fc46` | — | Part G.A2.3, H.A1 | — |
 
-**Open F count: 23** (21 defects + 2 observations; pass 10 added F-P10-A; F-P8-C
-re-verified working — no longer counts as reproducible but stays rowed) · FIXED: 2
-(both rig) · RETRACTED/REFUTED/ABSORBED: 6.
+**Open F count: 24** (22 defects + 2 observations; pass 11 added F-P11-A/B and
+REFUTED F-P8-E — refuted rows stay rowed) · FIXED: 2 (both rig) ·
+RETRACTED/REFUTED/ABSORBED: 7.
 
 ## Current fix-order (consolidates K.D + the carried rows; supersedes every report fix-order)
 
 1. **F-P8-A** → 2. **F-P0-B** (unblocks F-P6-A's card half) → 3. **F-P9-A** (pass 9:
    the AUTHENTICATING wedge strands every multi-endpoint reconnect; unblocks the
-   endpoint-switch legs) → 4. **F-P8-C + F-P8-E together** (frozen timeline; pass 10:
-   the drag half re-verified working — the residual is F-P8-E's follow-release + a
-   drag pin) → 5. **F-P9-B** (pass 9: the un-rendering typed face; unblocks the
-   remote-down recovery leg) → 6. **F-P6-A store half** (ghost sweep; fixtures
+   endpoint-switch legs) → 4. **F-P8-C's drag pin** (pass 11: F-P8-E is REFUTED — the
+   follow-release + jump FAB work; only a drag regression pin remains optional) →
+   5. **F-P9-B** (pass 9: the un-rendering typed face; unblocks the remote-down
+   recovery leg) → 6. **F-P6-A store half** (ghost sweep; fixtures
    `/tmp/pass8/db/p8-2.db` + `/tmp/p9/db/p9-4.db`) → 7. **F-P8-D** (queue collapse;
    re-test F-P6-B after) → 8. **F-P3-A** (card-agnostic pinned budget) → 9. **F-P10-A**
-   (pass 10: the silent commit no-op; small, self-contained) → 10. **F-P3-B**
-   (wiring-only hydrate) → 11. **F-P3-C** → 12. **F-P7-A / F-P7-B** → 13. **F-P5-A →
-   F-P2-B → F-P0-C → F-P8-B → F-P8-F** → 14. **F-P1-B → F-P1-D** → 15. smalls
+   (pass 10: the silent commit no-op; small, self-contained) → 10. **F-P11-B** (pass
+   11: the window picker's stale projection; small, prefs-flow re-collect + pin) →
+   11. **F-P11-A** (the attachment chip's error face) → 12. **F-P3-B**
+   (wiring-only hydrate) → 13. **F-P3-C** → 14. **F-P7-A / F-P7-B** → 15. **F-P5-A →
+   F-P2-B → F-P0-C → F-P8-B → F-P8-F** → 16. **F-P1-B → F-P1-D** → 17. smalls
    (N-BM-1 → N-BM-3 → N-BN-1 → N-BK-1 app half → N-BJ-1 → N-BK-2 → N-BL-1 → N-BM-2 →
-   K-small-1/2) → 16. parity queue per the G table + the opportunistic list.
-   (Part L.D amends this; earlier orders superseded.)
+   N-BO-1 → K-small-1/2) → 18. parity queue per the G table + the opportunistic list.
+   (Part N supersedes L.D; earlier orders superseded.)
 
 ## G-rows — desktop-vs-phone gaps (parity queue)
 
@@ -189,18 +193,19 @@ re-verified working — no longer counts as reproducible but stays rowed) · FIX
 | N-BM-1 | 3 | OPEN | load-earlier strip total is a stale subscribe-time snapshot ("420 of 339") | Part J, K.A3 |
 | N-BM-3 | 3 | OPEN | Context-sheet → Terminal route: Attach is a silent no-op (main terminal screen attach works — sheet variant dead) | Part J |
 | N-BK-1 (app half) | 2 | OPEN | History silent-empty needs a "No commits yet" empty state (rig half FIXED `2b12fc46`) | Part G.A2.3 |
-| N-BJ-1 | 4 | OPEN | attachment image previews have NO size/aspect cap (1×1 seed renders ~300×220dp) | Part F.A2, K.A3 |
+| N-BJ-1 | 4 | OPEN | attachment image previews have NO size/aspect cap (1×1 seed renders ~300×220dp) | Part F.A2, K.A3 (+ pass-11 stamp: s04 unchanged) |
 | N-BK-2 | 4 | OPEN | automation Edit sheet schedule chips clip at phone width | Part G.A2 |
 | N-BL-1 | 4 | OPEN | workflow-run Run/Manage icon buttons subtree-unlabeled (TalkBack silence) — ONLY unlabeled clickables found | Part H.A2 |
 | N-BM-2 | 4 | OPEN | child-session view: generic title, skeleton-forever on unscripted children | Part J |
 | K-small-1 | 4 | OPEN | checkpoint empty state says "create one" with NO create affordance (verb unconsumed) | Part K.A2 |
 | K-small-2 | 4 | OPEN | "First sync failed" renders alongside CACHED rows (wording/state nit) — pass 9: the strip can be entirely ABSENT when the F-P9-A wedge suppresses the refresh | Part K.A2, L.A3 |
 | N-BN-1 | 4 | OPEN (NEW pass 10) | Plugins screen: the per-plugin enable switches are UNLABELED (plugin_switch_plugin-prisma / -review carry no content-desc, no text children — TalkBack silence on the row's only interactive element) | Part M.A1, M.A2 |
+| N-BO-1 | 4 | OPEN (NEW pass 11) | the changes viewer's error face interpolates the RAW fault code ("Could not load changes: fault.fileChanges.none" — `changes_error` %s, Phase9Components.kt:379) — the G66 fault→human mapping (2af339b0) doesn't cover this Phase9 surface | Part N.A2 |
 | K-small-3 | 4 | WATCH | one-off terminal route pop (unreproduced — watch, don't chase) | Part K.A2 |
 | N-BJ-2 | 4 | REFUTED→FOLDED | unpair IS reachable (Settings bottom, pass 4); fakeLink half folded into F-P2-B | Part G.A2.4 |
 | N-BM-4 | — | RIG | Dictate leg kills the emulator (cause unproven); leg undriven | Part J |
 
-**Open smalls: 10 (+1 watch +1 rig).**
+**Open smalls: 11 (+1 watch +1 rig).**
 
 ## Mock-fidelity debts (rig, not app)
 
@@ -212,6 +217,7 @@ re-verified working — no longer counts as reproducible but stays rowed) · FIX
 6. Push arm is CONVERSATION-SUBSCRIBE-anchored (recipe: reconnect with conversation open, lock inside the arming window).
 7. `MOCK_REMOTE_DOWN_MS` / `MOCK_MD_FILE` arms exist but were never driven (gen2 append-after-exec bug). (Driven pass 9.)
 8. **The automations plane needs `MOCK_OFFPEAK=1` ALONGSIDE `MOCK_AUTOMATIONS=1`** — without it the app's `off-peak-task.list` faults (`fault.mock.unscripted:offPeakTaskList`) and home renders the "This feature isn't available" face (pass-10 receipt; the launcher /tmp/p10/relay-g1.sh carries the fix).
+9. ~~The scripted attachment's registration raced the app's cached-row read~~ **FIXED pass 11** (`1e649eab`: eager registration in setScriptedAttachment; cold-start read ok 306ms, zero unknownRef on gen3). Related note: `MOCK_MD_FILE` takes a FILE PATH, not a flag — `MOCK_MD_FILE=1` crashes the relay at boot (FileNotFoundException: 1).
 
 ## DISCOVERY BACKLOG (tick when the findings are appended as rows)
 
@@ -245,15 +251,17 @@ re-verified working — no longer counts as reproducible but stays rowed) · FIX
 - [~] **6. Coverage leftovers (rolling)** — pass 9 closed: the lockscreen leg CORE
   (push-while-locked over LIVE receipted 2×; the shade-ACTION tap = STANDING RIG STOP),
   MOCK_REMOTE_DOWN_MS ✓, MOCK_MD_FILE ✓, mention-panel tabs ✓. **Pass 10 closed:** the
-  diagnostics plane (marker/copy/export/redaction — the never-driven leg), the a11y
-  audit of 17 never-swept screens (1 new small N-BN-1), the automations plane's
-  unavailable-face (rig gap — mock debt #8), the font-scale matrix (1.15× max, no 1.3×
-  tier), the zai-dark theme matrix, the fresh-install pairing chain, and **F-P8-C's
-  drag-scroll re-verification (working at HEAD — the user-row long-press ACTIONS leg is
-  now UNBLOCKED for the next pass)**. STILL OPEN: F-P8-E's follow-release (needs a
-  streaming arm), question card options post-F-P3-A-fix (F-P3-A open), Take-photo happy
-  path (impossible — stop), widget add-to-home (standing stop), re-drive FIXED rows
-  once fix rounds start, the shade-ACTION approve (standing stop).
+  diagnostics plane, the 17-screen a11y audit (N-BN-1), the automations plane's
+  unavailable-face, the font-scale matrix (1.15× max), the zai-dark theme matrix, the
+  fresh-install pairing chain, F-P8-C's drag re-verification. **Pass 11 closed:** the
+  user-row long-press ACTIONS plane (all four actions), F-P8-E's follow-release leg
+  (REFUTED — the release + numbered jump FAB work), the MD_FILE render half (light
+  rig), the changes viewer (typed error face + the MOCK_FILECHANGES happy path), the
+  Licenses share, the What's-new empty state, the Live-connection window picker
+  vocabulary. STILL OPEN: question card options post-F-P3-A-fix (F-P3-A open),
+  Take-photo happy path (impossible — stop), widget add-to-home (standing stop),
+  re-drive FIXED rows once fix rounds start, the shade-ACTION approve (standing stop),
+  the Notification detail LEVEL selector (reached, not driven — low yield).
 - [x] **7. Phone self-audit expansion — DONE pass 10 (Part M.A1/M.A2/M.D):** the a11y
   sweep now covers 17 screens beyond the pass-3/5 conversation+settings+home set (one
   new small: N-BN-1); the diagnostics-export content receipted (1,174 lines,
@@ -363,6 +371,16 @@ delta …`). Nothing pushed.
 
 ## History
 
+- 2026-11-14 (pass 11) — Part N executed: the user-row ACTION plane driven end-to-end
+  (Copy/side-session/Share/Edit — the side session receipts the full wire+navigate
+  chain to sess-side-1), F-P8-E REFUTED-WORKING (the pass-8 pin was a mis-read; the
+  gesture release + numbered jump FAB work), the changes viewer (typed error face +
+  MOCK_FILECHANGES happy path), the Live-connection window picker driven (3 cycles →
+  F-P11-B's stale projection, disk-verified via preferences.pb field 8), the
+  attachment chip's no-error face (F-P11-A) + the mock race fixed `1e649eab`
+  (verified gen3), the endpoint row pinned inert-by-design, Licenses share + What's
+  new + the notification-detail copy receipted, N-BO-1 opened. Rig left UP + gen3
+  alive (light rig + MD_FILE + FILECHANGES, Live ON 60-min window).
 - 2026-11-14 (pass 10) — Part M executed: backlog items 2/3/7 DONE (the last 8 channel
   tables exact + the ⚠ attributions closed + the 49-channel exposure policy; the i18n
   namespace diff exhausted → G98/G99/G100/G101; the a11y audit of 17 never-swept screens

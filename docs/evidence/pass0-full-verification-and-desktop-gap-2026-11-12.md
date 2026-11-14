@@ -3041,3 +3041,170 @@ emulator zcode-a16 UP (PIN-less, stay-on 7 + screen_off_timeout 600000 set, wifi
 disabled, screenshot protection OFF), relay gen1d ALIVE (23-arm light + off-peak), app
 paired + CONNECTED on the conversation screen, logcat running to /tmp/p10/logcat.log.
 Nothing pushed.
+
+# Part N — pass 11 (APPENDED 2026-11-14, midday): the user-row action plane driven end-to-end, F-P8-E refuted live, the Live-connection window picker's stale projection, and the mock attachment-race fix
+
+> **Pass 11 of the pass-0 series** (solo, canonical discovery prompt). Scope: pass-10's
+> UNBLOCKED leftovers first (M.D: the user-row long-press ACTIONS plane; the F-P8-E
+> follow-release leg), then the never-swept Settings screens. Three new rows (F-P11-A
+> the attachment chip's no-error face, F-P11-B the Live-connection window's stale
+> projection, N-BO-1 the changes-viewer raw fault code), ONE refutation (F-P8-E — the
+> gesture-direction release + numbered jump FAB both work live; the pass-8 mechanism
+> pin was a mis-read), the mock attachment-race fix (commit `1e649eab`, verified live),
+> and first-series receipts for the side-session plane, the edit-and-re-ask wire, the
+> changes viewer, the Licenses share, the What's-new empty state, and the
+> Live-connection window picker vocabulary.
+>
+> **Verification stamp:** 2026-11-14 10:05 → 11:06, GLM-5.3-Flash in ZCode, everything
+> local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…` UNCHANGED — no DELTA.
+
+## N.A0 — rig learnings (each bites the next pass)
+
+1. **The Read tool renders screenshots SCALED (~920-wide vs the native 1080×2340) —
+   eyeballing tap coordinates from a rendered image lands wrong by the 0.852 factor
+   three ways at once** (two silent sheet dismissals + one accidental zoom-viewer
+   open before this was pinned). Pulled PNGs are NATIVE (`sips -g pixelWidth` settles
+   which space you are looking at); uiautomator dump bounds are NATIVE. Rule: derive
+   every tap from a dump, never from a rendered screenshot.
+2. **DataStore prefs live at `no_backup/datastore/preferences.pb`** — NOT
+   `files/datastore/` (only the Glance widget store there) and NOT `shared_prefs/`
+   (`zcode_prefs.xml` holds only the locale mirror). `run-as cat` + a raw protobuf
+   scan (field 8 varint = liveConnectionTimeoutMinutes) is the settings-leg arbiter.
+3. **The FGS toggle reflects `LiveConnectionService.isRunning` (service STATE, not a
+   pref)** — force-stop resets it to OFF by design (SettingsScreen.kt:1048-1051's
+   "the service lifecycle is the single writer"). A settings leg that reads the toggle
+   after a restart is reading the service state, not persistence.
+4. **Picker-dialog radio rows expose NO selected/checked state to the AX tree** (all
+   five options dump checked=false/selected=false while the visual radio is clearly
+   filled) — dialog selection state is a screenshot-only read on this build.
+5. The mock's `snapshotRows` seeds IDENTICAL content for any session id — side-session
+   children render the full parent transcript (mock fidelity; do not chase as an app
+   defect).
+6. The second cold boot of the day recovered in ~25 s (pass-10's wipe-data AVD, no
+   snapshot); the SystemUI ANR dialog from the boot storm re-appeared once — dismiss
+   Wait + force-stop + relaunch (M.A0.2 recipe) and the app converged without
+   incident.
+
+## N.A1 — verified working this pass (receipts; bold = never-driven-in-series)
+
+| Surface | Pass-11 receipt |
+| --- | --- |
+| **The user-row long-press ACTION plane, all four actions (M.D's top unblocked leg)** | Sheet = "Message actions" (Copy / Ask in a side session / Share selection / Edit). **Copy** → the system clipboard preview bubble renders with the row's exact text ("rig scroll p11") + share/clipboard chips. **Share selection** → the SYSTEM share sheet ("Sharing text") carrying the row's exact text + targets. **Edit** → the "Edit message" sheet (prefilled, blank-refused client-side, "Review edit" disabled until changed) → the typed confirm gate ("Re-ask this turn? — Files and later turns may be affected") → **`sendConversationCommandV4 ok` (78 ms)** + the typed notice "Edit sent — the turn is being re-asked." — the full GAP-10 edit path live |
+| **Ask in a side session (never driven in-series — the bold pass-1 row is now closed)** | Sheet action → `sendConversationCommandV4` (envelope type `createSelectionSideSession`, firstInput=the row text) ok 192 ms → the mock acks `sess-side-1` + pushes the workspace list → the app **NAVIGATES**: `recovery.attach fresh=[sess-side-1]` → subscribed → snapshot rows=15 → `hub.conversationOpen` — the child session screen renders with the side-session title. The child's rows are the mock's generic re-seed (fidelity note, N.A0.5) |
+| **The changes viewer (never driven — accidental open + deliberate happy path)** | The turn header's "view" chip opens "Changes · turn 15" — with `MOCK_FILECHANGES` unarmed it renders the TYPED error face (honest, not silent-blank) "Could not load changes: fault.fileChanges.none" with Close; **with the arm on (gen3) it renders the real unified diff**: "2 file(s) +5 −1 / src/version.ts +3 −1 / @@ -1,3 +1,3 @@ / `+const b = importMetaHot.data.a + 1`" — the read-only diff viewer works end-to-end |
+| **F-P8-E's follow-release leg — REFUTED live (see N.A3)** | swipe toward the head → `followBottom=false`; **send while released → NO re-clamp** (the view stayed on the head; the mock appended the user row + "synthetic reply to: rig scroll p11") → the ↓ jump FAB carried a **numbered unread badge "4"** → tap → jumps to the tail, badge clears, follow resumes. The remedy's BOTH halves exist at HEAD (`ConversationScreen.kt:992-1003` gesture-direction release, `:1250-1281` the `conversation_jump_latest` FAB with `UnreadBadge`) — commit `4bb678e7` (phase-7 field round 5) predates pass 8's claim |
+| **The G49/G50 queued-send face (incidental)** | with the re-ask in flight, the send QUEUED: the composer shows "Keep typing to queue follow-up changes" + a **Queued chip** + the stop button — the held-queue CAS ids plane renders live |
+| MD render half (pass-9's blocked receipt) | the MOCK_MD_FILE demo row renders FULLY formatted under the LIGHT rig: heading, **bold**, inline-code chip, ordered list, a real TABLE (col a/col b, 1/2), the blockquote bar — pass-9's "render half blocked by F-P6-B" was the ARMED-stack variant; on a light timeline the renderer is fine (F-P6-B remains the armed-stack row) |
+| Licenses (About family, never driven) | the Licenses row dispatches ACTION_SEND with the real license text (share sheet: "ZCode Companion — open-source components: Kotlin/Jetbrains (Apache-2.0), OkHttp, Tink, ML Kit barcode, CameraX, Protobuf (BSD), DataStore/Room…") + Copy to clipboard — no in-app viewer, the text IS deliverable (receipt, not a defect) |
+| What's new (never driven) | honest empty state: "No release notes recorded yet — they appear after you update." + Continue |
+| **The Live-connection window picker (never driven)** | Live ON → the row enables → the dialog renders the full vocabulary (15/30/60/240 minutes / "no timeout (until you turn it off)" / Cancel); the selection PERSISTS to disk (`preferences.pb` field 8 = 60, pull-decoded) and renders "60 minutes" after screen re-entry — but the in-session subtitle NEVER recomposes (F-P11-B below) |
+| The endpoint row's inert-active tap (pass-10's mystery, now PINNED) | the Settings endpoint row is `clickable=true` but its onClick is `if (id != null && !active) switchTo(id)` (SettingsScreen.kt:467-474) — the ACTIVE row is a **no-op BY DESIGN**; there is no detail route from this row (the detail screen pass-10 dumped came from the ConnectionCenter). Not a defect |
+| The notification-detail copy | "Minimal shows only 'ZCode needs your approval' — never tools, paths, or titles… with Approve/Deny in the notification (unlock required)" + the honest push vocabulary "ZCode's relay offers no push service, so with both off you'll see updates the next time you open the app" — the G93-adjacent faces read in full |
+
+## N.A2 — defects found this pass (NEW ledger rows)
+
+- [ ] **F-P11-A (P3, app) — the conversation attachment chip has NO error face: a
+  failed `conversationAttachmentReadV4` leaves the image chip at "Loading…" with no
+  unavailable state and no retry.** Receipt: the seeded `mock-attachment-1` read
+  faulted once (`fault.attachment.unknownRef` at 10:15:46, the mock-race window) and
+  the chip rendered "Loading…" for ≥1.3 s; with a PERSISTENT failure the chip would
+  never resolve — the `produceState` swallows every failure via
+  `runCatching { load(att) }.getOrNull()` → null → the `else` branch renders
+  `row_attachment_loading` forever (`RowRenderers.kt:1803-1818`, `:1845-1856`; the
+  rewind preview's `previewUnavailable` typed face shows the contrast at `:686-691`).
+  The chip recovered here ONLY because the mock self-healed. Fix shape: an
+  unavailable/error state on the chip (the F-P0-C family) + a Robolectric harness
+  hosting a failing loader. The MOCK half is already fixed: `1e649eab` registers the
+  scripted attachment at arm time (cold-start read now `ok in 306ms`, zero
+  unknownRef on gen3 — verified live).
+- [ ] **F-P11-B (P3, app) — the Live-connection window picker's selection never
+  reflects in the row subtitle in-session: the Settings prefs projection doesn't
+  re-collect after a write.** Receipt (three cycles): pick "60 minutes" → the
+  subtitle stays "Auto-disconnect after 30 minutes" (cycle 1) / "no timeout (until
+  you turn it off)" (cycles 2-3, ≥4 min, screenshots s36/s40/s41) while the DIALOG's
+  own radio shows 60 selected (s37) and **the write PERSISTS to disk** —
+  `no_backup/datastore/preferences.pb` field 8 varint = 60, pull-decoded — and a
+  Settings RE-ENTRY renders "60 minutes" correctly (s44). The row reads
+  `prefs.liveConnectionTimeoutMinutes` (SettingsScreen.kt:1057-1066) from a snapshot
+  that never re-emits after the dialog's `preferencesRepository.update` (:1081).
+  Lesser observation: a force-stop ~90 s after cycle 1's selection lost the write
+  (disk read 0 at restart — async flush killed). Fix shape: collect prefs via the
+  live `dataStore.data` flow on this screen (or key the row on the pref) + a
+  Robolectric pin asserting subtitle-after-update; the flush-loss wants a
+  dispatch-measure note only.
+- [ ] **N-BO-1 (P4, a11y/copy) — the changes viewer's error face interpolates the RAW
+  fault code: "Could not load changes: fault.fileChanges.none"**
+  (`changes_error` = "Could not load changes: %1$s" with the raw protocol string,
+  Phase9Components.kt:379 + strings.xml:153) — the G66 fault→human mapping (commit
+  `2af339b0`) doesn't cover this Phase9 surface. Fix shape: route through the same
+  typed-message table.
+
+## N.A3 — re-manifestations and refutations at HEAD (stamps/status only)
+
+- **F-P8-E → REFUTED-WORKING (status change, not a stamp)**: the pass-8 mechanism
+  claim ("followBottom cleared only by find-jump", pinning :1045) is NOT TRUE at
+  HEAD — the gesture-direction release (scroll toward the head → release; scroll to
+  the tail → re-follow) AND the latched numbered jump FAB both live-receipted (N.A1).
+  The remedy commit `4bb678e7` predates pass 8's pin; pass 8 drafted the row inside
+  the frozen-timeline window (the same window F-P8-C's drag claim came from, already
+  re-verified working at pass 10). Row stays (keep the release pin for fix rounds).
+- **N-BJ-1 (stamp)**: the 1×1 red attachment rendered uncapped at ~300×220dp again
+  (s04) — unchanged code, one stamp.
+- F-P1-D (stamp): the workflowRuns/plans drum ran every ~8 s through the whole
+  conversation session (id=21/22/31/32/48… in the relay log) — unchanged.
+- Mock debt #9 (created AND fixed this pass): the scripted attachment's
+  registration raced the app's cached-row read — fixed by `1e649eab`, verified on
+  gen3 (zero unknownRef, `ok in 306ms`).
+
+## N.D — STEP 2 coverage adjudication (latest-first)
+
+- User-row long-press ACTIONS: **CLOSED** (all four actions dispatched, N.A1).
+- F-P8-E follow-release: **CLOSED as refuted-working** (N.A3).
+- MD_FILE render half: **CLOSED** on the light rig (the armed-stack variant stays
+  F-P6-B-blocked).
+- The changes viewer: **CLOSED** (error face + happy path).
+- Endpoint detail/editor form: **N/A for the Settings row** (inert by design, pinned;
+  the ConnectionCenter-routed detail was a11y-swept at pass 10).
+- Question-card options: still blocked by F-P3-A (unchanged). Take-photo happy path /
+  widget add-to-home / shade-ACTION approve / TalkBack runtime: standing stops
+  (unchanged). Re-drive FIXED rows: no fix rounds have run yet.
+- Push/interaction arms: not armed this pass (no push generation — the legs went to
+  the action plane; recipe unchanged).
+- The Notification detail LEVEL selector (Minimal/Standard dialog): reached, NOT
+  driven (the Notifications detail sub-screen's row list is receipted; the selector
+  dialog itself remains undriven — low yield).
+
+## N.E — ledger arithmetic
+
+Open F: 23 + 2 (F-P11-A/B) − 1 (F-P8-E refuted) = **24** (22 defects + 2
+observations). Open G: **21 + 3 standing** (unchanged — no desktop delta, STEP 0
+clean). Open smalls: 10 + 1 (N-BO-1) = **11** (+1 watch +1 rig). Mock debts: #9
+created and fixed same-pass (`1e649eab`). Backlog: item 6's rollable list shrinks —
+the user-row ACTIONS leg, the F-P8-E leg, and the MD render are all closed this pass.
+
+### Coverage honesty (what pass 11 did NOT drive)
+
+The push/interaction arms (no push generation this pass), the Notification detail
+LEVEL selector dialog (Minimal/Standard), the automation editor (unchanged code since
+the vc52-era sweep), the context-sheet/Git-sheet deep planes (receipted pass 10,
+code unchanged), re-driving FIXED rows (none fixed yet), and all standing stops
+(shade-ACTION approve, widget add-to-home, Take-photo happy path, TalkBack runtime).
+
+## Pass-11 verification stamp
+
+Pass 11 completed 2026-11-14 ~11:06; relay generations gen2 `mock-p11-gen2-2b4c6d`
+(10:11, light rig + MD_FILE — the MOCKER crashed once on `MOCK_MD_FILE=1` before the
+path fix: the arm takes a FILE PATH), gen3 `mock-p11-gen3-3c5d7e` (10:40, +MOCK_
+FILECHANGES, the fixed mock jar) — one launcher each (/tmp/p11/relay-g2.sh, renamed
+relay-g3.sh), ONE emulator boot (zcode-a16 cold 10:06, boot 25 s), receipts
+nonce-anchored. 44 screenshots `/tmp/p11/shots/s00–s44`; DB pulls
+`/tmp/p11/db/p11-1.db(+wal)`, `p11-2.db(+wal)`; prefs pull
+`/tmp/p11/preferences.pb` (field 8 = 60); full logcat `/tmp/p11/logcat.log`; relay
+logs `/tmp/p11/relay-g2.log`, `relay-g3.log`; AX dumps `/tmp/p11/w*.xml` (20+);
+launcher `/tmp/p11/relay-g3.sh`. APK byte-identical to the whole series (sha256
+`ad449d7d…`, md5 `530ba4ff…`, vc53/1.3.2; re-verified at the pass-11 build). Mock
+fix commit `1e649eab` (test suite green, jar rebuilt before gen3). Rig left:
+emulator zcode-a16 UP (PIN-less, stay-on 7 + screen_off_timeout 600000, wifi
+disabled, screenshot protection OFF), relay gen3 ALIVE (light rig + MD_FILE +
+FILECHANGES), app paired + CONNECTED, Live connection ON with the 60-minute window,
+logcat running to /tmp/p11/logcat.log. Nothing pushed.
