@@ -340,6 +340,10 @@ class MockZCode(
         /** Pass-11 rig leg (MOCK_REFUSE_COMMANDS): command types answered respondError
          * BEFORE any effect/ack — the goal verbs' SendNotice.GOAL_*_REFUSED degrade branches. */
         @Volatile var refuseCommandTypes: Set<String>? = null
+        /** Mock-fidelity debt #1 (pass 13, MOCK_UNKNOWN_INTERACTION_IDS): when armed,
+         *  resolveInteraction answers the typed unknown-id rejection instead of the old
+         *  unconditional accept — the app's answer-with-error face becomes drivable. */
+        @Volatile var unknownInteractionIdsArm: Boolean = false
         /** Verified inputRoutingSchema.mode. */
         @Volatile var inputRoutingMode: String = "startNow"
         /** Pending open interaction stamped into snapshots + state (Q11 shape). */
@@ -2648,6 +2652,22 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     respondError(id, "fault.command.rigRefused:$type")
                     return
                 }
+                // Mock-fidelity debt #1 (pass 13): the typed unknown-interactionId
+                // rejection — an answer naming no pending slot is REJECTED with the
+                // desktop's status/reasonCode shape instead of the old unconditional
+                // accept (the answer-with-error face was structurally undrivable).
+                if (type == "resolveInteraction") {
+                    val iid = (env?.get("payload") as? JsonObject)?.strOrNull("interactionId")
+                    resolveInteractionRejection(iid)?.let { code ->
+                        respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                            put("commandId", JsonPrimitive(commandId))
+                            put("status", JsonPrimitive("rejected"))
+                            put("reasonCode", JsonPrimitive(code))
+                            put("revisionAtDecision", JsonPrimitive(stateRevision.get()))
+                        }))
+                        return
+                    }
+                }
                 var createResult: JsonObject? = null
                 if (script.commandEffects) {
                     createResult = applyCommandEffect(type, env)
@@ -3570,6 +3590,22 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
     private fun respondWorkflowManagement(id: Int, result: Pair<JsonObject?, String?>) {
         val (obj, error) = result
         if (error != null) respondError(id, error) else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(obj!!))
+    }
+
+    /**
+     * Mock-fidelity debt #1 (pass 13): the typed unknown-interactionId gate for
+     * resolveInteraction. Returns the rejection reasonCode when [iid] names NO
+     * pending slot, null when the answer may proceed (the pre-pass-13 shape).
+     * Known slots: the pending permission and the pending user input — a hook
+     * review resolves through respondWorkspaceHookReview, never this verb, so its
+     * id stays unknown here on purpose.
+     */
+    internal fun resolveInteractionRejection(iid: String?): String? {
+        if (!script.unknownInteractionIdsArm) return null
+        if (iid == null) return "fault.interaction.params"
+        val known = script.pendingPermission?.interactionId == iid ||
+            script.pendingUserInput?.interactionId == iid
+        return if (known) null else "fault.interaction.unknownId"
     }
 
     private fun applyCommandEffect(type: String, env: JsonObject?): JsonObject? {

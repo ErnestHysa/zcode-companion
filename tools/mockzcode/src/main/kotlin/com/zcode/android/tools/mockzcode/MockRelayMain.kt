@@ -522,6 +522,13 @@ fun main() {
     if (System.getenv("MOCK_REFUSE_COMMANDS") != null) {
         mock.script.refuseCommandTypes = setOf("sendGoal", "pauseGoal", "resumeGoal")
     }
+    // Mock-fidelity debt #1 (pass 13): MOCK_UNKNOWN_INTERACTION_IDS=1 arms the typed
+    // unknown-id rejection on resolveInteraction — an answer naming no pending slot
+    // gets {status:"rejected", reasonCode:"fault.interaction.unknownId"} instead of
+    // the old unconditional accept, so the app's answer-with-error face is drivable.
+    if (System.getenv("MOCK_UNKNOWN_INTERACTION_IDS") != null) {
+        mock.script.unknownInteractionIdsArm = true
+    }
     // RIG-3 (vc51 Phase 5): MOCK_INTERACTION_PUSH_MS=<ms> schedules a FRESH approval
     // pushed AFTER the FIRST conversation subscribe — pair, open a task, BACKGROUND the
     // app within the window, and the shade posts the approval WITH its two actions (the
