@@ -62,15 +62,22 @@ P2-first, exit gates, per-row Accept criteria).
   card-plane approval answer, the background-work plane).
 - Backlog: **8/8 DONE** — CAMPAIGN SATURATED (see the banner above).
 - Rig left by pass 12: emulator `zcode-a16` UP (PIN-less, stay-on 7 +
-  screen_off_timeout 600000, **wifi ENABLED — do NOT run `svc wifi disable` on the
+  screen_off_timeout persisted, **wifi ENABLED — do NOT run `svc wifi disable` on the
   API 36 AVD: it kills the 10.0.2.2 NAT and every app connect times out (Part
   O.A0.1)**, screenshot protection OFF), relay gen2 ALIVE (full armed stack +
   MOCK_INTERACTION_PUSH_MS=45000, nonce `mock-p12-gen2-b2c3d4`), app paired +
   CONNECTED on the Synthetic task conversation (interactionBehavior="queue",
   autoDrain ON in-session), logcat running to /tmp/p12/logcat.log. Launchers
-  `/tmp/p12/relay-g1.sh` + `relay-g2.sh`._prefs arbiter note: notificationContentLevel
+  `/tmp/p12/relay-g1.sh` + `relay-g2.sh`. Prefs arbiter note: notificationContentLevel
   AND interactionBehavior are protobuf STRING values in preferences.pb
   ("CONTENT"/"MINIMAL", "queue"/"guide") — scan raw bytes, not varints (O.A0.2).
+  **CORRECTION (same day, ~16:37 device-time): after the pass closed, the emulator
+  launcher-wrapper exit coincided with a device SOFT-REBOOT (uptime 0 min verified;
+  no app FATAL). The rig was repaired: logcat restarted (-T 1, same receipt file),
+  the app relaunched (pid 2616) and reconnected to gen2 (the workflowRuns drum
+  active). Settings persisted across the reboot (stay-on 7, wifi enabled,
+  screenshot-protection OFF). Next session: expect a fresh-boot AX tree (first
+  uiautomator dumps may need a retry while the system settles).**
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -433,3 +440,10 @@ delta …`). Nothing pushed.
   root-cause pin), F-P3-A stamps 6→7 (pass 6 restored), F-P6-A stamps 3→2 (pass 7
   withdrawn), consolidated fix-order section added, emulator-found-down noted in the
   rig line, backlog 2→3 items touched, "39+ tables" → ~33 exact + 2 ⚠ + 7 no-table.
+
+- 2026-11-14 (pass 12 correction) — the pass-12 rig-left note was amended: ~10 min
+  after the pass closed, the emulator launcher-wrapper exit coincided with a device
+  SOFT-REBOOT (verified uptime 0 min, no app FATAL). Rig repaired in-session:
+  logcat restarted, app relaunched (pid 2616) + reconnected to gen2 (drum active);
+  all settings persisted. The report's Part O stamp block predates the reboot — this
+  ledger line is the correction (the report is append-only).
