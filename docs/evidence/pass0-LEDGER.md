@@ -22,7 +22,10 @@
    below). Changed → run the DELTA procedure before any app leg.
 3. **Discovery pass**: work the DISCOVERY BACKLOG top-down (next unchecked items), then
    drive the latest coverage-honesty leftovers. Record, don't fix app code (mock/rig
-   fixes ARE allowed — they unblock arms; commit them with finding IDs).
+   fixes ARE allowed — they unblock arms; commit them with finding IDs). **Live legs
+   require the REAL rig** — emulator + MockZCode relay + on-device driving with
+   receipts (uiautomator/screenshots/logcat/DB pulls); a docs-only or REA-only pass
+   does NOT satisfy a live-leg backlog item.
 4. **Fix round** (only when Ernest asks for a roadmap phase): execute the named phase's
    rows test-first, run suites, rebuild the APK, one row ≥ one commit
    `fix(<ID>): …`, tick the row here to FIXED with the commit sha.
@@ -220,12 +223,18 @@ Read docs/evidence/pass0-LEDGER.md FIRST, then the LAST part of
 docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md, then the rig
 recipes (Part C + every pass's rig-learnings). STEP 0: verify /Applications/ZCode.app
 version + asar sha256 against the ledger; if changed, run the DELTA procedure first.
-STEP 1: work the ledger's DISCOVERY BACKLOG (next unchecked items; method named there).
-STEP 2: drive the latest coverage-honesty leftovers. Never re-narrate OPEN rows (one
-line + stamp bump); never re-receipt VERIFIED surfaces unless their code changed.
-App code: record, don't fix (mock/rig fixes allowed, committed with finding IDs).
-Append the new pass part to the report; update the ledger (statuses, backlog, campaign
-state). Nonce-anchored generations, DB pulls as arbiter, nothing pushed.
+STEP RIG (mandatory for every live leg): spin the live emulation — check what the last
+pass left running (ledger campaign-state block, `adb devices`, the relay/DIRECT ports),
+cold-boot zcode-a16 or reuse what's up, build+install the debug APK at HEAD, launch
+MockZCode with the ARMS the backlog item names, pair/connect, and drive the app
+ON-DEVICE (uiautomator + screenshots + logcat + DB pulls as arbiter). REA/docs-only
+work NEVER satisfies a live leg. STEP 1: work the ledger's DISCOVERY BACKLOG (next
+unchecked items; method named there). STEP 2: drive the latest coverage-honesty
+leftovers. Never re-narrate OPEN rows (one line + stamp bump); never re-receipt
+VERIFIED surfaces unless their code changed. App code: record, don't fix (mock/rig
+fixes allowed, committed with finding IDs). Append the new pass part to the report;
+update the ledger (statuses, backlog, campaign state). Nonce-anchored generations,
+DB pulls as arbiter, nothing pushed.
 ```
 
 **Fix round (after roadmap phases exist):**
