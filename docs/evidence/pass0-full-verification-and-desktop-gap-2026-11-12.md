@@ -4746,3 +4746,176 @@ emulator zcode-a16 UP, relay gen1 ALIVE (arms SPENT — the QUEUE composition
 consumed by A1/A2, INPUT_ROUTING=choice sticky; pkill to end), app pid 7843
 CONNECTED on relay-8 on the synthetic conversation (timeline: "p18 startNo" user
 row + synthetic reply; queue strip GONE), logcat running → /tmp/p18/logcat.log.
+
+# Part V — pass 19 (APPENDED 2026-11-15, ~07:00): the G50 cross-side CAS-mismatch face driven live on a NEW desktop-faithful mock arm — the desktop's re-confirmation loop pinned from the host bundle, the phone's generic refusal face receipted end-to-end (wire → notice → outbox FAILED_TERMINAL), and the divergence rowed (F-P19-A)
+
+> **Pass 19 of the pass-0 series** (solo, the canonical discovery prompt; STEP 1 still
+> empty — backlog 8/8 — so STEP 2 worked Part U's one remaining driveable coverage
+> item: "the G50 dialog's cross-side CAS-mismatch face … the mock has no mismatch
+> arm"). **ONE new row: F-P19-A (P3).** Mock debt **#20 OPENED+CLOSED in-pass**
+> (`0a037a60` — the `MOCK_QUEUE_GHOST_APPEND_MS` arm: the host's held-queue CAS +
+> the one-shot SILENT ghost append; self-tests 7/7, suite 179/0/0). First-series
+> receipts: the held-queue CAS **ok** leg and the CAS **MISMATCH** leg — the latter
+> proving the phone answers a desktop-faithful
+> `{status:"failed", reasonCode:"guard.heldQueueConfirmationStale"}` ack with the
+> generic refusal ERROR notice while the desktop re-opens the confirmation with
+> fresh ids (the divergence).
+>
+> **Verification stamp:** 2026-11-15 06:20 → 06:52, GLM-5.3-Flash in ZCode,
+> everything local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…`
+> UNCHANGED — no DELTA. Rig inherited (emulator zcode-a16 UP, no cold boot; the
+> pass-18 gen1 relay pkill'd at pass start; the `install -r` restarted the app →
+> pid 9546, screenshot protection OFF by persistence, wifi left ENABLED per the
+> O.A0.1/NAT lesson). ONE generation — gen1 `mock-p19-gen1-7a9b2c` (MOCK_ROWS=12 +
+> MOCK_QUEUE + MOCK_INPUT_ROUTING=choice + MOCK_QUEUE_GHOST_APPEND_MS=4000; no
+> relay swaps); logcat fresh `adb logcat -T 1` → /tmp/p19/logcat.log.
+
+## V.A0 — rig learnings
+
+1. **Backtick test names reject `:`** — the Kotlin compiler fails the whole test
+   compile with `INVALID_CHARACTERS: Name contains illegal characters: :.` for a
+   `fun \`name: with colon\``; parentheses are fine. Cost one 2-minute compile.
+2. The home screen's automations card renders the honest "This feature isn't
+   available" face under ANY launcher that does not arm `MOCK_AUTOMATIONS` —
+   debt #8's by-construction fix serves the plane only when that arm is present;
+   not a regression (recorded so nobody re-hunts it).
+3. The build was fully up-to-date (zero app changes): the APK digest re-verified
+   byte-identical (`ad449d7d…` / `530ba4ff`, vc53/1.3.2) while the mock jar alone
+   re-cut (the debt-#20 sources).
+
+## V.B — the desktop side, pinned from the shipped host bundle (all 3.18.1 / `ec475e6e…`)
+
+- **The host guard** (`zcode.cjs` `applyHeldQueueDisposition`, offset 0x00E27xxx):
+  when `getInputRoutingMode(sessionId) === "choice"` — the desktop's admission
+  matrix serves exactly that mode when `(completedSuccess|completedInterrupted) &&
+  queueLength>0 && !autoDrain` (`heldQueueInputRequiresChoice`) — a trio-bearing
+  send REQUIRES `heldQueueDisposition` (`heldQueueDispositionRequired`), and a
+  non-empty `expectedHeldQueueItemIds` must be **set-equal** to the live queue:
+  `set.size === ids.length && getQueueLength() === set.size && ids.every(id =>
+  getQueueItem(id) !== null)`; any violation throws
+  `V4HeldQueueConfirmationStaleError` ("paused queue changed after send
+  confirmation opened"). The CLEAR disposition executes only AFTER the CAS passes.
+- **The ack shape**: the dispatcher's execute-catch maps a thrown admission error
+  to `{status:"failed", reasonCode:<error.reasonCode>, message:<error.message>}`
+  — i.e. **status `"failed"`, NOT `"stale"`/`"rejected"`** — with the verbatim
+  reasonCode `guard.heldQueueConfirmationStale`.
+- **The renderer's face**: the desktop ignores the fail status when the
+  reasonCode matches — `if (T.reasonCode === 'guard.heldQueueConfirmationStale')
+  return 'confirmationRequired'` on both the sendText and slash paths; the send
+  result feeds `confirmationRequired` → the confirmation state is re-entered with
+  the ids **re-read from the current queue snapshot**
+  (`Ct.current?.queue.items.map(e => e.queueItemId)`), i.e. the G50 dialog
+  RE-OPENS with fresh ids and the send retries through confirmation; the
+  send-result settle maps the reasonCode to `null` (no fail settle recorded),
+  TTFT records a `confirmationRetry`. `c9e` is the settle mapper
+  (`if (e.reasonCode === o9e) return null`).
+
+## V.C — the phone side, static pins (HEAD `e1745ee3`, app unchanged)
+
+- `heldQueueIds()` (`WriteComponents.kt:887`) is read **at ANSWER-tap time** from
+  the live session state and rides BOTH dialog buttons (`:1549` clear /
+  `:1560` keep) as `expectedHeldQueueItemIds` — the capture is desktop-faithful
+  (the ids the user answered with, re-read at answer time).
+- The ack mapping (`CommandCoordinator.kt:704-710`): `"accepted"/"duplicate"/
+  "noop"` → Accepted; `"stale"` → Stale; **everything else → Failed(ack)** — a
+  status-`"failed"` ack lands in `Outcome.Failed` with the reasonCode carried but
+  **undifferentiated**.
+- The notice (`ConversationViewModel.kt:542-548`): FAILED → the generic ERROR
+  SendNotice **"The desktop refused the send — see diagnostics (fault reason
+  recorded)."** Draft preserved (only ACCEPTED clears it).
+- **Zero `guard.*` / `confirmationRequired` handling exists in the phone** (grep
+  receipt over `data/` + `features/conversation/`: one unrelated comment hit) —
+  the desktop's re-confirmation loop has no phone counterpart.
+
+## V.D — the mock arm (debt #20, fix `0a037a60`) and the live leg
+
+- **The arm** (`MOCK_QUEUE_GHOST_APPEND_MS=<ms>`; requires `MOCK_QUEUE=1` +
+  `MOCK_INPUT_ROUTING=choice`): arms the host-faithful CAS validation on every
+  trio-bearing sendText (set-equality, only under `choice`, empty expected
+  passes) AND schedules the ONE-SHOT **silent** ghost append (`q-rig-ghost-1`,
+  NO queue patch, NO revision bump) `<ms>` after the FIRST trio-bearing sendText
+  — the queue moves under the phone's state exactly like a second client
+  enqueueing mid-confirmation (the race the guard exists for). On mismatch the
+  mock answers the desktop-faithful ack and **mutates nothing** (self-test
+  receipts: ack shape, zero rows, zero revision bump, set-equality
+  order-insensitivity, duplicates fail, empty passes, choice+disposition
+  gating, arm-off regression guard, ghost silence — 7/7; suite **179/0/0**).
+- **Leg A — CAS ok (06:49:02, 171 ms):** draft `p19casA` → Send → G50 dialog
+  (s01) → Keep queue & send → relay:
+  `MOCK: sendText trio heldQueueDisposition=keepQueueAndSend
+  requestedDelivery=null expectedHeldQueueItemIds=[q-rig-1, q-rig-2]` →
+  `MOCK: sendText heldQueue CAS ok (… live=[q-rig-1, q-rig-2])` → accepted;
+  user row + `synthetic reply to: p19casA` appended, strip "Queued (2) · paused"
+  unchanged; outbox row `ACKED/accepted`. At +4 s:
+  `MOCK: heldQueue ghost appended SILENTLY (no patch) -> live=[q-rig-1, q-rig-2,
+  q-rig-ghost-1]` — and the phone's strip STILL renders (2), blind to the ghost.
+- **Leg B — CAS MISMATCH (06:50:16, 191 ms):** draft `p19casB` → Send → dialog
+  (s02; the phone still shows 2 items) → Keep queue & send → relay:
+  `MOCK: sendText heldQueue CAS MISMATCH (disposition=keepQueueAndSend
+  expected=[q-rig-1, q-rig-2] live=[q-rig-1, q-rig-2, q-rig-ghost-1]) ->
+  guard.heldQueueConfirmationStale (no mutation)` → the ack round-trips as
+  `sendConversationCommandV4 ok in 191ms` (a status-failed ack inside a healthy
+  transport — logcat receipt), and the phone renders (s03 + w7):
+  **"The desktop refused the send — see diagnostics (fault reason
+  recorded)."** with the draft `p19casB` PRESERVED, NO user/reply rows appended,
+  strip still "Queued (2) · paused".
+- **The DB arbiter** (outbox pull, `/tmp/p19/db/`): the leg-B row
+  `state=FAILED_TERMINAL, ackStatus=failed,
+  ackReasonCode=guard.heldQueueConfirmationStale, ackMessage="paused queue
+  changed after send confirmation opened"` — the verbatim host message; the
+  leg-A row `ACKED/accepted` in the same table.
+
+## V.E — the row: F-P19-A (P3, NEW)
+
+**The G50 CAS-mismatch face is desktop-divergent.** On
+`guard.heldQueueConfirmationStale` the desktop re-opens the held-queue
+confirmation with the FRESH queue ids (the send silently retries through
+confirmation; no error is surfaced); the phone maps the same ack
+(status `failed`) to the generic refusal ERROR notice — the reasonCode is
+carried into diagnostics but undifferentiated, and no re-confirmation loop
+exists. Recovery on the phone is manual (the draft survives; re-tapping Send
+re-opens the dialog), which is why the row is P3 — an honest face on a rare
+race path, divergent only in parity. Fix shape: handle the typed reasonCode →
+re-open the disposition dialog with re-read ids (desktop parity), or minimally a
+distinct notice ("Queue changed on the desktop — confirm again"). Pins: the
+`guard.*` grep receipt + an outbox-shaped harness asserting the notice text
+divergence (V.C's static pins are the RED shape).
+
+## V.Q — ledger arithmetic + coverage honesty
+
+Open F: **26** (24 defects + 2 obs; F-P19-A new) · Open G: **21 + 3 standing**
+(unchanged) · Open smalls: **13 (+1 watch +1 rig)** (unchanged) · Mock debts:
+**#20 OPENED+CLOSED** (fix `0a037a60` + the live receipt) — **0 open
+work-debts**. First-series receipts: the held-queue CAS ok leg, the CAS
+MISMATCH leg (wire → notice → outbox).
+
+### Coverage honesty (what pass 19 did NOT drive)
+
+The desktop's `sendGoalCommand` CAS path (the trio exists there too; the phone's
+sendGoal carries no held-queue trio — desktop-only surface), the
+`heldQueueDispositionRequired` guard (the phone never sends a disposition-less
+send under `choice` — the dialog always answers one), the CAS-mismatch face's
+post-fix re-drive (row is OPEN; the fix round will re-drive it), the queue
+strip's followup chips (pass-12 receipts), the automations plane (not armed this
+gen; its unavailable face noted in V.A0.2), and every standing stop
+(TalkBack/Dictate/widget/Take-photo/shade-ACTION).
+
+## Pass-19 verification stamp
+
+Pass 19 completed 2026-11-15 ~07:00; ONE relay generation (nonce
+`mock-p19-gen1-7a9b2c`, launcher `/tmp/p19/relay-g1.sh` — no swaps); emulator
+inherited from pass 18 (no cold boot; the 06:35 `install -r` restarted the app →
+pid 9546; explicit `am start`); logcat fresh at 06:35 → /tmp/p19/logcat.log.
+Receipts: 3 screenshots (`/tmp/p19/shots/s01–s03`), AX dumps `/tmp/p19/w/w0–w7`,
+relay log `/tmp/p19/relay-g1.log` (the CAS-ok/CAS-MISMATCH/ghost trio lines +
+v4calls), DB pull `/tmp/p19/db/` (the outbox arbiter), build log
+/tmp/p19-build.log (APK byte-identical `ad449d7d…`/`530ba4ff`, vc53/1.3.2 —
+zero app changes; mock jar re-cut). Desktop 3.18.1 / `ec475e6e…` unchanged
+(STEP 0). Self-tests `MockZCodePass19RigSelfTest` 7/7 + mock suite **179/0/0**.
+gateway.drop for the pass: 0 (no generation swaps, no drops observed). Commits:
+`0a037a60` (fix(mock), debt #20) + the docs commit for this part. **Rig left:**
+emulator zcode-a16 UP, relay gen1 ALIVE (arms SPENT — both CAS legs consumed,
+ghost fired, INPUT_ROUTING=choice + CAS arm sticky; pkill to end), app pid 9546
+CONNECTED on relay-1 on the synthetic conversation (timeline: p19casA row +
+synthetic reply; draft `p19casB` preserved in the composer; strip "Queued (2) ·
+paused"), logcat running → /tmp/p19/logcat.log.
