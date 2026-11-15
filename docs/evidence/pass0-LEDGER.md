@@ -42,53 +42,56 @@ P2-first, exit gates, per-row Accept criteria).
 ## Campaign state (update every pass)
 
 > **🛑 SATURATED (2026-11-14, pass 12) — EXTENDED (pass 13) — EXHAUSTED (pass 14) —
-> passes 15–18 drove the coverage/mock-debt gated compositions — passes 19–25 the
-> send-ack/guard/effort/slash-parser planes — pass 26 the parser's REMAINING
-> branches — pass 27 drove the parser table's LAST TWO undriven spellings at HEAD
-> (ZERO new rows, SIXTH consecutive):** `/goal resume`'s ACCEPTED happy path
-> receipted first-series (`resumeGoal` → ACKED/{} on the exact pass-26 pause shape;
-> the GOAL_RESUME_REFUSED face correctly silent; the family's faces are now
-> exhaustively receipted — pause/resume accepted + both stale faces) and the
-> `/compact`-with-attachment `:55`-gate fallthrough receipted (chip `121.png` staged
-> → RAW sendText WITH the attachments payload, ZERO compact on the wire — the gate
-> now receipted on BOTH spellings). **The slash-parser table at HEAD is FULLY
-> saturated: every dispatch branch and every spelling.** ZERO mock changes, ZERO app
-> changes (APK byte-identical). **gateway.drop: 0.** SIXTH consecutive
-> zero-new-rows pass; roadmap decision remains ERNEST'S.
+> passes 15–18 drove the coverage/mock-debt gated compositions — passes 19–27 the
+> send-ack/guard/effort/slash-parser planes (the parser table FULLY saturated at
+> pass 27) — pass 28 ran fresh composer recon when the coverage lists emptied and
+> drove THREE never-receipted axes, opening ONE small (N-BR-1 — the stale
+> offline-attachment notice; the six-pass zero-new-rows streak ends):** the
+> slash-menu PICK tap (GAP-12 insert contract live + the menu-inserted `/compact `
+> trailing-space spelling → `compact ACKED/{} — the parser saturation now covers
+> the menu-inserted spellings too), the composer STOP morph end-to-end FIRST SERIES
+> (morph both ways, the GAP-A9 draft-always-wins contract, `command type=stop` →
+> `stop ACKED/{}`, morph-back on the idle patch), and the FIRST non-image
+> attachment (`rig-p28-notes.txt` via OpenDocument → offline-failed upload → typed
+> Retry/Remove face → Retry committed (begin/chunk/commit all ok) → ✓ chip →
+> `sendText` carrying `mime:"text/plain"` + ref, ACKED). ZERO mock changes, ZERO
+> app changes (APK byte-identical; `install -r` SKIPPED on digest equality).
+> **gateway.drop: 0.**
 
 - Report: `docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md` —
-  Parts A–Z + AA + AB + AC + AD = passes 0–27. **Latest: pass 27 (Part AD, 2026-11-15 ~20:45).**
-- Repo HEAD at last pass: `111ae54c` (pass 26's docs commit; main; zero app or mock
-  changes in pass 27 — the APK is byte-identical).
+  Parts A–Z + AA + AB + AC + AD + AE = passes 0–28. **Latest: pass 28 (Part AE, 2026-11-15 ~22:00).**
+- Repo HEAD at pass start: `8e32d836` (pass 27's docs commit; main; zero app or mock
+  changes in pass 28 — the APK is byte-identical).
   APK of record: sha256 `ad449d7d…` / md5 `530ba4ff…`, versionCode 53 / 1.3.2
   (byte-identical across the whole series).
 - Desktop of record: **/Applications/ZCode.app 3.18.1.10376, asar sha256 `ec475e6e…`,
-  383,832,025 B** (re-verified at pass-27 STEP 0 — UNCHANGED, no DELTA).
-- Open rows: **27 F (25 defects + 2 obs) + 21 G + 3 standing + 14 smalls (+1 watch
-  +1 rig)** — pass 27 opened NOTHING and stamped NOTHING (both legs receipted
-  WORKING on previously-untyped spellings; no OPEN row re-manifested). The
-  slash-parser table at HEAD is now FULLY SATURATED (every dispatch branch + every
-  spelling — AC.D/AC.E/AD.C/AD.D together); nothing left to drive on the parser.
-- Backlog: **8/8 DONE**; the discovery surface stays empty — pass 27 closed the
-  parser's last two spellings; what remains is standing stops + N-BQ-1's
-  fix-round re-drive + F-P3-A-gated planes.
+  383,832,025 B** (re-verified at pass-28 STEP 0 — UNCHANGED, no DELTA).
+- Open rows: **27 F (25 defects + 2 obs) + 21 G + 3 standing + 15 smalls (+1 watch
+  +1 rig)** — pass 28 opened **N-BR-1** (P4) and stamped NOTHING (no OPEN row
+  re-manifested). The slash-parser table at HEAD is FULLY SATURATED including the
+  menu-inserted spellings (AE.C); the composer STOP plane and the non-image
+  attachment plane are receipted first-series (AE.D/AE.E).
+- Backlog: **8/8 DONE**; the discovery surface stays empty — pass 28's axes came
+  from fresh composer recon (the coverage lists were all standing/gated/receipted);
+  what remains is standing stops + N-BQ-1's fix-round re-drive + F-P3-A-gated
+  planes + AE.F's leftovers (the multi-attachment send, the chip Remove path).
   **The mock-debt list has 0 open work-debts (no mock changes this pass).**
-- Rig left by pass 27: emulator `zcode-a16` UP (REUSED from pass 26 — the FOURTH
-  consecutive inherited survival; up since 17:43; healthy, wifi ENABLED, screenshot
-  protection OFF by persistence), relay gen1 ALIVE (nonce `mock-p27-gen1-7a41e2`,
-  arms `MOCK_ROWS=12` only — NO sticky refusal arms, safe to inherit), app pid 9038
-  (force-stop relaunch after the inherited post-pkill AUTHENTICATING wedge — the
-  F-P9-A shape, one-restart recovery recipe) on synth-task-1 (chip "yolo · …",
-  composer EMPTY, timeline bottomed on the leg-2 exchange), logcat running →
-  /tmp/p27/logcat.log. Launcher `/tmp/p27/relay-g1.sh`.
-  New rig learnings in Part AD.A0: **per-char `input text` is THE reliable typing
-  recipe** (keyevent-per-letter garbled `/goal`→`/obl`, one-chunk input text
-  interleaved, the fresh-focus first chunk drops its first char); the slash-command
-  menu INTERCEPTS keyevents while open (BACK closes the dropdown, then cursor
-  DEL/RIGHT/insert is the deterministic draft repair); re-dump before EVERY composer
-  interaction (chip/menu shift the field); the picker's tiles render BLACK until
-  decode — identity via the AX desc mtime; relay-up-FIRST beats the inherited wedge
-  (or force-stop+relaunch the app after it).
+- Rig left by pass 28: emulator `zcode-a16` UP (REUSED from pass 27 — the FIFTH
+  consecutive inherited survival; healthy, wifi ENABLED, screenshot protection OFF
+  by persistence), relay gen1 ALIVE (nonce `mock-p28-gen1-3f9c04`, arms
+  `MOCK_ROWS=12` only — clean, safe to inherit; 3 app connection generations in its
+  log, all honestly recovered), app pid 9038 on synth-task-1 (chip "yolo · …",
+  composer EMPTY, timeline bottomed on the doc exchange, STOP morph armed from the
+  last sendText), logcat running → /tmp/p28/logcat.log. Launcher
+  `/tmp/p28/relay-g1.sh`.
+  New rig learnings in Part AE.A0: **the composer + DropdownMenu renders
+  INVISIBLY to both screencap and uiautomator** (taps still land — the calibration
+  tap hit Sketch; the recipe is `dumpsys window windows` frame + 132 px/row math);
+  the slash Commands dropdown renders normally; screenshot taps need NO scale
+  correction (the ~17 % offsets are the Read-preview scale, not the PNG); the
+  mock's request `id=` counter is PER-CONNECTION (do not read dropping ids as a
+  relay restart — grep MOCKZCODE_READY); DocumentsUI is dump-drivable even when
+  pixels lag blank; BACK-pops-route re-manifested (one BACK per surface).
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -164,7 +167,7 @@ rig) · RETRACTED/REFUTED/ABSORBED: 7.
    (wiring-only hydrate) → 14. **F-P3-C** → 15. **F-P7-A / F-P7-B** → 16. **F-P5-A →
    F-P2-B → F-P0-C → F-P8-B → F-P8-F** → 17. **F-P1-B → F-P1-D** → 18. smalls
    (N-BM-1 → N-BP-1 → N-BM-3 → N-BN-1 → N-BK-1 app half → N-BJ-1 → N-BK-2 → N-BL-1 →
-   N-BM-2 → N-BO-1 → N-BP-2 → N-BQ-1 → K-small-1/2) → 19. **F-P19-A + F-P20-A** (passes
+   N-BM-2 → N-BO-1 → N-BP-2 → N-BQ-1 → N-BR-1 → K-small-1/2) → 19. **F-P19-A + F-P20-A** (passes
    19/20: the held-queue guard family — F-P19-A the sendText CAS-mismatch face
    divergence, F-P20-A the goal payload's trio omission; both small — a typed
    reasonCode branch on the existing SendNotice path / a goal-side gate) →
@@ -248,12 +251,14 @@ rig) · RETRACTED/REFUTED/ABSORBED: 7.
 | N-BP-1 | 3 | OPEN (NEW pass 13) | the Usage screen DOUBLE-applies the Scaffold `inner` padding (PullToRefreshBox line 141 + the inner Column line 146 — the only viewer with two `padding(inner)` applications; all 11 sibling viewers have exactly one) → a ~400px dead band under the top bar that is ALSO A DEAD TOUCH ZONE: scroll and pull-to-refresh gestures starting inside it are swallowed (8 receipted attempts, zero re-queries); content scrolls only from drags begun below the band | drop the second `.padding(inner)`; pin: a compose test dragging from the band region asserts the list scrolls | Part P.A1 |
 | N-BP-2 | 4 | OPEN (NEW pass 13) | Daily-trend x-labels render "2026-" for every row — `day.date.take(5)` (UsageScreen.kt:613) slices the ISO date the decoder feeds; the slice assumes an MM-DD shape | slice after the year (or format the full date); pin on the label text | Part P.A1 |
 | N-BQ-1 | 4 | OPEN (NEW pass 22) | the effort switch's typed stale face is DEAD CODE: `setThoughtLevel` rides the PROTOCOL method whose host layer answers a JSON-RPC ERROR on revision mismatch (FQ → `Dl -32009`, zcode.cjs sPi `~0xe99b3a` — the `{status:"stale"}` ack exists only in the command dispatcher), the phone collapses any throw to FAILED (`Ports.kt:1000-1013` has only ACCEPTED/FAILED; `V4Plane.kt:1429` never inspects status; `ChannelSession.kt:69-76` keeps only the message), so `ConversationViewModel.kt:336`'s SESSION_CHANGED branch can never fire — the effort switch renders the GENERIC "desktop refused" ERROR where its whole family (mode/model/queue-verbs) renders the honest "try again" warning (live receipt: relay -32009 line → logcat TransportFailure → generic banner s07, chip unchanged; desktop contrast: the renderer's own facade has NO CAS at all — the check serves only remote clients, i.e. exactly the phone) | map the protocol-plane error by its revision-mismatch identity so STALE propagates (or re-shape the call); pin: a transport-fake harness asserting setThoughtLevel STALE propagation; re-drive the live face after the fix | Part Y.B/Y.D, Z.E, AA.D | 3 (pass 23: `medium` — same -32009 → generic face + unchanged chip; high [22], medium [23], xhigh [24] — the 4-radio sheet's first live observation, arm level-agnostic so the triple saturates what the rig can differentiate) |
+| N-BR-1 | 4 | OPEN (NEW pass 28) | the composer attachment chip's Retry SUCCESS leaves the stale offline banner displayed: `uploadAttachment` sets the ATTACHMENT_OFFLINE notice on BlockedOffline (`ConversationViewModel.kt:369`) but `retryUpload` (:384-391) mutates NO notice on `Committed` — after a successful retry (wire begin/chunk/commit all ok) the banner keeps claiming "Offline — the attachment was not sent. Retry when connected." beside the ✓-ready chip until the next send's ACCEPTED clears it or the user taps ✕ (`dismissSendNotice` :426); live receipt: s16 single frame (✓ chip + stale banner simultaneously) → Retry committed → banner cleared only by the following send (s17) | clear the keyed ATTACHMENT_OFFLINE notice in retryUpload's Committed branch (one line); pin: a harness asserting retry→committed→banner-gone | — | Part AE.E (receipt + pins) | 1 |
 | K-small-3 | 4 | WATCH | one-off terminal route pop (unreproduced — watch, don't chase) | Part K.A2 |
 | N-BJ-2 | 4 | REFUTED→FOLDED | unpair IS reachable (Settings bottom, pass 4); fakeLink half folded into F-P2-B | Part G.A2.4 |
 | N-BM-4 | — | RIG | Dictate leg kills the emulator (cause unproven); leg undriven | Part J |
 
-**Open smalls: 14 (+1 watch +1 rig)** — pass 13 added N-BP-1 (P3) and N-BP-2 (P4);
-pass 22 added N-BQ-1 (P4, the effort stale face's dead branch).
+**Open smalls: 15 (+1 watch +1 rig)** — pass 13 added N-BP-1 (P3) and N-BP-2 (P4);
+pass 22 added N-BQ-1 (P4, the effort stale face's dead branch); pass 28 added
+N-BR-1 (P4, the stale offline-attachment notice).
 
 ## Mock-fidelity debts (rig, not app)
 
@@ -443,6 +448,24 @@ delta …`). Nothing pushed.
 
 ## History
 
+- 2026-11-15 (pass 28) — Part AE executed on three FRESH composer axes (the
+  coverage lists had emptied to standing/gated-only): the slash-menu PICK tap
+  (GAP-12 insert contract live; `/compact ` trailing-space → `compact ACKED/{}` —
+  the parser saturation now covers menu-inserted spellings), the composer STOP
+  morph FIRST SERIES (morph both ways + the GAP-A9 draft-always-wins contract +
+  `command type=stop` → `stop ACKED/{}` + morph-back), and the FIRST non-image
+  attachment (OpenDocument → `rig-p28-notes.txt` chip → offline-failed upload →
+  typed Retry/Remove face → Retry committed → ✓ chip → `sendText` with
+  `mime:"text/plain"` + ref, ACKED). NEW row **N-BR-1** (P4: the Retry success
+  leaves the stale offline banner up — s16 single-frame proof; cleared only by the
+  next send). ZERO mock changes; ZERO app changes (APK byte-identical; the
+  `install -r` SKIPPED on digest equality — the device already held the HEAD
+  artifact). Rig learnings: the + DropdownMenu renders INVISIBLY to screencap AND
+  dump (dumpsys-window-frame + 132 px/row calibration; a blind tap hit Sketch);
+  screenshot taps need NO scale correction (the offsets are the Read-preview
+  scale); per-connection mock request ids; DocumentsUI dump-drivable while pixels
+  lag; BACK-pops-route again. Rig left UP (gen1 clean arms, app pid 9038 on
+  synth-task-1, logcat → /tmp/p28/logcat.log).
 - 2026-11-15 (pass 27) — Part AD executed on Part AC's coverage-honesty list (its
   exactly-two named leftovers): ZERO new rows (SIXTH consecutive); ZERO mock
   changes; ZERO app changes (APK byte-identical). Two legs receipted first-series,
