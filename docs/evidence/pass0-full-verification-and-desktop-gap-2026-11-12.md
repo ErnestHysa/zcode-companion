@@ -4521,3 +4521,228 @@ app pid 5789 on the synth-task-1 conversation (timeline = stall frames growing),
 logcat running → /tmp/p17/logcat.log. Live connection ON (the pass-14 pref
 persisted). Commits: `05ba5c18` (fix(mock), debts #17+#18 + the trio log/clear
 honoring) + the docs commit for this part.
+
+# Part U — pass 18 (APPENDED 2026-11-15, ~03:20): the G49/G50 one-shot matrix completed live (the delivery menu's two undriven values, the "queue" value riding a NEW server-side hold), the run-row Delete confirm-face adjudicated NO-DEFECT both sides, and the mock-debt list fully adjudicated (#3/#6/#7/#8 closed, #19 opened+closed, #14 reclassified standing)
+
+> **Pass 18 of the pass-0 series** (solo, the canonical discovery prompt; STEP 1 empty —
+> backlog 8/8 — so STEP 2 worked Part T's coverage-honesty list, and the open
+> mock-debt axis fell to the same pass). **ZERO new rows.** First-series WORKING
+> receipts: the delivery one-shot **"Queue this send"** — the trio
+> `heldQueueDisposition=keepQueueAndSend requestedDelivery=queue
+> expectedHeldQueueItemIds=[q-rig-1,q-rig-2]` on ONE sendConversationCommandV4, the
+> NEW debt-#19 server-side HOLD appending `q-rig-101`, the strip **Queued (2)→(3)** —
+> and the delivery one-shot **"Send now (override queueing)"** — trio
+> `clearQueueAndSend requestedDelivery=startNow
+> expectedHeldQueueItemIds=[q-rig-1,q-rig-2,q-rig-101]` (the CAS set carries the
+> just-queued id), queue EMPTIED + immediate rows. Together with pass 17's `guide`,
+> **all three G49 one-shot values are now wire-receipted**. The run-row Delete's
+> confirm-face leftover adjudicated **NO-DEFECT from code + i18n on BOTH sides** (no
+> live leg needed — pass 17's live delete receipt stands, code unchanged). Mock
+> debts: **#3 CLOSED fixed-by-prior-work** (`2b12fc46`), **#6 CLOSED
+> by-adjudication**, **#7 CLOSED** (documentation), **#8 CLOSED by construction**
+> (`6846727d`), **#19 OPENED+CLOSED** (`6846727d` + the live receipt), **#14
+> reclassified STANDING RIG-ENV** — **0 open work-debts.** Stamps: F-P8-D 4.
+>
+> **Verification stamp:** 2026-11-15 02:52 → 03:13, GLM-5.3-Flash in ZCode, everything
+> local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…` UNCHANGED — no
+> DELTA. Rig inherited from pass 17 (emulator zcode-a16 UP; the pass-17 gen3
+> TURN_STALL relay pkill'd at pass start; the `install -r` restarted the app →
+> pid 7843). ONE generation for the whole pass — gen1 `mock-p18-gen1-c4d5e6`
+> (02:56, MOCK_ROWS=12 + MOCK_QUEUE + MOCK_INPUT_ROUTING=choice; **no relay swaps —
+> a series first**); two idle-socket drops mid-pass recovered honestly (03:03
+> RECOVERING→CONNECTED on relay-4 in ~3 s; 03:11 three 10-s connect timeouts →
+> RECOVERING→CONNECTED on relay-8 at 03:12:27, the ladder working as pinned).
+
+## U.A0 — rig learnings (each bites the next pass)
+
+1. **The IME-open dump-bounds artifact cuts BOTH directions.** With the IME up, one
+   tap aimed at the dump's composer position (960,1417 — "Send message
+   [894,1351][1026,1483]") landed on a queue row's Edit sheet ~600 real px higher;
+   minutes later, the SAME geometry honored dump-position taps for the delivery
+   menu ((854,1416) opened it; menu items at dump bounds hit true). The safe recipe
+   stands and is now mandatory for composer-row taps: force-close the IME with
+   **BACK** (keyevent 4 — ESC left `mInputShown=true` once; BACK is deterministic
+   per the pass-3 recipe), verify `dumpsys input_method` → `mInputShown=false` AND
+   the composer at its bottom bounds ([894,2118][1026,2250] shape), then dump-tap.
+2. **Dialog-window dump bounds were TRUE with the IME up beneath** (the G50 dialog's
+   "Keep/Clear" dump bounds matched the screenshot within ~20 px in both legs) —
+   dialogs render in their own window; the D.A0.2 "~200 px lie" applies to
+   IME-transition races on the HOST window, not to dialog windows. Verify by
+   screenshot once, then trust the dialog dump.
+3. `input text` with `%s` still truncates mid-word ("p18 startNo" from
+   "p18%sstartNo%sleg"; "p18 queue ovie" from five words) — the pass-0 flake
+   persists at HEAD. Wire legs don't care about the draft text; accept the
+   truncation instead of burning minutes on retry loops.
+4. **The Edit-sheet Cancel is a CLEAN escape hatch**: after the mis-aimed tap opened
+   the queue item's Edit sheet, Cancel dismissed it with ZERO wire verbs (relay log
+   empty through the detour) and the draft + the armed delivery override both
+   survived. Budget one Cancel tap whenever a queue-row tap mis-fires.
+5. `w14`'s mid-transition tree (it showed the Edit sheet while the delivery menu was
+   actually opening) is T.A0.4's entrance race again, now with a confusing face:
+   the FIRST dump after a tap can show the PREVIOUS overlay's remnant. Re-dump
+   before reading (w15 was definitive).
+
+## U.A1 — gen1, leg A: the delivery one-shot matrix completed (both undriven values, wire-true)
+
+Arms: MOCK_ROWS=12 + MOCK_QUEUE=1 (seeds q-rig-1/q-rig-2, autoDrain=false) +
+MOCK_INPUT_ROUTING=choice (pass-17's arm). Draft "p18 queue ovie" (the IME-flake
+text — irrelevant to the wire).
+
+**A1 — "Queue this send" (the G49 menu's second value, FIRST WIRE RECEIPT).** The
+delivery button (content-desc "Delivery for the next send") opened the three-option
+menu (dumped in full: `Send now (override queueing)` / `Queue this send` /
+`Guide (wait for me)`, s01) → picking **Queue this send** fired no verb (the one-shot
+contract, pass-17 adjudication) → Send → the G50 dialog (s06: "Queue is held / Send
+now and clear the queue, or keep the queued messages?" — second live render) →
+**Keep queue & send** → 03:05:47.916, ok in 396 ms:
+
+```
+MOCK: sendText trio heldQueueDisposition=keepQueueAndSend requestedDelivery=queue expectedHeldQueueItemIds=[q-rig-1, q-rig-2]
+MOCK: sendText queued delivery -> q-rig-101 appended (heldDisposition=keepQueueAndSend)
+```
+
+**The desktop-faithful HOLD, receipted live**: the desktop answers
+`sendText{requestedDelivery:"queue"}` with `inputAccepted{delivery:"queue"}` and the
+input stays HELD (the bot path marks the task "waiting" with a Queued notification —
+asar 0x12fe21b5) — the debt-#19 fix makes the mock do exactly that, and the phone's
+strip rendered **"Queued (3) · paused"** (s08). Before the fix the mock appended
+user/assistant rows immediately, which would have un-queued the send and hidden the
+override's entire point.
+
+**A2 — "Send now (override queueing)" (the third value, FIRST WIRE RECEIPT).** Fresh
+draft "p18 startNo" → delivery menu → **Send now (override queueing)** → Send → G50
+dialog → **Clear queue & send** → 03:10:42.027:
+
+```
+MOCK: sendText trio heldQueueDisposition=clearQueueAndSend requestedDelivery=startNow expectedHeldQueueItemIds=[q-rig-1, q-rig-2, q-rig-101]
+```
+
+(No `queued delivery` line — startNow takes the immediate path.) **The CAS set
+carries all THREE ids including `q-rig-101`, the item the A1 hold created** — the
+phone's expectedHeldQueueItemIds is the ids the user SAW at dialog time, re-read
+live (WriteComponents `heldQueueIds()`), desktop-faithful. Render receipt (w19):
+the queue strip **GONE** (the mock's clear honoring emptied it) + the user row
+"p18 startNo" + "synthetic reply to: p18 startNo" appended (the immediate path).
+
+**The complete G49/G50 matrix now receipted:**
+
+| one-shot value | disposition | wire (all on ONE sendConversationCommandV4) | server effect | render |
+| --- | --- | --- | --- | --- |
+| `guide` | keep (pass 17, T.A1) | trio with requestedDelivery=guide | immediate rows (pass-17 adjudication) | strip SURVIVES |
+| `queue` | keep (U.A1) | trio with requestedDelivery=queue | **HELD as q-rig-101** (debt #19) | strip 2→3 |
+| `startNow` | clear (U.A1) | trio with requestedDelivery=startNow | queue emptied + immediate rows | strip GONE + rows |
+
+Cosmetic nit re-observed (NOT rowed, pass-17's adjudication stands): the queue item
+text ellipsizes in paint ("queue…" in s08/s09) while the AX carries the full string.
+
+## U.B — leg B: the run-row Delete's confirm-face adjudicated NO-DEFECT (static, both sides)
+
+Part T's coverage-honesty list carried "deleteRun's confirm-face semantics (the
+delete fired directly on the rig)". Adjudicated from code + i18n on BOTH sides:
+
+- **Phone**: the RunRow Delete button fires `onDelete` DIRECTLY —
+  `AutomationsSection.kt:602` (`port.deleteRun(run.runId)` in the History sheet's
+  scope launch), the button at :655-663 has no confirm arms. Contrast: the sibling
+  `OffPeakLine` Delete/Cancel arms a SECTION-LEVEL confirm (the G29 comment at
+  :636-637) — so the codebase knows the pattern and deliberately does not use it
+  for run rows.
+- **Desktop**: `automations.delete.title` = "Delete scheduled task" +
+  `automations.delete.description` = "Delete "{title}"? This cannot be undone."
+  exist ONLY for the AUTOMATION-level delete; the `automations.runs.*` family has
+  NO confirm pair (full family extracted — Run history / Delete run / Go to
+  session / statuses / pagination, zero title/description keys under runs.delete).
+  The desktop deletes a run record directly too.
+- **Phone automation-level parity**: the phone HAS the confirm
+  (`automations_delete_title/body` = "Delete automation?" / "Delete "%1$s"? The
+  schedule stops and the definition is removed.", AutomationsSection.kt:393) —
+  desktop-faithful.
+
+A run record is a log entry (non-destructive), and BOTH sides delete it directly →
+**NO-DEFECT**; no row opened. No live leg needed: pass 17 already receipted the
+live delete wire-true (`deleteAutomationRun` + the ledger shrink) and the code is
+unchanged since.
+
+## U.C — the mock-debt axis: #3/#6/#7/#8 closed, #19 opened+closed, #14 reclassified
+
+- **#3 CLOSED fixed-by-prior-work** (`2b12fc46`, pass 5 — pre-dating the ledger's
+  snapshotPendingInteractions introduction). At HEAD `snapshotPendingInteractions`
+  serves the FULL pending list once the fresh-push delivered
+  (`script.interactionPushDelivered`); the only exclusion window is BEFORE its own
+  patch lands — the RIG-P1 anti-race, by design (a leg-fidelity guard, not a
+  fidelity gap). Desktop evidence closes the faithfulness question: the host pane
+  resolves the active permission card FROM `snapshot.pendingInteractions` and the
+  notification producer filters that same snapshot list — a delivered interaction
+  IS snapshot-listed on the desktop, so the mock's post-delivery inclusion is the
+  faithful shape. The F-P0-B stale-sweep receipts stand on their pinned row-plane
+  mechanism; this confound is retired.
+- **#6 CLOSED by-adjudication**: the push arm's conversation-subscribe anchoring IS
+  the desktop shape (the interaction plane rides the conversation subscription —
+  pass-6/8 receipts); `155a3c02` armed it that way on purpose. The recipe is the
+  drive procedure, not a debt.
+- **#7 CLOSED** (documentation): both arms driven pass 9 (Part L) — the ledger's
+  own parenthetical already said so.
+- **#8 CLOSED by construction** (`6846727d`): `seedOffPeakRigList` extracted and
+  served by MOCK_AUTOMATIONS=1 when MOCK_OFFPEAK is unset — the desktop's
+  automations ARE scheduled/off-peak tasks, so a session serving listAutomations
+  always serves the list; MOCK_OFFPEAK=0 opts out. Removes the pass-10
+  "This feature isn't available" face from every future automations launcher.
+  Self-tested (the seeded three-status list + workspace key); the plane itself
+  stays receipted by passes 10/16/17 (code path unchanged — no live re-drive).
+- **#19 OPENED+CLOSED** (`6846727d`): the sendText arm now honors
+  `requestedDelivery:"queue"` — enqueue `q-rig-N` + `pushQueuePatch` + the routing
+  echo, NO user/assistant rows; composes with the clear disposition (empty →
+  exactly the new item) and keep (grows). Self-tests `MockZCodePass18RigSelfTest`
+  5/5 (hold-no-rows, keep-composition, clear-composition, immediate-path
+  regression guard, the off-peak seed); mock suite **172/0/0**. Live receipt: U.A1.
+- **#14 reclassified STANDING RIG-ENV**: the probabilistic API-36 NAT blackhole is
+  unfixable in mock code; the recovery (full emulator restart) is the recipe. It
+  did NOT manifest this pass — both idle-socket drops recovered honestly without a
+  restart. Kept visible in the debt list as environment knowledge, out of the
+  open-work count.
+
+**Debt ledger after pass 18: 0 open work-debts; #14 standing-env.** The
+`relay-g1.sh` launcher pattern now needs only the arms a leg names — the
+automations co-requirement is gone.
+
+## U.Q — ledger arithmetic + coverage honesty
+
+Open F: **25** (unchanged — zero new rows; F-P8-D stamps 4) · Open G: **21 + 3
+standing** (unchanged) · Open smalls: **13 (+1 watch +1 rig)** (unchanged) ·
+Mock debts: **#3/#6/#7/#8 CLOSED, #19 opened+closed** (fix `6846727d`), **#14
+standing-env** — **0 open work-debts**. First-series WORKING receipts: the
+delivery one-shot `queue` value with the server-side HOLD, the delivery one-shot
+`startNow` value + the clear composition.
+
+### Coverage honesty (what pass 18 did NOT drive)
+
+The delivery menu's `guide` value re-drive (pass-17 receipt, mechanism identical),
+the queue strip's followup chips and the Auto-send toggle (pass-12 receipts, code
+unchanged), the automations plane live re-drive under the debt-#8 fix (plane code
+unchanged; passes 10/16/17 receipts stand), the F-P13-A close-cycle re-receipt
+(row stands per the re-receipt rule; no generation swaps occurred), the
+label-render leg and the card plane (F-P3-A-gated), the standing stops
+(TalkBack/Dictate/widget/Take-photo/shade-ACTION), and re-driving FIXED/REFUTED/
+ABSORBED rows (none changed). The G50 dialog's cross-side CAS-mismatch face
+(expected ids vs a moved-on queue) remains undriven — the mock has no mismatch arm;
+a candidate debt if a fix round ever needs it.
+
+## Pass-18 verification stamp
+
+Pass 18 completed 2026-11-15 ~03:20; ONE relay generation (nonce
+`mock-p18-gen1-c4d5e6`, launcher `/tmp/p18/relay-g1.sh` — no swaps, a series
+first); the emulator inherited from pass 17 (no cold boot; the 02:56 `install -r`
+restarted the app → pid 7843; explicit `am start`); logcat fresh `adb logcat -T 1`
+at 02:56 → /tmp/p18/logcat.log. Receipts: 12 screenshots (`/tmp/p18/shots/s01–
+s12`), AX dumps `/tmp/p18/w/w0–w19`, relay log `/tmp/p18/relay-g1.log` (29
+v4calls), build log /tmp/p18-build.log (APK **byte-identical** `ad449d7d…` /
+`530ba4ff…`, vc53/1.3.2 — zero app changes; the 02:56 build was up-to-date),
+mock self-tests `MockZCodePass18RigSelfTest` 5/5 + suite 172/0/0 (no DB pulls —
+every leg's arbiter was wire + render state, as in pass 17). Desktop 3.18.1 /
+`ec475e6e…` unchanged (STEP 0). **gateway.drop for the whole pass: 0**; two
+idle-socket drops recovered honestly (relay-4 at 03:03, relay-8 at 03:12:27 —
+the reconnect ladder receipted working once more). Commits: `6846727d`
+(fix(mock), debts #8+#19) + the docs commit for this part. **Rig left:**
+emulator zcode-a16 UP, relay gen1 ALIVE (arms SPENT — the QUEUE composition
+consumed by A1/A2, INPUT_ROUTING=choice sticky; pkill to end), app pid 7843
+CONNECTED on relay-8 on the synthetic conversation (timeline: "p18 startNo" user
+row + synthetic reply; queue strip GONE), logcat running → /tmp/p18/logcat.log.
