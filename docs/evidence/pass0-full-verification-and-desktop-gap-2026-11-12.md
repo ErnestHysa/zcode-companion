@@ -6910,3 +6910,206 @@ arms, safe to inherit), app pid 9038 on synth-task-1 (chip "yolo · …", compos
 ONE-SPACE residue, banner dismissed, timeline bottomed on the remove-probe
 exchange), logcat running → /tmp/p29/logcat.log. Launcher
 `/tmp/p29/relay-g2.sh`.
+
+# Part AG — pass 30 (APPENDED 2026-11-15, ~23:55): Part AF's coverage-honesty list FULLY driven — all FIVE named attachment-plane residuals receipted live in one pass: the TOO_LARGE face (a 21 MB pick → the typed WARNING + NO chip + zero wire, the client-side pre-wire gate), the ↑ NN% uploading-progress render (caught TWICE at 25% — the mock's new chunk-delay arm widening the window), the non-offline ATTACHMENT_FAILED face (first-attempt, banner interpolating the RAW fault code — the N-BO-1 class's THIRD surface), the ATTACHMENT_RETRY_FAILED face (first series), and the MIXED-state send (one ✓ + one ✗ chip → the DB-arbitered 1-element payload, the ready chip consumed, the failed chip LINGERING — opening NEW small N-BS-1) — plus the new mock arms committed (debt #22 opened+closed in-pass); N-BR-1 stamps 3 (the cross-chip window: chip B's SUCCESSFUL retry leaves chip A's stale FAILED banner displayed)
+
+> **Pass 30 of the pass-0 series** (solo, the canonical discovery prompt). STEP 1 empty
+> (backlog 8/8). Part AF's coverage-honesty list named five attachment-plane
+> residuals — TOO_LARGE, the non-offline FAILED face, RETRY_FAILED, the ↑% render,
+> the MIXED-state send — and ALL FIVE are receipted below. **ONE new small (N-BS-1);
+> N-BR-1 stamps 3; N-BO-1 stamps 3.** Mock: ONE commit `d21db7a0` (the
+> MOCK_ATTACHMENT_FAIL / MOCK_ATTACHMENT_CHUNK_DELAY_MS arms + 6 self-tests, suite
+> 204/0/0 — debt #22 opened+closed in-pass). No app changes (APK byte-identical at
+> HEAD `3eed436b`; the `install -r` SKIPPED on digest equality).
+>
+> **Verification stamp:** 2026-11-15 23:21 → 23:52, GLM-5.3-Flash in ZCode, everything
+> local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…` UNCHANGED — no
+> DELTA. Rig: the pass-29 emulator REUSED (SEVENTH consecutive inherited survival;
+> healthy, wifi ENABLED); the pass-29 relay gen2 pkilled BY NAME at 23:26; TWO
+> generations this pass: gen1 `mock-p30-gen1-7b2e51` (23:26→23:43, arms
+> MOCK_ROWS=12 + MOCK_ATTACHMENT_FAIL=commit + MOCK_ATTACHMENT_CHUNK_DELAY_MS=1200)
+> and gen2 `mock-p30-gen2-4c8d02` (23:43→end, arms MOCK_ROWS=12 clean — the app
+> auto-reconnected cleanly, subscribe #1). Build at HEAD `3eed436b`:
+> `:app:assembleDebug` exit 0 (237 up-to-date) + `:tools:mockzcode:jar` rebuilt with
+> the arms; APK md5 `530ba4ff…` == on-device `base.apk` md5 (byte-identical,
+> vc53/1.3.2, sha256 `ad449d7d…`) → the `install -r` was SKIPPED. logcat fresh
+> `-T 1` → /tmp/p30/logcat.log.
+
+## AG.A0 — rig learnings
+
+1. **The DocumentsUI socket-drop streak BROKE on the photopicker trip** — the
+   130.png pick returned to a CONNECTED app and its upload ran the full staged
+   transaction (begin → 4 delayed chunks → commit). The pass-29 pattern (3/3) and
+   this pass's first DocumentsUI trip (mid.bin, the pick raced the drop →
+   BlockedOffline) make it 4-of-4 DOCUMENTSUI trips dropping, but the PHOTO picker's
+   round trip survived — the drop is (so far) DocumentsUI-specific, not
+   intent-trip-universal.
+2. **The natural drop is a free staging tool**: the BlockedOffline pick leaves a
+   FAILED chip with its payload retained (`Ports.kt:1079-1083` passes `bytes`);
+   once the relay is back, ONE Retry tap drives the full transaction through the
+   armed fail — no deliberate pkill needed when a DocumentsUI trip is already in
+   the plan.
+3. **The + menu ghost-dumped again** (w3/w4 17-node empties mid-open) while later
+   menus stayed dump-invisible — the pass-29 variance note stands: **the screenshot
+   is the only stable menu arbiter**; s04/s07 carried the six row texts each time.
+4. **The composer reflow**: the + sat at y=2118 (IME open) → y=2052 (IME closed) —
+   the re-dump-before-every-composer-tap recipe held (one silent miss this pass,
+   recovered by the screenshot check).
+5. **The one-shot `input text` garbled again** ("mixed%sprobe" → "mirobexed " —
+   the `%s` expanded but mid-payload letters interleaved/dropped, AF.A0.6 verbatim).
+   Harmless for wire receipts (the payload's `text` is whatever landed; the
+   attachments are the assertion), but per-char chunking remains THE typing recipe.
+6. The TOO_LARGE notice rendered BELOW the composer (the AF.A0.5 anchor-follows-
+   insets behavior, second receipt) — and the s04 menu screenshot caught it STILL
+   displayed beside the open + menu (the notice is not dismissed by the menu).
+
+## AG.B — leg A: the TOO_LARGE face, end-to-end (23:29–23:33)
+
+A 21 MB `rig-p30-big.bin` pushed to /sdcard/Download, picked through the
+DocumentsUI (drawer → Downloads → tile). The gate is CLIENT-SIDE pre-wire
+(`Ports.kt:1071-1073` → `AttachmentLimits.MAX_BYTES` = 20 MiB at
+`V4Phase9.kt:18`): the pick returned the typed WARNING verbatim —
+**"Attachment is over the 20 MB desktop limit — not sent."** (s03b single-frame,
+red-tinted banner with ✕ BELOW the composer) — and **NO CHIP** (`w9` carried the
+notice text and zero attachment nodes: `TooLarge` returns BEFORE the upsert, so
+the file is dropped entirely — no ✗ chip, no Retry/Remove; the user just re-picks
+a smaller file). **Zero wire**: the gen1 relay log carried no attachment verbs at
+that point (the arm never fired; count checked). The notice-lifetime note: it was
+still displayed beside the subsequently-opened + menu (s04) and cleared only by
+the later upload notices replacing it — the keyed-notice plane's normal behavior.
+
+## AG.C — leg B: the ↑% render + the non-offline FAILED faces (23:34–23:41)
+
+**First pick (mid.bin, 2 MB)** raced the natural DocumentsUI drop →
+**BlockedOffline** (the typed offline banner + `✗ rig-p30-mid.bin (2.0 MB)` chip,
+5th drop of the pattern; s05-up-2). The chip's payload is retained on this path —
+the staging trick for free.
+
+**Retry (relay gen1 up, connected)**: the transaction ran begin → 4 chunks at the
+1200 ms delay → commit → **the armed commit-fail fired** (relay log
+`MOCK: attachmentCommit forced fail (MOCK_ATTACHMENT_FAIL=commit)` ×1). The burst
+caught **`↑ rig-p30-mid.bin (2.0 MB) 25%`** mid-window (s06-retry-2 single-frame:
+the ↑ icon, grey, the % text, Remove only — no Retry while uploading, exactly
+`Phase9Components.kt:446-470`'s state render) — **the pass-29 undriven
+uploading-progress render, FIRST-series receipt**. Terminal state:
+**`✗ rig-p30-mid.bin (2.0 MB)`** + banner **"Attachment retry failed — not
+sent."** (s06-retry-6) — **ATTACHMENT_RETRY_FAILED, first-series receipt**
+(`ConversationViewModel.kt:385`).
+
+**Fresh pick via PHOTO (130.png, the MediaStore rename of the staged 2 MB png;
+Row 128 after a MEDIA_SCANNER_SCAN_FILE broadcast)**: the photopicker trip
+SURVIVED (socket intact — AG.A0.1) and the first-attempt transaction ran while
+connected: begin → 4 delayed chunks (**`↑ 130.png (2.0 MB) 25%` caught in s09-3
+BESIDE the still-failed `✗ rig-p30-mid.bin` chip — a two-state single-frame**)
+→ commit → **the arm fired ×2**. Terminal state: **`✗ 130.png (2.0 MB)`** +
+banner **"Attachment failed to upload (fault.attachment.commitFail) — not
+sent."** (s09-imgup-7) — **ATTACHMENT_FAILED first-attempt, first-series
+receipt** (`ConversationViewModel.kt:371`, the args-carrying variant). **The
+banner interpolates the RAW fault code** — `TransportFailure`'s message is
+`ErrorMapping.taskRejected(e.detail)`'s developerDiagnostic
+(`V4Plane.kt:628-631`, `ErrorMapping.kt:430-439`, `V4Plane.kt:30`) — user-facing
+developer vocabulary: **the N-BO-1 raw-fault-interpolation class's THIRD surface**
+(changes viewer, quota reset, now the attachment-FAILED notice) — **N-BO-1
+stamps 3**.
+
+Gen1 wire census for the leg: begin ×2, chunk ×8, commit ×2 (both answered the
+fault), abort ×2 (the failure-path `attachmentAbort` — `Ports.kt:1135`).
+
+## AG.D — leg C: the MIXED-state send, end-to-end (23:43–23:46)
+
+**Relay swap to clean gen2** (`mock-p30-gen2-4c8d02`, arms MOCK_ROWS=12): the
+app auto-reconnected (subscribe #1) and **both failed chips survived the swap**
+(the composer-attachment plane is port-side in-memory `StateFlow` — transport-
+lifecycle-independent, receipted again). Chip B's **Retry committed** on gen2
+(begin ×1 → 4 instant chunks → commit ×1 → `att-up-e0d7afdf-…`) →
+**`✓ 130.png (2.0 MB)`** (Remove only). **s10 single-frame bonus receipt: the
+gen1 ATTACHMENT_FAILED banner STILL displayed beside chip B's SUCCESSFUL ready
+chip** — a failed chip's stale banner outlives ANOTHER chip's successful retry
+(the same `retryUpload`-mutates-no-notice mechanism, now observed cross-chip) —
+**N-BR-1 stamps 3**. The Send FAB went ACTIVE on the ready chip alone (the
+blank-draft sendable gate, N-BH-1's contract live).
+
+**The send**: draft typed (garbled to "mirobexed " — AG.A0.5) → Send → relay
+`command type=sendText` → **DB arbiter: `sendText | ACKED | accepted |
+{"text":"mirobexed ","attachments":[{"ref":"att-up-e0d7afdf-…","fileName":
+"130.png","mime":"image/png","bytes":2097152}]}`** (outbox 23:45:26) — **the
+payload carries ONLY the ready chip** (1-element array; the failed
+`rig-p30-mid.bin` is structurally absent — no entry, no marker). Post-send
+single-frame (s12): the `✓ 130.png` chip **CONSUMED** (gone — `Ports.kt:417-421`),
+the `✗ rig-p30-mid.bin` chip **LINGERING** (Retry+Remove intact), the banner
+**CLEARED by the ACCEPTED send** (the `_sendNotice.value = null` boundary, AF.D's
+receipt corroborated), draft cleared.
+
+**NEW small N-BS-1 (P4)**: the mixed-state send silently EXCLUDES the failed
+chip from the payload with NO per-send signal — the message went out as if
+complete; the user's only trace is the lingering ✗ chip (which also stays for
+the NEXT send to trip over). Mechanism pin: the ready-only filter
+`Ports.kt:391` + the ACCEPTED consumption `:417-421` (no notice about excluded
+chips exists on that path). AF.B's static corollary ("excluded AND lingers") is
+now live-receipted. Fix shape: a keyed notice on ACCEPTED-with-excluded-chips
+("Sent without <name> — the upload failed") or a pre-send confirm; pin: a
+harness asserting the mixed send surfaces the exclusion.
+
+## AG.E — ledger arithmetic + coverage honesty
+
+Open F: **27** (unchanged) · Open G: **21 + 3 standing** (unchanged) · Open
+smalls: **16** (+1 watch +1 rig) — pass 30 opened **N-BS-1**; **N-BR-1 stamps 3**
+(the cross-chip retry-success window, s10); **N-BO-1 stamps 3** (the attachment
+FAILED banner's raw fault code — the class's third surface). Mock debts: **#22
+opened+closed in-pass** (`d21db7a0`, self-tests 6/6, suite 204/0/0) — 0 open
+work-debts. Backlog: **8/8** (the pass's axes were Part AF's coverage-honesty
+list — now EMPTY of driveables). Connection census: 2 relay generations (gen1
+armed 23:26→23:43, gen2 clean 23:43→end); the app rode 2 socket drops (1 natural
+DocumentsUI trip staging mid.bin's BlockedOffline + the gen1→gen2 swap's clean
+reconnect — zero wedges, the relay-up-first recipe held); **zero gateway.drop**;
+zero app-pid FATALs (logcat's AndroidRuntime lines are shell-uid uiautomator
+lifecycle noise). Outbox census for the pass (1 row): the mixed send
+(23:45:26, ACKED/accepted). Attachment wire census: begin ×3, chunk ×12,
+commit ×3 (2 answered the armed fault), abort ×2 (failure-path) — the mid.bin
+BlockedOffline pick never touched the wire (pre-wire offline gate).
+
+### Coverage honesty (what pass 30 did NOT drive)
+
+**The mid-upload Remove** (the `attachmentAbort` from a USER tap while ↑% —
+the failure-path aborts are receipted, the user-tap abort is not; the ~5 s
+delayed window is racy without a longer arm) — undriven; **the
+AttachmentRejectedException path** (payload DROPPED — `Ports.kt:1126-1128`
+passes no bytes) — unreachable from the rig (the port's own client-side checks
+always pass for picks; only a transport fake or a mock that changes its wire
+contract could trip it); **the retry-failing-a-SECOND-time face** — the class
+is receipted (RETRY_FAILED + payload retained; a second failure renders the
+same banner); **uploading→ready→Remove's ready-state Remove** — receipted pass
+29 (AF.E); Voice (Dictate), Camera/Take-photo, TalkBack, shade-ACTION, widget
+(standing stops); F-P3-A-gated card planes, the effort-sheet plane, the queue
+verbs, the automations/runs planes (not armed by design); turn-streaming
+(receipted 13/16/17); the doc-attachment timeline RENDER (mock-fidelity
+blocked — AE.E's note stands).
+
+## Pass-30 verification stamp
+
+Pass 30 completed 2026-11-15 ~23:52; TWO relay generations (gen1
+`mock-p30-gen1-7b2e51` 23:26→23:43, arms MOCK_ROWS=12 +
+MOCK_ATTACHMENT_FAIL=commit + MOCK_ATTACHMENT_CHUNK_DELAY_MS=1200; gen2
+`mock-p30-gen2-4c8d02` 23:43→end, arms MOCK_ROWS=12 clean; launchers
+`/tmp/p30/relay-g1.sh` and `/tmp/p30/relay-g2.sh`; relay-up-first both times —
+no wedge); emulator REUSED from pass 29 (seventh consecutive inherited
+survival; no restarts in-life); the `install -r` SKIPPED on byte-identity
+(local == on-device md5 `530ba4ff…`, sha256 `ad449d7d…`, vc53/1.3.2 at HEAD
+`3eed436b`). Receipts: shots `/tmp/p30/shots/s00-s12` (34 files: **s03b the
+TOO_LARGE face**; **s06-retry-2 the ↑25% chip**; **s06-retry-6 the
+RETRY_FAILED face**; **s09-imgup-3 two-state single-frame (failed bin chip +
+↑25% png chip)**; **s09-imgup-7 the FAILED face with the raw fault code**;
+**s10 the mixed state + the cross-chip stale banner**; **s12 the post-send
+linger**); AX dumps `/tmp/p30/w/w0-w19`; relay logs `/tmp/p30/relay-g1.log` +
+`/tmp/p30/relay-g2.log` (gen1: begin×2/chunk×8/commit×2-faulted/abort×2 +
+1 sendText; gen2: begin×1/chunk×4/commit×1 + 1 sendText); DB pulls
+`/tmp/p30/db/zcode.db{,-wal}` — the pass's complete outbox census (1 row, the
+mixed send, listed in AG.E). Mock changes: ONE commit `d21db7a0` (debt #22,
+self-tests 6/6, suite 204/0/0). App changes: NONE (APK byte-identical; install
+skipped). Desktop 3.18.1 / `ec475e6e…` unchanged (STEP 0). gateway.drop for the
+pass: **0**; zero app FATAL/AndroidRuntime lines. **Rig left:** emulator
+zcode-a16 UP (healthy, wifi ENABLED, screenshot protection OFF), relay gen2
+ALIVE (clean arms, safe to inherit), app pid 9038 on synth-task-1 (chip
+"yolo · …", the failed `rig-p30-mid.bin` chip STILL in the composer with
+Retry/Remove — rig residue, harmless; draft cleared; no banner), logcat
+running → /tmp/p30/logcat.log. Launcher `/tmp/p30/relay-g2.sh`.
