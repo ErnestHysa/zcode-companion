@@ -2824,6 +2824,11 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     lastCommandWorkspaceIdentity = it
                 }
                 val type = env?.strOrNull("type") ?: "unknown"
+                // pass-25 rig observability: the generic v4call line carries no
+                // command type, which left the phone's spontaneous frames
+                // (e.g. the unattributed post-send sendConversationCommandV4)
+                // unattributable from the log alone.
+                println("MOCK: command type=$type")
                 val commandId = env?.strOrNull("commandId") ?: "unknown"
                 lastCommandClientId = env?.strOrNull("clientId")
                 scope.launch { events.emit(ServerEvent.CommandReceived(type, commandId)) }
