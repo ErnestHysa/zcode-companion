@@ -6339,3 +6339,166 @@ zcode-a16 UP (healthy, wifi ENABLED, screenshot protection OFF), relay gen2 ALIV
 conversation (chip "yolo · …", composer in the followup-queue state with the
 "Queued" badge, timeline bottomed on the leg-2 exchange), logcat running →
 /tmp/p26/logcat.log.
+
+---
+
+# Part AD — pass 27 (APPENDED 2026-11-15, ~20:45): the slash-parser table's LAST TWO undriven spellings driven live — `/goal resume`'s ACCEPTED happy path receipted first-series (the parser's final untyped verb: resumeGoal ACKED/{} on the same shape as the pause half) and the `/compact`-with-attachment `:55`-gate fallthrough receipted (RAW sendText WITH the attachment, zero compact on the wire — the gate now receipted on BOTH its spellings) — SIXTH consecutive zero-new-rows pass; the parser table at HEAD is now FULLY saturated on every dispatch branch and every spelling
+
+> **Pass 27 of the pass-0 series** (solo, the canonical discovery prompt; STEP 1 empty —
+> backlog 8/8 — so the pass executed STEP 2 on Part AC's coverage-honesty list, which
+> named exactly two undriven spellings: "`/goal resume`'s ACCEPTED happy path (the
+> pause half receipted AC.D.3; the resume half is the same port with a mirrored refusal
+> copy — only that one verb's accepted ack is untyped on the rig)" and
+> "`/compact|/compress`-with-attachments (the same :55 gate as /goal — the gate
+> mechanism is receipted, only the spelling differs)"). **ZERO new rows in ANY table**
+> (sixth consecutive). **ZERO mock changes** — the rig needed nothing new (the mock's
+> generic command path answers `accepted` for any non-intercepted type: `resumeGoal`
+> has no case in `applyCommandEffect`, no arm needed). **ZERO app changes** (APK
+> byte-identical).
+>
+> **Verification stamp:** 2026-11-15 20:12 → 20:33, GLM-5.3-Flash in ZCode, everything
+> local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…` UNCHANGED — no DELTA.
+> Rig: the pass-26 emulator REUSED (FOURTH consecutive inherited survival; up since
+> 17:43, healthy, wifi ENABLED, screenshot protection OFF by persistence); the pass-26
+> relay gen2 pkilled BY NAME before any leg. **One rig event:** the `install -r` restart
+> (pid 7090 → 8889) left the transport AUTHENTICATING-wedged — `recovery.deferredAttach
+> :: transport=AUTHENTICATING`, `hub.cfgSubscribe :: refused: channel closed` with the
+> NAT probe OK (the F-P9-A inherited-wedge shape: no ladder, no face, the relay had come
+> up AFTER the app's first connect attempt); a `force-stop` + relaunch recovered it
+> instantly (pid 9038, auto-reconnect to gen1, hello + RPCs + heartbeats, NO re-pairing).
+> APK byte-identical (`ad449d7d…`/`530ba4ff`, vc53/1.3.2). ONE generation: gen1
+> `mock-p27-gen1-7a41e2` (launcher `/tmp/p27/relay-g1.sh`, 20:12→end, arms exactly
+> `MOCK_ROWS=12` — clean, no sticky refusals). logcat fresh `-T 1` → /tmp/p27/logcat.log.
+
+## AD.A0 — rig learnings
+
+1. **Per-char `input text` is THE reliable typing recipe on this IME** — every other
+   method failed deterministically this pass: keyevent-per-letter garbled
+   (`/goal resume` typed as `/obl resume`: the G after keyevent-76 dropped AND the A
+   landed as B — a keycode-adjacent shift beyond the pass-25/26 drop note); one-chunk
+   `input text 'goal%sresume'` INTERLEAVED (`/goaesumel` — the known interleave); and
+   the first chunk following fresh field focus drops its first char
+   (`input text '/c'` after keyevent-76 landed only `/`). Per-char single-char
+   `input text` calls with ~300 ms sleeps landed 11/11 (`/goal resume`) and 7/8
+   (only the fresh-focus first char of `/compact` dropped — repaired by cursor math,
+   see 2).
+2. **The slash-command menu INTERCEPTS keyevents while open:** with the Commands
+   dropdown up, MOVE_END/DEL went nowhere and a full retype no-op'd (the draft
+   unchanged across a clear+retype attempt); BACK closes the DROPDOWN (AC.A0.2 again)
+   and returns the keyevents to the field. Deterministic repair for a garbled draft:
+   single DEL / RIGHT / insert with the cursor — this pass inserted the missing `c`
+   after `/` exactly that way (`/ompact` → DEL the stray leading c → RIGHT past the
+   slash → `input text 'c'` → `/compact`).
+3. **Re-dump before EVERY composer interaction:** the chip row and the Commands menu
+   both shift the field (the w5 field [61,1201] vs the no-IME [61,1968]); the
+   screenshot-preview scale (~17%, 891×2000 display vs 1080×2340 device) keeps
+   costing taps (one home-screen round-trip this pass). The FAB bounds themselves
+   were stable ([894,1351][1026,1483] both sends).
+4. **The photo picker's tiles render BLACK until thumbnails decode** (swiftshader
+   lag) — tile identity comes from the AX desc, not pixels: "Photo taken on Nov 15,
+   2026 8:24 PM" = the pushed file's mtime (the content query pairs `_display_name`
+   + `_id` + `_size` on one Row line, the AC.A0.5 recipe).
+5. **The inherited-rig wedge after a relay pkill is now a TWO-restart pattern:**
+   pass 25/26's `install -r` restart reconnected cleanly when the NEW relay was
+   already up; this pass the relay came up ~30 s after the app's restart and the
+   transport wedged in AUTHENTICATING (the F-P9-A third-variant shape). Recipe:
+   bring the relay up FIRST (or force-stop+relaunch the app after it — one extra
+   restart beats a multi-minute ladder wait; the wedge had NO face and the strip was
+   absent, exactly as Part L/R recorded).
+
+## AD.B — the static pins (phone HEAD `111ae54c`, zero app changes)
+
+- The parser table at `SlashCommandParser.kt:39-72` is UNCHANGED from AC.B's
+  enumeration; the two legs target its `:55` gate and the `resume` action arm
+  (`if (action == "resume") return SlashDispatch.ResumeGoal(displayText)`).
+- The ResumeGoal dispatch rides the SAME `sendSlash` as the pause half
+  (`ConversationViewModel.kt:469-474`, `port.resumeGoal(taskId)`, failureKey
+  GOAL_RESUME_REFUSED); `acceptedClearsDraft` defaults TRUE (:566-571) so the
+  accepted path clears the draft exactly like the compact.
+- The mock's generic command path (no resumeGoal/pauseGoal case in
+  `applyCommandEffect`, no interception arm) answers
+  `{commandId, status:"accepted", revisionAtDecision}` for both verbs — no mock
+  change needed; the same arbiter AC.D.3 used.
+
+## AD.C — leg 1: `/goal resume` ACCEPTED happy path (20:21)
+
+Composer cleared → `/goal resume` typed exactly (per-char recipe after one garbled
+keyevent attempt, s08/s09 the garble, s11 the exact draft) → Send FAB at the
+dump-derived [894,1351][1026,1483] → relay: `sendConversationCommandV4 (id=38)` +
+**`command type=resumeGoal`** and nothing else. UI: composer CLEARED
+("Message the agent…" placeholder back, s12), **no refusal banner** — the
+GOAL_RESUME_REFUSED face correctly did not fire; the chip row unchanged.
+DB arbiter: **`resumeGoal | ACKED | accepted | {}`** — exactly the pass-26 pause
+shape (AC.D.3), now on the resume verb. **WORKING receipt — the parser's final
+untyped verb is wire-arbitered on its accepted path; the family's faces are now
+exhaustively receipted (pause accepted AC.D.3 / resume accepted AD.C / both stale
+faces pass 23).** Mock-fidelity note (unchanged from AC.D.3): the generic accepted
+ack carries no goal-state delta, so no goal banner flips — the receipt is the
+dispatch shape (wire + outbox + cleared draft).
+
+## AD.D — leg 2: `/compact` with attachment, the `:55` gate fallthrough (20:30)
+
+rig-p27.png (74 B, 8×8) pushed + MEDIA_SCANNER_SCAN_FILE → MediaStore `_id=121` →
+the + dropdown → Photo → the picker's tile identified by its AX desc
+("Photo taken on … 8:24 PM", the black-thumbnail recipe AD.A0.4) → chip
+**`✓ 121.png (74 B)`** staged (s14; the MediaStore-id rename, pass 25/26's recorded
+pattern) → `/compact` typed exact (s18) → Send → relay: **`command type=sendText`
+ONLY (id=42) — ZERO `command type=compact`**. UI: the timeline YOU row
+**`/compact` RAW as a plain message** (s19) + AGENT "synthetic reply to: /compact";
+composer cleared; the chip consumed. DB arbiter: **`sendText | ACKED | accepted |
+{"text":"/compact","attachments":[{"ref":"att-up-7d2f417c-fb6f-4334-8f71-cfe6d1b66670",
+"fileName":"121.png","mime":"image/png","bytes":74}]}`** — **the attachment gate
+(`SlashCommandParser.kt:55`) forces the parser null and the RAW slash text rides
+plain sendText WITH the attachment; the compact plane correctly does NOT fire.**
+WORKING receipt — the gate is now receipted on BOTH its spellings (/goal AC.E +
+/compact AD.D); Part AC's coverage-honesty list is fully closed.
+
+## AD.E — ledger arithmetic + coverage honesty
+
+Open F: **27** (unchanged) · Open G: **21 + 3 standing** (unchanged) · Open smalls:
+**14** (+1 watch +1 rig) (unchanged) · Mock debts: **0 open work-debts** (no mock
+changes this pass). **SIXTH consecutive zero-new-rows pass.** With AC.D + AC.E +
+AD.C + AD.D together, **the slash-parser table at HEAD is FULLY saturated: every
+dispatch branch (PlanShortcut accepted AC + non-accepted AC.C, Compact AC.D.4,
+SendGoal AB + AC.D.2, ResumeGoal accepted AD.C + stale pass 23, PauseGoal accepted
+AC.D.3 + stale pass 23, EmptyGoal AB, UnsupportedGoal AB, UnsupportedPlanShortcut
+AB, the `:55` parser-null fallthrough on both spellings AC.E + AD.D) and every
+spelling (/goal, /target, replace-strip, /compress, unknown-command,
+goal+attachment, compact+attachment) — nothing left to drive on the parser.** The
+discovery surface beyond it remains: standing stops + N-BQ-1's fix-round re-drive +
+the F-P3-A-gated planes.
+
+### Coverage honesty (what pass 27 did NOT drive)
+
+The effort-sheet planes (standing — N-BQ-1's fix-round re-drive gate), the queue
+verbs, the automations/runs planes (not armed by design), TalkBack/Dictate/widget/
+Take-photo/shade-ACTION (standing stops), the desktop's own goal-confirmation
+dialog (desktop-only), the F-P3-A-gated card planes, the turn-streaming plane
+(receipted passes 13/16/17), and the attachment THUMBNAIL render (the payload
+carried the attachment; pass 5 owns the render receipt — unchanged code).
+
+## Pass-27 verification stamp
+
+Pass 27 completed 2026-11-15 ~20:33; ONE relay generation (gen1
+`mock-p27-gen1-7a41e2`, 20:12→end, arms exactly `MOCK_ROWS=12`; launcher
+`/tmp/p27/relay-g1.sh`); emulator REUSED from pass 26 (fourth consecutive inherited
+survival; up since 17:43; no restarts in-life); the `install -r` of the
+byte-identical APK (`ad449d7d…`/`530ba4ff`, vc53/1.3.2) → pid 8889, then ONE
+force-stop+relaunch after the inherited AUTHENTICATING wedge → pid 9038
+(auto-reconnect to gen1, no re-pairing; screenshot protection OFF by persistence).
+Receipts: shots `/tmp/p27/shots/s00-s19` (s02/s03 the home CONNECTED, s07 the
+conversation, s08/s09 the keyevent garble, s11 the exact `/goal resume` draft,
+s12 the leg-1 post-send cleared composer, s14 the staged `121.png` chip, s16/s17
+the `/ompact` garble + repair, s18 the exact `/compact` draft, s19 the leg-2
+YOU/AGENT pair); AX dumps `/tmp/p27/w/w0-w10`; relay log `/tmp/p27/relay-g1.log`
+(33 v4call lines — exactly TWO sendConversationCommandV4: id=38 resumeGoal,
+id=42 sendText); DB pulls `/tmp/p27/db/zcode.db{,-wal}` — the pass's complete
+outbox census (2 rows, in order): resumeGoal ACKED/{} · sendText `/compact`
++attachments ACKED. Mock changes: NONE. App changes: NONE (APK byte-identical).
+Desktop 3.18.1 / `ec475e6e…` unchanged (STEP 0). gateway.drop for the pass: **0**;
+zero app-pid FATAL/AndroidRuntime lines (the 70 system-level FATAL-grep hits are
+other processes' noise). **Rig left:** emulator zcode-a16 UP (healthy, wifi
+ENABLED, screenshot protection OFF), relay gen1 ALIVE (clean arms, no sticky
+refusals — safe to inherit), app pid 9038 on synth-task-1 (chip "yolo · …",
+composer EMPTY, timeline bottomed on the leg-2 exchange), logcat running →
+/tmp/p27/logcat.log.

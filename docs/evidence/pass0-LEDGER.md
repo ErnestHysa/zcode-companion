@@ -43,58 +43,52 @@ P2-first, exit gates, per-row Accept criteria).
 
 > **🛑 SATURATED (2026-11-14, pass 12) — EXTENDED (pass 13) — EXHAUSTED (pass 14) —
 > passes 15–18 drove the coverage/mock-debt gated compositions — passes 19–25 the
-> send-ack/guard/effort/slash-parser planes — pass 26 drove the slash-parser table's
-> REMAINING branches at HEAD (ZERO new rows, FIFTH consecutive):** the /plan
-> dispatch's non-accepted arm receipted first-series (stale switchCollaborationMode →
-> the verbatim "Could not switch to plan mode" warning + draft preserved + ZERO
-> sendText — the else branch fires honestly, NO defect; Part AB's "covered by the
-> pass-21/23 stale arms" was adjudication-adjacent, the dispatch's own branch was
-> never wire-arbitered); the /goal+attachment parser-null fallthrough receipted (the
-> :55 gate → RAW slash text as a plain sendText WITH the attachment, zero
-> sendGoalCommand — the AB.F leftover CLOSED); the unknown-command contract receipted
-> (/review probe → plain sendText verbatim, "同名 CLI 命令优先" first live leg); the
-> /target alias (SendGoal, objective carried), the /goal replace strip (:69, prefix
-> stripped), the /goal pause ACCEPTED happy path (first ACKED pauseGoal — pass 23
-> only had its stale face), and the /compress alias (compact ACKED) all first-series.
-> ZERO mock changes — the rig needed nothing new. No app changes (APK
-> byte-identical). **gateway.drop: 0.** FIFTH consecutive zero-new-rows pass; roadmap
-> decision remains ERNEST'S.
+> send-ack/guard/effort/slash-parser planes — pass 26 the parser's REMAINING
+> branches — pass 27 drove the parser table's LAST TWO undriven spellings at HEAD
+> (ZERO new rows, SIXTH consecutive):** `/goal resume`'s ACCEPTED happy path
+> receipted first-series (`resumeGoal` → ACKED/{} on the exact pass-26 pause shape;
+> the GOAL_RESUME_REFUSED face correctly silent; the family's faces are now
+> exhaustively receipted — pause/resume accepted + both stale faces) and the
+> `/compact`-with-attachment `:55`-gate fallthrough receipted (chip `121.png` staged
+> → RAW sendText WITH the attachments payload, ZERO compact on the wire — the gate
+> now receipted on BOTH spellings). **The slash-parser table at HEAD is FULLY
+> saturated: every dispatch branch and every spelling.** ZERO mock changes, ZERO app
+> changes (APK byte-identical). **gateway.drop: 0.** SIXTH consecutive
+> zero-new-rows pass; roadmap decision remains ERNEST'S.
 
 - Report: `docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md` —
-  Parts A–Z + AA + AB + AC = passes 0–26. **Latest: pass 26 (Part AC, 2026-11-15 ~20:02).**
-- Repo HEAD at last pass: `dd8fca48` (pass 25's docs commit; main; zero app or mock
-  changes this pass — the APK is byte-identical).
+  Parts A–Z + AA + AB + AC + AD = passes 0–27. **Latest: pass 27 (Part AD, 2026-11-15 ~20:45).**
+- Repo HEAD at last pass: `111ae54c` (pass 26's docs commit; main; zero app or mock
+  changes in pass 27 — the APK is byte-identical).
   APK of record: sha256 `ad449d7d…` / md5 `530ba4ff…`, versionCode 53 / 1.3.2
   (byte-identical across the whole series).
 - Desktop of record: **/Applications/ZCode.app 3.18.1.10376, asar sha256 `ec475e6e…`,
-  383,832,025 B** (re-verified at pass-26 STEP 0 — UNCHANGED, no DELTA).
+  383,832,025 B** (re-verified at pass-27 STEP 0 — UNCHANGED, no DELTA).
 - Open rows: **27 F (25 defects + 2 obs) + 21 G + 3 standing + 14 smalls (+1 watch
-  +1 rig)** — pass 26 opened NOTHING and stamped NOTHING (all seven legs receipted
-  WORKING; the /target alias rides the SAME sendSlash→port.sendGoal path as /goal —
-  no new trio-less surface, F-P20-A's census unchanged). Part AB's coverage-honesty
-  list is FULLY closed (the fallthrough AC.E, the non-accepted arm AC.C) and the
-  slash-parser table at HEAD is receipted on EVERY dispatch branch + alias spelling
-  except `/goal resume`'s ACCEPTED half (the pause half done AC.D.3) and the
-  `/compact|/compress`-with-attachments spelling (same :55 gate as /goal).
-- Backlog: **8/8 DONE**; the discovery surface stays empty — pass 26 drove the
-  slash-parser table's remaining branches; what remains is standing stops +
-  N-BQ-1's fix-round re-drive + F-P3-A-gated planes.
+  +1 rig)** — pass 27 opened NOTHING and stamped NOTHING (both legs receipted
+  WORKING on previously-untyped spellings; no OPEN row re-manifested). The
+  slash-parser table at HEAD is now FULLY SATURATED (every dispatch branch + every
+  spelling — AC.D/AC.E/AD.C/AD.D together); nothing left to drive on the parser.
+- Backlog: **8/8 DONE**; the discovery surface stays empty — pass 27 closed the
+  parser's last two spellings; what remains is standing stops + N-BQ-1's
+  fix-round re-drive + F-P3-A-gated planes.
   **The mock-debt list has 0 open work-debts (no mock changes this pass).**
-- Rig left by pass 26: emulator `zcode-a16` UP (REUSED from pass 25 — the THIRD
-  consecutive inherited survival; healthy, wifi ENABLED, screenshot protection OFF
-  by persistence), relay gen2 ALIVE (nonce `mock-p26-gen2-166cfa`, arms `MOCK_ROWS=12`
-  only — NO sticky refusal arms, safe to inherit), app pid 7090 (an `install -r`
-  restart of the pass-25 pid 5305; auto-reconnect, no re-pairing) on the synthetic
-  conversation (chip "yolo · …", composer in the followup-queue state with the
-  "Queued" badge, timeline bottomed on the leg-2 exchange), logcat running →
-  /tmp/p26/logcat.log. Launchers `/tmp/p26/relay-g1.sh` + `/tmp/p26/relay-g2.sh`.
-  New rig learnings in Part AC.A0: the banner-✕/FAB region trap re-manifested (check
-  for a banner before EVERY send tap — its ✕ shares the FAB's region); the + dropdown's
-  Photo row is IME-clipped (BACK with the dropdown open closes the DROPDOWN; close the
-  IME first, then the full dropdown renders at full height); keycode = 29+(letter−A)
-  (43=O not T; T=48, R=46, C=31); the picker keeps tile selections across
-  dismiss/reopen (remove stray chips before the send); `content query --projection`
-  is single-column per flag on API 36.
+- Rig left by pass 27: emulator `zcode-a16` UP (REUSED from pass 26 — the FOURTH
+  consecutive inherited survival; up since 17:43; healthy, wifi ENABLED, screenshot
+  protection OFF by persistence), relay gen1 ALIVE (nonce `mock-p27-gen1-7a41e2`,
+  arms `MOCK_ROWS=12` only — NO sticky refusal arms, safe to inherit), app pid 9038
+  (force-stop relaunch after the inherited post-pkill AUTHENTICATING wedge — the
+  F-P9-A shape, one-restart recovery recipe) on synth-task-1 (chip "yolo · …",
+  composer EMPTY, timeline bottomed on the leg-2 exchange), logcat running →
+  /tmp/p27/logcat.log. Launcher `/tmp/p27/relay-g1.sh`.
+  New rig learnings in Part AD.A0: **per-char `input text` is THE reliable typing
+  recipe** (keyevent-per-letter garbled `/goal`→`/obl`, one-chunk input text
+  interleaved, the fresh-focus first chunk drops its first char); the slash-command
+  menu INTERCEPTS keyevents while open (BACK closes the dropdown, then cursor
+  DEL/RIGHT/insert is the deterministic draft repair); re-dump before EVERY composer
+  interaction (chip/menu shift the field); the picker's tiles render BLACK until
+  decode — identity via the AX desc mtime; relay-up-FIRST beats the inherited wedge
+  (or force-stop+relaunch the app after it).
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -449,6 +443,23 @@ delta …`). Nothing pushed.
 
 ## History
 
+- 2026-11-15 (pass 27) — Part AD executed on Part AC's coverage-honesty list (its
+  exactly-two named leftovers): ZERO new rows (SIXTH consecutive); ZERO mock
+  changes; ZERO app changes (APK byte-identical). Two legs receipted first-series,
+  both WORKING: the `/goal resume` ACCEPTED happy path (relay resumeGoal → outbox
+  `ACKED|{}` on the pass-26 pause shape, draft cleared, GOAL_RESUME_REFUSED
+  correctly silent — the parser's final untyped verb; the family's faces now
+  exhaustively receipted) and the `/compact`-with-attachment `:55` fallthrough
+  (chip `121.png (74 B)` staged → RAW sendText WITH the attachments payload, ZERO
+  compact on the wire, YOU row raw + AGENT echo — the gate receipted on both its
+  spellings). The slash-parser table at HEAD is FULLY saturated. Rig learnings:
+  per-char `input text` is THE typing recipe (keyevent-per-letter garbled, one-chunk
+  interleaved, fresh-focus first chunk drops); the slash menu intercepts keyevents
+  while open (BACK closes it; cursor DEL/RIGHT/insert repairs the draft); re-dump
+  before every composer interaction; picker tiles render black — AX-desc mtime
+  identity; the relay-up-first recipe against the inherited post-pkill
+  AUTHENTICATING wedge (one force-stop relaunch recovered it). Rig left UP (gen1
+  clean arms, app pid 9038 on synth-task-1, logcat → /tmp/p27/logcat.log).
 - 2026-11-15 (pass 26) — Part AC executed on Part AB's coverage-honesty list + the
   slash-parser table's remaining branches: ZERO new rows (FIFTH consecutive); ZERO
   mock changes. Seven legs receipted first-series, all WORKING: the /plan dispatch's
