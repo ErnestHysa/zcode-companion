@@ -419,6 +419,19 @@ class MockZCode(
          *  {status:"stale", reasonCode:"proto.staleRevision"} — the phone's typed
          *  SESSION_CHANGED stale faces become drivable on the rig. */
         @Volatile var casStaleTypes: Set<String>? = null
+        /** Pass-22 rig arm (Part X leftover, MOCK_SET_THOUGHT_LEVEL_STALE): the effort
+         *  switch rides the PROTOCOL method (v4Call setThoughtLevel), whose host layer
+         *  CAS-checks via FQ and answers a JSON-RPC ERROR on mismatch — NOT a
+         *  {status:"stale"} ack. Armed, the mock answers the host-faithful Dl shape
+         *  {message:"Session state revision mismatch", code:-32009,
+         *  data:{actualRevision, expectedRevision}} and mutates nothing. */
+        @Volatile var setThoughtLevelStale: Boolean = false
+        /** Pass-22 rig arm (Part X leftover, MOCK_COMPACT_COMMAND): the host's
+         *  command-plane compact handler (vMc) — under enqueue/guide/choice the
+         *  compact SELF-QUEUES (a kind:"compact" queue item via steerTurn
+         *  delivery:"queue") and answers accepted; a second compact while one is
+         *  queued throws compactOperationLock (the dispatcher's typed rejected ack). */
+        @Volatile var compactCommandArm: Boolean = false
         /** Pending open interaction stamped into snapshots + state (Q11 shape). */
         @Volatile var pendingPermission: PendingPermission? = null
         @Volatile var pendingUserInput: PendingUserInput? = null
@@ -2580,6 +2593,21 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             // Phase 4C (A3.4): the effort-level facade call (zcodeAgent.ts:705) — the
             // echo plane's `thought` updates and a state patch carries the config.
             "setThoughtLevel" -> {
+                // Pass-22 rig arm (MOCK_SET_THOUGHT_LEVEL_STALE): the host's PROTOCOL
+                // layer CAS-checks expectedRevision via FQ and answers a JSON-RPC
+                // error (Dl -32009) — never a {status:"stale"} ack — and mutates
+                // nothing. The phone's port maps the throw to FAILED, so its
+                // enumerated STALE notice branch is structurally unreachable.
+                if (script.setThoughtLevelStale) {
+                    val params = argAsObject(arg)
+                    val expected = (params?.get("expectedRevision") as? JsonPrimitive)?.content
+                    println("MOCK: setThoughtLevel forced revision-mismatch (MOCK_SET_THOUGHT_LEVEL_STALE) -> Dl -32009 (expected=$expected)")
+                    respond(
+                        id, ChannelWire.ResponseType.PromiseError,
+                        RpcValue.Obj(setThoughtLevelStaleErrorBody(expected)),
+                    )
+                    return
+                }
                 val params = argAsObject(arg)
                 val level = params?.strOrNull("thoughtLevel")
                 if (level == null) {
@@ -2925,6 +2953,38 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                             put("revisionAtDecision", JsonPrimitive(stateRevision.get()))
                         }))
                         return
+                    }
+                }
+                // Pass-22 rig arm (MOCK_COMPACT_COMMAND): the host's command-plane
+                // compact handler (vMc) — under enqueue/guide/choice (or an active
+                // turn) the compact SELF-QUEUES as a kind:"compact" queue item and
+                // answers accepted; a compact while one is already queued answers the
+                // typed rejected ack compactOperationLock ("Compact is already running
+                // or queued"). The compact command is NOT CAS-guarded (the phone's
+                // verified set) — the baseRevision stale arm must never intercept it.
+                if (type == "compact" && script.compactCommandArm) {
+                    when (val decision = compactCommandDecision()) {
+                        is CompactDecision.Rejected -> {
+                            println("MOCK: compact REJECTED compactOperationLock (MOCK_COMPACT_COMMAND — already queued)")
+                            respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                                put("commandId", JsonPrimitive(commandId))
+                                put("status", JsonPrimitive("rejected"))
+                                put("reasonCode", JsonPrimitive(decision.reasonCode))
+                                put("message", JsonPrimitive(decision.message))
+                                put("revisionAtDecision", JsonPrimitive(stateRevision.get()))
+                            }))
+                            return
+                        }
+                        is CompactDecision.Queued -> {
+                            println("MOCK: compact deferred to queue (MOCK_COMPACT_COMMAND, routing=${decision.routing}) -> ${decision.queueItemId}")
+                            respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                                put("commandId", JsonPrimitive(commandId))
+                                put("status", JsonPrimitive("accepted"))
+                                put("revisionAtDecision", JsonPrimitive(stateRevision.get()))
+                            }))
+                            return
+                        }
+                        CompactDecision.Passthrough -> Unit
                     }
                 }
                 // Pass-19 rig arm (debt #20, MOCK_QUEUE_GHOST_APPEND_MS): the desktop's
@@ -3981,6 +4041,61 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             put("reasonCode", JsonPrimitive("proto.staleRevision"))
             put("revisionAtDecision", JsonPrimitive(stateRevision.get()))
         }
+    }
+
+    /**
+     * Pass-22 rig arm (MOCK_SET_THOUGHT_LEVEL_STALE): the host's FQ serialization —
+     * the protocol method setThoughtLevel answers a JSON-RPC ERROR on a
+     * revision mismatch (Dl -32009, "Session state revision mismatch",
+     * {actualRevision, expectedRevision}), never a {status:"stale"} ack, and
+     * mutates nothing. The phone's ChannelSession.failWith keeps only `message`,
+     * so the port collapses the throw to FAILED.
+     */
+    internal fun setThoughtLevelStaleErrorBody(expectedRevision: String?): JsonObject = buildJsonObject {
+        put("message", JsonPrimitive("Session state revision mismatch"))
+        put("name", JsonPrimitive("Error"))
+        put("code", JsonPrimitive(-32009))
+        put("data", buildJsonObject {
+            put("actualRevision", JsonPrimitive(stateRevision.get()))
+            expectedRevision?.let { put("expectedRevision", JsonPrimitive(it.toLongOrNull() ?: 0L)) }
+        })
+    }
+
+    /** Pass-22 compact arm decision (host vMc mirror). */
+    internal sealed interface CompactDecision {
+        /** The typed rejected ack body fields (compactOperationLock — host ID throw). */
+        data class Rejected(val reasonCode: String, val message: String) : CompactDecision
+        /** The compact self-queued (kind:"compact" item + queue patch + revision bump). */
+        data class Queued(val queueItemId: String, val routing: String) : CompactDecision
+        /** Not deferred (startNow/null routing) — the mock has no compact turn; fall through. */
+        data object Passthrough : CompactDecision
+    }
+
+    /**
+     * Pass-22 rig arm (MOCK_COMPACT_COMMAND): the host's command-plane compact
+     * handler (zcode.cjs vMc) — a compact while one is queued/running answers the
+     * typed rejected ack compactOperationLock; under enqueue/guide/choice routing
+     * the compact SELF-QUEUES (steerTurn delivery:"queue" ⇒ a kind:"compact" queue
+     * item + queue patch + revision bump) and answers accepted with NO rows.
+     * The compact command is NOT CAS-guarded — the stale arm must never see it.
+     */
+    internal fun compactCommandDecision(): CompactDecision {
+        if (script.queueItems.orEmpty().any { it.kind == "compact" }) {
+            return CompactDecision.Rejected(
+                reasonCode = "compactOperationLock",
+                message = "Compact is already running or queued",
+            )
+        }
+        val routing = script.inputRoutingMode
+        if (routing == "enqueue" || routing == "guide" || routing == "choice") {
+            val qid = "q-rig-compact-${queuedSendSeq.incrementAndGet()}"
+            stateRevision.incrementAndGet()
+            script.queueItems = script.queueItems.orEmpty() +
+                QueueItem(qid, "/compact", kind = "compact")
+            pushQueuePatch()
+            return CompactDecision.Queued(qid, routing)
+        }
+        return CompactDecision.Passthrough
     }
 
     /** One-shot: schedule the silent ghost append — the queue moves server-side

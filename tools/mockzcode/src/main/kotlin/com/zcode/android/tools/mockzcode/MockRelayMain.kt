@@ -575,6 +575,25 @@ fun main() {
         }
         mock.script.casStaleTypes = types
     }
+    // Pass-22 rig arm (Part X leftover): MOCK_SET_THOUGHT_LEVEL_STALE=1 makes the
+    // effort switch (the PROTOCOL method v4Call setThoughtLevel) answer the host's
+    // FQ revision-mismatch shape — the JSON-RPC ERROR Dl(-32009, "Session state
+    // revision mismatch", {actualRevision, expectedRevision}) — and mutate nothing.
+    // The command-typed stale arm cannot reach this surface (it is not a
+    // sendConversationCommandV4 type), which is exactly why the phone's effort
+    // STALE notice branch needed its own arm to adjudicate.
+    if (System.getenv("MOCK_SET_THOUGHT_LEVEL_STALE") != null) {
+        mock.script.setThoughtLevelStale = true
+    }
+    // Pass-22 rig arm (Part X leftover): MOCK_COMPACT_COMMAND=1 scripts the host's
+    // command-plane compact handler (vMc): under enqueue/guide/choice the compact
+    // SELF-QUEUES (kind:"compact" queue item + queue patch + accepted ack, no rows)
+    // and a second compact answers the typed rejected ack compactOperationLock.
+    // The phone's /compact-under-choice "structurally QUEUED, not refused" face is
+    // finally live-drivable (pass 21 left it static-only, mock-unscripted).
+    if (System.getenv("MOCK_COMPACT_COMMAND") != null) {
+        mock.script.compactCommandArm = true
+    }
     // Pass-11 rig leg (AB4.1 rig debt): MOCK_REFUSE_COMMANDS=1 makes the goal verbs
     // answer respondError — the SendNotice.GOAL_*_REFUSED degrade branches finally run.
     if (System.getenv("MOCK_REFUSE_COMMANDS") != null) {
