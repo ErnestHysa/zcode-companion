@@ -41,44 +41,45 @@ P2-first, exit gates, per-row Accept criteria).
 
 ## Campaign state (update every pass)
 
-> **🛑 SATURATED (2026-11-14, pass 12) — EXTENDED (pass 13) — the extension is now
-> EXHAUSTED (pass 14):** pass 14 drove the arm matrix's last legs and opened ZERO
-> new rows: the delta happy path on a fresh process (F-P13-A's positive boundary
-> receipt), the G90 reset SUCCESS face, the in-life off-peak notification (the
-> background leg WORKS end-to-end; the foreground-consumed case adjudicated as
-> §9.9 by-design — see Part Q.A3, do not re-hunt), and the mid-life disconnect
-> (the debt-#12 filter live-verified). Mock debts #10–#13 CLOSED (`8361b769`);
-> #15/#16 opened. **Every env arm in the mock source has now been driven
-> in-series.** The discovery campaign is saturated on BOTH the named axes (pass
-> 12) and the arm matrix (pass 14). Roadmap decision remains ERNEST'S.
+> **🛑 SATURATED (2026-11-14, pass 12) — EXTENDED (pass 13) — EXHAUSTED (pass 14) —
+> pass 15 drove the coverage-honesty leftovers (STEP 2), ZERO new rows:** the Usage
+> range chips closed no-defect (the chips drive, the wire carries the range, the rig
+> fixture is range-invariant), the reset re-drive receipted the fixed mock (meter
+> 49%→59% + the unread clear), the reconciliation RETRY LADDER got its first
+> in-series receipt (3 reads; the delay measures from the previous read's
+> completion), the disconnect filter receipted at limit=1, and **F-P13-A NARROWED**
+> (stay-open survives ANY kill — deltas fully live, zero gateway.drop in the whole
+> pass; the drop is close/detach-CYCLE-bound, code-pinned to
+> ConnectionHub.kt:1027 → RecoveryCoordinator.kt:130). Mock debts #15/#16 CLOSED
+> (`66844fbe`) + the reset-statusQueue variant armed and driven. F-P9-A stamps 3
+> (third trigger variant: relay ABSENT at cold-start connect → 10s TIMEOUT →
+> silent wedge; force-stop escape). Roadmap decision remains ERNEST'S.
 
 - Report: `docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md` —
-  Parts A–Q = passes 0–14. **Latest: pass 14 (Part Q, 2026-11-14 ~23:30).**
-- Repo HEAD at last pass: `8361b769` (main; the pass-14 `fix(mock)` commit;
+  Parts A–R = passes 0–15. **Latest: pass 15 (Part R, 2026-11-15 ~01:10).**
+- Repo HEAD at last pass: `66844fbe` (main; the pass-15 `fix(mock)` commit;
   docs to follow). APK of record: sha256 `ad449d7d…` / md5 `530ba4ff…`, versionCode
-  53 / 1.3.2 (byte-identical across the whole series; re-verified at the pass-14
+  53 / 1.3.2 (byte-identical across the whole series; re-verified at the pass-15
   build — zero app changes).
 - Desktop of record: **/Applications/ZCode.app 3.18.1.10376, asar sha256 `ec475e6e…`,
-  383,832,025 B** (re-verified at pass-14 STEP 0 — UNCHANGED, no DELTA).
+  383,832,025 B** (re-verified at pass-15 STEP 0 — UNCHANGED, no DELTA).
 - Open rows: **25 F (23 defects + 2 obs) + 21 G + 3 standing + 13 smalls (+1 watch
-  +1 rig)** — pass 14 added NO rows; stamps on F-P13-A (2: the fresh-process happy
-  path receipted — 2 applies, 0 drops; the row stands for the post-recovery half
-  only). First-series WORKING receipts: the delta happy path (Q.A1), the G90
-  reset SUCCESS chain incl. `markCodingPlanResetHistoryRead` (Q.A2), the
-  background off-peak notification via the Live-connection FGS (Q.A3), the
-  mid-life disconnect's honest recovery + typed send-refusal face (Q.A4).
-- Backlog: **8/8 DONE**; the pass-13 arm-matrix extension is DONE too (pass 14).
-- Rig left by pass 14: emulator `zcode-a16` UP (cold-booted 22:46 after the
-  pass-start debt-#14 blackhole — one dead AUTHENTICATING then recovery; PIN-less,
-  stay-on 7, wifi ENABLED, screenshot protection OFF by persistence), relay gen4
-  ALIVE (nonce `mock-p14-gen4-s1t2u3`; its DISCONNECT arm is SPENT — the socket
-  closed once at 23:21:40 and reconnected), app pid 5258 paired + CONNECTED on the
-  conversation screen, **Live connection ON (left from the gen3c/3d leg; the FGS
-  30-minute window — toggle off if unwanted)**, logcat running →
-  /tmp/p14/logcat.log. Launchers `/tmp/p14/relay-g*.sh`. New rig learnings in
-  Part Q.A0: sweep BOTH ZCODE-PAIR and ZCODE-NOTIFY tags; collapse the shade
-  before driving; GMS sign-in screen hijacks cold-boot foregrounds; a pass-start
-  pkill can arm the NAT blackhole once.
+  +1 rig)** — pass 15 added NO rows. Stamps: F-P9-A 3 (relay-absent-at-connect
+  wedge), F-P13-A 3 (+ the cycle-boundary narrowing — its fix shape stands for the
+  close/detach path only). First-series WORKING receipts: the Usage range chips
+  (R.A1), the reset meters/unread under the fixed mock (R.A2), the reconciliation
+  retry ladder (R.A3), the stay-open recovery resilience (R.A4).
+- Backlog: **8/8 DONE**; the pass-14 coverage-honesty DRIVEABLE leftovers are
+  driven (pass 15); what remains there is standing stops + F-P3-A-gated planes.
+- Rig left by pass 15: emulator `zcode-a16` UP (cold-booted 00:44 after the
+  overnight gap — the pass-14 rig was found DOWN; PIN-less, wifi ENABLED per
+  O.A0.1, screenshot protection OFF by persistence), relay gen4 ALIVE (nonce
+  `mock-p15-gen4-j2k3l4`; its delta arms SPENT — both anchored deltas consumed),
+  app pid 4209 paired + CONNECTED on the Synthetic-task conversation (timeline
+  fully rendered post-recovery), logcat running → /tmp/p15/logcat.log. Launchers
+  `/tmp/p15/relay-g*.sh`. New rig learnings in Part R.A0: expect a BOOT after any
+  gap (the rig doesn't survive the night); the SystemUI ANR dialog blocks
+  uiautomator entirely (dismiss via the dump-derived Wait center).
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -97,9 +98,9 @@ bodies after 3.14.3 — the census IS the changelog.
 | ID | P | Status | Mechanism (one line) | Fix shape | Depends on | Evidence | Stamps |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | F-P8-A | 2 | OPEN | cold start w/ DIRECT selected: deferred relay `persistEndpoint` rewrites `_endpoint` after resolve — silent abandonment, recovery dropped by `sourceKind` filter, "First sync failed" vs healthy direct, Retry completes it | guard `persistEndpoint` against overwriting a resolved non-relay selection; retry must reconnect the transport the UI shows; pins: Robolectric race harness + "no `hub.switched` without user tap" | — | Part K.A2 | 1 (+F-P9-A sibling mechanism) |
-| F-P9-A | 2 | OPEN | relay killed MID-AUTHENTICATION → transport wedges in AUTHENTICATING permanently: zero sockets, zero ladder, zero logs, 8 min receipted; survives foreground/unlock; NO retry face (cached rows suppress the strip); active-endpoint tap = silent no-op; ONLY escape = cross-endpoint switch (away+back) | AUTHENTICATING watchdog (timeout → RECOVERING) + a stuck-face; pins: Robolectric kill-mid-handshake harness + netstat-zero + "no silent state" assert | — | Part L.A2 | 2 (pass 10: recurred vs a stale relay — log-silent "Connecting…", foreground poke dead, force-stop escape; M.A3) |
+| F-P9-A | 2 | OPEN | relay killed MID-AUTHENTICATION → transport wedges in AUTHENTICATING permanently: zero sockets, zero ladder, zero logs, 8 min receipted; survives foreground/unlock; NO retry face (cached rows suppress the strip); active-endpoint tap = silent no-op; ONLY escape = cross-endpoint switch (away+back) | AUTHENTICATING watchdog (timeout → RECOVERING) + a stuck-face; pins: Robolectric kill-mid-handshake harness + netstat-zero + "no silent state" assert | — | Part L.A2 | 3 (pass 10: stale-relay variant, M.A3; pass 15: THIRD variant — relay ABSENT at the cold-start connect → 10s TIMEOUT → silent wedge, no ladder/face, force-stop escape; R.A0.3) |
 | F-P9-B | 2 | OPEN (NEW pass 9) | typed disconnected-remote face never renders live: hub logs the error (workspace-bridge-error: remote-disconnected, verbatim errorText) but ConnectionCenter shows the generic offline face — the G67 card (`connection_remote_reconnect`, render condition lastError.messageKey==REMOTE_WORKSPACE_DISCONNECTED, ConnectionCenterScreen.kt:296) NEVER renders → the recovery verb workspace-reconnect-request is UI-unreachable; row snapshot stays stale under the arm | trace hub.connectFailed→lastError dropping the messageKey (SESSION-scope bridge error); pin: live-shape harness asserting the card renders with the arm armed | — | Part L.A2 | 1 |
-| F-P13-A | 2 | OPEN | the workflowRun delta plane is DEAD on every post-recovery connection: the detach path drops the local subscription record (relay killed → `recovery.detached (unsubscribed)`), the recovery re-materializes conversations via `relay.recovered :: subscriptions=N snapshotReplace=true` issuing NO subscribeConversationV4 (relay log empty of subscribes; app sends hello only), so the subscribe-ACK epoch record is never re-stamped → EVERY server-initiated delta frame (workflowRun.updated/removed, kind=ONLINE) arrives at the wire and drops at ConversationGateway.kt:261-274 (`gateway.drop … no subscription record`) for the life of the connection; the declared `workflowRunDeltas:true` (V4Plane.kt:672) is effectively false post-recovery and the UI stays correct only via the ~8s poll drum (F-P1-D) | recovery must re-subscribe (or stamp epochs on the snapshotReplace ack); pins: relay-log "no subscribe after recovered" + a gateway.drop assert on a post-recovery delta; self-heal boundary receipted = process restart only | — | Part P.A3 | 2 (pass 14: the fresh-process happy path RECEIPTED — subscribe-anchored deltas applied seq=2 + seq=3, zero gateway.drop in the whole pass log; Part Q.A1) |
+| F-P13-A | 2 | OPEN | the workflowRun delta plane is DEAD on the CLOSE-CYCLE post-recovery path (pass 15 narrowed the row's scope): the detach path drops the local subscription record (relay killed → `recovery.detached (unsubscribed)` — detach() fires ONLY from closeConversation, ConnectionHub.kt:1027-1052 → RecoveryCoordinator.kt:130-149), the recovery re-materializes conversations via `relay.recovered :: subscriptions=N snapshotReplace=true` issuing NO subscribeConversationV4 (relay log empty of subscribes; app sends hello only), so the subscribe-ACK epoch record is never re-stamped → EVERY server-initiated delta frame (workflowRun.updated/removed, kind=ONLINE) arrives at the wire and drops at ConversationGateway.kt:261-274 (`gateway.drop … no subscription record`) for the life of the connection; the declared `workflowRunDeltas:true` (V4Plane.kt:672) is effectively false on that path and the UI stays correct only via the ~8s poll drum (F-P1-D). **STAY-OPEN boundary (pass 15, R.A4): a conversation that stays OPEN through any kill recovers FULLY — the record survives (zero detached lines), the recovery re-subscribes (begin during RECOVERING), the epoch re-stamps, and anchored deltas APPLY (seq=2 +6.07s, seq=3 +22.1s; zero gateway.drop in the whole pass)** | recovery must re-subscribe (or stamp epochs on the snapshotReplace ack) ON THE DETACHED-REOPEN path; pins: relay-log "no subscribe after recovered" + a gateway.drop assert on a post-close-cycle delta; stay-open resilience receipted (pass 15) | — | Part P.A3, R.A4 | 3 (pass 14: the fresh-process happy path RECEIPTED — Part Q.A1; pass 15: the stay-open boundary — deltas live across 2 kills, scope narrowed to the close cycle) |
 | F-P0-B | 2 | OPEN | rows reconcile sweep STALEs state-plane-delivered PERMISSION interactions (the two reconcilers fight); card renders terminal-but-actionable | ONE LINE: `known.permission != null` exemption at `InteractionCoordinator.kt:697` + pin answering from BOTH planes | — | Part E.A2.4 (root cause) | 8 stamps (passes 3–9; pass 9's hook-review zero-rows receipt) |
 | F-P3-A | 2 | OPEN | pinned pending-stack budget starves EVERY interaction card body to zero height (question body, hook items; LazyColumn unbounded main axis kills `weight(1f,fill=false)`) | card-agnostic: raise/scroll the pinned budget or render bodies outside it; pin hosts cards in a live `LazyColumn{item{}}` harness varying pinned-child count (pass 12: the starvation is composition-dependent — the approval card rendered FULL body on re-entry while question/hook cards vanished) | — | Part D.A2 (first), G.A2.1 (card-agnostic), O.A2 (variance) | 9 (passes 1–9 + 12) |
 | F-P11-A | 3 | OPEN (NEW pass 11) | conversation attachment chip has NO error face — a failed read leaves "Loading…" forever (produceState swallows failures; no unavailable state, no retry; recovered here only because the mock self-healed) | error/unavailable state on the chip (F-P0-C family) + Robolectric failing-loader harness; MOCK half FIXED `1e649eab` (eager registration, verified gen3) | — | Part N.A1/N.A2 | 1 |
@@ -248,13 +249,13 @@ RETRACTED/REFUTED/ABSORBED: 7.
 7. `MOCK_REMOTE_DOWN_MS` / `MOCK_MD_FILE` arms exist but were never driven (gen2 append-after-exec bug). (Driven pass 9.)
 8. **The automations plane needs `MOCK_OFFPEAK=1` ALONGSIDE `MOCK_AUTOMATIONS=1`** — without it the app's `off-peak-task.list` faults (`fault.mock.unscripted:offPeakTaskList`) and home renders the "This feature isn't available" face (pass-10 receipt; the launcher /tmp/p10/relay-g1.sh carries the fix).
 9. ~~The scripted attachment's registration raced the app's cached-row read~~ **FIXED pass 11** (`1e649eab`: eager registration in setScriptedAttachment; cold-start read ok 306ms, zero unknownRef on gen3). Related note: `MOCK_MD_FILE` takes a FILE PATH, not a flag — `MOCK_MD_FILE=1` crashes the relay at boot (FileNotFoundException: 1).
-10. ~~The scripted reset~~ **CLOSED pass 14** (`8361b769`): `MOCK_RESET_SUCCESS=1` scripts `{used:true}` + stamps the use; every later status read serves the CONFIRMED progression (consumed opportunity + usedAt + unread cursor) — the success face receipted live (Q.A2). The resetStatusQueue mechanism remains available for multi-step legs.
+10. ~~The scripted reset~~ **CLOSED pass 14** (`8361b769`): `MOCK_RESET_SUCCESS=1` scripts `{used:true}` + stamps the use; every later status read serves the CONFIRMED progression (consumed opportunity + usedAt + unread cursor) — the success face receipted live (Q.A2). **The resetStatusQueue VARIANT is also closed (pass 15, `66844fbe`): queue entries serve EXPLICITLY (only the unread fold applies — the pass-14 fold no longer confirms them in place) and `MOCK_RESET_QUEUE_PRE=1` arms the ladder leg** — the reconciliation retry ladder receipted live (R.A3).
 11. ~~The off-peak relay-start anchor~~ **CLOSED pass 14** (`8361b769`): `MOCK_OFFPEAK_COMPLETE_ANCHOR=first-list` arms the flip at the notifier's baseline seed; live-verified (the flip fired mid-life after the baseline in gen3/gen3b, Q.A3).
 12. ~~The frame-class filter~~ **CLOSED pass 14** (`8361b769`): `MOCK_DISCONNECT_AFTER_DATA_FRAMES=<n>` counts DATA pushes only; live-verified at =2 (survived handshake + 70s of polls, died at the 2nd data push, Q.A4).
 13. ~~The deltas relay-start anchor~~ **CLOSED pass 14** (`8361b769`): `MOCK_RUN_DELTA_ANCHOR=subscribe` arms the schedule at the first conversation subscribe; live-verified (the deltas landed at subscribe+6.1s/+22.1s on a relay 5 min old, Q.A1).
 14. **(pass 13, RIG)** the API-36 emulator NAT: after a server-side abrupt socket close (the disconnect arm), the emulator's IPv4-mapped-IPv6 path blackholes NEW app flows (SYN-SENT hangs) while pure-IPv4 device flows (`nc -z 10.0.2.2`) still succeed — recovery = full emulator restart. Not an app defect (the same stack connected 10+ times before). **Pass-14 addendum: it is PROBABILISTIC — pass 14's pass-start pkill armed it once (one dead AUTHENTICATING, Q.A0.1) and six later abrupt-close swaps recovered normally.**
-15. **(pass 14)** `markCodingPlanResetHistoryRead` acks but never clears `hasUnreadHistory` (the desktop clears the unread cursor) — every later status read keeps it true. No visible misbehavior at HEAD (the completion stays sticky either way); matters only for future multi-reset legs.
-16. **(pass 14)** the scripted reset doesn't mutate the entitlement meters — the Weekly meter still reads 49% beside the "Quota reset" completion note (the desktop's server would recompute; the rig's static fixture can't). Cosmetic-on-rig; noted so the disagreement isn't re-hunted.
+15. ~~**(pass 14)** `markCodingPlanResetHistoryRead` acks but never clears `hasUnreadHistory`~~ **CLOSED pass 15** (`66844fbe`): the mark now CLEARS the unread cursor on every later status read (the desktop's server behavior); the pass-14-declared arrival counter went live. Live-verified (relay "reset history read" line, R.A2).
+16. ~~**(pass 14)** the scripted reset doesn't mutate the entitlement meters~~ **CLOSED pass 15** (`66844fbe`): a stamped use mutates the used window's limit entry (delta 10, clamped; remaining/percentage recomputed) on later getEntitlementSnapshot reads. Live-verified: Weekly 49%→59% beside the completion note (R.A2, s05).
 
 ## DISCOVERY BACKLOG (tick when the findings are appended as rows)
 
@@ -303,6 +304,14 @@ RETRACTED/REFUTED/ABSORBED: 7.
   stop), widget add-to-home (standing stop), re-drive FIXED rows once fix rounds
   start, the shade-ACTION approve (standing stop), TalkBack runtime (real device).
   **ITEM CLOSED — backlog 8/8; campaign SATURATED at pass 12 (Part O).**
+  **Pass 15 (Part R) drove the Part-Q coverage-honesty DRIVEABLE leftovers:**
+  the Usage range chips (CLOSED no-defect — the chips drive, the wire carries
+  the `"all"|"7d"|"30d"` enum per ViewerTools.kt:31-37, the rig fixture is
+  range-invariant), the reset meter/unread residuals (#15/#16 CLOSED live), the
+  reconciliation retry ladder (first receipt — 3 reads, +250 ms from the
+  previous read's completion), the disconnect filter at limit=1 (one frame
+  earlier than =2; honest recovery), and the F-P13-A stay-open boundary. What
+  remains on that list is standing stops + F-P3-A-gated planes only.
 - [x] **7. Phone self-audit expansion — DONE pass 10 (Part M.A1/M.A2/M.D):** the a11y
   sweep now covers 17 screens beyond the pass-3/5 conversation+settings+home set (one
   new small: N-BN-1); the diagnostics-export content receipted (1,174 lines,
@@ -412,6 +421,21 @@ delta …`). Nothing pushed.
 
 ## History
 
+- 2026-11-15 (pass 15) — Part R executed on the STEP-2 coverage-honesty axis
+  (both named axes saturated): ZERO new rows; FOUR first-series WORKING receipts
+  (the Usage range chips' first drive — no defect, the range enum is
+  wire-carried; the reset re-drive under the FIXED mock — Weekly 49%→59% meter +
+  the unread clear, debts #15/#16 CLOSED live; the reconciliation RETRY LADDER —
+  3 reads, the delay measured from the previous read's completion; the
+  STAY-OPEN recovery resilience — deltas fully live across two kills, zero
+  gateway.drop in the whole pass). **F-P13-A NARROWED** (stamps 3): the
+  delta-plane drop is close/detach-CYCLE-bound (detach() fires only from
+  closeConversation — code-pinned), not universal; its fix shape stands for that
+  path. F-P9-A stamps 3 (third trigger variant: relay absent at cold-start
+  connect → 10s TIMEOUT → silent wedge). Mock debts #15/#16 CLOSED + the
+  reset-statusQueue variant armed and driven (`66844fbe`, self-tests 9/9 +
+  155/0). The hook-card plane adjudicated F-P3-A-gated (standing). Rig left UP
+  (gen4 spent-delta arms, app on the conversation, logcat → /tmp/p15/logcat.log).
 - 2026-11-14 (pass 14) — Part Q executed on the arm-matrix axis's last legs: ZERO
   new rows; FOUR first-series WORKING receipts (the delta happy path on a fresh
   process — subscribe-anchored, 2 applies/0 drops; the G90 reset SUCCESS chain —

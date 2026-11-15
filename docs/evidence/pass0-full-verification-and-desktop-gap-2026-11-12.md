@@ -3877,3 +3877,229 @@ conversation screen, **Live connection ON (left from the gen3c/3d leg — the FG
 30-minute window; toggle it off if unwanted)**, logcat running →
 /tmp/p14/logcat.log. Commits: `8361b769` (fix(mock), debts #10–#13) + the docs
 commit for this part.
+
+# Part R — pass 15 (APPENDED 2026-11-15, ~01:10): the coverage-honesty leftovers driven — the Usage range chips' first drive, the reset meters/unread fixes live, the reconciliation retry ladder's first receipt, and the F-P13-A boundary (stay-open survives ANY kill; the drop is close-cycle-bound) — plus the two pass-14 mock debts fixed
+
+> **Pass 15 of the pass-0 series** (solo, the canonical discovery prompt; both named
+> axes saturated — this pass worked the STEP-2 coverage-honesty list left by Part Q,
+> and the open mock-fidelity debts that gated two of its legs). **Mock debts #15
+> and #16 CLOSED** (one `fix(mock)` commit `66844fbe`, self-tests
+> `MockZCodePass15RigSelfTest` 9/9, full mock suite 155/0, app untouched — the APK
+> rebuilt byte-identical `ad449d7d…` / `530ba4ff…`, vc53/1.3.2) **plus the
+> reset-statusQueue variant armed** (`MOCK_RESET_QUEUE_PRE`: queue entries now serve
+> EXPLICITLY — the pass-14 confirmation fold no longer confirms a queued pre-consume
+> entry in place — which is what made the ladder leg drivable). Live legs: the Usage
+> range chips (first-ever drive — CLOSED no-defect), the reset re-drive under the
+> fixed mock (49%→59% meter + the unread clear, both live), the post-use
+> reconciliation RETRY LADDER (first in-series receipt), the disconnect filter at
+> limit=1, and the F-P13-A boundary leg (the pass's material finding: the delta-plane
+> drop is CLOSE-CYCLE-bound; the stay-open path survives any kill with the deltas
+> fully live — zero gateway.drop in the whole pass). ZERO new rows; two stamps
+> (F-P9-A 3, F-P13-A 3, the latter with a scope-narrowing code pin).
+>
+> **Verification stamp:** 2026-11-15 00:44 → ~01:05, GLM-5.3-Flash in ZCode,
+> everything local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…`
+> UNCHANGED — no DELTA. ONE emulator cold-boot at pass start (00:44 — the rig was
+> found DOWN: the pass-14 emulator died overnight; screenshot protection OFF by
+> persistence, PIN-less, wifi ENABLED per the O.A0.1 rule — `svc wifi disable` NOT
+> run). Generations: gen1 `mock-p15-gen1-a1b2c3` (00:45, USAGE + FIXTURES +
+> RESET_SUCCESS — legs A/B), gen2 `…-d4e5f6` (00:54, +RESET_QUEUE_PRE — leg C),
+> gen3 `…-g7h8i9` (00:57, DISCONNECT_AFTER_DATA_FRAMES=1 — leg E first half), gen4
+> `…-j2k3l4` (00:59, ENFORCE_RUN_DELTAS + RUN_DELTA_ANCHOR=subscribe — leg E second
+> half, F-P13-A's boundary).
+
+## R.A0 — rig learnings (each bites the next pass)
+
+1. **The rig does not survive the night**: the pass-14 "left UP" emulator was DOWN
+   the next day (no qemu process; the stale gen4 relay still held the port).
+   Cold-boot per the recipe; the app's data (pairing, screenshot protection, prefs)
+   all persisted across the boot. Recipe unchanged, but every pass should EXPECT a
+   boot, not a resume, after any gap.
+2. **The SystemUI ANR dialog recurred twice this pass** (under swiftshader, cold
+   boot): it BLOCKS uiautomator entirely (12-node dumps: only the dialog) and
+   swallows taps aimed beneath it. Dismiss via the dump-derived `Wait` center
+   ([71,1276][1009,1408] this boot); it did not recur after the first two dismissals.
+3. **F-P9-A's THIRD trigger variant receipted**: relay ABSENT at the cold-start
+   connect (the app launched before the relay came up) → `hub.connectFailed ::
+   TIMEOUT connect timed out after 10000ms` at 00:44:40 → then TOTAL silence — no
+   retry ladder, no logs, no face for 2+ minutes while the device-side NAT was fine
+   (`nc -z 10.0.2.2 18100` REACHABLE). Escape = force-stop + relaunch (the known
+   one). Same wedge as L.A2's mid-auth kill, different trigger class; stamps 3.
+4. Relay-swap recovery stayed honest across three abrupt pkill swaps
+   (relay.lost 1006 → RECONNECTING → RECOVERING → CONNECTED in 1.3–2.4 s; the
+   debt-#14 blackhole stayed dormant).
+5. The off-peak notifier faults honestly on gens without `MOCK_OFFPEAK`
+   (`off-peak-task.list refused: fault.mock.unscripted:offPeakTaskList` per
+   CONNECTED — debt #8's known shape; harmless, never surfaced a card).
+
+## R.A1 — gen1, leg A: the Usage RANGE CHIPS — first drive, CLOSED no-defect
+
+The Part-Q coverage-honesty item ("the 30-days/All-time range chips — static
+fixture") driven to its honest bottom:
+
+- Baseline (s02): Usage open on MOCK_USAGE with real data; "7 days" selected; the
+  full stat grid (184.6K total tokens, 51.2K peak day, streaks, efficiency cards),
+  the meters (5h 64% / Weekly 49% / Tool calls 88% / MCP 78%), the reset affordances.
+- Each chip tap fired a FRESH wire call: `getAppUsageStats` id=13 (initial) → id=17
+  ("30 days" tap) → id=19 ("All time" tap) — causality verified by counting around
+  the tap. The selection highlight moved 7 days → All time (s02 vs s03 — visual
+  receipt); the rendered NUMBERS are identical across ranges (the mock serves the
+  static `app-usage-full` fixture regardless of range — the Part-Q note anticipated
+  exactly this).
+- The app side is correct by contract: `ViewerTools.appUsageStats(range, timeZone)`
+  carries the range on the wire, enum `"all"|"7d"|"30d"` (ViewerTools.kt:31-37,
+  "verified enum"), and the screen re-queries per tap. **No app defect** — the
+  chips drive, the wire carries the range, only the RIG cannot vary the data.
+  Coverage item CLOSED.
+
+## R.A2 — gen1, leg B: the reset re-drive under the FIXED mock — debts #15/#16 live
+
+Pre-reset baseline: Weekly meter **49%** (fixture usage 51/remaining 49), the
+Weekly "Reset" chip present (s02/s04). Typed-confirm dialog identical to pass 14
+(s04: "Reset Weekly quota? / Resets available: 1 / Type RESET to confirm"; Reset
+disabled → enabled after typing; dialog taps derived from the decision-time
+screenshot per Q.A0.5 — the dump bounds shifted again after the IME opened).
+
+- 00:51:07.971 `useCodingPlanReset begin` → 00:51:08.683 **ok** → 00:51:08.948
+  `markCodingPlanResetHistoryRead begin` → ok 00:51:09.456 — **relay line
+  `MOCK: reset history read (hasUnreadHistory cleared)`** (debt #15's fold, live:
+  every later status read now serves the cleared cursor).
+- 00:51:09.461 `getEntitlementSnapshot begin` (the post-completion load()
+  refresh) → ok — **relay line `MOCK: entitlement meters mutated
+  (WEEK/unit-6 after use at 1794703867628)`** (debt #16's fold, live).
+- The visual (s05): **the Weekly meter reads 59%** (was 49% — exactly the
+  scripted delta-10: usage 51→41, remaining 49→59), the Weekly Reset chip GONE
+  (opportunity consumed), the "Quota reset" COMPLETED note under the Weekly row,
+  and the OTHER window untouched: 5 hours still 64% with its "Reset (2)" chip,
+  Tool calls 88% / MCP 78% unmoved. **Both debts CLOSED** (`66844fbe`); the
+  pass-14 "meter disagrees with the completion note" residual is gone.
+
+## R.A3 — gen2, leg C: the reconciliation RETRY LADDER — first in-series receipt
+
+The mock-side prerequisite (test-first, `MockZCodePass15RigSelfTest` 9/9): the
+`resetStatusQueue` entries now serve EXPLICITLY — only the #15 unread fold applies
+to them — because the pass-14 confirmed fold otherwise confirmed a queued
+pre-consume entry in place (defeating the queue's declared purpose).
+`MOCK_RESET_QUEUE_PRE=1` arms the leg: one pre-consume copy of the scripted status
+is queued at use time.
+
+- Fresh gen2 baseline: Weekly back to 49%, chip back (the per-relay re-seed, by
+  design). Typed confirm → **use ok 00:55:41.597** → relay
+  `MOCK: reset ladder armed (one pre-consume status queued at use)`.
+- **Read #1** 00:55:41.612 (ok 41.931) — relay `MOCK: reset status served from
+  QUEUE`: the PRE-CONSUME shape (week opportunity still intact, no usedAt) → NOT
+  confirmed → the app schedules a retry.
+- **Read #2** 00:55:42.203 — **+272 ms after read #1's completion** — the
+  fallback's confirmed fold → COMPLETED. (Read #1's completion 41.931 + the
+  `useRetryDelaysMs[0]` 250 ms + processing ≈ 42.203 — the ladder's delay measures
+  from the PREVIOUS READ'S COMPLETION, not from the use; a new app-behavior
+  detail.)
+- Completion side-effects: `markCodingPlanResetHistoryRead ok` 00:55:42.305 (relay
+  "reset history read") → **Read #3** 00:55:42.603 (+364 ms, read #2-completion +
+  250 ms again) → the mutated meters ("entitlement meters mutated (WEEK/unit-6)").
+- Visual (s06): identical completed face to R.A2 (Weekly 59% + note, chip
+  consumed). **Three status reads where pass 14's flag path had ONE** — the
+  poll-until-confirmed ladder is receipted live for the first time; gen2's swap
+  itself recovered honestly (relay.lost → CONNECTED in 1.3 s).
+
+## R.A4 — gen3/gen4, leg E: the disconnect filter at limit=1 + THE F-P13-A BOUNDARY
+
+**gen3 (DISCONNECT_AFTER_DATA_FRAMES=1):** the filter died ONE FRAME EARLIER than
+pass 14's =2 receipt (Q.A4 survived frame 1 and died at frame 2): conversation
+open → `subscribeConversationV4 begin` 00:58:17.716 → **`relay.lost :: abnormal
+close 1006` at 17.829, +113 ms — the FIRST data push (the subscribe's INITIAL
+snapshot)** → the subscribe's ok raced the close (17.961) → RECONNECTING →
+RECOVERING → and then the recovery **re-subscribed**: `subscribeConversationV4
+begin` on relay-4 at 19.595 → ok 19.751 → `relay.recovered :: subscriptions=2
+snapshotReplace=true` → CONNECTED 19.827 → `gateway.frame INITIAL seq=0..1
+epoch=epoch-mock-1` (the epoch re-stamped) → `recovery.snapshotReconcile rows=41`.
+
+**gen4 (the boundary leg):** the subscribe stayed ESTABLISHED ~80 s, then the
+relay was killed (pkill — out-of-band 1006 Broken pipe) and swapped to a fresh
+gen4 carrying the delta arms (ENFORCE_RUN_DELTAS + ANCHOR=subscribe + 6 s/22 s):
+
+- relay.lost 00:59:39.611 → RECOVERING → **subscribe begin on relay-5 at 42.195 →
+  ok 42.306 → relay.recovered 42.309** → CONNECTED 42.436 → INITIAL epoch 42.755.
+- **00:59:48.376 `gateway.frame :: kind=ONLINE seq=2..2 epoch=epoch-mock-1`** —
+  the anchored update landed at subscribe+6.07 s (anchor proven by the arithmetic,
+  Q.A1-style) on the POST-RECOVERY connection and **applied** (no drop).
+- **01:00:04.407 `gateway.frame :: kind=ONLINE seq=3..3`** — the anchored remove at
+  +22.1 s, also applied.
+- **`gateway.drop` count for the whole pass: 0** (708 ZCODE-PAIR lines swept).
+
+**THE BOUNDARY (material — F-P13-A narrows):** the SAME app code that dropped
+every post-recovery delta at pass 13 (P.A3, receipted 2×) now recovered the delta
+plane COMPLETELY across two kills — one with the subscribe in flight, one with it
+80 s established. The variable is NOT the build (no app commits between aa933f41
+and HEAD) and NOT the screen state (pass 13's repro was also on the conversation
+screen). It is the LIFECYCLE CYCLE:
+
+- **Pass 13's shape**: the conversation was CLOSED in the cycle — the
+  `recovery.detached :: session=… (unsubscribed)` line proves `detach()` ran.
+  Code-pinned THIS pass: `detach()` fires ONLY from `closeConversation()`
+  (ConnectionHub.kt:1027-1052 → RecoveryCoordinator.kt:130-149) — it unsubscribes
+  on the wire, drops the subscription record, and detaches the manager; the
+  recovery's re-materialize (`relay.recovered … snapshotReplace=true`) issues NO
+  `subscribeConversationV4` for a detached session — the pass-13 chain, exactly.
+- **Pass 15's shape**: the conversation STAYED OPEN through both kills —
+  `recovery.detached` NEVER fired this pass (zero occurrences) — so the record and
+  manager survived, and the recovery re-subscribed (begin during RECOVERING) with
+  the epoch re-stamping and the deltas fully live.
+- The kill classes also split clean: pass 13/14 used the mock's in-band
+  `close(1011)` storm, pass 15 used pkill (out-of-band 1006) — in the STAY-OPEN
+  shape the recovery is resilient to the kill class driven here; the drop is
+  CYCLE-bound, not kill-bound (as far as this pass drove).
+
+**Ledger treatment:** F-P13-A stamps 3 with the scope note — the row's mechanism
+and fix shape stand UNCHANGED for the close/detach-cycle path (that receipt was
+2× at pass 13 and is not re-driven per the rules); the "every post-recovery
+connection" universality is withdrawn in favor of the cycle boundary. The stay-open
+resilience is a first-series WORKING receipt (the timeline rendered fully after
+two kills, s07 — rows, markdown, table, code block, the "ping" draft intact).
+
+## R.A5 — leg D adjudication: the hook-card plane stays F-P3-A-gated
+
+The Part-Q coverage item ("the hook card's View/trust + CUA chevron — starved
+plane") is NOT driveable without an app fix: the pinned-pending-stack starvation
+(F-P3-A, 9 stamps) is what starves the hook card's rows, pass 9's hook-review
+zero-rows receipt stands, and the composition has not changed. Attempting it would
+re-narrate an OPEN row. Standing block; the plane opens with F-P3-A's fix phase.
+
+## R.Q — ledger arithmetic + coverage honesty
+
+Open F: **25** (unchanged — zero new rows; F-P9-A stamps 3 with the third trigger
+variant; F-P13-A stamps 3 with the cycle-boundary narrowing) · Open G: **21 + 3
+standing** (unchanged) · Open smalls: **13 (+1 watch +1 rig)** (unchanged) ·
+Mock debts: **#15/#16 CLOSED** (`66844fbe`) — **8 OPEN** (#2–#8, #14) — and the
+debt-#10 entry is amended: the queue VARIANT is now driven too (R.A3), so the
+flag path (Q.A2) and the ladder path are both receipted.
+
+### Coverage honesty (what pass 15 did NOT drive)
+
+The range DATA variance (standing rig — the fixture is range-invariant by
+construction; the chips/wire close at the contract level), the hook-card plane
+(F-P3-A-gated, R.A5), MOCK_TURN_RUNNING's in-life watchdog (gen-shaped, unchanged
+since P.A2), the automations editor deep planes (code unchanged), disconnect
+limits other than =1 and =2, the F-P13-A close-cycle re-receipt (row stands per
+the re-receipt rule — the boundary leg above does not re-drive it), the standing
+stops (TalkBack/Dictate/widget/Take-photo/shade-ACTION), and re-driving
+FIXED/REFUTED rows (none changed).
+
+## Pass-15 verification stamp
+
+Pass 15 completed 2026-11-15 ~01:05; 4 relay generations (nonces
+`mock-p15-gen1-a1b2c3` → `mock-p15-gen4-j2k3l4`, launchers `/tmp/p15/relay-g*.sh`);
+ONE emulator cold-boot at pass start (00:44 — rig found DOWN after the overnight
+gap); logcat fresh `adb logcat -T 1` at 00:44 → /tmp/p15/logcat.log. Receipts: 8
+screenshots (`/tmp/p15/shots/s00–s07`), AX dumps `/tmp/p15/w/` (w1–w13 + anr),
+relay logs `/tmp/p15/relay-g*.log`, build log `/tmp/p15/build.log` (APK
+byte-identical `ad449d7d…` / `530ba4ff…`, vc53/1.3.2; mock self-tests 9/9 + suite
+155/0). Desktop 3.18.1 / `ec475e6e…` unchanged (STEP 0). **Rig left:** emulator
+zcode-a16 UP (cold-booted 00:44; PIN-less, screenshot protection OFF, wifi
+ENABLED — O.A0.1 honored), relay gen4 ALIVE (`mock-p15-gen4-j2k3l4`; the delta
+arms SPENT — both anchored deltas consumed, the once-per-process guard holds),
+app pid 4209 paired + CONNECTED on the Synthetic-task conversation (timeline
+fully rendered post-recovery), logcat running → /tmp/p15/logcat.log. Live
+connection: the pass-14 FGS window expired overnight; not re-armed this pass.
+Commits: `66844fbe` (fix(mock), debts #15–#16 + the queue variant) + the docs
+commit for this part.
