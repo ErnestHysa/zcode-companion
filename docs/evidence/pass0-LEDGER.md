@@ -45,62 +45,69 @@ P2-first, exit gates, per-row Accept criteria).
 > passes 15–18 drove the coverage/mock-debt gated compositions — pass 19 drove the
 > G50 cross-side CAS-mismatch face (debt #20, F-P19-A) — pass 20 swept the send-ack
 > taxonomy (F-P20-A) — pass 21 closed Part W's coverage list — pass 22 drove Part X's
-> coverage-honesty leftovers live — pass 23 drove Part Y's three leftovers (the
-> stale-face class stood on SIX typed command families; the compact startNow/null
-> passthrough receipted end-to-end on the new marker arm) — pass 24 drove Part Z's
-> coverage-honesty list and the EFFORT-SHEET PLANE IS NOW FULLY ADJUDICATED
-> (ZERO new rows, third consecutive):** the max→max no-op receipted WORKING (the
-> `Phase9Components.kt:267-268` `if (!selected)` guard short-circuits — zero wire
-> traffic, dialog closes, chip unchanged); the level census ADJUDICATED
-> data-driven-complete (the desktop toolbar knows SIX localized levels
-> low/medium/high/xhigh/max/ultra, the wire schema is a FREE string array, the phone
-> renders the echo verbatim — `low`/`ultra` absence is MOCK-ECHO fidelity, the mock
-> seeds four; inventory note, NO G row); N-BQ-1 stamped 3 (the xhigh radio's first
-> live observation — third level under the same -32009 → generic banner + unchanged
-> chip collapse; DB arbiter: ZERO new outbox rows, setThoughtLevel correctly never
-> rides the command outbox); and BOTH admission-reachability residuals pinned
-> unreachable phone-side (every sendText funnels through send()→routeSendPrompt
-> which threads the trio; port.sendGoal has NO trio params — that omission IS
-> F-P20-A; the reachable host-side races answer guard.* = F-P19-A). No mock changes
-> (the pass-23 arms sufficed). **gateway.drop: 0.** THIRD consecutive zero-new-rows
-> pass; roadmap decision remains ERNEST'S.
+> coverage-honesty leftovers live — pass 23 drove Part Y's three leftovers — pass 24
+> fully adjudicated the EFFORT-SHEET plane — pass 25 drove Part AA's one mis-filed
+> coverage-honesty item and then the SLASH-PARSER PLANE (ZERO new rows, fourth
+> consecutive):** the followup sheet's no-op guard receipted WORKING
+> (`Phase9Components.kt:237-238`, the Part-AA item was receipt-adjacent but never
+> wire-arbitered — `setFollowupMode` 0 before → 0 after, dialog closes, chip
+> unchanged); all THREE local slash-refusal faces receipted first-series (EmptyGoal /
+> UnsupportedGoal / UnsupportedPlanShortcut — verbatim banners, zero wire, draft AND
+> attachment preserved each); the /plan dispatch's wire shape receipted end-to-end
+> (switchCollaborationMode + sendText both ACKED, the genuine config delta seq=2
+> applied + watchdog re-arm, the chip flip plan↔yolo in BOTH directions); the goal
+> SET via slash side-receipted (the THIRD goal entry point rides the same trio-less
+> port — F-P20-A stamps 4, surface census only); ONE rig commit `9b4a48d9` (the mock
+> now prints `command type=` beside every sendConversationCommandV4 — gen1's lone
+> unattributed accepted frame id=27 stays a logged curiosity, not reproducible on
+> two gen2 re-drives). RIG learnings: the AX-radio artifact class confirmed
+> both-ways (checked=false on a FILLED radio + ~200px bounds drift — the screenshot
+> is the only arbiter for this app's dialog radios), the composer input drop is
+> KEYCODE-ADJACENT (the char after keyevent-76 drops; first letter via its keycode:
+> 35=G, 44=P), the photo picker needs scan+reopen for a fresh push, the gen2 echo
+> re-asserts over the local mode on relay swaps. No app changes (APK byte-identical).
+> **gateway.drop: 0.** FOURTH consecutive zero-new-rows pass; roadmap decision
+> remains ERNEST'S.
 
 - Report: `docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md` —
-  Parts A–Z + AA = passes 0–24. **Latest: pass 24 (Part AA, 2026-11-15 ~18:45).**
-- Repo HEAD at last pass: `9afdbe02` (the pass-23 docs commit) + pass 24's docs-only
-  record commit on top (main; pass 24 made ZERO mock changes — the pass-23 arms
-  sufficed).
+  Parts A–Z + AA + AB = passes 0–25. **Latest: pass 25 (Part AB, 2026-11-15 ~19:40).**
+- Repo HEAD at last pass: `15b44eac` (pass 24's docs commit) + pass 25's `9b4a48d9`
+  (fix(mock) observability) on top (main; zero app changes — the APK is
+  byte-identical).
   APK of record: sha256 `ad449d7d…` / md5 `530ba4ff…`, versionCode 53 / 1.3.2
   (byte-identical across the whole series; the pass-23 build was up-to-date —
   zero app changes, mock-only edits).
 - Desktop of record: **/Applications/ZCode.app 3.18.1.10376, asar sha256 `ec475e6e…`,
   383,832,025 B** (re-verified at pass-23 STEP 0 — UNCHANGED, no DELTA).
 - Open rows: **27 F (25 defects + 2 obs) + 21 G + 3 standing + 14 smalls (+1 watch
-  +1 rig)** — pass 24 opened NOTHING and stamped N-BQ-1 3. Part Z's
-  coverage-honesty list is FULLY adjudicated (the max→max no-op ✓ WORKING; the
-  absent-`low` level ✓ data-driven census, mock-echo fidelity, no gap; both
-  admission residuals ✓ unreachable phone-side, code-pinned).
-- Backlog: **8/8 DONE**; the discovery surface stays empty — pass 24 drove Part Z's
-  coverage-honesty leftovers; what remains is standing stops + N-BQ-1's fix-round
-  re-drive + F-P3-A-gated planes.
-  **The mock-debt list has 0 open work-debts (the pass-23 arms were opened+closed
-  in-pass, the established pattern).**
-- Rig left by pass 24: emulator `zcode-a16` UP (**REUSED — the FIRST inherited
-  survival in four passes**; healthy, PIN-less, wifi ENABLED, screenshot protection
-  OFF by persistence; the pass-23 relay gen2 was found STILL ALIVE with its STICKY
-  compact arm and pkilled by name BEFORE any leg), relay gen1 ALIVE (pid 20666,
-  nonce `mock-p24-gen1-a41f7c92`; arms `MOCK_ROWS=12 + MOCK_SET_THOUGHT_LEVEL_STALE`
-  STICKY: setThoughtLevel answers Dl -32009 on ANY level — the next effort switch
-  refuses until a relay swap), app pid 4881 **CONNECTED connectionId=relay-1** (no
-  idle-socket drops this pass) on the synthetic conversation (the xhigh stale
-  banner live in the banner slot; chips expanded; the composer holds `/goal pause`
-  — the THIRD `install -r` survival of the residue draft, not a finding), logcat
-  running → /tmp/p24/logcat.log. Launcher `/tmp/p24/relay-g1.sh`. New rig learning
-  in Part AA.A0: **the uiautomator attribute-ORDER trap** — a fixed-order regex
-  (`checked=…[^>]*class=…`) silently misses nodes whose attribute order differs
-  (first two greps read `checked=false` on ALL FOUR effort radios; the truth was
-  `checked=true` on max — parse each node string and search each attribute
-  independently, and cross-check the screenshot's visual state).
+  +1 rig)** — pass 25 opened NOTHING and stamped F-P20-A 4 (the slash-set goal
+  surface). Part AA's coverage-honesty list is FULLY closed (the followup no-op ✓
+  WORKING, AB.C) and the slash-parser plane is now receipted end-to-end (all three
+  local refusal faces + the /plan dispatch + the goal-set-via-slash).
+- Backlog: **8/8 DONE**; the discovery surface stays empty — pass 25 drove Part AA's
+  mis-filed coverage-honesty item + the slash-parser plane (the last conversation-
+  input family with zero live legs); what remains is standing stops + N-BQ-1's
+  fix-round re-drive + F-P3-A-gated planes + the undriven parser corners (the
+  `/goal`-with-attachments plain-sendText fallthrough, the non-accepted switchMode
+  arm — both code-pinned AB.B, low value).
+  **The mock-debt list has 0 open work-debts (pass 25's `9b4a48d9` was an
+  observability commit, opened+closed in-pass, the established pattern).**
+- Rig left by pass 25: emulator `zcode-a16` UP (REUSED from pass 24 — the SECOND
+  consecutive inherited survival; healthy, wifi ENABLED, screenshot protection OFF
+  by persistence), relay gen2 ALIVE (pid 23162, nonce `mock-p25-gen2-10f1bf`, arms
+  `MOCK_ROWS=12` only — NO sticky refusal arms; the jar carries the `9b4a48d9`
+  command-type log line, live: `MOCK: command type=sendText` etc.), app pid 5305
+  **CONNECTED** across both gen swaps (auto-reconnect, no re-pairing) on the
+  synthetic conversation in PLAN mode (chip "plan · …"; the turn STOP button live
+  from the probe-two reply; composer empty; the B2 attachment removed before the
+  gen2 legs), logcat running → /tmp/p25/logcat.log. Launchers `/tmp/p25/relay-g1.sh`
+  + `/tmp/p25/relay-g2.sh`. New rig learnings in Part AB.A0: the AX-radio artifact
+  class confirmed BOTH-WAYS (checked=false on a filled radio + ~200px bounds drift
+  — the screenshot is the only arbiter for this app's dialog radios); the composer
+  input drop is KEYCODE-ADJACENT (the char after keyevent-76 drops; first letter
+  via its keycode); the photo picker needs scan+reopen for a fresh push (and the
+  scanner renames by MediaStore id); the gen2 echo re-asserts over the local mode
+  on relay swaps.
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -119,7 +126,7 @@ bodies after 3.14.3 — the census IS the changelog.
 | ID | P | Status | Mechanism (one line) | Fix shape | Depends on | Evidence | Stamps |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | F-P19-A | 3 | OPEN (NEW pass 19) | the G50 CAS-mismatch face is desktop-divergent: on `guard.heldQueueConfirmationStale` (host ack `{status:"failed", …}` — set-equality CAS via `applyHeldQueueDisposition`) the desktop RE-OPENS the held-queue confirmation with fresh ids (renderer `confirmationRequired`, re-reads `queue.items`, no error surfaced); the phone maps the failed ack to the generic refusal ERROR notice ("The desktop refused the send — see diagnostics", `ConversationViewModel.kt:542-548`) — reasonCode undifferentiated, no re-confirmation loop exists (grep receipt) | handle the typed reasonCode → re-open the disposition dialog with re-read ids (desktop parity) or minimally a distinct notice; pins: the guard.* grep + the V.C static shapes (outbox FAILED_TERMINAL + preserved draft) | — | Part V.B–V.E | 1 |
-| F-P20-A | 3 | OPEN (NEW pass 20) | the phone's goal sends are structurally refused under the desktop's choice admission: the host's `sendGoalCommand` handler passes the payload's `heldQueueDisposition`/`expectedHeldQueueItemIds` through the SAME `applyHeldQueueDisposition` gate as sendText (zcode.cjs `SMc`→`n9e`→`Vqe`; absent → `heldQueueDispositionRequired` failed-ack; the desktop UI pre-gates via the confirmation dialog — ZERO renderer references to the reasonCode), but the phone's goal payload is `{text, displayText}` only (`CommandCoordinator.kt:220-224`, commented "not CAS-guarded"). Pass 21 EXTENSION (composer half): the composer-level G50 dialog DOES fire for slash-dispatched sends, and `send()` (`ConversationViewModel.kt:434-470`) receives the trio but only `routeSendPrompt` (:454) forwards it — every `sendSlash` branch (:459-470) drops it, so the user ANSWERS the dialog and the answer is discarded (receipted live: dialog → Keep → refused → FAILED_TERMINAL). The sheet half (`setGoal` :601-613) bypasses `send()` — no gate, no dialog, generic ERROR face, as pass 20 receipted. Pass 22 EXTENSION (compact variant): the G50 dialog fires for composer `/compact` sends too and the answer is DISCARDED the same way (`port.compact` = `simpleCommand("compact", sessionId, {})`) — but the wire OUTCOME stays host-faithful (the host's `vMc` consults routing mode, never a trio: the compact self-queues either way, live-receipted Y.E), so the discarded answer's only loss is the user's explicit "Clear queue & send" choice being silently dropped (the desktop never asks for compact at all) | composer half = pure PLUMBING (carry the answered trio into the goal/compact branches — or stop asking for compact); sheet half = gate on the choice state or a distinct notice keyed on the reasonCode; pins: W.B handler chain + W.C payload/surface pins + the outbox rows (goal sheet [20], composer-slash goal [21], compact ACKED/FAILED_TERMINAL pair [22]) | F-P19-A family (same guard) | Part W.B–W.E, X.B–X.D, Y.B/Y.E | 3 (pass 22: the compact variant live — dialog + discard + the host-faithful queued outcome) |
+| F-P20-A | 3 | OPEN (NEW pass 20) | the phone's goal sends are structurally refused under the desktop's choice admission: the host's `sendGoalCommand` handler passes the payload's `heldQueueDisposition`/`expectedHeldQueueItemIds` through the SAME `applyHeldQueueDisposition` gate as sendText (zcode.cjs `SMc`→`n9e`→`Vqe`; absent → `heldQueueDispositionRequired` failed-ack; the desktop UI pre-gates via the confirmation dialog — ZERO renderer references to the reasonCode), but the phone's goal payload is `{text, displayText}` only (`CommandCoordinator.kt:220-224`, commented "not CAS-guarded"). Pass 21 EXTENSION (composer half): the composer-level G50 dialog DOES fire for slash-dispatched sends, and `send()` (`ConversationViewModel.kt:434-470`) receives the trio but only `routeSendPrompt` (:454) forwards it — every `sendSlash` branch (:459-470) drops it, so the user ANSWERS the dialog and the answer is discarded (receipted live: dialog → Keep → refused → FAILED_TERMINAL). The sheet half (`setGoal` :601-613) bypasses `send()` — no gate, no dialog, generic ERROR face, as pass 20 receipted. Pass 22 EXTENSION (compact variant): the G50 dialog fires for composer `/compact` sends too and the answer is DISCARDED the same way (`port.compact` = `simpleCommand("compact", sessionId, {})`) — but the wire OUTCOME stays host-faithful (the host's `vMc` consults routing mode, never a trio: the compact self-queues either way, live-receipted Y.E), so the discarded answer's only loss is the user's explicit "Clear queue & send" choice being silently dropped (the desktop never asks for compact at all) | composer half = pure PLUMBING (carry the answered trio into the goal/compact branches — or stop asking for compact); sheet half = gate on the choice state or a distinct notice keyed on the reasonCode; pins: W.B handler chain + W.C payload/surface pins + the outbox rows (goal sheet [20], composer-slash goal [21], compact ACKED/FAILED_TERMINAL pair [22]) | F-P19-A family (same guard) | Part W.B–W.E, X.B–X.D, Y.B/Y.E, AB.D | 4 (pass 22: the compact variant live — dialog + discard + the host-faithful queued outcome; pass 25: the THIRD goal entry point — slash-set `/goal <objective>` — rides the same trio-less port, outbox payloadJson text/displayText verbatim, AB.D.4) |
 | F-P8-A | 2 | OPEN | cold start w/ DIRECT selected: deferred relay `persistEndpoint` rewrites `_endpoint` after resolve — silent abandonment, recovery dropped by `sourceKind` filter, "First sync failed" vs healthy direct, Retry completes it | guard `persistEndpoint` against overwriting a resolved non-relay selection; retry must reconnect the transport the UI shows; pins: Robolectric race harness + "no `hub.switched` without user tap" | — | Part K.A2 | 1 (+F-P9-A sibling mechanism) |
 | F-P9-A | 2 | OPEN | relay killed MID-AUTHENTICATION → transport wedges in AUTHENTICATING permanently: zero sockets, zero ladder, zero logs, 8 min receipted; survives foreground/unlock; NO retry face (cached rows suppress the strip); active-endpoint tap = silent no-op; ONLY escape = cross-endpoint switch (away+back) | AUTHENTICATING watchdog (timeout → RECOVERING) + a stuck-face; pins: Robolectric kill-mid-handshake harness + netstat-zero + "no silent state" assert | — | Part L.A2 | 3 (pass 10: stale-relay variant, M.A3; pass 15: THIRD variant — relay ABSENT at the cold-start connect → 10s TIMEOUT → silent wedge, no ladder/face, force-stop escape; R.A0.3) |
 | F-P9-B | 2 | OPEN (NEW pass 9) | typed disconnected-remote face never renders live: hub logs the error (workspace-bridge-error: remote-disconnected, verbatim errorText) but ConnectionCenter shows the generic offline face — the G67 card (`connection_remote_reconnect`, render condition lastError.messageKey==REMOTE_WORKSPACE_DISCONNECTED, ConnectionCenterScreen.kt:296) NEVER renders → the recovery verb workspace-reconnect-request is UI-unreachable; row snapshot stays stale under the arm | trace hub.connectFailed→lastError dropping the messageKey (SESSION-scope bridge error); pin: live-shape harness asserting the card renders with the arm armed | — | Part L.A2 | 1 |
@@ -455,6 +462,25 @@ delta …`). Nothing pushed.
 
 ## History
 
+- 2026-11-15 (pass 25) — Part AB executed on Part AA's coverage-honesty list + the
+  slash-parser plane: ZERO new rows (FOURTH consecutive); F-P20-A stamps 4 (the
+  slash-set goal entry point — the accidental-but-valid `/goal status` leg became the
+  receipt: parser unknown-action fallthrough → SendGoal → outbox ACKED with the
+  trio-less payloadJson verbatim). WORKING receipts, all first-series: the followup
+  no-op (Part AA's mis-filed item — setFollowupMode 0→0 wire-arbitered), the three
+  LOCAL refusal faces (EmptyGoal/UnsupportedGoal/UnsupportedPlanShortcut: verbatim
+  banners, zero wire, draft+attachment preserved), the /plan dispatch end-to-end
+  (switchCollaborationMode + sendText ACKED, the genuine seq=2 config delta applied
+  + watchdog re-arm, chip flip plan↔yolo in both directions — the gen2 swap's echo
+  re-assert receipts the reverse leg). Mock: ONE commit `9b4a48d9` (the command-type
+  log line; suite 198/0/0; the first live outputs `command type=sendText` /
+  `=switchCollaborationMode` on gen2). id=27: gen1's lone unattributed accepted
+  non-outbox command frame (~357 B, ~1.1 s post-sendText) — NOT reproducible on two
+  gen2 re-drives; a logged curiosity, NO row, the type line names any recurrence.
+  Rig learnings: AX-radio artifacts BOTH ways (checked=false on filled + ~200 px
+  bounds drift), the KEYCODE-ADJACENT input drop (first letter after keyevent-76;
+  35=G, 44=P), photo-picker scan+reopen + the MediaStore-id rename, the swap-echo
+  re-assert. Rig left UP (gen2 clean arms, app pid 5305 plan-mode, logcat p25).
 - 2026-11-15 (pass 24) — Part AA executed on Part Z's coverage-honesty list: ZERO
   new rows (THIRD consecutive); N-BQ-1 stamps 3 (the xhigh radio's first live
   observation — high/medium/xhigh under the same -32009 collapse; zero new outbox

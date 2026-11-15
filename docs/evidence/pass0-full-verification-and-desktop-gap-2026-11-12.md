@@ -5925,3 +5925,214 @@ switch on ANY level will refuse until the relay swap), app pid 4881 CONNECTED
 relay-1 on the synthetic conversation (the xhigh stale banner live in the banner
 slot; chips expanded; the composer holds `/goal pause` — the third-survival residue,
 not a finding), logcat running → /tmp/p24/logcat.log.
+
+# Part AB — pass 25 (APPENDED 2026-11-15, ~19:40): the slash-parser plane driven live — the followup sheet's no-op guard receipted WORKING (Part AA's skipped coverage-honesty item, now wire-arbitered), all THREE local slash-refusal faces receipted first-series (EmptyGoal / UnsupportedGoal / UnsupportedPlanShortcut — verbatim banners, zero wire, draft+attachment preserved each), the /plan dispatch's full wire shape receipted end-to-end (switchCollaborationMode + sendText + the genuine config delta + the chip flip both directions), and the goal SET via slash side-receipted (the third goal entry point rides the same trio-less port — F-P20-A surface census)
+
+> **Pass 25 of the pass-0 series** (solo, the canonical discovery prompt; STEP 1 empty —
+> backlog 8/8 — so the pass executed STEP 2 on Part AA's coverage-honesty list and then
+> extended into the slash-parser plane, the last conversation-input surface family with
+> zero live legs). **ZERO new rows in ANY table** (fourth consecutive). ONE rig commit:
+> the mock now prints the command type beside every sendConversationCommandV4
+> (`9b4a48d9`, suite 198/0/0) — pass 25's gen1 log left ONE unattributed accepted
+> command frame (the id=27 note, AB.E.3) and this fix makes every future frame
+> attributable at the log line.
+>
+> **Verification stamp:** 2026-11-15 18:57 → 19:32, GLM-5.3-Flash in ZCode, everything
+> local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…` UNCHANGED — no DELTA.
+> Rig: the pass-24 emulator REUSED (second consecutive inherited survival; healthy,
+> wifi ENABLED, screenshot protection OFF by persistence — the boot capture 1.37 MB);
+> the pass-24 relay gen1 was pkilled BY NAME before any leg (its sticky
+> MOCK_SET_THOUGHT_LEVEL_STALE arm would have refused every effort-class wire verb).
+> APK byte-identical (`ad449d7d…`/`530ba4ff`, vc53/1.3.2 — assembleDebug up-to-date,
+> zero app changes since pass 24). TWO generations: gen1
+> `mock-p25-gen1-3d33b1a9` (launcher `/tmp/p25/relay-g1.sh`, 18:59→19:13, arms exactly
+> `MOCK_ROWS=12`) and gen2 `mock-p25-gen2-10f1bf` (`/tmp/p25/relay-g2.sh`, 19:14→end,
+> same arms + the NEW jar with the type line). Stored endpoint survived BOTH swaps —
+> no re-pairing, the app reconnected automatically (hello + subscribe + polls, same pid
+> 5305). logcat fresh `-T 1` → /tmp/p25/logcat.log.
+
+## AB.A0 — rig learnings
+
+1. **The AX-radio artifact class is now CONFIRMED BOTH-WAYS (extends AA.A0.1):** the
+   followup sheet's radios read `checked=false` on BOTH rows in TWO settled dumps while
+   the screenshot showed the queue radio FILLED (blue ring + dot, pixel-probed and
+   eyeballed) — and the radio NODE BOUNDS were ~200 px off the rendered positions
+   (dump center (540,1028) vs rendered (865,971), the Part-C dialog class). Recipe
+   sharpened: **for this app's M3 dialog radios, the AX `checked` attribute and the AX
+   bounds are both untrustworthy; the screenshot (pixel probe or eyeball) is the only
+   arbiter for state AND tap coordinates.**
+2. **The composer input drop is KEYCODE-ADJACENT, not random:** the character typed by
+   the FIRST `input text` after a `keyevent 76` (slash) drops reproducibly — `/goal`
+   → `/oal` twice (once as one 4-char chunk, once char-by-char) before the fix;
+   `/plan` → `/plan` only via `keyevent 44` (P) for the first letter. Recipe: slash via
+   keyevent 76, sleep ≥0.6 s, FIRST LETTER via its keycode (35=G, 44=P), remaining
+   letters as one word chunk, spaces via keyevent 62.
+3. **The photo picker serves a media-scanned push only after a rescan + reopen cycle:**
+   the first open after `adb push` still showed the stale grid; the shell
+   `am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE` scan worked, and the
+   SECOND picker open listed the file as the first (newest) tile. The scanner renames
+   by MediaStore id — the staged chip read "107.png (178 B)" for the pushed
+   rig-p25.png (byte size survives; the pass-5 "Recent on first open" recipe needs the
+   scan step when the picker has stale grid state).
+4. **The relay swap re-seeds the session config and the chip FOLLOWS the new echo:** at
+   the gen1→gen2 swap the phone's locally-set `plan` mode reverted to the fresh
+   generation's `yolo` seed (chip re-rendered "yolo · …", expanded chip "mode: yolo")
+   — echo-authoritative across reconnects (pass-16's echo-reconcile receipt
+   generalizes to relay swaps). No row: the desktop's live session config IS the
+   authority and the phone reconciled honestly in both directions (it also followed
+   gen2's later `plan` echo at 19:27, AB.E.2).
+5. **The banner ✕ and the send FAB share the same screen region and the layout
+   shifts between them:** two sends "missed" because the refusal banner's
+   dismissal (a mistap) re-flowed the composer — the FAB toggled between real-y
+   1285 and 1385 three times this pass. Recipe: screenshot immediately before
+   EVERY send tap; dump bounds for the composer row, screenshot for the FAB.
+6. The residue draft's `install -r` survival is now FOUR consecutive passes (the
+   pass-24 `/goal pause` draft re-occupied the composer at 18:59 before this pass's
+   first clear; recorded as rig folklore, not a finding).
+
+## AB.B — the static pins (phone HEAD `15b44eac`, zero app changes)
+
+1. **The followup sheet's no-op guard** (`Phase9Components.kt:237-238`): the row's
+   selectable lambda closes the sheet and fires `onSetFollowupMode(mode)` ONLY under
+   `if (!selected)` — the identical shape to the effort sheet's `:267-268` guard Part AA
+   receipted. Part AA's coverage-honesty list classified this leg "sheet driven pass 12"
+   — but pass 12 receipted the PREF chain + the Queue/Guide chips, pass 22/23 receipted
+   the CHANGE leg (tap Guide while queue) and its STALE face; the NO-OP wire leg
+   (tap the already-selected mode → zero `setFollowupMode`) had never been arbitered.
+   This pass drove it (AB.C).
+2. **The slash parser's dispatch table** (`SlashCommandParser.kt:40-79`): `/plan` +
+   attachments → `UnsupportedPlanShortcut` (:45-53); bare `/goal` → `EmptyGoal` (:62);
+   `/goal clear|show` → `UnsupportedGoal` (:65-67); any other `/goal <words>` →
+   `SendGoal(objective)` (:68-71) — unknown action words are the OBJECTIVE (desktop
+   parity), which is how the accidental `/goal status` leg became a goal SET (AB.D.4).
+   `/goal`/`/target` WITH attachments → parser null → plain sendText (the fallthrough
+   branch, not driven this pass).
+3. **The local refusal face** (`ConversationViewModel.kt:592-594`): `refuseSlash`
+   posts a WARNING SendNotice (the banner slot) and touches nothing else — no wire,
+   no draft clear, no outbox row. The three refusal copies are inline at :481-487.
+4. **The /plan dispatch** (`ConversationViewModel.kt:488-505`): `port.switchMode(taskId,
+   "plan")` FIRST; ACCEPTED → `routeSendPrompt(dispatch.task…, skipEmpty=true)`;
+   non-accepted → the local WARNING "Could not switch to plan mode — the plan shortcut
+   was not sent." The comment pins the desktop contract ("the command only CONFIGURES
+   the shortcut (mode + this submission's planEnabled)") and `planEnabled` appears in
+   comments only — the phone sends mode + plain text, never a planEnabled field
+   (grep receipt; the desktop's planEnabled-on-send is a decode-only divergence,
+   inventoried here, NO row — the phone's plan flow works end-to-end as driven).
+
+## AB.C — Leg A: the followup-sheet no-op (19:01, gen1)
+
+Chips expanded → the `followup · queue` chip (415,503) → the "Answer follow-up
+delivery" dialog with the queue/guide rows, the queue radio FILLED (screenshot s01 +
+pixel probe; BOTH AX radios read checked=false — AB.A0.1) → tap the SELECTED queue row
+(screenshot-derived (600,1000)) → the dialog CLOSED, the summary chip AND the expanded
+chip UNCHANGED at "followup · queue", and the wire ARBITER: `setFollowupMode` count in
+the relay log **0 before → 0 after** (the v4call deltas in the window were the
+workflowRuns/plans/resync poll drum, ids 17-19). **WORKING receipt — the :237-238
+guard short-circuits the no-op honestly.** The Part-AA coverage-honesty item is CLOSED.
+
+## AB.D — Leg B: the local slash-refusal family, all three faces (19:04-19:08, gen1)
+
+1. **EmptyGoal** — composer cleared, `/goal` typed (the slash palette filtered to the
+   catalog row "/goal — Show or set the current session goal. [pause|r…"), Send → the
+   red banner **`/goal needs a goal text — e.g. "/goal finish the report".`** (s04)
+   with the ✕ affordance; the draft `/goal` INTACT; relay `sendText |
+   sendConversationCommandV4 | sendGoalCommand` count **0**.
+2. **UnsupportedGoal** — `/goal clear` typed (after one `g`-drop repair, AB.A0.2), Send
+   → the banner **`The desktop does not support "/goal clear" here — manage it on the
+   desktop.`** (s07c); the draft intact; NO new relay command (count stayed at the
+   leg-3 goal-set). Note: an earlier mistap sent `/goal status` first — see (4).
+3. **UnsupportedPlanShortcut** — photo staged via the picker (the media-scan recipe,
+   AB.A0.3; the chip "✓ 107.png (178 B)" + Remove), `/plan probe` typed, Send → the
+   banner **`Plan mode cannot start with attachments attached — remove them and
+   retry.`** (s10); attachment chip AND draft preserved; relay count **4 → 4** (zero
+   new wire verbs — the refusal is fully local).
+4. **The accidental side-receipt — the goal SET via slash:** the first B3 attempt sent
+   `/goal status`; the parser's unknown-action fallthrough made it
+   `SendGoal(objective="status")` → `sendConversationCommandV4` (relay id=23, 94 ms ok)
+   → the outbox row `sendGoalCommand | ACKED/accepted | {"text":"status","displayText":
+   "/goal status"}` (DB arbiter), the composer cleared, NO banner (the ACCEPTED side is
+   silent by design). **The third goal entry point (slash-set, after the sheet pass-20
+   and the queue-verb sheet pass-23) rides the SAME trio-less port** — the payload JSON
+   is `{text, displayText}` exactly, F-P20-A's structural omission — **F-P20-A stamps
+   4** (surface census; the omission stays harmless outside choice mode, consistent
+   with the row).
+
+## AB.E — Leg C: the /plan dispatch end-to-end + the id=27 note (19:10-19:28, gen1+gen2)
+
+1. **gen1, the happy dispatch:** `/plan probe the plan shortcut` typed exactly
+   (keyevent-44 recipe) → Send → relay `v4call sendConversationCommandV4 (id=24)` + the
+   outbox pair `switchCollaborationMode | ACKED/accepted | {"mode":"plan"}` then
+   `sendText | ACKED/accepted | {"text":"probe the plan shortcut"}` + the
+   `MOCK: sendText trio … expectedHeldQueueItemIds=[]` line (empty trio — no choice
+   gate) → the mock pushed the mode-flip delta (`gateway.frame kind=ONLINE seq=2..2`,
+   `manager.deltas ops=1`, "genuine delta — watchdog re-armed") → the config chip
+   re-rendered **"plan · GLM-5.3-Flash · max · followup · queue"** + expanded
+   "mode: plan" (s09a context) and the timeline gained the YOU/AGENT pair for the plan
+   prompt. **WORKING receipt — the two-verb wire shape, the genuine delta apply, and
+   the echo-driven chip flip, all first-series.**
+2. **gen2, both attribution re-drives:** plain `plain probe` send → exactly ONE
+   command (`id=12`, `MOCK: command type=sendText` — the type line's first live
+   output) + the YOU/AGENT pair (s13a context); `/plan probe two` re-drive →
+   `switchCollaborationMode` (id=16) + `sendText` (id=17) + the chip back to
+   "plan · …" (s14) and the outbox rows for both. The gen2 legs also receipted the
+   swap-echo re-assert (AB.A0.4).
+3. **The id=27 note (NO row):** gen1 logged ONE accepted `sendConversationCommandV4`
+   (id=27, ~357 B rpc.send) ~1.1 s after leg C's sendText — NOT in the outbox (the
+   CAS-command plane only), no user-visible effect, no state divergence (chip/timeline
+   correct; the mode-flip delta and the send acked normally). Neither gen2 re-drive
+   reproduced it (2 sends, zero extra frames; the gen1 log pre-dates the type line so
+   the frame's `type` is unrecorded). The `9b4a48d9` rig fix makes any recurrence
+   self-attributing at the log line; until one recurs this stays a logged curiosity,
+   not a defect row.
+
+## AB.F — ledger arithmetic + coverage honesty
+
+Open F: **27** (unchanged; F-P20-A stamps 4 — the slash-set surface) · Open G:
+**21 + 3 standing** (unchanged) · Open smalls: **14** (+1 watch +1 rig) (unchanged) ·
+Mock debts: **0 open work-debts** (the type line was an observability commit,
+opened+closed in-pass, `9b4a48d9`; no new debt). Fourth consecutive zero-new-rows
+pass. The Part-AA coverage-honesty list is now FULLY closed (its one mis-filed item —
+the followup no-op — receipted AB.C). What remains undriven in this plane: `/goal`/
+`/target` WITH attachments (the parser-null plain-sendText fallthrough — low value,
+the branch is code-pinned AB.B.2), the "Could not switch to plan mode" non-accepted
+arm (reachable only via a stale/refusing switchMode — the pass-21/23 stale arms cover
+the family's faces), and `/compact`'s palette row (the dispatch driven passes 22-23).
+
+### Coverage honesty (what pass 25 did NOT drive)
+
+The effort-sheet planes (standing — N-BQ-1's fix-round re-drive gate), the queue
+verbs, the automations/runs planes (not armed on gen1/gen2 by design — the home
+"isn't available" face re-rendered as receipted), TalkBack/Dictate/widget/Take-photo/
+shade-ACTION (standing stops), the desktop's own goal-confirmation dialog
+(desktop-only), and the F-P3-A-gated card planes. The `/plan` probe's AGENT reply
+rows rendered but the turn-streaming plane was not re-exercised (receipted passes
+13/16/17).
+
+## Pass-25 verification stamp
+
+Pass 25 completed 2026-11-15 ~19:32; TWO relay generations (gen1
+`mock-p25-gen1-3d33b1a9` 18:59→19:13, gen2 `mock-p25-gen2-10f1bf` 19:14→end, both
+`MOCK_ROWS=12` only; launchers `/tmp/p25/relay-g1.sh` + `/tmp/p25/relay-g2.sh`; the
+gen2 jar carries the `9b4a48d9` type line); emulator REUSED from pass 24 (second
+consecutive inherited survival; no restarts in-life); `install -r` of the
+byte-identical APK (`ad449d7d…`/`530ba4ff`, vc53/1.3.2) → pid 5305 CONNECTED across
+both swaps (relay-1 gen1, auto-reconnect gen2, no re-pairing); screenshot protection
+OFF by persistence (s00 boot capture 1.37 MB). Receipts: shots
+`/tmp/p25/shots/s00–s14` (s01 the followup sheet + filled queue radio, s04 the
+EmptyGoal banner, s06 the goal-set cleared composer, s07c the UnsupportedGoal banner,
+s08a the /plan draft, s09d the picker with the red rig tile, s10 the
+UnsupportedPlanShortcut banner, s13a the gen2 plain-probe exchange, s14 the final
+plan-mode state); AX dumps `/tmp/p25/w/w0–w14`; relay logs `/tmp/p25/relay-g1.log`
+(33 v4call lines) + `/tmp/p25/relay-g2.log` (19 v4call lines + the first
+`command type=` outputs); DB pulls `/tmp/p25/db/zcode.db{,-wal}` (gen1: the
+sendGoalCommand/switchCollaborationMode/sendText ACKED trio) and
+`/tmp/p25/db/zcode2.db{,-wal}` (gen2: the three ACKED rows — plain probe / plan /
+probe two). Mock changes: ONE commit `9b4a48d9` (the command-type log line; suite
+198/0/0). APK byte-identical (zero app changes). Desktop 3.18.1 / `ec475e6e…`
+unchanged (STEP 0). gateway.drop for the pass: **0**; zero app-pid FATAL/
+AndroidRuntime lines. **Rig left:** emulator zcode-a16 UP (healthy, wifi ENABLED,
+screenshot protection OFF), relay gen2 ALIVE (pid 23162, arms `MOCK_ROWS=12` only —
+no sticky refusal arms; the type line live), app pid 5305 on the synthetic
+conversation in plan mode (chip "plan · …"; the turn STOP button live from the
+probe-two reply; composer empty; the B2 attachment REMOVED before the gen2 legs),
+logcat running → /tmp/p25/logcat.log.
