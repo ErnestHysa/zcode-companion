@@ -317,6 +317,14 @@ class MockZCode(
          */
         fun seedWorkspaceFiles(paths: List<String>) {
             for (p in paths) fileTree[p] = JsonArray(emptyList())
+            // Mock-fidelity debt #2 (pass 16): every seeded path is a FILE in this
+            // vocabulary (directories are derived from parents), so each one also gets
+            // default readTextFile content — the listing-only seed made every non-README
+            // open fault (fault.file.notFound) on the §23.4 Files viewer. Explicit
+            // fileText entries (e.g. the pass-21 README fixture) keep precedence.
+            for (p in paths) {
+                fileText.putIfAbsent(p, seededFileContent(p))
+            }
             val dirs = linkedSetOf("")
             for (p in paths) {
                 var d = p.substringBeforeLast('/', "")
@@ -340,6 +348,15 @@ class MockZCode(
                 }
                 fileTree[d] = JsonArray(entries.values.toList())
             }
+        }
+
+        /** Deterministic paged-viewer content for a seeded path (debt #2). */
+        private fun seededFileContent(path: String): String {
+            val name = path.substringAfterLast('/')
+            return (1..14).joinToString("\n") { i ->
+                if (i == 1) "# $name — rig seed (pass-16 debt-#2 fix)"
+                else "line $i of the synthetic content the mock serves for $path"
+            } + "\n"
         }
 
         /** Recorded usage-stats promise calls: (method, argKind "arr"|"obj"|"other", unwrapped params).
@@ -481,6 +498,20 @@ class MockZCode(
         @Volatile var enforceWorkflowRunDeltas: Boolean = false
         /** G43-P13: a scripted resync fault (e.g. fault.subscription.notOwned) for the ladder's fallback face. */
         @Volatile var resyncIndexFault: String? = null
+
+        // ---------------- Pass-16 stall arm (the P.A2 watch-note: a REAL frames>0 stall) ----------------
+        /**
+         * MOCK_TURN_STALL: after the first conversation subscribe, emit
+         * [turnStallLiveFrames] live row frames, then keep journaling rows WITHOUT
+         * emitting — a genuine mid-turn delivery stall (a frames>0 resync backlog)
+         * the stream watchdog must resync out of. P.A2's replay was frames=0; this
+         * is the shape that answers "does a REAL stall surface anything".
+         */
+        @Volatile var turnStall: Boolean = false
+        /** Live frames emitted before the silent phase begins. */
+        @Volatile var turnStallLiveFrames: Int = 2
+        /** Delay between live frames AND between silent backlog rows (ms). */
+        @Volatile var turnStallEveryMs: Long = 1_500L
         // ---------------- G53 + N-BG-2 (vc52 Phase 11) the git depth + the refusal surface ----------------
         /**
          * G53: the scripted `getBranchComparison` result ({baseRef, headRef,
@@ -1339,7 +1370,11 @@ class MockZCode(
                             put("options", JsonArray(pp.options.map { id ->
                                 buildJsonObject {
                                     put("optionId", JsonPrimitive(id))
-                                    put("label", JsonPrimitive(id))
+                                    // Debt #5 (pass 16): the desktop sends `label: c.name`
+                                    // (the human label); the mock echoed the raw optionId
+                                    // and the phone renders the label — "allowOnce" was a
+                                    // mock-fidelity artifact, not app behavior.
+                                    put("label", JsonPrimitive(optionLabel(id)))
                                     put("kind", JsonPrimitive(id))
                                 }
                             }))
@@ -1364,7 +1399,7 @@ class MockZCode(
                             // A3.14: the AskUserQuestion multi-question plane (MOCK_QUESTION).
                             script.pendingQuestion?.get("questions")?.let { put("questions", it) }
                             put("options", JsonArray(pu.options.map { id ->
-                                buildJsonObject { put("optionId", JsonPrimitive(id)); put("label", JsonPrimitive(id)) }
+                                buildJsonObject { put("optionId", JsonPrimitive(id)); put("label", JsonPrimitive(optionLabel(id))) }
                             }))
                         })
                     }
@@ -1382,8 +1417,15 @@ class MockZCode(
      * ([pushPendingPermission] builds the full list); snapshots may serve the id
      * again once [Script.interactionPushDelivered] flipped.
      */
-    private fun snapshotPendingInteractions(): JsonArray {
-        val full = pendingInteractionList()
+    /** Debt #5 (pass 16): human labels for the kernel option ids (verbatim fallback otherwise). */
+    private fun optionLabel(id: String): String = when (id) {
+        "allowOnce" -> "Allow once"
+        "allowAlways" -> "Allow always"
+        "deny" -> "Deny"
+        else -> id
+    }
+
+    private fun snapshotPendingInteractions(): JsonArray {        val full = pendingInteractionList()
         if (script.interactionPushDelayMs == null || script.interactionPushDelivered) return full
         return JsonArray(full.filter { el ->
             val o = el as? JsonObject ?: return@filter true
@@ -1591,6 +1633,24 @@ class MockZCode(
         log.addLast(frame)
         while (log.size > opLogMaxFrames) log.removeFirst()
         emitDeltasFrame(sessionId, listOf(frame), DeliveryKind.ONLINE)
+    }
+
+    /**
+     * Pass-16 stall arm: journal one delta frame for resync replay WITHOUT emitting
+     * it live — the app sees the turn go quiet while the server backlog grows, so
+     * the stream watchdog's resync (resume) replays frames>0. Mirrors
+     * [journalAndEmit] minus the emit.
+     */
+    private fun journalRowSilent(sessionId: String, row: JsonObject) {
+        val ops = JsonArray(listOf(buildJsonObject {
+            put("op", JsonPrimitive("row.appended"))
+            put("row", row)
+        }))
+        val from = nextSeq()
+        val frame = DeltaFrame(from, seqHeadNow, ops)
+        val log = opLog.getOrPut(sessionId) { ArrayDeque() }
+        log.addLast(frame)
+        while (log.size > opLogMaxFrames) log.removeFirst()
     }
 
     /**
@@ -2174,6 +2234,47 @@ class MockZCode(
     /** Debt #13 seam: armed once (the schedule lives in the mock's scope). */
     internal fun runDeltasArmedForTest(): Boolean = runDeltasArmed.get()
 
+    /** Pass-16 stall arm: once-per-process guard for the subscribe-anchored stall schedule. */
+    private val turnStallArmed = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    /**
+     * Pass-16 stall arm (MOCK_TURN_STALL): armed from the FIRST conversation
+     * subscribe (same anchor class as [armWorkflowRunDeltasOnSubscribe]). Emits
+     * [Script.turnStallLiveFrames] live row frames, then journals rows silently —
+     * the frames>0 backlog a resumable resync replays after the watchdog re-kick.
+     */
+    internal fun armTurnStallOnSubscribe() {
+        if (!script.turnStall) return
+        if (!turnStallArmed.compareAndSet(false, true)) return
+        val everyMs = script.turnStallEveryMs
+        scope.launch {
+            repeat(script.turnStallLiveFrames) { i ->
+                pushRowDelta(routingSessionId(), "row.appended",
+                    schemaRow(routingSessionId(), nextRowId(), RowKind.ASSISTANT_TEXT,
+                        "stall-leg live frame ${i + 1} — the stream was flowing"))
+                kotlinx.coroutines.delay(everyMs)
+            }
+            var n = 0
+            while (true) {
+                n += 1
+                journalRowSilent(routingSessionId(),
+                    schemaRow(routingSessionId(), nextRowId(), RowKind.ASSISTANT_TEXT,
+                        "stall-leg backlog frame $n — journaled, never emitted"))
+                kotlinx.coroutines.delay(everyMs)
+            }
+        }
+    }
+
+    /** Pass-16 stall seam: armed once (the silent journal lives in the mock's scope). */
+    internal fun turnStallArmedForTest(): Boolean = turnStallArmed.get()
+
+    /** Pass-16 stall seam: journal ONE silent backlog row now (deterministic self-test drive). */
+    internal fun journalStallBacklogRowForTest(sessionId: String, text: String): Long {
+        val row = schemaRow(sessionId, nextRowId(), RowKind.ASSISTANT_TEXT, text)
+        journalRowSilent(sessionId, row)
+        return (row["rowId"] as? JsonPrimitive)?.content?.toLongOrNull() ?: -1L
+    }
+
     /** Debt #11: once-per-process guard for the first-list off-peak flip. */
     private val offPeakCompleteScheduled = java.util.concurrent.atomic.AtomicBoolean(false)
 
@@ -2566,6 +2667,9 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 // Debt #13 (pass 14): the subscribe-anchored delta schedule (a no-op
                 // unless MOCK_RUN_DELTA_ANCHOR=subscribe armed it).
                 armWorkflowRunDeltasOnSubscribe()
+                // Pass-16: the subscribe-anchored stall schedule (a no-op unless
+                // MOCK_TURN_STALL armed it).
+                armTurnStallOnSubscribe()
                 script.flowStateAfterSubscribe?.let { st ->
                     script.flowStateAfterSubscribe = null
                     // Field-fidelity (2026-09-29): flow frames go ONLY to a registered

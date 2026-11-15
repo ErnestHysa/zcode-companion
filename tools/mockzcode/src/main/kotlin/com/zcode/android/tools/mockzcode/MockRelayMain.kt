@@ -201,6 +201,16 @@ fun main() {
     if (System.getenv("MOCK_TURN_RUNNING") != null) {
         mock.setSessionTurnOutcome("running")
     }
+    // Pass-16 (P.A2 watch-note): MOCK_TURN_STALL=1 arms a REAL frames>0 delivery
+    // stall — the non-terminal turn (running) plus a subscribe-anchored schedule
+    // that emits live row frames, then journals rows WITHOUT emitting; the stream
+    // watchdog's resync replays the frames>0 backlog. Implies the running turn.
+    if (System.getenv("MOCK_TURN_STALL") != null) {
+        mock.setSessionTurnOutcome("running")
+        mock.script.turnStall = true
+        System.getenv("MOCK_TURN_STALL_LIVE")?.toIntOrNull()?.let { mock.script.turnStallLiveFrames = it }
+        System.getenv("MOCK_TURN_STALL_EVERY_MS")?.toLongOrNull()?.let { mock.script.turnStallEveryMs = it }
+    }
         // Pass-37 markdown conformance leg: MOCK_MD_FILE=<path> replaces the demo row's markdown.
     System.getenv("MOCK_MD_FILE")?.let { f -> mock.script.demoAssistantMarkdown = File(f).readText() }
     // MOCK_APPROVAL=1 arms one pending-approval tool row so the Approvals screen
