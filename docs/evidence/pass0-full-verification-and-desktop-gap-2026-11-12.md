@@ -6710,3 +6710,203 @@ emulator zcode-a16 UP (healthy, wifi ENABLED, screenshot protection OFF), relay 
 ALIVE (clean arms, safe to inherit), app pid 9038 on synth-task-1 (chip "yolo · …",
 composer EMPTY, timeline bottomed on the doc exchange, STOP morph armed from the last
 sendText), logcat running → /tmp/p28/logcat.log. Launcher `/tmp/p28/relay-g1.sh`.
+
+# Part AF — pass 29 (APPENDED 2026-11-15, ~23:00): Part AE's two named coverage leftovers driven live — the FIRST multi-attachment send (a 2-element `attachments` array receipted end-to-end on the outbox DB arbiter) and BOTH attachment-chip Remove paths (error-state and ready-state, each chip-gone with ZERO wire verbs — Remove is purely local) — receipting N-BR-1's SECOND lying window live (Remove leaves the stale offline banner displayed too: chip-less and still claiming "the attachment was not sent"; the row's fix shape extends by one more one-liner), plus the menu-inserted `/goal ` args-hint spelling (the GAP-12 insert contract live on /goal → the verbatim EmptyGoal face, zero wire, draft preserved) — ZERO new rows; N-BR-1 stamps 2
+
+> **Pass 29 of the pass-0 series** (solo, the canonical discovery prompt). STEP 1 empty
+> (backlog 8/8 — unchanged since pass 12). Part AE's coverage-honesty list named
+> exactly two driveables — the multi-attachment send and the attachment-chip Remove
+> path — plus the cheap menu-pick on an args-hint command; all three are receipted
+> below. **ZERO new rows; N-BR-1 stamps 2.** No mock changes (clean inherited arms).
+> No app changes (APK byte-identical at HEAD `6c80a76e`; the `install -r` SKIPPED on
+> digest equality).
+>
+> **Verification stamp:** 2026-11-15 22:26 → 22:55, GLM-5.3-Flash in ZCode, everything
+> local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…` UNCHANGED — no
+> DELTA. Rig: the pass-28 emulator REUSED (SIXTH consecutive inherited survival;
+> healthy, wifi ENABLED, screenshot protection OFF by persistence); the pass-28 relay
+> gen1 pkilled BY NAME at 22:29; TWO generations this pass: gen1
+> `mock-p29-gen1-1c94a6` (22:29→22:31 — deliberately killed mid-pass to stage leg B's
+> offline pick) and gen2 `mock-p29-gen2-0fa91b` (22:33→end; the app auto-reconnected
+> cleanly — hello id=3, the recovery re-subscribed, NO wedge). Build at HEAD
+> `6c80a76e`: `:app:assembleDebug` + `:tools:mockzcode:jar` exit 0 (239 up-to-date);
+> APK md5 `530ba4ff…` == on-device `base.apk` md5 (byte-identical, vc53/1.3.2, sha256
+> `ad449d7d…`) → the `install -r` was SKIPPED. logcat fresh `-T 1` →
+> /tmp/p29/logcat.log.
+
+## AF.A0 — rig learnings
+
+1. **The composer reflow keeps MOVING the + and Send bounds** — the + sat at
+   y≈2118, then 1986, then 1351/1417 within one pass as chips/banner/IME state
+   changed (each strip row, notice, and keyboard toggle reflows the composer).
+   Pass 27's "re-dump before every composer interaction" re-manifested hard: two
+   taps missed this way (one silently opened the IME, whose keyboard then ate the
+   second tap). The recipe stands: fresh dump → tap → verify the popup/IME window
+   state before the next tap.
+2. **The menu dump-invisibility variance FLIPPED sides**: the + DropdownMenu was
+   dump-VISIBLE this pass (w11 carried all six row texts — pass 28 needed the
+   dumpsys-frame math) while the SLASH Commands dropdown was dump-INVISIBLE (w34/w35
+   carried nothing; the screenshot s07 carried the `/goal` row). Neither surface is
+   reliably dumpable across passes — **the screenshot is the only stable menu
+   arbiter**; tap coords come from the preview-pixel scaling (×1080/891, ×2340/2000).
+3. **The DocumentsUI round trip dropped the socket 3/3 this pass** (22:34, 22:43×2
+   — the pass-28 natural drop is now a reliable pattern). Consequence: a pick made
+   right after returning from the picker lands in the reconnect window and answers
+   **BlockedOffline honestly** (zero wire verbs). Leg B staged its offline pick
+   deliberately (relay killed); leg C's staging hit the natural drop — either way
+   the typed face + one Retry commit recovers, and every BlockedOffline receipt now
+   costs at most one deliberate `pkill -f MockRelayMainKt`.
+4. **ONE unattributed route-pop to Tasks home** right after leg C's Retry committed
+   (the chip had flipped ✓ ready; w28 found the Tasks home; zero crash/FATAL; the
+   wire receipts clean — begin+commit both landed before the pop). Re-entering the
+   conversation restored the ✓ chip intact. K-small-3-class one-off: recorded as a
+   watch-note, NOT chased, no row.
+5. The EmptyGoal banner renders **below the composer** under the open IME (s08) —
+   prior receipts showed notices above it; the notice plane's anchor follows the
+   IME insets. Cosmetic; noted so future rig taps look for the ✕ on BOTH sides.
+6. The one-shot `input text "two chips probe"` dropped its tail ("two" landed
+   alone); the `%s`-for-space chunk recipe (pass 24) landed the retyped draft
+   exact. The slash-adjacent drop ate the first `g` after keyevent-76 (pass 25's
+   lesson verbatim).
+
+## AF.B — the static pins (phone HEAD `6c80a76e`, zero app changes)
+
+- **AttachmentStrip** (Phase9Components.kt:434-474): chips render state-first (✓
+  ready / ✗ failed / ↑ uploading); a FAILED chip carries Retry + Remove (:468);
+  **every other state carries Remove only** (:470 — the Remove affordance is
+  unconditional per chip row).
+- **The send gate** (WriteComponents.kt:1426-1427, N-BH-1): `sendable =
+  draft.isNotBlank() || composerAttachments.any { it.state == "ready" && it.ref !=
+  null }` — at least ONE ready chip submittable with a blank draft; the GAP-A9
+  morph's `hasDraftToSubmit` (:1401) counts ANY chip.
+- **The payload filter** (Ports.kt:389-413): ONLY ready chips ride the sendText
+  `attachments` (`filter { it.state == "ready" && it.ref != null }`); ACCEPTED
+  CONSUMES them (:417-419). Static corollary (undriven): a failed chip beside a
+  ready one is silently EXCLUDED from the payload and LINGERS after the send.
+- **The notice surfaces** (ConversationViewModel.kt): `uploadAttachment` sets
+  ATTACHMENT_OFFLINE on BlockedOffline (:368-369); `retryUpload` clears NOTHING on
+  `Committed` (:381-388 — N-BR-1's pinned window 1); **`removeUpload` (:376-378)
+  mutates NO notice** — the predicted SECOND window, receipted live below.
+
+## AF.C — leg B: the error-state Remove, end-to-end (22:29–22:34)
+
+Relay gen1 killed at 22:30:51 → the hub went RECONNECTING (relay-9/10/11 connect
+timeouts in logcat; the header text lagged "Connected" then flipped to
+"Reconnecting…"). + menu → Attach a file → `rig-p28-notes.txt` → the upload
+answered **BlockedOffline** (zero wire attempts — the hub was down) → the typed
+face receipted again: chip `✗ rig-p28-notes.txt (43 B)` + Retry + Remove + the
+banner "Offline — the attachment was not sent. Retry when connected." (s03).
+Gen2 up (`mock-p29-gen2-0fa91b`) → hello id=3 → "Connected" (the recovery
+re-subscribed: resync + subscribeConversationV4 — the stay-open good path,
+F-P13-A's receipted-good boundary). Tapped **Remove** → the chip GONE (no chip
+nodes in w9) and **the stale banner REMAINED verbatim** — **s04 is the single-frame
+proof: NO attachment at all + "the attachment was not sent"**. N-BR-1's second
+lying window, receipted live. Zero wire verbs for the Remove (the gen2 log carried
+no attachment/removeUpload calls). The gen2 reconnect's `Syncing…` window also
+honestly BlockedOffline a re-pick that raced it (the pick landed before CONNECTED).
+
+## AF.D — leg A: the FIRST multi-attachment send, end-to-end (22:35–22:42)
+
+Retry committed the leg-B chip (attachmentBegin/Chunk/Commit; chip ✓ + Remove
+only) → + menu → **Photo** (the photopicker raced the first dump; the tile grid
+identified by mtime desc) → `124.png (150.6 KB)` (the MediaStore rename of
+s19.png) → upload committed (begin/chunk/commit ×1). **s06 single-frame bonus
+receipt: TWO ✓ chips (`rig-p28-notes.txt (43 B)` + `124.png (150.6 KB)`) with the
+stale offline banner STILL displayed under both** — the banner's third
+simultaneous lie (it outlived two successful uploads and a Remove).
+Draft "two chips probe" typed (chunked %s recipe after the one-shot drop) → Send
+→ relay `command type=sendText` → **DB arbiter:
+`sendText | ACKED | accepted | {"text":"two chips probe","attachments":[{"ref":
+"att-up-783cbbe8-…","fileName":"rig-p28-notes.txt","mime":"text/plain","bytes":43},
+{"ref":"att-up-2f0048e4-…","fileName":"124.png","mime":"image/png","bytes":154253}]}`**
+(outbox 22:42:30 UTC) — **the campaign's FIRST 2-element attachments array**, both
+mimes/refs/bytes carried, ACKED. The ACCEPTED send cleared the stale banner (the
+send path's `_sendNotice.value = null` — N-BR-1's "cleared by next send" boundary
+corroborated).
+
+## AF.E — leg C: the ready-state Remove + the no-attachments send (22:43–22:48)
+
+A fresh doc staging hit the DocumentsUI-return reconnect window (the natural
+socket drop) → **BlockedOffline** again (zero wire; the honest face second-series)
+→ Retry → ✓ ready. Tapped **Remove on the READY chip** → chip GONE (w30), the
+stale banner (re-armed by the BlockedOffline) REMAINED — **the second window
+receipted on BOTH chip states**. "remove probe" typed and sent →
+**`sendText | ACKED | accepted | {"text":"remove probe"}`** — **NO attachments key
+in the payload** (outbox 22:48:00, directly above leg A's 2-element row in the
+same table — the contrast receipt). The ACCEPTED cleared the banner again.
+Mid-leg anomaly: the unattributed route-pop (AF.A0.4 — recorded, not chased).
+
+## AF.F — leg D: the menu-inserted `/goal ` → the EmptyGoal face (22:49–22:51)
+
+`/g` typed (the slash-adjacent drop ate the first `g`; retyped) → the Commands
+dropdown rendered INVISIBLY to the dump (s07 carried the `/goal` row: "Show or
+set the current session goal. [pause|r…") → tapped the row → dump-verbatim draft
+**`"/goal "`** (trailing space — **GAP-12's args-hint insert contract receipted
+live on /goal**, matching pass 28's /compact pick; the SlashMenuUiTest unit pins
+now have live receipts on both contract shapes). Send → the **EmptyGoal verbatim
+face**: `/goal needs a goal text — e.g. "/goal finish the report".` (s08
+single-frame with the preserved draft visible in the composer) — **zero wire**
+(the relay's command-type count unchanged at 2), draft preserved. AE's predicted
+equivalence (the menu-pick dispatches identically to the typed receipt) is now
+receipted.
+
+## AF.G — ledger arithmetic + coverage honesty
+
+Open F: **27** (unchanged) · Open G: **21 + 3 standing** (unchanged) · Open smalls:
+**15** (+1 watch +1 rig) — pass 29 opened NOTHING; N-BR-1 stamps 2 (the Remove
+path is the row's second lying window; the fix shape extends trivially: clear the
+keyed notice on BOTH terminal outcomes — retry `Committed` AND remove). Mock
+debts: **0 open work-debts** (no mock changes). Backlog: **8/8** (the pass's axes
+came from Part AE's coverage-honesty list, now empty of driveables). Connection
+census: 2 relay generations (gen1 deliberate-kill for leg B, gen2 clean to end);
+the app rode 4 socket drops (1 deliberate + 3 natural DocumentsUI trips), every
+one honestly recovered or surfaced as BlockedOffline; zero gateway.drop; zero
+app-pid FATALs. Outbox census for the pass (2 rows, both ACKED/accepted):
+sendText 2-chip-array (22:42:30) · sendText no-attachments (22:48:00).
+Attachment wire census: begin/chunk/commit ×3 (leg-B retry, leg-A png, leg-C
+retry); removeUpload wire verbs: **0** (Remove is purely local — the port-side
+cleanup is in-memory only).
+
+### Coverage honesty (what pass 29 did NOT drive)
+
+The **TOO_LARGE face** (the 20 MB desktop limit, ATTACHMENT_TOO_LARGE keyed
+notice) — needs a >20 MB pick, undriven; the **non-offline upload FAILED face**
+(ATTACHMENT_FAILED, "connection lost" copy) — no mock arm produces a begin/chunk
+failure, undriven; **retryUpload's own failure face** (ATTACHMENT_RETRY_FAILED) —
+both retries committed 2/2; the chip's **uploading-progress render** (↑ %) —
+commits too fast to catch on the rig; the **MIXED-state send** (one ✓ + one ✗
+chip) — the static reading (Ports.kt:391/417) says the failed chip is excluded
+from the payload AND lingers after the send (only ready chips are consumed); if
+receipted live later it joins N-BR-1's stale-notice family (chip + banner both
+outliving the send); Voice (Dictate = standing rig stop N-BM-4), Camera (standing
+stop), TalkBack/shade-ACTION/widget (standing stops); the `/compact` menu pick
+(receipted pass 28 — the parser saturation covers both insert shapes now);
+F-P3-A-gated card planes, the effort-sheet plane, the queue verbs, the
+automations/runs planes (not armed by design); turn-streaming (receipted
+13/16/17); the doc-attachment timeline RENDER (mock-fidelity blocked — AE.E's
+note stands).
+
+## Pass-29 verification stamp
+
+Pass 29 completed 2026-11-15 ~22:55; TWO relay generations (gen1
+`mock-p29-gen1-1c94a6` 22:29→22:31, killed by name for the leg-B offline staging;
+gen2 `mock-p29-gen2-0fa91b` 22:33→end, arms exactly `MOCK_ROWS=12`; launchers
+`/tmp/p29/relay-g1.sh` and `/tmp/p29/relay-g2.sh`; relay-up-first both times — no
+wedge); emulator REUSED from pass 28 (sixth consecutive inherited survival; no
+restarts in-life); the `install -r` SKIPPED on byte-identity (local == on-device
+md5 `530ba4ff…`, sha256 `ad449d7d…`, vc53/1.3.2 at HEAD `6c80a76e`).
+Receipts: shots `/tmp/p29/shots/s00-s08` (s03 the offline error chip + banner;
+**s04 the chip-less stale banner**; **s06 two ✓ chips + the stale banner
+single-frame**; s07 the dump-invisible slash dropdown; **s08 the EmptyGoal face +
+preserved `/goal` draft**); AX dumps `/tmp/p29/w/w0-w39`; relay logs
+`/tmp/p29/relay-g1.log` + `/tmp/p29/relay-g2.log` (exactly 2 sendText commands +
+attachment begin/chunk/commit ×3; zero removeUpload verbs); DB pulls
+`/tmp/p29/db/zcode.db{,-wal}` — the pass's complete outbox census (2 rows, listed
+in AF.G). Mock changes: NONE. App changes: NONE (APK byte-identical; install
+skipped). Desktop 3.18.1 / `ec475e6e…` unchanged (STEP 0). gateway.drop for the
+pass: **0**; zero app FATAL/AndroidRuntime lines. **Rig left:** emulator zcode-a16
+UP (healthy, wifi ENABLED, screenshot protection OFF), relay gen2 ALIVE (clean
+arms, safe to inherit), app pid 9038 on synth-task-1 (chip "yolo · …", composer
+ONE-SPACE residue, banner dismissed, timeline bottomed on the remove-probe
+exchange), logcat running → /tmp/p29/logcat.log. Launcher
+`/tmp/p29/relay-g2.sh`.
