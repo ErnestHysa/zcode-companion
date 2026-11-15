@@ -4298,3 +4298,226 @@ pid 4192 paired + CONNECTED on the Synthetic-task conversation, logcat running �
 session bar shows "Connected · Running" from the FGS).
 Commits: `9b6e2292` (fix(mock), debts #2+#5 + the stall arm) + the docs commit
 for this part.
+
+# Part T — pass 17 (APPENDED 2026-11-15, ~03:00): the MOCK_QUEUE composition driven to the wire — the complete G49/G50 send trio, all five queue verbs, and the automations-runs plane's first-series receipts — plus debt #4's routing half adjudicated BY-DESIGN, debt #17 live-closed under the exact pass-16 force shape, and a new arm (MOCK_INPUT_ROUTING) unblocking the held-queue disposition dialog
+
+> **Pass 17 of the pass-0 series** (solo, the canonical discovery prompt; the backlog is
+> 8/8 — this pass worked the campaign state's named remainder: the MOCK_QUEUE and
+> MOCK_AUTOMATION_RUNS-gated compositions, the only driveable legs left). **ZERO new
+> rows.** The pass opened and closed one mock debt (#18 — the mock never served
+> `inputRouting.mode "choice"`, so the G50 held-queue disposition dialog was
+> structurally undrivable) and closed two more: **debt #4 ENTIRELY** (the routing half
+> is the G49 one-shot delivery override — no pick-time verb is BY DESIGN; the wire
+> carries it on the next send) and **debt #17** (fix `05ba5c18` + the live force-resync
+> receipt T.A3). First-series WORKING receipts: **the complete send trio on ONE wire
+> call** (`heldQueueDisposition` + `requestedDelivery` + `expectedHeldQueueItemIds`),
+> **all five queue verbs** (send-now / edit / reorder / delete — auto-drain was pass
+> 12's), **the automations-runs plane** (History sheet + filter chips + Run-now +
+> duplicate face + Delete run), and **Go-to-session's working half** (the
+> workspace-session run loads its transcript via the subscribe snapshot).
+>
+> **Verification stamp:** 2026-11-15 02:00 → 02:37, GLM-5.3-Flash in ZCode, everything
+> local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…` UNCHANGED — no
+> DELTA. Rig inherited from pass 16 (emulator zcode-a16 UP, cold-booted 01:13
+> pass-16; app relaunched by the `install -r` at 02:00 → pid 5789; PIN-less,
+> screenshot protection OFF by persistence, wifi ENABLED per O.A0.1; the pass-16
+> gen3 TURN_STALL relay pkill'd at pass start). Generations: gen1
+> `mock-p17-gen1-a1b2c3` (02:00, QUEUE + INPUT_ROUTING=choice — leg A), gen2
+> `mock-p17-gen2-d4e5f6` (02:19, AUTOMATIONS + OFFPEAK + AUTOMATION_RUNS — leg B),
+> gen3 `mock-p17-gen3-e6f7a8` (02:30, TURN_STALL — leg C). All three swaps
+> recovered honestly (the app reconnected 1.5–3 s; zero blackhole, zero
+> gateway.drop for the whole pass).
+
+## T.A0 — rig learnings (each bites the next pass)
+
+1. **The queue verbs ride `sendConversationCommandV4`, not their own channel methods** —
+   the app's command coordinator wraps editQueueItem/reorderQueueItem/sendQueuedNow/
+   deleteQueueItem as command types inside the one send call, and the mock logs only the
+   generic `MOCK: v4call sendConversationCommandV4 (id=N)`. Greps for the verb NAMES on
+   either side produced two false-negative scares ("no wire call" for the edit and the
+   reorder) until the queue-state mutations (EDITEDONE rendering, the swapped order)
+   proved the verbs had fired. `runAutomationNow`/`deleteAutomationRun` conversely ARE
+   their own channel methods. Grep by the wire method, verify by the STATE mutation.
+2. **A bottom-anchored ModalBottomSheet SHRINKS UPWARD when its list narrows**: after a
+   filter chip reduced the runs list 2→1, the sheet re-laid-out and the chips moved DOWN
+   ~208 px — taps aimed at the pre-narrow dump bounds hit the note text instead (the
+   "Succeeded filter not applying" scare was this, not an app defect). Re-dump after
+   every in-sheet list change; dialog bounds go stale on ANY content change, not just
+   IME transitions (the D.A0.2 rule generalized).
+3. **The mixed-axis preview scale**: the Read-tool screenshot preview is 897×2000 for the
+   1080×2340 real screen — x scale 1.204 but y scale 1.17. Using one scale for both axes
+   put the first Save tap ~62 px below the button (it dismissed the sheet via the scrim;
+   the editQueueItem call HAD actually fired — see T.A1). Anchor dialog taps on the RAW
+   dump bounds when no IME/animation transition intervened; use screenshot coordinates
+   only for IME-stale cases (the D.A0.2 trap's exact boundary).
+4. **The first screencap after opening a sheet/dialog can RACE the entrance animation**
+   (twice this pass: the queue-edit sheet and the History sheet each painted the
+   UNDERLYING screen in the first shot while the AX dump already carried the sheet).
+   Re-shoot before concluding popup-invisibility.
+5. **The mock's `schemaRow` back-dates every row by exactly 300,000 ms**
+   (`System.currentTimeMillis() - 300_000 + rowId` — snapshot-tail realism), so a row
+   pushed NOW renders a header time 5 minutes old ("YOU 2:02 AM" for a 02:07:11 send).
+   App-faithful (it renders the server timestamp); recorded so nobody re-chases it as a
+   clock-skew defect. Host/emulator clocks verified within 5 s.
+6. The `install -r` at pass start killed the app process; the relaunched process froze
+   in the background (ActivityManager freezer) and the monkey launch did NOT foreground
+   it — `am start -n com.zcode.android.app/.MainActivity` did. Budget the explicit start
+   after every reinstall.
+
+## T.A1 — gen1, leg A: the MOCK_QUEUE composition — the complete send trio + all five queue verbs, wire-true
+
+Arms: MOCK_ROWS=12 (light, D.A0.4) + MOCK_QUEUE=1 (debt #4's named composition: 2
+seeded follow-ups, autoDrain=false) + **MOCK_INPUT_ROUTING=choice** (the new debt-#18
+arm — the state's inputRouting pins to `choice`, the phone's CHOICE routing).
+
+**The queue strip rendered in full for the first time in the series** (s01): "Queued (2)
+· paused" + the Auto-send toggle (OFF=paused, the pass-12 receipt's shape) + the
+Queue/Guide followup chips (the pass-12 pref persisted, Queue selected) + both items
+with move up/down (item 1's up and item 2's down disabled at the edges — correct) +
+Send now / Edit / Delete per item.
+
+**The G50 held-queue disposition dialog — FIRST LIVE RENDER, then the FULL TRIO on ONE
+wire call.** The composer's delivery button (content-desc "Delivery for the next send",
+G49) opened the three-option menu (Send now (override queueing) / Queue this send /
+Guide (wait for me)) → picking **Guide** fired NO wire verb — **and that is BY DESIGN**:
+the menu sets the ONE-SHOT `deliveryOverride` (WriteComponents.kt:883, `composer_
+delivery_menu`), whose only armed face is the icon TINT going grey → accent (s02-crop
+vs s03-crop — the "chip unchanged" pass 16 read was this subtle tint). Tapping Send
+with routing=CHOICE opened **"Queue is held / Send now and clear the queue, or keep the
+queued messages?"** with Clear queue & send / Keep queue & send (s04) → **Keep queue &
+send** → the mock's receipt line:
+
+```
+MOCK: sendText trio heldQueueDisposition=keepQueueAndSend requestedDelivery=guide expectedHeldQueueItemIds=[q-rig-1, q-rig-2]
+```
+app-side `sendConversationCommandV4 ok in 1805ms` (02:07:11). All three G49/G50 keys
+(the CHOICE disposition, the one-shot delivery override, the CAS held-ids set) rode ONE
+sendText — the payload keys live at CommandCoordinator.kt:128-129. The strip SURVIVED
+(keep semantics — desktop-faithful; the mock now also honors clearQueueAndSend
+server-side and empties the queue, the T-fix's faithful half). **Debt #4's routing half
+adjudicated CLOSED-BY-DESIGN**: the pass-16 "Guide tap fired no wire verb" was the
+one-shot contract, not a defect; the pass-12 strip-chips Guide tap (a different surface,
+the queue strip's own setFollowupMode) remains the verb-firing path.
+
+**The four never-receipted queue verbs (send-now / edit / reorder / delete —
+auto-drain was pass 12's), each wire-true:**
+
+- **editQueueItem** (02:15:33, ok 223ms): the Edit sheet ("Edit queued message" +
+  Cancel/Save; the field edit needed the verified-chunk loop — one `q` survivor repaired,
+  the dash eaten by adb's input text, settled as EDITEDONE) → the item renders
+  EDITEDONE in place. (The first Save tap appeared to miss — the T.A0.3 scale error —
+  but the wire proves it fired; the sheet-dismiss scare was MY tap, not the app.)
+- **reorderQueueItem** (02:16:22, ok 551ms): Move-down on item 1 → the order swapped —
+  the moved row renders in its new place ([two, EDITEDONE]; the I1 contract's exact
+  "moved row renders in place").
+- **sendQueuedNow** (02:17:37, ok 499ms): Send now on the top item → "Queued (2)" →
+  **"Queued (1)"**, the dispatched item gone (mock fidelity note: the mock's handler
+  removes the item without appending the dispatched row — the desktop would append;
+  nit, not rowed).
+- **deleteQueueItem** (02:17:56, ok 285ms): Delete on the last item → the strip GONE
+  (empty items → the strip unrenders). G4's "delete stayed modeled-never-sent" comment
+  is now receipted live.
+
+## T.A2 — gen2, leg B: the automations-runs plane — first-series receipts across the sheet
+
+Arms: MOCK_AUTOMATIONS + MOCK_OFFPEAK (debt #8 honored) + MOCK_AUTOMATION_RUNS
+(one COMPLETED seeded run for auto-rig-1). The relay swap recovered honestly
+(reconnect ~2 s, relay-2).
+
+- **The History sheet — FIRST SERIES DRIVE, WORKING end-to-end** (s11b): "Run history /
+  Nightly digest" + the awake note ("Scheduled tasks only run while your computer is
+  awake.") + **status filter chips All / In progress / Succeeded / Failure** + the
+  seeded run row "**1 h ago · Scheduled · 100s**" with the typed outcome badge
+  "**Succeeded**" + per-row **Go to session** and **Delete run**. Wire:
+  `listAutomationRuns` (a channel method of its own).
+- **All four filter chips driven and correct**: Succeeded → the seeded row survives;
+  In progress / Failure → the honest empty face (nothing of those statuses). (The
+  "Succeeded not applying" mid-leg scare was the T.A0.2 shrink-upward bounds staleness;
+  re-dump → clean.)
+- **Run now — first series receipt**: `runAutomationNow ok in 677ms` (its OWN channel
+  method) → the ledger records the run (trigger=manual, no outcome) → re-opening the
+  History sheet renders "**2 min ago · Manual**" with the typed "**In progress**"
+  badge — the ledger's live read works.
+- **The duplicate face — typed snackbar renders**: a second Run-now → `ok in 114ms`
+  carrying `{status:"duplicate"}` (the mock's in-flight guard; the desktop's
+  run-in-progress semantics) → the snackbar "**A run is already in progress for this
+  automation.**" (`automation_run_duplicate`, AutomationsSection.kt:100/183) — the
+  dump raced it twice (T.A0.4's race + the snackbar's bottom anchor), the immediate
+  screenshot receipted it (s13).
+- **Delete run — first series receipt**: `deleteAutomationRun` + the follow-up
+  `listAutomationRuns` → the seeded row vanishes from the sheet (the ledger shrinks).
+- **Go to session — the plane's SPLIT receipt**: the MANUAL run's session is the
+  workspace session (synth-task-1) → openRun navigates, `subscribeConversationV4 ok`
+  → `recovery.subscribed mode=snapshot` → **the transcript LOADS** (real rows — the
+  subscribe snapshot path supplies them; a NEW positive receipt for the verb). The
+  SEEDED run's session (synth-op-session-1, no live conversation) → openRun navigates
+  → **NO subscribe, NO transcript wire call, ZERO gateway lines — the four skeleton
+  rows render indefinitely** (s15b) — **F-P3-B re-manifested exactly as pinned**
+  (stamp 2), scope NARROWED: the skeleton-forever is the UNSCRIPTED-session shape;
+  a run whose session matches a subscribable conversation loads fine. The generic
+  "Conversation" title re-manifests **N-BM-2** (stamp 2).
+- Mock-fidelity nit (not rowed): the row's "Next **3 runs**" count label is
+  snapshot-seeded and does not track the live ledger (Run-now did not bump it).
+
+## T.A3 — gen3, leg C: debt #17 LIVE-CLOSED — the stall rows survive the exact pass-16 force shape
+
+Arms: MOCK_TURN_STALL (implies the running turn; LIVE=2, EVERY_MS=1500 — pass 16's
+S.A4 recipe). The conversation opened → `subscribeConversationV4 ok` 02:30:58 →
+INITIAL snapshot reconciled rows=14 → 2 live frames → the arm journals silently.
+
+- **02:32:29.761** `recovery.streamWatchdog :: no frames for 90033ms — re-kick
+  strikes=1` (measured from the last live frame — the arithmetic matches) →
+  `recovery.escalate attempt=1 force=false` → `resyncConversationV4 ok in 91ms` →
+  **the timeline RETAINS the stall rows** (backlog frames 56-59 render — pre-fix the
+  snapshot omitted them; the fix routes the arm's rows through `appendedRows`, the
+  snapshot tail, commit `05ba5c18`).
+- **02:34:45.773** the second window: `no frames for 90027ms — re-kick strikes=1` →
+  `recovery.escalate attempt=2 force=true` — **THE EXACT PASS-16 SHAPE** →
+  `recovery.snapshotReconcile rows=166` (12 synthetic + 2 live + ~152 backlog — the
+  snapshot carries EVERYTHING) → the timeline renders backlog frames 147-150. **The
+  pass-16 vanish is GONE**: the force-resynced timeline keeps the pushed rows, which is
+  what the desktop's server would serve. **Debt #17 CLOSED** (fix + live receipt).
+- The heal stays SILENT in both windows (zero `ZCODE-NOTIFY` beyond the startup
+  `notify.brokerLoad records=2`, no banner/snackbar) — the P.A2→S.A4 adjudication
+  holds under the armed arm too.
+
+## T.Q — ledger arithmetic + coverage honesty
+
+Open F: **25** (unchanged — zero new rows; F-P3-B stamps 2 with the narrowing) ·
+Open G: **21 + 3 standing** (unchanged) · Open smalls: **13 (+1 watch +1 rig)**
+(unchanged; N-BM-2 stamps 2) · Mock debts: **#4 CLOSED by-adjudication, #17 CLOSED**
+(fix `05ba5c18` + T.A3), **#18 OPENED+CLOSED in the same commit** (the
+MOCK_INPUT_ROUTING arm; self-tests 5/5, mock suite 167/0/0) — **5 OPEN** (#3, #6, #7,
+#8, #14). First-series WORKING receipts: the send trio, 4 queue verbs, the
+automations-runs plane (sheet/chips/run-now/duplicate/delete), Go-to-session's
+working half.
+
+### Coverage honesty (what pass 17 did NOT drive)
+
+The delivery menu's other two values (Queue this send / Send now — the same one-shot
+mechanism, guide receipted on the wire), the queue strip's followup chips and the
+Auto-send toggle (pass-12 receipts, code unchanged), deleteRun's confirm-face
+semantics (the delete fired directly on the rig), the queue item text's paint-level
+ellipsis (the AX carries the full string — cosmetic nit, not rowed), the F-P13-A
+close-cycle re-receipt (row stands per the re-receipt rule), the label-render leg and
+the card plane (F-P3-A-gated), the standing stops (TalkBack/Dictate/widget/Take-photo/
+shade-ACTION), and re-driving FIXED/REFUTED/ABSORBED rows (none changed).
+
+## Pass-17 verification stamp
+
+Pass 17 completed 2026-11-15 ~02:37; 3 relay generations (nonces
+`mock-p17-gen1-a1b2c3` → `mock-p17-gen3-e6f7a8`, launchers `/tmp/p17/relay-g*.sh`);
+the emulator inherited from pass 16 (no cold boot this pass; app pid 5789 after the
+02:00 `install -r` + explicit `am start`); logcat fresh `adb logcat -T 1` at 02:00 →
+/tmp/p17/logcat.log. Receipts: 22 screenshots + crops (`/tmp/p17/shots/s01–s16`),
+AX dumps `/tmp/p17/w/w1–w46`, relay logs `/tmp/p17/relay-g{1,2,3}.log` (34+48+16
+v4calls), build log via gradle (APK **byte-identical** `ad449d7d…` / `530ba4ff…`,
+vc53/1.3.2 — zero app changes), mock self-tests `MockZCodePass17RigSelfTest` 5/5 +
+suite 167/0/0 (no DB pulls this pass — every leg's arbiter was wire + render state).
+Desktop 3.18.1 / `ec475e6e…` unchanged (STEP 0). **gateway.drop for the whole pass:
+0.** **Rig left:** emulator zcode-a16 UP, relay gen3 ALIVE (`mock-p17-gen3-e6f7a8`;
+TURN_STALL journaling ~1 row/1.5 s, bounded by the 512-frame opLog; pkill to end),
+app pid 5789 on the synth-task-1 conversation (timeline = stall frames growing),
+logcat running → /tmp/p17/logcat.log. Live connection ON (the pass-14 pref
+persisted). Commits: `05ba5c18` (fix(mock), debts #17+#18 + the trio log/clear
+honoring) + the docs commit for this part.

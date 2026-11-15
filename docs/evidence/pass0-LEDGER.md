@@ -43,45 +43,57 @@ P2-first, exit gates, per-row Accept criteria).
 
 > **🛑 SATURATED (2026-11-14, pass 12) — EXTENDED (pass 13) — EXHAUSTED (pass 14) —
 > pass 15 drove the coverage-honesty leftovers — pass 16 drove the open MOCK-DEBT
-> axis + the P.A2 watch-note, ZERO new rows:** mock debts #2 (seeded file content)
-> and #5 (human option labels) CLOSED and driven live (`9b6e2292`) — the Files
-> content read got its FIRST working receipt and the labels' wire shape is pinned
-> (their UI render stays F-P3-A-gated); **debt #4's effort half adjudicated
-> CLOSED-by-prior-work** (the "echo re-asserts max" shape does not reproduce at
-> HEAD — chip "max"→"high" stable; the routing half stays MOCK_QUEUE-gated);
-> **debt #17 opened** (the mock's resync snapshot omits delta-pushed effect rows).
-> The automations editor's authoring planes receipted WORKING end-to-end
-> (updateAutomation + createAutomation, first in-series). **The REAL frames>0
-> stall driven (new MOCK_TURN_STALL arm): the watchdog ladder receipted with a
-> genuine backlog and the heal is SILENT in both windows — the P.A2 watch-note
-> CLOSED** (no surface fires when the data is fully delivered). Zero gateway.drop
-> for the whole pass. Roadmap decision remains ERNEST'S.
+> axis + the P.A2 watch-note — pass 17 drove the LAST two gated compositions
+> (MOCK_QUEUE + MOCK_AUTOMATION_RUNS), ZERO new rows:** the complete G49/G50 send
+> trio receipted on ONE wire call (`heldQueueDisposition=keepQueueAndSend
+> requestedDelivery=guide expectedHeldQueueItemIds=[q-rig-1,q-rig-2]`) under the
+> new MOCK_INPUT_ROUTING=choice arm; **debt #4 CLOSED ENTIRELY** (the routing half
+> is the G49 one-shot delivery override — no pick-time verb is BY DESIGN, the tint
+> is the armed face, the wire carries it on the next send); all FIVE queue verbs
+> wire-true (auto-drain was pass 12's); the automations-runs plane receipted
+> end-to-end (History sheet + all four filter chips + runAutomationNow queued +
+> the typed duplicate snackbar + deleteAutomationRun) and **Go-to-session's
+> working half** (a workspace-session run loads its transcript via the subscribe
+> snapshot) with F-P3-B re-manifested (stamp 2, NARROWED to the unscripted-session
+> shape) + N-BM-2 stamp 2; **debt #17 LIVE-CLOSED** (fix `05ba5c18` — the stall
+> rows survive the exact pass-16 force shape, `snapshotReconcile rows=166`);
+> **debt #18 opened+closed in the same commit** (the mock never served
+> inputRouting `"choice"` — the new MOCK_INPUT_ROUTING arm + the sendText trio
+> log + the clearQueueAndSend honoring; self-tests 5/5, suite 167/0/0). Zero
+> gateway.drop for the whole pass. Roadmap decision remains ERNEST'S.
 
 - Report: `docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md` —
-  Parts A–S = passes 0–16. **Latest: pass 16 (Part S, 2026-11-15 ~02:00).**
-- Repo HEAD at last pass: `9b6e2292` (main; the pass-16 `fix(mock)` commit;
+  Parts A–T = passes 0–17. **Latest: pass 17 (Part T, 2026-11-15 ~03:00).**
+- Repo HEAD at last pass: `05ba5c18` (main; the pass-17 `fix(mock)` commit;
   docs to follow). APK of record: sha256 `ad449d7d…` / md5 `530ba4ff…`, versionCode
-  53 / 1.3.2 (byte-identical across the whole series; re-verified at the pass-16
+  53 / 1.3.2 (byte-identical across the whole series; re-verified at the pass-17
   install — zero app changes).
 - Desktop of record: **/Applications/ZCode.app 3.18.1.10376, asar sha256 `ec475e6e…`,
-  383,832,025 B** (re-verified at pass-16 STEP 0 — UNCHANGED, no DELTA).
+  383,832,025 B** (re-verified at pass-17 STEP 0 — UNCHANGED, no DELTA).
 - Open rows: **25 F (23 defects + 2 obs) + 21 G + 3 standing + 13 smalls (+1 watch
-  +1 rig)** — pass 16 added NO rows. Stamps: N-BK-2 2 (the chip clip re-receipted
-  live, s06/s07). First-series WORKING receipts: the Files content read (S.A1),
-  the effort echo (S.A2), the automations update+create authoring (S.A3), the
-  frames>0 stall ladder + the silent-heal adjudication (S.A4).
+  +1 rig)** — pass 17 added NO rows. Stamps: F-P3-B 2 (the Go-to-session skeleton,
+  NARROWED: a workspace-session run LOADS via the subscribe snapshot — the
+  skeleton-forever is the unscripted-session shape), N-BM-2 2 (the generic
+  "Conversation" title on the unscripted run session). First-series WORKING
+  receipts: the send trio (T.A1), the four queue verbs (T.A1), the
+  automations-runs plane (T.A2), Go-to-session's working half (T.A2).
 - Backlog: **8/8 DONE**; what remains is standing stops + F-P3-A-gated planes +
-  the MOCK_QUEUE/MOCK_AUTOMATION_RUNS-gated compositions only.
-- Rig left by pass 16: emulator `zcode-a16` UP (cold-booted 01:13; PIN-less,
-  wifi ENABLED, screenshot protection OFF by persistence), relay gen3 ALIVE
-  (nonce `mock-p16-gen3-s6t7u8`; TURN_STALL — the arm loops journal-only rows
-  every 1.5 s, bounded by the 512-frame opLog; pkill to end), app pid 4192 paired
-  + CONNECTED on the Synthetic-task conversation, logcat running →
-  /tmp/p16/logcat.log. Live connection ON (the pass-14 pref persisted). Launchers
-  `/tmp/p16/relay-g*.sh`. New rig learnings in Part S.A0: the IME auto-period
-  bites numeric dialog fields (strip the trailing dot); a dialog's bottom buttons
-  are unreachable while the IME is open (close it, re-dump, THEN tap); the home
-  Approvals icon deep-links into the pending interaction's conversation.
+  mock-fidelity nits only — **the two gated compositions are now DRIVEN; the
+  discovery surface is empty of driveable legs.**
+- Rig left by pass 17: emulator `zcode-a16` UP (inherited from pass 16's 01:13
+  cold boot; PIN-less, wifi ENABLED, screenshot protection OFF by persistence),
+  relay gen3 ALIVE (nonce `mock-p17-gen3-e6f7a8`; TURN_STALL journaling ~1 row/
+  1.5 s, bounded by the 512-frame opLog; pkill to end), app pid 5789 paired +
+  CONNECTED on the synth-task-1 conversation (timeline = stall frames growing),
+  logcat running → /tmp/p17/logcat.log. Live connection ON (the pass-14 pref
+  persisted). Launchers `/tmp/p17/relay-g*.sh`. New rig learnings in Part T.A0:
+  the queue verbs ride sendConversationCommandV4 (grep the wire method, verify by
+  the state mutation); a bottom-anchored sheet SHRINKS UPWARD when its list
+  narrows (re-dump after every in-sheet list change); the screenshot-preview
+  scale is MIXED-AXIS (x 1.204 / y 1.17); the first screencap after opening a
+  sheet can race the entrance animation (re-shoot before concluding
+  popup-invisibility); the mock's schemaRow back-dates rows 5 min (not a clock
+  bug); `am start` (not monkey) after an `install -r`.
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -115,7 +127,7 @@ bodies after 3.14.3 — the census IS the changelog.
 | F-P7-A | 2 | OPEN | Approvals-screen inbox answer strands: `submitFromStore` → RETRYABLE_KEPT (needs a session machine); banner remedy "open the task" unactionable on DIRECT (foreign workspace). Inbox answers FINE over relay (pass 8) — endpoint/machine-context-specific | interaction-scoped submit (shade path proves the shape); validate task row before advising | — | Part J | 2 (7,8) |
 | F-P7-B | 2 | OPEN | shade action answered while connection down → interaction FAILED, no retry/queue/no user face; the COMMON path with Live-connection OFF | queue behind reconnect (inbox RETRYABLE_KEPT semantics) or visible "not delivered" re-post | — | Part J | 2 (pass 13: the SAME no-face outcome receipted for the typed server-rejection trigger — stale-generation answer → `status:"rejected"` → store FAILED + outbox FAILED_TERMINAL, card just clears, no notice; Part P.A5) |
 | F-P1-B | 2 | OPEN | stale-generation interactions stay answerable 50+ min and ACK against a moved-on desktop; closeStored sweep misses rows (2 of 5) | expire stored interactions on generation/workspace identity mismatch + mock unknown-id error arm | — | Parts D.A2, E.A2.5 | 5 (pass 13: the gen5a card survived the gen5b snapshot swap and stayed answerable — AND the sibling question row got RESOLVED by the same swap, so the sweep is PARTIAL in both directions; Part P.A5) |
-| F-P3-B | 2 | OPEN | automation "Go to session" NEVER loads its transcript — 4 skeleton rows forever, zero transcript wire calls | openRun must hydrate via **`readSessionMessages` — ALREADY CONSUMED** (ConversationPort.kt:318): wiring only, plus honest empty state | — | Part F.A2, K.B1 (verb found) | 1 |
+| F-P3-B | 2 | OPEN | automation "Go to session" NEVER loads its transcript — 4 skeleton rows forever, zero transcript wire calls | openRun must hydrate via **`readSessionMessages` — ALREADY CONSUMED** (ConversationPort.kt:318): wiring only, plus honest empty state | — | Part F.A2, K.B1 (verb found) | 2 (pass 17: re-manifested on the SEEDED run's unscripted session — no subscribe, no transcript wire, skeleton-forever (T.A2, s15b); **NARROWED**: the MANUAL run's workspace session LOADS its transcript via the subscribe snapshot — the skeleton is the unscripted-session shape only) |
 | F-P3-C | 3 | OPEN | inbox ACK's resolution echo DROPPED when conversation unsubscribed (`gateway.drop … no subscription record`) | retain last-N deltas per session / subscribe-on-ACK / optimistic local resolve | — | Part F.A2 | 1 |
 | F-P5-A | 3 | OPEN | refused git reads render SILENT-EMPTY sections (headers, zero rows, no error) — pinned refusal faces don't manifest on the live load path | typed-refusal face on section-empty + pin hosting the LIVE shape | — | Part H.A2 | 1 |
 | F-P2-B | 3 | OPEN | post-unpair resume card claims "Paired · Connect" from a fakeLink (`PairingViewModel.kt:50-56`) — structurally guaranteed | reduce to a genuine unpaired state (no fakeLink) | — | Part F.A2 (code pin) | 1 |
@@ -227,7 +239,7 @@ RETRACTED/REFUTED/ABSORBED: 7.
 | N-BJ-1 | 4 | OPEN | attachment image previews have NO size/aspect cap (1×1 seed renders ~300×220dp) | Part F.A2, K.A3 (+ pass-11 stamp: s04 unchanged) |
 | N-BK-2 | 4 | OPEN | automation Edit sheet schedule chips clip at phone width | Part G.A2 (+ pass-16 stamp 2: "Weekda"/"Cr" clipped live under the arms, S.A3) |
 | N-BL-1 | 4 | OPEN | workflow-run Run/Manage icon buttons subtree-unlabeled (TalkBack silence) — ONLY unlabeled clickables found | Part H.A2 |
-| N-BM-2 | 4 | OPEN | child-session view: generic title, skeleton-forever on unscripted children | Part J |
+| N-BM-2 | 4 | OPEN | child-session view: generic title, skeleton-forever on unscripted children | Part J (+ pass-17 stamp: the automation run's Go-to-session on an unscripted session renders the generic "Conversation" title over the skeletons, T.A2) |
 | K-small-1 | 4 | OPEN | checkpoint empty state says "create one" with NO create affordance (verb unconsumed) | Part K.A2 |
 | K-small-2 | 4 | OPEN | "First sync failed" renders alongside CACHED rows (wording/state nit) — pass 9: the strip can be entirely ABSENT when the F-P9-A wedge suppresses the refresh | Part K.A2, L.A3 |
 | N-BN-1 | 4 | OPEN (NEW pass 10) | Plugins screen: the per-plugin enable switches are UNLABELED (plugin_switch_plugin-prisma / -review carry no content-desc, no text children — TalkBack silence on the row's only interactive element) | Part M.A1, M.A2 |
@@ -245,7 +257,7 @@ RETRACTED/REFUTED/ABSORBED: 7.
 1. Accepts ANY interactionId — add the unknown-id typed error arm (unblocks honest-failure faces).
 2. ~~`fault.file.notFound` on seeded `readTextFile` (listing-only seeds)~~ **CLOSED pass 16** (`9b6e2292`): seedWorkspaceFiles seeds default content for EVERY path (explicit fileText keeps precedence); the main.rs open receipted live (S.A1).
 3. Snapshot doesn't list the once-per-connection PUSHED interaction → rows sweep legitimately STALEs it.
-4. ~~Static session-config echo re-asserts the effort chip~~ **effort half CLOSED pass 16 (S.A2 — does not reproduce at HEAD; the G3 merges + thoughtLevelConfig mutation fixed it in earlier mock work; chip "max"→"high" stable 8s+)** — the ROUTING half stands: the composer delivery picker (Guide tap) fires no wire verb and the pass-12 fight needs the MOCK_QUEUE strip composition.
+4. ~~Static session-config echo re-asserts the effort chip~~ **effort half CLOSED pass 16 (S.A2 — does not reproduce at HEAD; the G3 merges + thoughtLevelConfig mutation fixed it in earlier mock work; chip "max"→"high" stable 8s+)** ~~the ROUTING half stands: the composer delivery picker (Guide tap) fires no wire verb~~ **ROUTING half CLOSED pass 17 (T.A1 — BY-DESIGN): the config-chip delivery picker is the G49 ONE-SHOT `deliveryOverride`; no pick-time verb is the contract, the icon TINT is the armed face, and the wire carries `requestedDelivery` on the next send — receipted live on the full trio** (`MOCK: sendText trio heldQueueDisposition=keepQueueAndSend requestedDelivery=guide expectedHeldQueueItemIds=[q-rig-1, q-rig-2]`, `sendConversationCommandV4 ok in 1805ms`).
 5. ~~Raw optionId labels (`allowOnce`) instead of human labels (desktop sends `label: c.name`)~~ **CLOSED pass 16** (`9b6e2292`): options now carry `label: "Allow once"/"Allow always"/"Deny"` (unknown ids verbatim), self-tested; the on-device RENDER is F-P3-A-gated (both compositions starved — S.A2).
 6. Push arm is CONVERSATION-SUBSCRIBE-anchored (recipe: reconnect with conversation open, lock inside the arming window).
 7. `MOCK_REMOTE_DOWN_MS` / `MOCK_MD_FILE` arms exist but were never driven (gen2 append-after-exec bug). (Driven pass 9.)
@@ -258,7 +270,8 @@ RETRACTED/REFUTED/ABSORBED: 7.
 14. **(pass 13, RIG)** the API-36 emulator NAT: after a server-side abrupt socket close (the disconnect arm), the emulator's IPv4-mapped-IPv6 path blackholes NEW app flows (SYN-SENT hangs) while pure-IPv4 device flows (`nc -z 10.0.2.2`) still succeed — recovery = full emulator restart. Not an app defect (the same stack connected 10+ times before). **Pass-14 addendum: it is PROBABILISTIC — pass 14's pass-start pkill armed it once (one dead AUTHENTICATING, Q.A0.1) and six later abrupt-close swaps recovered normally.**
 15. ~~**(pass 14)** `markCodingPlanResetHistoryRead` acks but never clears `hasUnreadHistory`~~ **CLOSED pass 15** (`66844fbe`): the mark now CLEARS the unread cursor on every later status read (the desktop's server behavior); the pass-14-declared arrival counter went live. Live-verified (relay "reset history read" line, R.A2).
 16. ~~**(pass 14)** the scripted reset doesn't mutate the entitlement meters~~ **CLOSED pass 15** (`66844fbe`): a stamped use mutates the used window's limit entry (delta 10, clamped; remaining/percentage recomputed) on later getEntitlementSnapshot reads. Live-verified: Weekly 49%→59% beside the completion note (R.A2, s05).
-17. **(pass 16)** the mock's resync SNAPSHOT omits delta-pushed effect rows — `pushRowDelta` rows live only in the resync opLog, never in the snapshot builder's row source — so after a force-resync (the watchdog's escalate) pushed rows VANISH from the timeline (the app renders the authoritative snapshot faithfully; the desktop's server would include its own pushed rows). Receipted live (S.A4).
+17. ~~**(pass 16)** the mock's resync SNAPSHOT omits delta-pushed effect rows — `pushRowDelta` rows live only in the resync opLog, never in the snapshot builder's row source — so after a force-resync (the watchdog's escalate) pushed rows VANISH from the timeline~~ **CLOSED pass 17** (`05ba5c18`: the stall arm's live frames + silent backlog rows join the authoritative `appendedRows` tail, so `snapshotRows(...) + appendedRows.values.toList()` carries them; self-tested 2 ways) — **live receipt T.A3**: under the exact pass-16 force shape (`attempt=2 force=true` → `snapshotReconcile rows=166`) the timeline RETAINS the stall rows (frames 147-150 render; pass 16 saw them vanish).
+18. ~~**(pass 17)** the mock never served `inputRouting.mode "choice"` (only startNow/enqueue) — the phone's held-queue CHOICE disposition dialog (G50) was structurally undrivable~~ **CLOSED in the same pass** (`05ba5c18`: the `MOCK_INPUT_ROUTING=<mode>` arm pins the desktop's 5-mode enum `startNow|enqueue|guide|reject|choice` with a STICKY flag that suppresses the send/stop flips — fail-fast on a bad value per H.A0.2; + the sendText trio log line + the clearQueueAndSend server-side honoring). Live receipt: the dialog rendered first-ever and the full trio rode one sendText (T.A1).
 
 ## DISCOVERY BACKLOG (tick when the findings are appended as rows)
 
@@ -424,6 +437,22 @@ delta …`). Nothing pushed.
 
 ## History
 
+- 2026-11-15 (pass 17) — Part T executed on the LAST two gated compositions
+  (MOCK_QUEUE + MOCK_AUTOMATION_RUNS): ZERO new rows; the complete G49/G50 send
+  trio receipted on ONE wire call under the new MOCK_INPUT_ROUTING=choice arm;
+  all five queue verbs wire-true (edit 223ms / reorder 551ms / send-now 499ms /
+  delete 285ms — auto-drain was pass 12's); the automations-runs plane receipted
+  end-to-end (History sheet + all four filter chips + runAutomationNow 677ms +
+  the typed duplicate snackbar + deleteAutomationRun) and Go-to-session's
+  working half (the workspace-session run loads via the subscribe snapshot);
+  F-P3-B stamps 2 (narrowed to the unscripted-session shape) + N-BM-2 stamps 2.
+  Mock debts: #4 CLOSED by-adjudication (the delivery picker is the G49 one-shot
+  — no pick-time verb BY DESIGN), #17 CLOSED (fix `05ba5c18` + the live force-
+  resync receipt T.A3: `attempt=2 force=true` → `snapshotReconcile rows=166`,
+  the stall rows retained), #18 opened+closed in the same commit (the
+  MOCK_INPUT_ROUTING arm + the sendText trio log + clearQueueAndSend honoring;
+  self-tests 5/5, suite 167/0/0) — 5 OPEN (#3, #6, #7, #8, #14). Zero
+  gateway.drop. Rig left UP (gen3 TURN_STALL journaling, app on synth-task-1).
 - 2026-11-15 (pass 16) — Part S executed on the open MOCK-DEBT axis + the P.A2
   watch-note: ZERO new rows; mock debts #2/#5 CLOSED (`9b6e2292`, self-tests 7/7
   + suite 162/0) with the Files content read's FIRST working receipt (main.rs,
