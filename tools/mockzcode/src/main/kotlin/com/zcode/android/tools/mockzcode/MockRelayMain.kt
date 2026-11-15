@@ -848,40 +848,21 @@ fun main() {
     // hour out) — the phone's timezone-safe "Next …" label never showed on the rig.
     if (System.getenv("MOCK_AUTOMATIONS") != null) {
         mock.script.listAutomations = JsonArray(listOf(automationRigSeed()))
+        // Debt #8 (pass 18): the automations plane IMPLIES the off-peak plane — the
+        // desktop's automations ARE scheduled/off-peak tasks, so a session serving
+        // listAutomations always serves off-peak-task.list. Seeding it by default
+        // removes the co-requirement (the pass-10 receipt: without MOCK_OFFPEAK the
+        // home screen rendered the "This feature isn't available" face).
+        // MOCK_OFFPEAK=0 opts out explicitly.
+        if (System.getenv("MOCK_OFFPEAK") == null && System.getenv("MOCK_OFFPEAK") != "0") {
+            seedOffPeakRigList(mock)
+        }
     }
     // RIG-1 (vc51 Phase 4C / G29): MOCK_OFFPEAK=1 seeds the off-peak list — one queued,
     // one paused (the pause arm exercises the monitor verbs), one COMPLETED (the history
     // face the G29 leg verifies) — plus the workspace key the phone filters by.
-    if (System.getenv("MOCK_OFFPEAK") != null) {
-        val now = System.currentTimeMillis()
-        mock.script.offPeakTaskList = JsonArray(listOf(
-            JsonObject(mapOf(
-                "id" to JsonPrimitive("offpeak-rig-1"),
-                "offPeakTaskId" to JsonPrimitive("offpeak-rig-1"),
-                "title" to JsonPrimitive("Nightly refactor sweep"),
-                "status" to JsonPrimitive("queued"),
-                "queuePosition" to JsonPrimitive(1),
-                "createdAt" to JsonPrimitive(now - 40_000),
-                "workspaceKey" to JsonPrimitive("/synthetic/ws-one"),
-            )),
-            JsonObject(mapOf(
-                "id" to JsonPrimitive("offpeak-rig-2"),
-                "offPeakTaskId" to JsonPrimitive("offpeak-rig-2"),
-                "title" to JsonPrimitive("Weekend doc migration"),
-                "status" to JsonPrimitive("paused"),
-                "createdAt" to JsonPrimitive(now - 80_000),
-                "workspaceKey" to JsonPrimitive("/synthetic/ws-one"),
-            )),
-            JsonObject(mapOf(
-                "id" to JsonPrimitive("offpeak-rig-3"),
-                "offPeakTaskId" to JsonPrimitive("offpeak-rig-3"),
-                "title" to JsonPrimitive("Old dependency bump"),
-                "status" to JsonPrimitive("completed"),
-                "createdAt" to JsonPrimitive(now - 3 * 24 * 3600_000),
-                "workspaceKey" to JsonPrimitive("/synthetic/ws-one"),
-                "sessionId" to JsonPrimitive("synth-op-session-1"),
-            )),
-        ))
+    if (System.getenv("MOCK_OFFPEAK") != null && System.getenv("MOCK_OFFPEAK") != "0") {
+        seedOffPeakRigList(mock)
     }
     // RIG-P3 (vc52 Phase 14, the Phase-13 fixture debt): MOCK_OFFPEAK_COMPLETE_MS=<n>
     // flips the QUEUED rig row (offpeak-rig-1) to `completed` n ms after startup —
@@ -1535,6 +1516,42 @@ internal fun redateResetStatus(fixture: JsonObject, now: Long): JsonObject {
  * transition material (delivered on the next CONNECTED re-list after a relay
  * restart). Unknown id = a logged no-op (the arm is a rig convenience, INV-15).
  */
+/** Debt #8 (pass 18): the off-peak rig list — one queued, one paused (the pause arm
+ * exercises the monitor verbs), one COMPLETED (the history face the G29 leg verifies)
+ * — plus the workspace key the phone filters by. Served by MOCK_OFFPEAK=1 and, since
+ * the automations plane implies the off-peak plane, by MOCK_AUTOMATIONS=1. */
+internal fun seedOffPeakRigList(mock: MockZCode) {
+    val now = System.currentTimeMillis()
+    mock.script.offPeakTaskList = JsonArray(listOf(
+        JsonObject(mapOf(
+            "id" to JsonPrimitive("offpeak-rig-1"),
+            "offPeakTaskId" to JsonPrimitive("offpeak-rig-1"),
+            "title" to JsonPrimitive("Nightly refactor sweep"),
+            "status" to JsonPrimitive("queued"),
+            "queuePosition" to JsonPrimitive(1),
+            "createdAt" to JsonPrimitive(now - 40_000),
+            "workspaceKey" to JsonPrimitive("/synthetic/ws-one"),
+        )),
+        JsonObject(mapOf(
+            "id" to JsonPrimitive("offpeak-rig-2"),
+            "offPeakTaskId" to JsonPrimitive("offpeak-rig-2"),
+            "title" to JsonPrimitive("Weekend doc migration"),
+            "status" to JsonPrimitive("paused"),
+            "createdAt" to JsonPrimitive(now - 80_000),
+            "workspaceKey" to JsonPrimitive("/synthetic/ws-one"),
+        )),
+        JsonObject(mapOf(
+            "id" to JsonPrimitive("offpeak-rig-3"),
+            "offPeakTaskId" to JsonPrimitive("offpeak-rig-3"),
+            "title" to JsonPrimitive("Old dependency bump"),
+            "status" to JsonPrimitive("completed"),
+            "createdAt" to JsonPrimitive(now - 3 * 24 * 3600_000),
+            "workspaceKey" to JsonPrimitive("/synthetic/ws-one"),
+            "sessionId" to JsonPrimitive("synth-op-session-1"),
+        )),
+    ))
+}
+
 internal fun completeOffPeakRow(mock: MockZCode, offPeakTaskId: String) {
     val list = mock.script.offPeakTaskList ?: return
     val idx = list.indexOfFirst { (it.jsonObject["offPeakTaskId"] as? JsonPrimitive)?.content == offPeakTaskId }

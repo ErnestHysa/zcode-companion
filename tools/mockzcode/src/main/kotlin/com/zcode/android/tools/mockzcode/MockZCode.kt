@@ -3890,30 +3890,49 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     // held queue is emptied and the strip reflects it on the next patch.
                     script.queueItems = emptyList()
                 }
-                val sessionId = routingSessionId()
-                val userRow = schemaRow(sessionId, nextRowId(), RowKind.USER_INPUT, text)
-                val replyBase = schemaRow(sessionId, nextRowId(), RowKind.ASSISTANT_TEXT, "synthetic reply to: ${text.take(24)}")
-                // Phase 4A: the live reply is the latest assistant row → it carries the flags.
-                val replyRow = if (script.rowActionsDemo) JsonObject(replyBase + ("actions" to ROW_ACTIONS_ASSISTANT)) else replyBase
-                appendedRows[userRow["rowId"].toString()] = userRow
-                appendedRows[replyRow["rowId"].toString()] = replyRow
-                pushRowAppended(sessionId, userRow)
-                pushRowAppended(sessionId, replyRow)
-                if (heldDisposition == "clearQueueAndSend") pushQueuePatch()
-                pushStatePatch(buildJsonObject {
-                    put("revision", JsonPrimitive(stateRevision.get()))
-                    put("control", buildJsonObject {
-                        put("phase", JsonPrimitive("running"))
-                        put("sessionEnded", JsonPrimitive(false))
-                        put("canStop", JsonPrimitive(true))
-                        put("stopState", JsonPrimitive("stoppable"))
-                        put("activeWorks", JsonArray(emptyList()))
+                if (requestedDelivery == "queue") {
+                    // Debt #19 (pass 18): desktop-faithful QUEUED delivery. The desktop
+                    // server answers sendText{requestedDelivery:"queue"} with
+                    // inputAccepted{delivery:"queue"} and the input HOLDS as a queue
+                    // item (the bot path marks the task "waiting" with a Queued
+                    // notification); the phone's strip renders it from the queue patch.
+                    // The mock used to append user/assistant rows immediately, which
+                    // un-queued the send and hid the G49 override's whole point.
+                    val qid = "q-rig-${queuedSendSeq.incrementAndGet()}"
+                    script.queueItems = script.queueItems.orEmpty() + QueueItem(qid, text)
+                    println("MOCK: sendText queued delivery -> $qid appended (heldDisposition=$heldDisposition)")
+                    pushQueuePatch()
+                    pushStatePatch(buildJsonObject {
+                        put("revision", JsonPrimitive(stateRevision.get()))
+                        put("inputRouting", buildJsonObject { put("mode", JsonPrimitive(script.inputRoutingMode)) })
                     })
-                    put("inputRouting", buildJsonObject { put("mode", JsonPrimitive(script.inputRoutingMode)) })
-                })
-                script.controlCanStop = true
-                script.controlStopState = "stoppable"
-                applyInputRoutingFlip("enqueue")
+                    applyInputRoutingFlip("enqueue")
+                } else {
+                    val sessionId = routingSessionId()
+                    val userRow = schemaRow(sessionId, nextRowId(), RowKind.USER_INPUT, text)
+                    val replyBase = schemaRow(sessionId, nextRowId(), RowKind.ASSISTANT_TEXT, "synthetic reply to: ${text.take(24)}")
+                    // Phase 4A: the live reply is the latest assistant row → it carries the flags.
+                    val replyRow = if (script.rowActionsDemo) JsonObject(replyBase + ("actions" to ROW_ACTIONS_ASSISTANT)) else replyBase
+                    appendedRows[userRow["rowId"].toString()] = userRow
+                    appendedRows[replyRow["rowId"].toString()] = replyRow
+                    pushRowAppended(sessionId, userRow)
+                    pushRowAppended(sessionId, replyRow)
+                    if (heldDisposition == "clearQueueAndSend") pushQueuePatch()
+                    pushStatePatch(buildJsonObject {
+                        put("revision", JsonPrimitive(stateRevision.get()))
+                        put("control", buildJsonObject {
+                            put("phase", JsonPrimitive("running"))
+                            put("sessionEnded", JsonPrimitive(false))
+                            put("canStop", JsonPrimitive(true))
+                            put("stopState", JsonPrimitive("stoppable"))
+                            put("activeWorks", JsonArray(emptyList()))
+                        })
+                        put("inputRouting", buildJsonObject { put("mode", JsonPrimitive(script.inputRoutingMode)) })
+                    })
+                    script.controlCanStop = true
+                    script.controlStopState = "stoppable"
+                    applyInputRoutingFlip("enqueue")
+                }
             }
             "respondWorkspaceHookReview" -> {
                 stateRevision.incrementAndGet()
@@ -4528,6 +4547,8 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
     }
 
     private val createdCount = java.util.concurrent.atomic.AtomicInteger(0)
+    /** Debt #19 (pass 18): ids for queue-delivered sends (offset past the q-rig seeds). */
+    private val queuedSendSeq = java.util.concurrent.atomic.AtomicInteger(100)
     private var lastRowId = 0L
     private fun nextRowId(): Long {
         lastRowId += 1
