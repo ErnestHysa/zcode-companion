@@ -368,6 +368,16 @@ class MockZCode(
         var refuseChannels: Set<String> = emptySet()
         /** Reject attachment transactions with the verified oversize/grammar faults. */
         var rejectAttachments: Boolean = false
+        /** Pass-30 rig arm (MOCK_ATTACHMENT_FAIL): which attachment-transaction phase
+         *  answers a server fault — "begin", "chunk", or "commit". Blank = healthy.
+         *  The fault is an RPC ERROR (respondError), so the app's transport throws
+         *  TransportFailure → the port's GENERIC Failed path (chip failed with the
+         *  payload RETAINED — the Retry face stays live). */
+        @Volatile var attachmentFailPhase: String? = null
+        /** Pass-30 rig arm (MOCK_ATTACHMENT_CHUNK_DELAY_MS): delay before answering
+         *  each attachmentChunkV4 — widens the ↑ NN% uploading-chip window so the
+         *  progress render is catchable on the rig. */
+        @Volatile var attachmentChunkDelayMs: Long = 0L
         /** Scriptable git channel fixtures (shared/src/git.ts shapes). */
         var gitSummary: JsonObject? = null
         var gitChanges: JsonArray? = null
@@ -2184,6 +2194,8 @@ class MockZCode(
     internal fun snapshotRowsForTestSeam(sessionId: String, count: Int): JsonArray = snapshotRows(sessionId, count)
     internal fun appendedRowForTest(rowId: Long): JsonObject? = synchronized(appendedRows) { appendedRows[rowId.toString()] }
     internal fun appendedRowsForTest(): Map<String, JsonObject> = synchronized(appendedRows) { LinkedHashMap(appendedRows) }
+    /** Pass-30 seam: attachment-store size for the fail-arm is-a-shape-not-a-mutation pin. */
+    internal fun attachmentStoreForTest(): Map<String, MockAttachment> = synchronized(attachmentStore) { LinkedHashMap(attachmentStore) }
 
     /**
      * Phase 7 test driver: inject a pending permission interaction (E2E approval
@@ -3367,6 +3379,11 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     respondError(id, "fault.attachment.rejected")
                     return
                 }
+                if (attachmentFailFault() == "fault.attachment.beginFail") {
+                    respondError(id, "fault.attachment.beginFail")
+                    println("MOCK: attachmentBegin forced fail (MOCK_ATTACHMENT_FAIL=begin)")
+                    return
+                }
                 val uploadId = params.str("uploadId")
                 synchronized(attachmentStore) {
                     val existing = attachmentStore[uploadId]
@@ -3401,6 +3418,14 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     respondError(id, "fault.attachment.unknownUpload")
                     return
                 }
+                if (script.attachmentChunkDelayMs > 0L) {
+                    Thread.sleep(script.attachmentChunkDelayMs)
+                }
+                if (attachmentFailFault() == "fault.attachment.chunkFail") {
+                    respondError(id, "fault.attachment.chunkFail")
+                    println("MOCK: attachmentChunk forced fail (MOCK_ATTACHMENT_FAIL=chunk)")
+                    return
+                }
                 val data = params.str("dataBase64")
                 val decoded = java.util.Base64.getDecoder().decode(data)
                 if (decoded.size > 512 * 1024) {
@@ -3427,6 +3452,11 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 val att = synchronized(attachmentStore) { attachmentStore[uploadId] }
                 if (uploadId == null || att == null) {
                     respondError(id, "fault.attachment.unknownUpload")
+                    return
+                }
+                if (attachmentFailFault() == "fault.attachment.commitFail") {
+                    respondError(id, "fault.attachment.commitFail")
+                    println("MOCK: attachmentCommit forced fail (MOCK_ATTACHMENT_FAIL=commit)")
                     return
                 }
                 val ref = "att-${uploadId}"
@@ -4050,6 +4080,26 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             put("revisionAtDecision", JsonPrimitive(stateRevision.get()))
         }
     }
+
+    /**
+     * Pass-30 rig arm (MOCK_ATTACHMENT_FAIL): the fault the attachment transaction's
+     * CURRENT phase should answer — `null` when healthy or the phase isn't one of
+     * begin/chunk/commit (unknown values arm nothing, fail-closed per H.A0.2).
+     * The handler answers this as an RPC ERROR while CONNECTED, so the app's
+     * transport throws TransportFailure → the port's GENERIC Failed path (chip
+     * failed, payload RETAINED, Retry live).
+     */
+    internal fun attachmentFailFault(): String? = when (script.attachmentFailPhase) {
+        "begin" -> "fault.attachment.beginFail"
+        "chunk" -> "fault.attachment.chunkFail"
+        "commit" -> "fault.attachment.commitFail"
+        else -> null
+    }
+
+    /** Pass-30: the BEGIN guard's fault — the verified rejectAttachments fault
+     *  outranks the pass-30 arm (the pass-4 shape stands). */
+    internal fun attachmentBeginGuardFault(): String? =
+        if (script.rejectAttachments) "fault.attachment.rejected" else null
 
     /**
      * Pass-22 rig arm (MOCK_SET_THOUGHT_LEVEL_STALE): the host's FQ serialization —

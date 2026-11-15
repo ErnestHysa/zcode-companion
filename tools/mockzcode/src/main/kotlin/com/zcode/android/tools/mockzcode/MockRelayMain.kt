@@ -140,6 +140,19 @@ fun main() {
     System.getenv("MOCK_ERROR_FIRST_CONTROL")?.let { mock.script.errorFirstControlRequest = it }
     System.getenv("MOCK_DISCONNECT_AFTER_FRAMES")?.toIntOrNull()?.let { mock.script.disconnectAfterFrames = it }
     System.getenv("MOCK_DISCONNECT_AFTER_DATA_FRAMES")?.toIntOrNull()?.let { mock.script.disconnectAfterDataFrames = it }
+    // PASS-30 arms (Part AG): the attachment transaction's non-offline failure faces.
+    //   MOCK_ATTACHMENT_FAIL=<begin|chunk|commit>  the named phase answers a server
+    //                                     fault (RPC error) while CONNECTED — the
+    //                                     app's transport throws TransportFailure →
+    //                                     the port's GENERIC Failed path (chip failed,
+    //                                     payload RETAINED, Retry live) → the
+    //                                     ATTACHMENT_FAILED / ATTACHMENT_RETRY_FAILED
+    //                                     notices become drivable.
+    //   MOCK_ATTACHMENT_CHUNK_DELAY_MS=<ms>      delay before each attachmentChunkV4
+    //                                     response — widens the ↑ NN% uploading-chip
+    //                                     window so the progress render is catchable.
+    System.getenv("MOCK_ATTACHMENT_FAIL")?.let { mock.script.attachmentFailPhase = it }
+    System.getenv("MOCK_ATTACHMENT_CHUNK_DELAY_MS")?.toLongOrNull()?.let { mock.script.attachmentChunkDelayMs = it }
     // PART N bulk leg (MOCK_ROWS): a long conversation for the gfxinfo scroll-jank leg.
     System.getenv("MOCK_ROWS")?.toIntOrNull()?.let { n ->
         mock.script.snapshotRowCount = n
