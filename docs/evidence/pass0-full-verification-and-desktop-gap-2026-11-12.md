@@ -5119,3 +5119,209 @@ app pid 3904 CONNECTED on relay-1 on the synthetic conversation (the stale notic
 face live in the banner slot; strip "Queued (2) · paused"; the composer holds the
 typing-flake garbage draft `/goal finish t ledger␉␉␉␉␉␉␉heh` — rig residue, not a
 finding), logcat running → /tmp/p20/logcat.log.
+
+# Part X — pass 21 (APPENDED 2026-11-15, ~12:15): the Part-W coverage-honesty leftovers driven — the composer-slash /goal refusal face receipted end-to-end (the G50 dialog FIRES for slash sends and its answer is DISCARDED for goals — F-P20-A stamp 2 with the composer-half mechanism extension), the stale faces on BOTH switch families receipted live, and the host's admission-gate coverage enumerated handler-complete (exactly sendText + sendGoalCommand)
+
+> **Pass 21 of the pass-0 series** (solo, the canonical discovery prompt; STEP 1 empty —
+> backlog 8/8 — so the pass executed STEP 2 on Part W's coverage-honesty list and
+> completed its one open static question). **ZERO new rows.** F-P20-A stamps 2 (the
+> composer-slash variant receipted live + a mechanism extension that makes the fix
+> SMALLER); the W.Q coverage leftovers "the composer-slash /goal variant" and "the
+> stale face on the switch/row-action families" are CLOSED (three stale families now
+> live: editQueueItem [pass 20] + switchCollaborationMode + switchModelConfig [this
+> pass]; the effort face stays static-only — see X.D). Mock: NO rig changes (debt
+> #21's arms covered both legs; the ghost arm was armed and never fired — no
+> trio-bearing sendText this pass).
+>
+> **Verification stamp:** 2026-11-15 11:38 → 12:10, GLM-5.3-Flash in ZCode, everything
+> local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…` / 383,832,025 B
+> UNCHANGED — no DELTA. Rig: the inherited emulator was found DOWN (`adb devices`
+> empty; it died sometime after pass 20) → COLD BOOT (zcode-a16, `-no-snapshot-load`,
+> boot ~35s; one rig-side SystemUI ANR dialog on first drive — dismissed Wait, the
+> recorded class). APK byte-identical (`ad449d7d…`/`530ba4ff`, vc53/1.3.2 — 239 tasks
+> up-to-date, zero app changes). ONE generation — gen1 `mock-p21-gen1-a7c2e94b`
+> (MOCK_ROWS=12 + MOCK_QUEUE + MOCK_INPUT_ROUTING=choice + MOCK_QUEUE_GHOST_APPEND_MS=4000
+> [arms the CAS/goal-admission envelope; the ghost itself never fired] +
+> MOCK_CAS_STALE_TYPES=switchCollaborationMode,switchModelConfig; no relay swaps).
+> Stored endpoints survived the relay swap (constant passHash; no re-pairing — the
+> app CONNECTED 16 s after launch). Screenshot protection OFF by persistence
+> (captures ~150–215 KB, no FLAG_SECURE black). logcat fresh `-T 1` →
+> /tmp/p21/logcat.log. wifi left ENABLED per the O.A0.1 lesson.
+
+## X.A0 — rig learnings
+
+1. **`adb shell input text` SPLITS ITS ARGUMENT ON SPACES** — `input text 'oal rig21
+   slash leg'` typed only `oal` (the remote shell word-splits; each word after the
+   first is a DROPPED argv). The recorded recipe is `%s` for spaces
+   (`oal%srig21%sslash%sleg`); the pass-13-era note recorded it, this pass re-lost two
+   typing attempts to forgetting it. Even with `%s`, the TAIL chunk flaked once
+   (`leg` landed as a separate append) and one space was eaten at a chunk boundary —
+   the objective went out as `rig21 slashleg`; the leg's value is the wire payload,
+   so the mangled objective was accepted as-is rather than chased.
+2. **Mid-transition uiautomator dumps produce GHOST NODES** — twice this pass a dump
+   taken within seconds of a sheet-entrance animation / a post-reconnect resync
+   re-render read stale layers: w14 showed a phantom "Edit queued message" dialog
+   with `EDITEDONE` (no such dialog ever existed this pass) and w17 showed
+   "Queued (3)" + `p18 queue ovie`/`p18 startNo` nodes (pass-18-era strings that
+   exist NOWHERE in the live state — drafts table has exactly one row, the strip is
+   "Queued (2)" in every settled capture). Rule refined: a dump that shows anything
+   surprising is VOID until a settled re-dump confirms it; the screenshot + a fresh
+   dump are the pair.
+3. Two in-life idle-socket reconnects (11:58:09 RECONNECTING → 11:58:38 CONNECTED,
+   ~30 s; 12:00:27 → 12:00:44, ~17 s — the pass-18 honest-recovery class,
+   connectionId relay-1 → relay-4 → relay-6) — they bracket BOTH ghost-dump events
+   (X.A0.2), which is the mechanism: the dumps raced the resync re-render.
+
+## X.B — the static completion: the admission-gate's handler coverage (all 3.18.1 / `ec475e6e…`)
+
+Part W closed the send-ack taxonomy but enumerated only sendText's and
+sendGoalCommand's handlers. This pass enumerated EVERY `getInputRoutingMode` call
+site in zcode.cjs (9 hits; zcode.cjs sha256 `666f9c5a…`) and classified each:
+
+- **`Vqe` (the gate body, ~0xe29492)** — under `choice` requires the disposition
+  (`e9n` throw → `heldQueueDispositionRequired`); validates the id trio by
+  set-equality against the live queue (`t9n` throw → `guard.heldQueueConfirmationStale`).
+  Reachable ONLY from the two send handlers.
+- **sendText dispatcher (~0xe78d9b)** and **`/goal` handler (~0xe390e1)** — under
+  `choice` both fall through to the trio-gated direct send (Parts V.B/W.B).
+- **`/compact` handler (~0xe38605)** — under `enqueue`/`guide`/`choice` (or an active
+  turn) it takes the DEFERRED path with `requestedDelivery:"queue"` — it NEVER needs
+  or carries the trio; a phone `/compact` under choice is structurally QUEUED, not
+  refused. Not driven: the mock has no `compact` command handler (it would answer
+  `fault.mock.unscripted:compact`, receipting only the known mock face — the
+  host-side self-queue stays static-only; recorded here so the fix rounds don't
+  re-hunt it).
+- **The delivery-defaulting resolver (~0xebaf3c)** and the gateway getter/facades
+  (0xe7464e, 0xebc1ea/c210/c22e) — plumbing, not gates.
+- **`stop`, the queue verbs, and the switch family never consult routing mode** —
+  zero call sites. The pass-20 adjudication ("everything else in the ack vocabulary
+  is generic-failed both sides") is therefore HANDLER-COMPLETE: exactly
+  {sendText, sendGoalCommand} are admission-gated; nothing else on the phone's
+  command inventory (`stop`, `compact`, `editQueueItem`, `reorderQueueItem`,
+  `deleteQueueItem`, `sendQueuedNow`, `autoDrain`/`setAutoDrain`, `setFollowupMode`,
+  `switchCollaborationMode`, `switchModelConfig`, `pauseGoal`/`resumeGoal`,
+  `createSelectionSideSession`, the workflow/hook families) can hit the gate.
+
+## X.C — Leg 1: the composer-slash `/goal` refusal face (11:52–11:54)
+
+Driven with the slash-workaround recipe (`/` own chunk → KEYCODE_G=35 → `%s` chunks;
+X.A0.1 documents the two attempts the space-split cost). Composer text settled at
+`/goal rig21 slashleg` → Send:
+
+1. **The G50 "Queue is held" dialog FIRED for the slash send** ("Send now and clear
+   the queue, or keep the queued messages?" + Clear/Keep buttons, s04) — the
+   composer-level choice gate intercepts slash-dispatched sends too. The pass-20
+   sheet leg never saw a dialog; THIS is the composer/sheet asymmetry, now receipted.
+2. Answered **"Keep queue & send"** → the wire call `sendConversationCommandV4`
+   (logcat 11:54:10, ok in 1024 ms) → relay: `MOCK: sendGoalCommand heldQueue
+   admission REFUSED (no heldQueueDisposition under choice) ->
+   heldQueueDispositionRequired (no mutation)` — **the user's disposition answer was
+   DISCARDED**.
+3. The code pin for the discard: `send()` (`ConversationViewModel.kt:434-470`)
+   receives `heldQueueDisposition`/`requestedDelivery`/`expectedHeldQueueItemIds`,
+   but only the `null`-dispatch branch `routeSendPrompt` (:454) forwards them; every
+   `sendSlash` branch (:459-470+ — Compact, SendGoal, ResumeGoal, …) calls the port
+   WITHOUT any trio parameter. The dialog asks, the user answers, the answer is
+   dropped on the slash routing, the payload goes out disposition-less, the host
+   refuses.
+4. **The face**: the banner "The goal update was refused by the desktop." (s05; the
+   `/goal` dispatch's `failureNotice`, Kind WARNING per `sendSlash`'s else-branch
+   :585 — the copy is byte-identical to the sheet's ERROR face, so pixels cannot
+   distinguish the Kind; the code pin stands). Draft PRESERVED (the composer still
+   held the text), strip unchanged "Queued (2) · paused".
+5. **The DB arbiter** (`/tmp/p21/db/zcode.db`): `sendGoalCommand | FAILED_TERMINAL |
+   failed | heldQueueDispositionRequired`, payloadJson `{"text":"rig21
+   slashleg","displayText":"/goal rig21 slashleg"}` — the trio's absence verbatim,
+   the slash-variant displayText proving the composer path, directly above the
+   pass-19/20 rows.
+
+**F-P20-A consequence (stamp 2, mechanism extension)**: the row's fix shape said
+"gate the goal surfaces on the composer's choice-state computation" — the composer
+half needs NO new gate: the choice gate ALREADY RUNS for composer slash sends (the
+dialog fired) and the fix is pure PLUMBING (carry the answered trio into the goal
+branch — `port.sendGoal` needs a trio overload — or at minimum surface the discarded
+answer instead of the generic refusal). The SHEET half (`setGoal` :601-613, which
+bypasses `send()` entirely) is unchanged — no gate, no dialog, generic ERROR face,
+as receipted in Part W.
+
+## X.D — Legs 2/2b: the stale face on BOTH switch families (11:59 / 12:05)
+
+`MOCK_CAS_STALE_TYPES=switchCollaborationMode,switchModelConfig` armed both types
+(the arm is command-typed and intercepts before any handler, so it drives even
+where the mock has no positive switch behavior — the ack mutates nothing).
+
+- **Leg 2 — `switchCollaborationMode`** (11:59:39): config chips → mode chip
+  ("collaboration mode yolo") → the "Switch mode" sheet (Build/Edit/Plan/Full
+  access[selected]/Autonomous; s06) → tapped **Edit** → relay:
+  `MOCK: switchCollaborationMode forced stale (MOCK_CAS_STALE_TYPES) ->
+  proto.staleRevision` → the banner **"The session changed on the desktop — try the
+  switch again."** (the typed SESSION_CHANGED WARNING, exact copy per
+  `ConversationViewModel.kt:321`), the chip stayed `mode: yolo`. DB: `FAILED_STALE |
+  stale | proto.staleRevision | {"mode":"edit"}`.
+- **Leg 2b — `switchModelConfig`** (12:05:41): model chip → the "Switch model" sheet
+  (Z.AI Default glm-5.1/-air/-flash, Preview; OPENAI-COMPATIBLE glm-4.6; the B1
+  flow: tap row → the ATTACHED effort row appears → tap a level to complete) →
+  glm-5.1-air + `high` → relay: `MOCK: switchModelConfig forced stale … ->
+  proto.staleRevision` → the SAME typed warning banner (s09), the chip stayed
+  `account:zai-individual-coding-plan/GLM-5.3-Flash · max`. DB: `FAILED_STALE |
+  stale | proto.staleRevision | {"provider":"zai","model":"glm-5.1-air",
+  "thought":"high"}`.
+- **The stale-face class is now receipted on THREE command families** (queue-row
+  edit [pass 20], collaboration-mode, model-config), all with the identical honest
+  typed copy — the W.Q "switch/row-action families" leftover is CLOSED. The
+  **effort** face (`setThoughtLevel`, `:336`) stays static-only: it rides its OWN
+  transport method (not a `sendConversationCommandV4` command type), so the
+  command-typed `MOCK_CAS_STALE_TYPES` arm cannot reach it; driving it would need a
+  new mock arm on a different wire method — recorded as a rig note, not a debt (the
+  copy is enumerated and the class is proven on three families).
+
+## X.E — ledger arithmetic + coverage honesty
+
+Open F: **27** (unchanged — zero new rows; F-P20-A stamps 2) · Open G: **21 + 3
+standing** (unchanged) · Open smalls: 13 (+1 watch +1 rig) (unchanged) · Mock debts:
+**0 open work-debts** (no new debts; the ghost arm armed-and-unfired is the
+envelope's designed one-shot semantics, not a debt). Part W's coverage-honesty list
+is now fully adjudicated: composer-slash `/goal` ✓ (X.C); `sendGoal` WITH a trio —
+nothing on the phone produces one (unchanged, mock-side fall-through still untested
+by any client); `heldQueueDispositionRequired` on sendText — still unreachable (the
+dialog always answers a trio); the desktop's goal-confirmation dialog — still
+desktop-only; **the stale switch/row-action families ✓** (X.D — three families
+live, effort static-only with the reason). The `/compact`-under-choice host path is
+statically enumerated (X.B) and mock-blocked from a live drive.
+
+### Coverage honesty (what pass 21 did NOT drive)
+
+The effort-switch stale face (arm-unreachable — the setThoughtLevel transport
+method, X.D); `/compact` under choice (mock-unscripted — X.B); `sendGoal` with a
+trio (no producer exists phone-side); the row-action stale family beyond the
+pass-20 edit (reorder/delete/sendNow share the same `queueStaleNotice` copy
+statically); the desktop's own goal-confirmation dialog (desktop-only); and every
+standing stop (TalkBack/Dictate/widget/Take-photo/shade-ACTION).
+
+## Pass-21 verification stamp
+
+Pass 21 completed 2026-11-15 ~12:15; ONE relay generation (nonce
+`mock-p21-gen1-a7c2e94b`, launcher `/tmp/p21/relay-g1.sh` — no swaps; two in-life
+idle-socket reconnects, connectionId relay-1→relay-4→relay-6, honest recovery
+~17–30 s each); emulator COLD-BOOTED this pass (zcode-a16, `-no-snapshot-load`; one
+rig-side SystemUI ANR on first drive, dismissed); `install -r` of the
+byte-identical APK → pid 2888; screenshot protection OFF by persistence; logcat
+fresh at 11:43 → /tmp/p21/logcat.log. Receipts: shots `/tmp/p21/shots/s00–s09`
+(s04 the G50 dialog on a slash send, s05 the goal-refusal banner, s06 the Switch
+mode sheet, s09 the model-stale banner), AX dumps `/tmp/p21/w/w0–w22` (w14/w17 are
+the recorded ghost-dump artifacts, X.A0.2), relay log `/tmp/p21/relay-g1.log` (the
+goal-admission + both forced-stale lines), DB pulls `/tmp/p21/db/zcode{,2,3}.db{,-wal}`
+(the outbox arbiter: the slash-goal row FAILED_TERMINAL with the payloadJson proof,
+both switch rows FAILED_STALE with their switch payloads; the drafts table holds
+exactly one row — the leg-1 residue). Build log /tmp/p21-apk-build.log (APK
+byte-identical `ad449d7d…`/`530ba4ff`, vc53/1.3.2 — zero app changes; mock jar
+up-to-date at HEAD). Desktop 3.18.1 / `ec475e6e…` unchanged (STEP 0). No mock code
+changes this pass (the debt-#21 arms covered both legs as-is). gateway.drop for the
+pass: **0**. Zero FATAL/AndroidRuntime lines. **Rig left:** emulator zcode-a16 UP
+(PIN-less, wifi ENABLED, screenshot protection OFF), relay gen1 pid 9190 ALIVE
+(arms SPENT — the goal-admission leg consumed the envelope; CAS_STALE sticky on
+switchCollaborationMode/switchModelConfig; the ghost never fired — no trio-bearing
+sendText; pkill to end), app pid 2888 CONNECTED connectionId=relay-6 on the
+synthetic conversation (the stale warning live in the banner slot; strip
+"Queued (2) · paused"; the composer holds the leg-1 draft `/goal rig21 slashleg `
+— rig residue, not a finding), logcat running → /tmp/p21/logcat.log.
