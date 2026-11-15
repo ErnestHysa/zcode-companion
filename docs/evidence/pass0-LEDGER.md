@@ -43,81 +43,67 @@ P2-first, exit gates, per-row Accept criteria).
 
 > **🛑 SATURATED (2026-11-14, pass 12) — EXTENDED (pass 13) — EXHAUSTED (pass 14) —
 > passes 15–18 drove the coverage/mock-debt gated compositions — pass 19 drove the
-> G50 cross-side CAS-mismatch face on a NEW desktop-faithful mock arm (debt #20),
-> opening F-P19-A — pass 20 swept the REST of the send-ack taxonomy and drove its
-> driveable halves, opening F-P20-A:** the host's `sendGoalCommand` handler passes
-> the payload's held-queue trio through the SAME `applyHeldQueueDisposition` gate
-> as sendText (zcode.cjs `SMc`→`n9e`→`Vqe`; absent → `heldQueueDispositionRequired`
-> failed-ack; the desktop UI pre-gates — ZERO renderer references to the
-> reasonCode), but the phone's goal payload is `{text, displayText}` only and
-> neither goal surface has a choice-mode gate or a distinct face → **F-P20-A (P3,
-> same guard family as F-P19-A)**, receipted live end-to-end (sheet Set goal →
-> wire → ERROR notice → outbox `FAILED_TERMINAL/heldQueueDispositionRequired` with
-> the payloadJson PROVING the missing trio). The stale face class receipted
-> first-series and adjudicated **NO-DEFECT** (phone: typed honest WARNING
-> "Queue changed on the desktop — please try again" + outbox `FAILED_STALE`;
-> desktop: silent `recoverFromStaleAuthority` self-heal — truthful copy both
-> sides). Mock arm **#21 OPENED+CLOSED** (`642616ef` — the goal half of the #20
-> admission envelope + `MOCK_CAS_STALE_TYPES`; self-tests 8/8, suite 187/0/0).
-> **gateway.drop for the pass: 0.** The taxonomy sweep is CLOSED (guard.* →
-> F-P19-A; heldQueueDispositionRequired → F-P20-A; the stale trio → no row).
-> Roadmap decision remains ERNEST'S.
->
-> **Pass 21 (Part X, 2026-11-15 ~12:15) executed STEP 2 on Part W's coverage-honesty
-> list and closed it — ZERO new rows:** the composer-slash `/goal` variant receipted
-> live END-TO-END (the G50 dialog FIRES for slash sends, the answered disposition is
-> DISCARDED at the `send()`→`sendSlash` boundary, the wire refuses, the banner +
-> draft-preserved + outbox `FAILED_TERMINAL/heldQueueDispositionRequired` with the
-> slash-variant payloadJson) → **F-P20-A stamps 2 + the mechanism extension that
-> makes the composer-half fix pure plumbing**; the stale faces on BOTH switch
-> families (`switchCollaborationMode`, `switchModelConfig`) receipted live (the
-> identical typed SESSION_CHANGED warning, chips unchanged, `FAILED_STALE/
-> proto.staleRevision` with the switch payloads) — the stale class now stands on
-> THREE command families (queue-edit [pass 20] + the two switches); effort stays
-> static-only (arm-unreachable: `setThoughtLevel` is its own transport method, not a
-> command type). The one open static question is settled: the admission gate's
-> handler coverage is EXACTLY {sendText, sendGoalCommand} (`/compact` self-queues
-> under choice via `requestedDelivery:"queue"`; stop/switches/queue verbs never
-> consult routing mode) — the pass-20 closure is HANDLER-COMPLETE. Rig learnings:
-> mid-transition uiautomator dumps produce GHOST NODES (w14 "EDITEDONE", w17
-> "Queued (3)"/p18 strings that exist nowhere in the live state — both raced
-> sheet-entrance/resync re-renders after the two honest idle-socket reconnects);
-> re-apply the `%s`-for-spaces recipe before typing multi-word chunks.
+> G50 cross-side CAS-mismatch face (debt #20, F-P19-A) — pass 20 swept the send-ack
+> taxonomy (F-P20-A) — pass 21 closed Part W's coverage list — pass 22 drove Part X's
+> three coverage-honesty leftovers live and closed the last static-only faces:**
+> the row-action stale family receipted on ALL THREE verbs (sendNow/reorder/delete —
+> the typed "Queue changed on the desktop — please try again." + FAILED_STALE with
+> each payload; the class now stands on FOUR command families); the effort stale
+> face live-ADJUDICATED as **structurally unreachable** → **NEW N-BQ-1 (P4):** the
+> protocol method's host layer answers a JSON-RPC **error** (FQ → `Dl -32009`,
+> never a stale ack — the ack shape exists only in the command dispatcher) and the
+> phone collapses it to FAILED (`Ports.kt:1000-1013`), so `ConversationViewModel.kt:336`'s
+> SESSION_CHANGED branch is dead code and the effort switch renders the generic
+> refusal where its whole family renders the honest warning; `/compact` under
+> choice live-receipted END-TO-END on the NEW `MOCK_COMPACT_COMMAND` arm (self-queue
+> → strip 2→3 with the kind:"compact" "/com…" row + draft cleared + `compact|ACKED|
+> accepted|{}`; duplicate → the typed **compactOperationLock** refusal + draft
+> preserved + `FAILED_TERMINAL/rejected/{}`) — X.B's "mock-blocked" note CLOSED,
+> the "structurally QUEUED, not refused" conclusion CONFIRMED live; and the G50
+> dialog fired for the compact send with its answer DISCARDED → **F-P20-A stamps 3**
+> (the composer-half discard class now covers goal [21] + compact [22]; for compact
+> the wire outcome is host-faithful either way — vMc consults routing mode, never a
+> trio). Two NEW mock arms opened+closed in-pass (`8af56472`, self-tests 7/7, suite
+> **194/0/0**). **gateway.drop: 0.** Roadmap decision remains ERNEST'S.
 
 - Report: `docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md` —
-  Parts A–X = passes 0–21. **Latest: pass 21 (Part X, 2026-11-15 ~12:15).**
-- Repo HEAD at last pass: `946175b3` (main; the pass-20 docs record — pass 21 made
-  ZERO app/mock code changes, docs only).
+  Parts A–Y = passes 0–22. **Latest: pass 22 (Part Y, 2026-11-15 ~17:40).**
+- Repo HEAD at last pass: pass-22 mock commit `8af56472` (`fix(mock)` — the two
+  Part-X arms) + the docs commit on top (main).
   APK of record: sha256 `ad449d7d…` / md5 `530ba4ff…`, versionCode 53 / 1.3.2
-  (byte-identical across the whole series; the pass-21 build was up-to-date —
-  239 tasks, zero app changes).
+  (byte-identical across the whole series; the pass-22 build was up-to-date —
+  zero app changes, mock-only edits).
 - Desktop of record: **/Applications/ZCode.app 3.18.1.10376, asar sha256 `ec475e6e…`,
-  383,832,025 B** (re-verified at pass-21 STEP 0 — UNCHANGED, no DELTA).
-- Open rows: **27 F (25 defects + 2 obs) + 21 G + 3 standing + 13 smalls (+1 watch
-  +1 rig)** — unchanged by pass 21 (F-P20-A stamps 2). Part W's coverage-honesty
-  list is fully adjudicated (composer-slash `/goal` ✓; stale switch families ✓ —
-  three families live; effort static-only with the arm-unreachable reason; the
-  `/compact` host path statically enumerated, mock-blocked live).
-- Backlog: **8/8 DONE**; the discovery surface stays empty — pass 21 drove Part W's
-  coverage-honesty leftovers and closed them; what remains is standing stops +
-  F-P3-A-gated planes + fix-round re-drives. **The mock-debt list has 0 open
-  work-debts (no changes this pass; the ghost arm armed-and-unfired is the
-  envelope's designed one-shot semantics).**
-- Rig left by pass 21: emulator `zcode-a16` UP (**COLD-BOOTED this pass** — the
-  inherited emulator was found dead; PIN-less, wifi ENABLED, screenshot protection
-  OFF by persistence), relay gen1 ALIVE pid 9190 (nonce
-  `mock-p21-gen1-a7c2e94b`; arms SPENT — the goal-admission leg consumed the
-  envelope, CAS_STALE sticky on switchCollaborationMode/switchModelConfig, the
-  ghost never fired [no trio-bearing sendText]; pkill to end), app pid 2888
-  **CONNECTED connectionId=relay-6** on the synthetic conversation (the stale
-  warning live in the banner slot; strip "Queued (2) · paused"; the composer holds
-  the leg-1 draft `/goal rig21 slashleg ` — rig residue, not a finding), logcat
-  running → /tmp/p21/logcat.log. Launcher `/tmp/p21/relay-g1.sh`. New rig
-  learnings in Part X.A0: mid-transition uiautomator dumps produce GHOST NODES
-  (two receipted: "EDITEDONE" dialog, "Queued (3)"/p18 strings — both raced
-  sheet-entrance/resync re-renders bracketing the two honest idle-socket
-  reconnects; treat one-shot weird dumps as VOID until a settled re-dump
-  confirms); `input text` splits its argument on spaces (`%s` recipe re-applied).
+  383,832,025 B** (re-verified at pass-22 STEP 0 — UNCHANGED, no DELTA; the host
+  pins re-read from the shipped `glm/zcode.cjs` sha256 `666f9c5a…`, also unchanged).
+- Open rows: **27 F (25 defects + 2 obs) + 21 G + 3 standing + 14 smalls (+1 watch
+  +1 rig)** — pass 22 added N-BQ-1 (P4) and stamped F-P20-A 3. Part X's
+  coverage-honesty list is FULLY adjudicated (row-action stale family ✓ three verbs
+  live; effort stale face ✓ live = dead code → N-BQ-1; `/compact` under choice ✓
+  both halves live).
+- Backlog: **8/8 DONE**; the discovery surface stays empty — pass 22 drove Part X's
+  coverage-honesty leftovers and closed the last static-only faces; what remains is
+  standing stops + N-BQ-1's fix-round re-drive + F-P3-A-gated planes.
+  **The mock-debt list has 0 open work-debts (the two new arms were opened+closed
+  in-pass, the established pattern).**
+- Rig left by pass 22: emulator `zcode-a16` UP (**COLD-BOOTED this pass** — the
+  inherited emulator was found dead again; PIN-less, wifi ENABLED, screenshot
+  protection OFF by persistence), relay gen1 ALIVE (nonce `mock-p22-gen1-d85ccb3f`;
+  arms STICKY: CAS_STALE intercepts sendQueuedNow/reorderQueueItem/deleteQueueItem,
+  the effort arm answers Dl -32009, the compact arm is ACTIVE with
+  q-rig-compact-101 IN the queue — the next compact will lock; pkill to end), app
+  pid 4123 **CONNECTED connectionId=relay-7** (one honest idle-socket recovery
+  17:20:17, the pass-18 class) on the synthetic conversation (the compact-refusal
+  banner live in the banner slot; strip "Queued (3) · paused" with the /com… row;
+  the composer holds `/compact` — rig residue, not a finding), logcat running →
+  /tmp/p22/logcat.log. Launcher `/tmp/p22/relay-g1.sh`. New rig learnings in Part
+  Y.A0: **KEYCODE 76 is the slash** (74 is `;`); the system "Try out your stylus"
+  IME onboarding dialog hijacks input INVISIBLY to uiautomator (dismiss via
+  screenshot-derived tap); a timeline hyperlink tap opens Chrome (recovery
+  `am start`); composer FAB bounds shift with the IME and 1-px-inside taps land as
+  nothing (tap dump CENTERS); the composer text arbiter is the SCREENSHOT (dumps
+  miss the IME-committed text); the drafts-table draft survives `install -r` +
+  cold boot.
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -136,7 +122,7 @@ bodies after 3.14.3 — the census IS the changelog.
 | ID | P | Status | Mechanism (one line) | Fix shape | Depends on | Evidence | Stamps |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | F-P19-A | 3 | OPEN (NEW pass 19) | the G50 CAS-mismatch face is desktop-divergent: on `guard.heldQueueConfirmationStale` (host ack `{status:"failed", …}` — set-equality CAS via `applyHeldQueueDisposition`) the desktop RE-OPENS the held-queue confirmation with fresh ids (renderer `confirmationRequired`, re-reads `queue.items`, no error surfaced); the phone maps the failed ack to the generic refusal ERROR notice ("The desktop refused the send — see diagnostics", `ConversationViewModel.kt:542-548`) — reasonCode undifferentiated, no re-confirmation loop exists (grep receipt) | handle the typed reasonCode → re-open the disposition dialog with re-read ids (desktop parity) or minimally a distinct notice; pins: the guard.* grep + the V.C static shapes (outbox FAILED_TERMINAL + preserved draft) | — | Part V.B–V.E | 1 |
-| F-P20-A | 3 | OPEN (NEW pass 20) | the phone's goal sends are structurally refused under the desktop's choice admission: the host's `sendGoalCommand` handler passes the payload's `heldQueueDisposition`/`expectedHeldQueueItemIds` through the SAME `applyHeldQueueDisposition` gate as sendText (zcode.cjs `SMc`→`n9e`→`Vqe`; absent → `heldQueueDispositionRequired` failed-ack; the desktop UI pre-gates via the confirmation dialog — ZERO renderer references to the reasonCode), but the phone's goal payload is `{text, displayText}` only (`CommandCoordinator.kt:220-224`, commented "not CAS-guarded"). Pass 21 EXTENSION (composer half): the composer-level G50 dialog DOES fire for slash-dispatched sends, and `send()` (`ConversationViewModel.kt:434-470`) receives the trio but only `routeSendPrompt` (:454) forwards it — every `sendSlash` branch (:459-470) drops it, so the user ANSWERS the dialog and the answer is discarded (receipted live: dialog → Keep → refused → FAILED_TERMINAL). The sheet half (`setGoal` :601-613) bypasses `send()` — no gate, no dialog, generic ERROR face, as pass 20 receipted | composer half = pure PLUMBING (carry the answered trio into the goal branch — `port.sendGoal` needs a trio overload — or surface the discarded answer); sheet half = gate on the choice state or a distinct notice keyed on the reasonCode; pins: W.B handler chain + W.C payload/surface pins + BOTH outbox rows (sheet [pass 20] + composer-slash [pass 21] payloadJson WITHOUT the trio = the RED shapes) | F-P19-A family (same guard) | Part W.B–W.E, X.B–X.D | 2 (pass 21: the composer-slash variant live + the discard mechanism) |
+| F-P20-A | 3 | OPEN (NEW pass 20) | the phone's goal sends are structurally refused under the desktop's choice admission: the host's `sendGoalCommand` handler passes the payload's `heldQueueDisposition`/`expectedHeldQueueItemIds` through the SAME `applyHeldQueueDisposition` gate as sendText (zcode.cjs `SMc`→`n9e`→`Vqe`; absent → `heldQueueDispositionRequired` failed-ack; the desktop UI pre-gates via the confirmation dialog — ZERO renderer references to the reasonCode), but the phone's goal payload is `{text, displayText}` only (`CommandCoordinator.kt:220-224`, commented "not CAS-guarded"). Pass 21 EXTENSION (composer half): the composer-level G50 dialog DOES fire for slash-dispatched sends, and `send()` (`ConversationViewModel.kt:434-470`) receives the trio but only `routeSendPrompt` (:454) forwards it — every `sendSlash` branch (:459-470) drops it, so the user ANSWERS the dialog and the answer is discarded (receipted live: dialog → Keep → refused → FAILED_TERMINAL). The sheet half (`setGoal` :601-613) bypasses `send()` — no gate, no dialog, generic ERROR face, as pass 20 receipted. Pass 22 EXTENSION (compact variant): the G50 dialog fires for composer `/compact` sends too and the answer is DISCARDED the same way (`port.compact` = `simpleCommand("compact", sessionId, {})`) — but the wire OUTCOME stays host-faithful (the host's `vMc` consults routing mode, never a trio: the compact self-queues either way, live-receipted Y.E), so the discarded answer's only loss is the user's explicit "Clear queue & send" choice being silently dropped (the desktop never asks for compact at all) | composer half = pure PLUMBING (carry the answered trio into the goal/compact branches — or stop asking for compact); sheet half = gate on the choice state or a distinct notice keyed on the reasonCode; pins: W.B handler chain + W.C payload/surface pins + the outbox rows (goal sheet [20], composer-slash goal [21], compact ACKED/FAILED_TERMINAL pair [22]) | F-P19-A family (same guard) | Part W.B–W.E, X.B–X.D, Y.B/Y.E | 3 (pass 22: the compact variant live — dialog + discard + the host-faithful queued outcome) |
 | F-P8-A | 2 | OPEN | cold start w/ DIRECT selected: deferred relay `persistEndpoint` rewrites `_endpoint` after resolve — silent abandonment, recovery dropped by `sourceKind` filter, "First sync failed" vs healthy direct, Retry completes it | guard `persistEndpoint` against overwriting a resolved non-relay selection; retry must reconnect the transport the UI shows; pins: Robolectric race harness + "no `hub.switched` without user tap" | — | Part K.A2 | 1 (+F-P9-A sibling mechanism) |
 | F-P9-A | 2 | OPEN | relay killed MID-AUTHENTICATION → transport wedges in AUTHENTICATING permanently: zero sockets, zero ladder, zero logs, 8 min receipted; survives foreground/unlock; NO retry face (cached rows suppress the strip); active-endpoint tap = silent no-op; ONLY escape = cross-endpoint switch (away+back) | AUTHENTICATING watchdog (timeout → RECOVERING) + a stuck-face; pins: Robolectric kill-mid-handshake harness + netstat-zero + "no silent state" assert | — | Part L.A2 | 3 (pass 10: stale-relay variant, M.A3; pass 15: THIRD variant — relay ABSENT at the cold-start connect → 10s TIMEOUT → silent wedge, no ladder/face, force-stop escape; R.A0.3) |
 | F-P9-B | 2 | OPEN (NEW pass 9) | typed disconnected-remote face never renders live: hub logs the error (workspace-bridge-error: remote-disconnected, verbatim errorText) but ConnectionCenter shows the generic offline face — the G67 card (`connection_remote_reconnect`, render condition lastError.messageKey==REMOTE_WORKSPACE_DISCONNECTED, ConnectionCenterScreen.kt:296) NEVER renders → the recovery verb workspace-reconnect-request is UI-unreachable; row snapshot stays stale under the arm | trace hub.connectFailed→lastError dropping the messageKey (SESSION-scope bridge error); pin: live-shape harness asserting the card renders with the arm armed | — | Part L.A2 | 1 |
@@ -193,7 +179,7 @@ rig) · RETRACTED/REFUTED/ABSORBED: 7.
    (wiring-only hydrate) → 14. **F-P3-C** → 15. **F-P7-A / F-P7-B** → 16. **F-P5-A →
    F-P2-B → F-P0-C → F-P8-B → F-P8-F** → 17. **F-P1-B → F-P1-D** → 18. smalls
    (N-BM-1 → N-BP-1 → N-BM-3 → N-BN-1 → N-BK-1 app half → N-BJ-1 → N-BK-2 → N-BL-1 →
-   N-BM-2 → N-BO-1 → N-BP-2 → K-small-1/2) → 19. **F-P19-A + F-P20-A** (passes
+   N-BM-2 → N-BO-1 → N-BP-2 → N-BQ-1 → K-small-1/2) → 19. **F-P19-A + F-P20-A** (passes
    19/20: the held-queue guard family — F-P19-A the sendText CAS-mismatch face
    divergence, F-P20-A the goal payload's trio omission; both small — a typed
    reasonCode branch on the existing SendNotice path / a goal-side gate) →
@@ -276,11 +262,13 @@ rig) · RETRACTED/REFUTED/ABSORBED: 7.
 | N-BO-1 | 4 | OPEN (NEW pass 11) | the changes viewer's error face interpolates the RAW fault code ("Could not load changes: fault.fileChanges.none" — `changes_error` %s, Phase9Components.kt:379) — the G66 fault→human mapping (2af339b0) doesn't cover this Phase9 surface | Part N.A2 (+ pass-13 stamp: SECOND surface receipted live — the quota reset failure face renders "Reset failed · fault.mock.unscripted:useCodingPlanReset", `quota_reset_error + " · " + err` at CodingPlanQuotaSection.kt:456; Part P.A1) |
 | N-BP-1 | 3 | OPEN (NEW pass 13) | the Usage screen DOUBLE-applies the Scaffold `inner` padding (PullToRefreshBox line 141 + the inner Column line 146 — the only viewer with two `padding(inner)` applications; all 11 sibling viewers have exactly one) → a ~400px dead band under the top bar that is ALSO A DEAD TOUCH ZONE: scroll and pull-to-refresh gestures starting inside it are swallowed (8 receipted attempts, zero re-queries); content scrolls only from drags begun below the band | drop the second `.padding(inner)`; pin: a compose test dragging from the band region asserts the list scrolls | Part P.A1 |
 | N-BP-2 | 4 | OPEN (NEW pass 13) | Daily-trend x-labels render "2026-" for every row — `day.date.take(5)` (UsageScreen.kt:613) slices the ISO date the decoder feeds; the slice assumes an MM-DD shape | slice after the year (or format the full date); pin on the label text | Part P.A1 |
+| N-BQ-1 | 4 | OPEN (NEW pass 22) | the effort switch's typed stale face is DEAD CODE: `setThoughtLevel` rides the PROTOCOL method whose host layer answers a JSON-RPC ERROR on revision mismatch (FQ → `Dl -32009`, zcode.cjs sPi `~0xe99b3a` — the `{status:"stale"}` ack exists only in the command dispatcher), the phone collapses any throw to FAILED (`Ports.kt:1000-1013` has only ACCEPTED/FAILED; `V4Plane.kt:1429` never inspects status; `ChannelSession.kt:69-76` keeps only the message), so `ConversationViewModel.kt:336`'s SESSION_CHANGED branch can never fire — the effort switch renders the GENERIC "desktop refused" ERROR where its whole family (mode/model/queue-verbs) renders the honest "try again" warning (live receipt: relay -32009 line → logcat TransportFailure → generic banner s07, chip unchanged; desktop contrast: the renderer's own facade has NO CAS at all — the check serves only remote clients, i.e. exactly the phone) | map the protocol-plane error by its revision-mismatch identity so STALE propagates (or re-shape the call); pin: a transport-fake harness asserting setThoughtLevel STALE propagation; re-drive the live face after the fix | Part Y.B/Y.D |
 | K-small-3 | 4 | WATCH | one-off terminal route pop (unreproduced — watch, don't chase) | Part K.A2 |
 | N-BJ-2 | 4 | REFUTED→FOLDED | unpair IS reachable (Settings bottom, pass 4); fakeLink half folded into F-P2-B | Part G.A2.4 |
 | N-BM-4 | — | RIG | Dictate leg kills the emulator (cause unproven); leg undriven | Part J |
 
-**Open smalls: 13 (+1 watch +1 rig)** — pass 13 added N-BP-1 (P3) and N-BP-2 (P4).
+**Open smalls: 14 (+1 watch +1 rig)** — pass 13 added N-BP-1 (P3) and N-BP-2 (P4);
+pass 22 added N-BQ-1 (P4, the effort stale face's dead branch).
 
 ## Mock-fidelity debts (rig, not app)
 
@@ -470,6 +458,24 @@ delta …`). Nothing pushed.
 
 ## History
 
+- 2026-11-15 (pass 22) — Part Y executed on Part X's coverage-honesty list: ZERO
+  new F rows; NEW N-BQ-1 (P4, the effort stale face's dead branch — the protocol
+  method's host error `Dl -32009` collapses to FAILED, the enumerated
+  SESSION_CHANGED copy unreachable); F-P20-A stamps 3 (the G50 dialog fires for
+  composer /compact too and its answer is discarded — but the wire outcome stays
+  host-faithful: the compact self-queues under choice either way, live-receipted).
+  Mock: TWO arms opened+closed in-pass (`8af56472` — MOCK_SET_THOUGHT_LEVEL_STALE
+  [the FQ error shape on the protocol method] + MOCK_COMPACT_COMMAND [the host vMc
+  mirror: self-queue + the compactOperationLock typed rejection]; self-tests 7/7,
+  suite 194/0/0). Legs receipted live: the three queue-verb stale faces (sendNow/
+  reorder/delete — the class now on FOUR families), the effort refusal (generic
+  face, chip unchanged), compact queued (strip 2→3, /com… row, draft cleared,
+  ACKED/{}) and the duplicate refused (compactOperationLock banner, draft
+  preserved, FAILED_TERMINAL/rejected/{}). Zero gateway.drop. Rig learnings:
+  KEYCODE 76 = slash (74 = `;`); the "Try out your stylus" system IME dialog
+  hijacks input invisibly to uiautomator; hyperlink taps open Chrome; composer
+  arbiter = screenshot. Rig left UP (gen1 sticky arms, q-rig-compact-101 IN the
+  queue — the next compact will lock; app pid 4123 on relay-7).
 - 2026-11-15 (pass 21) — Part X executed on Part W's coverage-honesty list + the
   gate-coverage static: ZERO new rows; F-P20-A stamps 2 (the composer-slash `/goal`
   variant receipted end-to-end — the G50 dialog FIRES for slash sends and the

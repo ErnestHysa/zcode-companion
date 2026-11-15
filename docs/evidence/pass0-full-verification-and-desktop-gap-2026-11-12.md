@@ -5325,3 +5325,225 @@ sendText; pkill to end), app pid 2888 CONNECTED connectionId=relay-6 on the
 synthetic conversation (the stale warning live in the banner slot; strip
 "Queued (2) · paused"; the composer holds the leg-1 draft `/goal rig21 slashleg `
 — rig residue, not a finding), logcat running → /tmp/p21/logcat.log.
+
+# Part Y — pass 22 (APPENDED 2026-11-15, ~17:40): Part X's three driveable coverage-honesty leftovers driven live — the row-action stale family receipted on all three verbs, the effort stale face live-ADJUDICATED as structurally unreachable (NEW N-BQ-1: the protocol method's host error collapses to FAILED, the enumerated SESSION_CHANGED branch is dead code), and /compact under choice live-receipted end-to-end on the NEW mock arm (self-queue → strip 2→3 with the /com… row; duplicate → the typed compactOperationLock refusal) with the G50-on-compact dialog discard stamped onto F-P20-A
+
+> **Pass 22 of the pass-0 series** (solo, the canonical discovery prompt; STEP 1 empty —
+> backlog 8/8 — so the pass executed STEP 2 on Part X's coverage-honesty list, the last
+> part's record). **ZERO app-defect rows opened; ONE new P4 small (N-BQ-1); F-P20-A
+> stamps 3 (the compact variant of the composer-half dialog discard).** Two NEW mock
+> arms unblocked the static-only faces (committed `8af56472` as `fix(mock)`; self-tests
+> 7/7, full mock suite **194/0/0**): `MOCK_SET_THOUGHT_LEVEL_STALE=1` (the host's FQ
+> revision-mismatch JSON-RPC error on the effort switch's PROTOCOL method — the
+> command-typed stale arm cannot reach that surface) and `MOCK_COMPACT_COMMAND=1`
+> (the host command-plane compact handler vMc: under choice the compact SELF-QUEUES a
+> kind:"compact" queue item and answers accepted; a second compact answers the typed
+> rejected ack compactOperationLock).
+>
+> **Verification stamp:** 2026-11-15 17:07 → 17:35, GLM-5.3-Flash in ZCode, everything
+> local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…` UNCHANGED — no
+> DELTA (the host pins re-verified against the SAME shipped `glm/zcode.cjs`, sha256
+> `666f9c5a…` unchanged). Rig: the inherited emulator was found DOWN again (`adb
+> devices` empty; the recurring pass-boundary death) → COLD BOOT (zcode-a16,
+> `-no-snapshot-load`, boot ~39 s; wifi left ENABLED per the O.A0.1 lesson; screenshot
+> protection OFF by persistence — s00 is the 1.37 MB class). APK **byte-identical**
+> (`ad449d7d…`/`530ba4ff`, vc53/1.3.2 — zero app changes; the build was up-to-date
+> after the mock-only edits). ONE generation — gen1 `mock-p22-gen1-d85ccb3f`
+> (MOCK_ROWS=12 + MOCK_QUEUE + MOCK_INPUT_ROUTING=choice +
+> MOCK_CAS_STALE_TYPES=reorderQueueItem,deleteQueueItem,sendQueuedNow +
+> MOCK_SET_THOUGHT_LEVEL_STALE + MOCK_COMPACT_COMMAND; no relay swaps; ONE in-life
+> idle-socket drop 17:20:17 wireReset → honest recovery relay-1 → relay-7, the
+> pass-18 class — it bracketed the Chrome-wander accident, Y.A0.3). Stored endpoints
+> survived; the app CONNECTED without re-pairing. logcat fresh `-T 1` →
+> /tmp/p22/logcat.log.
+
+## Y.A0 — rig learnings
+
+1. **KEYCODE 74 is `;` (semicolon), not `/`** — the slash on the AVD IME is
+   **KEYCODE 76** (`input keyevent 76`), and a `'/compact'` chunk with a LEADING
+   slash still loses it, so the working recipe is `keyevent 76` then
+   `input text 'compact'`. The pass-20/21 recipes ("`/` own chunk + KEYCODE 35")
+   never recorded the keycode NUMBER for the slash itself; this pass first typed
+   `;compact` (74) before hitting 76.
+2. **A system IME onboarding dialog ("Try out your stylus", Reset/Cancel/Next) can
+   HIJACK the rig invisibly** — it is a separate IME window: uiautomator dumps the
+   app window BEHIND it cleanly (every dump looked normal) while all keyevents and
+   text went into the tutorial. Detection = screenshot only (s09). Dismiss via
+   screenshot-derived tap on Cancel; the recipe "taps at SCREENSHOT-derived bounds
+   for dialogs" now extends to SYSTEM dialogs, not just in-app ones.
+3. **A tap into the timeline's "the workspace" hyperlink opens Chrome** (the
+   pass-3 link class) — recovery `am start -n …/.MainActivity`; all keyevents typed
+   while Chrome was foreground vanished into the browser. The composer FAB bounds
+   SHIFT with the IME (field [61,1836][1019,1990] IME-up vs FAB [894,2118][1026,2250]
+   IME-down), and a tap 1 px inside a bounds EDGE lands as nothing — tap fresh-dump
+   CENTERS only.
+4. **uiautomator dumps routinely miss the composer EditText's CURRENT text** while
+   the IME commits asynchronously ("field: none" in three dumps whose screenshots
+   showed `/compact`) — the composer text arbiter is the SCREENSHOT, not the dump.
+   The pass-21 draft residue (`/goal rig21 slashleg `) SURVIVED `install -r` + cold
+   boot via the drafts table and re-occupied the composer on first open.
+
+## Y.B — the static pins (host `glm/zcode.cjs` `666f9c5a…` + phone HEAD)
+
+1. **The effort switch rides the PROTOCOL method, whose host layer errors instead of
+   acking**: the wire handler `sPi` (`~0xe99b3a`) parses {sessionId, thoughtLevel,
+   expectedRevision} and CAS-checks via **`FQ`** (`~0xe25b40`):
+   `if(t!==void 0&&t!==e.stateRevision) throw new Dl(-32009,"Session state revision
+   mismatch",{actualRevision:e.stateRevision,expectedRevision:t})` — a JSON-RPC
+   ERROR, never a `{status:"stale"}` ack (that shape exists ONLY in the
+   sendConversationCommandV4 dispatcher, `~0xe3fdff`). The INTERNAL facade
+   `setThoughtLevel` (`~0xdd6f06`) has NO CAS at all (desktop-renderer parity: the
+   renderer's own effort switch never revision-checks).
+2. **The phone chain collapses that error to FAILED**: `V4Plane.setThoughtLevel`
+   (V4Plane.kt:1429-1441) returns the raw success object with NO status inspection;
+   `ChannelSession.failWith` (ChannelSession.kt:69-76) keeps only the error's
+   `message` → `Failure.ChannelError`; `Ports.setThoughtLevel` (Ports.kt:1000-1013)
+   catches → `SendOutcome.FAILED`. Therefore the enumerated STALE branch at
+   `ConversationViewModel.kt:336` ("The session changed on the desktop — try the
+   switch again.", SESSION_CHANGED) is **structurally unreachable** for the real
+   transport — only the test fake ever returns STALE (ThoughtLevelRoutingTest's
+   scripted port).
+3. **The host command-plane compact handler (`vMc`, `~0xe39145`)**: a compact while
+   one is running/queued throws `ID("compactOperationLock","Compact is already
+   running or queued")` (the dispatcher's typed rejected ack); otherwise under
+   `enqueue`/`guide`/`choice` (or an active turn) it SELF-QUEUES —
+   `tF(t,{requestedDelivery:"queue",text:"/compact",modelSelection:c})` through
+   `steerTurn(...,delivery:"queue")` — and returns (the dispatcher answers
+   accepted, NO rows). The compact command is NOT CAS-guarded (the phone's verified
+   set; the baseRevision stale arm must never intercept it — the new arm's lock
+   check is `queueItems.any { it.kind == "compact" }`, the mock's kind field already
+   existing for the pass-18 shapes).
+
+## Y.C — Leg A: the row-action stale family, all three verbs (17:09–17:10)
+
+`MOCK_CAS_STALE_TYPES=reorderQueueItem,deleteQueueItem,sendQueuedNow` (the arm
+intercepts any listed command type before its effect handler — zero mock change
+needed for this leg). From the open queue panel, per row one:
+
+- **sendQueuedNow** ("Send now", 17:09:39, wire ok 98 ms) → relay
+  `MOCK: sendQueuedNow forced stale … -> proto.staleRevision` → banner **"Queue
+  changed on the desktop — please try again."** (s02), strip unchanged "Queued (2)
+  · paused".
+- **reorderQueueItem** ("Move down", wire ok) → same relay line + the SAME banner
+  (s03); row order unchanged (one, two).
+- **deleteQueueItem** ("Delete", wire ok) → same relay line + the SAME banner (s04);
+  both rows still present.
+- **DB arbiter** (`/tmp/p22/db/zcode.db`): `sendQueuedNow | FAILED_STALE | stale |
+  proto.staleRevision | {"queueItemId":"q-rig-1"}`, `reorderQueueItem | … |
+  {"queueItemId":"q-rig-1","beforeQueueItemId":null}`, `deleteQueueItem | … |
+  {"queueItemId":"q-rig-1"}` — sitting directly above the pass-20/21 rows (the DB
+  carried them through the cold boot).
+
+**The X.C row-action leftover is CLOSED: the stale face class now stands on FOUR
+command families** (queue-row edit [pass 20] + send-now/reorder/delete [this pass]),
+all with the identical typed copy. No row change — the class was already
+adjudicated NO-DEFECT (phone warns honestly vs the desktop's silent
+recoverFromStaleAuthority).
+
+## Y.D — Leg B: the effort stale face live → N-BQ-1 (17:13)
+
+Chips expanded (tap the summary chip) → **"Effort · max"** chip → the effort sheet
+(medium/high/max radios) → tapped **high** → relay `MOCK: setThoughtLevel forced
+revision-mismatch (MOCK_SET_THOUGHT_LEVEL_STALE) -> Dl -32009 (expected=100)` →
+logcat `v4.call :: setThoughtLevel channel error: Session state revision mismatch`
++ `port.setThoughtLevel :: TransportFailure: Session state revision mismatch` →
+the banner **"The desktop refused the effort switch — nothing changed."** (s07,
+the GENERIC EFFORT_REFUSED ERROR) and the chip UNCHANGED ("Effort · max").
+
+**NEW N-BQ-1 (P4): the effort switch's typed stale face is dead code** — the port
+maps the protocol error to FAILED (Y.B.2), so `ConversationViewModel.kt:336`'s
+SESSION_CHANGED branch can never fire; the effort switch renders the generic
+refusal where every switch in its own family (mode/model/queue-verbs) renders the
+honest "try again" warning. Fix shape: map the protocol-plane error by its
+revision-mismatch identity (or re-shape the host call) so the STALE branch is
+reachable; pin: a transport-fake harness asserting `setThoughtLevel` STALE
+propagation. Desktop contrast recorded (the renderer's facade has NO CAS at all —
+the check exists only for remote clients, i.e. exactly the phone).
+
+## Y.E — Leg C: /compact under choice, both halves (17:22–17:26)
+
+Driven with the Y.A0.1 recipe (keyevent 76 + `compact`):
+
+1. **The G50 "Queue is held" dialog FIRED for the composer /compact send** ("Send
+   now and clear the queue, or keep the queued messages?" — s19) — the composer
+   choice gate intercepts compact dispatches too. Answered **"Keep queue & send"**
+   → wire `sendConversationCommandV4 ok in 473 ms` (17:23:03, relay-7) → relay
+   **`MOCK: compact deferred to queue (MOCK_COMPACT_COMMAND, routing=choice) ->
+   q-rig-compact-101`** → **the strip grew 2→3 ("Queued (3) · paused") with a
+   "/com…" row rendered from the kind:"compact" item, the composer DRAFT CLEARED**
+   (acceptedClearsDraft), NO refusal face (s20). DB: `compact | ACKED | accepted |
+   {}` — the empty payload verbatim (the compact command carries no trio, exactly
+   per the verified shape). **X.B's "/compact mock-blocked" note is now LIVE-CLOSED:
+   the pass-21 static conclusion ("structurally QUEUED, not refused") is confirmed
+   live, first-series.**
+2. **The duplicate compact** (same recipe; the FAB needed the Y.A0.3 center-fix) →
+   G50 again → Keep → relay **`MOCK: compact REJECTED compactOperationLock
+   (MOCK_COMPACT_COMMAND — already queued)`** → banner **"Compact was refused by
+   the desktop (it may already be running or an active turn blocks it)."** (s26,
+   the typed COMPACT_REFUSED face), **draft PRESERVED**, strip unchanged at 3. DB:
+   `compact | FAILED_TERMINAL | rejected | compactOperationLock | {}`.
+
+**F-P20-A consequence (stamp 3)**: the G50 dialog fired for a compact send and the
+answered disposition was DISCARDED (sendSlash's Compact branch calls
+`port.compact(taskId)` — `simpleCommand("compact", sessionId, {})` takes no trio)
+— the composer-half discard class now covers **compact** too (goal [pass 21],
+compact [this pass], text being the only branch that forwards). For compact the
+wire OUTCOME is host-faithful either way (vMc consults routing mode, never a trio
+— queued either way), but the user's explicit "Clear queue & send" answer is
+silently dropped (the desktop would… also queue the compact — vMc has no
+disposition path — so the desktop's own compact-under-choice never asks; the
+PHONE's dialog is the extra ask). Fix note for the fix rounds: the plumbing shape
+is the same as the goal half (carry the answer or stop asking); no new row.
+
+## Y.F — ledger arithmetic + coverage honesty
+
+Open F: **27** (unchanged) · Open G: **21 + 3 standing** (unchanged) · Open
+smalls: **14** (+N-BQ-1) (+1 watch +1 rig) · Mock debts: **0 open work-debts**
+(the two new arms were opened+closed in the same pass `8af56472`, the established
+in-pass pattern). Part X's coverage-honesty list is now FULLY adjudicated: the
+row-action stale family ✓ (Y.C, three verbs live); the effort stale face ✓ live —
+and ADJUDICATED as dead code (N-BQ-1); `/compact` under choice ✓ live (Y.E, both
+halves). What REMAINS not-driven is only the standing set: `sendGoal` with a trio
+(no phone producer), `heldQueueDispositionRequired` on sendText (the dialog always
+answers a trio), the desktop's own goal-confirmation dialog (desktop-only),
+TalkBack/Dictate/widget/Take-photo/shade-ACTION (standing stops), and the N-BQ-1
+fix-round re-drive once a fix round touches the effort port.
+
+### Coverage honesty (what pass 22 did NOT drive)
+
+The stale arm on setAutoDrain/setFollowupMode/resumeGoal/pauseGoal (same
+command-typed arm, same copy class — statically identical to the receipted four;
+not re-driven), the compact `startNow` routing branch (the mock passes through
+unscripted — never armed on this rig), the effort sheet's medium/low levels (the
+arm answers identically for any level; `high` receipted), and every standing stop
+above.
+
+## Pass-22 verification stamp
+
+Pass 22 completed 2026-11-15 ~17:35; ONE relay generation (nonce
+`mock-p22-gen1-d85ccb3f`, launcher `/tmp/p22/relay-g1.sh` — no swaps; ONE in-life
+idle-socket drop 17:20:17 → honest recovery relay-1 → relay-7); emulator
+COLD-BOOTED this pass (zcode-a16, `-no-snapshot-load`; the stylus-dialog +
+Chrome-wander accidents are rig-side, both recovered in-session); `install -r` of
+the byte-identical APK → pid 4123; screenshot protection OFF by persistence;
+logcat fresh at 17:07 → /tmp/p22/logcat.log. Receipts: shots
+`/tmp/p22/shots/s00–s26` (s02–s04 the three stale banners, s07 the effort-refusal
+banner + unchanged chip, s19 the G50-on-compact dialog, s20 the Queued (3) strip
+with the /com… row + cleared composer, s26 the compact-refusal banner), AX dumps
+`/tmp/p22/w/w0–w22`, relay log `/tmp/p22/relay-g1.log` (the three forced-stale
+lines + the -32009 line + both compact lines), DB pulls
+`/tmp/p22/db/zcode{,2}.db{,-wal}` (the outbox arbiter: three FAILED_STALE queue
+verbs + `compact|ACKED|accepted|{}` + `compact|FAILED_TERMINAL|rejected|
+compactOperationLock|{}` directly above the pass-20/21 rows). Mock changes:
+`8af56472` (two arms + MockZCodePass22RigSelfTest 7/7; suite 194/0/0) — committed
+BEFORE the legs; APK byte-identical `ad449d7d…`/`530ba4ff` (vc53/1.3.2, zero app
+changes). Desktop 3.18.1 / `ec475e6e…` unchanged (STEP 0; host pins re-read from
+`glm/zcode.cjs` `666f9c5a…`). gateway.drop for the pass: **0**. Zero
+FATAL/AndroidRuntime lines. **Rig left:** emulator zcode-a16 UP (PIN-less, wifi
+ENABLED, screenshot protection OFF), relay gen1 ALIVE (arms STICKY: the stale
+intercepts the three queue verbs, the effort arm answers -32009, the compact arm
+is ACTIVE with q-rig-compact-101 IN the queue — the next compact will lock),
+app pid 4123 CONNECTED connectionId=relay-7 on the synthetic conversation (the
+compact-refusal banner live in the banner slot; strip "Queued (3) · paused"; the
+composer holds `/compact` — rig residue, not a finding), logcat running →
+/tmp/p22/logcat.log.
