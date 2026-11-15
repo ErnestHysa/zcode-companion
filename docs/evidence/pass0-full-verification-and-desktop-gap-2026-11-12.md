@@ -5547,3 +5547,218 @@ app pid 4123 CONNECTED connectionId=relay-7 on the synthetic conversation (the
 compact-refusal banner live in the banner slot; strip "Queued (3) · paused"; the
 composer holds `/compact` — rig residue, not a finding), logcat running →
 /tmp/p22/logcat.log.
+
+# Part Z — pass 23 (APPENDED 2026-11-15, ~18:20): Part Y's three coverage-honesty leftovers driven live — the stale face class extended to SIX typed command families (setAutoDrain + setFollowupMode receipted on the typed queue-changed warning), the goal pause/resume stale faces live-ADJUDICATED as in-family honest (generic-but-retry-anticipating buckets; NO row — the pass-20 standard), the effort sheet's medium level stamped onto N-BQ-1, and the compact startNow/null passthrough receipted END-TO-END on the NEW compact-run marker arm (no G50 dialog → accepted → draft cleared → the manual compaction marker pair rendered from the wire compact — first series)
+
+> **Pass 23 of the pass-0 series** (solo, the canonical discovery prompt; STEP 1 empty —
+> backlog 8/8 — so the pass executed STEP 2 on Part Y's coverage-honesty list).
+> **ZERO new rows in ANY table.** N-BQ-1 stamps 2 (the `medium` level — the arm answers
+> identically; the enumerated SESSION_CHANGED copy stays unreachable). The stale-face
+> class note widens: the typed warning now stands on SIX command families, and the goal
+> verbs' generic buckets are receipted + adjudicated honest. ONE new mock arm unblocked
+> the static-only passthrough face (committed `d24a32a7` as `fix(mock)` BEFORE the legs;
+> MockZCodePass23RigSelfTest 4/4, full mock suite **198/0/0**): the `MOCK_COMPACT_COMMAND`
+> passthrough half now scripts the host-faithful compact RUN — the manual projectMarker
+> pair (`running:manual` immediately, `completed:manual` with token counts ~900 ms later,
+> both riding the authoritative appendedRows tail) — plus a STRUCTURAL guard (casStaleAck
+> hard-excludes "compact" — Y.B.3's "the stale arm must never see it" is no longer
+> positional only) and a `MOCK_GOAL_STATUS` env on the MOCK_GOAL arm (default "verifying",
+> old rigs unchanged) that made the goal-resume icon leg drivable.
+>
+> **Verification stamp:** 2026-11-15 17:47 → 18:07, GLM-5.3-Flash in ZCode, everything
+> local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…` UNCHANGED — no DELTA.
+> Rig: the inherited emulator was found DOWN again (`adb devices` empty; the recurring
+> pass-boundary death, 3rd consecutive pass) and the pass-22 relay was still alive
+> (pid 16972, its compact arm would have LOCKED the next compact) → `pkill -f
+> MockRelayMainKt` + COLD BOOT (zcode-a16, `-no-snapshot-load`, boot ~30 s; wifi left
+> ENABLED per O.A0.1; screenshot protection OFF by persistence — s00 is real content,
+> the light home screen at 203 KB). APK **byte-identical** (`ad449d7d…`/`530ba4ff`,
+> vc53/1.3.2 — zero app changes; assembleDebug up-to-date). TWO generations: gen1
+> `mock-p23-gen1-1505377d` (MOCK_ROWS=12 + MOCK_QUEUE + MOCK_GOAL + **MOCK_GOAL_STATUS=
+> paused** + MOCK_CAS_STALE_TYPES=setAutoDrain,setFollowupMode,pauseGoal,resumeGoal +
+> MOCK_SET_THOUGHT_LEVEL_STALE + MOCK_COMPACT_COMMAND; NO MOCK_INPUT_ROUTING → null
+> routing, the passthrough condition) and gen2 `mock-p23-gen2-eb341a8e` (same minus
+> GOAL_STATUS → verifying; stale list narrowed to pauseGoal). Stored endpoints survived
+> both relay swaps; no re-pairing. logcat fresh `-T 1` → /tmp/p23/logcat.log.
+
+## Z.A0 — rig learnings
+
+1. **The launcher classpath transcription trap:** hand-copying the `java -cp` line
+   silently DROPPED the `org.jetbrains.kotlinx/` group-dir segment on the
+   serialization-json jar; the catching check was a full-string `diff` of the two
+   launchers' exec lines (an earlier substring grep-diff compared only from the group
+   dir onward and MISSED it). Recipe: derive new launchers from the previous pass's
+   file with `sed` (as gen2 was), never by re-typing.
+2. **BACK pops the whole conversation route when no sheet is open** — the effort sheet
+   was auto-dismissed (banner arrival), so the recovery BACK landed on the route and
+   returned to Tasks home (s07). Dismiss sheets by drag (`input swipe 540 980 540 2300`)
+   or verify a sheet is actually open before BACK.
+3. **Ghost dumps at 16 and 64 nodes** (w22, w14) — mid-transition Context-sheet dumps
+   produce tiny skeletons with no text nodes; settle ~3 s and re-dump (the pass-21
+   lesson, now with two more instances at sheet open/close).
+4. **The banner render ignores SendNotice.Kind** — WARNING (queueStaleNotice, s04) and
+   ERROR (sheet handlers, s10) render the IDENTICAL red-tinted banner with the ✕
+   dismiss affordance; kind divergence is invisible in the UI (adjudication input for
+   Z.D).
+5. **The composer draft is a real plane:** the pass-22 `/compact` residue SURVIVED
+   `install -r` + cold boot and re-occupied the composer (s01), so the compact leg was
+   literally "tap Send"; the passthrough ACCEPTED then CLEARED it (acceptedClearsDraft)
+   — the residue is consumed, not carried further.
+
+## Z.B — the static pins (phone HEAD `d24a32a7`^)
+
+The four verbs' outcome handling, the recon that shaped the legs:
+
+| verb | wire | CAS | phone handler | stale lands in |
+| --- | --- | --- | --- | --- |
+| setAutoDrain | command `{autoDrain}` (CommandCoordinator.kt:313) | YES | ConversationViewModel.kt:1247 → `queueStaleNotice` | the TYPED warning "Queue changed on the desktop — please try again." (:1216-1220) |
+| setFollowupMode | command `{mode}` (:317-320) | YES | :1252 → `queueStaleNotice` | the TYPED warning |
+| resumeGoal | command `{}` (:227-228) | YES | slash :469-474 → `sendSlash`; sheet `resumeGoalFromSheet` :629-640 | sendSlash else → generic WARNING "Goal resume was refused (the conversation may have moved — try again)."; sheet else → the same copy, **Kind.ERROR** |
+| pauseGoal | command `{}` (:231-232) | YES | slash :475-480 → `sendSlash`; sheet `pauseGoalFromSheet` :616-628 | sendSlash else → generic WARNING "Goal pause was refused (the goal may not be pausable right now)."; sheet else → the same copy, **Kind.ERROR** |
+
+No STALE branch exists in any goal handler (neither sheet nor slash) — unlike
+switchMode/switchModel (:321-322, :350-351) which enumerate it. The desktop's own
+stale handling remains silent recoverFromStaleAuthority (Part W).
+
+## Z.C — Leg A: the queue-verb stale faces (17:56, gen1)
+
+From the open queue strip ("Queued (2) · paused", Auto-send OFF, Queue/Guide chips,
+two rows):
+
+- **setAutoDrain** (tap the Auto-send row, wire id=24) → relay `MOCK: setAutoDrain
+  forced stale (MOCK_CAS_STALE_TYPES) -> proto.staleRevision` → the typed banner
+  **"Queue changed on the desktop — please try again."** (s04), strip UNCHANGED at
+  "Queued (2) · paused" (the arm mutates nothing).
+- **setFollowupMode** (tap Guide, wire id=25) → same relay line → the SAME typed
+  banner (s05); the config chip UNCHANGED at "yolo · GLM-5.3-Flash · max · followup ·
+  queue".
+- **DB arbiter:** `setAutoDrain | FAILED_STALE | stale | proto.staleRevision |
+  {"autoDrain":true}` (17:56:31) and `setFollowupMode | … | {"mode":"guide"}`
+  (17:56:49) — the payloads verbatim.
+
+**The stale-face class now stands on SIX typed command families** (queue-row edit
+[pass 20], sendNow/reorder/delete [pass 22], setAutoDrain + setFollowupMode [this
+pass]) — the Part-Y "statically identical, not re-driven" caveat is CLOSED live.
+
+## Z.D — Leg B: the goal-verb stale faces, both entry points (18:01–18:06, gen1+gen2)
+
+gen1 seeded the goal PAUSED (the new `MOCK_GOAL_STATUS=paused`); gen2 the default
+verifying — both render the GoalPanel's G26 action icon ("Resume goal" ▶ on paused /
+"Pause goal" ⏸ on verifying, `content-desc`-findable at ~[280-260,1146→1278]).
+
+- **Sheet, resume** (gen1, wire id=43) → relay `MOCK: resumeGoal forced stale … ->
+  proto.staleRevision` → after the sheet dismissal the banner **"Goal resume was
+  refused (the conversation may have moved — try again)."** (s10, the sheet handler's
+  `else →` ERROR bucket).
+- **Slash, resume** (gen1, wire id=49, typed via keyevent-76 + `goal%sresume`) → relay
+  same forced-stale line → the SAME copy from sendSlash's `else →` (WARNING bucket);
+  the draft PRESERVED on stale (acceptedClearsDraft is ACCEPTED-only).
+- **Slash, pause** (gen1, wire id=50) → relay `MOCK: pauseGoal forced stale …` →
+  **"Goal pause was refused (the goal may not be pausable right now)."** (s12).
+- **Sheet, pause** (gen2, wire id=9, the ⏸ icon on the verifying goal) → relay same →
+  the same pause copy (s13).
+- **DB arbiter:** `resumeGoal | FAILED_STALE | stale | proto.staleRevision | {}` ×2
+  (18:01:00 sheet, 18:02:55 slash) + `pauseGoal | … | {}` ×2 (18:03:51 slash, 18:06:30
+  sheet) — the empty payloads verbatim (the goal verbs carry no fields).
+
+**ADJUDICATED: NO row (the pass-20 standard).** The goal faces are generic-but-honest:
+the resume copy NAMES the stale cause ("the conversation may have moved — try again"),
+the pause copy anticipates a retry ("right now"), and the banner render is IDENTICAL
+to the typed warning (Z.A0.4 — Kind divergence invisible). What the goal verbs lack
+versus the switch family is only the enumerated STALE branch and the staleness-naming
+copy on pause; recorded here so the fix rounds can decide whether to add the branch
+(one-line-per-handler), with the receipts standing as the behavior contract. No
+re-hunt.
+
+## Z.E — Leg C: the effort sheet's medium level (17:58, gen1)
+
+Chips expanded (tap the summary chip) → the Effort sheet (medium/high/max radios) →
+tapped **medium** (the radio row at c=(540,918)) → relay `MOCK: v4call setThoughtLevel
+(id=26)` + `MOCK: setThoughtLevel forced revision-mismatch (MOCK_SET_THOUGHT_LEVEL_
+STALE) -> Dl -32009 (expected=100)` → logcat `v4.call :: setThoughtLevel channel
+error: Session state revision mismatch` + `port.setThoughtLevel :: TransportFailure`
+→ the banner **"The desktop refused the effort switch — nothing changed."** and the
+chip UNCHANGED ("Effort · max"). **N-BQ-1 stamps 2** — the dead-branch receipt now
+covers two of the three levels (high [pass 22], medium [this pass]; the arm answers
+identically for any level, per Part Y's own caveat). NO outbox row (the protocol
+method never rides the command outbox — consistent with the N-BQ-1 mechanism).
+
+## Z.F — Leg D: the compact startNow/null passthrough, END-TO-END (17:54, gen1)
+
+The pass-22 rig-left `/compact` draft residue re-occupied the composer (Z.A0.5) — the
+leg was a single Send tap. Under NULL routing (no MOCK_INPUT_ROUTING) the phone's
+held-queue gate correctly did NOT fire (no G50 dialog — the dialog is the choice-mode
+ask), the composer dispatched `sendConversationCommandV4` → the NEW passthrough arm
+pushed the host-faithful compact RUN:
+
+- relay `MOCK: compact RAN NOW (MOCK_COMPACT_COMMAND passthrough) -> running:manual
+  marker` then `MOCK: compact completed:manual marker pushed …` (~900 ms apart);
+- the timeline rendered the manual compaction marker pair LIVE (s03): **`⟳ Compressing
+  context`** → **`✓ Context compressed 164K → 38.5K tokens`** (the seeded token counts,
+  verbatim) — FIRST-SERIES receipt of a wire-driven manual compact marker pair (the
+  seeded compactionDemo rows were the only prior shape);
+- the composer DRAFT CLEARED (acceptedClearsDraft), the queue strip UNCHANGED at
+  "Queued (2) · paused" (no kind:"compact" item — the compact RAN, it did not queue),
+  no rows appended (a command, not a sendText);
+- **DB arbiter:** `compact | ACKED | accepted | {}` (17:54:07) — the empty payload
+  verbatim, directly above the six stale rows.
+
+**The Part-Y compact-startNow caveat is CLOSED live**: under startNow/null the compact
+is neither queued nor refused — it runs, and the mock now shows the host-faithful
+shape (the host's vMc runs the turn; the desktop conversation would render the same
+projectMarker pair). The pass-22 static conclusion ("structurally QUEUED under
+enqueue/guide/choice") stands untouched (the Queued/lock halves were Y.E's receipts).
+
+## Z.G — ledger arithmetic + coverage honesty
+
+Open F: **27** (unchanged) · Open G: **21 + 3 standing** (unchanged) · Open smalls:
+**14** (+1 watch +1 rig) (unchanged; N-BQ-1 stamps 2) · Mock debts: **0 open
+work-debts** (the passthrough-marker arm + the casStaleAck compact guard + the
+MOCK_GOAL_STATUS var were opened+closed in-pass, `d24a32a7` — the established
+pattern). Part Y's coverage-honesty list is now FULLY adjudicated: the four stale-arm
+verbs ✓ (Z.C/Z.D — six typed families + the goal generic buckets, no row); the
+compact startNow branch ✓ (Z.F, with the new arm); the effort medium level ✓ (Z.E).
+Second consecutive zero-new-rows pass; the discovery surface stays empty — what
+remains is the standing set only.
+
+### Coverage honesty (what pass 23 did NOT drive)
+
+The ACCEPTED halves of all four verbs (the stale arm intercepts before the effects;
+setAutoDrain/setFollowupMode accepted were receipted in earlier campaigns — the
+toggle's working half pass 12, the followup chips pass 12 — and the goal pause/resume
+accepted paths rode the vc51 G26 pins); the effort sheet's `max`→`max` no-op and the
+absent `low` level (the sheet renders medium/high/max only); the compact under
+enqueue/guide routing (the Queued shape was pass 22's Y.E); sendGoal-with-trio,
+heldQueueDispositionRequired-on-sendText, the desktop's own goal-confirmation dialog
+(desktop-only), TalkBack/Dictate/widget/Take-photo/shade-ACTION (standing stops); and
+the N-BQ-1 fix-round re-drive (gated on a fix round touching the effort port).
+
+## Pass-23 verification stamp
+
+Pass 23 completed 2026-11-15 ~18:07; TWO relay generations (gen1
+`mock-p23-gen1-1505377d` launcher `/tmp/p23/relay-g1.sh` 17:47→18:04, gen2
+`mock-p23-gen2-eb341a8e` launcher `/tmp/p23/relay-g2.sh` 18:04→end; no idle-socket
+drops, no emulator restarts in-life); emulator COLD-BOOTED this pass (the third
+consecutive pass-boundary death; the pass-22 relay was found still alive and pkilled
+BEFORE the boot); `install -r` of the byte-identical APK → pid 3587; screenshot
+protection OFF by persistence; logcat fresh at 17:47 → /tmp/p23/logcat.log. Receipts:
+shots `/tmp/p23/shots/s00–s13b` (s01 the residue composer, s03 the compact marker
+pair, s04/s05 the typed queue banners, s06 the effort-refusal banner + unchanged chip,
+s10 the sheet resume ERROR banner, s12 the slash pause banner, s13b the sheet pause
+banner), AX dumps `/tmp/p23/w/w0–w24`, relay logs `/tmp/p23/relay-g{1,2}.log` (two
+forced-stale queue lines + four forced-stale goal lines + the -32009 line + both
+compact-marker lines), DB pulls `/tmp/p23/db/zcode{,2}.db{,-wal}` (the outbox
+arbiter: `compact|ACKED|accepted|{}` + 2×setAutoDrain-shaped, setFollowupMode,
+2×resumeGoal, 2×pauseGoal — all FAILED_STALE/proto.staleRevision; setThoughtLevel
+correctly absent). Mock changes: `d24a32a7` (passthrough markers + the casStaleAck
+compact guard + MOCK_GOAL_STATUS; MockZCodePass23RigSelfTest 4/4; suite 198/0/0) —
+committed BEFORE the legs; APK byte-identical `ad449d7d…`/`530ba4ff` (vc53/1.3.2,
+zero app changes). Desktop 3.18.1 / `ec475e6e…` unchanged (STEP 0). gateway.drop for
+the pass: **0**; zero real FATAL/AndroidRuntime lines (the 125 AndroidRuntime matches
+are uiautomator's own runtime-init chatter). **Rig left:** emulator zcode-a16 UP
+(PIN-less, wifi ENABLED, screenshot protection OFF), relay gen2 ALIVE (arms STICKY:
+stale intercepts pauseGoal, the effort arm answers -32009, the compact arm ACTIVE —
+the next compact under null/startNow routing runs the marker pair again), app pid
+3587 CONNECTED connectionId=relay-5 on the synthetic conversation (the goal-pause
+banner live in the banner slot; strip "Queued (2) · paused"; the composer holds
+`/goal pause` — rig residue, not a finding), logcat running → /tmp/p23/logcat.log.
