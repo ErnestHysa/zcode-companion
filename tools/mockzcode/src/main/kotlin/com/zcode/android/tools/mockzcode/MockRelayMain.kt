@@ -259,7 +259,7 @@ fun main() {
             "summaryTitle" to JsonPrimitive("Ship it"),
             "timeUsedSeconds" to JsonPrimitive(120),
             "activeRunStartedAtMs" to JsonPrimitive(System.currentTimeMillis()),
-            "status" to JsonPrimitive("verifying"),
+            "status" to JsonPrimitive(System.getenv("MOCK_GOAL_STATUS") ?: "verifying"),
             "iteration" to JsonPrimitive(3),
             "verifications" to JsonArray(listOf(
                 JsonObject(mapOf("iteration" to JsonPrimitive(1), "outcome" to JsonPrimitive("pass"), "at" to JsonPrimitive(System.currentTimeMillis() - 200_000), "anchorRowId" to JsonPrimitive(12))),

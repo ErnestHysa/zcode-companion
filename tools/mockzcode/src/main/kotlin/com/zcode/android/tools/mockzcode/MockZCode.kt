@@ -432,6 +432,8 @@ class MockZCode(
          *  delivery:"queue") and answers accepted; a second compact while one is
          *  queued throws compactOperationLock (the dispatcher's typed rejected ack). */
         @Volatile var compactCommandArm: Boolean = false
+        /** Pass-23: the passthrough compact's completed:manual marker delay (tests shrink it). */
+        @Volatile var compactRunMarkerDelayMs: Long = 900L
         /** Pending open interaction stamped into snapshots + state (Q11 shape). */
         @Volatile var pendingPermission: PendingPermission? = null
         @Volatile var pendingUserInput: PendingUserInput? = null
@@ -2984,7 +2986,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                             }))
                             return
                         }
-                        CompactDecision.Passthrough -> Unit
+                        CompactDecision.Passthrough -> pushCompactRunMarkers()
                     }
                 }
                 // Pass-19 rig arm (debt #20, MOCK_QUEUE_GHOST_APPEND_MS): the desktop's
@@ -4032,6 +4034,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
      * honestly). Mutates nothing; sticky while armed.
      */
     internal fun casStaleAck(type: String, env: JsonObject?): JsonObject? {
+        if (type == "compact") return null // Y.B.3: the compact command is NOT CAS-guarded — never interceptable
         val types = script.casStaleTypes ?: return null
         if (type !in types) return null
         println("MOCK: $type forced stale (MOCK_CAS_STALE_TYPES) -> proto.staleRevision")
@@ -4096,6 +4099,38 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             return CompactDecision.Queued(qid, routing)
         }
         return CompactDecision.Passthrough
+    }
+
+    /**
+     * Pass-23 rig arm (Part-Y leftover, the MOCK_COMPACT_COMMAND passthrough half):
+     * the host's vMc under startNow/null routing RUNS the compaction turn — the
+     * desktop conversation renders the manual projectMarker pair. The mock scripts
+     * the same pair live: `running:manual` immediately, `completed:manual` (token
+     * counts) after [Script.compactRunMarkerDelayMs]; both join the authoritative
+     * appendedRows tail (the debt-#17 contract) so a resync snapshot keeps them.
+     * The generic accepted ack still answers (the caller falls through).
+     */
+    internal fun pushCompactRunMarkers() {
+        val sessionId = routingSessionId()
+        val running = schemaRow(sessionId, nextRowId(), RowKind.TIMELINE_MARKER, "running:manual")
+        synchronized(appendedRows) { appendedRows[running["rowId"].toString()] = running }
+        pushRowAppended(sessionId, running)
+        println("MOCK: compact RAN NOW (MOCK_COMPACT_COMMAND passthrough) -> running:manual marker")
+        scope.launch {
+            kotlinx.coroutines.delay(script.compactRunMarkerDelayMs)
+            val completed = schemaRow(sessionId, nextRowId(), RowKind.TIMELINE_MARKER, "completed:manual", extra = buildJsonObject {
+                put("marker", buildJsonObject {
+                    put("type", JsonPrimitive("compact"))
+                    put("origin", JsonPrimitive("manual"))
+                    put("status", JsonPrimitive("completed"))
+                    put("tokensBefore", JsonPrimitive(164_000))
+                    put("tokensAfter", JsonPrimitive(38_500))
+                })
+            })
+            synchronized(appendedRows) { appendedRows[completed["rowId"].toString()] = completed }
+            pushRowAppended(sessionId, completed)
+            println("MOCK: compact completed:manual marker pushed (MOCK_COMPACT_COMMAND passthrough)")
+        }
     }
 
     /** One-shot: schedule the silent ghost append — the queue moves server-side
