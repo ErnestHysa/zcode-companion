@@ -6136,3 +6136,206 @@ no sticky refusal arms; the type line live), app pid 5305 on the synthetic
 conversation in plan mode (chip "plan · …"; the turn STOP button live from the
 probe-two reply; composer empty; the B2 attachment REMOVED before the gen2 legs),
 logcat running → /tmp/p25/logcat.log.
+
+---
+
+# Part AC — pass 26 (APPENDED 2026-11-15, ~20:02): the slash-parser plane's REMAINING branches driven live — the /plan dispatch's non-accepted arm receipted first-series (stale switchCollaborationMode → verbatim warning + zero sendText — the branch fires honestly, NO defect), the /goal+attachment parser-null fallthrough receipted (RAW slash text as a plain sendText WITH the attachment — the AB.F leftover closed), the unknown-command raw-sendText contract receipted (/review probe rides verbatim), and the /target alias + /goal replace strip + /goal pause ACCEPTED happy path + /compress alias all receipted first-series — FIVE consecutive zero-new-rows pass
+
+> **Pass 26 of the pass-0 series** (solo, the canonical discovery prompt; STEP 1 empty —
+> backlog 8/8 — so the pass executed STEP 2 on Part AB's coverage-honesty list and then
+> extended into the slash-parser table's remaining undriven branches at HEAD
+> `SlashCommandParser.kt:39-72`, which Part AB's record had not fully enumerated:
+> the /target alias rides the SAME goal branches (:60), /goal replace strips its
+> prefix (:69), /goal resume|pause are CAS-guarded dispatches with only their STALE
+> faces ever receipted, /compress is a compact alias (:57), and ANY other /name falls
+> through to a RAW plain sendText (:60)). **ZERO new rows in ANY table** (fifth
+> consecutive). **ZERO mock changes** — the rig needed nothing new (the generic
+> command path answers accepted for pauseGoal/compact; the pass-20 stale arm covered
+> leg 1's switchCollaborationMode refusal).
+>
+> **Verification stamp:** 2026-11-15 19:36 → 20:01, GLM-5.3-Flash in ZCode, everything
+> local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…` UNCHANGED — no DELTA.
+> Rig: the pass-25 emulator REUSED (third consecutive inherited survival; healthy, wifi
+> ENABLED, screenshot protection OFF by persistence); the pass-25 relay gen2 pkilled BY
+> NAME before any leg; `install -r` restarted the app (pid 5305 → 7090) and the stored
+> endpoint survived — the app reconnected to gen1 on relaunch WITHOUT re-pairing (hello
+> + subscribe + the poll drum). APK byte-identical (`ad449d7d…`/`530ba4ff`, vc53/1.3.2
+> — assembleDebug up-to-date, zero app changes). TWO generations: gen1
+> `mock-p26-gen1-8d8c23` (launcher `/tmp/p26/relay-g1.sh`, 19:39→19:47, arms exactly
+> `MOCK_ROWS=12` + `MOCK_CAS_STALE_TYPES=switchCollaborationMode` for leg 1) and gen2
+> `mock-p26-gen2-166cfa` (`/tmp/p26/relay-g2.sh`, 19:47→end, arms `MOCK_ROWS=12` only —
+> clean). logcat fresh `-T 1` → /tmp/p26/logcat.log.
+
+## AC.A0 — rig learnings
+
+1. **The banner-✕ / send-FAB region trap (AB.A0.5) re-manifested and cost one send:**
+   the leg-1 refusal banner was still up when leg 3's first send tap fired at
+   (960,1450) — the tap hit the banner's ✕ (rendered (810,1220) → device ≈(948,1464)),
+   the banner dismissed, the draft survived, no wire. Recipe sharpened: **before every
+   send tap, CHECK FOR A BANNER in the pre-send screenshot** — its ✕ shares the FAB's
+   region and the layout re-flows on dismissal; the leg-3 re-tap one banner-cycle later
+   landed cleanly.
+2. **The attachment dropdown's Photo row is IME-CLIPPED when the keyboard is open:**
+   with the IME up, the + dropdown renders at its anchored height and Photo sits under
+   the IME's top edge (partially visible). BACK with the dropdown open closes the
+   DROPDOWN (not the IME — the pass-23 BACK-pops-route note generalizes to dropdowns);
+   BACK with the dropdown closed dismisses the IME; with NO IME the composer drops to
+   full height (Add attachment at (123,2184) per the AX — honest at full-height layout)
+   and the dropdown renders ALL rows (Mention a file / Sketch / Photo / Attach a file /
+   Take photo / Dictate). Recipe: neutral-tap → BACK (IME) → + → Photo.
+3. **The keycode table correction: keyevent 43 is O, not T** (the first-leg attempt
+   produced `/oarget`): keycode = 29 + (letter − A); T = 48, R = 46, C = 31, G = 35,
+   P = 44 (the pass-24/25 examples stand). Also: tapping (540,1900) while the IME is
+   open and the composer sits higher types an IME key (`g`) — tap the composer's
+   ACTUAL rendered position, never a remembered coordinate.
+4. **The photo picker keeps tile selections across dismiss/reopen:** a tap in the
+   Dismiss region while the grid is up can SELECT a tile — this pass's picker session
+   staged TWO chips (a stray `86.png (229.1 KB)` + the target `119.png (74 B)`, the
+   MediaStore-id rename pattern pass 25 recorded). Remove stray chips before the send
+   (the per-chip Remove affordance at the chip row's right edge).
+5. **The content query projection is single-column per flag on API 36:**
+   `content query --uri … --projection _id,_display_name` fails with "Invalid column";
+   query bare and grep the Row output for `_display_name`/`_id` (rig-p26.png = id 119).
+6. The residue-draft `install -r` survival folklore continues, but the pass-25 plan
+   draft did NOT survive this pass's install (the composer was EMPTY at first open) —
+   the draft row survived earlier passes as the same-process restore; a fresh process
+   restored nothing because the pass-25 draft was cleared post-leg. No pattern change,
+   just the observed variance.
+
+## AC.B — the static pins (phone HEAD `dd8fca48`, zero app changes)
+
+The parser table at `SlashCommandParser.kt:39-72` (read whole this pass — Part AB's
+AB.B.2 enumeration was incomplete):
+- `/plan` + attachments → UnsupportedPlanShortcut (:47-53, receipted pass 25); bare →
+  PlanShortcut (receipted pass 25 accepted; **non-accepted arm receipted THIS pass**,
+  AC.C).
+- `if (attachmentCount > 0) return null` (:55) — the attachment gate BEFORE the
+  compact/goal branches: `/goal|/target` and `/compact|/compress` with attachments all
+  fall through to the RAW plain sendText (**receipted THIS pass**, AC.E, on the /goal
+  spelling).
+- `/compact|/compress` → Compact (:57-59; /compact receipted passes 22-23; **the
+  /compress ALIAS receipted THIS pass**, AC.D.4).
+- `commandName != "goal" && commandName != "target"` → null (:60) — **the /target
+  alias rides the goal branches; receipted THIS pass** (AC.D.2). ANY other /name →
+  null → RAW plain sendText (**receipted THIS pass**, AC.D.1 — the "同名 CLI 命令优先"
+  contract, first live leg).
+- bare `/goal|/target` → EmptyGoal; `clear|show` → UnsupportedGoal (pass 25); `resume`
+  /`pause` → ResumeGoal/PauseGoal CAS-guarded dispatches (:64-65 — STALE faces
+  receipted pass 23; **the pause ACCEPTED happy path receipted THIS pass**, AC.D.3);
+  `replace <x>` strips the prefix (:69, **receipted THIS pass**, AC.D.2b); other words
+  → SendGoal (pass 25's accidental leg).
+
+## AC.C — gen1, leg 1: the /plan dispatch's non-accepted arm (19:43)
+
+`MOCK_CAS_STALE_TYPES=switchCollaborationMode` armed; the chip read "yolo · …" (the
+gen1 seed echo re-asserted over the pass-25 plan chip — AB.A0.4 again). Composer
+cleared → `/plan probe stale arm` typed exactly (keyevent 76 + 44 recipe) → Send →
+relay: **exactly ONE command** (`MOCK: command type=switchCollaborationMode` +
+`MOCK: switchCollaborationMode forced stale (MOCK_CAS_STALE_TYPES) ->
+proto.staleRevision`, id=23) and **ZERO sendText**. UI: the red banner **"Could not
+switch to plan mode — the plan shortcut was not sent."** verbatim (s03) with the ✕
+affordance; the draft PRESERVED in the composer; the chip UNCHANGED ("yolo · …").
+DB arbiter: `switchCollaborationMode | FAILED_STALE | stale | proto.staleRevision |
+{"mode":"plan"}` — the pass-21 stale shape, now via the PlanShortcut dispatch entry
+point (ConversationViewModel.kt:494-503's else branch; `Ports.kt:669-678` maps the
+stale ack to `SendOutcome.STALE` without throwing, so the else fires cleanly).
+**WORKING receipt — the branch fires honestly: no sendText after a failed mode
+switch, no defect.** (Part AB's AB.F had classified this arm "covered by the pass-21/
+23 stale arms" — those receipted the CHIP-switch and queue-verb faces; the dispatch's
+own copy was a different branch and was never wire-arbitered until this leg.)
+
+## AC.D — gen2, the parser-table's remaining branch spellings (19:49-19:56)
+
+1. **The unknown-command contract (`/review probe`):** composer → Send → relay
+   `command type=sendText` (id=10) ONLY; timeline YOU row **`/review probe` verbatim**
+   + AGENT "synthetic reply to: /review probe" (s06); composer cleared; DB
+   `sendText | ACKED | {"text":"/review probe"}`. **First-series receipt: any
+   non-goal/plan/compact/compress /name is NEVER consumed phone-side — the raw slash
+   text rides plain sendText (the desktop's same-name-CLI-wins contract).**
+2. **The /target alias (+ the replace strip):** `/target set the objective` → Send →
+   `command type=sendGoalCommand`; DB `sendGoalCommand | ACKED |
+   {"text":"set the objective","displayText":"/target set the objective"}` — the alias
+   dispatches SendGoal identically to /goal (the :60 branch), objective carried,
+   displayText verbatim; the composer cleared, no banner (the silent-accepted goal
+   side, pass 25's shape). Then `/goal replace write the docs` → DB `sendGoalCommand |
+   ACKED | {"text":"write the docs","displayText":"/goal replace write the docs"}` —
+   **the replace prefix STRIPPED from the objective (:69), displayText verbatim** —
+   the strip branch's first live leg. (The alias rides the SAME sendSlash→port.sendGoal
+   path as /goal — no new trio-less surface; F-P20-A's census unchanged.)
+3. **The /goal pause ACCEPTED happy path:** `/goal pause` → `command type=pauseGoal`;
+   DB `pauseGoal | ACKED | accepted | {}` — **the CAS-guarded goal command's first
+   ACCEPTED receipt** (pass 23 only ever drove its stale face). Composer cleared, no
+   refusal banner (the GOAL_PAUSE_REFUSED face correctly did not fire). Mock-fidelity
+   note: the generic accepted ack carries no goal-state delta, so the goal banner (if
+   any) does not flip — the receipt is the dispatch shape (wire + outbox), the same
+   arbiter pass 25 used for the goal set.
+4. **The /compress alias:** `/compress` → `command type=compact`; DB
+   `compact | ACKED | accepted | {}`; composer cleared (acceptedClearsDraft=true).
+   Mock-fidelity note: gen2 ran WITHOUT MOCK_COMPACT_COMMAND, so the ack is the
+   generic accepted (no self-queue, no ⟳/✓ marker pair) — the pass-22/23 receipts own
+   the compact command's host-faithful behavior; this receipt owns the ALIAS dispatch
+   (the :57 branch spelling), which was the undriven bit.
+
+## AC.E — gen2, leg 2: the /goal + attachment parser-null fallthrough (19:58-20:00)
+
+The AB.F leftover. rig-p26.png (74 B, 8×8) pushed + MEDIA_SCANNER_SCAN_FILE →
+MediaStore id 119 → the picker's second open listed it (the AB.A0.3 stale-grid
+recipe; a stray `86.png` selection from the dismiss-tap mishap removed first, chip
+`✓ 119.png (74 B)` staged) → `/goal finish the report` typed → Send → relay
+**`command type=sendText` ONLY (zero sendGoalCommand)**; timeline YOU row
+**`/goal finish the report` RAW as a plain message** + AGENT echo (s24); composer
+cleared; DB `sendText | ACKED | {"text":"/goal finish the report","attachments":
+[{"ref":"att-up-e2fd9c66-…","fileNam…` — **the attachment gate (:55) forces the
+parser null and the RAW slash text rides plain sendText WITH the attachment; the
+goal plane correctly does NOT fire.** WORKING receipt — the fallthrough branch is
+wire-arbitered; Part AB's AB.F list is fully closed.
+
+## AC.F — ledger arithmetic + coverage honesty
+
+Open F: **27** (unchanged) · Open G: **21 + 3 standing** (unchanged) · Open smalls:
+**14** (+1 watch +1 rig) (unchanged) · Mock debts: **0 open work-debts** (no mock
+changes this pass). **FIFTH consecutive zero-new-rows pass.** The slash-parser table
+at HEAD is now receipted on EVERY dispatch branch and every alias spelling except
+`/goal resume`'s ACCEPTED happy path (the pause half receipted AC.D.3; the resume
+half is the same port with a mirrored refusal copy — the family's faces are
+exhaustively receipted, only that one verb's accepted ack is untyped on the rig) and
+`/compact|/compress`-with-attachments (the same :55 gate as /goal — the gate
+mechanism is receipted, only the spelling differs). The Part-AB coverage-honesty
+list is fully closed (the fallthrough AC.E, the non-accepted arm AC.C).
+
+### Coverage honesty (what pass 26 did NOT drive)
+
+The effort-sheet planes (standing — N-BQ-1's fix-round re-drive gate), the queue
+verbs, the automations/runs planes (not armed by design), TalkBack/Dictate/widget/
+Take-photo/shade-ACTION (standing stops), the desktop's own goal-confirmation dialog
+(desktop-only), the F-P3-A-gated card planes, and the turn-streaming plane (receipted
+passes 13/16/17). The attachment-send happy path's THUMBNAIL render was not
+re-exercised (the payload carried the attachment; pass 5 owns the render receipt).
+
+## Pass-26 verification stamp
+
+Pass 26 completed 2026-11-15 ~20:01; TWO relay generations (gen1
+`mock-p26-gen1-8d8c23` 19:39→19:47 arms `MOCK_ROWS=12` +
+`MOCK_CAS_STALE_TYPES=switchCollaborationMode`; gen2 `mock-p26-gen2-166cfa` 19:47→end
+arms `MOCK_ROWS=12` only; launchers `/tmp/p26/relay-g1.sh` + `/tmp/p26/relay-g2.sh`);
+emulator REUSED from pass 25 (third consecutive inherited survival; no restarts
+in-life); `install -r` of the byte-identical APK (`ad449d7d…`/`530ba4ff`, vc53/1.3.2)
+→ pid 7090 (install-restart; auto-reconnect to gen1 on relaunch, no re-pairing;
+screenshot protection OFF by persistence). Receipts: shots `/tmp/p26/shots/s00-s24`
+(s02 the leg-1 draft, s03 the "Could not switch" banner, s06 the /review probe YOU/
+AGENT pair, s08 the target leg post-send, s23 the staged-chip + /goal draft, s24 the
+fallthrough YOU/AGENT pair); AX dumps `/tmp/p26/w/w0-w25`; relay logs
+`/tmp/p26/relay-g1.log` (16 v4call lines) + `/tmp/p26/relay-g2.log` (26 v4call lines,
+every command type-attributed by the `9b4a48d9` line); DB pulls `/tmp/p26/db/zcode.db{,-wal}`
+— the pass's complete outbox census (7 rows, in order): switchCollaborationMode
+FAILED_STALE/stale · sendText `/review probe` ACKED · sendGoalCommand `/target set
+the objective` ACKED · sendGoalCommand `write the docs` (replace stripped) ACKED ·
+pauseGoal ACKED/{} · compact ACKED/{} · sendText `/goal finish the report`
++attachments ACKED. Mock changes: NONE. APK byte-identical (zero app changes).
+Desktop 3.18.1 / `ec475e6e…` unchanged (STEP 0). gateway.drop for the pass: **0**
+(both generations); zero app-pid FATAL/AndroidRuntime lines. **Rig left:** emulator
+zcode-a16 UP (healthy, wifi ENABLED, screenshot protection OFF), relay gen2 ALIVE
+(clean arms, no sticky refusals — safe to inherit), app pid 7090 on the synthetic
+conversation (chip "yolo · …", composer in the followup-queue state with the
+"Queued" badge, timeline bottomed on the leg-2 exchange), logcat running →
+/tmp/p26/logcat.log.

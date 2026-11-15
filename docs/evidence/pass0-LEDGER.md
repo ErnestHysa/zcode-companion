@@ -42,72 +42,59 @@ P2-first, exit gates, per-row Accept criteria).
 ## Campaign state (update every pass)
 
 > **🛑 SATURATED (2026-11-14, pass 12) — EXTENDED (pass 13) — EXHAUSTED (pass 14) —
-> passes 15–18 drove the coverage/mock-debt gated compositions — pass 19 drove the
-> G50 cross-side CAS-mismatch face (debt #20, F-P19-A) — pass 20 swept the send-ack
-> taxonomy (F-P20-A) — pass 21 closed Part W's coverage list — pass 22 drove Part X's
-> coverage-honesty leftovers live — pass 23 drove Part Y's three leftovers — pass 24
-> fully adjudicated the EFFORT-SHEET plane — pass 25 drove Part AA's one mis-filed
-> coverage-honesty item and then the SLASH-PARSER PLANE (ZERO new rows, fourth
-> consecutive):** the followup sheet's no-op guard receipted WORKING
-> (`Phase9Components.kt:237-238`, the Part-AA item was receipt-adjacent but never
-> wire-arbitered — `setFollowupMode` 0 before → 0 after, dialog closes, chip
-> unchanged); all THREE local slash-refusal faces receipted first-series (EmptyGoal /
-> UnsupportedGoal / UnsupportedPlanShortcut — verbatim banners, zero wire, draft AND
-> attachment preserved each); the /plan dispatch's wire shape receipted end-to-end
-> (switchCollaborationMode + sendText both ACKED, the genuine config delta seq=2
-> applied + watchdog re-arm, the chip flip plan↔yolo in BOTH directions); the goal
-> SET via slash side-receipted (the THIRD goal entry point rides the same trio-less
-> port — F-P20-A stamps 4, surface census only); ONE rig commit `9b4a48d9` (the mock
-> now prints `command type=` beside every sendConversationCommandV4 — gen1's lone
-> unattributed accepted frame id=27 stays a logged curiosity, not reproducible on
-> two gen2 re-drives). RIG learnings: the AX-radio artifact class confirmed
-> both-ways (checked=false on a FILLED radio + ~200px bounds drift — the screenshot
-> is the only arbiter for this app's dialog radios), the composer input drop is
-> KEYCODE-ADJACENT (the char after keyevent-76 drops; first letter via its keycode:
-> 35=G, 44=P), the photo picker needs scan+reopen for a fresh push, the gen2 echo
-> re-asserts over the local mode on relay swaps. No app changes (APK byte-identical).
-> **gateway.drop: 0.** FOURTH consecutive zero-new-rows pass; roadmap decision
-> remains ERNEST'S.
+> passes 15–18 drove the coverage/mock-debt gated compositions — passes 19–25 the
+> send-ack/guard/effort/slash-parser planes — pass 26 drove the slash-parser table's
+> REMAINING branches at HEAD (ZERO new rows, FIFTH consecutive):** the /plan
+> dispatch's non-accepted arm receipted first-series (stale switchCollaborationMode →
+> the verbatim "Could not switch to plan mode" warning + draft preserved + ZERO
+> sendText — the else branch fires honestly, NO defect; Part AB's "covered by the
+> pass-21/23 stale arms" was adjudication-adjacent, the dispatch's own branch was
+> never wire-arbitered); the /goal+attachment parser-null fallthrough receipted (the
+> :55 gate → RAW slash text as a plain sendText WITH the attachment, zero
+> sendGoalCommand — the AB.F leftover CLOSED); the unknown-command contract receipted
+> (/review probe → plain sendText verbatim, "同名 CLI 命令优先" first live leg); the
+> /target alias (SendGoal, objective carried), the /goal replace strip (:69, prefix
+> stripped), the /goal pause ACCEPTED happy path (first ACKED pauseGoal — pass 23
+> only had its stale face), and the /compress alias (compact ACKED) all first-series.
+> ZERO mock changes — the rig needed nothing new. No app changes (APK
+> byte-identical). **gateway.drop: 0.** FIFTH consecutive zero-new-rows pass; roadmap
+> decision remains ERNEST'S.
 
 - Report: `docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md` —
-  Parts A–Z + AA + AB = passes 0–25. **Latest: pass 25 (Part AB, 2026-11-15 ~19:40).**
-- Repo HEAD at last pass: `15b44eac` (pass 24's docs commit) + pass 25's `9b4a48d9`
-  (fix(mock) observability) on top (main; zero app changes — the APK is
-  byte-identical).
+  Parts A–Z + AA + AB + AC = passes 0–26. **Latest: pass 26 (Part AC, 2026-11-15 ~20:02).**
+- Repo HEAD at last pass: `dd8fca48` (pass 25's docs commit; main; zero app or mock
+  changes this pass — the APK is byte-identical).
   APK of record: sha256 `ad449d7d…` / md5 `530ba4ff…`, versionCode 53 / 1.3.2
-  (byte-identical across the whole series; the pass-23 build was up-to-date —
-  zero app changes, mock-only edits).
+  (byte-identical across the whole series).
 - Desktop of record: **/Applications/ZCode.app 3.18.1.10376, asar sha256 `ec475e6e…`,
-  383,832,025 B** (re-verified at pass-23 STEP 0 — UNCHANGED, no DELTA).
+  383,832,025 B** (re-verified at pass-26 STEP 0 — UNCHANGED, no DELTA).
 - Open rows: **27 F (25 defects + 2 obs) + 21 G + 3 standing + 14 smalls (+1 watch
-  +1 rig)** — pass 25 opened NOTHING and stamped F-P20-A 4 (the slash-set goal
-  surface). Part AA's coverage-honesty list is FULLY closed (the followup no-op ✓
-  WORKING, AB.C) and the slash-parser plane is now receipted end-to-end (all three
-  local refusal faces + the /plan dispatch + the goal-set-via-slash).
-- Backlog: **8/8 DONE**; the discovery surface stays empty — pass 25 drove Part AA's
-  mis-filed coverage-honesty item + the slash-parser plane (the last conversation-
-  input family with zero live legs); what remains is standing stops + N-BQ-1's
-  fix-round re-drive + F-P3-A-gated planes + the undriven parser corners (the
-  `/goal`-with-attachments plain-sendText fallthrough, the non-accepted switchMode
-  arm — both code-pinned AB.B, low value).
-  **The mock-debt list has 0 open work-debts (pass 25's `9b4a48d9` was an
-  observability commit, opened+closed in-pass, the established pattern).**
-- Rig left by pass 25: emulator `zcode-a16` UP (REUSED from pass 24 — the SECOND
+  +1 rig)** — pass 26 opened NOTHING and stamped NOTHING (all seven legs receipted
+  WORKING; the /target alias rides the SAME sendSlash→port.sendGoal path as /goal —
+  no new trio-less surface, F-P20-A's census unchanged). Part AB's coverage-honesty
+  list is FULLY closed (the fallthrough AC.E, the non-accepted arm AC.C) and the
+  slash-parser table at HEAD is receipted on EVERY dispatch branch + alias spelling
+  except `/goal resume`'s ACCEPTED half (the pause half done AC.D.3) and the
+  `/compact|/compress`-with-attachments spelling (same :55 gate as /goal).
+- Backlog: **8/8 DONE**; the discovery surface stays empty — pass 26 drove the
+  slash-parser table's remaining branches; what remains is standing stops +
+  N-BQ-1's fix-round re-drive + F-P3-A-gated planes.
+  **The mock-debt list has 0 open work-debts (no mock changes this pass).**
+- Rig left by pass 26: emulator `zcode-a16` UP (REUSED from pass 25 — the THIRD
   consecutive inherited survival; healthy, wifi ENABLED, screenshot protection OFF
-  by persistence), relay gen2 ALIVE (pid 23162, nonce `mock-p25-gen2-10f1bf`, arms
-  `MOCK_ROWS=12` only — NO sticky refusal arms; the jar carries the `9b4a48d9`
-  command-type log line, live: `MOCK: command type=sendText` etc.), app pid 5305
-  **CONNECTED** across both gen swaps (auto-reconnect, no re-pairing) on the
-  synthetic conversation in PLAN mode (chip "plan · …"; the turn STOP button live
-  from the probe-two reply; composer empty; the B2 attachment removed before the
-  gen2 legs), logcat running → /tmp/p25/logcat.log. Launchers `/tmp/p25/relay-g1.sh`
-  + `/tmp/p25/relay-g2.sh`. New rig learnings in Part AB.A0: the AX-radio artifact
-  class confirmed BOTH-WAYS (checked=false on a filled radio + ~200px bounds drift
-  — the screenshot is the only arbiter for this app's dialog radios); the composer
-  input drop is KEYCODE-ADJACENT (the char after keyevent-76 drops; first letter
-  via its keycode); the photo picker needs scan+reopen for a fresh push (and the
-  scanner renames by MediaStore id); the gen2 echo re-asserts over the local mode
-  on relay swaps.
+  by persistence), relay gen2 ALIVE (nonce `mock-p26-gen2-166cfa`, arms `MOCK_ROWS=12`
+  only — NO sticky refusal arms, safe to inherit), app pid 7090 (an `install -r`
+  restart of the pass-25 pid 5305; auto-reconnect, no re-pairing) on the synthetic
+  conversation (chip "yolo · …", composer in the followup-queue state with the
+  "Queued" badge, timeline bottomed on the leg-2 exchange), logcat running →
+  /tmp/p26/logcat.log. Launchers `/tmp/p26/relay-g1.sh` + `/tmp/p26/relay-g2.sh`.
+  New rig learnings in Part AC.A0: the banner-✕/FAB region trap re-manifested (check
+  for a banner before EVERY send tap — its ✕ shares the FAB's region); the + dropdown's
+  Photo row is IME-clipped (BACK with the dropdown open closes the DROPDOWN; close the
+  IME first, then the full dropdown renders at full height); keycode = 29+(letter−A)
+  (43=O not T; T=48, R=46, C=31); the picker keeps tile selections across
+  dismiss/reopen (remove stray chips before the send); `content query --projection`
+  is single-column per flag on API 36.
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -462,6 +449,25 @@ delta …`). Nothing pushed.
 
 ## History
 
+- 2026-11-15 (pass 26) — Part AC executed on Part AB's coverage-honesty list + the
+  slash-parser table's remaining branches: ZERO new rows (FIFTH consecutive); ZERO
+  mock changes. Seven legs receipted first-series, all WORKING: the /plan dispatch's
+  non-accepted arm (stale switchCollaborationMode → verbatim warning + draft
+  preserved + zero sendText — ConversationViewModel.kt:494-503's else fires honestly;
+  mapOutcome Ports.kt:669-678 maps the stale ack without throwing), the /goal+
+  attachment fallthrough (the :55 gate → RAW plain sendText WITH the attachment,
+  zero sendGoalCommand — the AB.F leftover closed), the unknown-command contract
+  (/review probe → plain sendText verbatim), the /target alias (SendGoal, objective
+  carried — same port as /goal, no F-P20-A census change), the /goal replace strip
+  (:69, prefix stripped), the /goal pause ACCEPTED happy path (first ACKED pauseGoal,
+  pass 23 had only its stale face), and the /compress alias (compact ACKED, generic
+  accepted without the pass-22/23 marker arm). Rig learnings: the banner-✕/FAB trap
+  re-manifested (one send eaten — check for a banner before every send tap); the +
+  dropdown's Photo row is IME-clipped (close the IME first; BACK with the dropdown
+  open closes the DROPDOWN); keycode=29+(letter−A) (43=O, T=48, R=46, C=31); the
+  picker keeps tile selections across dismiss/reopen (a stray 86.png chip removed);
+  `content query --projection` single-column per flag on API 36. Rig left UP (gen2
+  clean arms, app pid 7090 on the conversation, logcat → /tmp/p26/logcat.log).
 - 2026-11-15 (pass 25) — Part AB executed on Part AA's coverage-honesty list + the
   slash-parser plane: ZERO new rows (FOURTH consecutive); F-P20-A stamps 4 (the
   slash-set goal entry point — the accidental-but-valid `/goal status` leg became the
