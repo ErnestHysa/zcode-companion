@@ -274,6 +274,20 @@ class MockZCode(
         @Volatile var codingPlanResetUsedAtMs: Long? = null
         /** Which window the scripted use consumed (the desktop's FIVE_HOUR | WEEK pair). */
         @Volatile var codingPlanResetUsedType: String = "FIVE_HOUR"
+        /** Mock-fidelity debt #15 (pass 15): markCodingPlanResetHistoryRead CLEARS the
+         *  unread cursor (the desktop's server behavior) — every later status read
+         *  then serves hasUnreadHistory=false instead of the sticky true. */
+        @Volatile var codingPlanResetHistoryRead: Boolean = false
+        /** Mock-fidelity debt #16 (pass 15): how far a scripted reset drops the used
+         *  window's entitlement meter (usage points; the desktop's server recomputes,
+         *  the rig just needs the self-consistent direction). */
+        var resetMeterDelta: Int = 10
+        /** Pass-15 (debt #10's queue variant): seed ONE pre-consume copy of the
+         *  scripted status into the queue at use time, so the FIRST post-use
+         *  getCodingPlanResetStatus is not yet confirmed and the phone's
+         *  reconciliation retry ladder (useRetryDelaysMs 250/750/1500) fires before
+         *  the fallback path confirms. */
+        @Volatile var resetQueuePreOnUse: Boolean = false
         /** Pass-29 rig arm (MOCK_USAGE): the G20 coding-plan usage charts
          *  (getCodingPlanUsageSnapshot result; null = typed fault → charts hidden). */
         var codingPlanUsageSnapshot: JsonObject? = null
@@ -4905,14 +4919,23 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
         val params = argAsObject(arg) ?: JsonObject(emptyMap())
         script.usageStatsCalls.add(Triple(name ?: "?", argKind, params))
         when (name) {
-            "getEntitlementSnapshot" -> scriptableObject(id, script.usageEntitlement, "getEntitlementSnapshot")
+            "getEntitlementSnapshot" -> scriptableObject(id, script.usageEntitlement?.let { confirmedEntitlement(it) }, "getEntitlementSnapshot")
             "getCodingPlanResetStatus" -> {
                 val queued = synchronized(script.resetStatusQueue) { script.resetStatusQueue.removeFirstOrNull() }
-                val base = queued ?: script.codingPlanResetStatus
-                // Debt #10 (pass 14): after a scripted use, every status read serves
-                // the CONFIRMED progression — the phone's post-use reconciliation
-                // polls until usedAt lands, then breaks COMPLETED.
-                scriptableObject(id, base?.let { confirmedResetStatus(it) }, "getCodingPlanResetStatus")
+                if (queued != null) {
+                    // Pass-15 (debt #10's queue variant): queue entries are EXPLICITLY
+                    // scripted shapes — serve as-is with only the #15 unread fold, so a
+                    // queued pre-consume entry genuinely delays the confirmation (the
+                    // phone's reconciliation retry ladder fires) instead of being
+                    // confirmed in place by the pass-14 fold.
+                    println("MOCK: reset status served from QUEUE")
+                    scriptableObject(id, foldUnread(queued), "getCodingPlanResetStatus")
+                } else {
+                    // Debt #10 (pass 14): after a scripted use, every status read serves
+                    // the CONFIRMED progression — the phone's post-use reconciliation
+                    // polls until usedAt lands, then breaks COMPLETED.
+                    scriptableObject(id, script.codingPlanResetStatus?.let { confirmedResetStatus(it) }, "getCodingPlanResetStatus")
+                }
             }
             "requestCodingPlanResetOpportunity" ->
                 scriptableObject(id, script.resetOpportunity, "requestCodingPlanResetOpportunity")
@@ -4924,12 +4947,28 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
                 val params = argAsObject(arg)
                 script.codingPlanResetUsedType = params?.strOrNull("resetType") ?: "FIVE_HOUR"
                 script.codingPlanResetUsedAtMs = System.currentTimeMillis()
+                // Pass-15 (debt #10's queue variant): arm the ladder leg — one
+                // pre-consume entry lands in the queue exactly between the use and
+                // the confirmation reads.
+                if (script.resetQueuePreOnUse) {
+                    script.codingPlanResetStatus?.let {
+                        synchronized(script.resetStatusQueue) { script.resetStatusQueue.addLast(JsonObject(it)) }
+                    }
+                    println("MOCK: reset ladder armed (one pre-consume status queued at use)")
+                }
                 scriptableObject(id, script.resetUse, "useCodingPlanReset")
             }
             "getCodingPlanUsageSnapshot" ->
                 scriptableObject(id, script.codingPlanUsageSnapshot, "getCodingPlanUsageSnapshot")
-            "markCodingPlanResetHistoryRead" ->
+            "markCodingPlanResetHistoryRead" -> {
+                // Debt #15 (pass 15): the mark CLEARS the unread cursor (the desktop's
+                // server) — every later status read serves the cleared cursor; the
+                // pass-14-declared arrival counter goes live too.
+                script.codingPlanResetHistoryRead = true
+                script.resetHistoryReadCount.incrementAndGet()
+                println("MOCK: reset history read (hasUnreadHistory cleared)")
                 respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Undefined)
+            }
             else -> respondError(id, "fault.mock.unknownMethod:usage-stats-${name ?: "?"}")
         }
     }
@@ -4940,17 +4979,64 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
      * opportunity (the array emptied — "no NEW opportunity" keeps the completion
      * sticky), the usedAt history, and the shared unread cursor — the exact shape
      * applyResetStatus's completion rule needs (core/ui CodingPlanQuotaResetState).
+     * Debt #15 (pass 15): the unread cursor folds against the history-read flag —
+     * markCodingPlanResetHistoryRead clears it (the desktop's server), so every
+     * later read serves hasUnreadHistory=false instead of the sticky true.
      */
+    /** Debt #15 (pass 15): the unread-cursor fold — a history-read mark clears the
+     *  cursor on EVERY served shape (queued or fallback); otherwise the entry's own
+     *  value stands. */
+    private fun foldUnread(base: JsonObject): JsonObject {
+        val unread = if (script.codingPlanResetHistoryRead) false
+        else (base["hasUnreadHistory"] as? JsonPrimitive)?.content?.toBooleanStrictOrNull() ?: false
+        val own = (base["hasUnreadHistory"] as? JsonPrimitive)?.content?.toBooleanStrictOrNull() ?: false
+        return if (unread == own) base else JsonObject(base + mapOf("hasUnreadHistory" to JsonPrimitive(unread)))
+    }
+
     private fun confirmedResetStatus(base: JsonObject): JsonObject {
-        val usedAt = script.codingPlanResetUsedAtMs ?: return base
+        val usedAt = script.codingPlanResetUsedAtMs ?: return foldUnread(base)
         val week = script.codingPlanResetUsedType == "WEEK"
         val dropKey = if (week) "availableWeekResets" else "availableFiveHourResets"
         val histKey = if (week) "latestWeekResetHistory" else "latestFiveHourResetHistory"
+        val unread = !script.codingPlanResetHistoryRead
         return JsonObject(base + mapOf(
             dropKey to JsonArray(emptyList()),
             histKey to buildJsonObject { put("usedAt", JsonPrimitive(usedAt)) },
-            "hasUnreadHistory" to JsonPrimitive(true),
+            "hasUnreadHistory" to JsonPrimitive(unread),
         ))
+    }
+
+    /**
+     * Debt #16 (pass 15): after a scripted use, later getEntitlementSnapshot reads
+     * serve the used window's limit entry mutated by [Script.resetMeterDelta]
+     * (usage dropped, remaining/percentage recomputed so the meter stays
+     * self-consistent; clamped at 0). The other window's entry is untouched. The
+     * base fixture stays pristine — the mutation derives from the per-process use
+     * stamp, so every relay generation re-seeds its own baseline.
+     */
+    private fun confirmedEntitlement(base: JsonObject): JsonObject {
+        val usedAt = script.codingPlanResetUsedAtMs ?: return base
+        val week = script.codingPlanResetUsedType == "WEEK"
+        val wantUnit = if (week) 6 else 5
+        val quota = base["quota"] as? JsonObject ?: return base
+        val limits = quota["limits"] as? JsonArray ?: return base
+        var mutated = false
+        val newLimits = JsonArray(limits.map { el ->
+            val limit = el as? JsonObject ?: return@map el
+            val unit = (limit["unit"] as? JsonPrimitive)?.content?.toIntOrNull()
+            if (unit != wantUnit) return@map el
+            mutated = true
+            val usage = ((limit["usage"] as? JsonPrimitive)?.content?.toIntOrNull() ?: 0)
+                .coerceAtLeast(script.resetMeterDelta) - script.resetMeterDelta
+            JsonObject(limit + mapOf(
+                "usage" to JsonPrimitive(usage),
+                "remaining" to JsonPrimitive((100 - usage).coerceAtLeast(0)),
+                "percentage" to JsonPrimitive(usage),
+            ))
+        })
+        if (!mutated) return base
+        println("MOCK: entitlement meters mutated (${if (week) "WEEK/unit-6" else "FIVE_HOUR/unit-5"} after use at $usedAt)")
+        return JsonObject(base + mapOf("quota" to JsonObject(quota + mapOf("limits" to newLimits))))
     }
 
     /** Debt #10 seam: drive the usage-stats handler directly (the reset legs). */

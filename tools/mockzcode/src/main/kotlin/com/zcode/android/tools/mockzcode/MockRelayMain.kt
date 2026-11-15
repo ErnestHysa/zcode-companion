@@ -919,6 +919,15 @@ fun main() {
     if (System.getenv("MOCK_RESET_SUCCESS") != null) {
         mock.script.resetUse = JsonObject(mapOf("used" to JsonPrimitive(true)))
     }
+    // Pass-15 (debt #10's queue variant): MOCK_RESET_QUEUE_PRE=1 arms the
+    // reconciliation RETRY-LADDER leg — one pre-consume status is queued at use
+    // time, so the first post-use getCodingPlanResetStatus is NOT yet confirmed
+    // (the phone's useRetryDelaysMs 250/750/1500 ladder fires) and the completion
+    // lands on a later poll via the fallback's confirmed fold. Combine with
+    // MOCK_RESET_SUCCESS (both arms together).
+    if (System.getenv("MOCK_RESET_QUEUE_PRE") != null) {
+        mock.script.resetQueuePreOnUse = true
+    }
     // Pass-29 rig arm: MOCK_AUTOMATION_RUNS=1 seeds one COMPLETED historical run for
     // auto-rig-1 so runAutomationNow scripts `queued` (instead of fault.mock.unscripted)
     // and the Automations History sheet lists the run rows.
