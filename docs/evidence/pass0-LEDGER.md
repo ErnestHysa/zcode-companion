@@ -42,44 +42,46 @@ P2-first, exit gates, per-row Accept criteria).
 ## Campaign state (update every pass)
 
 > **🛑 SATURATED (2026-11-14, pass 12) — EXTENDED (pass 13) — EXHAUSTED (pass 14) —
-> pass 15 drove the coverage-honesty leftovers (STEP 2), ZERO new rows:** the Usage
-> range chips closed no-defect (the chips drive, the wire carries the range, the rig
-> fixture is range-invariant), the reset re-drive receipted the fixed mock (meter
-> 49%→59% + the unread clear), the reconciliation RETRY LADDER got its first
-> in-series receipt (3 reads; the delay measures from the previous read's
-> completion), the disconnect filter receipted at limit=1, and **F-P13-A NARROWED**
-> (stay-open survives ANY kill — deltas fully live, zero gateway.drop in the whole
-> pass; the drop is close/detach-CYCLE-bound, code-pinned to
-> ConnectionHub.kt:1027 → RecoveryCoordinator.kt:130). Mock debts #15/#16 CLOSED
-> (`66844fbe`) + the reset-statusQueue variant armed and driven. F-P9-A stamps 3
-> (third trigger variant: relay ABSENT at cold-start connect → 10s TIMEOUT →
-> silent wedge; force-stop escape). Roadmap decision remains ERNEST'S.
+> pass 15 drove the coverage-honesty leftovers — pass 16 drove the open MOCK-DEBT
+> axis + the P.A2 watch-note, ZERO new rows:** mock debts #2 (seeded file content)
+> and #5 (human option labels) CLOSED and driven live (`9b6e2292`) — the Files
+> content read got its FIRST working receipt and the labels' wire shape is pinned
+> (their UI render stays F-P3-A-gated); **debt #4's effort half adjudicated
+> CLOSED-by-prior-work** (the "echo re-asserts max" shape does not reproduce at
+> HEAD — chip "max"→"high" stable; the routing half stays MOCK_QUEUE-gated);
+> **debt #17 opened** (the mock's resync snapshot omits delta-pushed effect rows).
+> The automations editor's authoring planes receipted WORKING end-to-end
+> (updateAutomation + createAutomation, first in-series). **The REAL frames>0
+> stall driven (new MOCK_TURN_STALL arm): the watchdog ladder receipted with a
+> genuine backlog and the heal is SILENT in both windows — the P.A2 watch-note
+> CLOSED** (no surface fires when the data is fully delivered). Zero gateway.drop
+> for the whole pass. Roadmap decision remains ERNEST'S.
 
 - Report: `docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md` —
-  Parts A–R = passes 0–15. **Latest: pass 15 (Part R, 2026-11-15 ~01:10).**
-- Repo HEAD at last pass: `66844fbe` (main; the pass-15 `fix(mock)` commit;
+  Parts A–S = passes 0–16. **Latest: pass 16 (Part S, 2026-11-15 ~02:00).**
+- Repo HEAD at last pass: `9b6e2292` (main; the pass-16 `fix(mock)` commit;
   docs to follow). APK of record: sha256 `ad449d7d…` / md5 `530ba4ff…`, versionCode
-  53 / 1.3.2 (byte-identical across the whole series; re-verified at the pass-15
-  build — zero app changes).
+  53 / 1.3.2 (byte-identical across the whole series; re-verified at the pass-16
+  install — zero app changes).
 - Desktop of record: **/Applications/ZCode.app 3.18.1.10376, asar sha256 `ec475e6e…`,
-  383,832,025 B** (re-verified at pass-15 STEP 0 — UNCHANGED, no DELTA).
+  383,832,025 B** (re-verified at pass-16 STEP 0 — UNCHANGED, no DELTA).
 - Open rows: **25 F (23 defects + 2 obs) + 21 G + 3 standing + 13 smalls (+1 watch
-  +1 rig)** — pass 15 added NO rows. Stamps: F-P9-A 3 (relay-absent-at-connect
-  wedge), F-P13-A 3 (+ the cycle-boundary narrowing — its fix shape stands for the
-  close/detach path only). First-series WORKING receipts: the Usage range chips
-  (R.A1), the reset meters/unread under the fixed mock (R.A2), the reconciliation
-  retry ladder (R.A3), the stay-open recovery resilience (R.A4).
-- Backlog: **8/8 DONE**; the pass-14 coverage-honesty DRIVEABLE leftovers are
-  driven (pass 15); what remains there is standing stops + F-P3-A-gated planes.
-- Rig left by pass 15: emulator `zcode-a16` UP (cold-booted 00:44 after the
-  overnight gap — the pass-14 rig was found DOWN; PIN-less, wifi ENABLED per
-  O.A0.1, screenshot protection OFF by persistence), relay gen4 ALIVE (nonce
-  `mock-p15-gen4-j2k3l4`; its delta arms SPENT — both anchored deltas consumed),
-  app pid 4209 paired + CONNECTED on the Synthetic-task conversation (timeline
-  fully rendered post-recovery), logcat running → /tmp/p15/logcat.log. Launchers
-  `/tmp/p15/relay-g*.sh`. New rig learnings in Part R.A0: expect a BOOT after any
-  gap (the rig doesn't survive the night); the SystemUI ANR dialog blocks
-  uiautomator entirely (dismiss via the dump-derived Wait center).
+  +1 rig)** — pass 16 added NO rows. Stamps: N-BK-2 2 (the chip clip re-receipted
+  live, s06/s07). First-series WORKING receipts: the Files content read (S.A1),
+  the effort echo (S.A2), the automations update+create authoring (S.A3), the
+  frames>0 stall ladder + the silent-heal adjudication (S.A4).
+- Backlog: **8/8 DONE**; what remains is standing stops + F-P3-A-gated planes +
+  the MOCK_QUEUE/MOCK_AUTOMATION_RUNS-gated compositions only.
+- Rig left by pass 16: emulator `zcode-a16` UP (cold-booted 01:13; PIN-less,
+  wifi ENABLED, screenshot protection OFF by persistence), relay gen3 ALIVE
+  (nonce `mock-p16-gen3-s6t7u8`; TURN_STALL — the arm loops journal-only rows
+  every 1.5 s, bounded by the 512-frame opLog; pkill to end), app pid 4192 paired
+  + CONNECTED on the Synthetic-task conversation, logcat running →
+  /tmp/p16/logcat.log. Live connection ON (the pass-14 pref persisted). Launchers
+  `/tmp/p16/relay-g*.sh`. New rig learnings in Part S.A0: the IME auto-period
+  bites numeric dialog fields (strip the trailing dot); a dialog's bottom buttons
+  are unreachable while the IME is open (close it, re-dump, THEN tap); the home
+  Approvals icon deep-links into the pending interaction's conversation.
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -223,7 +225,7 @@ RETRACTED/REFUTED/ABSORBED: 7.
 | N-BM-3 | 3 | OPEN | Context-sheet → Terminal route: Attach is a silent no-op (main terminal screen attach works — sheet variant dead) | Part J |
 | N-BK-1 (app half) | 2 | OPEN | History silent-empty needs a "No commits yet" empty state (rig half FIXED `2b12fc46`) | Part G.A2.3 |
 | N-BJ-1 | 4 | OPEN | attachment image previews have NO size/aspect cap (1×1 seed renders ~300×220dp) | Part F.A2, K.A3 (+ pass-11 stamp: s04 unchanged) |
-| N-BK-2 | 4 | OPEN | automation Edit sheet schedule chips clip at phone width | Part G.A2 |
+| N-BK-2 | 4 | OPEN | automation Edit sheet schedule chips clip at phone width | Part G.A2 (+ pass-16 stamp 2: "Weekda"/"Cr" clipped live under the arms, S.A3) |
 | N-BL-1 | 4 | OPEN | workflow-run Run/Manage icon buttons subtree-unlabeled (TalkBack silence) — ONLY unlabeled clickables found | Part H.A2 |
 | N-BM-2 | 4 | OPEN | child-session view: generic title, skeleton-forever on unscripted children | Part J |
 | K-small-1 | 4 | OPEN | checkpoint empty state says "create one" with NO create affordance (verb unconsumed) | Part K.A2 |
@@ -241,10 +243,10 @@ RETRACTED/REFUTED/ABSORBED: 7.
 ## Mock-fidelity debts (rig, not app)
 
 1. Accepts ANY interactionId — add the unknown-id typed error arm (unblocks honest-failure faces).
-2. `fault.file.notFound` on seeded `readTextFile` (listing-only seeds).
+2. ~~`fault.file.notFound` on seeded `readTextFile` (listing-only seeds)~~ **CLOSED pass 16** (`9b6e2292`): seedWorkspaceFiles seeds default content for EVERY path (explicit fileText keeps precedence); the main.rs open receipted live (S.A1).
 3. Snapshot doesn't list the once-per-connection PUSHED interaction → rows sweep legitimately STALEs it.
-4. Static session-config echo re-asserts the effort chip ("max" after `setThoughtLevel`) — pass 12: it ALSO fights the follow-up state in two places at once (queue-strip Guide chip selected vs config chip "followup · queue" after a Guide tap).
-5. Raw optionId labels (`allowOnce`) instead of human labels (desktop sends `label: c.name`).
+4. ~~Static session-config echo re-asserts the effort chip~~ **effort half CLOSED pass 16 (S.A2 — does not reproduce at HEAD; the G3 merges + thoughtLevelConfig mutation fixed it in earlier mock work; chip "max"→"high" stable 8s+)** — the ROUTING half stands: the composer delivery picker (Guide tap) fires no wire verb and the pass-12 fight needs the MOCK_QUEUE strip composition.
+5. ~~Raw optionId labels (`allowOnce`) instead of human labels (desktop sends `label: c.name`)~~ **CLOSED pass 16** (`9b6e2292`): options now carry `label: "Allow once"/"Allow always"/"Deny"` (unknown ids verbatim), self-tested; the on-device RENDER is F-P3-A-gated (both compositions starved — S.A2).
 6. Push arm is CONVERSATION-SUBSCRIBE-anchored (recipe: reconnect with conversation open, lock inside the arming window).
 7. `MOCK_REMOTE_DOWN_MS` / `MOCK_MD_FILE` arms exist but were never driven (gen2 append-after-exec bug). (Driven pass 9.)
 8. **The automations plane needs `MOCK_OFFPEAK=1` ALONGSIDE `MOCK_AUTOMATIONS=1`** — without it the app's `off-peak-task.list` faults (`fault.mock.unscripted:offPeakTaskList`) and home renders the "This feature isn't available" face (pass-10 receipt; the launcher /tmp/p10/relay-g1.sh carries the fix).
@@ -256,6 +258,7 @@ RETRACTED/REFUTED/ABSORBED: 7.
 14. **(pass 13, RIG)** the API-36 emulator NAT: after a server-side abrupt socket close (the disconnect arm), the emulator's IPv4-mapped-IPv6 path blackholes NEW app flows (SYN-SENT hangs) while pure-IPv4 device flows (`nc -z 10.0.2.2`) still succeed — recovery = full emulator restart. Not an app defect (the same stack connected 10+ times before). **Pass-14 addendum: it is PROBABILISTIC — pass 14's pass-start pkill armed it once (one dead AUTHENTICATING, Q.A0.1) and six later abrupt-close swaps recovered normally.**
 15. ~~**(pass 14)** `markCodingPlanResetHistoryRead` acks but never clears `hasUnreadHistory`~~ **CLOSED pass 15** (`66844fbe`): the mark now CLEARS the unread cursor on every later status read (the desktop's server behavior); the pass-14-declared arrival counter went live. Live-verified (relay "reset history read" line, R.A2).
 16. ~~**(pass 14)** the scripted reset doesn't mutate the entitlement meters~~ **CLOSED pass 15** (`66844fbe`): a stamped use mutates the used window's limit entry (delta 10, clamped; remaining/percentage recomputed) on later getEntitlementSnapshot reads. Live-verified: Weekly 49%→59% beside the completion note (R.A2, s05).
+17. **(pass 16)** the mock's resync SNAPSHOT omits delta-pushed effect rows — `pushRowDelta` rows live only in the resync opLog, never in the snapshot builder's row source — so after a force-resync (the watchdog's escalate) pushed rows VANISH from the timeline (the app renders the authoritative snapshot faithfully; the desktop's server would include its own pushed rows). Receipted live (S.A4).
 
 ## DISCOVERY BACKLOG (tick when the findings are appended as rows)
 
@@ -421,6 +424,19 @@ delta …`). Nothing pushed.
 
 ## History
 
+- 2026-11-15 (pass 16) — Part S executed on the open MOCK-DEBT axis + the P.A2
+  watch-note: ZERO new rows; mock debts #2/#5 CLOSED (`9b6e2292`, self-tests 7/7
+  + suite 162/0) with the Files content read's FIRST working receipt (main.rs,
+  14 seeded lines) and the labels' wire shape pinned (UI render F-P3-A-gated);
+  debt #4's effort half CLOSED-by-prior-work (chip "max"→"high" stable; the
+  routing half stays MOCK_QUEUE-gated); debt #17 opened (the resync snapshot
+  omits pushed effect rows). The automations editor receipted WORKING end-to-end
+  (updateAutomation 02:00→03:30 + createAutomation "RigProbe", first in-series);
+  N-BK-2 stamps 2. The REAL frames>0 stall driven (MOCK_TURN_STALL arm): the
+  attach-recovery replayed seq 3..6, the watchdog re-kicked at 90.1s, the heal
+  SILENT in both windows — P.A2's watch-note CLOSED (no surface fires when data
+  is fully delivered). Zero gateway.drop for the pass. Rig left UP (gen3
+  TURN_STALL looping, app on the conversation, logcat → /tmp/p16/logcat.log).
 - 2026-11-15 (pass 15) — Part R executed on the STEP-2 coverage-honesty axis
   (both named axes saturated): ZERO new rows; FOUR first-series WORKING receipts
   (the Usage range chips' first drive — no defect, the range enum is
