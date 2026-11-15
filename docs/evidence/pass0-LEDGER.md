@@ -44,48 +44,56 @@ P2-first, exit gates, per-row Accept criteria).
 > **🛑 SATURATED (2026-11-14, pass 12) — EXTENDED (pass 13) — EXHAUSTED (pass 14) —
 > passes 15–18 drove the coverage/mock-debt gated compositions — pass 19 drove the
 > G50 cross-side CAS-mismatch face on a NEW desktop-faithful mock arm (debt #20),
-> opening F-P19-A:** the pass-18 matrix stood (G49/G50 one-shot values all
-> wire-receipted; the mock-debt list adjudicated) and Part U's LAST undriven
-> driveable item — "the G50 dialog's cross-side CAS-mismatch face … the mock has no
-> mismatch arm" — fell to this pass: the host's held-queue CAS is pinned from the
-> shipped bundle (`applyHeldQueueDisposition` set-equality → ack
-> `{status:"failed", reasonCode:"guard.heldQueueConfirmationStale", message:"paused
-> queue changed after send confirmation opened"}`; the desktop renderer treats that
-> reasonCode as **confirmationRequired** — it RE-OPENS the dialog with fresh ids),
-> the phone's face is receipted live end-to-end (the generic refusal ERROR notice,
-> draft preserved, zero mutations, outbox FAILED_TERMINAL) — **the divergence rowed
-> as F-P19-A (P3).** Mock debt **#20 OPENED+CLOSED** (`0a037a60` —
-> `MOCK_QUEUE_GHOST_APPEND_MS`: the CAS + the one-shot SILENT ghost append;
-> self-tests 7/7, suite 179/0/0). **gateway.drop for the pass: 0.** Roadmap
-> decision remains ERNEST'S.
+> opening F-P19-A — pass 20 swept the REST of the send-ack taxonomy and drove its
+> driveable halves, opening F-P20-A:** the host's `sendGoalCommand` handler passes
+> the payload's held-queue trio through the SAME `applyHeldQueueDisposition` gate
+> as sendText (zcode.cjs `SMc`→`n9e`→`Vqe`; absent → `heldQueueDispositionRequired`
+> failed-ack; the desktop UI pre-gates — ZERO renderer references to the
+> reasonCode), but the phone's goal payload is `{text, displayText}` only and
+> neither goal surface has a choice-mode gate or a distinct face → **F-P20-A (P3,
+> same guard family as F-P19-A)**, receipted live end-to-end (sheet Set goal →
+> wire → ERROR notice → outbox `FAILED_TERMINAL/heldQueueDispositionRequired` with
+> the payloadJson PROVING the missing trio). The stale face class receipted
+> first-series and adjudicated **NO-DEFECT** (phone: typed honest WARNING
+> "Queue changed on the desktop — please try again" + outbox `FAILED_STALE`;
+> desktop: silent `recoverFromStaleAuthority` self-heal — truthful copy both
+> sides). Mock arm **#21 OPENED+CLOSED** (`642616ef` — the goal half of the #20
+> admission envelope + `MOCK_CAS_STALE_TYPES`; self-tests 8/8, suite 187/0/0).
+> **gateway.drop for the pass: 0.** The taxonomy sweep is CLOSED (guard.* →
+> F-P19-A; heldQueueDispositionRequired → F-P20-A; the stale trio → no row).
+> Roadmap decision remains ERNEST'S.
 
 - Report: `docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md` —
-  Parts A–V = passes 0–19. **Latest: pass 19 (Part V, 2026-11-15 ~07:00).**
-- Repo HEAD at last pass: `0a037a60` (main; the pass-19 `fix(mock)` debt #20).
+  Parts A–W = passes 0–20. **Latest: pass 20 (Part W, 2026-11-15 ~08:10).**
+- Repo HEAD at last pass: `642616ef` (main; the pass-20 `fix(mock)` arms).
   APK of record: sha256 `ad449d7d…` / md5 `530ba4ff…`, versionCode 53 / 1.3.2
-  (byte-identical across the whole series; the pass-19 build was up-to-date —
+  (byte-identical across the whole series; the pass-20 build was up-to-date —
   zero app changes).
 - Desktop of record: **/Applications/ZCode.app 3.18.1.10376, asar sha256 `ec475e6e…`,
-  383,832,025 B** (re-verified at pass-19 STEP 0 — UNCHANGED, no DELTA).
-- Open rows: **26 F (24 defects + 2 obs) + 21 G + 3 standing + 13 smalls (+1 watch
-  +1 rig)** — pass 19 added F-P19-A. First-series receipts: the held-queue CAS ok
-  leg, the CAS MISMATCH leg (wire → notice → outbox FAILED_TERMINAL).
-- Backlog: **8/8 DONE**; Part U's coverage-honesty list is fully receipted or
-  adjudicated (the CAS-mismatch face was the last driveable item); what remains is
-  standing stops + F-P3-A-gated planes + fix-round re-drives — **the discovery
-  surface stays empty; the mock-debt list has 0 open work-debts (#20 opened+closed
+  383,832,025 B** (re-verified at pass-20 STEP 0 — UNCHANGED, no DELTA).
+- Open rows: **27 F (25 defects + 2 obs) + 21 G + 3 standing + 13 smalls (+1 watch
+  +1 rig)** — pass 20 added F-P20-A. First-series receipts: the goal-refusal leg
+  (payloadJson WITHOUT the trio → FAILED_TERMINAL/heldQueueDispositionRequired),
+  the stale leg (typed WARNING → FAILED_STALE/proto.staleRevision; NO-DEFECT).
+- Backlog: **8/8 DONE**; Part V's coverage-honesty list fell to pass 20's own axis
+  (the send-ack taxonomy sweep — now CLOSED: guard.* → F-P19-A,
+  heldQueueDispositionRequired → F-P20-A, the stale trio → NO-DEFECT); what remains
+  is standing stops + F-P3-A-gated planes + fix-round re-drives — **the discovery
+  surface stays empty; the mock-debt list has 0 open work-debts (#21 opened+closed
   in-pass).**
-- Rig left by pass 19: emulator `zcode-a16` UP (PIN-less, wifi ENABLED, screenshot
-  protection OFF by persistence), relay gen1 ALIVE (nonce `mock-p19-gen1-7a9b2c`;
-  arms SPENT — both CAS legs consumed, the ghost fired, INPUT_ROUTING=choice +
-  the CAS arm sticky; pkill to end), app pid 9546 **CONNECTED on relay-1** on the
-  synthetic conversation (timeline: "p19casA" user row + synthetic reply; draft
-  `p19casB` preserved in the composer; strip "Queued (2) · paused"), logcat
-  running → /tmp/p19/logcat.log. Launcher `/tmp/p19/relay-g1.sh`. New rig
-  learning in Part V.A0: Kotlin backtick test names reject `:` (whole test
-  compile fails with INVALID_CHARACTERS); the home automations card's
-  "isn't available" face is the EXPECTED shape under any launcher without
-  MOCK_AUTOMATIONS (V.A0.2 — do not re-hunt).
+- Rig left by pass 20: emulator `zcode-a16` UP (COLD-BOOTED this pass; PIN-less,
+  wifi ENABLED, screenshot protection OFF by persistence), relay gen1 ALIVE (nonce
+  `mock-p20-gen1-3f8d1a`; arms SPENT — the goal leg consumed, INPUT_ROUTING=choice
+  + CAS arm + CAS_STALE=editQueueItem sticky; pkill to end), app pid 3904
+  **CONNECTED on relay-1** on the synthetic conversation (stale notice face live in
+  the banner slot; strip "Queued (2) · paused"; the composer holds the typing-flake
+  garbage draft — rig residue, not a finding), logcat running → /tmp/p20/logcat.log.
+  Launcher `/tmp/p20/relay-g1.sh`. New rig learnings in Part W.A0: the input-text
+  drop is SLASH-ADJACENT (`/` own-chunk + KEYCODE_G=35 workaround; keyevent 77 = `@`,
+  keyevent 61 = TAB); dialog tap truth varied this pass — the DUMP bounds were the
+  working source for the Set-goal dialog and the queue-row Edit while shot-derived
+  taps no-op'd (rendered screenshots are DOWNSCALED — pixel coords off them are
+  ~17% wrong); the goal-refusal notice PERSISTS (no auto-timeout).
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -104,6 +112,7 @@ bodies after 3.14.3 — the census IS the changelog.
 | ID | P | Status | Mechanism (one line) | Fix shape | Depends on | Evidence | Stamps |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | F-P19-A | 3 | OPEN (NEW pass 19) | the G50 CAS-mismatch face is desktop-divergent: on `guard.heldQueueConfirmationStale` (host ack `{status:"failed", …}` — set-equality CAS via `applyHeldQueueDisposition`) the desktop RE-OPENS the held-queue confirmation with fresh ids (renderer `confirmationRequired`, re-reads `queue.items`, no error surfaced); the phone maps the failed ack to the generic refusal ERROR notice ("The desktop refused the send — see diagnostics", `ConversationViewModel.kt:542-548`) — reasonCode undifferentiated, no re-confirmation loop exists (grep receipt) | handle the typed reasonCode → re-open the disposition dialog with re-read ids (desktop parity) or minimally a distinct notice; pins: the guard.* grep + the V.C static shapes (outbox FAILED_TERMINAL + preserved draft) | — | Part V.B–V.E | 1 |
+| F-P20-A | 3 | OPEN (NEW pass 20) | the phone's goal sends are structurally refused under the desktop's choice admission: the host's `sendGoalCommand` handler passes the payload's `heldQueueDisposition`/`expectedHeldQueueItemIds` through the SAME `applyHeldQueueDisposition` gate as sendText (zcode.cjs `SMc`→`n9e`→`Vqe`; absent → `heldQueueDispositionRequired` failed-ack; the desktop UI pre-gates via the confirmation dialog — ZERO renderer references to the reasonCode), but the phone's goal payload is `{text, displayText}` only (`CommandCoordinator.kt:220-224`, commented "not CAS-guarded") and NEITHER goal surface (`/goal` slash `ConversationViewModel.kt:463-468`, sheet Set goal `:601-613`/`SessionContextSheet.kt:209`) has a choice-mode gate or a distinct face — generic goal-refusal notice only ("The goal update was refused by the desktop."), manual recovery | gate the goal surfaces on the composer's choice-state computation (G50 dialog or a typed "paused queue is holding sends" notice), or carry the trio from a goal confirmation; minimally a distinct notice keyed on the reasonCode; pins: W.B handler chain + W.C payload/surface pins + the leg-1 outbox row (payloadJson WITHOUT the trio = the RED shape) | F-P19-A family (same guard) | Part W.B–W.E | 1 |
 | F-P8-A | 2 | OPEN | cold start w/ DIRECT selected: deferred relay `persistEndpoint` rewrites `_endpoint` after resolve — silent abandonment, recovery dropped by `sourceKind` filter, "First sync failed" vs healthy direct, Retry completes it | guard `persistEndpoint` against overwriting a resolved non-relay selection; retry must reconnect the transport the UI shows; pins: Robolectric race harness + "no `hub.switched` without user tap" | — | Part K.A2 | 1 (+F-P9-A sibling mechanism) |
 | F-P9-A | 2 | OPEN | relay killed MID-AUTHENTICATION → transport wedges in AUTHENTICATING permanently: zero sockets, zero ladder, zero logs, 8 min receipted; survives foreground/unlock; NO retry face (cached rows suppress the strip); active-endpoint tap = silent no-op; ONLY escape = cross-endpoint switch (away+back) | AUTHENTICATING watchdog (timeout → RECOVERING) + a stuck-face; pins: Robolectric kill-mid-handshake harness + netstat-zero + "no silent state" assert | — | Part L.A2 | 3 (pass 10: stale-relay variant, M.A3; pass 15: THIRD variant — relay ABSENT at the cold-start connect → 10s TIMEOUT → silent wedge, no ladder/face, force-stop escape; R.A0.3) |
 | F-P9-B | 2 | OPEN (NEW pass 9) | typed disconnected-remote face never renders live: hub logs the error (workspace-bridge-error: remote-disconnected, verbatim errorText) but ConnectionCenter shows the generic offline face — the G67 card (`connection_remote_reconnect`, render condition lastError.messageKey==REMOTE_WORKSPACE_DISCONNECTED, ConnectionCenterScreen.kt:296) NEVER renders → the recovery verb workspace-reconnect-request is UI-unreachable; row snapshot stays stale under the arm | trace hub.connectFailed→lastError dropping the messageKey (SESSION-scope bridge error); pin: live-shape harness asserting the card renders with the arm armed | — | Part L.A2 | 1 |
@@ -138,9 +147,9 @@ bodies after 3.14.3 — the census IS the changelog.
 | F-P4-A | 2 | FIXED (rig) | mock push patch structurally excluded its own interaction | `pushPendingPermission` builds from unfiltered list + patch-content pin — commit `2b12fc46`, 37 mock tests green | — | Part G.A2.2, H.A1 | — |
 | N-BK-1 (rig half) | 2 | FIXED (rig) | git fixtures in wrong field vocabulary (blank paths, +0−0, duplicated tabs, oid-vs-hash) | contract vocabulary rewrite — same commit `2b12fc46` | — | Part G.A2.3, H.A1 | — |
 
-**Open F count: 26** (24 defects + 2 observations; pass 19 added F-P19-A —
-the G50 CAS-mismatch face divergence) · FIXED: 2 (both rig) ·
-RETRACTED/REFUTED/ABSORBED: 7.
+**Open F count: 27** (25 defects + 2 observations; pass 19 added F-P19-A, pass 20
+added F-P20-A — the goal-side trio omission, same guard family) · FIXED: 2 (both
+rig) · RETRACTED/REFUTED/ABSORBED: 7.
 
 ## Current fix-order (consolidates K.D + the carried rows; supersedes every report fix-order)
 
@@ -160,9 +169,11 @@ RETRACTED/REFUTED/ABSORBED: 7.
    (wiring-only hydrate) → 14. **F-P3-C** → 15. **F-P7-A / F-P7-B** → 16. **F-P5-A →
    F-P2-B → F-P0-C → F-P8-B → F-P8-F** → 17. **F-P1-B → F-P1-D** → 18. smalls
    (N-BM-1 → N-BP-1 → N-BM-3 → N-BN-1 → N-BK-1 app half → N-BJ-1 → N-BK-2 → N-BL-1 →
-   N-BM-2 → N-BO-1 → N-BP-2 → K-small-1/2) → 19. **F-P19-A** (pass 19: the G50
-   CAS-mismatch face divergence; small — a typed-reasonCode branch on the existing
-   SendNotice path or the dialog re-open) → 20. parity queue per the G table + the opportunistic list.
+   N-BM-2 → N-BO-1 → N-BP-2 → K-small-1/2) → 19. **F-P19-A + F-P20-A** (passes
+   19/20: the held-queue guard family — F-P19-A the sendText CAS-mismatch face
+   divergence, F-P20-A the goal payload's trio omission; both small — a typed
+   reasonCode branch on the existing SendNotice path / a goal-side gate) →
+   20. parity queue per the G table + the opportunistic list.
    (Part V supersedes P; earlier orders superseded.)
 
 ## G-rows — desktop-vs-phone gaps (parity queue)
@@ -269,6 +280,7 @@ RETRACTED/REFUTED/ABSORBED: 7.
 18. ~~**(pass 17)** the mock never served `inputRouting.mode "choice"` (only startNow/enqueue) — the phone's held-queue CHOICE disposition dialog (G50) was structurally undrivable~~ **CLOSED in the same pass** (`05ba5c18`: the `MOCK_INPUT_ROUTING=<mode>` arm pins the desktop's 5-mode enum `startNow|enqueue|guide|reject|choice` with a STICKY flag that suppresses the send/stop flips — fail-fast on a bad value per H.A0.2; + the sendText trio log line + the clearQueueAndSend server-side honoring). Live receipt: the dialog rendered first-ever and the full trio rode one sendText (T.A1).
 19. ~~**(pass 18)** the mock ignored `requestedDelivery:"queue"` on sendText — the desktop answers `inputAccepted{delivery:"queue"}` and HOLDS the input as a queue item (the bot path marks the task waiting/Queued), but the mock appended user/assistant rows immediately, un-queuing the send and hiding the G49 one-shot "Queue this send" override's whole point~~ **CLOSED in the same pass** (`6846727d`: the sendText arm enqueues `q-rig-N` + `pushQueuePatch` + the routing echo and appends NO rows; composes with the clear disposition — empty→exactly the new item — and keep — grows; self-tests 5/5, suite 172/0/0). **Live receipt U.A1**: trio `keepQueueAndSend + queue + [q-rig-1,q-rig-2]` → q-rig-101 appended → strip 2→3, then `startNow + clearQueueAndSend + [q-rig-1,q-rig-2,q-rig-101]` → strip GONE + immediate rows.
 20. ~~**(pass 19)** the mock honored `heldQueueDisposition` blindly — no held-queue CAS, so the G50 cross-side mismatch face was structurally undrivable~~ **OPENED+CLOSED in the same pass** (`0a037a60`: `MOCK_QUEUE_GHOST_APPEND_MS=<ms>` arms the host-faithful set-equality CAS on trio-bearing sendText — mismatch answers the desktop ack `{status:"failed", reasonCode:"guard.heldQueueConfirmationStale", message:"paused queue changed after send confirmation opened"}` and mutates NOTHING — plus the one-shot SILENT ghost append `<ms>` after the first trio (no patch, no revision bump), the race driver; requires MOCK_QUEUE=1 + MOCK_INPUT_ROUTING=choice; self-tests 7/7, suite 179/0/0). **Live receipt V.D**: CAS-ok leg (accepted, rows appended) → ghost lands silently → CAS-MISMATCH leg → the phone's refusal notice + draft preserved + outbox `FAILED_TERMINAL/guard.heldQueueConfirmationStale` (the DB arbiter).
+21. ~~**(pass 20)** the send-ack taxonomy's driveable faces had no arms — the GOAL half of the admission envelope (a disposition-less sendGoalCommand under choice must answer the host's `heldQueueDispositionRequired` failure ack) and the stale face class (no way to force a `status:"stale"` ack) were structurally undrivable~~ **OPENED+CLOSED in the same pass** (`642616ef`: `heldQueueGoalAdmissionRejection` — the goal half gated on the SAME `heldQueueCasArm` envelope as the sendText CAS, old rigs' shapes unchanged, host-verbatim message; `MOCK_CAS_STALE_TYPES=a,b,c` — listed command types answer `{status:"stale", reasonCode:"proto.staleRevision"}`, sticky, mutates nothing; self-tests `MockZCodePass20RigSelfTest` 8/8, suite **187/0/0**). **Live receipts W.D**: the goal-refusal leg (wire → ERROR notice → outbox `FAILED_TERMINAL/heldQueueDispositionRequired`, payloadJson WITHOUT the trio) and the stale leg (wire → the typed "Queue changed on the desktop" WARNING → outbox `FAILED_STALE/proto.staleRevision`).
 
 ## DISCOVERY BACKLOG (tick when the findings are appended as rows)
 
@@ -434,6 +446,20 @@ delta …`). Nothing pushed.
 
 ## History
 
+- 2026-11-15 (pass 20) — Part W executed on the send-ack TAXONOMY axis: NEW
+  F-P20-A (P3, the goal-side trio omission — same guard family as F-P19-A);
+  the stale face class receipted first-series and adjudicated NO-DEFECT (typed
+  honest WARNING vs the desktop's silent recoverFromStaleAuthority); mock debt
+  #21 OPENED+CLOSED (`642616ef` — the goal half of the #20 admission envelope +
+  MOCK_CAS_STALE_TYPES; self-tests 8/8 + suite 187/0/0); the taxonomy sweep
+  CLOSED (guard.* → F-P19-A, heldQueueDispositionRequired → F-P20-A, the stale
+  trio → no row, everything else generic-failed both sides). Both legs live
+  (wire → face → outbox DB). Rig learnings: the input-text drop is
+  slash-adjacent (`/` own-chunk + KEYCODE 35 workaround; 77=`@`, 61=TAB);
+  dialog tap truth varied (DUMP bounds won twice; rendered-screenshot coords
+  are ~17% off); the goal-refusal notice persists. Rig left UP (gen1 spent,
+  app on the conversation, stale notice live, garbage composer draft = rig
+  residue).
 - 2026-11-15 (pass 19) — Part V executed on Part U's LAST undriven driveable
   coverage item (the G50 cross-side CAS-mismatch face): NEW F-P19-A (P3, the
   desktop-divergent face — desktop re-opens the confirmation with fresh ids,

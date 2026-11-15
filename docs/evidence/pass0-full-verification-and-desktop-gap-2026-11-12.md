@@ -4919,3 +4919,203 @@ ghost fired, INPUT_ROUTING=choice + CAS arm sticky; pkill to end), app pid 9546
 CONNECTED on relay-1 on the synthetic conversation (timeline: p19casA row +
 synthetic reply; draft `p19casB` preserved in the composer; strip "Queued (2) ·
 paused"), logcat running → /tmp/p19/logcat.log.
+
+# Part W — pass 20 (APPENDED 2026-11-15, ~08:10): the send-ack TAXONOMY sweep — the goal half of the host's held-queue admission pinned and driven live (NEW F-P20-A: the phone's goal payload structurally lacks the trio the host REQUIRES under choice), the stale face class receipted first-series (typed + honest, NO-DEFECT), and the taxonomy adjudicated closed (guard.* → F-P19-A; heldQueueDispositionRequired → F-P20-A; the stale trio → typed WARNING, no row)
+
+> **Pass 20 of the pass-0 series** (solo, the canonical discovery prompt; STEP 1 still
+> empty — backlog 8/8 — so the pass opened its own axis: Part V opened F-P19-A on ONE
+> typed reasonCode (`guard.heldQueueConfirmationStale`); this pass swept the REST of
+> the desktop's send-ack taxonomy from the shipped bundle and drove its driveable
+> halves live). **ONE new row: F-P20-A (P3).** Mock arm **#21 OPENED+CLOSED in-pass**
+> (`642616ef` — `MOCK_CAS_STALE_TYPES`, the stale-face arm) + the **GOAL half of the
+> debt-#20 admission envelope** (`heldQueueGoalAdmissionRejection` — a disposition-less
+> sendGoalCommand under choice answers the host-verbatim
+> `heldQueueDispositionRequired` failure ack; same `heldQueueCasArm` gate, old rigs'
+> shapes unchanged; self-tests `MockZCodePass20RigSelfTest` 8/8, mock suite **187/0/0**).
+> First-series receipts: the **goal-refusal leg** (sheet "Set goal" → wire → ERROR
+> notice → outbox `FAILED_TERMINAL/heldQueueDispositionRequired` with the payloadJson
+> PROVING the missing trio) and the **stale leg** (queue-row Edit → wire → the typed
+> "Queue changed on the desktop" WARNING → outbox `FAILED_STALE/proto.staleRevision`).
+>
+> **Verification stamp:** 2026-11-15 07:05 → 07:57, GLM-5.3-Flash in ZCode,
+> everything local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…`
+> UNCHANGED — no DELTA. Rig: COLD BOOT (the inherited emulator was down; the pass-19
+> gen1 relay pkill'd; one SystemUI ANR on first boot — the rig-side class, dismissed
+> Wait). APK byte-identical (`ad449d7d…`/`530ba4ff`, vc53/1.3.2 — zero app changes;
+> 237 tasks up-to-date). ONE generation — gen1 `mock-p20-gen1-3f8d1a` (MOCK_ROWS=12 +
+> MOCK_QUEUE + MOCK_INPUT_ROUTING=choice + MOCK_QUEUE_GHOST_APPEND_MS=4000 [arms the
+> CAS envelope; the ghost itself never fired — no trio send this gen] +
+> MOCK_CAS_STALE_TYPES=editQueueItem; no relay swaps); logcat fresh `-T 1` →
+> /tmp/p20/logcat.log; wifi left ENABLED per the O.A0.1/NAT lesson.
+
+## W.A0 — rig learnings
+
+1. **The `input text` drop is SLASH-ADJACENT** (new precision on the recorded
+   chunk-flake): in five attempts, every chunk-shaped loss sat at the `/`+next-char
+   composition boundary (`/goal` → `/oal` twice, `goal` → `go` once, plus tail
+   interleaves). Workaround that worked: `/` as its OWN single-char chunk, the
+   following letter via KEYEVENT (KEYCODE_G = **35**; 34 is 'F' — cost one attempt),
+   the rest as slash-free chunks. New keycode receipts: **keyevent 77 renders `@` on
+   this GBoard (not `/`); keyevent 61 is TAB (not DPAD_LEFT — it inserted a tab run
+   into the composer).**
+2. **Dialog tap truth is NOT uniformly "screenshot-derived"**: the Set-goal DIALOG
+   refused both shot-derived taps ((693,890) no-op twice) and accepted the
+   DUMP-derived center (811,1041); the queue-row Edit likewise needed dump bounds
+   (760,797). The two sources sit ~110–150 px apart whenever an IME/dialog is up —
+   and the rendered screenshots read through the tool are DOWNSCALED (2340 → ~2000),
+   so pixel coords off them are silently ~17% wrong. Working recipe this pass: dump
+   bounds first, verify the effect in the RELAY LOG, treat screenshot coords as
+   render-relative only.
+3. The goal-refusal ERROR notice PERSISTS (visible 7:53 → 7:55 across screen turns;
+   dismissed only by the ✗ or by the next notice replacing it) — the sendNotice slot
+   is sticky, not auto-timed.
+4. The outbox's stale class has its OWN state: `FAILED_STALE` (vs the refusal class's
+   `FAILED_TERMINAL`) — the DB arbiter distinguishes them.
+
+## W.B — the host side (the GOAL half of the admission), pinned from the shipped bundle (all 3.18.1 / `ec475e6e…`)
+
+- **The goal handler routes through the SAME gate as sendText**: `sendGoalCommand`'s
+  dispatcher (`SMc`) computes `u = getInputRoutingMode(sessionId)`; under
+  `enqueue`/`guide`/active-turn it takes the deferred-queue path (no trio needed),
+  but under **`choice`** it calls `n9e(...)` which passes the PAYLOAD's
+  `heldQueueDisposition` + `expectedHeldQueueItemIds` straight into
+  `applyHeldQueueDisposition` (`Vqe` — the pass-19 body): a missing disposition
+  throws **`V4HeldQueueDispositionRequiredError`**
+  (`reasonCode="heldQueueDispositionRequired"`, message `"held queue requires
+  heldQueueDisposition (clearQueueAndSend | keepQueueAndSend)"`), which the
+  dispatcher's execute-catch maps to `{status:"failed", reasonCode, message}` —
+  the SAME failed-ack shape as the pass-19 CAS mismatch.
+- **The desktop UI pre-gates, so the reasonCode never reaches its renderer**: grep
+  receipt over the renderer chunks — `heldQueueDispositionRequired` has **ZERO
+  references** (the only heldQueue vocabulary is `heldQueueDisposition` ×7 and
+  `heldQueueConfirmationStale` ×4 in `styles-DNV2PY7o.js`); the desktop's goal send,
+  like its text send, goes through the confirmation dialog which SUPPLIES the trio.
+
+## W.C — the phone side, static pins (HEAD `642616ef`, app unchanged)
+
+- **The goal payload structurally lacks the trio**: `sendGoalCommand` builds
+  `{text, displayText}` ONLY (`CommandCoordinator.kt:220-224`) — and the doc comment
+  there says "**not CAS-guarded**", which is true of the CAS set but MISSES the
+  admission gate: the host runs `Vqe` on goals too (W.B). The ack mapping
+  (`:699-712`) lands the failed ack in `Outcome.Failed` — reasonCode carried,
+  **undifferentiated** (same shape as F-P19-A's).
+- **Two goal surfaces, neither gated, both generic-faced**: the `/goal` slash
+  (dispatch `ConversationViewModel.kt:463-468` → `sendSlash`; refusal face
+  "**The goal update was refused by the desktop.**" as WARNING via `sendSlash`'s
+  else-branch `:585`, draft preserved — `acceptedClearsDraft` only on accepted) and
+  the sheet's "Set goal" (`setGoal` `:601-613`, same copy as **ERROR**,
+  `SendNotice.Key.GOAL_REFUSED`; the sheet's affordance rides the same verb per
+  `SessionContextSheet.kt:209`). No choice-mode gate, no dialog, no re-confirmation
+  loop exists on either — while a paused queue + choice admission stands, a phone
+  goal send is STRUCTURALLY unable to succeed.
+- **The stale face class is typed and honest** (the sweep's NO-DEFECT half): every
+  STALE consumer renders distinct copy — switches/model/effort/row-actions
+  "**The session changed on the desktop — try again**" (`:321/:336/:350/:1146`),
+  sendText "**Conversation changed on the desktop — please try again.**" (`:537`),
+  queue verbs "**Queue changed on the desktop — please try again.**"
+  (`:1200-1220`, `queueStaleNotice`).
+
+## W.D — the live legs (gen1 `mock-p20-gen1-3f8d1a`)
+
+- **Leg 1 — the goal-refusal face (07:52:29, 181 ms):** Context sheet → "Set a goal
+  for this session" → the goal dialog (s13; field typed clean WITHOUT the slash —
+  the drop class is slash-adjacent, W.A0.1) → objective `finish the ledger` → Set
+  goal → relay: `MOCK: sendGoalCommand heldQueue admission REFUSED (no
+  heldQueueDisposition under choice) -> heldQueueDispositionRequired (no mutation)`
+  → logcat `v4.call :: sendConversationCommandV4 ok in 181ms` (a failed ack inside a
+  healthy transport) → the conversation renders (s18) the red ERROR banner
+  "**The goal update was refused by the desktop.**", strip unchanged "Queued (2) ·
+  paused", zero mutations. **The DB arbiter** (outbox pull `/tmp/p20/db/`): the row
+  `sendGoalCommand`, payloadJson `{"text":"finish the ledger","displayText":"/goal
+  finish the ledger"}` — **the trio's absence verbatim in the wire payload** —
+  `state=FAILED_TERMINAL, ackStatus=failed, ackReasonCode=heldQueueDispositionRequired,
+  ackMessage="held queue requires heldQueueDisposition (clearQueueAndSend |
+  keepQueueAndSend)"`; the pass-19 rows sit directly below for contrast.
+- **Leg 2 — the stale face, first series (07:56):** queue-row Edit → "Edit queued
+  message" dialog (s21, field pre-filled "queued follow-up one") → Save → relay:
+  `MOCK: editQueueItem forced stale (MOCK_CAS_STALE_TYPES) -> proto.staleRevision`
+  → the banner (s22) "**Queue changed on the desktop — please try again.**" (the
+  typed WARNING replacing the leg-1 notice in the same slot), strip unchanged, no
+  mutation. DB: `editQueueItem | FAILED_STALE | stale | proto.staleRevision`.
+- **The stale class adjudicated NO-DEFECT**: the desktop treats the stale trio
+  (`proto.staleLogEpoch`/`staleRevision`/`staleTarget` — the dispatcher's stale
+  productions, zcode.cjs 0xe43a4e-0xe43d14) with a SILENT self-heal — the renderer's
+  stale set (`Jfn`/`m$` in `styles-DNV2PY7o.js`) triggers
+  `store.recoverFromStaleAuthority()` + `settleCommand` on any stale ack; the phone
+  instead shows the honest typed WARNING and the user retries. Different UX,
+  truthful copy on both sides — parity-acceptable, recorded so the fix rounds don't
+  "fix" it into a row.
+
+## W.E — the row: F-P20-A (P3, NEW)
+
+**The phone's goal sends are structurally refused under the desktop's choice
+admission — payload omits the required trio, no gate, generic face.** The host's
+`sendGoalCommand` handler passes the payload's `heldQueueDisposition`/
+`expectedHeldQueueItemIds` through the SAME `applyHeldQueueDisposition` gate as
+sendText (W.B); under `choice` mode a disposition-less goal is refused
+(`heldQueueDispositionRequired`, failed-ack). The phone's goal payload carries only
+`{text, displayText}` (`CommandCoordinator.kt:220-224`, the comment documenting the
+omission as "not CAS-guarded"), and neither goal surface (`/goal` slash, sheet Set
+goal) has a choice-mode gate or a distinct face — the generic goal-refusal notice is
+all the user gets, with manual recovery (clear/resume the queue via the strip, then
+re-send). Desktop parity: its UI pre-gates both sends through the confirmation
+dialog and its goal payload carries the trio. P3 for the same reasons as F-P19-A
+(rare paused-queue + choice state; honest face; manual recovery). Fix shape: gate
+the goal surfaces on the same choice-state computation the composer uses (render
+the G50 disposition dialog or a typed "a paused queue is holding sends" notice), or
+carry the trio from a goal confirmation; minimally a distinct notice keyed on the
+reasonCode. Pins: W.B's handler chain + W.C's payload/surface pins + the leg-1
+outbox row (the RED shape — payloadJson without the trio).
+
+## W.Q — ledger arithmetic + coverage honesty
+
+Open F: **27** (25 defects + 2 obs; F-P20-A new) · Open G: **21 + 3 standing**
+(unchanged) · Open smalls: 13 (+1 watch +1 rig) (unchanged) · Mock: debt #21
+OPENED+CLOSED (`642616ef` — MOCK_CAS_STALE_TYPES + the goal-admission half of the
+#20 envelope); **0 open work-debts**. First-series receipts: the goal-refusal leg
+(wire → notice → outbox FAILED_TERMINAL + the payloadJson proof), the stale leg
+(wire → notice → outbox FAILED_STALE). The send-ack taxonomy sweep is CLOSED:
+`guard.heldQueueConfirmationStale` → F-P19-A (open); `heldQueueDispositionRequired`
+on goals → F-P20-A (open; zero renderer references = pre-gated desktop); the stale
+trio → typed honest WARNING, NO-DEFECT (W.D); everything else in the ack vocabulary
+is generic-failed both sides (parity).
+
+### Coverage honesty (what pass 20 did NOT drive)
+
+The composer-slash `/goal` variant of the goal-refusal face (the same verb and port
+call as the sheet; its distinct WARNING copy is statically pinned at
+`ConversationViewModel.kt:467` — the live drive lost to the slash-adjacent typing
+flake, W.A0.1); `sendGoal` WITH a trio (nothing on the phone produces one — the
+mock's goal-with-disposition fall-through is untested by any client); the
+`heldQueueDispositionRequired` face on sendText (the phone's dialog always answers
+a trio under choice — unreachable); the desktop's goal-confirmation dialog live
+(desktop-only surface); the stale face on the switch/row-action families (one
+family receipted; the copy is enumerated statically); and every standing stop
+(TalkBack/Dictate/widget/Take-photo/shade-ACTION).
+
+## Pass-20 verification stamp
+
+Pass 20 completed 2026-11-15 ~08:10; ONE relay generation (nonce
+`mock-p20-gen1-3f8d1a`, launcher `/tmp/p20/relay-g1.sh` — no swaps); emulator
+COLD-BOOTED this pass (zcode-a16, `-no-snapshot-load`; first boot carried one
+rig-side SystemUI ANR, dismissed); `install -r` of the byte-identical APK →
+pid 3904; screenshot protection OFF by persistence (captures ~170 KB-class, no
+FLAG_SECURE black); logcat fresh at 07:20 → /tmp/p20/logcat.log. Receipts: shots
+`/tmp/p20/shots/s00–s22` (s13 goal dialog, s18 goal-refusal notice, s21 edit
+dialog, s22 stale notice), AX dumps `/tmp/p20/w/w0–w12`, relay log
+`/tmp/p20/relay-g1.log` (the goal-admission + forced-stale lines + v4calls), DB
+pulls `/tmp/p20/db/zcode.db{,-wal}` + `zcode2.db{,-wal}` (the outbox arbiter: the
+goal row's payloadJson WITHOUT the trio + FAILED_TERMINAL/heldQueueDispositionRequired;
+the edit row FAILED_STALE/proto.staleRevision), build log /tmp/p20-mock-build.log +
+/tmp/p20-apk-build.log (APK byte-identical `ad449d7d…`/`530ba4ff`, vc53/1.3.2 —
+zero app changes; mock jar re-cut at `642616ef`). Desktop 3.18.1 / `ec475e6e…`
+unchanged (STEP 0). Self-tests `MockZCodePass20RigSelfTest` 8/8 + mock suite
+**187/0/0**. gateway.drop for the pass: 0 (no generation swaps, no drops observed).
+Commits: `642616ef` (fix(mock), the goal admission + the stale arm) + the docs
+commit for this part. **Rig left:** emulator zcode-a16 UP (PIN-less, wifi ENABLED,
+screenshot protection OFF), relay gen1 ALIVE (arms SPENT — the goal leg consumed,
+INPUT_ROUTING=choice + CAS arm + CAS_STALE=editQueueItem sticky; pkill to end),
+app pid 3904 CONNECTED on relay-1 on the synthetic conversation (the stale notice
+face live in the banner slot; strip "Queued (2) · paused"; the composer holds the
+typing-flake garbage draft `/goal finish t ledger␉␉␉␉␉␉␉heh` — rig residue, not a
+finding), logcat running → /tmp/p20/logcat.log.
