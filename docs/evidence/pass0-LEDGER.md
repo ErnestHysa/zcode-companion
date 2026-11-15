@@ -45,67 +45,62 @@ P2-first, exit gates, per-row Accept criteria).
 > passes 15–18 drove the coverage/mock-debt gated compositions — pass 19 drove the
 > G50 cross-side CAS-mismatch face (debt #20, F-P19-A) — pass 20 swept the send-ack
 > taxonomy (F-P20-A) — pass 21 closed Part W's coverage list — pass 22 drove Part X's
-> coverage-honesty leftovers live — pass 23 drove Part Y's three leftovers live and
-> the stale-face class stands on SIX typed command families:** setAutoDrain +
-> setFollowupMode receipted on the typed queue-changed warning (gen1 wire → banner →
-> FAILED_STALE payloads); the GOAL pause/resume stale faces receipted on BOTH entry
-> points (slash → sendSlash's generic WARNING, sheet icons → the handlers' generic
-> ERROR bucket — same copy, IDENTICAL red banner render) and ADJUDICATED in-family
-> honest → NO row (the pass-20 standard: honest + retry-anticipating; the resume copy
-> names the stale cause, the pause copy anticipates a retry; the only missing piece
-> vs the switch family is the enumerated STALE branch — a fix-round one-liner per
-> handler, receipts stand as the behavior contract); the effort sheet's MEDIUM level
-> stamped onto N-BQ-1 (same -32009 → generic face + unchanged chip; stamps 2); and
-> the compact startNow/null passthrough receipted END-TO-END on the NEW compact-run
-> marker arm (`d24a32a7`: running:manual → completed:manual with token counts, both
-> riding appendedRows; plus casStaleAck now STRUCTURALLY excludes "compact" and
-> MOCK_GOAL_STATUS arms the goal seed) — no G50 dialog under null routing, accepted,
-> draft cleared, queue untouched, `compact|ACKED|accepted|{}` — FIRST-SERIES live
-> render of a wire-driven manual compact marker pair (`⟳ Compressing context` →
-> `✓ Context compressed 164K → 38.5K tokens`). Self-tests 4/4, suite **198/0/0**.
-> **gateway.drop: 0.** SECOND consecutive zero-new-rows pass; roadmap decision
-> remains ERNEST'S.
+> coverage-honesty leftovers live — pass 23 drove Part Y's three leftovers (the
+> stale-face class stood on SIX typed command families; the compact startNow/null
+> passthrough receipted end-to-end on the new marker arm) — pass 24 drove Part Z's
+> coverage-honesty list and the EFFORT-SHEET PLANE IS NOW FULLY ADJUDICATED
+> (ZERO new rows, third consecutive):** the max→max no-op receipted WORKING (the
+> `Phase9Components.kt:267-268` `if (!selected)` guard short-circuits — zero wire
+> traffic, dialog closes, chip unchanged); the level census ADJUDICATED
+> data-driven-complete (the desktop toolbar knows SIX localized levels
+> low/medium/high/xhigh/max/ultra, the wire schema is a FREE string array, the phone
+> renders the echo verbatim — `low`/`ultra` absence is MOCK-ECHO fidelity, the mock
+> seeds four; inventory note, NO G row); N-BQ-1 stamped 3 (the xhigh radio's first
+> live observation — third level under the same -32009 → generic banner + unchanged
+> chip collapse; DB arbiter: ZERO new outbox rows, setThoughtLevel correctly never
+> rides the command outbox); and BOTH admission-reachability residuals pinned
+> unreachable phone-side (every sendText funnels through send()→routeSendPrompt
+> which threads the trio; port.sendGoal has NO trio params — that omission IS
+> F-P20-A; the reachable host-side races answer guard.* = F-P19-A). No mock changes
+> (the pass-23 arms sufficed). **gateway.drop: 0.** THIRD consecutive zero-new-rows
+> pass; roadmap decision remains ERNEST'S.
 
 - Report: `docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md` —
-  Parts A–Z = passes 0–23. **Latest: pass 23 (Part Z, 2026-11-15 ~18:20).**
-- Repo HEAD at last pass: pass-23 mock commit `d24a32a7` (`fix(mock)` — the compact
-  passthrough markers + the casStaleAck compact guard + MOCK_GOAL_STATUS) + the docs
-  commit on top (main).
+  Parts A–Z + AA = passes 0–24. **Latest: pass 24 (Part AA, 2026-11-15 ~18:45).**
+- Repo HEAD at last pass: `9afdbe02` (the pass-23 docs commit) + pass 24's docs-only
+  record commit on top (main; pass 24 made ZERO mock changes — the pass-23 arms
+  sufficed).
   APK of record: sha256 `ad449d7d…` / md5 `530ba4ff…`, versionCode 53 / 1.3.2
   (byte-identical across the whole series; the pass-23 build was up-to-date —
   zero app changes, mock-only edits).
 - Desktop of record: **/Applications/ZCode.app 3.18.1.10376, asar sha256 `ec475e6e…`,
   383,832,025 B** (re-verified at pass-23 STEP 0 — UNCHANGED, no DELTA).
 - Open rows: **27 F (25 defects + 2 obs) + 21 G + 3 standing + 14 smalls (+1 watch
-  +1 rig)** — pass 23 opened NOTHING and stamped N-BQ-1 2. Part Y's
-  coverage-honesty list is FULLY adjudicated (the four stale-arm verbs ✓ live —
-  six typed families + the goal generic buckets, no row; the compact startNow
-  branch ✓ live on the new marker arm; the effort medium level ✓ N-BQ-1 stamp 2).
-- Backlog: **8/8 DONE**; the discovery surface stays empty — pass 23 drove Part Y's
+  +1 rig)** — pass 24 opened NOTHING and stamped N-BQ-1 3. Part Z's
+  coverage-honesty list is FULLY adjudicated (the max→max no-op ✓ WORKING; the
+  absent-`low` level ✓ data-driven census, mock-echo fidelity, no gap; both
+  admission residuals ✓ unreachable phone-side, code-pinned).
+- Backlog: **8/8 DONE**; the discovery surface stays empty — pass 24 drove Part Z's
   coverage-honesty leftovers; what remains is standing stops + N-BQ-1's fix-round
   re-drive + F-P3-A-gated planes.
   **The mock-debt list has 0 open work-debts (the pass-23 arms were opened+closed
   in-pass, the established pattern).**
-- Rig left by pass 23: emulator `zcode-a16` UP (**COLD-BOOTED this pass** — the
-  inherited emulator was found dead a THIRD consecutive time and the pass-22 relay
-  was found STILL ALIVE (its compact arm would have locked the next compact) —
-  pkilled by name before the boot; PIN-less, wifi ENABLED, screenshot protection
-  OFF by persistence), relay gen2 ALIVE (nonce `mock-p23-gen2-eb341a8e`; arms
-  STICKY: CAS_STALE intercepts pauseGoal, the effort arm answers Dl -32009, the
-  compact arm ACTIVE — under null/startNow routing the next compact RUNS the
-  marker pair again; pkill to end), app pid 3587 **CONNECTED
-  connectionId=relay-5** (no idle-socket drops this pass) on the synthetic
-  conversation (the goal-pause banner live in the banner slot; strip "Queued (2) ·
-  paused"; the composer holds `/goal pause` — rig residue, not a finding), logcat
-  running → /tmp/p23/logcat.log. Launchers `/tmp/p23/relay-g{1,2}.sh`. New rig
-  learnings in Part Z.A0: **derive relay launchers from the previous pass's file
-  with sed** (a hand-copied classpath silently dropped a group-dir segment; a
-  full-string diff catches it, a substring grep-diff does not); **BACK pops the
-  whole conversation route when no sheet is open** (dismiss sheets by drag or
-  verify first); ghost dumps at 16/64 nodes at sheet open/close (settle ~3 s);
-  **the banner render ignores SendNotice.Kind** (WARNING and ERROR render the
-  identical red ✕ banner); the drafts-table draft survived `install -r` + cold
-  boot a second time and the passthrough ACCEPTED consumed it.
+- Rig left by pass 24: emulator `zcode-a16` UP (**REUSED — the FIRST inherited
+  survival in four passes**; healthy, PIN-less, wifi ENABLED, screenshot protection
+  OFF by persistence; the pass-23 relay gen2 was found STILL ALIVE with its STICKY
+  compact arm and pkilled by name BEFORE any leg), relay gen1 ALIVE (pid 20666,
+  nonce `mock-p24-gen1-a41f7c92`; arms `MOCK_ROWS=12 + MOCK_SET_THOUGHT_LEVEL_STALE`
+  STICKY: setThoughtLevel answers Dl -32009 on ANY level — the next effort switch
+  refuses until a relay swap), app pid 4881 **CONNECTED connectionId=relay-1** (no
+  idle-socket drops this pass) on the synthetic conversation (the xhigh stale
+  banner live in the banner slot; chips expanded; the composer holds `/goal pause`
+  — the THIRD `install -r` survival of the residue draft, not a finding), logcat
+  running → /tmp/p24/logcat.log. Launcher `/tmp/p24/relay-g1.sh`. New rig learning
+  in Part AA.A0: **the uiautomator attribute-ORDER trap** — a fixed-order regex
+  (`checked=…[^>]*class=…`) silently misses nodes whose attribute order differs
+  (first two greps read `checked=false` on ALL FOUR effort radios; the truth was
+  `checked=true` on max — parse each node string and search each attribute
+  independently, and cross-check the screenshot's visual state).
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -264,7 +259,7 @@ rig) · RETRACTED/REFUTED/ABSORBED: 7.
 | N-BO-1 | 4 | OPEN (NEW pass 11) | the changes viewer's error face interpolates the RAW fault code ("Could not load changes: fault.fileChanges.none" — `changes_error` %s, Phase9Components.kt:379) — the G66 fault→human mapping (2af339b0) doesn't cover this Phase9 surface | Part N.A2 (+ pass-13 stamp: SECOND surface receipted live — the quota reset failure face renders "Reset failed · fault.mock.unscripted:useCodingPlanReset", `quota_reset_error + " · " + err` at CodingPlanQuotaSection.kt:456; Part P.A1) |
 | N-BP-1 | 3 | OPEN (NEW pass 13) | the Usage screen DOUBLE-applies the Scaffold `inner` padding (PullToRefreshBox line 141 + the inner Column line 146 — the only viewer with two `padding(inner)` applications; all 11 sibling viewers have exactly one) → a ~400px dead band under the top bar that is ALSO A DEAD TOUCH ZONE: scroll and pull-to-refresh gestures starting inside it are swallowed (8 receipted attempts, zero re-queries); content scrolls only from drags begun below the band | drop the second `.padding(inner)`; pin: a compose test dragging from the band region asserts the list scrolls | Part P.A1 |
 | N-BP-2 | 4 | OPEN (NEW pass 13) | Daily-trend x-labels render "2026-" for every row — `day.date.take(5)` (UsageScreen.kt:613) slices the ISO date the decoder feeds; the slice assumes an MM-DD shape | slice after the year (or format the full date); pin on the label text | Part P.A1 |
-| N-BQ-1 | 4 | OPEN (NEW pass 22) | the effort switch's typed stale face is DEAD CODE: `setThoughtLevel` rides the PROTOCOL method whose host layer answers a JSON-RPC ERROR on revision mismatch (FQ → `Dl -32009`, zcode.cjs sPi `~0xe99b3a` — the `{status:"stale"}` ack exists only in the command dispatcher), the phone collapses any throw to FAILED (`Ports.kt:1000-1013` has only ACCEPTED/FAILED; `V4Plane.kt:1429` never inspects status; `ChannelSession.kt:69-76` keeps only the message), so `ConversationViewModel.kt:336`'s SESSION_CHANGED branch can never fire — the effort switch renders the GENERIC "desktop refused" ERROR where its whole family (mode/model/queue-verbs) renders the honest "try again" warning (live receipt: relay -32009 line → logcat TransportFailure → generic banner s07, chip unchanged; desktop contrast: the renderer's own facade has NO CAS at all — the check serves only remote clients, i.e. exactly the phone) | map the protocol-plane error by its revision-mismatch identity so STALE propagates (or re-shape the call); pin: a transport-fake harness asserting setThoughtLevel STALE propagation; re-drive the live face after the fix | Part Y.B/Y.D, Z.E | 2 (pass 23: the `medium` level receipted — same -32009 → generic face + unchanged chip; high [22], medium [23]) |
+| N-BQ-1 | 4 | OPEN (NEW pass 22) | the effort switch's typed stale face is DEAD CODE: `setThoughtLevel` rides the PROTOCOL method whose host layer answers a JSON-RPC ERROR on revision mismatch (FQ → `Dl -32009`, zcode.cjs sPi `~0xe99b3a` — the `{status:"stale"}` ack exists only in the command dispatcher), the phone collapses any throw to FAILED (`Ports.kt:1000-1013` has only ACCEPTED/FAILED; `V4Plane.kt:1429` never inspects status; `ChannelSession.kt:69-76` keeps only the message), so `ConversationViewModel.kt:336`'s SESSION_CHANGED branch can never fire — the effort switch renders the GENERIC "desktop refused" ERROR where its whole family (mode/model/queue-verbs) renders the honest "try again" warning (live receipt: relay -32009 line → logcat TransportFailure → generic banner s07, chip unchanged; desktop contrast: the renderer's own facade has NO CAS at all — the check serves only remote clients, i.e. exactly the phone) | map the protocol-plane error by its revision-mismatch identity so STALE propagates (or re-shape the call); pin: a transport-fake harness asserting setThoughtLevel STALE propagation; re-drive the live face after the fix | Part Y.B/Y.D, Z.E, AA.D | 3 (pass 23: `medium` — same -32009 → generic face + unchanged chip; high [22], medium [23], xhigh [24] — the 4-radio sheet's first live observation, arm level-agnostic so the triple saturates what the rig can differentiate) |
 | K-small-3 | 4 | WATCH | one-off terminal route pop (unreproduced — watch, don't chase) | Part K.A2 |
 | N-BJ-2 | 4 | REFUTED→FOLDED | unpair IS reachable (Settings bottom, pass 4); fakeLink half folded into F-P2-B | Part G.A2.4 |
 | N-BM-4 | — | RIG | Dictate leg kills the emulator (cause unproven); leg undriven | Part J |
@@ -460,6 +455,26 @@ delta …`). Nothing pushed.
 
 ## History
 
+- 2026-11-15 (pass 24) — Part AA executed on Part Z's coverage-honesty list: ZERO
+  new rows (THIRD consecutive); N-BQ-1 stamps 3 (the xhigh radio's first live
+  observation — high/medium/xhigh under the same -32009 collapse; zero new outbox
+  rows, setThoughtLevel correctly never rides the command outbox). The
+  effort-sheet plane FULLY adjudicated: the max→max no-op WORKING (the :267-268
+  `if (!selected)` guard — zero wire traffic, dialog closes, chip unchanged); the
+  level census data-driven-complete (desktop toolbar = SIX localized levels
+  low/medium/high/xhigh/max/ultra, wire schema = free string array, phone renders
+  the echo verbatim; `low`/`ultra` absence = mock-echo fidelity — inventory note,
+  NO G row); BOTH admission residuals pinned unreachable phone-side (every
+  sendText funnels through send()→routeSendPrompt threading the trio;
+  port.sendGoal has NO trio params = F-P20-A's omission itself). The Part-Z
+  "medium/high/max radios" summary corrected: the mock's 4-level seed (incl.
+  xhigh) predates pass 23 (`0e4479c4`). No mock changes. Rig learnings: the
+  uiautomator attribute-ORDER trap (fixed-order regexes silently miss nodes;
+  parse per-node, search attributes independently); the FIRST inherited-emulator
+  survival in four passes (but the pass-23 relay's sticky compact arm made the
+  pkill-before-reuse discipline live); the residue draft's third `install -r`
+  survival. Rig left UP (gen1 sticky -32009 arm, app pid 4881 relay-1, composer
+  holds `/goal pause`, logcat → /tmp/p24/logcat.log).
 - 2026-11-15 (pass 23) — Part Z executed on Part Y's coverage-honesty list: ZERO
   new rows (second consecutive); N-BQ-1 stamps 2 (the effort MEDIUM level — same
   -32009 → generic face + unchanged chip). The stale-face class now stands on SIX

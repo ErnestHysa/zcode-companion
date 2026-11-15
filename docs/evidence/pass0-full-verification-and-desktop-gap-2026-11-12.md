@@ -5762,3 +5762,166 @@ the next compact under null/startNow routing runs the marker pair again), app pi
 3587 CONNECTED connectionId=relay-5 on the synthetic conversation (the goal-pause
 banner live in the banner slot; strip "Queued (2) · paused"; the composer holds
 `/goal pause` — rig residue, not a finding), logcat running → /tmp/p23/logcat.log.
+
+# Part AA — pass 24 (APPENDED 2026-11-15, ~18:45): Part Z's coverage-honesty driveables — the effort sheet's max→max no-op receipted WORKING (zero wire traffic on the already-selected level), the level census ADJUDICATED data-driven-complete (the desktop toolbar knows SIX localized levels; the phone renders the echo verbatim; `low`/`ultra` absence is mock-echo fidelity, not an app omission), N-BQ-1 stamped 3 (the xhigh radio's first live observation — third level under the same -32009 collapse), and BOTH admission-reachability residuals pinned unreachable phone-side at HEAD
+
+> **Pass 24 of the pass-0 series** (solo, the canonical discovery prompt; STEP 1 empty —
+> backlog 8/8 — so the pass executed STEP 2 on Part Z's coverage-honesty list).
+> **ZERO new rows in ANY table** (third consecutive). N-BQ-1 stamps 3. The effort-sheet
+> plane is now FULLY adjudicated: the no-op guard, the data-driven census, the stale
+> collapse (three levels), and both admission residuals. The desktop toolbar's
+> effort-level vocabulary is recorded as an inventory note (six localized labels) with
+> NO G row — the phone's consumption is data-driven-complete, so there is nothing
+> unconsumed to row.
+>
+> **Verification stamp:** 2026-11-15 18:29 → 18:40, GLM-5.3-Flash in ZCode, everything
+> local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…` UNCHANGED — no DELTA.
+> Rig: **the inherited emulator SURVIVED for the first time in four passes** (adb
+> emulator-5554 healthy, wifi ENABLED, screenshot protection OFF by persistence) and
+> the pass-23 relay gen2 was found ALIVE with its STICKY compact arm (it would have
+> LOCKED the next compact) → `pkill -f MockRelayMainKt` by name, emulator REUSED (no
+> cold boot). APK byte-identical (`ad449d7d…`/`530ba4ff`, vc53/1.3.2 — zero app
+> changes; assembleDebug up-to-date). ONE generation: gen1 `mock-p24-gen1-a41f7c92`
+> (launcher `/tmp/p24/relay-g1.sh`, derived from the pass-23 file with `sed` per the
+> Z.A0.1 lesson — full-string exec-line diff CLEAN; arms exactly `MOCK_ROWS=12 +
+> MOCK_SET_THOUGHT_LEVEL_STALE=1`, the stale arm deliberately ON so any unexpected
+> setThoughtLevel is loud). Stored endpoint survived the relay swap; no re-pairing.
+> logcat fresh `-T 1` → /tmp/p24/logcat.log.
+
+## AA.A0 — rig learnings
+
+1. **The uiautomator attribute-ORDER trap (new):** a fixed-order regex
+   (`checked="…"[^>]*class="…RadioButton"`) silently MISSES nodes whose attribute order
+   differs — pass 24's first two greps reported `selected=false`/`checked=false` on ALL
+   FOUR effort radios while the truth was `checked=true` on the max row (the per-node
+   parse with independent attribute searches settled it). Visual cross-check (the
+   screenshot's filled radio) + per-node parsing is the recipe: **never order-depend on
+   uiautomator XML attributes; parse each node string and search each attribute
+   separately.**
+2. **The inherited-rig survival is real but the RELAY is the hazard:** the emulator can
+   survive a pass boundary (first observed) while the relay does — pass 23's sticky
+   arms (the ACTIVE compact arm, the stale list) would have silently shaped this
+   pass's wires. The pkill-before-reuse discipline stands even when the emulator is
+   healthy.
+3. **The drafts-table residue survived `install -r` a THIRD consecutive time** (the
+   pass-23 `/goal pause` composer text re-occupied the composer after this pass's
+   `install -r`, Z.A0.5's second → now third observation).
+4. The plans-poll drum was VISIBLE this pass (2× `fault.mock.unscripted:
+   conversationPlansV4` TransportFailure ~3 s apart in the logcat tail) — F-P1-D's
+   known ~8 s poll shape (stamps stand at 4; no re-narration).
+
+## AA.B — the static pins (phone HEAD `9afdbe02`, zero app changes since `d24a32a7`)
+
+1. **The effort sheet is FULLY data-driven:** `for (level in config.thoughtLevels)`
+   (`Phase9Components.kt:254`) renders the echo's string array verbatim; the selection
+   guard is `if (!selected) onSetThoughtLevel(level)` (:267-268) — tapping the
+   already-selected level closes the sheet and sends NOTHING; the chip is
+   `"Effort · " + config.thought` (:144, `effort_chip_prefix` strings.xml:244); the
+   ViewModel passes the raw string through (`ConversationViewModel.kt:330-332` → the
+   port). There is NO app-side level enum anywhere.
+2. **The desktop toolbar enumerates SIX localized effort levels** (asar i18n census,
+   `chat.toolbar.thoughtLevel.value.*`): `low(低) / medium(中) / high(高) / xhigh(极高) /
+   max(最高) / ultra(极致)` — while the wire schema is a FREE string array
+   (`thoughtLevels: array(string).default([])`). **ADJUDICATION (the Part-Z "absent
+   low" item): NO gap, NO row** — the phone renders whatever the desktop session
+   advertises; `low`/`ultra` are absent ONLY because the MOCK's static echo seeds four
+   levels (`medium/high/xhigh/max`, `thought:"max"` — the seed predates pass 23,
+   `0e4479c4` 2026-10-27, so Part Z's "medium/high/max radios" summary was imprecise;
+   the live sheet has shown four radios all along). If a real desktop session
+   advertised `low`, the phone would render and send it unchanged (data-driven
+   end-to-end). Recorded as an inventory note only.
+3. **The send-path enumeration (the Part-Z admission residuals):** EVERY sendText
+   funnels through `send()` → `routeSendPrompt` (`ConversationViewModel.kt:454` and
+   the PlanShortcut arm :492-498 — the grep finds no other producer), and both thread
+   the answered trio into `port.sendPrompt`; the G50 dialog pre-gates under
+   choice+held (receipted passes 18/19/21/22). **sendGoal-with-trio: unreachable
+   phone-side at HEAD** — `port.sendGoal(taskId, objective, displayText)` (:463-468)
+   has no trio parameters at all (that structural omission IS F-P20-A's row); the
+   desktop half rides its own confirmation dialog (standing stop).
+   **heldQueueDispositionRequired-on-sendText: unreachable phone-side at HEAD** — a
+   trio-less sendText requires the dialog to be skipped while the host holds items
+   under choice, and every phone path shows the dialog first; the host-side races the
+   phone CAN reach answer `guard.heldQueueConfirmationStale` (F-P19-A, receipted) not
+   admission; the admission failure stays receipted on the GOAL plane only (pass 20),
+   which is exactly the rowed F-P20-A shape. Both residuals CLOSED as one-line
+   adjudications — no rows, no re-hunt.
+
+## AA.C — Leg A: the max→max no-op (18:33, gen1)
+
+Chips expanded (the summary chip tap at 445,389) → the Effort chip (`Effort · max`,
+679,503) → the "Reasoning effort" dialog with FOUR radios
+medium/high/xhigh/max, max `checked=true` (s01, the visual filled radio + the
+per-node AX parse — AA.A0.1). Tap the SELECTED max row (540,1380 — the pass-23-proven
+dialog coordinates) → the dialog CLOSED, the chip UNCHANGED at "Effort · max", NO
+banner, and the wire ARBITER: `setThoughtLevel` count in the relay log **0 before → 0
+after** (the single v4call delta between the baselines was a plans-poll, AA.A0.4);
+logcat gained no `v4.call :: setThoughtLevel` and no `port.setThoughtLevel` line.
+**WORKING receipt — the `:267-268` guard short-circuits the no-op honestly.** No row.
+
+## AA.D — Leg B: the xhigh stale rider (18:36, gen1)
+
+Sheet re-opened → tap **xhigh** (540,1226, first live observation of the fourth
+radio) → relay `MOCK: v4call setThoughtLevel (id=21)` + `MOCK: setThoughtLevel forced
+revision-mismatch (MOCK_SET_THOUGHT_LEVEL_STALE) -> Dl -32009 (expected=100)` →
+logcat `v4.call :: setThoughtLevel channel error: Session state revision mismatch` +
+`port.setThoughtLevel :: TransportFailure` → the dialog closed, the banner **"The
+desktop refused the effort switch — nothing changed."** (s03), and the chip UNCHANGED
+at "Effort · max". **N-BQ-1 stamps 3** — the dead-branch receipt now covers three of
+the mock's four levels (high [pass 22], medium [pass 23], xhigh [this pass]; the arm
+is level-agnostic by construction, so the medium/high/xhigh triple is the honest
+saturation of what the rig can differentiate). **DB arbiter:** the outbox gained ZERO
+rows this pass — the newest rows are all pass-23 history
+(`pauseGoal`×2/`resumeGoal`×2/`setFollowupMode`/`setAutoDrain`, FAILED_STALE), and
+`setThoughtLevel` correctly never rides the command outbox (the protocol-method
+collapse, N-BQ-1's mechanism).
+
+## AA.E — ledger arithmetic + coverage honesty
+
+Open F: **27** (unchanged) · Open G: **21 + 3 standing** (unchanged) · Open smalls:
+**14** (+1 watch +1 rig) (unchanged; N-BQ-1 stamps 3) · Mock debts: **0 open
+work-debts** (no mock changes this pass — the pass-23 arms sufficed; gen1 ran on a
+strict subset). Part Z's coverage-honesty list is now FULLY adjudicated: the
+max→max no-op ✓ (AA.C, WORKING); the absent-`low` level ✓ (AA.B.2 — data-driven
+census, mock-echo fidelity, no gap); the two admission residuals ✓ (AA.B.3 —
+unreachable phone-side, code-pinned); the four verbs' ACCEPTED halves / the compact
+enqueue-guide shape / the standing stops / the N-BQ-1 fix-round re-drive — skipped
+per the rules (receipted in passes 12/16/22/vc51 or gated, zero code changes).
+Third consecutive zero-new-rows pass; the discovery surface stays empty — what
+remains is the standing set only.
+
+### Coverage honesty (what pass 24 did NOT drive)
+
+The effort sheet's ACCEPTED echo-reconcile half (receipted pass 16 — chip
+max→high stable under the mock's config mutation — and the vc51 A3.4 pins; code
+unchanged); the followup sheet's identical no-op guard (:238, same pattern, sheet
+driven pass 12); `low`/`ultra` on the wire (the mock never advertises them — arming
+them would be rig-fiction for a data-driven path the no-op leg already covers);
+sendGoal-with-trio and admission-on-sendText (both unreachable, AA.B.3); the
+desktop's own goal-confirmation dialog (desktop-only); TalkBack/Dictate/widget/
+Take-photo/shade-ACTION (standing stops); the N-BQ-1 fix-round re-drive (gated on a
+fix round touching the effort port).
+
+## Pass-24 verification stamp
+
+Pass 24 completed 2026-11-15 ~18:40; ONE relay generation (gen1
+`mock-p24-gen1-a41f7c92`, launcher `/tmp/p24/relay-g1.sh`, 18:29→end, pid 20666 —
+no idle-socket drops, no emulator restarts in-life); emulator REUSED from pass 23
+(the FIRST inherited survival in four passes; the pass-23 relay was pkilled BEFORE
+any leg — its sticky compact arm would have locked the next compact); `install -r`
+of the byte-identical APK → pid 4881 CONNECTED connectionId=relay-1; screenshot
+protection OFF by persistence (every capture real content); logcat fresh at 18:29 →
+/tmp/p24/logcat.log. Receipts: shots `/tmp/p24/shots/s01–s03` (s01 the four-radio
+sheet with max filled, s02 the post-no-op state, s03 the xhigh stale banner),
+AX dumps `/tmp/p24/w/w0–w7`, relay log `/tmp/p24/relay-g1.log` (one forced-stale
+setThoughtLevel line; setThoughtLevel count 0 across Leg A), DB pull
+`/tmp/p24/db/zcode.db{,-wal}` (the outbox arbiter: zero new rows — all pass-23
+history). Mock changes: NONE. APK byte-identical `ad449d7d…`/`530ba4ff` (vc53/1.3.2,
+zero app changes). Desktop 3.18.1 / `ec475e6e…` unchanged (STEP 0). gateway.drop for
+the pass: **0**; zero app-pid FATAL/AndroidRuntime lines (the 37 non-uiautomator
+matches are I/D-level lines from transient system pids — none on pid 4881). **Rig
+left:** emulator zcode-a16 UP (healthy, wifi ENABLED, screenshot protection OFF),
+relay gen1 ALIVE (arm STICKY: setThoughtLevel answers -32009 — the next effort
+switch on ANY level will refuse until the relay swap), app pid 4881 CONNECTED
+relay-1 on the synthetic conversation (the xhigh stale banner live in the banner
+slot; chips expanded; the composer holds `/goal pause` — the third-survival residue,
+not a finding), logcat running → /tmp/p24/logcat.log.
