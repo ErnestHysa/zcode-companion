@@ -547,6 +547,22 @@ fun main() {
         mock.script.inputRoutingMode = mode
         mock.script.inputRoutingArmSticky = true
     }
+    // Pass-19 rig arm (debt #20): MOCK_QUEUE_GHOST_APPEND_MS=<ms> arms the desktop's
+    // held-queue CAS validation (host applyHeldQueueDisposition: a trio-bearing
+    // sendText whose expectedHeldQueueItemIds no longer matches the live queue gets
+    // {status:"failed", reasonCode:"guard.heldQueueConfirmationStale"}) AND the
+    // one-shot SILENT ghost append <ms> after the FIRST trio-bearing sendText — the
+    // queue moves server-side with NO patch, so the next dialog answer races it.
+    // Drive with MOCK_QUEUE=1 + MOCK_INPUT_ROUTING=choice (the trio only flows on
+    // the G50 dialog path).
+    System.getenv("MOCK_QUEUE_GHOST_APPEND_MS")?.let { raw ->
+        val ms = raw.toLongOrNull()
+        require(ms != null && ms >= 0) {
+            "MOCK_QUEUE_GHOST_APPEND_MS must be a non-negative integer (got '$raw')"
+        }
+        mock.script.heldQueueCasArm = true
+        mock.script.heldQueueGhostDelayMs = ms
+    }
     // Pass-11 rig leg (AB4.1 rig debt): MOCK_REFUSE_COMMANDS=1 makes the goal verbs
     // answer respondError — the SendNotice.GOAL_*_REFUSED degrade branches finally run.
     if (System.getenv("MOCK_REFUSE_COMMANDS") != null) {

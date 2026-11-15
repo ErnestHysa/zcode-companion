@@ -405,6 +405,15 @@ class MockZCode(
          *  CHOICE held-queue disposition dialog (G50) becomes drivable on the rig
          *  (the mock otherwise only ever serves startNow/enqueue). */
         @Volatile var inputRoutingArmSticky: Boolean = false
+        /** Pass-19 rig arm (debt #20, MOCK_QUEUE_GHOST_APPEND_MS): when armed, a
+         *  trio-bearing sendText validates expectedHeldQueueItemIds set-equal against
+         *  the live queue (the host's applyHeldQueueDisposition) and answers the
+         *  desktop-faithful CAS failure ack; arming also schedules the ONE-SHOT
+         *  silent ghost append (no patch) that moves the queue under the phone's
+         *  state — the race the G50 confirmation guard exists for. */
+        @Volatile var heldQueueCasArm: Boolean = false
+        @Volatile var heldQueueGhostDelayMs: Long = 1_000
+        @Volatile var heldQueueGhostFired: Boolean = false
         /** Pending open interaction stamped into snapshots + state (Q11 shape). */
         @Volatile var pendingPermission: PendingPermission? = null
         @Volatile var pendingUserInput: PendingUserInput? = null
@@ -2913,6 +2922,18 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                         return
                     }
                 }
+                // Pass-19 rig arm (debt #20, MOCK_QUEUE_GHOST_APPEND_MS): the desktop's
+                // held-queue CAS — a trio-bearing sendText whose expectedHeldQueueItemIds
+                // no longer matches the live queue answers the desktop-faithful failure
+                // ack and mutates nothing; arming also schedules the one-shot silent
+                // ghost append that moves the queue under the phone's state.
+                if (type == "sendText" && script.heldQueueCasArm) {
+                    armHeldQueueGhostOnce()
+                    heldQueueCasRejection(env)?.let { casAck ->
+                        respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(casAck))
+                        return
+                    }
+                }
                 var createResult: JsonObject? = null
                 if (script.commandEffects) {
                     createResult = applyCommandEffect(type, env)
@@ -3851,6 +3872,60 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
         val known = script.pendingPermission?.interactionId == iid ||
             script.pendingUserInput?.interactionId == iid
         return if (known) null else "fault.interaction.unknownId"
+    }
+
+    /**
+     * Pass-19 rig arm (debt #20, MOCK_QUEUE_GHOST_APPEND_MS): the desktop's held-queue
+     * CAS — host applyHeldQueueDisposition (zcode.cjs): when inputRouting.mode=="choice"
+     * and the payload carries heldQueueDisposition, expectedHeldQueueItemIds (when
+     * non-empty) must be set-equal to the live queue (no duplicates, same length, every
+     * id present) or the send fails. Returns the desktop-faithful failure ack —
+     * {status:"failed", reasonCode:"guard.heldQueueConfirmationStale", message:"paused
+     * queue changed after send confirmation opened"} — when the CAS mismatches, null
+     * otherwise (proceed). Mutates nothing on the mismatch path.
+     */
+    internal fun heldQueueCasRejection(env: JsonObject?): JsonObject? {
+        if (!script.heldQueueCasArm) return null
+        if (script.inputRoutingMode != "choice") return null
+        val payload = env?.get("payload") as? JsonObject
+        val disposition = payload?.strOrNull("heldQueueDisposition") ?: return null
+        val expected = (payload?.get("expectedHeldQueueItemIds") as? JsonArray)
+            ?.mapNotNull { (it as? JsonPrimitive)?.content }.orEmpty()
+        val live = script.queueItems.orEmpty()
+        val casOk = expected.isEmpty() || run {
+            val set = expected.toSet()
+            set.size == expected.size && live.size == set.size && expected.all { id -> live.any { it.queueItemId == id } }
+        }
+        if (casOk) {
+            println("MOCK: sendText heldQueue CAS ok (disposition=$disposition expected=$expected live=${live.map { it.queueItemId }})")
+            return null
+        }
+        println("MOCK: sendText heldQueue CAS MISMATCH (disposition=$disposition expected=$expected live=${live.map { it.queueItemId }}) -> guard.heldQueueConfirmationStale (no mutation)")
+        return buildJsonObject {
+            put("commandId", JsonPrimitive(env?.strOrNull("commandId") ?: "unknown"))
+            put("status", JsonPrimitive("failed"))
+            put("reasonCode", JsonPrimitive("guard.heldQueueConfirmationStale"))
+            put("message", JsonPrimitive("paused queue changed after send confirmation opened"))
+            put("revisionAtDecision", JsonPrimitive(stateRevision.get()))
+        }
+    }
+
+    /** One-shot: schedule the silent ghost append — the queue moves server-side
+     *  WITHOUT a queue patch, so the phone keeps answering with its stale ids. */
+    private fun armHeldQueueGhostOnce() {
+        if (!script.heldQueueCasArm || script.heldQueueGhostFired) return
+        script.heldQueueGhostFired = true
+        scope.launch {
+            kotlinx.coroutines.delay(script.heldQueueGhostDelayMs)
+            appendHeldQueueGhostForTest()
+        }
+    }
+
+    /** Self-test seam: the ghost append body (silent — no patch, no revision bump). */
+    internal fun appendHeldQueueGhostForTest() {
+        script.queueItems = script.queueItems.orEmpty() +
+            QueueItem("q-rig-ghost-1", "ghost follow-up (silent append)")
+        println("MOCK: heldQueue ghost appended SILENTLY (no patch) -> live=${script.queueItems.orEmpty().map { it.queueItemId }}")
     }
 
     private fun applyCommandEffect(type: String, env: JsonObject?): JsonObject? {
