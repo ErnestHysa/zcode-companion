@@ -534,6 +534,19 @@ fun main() {
         )
         mock.script.autoDrain = false
     }
+    // Pass-17 rig arm (debt #18): MOCK_INPUT_ROUTING=<mode> pins the state's
+    // inputRouting mode (the desktop enum: startNow|enqueue|guide|reject|choice) so
+    // the phone's held-queue CHOICE disposition dialog (G50) is drivable on the rig —
+    // the mock otherwise only ever serves startNow/enqueue. Sticky: the send/stop
+    // handler flips are suppressed under the arm. Fail-fast on a bad value (the
+    // H.A0.2 empty-string rule).
+    System.getenv("MOCK_INPUT_ROUTING")?.let { mode ->
+        require(mode in setOf("startNow", "enqueue", "guide", "reject", "choice")) {
+            "MOCK_INPUT_ROUTING must be one of startNow|enqueue|guide|reject|choice (got '$mode')"
+        }
+        mock.script.inputRoutingMode = mode
+        mock.script.inputRoutingArmSticky = true
+    }
     // Pass-11 rig leg (AB4.1 rig debt): MOCK_REFUSE_COMMANDS=1 makes the goal verbs
     // answer respondError — the SendNotice.GOAL_*_REFUSED degrade branches finally run.
     if (System.getenv("MOCK_REFUSE_COMMANDS") != null) {

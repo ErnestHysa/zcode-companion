@@ -400,6 +400,11 @@ class MockZCode(
         @Volatile var unknownInteractionIdsArm: Boolean = false
         /** Verified inputRoutingSchema.mode. */
         @Volatile var inputRoutingMode: String = "startNow"
+        /** Pass-17 rig arm (debt #18, MOCK_INPUT_ROUTING): when armed, the send/stop
+         *  handler flips are SUPPRESSED and the armed mode stays sticky — the phone's
+         *  CHOICE held-queue disposition dialog (G50) becomes drivable on the rig
+         *  (the mock otherwise only ever serves startNow/enqueue). */
+        @Volatile var inputRoutingArmSticky: Boolean = false
         /** Pending open interaction stamped into snapshots + state (Q11 shape). */
         @Volatile var pendingPermission: PendingPermission? = null
         @Volatile var pendingUserInput: PendingUserInput? = null
@@ -1642,6 +1647,11 @@ class MockZCode(
      * [journalAndEmit] minus the emit.
      */
     private fun journalRowSilent(sessionId: String, row: JsonObject) {
+        // Debt #17 (pass 17): the silently journalled row is an APPEND — it joins the
+        // authoritative appendedRows so a later resync SNAPSHOT carries it too (the
+        // desktop's server would include its own pushed rows; the stall rows used to
+        // vanish from the timeline after the watchdog's force-resync).
+        synchronized(appendedRows) { appendedRows[row["rowId"].toString()] = row }
         val ops = JsonArray(listOf(buildJsonObject {
             put("op", JsonPrimitive("row.appended"))
             put("row", row)
@@ -2249,9 +2259,13 @@ class MockZCode(
         val everyMs = script.turnStallEveryMs
         scope.launch {
             repeat(script.turnStallLiveFrames) { i ->
-                pushRowDelta(routingSessionId(), "row.appended",
-                    schemaRow(routingSessionId(), nextRowId(), RowKind.ASSISTANT_TEXT,
-                        "stall-leg live frame ${i + 1} — the stream was flowing"))
+                val liveRow = schemaRow(routingSessionId(), nextRowId(), RowKind.ASSISTANT_TEXT,
+                    "stall-leg live frame ${i + 1} — the stream was flowing")
+                // Debt #17 (pass 17): the live frames are authoritative rows too — they
+                // join appendedRows so a resync snapshot keeps them (same shape as the
+                // sendText/interaction handlers' bookkeeping).
+                synchronized(appendedRows) { appendedRows[liveRow["rowId"].toString()] = liveRow }
+                pushRowDelta(routingSessionId(), "row.appended", liveRow)
                 kotlinx.coroutines.delay(everyMs)
             }
             var n = 0
@@ -3862,6 +3876,20 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             "sendText" -> {
                 val text = payload?.strOrNull("text") ?: return null
                 stateRevision.incrementAndGet()
+                // Pass-17 rig receipt line (G49/G50): the send trio keys the phone may
+                // put on the sendText payload — logged verbatim so rig legs can pin
+                // the wire shape (the app's own log carries only the method + latency).
+                val heldDisposition = payload?.strOrNull("heldQueueDisposition")
+                val requestedDelivery = payload?.strOrNull("requestedDelivery")
+                val expectedIds = (payload?.get("expectedHeldQueueItemIds") as? JsonArray)
+                    ?.mapNotNull { (it as? JsonPrimitive)?.content }.orEmpty()
+                println("MOCK: sendText trio heldQueueDisposition=$heldDisposition " +
+                    "requestedDelivery=$requestedDelivery expectedHeldQueueItemIds=$expectedIds")
+                if (heldDisposition == "clearQueueAndSend") {
+                    // Desktop-faithful: the CLEAR disposition executes server-side — the
+                    // held queue is emptied and the strip reflects it on the next patch.
+                    script.queueItems = emptyList()
+                }
                 val sessionId = routingSessionId()
                 val userRow = schemaRow(sessionId, nextRowId(), RowKind.USER_INPUT, text)
                 val replyBase = schemaRow(sessionId, nextRowId(), RowKind.ASSISTANT_TEXT, "synthetic reply to: ${text.take(24)}")
@@ -3871,6 +3899,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 appendedRows[replyRow["rowId"].toString()] = replyRow
                 pushRowAppended(sessionId, userRow)
                 pushRowAppended(sessionId, replyRow)
+                if (heldDisposition == "clearQueueAndSend") pushQueuePatch()
                 pushStatePatch(buildJsonObject {
                     put("revision", JsonPrimitive(stateRevision.get()))
                     put("control", buildJsonObject {
@@ -3880,11 +3909,11 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                         put("stopState", JsonPrimitive("stoppable"))
                         put("activeWorks", JsonArray(emptyList()))
                     })
-                    put("inputRouting", buildJsonObject { put("mode", JsonPrimitive("enqueue")) })
+                    put("inputRouting", buildJsonObject { put("mode", JsonPrimitive(script.inputRoutingMode)) })
                 })
                 script.controlCanStop = true
                 script.controlStopState = "stoppable"
-                script.inputRoutingMode = "enqueue"
+                applyInputRoutingFlip("enqueue")
             }
             "respondWorkspaceHookReview" -> {
                 stateRevision.incrementAndGet()
@@ -3980,7 +4009,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 stateRevision.incrementAndGet()
                 script.controlCanStop = false
                 script.controlStopState = "idle"
-                script.inputRoutingMode = "startNow"
+                applyInputRoutingFlip("startNow")
                 pushStatePatch(buildJsonObject {
                     put("revision", JsonPrimitive(stateRevision.get()))
                     put("control", buildJsonObject {
@@ -3990,7 +4019,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                         put("stopState", JsonPrimitive("idle"))
                         put("activeWorks", JsonArray(emptyList()))
                     })
-                    put("inputRouting", buildJsonObject { put("mode", JsonPrimitive("startNow")) })
+                    put("inputRouting", buildJsonObject { put("mode", JsonPrimitive(script.inputRoutingMode)) })
                 })
             }
             "cancelBackgroundWork" -> {
@@ -4471,6 +4500,15 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
     }
 
     internal fun automationRunLedgerForTest(): List<JsonObject> = synchronized(automationRunLedger) { ArrayList(automationRunLedger) }
+
+    /**
+     * Debt #18 (pass 17, MOCK_INPUT_ROUTING): the send/stop handlers' routing flips
+     * go through here so the arm's sticky mode wins when armed. Without the arm the
+     * behavior is unchanged (enqueue on send, startNow on stop).
+     */
+    internal fun applyInputRoutingFlip(mode: String) {
+        if (!script.inputRoutingArmSticky) script.inputRoutingMode = mode
+    }
 
     private fun pushQueuePatch() {
         pushStatePatch(buildJsonObject {
