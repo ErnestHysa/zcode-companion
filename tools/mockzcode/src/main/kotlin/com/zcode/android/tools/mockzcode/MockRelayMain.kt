@@ -563,6 +563,18 @@ fun main() {
         mock.script.heldQueueCasArm = true
         mock.script.heldQueueGhostDelayMs = ms
     }
+    // Pass-20 rig arm (F-P20-A + the stale-face sweep): MOCK_CAS_STALE_TYPES=a,b,c
+    // forces the listed command types to answer the host's revision-mismatch ack
+    // {status:"stale", reasonCode:"proto.staleRevision"} — the phone's typed
+    // SESSION_CHANGED stale faces become drivable on the rig (the desktop recovers
+    // silently via recoverFromStaleAuthority; the phone warns honestly).
+    System.getenv("MOCK_CAS_STALE_TYPES")?.let { raw ->
+        val types = raw.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+        require(types.isNotEmpty()) {
+            "MOCK_CAS_STALE_TYPES must name at least one command type (got '$raw')"
+        }
+        mock.script.casStaleTypes = types
+    }
     // Pass-11 rig leg (AB4.1 rig debt): MOCK_REFUSE_COMMANDS=1 makes the goal verbs
     // answer respondError — the SendNotice.GOAL_*_REFUSED degrade branches finally run.
     if (System.getenv("MOCK_REFUSE_COMMANDS") != null) {

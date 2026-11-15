@@ -414,6 +414,11 @@ class MockZCode(
         @Volatile var heldQueueCasArm: Boolean = false
         @Volatile var heldQueueGhostDelayMs: Long = 1_000
         @Volatile var heldQueueGhostFired: Boolean = false
+        /** Pass-20 rig arm (F-P20-A + the stale-face sweep, MOCK_CAS_STALE_TYPES): the
+         *  listed command types answer the host's CAS-mismatch shape
+         *  {status:"stale", reasonCode:"proto.staleRevision"} — the phone's typed
+         *  SESSION_CHANGED stale faces become drivable on the rig. */
+        @Volatile var casStaleTypes: Set<String>? = null
         /** Pending open interaction stamped into snapshots + state (Q11 shape). */
         @Volatile var pendingPermission: PendingPermission? = null
         @Volatile var pendingUserInput: PendingUserInput? = null
@@ -2934,6 +2939,24 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                         return
                     }
                 }
+                // Pass-20 rig arm (F-P20-A): the GOAL half of the same admission — a
+                // disposition-less sendGoalCommand under choice answers the host's
+                // heldQueueDispositionRequired failure ack and mutates nothing (the
+                // phone's goal surfaces carry no trio, so the real desktop refuses
+                // every phone goal send while a paused queue + choice state stands).
+                if (type == "sendGoalCommand" && script.heldQueueCasArm) {
+                    heldQueueGoalAdmissionRejection(env)?.let { goalAck ->
+                        respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(goalAck))
+                        return
+                    }
+                }
+                // Pass-20 stale arm (MOCK_CAS_STALE_TYPES): the listed types answer the
+                // host's revision-mismatch ack — the phone's typed SESSION_CHANGED
+                // stale faces become drivable.
+                casStaleAck(type, env)?.let { staleAck ->
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(staleAck))
+                    return
+                }
                 var createResult: JsonObject? = null
                 if (script.commandEffects) {
                     createResult = applyCommandEffect(type, env)
@@ -3906,6 +3929,56 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             put("status", JsonPrimitive("failed"))
             put("reasonCode", JsonPrimitive("guard.heldQueueConfirmationStale"))
             put("message", JsonPrimitive("paused queue changed after send confirmation opened"))
+            put("revisionAtDecision", JsonPrimitive(stateRevision.get()))
+        }
+    }
+
+    /**
+     * Pass-20 (F-P20-A leg): the GOAL half of the host's held-queue admission. The
+     * host's sendGoalCommand handler (zcode.cjs SMc -> n9e) passes the payload's
+     * heldQueueDisposition/expectedHeldQueueItemIds through the SAME
+     * applyHeldQueueDisposition gate as sendText — under inputRouting.mode=="choice"
+     * a disposition-less goal send throws V4HeldQueueDispositionRequiredError, which
+     * the dispatcher maps to {status:"failed",
+     * reasonCode:"heldQueueDispositionRequired", message:"held queue requires
+     * heldQueueDisposition (clearQueueAndSend | keepQueueAndSend)"}. The desktop UI
+     * pre-gates (its confirmation dialog supplies the trio), but the phone's goal
+     * surfaces send no trio — so on the real desktop every phone goal send under a
+     * paused queue + choice admission is refused. Returns the desktop-faithful
+     * failure ack, null otherwise (proceed). Mutates nothing. Gated on the same
+     * heldQueueCasArm envelope as the sendText CAS (old rigs' shapes unchanged).
+     */
+    internal fun heldQueueGoalAdmissionRejection(env: JsonObject?): JsonObject? {
+        if (!script.heldQueueCasArm) return null
+        if (script.inputRoutingMode != "choice") return null
+        val payload = env?.get("payload") as? JsonObject
+        if (payload?.strOrNull("heldQueueDisposition") != null) return null
+        println("MOCK: sendGoalCommand heldQueue admission REFUSED (no heldQueueDisposition under choice) -> heldQueueDispositionRequired (no mutation)")
+        return buildJsonObject {
+            put("commandId", JsonPrimitive(env?.strOrNull("commandId") ?: "unknown"))
+            put("status", JsonPrimitive("failed"))
+            put("reasonCode", JsonPrimitive("heldQueueDispositionRequired"))
+            put("message", JsonPrimitive("held queue requires heldQueueDisposition (clearQueueAndSend | keepQueueAndSend)"))
+            put("revisionAtDecision", JsonPrimitive(stateRevision.get()))
+        }
+    }
+
+    /**
+     * Pass-20 stale arm (MOCK_CAS_STALE_TYPES): the listed command types answer the
+     * host's revision-mismatch ack — {status:"stale", reasonCode:"proto.staleRevision"}
+     * (zcode.cjs dispatcher: a baseRevision-bearing command whose baseRevision misses
+     * the live revision). The phone's typed SESSION_CHANGED faces become drivable
+     * (the desktop recovers silently via recoverFromStaleAuthority; the phone warns
+     * honestly). Mutates nothing; sticky while armed.
+     */
+    internal fun casStaleAck(type: String, env: JsonObject?): JsonObject? {
+        val types = script.casStaleTypes ?: return null
+        if (type !in types) return null
+        println("MOCK: $type forced stale (MOCK_CAS_STALE_TYPES) -> proto.staleRevision")
+        return buildJsonObject {
+            put("commandId", JsonPrimitive(env?.strOrNull("commandId") ?: "unknown"))
+            put("status", JsonPrimitive("stale"))
+            put("reasonCode", JsonPrimitive("proto.staleRevision"))
             put("revisionAtDecision", JsonPrimitive(stateRevision.get()))
         }
     }
