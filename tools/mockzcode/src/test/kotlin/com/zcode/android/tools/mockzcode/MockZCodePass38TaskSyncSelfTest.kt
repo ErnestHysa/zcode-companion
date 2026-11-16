@@ -3,6 +3,8 @@ package com.zcode.android.tools.mockzcode
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlinx.serialization.json.jsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -107,5 +109,24 @@ class MockZCodePass38TaskSyncSelfTest {
         assertTrue(okReplied(m, before))
         assertTrue(m.bootstrapTasksView().none { (it.jsonObject["taskId"] as? JsonPrimitive)?.content == "synth-task-3" })
         assertTrue(m.script.directTasks.none { (it.jsonObject["taskId"] as? JsonPrimitive)?.content == "synth-task-3" })
+    }
+
+    @Test
+    fun `createSession effect appends to the control view`() {
+        val m = mock()
+        armTaskManagementRig(m)
+        assertEquals(3, m.bootstrapTasksView().size)
+        val env = buildJsonObject {
+            put("type", JsonPrimitive("createSession"))
+            put("payload", buildJsonObject {
+                put("firstInput", buildJsonObject { put("text", JsonPrimitive("p38-delete-me")) })
+            })
+        }
+        m.applyCommandEffectForTest("createSession", env)
+        val view = m.bootstrapTasksView()
+        assertEquals(4, view.size)
+        val created = view.last().jsonObject
+        assertEquals("p38-delete-me", (created["title"] as JsonPrimitive).content)
+        assertEquals("/synthetic/ws-one", (created["workspacePath"] as JsonPrimitive).content)
     }
 }
