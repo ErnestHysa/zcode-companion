@@ -378,6 +378,12 @@ class MockZCode(
          *  each attachmentChunkV4 — widens the ↑ NN% uploading-chip window so the
          *  progress render is catchable on the rig. */
         @Volatile var attachmentChunkDelayMs: Long = 0L
+        /** Pass-32 rig arm (MOCK_ATTACHMENT_KEEP_AFTER_ABORT): attachmentAbortV4 does
+         *  NOT delete the staging entry, so post-abort chunks are accepted and the
+         *  transaction completes/commits — the AH.D "server that blindly accepted
+         *  post-abort chunks" shape that resurrects the user-removed chip as
+         *  ✓ READY (F-P31-A's second variant, previously undrivable). */
+        @Volatile var attachmentKeepAfterAbort: Boolean = false
         /** Scriptable git channel fixtures (shared/src/git.ts shapes). */
         var gitSummary: JsonObject? = null
         var gitChanges: JsonArray? = null
@@ -3470,7 +3476,12 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             }
             "attachmentAbortV4" -> {
                 val uploadId = argAsObject(arg)?.str("uploadId")
-                synchronized(attachmentStore) { attachmentStore.remove(uploadId) }
+                val removed = attachmentAbortMutate(uploadId)
+                if (script.attachmentKeepAfterAbort) {
+                    println("MOCK: attachmentAbort KEPT (MOCK_ATTACHMENT_KEEP_AFTER_ABORT) upload=$uploadId — post-abort chunks accepted")
+                } else if (removed) {
+                    println("MOCK: attachmentAbort removed upload=$uploadId")
+                }
                 respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject { }))
             }
             // G16 (vc51 Phase 4D): the attachment PREVIEW-SOURCE + conversation-scoped
@@ -4100,6 +4111,28 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
      *  outranks the pass-30 arm (the pass-4 shape stands). */
     internal fun attachmentBeginGuardFault(): String? =
         if (script.rejectAttachments) "fault.attachment.rejected" else null
+
+    /**
+     * Pass-32 rig arm (MOCK_ATTACHMENT_KEEP_AFTER_ABORT): the store mutation the
+     * abort handler performs — `true` when the staging entry was removed (the
+     * server-faithful default), `false` when kept (the arm) or was already absent.
+     * A kept entry makes every post-abort chunkV4 find its `att` and commit
+     * succeed, which is the F-P31-A READY-resurrection driver.
+     */
+    internal fun attachmentAbortMutate(uploadId: String?): Boolean = synchronized(attachmentStore) {
+        if (script.attachmentKeepAfterAbort) false
+        else attachmentStore.remove(uploadId) != null
+    }
+
+    /** Test seams for the pass-32 arm: seed/inspect the live staging store. */
+    internal fun attachmentSeedForTest(uploadId: String) {
+        synchronized(attachmentStore) {
+            attachmentStore[uploadId] = MockAttachment(
+                sessionId = "sess-p32", fileName = "rig-p32.bin", mime = "application/octet-stream", totalBytes = 1L,
+            )
+        }
+    }
+
 
     /**
      * Pass-22 rig arm (MOCK_SET_THOUGHT_LEVEL_STALE): the host's FQ serialization —

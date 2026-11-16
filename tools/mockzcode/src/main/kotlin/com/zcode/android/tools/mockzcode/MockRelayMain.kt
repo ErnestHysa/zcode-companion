@@ -151,8 +151,15 @@ fun main() {
     //   MOCK_ATTACHMENT_CHUNK_DELAY_MS=<ms>      delay before each attachmentChunkV4
     //                                     response — widens the ↑ NN% uploading-chip
     //                                     window so the progress render is catchable.
+    //   MOCK_ATTACHMENT_KEEP_AFTER_ABORT=1       attachmentAbortV4 KEEPS the staging
+    //                                     entry, so post-abort chunks are accepted
+    //                                     and commit succeeds — the AH.D
+    //                                     "chunk-accepting server" shape that
+    //                                     resurrects the user-removed chip as
+    //                                     ✓ READY (F-P31-A's second variant).
     System.getenv("MOCK_ATTACHMENT_FAIL")?.let { mock.script.attachmentFailPhase = it }
     System.getenv("MOCK_ATTACHMENT_CHUNK_DELAY_MS")?.toLongOrNull()?.let { mock.script.attachmentChunkDelayMs = it }
+    System.getenv("MOCK_ATTACHMENT_KEEP_AFTER_ABORT")?.let { mock.script.attachmentKeepAfterAbort = it == "1" }
     // PART N bulk leg (MOCK_ROWS): a long conversation for the gfxinfo scroll-jank leg.
     System.getenv("MOCK_ROWS")?.toIntOrNull()?.let { n ->
         mock.script.snapshotRowCount = n
