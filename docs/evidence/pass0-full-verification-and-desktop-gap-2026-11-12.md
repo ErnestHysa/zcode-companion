@@ -8410,3 +8410,284 @@ wifi ENABLED, screenshot protection OFF), relay gen1 ALIVE (nonce
 "Fork of synth-task-2" with the find bar OPEN holding query "SYNTHETIC 82"
 ("1 of 3" — the store fully loaded 1..401, the strip hidden by the F-P36-A wedge),
 logcat running → /tmp/p36/logcat.log.
+
+# Part AN — pass 37 (APPENDED 2026-11-16, ~14:35): fresh recon on a NEW axis — the assistant-row ACTION RAIL (the completed-row plane below the prose), the plane with ZERO live receipts in the whole series (feedback like/dislike had zero report/ledger hits before today). The full rail censused live: the LIKE → echo round-trip (wire `setAssistantFeedback` → mock `rowUpserted` → accent-filled thumb + a11y "Liked" flip + the Room raw-json `feedback:"like"` arbiter), the DISLIKE flip + the explicit-null CLEAR (the field REMOVED from the row json), the SNAPSHOT-row like with the mock's new generated-row echo fidelity (the echoed upsert preserved "synthetic 320" verbatim where the old fallback would have re-texted the row), the copy pair (row_copy_agent flip caught + row_copy_code flip caught WITH the OS clipboard preview chip showing the exact code text — OS-arbitered), the Fork/Retry capability flag-gate (only the MOCK_ROW_ACTIONS-stamped row carries them; the Like/Dislike pair renders on EVERY completed assistant row by entityId alone), and the FEEDBACK planes' refusal + stale faces FIRST SERIES (the new MOCK_FEEDBACK_FAIL arm → the keyed FEEDBACK_REFUSED copy verbatim with the rail unchanged + the DB unmutated; MOCK_CAS_STALE_TYPES=setAssistantFeedback → the typed SESSION_CHANGED warning — which exposed NEW ROW N-BT-1: the stale row-action banner renders the SWITCH-specific copy "try the switch again" because the renderer maps the shared key and discards rowActionNotice's own message) — plus the ride-along find receipts (the 3-digit count "1 of 200" DB-exact as 159 window + 41 paged coexisting schemes; and the UNPLANNED: the find JUMP is a proven rowsRange trigger — the jump to the first match scrolled to the cache head, the PAGE_EDGE prefetch fired the two-call pair ids 34/35, the paged rows joined the index LIVE, and the post-floor strip hiding was adjudicated HONEST because the jump-fetched pages covered the head — F-P36-A's lie needs the race's partial-fetch sequence and did NOT reproduce; the open-time race itself fired 0/3 fresh opens this pass vs 2/2 in pass 36 — intermittent, stamps 2)
+
+> **Pass 37 of the pass-0 series** (solo, the canonical discovery prompt). STEP 1 empty
+> (backlog 8/8); Part AM's coverage list held only standing stops — the axis came from a
+> fresh static sweep: the assistant-row action rail (RowRenderers.kt AssistantActionRow)
+> had ZERO series receipts for feedback (report+ledger greps: 0 hits), and the rail's
+> copy/selection/timestamp faces were equally undriven. **App: ZERO changes** (device md5
+> `530ba4ff…` == local HEAD build → `install -r` SKIPPED; sha256 `ad449d7d…`, vc53/1.3.2).
+> **Mock: ONE commit `df1485fb`** — the MOCK_FEEDBACK_FAIL arm (the F-P19-A failed-ack
+> shape, dispatcher-level like the pass-20 stale arm) + the generated-row echo fidelity
+> (schemaRow records every generated row putIfAbsent; the feedback echo prefers
+> appendedRows → generatedRows → the synthesized base — the old fallback would have
+> replaced a snapshot row's text with the bare "synthetic" on row.upserted, and the phone
+> REPLACES the whole row) + MockZCodePass37RigSelfTest 10 cases; suite **235/0/0**.
+> **ONE new row: N-BT-1 (P4)** — the stale row-action banner renders switch copy
+> (the mechanism in AN.G).
+
+> **Verification stamp (pass start):** 2026-11-16 13:55 → 14:30, GLM-5.3-Flash in
+> ZCode, everything local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…`
+> UNCHANGED — no DELTA. Rig: the pass-36 emulator REUSED (FOURTEENTH consecutive
+> inherited survival; healthy, screenshot protection OFF persisted across the
+> force-stops — s00 renders), the pass-36 relay gen1 pkilled BY NAME at pass start;
+> THREE generations: gen1 `mock-p37-gen1-b4f2c9` (MOCK_ROWS_TOTAL=400 +
+> MOCK_ROW_ACTIONS=1 — the vc52-era arm, never armed in this series before),
+> gen2 `mock-p37-gen2-e7a15d` (+ MOCK_FEEDBACK_FAIL=1), gen3 `mock-p37-gen3-c9d041`
+> (+ MOCK_CAS_STALE_TYPES=setAssistantFeedback); launchers /tmp/p37/relay-g{1,2,3}.sh,
+> plain `java -cp` recipe. Stored endpoints survived both relay restarts (no
+> re-pairing); the app force-stopped + am-start relaunched twice (the gen1 open + the
+> persistence leg). Build check: device md5 == local → install SKIPPED. logcat fresh
+> `-T 1` → /tmp/p37/logcat.log. gateway.drop: **0**; zero app FATALs; 65 v4call
+> (4 rowsRange — the find-jump pair gen1 ids 34/35 + none at the other three
+> connects; 6 sendConversationCommandV4 = 4 feedback + 2 sheet-era reads; 0 faults).
+
+## AN.A0 — rig learnings
+
+1. **The relay restart RESETS the feedback echo** (per-generation in-memory state —
+   the fresh generation's snapshot serves rows without `feedback`): the gen2 swap
+   silently unliked row 400. Mock-fidelity note only (the real desktop persists
+   feedback server-side); it also handed gen2 a clean unliked row to tap.
+2. **The clipboard is adb-verifiable INDIRECTLY**: Android 13+ shows the OS clipboard
+   preview chip after a copy — the chip's text in the screencap IS the clipboard
+   arbiter (s07 shows the exact code-block text). No `cmd clipboard` needed.
+3. **The status sheet is a tap-hazard near the header**: the (835,332) SCREENSHOT-scaled
+   tap meant for the find toggle opened the task status sheet instead (Status · 4m 59s,
+   Open/Files/Git/Terminal tabs). BACK closes it; the find toggle's DUMP-true center
+   was (981,389) — the ~1.21 Read-preview scale bit again. Screenshot-derived taps for
+   dialogs, dump-derived taps for plain nodes (the standing rule, re-learned).
+4. **Tail scroll-locks resist swipes AND flings after the fresh-open clamp** — the
+   find JUMP is the reliable scroll driver (it sets followBottom=false). Two swipes
+   + one fling moved ~0 px; the "synthetic 320" query jump landed row 400 exactly.
+5. The `%s`-for-space input recipe held ("synthetic%s320" → the field "synthetic 320");
+   a bare `input text "synthetic320"` + one DEL ate the "0" (the DEL is appended LAST
+   — type the space variant directly).
+
+## AN.B — static recon: the rail pinned
+
+- `RowRenderers.kt:285-430` — `AgentProse`/`AssistantActionRow`: the completed row's
+  action rail = Copy (row_copy_agent, GAP-11's desktop CopyRowAction) + Like/Dislike
+  (18 dp thumb icon-buttons, haptics.tick, content-desc Like↔Liked / Dislike↔Disliked,
+  accent fill / error tint on the set state, tap-the-set-one-clears via explicit null)
+  + Fork/Retry TextButtons gated by `actions.canFork/canRetry` (Phase 4A capability
+  flags) + entityId. The thumbs render on EVERY completed assistant row with an
+  entityId ("Like/Dislike always exist on a completed row") — flag-independent.
+- `ConversationScreen.kt:1473-1481` — the entityId gate: `row.base.entityId` null ⇒
+  NO callbacks wired (a row without an entity id "cannot be targeted, so its actions
+  stay withheld"); the selection container (row_selection_agent, GAP-11's per-row
+  selection) + RowTimeLabel census rows carry timestamps inline.
+- `ConversationViewModel.kt:1124-1127` — `setAssistantFeedback(rowId, entityId,
+  like|dislike|null)` → `rowActionNotice(port.setAssistantFeedback(...), refusedText
+  "The desktop refused the feedback — nothing changed.", FEEDBACK_REFUSED)` — accepted
+  is SILENT ("the row's `feedback` echo is the truth"); :1131-1152 rowActionNotice
+  maps BLOCKED_OFFLINE/NOT_READY/STALE/else → keyed notices.
+- `Ports.kt:589-592` — the protocol command carries revision + epoch (the CAS pair);
+  `CommandCoordinator.kt:651-663` strict-validates feedback ∈ {like, dislike} (else
+  Failed locally, no wire).
+- Decoder: `ConversationRow.kt:107-110` (the tolerant `feedback` echo, unknown value
+  retained raw per INV-8) read at `ConversationRow.kt:432` (`obj.strOrNull("feedback")`);
+  rows persist as raw json in Room (the echo survives via the stored row, no separate
+  column — the repo decodes on read, ConversationRepositoryImpl.kt:159).
+- Mock: the `setAssistantFeedback` handler (MockZCode.kt:4788-era) already echoed
+  (stateRevision++ → row upsert with `feedback` set/cleared → `rowUpserted` delta +
+  revision patch + lastFeedback seam); MOCK_ROW_ACTIONS=1 (MockRelayMain.kt:263) stamps
+  canFork/canRetry on the snapshot's LAST assistant row + the completed-turn
+  fileChanges tail — never armed in this series before.
+
+## AN.C — leg A: LIKE → echo round-trip (13:58, s02)
+
+Fresh gen1, fresh process, the conversation opened to the tail. The stamped row (the
+snapshot's last assistant = the demo-markdown row, **rowId 401** — text "## Rewrite
+plan…") carries the full rail: Copy (934,1265) + Like (110,1601) + Dislike (242,1601)
++ Fork (426,1601) + Retry (614,1601). Tapped LIKE: the node flipped to
+**content-desc "Liked"** (w3), relay line 20 `MOCK: command type=setAssistantFeedback`,
+and the Room DB arbiter: the row's raw json gained **`"feedback":"like"`** (multiple
+page images, text preserved). The thumb renders FILLED ACCENT (visible in s06-copy2).
+
+## AN.D — leg B: DISLIKE flip + explicit-null CLEAR (14:00, s03/s04)
+
+Tapped Dislike on the same row: **"Disliked"** + the neighbor stays "Like" (w4) — the
+like→dislike flip lands `feedback:"dislike"`. Tapped Dislike AGAIN: back to plain
+**"Dislike"** (w5) — the wire carried explicit null and the mock REMOVED the key
+(the DB's newest row-401 images carry no `feedback` field; the WAL lifecycle
+like→dislike→clear is fully receipted). The relay count: 4 feedback commands at gen1
+peak (like 401, dislike 401, clear 401, like 400).
+
+## AN.E — leg C: the SNAPSHOT-row like + the echo-fidelity receipt (14:02, s05)
+
+Scrolled back (the rowActionDemo extras shift the window ids: cache = 83..402): the
+assistant row **rowId 400** ("synthetic 320", snapshot window scheme) shows the
+Like/Dislike pair WITHOUT Fork/Retry (the flag gate — see AN.F). Tapped LIKE: **"Liked"**
+(w7) while the text "synthetic 320" rendered UNCHANGED — and the WAL's row-400 page
+images show `text "synthetic 320" | feedback: like` — **the echoed upsert preserved
+the row's real shape**. This is the new generatedRows fallback's live proof: the
+pre-fix fallback would have upserted the synthesized `schemaRow(..., "synthetic")`
+base and the phone (which REPLACES the whole row on row.upserted,
+ConversationRepositoryImpl.kt:53-56) would have re-texted the row.
+
+## AN.F — leg D: the capability flag-gate (one frame, w6/w7)
+
+Exactly ONE Fork + ONE Retry render in-frame (the MOCK_ROW_ACTIONS-stamped row 401);
+every OTHER visible assistant rail shows Like/Dislike ONLY (rows 398/400 — w6: rails
+at y=554 and y=1032 with no Fork/Retry nodes). The Phase 4A gate receipts: canFork/
+canRetry are per-row wire flags, Like/Dislike are entityId-gated only.
+
+## AN.G — NEW ROW N-BT-1 (P4): the stale row-action banner renders the SWITCH-specific copy — the renderer's key→string map discards rowActionNotice's own message
+
+**Live receipt (14:24, s14, gen3 `MOCK_CAS_STALE_TYPES=setAssistantFeedback`)**: the
+stale feedback tap rendered the WARNING banner **"The session changed on the desktop
+— try the switch again."** — for a LIKE tap. Mechanism:
+
+1. `rowActionNotice`'s STALE branch (`ConversationViewModel.kt:1147`) passes the
+   ROW-ACTION-correct message "The session changed on the desktop — try again." with
+   the SHARED `SendNotice.Key.SESSION_CHANGED`.
+2. The banner renderer resolves BY KEY (`WriteComponents.kt:1751`:
+   `SESSION_CHANGED -> R.string.notice_session_changed`) and the string is
+   SWITCH-specific — `notice_session_changed` = "The session changed on the desktop —
+   **try the switch again.**" (features/conversation/res/strings.xml:231; the switch
+   call sites :322/:337/:351 hardcode the same switch copy for their own paths).
+3. The keyed render DISCARDS the per-path message (args only for ATTACHMENT_FAILED),
+   so every stale ROW ACTION renders switch copy: feedback (live-receipted), and the
+   same-path trio retryTurn :990 / forkAssistant :1023 / applyFileRewind :1119
+   statically.
+
+The affected population is exactly rowActionNotice's callers on the STALE outcome;
+the switch paths render their own copy correctly; the queue verbs render their own
+typed "Queue changed" key (pass 20/22 receipts, unaffected). The desktop recovers
+stale feedback SILENTLY (the protocol chunk's stale-recoverable set `zn` =
+applyFileRewind/forkAssistant/editUserQuery/retryTurn/setAssistantFeedback/
+setHighspeedMetrics) — the phone warns honestly (the established N-BQ-1-family
+direction, correct) but with the wrong ACTION named.
+
+**Fix shape**: a distinct key for the row-action stale (e.g.
+`ROW_ACTION_STALE` → `notice_row_action_stale` "The session changed on the desktop —
+try again."), or render `notice.message` for SESSION_CHANGED when non-blank. Pins:
+a harness asserting the feedback-stale banner does NOT contain "switch"; the four
+rowActionNotice call sites enumerated.
+
+**Receipts**: s14 (the banner verbatim + the rail "Like"/"Dislike" unchanged),
+relay-g3.log line 12 (`MOCK: setAssistantFeedback forced stale ->
+proto.staleRevision`), the grep receipts above.
+
+## AN.H — leg E: the REFUSED face FIRST SERIES (14:20, s13, gen2)
+
+`MOCK_FEEDBACK_FAIL=1` (the new arm, dispatcher-level, F-P19-A failed-ack shape):
+tapped LIKE on row 400 (freshly unliked by the generation swap — AN.A0.1) → the
+banner **"The desktop refused the feedback — nothing changed."** VERBATIM (the keyed
+FEEDBACK_REFUSED copy — first series receipt; zero hits in the whole report before)
++ the rail UNCHANGED ("Like"/"Dislike", no optimistic fill) + the DB's newest row-400
+images carry NO feedback (the failed ack mutated nothing phone-side). Relay line 13/14
+(the v4call + the forced-fail line).
+
+## AN.I — leg F: the copy pair (14:06-14:08, s06-copy2/s07)
+
+- **row_copy_agent**: the tap+screencap atomics CAUGHT the flip — the row-header copy
+  icon renders the CHECK-in-circle state (s06-copy2, the markdown row's header).
+- **row_copy_code**: the code block renders "CODE · kotlin" with a wrap-toggle + copy;
+  the tap flipped it to the CHECK (s07) AND the OS clipboard preview chip appeared
+  showing the EXACT block text "fun parse(input: String): List<Node> =
+  input.line…" — the OS-arbitered clipboard receipt (AN.A0.2). The GAP-11 plane
+  (desktop CopyRowAction + per-code-block copy) is WORKING at HEAD, first series.
+
+## AN.J — leg G: the find ride-alongs (14:12-14:16, s09/s12)
+
+- **The 3-digit count (the AM.L leftover)**: query "synthetic" (FIELD-verified per the
+  AM.A0.3 trap) → **"1 of 200"** — DB-exact: 200 distinct searchable rows for
+  sess-forked-1 = **159 window-scheme + 41 paged-scheme** assistants (the two text
+  schemes coexisting in one store, AM.H's census extended by the new pages).
+- **UNPLANNED — the find JUMP is a rowsRange trigger**: the jump to the first match
+  scrolled the viewport to the cache head → the PAGE_EDGE prefetch effect
+  (ConversationScreen.kt:1092-1103) fired the TWO-CALL pair (relay ids 34/35 — AFTER
+  the feedback commands and the sheet's getTaskTokenUsage, cleanly attributed) → the
+  paged rows 1..82 applied and the count INCLUDED them. The pass-36 "open race"
+  signature has a THIRD driver: any head-adjacent page fetch (open-race OR
+  find-jump). AM.K.3's strip-tap isolation stays unreceipted — pre-empted again, but
+  now by a RECEIPTED trigger; the standing rig note gains the driver list.
+- **The post-floor strip hiding adjudicated HONEST in this path**: the DB census after
+  the pages = ids 1..402 + 1001..1002, ZERO gaps — the jump-fetched pages COVERED the
+  head, so hasMore=false is TRUE and the strip hiding is correct. **F-P36-A's lie did
+  NOT reproduce here** — its mechanism needs the race's partial-fetch + trim sequence
+  (a snapshot/append enforceBound AFTER the page-path write); the jump path leaves
+  the cache complete. One-line stamp: F-P36-A stamps 2 (0/3 fresh opens this pass vs
+  2/2 in pass 36 — the "open race" is intermittent; the jump trigger is deterministic;
+  the honest end face receipted via the jump path).
+- **The fresh-process heal re-receipted** (w21: the strip "showing latest 320 of 400"
+  PRESENT after the force-stop + re-open — the snapshot path re-derives hasMore=true;
+  the AM.I persistence boundary holds).
+
+## AN.K — leg H: the echo persistence across the fresh process (14:17-14:22, s12)
+
+Force-stop → relaunch → re-open (the snapshot path, gen1 still up): the DB's row-400
+images post-resync carry `text "synthetic 320" | feedback like` (the mock's
+snapshotRows ∪ appendedRows union serves the liked row), and the ON-SCREEN face: the
+find jump "synthetic 320" → "1 of 1" → the rail below the match renders **"Liked"**
+(s12). The echo is the state of record end-to-end: wire → delta → Room → snapshot
+re-derive → render.
+
+## AN.L — adjudications (no rows)
+
+1. **Desktop feedback parity EXACT**: the shipped 3.18.1 schema carries
+   `setAssistantFeedback:p({target, feedback:C(["like","dislike"]).nullable()})`
+   (renderer protocol chunk) — the phone's strict validation is the same enum; the
+   renderer's chat.message.{like,liked,dislike,disliked,copy,edit,fork} vocabulary is
+   present in the styles chunk (the desktop renders the hover-bar plane). NO G row —
+   parity; the desktop census row for the stale-recoverable set (zn) is the AN.G
+   context.
+2. **The relay-restart echo reset** (AN.A0.1) is mock-fidelity (per-generation memory),
+   not an app defect — the real desktop persists feedback server-side; recorded so no
+   future pass reads the unliked-after-swap state as a persistence bug.
+3. **The rowActionsDemo turn tail** ("Turn · 4s | 2 files +5 −1 · view | Undo files",
+   s07) re-confirmed the early-campaign rewind-gate receipt's render shape — one line,
+   no re-narration (the applyFileRewind wire plane receipted in the early pass stands).
+4. **`setHighspeedMetrics`** surfaced in the protocol-chunk grep — ALREADY censused
+   (report line 2654: the highspeedCardOwner NO-ACTION strip row + the dormant-schema
+   note at 1105/1109); no new row, do not re-hunt.
+
+## AN.M — ledger arithmetic + coverage honesty
+
+**ONE new row: N-BT-1 (P4)** — the stale row-action switch-copy artifact. Open
+counts: **31 F (29 defects + 2 obs) + 21 G + 3 standing + 17 smalls (+1 watch +1
+rig)** (N-BT-1 joins the smalls). Stamps: F-P36-A 2 (the intermittent open race +
+the jump trigger + the honest jump-path end face). Mock debts: 0 open (the pass's
+mock work was arm-building, not debt-closing). gateway.drop: 0; zero app FATALs;
+wire census: 3 generations, 65 v4call (4 rowsRange — the jump pair + none elsewhere;
+6 sendConversationCommandV4; 0 faults; the balance = subscribes/resyncs/polls/lists).
+
+What pass 37 did NOT drive: the strip-TAP-driven page fetch in isolation (pre-empted
+AGAIN — this time by the RECEIPTED jump trigger; the standing rig note holds, now
+with a three-driver attribution table); the per-row text SELECTION container's
+system-toolbar plane (row_selection_agent renders; the selection-handles drive is a
+real-device-grade leg — noted, not driven); the find count beyond 3 digits (the
+store bound caps matches at 200; >999 undrivable on this rig); the LIKE on a
+REASONING/tool row (structurally absent — the thumbs are assistant-row-only by
+construction, the entityId gate); TalkBack runtime for the Liked announcements
+(static a11y contract receipted: content-desc flips); the MOCK_ROW_ACTIONS rewind
+preview dialog (the early-campaign receipt stands; code unchanged); gen2/gen3
+persisted-resync legs (the echo reset AN.A0.1 makes them vacuous).
+
+## Pass-37 verification stamp
+
+Pass 37 completed 2026-11-16 ~14:30; THREE relay generations (gen1
+`mock-p37-gen1-b4f2c9` 13:57→14:16, gen2 `mock-p37-gen2-e7a15d` 14:19→14:22, gen3
+`mock-p37-gen3-c9d041` 14:23→14:30; launchers /tmp/p37/relay-g{1,2,3}.sh). Mock:
+ONE commit `df1485fb` (MOCK_FEEDBACK_FAIL + the generated-row echo fidelity +
+MockZCodePass37RigSelfTest 10 cases; suite 235/0/0). App: ZERO changes — the
+`install -r` SKIPPED on byte-identity (local == on-device md5 `530ba4ff…`, sha256
+`ad449d7d…`, vc53/1.3.2 at HEAD `3f35338a`). Receipts: shots /tmp/p37/shots/ (s00
+rig health; s01 the rail frame; s02 Liked; s03 Disliked; s04 cleared; s05 the
+snapshot-row Liked; s06-copy2 the copy flip + Liked fill; s07 the code-copy check +
+the OS clipboard chip + the turn tail; s08 the accidental status sheet; s09 the
+"1 of 200" find; s10/s11 the persistence-era states; s12 the post-resync "Liked"
+jump; s13 the FEEDBACK_REFUSED banner; s14 the stale switch-copy banner); AX dumps
+/tmp/p37/w/w1-w29; relay logs /tmp/p37/relay-g{1,2,3}.log (65 v4call; the jump pair
+gen1 ids 34/35); DB pulls /tmp/p37/db/ (the echo lifecycle + the row-400 fidelity
+images + the 200-row find census + the 1..402 completeness check); logcat
+/tmp/p37/logcat.log (gateway.drop 0, zero FATALs). Desktop 3.18.1 / `ec475e6e…`
+unchanged (STEP 0). **Rig left:** emulator zcode-a16 UP (healthy, wifi ENABLED,
+screenshot protection OFF), relay gen3 ALIVE (nonce `mock-p37-gen3-c9d041`, arms
+MOCK_ROWS_TOTAL=400 + MOCK_ROW_ACTIONS=1 + MOCK_CAS_STALE_TYPES=setAssistantFeedback
+— STICKY: an inheritor must pkill + relaunch clean unless driving stale faces),
+app pid on "Fork of synth-task-2" with the find bar OPEN holding "synthetic 320"
+("1 of 1"), logcat running → /tmp/p37/logcat.log.
