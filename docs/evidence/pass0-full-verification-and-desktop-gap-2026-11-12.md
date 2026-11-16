@@ -7485,3 +7485,233 @@ keep arm makes EVERY upload survive its aborts: an inheriting session should pki
 it and relaunch clean unless testing resurrection), app pid 14585 on synth-task-1
 (composer clean — the probe sent, chip consumed, no banner), logcat running →
 /tmp/p32/logcat.log.
+
+# Part AJ — pass 33 (APPENDED 2026-11-16, ~02:45): fresh recon on a NEW axis — the timeline row-kind render matrix (the pass-28 precedent, applied to the decoder's KNOWN_KINDS vocabulary): SEVEN never-receipted render faces driven live in one frame (the hooks monitor groups with their blocked/failed/running per-execution faces, the subagent row's LIVE child-session open affordance, the artifact preview card + its quiet fallback, the INV-8 unknown-kind tolerance face, a non-compact timelineMarker's quiet row, and the STREAMING reasoning row's auto-expanded face) — plus the failed-compaction marker's Retry affordance receipted END-TO-END on the wire (outbox ACKED) — and the pass's NEW defect: the generated-artifact preview card's Open affordance is DEAD at HEAD and SILENT in both failure stages (the download succeeds but the FileProvider has NO configured root for cache/downloads/ → IAE → log-only; the unserved-ref variant faults fault.file.notFound → log-only) — F-P33-A (P3)
+
+> **Pass 33 of the pass-0 series** (solo, the canonical discovery prompt). STEP 1 empty
+> (backlog 8/8); Part AI's coverage-honesty list is standing-stops-only, so the pass ran
+> FRESH RECON per the pass-28 precedent: a static census of the row-kind vocabulary
+> (protocol `KNOWN_KINDS` × the domain decoder's 10 variants × the render dispatch at
+> `ConversationScreen.kt:1434-1574`) cross-checked against all 33 pass records —
+> `reasoning`, `artifact`, `subagent`, `hookInvocation` (as a ROW — distinct from the
+> hook-review interaction cards), the `Unknown`-kind fallback, and non-compact
+> `timelineMarker` types had ZERO pass0 receipts; `userInput`/`assistantText`/`toolCall`/
+> `turnHeader`/compact-`timelineMarker` were already receipted. **ONE new row** (F-P33-A,
+> P3) + **F-P3-A stamps 10** (the MOCK_HOOKS side-effect card re-manifested the known
+> starved-body shape). Mock: TWO commits `f9ab77b2` (the MOCK_ROW_KINDS arm: the
+> openable artifact + the quiet-fallback artifact + the unknown-kind row + a checkpoint
+> marker + a streaming reasoning row; RowKind gains ARTIFACT; self-tests, suite
+> 213/0/0) and `2e46a172` (gen2's openable-but-unserved artifact for stage-1). App:
+> ZERO changes (APK byte-identical at HEAD — sha256 `ad449d7d…`, md5 `530ba4ff…`,
+> vc53/1.3.2; the `install -r` SKIPPED on digest equality).
+>
+> **Verification stamp:** 2026-11-16 02:07 → 02:40, GLM-5.3-Flash in ZCode, everything
+> local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…` UNCHANGED — no
+> DELTA. Rig: the pass-32 emulator REUSED (TENTH consecutive inherited survival;
+> healthy, wifi ENABLED, screenshot protection OFF — s00 verified); the pass-32 relay
+> gen1 pkilled BY NAME at ~02:07 (its ⚠ keep-arm); TWO generations: gen1
+> `mock-p33-gen1-a7e30b` (02:07→02:29, arms MOCK_ROWS=12 + MOCK_HOOKS=1 + MOCK_COMPACT=1
+> + MOCK_ROW_KINDS=1) and gen2 `mock-p33-gen2-d41c92` (02:30→end, same arms + the
+> 2e46a172 unserved artifact; the app force-stopped and relaunched per generation).
+> Build at HEAD: `:tools:mockzcode:test` + `:tools:mockzcode:jar` + `:app:assembleDebug`
+> exit 0; local APK md5 `530ba4ff…` == on-device `base.apk` md5 (pm-path md5sum — the
+> run-as-relative form returns the EMPTY-file hash; use the full
+> /data/app/~~…/base.apk path) → install SKIPPED. logcat fresh `-T 1` →
+> /tmp/p33/logcat.log.
+
+## AJ.A0 — rig learnings
+
+1. **`am start` works where `monkey -p … -c LAUNCHER 1` fails**: the monkey launch died
+   with `VM exiting with result code -5` (injection refused, app never started) on this
+   inherited emulator; `am start -n com.zcode.android.app/.MainActivity` (the
+   resolve-activity brief form) started it first try. The launcher recipe gains the
+   am-start fallback.
+2. **The initial snapshot page renders ONLY its last rows and the two SLOW drags
+   (400 ms) scrolled ~0 px while the FAST fling (200 ms) scrolled normally** — the
+   first dump-of-the-pass showed the row-kind block as if it were the whole timeline;
+   the DB pull arbitrated (all 24 rows persisted, `conversation_rows` census 24 ✓
+   incl. `futureWidget` stored under its own kind) and the second fling revealed the
+   earlier rows. Lesson: after opening a conversation, FLING (fast) — and when the
+   viewport looks truncated, pull the DB before concluding data loss.
+3. **On-device APK digest: `run-as … cat base.apk` from the app dir returns the
+   EMPTY-file md5 (d41d8cd9…)** — the relative path resolves wrong; use
+   `adb shell md5sum /data/app/~~…/base.apk` (the pm path). The pass-32-era "run-as cat"
+   recipe silently compared nothing.
+4. **Screenshot-space vs dump-space taps bit AGAIN** (the pass-31 lesson, second
+   manifestation): the Retry tap computed from the s05 screenshot (y=1251) missed;
+   the re-dumped bounds (y=1464) hit first tap. Dump bounds remain the only tap
+   authority.
+5. The uiautomator dump missed NOTHING this pass (no ghost frames — the pass-32
+   ghost was variance, not trend).
+
+## AJ.B — leg A: the row-kind matrix renders SEVEN first-series faces in one frame (02:14, gen1)
+
+Synthetic task 2 opened fresh (subscribeConversationV4 ok 244 ms →
+`recovery.subscribed mode=snapshot epoch=epoch-mock-1` → `manager.snapshot rows=24` →
+`snapshotReconcile rows=24`). s02 is the pass's headline frame:
+
+- **`Hooks · SessionStart · 1 ▸`** — the G71 hooks-monitor group, collapsed default.
+- **`Subagent · explore · Explored the auth module — Open session ›`** — the N-BK-1(a)
+  affordance in primary color, LIVE (leg D).
+- **`rig-p33-report.html / Website · HTML` + globe icon + external-open button** — the
+  I2.8 artifact PREVIEW CARD, first series (kind by extension, the desktop lZe table).
+- **`rig-p33-blob.xyz · 2.0 KB`** — the quiet-fallback artifact row (unknown extension →
+  QuietMetaRow + formatBytes), first series.
+- **`Unsupported entry · futureWidget`** — the INV-8 §19.5 unknown-kind tolerance face
+  (UnknownKindRow), first series: a kind outside KNOWN_KINDS renders a labeled quiet
+  row, counted by the decoder, never a crash.
+- **`checkpoint`** — a NON-compact timelineMarker → the generic QuietMetaRow(label=type)
+  fallback (compact is the only type with a dedicated face; CompactionNotice.from
+  returns null for it by design), first series.
+- **`THINKING ⌃ / weighing the fixture shapes…`** — the REASONING row AUTO-EXPANDED
+  because `state:"streaming"` (ReasoningRow's LaunchedEffect branch; the mock's default
+  snapshot seeds reasoning rows on every pass but the streaming auto-expand face and the
+  row itself had never been receipted), first series.
+
+The MOCK_HOOKS side-effect: the **Workspace hook review** interaction card above the
+timeline renders header + copy + `2 pending · 3 hooks` + a DISABLED
+`Trust 0 selected hook(s)` button with the selectable hook items ABSENT — the
+F-P3-A pinned-budget starvation exactly as stamped 9× before (stamp 10 this pass; no
+re-narration).
+
+## AJ.C — leg B: the hooks monitor's per-execution faces (02:22, gen1)
+
+SessionStart expand (s03): `Warm build cache · project · running` — the running state
+label on a live group. PreToolUse expand (s06): **`Lint gate · project · 210ms`**
+(completed → NO state label — the desktop's completed face, monitorState null),
+**`Secrets guard · user · BLOCKED(red) · 95ms`** with the red blockReason line
+`matched deny rule: secrets.*`, **`Telemetry · plugin · FAILED(red) · 115ms`**, and
+`Skipped watcher` (didExecute=false) CORRECTLY HIDDEN (the desktop sTn filter). The
+group's ▸ arrow renders ERROR-red while any member is failed/blocked
+(RowRenderers.kt:1051-1057) and the count says `· 3` (visible-only). All first series;
+the G71 plane is now fully receipted phone-side.
+
+## AJ.D — leg C: the failed-compaction Retry affordance, END-TO-END (02:23–02:24, gen1)
+
+s05 revealed the compaction trio from MOCK_COMPACT (the pass-23 drive receipted the
+running/completed pair via live compact; the FAILED marker + its Retry button are first
+series here): ⟳ `Compressing context` → ✓ `Context automatically compressed · 180K →
+42K tokens` → ⚠ RED `Context compression failed` + blue **Retry**
+(CompactionNoticeRow's failed branch, RowRenderers.kt:886-890). Tap Retry (dump
+bounds 627,1464): **relay `MOCK: command type=compact`** + **outbox DB arbiter**
+`compact | {} | ACKED | accepted` on synth-task-2 (commandId 01a1e22b…, issued
+1794795860141) — the affordance fires `vm.retryCompaction` → the real compact command,
+host-acked. The static markers stay (seed fidelity); the receipt is the affordance→wire→
+ack chain.
+
+## AJ.E — leg D: the subagent row's child-session open (02:25, gen1)
+
+Tap the Subagent row (400,1847): **`nav.subagent :: open sess-child-9`** (logcat INFO)
+— the decoded childSessionId is a LIVE navigation affordance (ConversationScreen.kt:
+1553-1561 → SubagentRow). The child session renders the GENERIC "Conversation" title
+over skeleton rows (s08) — exactly N-BM-2's unscripted-session shape (stamps 2 there;
+no new row). The affordance + navigation + the honest skeleton face are the receipt;
+BACK pops the route home.
+
+## AJ.F — leg E: the reasoning row's two faces (02:14 / 02:29, gen1)
+
+Streaming auto-expanded (s02, the LaunchedEffect(state) branch) → tap → COLLAPSED to
+the one-line ellipsis summary with the flipped ⌄ chevron (s10). Both faces first
+series; the collapsed-first-line render for `state:"complete"` rows has been on-screen
+in every prior pass's screenshots and now has its explicit receipt too.
+
+## AJ.G — leg F: the artifact preview card's Open affordance is DEAD and SILENT — NEW F-P33-A (02:26 gen1 / 02:34 gen2)
+
+**Stage-2 (gen1, the seeded-bytes card `rig-p33-report.html`)**: tap `Open externally`
+(959,1344) → the download SUCCEEDS (the file lands at
+`/data/data/com.zcode.android.app/cache/downloads/rig-p33-report.html`) →
+`FileProvider.getUriForFile` THROWS:
+
+```
+02:26:58.598 [WARN] files.share :: IllegalArgumentException: Failed to find configured root that contains /data/data/com.zcode.android.app/cache/downloads/rig-p3…
+02:26:58.606 [WARN] preview.open :: IllegalArgumentException: Failed to find configured root that contains /data/data/com.zcode.android.app/ca…
+```
+
+and s09 shows **NO user face** — the frame is pixel-identical before/after the tap.
+
+**Stage-1 (gen2, the openable-but-unserved card `rig-p33-missing.html`, commit
+`2e46a172`)**: the card renders identically (known extension) but the ref is never
+seeded → `file.readFileRange refused: fault.file.notFound` →
+`filesport.download :: TransportFailure` → `preview.open :: download failed:
+fault.file.notFound` — and s11 again shows **NO user face**.
+
+**The mechanism, pinned both ends**: the FilesPort.download target is
+`File(appContext.cacheDir, "downloads")` (`AppContainer.kt:258`), but the FileProvider
+manifest config `app/src/main/res/xml/file_paths.xml` declares ONLY
+`<cache-path name="shared" path="shared/" />` and `<cache-path name="updates" path="updates/" />`
+— NO root covers `cache/downloads/`, so `getUriForFile` IAEs for EVERY downloaded
+artifact. `ZCodeApp.kt:1106-1133`'s failure branches are both log-only: the
+download-null branch (:1110-1113) `container.log.warn("preview.open", "download failed…")`,
+and the launch-failure else (:1130-1132) — G57's typed no-viewer notice matches ONLY
+`isNoViewerActivityLaunch(e)` (ActivityNotFoundException-class), never this IAE. The
+card renders, the button fires, the wire works, the file downloads, and the user gets
+nothing — the F-P0-C silent-family shape on the preview-card plane.
+
+**Never live-driven before**: zero artifact-row/artifact-open receipts exist in the
+pass0 series (33 passes); the I2.8/G28/G57 static pins covered the RENDER and the
+no-viewer fallback, not the handoff path. **Fix shape**: add
+`<cache-path name="downloads" path="downloads/" />` to file_paths.xml (stage-2 — one
+line) + a typed notice on the download-null branch (stage-1 — the N-BR-1/N-BS-1 notice
+plane); pins: a Robolectric `getUriForFile` harness over a cache/downloads file + a
+harness asserting the typed notice on `result == null`.
+
+## AJ.H — the INV-8 receipts (02:14, gen1)
+
+The unknown-kind row (`futureWidget`, kind outside the protocol's KNOWN_KINDS) decoded
+to `Unknown` (decoder counter incremented), PERSISTED under its own kind
+(conversation_rows census ✓), rendered `Unsupported entry · futureWidget`, and the
+timeline stayed healthy around it — the §19.5 contract's first live receipt. The
+non-compact marker (`checkpoint`) rendered the generic quiet row (the decoder's
+`markerType` falls back "unknown" only when marker.type is absent — the checkpoint
+value rides through; `CompactionNotice.from` correctly returns null for it and the
+QuietMetaRow handles the rest).
+
+## AJ.I — ledger arithmetic + coverage honesty
+
+**ONE new row**: F-P33-A (P3, the artifact-open dead handoff, both stages silent).
+F-P3-A stamps 10 (the hook-review card's starved body — the MOCK_HOOKS side-effect,
+third pass re-manifesting it on this card). Open counts: **29 F (27 defects + 2 obs)
++ 21 G + 3 standing + 16 smalls (+1 watch +1 rig)**. Mock debts: 0 open (MOCK_ROW_KINDS
+is a capability, not a debt). gateway.drop for the pass: **0**; zero app FATAL lines
+(the 68 AndroidRuntime/FATAL grep hits are pid 15775 = the failed monkey launcher
+process, uid 2000 — not the app); relay v4call census gen1=18 / gen2=15.
+
+What pass 33 did NOT drive: the artifact open's SUCCESS face (a real system-viewer
+chooser) — structurally unreachable at HEAD (the IAE precedes the intent; the
+fix-round re-drive covers it); the reasoning STREAMING→complete transition
+(the seed is static-streaming; the auto-collapse-on-complete is a mock-fidelity stop);
+the hook-review card's answer flow (F-P0-B/F-P3-A-gated — standing); timelineMarker
+types beyond checkpoint (the desktop host evidences only `compact` today — checkpoint
+is synthetic fidelity for the FALLBACK contract, inventoried, no G row); the turnHeader
+file-changes card + rewind faces (MOCK_ROW_ACTIONS not armed — vc52-campaign arms, not
+re-driven here); two 400 ms drags scrolling ~0 px vs the 200 ms fling scrolling
+normally (uiautomator timing variance — F-P8-C stays REFUTED-WORKING, not re-litigated);
+Voice/Camera/TalkBack/shade-ACTION/widget (standing stops); a third reasoning state or
+SubagentStatus failed/cancelled faces (the renderer's `when`s are exhaustive and the
+success/running faces carry the plane; a failed-subagent seed is a fix-round extra if
+wanted).
+
+## Pass-33 verification stamp
+
+Pass 33 completed 2026-11-16 ~02:40; TWO relay generations (gen1 `mock-p33-gen1-a7e30b`
+02:07→02:29, gen2 `mock-p33-gen2-d41c92` 02:30→end; both arms MOCK_ROWS=12 +
+MOCK_HOOKS=1 + MOCK_COMPACT=1 + MOCK_ROW_KINDS=1; launchers `/tmp/p33/relay-g1.sh` +
+`/tmp/p33/relay-g2.sh`); the `install -r` SKIPPED on byte-identity (local == on-device
+md5 `530ba4ff…`, sha256 `ad449d7d…`, vc53/1.3.2 at HEAD `2e46a172` — app source
+untouched; the pass's code commits are the two mock arms). Receipts: shots
+`/tmp/p33/shots/` (s00–s11: **s02 the seven-face matrix**; s03/s06 the hooks monitor
+faces; s05 the compaction trio + Retry; s08 the child-session nav; s09/s11 the two
+silent open failures); AX dumps `/tmp/p33/w/w0–w14`; relay logs `/tmp/p33/relay-g1.log`
++ `/tmp/p33/relay-g2.log` (`MOCK: command type=compact` in gen1); DB pulls
+`/tmp/p33/db/zcode.db{,-wal}` (the 24-row census + the compact ACKED row); logcat
+`/tmp/p33/logcat.log` (the FileProvider IAE pair + the stage-1 triple + nav.subagent).
+Mock changes: TWO commits `f9ab77b2` + `2e46a172` (MOCK_ROW_KINDS + the unserved
+artifact; self-tests updated, suite **213/0/0**). App changes: NONE. Desktop
+3.18.1 / `ec475e6e…` unchanged (STEP 0). gateway.drop for the pass: **0**; zero app
+FATAL lines. **Rig left:** emulator zcode-a16 UP (healthy, wifi ENABLED, screenshot
+protection OFF), relay gen2 ALIVE (nonce `mock-p33-gen2-d41c92`, pid 39879, the seed
+arms only — nothing sticky; an inheriting session may reuse it or pkill + relaunch
+clean; NOTE the arm seeds a STREAMING reasoning row + cards whose opens fail
+silently — expected shapes, not rig breakage), app pid 16309 on synth-task-2
+(reasoning collapsed by the last tap — rig residue, harmless), logcat running →
+/tmp/p33/logcat.log.
