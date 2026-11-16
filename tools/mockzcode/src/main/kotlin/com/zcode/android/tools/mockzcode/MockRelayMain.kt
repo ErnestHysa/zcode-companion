@@ -190,7 +190,15 @@ fun main() {
         mock.script.snapshotRowCount = tail
         mock.script.snapshotRowsWindowShape = true
         mock.script.snapshotWindowTruncated = true
+        // Pass-35 (Part AL): totalCount is the SESSION total — the window shape used to
+        // serve rows.size, so the phone's strip claimed "320 of 320" (the pass-3/4-era
+        // "armed 2000 → of 338" observation).
+        mock.script.snapshotTotalCount = total
     }
+    // Pass-35 fault arm (Part AL): conversationRowsRangeV4 answers fault.rowsRange.rig —
+    // the phone's Load-earlier error strip + Retry face (never receipted in the pass0
+    // series) becomes drivable.
+    System.getenv("MOCK_PAGE_FAULT")?.let { mock.script.pageRangeFault = it == "1" }
     // PART K live leg: one rich-markdown assistant row so the phone's parser renders
     // against real wire content (nested list, table, fenced code, inline code, link).
     mock.script.demoAssistantMarkdown = listOf(

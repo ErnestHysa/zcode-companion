@@ -109,6 +109,23 @@ class MockZCode(
 
         /** When true (with snapshotRowsWindowShape), the window reports firstRowId=1 ⇒ more history above. */
         var snapshotWindowTruncated: Boolean = false
+
+        /**
+         * Pass-35 (Part AL): the production rowsWindowSchema.totalCount is the SESSION's
+         * total row count — NOT the window size. The window-shape arm used to serve
+         * `rows.size` here, so the phone's Load-earlier strip claimed "showing latest
+         * 320 of 320" while rows remained above (the pass-3/4-era "armed 2000 → of 338"
+         * observation). MOCK_ROWS_TOTAL sets the armed total; null keeps the legacy
+         * window-size value for old fixtures.
+         */
+        var snapshotTotalCount: Long? = null
+
+        /**
+         * Pass-35 fault arm (MOCK_PAGE_FAULT=1): conversationRowsRangeV4 answers an
+         * RPC error — the phone's Load-earlier error strip + Retry face becomes
+         * drivable (it was never receipted in the pass0 series).
+         */
+        var pageRangeFault: Boolean = false
         /** Shuffle fragment envelopes inside each logical message (out-of-order storm). */
         var shuffleFragments: Boolean = false
         /** #228 class: inject one physical envelope > 1 MiB (once). */
@@ -2967,6 +2984,11 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 }
             }
             "conversationRowsRangeV4" -> {
+                // Pass-35 fault arm: the Load-earlier error strip + Retry face.
+                if (script.pageRangeFault) {
+                    println("MOCK: page range fault (MOCK_PAGE_FAULT)")
+                    return respondError(id, "fault.rowsRange.rig")
+                }
                 val params = argAsObject(arg) ?: return respondError(id, "fault.rowsRange.params")
                 val sessionId = params.str("sessionId")
                 val limit = params.strOrNull("limit")?.toIntOrNull() ?: 10
@@ -5874,9 +5896,11 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
         )
                         if (script.snapshotRowsWindowShape) {
                             // Production rowsWindowSchema: {window, totalCount, firstRowId}.
+                            // Pass-35: totalCount is the SESSION total (the armed value),
+                            // not the window size — the pass-3/4-era "of 338" artifact.
                             put("rows", buildJsonObject {
                                 put("window", rows)
-                                put("totalCount", JsonPrimitive(rows.size))
+                                put("totalCount", JsonPrimitive(script.snapshotTotalCount ?: rows.size))
                                 put("firstRowId", JsonPrimitive(if (script.snapshotWindowTruncated) 1L else script.snapshotRowIdBase))
                             })
                         } else {
