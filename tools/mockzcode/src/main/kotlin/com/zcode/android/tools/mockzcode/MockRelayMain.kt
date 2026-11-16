@@ -931,6 +931,11 @@ fun main() {
         }.getOrNull()?.let { mock.script.gitBranchIssue = it }
     }
     if (System.getenv("MOCK_GIT_PUSH_FAIL") == "1") mock.script.gitPushFails = true
+    // p41 (pass-41): MOCK_WS_TWO=1 serves a SECOND workspace row on the relay's
+    // bootstrap/workspace-list responses — unblocks the Manage sheet's reorder
+    // arrows (both arrows need index>0 AND index<last) and the chips row's second
+    // chip (relayWorkspacesView; no task seeded on ws-two — no F-P38-A ghost).
+    if (System.getenv("MOCK_WS_TWO") == "1") mock.script.relaySecondWorkspace = true
     // G52 (vc52 Phase 11): MOCK_G52_KEYS=transition|admission|both pushes a state patch
     // seeding the two silently-dropped session-state keys (a conversation-level arm; the
     // patch rides 1.5 s after the first conversation subscribe so the screens are up).

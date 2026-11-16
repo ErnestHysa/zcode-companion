@@ -160,6 +160,14 @@ class MockZCode(
         /** Task-list bootstrap override (null = the single synthetic default task). */
         var bootstrapTasks: List<MockTask>? = null
 
+        /**
+         * p41 (pass-41): when TRUE the relay's bootstrap-response AND
+         * workspace-list-response serve a SECOND workspace row (/synthetic/ws-two,
+         * "Synthetic Two") — unblocks the Manage sheet's reorder arrows and the
+         * chips row's second chip (see [relayWorkspacesView]).
+         */
+        var relaySecondWorkspace: Boolean = false
+
         // ---------------------------------------------------------------- Phase 6 field-fix
         /**
          * Production-faithful bridge strictness (default FALSE so the historical
@@ -6223,12 +6231,7 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
                         put("activeTaskId", JsonPrimitive(script.bootstrapActiveTaskId ?: workspace.sessionId))
                         put("updatedAt", JsonPrimitive(System.currentTimeMillis()))
                     })
-                    put("workspaces", JsonArray(listOf(buildJsonObject {
-                        put("workspacePath", JsonPrimitive(workspace.workspacePath))
-                        put("label", JsonPrimitive("Synthetic One"))
-                        put("kind", JsonPrimitive("local"))
-                        put("workspaceKey", JsonPrimitive(workspace.workspaceKey))
-                    })))
+                    put("workspaces", relayWorkspacesView())
                     // Pass-38 (p38-mock-decorate): the CONTROL view decorates rows with
                     // the LIVE pin/unread/archived sets — the raw MockTask jsons went
                     // stale the moment setTaskPinned/setTaskUnread mutated only
@@ -6248,16 +6251,38 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
                 put("requestId", JsonPrimitive(requestId))
                 put("success", JsonPrimitive(true))
                 put("result", buildJsonObject {
-                    put("workspaces", JsonArray(listOf(buildJsonObject {
-                        put("workspacePath", JsonPrimitive(workspace.workspacePath))
-                        put("label", JsonPrimitive("Synthetic One"))
-                        put("kind", JsonPrimitive("local"))
-                        put("workspaceKey", JsonPrimitive(workspace.workspaceKey))
-                    })))
+                    put("workspaces", relayWorkspacesView())
                     put("activeWorkspaceKey", JsonPrimitive(workspace.workspaceKey))
                 })
             })
         ))
+    }
+
+    /**
+     * p41 (pass-41): the relay's workspace-list rows, shared by the bootstrap-response
+     * and the workspace-list-response. Until this arm BOTH surfaces served exactly ONE
+     * row, so the Manage sheet's reorder arrows were structurally disabled (one row →
+     * `index > 0` and `index < order.lastIndex` never both hold) and the chips row had
+     * no second chip — the pass-40 "did NOT drive" items. MOCK_WS_TWO=1 appends
+     * /synthetic/ws-two ("Synthetic Two"); NO task is seeded on it, so the home's
+     * task-key sections are untouched (no new F-P38-A ghost) and a chip/row switch to
+     * it filters to an honest zero.
+     */
+    internal fun relayWorkspacesView(): kotlinx.serialization.json.JsonArray {
+        val primary = buildJsonObject {
+            put("workspacePath", JsonPrimitive(workspace.workspacePath))
+            put("label", JsonPrimitive("Synthetic One"))
+            put("kind", JsonPrimitive("local"))
+            put("workspaceKey", JsonPrimitive(workspace.workspaceKey))
+        }
+        if (!script.relaySecondWorkspace) return kotlinx.serialization.json.JsonArray(listOf(primary))
+        val second = buildJsonObject {
+            put("workspacePath", JsonPrimitive("/synthetic/ws-two"))
+            put("label", JsonPrimitive("Synthetic Two"))
+            put("kind", JsonPrimitive("local"))
+            put("workspaceKey", JsonPrimitive("/synthetic/ws-two"))
+        }
+        return kotlinx.serialization.json.JsonArray(listOf(primary, second))
     }
 
     // ------------------------------------------------------------------ plumbing
