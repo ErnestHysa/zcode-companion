@@ -46,57 +46,65 @@ P2-first, exit gates, per-row Accept criteria).
 > the coverage lists emptied — passes 29–32 the attachment plane to EMPTY — pass 33
 > the timeline ROW-KIND render matrix — pass 34 the toolCall row's PER-TOOL-KIND
 > render matrix — pass 35 the Load-earlier/PAGING plane end-to-end (§19.4
-> scroll-back): the ONE driveable surface pass 34's coverage list had skipped as
-> "undrivable" (the MOCK_ROWS_TOTAL arm already existed since vc52 Phase 10). TWO
-> mock fixes rode in (`9657bd93`, suite 225/0/0): the window schema's totalCount now
-> carries the ARMED session total (closing the pass-3/4-era "armed 2000 → of 338"
-> artifact) and MOCK_PAGE_FAULT=1 unblocks the never-receipted error face. The full
-> plane receipted live first-series: the strip with a faithful total ("320 of
-> 400"), the strip TAP → the first-ever `conversationRowsRangeV4` wire receipts
-> (320→370→the full 401, DB-arbitered contiguous pages), the END face honest at
-> HEAD (hasMore=false → the strip HIDES), the FAULT face ("Couldn't load earlier
-> messages" / the errorCategoryMessage copy / Retry — clean copy, not raw-code),
-> the retry-refail face, and the retry-SUCCESS face (error clears, the prefetch
-> cascade completes the store, the paged rows render). ONE NEW ROW: F-P35-A (P3) —
-> the paging error face is TOP-ANCHORED while the tap affordance is TAIL-ANCHORED:
-> a faulted fetch gives the user at the tail ZERO visible feedback (s04).**
+> scroll-back) — pass 36 the FIND-IN-CONVERSATION plane (G5 vc51), never live-
+> censused in the series: the AL.A0.2 "No matches for a cached row" edge ADJUDICATED
+> as pass-35's own composer-misdirect typing artifact (the DB drafts row
+> `synthetic 82` @1794819509563 ≈ 09:01 IS pass-35's query; the real field-typed
+> query matches "1 of 1" + jump) — the plane receipted first-series end-to-end
+> (boundary match, the REASONING exclusion via the visible-but-unfindable face s02
+> + the "1 of 5" arithmetic, cycling + wrap, case, the LIVE index regrow on send
+> "1 of 1"→"1 of 3", jump-sticks, the user-row accent fill vs the assistant
+> no-fill split in one frame s03, and "1 of 41" DB-exact against the paged-scheme
+> texts) — and ONE NEW ROW: **F-P36-A (P3)** — the open-time prefetch race + the
+> cache trim strand a stale hasMore=false: 2/2 fresh opens fetched the full store
+> at open with ZERO taps (relay lines 24/25+55/56), the page-path hasMore=false
+> went STALE when the trim evicted the fetched head (81-83 rows), and the
+> MutableStateFlow mirror never re-derives — the strip hides while the head is
+> cache-absent until a fresh process (route re-entry does NOT heal). Desktop
+> census: the 3.18.1 find is TWO-SCOPED (conversation ↔ changes, "messages + file
+> changes") vs the phone's single text-row scope → one opportunistic-queue line;
+> AL.C's strip-tap wire attribution AMBIGUOUS (the same two-call sequence fires
+> with no taps — growth faces stand).**
 > App: ZERO (APK byte-identical; `install -r` SKIPPED). **gateway.drop: 0.**
 
 - Report: `docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md` —
-  Parts A–Z + AA + AB + AC + AD + AE + AF + AG + AH + AI + AJ + AK + AL = passes
-  0–35. **Latest: pass 35 (Part AL, 2026-11-16 ~09:10).**
-- Repo HEAD at pass start: `edf7aeb0` (pass 34's mock commit; main); pass 35 added
-  ONE code commit `9657bd93` (the mock arms only — app source untouched).
+  Parts A–Z + AA + AB + AC + AD + AE + AF + AG + AH + AI + AJ + AK + AL + AM =
+  passes 0–36. **Latest: pass 36 (Part AM, 2026-11-16 ~12:40).**
+- Repo HEAD at pass start: `3f35338a` (pass 35's docs commit; main); pass 36 added
+  ZERO code commits (mock + app both untouched).
   APK of record: sha256 `ad449d7d…` / md5 `530ba4ff…`, versionCode 53 / 1.3.2
   (byte-identical across the whole series).
 - Desktop of record: **/Applications/ZCode.app 3.18.1.10376, asar sha256 `ec475e6e…`,
-  383,832,025 B** (re-verified at pass-35 STEP 0 — UNCHANGED, no DELTA).
-- Open rows: **30 F (28 defects + 2 obs) + 21 G + 3 standing + 16 smalls (+1 watch
-  +1 rig)** — pass 35 opened F-P35-A (the paging error face's top-anchored silent
-  failure) and NARROWED N-BM-1 (the frozen-total mechanism re-receipted at HEAD with
-  a faithful total; the "impossible claim at the true end" sub-claim does NOT
-  reproduce — the end face is honest). The Load-earlier plane is now FULLY receipted
-  phone-side: strip render (3/35), tap→wire→growth (35), the end face (35), the
-  fault/error/retry-refail/retry-success faces (35), the auto-prefetch edge both
-  polarities (35); the historyChanged epoch-rejection face stays code-pinned only
-  (needs an epoch-rewind arm — deliberately not opened as a debt).
-- Backlog: **8/8 DONE**; the discovery surface stays empty — pass 35's axis was the
-  paging plane (the last "undrivable" item on pass 34's coverage list, un-skipped by
-  recon). What remains is standing stops + F-P3-A-gated planes + fix-round items.
-  **The mock-debt list has 0 open work-debts.**
-- Rig left by pass 35: emulator `zcode-a16` UP (TWELFTH consecutive inherited
-  survival; healthy, wifi ENABLED, screenshot protection OFF), relay gen3 ALIVE
-  (nonce `mock-p35-gen3-c5d944`, arm MOCK_ROWS_TOTAL=400 — nothing sticky; an
-  inheriting session may reuse it or pkill + relaunch clean), app pid 18901 on
-  "Fork of synth-task-2" (sess-forked-1) scrolled to the LIST TOP with the store
-  fully loaded (rig residue: BACK pops to the task list; the strip is hidden —
-  everything loaded), logcat running → /tmp/p35/logcat.log. Launchers
-  `/tmp/p35/relay-g{1,2,3}.sh`. New rig learnings in Part AL.A0: the gap-drag
-  recipe re-confirmed and refined (the true inter-item gap band; slow 250 ms gap-
-  drags BEAT 80 ms gap-flings here — origin decides, velocity secondary); find-
-  in-conversation reported "No matches" for a query whose row WAS cached (unexplored
-  edge, not rowed); BACK with the find field focused drops the IME first — the
-  panel's own "Close find" button is the reliable close.
+  383,832,025 B** (re-verified at pass-36 STEP 0 — UNCHANGED, no DELTA; the asar was
+  re-extracted to /tmp/p36/asar for the find census — same digest).
+- Open rows: **31 F (29 defects + 2 obs) + 21 G + 3 standing + 16 smalls (+1 watch
+  +1 rig)** — pass 36 opened F-P36-A (the open-time prefetch race + the cache trim
+  strand a stale hasMore=false: the strip hides while head rows are cache-absent,
+  unreachable until a fresh process) and CLOSED pass 35's AL.A0.2 "unexplored edge"
+  (the composer-misdirect typing artifact — the DB drafts row IS pass-35's query;
+  the find plane itself is fully working: boundary match + jump, the REASONING
+  exclusion, cycling + wrap, case, live regrow, jump-sticks, the highlight split,
+  and the paged-scheme count all receipted first-series, Part AM). The pass also
+  stamped AL.C's strip-tap wire attribution as AMBIGUOUS (the identical two-call
+  sequence fires at open with no taps — the growth faces stand).
+- Backlog: **8/8 DONE**; the discovery surface stays empty — pass 36's axis was
+  fresh recon on pass 35's flagged find edge (unexplored, not rowed) + the find
+  plane census. What remains is standing stops + F-P3-A-gated planes + fix-round
+  items. **The mock-debt list has 0 open work-debts.**
+- Rig left by pass 36: emulator `zcode-a16` UP (THIRTEENTH consecutive inherited
+  survival; healthy, wifi ENABLED, screenshot protection OFF), relay gen1 ALIVE
+  (nonce `mock-p36-gen1-d2e8a7`, arm MOCK_ROWS_TOTAL=400 — nothing sticky; an
+  inheriting session may reuse it or pkill + relaunch clean), app pid on
+  "Fork of synth-task-2" (sess-forked-1) with the find bar OPEN holding
+  "SYNTHETIC 82" ("1 of 3") — the store fully loaded (1..401 + the probe rows
+  1001/1002; the strip hidden by the F-P36-A wedge), logcat running →
+  /tmp/p36/logcat.log. Launcher `/tmp/p36/relay-g1.sh`. New rig learnings in
+  Part AM.A0: the relay's stdout BUFFERING lies to `grep -c` (re-grep before
+  concluding call counts — it cost two misreads); the find bar's per-keystroke
+  jump chase drags the viewport through typing intermediates (stage frames via
+  the last non-empty prefix's first match); the composer-misdirect trap (verify
+  the FIELD's text node, not just a screen text — pass 35's edge was exactly
+  this); MOVE_END+N×DEL held for both fields.
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -116,6 +124,7 @@ bodies after 3.14.3 — the census IS the changelog.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | F-P33-A | 3 | OPEN (NEW pass 33) | the generated-artifact preview card's Open affordance is DEAD at HEAD and SILENT in both failure stages: stage-2 — the download SUCCEEDS (FilesPort writes `File(cacheDir, "downloads")`, AppContainer.kt:258) but the FileProvider config `app/src/main/res/xml/file_paths.xml` declares ONLY `shared/` + `updates/` cache-paths, so `getUriForFile` throws IllegalArgumentException ("Failed to find configured root that contains …/cache/downloads/rig-p33-report.html", receipted live) and `ZCodeApp.kt:1130-1132`'s else branch is LOG-ONLY (G57's typed no-viewer notice matches only ActivityNotFoundException-class, never this IAE); stage-1 — an unserved ref faults `fault.file.notFound` at readFileRange → `filesport.download :: TransportFailure` → the download-null branch `ZCodeApp.kt:1110-1113` also LOG-ONLY (receipted live on the gen2 arm); the card renders, the button fires, the wire works, and the user gets NOTHING — the F-P0-C silent family on the preview-card plane; never live-driven in either campaign (zero artifact-open receipts in the pass0 series; the I2.8/G28/G57 static pins covered render + no-viewer fallback, not the handoff) | add `<cache-path name="downloads" path="downloads/" />` to file_paths.xml (stage-2, one line) + a typed notice on the download-null branch (stage-1, the N-BR-1/N-BS-1 notice plane); pins: a Robolectric getUriForFile harness over a cache/downloads file + a harness asserting the typed notice on result==null; re-drive the SUCCESS face (system-viewer chooser) after the fix | — | Part AJ.G | 1 (+pass-34 STATIC mechanism extension: the same root covers the NON-IMAGE attachment chip's external open — `fetchAttachment` writes `attachmentCacheDir = File(cacheDir, "attachments")` (AppContainer.kt:227) also absent from file_paths.xml, the same getUriForFile IAE family via ZCodeApp.kt:1052-1077; the fix shape gains `<cache-path name="attachments" path="attachments/" />`; live chip-tap leg = fix-round, Part AK.H.2) |
 | F-P35-A | 3 | OPEN (NEW pass 35) | the Load-earlier error face is TOP-ANCHORED while the tap affordance is TAIL-ANCHORED — a faulted page fetch gives the user at the tail ZERO visible feedback: the tap affordance is the PINNED strip above the timeline (ConversationScreen.kt:563-581, always visible while hasMoreHistory — the user taps it wherever they are), but the error face renders as a LAZY-LIST ITEM at index 0/1 (`older-error`, ConversationScreen.kt:1127-1138, AttentionStrip "Couldn't load earlier messages" + Retry) — hundreds of rows above the tap point when the timeline is long; receipted live: gen2 fault arm → `port.pageFault :: TransportFailure: fault.rowsRange.rig` in logcat + the screen UNCHANGED at the tap point (s04: strip still "320 of 400", no banner) — the error only renders after ~60 gap-drags to the list top (s05); the F-P0-C silent family on the paging plane (the same geometry stars the `older-loading` face — subsumed by the same fix) | surface the error/retry in the PINNED strip slot (swap the strip's content on loadOlderError, or a second pinned strip / a SendNotice-keyed banner on the N-BR-1 plane); the shared errorUserMessage copy is already clean (errorCategoryMessage's error_task fallback — no raw-code issue, AL.F.3); pins: a compose test with a faulting port loader asserting the error is visible WITHOUT scrolling + the retry from the pinned slot succeeds | — | Part AL.D (s04/s05/s06), AL.E (the retry-success face the fix must preserve) | 1 |
+| F-P36-A | 3 | OPEN (NEW pass 36) | the open-time prefetch race + the cache trim strand a stale hasMore=false — the Load-earlier strip hides while head rows are CACHE-ABSENT and unreachable for the session: the prefetch effect (ConversationScreen.kt:1092-1103, PAGE_EDGE=12) observes firstVisibleItemIndex=0 in the window BEFORE the tail-clamp sets anchoredToTail (:1063-1071) → loadOlder fires ×2 at open with beforeRowId=rows.first() (receipted 2/2 fresh opens, relay log lines 24/25+55/56, ZERO taps); the pages apply and the page-path writer sets `_hasMore.value = result.hasMore` (ConversationViewModel.kt:295) — honest false at that instant (the second page reached the store floor) — but the next enforceBound (append/snapshot-apply only; ConversationRepositoryImpl.kt:73/126 — the page path is deliberately unbounded per F-37-D :96) TRIMS the fetched head back to the 320 cache bound (DB: 82..401 → 84..401+1001+1002; 81-83 head rows evicted), and `_hasMore` is a MIRROR of the manager's authoritative flow (:145) whose only writer is the snapshot-path derivation (ConversationSessionManager.kt:248 — which says TRUE) that NEVER re-emits an unchanged value (MutableStateFlow same-value dedupe) — so the strip gate hides the affordance and the evicted head (ids 1..83) cannot be paged back until a fresh process re-subscribes (receipted: route pop/re-entry does NOT heal — w15; force-stop re-open DOES — w17 "320 of 400" again); the user-visible state lies ("no more history" while 81 rows the store HAS are cache-absent) | re-derive after the trim: hasMore = firstCachedRowId > windowFirstRowId at every enforceBound site (or re-read the manager's authoritative value at loadOlder completion instead of trusting the page response alone); pins: a repo harness paging to the floor with total > cache bound asserting the strip survives the post-page trim + the DB min(rowId) > windowFirstRowId invariant | — | Part AM.I (w2→w9→w13→w15→w17, relay lines 24/25+55/56, DB zcode{,2,3}) | 1 |
 | F-P31-A | 3 | OPEN (NEW pass 31) | the mid-upload user-tap Remove does NOT cancel the in-flight upload coroutine — the aborted transaction RESURRECTS the removed chip: `removeUpload` (`Ports.kt:1154-1167`) fires `attachmentAbort` (the mock deletes the staging entry, MockZCode.kt:3471-3475) + filters the chip, but the composer-scope job keeps running (`WriteComponents.kt:931-939` first-attempt launch / VM `:382` retry launch; VM `removeUpload` :376-378 fire-and-forget, no Job tracking) — the in-flight chunk completes on its DETACHED mock object and the per-chunk progress upsert (`Ports.kt:1112-1115`) re-adds the chip as ↑, then the next chunk errors `fault.attachment.unknownUpload` (MockZCode.kt:3417-3419) into the catch-all which upserts "failed" + payload (:1129-1137) — the user's explicit Remove is undone ~15 s later under a banner (first-attempt: the RAW-code "Attachment failed to upload (fault.attachment.unknownUpload)" — N-BO-1's 4th surface; retry: "Attachment retry failed — not sent."). Pass 32 EXTENSION (the silent face, live on MOCK_ATTACHMENT_KEEP_AFTER_ABORT `500a3bdf`): a server that accepts post-abort chunks resurrects the chip as ✓ READY under NO banner at all — receipted with TWO consecutive user-removes in ONE transaction (both aborts KEPT → commit ok 136 ms → `✓ 130.png (2.0 MB)` + armed FAB, no signal), and the resurrected chip SENT end-to-end (outbox ACKED carrying its committed ref, DB arbiter) — the resurrected attachment is fully REAL; the silent face is the worse UX (nothing tells the user their Remove lost) | track in-flight upload Jobs per uploadId and cancel in removeUpload (or guard BOTH re-add upserts on a user-removed set); DESKTOP CENSUSED (pass 32, AI.D): the desktop's remove is FINAL — per-chip AbortController aborted in remove + the V4 loop's per-chunk signal checks + staleness-guarded progress/completion callbacks (`v.current.get(r)!==i`) + transferService.cancel — the phone's analogue is the Job map + the guarded upserts; pin: a harness asserting remove-during-upload → the chip stays gone + the abort fires | — | Part AH.B–AH.D, AI.B–AI.D | 2 (pass 32: the silent ✓ variant + the consecutive composition + the resurrected-chip send + the desktop census) |
 | F-P19-A | 3 | OPEN (NEW pass 19) | the G50 CAS-mismatch face is desktop-divergent: on `guard.heldQueueConfirmationStale` (host ack `{status:"failed", …}` — set-equality CAS via `applyHeldQueueDisposition`) the desktop RE-OPENS the held-queue confirmation with fresh ids (renderer `confirmationRequired`, re-reads `queue.items`, no error surfaced); the phone maps the failed ack to the generic refusal ERROR notice ("The desktop refused the send — see diagnostics", `ConversationViewModel.kt:542-548`) — reasonCode undifferentiated, no re-confirmation loop exists (grep receipt) | handle the typed reasonCode → re-open the disposition dialog with re-read ids (desktop parity) or minimally a distinct notice; pins: the guard.* grep + the V.C static shapes (outbox FAILED_TERMINAL + preserved draft) | — | Part V.B–V.E | 1 |
 | F-P20-A | 3 | OPEN (NEW pass 20) | the phone's goal sends are structurally refused under the desktop's choice admission: the host's `sendGoalCommand` handler passes the payload's `heldQueueDisposition`/`expectedHeldQueueItemIds` through the SAME `applyHeldQueueDisposition` gate as sendText (zcode.cjs `SMc`→`n9e`→`Vqe`; absent → `heldQueueDispositionRequired` failed-ack; the desktop UI pre-gates via the confirmation dialog — ZERO renderer references to the reasonCode), but the phone's goal payload is `{text, displayText}` only (`CommandCoordinator.kt:220-224`, commented "not CAS-guarded"). Pass 21 EXTENSION (composer half): the composer-level G50 dialog DOES fire for slash-dispatched sends, and `send()` (`ConversationViewModel.kt:434-470`) receives the trio but only `routeSendPrompt` (:454) forwards it — every `sendSlash` branch (:459-470) drops it, so the user ANSWERS the dialog and the answer is discarded (receipted live: dialog → Keep → refused → FAILED_TERMINAL). The sheet half (`setGoal` :601-613) bypasses `send()` — no gate, no dialog, generic ERROR face, as pass 20 receipted. Pass 22 EXTENSION (compact variant): the G50 dialog fires for composer `/compact` sends too and the answer is DISCARDED the same way (`port.compact` = `simpleCommand("compact", sessionId, {})`) — but the wire OUTCOME stays host-faithful (the host's `vMc` consults routing mode, never a trio: the compact self-queues either way, live-receipted Y.E), so the discarded answer's only loss is the user's explicit "Clear queue & send" choice being silently dropped (the desktop never asks for compact at all) | composer half = pure PLUMBING (carry the answered trio into the goal/compact branches — or stop asking for compact); sheet half = gate on the choice state or a distinct notice keyed on the reasonCode; pins: W.B handler chain + W.C payload/surface pins + the outbox rows (goal sheet [20], composer-slash goal [21], compact ACKED/FAILED_TERMINAL pair [22]) | F-P19-A family (same guard) | Part W.B–W.E, X.B–X.D, Y.B/Y.E, AB.D | 4 (pass 22: the compact variant live — dialog + discard + the host-faithful queued outcome; pass 25: the THIRD goal entry point — slash-set `/goal <objective>` — rides the same trio-less port, outbox payloadJson text/displayText verbatim, AB.D.4) |
@@ -153,8 +162,8 @@ bodies after 3.14.3 — the census IS the changelog.
 | F-P4-A | 2 | FIXED (rig) | mock push patch structurally excluded its own interaction | `pushPendingPermission` builds from unfiltered list + patch-content pin — commit `2b12fc46`, 37 mock tests green | — | Part G.A2.2, H.A1 | — |
 | N-BK-1 (rig half) | 2 | FIXED (rig) | git fixtures in wrong field vocabulary (blank paths, +0−0, duplicated tabs, oid-vs-hash) | contract vocabulary rewrite — same commit `2b12fc46` | — | Part G.A2.3, H.A1 | — |
 
-**Open F count: 30** (28 defects + 2 observations; pass 35 opened F-P35-A — the
-paging error face's top-anchored silent failure) · FIXED: 2 (both rig) ·
+**Open F count: 31** (29 defects + 2 observations; pass 36 opened F-P36-A — the
+stale hasMore / cache-trim wedge) · FIXED: 2 (both rig) ·
 RETRACTED/REFUTED/ABSORBED: 7.
 
 ## Current fix-order (consolidates K.D + the carried rows; supersedes every report fix-order)
@@ -179,8 +188,11 @@ RETRACTED/REFUTED/ABSORBED: 7.
        download-null branch; same notice plane as N-BR-1/N-BS-1, same silent
        family as F-P0-C) → 12c. **F-P35-A** (pass 35: the paging error face's
        top-anchored silent failure — surface the error/retry in the PINNED
-       strip slot; same silent family, and the retry-success face it must
-       preserve is fully receipted in Part AL.E) → 13. **F-P3-B**
+   strip slot; same silent family, and the retry-success face it must
+   preserve is fully receipted in Part AL.E) → 12d. **F-P36-A** (pass 36:
+   the stale hasMore after the open-time race + trim — re-derive at the
+   enforceBound sites or re-read the manager at loadOlder completion;
+   the strip-tap UX depends on it) → 13. **F-P3-B**
    (wiring-only hydrate) → 14. **F-P3-C** → 15. **F-P7-A / F-P7-B** → 16. **F-P5-A →
    F-P2-B → F-P0-C → F-P8-B → F-P8-F** → 17. **F-P1-B → F-P1-D** → 18. smalls
    (N-BM-1 → N-BP-1 → N-BM-3 → N-BN-1 → N-BK-1 app half → N-BJ-1 → N-BK-2 → N-BL-1 →
@@ -228,6 +240,12 @@ RETRACTED/REFUTED/ABSORBED: 7.
   **Pass 34: the hole CONFIRMED live and GRACEFUL** (Part AK.C: no kind subtitle, the
   substring "bash" fallback buckets it EXECUTE so it groups correctly) — the one-liner
   buys only the subtitle.
+- **Find two-scope parity (pass 36)** — the desktop's find-in-task is TWO-SCOPED
+  (conversation ↔ changes with a scope toggle + jump-to-changes; the declared scope
+  is "messages + file changes", CmdOrCtrl+F) vs the phone's single text-row scope
+  (UserInput + AssistantText only — reasoning/tool rows unfindable by construction,
+  Part AM.J/AM.D). Minimum = a changes-scope mirror or an honest scope note in the
+  find bar; the kind-coverage widening rides the same line.
 - **`inputOrigin:"mobile"`** on send — one line, desktop-side attribution.
 - **`inputFormat` bits** (supportsImage/Video/Pdf) — decode in modelOptions for the
   "image attachments to the agent" ask.
@@ -474,6 +492,30 @@ delta …`). Nothing pushed.
 
 ## History
 
+- 2026-11-16 (pass 36) — Part AM executed on a FRESH axis: the find-in-conversation
+  plane (G5 vc51) — its first live census in the series, staged by pass 35's
+  flagged AL.A0.2 edge. NEW row F-P36-A (P3, the open-time prefetch race + the
+  cache trim strand a stale hasMore=false — the strip hides while head rows are
+  cache-absent; route re-entry does NOT heal, a fresh process does; trigger
+  receipted 2/2 fresh opens with ZERO taps). AL.A0.2 CLOSED as pass-35's own
+  composer-misdirect artifact (the drafts-table receipt `synthetic 82`
+  @1794819509563 ≈ 09:01; the real field-typed query matches "1 of 1" + jump).
+  First-series receipts: the boundary query + the scrollToItem jump; the REASONING
+  kind exclusion (visible-but-unfindable s02 + the "1 of 5" count arithmetic);
+  match cycling + wrap-around; case-insensitivity; the LIVE index regrow on send
+  ("1 of 1"→"1 of 3" with zero field interaction) + jump-sticks (followBottom
+  released); the highlight split in ONE frame (user-row accent fill vs the
+  assistant markdown no-fill, s03); the paged-scheme count "1 of 41" DB-exact.
+  Desktop census: the 3.18.1 find is TWO-SCOPED (conversation ↔ changes, "messages
+  + file changes", CmdOrCtrl+F) vs the phone's single text-row scope → ONE
+  opportunistic-queue line; the G5 comment's desktop symbol names are absent from
+  the shipped bundle (minified). AL.C's strip-tap wire attribution stamped
+  AMBIGUOUS (the same two-call sequence fires at open with no taps; the growth
+  faces stand). Mock: ZERO changes; App: ZERO changes (APK byte-identical, install
+  skipped). Rig learnings (AM.A0): the relay stdout BUFFERING lies to `grep -c`
+  (two misreads); the per-keystroke jump chase; the composer-misdirect trap. Rig
+  left UP (gen1 mock-p36-gen1-d2e8a7, MOCK_ROWS_TOTAL=400; app on sess-forked-1,
+  find bar open "SYNTHETIC 82", store fully loaded).
 - 2026-11-16 (pass 35) — Part AL executed on the Load-earlier/PAGING plane (§19.4
   scroll-back) — the ONE driveable item pass 34's coverage list had skipped as
   "undrivable without a mock paging arm" (recon: the arm ALREADY existed —

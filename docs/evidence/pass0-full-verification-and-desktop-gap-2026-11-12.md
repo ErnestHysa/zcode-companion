@@ -8129,3 +8129,284 @@ fault` ×4); DB pulls `/tmp/p35/db/zcode.db{,-wal}` (sess-forked-1: 320@82..401 
 " Fork of synth-task-2" scrolled to the LIST TOP with the store fully loaded
 (rig residue: BACK pops to the task list; the strip is hidden — everything
 loaded), logcat running → /tmp/p35/logcat.log.
+
+---
+
+# Part AM — pass 36 (APPENDED 2026-11-16, ~12:40): fresh recon on pass 35's flagged edge — the find-in-conversation plane (G5 vc51), never live-censused in the pass0 series. The AL.A0.2 "No matches for a cached row" edge ADJUDICATED as the composer-misdirect typing artifact (the query went into the COMPOSER — its DB draft row at updatedAtMs 1794819509563 ≈ 09:01 is pass-35's own find leg — and the count Text renders conv_find_none for a blank query; the real field-typed query matches "1 of 1" and jumps). The plane's first-series receipts: the boundary query + the scrollToItem jump, the REASONING kind exclusion (the visible-but-unfindable face: "No matches" while the exact text renders as a THINKING row in-frame; the count arithmetic "1 of 5" = exactly the even assistant ids), match cycling + wrap-around, case-insensitivity, the LIVE index regrow on send ("1 of 1" → "1 of 3" with zero field interaction) with the jump-sticks (followBottom released) receipt, and the highlight split in ONE frame (the USER row's match carries the accent fill; the assistant prose keeps its markdown pipeline, no fill) — plus the desktop census: the shipped 3.18.1 find is TWO-SCOPED (conversation ↔ changes, per-scope counts, CmdOrCtrl+F; the declared scope string is "messages + file changes") vs the phone's single text-row scope — and ONE NEW ROW: F-P36-A (P3) — the open-time prefetch race + the cache trim strands a stale hasMore=false: the strip hides while 81 head rows are cache-absent, unreachable for the session
+
+> **Pass 36 of the pass-0 series** (solo, the canonical discovery prompt). STEP 1 empty
+> (backlog 8/8); Part AL's coverage list held only standing stops and deliberate
+> non-debts — the axis came from AL's own rig-left note (the "No matches for a cached
+> row" unexplored edge) plus a fresh census of the find plane. **Mock: ZERO changes**
+> (the existing MOCK_ROWS_TOTAL=400 window shape sufficed for every leg). **App: ZERO
+> changes** (local HEAD build md5 `530ba4ff…` == on-device → `install -r` SKIPPED;
+> sha256 `ad449d7d…`, vc53/1.3.2). **ONE new row: F-P36-A (P3)** — the page-path
+> hasMore write vs the cache trim (the full mechanism in AM.I). The desktop census
+> also resolved a pass-35 attribution ambiguity (AM.J): the AL.C "strip tap" wire
+> calls are ambiguous — the identical two-call sequence fires at open with NO taps.
+
+> **Verification stamp (pass start):** 2026-11-16 12:06 → 12:37, GLM-5.3-Flash in
+> ZCode, everything local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…`
+> UNCHANGED — no DELTA (the asar was extracted fresh to /tmp/p36/asar for the find
+> census — same digest, no numbers moved). Rig: the pass-35 emulator REUSED (THIRTEENTH
+> consecutive inherited survival; healthy, screenshot protection OFF — s00 renders),
+> the pass-35 relay gen3 pkilled BY NAME at pass start; ONE generation: gen1
+> `mock-p36-gen1-d2e8a7` (MOCK_ROWS_TOTAL=400 — nothing sticky), launcher
+> `/tmp/p36/relay-g1.sh`, plain `java -cp` recipe. The app force-stopped + am-start
+> relaunched (twice: the healing leg); stored endpoints survived, no re-pairing.
+> Build check: the local APK md5 `530ba4ff…` == on-device → install SKIPPED. logcat
+> fresh `-T 1` → /tmp/p36/logcat.log. gateway.drop: **0**; zero app FATALs; 52
+> v4call (4 rowsRange — 2 per open, both the open-time race; 1 sendText; 0 faults).
+
+## AM.A0 — rig learnings
+
+1. **The relay's stdout BUFFERING fooled `grep -c` twice**: the range-call count read
+   2 for ~15 minutes while the log actually held 4 (the second open's pair appeared in
+   the file only after a later write flushed the buffer). Re-grep before concluding any
+   call-count; counts taken mid-session are lower bounds, not facts.
+2. **The find bar's per-keystroke jump CHASE**: every query change recomputes the index
+   and the jump effect re-scrolls to the CURRENT first match — so typing "synthetic 83"
+   through its prefixes drags the viewport through "synthetic"→row 82, "synthetic
+   8"→row 88 before landing. Pass-35's visual staging failed partly on this (the view
+   was never where the leg expected). Leg-order around it: stage the frame via the
+   LAST non-empty prefix's first match (AM.D's "synthetic 91" shot landed row 170 with
+   row 171 in-frame BY CONSTRUCTION).
+3. **Composer-misdirect is the find leg's standing trap**: pass 35 typed its query into
+   the COMPOSER (the draft row proves it); the find field stayed blank and conv_find_none
+   renders for a blank query — indistinguishable from a real miss on a dump. ALWAYS
+   verify the FIELD's text node (the field and the composer both echo the query) before
+   reading the count as a finding. The N-BF-1 auto-focus fix holds at HEAD when the bar
+   opens cleanly; the misdirect happens when focus lags the open.
+4. The MOVE_END + N×DEL clear recipe held for both the find field and the composer
+   (12-char clears); per-char `input text` held (zero drops across ~9 typed queries).
+
+## AM.B — static recon: the plane pinned (zero receipts in the series before today)
+
+- `ConversationFind.kt:25-46` — `buildConversationFindIndex`: PURE function over the
+  timeline rows; **only `UserInput` + `AssistantText` carry searchable text** (every
+  other kind `else -> null`); case-insensitive; every occurrence indexed; needle
+  trimmed. `annotatedWithHighlights` (:53-67) is the USER-row highlight renderer.
+- `ConversationScreen.kt:322` — `remember(state.rows, findQuery)` over the FULL cached
+  store (the ViewModel's `rowsEpoch.rows`, no render-window bound); :356-364 the bar
+  (count `%1$d of %2$d` / `conv_find_none` for blank-or-zero; wrap-around prev/next);
+  :1039-1047 the jump (`entries.indexOfFirst { Single.row.rowId == target }` →
+  `scrollToItem(headerItems + entryIndex)` + `followBottom = false` — the jump STICKS).
+- `RowRenderers.kt:183-197` — the highlight split: USER rows render
+  `annotatedWithHighlights` (the active match's row carries the accent fill at 0.45
+  alpha); **assistant prose keeps its markdown pipeline — NO per-occurrence fill**.
+- Strings: `conv_find_open`/`conv_find_hint` "Find in conversation", `conv_find_none`
+  "No matches", `conv_find_close` "Close find" (features/conversation/res/strings.xml:
+  366-372); the header toggle content-desc "Find in conversation" (:824).
+- Existing pin: `ConversationFindUiTest.kt` (the compose-test plane, incl. the
+  "No matches" node assertion) — live legs below are the FIRST on-device receipts.
+
+## AM.C — leg A: the boundary query + the AL.A0.2 edge ADJUDICATED (12:09, s01)
+
+Fresh gen1, fresh process: store **82..401** (DB arbiter 12:08: `320|82|401` — the
+snapshot window trimmed to the cache bound, AL.A0.4's shape). Find "synthetic 82"
+(the pass-35 query): the field holds it, the count reads **"1 of 1"**, and the jump
+scrolled the matched row to the viewport top (s01: AGENT "synthetic 82" + row 163
+"synthetic 83" THINKING below). The match is row **162** (snapshot text "synthetic
+82" — the window-index scheme: text = `synthetic $i`, i = id−80).
+
+**THE EDGE RESOLVED — no app defect**: the composer held "synthetic 82" the whole
+pass (visible in s01/s02/s03) — the DB drafts row: `sess-forked-1 | synthetic 82 |
+updatedAtMs 1794819509563` ≈ **09:01 today = pass 35's own find leg**. Pass 35's
+typing went into the COMPOSER; the find field stayed blank; `conv_find_none` is the
+blank-query face (`query.isBlank() || count == 0`, ConversationScreen.kt:1374). The
+draft persisted force-stop + relay restart (drafts-table receipt). The real field-
+typed query matches and jumps. AL.A0.2's "unexplored edge" is CLOSED as a rig
+artifact — the find plane was never broken.
+
+## AM.D — leg B: the REASONING kind exclusion, two receipts (12:15, s02)
+
+The index searches only User+Assistant text (AM.B) — REASONING rows (the mock seeds
+odd window indices as reasoning) are structurally unfindable. Driven both ways:
+
+- **The visible-but-unfindable face (s02)**: query "synthetic 91" → **"No matches"**
+  + prev/next disabled — while the EXACT text renders as a THINKING row directly
+  below the viewport top (row 171). Staged via learning AM.A0.2: the "synthetic 9"
+  intermediate's first match (row 170) puts the unfindable row 171 in-frame BY
+  CONSTRUCTION.
+- **The count-arithmetic arbiter**: query "synthetic 9" → **"1 of 5"** — exactly the
+  even assistant ids 170,172,174,176,178 (texts "synthetic 90..98"); had REASONING
+  rows been indexed the count would be ≥11 (ids 89,171,173,175,177,179 carry
+  matching texts). The exclusion is receipted by arithmetic, not just by copy.
+
+## AM.E — leg C: cycling + wrap (12:16)
+
+"synthetic 9" (5 matches): NEXT ×2 → **"3 of 5"** with the jump tracking (the view
+re-scrolled to "synthetic 94" = the 3rd match, id 174); PREV ×4 → 3→2→1→**5 (the
+WRAP)**→4, landing "4 of 5" at "synthetic 96" (id 176 ✓). The wrap-around contract
+(`(active-1+size)%size`) receipted live.
+
+## AM.F — leg D: the LIVE index regrow + jump-sticks + the highlight split (12:19-12:20, s03)
+
+Re-queried "synthetic 82" ("1 of 1", view at row 162), then cleared the pass-35
+residue draft and sent **"synthetic 82 rig probe"** from the composer (wire:
+`command type=sendText`, trio nulls — AM stamp):
+
+- **LIVE regrow**: the count went **"1 of 1" → "1 of 3"** with ZERO field
+  interaction — `remember(state.rows, …)` recomputed as the user row (id 1001) and
+  the mock reply ("synthetic reply to: synthetic 82 rig probe", id 1002) landed.
+  The arithmetic is exact: 162 + 1001 + 1002 = 3 matches.
+- **Jump-sticks (L7)**: the viewport STAYED at row 162 while the tail grew —
+  `followBottom=false` from the earlier jump held; the appends did NOT yank the view.
+- **NEXT → "2 of 3"**: the jump landed on the USER row and s03 shows the
+  **highlight split in ONE frame**: the user row renders "synthetic 82" with the
+  ACCENT fill inside the YOU bubble (annotatedWithHighlights, active-match accent);
+  the reply row's "synthetic 82" carries NO fill (the markdown pipeline keeps
+  assistant prose plain — the L6 no-highlight face, receipted as designed-in).
+- The composer morphed to the STOP button (the task Running — the pass-28 morph,
+  consistent); the jump FAB badge read 83→84 across the append (pass-11 plane,
+  semantics not interrogated).
+
+## AM.G — leg E: case-insensitivity (12:26)
+
+"SYNTHETIC 82" → **"1 of 3"** — the lowercase needle (ConversationFind.kt:26)
+receipted; same three matches as the lowercase query.
+
+## AM.H — leg F: find × paging, re-shaped (12:31) + the text-scheme split
+
+The planned strip-tap growth leg was blocked BY THE PASS'S OWN NEW ROW (the open-time
+race consumed the strip before any tap — AM.I), so the face drove against the race's
+result: query **"synthetic row"** (the PAGED scheme) → **"1 of 41"** — DB-exact: the
+store held 403 rows (1..401 + 1001..1002) and exactly 41 ASSISTANT rows carry paged-
+scheme texts (even ids 2..82; odd ids are reasoning, excluded). The DB pulled at the
+same moment shows all 83 paged texts ("synthetic row 1".."synthetic row 83") vs the
+snapshot scheme above id 83 ("synthetic 84"..) — **the two text schemes COEXIST in
+one store post-paging** (a mock-fidelity note: find queries on this rig are scheme-
+dependent; the phone is faithful to whatever text each row carries).
+
+## AM.I — NEW ROW F-P36-A (P3): the open-time prefetch race + the cache trim strand a stale `hasMore=false` — the Load-earlier strip hides while head rows are cache-absent
+
+**The receipted sequence (2/2 fresh opens raced identically — relay log lines 24/25
+and 55/56, two `conversationRowsRangeV4` calls per open, ZERO strip taps):**
+
+1. Open the conversation: hydrate from Room (the DB cache), then the snapshot applies
+   (the window 82..401, trimmed to the 320 cache bound).
+2. **The open-time race**: the prefetch effect (`ConversationScreen.kt:1092-1103`,
+   PAGE_EDGE=12) observes `firstVisibleItemIndex=0` in the window BEFORE the tail-clamp
+   effect (`:1063-1071`, `anchoredToTail=true`) moves the view to the tail — the gate
+   passes and `loadOlder` fires with `beforeRowId = rows.first()`, TWICE (the second
+   after the first page applies, the view still near the edge). The strip rendered
+   "320 of 400" (w2) BEFORE the pages landed and was GONE by the next dump (w9).
+3. The pages (e.g. 34..83, then 1..33) apply — the page-path writer sets
+   **`_hasMore.value = result.hasMore`** (`ConversationViewModel.kt:295`), and the
+   second page reaches the store floor so the mock honestly answers
+   `hasMore = page.first > ROW_ID_FLOOR` = **false** (MockZCode.kt rowsRangePage +
+   the response builder). Honest AT THAT INSTANT — the store then held 1..401.
+4. **The trim strands the stale false**: `enforceBound` runs on append and
+   snapshot-apply only (`ConversationRepositoryImpl.kt:73/126`; the page path is
+   deliberately unbounded per F-37-D, :96), so the next snapshot/append trims the
+   head back to the newest 320 — rows 1..83 EVICTED (DB arbiter: `320|84|401` at
+   12:08, later `320|84..401+1001+1002` after the send; the fresh-open end state
+   `403|1..401+1001..1002` pre-next-trim).
+5. **The mirror never re-derives**: the ViewModel's `_hasMore` is a MIRROR of the
+   manager's authoritative flow (`:145`, `port.observeHasMoreHistory`) whose only
+   writer is the snapshot-path derivation (`ConversationSessionManager.kt:248`,
+   `firstRowId != null && rows.first().rowId != firstRowId` — which says TRUE here);
+   but a MutableStateFlow does not re-emit an UNCHANGED value, the snapshot-path
+   value stayed true→true, and the page-path overwrite at :295 is therefore FINAL
+   for the session. The strip gate (`hasMoreHistory && !loadingOlder && rows.
+   isNotEmpty()`) hides the affordance — **81 head rows are cache-absent and
+   unreachable for the life of the subscription**.
+6. **The persistence boundary (receipted)**: route pop + re-entry does NOT heal
+   (the subscription and ViewModel persist; no re-subscribe, no new snapshot —
+   w15). A fresh process DOES heal (force-stop → re-open → the snapshot path
+   re-derives → the strip returns "320 of 400" — w17, receipted live).
+
+**Why a defect and not a race curiosity**: the user-visible state is a LIE — the
+strip says "no more history" while the cache is missing 81 rows the store HAS; a
+user who paged to the floor on a >320-row conversation (or merely opened one, on
+this rig) loses scroll-back access until they re-open the conversation. The end
+state is honest only after a re-subscribe.
+
+**Fix shape**: re-derive after the trim — `hasMore = firstCachedRowId > windowFirstRowId`
+at every enforceBound site (or re-read the manager's authoritative value at
+loadOlder completion instead of trusting the page response alone). Pins: a
+Robolectric/repo harness paging to the floor with total > cache bound asserting the
+strip survives the post-page trim; the DB min(rowId) > window firstRowId invariant.
+
+**Receipts**: relay `/tmp/p36/relay-g1.log` (lines 24/25 + 55/56 — the two per-open
+pairs, no taps); DB pulls `/tmp/p36/db/zcode{,2,3}.db` (82..401 → 84..401+1001+1002
+→ 403@1..401+1001..1002); dumps w2 (strip present) → w9-w13 (absent, incl. w13 with
+find CLOSED — the state gate, not the find bar) → w15 (absent after route re-entry)
+→ w17 (PRESENT after fresh process); logcat /tmp/p36/logcat.log (zero FATALs,
+zero gateway.drop).
+
+## AM.J — the desktop find census (shipped 3.18.1 asar, /tmp/p36/asar extract)
+
+- The desktop's find is **TWO-SCOPED**: the bar component carries
+  `conversationMatchCount/Index` AND `fileChangeMatchCount/Index` with a scope toggle
+  (`conversation` ↔ `changes`), a jump-to-file-changes affordance, per-scope
+  `n/total` counters, and the `findInTask` keyboard binding (`CmdOrCtrl+F`,
+  channel window). The i18n declares the scope: `quickPick.find.title` "在任务中查找",
+  `quickPick.find.description` **"搜索当前任务中的消息和文件变更"** (messages + file
+  changes); placeholders `quickPick.find.placeholder.{conversation,changes}`.
+- The phone's find (G5 vc51) is single-scope over text rows (AM.B) — NO changes
+  scope, no file-change matches. The minified bundle did not yield the conversation
+  scope's exact kind-level haystack (bounded search; the declared string is the
+  authoritative scope), so the record stops at the scope delta: → **opportunistic
+  queue line** (the phone's find exists and works; the delta is the changes scope +
+  the unfindable reasoning/tool rows, P4-class).
+- The phone's G5 comment cites `useConversationTimelineFind` / `conversationFindIndex`
+  — **absent from the shipped bundle** (minified away; the vc51 pin came from source
+  names). Recorded so no future pass re-hunts the literal names in the asar.
+
+## AM.K — adjudications (no rows)
+
+1. **The per-keystroke jump chase** (AM.A0.2): the viewport following the current
+   first match through typing intermediates is the honest incremental-jump semantics
+   (the count updates live too); the desktop's bar likewise recomputes per keystroke.
+   No row.
+2. **The jump FAB badge "83"** stayed constant across find jumps and read 84 after
+   the append — the badge's exact counter is the pass-11 plane; out of scope here.
+3. **AL.C's driver ambiguity (pass-35 stamp, not an erratum)**: pass 35 attributed
+   its two `conversationRowsRangeV4` calls (gen1 id=20/21) to the strip taps; pass
+   36 proves the IDENTICAL two-call sequence fires at open with NO taps (2/2 opens).
+   Pass 35's log is compatible with both stories (taps-then-guard-swallowed, or taps
+   as the drivers); its DB growth faces stand either way. The strip-TAP-driven page
+   fetch in isolation is UNRECEIPTED on this rig while the open race pre-empts it —
+   a standing rig note, not a defect row.
+4. **The mock text-scheme split** (AM.H): snapshot rows carry window-index texts,
+   paged rows carry store-id texts — coexisting post-paging. Mock-fidelity note only
+   (no arm was blocked; the arithmetic stays derivable: snapshot `synthetic $i` at
+   id = base+i−1, paged `synthetic row $rid` at id = rid).
+
+## AM.L — ledger arithmetic + coverage honesty
+
+**ONE new row: F-P36-A (P3)**; the opportunistic queue gains ONE line (the find
+two-scope parity). AL.A0.2's edge CLOSED (AM.C). Open counts: **31 F (29 defects +
+2 obs) + 21 G + 3 standing + 16 smalls (+1 watch +1 rig)**. Mock debts: 0 open
+(zero mock changes this pass). gateway.drop: 0; zero app FATALs. Wire census: ONE
+generation, 52 v4call (4 rowsRange — 2 per open, both the open-time race; 1
+sendText trio-nulls; 0 faults; the balance = subscribes/resyncs/polls/deltas).
+
+What pass 36 did NOT drive: the strip-TAP-driven page fetch in isolation (the race
+pre-empts it — AM.K.3); the desktop's changes-scope find (desktop-only); the
+find plane's historyChanged epoch-rejection interplay (the pass-35 standing note);
+TalkBack/shade-ACTION/widget/Dictate (standing stops); the find count UI beyond
+2 digits (41 rendered fine); the mock text-scheme unification (recorded, no fix —
+nothing was blocked).
+
+## Pass-36 verification stamp
+
+Pass 36 completed 2026-11-16 ~12:37; ONE relay generation (gen1 `mock-p36-gen1-d2e8a7`
+12:06→12:37, launcher `/tmp/p36/relay-g1.sh`, MOCK_ROWS_TOTAL=400; the asar extract
+/tmp/p36/asar is the STEP-0 census artifact, digest unchanged). App: ZERO changes —
+the `install -r` SKIPPED on byte-identity (local == on-device md5 `530ba4ff…`,
+sha256 `ad449d7d…`, vc53/1.3.2 at HEAD `3f35338a`). Receipts: shots `/tmp/p36/shots/`
+(s00 rig health; s01 the "1 of 1" boundary match + jump; s02 the visible-but-
+unfindable face; s03 the live-grow + user-row accent fill + assistant no-fill);
+AX dumps `/tmp/p36/w/w1-w19`; relay log `/tmp/p36/relay-g1.log` (52 v4call; the
+4 rowsRange lines 24/25+55/56); DB pulls `/tmp/p36/db/zcode{,2,3}.db{,-wal}`
+(82..401 → 84..401+1001+1002 → 403@1..401+1001..1002 — the trim/evict sequence);
+logcat `/tmp/p36/logcat.log` (gateway.drop 0, zero FATALs); drafts-table receipt
+(`synthetic 82` @1794819509563 — pass-35's composer-misdirect). Desktop 3.18.1 /
+`ec475e6e…` unchanged (STEP 0). **Rig left:** emulator zcode-a16 UP (healthy,
+wifi ENABLED, screenshot protection OFF), relay gen1 ALIVE (nonce
+`mock-p36-gen1-d2e8a7`, MOCK_ROWS_TOTAL=400 — nothing sticky), app pid on
+"Fork of synth-task-2" with the find bar OPEN holding query "SYNTHETIC 82"
+("1 of 3" — the store fully loaded 1..401, the strip hidden by the F-P36-A wedge),
+logcat running → /tmp/p36/logcat.log.
