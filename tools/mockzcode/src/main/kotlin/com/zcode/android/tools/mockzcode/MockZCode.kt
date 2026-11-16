@@ -6052,7 +6052,13 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
      */
     internal fun bootstrapTasksView(): kotlinx.serialization.json.JsonArray =
         script.bootstrapTasks?.let { override ->
-            kotlinx.serialization.json.JsonArray(override.map { decorateMeta(it.toJson()) })
+            // Pass-38 (p38-mock-archive-exclude): the served MAIN list excludes archived
+            // rows (the listTasks RIG-P2 shape) — the unfiltered control view resurrected
+            // the just-archived row on the app's post-action refresh (live receipt: push
+            // applied tasks=2 → refresh re-applied tasks=3 within 1 s, row back on home).
+            kotlinx.serialization.json.JsonArray(override
+                .filterNot { taskIdOf(it.toJson()) in script.archivedTaskIds }
+                .map { decorateMeta(it.toJson()) })
         } ?: kotlinx.serialization.json.JsonArray(listOf(
             // PRODUCTION shape (report F5/G1): the legacy {id,title,status} row carries
             // no workspacePath — the app's bootstrap parser keys tasks by

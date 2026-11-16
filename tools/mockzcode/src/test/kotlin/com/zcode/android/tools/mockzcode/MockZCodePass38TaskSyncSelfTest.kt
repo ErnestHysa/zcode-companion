@@ -80,4 +80,20 @@ class MockZCodePass38TaskSyncSelfTest {
         assertEquals("false", (view[0].jsonObject["pinned"] as JsonPrimitive).content)
         assertEquals("true", (view[2].jsonObject["pinned"] as JsonPrimitive).content)
     }
+
+    @Test
+    fun `control view excludes archived rows - the refresh cannot resurrect the archive`() {
+        val m = mock()
+        armTaskManagementRig(m)
+        assertEquals(3, m.bootstrapTasksView().size)
+        val before = m.promiseResponsesForTest().size
+        m.taskPromiseForTest(9, "archiveTask", JsonObject(mapOf("taskId" to JsonPrimitive("synth-task-3"))))
+        assertTrue(okReplied(m, before))
+        val view = m.bootstrapTasksView()
+        assertEquals(2, view.size)
+        assertTrue(view.none { (it.jsonObject["taskId"] as? JsonPrimitive)?.content == "synth-task-3" })
+        // unarchive restores the row to the view
+        m.taskPromiseForTest(10, "unarchiveTask", JsonObject(mapOf("taskId" to JsonPrimitive("synth-task-3"))))
+        assertEquals(3, m.bootstrapTasksView().size)
+    }
 }
