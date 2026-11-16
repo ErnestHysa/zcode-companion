@@ -2683,6 +2683,21 @@ class MockZCode(
      * sends workspaceRelativePath keys ("src/version.ts"), the fixture rows key `path`
      * absolutely ("/synthetic/repo/src/version.ts") — match all three spellings.
      */
+    /**
+     * p41: resolve a git path spelling (the phone's workspaceRelativePath or the
+     * fixture's absolute one) to the fixture row's absolute path — the write tier's
+     * staged set may hold either spelling, and the exact-string removes must span both.
+     */
+    private fun canonicalGitPath(p: String): String {
+        val base = script.gitChanges ?: return p
+        return base.mapNotNull { it as? JsonObject }
+            .firstOrNull { row ->
+                val abs = (row["path"] as? JsonPrimitive)?.content
+                val rel = (row["workspaceRelativePath"] as? JsonPrimitive)?.content
+                abs == p || rel == p || (abs?.endsWith("/$p") == true)
+            }?.let { (it["path"] as? JsonPrimitive)?.content } ?: p
+    }
+
     private fun servedGitChanges(): JsonArray {
         val base = script.gitChanges ?: return JsonArray(emptyList())
         val staged = script.stagedPaths.toSet()
@@ -2700,11 +2715,16 @@ class MockZCode(
             if (abs in committed || abs in discarded) return@mapNotNull null
             if (rel != null && (rel in discarded || rel in committed)) return@mapNotNull null
             val stagedHit = staged.any { obj.matches(it) }
-            when {
-                stagedHit && (obj["section"] as? JsonPrimitive)?.content != "staged" ->
-                    JsonObject(obj + mapOf("section" to JsonPrimitive("staged")))
-                else -> obj
+            // p41: the section now derives from the WRITE TIER's live set — a row that
+            // left stagedPaths serves as its working-tree section (kind added →
+            // untracked, else unstaged) instead of its STATIC fixture section, so an
+            // unstaged fixture-staged row actually leaves the Staged tab.
+            val section = when {
+                stagedHit -> "staged"
+                (obj["kind"] as? JsonPrimitive)?.content == "added" -> "untracked"
+                else -> "unstaged"
             }
+            JsonObject(obj + mapOf("section" to JsonPrimitive(section)))
         })
     }
 
@@ -4023,7 +4043,13 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 val paths = (argAsObject(arg)?.get("paths") as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.content } ?: emptyList()
                 if (paths.isEmpty()) respondError(id, "fault.mock.unscripted:$name")
                 else {
-                    if (name == "stagePaths") script.stagedPaths.addAll(paths) else script.stagedPaths.removeAll(paths.toSet())
+                    // p41: the REMOVE must span spellings — stagedPaths holds the seeded
+                    // ABSOLUTE paths while the phone sends workspaceRelativePath ones,
+                    // and removeAll is exact-string (an unseeded relative spelling would
+                    // no-op the remove). Adds keep the phone's spelling: servedGitChanges
+                    // matches both spellings (abs == p || rel == p || endsWith).
+                    if (name == "stagePaths") script.stagedPaths.addAll(paths)
+                    else script.stagedPaths.removeAll { sp -> paths.any { p -> sp == p || sp == canonicalGitPath(p) } }
                     respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Undefined)
                 }
             }
@@ -4053,7 +4079,9 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                         (obj["path"] as? JsonPrimitive)?.content
                     }
                     script.committedPaths.addAll(toCommit)
-                    script.stagedPaths.removeAll(toCommit.toSet())
+                    // p41: spell-aware consume — the staged set may hold the phone's
+                    // relative spelling while toCommit holds the fixture's absolute one.
+                    script.stagedPaths.removeAll { sp -> toCommit.any { c -> sp == c || sp == canonicalGitPath(c) || canonicalGitPath(sp) == c } }
                     respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
                         put("commitHash", JsonPrimitive("abc123${script.commits.size}"))
                         put("summary", buildJsonObject { put("additions", JsonPrimitive(1)); put("deletions", JsonPrimitive(0)); put("files", JsonPrimitive(toCommit.size)) })

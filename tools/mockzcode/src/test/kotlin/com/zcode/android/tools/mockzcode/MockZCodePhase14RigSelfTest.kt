@@ -341,7 +341,12 @@ class MockZCodePhase14RigSelfTest {
 
     @Test
     fun `getChanges serves only the requested section — a row lands in ONE tab (N-BK-1)`() {
-        val m = mock { s -> s.gitChanges = RigGitFixtures.changes() }
+        val m = mock { s ->
+            s.gitChanges = RigGitFixtures.changes()
+            // p41: the section now derives from the WRITE TIER's staged set — seed it
+            // like the arming does, or the fixture-staged row re-derives to unstaged.
+            RigGitFixtures.seedWriteTier(s)
+        }
         val unstaged = gitChangesPayload(m, "unstaged").map { str(it, "workspaceRelativePath") }
         val staged = gitChangesPayload(m, "staged").map { str(it, "workspaceRelativePath") }
         assertEquals(listOf("src/version.ts", "scratch/probe.txt"), unstaged, "unstaged call serves unstaged+untracked rows")

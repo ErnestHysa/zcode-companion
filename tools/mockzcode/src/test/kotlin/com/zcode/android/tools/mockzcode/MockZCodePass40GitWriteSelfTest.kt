@@ -21,6 +21,10 @@ class MockZCodePass40GitWriteSelfTest {
         val passHash = java.util.Base64.getEncoder().encodeToString(ByteArray(32) { 11 })
         val m = MockZCode(passHash = passHash, expectedSid = "d_p40")
         m.script.gitChanges = RigGitFixtures.changes()
+        // p41: the arming seeds the write tier's staged set from the fixture's staged
+        // rows — the self-test mocks share the seed so the served/committed views agree
+        // on the initial state (a fixture-staged row is unstagable/committable).
+        RigGitFixtures.seedWriteTier(m.script)
         return m
     }
 

@@ -68,6 +68,20 @@ internal object RigGitFixtures {
         )),
     ))
 
+    /**
+     * p41 (pass-41): the write tier's staged set seeded from the fixture's staged rows —
+     * a fixture-staged row absent from [MockScript.stagedPaths] could never be unstaged
+     * (servedGitChanges only promoted rows into "staged"; the live receipt: unstagePaths
+     * ok → the refetch served the SAME staged row). The arming AND every git self-test
+     * mock share this seed so the served/committed views agree on the initial state.
+     */
+    fun seedWriteTier(script: MockZCode.Script) {
+        changes().mapNotNull { it as? JsonObject }
+            .filter { (it["section"] as? JsonPrimitive)?.content == "staged" }
+            .mapNotNull { (it["path"] as? JsonPrimitive)?.content }
+            .forEach { script.stagedPaths.add(it) }
+    }
+
     fun commits(): JsonArray = JsonArray(listOf(
         JsonObject(mapOf(
             "hash" to JsonPrimitive("abc1234def5678901a2b3c4d5e6f708192a3b4c5d"),
@@ -861,6 +875,11 @@ fun main() {
         // into BOTH tabs. Literals live in [RigGitFixtures] so the self-test pins the
         // contract against the LIVE fixture build (not a copy).
         mock.script.gitChanges = RigGitFixtures.changes()
+        // p41 (pass-41): seed the WRITE TIER's staged set from the fixture's staged rows.
+        // servedGitChanges only PROMOTED rows into "staged"; a fixture-staged row absent
+        // from stagedPaths could never leave the tab — the live receipt: unstagePaths ok
+        // → the refetch served the SAME staged row (index.ts stuck under Staged (1)).
+        RigGitFixtures.seedWriteTier(mock.script)
         mock.script.gitDiff = JsonObject(mapOf(
             "diff" to JsonPrimitive(
                 "diff --git a/src/version.ts b/src/version.ts\n" +
