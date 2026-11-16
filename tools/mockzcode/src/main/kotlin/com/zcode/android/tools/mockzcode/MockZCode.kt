@@ -701,6 +701,15 @@ class MockZCode(
         // ---------------- ADR-021 (Phase 5D): git write tier ----------------
         val stagedPaths: MutableList<String> = java.util.Collections.synchronizedList(ArrayList())
         val discardedPaths: MutableList<String> = java.util.Collections.synchronizedList(ArrayList())
+        /**
+         * p40 (pass-40): the ABSOLUTE fixture paths a successful `commit` consumed.
+         * The phone sends workspaceRelativePath keys on stage/unstage/discard but the
+         * fixture rows key `path` absolutely, so commit records the row's own `path`
+         * and servedGitChanges() skips the consumed rows (the desktop drops committed
+         * files from the changes list — the phone's post-commit fetchChanges() must
+         * see the shrink, not the same three rows again).
+         */
+        val committedPaths: MutableList<String> = java.util.Collections.synchronizedList(ArrayList())
         val commits: MutableList<String> = java.util.Collections.synchronizedList(ArrayList())
         var generatedCommitMessage: JsonObject? = null
         var gitPushFails: Boolean = false
@@ -2653,6 +2662,44 @@ class MockZCode(
     /** RIG-5 self-test seam: the head getLocalBranches serves (tracked branch or main). */
     internal fun localBranchesHeadForTest(): String = script.currentGitBranch ?: "main"
 
+    /** p40 self-test seam: the derived changes view getChanges serves (write-tier mutation applied). */
+    internal fun servedGitChangesForTest(): JsonArray = servedGitChanges()
+
+    /**
+     * p40 (pass-40): the DERIVED changes view — the scripted fixture with the write
+     * tier's mutations applied. Until this, stage/unstage/discard acked and mutated
+     * script.stagedPaths/discardedPaths while getChanges kept serving the static
+     * fixture, so the ack had NO visible face (the recorded ack-without-mutate class,
+     * vc51-era). Rules: a discarded/committed path's row drops; a staged path's row
+     * serves section "staged"; everything else keeps its fixture section. The phone
+     * sends workspaceRelativePath keys ("src/version.ts"), the fixture rows key `path`
+     * absolutely ("/synthetic/repo/src/version.ts") — match all three spellings.
+     */
+    private fun servedGitChanges(): JsonArray {
+        val base = script.gitChanges ?: return JsonArray(emptyList())
+        val staged = script.stagedPaths.toSet()
+        val discarded = script.discardedPaths.toSet()
+        val committed = script.committedPaths.toSet()
+        fun JsonObject.matches(p: String): Boolean {
+            val rel = (this["workspaceRelativePath"] as? JsonPrimitive)?.content
+            val abs = (this["path"] as? JsonPrimitive)?.content
+            return abs == p || rel == p || (abs?.endsWith("/$p") == true)
+        }
+        return JsonArray(base.mapNotNull { row ->
+            val obj = row as? JsonObject ?: return@mapNotNull row
+            val rel = (obj["workspaceRelativePath"] as? JsonPrimitive)?.content
+            val abs = (obj["path"] as? JsonPrimitive)?.content ?: return@mapNotNull obj
+            if (abs in committed || abs in discarded) return@mapNotNull null
+            if (rel != null && (rel in discarded || rel in committed)) return@mapNotNull null
+            val stagedHit = staged.any { obj.matches(it) }
+            when {
+                stagedHit && (obj["section"] as? JsonPrimitive)?.content != "staged" ->
+                    JsonObject(obj + mapOf("section" to JsonPrimitive("staged")))
+                else -> obj
+            }
+        })
+    }
+
     /** The served summary: the scripted body with the tracked branch merged in (null = unscripted). */
     private fun mergedGitSummary(): JsonObject? {
         val summary = script.gitSummary ?: return null
@@ -3984,10 +4031,26 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             "commit" -> {
                 val message = argAsObject(arg)?.str("message") ?: ""
                 if (message.isBlank()) respondError(id, "Commit message cannot be empty")
-                else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
-                    put("commitHash", JsonPrimitive("abc123${script.commits.size}"))
-                    put("summary", buildJsonObject { put("additions", JsonPrimitive(1)); put("deletions", JsonPrimitive(0)); put("files", JsonPrimitive(1)) })
-                }))
+                else {
+                    // p40 (pass-40): a commit CONSUMES the served rows the desktop would
+                    // commit — stagedOnly commits the section-"staged" view, includeUnstaged
+                    // commits everything still served — so the phone's post-commit
+                    // fetchChanges() sees the shrink instead of the same rows again.
+                    val stagedOnly = (argAsObject(arg)?.get("stagedOnly") as? JsonPrimitive)?.content == "true"
+                    val served = servedGitChanges()
+                    val toCommit = served.mapNotNull { row ->
+                        val obj = row as? JsonObject ?: return@mapNotNull null
+                        val section = (obj["section"] as? JsonPrimitive)?.content
+                        if (stagedOnly && section != "staged") return@mapNotNull null
+                        (obj["path"] as? JsonPrimitive)?.content
+                    }
+                    script.committedPaths.addAll(toCommit)
+                    script.stagedPaths.removeAll(toCommit.toSet())
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                        put("commitHash", JsonPrimitive("abc123${script.commits.size}"))
+                        put("summary", buildJsonObject { put("additions", JsonPrimitive(1)); put("deletions", JsonPrimitive(0)); put("files", JsonPrimitive(toCommit.size)) })
+                    }))
+                }
             }
             // RIG-P2 (vc52 Phase 14): the N-BG-2 refusal arm answers FIRST for every
             // git read the phone can surface (the deliberate fault beats the fixture —
@@ -4060,8 +4123,11 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     // renders section ∈ {unstaged, untracked, conflicted} (GitScreen.kt's
                     // section orders), so the "unstaged" request serves all three.
                     // Rows without a `section` keep the legacy serve-everything behavior.
+                    // p40: the source is the DERIVED view (write-tier mutation applied —
+                    // staged moves, discards, commits), not the static fixture.
                     val requested = argAsObject(arg)?.strOrNull("sourceId")
-                    val served = if (requested == null) changes else changes.filter {
+                    val derived = servedGitChanges()
+                    val served = if (requested == null) derived else derived.filter {
                         val section = (it as? JsonObject)?.strOrNull("section") ?: return@filter true
                         if (requested == "unstaged") section in listOf("unstaged", "untracked", "conflicted")
                         else section == requested

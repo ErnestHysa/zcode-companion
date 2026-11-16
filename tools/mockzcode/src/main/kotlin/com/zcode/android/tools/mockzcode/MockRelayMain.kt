@@ -920,6 +920,17 @@ fun main() {
             mock.script.gitRefusals[method] = code
         }
     }
+    // p40 (pass-40): MOCK_GIT_BRANCH_ISSUE=<json object> scripts the TYPED branch-issue
+    // ack shape ({code,message,detail?,paths[]} — the GitBranchResult.issues decode; ok
+    // = issues.isEmpty()) so the BranchSheet's typed-issue face is drivable per the
+    // desktop-faithful SUCCESS-with-issues ack (distinct from a MOCK_GIT_REFUSALS
+    // transport fault). MOCK_GIT_PUSH_FAIL=1 arms the push refusal (gitPushFails).
+    System.getenv("MOCK_GIT_BRANCH_ISSUE")?.takeIf { it.isNotBlank() }?.let { spec ->
+        runCatching {
+            kotlinx.serialization.json.Json.parseToJsonElement(spec).let { it as? JsonObject }
+        }.getOrNull()?.let { mock.script.gitBranchIssue = it }
+    }
+    if (System.getenv("MOCK_GIT_PUSH_FAIL") == "1") mock.script.gitPushFails = true
     // G52 (vc52 Phase 11): MOCK_G52_KEYS=transition|admission|both pushes a state patch
     // seeding the two silently-dropped session-state keys (a conversation-level arm; the
     // patch rides 1.5 s after the first conversation subscribe so the screens are up).
