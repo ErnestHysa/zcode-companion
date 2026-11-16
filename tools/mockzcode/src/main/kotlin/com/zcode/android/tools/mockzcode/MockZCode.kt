@@ -5669,6 +5669,8 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
                 if (taskId == null) respondError(id, "fault.mock.unscripted:deleteTask")
                 else {
                     script.directTasks = script.directTasks.filterNot { (it.jsonObject["taskId"] as? JsonPrimitive)?.content == taskId }
+                    // Pass-38: keep the CONTROL view's list in sync (same stale-view class).
+                    script.bootstrapTasks = script.bootstrapTasks.orEmpty().filterNot { taskIdOf(it.toJson()) == taskId }
                     respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
                 }
             }
@@ -5681,6 +5683,10 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
                         if ((it.jsonObject["taskId"] as? JsonPrimitive)?.content == taskId) {
                             JsonObject(it.jsonObject + ("title" to JsonPrimitive(title)))
                         } else it
+                    }
+                    // Pass-38: the CONTROL view reads bootstrapTasks — keep the title in sync.
+                    script.bootstrapTasks = script.bootstrapTasks.orEmpty().map {
+                        if (taskIdOf(it.toJson()) == taskId) it.copy(title = title) else it
                     }
                     respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
                 }
@@ -6035,6 +6041,39 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
 
     // ------------------------------------------------------------------ control plane
 
+    /**
+     * Pass-38 (p38-mock-decorate): the CONTROL view's task rows. The old view served the
+     * raw `MockTask.toJson()` list, so a pin/unread mutation (which mutates only the
+     * `pinnedTaskIds`/`unreadTaskIds` sets the decorated CHANNEL metas read) was
+     * silently reverted on the app's next refresh — the phone re-applied the stale
+     * bootstrap view over its own ok'd mutation. The view now flows through
+     * [decorateMeta] so both surfaces read the same live sets; rename/delete sync the
+     * [MockScript.bootstrapTasks] objects too.
+     */
+    internal fun bootstrapTasksView(): kotlinx.serialization.json.JsonArray =
+        script.bootstrapTasks?.let { override ->
+            kotlinx.serialization.json.JsonArray(override.map { decorateMeta(it.toJson()) })
+        } ?: kotlinx.serialization.json.JsonArray(listOf(
+            // PRODUCTION shape (report F5/G1): the legacy {id,title,status} row carries
+            // no workspacePath — the app's bootstrap parser keys tasks by
+            // workspaceIdentity ?: workspacePath, and a blank key is silently skipped
+            // (logged applied, zero rows persisted).
+            // F-ROUND26 self-consistency: the row's §7.11 identity FOLLOWS the same
+            // active-key override the view state advertises — a served view whose task
+            // row disagreed with its own activeWorkspaceKey made the app's vc33
+            // task-row-authoritative bridge resolution resolve a workspace the strict
+            // mock then rejected as stale (its own view!) — the BridgeError/
+            // FreshDiscovery/ScopedChannel strict-bridge suites' red.
+            decorateMeta(MockTask(
+                taskId = workspace.sessionId,
+                title = "Synthetic task",
+                displayStatus = "idle",
+                workspacePath = workspace.workspacePath,
+                workspaceLabel = "Synthetic One",
+                workspaceIdentity = script.bootstrapActiveWorkspaceKey ?: workspace.workspaceKey,
+            ).toJson()),
+        ))
+
     private fun sendBootstrapResponse(ws: okhttp3.WebSocket, requestId: String) {
         if (script.bootstrapEmptyView) {
             sendTo(ws, raw = RelayFrameCodec.encodeEnvelope(
@@ -6071,29 +6110,13 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
                         put("kind", JsonPrimitive("local"))
                         put("workspaceKey", JsonPrimitive(workspace.workspaceKey))
                     })))
-                    put("tasks", script.bootstrapTasks?.let { override ->
-                        JsonArray(override.map { it.toJson() })
-                    } ?: JsonArray(listOf(
-                        // PRODUCTION shape (report F5/G1): the legacy {id,title,status}
-                        // row carries no workspacePath — the app's bootstrap parser keys
-                        // tasks by workspaceIdentity ?: workspacePath, and a blank key is
-                        // silently skipped (logged applied, zero rows persisted).
-                        // F-ROUND26 self-consistency: the row's §7.11 identity FOLLOWS
-                        // the same active-key override the view state advertises — a
-                        // served view whose task row disagreed with its own
-                        // activeWorkspaceKey made the app's vc33 task-row-authoritative
-                        // bridge resolution resolve a workspace the strict mock then
-                        // rejected as stale (its own view!) — the BridgeError/
-                        // FreshDiscovery/ScopedChannel strict-bridge suites' red.
-                        MockTask(
-                            taskId = workspace.sessionId,
-                            title = "Synthetic task",
-                            displayStatus = "idle",
-                            workspacePath = workspace.workspacePath,
-                            workspaceLabel = "Synthetic One",
-                            workspaceIdentity = script.bootstrapActiveWorkspaceKey ?: workspace.workspaceKey,
-                        ).toJson(),
-                    )))
+                    // Pass-38 (p38-mock-decorate): the CONTROL view decorates rows with
+                    // the LIVE pin/unread/archived sets — the raw MockTask jsons went
+                    // stale the moment setTaskPinned/setTaskUnread mutated only
+                    // pinnedTaskIds/unreadTaskIds, so the app's next refresh re-applied
+                    // the connect-time flags and visually reverted the mutation
+                    // (receipted live: mark-read ok → "Marked read" → dot still bold).
+                    put("tasks", bootstrapTasksView())
                 })
             })
         ))
