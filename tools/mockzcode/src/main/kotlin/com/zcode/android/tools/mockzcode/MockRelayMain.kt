@@ -633,7 +633,12 @@ fun main() {
     // client's expectedUnreadAt against the stored stamp (the desktop's host-side CAS);
     // a mismatch answers fault.unread.stale:expectedUnreadAt and mutates nothing — the
     // mark-read refusal face becomes drivable. The arg is logged either way.
-    if (System.getenv("MOCK_UNREAD_CAS") == "1") mock.script.unreadCas = true
+    // MOCK_UNREAD_CAS=force drifts the comparison (expected+1) so every mark-read
+    // mismatches — the deterministic desktop-diverged-elsewhere simulator.
+    when (System.getenv("MOCK_UNREAD_CAS")) {
+        "1" -> mock.script.unreadCas = true
+        "force" -> { mock.script.unreadCas = true; mock.script.unreadCasForce = true }
+    }
     // Pass-22 rig arm (Part X leftover): MOCK_SET_THOUGHT_LEVEL_STALE=1 makes the
     // effort switch (the PROTOCOL method v4Call setThoughtLevel) answer the host's
     // FQ revision-mismatch shape — the JSON-RPC ERROR Dl(-32009, "Session state

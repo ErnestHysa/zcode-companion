@@ -113,6 +113,24 @@ class MockZCodePass39RigSelfTest {
     }
 
     @Test
+    fun `force mode mismatches every mark-read without mutating (p39-mock-unread-cas)`() {
+        val m = mock()
+        armTaskManagementRig(m)
+        val stored = m.script.unreadTaskIds["synth-task-2"]!!
+        m.script.unreadCas = true
+        m.script.unreadCasForce = true
+        val before = m.promiseResponsesForTest().size
+        // even the CORRECT stamp is refused under force — the desktop-diverged simulator
+        m.taskPromiseForTest(1, "setTaskUnread", JsonObject(mapOf(
+            "taskId" to JsonPrimitive("synth-task-2"),
+            "unread" to JsonPrimitive(false),
+            "expectedUnreadAt" to JsonPrimitive(stored),
+        )))
+        assertEquals("fault.unread.stale:expectedUnreadAt", faultOf(m, before))
+        assertEquals(stored, m.script.unreadTaskIds["synth-task-2"])
+    }
+
+    @Test
     fun `created task inherits the source workspace label (p39-mock-created-label)`() {
         val m = mock()
         armTaskManagementRig(m)

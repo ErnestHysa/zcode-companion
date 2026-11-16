@@ -469,6 +469,11 @@ class MockZCode(
          *  mark-read refusal face ("Couldn't update the task — try again") becomes
          *  drivable. Unarmed, the arg is logged but ignored (pass-38 behavior). */
         @Volatile var unreadCas: Boolean = false
+        /** Pass-39 force mode (MOCK_UNREAD_CAS=force): the CAS comparison drifts the
+         *  stored stamp (expected+1) so EVERY mark-read mismatches — the deterministic
+         *  desktop-diverged-elsewhere simulator for the refusal-face leg (the real
+         *  comparison mode is =1). */
+        @Volatile var unreadCasForce: Boolean = false
         /** Pass-22 rig arm (Part X leftover, MOCK_SET_THOUGHT_LEVEL_STALE): the effort
          *  switch rides the PROTOCOL method (v4Call setThoughtLevel), whose host layer
          *  CAS-checks via FQ and answers a JSON-RPC ERROR on mismatch — NOT a
@@ -5594,7 +5599,7 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
                     println("MOCK: setTaskUnread taskId=$taskId unread=$unread expectedUnreadAt=${arg["expectedUnreadAt"]}")
                     if (!unread && script.unreadCas) {
                         val expected = (arg["expectedUnreadAt"] as? JsonPrimitive)?.content?.toLongOrNull()
-                        val stored = script.unreadTaskIds[taskId]
+                        val stored = if (script.unreadCasForce) expected?.plus(1) else script.unreadTaskIds[taskId]
                         if (expected == null || expected != stored) {
                             println("MOCK: setTaskUnread CAS mismatch (MOCK_UNREAD_CAS) expected=$expected stored=$stored -> fault.unread.stale")
                             respondError(id, "fault.unread.stale:expectedUnreadAt")
