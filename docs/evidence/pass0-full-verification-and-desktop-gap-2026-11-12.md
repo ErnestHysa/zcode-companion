@@ -7113,3 +7113,192 @@ ALIVE (clean arms, safe to inherit), app pid 9038 on synth-task-1 (chip
 "yolo · …", the failed `rig-p30-mid.bin` chip STILL in the composer with
 Retry/Remove — rig residue, harmless; draft cleared; no banner), logcat
 running → /tmp/p30/logcat.log. Launcher `/tmp/p30/relay-g2.sh`.
+
+# Part AH — pass 31 (APPENDED 2026-11-16, ~01:00): Part AG's coverage-honesty list driven — the mid-upload user-tap Remove receipted live on BOTH entry paths, and it opened the pass's NEW defect: the removed chip RESURRECTS. `removeUpload` aborts the wire transaction but never cancels the in-flight upload coroutine — the detached in-flight chunk completes, the per-chunk progress upsert re-adds the chip as ↑, the next chunk errors `fault.attachment.unknownUpload` into the catch-all which upserts "failed" + payload, and the user's explicit Remove is undone seconds later under a raw-fault banner (first-attempt leg) or the generic retry banner (retry leg) — plus N-BO-1 stamps 4 (the raw fault code, the class's FOURTH surface) and the AttachmentRejectedException path statically adjudicated UNREACHABLE (stands)
+
+> **Pass 31 of the pass-0 series** (solo, the canonical discovery prompt). STEP 1 empty
+> (backlog 8/8). Part AG's coverage-honesty list named one driveable residual — the
+> mid-upload user-tap Remove ("the failure-path aborts are receipted, the user-tap
+> abort is not; the ~5 s delayed window is racy without a longer arm") — and driving
+> it with a LONGER arm (`MOCK_ATTACHMENT_CHUNK_DELAY_MS=15000`, env-only, no mock code
+> change) surfaced a NEW defect the short-window passes could never catch: **the
+> resurrected removed chip**. ONE new F-row (F-P31-A, P3); N-BO-1 stamps 4. The
+> second named residual (AttachmentRejectedException) is adjudicated statically
+> unreachable (AH.E). Mock: NO changes (the pass-30 arms sufficed at a larger value).
+> App: NO changes (APK byte-identical at HEAD `495d1145`; the `install -r` SKIPPED on
+> digest equality).
+>
+> **Verification stamp:** 2026-11-16 00:15 → 00:55, GLM-5.3-Flash in ZCode, everything
+> local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…` UNCHANGED — no
+> DELTA. Rig: the pass-30 emulator REUSED (EIGHTH consecutive inherited survival;
+> healthy, wifi ENABLED); the pass-30 relay gen2 pkilled BY NAME at ~00:18; TWO
+> generations this pass: gen1 `mock-p31-gen1-8a3f11` (00:19→00:26, arms MOCK_ROWS=12 +
+> MOCK_ATTACHMENT_CHUNK_DELAY_MS=4000 — spent on the first, missed-window attempt) and
+> gen2 `mock-p31-gen2-b7e9c2` (00:26→end, arms MOCK_ROWS=12 +
+> MOCK_ATTACHMENT_CHUNK_DELAY_MS=15000). Build at HEAD `495d1145`:
+> `:app:assembleDebug` + `:tools:mockzcode:jar` exit 0; APK md5 `530ba4ff…` ==
+> on-device `base.apk` md5 (byte-identical, vc53/1.3.2, sha256 `ad449d7d…`) → the
+> `install -r` was SKIPPED. logcat fresh `-T 1` → /tmp/p31/logcat.log.
+
+## AH.A0 — rig learnings
+
+1. **The turn-latency wall is the mid-upload leg's REAL blocker, not the arm value**
+   — the first attempt (gen1, 4 s chunks ⇒ a 16 s window) MISSED: the Remove tap was
+   composed in a separate tool call after a Read roundtrip, and the transaction
+   completed (begin → 4 chunks → commit, abort ×0) before the tap landed. The fix:
+   **the entire tile-tap → Remove → resurrection sequence must run inside ONE bash
+   command** (sleeps only, no Read roundtrips), and 15 s/chunk (a 60 s window) makes
+   even that comfortable. The pass-30 "racy without a longer arm" note is confirmed
+   and sharpened.
+2. **The relay-up-first discipline extends to the RECOVERY LADDER**: the gen1 pkill
+   gap outlasted the app's ladder — five reconnect attempts timed out (relay-51..55,
+   10 s each) and the app walked to **DEGRADED** ("Disconnected" header + the
+   "Showing cached projection · recovering" strip) 17 s BEFORE gen2 became reachable;
+   DEGRADED auto-retries NOTHING and the conversation screen carries no Retry
+   affordance — the escape was force-stop + relaunch (cold start connected instantly,
+   hello+initialize on relay-1). Self-inflicted staging (the relay was down on
+   purpose); the recipe stands: bring the relay up BEFORE the ladder can exhaust.
+3. **The + menu's dump/visibility variance persists in both directions**: with the
+   IME open the menu rendered only 2 rows visually (Mention a file / Sketch) while
+   the dump carried ALL SIX row bounds (w3/w11 — the clipped rows are AX-present at
+   y=1497-1943); with the IME closed the menu ghost-dumped (null root, w4). The
+   Photo row IS tappable at its IME-open dump bounds ((145,1522) — the row sits just
+   above the IME window top): the photopicker opened first-tap. Re-dump before every
+   composer/menu tap (the + reflows y=2052 IME-closed → y=1440 IME-open).
+4. **The composer chip's Remove is a TEXT node, not content-desc** — a
+   `content-desc="Remove"` parse finds NOTHING (both legs' in-command parses came up
+   empty; w14/w15 carry `text="Remove"`). Parse both attributes (the ledger's
+   attribute-order lesson, third manifestation).
+5. **The abort id triplicate**: leg 1's user-tap abort logged `attachmentAbortV4
+   (id=24)` THREE times — the same RPC id arriving at the mock three times (the mock
+   logs once per arrival, MockZCode.kt:2596). A transport-level resend of one request
+   id; the abort is idempotent server-side (store remove) and the next chunk's
+   `unknownUpload` proves the entry WAS removed after the first arrival. Observed,
+   not rowed (harmless; the leg's assertions are unaffected). Leg 2's aborts were
+   clean (id=30 user + id=32 catch-path).
+
+## AH.B — leg A: the mid-upload Remove on a FIRST-ATTEMPT upload, end-to-end (00:31–00:35)
+
+Connected pick through the photopicker (tile 1, the pass-30 2 MB png → 4 chunks at
+the 15 s arm): begin (id=21) → chunk0 (id=22, in flight) → **the Remove tap at
+(945,1118) fired `attachmentAbortV4` (id=24)** — the mock deleted the staging entry
+(MockZCode.kt:3471-3475) and `removeUpload` filtered the chip out of the composer
+list. s12 (+0.8 s) still showed `↑ 130.png (2.0 MB) 25%` — the abort RPC's UI
+roundtrip lag, the chip still pre-removal in that frame.
+
+Then the resurrection, exactly the pinned mechanism:
+
+1. chunk1 (id=23, already in flight, holding its DETACHED mock object) answered ok
+   despite the abort — the app's per-chunk progress upsert (`Ports.kt:1112-1115`)
+   **re-added the removed chip as ↑**;
+2. chunk2 (id=25) did a FRESH store lookup → the entry was gone → the mock answered
+   `fault.attachment.unknownUpload` (MockZCode.kt:3417-3419) → `TransportFailure`;
+3. the catch-all (`Ports.kt:1129-1137`) logged `port.upload :: task=synth-task-1
+   TransportFailure: fault.attachment.unknownUpload` (logcat 00:34:15), fired a
+   SECOND abort (id=26), and **upserted the chip as "failed" WITH its payload**
+   (`:1136`) — **the chip the user removed is back on screen as ✗ with Retry/Remove**
+   (w14 + s13 single-frame: `✗ 130.png (2.0 MB)` + Retry + Remove + the red banner
+   **"Attachment failed to upload (fault.attachment.unknownUpload) — not sent."**
+   with the ✕ dismiss).
+
+**The banner interpolates the RAW fault code** — `result.message` = TransportFailure's
+developerDiagnostic (the AG.C-mapped chain) — **N-BO-1 stamps 4** (changes viewer,
+quota reset, attachment-FAILED commitFail, now the unknownUpload variant — the
+class's FOURTH surface). Wire census leg A: begin ×1, chunk ×3 (one ok-detached, one
+ok-detached, one faulted), abort ×2 distinct calls (the id=24 triplicate + the
+catch-path id=26), commit ×0.
+
+## AH.C — leg B: the mid-upload Remove on a RETRY upload (00:37–00:39)
+
+The resurrected ✗ chip's **Retry** re-entered the transaction (begin id=27 → chunk0
+id=28 → chunk1 id=29) → **the Remove tap at (945,986) fired `attachmentAbortV4`
+(id=30)** → chunk1 answered ok-detached → the progress upsert re-added ↑ (s15: `↑
+130.png (2.0 MB) 25%`, the second ↑25% catch this pass, the pass-30 render
+re-receipted on the retry path) → chunk2 (id=31) errored `unknownUpload` → the
+catch-path abort (id=32) + the "failed" upsert. Final state (w16 + s16 single-frame):
+**`✗ 130.png (2.0 MB)` + Retry + Remove + the banner "Attachment retry failed — not
+sent."** — the retry wrapper's generic copy (`ConversationViewModel.kt:385`), NO raw
+code on this path. Wire census leg B: begin ×1, chunk ×3, abort ×2 (user + catch),
+commit ×0. Also visible in s15: **leg A's raw-fault banner persisted INTO the retry
+leg** — the Retry start mutates no notice (the N-BR-1 plane's fourth lying window
+shape, already covered by that row's mechanism).
+
+## AH.D — the NEW row + ledger arithmetic
+
+**NEW F-P31-A (P3)**: the mid-upload user-tap Remove does NOT cancel the in-flight
+upload coroutine — the aborted transaction resurrects the removed chip. Mechanism
+pins: `removeUpload` (`Ports.kt:1154-1167`) aborts the wire + filters the list but
+the composer-scope job keeps running (`WriteComponents.kt:931-939` owns the first-
+attempt launch; `ConversationViewModel.kt:382` the retry launch; VM `removeUpload`
+:376-378 is fire-and-forget with no Job tracking); the per-chunk progress upsert
+(`Ports.kt:1112-1115`) and the catch-all upsert (`:1129-1137`) both re-add
+unconditionally with no "removed by the user" guard. The MOCK is server-faithful
+here (abort deletes the staging entry; post-abort chunks error) — which is what
+SURFACES the defect: a server that blindly accepted post-abort chunks would
+resurrect the chip as ✓ READY instead (also wrong). The user's explicit Remove must
+be final; the resurrected chip's payload IS retained so its Retry works (recovery
+exists, but only by discovering it). Fix shape: track in-flight upload Jobs per
+uploadId and cancel in removeUpload (or guard both re-add upserts on a
+user-removed set). Pin: a harness asserting remove-during-upload → the chip stays
+gone + the abort fires. The desktop's own mid-upload remove behavior is UNCENSUSED
+(fix-round item — even a desktop twin would not excuse the phone's raw-code banner).
+
+Static adjudication (the second AG residual): **AttachmentRejectedException is
+unreachable from picks** — all three throw sites are client-side self-checks
+(`Phase9Tools.kt:114` the 20 MiB cap, shadowed by the port's identical pre-wire gate
+`Ports.kt:1071`; `:134` the 512 KiB chunk cap, app-generated chunks are exactly
+≤512 KiB by construction; `:200`/`:217` the chunked-READ path, not upload). The
+coverage note's unreachability claim STANDS; no mock arm can trip a client-side
+check on client-generated data.
+
+Ledger arithmetic: open F **27 → 28** (F-P31-A added); open G **21 + 3 standing**
+(unchanged); open smalls **16** (+1 watch +1 rig, unchanged); N-BO-1 stamps 4. Mock
+debts: 0 open work-debts (no new debt — the pass-30 arms sufficed). Backlog 8/8
+(the pass's axes were Part AG's coverage list — now EMPTY of driveables except the
+statically-adjudicated residual). DB arbiter: the outbox's latest row is still pass
+30's mixed send (23:45:26) — no new send, no commit ref, the whole plane wire-only.
+gateway.drop for the pass: **0**; zero app FATAL/AndroidRuntime lines. Attachment
+wire census: gen1 begin ×1/chunk ×4/commit ×1 (the completed missed-window
+transaction — its ✓ chip was then removed by the receipted ready-state Remove) +
+gen2 begin ×2/chunk ×6/commit ×0/abort ×6 log lines (4 distinct calls: 2 user-tap +
+2 catch-path).
+
+## AH.E — coverage honesty (what pass 31 did NOT drive)
+
+The READY-chip resurrection variant (a server accepting post-abort chunks — the
+mock is faithful, so undrivable without changing the mock's wire contract); the
+desktop's mid-upload remove behavior (uncensused — fix-round static item); the
+second+ consecutive user-removes-during-one-transaction composition (the same
+mechanism, not separately receipted); Voice (Dictate), Camera/Take-photo, TalkBack,
+shade-ACTION, widget (standing stops); F-P3-A-gated card planes, the effort-sheet
+plane, the queue verbs, the automations/runs planes (not armed by design);
+turn-streaming (receipted 13/16/17); the doc-attachment timeline RENDER
+(mock-fidelity blocked — AE.E's note stands).
+
+## Pass-31 verification stamp
+
+Pass 31 completed 2026-11-16 ~00:55; TWO relay generations (gen1
+`mock-p31-gen1-8a3f11` 00:19→00:26, arms MOCK_ROWS=12 +
+MOCK_ATTACHMENT_CHUNK_DELAY_MS=4000; gen2 `mock-p31-gen2-b7e9c2` 00:26→end, arms
+MOCK_ROWS=12 + MOCK_ATTACHMENT_CHUNK_DELAY_MS=15000; launchers
+`/tmp/p31/relay-g1.sh` and `/tmp/p31/relay-g2.sh`); one DEGRADED walk (self-inflicted
+relay-down gap outlasting the ladder — force-stop + relaunch recovery, AH.A0.2); the
+`install -r` SKIPPED on byte-identity (local == on-device md5 `530ba4ff…`, sha256
+`ad449d7d…`, vc53/1.3.2 at HEAD `495d1145`). Receipts: shots `/tmp/p31/shots/`
+(s00–s16, 16 files: **s02 the first ↑25% catch**; **s13 the first-attempt
+resurrection + the raw-fault banner**; **s15 the retry-path ↑25%**; **s16 the
+retry-path resurrection + the generic banner**; s12/s15 the +0.8 s UI-lag frames);
+AX dumps `/tmp/p31/w/w0–w16`; relay logs `/tmp/p31/relay-g1.log` +
+`/tmp/p31/relay-g2.log` (censuses in AH.D); DB pulls `/tmp/p31/db/zcode.db{,-wal}`
+(outbox unchanged — no send); logcat `/tmp/p31/logcat.log` (two `port.upload ::
+TransportFailure: fault.attachment.unknownUpload` warns, 00:34:15 + 00:38:16). Mock
+changes: NONE. App changes: NONE (APK byte-identical; install skipped). Desktop
+3.18.1 / `ec475e6e…` unchanged (STEP 0). gateway.drop for the pass: **0**; zero
+app FATAL/AndroidRuntime lines. **Rig left:** emulator zcode-a16 UP (healthy, wifi
+ENABLED, screenshot protection OFF), relay gen2 ALIVE (nonce
+`mock-p31-gen2-b7e9c2`, arms MOCK_ROWS=12 + MOCK_ATTACHMENT_CHUNK_DELAY_MS=15000 —
+⚠ the 15 s arm makes EVERY upload ~60 s: an inheriting session should pkill it and
+relaunch clean unless the slow arm is wanted), app pid 14585 on synth-task-1 (chip
+"yolo · …"; the ✗ 130.png residue chip + the "Attachment retry failed" banner in
+the composer — rig residue, harmless), logcat running → /tmp/p31/logcat.log.
+Launcher `/tmp/p31/relay-g2.sh`.
