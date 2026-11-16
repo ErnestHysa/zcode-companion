@@ -4529,11 +4529,20 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 val text = (payload?.get("firstInput") as? JsonObject)?.strOrNull("text") ?: ""
                 val newId = "sess-created-${createdCount.incrementAndGet()}"
                 val wsPath = lastCommandWorkspacePath ?: workspace.workspacePath
+                // Pass-39 (p39-mock-created-label): the created task inherits the source
+                // workspace's LABEL from a sibling row — the hard-coded default
+                // ("Synthetic Workspace") diverged from /synthetic/ws-one's "Synthetic
+                // One" and the phone's home rendered an incoherent section header (the
+                // group label from one member, row subtitles from the others).
+                val siblingLabel = script.bootstrapTasks.orEmpty()
+                    .firstOrNull { it.workspacePath == wsPath && it.workspaceLabel != "Synthetic Workspace" }
+                    ?.workspaceLabel
                 script.bootstrapTasks = script.bootstrapTasks.orEmpty() + MockZCode.MockTask(
                     taskId = newId,
                     title = text.take(60),
                     displayStatus = "running",
                     workspacePath = wsPath,
+                    workspaceLabel = siblingLabel ?: "Synthetic Workspace",
                     createdAtMs = System.currentTimeMillis(),
                     updatedAtMs = System.currentTimeMillis(),
                 )

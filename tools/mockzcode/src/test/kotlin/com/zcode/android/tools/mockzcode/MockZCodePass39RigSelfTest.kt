@@ -2,7 +2,9 @@ package com.zcode.android.tools.mockzcode
 
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -108,5 +110,23 @@ class MockZCodePass39RigSelfTest {
         )))
         assertEquals(com.zcode.android.core.protocol.channel.ChannelWire.ResponseType.PromiseSuccess.id, replies(m, b2).last().second)
         assertTrue("synth-task-3" !in m.script.unreadTaskIds)
+    }
+
+    @Test
+    fun `created task inherits the source workspace label (p39-mock-created-label)`() {
+        val m = mock()
+        armTaskManagementRig(m)
+        val env = buildJsonObject {
+            put("type", JsonPrimitive("createSession"))
+            put("payload", buildJsonObject {
+                put("firstInput", buildJsonObject { put("text", JsonPrimitive("label probe")) })
+            })
+        }
+        m.applyCommandEffectForTest("createSession", env)
+        val created = m.bootstrapTasksView().last().jsonObject
+        assertEquals("label probe", (created["title"] as JsonPrimitive).content)
+        // the sibling seeds' label ("/synthetic/ws-one" -> "Synthetic One"), not the
+        // "Synthetic Workspace" default that diverged on the live rig (pass 39).
+        assertEquals("Synthetic One", (created["workspaceLabel"] as JsonPrimitive).content)
     }
 }
