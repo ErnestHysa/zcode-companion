@@ -71,46 +71,55 @@ P2-first, exit gates, per-row Accept criteria).
 > ids 34/35; the paged rows joined the index live; the post-floor strip hiding
 > ADJUDICATED HONEST — the jump-fetched pages covered the head, so F-P36-A's lie
 > needs the race's partial-fetch sequence and did NOT reproduce here).**
-> App: ZERO (APK byte-identical; `install -r` SKIPPED). **gateway.drop: 0.**
+> App: ZERO (APK byte-identical; `install -r` SKIPPED). **gateway.drop: 0.** Pass 38
+> (Part AO, 2026-11-16 ~17:20) drove the TASK-MANAGEMENT plane first-series (the
+> row menu's five never-driven legs + Phase 5A's pinned/groups/archived surfaces)
+> and opened **F-P38-A** (the stale workspace-key ghost section), **F-P38-B** (the
+> cold-open group-fetch swallow), **N-BU-1** (the status-bar-clipped action notice),
+> **N-BV-1** (affordance-less empty groups), and **G102** (DESKTOP 3.18.1 REMOVED
+> the legacy group verbs from zcode-task — the phone's whole custom-group plane
+> faults against the real desktop; the plane moved to a task-groups channel with
+> read/save/ungroup/move/admit; pass 8's "desktop has no management menu" census
+> line CORRECTED — 3.18.1 gained its own menu incl. mutateTask routing); mock debts
+> #23a/b/c opened+closed in-pass (the stale CONTROL task view: decorate +
+> archive-exclude + delete-archived-sync — the vc51 "mock acks without mutating"
+> attribution corrected); pass-8's create receipt stands over the gen3 createSession
+> sendLost WATCH.
 
 - Report: `docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md` —
-  Parts A–Z + AA + AB + AC + AD + AE + AF + AG + AH + AI + AJ + AK + AL + AM + AN =
-  passes 0–37. **Latest: pass 37 (Part AN, 2026-11-16 ~14:35).**
-- Repo HEAD at pass start: `3f35338a` (pass 35's docs commit; main); pass 37 added
-  ONE mock commit `df1485fb` (MOCK_FEEDBACK_FAIL + the generated-row echo fidelity +
-  MockZCodePass37RigSelfTest 10 cases; mock suite **235/0/0**). App: ZERO commits.
-  APK of record: sha256 `ad449d7d…` / md5 `530ba4ff…`, versionCode 53 / 1.3.2
-  (byte-identical across the whole series).
+  Parts A–Z + AA + AB + AC + AD + AE + AF + AG + AH + AI + AJ + AK + AL + AM + AN +
+  AO = passes 0–38. **Latest: pass 38 (Part AO, 2026-11-16 ~17:20).**
+- Repo HEAD at pass start: `1eb3c3d3` (pass 37's docs commit; main); pass 38 added
+  FOUR mock commits `6b9e882f` / `046fec07` / `9b5f9ad0` / `a65058e1` (the control
+  view trio + the createSession pin; mock suite **241/0/0**) + the docs commit.
+  App: ZERO commits. APK of record: sha256 `ad449d7d…` / md5 `530ba4ff…`, versionCode
+  53 / 1.3.2 (byte-identical across the whole series; install SKIPPED again).
 - Desktop of record: **/Applications/ZCode.app 3.18.1.10376, asar sha256 `ec475e6e…`,
-  383,832,025 B** (re-verified at pass-37 STEP 0 — UNCHANGED, no DELTA). Desktop
-  feedback census: parity EXACT (schema like|dislike|nullable + the renderer's
-  chat.message.{like,liked,dislike,disliked,copy,edit,fork} vocabulary; the
-  stale-recoverable set zn covers setAssistantFeedback) — no G row.
-- Open rows: **31 F (29 defects + 2 obs) + 21 G + 3 standing + 17 smalls (+1 watch
-  +1 rig)** — pass 37 opened N-BT-1 (the stale row-action switch-copy artifact) and
-  stamped F-P36-A 2 (the "open race" fired 0/3 fresh opens this pass vs 2/2 in pass
-  36 — intermittent; the find-JUMP is a deterministic rowsRange trigger; the
-  jump-path end face is HONEST — the cache completes, so the strip hiding is
-  correct there; the lie needs the race's partial-fetch + trim sequence).
-- Backlog: **8/8 DONE**; the discovery surface stays empty — pass 37's axis was a
-  fresh static sweep of the assistant-row action rail (zero series receipts). What
-  remains is standing stops + F-P3-A-gated planes + fix-round items. **The
-  mock-debt list has 0 open work-debts.**
-- Rig left by pass 37: emulator `zcode-a16` UP (FOURTEENTH consecutive inherited
-  survival; healthy, wifi ENABLED, screenshot protection OFF persisted across the
-  force-stops), relay gen3 ALIVE (nonce `mock-p37-gen3-c9d041`, arms
-  MOCK_ROWS_TOTAL=400 + MOCK_ROW_ACTIONS=1 + **MOCK_CAS_STALE_TYPES=
-  setAssistantFeedback — STICKY: an inheritor must pkill + relaunch clean unless
-  driving stale faces**), app pid on "Fork of synth-task-2" with the find bar OPEN
-  holding "synthetic 320" ("1 of 1"; the strip HIDDEN by the honest jump-path end
-  face — the cache holds 1..402 + 1001..1002 complete), logcat running →
-  /tmp/p37/logcat.log. Launchers /tmp/p37/relay-g{1,2,3}.sh. New rig learnings in
-  Part AN.A0: relay restarts RESET the feedback echo (per-generation memory —
-  mock-fidelity note, don't read the post-swap unliked state as a persistence bug);
-  the OS clipboard preview chip is the adb-verifiable clipboard arbiter; the
-  status sheet is a header tap-hazard (the ~1.21 Read-preview scale bit: find
-  toggle dump-true center (981,388)); tail scroll-locks resist swipes AND flings —
-  the find JUMP is the reliable scroll driver; `%s` types the space directly.
+  383,832,025 B** (re-verified at pass-38 STEP 0 — UNCHANGED, no DELTA). Pass-38
+  census: the zcode-task method table extracted exact (AO.L) — every task verb
+  EXCEPT the six group verbs survive; the group plane moved to the task-groups
+  channel (read/save/ungroup/move/admit); the desktop GAINED its own task-row
+  management menu (mutateTask routing) — pass 8's no-menu census line stale.
+- Open rows: **33 F (31 defects + 2 obs) + 22 G + 3 standing + 19 smalls (+1 watch
+  +1 rig)** — pass 38 opened F-P38-A, F-P38-B (both P3), N-BU-1, N-BV-1 (both P4),
+  G102 (P3 drift).
+- Backlog: **8/8 DONE**; the discovery surface stays empty — pass 38's axis was a
+  fresh static sweep of the task-management plane (the row menu's five legs + Phase
+  5A surfaces had zero series receipts). What remains is standing stops + F-P3-A-
+  gated planes + fix-round items. **The mock-debt list has 0 open work-debts** (#23
+  opened+closed in-pass).
+- Rig left by pass 38: emulator `zcode-a16` UP (FIFTEENTH consecutive inherited
+  survival; healthy, wifi ENABLED, screenshot protection OFF persisted), relay gen3
+  ALIVE (nonce `mock-p38-gen3-e5f8a1`, arm MOCK_TASKMGMT=1 — **⚠ its jar PREDATES
+  `9b5f9ad0`/`a65058e1`: deleted-archived tasks still resurrect and the createSession
+  v4 reply still hangs on this generation; an inheritor must pkill + relaunch on the
+  HEAD jar unless deliberately re-driving those debts**), app pid 27097 inside
+  synth-task-1's conversation (the ghost-tap end state; BACK pops to home), logcat
+  running → /tmp/p38/logcat.log. Launchers /tmp/p38/relay-g{1,2,3}.sh. New rig
+  learnings in Part AO.A0: channel verbs receipt on APP LOGCAT not relay stdout;
+  the dialog dump-bounds trap bit at ~35% delta; dropdowns re-anchor with the row
+  (re-dump after every list mutation); IME reflow moves bottom-sheet chips (the
+  color-dot flip face unreceipted); `input text` dropped a trailing char again.
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -128,6 +137,8 @@ bodies after 3.14.3 — the census IS the changelog.
 
 | ID | P | Status | Mechanism (one line) | Fix shape | Depends on | Evidence | Stamps |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| F-P38-A | 3 | OPEN (NEW pass 38) | the task home renders STALE WORKSPACE-KEY SECTIONS forever: the "All" view enumerates every workspace key ever synced for the endpoint (`observeAllTasks` endpoint-scoped → client-side grouping; Daos.kt:20-21, TaskRepositoryImpl.kt:48-50) while the full-snapshot replace + the TTL/cap sweep are KEY-scoped (`replaceAll`/`evictAndSweep` take the workspace key; `staleTtlMs` defaults Long.MAX_VALUE; TaskRepositoryImpl.kt:52-93) — a workspace whose key stops being served (renamed/moved/spelling-drifted) leaves a ghost section with its last-synced rows presented as live; receipted: TWO "Synthetic One" sections (the live `/synthetic/ws-one` + the ghost `synthetic-ws-one` from a pre-pass-37-era spelling), the ghost row (a duplicate of the live pinned synth-task-1 minus its flags) frozen at its last sync across relay swaps + app restarts (DB: updatedAtMs untouched since ~14:36 vs the live key's 16:06 refresh; /tmp/p38/db/zcode.db), and the ghost rows are OPENABLE (the tap opened the live task's conversation, Part AO.J) | prune endpoint-scoped keys absent from the connect snapshot (or an across-keys TTL sweep); pin: a repo harness — replaceAll(keyA) then serve only keyB → keyA's rows/section age out | — | Part AO.C, AO.J | 1 |
+| F-P38-B | 3 | OPEN (NEW pass 38) | the custom-GROUP sections never load on a fresh open: the one-shot `LaunchedEffect(Unit) { onLoadGroups() }` (TaskListScreen.kt:195) races the transport connect — `port.listGroupedView()`'s guarded() returns null pre-connect and `?: emptyList()` (TasksViewModel.kt:422) swallows it; neither the CONNECTED transition nor anything else re-triggers, so the home renders ZERO custom-group sections for the whole session until a task action fires refresh(); receipted live: gen3's seeded "Backend" group invisible the entire session (s14: no header visually; ZERO `listGroupedTaskViewStructure` on the wire for the session's pid — the census grep returned 0) while the same session's move sheet (post-action loadGroups) listed both groups — the decode works, the cold-open fetch is the only lost one | re-run loadGroups on the CONNECTED transition (or retry-on-null in the VM); the same silent-empty family (F-P0-C); pin: a compose test composing the screen pre-connect then flipping CONNECTED asserts the groups fetch fires | — | Part AO.J intro, AO.N | 1 |
 | F-P33-A | 3 | OPEN (NEW pass 33) | the generated-artifact preview card's Open affordance is DEAD at HEAD and SILENT in both failure stages: stage-2 — the download SUCCEEDS (FilesPort writes `File(cacheDir, "downloads")`, AppContainer.kt:258) but the FileProvider config `app/src/main/res/xml/file_paths.xml` declares ONLY `shared/` + `updates/` cache-paths, so `getUriForFile` throws IllegalArgumentException ("Failed to find configured root that contains …/cache/downloads/rig-p33-report.html", receipted live) and `ZCodeApp.kt:1130-1132`'s else branch is LOG-ONLY (G57's typed no-viewer notice matches only ActivityNotFoundException-class, never this IAE); stage-1 — an unserved ref faults `fault.file.notFound` at readFileRange → `filesport.download :: TransportFailure` → the download-null branch `ZCodeApp.kt:1110-1113` also LOG-ONLY (receipted live on the gen2 arm); the card renders, the button fires, the wire works, and the user gets NOTHING — the F-P0-C silent family on the preview-card plane; never live-driven in either campaign (zero artifact-open receipts in the pass0 series; the I2.8/G28/G57 static pins covered render + no-viewer fallback, not the handoff) | add `<cache-path name="downloads" path="downloads/" />` to file_paths.xml (stage-2, one line) + a typed notice on the download-null branch (stage-1, the N-BR-1/N-BS-1 notice plane); pins: a Robolectric getUriForFile harness over a cache/downloads file + a harness asserting the typed notice on result==null; re-drive the SUCCESS face (system-viewer chooser) after the fix | — | Part AJ.G | 1 (+pass-34 STATIC mechanism extension: the same root covers the NON-IMAGE attachment chip's external open — `fetchAttachment` writes `attachmentCacheDir = File(cacheDir, "attachments")` (AppContainer.kt:227) also absent from file_paths.xml, the same getUriForFile IAE family via ZCodeApp.kt:1052-1077; the fix shape gains `<cache-path name="attachments" path="attachments/" />`; live chip-tap leg = fix-round, Part AK.H.2) |
 | F-P35-A | 3 | OPEN (NEW pass 35) | the Load-earlier error face is TOP-ANCHORED while the tap affordance is TAIL-ANCHORED — a faulted page fetch gives the user at the tail ZERO visible feedback: the tap affordance is the PINNED strip above the timeline (ConversationScreen.kt:563-581, always visible while hasMoreHistory — the user taps it wherever they are), but the error face renders as a LAZY-LIST ITEM at index 0/1 (`older-error`, ConversationScreen.kt:1127-1138, AttentionStrip "Couldn't load earlier messages" + Retry) — hundreds of rows above the tap point when the timeline is long; receipted live: gen2 fault arm → `port.pageFault :: TransportFailure: fault.rowsRange.rig` in logcat + the screen UNCHANGED at the tap point (s04: strip still "320 of 400", no banner) — the error only renders after ~60 gap-drags to the list top (s05); the F-P0-C silent family on the paging plane (the same geometry stars the `older-loading` face — subsumed by the same fix) | surface the error/retry in the PINNED strip slot (swap the strip's content on loadOlderError, or a second pinned strip / a SendNotice-keyed banner on the N-BR-1 plane); the shared errorUserMessage copy is already clean (errorCategoryMessage's error_task fallback — no raw-code issue, AL.F.3); pins: a compose test with a faulting port loader asserting the error is visible WITHOUT scrolling + the retry from the pinned slot succeeds | — | Part AL.D (s04/s05/s06), AL.E (the retry-success face the fix must preserve) | 1 |
 | F-P36-A | 3 | OPEN (NEW pass 36) | the open-time prefetch race + the cache trim strand a stale hasMore=false — the Load-earlier strip hides while head rows are CACHE-ABSENT and unreachable for the session: the prefetch effect (ConversationScreen.kt:1092-1103, PAGE_EDGE=12) observes firstVisibleItemIndex=0 in the window BEFORE the tail-clamp sets anchoredToTail (:1063-1071) → loadOlder fires ×2 at open with beforeRowId=rows.first() (receipted 2/2 fresh opens, relay log lines 24/25+55/56, ZERO taps); the pages apply and the page-path writer sets `_hasMore.value = result.hasMore` (ConversationViewModel.kt:295) — honest false at that instant (the second page reached the store floor) — but the next enforceBound (append/snapshot-apply only; ConversationRepositoryImpl.kt:73/126 — the page path is deliberately unbounded per F-37-D :96) TRIMS the fetched head back to the 320 cache bound (DB: 82..401 → 84..401+1001+1002; 81-83 head rows evicted), and `_hasMore` is a MIRROR of the manager's authoritative flow (:145) whose only writer is the snapshot-path derivation (ConversationSessionManager.kt:248 — which says TRUE) that NEVER re-emits an unchanged value (MutableStateFlow same-value dedupe) — so the strip gate hides the affordance and the evicted head (ids 1..83) cannot be paged back until a fresh process re-subscribes (receipted: route pop/re-entry does NOT heal — w15; force-stop re-open DOES — w17 "320 of 400" again); the user-visible state lies ("no more history" while 81 rows the store HAS are cache-absent) | re-derive after the trim: hasMore = firstCachedRowId > windowFirstRowId at every enforceBound site (or re-read the manager's authoritative value at loadOlder completion instead of trusting the page response alone); pins: a repo harness paging to the floor with total > cache bound asserting the strip survives the post-page trim + the DB min(rowId) > windowFirstRowId invariant | — | Part AM.I (w2→w9→w13→w15→w17, relay lines 24/25+55/56, DB zcode{,2,3}) 2 (pass 37: the open race fired 0/3 fresh opens — intermittent; the find-JUMP is a DETERMINISTIC trigger (the jump to the first match scrolls to the cache head → the PAGE_EDGE pair, relay gen1 ids 34/35); the jump-path end face is HONEST — the pages cover the head (cache 1..402 complete, zero gaps) so the strip hiding is CORRECT there; the lie needs the race's partial-fetch + trim sequence; Part AN.J) |
@@ -168,9 +179,9 @@ bodies after 3.14.3 — the census IS the changelog.
 | F-P4-A | 2 | FIXED (rig) | mock push patch structurally excluded its own interaction | `pushPendingPermission` builds from unfiltered list + patch-content pin — commit `2b12fc46`, 37 mock tests green | — | Part G.A2.2, H.A1 | — |
 | N-BK-1 (rig half) | 2 | FIXED (rig) | git fixtures in wrong field vocabulary (blank paths, +0−0, duplicated tabs, oid-vs-hash) | contract vocabulary rewrite — same commit `2b12fc46` | — | Part G.A2.3, H.A1 | — |
 
-**Open F count: 31** (29 defects + 2 observations; pass 36 opened F-P36-A — the
-stale hasMore / cache-trim wedge) · FIXED: 2 (both rig) ·
-RETRACTED/REFUTED/ABSORBED: 7.
+**Open F count: 33** (31 defects + 2 observations; pass 38 opened F-P38-A — the
+ghost workspace-key section — and F-P38-B — the cold-open group-fetch swallow) ·
+FIXED: 2 (both rig) · RETRACTED/REFUTED/ABSORBED: 7.
 
 ## Current fix-order (consolidates K.D + the carried rows; supersedes every report fix-order)
 
@@ -235,6 +246,7 @@ RETRACTED/REFUTED/ABSORBED: 7.
 | G87 | 4 | OPEN | real-time voice-input ASR plane (ticketed sessions, chunk upload) — phone relies on OS IME dictation (dead on API 36, F-34 class) | inventory row (build unlikely) | Part G.B4 |
 | G88 | 4 | OPEN | 22 desktop themes vs phone's 5 (shipped zai pair = true parity) | cosmetic; inventory only | Part G.B5 |
 | G92 | 4 | OPEN | `configOptions` decode-only (select/boolean + current values, one adapter from a phone render) | adapter + render | Part I.2.5 |
+| G102 | 3 | OPEN (NEW pass 38) | WIRE DRIFT — desktop 3.18.1 REMOVED the legacy group verbs from the zcode-task channel: `createTaskGroup`/`renameTaskGroup`/`updateTaskGroupColor`/`deleteTaskGroup`/`listGroupedTaskViewStructure`/`applyGroupedTaskViewOrder` have ZERO byte-hits in the whole bundle (the zcode-task table now serves every OTHER task verb: setTaskPinned/setTaskUnread/deleteTask/renameTask/archiveTask/unarchiveTask/deleteArchivedTask/listArchivedTasks/resumeTask/…); the group plane moved to a dedicated `task-groups` channel exposing read()/save({id?,title?,color?})/ungroup(groupId)/move({node,sourceGroupId,groupId,anchor?})/admit({tasks,placement}) + `state:task-groups` broadcasts (renderer calls read+admit); the vc51 receipts prove 3.14.5 SERVED the legacy verbs live ("zcode-task.applyGroupedTaskViewOrder ok in 67 ms") — the phone's ENTIRE custom-group plane (Phase 5A A3.9) faults unknownMethod against the REAL desktop while working against the mock (which faithfully speaks the legacy protocol); the phone-side drift face includes the misleading "Couldn't move the task — unpin it first if it is pinned" (TasksViewModel.kt:465 — renders for ANY failure) | migrate the phone's group calls to the task-groups channel's read/save/ungroup/move/admit shapes (save unifies create+rename+recolor; move replaces the read-modify-write), or capability-gate the group UI honestly; fold in the move-failure copy fix; pins: the 3.18.1 method-table census (Part AO.L) + a transport-fake harness asserting the phone's group verbs against a task-groups-channel fake | Part AO.L | 1 |
 | WATCH-4 | — | STANDING | V2 device-registration/pairing plane shipped on desktop; phone pairing stays V1 — flip is BREAKING (draft PR, human promotes) | AAP BREAKING path | Parts B, D.B2, K.B1 |
 | Settings depth | — | STANDING | 51 settings domains (modelProvider 3,217 keys …); phone covers the conversation/notification/privacy/appearance slice; `workspaceFileSearch`(90)/`dynamicWorkflow`(45) are decode-vs-UI candidates; shortcuts/browser/migration desktop-legit | G92-class candidates flagged | Part J.2.3, B.B3 |
 
@@ -275,7 +287,7 @@ RETRACTED/REFUTED/ABSORBED: 7.
   authoring depth (read-only by ADR), git WRITE half (stage/commit/push — read-only
   posture), pluginManagement 17 methods, voice-input service.
 
-**Open G count: 21 + 3 standing** (G60, WATCH-4, settings depth; G93's enum residual closed).
+**Open G count: 22 + 3 standing** (G60, WATCH-4, settings depth; G93's enum residual closed; G102 opened pass 38 — the group-verb wire drift).
 
 ## N-rows — smalls
 
@@ -301,15 +313,18 @@ developerDiagnostic through the same `ErrorMapping.taskRejected` chain; Part AH.
 | N-BR-1 | 4 | OPEN (NEW pass 28) | the composer attachment chip's Retry SUCCESS leaves the stale offline banner displayed: `uploadAttachment` sets the ATTACHMENT_OFFLINE notice on BlockedOffline (`ConversationViewModel.kt:369`) but `retryUpload` (:384-391) mutates NO notice on `Committed` — after a successful retry (wire begin/chunk/commit all ok) the banner keeps claiming "Offline — the attachment was not sent. Retry when connected." beside the ✓-ready chip until the next send's ACCEPTED clears it or the user taps ✕ (`dismissSendNotice` :426); live receipt: s16 single frame (✓ chip + stale banner simultaneously) → Retry committed → banner cleared only by the following send (s17). Pass 29 EXTENSION: `removeUpload` (:376-378) mutates NO notice either — the Remove path is the SECOND lying window, receipted live on BOTH chip states (error-state Remove AND ready-state Remove each leave the banner up, chip-less and still claiming "not sent"; AF.C/AF.E). Pass 30 EXTENSION (the CROSS-CHIP window): the banner is per-conversation, not per-chip — chip B's SUCCESSFUL retry (✓ ready, s10) leaves chip A's stale ATTACHMENT_FAILED banner ("Attachment failed to upload (fault.attachment.commitFail) — not sent.") displayed verbatim | clear the keyed notice in retryUpload's Committed branch AND in removeUpload (one-liner each — the cross-chip shape falls out of the same fix); pin: a harness asserting retry→committed→banner-gone + remove→banner-gone | — | Part AE.E, AF.C/AF.E, AG.D (receipt + pins) | 3 (pass 30: the cross-chip retry-success window — s10 the ✓ 130.png chip + chip A's FAILED banner single-frame) |
 | N-BS-1 | 4 | OPEN (NEW pass 30) | the MIXED-state send (one ✓ ready + one ✗ failed chip) silently EXCLUDES the failed chip from the payload with NO per-send signal: the ready-only filter (`Ports.kt:391`) drops it, the ACCEPTED consumption (:417-421) removes only ready chips and mutates no notice about what was left behind — the message goes out as if complete; the user's only trace is the lingering ✗ chip (which stays for the NEXT send to trip over); live receipt: s10 (✓ 130.png + ✗ rig-p30-mid.bin) → send → outbox `ACKED/{"text":"mirobexed ","attachments":[130.png ONLY — 1-element array]}` → s12 (the ✓ chip consumed, the ✗ chip LINGERING, the banner cleared by ACCEPTED, no exclusion notice) | a keyed notice on ACCEPTED-with-excluded-chips ("Sent without <name> — the upload failed") or a pre-send confirm; pin: a harness asserting the mixed send surfaces the exclusion | N-BR-1 (same notice plane) | Part AG.D (receipt + pins) | 1 |
 | N-BT-1 | 4 | OPEN (NEW pass 37) | the stale ROW-ACTION banner renders the SWITCH-specific copy: `rowActionNotice`'s STALE branch (`ConversationViewModel.kt:1147`) passes the correct "The session changed on the desktop — try again." with the SHARED `SendNotice.Key.SESSION_CHANGED`, but the banner renderer resolves BY KEY (`WriteComponents.kt:1751` → `R.string.notice_session_changed`, strings.xml:231 = "…— try the **switch** again.") and discards the per-path message (args only for ATTACHMENT_FAILED) — so every stale row action renders switch copy: feedback LIVE-receipted (gen3 MOCK_CAS_STALE_TYPES=setAssistantFeedback → the banner verbatim, s14; rail unchanged), and the same-path trio retryTurn :990 / forkAssistant :1023 / applyFileRewind :1119 statically; the switch call sites (:322/:337/:351) render their own copy correctly; the queue verbs' stale faces carry their own "Queue changed" key (unaffected) | a distinct key for the row-action stale (ROW_ACTION_STALE → notice_row_action_stale "…— try again.") or render notice.message for SESSION_CHANGED when non-blank; pins: a harness asserting the feedback-stale banner does NOT contain "switch" + the four rowActionNotice call sites enumerated | — | Part AN.G (receipt + pins) | 1 |
+| N-BU-1 | 4 | OPEN (NEW pass 38) | the tasks ACTION NOTICE renders in the STATUS-BAR zone: the lifecycle notice ("Marked read" s04, "Group created" s18, "Moved to group" s19) draws at screen top y≈25 overlapping the status bar/clock — no top-inset on the notice slot (tasks_action_notice); readable but in the OS layer | pad the notice into the inset area (or a snackbar slot); pin: a compose test asserting the notice's bounds start below the status-bar inset | — | Part AO.M | 1 |
+| N-BV-1 | 4 | OPEN (NEW pass 38) | EMPTY custom groups are AFFORDANCE-LESS: the group sub-section render skips zero-member groups (`byGroup[g.id] ?: return@forEach`, TaskListScreen.kt:1283-1290) so the header — and with it the ONLY Edit (✏️)/Delete affordances — never renders; the orphan group stays in every move sheet forever; receipted live: after move-out the "Rig p38 green-to-blue" header vanished while the move sheet still listed the group (re-move needed to reach Delete) | render empty groups' headers (count 0) or expose delete via the move sheet/overflow; pin: a compose test asserting an empty group is deletable from the list | — | Part AO.J | 1 |
 | K-small-3 | 4 | WATCH | one-off terminal route pop (unreproduced — watch, don't chase) | Part K.A2 |
 | N-BJ-2 | 4 | REFUTED→FOLDED | unpair IS reachable (Settings bottom, pass 4); fakeLink half folded into F-P2-B | Part G.A2.4 |
 | N-BM-4 | — | RIG | Dictate leg kills the emulator (cause unproven); leg undriven | Part J |
 
-**Open smalls: 17 (+1 watch +1 rig)** — pass 13 added N-BP-1 (P3) and N-BP-2 (P4);
+**Open smalls: 19 (+1 watch +1 rig)** — pass 13 added N-BP-1 (P3) and N-BP-2 (P4);
 pass 22 added N-BQ-1 (P4, the effort stale face's dead branch); pass 28 added
 N-BR-1 (P4, the stale offline-attachment notice); pass 30 added N-BS-1 (P4, the
 mixed-state send's silent exclusion); pass 37 added N-BT-1 (P4, the stale
-row-action banner's switch copy).
+row-action banner's switch copy); pass 38 added N-BU-1 (P4, the status-bar-clipped
+action notice) and N-BV-1 (P4, the affordance-less empty groups).
 
 ## Mock-fidelity debts (rig, not app)
 
@@ -335,6 +350,7 @@ row-action banner's switch copy).
 20. ~~**(pass 19)** the mock honored `heldQueueDisposition` blindly — no held-queue CAS, so the G50 cross-side mismatch face was structurally undrivable~~ **OPENED+CLOSED in the same pass** (`0a037a60`: `MOCK_QUEUE_GHOST_APPEND_MS=<ms>` arms the host-faithful set-equality CAS on trio-bearing sendText — mismatch answers the desktop ack `{status:"failed", reasonCode:"guard.heldQueueConfirmationStale", message:"paused queue changed after send confirmation opened"}` and mutates NOTHING — plus the one-shot SILENT ghost append `<ms>` after the first trio (no patch, no revision bump), the race driver; requires MOCK_QUEUE=1 + MOCK_INPUT_ROUTING=choice; self-tests 7/7, suite 179/0/0). **Live receipt V.D**: CAS-ok leg (accepted, rows appended) → ghost lands silently → CAS-MISMATCH leg → the phone's refusal notice + draft preserved + outbox `FAILED_TERMINAL/guard.heldQueueConfirmationStale` (the DB arbiter).
 21. ~~**(pass 20)** the send-ack taxonomy's driveable faces had no arms — the GOAL half of the admission envelope (a disposition-less sendGoalCommand under choice must answer the host's `heldQueueDispositionRequired` failure ack) and the stale face class (no way to force a `status:"stale"` ack) were structurally undrivable~~ **OPENED+CLOSED in the same pass** (`642616ef`: `heldQueueGoalAdmissionRejection` — the goal half gated on the SAME `heldQueueCasArm` envelope as the sendText CAS, old rigs' shapes unchanged, host-verbatim message; `MOCK_CAS_STALE_TYPES=a,b,c` — listed command types answer `{status:"stale", reasonCode:"proto.staleRevision"}`, sticky, mutates nothing; self-tests `MockZCodePass20RigSelfTest` 8/8, suite **187/0/0**). **Live receipts W.D**: the goal-refusal leg (wire → ERROR notice → outbox `FAILED_TERMINAL/heldQueueDispositionRequired`, payloadJson WITHOUT the trio) and the stale leg (wire → the typed "Queue changed on the desktop" WARNING → outbox `FAILED_STALE/proto.staleRevision`).
 22. ~~**(pass 30)** the attachment transaction's non-offline failure faces had no arms — no way to fail a begin/chunk/commit WHILE CONNECTED (the port's `UploadResult.Failed` was only reachable via a mid-transaction disconnect, which collides with the BlockedOffline re-classification) and no way to catch the ↑ NN% uploading chip (512 KB commits are instant)~~ **OPENED+CLOSED in the same pass** (`d21db7a0`: `MOCK_ATTACHMENT_FAIL=<begin|chunk|commit>` — the named phase answers the RPC ERROR `fault.attachment.<phase>Fail` while CONNECTED, so the transport throws `TransportFailure` → the port's GENERIC Failed path (chip failed, payload RETAINED, Retry live); unknown values arm nothing; `rejectAttachments` still outranks it on begin; `MOCK_ATTACHMENT_CHUNK_DELAY_MS=<ms>` delays each attachmentChunkV4 answer; self-tests `MockZCodePass30RigSelfTest` 6/6, suite **204/0/0**). **Live receipts AG.B–AG.D**: 2 forced commit-fails (mid.bin retry + 130.png first attempt — RETRY_FAILED and FAILED-with-raw-fault faces), the ↑25% chip caught twice, and the gen2 clean-arms ready commit for the mixed send.
+23. ~~**(pass 38)** the CONTROL (bootstrap) task view was a stale second surface — it served raw `MockTask.toJson()` rows while every management verb (setTaskPinned/setTaskUnread/renameTask/deleteTask/archiveTask/deleteArchivedTask) mutated only the decorated CHANNEL surfaces~~ **OPENED+CLOSED in the same pass** (THREE facets, three commits: `6b9e882f` p38-mock-decorate — the view flows through decorateMeta + rename/deleteTask sync the bootstrapTasks objects (the live receipt: mark-read ok → "Marked read" → the dot/bold/menu still claimed unread, DB untouched; the vc51-era "mock acks without mutating" attribution CORRECTED to this stale-view mechanism); `046fec07` p38-mock-archive-exclude — the view excludes archivedTaskIds (the live receipt: push applied tasks=2 → the refresh re-applied tasks=3 within 1s, the archived row back on home); `9b5f9ad0` p38-mock-deletearchived-sync — deleteArchivedTask syncs bootstrapTasks (the live receipt: the deleted task resurrected on home AND its group's member list starved — groupedStructure reads directTasks); `a65058e1` pins the createSession effect (view 3→4). Suite **241/0/0**. On the REAL desktop the control view derives from the same DB as the channel list, so all three facets are rig-only. **Residual WATCH (not a debt):** the gen3-era v4-command reply path never acked createSession (`command.sendLost` after 20s) — the pass-38 WATCH in AO.K; re-drive before hunting.
 
 ## DISCOVERY BACKLOG (tick when the findings are appended as rows)
 
@@ -499,6 +515,42 @@ delta …`). Nothing pushed.
 ```
 
 ## History
+
+- 2026-11-16 (pass 38) — Part AO executed on a FRESH axis: the TASK-MANAGEMENT
+  plane (the row menu's five never-driven legs + Phase 5A's pinned/groups/archived
+  surfaces; the only series receipt before it was pass 8's Archive wire leg + the
+  menu render). TWO new F rows: **F-P38-A** (P3, the stale workspace-key ghost
+  section — the home enumerates every key ever synced while the replace/sweep are
+  key-scoped; the DB-arbitered `synthetic-ws-one` ghost frozen since ~14:36 across
+  relay swaps and restarts, its rows openable) and **F-P38-B** (P3, the cold-open
+  group-fetch swallow — LaunchedEffect(Unit) races the connect, guarded null
+  swallowed by `?: emptyList()`, zero listGroupedTaskViewStructure on the wire all
+  session; the seeded Backend group invisible). TWO new smalls: **N-BU-1** (P4, the
+  action notice renders in the status-bar zone) and **N-BV-1** (P4, empty groups
+  render no header → no Edit/Delete affordance). ONE new G row: **G102** (P3, the
+  3.18.1 wire drift — the six legacy group verbs REMOVED from zcode-task; the plane
+  moved to a task-groups channel with read/save/ungroup/move/admit; the vc51
+  receipts prove 3.14.5 served them live) + the parity CORRECTION (3.18.1 GAINED
+  its own task-row menu incl. mutateTask routing — pass 8's no-menu census stale).
+  First-series WORKING receipts: the armed fixtures (pinned section/glyph/provider
+  chip; unread dot/bold/a11y), the full 7-item menu + BOTH gates (Resume hidden for
+  RUNNING/WAITING; Move hidden when pinned — 2 receipts), mark read/unread
+  round-trips (wire+render+DB+menu-label coherence), pin/unpin (the row MOVES
+  sections — impossible pre-fix), rename end-to-end, the archived viewer trio
+  (empty face; Unarchive; Delete permanently → gone everywhere, DB count 0),
+  resume, group create/move/edit(rename+recolor wires)/delete + confirm, the
+  ghost-row tap consequence. Mock: FOUR commits — the stale-CONTROL-view trio
+  (#23a decorate `6b9e882f`, #23b archive-exclude `046fec07`, #23c delete-archived
+  sync `9b5f9ad0`) + the createSession pin `a65058e1`; suite **241/0/0**; the
+  vc51-era "mock acks without mutating" attribution CORRECTED (the row MOVES with
+  the fixed view — receipted live). WATCH: the gen3 createSession v4 reply hung
+  (command.sendLost 20s) — pass 8's create receipt stands, re-drive before hunting.
+  App: ZERO changes (APK byte-identical, install skipped). Rig learnings (AO.A0):
+  channel verbs receipt on APP LOGCAT; the dialog dump-bounds trap at ~35% delta;
+  dropdown re-anchor after mutations; IME reflow moves sheet chips (the color-flip
+  face unreceipted); input text dropped a char again. Rig left UP (gen3
+  mock-p38-gen3-e5f8a1 MOCK_TASKMGMT=1 — ⚠ jar predates 9b5f9ad0/a65058e1; app
+  pid 27097 inside synth-task-1's conversation).
 
 - 2026-11-16 (pass 37) — Part AN executed on a FRESH axis: the assistant-row ACTION
   RAIL (the completed-row plane below the prose) — feedback like/dislike had ZERO

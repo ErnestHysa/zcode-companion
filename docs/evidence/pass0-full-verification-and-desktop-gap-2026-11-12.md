@@ -8691,3 +8691,338 @@ MOCK_ROWS_TOTAL=400 + MOCK_ROW_ACTIONS=1 + MOCK_CAS_STALE_TYPES=setAssistantFeed
 — STICKY: an inheritor must pkill + relaunch clean unless driving stale faces),
 app pid on "Fork of synth-task-2" with the find bar OPEN holding "synthetic 320"
 ("1 of 1"), logcat running → /tmp/p37/logcat.log.
+
+# Part AO — pass 38 (APPENDED 2026-11-16, ~17:20): fresh recon on a NEW axis — the TASK-MANAGEMENT plane (Phase 5A's pin/unread/resume/move-to-group/rename/archive/delete + the list-level overflow's archived viewer, new-group/group-editor sheets), whose only series receipt before today was pass 8's single Archive wire leg — the full plane driven live first-series, TWO NEW app rows (the stale workspace-key ghost section F-P38-A; the cold-open group-fetch swallow F-P38-B), TWO new smalls (N-BU-1 the status-bar-clipped action notice; N-BV-1 the affordance-less empty groups), the pass's BIG census catch: DESKTOP 3.18.1 REMOVED the legacy group verbs from zcode-task (G102 wire drift — the phone's whole custom-group plane faults against the real desktop while working against the mock), and THREE stale-control-view mock debts opened+closed in-pass (the vc51-era "mock acks without mutating" attribution corrected to the real stale-view mechanism)
+
+> **Pass 38 of the pass-0 series** (solo, the canonical discovery prompt). STEP 1 empty
+> (backlog 8/8); Part AN's coverage list held standing stops — the axis came from a
+> fresh static sweep: the task-row long-press menu's legs (Pin / Mark unread / Resume /
+> Move to group… / Rename / Delete) plus the Phase 5A surfaces (pinned section, groups,
+> archived viewer) had ZERO pass0-series receipts beyond pass 8's Archive wire leg and
+> the menu render. The vc51 campaign's receipts predate this campaign and its desktop
+> (3.14.5). **App: ZERO changes** (device md5 `530ba4ff…` == local HEAD → `install -r`
+> SKIPPED; sha256 `ad449d7d…`, vc53/1.3.2). **Mock: FOUR commits** — `6b9e882f` (the
+> CONTROL/bootstrap task view serves the live pin/unread state via decorateMeta +
+> rename/deleteTask sync — p38-mock-decorate), `046fec07` (the control view excludes
+> archived rows — p38-mock-archive-exclude), `9b5f9ad0` (deleteArchivedTask syncs the
+> control view — p38-mock-deletearchived-sync), `a65058e1` (the createSession-effect
+> pin, test-only); suite **241/0/0**. Mock debts #23a/b/c opened+closed in-pass.
+
+> **Verification stamp (pass start):** 2026-11-16 15:55 → 17:12, GLM-5.3-Flash in
+> ZCode, everything local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…`
+> UNCHANGED — no DELTA. Rig: the pass-37 emulator REUSED (FIFTEENTH consecutive
+> inherited survival; wifi ENABLED, screenshot protection OFF persisted), the pass-37
+> relay gen3 pkilled BY NAME at pass start (the sticky stale arm died with it);
+> THREE generations: gen1 `mock-p38-gen1-a1f7e2` 16:06 (MOCK_TASKMGMT=1 — the vc52-era
+> arm, never armed in this series), gen2 `mock-p38-gen2-b7c3d9` 16:31 (re-launched on
+> the decorated-control-view jar), gen3 `mock-p38-gen3-e5f8a1` 16:44 (on the
+> archive-exclusion jar; launchers /tmp/p38/relay-g{1,2,3}.sh). Stored endpoints
+> survived all relay restarts (no re-pairing); the app force-stopped + am-start
+> relaunched at each generation swap. APK md5 verified == HEAD on-device → install
+> SKIPPED. logcat fresh `-T 1` → /tmp/p38/logcat.log. Channel-call receipts live in
+> APP LOGCAT (`channel.call :: zcode-task.* begin/ok`), NOT the relay stdout — the
+> vc51 receipt precedent (relay stdout logs only v4/conversation calls).
+
+## AO.A0 — rig learnings
+
+1. **Channel verbs log on app logcat, not relay stdout** — `zcode-task.*` receipts are
+   `channel.call :: <verb> begin/ok` lines in app logcat (grep `channel.call`); the
+   relay stdout only logs v4/conversation calls. Re-greping the relay log for
+   setTaskUnread finds NOTHING and misreads the leg as unfired.
+2. **The rename dialog bit the dump-bounds trap AGAIN (~35% this layout)**: the
+   AlertDialog's dump bounds put Rename at y≈1381; the screenshot-derived center was
+   (770, 964) — the tap at dump bounds DISMISSED the dialog (scrim). Archive/confirm
+   dialogs: screenshot-derived bounds only (the standing rule, re-learned with a
+   bigger delta than the historical ~200 px).
+3. **Dropdown menus anchored above bottom-screen rows re-anchor with the row** — the
+   task-row menu's Pin item sat at y≈737 for BOTH task-2 positions only because the
+   list didn't reflow between dumps; after every list mutation re-dump before the
+   menu tap. One blind menu tap cost a dead leg (no wire, no notice — the tap hit
+   the row's drag area).
+4. **IME reflow moves bottom-sheet chips too**: the GroupEditorSheet's color chips sit
+   at y≈1838 without the IME and y≈1574-class with it — the recolor tap hit RED twice
+   (create + edit) while aiming at Blue. The visible dot-flip face is therefore
+   UNRECEIPTED (red→red); the updateTaskGroupColor WIRE round-trip is receipted.
+5. `input text` dropped a trailing character again ("green-to-blued") — the per-char
+   recipe or MOVE_END+DEL repair stays mandatory for dialog fields.
+
+## AO.B — static recon: the plane pinned
+
+- `TaskListScreen.kt:1618-1683` — the row menu (task_menu_* tags): Pin/Unpin
+  (flips by task.pinned), Mark read/unread (flips by task.isUnread), Resume (GATED:
+  hidden for RUNNING/WAITING), Move to group… (GATED: hidden when pinned — "pinned
+  tasks are refused by the host — hidden here"), Rename, Archive, Delete.
+- `TaskListScreen.kt:1250-1254` the Pinned section header; `:1280-1300` the group
+  sub-sections (`byGroup = group.tasks.groupBy { state.groupMembership[it.taskId] }`
+  → `state.taskGroups.forEach { members = byGroup[g.id] ?: return@forEach }` — empty
+  groups SKIP, the N-BV-1 root); `:640-885` the confirm dialogs (Delete "records
+  cannot be recovered" / Archive "can be restored later"), the archived viewer
+  (archived_sheet: empty/unavailable/populated + Unarchive + Delete permanently +
+  its own confirm), the move sheet (move_group_sheet: None/groups/New group…), the
+  group editor (create/edit title+7-color enum+Delete group/Save), the lifecycle
+  notices (tasks_action_notice, 4s auto-clear).
+- `TasksViewModel.kt:303-467` — every action = port call + actionNotice + refresh();
+  the CAS-style mark-read (`port.setTaskUnread(taskId, false, task.unreadAt)` :362);
+  the move failure copy "Couldn't move the task — unpin it first if it is pinned"
+  (:465-467 — renders for ANY failure, the G102 user face).
+- `Ports.kt:97-227` — ALL verbs wire-backed via hub.taskService() (guarded); the
+  move is a READ-MODIFY-WRITE over listGroupedTaskViewStructure →
+  applyGroupedTaskViewOrder.
+- `TaskServiceClient.kt:38-190` — the exact wire words: deleteTask/renameTask/
+  archiveTask|unarchiveTask (one flag)/listArchivedTasks/setTaskPinned/setTaskUnread
+  (expectedUnreadAt CAS on read)/resumeTask/listPinnedTasks/deleteArchivedTask/
+  createTaskGroup/renameTaskGroup/updateTaskGroupColor/deleteTaskGroup/
+  listGroupedTaskViewStructure/applyGroupedTaskViewOrder — the docstrings cite
+  host/chunk-IKTGKLU2.js (the 3.14.5-era desktop).
+- `TaskRepositoryImpl.kt:40-93` + `Daos.kt:16-47` — the projection: observeAllTasks
+  (endpoint-scoped, ALL workspace keys) feeds the home's sections; replaceAll +
+  evictAndSweep (deleteStale TTL + beyondCap) are KEY-scoped — nothing prunes keys
+  the wire stopped serving (the F-P38-A root).
+- Mock: ALL the verbs were already implemented (vc52-era) with real state mutations
+  (pinnedTaskIds/unreadTaskIds/archivedTaskIds/taskGroups/taskGroupMembers);
+  MOCK_TASKMGMT=1 seeds pinned task-1 + unread task-2 + the "Backend" green group
+  containing task-3 (MockRelayMain.kt:1430-1452). The three control-view gaps below
+  were the pass's mock work.
+
+## AO.C — gen1 leg: the fixtures + the BONUS defect F-P38-A (the ghost workspace-key section)
+
+s01/w1 (16:07): the MOCK_TASKMGMT fixtures render first-series — the **Pinned · 1**
+section (pin glyph + the row a11y "…, pinned" + the GLM-5.3-Flash provider chip),
+**task-2 unread** (the blue dot + bold title + the row a11y "…, unread"). BUT the
+home renders **TWO "Synthetic One" workspace sections** — the second (collapsed, 1
+task) holds a fourth row "Synthetic task · 1 h ago" that is in NO wire payload. The
+DB arbiter: `tasks` holds a STALE row under workspaceKey **`synthetic-ws-one`** (no
+slash) — synth-task-1, unpinned, updatedAtMs frozen at the pass-37-era sync
+(~14:36) — beside the live key **`/synthetic/ws-one`** (3 rows, refreshed at
+16:06). The ghost section PERSISTS across relay generation swaps (re-receipted on
+gen2 16:31 and gen3 16:44 — the same frozen 1-h/2-h-ago row) and app restarts.
+
+**NEW ROW F-P38-A (P3)** — the task home renders stale workspace-key sections
+forever: the "All" view enumerates every workspace key ever synced for the endpoint
+(`observeAllTasks` → client-side grouping) while the full-snapshot replace + the
+TTL/cap sweep are KEY-scoped (`replaceAll`/`evictAndSweep` take the workspace key;
+`staleTtlMs` defaults Long.MAX_VALUE) — a workspace whose key stops being served
+(renamed/moved/spelling-drifted) leaves a ghost section with its last-synced rows,
+presented as live. User impact: duplicate rows (the ghost row IS a duplicate of the
+live pinned synth-task-1 minus its flags), stale timestamps, and the rows are
+OPENABLE — the ghost-row tap opened the live task's conversation (AO.J). Fix shape:
+prune endpoint-scoped keys absent from the connect snapshot (or sweep across keys).
+Pins: a repo harness — replaceAll(keyA) then serve only keyB → keyA's rows/section
+age out.
+
+## AO.D — gen1 leg: the FIRST mutation exposes the stale-control-view debt (mark-read never renders)
+
+Mark read on task-2: menu (all 7 items — the first-series menu census, s03/w3) →
+wire `zcode-task.setTaskUnread begin→ok in ~490ms` + the **"Marked read"** notice
+rendered — AND THE ROW NEVER CHANGED: the crop pair s01-crop2/s04-crop2 proves the
+dot + bold present in BOTH shots; the menu still offered "Mark read"; the DB kept
+unreadAtMs. The follow-on refresh DID re-fetch (no replay left: `control.ok
+req-3 took=1752ms` → `bootstrapApplied tasks=3`) — the fresh snapshot STILL carried
+unread because **the mock's CONTROL (bootstrap) view served raw `MockTask.toJson()`
+rows while the mutation handlers mutate only `pinnedTaskIds`/`unreadTaskIds` (which
+only the decorated CHANNEL metas read)**. This PRECISE-IFIES the vc51-era
+"the row does NOT move under Pinned — the mock acks without mutating" attribution:
+the channel store mutated all along; the control view was the stale surface.
+
+**FIXED in-pass** (`6b9e882f` p38-mock-decorate): the control view flows through
+decorateMeta; renameTask/deleteTask sync the bootstrapTasks objects. On gen2 the
+same leg ROUND-TRIPS: mark-read ok → the ", unread" suffix GONE + DB unreadAtMs
+NULL; mark-unread → back; the menu label flips coherently (w10 "Mark unread" for a
+read row). The gen1 contradiction resolved as the same stale view.
+
+## AO.E — gen2/gen3 legs: pin/unpin + the Move-hidden gate (first series)
+
+Pin task-2 (gen2): `setTaskPinned begin→ok 180ms` → **the row MOVED into the
+Pinned section** (a11y "…, unread, pinned"; DB pinned=1) — the mock-fix live proof
+(the pre-fix mock could never show this). The pinned row's menu: **"Move to
+group…" ABSENT** (the A3.9 gate receipted on task-2 gen2 AND task-1 gen3) + the
+label flipped to **"Unpin"**. Unpin → the row returns to the workspace section,
+DB pinned=0. The round-trip is fully wire+render+DB receipted.
+
+## AO.F — gen2/gen3 legs: rename (first series)
+
+Rename task-3 → "Renamed p38": the dialog (Rename task / prefilled field /
+per-char-safe typing / confirm at SCREENSHOT-derived (770,964) — AO.A0.2) →
+`zcode-task.renameTask begin→ok 380ms` → the row title re-rendered.
+
+## AO.G — gen2: the archived row RESURRECTS (second control-view facet, FIXED in-pass)
+
+Archive "Renamed p38" (gen2): `archiveTask begin→ok 370ms` → the mock's
+workspace-list-updated push correctly removed the row (`bootstrapApplied tasks=2`
+at 16:41:05.5) → the VM's post-action refresh re-fetched the control view, which
+still served all 3 bootstrapTasks rows UNFILTERED → `bootstrapApplied tasks=3` at
+16:41:06.0 — **the archived row back on home with archivedAtMs NULL** (DB arbiter).
+**FIXED in-pass** (`046fec07` p38-mock-archive-exclude: the control view excludes
+archivedTaskIds — the listTasks RIG-P2 shape). Gen3 re-drive: archive ok (112ms) →
+the row LEFT and STAYED left (no resurrect) — the fix receipted live.
+
+## AO.H — gen3 legs: the archived viewer trio (first series)
+
+- The viewer's **empty face** ("No archived tasks", gen2 s12-class, gen3 first
+  open).
+- Populated (after the archive): "Synthetic task 3 · 4 min ago" with **Unarchive**
+  + **Delete permanently** — **Unarchive**: `unarchiveTask begin→ok 240ms` → the
+  row back on home, DB archivedAtMs NULL.
+- Re-archive → **Delete permanently**: the confirm dialog verbatim ("Delete
+  "Synthetic task 3" permanently? All records for this task cannot be recovered.")
+  → `deleteArchivedTask begin→ok 135ms` → the task GONE from home AND the DB
+  (count 0) — gone everywhere. The delete ALSO exposed the third control-view
+  facet (AO.I).
+
+## AO.I — gen3: the deleted task RESURRECTS + Backend's group vanishes (third facet, FIXED in-pass)
+
+After delete-archived, the home re-rendered **"Synthetic task 3" as a loose row**
+(archivedAtMs null) AND the seeded "Backend" group sub-section stopped rendering
+(the move sheet still listed it). Mechanism: the vc52-era deleteArchivedTask
+handler filtered `script.directTasks` but NOT `script.bootstrapTasks` — the
+control view resurrected the deleted row on the app's next refresh, AND
+groupedStructure (which reads directTasks for group members) served Backend with
+an empty member list → the phone's groupMembership lost task-3 → the sub-section
+skip (TaskListScreen.kt:1283's `?: return@forEach`). **FIXED in-pass**
+(`9b5f9ad0` p38-mock-deletearchived-sync). NOTE: gen3's loaded jar predates this
+fix — the inheritor note in the rig-left block.
+
+## AO.J — gen3 legs: resume, groups end-to-end, the empty-group small, the ghost tap
+
+- **Resume** (pinned task-1's menu — Move-hidden again): `resumeTask begin→ok
+  100ms`; the mock's displayStatus was already idle so no visible flip is expected;
+  the desktop's "continue" word round-trips.
+- **Group create**: the overflow's "New group" → GroupEditorSheet (name field +
+  Gray/Red/Orange/Yellow/Green/Blue/Purple — the desktop's exact color enum from
+  the drift census) → "Rig p38" red → `createTaskGroup begin→ok 530ms` → (post-move)
+  the header "● Rig p38 · 1 · ✏️" rendered — AX-visible (the gen2-era Backend header
+  was dump-invisible; the Rig header IS in the dump — the header exposes text when
+  it carries the count+pencil; do not re-hunt the gen2 dump gap).
+- **Move to group**: task-2 → Rig p38 → `applyGroupedTaskViewOrder begin→ok 600ms`
+  → the header + the member row render; the move sheet lists both groups with the
+  ✓ membership marker (task-3's sheet showed NO ✓ on Backend — the AO.I state).
+- **Group edit**: the header's ✏️ (content-desc "Edit group") → the editor sheet
+  prefilled → rename + recolor → **`renameTaskGroup begin→ok 1.16s` AND
+  `updateTaskGroupColor begin→ok` in ONE Save** → the header re-rendered "Rig p38
+  green-to-blue". The visible dot-FLIP unreceipted (the IME reflow bit — AO.A0.4).
+- **Move out** ("No group"): `applyGroupedTaskViewOrder ok 480ms` → the header
+  DISAPPEARED (empty groups render nothing) while the group stayed in the move
+  sheet — **NEW SMALL N-BV-1 (P4)**: an EMPTY custom group renders no header → its
+  only affordances (✏️ Edit / 🗑 Delete) are unreachable; the orphan re-lists in
+  every move sheet forever. Re-move task-2 in → delete via ✏️ → the confirm
+  ("Delete the group "Rig p38 green-to-blue"? Its tasks go back to the list.") →
+  `deleteTaskGroup begin→ok 150ms` → header gone, member back loose.
+- **Ghost-row tap** (F-P38-A consequence): the stale-key row OPENED the referenced
+  task's live conversation (the demo-content transcript rendered) — ghost rows are
+  live navigations into tasks under a dead workspace key.
+
+## AO.K — gen3 WATCH: the create send timed out (rig wrinkle; pass 8's receipt stands)
+
+"+ New task" → "p38-delete-me" → Create: `tasks.create :: workspace=/synthetic/ws-one
+model=default/default` logged, then `sendConversationCommandV4` — **TIMEOUT after
+20043ms** → `command.sendLost :: type=createSession TransportFailure`. The mock
+printed "command type=createSession" (the dispatcher ran; the probe test `a65058e1`
+proves the effect appends correctly in-process) but never acked — the row never
+rendered, after refresh AND relaunch. NOT recorded as an app defect: pass 8's
+create→projection round-trip receipt stands and the code is unchanged; the wrinkle
+is the gen3-era v4-command reply path. Re-drive on a fresh generation before
+hunting.
+
+## AO.L — THE CENSUS CATCH: desktop 3.18.1 removed the legacy group verbs — NEW ROW G102 (wire drift)
+
+The /tmp/p36/asar extraction (digest-identical to today's STEP 0 check):
+
+- The desktop's zcode-task service method table at 3.18.1 (host/index.js, extracted
+  object walk): listTasks/listPinnedTasks/listPinnedTaskIds/listDeletedTaskIds/
+  listActiveTaskIds/listPermanentlyDeletedTaskIds/listTaskList/listArchivedTasks/
+  setTaskPinned/setTaskUnread/deleteTask/renameTask/archiveTask/unarchiveTask/
+  deleteArchivedTask/resumeTask/getTaskMeta/getTaskSnapshot(+WithEtag)/
+  getTaskConfigOptions/getTaskModelSelection/setAssistantMessageFeedback/
+  scanImportableClaudeSessions/importClaudeSessions/setMode/setConfigOption —
+  **EVERY task verb the phone speaks EXCEPT the six group verbs**.
+- `createTaskGroup`/`renameTaskGroup`/`updateTaskGroupColor`/`deleteTaskGroup`/
+  `listGroupedTaskViewStructure`/`applyGroupedTaskViewOrder`: **ZERO byte-hits
+  anywhere in the 3.18.1 bundle**. The group plane moved to a dedicated
+  **`task-groups` channel** (the channel-name registry maps TaskGroups:"task-groups")
+  exposing **read() / save({id?,title?,color?}) / ungroup(groupId) / move({node,
+  sourceGroupId,groupId,anchor?}) / admit({tasks,placement})** (the
+  createTaskGroupService factory, chunk-TCPD6WAE.js) + `state:task-groups`
+  broadcast refreshes; the renderer calls read+admit only.
+- The vc51 receipts PROVE 3.14.5 served the legacy verbs live ("wire rides the
+  LEGACY channel: `zcode-task.applyGroupedTaskViewOrder` ok in 67 ms";
+  "`zcode-task.createTaskGroup ok` + immediate `listGroupedTaskViewStructure`") —
+  this is a REMOVAL/refactor drift, not a never-served surface.
+
+**NEW ROW G102 (P3)** — the phone's ENTIRE custom-group plane (create/edit/recolor/
+delete/move-to-group, every Phase 5A A3.9 verb) faults unknownMethod against the
+REAL 3.18.1 desktop while working against the mock (which faithfully speaks the
+legacy protocol). Consume spec: migrate the phone's TaskServiceClient group calls
+to the task-groups channel's read/save/ungroup/move/admit shapes (save unifies
+create+rename+recolor; move unifies the read-modify-write), or capability-gate the
+group UI honestly ("groups aren't available on this desktop version"). The
+phone-side user face under the drift: "Couldn't create the group — try again" /
+"Couldn't move the task — **unpin it first if it is pinned**" (TasksViewModel.kt:465 —
+actively misleading for the drift fault; fold the copy fix into G102).
+
+**Parity CORRECTION (no row)**: desktop 3.18.1 GAINED its own task-row management
+menu — the renderer calls setTaskPinned({taskId,workspacePath,pinned}) in
+onTogglePinTask, setTaskUnread({...unread:!1,expectedUnreadAt}) in mark-read /
+({...unread:!0}) in mark-unread, and routes archive/delete/rename/pin/mark-read/
+mark-unread through `controller.mutateTask({address,mutation})` when a controller
+exists (falling back to the direct verbs), plus previewArchivedTaskDeletion and
+taskList.pinFailed error copy. Pass 8's census line "desktop task rows carry no
+such local management menu" is STALE — the phone's menu is now PARITY, and the
+controller-V4 note in the opportunistic queue gains a live desktop-side caller.
+
+## AO.M — NEW SMALL N-BU-1 (P4): the tasks action notice renders in the status-bar zone
+
+The lifecycle notice ("Marked read" s04, "Group created" s18, "Moved to group" s19,
+"Task pinned/renamed/archived" throughout) renders at the SCREEN TOP overlapping the
+status bar (y≈25, above the clock) — no top-inset on the notice slot; the text is
+readable but sits in the OS status-bar layer. Fix shape: pad the notice into the
+inset area (or a proper snackbar slot). Pins: a compose test asserting the notice's
+bounds start below the status-bar inset.
+
+## AO.N — ledger arithmetic + coverage honesty
+
+TWO new F rows (F-P38-A, F-P38-B), TWO new smalls (N-BU-1, N-BV-1), ONE new G row
+(G102). Open counts: **33 F (31 defects + 2 obs) + 22 G + 3 standing + 19 smalls
+(+1 watch +1 rig)**. Stamps: none bumped (no open row re-manifested). Mock debts:
+#23a/b/c opened+closed in-pass; 0 open work-debts. gateway.drop: 0; zero app
+FATALs (the pid churn was the planned relaunches). Wire census: 3 generations;
+zcode-task channel legs receipted on app logcat (setTaskUnread ×3 round-trips,
+setTaskPinned ×2, renameTask, archiveTask ×2, unarchiveTask, deleteArchivedTask,
+resumeTask, createTaskGroup, renameTaskGroup+updateTaskGroupColor,
+applyGroupedTaskViewOrder ×3, deleteTaskGroup, listGroupedTaskViewStructure ×4);
+v4: the createSession sendLost WATCH.
+
+What pass 38 did NOT drive: the overflow's Organize-by-timeline / Sort by
+created|updated / Collapse|Expand all items (first render receipted in w26, legs
+undriven); the workspace switcher chips (All/Synthetic One/Manage); the group
+color-dot VISIBLE flip (AO.A0.4); the setTaskUnread expectedUnreadAt arg on the
+wire (the mock ignores it — no mismatch arm exists; the CAS is code-pin only);
+TalkBack runtime for the new AX labels; the + New task render face (the sendLost
+WATCH); the move sheet's "New group…" path (the overflow path drove create); the
+archived viewer's unavailable face (null list — needs a fault arm); the
+organize/sort persistence across restarts.
+
+## Pass-38 verification stamp
+
+Pass 38 completed 2026-11-16 ~17:12; THREE relay generations (gen1
+`mock-p38-gen1-a1f7e2` 16:06→16:31, gen2 `mock-p38-gen2-b7c3d9` 16:31→16:44, gen3
+`mock-p38-gen3-e5f8a1` 16:44→17:12; launchers /tmp/p38/relay-g{1,2,3}.sh). Mock:
+FOUR commits `6b9e882f` / `046fec07` / `9b5f9ad0` / `a65058e1` (suite 241/0/0).
+App: ZERO changes — `install -r` SKIPPED on byte-identity (local == on-device md5
+`530ba4ff…`, sha256 `ad449d7d…`, vc53/1.3.2 at HEAD `1eb3c3d3` + the mock commits).
+Receipts: shots /tmp/p38/shots/ (s00 desktop-era home; s01 fixtures; s02 ghost
+expanded; s03 the 7-item menu; s04 mark-read + the clipped notice; s08-s09
+mark-read-fixed/pinned menu; s10-s11 the rename dialog + trap; s12 the archived
+empty face; s13 the archive confirm; s16 the delete-archived confirm; s17-s18 the
+group editor + created; s19 the moved header; s20 the recolored header; s21 the
+delete-group confirm; s22 the ghost-tap conversation); AX dumps /tmp/p38/w/
+(w1-w74); relay logs /tmp/p38/relay-g{1,2,3}.log; DB pulls /tmp/p38/db/
+(zcode.db + zcode2..zcode10 — the pinned/unread/archived/deleted lifecycle + the
+F-P38-A ghost row); logcat /tmp/p38/logcat.log (the channel.call receipt corpus;
+gateway.drop 0; zero FATALs). Desktop 3.18.1 / `ec475e6e…` unchanged (STEP 0).
+**Rig left:** emulator zcode-a16 UP (healthy, wifi ENABLED, screenshot protection
+OFF), relay gen3 ALIVE (nonce `mock-p38-gen3-e5f8a1`, arm MOCK_TASKMGMT=1 — ⚠ its
+jar PREDATES `9b5f9ad0`/`a65058e1`: deleted-archived tasks still resurrect and the
+createSession v4 reply still hangs on this generation; an inheritor must pkill +
+relaunch on the HEAD jar unless deliberately re-driving those debts), app pid
+27097 inside synth-task-1's conversation (the ghost-tap end state; BACK pops to
+home), logcat running → /tmp/p38/logcat.log.
