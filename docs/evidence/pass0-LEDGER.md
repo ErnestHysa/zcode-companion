@@ -46,62 +46,62 @@ P2-first, exit gates, per-row Accept criteria).
 > send-ack/guard/effort/slash-parser planes (the parser table FULLY saturated at
 > pass 27) — pass 28 ran fresh composer recon when the coverage lists emptied —
 > passes 29–30 drove AE/AF's leftovers — pass 31 drove Part AG's coverage-honesty
-> list and the mid-upload user-tap Remove (the LAST driveable attachment-plane
-> residual) opened a NEW defect: the removed chip RESURRECTS (F-P31-A).** With a
-> 15 s/chunk arm (env-only, no mock code change) BOTH entry paths are receipted
-> live: the first-attempt pick (user-tap abort → the in-flight chunk completes on
-> its DETACHED mock object → the progress upsert re-adds ↑ → the next chunk errors
-> `fault.attachment.unknownUpload` → the catch-all upserts "failed" + payload —
-> the ✗ chip back + the RAW-code banner, N-BO-1's 4th surface) and the retry path
-> (same resurrection → "Attachment retry failed — not sent."). The
-> AttachmentRejectedException path is statically adjudicated UNREACHABLE (all
-> three throw sites are client-side self-checks — the unreachability claim
-> STANDS). Mock: NO changes. App: ZERO (APK byte-identical; `install -r`
-> SKIPPED). **gateway.drop: 0.**
+> list and opened F-P31-A (the mid-upload Remove resurrection) — pass 32 drove
+> Part AH's coverage-honesty list (the pass-31 row's predicted-but-undriven
+> faces): the READY-chip resurrection variant is LIVE on the new
+> MOCK_ATTACHMENT_KEEP_AFTER_ABORT arm (two user-tap aborts KEPT → the transaction
+> COMPLETES → commit ok → the twice-removed chip back as ✓ READY under NO banner
+> — the SILENT twin of pass 31's bannered ✗ face), the consecutive-remove
+> composition is receipted (two aborts in ONE transaction), the resurrected chip
+> was SENT end-to-end (outbox ACKED carrying its committed ref — the DB
+> arbiter), and the desktop's mid-upload remove is CENSUSED FINAL (per-chip
+> AbortController + per-chunk signal checks + staleness-guarded callbacks +
+> transferService.cancel — none of which the phone's port has; the F-P31-A fix
+> shape gains the desktop-parity pin).** ZERO new rows (the variants are F-P31-A
+> stamps). Mock: ONE commit `500a3bdf` (the keep arm + seam + self-tests 4/4).
+> App: ZERO (APK byte-identical; `install -r` SKIPPED). **gateway.drop: 0.**
+> **The attachment plane's driveable surface is now EMPTY of residuals** —
+> what remains everywhere is standing stops, F-P3-A-gated planes, and fix-round
+> items. The roadmap build remains Ernest's call.
 
 - Report: `docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md` —
-  Parts A–Z + AA + AB + AC + AD + AE + AF + AG + AH = passes 0–31. **Latest: pass 31 (Part AH, 2026-11-16 ~01:00).**
-- Repo HEAD at pass start: `495d1145` (pass 30's docs commit; main; ZERO code
-  commits this pass).
+  Parts A–Z + AA + AB + AC + AD + AE + AF + AG + AH + AI = passes 0–32. **Latest: pass 32 (Part AI, 2026-11-16 ~02:00).**
+- Repo HEAD at pass start: `7bd76453` (pass 31's docs commit; main); pass 32 added
+  ONE code commit `500a3bdf` (mock arm only — app source untouched).
   APK of record: sha256 `ad449d7d…` / md5 `530ba4ff…`, versionCode 53 / 1.3.2
   (byte-identical across the whole series).
 - Desktop of record: **/Applications/ZCode.app 3.18.1.10376, asar sha256 `ec475e6e…`,
-  383,832,025 B** (re-verified at pass-31 STEP 0 — UNCHANGED, no DELTA).
+  383,832,025 B** (re-verified at pass-32 STEP 0 — UNCHANGED, no DELTA).
 - Open rows: **28 F (26 defects + 2 obs) + 21 G + 3 standing + 16 smalls (+1 watch
-  +1 rig)** — pass 31 opened **F-P31-A** (P3, the mid-upload Remove resurrection)
-  and stamped **N-BO-1** (4 — the unknownUpload raw-fault banner, the class's
-  fourth surface). The attachment plane's driveable residuals are now FULLY
-  receipted: single (28) + multi (29) + both Remove paths (29) + TOO_LARGE + ↑% +
-  FAILED + RETRY_FAILED + the MIXED send (30) + the mid-upload user-tap Remove on
-  both entry paths (31); the only undriven attachment face left is the READY-chip
-  resurrection variant (needs a mock that accepts post-abort chunks — a
-  wire-contract change, recorded in AH.E).
-- Backlog: **8/8 DONE**; the discovery surface stays empty — pass 31's axes came
-  from Part AG's coverage-honesty list (the mid-upload Remove now receipted; the
-  AttachmentRejectedException residual statically adjudicated; the list is EMPTY
-  of driveables); what remains is standing stops + N-BQ-1's fix-round re-drive +
-  F-P3-A-gated planes + AH.E's residuals (the READY-chip resurrection variant,
-  the desktop's mid-upload remove census — both fix-round items).
-  **The mock-debt list has 0 open work-debts.**
-- Rig left by pass 31: emulator `zcode-a16` UP (REUSED from pass 30 — the EIGHTH
+  +1 rig)** — pass 32 opened NO rows; **F-P31-A stamps 2** (the silent READY
+  variant + the consecutive composition + the desktop census pin in AI.B–AI.D).
+  The attachment plane is now FULLY receipted: single (28) + multi (29) + both
+  Remove paths (29) + TOO_LARGE + ↑% + FAILED + RETRY_FAILED + the MIXED send
+  (30) + the mid-upload user-tap Remove on both entry paths (31) + the READY
+  resurrection variant, the second-consecutive-remove composition, the
+  resurrected-chip send, and the desktop census (32). NOTHING undriven remains
+  on the plane.
+- Backlog: **8/8 DONE**; the discovery surface stays empty — pass 32's axes were
+  Part AH's coverage-honesty list (all three driveables now receipted; the list
+  is EMPTY); what remains is standing stops + N-BQ-1's fix-round re-drive +
+  F-P3-A-gated planes + fix-round items (F-P31-A's harness pin + the desktop
+  twin is now SPECIFIED in AI.D). **The mock-debt list has 0 open work-debts.**
+- Rig left by pass 32: emulator `zcode-a16` UP (REUSED from pass 31 — the NINTH
   consecutive inherited survival; healthy, wifi ENABLED, screenshot protection
-  OFF), relay gen2 ALIVE (nonce `mock-p31-gen2-b7e9c2`, arms `MOCK_ROWS=12` +
-  `MOCK_ATTACHMENT_CHUNK_DELAY_MS=15000` — ⚠ the 15 s arm makes EVERY upload ~60 s:
-  an inheriting session should pkill it and relaunch clean unless the slow arm is
-  wanted), app pid 14585 on synth-task-1 (chip "yolo · …"; the ✗ 130.png residue
-  chip + the "Attachment retry failed" banner in the composer — rig residue,
-  harmless), logcat running → /tmp/p31/logcat.log. Launcher `/tmp/p31/relay-g2.sh`.
-  New rig learnings in Part AH.A0: the turn-latency wall (the tile-tap → Remove →
-  resurrection sequence MUST run inside ONE bash command; 15 s/chunk makes it
-  comfortable — the pass-30 "racy without a longer arm" note confirmed and
-  sharpened); the relay-up-first discipline extends to the recovery ladder (a
-  relay-down gap outlasting it walks the app to DEGRADED with NO
-  conversation-screen Retry affordance — force-stop + relaunch escapes); the +
-  menu renders 2 rows visually while the dump carries all six bounds (IME-open;
-  the clipped Photo row IS tappable at its dump bounds); the composer chip's
-  Remove is a TEXT node (a content-desc parse finds nothing — the
-  attribute-order lesson's third manifestation); the abort-id triplicate (one
-  request id arriving 3× — transport resend, idempotent, observed not rowed).
+  OFF), relay gen1 ALIVE (nonce `mock-p32-gen1-c4d81e`, arms `MOCK_ROWS=12` +
+  `MOCK_ATTACHMENT_KEEP_AFTER_ABORT=1` + `MOCK_ATTACHMENT_CHUNK_DELAY_MS=8000` —
+  ⚠ the keep arm makes EVERY upload survive its aborts: an inheriting session
+  should pkill it and relaunch clean unless testing resurrection), app pid 14585
+  on synth-task-1 (composer CLEAN — the probe sent, chip consumed, no banner),
+  logcat running → /tmp/p32/logcat.log. Launcher `/tmp/p32/relay-g1.sh`.
+  New rig learnings in Part AI.A0: the photo-picker CONSENT CARD ("only have
+  access to the photos you select") renders over tile 1 after the locating dump
+  and eats the tap (re-dump after Dismiss; the grid reflows UP); Read-preview
+  tap coords needed the ×1.17 scale on this layout (dump bounds remain the
+  authority); the banner-dismiss reflow moves the chip row DOWN 132px; the
+  final-state dump GHOSTED at the headline moment (the screenshot is the
+  arbiter — fourth manifestation); the mock's RPC answers serialize behind
+  chunk sleeps (abort ok in 2.8–3.7 s — harmless, observed not rowed).
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -119,7 +119,7 @@ bodies after 3.14.3 — the census IS the changelog.
 
 | ID | P | Status | Mechanism (one line) | Fix shape | Depends on | Evidence | Stamps |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| F-P31-A | 3 | OPEN (NEW pass 31) | the mid-upload user-tap Remove does NOT cancel the in-flight upload coroutine — the aborted transaction RESURRECTS the removed chip: `removeUpload` (`Ports.kt:1154-1167`) fires `attachmentAbort` (the mock deletes the staging entry, MockZCode.kt:3471-3475) + filters the chip, but the composer-scope job keeps running (`WriteComponents.kt:931-939` first-attempt launch / VM `:382` retry launch; VM `removeUpload` :376-378 fire-and-forget, no Job tracking) — the in-flight chunk completes on its DETACHED mock object and the per-chunk progress upsert (`Ports.kt:1112-1115`) re-adds the chip as ↑, then the next chunk errors `fault.attachment.unknownUpload` (MockZCode.kt:3417-3419) into the catch-all which upserts "failed" + payload (:1129-1137) — the user's explicit Remove is undone ~15 s later under a banner (first-attempt: the RAW-code "Attachment failed to upload (fault.attachment.unknownUpload)" — N-BO-1's 4th surface; retry: "Attachment retry failed — not sent."); the mock is server-faithful, which is what SURFACES the defect (a chunk-accepting server would resurrect ✓ READY instead); the resurrected chip's payload IS retained so its Retry works | track in-flight upload Jobs per uploadId and cancel in removeUpload (or guard BOTH re-add upserts on a user-removed set); pin: a harness asserting remove-during-upload → the chip stays gone + the abort fires; desktop's mid-upload remove UNCENSUSED (fix-round static item) | — | Part AH.B–AH.D | 1 |
+| F-P31-A | 3 | OPEN (NEW pass 31) | the mid-upload user-tap Remove does NOT cancel the in-flight upload coroutine — the aborted transaction RESURRECTS the removed chip: `removeUpload` (`Ports.kt:1154-1167`) fires `attachmentAbort` (the mock deletes the staging entry, MockZCode.kt:3471-3475) + filters the chip, but the composer-scope job keeps running (`WriteComponents.kt:931-939` first-attempt launch / VM `:382` retry launch; VM `removeUpload` :376-378 fire-and-forget, no Job tracking) — the in-flight chunk completes on its DETACHED mock object and the per-chunk progress upsert (`Ports.kt:1112-1115`) re-adds the chip as ↑, then the next chunk errors `fault.attachment.unknownUpload` (MockZCode.kt:3417-3419) into the catch-all which upserts "failed" + payload (:1129-1137) — the user's explicit Remove is undone ~15 s later under a banner (first-attempt: the RAW-code "Attachment failed to upload (fault.attachment.unknownUpload)" — N-BO-1's 4th surface; retry: "Attachment retry failed — not sent."). Pass 32 EXTENSION (the silent face, live on MOCK_ATTACHMENT_KEEP_AFTER_ABORT `500a3bdf`): a server that accepts post-abort chunks resurrects the chip as ✓ READY under NO banner at all — receipted with TWO consecutive user-removes in ONE transaction (both aborts KEPT → commit ok 136 ms → `✓ 130.png (2.0 MB)` + armed FAB, no signal), and the resurrected chip SENT end-to-end (outbox ACKED carrying its committed ref, DB arbiter) — the resurrected attachment is fully REAL; the silent face is the worse UX (nothing tells the user their Remove lost) | track in-flight upload Jobs per uploadId and cancel in removeUpload (or guard BOTH re-add upserts on a user-removed set); DESKTOP CENSUSED (pass 32, AI.D): the desktop's remove is FINAL — per-chip AbortController aborted in remove + the V4 loop's per-chunk signal checks + staleness-guarded progress/completion callbacks (`v.current.get(r)!==i`) + transferService.cancel — the phone's analogue is the Job map + the guarded upserts; pin: a harness asserting remove-during-upload → the chip stays gone + the abort fires | — | Part AH.B–AH.D, AI.B–AI.D | 2 (pass 32: the silent ✓ variant + the consecutive composition + the resurrected-chip send + the desktop census) |
 | F-P19-A | 3 | OPEN (NEW pass 19) | the G50 CAS-mismatch face is desktop-divergent: on `guard.heldQueueConfirmationStale` (host ack `{status:"failed", …}` — set-equality CAS via `applyHeldQueueDisposition`) the desktop RE-OPENS the held-queue confirmation with fresh ids (renderer `confirmationRequired`, re-reads `queue.items`, no error surfaced); the phone maps the failed ack to the generic refusal ERROR notice ("The desktop refused the send — see diagnostics", `ConversationViewModel.kt:542-548`) — reasonCode undifferentiated, no re-confirmation loop exists (grep receipt) | handle the typed reasonCode → re-open the disposition dialog with re-read ids (desktop parity) or minimally a distinct notice; pins: the guard.* grep + the V.C static shapes (outbox FAILED_TERMINAL + preserved draft) | — | Part V.B–V.E | 1 |
 | F-P20-A | 3 | OPEN (NEW pass 20) | the phone's goal sends are structurally refused under the desktop's choice admission: the host's `sendGoalCommand` handler passes the payload's `heldQueueDisposition`/`expectedHeldQueueItemIds` through the SAME `applyHeldQueueDisposition` gate as sendText (zcode.cjs `SMc`→`n9e`→`Vqe`; absent → `heldQueueDispositionRequired` failed-ack; the desktop UI pre-gates via the confirmation dialog — ZERO renderer references to the reasonCode), but the phone's goal payload is `{text, displayText}` only (`CommandCoordinator.kt:220-224`, commented "not CAS-guarded"). Pass 21 EXTENSION (composer half): the composer-level G50 dialog DOES fire for slash-dispatched sends, and `send()` (`ConversationViewModel.kt:434-470`) receives the trio but only `routeSendPrompt` (:454) forwards it — every `sendSlash` branch (:459-470) drops it, so the user ANSWERS the dialog and the answer is discarded (receipted live: dialog → Keep → refused → FAILED_TERMINAL). The sheet half (`setGoal` :601-613) bypasses `send()` — no gate, no dialog, generic ERROR face, as pass 20 receipted. Pass 22 EXTENSION (compact variant): the G50 dialog fires for composer `/compact` sends too and the answer is DISCARDED the same way (`port.compact` = `simpleCommand("compact", sessionId, {})`) — but the wire OUTCOME stays host-faithful (the host's `vMc` consults routing mode, never a trio: the compact self-queues either way, live-receipted Y.E), so the discarded answer's only loss is the user's explicit "Clear queue & send" choice being silently dropped (the desktop never asks for compact at all) | composer half = pure PLUMBING (carry the answered trio into the goal/compact branches — or stop asking for compact); sheet half = gate on the choice state or a distinct notice keyed on the reasonCode; pins: W.B handler chain + W.C payload/surface pins + the outbox rows (goal sheet [20], composer-slash goal [21], compact ACKED/FAILED_TERMINAL pair [22]) | F-P19-A family (same guard) | Part W.B–W.E, X.B–X.D, Y.B/Y.E, AB.D | 4 (pass 22: the compact variant live — dialog + discard + the host-faithful queued outcome; pass 25: the THIRD goal entry point — slash-set `/goal <objective>` — rides the same trio-less port, outbox payloadJson text/displayText verbatim, AB.D.4) |
 | F-P8-A | 2 | OPEN | cold start w/ DIRECT selected: deferred relay `persistEndpoint` rewrites `_endpoint` after resolve — silent abandonment, recovery dropped by `sourceKind` filter, "First sync failed" vs healthy direct, Retry completes it | guard `persistEndpoint` against overwriting a resolved non-relay selection; retry must reconnect the transport the UI shows; pins: Robolectric race harness + "no `hub.switched` without user tap" | — | Part K.A2 | 1 (+F-P9-A sibling mechanism) |
@@ -156,8 +156,8 @@ bodies after 3.14.3 — the census IS the changelog.
 | F-P4-A | 2 | FIXED (rig) | mock push patch structurally excluded its own interaction | `pushPendingPermission` builds from unfiltered list + patch-content pin — commit `2b12fc46`, 37 mock tests green | — | Part G.A2.2, H.A1 | — |
 | N-BK-1 (rig half) | 2 | FIXED (rig) | git fixtures in wrong field vocabulary (blank paths, +0−0, duplicated tabs, oid-vs-hash) | contract vocabulary rewrite — same commit `2b12fc46` | — | Part G.A2.3, H.A1 | — |
 
-**Open F count: 28** (26 defects + 2 observations; pass 31 added F-P31-A — the
-mid-upload Remove resurrection) · FIXED: 2 (both rig) ·
+**Open F count: 28** (26 defects + 2 observations; pass 32 opened NO rows — F-P31-A
+stamps 2, the silent READY variant + the desktop census) · FIXED: 2 (both rig) ·
 RETRACTED/REFUTED/ABSORBED: 7.
 
 ## Current fix-order (consolidates K.D + the carried rows; supersedes every report fix-order)
@@ -468,6 +468,23 @@ delta …`). Nothing pushed.
 
 ## History
 
+- 2026-11-16 (pass 32) — Part AI executed on Part AH's coverage-honesty list (all
+  three driveables in one pass): NEW row count ZERO — F-P31-A stamps 2 (the
+  silent ✓ resurrection on the new MOCK_ATTACHMENT_KEEP_AFTER_ABORT arm — TWO
+  user-removes in ONE transaction, both aborts KEPT, commit ok, the chip back as
+  ✓ READY with an ARMED FAB and NO banner; the resurrected chip SENT with its
+  committed ref ACKED in the outbox — the DB arbiter; the desktop census: remove
+  is FINAL there — AbortController + per-chunk signal checks + staleness-guarded
+  callbacks + transferService.cancel, none ported). Mock: ONE commit `500a3bdf`
+  (the keep arm + attachmentAbortMutate seam + self-tests 4/4, suite green).
+  App: ZERO changes (APK byte-identical, install skipped). Rig learnings: the
+  photo-picker consent card eats the stale tile tap (re-dump after Dismiss —
+  the grid reflows up); banner-dismiss reflows the chip row −132px; the
+  final-state dump ghosted at the headline frame (screenshot is the arbiter);
+  Read-preview coords needed ×1.17 this layout; mock RPC answers serialize
+  behind chunk sleeps. Rig left UP (gen1 keep-arm + 8 s, app pid 14585,
+  composer clean). **The attachment plane's driveable surface is EMPTY — the
+  campaign's discovery surface is exhausted; the roadmap remains Ernest's call.**
 - 2026-11-16 (pass 31) — Part AH executed on Part AG's coverage-honesty list:
   NEW row F-P31-A (P3, the mid-upload Remove resurrection — the removed chip
   comes back ~15 s later as ✗ with payload under a banner; receipted live on

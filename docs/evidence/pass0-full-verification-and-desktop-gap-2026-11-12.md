@@ -7302,3 +7302,186 @@ relaunch clean unless the slow arm is wanted), app pid 14585 on synth-task-1 (ch
 "yolo · …"; the ✗ 130.png residue chip + the "Attachment retry failed" banner in
 the composer — rig residue, harmless), logcat running → /tmp/p31/logcat.log.
 Launcher `/tmp/p31/relay-g2.sh`.
+
+# Part AI — pass 32 (APPENDED 2026-11-16, ~02:00): Part AH's coverage-honesty driveables driven — the READY-chip resurrection variant receipted LIVE on the new mock arm (MOCK_ATTACHMENT_KEEP_AFTER_ABORT: the aborts KEEP the staging entry, the transaction COMPLETES, and the twice-removed chip comes back as ✓ READY with a REAL committed ref under NO banner at all — the silent twin of pass 31's bannered ✗ resurrection), the second-consecutive-remove-during-one-transaction composition receipted (TWO user-tap aborts in one transaction, both undone, commit ok), the resurrected chip SENT end-to-end (outbox ACKED with its ref — the DB arbiter), and the desktop's mid-upload remove CENSUSED (fix-round static item): the desktop's remove is FINAL (per-chip AbortController.abort + staleness-guarded progress callbacks + transferService.cancel — none of which the phone's port has)
+
+> **Pass 32 of the pass-0 series** (solo, the canonical discovery prompt). STEP 1 empty
+> (backlog 8/8). Part AH's coverage-honesty list named three driveables: the
+> READY-chip resurrection variant (blocked only on a mock wire-contract change —
+> explicitly permitted), the desktop's mid-upload remove census (static), and the
+> consecutive-remove composition. All three are DONE this pass. **ZERO new rows** —
+> the variants are stamps on F-P31-A (the mechanism was pass 31's row; these are its
+> predicted-but-undriven faces, now receipted). Mock: ONE commit `500a3bdf` (the
+> KEEP_AFTER_ABORT arm; self-tests 4/4, suite green). App: ZERO changes (APK
+> byte-identical at HEAD `500a3bdf` — sha256 `ad449d7d…`, md5 `530ba4ff…`, vc53/1.3.2;
+> the `install -r` SKIPPED on digest equality).
+>
+> **Verification stamp:** 2026-11-16 01:15 → 01:55, GLM-5.3-Flash in ZCode, everything
+> local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…` UNCHANGED — no
+> DELTA. Rig: the pass-31 emulator REUSED (NINTH consecutive inherited survival;
+> healthy, wifi ENABLED, screenshot protection OFF); the pass-31 relay gen2 pkilled
+> BY NAME at ~01:20; ONE generation this pass: gen1 `mock-p32-gen1-c4d81e`
+> (01:20→end, arms MOCK_ROWS=12 + MOCK_ATTACHMENT_KEEP_AFTER_ABORT=1 +
+> MOCK_ATTACHMENT_CHUNK_DELAY_MS=8000). Build at HEAD: `:tools:mockzcode:test` +
+> `:tools:mockzcode:jar` + `:app:assembleDebug` exit 0; local APK md5 `530ba4ff…` ==
+> on-device `base.apk` md5 → install SKIPPED. logcat fresh `-T 1` →
+> /tmp/p32/logcat.log.
+
+## AI.A0 — rig learnings
+
+1. **The photo-picker CONSENT CARD is a new mid-flow tap-eater**: on this picker
+   open, the system card "ZCode Companion will only have access to the photos you
+   select" (a Dismiss button) rendered OVER tile 1 AFTER the dump that located the
+   tile — the first choreography's tile tap at the stale bounds hit the card and the
+   whole leg silently no-op'd (s10 showed the picker still open, zero wire verbs).
+   Recovery: dump → tap Dismiss → re-dump (the grid reflows UP; tile 1 moved
+   (179,1054)→(179,1418)) → the choreography from the FRESH bounds. The
+   re-dump-before-every-tap discipline now extends to the PICKER, not just the
+   composer.
+2. **Read-preview tap coords need the ×1.17 scale AFTER ALL on this layout** — the
+   banner-✕/chip-Remove taps at raw preview coords (815,1219)/(801,843) both missed;
+   the dump bounds (953,1427)/(945,986) worked first-tap. The pass-28 "no scale
+   correction" note was layout-lucky; dump bounds remain the authority for regular
+   UI (the dialog exception stands unchanged).
+3. **The banner-dismiss reflow**: dismissing the composer banner moves the chip row
+   DOWN 132px (y 986→1118 — the composer anchors to the bottom). A tap computed
+   from a pre-dismiss dump lands in dead space. Re-dump after EVERY banner/chip
+   state change (the composer-reflow lesson, now with a measured delta).
+4. **The final-state uiautomator dump GHOSTED at the exact critical moment**: wc.xml
+   (post-commit) reported 0 Remove nodes / no png text while the s14 screenshot
+   taken seconds EARLIER shows the ✓ chip plainly. The screenshot is the arbiter for
+   visual truth (known lesson, fourth manifestation — and this time the dump missed
+   the pass's headline frame).
+5. **The mock's RPC answers serialize behind chunk sleeps**: with
+   MOCK_ATTACHMENT_CHUNK_DELAY_MS armed, an abort arriving mid-sleep queued behind
+   the sleeping chunk (abort ok in 2849 ms / 3699 ms — the abort handler itself does
+   no work). Harmless rig quirk (the app tolerates the latency); recorded, not
+   rowed.
+
+## AI.B — leg A: the twice-removed chip resurrects as ✓ READY, silently (01:33–01:35)
+
+Connected pick (tile 1, the 2 MB png → 4 chunks at the 8 s arm). The one-command
+choreography ran tile-tap → Remove #1 → Remove #2 → final state, with Remove bounds
+parsed fresh from in-command dumps. The logcat timeline (device clock) is the
+spine:
+
+- 01:34:45.966 `attachmentBeginV4` → ok 47.129; chunk0 in flight
+- **01:34:57.989 `attachmentAbortV4` #1** (the user's first Remove, mid-upload) —
+  the mock answered **KEPT** (relay line: `MOCK: attachmentAbort KEPT
+  (MOCK_ATTACHMENT_KEEP_AFTER_ABORT) … post-abort chunks accepted`)
+- 01:34:58.761 chunk0 ok (**the detached chunk completes after the abort — the
+  progress upsert re-adds the removed chip as ↑**, pass 31's mechanism, now
+  feeding a transaction that will NOT die)
+- **01:35:16.264 `attachmentAbortV4` #2** (the SECOND Remove during the SAME
+  transaction — the AH.E consecutive composition) — **KEPT** again
+- 01:35:28.258 chunk3 ok → **01:35:28.406 `attachmentCommitV4` ok (136 ms)**
+
+Screenshots: s10/s11 caught the chip-less windows between abort #1 and the next
+progress re-add (the resurrection is not instantaneous — it rides the next chunk's
+~8 s answer); s14 (**the headline frame**): **`✓ 130.png (2.0 MB)` + Remove, the
+send FAB ARMED, and NO banner anywhere.** The wire census: begin ×1, chunk ×4, abort
+×2 (both KEPT), commit ×1.
+
+**The defect's second face is SILENT**: pass 31's variant resurrected the chip as ✗
+failed under a raw-fault banner (a lying notice on top of the undo); this variant —
+a server that accepts post-abort chunks, the AH.D prediction — resurrects it as ✓
+READY with **no signal at all**. The user removed the attachment twice and it came
+back ready-to-send, twice, without a word. Both faces are the same root (the
+in-flight job is not cancelled and the upserts do not honor the removal); the
+silent face is arguably the worse UX (nothing tells the user their Remove lost).
+
+## AI.C — leg B: the resurrected chip is a REAL, sendable attachment (01:38)
+
+Typed `p32res` beside the ✓ chip and sent (FAB armed). The send FAB morphed
+(stop-square during the synthetic turn), the draft cleared, the chip was consumed
+(0 Remove nodes post-send), the YOU row + the mock's synthetic reply rendered
+(s15). **The DB arbiter** (`/tmp/p32/db/zcode.db`, outbox):
+
+```
+01a1e201-… | sendText | ACKED | accepted |
+{"text":"p32res","attachments":[{"ref":"att-up-67c6da2b-2d42-47b6-9615-a572d7fa600c",
+"fileName":"130.png","mime":"image/png","bytes":2097152}]} | 2026-11-16 01:38:30
+```
+
+The `ref` is the DOUBLE-ABORTED transaction's committed ref — the server honored a
+send whose attachment the user explicitly removed twice. Pass 31's "the resurrected
+chip's payload IS retained so its Retry works" claim extends: the resurrected chip
+is not a display ghost, it is a fully functional attachment whose commit the server
+accepted (payload shape exactly the desktop's W8t twin: ref/fileName/mime/bytes).
+
+## AI.D — the desktop census: remove is FINAL on the desktop (static, asar `ec475e6e…`)
+
+The fix-round static item from AH.D, now closed. The desktop composer
+(`styles-DNV2PY7o.js`, the attachment plane `ume`/`W8t`/`e5t`) implements THREE
+mechanisms the phone's port lacks:
+
+1. **Per-chip AbortController**: every upload gets `i=new AbortController` keyed
+   `scopeKey\0attachmentId` in a ref map (`v.current`); the V4 upload loop
+   (`ume`) checks `Dm(r.signal)` BEFORE EVERY chunk (pre-flight throw
+   AbortError) — mid-flight removal stops the next chunk from ever being SENT.
+2. **Staleness-guarded callbacks**: the onProgress handler and the
+   success/failure completion paths ALL check `v.current.get(r)!==i` (the
+   controller still registered for THIS attachment) — a removed chip's late chunk
+   answers are dropped instead of re-adding it; the catch path additionally
+   checks `i.signal.aborted`.
+3. **Transfer-service cancel**: remove (`ce` callback) aborts the controller,
+   deletes the map entry, dequeues pending work, cancels timers, and calls
+   `transferService.cancel(operationId)` for staged/uploading/committing chips —
+   plus a bulk-unmount sweep (`ue`) doing the same for every chip.
+
+**The desktop's remove is final in every state.** The phone's port
+(`Ports.kt:1154-1167` + the unconditional upserts `:1112-1115`/`:1129-1137`)
+implements none of the three — F-P31-A's fix shape gains the desktop-parity pin:
+track per-uploadId Jobs (the phone's analogue of the controller map), cancel in
+`removeUpload`, and guard both re-add upserts on the staleness/user-removed set
+(the direct analogue of `v.current.get(r)!==i`).
+
+## AI.E — ledger arithmetic + coverage honesty
+
+ZERO new rows. F-P31-A stamps 2 (the READY-silent variant + the consecutive
+composition + the desktop census pin). Open counts UNCHANGED: **28 F (26 defects +
+2 obs) + 21 G + 3 standing + 16 smalls (+1 watch +1 rig)**. N-BO-1 NOT stamped (the
+silent face renders no banner — no new raw-code surface). Mock debts: 0 open (the
+KEEP arm is a capability, not a debt). gateway.drop for the pass: **0**; zero app
+FATAL/AndroidRuntime lines (the 70 grep hits are uiautomator-launcher lifecycle
+noise, uid 2000 — not the app).
+
+What pass 32 did NOT drive: the doc-attachment timeline RENDER (mock-fidelity
+blocked — AE.E's note stands); the ↑-progress RENDER during this pass's
+resurrections (the re-adds landed between my screenshot windows; the ↑25%/50%/75%
+renders are passes 30/31 receipts — no re-drive needed); Voice/Camera/TalkBack/
+shade-ACTION/widget (standing stops); F-P3-A-gated card planes, the effort-sheet
+plane, the queue verbs, the automations/runs planes (not armed by design); the
+desktop's remove LIVE (the census is static — it answers the fix-round question);
+the third+ consecutive remove (two receipted; the mechanism generalizes — a third
+adds nothing).
+
+**The attachment plane's driveable surface is now EMPTY of residuals** — single +
+multi sends, TOO_LARGE, ↑%, FAILED (raw + offline), RETRY_FAILED, MIXED send, both
+Remove paths, the mid-upload Remove on both entry paths (31), the READY variant +
+the consecutive composition (32). What remains everywhere is standing stops,
+F-P3-A-gated planes, and fix-round items.
+
+## Pass-32 verification stamp
+
+Pass 32 completed 2026-11-16 ~01:55; ONE relay generation (gen1
+`mock-p32-gen1-c4d81e`, arms MOCK_ROWS=12 + MOCK_ATTACHMENT_KEEP_AFTER_ABORT=1 +
+MOCK_ATTACHMENT_CHUNK_DELAY_MS=8000; launcher `/tmp/p32/relay-g1.sh`); the
+`install -r` SKIPPED on byte-identity (local == on-device md5 `530ba4ff…`, sha256
+`ad449d7d…`, vc53/1.3.2 at HEAD `500a3bdf` — app source untouched, the only code
+commit is the mock arm). Receipts: shots `/tmp/p32/shots/` (s00–s15: **s14 the
+silent ✓ resurrection**; s10/s11 the chip-less windows; s15 the resurrected-chip
+send); AX dumps `/tmp/p32/w/w0–we`; relay log `/tmp/p32/relay-g1.log` (attachment
+census in AI.B; the two `MOCK: attachmentAbort KEPT` lines); DB pull
+`/tmp/p32/db/zcode.db{,-wal}` (the ACKED row in AI.C); logcat
+`/tmp/p32/logcat.log` (the timeline in AI.B). Mock changes: ONE commit `500a3bdf`
+(MOCK_ATTACHMENT_KEEP_AFTER_ABORT + `attachmentAbortMutate` seam + self-tests 4/4;
+full mock suite green). App changes: NONE. Desktop 3.18.1 / `ec475e6e…` unchanged
+(STEP 0). gateway.drop for the pass: **0**; zero app FATAL lines. **Rig left:**
+emulator zcode-a16 UP (healthy, wifi ENABLED, screenshot protection OFF), relay
+gen1 ALIVE (nonce `mock-p32-gen1-c4d81e`, arms MOCK_ROWS=12 +
+MOCK_ATTACHMENT_KEEP_AFTER_ABORT=1 + MOCK_ATTACHMENT_CHUNK_DELAY_MS=8000 — ⚠ the
+keep arm makes EVERY upload survive its aborts: an inheriting session should pkill
+it and relaunch clean unless testing resurrection), app pid 14585 on synth-task-1
+(composer clean — the probe sent, chip consumed, no banner), logcat running →
+/tmp/p32/logcat.log.
