@@ -621,6 +621,10 @@ fun main() {
         }
         mock.script.casStaleTypes = types
     }
+    // Pass-37 rig arm (Part AN): MOCK_FEEDBACK_FAIL=1 makes setAssistantFeedback answer
+    // the host's failed ack {status:"failed", reasonCode:"fault.feedback.fail"} — the
+    // phone's keyed FEEDBACK_REFUSED notice becomes drivable. Mutates nothing.
+    if (System.getenv("MOCK_FEEDBACK_FAIL") == "1") mock.script.feedbackFail = true
     // Pass-22 rig arm (Part X leftover): MOCK_SET_THOUGHT_LEVEL_STALE=1 makes the
     // effort switch (the PROTOCOL method v4Call setThoughtLevel) answer the host's
     // FQ revision-mismatch shape — the JSON-RPC ERROR Dl(-32009, "Session state

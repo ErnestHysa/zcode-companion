@@ -452,6 +452,11 @@ class MockZCode(
          *  {status:"stale", reasonCode:"proto.staleRevision"} — the phone's typed
          *  SESSION_CHANGED stale faces become drivable on the rig. */
         @Volatile var casStaleTypes: Set<String>? = null
+        /** Pass-37 rig arm (MOCK_FEEDBACK_FAIL=1): setAssistantFeedback answers the
+         *  host's failed ack {status:"failed", reasonCode:"fault.feedback.fail"} — the
+         *  phone's keyed FEEDBACK_REFUSED notice ("The desktop refused the feedback —
+         *  nothing changed.") becomes drivable. Mutates nothing. */
+        @Volatile var feedbackFail: Boolean = false
         /** Pass-22 rig arm (Part X leftover, MOCK_SET_THOUGHT_LEVEL_STALE): the effort
          *  switch rides the PROTOCOL method (v4Call setThoughtLevel), whose host layer
          *  CAS-checks via FQ and answers a JSON-RPC ERROR on mismatch — NOT a
@@ -1893,6 +1898,17 @@ class MockZCode(
     /** Effect rows survive into later snapshots + resync replays (authoritative). */
     private val appendedRows = LinkedHashMap<String, JsonObject>()
 
+    /**
+     * Pass-37 rig: every row schemaRow ever generated (snapshot windows, range pages,
+     * scripted extras), keyed by rowId. The feedback echo's fallback looks rows up here
+     * so an upsert for a snapshot/page row preserves the REAL generated shape (text,
+     * kind, createdAt) instead of re-synthesizing a bare "synthetic" row — the phone
+     * replaces the whole row on row.upserted, so a synthesized base would visibly
+     * re-text a snapshot row. putIfAbsent: the FIRST generation is the one the phone
+     * received; later regenerations must not shift the recorded createdAt.
+     */
+    private val generatedRows = HashMap<String, JsonObject>()
+
     // ------------------------------------------------------------ schema-faithful rows
 
     /**
@@ -1988,8 +2004,13 @@ class MockZCode(
                 put("ref", JsonPrimitive(text))
             }
         }
-        return JsonObject(base + kindFields + (extra ?: JsonObject(emptyMap())).toMap())
+        val row = JsonObject(base + kindFields + (extra ?: JsonObject(emptyMap())).toMap())
+        generatedRows.putIfAbsent(rowId.toString(), row)
+        return row
     }
+
+    /** Pass-37 seam: the recorded generated shape for a rowId (null = never generated). */
+    internal fun generatedRowForTest(rowId: Long): JsonObject? = generatedRows[rowId.toString()]
 
     /** Kinds the mock emits (subset of the verified rows.ts union, all schema-faithful). */
     enum class RowKind(val wire: String) {
@@ -3237,6 +3258,18 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(staleAck))
                     return
                 }
+                // Pass-37 rig arm (MOCK_FEEDBACK_FAIL=1): setAssistantFeedback answers the
+                // host's failed ack (the F-P19-A failed-ack shape) — the phone's keyed
+                // FEEDBACK_REFUSED notice becomes drivable (zero series receipts before
+                // pass 37). Mutates nothing; dispatcher-level like the stale arm, so it
+                // outranks any handler effect. Sticky while armed.
+                if (type == "setAssistantFeedback") {
+                    feedbackFailAck(env?.strOrNull("commandId"))?.let { failAck ->
+                        println("MOCK: setAssistantFeedback forced fail (MOCK_FEEDBACK_FAIL)")
+                        respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(failAck))
+                        return
+                    }
+                }
                 var createResult: JsonObject? = null
                 if (script.commandEffects) {
                     createResult = applyCommandEffect(type, env)
@@ -4311,6 +4344,25 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
     }
 
     /**
+     * Pass-37 rig arm (MOCK_FEEDBACK_FAIL=1, Part AN): setAssistantFeedback answers the
+     * host's failed ack {status:"failed", reasonCode:"fault.feedback.fail", …} (the
+     * F-P19-A failed-ack shape) — the phone's keyed FEEDBACK_REFUSED notice ("The
+     * desktop refused the feedback — nothing changed.") becomes drivable. `null` when
+     * unarmed; mutates nothing. Only consulted for the feedback command (the caller
+     * dispatches by type, mirroring casStaleAck's arm).
+     */
+    internal fun feedbackFailAck(commandId: String?): JsonObject? {
+        if (!script.feedbackFail) return null
+        return buildJsonObject {
+            put("commandId", JsonPrimitive(commandId ?: "unknown"))
+            put("status", JsonPrimitive("failed"))
+            put("reasonCode", JsonPrimitive("fault.feedback.fail"))
+            put("message", JsonPrimitive("feedback rejected by host policy"))
+            put("revisionAtDecision", JsonPrimitive(stateRevision.get()))
+        }
+    }
+
+    /**
      * Pass-30 rig arm (MOCK_ATTACHMENT_FAIL): the fault the attachment transaction's
      * CURRENT phase should answer — `null` when healthy or the phase isn't one of
      * begin/chunk/commit (unknown values arm nothing, fail-closed per H.A0.2).
@@ -4792,7 +4844,12 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 val feedback = payload?.get("feedback")
                 if (rowId != null) {
                     // Echo the feedback onto the row (rows.ts `feedback`), null clears it.
+                    // Pass-37: prefer the row's REAL recorded shape (appendedRows first,
+                    // then the generatedRows record) so the echoed upsert preserves the
+                    // row the phone already holds; the synthesized base is now the LAST
+                    // resort for client-invented ids only.
                     val base = appendedRows[rowId.toString()]
+                        ?: generatedRows[rowId.toString()]
                         ?: JsonObject(schemaRow(routingSessionId(), rowId, RowKind.ASSISTANT_TEXT, "synthetic") + ("actions" to ROW_ACTIONS_ASSISTANT))
                     // JsonNull IS a JsonPrimitive — an explicit null clears, a string sets.
                     val set = feedback is JsonPrimitive && feedback !is JsonNull
