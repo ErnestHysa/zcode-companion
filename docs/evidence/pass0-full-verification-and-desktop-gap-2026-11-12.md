@@ -9268,3 +9268,250 @@ MOCK_UNREAD_CAS=force — **⚠ STICKY refusal arm: every mark-read will fault
 until an inheritor pkills and relaunches with clean/other arms**; MOCK_TASKMGMT=1
 fixtures armed), app pid 30523 on the tasks home (post-expand-all state),
 logcat running → /tmp/p39/logcat.log.
+
+# Part AQ — pass 40 (APPENDED 2026-11-16, ~23:10): the git sheet's WRITE TIER + Branches plane driven END-TO-END (first series for every verb) — THREE new app rows (F-P40-A the switch/create acks re-fetch NOTHING, P3; F-P40-B the workspace-manager persistence trio is a silent no-op, P2; F-P40-C the typed branch-issue ack is swallowed — sheet closes pre-result + onDismiss nulls the issue, P3), TWO new smalls (N-BX-1 "tracking: null" via the JsonNull-blind decode; N-BY-1 the Stage/Discard a11y labels carry the raw "%1$s"), F-P5-A stamp 2 (the refused getChanges renders silent-empty Changes), F-P38-A stamp 4 (the ghost section on boot), the workspace-tool screens' functional census (G103), the mock's write-tier visibility fix (debt #25, `baa3f216`, suite 254/0/0), and the F-P38-A ghost + Manage-sheet Rename/Reorder legs (Part AP's leftovers) — app ZERO
+
+> **Pass 40 of the pass-0 series** (solo, the canonical discovery prompt; STEP 1 empty —
+> backlog 8/8 — so the axis = Part AP's "did NOT drive" driveables + a fresh recon on the
+> git sheet's Tier-B write row, the BranchSheet, and the read-only workspace-tool screens'
+> functional depth — surfaces receipted as renders in passes 5/10 but never DRIVEN).
+> **App: ZERO changes** (HEAD `682c63b9` APK md5 `530ba4ff…` == on-device → `install -r`
+> SKIPPED; sha256 `ad449d7d…`, vc53/1.3.2 — byte-identical across the whole series).
+> **Mock: ONE commit** — `baa3f216` (p40-mock-git-write-mutation: servedGitChanges()
+> derives the changes view getChanges serves from the write tier's mutations — stage
+> flips section to "staged", discard/commit drop rows, matching the phone's
+> workspaceRelativePath keys against the fixture's absolute `path`; commit consumes the
+> served rows it commits so the post-commit fetchChanges() sees the shrink;
+> MOCK_GIT_BRANCH_ISSUE arms the typed `{code,message,detail?,paths[]}` ack shape;
+> MOCK_GIT_PUSH_FAIL arms the push refusal; MockZCodePass40GitWriteSelfTest 6 cases;
+> suite **254/0/0**).
+
+> **Verification stamp (pass start):** 2026-11-16 22:00 → 23:05, GLM-5.3-Flash in
+> ZCode, everything local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…`
+> UNCHANGED — no DELTA. Rig: the pass-39 emulator REUSED (SEVENTEENTH consecutive
+> inherited survival; wifi ENABLED, screenshot protection OFF persisted); the sticky
+> gen4 relay (MOCK_UNREAD_CAS=force) pkilled BY NAME at pass start. FIVE relay
+> generations: gen1 `mock-p40-gen1-8e1f72` 22:09 (MOCK_TASKMGMT=1 — pre-fix jar
+> admissibility probe; discarded), gen2 `mock-p40-gen2-0e1dc7` 22:12 (+MOCK_GIT=1 —
+> the main leg), gen3 `mock-p40-gen3-40c95d` 22:48 (typed-issue arms APPENDED AFTER
+> exec — armed NOTHING, the recipe's own trap; discarded), gen4
+> `mock-p40-gen4-fa8e87` 22:50 (arms before exec: +MOCK_GIT_BRANCH_ISSUE +
+> MOCK_GIT_REFUSALS=getChanges — the typed-face legs). Launchers
+> /tmp/p40/relay-g{1,2,3,4}.sh; stored endpoints survived every swap (no re-pairing).
+> APK md5 verified == HEAD on-device → install SKIPPED. logcat fresh `-T 1` →
+> /tmp/p40/logcat.log. Receipts: shots /tmp/p40/shots/ s00–s30, AX dumps /tmp/p40/w/
+> (w0–w57 + c_*), relay logs /tmp/p40/relay-g{1,2,3,4}.log, disk pulls
+> /tmp/p40/db/preferences{,2,3,4,5}.pb (the F-P40-B arbiter).
+
+## AQ.A0 — rig learnings
+
+1. **Relay launcher arms AFTER the `exec` line arm NOTHING** (gen3 written by
+   appending exports to the tail — the ps-eww env check caught only MOCK_GIT): the
+   canonical build re-emits the exports at the file TOP before the exec line. The
+   gen1 "admissibility probe" (pre-fix jar) was redundant — the jar always carries
+   the arms; the launcher decides.
+2. **Compose TextField text is invisible to uiautomator when the sheet reflows**
+   (the branch-name field typed "rigp40" twice because the first dump showed the
+   stale placeholder — the screenshot was the arbiter; pass-39's IME-lag note
+   generalized: dump bounds AND text both lag the IME reflow on sheets).
+3. **Dialog dump-bounds trap did not re-bit** (DiscardConfirm + PushConfirm + the
+   rename AlertDialog all drove from SCREENSHOT-derived bounds; the bottom-sheet
+   dumps were true pre-IME).
+4. `input text` per-char remains the recipe; "DISCARD" (uppercase per-char) landed
+   clean into the typed-confirm gate.
+5. **FLAG_SECURE black-captures persist across screens** — the pass's own
+   screenshot-protection discriminator toggle (F-P40-B's Settings-write control)
+   blacked every capture until reverted; screenshot the toggle's effect before
+   moving on.
+
+## AQ.B — Leg A: the git sheet's write tier + Branches (gen2, first series)
+
+Route: conversation → Context sheet chip row → Git. The sheet's HEAD shape
+receipted first-series (s05): read-only badge, Checkpoints/Snapshot tabs (K-small-1's
+empty state), branch block "main / tracking: origin/main" + the G53 comparison
+("main -> origin/main / 2 changed file(s) vs the tracking branch" + per-file
++42−0/+3−7), the ADR-021 Tier-B write-actions row (**Commit… / Branches…**), Changes
+(Unstaged (2) / Untracked / Staged (1) with per-row Stage/Unstage/Discard), History
+(the fixture graph rows). Every leg wire-receipted on app logcat
+(`channel.call :: git.<verb> begin → ok`):
+
+- **Switch to feature/a** (`git.switchBranch ok` 22:16): the BranchSheet closed,
+  a "Switched" snackbar fired (transient), and the branch list re-open is HONEST
+  (✓ moved to feature/a, main now offers Switch — getLocalBranches re-reads at
+  open, GitScreen:332). **But the git PANE re-fetched NOTHING** — branch block,
+  comparison, Changes, History all stay at pre-switch "main" data until the
+  screen is left and re-entered (s07); the re-entry heals (fresh
+  LaunchedEffect(Unit) fetch: branch block "rigp40", the context sheet's git
+  strip "rigp40 clean" on re-composition, s12/s13). **NEW ROW F-P40-A (P3)** —
+  the write acks (switch AND create — same handler shape) trigger no
+  summary/comparison/changes re-read; the commit handler by contrast calls
+  fetchChanges() on success (GitScreen:470) — the asymmetry is the fix shape
+  (a shared refetch() on every write ack).
+- **Create & switch "rigp40"** (`git.createBranchAndSwitch ok` 22:19): same
+  staleness; re-entry heals. The RIG-5 mutation contract re-receipted live (the
+  mock's served summary/list follow the switch).
+- **Stage version.ts** (`git.stagePaths ok` 22:23): the row MOVED tabs —
+  Unstaged (2)→(1), Staged (1)→(2) (s14) — **the mock fix's visible face**
+  (until `baa3f216` the ack mutated lists getChanges never read: the recorded
+  ack-without-mutate class on the git plane; debt #25 opened+closed in-pass).
+- **Discard probe.txt**: the typed-confirm gate (DiscardConfirm dialog: "Discard
+  ALL changes in 1 file(s)? This DESTROYS uncommitted work irreversibly. / Type
+  DISCARD to confirm" — the button enables only on the exact word, s15/s16) →
+  `git.discardPaths ok` 22:25 → the row GONE (Untracked section gone entirely).
+- **Generate** (`git.generateCommitMessage ok` 22:27): the mock's typed
+  conventional message lands in the field VERBATIM incl. the multiline body
+  (s19; the uiautomator dump misses wrapped text nodes — screenshot arbiter).
+- **Commit** with "Commit & push" on (`git.commit ok` 22:28): the mock consumed
+  the staged rows → the post-commit fetchChanges() shows the Changes section
+  EMPTY (the shrink receipted, s21) + the **PushConfirm dialog** ("Push branch
+  rigp40? The desktop runs git push — publishing cannot be undone from the
+  phone.", s20) → **Push** (`git.push ok` 22:28). The F-P10-A silent-no-op did
+  NOT reproduce on the rig (the activeWorkspaceTarget resolves here); its
+  null-target path remains the open row.
+- Mock-fidelity wrinkles noted (NOT app rows): History does not gain the
+  committed row (script.gitCommits static); the summary stays isDirty=false
+  ahead=0 through the commit; the comparison fixture is branch-invariant.
+
+## AQ.C — Leg B: the workspace Manage sheet (Part AP's leftover) → NEW ROW F-P40-B (P2)
+
+The Manage sheet render receipted (s22: "Workspaces / Tap to switch. Reorder or
+rename locally — the desktop keeps the originals." + the /synthetic/ws-one row +
+Rename / Move up / Move down). Then the legs:
+
+- **Rename ×2**: the dialog's field is EMPTY by design (it seeds the ALIAS, not
+  the label — correct model; pre-filling the label would freeze it as an alias).
+  Typed "Rig1" (s24: text="Rig1" in the dump), Save → the dialog closes → **the
+  sheet row, the chips, and the section headers ALL still render "Synthetic
+  One"** (s25/s26) — zero wire, zero UI.
+- **The DISK ARBITER**: `no_backup/datastore/preferences.pb` pulled 5× — mtime
+  FROZEN at 21:05 (the pass-39 process's last write) through both rename Saves
+  AND the chip-switch probe (22:36); byte-compare identical (77 B, no
+  workspaceAliases map, no selectedWorkspaceKey, ever).
+- **The DISCRIMINATOR**: the Settings screens' pref writes on the SAME build +
+  SAME process DO land — the Screenshot-protection toggle flipped byte 13 in the
+  pb at 22:39 (and back at 22:44) — so the dead path is scoped to
+  **ZCodeApp.kt:742-755's three `startScope.launch { preferencesRepository.update
+  {…} }` callbacks** (select :742 / reorder :745 / rename :748) feeding G41's
+  workspaceOrder/workspaceAliases/selectedWorkspaceKey. The wiring above them is
+  proven correct: WorkspaceManagerSheet's Save → onRename → TaskListScreen:500 →
+  the ZCodeApp lambda; the sheet only renders when the callbacks are non-null
+  (TaskListScreen:493). No app exception, no wedged DataStore (the 22:39 Settings
+  write went through), no UI echo — **the launches never execute their bodies**.
+  A later byte-identical rewrite at 22:42 (during the Manage-row tap sequence)
+  leaves the micro-cause open (cancelled-scope vs dropped-transform — a fix-round
+  harness decides). **NEW ROW F-P40-B (P2)** — the whole workspace-manager
+  persistence plane silently loses every mutation (G41's "persisted" contract
+  dead); F-P10-A's silent family on a second plane. Pins: a Robolectric harness
+  asserting preferences.pb gains workspaceAliases after onWorkspaceRenamed + the
+  chip recomposing under the alias.
+- The **reorder arrows** are structurally undrivable on this rig (one workspace —
+  both arrows `enabled=false`); the **row-tap switch** dismissed the sheet +
+  produced the 22:42 mystery write (no field change) — recorded inside F-P40-B's
+  receipt.
+
+## AQ.D — Leg C: the workspace-tool screens' functional census (first series)
+
+All six read-only planes driven from Settings (Skills / MCP servers / Subagents /
+Providers / Bots / Commands): each renders CURRENT seeded data with the honest
+read-only posture copy, and the rows are **non-clickable by construction**
+(Skills screen: ZERO clickable=true nodes) — taps land on inert pixels, no dead
+affordances. Receipts: Skills (search field + release/sql-migrate/commit +
+plugin·prisma-toolkit, source badges); MCP servers (docs-search Disabled /
+github stdio·modern·12 tools Connected / playwright Failed + the TYPED error
+face: "Failed to connect to the MCP server. Try again later." + Suggested steps
++ "ECONNREFUSED 127.0.0.1:9222" + connection_failed — the old-campaign face
+re-receipted); Subagents (Explore/Plan built-in On + docs-writer project Off);
+Providers (Z.AI Default glm-5.1 + glm-5.1-air + **glm-5.1-flash Preview** + a
+second **OPENAI-COMPATIBLE glm-4.6** — richer than pass 10's a11y census);
+Bots (**bot-telegram-1** task-bound to synth-task-1 + **bot-discord-1 draft ·
+off** on /synthetic/ws-two — two bots, the draft state first-series); Commands
+(/deploy user + /acme:review plugin with args hints + the posture copy). Wire:
+6 list-fetch channel calls during the census; every screen's depth axis
+(detail viewers, enable toggles, authoring) lives desktop-side → **NEW ROW
+G103 (P4)** — the read-only catalog planes have no detail/depth consume (the
+G91/G82 viewer-family shape), with the census-update notes above.
+
+## AQ.E — gen4: the typed faces → NEW ROW F-P40-C (P3) + F-P5-A stamp 2
+
+- **MOCK_GIT_BRANCH_ISSUE** (`{"code":"switch-conflict","message":"Switching
+  branches would overwrite uncommitted changes.","detail":"src/version.ts",
+  "paths":["src/version.ts"]}`): Switch → `git.switchBranch ok` (the desktop-
+  faithful SUCCESS-with-issues ack, didChange=false, no mutation) → **NOTHING
+  renders** (s29: the pane looks exactly like the healthy state). Mechanism —
+  three stacked kills: GitScreen:517 closes the BranchSheet BEFORE the async
+  result lands; the close fires onDismiss (:515) which sets
+  `gitBranchIssue = null`; and the only render target is
+  `IssueLine` INSIDE the closed sheet (GitWriteSheets:218). A re-open renders
+  nothing either (the state was already nulled). **NEW ROW F-P40-C (P3)** — the
+  refused switch is INDISTINGUISHABLE from success; the F-P0-C silent family on
+  the branch plane. Compounding nuance: IssueLine renders the LOCALIZED line by
+  code (8 known codes + branch_issue_unknown) and lists paths — the wire's
+  `message`/`detail` are decoded but never rendered (the "detail copyable" doc
+  comment is unimplemented), so even a fixed face needs the message half. Fix
+  shape: keep the sheet open on issues (close only on ok) or render the issue
+  card pane-level; render message/detail.
+- **MOCK_GIT_REFUSALS=getChanges=fault.git.notAvailable** (fresh process):
+  `git.getChanges begin → refused: fault.git.notAvailable` ×2 (both tabs,
+  22:55) → the Changes section renders **header → EMPTY → straight to History**
+  (s30) — no error, no Retry. Mechanism pinned: the render site EXISTS
+  (GitScreen:204 `ui.changesError?.let` + git_changes_error/git_changes_retry)
+  but the PORT swallows the refusal first — Phase9Ports.kt:124
+  `changes(...) = run("git.changes") {...} ?: emptyList()` (the Channel-refusal
+  wrapper maps ANY failure to null) — so fetchChanges's
+  `exceptionOrNull()`-based error plumbing never sees a throw and
+  changesError stays null. **F-P5-A stamp 2** (the pass-5 row's exact shape —
+  "refused git reads render SILENT-EMPTY sections" — now on the live Changes
+  tab with the render-site/port mismatch pinned; the fix belongs to the
+  port/loader boundary).
+
+## AQ.L — ledger arithmetic + coverage honesty
+
+THREE new F rows (F-P40-A, F-P40-B, F-P40-C), TWO new smalls (N-BX-1, N-BY-1),
+ONE new G row (G103). Open counts: **37 F (35 defects + 2 obs) + 23 G + 3
+standing + 22 smalls (+1 watch +1 rig)**. Stamps: F-P5-A ×2, F-P38-A ×4 (the
+ghost re-manifested on the pass's first boot dump, s00: two "Synthetic One"
+sections), F-P10-A noted (not reproduced on-rig; row unchanged). Mock debts:
+#25 (the git write-tier visibility) opened+closed in-pass (`baa3f216`);
+0 open work-debts. gateway.drop: 0; zero app FATALs. Wire census: 5 relay
+generations (two discarded: the pre-fix-jar probe + the after-exec arming
+mistake); git verbs receipted on app logcat (getRepositorySummary/getChanges/
+getCommitGraph/getBranchComparison/getLocalBranches/switchBranch/
+createBranchAndSwitch/stagePaths/discardPaths/generateCommitMessage/commit/
+push + the gen1-era notAvailable faults); skills/commands/bots/providers/
+subagents/mcp list fetches on the census.
+
+What pass 40 did NOT drive: the Unstage button (same handler lambda as Stage —
+GitScreen:355-363 — stage receipted both directions of the SECTION move but the
+unstage wire verb itself was not isolated); MOCK_GIT_PUSH_FAIL (armed,
+undriven — the push-fail face needs its own leg); the branch_issue copy map's
+8 known codes (the face never rendered — F-P40-C's fix gates it); the reorder
+arrows (structurally disabled at one workspace — a second-workspace mock seed
+would unblock); the Manage-row switch's in-memory filter face; TalkBack runtime
+(standing stop); the branch-issue `detail copyable` affordance (unimplemented,
+part of F-P40-C's fix).
+
+## Pass-40 verification stamp
+
+Pass 40 completed 2026-11-16 ~23:05; FIVE relay generations (gen1
+`mock-p40-gen1-8e1f72` 22:09→22:12, gen2 `mock-p40-gen2-0e1dc7` 22:12→22:48,
+gen3 `mock-p40-gen3-40c95d` 22:48→22:50 (arms-after-exec, inert — discarded),
+gen4 `mock-p40-gen4-fa8e87` 22:50→23:05; launchers /tmp/p40/relay-g{1,2,3,4}.sh).
+Mock: ONE commit `baa3f216` (suite 254/0/0). App: ZERO changes — `install -r`
+SKIPPED on byte-identity (local == on-device md5 `530ba4ff…`, sha256 `ad449d7d…`,
+vc53/1.3.2 at HEAD `682c63b9` + the mock commit). Receipts: shots /tmp/p40/shots/
+(s00 boot+ghost; s03/s05 git sheet; s06 branches sheet; s07/s08 switch+flip;
+s09-s11 create; s12/s13 re-entry heal; s14 stage-moved; s15/s16 discard gate;
+s17-s21 commit/push chain; s22-s26 manage/rename; s29 typed-issue swallow;
+s30 changes-refusal); AX dumps /tmp/p40/w/ (w0-w57 + c_skills/c_mcp/c_sub/
+c_prov/c_bots/c_cmd); relay logs /tmp/p40/relay-g{1,2,3,4}.log; disk pulls
+/tmp/p40/db/preferences{,2,3,4,5}.pb (the F-P40-B arbiter + the Settings-write
+discriminator bytes); logcat /tmp/p40/logcat.log (channel.call corpus;
+gateway.drop 0; zero FATALs). Desktop 3.18.1 / `ec475e6e…` unchanged (STEP 0).
+**Rig left:** emulator zcode-a16 UP (healthy, wifi ENABLED, screenshot
+protection OFF — the discriminator toggle REVERTED at 22:44), relay gen4 ALIVE
+(nonce `mock-p40-gen4-fa8e87`, arms MOCK_GIT=1 + MOCK_GIT_BRANCH_ISSUE
+(STICKY typed-issue: every switch/create will ack with issues until an
+inheritor pkills and relaunches) + MOCK_GIT_REFUSALS=getChanges (STICKY
+refusal: the Changes tabs will fault), MOCK_TASKMGMT=1), app pid 1838 inside
+synth-task-1's git sheet (post-refusal state), logcat running →
+/tmp/p40/logcat.log.

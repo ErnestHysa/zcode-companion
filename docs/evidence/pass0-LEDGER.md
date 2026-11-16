@@ -90,46 +90,67 @@ P2-first, exit gates, per-row Accept criteria).
 > gen), the color-dot flip ×2, the archived UNAVAILABLE face, and the unread CAS
 > (arg on the wire + the refusal face on new arms) — opening **F-P39-A** (the
 > move-sheet New-group path drops the pending move) and **N-BW-1** (the timeline
-> collapse sentinel never survives a restart).
+> collapse sentinel never survives a restart). **Pass 40 (Part AQ, 2026-11-16
+> ~23:05) drove the git sheet's WRITE TIER + Branches plane END-TO-END (first
+> series for every verb: switch/create/stage/discard/generate/commit/push, all
+> wire-receipted against the NEW mock write-mutation arm `baa3f216`) + the
+> workspace Manage sheet's leftover legs + the six read-only tool screens'
+> functional census — opening **F-P40-B** (P2: the workspace-manager persistence
+> TRIO is a silent no-op — preferences.pb byte-frozen while a Settings write
+> lands on the same process), **F-P40-A** (P3: the switch/create acks re-fetch
+> NOTHING in-place), **F-P40-C** (P3: the typed branch-issue ack is swallowed —
+> sheet closes pre-result, onDismiss nulls the issue), **N-BX-1** (the
+> JsonNull-blind decode renders "tracking: null"), **N-BY-1** (the Stage/Discard
+> a11y labels carry the raw "%1$s"), **G103** (the catalog planes'
+> detail-depth gap), **F-P5-A stamp 2** (the refused getChanges renders
+> silent-empty Changes — the render site is dead-coded behind the port's
+> null-swallow), and **F-P38-A stamp 4** (the ghost on the first boot dump).
 
 - Report: `docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md` —
   Parts A–Z + AA + AB + AC + AD + AE + AF + AG + AH + AI + AJ + AK + AL + AM + AN +
-  AO + AP = passes 0–39. **Latest: pass 39 (Part AP, 2026-11-16 ~21:45).**
-- Repo HEAD at pass start: `3773add3` (pass 38's docs commit; main); pass 39 added
-  THREE mock commits `45b481f9` (MOCK_ARCHIVED_FAULT + MOCK_UNREAD_CAS arms + the
-  wire-arg log), `f6213c82` (p39-mock-created-label), `49e7dceb` (the force mode;
-  mock suite **248/0/0**) + the docs commit. App: ZERO commits. APK of record:
-  sha256 `ad449d7d…` / md5 `530ba4ff…`, versionCode 53 / 1.3.2 (byte-identical
-  across the whole series; install SKIPPED again).
+  AO + AP + AQ = passes 0–40. **Latest: pass 40 (Part AQ, 2026-11-16 ~23:05).**
+- Repo HEAD at pass start: `682c63b9` (pass 39's docs commit; main); pass 40 added
+  ONE mock commit `baa3f216` (p40-mock-git-write-mutation: servedGitChanges() +
+  the commit consumption + MOCK_GIT_BRANCH_ISSUE / MOCK_GIT_PUSH_FAIL arms;
+  MockZCodePass40GitWriteSelfTest 6/6; mock suite **254/0/0**) + the docs commit.
+  App: ZERO commits. APK of record: sha256 `ad449d7d…` / md5 `530ba4ff…`,
+  versionCode 53 / 1.3.2 (byte-identical across the whole series; install SKIPPED
+  again).
 - Desktop of record: **/Applications/ZCode.app 3.18.1.10376, asar sha256 `ec475e6e…`,
   383,832,025 B** (re-verified at pass-39 STEP 0 — UNCHANGED, no DELTA). Pass-38
   census: the zcode-task method table extracted exact (AO.L) — every task verb
   EXCEPT the six group verbs survive; the group plane moved to the task-groups
   channel (read/save/ungroup/move/admit); the desktop GAINED its own task-row
   management menu (mutateTask routing) — pass 8's no-menu census line stale.
-- Open rows: **34 F (32 defects + 2 obs) + 22 G + 3 standing + 20 smalls (+1 watch
-  +1 rig)** — pass 39 opened F-P39-A (P3, the move-sheet New-group path drops the
-  pending move) and N-BW-1 (P4, the timeline collapse sentinel never survives a
-  restart); stamps F-P38-A ×3, F-P38-B ×2, N-BV-1 ×2, N-BU-1 ×2; the AO.K
-  createSession sendLost WATCH RESOLVED (round-trips on a fresh gen — pass 8's
-  receipt re-confirmed).
-- Backlog: **8/8 DONE**; the discovery surface stays empty — pass 39's axis was
-  Part AO.N's full "did NOT drive" list, all eight items adjudicated live. What
-  remains is standing stops + F-P3-A-gated planes + fix-round items. **The
-  mock-debt list has 0 open work-debts** (#24 opened+closed in-pass).
-- Rig left by pass 39: emulator `zcode-a16` UP (SIXTEENTH consecutive inherited
-  survival; healthy, wifi ENABLED, screenshot protection OFF persisted), relay
-  gen4 ALIVE (nonce `mock-p39-gen4-71c9e3`, arms MOCK_TASKMGMT=1 +
-  **⚠ MOCK_UNREAD_CAS=force — a STICKY refusal arm: every mark-read faults
-  fault.unread.stale until an inheritor pkills and relaunches with clean/other
-  arms**), app pid 30523 on the tasks home (post-expand-all state), logcat
-  running → /tmp/p39/logcat.log. Launchers /tmp/p39/relay-g{1,2,3,4}.sh. New rig
-  learnings in Part AP.A0: force-stop → immediate `am start` can silently no-op
-  (use `am start -W`); bottom-sheet dumps true pre-IME but the IME reflow lags the
-  dump — wait for the keyboard before dumping; the color-chip flip works when the
-  chips are tapped BEFORE the name field (no IME reflow); `input text` mangled both
-  ends in one call ("pp39-c"); cold-start chip taps misdirect into the
-  connection-info screen — dump first after every relaunch.
+- Open rows: **37 F (35 defects + 2 obs) + 23 G + 3 standing + 22 smalls (+1 watch
+  +1 rig)** — pass 40 opened F-P40-B (P2, the workspace-manager persistence trio
+  is a silent no-op), F-P40-A (P3, the switch/create acks re-fetch nothing
+  in-place), F-P40-C (P3, the typed branch-issue ack is swallowed), N-BX-1
+  (P4, "tracking: null"), N-BY-1 (P4, the raw "%1$s" a11y labels), and G103
+  (P4, the catalog planes' detail-depth gap); stamps F-P5-A ×2, F-P38-A ×4;
+  the desktop of record UNCHANGED (no DELTA).
+- Backlog: **8/8 DONE**; the discovery surface stays empty — pass 40's axis was
+  Part AP's "did NOT drive" driveables (the Manage-sheet legs + sort-difference)
+  + a fresh recon on the git sheet's Tier-B write row / BranchSheet / the
+  read-only tool screens' functional depth (surfaces receipted as renders in
+  passes 5/10, never DRIVEN). What remains is standing stops + F-P3-A-gated
+  planes + fix-round items. **The mock-debt list has 0 open work-debts** (#25
+  opened+closed in-pass).
+- Rig left by pass 40: emulator `zcode-a16` UP (SEVENTEENTH consecutive inherited
+  survival; healthy, wifi ENABLED, screenshot protection OFF — the pass's own
+  discriminator toggle REVERTED at 22:44), relay gen4 ALIVE (nonce
+  `mock-p40-gen4-fa8e87`, arms MOCK_GIT=1 + **⚠ STICKY: MOCK_GIT_BRANCH_ISSUE
+  (every switch/create acks with issues until an inheritor pkills) +
+  MOCK_GIT_REFUSALS=getChanges=fault.git.notAvailable (the Changes tabs will
+  fault)**, MOCK_TASKMGMT=1), app pid 1838 inside synth-task-1's git sheet
+  (post-refusal state), logcat running → /tmp/p40/logcat.log. Launchers
+  /tmp/p40/relay-g{1,2,3,4}.sh. New rig learnings in Part AQ.A0: relay-launcher
+  arms AFTER the exec line arm NOTHING (gen3 discarded — re-emit exports at the
+  file TOP); Compose TextField text is invisible to uiautomator when the sheet
+  reflows (screenshot arbiter); dialog dump-bounds trap did not re-bit (all
+  three dialogs drove from screenshot bounds); per-char input text remains the
+  recipe ("DISCARD" landed clean); FLAG_SECURE black-captures persist across
+  screens until reverted.
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -147,8 +168,11 @@ bodies after 3.14.3 — the census IS the changelog.
 
 | ID | P | Status | Mechanism (one line) | Fix shape | Depends on | Evidence | Stamps |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| F-P40-B | 2 | OPEN (NEW pass 40) | the workspace-manager persistence TRIO (rename alias / reorder / selected-workspace persist) is a SILENT NO-OP at HEAD: Manage sheet → Rename → "Rig1" → Save (×2) and the chip-switch probe close their dialogs and mutate NOTHING — zero wire, zero UI echo (chips/headers/sheet all stay "Synthetic One"), and `no_backup/datastore/preferences.pb` byte-identical with mtime FROZEN at the previous pass's boot (77 B, no workspaceAliases map / no selectedWorkspaceKey, EVER), while a Settings-screen pref write on the SAME build+process lands (screenshot-protection byte-13 flip 22:39 + revert 22:44) — scoping the dead path to ZCodeApp.kt:742-755's three `startScope.launch { preferencesRepository.update {…} }` callbacks (G41's workspaceOrder/workspaceAliases/selectedWorkspaceKey); the wiring above them is proven (sheet Save → TaskListScreen:500 → the lambda; the sheet only renders when the callbacks are non-null); no crash, no wedged DataStore — the launches never execute their bodies (a 22:42 byte-identical rewrite during the row-tap sequence leaves micro-cause open: cancelled scope vs dropped transform — fix-round harness decides); F-P10-A's silent family on the workspace plane | move the writes off the composition-captured scope (app-level scope) + a rename-echo receipt; pin: a Robolectric harness asserting preferences.pb gains workspaceAliases after onWorkspaceRenamed + the chip recomposing under the alias | — | Part AQ.C (s22-s26, preferences{,2,3,4,5}.pb) | 1 |
+| F-P40-A | 3 | OPEN (NEW pass 40) | the BranchSheet's switch/create WRITE ACKS re-fetch NOTHING in-place: `git.switchBranch ok`/`git.createBranchAndSwitch ok` fire (22:16/22:19) and the git PANE keeps rendering pre-switch data (branch block "main", comparison, Changes, History) until the screen is left and re-entered (the fresh LaunchedEffect(Unit) fetch heals: "rigp40" + the context-sheet git strip "rigp40 clean") — the BranchSheet itself re-reads localBranches at open (GitScreen:332) so the ✓ moves correctly, but the pane's summary/comparison/changes have no re-read on write acks; the commit handler by contrast calls fetchChanges() on success (GitScreen:470) — the asymmetry IS the fix shape (a shared refetch() on every write ack); the stale-viewport family (F-P38-A) on the git plane | fetchChanges() + a summary/comparison re-read on switch/create acks; pin: a compose test asserting the branch block flips after a stubbed ok ack without re-entry | — | Part AQ.B (s07/s12/s13) | 1 |
+| F-P40-C | 3 | OPEN (NEW pass 40) | the branch TYPED-ISSUE ack is swallowed — a refused switch is indistinguishable from success: MOCK_GIT_BRANCH_ISSUE's desktop-faithful SUCCESS-with-issues ack (code/message/detail/paths, didChange=false) arrives (`git.switchBranch ok`) and NOTHING renders (the pane looks healthy, s29) — three stacked kills: GitScreen:517 closes the BranchSheet BEFORE the async result; the close fires onDismiss (:515) which sets `gitBranchIssue = null`; and the only render target is IssueLine INSIDE the closed sheet (GitWriteSheets:218) — a re-open shows nothing (already nulled); compounding: IssueLine renders the LOCALIZED line by code (8 known codes + branch_issue_unknown) and paths only — the wire's message/detail are decoded but never rendered (the "detail copyable" doc is unimplemented); the F-P0-C silent family on the branch plane | keep the sheet open on issues (close only on ok) or render the issue card pane-level; render message/detail (+ the copy affordance the doc promises); pin: a harness asserting the issue face renders at ack time with the message text | — | Part AQ.E (s29) | 1 |
 | F-P39-A | 3 | OPEN (NEW pass 39) | the move sheet's "New group…" path silently DROPS the pending move: the sheet's New-group item clears `moveFor = null` BEFORE opening the editor (TaskListScreen.kt:823), and the editor's onCreate wires ONLY `onCreateGroup` (:834) → `TasksViewModel.createGroup` (:425-435) = createTaskGroup + loadGroups + the "Group created" success notice — the user's flow "Move to group… → New group… → create" ends with the task UNMOVED (zero `applyGroupedTaskViewOrder` in the whole pass log; a11y + DB task-2 still loose) and the new group INVISIBLE (the N-BV-1 empty-group skip) while a SUCCESS notice fires — the F-P10-A silent-no-op family on the move plane, worse for the success notice contradicting the outcome; receipted live: "shgrp" created ok (channel.call 21:19:13) → no move wire → no header | carry moveFor through the editor (create → move to the created group — the desktop companion's create-then-admit shape per G102) or re-open the sheet with the new group preselected; fold in the G102 move-copy fix; pin: a compose test opening the move sheet → New group → create → asserting the move wire fires and the row renders under the group | — | Part AP.E | 1 |
-| F-P38-A | 3 | OPEN (NEW pass 38) | the task home renders STALE WORKSPACE-KEY SECTIONS forever: the "All" view enumerates every workspace key ever synced for the endpoint (`observeAllTasks` endpoint-scoped → client-side grouping; Daos.kt:20-21, TaskRepositoryImpl.kt:48-50) while the full-snapshot replace + the TTL/cap sweep are KEY-scoped (`replaceAll`/`evictAndSweep` take the workspace key; `staleTtlMs` defaults Long.MAX_VALUE; TaskRepositoryImpl.kt:52-93) — a workspace whose key stops being served (renamed/moved/spelling-drifted) leaves a ghost section with its last-synced rows presented as live; receipted: TWO "Synthetic One" sections (the live `/synthetic/ws-one` + the ghost `synthetic-ws-one` from a pre-pass-37-era spelling), the ghost row (a duplicate of the live pinned synth-task-1 minus its flags) frozen at its last sync across relay swaps + app restarts (DB: updatedAtMs untouched since ~14:36 vs the live key's 16:06 refresh; /tmp/p38/db/zcode.db), and the ghost rows are OPENABLE (the tap opened the live task's conversation, Part AO.J) | prune endpoint-scoped keys absent from the connect snapshot (or an across-keys TTL sweep); pin: a repo harness — replaceAll(keyA) then serve only keyB → keyA's rows/section age out | — | Part AO.C, AO.J | 3 (pass 39: re-manifested on gen1 s00/w1 AND gen4 s24 "7 h ago" across four relay swaps; NEW mitigation receipted — the workspace CHIP filter hides the ghost (the filter drops the dead key, s01) so the surface is All-view-only, Part AP.B) |
+| F-P38-A | 3 | OPEN (NEW pass 38) | the task home renders STALE WORKSPACE-KEY SECTIONS forever: the "All" view enumerates every workspace key ever synced for the endpoint (`observeAllTasks` endpoint-scoped → client-side grouping; Daos.kt:20-21, TaskRepositoryImpl.kt:48-50) while the full-snapshot replace + the TTL/cap sweep are KEY-scoped (`replaceAll`/`evictAndSweep` take the workspace key; `staleTtlMs` defaults Long.MAX_VALUE; TaskRepositoryImpl.kt:52-93) — a workspace whose key stops being served (renamed/moved/spelling-drifted) leaves a ghost section with its last-synced rows presented as live; receipted: TWO "Synthetic One" sections (the live `/synthetic/ws-one` + the ghost `synthetic-ws-one` from a pre-pass-37-era spelling), the ghost row (a duplicate of the live pinned synth-task-1 minus its flags) frozen at its last sync across relay swaps + app restarts (DB: updatedAtMs untouched since ~14:36 vs the live key's 16:06 refresh; /tmp/p38/db/zcode.db), and the ghost rows are OPENABLE (the tap opened the live task's conversation, Part AO.J) | prune endpoint-scoped keys absent from the connect snapshot (or an across-keys TTL sweep); pin: a repo harness — replaceAll(keyA) then serve only keyB → keyA's rows/section age out | — | Part AO.C, AO.J | 4 (pass 39: re-manifested on gen1 s00/w1 AND gen4 s24 "7 h ago" across four relay swaps; NEW mitigation receipted — the workspace CHIP filter hides the ghost (the filter drops the dead key, s01) so the surface is All-view-only, Part AP.B; pass 40: re-manifested on the pass's FIRST boot dump s00 — two "Synthetic One" sections again, Part AQ rig-left) |
 | F-P38-B | 3 | OPEN (NEW pass 38) | the custom-GROUP sections never load on a fresh open: the one-shot `LaunchedEffect(Unit) { onLoadGroups() }` (TaskListScreen.kt:195) races the transport connect — `port.listGroupedView()`'s guarded() returns null pre-connect and `?: emptyList()` (TasksViewModel.kt:422) swallows it; neither the CONNECTED transition nor anything else re-triggers, so the home renders ZERO custom-group sections for the whole session until a task action fires refresh(); receipted live: gen3's seeded "Backend" group invisible the entire session (s14: no header visually; ZERO `listGroupedTaskViewStructure` on the wire for the session's pid — the census grep returned 0) while the same session's move sheet (post-action loadGroups) listed both groups — the decode works, the cold-open fetch is the only lost one | re-run loadGroups on the CONNECTED transition (or retry-on-null in the VM); the same silent-empty family (F-P0-C); pin: a compose test composing the screen pre-connect then flipping CONNECTED asserts the groups fetch fires | — | Part AO.J intro, AO.N | 2 (pass 39: gen1's cold open LOST again (s00/w1 no header) and the Backend header appeared after a Settings round-trip re-composition (w5) — both halves of the race in one generation; gen4's cold open WON (header in the first post-boot dump) — the intermittency confirmed, Part AP.K) |
 | F-P33-A | 3 | OPEN (NEW pass 33) | the generated-artifact preview card's Open affordance is DEAD at HEAD and SILENT in both failure stages: stage-2 — the download SUCCEEDS (FilesPort writes `File(cacheDir, "downloads")`, AppContainer.kt:258) but the FileProvider config `app/src/main/res/xml/file_paths.xml` declares ONLY `shared/` + `updates/` cache-paths, so `getUriForFile` throws IllegalArgumentException ("Failed to find configured root that contains …/cache/downloads/rig-p33-report.html", receipted live) and `ZCodeApp.kt:1130-1132`'s else branch is LOG-ONLY (G57's typed no-viewer notice matches only ActivityNotFoundException-class, never this IAE); stage-1 — an unserved ref faults `fault.file.notFound` at readFileRange → `filesport.download :: TransportFailure` → the download-null branch `ZCodeApp.kt:1110-1113` also LOG-ONLY (receipted live on the gen2 arm); the card renders, the button fires, the wire works, and the user gets NOTHING — the F-P0-C silent family on the preview-card plane; never live-driven in either campaign (zero artifact-open receipts in the pass0 series; the I2.8/G28/G57 static pins covered render + no-viewer fallback, not the handoff) | add `<cache-path name="downloads" path="downloads/" />` to file_paths.xml (stage-2, one line) + a typed notice on the download-null branch (stage-1, the N-BR-1/N-BS-1 notice plane); pins: a Robolectric getUriForFile harness over a cache/downloads file + a harness asserting the typed notice on result==null; re-drive the SUCCESS face (system-viewer chooser) after the fix | — | Part AJ.G | 1 (+pass-34 STATIC mechanism extension: the same root covers the NON-IMAGE attachment chip's external open — `fetchAttachment` writes `attachmentCacheDir = File(cacheDir, "attachments")` (AppContainer.kt:227) also absent from file_paths.xml, the same getUriForFile IAE family via ZCodeApp.kt:1052-1077; the fix shape gains `<cache-path name="attachments" path="attachments/" />`; live chip-tap leg = fix-round, Part AK.H.2) |
 | F-P35-A | 3 | OPEN (NEW pass 35) | the Load-earlier error face is TOP-ANCHORED while the tap affordance is TAIL-ANCHORED — a faulted page fetch gives the user at the tail ZERO visible feedback: the tap affordance is the PINNED strip above the timeline (ConversationScreen.kt:563-581, always visible while hasMoreHistory — the user taps it wherever they are), but the error face renders as a LAZY-LIST ITEM at index 0/1 (`older-error`, ConversationScreen.kt:1127-1138, AttentionStrip "Couldn't load earlier messages" + Retry) — hundreds of rows above the tap point when the timeline is long; receipted live: gen2 fault arm → `port.pageFault :: TransportFailure: fault.rowsRange.rig` in logcat + the screen UNCHANGED at the tap point (s04: strip still "320 of 400", no banner) — the error only renders after ~60 gap-drags to the list top (s05); the F-P0-C silent family on the paging plane (the same geometry stars the `older-loading` face — subsumed by the same fix) | surface the error/retry in the PINNED strip slot (swap the strip's content on loadOlderError, or a second pinned strip / a SendNotice-keyed banner on the N-BR-1 plane); the shared errorUserMessage copy is already clean (errorCategoryMessage's error_task fallback — no raw-code issue, AL.F.3); pins: a compose test with a faulting port loader asserting the error is visible WITHOUT scrolling + the retry from the pinned slot succeeds | — | Part AL.D (s04/s05/s06), AL.E (the retry-success face the fix must preserve) | 1 |
@@ -174,7 +198,7 @@ bodies after 3.14.3 — the census IS the changelog.
 | F-P1-B | 2 | OPEN | stale-generation interactions stay answerable 50+ min and ACK against a moved-on desktop; closeStored sweep misses rows (2 of 5) | expire stored interactions on generation/workspace identity mismatch + mock unknown-id error arm | — | Parts D.A2, E.A2.5 | 5 (pass 13: the gen5a card survived the gen5b snapshot swap and stayed answerable — AND the sibling question row got RESOLVED by the same swap, so the sweep is PARTIAL in both directions; Part P.A5) |
 | F-P3-B | 2 | OPEN | automation "Go to session" NEVER loads its transcript — 4 skeleton rows forever, zero transcript wire calls | openRun must hydrate via **`readSessionMessages` — ALREADY CONSUMED** (ConversationPort.kt:318): wiring only, plus honest empty state | — | Part F.A2, K.B1 (verb found) | 2 (pass 17: re-manifested on the SEEDED run's unscripted session — no subscribe, no transcript wire, skeleton-forever (T.A2, s15b); **NARROWED**: the MANUAL run's workspace session LOADS its transcript via the subscribe snapshot — the skeleton is the unscripted-session shape only) |
 | F-P3-C | 3 | OPEN | inbox ACK's resolution echo DROPPED when conversation unsubscribed (`gateway.drop … no subscription record`) | retain last-N deltas per session / subscribe-on-ACK / optimistic local resolve | — | Part F.A2 | 1 |
-| F-P5-A | 3 | OPEN | refused git reads render SILENT-EMPTY sections (headers, zero rows, no error) — pinned refusal faces don't manifest on the live load path | typed-refusal face on section-empty + pin hosting the LIVE shape | — | Part H.A2 | 1 |
+| F-P5-A | 3 | OPEN | refused git reads render SILENT-EMPTY sections (headers, zero rows, no error) — pinned refusal faces don't manifest on the live load path | typed-refusal face on section-empty + pin hosting the LIVE shape | — | Part H.A2 | 2 (pass 40: the LIVE Changes tab under MOCK_GIT_REFUSALS=getChanges=fault.git.notAvailable — `git.getChanges begin → refused` ×2 (22:55) and the section renders header → EMPTY → straight to History (s30); the render site EXISTS and is dead-coded (GitScreen:204 changesError?.let + git_changes_error/git_changes_retry) because the PORT swallows the refusal first — Phase9Ports.kt:124 `changes(...) = run("git.changes") {...} ?: emptyList()` maps ANY failure to null so fetchChanges's exceptionOrNull plumbing never sees a throw; the fix belongs to the port/loader boundary) |
 | F-P2-B | 3 | OPEN | post-unpair resume card claims "Paired · Connect" from a fakeLink (`PairingViewModel.kt:50-56`) — structurally guaranteed | reduce to a genuine unpaired state (no fakeLink) | — | Part F.A2 (code pin) | 1 |
 | F-P0-C | 3 | OPEN | file viewer renders SILENT BLANK panel on refused read (`FilesScreen.kt:225-237`) — no error, no retry | typed error face + WARN-to-UI | — | Parts A, E.A2.6, F.A2.5 | 3 (0,2,3) |
 | F-P8-D | 3 | OPEN | queue panel has NO collapse affordance (always-expanded; desktop's has one) + header clipped under the sticky strip | two-way header toggle (desktop parity) + strip/header overlap fix | — | Part K.A2 (supersedes Part I's probe) | 4 (pass 18: always-expanded through both queue-strip legs, s08/s09) |
@@ -190,8 +214,10 @@ bodies after 3.14.3 — the census IS the changelog.
 | F-P4-A | 2 | FIXED (rig) | mock push patch structurally excluded its own interaction | `pushPendingPermission` builds from unfiltered list + patch-content pin — commit `2b12fc46`, 37 mock tests green | — | Part G.A2.2, H.A1 | — |
 | N-BK-1 (rig half) | 2 | FIXED (rig) | git fixtures in wrong field vocabulary (blank paths, +0−0, duplicated tabs, oid-vs-hash) | contract vocabulary rewrite — same commit `2b12fc46` | — | Part G.A2.3, H.A1 | — |
 
-**Open F count: 34** (32 defects + 2 observations; pass 39 opened F-P39-A — the
-move-sheet New-group path drops the pending move) ·
+**Open F count: 37** (35 defects + 2 observations; pass 40 opened F-P40-B P2 —
+the workspace-manager persistence trio is a silent no-op — F-P40-A P3 the
+switch/create acks re-fetch nothing, and F-P40-C P3 the typed branch-issue
+ack is swallowed) ·
 FIXED: 2 (both rig) · RETRACTED/REFUTED/ABSORBED: 7.
 
 ## Current fix-order (consolidates K.D + the carried rows; supersedes every report fix-order)
@@ -224,7 +250,14 @@ FIXED: 2 (both rig) · RETRACTED/REFUTED/ABSORBED: 7.
    (wiring-only hydrate) → 14. **F-P3-C** → 15. **F-P7-A / F-P7-B** → 16. **F-P5-A →
    F-P2-B → F-P0-C → F-P8-B → F-P8-F** → 17. **F-P1-B → F-P1-D** → 18. smalls
    (N-BM-1 → N-BP-1 → N-BM-3 → N-BN-1 → N-BK-1 app half → N-BJ-1 → N-BK-2 → N-BL-1 →
-   N-BM-2 → N-BO-1 → N-BP-2 → N-BQ-1 → N-BR-1 → N-BS-1 → N-BT-1 → K-small-1/2) → 19. **F-P19-A + F-P20-A** (passes
+   N-BM-2 → N-BO-1 → N-BP-2 → N-BQ-1 → N-BR-1 → N-BS-1 → N-BT-1 → N-BX-1 → N-BY-1 →
+   K-small-1/2) → 18a. **F-P40-B** (pass 40, P2: the workspace-manager persistence
+       trio is a silent no-op — move the three ZCodeApp.kt:742-755 writes off the
+       composition-captured scope + the preferences.pb pin; small, self-contained,
+       the P2 of the pass-40 batch) → 18b. **F-P40-A + F-P40-C** (pass 40, P3 pair:
+       the git pane's write-ack refetch + the typed branch-issue face — the same
+       GitScreen write-handler surface, one session; F-P40-C gates the 8-code
+       branch_issue copy map) → 19. **F-P19-A + F-P20-A** (passes
    19/20: the held-queue guard family — F-P19-A the sendText CAS-mismatch face
    divergence, F-P20-A the goal payload's trio omission; both small — a typed
    reasonCode branch on the existing SendNotice path / a goal-side gate) →
@@ -258,6 +291,7 @@ FIXED: 2 (both rig) · RETRACTED/REFUTED/ABSORBED: 7.
 | G88 | 4 | OPEN | 22 desktop themes vs phone's 5 (shipped zai pair = true parity) | cosmetic; inventory only | Part G.B5 |
 | G92 | 4 | OPEN | `configOptions` decode-only (select/boolean + current values, one adapter from a phone render) | adapter + render | Part I.2.5 |
 | G102 | 3 | OPEN (NEW pass 38) | WIRE DRIFT — desktop 3.18.1 REMOVED the legacy group verbs from the zcode-task channel: `createTaskGroup`/`renameTaskGroup`/`updateTaskGroupColor`/`deleteTaskGroup`/`listGroupedTaskViewStructure`/`applyGroupedTaskViewOrder` have ZERO byte-hits in the whole bundle (the zcode-task table now serves every OTHER task verb: setTaskPinned/setTaskUnread/deleteTask/renameTask/archiveTask/unarchiveTask/deleteArchivedTask/listArchivedTasks/resumeTask/…); the group plane moved to a dedicated `task-groups` channel exposing read()/save({id?,title?,color?})/ungroup(groupId)/move({node,sourceGroupId,groupId,anchor?})/admit({tasks,placement}) + `state:task-groups` broadcasts (renderer calls read+admit); the vc51 receipts prove 3.14.5 SERVED the legacy verbs live ("zcode-task.applyGroupedTaskViewOrder ok in 67 ms") — the phone's ENTIRE custom-group plane (Phase 5A A3.9) faults unknownMethod against the REAL desktop while working against the mock (which faithfully speaks the legacy protocol); the phone-side drift face includes the misleading "Couldn't move the task — unpin it first if it is pinned" (TasksViewModel.kt:465 — renders for ANY failure) | migrate the phone's group calls to the task-groups channel's read/save/ungroup/move/admit shapes (save unifies create+rename+recolor; move replaces the read-modify-write), or capability-gate the group UI honestly; fold in the move-failure copy fix; pins: the 3.18.1 method-table census (Part AO.L) + a transport-fake harness asserting the phone's group verbs against a task-groups-channel fake | Part AO.L | 1 |
+| G103 | 4 | OPEN (NEW pass 40) | the read-only catalog planes have NO DETAIL/DEPTH consume: all six settings tool screens (Skills / MCP servers / Subagents / Providers / Bots / Commands) render current seeded lists with honest posture copy but the rows are NON-CLICKABLE BY CONSTRUCTION (Skills: ZERO clickable=true nodes) — no skill detail (the desktop opens skill bodies), no MCP server detail beyond the playwright typed-error face, no subagent/bot/provider row detail, no command detail; pass-40 census data: Providers now lists a SECOND provider family (OPENAI-COMPATIBLE glm-4.6) + Preview badges (glm-5.1-flash); Bots lists TWO bots incl. the draft·off state (bot-discord-1 on /synthetic/ws-two); MCP's typed failure face (Suggested steps + ECONNREFUSED + connection_failed) re-receipted | the G91/G82 viewer-family shape: a detail bottom-sheet per plane (tap row → the item's fields read-only); minimum = Skills detail (the highest-value catalog); pin: a compose test asserting a skill row opens a detail sheet with the body text | Part AQ.D | 1 |
 | WATCH-4 | — | STANDING | V2 device-registration/pairing plane shipped on desktop; phone pairing stays V1 — flip is BREAKING (draft PR, human promotes) | AAP BREAKING path | Parts B, D.B2, K.B1 |
 | Settings depth | — | STANDING | 51 settings domains (modelProvider 3,217 keys …); phone covers the conversation/notification/privacy/appearance slice; `workspaceFileSearch`(90)/`dynamicWorkflow`(45) are decode-vs-UI candidates; shortcuts/browser/migration desktop-legit | G92-class candidates flagged | Part J.2.3, B.B3 |
 
@@ -298,7 +332,7 @@ FIXED: 2 (both rig) · RETRACTED/REFUTED/ABSORBED: 7.
   authoring depth (read-only by ADR), git WRITE half (stage/commit/push — read-only
   posture), pluginManagement 17 methods, voice-input service.
 
-**Open G count: 22 + 3 standing** (G60, WATCH-4, settings depth; G93's enum residual closed; G102 opened pass 38 — the group-verb wire drift).
+**Open G count: 23 + 3 standing** (G60, WATCH-4, settings depth; G93's enum residual closed; G102 opened pass 38 — the group-verb wire drift; G103 opened pass 40 — the catalog planes' detail-depth gap).
 
 ## N-rows — smalls
 
@@ -327,17 +361,21 @@ developerDiagnostic through the same `ErrorMapping.taskRejected` chain; Part AH.
 | N-BU-1 | 4 | OPEN (NEW pass 38) | the tasks ACTION NOTICE renders in the STATUS-BAR zone: the lifecycle notice ("Marked read" s04, "Group created" s18, "Moved to group" s19) draws at screen top y≈25 overlapping the status bar/clock — no top-inset on the notice slot (tasks_action_notice); readable but in the OS layer | pad the notice into the inset area (or a snackbar slot); pin: a compose test asserting the notice's bounds start below the status-bar inset | — | Part AO.M | 2 (pass 39: the CAS REFUSAL notice "Couldn't update the task — try again" renders in the same status-bar slot, s24 — the face class covers refusals too, Part AP.J) |
 | N-BV-1 | 4 | OPEN (NEW pass 38) | EMPTY custom groups are AFFORDANCE-LESS: the group sub-section render skips zero-member groups (`byGroup[g.id] ?: return@forEach`, TaskListScreen.kt:1283-1290) so the header — and with it the ONLY Edit (✏️)/Delete affordances — never renders; the orphan group stays in every move sheet forever; receipted live: after move-out the "Rig p38 green-to-blue" header vanished while the move sheet still listed the group (re-move needed to reach Delete) | render empty groups' headers (count 0) or expose delete via the move sheet/overflow; pin: a compose test asserting an empty group is deletable from the list | — | Part AO.J | 2 (pass 39: the freshly created "shgrp" group rendered NO header (empty → skip) — and the strand fed F-P39-A's dropped move, s15-class w21/w22, Part AP.E) |
 | N-BW-1 | 4 | OPEN (NEW pass 39) | collapse-all from the TIMELINE organize NEVER survives a restart: `collapseAll` maps `state.groups`' workspaceKeys (TaskListScreen.kt:331) which in timeline mode is the single sentinel `TIMELINE_GROUP_KEY = "timeline"` (TasksViewModel.kt:70) — the set persists to the file store faithfully, but the restart always lands in WORKSPACE organize (organizeBy is view-local, TasksViewModel.kt:102, BY-DESIGN reset) whose keys are real workspace paths, so the persisted sentinel matches NOTHING and every section renders expanded; receipted: collapse-all (all headers "Tap to expand", 83 nodes) → force-stop → relaunch → "Tap to collapse" everywhere (w24/s17 → w26); the desktop's GAP-14 port contract ("persisted per workspace key so it survives app restart") is defeated by the key mismatch | persist per-mode key namespaces (timeline vs workspace) or translate the sentinel on load; pin: a compose test collapsing in timeline → recomposing in workspace asserting the collapsed faces | — | Part AP.G | 1 |
+| N-BX-1 | 4 | OPEN (NEW pass 40) | the git branch block renders the LITERAL "tracking: null" after a branch switch to an upstream-less branch: `Phase9Tools.strOrNull` (Phase9Tools.kt:471) is JsonNull-BLIND — `(this[key] as? JsonPrimitive)?.content` matches JsonNull (whose content is the STRING "null", non-blank) so the mock's merged-summary `trackingBranchName: JsonNull` decodes to "null" instead of null, and `stringResource(git_tracking, s.trackingBranchName ?: "—")` (GitScreen.kt:253) renders the raw literal; receipted live: post-create-and-switch re-entry branch block "rigp40 / tracking: null" (s13); the codebase's own Phase9Ports.rpStr (:269) HAS the `it !is JsonNull` filter — the two helpers disagree | add the JsonNull filter to Phase9Tools.strOrNull (one line, same shape as Phase9Ports.rpStr); pin: a decode harness over a JsonNull trackingBranchName asserting null | — | Part AQ.B (s13) | 1 |
+| N-BY-1 | 4 | OPEN (NEW pass 40) | the git Changes rows' Stage/Discard/Unstage a11y labels carry the RAW format string: the semantics use `stageCdFmt.replace("%s", path)` (GitScreen.kt:768/:781) but the resources are POSITIONAL — `git_stage_cd` = "Stage %1$s" (strings.xml:73; zh-rCN too) — so `%s` never matches and every TalkBack user hears "Stage %1$s" (dump receipted: content-desc "Stage %1$s" / "Discard %1$s" ×3 rows, w7); the visible labels are fine (plain "Stage") — a11y-only | use `%1$s` in the replace (or positional formatArgs); pin: an a11y assertion on the row's content-desc containing the path | — | Part AQ.B (w7) | 1 |
 | K-small-3 | 4 | WATCH | one-off terminal route pop (unreproduced — watch, don't chase) | Part K.A2 |
 | N-BJ-2 | 4 | REFUTED→FOLDED | unpair IS reachable (Settings bottom, pass 4); fakeLink half folded into F-P2-B | Part G.A2.4 |
 | N-BM-4 | — | RIG | Dictate leg kills the emulator (cause unproven); leg undriven | Part J |
 
-**Open smalls: 20 (+1 watch +1 rig)** — pass 13 added N-BP-1 (P3) and N-BP-2 (P4);
+**Open smalls: 22 (+1 watch +1 rig)** — pass 13 added N-BP-1 (P3) and N-BP-2 (P4);
 pass 22 added N-BQ-1 (P4, the effort stale face's dead branch); pass 28 added
 N-BR-1 (P4, the stale offline-attachment notice); pass 30 added N-BS-1 (P4, the
 mixed-state send's silent exclusion); pass 37 added N-BT-1 (P4, the stale
 row-action banner's switch copy); pass 38 added N-BU-1 (P4, the status-bar-clipped
 action notice) and N-BV-1 (P4, the affordance-less empty groups); pass 39 added
-N-BW-1 (P4, the timeline collapse sentinel never survives a restart).
+N-BW-1 (P4, the timeline collapse sentinel never survives a restart); pass 40
+added N-BX-1 (P4, the JsonNull-blind decode renders "tracking: null") and
+N-BY-1 (P4, the Stage/Discard a11y labels carry the raw "%1$s").
 
 ## Mock-fidelity debts (rig, not app)
 
@@ -365,6 +403,7 @@ N-BW-1 (P4, the timeline collapse sentinel never survives a restart).
 22. ~~**(pass 30)** the attachment transaction's non-offline failure faces had no arms — no way to fail a begin/chunk/commit WHILE CONNECTED (the port's `UploadResult.Failed` was only reachable via a mid-transaction disconnect, which collides with the BlockedOffline re-classification) and no way to catch the ↑ NN% uploading chip (512 KB commits are instant)~~ **OPENED+CLOSED in the same pass** (`d21db7a0`: `MOCK_ATTACHMENT_FAIL=<begin|chunk|commit>` — the named phase answers the RPC ERROR `fault.attachment.<phase>Fail` while CONNECTED, so the transport throws `TransportFailure` → the port's GENERIC Failed path (chip failed, payload RETAINED, Retry live); unknown values arm nothing; `rejectAttachments` still outranks it on begin; `MOCK_ATTACHMENT_CHUNK_DELAY_MS=<ms>` delays each attachmentChunkV4 answer; self-tests `MockZCodePass30RigSelfTest` 6/6, suite **204/0/0**). **Live receipts AG.B–AG.D**: 2 forced commit-fails (mid.bin retry + 130.png first attempt — RETRY_FAILED and FAILED-with-raw-fault faces), the ↑25% chip caught twice, and the gen2 clean-arms ready commit for the mixed send.
 23. ~~**(pass 38)** the CONTROL (bootstrap) task view was a stale second surface — it served raw `MockTask.toJson()` rows while every management verb (setTaskPinned/setTaskUnread/renameTask/deleteTask/archiveTask/deleteArchivedTask) mutated only the decorated CHANNEL surfaces~~ **OPENED+CLOSED in the same pass** (THREE facets, three commits: `6b9e882f` p38-mock-decorate — the view flows through decorateMeta + rename/deleteTask sync the bootstrapTasks objects (the live receipt: mark-read ok → "Marked read" → the dot/bold/menu still claimed unread, DB untouched; the vc51-era "mock acks without mutating" attribution CORRECTED to this stale-view mechanism); `046fec07` p38-mock-archive-exclude — the view excludes archivedTaskIds (the live receipt: push applied tasks=2 → the refresh re-applied tasks=3 within 1s, the archived row back on home); `9b5f9ad0` p38-mock-deletearchived-sync — deleteArchivedTask syncs bootstrapTasks (the live receipt: the deleted task resurrected on home AND its group's member list starved — groupedStructure reads directTasks); `a65058e1` pins the createSession effect (view 3→4). Suite **241/0/0**. On the REAL desktop the control view derives from the same DB as the channel list, so all three facets are rig-only. **Residual WATCH (not a debt):** the gen3-era v4-command reply path never acked createSession (`command.sendLost` after 20s) — the pass-38 WATCH in AO.K; re-drive before hunting. → **RESOLVED pass 39 (AP.D): the create round-trips on a fresh generation (tasks.create → createSession acked, zero sendLost, the row rendered + DB `sess-created-1`); the hang was the stale-gen3 jar.**
 24. ~~**(pass 39)** the createSession effect hard-coded the created task's `workspaceLabel` to "Synthetic Workspace" regardless of the source workspace — on the live rig the created row under `/synthetic/ws-one` carried the divergent label and the phone's home rendered an incoherent section header ("Synthetic Workspace · 3 tasks" whose row subtitles all read "Synthetic One"; DB-arbitered r3.db)~~ **OPENED+CLOSED in the same pass** (`f6213c82` p39-mock-created-label: the created task inherits the label from a same-path sibling bootstrap row, default fallback unchanged; self-test asserts "Synthetic One"; suite 248/0/0).
+25. ~~**(pass 40)** the ADR-021 git WRITE tier's acks mutated `script.stagedPaths`/`discardedPaths` while `getChanges` kept serving the STATIC RigGitFixtures fixture — the phone staged, re-fetched, and saw the same rows (the recorded ack-without-mutate class ON THE GIT PLANE; nothing consumed the lists; commit left all three rows served)~~ **OPENED+CLOSED in the same pass** (`baa3f216` p40-mock-git-write-mutation: `servedGitChanges()` derives the changes view from the write tier's mutations — staged paths serve section "staged", discarded/committed rows drop, matching the phone's workspaceRelativePath keys against the fixture's absolute `path`; `commit` consumes the served rows it commits so the post-commit fetchChanges() sees the shrink; + MOCK_GIT_BRANCH_ISSUE / MOCK_GIT_PUSH_FAIL arms; MockZCodePass40GitWriteSelfTest 6/6, suite **254/0/0**). **Live receipt AQ.B**: Stage → `stagePaths ok` → the row MOVED tabs (Unstaged 2→1, Staged 1→2, s14); Discard via the typed gate → the row GONE; commit → Changes EMPTY (s21). Residuals (NOT debts — mock-fidelity notes): History never gains the committed row (script.gitCommits static); the summary stays isDirty=false/ahead=0 through the commit; the comparison fixture is branch-invariant.
 
 ## DISCOVERY BACKLOG (tick when the findings are appended as rows)
 
@@ -529,6 +568,37 @@ delta …`). Nothing pushed.
 ```
 
 ## History
+
+- 2026-11-16 (pass 40) — Part AQ executed on Part AP's "did NOT drive" driveables +
+  a fresh recon axis: the git sheet's Tier-B write row / BranchSheet (surfaces
+  receipted as renders in passes 5/10, never DRIVEN) + the six read-only tool
+  screens' functional depth. THREE new F rows: **F-P40-B** (P2, the
+  workspace-manager persistence TRIO silently loses every mutation — the
+  preferences.pb byte-frozen arbiter + the Settings-write discriminator scoping
+  the dead path to ZCodeApp.kt:742-755's three startScope launches), **F-P40-A**
+  (P3, the switch/create acks re-fetch NOTHING in-place — re-entry heals; the
+  commit handler's fetchChanges() asymmetry is the fix shape), **F-P40-C** (P3,
+  the typed branch-issue ack swallowed — sheet closes pre-result, onDismiss
+  nulls, IssueLine lives in the closed sheet; the wire's message/detail never
+  rendered). TWO new smalls: **N-BX-1** (P4, Phase9Tools.strOrNull is
+  JsonNull-blind → "tracking: null"; Phase9Ports.rpStr has the filter — the
+  helpers disagree) and **N-BY-1** (P4, the Stage/Discard a11y labels carry the
+  raw "%1$s" — positional resources vs the "%s" replace). ONE new G row:
+  **G103** (P4, the catalog planes' detail-depth gap + the census updates:
+  Providers gained OPENAI-COMPATIBLE glm-4.6 + Preview badges, Bots two bots
+  incl. draft·off). Stamps: **F-P5-A ×2** (the refused getChanges renders
+  silent-empty Changes — the render site is dead-coded behind Phase9Ports.kt:124's
+  null-swallow) and **F-P38-A ×4** (the ghost on the first boot dump). First-series
+  WORKING receipts: the ENTIRE git write tier live (switch/create with the RIG-5
+  summary+list mutation, Stage MOVING tabs, the typed DISCARD gate, Generate's
+  typed message, commit consuming the rows + PushConfirm → push) — the mock
+  debt #25 (write-tier visibility) opened+closed in-pass. Mock: ONE commit
+  `baa3f216` (suite 254/0/0). App: ZERO changes (APK byte-identical, install
+  skipped). Rig learnings (AQ.A0): launcher arms AFTER exec arm NOTHING (gen3
+  discarded); Compose TextField text invisible in reflowed-sheet dumps;
+  FLAG_SECURE black-captures persist until reverted. Rig left UP (gen4
+  mock-p40-gen4-fa8e87 — ⚠ STICKY typed-issue + getChanges-refusal arms, an
+  inheritor must pkill + relaunch; app pid 1838 in synth-task-1's git sheet).
 
 - 2026-11-16 (pass 39) — Part AP executed on Part AO.N's coverage-honesty list (the
   backlog held at 8/8, so the undriven legs WERE the axis; all eight items
