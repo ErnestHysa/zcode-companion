@@ -346,6 +346,15 @@ fun main() {
     if (System.getenv("MOCK_COMPACT") != null) {
         mock.script.compactionDemo = true
     }
+    // Pass-33 rig leg: MOCK_ROW_KINDS=1 seeds the never-driven row-kind render faces
+    // into the NEXT snapshot — the openable artifact card (bytes seeded for the
+    // download affordance) + the quiet-fallback artifact (unknown extension, unseeded
+    // ref) + the unknown-kind tolerance row + a non-compact timelineMarker + a
+    // STREAMING reasoning row. Composes with MOCK_HOOKS (hook groups + the subagent
+    // child-session row) and MOCK_COMPACT (the failed marker's Retry affordance).
+    if (System.getenv("MOCK_ROW_KINDS") != null) {
+        mock.script.rowKindsDemo = true
+    }
     // Pass-27 rig leg: MOCK_CHECKPOINT_CONFLICTS=1 arms restoreBetweenCheckpoints' conflict
     // branch — the first restore answers success=false + conflicts[], and the phone's
     // force path (restore anyway → force=true) flips it to the success face in the same leg.

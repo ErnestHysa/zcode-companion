@@ -475,6 +475,16 @@ class MockZCode(
         var hooksRowsDemo: Boolean = false
 
         /**
+         * Pass-33 rig (Part AJ): the never-driven row-kind render faces in ONE arm —
+         * an openable artifact row (bytes seeded for the download affordance), a
+         * quiet-fallback artifact row (unknown extension, ref UNSEEDED so the open
+         * rides the download-failure path), an unknown-kind tolerance row (the
+         * INV-8 §19.5 face), a non-compact timelineMarker (the generic quiet row),
+         * and a STREAMING reasoning row (the auto-expanded face). Default off.
+         */
+        var rowKindsDemo: Boolean = false
+
+        /**
          * I2.4 (Phase 6A): stamp the context-compaction lifecycle into the NEXT
          * snapshot — three `timelineMarker` rows (`marker.type == "compact"`):
          * started:auto, completed:auto with token counts, failed:manual — the
@@ -1925,6 +1935,22 @@ class MockZCode(
                 put("status", JsonPrimitive("success"))
                 put("summaryText", JsonPrimitive("synthetic subagent"))
             }
+            // Pass-33 rig: the artifact row's required decoder fields (all
+            // fail-closed `obj.string(...)` in the domain decoder). `text` carries
+            // the display name; the open affordance downloads by REF, so the
+            // seeding arm puts real bytes under script.fileBytes[ref] (see
+            // snapshotRows' rowKindsDemo block) — readFileRange has no default
+            // content fallback (unlike readTextFile's seeded-every-path shape).
+            RowKind.ARTIFACT -> buildJsonObject {
+                put("artifactVersionId", JsonPrimitive("av-$rowId"))
+                put("logicalArtifactKey", JsonPrimitive(text))
+                put("displayName", JsonPrimitive(text))
+                put("artifactType", JsonPrimitive("document"))
+                put("mimeType", JsonPrimitive("text/html"))
+                put("sizeBytes", JsonPrimitive(script.fileBytes[text]?.size?.toLong() ?: 2048L))
+                put("sha256", JsonPrimitive("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"))
+                put("ref", JsonPrimitive(text))
+            }
         }
         return JsonObject(base + kindFields + (extra ?: JsonObject(emptyMap())).toMap())
     }
@@ -1933,7 +1959,7 @@ class MockZCode(
     enum class RowKind(val wire: String) {
         TURN_HEADER("turnHeader"), USER_INPUT("userInput"), ASSISTANT_TEXT("assistantText"),
         REASONING("reasoning"), TOOL_CALL("toolCall"), TIMELINE_MARKER("timelineMarker"),
-        HOOK_INVOCATION("hookInvocation"), SUBAGENT("subagent"),
+        HOOK_INVOCATION("hookInvocation"), SUBAGENT("subagent"), ARTIFACT("artifact"),
     }
 
     /** S12 driver: authoritative terminal turn state stamped into the NEXT snapshot. */
@@ -2062,6 +2088,46 @@ class MockZCode(
                 put("workId", JsonPrimitive("work-sub-1"))
             }))
         }
+        if (script.rowKindsDemo) {
+            // Pass-33 (Part AJ): the never-driven row-kind faces.
+            // 1. The OPENABLE artifact row — real bytes under the ref so the preview
+            //    card's Open affordance downloads and hands off to the system viewer.
+            val html = "<html><body><h1>rig report</h1><p>pass-33 artifact row</p></body></html>".toByteArray(Charsets.UTF_8)
+            script.fileBytes["rig-p33-report.html"] = html
+            rows.add(schemaRow(sessionId, nextId++, RowKind.ARTIFACT, "rig-p33-report.html"))
+            // 2. The QUIET-fallback artifact row — unknown extension; its ref is
+            //    deliberately UNSEEDED (download fails → the app's log-only face).
+            rows.add(schemaRow(sessionId, nextId++, RowKind.ARTIFACT, "rig-p33-blob.xyz", extra = buildJsonObject {
+                put("mimeType", JsonPrimitive("application/octet-stream"))
+                put("sizeBytes", JsonPrimitive(2048L))
+            }))
+            // 3. The unknown-kind tolerance row (INV-8 §19.5): NOT in KNOWN_KINDS —
+            //    the domain decoder routes it to Unknown and the renderer renders
+            //    the "Unsupported entry · <kind>" quiet face. Never a crash.
+            rows.add(JsonObject(buildJsonObject {
+                put("rowId", JsonPrimitive(nextId++))
+                put("turnId", JsonPrimitive("turn-$sessionId-${nextId / 4 + 1}"))
+                put("kind", JsonPrimitive("futureWidget"))
+                put("entityId", JsonPrimitive("ent-future"))
+                put("createdAt", JsonPrimitive(System.currentTimeMillis().toDouble()))
+                put("createdAtSeq", JsonPrimitive(nextId))
+                put("widgetPayload", buildJsonObject { put("shape", JsonPrimitive("unspecified")) })
+            }))
+            // 4. A NON-compact timelineMarker — the generic QuietMetaRow(label=type)
+            //    fallback (compact is the only marker type with a dedicated face).
+            rows.add(schemaRow(sessionId, nextId++, RowKind.TIMELINE_MARKER, "completed:manual", extra = buildJsonObject {
+                put("marker", buildJsonObject {
+                    put("type", JsonPrimitive("checkpoint"))
+                    put("origin", JsonPrimitive("manual"))
+                    put("status", JsonPrimitive("completed"))
+                })
+            }))
+            // 5. The STREAMING reasoning face — auto-expanded while the agent thinks
+            //    (ReasoningRow's LaunchedEffect(state) branch).
+            rows.add(schemaRow(sessionId, nextId++, RowKind.REASONING, "weighing the fixture shapes against the wire contract before wiring the seam", extra = buildJsonObject {
+                put("state", JsonPrimitive("streaming"))
+            }))
+        }
         return JsonArray(rows)
     }
 
@@ -2181,6 +2247,9 @@ class MockZCode(
     // ------------------------------------------------------------ Phase 7 test hooks
 
     internal fun stateBlockForTest(): JsonObject? = stateBlock()
+
+    /** Pass-33 rig: the snapshot rows a session currently serves (the kind-matrix faces). */
+    internal fun snapshotRowsForTest(sessionId: String, count: Int): JsonArray = snapshotRows(sessionId, count)
     internal fun revisionForTest(): Long = stateRevision.get()
     internal fun pendingPermissionForTest(): PendingPermission? = script.pendingPermission
     internal fun pendingUserInputForTest(): PendingUserInput? = script.pendingUserInput
