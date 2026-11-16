@@ -45,59 +45,58 @@ P2-first, exit gates, per-row Accept criteria).
 > lists, send-ack/guard/effort/slash planes — pass 28 ran fresh composer recon when
 > the coverage lists emptied — passes 29–32 the attachment plane to EMPTY — pass 33
 > the timeline ROW-KIND render matrix — pass 34 the toolCall row's PER-TOOL-KIND
-> render matrix (the pass-33 precedent one render level deeper): the FULL status
-> face matrix (pendingApproval/cancelled/running/unknown live in one frame, s03),
-> BOTH new group faces with file-count/command-count counts + SUMMED durations
-> ("Changes · 2 files · 4.3s" / "Execute · 2 commands · 5.3s"), group EXPANSION to
-> member cards (Edit/Write/Bash/BashOutput inline), the BashOutput taxonomy-hole
-> face CONFIRMED graceful (no subtitle, EXECUTE grouping — the queue line stands),
-> the ERROR card + G66 recovery card driven END-TO-END (Retry → the real `retryTurn`
-> wire command + the mock's "retried reply" row; Report issue → `nav.reportIssue`
-> with the error attached → the Send feedback form PREFILLED; Trace copy row), the
-> C7 lazy full-output fetch on BOTH faces (the SERVED slice replacing the capped
-> preview on a real `getTaskSnapshotToolCallsSlice` body — the verb the mock never
-> answered before; the honest fault → the retained-preview-copy fallback), the
-> Changes-group member composition — and the UNPLANNED first-series receipt: the
-> DOUBLE-fork's `port.fork outcome=Stale child=null` honest-refusal face (the happy
-> fork re-receipted: Accepted → nav.fork → in-place switch to "Fork of
-> synth-task-2").** Mock: ONE commit `edf7aeb0` (the MOCK_ROW_TOOLS arm + the
-> getTaskSnapshotToolCallsSlice handler; suite 220/0/0). App: ZERO (APK
-> byte-identical; `install -r` SKIPPED). **ZERO new rows. gateway.drop: 0.**
+> render matrix — pass 35 the Load-earlier/PAGING plane end-to-end (§19.4
+> scroll-back): the ONE driveable surface pass 34's coverage list had skipped as
+> "undrivable" (the MOCK_ROWS_TOTAL arm already existed since vc52 Phase 10). TWO
+> mock fixes rode in (`9657bd93`, suite 225/0/0): the window schema's totalCount now
+> carries the ARMED session total (closing the pass-3/4-era "armed 2000 → of 338"
+> artifact) and MOCK_PAGE_FAULT=1 unblocks the never-receipted error face. The full
+> plane receipted live first-series: the strip with a faithful total ("320 of
+> 400"), the strip TAP → the first-ever `conversationRowsRangeV4` wire receipts
+> (320→370→the full 401, DB-arbitered contiguous pages), the END face honest at
+> HEAD (hasMore=false → the strip HIDES), the FAULT face ("Couldn't load earlier
+> messages" / the errorCategoryMessage copy / Retry — clean copy, not raw-code),
+> the retry-refail face, and the retry-SUCCESS face (error clears, the prefetch
+> cascade completes the store, the paged rows render). ONE NEW ROW: F-P35-A (P3) —
+> the paging error face is TOP-ANCHORED while the tap affordance is TAIL-ANCHORED:
+> a faulted fetch gives the user at the tail ZERO visible feedback (s04).**
+> App: ZERO (APK byte-identical; `install -r` SKIPPED). **gateway.drop: 0.**
 
 - Report: `docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md` —
-  Parts A–Z + AA + AB + AC + AD + AE + AF + AG + AH + AI + AJ + AK = passes 0–34.
-  **Latest: pass 34 (Part AK, 2026-11-16 ~04:00).**
-- Repo HEAD at pass start: `c842d4d9` (pass 33's docs commit; main); pass 34 added
-  ONE code commit `edf7aeb0` (the mock arm only — app source untouched).
+  Parts A–Z + AA + AB + AC + AD + AE + AF + AG + AH + AI + AJ + AK + AL = passes
+  0–35. **Latest: pass 35 (Part AL, 2026-11-16 ~09:10).**
+- Repo HEAD at pass start: `edf7aeb0` (pass 34's mock commit; main); pass 35 added
+  ONE code commit `9657bd93` (the mock arms only — app source untouched).
   APK of record: sha256 `ad449d7d…` / md5 `530ba4ff…`, versionCode 53 / 1.3.2
   (byte-identical across the whole series).
 - Desktop of record: **/Applications/ZCode.app 3.18.1.10376, asar sha256 `ec475e6e…`,
-  383,832,025 B** (re-verified at pass-34 STEP 0 — UNCHANGED, no DELTA).
-- Open rows: **29 F (27 defects + 2 obs) + 21 G + 3 standing + 16 smalls (+1 watch
-  +1 rig)** — pass 34 opened NOTHING (the toolCall render matrix is fully honest);
-  F-P33-A gained a STATIC mechanism extension (the attachment chip's cache/
-  attachments/ root hits the same IAE family — AppContainer.kt:227 + ZCodeApp.kt:
-  1052-1077; the fix shape gains the third `<cache-path>`; live leg = fix-round).
-  The toolCall render matrix is now FULLY receipted phone-side: kind subtitles
-  (13) + the no-subtitle hole (34), the status matrix (success 13;
-  pendingApproval/cancelled/running/unknown/error 34), both group faces + summed
-  durations + expansions (13 Explore; 34 Changes/Execute), the ERROR card + G66
-  recovery actions (34), BOTH lazy-fetch faces (34), Fork happy + STALE faces (34).
-- Backlog: **8/8 DONE**; the discovery surface stays empty — pass 34's axis was the
-  per-tool-kind census (the pass-28/33 precedent). What remains is standing stops +
-  F-P3-A-gated planes + fix-round items. **The mock-debt list has 0 open work-debts.**
-- Rig left by pass 34: emulator `zcode-a16` UP (ELEVENTH consecutive inherited
-  survival; healthy, wifi ENABLED, screenshot protection OFF), relay gen2 ALIVE
-  (nonce `mock-p34-gen2-4eb017`, arms MOCK_ROWS=12 + MOCK_ROW_TOOLS=1 — seed-shape
-  only, nothing sticky; an inheriting session may reuse it or pkill + relaunch
-  clean), app pid 16538 INSIDE THE FORKED CHILD "Fork of synth-task-2"
-  (sess-forked-1 — rig residue; BACK pops to the task list), logcat running →
-  /tmp/p34/logcat.log. Launchers `/tmp/p34/relay-g1.sh` + `/tmp/p34/relay-g2.sh`.
-  New rig learnings in Part AK.A0: card-originated drags are SWALLOWED — start
-  scroll gestures in the inter-card GAPS; the Jump-to-latest FAB always works
-  (input alive, wedged scroll workaround); IME toggles reflow dialogs (BACK first,
-  re-dump, then tap); the assistant action rail renders TEXT buttons only on rows
-  carrying `actions` (the retried-reply row) — icon-only otherwise.
+  383,832,025 B** (re-verified at pass-35 STEP 0 — UNCHANGED, no DELTA).
+- Open rows: **30 F (28 defects + 2 obs) + 21 G + 3 standing + 16 smalls (+1 watch
+  +1 rig)** — pass 35 opened F-P35-A (the paging error face's top-anchored silent
+  failure) and NARROWED N-BM-1 (the frozen-total mechanism re-receipted at HEAD with
+  a faithful total; the "impossible claim at the true end" sub-claim does NOT
+  reproduce — the end face is honest). The Load-earlier plane is now FULLY receipted
+  phone-side: strip render (3/35), tap→wire→growth (35), the end face (35), the
+  fault/error/retry-refail/retry-success faces (35), the auto-prefetch edge both
+  polarities (35); the historyChanged epoch-rejection face stays code-pinned only
+  (needs an epoch-rewind arm — deliberately not opened as a debt).
+- Backlog: **8/8 DONE**; the discovery surface stays empty — pass 35's axis was the
+  paging plane (the last "undrivable" item on pass 34's coverage list, un-skipped by
+  recon). What remains is standing stops + F-P3-A-gated planes + fix-round items.
+  **The mock-debt list has 0 open work-debts.**
+- Rig left by pass 35: emulator `zcode-a16` UP (TWELFTH consecutive inherited
+  survival; healthy, wifi ENABLED, screenshot protection OFF), relay gen3 ALIVE
+  (nonce `mock-p35-gen3-c5d944`, arm MOCK_ROWS_TOTAL=400 — nothing sticky; an
+  inheriting session may reuse it or pkill + relaunch clean), app pid 18901 on
+  "Fork of synth-task-2" (sess-forked-1) scrolled to the LIST TOP with the store
+  fully loaded (rig residue: BACK pops to the task list; the strip is hidden —
+  everything loaded), logcat running → /tmp/p35/logcat.log. Launchers
+  `/tmp/p35/relay-g{1,2,3}.sh`. New rig learnings in Part AL.A0: the gap-drag
+  recipe re-confirmed and refined (the true inter-item gap band; slow 250 ms gap-
+  drags BEAT 80 ms gap-flings here — origin decides, velocity secondary); find-
+  in-conversation reported "No matches" for a query whose row WAS cached (unexplored
+  edge, not rowed); BACK with the find field focused drops the IME first — the
+  panel's own "Close find" button is the reliable close.
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -116,6 +115,7 @@ bodies after 3.14.3 — the census IS the changelog.
 | ID | P | Status | Mechanism (one line) | Fix shape | Depends on | Evidence | Stamps |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | F-P33-A | 3 | OPEN (NEW pass 33) | the generated-artifact preview card's Open affordance is DEAD at HEAD and SILENT in both failure stages: stage-2 — the download SUCCEEDS (FilesPort writes `File(cacheDir, "downloads")`, AppContainer.kt:258) but the FileProvider config `app/src/main/res/xml/file_paths.xml` declares ONLY `shared/` + `updates/` cache-paths, so `getUriForFile` throws IllegalArgumentException ("Failed to find configured root that contains …/cache/downloads/rig-p33-report.html", receipted live) and `ZCodeApp.kt:1130-1132`'s else branch is LOG-ONLY (G57's typed no-viewer notice matches only ActivityNotFoundException-class, never this IAE); stage-1 — an unserved ref faults `fault.file.notFound` at readFileRange → `filesport.download :: TransportFailure` → the download-null branch `ZCodeApp.kt:1110-1113` also LOG-ONLY (receipted live on the gen2 arm); the card renders, the button fires, the wire works, and the user gets NOTHING — the F-P0-C silent family on the preview-card plane; never live-driven in either campaign (zero artifact-open receipts in the pass0 series; the I2.8/G28/G57 static pins covered render + no-viewer fallback, not the handoff) | add `<cache-path name="downloads" path="downloads/" />` to file_paths.xml (stage-2, one line) + a typed notice on the download-null branch (stage-1, the N-BR-1/N-BS-1 notice plane); pins: a Robolectric getUriForFile harness over a cache/downloads file + a harness asserting the typed notice on result==null; re-drive the SUCCESS face (system-viewer chooser) after the fix | — | Part AJ.G | 1 (+pass-34 STATIC mechanism extension: the same root covers the NON-IMAGE attachment chip's external open — `fetchAttachment` writes `attachmentCacheDir = File(cacheDir, "attachments")` (AppContainer.kt:227) also absent from file_paths.xml, the same getUriForFile IAE family via ZCodeApp.kt:1052-1077; the fix shape gains `<cache-path name="attachments" path="attachments/" />`; live chip-tap leg = fix-round, Part AK.H.2) |
+| F-P35-A | 3 | OPEN (NEW pass 35) | the Load-earlier error face is TOP-ANCHORED while the tap affordance is TAIL-ANCHORED — a faulted page fetch gives the user at the tail ZERO visible feedback: the tap affordance is the PINNED strip above the timeline (ConversationScreen.kt:563-581, always visible while hasMoreHistory — the user taps it wherever they are), but the error face renders as a LAZY-LIST ITEM at index 0/1 (`older-error`, ConversationScreen.kt:1127-1138, AttentionStrip "Couldn't load earlier messages" + Retry) — hundreds of rows above the tap point when the timeline is long; receipted live: gen2 fault arm → `port.pageFault :: TransportFailure: fault.rowsRange.rig` in logcat + the screen UNCHANGED at the tap point (s04: strip still "320 of 400", no banner) — the error only renders after ~60 gap-drags to the list top (s05); the F-P0-C silent family on the paging plane (the same geometry stars the `older-loading` face — subsumed by the same fix) | surface the error/retry in the PINNED strip slot (swap the strip's content on loadOlderError, or a second pinned strip / a SendNotice-keyed banner on the N-BR-1 plane); the shared errorUserMessage copy is already clean (errorCategoryMessage's error_task fallback — no raw-code issue, AL.F.3); pins: a compose test with a faulting port loader asserting the error is visible WITHOUT scrolling + the retry from the pinned slot succeeds | — | Part AL.D (s04/s05/s06), AL.E (the retry-success face the fix must preserve) | 1 |
 | F-P31-A | 3 | OPEN (NEW pass 31) | the mid-upload user-tap Remove does NOT cancel the in-flight upload coroutine — the aborted transaction RESURRECTS the removed chip: `removeUpload` (`Ports.kt:1154-1167`) fires `attachmentAbort` (the mock deletes the staging entry, MockZCode.kt:3471-3475) + filters the chip, but the composer-scope job keeps running (`WriteComponents.kt:931-939` first-attempt launch / VM `:382` retry launch; VM `removeUpload` :376-378 fire-and-forget, no Job tracking) — the in-flight chunk completes on its DETACHED mock object and the per-chunk progress upsert (`Ports.kt:1112-1115`) re-adds the chip as ↑, then the next chunk errors `fault.attachment.unknownUpload` (MockZCode.kt:3417-3419) into the catch-all which upserts "failed" + payload (:1129-1137) — the user's explicit Remove is undone ~15 s later under a banner (first-attempt: the RAW-code "Attachment failed to upload (fault.attachment.unknownUpload)" — N-BO-1's 4th surface; retry: "Attachment retry failed — not sent."). Pass 32 EXTENSION (the silent face, live on MOCK_ATTACHMENT_KEEP_AFTER_ABORT `500a3bdf`): a server that accepts post-abort chunks resurrects the chip as ✓ READY under NO banner at all — receipted with TWO consecutive user-removes in ONE transaction (both aborts KEPT → commit ok 136 ms → `✓ 130.png (2.0 MB)` + armed FAB, no signal), and the resurrected chip SENT end-to-end (outbox ACKED carrying its committed ref, DB arbiter) — the resurrected attachment is fully REAL; the silent face is the worse UX (nothing tells the user their Remove lost) | track in-flight upload Jobs per uploadId and cancel in removeUpload (or guard BOTH re-add upserts on a user-removed set); DESKTOP CENSUSED (pass 32, AI.D): the desktop's remove is FINAL — per-chip AbortController aborted in remove + the V4 loop's per-chunk signal checks + staleness-guarded progress/completion callbacks (`v.current.get(r)!==i`) + transferService.cancel — the phone's analogue is the Job map + the guarded upserts; pin: a harness asserting remove-during-upload → the chip stays gone + the abort fires | — | Part AH.B–AH.D, AI.B–AI.D | 2 (pass 32: the silent ✓ variant + the consecutive composition + the resurrected-chip send + the desktop census) |
 | F-P19-A | 3 | OPEN (NEW pass 19) | the G50 CAS-mismatch face is desktop-divergent: on `guard.heldQueueConfirmationStale` (host ack `{status:"failed", …}` — set-equality CAS via `applyHeldQueueDisposition`) the desktop RE-OPENS the held-queue confirmation with fresh ids (renderer `confirmationRequired`, re-reads `queue.items`, no error surfaced); the phone maps the failed ack to the generic refusal ERROR notice ("The desktop refused the send — see diagnostics", `ConversationViewModel.kt:542-548`) — reasonCode undifferentiated, no re-confirmation loop exists (grep receipt) | handle the typed reasonCode → re-open the disposition dialog with re-read ids (desktop parity) or minimally a distinct notice; pins: the guard.* grep + the V.C static shapes (outbox FAILED_TERMINAL + preserved draft) | — | Part V.B–V.E | 1 |
 | F-P20-A | 3 | OPEN (NEW pass 20) | the phone's goal sends are structurally refused under the desktop's choice admission: the host's `sendGoalCommand` handler passes the payload's `heldQueueDisposition`/`expectedHeldQueueItemIds` through the SAME `applyHeldQueueDisposition` gate as sendText (zcode.cjs `SMc`→`n9e`→`Vqe`; absent → `heldQueueDispositionRequired` failed-ack; the desktop UI pre-gates via the confirmation dialog — ZERO renderer references to the reasonCode), but the phone's goal payload is `{text, displayText}` only (`CommandCoordinator.kt:220-224`, commented "not CAS-guarded"). Pass 21 EXTENSION (composer half): the composer-level G50 dialog DOES fire for slash-dispatched sends, and `send()` (`ConversationViewModel.kt:434-470`) receives the trio but only `routeSendPrompt` (:454) forwards it — every `sendSlash` branch (:459-470) drops it, so the user ANSWERS the dialog and the answer is discarded (receipted live: dialog → Keep → refused → FAILED_TERMINAL). The sheet half (`setGoal` :601-613) bypasses `send()` — no gate, no dialog, generic ERROR face, as pass 20 receipted. Pass 22 EXTENSION (compact variant): the G50 dialog fires for composer `/compact` sends too and the answer is DISCARDED the same way (`port.compact` = `simpleCommand("compact", sessionId, {})`) — but the wire OUTCOME stays host-faithful (the host's `vMc` consults routing mode, never a trio: the compact self-queues either way, live-receipted Y.E), so the discarded answer's only loss is the user's explicit "Clear queue & send" choice being silently dropped (the desktop never asks for compact at all) | composer half = pure PLUMBING (carry the answered trio into the goal/compact branches — or stop asking for compact); sheet half = gate on the choice state or a distinct notice keyed on the reasonCode; pins: W.B handler chain + W.C payload/surface pins + the outbox rows (goal sheet [20], composer-slash goal [21], compact ACKED/FAILED_TERMINAL pair [22]) | F-P19-A family (same guard) | Part W.B–W.E, X.B–X.D, Y.B/Y.E, AB.D | 4 (pass 22: the compact variant live — dialog + discard + the host-faithful queued outcome; pass 25: the THIRD goal entry point — slash-set `/goal <objective>` — rides the same trio-less port, outbox payloadJson text/displayText verbatim, AB.D.4) |
@@ -153,8 +153,8 @@ bodies after 3.14.3 — the census IS the changelog.
 | F-P4-A | 2 | FIXED (rig) | mock push patch structurally excluded its own interaction | `pushPendingPermission` builds from unfiltered list + patch-content pin — commit `2b12fc46`, 37 mock tests green | — | Part G.A2.2, H.A1 | — |
 | N-BK-1 (rig half) | 2 | FIXED (rig) | git fixtures in wrong field vocabulary (blank paths, +0−0, duplicated tabs, oid-vs-hash) | contract vocabulary rewrite — same commit `2b12fc46` | — | Part G.A2.3, H.A1 | — |
 
-**Open F count: 29** (27 defects + 2 observations; pass 33 opened F-P33-A — the
-artifact-open dead handoff) · FIXED: 2 (both rig) ·
+**Open F count: 30** (28 defects + 2 observations; pass 35 opened F-P35-A — the
+paging error face's top-anchored silent failure) · FIXED: 2 (both rig) ·
 RETRACTED/REFUTED/ABSORBED: 7.
 
 ## Current fix-order (consolidates K.D + the carried rows; supersedes every report fix-order)
@@ -177,7 +177,10 @@ RETRACTED/REFUTED/ABSORBED: 7.
        notice-plane one-liners) → 12b. **F-P33-A** (pass 33: the artifact-open
        dead handoff — the file_paths.xml one-liner + the typed notice on the
        download-null branch; same notice plane as N-BR-1/N-BS-1, same silent
-       family as F-P0-C) → 13. **F-P3-B**
+       family as F-P0-C) → 12c. **F-P35-A** (pass 35: the paging error face's
+       top-anchored silent failure — surface the error/retry in the PINNED
+       strip slot; same silent family, and the retry-success face it must
+       preserve is fully receipted in Part AL.E) → 13. **F-P3-B**
    (wiring-only hydrate) → 14. **F-P3-C** → 15. **F-P7-A / F-P7-B** → 16. **F-P5-A →
    F-P2-B → F-P0-C → F-P8-B → F-P8-F** → 17. **F-P1-B → F-P1-D** → 18. smalls
    (N-BM-1 → N-BP-1 → N-BM-3 → N-BN-1 → N-BK-1 app half → N-BJ-1 → N-BK-2 → N-BL-1 →
@@ -254,7 +257,7 @@ RETRACTED/REFUTED/ABSORBED: 7.
 
 | ID | P | Status | One line | Evidence |
 | --- | --- | --- | --- | --- |
-| N-BM-1 | 3 | OPEN | load-earlier strip total is a stale subscribe-time snapshot ("420 of 339") | Part J, K.A3 |
+| N-BM-1 | 3 | OPEN | load-earlier strip total is a stale subscribe-time snapshot ("420 of 339") | Part J, K.A3 (+ pass-35 stamp: the mechanism re-receipted at HEAD with a FAITHFUL total — "320 of 400" → "370 of 400", X live / Y frozen, ConversationSessionManager.kt:241; the pass-6-era "impossible claim at the true end" sub-claim NARROWED — the end face is honest at HEAD, the strip hides on hasMore=false, Part AL.C) |
 | N-BM-3 | 3 | OPEN | Context-sheet → Terminal route: Attach is a silent no-op (main terminal screen attach works — sheet variant dead) | Part J |
 | N-BK-1 (app half) | 2 | OPEN | History silent-empty needs a "No commits yet" empty state (rig half FIXED `2b12fc46`) | Part G.A2.3 |
 | N-BJ-1 | 4 | OPEN | attachment image previews have NO size/aspect cap (1×1 seed renders ~300×220dp) | Part F.A2, K.A3 (+ pass-11 stamp: s04 unchanged) |
@@ -471,6 +474,32 @@ delta …`). Nothing pushed.
 
 ## History
 
+- 2026-11-16 (pass 35) — Part AL executed on the Load-earlier/PAGING plane (§19.4
+  scroll-back) — the ONE driveable item pass 34's coverage list had skipped as
+  "undrivable without a mock paging arm" (recon: the arm ALREADY existed —
+  MOCK_ROWS_TOTAL, RIG-P3 vc52 Phase 10). NEW row F-P35-A (P3, the paging error
+  face's top-anchored silent failure — the fault fires and the user at the tail
+  sees NOTHING; the error renders at lazy-list index 0/1, the tap affordance is the
+  pinned strip; the F-P0-C silent family). N-BM-1 stamped (the frozen-total
+  mechanism re-receipted at HEAD with a FAITHFUL total; the "impossible claim at
+  the true end" sub-claim NARROWED — the end face is honest at HEAD, the strip
+  hides on hasMore=false). The pass-3/4-era totalCount arithmetic artifact CLOSED
+  by the mock fix. First-series receipts: the strip TAP → the first-ever
+  `conversationRowsRangeV4` wire verbs (320→370→the full 401, DB-arbitered
+  contiguous pages 32..81/1..31), the FAULT face ("Couldn't load earlier
+  messages" + the errorCategoryMessage copy "Conversation changed — please try
+  again" + Retry — clean copy, NOT raw-code), the retry-refail face (strip
+  persists), the retry-SUCCESS face (error clears, the prefetch cascade completes
+  the store 320+50+31=401, the paged rows literally render "synthetic row 61"),
+  and the auto-prefetch edge on both polarities (gen3 cascade / gen2 re-fault
+  drum). Mock: ONE commit `9657bd93` (snapshotTotalCount + pageRangeFault +
+  MockZCodePass35PagingSelfTest 5 cases, suite 225/0/0). App: ZERO changes (APK
+  byte-identical, install skipped). Rig learnings (AL.A0): gap-drags re-confirmed
+  (slow 250 ms gap-drags beat 80 ms gap-flings here — origin decides, velocity
+  secondary); find-in-conversation "No matches" for a cached row (unexplored
+  edge); BACK drops the IME before closing the find panel. Rig left UP (gen3
+  mock-p35-gen3-c5d944, MOCK_ROWS_TOTAL=400 only; app pid 18901 at the list top,
+  store fully loaded).
 - 2026-11-16 (pass 34) — Part AK executed on a FRESH axis (the pass-33 precedent one
   render level deeper): the toolCall row's PER-TOOL-KIND render matrix. ZERO new rows;
   the full status face matrix receipted live (pendingApproval/cancelled/running/

@@ -7950,3 +7950,182 @@ toolCall shapes + "retried reply" rowId 1001); logcat `/tmp/p34/logcat.log`
 may reuse it or pkill + relaunch clean), app pid 16538 INSIDE THE FORKED CHILD
 "Fork of synth-task-2" (sess-forked-1; rig residue — BACK pops to the task list),
 logcat running → /tmp/p34/logcat.log.
+
+# Part AL — pass 35 (APPENDED 2026-11-16, ~09:10): the Load-earlier/paging plane end-to-end (§19.4 scroll-back) — the ONE driveable surface pass 34's coverage-honesty list skipped as "undrivable without a mock paging arm" (the arm already existed: MOCK_ROWS_TOTAL, RIG-P3 vc52 Phase 10); TWO mock fixes rode in (totalCount = the ARMED session total, not the window size — closing the pass-3/4-era "armed 2000 → of 338" arithmetic artifact — and the MOCK_PAGE_FAULT fault arm, unblocking the never-receipted error strip + Retry face); the full plane receipted live first-series: the strip face with a FAITHFUL total ("showing latest 320 of 400"), the strip TAP → the first-ever `conversationRowsRangeV4` wire receipts (gen1 id=20/21: 320→370→the full 401), the LIVE-X + FROZEN-Y growth pair (N-BM-1's mechanism at HEAD), the END face honest at HEAD (hasMore=false → the strip HIDES — adjudicating N-BM-1's pass-6-era "impossible claim at the true end" as not-reproducing against the current arithmetic), the FAULT face first-series ("Couldn't load earlier messages" / the errorCategoryMessage copy "Conversation changed — please try again" / Retry — NOT the raw-code N-BO-1 family), the retry-refail face (strip persists under the fault arm), the retry-SUCCESS face (error clears, the prefetch cascades both remaining pages, the store returns to the full 401, the paged rows literally render "synthetic row 61") — and ONE NEW ROW: F-P35-A (P3), the paging error face is TOP-ANCHORED while the tap affordance is TAIL-ANCHORED — the fault fires and the user at the tail sees NOTHING (s04: wire fault + logcat port.pageFault + screen unchanged), the strip renders only at lazy-list index 0/1 ~300 rows above the tap point (ConversationScreen.kt:563-581 pinned vs :1127-1138 list item) — the F-P0-C silent family on the paging plane
+
+> **Pass 35 of the pass-0 series** (solo, the canonical discovery prompt). STEP 1 empty
+> (backlog 8/8); Part AK's coverage-honesty list held exactly one driveable item —
+> "the load-earlier strip (the mock's snapshot flags carry hasMore=false — undrivable
+> without a mock paging arm)". Static recon found the arm ALREADY EXISTS
+> (`MOCK_ROWS_TOTAL` + `MOCK_ROWS_WINDOW`, RIG-P3 vc52 Phase 10/F-37-D; the pass-34
+> note described only the current seed arms' bare-array shape) — so the plane was
+> driveable as-is, with two mock gaps worth closing first. The strip RENDER was
+> receipted once (pass-3/4-era, "of 338"), N-BM-1's frozen total once (Part J), but
+> the strip TAP — the `conversationRowsRangeV4` wire verb, the page apply, the
+> strip's growth, the end face, the error face, and the retry faces had ZERO
+> receipts in the whole 35-pass series. **Mock: ONE commit `9657bd93`** (amended:
+> snapshotTotalCount + pageRangeFault + MockZCodePass35PagingSelfTest 5 cases, suite
+> **225/0/0**). **App: ZERO changes** (APK byte-identical at HEAD — md5 `530ba4ff…`,
+> sha256 `ad449d7d…`, vc53/1.3.2; `install -r` SKIPPED on digest equality).
+> **ONE new row: F-P35-A (P3).**
+
+> **Verification stamp (pass start):** 2026-11-16 08:35 → 09:05, GLM-5.3-Flash in
+> ZCode, everything local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…`
+> UNCHANGED — no DELTA. Rig: the pass-34 emulator REUSED (TWELFTH consecutive
+> inherited survival; healthy, screenshot protection OFF — s00 1.36 MB PNG), the
+> pass-34 relay gen2 pkilled BY NAME at pass start; THREE generations: gen1
+> `mock-p35-gen1-a3f082` (MOCK_ROWS_TOTAL=400), gen2 `mock-p35-gen2-b7e119` (+
+> MOCK_PAGE_FAULT=1), gen3 `mock-p35-gen3-c5d944` (clean = gen1 arms). The app
+> force-stopped + am-start relaunched per generation (monkey exits -5 as recorded —
+> am-start is the recipe); stored endpoints survived, no re-pairing. Build at HEAD:
+> `:tools:mockzcode:test` + `:tools:mockzcode:jar` + `:app:assembleDebug` exit 0;
+> local APK md5 `530ba4ff…` == on-device → install SKIPPED. logcat fresh `-T 1` →
+> /tmp/p35/logcat.log. gateway.drop for the pass: **0**; zero app FATALs.
+
+## AL.A0 — rig learnings
+
+1. **The gap-drag recipe RE-CONFIRMED and refined** (pass-34's lesson holds): a drag
+   started at x=20 (the left gutter OUTSIDE the reader-width list) scrolls NOTHING;
+   the true gap is the inter-item band between the pinned strip's bottom edge and the
+   first row's internal header (y≈523..641 at this layout) — drags from there move
+   10–13 rows each. FLINGS from the gap move LESS than slow 250 ms drags on this
+   timeline (2–3 vs 10–13 rows) — the reverse of the pass-33 note; gesture ORIGIN
+   decides, velocity is secondary. Reaching the top of a 320-row timeline costs ~60
+   gestures either way.
+2. **Find-in-conversation cannot reach unloaded rows and reported "No matches" for a
+   query whose row WAS cached** ("synthetic 82" while the store held 82..401) — the
+   find plane's match window vs the loaded/render window is an unexplored edge
+   (not rowed; the find-jump recipe failed for THIS leg only).
+3. **BACK does not close the find panel when its field is focused** (first BACK drops
+   the IME) — the panel's own "Close find" content-desc button (bounds from the dump)
+   is the reliable close.
+4. The snapshot window carries 321 rows under MOCK_ROWS_TOTAL=400 (81..400 synthetic
+   + 401 the always-on demo-markdown row) and the phone's §17.3 snapshot apply trims
+   to MAX_CACHED_ROWS_PER_SESSION=320 — row 81 is EVICTED (DB min=82). The paging
+   pages therefore run 32..81 / 1..31, not 31..80 / 1..30 (the self-test pins BOTH
+   shapes; the phone-real one is the receipt).
+5. `applyPage` (ConversationRepositoryImpl.kt:89-109) does NOT enforceBound — the
+   F-37-D fix comment documents the vc52-era self-evicting no-op; the page lands
+   contiguous by construction, and the gen1/gen3 DB tallies (320→370→401; end 401 =
+   320+50+31) match the contract exactly.
+
+## AL.B — leg A: the strip renders with a FAITHFUL total (08:45, gen1, s01)
+
+Task "Fork of synth-task-2" opened fresh: `subscribeConversationV4` → the initial
+page renders the tail → the PINNED strip (above the timeline, ConversationScreen
+.kt:563-581) reads **"Load earlier messages · showing latest 320 of 400"** — the
+ARMED session total now flows through the rowsWindowSchema (`totalCount = 400`, the
+AL-mock fix's first live proof; the pre-fix shape rendered the window size — the
+pass-3/4-era "of 338" observation, CLOSED by the fix). DB arbiter: sess-forked-1 =
+**320 rows, ids 82..401** (the trimmed window, AL.A0.4). manager.hasMore derives
+true (firstRowId=1 ≠ first cached 82).
+
+## AL.C — leg B: the strip TAP → the wire verb → live growth (08:47, gen1, s02)
+
+Tap the strip → relay **`MOCK: v4call conversationRowsRangeV4 (id=20)`** — the
+verb's FIRST receipt in the pass0 series — → the page 32..81 applies (no bound on
+the page path) → DB **370 rows (32..401 contiguous)** → the strip re-renders
+**"showing latest 370 of 400"**: the LIVE-X (rows.size 320→370) + the FROZEN-Y
+(totalRows set only on the snapshot, ConversationSessionManager.kt:241) — N-BM-1's
+exact mechanism receipted at HEAD with an honest total for the first time. Second
+tap → **`conversationRowsRangeV4 (id=21)`** → the floored page 1..31 → DB **401 rows
+(1..401, the FULL store)** → **the strip DISAPPEARS** (`hasMore=false` → the
+`hasMoreHistory && !loadingOlder` gate hides it). **The END face is honest at HEAD**
+— N-BM-1's pass-6-era sub-claim ("at the true end the strip displays an impossible
+claim instead of an all-loaded/hidden state") does NOT reproduce against the current
+arithmetic; the row's OPEN core narrows to the frozen total alone.
+
+## AL.D — leg C: the FAULT face, first series (08:52–08:58, gen2)
+
+gen2 arms MOCK_PAGE_FAULT=1; fresh process; strip "320 of 400" again. Tap → relay
+`v4call conversationRowsRangeV4 (id=20)` + **`MOCK: page range fault
+(MOCK_PAGE_FAULT)`** → `respondError fault.rowsRange.rig` → logcat **`port.pageFault
+:: session=sess-forked-1 TransportFailure: fault.rowsRange.rig`** → the port's catch
+returns `LoadOlderResult(0, hasMore=true, error)` → …
+
+- **s04 — the user at the tail sees NOTHING**: the screen is UNCHANGED (strip still
+  "320 of 400", no banner, no notice). The error face renders at **lazy-list index
+  0/1** (ConversationScreen.kt:1127-1138, the `older-error` item) — ~300 rows above
+  the tap point. **NEW ROW F-P35-A (P3)** — the F-P0-C silent family on the paging
+  plane; full mechanism + pins in the ledger.
+- **The error face itself, first series (s05, after gap-drags to the list top)**:
+  **"Couldn't load earlier messages"** (`conv_load_older_error`) + **"Conversation
+  changed — please try again"** (`errorUserMessage` → no typed messageKey →
+  `errorCategoryMessage`'s `error_task` fallback, ErrorCopy.kt:24/71+strings.xml:54 —
+  clean copy, NOT the raw-code N-BO-1 family) + **Retry** (`onRetryOlder`). The list
+  top also renders the DayHeader "Today" + the cached oldest rows (synthetic 2..).
+- **Retry under the fault arm (s06)**: wire `conversationRowsRangeV4 (id=31)` →
+  fault again → **the error strip PERSISTS** (honest re-fail; no crash, no silent
+  clearing). Four faulted range calls on gen2 in total (the strip tap + the
+  auto-prefetch refiring near the top edge — the fault path keeps `hasMore=true`,
+  so the prefetch keeps trying).
+
+## AL.E — leg D: the retry-SUCCESS face (08:59, gen3, s07)
+
+gen3 = gen1 arms (epoch `epoch-mock-1` is CONSTANT across relay restarts — the page
+applies without an epoch rejection). Same screen, error strip still up. Tap Retry →
+relay `v4call conversationRowsRangeV4 (id=9)` — SUCCESS — and the top-edge prefetch
+cascades the second page (`id=10`): DB **401 rows (1..401)** = 320+50+31 exactly;
+**the error strip CLEARS**, the strip stays hidden (everything loaded), and the
+paged rows literally RENDER — "synthetic row 61/62" (the rowsRange handler's text
+scheme, visually distinct from the snapshot's "synthetic N"). The full loop is now
+receipted: tap → wire → apply → grow → fault → error → retry-refail → retry-success.
+
+## AL.F — static adjudications
+
+1. **The totalCount arithmetic artifact CLOSED** (the pass-3/4-era observation at
+   report line ~1324): the window-shape arm served `rows.size` (320, or 338 with
+   appended rows) instead of the armed total; `snapshotTotalCount` fixes it, and
+   gen1 receipted "of 400" live. Paging assertions are now trustworthy on this rig.
+2. **The auto-prefetch edge** (LaunchedEffect at ConversationScreen.kt:1092-1103,
+   PAGE_EDGE=12): near the top edge it fires `onLoadOlder` automatically — receipted
+   live on both polarities (gen3: the cascade completed the store; gen2: it kept
+   re-faulting because the fault path returns hasMore=true — an honest retry drum,
+   not a defect).
+3. **N-BQ-adjacent copy check**: the paging error face maps through the SHARED
+   `errorUserMessage` plane (typed key → category fallback) — it does NOT interpolate
+   raw fault codes; N-BO-1's raw-code family does not extend here.
+
+## AL.G — ledger arithmetic + coverage honesty
+
+**ONE new row: F-P35-A (P3, the paging error face's top-anchored silent failure).**
+N-BM-1 stamps (the frozen total re-receipted at HEAD with a faithful total; the
+"impossible claim at the true end" sub-claim NARROWED — the end face is honest at
+HEAD). Open counts: **30 F (28 defects + 2 obs) + 21 G + 3 standing + 16 smalls
+(+1 watch +1 rig)**. Mock debts: 0 open (snapshotTotalCount + pageRangeFault are
+capabilities). gateway.drop: 0; zero app FATALs. Wire census: gen1 16 v4call (2
+rowsRange), gen2 26 (11 rowsRange incl. 4 faults), gen3 7 (2 rowsRange).
+
+What pass 35 did NOT drive: the historyChanged epoch-rejection face
+(`port.pageEpochRejected` → the "history changed" INFO strip — needs an epoch
+rewind mid-page; the mock's epoch is constant; a MOCK_PAGE_EPOCH_REWIND arm would
+unblock it, left as a rig debt NOT opened — the face is code-pinned and the §15-S9
+interplay is receipted in the vc52-era). The loading face ("older-loading" item —
+the fetches complete in <300 ms, the face never caught a frame; same top-anchored
+geometry as F-P35-A, subsumed by its fix shape). The DB-pull intermediate states on
+gen2 (pinned by code + the gen1/gen3-end arithmetic instead). TalkBack/shade-ACTION/
+widget/Dictate (standing stops). The Switch-model/config-chips planes (receipted
+earlier passes, unchanged).
+
+## Pass-35 verification stamp
+
+Pass 35 completed 2026-11-16 ~09:05; THREE relay generations (gen1
+`mock-p35-gen1-a3f082` 08:40→08:49; gen2 `mock-p35-gen2-b7e119` 08:49→08:58 — the
+fault arm; gen3 `mock-p35-gen3-c5d944` 08:58→09:02 — clean; launchers
+`/tmp/p35/relay-g1.sh` + `relay-g2.sh` + `relay-g3.sh`). The `install -r` SKIPPED
+on byte-identity (local == on-device md5 `530ba4ff…`, sha256 `ad449d7d…`, vc53/1.3.2
+at HEAD `9657bd93` — app source untouched; the pass's only code commit is the mock
+arm `9657bd93`, suite **225/0/0**). Receipts: shots `/tmp/p35/shots/` (s00 rig
+health; s01 the strip 320-of-400; s02 370-of-400; s03 the end face — strip gone;
+s04 the fault's silent-at-tail face; s05 the error strip at list top; s06 the
+retry-refail; s07 the retry-success); AX dumps `/tmp/p35/w/w*`; relay logs
+`/tmp/p35/relay-g{1,2,3}.log` (`conversationRowsRangeV4` ×15 incl. `page range
+fault` ×4); DB pulls `/tmp/p35/db/zcode.db{,-wal}` (sess-forked-1: 320@82..401 →
+370@32..401 → 401@1..401 → 401@1..401 — the contiguous-page contract); logcat
+`/tmp/p35/logcat.log` (`port.pageFault` receipts). App changes: NONE. Desktop
+3.18.1 / `ec475e6e…` unchanged (STEP 0). **Rig left:** emulator zcode-a16 UP
+(healthy, wifi ENABLED, screenshot protection OFF), relay gen3 ALIVE (nonce
+`mock-p35-gen3-c5d944`, MOCK_ROWS_TOTAL=400 — nothing sticky), app pid 18901 on
+" Fork of synth-task-2" scrolled to the LIST TOP with the store fully loaded
+(rig residue: BACK pops to the task list; the strip is hidden — everything
+loaded), logcat running → /tmp/p35/logcat.log.
