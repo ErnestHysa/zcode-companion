@@ -9026,3 +9026,245 @@ createSession v4 reply still hangs on this generation; an inheritor must pkill +
 relaunch on the HEAD jar unless deliberately re-driving those debts), app pid
 27097 inside synth-task-1's conversation (the ghost-tap end state; BACK pops to
 home), logcat running → /tmp/p38/logcat.log.
+
+# Part AP — pass 39 (APPENDED 2026-11-16, ~21:45): the pass-38 coverage-honesty list driven END-TO-END (STEP 2; the backlog held at 8/8, so the undriven legs WERE the axis) — the overflow/sort/organize plane, the workspace switcher chips, the + New task WATCH re-drive (RESOLVED — the create round-trips on a fresh generation), the move sheet's New-group path (which opened NEW ROW F-P39-A: the pending move is silently DROPPED), the color-dot VISIBLE flip (AO.A0.4's unreceipted face, closed ×2), the archived viewer's unavailable face (the new MOCK_ARCHIVED_FAULT arm), the setTaskUnread expectedUnreadAt CAS arg receipted on the wire for the first time + its REFUSAL face (the new MOCK_UNREAD_CAS arm incl. the force mode), the persistence adjudication (organize resets BY DESIGN; collapse-all in timeline mode persists an inert sentinel → NEW SMALL N-BW-1), and the mock's created-task label divergence caught + fixed — TWO new rows (F-P39-A P3, N-BW-1 P4), FOUR stamps (F-P38-A ×3, F-P38-B ×2, N-BV-1 ×2, N-BU-1 ×2), THREE mock commits, app ZERO
+
+> **Pass 39 of the pass-0 series** (solo, the canonical discovery prompt; STEP 1 empty —
+> backlog 8/8 — so the axis came from Part AO.N's "did NOT drive" list, all eight items
+> adjudicated). **App: ZERO changes** (local HEAD APK md5 `530ba4ff…` == on-device →
+> `install -r` SKIPPED; sha256 `ad449d7d…`, vc53/1.3.2). **Mock: THREE commits** —
+> `45b481f9` (MOCK_ARCHIVED_FAULT + MOCK_UNREAD_CAS arms + the wire-arg log; self-tests
+> 4), `f6213c82` (the created task inherits the source workspace's LABEL —
+> p39-mock-created-label), `49e7dceb` (MOCK_UNREAD_CAS=force — the deterministic
+> desktop-diverged simulator); suite **248/0/0**.
+
+> **Verification stamp (pass start):** 2026-11-16 21:03 → 21:42, GLM-5.3-Flash in
+> ZCode, everything local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…`
+> UNCHANGED — no DELTA. Rig: the pass-38 emulator REUSED (SIXTEENTH consecutive
+> inherited survival; wifi ENABLED, screenshot protection OFF persisted); the stale
+> gen3 relay pkilled BY NAME at pass start (the ledger's jar warning honored). FOUR
+> generations on the HEAD jar: gen1 `mock-p39-gen1-c7d2b4` 21:03 (MOCK_TASKMGMT=1),
+> gen2 `mock-p39-gen2-9e3f61` 21:28 (+MOCK_ARCHIVED_FAULT=1), gen3
+> `mock-p39-gen3-a48d05` 21:34 (+MOCK_UNREAD_CAS=1), gen4 `mock-p39-gen4-71c9e3`
+> 21:37 (MOCK_UNREAD_CAS=force — STICKY, see rig-left). Launchers
+> /tmp/p39/relay-g{1,2,3,4}.sh; stored endpoints survived all swaps (no re-pairing).
+> APK md5 verified == HEAD on-device → install SKIPPED. logcat fresh `-T 1` →
+> /tmp/p39/logcat.log (gateway.drop 0; zero FATALs). Rig learnings (AP.A0) below.
+
+## AP.A0 — rig learnings
+
+1. **force-stop → immediate `am start` can silently NO-OP the launch** (twice this
+   pass): the intent prints "Starting…" but no process materializes (pidof empty, no
+   crash trace). The recipe is `am start -W` (waits for the draw; TotalTime 13–18 s
+   cold on this machine) or sleep ≥3 s between force-stop and start.
+2. **Bottom-sheet dialog dumps were TRUE this layout** (the New-task sheet and the
+   group editor dumped accurate bounds pre-IME), but the IME reflow lags the dump —
+   after tapping a field, wait for the keyboard BEFORE dumping, or the dump returns
+   the stale (unreflowed) bounds. The AO.A0.2 AlertDialog trap did not re-bit.
+3. **The color-chip flip recipe that finally works**: tap the chip BEFORE touching
+   the name field — no IME, no reflow, the chips sit at their dump bounds. Pass 38's
+   two attempts (create + edit) lost to the IME both times because the field came
+   first.
+4. `input text` mangled BOTH ways in one call ("pp39-c" for "p39-create": leading
+   dup + trailing drop). The MOVE_END + N×DEL + SHORT retype repair remains
+   mandatory; keep payloads ≤6 chars when the exact string matters.
+5. The workspace-chip taps during a cold-start connect misdirect into the
+   connection-info screen (the "Connected" status row is a tap target at the same
+   y-band as the early overflow). After any relaunch, dump FIRST and drive only from
+   the dump.
+
+## AP.B — gen1: the workspace chips (first series) + the F-P38-A mitigation interaction
+
+The chip row (All / Synthetic One / Manage) drove first-series: **All** = the
+ungrouped full view; **Synthetic One** filters BOTH the group list AND the pinned
+section (TaskListScreen.kt:1210-1211/1248) — and the filter **HIDES the F-P38-A
+ghost** (the dead `synthetic-ws-one` key's section drops out; s01: no ghost under
+the chip; w1: the ghost present under All). The ghost is therefore an ALL-VIEW-only
+surface — the chip filter is an accidental mitigation. **Manage** opens the
+WorkspaceManagerSheet first-series (w3: "Workspaces / Tap to switch. Reorder or
+rename locally — the desktop keeps the originals." + the `/synthetic/ws-one` raw
+path + Rename + OK). F-P38-A **stamps 3** (the ghost re-manifested on gen1 s00/w1
+AND gen4 s24 "7 h ago" — across four relay swaps and two app restarts).
+
+## AP.C — gen1: the overflow menu census + Organize/Sort/Collapse legs (first series)
+
+The ⋮ overflow opens an 8-item menu (w6/s04, first-series census): Archived tasks /
+New group / **Organize by workspace** / **Organize by timeline** / **Sort by
+created** / **Sort by updated** / **Collapse all workspaces** / **Expand all
+workspaces** — with the bold+check affordance tracking the current state (the
+check moved to Timeline after the switch, s16).
+
+- **Organize by timeline**: the section header flips to "WORKSPACE **Timeline**"
+  and the ordering re-flows (Backend group block, then the loose rows newest-first,
+  the ghost tail) — w7/s05. The Backend group sub-header RENDERS in timeline mode
+  too.
+- **Sort by created**: the state flips (menu affordance) but the ORDERING is
+  fixture-INVARIANT on this rig — all synthetic seeds share one createdAtMs batch,
+  so created-desc == updated-desc for every row pair. Receipted as far as the rig
+  can differentiate; a sort-DIFFERENCE leg needs a mock seeding staggered createdAtMs
+  (not worth an arm now).
+- **Collapse all** (gen4 re-drive): the tree collapses to Pinned + the two headers
+  ("Tap to expand", 83 nodes from 114). **Expand all**: headers flip back
+  ("Tap to collapse" ×2), all rows return (114 nodes) — the round-trip receipted
+  (w39–w42, s25).
+- The header a11y pluralization reads "**1 tasks**" (w5/w26) — cosmetic, folded
+  here rather than rowed.
+
+## AP.D — gen1: the + New task WATCH RESOLVED (AO.K closed)
+
+"+ New task" → the New-task sheet (workspace Synthetic One, "Describe the task —
+this starts the agent", "Model: workspace default", Create disabled until text) →
+"p39cr" (after one `input text` mangling + the MOVE_END/DEL repair) → Create:
+`tasks.create :: workspace=/synthetic/ws-one` (app log 21:12:51), the relay logged
+`MOCK: command type=createSession`, **ZERO sendLost in the whole pass** — the
+created row RENDERED on the home and the DB holds `sess-created-1 | p39cr |
+/synthetic/ws-one | statusWire=running` (r3.db). **Pass 38's AO.K sendLost WATCH is
+RESOLVED: the createSession v4 reply round-trips on a fresh generation; the hang
+was the stale-gen3-jar wrinkle, not the app.** Pass 8's create receipt re-confirmed.
+
+## AP.E — gen1: the move sheet's New-group path → NEW ROW F-P39-A (P3)
+
+task-2 → Move to group… → the sheet (No group / Backend / **New group…**) → New
+group… → the GroupEditorSheet (create mode) → "shgrp" + the color tap → Create:
+`channel.call :: zcode-task.createTaskGroup ok` (21:19:13.876) + the post-create
+`listGroupedTaskViewStructure` refresh — **and NOTHING moves**: zero
+`applyGroupedTaskViewOrder` in the whole pass log, task-2 still loose (a11y + DB),
+and the new group renders NO header (empty → the N-BV-1 skip; stamp 2).
+
+**NEW ROW F-P39-A (P3)** — the move sheet's "New group…" path silently DROPS the
+pending move: the sheet's New-group item clears `moveFor = null` BEFORE opening the
+editor (TaskListScreen.kt:823), and the editor's onCreate wires ONLY
+`onCreateGroup` (:834) → `TasksViewModel.createGroup` (:425-435) =
+createTaskGroup + loadGroups + the "Group created" notice. The user's flow
+"Move to group… → New group… → create" ends with the task UNMOVED and the group
+INVISIBLE (N-BV-1), while a success notice fires — the F-P10-A silent-no-op family
+on the move plane, worse for the success notice contradicting the outcome. (The
+desktop companion's shape per G102's census is create-then-**admit** — the move
+completes.) Fix shape: carry moveFor through the editor (create → move to the
+created group) or re-open the sheet with the new group preselected; fold in the
+G102 move-copy fix. Pin: a compose test opening the move sheet → New group →
+create → asserting the move wire fires and the row renders under the group.
+
+## AP.F — gen1: the color-dot VISIBLE flip receipted ×2 (AO.A0.4 closed)
+
+The GroupEditorSheet's color chips drove WITHOUT the IME (AP.A0.3): **Gray→Blue**
+(s11 before: Gray chip accent-filled; s12 after: Blue accent-filled + blue dot,
+Gray deselected) and the accidental second flip **Blue→Orange** (s13; the first
+field-tap misfire landed on the Orange chip — recorded as the pair's second
+receipt, not wasted). The visible dot-flip face pass 38 left unreceipted is now
+closed on both polarities.
+
+## AP.G — gen1: the persistence adjudication → NEW SMALL N-BW-1 (P4)
+
+Force-stop → relaunch after organize=TIMELINE + collapse-all:
+- **organizeBy/sortBy RESET** to WORKSPACE/UPDATED — BY DESIGN (the G69 comment
+  "view-local state, like the desktop companion", TasksViewModel.kt:102-103 bare
+  MutableStateFlows); receipted, no row.
+- **collapse-all did NOT apply after the restart** — **NEW SMALL N-BW-1 (P4)**: in
+  TIMELINE mode `collapseAll` maps `state.groups`' workspaceKeys (:331) which is
+  the single sentinel `TIMELINE_GROUP_KEY = "timeline"` (TasksViewModel.kt:70) —
+  the set persists to the file store faithfully, but the restart lands in
+  WORKSPACE organize (the always-reset above) whose keys are real workspace paths,
+  so the persisted sentinel matches NOTHING and every section renders expanded
+  (w24/s17 collapsed → relaunch → w26 "Tap to collapse" everywhere). Composition
+  effect: **collapse-all from the timeline NEVER survives a restart** (and the
+  desktop's GAP-14 port contract — "persisted per workspace key so it survives
+  app restart" — is defeated by the key mismatch). Fix shape: persist per-mode
+  key namespaces (timeline vs workspace) or translate the sentinel on load; pin:
+  a compose test collapsing in timeline → recomposing in workspace asserting the
+  collapsed faces.
+
+## AP.H — gen1: the mock's created-task LABEL divergence (caught + FIXED in-pass)
+
+After the create, the home's workspace section header re-rendered as
+"**Synthetic Workspace** · 3 tasks" while the member rows' subtitles all read
+"Synthetic One" (s18/w26) — incoherent grouping label. DB arbiter (r3.db):
+`sess-created-1` sits under the SAME key `/synthetic/ws-one` with workspaceLabel
+**"Synthetic Workspace"** — the mock's createSession effect hard-coded the default
+label (MockZCode.kt MockTask default) instead of the workspace's. **FIXED**
+(`f6213c82` p39-mock-created-label: the created task inherits the label from a
+same-path sibling bootstrap row; self-test asserts "Synthetic One"). The phone's
+grouping-by-key behavior is correct; the label incoherence was mock-fed. (The
+created task's `statusWire=running` is FAITHFUL — a created task is running.)
+
+## AP.I — gen2: the archived viewer's UNAVAILABLE face (first series, arm-driven)
+
+MOCK_ARCHIVED_FAULT=1 (`45b481f9`): overflow → Archived tasks → the sheet renders
+the null-list face "**Archived tasks are unavailable on this connection**"
+(s22; testTag archived_unavailable) — driven end-to-end: app logcat
+`channel.call :: zcode-task.listArchivedTasks begin` → **`refused:
+fault.archived.rig`** (WARN), relay `MOCK: listArchivedTasks forced fault
+(MOCK_ARCHIVED_FAULT) -> fault.archived.rig`. The client's guarded() maps the
+typed fault to null → the VM's null branch renders the face — the third face of
+the archived viewer now has ALL THREE faces receipted (empty AO.H / populated
+AO.H / unavailable HERE).
+
+## AP.J — gen3/gen4: the unread CAS — the arg ON THE WIRE + the refusal face (first series)
+
+- **gen3 (MOCK_UNREAD_CAS=1, the real comparison)**: task-2 → Mark read → the
+  relay logged `MOCK: setTaskUnread taskId=synth-task-2 unread=false
+  expectedUnreadAt=1794864760131` — **the CAS arg receipted on the wire for the
+  first time in the series** (pass 38's coverage note "the mock ignores it" is
+  superseded) — matched the stored stamp → ok 116 ms → the row's unread dot/bold/
+  a11y-suffix cleared. Coverage item ⑧ CLOSED.
+- **gen4 (MOCK_UNREAD_CAS=force, `49e7dceb`)**: Mark read → the app sent
+  `expectedUnreadAt=1794865055598`, the mock's drifted comparison answered the
+  typed fault — app logcat `setTaskUnread … refused: fault.unread.stale:
+  expectedUnreadAt` (WARN), relay `CAS mismatch … expected=…598 stored=…599 ->
+  fault.unread.stale` — and the phone rendered **"Couldn't update the task — try
+  again"** (s24) with the row STILL unread (a11y suffix intact; DB arbiter r4.db:
+  synth-task-2 unreadAtMs still SET — nothing mutated). The desktop-diverged
+  refusal face is receipted end-to-end; the notice also re-manifested **N-BU-1
+  stamp 2** (it draws at the screen top overlapping the clock, s24 — the same
+  status-bar-zone slot as pass 38's mutation notices).
+
+## AP.K — the F-P38-B cold-open race re-receipted (stamp 2)
+
+gen1's true cold open LOST the group-fetch race again (s00/w1: no group header on
+the first home render); after a Settings round-trip re-composition the Backend
+header WAS rendered (w5: `task_group_header_task-group-rig` + task-3 as member) —
+the LaunchedEffect(Unit)-vs-connect race, both halves in one generation. (On
+gen4 the cold open WON — the group header present in the first post-boot dump —
+confirming the intermittency the row's mechanism predicts.)
+
+## AP.L — ledger arithmetic + coverage honesty
+
+ONE new F row (F-P39-A), ONE new small (N-BW-1). Open counts: **34 F (32 defects
++ 2 obs) + 22 G + 3 standing + 20 smalls (+1 watch +1 rig)**. Stamps: F-P38-A ×3,
+F-P38-B ×2, N-BV-1 ×2, N-BU-1 ×2. Mock debts: #24 (created-task label) opened+
+closed in-pass (`f6213c82`); 0 open work-debts. gateway.drop: 0; zero app FATALs
+(the process churn was the planned relaunches + two silent-launch retries,
+AP.A0.1). Wire census: 4 generations; channel legs receipted on app logcat
+(createTaskGroup + listGroupedTaskViewStructure ×N, setTaskUnread ×2 pass/refuse,
+listArchivedTasks refused-by-arm); v4: createSession ACKED (the WATCH closed).
+
+What pass 39 did NOT drive: the workspace Manage sheet's Rename/Reorder legs
+(the sheet render receipted, w3); the sort-by-created DIFFERENCE (fixture-
+invariant — needs a staggered-createdAt mock seed); the archived fault arm
+against a POPULATED list (the face is the same null branch); the G102 task-groups
+channel migration (fix-round); the collapse-per-mode translation (N-BW-1's fix);
+the move-sheet's None-group path under F-P39-A's fix; TalkBack runtime.
+
+## Pass-39 verification stamp
+
+Pass 39 completed 2026-11-16 ~21:42; FOUR relay generations (gen1
+`mock-p39-gen1-c7d2b4` 21:03→21:28, gen2 `mock-p39-gen2-9e3f61` 21:28→21:34, gen3
+`mock-p39-gen3-a48d05` 21:34→21:37, gen4 `mock-p39-gen4-71c9e3` 21:37→21:42;
+launchers /tmp/p39/relay-g{1,2,3,4}.sh). Mock: THREE commits `45b481f9` /
+`f6213c82` / `49e7dceb` (suite 248/0/0). App: ZERO changes — `install -r` SKIPPED
+on byte-identity (local == on-device md5 `530ba4ff…`, sha256 `ad449d7d…`,
+vc53/1.3.2 at HEAD `3773add3` + the mock commits). Receipts: shots /tmp/p39/shots/
+(s00 boot home+ghost; s01 chip filter; s02 Manage sheet; s04 overflow census;
+s05 timeline; s06 sort-created; s07-s08 new-task sheet + created; s09-s10 move
+sheet + editor; s11-s13 color flips ×2; s15-s18 created/expand/collapse/relaunch;
+s22 archived unavailable; s24 CAS refusal + N-BU-1; s25 expand-all); AX dumps
+/tmp/p39/w/ (w1-w42); relay logs /tmp/p39/relay-g{1,2,3,4}.log; DB pulls
+/tmp/p39/db/ (zcode.db + zcode2/zcode4 + folded r3/r4 — the create round-trip,
+the label divergence arbiter, the CAS non-mutation); logcat /tmp/p39/logcat.log
+(channel.call corpus; gateway.drop 0; zero FATALs). Desktop 3.18.1 / `ec475e6e…`
+unchanged (STEP 0). **Rig left:** emulator zcode-a16 UP (healthy, wifi ENABLED,
+screenshot protection OFF), relay gen4 ALIVE (nonce `mock-p39-gen4-71c9e3`, arm
+MOCK_UNREAD_CAS=force — **⚠ STICKY refusal arm: every mark-read will fault
+until an inheritor pkills and relaunches with clean/other arms**; MOCK_TASKMGMT=1
+fixtures armed), app pid 30523 on the tasks home (post-expand-all state),
+logcat running → /tmp/p39/logcat.log.
