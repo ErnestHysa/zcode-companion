@@ -57,14 +57,17 @@ class MockZCodePass33RigSelfTest {
         val m = mock { rowKindsDemo = true }
         val rows = m.snapshotRowsForTest("sess-p33", 6)
         val all = kinds(rows)
-        // 1+2: two artifact rows.
+        // 1+2(+2b): three artifact rows.
         val artifacts = rows.filter { ((it as JsonObject)["kind"] as JsonPrimitive).content == "artifact" }.map { it as JsonObject }
-        assertEquals(2, artifacts.size, "the openable + the quiet-fallback artifact rows")
+        assertEquals(3, artifacts.size, "the openable + the quiet-fallback + the openable-unserved artifact rows")
         val openable = artifacts.first()
         assertEquals("rig-p33-report.html", ((openable["displayName"]) as JsonPrimitive).content)
         assertEquals("rig-p33-report.html", ((openable["ref"]) as JsonPrimitive).content)
-        val quiet = artifacts.last()
+        val quiet = artifacts[1]
         assertEquals("rig-p33-blob.xyz", ((quiet["displayName"]) as JsonPrimitive).content)
+        val unserved = artifacts[2]
+        assertEquals("rig-p33-missing.html", ((unserved["displayName"]) as JsonPrimitive).content)
+        assertEquals("rig-p33-missing.html", ((unserved["ref"]) as JsonPrimitive).content)
         // 3: the unknown-kind row (raw shape — the app's decoder routes it to Unknown).
         assertTrue(all.contains("futureWidget"), "the unknown-kind tolerance row")
         // 4: the non-compact marker.
@@ -83,6 +86,7 @@ class MockZCodePass33RigSelfTest {
         assertTrue(bytes != null && bytes.isNotEmpty(), "readFileRange has no default-content fallback — the ref MUST carry real bytes")
         assertTrue(String(bytes, Charsets.UTF_8).contains("<h1>"), "the seeded payload is the HTML report")
         assertFalse(m.script.fileBytes.containsKey("rig-p33-blob.xyz"), "the quiet artifact's ref stays UNSEEDED (the download-failure face is the rig target)")
+        assertFalse(m.script.fileBytes.containsKey("rig-p33-missing.html"), "the openable-unserved artifact's ref stays UNSEEDED — the card renders but readFileRange faults (stage-1 of the silent open failure)")
     }
 
     @Test

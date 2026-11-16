@@ -2101,6 +2101,14 @@ class MockZCode(
                 put("mimeType", JsonPrimitive("application/octet-stream"))
                 put("sizeBytes", JsonPrimitive(2048L))
             }))
+            // 2b. The OPENABLE-but-unserved artifact (pass-33 gen2): a CARD renders
+            //    (known extension) but readFileRange answers fault.file.notFound —
+            //    stage-1 of the open affordance's silent failure (stage-2 = the
+            //    downloaded file hits the unconfigured FileProvider root).
+            rows.add(schemaRow(sessionId, nextId++, RowKind.ARTIFACT, "rig-p33-missing.html", extra = buildJsonObject {
+                put("mimeType", JsonPrimitive("text/html"))
+                put("sizeBytes", JsonPrimitive(4096L))
+            }))
             // 3. The unknown-kind tolerance row (INV-8 §19.5): NOT in KNOWN_KINDS —
             //    the domain decoder routes it to Unknown and the renderer renders
             //    the "Unsupported entry · <kind>" quiet face. Never a crash.
