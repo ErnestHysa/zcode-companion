@@ -7715,3 +7715,238 @@ clean; NOTE the arm seeds a STREAMING reasoning row + cards whose opens fail
 silently — expected shapes, not rig breakage), app pid 16309 on synth-task-2
 (reasoning collapsed by the last tap — rig residue, harmless), logcat running →
 /tmp/p33/logcat.log.
+
+# Part AK — pass 34 (APPENDED 2026-11-16, ~04:00): fresh recon on the pass-33 precedent applied one level deeper — the toolCall row's PER-TOOL-KIND render matrix (ToolKindTaxonomy × the group/dispatch render × the receipt corpus): the full status face matrix (pendingApproval/cancelled/running/unknown live in one frame), BOTH group faces with their file-count and command-count counts + summed durations, group EXPANSION with member cards, the ERROR card with its INPUT/ERROR blocks and the G66 recovery card driven end-to-end (Retry → the real `retryTurn` wire command; Report issue → `nav.reportIssue` with the error attached → the Send feedback form PREFILLED), and the C7 lazy full-output fetch receipted on BOTH faces (the served slice replacing the capped preview on a real `getTaskSnapshotToolCallsSlice` body; the honest fault → the retained-preview-copy fallback) — ZERO new rows; the unplanned receipt: the assistant-row Fork action re-receipted happy AND the DOUBLE-fork's `port.fork outcome=Stale child=null` face FIRST SERIES
+
+> **Pass 34 of the pass-0 series** (solo, the canonical discovery prompt). STEP 1 empty
+> (backlog 8/8); Part AJ's coverage-honesty list is standing-stops-only, so the pass ran
+> FRESH RECON per the pass-28/33 precedent — one render level below pass-33's row-kind
+> axis: the `toolCall` row's per-tool-kind surfaces. Static census: ToolKindTaxonomy (14
+> kernel kinds over 31 names), ToolCategory grouping (5 buckets, ≥2 consecutive SETTLED
+> same-category rows), the ToolCard render (kind subtitle · status+duration · meta ·
+> INPUT/output blocks · G66 errorActions), ToolGroupBlock (title·count·duration header →
+> member cards), and the C7 lazy fetch (`fullOutputProvider` → `conversationPort.
+> fetchToolCallOutput` → `phase9().toolCallOutput` → wire `getTaskSnapshotToolCallsSlice`
+> — which the MOCK NEVER ANSWERED). Cross-checked against all 34 pass records: the
+> kind subtitles + the Explore·2 collapsed group + success status were pass-13's ONLY
+> tool-plane receipts; the status matrix beyond success, group expansion, CHANGES/
+> EXECUTE group counts, durations, the error card's G66 actions, and BOTH lazy-fetch
+> faces had ZERO receipts. **Mock: ONE commit `edf7aeb0`** (the MOCK_ROW_TOOLS arm — an
+> 11-row schema-faithful census + the getTaskSnapshotToolCallsSlice handler with a
+> served/unscripted split; self-tests 6 cases, suite **220/0/0**). **App: ZERO changes**
+> (APK byte-identical at HEAD — md5 `530ba4ff…`, sha256 `ad449d7d…`, vc53/1.3.2; the
+> `install -r` SKIPPED on digest equality). **ZERO new rows.**
+
+> **Verification stamp (pass start):** 2026-11-16 03:05 → 03:47, GLM-5.3-Flash in ZCode,
+> everything local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…` UNCHANGED
+> — no DELTA. Rig: the pass-33 emulator REUSED (ELEVENTH consecutive inherited survival;
+> healthy, screenshot protection OFF — s00 132.8 KB PNG verified), the pass-33 relay
+> gen2 pkilled BY NAME at pass start; TWO generations: gen1 `mock-p34-gen1-c74380`
+> (03:08→03:11 — seed-fidelity miss: rigTool forgot inputText in extra, every meta read
+> schemaRow's "echo synthetic" default; rebuilt+relaunched) and gen2 `mock-p34-gen2-4eb017`
+> (03:12→end, arms MOCK_ROWS=12 + MOCK_ROW_TOOLS=1; the app force-stopped and relaunched
+> per generation). Build at HEAD: `:tools:mockzcode:test` + `:tools:mockzcode:jar` +
+> `:app:assembleDebug` exit 0; local APK md5 `530ba4ff…` == on-device `base.apk` md5 →
+> install SKIPPED. logcat fresh `-T 1` → /tmp/p34/logcat.log.
+
+## AK.A0 — rig learnings
+
+1. **Drag-start position decides whether the timeline scrolls AT ALL**: vertical drags
+   STARTED ON A TOOL CARD are silently swallowed (six consecutive flings + slow drags
+   moved 0 px — pixel-identical frames), while the SAME gesture started in the ~40 px
+   INTER-CARD GAP scrolls normally. The pass-33 "fling beats drag" lesson was this same
+   variance mis-attributed: gesture ORIGIN, not velocity, is the discriminator. When a
+   conversation is wedged: tap the Jump-to-latest FAB (verified working throughout —
+   input is alive, only card-originated drags die), then gap-drag.
+2. **The a11y content-desc on a collapsed group reads "expand", on an expanded group
+   "collapse"** — the dump is a reliable expand-state arbiter without screenshots.
+3. `input swipe` gestures aimed at dialog buttons keep missing after an IME toggle
+   (the dialog reflows when the keyboard hides — the pass-26 lesson, third bite):
+   BACK to drop the IME FIRST, re-dump, THEN tap the fresh bounds.
+4. The retried-reply row (the mock's retryTurn append) carries `ROW_ACTIONS_ASSISTANT`
+   → its rail renders TEXT buttons Like/Dislike/Fork/Retry — the seeded base rows have
+   no `actions` and render the icon-only 👍👎 rail (the flag-gating face, s06).
+5. The fork child session seeds IDENTICALLY (every arm's snapshot is per-session) —
+   driving legs "inside the fork" is wire-equivalent to the parent.
+
+## AK.B — leg A: the single-card STATUS matrix renders live (03:13, gen2, s03)
+
+Synthetic task 2 opened fresh (`subscribeConversationV4` → `manager.snapshot rows=24`
+→ the initial page renders ONLY the tail five — the pass-33 paging shape; the DB pull
+arbitrated all 24 rows incl. the 11-row toolCall census EXACT: Edit/Write/Bash/
+BashOutput/Grep-big/TaskUpdate-err/Grep-fallback/Bash-pending/WebSearch/Glob/CronList
+with their statuses, error objects, canRetry flags, approvalInteractionId, and
+durations). s03 receipts FIVE faces in one frame, all first-series:
+
+- **Bash · Shell · "Needs approval" (AMBER, amber rail) · `rm -rf build/`** — the
+  PENDING_APPROVAL face (toolStatusPresentation's railWaiting); the approval
+  INTERACTION plane stays separate (no card pushed — correct: the row face is the
+  row's own status, the interaction machines are the earlier passes' receipts).
+- **WebSearch · Search · "Cancelled" (muted, done-rail)** — first series.
+- **Glob · Search · "Running" (BLUE, blue rail)** — first series on a live row.
+- **CronList · "Task control" · "Unknown"** — the UNKNOWN-status face (empty status
+  string → ToolCallStatus.UNKNOWN) WITH the taxonomy subtitle — the known-name +
+  unknown-status composition.
+- Meta lines all real (the gen2 inputText fix).
+
+## AK.C — leg B: BOTH group faces + summed durations + EXPANSION (03:19–03:21, s07–s10)
+
+After gap-dragging up (AK.A0.1), s07 receipts the two collapsed groups first-series:
+
+- **`Changes · 2 files · 4.3s`** — the CHANGES group's FILE-COUNT face
+  (ToolGroupUi.of's file_path/filePath/path/notebook_path input counter — "2 files",
+  not "2 calls") + the SUMMED member duration (1.9 s + 2.4 s).
+- **`Execute · 2 commands · 5.3s`** — the EXECUTE count face + summed duration
+  (3.1 s + 2.2 s), with **BashOutput GROUPED INTO IT** (the taxonomy hole: unknown
+  name → no kind → the substring "bash" fallback buckets it EXECUTE — graceful, the
+  ledger's opportunistic-queue line CONFIRMED live, no defect per INV-8).
+
+Tap the Execute header (dump bounds — the a11y desc flips to "collapse"): s08/s09/s10
+receipt the EXPANSION first-series — member cards render INLINE under the header:
+**Bash · Shell · Completed · 3.1s · `git status --short`** (the per-card duration
+face first-series) and **BashOutput · Completed · 2.2s · `bash_id: shell-7`** —
+BashOutput renders **NO kind subtitle** where Bash directly above shows "Shell" (the
+TaxonomyKind subtitle's `kindOf ?: skip` fallback, RowRenderers.kt:484). Collapse +
+re-expand verified via the chevron/dump state.
+
+## AK.D — leg C: the ERROR card + the G66 recovery card driven END-TO-END (03:22–03:26, s12–s16)
+
+TaskUpdate expands (s12): red rail, "Failed · 1.2s" (the ERROR status + duration
+faces), meta, the INPUT monospace block — then s13 receipts the rest first-series:
+the **ERROR block** (`task_write_denied: the desktop's task store refused the update
+for the rig probe`) and beneath it the **G66 ErrorRecoveryCard** ("Something went
+wrong — try a recovery action") with THREE actions — **Retry · Switch model · Report
+issue** — plus the **Trace: [copy][copy]** row (Copy TraceID + Copy full details).
+canRetry rendered true (the seeded `actions.canRetry` + schemaRow's entityId; the
+ConversationScreen:1506 gate).
+
+- **Retry → WIRE (s14)**: tap → relay `MOCK: v4call sendConversationCommandV4` +
+  **`MOCK: command type=retryTurn`** → the mock appends "retried reply" (DB rowId
+  1001, the arbiter) → the row renders live in the timeline → the Jump-to-latest FAB
+  badges "2". The G66 retry leg's first wire receipt in the pass0 series.
+- **Report issue → the feedback form (s15/s16)**: logcat **`nav.reportIssue ::
+  details=task_write_denied: the desktop's task store refused the upda…`** (the raw
+  error attached) → `nav.screen :: route=settings` → the **Send feedback dialog**
+  (Bug/Suggestion/Slow-performance chips, "What happened?" PREFILLED with the error,
+  Contact optional, Close/Submit). First series. Close + BACK-pop receipted.
+- **Switch model**: the button RENDERS (s13/s15); its tap was NOT driven — the handler
+  is `{switchModelRequests++}` (the SAME §10.3 config-chips sheet the header chips
+  host, receipted in earlier passes); recorded as the leg's honest boundary.
+- The card's expanded state survives the route push/pop (rememberSaveable rowId key)
+  and the Retry tap COLLAPSES it (the same clickable) — re-expand receipted.
+
+## AK.E — leg D: the C7 lazy full-output fetch, BOTH faces (03:36 / 03:43, s18/s19)
+
+**The served face (s18)**: the grepbig Grep card (its preview is a >2k JSON object →
+the "Show full output" button renders — the TOOL_PREVIEW_CAP=2000 gate first-series)
+→ tap → relay **`MOCK: v4call getTaskSnapshotToolCallsSlice (id=25)`** +
+**`MOCK: tool slice serve tool-rig-grepbig`** → the card's **"full output" block
+renders the SERVED body** (`SERVED SLICE for tool-rig-grepbig (getTaskSr… / slice
+line 1…`) — the wire-fetched slice REPLACING the capped preview, monospace, exactly
+the C7 shape. First series (the mock never answered this verb before; the button had
+never been tapped in 33 passes).
+
+**The fallback face (s19)**: the grepfallback Grep card (its slice id deliberately
+absent from the mock's map) → tap → **`MOCK: tool slice fault for
+tool-rig-grepfallback`** → the port catches → null → **the "full output" block
+renders the RETAINED PREVIEW COPY** (`{"text":"grepfallback — the retained preview…`)
+— the §13.3 degrade contract (a refused slice degrades the FEATURE, never surfaces)
+receipted live first-series. Both faces on one gen; the relay log carries both lines.
+
+## AK.F — leg E: the Changes group EXPANDS to its member cards (03:46, s20)
+
+Tap the Changes header: **Edit · File write · Completed · 1.9s · `src/version.ts`**
+and **Write · File write · Completed · 2.4s · `README.md`** render inline — the
+FILE_WRITE subtitles (both members taxonomy-known), per-card durations matching the
+group's summed 4.3 s, and the path metas that fed the "2 files" count. The group
+plane is now FULLY receipted phone-side (collapsed counts + summed durations +
+expansion + member composition, CHANGES and EXECUTE both; EXPLORE was pass-13's;
+COMPUTER_USE was the vc51 G18 rig).
+
+## AK.G — the UNPLANNED receipt: the assistant-row Fork action + the STALE face (03:33, first series)
+
+Two rig taps landed on the "retried reply" row's action rail (AK.A0.4) and fired the
+Fork action twice — receipting the plane's remaining faces:
+
+- **Happy path (re-receipt of the pass-0/2 wires, stamps)**: logcat **`port.fork ::
+  session=synth-task-2 row=1001 outcome=Accepted child=sess-forked-1`** →
+  **`nav.fork :: open sess-forked-1`** → the app switches IN PLACE to the child
+  (recovery.attach → subscribe → `manager.snapshot rows=25`) → the header renders
+  **"Fork of synth-task-2"** (the mock's forkAssistant task title). Same shape the
+  pass-0 record receipted on synth-task-1.
+- **The STALE face FIRST SERIES (zero prior receipts)**: the SECOND fork on the same
+  row → **`port.fork :: outcome=Stale child=null`** — the guard refuses honestly: NO
+  navigation, NO second child, NO error surface, the app stays on the first fork. The
+  desktop's row-capability gate (actions.canFork on the LATEST assistant row)
+  answering stale on a superseded fork is the correct shape; recorded so the fix
+  rounds don't chase a "silent second fork" ghost.
+
+## AK.H — static adjudications (no live leg needed)
+
+1. **The BashOutput taxonomy hole CONFIRMED** (AK.C): no kind subtitle + EXECUTE
+   grouping, graceful — the ledger's opportunistic-queue line stands unchanged ("one
+   `put("BashOutput", TASK_CONTROL)`" remains the one-liner fix for the SUBTITLE
+   only; the grouping already lands right via the substring fallback).
+2. **F-P33-A's root cause GENERALIZES to the attachment plane (STATIC)**: the non-
+   image attachment chip's external open (ZCodeApp.kt:1052-1077) fetches via
+   `conversationPort.fetchAttachment`, which writes `attachmentCacheDir =
+   File(cacheDir, "attachments")` (**AppContainer.kt:227**) — a THIRD cache root
+   absent from `file_paths.xml` (shared/ + updates/ only). The same
+   getUriForFile IAE family as F-P33-A stage-2, on a different port. NOT live-driven
+   (the attachment plane's driveable surface was declared empty at pass 32; this is
+   the same root defect — the row's fix shape gains
+   `<cache-path name="attachments" path="attachments/" />` alongside the downloads
+   line; a fix-round leg can drive the chip tap for the stamp).
+3. The pendingApproval ROW face with NO pushed interaction renders honestly (AK.B) —
+   no orphan state, no crash; the row is a display plane separate from the approval
+   interaction machines (receipted passes 0–12).
+
+## AK.I — ledger arithmetic + coverage honesty
+
+**ZERO new rows** (the pass-33 opener F-P33-A stands; no re-narration). The toolCall
+render matrix is now FULLY receipted phone-side: kind subtitles (pass 13 + AK.C's
+no-subtitle hole), the status matrix (success 13; pendingApproval/cancelled/running/
+unknown AK.B; error AK.D; inputStreaming shares running's face by code — not
+re-driven), both new group faces + summed durations + expansions (AK.C/AK.F), the
+ERROR card + G66 recovery actions (AK.D), BOTH lazy-fetch faces (AK.E), the Fork
+happy + STALE faces (AK.G). Open counts unchanged: **29 F (27 defects + 2 obs) +
+21 G + 3 standing + 16 smalls (+1 watch +1 rig)**. Mock debts: 0 open (MOCK_ROW_TOOLS
+is a capability). gateway.drop for the pass: **0**; zero app FATAL lines (the
+AndroidRuntime grep hits are uid-2000 shell spawns — am/dumpsys — not the app);
+relay v4call census gen1=5 / gen2=48 (2× getTaskSnapshotToolCallsSlice — serve +
+fault).
+
+What pass 34 did NOT drive: the Switch-model recovery tap (its handler increments
+into the already-receipted §10.3 chips sheet — AK.D boundary); the inputStreaming
+status face (toolStatusPresentation maps it to the SAME running label/color — no
+distinguishable render); the COMPUTER_USE group + the CUA in-card screenshot frame
+(vc51 G18 receipts, code unchanged); the load-earlier strip (the mock's snapshot
+flags carry hasMore=false — undrivable without a mock paging arm; N-BM-1's stale
+total stands); the pendingApproval row's wire-approval flow (the interaction plane,
+receipted earlier); the live attachments/-IAE leg (AK.H.2 — fix-round);
+TalkBack/shade-ACTION/widget/Dictate (standing stops).
+
+## Pass-34 verification stamp
+
+Pass 34 completed 2026-11-16 ~03:55; TWO relay generations (gen1
+`mock-p34-gen1-c74380` 03:08→03:11 — the seed-fidelity miss, replaced; gen2
+`mock-p34-gen2-4eb017` 03:12→end; arms MOCK_ROWS=12 + MOCK_ROW_TOOLS=1; launchers
+`/tmp/p34/relay-g1.sh` + `/tmp/p34/relay-g2.sh`). The `install -r` SKIPPED on
+byte-identity (local == on-device md5 `530ba4ff…`, sha256 `ad449d7d…`, vc53/1.3.2 at
+HEAD `edf7aeb0` — app source untouched; the pass's only code commit is the mock arm
+`edf7aeb0`, suite **220/0/0**). Receipts: shots `/tmp/p34/shots/` (s00 rig health;
+s03 the status matrix; s07 both groups collapsed; s09/s10 Execute expanded + the
+BashOutput no-subtitle hole; s12/s13 the error card + G66 recovery card; s14
+post-Retry; s15/s16 the prefilled feedback dialog; s18 the SERVED full output;
+s19 the FALLBACK full output; s20 the Changes members); AX dumps `/tmp/p34/w/w*`;
+relay logs `/tmp/p34/relay-g1.log` + `/tmp/p34/relay-g2.log` (`command type=
+retryTurn`, `command type=forkAssistant` ×2, `tool slice serve` + `tool slice
+fault`); DB pulls `/tmp/p34/db/zcode.db{,-wal}` (the 24-row census + the 11-row
+toolCall shapes + "retried reply" rowId 1001); logcat `/tmp/p34/logcat.log`
+(nav.reportIssue, nav.fork, port.fork Accepted/Stale). App changes: NONE. Desktop
+3.18.1 / `ec475e6e…` unchanged (STEP 0). **Rig left:** emulator zcode-a16 UP
+(healthy, wifi ENABLED, screenshot protection OFF), relay gen2 ALIVE (nonce
+`mock-p34-gen2-4eb017`, the seed arms only — nothing sticky; an inheriting session
+may reuse it or pkill + relaunch clean), app pid 16538 INSIDE THE FORKED CHILD
+"Fork of synth-task-2" (sess-forked-1; rig residue — BACK pops to the task list),
+logcat running → /tmp/p34/logcat.log.
