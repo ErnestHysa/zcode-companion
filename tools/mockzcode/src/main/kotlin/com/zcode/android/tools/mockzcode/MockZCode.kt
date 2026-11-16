@@ -485,6 +485,25 @@ class MockZCode(
         var rowKindsDemo: Boolean = false
 
         /**
+         * Pass-34 rig (Part AK): the toolCall row's PER-TOOL-KIND render matrix in ONE
+         * arm — a CHANGES group (Edit+Write with path inputs + durations → "N files"
+         * count), an EXECUTE group (Bash + BashOutput — the taxonomy-hole name so the
+         * no-subtitle fallback renders), an ERROR card (error{code,message} +
+         * actions.canRetry → the G66 recovery card), two >2k-preview Grep rows (one
+         * whose slice is SERVED via [toolCallSlices], one deliberately unscripted so
+         * the preview-copy fallback face drives), and the single-card status faces
+         * (cancelled / running / pendingApproval / unknown-status). Default off.
+         */
+        var rowToolsDemo: Boolean = false
+
+        /**
+         * Pass-34: the SERVED `getTaskSnapshotToolCallsSlice` bodies — keyed by
+         * toolCallId; a requested id ABSENT here answers `fault.mock.unscripted`
+         * (the honest unscripted shape the app's lazy fetch must degrade from).
+         */
+        val toolCallSlices: MutableMap<String, String> = java.util.concurrent.ConcurrentHashMap()
+
+        /**
          * I2.4 (Phase 6A): stamp the context-compaction lifecycle into the NEXT
          * snapshot — three `timelineMarker` rows (`marker.type == "compact"`):
          * started:auto, completed:auto with token counts, failed:manual — the
@@ -2136,6 +2155,83 @@ class MockZCode(
                 put("state", JsonPrimitive("streaming"))
             }))
         }
+        if (script.rowToolsDemo) {
+            // Pass-34 (Part AK): the toolCall row's PER-TOOL-KIND render matrix.
+            // Grouping needs ≥2 CONSECUTIVE SETTLED rows of one category; the single
+            // faces are interleaved so no accidental group forms. Durations ride
+            // startedAt/endedAt (epoch-ms doubles — the decoder's shape).
+            val now = System.currentTimeMillis()
+            fun rigTool(
+                name: String,
+                status: String,
+                inputText: String,
+                inputPath: String? = null,
+                durationMs: Long? = null,
+                callId: String? = null,
+                previewObj: JsonObject? = null,
+                errorObj: JsonObject? = null,
+                canRetry: Boolean = false,
+                approvalId: String? = null,
+            ) {
+                val extra = buildJsonObject {
+                    put("toolName", JsonPrimitive(name))
+                    put("inputText", JsonPrimitive(inputText))
+                    callId?.let { put("toolCallId", JsonPrimitive(it)) }
+                    inputPath?.let { p ->
+                        put("input", buildJsonObject {
+                            put("path", JsonPrimitive(p))
+                            put("file_path", JsonPrimitive(p))
+                        })
+                    }
+                    previewObj?.let { put("outputPreview", it) }
+                    errorObj?.let { put("error", it) }
+                    if (canRetry) put("actions", buildJsonObject { put("canRetry", JsonPrimitive(true)) })
+                    approvalId?.let { put("approvalInteractionId", JsonPrimitive(it)) }
+                    durationMs?.let { d ->
+                        put("startedAt", JsonPrimitive((now - d).toDouble()))
+                        put("endedAt", JsonPrimitive(now.toDouble()))
+                    }
+                }
+                // schemaRow's `text` carries "status[:interactionId]" for tool rows.
+                val text = if (approvalId != null) "pendingApproval:$approvalId" else status
+                rows.add(schemaRow(sessionId, nextId++, RowKind.TOOL_CALL, text, extra = extra))
+            }
+            fun bigPreview(seed: String): JsonObject = buildJsonObject {
+                put("text", JsonPrimitive(buildString {
+                    append("$seed — the retained preview body (the client caps it at 2000 chars and lazy-fetches the slice).\n")
+                    repeat(60) { i -> append("line ${i + 1}: the served full-output body must be LONGER than the cap so the button renders.\n") }
+                }))
+            }
+            // CHANGES group (2 settled rows, path inputs, durations → "Changes · 2 files · 4.3s").
+            rigTool("Edit", "success", "src/version.ts", inputPath = "src/version.ts", durationMs = 1_900)
+            rigTool("Write", "success", "README.md", inputPath = "README.md", durationMs = 2_400)
+            // EXECUTE group — BashOutput is the taxonomy hole (unknown name → NO kind
+            // subtitle; the substring fallback buckets it EXECUTE so it GROUPS).
+            rigTool("Bash", "success", "git status --short", durationMs = 3_100)
+            rigTool("BashOutput", "success", "bash_id: shell-7", durationMs = 2_200)
+            // The SERVED >2k preview row (the lazy fetch answers a real slice body).
+            rigTool("Grep", "success", "TODO", callId = "tool-rig-grepbig", previewObj = bigPreview("grepbig"))
+            script.toolCallSlices["tool-rig-grepbig"] = buildString {
+                append("SERVED SLICE for tool-rig-grepbig (getTaskSnapshotToolCallsSlice output field — the desktop's C7 shape).\n")
+                repeat(120) { i -> append("slice line ${i + 1}: this body is served by the relay and must replace the capped preview in the expanded card.\n") }
+            }
+            // The ERROR card: typed error + canRetry → the G66 recovery card (Retry
+            // rendered; Switch model + Report issue wired app-side).
+            rigTool("TaskUpdate", "error", "{\"taskId\":\"synth-task-1\",\"status\":\"in_progress\"}", durationMs = 1_200, errorObj = buildJsonObject {
+                put("code", JsonPrimitive("task_write_denied"))
+                put("message", JsonPrimitive("the desktop's task store refused the update for the rig probe"))
+            }, canRetry = true)
+            // The UNSCRIPTED >2k preview row (its slice id is absent → fault → the
+            // fallback face renders the retained preview copy as "full output").
+            rigTool("Grep", "success", "FIXME", callId = "tool-rig-grepfallback", previewObj = bigPreview("grepfallback"))
+            // Single-card status faces (each breaks any accidental group above/below).
+            rigTool("Bash", "pendingApproval", "rm -rf build/", approvalId = "inter-rig-tools-1")
+            rigTool("WebSearch", "cancelled", "kotlin compose desktop")
+            rigTool("Glob", "running", "src/**/*.kt")
+            // The UNKNOWN-status face: an empty status string decodes to UNKNOWN
+            // ("Unknown" label, the done-rail color).
+            rigTool("CronList", "", "list cron")
+        }
         return JsonArray(rows)
     }
 
@@ -3209,6 +3305,29 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 }
             }
                             "getTaskTokenUsage" -> scriptableObject(id, script.taskTokenUsage, "getTaskTokenUsage")
+                // Pass-34 (Part AK): the C7 lazy tool-output slice — SERVED bodies for
+                // seeded ids (the desktop's `{toolCalls:[{toolCallId, output}]}` shape);
+                // an unscripted id answers the honest fault so the app's fallback face
+                // (the retained preview copy) drives.
+                "getTaskSnapshotToolCallsSlice" -> {
+                    val params = argAsObject(arg)
+                    val wanted = (params?.get("toolCallIds") as? JsonArray)
+                        ?.mapNotNull { (it as? JsonPrimitive)?.content }
+                        .orEmpty()
+                    val served = wanted.firstOrNull { script.toolCallSlices.containsKey(it) }
+                    if (served == null) {
+                        println("MOCK: tool slice fault for ${wanted.joinToString(",")}")
+                        respondError(id, "fault.mock.unscripted:getTaskSnapshotToolCallsSlice")
+                    } else {
+                        println("MOCK: tool slice serve $served")
+                        respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
+                            put("toolCalls", JsonArray(wanted.map { cid -> buildJsonObject {
+                                put("toolCallId", JsonPrimitive(cid))
+                                script.toolCallSlices[cid]?.let { put("output", JsonPrimitive(it)) }
+                            } }))
+                        }))
+                    }
+                }
                 // G42-P23 (vc52 Phase 12): the management verbs — MUTATING fixtures
                 // (the scripted list mutates so the hub reflects the change on reload;
                 // ok:false fixtures drive the refused faces).

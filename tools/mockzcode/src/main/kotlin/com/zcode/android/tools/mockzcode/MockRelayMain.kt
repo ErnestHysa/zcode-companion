@@ -355,6 +355,15 @@ fun main() {
     if (System.getenv("MOCK_ROW_KINDS") != null) {
         mock.script.rowKindsDemo = true
     }
+    // Pass-34 rig leg: MOCK_ROW_TOOLS=1 seeds the toolCall row's PER-TOOL-KIND render
+    // matrix — the CHANGES group ("2 files" count + durations), the EXECUTE group
+    // (incl. the taxonomy-hole BashOutput), the ERROR card (error{code,message} +
+    // actions.canRetry → the G66 recovery card), two >2k-preview Grep rows (one SERVED
+    // via getTaskSnapshotToolCallsSlice, one unscripted = the fallback face), and the
+    // cancelled/running/pendingApproval/unknown-status single cards.
+    if (System.getenv("MOCK_ROW_TOOLS") != null) {
+        mock.script.rowToolsDemo = true
+    }
     // Pass-27 rig leg: MOCK_CHECKPOINT_CONFLICTS=1 arms restoreBetweenCheckpoints' conflict
     // branch — the first restore answers success=false + conflicts[], and the phone's
     // force path (restore anyway → force=true) flips it to the success face in the same leg.
