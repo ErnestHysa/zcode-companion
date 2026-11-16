@@ -457,6 +457,18 @@ class MockZCode(
          *  phone's keyed FEEDBACK_REFUSED notice ("The desktop refused the feedback —
          *  nothing changed.") becomes drivable. Mutates nothing. */
         @Volatile var feedbackFail: Boolean = false
+        /** Pass-39 rig arm (MOCK_ARCHIVED_FAULT=1): listArchivedTasks answers the
+         *  typed RPC ERROR fault.archived.rig — the phone's guarded() maps it to null
+         *  and the archived viewer renders its UNAVAILABLE face (the never-driven
+         *  third face of pass 38's coverage list). Mutates nothing. */
+        @Volatile var archivedFault: Boolean = false
+        /** Pass-39 rig arm (MOCK_UNREAD_CAS=1): setTaskUnread(unread=false) VALIDATES
+         *  the client's expectedUnreadAt against the stored stamp (the desktop's
+         *  host-side CAS); a mismatch answers the typed RPC ERROR
+         *  fault.unread.stale:expectedUnreadAt and mutates nothing — the phone's
+         *  mark-read refusal face ("Couldn't update the task — try again") becomes
+         *  drivable. Unarmed, the arg is logged but ignored (pass-38 behavior). */
+        @Volatile var unreadCas: Boolean = false
         /** Pass-22 rig arm (Part X leftover, MOCK_SET_THOUGHT_LEVEL_STALE): the effort
          *  switch rides the PROTOCOL method (v4Call setThoughtLevel), whose host layer
          *  CAS-checks via FQ and answers a JSON-RPC ERROR on mismatch — NOT a
@@ -5544,9 +5556,14 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
             "listPinnedTasks" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(
                 script.directTasks.filter { taskIdOf(it) in script.pinnedTaskIds }.map { RpcValue.Obj(decorateMeta(it)) },
             ))
-            "listArchivedTasks" -> respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(
-                listArchivedServedForTest().map { RpcValue.Obj(decorateMeta(it)) },
-            ))
+            "listArchivedTasks" -> {
+                if (script.archivedFault) {
+                    println("MOCK: listArchivedTasks forced fault (MOCK_ARCHIVED_FAULT) -> fault.archived.rig")
+                    respondError(id, "fault.archived.rig")
+                } else respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Arr(
+                    listArchivedServedForTest().map { RpcValue.Obj(decorateMeta(it)) },
+                ))
+            }
             "setTaskPinned" -> {
                 val taskId = arg?.str("taskId")
                 val pinned = (arg?.get("pinned") as? JsonPrimitive)?.content?.toBooleanStrictOrNull()
@@ -5563,6 +5580,18 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
                 val unread = (arg?.get("unread") as? JsonPrimitive)?.content?.toBooleanStrictOrNull()
                 if (taskId == null || unread == null) respondError(id, "fault.mock.unscripted:setTaskUnread")
                 else {
+                    // Pass-39: receipt the wire arg (pass 38's coverage list — the CAS arg
+                    // rode the wire but nothing observed it).
+                    println("MOCK: setTaskUnread taskId=$taskId unread=$unread expectedUnreadAt=${arg["expectedUnreadAt"]}")
+                    if (!unread && script.unreadCas) {
+                        val expected = (arg["expectedUnreadAt"] as? JsonPrimitive)?.content?.toLongOrNull()
+                        val stored = script.unreadTaskIds[taskId]
+                        if (expected == null || expected != stored) {
+                            println("MOCK: setTaskUnread CAS mismatch (MOCK_UNREAD_CAS) expected=$expected stored=$stored -> fault.unread.stale")
+                            respondError(id, "fault.unread.stale:expectedUnreadAt")
+                            return
+                        }
+                    }
                     val stamp = if (unread) System.currentTimeMillis().also { script.unreadTaskIds[taskId] = it } else { script.unreadTaskIds.remove(taskId); null }
                     respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
                         put("taskId", JsonPrimitive(taskId))

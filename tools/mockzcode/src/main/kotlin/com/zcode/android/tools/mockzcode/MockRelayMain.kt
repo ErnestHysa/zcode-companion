@@ -625,6 +625,15 @@ fun main() {
     // the host's failed ack {status:"failed", reasonCode:"fault.feedback.fail"} — the
     // phone's keyed FEEDBACK_REFUSED notice becomes drivable. Mutates nothing.
     if (System.getenv("MOCK_FEEDBACK_FAIL") == "1") mock.script.feedbackFail = true
+    // Pass-39 rig arm: MOCK_ARCHIVED_FAULT=1 makes listArchivedTasks answer the typed
+    // RPC ERROR fault.archived.rig — the archived viewer's UNAVAILABLE face (the
+    // null-list branch pass 38 left undriven) becomes drivable. Mutates nothing.
+    if (System.getenv("MOCK_ARCHIVED_FAULT") == "1") mock.script.archivedFault = true
+    // Pass-39 rig arm: MOCK_UNREAD_CAS=1 makes setTaskUnread(unread=false) validate the
+    // client's expectedUnreadAt against the stored stamp (the desktop's host-side CAS);
+    // a mismatch answers fault.unread.stale:expectedUnreadAt and mutates nothing — the
+    // mark-read refusal face becomes drivable. The arg is logged either way.
+    if (System.getenv("MOCK_UNREAD_CAS") == "1") mock.script.unreadCas = true
     // Pass-22 rig arm (Part X leftover): MOCK_SET_THOUGHT_LEVEL_STALE=1 makes the
     // effort switch (the PROTOCOL method v4Call setThoughtLevel) answer the host's
     // FQ revision-mismatch shape — the JSON-RPC ERROR Dl(-32009, "Session state
