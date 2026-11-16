@@ -5612,6 +5612,10 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
                 else {
                     script.archivedTaskIds.remove(taskId)
                     script.directTasks = script.directTasks.filterNot { taskIdOf(it) == taskId }
+                    // Pass-38: sync the CONTROL view too (the deleteTask fix's class) — the
+                    // unsynced view resurrected the deleted task on the app's next refresh
+                    // AND starved its group's member list (groupedStructure reads directTasks).
+                    script.bootstrapTasks = script.bootstrapTasks.orEmpty().filterNot { taskIdOf(it.toJson()) == taskId }
                     respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
                 }
             }

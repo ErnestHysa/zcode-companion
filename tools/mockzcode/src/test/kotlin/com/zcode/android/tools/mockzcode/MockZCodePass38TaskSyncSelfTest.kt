@@ -96,4 +96,16 @@ class MockZCodePass38TaskSyncSelfTest {
         m.taskPromiseForTest(10, "unarchiveTask", JsonObject(mapOf("taskId" to JsonPrimitive("synth-task-3"))))
         assertEquals(3, m.bootstrapTasksView().size)
     }
+
+    @Test
+    fun `deleteArchivedTask removes the row from the control view - no resurrection`() {
+        val m = mock()
+        armTaskManagementRig(m)
+        m.taskPromiseForTest(11, "archiveTask", JsonObject(mapOf("taskId" to JsonPrimitive("synth-task-3"))))
+        val before = m.promiseResponsesForTest().size
+        m.taskPromiseForTest(12, "deleteArchivedTask", JsonObject(mapOf("taskId" to JsonPrimitive("synth-task-3"))))
+        assertTrue(okReplied(m, before))
+        assertTrue(m.bootstrapTasksView().none { (it.jsonObject["taskId"] as? JsonPrimitive)?.content == "synth-task-3" })
+        assertTrue(m.script.directTasks.none { (it.jsonObject["taskId"] as? JsonPrimitive)?.content == "synth-task-3" })
+    }
 }
