@@ -108,47 +108,52 @@ P2-first, exit gates, per-row Accept criteria).
 
 - Report: `docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md` —
   Parts A–Z + AA + AB + AC + AD + AE + AF + AG + AH + AI + AJ + AK + AL + AM + AN +
-  AO + AP + AQ + AR + AS = passes 0–42. **Latest: pass 42 (Part AS, 2026-11-17 ~01:20).**
-- Repo HEAD at pass start: `7fa80d8d` (pass 41's docs commit; main); pass 42 added
-  ONE mock commit — `55162b44` (p42-search-snippets: listTaskList search hits gain
-  searchSnippet+searchSnippets — the desktop rowToTaskListItem shape, plain-list
-  shape unchanged, + the relay log line; p42-mock-git-many: MOCK_GIT_MANY=1 →
-  manyChanges() 44 unstaged/2 staged crossing BOTH J1.2 gates; p42-git-diff-shape:
-  debt #28 — the getDiff fixture re-shaped to the decoder contract;
-  MockZCodePass42SearchTreeSelfTest 7; mock suite **268/0/0/0**) + the docs commit.
-  App: ZERO commits. APK of record: sha256 `ad449d7d…` / md5 `530ba4ff…`,
-  versionCode 53 / 1.3.2 (byte-identical across the whole series; install SKIPPED
-  again).
+  AO + AP + AQ + AR + AS + AT = passes 0–43. **Latest: pass 43 (Part AT, 2026-11-17 ~08:20).**
+- Repo HEAD at pass start: `e9d42698` (pass 42's docs commit; main); pass 43 added
+  ONE mock commit — `73c66186` (p43-task-search-limit: debt #29 — listTaskList
+  reads the caller's `limit` and serves the desktop queryTaskList shape
+  {items ≤limit, total = COUNT, hasMore = total > items.length} where it served
+  ALL hits + hasMore:false hardcoded; MOCK_TASKS_MANY=1 seeds synth-task-4..27
+  so the phone's limit:20 crosses the face; MockZCodePass43TaskSearchLimitSelfTest 6;
+  mock suite **274/0/0**) + the docs commit. App: ZERO commits. APK of record:
+  sha256 `ad449d7d…` / md5 `530ba4ff…`, versionCode 53 / 1.3.2 (byte-identical
+  across the whole series; install SKIPPED again — on-device md5 re-verified).
 - Desktop of record: **/Applications/ZCode.app 3.18.1.10376, asar sha256 `ec475e6e…`,
-  383,832,025 B** (re-verified at pass-39 STEP 0 — UNCHANGED, no DELTA). Pass-38
-  census: the zcode-task method table extracted exact (AO.L) — every task verb
-  EXCEPT the six group verbs survive; the group plane moved to the task-groups
-  channel (read/save/ungroup/move/admit); the desktop GAINED its own task-row
-  management menu (mutateTask routing) — pass 8's no-menu census line stale.
-- Open rows: **38 F (36 defects + 2 obs) + 23 G + 3 standing + 22 smalls (+1 watch
-  +1 rig)** — pass 42 opened ZERO rows (all three never-driven planes honest at
-  HEAD); stamps **N-BY-1 ×3** (the raw "%1$s" a11y labels re-dumped across the
-  tree/flat dumps); the desktop of record UNCHANGED (no DELTA at pass-42 STEP 0).
-- Backlog: **8/8 DONE**; the discovery surface stays empty — pass 42's axis was a
-  FRESH test-file-vs-receipts census (TaskSearchOverlayTest / GitTreeSearchUiTest /
-  the diff-expander with ZERO report hits) → the tasks search overlay, the git
-  change tree/search (J1.2 gated — structurally undrivable against the 3-row
-  fixture until MOCK_GIT_MANY), and the per-file diff expand, ALL receipted
-  first-series WORKING. What remains is standing stops + F-P3-A-gated planes +
-  fix-round items. **The mock-debt list has 0 open work-debts** (#27/#28
-  opened+closed in-pass).
-- Rig left by pass 42: emulator `zcode-a16` UP (NINETEENTH consecutive inherited
-  survival; healthy, wifi ENABLED, screenshot protection OFF), relay gen2 ALIVE
-  (nonce `mock-p42-gen2-b7d2f3`, arms MOCK_GIT=1 + MOCK_GIT_MANY=1 +
-  MOCK_TASKMGMT=1 — **NOTHING sticky**, an inheritor may reuse or pkill by name),
-  app pid 4644 inside synth-task-1's git pane (the cleared-filter tree view),
-  logcat running → /tmp/p42/logcat.log. Launchers /tmp/p42/relay-g{1,2}.sh. New
-  rig learnings in Part AS.A0: the header-tap hazard re-manifested (the status
-  capsule opens the CONFIG-CHIPS row — the "Context" CHIP is the sheet's entry);
-  screenshot sizes run 110–200 KB-class on content screens (the ~1.4 MB heuristic
-  is a boot-screen signal only); the diff card's toggle is the HEADER ROW, not the
-  "Tap to expand" caption; `pm path` output pasted literally (quoted) into `adb
-  shell md5sum` is the APK-identity recipe.
+  383,832,025 B** (re-verified at pass-43 STEP 0 — UNCHANGED, no DELTA). Pass-43
+  census addition: the desktop task-list contract extracted exact (AT.B) —
+  queryTaskList (host chunk-TCPD6WAE.js) honors `limit` (LIMIT ? over the ordered
+  filter) answering {items ≤limit, total = COUNT over the filter, hasMore =
+  total > items.length}; the renderer's useGlobalTaskList keeps all three
+  (`f(e.total), m(e.hasMore)`) with `limit: e.expanded?void 0:e.collapsedLimit`
+  and renders the taskList.showMore/showLess affordance — the desktop NEVER
+  silently truncates.
+- Open rows: **39 F (37 defects + 2 obs) + 23 G + 3 standing + 22 smalls (+1 watch
+  +1 rig)** — pass 43 opened **F-P43-A** (P3: the tasks-search pane silently
+  truncates at limit:20 — total/hasMore dropped at the port, no count/affordance
+  face, matches 21–27 unreachable through the search UI); stamps: NONE this pass
+  (no open row re-manifested); the desktop of record UNCHANGED (no DELTA at
+  pass-43 STEP 0).
+- Backlog: **8/8 DONE**; pass 43's axis was Part AS's coverage-honesty leftover —
+  the "hasMore/limit path of listTaskList" (named undrivable against the 3-task
+  seed) — unblocked by the MOCK_TASKS_MANY arm and DRIVEN: the pagination face
+  receipted live on the wire, which opened F-P43-A. What remains is standing
+  stops + F-P3-A-gated planes + F-P40-B/F-P40-C-gated faces + fix-round items.
+  **The mock-debt list has 0 open work-debts** (#29 opened+closed in-pass).
+- Rig left by pass 43: emulator `zcode-a16` UP (TWENTIETH consecutive inherited
+  survival; healthy, wifi ENABLED, screenshot protection OFF), relay gen1 ALIVE
+  (nonce `mock-p43-gen1-157d6f`, arms MOCK_TASKMGMT=1 + MOCK_TASKS_MANY=1 —
+  ADDITIVE/nothing sticky, an inheritor may reuse [the home renders 27 tasks] or
+  pkill by name), app pid 8599 on the tasks home (search closed, the hit-tap
+  cleared the query), logcat running → /tmp/p43/logcat.log. Launcher
+  /tmp/p43/relay-g1.sh. New rig learnings in Part AT.A0: the launcher hand-write
+  trap re-manifested with a NEW failure mode (the mangled path was valid-looking —
+  `kotlinx-serialization-core-jvm-1.9.0/` as a dir component — NoClassDefFoundError
+  StringFormat at boot; cmp-byte-diff found it; derive launchers, never hand-write);
+  the IME eats result-pane swipes AND types through them (three swipes committed
+  " to to to" via the space key); keyevent 111 (ESC) does NOT close this IME and
+  the keyboard-chevron tap missed — BACK once (keyevent 4) after typing, BEFORE
+  any swipe, is the only recipe; a dump-parse `grep -o '[0-9]*'` pulled "27" out
+  of a "hit-27" label and garbled the tap args (digit-free labels or strict parses).
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -166,6 +171,7 @@ bodies after 3.14.3 — the census IS the changelog.
 
 | ID | P | Status | Mechanism (one line) | Fix shape | Depends on | Evidence | Stamps |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| F-P43-A | 3 | OPEN (NEW pass 43) | the tasks-SEARCH results pane SILENTLY TRUNCATES at the port's limit:20 — the wire carries the desktop-faithful pagination answer (relay: `MOCK: listTaskList search='synthetic' → 27 hits (limit=20 served=20 hasMore=true)`) but the phone drops total/hasMore at the PORT boundary (Ports.kt:139-151 maps `.items` only; the client decodes both into SearchResult — TaskServiceClient.kt:306/:334-338) and the pane renders the bare list with NO count, NO "20 of 27", NO show-more affordance (TaskListScreen.kt:396-433 forEach; s05: task-20 flush at the screen bottom, nothing after it) — matches 21–27 are UNREACHABLE through the search UI while the UNFILTERED home renders all 27 (the home's no-limit listTaskList; w00 badge 26 + 1 pinned) and the per-keystroke drum refires the truncated query on every keystroke (44 listTaskList calls this pass); the under-limit face is honest (query '2' → 10/10 rendered, `served=10 hasMore=false` — the truncation is the limit boundary, not a render cap). DESKTOP PARITY: useGlobalTaskList keeps all three (`f(e.total), m(e.hasMore)`) with `limit: e.expanded?void 0:e.collapsedLimit` and renders the taskList.showMore/showLess affordance — the desktop NEVER silently truncates | thread SearchResult (or total/hasMore) through port.searchTasks; VM gains searchTotal/searchHasMore; the pane renders a count face + a show-more row re-querying at a raised limit (the desktop's expanded/undefined-limit shape); pins: a compose test — stubbed port 20 hits/total 27/hasMore true asserts the count face + the affordance render, tapping it re-queries with the raised limit and renders the remainder | — | Part AT.B/AT.C (s01/s05, w04/w08/w09, relay-g1.log) | 1 |
 | F-P40-B | 2 | OPEN (pass-41 REVISION: rename-only) | the workspace-manager RENAME-ALIAS write is a SILENT NO-OP at HEAD — the pass-40 "persistence TRIO" narrowed: REORDER (field 16 `workspace_order`) and SELECT (field 18 `selected_workspace_key`) receipted ALIVE END-TO-END in pass 41 (the arrow taps flip field 16 with fresh mtimes ×2; the chips row REORDERS LIVE through the prefs flow; the row-tap select writes field 18 + the chip renders filled + the home filters to the workspace; the order survives app restarts AND the emulator reboot; the All-tap null write resolves pass-40's "byte-identical rewrite" mystery as a healthy dedup'd write — field 18 → ABSENT with identical bytes), while RENAME (field 17 `workspace_aliases`) NEVER reaches disk (×4 across two processes: Rig1 ×2 [pass 40], RigTwo + the screenshot-verified RigOne [pass 41] — the pb mtime frozen through the Save, field 17 ABSENT, zero UI echo) — the wiring is singular and direct (sheet Save → `onRename(renameFor!!, …)` → TaskListScreen:500 → ZCodeApp.kt:747-756, the SAME `startScope.launch { preferencesRepository.update {…} }` shape as the two ALIVE callbacks, and `toProto()` writes `putWorkspaceAliases` correctly) with no exception logged — the deadness is INSIDE the rename path, micro-cause a fix-round-harness question | pin the rename lambda specifically (a Robolectric harness asserting preferences.pb gains workspaceAliases after onWorkspaceRenamed + the chip recomposing under the alias); diff the rename lambda's transform against the working select/reorder shapes | — | Part AQ.C, Part AR.B (s05/s06/s11/s12, preferences{,2,3,4,-final}.pb — the field-level lifecycle) | 2 (pass 41: the revision + the ×2 rename drives) |
 | F-P41-A | 3 | OPEN (NEW pass 41) | the git PUSH refusal renders NOTHING — "Commit & push" silently half-completes: `git.push refused: Cannot push while HEAD is detached.` (relay-7, 00:04:03, the mock's desktop-faithful refusal) arrives and the pane looks healthy (s22: the commit consumption receipted, zero error face / notice / banner) — three stacked kills: GitScreen.kt:486-493's `onPush` sets `pushFor = null` (the PushConfirm closes BEFORE the async result, the F-P40-C pre-close shape), then `if (port.push() != null) notifierGit.show(pushDoneFmt…)` is the SUCCESS-ONLY branch with NO else, and the port's `push() = writeOp("push") {…}` (Phase9Ports.kt:253-255) maps the refused call's TransportFailure to null (the same null-swallow boundary F-P10-A pinned for commit and F-P5-A stamp 2 pinned for reads); the wire's refusal message is desktop-faithful — the copy exists, the UI drops it | an else branch on the push notice path rendering the refused reason (the noticeGit plane; fold the F-P40-C message-half principle — typed refusals must render); pin: a harness asserting the push-refusal face renders with the message text | — | Part AR.E (s22, w47) | 1 |
 | F-P40-A | 3 | OPEN (NEW pass 40) | the BranchSheet's switch/create WRITE ACKS re-fetch NOTHING in-place: `git.switchBranch ok`/`git.createBranchAndSwitch ok` fire (22:16/22:19) and the git PANE keeps rendering pre-switch data (branch block "main", comparison, Changes, History) until the screen is left and re-entered (the fresh LaunchedEffect(Unit) fetch heals: "rigp40" + the context-sheet git strip "rigp40 clean") — the BranchSheet itself re-reads localBranches at open (GitScreen:332) so the ✓ moves correctly, but the pane's summary/comparison/changes have no re-read on write acks; the commit handler by contrast calls fetchChanges() on success (GitScreen:470) — the asymmetry IS the fix shape (a shared refetch() on every write ack); the stale-viewport family (F-P38-A) on the git plane | fetchChanges() + a summary/comparison re-read on switch/create acks; pin: a compose test asserting the branch block flips after a stubbed ok ack without re-entry | — | Part AQ.B (s07/s12/s13) | 1 |
@@ -213,7 +219,8 @@ bodies after 3.14.3 — the census IS the changelog.
 | F-P4-A | 2 | FIXED (rig) | mock push patch structurally excluded its own interaction | `pushPendingPermission` builds from unfiltered list + patch-content pin — commit `2b12fc46`, 37 mock tests green | — | Part G.A2.2, H.A1 | — |
 | N-BK-1 (rig half) | 2 | FIXED (rig) | git fixtures in wrong field vocabulary (blank paths, +0−0, duplicated tabs, oid-vs-hash) | contract vocabulary rewrite — same commit `2b12fc46` | — | Part G.A2.3, H.A1 | — |
 
-**Open F count: 38** (36 defects + 2 observations; pass 41 opened F-P41-A P3 —
+**Open F count: 39** (37 defects + 2 observations; pass 43 opened F-P43-A P3 —
+the tasks-search pane silently truncates at limit:20; pass 41 opened F-P41-A P3 —
 the git push refusal renders NOTHING — and REVISED F-P40-B to rename-only-dead
 (select + reorder receipted ALIVE on the disk)) ·
 FIXED: 2 (both rig) · RETRACTED/REFUTED/ABSORBED: 7.
@@ -255,7 +262,10 @@ FIXED: 2 (both rig) · RETRACTED/REFUTED/ABSORBED: 7.
        the P2 of the pass-40 batch) → 18b. **F-P40-A + F-P40-C** (pass 40, P3 pair:
        the git pane's write-ack refetch + the typed branch-issue face — the same
        GitScreen write-handler surface, one session; F-P40-C gates the 8-code
-       branch_issue copy map) → 19. **F-P19-A + F-P20-A** (passes
+       branch_issue copy map) → 18c. **F-P43-A** (pass 43, P3: the tasks-search
+       pane's silent limit:20 truncation — thread SearchResult through the port +
+       the count face + a show-more re-query; small, self-contained, the port +
+       pane surface one session) → 19. **F-P19-A + F-P20-A** (passes
    19/20: the held-queue guard family — F-P19-A the sendText CAS-mismatch face
    divergence, F-P20-A the goal payload's trio omission; both small — a typed
    reasonCode branch on the existing SendNotice path / a goal-side gate) →
@@ -404,6 +414,7 @@ N-BY-1 (P4, the Stage/Discard a11y labels carry the raw "%1$s").
 26. ~~**(pass 41)** the fixture's pre-staged rows were never seeded into the write tier's `stagedPaths` — `servedGitChanges()` only PROMOTED rows into "staged", so a fixture-staged row (index.ts) could never leave the Staged tab: the live receipt was unstagePaths ok → the refetch serving the SAME staged row~~ **OPENED+CLOSED in the same pass** (`ff275c34` p41-mock-git-unstage: `RigGitFixtures.seedWriteTier` seeds stagedPaths from the fixture's staged rows at arming (shared by the self-test mocks); the served section now DERIVES from the write tier's live set (staged hit → staged, kind added → untracked, else unstaged); the unstage/commit removes span both spellings — the phone's relative vs the seeded absolute; MockZCodePass41GitUnstageSelfTest 4 cases, suite **261/0/0**). **Live receipt AR.D**: the gen1b re-drive — unstagePaths ok → Unstaged (3), the row moved, Staged gone.
 27. ~~**(pass 42)** listTaskList search hits carried NO `searchSnippets`/`searchSnippet` — the desktop's `rowToTaskListItem` attaches them (buildSearchSnippets over searchable_text, searchSnippet = the first) and the phone's tasks-search pane renders the snippet row under the title; the mock's title-filtered hits could never show it~~ **OPENED+CLOSED in the same pass** (`55162b44`: hits gain both fields — the matched-context window around the title hit; the plain no-search list shape UNCHANGED (the pass-38/39 receipts decoded it); + the `MOCK: listTaskList search=…` relay-log line). **Live receipt AS.B**: the search pane renders title+snippet rows ×3 hits on the per-keystroke drum (`search='synt' → 'synthetic'` ×6, 3 hits each).
 28. ~~**(pass 42)** the getDiff fixture served the pass-5-era `{diff: "<unified>"}` literal while the decoder (Phase9Tools.gitDiff) reads `{path, availability ∈ patch|binary|truncated|unavailable, patch}` — the FIRST live diff-expand decoded availability=null → "unavailable" + patch=null (the app's honest tolerant face; the wire said ok)~~ **OPENED+CLOSED in the same pass** (`55162b44`: RigGitFixtures.diff() serves the decoder contract — {path, availability:"patch", patch}; self-test pins it). **Live receipt AS.C**: gen1 the honest unavailable face with `git.getDiff begin → ok` (the verb's first-series isolation); gen2 (fixed jar) the diff CARD + the full unified hunks render.
+29. ~~**(pass 43)** the mock's listTaskList served ALL title-filtered hits with `total=hits.size` + `hasMore:false` HARDCODED — the desktop's queryTaskList honors the caller's `limit` (LIMIT ? over the ordered filter; host chunk-TCPD6WAE.js) answering {items: ≤limit, total: COUNT over the filter, hasMore: total > items.length}, so the phone's limit:20 search (TaskServiceClient.searchTasks) could never see the pagination face (pass 42's coverage list named it undrivable against the 3-task seed)~~ **OPENED+CLOSED in the same pass** (`73c66186`: the handler reads `limit`, serves `hits.take(limit)`, derives `hasMore` from the filter count, and the relay search log line gains limit/served/hasMore; the no-limit shape (pass-38/39 receipts) and the p42 snippet fields UNCHANGED; `MOCK_TASKS_MANY=1` seeds synth-task-4..27 — 27 "synthetic" hits — additive over any seed; MockZCodePass43TaskSearchLimitSelfTest 6; suite **274/0/0**). **Live receipts AT.B/AT.C**: `search='synthetic' → 27 hits (limit=20 served=20 hasMore=true)` per keystroke + the under-limit `search='2' → 10 hits (limit=20 served=10 hasMore=false)` — and the face the wire unblocked opened **F-P43-A** (the phone silently truncates).
 25. ~~**(pass 40)** the ADR-021 git WRITE tier's acks mutated `script.stagedPaths`/`discardedPaths` while `getChanges` kept serving the STATIC RigGitFixtures fixture — the phone staged, re-fetched, and saw the same rows (the recorded ack-without-mutate class ON THE GIT PLANE; nothing consumed the lists; commit left all three rows served)~~ **OPENED+CLOSED in the same pass** (`baa3f216` p40-mock-git-write-mutation: `servedGitChanges()` derives the changes view from the write tier's mutations — staged paths serve section "staged", discarded/committed rows drop, matching the phone's workspaceRelativePath keys against the fixture's absolute `path`; `commit` consumes the served rows it commits so the post-commit fetchChanges() sees the shrink; + MOCK_GIT_BRANCH_ISSUE / MOCK_GIT_PUSH_FAIL arms; MockZCodePass40GitWriteSelfTest 6/6, suite **254/0/0**). **Live receipt AQ.B**: Stage → `stagePaths ok` → the row MOVED tabs (Unstaged 2→1, Staged 1→2, s14); Discard via the typed gate → the row GONE; commit → Changes EMPTY (s21). Residuals (NOT debts — mock-fidelity notes): History never gains the committed row (script.gitCommits static); the summary stays isDirty=false/ahead=0 through the commit; the comparison fixture is branch-invariant.
 
 ## DISCOVERY BACKLOG (tick when the findings are appended as rows)
@@ -569,6 +580,27 @@ delta …`). Nothing pushed.
 ```
 
 ## History
+
+- 2026-11-17 (pass 43) — Part AT executed on Part AS's coverage-honesty leftover —
+  the "hasMore/limit path of listTaskList" (named undrivable against the 3-task
+  seed), unblocked by the new MOCK_TASKS_MANY arm. ONE new F row: **F-P43-A**
+  (P3, the tasks-search pane SILENTLY TRUNCATES at limit:20 — the wire carries
+  the desktop-faithful {items:20, total:27, hasMore:true} and the phone drops
+  total/hasMore at the port boundary, rendering 20 hits with no count and no
+  show-more affordance while the desktop surfaces taskList.showMore; matches
+  21–27 unreachable through the search UI; the under-limit face honest at
+  10/10). Mock debt **#29 opened+closed in-pass** (`73c66186`: the limit-honoring
+  handler + MOCK_TASKS_MANY; suite **274/0/0**). Desktop census addition
+  (AT.B): queryTaskList's exact LIMIT/COUNT/hasMore contract + the renderer's
+  showMore affordance. App: ZERO changes (APK byte-identical — on-device md5
+  re-verified `530ba4ff…`, install SKIPPED). Rig learnings (AT.A0): the
+  launcher hand-write trap's NEW failure mode (a valid-looking mangled dir
+  component — NoClassDefFoundError StringFormat at boot; cmp found it; DERIVE
+  launchers); the IME types THROUGH result-pane swipes (" to to to" committed
+  via the space key) and keyevent 111 does NOT close it — BACK once after
+  typing, before any swipe; the dump-parse digit-label tap-args trap. Rig left
+  UP (gen1 mock-p43-gen1-157d6f, TASKMGMT+TASKS_MANY — additive, reusable; app
+  pid 8599 on the tasks home).
 
 - 2026-11-17 (pass 42) — Part AS executed on a FRESH axis (a test-file-vs-receipts
   census found three planes with ZERO series receipts): the TASKS-HOME SEARCH

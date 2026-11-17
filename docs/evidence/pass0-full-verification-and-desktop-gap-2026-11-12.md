@@ -9937,3 +9937,160 @@ OFF), relay gen2 ALIVE (nonce `mock-p42-gen2-b7d2f3`, arms MOCK_GIT=1 +
 MOCK_GIT_MANY=1 + MOCK_TASKMGMT=1 — NOTHING sticky, an inheritor may reuse or
 pkill by name), app pid 4644 inside synth-task-1's git pane (the cleared-filter
 tree view; the composer untouched), logcat running → /tmp/p42/logcat.log.
+
+# Part AT — pass 43 (APPENDED 2026-11-17, ~08:20): the pass-42 coverage-honesty leftover driven — the "hasMore/limit path of listTaskList" (named undrivable against the 3-task seed), unblocked by the new MOCK_TASKS_MANY arm; the desktop-faithful pagination answer receipted on the wire (`27 hits (limit=20 served=20 hasMore=true)`) and the phone's face with it opened NEW ROW F-P43-A (P3): the tasks-search pane SILENTLY TRUNCATES at limit:20 — total/hasMore decoded by the client then dropped at the port boundary, 20 hits rendered with no count and no show-more affordance, matches 21–27 unreachable through the search UI while the desktop renders taskList.showMore — ONE mock debt opened+closed in-pass (#29, `73c66186`, suite 274/0/0), app ZERO
+
+> **Pass 43 of the pass-0 series** (solo, the canonical discovery prompt; STEP 1 empty —
+> backlog 8/8 — so the axis = Part AS's coverage-honesty list, whose only genuinely
+> driveable leftover was the "hasMore/limit path of listTaskList" pagination branch,
+> pass 42's record naming it "undrivable against the seed size" — the SAME shape pass
+> 42 itself unblocked for the git gates with MOCK_GIT_MANY).
+> **App: ZERO changes** (HEAD `e9d42698` + the mock commit; local APK md5
+> `530ba4ff2283f67cc5a3c50bda7f41d6` == on-device (the `pm path`-pasted md5sum recipe,
+> AS.A0.4) → `install -r` SKIPPED; sha256 `ad449d7d…`, vc53/1.3.2 — byte-identical
+> across the whole series).
+> **Mock: ONE commit** — `73c66186` (p43-task-search-limit, debt #29 opened+closed:
+> listTaskList reads the caller's `limit` and serves `hits.take(limit)` with
+> total=filter-count + hasMore=(limit!=null && hits.size>served.size) where it served
+> ALL hits + hasMore:false hardcoded — the desktop queryTaskList contract; the
+> no-limit shape (pass-38/39 receipts) and the p42 snippet fields UNCHANGED; the relay
+> search log line gains limit/served/hasMore; MOCK_TASKS_MANY=1 seeds synth-task-4..27
+> (27 "synthetic" hits, additive over any seed); MockZCodePass43TaskSearchLimitSelfTest 6;
+> suite **274/0/0**).
+
+> **Verification stamp (pass start):** 2026-11-17 07:55 → 08:14, GLM-5.3-Flash in ZCode,
+> everything local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…` UNCHANGED —
+> no DELTA. Rig: the pass-42 emulator REUSED (TWENTIETH consecutive inherited survival);
+> the idle gen2 relay (`mock-p42-gen2-b7d2f3`, nothing sticky) pkilled BY NAME at pass
+> start. ONE relay generation: gen1 `mock-p43-gen1-157d6f` 08:03 (MOCK_TASKMGMT +
+> MOCK_TASKS_MANY — arms BEFORE exec, launcher derived from the working p42 file after
+> the hand-write trap, AT.A0.1). Stored endpoints survived the swap (no re-pairing); the
+> post-pkill app wedge needed ONE force-stop + `am start -W` relaunch (the pass-27
+> recipe; new pid 8599, hello + subscribe on relay-1). APK md5 verified == HEAD
+> on-device → install SKIPPED. logcat fresh `-T 1` → /tmp/p43/logcat.log. Receipts:
+> shots /tmp/p43/shots/ s00–s06, AX dumps /tmp/p43/w/ w00–w10, relay log
+> /tmp/p43/relay-g1.log.
+
+## AT.A0 — rig learnings
+
+1. **The launcher hand-write trap re-manifested with a NEW, nastier failure mode**: the
+   hand-written heredoc mangled `kotlinx-serialization-core-jvm/1.9.0/` into
+   `kotlinx-serialization-core-jvm-1.9.0/` (the version folded into the DIRECTORY
+   component — a VALID-LOOKING path that simply doesn't exist) →
+   `NoClassDefFoundError: kotlinx/serialization/StringFormat` at relay boot while the
+   jar itself was present and healthy. The pass-41 learning ("derive launchers with
+   sed — a hand-copied classpath dropped a group-dir segment") re-confirmed with the
+   twist that the mangle survives a visual read; the diagnosis was `cmp` on the exec
+   lines (byte 753), the fix was deriving the launcher by `head -1`/`tail -1` from the
+   KNOWN-WORKING p42 file and writing only the arms/nonce lines fresh. DERIVE, never
+   hand-write the classpath.
+2. **The IME types THROUGH result-pane swipes**: three `input swipe` drags over the
+   open keyboard committed " to to to" into the search field (the drag path crossed
+   the space key three times) — the query became "synthetic to to to" → "No tasks
+   match." and the pane was lost. Recovery = X-close + re-open + retype. Prevention =
+   dismiss the IME BEFORE any swipe, and the only recipe that works is **BACK once
+   (keyevent 4) after typing** — keyevent 111 (ESC) does NOT close this IME and the
+   keyboard-chevron tap at its visible position missed.
+3. **A dump-parse label ate the tap args**: `grep -o '[0-9]*'` over an echo line
+   containing "hit-27 tap: 540 1845" pulled the "27" out of the LABEL and the shell
+   fed `input tap 540 27`-class garbage (Android "Argument expected after 27").
+   Labels in intermediate files must be digit-free, or parse only the numeric tail
+   strictly.
+4. **The gen1 relaunch wedge** (the pass-27 recipe re-confirmed): after a pkill +
+   relay relaunch, the FOREGROUNDED app (same pid) sat silent for 30+s with zero
+   connect lines — one force-stop + `am start -W` relaunch connected immediately
+   (hello + subscribe on relay-1). The 11s TotalTime cold start is normal for the
+   swiftshader rig.
+
+## AT.B — Leg A: the pagination face on the wire + the silent truncation (NEW F-P43-A)
+
+Setup: gen1 armed MOCK_TASKMGMT=1 + MOCK_TASKS_MANY=1 → the tasks home renders 27
+synthetic tasks (the workspace section badge "26" + the pinned section's 1st, w00) —
+the seed size that crosses the phone's `limit: 20` (TaskServiceClient.searchTasks
+sends `limit: 20`, TaskServiceClient.kt:311-317).
+
+- **The wire, desktop-faithful**: typing "synthetic" per-keystroke fired the drum ×4+
+  and EVERY call answered the full pagination shape — `MOCK: listTaskList
+  search='synthetic' → 27 hits (limit=20 served=20 hasMore=true)` (relay-g1.log; the
+  log line is debt #29's fix). 44 `zcode-task.listTaskList` channel.calls on the app
+  side this pass (the drum + home refreshes).
+- **The pane renders exactly the served slice**: the results pane scrolled end-to-end
+  censused **20 distinct hits — synth-task-1 … synth-task-20** (w04 + w08 across the
+  IME-free scrolls) — and NOTHING beyond. Tasks 21–27 are UNREACHABLE through the
+  search UI.
+- **The truncation face is SILENT**: s05-pane-bottom — "Synthetic task 20" flush at the
+  screen bottom, no count ("20 of 27" absent), no show-more affordance, no hint of any
+  kind. The mechanism is a stacked pair: the client decodes total+hasMore into
+  SearchResult (TaskServiceClient.kt:306, :334-338) and the REAL port immediately
+  discards both (Ports.kt:139-151 — `.items.map { … }` is the only consumed member),
+  so the VM/pane never see them (TaskListScreen.kt:396-433 renders a bare `forEach`).
+- **The under-limit face is honest** (Leg B): query '2' → `search='2' → 10 hits
+  (limit=20 served=10 hasMore=false)` and ALL 10 rendered (w09: t2, t12, t20–t27) —
+  the truncation is exactly the limit boundary, not a render cap, and the pane has no
+  independent cap.
+- **The contrast surface**: the UNFILTERED home list renders all 27 (no-limit
+  listTaskList — the home call carries no limit key; w00) — the user can find the
+  21–27 tasks by scrolling home but NEVER by searching, with zero indication the
+  search is partial.
+- **DESKTOP PARITY (the asar census, STEP-0 digest unchanged)**: queryTaskList (host
+  chunk-TCPD6WAE.js) honors `limit` (LIMIT ? over the ordered filter) and answers
+  {items ≤limit, total = COUNT over the filter, hasMore = total > items.length}; the
+  renderer's useGlobalTaskList (styles-DNV2PY7o.js) keeps ALL THREE (`f(e.total),
+  m(e.hasMore)`), queries `limit: e.expanded ? undefined : e.collapsedLimit`, and
+  renders the `taskList.showMore`/`taskList.showLess` affordance — the desktop NEVER
+  silently truncates a task list.
+
+**Adjudication: NEW ROW F-P43-A (P3)** — silent data loss in a primary filter surface
+(the F-P0-C silent family's data-truncation variant; the desktop-parity census rides
+the row). Fix shape: thread SearchResult through port.searchTasks; the pane renders a
+count face + a show-more row re-querying at a raised limit (the desktop's
+expanded/undefined-limit shape).
+
+## AT.C — Leg C: the hit-tap nav chain under the many-seed (first-series at scale)
+
+Tapping the synth-task-27 hit from the query-'2' results opened the task conversation
+end-to-end (`subscribeConversationV4 begin → ok in 124ms`, the yolo chip + the
+scripted AGENT rows; s06) — the hit-tap handler's clear-then-open shape (receipted
+pass 42 on 3 hits) holds at 10, and the BACK home shows the overlay closed with the
+query cleared (the pass-42 contract, re-receipted at scale).
+
+## AT.L — ledger arithmetic + coverage honesty
+
+ONE new F row (**F-P43-A**, P3 — open count 38 → **39**). Mock debts: **#29**
+(listTaskList served all hits + hasMore:false hardcoded — the pagination face was
+structurally undrivable) **opened+closed in-pass** (`73c66186`, suite **274/0/0**).
+Stamps: NONE (no open row re-manifested this pass). gateway.drop: 0; zero app FATALs
+(the 75 AndroidRuntime logcat lines are system churn — none from
+com.zcode.android.app). Wire census (app logcat channel.call): `zcode-task.listTaskList`
+×44 (the search drum + home refreshes), `subscribeConversationV4` ×1 (the hit-tap
+open), hello/bootstrap on connect.
+
+What pass 43 did NOT drive: the desktop's showMore affordance click-through (the
+desktop census is static-extracted from the shipped asar — driving the real desktop UI
+is out of rig scope, consistent with every prior pass); a SECOND-PAGE fetch face on
+the phone (no second-query code path exists at HEAD — that is the fix's work, pinned
+in the row); the branch-issue copy map + the detail-copyable affordance (STILL gated
+behind open F-P40-C — unchanged code); the Manage-row rename (STILL gated behind
+F-P40-B's dead rename lambda — unchanged code); TalkBack runtime (standing stop); the
+F-P3-A-gated interaction-card planes (standing).
+
+## Pass-43 verification stamp
+
+Pass 43 completed 2026-11-17 ~08:14 (record appended ~08:20); ONE relay generation
+(gen1 `mock-p43-gen1-157d6f` 08:03→end; launcher /tmp/p43/relay-g1.sh, arms
+MOCK_TASKMGMT + MOCK_TASKS_MANY BEFORE exec). Mock: ONE commit — `73c66186`
+(debt #29: the limit-honoring listTaskList + MOCK_TASKS_MANY +
+MockZCodePass43TaskSearchLimitSelfTest 6; suite **274/0/0**). App: ZERO changes —
+`install -r` SKIPPED on byte-identity (local == on-device md5 `530ba4ff…`, sha256
+`ad449d7d…`, vc53/1.3.2 at HEAD `e9d42698` + the mock commit). Receipts: shots
+/tmp/p43/shots/ (s00 home badge 26+1; s01 results top; s02 post-swipe IME trap; s03
+IME still open; s04 IME gone; s05 pane bottom — task-20 flush, NO affordance, the
+F-P43-A face; s06 hit-27 opened), AX dumps /tmp/p43/w/ (w00–w10; w04+w08 the 20-hit
+census, w09 the 10-hit under-limit census), relay log /tmp/p43/relay-g1.log (the
+limit/served/hasMore search lines); logcat /tmp/p43/logcat.log (gateway.drop 0; zero
+FATALs). Desktop 3.18.1 / `ec475e6e…` unchanged (STEP 0). **Rig left:** emulator
+zcode-a16 UP (healthy, wifi ENABLED, screenshot protection OFF), relay gen1 ALIVE
+(nonce `mock-p43-gen1-157d6f`, arms MOCK_TASKMGMT=1 + MOCK_TASKS_MANY=1 — ADDITIVE,
+NOTHING sticky; an inheritor may reuse [home renders 27 tasks] or pkill by name),
+app pid 8599 on the tasks home (search closed, composer untouched), logcat running →
+/tmp/p43/logcat.log.
