@@ -11008,3 +11008,185 @@ relaunch), app pid 13916 on synth-task-1's conversation (the trajectory sheet op
 drill-in collapsed), logcat running → /tmp/p47/logcat.log. The terminal's on-screen
 state at rig-left: Exited (the gen2 exit; the gen2 Detach tap missed the shifted
 bounds — hygiene only, dispose already receipted on gen1).
+
+# Part AY — pass 48 (APPENDED 2026-11-17, ~19:40): STEP 1 = Part AX's named runner-up axes — the `commands`/`subagents`/`bots` LIST WORDS first-series on the new arg-exact wire lines (1442ed68's `MOCK: <channel> <method> args=<json>` — the three catalog channels printed nothing forever) — `subagents list args={"workspacePath":"/synthetic/ws-one"}` (NO workspaceIdentity key when the target's second is null), `bots list args={}` (the `Arr(emptyList())` wire shape), `commands list args={"workspacePath":"/synthetic/ws-one"}` — with the seeded renders re-receipted (3 agents On/Off, 2 bots task/draft·off, /deploy + /acme:review user/plugin) and the RE-ENTRY re-fire census (every screen open is a fresh read) — plus the three screens' EMPTY faces FIRST-SERIES on the new MOCK_CATALOG_EMPTY arm ("No subagents configured" / "No bots configured" / "No custom commands in this workspace — create them on the desktop (/ commands).") — STEP 2 = the driveable pass-47 leftovers: the EXIT face's NONZERO code first-series on MOCK_TERMINAL_EXIT_CODE=1 ("exited (1)" — pass 47 receipted only 0; the ring + chips persist under the Exited branch) — which the BIG-OUT arm turned into NEW ROW F-P48-A (P3): the terminal stream does not survive a transport recovery and the LIVE face persists over the dead stream — the 2400-frame ~620 KB seed dropped the conversation transport ~1 s after attach on EVERY attempt (unpaced: 26 then ~6 frames delivered; paced at 8 ms/line via the 33ab1258 MOCK_TERMINAL_STREAM_MS arm: STILL dropped — volume-class, not burst-rate-class; the 4-frame ANSI control on gen4b held with ZERO drops, localizing the trigger to stream volume, closer unresolved [phone reader vs emulator NAT]), the app RECOVERED the transport each time (hello ×3 per gen + `relay.recovered :: subscriptions=3 snapshotReplace=true` + the re-subscribe ladder), but the terminal channel's data/exit listens died with the old connection and NEVER re-established (no create re-fires — the singleton port; the ring froze at the delivered prefix), the face stayed "live — /bin/zsh" for 9+ minutes over the frozen stream, and the scheduled exit(1) at create+25 s NEVER RENDERED (the exit listener was dead too) — recovery only by manual Detach→Attach (dispose arg-exact → Idle → fresh create); the F-P13-A recovery-re-subscribe family on the terminal channel (the conversation re-subscribes; channel listens don't), face-wise the F-P9-A silent family — and the ring-EVICTION face (pass-47 "not driven") adjudicated RIG-UNDROIVABLE while the volume-drop holds (the ring never fills toward its 512 KiB cap; the `big` + STREAM_MS arms ship for a future rig) — ONE new F row, TWO mock commits, app ZERO
+
+> **Pass 48 of the pass-0 series** (solo, the canonical discovery prompt; STEP 1 empty —
+> backlog 8/8 — so the axis = Part AX's named runner-up: the three catalog list words.
+> The pass-44→47 census method one more time: the words had ZERO arg-exact receipts —
+> the screens were censused pass 40 but the mock's catalog handlers logged nothing).
+> **App: ZERO changes** (HEAD `33ab1258` = mock-only; local HEAD APK md5 `530ba4ff…` ==
+> on-device → `install -r` SKIPPED — the SEVENTH consecutive byte-identical pass;
+> sha256 `ad449d7d…`, vc53/1.3.2).
+> **Mock: TWO commits** — `1442ed68` (p48-arms: the `MOCK: commands|subagents|bots
+> <method> args=<json>` arg log lines [the ae091f81/7feb2695/17e008e2 template, the
+> arg now rides through to the three handlers]; `MOCK_CATALOG_EMPTY=1` +
+> emptyCommandsCatalog/emptySubagentsCatalog/emptyBotsCatalog seams — the three
+> viewer screens' empty faces were never live-driven; `MOCK_TERMINAL_OUT=big` —
+> 2400 numbered newline-terminated lines ≈ 620 KB, overflows the phone's 512 KiB
+> ring; `MOCK_TERMINAL_EXIT_CODE=<code>` — the p47 arm hard-pushed 0;
+> MockZCodePass48CatalogSelfTest 4 cases) and `33ab1258` (MOCK_TERMINAL_STREAM_MS —
+> the paced drain, after the un-throttled burst dropped the transport on every
+> attempt). Suite **291/0/0/0** both times.
+
+> **Verification stamp (pass start):** 2026-11-17 19:07 → 19:37, GLM-5.3-Flash in
+> ZCode, everything local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…`
+> UNCHANGED — no DELTA. Rig: the pass-47 emulator REUSED (healthy; screenshot
+> protection OFF verified via the 121 KB content PNG); the pass-47 gen4 relay
+> (STICKY conflict arms) pkilled BY NAME before gen1; the app force-stopped +
+> cold-started once (fresh pid 16313 — the inherited pid 13916 carried the stuck
+> trajectory sheet). FIVE relay generations: gen1 `mock-p48-gen1-5d0492` (clean —
+> the catalog seeded lists), gen2 `mock-p48-gen2-3f06a8` (MOCK_CATALOG_EMPTY=1),
+> gen3 `mock-p48-gen3-b30376` (big + EXIT_MS=25000 + EXIT_CODE=1), gen3b
+> `mock-p48-gen3b-7e91f0` (+ STREAM_MS=8), gen4b `mock-p48-gen4b-c8d2a1` (ansi +
+> EXIT_MS=25000 + EXIT_CODE=1 — the control; the pre-generated gen4 launcher was
+> superseded). Stored endpoints survived every swap. APK md5 verified == HEAD
+> on-device → install SKIPPED. logcat fresh `-T 1` → /tmp/p48/logcat.log
+> (gateway.drop 0; zero FATAL EXCEPTIONs; zero ANR lines; **161 Davey jank frames
+> 700-2800 ms** during the big-line search-typing legs — the 200-char ring lines
+> recompose heavily, no wedge, census note). Receipts: shots /tmp/p48/shots/
+> s00-s10, AY dumps /tmp/p48/w/ d0-d31, relay logs relay-g1/g2/g3/g3b/g4b.log,
+> DB pulls /tmp/p48/db/ (zcode.db+wal — **outbox count 7, ZERO new rows**;
+> **F-P38-A's ghost DB-arbitered AGAIN: `/synthetic/ws-one` 27 rows live vs the
+> frozen `synthetic-ws-one` ghost key 1 row — stamp 6**).
+
+## AY.A0 — rig learnings
+
+1. **The Back→row-tap race is systematic on this rig**: the 2-3 s settle after a
+   Back press repeatedly ate the next row tap (three times this pass; a plain
+   retry after a fresh dump always landed). Budget one throwaway tap per
+   Back-navigate on the Settings list.
+2. **The GMS sign-in nag hijacked the screen mid-leg** (the pass-41/46 hazard): it
+   rode the heavy typing legs' jank beat; two BACKs + `am start` recovered the
+   app (the terminal route was lost — the zombie terminal state was STILL
+   "live" on return, see AY.D).
+3. **uiautomator XML-escapes newlines in content-desc** (`&#10;` in the ANSI
+   lines' a11y labels) — that is escaping, not a defect; don't row it.
+4. `adb` is NOT on this shell's PATH (`~/Library/Android/sdk/platform-tools/adb`);
+   the per-command `export PATH` is the reliable shape.
+5. The catalog rows' Settings coordinates are stable across processes
+   (Subagents y≈1559, Bots y≈1865, Commands y≈2171 — text-node bounds +35 px).
+
+## AY.B — Leg A (gen1): the three catalog wire words FIRST-SERIES
+
+- **`subagents list args={"workspacePath":"/synthetic/ws-one"}`** (relay-g1 :18) —
+  the arg-exact receipt; the phone sends workspacePath ONLY (no workspaceIdentity
+  key — the V4Plane `(workspaceIdentity ?: target?.second)?.let` skip, live-verified);
+  the render: Explore/Plan/docs-writer with built-in/built-in/project scope chips and
+  On/On/Off state badges (d2, s01) — the pass-40 seeded render re-receipted ON the
+  new wire line.
+- **`bots list args={}`** (:19) — the EMPTY args object (the `RpcValue.Arr(emptyList())`
+  wire shape, argAsObject→null→logged `{}`); the render: bot-telegram-1 (telegram ·
+  task · /synthetic/ws-one · synth-task-1) + bot-discord-1 (discord · draft · off)
+  (d3, s02).
+- **`commands list args={"workspacePath":"/synthetic/ws-one"}`** (:20) — the render:
+  /deploy (user) + /acme:review (plugin) each with description + argument hint +
+  source badge, and the INV-9 posture footer verbatim: "Read-only list. Command
+  authoring (create / edit / import) lives on the desktop." (d5, s03).
+- **Re-entry re-fire census**: re-opening Subagents re-sent the call (2 lines in
+  relay-g1) — every viewer open is a fresh read, no client cache (the write-ack
+  refetch asymmetry of F-P40-A has no read-side analogue here).
+
+## AY.C — Leg B (gen2): the three EMPTY faces FIRST-SERIES (MOCK_CATALOG_EMPTY=1)
+
+- Subagents → **"No subagents configured"** (centered, d7, s04); the wire line still
+  arg-exact (relay-g2 :8).
+- Bots → **"No bots configured"** (d8, s05; relay-g2 :9).
+- Commands → **"No custom commands in this workspace — create them on the desktop
+  (/ commands)."** (d9, s06; relay-g2 :10) — honest AND actionable (names the desktop
+  as the authoring surface — the INV-9 posture carried into the empty face).
+- All three are honest empty states — NO row (the G103 detail-depth gap stands
+  separately; these faces answer only "what if the catalog is empty").
+
+## AY.D — Leg C (gen3 + gen3b): the big stream → NEW ROW F-P48-A (P3)
+
+Attached on `MOCK_TERMINAL_OUT=big` (2400 lines ≈ 620 KB): `terminal create
+args={"cols":120,"rows":32}` arg-exact (no cwd — the ADR-022 hold re-receipted), the
+LIVE face rendered, the view received **26 frames then froze** (the a11y line nodes
+"terminal line 21..26" visible — the a11y labels are VIEW ordinals, not seed numbers;
+the search probes against seed numbers are the truth: `line 0001` matched at T+10 s,
+`line 0030`/`line 0400`/`line 2400` → "0 matching line(s)" ever after). **Within ~1 s
+of the create the conversation transport DROPPED and recovered** (relay-g3: the
+second hello block with a FRESH id-space immediately after the create line; the app
+ladder: hub.phase → CONNECTED, `relay.recovered :: subscriptions=3
+snapshotReplace=true`, snapshotReconcile — the pass-15 stay-open recovery shape) —
+but **the terminal channel's data listen died with the old connection and was never
+re-established**: no create re-fires (the singleton port), the ring stayed frozen at
+the delivered prefix, and the face stayed **"live — /bin/zsh" for 9+ minutes** over
+the dead stream (d18) — while the **scheduled exit(1) at create+25 s NEVER rendered**
+(the exit listener was dead too; `pushTerminalExit` fires the old listener id).
+**Paced variant (gen3b, STREAM_MS=8)**: the same drop ~1 s after attach (hello ×2 in
+relay-g3b; ~10 frames delivered) — **volume-class, not burst-rate-class**.
+**Control (gen4b, the 4-frame ANSI seed)**: ZERO drops (hello=1 for the whole gen) —
+the trigger localizes to the stream volume; the closer (phone reader guard vs
+emulator-NAT blackhole [debt #14 class]) is UNRESOLVED from logs (no ws-close lines
+either side; the relay shows no exception). **Manual recovery receipted**: Detach →
+`dispose args={"id":"term-1"}` → Idle → Attach → fresh create → the stream lives
+again (on gen4b). **Adjudication: NEW F-P48-A (P3)** — the recovery machine
+re-subscribes the CONVERSATION but not the terminal channel's listens, and the face
+keeps claiming LIVE over the dead stream with no error/notice/retry: the F-P13-A
+family on the terminal channel, the F-P9-A silent family face-wise. **The
+ring-EVICTION face (pass-47 "not driven") is RIG-UNDROIVABLE while the drop holds** —
+the ring never fills toward 512 KiB; the `big` + STREAM_MS arms ship for a future
+rig. Also receipted twice: **the stale singleton state survives relay swaps WITH
+data** — after the gen3→gen3b swap the screen still rendered the dead session's
+lines under "live — /bin/zsh" (the pass-47 census note now receipted with content;
+the dispose of the cross-process zombie id acked anyway — mock-hygiene note).
+
+## AY.E — Leg D (gen4b): the control + the NONZERO exit face FIRST-SERIES
+
+`MOCK_TERMINAL_OUT=ansi + MOCK_TERMINAL_EXIT_MS=25000 + MOCK_TERMINAL_EXIT_CODE=1`:
+attach held (no drop — the volume localization above), the ANSI lines rendered
+(the pass-47 SGR receipt stands; no re-narration), and at create+25 s the status
+flipped to **"exited (1)"** (d31, s10) — the %1$s interpolation proven at a NONZERO
+code (pass 47 receipted only "exited (0)"); the ring + chips persist under the
+Exited branch as pass 47 receipted. The exited(1) face closes the pass-47 leftover.
+
+## AY.F — ledger arithmetic + coverage honesty
+
+ONE new F row (**F-P48-A** P3 — the terminal stream does not survive a transport
+recovery; LIVE persists over the dead stream; exit events lost; manual
+Detach→Attach is the only recovery): open F 41 → **42**. Open smalls 25 (unchanged
+— the a11y `&#10;` is XML escaping, not a row). Open G 24 (unchanged). Stamps:
+**F-P38-A → 6** (the ghost DB-arbitered on the boot dump: 27 live rows + the frozen
+`synthetic-ws-one` ghost key). F-P0-E: NO stamp (zero ANRs — 161 Davey jank frames
+during the big-line typing, no wedge). Wire census (arg-exact): subagents list ×2 +
+bots list ×2 + commands list ×2 + terminal create ×5 / dispose ×3 across the gens.
+Mock debts: none opened (the volume arm + pacing ship; the closer is recorded in
+the row). The three catalog wire-words axis is CLOSED (receipted); the REMAINING
+catalog axes for a future pass: `skills referenceCatalog` + `providers modelOptions`
+(the other three viewer screens' wire words — the same arg-line template applies;
+Skills/MCP/Providers handlers already log nothing) — the new runner-up census axes.
+
+What pass 48 did NOT drive: the ring-eviction face (RIG-UNDROIVABLE while F-P48-A's
+volume-drop holds — the arms ship); the ANSI dark/light scheme-contrast faces (the
+theme matrix is a pass-7 receipt class; dropped for scope); the terminal
+autoscroll-while-streaming fine-grain (the paced leg's scroll behavior was not
+exercised — the drop ate the stream); the OS-clipboard content verification of the
+Command chips (the pass-37 precedent); the Settings-search/Providers/Skills/MCP
+wire words (the next axes, named above); TalkBack runtime (standing stop); the
+zh-rCN variants (pass 5).
+
+## Pass-48 verification stamp
+
+Pass 48 completed 2026-11-17 ~19:37 (record appended ~19:40); FIVE relay
+generations (gen1 `mock-p48-gen1-5d0492` clean; gen2 `mock-p48-gen2-3f06a8`
+MOCK_CATALOG_EMPTY=1; gen3 `mock-p48-gen3-b30376` big+EXIT_MS=25000+EXIT_CODE=1;
+gen3b `mock-p48-gen3b-7e91f0` +STREAM_MS=8; gen4b `mock-p48-gen4b-c8d2a1`
+ansi+EXIT_MS=25000+EXIT_CODE=1; launchers /tmp/p48/relay-g*.sh, arms BEFORE exec).
+Mock: TWO commits — `1442ed68` (the catalog arg lines + MOCK_CATALOG_EMPTY +
+MOCK_TERMINAL_OUT=big + MOCK_TERMINAL_EXIT_CODE + 4 self-tests) and `33ab1258`
+(MOCK_TERMINAL_STREAM_MS); suite **291/0/0/0**. App: ZERO changes — `install -r`
+SKIPPED on byte-identity (local == on-device md5 `530ba4ff…`, sha256 `ad449d7d…`,
+vc53/1.3.2 at HEAD `33ab1258`). Receipts: shots /tmp/p48/shots/ (s00 rig; s01
+subagents; s02 bots; s03 commands; s04/s05/s06 the three empty faces; s07 the big
+live face; s08 the search field + the frozen head; s09 the post-nag recovery;
+s10 exited (1)), dumps /tmp/p48/w/ d0-d31, relay logs relay-g1/g2/g3/g3b/g4b.log,
+DB pulls /tmp/p48/db/ (outbox 7, zero new rows; the F-P38-A ghost keys arbitered);
+logcat /tmp/p48/logcat.log (gateway.drop 0; zero FATALs; zero ANRs; 161 Davey
+janks on the big-line typing legs). Desktop 3.18.1 / `ec475e6e…` unchanged
+(STEP 0). **Rig left:** emulator zcode-a16 UP (healthy, screenshot protection
+OFF), relay gen4b ALIVE (nonce `mock-p48-gen4b-c8d2a1` — arms ansi + EXIT_MS +
+EXIT_CODE=1; nothing sticky), app pid 16313 on the Terminal screen (Exited (1)
+face), logcat running → /tmp/p48/logcat.log. The volume-drop closer (phone
+reader vs NAT) is THE open question for any future terminal-stream rig work.

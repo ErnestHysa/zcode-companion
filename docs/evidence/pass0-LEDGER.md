@@ -108,19 +108,18 @@ P2-first, exit gates, per-row Accept criteria).
 
 - Report: `docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md` —
   Parts A–Z + AA + AB + AC + AD + AE + AF + AG + AH + AI + AJ + AK + AL + AM + AN +
-  AO + AP + AQ + AR + AS + AT + AU + AV + AW + AX = passes 0–47. **Latest: pass 47 (Part AX, 2026-11-17 ~17:05).**
-- Repo HEAD at pass start: `e62085a1` (pass 46's docs commit; main); pass 47 added
-  ONE mock commit — `17e008e2` (p47-arms: the `MOCK: terminal <method> args=<json>`
-  arg log line [the ae091f81/7feb2695 template — the terminal channel printed
-  nothing forever], `MOCK_TERMINAL_OUT=<mode>` plain|ansi — per-listen seed at
-  onDynamicData registration, `MOCK_TERMINAL_EXIT_MS=<ms>` — the exit event,
-  `MOCK_TERMINAL_CAP_OFF=1` — the hello's localTerminal bit; the in-pass amend made
-  every seed chunk newline-terminated [the phone's ring line-buffer JOINS
-  unterminated pushes — live-verified]; terminalSeedOutput/helloLocalTerminal seams;
-  MockZCodePass47TerminalSelfTest 5 cases; mock suite **287/0/0/0**) + the docs
-  commit. App: ZERO commits. APK of record: sha256 `ad449d7d…` / md5 `530ba4ff…`,
-  versionCode 53 / 1.3.2 (byte-identical across the whole series; install SKIPPED
-  again — on-device md5 re-verified; the SIXTH consecutive byte-identical pass).
+  AO + AP + AQ + AR + AS + AT + AU + AV + AW + AX + AY = passes 0–48. **Latest: pass 48 (Part AY, 2026-11-17 ~19:40).**
+- Repo HEAD at pass start: `17e008e2` (pass 47's mock commit; main); pass 48 added
+  TWO mock commits — `1442ed68` (p48-arms: the `MOCK: commands|subagents|bots
+  <method> args=<json>` arg log lines [the catalog channels printed nothing
+  forever], `MOCK_CATALOG_EMPTY=1` + the three empty-catalog seams, `MOCK_TERMINAL_OUT=big`
+  — 2400 lines ≈ 620 KB for the ring-eviction face, `MOCK_TERMINAL_EXIT_CODE=<code>`;
+  MockZCodePass48CatalogSelfTest 4 cases) and `33ab1258` (`MOCK_TERMINAL_STREAM_MS`
+  — the paced drain, after the burst dropped the transport on every attempt); mock
+  suite **291/0/0/0**. App: ZERO commits. APK of record: sha256 `ad449d7d…` / md5
+  `530ba4ff…`, versionCode 53 / 1.3.2 (byte-identical across the whole series;
+  install SKIPPED again — on-device md5 re-verified; the SEVENTH consecutive
+  byte-identical pass).
 - Desktop of record: **/Applications/ZCode.app 3.18.1.10376, asar sha256 `ec475e6e…`,
   383,832,025 B** (re-verified at pass-47 STEP 0 — UNCHANGED, no DELTA). Pass-43
   census addition: the desktop task-list contract extracted exact (AT.B) —
@@ -130,64 +129,56 @@ P2-first, exit gates, per-row Accept criteria).
   (`f(e.total), m(e.hasMore)`) with `limit: e.expanded?void 0:e.collapsedLimit`
   and renders the taskList.showMore/showLess affordance — the desktop NEVER
   silently truncates.
-- Open rows: **41 F (39 defects + 2 obs) + 24 G + 3 standing + 25 smalls (+1 watch
-  +1 rig)** — pass 47 opened **N-CC-1** (P4: the terminal REFUSAL face's Retry
-  button renders BLANK — the Refused StateCard passes `retry` without `retryLabel`
-  → `Text(null ?: "")`; the button WORKS but is invisible/unlabeled; + census: the
-  CapabilityOff branch has NO retry at all and the stale singleton-port state
-  survives navigation, recovery = the Settings toggle OFF→ON [receipted]) and
-  **G104** (P3: the ADR-022 armed-composer INPUT TIER is dormant at HEAD — port
-  members + TerminalArmGateTest + transport methods + the MOCK write/resize
-  handlers shipped, ZERO UI surface, the shipped copy says "Nothing can be typed
-  into it" contradicting the ADR's own §13.3 row delta; terminal.write/resize are
-  UI-unreachable — the N-BQ-1 dead-branch family at plane scale); **N-BM-3
-  adjudicated REFUTED-AT-HEAD** (the sheet→Terminal route receipted working:
-  `nav.terminal :: open` → the gate face); the parity-queue bullet
-  "terminalListenData/Exit transport-ready, ZERO feature callers" corrected STALE
-  (TerminalController consumes both listens — receipted live); the desktop of
-  record UNCHANGED (no DELTA at pass-47 STEP 0). Census additions: the TERMINAL
-  plane first-series END-TO-END (the full face matrix: the gate [consent body
-  verbatim + toggle + Attach-on-enable], attach → `terminal create
-  args={"cols":120,"rows":32}` arg-exact ×3 [NO cwd — the ADR-022 never-ported
-  hold], the LIVE face "live — /bin/zsh", the output-stream render [4 per-line
-  nodes + `terminal line N` a11y; the ring JOINS unterminated pushes into one
-  carry line — the stream-semantics receipt, the seed's \n bug fixed mock-side],
-  the ANSI face [SGR consumed by the decoder], search "1 matching line(s)"
-  exact, Pause/Resume, Copy→"Copied", Detach → `dispose args={"id":"term-1"}` →
-  Idle, the REFUSED face [the 1006 reason interpolated], the CAPABILITY-OFF face
-  [ZERO create on the wire — the §39.3 gate short-circuits pre-wire], the EXIT
-  face "exited (0)"); the conflict body's EXACTLY-3 boundary (the "…" DECORATIVE
-  at the boundary — take(3)=all three yet the ellipsis renders; honest at >3 per
-  pass 46 — census note, no row); the trajectory drill-in tap-to-COLLAPSE
-  (pass-46's leftover, CLOSED).
-- Backlog: **8/8 DONE**; pass 47's axis was Part AW's named runner-up: the
-  **TERMINAL channel plane** (create/write/resize/dispose + onDynamicData/Exit =
-  ZERO report hits in 47 passes; the phone ships the full TerminalScreen +
-  TerminalController + the V4Plane methods, the mock has served the channel
-  statefully since the ADR-022 era): the full face matrix first-series (Legs A–G
-  in Part AX) + STEP 2 = pass 46's leftovers (the exactly-3 conflict boundary —
-  driven, census-closed; the drill-in collapse — driven, CLOSED). What remains is
-  standing stops + F-P3-A-gated planes + F-P40-B/F-P40-C/F-P43-A/F-P45-A/F-P45-B/
-  N-CB-1/N-CC-1-gated faces + fix-round items. **The mock-debt list has 0 open
-  work-debts** (the p47 arms shipped in `17e008e2`). Runner-up census axes for
-  future passes: `commands`/`subagents`/`bots` list words (screens censused pass
-  40, the wire words unreceipted — the arg-log-line template applies).
-- Rig left by pass 47: emulator `zcode-a16` UP (TWENTY-FOURTH consecutive inherited
-  survival; healthy, screenshot protection OFF), relay gen4 ALIVE (nonce
-  `mock-p47-gen4-cc0360` — arms MOCK_GOAL + MOCK_GIT + MOCK_CHECKPOINT_CONFLICTS +
-  CONFLICT_FILES=3 — **⚠ the CONFLICT arm is STICKY**: an inheritor driving
-  non-conflict git legs must pkill + relaunch without it), app pid 13916 on
-  synth-task-1's conversation (the trajectory sheet open, drill-in collapsed;
-  the terminal screen sits Exited — the gen2 exit), logcat running →
-  /tmp/p47/logcat.log. Launchers /tmp/p47/relay-g1..g4.sh.
-  New rig learnings in Part AX.A0: **chip-row bounds SHIFT when a label flips**
-  ("Copy visible output" → "Copied" slides Detach ~200 px — dump AFTER the flip);
-  the Settings terminal toggle BYPASSES DefaultTerminalPort.setOptIn (no
-  terminal.optIn log line — the dump's checked state + the pb bytes are the
-  arbiter); stale singleton-port states survive navigation (re-entry re-renders
-  CapabilityOff/Exited; the Settings toggle is the escape); short single-field
-  typing did NOT trip the F-P0-E ANR this pass (one 5-char query); uiautomator
-  null-root during route transitions persists (settle-retry dumps).
+- Open rows: **42 F (40 defects + 2 obs) + 24 G + 3 standing + 25 smalls (+1 watch
+  +1 rig)** — pass 48 opened **F-P48-A** (P3: the terminal stream does not survive
+  a transport recovery — ANY large stream drops the transport ~1 s after attach
+  [volume-class: the 4-frame control held, closer unresolved phone-reader-vs-NAT],
+  the app recovers the conversation but the terminal data/exit listens die with
+  the old connection and never re-establish, the face stays "live — /bin/zsh"
+  over the frozen stream, the scheduled exit event never lands, manual
+  Detach→Attach is the only recovery); the pass-47 additions stand (N-CC-1 P4 —
+  the terminal REFUSAL face's Retry renders BLANK; G104 P3 — the ADR-022
+  armed-composer INPUT TIER dormant at HEAD; N-BM-3 REFUTED-AT-HEAD). Pass-48
+  receipts: the three catalog wire words FIRST-SERIES arg-exact
+  (`subagents list args={"workspacePath":"/synthetic/ws-one"}` — NO
+  workspaceIdentity when null; `bots list args={}` — the `Arr(emptyList())` shape;
+  `commands list args={"workspacePath":"/synthetic/ws-one"}`) + the seeded renders
+  re-receipted ON the wire lines + the re-entry re-fire census (every open is a
+  fresh read) + the three EMPTY faces FIRST-SERIES on MOCK_CATALOG_EMPTY ("No
+  subagents configured" / "No bots configured" / "No custom commands in this
+  workspace — create them on the desktop (/ commands).") + the EXIT face's NONZERO
+  code first-series ("exited (1)" — pass 47 had only 0) + the ring-EVICTION face
+  adjudicated RIG-UNDROIVABLE while F-P48-A's volume-drop holds + the stale
+  singleton state receipted WITH content across a relay swap; F-P38-A stamp 6
+  (the ghost DB-arbitered on the boot dump); F-P0-E did NOT fire (zero ANRs —
+  161 Davey janks on the big-line typing, census note).
+- Backlog: **8/8 DONE**; pass 48's axis was Part AX's named runner-up: the
+  **`commands`/`subagents`/`bots` list words** (CLOSED — receipted arg-exact) +
+  STEP 2 = pass 47's driveable leftovers (the nonzero exit face — driven,
+  CLOSED; the ring eviction — adjudicated rig-undrivable, arms shipped). What
+  remains is standing stops + F-P3-A-gated planes + F-P40-B/F-P40-C/F-P43-A/
+  F-P45-A/F-P45-B/F-P48-A/N-CB-1/N-CC-1-gated faces + fix-round items. **The
+  mock-debt list has 0 open work-debts** (the p48 arms shipped in `1442ed68` +
+  `33ab1258`). Runner-up census axes for future passes: **`skills
+  referenceCatalog` + `providers modelOptions`** (the remaining three viewer
+  screens' wire words — Skills/MCP/Providers handlers log nothing; the same
+  arg-line template applies) — named in Part AY.F.
+- Rig left by pass 48: emulator `zcode-a16` UP (healthy, screenshot protection
+  OFF), relay gen4b ALIVE (nonce `mock-p48-gen4b-c8d2a1` — arms ansi +
+  MOCK_TERMINAL_EXIT_MS=25000 + EXIT_CODE=1; **nothing sticky** — safe to
+  inherit), app pid 16313 on the Terminal screen (Exited (1) face), logcat
+  running → /tmp/p48/logcat.log. Launchers /tmp/p48/relay-g*.sh.
+  New rig learnings in Part AY.A0: the **Back→row-tap race is systematic**
+  (budget one throwaway tap per Back-navigate on the Settings list); the **GMS
+  sign-in nag hijacked a mid-leg screen** (two BACKs + `am start` recover; the
+  terminal route is lost — the zombie terminal state survives it); uiautomator
+  XML-escapes newlines in content-desc (`&#10;` — escaping, not a defect);
+  `adb` needs the per-command PATH export on this shell; the Settings catalog
+  rows' tap coordinates are stable across processes (Subagents y≈1559, Bots
+  y≈1865, Commands y≈2171).
+  **⚠ F-P48-A's volume-drop closer is THE open question for terminal-stream rig
+  work** (phone reader vs NAT; the 4-frame control held, the 2400-frame seed
+  dropped paced and unpaced).
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -205,6 +196,7 @@ bodies after 3.14.3 — the census IS the changelog.
 
 | ID | P | Status | Mechanism (one line) | Fix shape | Depends on | Evidence | Stamps |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| F-P48-A | 3 | OPEN (NEW pass 48) | the terminal stream does not survive a transport recovery — the LIVE face persists over the dead stream: ANY large terminal data stream drops the conversation transport ~1 s after attach (the 2400-frame ~620 KB `MOCK_TERMINAL_OUT=big` seed delivered 26 then ~6 frames unpaced; the 8 ms/line paced variant STILL dropped — volume-class, not burst-rate-class; the 4-frame ANSI control held with ZERO drops, closer unresolved [phone reader vs emulator NAT]), the app then RECOVERS the transport fully (hello with a fresh id-space + `relay.recovered :: subscriptions=3 snapshotReplace=true` + the re-subscribe ladder — the pass-15 stay-open shape) but the terminal channel's onDynamicData/onDynamicExit listens died with the old connection and NEVER re-establish (no create re-fires — the singleton port state machine has no CONNECTED-transition hook), so the ring freezes at the delivered prefix, the face stays "live — /bin/zsh" for 9+ minutes, and the scheduled exit event at create+25 s NEVER renders (the exit listener was dead too) — receipted live: 9 min of stale LIVE (d18), exit(1) never landed (relay-g3 scheduled it), manual Detach→`dispose args={"id":"term-1"}`→Idle→Attach is the ONLY recovery (arg-exact); the F-P13-A family on the terminal channel (the conversation re-subscribes; channel listens don't), the F-P9-A silent family face-wise | on the CONNECTED transition, re-fire the terminal attach when the port state is Live (or flip the face to Refused/Idle on transport loss + a notice); the stream-death TRIGGER is separately rig-conditional (volume-class drop) and may be NAT-side — the recovery-half fix is app-side regardless; pins: a harness asserting the listen re-registers (or the face flips) after a transport reconnect while state==Live | — | Part AY.D (relay-g3/g3b hello blocks + recovery ladder, d18/d19/d20/d21, the never-landed exit) | 1 |
 | F-P45-A | 2 | OPEN (NEW pass 45) | the checkpoint FORCE-OVERWRITE executes on a DIFFERENT snapshot pair than confirmed: `forceConfirmFor` carries only `(to, conflicts)` and the force handler RECOMPUTES `from = checkpoints.getOrNull(1)` (GitScreen.kt CheckpointsCard — a hard-coded list index that coincidentally matches the confirmed pair only at exactly two checkpoints), so with ≥3 checkpoints + a conflict + Overwrite the confirmed restore-to-ckpt-1 executed as restore-to-ckpt-2 — arg-exact receipt: confirm `{"fromCheckpointId":"ckpt-1","toCheckpointId":"ckpt-3"}` → force `{"fromCheckpointId":"ckpt-2","toCheckpointId":"ckpt-3","force":true}` (relay-g1; the divergence is receiptable ONLY since the ae091f81 arg-log line) — the destructive ⚠ write silently diverging from its own confirmation, keeping the changes the user asked to discard (the F-P40-C confirm-then-different-execution family at destructive severity; the 2-checkpoint faces looked correct BECAUSE of the coincidence) | carry the confirmed `from` through forceConfirmFor (Triple or a second field); pin: a compose harness with a 3-item list asserting the force wire ids == the confirmed pair | — | Part AV.E (s09/s10, relay-g1 restoreBetweenCheckpoints lines) | 1 |
 | F-P45-B | 3 | OPEN (NEW pass 45) | the hooks-review capture LOSES ALL-BUT-LAST reviews and CROSS-KEYS the survivor: `captureHookReview` reads `state.pendingInteractions?.lastOrNull { kind == WORKSPACE_HOOK_REVIEW }` (ConversationSessionManager.kt:144-145) and the sink files it under the OPENED session's id (`hookReviewSink(t.sessionId, review)` RecoveryCoordinator.kt:188 → `hookReviewLedger[sessionId] = review` ConnectionHub.kt:1103) — with two reviews in ONE snapshot (the desktop's normal multi-workspace pending state; the mock's second seed via debt #31) synth-task-1's manager captured workspace-Two's payload under synth-task-1's key: the viewer rendered ONE hybrid group (`hooks_group_synth-task-1` × "Synthetic Workspace Two" content — synth-task-1's own 3-hook review NEVER renders, the per-task group separation the viewer was built for cannot manifest) and its Refresh sent the MISMATCHED args `{"sessionId":"synth-task-1","workspaceIdentity":"synthetic-ws-two","bundleDigest":"bbbb…b"}` (outbox ACKED/accepted — a real desktop would re-issue the WRONG workspace's review) | capture EVERY review of the kind keeping the latest per the PAYLOAD's own `review.taskId`; key the sink by `review.taskId` (not the opened sessionId); pins: a manager harness with a 2-review snapshot asserting both viewer groups render with their own labels + each group's refresh args match its own workspace | — | Part AV.I (d1/d17, db/g1.db outbox, relay-g1 command line, the 13:25 gateway.drop) | 1 |
 | F-P43-A | 3 | OPEN (NEW pass 43) | the tasks-SEARCH results pane SILENTLY TRUNCATES at the port's limit:20 — the wire carries the desktop-faithful pagination answer (relay: `MOCK: listTaskList search='synthetic' → 27 hits (limit=20 served=20 hasMore=true)`) but the phone drops total/hasMore at the PORT boundary (Ports.kt:139-151 maps `.items` only; the client decodes both into SearchResult — TaskServiceClient.kt:306/:334-338) and the pane renders the bare list with NO count, NO "20 of 27", NO show-more affordance (TaskListScreen.kt:396-433 forEach; s05: task-20 flush at the screen bottom, nothing after it) — matches 21–27 are UNREACHABLE through the search UI while the UNFILTERED home renders all 27 (the home's no-limit listTaskList; w00 badge 26 + 1 pinned) and the per-keystroke drum refires the truncated query on every keystroke (44 listTaskList calls this pass); the under-limit face is honest (query '2' → 10/10 rendered, `served=10 hasMore=false` — the truncation is the limit boundary, not a render cap). DESKTOP PARITY: useGlobalTaskList keeps all three (`f(e.total), m(e.hasMore)`) with `limit: e.expanded?void 0:e.collapsedLimit` and renders the taskList.showMore/showLess affordance — the desktop NEVER silently truncates | thread SearchResult (or total/hasMore) through port.searchTasks; VM gains searchTotal/searchHasMore; the pane renders a count face + a show-more row re-querying at a raised limit (the desktop's expanded/undefined-limit shape); pins: a compose test — stubbed port 20 hits/total 27/hasMore true asserts the count face + the affordance render, tapping it re-queries with the raised limit and renders the remainder | — | Part AT.B/AT.C (s01/s05, w04/w08/w09, relay-g1.log) | 1 |
@@ -213,7 +205,7 @@ bodies after 3.14.3 — the census IS the changelog.
 | F-P40-A | 3 | OPEN (NEW pass 40) | the BranchSheet's switch/create WRITE ACKS re-fetch NOTHING in-place: `git.switchBranch ok`/`git.createBranchAndSwitch ok` fire (22:16/22:19) and the git PANE keeps rendering pre-switch data (branch block "main", comparison, Changes, History) until the screen is left and re-entered (the fresh LaunchedEffect(Unit) fetch heals: "rigp40" + the context-sheet git strip "rigp40 clean") — the BranchSheet itself re-reads localBranches at open (GitScreen:332) so the ✓ moves correctly, but the pane's summary/comparison/changes have no re-read on write acks; the commit handler by contrast calls fetchChanges() on success (GitScreen:470) — the asymmetry IS the fix shape (a shared refetch() on every write ack); the stale-viewport family (F-P38-A) on the git plane | fetchChanges() + a summary/comparison re-read on switch/create acks; pin: a compose test asserting the branch block flips after a stubbed ok ack without re-entry | — | Part AQ.B (s07/s12/s13) | 1 |
 | F-P40-C | 3 | OPEN (NEW pass 40) | the branch TYPED-ISSUE ack is swallowed — a refused switch is indistinguishable from success: MOCK_GIT_BRANCH_ISSUE's desktop-faithful SUCCESS-with-issues ack (code/message/detail/paths, didChange=false) arrives (`git.switchBranch ok`) and NOTHING renders (the pane looks healthy, s29) — three stacked kills: GitScreen:517 closes the BranchSheet BEFORE the async result; the close fires onDismiss (:515) which sets `gitBranchIssue = null`; and the only render target is IssueLine INSIDE the closed sheet (GitWriteSheets:218) — a re-open shows nothing (already nulled); compounding: IssueLine renders the LOCALIZED line by code (8 known codes + branch_issue_unknown) and paths only — the wire's message/detail are decoded but never rendered (the "detail copyable" doc is unimplemented); the F-P0-C silent family on the branch plane | keep the sheet open on issues (close only on ok) or render the issue card pane-level; render message/detail (+ the copy affordance the doc promises); pin: a harness asserting the issue face renders at ack time with the message text | — | Part AQ.E (s29) | 1 |
 | F-P39-A | 3 | OPEN (NEW pass 39) | the move sheet's "New group…" path silently DROPS the pending move: the sheet's New-group item clears `moveFor = null` BEFORE opening the editor (TaskListScreen.kt:823), and the editor's onCreate wires ONLY `onCreateGroup` (:834) → `TasksViewModel.createGroup` (:425-435) = createTaskGroup + loadGroups + the "Group created" success notice — the user's flow "Move to group… → New group… → create" ends with the task UNMOVED (zero `applyGroupedTaskViewOrder` in the whole pass log; a11y + DB task-2 still loose) and the new group INVISIBLE (the N-BV-1 empty-group skip) while a SUCCESS notice fires — the F-P10-A silent-no-op family on the move plane, worse for the success notice contradicting the outcome; receipted live: "shgrp" created ok (channel.call 21:19:13) → no move wire → no header | carry moveFor through the editor (create → move to the created group — the desktop companion's create-then-admit shape per G102) or re-open the sheet with the new group preselected; fold in the G102 move-copy fix; pin: a compose test opening the move sheet → New group → create → asserting the move wire fires and the row renders under the group | — | Part AP.E | 1 |
-| F-P38-A | 3 | OPEN (NEW pass 38) | the task home renders STALE WORKSPACE-KEY SECTIONS forever: the "All" view enumerates every workspace key ever synced for the endpoint (`observeAllTasks` endpoint-scoped → client-side grouping; Daos.kt:20-21, TaskRepositoryImpl.kt:48-50) while the full-snapshot replace + the TTL/cap sweep are KEY-scoped (`replaceAll`/`evictAndSweep` take the workspace key; `staleTtlMs` defaults Long.MAX_VALUE; TaskRepositoryImpl.kt:52-93) — a workspace whose key stops being served (renamed/moved/spelling-drifted) leaves a ghost section with its last-synced rows presented as live; receipted: TWO "Synthetic One" sections (the live `/synthetic/ws-one` + the ghost `synthetic-ws-one` from a pre-pass-37-era spelling), the ghost row (a duplicate of the live pinned synth-task-1 minus its flags) frozen at its last sync across relay swaps + app restarts (DB: updatedAtMs untouched since ~14:36 vs the live key's 16:06 refresh; /tmp/p38/db/zcode.db), and the ghost rows are OPENABLE (the tap opened the live task's conversation, Part AO.J) | prune endpoint-scoped keys absent from the connect snapshot (or an across-keys TTL sweep); pin: a repo harness — replaceAll(keyA) then serve only keyB → keyA's rows/section age out | — | Part AO.C, AO.J | 5 (pass 39: re-manifested gen1+gen4; pass 40: the first boot dump; pass 41: re-manifested on the boot dump AND the ghost row SURVIVED THE FULL EMULATOR REBOOT — the strongest persistence evidence yet, Part AR.B/s19-w19) |
+| F-P38-A | 3 | OPEN (NEW pass 38) | the task home renders STALE WORKSPACE-KEY SECTIONS forever: the "All" view enumerates every workspace key ever synced for the endpoint (`observeAllTasks` endpoint-scoped → client-side grouping; Daos.kt:20-21, TaskRepositoryImpl.kt:48-50) while the full-snapshot replace + the TTL/cap sweep are KEY-scoped (`replaceAll`/`evictAndSweep` take the workspace key; `staleTtlMs` defaults Long.MAX_VALUE; TaskRepositoryImpl.kt:52-93) — a workspace whose key stops being served (renamed/moved/spelling-drifted) leaves a ghost section with its last-synced rows presented as live; receipted: TWO "Synthetic One" sections (the live `/synthetic/ws-one` + the ghost `synthetic-ws-one` from a pre-pass-37-era spelling), the ghost row (a duplicate of the live pinned synth-task-1 minus its flags) frozen at its last sync across relay swaps + app restarts (DB: updatedAtMs untouched since ~14:36 vs the live key's 16:06 refresh; /tmp/p38/db/zcode.db), and the ghost rows are OPENABLE (the tap opened the live task's conversation, Part AO.J) | prune endpoint-scoped keys absent from the connect snapshot (or an across-keys TTL sweep); pin: a repo harness — replaceAll(keyA) then serve only keyB → keyA's rows/section age out | — | Part AO.C, AO.J | 6 (pass 39: re-manifested gen1+gen4; pass 40: the first boot dump; pass 41: re-manifested on the boot dump AND the ghost row SURVIVED THE FULL EMULATOR REBOOT — the strongest persistence evidence yet, Part AR.B/s19-w19; pass 48: DB-arbitered on the boot dump yet again — `/synthetic/ws-one` 27 rows live vs the frozen `synthetic-ws-one` ghost key 1 row, Part AY stamp block) |
 | F-P38-B | 3 | OPEN (NEW pass 38) | the custom-GROUP sections never load on a fresh open: the one-shot `LaunchedEffect(Unit) { onLoadGroups() }` (TaskListScreen.kt:195) races the transport connect — `port.listGroupedView()`'s guarded() returns null pre-connect and `?: emptyList()` (TasksViewModel.kt:422) swallows it; neither the CONNECTED transition nor anything else re-triggers, so the home renders ZERO custom-group sections for the whole session until a task action fires refresh(); receipted live: gen3's seeded "Backend" group invisible the entire session (s14: no header visually; ZERO `listGroupedTaskViewStructure` on the wire for the session's pid — the census grep returned 0) while the same session's move sheet (post-action loadGroups) listed both groups — the decode works, the cold-open fetch is the only lost one | re-run loadGroups on the CONNECTED transition (or retry-on-null in the VM); the same silent-empty family (F-P0-C); pin: a compose test composing the screen pre-connect then flipping CONNECTED asserts the groups fetch fires | — | Part AO.J intro, AO.N | 2 (pass 39: gen1's cold open LOST again (s00/w1 no header) and the Backend header appeared after a Settings round-trip re-composition (w5) — both halves of the race in one generation; gen4's cold open WON (header in the first post-boot dump) — the intermittency confirmed, Part AP.K) |
 | F-P33-A | 3 | OPEN (NEW pass 33) | the generated-artifact preview card's Open affordance is DEAD at HEAD and SILENT in both failure stages: stage-2 — the download SUCCEEDS (FilesPort writes `File(cacheDir, "downloads")`, AppContainer.kt:258) but the FileProvider config `app/src/main/res/xml/file_paths.xml` declares ONLY `shared/` + `updates/` cache-paths, so `getUriForFile` throws IllegalArgumentException ("Failed to find configured root that contains …/cache/downloads/rig-p33-report.html", receipted live) and `ZCodeApp.kt:1130-1132`'s else branch is LOG-ONLY (G57's typed no-viewer notice matches only ActivityNotFoundException-class, never this IAE); stage-1 — an unserved ref faults `fault.file.notFound` at readFileRange → `filesport.download :: TransportFailure` → the download-null branch `ZCodeApp.kt:1110-1113` also LOG-ONLY (receipted live on the gen2 arm); the card renders, the button fires, the wire works, and the user gets NOTHING — the F-P0-C silent family on the preview-card plane; never live-driven in either campaign (zero artifact-open receipts in the pass0 series; the I2.8/G28/G57 static pins covered render + no-viewer fallback, not the handoff) | add `<cache-path name="downloads" path="downloads/" />` to file_paths.xml (stage-2, one line) + a typed notice on the download-null branch (stage-1, the N-BR-1/N-BS-1 notice plane); pins: a Robolectric getUriForFile harness over a cache/downloads file + a harness asserting the typed notice on result==null; re-drive the SUCCESS face (system-viewer chooser) after the fix | — | Part AJ.G | 1 (+pass-34 STATIC mechanism extension: the same root covers the NON-IMAGE attachment chip's external open — `fetchAttachment` writes `attachmentCacheDir = File(cacheDir, "attachments")` (AppContainer.kt:227) also absent from file_paths.xml, the same getUriForFile IAE family via ZCodeApp.kt:1052-1077; the fix shape gains `<cache-path name="attachments" path="attachments/" />`; live chip-tap leg = fix-round, Part AK.H.2) |
 | F-P35-A | 3 | OPEN (NEW pass 35) | the Load-earlier error face is TOP-ANCHORED while the tap affordance is TAIL-ANCHORED — a faulted page fetch gives the user at the tail ZERO visible feedback: the tap affordance is the PINNED strip above the timeline (ConversationScreen.kt:563-581, always visible while hasMoreHistory — the user taps it wherever they are), but the error face renders as a LAZY-LIST ITEM at index 0/1 (`older-error`, ConversationScreen.kt:1127-1138, AttentionStrip "Couldn't load earlier messages" + Retry) — hundreds of rows above the tap point when the timeline is long; receipted live: gen2 fault arm → `port.pageFault :: TransportFailure: fault.rowsRange.rig` in logcat + the screen UNCHANGED at the tap point (s04: strip still "320 of 400", no banner) — the error only renders after ~60 gap-drags to the list top (s05); the F-P0-C silent family on the paging plane (the same geometry stars the `older-loading` face — subsumed by the same fix) | surface the error/retry in the PINNED strip slot (swap the strip's content on loadOlderError, or a second pinned strip / a SendNotice-keyed banner on the N-BR-1 plane); the shared errorUserMessage copy is already clean (errorCategoryMessage's error_task fallback — no raw-code issue, AL.F.3); pins: a compose test with a faulting port loader asserting the error is visible WITHOUT scrolling + the retry from the pinned slot succeeds | — | Part AL.D (s04/s05/s06), AL.E (the retry-success face the fix must preserve) | 1 |
@@ -255,7 +247,9 @@ bodies after 3.14.3 — the census IS the changelog.
 | F-P4-A | 2 | FIXED (rig) | mock push patch structurally excluded its own interaction | `pushPendingPermission` builds from unfiltered list + patch-content pin — commit `2b12fc46`, 37 mock tests green | — | Part G.A2.2, H.A1 | — |
 | N-BK-1 (rig half) | 2 | FIXED (rig) | git fixtures in wrong field vocabulary (blank paths, +0−0, duplicated tabs, oid-vs-hash) | contract vocabulary rewrite — same commit `2b12fc46` | — | Part G.A2.3, H.A1 | — |
 
-**Open F count: 41** (39 defects + 2 observations; pass 45 opened F-P45-A P2 —
+**Open F count: 42** (40 defects + 2 observations; pass 48 opened F-P48-A P3 —
+the terminal stream does not survive a transport recovery, the LIVE face persists
+over the dead stream; pass 45 opened F-P45-A P2 —
 the checkpoint force-overwrite diverges from its confirmed pair — and F-P45-B P3 —
 the hooks capture loses all-but-last reviews and cross-keys the survivor; pass 43
 opened F-P43-A P3 — the tasks-search pane silently truncates at limit:20; pass 41
@@ -310,7 +304,12 @@ pass 45) · RETRACTED/REFUTED/ABSORBED: 7.
        harness pin, the P2 of the pass-45 batch) → 18e. **F-P45-B** (pass 45, P3:
        the hooks capture loses all-but-last reviews and cross-keys the survivor —
        capture per the payload's own review.taskId + key the sink by it; small,
-       the manager+sink surface one session) → 19. **F-P19-A + F-P20-A** (passes
+       the manager+sink surface one session) → 18f. **F-P48-A** (pass 48, P3: the
+       terminal stream does not survive a transport recovery — re-fire the
+       terminal attach (or flip the face + notice) on the CONNECTED transition
+       when port state == Live; the app-side recovery half is the fix regardless
+       of the unresolved volume-drop closer; small, the controller/port surface
+       one session) → 19. **F-P19-A + F-P20-A** (passes
    19/20: the held-queue guard family — F-P19-A the sendText CAS-mismatch face
    divergence, F-P20-A the goal payload's trio omission; both small — a typed
    reasonCode branch on the existing SendNotice path / a goal-side gate) →
@@ -646,6 +645,37 @@ delta …`). Nothing pushed.
 ```
 
 ## History
+
+- 2026-11-17 (pass 48) — Part AY executed on Part AX's named runner-up (the
+  **`commands`/`subagents`/`bots` list words** — ZERO arg-exact receipts in 48
+  passes; the screens were censused pass 40 but the mock's catalog handlers
+  logged nothing) + STEP 2 = pass 47's driveable leftovers. The wire words
+  FIRST-SERIES on the new arg-log lines (`1442ed68`): subagents
+  `args={"workspacePath":"/synthetic/ws-one"}` (NO workspaceIdentity when
+  null), bots `args={}` (the `Arr(emptyList())` shape), commands
+  `args={"workspacePath":"/synthetic/ws-one"}`; the seeded renders
+  re-receipted ON the lines; re-entry re-fires (fresh read per open); the
+  three EMPTY faces first-series on MOCK_CATALOG_EMPTY (honest, the Commands
+  one actionable: "create them on the desktop (/ commands)"). STEP 2: the big
+  seed (620 KB / 2400 frames) exposed **F-P48-A (P3)** — ANY large stream
+  drops the transport ~1 s after attach (unpaced 26/~6 frames; the 8 ms paced
+  variant `33ab1258` STILL dropped → volume-class; the 4-frame ANSI control
+  held with zero drops → the trigger localizes to volume, closer unresolved),
+  the app recovers the conversation (`relay.recovered :: subscriptions=3`)
+  but the terminal data/exit listens die with the old connection and never
+  re-establish — "live — /bin/zsh" persisted 9+ min over the frozen ring and
+  the scheduled exit(1) never landed; manual Detach→Attach is the only
+  recovery (arg-exact). The **nonzero EXIT face first-series** on gen4b
+  ("exited (1)" — pass 47 had only 0). The **ring-eviction face adjudicated
+  RIG-UNDROIVABLE** while the drop holds (the arms ship for a future rig).
+  Stamps: F-P38-A → 6 (the ghost DB-arbitered on the boot dump); F-P0-E did
+  NOT fire (zero ANRs; 161 Davey janks on the big-line typing, census note).
+  Ledger: F 41→42; smalls/G unchanged. Mock: TWO commits (`1442ed68`,
+  `33ab1258`; suite **291/0/0/0**). App: ZERO changes (APK byte-identical,
+  install skipped — the SEVENTH consecutive pass). Rig left UP (gen4b
+  `mock-p48-gen4b-c8d2a1` — nothing sticky; app pid 16313 on the Exited (1)
+  face). Next axes named: `skills referenceCatalog` + `providers modelOptions`
+  wire words (the same template).
 
 - 2026-11-17 (pass 47) — Part AX executed on Part AW's named runner-up: the
   **TERMINAL channel plane** (create/write/resize/dispose + onDynamicData/Exit =
