@@ -485,6 +485,43 @@ class MockZCode(
             }
         }
 
+        /**
+         * Pass-47 rig leg (MOCK_TERMINAL_OUT=<mode>): seed the scripted terminal
+         * output queue drained at onDynamicData-listen registration (create's 150 ms
+         * flush is the fallback) — the FIRST driveable output face for the
+         * never-driven terminal plane (ZERO report hits in 46 passes).
+         *  - `plain`: workspace banner + echo/prompt lines (no SGR);
+         *  - `ansi`: SGR-rich lines (bold, fg colors) exercising the view's palette +
+         *    bold spans (terminalColor/AnnotatedString).
+         * Unknown/blank modes fall back to `plain` (fail-safe).
+         */
+        fun terminalSeedOutput(rawMode: String?) {
+            val mode = rawMode?.trim()?.lowercase()?.takeUnless { it.isEmpty() } ?: "plain"
+            // Each entry is a STREAM chunk: it must end with \n or the phone's ring
+            // line-buffer joins the pushes into one carry line (live-verified pass 47).
+            val lines = if (mode == "ansi") {
+                listOf(
+                    "\u001B[1m\u001B[34mrig-p47@mock\u001B[0m workspace /synthetic/ws-one\n",
+                    "\u001B[32m$ echo attached\u001B[0m\n",
+                    "docs  src  \u001B[1;34mbuild\u001B[0m  README.md\n",
+                    "\u001B[33mrig-p47 ready\u001B[0m\n",
+                )
+            } else {
+                listOf(
+                    "rig-p47 workspace /synthetic/ws-one\n",
+                    "$ echo attached\n",
+                    "attached\n",
+                    "rig-p47 ready\n",
+                )
+            }
+            synchronized(terminalOutput) { lines.forEach { terminalOutput.addLast(it) } }
+        }
+
+        /** Pass-47 rig leg (MOCK_TERMINAL_CAP_OFF): the hello's `localTerminal` bit —
+         *  the CapabilityOff face ("this desktop does not expose a local terminal")
+         *  is structurally unreachable while the hello hardcodes true. */
+        fun helloLocalTerminal(capOffRaw: String?): Boolean = capOffRaw?.trim() != "1"
+
 
         /** Recorded usage-stats promise calls: (method, argKind "arr"|"obj"|"other", unwrapped params).
          *  The GAP-3 wire test pins the §7 ARRAY-wrap convention through this. */
@@ -2943,6 +2980,10 @@ class MockZCode(
                     if (terminalId != null) {
                         if (name == "onDynamicData") {
                             synchronized(terminalListeners) { terminalListeners.getOrPut(terminalId) { mutableListOf() }.add(id) }
+                            // p47: per-attach seed — MOCK_TERMINAL_OUT enqueues HERE (per
+                            // listen, not boot-time) so every attach serves its own lines;
+                            // the drain below pushes them to the just-registered listener.
+                            System.getenv("MOCK_TERMINAL_OUT")?.let { script.terminalSeedOutput(it) }
                             // Emit any scripted output queued before the listen attached.
                             scope.launch {
                                 kotlinx.coroutines.delay(50)
@@ -3099,7 +3140,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     put("serverTime", JsonPrimitive(System.currentTimeMillis().toDouble()))
                     put("capabilities", buildJsonObject {
                         put("nativeDialogs", JsonPrimitive(true))
-                        put("localTerminal", JsonPrimitive(true))
+                        put("localTerminal", JsonPrimitive(script.helloLocalTerminal(System.getenv("MOCK_TERMINAL_CAP_OFF"))))
                         put("binaryFrames", JsonPrimitive(false))
                         put("compression", JsonPrimitive("none"))
                     })
@@ -4065,6 +4106,9 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
     private val terminalCounter = AtomicLong(0)
 
     private fun handleTerminalPromise(id: Int, name: String?, params: JsonObject?) {
+        // p47: the args log line — the terminal channel printed nothing forever
+        // (the ae091f81/7feb2695 template: arg-exact receipts for create/write/resize/dispose).
+        println("MOCK: terminal ${name ?: "?"} args=${params ?: JsonObject(emptyMap())}")
         when (name) {
             // ADR-022 (Phase 5D): the armed input tier — write echoes the bytes back on
             // onDynamicData (the rig proves the round-trip); resize acks.
@@ -4091,6 +4135,14 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                     while (true) {
                         val text = synchronized(script.terminalOutput) { script.terminalOutput.removeFirstOrNull() } ?: break
                         pushTerminalData(terminalId, text)
+                    }
+                }
+                // p47: MOCK_TERMINAL_EXIT_MS=<ms> schedules the exit event after the
+                // attach settles — drives the phone's Exited face (terminal_status_exited).
+                System.getenv("MOCK_TERMINAL_EXIT_MS")?.trim()?.toLongOrNull()?.let { ms ->
+                    scope.launch {
+                        kotlinx.coroutines.delay(ms)
+                        pushTerminalExit(terminalId, 0)
                     }
                 }
             }
