@@ -689,6 +689,11 @@ class MockZCode(
         // ---------------- ADR-024 (Phase 5D): hooks trust ----------------
         /** Scripted workspaceHookReview payload (the yS shape); null = no review pending. */
         var hookReview: JsonObject? = null
+        /** Pass-45 (p45 hooks-second): the SECOND task's review (MOCK_HOOKS_SECOND=1)
+         *  — the hooks viewer's per-task group separation (hooks_group_<taskId>) needs
+         *  two ledger entries; one seed could only ever render one group. Distinct
+         *  reviewItemIds required (hookTrustStates is shared). */
+        var hookReviewSecond: JsonObject? = null
         /** Per-item trust states the review commands mutate (rig round-trips). */
         val hookTrustStates: MutableMap<String, String> = java.util.concurrent.ConcurrentHashMap()
         var hookReviewsResolved: Boolean = false
@@ -1375,7 +1380,22 @@ class MockZCode(
         // replacement correctly trusted the wire). The review stays resolved; the
         // per-item trust states remain for the revoke/disable planes.
         if (script.hookReviewsResolved) return null
-        val hr = script.hookReview ?: return null
+        return script.hookReview?.let { scriptedHookInteractionFor(it) }
+    }
+
+    /** Pass-45 (p45 hooks-second): the SECOND task's review — the hooks viewer's
+     *  per-task group separation needs two ledger entries (the viewer is keyed
+     *  hooks_group_<taskId>; one seeded review could only ever render one group).
+     *  Composes with MOCK_HOOKS (MOCK_HOOKS_SECOND alone seeds only the second).
+     *  Shares hookReviewsResolved + hookTrustStates with the first review — the
+     *  SECOND seed must use distinct reviewItemIds (h4/h5) or trust flips leak
+     *  across the two reviews. */
+    private fun scriptedHookInteractionSecond(): JsonObject? {
+        if (script.hookReviewsResolved) return null
+        return script.hookReviewSecond?.let { scriptedHookInteractionFor(it) }
+    }
+
+    private fun scriptedHookInteractionFor(hr: JsonObject): JsonObject? {
         val items = (hr["items"] as? JsonArray)?.map { el ->
             val o = el as? JsonObject ?: return@map el
             val id = (o["reviewItemId"] as? JsonPrimitive)?.content
@@ -1541,6 +1561,7 @@ class MockZCode(
                 }
             },
             scriptedHookInteraction(),
+            scriptedHookInteractionSecond(),
         ))
     }
 
@@ -3985,6 +4006,10 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
     // Phase 5B (A3.11): the git-checkpoint trio — stateful so the rig proves create →
     // diff → restore (with the conflict branch on a scripted flag).
     private fun handleGitCheckpointPromise(id: Int, name: String?, arg: JsonObject?) {
+        // p45: the args log line — the restore/force wire receipt must be ARG-EXACT
+        // (the force confirm's pair divergence is only provable from the ids the phone
+        // actually sent; respondError-style silence hid the git channel's args forever).
+        println("MOCK: git-checkpoint ${name ?: "?"} args=${arg ?: JsonObject(emptyMap())}")
         when (name) {
             "createCheckpoint" -> {
                 val now = System.currentTimeMillis()

@@ -652,6 +652,40 @@ fun main() {
             )),
         ))
     }
+    // Pass-45 (p45 hooks-second): MOCK_HOOKS_SECOND=1 seeds a SECOND task's review
+    // (synth-task-2, distinct flow/interaction ids + h4/h5 items) — the hooks viewer's
+    // per-task group separation (hooks_group_<taskId>) needs two ledger entries;
+    // pass 44 could only ever render one group against the single seed. Shares
+    // hookReviewsResolved with the first review (the resolve leg stays F-P3-A-gated).
+    if (System.getenv("MOCK_HOOKS_SECOND") != null) {
+        mock.script.hookReviewSecond = JsonObject(mapOf(
+            "kind" to JsonPrimitive("workspaceHookReview"),
+            "reviewFlowId" to JsonPrimitive("flow-rig-2"), "generation" to JsonPrimitive(1),
+            "interactionId" to JsonPrimitive(nonceId("hook-rig-2", genNonce)), "sessionId" to JsonPrimitive("synth-task-2"),
+            "taskId" to JsonPrimitive("synth-task-2"), "runId" to JsonPrimitive("run-rig-2"),
+            "workspaceIdentity" to JsonPrimitive("synthetic-ws-two"), "workspaceLabel" to JsonPrimitive("Synthetic Workspace Two"),
+            "bundleDigest" to JsonPrimitive("b".repeat(64)),
+            "createdAt" to JsonPrimitive(System.currentTimeMillis() - 30_000),
+            "deadlineAt" to JsonPrimitive(System.currentTimeMillis() + 300_000),
+            "summary" to JsonObject(mapOf("eventCount" to JsonPrimitive(2), "hookCount" to JsonPrimitive(2), "pendingCount" to JsonPrimitive(1))),
+            "items" to JsonArray(listOf(
+                JsonObject(mapOf(
+                    "reviewItemId" to JsonPrimitive("h4"), "event" to JsonPrimitive("PreToolUse"),
+                    "type" to JsonPrimitive("command"), "displayName" to JsonPrimitive("Deploy check"),
+                    "displayCommand" to JsonPrimitive("fly deploy --wait"), "sourcePath" to JsonPrimitive("deploy/hooks.json"),
+                    "executionMode" to JsonPrimitive("foreground"), "configuredEnabled" to JsonPrimitive(true),
+                    "editable" to JsonPrimitive(true), "trustState" to JsonPrimitive("pending_trust"),
+                )),
+                JsonObject(mapOf(
+                    "reviewItemId" to JsonPrimitive("h5"), "event" to JsonPrimitive("Stop"),
+                    "type" to JsonPrimitive("process"), "displayName" to JsonPrimitive("Nightly sync"),
+                    "displayCommand" to JsonPrimitive("rsync -a /data /backup"), "sourcePath" to JsonPrimitive("deploy/hooks.json"),
+                    "executionMode" to JsonPrimitive("background"), "configuredEnabled" to JsonPrimitive(true),
+                    "editable" to JsonPrimitive(false), "trustState" to JsonPrimitive("trusted_persistent"),
+                )),
+            )),
+        ))
+    }
     // Pass-11 rig leg (AB4.1 rig debt): MOCK_QUEUE=1 seeds 2 queued follow-ups +
     // autoDrain=false so the QueueStrip renders and the four verbs (send now / edit /
     // move up-down / auto-drain) become FIRST-executable live.

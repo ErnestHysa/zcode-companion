@@ -124,4 +124,46 @@ class MockZCodeHooksRowsSelfTest {
         // BEFORE applyCommandEffect, so an armed type never mutates the review state.
         assertTrue(m.script.hookReviewsResolved == false, "no effect ran for the refused verb")
     }
+
+    @Test
+    fun `pass-45 hooks-second seeds the second task's review beside the first`() {
+        val m = mock { s ->
+            s.hookReview = JsonObject(
+                mapOf(
+                    "interactionId" to JsonPrimitive("hook-1"),
+                    "reviewFlowId" to JsonPrimitive("flow-1"),
+                    "taskId" to JsonPrimitive("synth-task-1"),
+                    "items" to JsonArray(emptyList()),
+                ),
+            )
+            s.hookReviewSecond = JsonObject(
+                mapOf(
+                    "interactionId" to JsonPrimitive("hook-2"),
+                    "reviewFlowId" to JsonPrimitive("flow-2"),
+                    "taskId" to JsonPrimitive("synth-task-2"),
+                    "items" to JsonArray(emptyList()),
+                ),
+            )
+        }
+        val pending = m.pendingListForTest()
+        val reviews = pending.map { it.jsonObject }.filter { (it["kind"] as JsonPrimitive).content == "workspaceHookReview" }
+        assertEquals(2, reviews.size, "both reviews serve in the pending list")
+        val taskIds = reviews.map { (it.jsonObject["payload"]!!.jsonObject["taskId"] as JsonPrimitive).content }
+        assertEquals(listOf("synth-task-1", "synth-task-2"), taskIds, "each review keys its own task")
+        // Second-seed-only composition: MOCK_HOOKS_SECOND alone still serves its review.
+        val onlySecond = mock { s ->
+            s.hookReviewSecond = JsonObject(
+                mapOf(
+                    "interactionId" to JsonPrimitive("hook-2s"),
+                    "reviewFlowId" to JsonPrimitive("flow-2s"),
+                    "taskId" to JsonPrimitive("synth-task-2"),
+                    "items" to JsonArray(emptyList()),
+                ),
+            )
+        }
+        val pending2 = onlySecond.pendingListForTest()
+        val reviews2 = pending2.map { it.jsonObject }.filter { (it["kind"] as JsonPrimitive).content == "workspaceHookReview" }
+        assertEquals(1, reviews2.size, "the second seed alone serves exactly its own review")
+        assertEquals("synth-task-2", (reviews2[0]["payload"]!!.jsonObject["taskId"] as JsonPrimitive).content)
+    }
 }
