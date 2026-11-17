@@ -377,50 +377,25 @@ fun main() {
             "updatedAt" to JsonPrimitive(System.currentTimeMillis()),
         ))
         // Phase 5B (A3.12 + A3.13): the plans viewer + the trajectory/search corpus.
-        mock.script.plansState = JsonObject(mapOf(
-            "plans" to JsonArray(listOf(
-                JsonObject(mapOf(
-                    "title" to JsonPrimitive("Ship the release"),
-                    "steps" to JsonArray(listOf(
-                        JsonObject(mapOf("content" to JsonPrimitive("Write the changelog"), "status" to JsonPrimitive("completed"))),
-                        JsonObject(mapOf("content" to JsonPrimitive("Bump the version"), "status" to JsonPrimitive("in-progress"))),
-                        JsonObject(mapOf("content" to JsonPrimitive("Tag and publish"), "status" to JsonPrimitive("pending"))),
-                    )),
-                )),
-            )),
-        ))
-        mock.script.modelTrajectory = JsonObject(mapOf(
-            "taskId" to JsonPrimitive("synth-task-1"), "available" to JsonPrimitive(true), "truncated" to JsonPrimitive(false),
-            "sourceFiles" to JsonArray(listOf(JsonPrimitive("model-io-synth-task-1.jsonl"))),
-            "records" to JsonArray(listOf(
-                JsonObject(mapOf(
-                    "requestId" to JsonPrimitive("req-1"), "attempt" to JsonPrimitive(1),
-                    "startedAt" to JsonPrimitive("2026-10-20T10:00:00Z"), "durationMs" to JsonPrimitive(4200),
-                    "callSource" to JsonObject(mapOf("kind" to JsonPrimitive("main"))),
-                    "model" to JsonObject(mapOf("modelId" to JsonPrimitive("glm-5.3"), "providerId" to JsonPrimitive("zai"))),
-                    "response" to JsonObject(mapOf(
-                        "finishReason" to JsonPrimitive("tool_calls"), "text" to JsonPrimitive("Checking the workspace state"),
-                        // G33 (vc51 Phase 4D): the drill-in payloads (args/result heads)
-                        "toolCalls" to JsonArray(listOf(JsonObject(mapOf(
-                            "name" to JsonPrimitive("bash"),
-                            "args" to JsonPrimitive("{\"command\":\"git status --short\",\"timeout\":30000}"),
-                            "result" to JsonPrimitive("M core/session.ts\n?? docs/evidence/notes.md"),
-                        )))),
-                    )),
-                )),
-                JsonObject(mapOf(
-                    "requestId" to JsonPrimitive("req-2"), "attempt" to JsonPrimitive(1),
-                    "startedAt" to JsonPrimitive("2026-10-20T10:01:00Z"), "durationMs" to JsonPrimitive(950),
-                    "callSource" to JsonObject(mapOf("kind" to JsonPrimitive("main"))),
-                    "model" to JsonObject(mapOf("modelId" to JsonPrimitive("glm-5.3"), "providerId" to JsonPrimitive("zai"))),
-                    "error" to JsonObject(mapOf("name" to JsonPrimitive("RateLimitError"), "message" to JsonPrimitive("429"))),
-                )),
-            )),
-        ))
-        mock.script.sessionMessages = JsonArray(listOf(
-            JsonObject(mapOf("role" to JsonPrimitive("user"), "content" to JsonPrimitive("Ship the release this week"))),
-            JsonObject(mapOf("role" to JsonPrimitive("assistant"), "content" to JsonPrimitive("I'll draft the changelog and bump the version"))),
-        ))
+        // p46: extracted to Script.seedPhase5bDemo() so the MOCK_TRAJECTORY arms below
+        // mutate one source and the self-tests seed the exact served shape.
+        mock.script.seedPhase5bDemo()
+        // Pass-46 rig leg: MOCK_TRAJECTORY=<comma modes> mutates the trajectory seed —
+        // usage (a third record carrying response.usage token columns), truncated (the
+        // badge), empty (records=[] — the honest empty face; sessionMessages stays
+        // seeded), unavailable (modelTrajectory=null → the typed fault the phone
+        // renders as its unavailable face). Requires MOCK_GOAL (the Phase-5B seed is
+        // goal-gated so the context sheet's goal/todos cards render alongside).
+        System.getenv("MOCK_TRAJECTORY")?.takeIf { it.isNotBlank() }?.let { raw ->
+            mock.script.applyTrajectoryModes(raw.split(',').map { it.trim() }.filter { it.isNotEmpty() })
+        }
+        // Pass-46 rig leg: MOCK_CHECKPOINT_CONFLICT_FILES=<comma list> widens the
+        // checkpoint conflict arm's served paths (default stays the single
+        // src/config.ts) — the phone's conflicts.take(3) body slice is drivable.
+        System.getenv("MOCK_CHECKPOINT_CONFLICT_FILES")?.takeIf { it.isNotBlank() }?.let { raw ->
+            val files = raw.split(',').map { it.trim() }.filter { it.isNotEmpty() }
+            if (files.isNotEmpty()) mock.script.checkpointConflictFiles = files
+        }
     }
     // Phase 6A (I2.4) rig leg: MOCK_COMPACT=1 stamps the context-compaction lifecycle
     // markers (started:auto → completed:auto with token counts → failed:manual) into the

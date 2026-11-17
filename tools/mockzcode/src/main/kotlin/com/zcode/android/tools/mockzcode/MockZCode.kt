@@ -384,6 +384,108 @@ class MockZCode(
             } + "\n"
         }
 
+        /**
+         * Pass-46: the Phase-5B (A3.12 + A3.13) demo seed extracted from MockRelayMain
+         * so the MOCK_TRAJECTORY mode arms mutate ONE source (the arms' self-tests seed
+         * the exact shape the relay serves). plansState + modelTrajectory (2 records:
+         * a tool_calls finish with a drill-in payload + a RateLimitError) + the
+         * sessionMessages search corpus.
+         */
+        fun seedPhase5bDemo() {
+            plansState = JsonObject(mapOf(
+                "plans" to JsonArray(listOf(
+                    JsonObject(mapOf(
+                        "title" to JsonPrimitive("Ship the release"),
+                        "steps" to JsonArray(listOf(
+                            JsonObject(mapOf("content" to JsonPrimitive("Write the changelog"), "status" to JsonPrimitive("completed"))),
+                            JsonObject(mapOf("content" to JsonPrimitive("Bump the version"), "status" to JsonPrimitive("in-progress"))),
+                            JsonObject(mapOf("content" to JsonPrimitive("Tag and publish"), "status" to JsonPrimitive("pending"))),
+                        )),
+                    )),
+                )),
+            ))
+            modelTrajectory = JsonObject(mapOf(
+                "taskId" to JsonPrimitive("synth-task-1"), "available" to JsonPrimitive(true), "truncated" to JsonPrimitive(false),
+                "sourceFiles" to JsonArray(listOf(JsonPrimitive("model-io-synth-task-1.jsonl"))),
+                "records" to JsonArray(listOf(
+                    JsonObject(mapOf(
+                        "requestId" to JsonPrimitive("req-1"), "attempt" to JsonPrimitive(1),
+                        "startedAt" to JsonPrimitive("2026-10-20T10:00:00Z"), "durationMs" to JsonPrimitive(4200),
+                        "callSource" to JsonObject(mapOf("kind" to JsonPrimitive("main"))),
+                        "model" to JsonObject(mapOf("modelId" to JsonPrimitive("glm-5.3"), "providerId" to JsonPrimitive("zai"))),
+                        "response" to JsonObject(mapOf(
+                            "finishReason" to JsonPrimitive("tool_calls"), "text" to JsonPrimitive("Checking the workspace state"),
+                            // G33 (vc51 Phase 4D): the drill-in payloads (args/result heads)
+                            "toolCalls" to JsonArray(listOf(JsonObject(mapOf(
+                                "name" to JsonPrimitive("bash"),
+                                "args" to JsonPrimitive("{\"command\":\"git status --short\",\"timeout\":30000}"),
+                                "result" to JsonPrimitive("M core/session.ts\n?? docs/evidence/notes.md"),
+                            )))),
+                        )),
+                    )),
+                    JsonObject(mapOf(
+                        "requestId" to JsonPrimitive("req-2"), "attempt" to JsonPrimitive(1),
+                        "startedAt" to JsonPrimitive("2026-10-20T10:01:00Z"), "durationMs" to JsonPrimitive(950),
+                        "callSource" to JsonObject(mapOf("kind" to JsonPrimitive("main"))),
+                        "model" to JsonObject(mapOf("modelId" to JsonPrimitive("glm-5.3"), "providerId" to JsonPrimitive("zai"))),
+                        "error" to JsonObject(mapOf("name" to JsonPrimitive("RateLimitError"), "message" to JsonPrimitive("429"))),
+                    )),
+                )),
+            ))
+            sessionMessages = JsonArray(listOf(
+                JsonObject(mapOf("role" to JsonPrimitive("user"), "content" to JsonPrimitive("Ship the release this week"))),
+                JsonObject(mapOf("role" to JsonPrimitive("assistant"), "content" to JsonPrimitive("I'll draft the changelog and bump the version"))),
+            ))
+        }
+
+        /**
+         * Pass-46 rig leg (MOCK_TRAJECTORY=<comma modes>): mutate the Phase-5B
+         * trajectory seed —
+         *  - `usage`: append a third record carrying `response.usage` token columns
+         *    (N-BK-1(b)'s vc52 Phase 12 render — never live-driven);
+         *  - `truncated`: flip the truncated badge flag;
+         *  - `empty`: records=[] (the honest empty face; sessionMessages stays seeded
+         *    so the search corpus still answers);
+         *  - `unavailable`: modelTrajectory=null → the typed fault.mock.unscripted
+         *    face (the phone renders trajectory_unavailable).
+         * Applied in list order; unknown modes are ignored (fail-safe).
+         */
+        fun applyTrajectoryModes(modes: List<String>) {
+            for (mode in modes) {
+                when (mode) {
+                    "usage" -> {
+                        val base = modelTrajectory ?: continue
+                        val records = (base["records"] as? JsonArray) ?: continue
+                        val usageRecord = JsonObject(mapOf(
+                            "requestId" to JsonPrimitive("req-3"), "attempt" to JsonPrimitive(2),
+                            "startedAt" to JsonPrimitive("2026-10-20T10:02:00Z"), "durationMs" to JsonPrimitive(12_400),
+                            "callSource" to JsonObject(mapOf("kind" to JsonPrimitive("main"))),
+                            "model" to JsonObject(mapOf("modelId" to JsonPrimitive("glm-5.3"), "providerId" to JsonPrimitive("zai"))),
+                            "response" to JsonObject(mapOf(
+                                "finishReason" to JsonPrimitive("stop"), "text" to JsonPrimitive("Release checklist drafted"),
+                                "usage" to JsonObject(mapOf(
+                                    "inputTokens" to JsonPrimitive(1240), "outputTokens" to JsonPrimitive(356),
+                                    "totalTokens" to JsonPrimitive(1596), "cacheReadTokens" to JsonPrimitive(800),
+                                    "reasoningTokens" to JsonPrimitive(112),
+                                )),
+                            )),
+                        ))
+                        modelTrajectory = JsonObject(base.jsonObject + ("records" to JsonArray(records + usageRecord)))
+                    }
+                    "truncated" -> {
+                        val base = modelTrajectory ?: continue
+                        modelTrajectory = JsonObject(base.jsonObject + ("truncated" to JsonPrimitive(true)))
+                    }
+                    "empty" -> {
+                        val base = modelTrajectory ?: continue
+                        modelTrajectory = JsonObject(base.jsonObject + ("records" to JsonArray(emptyList())))
+                    }
+                    "unavailable" -> modelTrajectory = null
+                }
+            }
+        }
+
+
         /** Recorded usage-stats promise calls: (method, argKind "arr"|"obj"|"other", unwrapped params).
          *  The GAP-3 wire test pins the §7 ARRAY-wrap convention through this. */
         val usageStatsCalls = java.util.concurrent.CopyOnWriteArrayList<Triple<String, String, JsonObject>>()
@@ -705,6 +807,14 @@ class MockZCode(
         var modelTrajectory: JsonObject? = null
         /** `readSessionMessages` items (role/content) — the search corpus. */
         var sessionMessages: JsonArray? = null
+
+        /**
+         * Pass-46 rig leg: the conflict arm's served paths (the `restoreBetweenCheckpoints`
+         * non-force answer under `checkpointConflicts`). Default stays the pass-27 single
+         * `src/config.ts`; MOCK_CHECKPOINT_CONFLICT_FILES widens it so the phone's
+         * `conflicts.take(3)` body slice becomes drivable (>3 files).
+         */
+        @Volatile var checkpointConflictFiles: List<String> = listOf("src/config.ts")
 
         // ---------------- Phase 5B (A3.11) git checkpoints ----------------
         val checkpoints: MutableList<JsonObject> = java.util.Collections.synchronizedList(ArrayList())
@@ -2682,6 +2792,19 @@ class MockZCode(
     internal fun gitPromiseForTest(id: Int, name: String?, arg: JsonObject?) =
         handleGitPromise(id, name, RpcValue.Obj(arg ?: JsonObject(emptyMap())))
 
+    /** p46 self-test seam: the git-checkpoint channel words (the conflict arm's payload). */
+    internal fun checkpointPromiseForTest(id: Int, name: String?, arg: JsonObject?) =
+        handleGitCheckpointPromise(id, name, arg)
+
+    /** p46: the non-force restore answer under the conflict arm (script.checkpointConflictFiles). */
+    private fun checkpointConflictPayload(): JsonObject = buildJsonObject {
+        put("success", JsonPrimitive(false))
+        put("conflicts", JsonArray(script.checkpointConflictFiles.map { JsonPrimitive(it) }))
+    }
+
+    /** p46 self-test seam: the conflict payload the handler serves. */
+    internal fun checkpointConflictPayloadForTest(): JsonObject = checkpointConflictPayload()
+
     /**
      * RIG-5 self-test seam: the summary `getRepositorySummary` serves (scripted summary
      * MERGED with the tracked branch — the same computation the handler performs).
@@ -4037,10 +4160,10 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
             "restoreBetweenCheckpoints" -> {
                 val force = (arg?.get("force") as? JsonPrimitive)?.content?.toBooleanStrictOrNull() ?: false
                 if (script.checkpointConflicts && !force) {
-                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
-                        put("success", JsonPrimitive(false))
-                        put("conflicts", JsonArray(listOf(JsonPrimitive("src/config.ts"))))
-                    }))
+                    // p46: the conflict paths come from script.checkpointConflictFiles
+                    // (MOCK_CHECKPOINT_CONFLICT_FILES widens the default single file so
+                    // the phone's conflicts.take(3) body slice is drivable).
+                    respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(checkpointConflictPayload()))
                 } else {
                     respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
                         put("success", JsonPrimitive(true))
@@ -5884,7 +6007,13 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
                     respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(JsonObject(emptyMap())))
                 }
             }
-            "getModelTrajectory" -> scriptableObject(id, script.modelTrajectory, "getModelTrajectory")
+            "getModelTrajectory" -> {
+                // p46: the arg log line — the trajectory wire receipt must be ARG-EXACT
+                // (the ae091f81 git-checkpoint template; zcode-task channel calls print
+                // nothing, so the plane's first drive is otherwise invisible).
+                println("MOCK: zcode-task getModelTrajectory args=${arg ?: JsonObject(emptyMap())}")
+                scriptableObject(id, script.modelTrajectory, "getModelTrajectory")
+            }
             // Phase 5C (A3.15): the feedback SNAPSHOT word — the mock keeps per-task lists.
             "setAssistantMessageFeedback" -> {
                 val taskId = arg?.str("taskId")
