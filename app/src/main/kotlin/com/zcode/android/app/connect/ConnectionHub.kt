@@ -512,7 +512,23 @@ class ConnectionHub(
         // G13: the sessions-index frame collector (single, per process).
         startSessionsIndexCollector()
         scope.launch {
-            transport.appErrors.collect { if (activeKind() == EndpointKind.RELAY_ZAI) _lastError.value = it }
+            transport.appErrors.collect { err ->
+                if (activeKind() != EndpointKind.RELAY_ZAI) return@collect
+                // F-P9-B (pass-9 Part L.A2): the typed disconnected-REMOTE card must
+                // SURVIVE the ladder's budget exhaustion — recoverLocked emits the
+                // GENERIC degraded-budget error ("Still offline — showing cached
+                // state") after the typed ones, and the overwrite is what the live
+                // receipt caught (the Connection Center showed the generic face while
+                // every bridge-open failed with the typed error, the recovery verb
+                // UI-unreachable). The generic face never clobbers a still-live typed
+                // one; Dismiss and the next CONNECTED clear it honestly.
+                if (err.messageKey == com.zcode.android.core.common.error.UserMessageKey.STILL_OFFLINE_CACHED &&
+                    _lastError.value?.messageKey == com.zcode.android.core.common.error.UserMessageKey.REMOTE_WORKSPACE_DISCONNECTED
+                ) {
+                    return@collect
+                }
+                _lastError.value = err
+            }
         }
         scope.launch {
             directTransport.appErrors.collect { if (activeKind() == EndpointKind.DIRECT_SERVER) _lastError.value = it }
@@ -1247,6 +1263,20 @@ class ConnectionHub(
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
                 val err = (e as? TransportFailure)?.error
+                // F-P9-B (pass-9 Part L.A2): the typed disconnected-REMOTE error must
+                // reach the Connection Center's G67 card (render condition
+                // lastError.messageKey == REMOTE_WORKSPACE_DISCONNECTED) — the live
+                // receipt caught `hub.connectFailed :: SESSION workspace-bridge-error:
+                // remote-disconnected` in the log while hub.lastError stayed null, so
+                // the card never rendered and the recovery verb
+                // (workspace-reconnect-request) was UI-unreachable. The hub owns the
+                // surface: assign here, exactly what the appErrors collectors do.
+                if (err != null &&
+                    err.messageKey == com.zcode.android.core.common.error.UserMessageKey.REMOTE_WORKSPACE_DISCONNECTED &&
+                    activeKind() == EndpointKind.RELAY_ZAI
+                ) {
+                    _lastError.value = err
+                }
                 // Log the CATEGORY + DIAGNOSTIC (the field-visible reason — never just
                 // the category again). §14.4.1 self-heal: the transport's recovery loop
                 // already launched itself on retryable failures and owns the EXPONENTIAL
