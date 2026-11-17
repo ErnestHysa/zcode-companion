@@ -72,4 +72,27 @@ class MockZCodePass48CatalogSelfTest {
         assertEquals(4, lines.size)
         assertEquals("rig-p47 workspace /synthetic/ws-one\n", lines.first())
     }
+
+    @Test
+    fun `bigone mode is the big payload delivered as ONE newline-terminated chunk (p49 discriminator)`() {
+        val m = mock()
+        m.script.terminalSeedOutput("bigone")
+        val lines = ArrayList<String>()
+        synchronized(m.script.terminalOutput) {
+            while (true) lines.add(m.script.terminalOutput.removeFirstOrNull() ?: break)
+        }
+        assertEquals(1, lines.size, "the discriminator: one queue entry = one stream frame")
+        val chunk = lines.first()
+        assertTrue(chunk.endsWith("\n"), "the single chunk stays newline-terminated (no carry-line join)")
+        assertTrue(chunk.toByteArray().size > 512 * 1024, "the single chunk still overflows the ring")
+        assertTrue(chunk.contains("rig-p48 line 0001"), "head numbered")
+        assertTrue(chunk.contains("rig-p48 line 2400"), "tail numbered")
+        // Same payload identity as `big` (byte volume held constant across the pair).
+        val big = mock()
+        big.script.terminalSeedOutput("big")
+        val bigBytes = synchronized(big.script.terminalOutput) {
+            big.script.terminalOutput.sumOf { it.toByteArray().size }
+        }
+        assertEquals(bigBytes, chunk.toByteArray().size, "bigone == big byte volume")
+    }
 }

@@ -496,6 +496,11 @@ class MockZCode(
          *  - `big`: ~620 KB of numbered lines — OVERFLOWS the phone's 512 KiB ring so
          *    the drop-oldest eviction face is drivable (pass-47 "not driven": the head
          *    must vanish while the tail renders).
+         *  - `bigone` (p49): the SAME ~620 KB as ONE stream chunk — the F-P48-A
+         *    discriminator (frame-COUNT vs byte-VOLUME: `big` = 2400 frames dropped
+         *    the transport at ~6-26 frames paced/unpaced; if the single 620 KB frame
+         *    ALSO drops, the class is byte-volume [NAT-side likely]; if it survives,
+         *    frame-count [the phone reader] AND the ring-eviction face finally drives).
          * Unknown/blank modes fall back to `plain` (fail-safe).
          */
         fun terminalSeedOutput(rawMode: String?) {
@@ -513,6 +518,9 @@ class MockZCode(
                 // 2400 lines x ~260 B = ~620 KB — ~110 KB of the head must evict.
                 val filler = "x".repeat(200)
                 (1..2400).map { "rig-p48 line %04d $filler\n".format(it) }
+            } else if (mode == "bigone") {
+                // p49: the identical payload delivered as ONE queue entry (one frame).
+                listOf(((1..2400).map { "rig-p48 line %04d %s\n".format(it, "x".repeat(200)) }).joinToString(""))
             } else {
                 listOf(
                     "rig-p47 workspace /synthetic/ws-one\n",
@@ -3068,7 +3076,7 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 "git" -> handleGitPromise(id, name, arg)
                 "git-checkpoint" -> handleGitCheckpointPromise(id, name, argAsObject(arg))
                 "file" -> handleFilePromise(id, name, argAsObject(arg))
-                "model-selection" -> handleModelSelectionPromise(id, name)
+                "model-selection" -> handleModelSelectionPromise(id, name, argAsObject(arg))
                 "zcode-task" -> handleTaskPromise(id, name, argAsObject(arg))
                 "off-peak-task" -> handleOffPeakTaskPromise(id, name, arg)
                 "feedback" -> handleFeedbackPromise(id, name, argAsObject(arg))
@@ -3920,8 +3928,17 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 }
             }
             "listPlugins" -> scriptableObject(id, script.listPlugins, "listPlugins")
-            "getSkillReferenceCatalog" -> scriptableObject(id, script.skillReferenceCatalog, "getSkillReferenceCatalog")
-            "listMcpServerStatuses" -> scriptableObject(id, script.mcpServerStatuses, "listMcpServerStatuses")
+            // p49: arg-exact wire lines for the remaining catalog words (the 1442ed68
+            // template) — these zcode-agent methods printed only the generic
+            // `v4call <name> (id=N)` line (no args) in 48 passes.
+            "getSkillReferenceCatalog" -> {
+                println("MOCK: skills getSkillReferenceCatalog args=${argAsObject(arg) ?: JsonObject(emptyMap())}")
+                scriptableObject(id, script.skillReferenceCatalog, "getSkillReferenceCatalog")
+            }
+            "listMcpServerStatuses" -> {
+                println("MOCK: mcp listMcpServerStatuses args=${argAsObject(arg) ?: JsonObject(emptyMap())}")
+                scriptableObject(id, script.mcpServerStatuses, "listMcpServerStatuses")
+            }
             "attachmentBeginV4" -> {
                 val params = argAsObject(arg)
                 if (params == null || script.rejectAttachments) {
@@ -4515,7 +4532,10 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
         }
     }
 
-    private fun handleModelSelectionPromise(id: Int, name: String?) {
+    private fun handleModelSelectionPromise(id: Int, name: String?, arg: JsonObject?) {
+        // p49: the providers word's arg line (the providers viewer fetched via
+        // model-selection getView with ZERO arg-exact receipts in 48 passes).
+        println("MOCK: model-selection ${name ?: "?"} args=${arg ?: JsonObject(emptyMap())}")
         when (name) {
             "getView" -> {
                 val view = script.modelSelection
