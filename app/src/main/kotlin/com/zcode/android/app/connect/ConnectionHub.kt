@@ -1287,6 +1287,19 @@ class ConnectionHub(
             candidates = active.candidates,
             desktopAppVersion = active.desktopAppVersion,
         )
+        // F-P8-B (pass-8 Part K.A2): switching to an endpoint whose transport ALREADY
+        // holds a connection (the adopted-connection switch — the live receipt: the
+        // direct transport kept its recovery connection while the hub's active pointer
+        // said otherwise) threw ISE `connect() is the first-connection path` — the state
+        // machine treated the adopted-connection switch as a cold start. recover()
+        // re-enters the LIVE connection honestly (no-op when CONNECTED) and the switch
+        // completes its refresh; the connection holds.
+        if (directTransport.states.value == ConnectionStateMachine.ConnectionState.CONNECTED) {
+            directTransport.recover()
+            refreshTasks()
+            markHealthy(active.endpointId)
+            return
+        }
         try {
             directTransport.connect(descriptor) { _, _, _ -> "" }
             refreshTasks()
@@ -1647,8 +1660,24 @@ class ConnectionHub(
             desktopAppVersion = descriptor.desktopAppVersion,
         )
         endpointRepo.save(endpoint)
-        _endpoint.value = endpoint
-        _endpointName.value = endpoint.displayName
+        // F-P8-A (pass-8 Part K.A2): the deferred pairing-edge persist (onPairingCompleted's
+        // async refreshRegistry+persistEndpoint) landed AFTER resolveActiveEndpoint() had
+        // honored the persisted DIRECT selection — rewriting _endpoint back to the RELAY
+        // with NO log at all (no hub.switched, no hub.unpaired): every hub decision then
+        // used the wrong active kind (the direct transport's own recovery dropped by the
+        // sourceKind filter, the first-sync refresh bootstrapping the never-connected relay,
+        // and "First sync failed" showing against a healthy direct server). A resolved
+        // non-relay selection is user intent: the registry row still persists, but the
+        // ACTIVE pointer only moves when there is nothing resolved yet, the resolved
+        // endpoint IS this one, or the active selection is itself the relay.
+        val current = _endpoint.value
+        if (current == null ||
+            current.endpointId.raw == descriptor.id ||
+            current.kind != com.zcode.android.domain.model.EndpointKind.DIRECT_SERVER
+        ) {
+            _endpoint.value = endpoint
+            _endpointName.value = endpoint.displayName
+        }
     }
 
     private fun onTransportState(state: ConnectionStateMachine.ConnectionState) {
