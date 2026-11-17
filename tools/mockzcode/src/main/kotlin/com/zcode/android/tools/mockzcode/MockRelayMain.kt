@@ -549,6 +549,13 @@ fun main() {
     if (System.getenv("MOCK_TASKMGMT") != null) {
         armTaskManagementRig(mock)
     }
+    // p43 (debt #29) rig leg: MOCK_TASKS_MANY=1 seeds 24 extra synthetic tasks (27 total
+    // matching "synthetic") so the phone's listTaskList search — limit:20 — crosses the
+    // desktop-faithful pagination face (items=20, total=27, hasMore=true). Additive:
+    // arm it ALONGSIDE MOCK_TASKMGMT; on its own it still seeds the search surface.
+    if (System.getenv("MOCK_TASKS_MANY") != null) {
+        armTasksManyRig(mock)
+    }
     // RIG-P1 (vc52 Phase 7, G77): MOCK_AUTO_RESOLUTION=grace|countdown|snoozed|expired
     // serves the byte-verified desktop autoResolution discriminatedUnion on EVERY
     // pending permission/userInput entry (the 5-minute fuse the phone must decode and
@@ -1571,6 +1578,23 @@ internal fun armTaskManagementRig(mock: MockZCode) {
         "createdAt" to JsonPrimitive(now), "updatedAt" to JsonPrimitive(now),
     )))
     mock.script.taskGroupMembers["task-group-rig"] = mutableListOf("synth-task-3")
+}
+
+/**
+ * p43 (debt #29) rig leg: MOCK_TASKS_MANY=1 seeds synth-task-4..27 so the tasks-search
+ * surface ("synthetic" → 27 hits) exceeds the phone's listTaskList limit:20 — the
+ * desktop-faithful pagination answer {items: 20, total: 27, hasMore: true} becomes
+ * drivable, and with it the phone's truncation face. Additive over any existing seed.
+ */
+internal fun armTasksManyRig(mock: MockZCode) {
+    val extra = (4..27).map { n ->
+        MockZCode.MockTask(
+            taskId = "synth-task-$n", title = "Synthetic task $n", displayStatus = "idle",
+            workspacePath = "/synthetic/ws-one", workspaceLabel = "Synthetic One",
+        )
+    }
+    mock.script.bootstrapTasks = (mock.script.bootstrapTasks ?: emptyList()) + extra
+    mock.script.directTasks = mock.script.directTasks + extra.map { it.toJson() }
 }
 
 /**

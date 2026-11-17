@@ -5876,6 +5876,14 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
                 // title. The mock's conversations are generated on demand (no stored
                 // searchable_text), so the searchable surface is the task title itself and
                 // the snippet is the matched-context window around the hit.
+                // p43 (debt #29): the desktop's queryTaskList honors the caller's `limit`
+                // (LIMIT ? over the ordered filter) and answers {items: ≤limit, total:
+                // COUNT over the filter, hasMore: total > items.length} (host
+                // chunk-TCPD6WAE.js). The mock served ALL hits with hasMore:false
+                // hardcoded, so the phone's limit:20 search (TaskServiceClient.searchTasks)
+                // could never see the pagination face — with MOCK_TASKS_MANY seeded, the
+                // desktop-faithful 20-items/hasMore=true answer is drivable.
+                val limit = arg?.str("limit")?.toIntOrNull()?.takeIf { it > 0 }
                 val hits = script.directTasks
                     .filter { search.isEmpty() || ((it.jsonObject["title"] as? JsonPrimitive)?.content?.lowercase()?.contains(search) == true) }
                     .map { base ->
@@ -5903,13 +5911,15 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
                             ))
                         }
                     }
+                val served = limit?.let { hits.take(it) } ?: hits
+                val hasMore = limit != null && hits.size > served.size
                 if (search.isNotEmpty()) {
-                    println("MOCK: listTaskList search='$search' → ${hits.size} hits")
+                    println("MOCK: listTaskList search='$search' → ${hits.size} hits (limit=$limit served=${served.size} hasMore=$hasMore)")
                 }
                 respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
-                    put("items", JsonArray(hits))
+                    put("items", JsonArray(served))
                     put("total", JsonPrimitive(hits.size))
-                    put("hasMore", JsonPrimitive(false))
+                    put("hasMore", JsonPrimitive(hasMore))
                 }))
             }
             else -> respondError(id, "fault.mock.unknownTaskMethod:${name ?: "?"}")
