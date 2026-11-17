@@ -7,6 +7,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -108,5 +109,19 @@ class MockZCodeHooksRowsSelfTest {
         val m = mock()
         val rows = m.snapshotRowsForTestSeam("synth-task-1", 4)
         assertTrue(rows.map { it.jsonObject }.none { (it["kind"] as JsonPrimitive).content == "hookInvocation" })
+    }
+
+    @Test
+    fun `pass-44 refuse arm answers the typed fault for the listed hook verb only`() {
+        val m = mock { s -> s.refuseCommandTypes = setOf("requestWorkspaceHookReview") }
+        assertEquals(
+            "fault.command.rigRefused:requestWorkspaceHookReview",
+            m.refuseReasonFor("requestWorkspaceHookReview"),
+            "the armed hook verb is refuse-listed",
+        )
+        assertNull(m.refuseReasonFor("sendText"), "unlisted types dispatch normally")
+        // The re-issue effect is a dispatch-order property: the refuse answer happens
+        // BEFORE applyCommandEffect, so an armed type never mutates the review state.
+        assertTrue(m.script.hookReviewsResolved == false, "no effect ran for the refused verb")
     }
 }

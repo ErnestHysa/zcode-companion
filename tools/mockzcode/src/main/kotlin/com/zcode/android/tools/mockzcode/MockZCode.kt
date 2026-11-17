@@ -3267,9 +3267,8 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 // Pass-11 (MOCK_REFUSE_COMMANDS): the named types answer fault.* — the
                 // client's server-spoke rejection class, so goal verbs degrade to their
                 // SendNotice.GOAL_*_REFUSED branches (Outcome.Failed, outbox terminal).
-                val refuseTypes = script.refuseCommandTypes
-                if (refuseTypes != null && type in refuseTypes) {
-                    respondError(id, "fault.command.rigRefused:$type")
+                refuseReasonFor(type)?.let { reason ->
+                    respondError(id, reason)
                     return
                 }
                 // Mock-fidelity debt #1 (pass 13): the typed unknown-interactionId
@@ -4373,6 +4372,16 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
         val known = script.pendingPermission?.interactionId == iid ||
             script.pendingUserInput?.interactionId == iid
         return if (known) null else "fault.interaction.unknownId"
+    }
+
+    /**
+     * Pass-11 (MOCK_REFUSE_COMMANDS), seam-extracted pass-44 (p44-mock-refuse-list):
+     * the typed fault the named command types must answer BEFORE any effect/ack —
+     * null when the type is not refuse-armed and the dispatch proceeds normally.
+     */
+    internal fun refuseReasonFor(type: String): String? {
+        val refuseTypes = script.refuseCommandTypes ?: return null
+        return if (type in refuseTypes) "fault.command.rigRefused:$type" else null
     }
 
     /**

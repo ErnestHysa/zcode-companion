@@ -742,8 +742,17 @@ fun main() {
     }
     // Pass-11 rig leg (AB4.1 rig debt): MOCK_REFUSE_COMMANDS=1 makes the goal verbs
     // answer respondError — the SendNotice.GOAL_*_REFUSED degrade branches finally run.
+    // Pass-44 extension (p44-mock-refuse-list): a comma-list value arms ANY command
+    // types (e.g. MOCK_REFUSE_COMMANDS=requestWorkspaceHookReview — the hooks
+    // viewer's REFUSED note face); the bare `1`/`true`/blank keeps the goal trio.
     if (System.getenv("MOCK_REFUSE_COMMANDS") != null) {
-        mock.script.refuseCommandTypes = setOf("sendGoal", "pauseGoal", "resumeGoal")
+        val spec = System.getenv("MOCK_REFUSE_COMMANDS")!!
+        mock.script.refuseCommandTypes =
+            if (spec.isBlank() || spec == "1" || spec.equals("true", ignoreCase = true)) {
+                setOf("sendGoal", "pauseGoal", "resumeGoal")
+            } else {
+                spec.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+            }
     }
     // Mock-fidelity debt #1 (pass 13): MOCK_UNKNOWN_INTERACTION_IDS=1 arms the typed
     // unknown-id rejection on resolveInteraction — an answer naming no pending slot
