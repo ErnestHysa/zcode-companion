@@ -11394,3 +11394,859 @@ ANRs; 123 Davey janks). Desktop 3.18.1 / `ec475e6e…` unchanged (STEP 0).
 gen3 ALIVE (nonce `mock-p49-gen3-8b21e3` — arms ansi; **nothing sticky** — safe
 to inherit), app pid 16313 on the Settings screen (Theme: Follow the system —
 REVERTED), logcat running → /tmp/p49/logcat.log. Launchers /tmp/p49/relay-g*.sh.
+
+---
+
+# pass-0 Remediation Roadmap (APPENDED — not part of the discovery record)
+
+> **Appended 2026-11-17** at report tip `08f12fd6` (docs tip; app code unchanged — the APK of
+> record is byte-identical sha256 `ad449d7d…` / md5 `530ba4ff…`, versionCode 53 / 1.3.2, across
+> the entire pass-0 series, the EIGHTH consecutive byte-identical pass). This roadmap is
+> generated mechanically from `docs/evidence/pass0-LEDGER.md` (read whole 2026-11-17) — one row
+> per OPEN ledger row. **The discovery record above is append-only and untouched; tick checkboxes
+> here as work completes and append dated fix-round records at the file end; never edit the
+> parts above.**
+>
+> **Disposition carried in.** Desktop target = the shipped `/Applications/ZCode.app`
+> **3.18.1.10376**, asar sha256 `ec475e6e…` (UNCHANGED at pass-49 STEP 0). Phone target = the
+> 1.3.2/vc53 tree at current `main`. The rig contract is the ledger's STEP RIG rules (zcode-a16
+> cold boot, `pkill -f MockRelayMainKt` never by port, a fresh `MOCK_GEN_NONCE` per generation,
+> receipts in a fresh /tmp/p<N>/, the Room DB pull as the arbiter).
+>
+> **Count reconciliation (the errata are corrected in the ledger this session).** The ledger's
+> live headers said **42 F / 25 smalls open**; the tables carry **41 open F rows (39 defects +
+> 2 observations)** and **24 open smalls** — both headers were one above their own tables
+> (off-by-one slips around the pass-45/47 count swaps). The roadmap counts are the TABLE counts.
+> The requested "13 open P2 rows" is likewise one low: the tables carry **14 open P2 F rows +
+> N-BK-1's app half (P2) = 15** — F-P3-B is the one that count missed. All 15 lead the roadmap
+> (Phases 1–5). **P2-first overrides the consolidated fix-order's numbering** — F-P40-B at 18a /
+> F-P45-A at 18d is append-only history, not priority.
+>
+> **Pass-49 G adjudications (executed against the code BEFORE phasing; the ledger rows are
+> re-statused this session).**
+> - **G91 → SATISFIED.** `PluginsViewerScreen.kt` (routed `ZCodeApp.kt:524`) +
+>   `DefaultPluginsPort` (`ViewerPorts.kt:375-387`, `hub.viewerTools().plugins` — the Phase-3
+>   read-only viewer plane, v4-wire §12) with per-plugin enable toggles — exactly the consume
+>   spec. Receipt: pass 10 live-drove the screen (Part M; N-BN-1's switch a11y dump proves the
+>   toggles live).
+> - **G82 → SATISFIED.** `MemoryViewerScreen.kt` (routed `ZCodeApp.kt:550`) +
+>   `DefaultMemoryPort` (`ViewerPorts.kt:632-689`), driven end-to-end in the vc52 campaign (G75)
+>   and re-checked live (Part AU, report :10105). Residual NAMED: the consume rides the FILES
+>   channel (`filesPort.list`/`readText` over the `~/.zcode/cli/memories/projects` tree,
+>   `projectsRoot()`) — not the dedicated `listProjectMemories`/`readProjectMemoryFile` verbs; a
+>   functionally equivalent read-only mirror against the real desktop.
+> - **G100 → SATISFIED.** SHIPPED vc52 Phase-5B A3.13 (`Ports.kt:622-623` `fetchTrajectory` →
+>   `TrajectoryResult.decode(modelTrajectory)`; `PlansTrajectoryWireTest.kt:107` pins the
+>   `zcode-task.getModelTrajectory` channel call) and LIVE-DRIVEN pass 46 (Part AW — the full
+>   face matrix). Residual NAMED: N-CB-1 (the fault face's eternal spinner — an open small,
+>   Phase 8 here).
+>
+> **Excluded from every phase (the non-OPEN sweep).** FIXED: F-P4-A, N-BK-1 (rig half),
+> K-small-1 · RETRACTED: F-P0-D · REFUTED: F-P1-C, F-P8-E, N-BM-3, N-BJ-2 ·
+> REFUTED→SUPERSEDED: F-P2-A · ABSORBED: F-P1-A, F-P0-A · RE-VERIFIED-WORKING: F-P8-C (its
+> optional drag regression pin rides Phase 1's pin work without being a row) · WATCH: K-small-3 ·
+> RIG: N-BM-4 · STANDS: G60 · STANDING: WATCH-4, Settings depth · SATISFIED by adjudication:
+> G91, G82, G100. N-BK-1 is HALF-OPEN by design: the rig half is FIXED (`2b12fc46`), the app
+> half is Phase 4's row.
+
+## Binding rules for every fix session
+
+1. **Repo + branch.** Work in this repo on `fix/pass0` cut from `main`. Every fix round commits
+   locally as `ErnestHysa <takis312@hotmail.com>` (set repo-locally BEFORE the first commit);
+   **never push unless Ernest says.**
+2. **One finding ≥ one commit**, message `fix(<ID>): <mechanism>`. One commit may close several
+   rows ONLY when they are one shared mechanism (rule 10) — name every covered ID and tick them all.
+   Never bundle unrelated rows to "save a suite run".
+3. **Re-read before fixing.** Re-read the row's ledger entry and its Part citations before
+   writing code; honor the row's named re-scopes (e.g. F-P45-B's sink key, F-P40-B's
+   rename-only scope, F-P13-A's stay-open boundary which is HEALTHY and must stay so).
+4. **TEST-FIRST with shape fidelity.** The pin named in the row (every row carries one) is
+   written and RED at the pre-fix commit.
+5. **Every fix ships its pin in the same commit.** Mock/rig changes are separate `fix(mock)`
+   commits with `:tools:mockzcode:jar` + `:tools:mockzcode:test` green; a mock change never
+   closes an app row.
+6. **COMMIT BEFORE ANY TEST OR RIG RUN.** No uncommitted edits anywhere in the repo while any
+   gradle pool or emulator runs (the standing reversion hazard). Rig hygiene per the ledger's
+   STEP RIG: `pkill -f MockRelayMainKt` never by port; restart `adb logcat -T 1` after every
+   emulator restart; absent log lines are inconclusive — the DB pull arbitrates.
+7. **Fresh full-suite baseline + zero-new-names gate.** `testDebugUnitTest` for the Android
+   modules AND `test` for the six pure-JVM modules (a name-diff missing those six is blind to a
+   third of the repo). After each fix re-run the touched modules; name-diff every new failing
+   name against the pre-phase baseline; ALSO assert the gradle task-failure list holds only
+   test-failure tasks and every module emitted test XML (a test-compile failure is invisible to
+   a name-diff).
+8. **~150-line / stop rule.** A change beyond ~150 lines or spanning >3 modules stops for a
+   checkpoint commit + suite re-run.
+9. **Independent per-phase verification.** A phase is done only when its exit gate passes on a
+   FRESH emulator+relay rig leg (zcode-a16 cold boot `-no-snapshot-load`, the standing arming
+   plus the phase's named arms, wire receipts appended to this report, rows ticked). A docs-only
+   or pin-only close never satisfies an Accept criterion that names a wire/DB arbiter.
+10. **Shared-remedy preference.** The named families: F-P0-B unblocks F-P6-A (card half);
+    F-P8-D unblocks F-P6-B; **F-P19-A + F-P20-A are ONE pair** (the same held-queue guard
+    family); the **N-BR-1/N-BS-1/N-BT-1 notice one-liners batch** into one sub-phase (N-BO-1
+    rides the same notice plane); F-P13-A and F-P48-A share the CONNECTED-transition surface
+    (Phase 9 consumes Phase 1's hook); **G102 carries F-P39-A's move-copy fix**.
+11. **Record duty.** Tick rows here as their Accept criteria pass; re-status the ledger row
+    FIXED with the commit sha; append a dated fix-round record at the file end; keep the
+    one-report-file append-only discipline.
+
+## Phase overview
+
+| Phase | Theme | Rows | P2 | P3 | P4 | Session risk | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | Connection, recovery & transport state | 6 | 4 | 1 | 1 | High | ☐ |
+| 2 | Interaction cards, answers & hook capture | 11 | 7 | 3 | 1 | High | ☐ |
+| 3 | Tasks home & workspace manager | 9 | 1 | 5 | 3 | High | ☐ |
+| 4 | Git sheet, checkpoints & render fidelity | 10 | 2 | 5 | 3 | Medium | ☐ |
+| 5 | Automation runs & child sessions | 4 | 1 | 0 | 3 | Low | ☐ |
+| 6 | Held-queue guard & stale-command faces | 3 | 0 | 2 | 1 | Medium | ☐ |
+| 7 | Composer, attachments & notices | 10 | 0 | 5 | 5 | Medium | ☐ |
+| 8 | Conversation timeline, paging & viewers | 10 | 0 | 8 | 2 | Medium | ☐ |
+| 9 | Terminal plane | 3 | 0 | 2 | 1 | Medium | ☐ |
+| 10 | Desktop parity planes | 20 | 0 | 6 | 14 | Mixed | ☐ |
+| | **Total** | **86** | **15** | **37** | **34** | | |
+
+Counts reconcile: 6+11+9+10+4+3+10+10+3+20 = **86 rows**; P2 4+7+1+2+1 = 15, P3
+1+3+5+5+0+2+5+8+2+6 = 37, P4 1+1+3+3+3+1+5+2+1+14 = 34; 15+37+34 = 86. Sources:
+**41 F** (14 P2 + 27 P3 [25 defects + 2 observations]) + **24 N** (1 P2 + 2 P3 + 21 P4) +
+**21 G** (8 P3 + 13 P4) = 86. Rows that bundle several IDs (shared remedy) count once and name
+every ID.
+
+**Execution order.** 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10, with the dependency edges
+preserved inside phases (F-P0-B before F-P6-A; F-P8-D before F-P6-B; G102 before F-P39-A;
+F-P19-A before F-P20-A) and ONE cross-phase edge (Phase 9's F-P48-A consumes Phase 1's
+CONNECTED-transition hook). Phases 1–5 carry ALL 15 P2 rows; no phase after 5 contains a P2.
+
+---
+
+## Phase 1 — Connection, recovery & transport state
+
+Theme: the endpoint/recovery plane that every other surface rides on. Order inside the phase:
+**F-P8-A → F-P9-A → F-P9-B → F-P13-A → F-P8-B → K-small-2.**
+
+### Sub-phase 1A — endpoint persistence & wedges
+
+- [ ] **F-P8-A (P2) — cold start with DIRECT selected: the deferred relay `persistEndpoint`
+  rewrites `_endpoint` after resolve, silently abandoning the resolved selection.**
+  `ConnectionHub.kt:672-685 → :1650` re-persists post-resolve; the recovery is dropped by the
+  `sourceKind` filter; the UI shows "First sync failed" beside a healthy direct endpoint; Retry
+  completes it. **Fix:** guard `persistEndpoint` against overwriting a resolved non-relay
+  selection; retry must reconnect the transport the UI shows. **Accept:** a Robolectric race pin
+  + a "no `hub.switched` without user tap" assert; a live cold-start DIRECT leg renders the
+  healthy direct face with no false failed strip. (F-P2-A's supersession: the REAL root is
+  here.)
+- [ ] **F-P9-A (P2) — relay killed MID-AUTHENTICATION wedges the transport in AUTHENTICATING
+  permanently** (zero sockets, zero ladder, zero logs, 8 min receipted; survives
+  foreground/unlock; NO retry face — cached rows suppress the strip; the active-endpoint tap is
+  a silent no-op; only escape = a cross-endpoint switch away+back). Three trigger variants
+  receipted (pass 9 mid-auth, pass 10 stale-relay, pass 15 relay-absent cold start → 10 s
+  timeout). **Fix:** an AUTHENTICATING watchdog (timeout → RECOVERING) + a stuck face.
+  **Accept:** a Robolectric kill-mid-handshake pin (netstat-zero + "no silent state" assert); a
+  live leg kills the relay at handshake → the face flips within the timeout and Retry
+  reconnects.
+- [ ] **F-P9-B (P2) — the typed disconnected-remote face never renders live:** the hub logs
+  `workspace-bridge-error: remote-disconnected` but ConnectionCenter shows the generic offline
+  face — the G67 card (`connection_remote_reconnect`, render condition
+  `lastError.messageKey==REMOTE_WORKSPACE_DISCONNECTED`, `ConnectionCenterScreen.kt:296`) never
+  renders → the recovery verb workspace-reconnect-request is UI-unreachable. **Fix:** trace
+  `hub.connectFailed → lastError` dropping the messageKey (the SESSION-scope bridge error).
+  **Accept:** a live-shape harness asserting the card renders with the arm armed; the
+  workspace-reconnect verb reachable from the card.
+
+### Sub-phase 1B — recovery, reconnection state & the sync strip
+
+- [ ] **F-P13-A (P2) — the workflowRun delta plane is DEAD on the CLOSE-CYCLE post-recovery
+  path:** the detach path drops the local subscription record (`recovery.detached` — detach()
+  fires only from closeConversation, `ConnectionHub.kt:1027-1052` →
+  `RecoveryCoordinator.kt:130-149`), the recovery re-materializes conversations via
+  `relay.recovered :: subscriptions=N` issuing NO subscribeConversationV4, so the subscribe-ACK
+  epoch record is never re-stamped → EVERY server-initiated delta drops at
+  `ConversationGateway.kt:261-274` (`gateway.drop … no subscription record`) for the life of
+  the connection. The STAY-OPEN path is HEALTHY (pass 15) and must stay so. **Fix:** recovery
+  must re-subscribe (or stamp epochs on the snapshotReplace ack) ON THE DETACHED-REOPEN path.
+  **Accept:** a relay-log pin ("no subscribe after recovered") + a gateway.drop assert on a
+  post-close-cycle delta; a live leg applies deltas with seq > 1 and zero gateway.drop; the
+  stay-open boundary re-receipted. (The patch variant is stamped pass 44 — same gateway, same
+  fix.)
+- [ ] **F-P8-B (P3) — switching to an already-CONNECTED endpoint throws ISE `connect() is the
+  first-connection path`.** **Fix:** `connectDirect()` → `recover()`/no-op when
+  state==CONNECTED. **Accept:** a harness asserting a second tap on the connected endpoint does
+  not throw and the connection holds.
+- [ ] **K-small-2 (P4) — "First sync failed" renders alongside CACHED rows** (wording/state
+  nit), and the strip can be entirely ABSENT when the F-P9-A wedge suppresses the refresh.
+  **Fix:** align the strip with the real sync state (rides this phase's transport work).
+  **Accept:** after a failed sync with cached rows the strip text matches the transport state;
+  never rendered contradictory or silently absent while the wedge is live.
+
+**Phase 1 exit gate: ☐** fresh zcode-a16 cold boot + relay: (a) DIRECT cold start renders
+healthy (F-P8-A); (b) relay killed mid-auth → the wedge resolves via the watchdog and Retry
+reconnects (F-P9-A); (c) the remote-disconnected arm renders the typed card (F-P9-B); (d) kill
+during a live conversation → post-close-cycle deltas apply with zero gateway.drop (F-P13-A);
+(e) tap the already-connected endpoint → no ISE (F-P8-B). Zero ANR/FATAL on the leg.
+
+---
+
+## Phase 2 — Interaction cards, answers & hook capture
+
+Theme: the pending-interaction lifecycle — cards, answers, inbox/shade delivery, the ghost
+store, and the hooks-review capture. Real-Room pins mandatory (recording fakes cannot see
+column clobbering). Order inside the phase: **F-P0-B → F-P3-A → F-P6-A → F-P8-D → F-P6-B →
+F-P1-B → F-P7-A → F-P7-B → F-P3-C → F-P45-B → N-BZ-1.**
+
+### Sub-phase 2A — the card plane (the pinned budget + the reconcile fight)
+
+- [ ] **F-P0-B (P2) — the reconcile sweep STALEs state-plane-delivered PERMISSION
+  interactions** (the two reconcilers fight; the card renders terminal-but-actionable). ONE
+  LINE: the `known.permission != null` exemption at `InteractionCoordinator.kt:697`. **Fix:**
+  that one line + a pin answering from BOTH planes. **Accept:** the dual-plane pin answers the
+  permission from the state plane without the sweep stale-ing it; the conversation card stays
+  actionable. (8 stamps passes 3–9 — the most re-manifested row in the ledger.)
+- [ ] **F-P3-A (P2) — the pinned pending-stack budget starves EVERY interaction card body to
+  zero height** (question bodies, hook items; LazyColumn unbounded main axis kills
+  `weight(1f,fill=false)`; composition-dependent — pass 12's variance receipt). **Fix:**
+  card-agnostic — raise/scroll the pinned budget or render bodies outside it. **Accept:** a
+  live `LazyColumn{item{}}` harness varying pinned-child count — question/hook/approval bodies
+  render at full height and the answer leg is enabled. (Absorbs F-P1-A/F-P0-A; 12+ stamps.)
+- [ ] **F-P6-A (P2, after F-P0-B) — permission ghost-split:** the store keeps DISPLAYED rows
+  the card plane dropped AND generation-orphaned ghosts accumulate monotonically (4 ghosts /
+  26 h; the broker posts shade notifications with NO answer surface). **Fix:** card half =
+  F-P0-B; store half = resolve generation-orphaned interactions in a reconcile sweep (fixtures
+  `/tmp/pass8/db/p8-2.db` + `/tmp/p9/db/p9-4.db`). **Accept:** a sweep pin resolves orphaned
+  generations; a live census on the fixtures reaches 0 orphans; the shade notification gains an
+  answer surface or is suppressed.
+- [ ] **F-P8-D (P3) — the queue panel has NO collapse affordance** (always-expanded; the
+  desktop's has one) + the header clipped under the sticky strip. **Fix:** a two-way header
+  toggle (desktop parity) + the overlap fix. **Accept:** a compose pin — the toggle
+  collapses/expands and the header no longer clips. (Unblocks F-P6-B.)
+- [ ] **F-P6-B (P2, after F-P8-D) — with the armed stack, the timeline renders ZERO rows**
+  (the pinned budget + the expanded queue panel eat the window). **Fix:** re-balance the
+  pinned/timeline budget. **Accept:** a compose harness with the armed stack asserting the
+  timeline renders rows with the queue expanded; re-receipted live under the queue arms.
+
+### Sub-phase 2B — answer delivery & interaction lifecycle
+
+- [ ] **F-P1-B (P2) — stale-generation interactions stay answerable 50+ minutes and ACK
+  against a moved-on desktop**; the closeStored sweep misses rows (2 of 5). **Fix:** expire
+  stored interactions on generation/workspace identity mismatch + a mock unknown-id error arm.
+  **Accept:** a harness asserting a gen-mismatched interaction expires; the mock arm answers
+  unknown-id typed; the sweep covers every row (the pass-13 partial-sweep-in-BOTH-directions
+  shape).
+- [ ] **F-P7-A (P2) — Approvals-screen inbox answers strand:** `submitFromStore` →
+  RETRYABLE_KEPT (needs a session machine); the banner remedy "open the task" is unactionable
+  on DIRECT (foreign workspace). Inbox answers FINE over relay — endpoint/machine-context
+  specific. **Fix:** interaction-scoped submit (the shade path proves the shape); validate the
+  task row before advising. **Accept:** the relay inbox answer lands; on DIRECT the advice is
+  accurate or the submit succeeds interaction-scoped.
+- [ ] **F-P7-B (P2) — a shade action answered while the connection is down → the interaction
+  FAILED with no retry/queue/face** (the COMMON path with Live-connection OFF; the typed
+  server-rejection trigger receipted pass 13 — same no-face outcome). **Fix:** queue behind
+  reconnect (the inbox RETRYABLE_KEPT semantics) or a visible "not delivered" re-post.
+  **Accept:** a harness answering offline → the answer queues (or re-posts visibly); never a
+  silent FAILED with no user face.
+- [ ] **F-P3-C (P3) — the inbox ACK's resolution echo is DROPPED when the conversation is
+  unsubscribed** (`gateway.drop … no subscription record`). **Fix:** retain last-N deltas per
+  session / subscribe-on-ACK / optimistic local resolve. **Accept:** a pin asserting the ACK
+  echo survives (or the row resolves locally) when unsubscribed.
+
+### Sub-phase 2C — hook-review capture & the hooks viewer
+
+- [ ] **F-P45-B (P3) — the hooks-review capture LOSES ALL-BUT-LAST reviews and CROSS-KEYS the
+  survivor:** `captureHookReview` reads `pendingInteractions?.lastOrNull { kind ==
+  WORKSPACE_HOOK_REVIEW }` (`ConversationSessionManager.kt:144-145`) and the sink files it
+  under the OPENED session's id (`RecoveryCoordinator.kt:188` → `ConnectionHub.kt:1103`) —
+  with two reviews in one snapshot the viewer rendered ONE hybrid group and its Refresh sent
+  MISMATCHED args (`{"sessionId":"synth-task-1","workspaceIdentity":"synthetic-ws-two",…}`,
+  DB-ACKED). **Fix:** capture EVERY review of the kind keeping the latest per the payload's own
+  `review.taskId`; key the sink by `review.taskId`. **Accept:** a manager harness with a
+  2-review snapshot — both viewer groups render with their own labels and each group's refresh
+  args match its own workspace (MOCK_HOOKS_SECOND is the rig arm).
+- [ ] **N-BZ-1 (P4) — the hooks viewer's Refresh renders "The desktop refused the review
+  request." on a DEAD transport:** `ConnectionHub.requestHookReview:375-380` maps
+  BlockedOffline/Failed/Stale/… ALL to `false` while the honest offline note is structurally
+  near-unreachable — the two classes are indistinguishable to the user (receipted both ways on
+  the DB pulls). **Fix:** distinguish the classes — transport-class (BlockedOffline/Failed) →
+  the offline note (or a third "connection lost" copy); genuine server refusals keep the
+  refused note. **Accept:** a mapping harness over requestHookReview's outcome→note
+  (BlockedOffline ≠ refused); a live leg renders the offline note on relay-down and the refused
+  note on the refuse arm.
+
+**Phase 2 exit gate: ☐** armed-stack walk on a fresh rig: the timeline renders with the queue
+expanded (F-P6-B) and collapses (F-P8-D); the dual-plane permission answer (F-P0-B) with the
+card body visible (F-P3-A); the 2-review hooks snapshot renders two correct groups (F-P45-B);
+the inbox/shade answer legs deliver or queue visibly (F-P7-A/F-P7-B); a stale-gen interaction
+expires (F-P1-B). Real-Room pins green.
+
+---
+
+## Phase 3 — Tasks home & workspace manager
+
+Theme: the tasks home's stale-state faces and the group plane's desktop drift. Order inside
+the phase: **F-P40-B → F-P38-A → F-P38-B → G102 → F-P39-A → F-P43-A → N-BU-1 → N-BV-1 →
+N-BW-1.**
+
+### Sub-phase 3A — the workspace manager & the stale keys
+
+- [ ] **F-P40-B (P2) — the workspace-manager RENAME-ALIAS write is a SILENT NO-OP at HEAD**
+  (field 17 `workspace_aliases` never reaches disk — ×4 across two processes, the pb mtime
+  frozen through Save, zero UI echo) while REORDER (field 16) and SELECT (field 18) are
+  receipted ALIVE end-to-end. The wiring is singular and direct
+  (`TaskListScreen:500 → ZCodeApp.kt:747-756`, the same `startScope.launch` shape as the two
+  ALIVE callbacks) — the deadness is inside the rename path, micro-cause a fix-round question.
+  **Fix:** pin the rename lambda specifically (a Robolectric harness asserting preferences.pb
+  gains workspaceAliases after onWorkspaceRenamed + the chip recomposing under the alias);
+  diff the rename lambda's transform against the working select/reorder shapes. **Accept:**
+  rename round-trips to disk + the chip renders the alias and survives an app restart.
+- [ ] **F-P38-A (P3) — the task home renders STALE WORKSPACE-KEY SECTIONS forever:** the "All"
+  view enumerates every workspace key ever synced (`Daos.kt:20-21`,
+  `TaskRepositoryImpl.kt:48-50`) while the full-snapshot replace + TTL/cap sweep are KEY-scoped
+  (`:52-93`) — a workspace whose key stops being served leaves a ghost section with its
+  last-synced rows presented as live (the `synthetic-ws-one` ghost frozen across relay swaps,
+  restarts, and a FULL emulator reboot; its rows are OPENABLE). **Fix:** prune endpoint-scoped
+  keys absent from the connect snapshot (or an across-keys TTL sweep). **Accept:** a repo
+  harness — replaceAll(keyA) then serve only keyB → keyA's rows/section age out; live: the
+  ghost section gone from the All view and the boot DB. (7 stamps.)
+- [ ] **F-P38-B (P3) — the custom-GROUP sections never load on a fresh open:** the one-shot
+  `LaunchedEffect(Unit) { onLoadGroups() }` (`TaskListScreen.kt:195`) races the transport
+  connect — the guarded null is swallowed by `?: emptyList()` (`TasksViewModel.kt:422`) and
+  nothing re-triggers, so the home renders ZERO custom-group sections for the whole session.
+  **Fix:** re-run loadGroups on the CONNECTED transition (or retry-on-null in the VM).
+  **Accept:** a compose test composing the screen pre-connect then flipping CONNECTED asserts
+  the groups fetch fires; live: the seeded group renders on a cold open (the race's both
+  halves receipted pass 39).
+
+### Sub-phase 3B — the group plane, search & notices
+
+- [ ] **G102 (P3) — WIRE DRIFT: desktop 3.18.1 REMOVED the legacy group verbs from zcode-task**
+  (`createTaskGroup`/`renameTaskGroup`/`updateTaskGroupColor`/`deleteTaskGroup`/
+  `listGroupedTaskViewStructure`/`applyGroupedTaskViewOrder` — zero byte-hits); the plane moved
+  to a dedicated `task-groups` channel (read/save({id?,title?,color?})/ungroup/move({node,
+  sourceGroupId,groupId,anchor?})/admit + `state:task-groups` broadcasts) — the phone's ENTIRE
+  custom-group plane faults unknownMethod against the REAL desktop while working against the
+  mock, and the failure copy is misleading ("unpin it first" for ANY failure,
+  `TasksViewModel.kt:465`). **Fix:** migrate the phone's group calls to the task-groups shapes
+  (save unifies create+rename+recolor; move replaces the read-modify-write), or capability-gate
+  the group UI honestly; fold in the move-failure copy fix. **Accept:** a transport-fake
+  harness asserting the phone's group verbs against a task-groups-channel fake; the 3.18.1
+  method-table census pins the shapes; the failure copy is accurate. (Gates F-P39-A.)
+- [ ] **F-P39-A (P3, after G102) — the move sheet's "New group…" path silently DROPS the
+  pending move:** the sheet clears `moveFor = null` BEFORE opening the editor
+  (`TaskListScreen.kt:823`) and the editor wires ONLY `onCreateGroup` — the flow ends with the
+  task UNMOVED and the new group INVISIBLE while a SUCCESS notice fires. **Fix:** carry moveFor
+  through the editor (create → move to the created group — the create-then-admit shape) or
+  re-open the sheet with the new group preselected; fold in the G102 move-copy fix. **Accept:**
+  a compose test — move sheet → New group → create asserts the move wire fires and the row
+  renders under the group.
+- [ ] **F-P43-A (P3) — the tasks-SEARCH results pane SILENTLY TRUNCATES at the port's
+  limit:20:** the wire carries the desktop-faithful pagination answer
+  (`27 hits (limit=20 served=20 hasMore=true)`) but `Ports.kt:139-151` drops total/hasMore
+  (the client decodes both) and the pane renders the bare list with NO count and NO show-more
+  affordance (`TaskListScreen.kt:396-433`) — matches 21–27 unreachable through the search UI
+  while the desktop NEVER silently truncates (`taskList.showMore`). **Fix:** thread SearchResult
+  (or total/hasMore) through port.searchTasks; the VM gains searchTotal/searchHasMore; the
+  pane renders a count face + a show-more row re-querying at a raised limit (the desktop's
+  expanded shape). **Accept:** a compose test — stubbed port 20 hits/total 27/hasMore true
+  asserts the count face + the affordance; tapping re-queries raised and renders the remainder.
+- [ ] **N-BU-1 (P4) — the tasks ACTION NOTICE renders in the STATUS-BAR zone** (lifecycle and
+  CAS-refusal notices draw at y≈25 overlapping the status bar; no top-inset on the notice
+  slot). **Fix:** pad the notice into the inset area (or a snackbar slot). **Accept:** a
+  compose test asserting the notice's bounds start below the status-bar inset.
+- [ ] **N-BV-1 (P4) — EMPTY custom groups are AFFORDANCE-LESS:** the render skips zero-member
+  groups (`TaskListScreen.kt:1283-1290`) so the header — and the ONLY Edit/Delete affordances —
+  never renders; the orphan group stays in every move sheet forever. **Fix:** render empty
+  groups' headers (count 0) or expose delete via the move sheet/overflow. **Accept:** a
+  compose test asserting an empty group is deletable from the list.
+- [ ] **N-BW-1 (P4) — collapse-all from the TIMELINE organize NEVER survives a restart:** the
+  persisted sentinel `TIMELINE_GROUP_KEY = "timeline"` matches NOTHING in the always-reset
+  workspace organize (`TasksViewModel.kt:70/:102`) — every section renders expanded after
+  relaunch (the GAP-14 "survives app restart" port contract defeated by the key mismatch).
+  **Fix:** persist per-mode key namespaces (timeline vs workspace) or translate the sentinel on
+  load. **Accept:** a compose test collapsing in timeline → recomposing in workspace asserts
+  the collapsed faces persist.
+
+**Phase 3 exit gate: ☐** fresh rig: rename lands on preferences.pb field 17 and the chip
+renders the alias (F-P40-B); the ghost key pruned from home + boot DB (F-P38-A); cold-open
+groups render (F-P38-B); the group verbs speak task-groups shapes against the fake and the
+real-desktop face is honest (G102); move-through-create completes (F-P39-A); search shows
+"20 of 27" + show-more (F-P43-A).
+
+---
+
+## Phase 4 — Git sheet, checkpoints & render fidelity
+
+Theme: the git sheet's write tier (the destructive-handling family), the reads' silent-empty
+faces, and the decode/a11y fidelity smalls. Order inside the phase: **F-P45-A → F-P41-A →
+F-P40-A → F-P40-C → F-P10-A → N-CA-1 → F-P5-A → N-BK-1 (app half) → N-BX-1 → N-BY-1.**
+
+### Sub-phase 4A — the write tier & checkpoints
+
+- [ ] **F-P45-A (P2) — the checkpoint FORCE-OVERWRITE executes on a DIFFERENT snapshot pair
+  than confirmed:** `forceConfirmFor` carries only `(to, conflicts)` and the force handler
+  RECOMPUTES `from = checkpoints.getOrNull(1)` (GitScreen.kt CheckpointsCard — a hard-coded
+  index that coincidentally matches only at exactly two checkpoints) — the destructive ⚠ write
+  silently diverging from its own confirmation (confirm `{"fromCheckpointId":"ckpt-1",…}`
+  executed as `{"fromCheckpointId":"ckpt-2",…,"force":true}`, arg-exact receipted). **Fix:**
+  carry the confirmed `from` through forceConfirmFor (a Triple or a second field). **Accept:**
+  a compose harness with a 3-item list asserting the force wire ids == the confirmed pair; a
+  live leg with ≥3 checkpoints + conflict + Overwrite.
+- [ ] **F-P41-A (P3) — the git PUSH refusal renders NOTHING** ("Commit & push" silently
+  half-completes: `onPush` closes the PushConfirm BEFORE the async result, the success-only
+  notice branch has NO else, and the port's `writeOp` maps the refused call to null — the
+  shared null-swallow boundary). **Fix:** an else branch on the push notice path rendering the
+  refused reason (the noticeGit plane). **Accept:** a harness asserting the push-refusal face
+  renders with the message text (MOCK_GIT_PUSH_FAIL is the rig arm).
+- [ ] **F-P40-A (P3) — the BranchSheet's switch/create WRITE ACKS re-fetch NOTHING in-place**
+  (the pane keeps pre-switch data until re-entry; the commit handler's `fetchChanges()`
+  asymmetry IS the shape). **Fix:** fetchChanges() + a summary/comparison re-read on every
+  write ack. **Accept:** a compose test asserting the branch block flips after a stubbed ok ack
+  without re-entry.
+- [ ] **F-P40-C (P3) — the branch TYPED-ISSUE ack is swallowed** (a refused switch is
+  indistinguishable from success: the sheet closes pre-result, onDismiss nulls the issue, the
+  only render target lives INSIDE the closed sheet, and the wire's message/detail are decoded
+  but never rendered — the "detail copyable" doc is unimplemented). **Fix:** keep the sheet
+  open on issues (close only on ok) or render the issue card pane-level; render message/detail
+  + the promised copy affordance. **Accept:** a harness asserting the issue face renders at ack
+  time with the message text (MOCK_GIT_BRANCH_ISSUE is the rig arm).
+- [ ] **F-P10-A (P3) — the Commit sheet's Commit action SILENTLY no-ops when
+  hub.activeWorkspaceTarget() resolves null** (dialog closes, zero wire verbs, zero logs, zero
+  user face — the reads in the SAME sheet resolve elsewhere; `writeOp :209 ?: return null` is
+  the silent exit). **Fix:** resolve the write target the way the reads do (session-scoped) + a
+  typed refusal face on the null-target path. **Accept:** a harness asserting the null-target
+  path renders a typed refusal and never silently closes.
+- [ ] **N-CA-1 (P4) — the restore-confirm's promised DIFF-FILES face is unimplemented and
+  `diffCheckpoints` is UI-DEAD** (the card docstring promises "the confirm names BOTH ids and
+  the diff's files" but `diffText` is only ever null-CLEARED and the port has ZERO UI callers
+  while the verb is fully wired below the UI — 0 wire calls in both pass-45 gens). **Fix:**
+  fetch the diff in the confirm path and render the files under the body (or drop the
+  docstring claim). **Accept:** a harness asserting the confirm names the diff files / the wire
+  carries diffCheckpoints.
+
+### Sub-phase 4B — reads, decode & a11y fidelity
+
+- [ ] **F-P5-A (P3) — refused git reads render SILENT-EMPTY sections** (headers, zero rows, no
+  error — the render site EXISTS and is dead-coded behind `Phase9Ports.kt:124`'s null-swallow;
+  the fix belongs to the port/loader boundary). **Fix:** a typed-refusal face on section-empty
+  at the port/loader boundary. **Accept:** a pin hosting the LIVE shape — a refused getChanges
+  renders the error face + retry (`GitScreen:204`'s existing site). (2 stamps.)
+- [ ] **N-BK-1 (app half, P2) — History silent-empty needs a "No commits yet" empty state**
+  (the rig half is FIXED `2b12fc46`; the app half renders bare-blank on an empty history).
+  **Fix:** the empty state. **Accept:** a compose pin — an empty history renders the "No
+  commits yet" state (never bare-blank).
+- [ ] **N-BX-1 (P4) — the branch block renders the LITERAL "tracking: null":**
+  `Phase9Tools.strOrNull` (`Phase9Tools.kt:471`) is JsonNull-BLIND (JsonNull's content is the
+  STRING "null") while the codebase's own `Phase9Ports.rpStr` HAS the filter — the two helpers
+  disagree. **Fix:** add the JsonNull filter to strOrNull (one line, the rpStr shape).
+  **Accept:** a decode harness over a JsonNull trackingBranchName asserting null (the UI then
+  renders "—").
+- [ ] **N-BY-1 (P4) — the git Changes rows' Stage/Discard/Unstage a11y labels carry the RAW
+  format string:** the semantics use `stageCdFmt.replace("%s", path)` but the resources are
+  POSITIONAL (`git_stage_cd` = "Stage %1$s") so `%s` never matches — every TalkBack user hears
+  "Stage %1$s" (dump receipted ×3 rows). **Fix:** use `%1$s` in the replace (or positional
+  formatArgs). **Accept:** an a11y assertion on the row's content-desc containing the path.
+
+**Phase 4 exit gate: ☐** fresh rig: the 3-checkpoint force-overwrite executes the CONFIRMED
+pair (F-P45-A); the push refusal renders (F-P41-A); the typed issue face renders at ack time
+with message/detail (F-P40-C); switch/create acks refetch in place (F-P40-A); refused reads
+render the error face (F-P5-A); "No commits yet" on empty history (N-BK-1); a11y labels carry
+paths (N-BY-1).
+
+---
+
+## Phase 5 — Automation runs & child sessions
+
+Theme: the automation-run plane's transcript hydrate (a wiring-only P2) and its smalls. Order
+inside the phase: **F-P3-B → N-BM-2 → N-BK-2 → N-BL-1.**
+
+- [ ] **F-P3-B (P2) — automation "Go to session" NEVER loads its transcript** (4 skeleton rows
+  forever, zero transcript wire calls). NARROWED: the MANUAL run's workspace session LOADS via
+  the subscribe snapshot — the skeleton is the unscripted-session shape only; the hydrate
+  surface ALREADY EXISTS (`readSessionMessages` consumed at `ConversationPort.kt:318`).
+  **Fix:** openRun hydrates via readSessionMessages — wiring only, plus an honest empty state.
+  **Accept:** a harness asserting the unscripted child renders the transcript or an honest
+  empty state — never skeletons-forever. (2 stamps + the pass-17 narrowing.)
+- [ ] **N-BM-2 (P4) — child-session view: generic title + skeleton-forever on unscripted
+  children** (rides F-P3-B's hydrate). **Fix:** the real title (session name/parent link).
+  **Accept:** the child view shows the session's identity.
+- [ ] **N-BK-2 (P4) — the automation Edit sheet's schedule chips clip at phone width**
+  ("Weekda"/"Cr" clipped live, stamps 2). **Fix:** reflow/wrap the chips. **Accept:** the chips
+  render full text at 395 dp.
+- [ ] **N-BL-1 (P4) — workflow-run Run/Manage icon buttons subtree-unlabeled** (TalkBack
+  silence — the ONLY unlabeled clickables found in the a11y sweep). **Fix:** content-desc on
+  both buttons. **Accept:** an a11y pin — both buttons labeled.
+
+**Phase 5 exit gate: ☐** fresh rig: Go-to-session on the unscripted shape hydrates the
+transcript (or renders the honest empty state) with the real title (F-P3-B + N-BM-2); the
+schedule chips fit (N-BK-2); both icon buttons labeled (N-BL-1).
+
+---
+
+## Phase 6 — Held-queue guard & stale-command faces
+
+Theme: the send-ack guard family — one pair per rule 10, plus the effort switch's dead stale
+branch. Order inside the phase: **F-P19-A → F-P20-A (one pair) → N-BQ-1.**
+
+- [ ] **F-P19-A (P3) — the G50 CAS-mismatch face is desktop-divergent:** on
+  `guard.heldQueueConfirmationStale` (host ack `{status:"failed"}` — set-equality CAS via
+  `applyHeldQueueDisposition`) the desktop RE-OPENS the held-queue confirmation with fresh ids
+  (`confirmationRequired`); the phone maps the failed ack to the generic refusal ERROR notice
+  (`ConversationViewModel.kt:542-548`) — reasonCode undifferentiated, no re-confirmation loop.
+  **Fix:** handle the typed reasonCode → re-open the disposition dialog with re-read ids
+  (desktop parity) or minimally a distinct notice. **Accept:** the guard.* grep pin + the V.C
+  static shapes (outbox FAILED_TERMINAL + preserved draft); a live leg under
+  MOCK_QUEUE_GHOST_APPEND_MS re-opens the confirmation (or renders the distinct notice).
+- [ ] **F-P20-A (P3, ONE PAIR with F-P19-A) — the phone's goal sends are structurally refused
+  under the desktop's choice admission:** the host's `sendGoalCommand` rides the SAME
+  `applyHeldQueueDisposition` gate as sendText, but the phone's goal payload is
+  `{text, displayText}` only (`CommandCoordinator.kt:220-224`); the composer half is pure
+  PLUMBING (every `sendSlash` branch drops the answered trio; the sheet half bypasses `send()`
+  entirely); the compact variant's discarded answer's only loss is the user's explicit
+  "Clear queue & send" choice (the desktop never asks for compact). **Fix:** composer half =
+  carry the answered trio into the goal/compact branches (or stop asking for compact); sheet
+  half = gate on the choice state or a distinct notice keyed on the reasonCode. **Accept:**
+  the outbox rows carry the trio for goal-sheet + composer-slash + compact sends (the W.B/W.C
+  pins); the G50 answer is never discarded; 4 stamps stand as the receipt base.
+- [ ] **N-BQ-1 (P4) — the effort switch's typed stale face is DEAD CODE:** the protocol
+  method's host layer answers a JSON-RPC ERROR on revision mismatch (`Dl -32009`), the phone
+  collapses any throw to FAILED (`Ports.kt:1000-1013`), and the enumerated SESSION_CHANGED
+  branch (`ConversationViewModel.kt:336`) can never fire — three levels live-receipted
+  (high/medium/xhigh) all rendering the generic face. **Fix:** map the protocol-plane error by
+  its revision-mismatch identity so STALE propagates (or re-shape the call). **Accept:** a
+  transport-fake harness asserting setThoughtLevel STALE propagation; re-drive the live face
+  after the fix. (3 stamps.)
+
+**Phase 6 exit gate: ☐** fresh rig under the queue arms: CAS-mismatch re-opens the
+confirmation with fresh ids (F-P19-A); a goal send through ALL THREE entry points carries the
+trio (F-P20-A); the effort switch renders the honest stale face under the -32009 arm (N-BQ-1).
+
+---
+
+## Phase 7 — Composer, attachments & notices
+
+Theme: the attachment lifecycle's silent faces and the SendNotice plane's one-liners (rule 10's
+batch). Order inside the phase: **F-P31-A → F-P11-A → F-P8-F → F-P33-A → N-BR-1 → N-BS-1 →
+N-BT-1 → N-BO-1 → N-BJ-1 → F-P0-E (observation).**
+
+### Sub-phase 7A — the upload lifecycle & silent faces
+
+- [ ] **F-P31-A (P3) — the mid-upload user-tap Remove does NOT cancel the in-flight upload
+  coroutine — the aborted transaction RESURRECTS the removed chip** (~15 s later as ✗ under a
+  banner; and on the keep-after-abort shape as ✓ READY under NO banner — the worse UX; the
+  resurrected chip is fully REAL and SENDS end-to-end). The desktop's remove is FINAL
+  (AbortController + per-chunk signal checks + staleness-guarded callbacks — pass 32 census).
+  **Fix:** track in-flight upload Jobs per uploadId and cancel in removeUpload (or guard BOTH
+  re-add upserts on a user-removed set). **Accept:** a harness asserting remove-during-upload →
+  the chip stays gone + the abort fires; a live leg over both abort classes (MOCK_ATTACHMENT_FAIL
+  + MOCK_ATTACHMENT_KEEP_AFTER_ABORT). (2 stamps.)
+- [ ] **F-P11-A (P3) — the conversation attachment chip has NO error face** (a failed read
+  leaves "Loading…" forever — produceState swallows failures; no unavailable state, no retry).
+  **Fix:** an error/unavailable state on the chip + a Robolectric failing-loader harness (the
+  MOCK half is already FIXED `1e649eab`). **Accept:** the failing-loader pin asserts the
+  unavailable face + retry.
+- [ ] **F-P8-F (P3) — the Take-photo intent failure (API-36 camera denial) surfaces NOTHING in
+  the attachment flow.** **Fix:** a typed honest face for intent-launch failure (the
+  silent-blank family). **Accept:** a pin asserting the face renders on a denied/failed launch.
+- [ ] **F-P33-A (P3) — the generated-artifact preview card's Open affordance is DEAD at HEAD
+  and SILENT in both failure stages:** stage-2 — the download SUCCEEDS but the FileProvider
+  config (`file_paths.xml`) declares ONLY `shared/` + `updates/` so `getUriForFile` throws IAE
+  and the else branch is LOG-ONLY (`ZCodeApp.kt:1130-1132`); stage-1 — an unserved ref faults
+  at readFileRange → the download-null branch also LOG-ONLY (`:1110-1113`); pass-34 extended
+  the same root to the attachment chip's `cache/attachments` root. **Fix:** add
+  `<cache-path name="downloads" path="downloads/" />` + `<cache-path name="attachments"
+  path="attachments/" />` to file_paths.xml (stage-2, one line each) + typed notices on the
+  download-null branch (stage-1, the notice plane); re-drive the SUCCESS face (system-viewer
+  chooser) after the fix. **Accept:** Robolectric getUriForFile harnesses over
+  cache/downloads + cache/attachments; the typed-notice pin; the live open lands in the system
+  viewer.
+
+### Sub-phase 7B — the notice one-liners batch (rule 10)
+
+- [ ] **N-BR-1 (P4) — the composer attachment chip's Retry SUCCESS leaves the stale offline
+  banner displayed** (also the Remove path — the SECOND lying window — and the CROSS-CHIP
+  window: the banner is per-conversation, chip B's success leaves chip A's FAILED banner
+  verbatim). **Fix:** clear the keyed notice in retryUpload's Committed branch AND in
+  removeUpload (one-liner each — the cross-chip shape falls out of the same fix). **Accept:**
+  pins — retry→committed→banner-gone; remove→banner-gone. (3 stamps.)
+- [ ] **N-BS-1 (P4) — the MIXED-state send (one ✓ ready + one ✗ failed chip) silently EXCLUDES
+  the failed chip from the payload with NO per-send signal** (the ready-only filter drops it;
+  the message goes out as if complete; the user's only trace is the lingering ✗ chip). **Fix:**
+  a keyed notice on ACCEPTED-with-excluded-chips ("Sent without <name> — the upload failed") or
+  a pre-send confirm. **Accept:** a harness asserting the mixed send surfaces the exclusion.
+- [ ] **N-BT-1 (P4) — the stale ROW-ACTION banner renders the SWITCH-specific copy:**
+  `rowActionNotice`'s STALE branch passes the correct per-path message with the SHARED
+  `SendNotice.Key.SESSION_CHANGED`, but the banner renderer resolves BY KEY
+  (`WriteComponents.kt:1751`) and discards the message — feedback LIVE-receipted;
+  retry/fork/rewind same path statically. **Fix:** a distinct key for the row-action stale
+  (ROW_ACTION_STALE → notice_row_action_stale) or render notice.message for SESSION_CHANGED
+  when non-blank. **Accept:** a harness asserting the feedback-stale banner does NOT contain
+  "switch" + the four rowActionNotice call sites enumerated.
+- [ ] **N-BO-1 (P4) — user banners interpolate RAW fault codes** (four surfaces: the changes
+  viewer's error face, the quota-reset failure face, the attachment FAILED banner, the
+  resurrected-chip banner — all `fault.*` verbatim through `ErrorMapping.taskRejected`).
+  **Fix:** extend the G66 fault→human mapping to these Phase9 surfaces. **Accept:** a pin per
+  surface — no raw `fault.*` text in user copy. (4 stamps.)
+- [ ] **N-BJ-1 (P4) — attachment image previews have NO size/aspect cap** (a 1×1 seed renders
+  ~300×220 dp). **Fix:** cap the decode (aspect ratio + max dimension). **Accept:** the 1×1
+  seed renders at a sane size.
+
+### Sub-phase 7C — observation
+
+- [ ] **F-P0-E (P3, observation) — ANR during rapid rig input; causality unproven** (the
+  Recomposer throwOnFailure SPIN — main thread in `runRecomposeAndApplyChanges`; the thrash is
+  ambient across every sheet leg on the swiftshader rig; the trajectory sheet's TYPING legs
+  tripped it 2/2 in pass 46, one wedge CONSUMED the app process). **Fix shape:** observation —
+  instrument + adjudicate; rig recipe recorded (chunk DELs ≤8, pull `/data/anr/trace_*`
+  immediately). **Accept:** an instrumented leg either captures a deterministic trigger
+  (→ a real fix row) or closes the row as ambient with the census note. (4 stamps.)
+
+**Phase 7 exit gate: ☐** fresh rig: remove-during-upload stays gone across both abort classes
+(F-P31-A); the notice batch faces all render honestly (N-BR-1/N-BS-1/N-BT-1/N-BO-1); the
+artifact Open success face lands in the system viewer (F-P33-A); zero raw `fault.*` in user
+copy; the ANR leg adjudicated.
+
+---
+
+## Phase 8 — Conversation timeline, paging & viewers
+
+Theme: the timeline's paging/strip geometry and the viewer screens' honest-fault faces. Order
+inside the phase: **F-P35-A → F-P36-A → N-BM-1 → N-BP-1 → N-BP-2 → N-CB-1 → F-P0-C → F-P11-B →
+F-P2-B → F-P1-D.**
+
+### Sub-phase 8A — paging & the strip
+
+- [ ] **F-P35-A (P3) — the Load-earlier error face is TOP-ANCHORED while the tap affordance is
+  TAIL-ANCHORED** — a faulted page fetch gives the user at the tail ZERO visible feedback (the
+  error renders as a lazy-list item at index 0/1, hundreds of rows above the tap point; the
+  `older-loading` face shares the geometry). **Fix:** surface the error/retry in the PINNED
+  strip slot (swap the strip's content on loadOlderError, or a second pinned strip / a
+  SendNotice-keyed banner). **Accept:** a compose test with a faulting port loader asserting
+  the error is visible WITHOUT scrolling + the retry from the pinned slot succeeds (preserve
+  the AL.E retry-success face).
+- [ ] **F-P36-A (P3) — the open-time prefetch race + the cache trim strand a stale
+  hasMore=false:** the strip hides while head rows are CACHE-ABSENT and unreachable for the
+  session (the page-path writer sets hasMore honestly-false at that instant, the next
+  enforceBound trims the fetched head back to the 320 bound, and the mirror's only writer never
+  re-emits — route re-entry does NOT heal, a fresh process does; the find-JUMP is a
+  DETERMINISTIC trigger, the open race intermittent). **Fix:** re-derive after the trim:
+  hasMore = firstCachedRowId > windowFirstRowId at every enforceBound site (or re-read the
+  manager's authoritative value at loadOlder completion). **Accept:** a repo harness paging to
+  the floor with total > cache bound asserts the strip survives the post-page trim + the DB
+  min(rowId) > windowFirstRowId invariant. (2 stamps.)
+- [ ] **N-BM-1 (P3) — the load-earlier strip total is a stale subscribe-time snapshot**
+  (re-receipted at HEAD with a FAITHFUL total; the end face is honest at HEAD — the fix is the
+  live total). **Fix:** re-derive the total on page (or live-collect the manager's value).
+  **Accept:** a pin — the total updates after a page lands.
+
+### Sub-phase 8B — viewers & misc faces
+
+- [ ] **N-BP-1 (P3) — the Usage screen DOUBLE-applies the Scaffold `inner` padding** (the only
+  viewer with two `padding(inner)` applications) → a ~400 px dead band that is ALSO A DEAD
+  TOUCH ZONE (8 receipted attempts, zero re-queries). **Fix:** drop the second
+  `.padding(inner)`. **Accept:** a compose test dragging from the band region asserts the list
+  scrolls.
+- [ ] **N-BP-2 (P4) — Daily-trend x-labels render "2026-" for every row** (`day.date.take(5)`
+  at `UsageScreen.kt:613` slices the ISO date). **Fix:** slice after the year (or format the
+  full date). **Accept:** a pin on the label text.
+- [ ] **N-CB-1 (P4) — the trajectory sheet's FAULT face is an ETERNAL SPINNER:** the honest
+  unavailable face is structurally unreachable (`trajectoryLoading = trajectory == null &&
+  showTrajectory` wins the `when`; every fetch fault renders an infinite loading bar — the
+  typed fault receipted spinning through a full relay swap). **Fix:** derive loading from an
+  explicit in-flight flag (or a tri-state) so trajectory==null renders the unavailable face.
+  **Accept:** a compose harness with a faulting port asserting the unavailable face renders and
+  the bar settles. (G100's named residual.)
+- [ ] **F-P0-C (P3) — the file viewer renders a SILENT BLANK panel on refused read**
+  (`FilesScreen.kt:225-237` — no error, no retry). **Fix:** a typed error face + WARN-to-UI.
+  **Accept:** a pin asserting the refused face + retry. (3 stamps.)
+- [ ] **F-P11-B (P3) — the Live-connection window picker's selection never reflects in the row
+  subtitle in-session** (the Settings prefs projection doesn't re-collect after
+  `preferencesRepository.update`; disk HAS the value). **Fix:** collect prefs via the live
+  dataStore.data flow on the screen (or key the row on the pref). **Accept:** a pin — the
+  subtitle updates after a write without re-entry (the lesser force-stop flush noted).
+- [ ] **F-P2-B (P3) — the post-unpair resume card claims "Paired · Connect" from a fakeLink**
+  (`PairingViewModel.kt:50-56` — structurally guaranteed). **Fix:** reduce to a genuine
+  unpaired state (no fakeLink). **Accept:** a pin — after unpair the card renders the honest
+  unpaired state.
+- [ ] **F-P1-D (P3, observation) — an open conversation polls workflowRuns+plans every ~8 s
+  even idle/backgrounded** (52 polls in one gen2 log). **Fix:** subscribe-on-open + deltas
+  (the capability is already declared) or a ≥30 s cadence. **Accept:** a poll-census leg
+  showing the reduced cadence (or the delta path) on an idle conversation.
+
+**Phase 8 exit gate: ☐** fresh rig: the paging fault visible AT the tail + the retry success
+preserved (F-P35-A); the strip survives the trim leg (F-P36-A); the trajectory fault face
+renders (N-CB-1); the Usage dead band gone (N-BP-1); dates render (N-BP-2); the file viewer's
+refused face (F-P0-C).
+
+---
+
+## Phase 9 — Terminal plane
+
+Theme: the terminal channel's recovery half (the F-P13-A family on the terminal channel), the
+refusal face's a11y, and the ADR-022 decision. Order inside the phase: **F-P48-A → N-CC-1 →
+G104.** F-P48-A CONSUMES Phase 1's CONNECTED-transition hook (the one cross-phase edge).
+
+- [ ] **F-P48-A (P3) — the terminal stream does not survive a transport recovery — the LIVE
+  face persists over the dead stream:** ANY large terminal data stream drops the conversation
+  transport ~1 s after attach (TRIGGER CLOSED pass 49 — FRAME-COUNT class, the phone reader:
+  the 2400-frame `big` arm dropped at ~6-26 frames paced AND unpaced; `bigone`'s identical
+  525.6 KB in ONE frame held; the `big` arm is the pin-harness stream shape, `bigone` the
+  no-drop control), the app then RECOVERS the transport fully but the terminal channel's
+  onDynamicData/onDynamicExit listens died with the old connection and NEVER re-establish (no
+  create re-fires — the singleton port state machine has no CONNECTED-transition hook): the
+  ring freezes, "live — /bin/zsh" persisted 9+ min, the scheduled exit never rendered; manual
+  Detach→dispose→Attach is the ONLY recovery. **Fix:** on the CONNECTED transition, re-fire
+  the terminal attach when the port state is Live (or flip the face to Refused/Idle on
+  transport loss + a notice). **Accept:** a harness asserting the listen re-registers (or the
+  face flips) after a transport reconnect while state==Live; a live leg under
+  MOCK_TERMINAL_OUT=big recovers the stream (or renders the honest face) without manual
+  detach. (2 stamps — the trigger closer + the eviction face.)
+- [ ] **N-CC-1 (P4) — the terminal REFUSAL face's Retry button renders BLANK:** the Refused
+  branch calls `StateCard(text, retry = {…})` WITHOUT `retryLabel` (`TerminalScreen.kt:128-131`)
+  — the recovery affordance is an invisible/unlabeled pill (it WORKS; TalkBack hears nothing).
+  The Idle branch passes `retryLabel = terminal_attach` correctly; the CapabilityOff branch
+  offers NO retry at all. **Fix:** pass `retryLabel = stringResource(R.string.terminal_attach)`
+  at the Refused call site (one line); consider a retry affordance for CapabilityOff.
+  **Accept:** a compose harness asserting the refusal face renders a labeled Attach button +
+  the a11y label exists.
+- [ ] **G104 (P3) — the ADR-022 armed-composer INPUT TIER is DORMANT at HEAD:** the port
+  members (inputOptIn/arm/disarm/write/resize + the check(armed) gate + TerminalArmGateTest),
+  the transport methods, and the MOCK write-echo/resize handlers ALL SHIPPED, but ZERO UI
+  surface exists (no Settings input row, no Arm/composer/banner in TerminalScreen) and the
+  SHIPPED COPY contradicts the ADR ("It is view-only (nothing you type can reach the shell)");
+  terminal.write/terminal.resize are UI-UNREACHABLE at HEAD. **Fix:** EITHER ship the ADR-022
+  UI (the Settings second opt-in + device-credential confirm + the Arm button + armed banner +
+  single-line composer [Enter → \r, dedicated Ctrl-C → \u0003] + the auto-disarm on
+  detach/exit/background/10-min idle) OR re-open the ADR and make the view-only posture honest
+  (update the §13.3 row + the drift ledger). **Accept:** a DATED decision recorded; if shipped:
+  the Arm affordance renders on Live and write/resize ride the arm (the mock write-echo
+  round-trip pin); if re-opened: the copy/census corrected. TerminalArmGateTest stays either
+  way.
+
+**Phase 9 exit gate: ☐** fresh rig: the big-arm stream recovers after a forced transport drop
+(or the face flips honestly) WITHOUT manual detach (F-P48-A); the refusal Retry is labeled
+(N-CC-1); the G104 decision executed and receipted.
+
+---
+
+## Phase 10 — Desktop parity planes
+
+Theme: the remaining consume/decision G rows after the pass-49 adjudications (G91/G82/G100
+SATISFIED — in no phase). Decision rows need a DATED decision, not code. Order inside the
+phase: **10A mirrors → 10B decisions → 10C heavy planes.**
+
+### Sub-phase 10A — read-mirror minimums
+
+- [ ] **G83 (P4) — clientScenes: ONE verb (`getSnapshot`); the smallest consume on the board.**
+  **Fix:** a one-verb read mirror. **Accept:** the mirror renders against the real desktop, or
+  a dated no-action note.
+- [ ] **G84 (P4) — outputStyle mirror: `listStyles` + `getActiveStyle` (of 7).** **Fix:** a
+  read-only mirror. **Accept:** the mirror renders, or a dated no-action note.
+- [ ] **G89 (P3) — the hook review-reason enum (11 typed reasons) undecoded — the phone card
+  says only "N pending · M hooks"; saveHooks authoring is remote-servable.** **Fix:** decode
+  half = the safe minimum (the reason enum + typed faces); saveHooks = a consume/no-action
+  decision. **Accept:** the card/viewer renders typed reasons; the saveHooks decision dated.
+- [ ] **G90 (P4) — the coding-plan RESET trio (`requestCodingPlanResetOpportunity`,
+  `useCodingPlanReset`, `markCodingPlanResetHistoryRead`) — the phone renders quota reset
+  read-only.** **Fix:** decode + typed faces. **Accept:** the reset flow renders typed states
+  (the mock arms already serve the ladder).
+- [ ] **G101 (P4) — the CUA permission-status plane: `CuaPermissionService` getStatus (typed
+  status incl. grantOwner/accessibilityProbeOk/screenRecording/screenCaptureProbeOk/idle +
+  typed reasons) + restartHelper (macOS-only) — the phone decodes PUSHED observations only.**
+  **Fix:** a read-only status mirror minimum (one card fed by getStatus); restartHelper = a
+  consume/no-action decision. **Accept:** the card renders the desktop's CUA health; the
+  restartHelper decision dated.
+- [ ] **G98 (P3) — the desktop's SOURCE-SERVER/compute planes** (SSH host/port/auth
+  password·privateKey/asset-install-mode, WSL, Docker, sourceServer as workspace hosts) — the
+  phone's "remote" is only the desktop's relay; zero counterpart, not even read-only. **Fix:**
+  a read-only mirror of source servers (the phone already decodes sourceServerId in task
+  rows); authoring stays desktop-only. **Accept:** the mirror lists the desktop's servers
+  read-only, or a dated no-action note.
+
+### Sub-phase 10B — consume decisions & inventory rows
+
+- [ ] **G85 (P3) — broadcastService vocabulary complete but consume/no-action UNDECIDED**
+  (`mobile-push:run/event` = the V2 realtime arm; `state:*` sync family; the task-groups claim
+  protocol). **Fix:** a DATED decision row; `mobile-push:*` feeds G93's architecture.
+  **Accept:** the decision recorded in the ledger with its rationale.
+- [ ] **G95 (P4) — the feedback/support-intake plane (Feedback, 15 methods incl.
+  device-snapshot + log-archive attach) — the phone's diagnostics export could feed
+  `attachLogsFromExport`.** **Fix:** inventory row → a consume decision. **Accept:** the
+  decision dated.
+- [ ] **G96 (P4) — the conversation selection-comment/annotate plane (批注) — desktop-gated on
+  the conversationQuoteComment capability; the phone has no annotation entry.** **Fix:** an
+  inventory row (renderer feature, self-hiding). **Accept:** the decision dated (likely
+  no-action).
+- [ ] **G86 (P4) — the share-code IMPORT plane (`importShare` + progress phases) —
+  desktop-only.** **Fix:** inventory first. **Accept:** the decision dated.
+- [ ] **G87 (P4) — the real-time voice-input ASR plane (ticketed sessions, chunk upload) — the
+  phone relies on OS IME dictation (dead on API 36).** **Fix:** an inventory row (build
+  unlikely). **Accept:** the decision dated.
+- [ ] **G88 (P4) — 22 desktop themes vs the phone's 5 (the shipped zai pair = true parity).**
+  **Fix:** cosmetic; inventory only. **Accept:** the decision dated.
+- [ ] **G92 (P4) — `configOptions` decode-only (select/boolean + current values).** **Fix:**
+  one adapter from a phone render + render. **Accept:** one adapter demonstrated, or a dated
+  no-action note.
+- [ ] **G99 (P4) — the desktop's WHITEBOARD plane (65 keys) vs the phone's send-only Sketch
+  canvas.** **Fix:** an inventory row; consume minimum = an honest "open on desktop" face for
+  whiteboard artifacts if they surface in conversations. **Accept:** the decision dated + the
+  minimum face if consumed.
+
+### Sub-phase 10C — heavy planes & catalog polish
+
+- [ ] **G103 (P4) — the read-only catalog planes have NO DETAIL/DEPTH consume:** all six
+  settings tool screens (Skills / MCP / Subagents / Providers / Bots / Commands) render lists
+  with rows NON-CLICKABLE BY CONSTRUCTION (pass-49 census re-confirmed — Providers zero
+  clickable). **Fix:** the G91/G82 viewer-family shape — a detail bottom-sheet per plane
+  (tap row → the item's fields read-only); minimum = Skills detail (the highest-value
+  catalog). **Accept:** a compose test asserting a skill row opens a detail sheet with the
+  body text.
+- [ ] **G81 (P3) — the gen-ui consume plane: the desktop renders generated interactive UI
+  (HTML in plugin-sandbox); the phone accepts zero files.** **Fix:** the 4-part spec (declare
+  `genUiContext:true`; answer `runtimeCapabilities`; accept/forward the genUiContext array
+  [max 100 × {path,state}] on send; render components incl. the `genUi.desktopOnly` face) —
+  minimum = the honest "open on your desktop" face. **Accept:** the minimum face live, or the
+  full consume per the F.B1 spec.
+- [ ] **G94 (P3) — the worktree creation/fork plane (ManagedWorktree, 14 methods) —
+  start-a-task-in-a-worktree has no phone counterpart; the plane is additionally AGENT-gated
+  (localhost only).** **Fix:** a minimum face — `listCreations` +
+  `onDidChangeCreations`/`onDidSettleCreation`. **Accept:** the read-only creation list
+  renders where the capability is served, or a dated no-action note.
+- [ ] **G93 (P3) — the V2 mobile-push plane has NO phone receiver** (device registration
+  `{device_mid}→{device_sid}`, Bearer JWT event POST, typed skip reasons) — when the relay
+  socket is down the desktop cannot reach the phone AT ALL. ARCHITECTURAL: needs a
+  cloud-transport decision FIRST (the enum residual is CLOSED). **Fix:** the decision, then
+  the push receiver + registration face per it. **Accept:** the DATED architecture decision
+  recorded before any build.
+- [ ] **G97 (P3) — the desktop's web-remote-control companion plane (90 i18n keys) — the phone
+  is BLIND to it:** no face for a browser session controlling its workspace, no
+  kicked/conflict notice, bot-channel access undocumented phone-side (the client mode is
+  restricted to a 49-channel allowedChannels Set). **Fix:** honest surfaces minimum (a
+  companion-state mirror + a kicked/conflict face); the plane itself stays desktop-served.
+  **Accept:** the companion-state mirror + the conflict face render against the real desktop.
+- [ ] **N-BN-1 (P4) — the Plugins screen's per-plugin enable switches are UNLABELED**
+  (`plugin_switch_plugin-prisma`/`-review` carry no content-desc and no text children —
+  TalkBack silence on the row's only interactive element). **Fix:** content-desc on the
+  switches (rides G103's catalog-plane work). **Accept:** an a11y pin — each switch labeled.
+
+**Phase 10 exit gate: ☐** per-row Accept: every decision row carries a DATED decision in the
+ledger; every mirror row renders against the real desktop (or carries its dated no-action
+note); the catalog detail-sheet pin green; the a11y pin green.
+
+---
+
+## Definition of done (pass-0 remediation)
+
+- [ ] Every phase exit gate checked in order (1 → 2 → … → 10), each on a fresh emulator+relay
+      leg with receipts appended to this report
+- [ ] All 86 roadmap rows ticked — or explicitly waived with a dated one-line reason here
+- [ ] Full module suite (`testDebugUnitTest` for the Android modules + `test` for the six
+      pure-JVM modules) green at the final HEAD with the zero-new-names gate against the
+      recorded per-phase baselines, and every module emitted test XML (no test-compile blind
+      spot)
+- [ ] Fresh debug APK rebuilt (the deliverable-completion rule); artifact path + version
+      marker stated to Ernest
+- [ ] Work committed locally as `ErnestHysa <takis312@hotmail.com>`; pushed only on Ernest's
+      explicit word
+- [ ] Desktop-of-record STEP 0 re-run before the final phase (the ledger's DELTA procedure if
+      the asar changed); any new desktop planes re-grepped and appended to the ledger BEFORE
+      phasing them
+- [ ] The ledger rows re-statused FIXED with their commit shas; the discovery record above
+      untouched; reusable learnings appended to AGENTS.md
+- [ ] This roadmap left append-only (row ticks + dated fix-round receipts only)

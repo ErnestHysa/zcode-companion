@@ -136,8 +136,11 @@ P2-first, exit gates, per-row Accept criteria).
   (`f(e.total), m(e.hasMore)`) with `limit: e.expanded?void 0:e.collapsedLimit`
   and renders the taskList.showMore/showLess affordance — the desktop NEVER
   silently truncates.
-- Open rows: **42 F (40 defects + 2 obs) + 24 G + 3 standing + 25 smalls (+1 watch
-  +1 rig)** — UNCHANGED by pass 49 (the wind-down opened ZERO rows). Pass-49
+- Open rows: **41 F (39 defects + 2 obs) + 21 G + 3 standing + 24 smalls (+1 watch
+  +1 rig)** after the pass-49 ROADMAP ADJUDICATION (2026-11-17: the pre-adjudication
+  header said 42 F + 25 smalls — both one above their own tables [off-by-one slips
+  around the pass-45/47 count swaps; mechanical recount]; G91/G82/G100 re-statused
+  SATISFIED against the code — G 24→21). The wind-down itself opened ZERO rows. Pass-49
   receipts: the REMAINING catalog wire words FIRST-SERIES arg-exact (`skills
   getSkillReferenceCatalog args={"workspacePath":"/synthetic/ws-one"}` ×3 — no
   workspaceIdentity/sessionId keys when null; `mcp listMcpServerStatuses
@@ -247,7 +250,9 @@ bodies after 3.14.3 — the census IS the changelog.
 | F-P4-A | 2 | FIXED (rig) | mock push patch structurally excluded its own interaction | `pushPendingPermission` builds from unfiltered list + patch-content pin — commit `2b12fc46`, 37 mock tests green | — | Part G.A2.2, H.A1 | — |
 | N-BK-1 (rig half) | 2 | FIXED (rig) | git fixtures in wrong field vocabulary (blank paths, +0−0, duplicated tabs, oid-vs-hash) | contract vocabulary rewrite — same commit `2b12fc46` | — | Part G.A2.3, H.A1 | — |
 
-**Open F count: 42** (40 defects + 2 observations; pass 48 opened F-P48-A P3 —
+**Open F count: 41** (39 defects + 2 observations; the prior "42 / 40 defects"
+header was an off-by-one slip — mechanical recount 2026-11-17 during the roadmap
+build; pass 48 opened F-P48-A P3 —
 the terminal stream does not survive a transport recovery, the LIVE face persists
 over the dead stream; pass 45 opened F-P45-A P2 —
 the checkpoint force-overwrite diverges from its confirmed pair — and F-P45-B P3 —
@@ -324,10 +329,10 @@ pass 45) · RETRACTED/REFUTED/ABSORBED: 7.
 | --- | --- | --- | --- | --- | --- |
 | G81 | 3 | OPEN | gen-ui consume plane — desktop renders generated interactive UI (HTML in plugin-sandbox), phone zero files | 4-part spec: declare `genUiContext:true` hello bit; answer `runtimeCapabilities`; accept/forward the genUiContext array (max 100 × {path,state}) on send; render components (expand/collapse/tweak/submit/copyImage/retry + `genUi.desktopOnly` face). Minimum = honest "open on your desktop" face | Part F.B1 (complete) |
 | G94 | 3 | OPEN (NEW pass 8) | worktree creation/fork plane (ManagedWorktree, 14 methods) — start-a-task-in-a-worktree has no phone counterpart, not even read-only. Pass 9: the plane is additionally AGENT-gated (worktreeCwd runtimeCapability → ManagedWorktreeService.supports, localhost only) | minimum face: `listCreations` + `onDidChangeCreations`/`onDidSettleCreation` | Part K.B1, L.B1 |
-| G91 | 3 | OPEN | Plugins decode-only — `listPlugins` STRICT schema decoded, NO production screen consumes it (18 desktop bundled plugins invisible) | read-only Plugins viewer in the settings-viewer family (Usage/Memory pattern): list + enable-state only | Part I.2.4 |
+| G91 | 3 | SATISFIED (pass-49 roadmap adjudication) | Plugins decode-only — `listPlugins` STRICT schema decoded, NO production screen consumes it (18 desktop bundled plugins invisible) | read-only Plugins viewer in the settings-viewer family (Usage/Memory pattern): list + enable-state only | Part I.2.4; **ADJUDICATED 2026-11-17: `PluginsViewerScreen.kt` (routed `ZCodeApp.kt:524`) + `DefaultPluginsPort` (`ViewerPorts.kt:375-387`, `hub.viewerTools().plugins` — the Phase-3 read-only viewer plane, v4-wire §12) with per-plugin enable toggles = exactly the consume spec; receipt: pass 10 live-drove the screen (Part M; N-BN-1's switch a11y dump proves the toggles live)** |
 | G93 | 3 | OPEN | V2 mobile-push plane has NO phone receiver (device registration `{device_mid}→{device_sid}`, Bearer JWT event POST, dispatcher w/ typed skip reasons) — when the relay socket is down, the desktop cannot reach the phone AT ALL | ARCHITECTURAL: push receiver + registration face; needs a cloud-transport decision first. **Enum residual CLOSED pass 9**: kind ∈ {question, approval, plan, task_completed, task_failed}, state ∈ {open, resolved}, producer = host chunk-7SAPNXNZ.js collectMobilePushEvents (NOT zcode.cjs — pass-8 attribution corrected) | Part J.2.1, K.B2, L.B2 |
 | G89 | 3 | OPEN | hook review-reason enum (11 typed reasons) undecoded — phone card says only "N pending · M hooks"; saveHooks authoring remote-servable | decode half = safe minimum (reason enum + typed faces); saveHooks = consume/no-action decision | Part H.B3 |
-| G82 | 3 | OPEN | memory viewer — desktop Memory UI (`memoryEnabled` toggle + project-memory viewer); phone zero surfaces | read-only mirror = `listProjectMemories` + `readProjectMemoryFile` (of 6 exact methods) | Part G.B3, H.B1 |
+| G82 | 3 | SATISFIED (pass-49 roadmap adjudication) | memory viewer — desktop Memory UI (`memoryEnabled` toggle + project-memory viewer); phone zero surfaces | read-only mirror = `listProjectMemories` + `readProjectMemoryFile` (of 6 exact methods) | Part G.B3, H.B1; **ADJUDICATED 2026-11-17: `MemoryViewerScreen.kt` (routed `ZCodeApp.kt:550`) + `DefaultMemoryPort` (`ViewerPorts.kt:632-689`) shipped + driven end-to-end (vc52 G75; re-checked Part AU, report :10105); residual NAMED: the consume rides the FILES channel (`filesPort.list`/`readText` over the `~/.zcode/cli/memories/projects` tree, `projectsRoot()`) — not the dedicated `listProjectMemories`/`readProjectMemoryFile` verbs; a functionally equivalent read-only mirror** |
 | G85 | 3 | OPEN | broadcastService vocabulary complete but consume/no-action UNDECIDED (`mobile-push:run/event` = V2 realtime arm; `state:*` sync family; task-groups claim protocol) | decision row; mobile-push:* feeds the G93 architecture | Part F.B3 |
 | G60 | 4 | STANDS | plan-claim/rewards/purchase desktop-only (`codingPlan` 2,463 renderer hits; `claimManualPlan`; phone zero claim surfaces) | unchanged since pass-31; re-measured 3.18.1 | Part B.B2, G.B7 |
 | G83 | 4 | OPEN | clientScenes — ONE verb (`getSnapshot`); smallest consume on the board | one-verb read mirror | Part H.B1 |
@@ -336,7 +341,7 @@ pass 45) · RETRACTED/REFUTED/ABSORBED: 7.
 | G96 | 4 | OPEN (NEW pass 9) | conversation selection-comment/annotate plane (批注) — desktop gates the selection→comment entry on the conversationQuoteComment agent capability; phone conversations have no annotation entry | inventory row (renderer feature, self-hiding); consume = the phone quote plane has no comment concept | Part L.B1 |
 | G98 | 3 | OPEN (NEW pass 10) | the desktop's SOURCE-SERVER/compute planes — it connects DIRECTLY to SSH servers (180 i18n keys: full host/port/auth password·privateKey/asset-install-mode form), WSL (45), Docker (35), sourceServer (60) as workspace hosts; the phone's "remote" is only the desktop's relay — zero counterpart, not even read-only | read-only mirror of source servers (the phone already decodes sourceServerId in task rows — pass-8's bridge resolution); authoring stays desktop-only | Part M.B3 |
 | G99 | 4 | OPEN (NEW pass 10) | the desktop's WHITEBOARD plane (65 keys: named persisted boards, pen/eraser/color/strokeWidth/undo/redo/addToChat, typed missing-board face) vs the phone's send-only Sketch canvas | inventory row; consume minimum = honest "open on desktop" face for whiteboard artifacts if they surface in conversations | Part M.B3 |
-| G100 | 4 | OPEN (NEW pass 10) | the desktop's model-TRAJECTORY viewer (165 keys, 模型调用轨迹: per-model-call usage input/output) — the phone's Usage screens are aggregate | P4-smallest: decode the trajectory payload for the Usage viewer if the channel serves it; else inventory-only | Part M.B3 |
+| G100 | 4 | SATISFIED (pass-49 roadmap adjudication) | the desktop's model-TRAJECTORY viewer (165 keys, 模型调用轨迹: per-model-call usage input/output) — the phone's Usage screens are aggregate | P4-smallest: decode the trajectory payload for the Usage viewer if the channel serves it; else inventory-only | Part M.B3; **ADJUDICATED 2026-11-17: SHIPPED vc52 Phase-5B A3.13 (`Ports.kt:622-623` `fetchTrajectory` → `TrajectoryResult.decode(modelTrajectory)`; `PlansTrajectoryWireTest.kt:107` pins the `zcode-task.getModelTrajectory` call) and LIVE-DRIVEN pass 46 (Part AW — the full face matrix); residual NAMED: N-CB-1 (the fault face's eternal spinner — open small)** |
 | G101 | 4 | OPEN (NEW pass 10) | the CUA permission-status plane: `CuaPermissionService` getStatus (typed status incl. grantOwner/accessibilityProbeOk/screenRecording/screenCaptureProbeOk/idle + typed reasons) + restartHelper (macOS-only), 25-key desktop panel — the phone decodes PUSHED observations only and can never show the desktop's CUA health proactively | read-only status mirror minimum (one card fed by getStatus); restartHelper = consume/no-action decision | Part M.B1, M.B3 |
 | G97 | 3 | OPEN (NEW pass 9) | the desktop's web-remote-control companion plane (90 i18n keys: QR→browser connectUrl, session lifecycle, 12-way typed failure taxonomy, workspace/task switching, bot channels feishu/lark/weixin/telegram, singlePageNote one-page guard, pullMobileLogs, settings.mobilePush desktop toggle) — the phone is BLIND to it: no face for a browser session controlling its workspace, no kicked/conflict notice, bot-channel access undocumented phone-side | honest surfaces minimum (a companion-state mirror + a kicked/conflict face); the plane itself stays desktop-served. **Pass-10 census additions:** the companion's client mode (`web-remote-replayable`) is restricted to a 49-channel allowedChannels Set (exact list in M.B2) with McpSync scoped to 4 verbs; the desktop's `remote.*` namespace (460 keys) is the desktop-side device-away faces | Part L.B3, M.B2 |
 | G86 | 4 | OPEN | share-code IMPORT plane (`importShare` + progress phases) — desktop-only | inventory first | Part F.B4 |
@@ -392,7 +397,12 @@ pass 45) · RETRACTED/REFUTED/ABSORBED: 7.
   authoring depth (read-only by ADR), git WRITE half (stage/commit/push — read-only
   posture), pluginManagement 17 methods, voice-input service.
 
-**Open G count: 24 + 3 standing** (G60, WATCH-4, settings depth; G93's enum residual closed; G102 opened pass 38 — the group-verb wire drift; G103 opened pass 40 — the catalog planes' detail-depth gap; G104 opened pass 47 — the ADR-022 terminal input tier is dormant at HEAD).
+**Open G count: 21 + 3 standing** (G60, WATCH-4, settings depth; **G91/G82/G100
+re-statused SATISFIED by the pass-49 roadmap adjudication** — 2026-11-17, the
+screens exist and are live-driven, see the rows; G93's enum residual closed; G102
+opened pass 38 — the group-verb wire drift; G103 opened pass 40 — the catalog
+planes' detail-depth gap; G104 opened pass 47 — the ADR-022 terminal input tier is
+dormant at HEAD).
 
 ## N-rows — smalls
 
@@ -431,7 +441,9 @@ developerDiagnostic through the same `ErrorMapping.taskRejected` chain; Part AH.
 | N-BJ-2 | 4 | REFUTED→FOLDED | unpair IS reachable (Settings bottom, pass 4); fakeLink half folded into F-P2-B | Part G.A2.4 |
 | N-BM-4 | — | RIG | Dictate leg kills the emulator (cause unproven); leg undriven | Part J |
 
-**Open smalls: 25 (+1 watch +1 rig)** — pass 13 added N-BP-1 (P3) and N-BP-2 (P4);
+**Open smalls: 24 (+1 watch +1 rig)** (the prior "25" header was an off-by-one slip
+— mechanical recount 2026-11-17 during the roadmap build; the table carries 24) —
+pass 13 added N-BP-1 (P3) and N-BP-2 (P4);
 pass 22 added N-BQ-1 (P4, the effort stale face's dead branch); pass 28 added
 N-BR-1 (P4, the stale offline-attachment notice); pass 30 added N-BS-1 (P4, the
 mixed-state send's silent exclusion); pass 37 added N-BT-1 (P4, the stale
