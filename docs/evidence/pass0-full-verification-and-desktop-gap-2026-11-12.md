@@ -9515,3 +9515,241 @@ inheritor pkills and relaunches) + MOCK_GIT_REFUSALS=getChanges (STICKY
 refusal: the Changes tabs will fault), MOCK_TASKMGMT=1), app pid 1838 inside
 synth-task-1's git sheet (post-refusal state), logcat running →
 /tmp/p40/logcat.log.
+
+# Part AR — pass 41 (APPENDED 2026-11-17, ~00:15): the pass-40 coverage-honesty driveables END-TO-END — the Manage-sheet REORDER + SELECT legs receipted ALIVE on the DISK (the F-P40-B "persistence TRIO" REVISED to rename-only-dead), the Unstage wire verb isolated (which FOUND the mock's unstagable fixture-staged rows — debt #26 opened+closed), and the MOCK_GIT_PUSH_FAIL face which opened NEW ROW F-P41-A (P3): the git push refusal renders NOTHING (success-only notice branch, no else) — TWO mock commits (`16da00cc` the second-workspace seed that unblocked the arrows, `ff275c34` the unstage seed + spell-aware removes), an F-P0-E stamp 3 (the Recomposer throwOnFailure ANR spin, 37.8s CPU, during the rename-dialog leg), and the F-P38-A ghost surviving a FULL emulator reboot — app ZERO
+
+> **Pass 41 of the pass-0 series** (solo, the canonical discovery prompt; STEP 1 empty —
+> backlog 8/8 — so the axis = Part AQ's coverage-honesty list: the Unstage wire verb,
+> MOCK_GIT_PUSH_FAIL, the reorder arrows ("a second-workspace mock seed would unblock"),
+> the Manage-row switch's in-memory filter face; the branch-issue copy map + the
+> detail-copyable affordance stay gated behind open F-P40-C).
+> **App: ZERO changes** (HEAD `1ffc5660` APK md5 `530ba4ff…` == on-device → `install -r`
+> SKIPPED; sha256 `ad449d7d…`, vc53/1.3.2 — byte-identical across the whole series).
+> **Mock: TWO commits** — `16da00cc` (p41-mock-second-workspace: MOCK_WS_TWO=1 appends
+> /synthetic/ws-two "Synthetic Two" to the relay's bootstrap + workspace-list views via
+> the shared relayWorkspacesView(); no task seeded on ws-two — no F-P38-A ghost;
+> MockZCodePass41SecondWorkspaceSelfTest 3) and `ff275c34` (p41-mock-git-unstage:
+> RigGitFixtures.seedWriteTier seeds stagedPaths from the fixture's staged rows —
+> servedGitChanges previously only PROMOTED rows so a fixture-staged row could never
+> leave the Staged tab; the section now derives from the write tier's live set; the
+> unstage/commit removes span both spellings; MockZCodePass41GitUnstageSelfTest 4).
+
+> **Verification stamp (pass start):** 2026-11-16 23:05 → 2026-11-17 00:10, GLM-5.3-Flash
+> in ZCode, everything local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…`
+> UNCHANGED — no DELTA. Rig: the pass-40 emulator REUSED (EIGHTEENTH consecutive
+> inherited survival); the sticky gen4 relay pkilled BY NAME at pass start. THREE relay
+> generations: gen1 `mock-p41-gen1-ce9f12` 23:09 (MOCK_TASKMGMT + MOCK_GIT + MOCK_WS_TWO —
+> the main leg), gen1b `mock-p41-gen1b-9d7d83` 23:51 (same arms, the FIXED jar — the
+> unstage re-drive), gen2 `mock-p41-gen2-82762f` 23:55 (+MOCK_GIT_PUSH_FAIL — the push-fail
+> leg). Launchers /tmp/p41/relay-g{1,1b,2}.sh (arms BEFORE exec per AQ.A0.1); stored
+> endpoints survived every swap + the FULL EMULATOR REBOOT (no re-pairing). APK md5
+> verified == HEAD on-device → install SKIPPED. logcat fresh `-T 1` ×2 (pre- and
+> post-reboot) → /tmp/p41/logcat{,2}.log. Receipts: shots /tmp/p41/shots/ s00–s22,
+> AX dumps /tmp/p41/w/ w1–w48, relay logs /tmp/p41/relay-g{1,1b,2}.log, disk pulls
+> /tmp/p41/db/preferences{,-1,-2,-3,-4,-final}.pb + p41.db{,-wal}, the ANR trace
+> /tmp/p41/anr-trace.txt (anr_2026-11-16-23-26-49-501).
+
+## AR.A0 — rig learnings
+
+1. **`svc wifi disable` KILLS the NAT on this API-36 image within the same minute**
+   (the pass-12 note re-confirmed the hard way: the FIRST app connect timed out with
+   `nc -z 10.0.2.2` blackholed — "Network is unreachable" — while the route healed
+   seconds after `svc wifi enable`; a force-stop + cold start cleared the residual
+   app-flow blackhole WITHOUT an emulator restart that time).
+2. **The NAT blackhole (debt #14) escalated to emulator-restart territory mid-pass**:
+   after the Close-app recovery of the ANR (AR.C), BOTH a fresh cold start AND the
+   reconnect ladder wedged (TIMEOUT → RECONNECTING, no CONNECTED for 4+ min) — the
+   guaranteed recovery (full `adb emu kill` + cold boot `-no-snapshot-load`) restored
+   CONNECTED in one ladder cycle. The stored endpoints SURVIVED the reboot (constant
+   mock passHash) — no re-pairing, and the persisted prefs (workspaceOrder
+   [ws-two, ws-one]) survived too (the chips row re-rendered in the reordered state).
+3. **System-UI ANR after a cold boot** ("System UI isn't responding", once) — the
+   known post-boot swiftshader thrash; Wait dismissed it; the app was unaffected.
+4. **M3 Switch nodes are `checkable` with `checked=` in uiautomator** — the Commit
+   dialog's Include-unstaged / Commit-and-push toggles read directly from the dump;
+   the dialog REFLOWS between dumps (toggles moved y≈1111↔1878 across two opens) —
+   re-dump before every dialog tap (the AQ.A0.2 reflow rule generalized).
+5. **`input text` types a literal "space" for a space argument** ("rig space p41" →
+   "ririgspacep41" — the doubled "ri" also suggests the first keystrokes raced the
+   field focus). Per-char + NO space tokens; MOVE_END + N×DEL to clear.
+6. **A mid-dialog commit that dies on the socket abort (1006) consumes NOTHING
+   mock-side** — the re-entry fetch showed both staged rows intact; the re-drive was
+   clean. (The commit's own silent face on that transport failure is F-P10-A's
+   shape — one line, not re-narrated.)
+
+## AR.B — Leg C+D: the Manage sheet with TWO workspaces → the F-P40-B REVISION
+
+The mock's relay workspace views (bootstrap-response + workspace-list-response)
+served exactly ONE row before `16da00cc`, structurally disabling the Manage sheet's
+reorder arrows (`index > 0` / `index < order.lastIndex` never both held) and leaving
+the chips row single-chip. With MOCK_WS_TWO=1:
+
+- **The second chip renders** (s01/w2: chips row = All / Synthetic One / **Synthetic
+  Two** / Manage — the first-series two-chip face), and the **Manage sheet renders
+  two rows** (s02: Synthetic One /synthetic/ws-one + Synthetic Two /synthetic/ws-two,
+  each Rename ^ v).
+- **The reorder arrows differentiate per row for the first time** (w3: row 1's
+  Move-up `enabled=false`, Move-down `enabled=true`; row 2's the inverse — the exact
+  pass-40 "structurally undrivable" shape unblocked). **Move up on Synthetic Two
+  SWAPPED the rows in-place** (w4: Two first, arrow enablement flipped) and **Move
+  down restored** (w5) — the in-memory `order` state face receipted both directions.
+- **THE REORDER WRITE LANDS ON DISK — F-P40-B's blanket claim revised.** The
+  discriminating experiment (the wire-order ambiguity killed by a second tap):
+  Move up again → `preferences.pb` field **16 `workspace_order` = [ws-two, ws-one]**
+  with a FRESH mtime (1794871362 = 23:22:42, direct causal receipt);
+  /tmp/p41/db/preferences-2.pb. Then **OK dismiss → the CHIPS ROW REORDERED LIVE**
+  (w8: All / **Synthetic Two** / Synthetic One / Manage — the prefs flow →
+  TaskListScreen's `remember(workspaceOrder)` recomposition echo), and the order
+  SURVIVED reopening the sheet (w9) AND the app restarts AND the emulator reboot
+  (preferences-final.pb field 16 unchanged). TaskListScreen only READS workspaceOrder
+  — the sole writer is ZCodeApp.kt:744-746's `onWorkspacesReordered` lambda, so the
+  full chain is pinned: arrow → sheet swap → DataStore write → chips recompose.
+- **THE SELECT WRITE ALSO LANDS.** The Manage-sheet row-tap on Synthetic Two
+  (onSelect → `onWorkspaceSelected` → ZCodeApp.kt:741-743) → `preferences.pb` field
+  **18 `selected_workspace_key` = /synthetic/ws-two** (fresh mtime 1794871454,
+  /tmp/p41/db/preferences-3.pb) AND the full UI echo: the **"Synthetic Two" chip
+  rendered SELECTED** (filled) and the **home FILTERED to the empty workspace**
+  (s08: zero task sections — the honest empty face for a task-less workspace). The
+  lifecycle completed on the All-tap (field 18 → ABSENT, the null write = identical
+  bytes — **which resolves pass 40's "22:42 byte-identical rewrite" mystery: the
+  write EXECUTED; the All-toggle null-select just produces byte-identical output** —
+  the "cancelled scope vs dropped transform" micro-cause was a mis-read of a healthy
+  dedup'd write).
+- **RENAME ALONE IS DEAD (×2 more drives, ×4 cumulative).** RigTwo on ws-two (s05:
+  text="RigTwo" in the dump, Save → dialog closed → the sheet row still "Synthetic
+  Two", field 17 ABSENT) AND the airtight re-drive on ws-one (s11: "RigOne"
+  screenshot-verified IN-FIELD pre-Save with the cursor; s12: post-Save the sheet
+  still "Synthetic One"; the pb mtime UNCHANGED across the Save; field 17 ABSENT in
+  preferences-4.pb). The wiring is singular and direct (the sheet's Save →
+  `onRename(renameFor!!, renameText.trim()…)` → TaskListScreen:500 → ZCodeApp:747-756
+  — the SAME `startScope.launch { preferencesRepository.update {…} }` shape as the
+  two ALIVE callbacks, and `toProto()` writes `putWorkspaceAliases` correctly) — the
+  deadness is INSIDE the rename path with no exception logged; the micro-cause
+  narrows to the rename lambda specifically and stays a fix-round-harness question.
+  **F-P40-B's ledger row REWRITTEN to the narrowed mechanism** (rename-only; the
+  select/reorder halves are receipted WORKING; the row stays OPEN on the alias path).
+
+## AR.C — the ANR (F-P0-E stamp 3) + the emulator reboot
+
+At 23:26:49, during the rename-dialog leg (RigOne per-char typing window), the app
+ANRed: "ZCode Companion isn't responding". The trace (/tmp/p41/anr-trace.txt, pulled
+from anr_2026-11-16-23-26-49-501) shows the main thread **Runnable in
+`Recomposer$runRecomposeAndApplyChanges` → `ResultKt.throwOnFailure(Result.kt:133)`
+— a recomposition/rethrow SPIN, utm=3782 (37.8s CPU)** — not a lock block. The
+preceding logcat shows the progressive wedge: Davey frames 726ms → 2058ms, "Skipped
+38 frames", an IME input-event timeout (2500ms). The rename write died in exactly
+this window. **No rename-specific causal link**: the Davey/Skipped thrash is AMBIENT
+across every sheet leg this pass (the reorder windows 23:17:36-43 and the RigTwo
+window 23:18:32-34 both show it — 175 Skipped-frames lines total) on the
+swiftshader rig; the ANR is the extreme tail. F-P0-E stamp 3 records the sharper
+mechanism snapshot (the Recomposer spin signature + the trace path) under the same
+"causality unproven" discipline. The ANR dialog RECURRED within ~5 min after Wait
+(the app stayed frame-thrashing, 501 Davey lines) — Close-app + cold start was the
+recovery, which then hit the NAT blackhole (AR.A0.2 → the emulator reboot).
+
+## AR.D — Leg A: the Unstage wire verb isolated → mock debt #26 opened+closed
+
+- **gen1 (pre-fix jar): the wire receipted, the SERVED VIEW LIED.** `git.unstagePaths
+  begin → ok` (23:43:42/43, the verb's first-series isolation — pass 40's stage leg
+  moved tabs but the unstage verb itself was never isolated) → the handler's
+  fetchChanges() fired (`git.getChanges begin → ok` ×2, both datasets) → **the pane
+  kept Unstaged (2) / Staged (1) with index.ts still under Staged** — zero visible
+  change. Mechanism: the mock's `servedGitChanges()` only PROMOTED rows into
+  "staged" (stagedPaths-hit) and dropped discarded/committed; the fixture's
+  pre-staged index.ts was never seeded INTO `script.stagedPaths` (the arming seeds
+  only `gitChanges`), so `unstagePaths` removed from an EMPTY set and the served
+  section stayed the STATIC fixture's "staged". The pass-40 self-test missed it —
+  it exercises stage→unstage of a NON-fixture-staged row. **The app behaved
+  CORRECTLY** (ok → refetch → serve what the mock said); this is the recorded
+  ack-without-mutate class ON THE UNSTAGE PLANE, mock-side only → **mock debt #26
+  opened+closed in-pass** (`ff275c34`: `RigGitFixtures.seedWriteTier` seeds
+  stagedPaths from the fixture's staged rows at arming; `servedGitChanges` now
+  DERIVES the section from the write tier's live set (staged hit → staged, kind
+  added → untracked, else unstaged) so demotions serve the working-tree shape; the
+  unstage/commit removes span both spellings (the phone's relative vs the seeded
+  absolute); MockZCodePass41GitUnstageSelfTest 4 cases; suite **261/0/0**).
+- **gen1b (fixed jar): the re-drive MOVES the tab.** `git.unstagePaths ok`
+  (23:54:57) → refetch ×2 → **Unstaged (3)** with index.ts re-listed under Unstaged
+  and the Staged header GONE (w31) — the full round-trip receipted (s21).
+
+## AR.E — Leg B: MOCK_GIT_PUSH_FAIL → NEW ROW F-P41-A (P3): the push refusal renders NOTHING
+
+gen2 (+MOCK_GIT_PUSH_FAIL=1). The commit chain re-driven after the relay-6 socket
+abort ate the first attempt (the idle-drop class; the app's ladder recovered in 50s;
+the mock consumed nothing — the re-entry fetch showed both staged rows intact):
+Commit… → "rigp41b" → Commit & push ON (the M3 Switch `checked` read from the dump)
+→ `git.commit ok` (relay-7, 00:03:37) → the **PushConfirm dialog** ("Push to the
+remote?" / Cancel / Push, w47 — the pass-40 dialog shape re-receipted) → **Push** →
+`git.push begin → refused: Cannot push while HEAD is detached.` (00:04:03) →
+**NOTHING renders** (s22: the pane looks healthy — the Changes shrank to Unstaged
+(1) probe.txt from the commit consumption (receipted again), branch block
+"main / tracking: origin/main", zero error face, zero notice, zero banner). The
+user's "Commit & push" intent silently HALF-completed: committed locally, never
+pushed, no signal. **NEW ROW F-P41-A (P3)** — the success-only notice branch:
+GitScreen.kt:486-493 `onPush = { pushFor = null; scope.launch { if (port.push() !=
+null) notifierGit.show(pushDoneFmt…) } }` — the dialog closes pre-result and the
+`if (… != null)` has **no else**; the port's `push() = writeOp("push") {…}` maps the
+refused call's TransportFailure to **null** (Phase9Ports.kt:253-255 — the SAME
+null-swallow boundary F-P10-A pinned for commit's null-target path and F-P5-A
+stamp 2 pinned for reads). The desktop's refusal message is desktop-faithful on the
+wire — the copy exists, the UI just drops it. Fix shape: an else branch rendering
+the refused reason on the noticeGit plane (the F-P40-C message-half principle —
+typed refusals must render); pin: a harness asserting the push-refusal face renders
+with the message text.
+
+## AR.L — ledger arithmetic + coverage honesty
+
+ONE new F row (F-P41-A, P3) + the F-P40-B mechanism REVISION (rename-only-dead;
+select/reorder receipted ALIVE — the row's fix shape narrowed to the rename lambda).
+Open counts: **38 F (36 defects + 2 obs) + 23 G + 3 standing + 22 smalls (+1 watch
++1 rig)**. Stamps: **F-P0-E ×3** (the Recomposer-spin ANR snapshot + the trace
+path), **F-P38-A ×5** (the ghost re-manifested on the boot dump AND survived the
+full emulator reboot — the strongest persistence evidence yet), **N-BY-1 ×2** (the
+"Stage %1$s"/"Discard %1$s" a11y labels re-dumped live, w23), **F-P10-A noted** (the
+commit transport-failure face — same silent family, one line), F-P40-A noted (the
+commit handler's fetchChanges receipted again; the switch/create legs untouched).
+Mock debts: **#26 opened+closed in-pass** (`ff275c34`); 0 open work-debts.
+gateway.drop: 0; zero app FATALs (the ANR is a watchdog wedge, not a crash). Wire
+census: THREE relay generations (gen1/gen1b/gen2 — the gen1 process survived into
+the emulator reboot; two app-side connections died on the NAT: the 23:13 timeout +
+the 23:33-23:36 wedge); git verbs receipted on app logcat: unstagePaths (FIRST
+ISOLATION, ok both generations), stagePaths ok (relay-2), commit ok (relay-7) +
+the relay-6 commit's 1006 abort (one line), push REFUSED (relay-7 — F-P41-A's
+receipt), getChanges ×6; the workspace plane's receipts are DISK-level
+(preferences.pb field 16/17/18 with mtimes) + the chips/sections UI echoes.
+
+What pass 41 did NOT drive: the branch-issue copy map's 8 known codes + the
+detail-copyable affordance (both gated behind open F-P40-C — the face never
+renders); the Manage-row rename on a THIRD workspace (the alias map with 2+ entries
+— the rename path is dead before that matters); TalkBack runtime (standing stop);
+the Include-unstaged commit variant (stagedOnly receipted twice this pass — the
+includeUnstaged consumption is pass-40-tested); the second chip's Rename flow
+(receipted on ws-one; the alias map is the same dead lambda either way).
+
+## Pass-41 verification stamp
+
+Pass 41 completed 2026-11-17 ~00:10; THREE relay generations (gen1
+`mock-p41-gen1-ce9f12` 23:09→23:47 (the NAT-blackhole emulator reboot at 23:37 —
+gen1's relay process SURVIVED the reboot and kept serving), gen1b
+`mock-p41-gen1b-9d7d83` 23:51→23:55 (the fixed-jar unstage re-drive), gen2
+`mock-p41-gen2-82762f` 23:55→00:10 (MOCK_GIT_PUSH_FAIL); launchers
+/tmp/p41/relay-g{1,1b,2}.sh). Mock: TWO commits — `16da00cc` (second-workspace
+seed, suite 257/0/0 at commit time) + `ff275c34` (unstage seed + spell-aware
+removes, suite **261/0/0**). App: ZERO changes — `install -r` SKIPPED on
+byte-identity (local == on-device md5 `530ba4ff…`, sha256 `ad449d7d…`, vc53/1.3.2
+at HEAD `1ffc5660` + the two mock commits). Receipts: shots /tmp/p41/shots/
+(s00 boot+ghost; s01 chips+connected; s02 manage two rows; s03/s04 reorder
+round-trip; s05/s06 rename RigTwo no-echo; s08 select echo (chip filled + empty
+filter); s10/s11/s12 the airtight RigOne drive; s14/s15 ANR + sheet; s19 All
+un-filter; s21 unstaged-moved; s22 push-fail silent); AX dumps /tmp/p41/w/
+(w1-w48); relay logs /tmp/p41/relay-g{1,1b,2}.log; disk pulls
+/tmp/p41/db/preferences{,-1,-2,-3,-4,-final}.pb (field 16 order / 17 aliases-ABSENT
+/ 18 selected lifecycle — the F-P40-B revision's arbiter) + p41.db{,-wal}; the ANR
+trace /tmp/p41/anr-trace.txt; logcat /tmp/p41/logcat{,2}.log (channel.call corpus;
+gateway.drop 0; zero FATALs). Desktop 3.18.1 / `ec475e6e…` unchanged (STEP 0).
+**Rig left:** emulator zcode-a16 UP (post-reboot, healthy, wifi ENABLED, screenshot
+protection OFF), relay gen2 ALIVE (nonce `mock-p41-gen2-82762f`, arms MOCK_GIT=1 +
+MOCK_GIT_PUSH_FAIL=1 (STICKY push-refusal — every push will fault until an
+inheritor pkills) + MOCK_WS_TWO=1 + MOCK_TASKMGMT=1), app pid 4644 inside
+synth-task-1's git pane (post-push-refusal state, the persisted workspaceOrder
+[ws-two, ws-one] live in the chips), logcat running → /tmp/p41/logcat2.log.
