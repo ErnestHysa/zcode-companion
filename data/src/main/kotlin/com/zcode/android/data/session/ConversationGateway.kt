@@ -71,6 +71,24 @@ sealed class GatewayTopicEvent {
     ) : GatewayTopicEvent()
 
     /**
+     * F-P13-A: a conversation delta arrived with NO subscription record. The frame
+     * itself is dropped (no epoch → nothing to classify against — the §15.1 generation
+     * guard), but the drop is no longer SILENT for the projection plane: the recovery
+     * coordinator watches this event and re-anchors a still-MANAGED session whose
+     * record the close-cycle/recovery handshake lost (pass-13: every server-initiated
+     * delta dropped at the null-epoch branch for the life of the connection). A
+     * manager-less session emits it too and the coordinator ignores it — the reopen
+     * path re-subscribes (the pass-44 snapshot-heal).
+     */
+    data class RecordlessDelta(
+        override val topic: String,
+        override val sessionId: String,
+        val deliveryKind: String?,
+        val fromSeq: Long,
+        val toSeq: Long,
+    ) : GatewayTopicEvent()
+
+    /**
      * Phase 2 (§11.2, GAP-12): the workspace-level `workspace-config/<workspaceKey>`
      * catalog — whole replacement state per frame (conflated latest-wins). [state]
      * null = the frame could not be decoded (counted + logged upstream; the prior
@@ -267,6 +285,15 @@ class RelayConversationGateway(
                     traceLog?.debug("gateway.hold", "session=$sessionId kind=${arrived.deliveryKind} seq=${arrived.fromSeq}..${arrived.toSeq} (subscribe in flight — buffered)")
                     return
                 }
+                // F-P13-A: never a SILENT drop for a live pane — the coordinator watches
+                // this event and re-anchors a managed session whose record was lost (the
+                // close-cycle/recovery unlink dropped every delta for the life of the
+                // connection, pass-13 ×2).
+                _topicEvents.emit(
+                    GatewayTopicEvent.RecordlessDelta(
+                        arrived.topic, sessionId, arrived.deliveryKind.name, arrived.fromSeq, arrived.toSeq,
+                    ),
+                )
                 // FIELD (2026-10-04, vc32 forensics): silent drops here made a stalled
                 // snapshot delivery UNDIAGNOSABLE (frames recv'd at the wire, nothing
                 // decoded downstream). Count + log at DEBUG — never silent (§34).

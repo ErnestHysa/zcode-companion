@@ -91,6 +91,9 @@ class RecoveryCoordinator(
     /** Phase 6: per-session workspace target (§ v4 wire carries the workspace per call). */
     private val sessionWorkspaces = HashMap<String, Pair<String?, String?>>()
 
+    /** F-P13-A: the record-less re-anchor cooldown (a failing subscribe must not chase every delta). */
+    private val RECORDLESS_RESUBSCRIBE_COOLDOWN_MS = 10_000L
+
     /**
      * Round-8 field fix: sessions whose attach SUBSCRIBE failed (e.g. attached while
      * Degraded — the user tapped a task during an outage). The manager exists and
@@ -247,6 +250,15 @@ class RecoveryCoordinator(
         forwardJob = scope.launch {
             gateway.topicEvents.collect { event ->
                 kotlinx.coroutines.withContext(projectionDispatcher) {
+                    // F-P13-A: a delta with no subscription record for a LIVE manager is
+                    // a lost epoch (the close-cycle/recovery unlink, pass-13 ×2) —
+                    // re-anchor the session instead of dropping every delta for the life
+                    // of the connection. Manager-less sessions (detached) keep the
+                    // honest drop: the reopen path re-subscribes (the pass-44 heal).
+                    if (event is GatewayTopicEvent.RecordlessDelta) {
+                        recordlessDelta(event)
+                        return@withContext
+                    }
                     markFrame(event.sessionId)
                     try {
                         val m = managerFor(event)
@@ -432,12 +444,21 @@ class RecoveryCoordinator(
                 synchronized(sessionIdleStoodDown) { sessionIdleStoodDown.clear() }
                 synchronized(sessionKickHeads) { sessionKickHeads.clear() }
                 synchronized(sessionKickEchoUntilMs) { sessionKickEchoUntilMs.clear() }
+                synchronized(recordlessResubscribeAtMs) { recordlessResubscribeAtMs.clear() }
                 if (System.getenv("ZCODE_SD_DEBUG") != null) println("[sd-x] CONNECTED branch: reconcile next")
                 reconcileAfterRecovery()
                 if (System.getenv("ZCODE_SD_DEBUG") != null) println("[sd-x] CONNECTED branch: drained, done")
                 // Round-8: re-anchor sessions whose original subscribe failed while
                 // the transport was down (field: "task can't load even after retry").
                 drainPendingAttach()
+                // F-P13-A: recovery re-materialized conversations WITHOUT re-subscribing
+                // any session whose local record the close-cycle had already dropped —
+                // the epoch record never re-stamped and EVERY server-initiated delta
+                // dropped at the gateway's null-epoch branch for the life of the
+                // connection (pass-13 ×2). A managed session must never sit record-less
+                // after CONNECTED; the stay-open boundary (pass 15) is untouched — a
+                // record-bearing session is never re-subscribed.
+                resubscribeRecordless()
             }
             ConnectionStateMachine.ConnectionState.RECONNECTING,
             ConnectionStateMachine.ConnectionState.DEGRADED,
@@ -472,6 +493,63 @@ class RecoveryCoordinator(
                 return // still down — stop draining, the next CONNECTED re-fires
             }
     }
+    }
+
+    /**
+     * F-P13-A: per-session cooldown for record-less re-anchors — one subscribe per
+     * window; a failing subscribe must never chase every arriving delta.
+     */
+    private val recordlessResubscribeAtMs = HashMap<String, Long>()
+
+    /** F-P13-A: the record-less delta handler (see [GatewayTopicEvent.RecordlessDelta]). */
+    private suspend fun recordlessDelta(event: GatewayTopicEvent.RecordlessDelta) {
+        val id = event.sessionId
+        if (manager(id) == null) return // detached session: nothing consumes it (reopen re-subscribes)
+        if (gateway.currentSubscriptionEpoch(id) != null) return // the ack raced the event in
+        val now = clock()
+        val last = synchronized(recordlessResubscribeAtMs) { recordlessResubscribeAtMs[id] ?: 0L }
+        if (now - last < RECORDLESS_RESUBSCRIBE_COOLDOWN_MS) return
+        synchronized(recordlessResubscribeAtMs) { recordlessResubscribeAtMs[id] = now }
+        val ws = synchronized(sessionWorkspaces) { sessionWorkspaces[id] }
+        log.warn(
+            "recovery.recordlessResubscribe",
+            "session=$id kind=${event.deliveryKind} seq=${event.fromSeq}..${event.toSeq} — a live pane lost its subscription record; re-anchoring",
+        )
+        try {
+            gateway.subscribe(id, workspacePath = ws?.first, workspaceIdentity = ws?.second)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            log.warn("recovery.recordlessResubscribeFailed", "session=$id ${e.javaClass.simpleName}: ${e.message?.take(80)}")
+            pendingAttach.add(id) // the next CONNECTED re-fires (bounded retry)
+        }
+    }
+
+    /**
+     * F-P13-A: the CONNECTED sweep — every MANAGED session without a subscription
+     * record on THIS connection gets a fresh subscribe (the epoch re-stamp that the
+     * close-cycle/recovery handshake skipped). The transport's records feed the
+     * gateway's epoch precedence, so a null record means every delta would drop.
+     */
+    private suspend fun resubscribeRecordless() {
+        val all = synchronized(managers) { managers.values.toList() }
+        for (m in all) {
+            val id = m.sessionId.raw
+            if (gateway.currentSubscriptionEpoch(id) != null) continue
+            val ws = synchronized(sessionWorkspaces) { sessionWorkspaces[id] }
+            try {
+                gateway.subscribe(id, workspacePath = ws?.first, workspaceIdentity = ws?.second)
+                log.warn(
+                    "recovery.resubscribedAfterRecovery",
+                    "session=$id (record-less after recovery — deltas would drop at the gateway)",
+                )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                log.warn("recovery.resubscribeFailed", "session=$id ${e.javaClass.simpleName}: ${e.message?.take(80)}")
+                pendingAttach.add(id)
+            }
+        }
     }
 
     /**

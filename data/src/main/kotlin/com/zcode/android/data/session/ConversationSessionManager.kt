@@ -173,6 +173,10 @@ class ConversationSessionManager(
             // state — the hub's own collector consumes it; the manager ignores it
             // (never stale-flags the session, never touches the reducer).
             is GatewayTopicEvent.WorkspaceConfig -> Unit
+            // F-P13-A: the record-less delta event is consumed by the coordinator's
+            // collector (the re-anchor); the manager never sees a frame it cannot
+            // classify. Defensive branch — the collector intercepts before this.
+            is GatewayTopicEvent.RecordlessDelta -> Unit
         }
     }
 
