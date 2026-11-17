@@ -2992,11 +2992,17 @@ class MockZCode(
                             // the drain below pushes them to the just-registered listener.
                             System.getenv("MOCK_TERMINAL_OUT")?.let { script.terminalSeedOutput(it) }
                             // Emit any scripted output queued before the listen attached.
+                            // p48: MOCK_TERMINAL_STREAM_MS=<ms> paces the drain — the
+                            // un-throttled 2400-frame burst dropped the transport at
+                            // ~6-26 frames (twice, live-receipted); a paced stream fills
+                            // the ring toward its cap without tripping the drop.
+                            val streamDelay = System.getenv("MOCK_TERMINAL_STREAM_MS")?.trim()?.toLongOrNull() ?: 0L
                             scope.launch {
                                 kotlinx.coroutines.delay(50)
                                 while (true) {
                                     val text = synchronized(script.terminalOutput) { script.terminalOutput.removeFirstOrNull() } ?: break
                                     pushTerminalData(terminalId, text)
+                                    if (streamDelay > 0) kotlinx.coroutines.delay(streamDelay)
                                 }
                             }
                         } else {
