@@ -9753,3 +9753,187 @@ MOCK_GIT_PUSH_FAIL=1 (STICKY push-refusal — every push will fault until an
 inheritor pkills) + MOCK_WS_TWO=1 + MOCK_TASKMGMT=1), app pid 4644 inside
 synth-task-1's git pane (post-push-refusal state, the persisted workspaceOrder
 [ws-two, ws-one] live in the chips), logcat running → /tmp/p41/logcat2.log.
+
+# Part AS — pass 42 (APPENDED 2026-11-17, ~01:20): the never-driven SEARCH & TREE planes first-series — the tasks-home search overlay (its FIRST live census in the whole series: the per-keystroke `zcode-task.listTaskList search=…` wire drum, the results pane's title+snippet rows, the hit-tap → task open, the "No tasks match." empty face, the X-close restore) and the git sheet's J1.2 gated change-TREE + section-search + per-file diff-expand (the tree proof-by-ordering, dir collapse/expand, the FIRST `git.getDiff` wire receipts — which EXPOSED the stale pass-5-era diff fixture shape as mock debt #28, opened+closed — then the fixed-shape re-drive through the diff card to the full unified-hunks render, and the gate-DOWN edge where a "core" filter shrinks 11 rows and the tree degrades back to the flat list) — TWO mock debts opened+closed in-pass (`55162b44`, suite 268/0/0/0), ZERO new app rows (every face honest at HEAD), N-BY-1 stamps 3 — app ZERO
+
+> **Pass 42 of the pass-0 series** (solo, the canonical discovery prompt; STEP 1 empty —
+> backlog 8/8 — so the axis = a FRESH recon on never-driven surfaces: a test-file census
+> (TaskSearchOverlayTest / GitTreeSearchUiTest vs the report's zero receipt-hits) found
+> THREE planes with NO live receipts anywhere in the series — the tasks search overlay,
+> the git change tree/search (J1.2, gated at SEARCH_GATE=10 / TREE_GATE=40 — structurally
+> undrivable against the 3-row fixture), and the per-file diff expand inside the git
+> Changes rows).
+> **App: ZERO changes** (HEAD `7fa80d8d` APK md5 `530ba4ff…` == on-device → `install -r`
+> SKIPPED; sha256 `ad449d7d…`, vc53/1.3.2 — byte-identical across the whole series).
+> **Mock: ONE commit** — `55162b44` (p42-search-snippets: listTaskList search hits gain
+> `searchSnippet`+`searchSnippets` — the desktop rowToTaskListItem shape the asar census
+> confirmed: buildSearchSnippets(searchable_text, query) → searchSnippets[n], searchSnippet=n[0] —
+> with the plain-list shape UNCHANGED, + the `MOCK: listTaskList search=…` relay-log line;
+> p42-mock-git-many: MOCK_GIT_MANY=1 → RigGitFixtures.manyChanges() 44 unstaged [38 nested
+> dirs + 6 root files, ALL kind=modified — the p41 served-section rule re-sections kind=added
+> rows to untracked, which would split the section below the gates] + 2 staged, crossing
+> BOTH J1.2 gates, the write tier re-seeded from THAT fixture; p42-git-diff-shape: debt #28 —
+> RigGitFixtures.diff() serves the DECODER contract {path, availability:"patch", patch} where
+> the pass-5-era literal served {diff:"<unified>"}; MockZCodePass42SearchTreeSelfTest 7;
+> suite **268/0/0/0**).
+
+> **Verification stamp (pass start):** 2026-11-17 00:18 → 01:20, GLM-5.3-Flash in ZCode,
+> everything local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…` UNCHANGED —
+> no DELTA. Rig: the pass-41 emulator REUSED (NINETEENTH consecutive inherited survival);
+> the sticky gen2 relay (⚠ MOCK_GIT_PUSH_FAIL) pkilled BY NAME at pass start. TWO relay
+> generations: gen1 `mock-p42-gen1-4c1e9a` 00:26 (MOCK_TASKMGMT + MOCK_GIT + MOCK_GIT_MANY —
+> the search plane + the tree/tree-gate legs), gen2 `mock-p42-gen2-b7d2f3` 00:37 (same arms,
+> the FIXED-jar diff re-drive). Launchers /tmp/p42/relay-g{1,2}.sh (arms BEFORE exec per
+> AQ.A0.1); stored endpoints survived both swaps (no re-pairing; the app reconnected
+> automatically — subscribeConversationV4 on gen1, relay-10 → relay-11 on gen2). APK md5
+> verified == HEAD on-device → install SKIPPED. logcat fresh `-T 1` → /tmp/p42/logcat.log.
+> Receipts: shots /tmp/p42/shots/ s00–s06, AX dumps /tmp/p42/w/ w0–w25, relay logs
+> /tmp/p42/relay-g{1,2}.log.
+
+## AS.A0 — rig learnings
+
+1. **The header-tap hazard re-manifested EXACTLY as pass 37 recorded**: tapping the
+   conversation header's status capsule opened the CONFIG-CHIPS ROW (mode/followup/
+   Effort expanded inline) instead of the SessionContextSheet — the sheet's entry is
+   the "Context" CHIP at the header's right (ConversationScreen.kt:742 "the Context
+   chip opens SessionContextSheet"). Two taps burned; the chip is the recipe.
+2. **A screenshot-sized receipt is NOT always ~1.4 MB-class**: the pass's content
+   screens (search results, diff hunks) pulled 110–200 KB PNGs on this swiftshader
+   rig — the size heuristic is a BOOT-screen signal, not a per-shot gate (the dump +
+   the wire remain the arbiters).
+3. **The diff card's toggle target is the HEADER ROW (≥48dp affordance, §30), NOT the
+   "Tap to expand" hint text** (DiffRenderer.kt:95-100 — the Row carries the clickable;
+   the hint is the collapsed-state label): the first tap at the hint's y did nothing;
+   the header-row tap toggled. Re-learned the generic rule: tap the ROW HEADER, not
+   its caption.
+4. **`run-as … md5sum` on a wildcard /data/app path fails on this image** ("no matches
+   found" — the zsh-side glob ate it); the `pm path <pkg>` output pasted literally into
+   `adb shell md5sum "<path>"` is the recipe (the pass-33 note's full-path rule,
+   now with the quoting form).
+
+## AS.B — Leg A: the tasks-home SEARCH overlay (first series, all faces)
+
+The plane (vc51 H1.1/A6-A7): the FAB (`tasks_search_fab`) opens the field
+(`tasks_search_field`), a non-blank query REPLACES the grouped list with the results
+pane (`tasks_search_results`), hits render title+snippet and are tappable, a no-match
+query renders `tasks_search_empty`, and the X (`tasks_search_close`) restores. The wire
+rides the EXISTING `zcode-task.listTaskList` with the `search` param
+(TaskServiceClient.kt:311, `kind:active / workspaceScopes / sortBy:updated / search /
+limit:20` decoded items[].{taskId,title,searchSnippets[]|searchSnippet}) — ZERO series
+receipts before this pass.
+
+- **The wire drum, first-series**: typing "synthetic" per-keystroke fired SIX
+  `listTaskList` calls on the relay log (`search='synt' → 'synthetic'`, 3 hits each —
+  the mock's title filter + the NEW snippets) — `MOCK: listTaskList search='synthetic'
+  → 3 hits` (relay-g1.log; the log line is debt #27's fix).
+- **The results pane renders title+SNIPPET rows**: w3 — three hits, each TWO text rows
+  (title y=516 + snippet y=561 for "Synthetic task"; the snippet row is the
+  `hit.snippet?.let` render that could never appear pre-#27), s00.
+- **The hit-tap opens the task**: tap hit 2 → synth-task-2's conversation (the
+  yolo chip, AGENT rows) — the `onOpenTaskId(hit.taskId)` nav chain, s01; BACK →
+  home with the search ALREADY cleared (the tap handler clears before opening) and
+  the grouped list restored (w5: pinned header back).
+- **The empty face**: query "zzz" → `MOCK: listTaskList search='zzz' → 0 hits` on the
+  wire + `tasks_search_empty` "No tasks match." rendered (w6), s02.
+- **The X-close restores**: the close button (w6 bounds [904,334][1036,466]) → field
+  gone, grouped list back (w7: pinned header + all three task rows).
+
+**Plane adjudication: WORKING end-to-end at HEAD — zero rows.** The search pane's
+snippet row, hit navigation, empty face, and clear/restore all behave; the only gap
+was the MOCK's missing snippets (debt #27, opened+closed). Note the per-keystroke
+drum is the app's own design (VM `search()` launches per change — TasksViewModel.kt:471-480);
+the desktop's taskSearch plane filters the same way. F-P1-D's ~8s poll drum is the
+CONVERSATION plane; this is a per-keystroke read drum on the tasks home — recorded as
+an observation on the same theme (no row: the calls are cheap reads and the pane is
+the results consumer).
+
+## AS.C — Leg B: the git change TREE + section-search + diff expand (first series)
+
+The J1.2 surface (GitScreen.kt:567-634, GitChangeTree.kt): a section with >10 entries
+renders the "Filter changed files" search field (`git_search`); >40 filtered entries
+build the collapsible directory tree (`git_tree_dir_*` rows with counts, depth-indented
+files); file rows are ChangeRows (diff expand via `git.getDiff`). The mock's 3-row
+fixture held BOTH gates closed forever — structurally undrivable before MOCK_GIT_MANY.
+
+- **SEARCH_GATE crossed (44 > 10)**: the Changes tab renders "Unstaged (44)" with the
+  "Filter changed files" field (w12).
+- **TREE_GATE crossed (44 > 40) — proof-by-ordering**: the flat list sorts by
+  repoRelativePath (docs/… < rootfile…), but w12 renders rootfile1-5 FIRST — the
+  tree's synthetic-root FILES bucket precedes the dirs. w13 confirms the dir rows:
+  `docs` (count 4) → nested `notes` (count 4, deeper indent) → file rows at depth
+  indent x=199 — the first-series tree render, s03-context-tap + the pane.
+- **Dir collapse/expand**: tap `docs` → `notes` + its files VANISH and `scratch`
+  moves up (w14); tap again → `notes` + files return (w15). The
+  `onCollapseDir` round-trip, first-series.
+- **The diff expand — TWO-stage receipt with a LIVE mock-debt find in the middle**:
+  gen1: tap rootfile1.md → the row expanded → **"No textual diff available
+  (availability: unavailable)."** (w16) while the wire receipted **`git.getDiff begin →
+  ok`** (00:35:02, relay-10 — the verb's FIRST series isolation). Root cause: the
+  pass-5-era scripted `script.gitDiff` served `{diff: "<unified>"}` while the decoder
+  (Phase9Tools.kt:294-302) reads `{path, availability, patch}` — tolerant decode →
+  availability="unavailable", patch=null. **The app behaved CORRECTLY** (the honest
+  unavailable face for a malformed payload; the port's null-mapping never fired — the
+  call succeeded). **Mock debt #28 opened+closed in-pass** (`55162b44`:
+  RigGitFixtures.diff() serves the decoder contract) → gen2 re-drive: the SAME tap
+  renders the **diff CARD** — "src/version.ts / +2 −1 / Tap to expand" (w18, wire ok
+  relay-11 00:38:46) — and the card-header toggle renders the **full unified hunks**:
+  `@@ -1,3 +1,5 @@` + per-line old/new numbers + the signed lines (` const a = 1` /
+  `+const b = a + 1` / `−const c = 2` / `+const c = 3` / ` export { a, b, c }`)
+  (w21, s05) — the §22 UnifiedDiffParser render's first-series receipt on the git
+  plane. Collapse back receipted (w22: hunks gone, "Tap to expand" restored).
+- **The gate-DOWN edge**: filter "core" → 11 rows (net 6 + db 5) — 11 < 40 → the tree
+  DEGRADES to the flat list (w24: file rows with their dir path metas, NO dir rows, NO
+  counts) — the gate re-evaluates per keystroke (visible.size recomputed live), s06.
+  Clear (MOVE_END + 6×DEL) → the tree returns (w25: rootfile1.md + `docs` back).
+- **N-BY-1 stamps 3** (one line, no re-narration): the raw `content-desc="Stage
+  %1$s"` / `content-desc="Discard %1$s"` re-dumped across the tree/flat dumps
+  (w0/w12-w15 — 6+6 in w12 alone).
+
+**Plane adjudication: WORKING end-to-end at HEAD — zero rows.** The gates, the tree,
+the search, the diff expand's both failure-then-success faces, and the hunks render
+all behave; the only defects found were MOCK-side (the stale diff shape — #28).
+
+## AS.L — ledger arithmetic + coverage honesty
+
+ZERO new F/G/N rows (all planes honest at HEAD). Mock debts: **#27** (listTaskList
+search hits had no searchSnippets — the desktop rowToTaskListItem shape) and **#28**
+(the getDiff fixture's stale `{diff:…}` shape vs the decoder's
+{path,availability,patch}) **both opened+closed in-pass** (`55162b44`, suite
+**268/0/0/0**). Stamps: **N-BY-1 ×3**. gateway.drop: 0; zero app FATALs (the 130
+AndroidRuntime logcat lines are system churn — none from com.zcode.android.app).
+Wire census (app logcat channel.call): `git.getDiff` ×3 pairs (FIRST SERIES), 
+`zcode-task.listTaskList` 70 (the per-keystroke search drum + home refreshes),
+`git.getChanges` ×4, `git.getRepositorySummary` ×4, `git.getCommitGraph` ×2,
+`git.getBranchComparison` ×2, usage ×4, off-peak ×2. The tree plane's receipts are
+dump-level (the render) + wire-level (getDiff) + log-level (listTaskList search).
+
+What pass 42 did NOT drive: the git History tab under the many fixture (the commits
+fixture is unchanged — the commit-graph leg is receipted from pass 40), the per-dir
+Stage/Discard affordances (dir rows carry NO actions by design — file rows only,
+receipted pass 40 on the flat list), the search field's error face (the section
+search is client-side over already-fetched entries — no wire to fault), the
+`hasMore`/limit path of listTaskList (limit 20 vs 3 seeded tasks — the pagination
+branch undrivable against the seed size), the branch-issue copy map + the
+detail-copyable affordance (STILL gated behind open F-P40-C — the face never
+renders), the Manage-row rename (STILL gated behind F-P40-B's dead rename lambda),
+TalkBack runtime (standing stop).
+
+## Pass-42 verification stamp
+
+Pass 42 completed 2026-11-17 ~01:20; TWO relay generations (gen1
+`mock-p42-gen1-4c1e9a` 00:26→00:37 (search plane + tree legs), gen2
+`mock-p42-gen2-b7d2f3` 00:37→01:20 (the fixed-jar diff re-drive); launchers
+/tmp/p42/relay-g{1,2}.sh). Mock: ONE commit — `55162b44` (searchSnippets + wire log
++ MOCK_GIT_MANY + the getDiff decoder shape; MockZCodePass42SearchTreeSelfTest 7;
+suite **268/0/0/0**). App: ZERO changes — `install -r` SKIPPED on byte-identity
+(local == on-device md5 `530ba4ff…`, sha256 `ad449d7d…`, vc53/1.3.2 at HEAD
+`7fa80d8d` + the mock commit). Receipts: shots /tmp/p42/shots/ (s00 search results
+title+snippet rows; s01 hit-2 opened; s02 empty face; s03 context sheet; s04 diff
+card; s05 unified hunks; s06 filtered-flat), AX dumps /tmp/p42/w/ (w0-w25), relay
+logs /tmp/p42/relay-g{1,2}.log; logcat /tmp/p42/logcat.log (channel.call corpus;
+gateway.drop 0; zero FATALs). Desktop 3.18.1 / `ec475e6e…` unchanged (STEP 0).
+**Rig left:** emulator zcode-a16 UP (healthy, wifi ENABLED, screenshot protection
+OFF), relay gen2 ALIVE (nonce `mock-p42-gen2-b7d2f3`, arms MOCK_GIT=1 +
+MOCK_GIT_MANY=1 + MOCK_TASKMGMT=1 — NOTHING sticky, an inheritor may reuse or
+pkill by name), app pid 4644 inside synth-task-1's git pane (the cleared-filter
+tree view; the composer untouched), logcat running → /tmp/p42/logcat.log.

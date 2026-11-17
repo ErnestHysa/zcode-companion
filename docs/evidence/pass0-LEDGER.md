@@ -108,15 +108,17 @@ P2-first, exit gates, per-row Accept criteria).
 
 - Report: `docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md` —
   Parts A–Z + AA + AB + AC + AD + AE + AF + AG + AH + AI + AJ + AK + AL + AM + AN +
-  AO + AP + AQ + AR = passes 0–41. **Latest: pass 41 (Part AR, 2026-11-17 ~00:10).**
-- Repo HEAD at pass start: `1ffc5660` (pass 40's docs commit; main); pass 41 added
-  TWO mock commits — `16da00cc` (p41-mock-second-workspace: MOCK_WS_TWO appends
-  /synthetic/ws-two to the relay's workspace views; MockZCodePass41SecondWorkspaceSelfTest
-  3) and `ff275c34` (p41-mock-git-unstage: seedWriteTier + the section re-derivation +
-  spell-aware removes; MockZCodePass41GitUnstageSelfTest 4; mock suite **261/0/0**) +
-  the docs commit. App: ZERO commits. APK of record: sha256 `ad449d7d…` / md5
-  `530ba4ff…`, versionCode 53 / 1.3.2 (byte-identical across the whole series;
-  install SKIPPED again).
+  AO + AP + AQ + AR + AS = passes 0–42. **Latest: pass 42 (Part AS, 2026-11-17 ~01:20).**
+- Repo HEAD at pass start: `7fa80d8d` (pass 41's docs commit; main); pass 42 added
+  ONE mock commit — `55162b44` (p42-search-snippets: listTaskList search hits gain
+  searchSnippet+searchSnippets — the desktop rowToTaskListItem shape, plain-list
+  shape unchanged, + the relay log line; p42-mock-git-many: MOCK_GIT_MANY=1 →
+  manyChanges() 44 unstaged/2 staged crossing BOTH J1.2 gates; p42-git-diff-shape:
+  debt #28 — the getDiff fixture re-shaped to the decoder contract;
+  MockZCodePass42SearchTreeSelfTest 7; mock suite **268/0/0/0**) + the docs commit.
+  App: ZERO commits. APK of record: sha256 `ad449d7d…` / md5 `530ba4ff…`,
+  versionCode 53 / 1.3.2 (byte-identical across the whole series; install SKIPPED
+  again).
 - Desktop of record: **/Applications/ZCode.app 3.18.1.10376, asar sha256 `ec475e6e…`,
   383,832,025 B** (re-verified at pass-39 STEP 0 — UNCHANGED, no DELTA). Pass-38
   census: the zcode-task method table extracted exact (AO.L) — every task verb
@@ -124,34 +126,29 @@ P2-first, exit gates, per-row Accept criteria).
   channel (read/save/ungroup/move/admit); the desktop GAINED its own task-row
   management menu (mutateTask routing) — pass 8's no-menu census line stale.
 - Open rows: **38 F (36 defects + 2 obs) + 23 G + 3 standing + 22 smalls (+1 watch
-  +1 rig)** — pass 41 opened F-P41-A (P3, the git push refusal renders NOTHING)
-  and REVISED F-P40-B (rename-only-dead; select/reorder ALIVE on the disk);
-  stamps F-P0-E ×3, F-P38-A ×5, N-BY-1 ×2; the desktop of record UNCHANGED
-  (no DELTA at pass-41 STEP 0).
-- Backlog: **8/8 DONE**; the discovery surface stays empty — pass 40's axis was
-  Part AP's "did NOT drive" driveables (the Manage-sheet legs + sort-difference)
-  + a fresh recon on the git sheet's Tier-B write row / BranchSheet / the
-  read-only tool screens' functional depth (surfaces receipted as renders in
-  passes 5/10, never DRIVEN). What remains is standing stops + F-P3-A-gated
-  planes + fix-round items. **The mock-debt list has 0 open work-debts** (#25
+  +1 rig)** — pass 42 opened ZERO rows (all three never-driven planes honest at
+  HEAD); stamps **N-BY-1 ×3** (the raw "%1$s" a11y labels re-dumped across the
+  tree/flat dumps); the desktop of record UNCHANGED (no DELTA at pass-42 STEP 0).
+- Backlog: **8/8 DONE**; the discovery surface stays empty — pass 42's axis was a
+  FRESH test-file-vs-receipts census (TaskSearchOverlayTest / GitTreeSearchUiTest /
+  the diff-expander with ZERO report hits) → the tasks search overlay, the git
+  change tree/search (J1.2 gated — structurally undrivable against the 3-row
+  fixture until MOCK_GIT_MANY), and the per-file diff expand, ALL receipted
+  first-series WORKING. What remains is standing stops + F-P3-A-gated planes +
+  fix-round items. **The mock-debt list has 0 open work-debts** (#27/#28
   opened+closed in-pass).
-- Rig left by pass 41: emulator `zcode-a16` UP (post-reboot — the pass's
-  mid-pass `adb emu kill` + cold boot for the NAT blackhole; EIGHTEENTH
-  consecutive inherited survival counted to the reboot), relay gen2 ALIVE (nonce
-  `mock-p41-gen2-82762f`, arms MOCK_GIT=1 + **⚠ STICKY: MOCK_GIT_PUSH_FAIL=1
-  (every push will fault until an inheritor pkills)** + MOCK_WS_TWO=1
-  (two workspace rows — reorder/select live) + MOCK_TASKMGMT=1), app pid 4644
-  inside synth-task-1's git pane (post-push-refusal state; the persisted
-  workspaceOrder [ws-two, ws-one] live in the chips), logcat running →
-  /tmp/p41/logcat2.log. Launchers /tmp/p41/relay-g{1,1b,2}.sh. New rig
-  learnings in Part AR.A0: svc wifi disable kills the NAT same-minute (the
-  pass-12 note re-confirmed); the NAT blackhole ESCALATED to a full emulator
-  reboot after the ANR's Close-app recovery (stored endpoints + persisted
-  prefs SURVIVED the reboot — no re-pairing); System-UI ANR once post-boot
-  (Wait); M3 Switch toggles read from checkable/checked in uiautomator (the
-  Commit dialog REFLOWS between opens — re-dump before every dialog tap);
-  `input text` types a literal "space" for a space argument (per-char, no
-  space tokens); a 1006-aborted mid-dialog commit consumes NOTHING mock-side.
+- Rig left by pass 42: emulator `zcode-a16` UP (NINETEENTH consecutive inherited
+  survival; healthy, wifi ENABLED, screenshot protection OFF), relay gen2 ALIVE
+  (nonce `mock-p42-gen2-b7d2f3`, arms MOCK_GIT=1 + MOCK_GIT_MANY=1 +
+  MOCK_TASKMGMT=1 — **NOTHING sticky**, an inheritor may reuse or pkill by name),
+  app pid 4644 inside synth-task-1's git pane (the cleared-filter tree view),
+  logcat running → /tmp/p42/logcat.log. Launchers /tmp/p42/relay-g{1,2}.sh. New
+  rig learnings in Part AS.A0: the header-tap hazard re-manifested (the status
+  capsule opens the CONFIG-CHIPS row — the "Context" CHIP is the sheet's entry);
+  screenshot sizes run 110–200 KB-class on content screens (the ~1.4 MB heuristic
+  is a boot-screen signal only); the diff card's toggle is the HEADER ROW, not the
+  "Tap to expand" caption; `pm path` output pasted literally (quoted) into `adb
+  shell md5sum` is the APK-identity recipe.
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -363,7 +360,7 @@ developerDiagnostic through the same `ErrorMapping.taskRejected` chain; Part AH.
 | N-BV-1 | 4 | OPEN (NEW pass 38) | EMPTY custom groups are AFFORDANCE-LESS: the group sub-section render skips zero-member groups (`byGroup[g.id] ?: return@forEach`, TaskListScreen.kt:1283-1290) so the header — and with it the ONLY Edit (✏️)/Delete affordances — never renders; the orphan group stays in every move sheet forever; receipted live: after move-out the "Rig p38 green-to-blue" header vanished while the move sheet still listed the group (re-move needed to reach Delete) | render empty groups' headers (count 0) or expose delete via the move sheet/overflow; pin: a compose test asserting an empty group is deletable from the list | — | Part AO.J | 2 (pass 39: the freshly created "shgrp" group rendered NO header (empty → skip) — and the strand fed F-P39-A's dropped move, s15-class w21/w22, Part AP.E) |
 | N-BW-1 | 4 | OPEN (NEW pass 39) | collapse-all from the TIMELINE organize NEVER survives a restart: `collapseAll` maps `state.groups`' workspaceKeys (TaskListScreen.kt:331) which in timeline mode is the single sentinel `TIMELINE_GROUP_KEY = "timeline"` (TasksViewModel.kt:70) — the set persists to the file store faithfully, but the restart always lands in WORKSPACE organize (organizeBy is view-local, TasksViewModel.kt:102, BY-DESIGN reset) whose keys are real workspace paths, so the persisted sentinel matches NOTHING and every section renders expanded; receipted: collapse-all (all headers "Tap to expand", 83 nodes) → force-stop → relaunch → "Tap to collapse" everywhere (w24/s17 → w26); the desktop's GAP-14 port contract ("persisted per workspace key so it survives app restart") is defeated by the key mismatch | persist per-mode key namespaces (timeline vs workspace) or translate the sentinel on load; pin: a compose test collapsing in timeline → recomposing in workspace asserting the collapsed faces | — | Part AP.G | 1 |
 | N-BX-1 | 4 | OPEN (NEW pass 40) | the git branch block renders the LITERAL "tracking: null" after a branch switch to an upstream-less branch: `Phase9Tools.strOrNull` (Phase9Tools.kt:471) is JsonNull-BLIND — `(this[key] as? JsonPrimitive)?.content` matches JsonNull (whose content is the STRING "null", non-blank) so the mock's merged-summary `trackingBranchName: JsonNull` decodes to "null" instead of null, and `stringResource(git_tracking, s.trackingBranchName ?: "—")` (GitScreen.kt:253) renders the raw literal; receipted live: post-create-and-switch re-entry branch block "rigp40 / tracking: null" (s13); the codebase's own Phase9Ports.rpStr (:269) HAS the `it !is JsonNull` filter — the two helpers disagree | add the JsonNull filter to Phase9Tools.strOrNull (one line, same shape as Phase9Ports.rpStr); pin: a decode harness over a JsonNull trackingBranchName asserting null | — | Part AQ.B (s13) | 1 |
-| N-BY-1 | 4 | OPEN (NEW pass 40) | the git Changes rows' Stage/Discard/Unstage a11y labels carry the RAW format string: the semantics use `stageCdFmt.replace("%s", path)` (GitScreen.kt:768/:781) but the resources are POSITIONAL — `git_stage_cd` = "Stage %1$s" (strings.xml:73; zh-rCN too) — so `%s` never matches and every TalkBack user hears "Stage %1$s" (dump receipted: content-desc "Stage %1$s" / "Discard %1$s" ×3 rows, w7); the visible labels are fine (plain "Stage") — a11y-only | use `%1$s` in the replace (or positional formatArgs); pin: an a11y assertion on the row's content-desc containing the path | — | Part AQ.B (w7), AR.D (w23) | 2 (pass 41: the "Stage %1$s"/"Discard %1$s" content-descs re-dumped live on the gen1b pane) |
+| N-BY-1 | 4 | OPEN (NEW pass 40) | the git Changes rows' Stage/Discard/Unstage a11y labels carry the RAW format string: the semantics use `stageCdFmt.replace("%s", path)` (GitScreen.kt:768/:781) but the resources are POSITIONAL — `git_stage_cd` = "Stage %1$s" (strings.xml:73; zh-rCN too) — so `%s` never matches and every TalkBack user hears "Stage %1$s" (dump receipted: content-desc "Stage %1$s" / "Discard %1$s" ×3 rows, w7); the visible labels are fine (plain "Stage") — a11y-only | use `%1$s` in the replace (or positional formatArgs); pin: an a11y assertion on the row's content-desc containing the path | — | Part AQ.B (w7), AR.D (w23), AS.C (w12 ×6+6 on the many-rows pane) | 3 (pass 42: the "Stage %1$s"/"Discard %1$s" content-descs re-dumped across the tree/flat dumps) |
 | K-small-3 | 4 | WATCH | one-off terminal route pop (unreproduced — watch, don't chase) | Part K.A2 |
 | N-BJ-2 | 4 | REFUTED→FOLDED | unpair IS reachable (Settings bottom, pass 4); fakeLink half folded into F-P2-B | Part G.A2.4 |
 | N-BM-4 | — | RIG | Dictate leg kills the emulator (cause unproven); leg undriven | Part J |
@@ -405,6 +402,8 @@ N-BY-1 (P4, the Stage/Discard a11y labels carry the raw "%1$s").
 23. ~~**(pass 38)** the CONTROL (bootstrap) task view was a stale second surface — it served raw `MockTask.toJson()` rows while every management verb (setTaskPinned/setTaskUnread/renameTask/deleteTask/archiveTask/deleteArchivedTask) mutated only the decorated CHANNEL surfaces~~ **OPENED+CLOSED in the same pass** (THREE facets, three commits: `6b9e882f` p38-mock-decorate — the view flows through decorateMeta + rename/deleteTask sync the bootstrapTasks objects (the live receipt: mark-read ok → "Marked read" → the dot/bold/menu still claimed unread, DB untouched; the vc51-era "mock acks without mutating" attribution CORRECTED to this stale-view mechanism); `046fec07` p38-mock-archive-exclude — the view excludes archivedTaskIds (the live receipt: push applied tasks=2 → the refresh re-applied tasks=3 within 1s, the archived row back on home); `9b5f9ad0` p38-mock-deletearchived-sync — deleteArchivedTask syncs bootstrapTasks (the live receipt: the deleted task resurrected on home AND its group's member list starved — groupedStructure reads directTasks); `a65058e1` pins the createSession effect (view 3→4). Suite **241/0/0**. On the REAL desktop the control view derives from the same DB as the channel list, so all three facets are rig-only. **Residual WATCH (not a debt):** the gen3-era v4-command reply path never acked createSession (`command.sendLost` after 20s) — the pass-38 WATCH in AO.K; re-drive before hunting. → **RESOLVED pass 39 (AP.D): the create round-trips on a fresh generation (tasks.create → createSession acked, zero sendLost, the row rendered + DB `sess-created-1`); the hang was the stale-gen3 jar.**
 24. ~~**(pass 39)** the createSession effect hard-coded the created task's `workspaceLabel` to "Synthetic Workspace" regardless of the source workspace — on the live rig the created row under `/synthetic/ws-one` carried the divergent label and the phone's home rendered an incoherent section header ("Synthetic Workspace · 3 tasks" whose row subtitles all read "Synthetic One"; DB-arbitered r3.db)~~ **OPENED+CLOSED in the same pass** (`f6213c82` p39-mock-created-label: the created task inherits the label from a same-path sibling bootstrap row, default fallback unchanged; self-test asserts "Synthetic One"; suite 248/0/0).
 26. ~~**(pass 41)** the fixture's pre-staged rows were never seeded into the write tier's `stagedPaths` — `servedGitChanges()` only PROMOTED rows into "staged", so a fixture-staged row (index.ts) could never leave the Staged tab: the live receipt was unstagePaths ok → the refetch serving the SAME staged row~~ **OPENED+CLOSED in the same pass** (`ff275c34` p41-mock-git-unstage: `RigGitFixtures.seedWriteTier` seeds stagedPaths from the fixture's staged rows at arming (shared by the self-test mocks); the served section now DERIVES from the write tier's live set (staged hit → staged, kind added → untracked, else unstaged); the unstage/commit removes span both spellings — the phone's relative vs the seeded absolute; MockZCodePass41GitUnstageSelfTest 4 cases, suite **261/0/0**). **Live receipt AR.D**: the gen1b re-drive — unstagePaths ok → Unstaged (3), the row moved, Staged gone.
+27. ~~**(pass 42)** listTaskList search hits carried NO `searchSnippets`/`searchSnippet` — the desktop's `rowToTaskListItem` attaches them (buildSearchSnippets over searchable_text, searchSnippet = the first) and the phone's tasks-search pane renders the snippet row under the title; the mock's title-filtered hits could never show it~~ **OPENED+CLOSED in the same pass** (`55162b44`: hits gain both fields — the matched-context window around the title hit; the plain no-search list shape UNCHANGED (the pass-38/39 receipts decoded it); + the `MOCK: listTaskList search=…` relay-log line). **Live receipt AS.B**: the search pane renders title+snippet rows ×3 hits on the per-keystroke drum (`search='synt' → 'synthetic'` ×6, 3 hits each).
+28. ~~**(pass 42)** the getDiff fixture served the pass-5-era `{diff: "<unified>"}` literal while the decoder (Phase9Tools.gitDiff) reads `{path, availability ∈ patch|binary|truncated|unavailable, patch}` — the FIRST live diff-expand decoded availability=null → "unavailable" + patch=null (the app's honest tolerant face; the wire said ok)~~ **OPENED+CLOSED in the same pass** (`55162b44`: RigGitFixtures.diff() serves the decoder contract — {path, availability:"patch", patch}; self-test pins it). **Live receipt AS.C**: gen1 the honest unavailable face with `git.getDiff begin → ok` (the verb's first-series isolation); gen2 (fixed jar) the diff CARD + the full unified hunks render.
 25. ~~**(pass 40)** the ADR-021 git WRITE tier's acks mutated `script.stagedPaths`/`discardedPaths` while `getChanges` kept serving the STATIC RigGitFixtures fixture — the phone staged, re-fetched, and saw the same rows (the recorded ack-without-mutate class ON THE GIT PLANE; nothing consumed the lists; commit left all three rows served)~~ **OPENED+CLOSED in the same pass** (`baa3f216` p40-mock-git-write-mutation: `servedGitChanges()` derives the changes view from the write tier's mutations — staged paths serve section "staged", discarded/committed rows drop, matching the phone's workspaceRelativePath keys against the fixture's absolute `path`; `commit` consumes the served rows it commits so the post-commit fetchChanges() sees the shrink; + MOCK_GIT_BRANCH_ISSUE / MOCK_GIT_PUSH_FAIL arms; MockZCodePass40GitWriteSelfTest 6/6, suite **254/0/0**). **Live receipt AQ.B**: Stage → `stagePaths ok` → the row MOVED tabs (Unstaged 2→1, Staged 1→2, s14); Discard via the typed gate → the row GONE; commit → Changes EMPTY (s21). Residuals (NOT debts — mock-fidelity notes): History never gains the committed row (script.gitCommits static); the summary stays isDirty=false/ahead=0 through the commit; the comparison fixture is branch-invariant.
 
 ## DISCOVERY BACKLOG (tick when the findings are appended as rows)
@@ -570,6 +569,30 @@ delta …`). Nothing pushed.
 ```
 
 ## History
+
+- 2026-11-17 (pass 42) — Part AS executed on a FRESH axis (a test-file-vs-receipts
+  census found three planes with ZERO series receipts): the TASKS-HOME SEARCH
+  overlay's first live census (the per-keystroke `zcode-task.listTaskList search=…`
+  wire drum ×6, the results pane's title+SNIPPET rows — snippet rendering unblocked
+  by mock debt #27 opened+closed — the hit-tap → task open, the "No tasks match."
+  empty face, the X-close restore) and the GIT sheet's J1.2 gated change-TREE +
+  section-search + per-file diff expand (unblocked by the MOCK_GIT_MANY arm: 44
+  unstaged rows crossing SEARCH_GATE=10 and TREE_GATE=40; the tree receipted by
+  ORDERING — the root-file bucket renders first where the flat sort would put docs/
+  first; dir collapse/expand both directions; the gate-DOWN edge — a "core" filter
+  shrinks 11 rows and the tree degrades to the flat list, clear restores; the diff
+  expand TWO-stage: gen1 the honest "unavailable" face over `git.getDiff begin → ok`
+  — the verb's FIRST series isolation — which EXPOSED mock debt #28 opened+closed
+  [the pass-5-era `{diff:…}` fixture vs the decoder's {path,availability,patch}],
+  gen2 the diff card + the full unified hunks render + collapse back). ZERO new
+  app rows (every face honest at HEAD); stamps N-BY-1 ×3. Mock: ONE commit
+  `55162b44` (MockZCodePass42SearchTreeSelfTest 7; suite **268/0/0/0**). App:
+  ZERO changes (APK byte-identical, install skipped). Rig learnings (AS.A0): the
+  header-tap hazard re-manifested (the Context CHIP is the sheet's entry, not the
+  status capsule); content-screen screenshots run 110–200 KB (the ~1.4 MB heuristic
+  is boot-only); the diff card's toggle is the HEADER ROW not the caption; the
+  `pm path`-pasted md5sum recipe. Rig left UP (gen2 mock-p42-gen2-b7d2f3 — NOTHING
+  sticky; app pid 4644 in synth-task-1's git pane, cleared-filter tree view).
 
 - 2026-11-16/17 (pass 41) — Part AR executed on Part AQ's coverage-honesty
   driveables: the Manage-sheet REORDER + SELECT legs receipted ALIVE ON THE DISK
