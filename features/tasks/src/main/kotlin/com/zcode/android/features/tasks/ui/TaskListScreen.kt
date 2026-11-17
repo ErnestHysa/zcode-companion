@@ -1178,21 +1178,20 @@ private fun ReadyBody(
                 modifier = Modifier.testTag("tasks_stale_strip"),
             )
         }
-        if (state.error != null) {
-            // E4 (Phase 4G): a failure with NO successful refresh yet IS the
-            // post-pairing first sync — the strip is annotated as such ("first sync
-            // failed") instead of rendering a bare "Connection failed" beside "No
-            // tasks yet" with no link to the just-finished pairing.
-            val firstSync = state.lastRefreshAtMs == null
+        if (state.error != null && !state.stale) {
+            // K-small-2 (pass-9 L.A3): with CACHED rows the "First sync failed" wording
+            // is a lie (the device is paired and has data) — the honest face here is
+            // the plain error strip, and it is suppressed entirely while the stale
+            // overlay already carries the reconnecting face + Retry (never
+            // contradictory, never doubled). The EMPTY body keeps the first-sync
+            // annotation: no rows IS the post-pairing first sync (E4, Phase 4G).
             AttentionStrip(
-                title = if (firstSync) stringResource(R.string.tasks_first_sync_title) else stringResource(R.string.tasks_error_title),
-                message = if (firstSync) stringResource(R.string.tasks_first_sync_body) else errorUserMessage(state.error),
+                title = stringResource(R.string.tasks_error_title),
+                message = errorUserMessage(state.error),
                 tone = com.zcode.android.core.ui.components.StatusTone.ERROR,
                 actionLabel = stringResource(com.zcode.android.core.ui.R.string.action_retry),
                 onAction = onRetry,
-                modifier = Modifier.testTag(
-                    if (firstSync) "tasks_first_sync_strip" else "tasks_error_strip",
-                )
+                modifier = Modifier.testTag("tasks_error_strip")
             )
         }
         // Round-4: stale-pairing repair — Degraded on repeated desktop-disconnected

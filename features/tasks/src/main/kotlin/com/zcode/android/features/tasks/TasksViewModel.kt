@@ -77,11 +77,23 @@ data class TasksUiState(
     val needsAttention: Int
         get() = groups.sumOf { g -> g.tasks.count { it.status == TaskStatus.WAITING || it.status == TaskStatus.ERROR } }
 
-    /** §14.4.2 Disconnected overlay — cached rows stay visible, LABELED stale (§2.5-5). */
+    /** §14.4.2 Disconnected overlay — cached rows stay visible, LABELED stale (§2.5-5).
+     *  K-small-2 (pass-9 L.A3): the overlay also covers the MID-ACQUISITION wedge window
+     *  (CONNECTING/AUTHENTICATING/RECOVERING) when the last sync FAILED — the F-P9-A
+     *  wedge used to render NO strip at all while the transport sat silent mid-handshake
+     *  with cached rows. */
     val stale: Boolean
-        get() = (phase == ConnectionPhase.RECONNECTING ||
-            phase == ConnectionPhase.DEGRADED ||
-            phase == ConnectionPhase.FAILED) && groups.isNotEmpty()
+        get() = when (phase) {
+            ConnectionPhase.RECONNECTING,
+            ConnectionPhase.DEGRADED,
+            ConnectionPhase.FAILED,
+            -> groups.isNotEmpty()
+            ConnectionPhase.CONNECTING,
+            ConnectionPhase.AUTHENTICATING,
+            ConnectionPhase.RECOVERING,
+            -> groups.isNotEmpty() && error != null
+            else -> false
+        }
 }
 
 data class TaskGroup(

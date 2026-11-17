@@ -272,6 +272,67 @@ class TaskListUiTest {
         }
         rule.runOnIdle { org.junit.Assert.assertTrue(refreshed || true) } // container wired; gesture covered by instrumented leg
     }
+
+    // ---- K-small-2 (pass-9 L.A3): the sync strip aligns with the real sync state ----
+
+    private fun err() = com.zcode.android.core.common.error.AppError(
+        category = com.zcode.android.core.common.error.ErrorCategory.NETWORK,
+        userMessage = "refresh failed",
+        developerDiagnostic = "refresh failed",
+        retryable = com.zcode.android.core.common.error.AppError.Retryable.USER,
+        recoverable = true,
+    )
+
+    @Test
+    fun ksmall2_readyBodyWithCachedRows_neverRendersTheFirstSyncWording() {
+        // CACHED rows + a failed sync + nothing refreshed since process start
+        // (lastRefreshAtMs == null): the "First sync failed / Just paired?" copy is a
+        // lie beside data — the plain error strip is the honest face.
+        rule.setContent {
+            ZCodeTheme {
+                TaskListScreen(
+                    state = TasksUiState(
+                        phase = ConnectionPhase.CONNECTED,
+                        loadState = TasksUiState.Load.READY,
+                        groups = listOf(TaskGroup("/ws/demo-api", "demo-api", listOf(task("a", TaskStatus.RUNNING)))),
+                        taskCount = 1,
+                        error = err(),
+                        lastRefreshAtMs = null,
+                    ),
+                    onTaskClick = {}, onOpenSettings = {}, onOpenConnection = {}, onRetry = {}, onRefresh = {},
+                )
+            }
+        }
+        rule.onAllNodesWithTag("tasks_first_sync_strip").assertCountEquals(0)
+        rule.onNodeWithTag("tasks_error_strip").assertIsDisplayed()
+        rule.onNodeWithTag("task_row_a").assertIsDisplayed()
+    }
+
+    @Test
+    fun ksmall2_wedgeWindow_showsTheStaleStrip_neverDoubledFaces() {
+        // The F-P9-A wedge window: the transport sits mid-acquisition (AUTHENTICATING)
+        // with a failed refresh and cached rows — the stale overlay must show (never
+        // silently absent) and the error strip must not double it.
+        rule.setContent {
+            ZCodeTheme {
+                TaskListScreen(
+                    state = TasksUiState(
+                        phase = ConnectionPhase.AUTHENTICATING,
+                        loadState = TasksUiState.Load.READY,
+                        groups = listOf(TaskGroup("/ws/demo-api", "demo-api", listOf(task("a", TaskStatus.RUNNING)))),
+                        taskCount = 1,
+                        error = err(),
+                        lastRefreshAtMs = null,
+                    ),
+                    onTaskClick = {}, onOpenSettings = {}, onOpenConnection = {}, onRetry = {}, onRefresh = {},
+                )
+            }
+        }
+        rule.onNodeWithTag("tasks_stale_strip").assertIsDisplayed()
+        rule.onAllNodesWithTag("tasks_error_strip").assertCountEquals(0)
+        rule.onAllNodesWithTag("tasks_first_sync_strip").assertCountEquals(0)
+        rule.onNodeWithTag("task_row_a").assertIsDisplayed()
+    }
 }
 
 /**
