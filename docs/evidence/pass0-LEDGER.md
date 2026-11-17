@@ -108,17 +108,20 @@ P2-first, exit gates, per-row Accept criteria).
 
 - Report: `docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md` —
   Parts A–Z + AA + AB + AC + AD + AE + AF + AG + AH + AI + AJ + AK + AL + AM + AN +
-  AO + AP + AQ + AR + AS + AT + AU = passes 0–44. **Latest: pass 44 (Part AU, 2026-11-17 ~12:10).**
-- Repo HEAD at pass start: `73c66186` (pass 43's mock commit; main); pass 44 added
-  ONE mock commit — `0e5c08e1` (p44-mock-refuse-list: debt #30 — MOCK_REFUSE_COMMANDS
-  gains a comma-list form arming ANY command types [bare `1`/`true`/blank keeps the
-  goal trio], the refuse decision seam-extracted as `refuseReasonFor()`;
-  MockZCodeHooksRowsSelfTest +1 case; mock suite **275/0/0/0**) + the docs commit.
+  AO + AP + AQ + AR + AS + AT + AU + AV = passes 0–45. **Latest: pass 45 (Part AV, 2026-11-17 ~14:05).**
+- Repo HEAD at pass start: `4f11150b` (pass 44's docs commit; main); pass 45 added
+  ONE mock commit — `ae091f81` (p45-arms: debt #31 — MOCK_HOOKS_SECOND seeds
+  synth-task-2's second review so the hooks viewer's per-task group separation is
+  drivable [scriptedHookInteraction seam-extracted as scriptedHookInteractionFor];
+  PLUS the git-checkpoint arg log line `MOCK: git-checkpoint <method> args=<json>`
+  — the checkpoint wire receipts were log-silent forever and the F-P45-A divergence
+  is provable ONLY arg-exact; MockZCodeHooksRowsSelfTest +1 case; mock suite
+  **276/0/0/0**) + the docs commit.
   App: ZERO commits. APK of record: sha256 `ad449d7d…` / md5 `530ba4ff…`,
   versionCode 53 / 1.3.2 (byte-identical across the whole series; install SKIPPED
-  again — on-device md5 re-verified).
+  again — on-device md5 re-verified; the FOURTH consecutive byte-identical pass).
 - Desktop of record: **/Applications/ZCode.app 3.18.1.10376, asar sha256 `ec475e6e…`,
-  383,832,025 B** (re-verified at pass-44 STEP 0 — UNCHANGED, no DELTA). Pass-43
+  383,832,025 B** (re-verified at pass-45 STEP 0 — UNCHANGED, no DELTA). Pass-43
   census addition: the desktop task-list contract extracted exact (AT.B) —
   queryTaskList (host chunk-TCPD6WAE.js) honors `limit` (LIMIT ? over the ordered
   filter) answering {items ≤limit, total = COUNT over the filter, hasMore =
@@ -126,42 +129,45 @@ P2-first, exit gates, per-row Accept criteria).
   (`f(e.total), m(e.hasMore)`) with `limit: e.expanded?void 0:e.collapsedLimit`
   and renders the taskList.showMore/showLess affordance — the desktop NEVER
   silently truncates.
-- Open rows: **39 F (37 defects + 2 obs) + 23 G + 3 standing + 23 smalls (+1 watch
-  +1 rig)** — pass 44 opened **N-BZ-1** (P4: the hooks viewer's Refresh renders
-  "The desktop refused the review request." on a DEAD transport — BlockedOffline/
-  Failed both map to else→false in requestHookReview while the honest offline note
-  is structurally near-unreachable; the gen2 genuine-refusal leg rendered the SAME
-  note honestly, so the two classes are indistinguishable to the user); stamps:
-  **F-P3-A ×11** (the starved hook-review card re-manifested on both gens — the
-  ANSWER leg stays gated) and **F-P13-A ×4** (the detached-refresh re-issue pushes
-  dropped ×2 at the no-subscription-record gateway, snapshot-healed); the desktop
-  of record UNCHANGED (no DELTA at pass-44 STEP 0).
-- Backlog: **8/8 DONE**; pass 44's axis was a FRESH RECON (the pass-42 precedent —
-  Part AT's coverage list had no driveables): the HOOKS VIEWER plane (Settings →
-  Workspace hooks — the vc52-built G71 screen with ZERO series receipts; the
-  `requestWorkspaceHookReview` verb never sent in the series). The full face matrix
-  driven first-series: empty face, the ledger capture + the populated ×3-item
-  render, Refresh live + the card re-surface chain, the DETACHED-LEDGER refresh
-  (the exit-gate design holding), the relay-down face (N-BZ-1), the genuine
-  refusal face (debt #30's arm). What remains is standing stops + F-P3-A-gated
-  planes + F-P40-B/F-P40-C/F-P43-A-gated faces + fix-round items. **The mock-debt
-  list has 0 open work-debts** (#30 opened+closed in-pass).
-- Rig left by pass 44: emulator `zcode-a16` UP (TWENTY-FIRST consecutive inherited
+- Open rows: **41 F (39 defects + 2 obs) + 23 G + 3 standing + 23 smalls (+1 watch
+  +1 rig)** — pass 45 opened **F-P45-A** (P2: the checkpoint force-overwrite
+  executes on a DIFFERENT snapshot pair than confirmed — `getOrNull(1)` hard-coded,
+  arg-exact wire receipt) and **F-P45-B** (P3: the hooks capture's lastOrNull loses
+  all-but-last reviews AND cross-keys the survivor — a hybrid viewer group + a
+  mismatched refresh, DB-ACKED) and **N-CA-1** (P4: the checkpoint confirm's
+  promised diff face unimplemented — diffCheckpoints UI-dead, 0 wire calls);
+  **K-small-1 adjudicated FIXED** (by vc52 Phase-5B work — the create button exists
+  + round-trips); census correction: the "Checkpoints/Snapshot tabs" receipt
+  phrasing (early passes) was a MIS-READ of the card header — no tabs exist; stamps:
+  **F-P3-A ×12** (both hook cards starved) and **F-P13-A ×5** (the hybrid refresh's
+  re-issue patch at the gateway); the desktop of record UNCHANGED (no DELTA at
+  pass-45 STEP 0).
+- Backlog: **8/8 DONE**; pass 45's axis was a FRESH RECON on the wire-verb layer
+  (the pass-44 census method: `listCheckpoints`/`checkpointRestore`/`checkpointDiff`
+  = ZERO report hits in 45 passes) — the git-CHECKPOINT plane: the empty face +
+  K-small-1 adjudication, create ×5 (notice verbatim + ticking age labels), the
+  CKPT-HYDRATE entry-fetch + the app-RESTART hydrate (pre-restart checkpoints
+  restorable in a fresh process), the restore confirm, the CONFLICT face (the
+  pass-27 arm's first drive), the force-overwrite success (→ F-P45-A), the
+  plain-success restore (gen2), and the diffCheckpoints dead-UI find (→ N-CA-1);
+  STEP 2 = pass 44's leftover (the hooks multi-workspace face, unblocked by debt
+  #31) which opened F-P45-B. What remains is standing stops + F-P3-A-gated planes
+  + F-P40-B/F-P40-C/F-P43-A/F-P45-A/F-P45-B-gated faces + fix-round items. **The
+  mock-debt list has 0 open work-debts** (#31 opened+closed in-pass).
+- Rig left by pass 45: emulator `zcode-a16` UP (TWENTY-SECOND consecutive inherited
   survival; healthy, screenshot protection OFF), relay gen2 ALIVE (nonce
-  `mock-p44-gen2-2db49cb` — **⚠ STICKY MOCK_REFUSE_COMMANDS=requestWorkspaceHookReview
-  arm**: every requestWorkspaceHookReview answers the typed fault; an inheritor must
-  pkill + relaunch unless driving the refusal), app pid 10040 in synth-task-1's
-  conversation (the pending trust card visible), logcat running →
-  /tmp/p44/logcat.log. Launchers /tmp/p44/relay-g1.sh + relay-g2.sh. New rig
-  learnings in Part AU.A0: **a GMS "Sign in — Google Accounts" interstitial HIJACKS
-  the foreground on Settings BACK exit-chains** (twice; SKIP + `am start -W`
-  recovers with the hub state intact — pid unchanged, the ledger preserved; a
-  null-root dump there means the nag, not a crash — look for `sud_layout_*` ids);
-  a y-coordinate tap fired while the wrong screen was up silently opened
-  `settings_mcp` (dump-and-verify before every coordinate tap after an unexpected
-  BACK); the mock's respondError answers are log-silent — the OUTBOX's
-  ackReasonCode is the typed-fault arbiter; the sqlite WAL must be queried beside
-  its `-wal` sibling (a renamed `.probe.db` copy reads empty).
+  `mock-p45-gen2-dd1e49c3` — arms MOCK_HOOKS + MOCK_HOOKS_SECOND + MOCK_GIT,
+  NOTHING sticky [the conflict arm left with gen1]; reusable as-is for hooks/git
+  legs), app pid 11983 in synth-task-1's git sheet (the gen2 post-success card),
+  logcat running → /tmp/p45/logcat.log. Launchers /tmp/p45/relay-g1.sh +
+  relay-g2.sh. New rig learnings in Part AV.A0: **the GMS setup nag hijacked the
+  foreground AGAIN on a BACK exit-chain** (a NEXT-button wizard page this time —
+  `am start -W` recovered, pid unchanged; 2/2 passes now — budget a
+  dump-and-recover after every BACK chain); **the ae091f81 arg-log line is the
+  template for future verb-plane axes** (channel calls printed NOTHING before it —
+  add the arg line FIRST, then drive); M3 AlertDialog dump bounds were accurate
+  this pass (~40px of the screenshot estimate) but the cross-check stays mandatory;
+  the fresh-process tap chain raced once — dump-and-verify between chain taps.
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -179,6 +185,8 @@ bodies after 3.14.3 — the census IS the changelog.
 
 | ID | P | Status | Mechanism (one line) | Fix shape | Depends on | Evidence | Stamps |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| F-P45-A | 2 | OPEN (NEW pass 45) | the checkpoint FORCE-OVERWRITE executes on a DIFFERENT snapshot pair than confirmed: `forceConfirmFor` carries only `(to, conflicts)` and the force handler RECOMPUTES `from = checkpoints.getOrNull(1)` (GitScreen.kt CheckpointsCard — a hard-coded list index that coincidentally matches the confirmed pair only at exactly two checkpoints), so with ≥3 checkpoints + a conflict + Overwrite the confirmed restore-to-ckpt-1 executed as restore-to-ckpt-2 — arg-exact receipt: confirm `{"fromCheckpointId":"ckpt-1","toCheckpointId":"ckpt-3"}` → force `{"fromCheckpointId":"ckpt-2","toCheckpointId":"ckpt-3","force":true}` (relay-g1; the divergence is receiptable ONLY since the ae091f81 arg-log line) — the destructive ⚠ write silently diverging from its own confirmation, keeping the changes the user asked to discard (the F-P40-C confirm-then-different-execution family at destructive severity; the 2-checkpoint faces looked correct BECAUSE of the coincidence) | carry the confirmed `from` through forceConfirmFor (Triple or a second field); pin: a compose harness with a 3-item list asserting the force wire ids == the confirmed pair | — | Part AV.E (s09/s10, relay-g1 restoreBetweenCheckpoints lines) | 1 |
+| F-P45-B | 3 | OPEN (NEW pass 45) | the hooks-review capture LOSES ALL-BUT-LAST reviews and CROSS-KEYS the survivor: `captureHookReview` reads `state.pendingInteractions?.lastOrNull { kind == WORKSPACE_HOOK_REVIEW }` (ConversationSessionManager.kt:144-145) and the sink files it under the OPENED session's id (`hookReviewSink(t.sessionId, review)` RecoveryCoordinator.kt:188 → `hookReviewLedger[sessionId] = review` ConnectionHub.kt:1103) — with two reviews in ONE snapshot (the desktop's normal multi-workspace pending state; the mock's second seed via debt #31) synth-task-1's manager captured workspace-Two's payload under synth-task-1's key: the viewer rendered ONE hybrid group (`hooks_group_synth-task-1` × "Synthetic Workspace Two" content — synth-task-1's own 3-hook review NEVER renders, the per-task group separation the viewer was built for cannot manifest) and its Refresh sent the MISMATCHED args `{"sessionId":"synth-task-1","workspaceIdentity":"synthetic-ws-two","bundleDigest":"bbbb…b"}` (outbox ACKED/accepted — a real desktop would re-issue the WRONG workspace's review) | capture EVERY review of the kind keeping the latest per the PAYLOAD's own `review.taskId`; key the sink by `review.taskId` (not the opened sessionId); pins: a manager harness with a 2-review snapshot asserting both viewer groups render with their own labels + each group's refresh args match its own workspace | — | Part AV.I (d1/d17, db/g1.db outbox, relay-g1 command line, the 13:25 gateway.drop) | 1 |
 | F-P43-A | 3 | OPEN (NEW pass 43) | the tasks-SEARCH results pane SILENTLY TRUNCATES at the port's limit:20 — the wire carries the desktop-faithful pagination answer (relay: `MOCK: listTaskList search='synthetic' → 27 hits (limit=20 served=20 hasMore=true)`) but the phone drops total/hasMore at the PORT boundary (Ports.kt:139-151 maps `.items` only; the client decodes both into SearchResult — TaskServiceClient.kt:306/:334-338) and the pane renders the bare list with NO count, NO "20 of 27", NO show-more affordance (TaskListScreen.kt:396-433 forEach; s05: task-20 flush at the screen bottom, nothing after it) — matches 21–27 are UNREACHABLE through the search UI while the UNFILTERED home renders all 27 (the home's no-limit listTaskList; w00 badge 26 + 1 pinned) and the per-keystroke drum refires the truncated query on every keystroke (44 listTaskList calls this pass); the under-limit face is honest (query '2' → 10/10 rendered, `served=10 hasMore=false` — the truncation is the limit boundary, not a render cap). DESKTOP PARITY: useGlobalTaskList keeps all three (`f(e.total), m(e.hasMore)`) with `limit: e.expanded?void 0:e.collapsedLimit` and renders the taskList.showMore/showLess affordance — the desktop NEVER silently truncates | thread SearchResult (or total/hasMore) through port.searchTasks; VM gains searchTotal/searchHasMore; the pane renders a count face + a show-more row re-querying at a raised limit (the desktop's expanded/undefined-limit shape); pins: a compose test — stubbed port 20 hits/total 27/hasMore true asserts the count face + the affordance render, tapping it re-queries with the raised limit and renders the remainder | — | Part AT.B/AT.C (s01/s05, w04/w08/w09, relay-g1.log) | 1 |
 | F-P40-B | 2 | OPEN (pass-41 REVISION: rename-only) | the workspace-manager RENAME-ALIAS write is a SILENT NO-OP at HEAD — the pass-40 "persistence TRIO" narrowed: REORDER (field 16 `workspace_order`) and SELECT (field 18 `selected_workspace_key`) receipted ALIVE END-TO-END in pass 41 (the arrow taps flip field 16 with fresh mtimes ×2; the chips row REORDERS LIVE through the prefs flow; the row-tap select writes field 18 + the chip renders filled + the home filters to the workspace; the order survives app restarts AND the emulator reboot; the All-tap null write resolves pass-40's "byte-identical rewrite" mystery as a healthy dedup'd write — field 18 → ABSENT with identical bytes), while RENAME (field 17 `workspace_aliases`) NEVER reaches disk (×4 across two processes: Rig1 ×2 [pass 40], RigTwo + the screenshot-verified RigOne [pass 41] — the pb mtime frozen through the Save, field 17 ABSENT, zero UI echo) — the wiring is singular and direct (sheet Save → `onRename(renameFor!!, …)` → TaskListScreen:500 → ZCodeApp.kt:747-756, the SAME `startScope.launch { preferencesRepository.update {…} }` shape as the two ALIVE callbacks, and `toProto()` writes `putWorkspaceAliases` correctly) with no exception logged — the deadness is INSIDE the rename path, micro-cause a fix-round-harness question | pin the rename lambda specifically (a Robolectric harness asserting preferences.pb gains workspaceAliases after onWorkspaceRenamed + the chip recomposing under the alias); diff the rename lambda's transform against the working select/reorder shapes | — | Part AQ.C, Part AR.B (s05/s06/s11/s12, preferences{,2,3,4,-final}.pb — the field-level lifecycle) | 2 (pass 41: the revision + the ×2 rename drives) |
 | F-P41-A | 3 | OPEN (NEW pass 41) | the git PUSH refusal renders NOTHING — "Commit & push" silently half-completes: `git.push refused: Cannot push while HEAD is detached.` (relay-7, 00:04:03, the mock's desktop-faithful refusal) arrives and the pane looks healthy (s22: the commit consumption receipted, zero error face / notice / banner) — three stacked kills: GitScreen.kt:486-493's `onPush` sets `pushFor = null` (the PushConfirm closes BEFORE the async result, the F-P40-C pre-close shape), then `if (port.push() != null) notifierGit.show(pushDoneFmt…)` is the SUCCESS-ONLY branch with NO else, and the port's `push() = writeOp("push") {…}` (Phase9Ports.kt:253-255) maps the refused call's TransportFailure to null (the same null-swallow boundary F-P10-A pinned for commit and F-P5-A stamp 2 pinned for reads); the wire's refusal message is desktop-faithful — the copy exists, the UI drops it | an else branch on the push notice path rendering the refused reason (the noticeGit plane; fold the F-P40-C message-half principle — typed refusals must render); pin: a harness asserting the push-refusal face renders with the message text | — | Part AR.E (s22, w47) | 1 |
@@ -227,11 +235,14 @@ bodies after 3.14.3 — the census IS the changelog.
 | F-P4-A | 2 | FIXED (rig) | mock push patch structurally excluded its own interaction | `pushPendingPermission` builds from unfiltered list + patch-content pin — commit `2b12fc46`, 37 mock tests green | — | Part G.A2.2, H.A1 | — |
 | N-BK-1 (rig half) | 2 | FIXED (rig) | git fixtures in wrong field vocabulary (blank paths, +0−0, duplicated tabs, oid-vs-hash) | contract vocabulary rewrite — same commit `2b12fc46` | — | Part G.A2.3, H.A1 | — |
 
-**Open F count: 39** (37 defects + 2 observations; pass 43 opened F-P43-A P3 —
-the tasks-search pane silently truncates at limit:20; pass 41 opened F-P41-A P3 —
-the git push refusal renders NOTHING — and REVISED F-P40-B to rename-only-dead
-(select + reorder receipted ALIVE on the disk)) ·
-FIXED: 2 (both rig) · RETRACTED/REFUTED/ABSORBED: 7.
+**Open F count: 41** (39 defects + 2 observations; pass 45 opened F-P45-A P2 —
+the checkpoint force-overwrite diverges from its confirmed pair — and F-P45-B P3 —
+the hooks capture loses all-but-last reviews and cross-keys the survivor; pass 43
+opened F-P43-A P3 — the tasks-search pane silently truncates at limit:20; pass 41
+opened F-P41-A P3 — the git push refusal renders NOTHING — and REVISED F-P40-B to
+rename-only-dead (select + reorder receipted ALIVE on the disk)) ·
+FIXED: 2 (both rig) + K-small-1 (app small, FIXED by vc52 Phase-5B work, adjudicated
+pass 45) · RETRACTED/REFUTED/ABSORBED: 7.
 
 ## Current fix-order (consolidates K.D + the carried rows; supersedes every report fix-order)
 
@@ -264,7 +275,7 @@ FIXED: 2 (both rig) · RETRACTED/REFUTED/ABSORBED: 7.
    F-P2-B → F-P0-C → F-P8-B → F-P8-F** → 17. **F-P1-B → F-P1-D** → 18. smalls
    (N-BM-1 → N-BP-1 → N-BM-3 → N-BN-1 → N-BK-1 app half → N-BJ-1 → N-BK-2 → N-BL-1 →
    N-BM-2 → N-BO-1 → N-BP-2 → N-BQ-1 → N-BR-1 → N-BS-1 → N-BT-1 → N-BX-1 → N-BY-1 →
-   N-BZ-1 → K-small-1/2) → 18a. **F-P40-B** (pass 40, P2: the workspace-manager persistence
+   N-BZ-1 → N-CA-1 → K-small-2) → 18a. **F-P40-B** (pass 40, P2: the workspace-manager persistence
        trio is a silent no-op — move the three ZCodeApp.kt:742-755 writes off the
        composition-captured scope + the preferences.pb pin; small, self-contained,
        the P2 of the pass-40 batch) → 18b. **F-P40-A + F-P40-C** (pass 40, P3 pair:
@@ -273,7 +284,13 @@ FIXED: 2 (both rig) · RETRACTED/REFUTED/ABSORBED: 7.
        branch_issue copy map) → 18c. **F-P43-A** (pass 43, P3: the tasks-search
        pane's silent limit:20 truncation — thread SearchResult through the port +
        the count face + a show-more re-query; small, self-contained, the port +
-       pane surface one session) → 19. **F-P19-A + F-P20-A** (passes
+       pane surface one session) → 18d. **F-P45-A** (pass 45, P2: the checkpoint
+       force-overwrite executes on a different pair than confirmed — carry the
+       confirmed `from` through forceConfirmFor; one-state-line fix + the 3-item
+       harness pin, the P2 of the pass-45 batch) → 18e. **F-P45-B** (pass 45, P3:
+       the hooks capture loses all-but-last reviews and cross-keys the survivor —
+       capture per the payload's own review.taskId + key the sink by it; small,
+       the manager+sink surface one session) → 19. **F-P19-A + F-P20-A** (passes
    19/20: the held-queue guard family — F-P19-A the sendText CAS-mismatch face
    divergence, F-P20-A the goal payload's trio omission; both small — a typed
    reasonCode branch on the existing SendNotice path / a goal-side gate) →
@@ -341,8 +358,11 @@ FIXED: 2 (both rig) · RETRACTED/REFUTED/ABSORBED: 7.
   `control` block instead (SessionState.kt:199-222). Receipted live on MOCK_TURN_RUNNING:
   no running face, no Stop-from-header — correct at HEAD (control is the state channel),
   recorded so nobody re-hunts it as a defect.
-- **gitCheckpoint createCheckpoint** — unconsumed verb behind the "create one before
-  risky changes" empty state (K.A2 small: wire a button or reword).
+- **gitCheckpoint createCheckpoint** — ~~unconsumed verb behind the empty state~~
+  CONSUMED since vc52 Phase-5B (the card's "Snapshot" button; K-small-1 adjudicated
+  FIXED pass 45 with the live round-trip). Remaining plane gaps: the diffCheckpoints
+  UI-dead face (N-CA-1) and no deleteCheckpoint client method (census note, not a
+  debt).
 - **NO-ACTION forever list** (never "port" these): sync ×5, credential/oauth/onboarding/
   fileWatcher/userConfig, AppControl (CUA driver), CuaPipSession lifecycle, Bots
   authoring depth (read-only by ADR), git WRITE half (stage/commit/push — read-only
@@ -361,7 +381,7 @@ FIXED: 2 (both rig) · RETRACTED/REFUTED/ABSORBED: 7.
 | N-BK-2 | 4 | OPEN | automation Edit sheet schedule chips clip at phone width | Part G.A2 (+ pass-16 stamp 2: "Weekda"/"Cr" clipped live under the arms, S.A3) |
 | N-BL-1 | 4 | OPEN | workflow-run Run/Manage icon buttons subtree-unlabeled (TalkBack silence) — ONLY unlabeled clickables found | Part H.A2 |
 | N-BM-2 | 4 | OPEN | child-session view: generic title, skeleton-forever on unscripted children | Part J (+ pass-17 stamp: the automation run's Go-to-session on an unscripted session renders the generic "Conversation" title over the skeletons, T.A2) |
-| K-small-1 | 4 | OPEN | checkpoint empty state says "create one" with NO create affordance (verb unconsumed) | Part K.A2 |
+| K-small-1 | 4 | FIXED (by vc52 Phase-5B work; adjudicated pass 45) | the vc52 Phase-5B card (A3.11) added the "Snapshot" create button (`checkpoint_create`) beside the unchanged empty copy and it round-trips end-to-end (pass 45: 5 creates, the "Snapshot ckpt-N created" notice verbatim, rows render) — pass 45 also corrected the era's "Checkpoints/Snapshot tabs" receipt phrasing: NO tabs exist, the card header IS the title+create-button row | no app commit (part of the shipped card) | — | Part AV.B/AV.C | 1 |
 | K-small-2 | 4 | OPEN | "First sync failed" renders alongside CACHED rows (wording/state nit) — pass 9: the strip can be entirely ABSENT when the F-P9-A wedge suppresses the refresh | Part K.A2, L.A3 |
 | N-BN-1 | 4 | OPEN (NEW pass 10) | Plugins screen: the per-plugin enable switches are UNLABELED (plugin_switch_plugin-prisma / -review carry no content-desc, no text children — TalkBack silence on the row's only interactive element) | Part M.A1, M.A2 |
 | N-BO-1 | 4 | OPEN (NEW pass 11) | the changes viewer's error face interpolates the RAW fault code ("Could not load changes: fault.fileChanges.none" — `changes_error` %s, Phase9Components.kt:379) — the G66 fault→human mapping (2af339b0) doesn't cover this Phase9 surface | Part N.A2 (+ pass-13 stamp: SECOND surface receipted live — the quota reset failure face renders "Reset failed · fault.mock.unscripted:useCodingPlanReset", `quota_reset_error + " · " + err` at CodingPlanQuotaSection.kt:456; Part P.A1. **Pass-30 stamp 3: THIRD surface** — the attachment FAILED notice renders the raw fault code in the user banner ("Attachment failed to upload (fault.attachment.commitFail) — not sent.", `ConversationViewModel.kt:371` interpolating `result.message` = `TransportFailure`'s developerDiagnostic via `ErrorMapping.taskRejected`, `V4Plane.kt:30/:628-631`; Part AG.C). **Pass-31 stamp 4: FOURTH surface** — the resurrected-chip first-attempt
@@ -380,6 +400,7 @@ developerDiagnostic through the same `ErrorMapping.taskRejected` chain; Part AH.
 | N-BX-1 | 4 | OPEN (NEW pass 40) | the git branch block renders the LITERAL "tracking: null" after a branch switch to an upstream-less branch: `Phase9Tools.strOrNull` (Phase9Tools.kt:471) is JsonNull-BLIND — `(this[key] as? JsonPrimitive)?.content` matches JsonNull (whose content is the STRING "null", non-blank) so the mock's merged-summary `trackingBranchName: JsonNull` decodes to "null" instead of null, and `stringResource(git_tracking, s.trackingBranchName ?: "—")` (GitScreen.kt:253) renders the raw literal; receipted live: post-create-and-switch re-entry branch block "rigp40 / tracking: null" (s13); the codebase's own Phase9Ports.rpStr (:269) HAS the `it !is JsonNull` filter — the two helpers disagree | add the JsonNull filter to Phase9Tools.strOrNull (one line, same shape as Phase9Ports.rpStr); pin: a decode harness over a JsonNull trackingBranchName asserting null | — | Part AQ.B (s13) | 1 |
 | N-BY-1 | 4 | OPEN (NEW pass 40) | the git Changes rows' Stage/Discard/Unstage a11y labels carry the RAW format string: the semantics use `stageCdFmt.replace("%s", path)` (GitScreen.kt:768/:781) but the resources are POSITIONAL — `git_stage_cd` = "Stage %1$s" (strings.xml:73; zh-rCN too) — so `%s` never matches and every TalkBack user hears "Stage %1$s" (dump receipted: content-desc "Stage %1$s" / "Discard %1$s" ×3 rows, w7); the visible labels are fine (plain "Stage") — a11y-only | use `%1$s` in the replace (or positional formatArgs); pin: an a11y assertion on the row's content-desc containing the path | — | Part AQ.B (w7), AR.D (w23), AS.C (w12 ×6+6 on the many-rows pane) | 3 (pass 42: the "Stage %1$s"/"Discard %1$s" content-descs re-dumped across the tree/flat dumps) |
 | N-BZ-1 | 4 | OPEN (NEW pass 44) | the hooks viewer's Refresh renders "The desktop refused the review request." on a DEAD transport: `ConnectionHub.requestHookReview` (:375-380) maps `Accepted → true; null → null; ELSE → false`, so BlockedOffline (simpleCommand's not-CONNECTED pre-check, CommandCoordinator.kt:543), Failed (the transport throw), Stale, UnknownKept and MissingBaseRevision ALL feed `hooks_viewer_refresh_refused`, while the honest `hooks_viewer_refresh_offline` ("No live session for this workspace.") is reachable only when `commandCoordinatorOrNull()` is null WITH a ledger entry — structurally near-dead; receipted live BOTH ways: gen1 relay-down → the refused note rendered (s05) with the DB outbox row FAILED_TERMINAL/"channel closed: abnormal close 1006: Broken pipe" (db/zcode.db), gen2 with the refuse arm (debt #30) → the SAME note rendered HONESTLY with the row FAILED_TERMINAL/"fault.command.rigRefused:requestWorkspaceHookReview" (db/g2-*) — the two classes are indistinguishable to the user; the screen's ErrorState face (hooks_viewer_unavailable) is separately dead by construction (`reviews()` is a pure in-memory read that cannot throw — census note, not a defect) | distinguish the classes in the outcome mapping — BlockedOffline/transport-class Failed → the offline note (or a third "connection lost" copy), genuine server refusals keep the refused note; pin: a harness over requestHookReview's outcome→note mapping (BlockedOffline ≠ refused) | — | Part AU.F/AU.G (s05/s07, both DB pulls) | 1 |
+| N-CA-1 | 4 | OPEN (NEW pass 45) | the checkpoint restore-confirm's promised DIFF-FILES face is unimplemented and `diffCheckpoints` is UI-DEAD: the card docstring promises "the confirm names BOTH ids and the diff's files" but the dialog names the ids only — `diffText` is only ever null-CLEARED (GitScreen.kt:991; rendered :967, never assigned) and `port.diffCheckpoints` has ZERO UI callers while the verb is fully wired BELOW the UI (GitCheckpointClient → Phase9Ports :182 → the mock's stateful handler); live: `diffCheckpoints` = 0 lines across BOTH pass-45 relay logs including both restore-confirms | fetch the diff in the confirm path and render the files under the body (or drop the docstring claim); pin: a harness asserting the confirm names the diff files / the wire carries diffCheckpoints | — | Part AV.H (d8/d12, relay-g1+g2 0/0) | 1 |
 | K-small-3 | 4 | WATCH | one-off terminal route pop (unreproduced — watch, don't chase) | Part K.A2 |
 | N-BJ-2 | 4 | REFUTED→FOLDED | unpair IS reachable (Settings bottom, pass 4); fakeLink half folded into F-P2-B | Part G.A2.4 |
 | N-BM-4 | — | RIG | Dictate leg kills the emulator (cause unproven); leg undriven | Part J |
@@ -394,7 +415,10 @@ N-BW-1 (P4, the timeline collapse sentinel never survives a restart); pass 40
 added N-BX-1 (P4, the JsonNull-blind decode renders "tracking: null") and
 N-BY-1 (P4, the Stage/Discard a11y labels carry the raw "%1$s"); pass 44 added
 N-BZ-1 (P4, the hooks viewer's refused-note conflation — a dead transport renders
-"refused", the honest offline note is near-unreachable).
+"refused", the honest offline note is near-unreachable); pass 45 added N-CA-1
+(P4, the checkpoint confirm's diff face unimplemented — diffCheckpoints UI-dead)
+and adjudicated K-small-1 FIXED (by vc52 Phase-5B work — the count swaps one for
+one).
 
 ## Mock-fidelity debts (rig, not app)
 
@@ -427,6 +451,7 @@ N-BZ-1 (P4, the hooks viewer's refused-note conflation — a dead transport rend
 28. ~~**(pass 42)** the getDiff fixture served the pass-5-era `{diff: "<unified>"}` literal while the decoder (Phase9Tools.gitDiff) reads `{path, availability ∈ patch|binary|truncated|unavailable, patch}` — the FIRST live diff-expand decoded availability=null → "unavailable" + patch=null (the app's honest tolerant face; the wire said ok)~~ **OPENED+CLOSED in the same pass** (`55162b44`: RigGitFixtures.diff() serves the decoder contract — {path, availability:"patch", patch}; self-test pins it). **Live receipt AS.C**: gen1 the honest unavailable face with `git.getDiff begin → ok` (the verb's first-series isolation); gen2 (fixed jar) the diff CARD + the full unified hunks render.
 29. ~~**(pass 43)** the mock's listTaskList served ALL title-filtered hits with `total=hits.size` + `hasMore:false` HARDCODED — the desktop's queryTaskList honors the caller's `limit` (LIMIT ? over the ordered filter; host chunk-TCPD6WAE.js) answering {items: ≤limit, total: COUNT over the filter, hasMore: total > items.length}, so the phone's limit:20 search (TaskServiceClient.searchTasks) could never see the pagination face (pass 42's coverage list named it undrivable against the 3-task seed)~~ **OPENED+CLOSED in the same pass** (`73c66186`: the handler reads `limit`, serves `hits.take(limit)`, derives `hasMore` from the filter count, and the relay search log line gains limit/served/hasMore; the no-limit shape (pass-38/39 receipts) and the p42 snippet fields UNCHANGED; `MOCK_TASKS_MANY=1` seeds synth-task-4..27 — 27 "synthetic" hits — additive over any seed; MockZCodePass43TaskSearchLimitSelfTest 6; suite **274/0/0**). **Live receipts AT.B/AT.C**: `search='synthetic' → 27 hits (limit=20 served=20 hasMore=true)` per keystroke + the under-limit `search='2' → 10 hits (limit=20 served=10 hasMore=false)` — and the face the wire unblocked opened **F-P43-A** (the phone silently truncates).
 30. ~~**(pass 44)** MOCK_REFUSE_COMMANDS was hard-wired to the goal trio (`setOf("sendGoal","pauseGoal","resumeGoal")` at arm time) — NO other command verb's server-refusal face was drivable, which left the hooks viewer's REFUSED note undrivable in its honest (genuine-refusal) sense and would block every future verb's refusal face~~ **OPENED+CLOSED in the same pass** (`0e5c08e1` p44-mock-refuse-list: a comma-list value arms ANY command types — `MOCK_REFUSE_COMMANDS=requestWorkspaceHookReview` drove pass 44's genuine-refusal leg; bare `1`/`true`/blank keeps the goal trio for back-compat; the refuse decision seam-extracted as `refuseReasonFor()` the dispatch calls; MockZCodeHooksRowsSelfTest gains the listed-type case; suite **275/0/0/0**). **Live receipt AU.G**: the gen2 Refresh answered the typed fault (outbox `FAILED_TERMINAL/fault.command.rigRefused:requestWorkspaceHookReview`) and the refused note rendered — with no state flip (refuse-before-effect) and exactly one command line in the relay log.
+31. ~~**(pass 45)** the hooks viewer's per-task group separation was structurally undrivable — MOCK_HOOKS seeds exactly ONE review (hard-keyed synth-task-1), so the viewer's `hooks_group_<taskId>` list could only ever render one group and pass 44's coverage leftover ("a second seeded task would exercise the group list's separation") had no arm~~ **OPENED+CLOSED in the same pass** (`ae091f81` p45-arms: `MOCK_HOOKS_SECOND=1` seeds synth-task-2's SECOND review — flow-rig-2, nonce id `hook-rig-2-*`, items h4/h5 with distinct commands/paths [required: hookTrustStates is SHARED across reviews, colliding reviewItemIds would leak trust flips]; scriptedHookInteraction seam-extracted as `scriptedHookInteractionFor(hr)`; + the git-checkpoint arg log line `MOCK: git-checkpoint <method> args=<json>` — channel args were log-silent forever and the F-P45-A divergence is provable ONLY arg-exact; MockZCodeHooksRowsSelfTest +1 case [both-reviews serve, taskId keyed per task, second-seed-only composition]; suite **276/0/0/0**). **Live receipt AV.I**: both reviews arrived in ONE snapshot — and the arrival itself exposed app-side F-P45-B (the capture's lastOrNull) before the viewer could ever render two groups.
 25. ~~**(pass 40)** the ADR-021 git WRITE tier's acks mutated `script.stagedPaths`/`discardedPaths` while `getChanges` kept serving the STATIC RigGitFixtures fixture — the phone staged, re-fetched, and saw the same rows (the recorded ack-without-mutate class ON THE GIT PLANE; nothing consumed the lists; commit left all three rows served)~~ **OPENED+CLOSED in the same pass** (`baa3f216` p40-mock-git-write-mutation: `servedGitChanges()` derives the changes view from the write tier's mutations — staged paths serve section "staged", discarded/committed rows drop, matching the phone's workspaceRelativePath keys against the fixture's absolute `path`; `commit` consumes the served rows it commits so the post-commit fetchChanges() sees the shrink; + MOCK_GIT_BRANCH_ISSUE / MOCK_GIT_PUSH_FAIL arms; MockZCodePass40GitWriteSelfTest 6/6, suite **254/0/0**). **Live receipt AQ.B**: Stage → `stagePaths ok` → the row MOVED tabs (Unstaged 2→1, Staged 1→2, s14); Discard via the typed gate → the row GONE; commit → Changes EMPTY (s21). Residuals (NOT debts — mock-fidelity notes): History never gains the committed row (script.gitCommits static); the summary stays isDirty=false/ahead=0 through the commit; the comparison fixture is branch-invariant.
 
 ## DISCOVERY BACKLOG (tick when the findings are appended as rows)
@@ -592,6 +617,37 @@ delta …`). Nothing pushed.
 ```
 
 ## History
+
+- 2026-11-17 (pass 45) — Part AV executed on a FRESH axis (the pass-44 census
+  method applied to the wire-verb layer): the **git-CHECKPOINT plane** —
+  `listCheckpoints`/`checkpointRestore`/`checkpointDiff` had ZERO report hits in 45
+  passes while the mock served the whole channel statefully incl. the never-driven
+  pass-27 conflict arm. The full verb/faces matrix first-series with the NEW
+  arg-exact wire receipts (the ae091f81 git-checkpoint arg log line): empty face +
+  **K-small-1 adjudicated FIXED** (the vc52 card's "Snapshot" button round-trips;
+  also corrected the era's "Checkpoints/Snapshot tabs" mis-read — no tabs exist),
+  create ×5 (notice verbatim, rows + ticking age labels; the first-minute label
+  absence = the delta<0 skew guard, census note), the **CKPT-HYDRATE** entry-fetch +
+  the app-RESTART hydrate (pre-restart checkpoints restorable in a fresh process,
+  the "elsewhere" note's honest flip), the restore confirm (ids interpolated), the
+  CONFLICT face (the pass-27 arm's first drive), force-success — which exposed
+  **F-P45-A (P2)**: the force leg executes on a DIFFERENT snapshot pair than
+  confirmed (`getOrNull(1)` hard-coded; confirm ckpt-1→ckpt-3 became force
+  ckpt-2→ckpt-3, arg-exact), the plain-success restore (gen2), and the
+  **diffCheckpoints UI-dead find → N-CA-1 (P4)** (0 wire calls both gens; the
+  confirm's promised diff face unimplemented). STEP 2 = pass 44's leftover (the
+  hooks multi-workspace face, debt **#31 opened+closed** `ae091f81`
+  MOCK_HOOKS_SECOND + the arg-log line; suite **276/0/0/0**) which exposed
+  **F-P45-B (P3)**: the capture's `lastOrNull` loses all-but-last reviews AND
+  cross-keys the survivor (the viewer rendered ONE hybrid group — task-1's key ×
+  workspace-Two's content — and its Refresh sent sessionId=synth-task-1 +
+  workspaceIdentity=synthetic-ws-two, DB-ACKED). Stamps: F-P13-A ×5 (the hybrid
+  refresh's re-issue patch at the gateway), F-P3-A ×12. App: ZERO changes (APK
+  byte-identical, install skipped — the FOURTH consecutive pass). Rig learnings
+  (AV.A0): the GMS nag again on a BACK chain (NEXT-button face this time);
+  add-the-arg-line-FIRST is the template for future verb-plane axes; M3 dialog
+  dump bounds were accurate this pass. Rig left UP (gen2 mock-p45-gen2-dd1e49c3 —
+  NOTHING sticky; app pid 11983 in synth-task-1's git sheet).
 
 - 2026-11-17 (pass 44) — Part AU executed on a FRESH axis (the pass-42 precedent —
   Part AT's coverage list had no driveables): the **HOOKS VIEWER plane** (Settings →

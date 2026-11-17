@@ -10301,3 +10301,256 @@ unless driving the refusal), app pid 10040 in synth-task-1's conversation (the
 pending trust card visible), logcat running → /tmp/p44/logcat.log. NEW RIG HAZARD:
 the GMS sign-in interstitial hijacks the foreground on BACK exit-chains (AU.A0.1) —
 SKIP + `am start -W` recovers with hub state intact.
+
+# Part AV — pass 45 (APPENDED 2026-11-17, ~14:05): FRESH RECON on a NEW axis — the git-CHECKPOINT plane (the vc52 Phase-5B card with ZERO series receipts: the report carried only the empty state [K-small-1] + the mis-read "Checkpoints/Snapshot tabs"; `listCheckpoints`/`checkpointRestore`/`checkpointDiff` had ZERO report hits in 45 passes) — the full verb/faces matrix driven FIRST-SERIES with the new arg-exact wire receipts: the empty face, the create ×5 (notice verbatim, rows render, age labels tick), the CKPT-HYDRATE entry-fetch + the app-RESTART hydrate (×3 pre-restart checkpoints restorable in a fresh process), the restore confirm (ids interpolated), the CONFLICT face first-series (the pass-27 arm finally driven), the force-overwrite success — which exposed NEW ROW F-P45-A (P2): the force leg executes on a DIFFERENT snapshot pair than confirmed (the wire answered `from ckpt-1 → to ckpt-3` for the confirm and `from ckpt-2 → to ckpt-3, force:true` for the Overwrite — `getOrNull(1)` hard-coded), the plain-success restore face (gen2, no arm), and the `diffCheckpoints` dead-UI static find confirmed on the wire (0 calls in both gens → NEW SMALL N-CA-1) — plus STEP 2 (pass-44's leftover): the hooks viewer's multi-workspace face unblocked by mock debt #31 (`MOCK_HOOKS_SECOND`, `ae091f81`) which exposed NEW ROW F-P45-B (P3): the capture's `lastOrNull` loses all-but-last reviews AND cross-keys them (the viewer rendered ONE hybrid group `hooks_group_synth-task-1` carrying workspace-Two's content; its Refresh sent sessionId=synth-task-1 + workspaceIdentity=synthetic-ws-two, DB-ACKED) — TWO new F rows (F-P45-A P2, F-P45-B P3), ONE new small (N-CA-1 P4), K-small-1 adjudicated FIXED (by vc52 Phase-5B work), stamps F-P13-A ×5 + F-P3-A ×12, ONE mock commit, app ZERO
+
+> **Pass 45 of the pass-0 series** (solo, the canonical discovery prompt; STEP 1 empty —
+> backlog 8/8 — and Part AU's coverage-honesty list had ONE driveable leg [the hooks
+> multi-workspace face, mock-side], so the axis = the pass-44 census method applied to
+> the wire-verb layer: `listCheckpoints`/`checkpointRestore`/`checkpointDiff` = ZERO
+> report hits; the mock ALREADY served the whole git-checkpoint channel statefully incl.
+> the `MOCK_CHECKPOINT_CONFLICTS` arm added pass 27 and never driven).
+> **App: ZERO changes** (HEAD `4f11150b` + the mock commit; on-device md5
+> `530ba4ff2283f67cc5a3c50bda7f41d6` == local HEAD artifact → `install -r` SKIPPED —
+> the fourth consecutive byte-identical pass; sha256 `ad449d7d…`, vc53/1.3.2).
+> **Mock: ONE commit** — `ae091f81` (p45-arms, debt #31 opened+closed:
+> MOCK_HOOKS_SECOND seeds synth-task-2's second review [flow-rig-2, items h4/h5] so
+> the viewer's per-task group separation is drivable; scriptedHookInteraction
+> seam-extracted as `scriptedHookInteractionFor(hr)`; PLUS the git-checkpoint arg log
+> line `MOCK: git-checkpoint <method> args=<json>` — the checkpoint wire receipts were
+> log-silent forever and the F-P45-A divergence is provable ONLY arg-exact;
+> MockZCodeHooksRowsSelfTest +1 case; suite **276/0/0/0**).
+
+> **Verification stamp (pass start):** 2026-11-17 13:05 → 14:00, GLM-5.3-Flash in ZCode,
+> everything local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…` UNCHANGED —
+> no DELTA. Rig: the pass-44 emulator REUSED (TWENTY-SECOND consecutive inherited
+> survival; screenshot protection OFF verified via the 241 KB-class content PNG); the
+> STICKY gen2 refusal relay (`mock-p44-gen2-2db49cb`) pkilled BY NAME at pass start.
+> TWO relay generations: gen1 `mock-p45-gen1-67e967b0` 13:09 (MOCK_HOOKS=1 +
+> MOCK_HOOKS_SECOND=1 + MOCK_GIT=1 + MOCK_CHECKPOINT_CONFLICTS=1), killed mid-pass for
+> the CKPT-HYDRATE leg ordering; gen2 `mock-p45-gen2-dd1e49c3` 13:47 (same MINUS the
+> conflict arm). Stored endpoints survived the swap (no re-pairing). THREE force-stop +
+> `am start -W` relaunches (pids 11127 → 11779 → 11983). APK md5 verified == HEAD
+> on-device → install SKIPPED. logcat fresh `-T 1` → /tmp/p45/logcat.log. Receipts:
+> shots /tmp/p45/shots/ s00–s16, AX dumps /tmp/p45/w/ d0–d28, relay logs
+> relay-g1.log + relay-g2.log, DB pulls /tmp/p45/db/g1.db[,-wal].
+
+## AV.A0 — rig learnings
+
+1. **The GMS setup nag hijacked the foreground AGAIN on a BACK exit-chain** (third BACK
+   from the git sheet fell out to a NEXT-button wizard page — a different face than
+   pass 44's SKIP page; the null-root dump failure is the tell). `am start -W`
+   recovered with pid unchanged (11127) and hub state intact. The hazard is 2/2 passes
+   on BACK exit-chains — budget a dump-and-recover after every BACK chain.
+2. **The new git-checkpoint arg log line (`ae091f81`) is what made the axis receiptable**:
+   channel calls printed NOTHING before it (the `MOCK: v4call` lines cover only the
+   JSON-RPC layer), so `restoreBetweenCheckpoints`' from/to ids were invisible — the
+   F-P45-A divergence is arg-exact BECAUSE of the rig fix. Precedent for future
+   verb-plane axes: add the arg line FIRST, then drive.
+3. **M3 AlertDialog dump bounds were accurate this pass** (Restore/Overwrite clickable
+   bounds matched the screenshot estimate within ~40px; the ~200px lie did not
+   manifest on this dialog class) — but the screenshot cross-check stays mandatory.
+4. The fresh-process conversation → context-sheet → git-sheet tap chain raced once
+   (the sheet dump caught the context sheet — the Git tap fired pre-render). One
+   dump-and-verify between chain taps costs less than the recovery cycle.
+
+## AV.B — Leg A: the empty face + the K-small-1 adjudication (first series for the card)
+
+Fresh process (pid 11127) → synth-task-1 → Context chip → Git: the git pane's FIRST
+content is the Checkpoints CARD (`git_checkpoints`, y 424-595): title "Checkpoints"
++ the create button **"Snapshot"** (`checkpoint_create`, 798-1025 × 424-556) + the
+empty face `checkpoints_empty` verbatim — "No snapshots in this session — create one
+before risky changes" (s03/d4). **CENSUS CORRECTION (two earlier passes' receipts):**
+there are NO "Checkpoints/Snapshot tabs" — the historical phrasing (Parts B/K/A11-era)
+mis-read the card header: `checkpoint_create` and its "Snapshot" child text occupy the
+exact bounds where a second tab would sit, and d3/d4 are byte-identical in that region
+across the Changes/Checkpoints "switches" (the card renders at the pane top ALWAYS;
+the pane below it is branch block → comparison → Commit…/Branches… → Changes →
+History, no tab switcher). **K-small-1 ADJUDICATED:** the small's "NO create
+affordance anywhere" is STALE — the vc52 Phase-5B card (A3.11) added the "Snapshot"
+button right beside the unchanged empty copy, and it round-trips (Leg B). FIXED by
+later work; no app commit (part of the shipped card).
+
+## AV.C — Leg B: create ×5 — wire, notice, rows, age labels (first series)
+
+Tap "Snapshot": `git-checkpoint createCheckpoint args={"workspacePath":"/synthetic/ws-one"}`
+(arg-exact, relay-g1) + the notice **"Snapshot ckpt-1 created"** verbatim (s04, the
+`checkpoint_created` toast) + the row renders (`checkpoint_id_0` = "ckpt-1") + the
+hydration-note oddity: "Snapshots created elsewhere aren't listed here" renders
+BESIDE the just-listed ckpt-1 — honest-by-timing (the entry-fetch came back EMPTY
+pre-create; the note gates on `hostHistoryEmpty` which is only recomputed on
+composition) — census note, not a defect. Second create → `ckpt-2` (the NEWEST sorts
+first) and the **Restore button appears** on the ckpt-2 row (`checkpoint_restore_0`;
+the button renders only where `index + 1 < checkpoints.size`). Third create (the
+divergence leg setup) → `ckpt-3`. The **age labels** render "now"/"2 min ago"/
+"3 min ago" and TICK (a 65s-later re-dump flipped "now" → "3 min ago"); a JUST-created
+row's label is absent for up to a minute — `relativeTimeLabel` returns null on
+delta<0 (the LocalRelativeNow minute-tick lags the host-stamped createdAt) — census
+note, not a defect (the skew guard working as designed).
+
+## AV.D — Leg C: the restore confirm → CONFLICT → force (first series; the pass-27 arm finally driven)
+
+Tap Restore on the ckpt-2 row → the confirm dialog verbatim: "Restore this
+checkpoint?" / **"Restore the workspace to snapshot ckpt-1 (from ckpt-2)? Files
+changed between the two are overwritten."** (both ids interpolated; s06/d8) →
+Restore → the wire `restoreBetweenCheckpoints args={"workspacePath":"/synthetic/ws-one",
+"fromCheckpointId":"ckpt-1","toCheckpointId":"ckpt-2"}` (force ABSENT — the client
+only puts it when true) → the mock's conflict arm answers → **"Local changes
+conflict"** / "1 file(s) were modified since the snapshot (src/config.ts…). Overwrite
+them?" (s07/d9 — the `MOCK_CHECKPOINT_CONFLICTS` arm's FIRST live drive since it was
+added pass 27) → Overwrite → `restoreBetweenCheckpoints args={…"fromCheckpointId":
+"ckpt-1","toCheckpointId":"ckpt-2","force":true}` → the success notice **"2 file(s)
+restored"** (the mock's restoredPaths pair). The confirm-dialog row semantics (census
+note): every Restore means "roll back to an EARLIER snapshot from the head" — the
+button on row i restores INTO `checkpoints[i+1]` with `to` hard-coded to the head
+(`firstOrNull`), so a middle row's confirm reads "to snapshot ckpt-1 (from ckpt-3)"
+— by design per the card comment, but see F-P45-A for where the SAME hard-coding
+goes wrong.
+
+## AV.E — Leg D: the FORCE-PAIR DIVERGENCE — NEW ROW F-P45-A (P2)
+
+The 3-checkpoint divergence leg: list [ckpt-3, ckpt-2, ckpt-1], tap Restore on the
+MIDDLE row (ckpt-2's) → confirm reads **"to snapshot ckpt-1 (from ckpt-3)"** → the
+wire carries `{fromCheckpointId:"ckpt-1","toCheckpointId":"ckpt-3"}` → conflict face
+→ Overwrite → **the wire carries `{fromCheckpointId:"ckpt-2","toCheckpointId":
+"ckpt-3","force":true}`** — THE `fromCheckpointId` CHANGED under the force. The user
+confirmed restoring the workspace to ckpt-1 and the destructive overwrite executed
+against ckpt-2 (one generation newer — silently KEEPING the changes the user asked
+to discard). Mechanism (`GitScreen.kt` CheckpointsCard): `forceConfirmFor` carries
+only `(to, conflicts)` and the force handler RECOMPUTES `from = checkpoints
+.getOrNull(1)` — a hard-coded index that happens to match the confirmed pair only
+when the list has exactly two entries (Leg C looked correct BECAUSE of that
+coincidence). Trigger: ≥3 checkpoints + a conflict (the common case on a dirty
+worktree — the reason the conflict face exists) + Overwrite. **Adjudication: NEW ROW
+F-P45-A (P2)** — a destructive ⚠-surface write diverging from its own confirmation,
+the F-P40-C confirm-then-different-execution family at destructive severity. Fix
+shape: carry the confirmed `from` through `forceConfirmFor` (Triple or a data pair);
+pin: a compose harness with a 3-item list asserting the force wire ids == the
+confirmed pair.
+
+## AV.F — Leg E: the plain-success restore (gen2, first series for the un-armed face)
+
+gen2 (no conflict arm, fresh relay): the fresh process (pid 11983) → the empty face
+re-receipted (`checkpoints_empty` verbatim, the "elsewhere" note correctly ABSENT on
+the empty list) → create ×2 (`ckpt-1`/`ckpt-2`, both wired) → Restore → confirm
+("to snapshot ckpt-1 (from ckpt-2)?") → Restore → `restoreBetweenCheckpoints {from:
+ckpt-1, to: ckpt-2}` (force absent) → **"2 file(s) restored"** DIRECTLY — no conflict
+dialog (s16/d28). The full restore face matrix is now receipted: confirm → conflict →
+force-success (gen1) AND confirm → plain-success (gen2).
+
+## AV.G — Leg F: the CKPT-HYDRATE app-restart leg (first series for `listCheckpoints`)
+
+Force-stop the app (pid 11779 fresh) with gen1's relay still holding ckpt-1/2/3 →
+open synth-task-1 → Git: `git-checkpoint listCheckpoints args={"workspacePath":
+"/synthetic/ws-one"}` fires ON CARD COMPOSITION and the card renders **ckpt-3 /
+ckpt-2 / ckpt-1** — all three created under the PREVIOUS process — with Restore
+buttons on the restorable rows and the "Snapshots created elsewhere aren't listed
+here" note GONE (`hostHistoryEmpty=false` — the note's honest flip, first-series).
+ZERO createCheckpoint this process. The vc51 Phase-4A claim ("snapshots created
+before an app restart stay listed and restorable") is live-proven end-to-end.
+
+## AV.H — Leg G: `diffCheckpoints` is UI-DEAD — NEW SMALL N-CA-1 (P4)
+
+The card's docstring promises "the confirm names BOTH ids and **the diff's files**" —
+the dialog names the ids only (AV.D). Static: `diffText` is only ever `null`-CLEARED
+(GitScreen.kt:991; rendered at :967, never assigned) and `port.diffCheckpoints` has
+ZERO UI callers — while the verb is fully wired BELOW the UI (GitCheckpointClient
+.diffCheckpoints → Phase9Ports override :182 → the mock's stateful handler with its
+`checkpointDiffFiles` pair). Live: **`diffCheckpoints` = 0 lines across BOTH relay
+logs** — the verb never fired in any leg including both restore-confirms. The
+client-side decode (CheckpointDiff) and the mock arm are healthy; only the UI call
+is missing. **Adjudication: NEW SMALL N-CA-1 (P4)** — the promised confirm-diff face
+unimplemented (the F-P40-C "detail copyable unimplemented" family). Fix shape: fetch
+the diff in the confirm path and render the files under the body (or drop the
+docstring claim); pin: a harness asserting the confirm names the diff files / the
+wire carries diffCheckpoints. Census ride-along: the mock also serves
+`deleteCheckpoint`, for which the phone has NO client method at all — mock
+over-provision, noted, not a debt.
+
+## AV.I — Leg H (STEP 2): the hooks viewer's multi-workspace face — NEW ROW F-P45-B (P3)
+
+With MOCK_HOOKS_SECOND (debt #31), opening synth-task-1's conversation delivered BOTH
+reviews in ONE snapshot (d1: "2 pending · 3 hooks" AND "1 pending · 2 hooks" cards
+side by side; both starved per F-P3-A — stamp 12). Settings → Workspace hooks
+rendered **ONE group only**: `hooks_group_synth-task-1` whose CONTENT is workspace
+Two's review ("Synthetic Workspace Two", "2 hook(s) · 1 pending trust", Deploy check
+/ fly deploy --wait / deploy/hooks.json + Nightly sync / rsync -a /data /backup /
+trusted) — synth-task-1's own 3-hook review NEVER rendered. Mechanism (two stacked
+faults, one root): `captureHookReview` reads `state.pendingInteractions?.lastOrNull
+{ it.kind == WORKSPACE_HOOK_REVIEW }` (ConversationSessionManager.kt:144-145) — with
+two reviews in one snapshot only the LAST is captured — and the sink files it under
+the OPENED session's id (`onHookReviewCaptured = { review -> hookReviewSink
+(t.sessionId, review) }`, RecoveryCoordinator.kt:188 → `hookReviewLedger[sessionId]
+= review`, ConnectionHub.kt:1103) — so synth-task-1's manager captured workspace
+Two's PAYLOAD under synth-task-1's KEY: a hybrid entry. The viewer's snapshot union
+(managers first, ledger putIfAbsent) renders exactly that hybrid. **The mismatched
+refresh, arg-exact (DB arbiter)**: Refresh on the hybrid group → outbox
+`requestWorkspaceHookReview / ACKED / accepted / {"sessionId":"synth-task-1",
+"workspaceIdentity":"synthetic-ws-two","bundleDigest":"bbbb…b"}` — task-1's session
+id with workspace TWO's identity/digest (the mock validates nothing; a real desktop
+would re-issue the WRONG workspace's review — and pass 44's two refusal rows sit
+right below it in the same pull as the standing discriminator pair). The re-issue's
+patch push dropped at the no-subscription-record gateway (13:25:01, `gateway.drop ::
+kind=ONLINE seq=2..2`) and snapshot-healed on the gen2 subscribe — **F-P13-A stamp
+5** (the requestWorkspaceHookReview re-issue variant). **Adjudication: NEW ROW
+F-P45-B (P3)** — multi-review snapshots lose all-but-last AND cross-key the
+survivor; the per-task group separation the viewer was built for (hooks_group_
+<taskId>) cannot manifest against the desktop's normal multi-workspace pending
+state. Fix shape: capture EVERY review of the kind keeping the latest per the
+PAYLOAD's own `review.taskId`, and key the sink by `review.taskId` (not the opened
+sessionId); pins: a manager harness with a 2-review snapshot asserting both viewer
+groups render with their own workspace labels + each group's refresh args match its
+own workspace.
+
+## AV.L — ledger arithmetic + coverage honesty
+
+TWO new F rows (**F-P45-A** P2, **F-P45-B** P3 — open F 39 → **41**), ONE new small
+(**N-CA-1** P4), **K-small-1 adjudicated FIXED** (by vc52 Phase-5B work; open smalls
+23 → 22 → **23** with N-CA-1). Stamps: **F-P13-A ×5** (the hybrid refresh's re-issue
+patch at the gateway), **F-P3-A ×12** (both hook cards starved, gen1). Census
+corrections: the "Checkpoints/Snapshot tabs" phrasing (Parts B/K-era) was a MIS-READ
+of the card header (no tabs exist); K-small-1's "no create affordance" stale since
+vc52. Mock debt **#31 opened+closed in-pass** (`ae091f81` — MOCK_HOOKS_SECOND + the
+git-checkpoint arg log line; suite **276/0/0/0**). gateway.drop: 1 (the F-P13-A
+stamp); zero app FATALs. Wire census (relay logs, arg-exact): git-checkpoint
+createCheckpoint ×5, restoreBetweenCheckpoints ×5 (2 plain-conflict pairs + 2 force
++ 1 plain-success), listCheckpoints ×3 (empty hydrate, post-restart hydrate ×3,
+fresh-empty hydrate), diffCheckpoints **×0** (N-CA-1's wire half); v4call:
+subscribeConversationV4 ×4, initializeConversationV4/helloConversationV4 ×6 each,
+conversationWorkflowRunsV4/conversationPlansV4 ×7 each (the F-P1-D drum across three
+opens — no clean idle window, no stamp), listAutomations ×6, requestWorkspaceHookReview
+command ×1 (the hybrid refresh).
+
+What pass 45 did NOT drive: the hooks ANSWER leg (trust_selected → resolved faces —
+F-P3-A-gated, standing); the conflict body's >3-files take(3) slice (the mock serves
+one conflict; the %1$d/%2$s render receipted at 1); a checkpoint DELETE face (no
+client method exists — N-class undrivable); the hybrid group's refresh RE-SURFACE
+chain (pass 44 receipted the healthy path's chain; the hybrid adds no new face);
+gen2's hooks faces (the two-group/hybrid legs rode gen1); TalkBack runtime (standing
+stop); the desktop's own checkpoint UI (desktop-legit, out of rig scope); the
+F-P40-C/F-P40-B/F-P43-A-gated fix faces (unchanged code — fix-round).
+
+## Pass-45 verification stamp
+
+Pass 45 completed 2026-11-17 ~14:00 (record appended ~14:05); TWO relay generations
+(gen1 `mock-p45-gen1-67e967b0` 13:09→killed 13:47 for the plain-success leg; gen2
+`mock-p45-gen2-dd1e49c3` 13:47→end; launchers /tmp/p45/relay-g1.sh + relay-g2.sh,
+arms BEFORE exec — gen1 MOCK_HOOKS=1 + MOCK_HOOKS_SECOND=1 + MOCK_GIT=1 +
+MOCK_CHECKPOINT_CONFLICTS=1, gen2 minus the conflict arm). Mock: ONE commit —
+`ae091f81` (debt #31: MOCK_HOOKS_SECOND + scriptedHookInteractionFor seam + the
+git-checkpoint arg log line + 1 self-test; suite **276/0/0/0**). App: ZERO changes —
+`install -r` SKIPPED on byte-identity (local == on-device md5 `530ba4ff…`, sha256
+`ad449d7d…`, vc53/1.3.2 at HEAD `4f11150b`). Receipts: shots /tmp/p45/shots/ (s00
+home; s01 the conversation with BOTH hook cards; s02 the git sheet; s03 the empty
+card; s04 ckpt-1 + the created toast; s05 ckpt-2 + Restore; s06 the restore confirm;
+s07 the conflict face; s08 the force success; s09/s10 the middle-row divergence pair;
+s12 the hybrid hooks group; s13 the hybrid refresh; s14 the post-restart hydrate ×3;
+s15 the gen2 confirm; s16 the plain success), AX dumps /tmp/p45/w/ d0–d28, relay logs
+relay-g1.log + relay-g2.log, DB pulls /tmp/p45/db/g1.db[,-wal] (the hybrid-refresh
+ACKED row + pass 44's two refusal rows); logcat /tmp/p45/logcat.log (gateway.drop 1;
+zero FATALs). Desktop 3.18.1 / `ec475e6e…` unchanged (STEP 0). **Rig left:**
+emulator zcode-a16 UP (healthy, screenshot protection OFF), relay gen2 ALIVE (nonce
+`mock-p45-gen2-dd1e49c3` — arms MOCK_HOOKS + MOCK_HOOKS_SECOND + MOCK_GIT, NOTHING
+sticky [the conflict arm left with gen1]; reusable as-is for hooks/git legs), app
+pid 11983 in synth-task-1's git sheet (the gen2 post-success card), logcat running →
+/tmp/p45/logcat.log.
