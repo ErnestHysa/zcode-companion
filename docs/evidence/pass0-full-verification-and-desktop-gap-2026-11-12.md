@@ -11494,7 +11494,7 @@ REVERTED), logcat running → /tmp/p49/logcat.log. Launchers /tmp/p49/relay-g*.s
 
 | Phase | Theme | Rows | P2 | P3 | P4 | Session risk | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Connection, recovery & transport state | 6 | 4 | 1 | 1 | High | ☐ |
+| 1 | Connection, recovery & transport state | 6 | 4 | 1 | 1 | High | ✓ DONE 2026-11-17 |
 | 2 | Interaction cards, answers & hook capture | 11 | 7 | 3 | 1 | High | ☐ |
 | 3 | Tasks home & workspace manager | 9 | 1 | 5 | 3 | High | ☐ |
 | 4 | Git sheet, checkpoints & render fidelity | 10 | 2 | 5 | 3 | Medium | ☐ |
@@ -11526,7 +11526,7 @@ Theme: the endpoint/recovery plane that every other surface rides on. Order insi
 
 ### Sub-phase 1A — endpoint persistence & wedges
 
-- [ ] **F-P8-A (P2) — cold start with DIRECT selected: the deferred relay `persistEndpoint`
+- [x] **F-P8-A (P2) — cold start with DIRECT selected: the deferred relay `persistEndpoint`
   rewrites `_endpoint` after resolve, silently abandoning the resolved selection.**
   `ConnectionHub.kt:672-685 → :1650` re-persists post-resolve; the recovery is dropped by the
   `sourceKind` filter; the UI shows "First sync failed" beside a healthy direct endpoint; Retry
@@ -11535,7 +11535,7 @@ Theme: the endpoint/recovery plane that every other surface rides on. Order insi
   + a "no `hub.switched` without user tap" assert; a live cold-start DIRECT leg renders the
   healthy direct face with no false failed strip. (F-P2-A's supersession: the REAL root is
   here.)
-- [ ] **F-P9-A (P2) — relay killed MID-AUTHENTICATION wedges the transport in AUTHENTICATING
+- [x] **F-P9-A (P2) — relay killed MID-AUTHENTICATION wedges the transport in AUTHENTICATING
   permanently** (zero sockets, zero ladder, zero logs, 8 min receipted; survives
   foreground/unlock; NO retry face — cached rows suppress the strip; the active-endpoint tap is
   a silent no-op; only escape = a cross-endpoint switch away+back). Three trigger variants
@@ -11544,7 +11544,7 @@ Theme: the endpoint/recovery plane that every other surface rides on. Order insi
   **Accept:** a Robolectric kill-mid-handshake pin (netstat-zero + "no silent state" assert); a
   live leg kills the relay at handshake → the face flips within the timeout and Retry
   reconnects.
-- [ ] **F-P9-B (P2) — the typed disconnected-remote face never renders live:** the hub logs
+- [x] **F-P9-B (P2) — the typed disconnected-remote face never renders live:** the hub logs
   `workspace-bridge-error: remote-disconnected` but ConnectionCenter shows the generic offline
   face — the G67 card (`connection_remote_reconnect`, render condition
   `lastError.messageKey==REMOTE_WORKSPACE_DISCONNECTED`, `ConnectionCenterScreen.kt:296`) never
@@ -11555,7 +11555,7 @@ Theme: the endpoint/recovery plane that every other surface rides on. Order insi
 
 ### Sub-phase 1B — recovery, reconnection state & the sync strip
 
-- [ ] **F-P13-A (P2) — the workflowRun delta plane is DEAD on the CLOSE-CYCLE post-recovery
+- [x] **F-P13-A (P2) — the workflowRun delta plane is DEAD on the CLOSE-CYCLE post-recovery
   path:** the detach path drops the local subscription record (`recovery.detached` — detach()
   fires only from closeConversation, `ConnectionHub.kt:1027-1052` →
   `RecoveryCoordinator.kt:130-149`), the recovery re-materializes conversations via
@@ -11568,21 +11568,30 @@ Theme: the endpoint/recovery plane that every other surface rides on. Order insi
   post-close-cycle delta; a live leg applies deltas with seq > 1 and zero gateway.drop; the
   stay-open boundary re-receipted. (The patch variant is stamped pass 44 — same gateway, same
   fix.)
-- [ ] **F-P8-B (P3) — switching to an already-CONNECTED endpoint throws ISE `connect() is the
+- [x] **F-P8-B (P3) — switching to an already-CONNECTED endpoint throws ISE `connect() is the
   first-connection path`.** **Fix:** `connectDirect()` → `recover()`/no-op when
   state==CONNECTED. **Accept:** a harness asserting a second tap on the connected endpoint does
   not throw and the connection holds.
-- [ ] **K-small-2 (P4) — "First sync failed" renders alongside CACHED rows** (wording/state
+- [x] **K-small-2 (P4) — "First sync failed" renders alongside CACHED rows** (wording/state
   nit), and the strip can be entirely ABSENT when the F-P9-A wedge suppresses the refresh.
   **Fix:** align the strip with the real sync state (rides this phase's transport work).
   **Accept:** after a failed sync with cached rows the strip text matches the transport state;
   never rendered contradictory or silently absent while the wedge is live.
 
-**Phase 1 exit gate: ☐** fresh zcode-a16 cold boot + relay: (a) DIRECT cold start renders
+**Phase 1 exit gate: ☑ PASSED 2026-11-17** fresh zcode-a16 cold boot + relay: (a) DIRECT cold start renders
 healthy (F-P8-A); (b) relay killed mid-auth → the wedge resolves via the watchdog and Retry
 reconnects (F-P9-A); (c) the remote-disconnected arm renders the typed card (F-P9-B); (d) kill
 during a live conversation → post-close-cycle deltas apply with zero gateway.drop (F-P13-A);
 (e) tap the already-connected endpoint → no ISE (F-P8-B). Zero ANR/FATAL on the leg.
+
+> **VERIFIED ✓ Phase 1 — 100% complete.** Verified 2026-11-17 at **22:51:38** (hh-mm-ss, UTC,
+> post-exit-gate). Verified by **GLM-5.3-Flash** running in **ZCode** (ZCode Desktop harness,
+> agentic CLI on macOS arm64, account:zai-start-plan/GLM-5.3-Flash), executing Ernest's
+> pass-0 Phase-1 dispatch. All six rows FIXED on `fix/pass0` (5 commits, pins RED-demonstrated
+> at their pre-fix commits, GREEN post-fix); full-suite zero-new-names gate passed; debug APK
+> rebuilt (sha256 `50754d1b…`, md5 `8b8d17ad…` — the series' first non-byte-identical build:
+> Phase 1 changes app code); the exit gate receipted live (legs a-e, receipts in the fix-round
+> record below). NOTHING pushed — local commits only.
 
 ---
 
@@ -12250,3 +12259,131 @@ note); the catalog detail-sheet pin green; the a11y pin green.
 - [ ] The ledger rows re-statused FIXED with their commit shas; the discovery record above
       untouched; reusable learnings appended to AGENTS.md
 - [ ] This roadmap left append-only (row ticks + dated fix-round receipts only)
+
+---
+
+# pass-0 Remediation — Phase 1 fix-round record (APPENDED 2026-11-17, ~23:00)
+
+> **Phase 1 — Connection, recovery & transport state: 6/6 rows FIXED, exit gate PASSED.**
+> Branch `fix/pass0` (cut from main `80451814`), five `fix(...)` commits, every pin written
+> TEST-FIRST and RED-demonstrated at its pre-fix tree, GREEN post-fix, then the full suite +
+> zero-new-names gate, the APK rebuilt, and the five exit-gate legs receipted live on a fresh
+> zcode-a16 cold boot. Executed by GLM-5.3-Flash in ZCode (Ernest's "begin phase 1, and only
+> this phase" dispatch). Nothing pushed — local commits only.
+
+## F.1 — commits (one mechanism ≥ one commit; shared-remedy pair named)
+
+| Commit | Row(s) | Mechanism (one line) |
+| --- | --- | --- |
+| `32f1f3ce` | **F-P8-A + F-P8-B** | `persistEndpoint` guards the ACTIVE pointer against overwriting a resolved non-relay selection (the deferred pairing-edge persist landed after `resolveActiveEndpoint`'s flip and silently rewrote `_endpoint` to the relay); `connectDirect()` adopts a CONNECTED transport (`recover()` no-op) instead of throwing ISE `connect() is the first-connection path` |
+| `b4533d51` | **F-P9-A** | the AUTHENTICATING watchdog (publishState arms it on entry, cancels on leave; 90 s — above the connect+auth+F-PAIRSTATUS windows) rescues the wedged handshake state through the socket-loss path, and establish()'s TimeoutCancellationException catch routes through the same machine handling (extracted `handleEstablishFailure`) instead of converting+rethrowing WITHOUT the ladder arm |
+| `feb0fc4a` | **F-P9-B** | the hub's connect-failure path assigns the TYPED remote-disconnected error to `_lastError`, and the relay appErrors collector refuses to let the GENERIC degraded-budget error ("Still offline — showing cached state") clobber a still-live REMOTE_WORKSPACE_DISCONNECTED face — THE LIVE PASS-9 MECHANISM (the overwrite, receipted in the harness RED) |
+| `eae79755` | **F-P13-A** | the CONNECTED sweep re-subscribes every MANAGED session without a subscription record on this connection (the epoch re-stamp the close-cycle/recovery handshake skipped), plus `GatewayTopicEvent.RecordlessDelta` — the gateway's null-epoch branch now emits a typed event and the coordinator re-anchors a live manager mid-connection (cooldown-bounded, pendingAttach on failure); the stay-open boundary (pass 15) is untouched — a record-bearing session is NEVER re-subscribed |
+| `168a1371` | **K-small-2** | the READY body never renders the "First sync failed" wording beside cached rows (the EMPTY body keeps it) and suppresses the plain error strip while the stale overlay carries the reconnecting face; `TasksUiState.stale` covers the MID-ACQUISITION phases (CONNECTING/AUTHENTICATING/RECOVERING) when rows exist and the last sync failed |
+
+## F.2 — pins (TEST-FIRST; shape fidelity)
+
+| Pin | RED (pre-fix tree) | GREEN |
+| --- | --- | --- |
+| `ConnectionHubEndpointPersistenceTest` (app): the race recreated DETERMINISTICALLY (gated registry reads order the resolve's flip BEFORE the pairing edge's deferred persist — a single gate was a race on Dispatchers.IO), the no-`hub.switched`-without-user-tap assert, Retry reconnects the transport the UI shows; F-P8-B: the adopted-connection switch (direct transport CONNECTED outside the hub, active pointer elsewhere → `switchTo`) | 2/2 RED — F-P8-A: `expected:<DIRECT_SERVER> but was:<RELAY_ZAI>` (the TRUE defect assert); F-P8-B: "the switch completes its task refresh" (the ISE swallowed → no refresh) | 2/2 |
+| `RelayTransportAuthenticatingWatchdogTest` (core/transport): the HANG class (a ws connect that never resolves → the watchdog flips within the window, LOGS `relay.lost` with the "auth watchdog" reason, and arms a SECOND connect attempt — "zero reconnect attempts" was the wedge signature) + the TIMEOUT class (a connect timeout must reach RECONNECTING, never rest in AUTHENTICATING) | RED demonstrated with the new-API param elided (the vc51 new-API pattern) + a state-timeline DIAG probe: pre-fix the machine rests at `state=AUTHENTICATING t=1` with NO further transitions (both tests time out) | 2/2 |
+| `ConnectionHubTypedErrorFaceTest` (app): the mock's remote-down fixture armed + a 1 ms reconnect budget → the ladder exhausts → DEGRADED → the TYPED key must SURVIVE the generic budget-exhausted overwrite | 1 RED — the generic face overwrote the typed one (the pass-9 live mechanism, reproduced deterministically); + 2 compose pins (the card renders for the typed key, the Reconnect verb reachable, a non-typed error never renders the card — green pre-fix, they pin the contract) | 3/3 |
+| `RecoveryRecordlessResubscribeTest` (data, Robolectric): (1) the CONNECTED sweep re-subscribes a record-less managed session; (2) a record-less delta re-anchors mid-connection (cooldown bounds the chase); (3) the stay-open boundary — a record-bearing session is NEVER re-subscribed; (4) the real gateway emits RecordlessDelta for a record-less conversation frame | RED probe (pin-1 logic standalone, pin set aside for the new-API compile): `Timed out waiting for 6000 ms` waiting for the re-subscribe — the record-less managed session sat un-resubscribed through the CONNECTED cycle | 4/4 |
+| `TaskListUiTest` (+2): cached rows + failed sync renders the plain strip (never the first-sync wording); the wedge window (AUTHENTICATING + rows + error) shows the stale strip with no doubled faces | 2/2 RED | 11/11 (the existing E4/first-sync/stale/plain matrix pins stayed green) |
+
+## F.3 — suite + gate
+
+- **Full suite** (`testDebugUnitTest` for the 11 Android modules + `test` for the 6 pure-JVM
+  modules): **zero NEW failing names** vs the pre-phase baseline. The ONE failure is the
+  PRE-EXISTING baseline anchor: `ConnectionHubWritePathTest > sendText lands as authoritative
+  rows and the overlay reconciles (U4, §17-5)` — `AssertionError: expected:<ENQUEUE> but
+  was:<START_NOW>` (ConnectionHubWritePathTest.kt:187), deterministic in isolation at main
+  `80451814` BEFORE any Phase-1 change (2/2 runs pre-batch). Outside Phase-1's scope (the
+  send-disposition surface, Phase-6 territory); recorded as the name-diff anchor.
+- Blind-spot caught by the rule-7 discipline: my FILTERED `--tests` runs left
+  `:core:transport:test` UP-TO-DATE in the full-suite pass — forced a `--rerun` full pass:
+  **33 classes, 0 failures/errors**.
+- Task-failure list: only test-failure tasks (no compile failures); every touched module
+  emitted test XML (app 102 / data 49 / features:tasks 33 / core:transport 33 JVM).
+- **APK rebuilt**: `app/build/outputs/apk/debug/app-debug.apk` — sha256 `50754d1b2df64dbf…`,
+  md5 `8b8d17adb54c…`, v53 / 1.3.2 — the series' FIRST non-byte-identical build (Phase 1
+  changes app code, as it must).
+
+## F.4 — the exit gate (live receipts, fresh zcode-a16 cold boot `-no-snapshot-load`)
+
+Generations: gen1 `mock-p1phase-gen1-a1b2c3` (relay, TASKMGMT), the DIRECT mock
+`MOCK_MODE=direct` on :18200 (`rig-direct-token`, seeded), gen2 `…-gen2-d4e5f6`
+(MOCK_PAIR_STATUS_PENDING_MS=45000), gen3 `…-gen3-g7h8i9` (happy), gen4 `…-gen4-j1k2l3`
+(MOCK_REMOTE_DOWN_MS=2000), gen5 `…-gen5-m4n5o6` (MOCK_ENFORCE_RUN_DELTAS=1 +
+MOCK_RUN_DELTA_ANCHOR=subscribe + 8 s/20 s). App PID 5004 → 2222 (the emulator restart).
+Receipts anchored in the pulled logcat; screenshots /tmp/p1phase/leg-a-home.png,
+leg-c-card.png.
+
+- **(a) F-P8-A — PASSED.** Force-stop + relaunch with P3Direct persisted + the relay pairing
+  coexisting: `hub.connect :: cold-start connect begin (kind=DIRECT_SERVER)` →
+  `direct.connected :: via=10.0.2.2:18200` → `hub.directTasksApplied :: tasks=3 workspaces=1`;
+  **zero `hub.switched` lines** and zero relay-kind connects in the whole cold-start window —
+  the deferred persist did NOT abandon the resolved selection; home renders "Connected" +
+  the direct-ws workspace with 3 rows and NO strip (screenshot leg-a-home.png).
+- **(b) F-P9-A — PASSED.** Relay gen2 (pair-status pending) → the machine sat AUTHENTICATING
+  (the F-PAIRSTATUS poll asking 1.5 s) → **relay killed MID-AUTHENTICATION** (22:34:18) →
+  `relay.lost :: abnormal close 1006` at 22:34:21 → **RECONNECTING** (NO silent wedge —
+  pre-fix this is the 8-min zero-socket zero-log stall) → the ladder cycled honestly
+  (relay-2/3/4, `relay.connectFailed :: TIMEOUT connect timed out after 10000ms` each, logged)
+  → budget → FAILED with the honest faces on screen ("Connection failed" chip +
+  "Connection lost — showing cached tasks / Reconnecting to MockBook… / Retry" beside CACHED
+  rows — the K-small-2 stale overlay live) → relay gen3 up → **Retry** →
+  `hub.retry :: user retry from phase=FAILED (single-flight → reconnectNow)` →
+  `relay.connected relay-5` → **CONNECTED** in 3 s → `bootstrapApplied tasks=3`.
+  The earlier NAT-dead window on this same build additionally receipted the TCE-fix class
+  live: AUTHENTICATING → RECONNECTING at +12 s (pre-fix: the silent wedge).
+- **(c) F-P9-B — PASSED.** Relay gen4 with MOCK_REMOTE_DOWN_MS=2000 → cold connect → every
+  bridge-open failed with the TYPED error (`relay.connectFailed :: SESSION workspace-bridge-
+  error: remote-disconnected` per attempt, the ladder cycling) → the Connection Center
+  rendered **THE TYPED CARD** ("This remote workspace is disconnected" + Reconnect + Dismiss;
+  screenshot leg-c-card.png) → **Reconnect tapped** → `nav.reconnectWorkspace :: key=
+  /synthetic/ws-one` → `hub.reconnectWorkspace :: success=true` (workspace-reconnect-request
+  on the wire, the mock's arm flipped off) → `hub.retry` → `relay.connected relay-13` →
+  **CONNECTED** → `bootstrapApplied tasks=3`. The pass-9 defect (the verb UI-unreachable) is
+  closed end-to-end.
+- **(d) F-P13-A — PASSED.** The conversation OPEN (subscribed, epoch-mock-1) → relay killed →
+  the conversation closed WHILE DEAD → `unsubscribeConversationV4 begin` → **FAILED
+  (`channel closed: abnormal close 1006`)** → `recovery.detached :: session=synth-task-1
+  (unsubscribed)` — THE EXACT pass-13 unlink (the record dropped though the send failed) —
+  → fresh gen5 (deltas anchored at subscribe) → reopen on the recovered connection →
+  `gateway.frame kind=INITIAL seq=0..1` applied → **`gateway.frame kind=ONLINE seq=2..2`**
+  (the workflowRun.updated at subscribe+8.0 s) and **`kind=ONLINE seq=3..3`** (the removed at
+  +21 s) BOTH APPLIED → **`gateway.drop` count for the whole leg: 0**.
+- **(e) F-P8-B — PASSED.** Tapping the ALREADY-CONNECTED endpoint row is harmless (the
+  same-id switch converges; no `hub.directConnectFailed`, no ISE, the connection held); the
+  deep adopted-connection path (the transport CONNECTED while the active pointer differs —
+  the state F-P8-A used to create) is pinned RED→GREEN by
+  `ConnectionHubEndpointPersistenceTest.F-P8-B`.
+- **Robustness**: `FATAL EXCEPTION` count 0; `recovery.eventFault` 0 across all legs. ONE
+  `data_app_anr` (22:27:45, "Input dispatching timed out") during the PRE-LEG SETUP — the
+  add-direct dialog field-filling under rapid `adb input text` bursts + swiftshader +
+  IME load (CPU section: system_server 58% + the app 34% with 5.4k major faults) — the
+  F-P0-E rig-load class, NOT a leg failure (all five legs ran 22:31–22:49 ANR-free). The
+  API-36 NAT blackhole struck once mid-leg (P.A0.4 class, after gen4's abrupt kills) —
+  recovered by the standing emulator cold-boot recipe; the app's ladder cycled honestly
+  through it (logged timeouts, no wedge).
+
+## F.5 — what was NOT driven (honesty)
+
+- The watchdog's 90 s rig receipt (a true hang arm: the relay accepting the socket but never
+  answering auth) — the unit pins cover both wedge classes deterministically and the rig
+  receipted the ladder paths (1006 classification + the TCE timeout class) on this build; a
+  hang-arm mock debt for a future pass.
+- The RecordlessDelta rig receipt in its purest form (a delta arriving while the pane is live
+  AND record-less mid-connection) — the rig leg exercised the close-cycle through the
+  reopen+subscribe path (zero drops); the mid-connection re-anchor is unit-pinned RED→GREEN.
+- Desktop-of-record STEP 0 was run at session start (3.18.1 / asar `ec475e6e…` UNCHANGED —
+  no DELTA).
+
+## F.6 — verification stamp
+
+**2026-11-17, verified at 22:51:38 (hh-mm-ss, UTC; the docs commit follows).** Verified by
+**GLM-5.3-Flash** (model/LLM: account:zai-start-plan/GLM-5.3-Flash) running in **ZCode**
+(ZCode Desktop, the agentic CLI harness on macOS arm64), executing Ernest's pass-0 Phase-1
+dispatch. Phase-1 disposition: **6/6 rows FIXED + exit gate PASSED — the phase is COMPLETE**.
+Ledger statuses re-stamped with the commit shas in the same session. NOTHING pushed.
