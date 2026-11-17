@@ -108,18 +108,17 @@ P2-first, exit gates, per-row Accept criteria).
 
 - Report: `docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md` —
   Parts A–Z + AA + AB + AC + AD + AE + AF + AG + AH + AI + AJ + AK + AL + AM + AN +
-  AO + AP + AQ + AR + AS + AT = passes 0–43. **Latest: pass 43 (Part AT, 2026-11-17 ~08:20).**
-- Repo HEAD at pass start: `e9d42698` (pass 42's docs commit; main); pass 43 added
-  ONE mock commit — `73c66186` (p43-task-search-limit: debt #29 — listTaskList
-  reads the caller's `limit` and serves the desktop queryTaskList shape
-  {items ≤limit, total = COUNT, hasMore = total > items.length} where it served
-  ALL hits + hasMore:false hardcoded; MOCK_TASKS_MANY=1 seeds synth-task-4..27
-  so the phone's limit:20 crosses the face; MockZCodePass43TaskSearchLimitSelfTest 6;
-  mock suite **274/0/0**) + the docs commit. App: ZERO commits. APK of record:
-  sha256 `ad449d7d…` / md5 `530ba4ff…`, versionCode 53 / 1.3.2 (byte-identical
-  across the whole series; install SKIPPED again — on-device md5 re-verified).
+  AO + AP + AQ + AR + AS + AT + AU = passes 0–44. **Latest: pass 44 (Part AU, 2026-11-17 ~12:10).**
+- Repo HEAD at pass start: `73c66186` (pass 43's mock commit; main); pass 44 added
+  ONE mock commit — `0e5c08e1` (p44-mock-refuse-list: debt #30 — MOCK_REFUSE_COMMANDS
+  gains a comma-list form arming ANY command types [bare `1`/`true`/blank keeps the
+  goal trio], the refuse decision seam-extracted as `refuseReasonFor()`;
+  MockZCodeHooksRowsSelfTest +1 case; mock suite **275/0/0/0**) + the docs commit.
+  App: ZERO commits. APK of record: sha256 `ad449d7d…` / md5 `530ba4ff…`,
+  versionCode 53 / 1.3.2 (byte-identical across the whole series; install SKIPPED
+  again — on-device md5 re-verified).
 - Desktop of record: **/Applications/ZCode.app 3.18.1.10376, asar sha256 `ec475e6e…`,
-  383,832,025 B** (re-verified at pass-43 STEP 0 — UNCHANGED, no DELTA). Pass-43
+  383,832,025 B** (re-verified at pass-44 STEP 0 — UNCHANGED, no DELTA). Pass-43
   census addition: the desktop task-list contract extracted exact (AT.B) —
   queryTaskList (host chunk-TCPD6WAE.js) honors `limit` (LIMIT ? over the ordered
   filter) answering {items ≤limit, total = COUNT over the filter, hasMore =
@@ -127,33 +126,42 @@ P2-first, exit gates, per-row Accept criteria).
   (`f(e.total), m(e.hasMore)`) with `limit: e.expanded?void 0:e.collapsedLimit`
   and renders the taskList.showMore/showLess affordance — the desktop NEVER
   silently truncates.
-- Open rows: **39 F (37 defects + 2 obs) + 23 G + 3 standing + 22 smalls (+1 watch
-  +1 rig)** — pass 43 opened **F-P43-A** (P3: the tasks-search pane silently
-  truncates at limit:20 — total/hasMore dropped at the port, no count/affordance
-  face, matches 21–27 unreachable through the search UI); stamps: NONE this pass
-  (no open row re-manifested); the desktop of record UNCHANGED (no DELTA at
-  pass-43 STEP 0).
-- Backlog: **8/8 DONE**; pass 43's axis was Part AS's coverage-honesty leftover —
-  the "hasMore/limit path of listTaskList" (named undrivable against the 3-task
-  seed) — unblocked by the MOCK_TASKS_MANY arm and DRIVEN: the pagination face
-  receipted live on the wire, which opened F-P43-A. What remains is standing
-  stops + F-P3-A-gated planes + F-P40-B/F-P40-C-gated faces + fix-round items.
-  **The mock-debt list has 0 open work-debts** (#29 opened+closed in-pass).
-- Rig left by pass 43: emulator `zcode-a16` UP (TWENTIETH consecutive inherited
-  survival; healthy, wifi ENABLED, screenshot protection OFF), relay gen1 ALIVE
-  (nonce `mock-p43-gen1-157d6f`, arms MOCK_TASKMGMT=1 + MOCK_TASKS_MANY=1 —
-  ADDITIVE/nothing sticky, an inheritor may reuse [the home renders 27 tasks] or
-  pkill by name), app pid 8599 on the tasks home (search closed, the hit-tap
-  cleared the query), logcat running → /tmp/p43/logcat.log. Launcher
-  /tmp/p43/relay-g1.sh. New rig learnings in Part AT.A0: the launcher hand-write
-  trap re-manifested with a NEW failure mode (the mangled path was valid-looking —
-  `kotlinx-serialization-core-jvm-1.9.0/` as a dir component — NoClassDefFoundError
-  StringFormat at boot; cmp-byte-diff found it; derive launchers, never hand-write);
-  the IME eats result-pane swipes AND types through them (three swipes committed
-  " to to to" via the space key); keyevent 111 (ESC) does NOT close this IME and
-  the keyboard-chevron tap missed — BACK once (keyevent 4) after typing, BEFORE
-  any swipe, is the only recipe; a dump-parse `grep -o '[0-9]*'` pulled "27" out
-  of a "hit-27" label and garbled the tap args (digit-free labels or strict parses).
+- Open rows: **39 F (37 defects + 2 obs) + 23 G + 3 standing + 23 smalls (+1 watch
+  +1 rig)** — pass 44 opened **N-BZ-1** (P4: the hooks viewer's Refresh renders
+  "The desktop refused the review request." on a DEAD transport — BlockedOffline/
+  Failed both map to else→false in requestHookReview while the honest offline note
+  is structurally near-unreachable; the gen2 genuine-refusal leg rendered the SAME
+  note honestly, so the two classes are indistinguishable to the user); stamps:
+  **F-P3-A ×11** (the starved hook-review card re-manifested on both gens — the
+  ANSWER leg stays gated) and **F-P13-A ×4** (the detached-refresh re-issue pushes
+  dropped ×2 at the no-subscription-record gateway, snapshot-healed); the desktop
+  of record UNCHANGED (no DELTA at pass-44 STEP 0).
+- Backlog: **8/8 DONE**; pass 44's axis was a FRESH RECON (the pass-42 precedent —
+  Part AT's coverage list had no driveables): the HOOKS VIEWER plane (Settings →
+  Workspace hooks — the vc52-built G71 screen with ZERO series receipts; the
+  `requestWorkspaceHookReview` verb never sent in the series). The full face matrix
+  driven first-series: empty face, the ledger capture + the populated ×3-item
+  render, Refresh live + the card re-surface chain, the DETACHED-LEDGER refresh
+  (the exit-gate design holding), the relay-down face (N-BZ-1), the genuine
+  refusal face (debt #30's arm). What remains is standing stops + F-P3-A-gated
+  planes + F-P40-B/F-P40-C/F-P43-A-gated faces + fix-round items. **The mock-debt
+  list has 0 open work-debts** (#30 opened+closed in-pass).
+- Rig left by pass 44: emulator `zcode-a16` UP (TWENTY-FIRST consecutive inherited
+  survival; healthy, screenshot protection OFF), relay gen2 ALIVE (nonce
+  `mock-p44-gen2-2db49cb` — **⚠ STICKY MOCK_REFUSE_COMMANDS=requestWorkspaceHookReview
+  arm**: every requestWorkspaceHookReview answers the typed fault; an inheritor must
+  pkill + relaunch unless driving the refusal), app pid 10040 in synth-task-1's
+  conversation (the pending trust card visible), logcat running →
+  /tmp/p44/logcat.log. Launchers /tmp/p44/relay-g1.sh + relay-g2.sh. New rig
+  learnings in Part AU.A0: **a GMS "Sign in — Google Accounts" interstitial HIJACKS
+  the foreground on Settings BACK exit-chains** (twice; SKIP + `am start -W`
+  recovers with the hub state intact — pid unchanged, the ledger preserved; a
+  null-root dump there means the nag, not a crash — look for `sud_layout_*` ids);
+  a y-coordinate tap fired while the wrong screen was up silently opened
+  `settings_mcp` (dump-and-verify before every coordinate tap after an unexpected
+  BACK); the mock's respondError answers are log-silent — the OUTBOX's
+  ackReasonCode is the typed-fault arbiter; the sqlite WAL must be queried beside
+  its `-wal` sibling (a renamed `.probe.db` copy reads empty).
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -188,9 +196,9 @@ bodies after 3.14.3 — the census IS the changelog.
 | F-P8-A | 2 | OPEN | cold start w/ DIRECT selected: deferred relay `persistEndpoint` rewrites `_endpoint` after resolve — silent abandonment, recovery dropped by `sourceKind` filter, "First sync failed" vs healthy direct, Retry completes it | guard `persistEndpoint` against overwriting a resolved non-relay selection; retry must reconnect the transport the UI shows; pins: Robolectric race harness + "no `hub.switched` without user tap" | — | Part K.A2 | 1 (+F-P9-A sibling mechanism) |
 | F-P9-A | 2 | OPEN | relay killed MID-AUTHENTICATION → transport wedges in AUTHENTICATING permanently: zero sockets, zero ladder, zero logs, 8 min receipted; survives foreground/unlock; NO retry face (cached rows suppress the strip); active-endpoint tap = silent no-op; ONLY escape = cross-endpoint switch (away+back) | AUTHENTICATING watchdog (timeout → RECOVERING) + a stuck-face; pins: Robolectric kill-mid-handshake harness + netstat-zero + "no silent state" assert | — | Part L.A2 | 3 (pass 10: stale-relay variant, M.A3; pass 15: THIRD variant — relay ABSENT at the cold-start connect → 10s TIMEOUT → silent wedge, no ladder/face, force-stop escape; R.A0.3) |
 | F-P9-B | 2 | OPEN (NEW pass 9) | typed disconnected-remote face never renders live: hub logs the error (workspace-bridge-error: remote-disconnected, verbatim errorText) but ConnectionCenter shows the generic offline face — the G67 card (`connection_remote_reconnect`, render condition lastError.messageKey==REMOTE_WORKSPACE_DISCONNECTED, ConnectionCenterScreen.kt:296) NEVER renders → the recovery verb workspace-reconnect-request is UI-unreachable; row snapshot stays stale under the arm | trace hub.connectFailed→lastError dropping the messageKey (SESSION-scope bridge error); pin: live-shape harness asserting the card renders with the arm armed | — | Part L.A2 | 1 |
-| F-P13-A | 2 | OPEN | the workflowRun delta plane is DEAD on the CLOSE-CYCLE post-recovery path (pass 15 narrowed the row's scope): the detach path drops the local subscription record (relay killed → `recovery.detached (unsubscribed)` — detach() fires ONLY from closeConversation, ConnectionHub.kt:1027-1052 → RecoveryCoordinator.kt:130-149), the recovery re-materializes conversations via `relay.recovered :: subscriptions=N snapshotReplace=true` issuing NO subscribeConversationV4 (relay log empty of subscribes; app sends hello only), so the subscribe-ACK epoch record is never re-stamped → EVERY server-initiated delta frame (workflowRun.updated/removed, kind=ONLINE) arrives at the wire and drops at ConversationGateway.kt:261-274 (`gateway.drop … no subscription record`) for the life of the connection; the declared `workflowRunDeltas:true` (V4Plane.kt:672) is effectively false on that path and the UI stays correct only via the ~8s poll drum (F-P1-D). **STAY-OPEN boundary (pass 15, R.A4): a conversation that stays OPEN through any kill recovers FULLY — the record survives (zero detached lines), the recovery re-subscribes (begin during RECOVERING), the epoch re-stamps, and anchored deltas APPLY (seq=2 +6.07s, seq=3 +22.1s; zero gateway.drop in the whole pass)** | recovery must re-subscribe (or stamp epochs on the snapshotReplace ack) ON THE DETACHED-REOPEN path; pins: relay-log "no subscribe after recovered" + a gateway.drop assert on a post-close-cycle delta; stay-open resilience receipted (pass 15) | — | Part P.A3, R.A4 | 3 (pass 14: the fresh-process happy path RECEIPTED — Part Q.A1; pass 15: the stay-open boundary — deltas live across 2 kills, scope narrowed to the close cycle) |
+| F-P13-A | 2 | OPEN | the workflowRun delta plane is DEAD on the CLOSE-CYCLE post-recovery path (pass 15 narrowed the row's scope): the detach path drops the local subscription record (relay killed → `recovery.detached (unsubscribed)` — detach() fires ONLY from closeConversation, ConnectionHub.kt:1027-1052 → RecoveryCoordinator.kt:130-149), the recovery re-materializes conversations via `relay.recovered :: subscriptions=N snapshotReplace=true` issuing NO subscribeConversationV4 (relay log empty of subscribes; app sends hello only), so the subscribe-ACK epoch record is never re-stamped → EVERY server-initiated delta frame (workflowRun.updated/removed, kind=ONLINE) arrives at the wire and drops at ConversationGateway.kt:261-274 (`gateway.drop … no subscription record`) for the life of the connection; the declared `workflowRunDeltas:true` (V4Plane.kt:672) is effectively false on that path and the UI stays correct only via the ~8s poll drum (F-P1-D). **STAY-OPEN boundary (pass 15, R.A4): a conversation that stays OPEN through any kill recovers FULLY — the record survives (zero detached lines), the recovery re-subscribes (begin during RECOVERING), the epoch re-stamps, and anchored deltas APPLY (seq=2 +6.07s, seq=3 +22.1s; zero gateway.drop in the whole pass)** | recovery must re-subscribe (or stamp epochs on the snapshotReplace ack) ON THE DETACHED-REOPEN path; pins: relay-log "no subscribe after recovered" + a gateway.drop assert on a post-close-cycle delta; stay-open resilience receipted (pass 15) | — | Part P.A3, R.A4 | 4 (pass 14: the fresh-process happy path RECEIPTED — Part Q.A1; pass 15: the stay-open boundary — deltas live across 2 kills, scope narrowed to the close cycle; pass 44: the DETACHED-refresh re-issue's pendingInteractions patch dropped ×2 at the same no-subscription-record gateway [kind=ONLINE seq=2/seq=3, both snapshot-healed on the next subscribe] — the mechanism on the patch variant, AU.E) |
 | F-P0-B | 2 | OPEN | rows reconcile sweep STALEs state-plane-delivered PERMISSION interactions (the two reconcilers fight); card renders terminal-but-actionable | ONE LINE: `known.permission != null` exemption at `InteractionCoordinator.kt:697` + pin answering from BOTH planes | — | Part E.A2.4 (root cause) | 8 stamps (passes 3–9; pass 9's hook-review zero-rows receipt) |
-| F-P3-A | 2 | OPEN | pinned pending-stack budget starves EVERY interaction card body to zero height (question body, hook items; LazyColumn unbounded main axis kills `weight(1f,fill=false)`) | card-agnostic: raise/scroll the pinned budget or render bodies outside it; pin hosts cards in a live `LazyColumn{item{}}` harness varying pinned-child count (pass 12: the starvation is composition-dependent — the approval card rendered FULL body on re-entry while question/hook cards vanished) | — | Part D.A2 (first), G.A2.1 (card-agnostic), O.A2 (variance) | 10 (passes 1–9 + 12 + 33: the hook-review card's starved hook items + disabled `Trust 0 selected` button under MOCK_HOOKS, AJ.B) |
+| F-P3-A | 2 | OPEN | pinned pending-stack budget starves EVERY interaction card body to zero height (question body, hook items; LazyColumn unbounded main axis kills `weight(1f,fill=false)`) | card-agnostic: raise/scroll the pinned budget or render bodies outside it; pin hosts cards in a live `LazyColumn{item{}}` harness varying pinned-child count (pass 12: the starvation is composition-dependent — the approval card rendered FULL body on re-entry while question/hook cards vanished) | — | Part D.A2 (first), G.A2.1 (card-agnostic), O.A2 (variance) | 11 (passes 1–9 + 12 + 33: the hook-review card's starved hook items + disabled `Trust 0 selected` button under MOCK_HOOKS, AJ.B; pass 44: re-manifested on BOTH gens — the arriving and re-surfaced cards render summary → disabled trust area, `enabled=false`, the ANSWER leg stays gated, AU.C/AU.D) |
 | F-P11-A | 3 | OPEN (NEW pass 11) | conversation attachment chip has NO error face — a failed read leaves "Loading…" forever (produceState swallows failures; no unavailable state, no retry; recovered here only because the mock self-healed) | error/unavailable state on the chip (F-P0-C family) + Robolectric failing-loader harness; MOCK half FIXED `1e649eab` (eager registration, verified gen3) | — | Part N.A1/N.A2 | 1 |
 | F-P11-B | 3 | OPEN (NEW pass 11) | Live-connection window picker's selection never reflects in the row subtitle in-session — Settings prefs projection doesn't re-collect after `preferencesRepository.update` (3 cycles; disk HAS 60 — `preferences.pb` field 8; re-entry renders 60); lesser: force-stop ~90 s after a write lost it (flush killed) | collect prefs via the live dataStore.data flow on the screen (or key the row on the pref) + subtitle-after-update pin | — | Part N.A2 (s36/s37/s40/s41/s44 + the pb pull) | 1 |
 | F-P8-C | 2 | RE-VERIFIED-WORKING (pass 10) | conversation-timeline drag-scroll, reported dead at pass 8 HEAD, NO LONGER REPRODUCES at e9a8d206 — drag receipted 3 directions incl. reverse (Part M.A1); mechanism was open, no fix commit identified; the F-P8-E companion is REFUTED (pass 11) | optional drag regression pin for fix rounds | — | Part K.A2 (dead), M.A1 (working) | 1 + pass-10 re-verification |
@@ -256,7 +264,7 @@ FIXED: 2 (both rig) · RETRACTED/REFUTED/ABSORBED: 7.
    F-P2-B → F-P0-C → F-P8-B → F-P8-F** → 17. **F-P1-B → F-P1-D** → 18. smalls
    (N-BM-1 → N-BP-1 → N-BM-3 → N-BN-1 → N-BK-1 app half → N-BJ-1 → N-BK-2 → N-BL-1 →
    N-BM-2 → N-BO-1 → N-BP-2 → N-BQ-1 → N-BR-1 → N-BS-1 → N-BT-1 → N-BX-1 → N-BY-1 →
-   K-small-1/2) → 18a. **F-P40-B** (pass 40, P2: the workspace-manager persistence
+   N-BZ-1 → K-small-1/2) → 18a. **F-P40-B** (pass 40, P2: the workspace-manager persistence
        trio is a silent no-op — move the three ZCodeApp.kt:742-755 writes off the
        composition-captured scope + the preferences.pb pin; small, self-contained,
        the P2 of the pass-40 batch) → 18b. **F-P40-A + F-P40-C** (pass 40, P3 pair:
@@ -371,11 +379,12 @@ developerDiagnostic through the same `ErrorMapping.taskRejected` chain; Part AH.
 | N-BW-1 | 4 | OPEN (NEW pass 39) | collapse-all from the TIMELINE organize NEVER survives a restart: `collapseAll` maps `state.groups`' workspaceKeys (TaskListScreen.kt:331) which in timeline mode is the single sentinel `TIMELINE_GROUP_KEY = "timeline"` (TasksViewModel.kt:70) — the set persists to the file store faithfully, but the restart always lands in WORKSPACE organize (organizeBy is view-local, TasksViewModel.kt:102, BY-DESIGN reset) whose keys are real workspace paths, so the persisted sentinel matches NOTHING and every section renders expanded; receipted: collapse-all (all headers "Tap to expand", 83 nodes) → force-stop → relaunch → "Tap to collapse" everywhere (w24/s17 → w26); the desktop's GAP-14 port contract ("persisted per workspace key so it survives app restart") is defeated by the key mismatch | persist per-mode key namespaces (timeline vs workspace) or translate the sentinel on load; pin: a compose test collapsing in timeline → recomposing in workspace asserting the collapsed faces | — | Part AP.G | 1 |
 | N-BX-1 | 4 | OPEN (NEW pass 40) | the git branch block renders the LITERAL "tracking: null" after a branch switch to an upstream-less branch: `Phase9Tools.strOrNull` (Phase9Tools.kt:471) is JsonNull-BLIND — `(this[key] as? JsonPrimitive)?.content` matches JsonNull (whose content is the STRING "null", non-blank) so the mock's merged-summary `trackingBranchName: JsonNull` decodes to "null" instead of null, and `stringResource(git_tracking, s.trackingBranchName ?: "—")` (GitScreen.kt:253) renders the raw literal; receipted live: post-create-and-switch re-entry branch block "rigp40 / tracking: null" (s13); the codebase's own Phase9Ports.rpStr (:269) HAS the `it !is JsonNull` filter — the two helpers disagree | add the JsonNull filter to Phase9Tools.strOrNull (one line, same shape as Phase9Ports.rpStr); pin: a decode harness over a JsonNull trackingBranchName asserting null | — | Part AQ.B (s13) | 1 |
 | N-BY-1 | 4 | OPEN (NEW pass 40) | the git Changes rows' Stage/Discard/Unstage a11y labels carry the RAW format string: the semantics use `stageCdFmt.replace("%s", path)` (GitScreen.kt:768/:781) but the resources are POSITIONAL — `git_stage_cd` = "Stage %1$s" (strings.xml:73; zh-rCN too) — so `%s` never matches and every TalkBack user hears "Stage %1$s" (dump receipted: content-desc "Stage %1$s" / "Discard %1$s" ×3 rows, w7); the visible labels are fine (plain "Stage") — a11y-only | use `%1$s` in the replace (or positional formatArgs); pin: an a11y assertion on the row's content-desc containing the path | — | Part AQ.B (w7), AR.D (w23), AS.C (w12 ×6+6 on the many-rows pane) | 3 (pass 42: the "Stage %1$s"/"Discard %1$s" content-descs re-dumped across the tree/flat dumps) |
+| N-BZ-1 | 4 | OPEN (NEW pass 44) | the hooks viewer's Refresh renders "The desktop refused the review request." on a DEAD transport: `ConnectionHub.requestHookReview` (:375-380) maps `Accepted → true; null → null; ELSE → false`, so BlockedOffline (simpleCommand's not-CONNECTED pre-check, CommandCoordinator.kt:543), Failed (the transport throw), Stale, UnknownKept and MissingBaseRevision ALL feed `hooks_viewer_refresh_refused`, while the honest `hooks_viewer_refresh_offline` ("No live session for this workspace.") is reachable only when `commandCoordinatorOrNull()` is null WITH a ledger entry — structurally near-dead; receipted live BOTH ways: gen1 relay-down → the refused note rendered (s05) with the DB outbox row FAILED_TERMINAL/"channel closed: abnormal close 1006: Broken pipe" (db/zcode.db), gen2 with the refuse arm (debt #30) → the SAME note rendered HONESTLY with the row FAILED_TERMINAL/"fault.command.rigRefused:requestWorkspaceHookReview" (db/g2-*) — the two classes are indistinguishable to the user; the screen's ErrorState face (hooks_viewer_unavailable) is separately dead by construction (`reviews()` is a pure in-memory read that cannot throw — census note, not a defect) | distinguish the classes in the outcome mapping — BlockedOffline/transport-class Failed → the offline note (or a third "connection lost" copy), genuine server refusals keep the refused note; pin: a harness over requestHookReview's outcome→note mapping (BlockedOffline ≠ refused) | — | Part AU.F/AU.G (s05/s07, both DB pulls) | 1 |
 | K-small-3 | 4 | WATCH | one-off terminal route pop (unreproduced — watch, don't chase) | Part K.A2 |
 | N-BJ-2 | 4 | REFUTED→FOLDED | unpair IS reachable (Settings bottom, pass 4); fakeLink half folded into F-P2-B | Part G.A2.4 |
 | N-BM-4 | — | RIG | Dictate leg kills the emulator (cause unproven); leg undriven | Part J |
 
-**Open smalls: 22 (+1 watch +1 rig)** — pass 13 added N-BP-1 (P3) and N-BP-2 (P4);
+**Open smalls: 23 (+1 watch +1 rig)** — pass 13 added N-BP-1 (P3) and N-BP-2 (P4);
 pass 22 added N-BQ-1 (P4, the effort stale face's dead branch); pass 28 added
 N-BR-1 (P4, the stale offline-attachment notice); pass 30 added N-BS-1 (P4, the
 mixed-state send's silent exclusion); pass 37 added N-BT-1 (P4, the stale
@@ -383,7 +392,9 @@ row-action banner's switch copy); pass 38 added N-BU-1 (P4, the status-bar-clipp
 action notice) and N-BV-1 (P4, the affordance-less empty groups); pass 39 added
 N-BW-1 (P4, the timeline collapse sentinel never survives a restart); pass 40
 added N-BX-1 (P4, the JsonNull-blind decode renders "tracking: null") and
-N-BY-1 (P4, the Stage/Discard a11y labels carry the raw "%1$s").
+N-BY-1 (P4, the Stage/Discard a11y labels carry the raw "%1$s"); pass 44 added
+N-BZ-1 (P4, the hooks viewer's refused-note conflation — a dead transport renders
+"refused", the honest offline note is near-unreachable).
 
 ## Mock-fidelity debts (rig, not app)
 
@@ -415,6 +426,7 @@ N-BY-1 (P4, the Stage/Discard a11y labels carry the raw "%1$s").
 27. ~~**(pass 42)** listTaskList search hits carried NO `searchSnippets`/`searchSnippet` — the desktop's `rowToTaskListItem` attaches them (buildSearchSnippets over searchable_text, searchSnippet = the first) and the phone's tasks-search pane renders the snippet row under the title; the mock's title-filtered hits could never show it~~ **OPENED+CLOSED in the same pass** (`55162b44`: hits gain both fields — the matched-context window around the title hit; the plain no-search list shape UNCHANGED (the pass-38/39 receipts decoded it); + the `MOCK: listTaskList search=…` relay-log line). **Live receipt AS.B**: the search pane renders title+snippet rows ×3 hits on the per-keystroke drum (`search='synt' → 'synthetic'` ×6, 3 hits each).
 28. ~~**(pass 42)** the getDiff fixture served the pass-5-era `{diff: "<unified>"}` literal while the decoder (Phase9Tools.gitDiff) reads `{path, availability ∈ patch|binary|truncated|unavailable, patch}` — the FIRST live diff-expand decoded availability=null → "unavailable" + patch=null (the app's honest tolerant face; the wire said ok)~~ **OPENED+CLOSED in the same pass** (`55162b44`: RigGitFixtures.diff() serves the decoder contract — {path, availability:"patch", patch}; self-test pins it). **Live receipt AS.C**: gen1 the honest unavailable face with `git.getDiff begin → ok` (the verb's first-series isolation); gen2 (fixed jar) the diff CARD + the full unified hunks render.
 29. ~~**(pass 43)** the mock's listTaskList served ALL title-filtered hits with `total=hits.size` + `hasMore:false` HARDCODED — the desktop's queryTaskList honors the caller's `limit` (LIMIT ? over the ordered filter; host chunk-TCPD6WAE.js) answering {items: ≤limit, total: COUNT over the filter, hasMore: total > items.length}, so the phone's limit:20 search (TaskServiceClient.searchTasks) could never see the pagination face (pass 42's coverage list named it undrivable against the 3-task seed)~~ **OPENED+CLOSED in the same pass** (`73c66186`: the handler reads `limit`, serves `hits.take(limit)`, derives `hasMore` from the filter count, and the relay search log line gains limit/served/hasMore; the no-limit shape (pass-38/39 receipts) and the p42 snippet fields UNCHANGED; `MOCK_TASKS_MANY=1` seeds synth-task-4..27 — 27 "synthetic" hits — additive over any seed; MockZCodePass43TaskSearchLimitSelfTest 6; suite **274/0/0**). **Live receipts AT.B/AT.C**: `search='synthetic' → 27 hits (limit=20 served=20 hasMore=true)` per keystroke + the under-limit `search='2' → 10 hits (limit=20 served=10 hasMore=false)` — and the face the wire unblocked opened **F-P43-A** (the phone silently truncates).
+30. ~~**(pass 44)** MOCK_REFUSE_COMMANDS was hard-wired to the goal trio (`setOf("sendGoal","pauseGoal","resumeGoal")` at arm time) — NO other command verb's server-refusal face was drivable, which left the hooks viewer's REFUSED note undrivable in its honest (genuine-refusal) sense and would block every future verb's refusal face~~ **OPENED+CLOSED in the same pass** (`0e5c08e1` p44-mock-refuse-list: a comma-list value arms ANY command types — `MOCK_REFUSE_COMMANDS=requestWorkspaceHookReview` drove pass 44's genuine-refusal leg; bare `1`/`true`/blank keeps the goal trio for back-compat; the refuse decision seam-extracted as `refuseReasonFor()` the dispatch calls; MockZCodeHooksRowsSelfTest gains the listed-type case; suite **275/0/0/0**). **Live receipt AU.G**: the gen2 Refresh answered the typed fault (outbox `FAILED_TERMINAL/fault.command.rigRefused:requestWorkspaceHookReview`) and the refused note rendered — with no state flip (refuse-before-effect) and exactly one command line in the relay log.
 25. ~~**(pass 40)** the ADR-021 git WRITE tier's acks mutated `script.stagedPaths`/`discardedPaths` while `getChanges` kept serving the STATIC RigGitFixtures fixture — the phone staged, re-fetched, and saw the same rows (the recorded ack-without-mutate class ON THE GIT PLANE; nothing consumed the lists; commit left all three rows served)~~ **OPENED+CLOSED in the same pass** (`baa3f216` p40-mock-git-write-mutation: `servedGitChanges()` derives the changes view from the write tier's mutations — staged paths serve section "staged", discarded/committed rows drop, matching the phone's workspaceRelativePath keys against the fixture's absolute `path`; `commit` consumes the served rows it commits so the post-commit fetchChanges() sees the shrink; + MOCK_GIT_BRANCH_ISSUE / MOCK_GIT_PUSH_FAIL arms; MockZCodePass40GitWriteSelfTest 6/6, suite **254/0/0**). **Live receipt AQ.B**: Stage → `stagePaths ok` → the row MOVED tabs (Unstaged 2→1, Staged 1→2, s14); Discard via the typed gate → the row GONE; commit → Changes EMPTY (s21). Residuals (NOT debts — mock-fidelity notes): History never gains the committed row (script.gitCommits static); the summary stays isDirty=false/ahead=0 through the commit; the comparison fixture is branch-invariant.
 
 ## DISCOVERY BACKLOG (tick when the findings are appended as rows)
@@ -580,6 +592,34 @@ delta …`). Nothing pushed.
 ```
 
 ## History
+
+- 2026-11-17 (pass 44) — Part AU executed on a FRESH axis (the pass-42 precedent —
+  Part AT's coverage list had no driveables): the **HOOKS VIEWER plane** (Settings →
+  Workspace hooks — the vc52-built G71 screen with ZERO series receipts; the
+  `requestWorkspaceHookReview` verb never sent in 44 passes). The full face matrix
+  first-series: the empty face (verbatim, re-receipted post-restart — the ledger is
+  memory-only), the LEDGER capture at interaction arrival + the populated render
+  (all three hook items with event/command/sourcePath/trust labels — exactly what
+  the conversation card starves), Refresh live (requested note + wire + ACKED + the
+  card re-surface chain), the DETACHED-LEDGER refresh (recovery.detached ×2, the
+  exit-gate design holding, ACKED from the ledger — the hub-level hookReviewLedger
+  verified live), and the relay-down face which opened **N-BZ-1** (P4: a dead
+  transport renders "The desktop refused the review request." — BlockedOffline/
+  Failed both map to else→false while the honest offline note is structurally
+  near-unreachable; the DB arbiter's 1006 Broken pipe vs gen2's typed fault is the
+  discriminator pair). The GENUINE refusal face driven first-series on mock debt
+  **#30 opened+closed** (`0e5c08e1`: the refuse-list comma arm + refuseReasonFor()
+  seam; suite **275/0/0/0**). Stamps: **F-P3-A ×11** (the starved card on both
+  gens; the ANSWER leg stays gated — the resolved-review viewer faces undrivable),
+  **F-P13-A ×4** (the detached-refresh pushes dropped ×2 at the
+  no-subscription-record gateway, snapshot-healed). App: ZERO changes (APK
+  byte-identical, install skipped). Rig learnings (AU.A0): the GMS sign-in
+  interstitial HIJACKS the foreground on Settings BACK exit-chains (SKIP + `am
+  start -W` recovers with hub state intact); wrong-screen coordinate taps navigate
+  silently; respondError is log-silent — the outbox ackReasonCode is the
+  typed-fault arbiter. Rig left UP (gen2 mock-p44-gen2-2db49cb — ⚠ STICKY
+  refusal arm, an inheritor must pkill + relaunch; app pid 10040 in synth-task-1's
+  conversation).
 
 - 2026-11-17 (pass 43) — Part AT executed on Part AS's coverage-honesty leftover —
   the "hasMore/limit path of listTaskList" (named undrivable against the 3-task

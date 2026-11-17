@@ -10094,3 +10094,210 @@ zcode-a16 UP (healthy, wifi ENABLED, screenshot protection OFF), relay gen1 ALIV
 NOTHING sticky; an inheritor may reuse [home renders 27 tasks] or pkill by name),
 app pid 8599 on the tasks home (search closed, composer untouched), logcat running →
 /tmp/p43/logcat.log.
+
+# Part AU — pass 44 (APPENDED 2026-11-17, ~12:10): FRESH RECON on a NEW axis — the HOOKS VIEWER plane (Settings → Workspace hooks, the vc52-built G71 screen with ZERO series receipts in 44 passes; the `requestWorkspaceHookReview` wire verb had NEVER been sent in the whole series). The screen's full face matrix driven first-series: the empty face, the LEDGER capture at interaction arrival + the populated render (all three hook items with event/command/sourcePath/trust labels — exactly what the conversation's trust card starves), Refresh live (requested note + wire + ack + the card re-surface chain), the DETACHED-LEDGER refresh (recovery.detached ×2, the exit-gate design holding, ACKED from the ledger), the relay-down face — which opened NEW ROW N-BZ-1 (P4: a dead transport renders "The desktop refused the review request." — BlockedOffline/Failed both map to else→false while the honest offline note is structurally near-unreachable; the DB arbiter's "channel closed: abnormal close 1006" is the discriminator), and the GENUINE refusal face first-series on the new comma-list refuse arm (mock debt #30 opened+closed `0e5c08e1`, suite 275/0/0/0) — stamps F-P3-A ×11 (the starved card re-manifested both gens, the ANSWER leg stays gated), F-P13-A ×4 (the re-issue pushes dropped at the gateway ×2, no subscription record, snapshot-healed)
+
+> **Pass 44 of the pass-0 series** (solo, the canonical discovery prompt; STEP 1 empty —
+> backlog 8/8 — and Part AT's coverage-honesty list had NO driveable leftovers [desktop
+> showMore = out-of-scope, second-page = no code path (fix-round), branch-issue copy map
+> + Manage rename = gated behind open F-P40-C/F-P40-B, TalkBack + F-P3-A-gated planes =
+> standing], so the axis = the pass-42 precedent's test-file-vs-receipts census: the
+> Settings → Insights rows re-checked against the report — Memory viewer was driven
+> [pass 7, "never driven" list item 7], but **HooksViewerScreen had ZERO report hits and
+> `requestWorkspaceHookReview` ZERO wire hits in the whole series**).
+> **App: ZERO changes** (HEAD `73c66186` + the mock commit; on-device md5
+> `530ba4ff2283f67cc5a3c50bda7f41d6` == local HEAD artifact → `install -r` SKIPPED;
+> sha256 `ad449d7d…`, vc53/1.3.2 — byte-identical across the whole series).
+> **Mock: ONE commit** — `0e5c08e1` (p44-mock-refuse-list, debt #30 opened+closed:
+> MOCK_REFUSE_COMMANDS was hard-wired to the goal trio, so no other verb's refusal
+> face was drivable; a comma-list value now arms ANY command types — bare `1`/`true`/
+> blank keeps the trio — and the refuse decision is seam-extracted as
+> `refuseReasonFor()`; MockZCodeHooksRowsSelfTest gains the listed-type case; suite
+> **275/0/0/0**).
+
+> **Verification stamp (pass start):** 2026-11-17 08:20 → 12:05, GLM-5.3-Flash in ZCode,
+> everything local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…` UNCHANGED —
+> no DELTA. Rig: the pass-43 emulator REUSED (TWENTY-FIRST consecutive inherited
+> survival); the idle gen1 relay (`mock-p43-gen1-157d6f`, additive/nothing sticky)
+> pkilled BY NAME at pass start. TWO relay generations: gen1 `mock-p44-gen1-76feeb`
+> 08:27 (MOCK_HOOKS=1 ONLY — arms BEFORE exec, launcher DERIVED from the working p43
+> file per AT.A0), killed mid-pass for Leg E; gen2 `mock-p44-gen2-2db49cb` 11:44
+> (+MOCK_REFUSE_COMMANDS=requestWorkspaceHookReview, the debt-#30 arm). Stored
+> endpoints survived both swaps (no re-pairing). TWO force-stop + `am start -W`
+> relaunches (the pass-27 recipe; pids 9248 → 10040). APK md5 verified == HEAD
+> on-device → install SKIPPED. logcat fresh `-T 1` → /tmp/p44/logcat.log (one stream
+> across both gens). Receipts: shots /tmp/p44/shots/ s00–s08, AX dumps /tmp/p44/w/
+> a0–a10 + b0–b4 + chk*, relay logs relay-g1.log + relay-g2.log, DB pulls /tmp/p44/db/
+> (zcode.db[,-wal] gen1, g2-zcode.db[,-wal] gen2).
+
+## AU.A0 — rig learnings
+
+1. **A GMS "Sign in — Google Accounts" interstitial hijacks the foreground on this
+   long-lived emulator** (twice this pass): the second BACK of a Settings exit-chain
+   fell off the app into the system setup nag (`glif_layout`/`minute_maid`), which also
+   explains the `UiTestAutomationBridge` "null root node" dump failures at those
+   moments. Recovery = SKIP tap (108,2175) + `am start -W` relaunch (the process and
+   its in-memory hub state SURVIVE — pid unchanged, the hooks ledger intact). Do NOT
+   assume a null-root dump means a crash; screencap + look for `sud_layout_*` ids.
+2. **Tapping y-coordinates from a DIFFERENT screen's layout silently navigates
+   elsewhere**: the (540,1358) "task row" tap fired while still ON the Settings screen
+   opened `settings_mcp` (the MCP row sits at that y) — the conversation-open check
+   then saw a stale dump. Always dump-and-verify the CURRENT screen before a
+   coordinate tap after any unexpected BACK result.
+3. **The mock's respondError answers are invisible in the relay log** (only
+   `MOCK: command type=…` and v4call lines print; the error response itself is silent)
+   — the OUTBOX's `ackReasonCode` is the typed-fault arbiter
+   (`fault.command.rigRefused:requestWorkspaceHookReview` rode the DB row verbatim).
+4. The `sqlite3` WAL dance: query the PULLED `zcode.db` with its `-wal` sibling in
+   place (the wal replays automatically); a renamed `.probe.db` copy loses the wal
+   association and reads empty ("no such table" on a table `.tables` just listed).
+
+## AU.B — Leg A: the empty face (first series)
+
+Fresh process (pid 9248), NO conversation opened this process → Settings → Workspace
+hooks: the viewer renders `hooks_viewer_empty` verbatim — "No hooks seen yet — hooks
+appear after a workspace posts its trust review. Open a conversation, then come back."
+(s00; the empty-copy's "open a conversation" instruction is the mechanism note: the
+review rides the conversation subscribe, never the bootstrap). 18 nodes, zero
+clickables besides back. The empty face RE-receipted on gen2 after the force-stop
+(b0) — the ledger is memory-only by design and a process restart empties the viewer.
+
+## AU.C — Leg B: the review arrives → the ledger captures → the viewer populates (first series)
+
+Opening synth-task-1's conversation delivered the review interaction
+(`hook_review_card_hook-rig-mock-p44-gen1-76feeb` — the nonce id; "2 pending · 3
+hooks"; the item list STARVED between the summary and the disabled
+`hook_review_trust_selected` area — the F-P3-A shape, stamp 11; the timeline's hooks
+monitor groups + subagent rows re-confirmed the pass-33 receipts, not re-narrated).
+Leaving and opening Settings → Workspace hooks rendered the FULL LEDGER ENTRY
+first-series (s02, a5): `hooks_group_synth-task-1` — "Synthetic Workspace" · "3
+hook(s) · 2 pending trust" · the Refresh button — then ALL THREE items with
+title/event/command/sourcePath/trust label ("Warm build cache · SessionStart · echo
+warming · .zcode/hooks.json · pending trust"; "Lint gate · PreToolUse · npm run lint
+· pending trust"; "Watcher · Stop · watch build · trusted") and the boundary note
+"Read-only view … Hook authoring lives on the desktop (Settings → Hooks)." — the
+viewer renders exactly what the conversation card starves. The capture is AT ARRIVAL
+(`ConversationSessionManager.captureHookReview` reads the state's
+pendingInteractions lastOrNull WORKSPACE_HOOK_REVIEW — :144-152), and the hub-level
+`hookReviewLedger` retains it beyond the session's life (:345-362).
+
+## AU.D — Leg C: Refresh live — requested note + wire + the card re-surface chain (first series)
+
+Tapping Refresh from the populated viewer: the note
+`hooks_viewer_refresh_requested` rendered verbatim ("Review re-requested — the trust
+card re-opens in the conversation.", s03/a6), the wire carried
+`sendConversationCommandV4 begin → ok in 830ms` (app logcat) and the relay answered
+`MOCK: command type=requestWorkspaceHookReview` (relay-g1.log; the DB outbox row
+ACKED/accepted @08:39:59), the mock flipped `hookReviewsResolved=false` and pushed
+the pending-list patch — and re-opening synth-task-1 showed the trust card
+RE-SURFACED (s04/a7: same nonce id, "2 pending · 3 hooks", the starved shape again).
+One relay command line per refresh; the pending card's presence is the unresolved
+review's serving (the ANSWER leg is F-P3-A-gated — the starved checkbox list forces
+"Trust 0 selected hook(s)" with `enabled=false` — so neither gen ever resolved it).
+
+## AU.E — Leg D: the DETACHED-LEDGER refresh (first series; the exit-gate design holding)
+
+BACK out of the conversation (close → `recovery.detached :: session=synth-task-1
+(unsubscribed)` ×2 across the pass) and re-entering the viewer: the entry STILL
+rendered in full (the hub's `hookReviewLedger`, not the detached manager). Tapping
+Refresh from the detached state: the requested note AGAIN (no false "No live
+session"), the wire `sendConversationCommandV4 ok` (relay-g1 `command type=
+requestWorkspaceHookReview` ×2 total), DB outbox ACKED/accepted @08:44:23 — the
+ledger-first lookup (:363-374) doing exactly what its comment promises (the
+exit-gate leg's false-refused fix verified live). The re-issue's patch push DROPPED
+at the gateway while detached — `gateway.drop :: kind=ONLINE seq=3..3 (no
+subscription record)` (the F-P13-A mechanism on the pendingInteractions-patch
+variant, stamp 4; the snapshot path re-delivered on the next subscribe).
+
+## AU.F — Leg E: the relay-down face — NEW ROW N-BZ-1 (P4)
+
+With gen1 killed, tapping Refresh in the still-open viewer rendered
+"**The desktop refused the review request.**" (`hooks_viewer_refresh_refused`, s05)
+while the transport was DEAD — the DB arbiter: outbox FAILED_TERMINAL / rejected /
+**"channel closed: abnormal close 1006: Broken pipe"** @08:46:50. The mechanism is
+the outcome→note collapse in `ConnectionHub.requestHookReview` (:375-380):
+`Accepted → true; null → null; ELSE → false` — so BlockedOffline (simpleCommand's
+not-CONNECTED pre-check, CommandCoordinator.kt:543), Failed (the transport throw —
+the 1006), Stale, UnknownKept, and MissingBaseRevision ALL map to the refused note;
+`hooks_viewer_refresh_offline` ("No live session for this workspace.") is reachable
+only when `commandCoordinatorOrNull()` is null WHILE a ledger entry exists —
+structurally near-dead. The screen's own ErrorState face (`hooks_viewer_unavailable`
++ friendlyFaultMessage + Retry) is separately dead on the live path by construction
+(`reviews()` = a pure in-memory snapshot read that cannot throw) — census note, not
+a defect.
+
+**Adjudication: NEW ROW N-BZ-1 (P4)** — the mislabeled-face class (N-BT-1's wrong-copy
+family, the transport-vs-server conflation). Fix shape: distinguish the classes in
+the outcome mapping — BlockedOffline (and Failed with a transport-class ack) → the
+offline note (or a third "connection lost" copy), genuine server refusals keep the
+refused note; pin: a harness over requestHookReview's outcome→note mapping
+(BlockedOffline ≠ refused).
+
+## AU.G — Leg F (gen2): the GENUINE refusal face, first series (debt #30 unblocked)
+
+Gen2 (`mock-p44-gen2-2db49cb`, MOCK_HOOKS + the new
+`MOCK_REFUSE_COMMANDS=requestWorkspaceHookReview`): fresh process → empty face (b0)
+→ conversation open → the card arrived (s06, nonce `…gen2-2db49cb`) → viewer
+populated (b2) → Refresh → the SAME refused note (s07) — now HONEST: the DB outbox
+row @11:59:19 reads FAILED_TERMINAL / rejected / **"fault.command.rigRefused:
+requestWorkspaceHookReview"** (the typed fault riding ackReasonCode verbatim; the
+relay's respondError is log-silent — AU.A0.3). The refuse-before-effect ordering
+held: exactly ONE `command type=requestWorkspaceHookReview` line in relay-g2.log, no
+state flip, and the re-opened conversation showed the UNRESOLVED review still served
+(s08 — the pending review, not a re-issue; the never-resolved card is the standing
+F-P3-A gate). The same rendered copy is thus receipted on BOTH sides of the N-BZ-1
+discriminator: infrastructure-failure (gen1) and server-refusal (gen2) are
+indistinguishable to the user — the row's fix is the disambiguation.
+
+## AU.L — ledger arithmetic + coverage honesty
+
+ONE new N row (**N-BZ-1**, P4 — open smalls 22 → **23**; open F unchanged at 39).
+Stamps: **F-P3-A ×11** (the starved hook-review card + disabled Trust button
+re-manifested on both gens; the ANSWER leg — and with it the resolved-review viewer
+faces — stays gated), **F-P13-A ×4** (the detached-refresh re-issue pushes dropped
+×2 at the no-subscription-record gateway). Mock debt **#30 opened+closed in-pass**
+(`0e5c08e1`, suite **275/0/0/0**). gateway.drop: 2 (both the detached-refresh
+pushes); zero app FATALs. Wire census (app logcat v4.call begins): listAutomations
+×13 (the home drum), subscribeWorkspaceConfigV4 ×4 + resync pairs ×2 (the two
+force-stop relaunches), subscribeConversationV4 ×4 (two opens per gen),
+initializeConversationV4/helloConversationV4 ×4, unsubscribeConversationV4 ×3,
+sendConversationCommandV4 ×4 (the four refresh legs — exactly the four DB outbox
+rows), listMcpServerStatuses ×1 (the AU.A0.2 slip). The conversation idle-poll drum
+(F-P1-D) was NOT cleanly observable this pass (no long-idle open conversation) — no
+stamp.
+
+What pass 44 did NOT drive: the hooks ANSWER leg (trust_selected → the resolved
+review's viewer faces — the trust-state flip and the "resolved" copy) — gated
+behind F-P3-A's starved checkbox list, standing; the viewer's multi-workspace
+surface (the mock seeds one review; the ledger is keyed per taskId — a second
+seeded task would exercise the group list's separation; mock-fidelity note, not a
+debt); the offline note's genuine rendering (structurally near-dead per N-BZ-1 —
+its fix would make it live); TalkBack runtime (standing stop); the desktop's own
+hooks authoring (desktop-legit, out of rig scope); the F-P40-C/F-P40-B-gated git
+faces and the F-P43-A search-pagination fix faces (unchanged code — fix-round).
+
+## Pass-44 verification stamp
+
+Pass 44 completed 2026-11-17 ~12:05 (record appended ~12:10); TWO relay generations
+(gen1 `mock-p44-gen1-76feeb` 08:27→killed mid-pass for Leg E; gen2
+`mock-p44-gen2-2db49cb` 11:44→end; launchers /tmp/p44/relay-g1.sh + relay-g2.sh,
+arms BEFORE exec — gen1 MOCK_HOOKS=1, gen2 + MOCK_REFUSE_COMMANDS=
+requestWorkspaceHookReview). Mock: ONE commit — `0e5c08e1` (debt #30: the
+refuse-list arm + refuseReasonFor() seam + 1 self-test; suite **275/0/0/0**). App:
+ZERO changes — `install -r` SKIPPED on byte-identity (local == on-device md5
+`530ba4ff…`, sha256 `ad449d7d…`, vc53/1.3.2 at HEAD `73c66186`). Receipts: shots
+/tmp/p44/shots/ (s00 empty face; s01 the arriving card; s02 the populated viewer ×3
+items; s03 the requested note; s04 the re-surfaced card; s05 the relay-down refused
+note [the N-BZ-1 face]; s06 the gen2 card; s07 the GENUINE refused note; s08 the
+unresolved-pending re-open), AX dumps /tmp/p44/w/ (a0–a10, b0–b4, chk*), relay logs
+relay-g1.log + relay-g2.log, DB pulls /tmp/p44/db/ (zcode.db[,-wal] gen1 — the four
+outbox rows incl. the 1006 and the typed fault; g2-* gen2); logcat
+/tmp/p44/logcat.log (gateway.drop 2; zero FATALs). Desktop 3.18.1 / `ec475e6e…`
+unchanged (STEP 0). **Rig left:** emulator zcode-a16 UP (healthy, screenshot
+protection OFF), relay gen2 ALIVE (nonce `mock-p44-gen2-2db49cb` — ⚠ STICKY
+MOCK_REFUSE_COMMANDS=requestWorkspaceHookReview arm: every gen2-era
+requestWorkspaceHookReview answers the typed fault; an inheritor must pkill + relaunch
+unless driving the refusal), app pid 10040 in synth-task-1's conversation (the
+pending trust card visible), logcat running → /tmp/p44/logcat.log. NEW RIG HAZARD:
+the GMS sign-in interstitial hijacks the foreground on BACK exit-chains (AU.A0.1) —
+SKIP + `am start -W` recovers with hub state intact.
