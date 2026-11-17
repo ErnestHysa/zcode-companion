@@ -108,18 +108,18 @@ P2-first, exit gates, per-row Accept criteria).
 
 - Report: `docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md` —
   Parts A–Z + AA + AB + AC + AD + AE + AF + AG + AH + AI + AJ + AK + AL + AM + AN +
-  AO + AP + AQ + AR + AS + AT + AU + AV = passes 0–45. **Latest: pass 45 (Part AV, 2026-11-17 ~14:05).**
-- Repo HEAD at pass start: `4f11150b` (pass 44's docs commit; main); pass 45 added
-  ONE mock commit — `ae091f81` (p45-arms: debt #31 — MOCK_HOOKS_SECOND seeds
-  synth-task-2's second review so the hooks viewer's per-task group separation is
-  drivable [scriptedHookInteraction seam-extracted as scriptedHookInteractionFor];
-  PLUS the git-checkpoint arg log line `MOCK: git-checkpoint <method> args=<json>`
-  — the checkpoint wire receipts were log-silent forever and the F-P45-A divergence
-  is provable ONLY arg-exact; MockZCodeHooksRowsSelfTest +1 case; mock suite
-  **276/0/0/0**) + the docs commit.
+  AO + AP + AQ + AR + AS + AT + AU + AV + AW = passes 0–46. **Latest: pass 46 (Part AW, 2026-11-17 ~15:10).**
+- Repo HEAD at pass start: `ca062baf` (pass 45's docs commit; main); pass 46 added
+  ONE mock commit — `7feb2695` (p46-arms: the getModelTrajectory arg log line
+  [the ae091f81 template — zcode-task channel calls printed nothing], the Phase-5B
+  seed extracted as Script.seedPhase5bDemo, MOCK_TRAJECTORY=<comma modes>
+  usage|truncated|empty|unavailable, MOCK_CHECKPOINT_CONFLICT_FILES=<comma list>
+  widening the conflict arm [default stays the pass-27 single file], the
+  checkpointConflictPayload/test seams; MockZCodePass46TrajectorySelfTest 6 cases;
+  mock suite **282/0/0/0**) + the docs commit.
   App: ZERO commits. APK of record: sha256 `ad449d7d…` / md5 `530ba4ff…`,
   versionCode 53 / 1.3.2 (byte-identical across the whole series; install SKIPPED
-  again — on-device md5 re-verified; the FOURTH consecutive byte-identical pass).
+  again — on-device md5 re-verified; the FIFTH consecutive byte-identical pass).
 - Desktop of record: **/Applications/ZCode.app 3.18.1.10376, asar sha256 `ec475e6e…`,
   383,832,025 B** (re-verified at pass-45 STEP 0 — UNCHANGED, no DELTA). Pass-43
   census addition: the desktop task-list contract extracted exact (AT.B) —
@@ -129,45 +129,49 @@ P2-first, exit gates, per-row Accept criteria).
   (`f(e.total), m(e.hasMore)`) with `limit: e.expanded?void 0:e.collapsedLimit`
   and renders the taskList.showMore/showLess affordance — the desktop NEVER
   silently truncates.
-- Open rows: **41 F (39 defects + 2 obs) + 23 G + 3 standing + 23 smalls (+1 watch
-  +1 rig)** — pass 45 opened **F-P45-A** (P2: the checkpoint force-overwrite
-  executes on a DIFFERENT snapshot pair than confirmed — `getOrNull(1)` hard-coded,
-  arg-exact wire receipt) and **F-P45-B** (P3: the hooks capture's lastOrNull loses
-  all-but-last reviews AND cross-keys the survivor — a hybrid viewer group + a
-  mismatched refresh, DB-ACKED) and **N-CA-1** (P4: the checkpoint confirm's
-  promised diff face unimplemented — diffCheckpoints UI-dead, 0 wire calls);
-  **K-small-1 adjudicated FIXED** (by vc52 Phase-5B work — the create button exists
-  + round-trips); census correction: the "Checkpoints/Snapshot tabs" receipt
-  phrasing (early passes) was a MIS-READ of the card header — no tabs exist; stamps:
-  **F-P3-A ×12** (both hook cards starved) and **F-P13-A ×5** (the hybrid refresh's
-  re-issue patch at the gateway); the desktop of record UNCHANGED (no DELTA at
-  pass-45 STEP 0).
-- Backlog: **8/8 DONE**; pass 45's axis was a FRESH RECON on the wire-verb layer
-  (the pass-44 census method: `listCheckpoints`/`checkpointRestore`/`checkpointDiff`
-  = ZERO report hits in 45 passes) — the git-CHECKPOINT plane: the empty face +
-  K-small-1 adjudication, create ×5 (notice verbatim + ticking age labels), the
-  CKPT-HYDRATE entry-fetch + the app-RESTART hydrate (pre-restart checkpoints
-  restorable in a fresh process), the restore confirm, the CONFLICT face (the
-  pass-27 arm's first drive), the force-overwrite success (→ F-P45-A), the
-  plain-success restore (gen2), and the diffCheckpoints dead-UI find (→ N-CA-1);
-  STEP 2 = pass 44's leftover (the hooks multi-workspace face, unblocked by debt
-  #31) which opened F-P45-B. What remains is standing stops + F-P3-A-gated planes
-  + F-P40-B/F-P40-C/F-P43-A/F-P45-A/F-P45-B-gated faces + fix-round items. **The
-  mock-debt list has 0 open work-debts** (#31 opened+closed in-pass).
-- Rig left by pass 45: emulator `zcode-a16` UP (TWENTY-SECOND consecutive inherited
-  survival; healthy, screenshot protection OFF), relay gen2 ALIVE (nonce
-  `mock-p45-gen2-dd1e49c3` — arms MOCK_HOOKS + MOCK_HOOKS_SECOND + MOCK_GIT,
-  NOTHING sticky [the conflict arm left with gen1]; reusable as-is for hooks/git
-  legs), app pid 11983 in synth-task-1's git sheet (the gen2 post-success card),
-  logcat running → /tmp/p45/logcat.log. Launchers /tmp/p45/relay-g1.sh +
-  relay-g2.sh. New rig learnings in Part AV.A0: **the GMS setup nag hijacked the
-  foreground AGAIN on a BACK exit-chain** (a NEXT-button wizard page this time —
-  `am start -W` recovered, pid unchanged; 2/2 passes now — budget a
-  dump-and-recover after every BACK chain); **the ae091f81 arg-log line is the
-  template for future verb-plane axes** (channel calls printed NOTHING before it —
-  add the arg line FIRST, then drive); M3 AlertDialog dump bounds were accurate
-  this pass (~40px of the screenshot estimate) but the cross-check stays mandatory;
-  the fresh-process tap chain raced once — dump-and-verify between chain taps.
+- Open rows: **41 F (39 defects + 2 obs) + 23 G + 3 standing + 24 smalls (+1 watch
+  +1 rig)** — pass 46 opened **N-CB-1** (P4: the trajectory sheet's fault face is an
+  ETERNAL SPINNER — `trajectoryLoading = trajectory == null && showTrajectory` wins
+  the sheet's `when`, so `trajectory_unavailable` is dead UI in every live path; the
+  typed fault arrived and the bar spun through a relay swap); stamps: **F-P0-E ×4**
+  (the ANR cluster: 3 wedges in ~10 min, 2 on sheet-typing legs — one consuming the
+  app process — plus the GMS nag riding the ANR/Wait beat); the desktop of record
+  UNCHANGED (no DELTA at pass-46 STEP 0). Census additions: the MODEL-CALL
+  TRAJECTORY plane first-series END-TO-END (the full face matrix: entry chip,
+  populated ×2, the G33 drill-in, search-hits, record-filter [exact — durationMs
+  NOT in the vocabulary], truncated badge, the vc52 Phase-12 USAGE token columns'
+  first live receipt, the empty face; the arg-exact wire ×4 — the phone sends BOTH
+  workspacePath AND taskId); the PlansViewer (A3.12) first render receipt ("Ship
+  the release 1/3" with ✓/▸/○ steps); the Phase-5B seed is MOCK_GOAL-gated
+  (MockRelayMain :359→:424 — the trajectory/plans/search arms are unreachable
+  without it); the conflict body's `take(3)` slice driven at 5 files (pass-45's
+  leftover; the string's "…" is UNCONDITIONAL — decorative at ≤3, census note).
+- Backlog: **8/8 DONE**; pass 46's axis was a FRESH RECON on the wire-verb layer
+  (the pass-44/45 census method): the **MODEL-CALL TRAJECTORY plane** —
+  `getModelTrajectory` = ZERO report hits in 46 passes while the phone ships the
+  full A3.13 TrajectorySheet (the G100 consume, SHIPPED but never live-driven):
+  the full face matrix first-series (Legs A–F in Part AW) + STEP 2 = pass 45's
+  leftover (the conflict >3-files take(3) slice, unblocked by the
+  MOCK_CHECKPOINT_CONFLICT_FILES arm) — driven, leftover CLOSED. What remains is
+  standing stops + F-P3-A-gated planes + F-P40-B/F-P40-C/F-P43-A/F-P45-A/F-P45-B/
+  N-CB-1-gated faces + fix-round items. **The mock-debt list has 0 open
+  work-debts** (the p46 arms opened+closed in-pass in `7feb2695`). Runner-up
+  census axes for future passes: the `terminal` channel (create/write/resize/
+  dispose — ZERO report hits), `commands`/`subagents`/`bots` list words (screens
+  censused pass 40, the wire words unreceipted).
+- Rig left by pass 46: emulator `zcode-a16` UP (TWENTY-THIRD consecutive inherited
+  survival; healthy, screenshot protection OFF), relay gen4 ALIVE (nonce
+  `mock-p46-gen4-0d423d` — arms MOCK_GOAL + MOCK_GIT + MOCK_CHECKPOINT_CONFLICTS +
+  MOCK_CHECKPOINT_CONFLICT_FILES — **⚠ the CONFLICT arm is STICKY**: an inheritor
+  driving non-conflict git legs must pkill + relaunch without it; MOCK_TRAJECTORY
+  arms are seed-time, absent on gen4), app pid 13692 in synth-task-1's
+  conversation, logcat running → /tmp/p46/logcat.log. Launchers /tmp/p46/relay-g1..g4.sh.
+  New rig learnings in Part AW.A0: **the trajectory sheet's TYPING legs trip the
+  ambient F-P0-E ANR 2/2** (budget ZERO typing in that sheet; one wedge consumed
+  the app process); the GMS nag now rides the ANR/Wait beat too (`am start -W`
+  recovers); the Phase-5B seed is MOCK_GOAL-gated; the second arg-log line is the
+  template continuing (add it FIRST for any new verb-plane axis); uiautomator
+  null-root during sheet animations + IME-up persists — screenshots are ground truth.
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -225,7 +229,7 @@ bodies after 3.14.3 — the census IS the changelog.
 | F-P8-D | 3 | OPEN | queue panel has NO collapse affordance (always-expanded; desktop's has one) + header clipped under the sticky strip | two-way header toggle (desktop parity) + strip/header overlap fix | — | Part K.A2 (supersedes Part I's probe) | 4 (pass 18: always-expanded through both queue-strip legs, s08/s09) |
 | F-P8-B | 3 | OPEN | switching to an already-CONNECTED endpoint throws ISE `connect() is the first-connection path` | `connectDirect()` → `recover()`/no-op when state==CONNECTED | — | Part K.A2 | 1 |
 | F-P8-F | 3 | OPEN | Take-photo intent failure (API-36 camera denial) surfaces NOTHING in the attachment flow | typed honest face for intent-launch failure (silent-blank family) | — | Part K.A2 | 1 |
-| F-P0-E | 3 | OPEN (unresolved) | ANR during rapid rig input into direct-endpoint form; causality unproven (app trace rotated away) | observation; rig recipe recorded (chunk DELs ≤8, pull `/data/anr/trace_*` immediately) | — | Part A.A2, AR.C | 3 (pass 41: the Recomposer throwOnFailure SPIN snapshot — main Runnable in runRecomposeAndApplyChanges → Result.kt:133, utm 37.8s CPU, during the rename-dialog leg; Davey 726→2058ms + "Skipped 38 frames" preceding; the ANR dialog recurred within ~5 min after Wait; Close-app recovery; trace /tmp/p41/anr-trace.txt — no rename-specific causal link, the thrash is ambient across every sheet leg on the swiftshader rig) |
+| F-P0-E | 3 | OPEN (unresolved) | ANR during rapid rig input into direct-endpoint form; causality unproven (app trace rotated away) | observation; rig recipe recorded (chunk DELs ≤8, pull `/data/anr/trace_*` immediately) | — | Part A.A2, AR.C | 4 (pass 41: the Recomposer throwOnFailure SPIN snapshot — main Runnable in runRecomposeAndApplyChanges → Result.kt:133, utm 37.8s CPU, during the rename-dialog leg; Davey 726→2058ms + "Skipped 38 frames" preceding; the ANR dialog recurred within ~5 min after Wait; Close-app recovery; trace /tmp/p41/anr-trace.txt — no rename-specific causal link, the thrash is ambient across every sheet leg on the swiftshader rig. **Pass 46: ×4** — the trajectory sheet's TYPING legs trip it 2/2 (one wedge CONSUMED the app process, pid 11983→13101; a fresh-process launch composition wedged again; a third during a relay swap; a quiet force-stop + 20s settle finally held; the GMS MinuteMaid nag rode the ANR/Wait beat; the pulled traces were system-side only; AW.A0.1/AW.H — budget ZERO typing in that sheet) |
 | F-P1-D | 3 | OPEN (observation) | open conversation polls workflowRuns+plans every ~8 s even idle/backgrounded | subscribe-on-open + deltas (capability already declared) or ≥30 s cadence | — | Part D.A2, K.A3 | 4 (pass 12: 52 polls in the gen2 relay log) |
 | F-P0-D | 3 | RETRACTED | pass-0 terminal-attach silent no-op — unreproduced 5× (passes 2,3,4,5,8); Context-sheet route variant = N-BM-3 | keep typed-face work as hardening only | — | Part E.A2.8 | — |
 | F-P2-A | 2 | REFUTED→SUPERSEDED | selection persistence REFUTED as a defect (survives force-stop, app-kill, full emulator reboot — passes 7, 8); the REAL root is F-P8-A's silent in-memory abandonment | closed in favor of F-P8-A | — | Part J, K.A0.7/K.A3 | — |
@@ -275,7 +279,7 @@ pass 45) · RETRACTED/REFUTED/ABSORBED: 7.
    F-P2-B → F-P0-C → F-P8-B → F-P8-F** → 17. **F-P1-B → F-P1-D** → 18. smalls
    (N-BM-1 → N-BP-1 → N-BM-3 → N-BN-1 → N-BK-1 app half → N-BJ-1 → N-BK-2 → N-BL-1 →
    N-BM-2 → N-BO-1 → N-BP-2 → N-BQ-1 → N-BR-1 → N-BS-1 → N-BT-1 → N-BX-1 → N-BY-1 →
-   N-BZ-1 → N-CA-1 → K-small-2) → 18a. **F-P40-B** (pass 40, P2: the workspace-manager persistence
+   N-BZ-1 → N-CA-1 → N-CB-1 → K-small-2) → 18a. **F-P40-B** (pass 40, P2: the workspace-manager persistence
        trio is a silent no-op — move the three ZCodeApp.kt:742-755 writes off the
        composition-captured scope + the preferences.pb pin; small, self-contained,
        the P2 of the pass-40 batch) → 18b. **F-P40-A + F-P40-C** (pass 40, P3 pair:
@@ -401,11 +405,12 @@ developerDiagnostic through the same `ErrorMapping.taskRejected` chain; Part AH.
 | N-BY-1 | 4 | OPEN (NEW pass 40) | the git Changes rows' Stage/Discard/Unstage a11y labels carry the RAW format string: the semantics use `stageCdFmt.replace("%s", path)` (GitScreen.kt:768/:781) but the resources are POSITIONAL — `git_stage_cd` = "Stage %1$s" (strings.xml:73; zh-rCN too) — so `%s` never matches and every TalkBack user hears "Stage %1$s" (dump receipted: content-desc "Stage %1$s" / "Discard %1$s" ×3 rows, w7); the visible labels are fine (plain "Stage") — a11y-only | use `%1$s` in the replace (or positional formatArgs); pin: an a11y assertion on the row's content-desc containing the path | — | Part AQ.B (w7), AR.D (w23), AS.C (w12 ×6+6 on the many-rows pane) | 3 (pass 42: the "Stage %1$s"/"Discard %1$s" content-descs re-dumped across the tree/flat dumps) |
 | N-BZ-1 | 4 | OPEN (NEW pass 44) | the hooks viewer's Refresh renders "The desktop refused the review request." on a DEAD transport: `ConnectionHub.requestHookReview` (:375-380) maps `Accepted → true; null → null; ELSE → false`, so BlockedOffline (simpleCommand's not-CONNECTED pre-check, CommandCoordinator.kt:543), Failed (the transport throw), Stale, UnknownKept and MissingBaseRevision ALL feed `hooks_viewer_refresh_refused`, while the honest `hooks_viewer_refresh_offline` ("No live session for this workspace.") is reachable only when `commandCoordinatorOrNull()` is null WITH a ledger entry — structurally near-dead; receipted live BOTH ways: gen1 relay-down → the refused note rendered (s05) with the DB outbox row FAILED_TERMINAL/"channel closed: abnormal close 1006: Broken pipe" (db/zcode.db), gen2 with the refuse arm (debt #30) → the SAME note rendered HONESTLY with the row FAILED_TERMINAL/"fault.command.rigRefused:requestWorkspaceHookReview" (db/g2-*) — the two classes are indistinguishable to the user; the screen's ErrorState face (hooks_viewer_unavailable) is separately dead by construction (`reviews()` is a pure in-memory read that cannot throw — census note, not a defect) | distinguish the classes in the outcome mapping — BlockedOffline/transport-class Failed → the offline note (or a third "connection lost" copy), genuine server refusals keep the refused note; pin: a harness over requestHookReview's outcome→note mapping (BlockedOffline ≠ refused) | — | Part AU.F/AU.G (s05/s07, both DB pulls) | 1 |
 | N-CA-1 | 4 | OPEN (NEW pass 45) | the checkpoint restore-confirm's promised DIFF-FILES face is unimplemented and `diffCheckpoints` is UI-DEAD: the card docstring promises "the confirm names BOTH ids and the diff's files" but the dialog names the ids only — `diffText` is only ever null-CLEARED (GitScreen.kt:991; rendered :967, never assigned) and `port.diffCheckpoints` has ZERO UI callers while the verb is fully wired BELOW the UI (GitCheckpointClient → Phase9Ports :182 → the mock's stateful handler); live: `diffCheckpoints` = 0 lines across BOTH pass-45 relay logs including both restore-confirms | fetch the diff in the confirm path and render the files under the body (or drop the docstring claim); pin: a harness asserting the confirm names the diff files / the wire carries diffCheckpoints | — | Part AV.H (d8/d12, relay-g1+g2 0/0) | 1 |
+| N-CB-1 | 4 | OPEN (NEW pass 46) | the trajectory sheet's FAULT face is an ETERNAL SPINNER — the honest unavailable face is structurally unreachable: `fetchTrajectory = facadeRead("trajectory") {…}` (Ports.kt:622-623) nulls ANY fault, `loadTrajectory` assigns it with no error state (ConversationViewModel.kt:944-947), and `trajectoryLoading = trajectory == null && showTrajectory` (ZCodeApp.kt:1196) is true EXACTLY when trajectory==null — so the sheet's `when { loading -> bar; trajectory == null -> unavailable; … }` (TrajectorySheet.kt:92-99) can NEVER reach `trajectory_unavailable`: every fetch fault (offline, unscripted desktop, decode failure) renders an infinite loading bar; live: the typed fault.mock.unscripted arrived (logcat 14:10:41, `port.trajectory :: TransportFailure` ×2) and the bar spun through a full relay swap + reconnect until manual dismissal; reopen is the only retry (re-fires loadTrajectory, receipted) | derive loading from an explicit in-flight flag (or a tri-state) so trajectory==null renders the unavailable face; pin: a compose harness with a faulting port asserting the unavailable face renders and the bar settles | — | Part AW.B (s01–s03, logcat chain, relay-g1 arg lines) | 1 |
 | K-small-3 | 4 | WATCH | one-off terminal route pop (unreproduced — watch, don't chase) | Part K.A2 |
 | N-BJ-2 | 4 | REFUTED→FOLDED | unpair IS reachable (Settings bottom, pass 4); fakeLink half folded into F-P2-B | Part G.A2.4 |
 | N-BM-4 | — | RIG | Dictate leg kills the emulator (cause unproven); leg undriven | Part J |
 
-**Open smalls: 23 (+1 watch +1 rig)** — pass 13 added N-BP-1 (P3) and N-BP-2 (P4);
+**Open smalls: 24 (+1 watch +1 rig)** — pass 13 added N-BP-1 (P3) and N-BP-2 (P4);
 pass 22 added N-BQ-1 (P4, the effort stale face's dead branch); pass 28 added
 N-BR-1 (P4, the stale offline-attachment notice); pass 30 added N-BS-1 (P4, the
 mixed-state send's silent exclusion); pass 37 added N-BT-1 (P4, the stale
@@ -418,7 +423,8 @@ N-BZ-1 (P4, the hooks viewer's refused-note conflation — a dead transport rend
 "refused", the honest offline note is near-unreachable); pass 45 added N-CA-1
 (P4, the checkpoint confirm's diff face unimplemented — diffCheckpoints UI-dead)
 and adjudicated K-small-1 FIXED (by vc52 Phase-5B work — the count swaps one for
-one).
+one); pass 46 added N-CB-1 (P4, the trajectory fault face is an eternal spinner —
+the unavailable branch unreachable by construction).
 
 ## Mock-fidelity debts (rig, not app)
 
@@ -617,6 +623,37 @@ delta …`). Nothing pushed.
 ```
 
 ## History
+
+- 2026-11-17 (pass 46) — Part AW executed on a FRESH axis (the pass-44/45 census
+  method): the **MODEL-CALL TRAJECTORY plane** — `getModelTrajectory` had ZERO
+  report hits in 46 passes while the phone ships the full A3.13 TrajectorySheet
+  (the G100 consume, SHIPPED but never live-driven). The full face matrix
+  first-series with the new arg-exact wire receipt (the 7feb2695
+  `MOCK: zcode-task getModelTrajectory args=<json>` line; the phone sends BOTH
+  workspacePath AND taskId, ×4 across the gens): the entry chip (the context
+  sheet's "Model calls"), the populated ×2-record render (kind · model · duration
+  · finish · textHead · tools · the red error), the G33 drill-in expansion
+  (args/result heads monospace, screenshot-verified), the search-HITS face over
+  readSessionMessages (role label + head), the RECORD-FILTER face (needle "42" →
+  exactly req-2; durationMs correctly NOT in the filter vocabulary), the TRUNCATED
+  badge, the vc52 Phase-12 USAGE token columns' first live receipt (req-3: in/out/
+  total/cache-read/reasoning; cache-write honestly absent), and the EMPTY face —
+  which exposed **N-CB-1 (P4)**: the fault face is an ETERNAL SPINNER (the typed
+  fault arrived and the bar spun through a relay swap; the unavailable branch
+  unreachable by construction — `trajectoryLoading = trajectory == null &&
+  showTrajectory` wins the `when`). Ride-alongs: the PlansViewer (A3.12) first
+  render receipt; the History rows on the gen4 git pane; the automations_error
+  honest face; the Phase-5B seed is MOCK_GOAL-gated (MockRelayMain :359→:424).
+  STEP 2 = pass 45's leftover CLOSED: the conflict body's >3 `take(3)` slice at
+  5 files ("5 file(s) were modified … (src/config.ts, src/main.rs, docs/notes.md…)",
+  arg-exact, Cancel pre-force — zero destructive writes; the string's "…" is
+  UNCONDITIONAL, census note). Stamps: **F-P0-E ×4** (3 ANR wedges in ~10 min, 2
+  on sheet typing — one consumed the app process). Mock: ONE commit `7feb2695`
+  (p46-arms: the arg log line + seedPhase5bDemo extraction + MOCK_TRAJECTORY
+  modes + MOCK_CHECKPOINT_CONFLICT_FILES + seams; suite **282/0/0/0**). App: ZERO
+  changes (APK byte-identical, install skipped — the FIFTH consecutive pass). Rig
+  left UP (gen4 mock-p46-gen4-0d423d — ⚠ the conflict arm STICKY; app pid 13692
+  in synth-task-1's conversation).
 
 - 2026-11-17 (pass 45) — Part AV executed on a FRESH axis (the pass-44 census
   method applied to the wire-verb layer): the **git-CHECKPOINT plane** —

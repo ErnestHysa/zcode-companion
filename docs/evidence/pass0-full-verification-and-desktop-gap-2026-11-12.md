@@ -10554,3 +10554,231 @@ emulator zcode-a16 UP (healthy, screenshot protection OFF), relay gen2 ALIVE (no
 sticky [the conflict arm left with gen1]; reusable as-is for hooks/git legs), app
 pid 11983 in synth-task-1's git sheet (the gen2 post-success card), logcat running →
 /tmp/p45/logcat.log.
+
+# Part AW — pass 46 (APPENDED 2026-11-17, ~15:10): FRESH RECON on a NEW axis — the MODEL-CALL TRAJECTORY plane (the A3.13 TrajectorySheet + the `zcode-task.getModelTrajectory` wire verb + the `readSessionMessages` search corpus + the SessionContextSheet entry chip: ZERO report hits in 46 passes; G100's "decode the trajectory payload if the channel serves it" consume SHIPPED but never live-driven) — the full face matrix driven FIRST-SERIES on the new arg-exact wire receipt (the 7feb2695 `MOCK: zcode-task getModelTrajectory args=<json>` line, the ae091f81 template): the entry chip, the loading face, the populated ×2-record render (kind · model · duration · finish · textHead · tools · the red error), the G33 drill-in expansion (args/result heads monospace), the search-HITS face over readSessionMessages (role label + head), the RECORD-FILTER face (needle "42" → exactly the req-2 card; durationMs correctly NOT in the filter vocabulary), the TRUNCATED badge ("Showing the most recent calls"), the USAGE token columns ("in 1240 · out 356 · total 1596 · cache-read 800 · reasoning 112" — the vc52 Phase-12 N-BK-1(b) render's first live receipt, cache-write honestly absent), and the EMPTY face ("No model calls recorded for this session") — which exposed NEW SMALL N-CB-1 (P4): the FAULT face is an ETERNAL SPINNER (`trajectoryLoading = trajectory == null && showTrajectory` wins the sheet's `when`, so the `trajectory_unavailable` branch is structurally unreachable — every fetch fault renders an infinite loading bar; logcat arbiter: the typed fault.mock.unscripted arrived 14:10:41 and the bar spun through a full relay swap; reopen is the only retry) — plus STEP 2 (pass-45's coverage leftover): the conflict body's >3-files `take(3)` slice driven on the new MOCK_CHECKPOINT_CONFLICT_FILES arm ("5 file(s) were modified since the snapshot (src/config.ts, src/main.rs, docs/notes.md…). Overwrite them?", arg-exact confirm, Cancel pre-force — zero destructive writes) — ONE new small, stamps F-P0-E ×4, ONE mock commit, app ZERO
+
+> **Pass 46 of the pass-0 series** (solo, the canonical discovery prompt; STEP 1 empty —
+> backlog 8/8 — and Part AV's coverage list had ONE mock-unblockable leg [the conflict
+> >3-files slice], so the axis = the pass-44/45 census method: grep the phone's wire-verb
+> surface for ZERO-report-hit planes → `getModelTrajectory` (TrajectorySheet, A3.13) +
+> the `terminal` channel create/write/resize/dispose + `commands`/`subagents`/`bots` list
+> words; the trajectory axis chosen as the largest un-driven UI (a full sheet + a search
+> corpus + the G33 drill-in + the Phase-12 token columns).
+> **App: ZERO changes** (HEAD `7feb2695` = mock-only; on-device md5 `530ba4ff…` ==
+> local HEAD artifact → `install -r` SKIPPED — the FIFTH consecutive byte-identical
+> pass; sha256 `ad449d7d…`, vc53/1.3.2).
+> **Mock: ONE commit** — `7feb2695` (p46-arms: the getModelTrajectory ARG LOG LINE
+> [the ae091f81 template — zcode-task channel calls printed nothing]; the Phase-5B
+> seed extracted as `Script.seedPhase5bDemo()`; `MOCK_TRAJECTORY=<comma modes>`
+> usage|truncated|empty|unavailable; `MOCK_CHECKPOINT_CONFLICT_FILES=<comma list>`
+> widening the conflict arm [default stays the pass-27 single file];
+> `checkpointConflictPayload`/`checkpointPromiseForTest` seams;
+> MockZCodePass46TrajectorySelfTest 6 cases; suite **282/0/0/0**).
+
+> **Verification stamp (pass start):** 2026-11-17 14:05 → 15:05, GLM-5.3-Flash in ZCode,
+> everything local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…` UNCHANGED —
+> no DELTA. Rig: the pass-45 emulator REUSED (TWENTY-THIRD consecutive inherited survival;
+> screenshot protection OFF verified via the 176 KB-class content PNG); the pass-45 gen2
+> relay (`mock-p45-gen2-dd1e49c3`) found ALIVE and used for Leg A, then pkilled BY NAME
+> for the gen swaps. FOUR relay generations: gen1 `mock-p46-gen1-5e9cd6` 14:15 (MOCK_GOAL=1
+> — the Phase-5B seed is goal-GATED, discovered this pass: `plansState`/`modelTrajectory`/
+> `sessionMessages` seed inside the MOCK_GOAL if-block), gen2 `mock-p46-gen2-cf3b7e`
+> 14:31 (+ MOCK_TRAJECTORY=usage,truncated), gen3 `mock-p46-gen3-4aa7b3` 14:40
+> (+ MOCK_TRAJECTORY=empty), gen4 `mock-p46-gen4-0d423d` 14:43 (MOCK_GIT=1 +
+> MOCK_CHECKPOINT_CONFLICTS=1 + MOCK_CHECKPOINT_CONFLICT_FILES=5 files). Stored endpoints
+> survived every swap (no re-pairing). TWO app process kills (the ANR cluster: pid
+> 11983 → 13101 → 13692, the last surviving to end of pass). APK md5 verified == HEAD
+> on-device → install SKIPPED. logcat fresh `-T 1` → /tmp/p46/logcat.log (gateway.drop 0;
+> zero FATAL EXCEPTIONs). Receipts: shots /tmp/p46/shots/ s00–s15, AX dumps /tmp/p46/w/
+> d0–d29, relay logs relay-g1..g4.log, DB pulls /tmp/p46/db/ (outbox tail UNCHANGED —
+> zero new outbox rows this pass: every leg is a channel read or a canceled confirm).
+
+## AW.A0 — rig learnings
+
+1. **The trajectory sheet's TYPING legs trip the ambient F-P0-E ANR 2/2** (the search
+   field's OutlinedTextField + per-keystroke `searchSession` recomposition under
+   swiftshader): first wedge during a DEL-burst retype (dialog → Wait recovered, but the
+   GMS MinuteMaid auth flow HIJACKED the foreground in the same beat — `am start -W`
+   recovered, pid survived), second wedge during a clean 3-char `input text` (Wait did
+   NOT recover; Close-app + relaunch; the FRESH process then ANRed AGAIN within seconds —
+   three wedges in ~10 minutes; a quiet force-stop + 20s-settle relaunch finally held).
+   A third wedge hit during the gen2 relay swap with the sheet dismissing. **Budget:
+   ZERO typing inside the trajectory sheet on this rig** — the search-hits + record-filter
+   faces are receipted; deeper query legs (token-search etc.) are rig-interrupted.
+2. **The GMS nag now rides the ANR/Wait beat too** (previously: BACK exit-chains only —
+   pass 44/45). Same recovery (`am start -W`, hub state intact).
+3. **The Phase-5B seed is MOCK_GOAL-gated** (MockRelayMain's seed block lives INSIDE the
+   `if (System.getenv("MOCK_GOAL") != null)` block :359→:424) — the pass-5B-era arms
+   (plans/trajectory/search corpus) are all unreachable without MOCK_GOAL=1. Gen1's
+   un-armed serve is therefore the typed `fault.mock.unscripted:getModelTrajectory` —
+   which is exactly what made Leg A's fault-chain receipt possible.
+4. The `MOCK: zcode-task getModelTrajectory args=…` arg line is the SECOND channel to
+   gain arg-exact receipts (ae091f81 precedent) — the phone sends BOTH `workspacePath`
+   AND `taskId` (`{"workspacePath":"/synthetic/ws-one","taskId":"synth-task-1"}`, ×4
+   across the gens; the mock ignores both, the static serve).
+5. uiautomator null-root during sheet ANIMATIONS and the IME-up window persists (5+ dump
+   retries on the busy frames); screenshots are the ground truth, dumps only when settled.
+
+## AW.B — Leg A: the entry + the fault face → NEW SMALL N-CB-1 (P4)
+
+The context sheet's second chips row ("Model calls" + "Share" — `conv_open_trajectory`
+/ `conv_share`, beneath the Files/Git/Terminal row) — FIRST series for the entry. Tap →
+the TrajectorySheet opens (title "Model calls", the search field "Search the conversation
+and model calls", the LinearProgressIndicator) — s01. On the pass-45 gen2 (no MOCK_GOAL →
+`script.modelTrajectory` null) the fetch answers the typed fault: logcat arbiter
+`channel.call :: zcode-task.getModelTrajectory begin` (14:10:30) → `refused:
+fault.mock.unscripted:getModelTrajectory` (14:10:41) → `port.trajectory ::
+TransportFailure` ×2 — and the sheet **NEVER SETTLES**: the loading bar spun 2+ minutes
+(s02, s03), through the dead-transport window, through the gen1 reconnect, until the
+sheet was dismissed by hand. **Mechanism (three stacked, one root)**:
+`Ports.kt:622-623` `fetchTrajectory = facadeRead("trajectory") {…}` — ANY fault → null
+(the null-swallow boundary, F-P5-A's family); `ConversationViewModel.kt:944-947`
+`loadTrajectory` assigns the null with no error state; **`ZCodeApp.kt:1196`
+`trajectoryLoading = trajectory == null && showTrajectory`** — so while the sheet is open
+and unresolved, LOADING is true — and the sheet's `when { loading -> bar; trajectory ==
+null -> unavailable; … }` (TrajectorySheet.kt:92-99) can NEVER reach the
+`trajectory_unavailable` branch (loading wins the `when` by construction: loading is
+true EXACTLY when trajectory==null). **Adjudication: NEW SMALL N-CB-1 (P4)** — the
+fault face is an eternal spinner; the honest unavailable copy is dead UI in every live
+path; the only retry is dismissing and re-opening the sheet (which re-fires
+`loadTrajectory` — receipted: the reopen produced a fresh arg line on gen1's log).
+Fix shape: derive loading from an explicit in-flight flag (or a tri-state), let
+trajectory==null render the unavailable face; pin: a compose harness with a faulting
+port asserting the unavailable face renders and the bar settles.
+
+## AW.C — Leg B (gen1, MOCK_GOAL=1): the populated face + the G33 drill-in (first series)
+
+Fresh gen1 (new jar + MOCK_GOAL) → reopen the sheet: the wire **`MOCK: zcode-task
+getModelTrajectory args={"workspacePath":"/synthetic/ws-one","taskId":"synth-task-1"}`
+(arg-exact, relay-g1.log ×2 — the reopen re-fires)** and the sheet renders BOTH records
+(s04/d6): req-1 = kind chip "main" + "glm-5.3 · 4200ms · tool_calls" + textHead
+"Checking the workspace state" + "tools: bash" (the toolNames line, monospace bold);
+req-2 = "main / glm-5.3 · 950ms" + the RED error line "RateLimitError: 429". The decode
+is faithful end-to-end (nested model.modelId, callSource.kind, response.finishReason/
+text, error.name:message join). **The drill-in (G33, vc51 Phase 4D): tap req-1 (the
+card carries payloads → clickable)** → EXPANDED (s05/d7): the payload section renders
+"bash" (primary label) + `args: {"command":"git status --short","timeout":30000}` +
+`result: M core/session.ts ⏎ ?? docs/evidence/notes.md` — monospace, the exact seeded
+heads, screenshot-verified (the a11y dump truncates the args line; the PNG is ground
+truth). Tap-again collapse not driven (the toggle is symmetric code, receipted expanded;
+census note). req-2 renders NO affordance (no payloads → INV-8 honest absence).
+
+## AW.D — Leg C: the search faces (first series; the ANR-bounded census)
+
+**The session-HITS face**: query "changelog" (the IME mangled the tail into "CC" — the
+known `input text` hazard; the hits for the changelog prefix rendered FIRST) → the
+`trajectory_search_hits` section renders the assistant row: role label "assistant"
+(primary, `trajectory_hit_assistant`) + the head "I'll draft the changelog and bump the
+version" (s06) — the readSessionMessages corpus answering (`MOCK: v4call
+readSessionMessages` ×2 on the wire). **The RECORD-FILTER face**: needle "42" (2 of the
+3 typed chars landed before the second ANR; the recovery screenshot IS the receipt) →
+the record list filtered to EXACTLY req-2 ("glm-5.3 · 950ms / RateLimitError: 429",
+s08) — req-1 correctly EXCLUDED: the filter vocabulary is
+`modelId/textHead/error/finishReason/requestId/callKind + toolNames`
+(TrajectorySheet.kt:100-104) and durationMs is NOT in it, so "4200ms" does not match —
+the filter is exact and honest against its declared fields. Deeper query legs
+(token-string search under the usage record) are rig-interrupted (AW.A0.1).
+
+## AW.E — Leg D (gen2, MOCK_TRAJECTORY=usage,truncated): the badge + the token columns (first series)
+
+The truncated badge renders ABOVE the list: **"Showing the most recent calls"**
+(`trajectory_truncated`, d22 y1271) — and the appended req-3 record renders the FULL
+vc52 Phase-12 N-BK-1(b) token columns: "main / glm-5.3 · 12400ms · stop / **in 1240 ·
+out 356 · total 1596 · cache-read 800 · reasoning 112** / Release checklist drafted"
+(s12/d22, the `trajectory_tokens_req-3` line, monospace) — **the token-columns render's
+FIRST live receipt** (the vc52 Phase-12 pin was static-only); `cacheWriteTokens` absent
+from the payload → absent from the render (the never-0 honest face, INV-8). attempt=2
+carries through the key (`requestId + attempt`). The PlansViewer ride-along (the same
+gen's context sheet): "Plans / Ship the release **1/3** / ✓ Write the changelog /
+▸ Bump the version / ○ Tag and publish" (d21) — the A3.12 plans panel's first render
+receipt on this series (conversationPlansV4's decode + the step-state icons).
+
+## AW.F — Leg E (gen3, MOCK_TRAJECTORY=empty): the empty face (first series)
+
+records=[] → the sheet settles to **"No model calls recorded for this session"**
+(`trajectory_empty` verbatim, d24; s13) with the search field intact — the honest empty
+face receipted; the search corpus stays seeded mock-side (undriven under empty — the
+AW.C receipts carry the search face).
+
+## AW.G — Leg F (STEP 2, gen4): the conflict body's >3 take(3) slice — pass-45's leftover CLOSED
+
+gen4 arms MOCK_GIT + MOCK_CHECKPOINT_CONFLICTS + **MOCK_CHECKPOINT_CONFLICT_FILES=
+src/config.ts,src/main.rs,docs/notes.md,scratch/a.txt,scratch/b.txt** (the 7feb2695
+arm; default stays the single src/config.ts). Create ×2 (ckpt-1/ckpt-2, arg-exact, the
+"Snapshot ckpt-2 created" toast + the hydration-note oddity re-receipted) → Restore on
+ckpt-2 → the confirm (ids interpolated) → Restore → the wire
+`restoreBetweenCheckpoints args={"workspacePath":"/synthetic/ws-one",
+"fromCheckpointId":"ckpt-1","toCheckpointId":"ckpt-2"}` (no force) → the CONFLICT
+dialog renders **"5 file(s) were modified since the snapshot (src/config.ts,
+src/main.rs, docs/notes.md…). Overwrite them?"** (s14/d29) — **the count %1$d=5 + the
+`take(3)` slice = exactly the first three paths + the ellipsis**. String pinned:
+`checkpoint_conflict_body` = "%1$d file(s) were modified since the snapshot (%2$s…).
+Overwrite them?" — the "…" is IN THE RESOURCE (unconditional): honest at >3, decorative
+at ≤3 (pass-45's single-conflict receipt carried the same "(src/config.ts…)" — census
+note, not a row; the count is the truth-teller). **Cancel** (pre-force) — zero
+destructive writes; the DB outbox tail UNCHANGED (the pass-44/45 hooks rows still tail
+— pass 46's legs are all channel reads + one canceled confirm).
+
+## AW.H — the ANR cluster (F-P0-E stamp 4) + the relay NAT note
+
+Three wedges in ~10 minutes (AW.A0.1): the pass-41-registered Recomposer throwOnFailure
+spin under swiftshader, now observed (a) during sheet typing ×2 (one consuming the
+app process — 11983 died; relaunch as 13101), (b) during a fresh-process launch
+composition, (c) during a relay swap with a sheet dismissing. No rename/leg-specific
+cause; the ANR trace pull captured system_server traces only (the app-side spin is
+already pinned pass-41). **F-P0-E stamp 4** (frequency + the typing-trigger + the
+process-kill severity). The pass-45 gen2 relay's device→host path blackholed mid-pass
+(the debt-#14 probabilistic NAT signature: `nc -z 10.0.2.2 18100` failed while the host
+listener was healthy and OTHER flows recovered) — resolved by the planned gen swap
+without an emulator restart (the debt-14 "probabilistic, sometimes recovers" clause).
+
+## AW.I — ledger arithmetic + coverage honesty
+
+ONE new small (**N-CB-1** P4 — the trajectory fault face is an eternal spinner; open
+smalls 23 → **24**). **F-P0-E stamp 4** (the ANR cluster). Open F unchanged **41**;
+open G unchanged 23 + 3 standing. Mock debt list: no NEW debts (the conflict-files and
+trajectory arms opened+closed in-pass in `7feb2695`, suite **282/0/0/0**). gateway.drop:
+0. Zero app FATALs. Wire census (relay logs, arg-exact): getModelTrajectory ×4 (gen1 ×2
+[the reopen re-fires], gen2 ×1, gen3 ×1); readSessionMessages ×2 (the search drum);
+git-checkpoint createCheckpoint ×2 + restoreBetweenCheckpoints ×1 (no force — canceled)
++ listCheckpoints ×1 (the gen4 hydrate); the context-sheet drum
+(conversationWorkflowRunsV4/conversationPlansV4 polls) present as always — no clean
+idle window, no F-P1-D stamp.
+
+What pass 46 did NOT drive: the trajectory UNAVAILABLE face's honest render
+(MOCK_TRAJECTORY=unavailable — N-CB-1 makes it structurally moot in the live app;
+the arm is self-tested and the re-drive is a fix-round item); the drill-in's
+tap-to-collapse second half (symmetric code); search queries under the usage record
+(token strings) and under the empty face (rig-interrupted, AW.A0.1); the exactly-3
+conflicts boundary (the ellipsis semantics saturate at the 5-file drive); the
+`terminal` channel's create/write/resize/dispose words (the census's runner-up axis —
+ZERO report hits, the phone's terminal feature undriven this pass; a candidate for a
+future pass); `commands`/`subagents`/`bots` list words (the pass-40 catalog census
+covered the screens); TalkBack runtime (standing stop); the desktop's own trajectory
+UI (desktop-legit, out of rig scope); the zh-rCN variants of the new faces (locale
+round-trip receipted pass 5; not repeated).
+
+## Pass-46 verification stamp
+
+Pass 46 completed 2026-11-17 ~15:05 (record appended ~15:10); FOUR relay generations
+(gen1 `mock-p46-gen1-5e9cd6` 14:15 MOCK_GOAL=1; gen2 `mock-p46-gen2-cf3b7e` 14:31
++MOCK_TRAJECTORY=usage,truncated; gen3 `mock-p46-gen3-4aa7b3` 14:40 +empty; gen4
+`mock-p46-gen4-0d423d` 14:43 MOCK_GIT=1 + MOCK_CHECKPOINT_CONFLICTS=1 +
+MOCK_CHECKPOINT_CONFLICT_FILES=5 files; launchers /tmp/p46/relay-g1..g4.sh, arms
+BEFORE exec). Mock: ONE commit — `7feb2695` (p46-arms: the getModelTrajectory arg log
+line + seedPhase5bDemo extraction + MOCK_TRAJECTORY modes + checkpointConflictFiles +
+seams + 6 self-tests; suite **282/0/0/0**). App: ZERO changes — `install -r` SKIPPED
+on byte-identity (local == on-device md5 `530ba4ff…`, sha256 `ad449d7d…`, vc53/1.3.2
+at HEAD `7feb2695`). Receipts: shots /tmp/p46/shots/ (s00 the context sheet; s01/s02
+the sheet + the eternal spinner; s03 post-swap; s04 populated; s05 the drill-in; s06
+the search hits; s07/s08 the record-filter + the post-Wait frame; s09 the GMS nag;
+s10/s11 the recoveries; s12 usage+truncated; s13 the empty face; s14 the 5-file
+conflict; s15 post-cancel), AX dumps /tmp/p46/w/ d0–d29, relay logs relay-g1..g4.log,
+DB pulls /tmp/p46/db/ (outbox tail unchanged — zero new rows); ANR traces
+/tmp/p46/anr-trace*.txt (system-side); logcat /tmp/p46/logcat.log (gateway.drop 0;
+zero FATALs). Desktop 3.18.1 / `ec475e6e…` unchanged (STEP 0). **Rig left:**
+emulator zcode-a16 UP (healthy, screenshot protection OFF), relay gen4 ALIVE (nonce
+`mock-p46-gen4-0d423d` — arms MOCK_GOAL + MOCK_GIT + MOCK_CHECKPOINT_CONFLICTS +
+CONFLICT_FILES — **⚠ the CONFLICT arm is STICKY**: an inheritor driving non-conflict
+git checkpoint legs must pkill + relaunch without it), app pid 13692 on synth-task-1's
+conversation (the context sheet closed), logcat running → /tmp/p46/logcat.log.
