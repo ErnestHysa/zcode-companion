@@ -75,12 +75,73 @@ internal object RigGitFixtures {
      * ok → the refetch served the SAME staged row). The arming AND every git self-test
      * mock share this seed so the served/committed views agree on the initial state.
      */
-    fun seedWriteTier(script: MockZCode.Script) {
-        changes().mapNotNull { it as? JsonObject }
+    fun seedWriteTier(script: MockZCode.Script, fixture: JsonArray = changes()) {
+        fixture.mapNotNull { it as? JsonObject }
             .filter { (it["section"] as? JsonPrimitive)?.content == "staged" }
             .mapNotNull { (it["path"] as? JsonPrimitive)?.content }
             .forEach { script.stagedPaths.add(it) }
     }
+
+    /**
+     * p42 (pass-42): MOCK_GIT_MANY swaps the Changes fixture for a many-rows set —
+     * 44 unstaged rows across nested directories + 2 staged — crossing GitScreen's
+     * J1.2 gates on the Unstaged section: SEARCH_GATE=10 (the per-section search
+     * field renders) and TREE_GATE=40 (the collapsible directory tree replaces the
+     * flat list). The desktop `git.tree.*` surface the gate comment names.
+     */
+    fun manyChanges(): JsonArray {
+        val rows = ArrayList<JsonObject>()
+        fun row(path: String, rel: String, kind: String, section: String, added: Long, removed: Long) =
+            JsonObject(mapOf(
+                "path" to JsonPrimitive("/synthetic/repo/$path"),
+                "workspaceRelativePath" to JsonPrimitive(rel),
+                "kind" to JsonPrimitive(kind),
+                "section" to JsonPrimitive(section),
+                "added" to JsonPrimitive(added),
+                "removed" to JsonPrimitive(removed),
+            ))
+        // staged tier first (seedWriteTier picks these into stagedPaths)
+        rows.add(row("src/core/config.ts", "src/core/config.ts", "modified", "staged", 9, 2))
+        rows.add(row("src/app/main.ts", "src/app/main.ts", "modified", "staged", 4, 1))
+        // 50 unstaged across nested dirs — ALL modified (the p41 served-section rule
+        // re-sections kind=added rows to "untracked", which would split the section
+        // below the TREE gate). Tree grouping has real depth + root files.
+        val plan: List<Pair<String, Int>> = listOf(
+            "src/app/ui" to 6, "src/app/state" to 5, "src/core/net" to 6,
+            "src/core/db" to 5, "src/tools" to 6, "docs/notes" to 4,
+            "scratch/tmp" to 6,
+        )
+        var n = 0
+        for ((dir, count) in plan) {
+            for (i in 1..count) {
+                n += 1
+                rows.add(row("$dir/file$i.ts", "$dir/file$i.ts", "modified", "unstaged", n.toLong() % 30 + 1, n.toLong() % 7))
+            }
+        }
+        for (i in 1..6) {
+            rows.add(row("rootfile$i.md", "rootfile$i.md", "modified", "unstaged", 2, 1))
+        }
+        return JsonArray(rows)
+    }
+
+    /**
+     * p42 (pass-42, debt #28): the getDiff fixture re-shaped to the DECODER contract —
+     * Phase9Tools.gitDiff reads {path, availability ∈ patch|binary|truncated|unavailable,
+     * patch}. The pass-5-era literal served {diff: "<unified>"} (no availability/patch
+     * keys), so the FIRST live diff-expand decoded availability=null → "unavailable" and
+     * patch=null — the honest unavailable face with the wire ok (git.getDiff begin → ok,
+     * never driven before). Desktop-faithful shape: a unified patch with availability
+     * "patch".
+     */
+    fun diff(): JsonObject = JsonObject(mapOf(
+        "path" to JsonPrimitive("src/version.ts"),
+        "availability" to JsonPrimitive("patch"),
+        "patch" to JsonPrimitive(
+            "diff --git a/src/version.ts b/src/version.ts\n" +
+                "--- a/src/version.ts\n+++ b/src/version.ts\n@@ -1,3 +1,5 @@\n" +
+                " const a = 1\n+const b = a + 1\n-const c = 2\n+const c = 3\n export { a, b, c }\n",
+        ),
+    ))
 
     fun commits(): JsonArray = JsonArray(listOf(
         JsonObject(mapOf(
@@ -880,13 +941,19 @@ fun main() {
         // from stagedPaths could never leave the tab — the live receipt: unstagePaths ok
         // → the refetch served the SAME staged row (index.ts stuck under Staged (1)).
         RigGitFixtures.seedWriteTier(mock.script)
-        mock.script.gitDiff = JsonObject(mapOf(
-            "diff" to JsonPrimitive(
-                "diff --git a/src/version.ts b/src/version.ts\n" +
-                    "--- a/src/version.ts\n+++ b/src/version.ts\n@@ -1,3 +1,5 @@\n" +
-                    " const a = 1\n+const b = a + 1\n-const c = 2\n+const c = 3\n export { a, b, c }\n",
-            ),
-        ))
+        // p42 (pass-42): MOCK_GIT_MANY=1 swaps the Changes fixture for the many-rows set
+        // (44 unstaged: 38 nested + 6 root, + 2 staged) crossing GitScreen's J1.2 gates — SEARCH_GATE=10
+        // (the per-section search field renders) and TREE_GATE=40 (the collapsible
+        // directory tree replaces the flat list) — and re-seeds the write tier from THAT
+        // fixture so the served-section derivation (p41) agrees.
+        if (System.getenv("MOCK_GIT_MANY") == "1") {
+            mock.script.gitChanges = RigGitFixtures.manyChanges()
+            RigGitFixtures.seedWriteTier(mock.script, RigGitFixtures.manyChanges())
+        }
+        // p42 (debt #28): the DECODER contract shape — {path, availability:"patch", patch}.
+        // The pass-5-era {diff: ...} literal decoded to availability="unavailable" +
+        // patch=null (the honest unavailable face on the first live diff-expand).
+        mock.script.gitDiff = RigGitFixtures.diff()
         // N-BK-1: the commit graph decodes hash/parents/refs/subject/authorName/
         // authoredAtMs (data/Phase9Tools.kt) — the old `oid`/`message`/`timestamp`
         // keys dropped EVERY row (hash was required) so History rendered silent-empty.

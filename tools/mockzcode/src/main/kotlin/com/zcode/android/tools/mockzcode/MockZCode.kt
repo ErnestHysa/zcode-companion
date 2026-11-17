@@ -5870,9 +5870,42 @@ private fun handleOffPeakTaskPromise(id: Int, name: String?, arg: RpcValue?) {
             }
             "listTaskList" -> {
                 val search = arg?.str("search").orEmpty().lowercase()
+                // p42 (debt #27): the desktop's rowToTaskListItem attaches searchSnippets
+                // (matched-context strings from searchable_text, searchSnippet = the first)
+                // to SEARCH hits — the phone's tasks-search pane renders them under the
+                // title. The mock's conversations are generated on demand (no stored
+                // searchable_text), so the searchable surface is the task title itself and
+                // the snippet is the matched-context window around the hit.
                 val hits = script.directTasks
                     .filter { search.isEmpty() || ((it.jsonObject["title"] as? JsonPrimitive)?.content?.lowercase()?.contains(search) == true) }
-                    .map { JsonObject(it.jsonObject) }
+                    .map { base ->
+                        val obj = JsonObject(base.jsonObject)
+                        if (search.isEmpty()) {
+                            obj
+                        } else {
+                            val title = (base.jsonObject["title"] as? JsonPrimitive)?.content.orEmpty()
+                            val low = title.lowercase()
+                            val at = low.indexOf(search)
+                            val snippet = if (at >= 0) {
+                                val s = maxOf(0, at - 24)
+                                val e = minOf(title.length, at + search.length + 24)
+                                buildString {
+                                    if (s > 0) append("…")
+                                    append(title.substring(s, e))
+                                    if (e < title.length) append("…")
+                                }
+                            } else {
+                                title
+                            }
+                            JsonObject(obj + mapOf(
+                                "searchSnippet" to JsonPrimitive(snippet),
+                                "searchSnippets" to JsonArray(listOf(JsonPrimitive(snippet))),
+                            ))
+                        }
+                    }
+                if (search.isNotEmpty()) {
+                    println("MOCK: listTaskList search='$search' → ${hits.size} hits")
+                }
                 respond(id, ChannelWire.ResponseType.PromiseSuccess, RpcValue.Obj(buildJsonObject {
                     put("items", JsonArray(hits))
                     put("total", JsonPrimitive(hits.size))
