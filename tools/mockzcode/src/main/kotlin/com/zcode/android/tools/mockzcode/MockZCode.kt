@@ -515,7 +515,9 @@ class MockZCode(
                     "\u001B[33mrig-p47 ready\u001B[0m\n",
                 )
             } else if (mode == "big") {
-                // 2400 lines x ~260 B = ~620 KB — ~110 KB of the head must evict.
+                // 2400 lines x 219 B = 525.6 KB — 1,314 B (6 lines) of the head evicts at
+                // the 512 KiB bound (the p48 "~620 KB" estimate was an arithmetic slip;
+                // live-verified pass 49: the sentinel counted exactly 1314 dropped bytes).
                 val filler = "x".repeat(200)
                 (1..2400).map { "rig-p48 line %04d $filler\n".format(it) }
             } else if (mode == "bigone") {
