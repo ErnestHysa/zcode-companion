@@ -120,6 +120,18 @@ class RelayTransport(
          * wider window; queries keep the verified 10 s budget.
          */
         val bridgeHandshakeTimeoutMs: Long = 30_000,
+        /**
+         * F-P9-A (pass-9 Part L.A2): the AUTHENTICATING watchdog. The handshake state
+         * has NO ladder of its own — every wedge class the live receipts caught (relay
+         * killed MID-AUTHENTICATION: 8 min 6 s of zero sockets, zero retries, zero logs,
+         * surviving foreground/unlock; relay ABSENT at the cold-start connect: a 10 s
+         * timeout → silent wedge) left the machine parked in AUTHENTICATING forever,
+         * and the ONLY escape was a cross-endpoint switch. Must exceed the legitimate
+         * in-state windows (connect 10 s + auth 2×15 s + the F-PAIRSTATUS desktop-
+         * approval wait 60 s — an approval wait is USER-driven): the watchdog rescues
+         * only the hang/cancellation classes that never resolve on their own.
+         */
+        val authWatchdogTimeoutMs: Long = 90_000,
     )
 
     private val scope = externalScope ?: CoroutineScope(Dispatchers.IO)
@@ -228,6 +240,8 @@ class RelayTransport(
 
     private var heartbeatJob: Job? = null
     private var ackWatcherJob: Job? = null
+    /** F-P9-A: the AUTHENTICATING watchdog (armed on entry, cancelled on leave). */
+    @Volatile private var authWatchdogJob: Job? = null
 
     /** Per-connection I/O loops (sender, parser, reader) — cancelled on replacement. */
     @Volatile private var ioJobs: List<Job> = emptyList()
@@ -559,50 +573,67 @@ class RelayTransport(
             ackWatcherJob = scope.launch { ackWatchLoop() }
             ctx.info("relay.connected", "connectionId=${hello.connectionId.take(8)}…")
         } catch (e: Failure) {
-            // §14.4.1 honest terminal state on a failed connect — NEVER rest in
-            // CONNECTING: auth-class → FAILED (re-scan); retryable classes →
-            // RECONNECTING (the recovery loop may retry; budget → Degraded).
-            bound().warn("relay.connectFailed", "${e.error.category} ${e.error.developerDiagnostic.take(140)}")
-            // G67 (vc52 Phase 11): the typed disconnected-REMOTE error must SURFACE —
-            // the ladder swallows connect failures (the live exit-gate leg: the typed
-            // error carried in the wire log but hub.lastError stayed null, so the
-            // Connection Center rendered no Reconnect card). Emit it once per attempt;
-            // the ladder keeps retrying underneath the card.
-            if (e.error.messageKey == com.zcode.android.core.common.error.UserMessageKey.REMOTE_WORKSPACE_DISCONNECTED) {
-                _appErrors.emit(e.error)
-            }
-            if (e.error.developerDiagnostic.contains("workspace-bridge-error")) {
-                // The desktop refused THIS bridge (dead/wedged) — rotate the identity
-                // so the retry opens a FRESH bridge instead of replaying into the
-                // corpse forever (field: desktop-disconnected loop).
-                bridgeSessionId = RelayFrameCodec.newBridgeSessionId()
-                bridgeGeneration = null
-                recoveryId = null
-                bound().warn("bridge.rotated", "fresh bridgeSessionId for the next attempt")
-            }
-            if (e.error.category == com.zcode.android.core.common.error.ErrorCategory.AUTH) {
-                safeMachine(ConnectionStateMachine.ConnectionEvent.AUTH_FAILED)
-            } else if (machine.state in setOf(
-                    ConnectionStateMachine.ConnectionState.CONNECTING,
-                    ConnectionStateMachine.ConnectionState.AUTHENTICATING,
-                    ConnectionStateMachine.ConnectionState.RECOVERING,
-                )
-            ) {
-                safeMachine(ConnectionStateMachine.ConnectionEvent.SOCKET_LOST)
-                // "Reconnecting" must mean a loop IS running (§14.4.1): self-heal here
-                // so EVERY caller (hub cold start, pairing retry) gets bounded retry →
-                // budget → Degraded instead of a stranded mid-state.
-                recoveryJob = scope.launch { runCatching { recover() } }
-            }
-            publishState()
+            handleEstablishFailure(e)
             throw e
         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-            throw Failure(ErrorMapping.timeout("connect", config.connectTimeoutMs))
+            // F-P9-A: a timeout IS socket loss during ACQUISITION (§15-S1: "connection
+            // loss during the Connecting/Authenticating acquisition states routes to
+            // Reconnecting"). The old catch converted + rethrew WITHOUT the machine
+            // handling below — the machine stayed parked in AUTHENTICATING with no
+            // ladder and no face (the pass-15 third variant: relay absent at the
+            // cold-start connect → 10 s timeout → silent wedge, force-stop escape).
+            val failure = Failure(ErrorMapping.timeout("connect", config.connectTimeoutMs))
+            handleEstablishFailure(failure)
+            throw failure
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             throw Failure(transportLoss("connect failed: ${e.javaClass.simpleName}"))
         }
+    }
+
+    /**
+     * F-P9-A: the establish() failure machine-handling, shared by the Failure and
+     * timeout-class catches — honest terminal state, the typed-error surface, and the
+     * recovery loop arm (§14.4.1: "Reconnecting" must mean a loop IS running).
+     */
+    private suspend fun handleEstablishFailure(e: Failure) {
+        // §14.4.1 honest terminal state on a failed connect — NEVER rest in
+        // CONNECTING: auth-class → FAILED (re-scan); retryable classes →
+        // RECONNECTING (the recovery loop may retry; budget → Degraded).
+        bound().warn("relay.connectFailed", "${e.error.category} ${e.error.developerDiagnostic.take(140)}")
+        // G67 (vc52 Phase 11): the typed disconnected-REMOTE error must SURFACE —
+        // the ladder swallows connect failures (the live exit-gate leg: the typed
+        // error carried in the wire log but hub.lastError stayed null, so the
+        // Connection Center rendered no Reconnect card). Emit it once per attempt;
+        // the ladder keeps retrying underneath the card.
+        if (e.error.messageKey == com.zcode.android.core.common.error.UserMessageKey.REMOTE_WORKSPACE_DISCONNECTED) {
+            _appErrors.emit(e.error)
+        }
+        if (e.error.developerDiagnostic.contains("workspace-bridge-error")) {
+            // The desktop refused THIS bridge (dead/wedged) — rotate the identity
+            // so the retry opens a FRESH bridge instead of replaying into the
+            // corpse forever (field: desktop-disconnected loop).
+            bridgeSessionId = RelayFrameCodec.newBridgeSessionId()
+            bridgeGeneration = null
+            recoveryId = null
+            bound().warn("bridge.rotated", "fresh bridgeSessionId for the next attempt")
+        }
+        if (e.error.category == com.zcode.android.core.common.error.ErrorCategory.AUTH) {
+            safeMachine(ConnectionStateMachine.ConnectionEvent.AUTH_FAILED)
+        } else if (machine.state in setOf(
+                ConnectionStateMachine.ConnectionState.CONNECTING,
+                ConnectionStateMachine.ConnectionState.AUTHENTICATING,
+                ConnectionStateMachine.ConnectionState.RECOVERING,
+            )
+        ) {
+            safeMachine(ConnectionStateMachine.ConnectionEvent.SOCKET_LOST)
+            // "Reconnecting" must mean a loop IS running (§14.4.1): self-heal here
+            // so EVERY caller (hub cold start, pairing retry) gets bounded retry →
+            // budget → Degraded instead of a stranded mid-state.
+            recoveryJob = scope.launch { runCatching { recover() } }
+        }
+        publishState()
     }
 
     private fun authErrorFrom(frame: JsonObject): Failure {
@@ -1849,6 +1880,25 @@ class RelayTransport(
 
     private fun publishState() {
         _states.value = machine.state
+        // F-P9-A: arm the AUTHENTICATING watchdog on entry, cancel on leave. A machine
+        // parked in AUTHENTICATING past the window is wedged (no ladder arms from the
+        // handshake state) — flip it through the socket-loss path so the recovery loop
+        // takes over and the state change is LOGGED (never a silent state).
+        if (machine.state == ConnectionStateMachine.ConnectionState.AUTHENTICATING) {
+            if (authWatchdogJob?.isActive != true) {
+                authWatchdogJob = scope.launch {
+                    delay(config.authWatchdogTimeoutMs)
+                    if (!closedByUs && machine.state == ConnectionStateMachine.ConnectionState.AUTHENTICATING) {
+                        onConnectionLost(
+                            "auth watchdog (AUTHENTICATING for ${config.authWatchdogTimeoutMs}ms — no ladder, no logs, no face)",
+                        )
+                    }
+                }
+            }
+        } else {
+            authWatchdogJob?.cancel()
+            authWatchdogJob = null
+        }
     }
 
     private fun safeMachine(event: ConnectionStateMachine.ConnectionEvent) {
