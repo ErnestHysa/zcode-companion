@@ -11190,3 +11190,207 @@ OFF), relay gen4b ALIVE (nonce `mock-p48-gen4b-c8d2a1` — arms ansi + EXIT_MS +
 EXIT_CODE=1; nothing sticky), app pid 16313 on the Terminal screen (Exited (1)
 face), logcat running → /tmp/p48/logcat.log. The volume-drop closer (phone
 reader vs NAT) is THE open question for any future terminal-stream rig work.
+
+# Part AZ — pass 49 (APPENDED 2026-11-17, ~20:30): THE WIND-DOWN PASS — the three named legs driven END-TO-END and the SATURATION ADJUDICATION declared. Leg A = the REMAINING catalog wire words FIRST-SERIES on the new arg-exact lines (0a9340f7's `MOCK: skills getSkillReferenceCatalog args=<json>` / `MOCK: mcp listMcpServerStatuses args=<json>` / `MOCK: model-selection getView args=<json>` — the zcode-agent pair printed only the generic no-args `v4call` line forever and the providers word's handler took NO arg at all): `skills getSkillReferenceCatalog args={"workspacePath":"/synthetic/ws-one"}` ×3, `mcp listMcpServerStatuses args={"workspacePath":"/synthetic/ws-one","mode":"status"}` ×2 (the pinned passive `mode:"status"` live), `model-selection getView args={}` ×2 (the empty-obj shape, the bots pattern) — the seeded renders receipted ON the lines (Skills: release/workspace + sql-migrate/plugin·prisma-toolkit + commit/user + the Search-skills field; MCP: docs-search Disabled / github Connected·12 tools / playwright Failed with the typed ECONNREFUSED face; Providers: Z.AI Default glm-5.1·air·flash[Preview] + OPENAI-COMPATIBLE glm-4.6), the RE-ENTRY re-fire census (every open a fresh read — Skills ×3 incl. the throwaway-tap re-entry, MCP ×2, Providers ×2), and the G103 census re-confirmed (Providers screen: ZERO clickable nodes — the rows are non-clickable by construction). Leg B = the F-P48-A DISCRIMINATOR on the new `MOCK_TERMINAL_OUT=bigone` arm (0a9340f7: the identical 2400-line payload as ONE stream chunk instead of 2400 frames): **the single 525.6 KB frame SURVIVED — hello count 1, zero relay.recovered after the create, the LIVE face held** → the drop is **FRAME-COUNT class (the phone reader), NOT byte-volume** (the p48 "closer unresolved [phone reader vs NAT]" RESOLVED: `big`'s 2400 frames dropped at ~6-26 frames paced AND unpaced; `bigone`'s identical bytes in one frame held) — **AND THE RING-EVICTION FACE FINALLY DROVE** (the pass-47/48 "rig-undrivable" leftover CLOSED): the tail rendered (line 2396→2400) under the eviction sentinel `… 1314 earlier bytes dropped (ring bound 512 KiB) …`, and the three search probes PROVED the eviction DB-exact — "line 0001" → 0 matching line(s) [the evicted head], "line 2400" → 1 [the tail], "line 0007" → 1 [the exact boundary] — 6 lines × 219 B = 1,314 B matching the sentinel's counter EXACTLY (the p48 comment's "~620 KB / ~110 KB evicts" was an arithmetic slip — 2400 × 219 B = 525.6 KB, 1.3 KB evicts; corrected mock-side in the in-pass comment commit) — plus the OS-CLIPBOARD CONTENT VERIFICATION via the pass-37 arbiter (the OS preview chip rendered `rig-p48 line 0007 xxxx…` VERBATIM: the Copy-visible-output clipboard carries the POST-EVICTION ring — the evicted head is NOT copied — and the "Copied" face re-receipted). STEP 2 = the pass-48 leftovers DISPOSITIONED: the ANSI-DARK face FIRST-SERIES (Dark theme + the ansi seed: all four SGR spans legible — bold blue/green/bold-blue/yellow on the dark panel, no washed-out spans; the light face is the pass-47 receipt; theme driven + reverted per the standing rule), the terminal autoscroll fine-grain ADJUDICATED RIG-UNDROIVABLE (the paced big arm drops the transport — the F-P48-A trigger — so per-frame autoscroll is undrivable; bigone lands as one frame and the view rendered TAIL-ANCHORED [the end-state receipt, s05], not the fine-grain), and the OS-clipboard item receipted (above) — the pass-48 list is EMPTY of driveable items. ZERO new F/G/N rows opened. **SATURATION ADJUDICATED: the discovery campaign is SATURATED at pass 49 — the next move is Ernest's roadmap call.**
+
+> **Pass 49 of the pass-0 series — THE WIND-DOWN** (the canonical prompt named three legs +
+> the adjudication; STEP 1 = the legs, STEP 2 = pass 48's list, everything per the standing
+> law). **App: ZERO changes** (local HEAD APK md5 `530ba4ff…` == on-device → `install -r`
+> SKIPPED — the EIGHTH consecutive byte-identical pass; sha256 `ad449d7d…`, vc53/1.3.2).
+> **Mock: TWO commits** — `0a9340f7` (p49-arms: the three arg lines + `MOCK_TERMINAL_OUT=bigone`
+> + the bigone self-test [one entry / \n-terminated / >512 KiB / byte-volume == big]; suite
+> **292/0/0/0**) and the in-pass comment-correction commit (the big-seed byte arithmetic:
+> 2400 × 219 B = 525.6 KB, 1,314 B / 6 lines evict — live-verified). 
+
+> **Verification stamp (pass start):** 2026-11-17 19:52 → 20:18, GLM-5.3-Flash in
+> ZCode, everything local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…`
+> UNCHANGED — no DELTA. Rig: the pass-48 emulator REUSED (healthy; screenshot
+> protection OFF — the pass-48 sessions persisted); the pass-48 gen4b relay pkilled
+> BY NAME before gen1; the app INHERITED (pid 16313 — the stale singleton terminal
+> state carried, disposed cross-process on gen2's first Detach [the dispose acked]).
+> THREE relay generations: gen1 `mock-p49-gen1-d094e6` (clean — Leg A), gen2
+> `mock-p49-gen2-0c7b32` (MOCK_TERMINAL_OUT=bigone — Leg B, NO exit arms so the
+> probes ran first), gen3 `mock-p49-gen3-8b21e3` (MOCK_TERMINAL_OUT=ansi — the
+> dark-theme face). Stored endpoints survived every swap. APK md5 verified ==
+> HEAD on-device → install SKIPPED. logcat fresh `-T 1` → /tmp/p49/logcat.log
+> (**gateway.drop 0; zero FATAL EXCEPTIONs; zero ANRs; 123 Davey janks** on the
+> big-line search typing + the heavy streams — no wedge, census note). Receipts:
+> shots /tmp/p49/shots/ s00-s10, AZ dumps /tmp/p49/w/ d0-d37, relay logs
+> relay-g1/g2/g3.log, DB pull /tmp/p49/db/ (zcode.db+wal — **outbox count 7, ZERO
+> new rows**; **F-P38-A's ghost keys arbitered AGAIN: `/synthetic/ws-one` 27 rows
+> live vs the frozen `synthetic-ws-one` ghost key 1 row — stamp 7**).
+
+## AZ.A0 — rig learnings
+
+1. **The GMS nag re-manifested ONCE** (mid-leg, riding the theme-toggle leg): 2×BACK +
+   `am start` recovered — and this time the app route SURVIVED (it landed back IN the
+   conversation, not the home); the AY.A0 recipe holds, with the route-survival nuance
+   (the zombie terminal state also survived, disposed on the next Detach).
+2. The stale singleton terminal state now carries ACROSS A RELAY SWAP WITH CONTENT
+   (gen2's bigone ring rendered under gen3's "live — /bin/zsh" until the manual
+   Detach) — the third receipt of the class (pass 47 face-only, pass 48 with content
+   from the SAME gen, now across a relay swap).
+3. The Settings theme dialog renders Light/Dark/Follow-the-system/zai-light/zai-dark
+   as a modal list (tap row = apply immediately); the row text flips to
+   "Theme: Dark"/"Theme: Follow the system" — the revert arbiter.
+4. `dumpsys clipboard` is EMPTY from the shell on API 36 and `cmd clipboard
+   get-primary-clip` is "No shell command implementation" — the OS clipboard PREVIEW
+   CHIP in a post-tap screenshot is the only shell-readable arbiter (the pass-37
+   precedent, now pinned for the terminal too).
+5. The context-sheet Terminal chip (474, 2107) is stable; the sheet re-opens fresh
+   after `am start` recovery (the conversation route survives).
+
+## AZ.B — Leg A (gen1): the remaining catalog wire words FIRST-SERIES
+
+- **`skills getSkillReferenceCatalog args={"workspacePath":"/synthetic/ws-one"}`**
+  (relay-g1 :19) — the arg-exact receipt; NO workspaceIdentity key (null target
+  second — the V4Plane skip) and NO sessionId key (null) — the full param shape
+  live-verified: `{workspacePath}` ONLY; the render: release (workspace) +
+  sql-migrate (plugin · prisma-toolkit) + commit (user), each name/description/
+  source-badge, over the "Search skills" field (d2, s01).
+- **`mcp listMcpServerStatuses args={"workspacePath":"/synthetic/ws-one","mode":"status"}`**
+  (:23) — the phone's PINNED passive `mode:"status"` rides the wire exactly as the
+  §GAP-9 contract specifies (a viewer must not side-effect the desktop's MCP
+  runtime); the render: docs-search (http · legacy · 0 tools · Disabled), github
+  (stdio · modern · 12 tools · Connected), playwright (sse · modern · 0 tools ·
+  **Failed** → the typed face "Failed to connect to the MCP server. Try again
+  later." + "ECONNREFUSED 127.0.0.1:9222" + "connection_failed") + the INV-9
+  posture footer — the pass-40 typed-failure receipt re-receipted ON the new line
+  (d4, s02).
+- **`model-selection getView args={}`** (:24) — the providers word's handler took
+  NO arg at all (the p48 catalog template could not have covered it); the receipt
+  is the EMPTY args object (the `Arr(emptyList())`→argAsObject→null→`{}` shape, the
+  bots pattern); the render: Z.AI (Default) with glm-5.1 / glm-5.1-air /
+  glm-5.1-flash (Preview badge) + OPENAI-COMPATIBLE glm-4.6 — the pass-40 census
+  data re-receipted ON the new line (d5, s03).
+- **Re-entry re-fire census**: Skills ×3 (the third from the AY.A0 throwaway-tap
+  re-entry — every open re-fires), MCP ×2, Providers ×2 — the pass-48 pattern
+  holds on all three planes (every viewer open is a fresh read; no client cache).
+- **G103 census re-confirmed**: the Providers screen carries ZERO clickable nodes
+  (the rows are non-clickable by construction — the detail-depth gap stands on
+  this plane too; the row is unchanged, this is a census note only).
+
+## AZ.C — Leg B (gen2): the bigone discriminator + the ring-eviction face FIRST-SERIES
+
+- **The discriminator**: attach on `MOCK_TERMINAL_OUT=bigone` (the identical
+  2400-line payload as ONE chunk): `terminal create args={"cols":120,"rows":32}`
+  arg-exact (:11 of relay-g2), **hello count 1 for the whole gen — ZERO transport
+  drop** (the p48 `big` shape dropped at ~6-26 frames on EVERY attempt paced and
+  unpaced; the two relay.recovered lines in logcat are the relay-SWAP ladder,
+  both PRE-attach; the create rode connectionId relay-18 with no recovery after).
+  **Adjudication stamped into F-P48-A: the drop is FRAME-COUNT class — the phone
+  reader, NOT byte-volume/NAT.** The row's RECOVERY half (the terminal listens die
+  with the old connection and never re-establish) remains OPEN unchanged — the
+  trigger's localization only narrows the fix-round's repro shape (the `big` arm
+  is the pin harness's stream shape; `bigone` is the no-drop control).
+- **The ring-eviction face** (the pass-47 "not driven" → pass-48 "rig-undrivable"
+  leftover — CLOSED): the face rendered the tail (line 2396→2400, s05) under the
+  sentinel **`… 1314 earlier bytes dropped (ring bound 512 KiB) …`**, and the
+  search probes (sequenced BEFORE any exit arm — gen2 carried NONE) PROVED it:
+  "line 0001" → **0 matching line(s)** (the evicted head), "line 2400" → **1
+  matching line(s)** (the tail), "line 0007" → **1 matching line(s)** (the exact
+  boundary — 6 lines × 219 B = 1,314 B == the sentinel's counter, DB-exact). The
+  face is HONEST (the p48 comment's "~620 KB / ~110 KB evicts" was an arithmetic
+  slip; corrected mock-side). The `droppedBytes` accounting
+  (TerminalController.kt:198) is receipted exact at its first live overflow.
+- **The OS-clipboard content verification** (the pass-37 arbiter): fresh
+  Copy-visible-output tap → the OS preview chip rendered **`rig-p48 line 0007
+  xxxx…` verbatim** (s08) — the clipboard carries the POST-EVICTION ring's first
+  line; the evicted head is NOT copied; the "Copied" face re-receipted. The
+  copy-OUT reads the ring snapshot, not the wire payload — consistent with the
+  J7 read-side contract.
+
+## AZ.D — STEP 2: the pass-48 leftovers DISPOSITIONED (gen3 + the adjudications)
+
+1. **The ring-eviction face** — DRIVEN (AZ.C).
+2. **The ANSI dark/light scheme-contrast faces** — the DARK face FIRST-SERIES on
+   gen3 (`MOCK_TERMINAL_OUT=ansi` + the Settings Theme→Dark toggle): all four SGR
+   spans legible under dark — bold blue "rig-p47@mock", green "$ echo attached",
+   bold blue "build", yellow "rig-p47 ready" on the dark panel, plain text white/
+   gray — NO washed-out or black-on-black spans (s10; the per-line a11y labels
+   "terminal line 1..4" re-receipted). The LIGHT face is the pass-47 receipt (the
+   theme matrix class: pass 7). Theme driven + REVERTED (Follow the system) per
+   the standing rule. NO row (the palette holds; TerminalPaletteTest coverage
+   unchanged).
+3. **The terminal autoscroll-while-streaming fine-grain** — ADJUDICATED
+   RIG-UNDROIVABLE: the paced `big` arm (the only per-frame stream shape) drops
+   the transport — the F-P48-A trigger — so per-frame autoscroll cannot be
+   observed; `bigone` lands as ONE frame and the view rendered TAIL-ANCHORED
+   (s05: lines 2396-2400 visible post-attach — the end-state receipt, not the
+   fine-grain). Census note; the arms ship for a post-fix rig.
+4. **The OS-clipboard content verification of the copy chips** — DRIVEN (AZ.C,
+   the terminal Copy chip; the Commands viewer has NO copy affordance — the rows
+   are non-clickable [G103], so the terminal chip was the referenced target).
+5. TalkBack runtime (standing stop) / zh-rCN variants (pass 5) — unchanged.
+
+## AZ.E — THE SATURATION ADJUDICATION (the wind-down duty, finding by finding)
+
+The ledger's stop condition: "a full pass that opens ZERO new rows AND a fully
+ticked backlog ⇒ tell Ernest the discovery campaign is saturated". BOTH HOLD:
+
+- **New rows this pass: ZERO.** Leg A's three receipts and Leg B's discriminator +
+  eviction/clipboard/dark faces are all RECEIPTS on already-open surfaces (the
+  catalog viewer family [pass 40/48], the terminal plane [pass 47/48]) — no new
+  plane exposed a defect, no ride-along small fired, no open row re-manifested
+  beyond the stamps (F-P38-A's ghost keys re-arbitered unchanged [stamp 7];
+  F-P0-E did NOT fire — zero ANRs).
+- **The backlog: 8/8** (ticked since pass 12; the pass-48 runner-up axes were the
+  LAST named discovery surface and are now receipted). The coverage-leftovers
+  chain is EMPTY of driveable items (AZ.D).
+- **The remaining undrivable surface** is closed-class: F-P3-A-gated card bodies,
+  standing rig stops (TalkBack runtime, shade-action approve, widget add-to-home),
+  fix-round re-drives (the FIXED-row re-verification legs), and F-P48-A's own
+  recovery-half re-drive after its fix. None is a discovery axis — they are the
+  fix queue's verification work.
+- **Declaration: the discovery campaign is SATURATED at pass 49.** The next move
+  is Ernest's roadmap call (the vc52-format roadmap over the full ledger: 42 F +
+  25 smalls + 24 G, P2-first). A future discovery-class pass is justified ONLY if
+  a NEW PLANE (not another face of a receipted plane) appears — a desktop DELTA
+  (the DELTA procedure gates it) or an app change re-opening a surface.
+
+## AZ.F — ledger arithmetic + coverage honesty
+
+ZERO new rows (open F 42, smalls 25, G 24 + 3 standing — ALL UNCHANGED). Stamps:
+**F-P48-A → 2** (the closer RESOLVED: frame-count class [the phone reader] —
+bigone's identical bytes in ONE frame held with hello=1; the row's recovery half
+stays OPEN unchanged; + the ring-eviction face DRIVEN+PROVEN [the leftover
+closed] and the copy-content arbiter [the clipboard carries the post-eviction
+ring]); **F-P38-A → 7** (the ghost keys re-arbitered on the boot DB: 27 live vs
+1 frozen); F-P0-E: NO stamp (zero ANRs; 123 Davey janks, no wedge). Wire census
+(arg-exact): skills ×3 + mcp ×2 + model-selection ×2 + terminal create ×2 /
+dispose ×2. Mock debts: none opened (the bigone arm ships in `0a9340f7`; the
+p48 comment's byte arithmetic corrected in the in-pass commit). The catalog
+wire-words axis is CLOSED (all six viewer screens now carry arg-exact wire
+receipts); the terminal plane's driveable face matrix is COMPLETE (the eviction
+face was the last "not driven" item).
+
+What pass 49 did NOT drive: the ANSI light-theme re-drive (the pass-47 receipt
+stands; only the dark face was new); the terminal autoscroll fine-grain
+(RIG-UNDROIVABLE — adjudicated above); the ring-eviction face under a LIGHT
+theme (the same face class, dropped for scope); the exit-listen aliveness under
+bigone (gen2 carried NO exit arm by design — the probes-first sequencing; the
+exit faces are receipted pass 47/48); TalkBack runtime (standing stop); the
+zh-rCN variants (pass 5); F-P3-A-gated card bodies (standing gate).
+
+## Pass-49 verification stamp
+
+Pass 49 completed 2026-11-17 ~20:18 (record appended ~20:30); THREE relay
+generations (gen1 `mock-p49-gen1-d094e6` clean; gen2 `mock-p49-gen2-0c7b32`
+MOCK_TERMINAL_OUT=bigone; gen3 `mock-p49-gen3-8b21e3` MOCK_TERMINAL_OUT=ansi;
+launchers /tmp/p49/relay-g*.sh, arms BEFORE exec). Mock: TWO commits — `0a9340f7`
+(the skills/mcp/model-selection arg lines + MOCK_TERMINAL_OUT=bigone + the
+bigone self-test; suite **292/0/0/0**) + the in-pass comment-arithmetic
+correction. App: ZERO changes — `install -r` SKIPPED on byte-identity (local ==
+on-device md5 `530ba4ff…`, sha256 `ad449d7d…`, vc53/1.3.2 at the pass-48 HEAD
+APK). Receipts: shots /tmp/p49/shots/ (s00 Settings; s01 Skills; s02 MCP; s03
+Providers; s04 MCP re-entry; s05 the bigone tail + the eviction sentinel; s06
+the line-0007 probe; s07/s08 the Copy + the OS preview chip; s09 dark Settings;
+s10 the ANSI-dark face), dumps /tmp/p49/w/ d0-d37, relay logs relay-g1/g2/g3.log,
+DB pull /tmp/p49/db/ (outbox 7, zero new rows; the F-P38-A ghost keys
+re-arbitered); logcat /tmp/p49/logcat.log (gateway.drop 0; zero FATALs; zero
+ANRs; 123 Davey janks). Desktop 3.18.1 / `ec475e6e…` unchanged (STEP 0).
+**SATURATED at pass 49** (AZ.E) — the roadmap is Ernest's call.
+**Rig left:** emulator zcode-a16 UP (healthy, screenshot protection OFF), relay
+gen3 ALIVE (nonce `mock-p49-gen3-8b21e3` — arms ansi; **nothing sticky** — safe
+to inherit), app pid 16313 on the Settings screen (Theme: Follow the system —
+REVERTED), logcat running → /tmp/p49/logcat.log. Launchers /tmp/p49/relay-g*.sh.
