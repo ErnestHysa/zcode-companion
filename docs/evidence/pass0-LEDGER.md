@@ -108,20 +108,21 @@ P2-first, exit gates, per-row Accept criteria).
 
 - Report: `docs/evidence/pass0-full-verification-and-desktop-gap-2026-11-12.md` —
   Parts A–Z + AA + AB + AC + AD + AE + AF + AG + AH + AI + AJ + AK + AL + AM + AN +
-  AO + AP + AQ + AR + AS + AT + AU + AV + AW = passes 0–46. **Latest: pass 46 (Part AW, 2026-11-17 ~15:10).**
-- Repo HEAD at pass start: `ca062baf` (pass 45's docs commit; main); pass 46 added
-  ONE mock commit — `7feb2695` (p46-arms: the getModelTrajectory arg log line
-  [the ae091f81 template — zcode-task channel calls printed nothing], the Phase-5B
-  seed extracted as Script.seedPhase5bDemo, MOCK_TRAJECTORY=<comma modes>
-  usage|truncated|empty|unavailable, MOCK_CHECKPOINT_CONFLICT_FILES=<comma list>
-  widening the conflict arm [default stays the pass-27 single file], the
-  checkpointConflictPayload/test seams; MockZCodePass46TrajectorySelfTest 6 cases;
-  mock suite **282/0/0/0**) + the docs commit.
-  App: ZERO commits. APK of record: sha256 `ad449d7d…` / md5 `530ba4ff…`,
+  AO + AP + AQ + AR + AS + AT + AU + AV + AW + AX = passes 0–47. **Latest: pass 47 (Part AX, 2026-11-17 ~17:05).**
+- Repo HEAD at pass start: `e62085a1` (pass 46's docs commit; main); pass 47 added
+  ONE mock commit — `17e008e2` (p47-arms: the `MOCK: terminal <method> args=<json>`
+  arg log line [the ae091f81/7feb2695 template — the terminal channel printed
+  nothing forever], `MOCK_TERMINAL_OUT=<mode>` plain|ansi — per-listen seed at
+  onDynamicData registration, `MOCK_TERMINAL_EXIT_MS=<ms>` — the exit event,
+  `MOCK_TERMINAL_CAP_OFF=1` — the hello's localTerminal bit; the in-pass amend made
+  every seed chunk newline-terminated [the phone's ring line-buffer JOINS
+  unterminated pushes — live-verified]; terminalSeedOutput/helloLocalTerminal seams;
+  MockZCodePass47TerminalSelfTest 5 cases; mock suite **287/0/0/0**) + the docs
+  commit. App: ZERO commits. APK of record: sha256 `ad449d7d…` / md5 `530ba4ff…`,
   versionCode 53 / 1.3.2 (byte-identical across the whole series; install SKIPPED
-  again — on-device md5 re-verified; the FIFTH consecutive byte-identical pass).
+  again — on-device md5 re-verified; the SIXTH consecutive byte-identical pass).
 - Desktop of record: **/Applications/ZCode.app 3.18.1.10376, asar sha256 `ec475e6e…`,
-  383,832,025 B** (re-verified at pass-45 STEP 0 — UNCHANGED, no DELTA). Pass-43
+  383,832,025 B** (re-verified at pass-47 STEP 0 — UNCHANGED, no DELTA). Pass-43
   census addition: the desktop task-list contract extracted exact (AT.B) —
   queryTaskList (host chunk-TCPD6WAE.js) honors `limit` (LIMIT ? over the ordered
   filter) answering {items ≤limit, total = COUNT over the filter, hasMore =
@@ -129,49 +130,64 @@ P2-first, exit gates, per-row Accept criteria).
   (`f(e.total), m(e.hasMore)`) with `limit: e.expanded?void 0:e.collapsedLimit`
   and renders the taskList.showMore/showLess affordance — the desktop NEVER
   silently truncates.
-- Open rows: **41 F (39 defects + 2 obs) + 23 G + 3 standing + 24 smalls (+1 watch
-  +1 rig)** — pass 46 opened **N-CB-1** (P4: the trajectory sheet's fault face is an
-  ETERNAL SPINNER — `trajectoryLoading = trajectory == null && showTrajectory` wins
-  the sheet's `when`, so `trajectory_unavailable` is dead UI in every live path; the
-  typed fault arrived and the bar spun through a relay swap); stamps: **F-P0-E ×4**
-  (the ANR cluster: 3 wedges in ~10 min, 2 on sheet-typing legs — one consuming the
-  app process — plus the GMS nag riding the ANR/Wait beat); the desktop of record
-  UNCHANGED (no DELTA at pass-46 STEP 0). Census additions: the MODEL-CALL
-  TRAJECTORY plane first-series END-TO-END (the full face matrix: entry chip,
-  populated ×2, the G33 drill-in, search-hits, record-filter [exact — durationMs
-  NOT in the vocabulary], truncated badge, the vc52 Phase-12 USAGE token columns'
-  first live receipt, the empty face; the arg-exact wire ×4 — the phone sends BOTH
-  workspacePath AND taskId); the PlansViewer (A3.12) first render receipt ("Ship
-  the release 1/3" with ✓/▸/○ steps); the Phase-5B seed is MOCK_GOAL-gated
-  (MockRelayMain :359→:424 — the trajectory/plans/search arms are unreachable
-  without it); the conflict body's `take(3)` slice driven at 5 files (pass-45's
-  leftover; the string's "…" is UNCONDITIONAL — decorative at ≤3, census note).
-- Backlog: **8/8 DONE**; pass 46's axis was a FRESH RECON on the wire-verb layer
-  (the pass-44/45 census method): the **MODEL-CALL TRAJECTORY plane** —
-  `getModelTrajectory` = ZERO report hits in 46 passes while the phone ships the
-  full A3.13 TrajectorySheet (the G100 consume, SHIPPED but never live-driven):
-  the full face matrix first-series (Legs A–F in Part AW) + STEP 2 = pass 45's
-  leftover (the conflict >3-files take(3) slice, unblocked by the
-  MOCK_CHECKPOINT_CONFLICT_FILES arm) — driven, leftover CLOSED. What remains is
+- Open rows: **41 F (39 defects + 2 obs) + 24 G + 3 standing + 25 smalls (+1 watch
+  +1 rig)** — pass 47 opened **N-CC-1** (P4: the terminal REFUSAL face's Retry
+  button renders BLANK — the Refused StateCard passes `retry` without `retryLabel`
+  → `Text(null ?: "")`; the button WORKS but is invisible/unlabeled; + census: the
+  CapabilityOff branch has NO retry at all and the stale singleton-port state
+  survives navigation, recovery = the Settings toggle OFF→ON [receipted]) and
+  **G104** (P3: the ADR-022 armed-composer INPUT TIER is dormant at HEAD — port
+  members + TerminalArmGateTest + transport methods + the MOCK write/resize
+  handlers shipped, ZERO UI surface, the shipped copy says "Nothing can be typed
+  into it" contradicting the ADR's own §13.3 row delta; terminal.write/resize are
+  UI-unreachable — the N-BQ-1 dead-branch family at plane scale); **N-BM-3
+  adjudicated REFUTED-AT-HEAD** (the sheet→Terminal route receipted working:
+  `nav.terminal :: open` → the gate face); the parity-queue bullet
+  "terminalListenData/Exit transport-ready, ZERO feature callers" corrected STALE
+  (TerminalController consumes both listens — receipted live); the desktop of
+  record UNCHANGED (no DELTA at pass-47 STEP 0). Census additions: the TERMINAL
+  plane first-series END-TO-END (the full face matrix: the gate [consent body
+  verbatim + toggle + Attach-on-enable], attach → `terminal create
+  args={"cols":120,"rows":32}` arg-exact ×3 [NO cwd — the ADR-022 never-ported
+  hold], the LIVE face "live — /bin/zsh", the output-stream render [4 per-line
+  nodes + `terminal line N` a11y; the ring JOINS unterminated pushes into one
+  carry line — the stream-semantics receipt, the seed's \n bug fixed mock-side],
+  the ANSI face [SGR consumed by the decoder], search "1 matching line(s)"
+  exact, Pause/Resume, Copy→"Copied", Detach → `dispose args={"id":"term-1"}` →
+  Idle, the REFUSED face [the 1006 reason interpolated], the CAPABILITY-OFF face
+  [ZERO create on the wire — the §39.3 gate short-circuits pre-wire], the EXIT
+  face "exited (0)"); the conflict body's EXACTLY-3 boundary (the "…" DECORATIVE
+  at the boundary — take(3)=all three yet the ellipsis renders; honest at >3 per
+  pass 46 — census note, no row); the trajectory drill-in tap-to-COLLAPSE
+  (pass-46's leftover, CLOSED).
+- Backlog: **8/8 DONE**; pass 47's axis was Part AW's named runner-up: the
+  **TERMINAL channel plane** (create/write/resize/dispose + onDynamicData/Exit =
+  ZERO report hits in 47 passes; the phone ships the full TerminalScreen +
+  TerminalController + the V4Plane methods, the mock has served the channel
+  statefully since the ADR-022 era): the full face matrix first-series (Legs A–G
+  in Part AX) + STEP 2 = pass 46's leftovers (the exactly-3 conflict boundary —
+  driven, census-closed; the drill-in collapse — driven, CLOSED). What remains is
   standing stops + F-P3-A-gated planes + F-P40-B/F-P40-C/F-P43-A/F-P45-A/F-P45-B/
-  N-CB-1-gated faces + fix-round items. **The mock-debt list has 0 open
-  work-debts** (the p46 arms opened+closed in-pass in `7feb2695`). Runner-up
-  census axes for future passes: the `terminal` channel (create/write/resize/
-  dispose — ZERO report hits), `commands`/`subagents`/`bots` list words (screens
-  censused pass 40, the wire words unreceipted).
-- Rig left by pass 46: emulator `zcode-a16` UP (TWENTY-THIRD consecutive inherited
+  N-CB-1/N-CC-1-gated faces + fix-round items. **The mock-debt list has 0 open
+  work-debts** (the p47 arms shipped in `17e008e2`). Runner-up census axes for
+  future passes: `commands`/`subagents`/`bots` list words (screens censused pass
+  40, the wire words unreceipted — the arg-log-line template applies).
+- Rig left by pass 47: emulator `zcode-a16` UP (TWENTY-FOURTH consecutive inherited
   survival; healthy, screenshot protection OFF), relay gen4 ALIVE (nonce
-  `mock-p46-gen4-0d423d` — arms MOCK_GOAL + MOCK_GIT + MOCK_CHECKPOINT_CONFLICTS +
-  MOCK_CHECKPOINT_CONFLICT_FILES — **⚠ the CONFLICT arm is STICKY**: an inheritor
-  driving non-conflict git legs must pkill + relaunch without it; MOCK_TRAJECTORY
-  arms are seed-time, absent on gen4), app pid 13692 in synth-task-1's
-  conversation, logcat running → /tmp/p46/logcat.log. Launchers /tmp/p46/relay-g1..g4.sh.
-  New rig learnings in Part AW.A0: **the trajectory sheet's TYPING legs trip the
-  ambient F-P0-E ANR 2/2** (budget ZERO typing in that sheet; one wedge consumed
-  the app process); the GMS nag now rides the ANR/Wait beat too (`am start -W`
-  recovers); the Phase-5B seed is MOCK_GOAL-gated; the second arg-log line is the
-  template continuing (add it FIRST for any new verb-plane axis); uiautomator
-  null-root during sheet animations + IME-up persists — screenshots are ground truth.
+  `mock-p47-gen4-cc0360` — arms MOCK_GOAL + MOCK_GIT + MOCK_CHECKPOINT_CONFLICTS +
+  CONFLICT_FILES=3 — **⚠ the CONFLICT arm is STICKY**: an inheritor driving
+  non-conflict git legs must pkill + relaunch without it), app pid 13916 on
+  synth-task-1's conversation (the trajectory sheet open, drill-in collapsed;
+  the terminal screen sits Exited — the gen2 exit), logcat running →
+  /tmp/p47/logcat.log. Launchers /tmp/p47/relay-g1..g4.sh.
+  New rig learnings in Part AX.A0: **chip-row bounds SHIFT when a label flips**
+  ("Copy visible output" → "Copied" slides Detach ~200 px — dump AFTER the flip);
+  the Settings terminal toggle BYPASSES DefaultTerminalPort.setOptIn (no
+  terminal.optIn log line — the dump's checked state + the pb bytes are the
+  arbiter); stale singleton-port states survive navigation (re-entry re-renders
+  CapabilityOff/Exited; the Settings toggle is the escape); short single-field
+  typing did NOT trip the F-P0-E ANR this pass (one 5-char query); uiautomator
+  null-root during route transitions persists (settle-retry dumps).
 
 ### Desktop-of-record DELTA procedure (run whenever the digest check fails)
 
@@ -279,7 +295,7 @@ pass 45) · RETRACTED/REFUTED/ABSORBED: 7.
    F-P2-B → F-P0-C → F-P8-B → F-P8-F** → 17. **F-P1-B → F-P1-D** → 18. smalls
    (N-BM-1 → N-BP-1 → N-BM-3 → N-BN-1 → N-BK-1 app half → N-BJ-1 → N-BK-2 → N-BL-1 →
    N-BM-2 → N-BO-1 → N-BP-2 → N-BQ-1 → N-BR-1 → N-BS-1 → N-BT-1 → N-BX-1 → N-BY-1 →
-   N-BZ-1 → N-CA-1 → N-CB-1 → K-small-2) → 18a. **F-P40-B** (pass 40, P2: the workspace-manager persistence
+   N-BZ-1 → N-CA-1 → N-CB-1 → N-CC-1 → K-small-2) → 18a. **F-P40-B** (pass 40, P2: the workspace-manager persistence
        trio is a silent no-op — move the three ZCodeApp.kt:742-755 writes off the
        composition-captured scope + the preferences.pb pin; small, self-contained,
        the P2 of the pass-40 batch) → 18b. **F-P40-A + F-P40-C** (pass 40, P3 pair:
@@ -329,13 +345,16 @@ pass 45) · RETRACTED/REFUTED/ABSORBED: 7.
 | G92 | 4 | OPEN | `configOptions` decode-only (select/boolean + current values, one adapter from a phone render) | adapter + render | Part I.2.5 |
 | G102 | 3 | OPEN (NEW pass 38) | WIRE DRIFT — desktop 3.18.1 REMOVED the legacy group verbs from the zcode-task channel: `createTaskGroup`/`renameTaskGroup`/`updateTaskGroupColor`/`deleteTaskGroup`/`listGroupedTaskViewStructure`/`applyGroupedTaskViewOrder` have ZERO byte-hits in the whole bundle (the zcode-task table now serves every OTHER task verb: setTaskPinned/setTaskUnread/deleteTask/renameTask/archiveTask/unarchiveTask/deleteArchivedTask/listArchivedTasks/resumeTask/…); the group plane moved to a dedicated `task-groups` channel exposing read()/save({id?,title?,color?})/ungroup(groupId)/move({node,sourceGroupId,groupId,anchor?})/admit({tasks,placement}) + `state:task-groups` broadcasts (renderer calls read+admit); the vc51 receipts prove 3.14.5 SERVED the legacy verbs live ("zcode-task.applyGroupedTaskViewOrder ok in 67 ms") — the phone's ENTIRE custom-group plane (Phase 5A A3.9) faults unknownMethod against the REAL desktop while working against the mock (which faithfully speaks the legacy protocol); the phone-side drift face includes the misleading "Couldn't move the task — unpin it first if it is pinned" (TasksViewModel.kt:465 — renders for ANY failure) | migrate the phone's group calls to the task-groups channel's read/save/ungroup/move/admit shapes (save unifies create+rename+recolor; move replaces the read-modify-write), or capability-gate the group UI honestly; fold in the move-failure copy fix; pins: the 3.18.1 method-table census (Part AO.L) + a transport-fake harness asserting the phone's group verbs against a task-groups-channel fake | Part AO.L | 1 |
 | G103 | 4 | OPEN (NEW pass 40) | the read-only catalog planes have NO DETAIL/DEPTH consume: all six settings tool screens (Skills / MCP servers / Subagents / Providers / Bots / Commands) render current seeded lists with honest posture copy but the rows are NON-CLICKABLE BY CONSTRUCTION (Skills: ZERO clickable=true nodes) — no skill detail (the desktop opens skill bodies), no MCP server detail beyond the playwright typed-error face, no subagent/bot/provider row detail, no command detail; pass-40 census data: Providers now lists a SECOND provider family (OPENAI-COMPATIBLE glm-4.6) + Preview badges (glm-5.1-flash); Bots lists TWO bots incl. the draft·off state (bot-discord-1 on /synthetic/ws-two); MCP's typed failure face (Suggested steps + ECONNREFUSED + connection_failed) re-receipted | the G91/G82 viewer-family shape: a detail bottom-sheet per plane (tap row → the item's fields read-only); minimum = Skills detail (the highest-value catalog); pin: a compose test asserting a skill row opens a detail sheet with the body text | Part AQ.D | 1 |
+| G104 | 3 | OPEN (NEW pass 47) | the TERMINAL channel's INPUT TIER is DORMANT at HEAD — ADR-022 (Accepted 2026-10-20) decided the phone may WRITE behind four gates and specified the UI (Settings "Allow typing into the terminal" second opt-in with a device-credential confirm, an "Arm input" button, an "Input armed" banner, a single-line composer [Enter → \r, a dedicated Ctrl-C → \u0003], auto-disarm on detach/exit/background/10-min idle) — the port members (inputOptIn/arm/disarm/write/resize + the check(armed) gate + TerminalArmGateTest), the transport methods (V4Plane terminalWrite/terminalResize), and the MOCK handlers (write echoes on onDynamicData + records terminalWrites; resize acks) ALL SHIPPED, but ZERO UI surface exists: no Settings input row (only settings_terminal_opt_in), no Arm/composer/banner in TerminalScreen ("NO keyboard input is offered anywhere (INV-9)" docstring), and the SHIPPED COPY contradicts the ADR ("It is view-only (nothing you type can reach the shell)" / "Nothing can be typed into it" — the §13.3 row delta "R + ADR-022-gated W" never landed in the UI); terminal.write/terminal.resize are UI-UNREACHABLE at HEAD (the N-BQ-1 dead-branch family at plane scale; the desktop channel itself is writable unfiltered per ADR-022's own 3.14.5 census); the ADR-022 auto-disarm-on-Exited is also statically absent (TerminalController's exit listener never disarms — moot while the tier is dormant); the phase memory claims gaps-and-polish Phase 5 (5D) COMPLETE incl. ADR-022 — the UI half did not ship | EITHER ship the ADR-022 UI (Settings second opt-in + credential gate + Arm/composer/banner — the port and mock are ready and the mock's write-echo rig exists for the round-trip pin) OR re-open the ADR and make the view-only posture honest (update the §13.3 row + the drift ledger); pins: the TerminalArmGateTest tier stays; a compose harness asserting the Arm affordance renders on Live and write/resize ride the arm | Part AX.E/AX.H (the static census + the write-echo mock seam) | 1 |
 | WATCH-4 | — | STANDING | V2 device-registration/pairing plane shipped on desktop; phone pairing stays V1 — flip is BREAKING (draft PR, human promotes) | AAP BREAKING path | Parts B, D.B2, K.B1 |
 | Settings depth | — | STANDING | 51 settings domains (modelProvider 3,217 keys …); phone covers the conversation/notification/privacy/appearance slice; `workspaceFileSearch`(90)/`dynamicWorkflow`(45) are decode-vs-UI candidates; shortcuts/browser/migration desktop-legit | G92-class candidates flagged | Part J.2.3, B.B3 |
 
 ### Parity/opportunistic queue (not defects; ride alongside consumer work)
 
-- **Terminal streaming wiring** — `terminalListenData/Exit` transport-ready, ZERO feature
-  callers (`V4Plane.kt:1699-1709`); one subscription + render in the terminal feature.
+- ~~**Terminal streaming wiring** — `terminalListenData/Exit` transport-ready, ZERO
+  feature callers~~ **CORRECTED pass 47 (STALE)**: TerminalController consumes BOTH
+  listens (data/exit receipted live, Part AX.C/AX.E) — the remaining dormant half is
+  only the write/resize tier, now **G104**.
 - **BashOutput taxonomy line** — one `put("BashOutput", TASK_CONTROL)` in ToolKindTaxonomy.
   **Pass 34: the hole CONFIRMED live and GRACEFUL** (Part AK.C: no kind subtitle, the
   substring "bash" fallback buckets it EXECUTE so it groups correctly) — the one-liner
@@ -372,14 +391,14 @@ pass 45) · RETRACTED/REFUTED/ABSORBED: 7.
   authoring depth (read-only by ADR), git WRITE half (stage/commit/push — read-only
   posture), pluginManagement 17 methods, voice-input service.
 
-**Open G count: 23 + 3 standing** (G60, WATCH-4, settings depth; G93's enum residual closed; G102 opened pass 38 — the group-verb wire drift; G103 opened pass 40 — the catalog planes' detail-depth gap).
+**Open G count: 24 + 3 standing** (G60, WATCH-4, settings depth; G93's enum residual closed; G102 opened pass 38 — the group-verb wire drift; G103 opened pass 40 — the catalog planes' detail-depth gap; G104 opened pass 47 — the ADR-022 terminal input tier is dormant at HEAD).
 
 ## N-rows — smalls
 
 | ID | P | Status | One line | Evidence |
 | --- | --- | --- | --- | --- |
 | N-BM-1 | 3 | OPEN | load-earlier strip total is a stale subscribe-time snapshot ("420 of 339") | Part J, K.A3 (+ pass-35 stamp: the mechanism re-receipted at HEAD with a FAITHFUL total — "320 of 400" → "370 of 400", X live / Y frozen, ConversationSessionManager.kt:241; the pass-6-era "impossible claim at the true end" sub-claim NARROWED — the end face is honest at HEAD, the strip hides on hasMore=false, Part AL.C) |
-| N-BM-3 | 3 | OPEN | Context-sheet → Terminal route: Attach is a silent no-op (main terminal screen attach works — sheet variant dead) | Part J |
+| N-BM-3 | 3 | REFUTED-AT-HEAD (pass 47) | Context-sheet → Terminal route: Attach is a silent no-op (main terminal screen attach works — sheet variant dead) — REFUTED: the sheet chip receipted working at HEAD (`nav.terminal :: open` → the TerminalRoute renders the OptInGate; d4/s01) — the old "silent no-op" shape does not reproduce; the current flow gates attach on the opt-in BY DESIGN (the gate IS the pre-condition, not a dead route) | — | Part AX.B | 1 |
 | N-BK-1 (app half) | 2 | OPEN | History silent-empty needs a "No commits yet" empty state (rig half FIXED `2b12fc46`) | Part G.A2.3 |
 | N-BJ-1 | 4 | OPEN | attachment image previews have NO size/aspect cap (1×1 seed renders ~300×220dp) | Part F.A2, K.A3 (+ pass-11 stamp: s04 unchanged) |
 | N-BK-2 | 4 | OPEN | automation Edit sheet schedule chips clip at phone width | Part G.A2 (+ pass-16 stamp 2: "Weekda"/"Cr" clipped live under the arms, S.A3) |
@@ -406,11 +425,12 @@ developerDiagnostic through the same `ErrorMapping.taskRejected` chain; Part AH.
 | N-BZ-1 | 4 | OPEN (NEW pass 44) | the hooks viewer's Refresh renders "The desktop refused the review request." on a DEAD transport: `ConnectionHub.requestHookReview` (:375-380) maps `Accepted → true; null → null; ELSE → false`, so BlockedOffline (simpleCommand's not-CONNECTED pre-check, CommandCoordinator.kt:543), Failed (the transport throw), Stale, UnknownKept and MissingBaseRevision ALL feed `hooks_viewer_refresh_refused`, while the honest `hooks_viewer_refresh_offline` ("No live session for this workspace.") is reachable only when `commandCoordinatorOrNull()` is null WITH a ledger entry — structurally near-dead; receipted live BOTH ways: gen1 relay-down → the refused note rendered (s05) with the DB outbox row FAILED_TERMINAL/"channel closed: abnormal close 1006: Broken pipe" (db/zcode.db), gen2 with the refuse arm (debt #30) → the SAME note rendered HONESTLY with the row FAILED_TERMINAL/"fault.command.rigRefused:requestWorkspaceHookReview" (db/g2-*) — the two classes are indistinguishable to the user; the screen's ErrorState face (hooks_viewer_unavailable) is separately dead by construction (`reviews()` is a pure in-memory read that cannot throw — census note, not a defect) | distinguish the classes in the outcome mapping — BlockedOffline/transport-class Failed → the offline note (or a third "connection lost" copy), genuine server refusals keep the refused note; pin: a harness over requestHookReview's outcome→note mapping (BlockedOffline ≠ refused) | — | Part AU.F/AU.G (s05/s07, both DB pulls) | 1 |
 | N-CA-1 | 4 | OPEN (NEW pass 45) | the checkpoint restore-confirm's promised DIFF-FILES face is unimplemented and `diffCheckpoints` is UI-DEAD: the card docstring promises "the confirm names BOTH ids and the diff's files" but the dialog names the ids only — `diffText` is only ever null-CLEARED (GitScreen.kt:991; rendered :967, never assigned) and `port.diffCheckpoints` has ZERO UI callers while the verb is fully wired BELOW the UI (GitCheckpointClient → Phase9Ports :182 → the mock's stateful handler); live: `diffCheckpoints` = 0 lines across BOTH pass-45 relay logs including both restore-confirms | fetch the diff in the confirm path and render the files under the body (or drop the docstring claim); pin: a harness asserting the confirm names the diff files / the wire carries diffCheckpoints | — | Part AV.H (d8/d12, relay-g1+g2 0/0) | 1 |
 | N-CB-1 | 4 | OPEN (NEW pass 46) | the trajectory sheet's FAULT face is an ETERNAL SPINNER — the honest unavailable face is structurally unreachable: `fetchTrajectory = facadeRead("trajectory") {…}` (Ports.kt:622-623) nulls ANY fault, `loadTrajectory` assigns it with no error state (ConversationViewModel.kt:944-947), and `trajectoryLoading = trajectory == null && showTrajectory` (ZCodeApp.kt:1196) is true EXACTLY when trajectory==null — so the sheet's `when { loading -> bar; trajectory == null -> unavailable; … }` (TrajectorySheet.kt:92-99) can NEVER reach `trajectory_unavailable`: every fetch fault (offline, unscripted desktop, decode failure) renders an infinite loading bar; live: the typed fault.mock.unscripted arrived (logcat 14:10:41, `port.trajectory :: TransportFailure` ×2) and the bar spun through a full relay swap + reconnect until manual dismissal; reopen is the only retry (re-fires loadTrajectory, receipted) | derive loading from an explicit in-flight flag (or a tri-state) so trajectory==null renders the unavailable face; pin: a compose harness with a faulting port asserting the unavailable face renders and the bar settles | — | Part AW.B (s01–s03, logcat chain, relay-g1 arg lines) | 1 |
+| N-CC-1 | 4 | OPEN (NEW pass 47) | the terminal REFUSAL face's Retry button renders BLANK: the Refused branch calls `StateCard(text, retry = {…})` WITHOUT `retryLabel` (TerminalScreen.kt:128-131) and StateCard renders `Text(retryLabel ?: "")` (:237) — the §13.3 fallback's recovery affordance is an invisible/unlabeled 160×132 pill (d15: the refused text + a clickable empty-text node, ZERO "Attach" strings on the face); the button still WORKS (tapping it drove the gen3 attach — receipted) but a TalkBack user hears nothing and a sighted user sees nothing; the Idle branch passes `retryLabel = terminal_attach` correctly — only Refused forgot it; + census: the CapabilityOff branch offers NO retry at all (bare StateCard — recovery only via the Settings opt-in toggle OFF→ON, receipted) and the stale singleton-port state survives leaving+re-entering the screen (re-entry re-renders CapabilityOff/Exited; nothing re-fires attach) | pass `retryLabel = stringResource(R.string.terminal_attach)` at the Refused call site (one line); consider a retry affordance for CapabilityOff (the desktop may re-enable the capability); pin: a compose harness asserting the refusal face renders a labeled Attach button + the a11y label exists | — | Part AX.D (d14/d15/d16, s07/s08/s09, logcat terminal.refused/capabilityOff) | 1 |
 | K-small-3 | 4 | WATCH | one-off terminal route pop (unreproduced — watch, don't chase) | Part K.A2 |
 | N-BJ-2 | 4 | REFUTED→FOLDED | unpair IS reachable (Settings bottom, pass 4); fakeLink half folded into F-P2-B | Part G.A2.4 |
 | N-BM-4 | — | RIG | Dictate leg kills the emulator (cause unproven); leg undriven | Part J |
 
-**Open smalls: 24 (+1 watch +1 rig)** — pass 13 added N-BP-1 (P3) and N-BP-2 (P4);
+**Open smalls: 25 (+1 watch +1 rig)** — pass 13 added N-BP-1 (P3) and N-BP-2 (P4);
 pass 22 added N-BQ-1 (P4, the effort stale face's dead branch); pass 28 added
 N-BR-1 (P4, the stale offline-attachment notice); pass 30 added N-BS-1 (P4, the
 mixed-state send's silent exclusion); pass 37 added N-BT-1 (P4, the stale
@@ -424,7 +444,10 @@ N-BZ-1 (P4, the hooks viewer's refused-note conflation — a dead transport rend
 (P4, the checkpoint confirm's diff face unimplemented — diffCheckpoints UI-dead)
 and adjudicated K-small-1 FIXED (by vc52 Phase-5B work — the count swaps one for
 one); pass 46 added N-CB-1 (P4, the trajectory fault face is an eternal spinner —
-the unavailable branch unreachable by construction).
+the unavailable branch unreachable by construction); pass 47 added N-CC-1 (P4,
+the terminal refusal face's Retry renders blank/unlabeled) and adjudicated
+N-BM-3 REFUTED-AT-HEAD (the sheet→Terminal route receipted working — the count
+swaps one for one).
 
 ## Mock-fidelity debts (rig, not app)
 
@@ -623,6 +646,42 @@ delta …`). Nothing pushed.
 ```
 
 ## History
+
+- 2026-11-17 (pass 47) — Part AX executed on Part AW's named runner-up: the
+  **TERMINAL channel plane** (create/write/resize/dispose + onDynamicData/Exit =
+  ZERO report hits in 47 passes; the mock has served the channel statefully since
+  the ADR-022 era and the hello declares localTerminal:true, but nothing ever drove
+  it live). The full face matrix first-series on the new arg-exact wire receipt
+  (the 17e008e2 `MOCK: terminal <method> args=<json>` line): the opt-in gate
+  (consent body verbatim — the "view-only (nothing you type can reach the shell)"
+  copy), attach → `create args={"cols":120,"rows":32}` ×3 (arg-exact, NO cwd),
+  the LIVE face "live — /bin/zsh", the output-stream render (4 per-line a11y
+  nodes; the ring JOINS unterminated pushes into one carry line — the seed's
+  missing \n terminators live-verified then fixed mock-side in the in-pass amend),
+  the ANSI face (SGR consumed), search "1 matching line(s)" exact (one 5-char
+  query, no ANR), Pause/Resume, Copy→"Copied", Detach → `dispose
+  args={"id":"term-1"}` → Idle, the REFUSED face ("Terminal is not available on
+  this connection: channel closed: abnormal close 1006: Broken pipe") — which
+  exposed **N-CC-1 (P4)**: the face's Retry button renders BLANK (the Refused
+  StateCard passes retry without retryLabel → Text(""); the pill WORKS — tapping it
+  drove the gen3 attach), the CAPABILITY-OFF face first-series on
+  MOCK_TERMINAL_CAP_OFF ("This desktop does not expose a local terminal…" + ZERO
+  create on the wire — the §39.3 gate short-circuits pre-wire), and the EXIT face
+  "exited (0)" on MOCK_TERMINAL_EXIT_MS. Static census → **G104 (P3)**: the
+  ADR-022 armed-composer INPUT TIER is dormant at HEAD (port members +
+  TerminalArmGateTest + transport methods + the mock's write-echo/resize-ack
+  handlers shipped; ZERO UI surface; the shipped copy contradicts the ADR's own
+  §13.3 row delta — terminal.write/resize UI-unreachable). **N-BM-3 adjudicated
+  REFUTED-AT-HEAD** (the sheet→Terminal route receipted working); the parity-queue
+  "terminalListenData/Exit ZERO feature callers" bullet corrected STALE. STEP 2:
+  the conflict body's EXACTLY-3 boundary (the "…" DECORATIVE at the boundary —
+  take(3)=all three yet the ellipsis renders; census note, no row) + the
+  trajectory drill-in tap-to-COLLAPSE (pass-46's leftover, CLOSED). Stamps: NONE
+  to open F rows (zero ANRs — the F-P0-E thrash did not fire; gateway.drop 0;
+  zero FATALs). Mock: ONE commit `17e008e2` (p47-arms + the \n amend; suite
+  **287/0/0/0**). App: ZERO changes (APK byte-identical, install skipped — the
+  SIXTH consecutive pass). Rig left UP (gen4 mock-p47-gen4-cc0360 — ⚠ the conflict
+  arm STICKY; app pid 13916 in synth-task-1's conversation, trajectory sheet open).
 
 - 2026-11-17 (pass 46) — Part AW executed on a FRESH axis (the pass-44/45 census
   method): the **MODEL-CALL TRAJECTORY plane** — `getModelTrajectory` had ZERO

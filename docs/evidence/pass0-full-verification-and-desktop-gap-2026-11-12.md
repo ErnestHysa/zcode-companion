@@ -10782,3 +10782,229 @@ emulator zcode-a16 UP (healthy, screenshot protection OFF), relay gen4 ALIVE (no
 CONFLICT_FILES — **⚠ the CONFLICT arm is STICKY**: an inheritor driving non-conflict
 git checkpoint legs must pkill + relaunch without it), app pid 13692 on synth-task-1's
 conversation (the context sheet closed), logcat running → /tmp/p46/logcat.log.
+
+# Part AX — pass 47 (APPENDED 2026-11-17, ~17:05): FRESH RECON on a NEW axis — the TERMINAL plane (the census's runner-up named in Part AW: the `terminal` channel create/write/resize/dispose + onDynamicData/onDynamicExit had ZERO report hits in 47 passes; the mock has served the whole channel statefully since the ADR-022 era and the hello declares `localTerminal:true`, but nothing ever drove it live and the channel printed nothing on the wire) — the full face matrix driven FIRST-SERIES on the new arg-exact wire receipt (the 17e008e2 `MOCK: terminal <method> args=<json>` line, the ae091f81/7feb2695 template): the opt-in gate (consent body verbatim incl. the "view-only (nothing you type can reach the shell)" copy), attach → `terminal create args={"cols":120,"rows":32}` (arg-exact ×3, NO cwd — the ADR-022 never-ported hold) → the LIVE face ("live — /bin/zsh"), the output-stream render (the ring's line-buffer joins unterminated pushes into ONE carry line — the mock seed's missing \n terminators, live-verified then fixed mock-side; the fixed seed renders 4 proper lines with per-line `terminal line N` a11y labels), the ANSI face (SGR consumed by the decoder — bold/blue/green/yellow spans render, text clean), the SEARCH face (query "ready" → "1 matching line(s)" exact), Pause→Resume, Copy→"Copied", Detach → `terminal dispose args={"id":"term-1"}` (arg-exact) → the Idle face — which exposed NEW SMALL N-CC-1 (P4): the REFUSED face's Retry button renders BLANK (the Refused StateCard passes `retry` without `retryLabel` → `Text(null ?: "")`; the dump's 160×132 empty-text clickable; the button WORKS — tapping it drove the gen3 attach — but the §13.3 fallback's recovery affordance is invisible/unlabeled), and NEW GAP G104 (P3): the ADR-022 armed-composer INPUT TIER is DORMANT at HEAD (Accepted 2026-10-20: Settings input opt-in + credential confirm + Arm button + armed banner + composer + Ctrl-C; the port members + TerminalArmGateTest + the transport methods + the MOCK write/resize handlers all shipped, ZERO UI surface — the shipped copy says "Nothing can be typed into it", contradicting the ADR's own §13.3 row delta; terminal.write/terminal.resize are UI-unreachable — the N-BQ-1 dead-branch family at plane scale) — plus the REFUSED face first-series ("Terminal is not available on this connection: channel closed: abnormal close 1006: Broken pipe"), the CAPABILITY-OFF face first-series on the new MOCK_TERMINAL_CAP_OFF arm ("This desktop does not expose a local terminal for remote connections." + ZERO create calls on the wire — the gate short-circuits pre-wire), the EXIT face first-series on MOCK_TERMINAL_EXIT_MS ("exited (0)" from the onDynamicExit event), the stale-state census (CapabilityOff survives leaving+re-entering the screen — the singleton port re-renders its stale state; recovery = the Settings toggle OFF→ON, receipted), the N-BM-3 route receipt (the sheet chip → `nav.terminal :: open` → the gate face — the "silent no-op" no longer reproduces at HEAD) — ONE new small, ONE new gap, N-BM-3 adjudicated REFUTED-AT-HEAD, ONE mock commit, app ZERO
+
+> **Pass 47 of the pass-0 series** (solo, the canonical discovery prompt; STEP 1 empty —
+> backlog 8/8 — so the axis = Part AW's named runner-up: the terminal channel. The
+> pass-44/45/46 census method again: the plane had ZERO report hits; the phone ships the
+> full TerminalScreen (features/terminal) + TerminalController (data) + the V4Plane
+> terminal methods, and the mock has served create/write/resize/dispose + both dynamic
+> listeners statefully since the ADR-022 era — 46 passes of nothing on the wire).
+> **App: ZERO changes** (HEAD `17e008e2` = mock-only; on-device md5 `530ba4ff…` ==
+> local HEAD artifact → `install -r` SKIPPED — the SIXTH consecutive byte-identical
+> pass; sha256 `ad449d7d…`, vc53/1.3.2).
+> **Mock: ONE commit** — `17e008e2` (p47-arms: the `MOCK: terminal <method> args=<json>`
+> ARG LOG LINE [the ae091f81/7feb2695 template]; `MOCK_TERMINAL_OUT=<mode>` plain|ansi —
+> per-listen seed at onDynamicData registration, create's 150 ms flush stays the
+> fallback; `MOCK_TERMINAL_EXIT_MS=<ms>` — schedules the exit event after create;
+> `MOCK_TERMINAL_CAP_OFF=1` — the hello's localTerminal bit flips false;
+> terminalSeedOutput/helloLocalTerminal pure seams; MockZCodePass47TerminalSelfTest
+> 5 cases; suite **287/0/0/0**. In-pass amend: every seed chunk newline-terminated —
+> the phone's ring line-buffer JOINS unterminated pushes into one carry line, the
+> live-verified stream-semantics receipt [s03 vs s04]).
+
+> **Verification stamp (pass start):** 2026-11-17 16:15 → 16:55, GLM-5.3-Flash in ZCode,
+> everything local, nothing pushed. STEP 0: desktop 3.18.1 / asar `ec475e6e…` UNCHANGED —
+> no DELTA. Rig: the pass-46 emulator REUSED (TWENTY-FOURTH consecutive inherited
+> survival; screenshot protection OFF verified via the 97 KB-class content PNG); the
+> pass-46 gen4 relay (`mock-p46-gen4-0d423d`, STICKY conflict arms) pkilled BY NAME
+> before gen1. FOUR relay generations: gen1 `mock-p47-gen1-5438f4` 16:26
+> (MOCK_TERMINAL_OUT=plain — TWO launches: pre-amend jar then the amended jar
+> [relay-g1/relay-g1b]); gen2 `mock-p47-gen2-*` 16:47 (MOCK_TERMINAL_OUT=ansi +
+> MOCK_TERMINAL_EXIT_MS=9000); gen3 `mock-p47-gen3-*` 16:39 (MOCK_TERMINAL_CAP_OFF=1);
+> gen4 `mock-p47-gen4-cc0360` 16:49 (MOCK_GOAL=1 + MOCK_GIT=1 +
+> MOCK_CHECKPOINT_CONFLICTS=1 + MOCK_CHECKPOINT_CONFLICT_FILES=3 files — the STEP-2
+> exactly-3 boundary). Stored endpoints survived every swap (no re-pairing). ONE app
+> process (pid 13916 throughout — ZERO ANR wedges this pass: the single short search
+> input text did not trip the F-P0-E thrash). APK md5 verified == HEAD on-device →
+> install SKIPPED. logcat fresh `-T 1` → /tmp/p47/logcat.log (gateway.drop 0; zero
+> FATAL EXCEPTIONs; zero ANR lines). Receipts: shots /tmp/p47/shots/ s01–s14, AX dumps
+> /tmp/p47/w/ d0–d46, relay logs relay-g1/g1b/g2/g3/g4.log, DB pulls /tmp/p47/db/
+> (zcode.db+wal — outbox count 7, tail = pass-45's requestWorkspaceHookReview rows,
+> ZERO new outbox rows; preferences.pb byte-offset 17 = field-6 `0x30 0x01` —
+> terminal_opt_in TRUE on disk, the persistence arbiter).
+
+## AX.A0 — rig learnings
+
+1. **The terminal search typing leg did NOT trip the F-P0-E ANR** (one 5-char `input
+   text` + one IME dismiss) — the trajectory sheet's ZERO-typing budget stays the
+   safe rule, but ordinary short single-field typing on this rig remains viable.
+2. **Stale singleton-port state survives navigation**: the terminal controller is a
+   screen-independent singleton — a CapabilityOff (or Live/Exited) state re-renders
+   on every re-entry until something calls detach (state→Idle) or the capability
+   gate re-runs. The CapabilityOff branch offers NO recovery affordance at all — the
+   receipted escape is the SETTINGS opt-in toggle OFF→ON (setOptIn(false) → detach →
+   Idle). Budget for it when driving cap-off arms: the Settings path (screen row →
+   repository.update — which BYPASSES DefaultTerminalPort.setOptIn's terminal.optIn
+   log line; the dump's checked state + the pb bytes are the arbiter, not logcat).
+3. **Chip-row bounds shift when a label flips** ("Copy visible output" → "Copied"
+   slides Detach left ~200 px) — the dialog-tap rule (screenshot-derived bounds)
+   applies to ASSIST CHIPS too: dump AFTER the flip, never reuse stale bounds.
+4. The `MOCK: terminal create` arg line receipts the grid the controller offers:
+   `{"cols":120,"rows":32}` ×3, NO `cwd` key — the ADR-022 "create with a custom cwd"
+   never-ported hold, live-verified.
+5. uiautomator null-root during route transitions persists (the d25 dump caught the
+   sheet-dismiss frame: header-only, body empty; the settle-retry d26 showed the true
+   state). Screenshots remain ground truth on busy frames.
+
+## AX.B — Leg A (gen1): the entry + the opt-in gate + attach (first series)
+
+**The sheet entry (N-BM-3's route)**: the context sheet's tools row — Files / Git /
+Terminal / Model calls / Share — tap "Terminal" → `nav.terminal :: open` (logcat
+16:30:10) → the TerminalRoute renders (title "Terminal", the VIEW-ONLY badge, status
+"idle", Pause/Search chips, and the OptInGate). **N-BM-3 adjudicated REFUTED-AT-HEAD**:
+the sheet-variant route navigates and renders (d4); the old "attach is a silent no-op"
+shape does not reproduce — the current flow gates on the opt-in BY DESIGN (the
+OptInGate face is the attach's pre-condition, not a dead route).
+**The gate face (first series)**: consent body verbatim (d4: "Terminal output is a
+sensitive surface: … It is view-only (nothing you type can reach the shell) and stays
+off unless you enable it here. …" — the copy that CONTRADICTS ADR-022's accepted input
+tier, see AX.E/G104), the "Enable terminal (view-only)" toggle row (the N-BG-3
+label-toggles-too shape; the row is the hit target), NO Attach button until enabled
+(s01) → toggle ON → Attach appears (s02) → tap → `channel.call :: terminal.create
+begin/ok` + `terminal.attached :: id=term-1` (logcat) + the wire
+`MOCK: terminal create args={"cols":120,"rows":32}` → **the LIVE face**: "live —
+/bin/zsh" (`terminal_status_live` with the shell arg from the create result).
+
+## AX.C — Leg B (gen1b, the amended jar): the output stream + the search/pause/copy faces
+
+Re-attach on the fixed seed → FOUR proper lines render, one Text node each with the
+per-line a11y labels (d8: L1 "rig-p47 workspace /synthetic/ws-one" … L4 "rig-p47
+ready"; `terminal line 1..4`) — the ring (512 KiB, drop-oldest) → snapshot → decoded
+lines path receipted end-to-end. **The pre-fix receipt (gen1, s03)**: the seed's
+unterminated chunks joined into ONE carry line ("rig-p47 workspace
+/synthetic/ws-one$ echo attachedattachedrig-p47 ready\n" — a single `terminal line 1`
+node) — the line-buffer semantics are HONEST (a stream without newlines IS one line);
+the mock's bug, fixed in the amend. **Search face** (first series): tap Search → the
+"Search output" field → query "ready" → **"1 matching line(s)"** exact (d10; the
+filter is `search()` over plainText) + the highlight class renders on the match line
+(s05; the tertiaryContainer background). **Pause → Resume** (the autoscroll gate;
+label flip receipted d11) and back. **Copy visible output → "Copied"** (the clipboard
+write fires; the OS-clipboard content verification is the pass-37 row-copy precedent,
+not re-driven). **Detach** → `MOCK: terminal dispose args={"id":"term-1"}` (arg-exact)
++ `terminal.dispose begin/ok` → the Idle face ("Not attached." + "idle" + Attach).
+
+## AX.D — Legs C+D (relay-down + gen3): the REFUSED face → N-CC-1, and the CAPABILITY-OFF face
+
+**Refused (first series)**: relay pkilled → Detach → Attach → `terminal.refused ::
+TransportFailure: channel closed: abnormal close 1006: Broken pipe` (logcat WARN) and
+the StateCard renders **"Terminal is not available on this connection: channel closed:
+abnormal close 1006: Broken pipe"** (the reason arg, take(140)) — the §13.3 fallback
+face works. BUT the face's Retry button **renders BLANK**: the Refused branch calls
+`StateCard(text, retry = {…})` WITHOUT `retryLabel` (TerminalScreen.kt:128-131) and
+StateCard renders `Text(retryLabel ?: "")` (:237) — the dump shows the refused text
+and a **160×132 clickable with EMPTY text** at [460,687][620,819] (d15: ZERO "Attach"
+strings on the face). **Adjudication: NEW SMALL N-CC-1 (P4)** — the recovery
+affordance is invisible/unlabeled (the Idle branch passes `retryLabel =
+terminal_attach` correctly; only the Refused branch forgot it). The button still
+WORKS: tapping the blank pill on gen3 drove `port.attach()` — which receipts…
+**CapabilityOff (first series)**: gen3's hello (`MOCK_TERMINAL_CAP_OFF=1`) declares
+`localTerminal:false` → `terminal.capabilityOff :: localTerminal=false` (logcat) →
+**"This desktop does not expose a local terminal for remote connections."** with ZERO
+`terminal create` on the wire (relay-g3 grep = 0 — the §39.3 gate short-circuits
+BEFORE the channel call). Census notes: (a) the CapabilityOff branch offers NO retry
+(the when renders the bare StateCard) — recovery only via the Settings toggle
+(receipted: OFF → detach → Idle; ON → back); (b) the stale state SURVIVES leaving +
+re-entering the screen (the d25/d26 sequence: re-entry re-rendered gen3's stale
+CapabilityOff; the singleton port never re-fires attach).
+
+## AX.E — Leg E (gen2): the ANSI face + the EXIT face (first series)
+
+Attach on `MOCK_TERMINAL_OUT=ansi` → the same create/listen path, the seed's SGR
+sequences consumed by the AnsiParser: L1 "rig-p47@mock workspace /synthetic/ws-one"
+(bold+blue header), L2 the green `$ echo attached`, L3 the listing with the bold-blue
+"build" entry, L4 the yellow "rig-p47 ready" (d33; the COLORS live in the spans — the
+dump carries clean text, s11 is the visual receipt; the theme-aware palette
+(`terminalColor` B2.8: entries 7/15 → onSurface) ships but the scheme-contrast faces
+were not separately driven). **The EXIT face**: create+9 s → the mock's
+pushTerminalExit(0) → `onDynamicExit` → the status line flips to **"exited (0)"**
+(d34, s12 — `terminal_status_exited` with the code) while the ring + chips persist
+(the Exited render branch keeps Copy/Detach). The ADR-022 auto-disarm-on-exit is
+statically ABSENT (TerminalController's exit listener never disarms; moot while the
+input tier is dormant — folded into G104's census).
+
+## AX.F — Leg F (gen4, STEP 2a): the conflict body's EXACTLY-3 boundary — the ellipsis is DECORATIVE at the boundary
+
+Snapshot ×2 (ckpt-1/ckpt-2, createCheckpoint ×2 arg-exact) → Restore on ckpt-2 → the
+confirm ("Restore the workspace to snapshot ckpt-1 (from ckpt-2)? Files changed
+between the two are overwritten.") → Restore → the wire `restoreBetweenCheckpoints
+args={"workspacePath":"/synthetic/ws-one","fromCheckpointId":"ckpt-1",
+"toCheckpointId":"ckpt-2"}` (no force) → the conflict dialog renders **"3 file(s) were
+modified since the snapshot (src/config.ts, src/main.rs, docs/notes.md…). Overwrite
+them?"** (s13/d40) — the count %1$d=3 + `take(3)` = ALL THREE paths joined, and the
+resource's unconditional "…" STILL renders after the last path. **The boundary
+adjudication closes pass-45's leftover question set**: the ellipsis is HONEST at >3
+(pass 46's 5-file drive) and DECORATIVE at exactly 3 (nothing elided, yet the string
+suggests truncation) — the count is the truth-teller, the "…" is copy, not a defect
+(the census note stands; no row). **Cancel** (pre-force) — zero destructive writes
+(grep force relay-g4 = 0); the outbox tail unchanged.
+
+## AX.G — Leg G (gen4, STEP 2b): the trajectory drill-in's tap-to-COLLAPSE — pass-46's leftover CLOSED
+
+Model calls (gen4, MOCK_GOAL) → the populated ×2 render (req-1 "glm-5.3 · 4200ms ·
+tool_calls" / req-2 "glm-5.3 · 950ms" + "RateLimitError: 429") → tap req-1 → EXPANDED
+(the payload section: "bash" + args/result nodes, s14 — pass-46's AW.C receipt
+re-confirmed on a fresh gen) → tap AGAIN → **COLLAPSED** (d46: the args/result/bash
+nodes GONE) — the toggle's second half (symmetric code, undriven in pass 46) is now
+receipted; the drill-in face pair is complete.
+
+## AX.H — ledger arithmetic + coverage honesty
+
+ONE new small (**N-CC-1** P4 — the terminal refusal face's Retry renders blank/
+unlabeled; open smalls 24 → **25**) and ONE new gap (**G104** P3 — the ADR-022 armed
+composer is dormant at HEAD: port+mock+tests shipped, ZERO UI surface, the shipped
+copy contradicts the ADR; open G 23 → **24**). **N-BM-3 adjudicated REFUTED-AT-HEAD**
+(the sheet→Terminal route receipted working; the opt-in gate is the by-design flow).
+The parity-queue bullet "terminalListenData/Exit transport-ready, ZERO feature
+callers" is STALE — TerminalController consumes both listens (the data pushes
+rendered AX.C; the exit event flipped the face AX.E); the bullet's REMAINING true
+half is only the dormant write/resize tier (now G104). Open F unchanged **41**.
+gateway.drop: 0. Zero app FATALs, zero ANRs. Wire census (relay logs, arg-exact):
+terminal create ×3 (g1/g1b/g2, `{"cols":120,"rows":32}`, no cwd) + dispose ×1
+(`{"id":"term-1"}`) + gen3's ZERO create (the cap-off absence receipt);
+git-checkpoint listCheckpoints ×1 + createCheckpoint ×2 + restoreBetweenCheckpoints
+×1 (no force — canceled); zcode-task getModelTrajectory ×1. No stamps to open F rows
+(no ANR; F-P0-E did not fire; no other open row re-manifested).
+
+What pass 47 did NOT drive: the terminal WRITE/RESIZE wire legs (UI-unreachable at
+HEAD — the dormant ADR-022 tier IS G104; the mock handlers are self-tested only);
+the ring's dropped-bytes face (512 KiB bound undrivable without a multi-MB arm);
+the ANSI scheme-contrast faces (light/dark palette swap — the theme matrix is a
+pass-7 receipt class); the terminal autoscroll-while-streaming fine-grain (the
+LaunchedEffect anchor — output arrived while already at tail); the zh-rCN variants
+of the new faces (locale round-trip receipted pass 5); TalkBack runtime (standing
+stop); the exit face with a NONZERO code (the arm pushes 0 — the string's %1$s
+interpolation receipted at 0); the OS-clipboard content verification of Copy (the
+pass-37 precedent, not repeated); `commands`/`subagents`/`bots` list words (the
+remaining runner-up axes — the screens were censused pass 40, the wire words
+unreceipted; a candidate for a future pass).
+
+## Pass-47 verification stamp
+
+Pass 47 completed 2026-11-17 ~16:55 (record appended ~17:05); FOUR relay generations
+(gen1 `mock-p47-gen1-5438f4` 16:26 MOCK_TERMINAL_OUT=plain, relaunched post-amend as
+relay-g1b; gen2 `mock-p47-gen2-*` 16:47 +ansi +MOCK_TERMINAL_EXIT_MS=9000; gen3
+`mock-p47-gen3-*` 16:39 MOCK_TERMINAL_CAP_OFF=1; gen4 `mock-p47-gen4-cc0360` 16:49
+MOCK_GOAL=1 + MOCK_GIT=1 + MOCK_CHECKPOINT_CONFLICTS=1 + CONFLICT_FILES=3 files;
+launchers /tmp/p47/relay-g1..g4.sh, arms BEFORE exec). Mock: ONE commit — `17e008e2`
+(p47-arms: the terminal arg log line + MOCK_TERMINAL_OUT/EXIT_MS/CAP_OFF arms +
+terminalSeedOutput/helloLocalTerminal seams + 5 self-tests; suite **287/0/0/0**; the
+in-pass \n-termination amend). App: ZERO changes — `install -r` SKIPPED on
+byte-identity (local == on-device md5 `530ba4ff…`, sha256 `ad449d7d…`, vc53/1.3.2 at
+HEAD `17e008e2`). Receipts: shots /tmp/p47/shots/ (s01 gate; s02 gate+Attach; s03 the
+pre-fix concat line; s04 the 4-line render; s05 search match; s06 paused; s07
+refused; s08 refused+blank-retry; s09 capability-off; s10 the Settings row; s11 ANSI
+live; s12 exited (0); s13 the exactly-3 conflict; s14 the drill-in expanded), AX
+dumps /tmp/p47/w/ d0–d46, relay logs relay-g1/g1b/g2/g3/g4.log, DB pulls /tmp/p47/db/
+(zcode.db+wal — outbox tail UNCHANGED, zero new rows; preferences.pb field-6 TRUE;
+endpoint_store-1.pb [wrong store — the opt-in lives in preferences.pb, census note]);
+logcat /tmp/p47/logcat.log (gateway.drop 0; zero FATALs; zero ANRs). Desktop 3.18.1 /
+`ec475e6e…` unchanged (STEP 0). **Rig left:** emulator zcode-a16 UP (healthy,
+screenshot protection OFF), relay gen4 ALIVE (nonce `mock-p47-gen4-cc0360` — arms
+MOCK_GOAL + MOCK_GIT + MOCK_CHECKPOINT_CONFLICTS + CONFLICT_FILES=3 — **⚠ the
+CONFLICT arm is STICKY again**: an inheritor driving non-conflict legs must pkill +
+relaunch), app pid 13916 on synth-task-1's conversation (the trajectory sheet open,
+drill-in collapsed), logcat running → /tmp/p47/logcat.log. The terminal's on-screen
+state at rig-left: Exited (the gen2 exit; the gen2 Detach tap missed the shifted
+bounds — hygiene only, dispose already receipted on gen1).
