@@ -1252,6 +1252,14 @@ fun main() {
     // G30 (vc51 Phase 4B): the bots-viewer seed — two bots across providers/modes so the
     // read-only viewer renders both mode faces on the rig.
     mock.script.botsList = botsViewerSeed()
+    // p48 rig leg (MOCK_CATALOG_EMPTY=1): serve EMPTY catalogs so the three viewer
+    // screens' EMPTY faces are drivable (the pass-40 census receipted only the
+    // seeded-list renders; the empty faces were never live-driven).
+    if (System.getenv("MOCK_CATALOG_EMPTY") == "1") {
+        mock.script.commandsList = emptyCommandsCatalog()
+        mock.script.subagentsList = emptySubagentsCatalog()
+        mock.script.botsList = emptyBotsCatalog()
+    }
     // PART M live leg: populated MCP / plugins / skills viewers (shapes mirror the
     // domain decoders: ViewerModels.McpStatuses / PluginsView / SkillCatalog) so the
     // three Settings viewers render their real lists on device instead of the
@@ -1540,6 +1548,20 @@ fun botsViewerSeed(): JsonObject = JsonObject(mapOf(
         )),
     )),
 ))
+
+/** p48 rig leg (MOCK_CATALOG_EMPTY=1): the EMPTY catalog shapes — the three viewer
+ *  screens' empty faces were never live-driven (the pass-40 census receipted only
+ *  the seeded-list renders). Keys mirror the decoders (SlashCatalogExtras +
+ *  MockRelayMain's own seeds). */
+fun emptyCommandsCatalog(): JsonObject = JsonObject(mapOf(
+    "commands" to JsonArray(emptyList()),
+    "userCommands" to JsonArray(emptyList()),
+    "pluginCommands" to JsonArray(emptyList()),
+))
+
+fun emptySubagentsCatalog(): JsonObject = JsonObject(mapOf("agents" to JsonArray(emptyList())))
+
+fun emptyBotsCatalog(): JsonObject = JsonObject(mapOf("bots" to JsonArray(emptyList())))
 
 /** G25 (vc51 Phase 4B): the subagents-viewer seed — shared by the relay arming and the self-test. */
 fun subagentsViewerSeed(): JsonObject = JsonObject(mapOf(

@@ -492,7 +492,10 @@ class MockZCode(
          * never-driven terminal plane (ZERO report hits in 46 passes).
          *  - `plain`: workspace banner + echo/prompt lines (no SGR);
          *  - `ansi`: SGR-rich lines (bold, fg colors) exercising the view's palette +
-         *    bold spans (terminalColor/AnnotatedString).
+         *    bold spans (terminalColor/AnnotatedString);
+         *  - `big`: ~620 KB of numbered lines — OVERFLOWS the phone's 512 KiB ring so
+         *    the drop-oldest eviction face is drivable (pass-47 "not driven": the head
+         *    must vanish while the tail renders).
          * Unknown/blank modes fall back to `plain` (fail-safe).
          */
         fun terminalSeedOutput(rawMode: String?) {
@@ -506,6 +509,10 @@ class MockZCode(
                     "docs  src  \u001B[1;34mbuild\u001B[0m  README.md\n",
                     "\u001B[33mrig-p47 ready\u001B[0m\n",
                 )
+            } else if (mode == "big") {
+                // 2400 lines x ~260 B = ~620 KB — ~110 KB of the head must evict.
+                val filler = "x".repeat(200)
+                (1..2400).map { "rig-p48 line %04d $filler\n".format(it) }
             } else {
                 listOf(
                     "rig-p47 workspace /synthetic/ws-one\n",
@@ -3061,12 +3068,15 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 "feedback" -> handleFeedbackPromise(id, name, argAsObject(arg))
                 "usage-stats" -> handleUsageStatsPromise(id, name, arg)
                 // Phase 4C (C2): the slash panel's extra sections over their own channels.
-                "commands" -> handleCommandsPromise(id, name)
-                "subagents" -> handleSubagentsPromise(id, name)
+                // p48: the arg rides through so the wire line is arg-exact (the
+                // ae091f81/7feb2695/17e008e2 template — the catalog channels printed
+                // nothing forever).
+                "commands" -> handleCommandsPromise(id, name, argAsObject(arg))
+                "subagents" -> handleSubagentsPromise(id, name, argAsObject(arg))
                 // G30 (vc51 Phase 4B): the INV-9 seed — the shipped host has no bots list
                 // RPC (fs-backed provider runtimes), so the viewer degrades honestly there;
                 // the mock serves the scripted inventory for the rig.
-                "bots" -> handleBotsPromise(id, name)
+                "bots" -> handleBotsPromise(id, name, argAsObject(arg))
                 else -> respondError(id, "fault.mock.unknownChannel:$channelName")
             }
             return
@@ -4142,7 +4152,11 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
                 System.getenv("MOCK_TERMINAL_EXIT_MS")?.trim()?.toLongOrNull()?.let { ms ->
                     scope.launch {
                         kotlinx.coroutines.delay(ms)
-                        pushTerminalExit(terminalId, 0)
+                        // p48: MOCK_TERMINAL_EXIT_CODE=<code> — the pass-47 exit face
+                        // receipted only "exited (0)" (the arm hard-pushed 0); the
+                        // nonzero face's %1$s interpolation was undrivable.
+                        val code = System.getenv("MOCK_TERMINAL_EXIT_CODE")?.trim()?.toIntOrNull() ?: 0
+                        pushTerminalExit(terminalId, code)
                     }
                 }
             }
@@ -5291,7 +5305,8 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
         )
     }
 
-    private fun handleCommandsPromise(id: Int, name: String?) {
+    private fun handleCommandsPromise(id: Int, name: String?, arg: JsonObject?) {
+        println("MOCK: commands ${name ?: "?"} args=${arg ?: JsonObject(emptyMap())}")
         val result = script.commandsList
         if (result == null) {
             respondError(id, "fault.mock.unscripted:commands.list")
@@ -5300,7 +5315,8 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
         }
     }
 
-    private fun handleSubagentsPromise(id: Int, name: String?) {
+    private fun handleSubagentsPromise(id: Int, name: String?, arg: JsonObject?) {
+        println("MOCK: subagents ${name ?: "?"} args=${arg ?: JsonObject(emptyMap())}")
         val result = script.subagentsList
         if (result == null) {
             respondError(id, "fault.mock.unscripted:subagents.list")
@@ -5310,7 +5326,8 @@ private fun scriptableObject(id: Int, scripted: JsonObject?, label: String) {
     }
 
     /** G30 (vc51 Phase 4B): the read-only bots viewer's scripted list leg. */
-    private fun handleBotsPromise(id: Int, name: String?) {
+    private fun handleBotsPromise(id: Int, name: String?, arg: JsonObject?) {
+        println("MOCK: bots ${name ?: "?"} args=${arg ?: JsonObject(emptyMap())}")
         when (name) {
             "list" -> {
                 val result = script.botsList
