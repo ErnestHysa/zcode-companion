@@ -374,11 +374,7 @@ class ConnectionHub(
             review.workspaceIdentity,
             review.bundleDigest,
         )
-        return when (outcome) {
-            is com.zcode.android.data.session.CommandCoordinator.Outcome.Accepted -> true
-            null -> null
-            else -> false
-        }
+        return mapHookReviewRefresh(outcome)
     }
 
     /** §19.4 backward pagination: more history above the current tail window (vc11). */
@@ -1774,3 +1770,29 @@ internal fun connectionPhaseOf(state: ConnectionStateMachine.ConnectionState): C
     ConnectionStateMachine.ConnectionState.FAILED -> ConnectionPhase.FAILED
     ConnectionStateMachine.ConnectionState.CLOSED -> ConnectionPhase.CLOSED
 }
+
+/**
+ * N-BZ-1 (pass-0 Phase 2; the pass-44 receipts, gen1 + gen2): the viewer maps
+ * this result true/false/null to requested/refused/offline — and the old
+ * `else -> false` fed EVERY non-accepted outcome into the REFUSED note: a DEAD
+ * transport (BlockedOffline, the pre-check; Failed with no ack — the throw)
+ * rendered "The desktop refused the review request." while the honest offline
+ * note was structurally near-unreachable (it required commandCoordinatorOrNull()
+ * == null WITH a ledger entry). Receipted both ways on the DB pulls: relay-down
+ * → refused (s05, FAILED_TERMINAL "abnormal close 1006"), the refuse arm → the
+ * SAME refused note honestly (g2, FAILED_TERMINAL "fault.command.rigRefused").
+ * The classes are distinguishable HERE — transport-class outcomes map to NULL
+ * (the offline note); typed server verdicts keep FALSE (the refused note); a
+ * transmitted-but-unacked request stays TRUE (requested — the outbox holds it).
+ */
+internal fun mapHookReviewRefresh(outcome: com.zcode.android.data.session.CommandCoordinator.Outcome?): Boolean? =
+    when (outcome) {
+        null -> null
+        is com.zcode.android.data.session.CommandCoordinator.Outcome.Accepted -> true
+        is com.zcode.android.data.session.CommandCoordinator.Outcome.BlockedOffline -> null
+        is com.zcode.android.data.session.CommandCoordinator.Outcome.UnknownKept -> true
+        is com.zcode.android.data.session.CommandCoordinator.Outcome.Stale -> false
+        is com.zcode.android.data.session.CommandCoordinator.Outcome.MissingBaseRevision -> false
+        is com.zcode.android.data.session.CommandCoordinator.Outcome.Failed ->
+            if (outcome.ack == null) null else false
+    }
