@@ -126,7 +126,8 @@ class ApprovalsInboxResolutionTest {
                             put("interactionId", interactionId)
                             put("kind", "permission")
                             put("anchorRowId", JsonNull)
-                            put("createdAt", 1700000000000.0)
+                            // Recent delivery — F-P6-A's open-TTL sweep must not eat the fixture.
+                            put("createdAt", (System.currentTimeMillis() - 60_000).toDouble())
                             putJsonObject("payload") {
                                 put("kind", "permission")
                                 put("toolCallId", "tc-1")
@@ -148,7 +149,7 @@ class ApprovalsInboxResolutionTest {
         ConversationRow.ToolCall(
             rowId = 1,
             turnId = "turn-1",
-            base = ConversationRow.Base(createdAt = 1700000000000.0, createdAtSeq = 1),
+            base = ConversationRow.Base(createdAt = (System.currentTimeMillis() - 60_000).toDouble(), createdAtSeq = 1),
             assistantResponseId = null,
             toolCallId = "tc-1",
             toolName = "Bash",

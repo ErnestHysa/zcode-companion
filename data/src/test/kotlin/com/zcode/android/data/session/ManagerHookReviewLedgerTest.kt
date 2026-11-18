@@ -55,8 +55,8 @@ class ManagerHookReviewLedgerTest {
     )
 
     /** The wire shape of one workspaceHookReview pending interaction. */
-    private fun reviewInteractionJson(generation: Long, pending: Int) = buildJsonObject {
-        put("interactionId", "hook-$generation")
+    private fun reviewInteractionJson(generation: Long, pending: Int, taskId: String = "sess-hooks") = buildJsonObject {
+        put("interactionId", "hook-$taskId-$generation")
         put("kind", "workspaceHookReview")
         put("anchorRowId", JsonNull)
         put("createdAt", JsonPrimitive(1700000000000.0))
@@ -66,7 +66,7 @@ class ManagerHookReviewLedgerTest {
             put("generation", JsonPrimitive(generation))
             put("interactionId", "hook-$generation")
             put("sessionId", "sess-hooks")
-            put("taskId", "sess-hooks")
+            put("taskId", taskId)
             put("runId", "run")
             put("workspaceIdentity", "synthetic-ws")
             put("workspaceLabel", "Synthetic Workspace")
@@ -162,6 +162,95 @@ class ManagerHookReviewLedgerTest {
         m.handle(snapshotWith(reviewInteractionJson(3, pending = 0), toSeq = 9))
         assertEquals("flow-3", m.lastHookReview.value?.reviewFlowId)
         assertEquals(0, m.lastHookReview.value?.summary?.pendingCount)
+    }
+    // ------------------------------------------------------------------ F-P45-B
+
+    /**
+     * F-P45-B (pass-0 Phase 2; the pass-45 AV.I receipt): ONE snapshot carrying
+     * TWO workspaces' pending reviews — the old `lastOrNull` capture lost
+     * all-but-last and filed the survivor under the OPENED session's id (the
+     * viewer rendered ONE hybrid group and its Refresh re-issued the WRONG
+     * workspace's args). Every review is captured, keyed by its OWN taskId.
+     */
+    @Test
+    fun `F-P45-B - a two-review snapshot captures BOTH reviews under their own taskIds`() = runTest {
+        val captured = mutableListOf<WorkspaceHookReview>()
+        val m = manager { captured.add(it) }
+        m.handle(
+            snapshotWith(reviewInteractionJson(1, pending = 3, taskId = "synth-task-1")).let { snap ->
+                // Rebuild the snapshot with BOTH interactions in one state.
+                snap.copy(
+                    sessionState = SessionProjectionState.fromSnapshot(
+                        buildJsonObject {
+                            put(
+                                "pendingInteractions",
+                                buildJsonArray {
+                                    add(reviewInteractionJson(1, pending = 3, taskId = "synth-task-1"))
+                                    add(reviewInteractionJson(2, pending = 1, taskId = "synth-task-2"))
+                                },
+                            )
+                        },
+                    ),
+                )
+            },
+        )
+
+        val map = m.lastHookReviews.value
+        assertEquals(
+            setOf("synth-task-1", "synth-task-2"),
+            map.keys,
+            "both reviews must be captured, keyed by their own payload taskId",
+        )
+        assertEquals("synthetic-ws", map["synth-task-1"]?.workspaceIdentity)
+        assertEquals("flow-2", map["synth-task-2"]?.reviewFlowId)
+        // The sink fired for EACH review — the RecoveryCoordinator keys it by the
+        // payload's taskId, so synth-task-1's manager never owns task-2's review.
+        assertEquals(
+            setOf("synth-task-1", "synth-task-2"),
+            captured.map { it.taskId }.toSet(),
+            "the capture callback must fire once per review",
+        )
+        // The compat face stays the latest capture.
+        assertEquals("flow-2", m.lastHookReview.value?.reviewFlowId)
+    }
+
+    @Test
+    fun `F-P45-B - a fresh generation of the SAME task replaces that task's entry only`() = runTest {
+        val m = manager()
+        m.handle(
+            snapshotWith(reviewInteractionJson(1, pending = 3, taskId = "synth-task-1")).copy(
+                sessionState = SessionProjectionState.fromSnapshot(
+                    buildJsonObject {
+                        put(
+                            "pendingInteractions",
+                            buildJsonArray {
+                                add(reviewInteractionJson(1, pending = 3, taskId = "synth-task-1"))
+                                add(reviewInteractionJson(1, pending = 1, taskId = "synth-task-2"))
+                            },
+                        )
+                    },
+                ),
+            ),
+        )
+        // The desktop re-pends task-1 with a FRESH generation; task-2's is untouched.
+        m.handle(
+            snapshotWith(reviewInteractionJson(5, pending = 2, taskId = "synth-task-1"), toSeq = 8).copy(
+                sessionState = SessionProjectionState.fromSnapshot(
+                    buildJsonObject {
+                        put(
+                            "pendingInteractions",
+                            buildJsonArray {
+                                add(reviewInteractionJson(5, pending = 2, taskId = "synth-task-1"))
+                            },
+                        )
+                    },
+                ),
+            ),
+        )
+
+        val map = m.lastHookReviews.value
+        assertEquals("flow-5", map["synth-task-1"]?.reviewFlowId)
+        assertEquals("flow-1", map["synth-task-2"]?.reviewFlowId, "the sibling task's entry is untouched")
     }
 }
 

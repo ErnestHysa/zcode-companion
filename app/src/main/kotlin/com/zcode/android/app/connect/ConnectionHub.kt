@@ -348,8 +348,10 @@ class ConnectionHub(
     /** G71: every retained review (live managers + the detached-session ledger). */
     fun hookReviewsSnapshot(): List<Pair<String, com.zcode.android.domain.model.WorkspaceHookReview>> {
         val out = LinkedHashMap<String, com.zcode.android.domain.model.WorkspaceHookReview>()
-        coordinatorOrNull()?.managers()?.forEach { (taskId, m) ->
-            m.lastHookReview.value?.let { out[taskId] = it }
+        // F-P45-B: the managers' captures are keyed by the PAYLOAD's own taskId —
+        // a multi-workspace snapshot yields one group per task, never a hybrid.
+        coordinatorOrNull()?.managers()?.forEach { (_, m) ->
+            m.lastHookReviews.value.forEach { (taskId, review) -> out[taskId] = review }
         }
         hookReviewLedger.forEach { (taskId, review) -> out.putIfAbsent(taskId, review) }
         return out.toList()
@@ -364,7 +366,7 @@ class ConnectionHub(
         // The LEDGER first: after conversation close the manager is detached, but the
         // retained review carries everything the verb needs (the exit-gate leg caught
         // the false-"refused" note on a detached session). Null = genuinely offline.
-        val review = coordinatorOrNull()?.manager(taskId)?.lastHookReview?.value
+        val review = coordinatorOrNull()?.manager(taskId)?.lastHookReviews?.value?.get(taskId)
             ?: hookReviewLedger[taskId]
             ?: return null
         val outcome = commandCoordinatorOrNull()?.requestWorkspaceHookReview(

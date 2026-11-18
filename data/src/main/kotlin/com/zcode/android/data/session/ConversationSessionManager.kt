@@ -140,13 +140,51 @@ class ConversationSessionManager(
     val lastHookReview: StateFlow<com.zcode.android.domain.model.WorkspaceHookReview?> =
         _lastHookReview.asStateFlow()
 
+    /**
+     * F-P45-B (pass-0 Phase 2; the pass-45 AV.I live receipt): EVERY hook review
+     * this session has seen, keyed by the PAYLOAD's own `review.taskId` — a
+     * snapshot may carry TWO workspaces' pending reviews at once (the desktop's
+     * normal multi-workspace pending state; MOCK_HOOKS_SECOND seeds the second).
+     * The old `lastOrNull` capture lost all-but-last and filed the survivor
+     * under the OPENED session's id: synth-task-1's manager rendered ONE hybrid
+     * group (workspace-Two's payload under synth-task-1's key) and its Refresh
+     * re-issued the WRONG workspace's review args. Latest per key wins (the
+     * desktop re-pends the same task with a fresh generation).
+     */
+    private val _lastHookReviews =
+        MutableStateFlow<Map<String, com.zcode.android.domain.model.WorkspaceHookReview>>(emptyMap())
+    val lastHookReviews: StateFlow<Map<String, com.zcode.android.domain.model.WorkspaceHookReview>> =
+        _lastHookReviews.asStateFlow()
+
     private fun captureHookReview(state: com.zcode.android.domain.model.SessionProjectionState) {
-        val review = state.pendingInteractions
-            ?.lastOrNull { it.kind == com.zcode.android.domain.model.PendingInteraction.Kind.WORKSPACE_HOOK_REVIEW }
-            ?.hookReview ?: return
-        if (_lastHookReview.value != review) {
-            _lastHookReview.value = review
-            runCatching { onHookReviewCaptured(review) }
+        val reviews = state.pendingInteractions
+            ?.mapNotNull { pi ->
+                if (pi.kind == com.zcode.android.domain.model.PendingInteraction.Kind.WORKSPACE_HOOK_REVIEW) pi.hookReview else null
+            }
+            .orEmpty()
+        if (reviews.isEmpty()) return
+        val current = _lastHookReviews.value
+        var changed = false
+        val next = current.toMutableMap()
+        var lastChanged: com.zcode.android.domain.model.WorkspaceHookReview? = null
+        for (review in reviews) {
+            val existing = next[review.taskId]
+            if (existing == null || review.generation > existing.generation ||
+                (review.generation == existing.generation && review.createdAtMs >= existing.createdAtMs && review != existing)
+            ) {
+                next[review.taskId] = review
+                changed = true
+                lastChanged = review
+            }
+        }
+        if (!changed) return
+        _lastHookReviews.value = next
+        // Compat face (G71's single-review contract): the latest change wins.
+        lastChanged?.let { _lastHookReview.value = it }
+        for (review in next.values) {
+            if (current[review.taskId] != review) {
+                runCatching { onHookReviewCaptured(review) }
+            }
         }
     }
 

@@ -192,7 +192,10 @@ class RecoveryCoordinator(
                     onSessionState = { state ->
                         interactions.reconcileFromSessionState(t.sessionId, state)
                     },
-                    onHookReviewCaptured = { review -> hookReviewSink(t.sessionId, review) },
+                    // F-P45-B (pass-0 Phase 2): the sink key is the PAYLOAD's own taskId — a
+                        // session snapshot may carry TWO workspaces' reviews; the opened
+                        // session's id must never own a foreign task's review.
+                        onHookReviewCaptured = { review -> hookReviewSink(review.taskId, review) },
                     clock = clock,
                     log = log,
                 )
