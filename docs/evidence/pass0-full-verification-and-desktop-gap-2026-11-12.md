@@ -11498,7 +11498,7 @@ REVERTED), logcat running → /tmp/p49/logcat.log. Launchers /tmp/p49/relay-g*.s
 | 2 | Interaction cards, answers & hook capture | 11 | 7 | 3 | 1 | High | ✓ DONE 2026-11-18 |
 | 3 | Tasks home & workspace manager | 9 | 1 | 5 | 3 | High | ✓ DONE 2026-11-18 |
 | 4 | Git sheet, checkpoints & render fidelity | 10 | 2 | 5 | 3 | Medium | ✓ DONE 2026-11-18 |
-| 5 | Automation runs & child sessions | 4 | 1 | 0 | 3 | Low | ☐ |
+| 5 | Automation runs & child sessions | 4 | 1 | 0 | 3 | Low | ✓ DONE 2026-11-18 |
 | 6 | Held-queue guard & stale-command faces | 3 | 0 | 2 | 1 | Medium | ☐ |
 | 7 | Composer, attachments & notices | 10 | 0 | 5 | 5 | Medium | ☐ |
 | 8 | Conversation timeline, paging & viewers | 10 | 0 | 8 | 2 | Medium | ☐ |
@@ -11876,24 +11876,24 @@ paths (N-BY-1).
 Theme: the automation-run plane's transcript hydrate (a wiring-only P2) and its smalls. Order
 inside the phase: **F-P3-B → N-BM-2 → N-BK-2 → N-BL-1.**
 
-- [ ] **F-P3-B (P2) — automation "Go to session" NEVER loads its transcript** (4 skeleton rows
+- [x] **F-P3-B (P2) — automation "Go to session" NEVER loads its transcript** (4 skeleton rows
   forever, zero transcript wire calls). NARROWED: the MANUAL run's workspace session LOADS via
   the subscribe snapshot — the skeleton is the unscripted-session shape only; the hydrate
   surface ALREADY EXISTS (`readSessionMessages` consumed at `ConversationPort.kt:318`).
   **Fix:** openRun hydrates via readSessionMessages — wiring only, plus an honest empty state.
   **Accept:** a harness asserting the unscripted child renders the transcript or an honest
   empty state — never skeletons-forever. (2 stamps + the pass-17 narrowing.)
-- [ ] **N-BM-2 (P4) — child-session view: generic title + skeleton-forever on unscripted
+- [x] **N-BM-2 (P4) — child-session view: generic title + skeleton-forever on unscripted
   children** (rides F-P3-B's hydrate). **Fix:** the real title (session name/parent link).
   **Accept:** the child view shows the session's identity.
-- [ ] **N-BK-2 (P4) — the automation Edit sheet's schedule chips clip at phone width**
+- [x] **N-BK-2 (P4) — the automation Edit sheet's schedule chips clip at phone width**
   ("Weekda"/"Cr" clipped live, stamps 2). **Fix:** reflow/wrap the chips. **Accept:** the chips
   render full text at 395 dp.
-- [ ] **N-BL-1 (P4) — workflow-run Run/Manage icon buttons subtree-unlabeled** (TalkBack
+- [x] **N-BL-1 (P4) — workflow-run Run/Manage icon buttons subtree-unlabeled** (TalkBack
   silence — the ONLY unlabeled clickables found in the a11y sweep). **Fix:** content-desc on
   both buttons. **Accept:** an a11y pin — both buttons labeled.
 
-**Phase 5 exit gate: ☐** fresh rig: Go-to-session on the unscripted shape hydrates the
+**Phase 5 exit gate: ✓ PASSED 2026-11-18 (receipts below).** fresh rig: Go-to-session on the unscripted shape hydrates the
 transcript (or renders the honest empty state) with the real title (F-P3-B + N-BM-2); the
 schedule chips fit (N-BK-2); both icon buttons labeled (N-BL-1).
 
@@ -12901,3 +12901,123 @@ half, N-BX-1, N-BY-1, N-CA-1). Phase-5 next (Automation runs & child sessions �
 pass-0 Phase-4 dispatch. Phase-4 disposition: **10/10 rows FIXED + exit gate PASSED — the
 phase is COMPLETE**. Ledger statuses re-stamped with the commit shas in the same session.
 NOTHING pushed.
+
+
+---
+
+# pass-0 Phase 5 fix-round record (APPENDED 2026-11-18)
+
+**Scope:** Phase 5 — Automation runs & child sessions (4 rows: 1 P2 + 3 P4). Branch
+`fix/pass0`; 4 pins (each RED at its pre-fix commit — the two new-API pins verified RED via
+the `git stash push -- <fix files>` dance, pins kept out of the stash) + 4 fix commits + 1 mock
+commit + this docs commit; NOTHING pushed. The discovery record above is untouched; the
+Phase-5 checkboxes are ticked in the roadmap.
+
+## The commits (one row ≥ one commit; every pin RED before its fix)
+
+1. `a82e00e8` **test(F-P3-B)** — Pass0Phase5UnscriptedChildTest (6 legs): the harness fakes ONLY
+   existing APIs (`task()` → null IS the unscripted shape; `fetchSessionMessages` seeded), so it
+   compiles — and fails — at the pre-fix commit: **RED 5/6** at `a82e00e8` (loading-forever, zero
+   rows, skeleton counts, absent title anchor; the scripted-guard leg green throughout — scripted
+   sessions must never hydrate).
+2. `4139751e` **fix(F-P3-B)** — the unscripted child hydrates: `ConversationPort` gains the
+   default `hydrateUnscriptedSession` composing the ALREADY-CONSUMED `readSessionMessages`
+   (`fetchSessionMessages`) into local timeline rows via the new pure `UnscriptedTranscript`
+   (`{role, content}` → userInput/assistantText row JSONs through `ConversationRow.Decoder` —
+   INV-8 raw rides along); the VM renders them while no Task has materialized (a late-arriving
+   task hands the surface back to the authoritative repo rows) and an EMPTY corpus resolves
+   loading into the honest empty face — never skeletons-forever. 5/6 legs GREEN.
+3. `b390ca36` **fix(N-BM-2)** — the child view carries the session's IDENTITY: the hydrate's
+   title (the first user message's head — the desktop's untitled-session convention, 80-char
+   head) surfaces through `ConversationUiState.unscriptedTitle` while no Task has materialized;
+   fallback = the raw session id (the only identity a message-less session has); the task title
+   always wins. The header gains the `conversation_title` anchor (the tasks-title/approvals-title
+   precedent). The last RED leg turns GREEN (6/6).
+4. `0c78c8ef` **test(N-BK-2)** + `5c4b36e1` **fix(N-BK-2)** — the schedule chips WEIGHT-SHARE
+   their row. The RED demonstration needed a metric-independent pin: Robolectric's font metrics
+   are NARROWER than the device's, so a raw-bounds probe stayed green at pre-fix (the overflow is
+   a DEVICE-metrics paint clip) — the pin asserts the mechanism that makes clipping impossible at
+   any font/density: every chip of a chunked row carries the row-weight cell (measured on the
+   `automation_freq_*` CHIP nodes, not the label texts — a wrapped label's text node carries the
+   slot width by design). Pre-fix: 4 distinct intrinsic widths (RED at `0c78c8ef`, stash-verified
+   twice); post-fix: one share (±1.5 px sub-pixel rounding). The fix routes the weight cell
+   through `ChipGrid`'s chip lambda (FreqChip takes the modifier — trailing-lambda arity: the
+   modifier param sits BEFORE onClick), and the monthly Date/Weekday + ends 2-chip rows
+   weight-share too; FlowRow stays banned (19211745's oscillation). Harness note: an explicit
+   width qualifier (@Config w*N*dp) makes THIS M3 dialog never idle under Robolectric (probed at
+   395/411 dp) — the default display is the deterministic harness; the on-device 395 dp shape is
+   the rig leg below. Editor-integrity/redesign/off-peak regression classes stay green.
+5. `1ff1b5ae` **test(N-BL-1)** + `1481298e` **fix(N-BL-1)** — the hub's per-row Run/Manage
+   buttons carry NAME-BEARING content descriptions ("Run workflow <name>" / "Manage workflow
+   <name>"): the Run TextButton gains a semantics desc; the Manage IconButton's desc moves to
+   the button (the Icon is decorative). New `workflow_run_a11y` + the manage string reformatted
+   (%1$s), zh-rCN gains BOTH (it previously fell back to English). RED at `1ff1b5ae` (no desc /
+   generic-only desc); WorkflowsHubUiTest stays green.
+
+Mock: `e6ebd794` arms **MOCK_SESSION_MESSAGES=empty** (readSessionMessages serves a bare array —
+the honest-empty face of the hydrate; the seeded demo corpus is the other face) riding AFTER the
+`seedPhase5bDemo()` block so the override wins the ordering (the 804448d4 lesson); jar+test
+green. Rig artifacts: /tmp/p5phase5/ (2 relay launchers, fresh nonces
+`mock-p5phase5-gen1-3a6cdd14` / `-gen2-20387561`, relay logs, logcat, dumps, screenshots).
+
+## The gate (rule 7)
+
+Fresh full run at `e6ebd794` (all results dirs cleared first): the 11 Android
+`testDebugUnitTest` tasks + the 6 pure-JVM `test` tasks with `--continue` = **2590 testcases /
+2 failures / 0 errors** — +9 testcases over the Phase-4 baseline (2581), EXACTLY the phase's 9
+new pins. Failing names: the documented pre-existing `ConnectionHubWritePathTest > sendText…
+(U4, §17-5)` + `ConnectionHubIntegrationTest > retries after a connect failure respect backoff -
+no hot loop` — the latter GREEN in an isolated re-run (load flake, exonerated per the standing
+name-diff rule): **zero new names attributable to the phase**. All 17 modules emitted test XML
+(app 106 / conversation 130 / data 56 / mock 56 / domain 46 / transport 34 / core-ui 28 / tasks
+42 / git 13 / protocol 8 / notifications 11 / pairing 10 / common 5 / security 5 / files 6 /
+terminal 5 / spike 3 files); the only task failure is the test-failure task. The phase APK:
+`app-debug.apk` sha256 `8cc20b460c9f6ea3b5506ab7d5e6d917f998c7d968c3c94c631c1260207ac5d2`
+(20:50 build).
+
+## Phase 5 exit gate — receipts (fresh zcode-a16 cold boot + gen1–gen2 relays)
+
+Rig: zcode-a16 cold-booted `-no-snapshot-load` (a SystemUI ANR dialog dismissed with Wait
+before the legs), install -r of the phase APK above, TWO relay generations (each a fresh
+MOCK_GEN_NONCE): gen1 `MOCK_AUTOMATIONS=1+MOCK_AUTOMATION_RUNS=1+MOCK_WORKFLOWS=1+MOCK_GOAL=1`
+(the automations plane + the seeded run's unscripted session + the hub + the seeded
+sessionMessages corpus), gen2 + `MOCK_SESSION_MESSAGES=empty` (the honest-empty arm).
+`relay.connected relay-1` receipts in logcat.log; hygiene held (pkill -f MockRelayMainKt only;
+logcat restarted after the cold boot).
+
+- **(a) the unscripted child HYDRATES with the identity title (F-P3-B + N-BM-2, seeded)** —
+  leg A: Tasks → Automations → Nightly digest → History → **Go to session** on the seeded run
+  ("1 h ago · Scheduled · 100s · Succeeded", sessionId synth-op-session-1): the relay log
+  carries **`MOCK: v4call readSessionMessages (id=19)`** — the transcript call the old shape
+  NEVER issued — and the child renders the REAL rows (YOU "Ship the release this week" / AGENT
+  "I'll draft the changelog and bump the version") under the TOP-BAR TITLE **"Ship the release
+  this week"** (bounds [154,191][724,257] — the header slot), **zero `conversation_skeleton`
+  nodes** (legA-child-hydrated.png, `bb6e65618028`; legA-child.xml).
+- **(b) the HONEST EMPTY face (F-P3-B empty shape + N-BM-2 identity fallback)** — leg B on
+  gen2 (fresh app process after the relay swap): Go to session → `readSessionMessages (id=19)`
+  served the bare array → the child renders **"No messages yet / Agent activity will stream
+  here when the conversation starts."** (`conversation_empty` present, ZERO skeletons) under the
+  title **"synth-op-session-1"** — the session's own identity (legB-child-empty.png,
+  `95fba0293381`; legB-child-empty.xml).
+- **(c) the schedule chips fit at the receipt width (N-BK-2)** — leg C: the Edit sheet on the
+  392.7 dp device (1080px @ 440dpi): all EIGHT frequency chips render FULL text inside the pane
+  — "Weekdays" [784..870] and "Cron" [784..849] paint complete (pre-fix: "Weekda"/"Cr"), the
+  rows weight-share evenly (x = 210/402/593/784), wrapping instead of clipping
+  (legC-editor-chips.png, `247652a7c9a2`; legC-editor.xml).
+- **(d) both hub buttons labeled (N-BL-1)** — leg D (gen1 home, MOCK_WORKFLOWS=1): the a11y
+  dump carries **content-desc "Run workflow release-notes" / "Run workflow lint-all" /
+  "Manage workflow release-notes" / "Manage workflow lint-all"** — name-bearing on both button
+  classes, zero generic/empty remnants (nbl1-hub-dump.xml).
+
+## Ledger arithmetic
+
+Open F: **15** (was 16; −1: F-P3-B) · Open G: **20** (unchanged — no G rows in Phase 5) · Open
+smalls: **12** (was 15; −3: N-BM-2, N-BK-2, N-BL-1). **Phases 1–5 are COMPLETE — all 15 P2 rows
+are closed.** Phase-6 next (Held-queue guard & stale-command faces — 3 rows: F-P19-A → F-P20-A
+one pair → N-BQ-1).
+
+**2026-11-18, verified at 21:04:12 (hh-mm-ss, UTC; the docs commit follows).** Verified by
+**GLM-5.3-Flash** (model/LLM: account:zai-individual-coding-plan/GLM-5.3-Flash) running in
+**ZCode** (ZCode Desktop, the agentic CLI harness on macOS arm64), executing Ernest's pass-0
+Phase-5 dispatch. Phase-5 disposition: **4/4 rows FIXED + exit gate PASSED — the phase is
+COMPLETE**. Ledger statuses re-stamped with the commit shas in the same session. NOTHING pushed.
