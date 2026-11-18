@@ -30,6 +30,18 @@ class InteractionRepositoryImpl(
     data class Bounds(
         /** §17.3: resolved > 24 h dropped. */
         val resolvedTtlMs: Long = 24L * 60 * 60 * 1000,
+        /**
+         * F-P6-A (pass-0 Phase 2, store half): OPEN rows older than this are
+         * GENERATION-ORPHANED GHOSTS and expire in the sweep. The pass-8/9
+         * fixtures carried 5 unresolved rows 26 h past their desktop generation
+         * (oldest 2026-11-12 19:59) — answerable the whole time, and the broker
+         * posted shade notifications with no honest answer surface behind them.
+         * The 24 h cap matches the store's own §17.3 retention rhythm; a desktop
+         * permission pending longer than a day is already far past the fuse
+         * world (G77), and the F-27-A reset re-opens the id if the desktop
+         * genuinely re-lists it.
+         */
+        val openTtlMs: Long = 24L * 60 * 60 * 1000,
         /** §17.3: ≤ 64 open/recent. */
         val maxTotal: Int = 64,
     )
@@ -101,6 +113,17 @@ class InteractionRepositoryImpl(
             dao.deleteByIds(endpointId.raw, staleResolved.map { it.interactionId })
             dropped += staleResolved.size
         }
+        // 1.5) F-P6-A (pass-0 Phase 2, store half): OPEN rows past the open TTL are
+        // generation-orphaned ghosts — expire them (EXPIRED, stamped now) so the
+        // census (observeOpen) reaches zero orphans and the inbox can never answer
+        // a desktop generation that no longer exists. EXPIRED (not delete) keeps
+        // the §17.3 audit trail; rule 1 TTL-drops it a day later like any terminal.
+        val ghosts = dao.listOpen(endpointId.raw, InteractionLifecycle.OPEN_ATTENTION.map { it.name }.toSet())
+            .filter { nowMs - it.createdAtMs > bounds.openTtlMs }
+        for (ghost in ghosts) {
+            dao.resolve(endpointId.raw, ghost.interactionId, InteractionLifecycle.EXPIRED.name, nowMs)
+        }
+        dropped += ghosts.size
         // 2) ≤ 64 total: evict oldest RESOLVED first, then oldest overall (§17.3 bound).
         var remaining = dao.listAll(endpointId.raw)
         if (remaining.size > bounds.maxTotal) {

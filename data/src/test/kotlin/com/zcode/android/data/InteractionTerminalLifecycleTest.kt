@@ -121,6 +121,12 @@ class InteractionTerminalLifecycleTest {
 
     @Test
     fun `a coordinator-staled row is terminal-stamped and the sweep drops it after TTL`() = runTest {
+        // REWRITTEN pass-0 Phase 2 (F-P0-B): the old shape drove the rows sweep over a
+        // directly-anchored permission and pinned the STALE — exactly the terminal-
+        // but-actionable fight the F-P0-B adjudication removed (8 stamps, passes 3–9).
+        // The rows plane owns nothing it did not anchor; a coordinator-anchored
+        // machine survives the rows tail and is stamped when a TERMINAL event
+        // actually arrives (the state plane's disappearance rule here).
         var now = 1_000_000L
         val sent = mutableListOf<String>()
         val coordinator = InteractionCoordinator(
@@ -141,10 +147,18 @@ class InteractionTerminalLifecycleTest {
         )
         coordinator.onPermissionRequested(request("stale-sweep"))
         coordinator.render(InteractionId("stale-sweep"))
-        // The rows snapshot no longer carries the approval → the machine STALEs.
+        // The rows snapshot carries nothing — F-P0-B: the machine is NOT staled
+        // (pre-fix it went STALE here and the card rendered terminal-but-actionable).
         coordinator.reconcileFromSnapshot(rows = emptyList(), sessionId = "s1")
+        val surviving = interactions.loadStored(ep, InteractionId("stale-sweep"))
+        assertEquals("the rows tail never stales a machine the rows plane did not anchor", InteractionLifecycle.DISPLAYED, surviving?.record?.lifecycle)
+        // The STATE plane's authoritative disappearance is what resolves it.
+        coordinator.reconcileFromSessionState(
+            "s1",
+            SessionProjectionState(pendingInteractions = emptyList()),
+        )
         val stored = interactions.loadStored(ep, InteractionId("stale-sweep"))
-        assertEquals("the row is terminal", InteractionLifecycle.STALE, stored?.record?.lifecycle)
+        assertEquals("the row is terminal", InteractionLifecycle.RESOLVED, stored?.record?.lifecycle)
         assertNotNull("terminal machine writes STAMP the record (the other four terminal states, GAP-A2's sibling)", stored?.record?.resolvedAtMs)
         // TTL passes → the sweep drops it.
         now = stored!!.record.resolvedAtMs!! + InteractionRepositoryImpl.Bounds().resolvedTtlMs + 1
