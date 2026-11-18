@@ -167,7 +167,23 @@ class ConversationViewModel(
         val loadingOlder: Boolean,
         val error: AppError?,
         val historyChanged: Boolean,
+        /** F-P3-B (pass-0 Phase 5): the unscripted child's readSessionMessages hydrate. */
+        val unscripted: UnscriptedState,
     )
+
+    /**
+     * F-P3-B (pass-0 Phase 5): the UNSCRIPTED child plane — a session the task corpus
+     * does not carry never opens/subscribes, so it rendered skeletons forever. The
+     * hydrate's rows render under the timeline while (and only while) no Task has
+     * materialized; `resolved` clears the skeleton loading state (an honest empty face
+     * when the corpus is empty).
+     */
+    private data class UnscriptedState(
+        val rows: List<ConversationRow> = emptyList(),
+        val resolved: Boolean = false,
+    )
+
+    private val _unscripted = MutableStateFlow(UnscriptedState())
     private data class WriteState(
         val sessionState: com.zcode.android.domain.model.SessionProjectionState?,
         val pendingSends: List<ConversationPort.PendingSendView>,
@@ -193,7 +209,9 @@ class ConversationViewModel(
         combine(port.observeRows(taskId), port.observeEpoch(taskId)) { rows, epoch -> RowsEpoch(rows, epoch) },
         combine(port.observeStale(taskId), port.observeTaskState(taskId)) { s, t -> StaleState(s, t) },
         combine(streamingCoalesced, _task, port.phase) { streaming, task, phase -> StreamPhase(streaming, task, phase) },
-        combine(_hasMore, _loadingOlder, _loadOlderError, _historyChanged) { h, lo, err, hc -> Flags(h, lo, err, hc) },
+        combine(_hasMore, _loadingOlder, _loadOlderError, _historyChanged, _unscripted) { h, lo, err, hc, uns ->
+            Flags(h, lo, err, hc, uns)
+        },
         // GAP-A13: the notice is a COMBINE SOURCE (paired with WriteState) — a
         // `.value` read could not re-emit the state, so a refused slash verb looked
         // like a dead button until an unrelated source fired (the vc21 draft fix,
@@ -217,16 +235,20 @@ class ConversationViewModel(
         val livePending = write.pendingSends.filter { p ->
             p.text !in authoritativeTexts && now - p.atMs < PENDING_MAX_LIFETIME_MS
         }
+        // F-P3-B: the unscripted rows render only while no Task has materialized — a
+        // late-arriving task hands the surface back to the authoritative repo rows.
+        val unscriptedRows = if (streamPhase.task == null) flags.unscripted.rows else emptyList()
         ConversationUiState(
             task = streamPhase.task,
-            rows = rowsEpoch.rows,
+            rows = unscriptedRows + rowsEpoch.rows,
             streaming = streamPhase.streaming,
             epoch = rowsEpoch.epoch,
             stale = staleState.stale,
             taskState = staleState.taskState,
             phase = streamPhase.phase,
-            loading = rowsEpoch.rows.isEmpty() && streamPhase.streaming.isEmpty() &&
-                staleState.taskState == TaskStateMachine.State.UNKNOWN && rowsEpoch.epoch == null,
+            loading = unscriptedRows.isEmpty() && streamPhase.streaming.isEmpty() &&
+                staleState.taskState == TaskStateMachine.State.UNKNOWN && rowsEpoch.epoch == null &&
+                !(streamPhase.task == null && flags.unscripted.resolved),
             hasMoreHistory = flags.hasMore,
             totalRows = _totalRows.value,
             loadingOlder = flags.loadingOlder,
@@ -247,7 +269,19 @@ class ConversationViewModel(
         scope.launch {
             val task = port.task(taskId)
             _task.value = task
-            if (task != null) port.open(task)
+            if (task != null) {
+                port.open(task)
+            } else {
+                // F-P3-B (pass-0 Phase 5): the UNSCRIPTED child — the task corpus does
+                // not carry this session (the automation "Go to session" shape), so the
+                // subscribe path never armed and the timeline starved on skeletons
+                // forever. Hydrate via readSessionMessages; an empty corpus resolves the
+                // loading state into the honest empty face.
+                val hydration = port.hydrateUnscriptedSession(taskId)
+                if (hydration != null) {
+                    _unscripted.value = UnscriptedState(rows = hydration.rows, resolved = true)
+                }
+            }
         }
         // Phase 2 (§11.2): the workspace catalog (totalRows precedent — read at
         // combine time; the catalog is conflated latest-wins, a stale read is

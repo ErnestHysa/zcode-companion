@@ -319,6 +319,28 @@ interface ConversationPort {
     suspend fun fetchSessionMessages(taskId: String, limit: Int = 200): List<JsonObject> = emptyList()
 
     /**
+     * F-P3-B / N-BM-2 (pass-0 Phase 5): the UNSCRIPTED child's hydrate outcome — the
+     * readSessionMessages transcript as local timeline rows + the session's identity
+     * title (first user message head; null = none derivable).
+     */
+    data class UnscriptedHydration(val rows: List<ConversationRow>, val title: String?)
+
+    /**
+     * F-P3-B (pass-0 Phase 5): a session the task corpus does NOT carry (`task() ==
+     * null` — the automation "Go to session" child shape) never arms the subscribe
+     * path, so its timeline starved on skeletons forever. The default composes the
+     * already-consumed `readSessionMessages` read ([fetchSessionMessages]) into local
+     * timeline rows the ViewModel renders directly. Null = scripted session (the
+     * subscribe path owns it — never hydrate over it).
+     */
+    suspend fun hydrateUnscriptedSession(taskId: String): UnscriptedHydration? {
+        if (task(taskId) != null) return null
+        val messages = fetchSessionMessages(taskId)
+        val rows = UnscriptedTranscript.rowsFor(messages)
+        return UnscriptedHydration(rows, UnscriptedTranscript.titleFor(messages, fallback = null))
+    }
+
+    /**
      * A3.11: `conversationFileRewindPreviewV4 {sessionId, target, baseRevision, baseLogEpoch}` —
      * what undoing this turn's files WOULD do (safe/unsafe/ignored + the desktop's canApply).
      * Null = unavailable (the confirm falls back to the copy-only sheet).
