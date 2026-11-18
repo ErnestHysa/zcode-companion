@@ -11496,7 +11496,7 @@ REVERTED), logcat running → /tmp/p49/logcat.log. Launchers /tmp/p49/relay-g*.s
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Connection, recovery & transport state | 6 | 4 | 1 | 1 | High | ✓ DONE 2026-11-17 |
 | 2 | Interaction cards, answers & hook capture | 11 | 7 | 3 | 1 | High | ✓ DONE 2026-11-18 |
-| 3 | Tasks home & workspace manager | 9 | 1 | 5 | 3 | High | ☐ |
+| 3 | Tasks home & workspace manager | 9 | 1 | 5 | 3 | High | ✓ DONE 2026-11-18 |
 | 4 | Git sheet, checkpoints & render fidelity | 10 | 2 | 5 | 3 | Medium | ☐ |
 | 5 | Automation runs & child sessions | 4 | 1 | 0 | 3 | Low | ☐ |
 | 6 | Held-queue guard & stale-command faces | 3 | 0 | 2 | 1 | Medium | ☐ |
@@ -11706,7 +11706,7 @@ N-BW-1.**
 
 ### Sub-phase 3A — the workspace manager & the stale keys
 
-- [ ] **F-P40-B (P2) — the workspace-manager RENAME-ALIAS write is a SILENT NO-OP at HEAD**
+- [x] **F-P40-B (P2) — the workspace-manager RENAME-ALIAS write is a SILENT NO-OP at HEAD**
   (field 17 `workspace_aliases` never reaches disk — ×4 across two processes, the pb mtime
   frozen through Save, zero UI echo) while REORDER (field 16) and SELECT (field 18) are
   receipted ALIVE end-to-end. The wiring is singular and direct
@@ -11716,7 +11716,7 @@ N-BW-1.**
   gains workspaceAliases after onWorkspaceRenamed + the chip recomposing under the alias);
   diff the rename lambda's transform against the working select/reorder shapes. **Accept:**
   rename round-trips to disk + the chip renders the alias and survives an app restart.
-- [ ] **F-P38-A (P3) — the task home renders STALE WORKSPACE-KEY SECTIONS forever:** the "All"
+- [x] **F-P38-A (P3) — the task home renders STALE WORKSPACE-KEY SECTIONS forever:** the "All"
   view enumerates every workspace key ever synced (`Daos.kt:20-21`,
   `TaskRepositoryImpl.kt:48-50`) while the full-snapshot replace + TTL/cap sweep are KEY-scoped
   (`:52-93`) — a workspace whose key stops being served leaves a ghost section with its
@@ -11725,7 +11725,7 @@ N-BW-1.**
   keys absent from the connect snapshot (or an across-keys TTL sweep). **Accept:** a repo
   harness — replaceAll(keyA) then serve only keyB → keyA's rows/section age out; live: the
   ghost section gone from the All view and the boot DB. (7 stamps.)
-- [ ] **F-P38-B (P3) — the custom-GROUP sections never load on a fresh open:** the one-shot
+- [x] **F-P38-B (P3) — the custom-GROUP sections never load on a fresh open:** the one-shot
   `LaunchedEffect(Unit) { onLoadGroups() }` (`TaskListScreen.kt:195`) races the transport
   connect — the guarded null is swallowed by `?: emptyList()` (`TasksViewModel.kt:422`) and
   nothing re-triggers, so the home renders ZERO custom-group sections for the whole session.
@@ -11736,7 +11736,7 @@ N-BW-1.**
 
 ### Sub-phase 3B — the group plane, search & notices
 
-- [ ] **G102 (P3) — WIRE DRIFT: desktop 3.18.1 REMOVED the legacy group verbs from zcode-task**
+- [x] **G102 (P3) — WIRE DRIFT: desktop 3.18.1 REMOVED the legacy group verbs from zcode-task**
   (`createTaskGroup`/`renameTaskGroup`/`updateTaskGroupColor`/`deleteTaskGroup`/
   `listGroupedTaskViewStructure`/`applyGroupedTaskViewOrder` — zero byte-hits); the plane moved
   to a dedicated `task-groups` channel (read/save({id?,title?,color?})/ungroup/move({node,
@@ -11748,7 +11748,7 @@ N-BW-1.**
   the group UI honestly; fold in the move-failure copy fix. **Accept:** a transport-fake
   harness asserting the phone's group verbs against a task-groups-channel fake; the 3.18.1
   method-table census pins the shapes; the failure copy is accurate. (Gates F-P39-A.)
-- [ ] **F-P39-A (P3, after G102) — the move sheet's "New group…" path silently DROPS the
+- [x] **F-P39-A (P3, after G102) — the move sheet's "New group…" path silently DROPS the
   pending move:** the sheet clears `moveFor = null` BEFORE opening the editor
   (`TaskListScreen.kt:823`) and the editor wires ONLY `onCreateGroup` — the flow ends with the
   task UNMOVED and the new group INVISIBLE while a SUCCESS notice fires. **Fix:** carry moveFor
@@ -11756,7 +11756,7 @@ N-BW-1.**
   re-open the sheet with the new group preselected; fold in the G102 move-copy fix. **Accept:**
   a compose test — move sheet → New group → create asserts the move wire fires and the row
   renders under the group.
-- [ ] **F-P43-A (P3) — the tasks-SEARCH results pane SILENTLY TRUNCATES at the port's
+- [x] **F-P43-A (P3) — the tasks-SEARCH results pane SILENTLY TRUNCATES at the port's
   limit:20:** the wire carries the desktop-faithful pagination answer
   (`27 hits (limit=20 served=20 hasMore=true)`) but `Ports.kt:139-151` drops total/hasMore
   (the client decodes both) and the pane renders the bare list with NO count and NO show-more
@@ -11766,16 +11766,16 @@ N-BW-1.**
   pane renders a count face + a show-more row re-querying at a raised limit (the desktop's
   expanded shape). **Accept:** a compose test — stubbed port 20 hits/total 27/hasMore true
   asserts the count face + the affordance; tapping re-queries raised and renders the remainder.
-- [ ] **N-BU-1 (P4) — the tasks ACTION NOTICE renders in the STATUS-BAR zone** (lifecycle and
+- [x] **N-BU-1 (P4) — the tasks ACTION NOTICE renders in the STATUS-BAR zone** (lifecycle and
   CAS-refusal notices draw at y≈25 overlapping the status bar; no top-inset on the notice
   slot). **Fix:** pad the notice into the inset area (or a snackbar slot). **Accept:** a
   compose test asserting the notice's bounds start below the status-bar inset.
-- [ ] **N-BV-1 (P4) — EMPTY custom groups are AFFORDANCE-LESS:** the render skips zero-member
+- [x] **N-BV-1 (P4) — EMPTY custom groups are AFFORDANCE-LESS:** the render skips zero-member
   groups (`TaskListScreen.kt:1283-1290`) so the header — and the ONLY Edit/Delete affordances —
   never renders; the orphan group stays in every move sheet forever. **Fix:** render empty
   groups' headers (count 0) or expose delete via the move sheet/overflow. **Accept:** a
   compose test asserting an empty group is deletable from the list.
-- [ ] **N-BW-1 (P4) — collapse-all from the TIMELINE organize NEVER survives a restart:** the
+- [x] **N-BW-1 (P4) — collapse-all from the TIMELINE organize NEVER survives a restart:** the
   persisted sentinel `TIMELINE_GROUP_KEY = "timeline"` matches NOTHING in the always-reset
   workspace organize (`TasksViewModel.kt:70/:102`) — every section renders expanded after
   relaunch (the GAP-14 "survives app restart" port contract defeated by the key mismatch).
@@ -11783,7 +11783,7 @@ N-BW-1.**
   load. **Accept:** a compose test collapsing in timeline → recomposing in workspace asserts
   the collapsed faces persist.
 
-**Phase 3 exit gate: ☐** fresh rig: rename lands on preferences.pb field 17 and the chip
+**Phase 3 exit gate: ☑ PASSED (2026-11-18, fresh zcode-a16 + gen1 relay, receipts below)** fresh rig: rename lands on preferences.pb field 17 and the chip
 renders the alias (F-P40-B); the ghost key pruned from home + boot DB (F-P38-A); cold-open
 groups render (F-P38-B); the group verbs speak task-groups shapes against the fake and the
 real-desktop face is honest (G102); move-through-create completes (F-P39-A); search shows
@@ -12578,4 +12578,168 @@ F-P3-C, F-P45-B) · Open smalls: **22** (was 23; −1: N-BZ-1). Phase-3 next (Ta
 **GLM-5.3-Flash** (model/LLM: account:zai-start-plan/GLM-5.3-Flash) running in **ZCode**
 (ZCode Desktop, the agentic CLI harness on macOS arm64), executing Ernest's pass-0 Phase-2
 dispatch. Phase-2 disposition: **11/11 rows FIXED + exit gate PASSED — the phase is
+COMPLETE**. Ledger statuses re-stamped with the commit shas in the same session. NOTHING pushed.
+
+---
+
+# pass-0 Phase 3 fix-round record (APPENDED 2026-11-18)
+
+**Scope:** Phase 3 — Tasks home & workspace manager (9 rows: 1 P2 + 5 P3 + 3 P4).
+Branch `fix/pass0`; 8 fix commits + 1 mock commit + the pin-only commits + this docs
+commit; NOTHING pushed. The discovery record above is untouched; the Phase-3 checkboxes
+are ticked in the roadmap.
+
+## The commits (one row ≥ one commit; the pin-only commits precede their fix)
+
+1. `29730b11`+`2f66ab3f` **fix(F-P40-B)** — the three TasksRoute workspace pref writes
+   (select/reorder/rename, ZCodeApp.kt:741-755) launched on `rememberCoroutineScope()` —
+   a COMPOSITION-OWNED scope. A write in flight dies SILENTLY the moment the
+   composition leaves while the write is still suspended: the receipt class (field 17
+   frozen through Save, ×4, no exception). The fix (the roadmap's named shape): the
+   writes route through the new **WorkspacePreferenceWriter** on the process-lifetime
+   `AppStores.appScope`. Pin: Pass0Phase3WorkspaceRenameTest — a gated-repository
+   disposal harness (the write held IN FLIGHT on a test gate, then the host removed):
+   RED at the pre-fix commit (the gated rename AND select writes were cancelled; field
+   17/18 absent), GREEN post-fix (5/5: the alive chain + file truth + chip echo, the
+   rename disposal survival, the clear path + wire-label fallback, the restart
+   arbiter, the select disposal survival). **Rig receipt:** rename → `preferences.pb`
+   field 17 carries `RigP3b` with a FRESH mtime (185 B, 17:27) and the chip row renders
+   **"RigP3b"** over the wire label; the alias SURVIVED the full app restart (leg i's
+   post-restart dump re-renders it). Honest erratum: the rig's first three rename
+   drives non-landed were RIG ARTIFACTS (the rename dialog RE-CENTERS above the IME —
+   the verified-in-field Save was at y≈997 while the tap used the stale no-IME
+   coordinates y≈1381; the r3 dump carried both truths). The fix's mechanism class was
+   never disproven by them — the pinned disposal-drop is real and the live write lands.
+2. `a25c28f5` **fix(F-P38-A)** — `TaskRepository.pruneWorkspacesExcept` (rows AND meta
+   outside the keep set; pinned included — the key itself is dead; an EMPTY keep set
+   prunes nothing, the restarting-desktop guard owns the empty view). The relay
+   bootstrap prunes with served-menu keys ∪ served-task keys; the direct plane with
+   its server-info workspaces (`hub.ghostKeysPruned` logged on drops only). Pin:
+   Pass0Phase3GhostKeyPruneTest (3/3 — the row's named harness; compile-shape RED).
+   **Rig receipt:** the FIRST connect of the fresh rig fired
+   **`hub.ghostKeysPruned :: pruned=1 keep=2`** (17:18:21, the pre-fix era's
+   `synthetic-ws-one` ghost aging out of the REAL on-device DB) and the DB arbiter
+   (pulled db+wal) shows NO `synthetic-ws-one` rows/meta — only the served keys
+   (`/synthetic/ws-one` 27 tasks; the old DIRECT `/synthetic/direct-ws` rows survive
+   under their OWN endpoint id — the prune is endpoint-scoped). The home renders ONE
+   workspace section (the pre-fix double "Synthetic One" ghost face is dead).
+3. `4c00776f` **fix(F-P38-B)** — the groups fetch fires on the CONNECTED transition
+   (and on a warm CONNECTED open; pre-connect it waits — the old one-shot Unit effect
+   wasted a call into the null swallow and was the session's whole budget). Pin:
+   Pass0Phase3ColdOpenGroupsTest (2/2; RED at pre-fix — the flip re-fired NOTHING).
+   **Rig receipt:** `channel.call :: task-groups.read begin` at 17:18:21.258 — 0.3 s
+   after `relay.connected` (17:18:20.958), before ANY user action — and the seeded
+   **"Backend · 1"** group header renders on the cold-open home (its member
+   "Synthetic task 3" under it).
+4. `ba51b968`(pin)+`e0fd1c00`(mock)+`9876a57c` **fix(G102)** — the phone's group plane
+   MIGRATES to the desktop-3.18.1 `task-groups` channel: TaskServiceClient gains
+   read/save/ungroup/move (save unifies create+rename+recolor; move replaces the
+   legacy read-modify-write; the task ref is the STRICT schema with
+   hostId = remoteHostIdFromWorkspaceIdentity ?? "local"); groupedNodesFromTaskGroups
+   builds the screen's nodes with the desktop's own children() semantics;
+   DefaultTasksPort's six verbs rewire onto it; the move-failure copy folds in
+   ("unpin it first if it is pinned" — the legacy refusal wording rendered for ANY
+   failure — → "Couldn't move the task — try again"). Pin: Pass0Phase3TaskGroupsWireTest
+   (8/8 arg-exact vs the census — incl. the EXPLICIT null groupId the
+   .nullable()-not-optional move schema requires and the remote-hostId derivation;
+   compile-shape RED) + Pass0Phase3MoveCopyTest (RED via the stash dance). The mock
+   gains the channel over the SAME in-memory state (self-tested 4 cases; jar+test
+   green). Two contract pins the batch supersedes own their updates (the VM copy pin;
+   the UI suite's ready() composes CONNECTED so the F-P38-B warm-open fetch rides).
+   **Rig receipts (arg-exact on the live wire):** `task-groups save
+   args={"title":"RigGroupP3","color":"gray"}` (create — no id key), `task-groups
+   ungroup args=Arr(items=[Str(value=task-group-2)])`, `task-groups move
+   args={"node":{"type":"task","task":{"hostId":"local","workspacePath":
+   "/synthetic/ws-one","taskId":"synth-task-3"}},"sourceGroupId":"task-group-rig",
+   "groupId":"task-group-2"}` — the ref's hostId derivation and the created-id move
+   receipted verbatim; every read `ok`.
+5. `507ca2eb` **fix(F-P39-A)** — the move sheet's New-group handoff CARRIES the pending
+   move (moveAfterCreate) and the editor's create routes it through the VM's
+   createGroupAndMove — create → move(created.id) → refresh (the created id is known
+   only in the VM, which is why the screen could never complete the chain); a create
+   refusal names the create and never moves; a move refusal after a successful create
+   still refreshes. Pins: Pass0Phase3MoveThroughCreateTest (the row's named compose
+   harness — the carried chain fires with the task id and the plain callback stays
+   silent; the plain new-group path keeps its create-only callback) +
+   Pass0Phase3CreateGroupAndMoveVmTest (3 cases). **Rig receipt:** move sheet →
+   New group… → "RigMoveGrp" → Create → the save AND the move wires above (the move
+   carries `"groupId":"task-group-2"` — the CREATED id) → **"Moved to group"** → the
+   home renders **"RigMoveGrp"** with "Synthetic task 3" under it.
+6. `b0b8cec2` **fix(F-P43-A)** — TasksPort.searchTasks returns
+   TaskSearchResult(hits,total,hasMore) with an explicit limit; TasksUiState gains
+   searchTotal/searchHasMore; the VM keeps a SearchPage (initial 20; show-more
+   re-queries at the RAISED limit — the desktop's expanded shape); the pane renders
+   the count face ("Showing 20 of 27 matches") + a "Show all 27 matches" affordance,
+   en+zh. Pins: Pass0Phase3SearchPageTest + Pass0Phase3SearchPageVmTest (4/4;
+   compile-shape RED). **Rig receipts:** the pane renders **"Showing 20 of 27
+   matches"** under the live truncated answer (`listTaskList search='synthetic' → 27
+   hits (limit=20 served=20 hasMore=true)`); **"Show all 27 matches"** tapped →
+   `listTaskList search='synthetic' → 27 hits (limit=27 served=27 hasMore=false)` —
+   the raised re-query — and **"Synthetic task 26"** renders (the remainder reachable;
+   both faces gone).
+7. `61d96a45` **fix(N-BU-1,N-BV-1,N-BW-1)** — N-BU-1: both one-shot notice classes
+   (the lifecycle/refusal action notice AND the create notice — the same bare-sibling
+   geometry) move INSIDE the Scaffold's inset-padded body. N-BV-1: zero-member groups
+   render ONCE at the list tail with the full GroupHeader (count 0) + the Edit/Delete
+   affordances. N-BW-1: collapse/expand-all covers BOTH key namespaces
+   (collapseAllKeys = the view's group keys ∪ the received workspace keys). Pin:
+   Pass0Phase3NoticesSmallsTest (5/5; RED 4/5 at pre-fix — the expand control held
+   trivially on the empty set). **Rig receipts:** the notices render at **y≈342**
+   ("Group created", "Moved to group") — below the top bar (~276), never in the
+   status-bar zone (the pre-fix receipts were y≈25); the freshly created EMPTY
+   "RigGroupP3" header rendered at the tail WITH its Edit affordance (pre-fix: no
+   header at all) and deleted through editor → confirm → the ungroup wire → gone from
+   the list; collapse-all in TIMELINE ("Workspace Timeline, 26 tasks. Tap to
+   expand.") → force-stop → relaunch → the WORKSPACE organize renders **"Workspace
+   Synthetic One, 26 tasks. Tap to expand."** with 1 row visible (the pinned one).
+
+## The gate (rule 7)
+
+`testDebugUnitTest` (11 Android modules) + `test` (6 pure-JVM modules) with
+`--continue` at 61d96a45: **zero new failing names attributable to the phase** — the
+only failing name in the gate XMLs is the documented pre-existing
+`ConnectionHubWritePathTest > sendText… (U4, §17-5)`. ONE transient cluster was
+adjudicated: `RecoveryScenarioMatrixTest` (data) S1/S2/S4/S12/S13 hit the SHARED
+`awaitUntil` timeout assert (RecoveryScenarioMatrixTest.kt:215) in 5/8 solo runs at
+HEAD during one load window — then the A/B alternation exonerated the batch: HEAD
+green 2/2 AND the PRE-PHASE worktree (812d67b5) failed 1/4 in the SAME window (the
+vc51 S13 precedent; different scenarios each run, same timeout line). Task-failure
+list holds only test-failure tasks; all 17 modules emitted test XML.
+
+## Phase 3 exit gate — receipts (fresh zcode-a16 + gen1 relay)
+
+Rig: the cold-booted zcode-a16 (`-no-snapshot-load`, healthy), install -r (the debug
+APK sha256 `728e26bd57d9da0a…` — the phase's build), relay gen1 nonce
+`mock-p3phase3-gen1-a11c5f` armed MOCK_WS_TWO=1 + MOCK_TASKMGMT=1 + MOCK_TASKS_MANY=1;
+launcher /tmp/p3phase3/relay-g1.sh; receipts: logcat.log, relay-g1.log, home.xml/
+manage.xml/rename dumps, preferences-{1,2,3}.pb (the field-level arbiter), zcode.db
+(+wal/shm), leg-{a,f,h,i}*.png. App pid 5094; `relay.connected relay-1` at 17:18:20.
+
+- **(a) the rename lands + the chip echoes (F-P40-B)** — leg a above; the alias
+  survived the force-stop restart (leg i's dump re-renders "RigP3b").
+- **(b) the ghost key pruned (F-P38-A)** — leg b above (the log line + the DB).
+- **(c) the cold-open groups render (F-P38-B)** — leg c above (the read at +0.3 s +
+  the "Backend · 1" header).
+- **(d) the group verbs speak task-groups (G102)** — leg d above (the save/ungroup/
+  move words arg-exact; the hostId "local" derivation on the live move ref).
+- **(e) move-through-create completes (F-P39-A)** — leg e above (the created-id move +
+  "Moved to group" + the row under "RigMoveGrp").
+- **(f) the search shows "20 of 27" + show-more (F-P43-A)** — leg f above (the raised
+  re-query + "Synthetic task 26").
+- **(g) the notices render below the top bar (N-BU-1)** — y≈342 for BOTH notice
+  classes across legs d/e (the pre-fix y≈25 zone is dead).
+- **(h) the empty group is deletable from the list (N-BV-1)** — leg h above.
+- **(i) the collapse survives the restart (N-BW-1)** — leg i above (the post-restart
+  "Tap to expand." workspace face with 1 visible row).
+
+## Ledger arithmetic
+
+Open F: **22** (was 27; −5: F-P40-B, F-P38-A, F-P38-B, F-P39-A, F-P43-A) · Open G:
+**20** (was 21; −1: G102) · Open smalls: **19** (was 22; −3: N-BU-1, N-BV-1, N-BW-1).
+Phase-4 next (Git sheet, checkpoints & render fidelity — 10 rows, F-P45-A first).
+
+**2026-11-18, verified at 17:50:37 (hh-mm-ss, UTC; the docs commit follows).** Verified by
+**GLM-5.3-Flash** (model/LLM: account:zai-start-plan/GLM-5.3-Flash) running in **ZCode**
+(ZCode Desktop, the agentic CLI harness on macOS arm64), executing Ernest's pass-0 Phase-3
+dispatch. Phase-3 disposition: **9/9 rows FIXED + exit gate PASSED — the phase is
 COMPLETE**. Ledger statuses re-stamped with the commit shas in the same session. NOTHING pushed.
