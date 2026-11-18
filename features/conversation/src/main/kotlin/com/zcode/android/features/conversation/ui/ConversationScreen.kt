@@ -285,9 +285,14 @@ fun ConversationScreen(
         // device) below where every other screen's title sits.
         topBar = {
             ZCodeTopBar(
-                title = state.task?.title ?: stringResource(R.string.conv_default_title),
+                // N-BM-2 (pass-0 Phase 5): the unscripted child carries its session's
+                // identity — the task title wins when the session has one.
+                title = state.task?.title
+                    ?: state.unscriptedTitle
+                    ?: stringResource(R.string.conv_default_title),
                 onBack = attemptBack,
                 backTestTag = "conversation_back",
+                titleTestTag = "conversation_title",
             )
         },
     ) { inner ->

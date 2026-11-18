@@ -32,6 +32,12 @@ import kotlinx.coroutines.launch
  */
 data class ConversationUiState(
     val task: Task? = null,
+    /**
+     * N-BM-2 (pass-0 Phase 5): the UNSCRIPTED child's identity title — the session's
+     * first user message head, else the session id. Null for scripted sessions (the
+     * task title owns the header) and whenever a Task has materialized.
+     */
+    val unscriptedTitle: String? = null,
     val rows: List<ConversationRow> = emptyList(),
     /** rowId → streamed text so far (coalesced ≤ ~30 Hz; §19.2). */
     val streaming: Map<Long, String> = emptyMap(),
@@ -181,6 +187,8 @@ class ConversationViewModel(
     private data class UnscriptedState(
         val rows: List<ConversationRow> = emptyList(),
         val resolved: Boolean = false,
+        /** N-BM-2: the session's identity title (first user message head, else the session id). */
+        val title: String? = null,
     )
 
     private val _unscripted = MutableStateFlow(UnscriptedState())
@@ -240,6 +248,8 @@ class ConversationViewModel(
         val unscriptedRows = if (streamPhase.task == null) flags.unscripted.rows else emptyList()
         ConversationUiState(
             task = streamPhase.task,
+            // N-BM-2: the unscripted child's identity title (task title always wins).
+            unscriptedTitle = if (streamPhase.task == null) flags.unscripted.title else null,
             rows = unscriptedRows + rowsEpoch.rows,
             streaming = streamPhase.streaming,
             epoch = rowsEpoch.epoch,
@@ -276,10 +286,16 @@ class ConversationViewModel(
                 // not carry this session (the automation "Go to session" shape), so the
                 // subscribe path never armed and the timeline starved on skeletons
                 // forever. Hydrate via readSessionMessages; an empty corpus resolves the
-                // loading state into the honest empty face.
+                // loading state into the honest empty face. N-BM-2: the title carries the
+                // session's identity — the first user message's head (the desktop's
+                // untitled-session convention), else the raw session id.
                 val hydration = port.hydrateUnscriptedSession(taskId)
                 if (hydration != null) {
-                    _unscripted.value = UnscriptedState(rows = hydration.rows, resolved = true)
+                    _unscripted.value = UnscriptedState(
+                        rows = hydration.rows,
+                        resolved = true,
+                        title = hydration.title ?: taskId,
+                    )
                 }
             }
         }
