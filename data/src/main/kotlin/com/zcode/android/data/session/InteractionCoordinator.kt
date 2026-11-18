@@ -691,10 +691,18 @@ class InteractionCoordinator(
         // pending, and the later inbox answer died a silent DuplicateNoOp. Absence
         // from the tail is not a resolution signal for a machine the rows plane
         // anchored; only the positive leg above resolves it.
+        // F-P0-B (pass-0 Phase 2): the THIRD machine origin — a state-plane-delivered
+        // PERMISSION (fromRowsSnapshot == false, permission != null) — was still
+        // staled here: the rows tail never carries state-plane ids, so every rows
+        // snapshot STALEd the card while the authoritative list kept it pending
+        // (terminal-but-actionable; the answer died a silent AlreadyResolved).
+        // 8 ledger stamps, passes 3–9. The rows plane owns NOTHING it did not
+        // anchor: only the positive leg (a present row leaving pending-approval)
+        // and the state plane's own disappearance rule resolve cards.
         for ((iid, machine) in machines.toList()) {
             if (iid in snapshotInteractionIds) continue
             val known = requests[iid] ?: continue
-            if (known.userInput != null || known.fromRowsSnapshot) continue
+            if (known.userInput != null || known.permission != null) continue
             runCatching { machine.on(PermissionStateMachine.Event.ResnapshotLacks) }
             updateLifecycle(iid, machine.state)
         }
