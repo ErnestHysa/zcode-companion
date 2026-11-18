@@ -123,8 +123,11 @@ class DefaultGitPort(
         "git.summary",
     ) { tools, wp, wi -> tools.gitSummary(wp) }
 
+    // F-P5-A (pass-0 Phase 4): the refused read PROPAGATES (the rethrow arm) — the
+    // old `?: emptyList()` swallow rendered lying empty sections behind the screen's
+    // live error face + Retry (GitScreen's changesError site).
     override suspend fun changes(sourceId: String): List<GitChangeEntry> =
-        run("git.changes") { tools, wp, _ -> tools.gitChanges(wp, sourceId) } ?: emptyList()
+        run("git.changes", rethrow = true) { tools, wp, _ -> tools.gitChanges(wp, sourceId) }!!
 
     /** G53 (vc52 Phase 11): the branch comparison — null on refusal (the typed reason rides the caller's surface). */
     override suspend fun branchComparison(): com.zcode.android.domain.model.GitBranchComparison? =
@@ -325,15 +328,23 @@ class DefaultGitPort(
     private fun JsonObject.rpStr(key: String): String? =
         (this[key] as? kotlinx.serialization.json.JsonPrimitive)?.takeIf { it !is kotlinx.serialization.json.JsonNull }?.content?.takeIf { it.isNotBlank() }
 
-    /** Channel-refusal wrapper: ANY failure → null (the §13.3 disabled state). */
-    private suspend fun <T> run(op: String, block: suspend (Phase9Tools, String, String?) -> T): T? {
-        val target = hub.activeWorkspaceTarget() ?: return null
-        val workspacePath = target.first ?: return null
+    /** Channel-refusal wrapper: ANY failure → null (the §13.3 disabled state).
+     * [rethrow] = the caller's error face owns the refusal (F-P5-A: the changes read
+     * propagates so fetchChanges's runCatching sees it — a null target throws too,
+     * never a silent swallow on the rethrowing plane). */
+    private suspend fun <T> run(op: String, rethrow: Boolean = false, block: suspend (Phase9Tools, String, String?) -> T): T? {
+        val target = hub.activeWorkspaceTarget()
+        val workspacePath = target?.first
+        if (target == null || workspacePath == null) {
+            if (rethrow) throw IllegalStateException("$op: no active workspace target")
+            return null
+        }
         return try {
             block(hub.phase9(), workspacePath, target.second)
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             hub.log.warn("gitport.$op", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            if (rethrow) throw e
             null
         }
     }

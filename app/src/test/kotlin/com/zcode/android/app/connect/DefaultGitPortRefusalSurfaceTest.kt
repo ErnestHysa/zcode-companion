@@ -45,9 +45,23 @@ class DefaultGitPortRefusalSurfaceTest {
         scope.cancel()
     }
 
-    private fun connectedPort(refusedMethods: Map<String, String>): GitPortLike {
+    private fun connectedPort(refusedMethods: Map<String, String>, seedChanges: Boolean = false): GitPortLike {
         mock = MockZCode(passHash = passHash, expectedSid = sid)
         refusedMethods.forEach { (method, code) -> mock.script.gitRefusals[method] = code }
+        if (seedChanges) {
+            // the unscripted fixture REFUSES (fault.git.notAvailable) — the control
+            // leg seeds one unstaged row so the rethrow proves refusal-conditional.
+            mock.script.gitChanges = kotlinx.serialization.json.JsonArray(listOf(
+                kotlinx.serialization.json.buildJsonObject {
+                    put("path", kotlinx.serialization.json.JsonPrimitive("/synthetic/ws/a.kt"))
+                    put("repoRelativePath", kotlinx.serialization.json.JsonPrimitive("a.kt"))
+                    put("kind", kotlinx.serialization.json.JsonPrimitive("modified"))
+                    put("section", kotlinx.serialization.json.JsonPrimitive("unstaged"))
+                    put("added", kotlinx.serialization.json.JsonPrimitive(3))
+                    put("removed", kotlinx.serialization.json.JsonPrimitive(1))
+                },
+            ))
+        }
         val url = mock.start()
         transport = RelayTransport(wsFactory = OkHttpWsFactory(), log = ZLog(sink = {}))
         runBlocking {
@@ -98,12 +112,12 @@ class DefaultGitPortRefusalSurfaceTest {
 
     @Test
     fun `an unrefused getChanges still returns its rows - F-P5-A control`() = runBlocking {
-        val port = connectedPort(refusedMethods = emptyMap())
+        val port = connectedPort(refusedMethods = emptyMap(), seedChanges = true)
         val rows = port.changes("unstaged")
         assertEquals(
-            emptyList<String>(),
+            listOf("a.kt"),
             rows.map { it.repoRelativePath },
-            "the mock's fixture serves zero unstaged rows unrefused — the control proves the rethrow is refusal-conditional",
+            "the seeded row returns whole — the rethrow is refusal-conditional, never a blanket throw",
         )
     }
 }
