@@ -30,6 +30,18 @@ interface TaskDao {
     @Query("DELETE FROM tasks WHERE endpointId = :endpointId AND workspaceKey = :workspaceKey AND updatedAtMs < :cutoffMs AND pinned = 0")
     suspend fun deleteStale(endpointId: String, workspaceKey: String, cutoffMs: Long): Int
 
+    /**
+     * F-P38-A: keys the connect snapshot no longer serves age out WHOLE — rows under
+     * every workspace key outside the keep set (pinned included: the key itself is
+     * gone, the desktop is the source of truth).
+     */
+    @Query("DELETE FROM tasks WHERE endpointId = :endpointId AND workspaceKey NOT IN (:keepKeys)")
+    suspend fun deleteWorkspacesNotIn(endpointId: String, keepKeys: Set<String>): Int
+
+    /** F-P38-A: the pruned keys' meta rows go with them (the ETag cache of a dead key). */
+    @Query("DELETE FROM task_workspace_meta WHERE endpointId = :endpointId AND workspaceKey NOT IN (:keepKeys)")
+    suspend fun deleteMetaWorkspacesNotIn(endpointId: String, keepKeys: Set<String>): Int
+
     /** Rows beyond the newest :keep — the LRU eviction victim set (oldest first). */
     @Query(
         "SELECT taskId FROM tasks WHERE endpointId = :endpointId AND workspaceKey = :workspaceKey " +

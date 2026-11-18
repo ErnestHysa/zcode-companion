@@ -824,6 +824,7 @@ class ConnectionHub(
         val endpointId = EndpointId(activeId)
         val now = System.currentTimeMillis()
         val options = ArrayList<com.zcode.android.domain.model.WorkspaceOption>()
+        val servedKeys = LinkedHashSet<String>()
         var total = 0
         for (wsInfo in info.workspaces) {
             val path = wsInfo.path ?: continue
@@ -856,6 +857,13 @@ class ConnectionHub(
                 }
             total += tasks.size
             taskRepo.replaceAll(endpointId, WorkspaceIdentityKey(identityKey), tasks, etag = null, atMs = now)
+            servedKeys.add(identityKey)
+        }
+        // F-P38-A: the direct plane prunes the same way (the served workspaces are
+        // the keep set; an empty projection prunes nothing — the defensive rule).
+        if (servedKeys.isNotEmpty()) {
+            val pruned = taskRepo.pruneWorkspacesExcept(endpointId, servedKeys)
+            if (pruned > 0) log.info("hub.ghostKeysPruned", "pruned=$pruned keep=${servedKeys.size}")
         }
         _workspaces.value = options
         _taskLoadError.value = null
@@ -925,6 +933,19 @@ class ConnectionHub(
                 )
             }
             taskRepo.replaceAll(endpointId, WorkspaceIdentityKey(key), tasks, etag = null, atMs = now)
+        }
+        // F-P38-A: keys the snapshot no longer serves age out WHOLE — the ghost
+        // sections (renamed/moved/spelling-drifted keys) used to render their
+        // last-synced rows as live across restarts and reboots. The keep set is the
+        // served menu ∪ the served task keys (a task-less workspace contributes no
+        // task group but IS served).
+        val servedKeys = buildSet {
+            parsed.workspaces.forEach { if (it.identityKey.isNotBlank()) add(it.identityKey) }
+            byWorkspace.keys.forEach { if (it.isNotBlank()) add(it) }
+        }
+        if (servedKeys.isNotEmpty()) {
+            val pruned = taskRepo.pruneWorkspacesExcept(endpointId, servedKeys)
+            if (pruned > 0) log.info("hub.ghostKeysPruned", "pruned=$pruned keep=${servedKeys.size}")
         }
         // Workspaces that lost every task still deserve a section? No — the list is
         // task-driven in Phase 6 (workspace headers derive from task grouping).

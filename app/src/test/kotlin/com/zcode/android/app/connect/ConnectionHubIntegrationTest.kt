@@ -770,6 +770,17 @@ internal class FakeTaskRepository : TaskRepository {
     }
 
     override suspend fun evictAndSweep(endpointId: EndpointId, workspace: WorkspaceIdentityKey, nowMs: Long): Int = 0
+
+    // F-P38-A: the same key-level eviction the real store performs (empty keep = noop).
+    override suspend fun pruneWorkspacesExcept(endpointId: EndpointId, keepKeys: Set<String>): Int {
+        if (keepKeys.isEmpty()) return 0
+        var dropped = 0
+        for (key in partitions.keys.filter { it.first == endpointId.raw && it.second !in keepKeys }) {
+            dropped += partitions.remove(key)?.size ?: 0
+        }
+        snapshot.value = partitions.values.flatten().sortedByDescending { it.updatedAtMs }
+        return dropped
+    }
 }
 
 internal class FakeConversationRepository : ConversationRepository {

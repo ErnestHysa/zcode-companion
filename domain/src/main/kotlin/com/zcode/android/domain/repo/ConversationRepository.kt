@@ -135,4 +135,15 @@ interface TaskRepository {
 
     /** §17.3 bounds: ≤ 500 tasks/workspace, stale > 7 d dropped. */
     suspend fun evictAndSweep(endpointId: EndpointId, workspace: WorkspaceIdentityKey, nowMs: Long): Int
+
+    /**
+     * F-P38-A (pass-38 P3): the endpoint-scoped keys the connect snapshot no longer
+     * serves age out — rows AND meta for every workspace key NOT in [keepKeys] are
+     * deleted (the ghost-section sweep: a renamed/moved/spelling-drifted key used to
+     * leave its last-synced rows presented as live forever, across restarts and
+     * reboots). An EMPTY keep set prunes NOTHING (defensive: the desktop never
+     * serves zero workspaces; the restarting-desktop empty-bootstrap guard owns the
+     * "view went empty" case). Returns the dropped row count.
+     */
+    suspend fun pruneWorkspacesExcept(endpointId: EndpointId, keepKeys: Set<String>): Int
 }

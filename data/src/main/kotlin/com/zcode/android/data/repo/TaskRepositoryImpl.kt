@@ -92,6 +92,16 @@ class TaskRepositoryImpl(
         return dropped
     }
 
+    override suspend fun pruneWorkspacesExcept(endpointId: EndpointId, keepKeys: Set<String>): Int {
+        // Defensive: an empty keep set prunes nothing (the restarting-desktop
+        // empty-view guard owns the "the desktop went empty" case — never wipe a
+        // good cache because one snapshot was empty).
+        if (keepKeys.isEmpty()) return 0
+        val droppedRows = dao.deleteWorkspacesNotIn(endpointId.raw, keepKeys)
+        dao.deleteMetaWorkspacesNotIn(endpointId.raw, keepKeys)
+        return droppedRows
+    }
+
     suspend fun count(endpointId: EndpointId, workspace: WorkspaceIdentityKey): Int =
         dao.count(endpointId.raw, workspace.raw)
 
