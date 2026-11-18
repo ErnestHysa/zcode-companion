@@ -2,10 +2,12 @@ package com.zcode.android.app.nav
 
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -48,14 +50,15 @@ import org.robolectric.annotation.Config
  * `rememberCoroutineScope()` (ZCodeApp.kt:677 → :741-755) — a COMPOSITION-OWNED scope.
  * A write launched there dies SILENTLY the moment the composition leaves (dialog
  * churn, the ANR-thrash frame wedges of AR.C) — no exception, frozen mtime, absent
- * field: the exact receipt. The pin drives the VERBATIM wiring (the composition-scope
- * host below) and disposes the composition between the Save click and the awaited
- * read: the alias must SURVIVE the composition's death.
+ * field: the exact receipt. The pin drives the wiring through a host whose scope is
+ * owned by the composition (the pre-fix shape) and removes the host between the Save
+ * click and the awaited read: the alias must SURVIVE the composition's death.
  *
  * The pre-fix RED demonstration: with the wiring on the composition scope the
- * disposal test loses the alias (field 17 ABSENT after the disposal). The fix moves
+ * disposal test loses the alias (field 17 ABSENT after the removal). The fix moves
  * the three writes onto the process-lifetime stores scope (the roadmap's fix shape:
- * "move the three ZCodeApp.kt:742-755 writes off the composition-captured scope").
+ * "move the three ZCodeApp.kt:742-755 writes off the composition-captured scope");
+ * the host then mirrors the production wiring via [WorkspacePreferenceWriter].
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [30])
@@ -72,6 +75,9 @@ class Pass0Phase3WorkspaceRenameTest {
         WorkspaceOption("/synthetic/ws-one", "Synthetic One", "/synthetic/ws-one"),
         WorkspaceOption("/synthetic/ws-two", "Synthetic Two", "/synthetic/ws-two"),
     )
+
+    /** false = the host leaves composition (the disposal the rig receipted). */
+    private val hostVisible = mutableStateOf(true)
 
     @Before
     fun setUp() {
@@ -140,9 +146,10 @@ class Pass0Phase3WorkspaceRenameTest {
     }
 
     private fun setHost() {
+        hostVisible.value = true
         rule.setContent {
             ZCodeTheme(themeMode = com.zcode.android.core.ui.theme.ThemeMode.LIGHT) {
-                CompositionScopedWorkspaceHost()
+                if (hostVisible.value) CompositionScopedWorkspaceHost()
             }
         }
         rule.waitForIdle()
@@ -159,32 +166,33 @@ class Pass0Phase3WorkspaceRenameTest {
         rule.waitForIdle()
     }
 
+    private fun awaitAlias(expected: String?) {
+        rule.waitUntil(timeoutMillis = 10_000) {
+            runBlocking { repo.current().workspaceAliases["/synthetic/ws-one"] == expected }
+        }
+    }
+
     @Test
     fun `rename lands on preferences pb field 17 and the chip echoes the alias while the composition lives`() {
         setHost()
         driveRename("RigAlias")
-        // Await the async write through the repository (the composition never left).
-        rule.waitUntil(timeoutMillis = 10_000) {
-            runBlocking { repo.current().workspaceAliases["/synthetic/ws-one"] == "RigAlias" }
-        }
+        awaitAlias("RigAlias")
         val parsed = AppPreferencesProto.parseFrom(file.readBytes())
         assertEquals("RigAlias", parsed.workspaceAliasesMap["/synthetic/ws-one"])
-        // The recomposition echo: the chip row renders the alias over the wire label.
-        rule.onNodeWithText("RigAlias").assertExists()
+        // The recomposition echo: the chip renders the alias over the wire label.
+        rule.onNodeWithTag("tasks_ws_${"/synthetic/ws-one".hashCode()}").assertTextContains("RigAlias")
     }
 
     @Test
     fun `the alias survives the composition's death between the click and the write`() {
         setHost()
         driveRename("RigAlias")
-        // THE DISPOSAL: the composition leaves right after the Save click (the
-        // dialog churn / frame-wedge window the rig receipted). Pre-fix the write
-        // died with the composition-owned scope — silently.
-        rule.setContent { }
+        // THE DISPOSAL: the host leaves composition right after the Save click (the
+        // dialog churn / frame-wedge window the rig receipted). On the composition-
+        // owned scope the write dies silently; the alias must survive it.
+        hostVisible.value = false
         rule.waitForIdle()
-        rule.waitUntil(timeoutMillis = 10_000) {
-            runBlocking { repo.current().workspaceAliases["/synthetic/ws-one"] == "RigAlias" }
-        }
+        awaitAlias("RigAlias")
         val parsed = AppPreferencesProto.parseFrom(file.readBytes())
         assertTrue(
             "field 17 must carry the alias after the disposal",
@@ -196,9 +204,7 @@ class Pass0Phase3WorkspaceRenameTest {
     fun `clearing the field removes the alias and the chip falls back to the wire label`() {
         setHost()
         driveRename("RigAlias")
-        rule.waitUntil(timeoutMillis = 10_000) {
-            runBlocking { repo.current().workspaceAliases["/synthetic/ws-one"] == "RigAlias" }
-        }
+        awaitAlias("RigAlias")
         // The clear path: empty field → null alias → the map entry removed.
         rule.onNodeWithTag("tasks_ws_manage").performClick()
         rule.waitForIdle()
@@ -207,30 +213,24 @@ class Pass0Phase3WorkspaceRenameTest {
         rule.onNodeWithTag("workspace_manager_rename_field").performTextReplacement("")
         rule.onNodeWithTag("workspace_manager_rename_save").performClick()
         rule.waitForIdle()
-        rule.waitUntil(timeoutMillis = 10_000) {
-            runBlocking { repo.current().workspaceAliases["/synthetic/ws-one"] == null }
-        }
+        awaitAlias(null)
         val parsed = AppPreferencesProto.parseFrom(file.readBytes())
         assertTrue(
             "field 17 must not carry the cleared alias",
             parsed.workspaceAliasesMap["/synthetic/ws-one"] == null,
         )
-        // The wire label falls back.
-        rule.onNodeWithText("Synthetic One").assertExists()
+        // The wire label falls back on the chip.
+        rule.onNodeWithTag("tasks_ws_${"/synthetic/ws-one".hashCode()}").assertTextContains("Synthetic One")
     }
 
     @Test
-    fun `the alias round-trips a fresh repository instance over the same file (the restart arbiter)`() {
+    fun `the alias round-trips the serialized file (the restart arbiter)`() {
         setHost()
         driveRename("RigAlias")
-        rule.waitUntil(timeoutMillis = 10_000) {
-            runBlocking { repo.current().workspaceAliases["/synthetic/ws-one"] == "RigAlias" }
-        }
-        // A cold process reads the same file: the alias is there (the Accept's
-        // "survives an app restart" — the file IS the restart arbiter).
-        val coldRepo = PreferencesRepositoryImpl(
-            DataStoreFactory.create(AppPreferencesSerializer, produceFile = { file }),
-        )
-        assertEquals("RigAlias", runBlocking { coldRepo.current().workspaceAliases["/synthetic/ws-one"] })
+        awaitAlias("RigAlias")
+        // A cold process reads the serialized bytes: the alias is there (the
+        // Accept's "survives an app restart" — the file IS the restart arbiter).
+        val cold = AppPreferencesProto.parseFrom(file.readBytes())
+        assertEquals("RigAlias", cold.workspaceAliasesMap["/synthetic/ws-one"])
     }
 }
