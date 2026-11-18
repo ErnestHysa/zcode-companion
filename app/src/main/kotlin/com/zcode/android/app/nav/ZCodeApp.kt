@@ -759,6 +759,8 @@ private fun TasksRoute(
         onResumeTask = vm::resumeTask,
         onMoveTaskToGroup = vm::moveTaskToGroup,
         onCreateGroup = vm::createGroup,
+        // F-P39-A: the move sheet's New-group path completes the pending move.
+        onCreateGroupAndMove = vm::createGroupAndMove,
         onRenameGroup = vm::renameGroup,
         onRecolorGroup = vm::recolorGroup,
         onDeleteGroup = vm::deleteGroup,

@@ -446,6 +446,34 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
         }
     }
 
+    /**
+     * F-P39-A: the move sheet's "New group…" path — the create-then-admit shape (the
+     * desktop companion's; G102's move channel carries it). Pre-fix the sheet dropped
+     * the pending move at the editor handoff: the flow ended with the task UNMOVED
+     * and the new group INVISIBLE while a SUCCESS notice fired. The created id is
+     * known HERE (the screen's callback cannot see it), so the chain lives in the VM:
+     * create → move → refresh. A create refusal keeps the move-pending state honest
+     * (the notice names the create); a move refusal after a successful create still
+     * refreshes (the group exists — visible for a re-move).
+     */
+    fun createGroupAndMove(taskId: String, title: String, color: com.zcode.android.domain.model.TaskGroupColor) {
+        scope.launch {
+            val created = port.createTaskGroup(title.ifBlank { "New Group" }, color)
+            if (created == null) {
+                actionNotice.value = "Couldn't create the group — try again"
+                return@launch
+            }
+            val moved = port.moveTaskToGroup(taskId, created.id)
+            actionNotice.value = if (moved) {
+                loadGroups()
+                "Moved to group"
+            } else {
+                loadGroups()
+                "Couldn't move the task — try again"
+            }
+        }
+    }
+
     fun renameGroup(groupId: String, title: String) {
         if (title.isBlank()) return
         scope.launch { if (port.renameTaskGroup(groupId, title)) loadGroups() else actionNotice.value = "Couldn't rename the group — try again" }

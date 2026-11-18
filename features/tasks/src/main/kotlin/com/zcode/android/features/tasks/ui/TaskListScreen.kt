@@ -155,6 +155,9 @@ fun TaskListScreen(
     onResumeTask: (taskId: String) -> Unit = {},
     onMoveTaskToGroup: (taskId: String, groupId: String?) -> Unit = { _, _ -> },
     onCreateGroup: (title: String, color: com.zcode.android.domain.model.TaskGroupColor) -> Unit = { _, _ -> },
+    /** F-P39-A: the move sheet's New-group path — create-then-move in ONE VM chain
+     *  (the created id is known in the VM). Null = the legacy create-only behavior. */
+    onCreateGroupAndMove: ((taskId: String, title: String, com.zcode.android.domain.model.TaskGroupColor) -> Unit)? = null,
     onRenameGroup: (groupId: String, title: String) -> Unit = { _, _ -> },
     onRecolorGroup: (groupId: String, color: com.zcode.android.domain.model.TaskGroupColor) -> Unit = { _, _ -> },
     onDeleteGroup: (groupId: String) -> Unit = {},
@@ -189,6 +192,11 @@ fun TaskListScreen(
     // Phase 5A: the management sheets + confirms.
     var showArchived by remember { androidx.compose.runtime.mutableStateOf(false) }
     var moveFor by remember { androidx.compose.runtime.mutableStateOf<com.zcode.android.domain.model.Task?>(null) }
+    // F-P39-A: the move sheet's New-group handoff carries the pending move — the
+    // pre-fix shape cleared moveFor BEFORE opening the editor and the editor wired
+    // ONLY the create, so the flow ended with the task UNMOVED + the new group
+    // INVISIBLE while a SUCCESS notice fired (the F-P10-A silent-no-op family).
+    var moveAfterCreate by remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
     var groupEditor by remember { androidx.compose.runtime.mutableStateOf<GroupEditorTarget?>(null) }
     var confirmDeleteArchived by remember { androidx.compose.runtime.mutableStateOf<com.zcode.android.domain.model.TaskMeta?>(null) }
     var confirmDeleteGroup by remember { androidx.compose.runtime.mutableStateOf<com.zcode.android.domain.model.TaskGroupInfo?>(null) }
@@ -828,7 +836,11 @@ fun TaskListScreen(
             androidx.compose.material3.ListItem(
                 headlineContent = { Text(stringResource(R.string.group_new)) },
                 modifier = Modifier
-                    .clickable(role = Role.Button) { moveFor = null; groupEditor = GroupEditorTarget.Create }
+                    .clickable(role = Role.Button) {
+                        moveAfterCreate = moveFor?.taskId
+                        moveFor = null
+                        groupEditor = GroupEditorTarget.Create
+                    }
                     .testTag("move_group_new"),
             )
             Spacer(Modifier.height(12.dp))
@@ -839,7 +851,19 @@ fun TaskListScreen(
         GroupEditorSheet(
             target = target,
             onDismiss = { groupEditor = null },
-            onCreate = { title, color -> groupEditor = null; onCreateGroup(title, color) },
+            onCreate = { title, color ->
+                groupEditor = null
+                // F-P39-A: a carried move completes through the VM's create-then-move
+                // chain (the created id is resolved there); plain creates keep the
+                // legacy callback.
+                val task = moveAfterCreate
+                moveAfterCreate = null
+                if (task != null && onCreateGroupAndMove != null) {
+                    onCreateGroupAndMove.invoke(task, title, color)
+                } else {
+                    onCreateGroup(title, color)
+                }
+            },
             onSave = { id, title, color -> groupEditor = null; onRenameGroup(id, title); onRecolorGroup(id, color) },
             onDelete = { g -> confirmDeleteGroup = g },
         )
