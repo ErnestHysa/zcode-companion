@@ -468,7 +468,10 @@ class Phase9Tools(private val transport: AppTransport) {
     private fun JsonObject.str(key: String): String =
         (this[key] as? JsonPrimitive)?.content ?: ""
 
-    private fun JsonObject.strOrNull(key: String): String? = (this[key] as? JsonPrimitive)?.content
+    // N-BX-1 (pass-0 Phase 4): JsonNull's content is the STRING "null" — filter it like
+    // Phase9Ports.rpStr does (the blind decode rendered the literal "tracking: null").
+    private fun JsonObject.strOrNull(key: String): String? =
+        (this[key] as? JsonPrimitive)?.takeIf { it !is kotlinx.serialization.json.JsonNull }?.content
 
     private fun JsonObject.intOr(key: String): Int = (this[key] as? JsonPrimitive)?.content?.toIntOrNull() ?: 0
 
