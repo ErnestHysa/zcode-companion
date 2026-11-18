@@ -11495,7 +11495,7 @@ REVERTED), logcat running → /tmp/p49/logcat.log. Launchers /tmp/p49/relay-g*.s
 | Phase | Theme | Rows | P2 | P3 | P4 | Session risk | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Connection, recovery & transport state | 6 | 4 | 1 | 1 | High | ✓ DONE 2026-11-17 |
-| 2 | Interaction cards, answers & hook capture | 11 | 7 | 3 | 1 | High | ☐ |
+| 2 | Interaction cards, answers & hook capture | 11 | 7 | 3 | 1 | High | ✓ DONE 2026-11-18 |
 | 3 | Tasks home & workspace manager | 9 | 1 | 5 | 3 | High | ☐ |
 | 4 | Git sheet, checkpoints & render fidelity | 10 | 2 | 5 | 3 | Medium | ☐ |
 | 5 | Automation runs & child sessions | 4 | 1 | 0 | 3 | Low | ☐ |
@@ -11604,62 +11604,62 @@ F-P1-B → F-P7-A → F-P7-B → F-P3-C → F-P45-B → N-BZ-1.**
 
 ### Sub-phase 2A — the card plane (the pinned budget + the reconcile fight)
 
-- [ ] **F-P0-B (P2) — the reconcile sweep STALEs state-plane-delivered PERMISSION
+- [x] **F-P0-B (P2) — the reconcile sweep STALEs state-plane-delivered PERMISSION
   interactions** (the two reconcilers fight; the card renders terminal-but-actionable). ONE
   LINE: the `known.permission != null` exemption at `InteractionCoordinator.kt:697`. **Fix:**
   that one line + a pin answering from BOTH planes. **Accept:** the dual-plane pin answers the
   permission from the state plane without the sweep stale-ing it; the conversation card stays
   actionable. (8 stamps passes 3–9 — the most re-manifested row in the ledger.)
-- [ ] **F-P3-A (P2) — the pinned pending-stack budget starves EVERY interaction card body to
+- [x] **F-P3-A (P2) — the pinned pending-stack budget starves EVERY interaction card body to
   zero height** (question bodies, hook items; LazyColumn unbounded main axis kills
   `weight(1f,fill=false)`; composition-dependent — pass 12's variance receipt). **Fix:**
   card-agnostic — raise/scroll the pinned budget or render bodies outside it. **Accept:** a
   live `LazyColumn{item{}}` harness varying pinned-child count — question/hook/approval bodies
   render at full height and the answer leg is enabled. (Absorbs F-P1-A/F-P0-A; 12+ stamps.)
-- [ ] **F-P6-A (P2, after F-P0-B) — permission ghost-split:** the store keeps DISPLAYED rows
+- [x] **F-P6-A (P2, after F-P0-B) — permission ghost-split:** the store keeps DISPLAYED rows
   the card plane dropped AND generation-orphaned ghosts accumulate monotonically (4 ghosts /
   26 h; the broker posts shade notifications with NO answer surface). **Fix:** card half =
   F-P0-B; store half = resolve generation-orphaned interactions in a reconcile sweep (fixtures
   `/tmp/pass8/db/p8-2.db` + `/tmp/p9/db/p9-4.db`). **Accept:** a sweep pin resolves orphaned
   generations; a live census on the fixtures reaches 0 orphans; the shade notification gains an
   answer surface or is suppressed.
-- [ ] **F-P8-D (P3) — the queue panel has NO collapse affordance** (always-expanded; the
+- [x] **F-P8-D (P3) — the queue panel has NO collapse affordance** (always-expanded; the
   desktop's has one) + the header clipped under the sticky strip. **Fix:** a two-way header
   toggle (desktop parity) + the overlap fix. **Accept:** a compose pin — the toggle
   collapses/expands and the header no longer clips. (Unblocks F-P6-B.)
-- [ ] **F-P6-B (P2, after F-P8-D) — with the armed stack, the timeline renders ZERO rows**
+- [x] **F-P6-B (P2, after F-P8-D) — with the armed stack, the timeline renders ZERO rows**
   (the pinned budget + the expanded queue panel eat the window). **Fix:** re-balance the
   pinned/timeline budget. **Accept:** a compose harness with the armed stack asserting the
   timeline renders rows with the queue expanded; re-receipted live under the queue arms.
 
 ### Sub-phase 2B — answer delivery & interaction lifecycle
 
-- [ ] **F-P1-B (P2) — stale-generation interactions stay answerable 50+ minutes and ACK
+- [x] **F-P1-B (P2) — stale-generation interactions stay answerable 50+ minutes and ACK
   against a moved-on desktop**; the closeStored sweep misses rows (2 of 5). **Fix:** expire
   stored interactions on generation/workspace identity mismatch + a mock unknown-id error arm.
   **Accept:** a harness asserting a gen-mismatched interaction expires; the mock arm answers
   unknown-id typed; the sweep covers every row (the pass-13 partial-sweep-in-BOTH-directions
   shape).
-- [ ] **F-P7-A (P2) — Approvals-screen inbox answers strand:** `submitFromStore` →
+- [x] **F-P7-A (P2) — Approvals-screen inbox answers strand:** `submitFromStore` →
   RETRYABLE_KEPT (needs a session machine); the banner remedy "open the task" is unactionable
   on DIRECT (foreign workspace). Inbox answers FINE over relay — endpoint/machine-context
   specific. **Fix:** interaction-scoped submit (the shade path proves the shape); validate the
   task row before advising. **Accept:** the relay inbox answer lands; on DIRECT the advice is
   accurate or the submit succeeds interaction-scoped.
-- [ ] **F-P7-B (P2) — a shade action answered while the connection is down → the interaction
+- [x] **F-P7-B (P2) — a shade action answered while the connection is down → the interaction
   FAILED with no retry/queue/face** (the COMMON path with Live-connection OFF; the typed
   server-rejection trigger receipted pass 13 — same no-face outcome). **Fix:** queue behind
   reconnect (the inbox RETRYABLE_KEPT semantics) or a visible "not delivered" re-post.
   **Accept:** a harness answering offline → the answer queues (or re-posts visibly); never a
   silent FAILED with no user face.
-- [ ] **F-P3-C (P3) — the inbox ACK's resolution echo is DROPPED when the conversation is
+- [x] **F-P3-C (P3) — the inbox ACK's resolution echo is DROPPED when the conversation is
   unsubscribed** (`gateway.drop … no subscription record`). **Fix:** retain last-N deltas per
   session / subscribe-on-ACK / optimistic local resolve. **Accept:** a pin asserting the ACK
   echo survives (or the row resolves locally) when unsubscribed.
 
 ### Sub-phase 2C — hook-review capture & the hooks viewer
 
-- [ ] **F-P45-B (P3) — the hooks-review capture LOSES ALL-BUT-LAST reviews and CROSS-KEYS the
+- [x] **F-P45-B (P3) — the hooks-review capture LOSES ALL-BUT-LAST reviews and CROSS-KEYS the
   survivor:** `captureHookReview` reads `pendingInteractions?.lastOrNull { kind ==
   WORKSPACE_HOOK_REVIEW }` (`ConversationSessionManager.kt:144-145`) and the sink files it
   under the OPENED session's id (`RecoveryCoordinator.kt:188` → `ConnectionHub.kt:1103`) —
@@ -11669,7 +11669,7 @@ F-P1-B → F-P7-A → F-P7-B → F-P3-C → F-P45-B → N-BZ-1.**
   `review.taskId`; key the sink by `review.taskId`. **Accept:** a manager harness with a
   2-review snapshot — both viewer groups render with their own labels and each group's refresh
   args match its own workspace (MOCK_HOOKS_SECOND is the rig arm).
-- [ ] **N-BZ-1 (P4) — the hooks viewer's Refresh renders "The desktop refused the review
+- [x] **N-BZ-1 (P4) — the hooks viewer's Refresh renders "The desktop refused the review
   request." on a DEAD transport:** `ConnectionHub.requestHookReview:375-380` maps
   BlockedOffline/Failed/Stale/… ALL to `false` while the honest offline note is structurally
   near-unreachable — the two classes are indistinguishable to the user (receipted both ways on
@@ -11679,11 +11679,22 @@ F-P1-B → F-P7-A → F-P7-B → F-P3-C → F-P45-B → N-BZ-1.**
   (BlockedOffline ≠ refused); a live leg renders the offline note on relay-down and the refused
   note on the refuse arm.
 
-**Phase 2 exit gate: ☐** armed-stack walk on a fresh rig: the timeline renders with the queue
+**Phase 2 exit gate: ☑ PASSED 2026-11-18** armed-stack walk on a fresh rig: the timeline renders with the queue
 expanded (F-P6-B) and collapses (F-P8-D); the dual-plane permission answer (F-P0-B) with the
 card body visible (F-P3-A); the 2-review hooks snapshot renders two correct groups (F-P45-B);
 the inbox/shade answer legs deliver or queue visibly (F-P7-A/F-P7-B); a stale-gen interaction
 expires (F-P1-B). Real-Room pins green.
+
+> **VERIFIED ✓ Phase 2 — 100% complete.** Verified 2026-11-18 at **16:31:20** (hh-mm-ss, UTC,
+> post-exit-gate). Verified by **GLM-5.3-Flash** running in **ZCode** (ZCode Desktop harness,
+> agentic CLI on macOS arm64, account:zai-start-plan/GLM-5.3-Flash), executing Ernest's
+> pass-0 Phase-2 dispatch. All eleven rows FIXED on `fix/pass0` (12 commits, pins
+> RED-demonstrated at their pre-fix trees — compile-shape REDs for the new-API seams,
+> behavioral REDs for the rest); full-suite zero-new-names gate passed (Android modules +
+> the six pure-JVM `test` modules; the ONE failure is the documented pre-existing
+> ConnectionHubWritePathTest U4); debug APK rebuilt (sha256 prefix `afde4a7ef0fe70b0` —
+> Phase 2 changes app code); the exit gate receipted live (legs a–e, receipts in the
+> fix-round record below). NOTHING pushed — local commits only.
 
 ---
 
@@ -12387,3 +12398,184 @@ leg-c-card.png.
 (ZCode Desktop, the agentic CLI harness on macOS arm64), executing Ernest's pass-0 Phase-1
 dispatch. Phase-1 disposition: **6/6 rows FIXED + exit gate PASSED — the phase is COMPLETE**.
 Ledger statuses re-stamped with the commit shas in the same session. NOTHING pushed.
+
+---
+
+# pass-0 Phase 2 fix-round record (APPENDED 2026-11-18)
+
+**Scope:** Phase 2 — Interaction cards, answers & hook capture (11 rows: 7 P2 + 3 P3 +
+1 P4). Branch `fix/pass0`; 12 fix commits + this docs commit; NOTHING pushed. The
+discovery record above is untouched; the Phase-2 checkboxes are ticked in the roadmap.
+
+## The commits (one row ≥ one commit)
+
+1. `e8bfca20` **fix(F-P0-B)** — the rows reconcile sweep's machine exemption guarded on
+   `known.userInput != null || known.fromRowsSnapshot` but NOT on the state-plane
+   PERMISSION origin: every rows tail lacking the id STALEd a card the authoritative
+   list still carried (terminal-but-actionable; the answer died a silent
+   AlreadyResolved). 8 ledger stamps (passes 3–9), the most re-manifested row. Pin:
+   Pass0Phase2CardPlaneTest (the dual-plane delivery answers Submitted post-fix; RED
+   at the pre-fix commit — machine STALE at the sweep; the U9 + T2 controls pinned).
+2. `db7a27db` **fix(F-P3-A)** — a LazyColumn measures items with UNBOUNDED main-axis
+   constraints EVEN WHEN the column itself is capped: every card's internal
+   `weight(1f, fill=false)` body (question body, hook item list) resolved to ZERO
+   height (12+ stamps; pass-44 live face "summary → disabled trust area"). Pin:
+   Pass0Phase2PinnedBudgetTest — RED at the pre-fix commit on the question/hook bodies
+   (the approval card's inline options were never weight-starved, matching pass-12's
+   variance receipt).
+3. `932f45f2` **fix(F-P6-A, store half)** — generation-orphaned OPEN interactions
+   expire in the sweep (Bounds.openTtlMs 24 h; the pass-8/9 fixtures carried 5
+   unresolved rows 26 h past their generation, all answerable, shade-notified with no
+   answer surface). Pin: Pass0Phase2GhostSweepTest against the REAL Room store — RED
+   on both cases. The card half rode F-P0-B. The vc52 pin
+   "a coordinator-staled row is terminal-stamped..." was rewritten in the same commit
+   (the batch that supersedes a contract owns it).
+4. `3b5e90ed` **fix(F-P8-D)** — the queue strip gains the two-way header disclosure
+   toggle (desktop parity; the pass-18 s08/s09 stamps; the `Queued (N) · paused`
+   header clipped under the strip band). Pins: Pass0Phase2QueueCollapseTest — RED on
+   both toggle legs. A11y strings en+zh.
+5. `ed54fbcc` **fix(F-P6-B)** — the strip stack's cap reserves an explicit 120dp
+   TIMELINE_FLOOR before its 48dp floor coercion: the armed stack rendered ZERO
+   timeline rows (pass 12 s05/s09). Pin: Pass0Phase2ArmedStackTimelineTest (judges
+   PLACED lazy rows — a lazy list keeps unplaced prefetch items at a zero rect);
+   RED at the pre-fix commit (zero placed rows under the fully armed harness).
+6. `97df6524` **fix(F-P3-A, pin refinement)** — the pin asserts the body node's own
+   bounds height + scroll-reachability inside the card's own viewport (the D4
+   contract), not unscrolled visibility of deep rows; the hook body carries the
+   `hook_review_items` pin seam. The compose-geometry bisection record (the probes:
+   the identical modifier chain measures fine in a bounded column, zero in an
+   unbounded lazy item) is in the commit message.
+7. `8d19b480` **fix(F-P1-B, pin)** — the stale-generation expiry chain was ALREADY
+   assembled by the campaign's fixes (the F-36-B closeStored sweep + F-P0-B's
+   ownership + Phase-1's F-P13-A re-subscribe delivering the fresh list + F-P6-A's
+   open-TTL); what the row lacked was the REGRESSION PIN — the pass-13 receipt was
+   "partial in BOTH directions". Pin: Pass0Phase2StaleGenerationTest — a gen swap
+   expires EVERY attributable row (machine-less AND machine-owned), an expired row
+   answers typed AlreadyResolved with zero wire calls, and the mock's typed
+   unknown-id gate lands FAILED+stamped (the P.A5 chain, store-honest).
+8. `1e98cf16` **fix(F-P7-A)** — the inbox answer path was interaction-scoped in NAME
+   only: the send carried no workspace (the gateway fell back to the ACTIVE screen's
+   target) and never established the conversation scope — on DIRECT a foreign-
+   workspace approval's resolve never reached the wire. InteractionCoordinator gains
+   workspaceForSession + ensureScope (the CommandCoordinator's identical seam);
+   scopeFor() establishes the interaction's OWN scope before every resolveInteraction
+   (permission + elicitation accept + decline arms). The Approvals banner validates
+   the task row before advising "open the task" (the no-row copy en+zh). Pin:
+   Pass0Phase2InteractionScopeTest (RED-demonstration: compile-shape — the seam did
+   not exist; the behavioral defect is the pass-7 live receipt).
+9. `eab63d8d` **fix(F-P7-B)** — two layers: (a) V4Plane.v4Call mapped a CLOSED channel
+   through protocolFault (PROTOCOL = serverSpoke) so the coordinator treated a dead
+   channel as an AUTHORITATIVE rejection — the shade approve died FAILED with no face
+   (`interaction.rejected :: channel closed: abnormal close 1006`, pass 7; the typed
+   trigger receipted the same outcome, pass-13 P.A5). Closed/NotInitialized now throw
+   transportLoss (TRANSPORT, serverSpoke FALSE) → SendLost → RetryableKept: the
+   outbox HOLDS the answer. (b) the shade delegate consumes the outcome and the new
+   NotificationBroker.repostInteractionNow re-posts the not-delivered face ("Answer
+   not delivered — tap to retry") with the approval's retry actions, gated by the
+   F-36-B open-set rule. Pins: Pass0Phase2DeadChannelClassificationTest (RED-demonstrated
+   `expected:<TRANSPORT> but was:<PROTOCOL>`; the fault.* control stays server-spoke)
+   + Pass0Phase2RepostUndeliveredTest.
+10. `5b9080cc` **fix(F-P3-C)** — an accepted inbox ack fires onResolvedLocally and the
+    hub dismisses the interaction's notification records through the §24.3 reconciler:
+    the local resolve completes without the echo that drops for an UNSUBSCRIBED
+    conversation (`gateway.drop … no subscription record`, pass 3). Pin:
+    Pass0Phase2LocalResolveTest (accepted fires; rejected never fires; compile-shape
+    RED — the seam did not exist).
+11. `27c832d4` **fix(F-P45-B)** — the hooks-review capture read
+    `lastOrNull { kind == WORKSPACE_HOOK_REVIEW }` and the sink keyed the survivor by
+    the OPENED session's id: with two reviews in one snapshot (the desktop's normal
+    multi-workspace pending state; MOCK_HOOKS_SECOND) all-but-last was LOST and the
+    survivor CROSS-KEYED (the hybrid group; the Refresh re-issued the WRONG
+    workspace's args — the pass-45 AV.I receipt). The manager now captures EVERY
+    review into a lastHookReviews map keyed by the PAYLOAD's own review.taskId
+    (latest generation wins per key; the G71 compat face stays), the sink keys by
+    review.taskId, the hub's snapshot walks the maps. Pins: the two-review snapshot
+    captures BOTH under their own taskIds; a fresh generation replaces that task's
+    entry only. ApprovalsInboxResolutionTest's fixtures refreshed to recent timestamps
+    (F-P6-A's open-TTL sweep expires the 2023-era rows at the reconcile — the batch
+    that changed the sweep owns the fixture).
+12. `360a7e43` **fix(N-BZ-1)** — the hooks viewer's Refresh mapping was
+    `Accepted → true; null → null; ELSE → false`: BlockedOffline / Failed(no-ack) /
+    Stale / UnknownKept ALL rendered the REFUSED note while the honest offline note
+    was structurally near-unreachable (receipted both ways, gen1 + gen2). The
+    extracted mapHookReviewRefresh distinguishes the classes: transport-class → NULL
+    (the offline note); typed server verdicts → FALSE (the refused note);
+    Accepted/UnknownKept → TRUE ("requested"). Pin: Pass0Phase2HookRefreshMappingTest
+    (seven cells incl. both receipted shapes; compile-shape RED — the mapping did not
+    exist).
+
++ `19c48178` **fix(F-P3-A, gate reconciliation)** — the full-suite gate caught the
+  all-cards cap clipping the APPROVAL card's option rows below the LazyColumn fold
+  (ConversationWriteUiTest's injected deny tap died on clipped coordinates). The cap
+  now bounds exactly the WEIGHTED-BODY cards (UserInputCard + HookTrustReviewCard);
+  the approval card renders intrinsic (pass-12's variance receipt: "the approval card
+  rendered FULL body on re-entry"). Local probe: reverting the cap alone greens the
+  test.
+
+## The gate (rule 7)
+
+`testDebugUnitTest` (Android modules) + `test` (the six pure-JVM modules: core:common,
+core:notifications, core:protocol, core:security, core:transport, core:ui, data,
+domain, spike, tools:mockzcode) with `--continue`: **zero new failing names** — the
+ONE failure is the documented pre-existing `ConnectionHubWritePathTest > sendText…
+U4` (deterministic at the pre-phase commit, Phase-6 territory; named in Phase 1's
+record). Task-failure list holds only test-failure tasks; every module emitted test
+XML (the compile-failure blindness check). Cross-package pins re-run after each
+compose change (the fixture-vs-fake coupling rule).
+
+## Phase 2 exit gate — receipts (fresh zcode-a16 cold boot + gen1/gen2 relays)
+
+Rig: cold boot `-no-snapshot-load` (ONE mid-pass QEMU hang → re-boot, the P.A0.4
+class); gen1 nonces `mock-p2phase-gen1{,b,c,d}-*` + gen2 `mock-p2phase-gen2-z9x8c7`;
+launcher scripts + classpath in `/tmp/p2phase/`; receipts: logcat.log/logcat3.log,
+relay-g1*.log/relay-g2.log, screenshots leg-{a,b,c,d}*.png, DB pulls
+p2.db…p2i.db (the arbiter). Debug APK sha256 prefix `afde4a7ef0fe70b0` (v1.3.2/vc53,
+versionCode 53 — the NINTH non-byte-identical build: Phase 2 changes app code).
+
+- **(a) the armed stack renders rows + the queue collapses (F-P6-B + F-P8-D)** — with
+  MOCK_HOOKS+SECOND+QUEUE armed: the hook card renders FULL BODY (items "Warm build
+  cache"/"Lint gate" + enabled "Trust 0 selected hook(s)") with timeline rows BELOW
+  it (leg-b-pushed.png: "Parser.kt rewritten", "CODE · kotlin", the composer) —
+  pre-fix zero rows; the queue strip renders expanded ("Queued (2) · paused" +
+  Auto-send), tapping the header collapses it (items + Auto-send leave; the timeline
+  moves up: leg-a-queue-collapsed.png) and re-expands. Zero ANR/FATAL on the app.
+- **(b) the dual-plane permission + the visible body (F-P0-B + F-P3-A)** — the hook
+  card's body renders at full height with actionable rows (the pass-44 disabled face
+  is dead); the pushed state-plane approval (MOCK_INTERACTION_PUSH_MS=20000) +
+  the row-anchored approval BOTH persisted DISPLAYED through multiple snapshots
+  (DB p2b.db: both gen1d rows DISPLAYED; the reconcile logs show both planes
+  delivering with zero stale-ing); the inbox answer resolved the pushed id over the
+  wire (`MOCK: command type=resolveInteraction` → ACKED accepted → store RESOLVED).
+- **(c) the hooks viewer renders TWO correct groups (F-P45-B) + the offline note
+  (N-BZ-1)** — leg-c-hooks.png: "Synthetic Workspace · 3 hook(s) · 2 pending trust"
+  AND "Synthetic Workspace Two · 2 hook(s) · 1 pending trust" as separate groups
+  (the hybrid shape is dead); Refresh on the connected relay → "Review re-requested
+  — the trust card re-opens in the conversation."; Refresh with the relay KILLED →
+  **"No live session for this workspace."** — the offline note, NOT the refused
+  note (pre-fix the refused note rendered here; leg-c-refresh-offline.png).
+- **(d) the inbox answers deliver or queue visibly (F-P7-A + F-P7-B)** — relay up:
+  Allow once → the resolve on the wire → ACKED → store RESOLVED (p2c.db); relay
+  down: the inbox shows the honest offline strip, Allow once → the banner "The
+  answer was not confirmed…" and the row stays DISPLAYED + the outbox UNKNOWN
+  (retryable) + the shade face RE-POSTED ("Answer not delivered — tap to retry";
+  dumpsys notification shows the zcode record) — pre-fix the row FAILED silently.
+  The dead-channel receipt is verbatim in logcat: `v4.call :: sendConversationCommandV4
+  channel closed: abnormal close 1006` → **`interaction.submitRetryable ::
+  TransportFailure`** (pre-fix: `interaction.rejected` + FAILED, no face).
+- **(e) a stale-gen interaction expires (F-P1-B)** — the gen1c→gen1d swap expired
+  the gen1c row live (`reconcile.closeStored … (absent from the authoritative list)`
+  at 13:27:38; DB RESOLVED+stamped); the gen1d→gen2 swap repeated it (DB p2h.db:
+  gen1d DISPLAYED → RESOLVED, gen2's own row DISPLAYED). The unknown-id answer
+  chain receipted earlier (the typed fault.* → FAILED+stamped, the P.A5 shape).
+
+## Ledger arithmetic
+
+Open F: **27** (was 36; −9: F-P0-B, F-P3-A, F-P6-A, F-P6-B, F-P1-B, F-P7-A, F-P7-B,
+F-P3-C, F-P45-B) · Open smalls: **22** (was 23; −1: N-BZ-1). Phase-3 next (Tasks home
+& workspace manager — 9 rows, F-P40-B first).
+
+**2026-11-18, verified at 16:31:20 (hh-mm-ss, UTC; the docs commit follows).** Verified by
+**GLM-5.3-Flash** (model/LLM: account:zai-start-plan/GLM-5.3-Flash) running in **ZCode**
+(ZCode Desktop, the agentic CLI harness on macOS arm64), executing Ernest's pass-0 Phase-2
+dispatch. Phase-2 disposition: **11/11 rows FIXED + exit gate PASSED — the phase is
+COMPLETE**. Ledger statuses re-stamped with the commit shas in the same session. NOTHING pushed.
