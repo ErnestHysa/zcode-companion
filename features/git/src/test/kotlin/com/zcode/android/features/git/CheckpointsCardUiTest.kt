@@ -40,7 +40,8 @@ class CheckpointsCardUiTest {
     private var createdCount = 0
     private var conflictOnFirstRestore = false
 
-    private fun port(): GitPort = object : GitPort {
+    private fun port(hostCheckpoints: List<CheckpointMeta> = emptyList()): GitPort = object : GitPort {
+        override suspend fun listCheckpoints(): List<CheckpointMeta> = hostCheckpoints
         override suspend fun summary(): GitSummary? = null
         override suspend fun changes(sourceId: String) = emptyList<GitChangeEntry>()
         override suspend fun diff(path: String, staged: Boolean?): GitFileDiff? = null
@@ -95,5 +96,34 @@ class CheckpointsCardUiTest {
         rule.onNodeWithTag("checkpoint_force_confirm").assertIsDisplayed()
         rule.onNodeWithTag("checkpoint_force_confirm").performClick(); rule.waitForIdle()
         assertTrue("force rides the SECOND confirm only", "restore:ckpt-1:ckpt-2:force=true" in calls)
+    }
+
+    @Test
+    fun `the force confirm executes the CONFIRMED snapshot pair on a 3-item list - F-P45-A`() {
+        // F-P45-A: with >=3 checkpoints the force handler RECOMPUTED from = getOrNull(1)
+        // (a hard-coded index matching the confirmed pair only at exactly two checkpoints)
+        // — the confirmed restore-to-ckpt-1 executed as restore-to-ckpt-2. Hydrate THREE
+        // host checkpoints (newest-first: ckpt-3/ckpt-2/ckpt-1), restore row 1 (whose
+        // confirmed from is ckpt-1), hit the conflict, and Overwrite: the force wire ids
+        // must be EXACTLY the confirmed pair (ckpt-1 -> ckpt-3), never the recomputed one.
+        conflictOnFirstRestore = true
+        val hydrated = listOf(
+            CheckpointMeta("ckpt-3", null, null, 3_000L),
+            CheckpointMeta("ckpt-2", null, null, 2_000L),
+            CheckpointMeta("ckpt-1", null, null, 1_000L),
+        )
+        rule.setContent { ZCodeTheme { GitScreen(port = port(hostCheckpoints = hydrated)) } }
+        rule.waitForIdle()
+        rule.onNodeWithTag("checkpoint_restore_1").performClick(); rule.waitForIdle()
+        rule.onNodeWithTag("checkpoint_restore_confirm").assertIsDisplayed()
+        rule.onNodeWithTag("checkpoint_restore_confirm").performClick(); rule.waitForIdle()
+        // the confirmed (non-force) leg already carries the right pair
+        assertTrue("confirm leg pair", "restore:ckpt-1:ckpt-3:force=false" in calls)
+        rule.onNodeWithTag("checkpoint_force_confirm").assertIsDisplayed()
+        rule.onNodeWithTag("checkpoint_force_confirm").performClick(); rule.waitForIdle()
+        assertTrue(
+            "the force wire ids must equal the CONFIRMED pair (RED pre-fix: getOrNull(1) recomputed ckpt-2)",
+            "restore:ckpt-1:ckpt-3:force=true" in calls,
+        )
     }
 }
