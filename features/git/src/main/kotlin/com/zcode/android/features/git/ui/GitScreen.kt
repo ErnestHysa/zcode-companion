@@ -868,7 +868,9 @@ private fun CheckpointsCard(port: GitPort, modifier: Modifier = Modifier) {
     var checkpoints by remember { mutableStateOf<List<com.zcode.android.domain.model.CheckpointMeta>>(emptyList()) }
     var busy by remember { mutableStateOf(false) }
     var restoringFor by remember { mutableStateOf<com.zcode.android.domain.model.CheckpointMeta?>(null) }
-    var forceConfirmFor by remember { mutableStateOf<Pair<com.zcode.android.domain.model.CheckpointMeta, List<String>>?>(null) }
+    // F-P45-A: the force confirm carries the CONFIRMED (from, to) pair — recomputing
+    // from the list index matched only at exactly two checkpoints.
+    var forceConfirmFor by remember { mutableStateOf<Triple<com.zcode.android.domain.model.CheckpointMeta, com.zcode.android.domain.model.CheckpointMeta, List<String>>?>(null) }
     var diffText by remember { mutableStateOf<String?>(null) }
     // vc51 Phase 4A (CKPT-HYDRATE): the card hydrates the host's checkpoint history on
     // entry — the list is no longer session-local, so snapshots created before an app
@@ -991,7 +993,10 @@ private fun CheckpointsCard(port: GitPort, modifier: Modifier = Modifier) {
                                             diffText = null
                                             notifier.show(restoredFmt.replace("0", result.restoredPaths.size.toString()))
                                         }
-                                        else -> forceConfirmFor = t to result.conflicts
+                                        // F-P45-A: the conflict arm carries the CONFIRMED
+                                        // pair (f = the restore target, t = the head) —
+                                        // never a recomputed list index.
+                                        else -> forceConfirmFor = Triple(f, t, result.conflicts)
                                     }
                                 } finally {
                                     busy = false
@@ -1007,8 +1012,7 @@ private fun CheckpointsCard(port: GitPort, modifier: Modifier = Modifier) {
             },
         )
     }
-    forceConfirmFor?.let { (to, conflicts) ->
-        val from = checkpoints.getOrNull(1)
+    forceConfirmFor?.let { (from, to, conflicts) ->
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { forceConfirmFor = null },
             title = { Text(stringResource(R.string.checkpoint_conflict_title)) },
