@@ -428,6 +428,14 @@ fun main() {
     if (System.getenv("MOCK_CHECKPOINT_CONFLICTS") != null) {
         mock.script.checkpointConflicts = true
     }
+    // pass-0 Phase 4 rig leg (N-BK-1): MOCK_GIT_EMPTY_COMMITS=1 serves a HEALTHY but
+    // EMPTY commit graph (getCommitGraph ok with commits=[] hasMore=false) — the app
+    // half's "No commits yet" empty state is drivable live (the unscripted fixture
+    // refuses instead, which is the F-P5-A face, not the empty face).
+    if (System.getenv("MOCK_GIT_EMPTY_COMMITS") == "1") {
+        mock.script.gitCommits = kotlinx.serialization.json.JsonArray(emptyList())
+        mock.script.gitHasMore = false
+    }
     // Pass-27 rig leg: MOCK_FILECHANGES seeds the conversationFileChanges queue (pass-26
     // rig debt: the view chip's TurnDiffDialog had only ever seen fault.fileChanges.none).
     // Two entries so a second open in the same relay lifetime still serves content.
