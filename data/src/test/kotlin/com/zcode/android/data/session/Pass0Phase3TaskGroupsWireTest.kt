@@ -160,9 +160,18 @@ class Pass0Phase3TaskGroupsWireTest {
         val ref = client.taskGroupRef("/synthetic/ws-one", null, "t1")
         client.taskGroupsMove(task = ref, sourceGroupId = "g1", groupId = null)
         val body = argObj(calls[0])
-        assertNull(body?.get("groupId"))
+        // sourceGroupId/groupId are REQUIRED keys in the move schema (.nullable(),
+        // not .optional()) — moving out of a group carries an EXPLICIT null.
+        assertTrue(
+            "groupId must be an explicit null (the schema requires the key)",
+            body?.get("groupId") is kotlinx.serialization.json.JsonNull,
+        )
+        assertTrue(
+            "sourceGroupId must be present",
+            body?.get("sourceGroupId")?.let { it is JsonPrimitive && it.content == "g1" } == true,
+        )
         // A NULL identity omits the optional key; hostId resolves to "local".
-        val task = body?.get("node") as? JsonObject
+        val task = ((body?.get("node") as? JsonObject)?.get("task") as? JsonObject)
         assertNull(task?.get("workspaceIdentity"))
         assertEquals("local", task?.get("hostId")?.let { (it as JsonPrimitive).content })
     }

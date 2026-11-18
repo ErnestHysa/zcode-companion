@@ -467,7 +467,9 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
         }
     }
 
-    /** Move a task into a group (null = out of every group). Pinned tasks are refused host-side. */
+    /** Move a task into a group (null = out of every group). G102: the task-groups
+     *  move channel validates availability host-side; the failure copy is accurate
+     *  (the legacy "unpin it first" wording was misleading for ANY failure). */
     fun moveTaskToGroup(taskId: String, groupId: String?) {
         scope.launch {
             val ok = port.moveTaskToGroup(taskId, groupId)
@@ -475,7 +477,7 @@ class TasksViewModel(private val port: TasksPort, private val scope: CoroutineSc
                 loadGroups()
                 if (groupId == null) "Removed from group" else "Moved to group"
             } else {
-                "Couldn't move the task — unpin it first if it is pinned"
+                "Couldn't move the task — try again"
             }
         }
     }

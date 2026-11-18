@@ -4,6 +4,7 @@ import com.zcode.android.core.protocol.bytes.RpcSerialization.RpcValue
 import com.zcode.android.core.transport.AppTransport
 import com.zcode.android.core.transport.ErrorMapping
 import com.zcode.android.core.transport.TransportFailure
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -203,6 +204,122 @@ class TaskServiceClient(private val transport: AppTransport) {
         data class Task(val taskId: String) : GroupedOrderNode()
     }
 
+    // ---------------------------------------------------------------- G102 (desktop 3.18.1): the task-groups channel
+
+    /**
+     * The custom-group plane on its dedicated channel. Desktop 3.18.1 REMOVED the
+     * legacy `zcode-task` group verbs (zero byte-hits — Part AO.L G102) and moved
+     * the plane to `task-groups` (chunk-TCPD6WAE.js `createTaskGroupService`):
+     * read() / save({id?,title?,color?}) / ungroup(groupId) / move({node,
+     * sourceGroupId, groupId, anchor?}) / admit({tasks,placement?}) + `state:task-
+     * groups` broadcasts. save UNIFIES create+rename+recolor (absent fields keep
+     * the stored value); move REPLACES the legacy read-modify-write
+     * applyGroupedTaskViewOrder (the desktop validates the source group itself:
+     * task-group.stale-source).
+     *
+     * The task REF is a STRICT schema (`qr`): {hostId, workspacePath,
+     * workspaceIdentity?, taskId} — hostId = remoteHostIdFromWorkspaceIdentity
+     * (chunk-7SAPNXNZ `bW`: a `remote:scheme:…:path`-shaped identity carries its
+     * host prefix) ?? "local". The phone companions talk to the paired desktop's
+     * LOCAL workspaces (no remote prefix) — "local".
+     */
+
+    data class TaskGroupsGroup(val id: String, val title: String, val color: String?, val createdAt: Long?, val updatedAt: Long?)
+    data class TaskGroupsMember(val groupId: String, val workspaceKey: String, val taskId: String, val sortOrder: Long?)
+    data class TaskGroupsOrderNode(val type: String, val key: String, val sortOrder: Long?)
+
+    /** The `read()` projection: {groups:[…], members:[…], order:[…]} (all required). */
+    data class TaskGroupsSnapshot(
+        val groups: List<TaskGroupsGroup>,
+        val members: List<TaskGroupsMember>,
+        val order: List<TaskGroupsOrderNode>,
+    )
+
+    private suspend fun taskGroupsCall(method: String, arg: RpcValue): RpcValue =
+        transport.channelCall("task-groups", method, arg, 30_000)
+
+    /** `read()` — the whole group plane (no args). */
+    suspend fun taskGroupsRead(): TaskGroupsSnapshot {
+        val obj = (taskGroupsCall("read", RpcValue.Arr(emptyList())) as? RpcValue.Obj)?.json as? JsonObject
+            ?: throw TransportFailure(ErrorMapping.protocolFault("task-groups.read result not an object"))
+        fun str(o: JsonObject, key: String): String? = (o[key] as? JsonPrimitive)?.takeIf { it !is kotlinx.serialization.json.JsonNull }?.content
+        fun num(o: JsonObject, key: String): Long? = (o[key] as? JsonPrimitive)?.content?.toDoubleOrNull()?.toLong()
+        val groups = (obj["groups"] as? kotlinx.serialization.json.JsonArray)?.mapNotNull { g ->
+            (g as? JsonObject)?.let { o ->
+                str(o, "id")?.let { TaskGroupsGroup(it, str(o, "title") ?: "", str(o, "color"), num(o, "createdAt"), num(o, "updatedAt")) }
+            }
+        } ?: emptyList()
+        val members = (obj["members"] as? kotlinx.serialization.json.JsonArray)?.mapNotNull { m ->
+            (m as? JsonObject)?.let { o ->
+                val gid = str(o, "groupId") ?: return@mapNotNull null
+                val wk = str(o, "workspaceKey") ?: return@mapNotNull null
+                val tid = str(o, "taskId") ?: return@mapNotNull null
+                TaskGroupsMember(gid, wk, tid, num(o, "sortOrder"))
+            }
+        } ?: emptyList()
+        val order = (obj["order"] as? kotlinx.serialization.json.JsonArray)?.mapNotNull { n ->
+            (n as? JsonObject)?.let { o ->
+                val type = str(o, "type") ?: return@mapNotNull null
+                val key = str(o, "key") ?: return@mapNotNull null
+                TaskGroupsOrderNode(type, key, num(o, "sortOrder"))
+            }
+        } ?: emptyList()
+        return TaskGroupsSnapshot(groups, members, order)
+    }
+
+    /**
+     * `save({id?, title?, color?})` — create (no id) / rename / recolor in ONE word;
+     * absent fields keep the stored value (the desktop's save semantics). Returns
+     * the saved group object (null on a non-object ack).
+     */
+    suspend fun taskGroupsSave(id: String?, title: String?, color: String?): JsonObject? {
+        val body = buildJsonObject {
+            id?.let { put("id", JsonPrimitive(it)) }
+            title?.let { put("title", JsonPrimitive(it)) }
+            color?.let { put("color", JsonPrimitive(it)) }
+        }
+        return (taskGroupsCall("save", RpcValue.Arr(listOf(RpcValue.Obj(body)))) as? RpcValue.Obj)?.json as? JsonObject
+    }
+
+    /** `ungroup(groupId)` — the desktop's delete: members fall back to top level. */
+    suspend fun taskGroupsUngroup(groupId: String) {
+        taskGroupsCall("ungroup", RpcValue.Arr(listOf(RpcValue.Str(groupId))))
+    }
+
+    /**
+     * The task-groups task REF (`qr`, strict): {hostId, workspacePath,
+     * workspaceIdentity?, taskId}. hostId = the remote-identity prefix (the
+     * `remote:scheme:…:path` shape) or "local" — the desktop's own derivation
+     * (chunk-7SAPNXNZ remoteHostIdFromWorkspaceIdentity); a mismatch faults
+     * task-group.host-identity-mismatch.
+     */
+    fun taskGroupRef(workspacePath: String, workspaceIdentity: String?, taskId: String): JsonObject = buildJsonObject {
+        put("hostId", JsonPrimitive(hostIdForWorkspaceIdentity(workspaceIdentity)))
+        put("workspacePath", JsonPrimitive(workspacePath))
+        workspaceIdentity?.let { put("workspaceIdentity", JsonPrimitive(it)) }
+        put("taskId", JsonPrimitive(taskId))
+    }
+
+    /** `move({node, sourceGroupId, groupId, anchor?})` — the ONE move write. */
+    suspend fun taskGroupsMove(task: JsonObject, sourceGroupId: String?, groupId: String?): JsonObject? {
+        val body = buildJsonObject {
+            put("node", buildJsonObject { put("type", JsonPrimitive("task")); put("task", task) })
+            if (sourceGroupId == null) put("sourceGroupId", kotlinx.serialization.json.JsonNull) else put("sourceGroupId", JsonPrimitive(sourceGroupId))
+            if (groupId == null) put("groupId", kotlinx.serialization.json.JsonNull) else put("groupId", JsonPrimitive(groupId))
+        }
+        return (taskGroupsCall("move", RpcValue.Arr(listOf(RpcValue.Obj(body)))) as? RpcValue.Obj)?.json as? JsonObject
+    }
+
+    private fun hostIdForWorkspaceIdentity(workspaceIdentity: String?): String {
+        val id = workspaceIdentity ?: return "local"
+        // A `remote:scheme:…:<workspacePath>` identity carries its host as the
+        // prefix before the LAST ":<path>" separator (the desktop's bW/Kc pair;
+        // ssh's third segment separator is ":/" so the path always starts "/").
+        if (!id.startsWith("remote:")) return "local"
+        val sep = id.lastIndexOf(":/")
+        return if (sep > "remote:".length) id.substring(0, sep) else "local"
+    }
+
     // ---------------------------------------------------------------- Phase 5C (A3.15): assistant feedback (snapshot plane)
 
     /**
@@ -338,3 +455,60 @@ class TaskServiceClient(private val transport: AppTransport) {
         )
     }
 }
+
+
+/**
+ * G102: build the screen's [GroupedTaskNode] list from a task-groups `read()`
+ * snapshot — the desktop's own `children()` semantics (repository chunk-TCPD6WAE
+ * ue.children): the saved order drives the layout (group nodes for existing
+ * groups; task nodes for tasks NOT currently in any group), members slot under
+ * their group in sortOrder, and un-ordered groups/members append at the end.
+ */
+fun groupedNodesFromTaskGroups(read: TaskServiceClient.TaskGroupsSnapshot): List<com.zcode.android.domain.model.GroupedTaskNode> {
+    val groupsById = read.groups.associateBy { it.id }
+    val memberGroupIds = read.members.map { it.groupId }.toSet()
+    val emitted = LinkedHashMap<String, com.zcode.android.domain.model.GroupedTaskNode>()
+    fun groupNode(groupId: String): com.zcode.android.domain.model.GroupedTaskNode.Group? {
+        val g = groupsById[groupId] ?: return null
+        val info = com.zcode.android.domain.model.TaskGroupInfo(
+            id = g.id,
+            title = g.title.ifBlank { "New Group" },
+            color = com.zcode.android.domain.model.TaskGroupColor.fromWire(g.color),
+            createdAtMs = g.createdAt ?: 0,
+            updatedAtMs = g.updatedAt ?: 0,
+        )
+        return com.zcode.android.domain.model.GroupedTaskNode.Group(
+            info,
+            read.members.filter { it.groupId == groupId }
+                .sortedWith(compareBy(nullsLast()) { it.sortOrder })
+                .map { it.taskId },
+        )
+    }
+    // The saved order first: loose task nodes, then group nodes (existing only).
+    read.order.forEach { node ->
+        when (node.type) {
+            "task" -> {
+                // task order keys are JSON.stringify([workspaceKey, taskId]) (Q()).
+                val taskId = runCatching {
+                    val arr = Json.parseToJsonElement(node.key) as? kotlinx.serialization.json.JsonArray
+                    (arr?.lastOrNull() as? kotlinx.serialization.json.JsonPrimitive)?.content
+                }.getOrNull()
+                val memberSomewhere = read.members.any { it.taskId == taskId }
+                if (!taskId.isNullOrBlank() && !memberSomewhere && taskId !in emitted.keys) {
+                    emitted[taskId] = com.zcode.android.domain.model.GroupedTaskNode.Single(taskId)
+                }
+            }
+            "group" -> {
+                if (node.key in groupsById && node.key !in emitted.keys) {
+                    groupNode(node.key)?.let { emitted[node.key] = it }
+                }
+            }
+        }
+    }
+    // Appends: groups never ordered (the desktop's `!a.has(d.id)` tail).
+    read.groups.forEach { g ->
+        if (g.id !in emitted.keys) groupNode(g.id)?.let { emitted[g.id] = it }
+    }
+    return emitted.values.toList()
+}
+

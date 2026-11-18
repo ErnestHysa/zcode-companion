@@ -81,6 +81,7 @@ class TaskManagementUiTest {
 
     private fun ready(vararg tasks: Task, pinned: List<Task> = emptyList(), groups: List<TaskGroupInfo> = emptyList(), membership: Map<String, String> = emptyMap(), archived: List<TaskMeta>? = null, archivedLoading: Boolean = false) =
         TasksUiState(
+            phase = com.zcode.android.domain.state.ConnectionPhase.CONNECTED,
             loadState = TasksUiState.Load.READY,
             endpointName = "TestBook",
             lastRefreshAtMs = 1,

@@ -142,12 +142,12 @@ class TaskManagementVmTest {
     }
 
     @Test
-    fun `move refusal surfaces the pinned remedy copy`() = runTest {
+    fun `move refusal surfaces the accurate retry copy (G102 — the legacy pinned-only wording was misleading for ANY failure)`() = runTest {
         val port = ManagementPort().apply { outcome = false }
         val vm = TasksViewModel(port, backgroundScope)
         vm.moveTaskToGroup("t1", "g1")
         runCurrent()
-        assertEquals("Couldn't move the task — unpin it first if it is pinned", vm.state.value.actionNotice)
+        assertEquals("Couldn't move the task — try again", vm.state.value.actionNotice)
     }
 
     @Test

@@ -194,50 +194,46 @@ class DefaultTasksPort(
 
     override suspend fun listGroupedView(): List<com.zcode.android.domain.model.GroupedTaskNode>? =
         guarded("groups") { ws, id ->
-            com.zcode.android.domain.model.GroupedTaskNode.decodeAll(hub.taskService().listGroupedTaskViewStructure(ws, id))
+            // G102: the desktop's read() — the legacy listGroupedTaskViewStructure is
+            // REMOVED in 3.18.1 (zero byte-hits); the nodes build client-side.
+            com.zcode.android.data.session.groupedNodesFromTaskGroups(hub.taskService().taskGroupsRead())
         }
 
     override suspend fun createTaskGroup(title: String, color: com.zcode.android.domain.model.TaskGroupColor): com.zcode.android.domain.model.TaskGroupInfo? =
         guarded("createGroup") { ws, id ->
-            com.zcode.android.domain.model.TaskGroupInfo.decode(hub.taskService().createTaskGroup(ws, id, title, color.wire))
+            // G102: save({title, color}) — no id = create.
+            com.zcode.android.domain.model.TaskGroupInfo.decode(
+                hub.taskService().taskGroupsSave(id = null, title = title, color = color.wire)
+                    ?: return@guarded null,
+            )
         }
 
     override suspend fun renameTaskGroup(groupId: String, title: String): Boolean =
-        guarded("renameGroup") { ws, id -> hub.taskService().renameTaskGroup(ws, id, groupId, title); true } ?: false
+        guarded("renameGroup") { ws, id -> hub.taskService().taskGroupsSave(id = groupId, title = title, color = null); true } ?: false
 
     override suspend fun updateTaskGroupColor(groupId: String, color: com.zcode.android.domain.model.TaskGroupColor): Boolean =
-        guarded("recolorGroup") { ws, id -> hub.taskService().updateTaskGroupColor(ws, id, groupId, color.wire); true } ?: false
+        guarded("recolorGroup") { ws, id -> hub.taskService().taskGroupsSave(id = groupId, title = null, color = color.wire); true } ?: false
 
     override suspend fun deleteTaskGroup(groupId: String): Boolean =
-        guarded("deleteGroup") { ws, id -> hub.taskService().deleteTaskGroup(ws, id, groupId); true } ?: false
+        guarded("deleteGroup") { ws, id -> hub.taskService().taskGroupsUngroup(groupId); true } ?: false
 
     /**
-     * Read-modify-write over the live structure: every existing group keeps its members
-     * (minus the moved task), the target group gains it, loose tasks stay top-level.
+     * G102: the ONE move write — read() for the task's CURRENT parent (the desktop
+     * validates the source itself: task-group.stale-source) then move({node,
+     * sourceGroupId, groupId}). The ref carries the ACTIVE target's path/identity
+     * (the legacy ref's fields) + the hostId the task-groups schema derives.
      */
     override suspend fun moveTaskToGroup(taskId: String, groupId: String?): Boolean =
         guarded("moveToGroup") { ws, id ->
             val service = hub.taskService()
-            val nodes = com.zcode.android.domain.model.GroupedTaskNode.decodeAll(service.listGroupedTaskViewStructure(ws, id))
-            val groups = LinkedHashMap<String, MutableList<String>>()
-            val topLevel = ArrayList<com.zcode.android.data.session.TaskServiceClient.GroupedOrderNode>()
-            nodes.forEach { n ->
-                when (n) {
-                    is com.zcode.android.domain.model.GroupedTaskNode.Group -> {
-                        groups[n.group.id] = n.taskIds.filterNot { it == taskId }.toMutableList()
-                        topLevel += com.zcode.android.data.session.TaskServiceClient.GroupedOrderNode.Group(n.group.id)
-                    }
-                    is com.zcode.android.domain.model.GroupedTaskNode.Single ->
-                        if (n.taskId != taskId) topLevel += com.zcode.android.data.session.TaskServiceClient.GroupedOrderNode.Task(n.taskId)
-                }
-            }
-            if (groupId == null) {
-                topLevel += com.zcode.android.data.session.TaskServiceClient.GroupedOrderNode.Task(taskId)
-            } else {
-                val members = groups[groupId] ?: return@guarded false
-                members += taskId
-            }
-            service.applyGroupedTaskViewOrder(ws, id, topLevel, groups)
+            val snapshot = service.taskGroupsRead()
+            if (groupId != null && snapshot.groups.none { it.id == groupId }) return@guarded false
+            val sourceGroupId = snapshot.members.firstOrNull { it.taskId == taskId }?.groupId
+            service.taskGroupsMove(
+                task = service.taskGroupRef(ws, id, taskId),
+                sourceGroupId = sourceGroupId,
+                groupId = groupId,
+            )
             true
         } ?: false
 }
