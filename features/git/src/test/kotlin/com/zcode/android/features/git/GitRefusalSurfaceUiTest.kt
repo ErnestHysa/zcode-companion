@@ -1,6 +1,7 @@
 package com.zcode.android.features.git
 
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -114,5 +115,18 @@ class GitRefusalSurfaceUiTest {
         rule.setContent { ZCodeTheme { GitScreen(port = port) } }
         rule.waitForIdle()
         rule.onAllNodesWithTag("git_history_error").assertCountEquals(0)
+    }
+
+    @Test
+    fun `an empty history renders the No-commits-yet state - N-BK-1`() {
+        // N-BK-1 (app half): the rig half was contract-fixed (2b12fc46); the app half
+        // rendered BARE-BLANK on an empty history — a silent-empty face again. The
+        // empty state renders (never bare-blank), distinct from the refusal face.
+        val port = RefusalPort()
+        rule.setContent { ZCodeTheme { GitScreen(port = port) } }
+        rule.waitForIdle()
+        rule.onAllNodesWithTag("git_history_error").assertCountEquals(0)
+        rule.onNodeWithTag("git_history_empty").assertIsDisplayed()
+        rule.onNodeWithText("No commits yet").assertIsDisplayed()
     }
 }
