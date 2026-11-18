@@ -35,6 +35,10 @@ import org.robolectric.annotation.Config
  * F-P10-A rides the same notice plane (the commit null-target typed refusal) — its pin
  * lands with its own commits.
  */
+/** The live refusal text the desktop serves on a refused push (the mock's
+ * desktop-faithful body — receipted verbatim in pass 41). */
+private const val PUSH_REFUSAL = "Cannot push while HEAD is detached."
+
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [30])
 class Pass0Phase4WriteRefusalFacesTest {
@@ -43,10 +47,6 @@ class Pass0Phase4WriteRefusalFacesTest {
     val rule = createComposeRule()
 
     private val notices = mutableListOf<String>()
-
-    /** The live refusal text the desktop serves on a refused push (the mock's
-     * desktop-faithful body — receipted verbatim in pass 41). */
-    private val pushRefusal = "Cannot push while HEAD is detached."
 
     /** The commit lands ok (so the andPush handoff arms the PushConfirm); the push
      * itself is REFUSED — the port's null-swallow boundary is the live face pre-fix. */
@@ -72,6 +72,12 @@ class Pass0Phase4WriteRefusalFacesTest {
             GitCommitResult("deadbeef1234567")
 
         override suspend fun push(): com.zcode.android.domain.model.GitPushResult? = null
+
+        /** F-P41-A: the DefaultGitPort shape — the refused call's reason rides the outcome. */
+        override suspend fun pushOutcome(): GitPort.PushOutcome = GitPort.PushOutcome(
+            result = null,
+            refusal = GitPort.GitWriteRefusal(noTarget = false, message = PUSH_REFUSAL),
+        )
     }
 
     private fun setContent(port: GitPort) {
@@ -114,7 +120,7 @@ class Pass0Phase4WriteRefusalFacesTest {
             "the refused push must render its reason on the notice plane (RED pre-fix: " +
                 "the success-only branch had no else and the port mapped the refusal to null); " +
                 "notices=$notices",
-            notices.any { it.contains(pushRefusal) },
+            notices.any { it.contains(PUSH_REFUSAL) },
         )
     }
 }

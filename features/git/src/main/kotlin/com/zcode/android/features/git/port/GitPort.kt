@@ -99,6 +99,21 @@ interface GitPort {
     suspend fun push(): com.zcode.android.domain.model.GitPushResult? = null
 
     /**
+     * F-P41-A (pass-0 Phase 4): the typed write refusal. [noTarget] = the channel /
+     * workspace is unavailable (render the localized unavailable face); otherwise
+     * [message] is the desktop's refusal text — rendered VERBATIM (never swallowed
+     * to a silent success-only path).
+     */
+    data class GitWriteRefusal(val noTarget: Boolean, val message: String?)
+
+    /** The typed push outcome: [result] non-null = pushed; [refusal] non-null = refused. */
+    data class PushOutcome(val result: com.zcode.android.domain.model.GitPushResult?, val refusal: GitWriteRefusal?)
+
+    /** Default delegates to [push] (which cannot carry the refusal text — the
+     * DefaultGitPort override is the honest shape). */
+    suspend fun pushOutcome(): PushOutcome = PushOutcome(push(), null)
+
+    /**
      * G53 (vc52 Phase 11): `getBranchComparison` — the base/head + per-file changes
      * between the tracking branch and HEAD. null = the channel refused (the §13.3
      * disabled state; N-BG-2 surfaces the reason on the UI).

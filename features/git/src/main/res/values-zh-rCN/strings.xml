@@ -48,6 +48,8 @@
     <string name="push_no_upstream">（无上游 — 将设为 origin）</string>
     <string name="push_send">推送</string>
     <string name="push_done">已推送 %1$s</string>
+    <!-- F-P10-A/F-P41-A (pass-0 Phase 4)：写入层的不可用状态文案。 -->
+    <string name="git_write_unavailable">Git 通道未连接 — 没有活动的工作区。</string>
     <string name="discard_title">丢弃更改？</string>
     <string name="discard_body">丢弃 %1$d 个文件中的所有更改？这将不可逆地销毁未提交的工作。</string>
     <string name="discard_type_word">输入 DISCARD 以确认</string>

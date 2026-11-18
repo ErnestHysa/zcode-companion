@@ -115,6 +115,8 @@ fun GitScreen(
     val discardOneCopy = stringResource(R.string.discard_done, 1)
     val switchedFmt = stringResource(R.string.branches_switched, "x")
     val generateUnavailableCopy = stringResource(R.string.commit_generate_unavailable)
+    // F-P10-A/F-P41-A: the write tier's typed unavailable face (the null-target path).
+    val writeUnavailableCopy = stringResource(R.string.git_write_unavailable)
 
     // G53 (vc52 Phase 11): the comparison read — a refusal carries the typed reason
     // (N-BG-2: the empty state NAMES it; never a silent no-op).
@@ -487,7 +489,21 @@ fun GitScreen(
                 val branchName = branch
                 pushFor = null
                 scope.launch {
-                    if (port.push() != null) notifierGit.show(pushDoneFmt.replace("x", branchName))
+                    // F-P41-A: the refused push renders its reason — the success-only
+                    // branch was the silent kill (the dialog closed pre-result).
+                    val outcome = port.pushOutcome()
+                    if (outcome.result != null) {
+                        notifierGit.show(pushDoneFmt.replace("x", branchName))
+                    } else {
+                        val face = outcome.refusal
+                        notifierGit.show(
+                            when {
+                                face == null || face.noTarget -> writeUnavailableCopy
+                                else -> face.message ?: writeUnavailableCopy
+                            },
+                            long = true,
+                        )
+                    }
                 }
             },
         )

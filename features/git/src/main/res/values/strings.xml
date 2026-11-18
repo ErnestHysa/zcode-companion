@@ -51,6 +51,8 @@
     <string name="push_no_upstream">" (no upstream — it will be set to origin)"</string>
     <string name="push_send">Push</string>
     <string name="push_done">Pushed %1$s</string>
+    <!-- F-P10-A/F-P41-A (pass-0 Phase 4): the write tier\'s typed unavailable face. -->
+    <string name="git_write_unavailable">The git channel is not connected — no active workspace.</string>
     <string name="discard_title">Discard changes?</string>
     <string name="discard_body">Discard ALL changes in %1$d file(s)? This DESTROYS uncommitted work irreversibly.</string>
     <string name="discard_type_word">Type DISCARD to confirm</string>

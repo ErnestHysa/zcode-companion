@@ -253,6 +253,32 @@ class DefaultGitPort(
     override suspend fun push(): com.zcode.android.domain.model.GitPushResult? =
         writeOp("push") { com.zcode.android.domain.model.GitPushResult.decode(hub.activeTransport().gitPush(it)) }
 
+    /** F-P41-A: the refused push's reason rides the typed outcome (never null-swallowed). */
+    override suspend fun pushOutcome(): com.zcode.android.features.git.port.GitPort.PushOutcome {
+        val wp = workspacePath()
+            ?: return com.zcode.android.features.git.port.GitPort.PushOutcome(
+                null,
+                com.zcode.android.features.git.port.GitPort.GitWriteRefusal(noTarget = true, message = null),
+            )
+        return try {
+            com.zcode.android.features.git.port.GitPort.PushOutcome(
+                com.zcode.android.domain.model.GitPushResult.decode(hub.activeTransport().gitPush(wp)),
+                null,
+            )
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            hub.log.warn("gitport.push", "${e.javaClass.simpleName}: ${e.message?.take(120)}")
+            com.zcode.android.features.git.port.GitPort.PushOutcome(
+                null,
+                com.zcode.android.features.git.port.GitPort.GitWriteRefusal(
+                    noTarget = false,
+                    message = e.message ?: e.javaClass.simpleName,
+                ),
+            )
+        }
+    }
+
     override suspend fun switchBranch(targetBranchName: String): com.zcode.android.domain.model.GitBranchResult? =
         writeOp("switchBranch") { com.zcode.android.domain.model.GitBranchResult.decode(hub.activeTransport().gitSwitchBranch(it, targetBranchName)) }
 
