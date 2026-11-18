@@ -453,19 +453,27 @@ fun ConversationScreen(
                 ) {
                     // F-P3-A (pass-0 Phase 2; 12+ ledger stamps): a LazyColumn measures
                     // its items with UNBOUNDED main-axis constraints EVEN WHEN the lazy
-                    // column itself is capped — so every card's internal
+                    // column itself is capped — so a card's internal
                     // weight(1f, fill=false) body (the question/answer body, the hook
                     // item list) resolved to ZERO height whenever the CARD was not
                     // itself bounded (the pass-44 live face: "summary → disabled trust
-                    // area", the answer leg gated). Bounding EACH CARD at the pinned
-                    // budget gives the card's root Column real constraints: the
-                    // weighted body resolves, scrolls ITS OWN viewport, and the
-                    // submit/trust row stays at the card's bottom edge (the N-BG-1/D4
-                    // contract, true at every pinned-child count; multiple cards still
-                    // overflow between items).
-                    fun cardModifier() = Modifier
+                    // area", the answer leg gated). The WEIGHTED-BODY cards get the
+                    // per-card cap: the card's root Column gains real constraints, the
+                    // body resolves and scrolls ITS OWN viewport, and the answer row
+                    // stays at the card's bottom edge (the N-BG-1/D4 contract, true at
+                    // every pinned-child count; multiple cards still overflow between
+                    // items). The APPROVAL card carries NO weighted body — its option
+                    // rows are its content (the pass-12 variance receipt: "the
+                    // approval card rendered FULL body on re-entry") — and capping it
+                    // CLIPS those rows below the fold (the injected deny tap dies on
+                    // clipped coordinates, ConversationWriteUiTest). The pinned
+                    // LazyColumn's own heightIn still bounds the whole stack.
+                    fun boundedCardModifier() = Modifier
                         .fillMaxWidth()
                         .heightIn(max = pinnedBudget)
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                    fun cardModifier() = Modifier
+                        .fillMaxWidth()
                         .padding(horizontal = 12.dp, vertical = 4.dp)
                     items(state.pendingPermissions, key = { "perm-" + it.interactionId }) { interaction ->
                         ApprovalCard(
@@ -489,7 +497,7 @@ fun ConversationScreen(
                                 onAnswerQuestions(interaction.interactionId, answers)
                             },
                             onDecline = { onDeclineQuestions(interaction.interactionId) },
-                            modifier = cardModifier(),
+                            modifier = boundedCardModifier(),
                             onSnooze = onSnoozeInteraction?.let { cb -> { cb(interaction.interactionId) } },
                         )
                     }
@@ -504,7 +512,7 @@ fun ConversationScreen(
                             onRevoke = { ids -> onHookRevoke(hook, ids) },
                             onToggleItem = { id, enabled -> onHookToggle(hook, id, enabled) },
                             onGrantPersistent = { onHookGrant(hook) },
-                            modifier = cardModifier(),
+                            modifier = boundedCardModifier(),
                         )
                     }
                 }
