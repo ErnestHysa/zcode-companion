@@ -1,5 +1,6 @@
 package com.zcode.android.features.git.ui
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,6 +13,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -257,6 +259,71 @@ fun IssueLine(issue: GitBranchIssue, modifier: Modifier = Modifier) {
         )
         if (issue.paths.isNotEmpty()) {
             Text(issue.paths.joinToString(", "), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+/**
+ * F-P40-C (pass-0 Phase 4): the PANE-LEVEL typed-issue face. The BranchSheet closes
+ * BEFORE the async result, so the ack's issue renders HERE (the sheet's own IssueLine
+ * could never be seen — it lived inside the closed sheet and onDismiss nulled the
+ * state). Renders the localized line by code, the wire's MESSAGE text, the DETAIL
+ * with the promised copy affordance, the paths — and a dismiss.
+ */
+@Composable
+fun BranchIssueCard(issue: GitBranchIssue, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    var copied by remember { mutableStateOf(false) }
+    Surface(
+        tonalElevation = 1.dp,
+        color = MaterialTheme.colorScheme.errorContainer,
+        modifier = modifier.fillMaxWidth().testTag("git_branch_issue_card"),
+    ) {
+        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                branchIssueCopy(issue.code),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+            )
+            if (issue.message.isNotBlank()) {
+                Text(
+                    issue.message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                )
+            }
+            issue.detail?.takeIf { it.isNotBlank() }?.let { detail ->
+                Text(
+                    detail,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                )
+                TextButton(
+                    onClick = {
+                        clipboard.setText(androidx.compose.ui.text.AnnotatedString(detail))
+                        copied = true
+                    },
+                    modifier = Modifier.testTag("git_branch_issue_copy"),
+                ) {
+                    Text(
+                        stringResource(if (copied) R.string.branch_issue_copied else R.string.branch_issue_copy_detail),
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+            }
+            if (issue.paths.isNotEmpty()) {
+                Text(
+                    issue.paths.joinToString(", "),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            TextButton(onClick = onDismiss, modifier = Modifier.testTag("git_branch_issue_dismiss")) {
+                Text(stringResource(R.string.branch_issue_dismiss), style = MaterialTheme.typography.labelSmall)
+            }
         }
     }
 }

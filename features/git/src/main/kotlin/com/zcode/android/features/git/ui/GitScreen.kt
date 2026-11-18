@@ -206,6 +206,18 @@ fun GitScreen(
             }
         }
 
+        // F-P40-C (pass-0 Phase 4): the branch write ack's TYPED issue renders at ack
+        // time, pane-level — the sheet is already closed when the result lands (the
+        // old only-render-target lived inside the closed sheet).
+        gitBranchIssue?.let { issue ->
+            item(key = "branch-issue") {
+                BranchIssueCard(
+                    issue = issue,
+                    onDismiss = { gitBranchIssue = null },
+                )
+            }
+        }
+
         // A3.11 (Phase 5B): the checkpoints card — create (snapshot), diff/restore between
         // session-known checkpoints (restore = ⚠: a warned confirm; force overwriting local
         // modifications needs a SECOND confirm).
