@@ -396,6 +396,15 @@ fun main() {
             val files = raw.split(',').map { it.trim() }.filter { it.isNotEmpty() }
             if (files.isNotEmpty()) mock.script.checkpointConflictFiles = files
         }
+        // pass-0 Phase 5 rig leg: MOCK_SESSION_MESSAGES=empty arms the HONEST-EMPTY
+        // face of the F-P3-B unscripted-child hydrate — readSessionMessages serves a
+        // bare array (zero messages) so the child resolves into its empty face with
+        // the session-id title instead of seeding the demo corpus. RIDES AFTER the
+        // seedPhase5bDemo() block so the override wins the ordering (the 804448d4
+        // lesson). Any other value leaves the seeded corpus.
+        if (System.getenv("MOCK_SESSION_MESSAGES") == "empty") {
+            mock.script.sessionMessages = JsonArray(emptyList())
+        }
     }
     // Phase 6A (I2.4) rig leg: MOCK_COMPACT=1 stamps the context-compaction lifecycle
     // markers (started:auto → completed:auto with token counts → failed:manual) into the
