@@ -451,6 +451,20 @@ fun ConversationScreen(
                         .heightIn(max = pinnedBudget)
                         .testTag("conv_pinned_budget"),
                 ) {
+                    // F-P3-A (pass-0 Phase 2; 12+ ledger stamps): a LazyColumn measures
+                    // its items with UNBOUNDED main-axis constraints, so every card's
+                    // internal `weight(1f, fill = false)` body — the question/answer
+                    // body, the hook item list — resolved to ZERO height (the pass-44
+                    // live face: "summary → disabled trust area", the answer leg gated).
+                    // Bounding EACH card at the pinned budget gives the card's root
+                    // Column real constraints: the weighted body resolves, scrolls ITS
+                    // OWN viewport, and the submit row stays pinned at the card's
+                    // bottom edge (the N-BG-1/D4 contract, finally true at every
+                    // pinned-child count; multiple cards still overflow between items).
+                    fun cardModifier() = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = pinnedBudget)
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
                     items(state.pendingPermissions, key = { "perm-" + it.interactionId }) { interaction ->
                         ApprovalCard(
                             interaction = interaction,
@@ -458,9 +472,7 @@ fun ConversationScreen(
                             onAnswer = { optionId, freeText ->
                                 onAnswer(interaction.interactionId, optionId, freeText, false)
                             },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 4.dp),
+                            modifier = cardModifier(),
                             onSnooze = onSnoozeInteraction?.let { cb -> { cb(interaction.interactionId) } },
                         )
                     }
@@ -475,9 +487,7 @@ fun ConversationScreen(
                                 onAnswerQuestions(interaction.interactionId, answers)
                             },
                             onDecline = { onDeclineQuestions(interaction.interactionId) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 4.dp),
+                            modifier = cardModifier(),
                             onSnooze = onSnoozeInteraction?.let { cb -> { cb(interaction.interactionId) } },
                         )
                     }
@@ -492,9 +502,7 @@ fun ConversationScreen(
                             onRevoke = { ids -> onHookRevoke(hook, ids) },
                             onToggleItem = { id, enabled -> onHookToggle(hook, id, enabled) },
                             onGrantPersistent = { onHookGrant(hook) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 4.dp),
+                            modifier = cardModifier(),
                         )
                     }
                 }
