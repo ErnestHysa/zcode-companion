@@ -826,23 +826,28 @@ private fun ChangeRow(
                 // ADR-021 Tier A: reversible index moves — one tap, no confirm. Compact
                 // text (the a11y description carries the verb; the row height stays stable
                 // so the desktop section sort stays observable in pixels).
+                // N-BY-1: the resources are POSITIONAL ("Stage %1$s") — the replace uses
+                // the positional slot (the old "%s" literal never matched, so TalkBack
+                // heard the raw format string), and the verb follows the staged state.
+                val stageCd = (if (staged) unstageCdFmt else stageCdFmt).replace("%1\$s", entry.repoRelativePath)
                 TextButton(
                     onClick = { onStage(entry.repoRelativePath.ifBlank { entry.path }, !staged) },
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp),
                     modifier = Modifier
                         .height(32.dp)
                         .testTag("git_stage_${entry.repoRelativePath}")
-                        .semantics { contentDescription = stageCdFmt.replace("%s", entry.repoRelativePath) },
+                        .semantics { contentDescription = stageCd },
                 ) { Text(stringResource(if (staged) R.string.git_unstage else R.string.git_stage), style = MaterialTheme.typography.labelSmall) }
             }
             if (onDiscard != null) {
+                val discardCd = discardCdFmt.replace("%1\$s", entry.repoRelativePath)
                 TextButton(
                     onClick = { onDiscard(entry.repoRelativePath.ifBlank { entry.path }, staged) },
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp),
                     modifier = Modifier
                         .height(32.dp)
                         .testTag("git_discard_entry_${entry.repoRelativePath}")
-                        .semantics { contentDescription = discardCdFmt.replace("%s", entry.repoRelativePath) },
+                        .semantics { contentDescription = discardCd },
                 ) { Text(stringResource(R.string.git_discard), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error) }
             }
             Icon(
