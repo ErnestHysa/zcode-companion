@@ -452,15 +452,17 @@ fun ConversationScreen(
                         .testTag("conv_pinned_budget"),
                 ) {
                     // F-P3-A (pass-0 Phase 2; 12+ ledger stamps): a LazyColumn measures
-                    // its items with UNBOUNDED main-axis constraints, so every card's
-                    // internal `weight(1f, fill = false)` body — the question/answer
-                    // body, the hook item list — resolved to ZERO height (the pass-44
-                    // live face: "summary → disabled trust area", the answer leg gated).
-                    // Bounding EACH card at the pinned budget gives the card's root
-                    // Column real constraints: the weighted body resolves, scrolls ITS
-                    // OWN viewport, and the submit row stays pinned at the card's
-                    // bottom edge (the N-BG-1/D4 contract, finally true at every
-                    // pinned-child count; multiple cards still overflow between items).
+                    // its items with UNBOUNDED main-axis constraints EVEN WHEN the lazy
+                    // column itself is capped — so every card's internal
+                    // weight(1f, fill=false) body (the question/answer body, the hook
+                    // item list) resolved to ZERO height whenever the CARD was not
+                    // itself bounded (the pass-44 live face: "summary → disabled trust
+                    // area", the answer leg gated). Bounding EACH CARD at the pinned
+                    // budget gives the card's root Column real constraints: the
+                    // weighted body resolves, scrolls ITS OWN viewport, and the
+                    // submit/trust row stays at the card's bottom edge (the N-BG-1/D4
+                    // contract, true at every pinned-child count; multiple cards still
+                    // overflow between items).
                     fun cardModifier() = Modifier
                         .fillMaxWidth()
                         .heightIn(max = pinnedBudget)
@@ -515,9 +517,11 @@ fun ConversationScreen(
             // cap reserves the measured fixed chrome (the T3 SHORT_HEIGHT_RESERVE:
             // one-row session bar + intrinsic composer + 48dp timeline floor)
             // minus what the pinned plane is already taking; the overflow scrolls
-            // inside the stack instead of eating the composer.
+            // inside the stack instead of eating the composer. F-P6-B: the cap also
+            // reserves the EXPLICIT timeline floor — the strip otherwise keeps the
+            // entire remainder and the armed stack renders zero conversation rows.
             val stripMaxHeight =
-                (available - (if (blocked) pinnedBudget else 0.dp) - SHORT_HEIGHT_RESERVE)
+                (available - (if (blocked) pinnedBudget else 0.dp) - SHORT_HEIGHT_RESERVE - TIMELINE_FLOOR)
                     .coerceAtLeast(CONVERSATION_STRIP_FLOOR)
             StripBudget(
                 strips = buildList {
@@ -1606,6 +1610,16 @@ private const val PINNED_BUDGET_FRACTION = 0.30f
 
 /** U8: the pinned stack keeps everything above this reserve (chrome ≈ 190dp + composer ≈ 140dp + the 120dp timeline floor). */
 private val PINNED_RESERVE = 450.dp
+
+/**
+ * F-P6-B (pass-0 Phase 2): the strip stack's cap reserves this much for the
+ * timeline BEFORE the floor coercion — the conversation's rows never vanish
+ * behind the pinned cards + the expanded queue. The same 120dp the
+ * PINNED_RESERVE accounting has budgeted all along; enforcing it here makes the
+ * strip's share honest (48dp remains the absolute floor for the strips
+ * themselves when the window cannot honor both).
+ */
+private val TIMELINE_FLOOR = 120.dp
 
 /** T3: below this content height (landscape phones ≈ 250-350dp) the pinned budget switches to short-height mode. */
 private val SHORT_HEIGHT_THRESHOLD = 480.dp
