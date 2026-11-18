@@ -22,6 +22,7 @@ import org.junit.After
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -358,6 +359,32 @@ class Phase9ToolsTest {
         runBlocking {
             val err = runCatching { tools.gitSummary("/synthetic/ws") }.exceptionOrNull()
             assertTrue(err is TransportFailure)
+        }
+    }
+
+    @Test
+    fun `a JsonNull trackingBranchName decodes to null - N-BX-1`() {
+        connect { m ->
+            m.script.gitSummary = buildJsonObject {
+                put("workspacePath", "/synthetic/ws"); put("repoRoot", "/synthetic/ws")
+                put("branchName", "main"); put("trackingBranchName", "origin/main")
+                put("headRefType", "branch"); put("ahead", 1); put("behind", 2)
+                put("isDirty", false); put("isGitAvailable", true); put("isRepository", true)
+                putJsonArray("autoRefreshWatchPaths") {}
+            }
+            // the RIG-5 merge (the N-BX-1 receipt shape): a switch ack moved the head to
+            // an upstream-less branch — the merged summary serves trackingBranchName as
+            // JsonNull (whose .content is the STRING "null", not a JSON null).
+            m.script.currentGitBranch = "feature/wire"
+        }
+        runBlocking {
+            val summary = tools.gitSummary("/synthetic/ws")
+            assertEquals("feature/wire", summary.branchName)
+            assertNull(
+                summary.trackingBranchName,
+                "JsonNull must decode to null (RED pre-fix: the blind strOrNull decoded the " +
+                    "literal \"null\" and the branch block rendered \"tracking: null\")",
+            )
         }
     }
 
