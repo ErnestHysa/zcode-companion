@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.zcode.android.core.ui.theme.ZCodeTheme
@@ -52,8 +53,10 @@ class CheckpointsCardUiTest {
             createdCount += 1
             return CheckpointMeta("ckpt-$createdCount", "ref", "oid", 1_700_000_000_000L + createdCount)
         }
-        override suspend fun diffCheckpoints(fromCheckpointId: String, toCheckpointId: String) =
-            com.zcode.android.domain.model.CheckpointDiff(listOf("src/a.ts"))
+        override suspend fun diffCheckpoints(fromCheckpointId: String, toCheckpointId: String): com.zcode.android.domain.model.CheckpointDiff {
+            calls += "diff:$fromCheckpointId:$toCheckpointId"
+            return com.zcode.android.domain.model.CheckpointDiff(listOf("src/version.ts", "scratch/probe.txt"))
+        }
         override suspend fun restoreCheckpoints(fromCheckpointId: String, toCheckpointId: String, force: Boolean): com.zcode.android.domain.model.CheckpointRestore {
             calls += "restore:$fromCheckpointId:$toCheckpointId:force=$force"
             return if (!force && conflictOnFirstRestore) com.zcode.android.domain.model.CheckpointRestore(false, emptyList(), listOf("src/config.ts"))
@@ -125,5 +128,24 @@ class CheckpointsCardUiTest {
             "the force wire ids must equal the CONFIRMED pair (RED pre-fix: getOrNull(1) recomputed ckpt-2)",
             "restore:ckpt-1:ckpt-3:force=true" in calls,
         )
+    }
+
+    @Test
+    fun `the restore confirm names the diff files - N-CA-1`() {
+        // N-CA-1: the card docstring promised "the confirm names BOTH ids and the diff's
+        // files" but diffText was only ever null-cleared and diffCheckpoints had ZERO UI
+        // callers (0 wire lines across both pass-45 gens). The confirm must fetch the
+        // diff and render the files under the body.
+        setContent()
+        rule.onNodeWithTag("checkpoint_create").performClick(); rule.waitForIdle()
+        rule.onNodeWithTag("checkpoint_create").performClick(); rule.waitForIdle()
+        rule.onNodeWithTag("checkpoint_restore_0").performClick(); rule.waitForIdle()
+        rule.onNodeWithTag("checkpoint_restore_confirm").assertIsDisplayed()
+        // the diff wire FIRES with the confirmed pair
+        rule.waitUntil(5_000) { calls.any { it.startsWith("diff:ckpt-1:ckpt-2") } }
+        // and the files render under the body
+        rule.onNodeWithTag("checkpoint_diff_files", useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("src/version.ts", substring = true, useUnmergedTree = true).assertIsDisplayed()
+        rule.onNodeWithText("scratch/probe.txt", substring = true, useUnmergedTree = true).assertIsDisplayed()
     }
 }
