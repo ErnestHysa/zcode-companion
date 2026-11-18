@@ -11685,7 +11685,7 @@ card body visible (F-P3-A); the 2-review hooks snapshot renders two correct grou
 the inbox/shade answer legs deliver or queue visibly (F-P7-A/F-P7-B); a stale-gen interaction
 expires (F-P1-B). Real-Room pins green.
 
-> **VERIFIED ✓ Phase 2 — 100% complete.** Verified 2026-11-18 at **16:31:20** (hh-mm-ss, UTC,
+> **VERIFIED ✓ Phase 2 — 100% complete.** Verified 2026-11-18 at **15:09:20** (hh-mm-ss, UTC,
 > post-exit-gate). Verified by **GLM-5.3-Flash** running in **ZCode** (ZCode Desktop harness,
 > agentic CLI on macOS arm64, account:zai-start-plan/GLM-5.3-Flash), executing Ernest's
 > pass-0 Phase-2 dispatch. All eleven rows FIXED on `fix/pass0` (12 commits, pins
@@ -12574,7 +12574,7 @@ Open F: **27** (was 36; −9: F-P0-B, F-P3-A, F-P6-A, F-P6-B, F-P1-B, F-P7-A, F-
 F-P3-C, F-P45-B) · Open smalls: **22** (was 23; −1: N-BZ-1). Phase-3 next (Tasks home
 & workspace manager — 9 rows, F-P40-B first).
 
-**2026-11-18, verified at 16:31:20 (hh-mm-ss, UTC; the docs commit follows).** Verified by
+**2026-11-18, verified at 15:09:20 (hh-mm-ss, UTC; the docs commit follows).** Verified by
 **GLM-5.3-Flash** (model/LLM: account:zai-start-plan/GLM-5.3-Flash) running in **ZCode**
 (ZCode Desktop, the agentic CLI harness on macOS arm64), executing Ernest's pass-0 Phase-2
 dispatch. Phase-2 disposition: **11/11 rows FIXED + exit gate PASSED — the phase is
