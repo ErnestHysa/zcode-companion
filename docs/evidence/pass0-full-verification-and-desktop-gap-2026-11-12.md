@@ -11497,7 +11497,7 @@ REVERTED), logcat running → /tmp/p49/logcat.log. Launchers /tmp/p49/relay-g*.s
 | 1 | Connection, recovery & transport state | 6 | 4 | 1 | 1 | High | ✓ DONE 2026-11-17 |
 | 2 | Interaction cards, answers & hook capture | 11 | 7 | 3 | 1 | High | ✓ DONE 2026-11-18 |
 | 3 | Tasks home & workspace manager | 9 | 1 | 5 | 3 | High | ✓ DONE 2026-11-18 |
-| 4 | Git sheet, checkpoints & render fidelity | 10 | 2 | 5 | 3 | Medium | ☐ |
+| 4 | Git sheet, checkpoints & render fidelity | 10 | 2 | 5 | 3 | Medium | ✓ DONE 2026-11-18 |
 | 5 | Automation runs & child sessions | 4 | 1 | 0 | 3 | Low | ☐ |
 | 6 | Held-queue guard & stale-command faces | 3 | 0 | 2 | 1 | Medium | ☐ |
 | 7 | Composer, attachments & notices | 10 | 0 | 5 | 5 | Medium | ☐ |
@@ -11799,7 +11799,7 @@ F-P40-A → F-P40-C → F-P10-A → N-CA-1 → F-P5-A → N-BK-1 (app half) → 
 
 ### Sub-phase 4A — the write tier & checkpoints
 
-- [ ] **F-P45-A (P2) — the checkpoint FORCE-OVERWRITE executes on a DIFFERENT snapshot pair
+- [x] **F-P45-A (P2) — the checkpoint FORCE-OVERWRITE executes on a DIFFERENT snapshot pair
   than confirmed:** `forceConfirmFor` carries only `(to, conflicts)` and the force handler
   RECOMPUTES `from = checkpoints.getOrNull(1)` (GitScreen.kt CheckpointsCard — a hard-coded
   index that coincidentally matches only at exactly two checkpoints) — the destructive ⚠ write
@@ -11808,31 +11808,31 @@ F-P40-A → F-P40-C → F-P10-A → N-CA-1 → F-P5-A → N-BK-1 (app half) → 
   carry the confirmed `from` through forceConfirmFor (a Triple or a second field). **Accept:**
   a compose harness with a 3-item list asserting the force wire ids == the confirmed pair; a
   live leg with ≥3 checkpoints + conflict + Overwrite.
-- [ ] **F-P41-A (P3) — the git PUSH refusal renders NOTHING** ("Commit & push" silently
+- [x] **F-P41-A (P3) — the git PUSH refusal renders NOTHING** ("Commit & push" silently
   half-completes: `onPush` closes the PushConfirm BEFORE the async result, the success-only
   notice branch has NO else, and the port's `writeOp` maps the refused call to null — the
   shared null-swallow boundary). **Fix:** an else branch on the push notice path rendering the
   refused reason (the noticeGit plane). **Accept:** a harness asserting the push-refusal face
   renders with the message text (MOCK_GIT_PUSH_FAIL is the rig arm).
-- [ ] **F-P40-A (P3) — the BranchSheet's switch/create WRITE ACKS re-fetch NOTHING in-place**
+- [x] **F-P40-A (P3) — the BranchSheet's switch/create WRITE ACKS re-fetch NOTHING in-place**
   (the pane keeps pre-switch data until re-entry; the commit handler's `fetchChanges()`
   asymmetry IS the shape). **Fix:** fetchChanges() + a summary/comparison re-read on every
   write ack. **Accept:** a compose test asserting the branch block flips after a stubbed ok ack
   without re-entry.
-- [ ] **F-P40-C (P3) — the branch TYPED-ISSUE ack is swallowed** (a refused switch is
+- [x] **F-P40-C (P3) — the branch TYPED-ISSUE ack is swallowed** (a refused switch is
   indistinguishable from success: the sheet closes pre-result, onDismiss nulls the issue, the
   only render target lives INSIDE the closed sheet, and the wire's message/detail are decoded
   but never rendered — the "detail copyable" doc is unimplemented). **Fix:** keep the sheet
   open on issues (close only on ok) or render the issue card pane-level; render message/detail
   + the promised copy affordance. **Accept:** a harness asserting the issue face renders at ack
   time with the message text (MOCK_GIT_BRANCH_ISSUE is the rig arm).
-- [ ] **F-P10-A (P3) — the Commit sheet's Commit action SILENTLY no-ops when
+- [x] **F-P10-A (P3) — the Commit sheet's Commit action SILENTLY no-ops when
   hub.activeWorkspaceTarget() resolves null** (dialog closes, zero wire verbs, zero logs, zero
   user face — the reads in the SAME sheet resolve elsewhere; `writeOp :209 ?: return null` is
   the silent exit). **Fix:** resolve the write target the way the reads do (session-scoped) + a
   typed refusal face on the null-target path. **Accept:** a harness asserting the null-target
   path renders a typed refusal and never silently closes.
-- [ ] **N-CA-1 (P4) — the restore-confirm's promised DIFF-FILES face is unimplemented and
+- [x] **N-CA-1 (P4) — the restore-confirm's promised DIFF-FILES face is unimplemented and
   `diffCheckpoints` is UI-DEAD** (the card docstring promises "the confirm names BOTH ids and
   the diff's files" but `diffText` is only ever null-CLEARED and the port has ZERO UI callers
   while the verb is fully wired below the UI — 0 wire calls in both pass-45 gens). **Fix:**
@@ -11842,28 +11842,28 @@ F-P40-A → F-P40-C → F-P10-A → N-CA-1 → F-P5-A → N-BK-1 (app half) → 
 
 ### Sub-phase 4B — reads, decode & a11y fidelity
 
-- [ ] **F-P5-A (P3) — refused git reads render SILENT-EMPTY sections** (headers, zero rows, no
+- [x] **F-P5-A (P3) — refused git reads render SILENT-EMPTY sections** (headers, zero rows, no
   error — the render site EXISTS and is dead-coded behind `Phase9Ports.kt:124`'s null-swallow;
   the fix belongs to the port/loader boundary). **Fix:** a typed-refusal face on section-empty
   at the port/loader boundary. **Accept:** a pin hosting the LIVE shape — a refused getChanges
   renders the error face + retry (`GitScreen:204`'s existing site). (2 stamps.)
-- [ ] **N-BK-1 (app half, P2) — History silent-empty needs a "No commits yet" empty state**
+- [x] **N-BK-1 (app half, P2) — History silent-empty needs a "No commits yet" empty state**
   (the rig half is FIXED `2b12fc46`; the app half renders bare-blank on an empty history).
   **Fix:** the empty state. **Accept:** a compose pin — an empty history renders the "No
   commits yet" state (never bare-blank).
-- [ ] **N-BX-1 (P4) — the branch block renders the LITERAL "tracking: null":**
+- [x] **N-BX-1 (P4) — the branch block renders the LITERAL "tracking: null":**
   `Phase9Tools.strOrNull` (`Phase9Tools.kt:471`) is JsonNull-BLIND (JsonNull's content is the
   STRING "null") while the codebase's own `Phase9Ports.rpStr` HAS the filter — the two helpers
   disagree. **Fix:** add the JsonNull filter to strOrNull (one line, the rpStr shape).
   **Accept:** a decode harness over a JsonNull trackingBranchName asserting null (the UI then
   renders "—").
-- [ ] **N-BY-1 (P4) — the git Changes rows' Stage/Discard/Unstage a11y labels carry the RAW
+- [x] **N-BY-1 (P4) — the git Changes rows' Stage/Discard/Unstage a11y labels carry the RAW
   format string:** the semantics use `stageCdFmt.replace("%s", path)` but the resources are
   POSITIONAL (`git_stage_cd` = "Stage %1$s") so `%s` never matches — every TalkBack user hears
   "Stage %1$s" (dump receipted ×3 rows). **Fix:** use `%1$s` in the replace (or positional
   formatArgs). **Accept:** an a11y assertion on the row's content-desc containing the path.
 
-**Phase 4 exit gate: ☐** fresh rig: the 3-checkpoint force-overwrite executes the CONFIRMED
+**Phase 4 exit gate: ☑ PASSED 2026-11-18 19:37 UTC** fresh rig: the 3-checkpoint force-overwrite executes the CONFIRMED
 pair (F-P45-A); the push refusal renders (F-P41-A); the typed issue face renders at ack time
 with message/detail (F-P40-C); switch/create acks refetch in place (F-P40-A); refused reads
 render the error face (F-P5-A); "No commits yet" on empty history (N-BK-1); a11y labels carry
@@ -12743,3 +12743,161 @@ Phase-4 next (Git sheet, checkpoints & render fidelity — 10 rows, F-P45-A firs
 (ZCode Desktop, the agentic CLI harness on macOS arm64), executing Ernest's pass-0 Phase-3
 dispatch. Phase-3 disposition: **9/9 rows FIXED + exit gate PASSED — the phase is
 COMPLETE**. Ledger statuses re-stamped with the commit shas in the same session. NOTHING pushed.
+
+
+---
+
+# pass-0 Phase 4 fix-round record (APPENDED 2026-11-18)
+
+**Scope:** Phase 4 — Git sheet, checkpoints & render fidelity (10 rows: 2 P2 + 5 P3 + 3 P4).
+Branch `fix/pass0`; 10 pins (each RED at its pre-fix commit) + 10 fix commits + 2 mock commits
++ this docs commit; NOTHING pushed. The discovery record above is untouched; the Phase-4
+checkboxes are ticked in the roadmap.
+
+## The commits (one row ≥ one commit; every pin RED before its fix)
+
+1. `743e8fa0`+`aeb235f2` **fix(F-P45-A)** — `forceConfirmFor` carried only `(to, conflicts)`
+   and the force handler RECOMPUTED `from = checkpoints.getOrNull(1)` (the hard-coded index
+   that coincidentally matches only at exactly two checkpoints). The conflict arm now carries
+   the CONFIRMED Triple `(from, to, conflicts)`; the force wire ids are the confirmed pair
+   verbatim. Pin: CheckpointsCardUiTest's 3-item hydration leg — RED at pre-fix (the force
+   call recorded `restore:ckpt-1:ckpt-3:force=false` then the WRONG pair), GREEN post-fix;
+   the two 2-checkpoint faces stay green (the coincidence they relied on is gone from the
+   mechanism, not papered over). **Rig receipt (gen1, arg-exact on the ae091f81 args line):**
+   confirm `restoreBetweenCheckpoints args={…"fromCheckpointId":"ckpt-1","toCheckpointId":
+   "ckpt-3"}` (3 checkpoints hydrated live from the stateful mock: ckpt-3/ckpt-2/ckpt-1) →
+   conflict → force `args={…"fromCheckpointId":"ckpt-1","toCheckpointId":"ckpt-3","force":true}`
+   — the force leg executed the CONFIRMED pair (pre-fix would have executed ckpt-2).
+2. `cfe66a56`+`dc47c59d` **fix(F-P41-A)** — the push plane's typed outcome:
+   `GitPort.pushOutcome()` carries `GitWriteRefusal` (noTarget vs the verbatim desktop
+   message; the DefaultGitPort override replaces the writeOp null-swallow on the push
+   plane), and GitScreen's onPush renders an ELSE branch on the notice plane. Pin:
+   Pass0Phase4WriteRefusalFacesTest — RED at pre-fix with the exact recorded face
+   (`notices=[Committed deadbeef]` only). **Rig receipt (gen2, MOCK_GIT_PUSH_FAIL=1):** the
+   snackbar rendered **"Cannot push while HEAD is detached."** on the Git pane (dump
+   fp41a-push-refusal-rendered.xml) + the app-side wire line `gitport.push :: TransportFailure:
+   Cannot push while HEAD is detached.`
+3. `2e76f2f3`+`17e011af` **fix(F-P40-A)** — `refetchAfterWriteAck()` (summary + fetchChanges +
+   fetchComparison) runs on every non-null switch/create ack — the commit handler's
+   fetchChanges() asymmetry was the shape. Pins: Pass0Phase4BranchAcksTest (both ok-ack legs
+   RED at pre-fix: the branch block never flipped and changes never re-read without
+   re-entry). **Rig receipt (gen5, healthy):** Branches → Switch feature/a (success ack) →
+   the branch block flipped IN PLACE at the same coordinates (fp40a-nbx1-pane-flipped-
+   inplace.xml) and `channel.call :: git.getRepositorySummary` re-fired after the ack.
+4. `61d03919`+`837eec17` **fix(F-P40-C)** — BranchIssueCard renders the ack's issue
+   PANE-LEVEL (the sheet closes pre-result; the old IssueLine lived inside the closed
+   sheet and onDismiss nulled the state): the localized line by code, the wire's MESSAGE,
+   the DETAIL with the promised copy affordance (clipboard + the "Copied" ack), the paths,
+   and a dismiss. Pin: Pass0Phase4BranchIssueFaceTest (RED at pre-fix: the card never
+   rendered). **Rig receipt (gen3, MOCK_GIT_BRANCH_ISSUE armed):** the full face rendered
+   at ack time — "Untracked files would be overwritten." + the message + the detail +
+   "Copy detail" → tapped → **"Copied"** + "scratch/x.txt" + "Dismiss"
+   (fp40c-issue-face-rendered.xml, fp40c-copy-ack.xml).
+5. `7ea272c5`+`1949b6f7` **fix(F-P10-A)** — `GitPort.commitOutcome` types the null write
+   target as `GitWriteRefusal(noTarget=true)` (writeOp's `?: return null` was the silent
+   exit) and carries the refused call's reason otherwise; GitScreen's onCommit renders an
+   ELSE branch on the notice plane. Pins: Pass0Phase4CommitNullTargetTest (RED with
+   `notices=[]` — the silent face) + the app-side DefaultGitPortWriteTargetTest (the
+   typed refusal over a disconnected transport — the reproduction shape, both commit AND
+   push outcomes typed).
+6. `fb980dcf`+`5d7d5637` **fix(N-CA-1)** — the restore confirm fetches `diffCheckpoints`
+   with the CONFIRMED pair (LaunchedEffect keyed on both ids) and renders "Changed files: …"
+   under the body — the card docstring's promise; the verb was fully wired below the UI but
+   had ZERO callers. The dead `diffText` state (only ever null-cleared) is removed; the
+   existing pin's recorded call sequence gains the confirm's diff leg (this batch owns that
+   superseded contract). Pin: the CheckpointsCardUiTest diff leg — RED at pre-fix (the wire
+   never fired). **Rig receipt (gen1):** `diffCheckpoints args={"workspacePath":…,
+   "fromCheckpointId":"ckpt-1","toCheckpointId":"ckpt-3"}` on confirm open + the rendered
+   **"Changed files: src/version.ts, scratch/probe.txt"** (nca1-confirm-diff-files.xml).
+7. `02dc27ab`+`0629ede6` **fix(F-P5-A)** — `run()` gains the rethrow arm and the changes
+   read uses it: a refused getChanges now throws the typed TransportFailure (the fault code
+   reaches the screen's error face verbatim); a null target on the rethrowing plane throws
+   the honest IllegalStateException; unrefused reads still return their rows (the seeded
+   control leg). Pin: DefaultGitPortRefusalSurfaceTest — RED at pre-fix (`got null`: the
+   `?: emptyList()` swallow). **Rig receipt (gen4, MOCK_GIT_REFUSALS=getChanges):** the
+   Changes section renders **"fault.git.notAvailable"** + **Retry** (the previously
+   dead-coded GitScreen site, LIVE) — fp5a-nbk1-faces-rendered.xml.
+8. `17013aba`+`b3cb60b5` **fix(N-BK-1, app half)** — a HEALTHY empty history renders its
+   "No commits yet" empty state (never bare-blank); the refusal face stays separate. Pin:
+   the GitRefusalSurfaceUiTest empty leg — RED at pre-fix. **Rig receipt (gen4,
+   MOCK_GIT_EMPTY_COMMITS=1):** **"No commits yet"** rendered under History on the same
+   pane as the refused Changes face (the two faces correctly disjoint).
+9. `d413594c`+`02bac0f3` **fix(N-BX-1)** — `Phase9Tools.strOrNull` filters JsonNull (whose
+   .content is the STRING "null"), matching Phase9Ports.rpStr's existing filter. Pin:
+   the Phase9ToolsTest JsonNull leg over the RIG-5 merge shape — RED at pre-fix (decoded the
+   literal "null"). **Rig receipt (gen5):** post-switch the branch block rendered
+   **"tracking: —"** (pre-fix: the raw "tracking: null").
+10. `6a1f7e1b`+`59622df2` **fix(N-BY-1)** — the Stage/Discard/Unstage semantics replace the
+    POSITIONAL slot ("%1$s") the resources actually use, and the Stage verb follows the
+    row's staged state (the unstageCdFmt read was dead until now). Pin: the GitA11yTest
+    content-desc leg — RED at pre-fix (`got [Stage %1$s]`). **Rig receipt (gen5):** the
+    a11y dump carries **"Stage src/version.ts" / "Discard src/version.ts" /
+    "Stage scratch/probe.txt" / "Discard scratch/probe.txt" / "Unstage src/index.ts" /
+    "Discard src/index.ts"** — zero raw-format remnants (nby1-a11y-labels-with-paths.xml).
+
+Mock: `a4fb041c` arms **MOCK_GIT_EMPTY_COMMITS=1** (a HEALTHY empty commit graph — the
+unscripted fixture refuses, which is the F-P5-A face, not the empty face) and `804448d4`
+moves the arm AFTER the MOCK_GIT fixture block so the override wins ordering (jar+test
+green both commits). Rig artifacts: /tmp/p4phase4/ (5 relay launchers, fresh nonces
+`mock-p4phase4-gen1-9af6a3c0` … `-gen5-*`, relay logs, dumps, wire-receipt extracts).
+
+## The gate (rule 7)
+
+Fresh full run at `804448d4` (all 17 test tasks re-executed, every module emitted XML —
+the results dirs were cleared first): `testDebugUnitTest` (11 Android modules) + `test`
+(6 pure-JVM modules) with `--continue` = **2581 testcases / 1 failure / 0 errors**; the
+ONLY failing name is the documented pre-existing `ConnectionHubWritePathTest > sendText…
+(U4, §17-5)` — **zero new names attributable to the phase**. Task-failure list holds only
+the test-failure task; all 17 modules emitted test XML (399 app / 304 data / 295 mock /
+243 domain / 207 tasks / 129 transport / 115 core-ui / 78 notifications / 59 protocol /
+42 common / 40 security / 36 pairing / 32 git / 19 files / 9 spike / 8 terminal / 566
+conversation). The phase APK: `app-debug.apk` sha256 `519dc1f0f9a0000c41fde3c4d4789ce754
+a6892eeee2149a9e3dadbbf104c0be` (19:04 build).
+
+## Phase 4 exit gate — receipts (fresh zcode-a16 cold boots + gen1–gen5 relays)
+
+Rig: zcode-a16 cold-booted `-no-snapshot-load` (once re-booted mid-gate after a QEMU hang
+under host load — the 8GB gotcha; the checkpoint state survived in the stateful relay),
+install -r of the phase APK above, FIVE relay generations (each a fresh MOCK_GEN_NONCE):
+gen1 `MOCK_GIT=1+MOCK_CHECKPOINT_CONFLICTS=1`, gen2 `+MOCK_GIT_PUSH_FAIL=1`, gen3
+`+MOCK_GIT_BRANCH_ISSUE={untracked-changes…message,detail,paths}`, gen4
+`+MOCK_GIT_REFUSALS=getChanges=fault.git.notAvailable+MOCK_GIT_EMPTY_COMMITS=1`, gen5
+healthy. `relay.connected relay-1…relay-9` receipts in logcat.log; rig hygiene held
+(pkill -f MockRelayMainKt only, logcat restarted after the emulator reboot, DB-free legs
+arbitrated by the arg-exact relay lines + uiautomator dumps).
+
+- **(a) the 3-checkpoint force-overwrite executes the CONFIRMED pair (F-P45-A)** — leg 1:
+  both wire lines carry ckpt-1→ckpt-3 (the force leg arg-exact with `"force":true`).
+- **(b) the push refusal renders (F-P41-A)** — leg 2 above (the snackbar face + the wire
+  line).
+- **(c) the typed issue face renders at ack time with message/detail (F-P40-C)** — leg 3
+  above (the five-part face + the live "Copied" ack).
+- **(d) switch/create acks refetch in place (F-P40-A)** — leg 5 above (the in-place flip +
+  the post-ack getRepositorySummary).
+- **(e) refused reads render the error face (F-P5-A)** — leg 4 above (the fault text +
+  Retry).
+- **(f) "No commits yet" on empty history (N-BK-1)** — leg 4 above (the disjoint empty
+  face).
+- **(g) a11y labels carry paths (N-BY-1)** — leg 5 above (six path-bearing labels, zero
+  remnants).
+- **(h) the confirm names the diff files (N-CA-1)** — leg 1 above (the diffCheckpoints
+  wire + the rendered files).
+- **(i) N-BX-1** — leg 5 above ("tracking: —" post-switch). **(j) F-P10-A** — the
+  app-side pin (the typed refusal over a disconnected transport) + the compose pin (the
+  face renders); the gate list names no separate rig leg for it and the null-target path
+  is not driveable against a CONNECTED relay (the target always resolves), so the pins are
+  its arbiter per the row's Accept text.
+
+## Ledger arithmetic
+
+Open F: **16** (was 22; −6: F-P45-A, F-P41-A, F-P40-A, F-P40-C, F-P10-A, F-P5-A) · Open G:
+**20** (unchanged — no G rows in Phase 4) · Open smalls: **15** (was 19; −4: N-BK-1 app
+half, N-BX-1, N-BY-1, N-CA-1). Phase-5 next (Automation runs & child sessions — 4 rows:
+1 P3 + 3 P4).
+
+**2026-11-18, verified at 19:38:38 (hh-mm-ss, UTC; the docs commit follows).** Verified by
+**GLM-5.3-Flash** (model/LLM: account:zai-individual-coding-plan/GLM-5.3-Flash) running in
+**ZCode** (ZCode Desktop, the agentic CLI harness on macOS arm64), executing Ernest's
+pass-0 Phase-4 dispatch. Phase-4 disposition: **10/10 rows FIXED + exit gate PASSED — the
+phase is COMPLETE**. Ledger statuses re-stamped with the commit shas in the same session.
+NOTHING pushed.
